@@ -24,6 +24,7 @@
 #include "mock/core/consensus/grandpa/environment_mock.hpp"
 #include "mock/core/consensus/validation/block_validator_mock.hpp"
 #include "mock/core/crypto/hasher_mock.hpp"
+#include "mock/core/crypto/session_keys_mock.hpp"
 #include "mock/core/crypto/sr25519_provider_mock.hpp"
 #include "mock/core/network/block_announce_transmitter_mock.hpp"
 #include "mock/core/network/synchronizer_mock.hpp"
@@ -161,6 +162,10 @@ class BabeTest : public testing::Test {
     babe_status_observable_ =
         std::make_shared<primitives::events::BabeStateSubscriptionEngine>();
 
+    session_keys_ = std::make_shared<SessionKeysMock>();
+    EXPECT_CALL(*session_keys_, getBabeKeyPair())
+        .WillRepeatedly(ReturnRef(keypair_));
+
     babe_ = std::make_shared<babe::BabeImpl>(app_config_,
                                              app_state_manager_,
                                              lottery_,
@@ -169,7 +174,7 @@ class BabeTest : public testing::Test {
                                              block_tree_,
                                              block_announce_transmitter_,
                                              sr25519_provider,
-                                             keypair_,
+                                             session_keys_,
                                              clock_,
                                              hasher_,
                                              std::move(timer_mock_),
@@ -215,6 +220,7 @@ class BabeTest : public testing::Test {
   std::shared_ptr<BlockAnnounceTransmitterMock> block_announce_transmitter_;
   std::shared_ptr<Sr25519Keypair> keypair_ =
       std::make_shared<Sr25519Keypair>(generateSr25519Keypair());
+  std::shared_ptr<SessionKeysMock> session_keys_;
   std::shared_ptr<SystemClockMock> clock_;
   std::shared_ptr<HasherMock> hasher_;
   std::unique_ptr<testutil::TimerMock> timer_mock_;
@@ -335,7 +341,7 @@ TEST_F(BabeTest, Success) {
   EXPECT_CALL(*block_tree_, getBlockHeader(created_block_hash_))
       .WillRepeatedly(Return(outcome::success(block_header_)));
 
-  EXPECT_CALL(*proposer_, propose(best_leaf, _, _, _))
+  EXPECT_CALL(*proposer_, propose(best_leaf, _, _, _, _))
       .WillOnce(Return(created_block_));
 
   EXPECT_CALL(*hasher_, blake2b_256(_))

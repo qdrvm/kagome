@@ -139,7 +139,7 @@ namespace kagome::consensus::grandpa {
     RoundNumber round_number;
     primitives::BlockInfo block_info;
     std::vector<SignedPrecommit> items{};
-    std::vector<primitives::BlockHeader> votes_ancestries;
+    std::vector<primitives::BlockHeader> votes_ancestries{};
   };
 
   template <class Stream,

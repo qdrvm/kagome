@@ -7,6 +7,7 @@
 
 #include <boost/asio.hpp>
 #include "api/transport/tuner.hpp"
+#include "application/app_configuration.hpp"
 #include "application/app_state_manager.hpp"
 
 namespace {
@@ -18,12 +19,12 @@ namespace kagome::api {
   WsListenerImpl::WsListenerImpl(
       application::AppStateManager &app_state_manager,
       std::shared_ptr<Context> context,
-      Configuration listener_config,
+      const application::AppConfiguration &app_config,
       SessionImpl::Configuration session_config)
       : context_{std::move(context)},
-        config_{std::move(listener_config)},
+        endpoint_(app_config.rpcWsEndpoint()),
         session_config_{session_config},
-        max_ws_connections_{config_.ws_max_connections},
+        max_ws_connections_{app_config.maxWsConnections()},
         next_session_id_{1ull},
         active_connections_{0},
         log_{log::createLogger("RpcWsListener", "rpc_transport")} {
@@ -43,7 +44,7 @@ namespace kagome::api {
   bool WsListenerImpl::prepare() {
     try {
       acceptor_ = acceptOnFreePort(
-          context_, config_.endpoint, kDefaultPortTolerance, log_);
+          context_, endpoint_, kDefaultPortTolerance, log_);
     } catch (const boost::wrapexcept<boost::system::system_error> &exception) {
       SL_CRITICAL(log_, "Failed to prepare a listener: {}", exception.what());
       return false;
@@ -72,7 +73,7 @@ namespace kagome::api {
     SL_TRACE(log_, "Connections limit is set to {}", max_ws_connections_);
     SL_INFO(log_,
             "Listening for new connections on {}:{}",
-            config_.endpoint.address(),
+            endpoint_.address(),
             acceptor_->local_endpoint().port());
     acceptOnce();
     return true;

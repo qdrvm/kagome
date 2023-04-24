@@ -20,6 +20,8 @@ namespace kagome::authorship {
    */
   class Proposer {
    public:
+    using Clock = clock::SystemClock;
+
     virtual ~Proposer() = default;
 
     /**
@@ -31,6 +33,7 @@ namespace kagome::authorship {
      */
     virtual outcome::result<primitives::Block> propose(
         const primitives::BlockInfo &parent_block,
+        std::optional<Clock::TimePoint> deadline,
         const primitives::InherentData &inherent_data,
         const primitives::Digest &inherent_digest,
         TrieChangesTrackerOpt changes_tracker) = 0;

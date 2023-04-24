@@ -21,9 +21,6 @@ namespace kagome::api {
    public:
     virtual ~ChildStateApi() = default;
 
-    virtual void setApiService(
-        const std::shared_ptr<api::ApiService> &api_service) = 0;
-
     /**
      * @brief Warning: This method is UNSAFE.
      * Returns the keys from the specified child storage.

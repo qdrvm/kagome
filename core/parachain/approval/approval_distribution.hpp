@@ -271,8 +271,6 @@ namespace kagome::parachain {
 
     /// AppStateManager impl
     bool prepare();
-    bool start();
-    void stop();
 
     void onValidationProtocolMsg(
         libp2p::peer::PeerId const &peer_id,

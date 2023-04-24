@@ -11,6 +11,7 @@
 
 #include <erasure_coding/erasure_coding.h>
 
+#include "crypto/crypto_store/session_keys.hpp"
 #include "crypto/hasher.hpp"
 #include "crypto/sr25519_provider.hpp"
 #include "network/common.hpp"
@@ -62,7 +63,7 @@ namespace kagome::parachain {
       std::shared_ptr<crypto::Sr25519Provider> crypto_provider,
       std::shared_ptr<network::Router> router,
       std::shared_ptr<boost::asio::io_context> this_context,
-      std::shared_ptr<crypto::Sr25519Keypair> keypair,
+      std::shared_ptr<crypto::SessionKeys> session_keys,
       std::shared_ptr<crypto::Hasher> hasher,
       std::shared_ptr<network::PeerView> peer_view,
       std::shared_ptr<ThreadPool> thread_pool,
@@ -81,7 +82,10 @@ namespace kagome::parachain {
         crypto_provider_(std::move(crypto_provider)),
         router_(std::move(router)),
         this_context_(std::move(this_context)),
-        keypair_(std::move(keypair)),
+        keypair_([&] {
+          BOOST_ASSERT(session_keys != nullptr);
+          return session_keys->getBabeKeyPair();  // bake key used in substrate
+        }()),
         hasher_(std::move(hasher)),
         peer_view_(std::move(peer_view)),
         thread_pool_(std::move(thread_pool)),
@@ -94,7 +98,8 @@ namespace kagome::parachain {
         parachain_host_(std::move(parachain_host)),
         app_config_(app_config),
         babe_status_observable_(std::move(babe_status_observable)),
-        query_audi_{std::move(query_audi)} {
+        query_audi_{std::move(query_audi)},
+        thread_handler_{thread_pool_->handler()} {
     BOOST_ASSERT(pm_);
     BOOST_ASSERT(peer_view_);
     BOOST_ASSERT(crypto_provider_);
@@ -117,8 +122,8 @@ namespace kagome::parachain {
   bool ParachainProcessorImpl::prepare() {
     bitfield_signer_->setBroadcastCallback(
         [log{logger_}, wptr_self{weak_from_this()}](
-            primitives::BlockHash const &relay_parent,
-            network::SignedBitfield const &bitfield) {
+            const primitives::BlockHash &relay_parent,
+            const network::SignedBitfield &bitfield) {
           log->info("Distribute bitfield on {}", relay_parent);
           if (auto self = wptr_self.lock()) {
             auto msg = std::make_shared<
@@ -136,16 +141,19 @@ namespace kagome::parachain {
             babe_status_observable_, false);
     babe_status_observer_->subscribe(
         babe_status_observer_->generateSubscriptionSetId(),
-        primitives::events::BabeStateEventType::kSynchronized);
+        primitives::events::BabeStateEventType::kSyncState);
     babe_status_observer_->setCallback([wself{weak_from_this()}](
                                            auto /*set_id*/,
                                            bool &synchronized,
                                            auto /*event_type*/,
                                            const primitives::events::
-                                               BabeStateEventParams
-                                                   & /*event*/) {
+                                               BabeStateEventParams &event) {
       if (auto self = wself.lock()) {
-        if (!synchronized) {
+        if (event != consensus::babe::Babe::State::SYNCHRONIZED) {
+          SL_INFO(self->logger_, "Parachains engine turned-off");
+          synchronized = false;
+        } else if (!synchronized) {
+          SL_INFO(self->logger_, "Parachains engine turned-on");
           synchronized = true;
           auto my_view = self->peer_view_->getMyView();
           if (!my_view) {
@@ -230,7 +238,7 @@ namespace kagome::parachain {
     return true;
   }
 
-  void ParachainProcessorImpl::broadcastView(network::View const &view) const {
+  void ParachainProcessorImpl::broadcastView(const network::View &view) const {
     auto msg = std::make_shared<
         network::WireMessage<network::ValidatorProtocolMessage>>(
         network::ViewUpdate{.view = view});
@@ -250,10 +258,9 @@ namespace kagome::parachain {
   }
 
   bool ParachainProcessorImpl::start() {
+    thread_handler_->start();
     return true;
   }
-
-  void ParachainProcessorImpl::stop() {}
 
   outcome::result<kagome::parachain::ParachainProcessorImpl::RelayParentState>
   ParachainProcessorImpl::initNewBackingTask(
@@ -269,7 +276,7 @@ namespace kagome::parachain {
       return Error::KEY_NOT_PRESENT;
     }
 
-    auto const n_cores = cores.size();
+    const auto n_cores = cores.size();
     std::optional<ParachainId> assignment;
     std::optional<CollatorId> required_collator;
 
@@ -277,9 +284,9 @@ namespace kagome::parachain {
     for (CoreIndex core_index = 0;
          core_index < static_cast<CoreIndex>(cores.size());
          ++core_index) {
-      if (auto const *scheduled =
+      if (const auto *scheduled =
               boost::get<const network::ScheduledCore>(&cores[core_index])) {
-        auto const group_index =
+        const auto group_index =
             group_rotation_info.groupForCore(core_index, n_cores);
         if (group_index < validator_groups.size()) {
           auto &g = validator_groups[group_index];
@@ -353,7 +360,7 @@ namespace kagome::parachain {
     auto &seconded = parachain_state.seconded;
     auto &issued_statements = parachain_state.issued_statements;
 
-    network::CandidateDescriptor const &descriptor =
+    const network::CandidateDescriptor &descriptor =
         candidateDescriptorFrom(response);
     primitives::BlockHash const candidate_hash = candidateHashFrom(response);
 
@@ -374,7 +381,7 @@ namespace kagome::parachain {
       return;
     }
 
-    auto const candidate_para_id = descriptor.para_id;
+    const auto candidate_para_id = descriptor.para_id;
     if (candidate_para_id != assignment) {
       logger_->warn(
           "Try to second for para_id {} out of our assignment {}.",
@@ -395,7 +402,7 @@ namespace kagome::parachain {
       return;
     }
 
-    auto const can_process =
+    const auto can_process =
         pending_candidates.exclusiveAccess([&](auto &container) {
           auto it =
               container.find(pending_collation.pending_collation.relay_parent);
@@ -427,8 +434,12 @@ namespace kagome::parachain {
   }
 
   void ParachainProcessorImpl::onValidationProtocolMsg(
-      libp2p::peer::PeerId const &peer_id,
-      network::ValidatorProtocolMessage const &message) {
+      const libp2p::peer::PeerId &peer_id,
+      const network::ValidatorProtocolMessage &message) {
+    if (auto r = canProcessParachains(); r.has_error()) {
+      return;
+    }
+
     if (auto m{boost::get<network::BitfieldDistributionMessage>(&message)}) {
       auto bd{boost::get<network::BitfieldDistribution>(m)};
       BOOST_ASSERT_MSG(
@@ -455,8 +466,8 @@ namespace kagome::parachain {
 
   template <typename F>
   void ParachainProcessorImpl::requestPoV(
-      libp2p::peer::PeerInfo const &peer_info,
-      CandidateHash const &candidate_hash,
+      const libp2p::peer::PeerInfo &peer_info,
+      const CandidateHash &candidate_hash,
       F &&callback) {
     /// TODO(iceseer): request PoV from validator, who seconded candidate
     /// But now we can assume, that if we received either `seconded` or `valid`
@@ -474,7 +485,7 @@ namespace kagome::parachain {
   }
 
   std::optional<runtime::SessionInfo>
-  ParachainProcessorImpl::retrieveSessionInfo(RelayHash const &relay_parent) {
+  ParachainProcessorImpl::retrieveSessionInfo(const RelayHash &relay_parent) {
     if (auto session_index =
             parachain_host_->session_index_for_child(relay_parent);
         session_index.has_value()) {
@@ -488,17 +499,17 @@ namespace kagome::parachain {
   }
 
   void ParachainProcessorImpl::kickOffValidationWork(
-      RelayHash const &relay_parent,
+      const RelayHash &relay_parent,
       AttestingData &attesting_data,
       RelayParentState &parachain_state) {
-    auto const candidate_hash{candidateHashFrom(attesting_data.candidate)};
+    const auto candidate_hash{candidateHashFrom(attesting_data.candidate)};
 
     BOOST_ASSERT(this_context_->get_executor().running_in_this_thread());
     if (!parachain_state.awaiting_validation.insert(candidate_hash).second) {
       return;
     }
 
-    auto const &collator_id =
+    const auto &collator_id =
         collatorIdFromDescriptor(attesting_data.candidate.descriptor);
     if (parachain_state.required_collator
         && collator_id != *parachain_state.required_collator) {
@@ -520,7 +531,7 @@ namespace kagome::parachain {
       return;
     }
 
-    auto const &authority_id =
+    const auto &authority_id =
         session_info->discovery_keys[attesting_data.from_validator];
     if (auto peer = query_audi_->get(authority_id)) {
       requestPoV(
@@ -576,7 +587,7 @@ namespace kagome::parachain {
 
   outcome::result<network::FetchChunkResponse>
   ParachainProcessorImpl::OnFetchChunkRequest(
-      network::FetchChunkRequest const &request) {
+      const network::FetchChunkRequest &request) {
     if (auto chunk =
             av_store_->getChunk(request.candidate, request.chunk_index)) {
       return network::Chunk{
@@ -591,8 +602,8 @@ namespace kagome::parachain {
   void ParachainProcessorImpl::appendAsyncValidationTask(
       network::CandidateReceipt &&candidate,
       network::ParachainBlock &&pov,
-      primitives::BlockHash const &relay_parent,
-      libp2p::peer::PeerId const &peer_id,
+      const primitives::BlockHash &relay_parent,
+      const libp2p::peer::PeerId &peer_id,
       RelayParentState &parachain_state,
       const primitives::BlockHash &candidate_hash,
       size_t n_validators) {
@@ -607,7 +618,7 @@ namespace kagome::parachain {
         peer_id);
 
     sequenceIgnore(
-        thread_pool_->io_context()->wrap(
+        thread_handler_->io_context()->wrap(
             asAsync([wself{weak_from_this()},
                      candidate{std::move(candidate)},
                      pov{std::move(pov)},
@@ -668,7 +679,7 @@ namespace kagome::parachain {
 
   template <typename T>
   outcome::result<network::Signature> ParachainProcessorImpl::sign(
-      T const &t) const {
+      const T &t) const {
     if (!keypair_) {
       return Error::KEY_NOT_PRESENT;
     }
@@ -682,7 +693,7 @@ namespace kagome::parachain {
   ParachainProcessorImpl::tryGetStateByRelayParent(
       const primitives::BlockHash &relay_parent) {
     BOOST_ASSERT(this_context_->get_executor().running_in_this_thread());
-    auto const it = our_current_state_.state_by_relay_parent.find(relay_parent);
+    const auto it = our_current_state_.state_by_relay_parent.find(relay_parent);
     if (it != our_current_state_.state_by_relay_parent.end()) {
       return it->second;
     }
@@ -693,7 +704,7 @@ namespace kagome::parachain {
   ParachainProcessorImpl::storeStateByRelayParent(
       const primitives::BlockHash &relay_parent, RelayParentState &&val) {
     BOOST_ASSERT(this_context_->get_executor().running_in_this_thread());
-    auto const &[it, inserted] =
+    const auto &[it, inserted] =
         our_current_state_.state_by_relay_parent.insert(
             {relay_parent, std::move(val)});
     BOOST_ASSERT(inserted);
@@ -701,9 +712,9 @@ namespace kagome::parachain {
   }
 
   void ParachainProcessorImpl::handleStatement(
-      libp2p::peer::PeerId const &peer_id,
-      primitives::BlockHash const &relay_parent,
-      network::SignedStatement const &statement) {
+      const libp2p::peer::PeerId &peer_id,
+      const primitives::BlockHash &relay_parent,
+      const network::SignedStatement &statement) {
     BOOST_ASSERT(this_context_->get_executor().running_in_this_thread());
     auto opt_parachain_state = tryGetStateByRelayParent(relay_parent);
     if (!opt_parachain_state) {
@@ -735,7 +746,7 @@ namespace kagome::parachain {
       std::optional<std::reference_wrapper<AttestingData>> attesting_ref =
           visit_in_place(
               parachain::getPayload(statement).candidate_state,
-              [&](network::CommittedCandidateReceipt const &seconded)
+              [&](const network::CommittedCandidateReceipt &seconded)
                   -> std::optional<std::reference_wrapper<AttestingData>> {
                 auto const &candidate_hash = result->imported.candidate;
                 auto opt_candidate =
@@ -756,7 +767,7 @@ namespace kagome::parachain {
                     std::make_pair(candidate_hash, std::move(attesting)));
                 return it->second;
               },
-              [&](primitives::BlockHash const &candidate_hash)
+              [&](const primitives::BlockHash &candidate_hash)
                   -> std::optional<std::reference_wrapper<AttestingData>> {
                 auto it = fallbacks.find(candidate_hash);
                 if (it == fallbacks.end()) {
@@ -773,7 +784,7 @@ namespace kagome::parachain {
                 it->second.from_validator = statement.payload.ix;
                 return it->second;
               },
-              [&](auto const &)
+              [&](const auto &)
                   -> std::optional<std::reference_wrapper<AttestingData>> {
                 BOOST_ASSERT(!"Not used!");
                 return std::nullopt;
@@ -789,8 +800,8 @@ namespace kagome::parachain {
   std::optional<ParachainProcessorImpl::ImportStatementSummary>
   ParachainProcessorImpl::importStatementToTable(
       ParachainProcessorImpl::RelayParentState &relayParentState,
-      primitives::BlockHash const &candidate_hash,
-      network::SignedStatement const &statement) {
+      const primitives::BlockHash &candidate_hash,
+      const network::SignedStatement &statement) {
     SL_TRACE(
         logger_, "Import statement into table.(candidate={})", candidate_hash);
 
@@ -805,7 +816,7 @@ namespace kagome::parachain {
   }
 
   void ParachainProcessorImpl::notifyBackedCandidate(
-      network::SignedStatement const &statement) {
+      const network::SignedStatement &statement) {
     logger_->error(
         "Not implemented. Should notify somebody that backed candidate "
         "appeared.");
@@ -814,10 +825,10 @@ namespace kagome::parachain {
   std::optional<ParachainProcessorImpl::AttestedCandidate>
   ParachainProcessorImpl::attested(
       network::CommittedCandidateReceipt &&candidate,
-      BackingStore::StatementInfo const &data,
+      const BackingStore::StatementInfo &data,
       size_t validity_threshold) {
-    auto const &validity_votes = data.second;
-    auto const valid_votes = validity_votes.size();
+    const auto &validity_votes = data.second;
+    const auto valid_votes = validity_votes.size();
     if (valid_votes < validity_threshold) {
       return std::nullopt;
     }
@@ -827,8 +838,8 @@ namespace kagome::parachain {
     validity_votes_out.reserve(validity_votes.size());
 
     for (auto &[validator_index, statement] : validity_votes) {
-      if (auto seconded = boost::get<network::CommittedCandidateReceipt>(
-              &statement.payload.payload.candidate_state)) {
+      if (is_type<network::CommittedCandidateReceipt>(
+              statement.payload.payload.candidate_state)) {
         validity_votes_out.emplace_back(
             validator_index,
             network::ValidityAttestation{
@@ -854,16 +865,16 @@ namespace kagome::parachain {
 
   std::optional<ParachainProcessorImpl::AttestedCandidate>
   ParachainProcessorImpl::attested_candidate(
-      CandidateHash const &digest,
-      ParachainProcessorImpl::TableContext const &context) {
+      const CandidateHash &digest,
+      const ParachainProcessorImpl::TableContext &context) {
     if (auto opt_validity_votes = backing_store_->get_validity_votes(digest)) {
       auto &data = opt_validity_votes->get();
-      GroupIndex const group = data.first;
+      const GroupIndex group = data.first;
 
       auto candidate{backing_store_->get_candidate(digest)};
       BOOST_ASSERT(candidate);
 
-      auto const v_threshold = context.requisite_votes(group);
+      const auto v_threshold = context.requisite_votes(group);
       return attested(std::move(*candidate), data, v_threshold);
     }
     return std::nullopt;
@@ -872,18 +883,18 @@ namespace kagome::parachain {
   std::optional<BackingStore::BackedCandidate>
   ParachainProcessorImpl::table_attested_to_backed(
       AttestedCandidate &&attested, TableContext &table_context) {
-    auto const para_id = attested.group_id;
+    const auto para_id = attested.group_id;
     if (auto it = table_context.groups.find(para_id);
         it != table_context.groups.end()) {
-      auto const &group = it->second;
+      const auto &group = it->second;
       scale::BitVec validator_indices{};
       validator_indices.bits.resize(group.size(), false);
 
       std::vector<std::pair<size_t, size_t>> vote_positions;
       vote_positions.reserve(attested.validity_votes.size());
 
-      auto position = [](auto const &container,
-                         auto const &val) -> std::optional<size_t> {
+      auto position = [](const auto &container,
+                         const auto &val) -> std::optional<size_t> {
         for (size_t ix = 0; ix < container.size(); ++ix) {
           if (val == container[ix]) {
             return ix;
@@ -894,7 +905,7 @@ namespace kagome::parachain {
 
       for (size_t orig_idx = 0; orig_idx < attested.validity_votes.size();
            ++orig_idx) {
-        auto const &id = attested.validity_votes[orig_idx].first;
+        const auto &id = attested.validity_votes[orig_idx].first;
         if (auto p = position(group, id)) {
           validator_indices.bits[*p] = true;
           vote_positions.emplace_back(orig_idx, *p);
@@ -908,11 +919,11 @@ namespace kagome::parachain {
       std::sort(
           vote_positions.begin(),
           vote_positions.end(),
-          [](auto const &l, auto const &r) { return l.second < r.second; });
+          [](const auto &l, const auto &r) { return l.second < r.second; });
 
       std::vector<network::ValidityAttestation> validity_votes;
       validity_votes.reserve(vote_positions.size());
-      for (auto const &[pos_in_votes, _pos_in_group] : vote_positions) {
+      for (const auto &[pos_in_votes, _pos_in_group] : vote_positions) {
         validity_votes.emplace_back(
             std::move(attested.validity_votes[pos_in_votes].second));
       }
@@ -928,8 +939,8 @@ namespace kagome::parachain {
 
   std::optional<ParachainProcessorImpl::ImportStatementSummary>
   ParachainProcessorImpl::importStatement(
-      network::RelayHash const &relay_parent,
-      network::SignedStatement const &statement,
+      const network::RelayHash &relay_parent,
+      const network::SignedStatement &statement,
       ParachainProcessorImpl::RelayParentState &relayParentState) {
     auto import_result = importStatementToTable(
         relayParentState,
@@ -1030,7 +1041,7 @@ namespace kagome::parachain {
 
   template <typename F>
   bool ParachainProcessorImpl::tryOpenOutgoingStream(
-      libp2p::peer::PeerId const &peer_id,
+      const libp2p::peer::PeerId &peer_id,
       std::shared_ptr<network::ProtocolBase> protocol,
       F &&callback) {
     auto stream_engine = pm_->getStreamEngine();
@@ -1079,7 +1090,7 @@ namespace kagome::parachain {
 
   template <typename F>
   bool ParachainProcessorImpl::tryOpenOutgoingCollatingStream(
-      libp2p::peer::PeerId const &peer_id, F &&callback) {
+      const libp2p::peer::PeerId &peer_id, F &&callback) {
     auto protocol = router_->getCollationProtocol();
     BOOST_ASSERT(protocol);
 
@@ -1089,7 +1100,7 @@ namespace kagome::parachain {
 
   template <typename F>
   bool ParachainProcessorImpl::tryOpenOutgoingValidationStream(
-      libp2p::peer::PeerId const &peer_id, F &&callback) {
+      const libp2p::peer::PeerId &peer_id, F &&callback) {
     auto protocol = router_->getValidationProtocol();
     BOOST_ASSERT(protocol);
 
@@ -1120,7 +1131,7 @@ namespace kagome::parachain {
   }
 
   void ParachainProcessorImpl::onIncomingCollationStream(
-      libp2p::peer::PeerId const &peer_id) {
+      const libp2p::peer::PeerId &peer_id) {
     if (tryOpenOutgoingCollatingStream(
             peer_id, [wptr{weak_from_this()}, peer_id](auto &&stream) {
               if (auto self = wptr.lock()) {
@@ -1133,7 +1144,7 @@ namespace kagome::parachain {
   }
 
   void ParachainProcessorImpl::onIncomingValidationStream(
-      libp2p::peer::PeerId const &peer_id) {
+      const libp2p::peer::PeerId &peer_id) {
     if (tryOpenOutgoingValidationStream(
             peer_id, [wptr{weak_from_this()}, peer_id](auto &&stream) {
               if (auto self = wptr.lock()) {
@@ -1154,15 +1165,15 @@ namespace kagome::parachain {
   }
 
   void ParachainProcessorImpl::onIncomingCollator(
-      libp2p::peer::PeerId const &peer_id,
+      const libp2p::peer::PeerId &peer_id,
       network::CollatorPublicKey pubkey,
       network::ParachainId para_id) {
     pm_->setCollating(peer_id, pubkey, para_id);
   }
 
   void ParachainProcessorImpl::handleNotify(
-      libp2p::peer::PeerId const &peer_id,
-      primitives::BlockHash const &relay_parent) {
+      const libp2p::peer::PeerId &peer_id,
+      const primitives::BlockHash &relay_parent) {
     if (tryOpenOutgoingCollatingStream(
             peer_id,
             [peer_id, relay_parent, wptr{weak_from_this()}](
@@ -1208,9 +1219,9 @@ namespace kagome::parachain {
   }
 
   void ParachainProcessorImpl::notify(
-      libp2p::peer::PeerId const &peer_id,
-      primitives::BlockHash const &relay_parent,
-      network::SignedStatement const &statement) {
+      const libp2p::peer::PeerId &peer_id,
+      const primitives::BlockHash &relay_parent,
+      const network::SignedStatement &statement) {
     our_current_state_.seconded_statements[peer_id].emplace_back(
         std::make_pair(relay_parent, statement));
     handleNotify(peer_id, relay_parent);
@@ -1222,8 +1233,8 @@ namespace kagome::parachain {
   }
 
   outcome::result<void> ParachainProcessorImpl::advCanBeProcessed(
-      primitives::BlockHash const &relay_parent,
-      libp2p::peer::PeerId const &peer_id) {
+      const primitives::BlockHash &relay_parent,
+      const libp2p::peer::PeerId &peer_id) {
     BOOST_ASSERT(this_context_->get_executor().running_in_this_thread());
     OUTCOME_TRY(canProcessParachains());
 
@@ -1241,7 +1252,7 @@ namespace kagome::parachain {
   }
 
   void ParachainProcessorImpl::onValidationComplete(
-      libp2p::peer::PeerId const &peer_id,
+      const libp2p::peer::PeerId &peer_id,
       ValidateAndSecondResult &&validation_result) {
     logger_->warn("On validation complete. (peer={}, relay parent={})",
                   peer_id,
@@ -1258,7 +1269,7 @@ namespace kagome::parachain {
 
     auto &parachain_state = opt_parachain_state->get();
     auto &seconded = parachain_state.seconded;
-    auto const candidate_hash = candidateHashFrom(validation_result.candidate);
+    const auto candidate_hash = candidateHashFrom(validation_result.candidate);
     if (!validation_result.result) {
       logger_->warn("Candidate {} validation failed with: {}",
                     candidate_hash,
@@ -1287,8 +1298,8 @@ namespace kagome::parachain {
   }
 
   void ParachainProcessorImpl::notifyStatementDistributionSystem(
-      primitives::BlockHash const &relay_parent,
-      network::SignedStatement const &statement) {
+      const primitives::BlockHash &relay_parent,
+      const network::SignedStatement &statement) {
     auto se = pm_->getStreamEngine();
     BOOST_ASSERT(se);
 
@@ -1309,23 +1320,23 @@ namespace kagome::parachain {
 
   outcome::result<kagome::parachain::Pvf::Result>
   ParachainProcessorImpl::validateCandidate(
-      network::CandidateReceipt const &candidate,
-      network::ParachainBlock const &pov) {
+      const network::CandidateReceipt &candidate,
+      const network::ParachainBlock &pov) {
     return pvf_->pvfSync(candidate, pov);
   }
 
   outcome::result<std::vector<network::ErasureChunk>>
   ParachainProcessorImpl::validateErasureCoding(
-      runtime::AvailableData const &validating_data, size_t n_validators) {
+      const runtime::AvailableData &validating_data, size_t n_validators) {
     return toChunks(n_validators, validating_data);
   }
 
   void ParachainProcessorImpl::notifyAvailableData(
       std::vector<network::ErasureChunk> &&chunks,
-      primitives::BlockHash const &relay_parent,
-      network::CandidateHash const &candidate_hash,
-      network::ParachainBlock const &pov,
-      runtime::PersistedValidationData const &data) {
+      const primitives::BlockHash &relay_parent,
+      const network::CandidateHash &candidate_hash,
+      const network::ParachainBlock &pov,
+      const runtime::PersistedValidationData &data) {
     makeTrieProof(chunks);
     /// TODO(iceseer): remove copy
     av_store_->storeData(
@@ -1337,12 +1348,12 @@ namespace kagome::parachain {
   ParachainProcessorImpl::validateAndMakeAvailable(
       network::CandidateReceipt &&candidate,
       network::ParachainBlock &&pov,
-      libp2p::peer::PeerId const &peer_id,
-      primitives::BlockHash const &relay_parent,
+      const libp2p::peer::PeerId &peer_id,
+      const primitives::BlockHash &relay_parent,
       size_t n_validators) {
     TicToc _measure{"Parachain validation", logger_};
 
-    auto const candidate_hash{candidateHashFrom(candidate)};
+    const auto candidate_hash{candidateHashFrom(candidate)};
     auto validation_result = validateCandidate(candidate, pov);
     if (!validation_result) {
       logger_->warn(
@@ -1379,7 +1390,7 @@ namespace kagome::parachain {
   }
 
   void ParachainProcessorImpl::onAttestComplete(
-      libp2p::peer::PeerId const &, ValidateAndSecondResult &&result) {
+      const libp2p::peer::PeerId &, ValidateAndSecondResult &&result) {
     auto parachain_state = tryGetStateByRelayParent(result.relay_parent);
     if (!parachain_state) {
       logger_->warn(
@@ -1392,7 +1403,7 @@ namespace kagome::parachain {
                   result.relay_parent,
                   result.candidate.descriptor.para_id);
 
-    auto const candidate_hash = candidateHashFrom(result.candidate);
+    const auto candidate_hash = candidateHashFrom(result.candidate);
     parachain_state->get().fallbacks.erase(candidate_hash);
 
     if (parachain_state->get().issued_statements.count(candidate_hash) == 0) {
@@ -1409,8 +1420,8 @@ namespace kagome::parachain {
   }
 
   void ParachainProcessorImpl::onAttestNoPoVComplete(
-      network::RelayHash const &relay_parent,
-      CandidateHash const &candidate_hash) {
+      const network::RelayHash &relay_parent,
+      const CandidateHash &candidate_hash) {
     auto parachain_state = tryGetStateByRelayParent(relay_parent);
     if (!parachain_state) {
       logger_->warn(
@@ -1439,7 +1450,7 @@ namespace kagome::parachain {
   }
 
   void ParachainProcessorImpl::requestCollations(
-      network::CollationEvent const &pending_collation) {
+      const network::CollationEvent &pending_collation) {
     router_->getReqCollationProtocol()->request(
         pending_collation.pending_collation.peer_id,
         network::CollationFetchingRequest{

@@ -322,13 +322,12 @@ namespace {
       return kagome::parachain::approval::ApprovedOneThird{};
     }
 
-    if (auto pending{
-            boost::get<kagome::parachain::approval::PendingRequiredTranche>(
-                &required)}) {
+    if (kagome::is_type<kagome::parachain::approval::PendingRequiredTranche>(
+            required)) {
       return kagome::parachain::approval::Unapproved{};
     }
-    if (auto all{boost::get<kagome::parachain::approval::AllRequiredTranche>(
-            &required)}) {
+    if (kagome::is_type<kagome::parachain::approval::AllRequiredTranche>(
+            required)) {
       return kagome::parachain::approval::Unapproved{};
     }
     if (auto exact{
@@ -367,21 +366,20 @@ namespace {
     if (approval_entry.our_assignment->tranche == 0) {
       return true;
     }
-    if (auto all{boost::get<kagome::parachain::approval::AllRequiredTranche>(
-            &required_tranches)}) {
+    if (kagome::is_type<kagome::parachain::approval::AllRequiredTranche>(
+            required_tranches)) {
       return !kagome::parachain::approval::is_approved(
           checkApproval(candidate_entry,
                         approval_entry,
                         kagome::parachain::approval::AllRequiredTranche{}),
           std::numeric_limits<kagome::network::Tick>::max());
     }
-    if (auto pending{
-            boost::get<kagome::parachain::approval::PendingRequiredTranche>(
-                &required_tranches)}) {
+    if (kagome::is_type<kagome::parachain::approval::PendingRequiredTranche>(
+            required_tranches)) {
+      // TODO Empty-statement branch?
     }
-    if (auto exact{
-            boost::get<kagome::parachain::approval::ExactRequiredTranche>(
-                &required_tranches)}) {
+    if (kagome::is_type<kagome::parachain::approval::ExactRequiredTranche>(
+            required_tranches)) {
       return false;
     }
     UNREACHABLE;
@@ -559,12 +557,6 @@ namespace kagome::parachain {
 
     return true;
   }
-
-  bool ApprovalDistribution::start() {
-    return true;
-  }
-
-  void ApprovalDistribution::stop() {}
 
   std::optional<std::pair<ValidatorIndex, crypto::Sr25519Keypair>>
   ApprovalDistribution::findAssignmentKey(
@@ -1437,8 +1429,7 @@ namespace kagome::parachain {
     auto &candidate_entry = entry.candidates[claimed_candidate_index];
     if (auto it = candidate_entry.messages.find(validator_index);
         it != candidate_entry.messages.end()) {
-      if (auto state{boost::get<DistribApprovalStateApproved>(
-              &it->second.approval_state)}) {
+      if (is_type<DistribApprovalStateApproved>(it->second.approval_state)) {
         logger_->warn(
             "Already have approved state. (candidate index={}, "
             "block hash={}, validator index={})",
@@ -1532,8 +1523,8 @@ namespace kagome::parachain {
     auto &candidate_entry = entry.candidates[candidate_index];
     if (auto it = candidate_entry.messages.find(validator_index);
         it != candidate_entry.messages.end()) {
-      if (auto state{boost::get<DistribApprovalStateApproved>(
-              &it->second.approval_state)}) {
+      if (kagome::is_type<DistribApprovalStateApproved>(
+              it->second.approval_state)) {
         logger_->warn(
             "Duplicate message. (candidate index={}, "
             "block hash={}, validator index={})",

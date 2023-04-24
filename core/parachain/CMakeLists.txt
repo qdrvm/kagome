@@ -12,10 +12,10 @@ add_library(validator_parachain
     availability/store/store_impl.cpp
     backing/store_impl.cpp
     pvf/pvf_impl.cpp
-    validator/impl/parachain_observer.cpp
+    validator/impl/parachain_observer_impl.cpp
     validator/impl/parachain_processor.cpp
     validator/signer.cpp
-    approval/approval_distribution.cpp 
+    approval/approval_distribution.cpp
     approval/approval.cpp
     backing/store_impl.cpp
     )

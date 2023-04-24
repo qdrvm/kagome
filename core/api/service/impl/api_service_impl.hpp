@@ -111,26 +111,11 @@ namespace kagome::api {
     };
 
    public:
-    template <class T>
-    using sptr = std::shared_ptr<T>;
-
-    struct ListenerList {
-      std::vector<sptr<Listener>> listeners;
-    };
-    struct ProcessorSpan {
-      std::vector<sptr<JRpcProcessor>> processors;
-    };
-
-    /**
-     * @param context - reference to the io context
-     * @param listener - a shared ptr to the endpoint listener instance
-     * @param processors - shared ptrs to JSON processor instances
-     */
     ApiServiceImpl(application::AppStateManager &app_state_manager,
                    std::shared_ptr<api::RpcThreadPool> thread_pool,
-                   ListenerList listeners,
+                   std::vector<std::shared_ptr<Listener>> listeners,
                    std::shared_ptr<JRpcServer> server,
-                   const ProcessorSpan &processors,
+                   std::vector<std::shared_ptr<JRpcProcessor>> processors,
                    StorageSubscriptionEnginePtr storage_sub_engine,
                    ChainSubscriptionEnginePtr chain_sub_engine,
                    ExtrinsicSubscriptionEnginePtr ext_sub_engine,
@@ -240,7 +225,7 @@ namespace kagome::api {
     }
 
     std::shared_ptr<api::RpcThreadPool> thread_pool_;
-    std::vector<sptr<Listener>> listeners_;
+    std::vector<std::shared_ptr<Listener>> listeners_;
     std::shared_ptr<JRpcServer> server_;
     log::Logger logger_;
     std::shared_ptr<blockchain::BlockTree> block_tree_;
