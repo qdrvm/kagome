@@ -219,6 +219,8 @@ namespace kagome::consensus::grandpa {
     outcome::result<void> applyJustification(
         const GrandpaJustification &justification) override;
 
+    void reload() override;
+
     // Round processing method
 
     /**
