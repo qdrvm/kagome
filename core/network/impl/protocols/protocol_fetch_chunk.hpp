@@ -13,6 +13,7 @@
 #include <libp2p/connection/stream.hpp>
 #include <libp2p/host/host.hpp>
 
+#include "blockchain/genesis_block_hash.hpp"
 #include "log/logger.hpp"
 #include "network/common.hpp"
 #include "network/impl/protocols/request_response_protocol.hpp"
@@ -36,7 +37,7 @@ namespace kagome::network {
 
     FetchChunkProtocol(libp2p::Host &host,
                        application::ChainSpec const &chain_spec,
-                       const primitives::BlockHash &genesis_hash,
+                       const blockchain::GenesisBlockHash &genesis_hash,
                        std::shared_ptr<parachain::ParachainProcessorImpl> pp)
         : RequestResponseProtocol<
             FetchChunkRequest,

@@ -28,14 +28,14 @@ struct SessionKeysTest : public ::testing::Test {
     store = std::make_shared<CryptoStoreMock>();
     role.flags.authority = 1;
     EXPECT_CALL(*config, roles()).WillOnce(Return(role));
-    session_keys = std::make_shared<SessionKeys>(store, *config);
+    session_keys = std::make_shared<SessionKeysImpl>(store, *config);
   }
 
   std::shared_ptr<AppConfigurationMock> config =
       std::make_shared<AppConfigurationMock>();
   network::Roles role;
   std::shared_ptr<CryptoStoreMock> store;
-  std::shared_ptr<SessionKeys> session_keys;
+  std::shared_ptr<SessionKeysImpl> session_keys;
 };
 
 /**

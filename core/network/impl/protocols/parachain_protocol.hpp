@@ -16,6 +16,7 @@
 
 #include "application/app_configuration.hpp"
 #include "application/chain_spec.hpp"
+#include "blockchain/genesis_block_hash.hpp"
 #include "log/logger.hpp"
 #include "network/collation_observer.hpp"
 #include "network/common.hpp"
@@ -35,7 +36,7 @@
 namespace kagome::network {
 
   template <typename Observer, typename Message, bool kCollation>
-  class ParachainProtocol final
+  class ParachainProtocol
       : public ProtocolBase,
         public std::enable_shared_from_this<
             ParachainProtocol<Observer, Message, kCollation>>,
@@ -51,7 +52,7 @@ namespace kagome::network {
     ParachainProtocol(libp2p::Host &host,
                       application::AppConfiguration const &app_config,
                       application::ChainSpec const &chain_spec,
-                      const primitives::BlockHash &genesis_hash,
+                      const blockchain::GenesisBlockHash &genesis_hash,
                       std::shared_ptr<ObserverType> observer,
                       Protocol const &protocol,
                       std::shared_ptr<network::PeerView> peer_view,
@@ -130,10 +131,6 @@ namespace kagome::network {
 
     bool start() override {
       return base_.start(this->weak_from_this());
-    }
-
-    bool stop() override {
-      return base_.stop();
     }
 
     const std::string &protocolName() const override {

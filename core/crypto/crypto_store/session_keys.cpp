@@ -10,8 +10,8 @@
 
 namespace kagome::crypto {
 
-  SessionKeys::SessionKeys(std::shared_ptr<CryptoStore> store,
-                           const application::AppConfiguration &config)
+  SessionKeysImpl::SessionKeysImpl(std::shared_ptr<CryptoStore> store,
+                                   const application::AppConfiguration &config)
       : roles_(config.roles()), store_(store) {
     if (auto dev = config.devMnemonicPhrase()) {
       store_->generateEd25519Keypair(KEY_TYPE_GRAN, *dev).value();
@@ -23,7 +23,7 @@ namespace kagome::crypto {
     }
   }
 
-  const std::shared_ptr<Sr25519Keypair> &SessionKeys::getBabeKeyPair() {
+  const std::shared_ptr<Sr25519Keypair> &SessionKeysImpl::getBabeKeyPair() {
     if (!babe_key_pair_ && roles_.flags.authority) {
       auto keys = store_->getSr25519PublicKeys(KEY_TYPE_BABE);
       if (keys and not keys.value().empty()) {
@@ -34,7 +34,7 @@ namespace kagome::crypto {
     return babe_key_pair_;
   }
 
-  const std::shared_ptr<Ed25519Keypair> &SessionKeys::getGranKeyPair() {
+  const std::shared_ptr<Ed25519Keypair> &SessionKeysImpl::getGranKeyPair() {
     if (!gran_key_pair_ && roles_.flags.authority) {
       auto keys = store_->getEd25519PublicKeys(KEY_TYPE_GRAN);
       if (keys and not keys.value().empty()) {
@@ -45,7 +45,7 @@ namespace kagome::crypto {
     return gran_key_pair_;
   }
 
-  const std::shared_ptr<Sr25519Keypair> &SessionKeys::getParaKeyPair() {
+  const std::shared_ptr<Sr25519Keypair> &SessionKeysImpl::getParaKeyPair() {
     if (not para_key_pair_ && roles_.flags.authority) {
       auto keys = store_->getSr25519PublicKeys(KEY_TYPE_PARA);
       if (keys and not keys.value().empty()) {
@@ -56,7 +56,7 @@ namespace kagome::crypto {
     return para_key_pair_;
   }
 
-  const std::shared_ptr<Sr25519Keypair> &SessionKeys::getAudiKeyPair() {
+  const std::shared_ptr<Sr25519Keypair> &SessionKeysImpl::getAudiKeyPair() {
     if (!audi_key_pair_ && roles_.flags.authority) {
       auto keys = store_->getSr25519PublicKeys(KEY_TYPE_AUDI);
       if (keys and not keys.value().empty()) {

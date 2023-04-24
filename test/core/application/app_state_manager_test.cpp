@@ -20,6 +20,13 @@ using OnShutdown = kagome::application::AppStateManager::OnShutdown;
 using testing::Return;
 using testing::Sequence;
 
+class OnInjectMock {
+ public:
+  MOCK_METHOD(bool, call, ());
+  bool operator()() {
+    return call();
+  }
+};
 class OnPrepareMock {
  public:
   MOCK_METHOD(bool, call, ());
@@ -50,16 +57,19 @@ class AppStateManagerTest : public AppStateManagerImpl, public testing::Test {
 
   void SetUp() override {
     reset();
+    inject_cb = std::make_shared<OnInjectMock>();
     prepare_cb = std::make_shared<OnPrepareMock>();
     launch_cb = std::make_shared<OnLaunchMock>();
     shutdown_cb = std::make_shared<OnShutdownMock>();
   }
   void TearDown() override {
+    inject_cb.reset();
     prepare_cb.reset();
     launch_cb.reset();
     shutdown_cb.reset();
   }
 
+  std::shared_ptr<OnInjectMock> inject_cb;
   std::shared_ptr<OnPrepareMock> prepare_cb;
   std::shared_ptr<OnLaunchMock> launch_cb;
   std::shared_ptr<OnShutdownMock> shutdown_cb;
@@ -72,6 +82,8 @@ class AppStateManagerTest : public AppStateManagerImpl, public testing::Test {
  */
 TEST_F(AppStateManagerTest, StateSequence_Normal) {
   ASSERT_EQ(state(), AppStateManager::State::Init);
+  ASSERT_NO_THROW(doInject());
+  ASSERT_EQ(state(), AppStateManager::State::Injected);
   ASSERT_NO_THROW(doPrepare());
   ASSERT_EQ(state(), AppStateManager::State::ReadyToStart);
   ASSERT_NO_THROW(doLaunch());
@@ -81,13 +93,30 @@ TEST_F(AppStateManagerTest, StateSequence_Normal) {
 }
 
 /**
+ * @given AppStateManager in state 'Injected' (after stage 'inject')
+ * @when trying to run stage 'inject' again
+ * @then thrown exception, state wasn't change. Can to run stages 'prepare',
+ * 'launch' and 'shutdown'
+ */
+TEST_F(AppStateManagerTest, StateSequence_Abnormal_1) {
+  doInject();
+  EXPECT_THROW(doInject(), AppStateException);
+  EXPECT_EQ(state(), AppStateManager::State::Injected);
+  EXPECT_NO_THROW(doPrepare());
+  EXPECT_NO_THROW(doLaunch());
+  EXPECT_NO_THROW(doShutdown());
+}
+
+/**
  * @given AppStateManager in state 'ReadyToStart' (after stage 'prepare')
  * @when trying to run stage 'prepare' again
  * @then thrown exception, state wasn't change. Can to run stages 'launch' and
  * 'shutdown'
  */
-TEST_F(AppStateManagerTest, StateSequence_Abnormal_1) {
+TEST_F(AppStateManagerTest, StateSequence_Abnormal_2) {
+  doInject();
   doPrepare();
+  EXPECT_THROW(doInject(), AppStateException);
   EXPECT_THROW(doPrepare(), AppStateException);
   EXPECT_EQ(state(), AppStateManager::State::ReadyToStart);
   EXPECT_NO_THROW(doLaunch());
@@ -100,9 +129,11 @@ TEST_F(AppStateManagerTest, StateSequence_Abnormal_1) {
  * @then thrown exceptions, state wasn't change. Can to run stages 'launch' and
  * 'shutdown'
  */
-TEST_F(AppStateManagerTest, StateSequence_Abnormal_2) {
+TEST_F(AppStateManagerTest, StateSequence_Abnormal_3) {
+  doInject();
   doPrepare();
   doLaunch();
+  EXPECT_THROW(doInject(), AppStateException);
   EXPECT_THROW(doPrepare(), AppStateException);
   EXPECT_THROW(doLaunch(), AppStateException);
   EXPECT_EQ(state(), AppStateManager::State::Works);
@@ -114,10 +145,12 @@ TEST_F(AppStateManagerTest, StateSequence_Abnormal_2) {
  * @when trying to run any stages 'prepare' and 'launch' again
  * @then thrown exceptions, except shutdown. State wasn't change.
  */
-TEST_F(AppStateManagerTest, StateSequence_Abnormal_3) {
+TEST_F(AppStateManagerTest, StateSequence_Abnormal_4) {
+  doInject();
   doPrepare();
   doLaunch();
   doShutdown();
+  EXPECT_THROW(doInject(), AppStateException);
   EXPECT_THROW(doPrepare(), AppStateException);
   EXPECT_THROW(doLaunch(), AppStateException);
   EXPECT_NO_THROW(doShutdown());
@@ -130,6 +163,20 @@ TEST_F(AppStateManagerTest, StateSequence_Abnormal_3) {
  * @then done without exceptions
  */
 TEST_F(AppStateManagerTest, AddCallback_Initial) {
+  EXPECT_NO_THROW(atInject(OnPrepare{}));
+  EXPECT_NO_THROW(atPrepare(OnPrepare{}));
+  EXPECT_NO_THROW(atLaunch(OnLaunch{}));
+  EXPECT_NO_THROW(atShutdown(OnShutdown{}));
+}
+
+/**
+ * @given AppStateManager in state 'Injected' (after stage 'inject')
+ * @when add callbacks for each stages
+ * @then thrown exception only for 'prepare' stage callback
+ */
+TEST_F(AppStateManagerTest, AddCallback_AfterInject) {
+  doInject();
+  EXPECT_THROW(atInject(OnInject{}), AppStateException);
   EXPECT_NO_THROW(atPrepare(OnPrepare{}));
   EXPECT_NO_THROW(atLaunch(OnLaunch{}));
   EXPECT_NO_THROW(atShutdown(OnShutdown{}));
@@ -141,7 +188,9 @@ TEST_F(AppStateManagerTest, AddCallback_Initial) {
  * @then thrown exception only for 'prepare' stage callback
  */
 TEST_F(AppStateManagerTest, AddCallback_AfterPrepare) {
+  doInject();
   doPrepare();
+  EXPECT_THROW(atInject(OnInject{}), AppStateException);
   EXPECT_THROW(atPrepare(OnPrepare{}), AppStateException);
   EXPECT_NO_THROW(atLaunch(OnLaunch{}));
   EXPECT_NO_THROW(atShutdown(OnShutdown{}));
@@ -153,8 +202,10 @@ TEST_F(AppStateManagerTest, AddCallback_AfterPrepare) {
  * @then done without exception only for 'shutdown' stage callback
  */
 TEST_F(AppStateManagerTest, AddCallback_AfterLaunch) {
+  doInject();
   doPrepare();
   doLaunch();
+  EXPECT_THROW(atInject(OnInject{}), AppStateException);
   EXPECT_THROW(atPrepare(OnPrepare{}), AppStateException);
   EXPECT_THROW(atLaunch(OnLaunch{}), AppStateException);
   EXPECT_NO_THROW(atShutdown(OnShutdown{}));
@@ -166,13 +217,49 @@ TEST_F(AppStateManagerTest, AddCallback_AfterLaunch) {
  * @then trown exceptions for each calls
  */
 TEST_F(AppStateManagerTest, AddCallback_AfterShutdown) {
+  doInject();
   doPrepare();
   doLaunch();
   doShutdown();
+  EXPECT_THROW(atInject(OnInject{}), AppStateException);
   EXPECT_THROW(atPrepare(OnPrepare{}), AppStateException);
   EXPECT_THROW(atLaunch(OnLaunch{}), AppStateException);
   EXPECT_THROW(atShutdown(OnShutdown{}), AppStateException);
 }
+
+struct UnderControlObject {
+  UnderControlObject(OnInjectMock &i,
+                     OnPrepareMock &p,
+                     OnLaunchMock &l,
+                     OnShutdownMock &s)
+      : i(i), p(p), l(l), s(s) {}
+
+  OnInjectMock &i;
+  OnPrepareMock &p;
+  OnLaunchMock &l;
+  OnShutdownMock &s;
+  int tag = 0;
+
+  bool inject() {
+    tag = 1;
+    return i();
+  };
+
+  bool prepare() {
+    tag = 2;
+    return p();
+  };
+
+  bool start() {
+    tag = 3;
+    return l();
+  };
+
+  void stop() {
+    tag = 4;
+    s();
+  };
+};
 
 /**
  * @given new created AppStateManager
@@ -180,32 +267,23 @@ TEST_F(AppStateManagerTest, AddCallback_AfterShutdown) {
  * @then each callcack registered for appropriate state
  */
 TEST_F(AppStateManagerTest, RegCallbacks) {
-  int tag = 0;
+  UnderControlObject x(*inject_cb, *prepare_cb, *launch_cb, *shutdown_cb);
 
-  registerHandlers(
-      [&] {
-        tag = 1;
-        return (*prepare_cb)();
-      },
-      [&] {
-        tag = 2;
-        return (*launch_cb)();
-      },
-      [&] {
-        tag = 3;
-        return (*shutdown_cb)();
-      });
+  takeControl(x);
 
+  EXPECT_CALL(*inject_cb, call()).WillOnce(Return(true));
   EXPECT_CALL(*prepare_cb, call()).WillOnce(Return(true));
   EXPECT_CALL(*launch_cb, call()).WillOnce(Return(true));
   EXPECT_CALL(*shutdown_cb, call()).WillOnce(Return());
 
+  EXPECT_NO_THROW(doInject());
+  EXPECT_EQ(x.tag, 1);
   EXPECT_NO_THROW(doPrepare());
-  EXPECT_EQ(tag, 1);
+  EXPECT_EQ(x.tag, 2);
   EXPECT_NO_THROW(doLaunch());
-  EXPECT_EQ(tag, 2);
+  EXPECT_EQ(x.tag, 3);
   EXPECT_NO_THROW(doShutdown());
-  EXPECT_EQ(tag, 3);
+  EXPECT_EQ(x.tag, 4);
 }
 
 /**
@@ -218,11 +296,12 @@ TEST_F(AppStateManagerTest, Run_CallSequence) {
 
   auto app_state_manager = std::make_shared<AppStateManagerImpl>();
 
-  app_state_manager->registerHandlers([&] { return (*prepare_cb)(); },
-                                      [&] { return (*launch_cb)(); },
-                                      [&] { return (*shutdown_cb)(); });
+  UnderControlObject x(*inject_cb, *prepare_cb, *launch_cb, *shutdown_cb);
+
+  app_state_manager->takeControl(x);
 
   Sequence seq;
+  EXPECT_CALL(*inject_cb, call()).InSequence(seq).WillOnce(Return(true));
   EXPECT_CALL(*prepare_cb, call()).InSequence(seq).WillOnce(Return(true));
   EXPECT_CALL(*launch_cb, call()).InSequence(seq).WillOnce(Return(true));
   EXPECT_CALL(*shutdown_cb, call()).InSequence(seq).WillOnce(Return());

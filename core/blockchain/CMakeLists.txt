@@ -13,6 +13,7 @@ add_library(blockchain
     impl/justification_storage_policy.cpp
     impl/block_storage_impl.cpp
     impl/block_header_repository_impl.cpp
+    genesis_block_hash.cpp
     )
 target_link_libraries(blockchain
     Boost::boost

@@ -17,9 +17,11 @@
 #include "primitives/block_data.hpp"
 #include "primitives/block_header.hpp"
 #include "primitives/extrinsic.hpp"
+#include "testutil/lazy.hpp"
 #include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
 
+using kagome::api::ApiService;
 using kagome::api::ApiServiceMock;
 using kagome::api::ChainApi;
 using kagome::api::ChainApiImpl;
@@ -44,8 +46,13 @@ struct ChainApiTest : public ::testing::Test {
     header_repo = std::make_shared<BlockHeaderRepositoryMock>();
     block_tree = std::make_shared<BlockTreeMock>();
     block_storage = std::make_shared<BlockStorageMock>();
-    api =
-        std::make_shared<ChainApiImpl>(header_repo, block_tree, block_storage);
+    api_service = std::make_shared<ApiServiceMock>();
+
+    api = std::make_shared<ChainApiImpl>(
+        header_repo,
+        block_tree,
+        block_storage,
+        testutil::sptr_to_lazy<ApiService>(api_service));
     hash1 =
         "4fee9b1803132954978652e4d73d4ec5b0dffae3832449cd5e4e4081d539aa22"_hash256;
     hash2 =
@@ -56,6 +63,7 @@ struct ChainApiTest : public ::testing::Test {
 
   std::shared_ptr<BlockHeaderRepositoryMock> header_repo;
   std::shared_ptr<BlockTreeMock> block_tree;
+  std::shared_ptr<ApiServiceMock> api_service;
   std::shared_ptr<ChainApi> api;
   std::shared_ptr<BlockStorageMock> block_storage;
 
@@ -232,12 +240,10 @@ TEST_F(ChainApiTest, GetFinalizedHead) {
  */
 TEST_F(ChainApiTest, UnsubscribeFinalizedHeads) {
   auto subscription_id = 32u;
-  auto api_service = std::make_shared<ApiServiceMock>();
 
   EXPECT_CALL(*api_service, unsubscribeFinalizedHeads(subscription_id))
       .WillOnce(Return(true));
 
-  api->setApiService(api_service);
   ASSERT_TRUE(api->unsubscribeFinalizedHeads(subscription_id).has_value());
 }
 
@@ -247,13 +253,11 @@ TEST_F(ChainApiTest, UnsubscribeFinalizedHeads) {
  * success
  */
 TEST_F(ChainApiTest, SubscribeNewHeads) {
-  auto api_service = std::make_shared<ApiServiceMock>();
   auto expected_result = 42u;
 
   EXPECT_CALL(*api_service, subscribeNewHeads())
       .WillOnce(Return(expected_result));
 
-  api->setApiService(api_service);
   ASSERT_OUTCOME_SUCCESS(actual_result, api->subscribeNewHeads());
   ASSERT_EQ(expected_result, actual_result);
 }
@@ -264,14 +268,12 @@ TEST_F(ChainApiTest, SubscribeNewHeads) {
  * @then froward request to ApiService
  */
 TEST_F(ChainApiTest, UnsubscribeNewHeads) {
-  auto api_service = std::make_shared<ApiServiceMock>();
   auto subscription_id = 42u;
   auto expected_return = ChainApiImpl::Error::BLOCK_NOT_FOUND;
 
   EXPECT_CALL(*api_service, unsubscribeNewHeads(subscription_id))
       .WillOnce(Return(expected_return));
 
-  api->setApiService(api_service);
   EXPECT_OUTCOME_ERROR(
       result, api->unsubscribeNewHeads(subscription_id), expected_return);
 }

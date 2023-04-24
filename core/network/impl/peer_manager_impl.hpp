@@ -29,7 +29,6 @@
 #include "metrics/metrics.hpp"
 #include "network/impl/protocols/block_announce_protocol.hpp"
 #include "network/impl/protocols/propagate_transactions_protocol.hpp"
-#include "network/impl/protocols/protocol_factory.hpp"
 #include "network/impl/stream_engine.hpp"
 #include "network/peer_view.hpp"
 #include "network/protocols/sync_protocol.hpp"

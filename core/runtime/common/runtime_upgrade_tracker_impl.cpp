@@ -69,8 +69,9 @@ namespace kagome::runtime {
     // if the found state is finalized, it is guaranteed to not belong to a
     // different fork
     primitives::BlockInfo last_finalized;
-    if (block_tree_) {
-      last_finalized = block_tree_->getLastFinalized();  // less expensive
+    auto block_tree = block_tree_.lock();
+    if (block_tree) {
+      last_finalized = block_tree->getLastFinalized();  // less expensive
     } else {
       OUTCOME_TRY(block_info, block_storage_->getLastFinalized());
       last_finalized = block_info;
@@ -81,8 +82,9 @@ namespace kagome::runtime {
     // a non-finalized state may belong to a different fork, need to check
     // explicitly (can be expensive if blocks are far apart)
     KAGOME_PROFILE_START(has_direct_chain)
+    BOOST_ASSERT(block_tree);
     bool has_direct_chain =
-        block_tree_->hasDirectChain(state.hash, chain_end.hash);
+        block_tree->hasDirectChain(state.hash, chain_end.hash);
     KAGOME_PROFILE_END(has_direct_chain)
     return has_direct_chain;
   }
@@ -186,8 +188,8 @@ namespace kagome::runtime {
       std::shared_ptr<primitives::events::ChainSubscriptionEngine>
           chain_sub_engine,
       std::shared_ptr<const blockchain::BlockTree> block_tree) {
-    block_tree_ = std::move(block_tree);
-    BOOST_ASSERT(block_tree_ != nullptr);
+    BOOST_ASSERT(block_tree != nullptr);
+    block_tree_ = block_tree;
 
     chain_subscription_ =
         std::make_shared<primitives::events::ChainEventSubscriber>(

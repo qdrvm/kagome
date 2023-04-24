@@ -11,6 +11,11 @@ IncludeBlocks: Preserve
 InsertBraces: true
 InsertTrailingCommas: Wrapped
 SortIncludes: CaseSensitive
+QualifierAlignment: Custom
+QualifierOrder: ['inline', 'static', 'constexpr', 'const', 'volatile', 'type', 'restrict']
+ReferenceAlignment: Right
 # uncomment in clang-format-16
 #RemoveSemicolon: true
 #InsertNewlineAtEOF: true
+
+

@@ -6,6 +6,7 @@
 #ifndef KAGOME_NETWORK_IMPL_PROTOCOLS_PROTOCOL_FETCH_AVAILABLE_DATA_HPP
 #define KAGOME_NETWORK_IMPL_PROTOCOLS_PROTOCOL_FETCH_AVAILABLE_DATA_HPP
 
+#include "blockchain/genesis_block_hash.hpp"
 #include "log/logger.hpp"
 #include "network/common.hpp"
 #include "network/helpers/scale_message_read_writer.hpp"
@@ -25,7 +26,7 @@ namespace kagome::network {
     FetchAvailableDataProtocol(
         libp2p::Host &host,
         application::ChainSpec const &chain_spec,
-        const primitives::BlockHash &genesis_hash,
+        const blockchain::GenesisBlockHash &genesis_hash,
         std::shared_ptr<parachain::AvailabilityStore> av_store)
         : RequestResponseProtocol<
             FetchAvailableDataRequest,
@@ -63,7 +64,7 @@ namespace kagome::network {
     StatmentFetchingProtocol(
         libp2p::Host &host,
         application::ChainSpec const &chain_spec,
-        const primitives::BlockHash &genesis_hash,
+        const blockchain::GenesisBlockHash &genesis_hash,
         std::shared_ptr<parachain::BackingStore> backing_store)
         : RequestResponseProtocol<
             FetchStatementRequest,

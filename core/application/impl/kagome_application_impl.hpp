@@ -9,7 +9,6 @@
 #include "application/kagome_application.hpp"
 
 #include "application/app_configuration.hpp"
-#include "application/app_state_manager.hpp"
 #include "application/chain_spec.hpp"
 #include "injector/application_injector.hpp"
 
@@ -35,26 +34,11 @@ namespace kagome::application {
 
    private:
     std::shared_ptr<AppConfiguration> app_config_;
-    uptr<injector::KagomeNodeInjector> injector_;
-    log::Logger logger_;
 
-    sptr<boost::asio::io_context> io_context_;
-    sptr<AppStateManager> app_state_manager_;
-    sptr<ChainSpec> chain_spec_;
-    sptr<clock::SystemClock> clock_;
-    sptr<consensus::babe::Babe> babe_;
-    sptr<consensus::grandpa::Grandpa> grandpa_;
-    sptr<metrics::Exposer> exposer_;
-    sptr<network::Router> router_;
-    sptr<network::PeerManager> peer_manager_;
-    sptr<api::ApiService> jrpc_api_service_;
-    sptr<network::StateProtocolObserver> state_observer_;
-    sptr<network::SyncProtocolObserver> sync_observer_;
-    sptr<parachain::ParachainObserverImpl> parachain_observer_;
-    sptr<parachain::ParachainProcessorImpl> parachain_processor_;
-    sptr<parachain::ApprovalDistribution> approval_distribution_;
-    sptr<metrics::MetricsWatcher> metrics_watcher_;
-    sptr<telemetry::TelemetryService> telemetry_service_;
+    std::unique_ptr<injector::KagomeNodeInjector> injector_;
+    std::shared_ptr<ChainSpec> chain_spec_;
+
+    log::Logger logger_;
   };
 
 }  // namespace kagome::application
