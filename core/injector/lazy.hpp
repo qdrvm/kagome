@@ -3,6 +3,9 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+#ifndef KAGOME_CORE_INJECTOR_LAZY_HPP
+#define KAGOME_CORE_INJECTOR_LAZY_HPP
+
 #include <boost/di/extension/injections/lazy.hpp>
 
 namespace kagome {
@@ -23,3 +26,5 @@ namespace kagome {
   using LazyUPtr = boost::di::extension::lazy<std::unique_ptr<T>>;
 
 }  // namespace kagome
+
+#endif  // KAGOME_CORE_INJECTOR_LAZY_HPP
