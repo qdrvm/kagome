@@ -149,7 +149,7 @@ namespace kagome::consensus::babe {
                           .number = block.header.number,
                           .state_root = block.header.state_root,
                           .extrinsics_root = block.header.extrinsics_root,
-                          .digest = gsl::span<primitives::const DigestItem>(
+                          .digest = gsl::span<const primitives::DigestItem>(
                               block.header.digest.data(),
                               block.header.digest.size() - 1ull),
                       },

@@ -405,7 +405,7 @@ namespace kagome::blockchain {
     return block_tree_data_
         .sharedAccess(
             [&](const auto &p)
-                -> std::reference_wrapper<primitives::const BlockHash> {
+                -> std::reference_wrapper<const primitives::BlockHash> {
               if (p.genesis_block_hash_.has_value()) {
                 return p.genesis_block_hash_.value();
               }
