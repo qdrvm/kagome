@@ -121,15 +121,16 @@ namespace kagome::crypto {
         } else {
           // need to check if the read key's algorithm belongs to the given
           // CryptoSuite
-          OUTCOME_TRY(seed_bytes, file_storage_->searchForSeed(key_type, key));
+          OUTCOME_TRY(phrase, file_storage_->searchForPhrase(key_type, key));
           BOOST_ASSERT_MSG(
-              seed_bytes,
+              phrase,
               "The public key has just been scanned, its file has to exist");
-          if (not seed_bytes) {
+          if (not phrase) {
             logger_->error("Error reading key seed from key file storage");
             continue;
           }
-          auto seed_res = suite.toSeed(seed_bytes.value());
+          OUTCOME_TRY(seed_bytes, bip39_provider_->generateSeed(*phrase));
+          auto seed_res = suite.toSeed(seed_bytes);
           if (not seed_res) {
             // cannot create a seed from file content; suppose it belongs to a
             // different algorithm

@@ -5,12 +5,11 @@
 
 #include "crypto/crypto_store/crypto_store_impl.hpp"
 
-#include <fstream>
-
 #include <gsl/span>
 
 #include "common/bytestr.hpp"
 #include "common/visitor.hpp"
+#include "utils/read_file.hpp"
 
 OUTCOME_CPP_DEFINE_CATEGORY(kagome::crypto, CryptoStoreError, e) {
   using E = kagome::crypto::CryptoStoreError;
@@ -126,17 +125,13 @@ namespace kagome::crypto {
     if (kp_opt) {
       return kp_opt.value();
     }
-    OUTCOME_TRY(seed_bytes,
-                file_storage_->searchForSeed(key_type, gsl::make_span(pk)));
-    if (not seed_bytes) {
+    OUTCOME_TRY(phrase,
+                file_storage_->searchForPhrase(key_type, gsl::make_span(pk)));
+    if (not phrase) {
       return CryptoStoreError::KEY_NOT_FOUND;
     }
-    EcdsaSeed seed;
-    auto bytes = seed_bytes.value();
-    if (seed.size() != bytes.size()) {
-      return CryptoStoreError::WRONG_SEED_SIZE;
-    }
-    std::copy(bytes.begin(), bytes.end(), seed.begin());
+    OUTCOME_TRY(seed_bytes, bip39_provider_->generateSeed(*phrase));
+    OUTCOME_TRY(seed, EcdsaSeed::fromSpan(seed_bytes));
     return ecdsa_suite_->generateKeypair(seed);
   }
 
@@ -146,12 +141,13 @@ namespace kagome::crypto {
     if (kp_opt) {
       return kp_opt.value();
     }
-    OUTCOME_TRY(seed_bytes,
-                file_storage_->searchForSeed(key_type, gsl::make_span(pk)));
-    if (not seed_bytes) {
+    OUTCOME_TRY(phrase,
+                file_storage_->searchForPhrase(key_type, gsl::make_span(pk)));
+    if (not phrase) {
       return CryptoStoreError::KEY_NOT_FOUND;
     }
-    OUTCOME_TRY(seed, Ed25519Seed::fromSpan(seed_bytes.value()));
+    OUTCOME_TRY(seed_bytes, bip39_provider_->generateSeed(*phrase));
+    OUTCOME_TRY(seed, Ed25519Seed::fromSpan(seed_bytes));
     return ed_suite_->generateKeypair(seed);
   }
 
@@ -161,12 +157,13 @@ namespace kagome::crypto {
     if (kp_opt) {
       return kp_opt.value();
     }
-    OUTCOME_TRY(seed_bytes,
-                file_storage_->searchForSeed(key_type, gsl::make_span(pk)));
-    if (not seed_bytes) {
+    OUTCOME_TRY(phrase,
+                file_storage_->searchForPhrase(key_type, gsl::make_span(pk)));
+    if (not phrase) {
       return CryptoStoreError::KEY_NOT_FOUND;
     }
-    OUTCOME_TRY(seed, Sr25519Seed::fromSpan(seed_bytes.value()));
+    OUTCOME_TRY(seed_bytes, bip39_provider_->generateSeed(*phrase));
+    OUTCOME_TRY(seed, Sr25519Seed::fromSpan(seed_bytes));
     return sr_suite_->generateKeypair(seed);
   }
 
@@ -191,7 +188,10 @@ namespace kagome::crypto {
 
   outcome::result<libp2p::crypto::KeyPair> CryptoStoreImpl::loadLibp2pKeypair(
       const CryptoStore::Path &key_path) const {
-    OUTCOME_TRY(contents, file_storage_->loadFileContent(key_path));
+    std::string contents;
+    if (not readFile(contents, key_path.string())) {
+      return CryptoStoreError::KEY_NOT_FOUND;
+    }
     BOOST_ASSERT(ED25519_SEED_LENGTH == contents.size()
                  or 2 * ED25519_SEED_LENGTH == contents.size());  // hex
     Ed25519Seed seed;

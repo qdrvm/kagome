@@ -9,6 +9,7 @@
 #include <vector>
 
 #include "crypto/hasher.hpp"
+#include "utils/read_file.hpp"
 
 namespace kagome::runtime::wavm {
   ModuleCache::ModuleCache(std::shared_ptr<crypto::Hasher> hasher,
@@ -33,19 +34,9 @@ namespace kagome::runtime::wavm {
     }
 
     std ::vector<WAVM::U8> module;
-    if (std::ifstream file{filepath.c_str(), std::ios::in | std::ios::binary};
-        file.is_open()) {
-      auto module_size = file_size(filepath);
-      module.resize(module_size);
-      file.read(reinterpret_cast<char *>(module.data()), module_size);
-      if (not file.fail()) {
-        SL_VERBOSE(logger_, "WAVM runtime cache hit: {}", filepath);
-      } else {
-        module.clear();
-        SL_ERROR(logger_, "Error reading cached module: {}", filepath);
-      }
-    }
-    if (module.empty()) {
+    if (readFile(module, filepath.string())) {
+      SL_VERBOSE(logger_, "WAVM runtime cache hit: {}", filepath);
+    } else {
       module = compileThunk();
       if (auto file =
               std::ofstream{filepath.c_str(), std::ios::out | std::ios::binary};

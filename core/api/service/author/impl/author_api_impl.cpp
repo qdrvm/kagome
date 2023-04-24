@@ -159,7 +159,7 @@ namespace kagome::api {
 
   outcome::result<bool> AuthorApiImpl::hasKey(
       const gsl::span<const uint8_t> &public_key, crypto::KeyTypeId key_type) {
-    auto res = key_store_->searchForSeed(key_type, public_key);
+    auto res = key_store_->searchForPhrase(key_type, public_key);
     if (not res) {
       return res.error();
     } else {

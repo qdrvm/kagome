@@ -5,6 +5,8 @@
 
 #include "crypto/bip39/impl/bip39_provider_impl.hpp"
 
+#include <boost/algorithm/string/predicate.hpp>
+
 #include "crypto/bip39/entropy_accumulator.hpp"
 #include "crypto/bip39/mnemonic.hpp"
 
@@ -55,6 +57,10 @@ namespace kagome::crypto {
 
   outcome::result<bip39::Bip39Seed> Bip39ProviderImpl::generateSeed(
       std::string_view mnemonic_phrase) const {
+    if (boost::starts_with(mnemonic_phrase, "0x")) {
+      OUTCOME_TRY(seed, common::unhexWith0x(mnemonic_phrase));
+      return bip39::Bip39Seed{std::move(seed)};
+    }
     OUTCOME_TRY(mnemonic, bip39::Mnemonic::parse(mnemonic_phrase));
     OUTCOME_TRY(entropy, calculateEntropy(mnemonic.words));
     return makeSeed(entropy, mnemonic.password);

@@ -28,6 +28,7 @@
 #include "common/uri.hpp"
 #include "crypto/crypto_store/dev_mnemonic_phrase.hpp"
 #include "filesystem/directories.hpp"
+#include "utils/read_file.hpp"
 
 namespace {
   namespace fs = kagome::filesystem;
@@ -920,13 +921,7 @@ namespace kagome::application {
     find_argument<std::string>(
         vm, "node-wss-pem", [&](const std::string &path) {
           std::string pem;
-          std::ifstream file{path, std::ios::ate};
-          if (file.good()) {
-            pem.resize(file.tellg());
-            file.seekg(0);
-            file.read(pem.data(), pem.size());
-          }
-          if (not file.good()) {
+          if (not readFile(pem, path)) {
             SL_ERROR(logger_, "--node-wss-pem {}: read error", path);
             return;
           }

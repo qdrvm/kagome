@@ -53,9 +53,9 @@ namespace kagome::crypto {
 
     /**
      * Searches for a key file for the corresponding type and public key and
-     * returns its content if it's a valid hex number
+     * returns its content if it's a valid hex blob or mnemonic phrase json.
      */
-    outcome::result<std::optional<Buffer>> searchForSeed(
+    outcome::result<std::optional<std::string>> searchForPhrase(
         KeyTypeId type, gsl::span<const uint8_t> public_key_bytes) const;
 
     /**
@@ -65,15 +65,6 @@ namespace kagome::crypto {
     outcome::result<void> saveKeyPair(KeyTypeId type,
                                       gsl::span<const uint8_t> public_key,
                                       gsl::span<const uint8_t> seed) const;
-
-    /**
-     * Load key file contents without validation. The file may not exist.
-     * Used when --node-key-file flag is specified.
-     * @param file_path - path to the key. The contents are raw-bytes or
-     * hex-encoded key
-     * @return file contents. Format interpreting is up to the caller
-     */
-    outcome::result<std::string> loadFileContent(const Path &file_path) const;
 
     /**
      * Save key as hex to the specific path.
