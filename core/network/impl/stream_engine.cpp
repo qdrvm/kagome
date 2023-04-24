@@ -95,6 +95,37 @@ namespace kagome::network {
     });
   }
 
+  void StreamEngine::del(const PeerId &peer_id,
+                         const std::shared_ptr<ProtocolBase> &protocol) {
+    SL_TRACE(logger_,
+             "Remove {} streams from peer.(peer={})",
+             protocol->protocolName(),
+             peer_id);
+    streams_.exclusiveAccess([&](auto &streams) {
+      if (auto it = streams.find(peer_id); it != streams.end()) {
+        auto &protocols = it->second;
+        for (auto protocol_it = protocols.begin();
+             protocol_it != protocols.end();
+             ++protocol_it) {
+          if (protocol_it->first == protocol) {
+            auto &descr = protocol_it->second;
+            if (descr.incoming.stream) {
+              descr.incoming.stream->reset();
+            }
+            if (descr.outgoing.stream) {
+              descr.outgoing.stream->reset();
+            }
+            protocols.erase(protocol_it);
+            break;
+          }
+        }
+        if (protocols.empty()) {
+          streams.erase(it);
+        }
+      }
+    });
+  }
+
   bool StreamEngine::reserveOutgoing(
       PeerId const &peer_id, std::shared_ptr<ProtocolBase> const &protocol) {
     BOOST_ASSERT(protocol);
