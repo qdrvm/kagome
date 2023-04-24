@@ -1087,7 +1087,7 @@ namespace kagome::consensus::babe {
                paras_inherent_data.backed_candidates.size(),
                relay_parent);
 
-      paras_inherent_data.parent_header = best_header;
+      paras_inherent_data.parent_header = std::move(best_header);
     }
 
     if (auto res = inherent_data.putData(kParachainId, paras_inherent_data);
