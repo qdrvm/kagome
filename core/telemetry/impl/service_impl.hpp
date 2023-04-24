@@ -71,12 +71,12 @@ namespace kagome::telemetry {
 
     bool isEnabled() const override;
 
-   private:
     // handlers for AppStateManager
     bool prepare();
     bool start();
     void stop();
 
+   private:
     /// parse telemetry endpoints from chain specification
     std::vector<TelemetryEndpoint> chainSpecEndpoints() const;
 
