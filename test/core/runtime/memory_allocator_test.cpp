@@ -256,3 +256,62 @@ TEST_F(MemoryAllocatorTest, AllocateTest_2) {
   ASSERT_EQ(0xffffffffffffffff, allocator_->table_[1]);
   ASSERT_EQ(0xffffffffffffffff, allocator_->table_[2]);
 }
+
+TEST_F(MemoryAllocatorTest, AllocateTest_3) {
+  ASSERT_EQ(0ull, allocator_->allocate(60ull * allocator_->kAlignment));
+  ASSERT_EQ(0xf000000000000000, allocator_->table_[0]);
+
+  ASSERT_EQ(60ull * allocator_->kAlignment, allocator_->allocate(12ull * allocator_->kAlignment));
+  ASSERT_EQ(0x0000000000000000, allocator_->table_[0]);
+  ASSERT_EQ(0xffffffffffffff00, allocator_->table_[1]);
+
+  ASSERT_EQ((60ull + 12ull) * allocator_->kAlignment, allocator_->allocate(56ull * allocator_->kAlignment));
+  ASSERT_EQ(0x0000000000000000, allocator_->table_[0]);
+  ASSERT_EQ(0x0000000000000000, allocator_->table_[1]);
+  ASSERT_EQ(0xffffffffffffffff, allocator_->table_[2]);
+
+  ASSERT_EQ(128ull * allocator_->kAlignment, allocator_->allocate(64ull * allocator_->kAlignment));
+  ASSERT_EQ(0x0000000000000000, allocator_->table_[0]);
+  ASSERT_EQ(0x0000000000000000, allocator_->table_[1]);
+  ASSERT_EQ(0x0000000000000000, allocator_->table_[2]);
+  ASSERT_EQ(3ull, allocator_->table_.size());
+
+  ASSERT_EQ(192ull * allocator_->kAlignment, allocator_->allocate(allocator_->kAlignment));
+  ASSERT_EQ(4ull, allocator_->table_.size());
+  ASSERT_EQ(0x0000000000000000, allocator_->table_[0]);
+  ASSERT_EQ(0x0000000000000000, allocator_->table_[1]);
+  ASSERT_EQ(0x0000000000000000, allocator_->table_[2]);
+  ASSERT_EQ(0xfffffffffffffffe, allocator_->table_[3]);
+
+  ASSERT_EQ(193ull * allocator_->kAlignment, allocator_->allocate(59ull * allocator_->kAlignment));
+  ASSERT_EQ(4ull, allocator_->table_.size());
+  ASSERT_EQ(0x0000000000000000, allocator_->table_[0]);
+  ASSERT_EQ(0x0000000000000000, allocator_->table_[1]);
+  ASSERT_EQ(0x0000000000000000, allocator_->table_[2]);
+  ASSERT_EQ(0xf000000000000000, allocator_->table_[3]);
+
+  ASSERT_EQ(252ull * allocator_->kAlignment, allocator_->allocate(8ull * allocator_->kAlignment));
+  ASSERT_EQ(5ull, allocator_->table_.size());
+  ASSERT_EQ(0x0000000000000000, allocator_->table_[0]);
+  ASSERT_EQ(0x0000000000000000, allocator_->table_[1]);
+  ASSERT_EQ(0x0000000000000000, allocator_->table_[2]);
+  ASSERT_EQ(0x0000000000000000, allocator_->table_[3]);
+  ASSERT_EQ(0xfffffffffffffff0, allocator_->table_[4]);
+
+  ASSERT_EQ(260ull * allocator_->kAlignment, allocator_->allocate(60ull * allocator_->kAlignment));
+  ASSERT_EQ(5ull, allocator_->table_.size());
+  ASSERT_EQ(0x0000000000000000, allocator_->table_[0]);
+  ASSERT_EQ(0x0000000000000000, allocator_->table_[1]);
+  ASSERT_EQ(0x0000000000000000, allocator_->table_[2]);
+  ASSERT_EQ(0x0000000000000000, allocator_->table_[3]);
+  ASSERT_EQ(0x0000000000000000, allocator_->table_[4]);
+
+  ASSERT_EQ(320ull * allocator_->kAlignment, allocator_->allocate(64ull * allocator_->kAlignment));
+  ASSERT_EQ(6ull, allocator_->table_.size());
+  ASSERT_EQ(0x0000000000000000, allocator_->table_[0]);
+  ASSERT_EQ(0x0000000000000000, allocator_->table_[1]);
+  ASSERT_EQ(0x0000000000000000, allocator_->table_[2]);
+  ASSERT_EQ(0x0000000000000000, allocator_->table_[3]);
+  ASSERT_EQ(0x0000000000000000, allocator_->table_[4]);
+  ASSERT_EQ(0x0000000000000000, allocator_->table_[5]);
+}
