@@ -34,6 +34,8 @@ namespace kagome::parachain {
                  std::optional<GroupIndex> backing_group,
                  Cb cb) override;
 
+    void remove(const CandidateHash &candidate) override;
+
    private:
     struct Active {
       storage::trie::RootHash erasure_encoding_root;
