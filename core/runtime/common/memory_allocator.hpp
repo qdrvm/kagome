@@ -214,9 +214,7 @@ namespace kagome::runtime {
               (next_segment & segment_mask_1) ^ segment_mask_1;
           if (__builtin_expect((segment_0_filter | segment_1_filter) == 0ull,
                                0)) {
-            if (n_last_segment) {
-              remains = 0ull;
-            }
+            remains &= (uint64_t(n_last_segment) - 1ull);
             break;
           }
           updateSegmentFilter(segment,
@@ -225,12 +223,11 @@ namespace kagome::runtime {
                               segment_1_filter);
         } else {
           ++segment;
-          position = 0ull;
           preprocessed_segment_filter = std::numeric_limits<uint64_t>::max();
         }
       } while (end != segment);
 
-      return (segment - begin) * kSegmentInBits + position;
+      return (segment - begin) * kSegmentInBits + (position % kSegmentInBits);
     }
 
     size_t end() const {
@@ -270,6 +267,10 @@ namespace kagome::runtime {
                              uint64_t &preprocessed_filter,
                              uint64_t segment_filter_0,
                              uint64_t segment_filter_1) const {
+      /*
+        If segment_filter_1 != 0ull => we move segment to the next and update filter
+        up to segment_filter_1 state, otherwise update up to segment_filter_0
+      */
       if (segment_filter_1 != 0ull) {
         preprocessed_filter = std::numeric_limits<uint64_t>::max()
                            << (kSegmentInBits - BSF(segment_filter_1));
