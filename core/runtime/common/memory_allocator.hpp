@@ -118,7 +118,8 @@ namespace kagome::runtime {
     static constexpr size_t kAllocationSize = kSegmentSize;
 
     static_assert((kAlignment & (kAlignment - 1)) == 0, "Power of 2!");
-    static_assert((kGranularity % kAlignment) == 0, "Granularity is multiple of Alignment");
+    static_assert((kGranularity % kAlignment) == 0,
+                  "Granularity is multiple of Alignment");
     static_assert((kSegmentSize & (kSegmentSize - 1)) == 0, "Power of 2!");
 
     size_t allocate(size_t size) {
@@ -131,20 +132,7 @@ namespace kagome::runtime {
         storageAdjust(remains * kGranularity);
       }
 
-      const auto segment_ix = position / kSegmentInBits;
-      const auto bit_ix = position % kSegmentInBits;
-
-      const auto segment_mask_0 =
-          getSegmentMask<true>(bit_ix, bits_len, remains);
-      table_[segment_ix] &= ~segment_mask_0;
-
-      if (table_.size() > segment_ix + 1) {
-        const auto segment_mask_1 =
-            remains == 0ull ? 0ull
-                            : getSegmentMask<false>(0ull, remains, remains);
-        table_[segment_ix + 1] &= ~segment_mask_1;
-      }
-
+      setContiguousBits<0ull>(position, bits_len);
       return position * kGranularity;
     }
 
@@ -234,42 +222,43 @@ namespace kagome::runtime {
       return table_.size() * kSegmentInBits;
     }
 
-    void const *startAddr() const {
+    const void *startAddr() const {
       return storage_;
     }
 
-    /*template<size_t kValue>
+    template <size_t kValue>
     void setContiguousBits(size_t position, size_t count) {
       const auto segment_ix = position / kSegmentInBits;
+      const auto bit_ix = position % kSegmentInBits;
 
-      auto *segment = &table_[segment_ix];
-      while (count > 0ull) {
-        const auto shr_in_segment = position % kSegmentInBits;//kSegmentInBits -
-    (position % kSegmentInBits) - 1ull; const auto shl_in_segment =
-    ((shr_in_segment + count) >= kSegmentInBits) ? 0ull : kSegmentInBits -
-    shr_in_segment - count; const auto mask =
-    (std::numeric_limits<uint64_t>::max() >> shr_in_segment) &
-    (std::numeric_limits<uint64_t>::max() >> shl_in_segment);
-
-        if constexpr (kValue == 0ull) {
-          *segment &= ~mask;
-        } else {
-          *segment |= mask;
-        }
-
-        ++segment;
-        count -= std::min(count, size_t(kSegmentInBits - shr_in_segment -
-    1ull)); position = 0ull;
+      size_t remains;
+      const auto segment_mask_0 = getSegmentMask<true>(bit_ix, count, remains);
+      if constexpr (kValue == 0ull) {
+        table_[segment_ix] &= ~segment_mask_0;
+      } else {
+        table_[segment_ix] |= segment_mask_0;
       }
-    }*/
+
+      if (table_.size() > segment_ix + 1) {
+        const auto segment_mask_1 =
+            remains == 0ull ? 0ull
+                            : getSegmentMask<false>(0ull, remains, remains);
+        if constexpr (kValue == 0ull) {
+          table_[segment_ix + 1] &= ~segment_mask_1;
+        } else {
+          table_[segment_ix + 1] |= segment_mask_1;
+        }
+      }
+    }
 
     void updateSegmentFilter(const uint64_t *&segment,
                              uint64_t &preprocessed_filter,
                              uint64_t segment_filter_0,
                              uint64_t segment_filter_1) const {
       /*
-        If segment_filter_1 != 0ull => we move segment to the next and update filter
-        up to segment_filter_1 state, otherwise update up to segment_filter_0
+        If segment_filter_1 != 0ull => we move segment to the next and update
+        filter up to segment_filter_1 state, otherwise update up to
+        segment_filter_0
       */
       if (segment_filter_1 != 0ull) {
         preprocessed_filter = std::numeric_limits<uint64_t>::max()
