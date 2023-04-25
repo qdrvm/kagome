@@ -41,12 +41,14 @@ namespace kagome::crypto {
       std::shared_ptr<Ed25519Suite> ed_suite,
       std::shared_ptr<Sr25519Suite> sr_suite,
       std::shared_ptr<Bip39Provider> bip39_provider,
+      std::shared_ptr<CSPRNG> csprng,
       std::shared_ptr<KeyFileStorage> key_fs)
       : file_storage_{std::move(key_fs)},
         ecdsa_suite_{std::move(ecdsa_suite)},
         ed_suite_{std::move(ed_suite)},
         sr_suite_{std::move(sr_suite)},
         bip39_provider_{std::move(bip39_provider)},
+        csprng_{std::move(csprng)},
         logger_{log::createLogger("CryptoStore", "crypto_store")} {
     BOOST_ASSERT(ecdsa_suite_ != nullptr);
     BOOST_ASSERT(ed_suite_ != nullptr);
@@ -81,7 +83,7 @@ namespace kagome::crypto {
 
   outcome::result<EcdsaKeypair> CryptoStoreImpl::generateEcdsaKeypair(
       KeyTypeId key_type, const EcdsaSeed &seed) {
-    OUTCOME_TRY(kp, ecdsa_suite_->generateKeypair(seed));
+    OUTCOME_TRY(kp, ecdsa_suite_->generateKeypair(seed, {}));
     getCache(ecdsa_suite_, ecdsa_caches_, key_type)
         .insert(kp.public_key, kp.secret_key);
     return std::move(kp);
@@ -89,7 +91,7 @@ namespace kagome::crypto {
 
   outcome::result<Ed25519Keypair> CryptoStoreImpl::generateEd25519Keypair(
       KeyTypeId key_type, const Ed25519Seed &seed) {
-    OUTCOME_TRY(kp, ed_suite_->generateKeypair(seed));
+    OUTCOME_TRY(kp, ed_suite_->generateKeypair(seed, {}));
     getCache(ed_suite_, ed_caches_, key_type)
         .insert(kp.public_key, kp.secret_key);
     return std::move(kp);
@@ -97,7 +99,7 @@ namespace kagome::crypto {
 
   outcome::result<Sr25519Keypair> CryptoStoreImpl::generateSr25519Keypair(
       KeyTypeId key_type, const Sr25519Seed &seed) {
-    OUTCOME_TRY(kp, sr_suite_->generateKeypair(seed));
+    OUTCOME_TRY(kp, sr_suite_->generateKeypair(seed, {}));
     getCache(sr_suite_, sr_caches_, key_type)
         .insert(kp.public_key, kp.secret_key);
     return std::move(kp);
@@ -130,9 +132,8 @@ namespace kagome::crypto {
     if (not phrase) {
       return CryptoStoreError::KEY_NOT_FOUND;
     }
-    OUTCOME_TRY(seed_bytes, bip39_provider_->generateSeed(*phrase));
-    OUTCOME_TRY(seed, EcdsaSeed::fromSpan(seed_bytes));
-    return ecdsa_suite_->generateKeypair(seed);
+    OUTCOME_TRY(bip, bip39_provider_->generateSeed(*phrase));
+    return ecdsa_suite_->generateKeypair(bip);
   }
 
   outcome::result<Ed25519Keypair> CryptoStoreImpl::findEd25519Keypair(
@@ -146,9 +147,8 @@ namespace kagome::crypto {
     if (not phrase) {
       return CryptoStoreError::KEY_NOT_FOUND;
     }
-    OUTCOME_TRY(seed_bytes, bip39_provider_->generateSeed(*phrase));
-    OUTCOME_TRY(seed, Ed25519Seed::fromSpan(seed_bytes));
-    return ed_suite_->generateKeypair(seed);
+    OUTCOME_TRY(bip, bip39_provider_->generateSeed(*phrase));
+    return ed_suite_->generateKeypair(bip);
   }
 
   outcome::result<Sr25519Keypair> CryptoStoreImpl::findSr25519Keypair(
@@ -162,9 +162,8 @@ namespace kagome::crypto {
     if (not phrase) {
       return CryptoStoreError::KEY_NOT_FOUND;
     }
-    OUTCOME_TRY(seed_bytes, bip39_provider_->generateSeed(*phrase));
-    OUTCOME_TRY(seed, Sr25519Seed::fromSpan(seed_bytes));
-    return sr_suite_->generateKeypair(seed);
+    OUTCOME_TRY(bip, bip39_provider_->generateSeed(*phrase));
+    return sr_suite_->generateKeypair(bip);
   }
 
   outcome::result<CryptoStoreImpl::EcdsaKeys>
@@ -204,7 +203,7 @@ namespace kagome::crypto {
     } else {
       return CryptoStoreError::UNSUPPORTED_CRYPTO_TYPE;
     }
-    OUTCOME_TRY(kp, ed_suite_->generateKeypair(seed));
+    OUTCOME_TRY(kp, ed_suite_->generateKeypair(seed, {}));
     return ed25519KeyToLibp2pKeypair(kp);
   }
 

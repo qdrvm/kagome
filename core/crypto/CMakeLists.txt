@@ -30,6 +30,7 @@ add_library(ed25519_types
     )
 target_link_libraries(ed25519_types
     blob
+    scale::scale
     schnorrkel_crust::schnorrkel_crust
     )
 kagome_install(ed25519_types)
@@ -59,8 +60,9 @@ add_library(ecdsa_provider
     ecdsa_types.cpp
     )
 target_link_libraries(ecdsa_provider
+    hasher
     logger
-    p2p::p2p_ecdsa_provider
+    secp256k1_provider
     )
 kagome_install(ecdsa_provider)
 
@@ -69,6 +71,7 @@ add_library(ed25519_provider
     )
 target_link_libraries(ed25519_provider
     ed25519_types
+    hasher
     logger
     schnorrkel_crust::schnorrkel_crust
     )

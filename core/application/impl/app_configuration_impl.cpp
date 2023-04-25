@@ -1015,7 +1015,7 @@ namespace kagome::application {
     find_argument<std::string>(
         vm, "node-key", [&](const std::string &val) { node_key.emplace(val); });
     if (node_key.has_value()) {
-      auto key_res = crypto::Ed25519PrivateKey::fromHex(node_key.value());
+      auto key_res = crypto::Ed25519Seed::fromHex(node_key.value());
       if (not key_res.has_value()) {
         auto err_msg = fmt::format(
             "Node key '{}' is invalid: {}", node_key.value(), key_res.error());

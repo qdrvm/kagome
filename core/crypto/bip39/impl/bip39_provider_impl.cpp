@@ -12,9 +12,26 @@
 
 namespace kagome::crypto {
 
+  static const std::vector<std::string> kDevWords{
+      "bottom",
+      "drive",
+      "obey",
+      "lake",
+      "curtain",
+      "smoke",
+      "basket",
+      "hold",
+      "race",
+      "lonely",
+      "fit",
+      "walk",
+  };
+
   Bip39ProviderImpl::Bip39ProviderImpl(
-      std::shared_ptr<Pbkdf2Provider> pbkdf2_provider)
-      : pbkdf2_provider_(std::move(pbkdf2_provider)),
+      std::shared_ptr<Pbkdf2Provider> pbkdf2_provider,
+      std::shared_ptr<Hasher> hasher)
+      : pbkdf2_provider_{std::move(pbkdf2_provider)},
+        hasher_{std::move(hasher)},
         logger_{log::createLogger("Bip39Provider", "bip39")} {
     dictionary_.initialize();
   }
@@ -55,14 +72,22 @@ namespace kagome::crypto {
         entropy, salt, iterations_count, bip39::constants::BIP39_SEED_LEN_512);
   }
 
-  outcome::result<bip39::Bip39Seed> Bip39ProviderImpl::generateSeed(
+  outcome::result<bip39::Bip39SeedAndJunctions> Bip39ProviderImpl::generateSeed(
       std::string_view mnemonic_phrase) const {
-    if (boost::starts_with(mnemonic_phrase, "0x")) {
-      OUTCOME_TRY(seed, common::unhexWith0x(mnemonic_phrase));
-      return bip39::Bip39Seed{std::move(seed)};
-    }
     OUTCOME_TRY(mnemonic, bip39::Mnemonic::parse(mnemonic_phrase));
-    OUTCOME_TRY(entropy, calculateEntropy(mnemonic.words));
-    return makeSeed(entropy, mnemonic.password);
+    bip39::Bip39SeedAndJunctions result;
+    if (auto words = mnemonic.words()) {
+      if (words->empty()) {
+        words = &kDevWords;
+      }
+      OUTCOME_TRY(entropy, calculateEntropy(*words));
+      BOOST_OUTCOME_TRY(result.seed, makeSeed(entropy, mnemonic.password));
+    } else {
+      result.seed = std::move(boost::get<common::Buffer>(mnemonic.seed));
+    }
+    for (auto &junction : mnemonic.junctions) {
+      result.junctions.emplace_back(junction.raw(*hasher_));
+    }
+    return result;
   }
 }  // namespace kagome::crypto

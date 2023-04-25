@@ -7,15 +7,24 @@
 
 #include <gsl/span>
 
+#include "crypto/bip39/impl/bip39_provider_impl.hpp"
 #include "crypto/ecdsa/ecdsa_provider_impl.hpp"
+#include "crypto/hasher/hasher_impl.hpp"
+#include "crypto/pbkdf2/impl/pbkdf2_provider_impl.hpp"
+#include "crypto/random_generator/boost_generator.hpp"
 #include "testutil/outcome.hpp"
 #include "testutil/prepare_loggers.hpp"
 
+using kagome::crypto::Bip39ProviderImpl;
+using kagome::crypto::BoostRandomGenerator;
 using kagome::crypto::EcdsaPrivateKey;
 using kagome::crypto::EcdsaProvider;
 using kagome::crypto::EcdsaProviderImpl;
 using kagome::crypto::EcdsaPublicKey;
 using kagome::crypto::EcdsaSeed;
+using kagome::crypto::EcdsaSignature;
+using kagome::crypto::HasherImpl;
+using kagome::crypto::Pbkdf2ProviderImpl;
 
 struct EcdsaProviderTest : public ::testing::Test {
   static void SetUpTestCase() {
@@ -23,25 +32,21 @@ struct EcdsaProviderTest : public ::testing::Test {
   }
 
   void SetUp() override {
-    ecdsa_provider_ = std::make_shared<EcdsaProviderImpl>();
+    ecdsa_provider_ = std::make_shared<EcdsaProviderImpl>(hasher);
 
     message = kagome::common::Buffer::fromString("i am a message").asVector();
-
-    hex_seed =
-        "3077020101042005a66b7bb0a232a51634f15cf7bbfc13885d3c176f91251d368acff9"
-        "b14e4206a00a06082a8648ce3d030107a144034200048d8fc7919476b60c44cd32f71c"
-        "69ef8a16c3febf757dbb77d410604f7014f0e8f5c4435708893015dcd4d7363f637d2f"
-        "e6d9c9ea00fd1f2d1bb3fb8807f098f6";
-    hex_public_key =
-        "3059301306072a8648ce3d020106082a8648ce3d030107034200048d8fc7919476b60c"
-        "44cd32f71c69ef8a16c3febf757dbb77d410604f7014f0e8f5c4435708893015dcd4d7"
-        "363f637d2fe6d9c9ea00fd1f2d1bb3fb8807f098f6";
   }
 
-  std::shared_ptr<EcdsaProvider> ecdsa_provider_;
+  auto generate() {
+    EcdsaSeed seed;
+    csprng->fillRandomly(seed);
+    return ecdsa_provider_->generateKeypair(seed, {}).value();
+  }
 
-  std::string_view hex_seed;
-  std::string_view hex_public_key;
+  std::shared_ptr<BoostRandomGenerator> csprng =
+      std::make_shared<BoostRandomGenerator>();
+  std::shared_ptr<HasherImpl> hasher = std::make_shared<HasherImpl>();
+  std::shared_ptr<EcdsaProvider> ecdsa_provider_;
 
   std::vector<uint8_t> message;
 };
@@ -53,8 +58,8 @@ struct EcdsaProviderTest : public ::testing::Test {
  */
 TEST_F(EcdsaProviderTest, GenerateKeysNotEqual) {
   for (auto i = 0; i < 10; ++i) {
-    EXPECT_OUTCOME_TRUE(kp1, ecdsa_provider_->generate());
-    EXPECT_OUTCOME_TRUE(kp2, ecdsa_provider_->generate());
+    auto kp1 = generate();
+    auto kp2 = generate();
     ASSERT_NE(kp1.public_key, kp2.public_key);
     ASSERT_NE(kp1.secret_key, kp2.secret_key);
   }
@@ -66,7 +71,7 @@ TEST_F(EcdsaProviderTest, GenerateKeysNotEqual) {
  * @then the signature verification against the key succeeds
  */
 TEST_F(EcdsaProviderTest, SignVerifySuccess) {
-  EXPECT_OUTCOME_TRUE(key_pair, ecdsa_provider_->generate());
+  auto key_pair = generate();
   EXPECT_OUTCOME_TRUE(signature,
                       ecdsa_provider_->sign(message, key_pair.secret_key));
   EXPECT_OUTCOME_TRUE(
@@ -76,28 +81,17 @@ TEST_F(EcdsaProviderTest, SignVerifySuccess) {
 }
 
 /**
- * @given an ill-formed private key
- * @when the key is used to sign a message
- * @then no valid signature could be produced
- */
-TEST_F(EcdsaProviderTest, SignWithInvalidKeyFails) {
-  EcdsaPrivateKey key;
-  key.fill(1);
-  EXPECT_OUTCOME_FALSE_1(ecdsa_provider_->sign(message, key));
-}
-
-/**
  * @given ecdsa provider instance configured with predefined message
  * @when generate keypair @and sign message @and take another public key
  * @and verify signed message
  * @then verification succeeds, but verification result is false
  */
 TEST_F(EcdsaProviderTest, VerifyWrongKeyFail) {
-  auto key_pair = ecdsa_provider_->generate().value();
+  auto key_pair = generate();
   EXPECT_OUTCOME_TRUE(signature,
                       ecdsa_provider_->sign(message, key_pair.secret_key));
   // generate another valid key pair and take public one
-  auto another_keypair = ecdsa_provider_->generate().value();
+  auto another_keypair = generate();
   EXPECT_OUTCOME_TRUE(
       ver_res,
       ecdsa_provider_->verify(message, signature, another_keypair.public_key));
@@ -105,15 +99,38 @@ TEST_F(EcdsaProviderTest, VerifyWrongKeyFail) {
   ASSERT_FALSE(ver_res);
 }
 
-/**
- * @given a private key or seed
- * @when public key is derived
- * @then the resulting key matches the reference one
- */
-TEST_F(EcdsaProviderTest, GenerateBySeedSuccess) {
-  EXPECT_OUTCOME_TRUE(seed, EcdsaSeed::fromHex(hex_seed));
-  EXPECT_OUTCOME_TRUE(public_key, EcdsaPublicKey::fromHex(hex_public_key));
-  EXPECT_OUTCOME_TRUE(derived_key, ecdsa_provider_->derive(seed));
+// polkadot key inspect --scheme ecdsa PHRASE
+TEST_F(EcdsaProviderTest, Junctions) {
+  Bip39ProviderImpl bip_provider{
+      std::make_shared<Pbkdf2ProviderImpl>(),
+      hasher,
+  };
+  auto f = [&](std::string_view phrase, std::string_view pub_str) {
+    auto bip = bip_provider.generateSeed(phrase).value();
+    auto keys =
+        ecdsa_provider_
+            ->generateKeypair(bip.as<EcdsaSeed>().value(), bip.junctions)
+            .value();
+    EXPECT_EQ(keys.public_key.toHex(), pub_str);
+  };
+  f("//Alice",
+    "020a1091341fe5664bfa1782d5e04779689068c916b04cb365ec3153755684d9a1");
+  f("//1234",
+    "02f22d3c818ff50f22b5fcf5c76c84b1a4abbb8f3ac1d58b545bb5877a2e2521b9");
+  f("", "035b26108e8b97479c547da4860d862dc08ab2c29ada449c74d5a9a58a6c46a8c4");
+}
 
-  ASSERT_EQ(derived_key, public_key);
+// https://github.com/paritytech/substrate/blob/6f0f5a92739b92199b3345fc4a716211c8a8b46f/primitives/core/src/ecdsa.rs#L551-L568
+TEST_F(EcdsaProviderTest, Compatible) {
+  auto seed =
+      EcdsaSeed::fromHex(
+          "9d61b19deffd5a60ba844af492ec2cc44449c5697b326919703bac031cae7f60")
+          .value();
+  auto keys = ecdsa_provider_->generateKeypair(seed, {}).value();
+  auto sig =
+      EcdsaSignature::fromHex(
+          "3dde91174bd9359027be59a428b8146513df80a2a3c7eda2194f64de04a69ab97b75"
+          "3169e94db6ffd50921a2668a48b94ca11e3d32c1ff19cfe88890aa7e8f3c00")
+          .value();
+  EXPECT_TRUE(ecdsa_provider_->verify({}, sig, keys.public_key).value());
 }

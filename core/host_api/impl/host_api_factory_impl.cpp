@@ -17,7 +17,6 @@ namespace kagome::host_api {
       std::shared_ptr<crypto::Secp256k1Provider> secp256k1_provider,
       std::shared_ptr<crypto::Hasher> hasher,
       std::shared_ptr<crypto::CryptoStore> crypto_store,
-      std::shared_ptr<crypto::Bip39Provider> bip39_provider,
       std::shared_ptr<offchain::OffchainPersistentStorage>
           offchain_persistent_storage,
       std::shared_ptr<offchain::OffchainWorkerPool> offchain_worker_pool)
@@ -28,7 +27,6 @@ namespace kagome::host_api {
         secp256k1_provider_(std::move(secp256k1_provider)),
         hasher_(std::move(hasher)),
         crypto_store_(std::move(crypto_store)),
-        bip39_provider_(std::move(bip39_provider)),
         offchain_persistent_storage_(std::move(offchain_persistent_storage)),
         offchain_worker_pool_(std::move(offchain_worker_pool)) {
     BOOST_ASSERT(sr25519_provider_ != nullptr);
@@ -36,7 +34,6 @@ namespace kagome::host_api {
     BOOST_ASSERT(secp256k1_provider_ != nullptr);
     BOOST_ASSERT(hasher_ != nullptr);
     BOOST_ASSERT(crypto_store_ != nullptr);
-    BOOST_ASSERT(bip39_provider_ != nullptr);
     BOOST_ASSERT(offchain_persistent_storage_ != nullptr);
     BOOST_ASSERT(offchain_worker_pool_ != nullptr);
   }
@@ -55,7 +52,6 @@ namespace kagome::host_api {
                                          secp256k1_provider_,
                                          hasher_,
                                          crypto_store_,
-                                         bip39_provider_,
                                          offchain_persistent_storage_,
                                          offchain_worker_pool_);
   }

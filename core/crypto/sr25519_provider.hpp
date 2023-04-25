@@ -6,8 +6,7 @@
 #ifndef KAGOME_CORE_CRYPTO_SR25519_PROVIDER_HPP
 #define KAGOME_CORE_CRYPTO_SR25519_PROVIDER_HPP
 
-#include <gsl/span>
-#include <outcome/outcome.hpp>
+#include "crypto/bip39/bip39_types.hpp"
 #include "crypto/sr25519_types.hpp"
 
 namespace kagome::crypto {
@@ -24,17 +23,15 @@ namespace kagome::crypto {
 
   class Sr25519Provider {
    public:
-    virtual ~Sr25519Provider() = default;
+    using Junctions = gsl::span<const bip39::RawJunction>;
 
-    /**
-     * Generates random keypair for signing the message
-     */
-    virtual Sr25519KeypairAndSeed generateKeypair() const = 0;
+    virtual ~Sr25519Provider() = default;
 
     /**
      * Generate random keypair from seed
      */
-    virtual Sr25519Keypair generateKeypair(const Sr25519Seed &seed) const = 0;
+    virtual Sr25519Keypair generateKeypair(const Sr25519Seed &seed,
+                                           Junctions junctions) const = 0;
 
     /**
      * Sign message \param msg using \param keypair. If computed value is less

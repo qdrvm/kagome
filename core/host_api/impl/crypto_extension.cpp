@@ -11,8 +11,6 @@
 #include <boost/assert.hpp>
 #include <gsl/span>
 
-#include "crypto/bip39/bip39_provider.hpp"
-#include "crypto/bip39/mnemonic.hpp"
 #include "crypto/crypto_store.hpp"
 #include "crypto/crypto_store/key_type.hpp"
 #include "crypto/ecdsa_provider.hpp"
@@ -66,8 +64,7 @@ namespace kagome::host_api {
       std::shared_ptr<const crypto::Ed25519Provider> ed25519_provider,
       std::shared_ptr<const crypto::Secp256k1Provider> secp256k1_provider,
       std::shared_ptr<const crypto::Hasher> hasher,
-      std::shared_ptr<crypto::CryptoStore> crypto_store,
-      std::shared_ptr<const crypto::Bip39Provider> bip39_provider)
+      std::shared_ptr<crypto::CryptoStore> crypto_store)
       : memory_provider_(std::move(memory_provider)),
         sr25519_provider_(std::move(sr25519_provider)),
         ecdsa_provider_(std::move(ecdsa_provider)),
@@ -75,7 +72,6 @@ namespace kagome::host_api {
         secp256k1_provider_(std::move(secp256k1_provider)),
         hasher_(std::move(hasher)),
         crypto_store_(std::move(crypto_store)),
-        bip39_provider_(std::move(bip39_provider)),
         logger_{log::createLogger("CryptoExtension", "crypto_extension")} {
     BOOST_ASSERT(memory_provider_ != nullptr);
     BOOST_ASSERT(sr25519_provider_ != nullptr);
@@ -84,7 +80,6 @@ namespace kagome::host_api {
     BOOST_ASSERT(secp256k1_provider_ != nullptr);
     BOOST_ASSERT(hasher_ != nullptr);
     BOOST_ASSERT(crypto_store_ != nullptr);
-    BOOST_ASSERT(bip39_provider_ != nullptr);
     BOOST_ASSERT(logger_ != nullptr);
   }
 
@@ -189,44 +184,6 @@ namespace kagome::host_api {
     SL_TRACE_FUNC_CALL(logger_, buffer.size(), key_type_id);
 
     return getMemory().storeBuffer(buffer);
-  }
-
-  common::Blob<32> CryptoExtension::deriveSeed(std::string_view content) {
-    // first check if content is a hexified seed value
-    if (auto res = common::Blob<32>::fromHexWithPrefix(content); res) {
-      return res.value();
-    }
-
-    SL_DEBUG(logger_, "failed to unhex seed, try parse mnemonic");
-
-    // now check if it is a bip39 mnemonic phrase with optional password
-    auto mnemonic = crypto::bip39::Mnemonic::parse(content);
-    if (!mnemonic) {
-      throw_with_error(
-          logger_, "failed to parse mnemonic {}", mnemonic.error());
-    }
-
-    auto &&entropy = bip39_provider_->calculateEntropy(mnemonic.value().words);
-    if (!entropy) {
-      throw_with_error(
-          logger_, "failed to calculate entropy {}", entropy.error());
-    }
-
-    auto &&big_seed =
-        bip39_provider_->makeSeed(entropy.value(), mnemonic.value().password);
-    if (!big_seed) {
-      throw_with_error(logger_, "failed to generate seed {}", big_seed.error());
-    }
-
-    auto big_span = gsl::span<uint8_t>(big_seed.value());
-    constexpr size_t size = common::Blob<32>::size();
-    // get first 32 bytes from big seed as ed25519 or sr25519 seed
-    auto seed = common::Blob<32>::fromSpan(big_span.subspan(0, size));
-    if (!seed) {
-      // impossible case bip39 seed is always 64 bytes long
-      BOOST_UNREACHABLE_RETURN({});
-    }
-    return seed.value();
   }
 
   runtime::WasmPointer CryptoExtension::ext_crypto_ed25519_generate_version_1(
@@ -695,7 +652,9 @@ namespace kagome::host_api {
     auto [msg_data, msg_len] = runtime::PtrSize(msg_span);
     auto msg = getMemory().loadN(msg_data, msg_len);
     auto signature =
-        getMemory().loadN(sig, ecdsa_constants::SIGNATURE_SIZE).toVector();
+        crypto::EcdsaSignature::fromSpan(
+            getMemory().loadN(sig, ecdsa_constants::SIGNATURE_SIZE))
+            .value();
 
     auto pubkey_buffer =
         getMemory().loadN(pubkey_data, ecdsa_constants::PUBKEY_SIZE);
@@ -720,7 +679,9 @@ namespace kagome::host_api {
     auto [msg_data, msg_len] = runtime::PtrSize(msg_span);
     auto msg = getMemory().loadN(msg_data, msg_len);
     auto signature =
-        getMemory().loadN(sig, ecdsa_constants::SIGNATURE_SIZE).toVector();
+        crypto::EcdsaSignature::fromSpan(
+            getMemory().loadN(sig, ecdsa_constants::SIGNATURE_SIZE))
+            .value();
 
     auto pubkey_buffer =
         getMemory().loadN(pubkey_data, ecdsa_constants::PUBKEY_SIZE);

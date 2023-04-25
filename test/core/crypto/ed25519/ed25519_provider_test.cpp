@@ -7,17 +7,23 @@
 
 #include <gsl/span>
 
+#include "crypto/bip39/impl/bip39_provider_impl.hpp"
 #include "crypto/ed25519/ed25519_provider_impl.hpp"
+#include "crypto/hasher/hasher_impl.hpp"
+#include "crypto/pbkdf2/impl/pbkdf2_provider_impl.hpp"
 #include "crypto/random_generator/boost_generator.hpp"
 #include "testutil/outcome.hpp"
 #include "testutil/prepare_loggers.hpp"
 
+using kagome::crypto::Bip39ProviderImpl;
 using kagome::crypto::BoostRandomGenerator;
 using kagome::crypto::Ed25519PrivateKey;
 using kagome::crypto::Ed25519Provider;
 using kagome::crypto::Ed25519ProviderImpl;
 using kagome::crypto::Ed25519PublicKey;
 using kagome::crypto::Ed25519Seed;
+using kagome::crypto::HasherImpl;
+using kagome::crypto::Pbkdf2ProviderImpl;
 
 struct Ed25519ProviderTest : public ::testing::Test {
   static void SetUpTestCase() {
@@ -25,8 +31,7 @@ struct Ed25519ProviderTest : public ::testing::Test {
   }
 
   void SetUp() override {
-    auto random_generator = std::make_shared<BoostRandomGenerator>();
-    ed25519_provider = std::make_shared<Ed25519ProviderImpl>(random_generator);
+    ed25519_provider = std::make_shared<Ed25519ProviderImpl>(hasher);
 
     std::string_view m = "i am a message";
     message = std::vector<uint8_t>(m.begin(), m.end());
@@ -38,11 +43,20 @@ struct Ed25519ProviderTest : public ::testing::Test {
         "767a2f677a8c704d66e2abbb181d8984adae7ac8ecac9e30709ad496244ab497";
   }
 
+  auto generate() {
+    Ed25519Seed seed;
+    csprng->fillRandomly(seed);
+    return ed25519_provider->generateKeypair(seed, {}).value();
+  }
+
   std::string_view hex_seed;
   std::string_view hex_public_key;
 
   gsl::span<uint8_t> message_span;
   std::vector<uint8_t> message;
+  std::shared_ptr<BoostRandomGenerator> csprng =
+      std::make_shared<BoostRandomGenerator>();
+  std::shared_ptr<HasherImpl> hasher = std::make_shared<HasherImpl>();
   std::shared_ptr<Ed25519Provider> ed25519_provider;
 };
 
@@ -53,8 +67,8 @@ struct Ed25519ProviderTest : public ::testing::Test {
  */
 TEST_F(Ed25519ProviderTest, GenerateKeysNotEqual) {
   for (auto i = 0; i < 10; ++i) {
-    auto kp1 = ed25519_provider->generateKeypair();
-    auto kp2 = ed25519_provider->generateKeypair();
+    auto kp1 = generate();
+    auto kp2 = generate();
     ASSERT_NE(kp1.public_key, kp2.public_key);
     ASSERT_NE(kp1.secret_key, kp2.secret_key);
   }
@@ -68,7 +82,7 @@ TEST_F(Ed25519ProviderTest, GenerateKeysNotEqual) {
  * @then verification succeeds
  */
 TEST_F(Ed25519ProviderTest, SignVerifySuccess) {
-  auto kp = ed25519_provider->generateKeypair();
+  auto kp = generate();
   EXPECT_OUTCOME_TRUE(signature, ed25519_provider->sign(kp, message_span));
   EXPECT_OUTCOME_TRUE(
       res, ed25519_provider->verify(signature, message_span, kp.public_key));
@@ -85,7 +99,7 @@ TEST_F(Ed25519ProviderTest, SignVerifySuccess) {
  * @then sign fails
  */
 TEST_F(Ed25519ProviderTest, SignWithInvalidKeyFails) {
-  auto kp = ed25519_provider->generateKeypair();
+  auto kp = generate();
   kp.public_key.fill(1);
   EXPECT_OUTCOME_FALSE_1(ed25519_provider->sign(kp, message_span));
 }
@@ -98,10 +112,10 @@ TEST_F(Ed25519ProviderTest, SignWithInvalidKeyFails) {
  * @then verification succeeds, but verification result is false
  */
 TEST_F(Ed25519ProviderTest, VerifyWrongKeyFail) {
-  auto kp = ed25519_provider->generateKeypair();
+  auto kp = generate();
   EXPECT_OUTCOME_TRUE(signature, ed25519_provider->sign(kp, message_span));
   // generate another valid key pair and take public one
-  auto kp1 = ed25519_provider->generateKeypair();
+  auto kp1 = generate();
   EXPECT_OUTCOME_TRUE(
       ver_res,
       ed25519_provider->verify(signature, message_span, kp1.public_key));
@@ -121,7 +135,7 @@ TEST_F(Ed25519ProviderTest, VerifyWrongKeyFail) {
  * @then verification fails
  */
 TEST_F(Ed25519ProviderTest, DISABLED_VerifyInvalidKeyFail) {
-  auto kp = ed25519_provider->generateKeypair();
+  auto kp = generate();
   EXPECT_OUTCOME_TRUE(signature, ed25519_provider->sign(kp, message_span));
   // make public key invalid
   kp.public_key.fill(1);
@@ -141,8 +155,29 @@ TEST_F(Ed25519ProviderTest, GenerateBySeedSuccess) {
   // private key is the same as seed
   EXPECT_OUTCOME_TRUE(private_key, Ed25519PrivateKey::fromHex(hex_seed));
 
-  auto kp = ed25519_provider->generateKeypair(seed);
+  auto kp = ed25519_provider->generateKeypair(seed, {}).value();
 
   ASSERT_EQ(kp.secret_key, private_key);
   ASSERT_EQ(kp.public_key, public_key);
+}
+
+// polkadot key inspect --scheme ed25519 PHRASE
+TEST_F(Ed25519ProviderTest, Junctions) {
+  Bip39ProviderImpl bip_provider{
+      std::make_shared<Pbkdf2ProviderImpl>(),
+      hasher,
+  };
+  auto f = [&](std::string_view phrase, std::string_view pub_str) {
+    auto bip = bip_provider.generateSeed(phrase).value();
+    auto keys =
+        ed25519_provider
+            ->generateKeypair(bip.as<Ed25519Seed>().value(), bip.junctions)
+            .value();
+    EXPECT_EQ(keys.public_key.toHex(), pub_str);
+  };
+  f("//Alice",
+    "88dc3417d5058ec4b4503e0c12ea1a0a89be200fe98922423d4334014fa6b0ee");
+  f("//1234",
+    "38ebc0798b6ad60b7201fb5402cd8bc75fb14ca9e91f99a35b62b3b0fa88d64b");
+  f("", "345071da55e5dccefaaa440339415ef9f2663338a38f7da0df21be5ab4e055ef");
 }

@@ -76,7 +76,7 @@ namespace kagome::application {
     boost::filesystem::path databasePath(std::string chain_id) const override;
     boost::filesystem::path keystorePath(std::string chain_id) const override;
 
-    const std::optional<crypto::Ed25519PrivateKey> &nodeKey() const override {
+    const std::optional<crypto::Ed25519Seed> &nodeKey() const override {
       return node_key_;
     }
 
@@ -206,7 +206,7 @@ namespace kagome::application {
     /// member-function ptrs
     struct SegmentHandler {
       using Handler = std::function<void(rapidjson::Value &)>;
-      char const *segment_name;
+      const char *segment_name;
       Handler handler;
     };
 
@@ -225,28 +225,28 @@ namespace kagome::application {
     void read_config_from_file(const std::string &filepath);
 
     bool load_ms(const rapidjson::Value &val,
-                 char const *name,
+                 const char *name,
                  std::vector<std::string> &target);
 
     bool load_ma(const rapidjson::Value &val,
-                 char const *name,
+                 const char *name,
                  std::vector<libp2p::multi::Multiaddress> &target);
     bool load_telemetry_uris(const rapidjson::Value &val,
-                             char const *name,
+                             const char *name,
                              std::vector<telemetry::TelemetryEndpoint> &target);
     bool load_str(const rapidjson::Value &val,
-                  char const *name,
+                  const char *name,
                   std::string &target);
     bool load_u16(const rapidjson::Value &val,
-                  char const *name,
+                  const char *name,
                   uint16_t &target);
     bool load_u32(const rapidjson::Value &val,
-                  char const *name,
+                  const char *name,
                   uint32_t &target);
     bool load_i32(const rapidjson::Value &val,
-                  char const *name,
+                  const char *name,
                   int32_t &target);
-    bool load_bool(const rapidjson::Value &val, char const *name, bool &target);
+    bool load_bool(const rapidjson::Value &val, const char *name, bool &target);
 
     /**
      * Convert given values into boost tcp::endpoint representation format
@@ -289,7 +289,7 @@ namespace kagome::application {
     log::Logger logger_;
 
     network::Roles roles_;
-    std::optional<crypto::Ed25519PrivateKey> node_key_;
+    std::optional<crypto::Ed25519Seed> node_key_;
     std::optional<std::string> node_key_file_;
     bool save_node_key_;
     std::vector<libp2p::multi::Multiaddress> listen_addresses_;
