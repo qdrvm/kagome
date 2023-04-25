@@ -89,7 +89,7 @@ namespace kagome::parachain {
     struct ApprovalEntry {
       SCALE_TIE(6);
       using MaybeCert = std::optional<
-          std::tuple<std::reference_wrapper<approval::AssignmentCert const>,
+          std::tuple<std::reference_wrapper<const approval::AssignmentCert>,
                      ValidatorIndex,
                      DelayTranche>>;
 
@@ -127,14 +127,14 @@ namespace kagome::parachain {
 
       // Produce a bitvec indicating the assignments of all validators up to and
       // including `tranche`.
-      scale::BitVec assignments_up_to(DelayTranche const tranche) const {
+      scale::BitVec assignments_up_to(const DelayTranche tranche) const {
         scale::BitVec out;
         out.bits.assign(assignments.bits.size(), false);
-        for (auto const &e : tranches) {
+        for (const auto &e : tranches) {
           if (e.tranche > tranche) {
             break;
           }
-          for (auto const &[v, _] : e.assignments) {
+          for (const auto &[v, _] : e.assignments) {
             BOOST_ASSERT(v < out.bits.size());
             out.bits[v] = true;
           }
@@ -151,7 +151,7 @@ namespace kagome::parachain {
         import_assignment(
             our_assignment->tranche, our_assignment->validator_index, tick_now);
         return std::make_tuple(
-            std::reference_wrapper<approval::AssignmentCert const>(
+            std::reference_wrapper<const approval::AssignmentCert>(
                 our_assignment->cert),
             our_assignment->validator_index,
             our_assignment->tranche);
@@ -186,7 +186,7 @@ namespace kagome::parachain {
           return tranches.size() - 1ul;
         };
 
-        auto const idx = upload_tranche_and_return_pos();
+        const auto idx = upload_tranche_and_return_pos();
         tranches[idx].assignments.emplace_back(validator_index, tick_now);
         assignments.bits[validator_index] = true;
       }
@@ -208,7 +208,7 @@ namespace kagome::parachain {
       }
 
       std::optional<std::reference_wrapper<ApprovalEntry>> approval_entry(
-          network::RelayHash const &relay_hash) {
+          const network::RelayHash &relay_hash) {
         if (auto it = block_assignments.find(relay_hash);
             it != block_assignments.end()) {
           return it->second;
@@ -217,7 +217,7 @@ namespace kagome::parachain {
       }
 
       /// Query whether a given validator has approved the candidate.
-      bool has_approved(ValidatorIndex const validator) {
+      bool has_approved(const ValidatorIndex validator) {
         if (validator >= approvals.bits.size()) {
           return false;
         }
@@ -225,14 +225,14 @@ namespace kagome::parachain {
       }
 
       /// Return the previous approval state.
-      bool mark_approval(ValidatorIndex const validator) {
+      bool mark_approval(const ValidatorIndex validator) {
         BOOST_ASSERT(validator < approvals.bits.size());
-        auto const prev = has_approved(validator);
+        const auto prev = has_approved(validator);
         approvals.bits[validator] = true;
         return prev;
       }
 
-      bool operator==(CandidateEntry const &c) {
+      bool operator==(const CandidateEntry &c) {
         auto block_assignments_eq = [&]() {
           if (block_assignments.size() != c.block_assignments.size()) {
             return false;
@@ -267,14 +267,14 @@ namespace kagome::parachain {
         std::shared_ptr<blockchain::BlockTree> block_tree,
         std::shared_ptr<parachain::Pvf> pvf,
         std::shared_ptr<parachain::Recovery> recovery);
-    ~ApprovalDistribution();
+    ~ApprovalDistribution() = default;
 
     /// AppStateManager impl
     bool prepare();
 
     void onValidationProtocolMsg(
-        libp2p::peer::PeerId const &peer_id,
-        network::ValidatorProtocolMessage const &message);
+        const libp2p::peer::PeerId &peer_id,
+        const network::ValidatorProtocolMessage &message);
 
    private:
     using CandidateIncludedList =
@@ -366,9 +366,9 @@ namespace kagome::parachain {
       std::vector<Hash> children;
 
       std::optional<CandidateIndex> candidateIxByHash(
-          CandidateHash const &candidate_hash) {
+          const CandidateHash &candidate_hash) {
         for (size_t ix = 0ul; ix < candidates.size(); ++ix) {
-          auto const &[_, h] = candidates[ix];
+          const auto &[_, h] = candidates[ix];
           if (h == candidate_hash) {
             return CandidateIndex(ix);
           }
@@ -377,7 +377,7 @@ namespace kagome::parachain {
       }
 
       /// Mark a candidate as fully approved in the bitfield.
-      void mark_approved_by_hash(CandidateHash const &candidate_hash) {
+      void mark_approved_by_hash(const CandidateHash &candidate_hash) {
         if (auto p = candidateIxByHash(candidate_hash)) {
           approved_bitfield.bits[*p] = true;
         }
@@ -390,7 +390,7 @@ namespace kagome::parachain {
       }
 
       /// Whether a candidate is approved in the bitfield.
-      bool is_candidate_approved(CandidateHash const &candidate_hash) {
+      bool is_candidate_approved(const CandidateHash &candidate_hash) {
         if (auto pos = candidateIxByHash(candidate_hash);
             pos && *pos < approved_bitfield.bits.size()) {
           return approved_bitfield.bits[*pos];
@@ -414,7 +414,7 @@ namespace kagome::parachain {
     using PendingMessage = AssignmentOrApproval;
 
     using MessageSource =
-        std::optional<std::reference_wrapper<libp2p::peer::PeerId const>>;
+        std::optional<std::reference_wrapper<const libp2p::peer::PeerId>>;
 
     enum ApprovalOutcome {
       Approved,
@@ -449,17 +449,22 @@ namespace kagome::parachain {
     using ApprovingContextMap =
         std::unordered_map<primitives::BlockHash, ApprovingContext>;
     using ApprovingContextUnit = ApprovingContextMap::iterator::value_type;
+    using NewHeadDataContext =
+        std::tuple<ApprovalDistribution::CandidateIncludedList,
+                   std::pair<SessionIndex, runtime::SessionInfo>,
+                   std::tuple<consensus::babe::EpochNumber,
+                              consensus::babe::BabeBlockHeader,
+                              primitives::AuthorityList,
+                              primitives::Randomness>>;
 
     AssignmentsList compute_assignments(
-        std::shared_ptr<crypto::CryptoStore> const &keystore,
-        runtime::SessionInfo const &config,
-        RelayVRFStory const &relay_vrf_story,
-        CandidateIncludedList const &leaving_cores);
+        const std::shared_ptr<crypto::CryptoStore> &keystore,
+        const runtime::SessionInfo &config,
+        const RelayVRFStory &relay_vrf_story,
+        const CandidateIncludedList &leaving_cores);
 
-    void imported_block_info(
-        const primitives::BlockHash &block_hash,
-        const primitives::BlockHeader &block_header,
-        const std::shared_ptr<boost::asio::io_context> &callback_exec_context);
+    void imported_block_info(const primitives::BlockHash &block_hash,
+                             const primitives::BlockHeader &block_header);
 
     ApprovalOutcome validate_candidate_exhaustive(
         const runtime::PersistedValidationData &data,
@@ -468,17 +473,17 @@ namespace kagome::parachain {
         const ParachainRuntime &code);
 
     AssignmentCheckResult check_and_import_assignment(
-        approval::IndirectAssignmentCert const &assignment,
+        const approval::IndirectAssignmentCert &assignment,
         CandidateIndex claimed_candidate_index);
     ApprovalCheckResult check_and_import_approval(
-        network::IndirectSignedApprovalVote const &vote);
+        const network::IndirectSignedApprovalVote &vote);
     void import_and_circulate_assignment(
-        MessageSource const &source,
-        approval::IndirectAssignmentCert const &assignment,
+        const MessageSource &source,
+        const approval::IndirectAssignmentCert &assignment,
         CandidateIndex claimed_candidate_index);
     void import_and_circulate_approval(
-        MessageSource const &source,
-        network::IndirectSignedApprovalVote const &vote);
+        const MessageSource &source,
+        const network::IndirectSignedApprovalVote &vote);
 
     template <typename Func>
     void handle_new_head(const primitives::BlockHash &head,
@@ -486,29 +491,30 @@ namespace kagome::parachain {
                          Func &&func);
     std::optional<std::pair<std::reference_wrapper<ApprovalEntry>,
                             approval::ApprovalStatus>>
-    approval_status(BlockEntry const &block_entry,
+    approval_status(const BlockEntry &block_entry,
                     CandidateEntry &candidate_entry);
 
-    void request_included_candidates(const primitives::BlockHash &block_hash);
-    void request_babe_epoch_and_block_header(
-        const std::shared_ptr<boost::asio::io_context> &exec_context,
+    outcome::result<ApprovalDistribution::CandidateIncludedList>
+    request_included_candidates(const primitives::BlockHash &block_hash);
+    outcome::result<std::tuple<consensus::babe::EpochNumber,
+                               consensus::babe::BabeBlockHeader,
+                               primitives::AuthorityList,
+                               primitives::Randomness>>
+    request_babe_epoch_and_block_header(
         const primitives::BlockHeader &block_header,
         const primitives::BlockHash &block_hash);
-    void request_session_index_and_info(
-        const primitives::BlockHash &block_hash,
-        const primitives::BlockHash &parent_hash);
+    outcome::result<std::pair<SessionIndex, runtime::SessionInfo>>
+    request_session_index_and_info(const primitives::BlockHash &block_hash,
+                                   const primitives::BlockHash &parent_hash);
 
     template <typename Func>
     void for_ACU(const primitives::BlockHash &block_hash, Func &&func);
 
-    static void store_included_candidates(
-        ApprovingContextUnit &acu,
-        CandidateIncludedList const &candidates_list);
     void try_process_approving_context(ApprovingContextUnit &acu);
 
     std::optional<std::pair<ValidatorIndex, crypto::Sr25519Keypair>>
-    findAssignmentKey(std::shared_ptr<crypto::CryptoStore> const &keystore,
-                      runtime::SessionInfo const &config);
+    findAssignmentKey(const std::shared_ptr<crypto::CryptoStore> &keystore,
+                      const runtime::SessionInfo &config);
 
     outcome::result<BlockImportedCandidates> processImportedBlock(
         primitives::BlockNumber block_number,
@@ -529,64 +535,69 @@ namespace kagome::parachain {
                        primitives::BlockNumber block_number,
                        const CandidateHash &candidate_hash);
 
-    void launch_approval(RelayHash const &relay_block_hash,
-                         CandidateHash const &candidate_hash,
+    void launch_approval(const RelayHash &relay_block_hash,
+                         const CandidateHash &candidate_hash,
                          SessionIndex session_index,
-                         network::CandidateReceipt const &candidate,
+                         const network::CandidateReceipt &candidate,
                          ValidatorIndex validator_index,
                          Hash block_hash,
                          GroupIndex backing_group);
 
-    void issue_approval(CandidateHash const &candidate_hash,
+    void issue_approval(const CandidateHash &candidate_hash,
                         ValidatorIndex validator_index,
-                        RelayHash const &block_hash);
+                        const RelayHash &block_hash);
 
     void runLaunchApproval(
-        CandidateHash const &candidate_hash,
-        approval::IndirectAssignmentCert const &indirect_cert,
+        const CandidateHash &candidate_hash,
+        const approval::IndirectAssignmentCert &indirect_cert,
         DelayTranche assignment_tranche,
-        RelayHash const &relay_block_hash,
+        const RelayHash &relay_block_hash,
         CandidateIndex candidate_index,
         SessionIndex session,
-        network::CandidateReceipt const &candidate,
+        const network::CandidateReceipt &candidate,
         GroupIndex backing_group);
 
     void runNewBlocks(approval::BlockApprovalMeta &&approval_meta);
 
     std::optional<ValidatorSignature> sign_approval(
-        crypto::Sr25519PublicKey const &pubkey,
+        const crypto::Sr25519PublicKey &pubkey,
         SessionIndex session_index,
-        CandidateHash const &candidate_hash);
+        const CandidateHash &candidate_hash);
 
-    void notifyApproved(Hash const &block_hash);
+    void storeNewHeadContext(const primitives::BlockHash &block_hash,
+                             NewHeadDataContext &&ctx);
+
+    void notifyApproved(const Hash &block_hash);
 
     void advance_approval_state(BlockEntry &block_entry,
-                                CandidateHash const &candidate_hash,
+                                const CandidateHash &candidate_hash,
                                 CandidateEntry &candidate_entry,
                                 approval::ApprovalStateTransition transition);
 
     void schedule_wakeup_action(
-        ApprovalEntry const &approval_entry,
-        Hash const &block_hash,
+        const ApprovalEntry &approval_entry,
+        const Hash &block_hash,
         BlockNumber block_number,
-        CandidateHash const &candidate_hash,
+        const CandidateHash &candidate_hash,
         Tick block_tick,
         Tick tick_now,
-        approval::RequiredTranches const &required_tranches);
+        const approval::RequiredTranches &required_tranches);
 
-    void scheduleTranche(primitives::BlockHash const &head,
+    void scheduleTranche(const primitives::BlockHash &head,
                          BlockImportedCandidates &&candidate);
 
     void runDistributeAssignment(
-        approval::IndirectAssignmentCert const &indirect_cert,
+        const approval::IndirectAssignmentCert &indirect_cert,
         CandidateIndex candidate_index);
 
-    void runDistributeApproval(network::IndirectSignedApprovalVote const &vote);
+    void runDistributeApproval(const network::IndirectSignedApprovalVote &vote);
 
-    void runScheduleWakeup(primitives::BlockHash const &block_hash,
+    void runScheduleWakeup(const primitives::BlockHash &block_hash,
                            primitives::BlockNumber block_number,
-                           CandidateHash const &candidate_hash,
+                           const CandidateHash &candidate_hash,
                            Tick tick);
+
+    void clearCaches(const primitives::events::ChainEventParams &event);
 
     auto &storedBlocks() {
       return as<StorePair<primitives::BlockNumber,
@@ -607,7 +618,11 @@ namespace kagome::parachain {
 
     ApprovingContextMap approving_context_map_;
     std::shared_ptr<ThreadPool> int_pool_;
+    std::shared_ptr<ThreadHandler> internal_context_;
+
     std::shared_ptr<ThreadPool> thread_pool_;
+    std::shared_ptr<ThreadHandler> thread_pool_context_;
+
     std::shared_ptr<runtime::ParachainHost> parachain_host_;
     std::shared_ptr<consensus::babe::BabeUtil> babe_util_;
     std::shared_ptr<crypto::CryptoStore> keystore_;
