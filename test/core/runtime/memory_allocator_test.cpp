@@ -237,60 +237,82 @@ TEST_F(MemoryAllocatorTest, SearchContBits_Part6) {
 }
 
 TEST_F(MemoryAllocatorTest, AllocateTest_0) {
-  ASSERT_EQ(0ull, allocator_->allocate(allocator_->kGranularity));
-  ASSERT_EQ(0xfffffffffffffffe, allocator_->table_[0]);
+  ASSERT_EQ(allocator_->headerSize(),
+            allocator_->allocate(1ull + allocator_->kGranularity
+                                 - allocator_->headerSize()));
+  ASSERT_EQ(0xfffffffffffffffc, allocator_->table_[0]);
 }
 
 TEST_F(MemoryAllocatorTest, AllocateTest_1) {
   allocator_->table_[0] = 0x0000000000000000;
   allocator_->table_[1] = 0x0000000000000000;
-  ASSERT_EQ(allocator_->kSegmentInBits * allocator_->kGranularity * 2ull, allocator_->allocate(allocator_->kGranularity));
+  ASSERT_EQ(allocator_->kSegmentInBits * allocator_->kGranularity * 2ull
+                + allocator_->headerSize(),
+            allocator_->allocate(2 * allocator_->kGranularity
+                                 - allocator_->headerSize()));
   ASSERT_EQ(0x0000000000000000, allocator_->table_[0]);
   ASSERT_EQ(0x0000000000000000, allocator_->table_[1]);
-  ASSERT_EQ(0xfffffffffffffffe, allocator_->table_[2]);
+  ASSERT_EQ(0xfffffffffffffffc, allocator_->table_[2]);
 }
 
 TEST_F(MemoryAllocatorTest, AllocateTest_2) {
-  ASSERT_EQ(0ull, allocator_->allocate(allocator_->kSegmentSize));
+  ASSERT_EQ(allocator_->headerSize(),
+            allocator_->allocate(allocator_->kSegmentSize
+                                 - allocator_->headerSize()));
   ASSERT_EQ(0x0000000000000000, allocator_->table_[0]);
   ASSERT_EQ(0xffffffffffffffff, allocator_->table_[1]);
   ASSERT_EQ(0xffffffffffffffff, allocator_->table_[2]);
 }
 
 TEST_F(MemoryAllocatorTest, AllocateTest_3) {
-  ASSERT_EQ(0ull, allocator_->allocate(60ull * allocator_->kGranularity));
+  ASSERT_EQ(allocator_->headerSize(),
+            allocator_->allocate(60ull * allocator_->kGranularity
+                                 - allocator_->headerSize()));
   ASSERT_EQ(0xf000000000000000, allocator_->table_[0]);
 
-  ASSERT_EQ(60ull * allocator_->kGranularity, allocator_->allocate(12ull * allocator_->kGranularity));
+  ASSERT_EQ(60ull * allocator_->kGranularity + allocator_->headerSize(),
+            allocator_->allocate(12ull * allocator_->kGranularity
+                                 - allocator_->headerSize()));
   ASSERT_EQ(0x0000000000000000, allocator_->table_[0]);
   ASSERT_EQ(0xffffffffffffff00, allocator_->table_[1]);
 
-  ASSERT_EQ((60ull + 12ull) * allocator_->kGranularity, allocator_->allocate(56ull * allocator_->kGranularity));
+  ASSERT_EQ(
+      (60ull + 12ull) * allocator_->kGranularity + allocator_->headerSize(),
+      allocator_->allocate(56ull * allocator_->kGranularity
+                           - allocator_->headerSize()));
   ASSERT_EQ(0x0000000000000000, allocator_->table_[0]);
   ASSERT_EQ(0x0000000000000000, allocator_->table_[1]);
   ASSERT_EQ(0xffffffffffffffff, allocator_->table_[2]);
 
-  ASSERT_EQ(128ull * allocator_->kGranularity, allocator_->allocate(64ull * allocator_->kGranularity));
+  ASSERT_EQ(128ull * allocator_->kGranularity + allocator_->headerSize(),
+            allocator_->allocate(64ull * allocator_->kGranularity
+                                 - allocator_->headerSize()));
   ASSERT_EQ(0x0000000000000000, allocator_->table_[0]);
   ASSERT_EQ(0x0000000000000000, allocator_->table_[1]);
   ASSERT_EQ(0x0000000000000000, allocator_->table_[2]);
   ASSERT_EQ(3ull, allocator_->table_.size());
 
-  ASSERT_EQ(192ull * allocator_->kGranularity, allocator_->allocate(allocator_->kGranularity));
+  ASSERT_EQ(192ull * allocator_->kGranularity + allocator_->headerSize(),
+            allocator_->allocate(1ull + allocator_->kGranularity
+                                 - allocator_->headerSize()));
   ASSERT_EQ(4ull, allocator_->table_.size());
   ASSERT_EQ(0x0000000000000000, allocator_->table_[0]);
   ASSERT_EQ(0x0000000000000000, allocator_->table_[1]);
   ASSERT_EQ(0x0000000000000000, allocator_->table_[2]);
-  ASSERT_EQ(0xfffffffffffffffe, allocator_->table_[3]);
+  ASSERT_EQ(0xfffffffffffffffc, allocator_->table_[3]);
 
-  ASSERT_EQ(193ull * allocator_->kGranularity, allocator_->allocate(59ull * allocator_->kGranularity));
+  ASSERT_EQ(194ull * allocator_->kGranularity + allocator_->headerSize(),
+            allocator_->allocate(58ull * allocator_->kGranularity
+                                 - allocator_->headerSize()));
   ASSERT_EQ(4ull, allocator_->table_.size());
   ASSERT_EQ(0x0000000000000000, allocator_->table_[0]);
   ASSERT_EQ(0x0000000000000000, allocator_->table_[1]);
   ASSERT_EQ(0x0000000000000000, allocator_->table_[2]);
   ASSERT_EQ(0xf000000000000000, allocator_->table_[3]);
 
-  ASSERT_EQ(252ull * allocator_->kGranularity, allocator_->allocate(8ull * allocator_->kGranularity));
+  ASSERT_EQ(252ull * allocator_->kGranularity + allocator_->headerSize(),
+            allocator_->allocate(8ull * allocator_->kGranularity
+                                 - allocator_->headerSize()));
   ASSERT_EQ(5ull, allocator_->table_.size());
   ASSERT_EQ(0x0000000000000000, allocator_->table_[0]);
   ASSERT_EQ(0x0000000000000000, allocator_->table_[1]);
@@ -298,7 +320,9 @@ TEST_F(MemoryAllocatorTest, AllocateTest_3) {
   ASSERT_EQ(0x0000000000000000, allocator_->table_[3]);
   ASSERT_EQ(0xfffffffffffffff0, allocator_->table_[4]);
 
-  ASSERT_EQ(260ull * allocator_->kGranularity, allocator_->allocate(60ull * allocator_->kGranularity));
+  ASSERT_EQ(260ull * allocator_->kGranularity + allocator_->headerSize(),
+            allocator_->allocate(60ull * allocator_->kGranularity
+                                 - allocator_->headerSize()));
   ASSERT_EQ(5ull, allocator_->table_.size());
   ASSERT_EQ(0x0000000000000000, allocator_->table_[0]);
   ASSERT_EQ(0x0000000000000000, allocator_->table_[1]);
@@ -306,7 +330,9 @@ TEST_F(MemoryAllocatorTest, AllocateTest_3) {
   ASSERT_EQ(0x0000000000000000, allocator_->table_[3]);
   ASSERT_EQ(0x0000000000000000, allocator_->table_[4]);
 
-  ASSERT_EQ(320ull * allocator_->kGranularity, allocator_->allocate(64ull * allocator_->kGranularity));
+  ASSERT_EQ(320ull * allocator_->kGranularity + allocator_->headerSize(),
+            allocator_->allocate(64ull * allocator_->kGranularity
+                                 - allocator_->headerSize()));
   ASSERT_EQ(6ull, allocator_->table_.size());
   ASSERT_EQ(0x0000000000000000, allocator_->table_[0]);
   ASSERT_EQ(0x0000000000000000, allocator_->table_[1]);

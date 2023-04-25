@@ -123,7 +123,11 @@ namespace kagome::runtime {
     static_assert((kSegmentSize & (kSegmentSize - 1)) == 0, "Power of 2!");
 
     size_t allocate(size_t size) {
-      const auto allocation_size = math::roundUp<kGranularity>(size);
+      if (0ull == size) {
+        return 0ull;
+      }
+      const auto allocation_size =
+          math::roundUp<kGranularity>(size + AllocationHeader::kHeaderSize);
       const auto bits_len = bitsPackLenFromSize(allocation_size);
 
       size_t remains;
@@ -133,7 +137,10 @@ namespace kagome::runtime {
       }
 
       setContiguousBits<0ull>(position, bits_len);
-      return position * kGranularity;
+      auto *const header_ptr =
+          (AllocationHeader *)(position * kGranularity + startAddr());
+      header_ptr->count = bits_len;
+      return position * kGranularity + AllocationHeader::kHeaderSize;
     }
 
     std::optional<size_t> deallocate(size_t ptr) {
@@ -151,6 +158,15 @@ namespace kagome::runtime {
 #ifndef TEST_MODE
    private:
 #endif  // TEST_MODE
+    struct AllocationHeader {
+      static constexpr size_t kHeaderSize =
+          math::roundUp<kAlignment>(sizeof(AllocationHeader));
+      size_t count;  // lenght of allocated data in kGranularity units
+    };
+    static_assert(AllocationHeader::kHeaderSize <= kGranularity,
+                  "Size of header should be less or equal granularity. Because "
+                  "65 bits always can be allocated in 2 8-byte words");
+
     auto bitsPackLenFromSize(size_t size) {
       return size / kGranularity;
     }
@@ -222,7 +238,11 @@ namespace kagome::runtime {
       return table_.size() * kSegmentInBits;
     }
 
-    const void *startAddr() const {
+    size_t headerSize() const {
+      return AllocationHeader::kHeaderSize;
+    }
+
+    const uint8_t *startAddr() const {
       return storage_;
     }
 
