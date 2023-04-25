@@ -121,6 +121,11 @@ namespace kagome::network {
     return res;
   }
 
+  void WarpSyncCache::warp(const primitives::BlockInfo &block) {
+    db_prefix_.put(toKey(block.number), block.hash).value();
+    cache_next_ = block.number + 1;
+  }
+
   outcome::result<void> WarpSyncCache::cacheMore(
       primitives::BlockNumber finalized) {
     if (not started_.load()) {
