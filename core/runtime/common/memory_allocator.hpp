@@ -137,8 +137,8 @@ namespace kagome::runtime {
       }
 
       auto const first_modified_segment = setContiguousBits<0ull>(position, bits_len);
-      if (first_modified_segment == segment_ix && table_[first_modified_segment] == 0ull) {
-        ++segment_ix;
+      if (first_modified_segment == cursor_ && table_[first_modified_segment] == 0ull) {
+        ++cursor_;
       }
       auto *const header_ptr =
           (AllocationHeader *)(position * kGranularity + startAddr());
@@ -155,7 +155,7 @@ namespace kagome::runtime {
       const auto position = alloc_begin / kGranularity;
 
       auto const first_modified_segment = setContiguousBits<1ull>(position, header_ptr->count);
-      segment_ix = std::min(segment_ix, first_modified_segment);
+      cursor_ = std::min(cursor_, first_modified_segment);
       return header_ptr->count * kGranularity - AllocationHeader::kHeaderSize;
     }
 
@@ -203,7 +203,7 @@ namespace kagome::runtime {
       const auto *const begin = table_.data();
       const auto *const end = table_.data() + table_.size();
 
-      const auto *segment = &table_[segment_ix];
+      const auto *segment = &table_[cursor_];
       uint64_t preprocessed_segment_filter =
           std::numeric_limits<uint64_t>::max();
 
@@ -358,7 +358,7 @@ namespace kagome::runtime {
 
     std::vector<uint64_t> table_{};
     uint8_t *storage_ = nullptr;
-    size_t segment_ix = 0ull;
+    size_t cursor_ = 0ull;
   };
 
 }  // namespace kagome::runtime
