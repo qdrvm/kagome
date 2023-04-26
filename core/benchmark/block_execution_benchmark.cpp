@@ -89,7 +89,7 @@ namespace kagome::benchmark {
 
   template <typename Rep, typename Period>
   struct MeasureZero<std::chrono::duration<Rep, Period>> {
-    static inline const std::chrono::duration<Rep, Period> zero =
+    inline static const std::chrono::duration<Rep, Period> zero =
         std::chrono::duration<Rep, Period>{0};
   };
 
@@ -167,7 +167,7 @@ namespace kagome::benchmark {
   };
 
   primitives::Weight totalWeight(
-      PerDispatchClass<primitives::Weight> const &weight_per_class) {
+      const PerDispatchClass<primitives::Weight> &weight_per_class) {
     return primitives::Weight{
         weight_per_class.normal.ref_time.number
             + weight_per_class.operational.ref_time.number
@@ -178,7 +178,7 @@ namespace kagome::benchmark {
   }
 
   primitives::OldWeight totalWeight(
-      PerDispatchClass<primitives::OldWeight> const &weight_per_class) {
+      const PerDispatchClass<primitives::OldWeight> &weight_per_class) {
     return primitives::OldWeight{weight_per_class.normal.number
                                  + weight_per_class.operational.number
                                  + weight_per_class.mandatory.number};
@@ -193,8 +193,8 @@ namespace kagome::benchmark {
   constexpr uint64_t WEIGHT_REF_TIME_PER_NANOS = 1000;
 
   outcome::result<std::chrono::nanoseconds> getBlockWeightAsNanoseconds(
-      storage::trie::TrieStorage const &storage,
-      storage::trie::RootHash const &state) {
+      const storage::trie::TrieStorage &storage,
+      const storage::trie::RootHash &state) {
     OUTCOME_TRY(batch, storage.getEphemeralBatchAt(state));
 
     OUTCOME_TRY(enc_block_weight, batch->get(BLOCK_WEIGHT_KEY));
@@ -277,20 +277,18 @@ namespace kagome::benchmark {
       duration_stat_it++;
     }
     for (auto &stat : duration_stats) {
-      SL_INFO(logger_,
-              "Block #{}, min {} ns, avg {} ns, median {} ns, max {} ns",
-              stat.getBlock().number,
-              stat.min().count(),
-              stat.avg().count(),
-              stat.median().count(),
-              stat.max().count());
+      fmt::print("Block #{}, min {} ns, avg {} ns, median {} ns, max {} ns",
+                 stat.getBlock().number,
+                 stat.min().count(),
+                 stat.avg().count(),
+                 stat.median().count(),
+                 stat.max().count());
       OUTCOME_TRY(
           block_weight_ns,
           getBlockWeightAsNanoseconds(
               *trie_storage_,
               blocks[stat.getBlock().number - config.start].header.state_root));
-      SL_INFO(
-          logger_,
+      fmt::print(
           "Block {}: consumed {} ns out of declared {} ns on average. ({} %)",
           stat.getBlock().number,
           stat.avg().count(),
