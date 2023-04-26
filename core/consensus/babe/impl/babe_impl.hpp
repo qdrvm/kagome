@@ -9,6 +9,7 @@
 #include "consensus/babe/babe.hpp"
 
 #include "clock/timer.hpp"
+#include "injector/lazy.hpp"
 #include "log/logger.hpp"
 #include "metrics/metrics.hpp"
 #include "parachain/availability/bitfield/store.hpp"
@@ -40,7 +41,8 @@ namespace kagome::consensus::babe {
 
 namespace kagome::consensus::grandpa {
   class GrandpaDigestObserver;
-}
+  struct JustificationObserver;
+}  // namespace kagome::consensus::grandpa
 
 namespace kagome::crypto {
   class Hasher;
@@ -51,6 +53,8 @@ namespace kagome::crypto {
 namespace kagome::network {
   class Synchronizer;
   class BlockAnnounceTransmitter;
+  class WarpSync;
+  class WarpProtocol;
 }  // namespace kagome::network
 
 namespace kagome::runtime {
@@ -102,6 +106,10 @@ namespace kagome::consensus::babe {
         std::shared_ptr<crypto::Hasher> hasher,
         std::unique_ptr<clock::Timer> timer,
         std::shared_ptr<blockchain::DigestTracker> digest_tracker,
+        std::shared_ptr<network::WarpSync> warp_sync,
+        LazySPtr<network::WarpProtocol> warp_protocol,
+        std::shared_ptr<consensus::grandpa::JustificationObserver>
+            justification_observer,
         std::shared_ptr<network::Synchronizer> synchronizer,
         std::shared_ptr<BabeUtil> babe_util,
         std::shared_ptr<parachain::BitfieldStore> bitfield_store,
@@ -139,6 +147,13 @@ namespace kagome::consensus::babe {
     bool wasSynchronized() const override;
 
    private:
+    /**
+     * Warp sync from `peer_id` if `block_number`.
+     * @return false if can't warp sync
+     */
+    bool warpSync(const libp2p::peer::PeerId &peer_id,
+                  primitives::BlockNumber block_number);
+
     outcome::result<EpochDescriptor> getInitialEpochDescriptor();
 
     void adjustEpochDescriptor();
@@ -153,7 +168,7 @@ namespace kagome::consensus::babe {
     /**
      * Process the current Babe slot
      */
-    void processSlot();
+    void processSlot(clock::SystemClock::TimePoint slot_timestamp);
 
     /**
      * Gather block and broadcast it
@@ -163,6 +178,7 @@ namespace kagome::consensus::babe {
      */
     void processSlotLeadership(
         SlotType slot_type,
+        clock::SystemClock::TimePoint slot_timestamp,
         std::optional<std::reference_wrapper<const crypto::VRFOutput>> output,
         primitives::AuthorityIndex authority_index);
 
@@ -173,6 +189,7 @@ namespace kagome::consensus::babe {
 
     void changeLotteryEpoch(
         const EpochDescriptor &epoch,
+        primitives::AuthorityIndex authority_index,
         const primitives::BabeConfiguration &babe_config) const;
 
     outcome::result<primitives::PreRuntime> babePreDigest(
@@ -197,6 +214,10 @@ namespace kagome::consensus::babe {
     std::shared_ptr<crypto::Sr25519Provider> sr25519_provider_;
     std::unique_ptr<clock::Timer> timer_;
     std::shared_ptr<blockchain::DigestTracker> digest_tracker_;
+    std::shared_ptr<network::WarpSync> warp_sync_;
+    LazySPtr<network::WarpProtocol> warp_protocol_;
+    std::shared_ptr<consensus::grandpa::JustificationObserver>
+        justification_observer_;
     std::shared_ptr<network::Synchronizer> synchronizer_;
     std::shared_ptr<BabeUtil> babe_util_;
     std::shared_ptr<parachain::BitfieldStore> bitfield_store_;
@@ -210,6 +231,8 @@ namespace kagome::consensus::babe {
     std::shared_ptr<ConsistencyKeeper> consistency_keeper_;
     std::shared_ptr<storage::trie::TrieStorage> trie_storage_;
     primitives::events::BabeStateSubscriptionEnginePtr babe_status_observable_;
+
+    bool warp_sync_busy_ = false;
 
     State current_state_{State::WAIT_REMOTE_STATUS};
 

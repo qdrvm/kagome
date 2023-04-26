@@ -19,13 +19,17 @@
 #include "consensus/babe/babe_util.hpp"
 #include "consensus/babe/consistency_keeper.hpp"
 #include "consensus/babe/impl/babe_digests_util.hpp"
+#include "consensus/babe/impl/backoff.hpp"
 #include "consensus/babe/impl/threshold_util.hpp"
+#include "consensus/grandpa/justification_observer.hpp"
 #include "crypto/crypto_store/session_keys.hpp"
 #include "crypto/sr25519_provider.hpp"
 #include "network/block_announce_transmitter.hpp"
 #include "network/helpers/peer_id_formatter.hpp"
 #include "network/synchronizer.hpp"
 #include "network/types/collator_messages.hpp"
+#include "network/warp/protocol.hpp"
+#include "network/warp/sync.hpp"
 #include "runtime/runtime_api/core.hpp"
 #include "runtime/runtime_api/offchain_worker_api.hpp"
 #include "storage/changes_trie/impl/storage_changes_tracker_impl.hpp"
@@ -58,6 +62,10 @@ namespace kagome::consensus::babe {
       std::shared_ptr<crypto::Hasher> hasher,
       std::unique_ptr<clock::Timer> timer,
       std::shared_ptr<blockchain::DigestTracker> digest_tracker,
+      std::shared_ptr<network::WarpSync> warp_sync,
+      LazySPtr<network::WarpProtocol> warp_protocol,
+      std::shared_ptr<consensus::grandpa::JustificationObserver>
+          justification_observer,
       std::shared_ptr<network::Synchronizer> synchronizer,
       std::shared_ptr<BabeUtil> babe_util,
       std::shared_ptr<parachain::BitfieldStore> bitfield_store,
@@ -85,6 +93,9 @@ namespace kagome::consensus::babe {
         sr25519_provider_{std::move(sr25519_provider)},
         timer_{std::move(timer)},
         digest_tracker_(std::move(digest_tracker)),
+        warp_sync_{std::move(warp_sync)},
+        warp_protocol_{std::move(warp_protocol)},
+        justification_observer_{std::move(justification_observer)},
         synchronizer_(std::move(synchronizer)),
         babe_util_(std::move(babe_util)),
         bitfield_store_{std::move(bitfield_store)},
@@ -245,9 +256,12 @@ namespace kagome::consensus::babe {
         break;
 
       case SyncMethod::Fast:
-      case SyncMethod::FastWithoutState:
+      case SyncMethod::Warp:
+      case SyncMethod::FastWithoutState: {
         current_state_ = State::HEADERS_LOADING;
-        break;
+        babe_status_observable_->notify(
+            primitives::events::BabeStateEventType::kSyncState, current_state_);
+      } break;
     }
 
     return true;
@@ -259,10 +273,10 @@ namespace kagome::consensus::babe {
    * @param authority_key authority
    * @return index of authority in list of authorities
    */
-  std::optional<uint64_t> getAuthorityIndex(
+  std::optional<primitives::AuthorityIndex> getAuthorityIndex(
       const primitives::AuthorityList &authorities,
       const primitives::BabeSessionKey &authority_key) {
-    uint64_t n = 0;
+    primitives::AuthorityIndex n = 0;
     for (auto &authority : authorities) {
       if (authority.id.id == authority_key) {
         return n;
@@ -393,6 +407,10 @@ namespace kagome::consensus::babe {
       return;
     }
 
+    if (warpSync(peer_id, handshake.best_block.number)) {
+      return;
+    }
+
     const auto &last_finalized_block = block_tree_->getLastFinalized();
 
     auto current_best_block_res =
@@ -403,6 +421,8 @@ namespace kagome::consensus::babe {
     if (current_best_block == handshake.best_block) {
       if (current_state_ == Babe::State::HEADERS_LOADING) {
         current_state_ = Babe::State::HEADERS_LOADED;
+        babe_status_observable_->notify(
+            primitives::events::BabeStateEventType::kSyncState, current_state_);
         startStateSyncing(peer_id);
       } else if (current_state_ == Babe::State::CATCHING_UP
                  or current_state_ == Babe::State::WAIT_REMOTE_STATUS) {
@@ -424,6 +444,10 @@ namespace kagome::consensus::babe {
     // If state is loading, just to ping of loading
     if (current_state_ == Babe::State::STATE_LOADING) {
       startStateSyncing(peer_id);
+      return;
+    }
+
+    if (warpSync(peer_id, announce.header.number)) {
       return;
     }
 
@@ -468,6 +492,9 @@ namespace kagome::consensus::babe {
             // Headers are loaded; Start sync of state
             if (self->current_state_ == Babe::State::HEADERS_LOADING) {
               self->current_state_ = Babe::State::HEADERS_LOADED;
+              self->babe_status_observable_->notify(
+                  primitives::events::BabeStateEventType::kSyncState,
+                  self->current_state_);
               self->startStateSyncing(peer_id);
               return;
             }
@@ -478,6 +505,9 @@ namespace kagome::consensus::babe {
               self->current_state_ = Babe::State::SYNCHRONIZED;
               self->was_synchronized_ = true;
               self->telemetry_->notifyWasSynchronized();
+              self->babe_status_observable_->notify(
+                  primitives::events::BabeStateEventType::kSyncState,
+                  self->current_state_);
             }
 
             // Synced
@@ -494,6 +524,46 @@ namespace kagome::consensus::babe {
             }
           }
         });
+  }
+
+  bool BabeImpl::warpSync(const libp2p::peer::PeerId &peer_id,
+                          primitives::BlockNumber block_number) {
+    if (current_state_ != State::HEADERS_LOADING) {
+      return false;
+    }
+    if (app_config_.syncMethod() != SyncMethod::Warp) {
+      return false;
+    }
+    auto target = warp_sync_->request();
+    if (not target) {
+      current_state_ = State::HEADERS_LOADED;
+      startStateSyncing(peer_id);
+      return true;
+    }
+    if (block_number <= target->number) {
+      return true;
+    }
+    if (warp_sync_busy_) {
+      return true;
+    }
+    warp_sync_busy_ = true;
+    auto cb = [=, weak{weak_from_this()}](
+                  outcome::result<network::WarpSyncProof> _res) {
+      auto self = weak.lock();
+      if (not self) {
+        return;
+      }
+      if (not _res) {
+        self->warp_sync_busy_ = false;
+        return;
+      }
+      auto &res = _res.value();
+      self->warp_sync_->onResponse(res);
+      self->warp_sync_busy_ = false;
+      self->warpSync(peer_id, block_number);
+    };
+    warp_protocol_.get()->doRequest(peer_id, target->hash, std::move(cb));
+    return true;
   }
 
   void BabeImpl::startCatchUp(const libp2p::peer::PeerId &peer_id,
@@ -530,10 +600,14 @@ namespace kagome::consensus::babe {
           log_, "Catching up {} to block {} is ran", peer_id, target_block);
       if (current_state_ == State::HEADERS_LOADED) {
         current_state_ = State::HEADERS_LOADING;
+        babe_status_observable_->notify(
+            primitives::events::BabeStateEventType::kSyncState, current_state_);
       } else if (current_state_ == State::WAIT_BLOCK_ANNOUNCE
                  or current_state_ == State::WAIT_REMOTE_STATUS
                  or current_state_ == State::SYNCHRONIZED) {
         current_state_ = State::CATCHING_UP;
+        babe_status_observable_->notify(
+            primitives::events::BabeStateEventType::kSyncState, current_state_);
       }
     }
   }
@@ -548,6 +622,15 @@ namespace kagome::consensus::babe {
     }
 
     current_state_ = Babe::State::STATE_LOADING;
+    babe_status_observable_->notify(
+        primitives::events::BabeStateEventType::kSyncState, current_state_);
+
+    auto best_block =
+        block_tree_->getBlockHeader(block_tree_->bestLeaf().hash).value();
+    if (trie_storage_->getEphemeralBatchAt(best_block.state_root)) {
+      current_state_ = Babe::State::CATCHING_UP;
+      return;
+    }
 
     if (app_config_.syncMethod() == SyncMethod::FastWithoutState) {
       if (app_state_manager_->state()
@@ -608,25 +691,52 @@ namespace kagome::consensus::babe {
              block_at_state,
              peer_id);
 
-    synchronizer_->syncState(
+    synchronizer_->syncBabeDigest(
         peer_id,
         block_at_state,
-        [wp = weak_from_this(), block_at_state, peer_id](auto res) mutable {
-          if (auto self = wp.lock()) {
-            if (res.has_error()) {
-              SL_WARN(self->log_,
-                      "Syncing of state with {} on block {} is failed: {}",
-                      peer_id,
-                      block_at_state,
-                      res.error());
-              return;
-            }
-
-            SL_INFO(self->log_,
-                    "State on block {} is synced successfully",
-                    block_at_state);
-            self->current_state_ = Babe::State::CATCHING_UP;
+        [=, weak{weak_from_this()}](outcome::result<void> res) {
+          auto self = weak.lock();
+          if (not self) {
+            return;
           }
+          if (not res) {
+            SL_WARN(self->log_,
+                    "Syncing of babe digests with {} on block {} is failed: {}",
+                    peer_id,
+                    block_at_state,
+                    res.error());
+            return;
+          }
+          synchronizer_->syncState(
+              peer_id,
+              block_at_state,
+              [wp = weak_from_this(), block_at_state, peer_id](
+                  auto res) mutable {
+                if (auto self = wp.lock()) {
+                  if (res.has_error()) {
+                    SL_WARN(
+                        self->log_,
+                        "Syncing of state with {} on block {} is failed: {}",
+                        peer_id,
+                        block_at_state,
+                        res.error());
+                    return;
+                  }
+
+                  self->adjustEpochDescriptor();
+                  self->babe_config_repo_->readFromState(block_at_state);
+                  self->justification_observer_->reload();
+                  self->block_tree_->notifyBestAndFinalized();
+
+                  SL_INFO(self->log_,
+                          "State on block {} is synced successfully",
+                          block_at_state);
+                  self->current_state_ = Babe::State::CATCHING_UP;
+                  self->babe_status_observable_->notify(
+                      primitives::events::BabeStateEventType::kSyncState,
+                      self->current_state_);
+                }
+              });
         });
   }
 
@@ -634,24 +744,21 @@ namespace kagome::consensus::babe {
     // won't start block production without keypair
     if (not keypair_) {
       current_state_ = State::WAIT_BLOCK_ANNOUNCE;
+      babe_status_observable_->notify(
+          primitives::events::BabeStateEventType::kSyncState, current_state_);
       return;
     }
 
     current_state_ = State::SYNCHRONIZED;
     was_synchronized_ = true;
     telemetry_->notifyWasSynchronized();
+    babe_status_observable_->notify(
+        primitives::events::BabeStateEventType::kSyncState, current_state_);
 
     if (not active_) {
       best_block_ = block_tree_->bestLeaf();
-
       SL_DEBUG(log_, "Babe is synchronized on block {}", best_block_);
-
       runEpoch(current_epoch_);
-      babe_status_observable_->notify(
-          primitives::events::BabeStateEventType::kSynchronized,
-          primitives::events::BabeStateEventParams{
-              .best_block = best_block_,
-          });
     }
   }
 
@@ -665,11 +772,12 @@ namespace kagome::consensus::babe {
     bool rewind_slots;  // NOLINT
     auto slot = current_slot_;
 
+    clock::SystemClock::TimePoint now;
     do {
       // check that we are really in the middle of the slot, as expected; we
       // can cooperate with a relatively little (kMaxLatency) latency, as our
       // node will be able to retrieve
-      auto now = clock_->now();
+      now = clock_->now();
 
       auto finish_time = babe_util_->slotFinishTime(current_slot_);
 
@@ -693,9 +801,9 @@ namespace kagome::consensus::babe {
       }
     } while (rewind_slots);
 
-    // Slot processing begins in 1/3 slot time before end
-    auto finish_time = babe_util_->slotFinishTime(current_slot_)
-                     - babe_config_repo_->slotDuration() / 3;
+    // Slot processing begins in 1/3 slot time after start
+    auto finish_time = babe_util_->slotStartTime(current_slot_)
+                     + babe_config_repo_->slotDuration() / 3;
 
     SL_VERBOSE(log_,
                "Starting a slot {} in epoch {} (remains {:.2f} sec.)",
@@ -708,16 +816,16 @@ namespace kagome::consensus::babe {
 
     // everything is OK: wait for the end of the slot
     timer_->expiresAt(finish_time);
-    timer_->asyncWait([&](auto &&ec) {
+    timer_->asyncWait([this, now](auto &&ec) {
       if (ec) {
         log_->error("error happened while waiting on the timer: {}", ec);
         return;
       }
-      processSlot();
+      processSlot(now);
     });
   }
 
-  void BabeImpl::processSlot() {
+  void BabeImpl::processSlot(clock::SystemClock::TimePoint slot_timestamp) {
     BOOST_ASSERT(keypair_ != nullptr);
 
     best_block_ = block_tree_->bestLeaf();
@@ -763,7 +871,7 @@ namespace kagome::consensus::babe {
         const auto &authority_index = authority_index_res.value();
 
         if (lottery_->getEpoch() != current_epoch_) {
-          changeLotteryEpoch(current_epoch_, babe_config);
+          changeLotteryEpoch(current_epoch_, authority_index, babe_config);
         }
 
         auto slot_leadership = lottery_->getSlotLeadership(current_slot_);
@@ -777,8 +885,10 @@ namespace kagome::consensus::babe {
                    common::Buffer(vrf_result.output),
                    common::Buffer(vrf_result.proof));
 
-          processSlotLeadership(
-              SlotType::Primary, std::cref(vrf_result), authority_index);
+          processSlotLeadership(SlotType::Primary,
+                                slot_timestamp,
+                                std::cref(vrf_result),
+                                authority_index);
         } else if (babe_config.allowed_slots
                        == primitives::AllowedSlots::PrimaryAndSecondaryPlain
                    or babe_config.allowed_slots
@@ -800,16 +910,20 @@ namespace kagome::consensus::babe {
                        common::Buffer(vrf.output),
                        common::Buffer(vrf.proof));
 
-              processSlotLeadership(
-                  SlotType::SecondaryVRF, std::cref(vrf), authority_index);
+              processSlotLeadership(SlotType::SecondaryVRF,
+                                    slot_timestamp,
+                                    std::cref(vrf),
+                                    authority_index);
             } else {  // plain secondary slots mode
               SL_DEBUG(
                   log_,
                   "Babe author {} is block producer in secondary plain slot",
                   keypair_->public_key);
 
-              processSlotLeadership(
-                  SlotType::SecondaryPlain, std::nullopt, authority_index);
+              processSlotLeadership(SlotType::SecondaryPlain,
+                                    slot_timestamp,
+                                    std::nullopt,
+                                    authority_index);
             }
           } else {
             SL_TRACE(log_,
@@ -848,7 +962,7 @@ namespace kagome::consensus::babe {
 
     // everything is OK: wait for the end of the slot
     timer_->expiresAt(start_time);
-    timer_->asyncWait([&](auto &&ec) {
+    timer_->asyncWait([this](auto &&ec) {
       if (ec) {
         log_->error("error happened while waiting on the timer: {}", ec);
         return;
@@ -912,8 +1026,23 @@ namespace kagome::consensus::babe {
 
   void BabeImpl::processSlotLeadership(
       SlotType slot_type,
+      clock::SystemClock::TimePoint slot_timestamp,
       std::optional<std::reference_wrapper<const crypto::VRFOutput>> output,
       primitives::AuthorityIndex authority_index) {
+    auto best_header_res = block_tree_->getBlockHeader(best_block_.hash);
+    BOOST_ASSERT_MSG(best_header_res.has_value(),
+                     "The best block is always known");
+    auto &best_header = best_header_res.value();
+
+    if (backoff(best_header,
+                block_tree_->getLastFinalized().number,
+                current_slot_)) {
+      SL_INFO(log_,
+              "Backing off claiming new slot for block authorship: finality is "
+              "lagging.");
+      return;
+    }
+
     BOOST_ASSERT(keypair_ != nullptr);
 
     // build a block to be announced
@@ -930,7 +1059,7 @@ namespace kagome::consensus::babe {
 
     primitives::InherentData inherent_data;
     auto now = std::chrono::duration_cast<std::chrono::milliseconds>(
-                   clock_->now().time_since_epoch())
+                   slot_timestamp.time_since_epoch())
                    .count();
 
     if (auto res = inherent_data.putData<uint64_t>(kTimestampId, now);
@@ -958,12 +1087,7 @@ namespace kagome::consensus::babe {
                paras_inherent_data.backed_candidates.size(),
                relay_parent);
 
-      auto best_block_header_res =
-          block_tree_->getBlockHeader(best_block_.hash);
-      BOOST_ASSERT_MSG(best_block_header_res.has_value(),
-                       "The best block is always known");
-      paras_inherent_data.parent_header =
-          std::move(best_block_header_res.value());
+      paras_inherent_data.parent_header = std::move(best_header);
     }
 
     if (auto res = inherent_data.putData(kParachainId, paras_inherent_data);
@@ -986,8 +1110,13 @@ namespace kagome::consensus::babe {
         std::make_shared<storage::changes_trie::StorageChangesTrackerImpl>();
 
     // create new block
-    auto pre_seal_block_res = proposer_->propose(
-        best_block_, inherent_data, {babe_pre_digest}, changes_tracker);
+    auto pre_seal_block_res =
+        proposer_->propose(best_block_,
+                           babe_util_->slotFinishTime(current_slot_)
+                               - babe_config_repo_->slotDuration() / 3,
+                           inherent_data,
+                           {babe_pre_digest},
+                           changes_tracker);
     if (!pre_seal_block_res) {
       SL_ERROR(log_, "Cannot propose a block: {}", pre_seal_block_res.error());
       return;
@@ -1121,22 +1250,12 @@ namespace kagome::consensus::babe {
 
   void BabeImpl::changeLotteryEpoch(
       const EpochDescriptor &epoch,
+      primitives::AuthorityIndex authority_index,
       const primitives::BabeConfiguration &babe_config) const {
     BOOST_ASSERT(keypair_ != nullptr);
 
-    auto authority_index_res =
-        getAuthorityIndex(babe_config.authorities, keypair_->public_key);
-    if (not authority_index_res) {
-      SL_CRITICAL(log_,
-                  "Block production failed: This node is not in the list of "
-                  "authorities. (public key: {})",
-                  keypair_->public_key);
-      return;
-    }
-
-    auto threshold = calculateThreshold(babe_config.leadership_rate,
-                                        babe_config.authorities,
-                                        authority_index_res.value());
+    auto threshold = calculateThreshold(
+        babe_config.leadership_rate, babe_config.authorities, authority_index);
 
     lottery_->changeEpoch(epoch, babe_config.randomness, threshold, *keypair_);
   }

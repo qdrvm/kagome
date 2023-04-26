@@ -84,12 +84,12 @@ namespace {
   }
 
   bool isInBackingGroup(
-      std::vector<std::vector<kagome::parachain::ValidatorIndex>> const
+      const std::vector<std::vector<kagome::parachain::ValidatorIndex>>
           &validator_groups,
       kagome::parachain::ValidatorIndex validator,
       kagome::parachain::GroupIndex group) {
     if (group < validator_groups.size()) {
-      for (auto const &i : validator_groups[group]) {
+      for (const auto &i : validator_groups[group]) {
         if (i == validator) {
           return true;
         }
@@ -167,7 +167,7 @@ namespace {
     VRFCOutput cert_output;
     VRFCProof cert_proof;
     uint32_t tranche = {};
-    for (auto const &core : lc) {
+    for (const auto &core : lc) {
       sr25519_relay_vrf_delay_assignments_cert(
           keypair_buf.data(),
           config.n_delay_tranches,
@@ -208,18 +208,18 @@ namespace {
   /// Determine the amount of tranches of assignments needed to determine
   /// approval of a candidate.
   kagome::parachain::approval::RequiredTranches tranchesToApprove(
-      kagome::parachain::ApprovalDistribution::ApprovalEntry const
+      const kagome::parachain::ApprovalDistribution::ApprovalEntry
           &approval_entry,
-      scale::BitVec const &approvals,
+      const scale::BitVec &approvals,
       kagome::network::DelayTranche tranche_now,
       kagome::parachain::Tick block_tick,
       kagome::parachain::Tick no_show_duration,
       size_t needed_approvals) {
-    auto const tick_now = tranche_now + block_tick;
-    auto const n_validators = approval_entry.n_validators();
+    const auto tick_now = tranche_now + block_tick;
+    const auto n_validators = approval_entry.n_validators();
 
     std::optional<kagome::parachain::approval::State> state(needed_approvals);
-    auto const &tranches = approval_entry.tranches;
+    const auto &tranches = approval_entry.tranches;
 
     auto it = [&](uint32_t tranche)
         -> std::optional<kagome::parachain::approval::RequiredTranches> {
@@ -300,7 +300,7 @@ namespace {
     return required_tranches;
   }
 
-  scale::BitVec &filter(scale::BitVec &lh, scale::BitVec const &rh) {
+  scale::BitVec &filter(scale::BitVec &lh, const scale::BitVec &rh) {
     BOOST_ASSERT(lh.bits.size() == rh.bits.size());
     for (size_t ix = 0; ix < lh.bits.size(); ++ix) {
       lh.bits[ix] = (lh.bits[ix] && rh.bits[ix]);
@@ -309,10 +309,10 @@ namespace {
   }
 
   kagome::parachain::approval::Check checkApproval(
-      kagome::parachain::ApprovalDistribution::CandidateEntry const &candidate,
-      kagome::parachain::ApprovalDistribution::ApprovalEntry const &approval,
-      kagome::parachain::approval::RequiredTranches const &required) {
-    auto const &approvals = candidate.approvals;
+      const kagome::parachain::ApprovalDistribution::CandidateEntry &candidate,
+      const kagome::parachain::ApprovalDistribution::ApprovalEntry &approval,
+      const kagome::parachain::approval::RequiredTranches &required) {
+    const auto &approvals = candidate.approvals;
     if (3 * kagome::parachain::approval::count_ones(approvals)
         > approvals.bits.size()) {
       return kagome::parachain::approval::ApprovedOneThird{};
@@ -330,11 +330,11 @@ namespace {
             boost::get<kagome::parachain::approval::ExactRequiredTranche>(
                 &required)}) {
       auto assigned_mask = approval.assignments_up_to(exact->needed);
-      auto const &approvals = candidate.approvals;
-      auto const n_assigned =
+      const auto &approvals = candidate.approvals;
+      const auto n_assigned =
           kagome::parachain::approval::count_ones(assigned_mask);
       filter(assigned_mask, approvals);
-      auto const n_approved =
+      const auto n_approved =
           kagome::parachain::approval::count_ones(assigned_mask);
       if (n_approved + exact->tolerated_missing >= n_assigned) {
         return std::make_pair(exact->tolerated_missing,
@@ -347,11 +347,11 @@ namespace {
   }
 
   bool shouldTriggerAssignment(
-      kagome::parachain::ApprovalDistribution::ApprovalEntry const
+      const kagome::parachain::ApprovalDistribution::ApprovalEntry
           &approval_entry,
-      kagome::parachain::ApprovalDistribution::CandidateEntry const
+      const kagome::parachain::ApprovalDistribution::CandidateEntry
           &candidate_entry,
-      kagome::parachain::approval::RequiredTranches const &required_tranches,
+      const kagome::parachain::approval::RequiredTranches &required_tranches,
       kagome::network::DelayTranche const tranche_now) {
     if (!approval_entry.our_assignment) {
       return false;
@@ -385,8 +385,8 @@ namespace {
       kagome::network::CoreIndex claimed_core_index,
       kagome::network::ValidatorIndex validator_index,
       const kagome::runtime::SessionInfo &config,
-      RelayVRFStory const &relay_vrf_story,
-      kagome::parachain::approval::AssignmentCert const &assignment,
+      const RelayVRFStory &relay_vrf_story,
+      const kagome::parachain::approval::AssignmentCert &assignment,
       kagome::network::GroupIndex backing_group) {
     using namespace kagome;
     using AD = parachain::ApprovalDistribution;
@@ -395,25 +395,25 @@ namespace {
       return AD::Error::VALIDATOR_INDEX_OUT_OF_BOUNDS;
     }
 
-    auto const &validator_public = config.assignment_keys[validator_index];
+    const auto &validator_public = config.assignment_keys[validator_index];
     //    OUTCOME_TRY(pk, network::ValidatorId::fromSpan(validator_public));
 
     if (claimed_core_index >= config.n_cores) {
       return AD::Error::CORE_INDEX_OUT_OF_BOUNDS;
     }
 
-    auto const is_in_backing = isInBackingGroup(
+    const auto is_in_backing = isInBackingGroup(
         config.validator_groups, validator_index, backing_group);
     if (is_in_backing) {
       return AD::Error::IS_IN_BACKING_GROUP;
     }
 
-    auto const &vrf_output = assignment.vrf.output;
-    auto const &vrf_proof = assignment.vrf.proof;
+    const auto &vrf_output = assignment.vrf.output;
+    const auto &vrf_proof = assignment.vrf.proof;
 
     return visit_in_place(
         assignment.kind,
-        [&](parachain::approval::RelayVRFModulo const &obj)
+        [&](const parachain::approval::RelayVRFModulo &obj)
             -> outcome::result<kagome::network::DelayTranche> {
           auto const sample = obj.sample;
           if (sample >= config.relay_vrf_modulo_samples) {
@@ -422,7 +422,7 @@ namespace {
           /// TODO(iceseer): vrf_verify_extra check
           return network::DelayTranche(0ull);
         },
-        [&](parachain::approval::RelayVRFDelay const &obj)
+        [&](const parachain::approval::RelayVRFDelay &obj)
             -> outcome::result<kagome::network::DelayTranche> {
           auto const core_index = obj.core_index;
           if (core_index != claimed_core_index) {
@@ -542,6 +542,15 @@ namespace kagome::parachain {
                 self->logger_->trace(
                     "Cleaning up stale pending messages.(block hash={})", lost);
                 self->pending_known_.erase(lost);
+
+                if (auto block_entry = self->storedBlockEntries().get(lost)) {
+                  for (auto const &candidate : block_entry->get().candidates) {
+                    self->recovery_->remove(candidate.second);
+                    self->storedCandidateEntries().extract(candidate.second);
+                  }
+                  self->storedBlockEntries().extract(lost);
+                }
+                self->storedDistribBlockEntries().extract(lost);
               }
             }
           }
@@ -552,10 +561,10 @@ namespace kagome::parachain {
 
   std::optional<std::pair<ValidatorIndex, crypto::Sr25519Keypair>>
   ApprovalDistribution::findAssignmentKey(
-      std::shared_ptr<crypto::CryptoStore> const &keystore,
-      runtime::SessionInfo const &config) {
+      const std::shared_ptr<crypto::CryptoStore> &keystore,
+      const runtime::SessionInfo &config) {
     for (size_t ix = 0; ix < config.assignment_keys.size(); ++ix) {
-      auto const &pk = config.assignment_keys[ix];
+      const auto &pk = config.assignment_keys[ix];
       if (auto res = keystore->findSr25519Keypair(
               crypto::KEY_TYPE_ASGN,
               crypto::Sr25519PublicKey::fromSpan(pk).value());
@@ -569,10 +578,10 @@ namespace kagome::parachain {
 
   ApprovalDistribution::AssignmentsList
   ApprovalDistribution::compute_assignments(
-      std::shared_ptr<crypto::CryptoStore> const &keystore,
-      runtime::SessionInfo const &config,
-      RelayVRFStory const &relay_vrf_story,
-      CandidateIncludedList const &leaving_cores) {
+      const std::shared_ptr<crypto::CryptoStore> &keystore,
+      const runtime::SessionInfo &config,
+      const RelayVRFStory &relay_vrf_story,
+      const CandidateIncludedList &leaving_cores) {
     if (config.n_cores == 0 || config.assignment_keys.empty()
         || config.validator_groups.empty()) {
       SL_TRACE(logger_,
@@ -597,9 +606,9 @@ namespace kagome::parachain {
       return {};
     }
 
-    auto const &[validator_ix, assignments_key] = *founded_key;
+    const auto &[validator_ix, assignments_key] = *founded_key;
     std::vector<CoreIndex> lc;
-    for (auto const &[candidate_hash, _, core_ix, group_ix] : leaving_cores) {
+    for (const auto &[candidate_hash, _, core_ix, group_ix] : leaving_cores) {
       if (isInBackingGroup(config.validator_groups, validator_ix, group_ix)) {
         continue;
       }
@@ -642,7 +651,7 @@ namespace kagome::parachain {
 
   void ApprovalDistribution::store_included_candidates(
       ApprovingContextUnit &acu,
-      ApprovalDistribution::CandidateIncludedList const &candidates_list) {
+      const ApprovalDistribution::CandidateIncludedList &candidates_list) {
     ApprovingContext &context = acu.second;
     context.included_candidates = candidates_list;
   }
@@ -696,16 +705,16 @@ namespace kagome::parachain {
       std::pair<std::reference_wrapper<
                     kagome::parachain::ApprovalDistribution::ApprovalEntry>,
                 kagome::parachain::approval::ApprovalStatus>>
-  ApprovalDistribution::approval_status(BlockEntry const &block_entry,
+  ApprovalDistribution::approval_status(const BlockEntry &block_entry,
                                         CandidateEntry &candidate_entry) {
     auto &session_info = block_entry.session_info;
-    auto const block_hash = block_entry.block_hash;
+    const auto block_hash = block_entry.block_hash;
 
-    auto const tranche_now =
+    const auto tranche_now =
         ::trancheNow(config_.slot_duration_millis, block_entry.slot);
-    auto const block_tick =
+    const auto block_tick =
         ::slotNumberToTick(config_.slot_duration_millis, block_entry.slot);
-    auto const no_show_duration = ::slotNumberToTick(
+    const auto no_show_duration = ::slotNumberToTick(
         config_.slot_duration_millis, session_info.no_show_slots);
 
     if (auto approval_entry = candidate_entry.approval_entry(block_hash)) {
@@ -846,7 +855,7 @@ namespace kagome::parachain {
 
     entries.reserve(block_info.included_candidates.size());
     candidates.reserve(block_info.included_candidates.size());
-    for (auto const &[candidateHash, candidateReceipt, coreIndex, groupIndex] :
+    for (const auto &[candidateHash, candidateReceipt, coreIndex, groupIndex] :
          block_info.included_candidates) {
       std::optional<std::reference_wrapper<OurAssignment>> assignment{};
       if (auto assignment_it = block_info.assignments.find(coreIndex);
@@ -901,15 +910,15 @@ namespace kagome::parachain {
              block_hash,
              parent_hash);
 
-    auto const block_tick =
+    const auto block_tick =
         slotNumberToTick(config_.slot_duration_millis, imported_block.slot);
 
-    auto const no_show_duration =
+    const auto no_show_duration =
         slotNumberToTick(config_.slot_duration_millis,
                          imported_block.session_info.no_show_slots);
 
-    auto const needed_approvals = imported_block.session_info.needed_approvals;
-    auto const num_candidates = imported_block.included_candidates.size();
+    const auto needed_approvals = imported_block.session_info.needed_approvals;
+    const auto num_candidates = imported_block.included_candidates.size();
 
     scale::BitVec approved_bitfield;
     size_t num_ones = 0ull;
@@ -924,9 +933,9 @@ namespace kagome::parachain {
           approved_bitfield.bits.begin(), num_candidates, false);
       for (size_t ix = 0; ix < imported_block.included_candidates.size();
            ++ix) {
-        auto const &[_0, _1, _2, backing_group] =
+        const auto &[_0, _1, _2, backing_group] =
             imported_block.included_candidates[ix];
-        auto const backing_group_size =
+        const auto backing_group_size =
             imported_block.session_info.validator_groups[backing_group].size();
         if (math::sat_sub_unsigned(imported_block.n_validators,
                                    backing_group_size)
@@ -957,7 +966,7 @@ namespace kagome::parachain {
                                 std::move(imported_block)));
 
     std::vector<CandidateHash> candidates;
-    for (auto const &[hash, _0, _1, _2] : imported_block.included_candidates) {
+    for (const auto &[hash, _0, _1, _2] : imported_block.included_candidates) {
       candidates.emplace_back(hash);
     }
 
@@ -980,7 +989,7 @@ namespace kagome::parachain {
   void ApprovalDistribution::runNewBlocks(approval::BlockApprovalMeta &&meta) {
     std::optional<primitives::BlockHash> new_hash;
     if (!storedDistribBlockEntries().get(meta.hash)) {
-      auto const candidates_count = meta.candidates.size();
+      const auto candidates_count = meta.candidates.size();
       std::vector<DistribCandidateEntry> candidates;
       candidates.resize(candidates_count);
 
@@ -1003,13 +1012,13 @@ namespace kagome::parachain {
         for (auto i = it->second.begin(); i != it->second.end(); ++i) {
           visit_in_place(
               i->second,
-              [&](network::Assignment const &assignment) {
+              [&](const network::Assignment &assignment) {
                 import_and_circulate_assignment(
                     i->first,
                     assignment.indirect_assignment_cert,
                     assignment.candidate_ix);
               },
-              [&](network::IndirectSignedApprovalVote const &approval) {
+              [&](const network::IndirectSignedApprovalVote &approval) {
                 import_and_circulate_approval(i->first, approval);
               });
         }
@@ -1025,11 +1034,11 @@ namespace kagome::parachain {
     BOOST_ASSERT(this_context_->get_executor().running_in_this_thread());
 
     /// clear unuseful heads
-    for (auto const &l_head : updated.lost) {
+    for (const auto &l_head : updated.lost) {
       approving_context_map_.erase(l_head);
     }
 
-    auto const block_number = updated.new_head.number;
+    const auto block_number = updated.new_head.number;
     auto parent_hash{updated.new_head.parent_hash};
     if (approving_context_map_.count(head) != 0ull) {
       logger_->warn("Approving {} already in progress.", head);
@@ -1119,10 +1128,10 @@ namespace kagome::parachain {
   }
 
   void ApprovalDistribution::launch_approval(
-      RelayHash const &relay_block_hash,
-      CandidateHash const &candidate_hash,
+      const RelayHash &relay_block_hash,
+      const CandidateHash &candidate_hash,
       SessionIndex session_index,
-      network::CandidateReceipt const &candidate,
+      const network::CandidateReceipt &candidate,
       ValidatorIndex validator_index,
       Hash block_hash,
       GroupIndex backing_group) {
@@ -1235,10 +1244,10 @@ namespace kagome::parachain {
 
   ApprovalDistribution::AssignmentCheckResult
   ApprovalDistribution::check_and_import_assignment(
-      approval::IndirectAssignmentCert const &assignment,
+      const approval::IndirectAssignmentCert &assignment,
       CandidateIndex candidate_index) {
     BOOST_ASSERT(this_context_->get_executor().running_in_this_thread());
-    auto const tick_now = ::tickNow();
+    const auto tick_now = ::tickNow();
 
     GET_OPT_VALUE_OR_EXIT(block_entry,
                           AssignmentCheckResult::Bad,
@@ -1271,9 +1280,9 @@ namespace kagome::parachain {
                                        assignment.cert,
                                        approval_entry.backing_group);
         res.has_value()) {
-      auto const current_tranche =
+      const auto current_tranche =
           ::trancheNow(config_.slot_duration_millis, block_entry.slot);
-      auto const too_far_in_future =
+      const auto too_far_in_future =
           current_tranche + DelayTranche(kTickTooFarInFuture);
       if (res.value() >= too_far_in_future) {
         return AssignmentCheckResult::TooFarInFuture;
@@ -1287,7 +1296,7 @@ namespace kagome::parachain {
       return AssignmentCheckResult::Bad;
     }
 
-    auto const is_duplicate = approval_entry.is_assigned(assignment.validator);
+    const auto is_duplicate = approval_entry.is_assigned(assignment.validator);
     approval_entry.import_assignment(tranche, assignment.validator, tick_now);
 
     AssignmentCheckResult res;
@@ -1318,7 +1327,7 @@ namespace kagome::parachain {
 
   ApprovalDistribution::ApprovalCheckResult
   ApprovalDistribution::check_and_import_approval(
-      network::IndirectSignedApprovalVote const &approval) {
+      const network::IndirectSignedApprovalVote &approval) {
     GET_OPT_VALUE_OR_EXIT(
         block_entry,
         ApprovalCheckResult::Bad,
@@ -1332,7 +1341,7 @@ namespace kagome::parachain {
       return ApprovalCheckResult::Bad;
     }
 
-    auto const &approved_candidate_hash =
+    const auto &approved_candidate_hash =
         block_entry.candidates[approval.payload.payload.candidate_index].second;
     if (approval.payload.ix >= session_info.validators.size()) {
       logger_->warn(
@@ -1341,7 +1350,7 @@ namespace kagome::parachain {
       return ApprovalCheckResult::Bad;
     }
 
-    auto const &pubkey = session_info.validators[approval.payload.ix];
+    const auto &pubkey = session_info.validators[approval.payload.ix];
     GET_OPT_VALUE_OR_EXIT(
         candidate_entry,
         ApprovalCheckResult::Bad,
@@ -1385,12 +1394,12 @@ namespace kagome::parachain {
 #undef GET_OPT_VALUE_OR_EXIT
 
   void ApprovalDistribution::import_and_circulate_assignment(
-      MessageSource const &source,
-      approval::IndirectAssignmentCert const &assignment,
+      const MessageSource &source,
+      const approval::IndirectAssignmentCert &assignment,
       CandidateIndex claimed_candidate_index) {
     BOOST_ASSERT(this_context_->get_executor().running_in_this_thread());
-    auto const &block_hash = assignment.block_hash;
-    auto const validator_index = assignment.validator;
+    const auto &block_hash = assignment.block_hash;
+    const auto validator_index = assignment.validator;
     auto opt_entry = storedDistribBlockEntries().get(block_hash);
     if (!opt_entry) {
       logger_->warn(
@@ -1463,7 +1472,7 @@ namespace kagome::parachain {
       /// TODO(iceseer): vector-clock for knowledge
     }
 
-    auto const local = !source;
+    const auto local = !source;
     [[maybe_unused]] auto &message_state =
         candidate_entry.messages
             .emplace(validator_index,
@@ -1477,12 +1486,12 @@ namespace kagome::parachain {
   }
 
   void ApprovalDistribution::import_and_circulate_approval(
-      MessageSource const &source,
-      network::IndirectSignedApprovalVote const &vote) {
+      const MessageSource &source,
+      const network::IndirectSignedApprovalVote &vote) {
     BOOST_ASSERT(this_context_->get_executor().running_in_this_thread());
-    auto const &block_hash = vote.payload.payload.block_hash;
-    auto const validator_index = vote.payload.ix;
-    auto const candidate_index = vote.payload.payload.candidate_index;
+    const auto &block_hash = vote.payload.payload.block_hash;
+    const auto validator_index = vote.payload.ix;
+    const auto candidate_index = vote.payload.payload.candidate_index;
     auto opt_entry = storedDistribBlockEntries().get(block_hash);
     if (!opt_entry) {
       logger_->info(
@@ -1563,8 +1572,8 @@ namespace kagome::parachain {
   }
 
   void ApprovalDistribution::onValidationProtocolMsg(
-      libp2p::peer::PeerId const &peer_id,
-      network::ValidatorProtocolMessage const &message) {
+      const libp2p::peer::PeerId &peer_id,
+      const network::ValidatorProtocolMessage &message) {
     /*
      * THIS CODE DISABLED TO PREVENT EXTRA CPU USAGE BECAUSE OF INFINITE TASKS
      * IN MAIN THREAD.
@@ -1577,7 +1586,7 @@ namespace kagome::parachain {
     if (auto m{boost::get<network::ApprovalDistributionMessage>(&message)}) {
       visit_in_place(
           *m,
-          [&](network::Assignments const &assignments) {
+          [&](const network::Assignments &assignments) {
             logger_->info("Received assignments.(peer_id={}, count={})",
                           peer_id,
                           assignments.assignments.size());
@@ -1603,7 +1612,7 @@ namespace kagome::parachain {
                   assignment.candidate_ix);
             }
           },
-          [&](network::Approvals const &approvals) {
+          [&](const network::Approvals &approvals) {
             logger_->info("Received approvals.(peer_id={}, count={})",
                           peer_id,
                           approvals.approvals.size());
@@ -1626,12 +1635,12 @@ namespace kagome::parachain {
               import_and_circulate_approval(peer_id, approval_vote);
             }
           },
-          [&](auto const &) { UNREACHABLE; });
+          [&](const auto &) { UNREACHABLE; });
     }
   }
 
   void ApprovalDistribution::runDistributeAssignment(
-      approval::IndirectAssignmentCert const &indirect_cert,
+      const approval::IndirectAssignmentCert &indirect_cert,
       CandidateIndex candidate_index) {
     logger_->info(
         "Distributing assignment on candidate (block hash={}, candidate "
@@ -1653,7 +1662,7 @@ namespace kagome::parachain {
   }
 
   void ApprovalDistribution::runDistributeApproval(
-      network::IndirectSignedApprovalVote const &vote) {
+      const network::IndirectSignedApprovalVote &vote) {
     logger_->info(
         "Distributing our approval vote on candidate (block={}, index={})",
         vote.payload.payload.block_hash,
@@ -1670,9 +1679,9 @@ namespace kagome::parachain {
                       }}));
   }
 
-  void ApprovalDistribution::issue_approval(CandidateHash const &candidate_hash,
+  void ApprovalDistribution::issue_approval(const CandidateHash &candidate_hash,
                                             ValidatorIndex validator_index,
-                                            RelayHash const &block_hash) {
+                                            const RelayHash &block_hash) {
     auto be = storedBlockEntries().get(block_hash);
     if (!be) {
       logger_->info("No block entry for {}. Staled.", block_hash);
@@ -1700,7 +1709,7 @@ namespace kagome::parachain {
       return;
     }
 
-    auto const &c_hash = block_entry.candidates[*candidate_index].second;
+    const auto &c_hash = block_entry.candidates[*candidate_index].second;
     auto r = storedCandidateEntries().get(c_hash);
     if (!r) {
       logger_->warn("Missing entry for candidate index {} included at block {}",
@@ -1718,7 +1727,7 @@ namespace kagome::parachain {
     }
 
     auto &validator_pubkey = session_info.validators[validator_index];
-    auto const session = block_entry.session;
+    const auto session = block_entry.session;
     auto sig = sign_approval(validator_pubkey, session, c_hash);
     if (!sig) {
       logger_->warn("Could not issue approval signature for pubkey {}",
@@ -1753,9 +1762,9 @@ namespace kagome::parachain {
   }
 
   std::optional<ValidatorSignature> ApprovalDistribution::sign_approval(
-      crypto::Sr25519PublicKey const &pubkey,
+      const crypto::Sr25519PublicKey &pubkey,
       SessionIndex session_index,
-      CandidateHash const &candidate_hash) {
+      const CandidateHash &candidate_hash) {
     auto key_pair =
         keystore_->findSr25519Keypair(crypto::KEY_TYPE_PARA, pubkey);
     if (key_pair.has_error()) {
@@ -1776,17 +1785,17 @@ namespace kagome::parachain {
   }
 
   void ApprovalDistribution::runLaunchApproval(
-      CandidateHash const &candidate_hash,
-      approval::IndirectAssignmentCert const &indirect_cert,
+      const CandidateHash &candidate_hash,
+      const approval::IndirectAssignmentCert &indirect_cert,
       DelayTranche assignment_tranche,
-      RelayHash const &relay_block_hash,
+      const RelayHash &relay_block_hash,
       CandidateIndex candidate_index,
       SessionIndex session,
-      network::CandidateReceipt const &candidate,
+      const network::CandidateReceipt &candidate,
       GroupIndex backing_group) {
     /// TODO(iceseer): don't launch approval work if the node is syncing.
-    auto const &block_hash = indirect_cert.block_hash;
-    auto const validator_index = indirect_cert.validator;
+    const auto &block_hash = indirect_cert.block_hash;
+    const auto validator_index = indirect_cert.validator;
 
     import_and_circulate_assignment(
         std::nullopt, indirect_cert, candidate_index);
@@ -1801,21 +1810,21 @@ namespace kagome::parachain {
   }
 
   void ApprovalDistribution::schedule_wakeup_action(
-      ApprovalEntry const &approval_entry,
-      Hash const &block_hash,
+      const ApprovalEntry &approval_entry,
+      const Hash &block_hash,
       BlockNumber block_number,
-      CandidateHash const &candidate_hash,
+      const CandidateHash &candidate_hash,
       Tick block_tick,
       Tick tick_now,
-      approval::RequiredTranches const &required_tranches) {
+      const approval::RequiredTranches &required_tranches) {
     std::optional<Tick> tick{};
     if (!approval_entry.approved) {
       tick = visit_in_place(
           required_tranches,
-          [](approval::AllRequiredTranche const &) -> std::optional<Tick> {
+          [](const approval::AllRequiredTranche &) -> std::optional<Tick> {
             return std::nullopt;
           },
-          [&tick_now](approval::ExactRequiredTranche const &e) {
+          [&tick_now](const approval::ExactRequiredTranche &e) {
             auto filter = [](Tick const &t, Tick const &ref) {
               auto const v = t + kApprovalDelay;
               return ((v > ref) ? std::optional<Tick>{v}
@@ -1827,7 +1836,7 @@ namespace kagome::parachain {
                      ? filter(*e.last_assignment_tick, tick_now)
                      : std::optional<Tick>{}));
           },
-          [&](approval::PendingRequiredTranche const &e) {
+          [&](const approval::PendingRequiredTranche &e) {
             std::optional<DelayTranche> next_announced{};
             for (auto const &t : approval_entry.tranches) {
               if (t.tranche > e.considered) {
@@ -1867,7 +1876,7 @@ namespace kagome::parachain {
     }
   }
 
-  void ApprovalDistribution::notifyApproved(Hash const &block_hash) {
+  void ApprovalDistribution::notifyApproved(const Hash &block_hash) {
     /// Action::NoteApprovedInChainSelection => ChainSelectionMessage::Approved
     if (auto result = block_tree_->markAsParachainDataBlock(block_hash);
         result.has_error()) {
@@ -1881,14 +1890,14 @@ namespace kagome::parachain {
 
   void ApprovalDistribution::advance_approval_state(
       BlockEntry &block_entry,
-      CandidateHash const &candidate_hash,
+      const CandidateHash &candidate_hash,
       CandidateEntry &candidate_entry,
       approval::ApprovalStateTransition transition) {
-    auto const validator_index = approval::validator_index(transition);
-    std::optional<bool> const already_approved_by =
+    const auto validator_index = approval::validator_index(transition);
+    const std::optional<bool> already_approved_by =
         validator_index ? candidate_entry.mark_approval(*validator_index)
                         : std::optional<bool>{};
-    auto const candidate_approved_in_block =
+    const auto candidate_approved_in_block =
         block_entry.is_candidate_approved(candidate_hash);
 
     if (!approval::is_local_approval(transition)) {
@@ -1897,9 +1906,9 @@ namespace kagome::parachain {
       }
     }
 
-    auto const &block_hash = block_entry.block_hash;
-    auto const block_number = block_entry.block_number;
-    auto const tick_now = ::tickNow();
+    const auto &block_hash = block_entry.block_hash;
+    const auto block_number = block_entry.block_number;
+    const auto tick_now = ::tickNow();
 
     SL_TRACE(logger_,
              "Advance approval state.(candidate {}, block {}, "
@@ -1923,18 +1932,18 @@ namespace kagome::parachain {
     std::optional<std::reference_wrapper<ApprovalEntry>> ae{};
     {
       auto &[approval_entry, status] = *result;
-      auto const check = checkApproval(
+      const auto check = checkApproval(
           candidate_entry, approval_entry, status.required_tranches);
-      auto const is_approved = approval::is_approved(
+      const auto is_approved = approval::is_approved(
           check, math::sat_sub_unsigned(tick_now, kApprovalDelay));
 
       if (is_approved) {
         logger_->info("Candidate approved: candidate {}, block {}",
                       candidate_hash,
                       block_hash);
-        auto const was_block_approved = block_entry.is_fully_approved();
+        const auto was_block_approved = block_entry.is_fully_approved();
         block_entry.mark_approved_by_hash(candidate_hash);
-        auto const is_block_approved = block_entry.is_fully_approved();
+        const auto is_block_approved = block_entry.is_fully_approved();
 
         if (is_block_approved && !was_block_approved) {
           notifyApproved(block_hash);
@@ -1950,8 +1959,8 @@ namespace kagome::parachain {
     auto &[is_approved, status] = *_;
     auto &approval_entry = ae->get();
 
-    auto const was_approved = approval_entry.approved;
-    auto const newly_approved = is_approved && !was_approved;
+    const auto was_approved = approval_entry.approved;
+    const auto newly_approved = is_approved && !was_approved;
     if (is_approved) {
       approval_entry.approved = true;
     }
@@ -1976,7 +1985,7 @@ namespace kagome::parachain {
   }
 
   void ApprovalDistribution::scheduleTranche(
-      primitives::BlockHash const &head, BlockImportedCandidates &&candidate) {
+      const primitives::BlockHash &head, BlockImportedCandidates &&candidate) {
     /// this_thread_ context execution.
     BOOST_ASSERT(this_context_->get_executor().running_in_this_thread());
     SL_TRACE(logger_,
@@ -1985,11 +1994,11 @@ namespace kagome::parachain {
              candidate.block_hash,
              candidate.imported_candidates.size());
 
-    for (auto const &[c_hash, c_entry] : candidate.imported_candidates) {
-      auto const &block_assignments = c_entry.block_assignments.at(head);
+    for (const auto &[c_hash, c_entry] : candidate.imported_candidates) {
+      const auto &block_assignments = c_entry.block_assignments.at(head);
       if (block_assignments.our_assignment) {
-        auto const our_tranche = block_assignments.our_assignment->tranche;
-        auto const tick = our_tranche + candidate.block_tick;
+        const auto our_tranche = block_assignments.our_assignment->tranche;
+        const auto tick = our_tranche + candidate.block_tick;
         SL_TRACE(logger_,
                  "Scheduling first wakeup for block {}, tranche {} "
                  "after {}.",
@@ -2008,9 +2017,9 @@ namespace kagome::parachain {
   }
 
   void ApprovalDistribution::runScheduleWakeup(
-      primitives::BlockHash const &block_hash,
+      const primitives::BlockHash &block_hash,
       primitives::BlockNumber block_number,
-      CandidateHash const &candidate_hash,
+      const CandidateHash &candidate_hash,
       Tick tick) {
     SL_TRACE(
         logger_,
@@ -2061,12 +2070,12 @@ namespace kagome::parachain {
     auto &candidate_entry = opt_candidate_entry->get();
     auto &session_info = opt_block_entry->get().session_info;
 
-    auto const block_tick =
+    const auto block_tick =
         slotNumberToTick(config_.slot_duration_millis, block_entry.slot);
-    auto const no_show_duration = slotNumberToTick(config_.slot_duration_millis,
+    const auto no_show_duration = slotNumberToTick(config_.slot_duration_millis,
                                                    session_info.no_show_slots);
 
-    auto const tranche_now =
+    const auto tranche_now =
         ::trancheNow(config_.slot_duration_millis, block_entry.slot);
     SL_TRACE(logger_,
              "Processing wakeup: tranche={}, candidate_hash={}, relay_hash={}",
@@ -2080,15 +2089,15 @@ namespace kagome::parachain {
     }
 
     auto &approval_entry = opt_approval_entry->get();
-    auto const tta = tranchesToApprove(approval_entry,
+    const auto tta = tranchesToApprove(approval_entry,
                                        candidate_entry.approvals,
                                        tranche_now,
                                        block_tick,
                                        no_show_duration,
                                        session_info.needed_approvals);
-    auto const should_trigger = shouldTriggerAssignment(
+    const auto should_trigger = shouldTriggerAssignment(
         approval_entry, candidate_entry, tta, tranche_now);
-    auto const backing_group = approval_entry.backing_group;
+    const auto backing_group = approval_entry.backing_group;
     auto candidate_receipt = candidate_entry.candidate;
 
     ApprovalEntry::MaybeCert maybe_cert{};
@@ -2099,7 +2108,7 @@ namespace kagome::parachain {
     }
 
     if (maybe_cert) {
-      auto const &[cert, val_index, tranche] = *maybe_cert;
+      const auto &[cert, val_index, tranche] = *maybe_cert;
       approval::IndirectAssignmentCert indirect_cert{
           .block_hash = block_hash,
           .validator = val_index,

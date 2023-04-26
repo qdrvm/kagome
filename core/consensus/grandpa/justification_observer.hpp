@@ -35,6 +35,11 @@ namespace kagome::consensus::grandpa {
      */
     virtual outcome::result<void> applyJustification(
         const GrandpaJustification &justification) = 0;
+
+    /**
+     * Reload round after warp sync.
+     */
+    virtual void reload() = 0;
   };
 
 }  // namespace kagome::consensus::grandpa
