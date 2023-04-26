@@ -136,8 +136,10 @@ namespace kagome::runtime {
         storageAdjust(remains * kGranularity);
       }
 
-      auto const first_modified_segment = setContiguousBits<0ull>(position, bits_len);
-      if (first_modified_segment == cursor_ && table_[first_modified_segment] == 0ull) {
+      const auto first_modified_segment =
+          setContiguousBits<0ull>(position, bits_len);
+      if (first_modified_segment == cursor_
+          && table_[first_modified_segment] == 0ull) {
         ++cursor_;
       }
       auto *const header_ptr =
@@ -148,13 +150,13 @@ namespace kagome::runtime {
 
     std::optional<size_t> deallocate(size_t offset) {
       const auto alloc_begin = offset - AllocationHeader::kHeaderSize;
-      auto *const header_ptr =
-          (AllocationHeader *)(alloc_begin + startAddr());
-      
+      auto *const header_ptr = (AllocationHeader *)(alloc_begin + startAddr());
+
       assert((alloc_begin % kGranularity) == 0ull);
       const auto position = alloc_begin / kGranularity;
 
-      auto const first_modified_segment = setContiguousBits<1ull>(position, header_ptr->count);
+      const auto first_modified_segment =
+          setContiguousBits<1ull>(position, header_ptr->count);
       cursor_ = std::min(cursor_, first_modified_segment);
       return header_ptr->count * kGranularity - AllocationHeader::kHeaderSize;
     }
