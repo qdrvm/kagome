@@ -123,7 +123,7 @@ namespace kagome::runtime {
     static_assert((kSegmentSize & (kSegmentSize - 1)) == 0, "Power of 2!");
 
     size_t allocate(size_t size) {
-      if (0ull == size) {
+      if (0ull == size || size > kSegmentSize) {
         return 0ull;
       }
       const auto allocation_size =
@@ -136,15 +136,27 @@ namespace kagome::runtime {
         storageAdjust(remains * kGranularity);
       }
 
-      setContiguousBits<0ull>(position, bits_len);
+      auto const first_modified_segment = setContiguousBits<0ull>(position, bits_len);
+      if (first_modified_segment == segment_ix && table_[first_modified_segment] == 0ull) {
+        ++segment_ix;
+      }
       auto *const header_ptr =
           (AllocationHeader *)(position * kGranularity + startAddr());
       header_ptr->count = bits_len;
       return position * kGranularity + AllocationHeader::kHeaderSize;
     }
 
-    std::optional<size_t> deallocate(size_t ptr) {
-      return std::nullopt;
+    std::optional<size_t> deallocate(size_t offset) {
+      const auto alloc_begin = offset - AllocationHeader::kHeaderSize;
+      auto *const header_ptr =
+          (AllocationHeader *)(alloc_begin + startAddr());
+      
+      assert((alloc_begin % kGranularity) == 0ull);
+      const auto position = alloc_begin / kGranularity;
+
+      auto const first_modified_segment = setContiguousBits<1ull>(position, header_ptr->count);
+      segment_ix = std::min(segment_ix, first_modified_segment);
+      return header_ptr->count * kGranularity - AllocationHeader::kHeaderSize;
     }
 
     MemoryAllocatorNew(size_t preallocated) {
@@ -166,6 +178,8 @@ namespace kagome::runtime {
     static_assert(AllocationHeader::kHeaderSize <= kGranularity,
                   "Size of header should be less or equal granularity. Because "
                   "65 bits always can be allocated in 2 8-byte words");
+    static_assert((kGranularity % kAlignment) == 0ull,
+                  "Should be multiple of Alignment");
 
     auto bitsPackLenFromSize(size_t size) {
       return size / kGranularity;
@@ -189,12 +203,13 @@ namespace kagome::runtime {
       const auto *const begin = table_.data();
       const auto *const end = table_.data() + table_.size();
 
-      const auto *segment = begin;
+      const auto *segment = &table_[segment_ix];
       uint64_t preprocessed_segment_filter =
           std::numeric_limits<uint64_t>::max();
       size_t position;
 
-      do {
+      remains = count;
+      while (end != segment) {
         remains = count;
         const auto preprocessed_segment =
             (*segment & preprocessed_segment_filter);
@@ -229,7 +244,7 @@ namespace kagome::runtime {
           ++segment;
           preprocessed_segment_filter = std::numeric_limits<uint64_t>::max();
         }
-      } while (end != segment);
+      }
 
       return (segment - begin) * kSegmentInBits + (position % kSegmentInBits);
     }
@@ -247,7 +262,7 @@ namespace kagome::runtime {
     }
 
     template <size_t kValue>
-    void setContiguousBits(size_t position, size_t count) {
+    size_t setContiguousBits(size_t position, size_t count) {
       const auto segment_ix = position / kSegmentInBits;
       const auto bit_ix = position % kSegmentInBits;
 
@@ -269,6 +284,7 @@ namespace kagome::runtime {
           table_[segment_ix + 1] |= segment_mask_1;
         }
       }
+      return segment_ix;
     }
 
     void updateSegmentFilter(const uint64_t *&segment,
@@ -342,6 +358,7 @@ namespace kagome::runtime {
 
     std::vector<uint64_t> table_{};
     uint8_t *storage_ = nullptr;
+    size_t segment_ix = 0ull;
   };
 
 }  // namespace kagome::runtime
