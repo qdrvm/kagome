@@ -115,7 +115,7 @@ namespace kagome::runtime {
     static constexpr size_t kAlignment = A;
     static constexpr size_t kGranularity = G;
     static constexpr size_t kSegmentSize = kGranularity * kSegmentInBits;
-    static constexpr size_t kAllocationSize = kSegmentSize;
+    static constexpr size_t kAllocationSize = 2ull * kSegmentSize;
 
     static_assert((kAlignment & (kAlignment - 1)) == 0, "Power of 2!");
     static_assert((kGranularity % kAlignment) == 0,
@@ -202,6 +202,8 @@ namespace kagome::runtime {
     /// @return index of the pack begins, -1 otherwise
     size_t searchContiguousBitPack(const size_t count, size_t &remains) const {
       assert(!table_.empty());
+      assert(table_.size() % 2ull == 0ull);
+      
       const auto *const begin = table_.data();
       const auto *const end = table_.data() + table_.size();
 
@@ -348,7 +350,7 @@ namespace kagome::runtime {
 
     void storageAdjust(size_t size) {
       const auto was_allocated = segmentsToSize(table_.size());
-      const auto added_size = math::roundUpRuntime(size, kAllocationSize);
+      const auto added_size = math::roundUp<kAllocationSize>(size);
       const auto new_size = added_size + was_allocated;
 
       if (__builtin_expect(new_size <= Memory::kMaxMemorySize, 1)) {
