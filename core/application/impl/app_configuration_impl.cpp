@@ -26,7 +26,6 @@
 #include "chain_spec_impl.hpp"
 #include "common/hexutil.hpp"
 #include "common/uri.hpp"
-#include "crypto/crypto_store/dev_mnemonic_phrase.hpp"
 #include "filesystem/directories.hpp"
 #include "utils/read_file.hpp"
 
@@ -171,16 +170,15 @@ namespace {
   }
 
   auto &devAccounts() {
-    static auto &dev = kagome::crypto::DevMnemonicPhrase::get();
     using Account =
         std::tuple<const char *, std::string_view, std::string_view>;
     static const std::array<Account, 6> accounts{
-        Account{"alice", "Alice", dev.alice},
-        Account{"bob", "Bob", dev.bob},
-        Account{"charlie", "Charlie", dev.charlie},
-        Account{"dave", "Dave", dev.dave},
-        Account{"eve", "Eve", dev.eve},
-        Account{"ferdie", "Ferdie", dev.ferdie},
+        Account{"alice", "Alice", "//Alice"},
+        Account{"bob", "Bob", "//Bob"},
+        Account{"charlie", "Charlie", "//Charlie"},
+        Account{"dave", "Dave", "//Dave"},
+        Account{"eve", "Eve", "//Eve"},
+        Account{"ferdie", "Ferdie", "//Ferdie"},
     };
     return accounts;
   }
