@@ -294,6 +294,7 @@ namespace {
 
 namespace kagome::storage::trie {
   PolkadotTrieImpl::PolkadotTrieImpl(PolkadotTrieImpl &&) = default;
+  PolkadotTrieImpl &PolkadotTrieImpl::operator=(PolkadotTrieImpl &&) = default;
 
   PolkadotTrieImpl::PolkadotTrieImpl(NodeRetrieveFunctor f)
       : nodes_{std::make_unique<OpaqueNodeStorage>(std::move(f), nullptr)},
@@ -509,8 +510,7 @@ namespace kagome::storage::trie {
   outcome::result<void> PolkadotTrieImpl::forNodeInPath(
       ConstNodePtr parent,
       const NibblesView &path,
-      const BranchVisitor &callback)
-      const {
+      const BranchVisitor &callback) const {
     if (parent == nullptr) {
       return TrieError::NO_VALUE;
     }

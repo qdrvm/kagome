@@ -23,6 +23,10 @@ namespace kagome::storage::trie {
     enum class Error { INVALID_NODE_TYPE = 1 };
 
     PolkadotTrieImpl(PolkadotTrieImpl &&);
+    PolkadotTrieImpl &operator=(PolkadotTrieImpl &&);
+
+    PolkadotTrieImpl(PolkadotTrieImpl const &) = delete;
+    PolkadotTrieImpl &operator=(PolkadotTrieImpl const &) = delete;
 
     /**
      * Creates an empty Trie
@@ -49,8 +53,7 @@ namespace kagome::storage::trie {
     outcome::result<void> forNodeInPath(
         ConstNodePtr parent,
         const NibblesView &path,
-        const BranchVisitor &callback)
-        const override;
+        const BranchVisitor &callback) const override;
 
     /**
      * Remove all entries, which key starts with the prefix
