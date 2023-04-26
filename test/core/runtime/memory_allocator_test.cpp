@@ -435,3 +435,16 @@ TEST_F(MemoryAllocatorTest, AllocateTest_3) {
   ASSERT_EQ(0xffffffffffffffff, allocator_->table_[4]);
   ASSERT_EQ(0xffffffffffffffff, allocator_->table_[5]);
 }
+
+TEST_F(MemoryAllocatorTest, Allocate65Test_0) {
+  const auto ptr = allocator_->allocate(allocator_->kSegmentSize);
+  ASSERT_EQ(allocator_->headerSize(), ptr);
+  ASSERT_EQ(0x0000000000000000, allocator_->table_[0]);
+  ASSERT_EQ(0xfffffffffffffffe, allocator_->table_[1]);
+  ASSERT_EQ(0xffffffffffffffff, allocator_->table_[2]);
+
+  allocator_->deallocate(ptr);
+  ASSERT_EQ(0xffffffffffffffff, allocator_->table_[0]);
+  ASSERT_EQ(0xffffffffffffffff, allocator_->table_[1]);
+  ASSERT_EQ(0xffffffffffffffff, allocator_->table_[2]);
+}

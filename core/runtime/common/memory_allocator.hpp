@@ -206,8 +206,8 @@ namespace kagome::runtime {
       const auto *segment = &table_[segment_ix];
       uint64_t preprocessed_segment_filter =
           std::numeric_limits<uint64_t>::max();
-      size_t position;
 
+      size_t position = 0ull;
       remains = count;
       while (end != segment) {
         remains = count;
