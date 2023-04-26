@@ -17,6 +17,7 @@
 #include "common/visitor.hpp"
 #include "consensus/grandpa/authority_manager_error.hpp"
 #include "consensus/grandpa/grandpa_digest_observer_error.hpp"
+#include "consensus/grandpa/has_authority_set_change.hpp"
 #include "consensus/grandpa/impl/kusama_hard_forks.hpp"
 #include "consensus/grandpa/impl/schedule_node.hpp"
 #include "log/profiling_logger.hpp"
@@ -1065,5 +1066,25 @@ namespace kagome::consensus::grandpa {
       ancestor->descendants.erase(it);
       SL_DEBUG(logger_, "Node of block {} has removed", block);
     }
+  }
+
+  void AuthorityManagerImpl::warp(const primitives::BlockInfo &block,
+                                  const primitives::BlockHeader &header,
+                                  const primitives::AuthoritySet &authorities) {
+    root_ = ScheduleNode::createAsRoot(
+        std::make_shared<primitives::AuthoritySet>(authorities), block);
+    HasAuthoritySetChange change{header};
+    if (change.scheduled) {
+      root_->action = ScheduleNode::ScheduledChange{
+          block.number + change.scheduled->subchain_length,
+          std::make_shared<primitives::AuthoritySet>(
+              authorities.id + 1, change.scheduled->authorities),
+      };
+    }
+    persistent_storage_
+        ->put(storage::kAuthorityManagerStateLookupKey("last"),
+              scale::encode(root_).value())
+        .value();
+    last_saved_state_block_ = block.number;
   }
 }  // namespace kagome::consensus::grandpa

@@ -38,6 +38,8 @@ namespace kagome::storage {
   inline const common::Buffer kWarpSyncCacheBlocksPrefix =
       ":kagome:WarpSyncCache:blocks:"_buf;
 
+  inline const common::Buffer kWarpSyncOp = ":kagome:WarpSync:op"_buf;
+
   template <typename Tag>
   inline common::Buffer kBabeConfigRepoStateLookupKey(Tag tag) {
     return common::Buffer::fromString(

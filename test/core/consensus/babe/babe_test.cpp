@@ -21,7 +21,7 @@
 #include "mock/core/consensus/babe/block_executor_mock.hpp"
 #include "mock/core/consensus/babe/consistency_keeper_mock.hpp"
 #include "mock/core/consensus/babe_lottery_mock.hpp"
-#include "mock/core/consensus/grandpa/environment_mock.hpp"
+#include "mock/core/consensus/grandpa/grandpa_mock.hpp"
 #include "mock/core/consensus/validation/block_validator_mock.hpp"
 #include "mock/core/crypto/hasher_mock.hpp"
 #include "mock/core/crypto/session_keys_mock.hpp"
@@ -35,6 +35,7 @@
 #include "mock/core/storage/trie/trie_storage_mock.hpp"
 #include "mock/core/transaction_pool/transaction_pool_mock.hpp"
 #include "storage/trie/serialization/ordered_trie_hash.hpp"
+#include "testutil/lazy.hpp"
 #include "testutil/literals.hpp"
 #include "testutil/prepare_loggers.hpp"
 #include "testutil/sr25519_utils.hpp"
@@ -98,7 +99,7 @@ class BabeTest : public testing::Test {
     lottery_ = std::make_shared<BabeLotteryMock>();
     synchronizer_ = std::make_shared<network::SynchronizerMock>();
     babe_block_validator_ = std::make_shared<BlockValidatorMock>();
-    grandpa_environment_ = std::make_shared<grandpa::EnvironmentMock>();
+    grandpa_ = std::make_shared<GrandpaMock>();
     tx_pool_ = std::make_shared<transaction_pool::TransactionPoolMock>();
     core_ = std::make_shared<runtime::CoreMock>();
     proposer_ = std::make_shared<ProposerMock>();
@@ -166,30 +167,35 @@ class BabeTest : public testing::Test {
     EXPECT_CALL(*session_keys_, getBabeKeyPair())
         .WillRepeatedly(ReturnRef(keypair_));
 
-    babe_ = std::make_shared<babe::BabeImpl>(app_config_,
-                                             app_state_manager_,
-                                             lottery_,
-                                             babe_config_repo_,
-                                             proposer_,
-                                             block_tree_,
-                                             block_announce_transmitter_,
-                                             sr25519_provider,
-                                             session_keys_,
-                                             clock_,
-                                             hasher_,
-                                             std::move(timer_mock_),
-                                             digest_tracker_,
-                                             synchronizer_,
-                                             babe_util_,
-                                             bitfield_store_,
-                                             backing_store_,
-                                             storage_sub_engine_,
-                                             chain_events_engine_,
-                                             offchain_worker_api_,
-                                             core_,
-                                             consistency_keeper_,
-                                             trie_storage_,
-                                             babe_status_observable_);
+    babe_ = std::make_shared<babe::BabeImpl>(
+        app_config_,
+        app_state_manager_,
+        lottery_,
+        babe_config_repo_,
+        proposer_,
+        block_tree_,
+        block_announce_transmitter_,
+        sr25519_provider,
+        session_keys_,
+        clock_,
+        hasher_,
+        std::move(timer_mock_),
+        digest_tracker_,
+        // safe null, because object is not used during test
+        nullptr,
+        testutil::sptr_to_lazy<network::WarpProtocol>(warp_protocol_),
+        grandpa_,
+        synchronizer_,
+        babe_util_,
+        bitfield_store_,
+        backing_store_,
+        storage_sub_engine_,
+        chain_events_engine_,
+        offchain_worker_api_,
+        core_,
+        consistency_keeper_,
+        trie_storage_,
+        babe_status_observable_);
 
     epoch_.start_slot = 0;
     epoch_.epoch_number = 0;
@@ -212,7 +218,7 @@ class BabeTest : public testing::Test {
   std::shared_ptr<BabeLotteryMock> lottery_;
   std::shared_ptr<Synchronizer> synchronizer_;
   std::shared_ptr<BlockValidator> babe_block_validator_;
-  std::shared_ptr<grandpa::EnvironmentMock> grandpa_environment_;
+  std::shared_ptr<GrandpaMock> grandpa_;
   std::shared_ptr<runtime::CoreMock> core_;
   std::shared_ptr<ProposerMock> proposer_;
   std::shared_ptr<BlockTreeMock> block_tree_;
@@ -226,6 +232,7 @@ class BabeTest : public testing::Test {
   std::unique_ptr<testutil::TimerMock> timer_mock_;
   testutil::TimerMock *timer_;
   std::shared_ptr<DigestTrackerMock> digest_tracker_;
+  std::shared_ptr<network::WarpProtocol> warp_protocol_;
   std::shared_ptr<primitives::BabeConfiguration> babe_config_;
   std::shared_ptr<BabeConfigRepositoryMock> babe_config_repo_;
   std::shared_ptr<BabeUtilMock> babe_util_;
