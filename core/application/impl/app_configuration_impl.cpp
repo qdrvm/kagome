@@ -13,12 +13,12 @@
 #include <rapidjson/document.h>
 #include <rapidjson/filereadstream.h>
 #include <boost/algorithm/string.hpp>
-#include "filesystem/common.hpp"
 #include <boost/program_options.hpp>
 #include <boost/uuid/uuid_generators.hpp>
 #include <boost/uuid/uuid_io.hpp>
 #include <charconv>
 #include <libp2p/layer/websocket/wss_adaptor.hpp>
+#include "filesystem/common.hpp"
 
 #include "api/transport/tuner.hpp"
 #include "application/build_version.hpp"
@@ -34,7 +34,7 @@ namespace {
 
   template <typename T, typename Func>
   void find_argument(boost::program_options::variables_map &vm,
-                     char const *name,
+                     const char *name,
                      Func &&f) {
     assert(nullptr != name);
     if (auto it = vm.find(name); it != vm.end()) {
@@ -225,7 +225,6 @@ namespace kagome::application {
         purge_wavm_cache_(def_purge_wavm_cache_),
         offchain_worker_mode_{def_offchain_worker_mode},
         enable_offchain_indexing_{def_enable_offchain_indexing},
-        subcommand_{},
         recovery_state_{def_block_to_recover} {
     SL_INFO(logger_, "Soramitsu Kagome started. Version: {} ", buildVersion());
   }
@@ -1368,7 +1367,8 @@ namespace kagome::application {
         return false;
       }
       benchmark_config_ = BlockBenchmarkConfig{
-          .from = *from_opt, .to = *to_opt, .times = *repeat_opt};
+          .from = *from_opt, .to = *to_opt, .times = *repeat_opt,
+      };
     }
 
     bool has_recovery = false;

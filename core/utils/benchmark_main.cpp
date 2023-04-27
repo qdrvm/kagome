@@ -25,6 +25,7 @@ namespace kagome {
       SL_ERROR(config_logger, "Failed to initialize kagome!");
       return -1;
     }
+    kagome::log::tuneLoggingSystem(config->log());
 
     injector::KagomeNodeInjector injector{config};
 

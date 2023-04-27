@@ -31,6 +31,8 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::benchmark,
 
 static_assert(STR(CONCAT(2, 3)) == std::string_view("23"));
 
+// mind if you want to move it to global scope, __LINE__ is not very reliable,
+// may use __COUNTER__ instead
 #define OUTCOME_TRY_MSG(var, expr, msg, ...)              \
   auto CONCAT(_res_, __LINE__) = (expr);                  \
   do {                                                    \
