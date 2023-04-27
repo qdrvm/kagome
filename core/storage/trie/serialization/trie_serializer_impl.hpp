@@ -37,7 +37,7 @@ namespace kagome::storage::trie {
     }
 
     outcome::result<std::shared_ptr<PolkadotTrie>> retrieveTrie(
-        const common::Buffer &db_key,
+        common::BufferView db_key,
         OnNodeLoaded on_node_loaded) const override;
 
     /**
@@ -46,7 +46,7 @@ namespace kagome::storage::trie {
      * nodes as its children
      */
     outcome::result<PolkadotTrie::NodePtr> retrieveNode(
-        const common::Buffer &db_key,
+        common::BufferView db_key,
         const OnNodeLoaded &on_node_loaded) const override;
 
     /**

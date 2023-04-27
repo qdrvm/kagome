@@ -68,7 +68,7 @@ namespace kagome::storage {
     return nullptr;
   }
 
-  size_t InMemoryStorage::size() const {
+  std::optional<size_t> InMemoryStorage::byteSizeHint() const {
     return size_;
   }
 }  // namespace kagome::storage

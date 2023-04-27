@@ -16,9 +16,7 @@ namespace kagome::storage::trie {
 
   class OpaqueNodeStorage;
 
-  class PolkadotTrieImpl final
-      : public PolkadotTrie,
-        public std::enable_shared_from_this<PolkadotTrieImpl> {
+  class PolkadotTrieImpl final : public PolkadotTrie {
    public:
     enum class Error { INVALID_NODE_TYPE = 1 };
 

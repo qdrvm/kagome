@@ -44,7 +44,7 @@ namespace kagome::storage::trie {
      * is no entry for provided key.
      */
     virtual outcome::result<std::shared_ptr<PolkadotTrie>> retrieveTrie(
-        const common::Buffer &db_key,
+        common::BufferView db_key,
         OnNodeLoaded on_node_loaded = [](auto) {}) const = 0;
 
     /**
@@ -53,7 +53,7 @@ namespace kagome::storage::trie {
      * nodes as its children
      */
     virtual outcome::result<PolkadotTrie::NodePtr> retrieveNode(
-        const common::Buffer &db_key,
+        common::BufferView db_key,
         const OnNodeLoaded &on_node_loaded = [](auto) {}) const = 0;
 
     /**

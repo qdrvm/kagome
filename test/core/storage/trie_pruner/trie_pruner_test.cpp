@@ -353,14 +353,14 @@ TEST_F(TriePrunerTest, BasicScenario) {
     EXPECT_CALL(*batch, commit()).WillOnce(Return(outcome::success()));
     return batch;
   }));
-  EXPECT_CALL(*serializer_mock, retrieveTrie(Buffer{"root1"_hash256}, _))
+  EXPECT_CALL(*serializer_mock, retrieveTrie(BufferView("root1"_hash256), _))
       .WillOnce(testing::Return(trie));
   ASSERT_OUTCOME_SUCCESS_TRY(pruner->pruneFinalized(
       BlockHeader{.number = 1, .state_root = "root1"_hash256},
       kagome::primitives::BlockInfo{2, "block2"_hash256}));
   ASSERT_EQ(pruner->getTrackedNodesNum(), 3);
 
-  EXPECT_CALL(*serializer_mock, retrieveTrie(Buffer{"root2"_hash256}, _))
+  EXPECT_CALL(*serializer_mock, retrieveTrie(BufferView{"root2"_hash256}, _))
       .WillOnce(testing::Return(trie_1));
   ASSERT_OUTCOME_SUCCESS_TRY(pruner->pruneFinalized(
       BlockHeader{.number = 2, .state_root = "root2"_hash256},
@@ -422,7 +422,7 @@ std::set<Buffer> collectReferencedNodes(trie::PolkadotTrie &trie,
 }
 
 void generateRandomTrie(size_t inserts,
-                        trie::PolkadotTrieImpl &trie,
+                        trie::PolkadotTrie &trie,
                         std::set<Buffer> &inserted_keys) {
   std::mt19937 rand;
   rand.seed(42);
@@ -436,7 +436,7 @@ void generateRandomTrie(size_t inserts,
 
 void makeRandomTrieChanges(size_t inserts,
                            size_t removes,
-                           trie::PolkadotTrieImpl &trie,
+                           trie::PolkadotTrie &trie,
                            std::set<Buffer> &inserted_keys) {
   std::mt19937 rand;
   rand.seed(42);
@@ -482,7 +482,7 @@ TEST_F(TriePrunerTest, RandomTree) {
   std::set<Buffer> total_set;
 
   EXPECT_CALL(*serializer_mock, retrieveTrie(_, _))
-      .WillRepeatedly(Invoke([&serializer](auto &root, const auto &) {
+      .WillRepeatedly(Invoke([&serializer](auto root, const auto &) {
         return serializer.retrieveTrie(root, nullptr);
       }));
   EXPECT_CALL(
@@ -636,7 +636,7 @@ TEST_F(TriePrunerTest, RestoreStateFromGenesis) {
     trie->put(Buffer::fromString("key" + str_number),
               Buffer::fromString("val" + str_number))
         .value();
-    EXPECT_CALL(*serializer_mock, retrieveTrie(Buffer{root_hash}, _))
+    EXPECT_CALL(*serializer_mock, retrieveTrie(BufferView{root_hash}, _))
         .WillOnce(Return(trie));
     EXPECT_CALL(*codec_mock, merkleValue(testing::Ref(*trie->getRoot()), _, _))
         .WillRepeatedly(Return(Buffer::fromString("merkle_val" + str_number)));
@@ -664,12 +664,20 @@ TEST_F(TriePrunerTest, RestoreStateFromGenesis) {
   ASSERT_EQ(pruner->getTrackedNodesNum(), 3);
 }
 
+std::unique_ptr<trie::PolkadotTrie> clone(const trie::PolkadotTrie &trie) {
+  auto new_trie = std::make_unique<trie::PolkadotTrieImpl>();
+  auto cursor = trie.trieCursor();
+  EXPECT_OUTCOME_TRUE_1(cursor->next());
+  while (cursor->isValid()) {
+    EXPECT_OUTCOME_TRUE_1(
+        new_trie->put(cursor->key().value(), cursor->value().value()));
+    EXPECT_OUTCOME_TRUE_1(cursor->next());
+  }
+  return new_trie;
+}
+
 TEST_F(TriePrunerTest, FastSyncScenario) {
   auto block_tree = std::make_shared<kagome::blockchain::BlockTreeMock>();
-
-  ON_CALL(*block_tree, getBlockHash(1)).WillByDefault(Return("block1"_hash256));
-  ON_CALL(*block_tree, getGenesisBlockHash())
-      .WillByDefault(testing::ReturnRefOfCopy("block0"_hash256));
 
   ON_CALL(*trie_storage_mock, batch()).WillByDefault(Invoke([]() {
     auto batch = std::make_unique<face::WriteBatchMock<Buffer, Buffer>>();
@@ -678,25 +686,68 @@ TEST_F(TriePrunerTest, FastSyncScenario) {
     return batch;
   }));
 
-  trie::PolkadotTrieImpl trie;
+  auto trie = std::make_shared<trie::PolkadotTrieImpl>();
   std::set<Buffer> inserted_keys;
-  generateRandomTrie(100, trie, inserted_keys);
+  generateRandomTrie(100, *trie, inserted_keys);
 
   auto codec = std::make_shared<trie::PolkadotCodec>();
+  setCodecExpectations(*codec_mock, *codec);
+
   auto trie_factory = std::make_shared<trie::PolkadotTrieFactoryImpl>();
+  auto genesis_state_root = codec->hash256(
+      codec->encodeNode(*trie->getRoot(), trie::StateVersion::V0).value());
+
   trie::TrieSerializerImpl serializer{trie_factory, codec, trie_storage_mock};
 
-  ASSERT_OUTCOME_SUCCESS(genesis_state_root,
-                         serializer.storeTrie(trie, trie::StateVersion::V0));
-  ON_CALL(*serializer_mock,
-          retrieveTrie(genesis_state_root, trie::StateVersion::V0))
+  ON_CALL(*serializer_mock, retrieveTrie(BufferView{genesis_state_root}, _))
       .WillByDefault(Return(trie));
 
-  ON_CALL(*block_tree, getBlockHeader("block0"_hash256))
-      .WillByDefault(Return(BlockHeader{
-          .parent_hash = ""_hash256,
-          .number = 0,
-          .state_root = genesis_state_root,
+  ON_CALL(*serializer_mock,
+          retrieveNode(A<const std::shared_ptr<trie::OpaqueTrieNode> &>(), _))
+      .WillByDefault(Invoke([&serializer](auto &node, auto &cb) {
+        return serializer.retrieveNode(node, cb);
       }));
+
+  BlockHeader genesis_header{
+      .parent_hash = ""_hash256,
+      .number = 0,
+      .state_root = genesis_state_root,
+  };
+  ON_CALL(*block_tree, getBlockHeader(hash_from_header(genesis_header)))
+      .WillByDefault(Return(genesis_header));
+
+  ON_CALL(*block_tree, getGenesisBlockHash())
+      .WillByDefault(
+          testing::ReturnRefOfCopy(hash_from_header(genesis_header)));
+
+  std::vector<BlockHeader> headers{genesis_header};
+  std::vector<BlockHash> hashes{hash_from_header(genesis_header)};
+  std::vector<std::shared_ptr<trie::PolkadotTrie>> tries{trie};
+  for (BlockNumber n = 1; n < 100; n++) {
+    std::shared_ptr<trie::PolkadotTrie> block_trie{clone(*tries[n - 1])};
+    tries.push_back(block_trie);
+    makeRandomTrieChanges(30, 10, *block_trie, inserted_keys);
+
+    auto block_state_root = codec->hash256(
+        codec->encodeNode(*trie->getRoot(), trie::StateVersion::V0).value());
+
+    BlockHeader block_header{
+        .parent_hash = hashes[n - 1],
+        .number = n,
+        .state_root = block_state_root,
+    };
+    auto hash = hash_from_header(block_header);
+    ON_CALL(*block_tree, getBlockHash(n)).WillByDefault(Return(hash));
+    ON_CALL(*block_tree, getBlockHeader(hash))
+        .WillByDefault(Return(block_header));
+    ON_CALL(*block_tree, getChildren(hashes[n - 1]))
+        .WillByDefault(Return(std::vector{hash}));
+    ON_CALL(*serializer_mock, retrieveTrie(BufferView{block_state_root}, _))
+        .WillByDefault(Return(block_trie));
+
+    headers.push_back(block_header);
+    hashes.push_back(hash);
+  }
+
   ASSERT_OUTCOME_SUCCESS_TRY(pruner->init(*block_tree));
 }

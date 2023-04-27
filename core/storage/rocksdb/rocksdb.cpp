@@ -126,7 +126,7 @@ namespace kagome::storage {
     return std::make_unique<RocksDbBatch>(*this);
   }
 
-  size_t RocksDbSpace::size() const {
+  std::optional<size_t> RocksDbSpace::byteSizeHint() const {
     auto rocks = storage_.lock();
     if (!rocks) {
       return 0;

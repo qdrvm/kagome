@@ -38,7 +38,7 @@ namespace kagome::storage::trie {
   }
 
   outcome::result<std::shared_ptr<PolkadotTrie>>
-  TrieSerializerImpl::retrieveTrie(const common::Buffer &db_key,
+  TrieSerializerImpl::retrieveTrie(common::BufferView db_key,
                                    OnNodeLoaded on_node_loaded) const {
     PolkadotTrie::NodeRetrieveFunctor f =
         [this, on_node_loaded](const std::shared_ptr<OpaqueTrieNode> &parent)
@@ -97,7 +97,7 @@ namespace kagome::storage::trie {
   }
 
   outcome::result<PolkadotTrie::NodePtr> TrieSerializerImpl::retrieveNode(
-      const common::Buffer &db_key, const OnNodeLoaded &on_node_loaded) const {
+      common::BufferView db_key, const OnNodeLoaded &on_node_loaded) const {
     if (db_key.empty() or db_key == getEmptyRootHash()) {
       return nullptr;
     }
