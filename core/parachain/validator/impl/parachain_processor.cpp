@@ -117,14 +117,6 @@ namespace kagome::parachain {
     BOOST_ASSERT(babe_status_observable_);
     BOOST_ASSERT(query_audi_);
     app_state_manager->takeControl(*this);
-
-    runtime::MemoryAllocatorNew<8ull> alloc_new(4096);
-
-    auto q = malloc(4096);
-    auto q2 = aligned_alloc(4096, 4096);
-    auto q3 = realloc(q2, 4096 * 10);
-    int p = 0;
-    ++p;
   }
 
   bool ParachainProcessorImpl::prepare() {

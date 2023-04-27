@@ -136,10 +136,8 @@ namespace kagome::runtime {
         storageAdjust(remains * kGranularity);
       }
 
-      const auto first_modified_segment =
-          setContiguousBits<0ull>(position, bits_len);
-      if (first_modified_segment == cursor_
-          && table_[first_modified_segment] == 0ull) {
+      setContiguousBits<0ull>(position, bits_len);
+      while (cursor_ < table_.size() && table_[cursor_] == 0ull) {
         ++cursor_;
       }
       auto *const header_ptr =
