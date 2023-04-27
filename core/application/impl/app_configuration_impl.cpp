@@ -140,7 +140,7 @@ namespace {
     if (str == "Always") {
       return Mode::Always;
     }
-    if (str == "Newer") {
+    if (str == "Never") {
       return Mode::Never;
     }
     if (str == "WhenValidating") {
