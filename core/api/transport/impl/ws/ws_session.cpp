@@ -170,7 +170,7 @@ namespace kagome::api {
     boost::asio::post(strand_, std::move(cb));
   }
 
-  bool WsSession::allowUnsafe() const {
+  bool WsSession::isUnsafeAllowed() const {
     return allow_unsafe_.allow(socket_.remote_endpoint());
   }
 }  // namespace kagome::api

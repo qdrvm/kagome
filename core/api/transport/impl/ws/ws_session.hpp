@@ -80,7 +80,7 @@ namespace kagome::api {
 
     void post(std::function<void()> cb) override;
 
-    bool allowUnsafe() const override;
+    bool isUnsafeAllowed() const override;
 
     /**
      * @brief Closes the incoming connection with "try again later" response

@@ -90,7 +90,7 @@ namespace kagome::api {
 
     void post(std::function<void()> cb) override;
 
-    bool allowUnsafe() const override;
+    bool isUnsafeAllowed() const override;
 
    private:
     /**

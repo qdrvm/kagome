@@ -137,7 +137,7 @@ namespace kagome::api {
     boost::asio::post(strand_, std::move(cb));
   }
 
-  bool HttpSession::allowUnsafe() const {
+  bool HttpSession::isUnsafeAllowed() const {
     return allow_unsafe_.allow(stream_.socket().remote_endpoint());
   }
 }  // namespace kagome::api

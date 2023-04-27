@@ -120,7 +120,7 @@ namespace kagome::api {
     /**
      * Can call unsafe methods
      */
-    virtual bool allowUnsafe() const = 0;
+    virtual bool isUnsafeAllowed() const = 0;
 
    private:
     std::function<OnRequestSignature> on_request_;  ///< `on request` callback
