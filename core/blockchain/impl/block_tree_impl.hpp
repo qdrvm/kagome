@@ -133,6 +133,10 @@ namespace kagome::blockchain {
 
     primitives::BlockInfo getLastFinalized() const override;
 
+    void warp(const primitives::BlockInfo &block_info) override;
+
+    void notifyBestAndFinalized() override;
+
    private:
     struct BlockTreeData {
       std::shared_ptr<BlockHeaderRepository> header_repo_;

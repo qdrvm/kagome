@@ -53,6 +53,10 @@ namespace kagome::network {
     return base_.start(weak_from_this());
   }
 
+  void GrandpaProtocol::stop() {
+    stream_engine_->del(own_info_.id, shared_from_this());
+  }
+
   const ProtocolName &GrandpaProtocol::protocolName() const {
     return base_.protocolName();
   }

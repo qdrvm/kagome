@@ -230,6 +230,8 @@ namespace kagome::consensus::grandpa {
     void applyJustification(const GrandpaJustification &justification,
                             ApplyJustificationCb &&callback) override;
 
+    void reload() override;
+
     // Round processing method
 
     /**

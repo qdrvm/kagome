@@ -117,12 +117,8 @@ namespace kagome::blockchain {
     return !(*this == other);
   }
 
-  TreeMeta::TreeMeta(
-      const std::shared_ptr<TreeNode> &subtree_root_node,
-      std::optional<primitives::Justification> last_finalized_justification)
-      : best_leaf{subtree_root_node},
-        last_finalized{subtree_root_node},
-        last_finalized_justification{std::move(last_finalized_justification)} {
+  TreeMeta::TreeMeta(const std::shared_ptr<TreeNode> &subtree_root_node)
+      : best_leaf{subtree_root_node}, last_finalized{subtree_root_node} {
     std::function<void(std::shared_ptr<TreeNode>)> handle =
         [&](std::shared_ptr<TreeNode> node) {
           // avoid deep recursion
@@ -175,8 +171,7 @@ namespace kagome::blockchain {
     return false;
   }
 
-  void CachedTree::updateTreeRoot(std::shared_ptr<TreeNode> new_trie_root,
-                                  primitives::Justification justification) {
+  void CachedTree::updateTreeRoot(std::shared_ptr<TreeNode> new_trie_root) {
     auto prev_root = root_;
     auto prev_node = new_trie_root->parent.lock();
 
@@ -191,7 +186,7 @@ namespace kagome::blockchain {
       prev_node = prev_node->parent.lock();
     }
 
-    metadata_ = std::make_shared<TreeMeta>(root_, justification);
+    metadata_ = std::make_shared<TreeMeta>(root_);
     root_->parent.reset();
   }
 

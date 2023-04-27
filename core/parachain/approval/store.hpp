@@ -7,6 +7,8 @@
 
 #include "utils/non_copyable.hpp"
 
+#include <unordered_map>
+
 namespace kagome::parachain {
 
   template <typename K, typename V>
@@ -53,7 +55,7 @@ namespace kagome::parachain {
       return std::nullopt;
     }
 
-    std::optional<V> extract(const K &k) const {
+    std::optional<V> extract(const K &k) {
       assert(store_.size() < kDebugHardLimit);
       if (auto it = store_.find(k); it != store_.end()) {
         V v{std::move(it->second)};
@@ -79,12 +81,12 @@ namespace kagome::parachain {
   struct Store<T> : StoreUnit<T> {};
 
   template <typename T, typename... A>
-  constexpr inline StoreUnit<T> &as(Store<A...> &ref) {
+  inline constexpr StoreUnit<T> &as(Store<A...> &ref) {
     return static_cast<StoreUnit<T> &>(ref);
   }
 
   template <typename T, typename... A>
-  constexpr inline const StoreUnit<T> &as(const Store<A...> &ref) {
+  inline constexpr const StoreUnit<T> &as(const Store<A...> &ref) {
     return static_cast<const StoreUnit<T> &>(ref);
   }
 }  // namespace kagome::parachain

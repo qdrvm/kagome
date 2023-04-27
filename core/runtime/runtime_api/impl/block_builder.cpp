@@ -17,8 +17,23 @@ namespace kagome::runtime {
   outcome::result<primitives::ApplyExtrinsicResult>
   BlockBuilderImpl::apply_extrinsic(RuntimeEnvironment &env,
                                     const primitives::Extrinsic &extrinsic) {
-    return executor_->call<primitives::ApplyExtrinsicResult>(
-        env, "BlockBuilder_apply_extrinsic", extrinsic);
+    // https://github.com/paritytech/substrate/blob/943c520aa78fcfaf3509790009ad062e8d4c6990/client/block-builder/src/lib.rs#L204-L237
+    OUTCOME_TRY(env.storage_provider->startTransaction());
+    auto should_rollback = true;
+    auto rollback = gsl::finally([&] {
+      if (should_rollback) {
+        std::ignore = env.storage_provider->rollbackTransaction();
+      }
+    });
+    OUTCOME_TRY(result,
+                executor_->call<primitives::ApplyExtrinsicResult>(
+                    env, "BlockBuilder_apply_extrinsic", extrinsic));
+    if (auto ok = boost::get<primitives::DispatchOutcome>(&result);
+        ok and boost::get<primitives::DispatchSuccess>(ok)) {
+      should_rollback = false;
+      OUTCOME_TRY(env.storage_provider->commitTransaction());
+    }
+    return std::move(result);
   }
 
   outcome::result<primitives::BlockHeader> BlockBuilderImpl::finalize_block(
@@ -34,13 +49,15 @@ namespace kagome::runtime {
     // `create_inherents` should not change any state, to ensure this we always
     // rollback the transaction.
     //
-    // `rollbackTransaction` is called by `Executor::call`.
-    //
     // Can't use `EphemeralTrieBatch`, because we must `call` in context of
     // `env.storage_provider`s `PersistentTrieBatch`.
     OUTCOME_TRY(env.storage_provider->startTransaction());
-    return executor_->call<std::vector<primitives::Extrinsic>>(
-        env, "BlockBuilder_inherent_extrinsics", data);
+    auto rollback = gsl::finally(
+        [&] { std::ignore = env.storage_provider->rollbackTransaction(); });
+    OUTCOME_TRY(result,
+                executor_->call<std::vector<primitives::Extrinsic>>(
+                    env, "BlockBuilder_inherent_extrinsics", data));
+    return std::move(result);
   }
 
   outcome::result<primitives::CheckInherentsResult>

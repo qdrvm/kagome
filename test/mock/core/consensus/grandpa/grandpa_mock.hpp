@@ -52,6 +52,8 @@ namespace kagome::consensus::grandpa {
                  ApplyJustificationCb &&),
                 (override));
 
+    MOCK_METHOD(void, reload, (), (override));
+
     MOCK_METHOD(void,
                 onCatchUpRequest,
                 (const PeerId &peer_id, CatchUpRequest &&),

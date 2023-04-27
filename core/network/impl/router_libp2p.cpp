@@ -68,23 +68,23 @@ namespace kagome::network {
   }
 
   bool RouterLibp2p::prepare() {
-    block_announce_protocol_.get()->start();
-    grandpa_protocol_.get()->start();
+    app_state_manager_->takeControl(*block_announce_protocol_.get());
+    app_state_manager_->takeControl(*grandpa_protocol_.get());
 
-    sync_protocol_.get()->start();
-    state_protocol_.get()->start();
-    warp_protocol_.get()->start();
-    light_protocol_.get()->start();
+    app_state_manager_->takeControl(*sync_protocol_.get());
+    app_state_manager_->takeControl(*state_protocol_.get());
+    app_state_manager_->takeControl(*warp_protocol_.get());
+    app_state_manager_->takeControl(*light_protocol_.get());
 
-    propagate_transactions_protocol_.get()->start();
+    app_state_manager_->takeControl(*propagate_transactions_protocol_.get());
 
-    collation_protocol_.get()->start();
-    validation_protocol_.get()->start();
-    req_collation_protocol_.get()->start();
-    req_pov_protocol_.get()->start();
-    fetch_chunk_protocol_.get()->start();
-    fetch_available_data_protocol_.get()->start();
-    statement_fetching_protocol_.get()->start();
+    app_state_manager_->takeControl(*collation_protocol_.get());
+    app_state_manager_->takeControl(*validation_protocol_.get());
+    app_state_manager_->takeControl(*req_collation_protocol_.get());
+    app_state_manager_->takeControl(*req_pov_protocol_.get());
+    app_state_manager_->takeControl(*fetch_chunk_protocol_.get());
+    app_state_manager_->takeControl(*fetch_available_data_protocol_.get());
+    app_state_manager_->takeControl(*statement_fetching_protocol_.get());
 
     host_.setProtocolHandler(
         {ping_protocol_.get()->getProtocolId()},
