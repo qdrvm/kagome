@@ -71,18 +71,24 @@ namespace kagome::network {
       auto authorities =
           authority_manager_->authorities(block_tree_->getLastFinalized(), true)
               .value();
-      grandpa_->verifyJustification(fragment.justification,
-                                            *authorities, [wptr{weak_from_this()}, op{Op{
-          block_info,
-          fragment.header,
+      grandpa_->verifyJustification(
           fragment.justification,
           *authorities,
-      }}](outcome::result<void> &&res) mutable {
-        if (res.has_value()) {
-        if (auto self = wptr.lock()) {
-        self->db_->put(storage::kWarpSyncOp, scale::encode(op).value()).value();
-        self->applyInner(op);
-        }}});
+          [wptr{weak_from_this()},
+           op{Op{
+               block_info,
+               fragment.header,
+               fragment.justification,
+               *authorities,
+           }}](outcome::result<void> &&res) mutable {
+            if (res.has_value()) {
+              if (auto self = wptr.lock()) {
+                self->db_->put(storage::kWarpSyncOp, scale::encode(op).value())
+                    .value();
+                self->applyInner(op);
+              }
+            }
+          });
     }
     if (not res.is_finished) {
       done_ = false;

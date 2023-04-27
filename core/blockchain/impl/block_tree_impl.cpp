@@ -559,11 +559,12 @@ namespace kagome::blockchain {
 
             primitives::BlockInfo block{node->depth - 1, hash_opt.value()};
 
-      auto tree = std::make_shared<TreeNode>(
-          block.hash, block.number, nullptr, true, false);
-      auto meta = std::make_shared<TreeMeta>(tree);
-      p.tree_ = std::make_unique<CachedTree>(std::move(tree), std::move(meta));
-    }
+            auto tree = std::make_shared<TreeNode>(
+                block.hash, block.number, nullptr, true, false);
+            auto meta = std::make_shared<TreeMeta>(tree);
+            p.tree_ =
+                std::make_unique<CachedTree>(std::move(tree), std::move(meta));
+          }
 
           // Remove from storage
           OUTCOME_TRY(p.storage_->removeBlock(node->block_hash));
@@ -799,13 +800,13 @@ namespace kagome::blockchain {
 
       KAGOME_PROFILE_START(justification_store)
 
-    if (not justification_stored) {
+      if (not justification_stored) {
         OUTCOME_TRY(p.storage_->putJustification(justification, block_hash));
-    }
-    SL_DEBUG(log_,
-             "Store justification for finalized block #{} {}",
-             node->depth,
-             block_hash);
+      }
+      SL_DEBUG(log_,
+               "Store justification for finalized block #{} {}",
+               node->depth,
+               block_hash);
 
       if (last_finalized_block_info.number < node->depth) {
         // we store justification for last finalized block only as long as it is
@@ -1446,7 +1447,7 @@ namespace kagome::blockchain {
     auto node = std::make_shared<TreeNode>(
         block_info.hash, block_info.number, nullptr, true, false);
     auto meta = std::make_shared<TreeMeta>(node);
-    auto const leaves_size = block_tree_data_.exclusiveAccess([&](auto &p) { 
+    const auto leaves_size = block_tree_data_.exclusiveAccess([&](auto &p) {
       p.tree_ = std::make_unique<CachedTree>(std::move(node), std::move(meta));
       return p.tree_->getMetadata().leaves.size();
     });

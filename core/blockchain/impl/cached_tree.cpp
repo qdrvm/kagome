@@ -33,7 +33,7 @@ namespace kagome::blockchain {
 
   outcome::result<void> TreeNode::applyToChain(
       const primitives::BlockInfo &chain_end,
-      std::function<outcome::result<ExitToken>(TreeNode const &node)> const &op)
+      const std::function<outcome::result<ExitToken>(TreeNode const &node)> &op)
       const {
     using ChildIdx = size_t;
     std::map<primitives::BlockHash, ChildIdx> fork_choice;
@@ -190,7 +190,7 @@ namespace kagome::blockchain {
     root_->parent.reset();
   }
 
-  TreeNode const &CachedTree::getRoot() const {
+  const TreeNode &CachedTree::getRoot() const {
     BOOST_ASSERT(root_ != nullptr);
     return *root_;
   }
