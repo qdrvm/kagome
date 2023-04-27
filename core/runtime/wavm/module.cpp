@@ -31,6 +31,8 @@ namespace kagome::runtime::wavm {
     WAVM::WASM::LoadError loadError;
     WAVM::IR::FeatureSpec featureSpec;
 
+    featureSpec.extendedNameSection = true;
+
     log::Logger logger = log::createLogger("WAVM Module", "wavm");
     logger->info(
         "Compiling WebAssembly module for Runtime (going to take a few dozens "
@@ -86,9 +88,9 @@ namespace kagome::runtime::wavm {
                        return import.kind == WAVM::IR::ExternKind::memory;
                      })
         != ir_module.imports.cend();
-    auto memory_origin =
-        imports_memory ? InstanceEnvironmentFactory::MemoryOrigin::EXTERNAL
-                       : InstanceEnvironmentFactory::MemoryOrigin::INTERNAL;
+    auto memory_origin = imports_memory
+                           ? InstanceEnvironmentFactory::MemoryOrigin::EXTERNAL
+                           : InstanceEnvironmentFactory::MemoryOrigin::INTERNAL;
 
     auto new_intrinsic_module_instance =
         std::shared_ptr<IntrinsicModuleInstance>(
