@@ -789,11 +789,11 @@ namespace kagome::application {
         ("random-walk-interval", po::value<uint32_t>()->default_value(def_random_walk_interval), "Kademlia random walk interval")
         ("node-wss-pem", po::value<std::string>(), "Path to pem file with SSL certificate for libp2p wss")
         ("rpc-cors", po::value<std::string>(), "(unused, zombienet stub)")
-        ("unsafe-rpc-external", po::bool_switch())
+        ("unsafe-rpc-external", po::bool_switch(), "alias for \"--rpc-host 0.0.0.0\"")
         ("rpc-methods", po::value<std::string>(), "\"auto\" (default), \"unsafe\", \"safe\"")
-        ("unsafe-ws-external", po::bool_switch())
+        ("unsafe-ws-external", po::bool_switch(), "alias for \"--ws-host 0.0.0.0\"")
         ("no-mdns", po::bool_switch(), "(unused, zombienet stub)")
-        ("prometheus-external", po::bool_switch())
+        ("prometheus-external", po::bool_switch(), "alias for \"--prometheus-host 0.0.0.0\"")
         ;
 
     po::options_description development_desc("Additional options");
