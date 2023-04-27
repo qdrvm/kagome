@@ -21,8 +21,8 @@ namespace kagome::api::internal {
   using Handler = Method<Request, InternalApi>;
 
   void InternalJrpcProcessor::registerHandlers() {
-    server_->registerHandler(
-        "internal_setLogLevel", Handler<request::SetLogLevel>(api_), true);
+    server_->registerHandlerUnsafe("internal_setLogLevel",
+                                   Handler<request::SetLogLevel>(api_));
   }
 
 }  // namespace kagome::api::internal

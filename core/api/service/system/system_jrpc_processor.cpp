@@ -48,8 +48,8 @@ namespace kagome::api::system {
         "account_nextIndex",
         Handler<request::AccountNextIndex>(api_));  // an alias
 
-    server_->registerHandler(
-        "system_peers", Handler<request::Peers>(api_), true);
+    server_->registerHandlerUnsafe("system_peers",
+                                   Handler<request::Peers>(api_));
   }
 
 }  // namespace kagome::api::system

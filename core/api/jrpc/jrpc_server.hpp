@@ -30,10 +30,20 @@ namespace kagome::api {
      * @brief registers rpc request handler lambda
      * @param name rpc method name
      * @param method handler functor
+     * @param unsafe method is unsafe
      */
     virtual void registerHandler(const std::string &name,
                                  Method method,
                                  bool unsafe = false) = 0;
+
+    /**
+     * @brief registers unsafe rpc request handler lambda
+     * @param name rpc method name
+     * @param method handler functor
+     */
+    void registerHandlerUnsafe(const std::string &name, Method method) {
+      registerHandler(name, std::move(method), true);
+    }
 
     /**
      * @return name of handlers
@@ -60,6 +70,7 @@ namespace kagome::api {
     /**
      * @brief handles decoded network message
      * @param request json request string
+     * @param allow_unsafe allow unsafe methods
      * @param cb callback
      */
     virtual void processData(std::string_view request,

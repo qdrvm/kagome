@@ -21,13 +21,6 @@ namespace kagome::api {
 
     JRpcServerImpl();
 
-    ~JRpcServerImpl() override = default;
-
-    /**
-     * @brief registers rpc request handler lambda
-     * @param name rpc method name
-     * @param method handler functor
-     */
     void registerHandler(const std::string &name,
                          Method method,
                          bool unsafe) override;
@@ -37,11 +30,6 @@ namespace kagome::api {
      */
     std::vector<std::string> getHandlerNames() override;
 
-    /**
-     * @brief handles decoded network message
-     * @param request json request string
-     * @param cb callback
-     */
     void processData(std::string_view request,
                      bool allow_unsafe,
                      const ResponseHandler &cb) override;
