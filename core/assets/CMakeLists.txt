@@ -36,7 +36,7 @@ if(EMBEDDINGS)
         )
     target_sources(assets PRIVATE ${OUTPUT})
 
-    set(SOURCE ${PROJECT_SOURCE_DIR}/examples/first_kagome_chain/base_path/dev/keystore)
+    set(SOURCE ${PROJECT_SOURCE_DIR}/examples/first_kagome_chain/base_path/chains/dev/keystore)
     if(NOT IS_DIRECTORY ${SOURCE})
         fatal_error("Not found resource for embedded assets: ${SOURCE}")
     endif()
