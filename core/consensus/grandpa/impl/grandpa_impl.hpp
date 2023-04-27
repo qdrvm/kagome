@@ -99,7 +99,6 @@ namespace kagome::consensus::grandpa {
         std::shared_ptr<runtime::GrandpaApi> grandpa_api,
         std::shared_ptr<crypto::SessionKeys> session_keys,
         const application::ChainSpec &chain_spec,
-        std::shared_ptr<libp2p::basic::Scheduler> scheduler,
         std::shared_ptr<AuthorityManager> authority_manager,
         std::shared_ptr<network::Synchronizer> synchronizer,
         std::shared_ptr<network::PeerManager> peer_manager,
@@ -303,7 +302,6 @@ namespace kagome::consensus::grandpa {
     std::shared_ptr<crypto::Ed25519Provider> crypto_provider_;
     std::shared_ptr<runtime::GrandpaApi> grandpa_api_;
     std::shared_ptr<crypto::Ed25519Keypair> keypair_;
-    std::shared_ptr<libp2p::basic::Scheduler> scheduler_;
     std::shared_ptr<AuthorityManager> authority_manager_;
     std::shared_ptr<network::Synchronizer> synchronizer_;
     std::shared_ptr<network::PeerManager> peer_manager_;
@@ -313,6 +311,7 @@ namespace kagome::consensus::grandpa {
     std::shared_ptr<ThreadPool> execution_thread_pool_;
     std::shared_ptr<ThreadHandler> internal_thread_context_;
     ThreadHandler main_thread_context_;
+    std::shared_ptr<libp2p::basic::Scheduler> scheduler_;
 
     std::shared_ptr<VotingRound> current_round_;
     std::optional<

@@ -751,7 +751,7 @@ namespace kagome::blockchain {
 
         OUTCOME_TRY(pruneNoLock(p, node));
 
-        p.tree_->updateTreeRoot(node, justification);
+        p.tree_->updateTreeRoot(node);
 
         OUTCOME_TRY(reorganizeNoLock(p));
 
@@ -1446,8 +1446,12 @@ namespace kagome::blockchain {
     auto node = std::make_shared<TreeNode>(
         block_info.hash, block_info.number, nullptr, true, false);
     auto meta = std::make_shared<TreeMeta>(node);
-    tree_ = std::make_unique<CachedTree>(std::move(node), std::move(meta));
-    metric_known_chain_leaves_->set(tree_->getMetadata().leaves.size());
+    auto const leaves_size = block_tree_data_.exclusiveAccess([&](auto &p) { 
+      p.tree_ = std::make_unique<CachedTree>(std::move(node), std::move(meta));
+      return p.tree_->getMetadata().leaves.size();
+    });
+
+    metric_known_chain_leaves_->set(leaves_size);
     metric_best_block_height_->set(block_info.number);
     telemetry_->notifyBlockFinalized(block_info);
     metric_finalized_block_height_->set(block_info.number);

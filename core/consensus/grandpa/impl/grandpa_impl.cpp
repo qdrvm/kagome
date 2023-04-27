@@ -5,6 +5,9 @@
 
 #include "consensus/grandpa/impl/grandpa_impl.hpp"
 
+#include <libp2p/basic/scheduler/asio_scheduler_backend.hpp>
+#include <libp2p/basic/scheduler/scheduler_impl.hpp>
+
 #include "application/app_state_manager.hpp"
 #include "application/chain_spec.hpp"
 #include "blockchain/block_tree.hpp"
@@ -70,7 +73,6 @@ namespace kagome::consensus::grandpa {
       std::shared_ptr<runtime::GrandpaApi> grandpa_api,
       std::shared_ptr<crypto::SessionKeys> session_keys,
       const application::ChainSpec &chain_spec,
-      std::shared_ptr<libp2p::basic::Scheduler> scheduler,
       std::shared_ptr<AuthorityManager> authority_manager,
       std::shared_ptr<network::Synchronizer> synchronizer,
       std::shared_ptr<network::PeerManager> peer_manager,
@@ -87,7 +89,6 @@ namespace kagome::consensus::grandpa {
           BOOST_ASSERT(session_keys != nullptr);
           return session_keys->getGranKeyPair();
         }()),
-        scheduler_{std::move(scheduler)},
         authority_manager_(std::move(authority_manager)),
         synchronizer_(std::move(synchronizer)),
         peer_manager_(std::move(peer_manager)),
@@ -95,7 +96,9 @@ namespace kagome::consensus::grandpa {
         reputation_repository_(std::move(reputation_repository)),
         execution_thread_pool_{std::move(execution_thread_pool)},
         internal_thread_context_{execution_thread_pool_->handler()},
-        main_thread_context_{std::move(main_thread_context)} {
+        main_thread_context_{std::move(main_thread_context)},
+                scheduler_{std::make_shared<libp2p::basic::SchedulerImpl>(
+        std::make_shared<libp2p::basic::AsioSchedulerBackend>(internal_thread_context_->io_context()), libp2p::basic::Scheduler::Config{})} {
     BOOST_ASSERT(environment_ != nullptr);
     BOOST_ASSERT(crypto_provider_ != nullptr);
     BOOST_ASSERT(grandpa_api_ != nullptr);
@@ -124,10 +127,21 @@ namespace kagome::consensus::grandpa {
   bool GrandpaImpl::prepare() {
     // Set themselves in environment
     environment_->setJustificationObserver(shared_from_this());
+    internal_thread_context_->start();
+    main_thread_context_.start();
     return true;
   }
 
   bool GrandpaImpl::start() {
+    if (!internal_thread_context_->isInCurrentThread()) {
+      internal_thread_context_->execute([wptr{weak_from_this()}] {
+        if (auto self = wptr.lock()) {
+          self->start();
+        }
+      });
+      return true;
+    }
+
     // Obtain last completed round
     auto round_state_res = getLastCompletedRound();
     if (not round_state_res.has_value()) {
@@ -190,8 +204,6 @@ namespace kagome::consensus::grandpa {
         },
         std::chrono::minutes(1));
 
-    internal_thread_context_->start();
-    main_thread_context_.start();
     tryExecuteNextRound(current_round_);
     return true;
   }
