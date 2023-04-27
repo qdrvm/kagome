@@ -31,6 +31,7 @@
 
 namespace {
   namespace fs = kagome::filesystem;
+  using kagome::application::AppConfiguration;
 
   template <typename T, typename Func>
   inline void find_argument(boost::program_options::variables_map &vm,
@@ -126,15 +127,16 @@ namespace {
     return std::nullopt;
   }
 
-  std::optional<std::optional<bool>> parseAllowUnsafeRpc(std::string_view str) {
+  std::optional<AppConfiguration::AllowUnsafeRpc> parseAllowUnsafeRpc(
+      std::string_view str) {
     if (str == "unsafe") {
-      return true;
+      return AppConfiguration::AllowUnsafeRpc::kUnsafe;
     }
     if (str == "safe") {
-      return false;
+      return AppConfiguration::AllowUnsafeRpc::kSafe;
     }
     if (str == "auto") {
-      return std::optional<bool>{};
+      return AppConfiguration::AllowUnsafeRpc::kAuto;
     }
     return std::nullopt;
   }
@@ -1212,17 +1214,13 @@ namespace kagome::application {
       openmetrics_http_port_ = val;
     });
 
-    bool allow_unsafe_rpc_error = false;
-    find_argument<std::string>(vm, "rpc-methods", [&](const std::string &str) {
-      if (auto value = parseAllowUnsafeRpc(str)) {
+    if (auto str = find_argument<std::string>(vm, "rpc-methods")) {
+      if (auto value = parseAllowUnsafeRpc(*str)) {
         allow_unsafe_rpc_ = *value;
       } else {
-        allow_unsafe_rpc_error = true;
         SL_ERROR(logger_, "Invalid --rpc-methods: \"{}\"", str);
+        return false;
       }
-    });
-    if (allow_unsafe_rpc_error) {
-      return false;
     }
 
     find_argument<uint32_t>(

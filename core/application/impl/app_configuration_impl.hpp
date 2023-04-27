@@ -195,7 +195,7 @@ namespace kagome::application {
       return node_wss_pem_;
     }
 
-    std::optional<bool> allowUnsafeRpc() const override {
+    AllowUnsafeRpc allowUnsafeRpc() const override {
       return allow_unsafe_rpc_;
     }
 
@@ -338,7 +338,7 @@ namespace kagome::application {
     StorageBackend storage_backend_ = StorageBackend::RocksDB;
     std::optional<std::string> dev_mnemonic_phrase_;
     std::string node_wss_pem_;
-    std::optional<bool> allow_unsafe_rpc_;
+    AllowUnsafeRpc allow_unsafe_rpc_ = AllowUnsafeRpc::kAuto;
   };
 
 }  // namespace kagome::application

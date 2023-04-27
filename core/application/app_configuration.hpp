@@ -254,7 +254,9 @@ namespace kagome::application {
 
     virtual std::string nodeWssPem() const = 0;
 
-    virtual std::optional<bool> allowUnsafeRpc() const = 0;
+    enum class AllowUnsafeRpc : uint8_t { kAuto, kUnsafe, kSafe };
+
+    virtual AllowUnsafeRpc allowUnsafeRpc() const = 0;
   };
 
 }  // namespace kagome::application

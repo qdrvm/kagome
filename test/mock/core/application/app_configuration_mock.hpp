@@ -161,7 +161,7 @@ namespace kagome::application {
 
     MOCK_METHOD(std::string, nodeWssPem, (), (const, override));
 
-    MOCK_METHOD(std::optional<bool>, allowUnsafeRpc, (), (const, override));
+    MOCK_METHOD(AllowUnsafeRpc, allowUnsafeRpc, (), (const, override));
   };
 
 }  // namespace kagome::application

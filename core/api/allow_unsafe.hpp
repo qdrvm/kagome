@@ -12,14 +12,18 @@
 
 namespace kagome::api {
   struct AllowUnsafe {
+    using Config = application::AppConfiguration::AllowUnsafeRpc;
     AllowUnsafe(const application::AppConfiguration &config)
         : config{config.allowUnsafeRpc()} {}
 
     bool allow(const boost::asio::ip::tcp::endpoint &endpoint) const {
-      return config ? *config : endpoint.address().is_loopback();
+      if (config == Config::kAuto) {
+        return endpoint.address().is_loopback();
+      }
+      return config == Config::kUnsafe;
     }
 
-    std::optional<bool> config;
+    Config config;
   };
 }  // namespace kagome::api
 
