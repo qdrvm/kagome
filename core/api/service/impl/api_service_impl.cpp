@@ -511,7 +511,7 @@ namespace kagome::api {
 
     // process new request
     server_->processData(str_request,
-                         session->allowUnsafe(),
+                         session->isUnsafeAllowed(),
                          [&](std::string_view response) mutable {
                            // process response
                            session->respond(response);
