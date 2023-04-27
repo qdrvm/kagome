@@ -279,7 +279,7 @@ namespace kagome::benchmark {
       duration_stat_it++;
     }
     for (auto &stat : duration_stats) {
-      fmt::print("Block #{}, min {} ns, avg {} ns, median {} ns, max {} ns",
+      fmt::print("Block #{}, min {} ns, avg {} ns, median {} ns, max {} ns\n",
                  stat.getBlock().number,
                  stat.min().count(),
                  stat.avg().count(),
@@ -291,7 +291,7 @@ namespace kagome::benchmark {
               *trie_storage_,
               blocks[stat.getBlock().number - config.start].header.state_root));
       fmt::print(
-          "Block {}: consumed {} ns out of declared {} ns on average. ({} %)",
+          "Block #{}: consumed {} ns out of declared {} ns on average. ({} %)\n",
           stat.getBlock().number,
           stat.avg().count(),
           block_weight_ns.count(),
