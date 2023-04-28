@@ -78,8 +78,7 @@ namespace kagome::consensus::grandpa {
       std::shared_ptr<network::PeerManager> peer_manager,
       std::shared_ptr<blockchain::BlockTree> block_tree,
       std::shared_ptr<network::ReputationRepository> reputation_repository,
-      std::shared_ptr<boost::asio::io_context> main_thread_context,
-      std::shared_ptr<ThreadPool> execution_thread_pool)
+      std::shared_ptr<boost::asio::io_context> main_thread_context)
       : round_time_factor_{getGossipDuration(chain_spec)},
         hasher_{std::move(hasher)},
         environment_{std::move(environment)},
@@ -94,7 +93,7 @@ namespace kagome::consensus::grandpa {
         peer_manager_(std::move(peer_manager)),
         block_tree_(std::move(block_tree)),
         reputation_repository_(std::move(reputation_repository)),
-        execution_thread_pool_{std::move(execution_thread_pool)},
+        execution_thread_pool_{std::make_shared<ThreadPool>(1ull)},
         internal_thread_context_{execution_thread_pool_->handler()},
         main_thread_context_{std::move(main_thread_context)},
         scheduler_{std::make_shared<libp2p::basic::SchedulerImpl>(

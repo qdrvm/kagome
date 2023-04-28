@@ -104,8 +104,7 @@ namespace kagome::consensus::grandpa {
         std::shared_ptr<network::PeerManager> peer_manager,
         std::shared_ptr<blockchain::BlockTree> block_tree,
         std::shared_ptr<network::ReputationRepository> reputation_repository,
-        std::shared_ptr<boost::asio::io_context> main_thread_context,
-        std::shared_ptr<ThreadPool> execution_thread_pool);
+        std::shared_ptr<boost::asio::io_context> main_thread_context);
 
     /**
      * Prepares for grandpa round execution: e.g. sets justification observer
