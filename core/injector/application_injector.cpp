@@ -175,7 +175,7 @@ namespace {
   using uptr = std::unique_ptr<T>;
 
   namespace di = boost::di;
-  namespace fs = std::filesystem;
+  namespace fs = kagome::filesystem;
   using namespace kagome;  // NOLINT
 
   template <typename C>

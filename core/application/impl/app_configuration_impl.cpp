@@ -233,16 +233,16 @@ namespace kagome::application {
     return chain_spec_path_.native();
   }
 
-  std::filesystem::path AppConfigurationImpl::runtimeCacheDirPath() const {
-    return std::filesystem::temp_directory_path() / "kagome/runtimes-cache";
+  kagome::filesystem::path AppConfigurationImpl::runtimeCacheDirPath() const {
+    return kagome::filesystem::temp_directory_path() / "kagome/runtimes-cache";
   }
 
-  std::filesystem::path AppConfigurationImpl::runtimeCachePath(
+  kagome::filesystem::path AppConfigurationImpl::runtimeCachePath(
       std::string runtime_hash) const {
     return runtimeCacheDirPath() / runtime_hash;
   }
 
-  std::filesystem::path AppConfigurationImpl::chainPath(
+  kagome::filesystem::path AppConfigurationImpl::chainPath(
       std::string chain_id) const {
     return base_path_ / chain_id;
   }
@@ -894,11 +894,11 @@ namespace kagome::application {
 
         // Wipe base directory on demand
         if (vm.count("dev-with-wipe") > 0) {
-          std::filesystem::remove_all(dev_env_path);
+          kagome::filesystem::remove_all(dev_env_path);
         }
 
-        if (not std::filesystem::exists(chain_spec_path_)) {
-          std::filesystem::create_directories(chain_spec_path_.parent_path());
+        if (not kagome::filesystem::exists(chain_spec_path_)) {
+          kagome::filesystem::create_directories(chain_spec_path_.parent_path());
 
           std::ofstream ofs;
           ofs.open(chain_spec_path_.native(), std::ios::ate);
@@ -924,7 +924,7 @@ namespace kagome::application {
           auto ma_res = chain_spec.value()->bootNodes()[0];
           listen_addresses_.emplace_back(ma_res);
 
-          std::filesystem::create_directories(path);
+          kagome::filesystem::create_directories(path);
 
           for (auto key_descr : kagome::assets::embedded_keys) {
             ofs.open((path / key_descr.first).native(), std::ios::ate);
@@ -995,14 +995,14 @@ namespace kagome::application {
 
     find_argument<std::string>(
         vm, "chain", [&](const std::string &val) { chain_spec_path_ = val; });
-    if (not std::filesystem::exists(chain_spec_path_)) {
+    if (not kagome::filesystem::exists(chain_spec_path_)) {
       std::cerr << "Specified chain spec " << chain_spec_path_
                 << " does not exist." << std::endl;
     }
 
     if (vm.end() != vm.find("tmp")) {
       auto unique_name = filesystem::unique_path();
-      base_path_ = (std::filesystem::temp_directory_path() / unique_name);
+      base_path_ = (kagome::filesystem::temp_directory_path() / unique_name);
     } else {
       find_argument<std::string>(
           vm, "base-path", [&](const std::string &val) { base_path_ = val; });
@@ -1314,7 +1314,7 @@ namespace kagome::application {
       purge_wavm_cache_ = true;
       if (fs::exists(runtimeCacheDirPath())) {
         std::error_code ec;
-        std::filesystem::remove_all(runtimeCacheDirPath(), ec);
+        kagome::filesystem::remove_all(runtimeCacheDirPath(), ec);
         if (ec) {
           SL_ERROR(logger_,
                    "Failed to purge cache in {} ['{}']",

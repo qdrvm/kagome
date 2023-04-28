@@ -126,7 +126,7 @@ class WasmExecutorTest : public ::testing::Test {
     auto bip39_provider = std::make_shared<Bip39ProviderImpl>(pbkdf2_provider);
 
     auto keystore_path =
-        std::filesystem::temp_directory_path() / "kagome_keystore_test_dir";
+        kagome::filesystem::temp_directory_path() / "kagome_keystore_test_dir";
     auto crypto_store = std::make_shared<CryptoStoreImpl>(
         std::make_shared<EcdsaSuite>(ecdsa_provider),
         std::make_shared<Ed25519Suite>(ed25519_provider),

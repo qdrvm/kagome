@@ -69,13 +69,13 @@ namespace kagome::application {
     network::Roles roles() const override {
       return roles_;
     }
-    std::filesystem::path chainSpecPath() const override;
-    std::filesystem::path runtimeCacheDirPath() const override;
-    std::filesystem::path runtimeCachePath(
+    filesystem::path chainSpecPath() const override;
+    filesystem::path runtimeCacheDirPath() const override;
+    filesystem::path runtimeCachePath(
         std::string runtime_hash) const override;
-    std::filesystem::path chainPath(std::string chain_id) const override;
-    std::filesystem::path databasePath(std::string chain_id) const override;
-    std::filesystem::path keystorePath(std::string chain_id) const override;
+    filesystem::path chainPath(std::string chain_id) const override;
+    filesystem::path databasePath(std::string chain_id) const override;
+    filesystem::path keystorePath(std::string chain_id) const override;
 
     const std::optional<crypto::Ed25519PrivateKey> &nodeKey() const override {
       return node_key_;
@@ -312,9 +312,9 @@ namespace kagome::application {
     std::string rpc_http_host_;
     std::string rpc_ws_host_;
     std::string openmetrics_http_host_;
-    std::filesystem::path chain_spec_path_;
-    std::filesystem::path base_path_;
-    std::optional<std::filesystem::path> keystore_path_;
+    filesystem::path chain_spec_path_;
+    filesystem::path base_path_;
+    std::optional<filesystem::path> keystore_path_;
     uint16_t rpc_http_port_;
     uint16_t rpc_ws_port_;
     uint16_t openmetrics_http_port_;

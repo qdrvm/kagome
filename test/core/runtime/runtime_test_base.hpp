@@ -8,7 +8,6 @@
 
 #include <gtest/gtest.h>
 
-#include <boost/filesystem/path.hpp>
 #include <fstream>
 #include <memory>
 
@@ -144,7 +143,7 @@ class RuntimeTestBase : public ::testing::Test {
 
     auto module_factory = createModuleFactory();
 
-    auto wasm_path = std::filesystem::path(__FILE__).parent_path().string()
+    auto wasm_path = kagome::filesystem::path(__FILE__).parent_path().string()
                    + "/wasm/sub2dev.wasm";
     wasm_provider_ = std::make_shared<runtime::BasicCodeProvider>(wasm_path);
 

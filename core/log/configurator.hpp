@@ -22,7 +22,7 @@ namespace kagome::log {
                           std::string config);
 
     explicit Configurator(std::shared_ptr<PrevConfigurator> previous,
-                          std::filesystem::path path);
+                          filesystem::path path);
   };
 
 }  // namespace kagome::log

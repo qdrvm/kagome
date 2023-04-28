@@ -16,29 +16,29 @@ namespace kagome::application {
    public:
     MOCK_METHOD(network::Roles, roles, (), (const, override));
 
-    MOCK_METHOD(std::filesystem::path, chainSpecPath, (), (const, override));
+    MOCK_METHOD(filesystem::path, chainSpecPath, (), (const, override));
 
-    MOCK_METHOD(std::filesystem::path,
+    MOCK_METHOD(filesystem::path,
                 runtimeCacheDirPath,
                 (),
                 (const, override));
 
-    MOCK_METHOD(std::filesystem::path,
+    MOCK_METHOD(filesystem::path,
                 runtimeCachePath,
                 (std::string runtime_hash),
                 (const, override));
 
-    MOCK_METHOD(std::filesystem::path,
+    MOCK_METHOD(filesystem::path,
                 chainPath,
                 (std::string chain_id),
                 (const, override));
 
-    MOCK_METHOD(std::filesystem::path,
+    MOCK_METHOD(filesystem::path,
                 databasePath,
                 (std::string chain_id),
                 (const, override));
 
-    MOCK_METHOD(std::filesystem::path,
+    MOCK_METHOD(filesystem::path,
                 keystorePath,
                 (std::string chain_id),
                 (const, override));

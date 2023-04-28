@@ -5,11 +5,11 @@
 
 #include "crypto/crypto_store/key_file_storage.hpp"
 
-#include <filesystem>
 #include <fstream>
 
 #include "common/hexutil.hpp"
 #include "crypto/crypto_store/key_type.hpp"
+#include "filesystem/common.hpp"
 
 OUTCOME_CPP_DEFINE_CATEGORY(kagome::crypto, KeyFileStorage::Error, e) {
   using E = kagome::crypto::KeyFileStorage::Error;
@@ -93,14 +93,14 @@ namespace kagome::crypto {
 
   outcome::result<void> KeyFileStorage::initialize() {
     std::error_code ec{};
-    bool does_exist = std::filesystem::exists(keystore_path_, ec);
+    bool does_exist = filesystem::exists(keystore_path_, ec);
     if (ec and ec != std::errc::no_such_file_or_directory) {
       logger_->error("Error initializing key storage: {}", ec);
       return outcome::failure(ec);
     }
     if (does_exist) {
       // check whether specified path is a directory
-      if (not std::filesystem::is_directory(keystore_path_, ec)) {
+      if (not filesystem::is_directory(keystore_path_, ec)) {
         return Error::KEYS_PATH_IS_NOT_DIRECTORY;
       }
       if (ec) {
@@ -109,7 +109,7 @@ namespace kagome::crypto {
       }
     } else {
       // try create directory
-      if (not std::filesystem::create_directories(keystore_path_, ec)) {
+      if (not filesystem::create_directories(keystore_path_, ec)) {
         return Error::FAILED_CREATE_KEYS_DIRECTORY;
       }
       if (ec) {
@@ -123,7 +123,7 @@ namespace kagome::crypto {
 
   outcome::result<std::string> KeyFileStorage::loadFileContent(
       const Path &file_path) const {
-    if (!std::filesystem::exists(file_path)) {
+    if (!filesystem::exists(file_path)) {
       return Error::FILE_DOESNT_EXIST;
     }
 
@@ -156,7 +156,7 @@ namespace kagome::crypto {
 
   outcome::result<std::vector<Buffer>> KeyFileStorage::collectPublicKeys(
       KeyTypeId type) const {
-    namespace fs = std::filesystem;
+    namespace fs = filesystem;
 
     std::error_code ec{};
 
@@ -187,7 +187,7 @@ namespace kagome::crypto {
   outcome::result<std::optional<Buffer>> KeyFileStorage::searchForSeed(
       KeyTypeId type, gsl::span<const uint8_t> public_key_bytes) const {
     auto key_path = composeKeyPath(type, public_key_bytes);
-    namespace fs = std::filesystem;
+    namespace fs = filesystem;
     std::error_code ec{};
 
     if (not fs::exists(key_path, ec)) {

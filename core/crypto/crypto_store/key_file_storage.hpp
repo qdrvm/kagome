@@ -8,11 +8,11 @@
 
 #include <vector>
 
-#include <filesystem>
 #include <optional>
 
 #include "common/buffer.hpp"
 #include "crypto/crypto_store/key_type.hpp"
+#include "filesystem/common.hpp"
 #include "log/logger.hpp"
 
 namespace kagome::crypto {
@@ -34,7 +34,7 @@ namespace kagome::crypto {
     };
 
     using Buffer = common::Buffer;
-    using Path = std::filesystem::path;
+    using Path = filesystem::path;
 
     /**
      * Initializes key storage at the given \param keystore_path. Creates its

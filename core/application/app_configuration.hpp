@@ -6,7 +6,6 @@
 #ifndef KAGOME_APP_CONFIGURATION_HPP
 #define KAGOME_APP_CONFIGURATION_HPP
 
-#include <filesystem>
 #include <memory>
 #include <optional>
 #include <string>
@@ -15,6 +14,7 @@
 #include <libp2p/multi/multiaddress.hpp>
 
 #include "crypto/ed25519_types.hpp"
+#include "filesystem/common.hpp"
 #include "log/logger.hpp"
 #include "network/peering_config.hpp"
 #include "network/types/roles.hpp"
@@ -55,34 +55,34 @@ namespace kagome::application {
     /**
      * @return file path with genesis configuration.
      */
-    virtual std::filesystem::path chainSpecPath() const = 0;
+    virtual kagome::filesystem::path chainSpecPath() const = 0;
 
     /**
      * @return path to precompiled WAVM runtime cache directory
      */
-    virtual std::filesystem::path runtimeCacheDirPath() const = 0;
+    virtual kagome::filesystem::path runtimeCacheDirPath() const = 0;
 
     /**
      * @return path to cached precompiled WAVM runtime
      */
-    virtual std::filesystem::path runtimeCachePath(
+    virtual kagome::filesystem::path runtimeCachePath(
         std::string runtime_hash) const = 0;
 
     /**
      * @return path to the node's directory for the chain \arg chain_id
      * (contains key storage and database)
      */
-    virtual std::filesystem::path chainPath(std::string chain_id) const = 0;
+    virtual kagome::filesystem::path chainPath(std::string chain_id) const = 0;
 
     /**
      * @return path to the node's database for the chain \arg chain_id
      */
-    virtual std::filesystem::path databasePath(std::string chain_id) const = 0;
+    virtual kagome::filesystem::path databasePath(std::string chain_id) const = 0;
 
     /**
      * @return path to the node's keystore for the chain \arg chain_id
      */
-    virtual std::filesystem::path keystorePath(std::string chain_id) const = 0;
+    virtual kagome::filesystem::path keystorePath(std::string chain_id) const = 0;
 
     /**
      * @return the secret key to use for libp2p networking

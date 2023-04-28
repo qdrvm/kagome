@@ -7,7 +7,6 @@
 #define KAGOME_CRYPTO_STORE_HPP
 
 #include <memory>
-#include <filesystem>
 #include <optional>
 
 #include <libp2p/crypto/key.hpp>
@@ -18,11 +17,12 @@
 #include "crypto/ed25519_types.hpp"
 #include "crypto/secp256k1_types.hpp"
 #include "crypto/sr25519_types.hpp"
+#include "filesystem/common.hpp"
 
 namespace kagome::crypto {
   class CryptoStore {
    public:
-    using Path = std::filesystem::path;
+    using Path = filesystem::path;
 
     virtual ~CryptoStore() = default;
 

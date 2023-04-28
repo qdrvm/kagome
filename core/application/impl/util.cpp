@@ -25,7 +25,7 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::application::util, Error, e) {
 
 namespace kagome::application::util {
 
-  namespace fs = std::filesystem;
+  namespace fs = filesystem;
 
   outcome::result<void> init_directory(const fs::path &path) {
     // init chain directory in base path

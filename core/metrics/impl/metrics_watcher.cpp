@@ -5,14 +5,14 @@
 
 #include "metrics_watcher.hpp"
 
-#include <filesystem>
+#include "filesystem/common.hpp"
 
 namespace {
   constexpr auto storageSizeMetricName = "kagome_storage_size";
 }  // namespace
 
 namespace kagome::metrics {
-  namespace fs = std::filesystem;
+  namespace fs = kagome::filesystem;
 
   MetricsWatcher::MetricsWatcher(
       std::shared_ptr<application::AppStateManager> app_state_manager,

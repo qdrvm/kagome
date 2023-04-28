@@ -8,11 +8,10 @@
 
 #include "storage/buffer_map_types.hpp"
 
-#include <filesystem>
-
 #include <rocksdb/db.h>
 #include <boost/container/flat_map.hpp>
 
+#include "filesystem/common.hpp"
 #include "log/logger.hpp"
 #include "storage/spaced_storage.hpp"
 
@@ -39,7 +38,7 @@ namespace kagome::storage {
      * @return instance of RocksDB
      */
     static outcome::result<std::shared_ptr<RocksDb>> create(
-        const std::filesystem::path &path,
+        const filesystem::path &path,
         rocksdb::Options options = rocksdb::Options(),
         bool prevent_destruction = false);
 
