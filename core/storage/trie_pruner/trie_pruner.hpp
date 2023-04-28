@@ -77,8 +77,7 @@ namespace kagome::storage::trie_pruner {
      * (required for pruner state persistency purposes).
      */
     virtual outcome::result<void> pruneFinalized(
-        primitives::BlockHeader const &state,
-        primitives::BlockInfo const &next_block) = 0;
+        primitives::BlockHeader const &state) = 0;
 
     /**
      * Prune the trie of a discarded block \param state.
@@ -91,9 +90,10 @@ namespace kagome::storage::trie_pruner {
         primitives::BlockHeader const &state) = 0;
 
     /**
-     * @return a block after the last pruned block.
+     * @return the last pruned block.
      */
-    virtual primitives::BlockNumber getBaseBlock() const = 0;
+    virtual std::optional<primitives::BlockNumber> getLastPrunedBlock()
+        const = 0;
 
     /**
      * @return the number of blocks behind the last finalized one

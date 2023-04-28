@@ -52,7 +52,8 @@ namespace kagome::storage::trie_pruner {
    public:
     enum class Error {
       CREATE_PRUNER_ON_NON_PRUNED_NON_EMPTY_STORAGE = 1,
-      OUTDATED_PRUNE_BASE
+      OUTDATED_PRUNE_BASE,
+      LAST_PRUNED_BLOCK_IS_LAST_FINALIZED,
     };
 
     static inline const common::Buffer TRIE_PRUNER_INFO_KEY =
@@ -68,9 +69,9 @@ namespace kagome::storage::trie_pruner {
     struct TriePrunerInfo {
       SCALE_TIE(2);
 
-      primitives::BlockInfo prune_base;
-      std::vector<std::pair<primitives::BlockHash,
-                            std::vector<ChildStorageInfo>>>
+      std::optional<primitives::BlockInfo> last_pruned_block;
+      std::vector<
+          std::pair<primitives::BlockHash, std::vector<ChildStorageInfo>>>
           child_states;
     };
 
@@ -90,23 +91,25 @@ namespace kagome::storage::trie_pruner {
 
     virtual outcome::result<void> addNewChildState(
         storage::trie::RootHash const &parent_root,
-        common::Buffer const& key,
+        common::Buffer const &key,
         trie::PolkadotTrie const &new_trie,
         trie::StateVersion version) override;
 
     virtual outcome::result<void> markAsChild(Parent parent,
-                                              common::Buffer const& key,
+                                              common::Buffer const &key,
                                               Child child) override;
 
     virtual outcome::result<void> pruneFinalized(
-        primitives::BlockHeader const &state,
-        primitives::BlockInfo const &next_block) override;
+        primitives::BlockHeader const &state) override;
 
     virtual outcome::result<void> pruneDiscarded(
         primitives::BlockHeader const &state) override;
 
-    primitives::BlockNumber getBaseBlock() const override {
-      return base_block_.number;
+    std::optional<primitives::BlockNumber> getLastPrunedBlock() const override {
+      if (last_pruned_block_) {
+        return last_pruned_block_.value().number;
+      }
+      return std::nullopt;
     }
 
     size_t getTrackedNodesNum() const {
@@ -211,15 +214,14 @@ namespace kagome::storage::trie_pruner {
     std::unordered_map<common::Buffer, size_t> ref_count_;
     std::unordered_map<common::Hash256, size_t> value_ref_count_;
 
-    primitives::BlockInfo base_block_{0, {}};
+    std::optional<primitives::BlockInfo> last_pruned_block_;
     std::shared_ptr<storage::trie::TrieStorageBackend> trie_storage_;
     std::shared_ptr<const storage::trie::TrieSerializer> serializer_;
     std::shared_ptr<const storage::trie::Codec> codec_;
     std::shared_ptr<storage::SpacedStorage> storage_;
     std::shared_ptr<const crypto::Hasher> hasher_;
 
-    std::unordered_map<storage::trie::RootHash,
-                       std::vector<ChildStorageInfo>>
+    std::unordered_map<storage::trie::RootHash, std::vector<ChildStorageInfo>>
         child_states_;
     const std::optional<uint32_t> pruning_depth_{};
     log::Logger logger_ = log::createLogger("TriePruner", "trie_pruner");

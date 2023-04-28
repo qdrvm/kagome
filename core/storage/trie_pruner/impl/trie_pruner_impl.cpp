@@ -55,7 +55,7 @@ namespace kagome::storage::trie_pruner {
                 storage->getSpace(kTriePruner)->tryGet(TRIE_PRUNER_INFO_KEY));
     if (encoded_info.has_value()) {
       OUTCOME_TRY(info, scale::decode<TriePrunerInfo>(*encoded_info));
-      pruner->base_block_ = info.prune_base;
+      pruner->last_pruned_block_ = info.last_pruned_block;
       pruner->child_states_.insert(info.child_states.begin(),
                                    info.child_states.end());
     }
@@ -147,7 +147,7 @@ namespace kagome::storage::trie_pruner {
 
   outcome::result<void> TriePrunerImpl::init(
       const blockchain::BlockTree &block_tree) {
-    if (base_block_.number == 0) {
+    if (!last_pruned_block_.has_value()) {
       OUTCOME_TRY(first_hash_opt, block_tree.getBlockHash(1));
       if (first_hash_opt.has_value()) {
         SL_WARN(logger_,
@@ -167,14 +167,14 @@ namespace kagome::storage::trie_pruner {
       }
     } else {
       OUTCOME_TRY(base_block_header,
-                  block_tree.getBlockHeader(base_block_.hash));
+                  block_tree.getBlockHeader(last_pruned_block_.value().hash));
       BOOST_ASSERT(block_tree.getLastFinalized().number >= base_block_.number);
       if (auto res = restoreState(base_block_header, block_tree);
           res.has_error()) {
         SL_WARN(logger_,
                 "Failed to restore trie pruner state starting from base "
                 "block {}: {}",
-                base_block_,
+                last_pruned_block_.value(),
                 res.error().message());
         return outcome::success();
       }
@@ -183,13 +183,13 @@ namespace kagome::storage::trie_pruner {
   }
 
   outcome::result<void> TriePrunerImpl::pruneFinalized(
-      primitives::BlockHeader const &block,
-      primitives::BlockInfo const &next_block) {
-    BOOST_ASSERT(next_block.number == block.number + 1);
-
+      primitives::BlockHeader const &block) {
     OUTCOME_TRY(prune(block));
 
-    base_block_ = next_block;
+    OUTCOME_TRY(block_enc, scale::encode(block));
+    auto block_hash = hasher_->blake2b_256(block_enc);
+
+    last_pruned_block_ = primitives::BlockInfo{block_hash, block.number};
     OUTCOME_TRY(savePersistentState());
     return outcome::success();
   }
@@ -390,13 +390,23 @@ namespace kagome::storage::trie_pruner {
   }
 
   outcome::result<void> TriePrunerImpl::restoreState(
-      primitives::BlockHeader const &base_block,
+      primitives::BlockHeader const &last_pruned_block,
       blockchain::BlockTree const &block_tree) {
     KAGOME_PROFILE_START_L(logger_, restore_state);
-    SL_DEBUG(logger_, "Restore state - base block #{}", base_block.number);
+    SL_DEBUG(logger_,
+             "Restore state - last pruned block #{}",
+             last_pruned_block.number);
 
     ref_count_.clear();
-    crypto::HasherImpl hasher;
+    OUTCOME_TRY(last_pruned_enc, scale::encode(last_pruned_block));
+    auto last_pruned_hash = hasher_->blake2b_256(last_pruned_enc);
+
+    OUTCOME_TRY(last_pruned_children, block_tree.getChildren(last_pruned_hash));
+    if (last_pruned_children.size() > 1 || last_pruned_children.empty()) {
+      return Error::LAST_PRUNED_BLOCK_IS_LAST_FINALIZED;
+    }
+    auto &base_block_hash = last_pruned_children.at(0);
+    OUTCOME_TRY(base_block, block_tree.getBlockHeader(base_block_hash));
     auto base_tree_res = serializer_->retrieveTrie(base_block.state_root);
     if (base_tree_res.has_error()
         && base_tree_res.error() == storage::DatabaseError::NOT_FOUND) {
@@ -411,11 +421,8 @@ namespace kagome::storage::trie_pruner {
                                 AddConfig{.type = AddConfig::AddWholeState}));
     std::queue<primitives::BlockHash> block_queue;
 
-    OUTCOME_TRY(base_enc, scale::encode(base_block));
-    auto base_hash = hasher_->blake2b_256(base_enc);
-
     {
-      OUTCOME_TRY(children, block_tree.getChildren(base_hash));
+      OUTCOME_TRY(children, block_tree.getChildren(base_block_hash));
       for (auto child : children) {
         block_queue.push(child);
       }
@@ -448,7 +455,7 @@ namespace kagome::storage::trie_pruner {
         block_queue.push(child);
       }
     }
-    base_block_ = {base_block.number, base_hash};
+    last_pruned_block_ = {last_pruned_hash, last_pruned_block.number};
     OUTCOME_TRY(savePersistentState());
     return outcome::success();
   }
@@ -462,7 +469,7 @@ namespace kagome::storage::trie_pruner {
 
     OUTCOME_TRY(enc_info,
                 scale::encode(TriePrunerInfo{
-                    base_block_,
+                    last_pruned_block_,
                     child_states,
                 }));
     BOOST_ASSERT(storage_->getSpace(kTriePruner));
