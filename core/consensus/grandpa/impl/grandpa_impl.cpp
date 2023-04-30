@@ -1319,17 +1319,18 @@ namespace kagome::consensus::grandpa {
         });
   }
 
-  void GrandpaImpl::verifyJustification(const GrandpaJustification &jst,
-                                        const primitives::AuthoritySet &auth,
-                                        ApplyJustificationCb &&cb) {
+  void GrandpaImpl::verifyJustification(
+      const GrandpaJustification &jst,
+      const primitives::AuthoritySet &auth,
+      std::promise<outcome::result<void>> pr) {
     REINVOKE_3(*internal_thread_context_,
                verifyJustification,
                jst,
                auth,
-               cb,
+               pr,
                justification,
                authorities,
-               callback)
+               promise_res)
 
     auto voters = VoterSet::make(authorities).value();
     MovableRoundState state;
@@ -1348,7 +1349,7 @@ namespace kagome::consensus::grandpa {
         scheduler_,
         state,
     };
-    callback(round.validatePrecommitJustification(justification));
+    promise_res.set_value(round.validatePrecommitJustification(justification));
   }
 
   void GrandpaImpl::applyJustification(const GrandpaJustification &j,

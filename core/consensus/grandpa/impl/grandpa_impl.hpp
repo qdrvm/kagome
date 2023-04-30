@@ -212,9 +212,10 @@ namespace kagome::consensus::grandpa {
     /**
      * Check justification votes signatures, ancestry and threshold.
      */
-    void verifyJustification(const GrandpaJustification &justification,
-                             const primitives::AuthoritySet &authorities,
-                             ApplyJustificationCb &&callback) override;
+    void verifyJustification(
+        const GrandpaJustification &justification,
+        const primitives::AuthoritySet &authorities,
+        std::promise<outcome::result<void>> promise_res) override;
 
     /**
      * Selects round that corresponds for justification, checks justification,

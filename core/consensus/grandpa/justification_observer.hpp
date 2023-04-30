@@ -6,6 +6,8 @@
 #ifndef KAGOME_CONSENSUS_GRANDPA_JUSTIFICATIONOBSERVER
 #define KAGOME_CONSENSUS_GRANDPA_JUSTIFICATIONOBSERVER
 
+#include <future>
+
 #include "consensus/grandpa/structs.hpp"
 #include "outcome/outcome.hpp"
 #include "primitives/common.hpp"
@@ -26,7 +28,7 @@ namespace kagome::consensus::grandpa {
     virtual void verifyJustification(
         const GrandpaJustification &justification,
         const primitives::AuthoritySet &authorities,
-        ApplyJustificationCb &&callback) = 0;
+        std::promise<outcome::result<void>> promise_res) = 0;
 
     /**
      * Validate provided {@param justification} for finalization.

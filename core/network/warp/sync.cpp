@@ -73,29 +73,24 @@ namespace kagome::network {
           authority_manager_->authorities(block_tree_->getLastFinalized(), true)
               .value();
 
-      WaitForSingleObject sync_obj{};
-      std::optional<outcome::result<void>> result{};
+      std::promise<outcome::result<void>> promise_res;
+      auto res_future = promise_res.get_future();
+
       grandpa_->verifyJustification(
+          fragment.justification, *authorities, std::move(promise_res));
+
+      auto result = res_future.get();
+      if (result.has_error()) {
+        return;
+      }
+      Op op{
+          block_info,
+          fragment.header,
           fragment.justification,
           *authorities,
-          [&sync_obj, &result, wptr{weak_from_this()}](
-              outcome::result<void> &&res) mutable {
-            result = std::move(res);
-            sync_obj.set();
-          });
-      sync_obj.wait();
-
-      assert(result);
-      if (result->has_value()) {
-        Op op{
-            block_info,
-            fragment.header,
-            fragment.justification,
-            *authorities,
-        };
-        db_->put(storage::kWarpSyncOp, scale::encode(op).value()).value();
-        applyInner(op);
-      }
+      };
+      db_->put(storage::kWarpSyncOp, scale::encode(op).value()).value();
+      applyInner(op);
     }
     if (not res.is_finished) {
       done_ = false;
