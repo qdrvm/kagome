@@ -73,11 +73,12 @@ namespace kagome::network {
           authority_manager_->authorities(block_tree_->getLastFinalized(), true)
               .value();
 
-      std::promise<outcome::result<void>> promise_res;
-      auto res_future = promise_res.get_future();
+      auto promise_res =
+          std::make_shared<std::promise<outcome::result<void>>>();
+      auto res_future = promise_res->get_future();
 
       grandpa_->verifyJustification(
-          fragment.justification, *authorities, std::move(promise_res));
+          fragment.justification, *authorities, promise_res);
 
       auto result = res_future.get();
       if (result.has_error()) {

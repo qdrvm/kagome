@@ -226,7 +226,7 @@ namespace kagome::consensus::grandpa {
       VoterSetId _voter_ser_id,
       const BlockInfo &_vote,
       const GrandpaJustification &_justification) {
-    if (round == 0) {
+    if (_round == 0) {
       return;
     }
 

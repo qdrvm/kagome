@@ -1322,7 +1322,7 @@ namespace kagome::consensus::grandpa {
   void GrandpaImpl::verifyJustification(
       const GrandpaJustification &jst,
       const primitives::AuthoritySet &auth,
-      std::promise<outcome::result<void>> pr) {
+      std::shared_ptr<std::promise<outcome::result<void>>> pr) {
     REINVOKE_3(*internal_thread_context_,
                verifyJustification,
                jst,
@@ -1349,7 +1349,7 @@ namespace kagome::consensus::grandpa {
         scheduler_,
         state,
     };
-    promise_res.set_value(round.validatePrecommitJustification(justification));
+    promise_res->set_value(round.validatePrecommitJustification(justification));
   }
 
   void GrandpaImpl::applyJustification(const GrandpaJustification &j,

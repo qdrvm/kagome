@@ -215,7 +215,8 @@ namespace kagome::consensus::grandpa {
     void verifyJustification(
         const GrandpaJustification &justification,
         const primitives::AuthoritySet &authorities,
-        std::promise<outcome::result<void>> promise_res) override;
+        std::shared_ptr<std::promise<outcome::result<void>>> promise_res)
+        override;
 
     /**
      * Selects round that corresponds for justification, checks justification,
