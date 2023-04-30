@@ -1349,8 +1349,7 @@ namespace kagome::consensus::grandpa {
         scheduler_,
         state,
     };
-    callbackCall(std::move(callback),
-                 round.validatePrecommitJustification(justification));
+    callback(round.validatePrecommitJustification(justification));
   }
 
   void GrandpaImpl::applyJustification(const GrandpaJustification &j,

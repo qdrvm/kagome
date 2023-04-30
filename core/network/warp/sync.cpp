@@ -13,6 +13,7 @@
 #include "network/warp/cache.hpp"
 #include "storage/predefined_keys.hpp"
 #include "storage/spaced_storage.hpp"
+#include "utils/safe_object.hpp"
 
 namespace kagome::network {
   WarpSync::WarpSync(
@@ -71,24 +72,30 @@ namespace kagome::network {
       auto authorities =
           authority_manager_->authorities(block_tree_->getLastFinalized(), true)
               .value();
+
+      WaitForSingleObject sync_obj{};
+      std::optional<outcome::result<void>> result{};
       grandpa_->verifyJustification(
           fragment.justification,
           *authorities,
-          [wptr{weak_from_this()},
-           op{Op{
+          [&sync_obj, &result, wptr{weak_from_this()}](outcome::result<void> &&res) mutable {
+            result = std::move(res);
+            sync_obj.set();
+          });
+      sync_obj.wait();
+
+      assert(result);
+      if (result->has_value()) {
+        Op op{
                block_info,
                fragment.header,
                fragment.justification,
                *authorities,
-           }}](outcome::result<void> &&res) mutable {
-            if (res.has_value()) {
-              if (auto self = wptr.lock()) {
-                self->db_->put(storage::kWarpSyncOp, scale::encode(op).value())
-                    .value();
-                self->applyInner(op);
-              }
-            }
-          });
+           };
+        db_->put(storage::kWarpSyncOp, scale::encode(op).value())
+            .value();
+        applyInner(op);
+      }
     }
     if (not res.is_finished) {
       done_ = false;
