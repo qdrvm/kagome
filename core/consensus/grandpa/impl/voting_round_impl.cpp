@@ -649,8 +649,7 @@ namespace kagome::consensus::grandpa {
              round_number_,
              block);
 
-    env_->onCommitted(
-        round_number_, voter_set_->id(), block, justification);
+    env_->onCommitted(round_number_, voter_set_->id(), block, justification);
   }
 
   bool VotingRoundImpl::isPrimary(const Id &id) const {
@@ -1576,11 +1575,11 @@ namespace kagome::consensus::grandpa {
         getPrecommitJustification(finalized_block, precommits_->getMessages());
 
     env_->onCatchUpRespond(peer_id,
-                                         voter_set_->id(),
-                                         round_number_,
-                                         std::move(prevote_justification),
-                                         std::move(precommit_justification),
-                                         finalized_block);
+                           voter_set_->id(),
+                           round_number_,
+                           std::move(prevote_justification),
+                           std::move(precommit_justification),
+                           finalized_block);
   }
 
   void VotingRoundImpl::sendNeighborMessage() {
@@ -1612,9 +1611,7 @@ namespace kagome::consensus::grandpa {
             for (const auto &vote_variant : graph->getMessages()) {
               visit_in_place(
                   vote_variant,
-                  [&](const SignedMessage &vote) {
-                    env_->onVoted(r, s, vote);
-                  },
+                  [&](const SignedMessage &vote) { env_->onVoted(r, s, vote); },
                   [&](const EquivocatorySignedMessage &pair) {
                     env_->onVoted(r, s, pair.first);
                     env_->onVoted(r, s, pair.second);

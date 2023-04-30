@@ -71,7 +71,7 @@ namespace kagome::blockchain {
      */
     outcome::result<void> applyToChain(
         const primitives::BlockInfo &chain_end,
-        const std::function<outcome::result<ExitToken>(TreeNode const &node)>
+        const std::function<outcome::result<ExitToken>(const TreeNode &node)>
             &op) const;
 
     primitives::BlockInfo getBlockInfo() const {

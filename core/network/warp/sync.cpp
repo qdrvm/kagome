@@ -78,7 +78,8 @@ namespace kagome::network {
       grandpa_->verifyJustification(
           fragment.justification,
           *authorities,
-          [&sync_obj, &result, wptr{weak_from_this()}](outcome::result<void> &&res) mutable {
+          [&sync_obj, &result, wptr{weak_from_this()}](
+              outcome::result<void> &&res) mutable {
             result = std::move(res);
             sync_obj.set();
           });
@@ -87,13 +88,12 @@ namespace kagome::network {
       assert(result);
       if (result->has_value()) {
         Op op{
-               block_info,
-               fragment.header,
-               fragment.justification,
-               *authorities,
-           };
-        db_->put(storage::kWarpSyncOp, scale::encode(op).value())
-            .value();
+            block_info,
+            fragment.header,
+            fragment.justification,
+            *authorities,
+        };
+        db_->put(storage::kWarpSyncOp, scale::encode(op).value()).value();
         applyInner(op);
       }
     }

@@ -42,10 +42,9 @@ namespace kagome::consensus::grandpa {
     /**
      * Make catch-up-request
      */
-    virtual void onCatchUpRequested(
-        const libp2p::peer::PeerId &peer_id,
-        VoterSetId set_id,
-        RoundNumber round_number) = 0;
+    virtual void onCatchUpRequested(const libp2p::peer::PeerId &peer_id,
+                                    VoterSetId set_id,
+                                    RoundNumber round_number) = 0;
 
     /**
      * Make catch-up-response
@@ -71,19 +70,18 @@ namespace kagome::consensus::grandpa {
      * provided set_id and given vote is ready to be sent.
      */
     virtual void onVoted(RoundNumber round,
-                                          VoterSetId set_id,
-                                          const SignedMessage &vote) = 0;
+                         VoterSetId set_id,
+                         const SignedMessage &vote) = 0;
 
     /**
      * Triggered when current peer appears in given round and has given
      * voter_ser_id intends to send committed vote justified by provided
      * justification
      */
-    virtual void onCommitted(
-        RoundNumber round,
-        VoterSetId voter_ser_id,
-        const BlockInfo &vote,
-        const GrandpaJustification &justification) = 0;
+    virtual void onCommitted(RoundNumber round,
+                             VoterSetId voter_ser_id,
+                             const BlockInfo &vote,
+                             const GrandpaJustification &justification) = 0;
 
     /**
      * Triggered when current peer should send neighbor message
@@ -91,8 +89,9 @@ namespace kagome::consensus::grandpa {
      * @param set_id id of actual voter set
      * @param last_finalized last known finalized block
      */
-    virtual void onNeighborMessageSent(
-        RoundNumber round, VoterSetId set_id, BlockNumber last_finalized) = 0;
+    virtual void onNeighborMessageSent(RoundNumber round,
+                                       VoterSetId set_id,
+                                       BlockNumber last_finalized) = 0;
 
     /**
      * Validate provided {@param justification} for finalization {@param block}.

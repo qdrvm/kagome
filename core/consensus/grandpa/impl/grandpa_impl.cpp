@@ -470,30 +470,29 @@ namespace kagome::consensus::grandpa {
         if (not pending_catchup_request_.has_value()) {
           environment_->onCatchUpRequested(
               peer_id, msg.voter_set_id, msg.round_number - 1);
-            if (pending_catchup_request_.has_value()) {
-              SL_WARN(logger_,
-                      "Catch up request pending, but another one has done");
-            }
-            pending_catchup_request_.emplace(
-                peer_id,
-                network::CatchUpRequest{msg.round_number - 1,
-                                        msg.voter_set_id});
-            catchup_request_timer_handle_ = scheduler_->scheduleWithHandle(
-                [wp = weak_from_this()] {
-                  auto self = wp.lock();
-                  if (not self) {
-                    return;
-                  }
-                  if (self->pending_catchup_request_.has_value()) {
-                    const auto &peer_id =
-                        std::get<0>(self->pending_catchup_request_.value());
-                    self->reputation_repository_->change(
-                        peer_id,
-                        network::reputation::cost::CATCH_UP_REQUEST_TIMEOUT);
-                    self->pending_catchup_request_.reset();
-                  }
-                },
-                toMilliseconds(kCatchupRequestTimeout));
+          if (pending_catchup_request_.has_value()) {
+            SL_WARN(logger_,
+                    "Catch up request pending, but another one has done");
+          }
+          pending_catchup_request_.emplace(
+              peer_id,
+              network::CatchUpRequest{msg.round_number - 1, msg.voter_set_id});
+          catchup_request_timer_handle_ = scheduler_->scheduleWithHandle(
+              [wp = weak_from_this()] {
+                auto self = wp.lock();
+                if (not self) {
+                  return;
+                }
+                if (self->pending_catchup_request_.has_value()) {
+                  const auto &peer_id =
+                      std::get<0>(self->pending_catchup_request_.value());
+                  self->reputation_repository_->change(
+                      peer_id,
+                      network::reputation::cost::CATCH_UP_REQUEST_TIMEOUT);
+                  self->pending_catchup_request_.reset();
+                }
+              },
+              toMilliseconds(kCatchupRequestTimeout));
         }
       }
       return;

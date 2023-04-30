@@ -107,11 +107,17 @@ namespace kagome::consensus::grandpa {
     return std::move(best_block);
   }
 
-  void EnvironmentImpl::onCatchUpRequested(
-      const libp2p::peer::PeerId &_peer_id,
-      VoterSetId _set_id,
-      RoundNumber _round_number) {
-        REINVOKE_3(main_thread_context_, onCatchUpRequested, _peer_id, _set_id, _round_number, peer_id, set_id, round_number);
+  void EnvironmentImpl::onCatchUpRequested(const libp2p::peer::PeerId &_peer_id,
+                                           VoterSetId _set_id,
+                                           RoundNumber _round_number) {
+    REINVOKE_3(main_thread_context_,
+               onCatchUpRequested,
+               _peer_id,
+               _set_id,
+               _round_number,
+               peer_id,
+               set_id,
+               round_number);
     network::CatchUpRequest message{.round_number = round_number,
                                     .voter_set_id = set_id};
     transmitter_->sendCatchUpRequest(peer_id, std::move(message));
@@ -124,8 +130,20 @@ namespace kagome::consensus::grandpa {
       std::vector<SignedPrevote> _prevote_justification,
       std::vector<SignedPrecommit> _precommit_justification,
       BlockInfo _best_final_candidate) {
-    REINVOKE_6(main_thread_context_, onCatchUpRespond, _peer_id, _set_id, _round_number, _prevote_justification, _precommit_justification, _best_final_candidate,
-    peer_id, set_id, round_number, prevote_justification, precommit_justification, best_final_candidate);
+    REINVOKE_6(main_thread_context_,
+               onCatchUpRespond,
+               _peer_id,
+               _set_id,
+               _round_number,
+               _prevote_justification,
+               _precommit_justification,
+               _best_final_candidate,
+               peer_id,
+               set_id,
+               round_number,
+               prevote_justification,
+               precommit_justification,
+               best_final_candidate);
     SL_DEBUG(logger_, "Send Catch-Up-Response upto round {}", round_number);
     network::CatchUpResponse message{
         .voter_set_id = set_id,
@@ -137,9 +155,16 @@ namespace kagome::consensus::grandpa {
   }
 
   void EnvironmentImpl::onVoted(RoundNumber _round,
-                                                 VoterSetId _set_id,
-                                                 const SignedMessage &_vote) {
-REINVOKE_3(main_thread_context_, onVoted, _round, _set_id, _vote, round, set_id, vote);
+                                VoterSetId _set_id,
+                                const SignedMessage &_vote) {
+    REINVOKE_3(main_thread_context_,
+               onVoted,
+               _round,
+               _set_id,
+               _vote,
+               round,
+               set_id,
+               vote);
     SL_DEBUG(logger_,
              "Round #{}: Send {} signed by {} for block {}",
              round,
@@ -159,7 +184,14 @@ REINVOKE_3(main_thread_context_, onVoted, _round, _set_id, _vote, round, set_id,
   void EnvironmentImpl::sendState(const libp2p::peer::PeerId &_peer_id,
                                   const MovableRoundState &_state,
                                   VoterSetId _voter_set_id) {
-    REINVOKE_3(main_thread_context_, sendState, _peer_id, _state, _voter_set_id, peer_id, state, voter_set_id);
+    REINVOKE_3(main_thread_context_,
+               sendState,
+               _peer_id,
+               _state,
+               _voter_set_id,
+               peer_id,
+               state,
+               voter_set_id);
     auto send = [&](const SignedMessage &vote) {
       SL_DEBUG(logger_,
                "Round #{}: Send {} signed by {} for block {} (as send state)",
@@ -198,8 +230,16 @@ REINVOKE_3(main_thread_context_, onVoted, _round, _set_id, _vote, round, set_id,
       return;
     }
 
-    REINVOKE_4(main_thread_context_, onCommitted, _round, _voter_ser_id, _vote, _justification,
-    round, voter_ser_id, vote, justification);
+    REINVOKE_4(main_thread_context_,
+               onCommitted,
+               _round,
+               _voter_ser_id,
+               _vote,
+               _justification,
+               round,
+               voter_ser_id,
+               vote,
+               justification);
     SL_DEBUG(logger_, "Round #{}: Send commit of block {}", round, vote);
 
     network::FullCommitMessage message{
@@ -215,9 +255,17 @@ REINVOKE_3(main_thread_context_, onVoted, _round, _set_id, _vote, round, set_id,
     transmitter_->sendCommitMessage(std::move(message));
   }
 
-  void EnvironmentImpl::onNeighborMessageSent(
-      RoundNumber _round, VoterSetId _set_id, BlockNumber _last_finalized) {
-        REINVOKE_3(main_thread_context_, onNeighborMessageSent, _round, _set_id, _last_finalized, round, set_id, last_finalized);
+  void EnvironmentImpl::onNeighborMessageSent(RoundNumber _round,
+                                              VoterSetId _set_id,
+                                              BlockNumber _last_finalized) {
+    REINVOKE_3(main_thread_context_,
+               onNeighborMessageSent,
+               _round,
+               _set_id,
+               _last_finalized,
+               round,
+               set_id,
+               last_finalized);
     SL_DEBUG(logger_, "Round #{}: Send neighbor message", round);
 
     network::GrandpaNeighborMessage message{.round_number = round,

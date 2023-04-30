@@ -33,7 +33,7 @@ namespace kagome::blockchain {
 
   outcome::result<void> TreeNode::applyToChain(
       const primitives::BlockInfo &chain_end,
-      const std::function<outcome::result<ExitToken>(TreeNode const &node)> &op)
+      const std::function<outcome::result<ExitToken>(const TreeNode &node)> &op)
       const {
     using ChildIdx = size_t;
     std::map<primitives::BlockHash, ChildIdx> fork_choice;

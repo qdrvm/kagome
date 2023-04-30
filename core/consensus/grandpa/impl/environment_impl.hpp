@@ -26,7 +26,8 @@ namespace kagome::network {
 
 namespace kagome::consensus::grandpa {
 
-  class EnvironmentImpl : public Environment, public std::enable_shared_from_this<EnvironmentImpl> {
+  class EnvironmentImpl : public Environment,
+                          public std::enable_shared_from_this<EnvironmentImpl> {
    public:
     EnvironmentImpl(
         std::shared_ptr<blockchain::BlockTree> block_tree,
@@ -63,37 +64,33 @@ namespace kagome::consensus::grandpa {
 
     // Environment methods
 
-    void onCatchUpRequested(
-        const libp2p::peer::PeerId &peer_id,
-        VoterSetId set_id,
-        RoundNumber round_number) override;
+    void onCatchUpRequested(const libp2p::peer::PeerId &peer_id,
+                            VoterSetId set_id,
+                            RoundNumber round_number) override;
 
-    void onCatchUpRespond(
-        const libp2p::peer::PeerId &peer_id,
-        VoterSetId set_id,
-        RoundNumber round_number,
-        std::vector<SignedPrevote> prevote_justification,
-        std::vector<SignedPrecommit> precommit_justification,
-        BlockInfo best_final_candidate) override;
+    void onCatchUpRespond(const libp2p::peer::PeerId &peer_id,
+                          VoterSetId set_id,
+                          RoundNumber round_number,
+                          std::vector<SignedPrevote> prevote_justification,
+                          std::vector<SignedPrecommit> precommit_justification,
+                          BlockInfo best_final_candidate) override;
 
     void sendState(const libp2p::peer::PeerId &peer_id,
                    const MovableRoundState &state,
                    VoterSetId voter_set_id) override;
 
     void onVoted(RoundNumber round,
-                                  VoterSetId set_id,
-                                  const SignedMessage &vote) override;
+                 VoterSetId set_id,
+                 const SignedMessage &vote) override;
 
-    void onCommitted(
-        RoundNumber round,
-        VoterSetId voter_ser_id,
-        const BlockInfo &vote,
-        const GrandpaJustification &justification) override;
+    void onCommitted(RoundNumber round,
+                     VoterSetId voter_ser_id,
+                     const BlockInfo &vote,
+                     const GrandpaJustification &justification) override;
 
-    void onNeighborMessageSent(
-        RoundNumber round,
-        VoterSetId set_id,
-        BlockNumber last_finalized) override;
+    void onNeighborMessageSent(RoundNumber round,
+                               VoterSetId set_id,
+                               BlockNumber last_finalized) override;
 
     void applyJustification(const BlockInfo &block_info,
                             const primitives::Justification &justification,
