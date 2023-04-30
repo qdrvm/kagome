@@ -468,9 +468,8 @@ namespace kagome::consensus::grandpa {
           >= current_round_->roundNumber() + kCatchUpThreshold) {
         // Do catch-up only when another one is not in progress
         if (not pending_catchup_request_.has_value()) {
-          auto res = environment_->onCatchUpRequested(
+          environment_->onCatchUpRequested(
               peer_id, msg.voter_set_id, msg.round_number - 1);
-          if (res.has_value()) {
             if (pending_catchup_request_.has_value()) {
               SL_WARN(logger_,
                       "Catch up request pending, but another one has done");
@@ -495,7 +494,6 @@ namespace kagome::consensus::grandpa {
                   }
                 },
                 toMilliseconds(kCatchupRequestTimeout));
-          }
         }
       }
       return;

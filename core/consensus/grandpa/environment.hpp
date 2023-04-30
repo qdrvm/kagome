@@ -42,7 +42,7 @@ namespace kagome::consensus::grandpa {
     /**
      * Make catch-up-request
      */
-    virtual outcome::result<void> onCatchUpRequested(
+    virtual void onCatchUpRequested(
         const libp2p::peer::PeerId &peer_id,
         VoterSetId set_id,
         RoundNumber round_number) = 0;
@@ -50,7 +50,7 @@ namespace kagome::consensus::grandpa {
     /**
      * Make catch-up-response
      */
-    virtual outcome::result<void> onCatchUpRespond(
+    virtual void onCatchUpRespond(
         const libp2p::peer::PeerId &peer_id,
         VoterSetId set_id,
         RoundNumber round_number,
@@ -70,7 +70,7 @@ namespace kagome::consensus::grandpa {
      * Triggered when current peer appears in provided round with
      * provided set_id and given vote is ready to be sent.
      */
-    virtual outcome::result<void> onVoted(RoundNumber round,
+    virtual void onVoted(RoundNumber round,
                                           VoterSetId set_id,
                                           const SignedMessage &vote) = 0;
 
@@ -79,7 +79,7 @@ namespace kagome::consensus::grandpa {
      * voter_ser_id intends to send committed vote justified by provided
      * justification
      */
-    virtual outcome::result<void> onCommitted(
+    virtual void onCommitted(
         RoundNumber round,
         VoterSetId voter_ser_id,
         const BlockInfo &vote,
@@ -91,7 +91,7 @@ namespace kagome::consensus::grandpa {
      * @param set_id id of actual voter set
      * @param last_finalized last known finalized block
      */
-    virtual outcome::result<void> onNeighborMessageSent(
+    virtual void onNeighborMessageSent(
         RoundNumber round, VoterSetId set_id, BlockNumber last_finalized) = 0;
 
     /**

@@ -500,14 +500,7 @@ namespace kagome::consensus::grandpa {
           round_number_);
     }
     const auto &signed_primary_proposal = signed_primary_proposal_opt.value();
-
-    auto res =
-        env_->onVoted(round_number_, voter_set_->id(), signed_primary_proposal);
-    if (not res) {
-      logger_->error("Round #{}: Primary proposal was not sent: {}",
-                     round_number_,
-                     res.error());
-    }
+    env_->onVoted(round_number_, voter_set_->id(), signed_primary_proposal);
   }
 
   void VotingRoundImpl::doPrevote() {
@@ -564,12 +557,7 @@ namespace kagome::consensus::grandpa {
       return;
     }
     auto &signed_prevote = signed_prevote_opt.value();
-
-    auto res = env_->onVoted(round_number_, voter_set_->id(), signed_prevote);
-    if (not res) {
-      logger_->error(
-          "Round #{}: Prevote was not sent: {}", round_number_, res.error());
-    }
+    env_->onVoted(round_number_, voter_set_->id(), signed_prevote);
   }
 
   void VotingRoundImpl::doPrecommit() {
@@ -619,12 +607,7 @@ namespace kagome::consensus::grandpa {
       return;
     }
     auto &signed_precommit = signed_precommit_opt.value();
-
-    auto res = env_->onVoted(round_number_, voter_set_->id(), signed_precommit);
-    if (not res) {
-      logger_->error(
-          "Round #{}: Precommit was not sent: {}", round_number_, res.error());
-    }
+    env_->onVoted(round_number_, voter_set_->id(), signed_precommit);
   }
 
   void VotingRoundImpl::doFinalize() {
@@ -666,14 +649,8 @@ namespace kagome::consensus::grandpa {
              round_number_,
              block);
 
-    auto committed = env_->onCommitted(
+    env_->onCommitted(
         round_number_, voter_set_->id(), block, justification);
-    if (not committed) {
-      logger_->error("Round #{}: Commit message was not sent: {}",
-                     round_number_,
-                     committed.error());
-      return;
-    }
   }
 
   bool VotingRoundImpl::isPrimary(const Id &id) const {
@@ -950,12 +927,7 @@ namespace kagome::consensus::grandpa {
     primary_vote_.emplace(proposal.getBlockInfo());
 
     if (propagation == Propagation::REQUESTED) {
-      auto res = env_->onVoted(round_number_, voter_set_->id(), proposal);
-      if (not res) {
-        logger_->error("Round #{}: Primary proposal was not propagated: {}",
-                       round_number_,
-                       res.error());
-      }
+      env_->onVoted(round_number_, voter_set_->id(), proposal);
     }
   }
 
@@ -1019,12 +991,7 @@ namespace kagome::consensus::grandpa {
     }
 
     if (propagation == Propagation::REQUESTED) {
-      auto res = env_->onVoted(round_number_, voter_set_->id(), prevote);
-      if (not res) {
-        logger_->error("Round #{}: Prevote was not propagated: {}",
-                       round_number_,
-                       res.error());
-      }
+      env_->onVoted(round_number_, voter_set_->id(), prevote);
     }
 
     return true;
@@ -1087,12 +1054,7 @@ namespace kagome::consensus::grandpa {
     }
 
     if (propagation == Propagation::REQUESTED) {
-      auto res = env_->onVoted(round_number_, voter_set_->id(), precommit);
-      if (not res) {
-        logger_->error("Round #{}: Precommit was not propagated: {}",
-                       round_number_,
-                       res.error());
-      }
+      env_->onVoted(round_number_, voter_set_->id(), precommit);
     }
 
     return true;
@@ -1613,25 +1575,19 @@ namespace kagome::consensus::grandpa {
     auto precommit_justification =
         getPrecommitJustification(finalized_block, precommits_->getMessages());
 
-    auto result = env_->onCatchUpRespond(peer_id,
+    env_->onCatchUpRespond(peer_id,
                                          voter_set_->id(),
                                          round_number_,
                                          std::move(prevote_justification),
                                          std::move(precommit_justification),
                                          finalized_block);
-    if (not result) {
-      logger_->warn("Catch-Up-Response was not sent: {}", result.error());
-    }
   }
 
   void VotingRoundImpl::sendNeighborMessage() {
-    auto res = env_->onNeighborMessageSent(
+    env_->onNeighborMessageSent(
         round_number_,
         voter_set_->id(),
         finalized_.value_or(last_finalized_block_).number);
-    if (res.has_error()) {
-      logger_->warn("Neighbor message was not sent: {}", res.error());
-    }
   }
 
   void VotingRoundImpl::pending() {
@@ -1657,11 +1613,11 @@ namespace kagome::consensus::grandpa {
               visit_in_place(
                   vote_variant,
                   [&](const SignedMessage &vote) {
-                    std::ignore = env_->onVoted(r, s, vote);
+                    env_->onVoted(r, s, vote);
                   },
                   [&](const EquivocatorySignedMessage &pair) {
-                    std::ignore = env_->onVoted(r, s, pair.first);
-                    std::ignore = env_->onVoted(r, s, pair.second);
+                    env_->onVoted(r, s, pair.first);
+                    env_->onVoted(r, s, pair.second);
                   });
             }
           }
