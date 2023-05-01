@@ -159,6 +159,50 @@ namespace kagome::runtime {
       return header_ptr->count * kGranularity - AllocationHeader::kHeaderSize;
     }
 
+    size_t realloc(size_t offset, size_t size) {
+      if (size > kSegmentSize) {
+        return 0ull;
+      }
+
+      const auto alloc_begin = offset - AllocationHeader::kHeaderSize;
+      auto *const header_ptr = (AllocationHeader *)(alloc_begin + startAddr());
+      const auto old_size = sizeFromBitsPackLen(header_ptr->count);
+      const auto allocation_size =
+          math::roundUp<kGranularity>(size + AllocationHeader::kHeaderSize);
+
+      if (old_size >= allocation_size) {
+        return offset;
+      }
+
+      //const auto segment_ix = position / kSegmentInBits;
+      const auto bit_ix = alloc_begin % kSegmentInBits;
+
+      size_t remains;
+      const auto old_segment_mask_0 = getSegmentMask<true>(bit_ix, header_ptr->count, remains);
+      const auto old_segment_mask_1 = getSegmentMask<false>(0ull, remains, remains);
+
+      /*if constexpr (kValue == 0ull) {
+        table_[segment_ix] &= ~segment_mask_0;
+      } else {
+        table_[segment_ix] |= segment_mask_0;
+      }
+
+      if (table_.size() > segment_ix + 1) {
+        const auto segment_mask_1 =
+            remains == 0ull ? 0ull
+                            : getSegmentMask<false>(0ull, remains, remains);
+        if constexpr (kValue == 0ull) {
+          table_[segment_ix + 1] &= ~segment_mask_1;
+        } else {
+          table_[segment_ix + 1] |= segment_mask_1;
+        }
+      }*/
+
+
+      //assert((alloc_begin % kGranularity) == 0ull);
+      //const auto position = alloc_begin / kGranularity;
+    }
+
     MemoryAllocatorNew(size_t preallocated) {
       storageAdjust(preallocated);
     }
@@ -183,6 +227,10 @@ namespace kagome::runtime {
 
     auto bitsPackLenFromSize(size_t size) {
       return size / kGranularity;
+    }
+
+    auto sizeFromBitsPackLen(size_t count) {
+      return count * kGranularity;
     }
 
     auto segmentsToSize(size_t val) {
@@ -275,9 +323,7 @@ namespace kagome::runtime {
       }
 
       if (table_.size() > segment_ix + 1) {
-        const auto segment_mask_1 =
-            remains == 0ull ? 0ull
-                            : getSegmentMask<false>(0ull, remains, remains);
+        const auto segment_mask_1 = getSegmentMask<false>(0ull, remains, remains);
         if constexpr (kValue == 0ull) {
           table_[segment_ix + 1] &= ~segment_mask_1;
         } else {
