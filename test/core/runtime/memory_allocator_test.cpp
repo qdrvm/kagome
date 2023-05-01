@@ -73,6 +73,28 @@ TEST_F(MemoryAllocatorTest, EndingMaskSecondSegment) {
             allocator_->getEndingMask<false>(10, 0, remains));
 }
 
+TEST_F(MemoryAllocatorTest, SegmentMaskComplex_0) {
+  size_t remains;
+  ASSERT_EQ(0xffffffffffffffff,
+            allocator_->getSegmentMask<true>(0, 64, remains));
+  ASSERT_EQ(remains, 0);
+
+  ASSERT_EQ(0x0000000000000000,
+            allocator_->getSegmentMask<false>(4, remains, remains));
+  ASSERT_EQ(remains, 0);
+}
+
+TEST_F(MemoryAllocatorTest, SegmentMaskComplex_1) {
+  size_t remains;
+  ASSERT_EQ(0xfffffffffffffffe,
+            allocator_->getSegmentMask<true>(1, 64, remains));
+  ASSERT_EQ(remains, 1);
+
+  ASSERT_EQ(0x0000000000000001,
+            allocator_->getSegmentMask<false>(4, remains, remains));
+  ASSERT_EQ(remains, 1);
+}
+
 TEST_F(MemoryAllocatorTest, SegmentMaskFirstSegment) {
   size_t remains;
 
