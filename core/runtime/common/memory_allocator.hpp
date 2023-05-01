@@ -174,12 +174,27 @@ namespace kagome::runtime {
         return offset;
       }
 
-      //const auto segment_ix = position / kSegmentInBits;
+      const auto segment_ix = alloc_begin / kSegmentInBits;
       const auto bit_ix = alloc_begin % kSegmentInBits;
 
-      size_t remains;
-      const auto old_segment_mask_0 = getSegmentMask<true>(bit_ix, header_ptr->count, remains);
-      const auto old_segment_mask_1 = getSegmentMask<false>(0ull, remains, remains);
+      size_t old_remains;
+      const auto old_segment_mask_0 = getSegmentMask<true>(bit_ix, header_ptr->count, old_remains);
+      const auto old_segment_mask_1 = getSegmentMask<false>(0ull, old_remains, old_remains);
+
+      const auto bits_len = bitsPackLenFromSize(allocation_size);
+      size_t new_remains;
+      auto new_segment_mask_0 = getSegmentMask<true>(bit_ix, bits_len, new_remains);
+      auto new_segment_mask_1 = getSegmentMask<false>(0ull, new_remains, new_remains);
+
+      new_segment_mask_0 &= ~old_segment_mask_0;
+      new_segment_mask_1 &= ~old_segment_mask_1;
+
+      if ((table_[segment_ix] & new_segment_mask_0) == new_segment_mask_0) {
+        if ((table_.size() > segment_ix + 1) && ((table_[segment_ix + 1] & new_segment_mask_0) == new_segment_mask_0)) {
+          
+        }
+      }
+      
 
       /*if constexpr (kValue == 0ull) {
         table_[segment_ix] &= ~segment_mask_0;
