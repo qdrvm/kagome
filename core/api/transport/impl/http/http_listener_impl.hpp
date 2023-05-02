@@ -49,6 +49,7 @@ namespace kagome::api {
     void acceptOnce() override;
 
     std::shared_ptr<Context> context_;
+    AllowUnsafe allow_unsafe_;
     const Endpoint endpoint_;
     const SessionImpl::Configuration session_config_;
 

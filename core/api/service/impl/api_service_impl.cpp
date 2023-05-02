@@ -510,10 +510,12 @@ namespace kagome::api {
     boost::replace_first(str_request, "\"params\":null", "\"params\":[null]");
 
     // process new request
-    server_->processData(str_request, [&](std::string_view response) mutable {
-      // process response
-      session->respond(response);
-    });
+    server_->processData(str_request,
+                         session->isUnsafeAllowed(),
+                         [&](std::string_view response) mutable {
+                           // process response
+                           session->respond(response);
+                         });
 
     try {
       withSession(session->id(), [&](SessionSubscriptions &session_context) {

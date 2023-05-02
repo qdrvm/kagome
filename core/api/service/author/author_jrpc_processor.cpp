@@ -31,16 +31,17 @@ namespace kagome::api::author {
     server_->registerHandler("author_submitExtrinsic",
                              Handler<request::SubmitExtrinsic>(api_));
 
-    server_->registerHandler("author_insertKey",
-                             Handler<request::InsertKey>(api_));
+    server_->registerHandlerUnsafe("author_insertKey",
+                                   Handler<request::InsertKey>(api_));
 
-    server_->registerHandler("author_hasSessionKeys",
-                             Handler<request::HasSessionKeys>(api_));
+    server_->registerHandlerUnsafe("author_hasSessionKeys",
+                                   Handler<request::HasSessionKeys>(api_));
 
-    server_->registerHandler("author_hasKey", Handler<request::HasKey>(api_));
+    server_->registerHandlerUnsafe("author_hasKey",
+                                   Handler<request::HasKey>(api_));
 
-    server_->registerHandler("author_rotateKeys",
-                             Handler<request::RotateKeys>(api_));
+    server_->registerHandlerUnsafe("author_rotateKeys",
+                                   Handler<request::RotateKeys>(api_));
 
     server_->registerHandler("author_submitAndWatchExtrinsic",
                              Handler<request::SubmitAndWatchExtrinsic>(api_));

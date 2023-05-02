@@ -195,6 +195,10 @@ namespace kagome::application {
       return node_wss_pem_;
     }
 
+    AllowUnsafeRpc allowUnsafeRpc() const override {
+      return allow_unsafe_rpc_;
+    }
+
    private:
     void parse_general_segment(const rapidjson::Value &val);
     void parse_blockchain_segment(const rapidjson::Value &val);
@@ -334,6 +338,7 @@ namespace kagome::application {
     StorageBackend storage_backend_ = StorageBackend::RocksDB;
     std::optional<std::string> dev_mnemonic_phrase_;
     std::string node_wss_pem_;
+    AllowUnsafeRpc allow_unsafe_rpc_ = AllowUnsafeRpc::kAuto;
   };
 
 }  // namespace kagome::application
