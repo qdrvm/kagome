@@ -22,6 +22,7 @@ namespace kagome::api {
       const application::AppConfiguration &app_config,
       SessionImpl::Configuration session_config)
       : context_{std::move(context)},
+        allow_unsafe_{app_config},
         endpoint_(app_config.rpcWsEndpoint()),
         session_config_{session_config},
         max_ws_connections_{app_config.maxWsConnections()},
@@ -43,8 +44,8 @@ namespace kagome::api {
 
   bool WsListenerImpl::prepare() {
     try {
-      acceptor_ = acceptOnFreePort(
-          context_, endpoint_, kDefaultPortTolerance, log_);
+      acceptor_ =
+          acceptOnFreePort(context_, endpoint_, kDefaultPortTolerance, log_);
     } catch (const boost::wrapexcept<boost::system::system_error> &exception) {
       SL_CRITICAL(log_, "Failed to prepare a listener: {}", exception.what());
       return false;
@@ -92,8 +93,11 @@ namespace kagome::api {
   }
 
   void WsListenerImpl::acceptOnce() {
-    new_session_ = std::make_shared<SessionImpl>(
-        *context_, session_config_, next_session_id_.fetch_add(1ull));
+    new_session_ =
+        std::make_shared<SessionImpl>(*context_,
+                                      allow_unsafe_,
+                                      session_config_,
+                                      next_session_id_.fetch_add(1ull));
     auto session_stopped_handler = [wp = weak_from_this()] {
       if (auto self = wp.lock()) {
         self->closed_session_->inc();

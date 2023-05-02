@@ -253,6 +253,10 @@ namespace kagome::application {
     virtual std::optional<std::string_view> devMnemonicPhrase() const = 0;
 
     virtual std::string nodeWssPem() const = 0;
+
+    enum class AllowUnsafeRpc : uint8_t { kAuto, kUnsafe, kSafe };
+
+    virtual AllowUnsafeRpc allowUnsafeRpc() const = 0;
   };
 
 }  // namespace kagome::application
