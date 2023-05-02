@@ -31,6 +31,9 @@ namespace kagome::dispute {
     outcome::result<void> process_active_leaves_update(
         const ActiveLeavesUpdate &update) override;
 
+    outcome::result<void> get_participation_result(
+        const ParticipationStatement &msg) override;
+
    private:
     /// Dequeue until `MAX_PARALLEL_PARTICIPATIONS` is reached.
     outcome::result<void> dequeue_until_capacity(

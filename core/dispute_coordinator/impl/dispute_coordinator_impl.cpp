@@ -96,92 +96,93 @@ namespace kagome::dispute {
 
     if (first_leaf.has_value()) {
       // Also provide first leaf to participation for good measure.
-      participation_
-          ->process_active_leaves_update(
-              ctx, &ActiveLeavesUpdate::start_work(first_leaf))
-          .await
-          ? ;
+      // https://github.com/paritytech/polkadot/blob/40974fb99c86f5c341105b7db53c7aa0df707d66/node/core/dispute-coordinator/src/initialized.rs#L192
+      OUTCOME_TRY(participation_->process_active_leaves_update(
+          ActiveLeavesUpdate{.activated = first_leaf}));
     }
 
-    /*
+    for (;;) {
+      // LOG-TRACE: "Waiting for message"
 
+      // auto overlay_db = OverlayedBackend::new(backend);
+      auto default_confirm = outcome::success();
 
+      using MuxedMessage = boost::
+          variant<ParticipationStatement, DisputeCoordinatorMessage, Signal>;
 
-        loop {
-          gum::trace!(target: LOG_TARGET, "Waiting for message");
-          let mut overlay_db = OverlayedBackend::new(backend);
-          let default_confirm = Box::new(|| Ok(()));
-          let confirm_write = match MuxedMessage::receive(ctx, &mut
-       self.participation_receiver) .await?
-          {
-            MuxedMessage::Participation(msg) => {
-              gum::trace!(target: LOG_TARGET, "MuxedMessage::Participation");
-              let ParticipationStatement {
-                session,
-                candidate_hash,
-                candidate_receipt,
-                outcome,
-              } = self.participation.get_participation_result(ctx, msg).await?;
-              if let Some(valid) = outcome.validity() {
-                gum::trace!(
-                  target: LOG_TARGET,
-                  ?session,
-                  ?candidate_hash,
-                  ?valid,
-                  "Issuing local statement based on participation outcome."
-                );
-                self.issue_local_statement(
-                  ctx,
-                  &mut overlay_db,
+      MuxedMessage message;  // = receive(self.participation_receiver)
+
+      auto confirm_write = visit_in_place(
+          message,
+          [&](const ParticipationStatement &msg) {
+            // LOG-TRACE: "MuxedMessage::Participation"
+
+            participation_->get_participation_result(msg);
+
+            const auto session = msg.session;
+            const auto &candidate_hash = msg.candidate_hash;
+            const auto &candidate_receipt = msg.candidate_receipt;
+            const auto outcome = msg.outcome;
+
+            if (outcome == ParticipationOutcome::Valid
+                or outcome == ParticipationOutcome::Invalid) {
+              // LOG-TRACE: "Issuing local statement based on participation
+              // outcome."
+
+              issue_local_statement(
+                  //                  ctx,
+                  //                  &mut overlay_db,
                   candidate_hash,
                   candidate_receipt,
                   session,
-                  valid,
-                  clock.now(),
-                )
-                .await?;
-              } else {
-                gum::warn!(target: LOG_TARGET, ?outcome, "Dispute participation
-       failed");
-              }
-              default_confirm
-            },
-            MuxedMessage::Subsystem(msg) => match msg {
-              FromOrchestra::Signal(OverseerSignal::Conclude) => return Ok(()),
-              FromOrchestra::Signal(OverseerSignal::ActiveLeaves(update)) => {
-                gum::trace!(target: LOG_TARGET, "OverseerSignal::ActiveLeaves");
-                self.process_active_leaves_update(
-                  ctx,
-                  &mut overlay_db,
-                  update,
-                  clock.now(),
-                )
-                .await?;
-                default_confirm
-              },
-              FromOrchestra::Signal(OverseerSignal::BlockFinalized(_, n)) => {
-                gum::trace!(target: LOG_TARGET,
-       "OverseerSignal::BlockFinalized");
-                self.scraper.process_finalized_block(&n);
-                default_confirm
-              },
-              FromOrchestra::Communication { msg } =>
-                self.handle_incoming(ctx, &mut overlay_db, msg,
-       clock.now()).await?,
-            },
-          };
+                  outcome == ParticipationOutcome::Valid,
+                  clock.now(), )
 
-          if !overlay_db.is_empty() {
-            let ops = overlay_db.into_write_ops();
-            backend.write(ops)?;
-          }
-          // even if the changeset was empty,
-          // otherwise the caller will error.
-          confirm_write()?;
-        }
-     */
+            } else {
+              // LOG-WARN: "Dispute participation failed"
+            }
+            default_confirm
+          },
+          [&](const DisputeCoordinatorMessage &msg) {
+            /*
+clang-format off
+          FromOrchestra::Communication { msg } =>
+            self.handle_incoming(ctx, &mut overlay_db, msg, clock.now()).await?,
+clang-format on
+         */
+          },
+          [&](const Signal &msg) {
+            /*
+clang-format off
+          FromOrchestra::Signal(OverseerSignal::Conclude) => return Ok(()),
+          FromOrchestra::Signal(OverseerSignal::ActiveLeaves(update)) => {
+            gum::trace!(target: LOG_TARGET, "OverseerSignal::ActiveLeaves");
+            self.process_active_leaves_update(
+              ctx,
+              &mut overlay_db,
+              update,
+              clock.now(),
+            )
+            .await?;
+            default_confirm
+          },
+          FromOrchestra::Signal(OverseerSignal::BlockFinalized(_, n)) => {
+            gum::trace!(target: LOG_TARGET, "OverseerSignal::BlockFinalized");
+            self.scraper.process_finalized_block(&n);
+            default_confirm
+          },
+clang-format on
+*/
+          });
 
-    return outcome::success();
+      // if (!overlay_db.is_empty()) {
+      //   let ops = overlay_db.into_write_ops();
+      //   backend.write(ops)?;
+      // }
+      // // even if the changeset was empty,
+      // // otherwise the caller will error.
+      // confirm_write()?;
+    }
   }
 
   outcome::result<void> DisputeCoordinatorImpl::process_on_chain_votes(
@@ -201,7 +202,8 @@ namespace kagome::dispute {
     // available for the current session.
     auto session_info_opt = rolling_session_window_->session_info(session);
     if (not session_info_opt.has_value()) {
-      // LOG-WARN: "Could not retrieve session info from rolling session window"
+      // LOG-WARN: "Could not retrieve session info from rolling session
+      // window"
       return outcome::success();
     }
     auto &session_info = session_info_opt.value().get();
@@ -367,7 +369,8 @@ namespace kagome::dispute {
       if (import_result) {
         // LOG-TRACE: "Imported statement of dispute from on-chain"
       } else {
-        // LOG-WARN: "Attempted import of on-chain statement of dispute failed"
+        // LOG-WARN: "Attempted import of on-chain statement of dispute
+        // failed"
       }
     }
 
@@ -1077,4 +1080,137 @@ namespace kagome::dispute {
         valid_vote,
     };
   }
+
+  outcome::result<void> DisputeCoordinatorImpl::issue_local_statement(
+      const CandidateHash &candidate_hash,
+      const CandidateReceipt &candidate_receipt,
+      SessionIndex session,
+      bool valid,
+      Timestamp now) {
+    // https://github.com/paritytech/polkadot/blob/40974fb99c86f5c341105b7db53c7aa0df707d66/node/core/dispute-coordinator/src/initialized.rs#L1102
+    /* clang-format off
+     gum::trace!(
+      target: LOG_TARGET,
+      ?candidate_hash,
+      ?session,
+      ?valid,
+      ?now,
+      "Issuing local statement for candidate!"
+    );
+    // Load environment:
+    let env = match CandidateEnvironment::new(
+      &self.keystore,
+      &self.rolling_session_window,
+      session,
+    ) {
+      None => {
+        gum::warn!(
+          target: LOG_TARGET,
+          session,
+          "Missing info for session which has an active dispute",
+        );
+
+        return Ok(())
+      },
+      Some(env) => env,
+    };
+
+    let votes = overlay_db
+      .load_candidate_votes(session, &candidate_hash)?
+      .map(CandidateVotes::from)
+      .unwrap_or_else(|| CandidateVotes {
+        candidate_receipt: candidate_receipt.clone(),
+        valid: ValidCandidateVotes::new(),
+        invalid: BTreeMap::new(),
+      });
+
+    // Sign a statement for each validator index we control which has
+    // not already voted. This should generally be maximum 1 statement.
+    let voted_indices = votes.voted_indices();
+    let mut statements = Vec::new();
+
+    let controlled_indices = env.controlled_indices();
+    for index in controlled_indices {
+      if voted_indices.contains(&index) {
+        continue
+      }
+
+      let keystore = self.keystore.clone() as Arc<_>;
+      let res = SignedDisputeStatement::sign_explicit(
+        &keystore,
+        valid,
+        candidate_hash,
+        session,
+        env.validators()
+          .get(*index)
+          .expect("`controlled_indices` are derived from `validators`; qed")
+          .clone(),
+      )
+      .await;
+
+      match res {
+        Ok(Some(signed_dispute_statement)) => {
+          statements.push((signed_dispute_statement, *index));
+        },
+        Ok(None) => {},
+        Err(e) => {
+          gum::error!(
+            target: LOG_TARGET,
+            err = ?e,
+            "Encountered keystore error while signing dispute statement",
+          );
+        },
+      }
+    }
+
+    // Get our message out:
+    for (statement, index) in &statements {
+      let dispute_message =
+        match make_dispute_message(env.session_info(), &votes, statement.clone(), *index) {
+          Err(err) => {
+            gum::debug!(target: LOG_TARGET, ?err, "Creating dispute message failed.");
+            continue
+          },
+          Ok(dispute_message) => dispute_message,
+        };
+
+      ctx.send_message(DisputeDistributionMessage::SendDispute(dispute_message)).await;
+    }
+
+    // Do import
+    if !statements.is_empty() {
+      match self
+        .handle_import_statements(
+          ctx,
+          overlay_db,
+          MaybeCandidateReceipt::Provides(candidate_receipt),
+          session,
+          statements,
+          now,
+        )
+        .await?
+      {
+        ImportStatementsResult::InvalidImport => {
+          gum::error!(
+            target: LOG_TARGET,
+            ?candidate_hash,
+            ?session,
+            "`handle_import_statements` considers our own votes invalid!"
+          );
+        },
+        ImportStatementsResult::ValidImport => {
+          gum::trace!(
+            target: LOG_TARGET,
+            ?candidate_hash,
+            ?session,
+            "`handle_import_statements` successfully imported our vote!"
+          );
+        },
+      }
+    }
+
+    Ok(())
+ */
+  }
+
 }  // namespace kagome::dispute

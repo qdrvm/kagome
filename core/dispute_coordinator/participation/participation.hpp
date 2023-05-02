@@ -40,6 +40,21 @@ namespace kagome::dispute {
     /// update most recent block.
     virtual outcome::result<void> process_active_leaves_update(
         const ActiveLeavesUpdate &update) = 0;
+
+    /// Message from a worker task was received - get the outcome.
+    ///
+    /// Call this function to keep participations going and to receive
+    /// `ParticipationStatement`s.
+    ///
+    /// This message has to be called for each received worker message, in order
+    /// to make sure enough participation processes are running at any given
+    /// time.
+    ///
+    /// Returns: The received `ParticipationStatement` or a fatal error, in case
+    /// something went wrong when dequeuing more requests (tasks could not be
+    /// spawned).
+    virtual outcome::result<void> get_participation_result(
+        const ParticipationStatement &msg) = 0;
   };
 
 }  // namespace kagome::dispute

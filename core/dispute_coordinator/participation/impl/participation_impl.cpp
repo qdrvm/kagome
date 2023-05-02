@@ -73,7 +73,22 @@ namespace kagome::dispute {
             activated.number, activated.hash);
       }
     }
+
     return outcome::success();
+  }
+
+  outcome::result<void> ParticipationImpl::get_participation_result(
+      const ParticipationStatement &msg) {
+    // https://github.com/paritytech/polkadot/blob/40974fb99c86f5c341105b7db53c7aa0df707d66/node/core/dispute-coordinator/src/participation/mod.rs#L181
+    running_participations_.erase(msg.candidate_hash);
+
+    BOOST_ASSERT_MSG(
+        recent_block_.has_value(),
+        "We never ever reset recent_block to `None` and we already "
+        "received a result, so it must have been set before. qed.");
+    auto recent_block = recent_block_.value();
+
+    return dequeue_until_capacity(recent_block.hash);
   }
 
 }  // namespace kagome::dispute

@@ -11,7 +11,7 @@ namespace kagome {
   /// Special zero-size-type for some things
   ///  (e.g., unsupported, experimental or empty).
   struct Empty {
-    bool operator==(const Empty &) const {
+    constexpr bool operator==(const Empty &) const {
       return true;
     }
   };

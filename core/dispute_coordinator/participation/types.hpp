@@ -24,6 +24,30 @@ namespace kagome::dispute {
     Priority = true
   };
 
+  /// Outcome of the validation process.
+  enum ParticipationOutcome {
+    /// Candidate was found to be valid.
+    Valid,
+    /// Candidate was found to be invalid.
+    Invalid,
+    /// Candidate was found to be unavailable.
+    Unavailable,
+    /// Something went wrong (bug), details can be found in the logs.
+    Error,
+  };
+
+  /// Statement as result of the validation process.
+  struct ParticipationStatement {
+    /// Relevant session.
+    SessionIndex session;
+    /// The candidate the worker has been spawned for.
+    CandidateHash candidate_hash;
+    /// Used receipt.
+    CandidateReceipt candidate_receipt;
+    /// Actual result.
+    ParticipationOutcome outcome;
+  };
+
 }  // namespace kagome::dispute
 
 #endif  // KAGOME_DISPUTE_PARTICIPATION_TYPES_HPP

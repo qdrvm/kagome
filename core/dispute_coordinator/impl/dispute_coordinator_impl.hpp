@@ -130,6 +130,13 @@ namespace kagome::dispute {
     bool is_potential_spam(const CandidateVoteState &vote_state,
                            const CandidateHash &candidate_hash);
 
+    outcome::result<void> issue_local_statement(
+        const CandidateHash &candidate_hash,
+        const CandidateReceipt &candidate_receipt,
+        SessionIndex session,
+        bool valid,
+        Timestamp now);
+
     std::shared_ptr<application::AppStateManager> app_state_manager_;
     std::shared_ptr<libp2p::basic::Scheduler> scheduler_;
     std::shared_ptr<clock::SystemClock> clock_;
