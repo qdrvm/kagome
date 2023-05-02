@@ -139,8 +139,6 @@ class VotingRoundTest : public testing::Test,
         .WillRepeatedly(Return(true));
     EXPECT_CALL(*env_, bestChainContaining("C"_H, _))
         .WillRepeatedly(Return(BlockInfo{9, "FC"_H}));
-    EXPECT_CALL(*env_, onNeighborMessageSent(_, _, _))
-        .WillRepeatedly(Return(outcome::success()));
 
     vote_graph_ = std::make_shared<VoteGraphImpl>(base, config.voters, env_);
 
@@ -337,8 +335,6 @@ TEST_F(VotingRoundTest, EstimateIsValid) {
  * "EA"_H) (as this will become the highest block with supermajority)
  */
 TEST_F(VotingRoundTest, Finalization) {
-  EXPECT_CALL(*env_, onCommitted(_, _, _, _))
-      .WillRepeatedly(Return(outcome::success()));
   EXPECT_CALL(*env_, finalize(_, _)).WillRepeatedly(Return(outcome::success()));
   // given (in fixture)
 
@@ -411,7 +407,6 @@ ACTION_P(onProposed, test_fixture) {
   // imitating primary proposed is received from network
   std::optional<GrandpaContext> empty{};
   test_fixture->round_->onProposal(empty, arg2, Propagation::NEEDLESS);
-  return outcome::success();
 }
 
 ACTION_P(onPrevoted, test_fixture) {
@@ -438,7 +433,6 @@ ACTION_P(onPrevoted, test_fixture) {
   test_fixture->round_->update(VotingRound::IsPreviousRoundChanged{false},
                                VotingRound::IsPrevotesChanged{true},
                                VotingRound::IsPrecommitsChanged{false});
-  return outcome::success();
 }
 
 ACTION_P(onPrecommitted, test_fixture) {
@@ -464,12 +458,10 @@ ACTION_P(onPrecommitted, test_fixture) {
   test_fixture->round_->update(VotingRound::IsPreviousRoundChanged{false},
                                VotingRound::IsPrevotesChanged{false},
                                VotingRound::IsPrecommitsChanged{true});
-  return outcome::success();
 }
 
 ACTION_P(onFinalize, test_fixture) {
   (void)test_fixture->env_->finalize(0, arg2);
-  return outcome::success();
 }
 
 /**

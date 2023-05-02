@@ -43,7 +43,7 @@ namespace kagome::consensus::grandpa {
                 verifyJustification,
                 (const GrandpaJustification &,
                  const primitives::AuthoritySet &,
-                 ApplyJustificationCb &&),
+                 std::shared_ptr<std::promise<outcome::result<void>>> promise_res),
                 (override));
 
     MOCK_METHOD(void,
