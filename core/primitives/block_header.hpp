@@ -31,11 +31,11 @@ namespace kagome::primitives {
 
     bool operator==(const BlockHeader &rhs) const {
       return std::tie(parent_hash, number, state_root, extrinsics_root, digest)
-             == std::tie(rhs.parent_hash,
-                         rhs.number,
-                         rhs.state_root,
-                         rhs.extrinsics_root,
-                         rhs.digest);
+          == std::tie(rhs.parent_hash,
+                      rhs.number,
+                      rhs.state_root,
+                      rhs.extrinsics_root,
+                      rhs.digest);
     }
 
     bool operator!=(const BlockHeader &rhs) const {
@@ -43,12 +43,27 @@ namespace kagome::primitives {
     }
   };
 
+  struct BlockHeaderReflection {
+    const BlockHash &parent_hash;
+    const BlockNumber &number;
+    const storage::trie::RootHash &state_root;
+    const common::Hash256 &extrinsics_root;
+    gsl::span<const DigestItem> digest;
+  };
+
   struct GenesisBlockHeader {
     const BlockHeader header;
     const BlockHash hash;
   };
 
+  template <class Stream,
+            typename = std::enable_if_t<Stream::is_encoder_stream>>
+  Stream &operator<<(Stream &s, const BlockHeaderReflection &bhr) {
+    return s << bhr.parent_hash << CompactInteger(bhr.number) << bhr.state_root
+             << bhr.extrinsics_root << bhr.digest;
+  }
   /**
+   *
    * @brief outputs object of type BlockHeader to stream
    * @tparam Stream output stream type
    * @param s stream reference
@@ -79,8 +94,8 @@ namespace kagome::primitives {
     return s;
   }
 
-  outcome::result<BlockHash> calculateBlockHash(BlockHeader const &header,
-                                                crypto::Hasher const &hasher);
+  outcome::result<BlockHash> calculateBlockHash(const BlockHeader &header,
+                                                const crypto::Hasher &hasher);
 
 }  // namespace kagome::primitives
 

@@ -29,16 +29,20 @@ namespace kagome::consensus::grandpa {
       std::shared_ptr<blockchain::BlockTree> block_tree,
       std::shared_ptr<blockchain::BlockHeaderRepository> header_repository,
       std::shared_ptr<AuthorityManager> authority_manager,
-      std::shared_ptr<network::GrandpaTransmitter> transmitter)
+      std::shared_ptr<network::GrandpaTransmitter> transmitter,
+      std::shared_ptr<boost::asio::io_context> main_thread_context)
       : block_tree_{std::move(block_tree)},
         header_repository_{std::move(header_repository)},
         authority_manager_{std::move(authority_manager)},
         transmitter_{std::move(transmitter)},
+        main_thread_context_{std::move(main_thread_context)},
         logger_{log::createLogger("GrandpaEnvironment", "grandpa")} {
     BOOST_ASSERT(block_tree_ != nullptr);
     BOOST_ASSERT(header_repository_ != nullptr);
     BOOST_ASSERT(authority_manager_ != nullptr);
     BOOST_ASSERT(transmitter_ != nullptr);
+
+    main_thread_context_.start();
   }
 
   outcome::result<bool> EnvironmentImpl::hasBlock(
@@ -103,23 +107,43 @@ namespace kagome::consensus::grandpa {
     return std::move(best_block);
   }
 
-  outcome::result<void> EnvironmentImpl::onCatchUpRequested(
-      const libp2p::peer::PeerId &peer_id,
-      VoterSetId set_id,
-      RoundNumber round_number) {
+  void EnvironmentImpl::onCatchUpRequested(const libp2p::peer::PeerId &_peer_id,
+                                           VoterSetId _set_id,
+                                           RoundNumber _round_number) {
+    REINVOKE_3(main_thread_context_,
+               onCatchUpRequested,
+               _peer_id,
+               _set_id,
+               _round_number,
+               peer_id,
+               set_id,
+               round_number);
     network::CatchUpRequest message{.round_number = round_number,
                                     .voter_set_id = set_id};
     transmitter_->sendCatchUpRequest(peer_id, std::move(message));
-    return outcome::success();
   }
 
-  outcome::result<void> EnvironmentImpl::onCatchUpRespond(
-      const libp2p::peer::PeerId &peer_id,
-      VoterSetId set_id,
-      RoundNumber round_number,
-      std::vector<SignedPrevote> prevote_justification,
-      std::vector<SignedPrecommit> precommit_justification,
-      BlockInfo best_final_candidate) {
+  void EnvironmentImpl::onCatchUpRespond(
+      const libp2p::peer::PeerId &_peer_id,
+      VoterSetId _set_id,
+      RoundNumber _round_number,
+      std::vector<SignedPrevote> _prevote_justification,
+      std::vector<SignedPrecommit> _precommit_justification,
+      BlockInfo _best_final_candidate) {
+    REINVOKE_6(main_thread_context_,
+               onCatchUpRespond,
+               _peer_id,
+               _set_id,
+               _round_number,
+               _prevote_justification,
+               _precommit_justification,
+               _best_final_candidate,
+               peer_id,
+               set_id,
+               round_number,
+               prevote_justification,
+               precommit_justification,
+               best_final_candidate);
     SL_DEBUG(logger_, "Send Catch-Up-Response upto round {}", round_number);
     network::CatchUpResponse message{
         .voter_set_id = set_id,
@@ -128,12 +152,19 @@ namespace kagome::consensus::grandpa {
         .precommit_justification = std::move(precommit_justification),
         .best_final_candidate = best_final_candidate};
     transmitter_->sendCatchUpResponse(peer_id, std::move(message));
-    return outcome::success();
   }
 
-  outcome::result<void> EnvironmentImpl::onVoted(RoundNumber round,
-                                                 VoterSetId set_id,
-                                                 const SignedMessage &vote) {
+  void EnvironmentImpl::onVoted(RoundNumber _round,
+                                VoterSetId _set_id,
+                                const SignedMessage &_vote) {
+    REINVOKE_3(main_thread_context_,
+               onVoted,
+               _round,
+               _set_id,
+               _vote,
+               round,
+               set_id,
+               vote);
     SL_DEBUG(logger_,
              "Round #{}: Send {} signed by {} for block {}",
              round,
@@ -148,12 +179,19 @@ namespace kagome::consensus::grandpa {
     network::GrandpaVote message{
         {.round_number = round, .counter = set_id, .vote = vote}};
     transmitter_->sendVoteMessage(std::move(message));
-    return outcome::success();
   }
 
-  void EnvironmentImpl::sendState(const libp2p::peer::PeerId &peer_id,
-                                  const MovableRoundState &state,
-                                  VoterSetId voter_set_id) {
+  void EnvironmentImpl::sendState(const libp2p::peer::PeerId &_peer_id,
+                                  const MovableRoundState &_state,
+                                  VoterSetId _voter_set_id) {
+    REINVOKE_3(main_thread_context_,
+               sendState,
+               _peer_id,
+               _state,
+               _voter_set_id,
+               peer_id,
+               state,
+               voter_set_id);
     auto send = [&](const SignedMessage &vote) {
       SL_DEBUG(logger_,
                "Round #{}: Send {} signed by {} for block {} (as send state)",
@@ -183,15 +221,25 @@ namespace kagome::consensus::grandpa {
     }
   }
 
-  outcome::result<void> EnvironmentImpl::onCommitted(
-      RoundNumber round,
-      VoterSetId voter_ser_id,
-      const BlockInfo &vote,
-      const GrandpaJustification &justification) {
-    if (round == 0) {
-      return outcome::success();
+  void EnvironmentImpl::onCommitted(
+      RoundNumber _round,
+      VoterSetId _voter_ser_id,
+      const BlockInfo &_vote,
+      const GrandpaJustification &_justification) {
+    if (_round == 0) {
+      return;
     }
 
+    REINVOKE_4(main_thread_context_,
+               onCommitted,
+               _round,
+               _voter_ser_id,
+               _vote,
+               _justification,
+               round,
+               voter_ser_id,
+               vote,
+               justification);
     SL_DEBUG(logger_, "Round #{}: Send commit of block {}", round, vote);
 
     network::FullCommitMessage message{
@@ -205,33 +253,44 @@ namespace kagome::consensus::grandpa {
       message.message.auth_data.emplace_back(item.signature, item.id);
     }
     transmitter_->sendCommitMessage(std::move(message));
-
-    return outcome::success();
   }
 
-  outcome::result<void> EnvironmentImpl::onNeighborMessageSent(
-      RoundNumber round, VoterSetId set_id, BlockNumber last_finalized) {
+  void EnvironmentImpl::onNeighborMessageSent(RoundNumber _round,
+                                              VoterSetId _set_id,
+                                              BlockNumber _last_finalized) {
+    REINVOKE_3(main_thread_context_,
+               onNeighborMessageSent,
+               _round,
+               _set_id,
+               _last_finalized,
+               round,
+               set_id,
+               last_finalized);
     SL_DEBUG(logger_, "Round #{}: Send neighbor message", round);
 
     network::GrandpaNeighborMessage message{.round_number = round,
                                             .voter_set_id = set_id,
                                             .last_finalized = last_finalized};
     transmitter_->sendNeighborMessage(std::move(message));
-
-    return outcome::success();
   }
 
-  outcome::result<void> EnvironmentImpl::applyJustification(
+  void EnvironmentImpl::applyJustification(
       const BlockInfo &block_info,
-      const primitives::Justification &raw_justification) {
+      const primitives::Justification &raw_justification,
+      ApplyJustificationCb &&cb) {
     auto justification_observer = justification_observer_.lock();
     BOOST_ASSERT(justification_observer);
 
-    OUTCOME_TRY(justification,
-                scale::decode<GrandpaJustification>(raw_justification.data));
+    auto res = scale::decode<GrandpaJustification>(raw_justification.data);
+    if (res.has_error()) {
+      cb(res.as_failure());
+      return;
+    }
+    auto &&justification = std::move(res.value());
 
     if (justification.block_info != block_info) {
-      return VotingRoundError::JUSTIFICATION_FOR_WRONG_BLOCK;
+      cb(VotingRoundError::JUSTIFICATION_FOR_WRONG_BLOCK);
+      return;
     }
 
     SL_DEBUG(logger_,
@@ -239,9 +298,7 @@ namespace kagome::consensus::grandpa {
              justification.round_number,
              justification.block_info);
 
-    OUTCOME_TRY(justification_observer->applyJustification(justification));
-
-    return outcome::success();
+    justification_observer->applyJustification(justification, std::move(cb));
   }
 
   outcome::result<void> EnvironmentImpl::finalize(

@@ -40,7 +40,7 @@ namespace kagome::network {
    * Applies warp sync changes to other components.
    * Recovers when process was restarted.
    */
-  class WarpSync {
+  class WarpSync : public std::enable_shared_from_this<WarpSync> {
    public:
     struct Op {
       SCALE_TIE(4);

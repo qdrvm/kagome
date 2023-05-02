@@ -7,6 +7,7 @@
 #define KAGOME_CONSENSUS_GRANDPA_ENVIRONMENT
 
 #include "consensus/grandpa/chain.hpp"
+#include "consensus/grandpa/justification_observer.hpp"
 
 namespace kagome::primitives {
   struct Justification;
@@ -18,7 +19,6 @@ namespace libp2p::peer {
 
 namespace kagome::consensus::grandpa {
   class Grandpa;
-  struct JustificationObserver;
   struct MovableRoundState;
 }  // namespace kagome::consensus::grandpa
 
@@ -30,6 +30,7 @@ namespace kagome::consensus::grandpa {
    */
   class Environment : public virtual Chain {
    public:
+    using ApplyJustificationCb = JustificationObserver::ApplyJustificationCb;
     ~Environment() override = default;
 
     /**
@@ -41,15 +42,14 @@ namespace kagome::consensus::grandpa {
     /**
      * Make catch-up-request
      */
-    virtual outcome::result<void> onCatchUpRequested(
-        const libp2p::peer::PeerId &peer_id,
-        VoterSetId set_id,
-        RoundNumber round_number) = 0;
+    virtual void onCatchUpRequested(const libp2p::peer::PeerId &peer_id,
+                                    VoterSetId set_id,
+                                    RoundNumber round_number) = 0;
 
     /**
      * Make catch-up-response
      */
-    virtual outcome::result<void> onCatchUpRespond(
+    virtual void onCatchUpRespond(
         const libp2p::peer::PeerId &peer_id,
         VoterSetId set_id,
         RoundNumber round_number,
@@ -69,20 +69,19 @@ namespace kagome::consensus::grandpa {
      * Triggered when current peer appears in provided round with
      * provided set_id and given vote is ready to be sent.
      */
-    virtual outcome::result<void> onVoted(RoundNumber round,
-                                          VoterSetId set_id,
-                                          const SignedMessage &vote) = 0;
+    virtual void onVoted(RoundNumber round,
+                         VoterSetId set_id,
+                         const SignedMessage &vote) = 0;
 
     /**
      * Triggered when current peer appears in given round and has given
      * voter_ser_id intends to send committed vote justified by provided
      * justification
      */
-    virtual outcome::result<void> onCommitted(
-        RoundNumber round,
-        VoterSetId voter_ser_id,
-        const BlockInfo &vote,
-        const GrandpaJustification &justification) = 0;
+    virtual void onCommitted(RoundNumber round,
+                             VoterSetId voter_ser_id,
+                             const BlockInfo &vote,
+                             const GrandpaJustification &justification) = 0;
 
     /**
      * Triggered when current peer should send neighbor message
@@ -90,8 +89,9 @@ namespace kagome::consensus::grandpa {
      * @param set_id id of actual voter set
      * @param last_finalized last known finalized block
      */
-    virtual outcome::result<void> onNeighborMessageSent(
-        RoundNumber round, VoterSetId set_id, BlockNumber last_finalized) = 0;
+    virtual void onNeighborMessageSent(RoundNumber round,
+                                       VoterSetId set_id,
+                                       BlockNumber last_finalized) = 0;
 
     /**
      * Validate provided {@param justification} for finalization {@param block}.
@@ -101,9 +101,10 @@ namespace kagome::consensus::grandpa {
      * @param justification justification of finalization of provided block
      * @return nothing or on error
      */
-    virtual outcome::result<void> applyJustification(
+    virtual void applyJustification(
         const BlockInfo &block_info,
-        const primitives::Justification &justification) = 0;
+        const primitives::Justification &justification,
+        ApplyJustificationCb &&cb) = 0;
 
     /**
      * Triggered when blovk \param block justified by \param justification
