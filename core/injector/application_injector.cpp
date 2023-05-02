@@ -104,6 +104,7 @@
 #include "network/impl/sync_protocol_observer_impl.hpp"
 #include "network/impl/synchronizer_impl.hpp"
 #include "network/impl/transactions_transmitter_impl.hpp"
+#include "network/warp/sync.hpp"
 #include "offchain/impl/offchain_local_storage.hpp"
 #include "offchain/impl/offchain_persistent_storage.hpp"
 #include "offchain/impl/offchain_worker_factory_impl.hpp"
@@ -194,7 +195,7 @@ namespace {
   }
 
   sptr<storage::SpacedStorage> get_rocks_db(
-      application::AppConfiguration const &app_config,
+      const application::AppConfiguration &app_config,
       sptr<application::ChainSpec> chain_spec) {
     // hack for recovery mode (otherwise - fails due to rocksdb bug)
     bool prevent_destruction = app_config.recoverState().has_value();
@@ -237,8 +238,8 @@ namespace {
   }
 
   std::shared_ptr<application::ChainSpec> get_chain_spec(
-      application::AppConfiguration const &config) {
-    auto const &chainspec_path = config.chainSpecPath();
+      const application::AppConfiguration &config) {
+    const auto &chainspec_path = config.chainSpecPath();
 
     auto chain_spec_res =
         application::ChainSpecImpl::loadFrom(chainspec_path.native());
@@ -256,7 +257,7 @@ namespace {
   }
 
   sptr<crypto::KeyFileStorage> get_key_file_storage(
-      application::AppConfiguration const &config,
+      const application::AppConfiguration &config,
       sptr<application::ChainSpec> chain_spec) {
     auto path = config.keystorePath(chain_spec->id());
     auto key_file_storage_res = crypto::KeyFileStorage::createAt(path);
@@ -310,7 +311,8 @@ namespace {
         chain_events_engine,
         std::move(ext_events_engine),
         std::move(ext_events_key_repo),
-        std::move(justification_storage_policy));
+        std::move(justification_storage_policy),
+        injector.template create<std::shared_ptr<::boost::asio::io_context>>());
 
     if (not block_tree_res.has_value()) {
       common::raise(block_tree_res.error());
@@ -387,7 +389,7 @@ namespace {
             typename WavmType,
             typename Injector>
   auto choose_runtime_implementation(
-      Injector const &injector,
+      const Injector &injector,
       application::AppConfiguration::RuntimeExecutionMethod method) {
     using RuntimeExecutionMethod =
         application::AppConfiguration::RuntimeExecutionMethod;
@@ -433,11 +435,11 @@ namespace {
       Ts &&...args) {
     return di::make_injector(
         bind_by_lambda<runtime::RuntimeUpgradeTrackerImpl>(
-            [](auto const &injector) {
+            [](const auto &injector) {
               return get_runtime_upgrade_tracker(injector);
             }),
         bind_by_lambda<runtime::RuntimeUpgradeTracker>(
-            [](auto const &injector) {
+            [](const auto &injector) {
               return injector
                   .template create<sptr<runtime::RuntimeUpgradeTrackerImpl>>();
             }),
@@ -535,222 +537,238 @@ namespace {
     host_api::OffchainExtensionConfig offchain_ext_config{
         config->isOffchainIndexingEnabled()};
 
-    return di::make_injector(
-        // bind configs
-        useConfig(rpc_thread_pool_config),
-        useConfig(http_config),
-        useConfig(ws_config),
-        useConfig(pool_moderator_config),
-        useConfig(tp_pool_limits),
-        useConfig(ping_config),
-        useConfig(offchain_ext_config),
+    return di::
+        make_injector(
+            // bind configs
+            useConfig(rpc_thread_pool_config),
+            useConfig(http_config),
+            useConfig(ws_config),
+            useConfig(pool_moderator_config),
+            useConfig(tp_pool_limits),
+            useConfig(ping_config),
+            useConfig(offchain_ext_config),
 
-        // inherit host injector
-        libp2p::injector::makeHostInjector(
-            libp2p::injector::useWssPem(config->nodeWssPem()),
-            libp2p::injector::useSecurityAdaptors<
-                libp2p::security::Noise>()[di::override]),
+            // inherit host injector
+            libp2p::injector::makeHostInjector(
+                libp2p::injector::useWssPem(config->nodeWssPem()),
+                libp2p::injector::useSecurityAdaptors<
+                    libp2p::security::Noise>()[di::override]),
 
-        // inherit kademlia injector
-        libp2p::injector::makeKademliaInjector(),
-        bind_by_lambda<libp2p::protocol::kademlia::Config>(
-            [random_walk{config->getRandomWalkInterval()}](
-                auto const &injector) {
-              auto &chain_spec =
-                  injector.template create<application::ChainSpec &>();
-              return get_kademlia_config(chain_spec, random_walk);
+            // inherit kademlia injector
+            libp2p::injector::makeKademliaInjector(),
+            bind_by_lambda<libp2p::protocol::kademlia::Config>(
+                [random_walk{config->getRandomWalkInterval()}](
+                    const auto &injector) {
+                  auto &chain_spec =
+                      injector.template create<application::ChainSpec &>();
+                  return get_kademlia_config(chain_spec, random_walk);
+                })[boost::di::override],
+
+            di::bind<application::AppStateManager>.template to<application::AppStateManagerImpl>(),
+            di::bind<application::AppConfiguration>.to(config),
+            bind_by_lambda<primitives::CodeSubstituteBlockIds>(
+                [](auto &&injector) {
+                  return std::const_pointer_cast<
+                      primitives::CodeSubstituteBlockIds>(
+                      injector.template create<const application::ChainSpec &>()
+                          .codeSubstitutes());
+                }),
+
+            // compose peer keypair
+            bind_by_lambda<libp2p::crypto::KeyPair>([](const auto &injector) {
+              auto &app_config =
+                  injector
+                      .template create<const application::AppConfiguration &>();
+              auto &crypto_provider =
+                  injector.template create<const crypto::Ed25519Provider &>();
+              auto &crypto_store =
+                  injector.template create<crypto::CryptoStore &>();
+              return injector::get_peer_keypair(
+                  app_config, crypto_provider, crypto_store);
             })[boost::di::override],
 
-        di::bind<application::AppStateManager>.template to<application::AppStateManagerImpl>(),
-        di::bind<application::AppConfiguration>.to(config),
-        bind_by_lambda<primitives::CodeSubstituteBlockIds>([](auto &&injector) {
-          return std::const_pointer_cast<primitives::CodeSubstituteBlockIds>(
-              injector.template create<const application::ChainSpec &>()
-                  .codeSubstitutes());
-        }),
+            di::bind<api::Listener *[]>()  // NOLINT
+                .template to<api::HttpListenerImpl, api::WsListenerImpl>(),
+            di::bind<api::JRpcProcessor *[]>()  // NOLINT
+                .template to<api::child_state::ChildStateJrpcProcessor,
+                             api::state::StateJrpcProcessor,
+                             api::author::AuthorJRpcProcessor,
+                             api::chain::ChainJrpcProcessor,
+                             api::system::SystemJrpcProcessor,
+                             api::rpc::RpcJRpcProcessor,
+                             api::payment::PaymentJRpcProcessor,
+                             api::internal::InternalJrpcProcessor>(),
 
-        // compose peer keypair
-        bind_by_lambda<libp2p::crypto::KeyPair>([](auto const &injector) {
-          auto &app_config =
-              injector.template create<const application::AppConfiguration &>();
-          auto &crypto_provider =
-              injector.template create<const crypto::Ed25519Provider &>();
-          auto &crypto_store =
-              injector.template create<crypto::CryptoStore &>();
-          return injector::get_peer_keypair(
-              app_config, crypto_provider, crypto_store);
-        })[boost::di::override],
-
-        di::bind<api::Listener *[]>()  // NOLINT
-            .template to<api::HttpListenerImpl, api::WsListenerImpl>(),
-        di::bind<api::JRpcProcessor *[]>()  // NOLINT
-            .template to<api::child_state::ChildStateJrpcProcessor,
-                         api::state::StateJrpcProcessor,
-                         api::author::AuthorJRpcProcessor,
-                         api::chain::ChainJrpcProcessor,
-                         api::system::SystemJrpcProcessor,
-                         api::rpc::RpcJRpcProcessor,
-                         api::payment::PaymentJRpcProcessor,
-                         api::internal::InternalJrpcProcessor>(),
-
-        // starting metrics interfaces
-        di::bind<metrics::Handler>.template to<metrics::PrometheusHandler>(),
-        di::bind<metrics::Exposer>.template to<metrics::ExposerImpl>(),
-        di::bind<metrics::Exposer::Configuration>.to([](const auto &injector) {
-          return metrics::Exposer::Configuration{
-              injector.template create<application::AppConfiguration const &>()
-                  .openmetricsHttpEndpoint()};
-        }),
-        // hardfix for Mac clang
-        di::bind<metrics::Session::Configuration>.to([](const auto &injector) {
-          return metrics::Session::Configuration{};
-        }),
-        // ending metrics interfaces
-        di::bind<api::AuthorApi>.template to<api::AuthorApiImpl>(),
-        di::bind<network::Roles>.to(config->roles()),
-        di::bind<api::ChainApi>.template to<api::ChainApiImpl>(),
-        di::bind<api::ChildStateApi>.template to<api::ChildStateApiImpl>(),
-        di::bind<api::StateApi>.template to<api::StateApiImpl>(),
-        di::bind<api::SystemApi>.template to<api::SystemApiImpl>(),
-        di::bind<api::RpcApi>.template to<api::RpcApiImpl>(),
-        di::bind<api::PaymentApi>.template to<api::PaymentApiImpl>(),
-        di::bind<api::ApiService>.template to<api::ApiServiceImpl>(),
-        di::bind<api::JRpcServer>.template to<api::JRpcServerImpl>(),
-        di::bind<authorship::Proposer>.template to<authorship::ProposerImpl>(),
-        di::bind<authorship::BlockBuilder>.template to<authorship::BlockBuilderImpl>(),
-        di::bind<authorship::BlockBuilderFactory>.template to<authorship::BlockBuilderFactoryImpl>(),
-        bind_by_lambda<storage::SpacedStorage>([](const auto &injector) {
-          const application::AppConfiguration &config =
-              injector.template create<application::AppConfiguration const &>();
-          auto chain_spec =
-              injector.template create<sptr<application::ChainSpec>>();
-          BOOST_ASSERT(  // since rocksdb is the only possible option now
-              config.storageBackend()
-              == application::AppConfiguration::StorageBackend::RocksDB);
-          return get_rocks_db(config, chain_spec);
-        }),
-        bind_by_lambda<blockchain::BlockStorage>([](const auto &injector) {
-          auto root =
-              injector::calculate_genesis_state(
-                  injector.template create<const application::ChainSpec &>(),
-                  injector.template create<const runtime::ModuleFactory &>(),
-                  injector.template create<storage::trie::TrieSerializer &>())
-                  .value();
-          const auto &hasher = injector.template create<sptr<crypto::Hasher>>();
-          const auto &storage =
-              injector.template create<sptr<storage::SpacedStorage>>();
-          return blockchain::BlockStorageImpl::create(root, storage, hasher)
-              .value();
-        }),
-        di::bind<blockchain::JustificationStoragePolicy>.template to<blockchain::JustificationStoragePolicyImpl>(),
-        bind_by_lambda<blockchain::BlockTree>(
-            [](auto const &injector) { return get_block_tree(injector); }),
-        di::bind<blockchain::BlockHeaderRepository>.template to<blockchain::BlockHeaderRepositoryImpl>(),
-        di::bind<clock::SystemClock>.template to<clock::SystemClockImpl>(),
-        di::bind<clock::SteadyClock>.template to<clock::SteadyClockImpl>(),
-        di::bind<clock::Timer>.template to<clock::BasicWaitableTimer>(),
-        di::bind<network::Synchronizer>.template to<network::SynchronizerImpl>(),
-        di::bind<consensus::grandpa::Environment>.template to<consensus::grandpa::EnvironmentImpl>(),
-        di::bind<consensus::babe::BlockValidator>.template to<consensus::babe::BabeBlockValidator>(),
-        di::bind<crypto::EcdsaProvider>.template to<crypto::EcdsaProviderImpl>(),
-        di::bind<crypto::Ed25519Provider>.template to<crypto::Ed25519ProviderImpl>(),
-        di::bind<crypto::Hasher>.template to<crypto::HasherImpl>(),
-        di::bind<crypto::Sr25519Provider>.template to<crypto::Sr25519ProviderImpl>(),
-        di::bind<crypto::VRFProvider>.template to<crypto::VRFProviderImpl>(),
-        di::bind<network::StreamEngine>.template to<network::StreamEngine>(),
-        di::bind<network::ReputationRepository>.template to<network::ReputationRepositoryImpl>(),
-        di::bind<crypto::Bip39Provider>.template to<crypto::Bip39ProviderImpl>(),
-        di::bind<crypto::Pbkdf2Provider>.template to<crypto::Pbkdf2ProviderImpl>(),
-        di::bind<crypto::Secp256k1Provider>.template to<crypto::Secp256k1ProviderImpl>(),
-        bind_by_lambda<crypto::KeyFileStorage>([](auto const &injector) {
-          const application::AppConfiguration &config =
-              injector.template create<application::AppConfiguration const &>();
-          auto chain_spec =
-              injector.template create<sptr<application::ChainSpec>>();
-
-          return get_key_file_storage(config, chain_spec);
-        }),
-        di::bind<crypto::CryptoStore>.template to<crypto::CryptoStoreImpl>(),
-        di::bind<host_api::HostApiFactory>.template to<host_api::HostApiFactoryImpl>(),
-        makeRuntimeInjector(config->runtimeExecMethod()),
-        di::bind<transaction_pool::TransactionPool>.template to<transaction_pool::TransactionPoolImpl>(),
-        di::bind<transaction_pool::PoolModerator>.template to<transaction_pool::PoolModeratorImpl>(),
-        di::bind<storage::changes_trie::ChangesTracker>.template to<storage::changes_trie::StorageChangesTrackerImpl>(),
-        di::bind<network::StateProtocolObserver>.template to<network::StateProtocolObserverImpl>(),
-        di::bind<network::SyncProtocolObserver>.template to<network::SyncProtocolObserverImpl>(),
-        di::bind<parachain::AvailabilityStore>.template to<parachain::AvailabilityStoreImpl>(),
-        di::bind<parachain::Fetch>.template to<parachain::FetchImpl>(),
-        di::bind<parachain::Recovery>.template to<parachain::RecoveryImpl>(),
-        di::bind<parachain::BitfieldStore>.template to<parachain::BitfieldStoreImpl>(),
-        di::bind<parachain::BackingStore>.template to<parachain::BackingStoreImpl>(),
-        di::bind<parachain::Pvf>.template to<parachain::PvfImpl>(),
-        di::bind<network::CollationObserver>.template to<parachain::ParachainObserverImpl>(),
-        di::bind<network::ValidationObserver>.template to<parachain::ParachainObserverImpl>(),
-        di::bind<network::ReqCollationObserver>.template to<parachain::ParachainObserverImpl>(),
-        di::bind<network::ReqPovObserver>.template to<parachain::ParachainObserverImpl>(),
-        di::bind<parachain::ParachainObserver>.template to<parachain::ParachainObserverImpl>(),
-        bind_by_lambda<ThreadPool>(
-            [](auto const &injector) { return get_thread_pool(injector); }),
-        bind_by_lambda<storage::trie::TrieStorageBackend>(
-            [](auto const &injector) {
-              auto storage =
+            // starting metrics interfaces
+            di::bind<metrics::Handler>.template to<metrics::PrometheusHandler>(),
+            di::bind<metrics::Exposer>.template to<metrics::ExposerImpl>(),
+            di::bind<metrics::Exposer::Configuration>.to([](const auto
+                                                                &injector) {
+              return metrics::Exposer::Configuration{
+                  injector
+                      .template create<application::AppConfiguration const &>()
+                      .openmetricsHttpEndpoint()};
+            }),
+            // hardfix for Mac clang
+            di::bind<metrics::Session::Configuration>.to(
+                [](const auto &injector) {
+                  return metrics::Session::Configuration{};
+                }),
+            // ending metrics interfaces
+            di::bind<api::AuthorApi>.template to<api::AuthorApiImpl>(),
+            di::bind<network::Roles>.to(config->roles()),
+            di::bind<api::ChainApi>.template to<api::ChainApiImpl>(),
+            di::bind<api::ChildStateApi>.template to<api::ChildStateApiImpl>(),
+            di::bind<api::StateApi>.template to<api::StateApiImpl>(),
+            di::bind<api::SystemApi>.template to<api::SystemApiImpl>(),
+            di::bind<api::RpcApi>.template to<api::RpcApiImpl>(),
+            di::bind<api::PaymentApi>.template to<api::PaymentApiImpl>(),
+            di::bind<api::ApiService>.template to<api::ApiServiceImpl>(),
+            di::bind<api::JRpcServer>.template to<api::JRpcServerImpl>(),
+            di::bind<authorship::Proposer>.template to<authorship::ProposerImpl>(),
+            di::bind<authorship::BlockBuilder>.template to<authorship::BlockBuilderImpl>(),
+            di::bind<authorship::BlockBuilderFactory>.template to<authorship::BlockBuilderFactoryImpl>(),
+            bind_by_lambda<storage::SpacedStorage>([](const auto &injector) {
+              const application::AppConfiguration &config =
+                  injector
+                      .template create<application::AppConfiguration const &>();
+              auto chain_spec =
+                  injector.template create<sptr<application::ChainSpec>>();
+              BOOST_ASSERT(  // since rocksdb is the only possible option now
+                  config.storageBackend()
+                  == application::AppConfiguration::StorageBackend::RocksDB);
+              return get_rocks_db(config, chain_spec);
+            }),
+            bind_by_lambda<blockchain::BlockStorage>([](const auto &injector) {
+              auto root =
+                  injector::calculate_genesis_state(
+                      injector
+                          .template create<const application::ChainSpec &>(),
+                      injector
+                          .template create<const runtime::ModuleFactory &>(),
+                      injector
+                          .template create<storage::trie::TrieSerializer &>())
+                      .value();
+              const auto &hasher =
+                  injector.template create<sptr<crypto::Hasher>>();
+              const auto &storage =
                   injector.template create<sptr<storage::SpacedStorage>>();
-              return get_trie_storage_backend(storage);
+              return blockchain::BlockStorageImpl::create(root, storage, hasher)
+                  .value();
             }),
-        bind_by_lambda<storage::trie::TrieStorage>([](auto const &injector) {
-          return storage::trie::TrieStorageImpl::createEmpty(
-                     injector.template create<
-                         sptr<storage::trie::PolkadotTrieFactory>>(),
-                     injector.template create<sptr<storage::trie::Codec>>(),
-                     injector.template create<
-                         sptr<storage::trie::TrieSerializer>>())
-              .value();
-        }),
-        di::bind<storage::trie::PolkadotTrieFactory>.template to<storage::trie::PolkadotTrieFactoryImpl>(),
-        di::bind<storage::trie::Codec>.template to<storage::trie::PolkadotCodec>(),
-        di::bind<storage::trie::TrieSerializer>.template to<storage::trie::TrieSerializerImpl>(),
-        di::bind<runtime::RuntimeCodeProvider>.template to<runtime::StorageCodeProvider>(),
-        bind_by_lambda<application::ChainSpec>([](const auto &injector) {
-          const application::AppConfiguration &config =
-              injector.template create<application::AppConfiguration const &>();
-          return get_chain_spec(config);
-        }),
-        di::bind<network::ExtrinsicObserver>.template to<network::ExtrinsicObserverImpl>(),
-        di::bind<consensus::grandpa::GrandpaDigestObserver>.template to<consensus::grandpa::AuthorityManagerImpl>(),
-        di::bind<consensus::grandpa::AuthorityManager>.template to<consensus::grandpa::AuthorityManagerImpl>(),
-        di::bind<network::PeerManager>.template to<network::PeerManagerImpl>(),
-        di::bind<network::Router>.template to<network::RouterLibp2p>(),
-        di::bind<consensus::babe::BlockHeaderAppender>.template to<consensus::babe::BlockHeaderAppenderImpl>(),
-        di::bind<consensus::babe::BlockExecutor>.template to<consensus::babe::BlockExecutorImpl>(),
-        di::bind<consensus::grandpa::Grandpa>.template to<consensus::grandpa::GrandpaImpl>(),
-        di::bind<consensus::grandpa::RoundObserver>.template to<consensus::grandpa::GrandpaImpl>(),
-        di::bind<consensus::grandpa::CatchUpObserver>.template to<consensus::grandpa::GrandpaImpl>(),
-        di::bind<consensus::grandpa::NeighborObserver>.template to<consensus::grandpa::GrandpaImpl>(),
-        di::bind<consensus::grandpa::GrandpaObserver>.template to<consensus::grandpa::GrandpaImpl>(),
-        di::bind<consensus::babe::BabeUtil>.template to<consensus::babe::BabeConfigRepositoryImpl>(),
-        di::bind<network::BlockAnnounceTransmitter>.template to<network::BlockAnnounceTransmitterImpl>(),
-        di::bind<network::GrandpaTransmitter>.template to<network::GrandpaTransmitterImpl>(),
-        di::bind<network::TransactionsTransmitter>.template to<network::TransactionsTransmitterImpl>(),
-        bind_by_lambda<primitives::GenesisBlockHeader>(
-            [](auto const &injector) {
-              return get_genesis_block_header(injector);
-            }),
-        di::bind<telemetry::TelemetryService>.template to<telemetry::TelemetryServiceImpl>(),
-        di::bind<consensus::babe::ConsistencyKeeper>.template to<consensus::babe::ConsistencyKeeperImpl>(),
-        di::bind<api::InternalApi>.template to<api::InternalApiImpl>(),
-        di::bind<consensus::babe::BabeConfigRepository>.template to<consensus::babe::BabeConfigRepositoryImpl>(),
-        di::bind<blockchain::DigestTracker>.template to<blockchain::DigestTrackerImpl>(),
-        di::bind<consensus::babe::BabeDigestObserver>.template to<consensus::babe::BabeConfigRepositoryImpl>(),
-        di::bind<authority_discovery::Query>.template to<authority_discovery::QueryImpl>(),
-        di::bind<crypto::SessionKeys>.template to<crypto::SessionKeysImpl>(),
-        di::bind<network::SyncProtocol>.template to<network::SyncProtocolImpl>(),
-        di::bind<network::StateProtocol>.template to<network::StateProtocolImpl>(),
-        di::bind<consensus::babe::Babe>.template to<consensus::babe::BabeImpl>(),
-        di::bind<consensus::babe::BabeLottery>.template to<consensus::babe::BabeLotteryImpl>(),
-        di::bind<network::BlockAnnounceObserver>.template to<consensus::babe::BabeImpl>(),
+            di::bind<blockchain::JustificationStoragePolicy>.template to<blockchain::JustificationStoragePolicyImpl>(),
+            bind_by_lambda<blockchain::BlockTree>(
+                [](const auto &injector) { return get_block_tree(injector); }),
+            di::bind<blockchain::BlockHeaderRepository>.template to<blockchain::BlockHeaderRepositoryImpl>(),
+            di::bind<clock::SystemClock>.template to<clock::SystemClockImpl>(),
+            di::bind<clock::SteadyClock>.template to<clock::SteadyClockImpl>(),
+            di::bind<clock::Timer>.template to<clock::BasicWaitableTimer>(),
+            di::bind<network::Synchronizer>.template to<network::SynchronizerImpl>(),
+            di::bind<consensus::grandpa::Environment>.template to<consensus::grandpa::EnvironmentImpl>(),
+            di::bind<consensus::babe::BlockValidator>.template to<consensus::babe::BabeBlockValidator>(),
+            di::bind<crypto::EcdsaProvider>.template to<crypto::EcdsaProviderImpl>(),
+            di::bind<crypto::Ed25519Provider>.template to<crypto::Ed25519ProviderImpl>(),
+            di::bind<crypto::Hasher>.template to<crypto::HasherImpl>(),
+            di::bind<crypto::Sr25519Provider>.template to<crypto::Sr25519ProviderImpl>(),
+            di::bind<crypto::VRFProvider>.template to<crypto::VRFProviderImpl>(),
+            di::bind<network::StreamEngine>.template to<network::StreamEngine>(),
+            di::bind<network::ReputationRepository>.template to<network::ReputationRepositoryImpl>(),
+            di::bind<crypto::Bip39Provider>.template to<crypto::Bip39ProviderImpl>(),
+            di::bind<crypto::Pbkdf2Provider>.template to<crypto::Pbkdf2ProviderImpl>(),
+            di::bind<crypto::Secp256k1Provider>.template to<crypto::Secp256k1ProviderImpl>(),
+            bind_by_lambda<crypto::KeyFileStorage>([](const auto &injector) {
+              const application::AppConfiguration &config =
+                  injector
+                      .template create<application::AppConfiguration const &>();
+              auto chain_spec =
+                  injector.template create<sptr<application::ChainSpec>>();
 
-        // user-defined overrides...
-        std::forward<decltype(args)>(args)...);
+              return get_key_file_storage(config, chain_spec);
+            }),
+            di::bind<crypto::CryptoStore>.template to<crypto::CryptoStoreImpl>(),
+            di::bind<host_api::HostApiFactory>.template to<host_api::HostApiFactoryImpl>(),
+            makeRuntimeInjector(config->runtimeExecMethod()),
+            di::bind<transaction_pool::TransactionPool>.template to<transaction_pool::TransactionPoolImpl>(),
+            di::bind<transaction_pool::PoolModerator>.template to<transaction_pool::PoolModeratorImpl>(),
+            di::bind<storage::changes_trie::ChangesTracker>.template to<storage::changes_trie::StorageChangesTrackerImpl>(),
+            di::bind<network::StateProtocolObserver>.template to<network::StateProtocolObserverImpl>(),
+            di::bind<network::SyncProtocolObserver>.template to<network::SyncProtocolObserverImpl>(),
+            di::bind<parachain::AvailabilityStore>.template to<parachain::AvailabilityStoreImpl>(),
+            di::bind<parachain::Fetch>.template to<parachain::FetchImpl>(),
+            di::bind<parachain::Recovery>.template to<parachain::RecoveryImpl>(),
+            di::bind<parachain::BitfieldStore>.template to<parachain::BitfieldStoreImpl>(),
+            di::bind<parachain::BackingStore>.template to<parachain::BackingStoreImpl>(),
+            di::bind<parachain::Pvf>.template to<parachain::PvfImpl>(),
+            di::bind<network::CollationObserver>.template to<parachain::ParachainObserverImpl>(),
+            di::bind<network::ValidationObserver>.template to<parachain::ParachainObserverImpl>(),
+            di::bind<network::ReqCollationObserver>.template to<parachain::ParachainObserverImpl>(),
+            di::bind<network::ReqPovObserver>.template to<parachain::ParachainObserverImpl>(),
+            di::bind<parachain::ParachainObserver>.template to<parachain::ParachainObserverImpl>(),
+            bind_by_lambda<ThreadPool>(
+                [](const auto &injector) { return get_thread_pool(injector); }),
+            bind_by_lambda<storage::trie::TrieStorageBackend>(
+                [](const auto &injector) {
+                  auto storage =
+                      injector.template create<sptr<storage::SpacedStorage>>();
+                  return get_trie_storage_backend(storage);
+                }),
+            bind_by_lambda<storage::trie::TrieStorage>([](const auto
+                                                              &injector) {
+              return storage::trie::TrieStorageImpl::createEmpty(
+                         injector.template create<
+                             sptr<storage::trie::PolkadotTrieFactory>>(),
+                         injector.template create<sptr<storage::trie::Codec>>(),
+                         injector.template create<
+                             sptr<storage::trie::TrieSerializer>>())
+                  .value();
+            }),
+            di::bind<storage::trie::PolkadotTrieFactory>.template to<storage::trie::PolkadotTrieFactoryImpl>(),
+            di::bind<storage::trie::Codec>.template to<storage::trie::PolkadotCodec>(),
+            di::bind<storage::trie::TrieSerializer>.template to<storage::trie::TrieSerializerImpl>(),
+            di::bind<runtime::RuntimeCodeProvider>.template to<runtime::StorageCodeProvider>(),
+            bind_by_lambda<application::ChainSpec>([](const auto &injector) {
+              const application::AppConfiguration &config =
+                  injector
+                      .template create<application::AppConfiguration const &>();
+              return get_chain_spec(config);
+            }),
+            di::bind<network::ExtrinsicObserver>.template to<network::ExtrinsicObserverImpl>(),
+            di::bind<consensus::grandpa::GrandpaDigestObserver>.template to<consensus::grandpa::AuthorityManagerImpl>(),
+            di::bind<consensus::grandpa::AuthorityManager>.template to<consensus::grandpa::AuthorityManagerImpl>(),
+            di::bind<network::PeerManager>.template to<network::PeerManagerImpl>(),
+            di::bind<network::Router>.template to<network::RouterLibp2p>(),
+            di::bind<consensus::babe::BlockHeaderAppender>.template to<consensus::babe::BlockHeaderAppenderImpl>(),
+            di::bind<consensus::babe::BlockExecutor>.template to<consensus::babe::BlockExecutorImpl>(),
+            di::bind<consensus::grandpa::Grandpa>.template to<consensus::grandpa::GrandpaImpl>(),
+            di::bind<consensus::grandpa::JustificationObserver>.template to<consensus::grandpa::GrandpaImpl>(),
+            di::bind<consensus::grandpa::RoundObserver>.template to<consensus::grandpa::GrandpaImpl>(),
+            di::bind<consensus::grandpa::CatchUpObserver>.template to<consensus::grandpa::GrandpaImpl>(),
+            di::bind<consensus::grandpa::NeighborObserver>.template to<consensus::grandpa::GrandpaImpl>(),
+            di::bind<consensus::grandpa::GrandpaObserver>.template to<consensus::grandpa::GrandpaImpl>(),
+            di::bind<consensus::babe::BabeUtil>.template to<consensus::babe::BabeConfigRepositoryImpl>(),
+            di::bind<network::BlockAnnounceTransmitter>.template to<network::BlockAnnounceTransmitterImpl>(),
+            di::bind<network::GrandpaTransmitter>.template to<network::GrandpaTransmitterImpl>(),
+            di::bind<network::TransactionsTransmitter>.template to<network::TransactionsTransmitterImpl>(),
+            bind_by_lambda<primitives::GenesisBlockHeader>(
+                [](const auto &injector) {
+                  return get_genesis_block_header(injector);
+                }),
+            di::bind<telemetry::TelemetryService>.template to<telemetry::TelemetryServiceImpl>(),
+            di::bind<consensus::babe::ConsistencyKeeper>.template to<consensus::babe::ConsistencyKeeperImpl>(),
+            di::bind<api::InternalApi>.template to<api::InternalApiImpl>(),
+            di::bind<consensus::babe::BabeConfigRepository>.template to<consensus::babe::BabeConfigRepositoryImpl>(),
+            di::bind<blockchain::DigestTracker>.template to<blockchain::DigestTrackerImpl>(),
+            di::bind<consensus::babe::BabeDigestObserver>.template to<consensus::babe::BabeConfigRepositoryImpl>(),
+            di::bind<authority_discovery::Query>.template to<authority_discovery::QueryImpl>(),
+            di::bind<crypto::SessionKeys>.template to<crypto::SessionKeysImpl>(),
+            di::bind<network::SyncProtocol>.template to<network::SyncProtocolImpl>(),
+            di::bind<network::StateProtocol>.template to<network::StateProtocolImpl>(),
+            di::bind<consensus::babe::Babe>.template to<consensus::babe::BabeImpl>(),
+            di::bind<consensus::babe::BabeLottery>.template to<consensus::babe::BabeLotteryImpl>(),
+            di::bind<network::BlockAnnounceObserver>.template to<consensus::babe::BabeImpl>(),
+
+            // user-defined overrides...
+            std::forward<decltype(args)>(args)...);
   }
 
   template <typename... Ts>

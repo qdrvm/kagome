@@ -39,26 +39,29 @@ namespace libp2p::connection {
      */
     void readFull(gsl::span<uint8_t> out, size_t total, ReadCallbackFunc cb) {
       // read some bytes
-      readSome(out,
-               out.size(),
-               [weak{weak_from_this()}, out, total, cb{std::move(cb)}](
-                   outcome::result<size_t> bytes_num_res) mutable {
-                 if (auto self{weak.lock()}) {
-                   if (bytes_num_res.has_error()) {
-                     return cb(bytes_num_res.error());
-                   }
-                   const auto &bytes_num = bytes_num_res.value();
-                   BOOST_ASSERT(bytes_num != 0);
-                   const auto bytes_num_ptrdiff{gsl::narrow<ptrdiff_t>(bytes_num)};
-                   BOOST_ASSERT(bytes_num_ptrdiff <= out.size());
-                   if (bytes_num_ptrdiff == out.size()) {
-                     // successfully read last bytes
-                     return cb(total);
-                   }
-                   // read remaining bytes
-                   self->readFull(out.subspan(bytes_num_ptrdiff), total, std::move(cb));
-                 }
-               });
+      readSome(
+          out,
+          out.size(),
+          [weak{weak_from_this()}, out, total, cb{std::move(cb)}](
+              outcome::result<size_t> bytes_num_res) mutable {
+            if (auto self{weak.lock()}) {
+              if (bytes_num_res.has_error()) {
+                return self->deferReadCallback(bytes_num_res.error(),
+                                               std::move(cb));
+              }
+              const auto &bytes_num = bytes_num_res.value();
+              BOOST_ASSERT(bytes_num != 0);
+              const auto bytes_num_ptrdiff{gsl::narrow<ptrdiff_t>(bytes_num)};
+              BOOST_ASSERT(bytes_num_ptrdiff <= out.size());
+              if (bytes_num_ptrdiff == out.size()) {
+                // successfully read last bytes
+                return self->deferReadCallback(total, std::move(cb));
+              }
+              // read remaining bytes
+              self->readFull(
+                  out.subspan(bytes_num_ptrdiff), total, std::move(cb));
+            }
+          });
     }
 
     void read(gsl::span<uint8_t> out, size_t n, ReadCallbackFunc cb) override {
@@ -87,11 +90,11 @@ namespace libp2p::connection {
       BOOST_ASSERT(out.size() >= gsl::narrow<ptrdiff_t>(n));
       out = out.first(n);
       if (out.empty()) {
-        return cb(out.size());
+        return deferReadCallback(out.size(), std::move(cb));
       }
       if (size() != 0) {
         // read available buffer bytes
-        return cb(readFromBuffer(out));
+        return deferReadCallback(readFromBuffer(out), std::move(cb));
       }
       // read to fill buffer
       stream->readSome(
@@ -101,14 +104,14 @@ namespace libp2p::connection {
               outcome::result<size_t> _r) mutable {
             if (auto self{weak.lock()}) {
               if (_r.has_error()) {
-                return cb(_r.error());
+                return self->deferReadCallback(_r.error(), std::move(cb));
               }
               const auto &r = _r.value();
               // fill buffer
               self->begin = 0;
               self->end = r;
               // read available buffer bytes
-              cb(self->readFromBuffer(out));
+              self->deferReadCallback(self->readFromBuffer(out), std::move(cb));
             }
           });
     }

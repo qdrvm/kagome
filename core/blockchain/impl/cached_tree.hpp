@@ -71,7 +71,7 @@ namespace kagome::blockchain {
      */
     outcome::result<void> applyToChain(
         const primitives::BlockInfo &chain_end,
-        std::function<outcome::result<ExitToken>(TreeNode const &node)> const
+        const std::function<outcome::result<ExitToken>(const TreeNode &node)>
             &op) const;
 
     primitives::BlockInfo getBlockInfo() const {
@@ -103,18 +103,16 @@ namespace kagome::blockchain {
       uint64_t value;
 
       WeightInfo(uint64_t v) : value(v) {}
-      bool operator==(WeightInfo const &r) const {
+      bool operator==(const WeightInfo &r) const {
         return value == r.value;
       }
-      bool operator<(WeightInfo const &r) const {
+      bool operator<(const WeightInfo &r) const {
         return value < r.value;
       }
     };
     using Weight = std::pair<WeightInfo, primitives::BlockNumber>;
 
-    explicit TreeMeta(
-        const std::shared_ptr<TreeNode> &subtree_root_node,
-        std::optional<primitives::Justification> last_finalized_justification);
+    explicit TreeMeta(const std::shared_ptr<TreeNode> &subtree_root_node);
 
     Weight getWeight(std::shared_ptr<TreeNode> node) const;
 
@@ -128,7 +126,6 @@ namespace kagome::blockchain {
     std::weak_ptr<TreeNode> best_leaf;
 
     std::weak_ptr<TreeNode> last_finalized;
-    std::optional<primitives::Justification> last_finalized_justification;
   };
 
   /**
@@ -148,8 +145,7 @@ namespace kagome::blockchain {
      * the stack.
      * @return new tree root
      */
-    void updateTreeRoot(std::shared_ptr<TreeNode> new_trie_root,
-                        primitives::Justification justification);
+    void updateTreeRoot(std::shared_ptr<TreeNode> new_trie_root);
 
     void updateMeta(const std::shared_ptr<TreeNode> &new_node);
 
@@ -161,10 +157,10 @@ namespace kagome::blockchain {
      */
     void removeFromMeta(const std::shared_ptr<TreeNode> &node);
 
-    TreeNode const &getRoot() const;
+    const TreeNode &getRoot() const;
     TreeNode &getRoot();
 
-    TreeMeta const &getMetadata() const;
+    const TreeMeta &getMetadata() const;
 
    private:
     std::shared_ptr<TreeNode> root_;

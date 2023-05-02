@@ -32,6 +32,7 @@ add_library(network
     adapters/adapter_errors.cpp
     impl/protocols/protocol_req_pov.cpp
     warp/cache.cpp
+    warp/sync.cpp
     )
 target_link_libraries(network
     light_api_proto

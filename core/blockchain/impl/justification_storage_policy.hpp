@@ -21,20 +21,18 @@ namespace kagome::blockchain {
     virtual ~JustificationStoragePolicy() = default;
 
     virtual outcome::result<bool> shouldStoreFor(
-        const primitives::BlockHeader &block) const = 0;
+        const primitives::BlockHeader &block,
+        primitives::BlockNumber last_finalized_number) const = 0;
   };
 
   class JustificationStoragePolicyImpl final
       : public JustificationStoragePolicy {
    public:
-    JustificationStoragePolicyImpl(
-        LazySPtr<const blockchain::BlockTree> block_tree);
+    virtual outcome::result<bool> shouldStoreFor(
+        const primitives::BlockHeader &block,
+        primitives::BlockNumber last_finalized_number) const override;
 
-    outcome::result<bool> shouldStoreFor(
-        const primitives::BlockHeader &block) const override;
-
-   private:
-    LazySPtr<const blockchain::BlockTree> block_tree_;
+    virtual void initBlockchainInfo();
   };
 
 }  // namespace kagome::blockchain
