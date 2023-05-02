@@ -13,6 +13,7 @@
 #include "network/warp/cache.hpp"
 #include "storage/predefined_keys.hpp"
 #include "storage/spaced_storage.hpp"
+#include "utils/safe_object.hpp"
 
 namespace kagome::network {
   WarpSync::WarpSync(
@@ -71,8 +72,16 @@ namespace kagome::network {
       auto authorities =
           authority_manager_->authorities(block_tree_->getLastFinalized(), true)
               .value();
-      if (not grandpa_->verifyJustification(fragment.justification,
-                                            *authorities)) {
+
+      auto promise_res =
+          std::make_shared<std::promise<outcome::result<void>>>();
+      auto res_future = promise_res->get_future();
+
+      grandpa_->verifyJustification(
+          fragment.justification, *authorities, promise_res);
+
+      auto result = res_future.get();
+      if (result.has_error()) {
         return;
       }
       Op op{

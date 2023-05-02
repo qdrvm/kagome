@@ -124,7 +124,8 @@ namespace kagome::consensus::grandpa {
      * Basically method just checks if received propose was produced by the
      * primary and if so, it is stored in primary_vote_ field
      */
-    void onProposal(const SignedMessage &proposal,
+    void onProposal(std::optional<GrandpaContext> &grandpa_context,
+                    const SignedMessage &proposal,
                     Propagation propagation) override;
 
     /**
@@ -134,7 +135,8 @@ namespace kagome::consensus::grandpa {
      * state (\see update)
      * @returns true if inner state has changed
      */
-    bool onPrevote(const SignedMessage &prevote,
+    bool onPrevote(std::optional<GrandpaContext> &grandpa_context,
+                   const SignedMessage &prevote,
                    Propagation propagation) override;
 
     /**
@@ -143,7 +145,8 @@ namespace kagome::consensus::grandpa {
      * Then we try to update round state and finalize
      * @returns true if inner state has changed
      */
-    bool onPrecommit(const SignedMessage &precommit,
+    bool onPrecommit(std::optional<GrandpaContext> &grandpa_context,
+                     const SignedMessage &precommit,
                      Propagation propagation) override;
 
     /**
@@ -249,7 +252,9 @@ namespace kagome::consensus::grandpa {
 
     /// Triggered when we receive {@param vote} for the current peer
     template <typename T>
-    outcome::result<void> onSigned(const SignedMessage &vote);
+    outcome::result<void> onSigned(
+        std::optional<GrandpaContext> &grandpa_context,
+        const SignedMessage &vote);
 
     /**
      * Invoked during each onSingedPrevote.

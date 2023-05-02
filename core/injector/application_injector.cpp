@@ -311,7 +311,8 @@ namespace {
         chain_events_engine,
         std::move(ext_events_engine),
         std::move(ext_events_key_repo),
-        std::move(justification_storage_policy));
+        std::move(justification_storage_policy),
+        injector.template create<std::shared_ptr<::boost::asio::io_context>>());
 
     if (not block_tree_res.has_value()) {
       common::raise(block_tree_res.error());
