@@ -81,7 +81,11 @@ class ChainTest : public testing::Test {
       std::make_shared<GrandpaTransmitterMock>();
 
   std::shared_ptr<Chain> chain = std::make_shared<EnvironmentImpl>(
-      tree, header_repo, authority_manager, grandpa_transmitter, std::make_shared<boost::asio::io_context>());
+      tree,
+      header_repo,
+      authority_manager,
+      grandpa_transmitter,
+      std::make_shared<boost::asio::io_context>());
 };
 
 /**
