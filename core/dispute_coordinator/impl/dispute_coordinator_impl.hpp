@@ -6,6 +6,7 @@
 #ifndef KAGOME_DISPUTE_DISPUTECOORDINATORIMPL
 #define KAGOME_DISPUTE_DISPUTECOORDINATORIMPL
 
+#include <libp2p/basic/scheduler.hpp>
 #include "dispute_coordinator/dispute_coordinator.hpp"
 
 #include "crypto/crypto_store/session_keys.hpp"
@@ -26,10 +27,26 @@ namespace kagome::dispute {
   class Participation;
 }  // namespace kagome::dispute
 
+namespace kagome::application {
+  class AppStateManager;
+}  // namespace kagome::application
+
 namespace kagome::dispute {
 
   class DisputeCoordinatorImpl final : public DisputeCoordinator {
    public:
+    DisputeCoordinatorImpl(
+        std::shared_ptr<application::AppStateManager> app_state_manager,
+        std::shared_ptr<libp2p::basic::Scheduler> scheduler,
+        std::shared_ptr<clock::SystemClock> clock,
+        std::shared_ptr<LocalKeystore> keystore,
+        std::shared_ptr<crypto::SessionKeys> session_keys,
+        std::shared_ptr<Storage> storage,
+        std::shared_ptr<crypto::Sr25519Provider> sr25519_crypto_provider);
+
+    bool start();
+    void stop();
+
     outcome::result<void> onImportStatements(
         CandidateReceipt candidate_receipt,
         SessionIndex session,
@@ -79,6 +96,21 @@ namespace kagome::dispute {
     clang-format on */
 
    private:
+    void run();
+
+    // Run the subsystem until an error is encountered or a `conclude` signal is
+    // received. Most errors are non-fatal and should lead to another call to
+    // this function.
+    //
+    // A return success indicates that an exit should be made, while non-fatal
+    // errors lead to another call to this function.
+    outcome::result<void> run_until_error();
+
+    outcome::result<void> process_on_chain_votes(ScrapedOnChainVotes votes);
+
+    outcome::result<void> process_active_leaves_update(
+        ActiveLeavesUpdate update);
+
     outcome::result<bool> handle_import_statements(
         MaybeCandidateReceipt candidate_receipt,
         const SessionIndex session,
@@ -98,11 +130,15 @@ namespace kagome::dispute {
     bool is_potential_spam(const CandidateVoteState &vote_state,
                            const CandidateHash &candidate_hash);
 
+    std::shared_ptr<application::AppStateManager> app_state_manager_;
+    std::shared_ptr<libp2p::basic::Scheduler> scheduler_;
     std::shared_ptr<clock::SystemClock> clock_;
     std::shared_ptr<LocalKeystore> keystore_;
     std::shared_ptr<crypto::SessionKeys> session_keys_;
     std::shared_ptr<Storage> storage_;
     std::shared_ptr<crypto::Sr25519Provider> sr25519_crypto_provider_;
+
+    libp2p::basic::Scheduler::Handle processing_loop_handle_;
 
     std::shared_ptr<ChainScraper> scraper_;
     std::shared_ptr<SpamSlots> spam_slots_;

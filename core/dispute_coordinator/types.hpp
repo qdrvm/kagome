@@ -10,6 +10,7 @@
 
 #include "common/visitor.hpp"
 #include "parachain/types.hpp"
+#include "primitives/block.hpp"
 #include "runtime/runtime_api/parachain_host_types.hpp"
 // #include "network/types/collator_messages.hpp"
 
@@ -48,12 +49,14 @@ namespace kagome::dispute {
   /// Different kinds of statements of invalidity on a candidate.
   using InvalidDisputeStatementKind = boost::variant<Explicit>;
 
+  /// A valid statement, of the given kind
   struct ValidDisputeStatement {
     ValidDisputeStatementKind kind;
     ValidatorIndex index;
     ValidatorSignature signature;
   };
 
+  /// An invalid statement, of the given kind.
   struct InvalidDisputeStatement {
     InvalidDisputeStatementKind kind;
     ValidatorIndex index;
@@ -64,11 +67,9 @@ namespace kagome::dispute {
   /// process.
   ///
   /// Statements are either in favor of the candidate's validity or against it.
-  using DisputeStatement_ = boost::variant<
-      /// A valid statement, of the given kind
-      ValidDisputeStatement,  // Valid
-      /// An invalid statement, of the given kind.
-      InvalidDisputeStatement>;  // Invalid
+  using DisputeStatement_ =
+      boost::variant<ValidDisputeStatement,     // 0 - Valid
+                     InvalidDisputeStatement>;  // 1 - Invalid
 
   common::Buffer getPayload(const DisputeStatement_ &statement,
                             CandidateHash candidate_hash,
@@ -199,6 +200,99 @@ namespace kagome::dispute {
     SessionInfo &session;
     /// Validator indices controlled by this node.
     std::unordered_set<ValidatorIndex> controlled_indices;
+  };
+
+  /// The status of an activated leaf.
+  enum class LeafStatus : bool {
+    /// A leaf is fresh when it's the first time the leaf has been encountered.
+    /// Most leaves should be fresh.
+    Fresh,
+
+    /// A leaf is stale when it's encountered for a subsequent time. This will
+    /// happen
+    /// when the chain is reverted or the fork-choice rule abandons some chain.
+    Stale,
+  };
+
+  /// Activated leaf.
+  struct ActivatedLeaf {
+    /// The block hash.
+    primitives::BlockHash hash;
+
+    /// The block number.
+    primitives::BlockNumber number;
+
+    /// The status of the leaf.
+    LeafStatus status;
+
+    /// An associated [`jaeger::Span`].
+    ///
+    /// NOTE: Each span should only be kept active as long as the leaf is
+    /// considered active and should be dropped when the leaf is deactivated.
+    // Arc<jaeger::Span> span;
+  };
+
+  /// Changes in the set of active leaves: the parachain heads which we care to
+  /// work on.
+  ///
+  /// Note that the activated and deactivated fields indicate deltas, not
+  /// complete sets.
+  struct ActiveLeavesUpdate {
+    /// New relay chain block of interest.
+    std::optional<ActivatedLeaf> activated;
+
+    /// Relay chain block hashes no longer of interest.
+    std::vector<primitives::BlockHash> deactivated;
+  };
+
+  /// Implicit validity attestation by issuing.
+  /// This corresponds to issuance of a `Candidate` statement.
+  using ImplicitValidityAttestation =
+      Tagged<ValidatorSignature, struct ImplicitTag>;
+
+  /// An explicit attestation. This corresponds to issuance of a
+  /// `Valid` statement.
+  using ExplicitValidityAttestation =
+      Tagged<ValidatorSignature, struct ExplicitTag>;
+
+  /// An either implicit or explicit attestation to the validity of a parachain
+  /// candidate.
+  /// Note: order of types in variant matters
+  using ValidityAttestation = boost::variant<Unused<0>,
+                                             ImplicitValidityAttestation,   // 1
+                                             ExplicitValidityAttestation>;  // 2
+
+  /// A set of statements about a specific candidate.
+  struct DisputeStatementSet {
+    /// The candidate referenced by this set.
+    CandidateHash candidate_hash;
+
+    /// The session index of the candidate.
+    SessionIndex session;
+
+    /// Statements about the candidate.
+    std::vector<DisputeStatement_> statements;
+  };
+
+  /// A set of dispute statements.
+  using MultiDisputeStatementSet = std::vector<DisputeStatementSet>;
+
+  /// Scraped runtime backing votes and resolved disputes.
+  struct ScrapedOnChainVotes {
+    /// The session in which the block was included.
+    SessionIndex session;
+
+    /// Set of backing validators for each candidate, represented by its
+    /// candidate receipt.
+    std::vector<
+        std::pair<CandidateReceipt,
+                  std::vector<std::pair<ValidatorIndex, ValidityAttestation>>>>
+        backing_validators_per_candidate;
+
+    /// On-chain-recorded set of disputes.
+    /// Note that the above `backing_validators` are
+    /// unrelated to the backers of the disputes candidates.
+    MultiDisputeStatementSet disputes;
   };
 
 }  // namespace kagome::dispute

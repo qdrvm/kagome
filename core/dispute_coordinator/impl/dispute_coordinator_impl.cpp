@@ -9,12 +9,435 @@
 #include <vector>
 
 #include "../../../test/testutil/outcome/dummy_error.hpp"
+#include "application/app_state_manager.hpp"
 #include "common/visitor.hpp"
 #include "dispute_coordinator/chain_scraper.hpp"
 #include "dispute_coordinator/impl/errors.hpp"
 #include "dispute_coordinator/participation/participation.hpp"
 
 namespace kagome::dispute {
+
+  DisputeCoordinatorImpl::DisputeCoordinatorImpl(
+      std::shared_ptr<application::AppStateManager> app_state_manager,
+      std::shared_ptr<libp2p::basic::Scheduler> scheduler,
+      std::shared_ptr<clock::SystemClock> clock,
+      std::shared_ptr<LocalKeystore> keystore,
+      std::shared_ptr<crypto::SessionKeys> session_keys,
+      std::shared_ptr<Storage> storage,
+      std::shared_ptr<crypto::Sr25519Provider> sr25519_crypto_provider)
+      : app_state_manager_(std::move(app_state_manager)),
+        scheduler_(std::move(scheduler)),
+        clock_(std::move(clock)),
+        keystore_(std::move(keystore)),
+        session_keys_(std::move(session_keys)),
+        storage_(std::move(storage)),
+        sr25519_crypto_provider_(std::move(sr25519_crypto_provider)) {
+    BOOST_ASSERT(app_state_manager_ != nullptr);
+    BOOST_ASSERT(scheduler_ != nullptr);
+    BOOST_ASSERT(clock_ != nullptr);
+    BOOST_ASSERT(keystore_ != nullptr);
+    BOOST_ASSERT(session_keys_ != nullptr);
+    BOOST_ASSERT(storage_ != nullptr);
+    BOOST_ASSERT(sr25519_crypto_provider_ != nullptr);
+  }
+
+  bool DisputeCoordinatorImpl::start() {
+    processing_loop_handle_ = scheduler_->scheduleWithHandle([&] { run(); });
+    return true;
+  }
+
+  void DisputeCoordinatorImpl::stop() {
+    processing_loop_handle_.cancel();
+  }
+
+  void DisputeCoordinatorImpl::run() {
+    auto res = run_until_error();
+    if (not res.has_error()) {
+      // LOG-INFO "received `Conclude` signal, exiting"
+      return;
+    }
+
+    // LOG-ERROR "Error happened: " res.error
+
+    if (app_state_manager_->state()
+        < application::AppStateManager::State::ShuttingDown) {
+      std::ignore =
+          processing_loop_handle_.reschedule(std::chrono::milliseconds(0));
+    }
+  }
+
+  outcome::result<void> DisputeCoordinatorImpl::run_until_error() {
+    std::vector<std::pair<ParticipationPriority, ParticipationRequest>>
+        participation;
+    std::vector<ScrapedOnChainVotes> on_chain_votes;
+    std::optional<ActivatedLeaf> first_leaf;
+
+    // https://github.com/paritytech/polkadot/blob/40974fb99c86f5c341105b7db53c7aa0df707d66/node/core/dispute-coordinator/src/initialized.rs#L166
+    for (const auto &[priority, request] : std::move(participation)) {
+      OUTCOME_TRY(participation_->queue_participation(priority, request));
+    }
+
+    {
+      // https://github.com/paritytech/polkadot/blob/40974fb99c86f5c341105b7db53c7aa0df707d66/node/core/dispute-coordinator/src/initialized.rs#L160
+      // auto  overlay_db = OverlayedBackend::new (backend);
+      for (auto votes : on_chain_votes) {
+        auto res = process_on_chain_votes(votes);
+        if (res.has_error()) {
+          // LOG-WARN: "Skipping scraping block due to error"
+        }
+      }
+      // if !overlay_db {
+      //   .is_empty() {
+      //     let ops = overlay_db.into_write_ops();
+      //     backend.write(ops) ? ;
+      //   }
+      // }
+    }
+
+    if (first_leaf.has_value()) {
+      // Also provide first leaf to participation for good measure.
+      participation_
+          ->process_active_leaves_update(
+              ctx, &ActiveLeavesUpdate::start_work(first_leaf))
+          .await
+          ? ;
+    }
+
+    /*
+
+
+
+        loop {
+          gum::trace!(target: LOG_TARGET, "Waiting for message");
+          let mut overlay_db = OverlayedBackend::new(backend);
+          let default_confirm = Box::new(|| Ok(()));
+          let confirm_write = match MuxedMessage::receive(ctx, &mut
+       self.participation_receiver) .await?
+          {
+            MuxedMessage::Participation(msg) => {
+              gum::trace!(target: LOG_TARGET, "MuxedMessage::Participation");
+              let ParticipationStatement {
+                session,
+                candidate_hash,
+                candidate_receipt,
+                outcome,
+              } = self.participation.get_participation_result(ctx, msg).await?;
+              if let Some(valid) = outcome.validity() {
+                gum::trace!(
+                  target: LOG_TARGET,
+                  ?session,
+                  ?candidate_hash,
+                  ?valid,
+                  "Issuing local statement based on participation outcome."
+                );
+                self.issue_local_statement(
+                  ctx,
+                  &mut overlay_db,
+                  candidate_hash,
+                  candidate_receipt,
+                  session,
+                  valid,
+                  clock.now(),
+                )
+                .await?;
+              } else {
+                gum::warn!(target: LOG_TARGET, ?outcome, "Dispute participation
+       failed");
+              }
+              default_confirm
+            },
+            MuxedMessage::Subsystem(msg) => match msg {
+              FromOrchestra::Signal(OverseerSignal::Conclude) => return Ok(()),
+              FromOrchestra::Signal(OverseerSignal::ActiveLeaves(update)) => {
+                gum::trace!(target: LOG_TARGET, "OverseerSignal::ActiveLeaves");
+                self.process_active_leaves_update(
+                  ctx,
+                  &mut overlay_db,
+                  update,
+                  clock.now(),
+                )
+                .await?;
+                default_confirm
+              },
+              FromOrchestra::Signal(OverseerSignal::BlockFinalized(_, n)) => {
+                gum::trace!(target: LOG_TARGET,
+       "OverseerSignal::BlockFinalized");
+                self.scraper.process_finalized_block(&n);
+                default_confirm
+              },
+              FromOrchestra::Communication { msg } =>
+                self.handle_incoming(ctx, &mut overlay_db, msg,
+       clock.now()).await?,
+            },
+          };
+
+          if !overlay_db.is_empty() {
+            let ops = overlay_db.into_write_ops();
+            backend.write(ops)?;
+          }
+          // even if the changeset was empty,
+          // otherwise the caller will error.
+          confirm_write()?;
+        }
+     */
+
+    return outcome::success();
+  }
+
+  outcome::result<void> DisputeCoordinatorImpl::process_on_chain_votes(
+      ScrapedOnChainVotes votes) {
+    const auto &session = votes.session;
+    const auto &backing_validators_per_candidate =
+        votes.backing_validators_per_candidate;
+    const auto &disputes = votes.disputes;
+
+    if (backing_validators_per_candidate.empty() and disputes.empty()) {
+      return outcome::success();
+    }
+
+    // Obtain the session info, for sake of `ValidatorId`s either from the
+    // rolling session window. Must be called _after_ `fn
+    // cache_session_info_for_head` which guarantees that the session info is
+    // available for the current session.
+    auto session_info_opt = rolling_session_window_->session_info(session);
+    if (not session_info_opt.has_value()) {
+      // LOG-WARN: "Could not retrieve session info from rolling session window"
+      return outcome::success();
+    }
+    auto &session_info = session_info_opt.value().get();
+
+    // Scraped on-chain backing votes for the candidates with the new active
+    // leaf as if we received them via gossip.
+    for (auto &[candidate_receipt, backers] :
+         backing_validators_per_candidate) {
+      auto &relay_parent = candidate_receipt.descriptor.relay_parent;
+      auto &candidate_hash = candidate_receipt.commitments_hash;
+
+      // LOG-TRACE: "Importing backing votes from chain for candidate"
+
+      std::vector<Indexed<SignedDisputeStatement>> statements;
+      for (auto &[validator_index, attestation] : backers) {
+        if (validator_index >= session_info.validators.size()) {
+          // LOG-ERR: "Missing public key for validator"
+          return SignatureValidationError::MissingPublicKey;
+        }
+
+        ValidatorId validator_public = session_info.validators[validator_index];
+
+        ValidatorSignature validator_signature = visit_in_place(
+            attestation,
+            [](const Unused<0> &) { return ValidatorSignature{}; },
+            [](const auto &sig) { return (ValidatorSignature)sig; });
+
+        auto valid_statement_kind = visit_in_place(
+            attestation,
+            [](const Unused<0> &) { return ValidDisputeStatementKind{}; },
+            [&](const ImplicitValidityAttestation &) {
+              return ValidDisputeStatementKind(BackingSeconded(relay_parent));
+            },
+            [&](const ExplicitValidityAttestation &) {
+              return ValidDisputeStatementKind(BackingValid(relay_parent));
+            });
+
+        auto check_sig = [&, validator_index = validator_index]() -> bool {
+          ValidDisputeStatement statement{
+              valid_statement_kind, validator_index, validator_signature};
+
+          auto payload = getPayload(statement, candidate_hash, session);
+
+          auto validation_res = sr25519_crypto_provider_->verify(
+              validator_signature, payload, validator_public);
+
+          if (validation_res.has_error()) {
+            return false;
+          }
+          if (not validation_res.value()) {
+            return false;
+          }
+          return true;
+        };
+
+        BOOST_ASSERT_MSG(check_sig(),
+                         "Scraped backing votes had invalid signature!");
+
+        SignedDisputeStatement signed_dispute_statement{
+            ValidDisputeStatement{
+                valid_statement_kind, session, validator_signature},
+            candidate_hash,
+            validator_public,
+            validator_signature,
+            session,
+        };
+
+        statements.emplace_back(signed_dispute_statement, validator_index);
+      }
+
+      // Importantly, handling import statements for backing votes also
+      // clears spam slots for any newly backed candidates
+      OUTCOME_TRY(
+          import_result,
+          handle_import_statements(candidate_receipt, session, statements));
+
+      if (import_result) {
+        // LOG-TRACE: "Imported backing votes from chain"
+      } else {
+        // LOG-WARN: "Attempted import of on-chain backing votes failed"
+      }
+    }
+
+    // Import disputes from on-chain, this already went through a vote so it's
+    // assumed as verified. This will only be stored, gossiping it is not
+    // necessary.
+
+    // First try to obtain all the backings which ultimately contain the
+    // candidate receipt which we need.
+
+    // https://github.com/paritytech/polkadot/blob/40974fb99c86f5c341105b7db53c7aa0df707d66/node/core/dispute-coordinator/src/initialized.rs#L461
+    for (auto &dispute_statement_set : disputes) {
+      auto &candidate_hash = dispute_statement_set.candidate_hash;
+      auto &session_ = dispute_statement_set.session;
+      auto &dispute_statements = dispute_statement_set.statements;
+      // LOG-TRACE: "Importing dispute votes from chain for candidate"
+
+      std::vector<Indexed<SignedDisputeStatement>> statements;
+      for (const auto &statement : dispute_statements) {
+        OUTCOME_TRY(visit_in_place(
+            statement, [&](const auto &statement) -> outcome::result<void> {
+              auto &valid_statement_kind = statement.kind;
+              auto &validator_index = statement.index;
+              auto &validator_signature = statement.signature;
+
+              auto session_info_opt =
+                  rolling_session_window_->session_info(session_);
+              if (not session_info_opt.has_value()) {
+                // LOG-WARN: "Could not retrieve session info from rolling
+                // session window for recently concluded dispute"
+                return outcome::success();
+              }
+              auto &session_info = session_info_opt.value().get();
+
+              if (validator_index >= session_info.validators.size()) {
+                // LOG-ERR: "Missing public key for validator {:?} that
+                // participated in concluded dispute"
+                return SignatureValidationError::MissingPublicKey;
+              }
+
+              ValidatorId validator_public =
+                  session_info.validators[validator_index];
+
+              auto check_sig = [&]() -> bool {
+                ValidDisputeStatement statement{
+                    valid_statement_kind, validator_index, validator_signature};
+
+                auto payload = getPayload(statement, candidate_hash, session);
+
+                auto validation_res = sr25519_crypto_provider_->verify(
+                    validator_signature, payload, validator_public);
+
+                if (validation_res.has_error()) {
+                  return false;
+                }
+                if (not validation_res.value()) {
+                  return false;
+                }
+                return true;
+              };
+
+              BOOST_ASSERT_MSG(check_sig(),
+                               "Scraped dispute votes had invalid signature!");
+
+              SignedDisputeStatement signed_dispute_statement{
+                  ValidDisputeStatement{
+                      valid_statement_kind, session, validator_signature},
+                  candidate_hash,
+                  validator_public,
+                  validator_signature,
+                  session,
+              };
+
+              statements.emplace_back(signed_dispute_statement,
+                                      validator_index);
+            }));
+      }
+
+      OUTCOME_TRY(
+          import_result,
+          handle_import_statements(candidate_hash, session, statements));
+
+      if (import_result) {
+        // LOG-TRACE: "Imported statement of dispute from on-chain"
+      } else {
+        // LOG-WARN: "Attempted import of on-chain statement of dispute failed"
+      }
+    }
+
+    return outcome::success();
+  }
+
+  outcome::result<void> DisputeCoordinatorImpl::process_active_leaves_update(
+      ActiveLeavesUpdate update) {
+    auto now = clock_->nowUint64();
+
+    /*
+    let scraped_updates =
+      self.scraper.process_active_leaves_update(ctx.sender(), &update).await?;
+    log_error(
+      self.participation
+        .bump_to_priority_for_candidates(ctx,
+    &scraped_updates.included_receipts) .await,
+    )?;
+    self.participation.process_active_leaves_update(ctx, &update).await?;
+
+    if let Some(new_leaf) = update.activated {
+      match self
+        .rolling_session_window
+        .cache_session_info_for_head(ctx.sender(), new_leaf.hash)
+        .await
+      {
+        Err(e) => {
+          gum::warn!(
+            target: LOG_TARGET,
+            err = ?e,
+            "Failed to update session cache for disputes",
+          );
+          self.error = Some(e);
+        },
+        Ok(SessionWindowUpdate::Advanced {
+          new_window_end: window_end,
+          new_window_start,
+          ..
+        }) => {
+          self.error = None;
+          let session = window_end;
+          if self.highest_session < session {
+     gum::trace!(target: LOG_TARGET, session, "Observed new session.  Pruning");
+
+            self.highest_session = session;
+
+            db::v1::note_earliest_session(overlay_db, new_window_start)?;
+            self.spam_slots.prune_old(new_window_start);
+          }
+        },
+        Ok(SessionWindowUpdate::Unchanged) => {},
+      };
+
+      // The `runtime-api` subsystem has an internal queue which serializes
+    the execution,
+      // so there is no point in running these in parallel.
+      for votes in scraped_updates.on_chain_votes {
+        let _ = self.process_on_chain_votes(ctx, overlay_db, votes,
+    now).await.map_err( |error| { gum::warn!( target: LOG_TARGET, ?error,
+              "Skipping scraping block due to error",
+            );
+          },
+        );
+      }
+    }
+
+     */
+
+    return outcome::success();
+  }
 
   outcome::result<void> DisputeCoordinatorImpl::onImportStatements(
       CandidateReceipt candidate_receipt,
@@ -49,9 +472,9 @@ namespace kagome::dispute {
 
     auto session_info_opt = rolling_session_window_->session_info(session);
     if (not session_info_opt.has_value()) {
-      SL_DEBUG(
-          log_,
-          "We are lacking a `SessionInfo` for handling import of statements.");
+      SL_DEBUG(log_,
+               "We are lacking a `SessionInfo` for handling import of "
+               "statements.");
       return outcome::success(false);
     }
     auto &session_info = session_info_opt.value().get();
@@ -73,13 +496,14 @@ namespace kagome::dispute {
                              .session = session_info,
                              .controlled_indices = controlled_indices};
 
-    // In case we are not provided with a candidate receipt we operate under the
-    // assumption, that a previous vote which included a `CandidateReceipt` was
-    // seen. This holds since every block is preceded by the `Backing`-phase.
+    // In case we are not provided with a candidate receipt we operate under
+    // the assumption, that a previous vote which included a
+    // `CandidateReceipt` was seen. This holds since every block is preceded
+    // by the `Backing`-phase.
     //
     // There is one exception: A sufficiently sophisticated attacker could
-    // prevent us from seeing the backing votes by withholding arbitrary blocks,
-    // and hence we do not have a `CandidateReceipt` available.
+    // prevent us from seeing the backing votes by withholding arbitrary
+    // blocks, and hence we do not have a `CandidateReceipt` available.
 
     CandidateVoteState old_state;
 
@@ -257,13 +681,14 @@ namespace kagome::dispute {
       // 2. Raising a dispute is costly (requires validation + recovery) by
       // honest nodes, dishonest nodes are limited by spam slots.
       // 3. Concluding a dispute is even more costly.
-      // Therefore it is reasonable to expect a simple vote request to succeed
-      // way faster than disputes are raised.
+      // Therefore it is reasonable to expect a simple vote request to
+      // succeed way faster than disputes are raised.
       // 4. We are waiting (and blocking the whole subsystem) on a response
-      // right after - therefore even with all else failing we will never have
-      // more than one message in flight at any given time.
+      // right after - therefore even with all else failing we will never
+      // have more than one message in flight at any given time.
 
-      // see: {polkadot}/node/core/dispute-coordinator/src/initialized.rs:809
+      // see:
+      // {polkadot}/node/core/dispute-coordinator/src/initialized.rs:809
       auto getApprovalSignaturesForCandidate =  // TODO IT IS STAB!!
           [](const CandidateHash &)
           -> outcome::result<
@@ -307,9 +732,9 @@ namespace kagome::dispute {
           ///
           /// Except, for backing votes: Backing votes are always kept, and
           /// will never get overridden. Import of other king of `valid`
-          /// votes, will be ignored if a backing vote is already present. Any
-          /// already existing `valid` vote, will be overridden by any given
-          /// backing vote.
+          /// votes, will be ignored if a backing vote is already present.
+          /// Any already existing `valid` vote, will be overridden by any
+          /// given backing vote.
 
           bool affected = false;
           if (auto it = _votes.valid.find(index); it == _votes.valid.end()) {
@@ -357,7 +782,8 @@ namespace kagome::dispute {
         or boost::relaxed_get<Voted>(new_state.own_vote).empty();
     auto is_disputed = new_state.dispute_status.has_value();
     // auto is_confirmed = is_disputed
-    //                    ? is_type<Confirmed>(new_state.dispute_status.value())
+    //                    ?
+    //                    is_type<Confirmed>(new_state.dispute_status.value())
     //                    : false;
     auto potential_spam = is_potential_spam(new_state, candidate_hash);
 
@@ -460,7 +886,8 @@ namespace kagome::dispute {
               throw std::runtime_error("not implemented");  // TODO Implement it
               // DisputeDistributionMessage::SendDispute(dispute_message);
             } else {
-              // LOG-ERROR: "No ongoing dispute, but we checked there is one!"
+              // LOG-ERROR: "No ongoing dispute, but we checked there is
+              // one!"
             }
           }
         }
@@ -503,7 +930,8 @@ namespace kagome::dispute {
         throw std::runtime_error("not implemented");  // TODO Implement it
         // ctx.send_message(ChainSelectionMessage::RevertBlocks(blocks_including)).await;
       } else {
-        // LOG-DEBUG "Could not find an including block for candidate against
+        // LOG-DEBUG "Could not find an including block for candidate
+        // against
         //           which a dispute has concluded."
       }
     }

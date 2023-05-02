@@ -5,6 +5,9 @@
 
 #include "dispute_coordinator/participation/impl/queues_impl.hpp"
 
+#include "blockchain/block_header_repository.hpp"
+#include "blockchain/block_tree_error.hpp"
+
 OUTCOME_CPP_DEFINE_CATEGORY(kagome::dispute, QueueError, e) {
   using E = kagome::dispute::QueueError;
   switch (e) {
@@ -20,6 +23,69 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::dispute, QueueError, e) {
 
 namespace kagome::dispute {
 
-  //
+  QueuesImpl::QueuesImpl(std::shared_ptr<blockchain::BlockHeaderRepository>
+                             block_header_repository)
+      : block_header_repository_(std::move(block_header_repository)) {
+    BOOST_ASSERT(block_header_repository_);
+  }
 
-}
+  outcome::result<void> QueuesImpl::queue(ParticipationPriority priority,
+                                          ParticipationRequest request) {
+    const auto &candidate_hash = request.candidate_receipt.commitments_hash;
+    auto block_number_res = block_header_repository_->getNumberByHash(
+        request.candidate_receipt.descriptor.relay_parent);
+
+    std::optional<primitives::BlockNumber> block_number{};
+    if (block_number_res.has_value()) {
+      block_number = block_number_res.value();
+    } else if (block_number_res
+               != outcome::failure(
+                   blockchain::BlockTreeError::HEADER_NOT_FOUND)) {
+      return block_number_res.as_failure();
+    } else {
+      // LOG-WARN: "Candidate's relay_parent could not be found via chain API
+      // - `CandidateComparator` with an empty relay parent block number will
+      // be provided!"
+    }
+
+    CandidateComparator comparator{.relay_parent_block_number = block_number,
+                                   .candidate_hash = candidate_hash};
+
+    if (priority == ParticipationPriority::Priority) {
+      if (priority_.size() >= kPriorityQueueSize) {
+        return QueueError::PriorityFull;
+      }
+      // Remove any best effort entry:
+      best_effort_.erase(comparator);
+
+      priority_.emplace(comparator, request);
+    } else {
+      if (priority_.count(comparator)) {
+        // The candidate is already in priority queue - don't add in in best
+        // effort too.
+        return outcome::success();
+      }
+
+      if (best_effort_.size() >= kBestEffortQueueSize) {
+        return QueueError::BestEffortFull;
+      }
+
+      best_effort_.emplace(comparator, request);
+    }
+
+    return outcome::success();
+  }
+
+  std::optional<ParticipationRequest> QueuesImpl::dequeue() {
+    if (auto priority_node = priority_.extract(priority_.end())) {
+      return std::move(priority_node.mapped());
+    }
+
+    if (auto best_effort_node = best_effort_.extract(best_effort_.end())) {
+      return std::move(best_effort_node.mapped());
+    }
+
+    return std::nullopt;
+  }
+
+}  // namespace kagome::dispute

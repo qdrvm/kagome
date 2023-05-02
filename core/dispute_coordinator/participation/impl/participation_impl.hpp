@@ -18,6 +18,7 @@ namespace kagome::dispute {
 namespace kagome::dispute {
 
   class ParticipationImpl final : Participation {
+   public:
     static const size_t kMaxParallelParticipations = 3;
 
     outcome::result<void> queue_participation(
@@ -27,7 +28,14 @@ namespace kagome::dispute {
         ParticipationRequest request,
         primitives::BlockHash recent_head) override;
 
-   public:
+    outcome::result<void> process_active_leaves_update(
+        const ActiveLeavesUpdate &update) override;
+
+   private:
+    /// Dequeue until `MAX_PARALLEL_PARTICIPATIONS` is reached.
+    outcome::result<void> dequeue_until_capacity(
+        const primitives::BlockHash &recent_head);
+
     /// Participations currently being processed.
     std::unordered_set<CandidateHash> running_participations_;
     /// Priority and best effort queues.

@@ -33,6 +33,13 @@ namespace kagome::dispute {
     /// Fork a participation task in the background.
     virtual outcome::result<void> fork_participation(
         ParticipationRequest request, primitives::BlockHash recent_head) = 0;
+
+    /// Process active leaves update.
+    ///
+    /// Make sure we to dequeue participations if that became possible and
+    /// update most recent block.
+    virtual outcome::result<void> process_active_leaves_update(
+        const ActiveLeavesUpdate &update) = 0;
   };
 
 }  // namespace kagome::dispute

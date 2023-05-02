@@ -5,6 +5,17 @@
 
 #include "dispute_coordinator/impl/errors.hpp"
 
+OUTCOME_CPP_DEFINE_CATEGORY(kagome::dispute, SignatureValidationError, e) {
+  using E = kagome::dispute::SignatureValidationError;
+  switch (e) {
+    case E::InvalidSignature:
+      return "Invalid argument occurred";
+    case E::MissingPublicKey:
+      return "Missing public key for validator";
+  }
+  return "unknown error (invalid SignatureValidationError)";
+}
+
 OUTCOME_CPP_DEFINE_CATEGORY(kagome::dispute, DisputeMessageCreationError, e) {
   using E = kagome::dispute::DisputeMessageCreationError;
   switch (e) {

@@ -61,6 +61,8 @@ namespace kagome::parachain {
     using Type = std::decay_t<D>;
     SCALE_TIE(2)
 
+    Indexed(Type payload, ValidatorIndex ix) : Indexed{payload, ix} {}
+
     Type payload;
     ValidatorIndex ix;
   };
@@ -69,7 +71,7 @@ namespace kagome::parachain {
   using IndexedAndSigned = kagome::crypto::Sr25519Signed<Indexed<T>>;
 
   template <typename T>
-  [[maybe_unused]] inline T const &getPayload(IndexedAndSigned<T> const &t) {
+  [[maybe_unused]] inline const T &getPayload(const IndexedAndSigned<T> &t) {
     return t.payload.payload;
   }
 

@@ -10,6 +10,14 @@
 
 namespace kagome::dispute {
 
+  enum SignatureValidationError {
+    /// Invalid signature
+    InvalidSignature,
+
+    /// Missing public key for validator,
+    MissingPublicKey,
+  };
+
   enum DisputeMessageCreationError {
     /// There was no opposite vote available
     NoOppositeVote,
@@ -59,6 +67,7 @@ namespace kagome::dispute {
 
 }  // namespace kagome::dispute
 
+OUTCOME_HPP_DECLARE_ERROR(kagome::dispute, SignatureValidationError);
 OUTCOME_HPP_DECLARE_ERROR(kagome::dispute, DisputeMessageCreationError);
 OUTCOME_HPP_DECLARE_ERROR(kagome::dispute, DisputeMessageConstructingError);
 

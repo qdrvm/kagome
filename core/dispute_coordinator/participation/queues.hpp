@@ -31,6 +31,10 @@ namespace kagome::dispute {
     /// Returns error in case a queue was found full already.
     virtual outcome::result<void> queue(ParticipationPriority priority,
                                         ParticipationRequest request) = 0;
+
+    /// Get the next best request for dispute participation if any.
+    /// First the priority queue is considered and then the best effort one.
+    virtual std::optional<ParticipationRequest> dequeue() = 0;
   };
 
 }  // namespace kagome::dispute

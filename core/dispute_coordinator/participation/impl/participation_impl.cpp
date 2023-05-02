@@ -31,13 +31,47 @@ namespace kagome::dispute {
   outcome::result<void> ParticipationImpl::fork_participation(
       ParticipationRequest request, primitives::BlockHash recent_head) {
     if (running_participations_.emplace(request.candidate_hash).second) {
-
-      // see: {polkadot}/node/core/dispute-coordinator/src/participation/mod.rs:255
-      throw std::runtime_error("not implemented"); // FIXME
+      // see:
+      // {polkadot}/node/core/dispute-coordinator/src/participation/mod.rs:255
+      throw std::runtime_error("not implemented");  // FIXME
 
       // spawn
       // "participation-worker",
       // participate(self.worker_sender.clone(), sender, recent_head, req)
+    }
+    return outcome::success();
+  }
+
+  /// Dequeue until `MAX_PARALLEL_PARTICIPATIONS` is reached.
+  outcome::result<void> ParticipationImpl::dequeue_until_capacity(
+      const primitives::BlockHash &recent_head) {
+    while (running_participations_.size() < kMaxParallelParticipations) {
+      if (let Some(req) = self.queue.dequeue()) {
+        fork_participation(req, recent_head);
+      } else {
+        break;
+      }
+    }
+    return outcome::success();
+  }
+
+  outcome::result<void> ParticipationImpl::process_active_leaves_update(
+      const ActiveLeavesUpdate &update) {
+    // https://github.com/paritytech/polkadot/blob/40974fb99c86f5c341105b7db53c7aa0df707d66/node/core/dispute-coordinator/src/participation/mod.rs#L197
+
+    if (update.activated.has_value()) {
+      const auto &activated = update.activated.value();
+
+      if (not recent_block_.has_value()) {
+        recent_block_ = std::make_optional<primitives::BlockInfo>(
+            activated.number, activated.hash);
+        // Work got potentially unblocked:
+        dequeue_until_capacity(activated.hash);
+
+      } else if (activated.number > recent_block_->number) {
+        recent_block_ = std::make_optional<primitives::BlockInfo>(
+            activated.number, activated.hash);
+      }
     }
     return outcome::success();
   }

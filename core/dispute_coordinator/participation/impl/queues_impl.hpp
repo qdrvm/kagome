@@ -10,6 +10,10 @@
 
 #include <map>
 
+namespace kagome::blockchain {
+  class BlockHeaderRepository;
+}
+
 namespace kagome::dispute {
 
   /// What can go wrong when queuing a request.
@@ -69,11 +73,14 @@ namespace kagome::dispute {
     bool operator<(const CandidateComparator &other) const {
       if (relay_parent_block_number.value()
           == other.relay_parent_block_number.value()) {
+        // if the relay parent is the same for both -> compare hashes
         return candidate_hash < other.candidate_hash;
       } else if (relay_parent_block_number.has_value()
                  xor other.relay_parent_block_number.has_value()) {
+        // Candidates with known relay parents are always with priority
         return not relay_parent_block_number.has_value();
       } else {
+        // Otherwise compare by number
         return relay_parent_block_number.value()
              < other.relay_parent_block_number.value();
       }
@@ -86,12 +93,20 @@ namespace kagome::dispute {
   /// the ordering.
   class QueuesImpl final : public Queues {
    public:
-    QueuesImpl() = default;
+    static const size_t kPriorityQueueSize = 20'000;
+    static const size_t kBestEffortQueueSize = 100;
+
+    QueuesImpl(std::shared_ptr<blockchain::BlockHeaderRepository>
+                   block_header_repository);
 
     outcome::result<void> queue(ParticipationPriority priority,
                                 ParticipationRequest request) override;
 
+    std::optional<ParticipationRequest> dequeue() override;
+
    private:
+    std::shared_ptr<blockchain::BlockHeaderRepository> block_header_repository_;
+
     /// Set of best effort participation requests.
     std::map<CandidateComparator, ParticipationRequest> best_effort_;
 
