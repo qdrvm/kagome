@@ -10,7 +10,6 @@
 #include <optional>
 #include <queue>
 
-#include "crypto/bip39/bip39_types.hpp"
 #include "crypto/crypto_store.hpp"
 #include "log/logger.hpp"
 #include "runtime/memory_provider.hpp"
@@ -22,7 +21,6 @@ namespace kagome::crypto {
   class Ed25519Provider;
   class Secp256k1Provider;
   class Hasher;
-  class Bip39Provider;
   class CryptoStore;
 }  // namespace kagome::crypto
 
@@ -44,8 +42,7 @@ namespace kagome::host_api {
         std::shared_ptr<const crypto::Ed25519Provider> ed25519_provider,
         std::shared_ptr<const crypto::Secp256k1Provider> secp256k1_provider,
         std::shared_ptr<const crypto::Hasher> hasher,
-        std::shared_ptr<crypto::CryptoStore> crypto_store,
-        std::shared_ptr<const crypto::Bip39Provider> bip39_provider);
+        std::shared_ptr<crypto::CryptoStore> crypto_store);
 
     // -------------------- hashing methods v1 --------------------
 
@@ -210,8 +207,6 @@ namespace kagome::host_api {
         runtime::WasmPointer key) const;
 
    private:
-    common::Blob<32> deriveSeed(std::string_view content);
-
     runtime::Memory &getMemory() const {
       return memory_provider_->getCurrentMemory()->get();
     }
@@ -223,7 +218,6 @@ namespace kagome::host_api {
     std::shared_ptr<const crypto::Secp256k1Provider> secp256k1_provider_;
     std::shared_ptr<const crypto::Hasher> hasher_;
     std::shared_ptr<crypto::CryptoStore> crypto_store_;
-    std::shared_ptr<const crypto::Bip39Provider> bip39_provider_;
     log::Logger logger_;
   };
 }  // namespace kagome::host_api

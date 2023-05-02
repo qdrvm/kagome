@@ -6,24 +6,19 @@
 #include "crypto/sr25519/sr25519_provider_impl.hpp"
 
 #include "crypto/sr25519_types.hpp"
-#include "libp2p/crypto/random_generator.hpp"
 
 namespace kagome::crypto {
-  Sr25519ProviderImpl::Sr25519ProviderImpl(std::shared_ptr<CSPRNG> generator)
-      : generator_(std::move(generator)) {
-    BOOST_ASSERT(generator_ != nullptr);
-  }
-
-  Sr25519KeypairAndSeed Sr25519ProviderImpl::generateKeypair() const {
-    Sr25519Seed seed;
-    generator_->fillRandomly(seed);
-    return Sr25519KeypairAndSeed{generateKeypair(seed), seed};
-  }
-
   Sr25519Keypair Sr25519ProviderImpl::generateKeypair(
-      const Sr25519Seed &seed) const {
+      const Sr25519Seed &seed, Junctions junctions) const {
     std::array<uint8_t, constants::sr25519::KEYPAIR_SIZE> kp{};
     sr25519_keypair_from_seed(kp.data(), seed.data());
+    for (auto &junction : junctions) {
+      decltype(kp) next;
+      (junction.hard ? sr25519_derive_keypair_hard
+                     : sr25519_derive_keypair_soft)(
+          next.data(), kp.data(), junction.cc.data());
+      kp = next;
+    }
 
     Sr25519Keypair keypair;
     std::copy(kp.begin(),

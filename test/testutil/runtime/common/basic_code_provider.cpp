@@ -5,7 +5,7 @@
 
 #include "testutil/runtime/common/basic_code_provider.hpp"
 
-#include <fstream>
+#include "utils/read_file.hpp"
 
 namespace kagome::runtime {
   using kagome::common::Buffer;
@@ -20,19 +20,10 @@ namespace kagome::runtime {
   }
 
   void BasicCodeProvider::initialize(std::string_view path) {
-    // std::ios::ate seeks to the end of file
-    std::ifstream ifd(std::string(path), std::ios::binary | std::ios::ate);
-    if (!ifd) {
+    common::Buffer buffer;
+    if (not readFile(buffer_, std::string{path})) {
       throw std::runtime_error("File with test code " + std::string(path)
                                + " not found");
     }
-    // so size means count of bytes in file
-    int size = ifd.tellg();
-    // set position to the beginning
-    ifd.seekg(0, std::ios::beg);
-    kagome::common::Buffer buffer(size, 0);
-    // read whole file to the buffer
-    ifd.read(reinterpret_cast<char *>(buffer.data()), size);  // NOLINT
-    buffer_ = std::move(buffer);
   }
 }  // namespace kagome::runtime

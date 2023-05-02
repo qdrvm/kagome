@@ -9,6 +9,7 @@
 #include <fstream>
 
 #include "crypto/ed25519/ed25519_provider_impl.hpp"
+#include "crypto/hasher/hasher_impl.hpp"
 #include "crypto/random_generator/boost_generator.hpp"
 #include "crypto/sr25519/sr25519_provider_impl.hpp"
 #include "mock/core/application/app_configuration_mock.hpp"
@@ -25,18 +26,19 @@ namespace {
   void writeKeys(const fs::path &keystore_dir) {
     auto random_generator =
         std::make_shared<kagome::crypto::BoostRandomGenerator>();
+    auto hasher = std::make_shared<kagome::crypto::HasherImpl>();
     auto sr25519_provider =
-        std::make_shared<kagome::crypto::Sr25519ProviderImpl>(random_generator);
+        std::make_shared<kagome::crypto::Sr25519ProviderImpl>();
 
     auto ed25519_provider =
-        std::make_shared<kagome::crypto::Ed25519ProviderImpl>(random_generator);
+        std::make_shared<kagome::crypto::Ed25519ProviderImpl>(hasher);
 
     {
       auto seed = kagome::crypto::Sr25519Seed::fromSpan(
                       random_generator->randomBytes(
                           kagome::crypto::constants::sr25519::SEED_SIZE))
                       .value();
-      auto babe = sr25519_provider->generateKeypair(seed);
+      auto babe = sr25519_provider->generateKeypair(seed, {});
       auto babe_path =
           (keystore_dir / fmt::format("babe{}", babe.public_key.toHex()))
               .native();
@@ -44,7 +46,9 @@ namespace {
       babe_file << seed.toHex();
     }
     {
-      auto grandpa = ed25519_provider->generateKeypair();
+      kagome::crypto::Ed25519Seed seed;
+      random_generator->fillRandomly(seed);
+      auto grandpa = ed25519_provider->generateKeypair(seed, {}).value();
       auto grandpa_path =
           (keystore_dir / fmt::format("gran{}", grandpa.public_key.toHex()))
               .native();
@@ -56,7 +60,7 @@ namespace {
                       random_generator->randomBytes(
                           kagome::crypto::constants::sr25519::SEED_SIZE))
                       .value();
-      auto libp2p = sr25519_provider->generateKeypair(seed);
+      auto libp2p = sr25519_provider->generateKeypair(seed, {});
       auto libp2p_path =
           (keystore_dir / fmt::format("lp2p{}", libp2p.public_key.toHex()))
               .native();
@@ -87,7 +91,7 @@ namespace {
     roles.flags.full = 1;
     roles.flags.authority = 1;
     EXPECT_CALL(config_mock, roles()).WillRepeatedly(testing::Return(roles));
-    static auto key = std::make_optional(kagome::crypto::Ed25519PrivateKey{});
+    static auto key = std::make_optional(kagome::crypto::Ed25519Seed{});
     EXPECT_CALL(config_mock, nodeKey()).WillRepeatedly(testing::ReturnRef(key));
     EXPECT_CALL(config_mock, listenAddresses())
         .WillRepeatedly(
@@ -140,7 +144,7 @@ class KagomeInjectorTest : public testing::Test {
   }
 
  protected:
-  static inline const auto db_path_ =
+  inline static const auto db_path_ =
       fs::temp_directory_path() / fs::unique_path();
 
   std::shared_ptr<kagome::application::AppConfigurationMock> config_;

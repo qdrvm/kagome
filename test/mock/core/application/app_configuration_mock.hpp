@@ -43,7 +43,7 @@ namespace kagome::application {
                 (std::string chain_id),
                 (const, override));
 
-    MOCK_METHOD(const std::optional<crypto::Ed25519PrivateKey> &,
+    MOCK_METHOD(const std::optional<crypto::Ed25519Seed> &,
                 nodeKey,
                 (),
                 (const, override));

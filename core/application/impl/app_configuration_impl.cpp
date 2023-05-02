@@ -26,8 +26,8 @@
 #include "chain_spec_impl.hpp"
 #include "common/hexutil.hpp"
 #include "common/uri.hpp"
-#include "crypto/crypto_store/dev_mnemonic_phrase.hpp"
 #include "filesystem/directories.hpp"
+#include "utils/read_file.hpp"
 
 namespace {
   namespace fs = kagome::filesystem;
@@ -185,16 +185,15 @@ namespace {
   }
 
   auto &devAccounts() {
-    static auto &dev = kagome::crypto::DevMnemonicPhrase::get();
     using Account =
         std::tuple<const char *, std::string_view, std::string_view>;
     static const std::array<Account, 6> accounts{
-        Account{"alice", "Alice", dev.alice},
-        Account{"bob", "Bob", dev.bob},
-        Account{"charlie", "Charlie", dev.charlie},
-        Account{"dave", "Dave", dev.dave},
-        Account{"eve", "Eve", dev.eve},
-        Account{"ferdie", "Ferdie", dev.ferdie},
+        Account{"alice", "Alice", "//Alice"},
+        Account{"bob", "Bob", "//Bob"},
+        Account{"charlie", "Charlie", "//Charlie"},
+        Account{"dave", "Dave", "//Dave"},
+        Account{"eve", "Eve", "//Eve"},
+        Account{"ferdie", "Ferdie", "//Ferdie"},
     };
     return accounts;
   }
@@ -251,7 +250,7 @@ namespace kagome::application {
 
   boost::filesystem::path AppConfigurationImpl::chainPath(
       std::string chain_id) const {
-    return base_path_ / chain_id;
+    return base_path_ / "chains" / chain_id;
   }
 
   fs::path AppConfigurationImpl::databasePath(std::string chain_id) const {
@@ -944,13 +943,7 @@ namespace kagome::application {
     find_argument<std::string>(
         vm, "node-wss-pem", [&](const std::string &path) {
           std::string pem;
-          std::ifstream file{path, std::ios::ate};
-          if (file.good()) {
-            pem.resize(file.tellg());
-            file.seekg(0);
-            file.read(pem.data(), pem.size());
-          }
-          if (not file.good()) {
+          if (not readFile(pem, path)) {
             SL_ERROR(logger_, "--node-wss-pem {}: read error", path);
             return;
           }
@@ -1041,7 +1034,7 @@ namespace kagome::application {
     find_argument<std::string>(
         vm, "node-key", [&](const std::string &val) { node_key.emplace(val); });
     if (node_key.has_value()) {
-      auto key_res = crypto::Ed25519PrivateKey::fromHex(node_key.value());
+      auto key_res = crypto::Ed25519Seed::fromHex(node_key.value());
       if (not key_res.has_value()) {
         auto err_msg = fmt::format(
             "Node key '{}' is invalid: {}", node_key.value(), key_res.error());

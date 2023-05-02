@@ -27,22 +27,24 @@ namespace kagome::crypto {
     using Keypair = KeypairT;
     using KeypairAndSeed = KeypairAndSeedT;
     using Seed = SeedT;
+    using Junctions = gsl::span<const bip39::RawJunction>;
 
     virtual ~CryptoSuite() = default;
 
     /**
-     * Genereate a keypair from \param seed (mind that in some algorithms a seed
-     * is a private key)
+     * Genereate a keypair from seed and junctions
      */
     virtual outcome::result<Keypair> generateKeypair(
-        const Seed &seed) const noexcept = 0;
+        const Seed &seed, Junctions junctions) const noexcept = 0;
 
     /**
-     * Generate a random keypair (randomness source is determined by an
-     * underlying crypto provider)
+     * Generate a random keypair from seed and junctions
      */
-    virtual outcome::result<KeypairAndSeed> generateRandomKeypair()
-        const noexcept = 0;
+    outcome::result<Keypair> generateKeypair(
+        const bip39::Bip39SeedAndJunctions &bip) const {
+      OUTCOME_TRY(seed, bip.as<Seed>());
+      return generateKeypair(seed, bip.junctions);
+    }
 
     /**
      * Create a keypair from a public key and a private key
@@ -83,17 +85,10 @@ namespace kagome::crypto {
       BOOST_ASSERT(ecdsa_provider_ != nullptr);
     }
 
-    ~EcdsaSuite() override = default;
-
-    outcome::result<EcdsaKeypairAndSeed> generateRandomKeypair()
-        const noexcept override {
-      return ecdsa_provider_->generate();
-    }
-
+    using CryptoSuite::generateKeypair;
     outcome::result<EcdsaKeypair> generateKeypair(
-        const EcdsaSeed &seed) const noexcept override {
-      OUTCOME_TRY(public_key, ecdsa_provider_->derive(seed));
-      return composeKeypair(public_key, EcdsaPrivateKey{seed});
+        const EcdsaSeed &seed, Junctions junctions) const noexcept override {
+      return ecdsa_provider_->generateKeypair(seed, junctions);
     }
 
     EcdsaKeypair composeKeypair(PublicKey pub,
@@ -133,16 +128,10 @@ namespace kagome::crypto {
       BOOST_ASSERT(ed_provider_ != nullptr);
     }
 
-    ~Ed25519Suite() override = default;
-
-    outcome::result<Ed25519KeypairAndSeed> generateRandomKeypair()
-        const noexcept override {
-      return ed_provider_->generateKeypair();
-    }
-
+    using CryptoSuite::generateKeypair;
     outcome::result<Ed25519Keypair> generateKeypair(
-        const Ed25519Seed &seed) const noexcept override {
-      return ed_provider_->generateKeypair(seed);
+        const Ed25519Seed &seed, Junctions junctions) const noexcept override {
+      return ed_provider_->generateKeypair(seed, junctions);
     }
 
     Ed25519Keypair composeKeypair(PublicKey pub,
@@ -182,16 +171,10 @@ namespace kagome::crypto {
       BOOST_ASSERT(sr_provider_ != nullptr);
     }
 
-    ~Sr25519Suite() override = default;
-
-    outcome::result<Sr25519KeypairAndSeed> generateRandomKeypair()
-        const noexcept override {
-      return sr_provider_->generateKeypair();
-    }
-
+    using CryptoSuite::generateKeypair;
     outcome::result<Sr25519Keypair> generateKeypair(
-        const Sr25519Seed &seed) const noexcept override {
-      return sr_provider_->generateKeypair(seed);
+        const Sr25519Seed &seed, Junctions junctions) const noexcept override {
+      return sr_provider_->generateKeypair(seed, junctions);
     }
 
     Sr25519Keypair composeKeypair(PublicKey pub,
