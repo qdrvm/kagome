@@ -23,12 +23,17 @@ namespace kagome::runtime {
 
     MOCK_METHOD(outcome::result<primitives::Version>,
                 version,
-                (primitives::BlockHash const &block),
+                (const primitives::BlockHash &block),
                 (override));
 
     MOCK_METHOD(outcome::result<void>,
                 execute_block,
                 (const primitives::Block &, TrieChangesTrackerOpt),
+                (override));
+
+    MOCK_METHOD(outcome::result<void>,
+                execute_block_ref,
+                (const primitives::BlockReflection &, TrieChangesTrackerOpt),
                 (override));
 
     MOCK_METHOD(outcome::result<std::unique_ptr<RuntimeEnvironment>>,

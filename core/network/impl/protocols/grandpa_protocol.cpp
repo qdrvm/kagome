@@ -294,66 +294,66 @@ namespace kagome::network {
   void GrandpaProtocol::read(std::shared_ptr<Stream> stream) {
     auto read_writer = std::make_shared<ScaleMessageReadWriter>(stream);
 
-    read_writer->read<GrandpaMessage>([stream = std::move(stream),
-                                       wp = weak_from_this()](
-                                          auto &&grandpa_message_res) mutable {
-      auto self = wp.lock();
-      if (not self) {
-        stream->reset();
-        return;
-      }
+    read_writer->read<GrandpaMessage>(
+        [stream = std::move(stream),
+         wp = weak_from_this()](auto &&grandpa_message_res) mutable {
+          auto self = wp.lock();
+          if (not self) {
+            stream->reset();
+            return;
+          }
 
-      if (not grandpa_message_res.has_value()) {
-        SL_VERBOSE(self->base_.logger(),
-                   "Can't read grandpa message from {}: {}",
-                   stream->remotePeerId().value(),
-                   grandpa_message_res.error());
-        stream->reset();
-        return;
-      }
+          if (not grandpa_message_res.has_value()) {
+            SL_VERBOSE(self->base_.logger(),
+                       "Can't read grandpa message from {}: {}",
+                       stream->remotePeerId().value(),
+                       grandpa_message_res.error());
+            stream->reset();
+            return;
+          }
 
-      auto peer_id = stream->remotePeerId().value();
-      auto &grandpa_message = grandpa_message_res.value();
-
-      visit_in_place(
-          grandpa_message,
-          [&](const network::GrandpaVote &vote_message) {
-            SL_VERBOSE(self->base_.logger(),
-                       "VoteMessage has received from {}",
-                       peer_id);
-            self->grandpa_observer_->onVoteMessage(peer_id, vote_message);
-          },
-          [&](const FullCommitMessage &commit_message) {
-            SL_VERBOSE(self->base_.logger(),
-                       "CommitMessage has received from {}",
-                       peer_id);
-            self->grandpa_observer_->onCommitMessage(peer_id, commit_message);
-          },
-          [&](const GrandpaNeighborMessage &neighbor_message) {
-            if (peer_id != self->own_info_.id) {
-              SL_VERBOSE(self->base_.logger(),
-                         "NeighborMessage has received from {}",
-                         peer_id);
-              self->grandpa_observer_->onNeighborMessage(peer_id,
-                                                         neighbor_message);
-            }
-          },
-          [&](const network::CatchUpRequest &catch_up_request) {
-            SL_VERBOSE(self->base_.logger(),
-                       "CatchUpRequest has received from {}",
-                       peer_id);
-            self->grandpa_observer_->onCatchUpRequest(peer_id,
-                                                      catch_up_request);
-          },
-          [&](const network::CatchUpResponse &catch_up_response) {
-            SL_VERBOSE(self->base_.logger(),
-                       "CatchUpResponse has received from {}",
-                       peer_id);
-            self->grandpa_observer_->onCatchUpResponse(peer_id,
-                                                       catch_up_response);
-          });
-      self->read(std::move(stream));
-    });
+          auto peer_id = stream->remotePeerId().value();
+          visit_in_place(
+              std::move(grandpa_message_res.value()),
+              [&](network::GrandpaVote &&vote_message) {
+                SL_VERBOSE(self->base_.logger(),
+                           "VoteMessage has received from {}",
+                           peer_id);
+                self->grandpa_observer_->onVoteMessage(
+                    std::nullopt, peer_id, vote_message);
+              },
+              [&](FullCommitMessage &&commit_message) {
+                SL_VERBOSE(self->base_.logger(),
+                           "CommitMessage has received from {}",
+                           peer_id);
+                self->grandpa_observer_->onCommitMessage(
+                    std::nullopt, peer_id, commit_message);
+              },
+              [&](GrandpaNeighborMessage &&neighbor_message) {
+                if (peer_id != self->own_info_.id) {
+                  SL_VERBOSE(self->base_.logger(),
+                             "NeighborMessage has received from {}",
+                             peer_id);
+                  self->grandpa_observer_->onNeighborMessage(
+                      peer_id, std::move(neighbor_message));
+                }
+              },
+              [&](network::CatchUpRequest &&catch_up_request) {
+                SL_VERBOSE(self->base_.logger(),
+                           "CatchUpRequest has received from {}",
+                           peer_id);
+                self->grandpa_observer_->onCatchUpRequest(
+                    peer_id, std::move(catch_up_request));
+              },
+              [&](network::CatchUpResponse &&catch_up_response) {
+                SL_VERBOSE(self->base_.logger(),
+                           "CatchUpResponse has received from {}",
+                           peer_id);
+                self->grandpa_observer_->onCatchUpResponse(
+                    std::nullopt, peer_id, catch_up_response);
+              });
+          self->read(std::move(stream));
+        });
   }
 
   void GrandpaProtocol::vote(

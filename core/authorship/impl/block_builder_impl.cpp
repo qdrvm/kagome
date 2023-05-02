@@ -52,12 +52,15 @@ namespace kagome::authorship {
         apply_res.value(),
         [this, &extrinsic](
             const primitives::DispatchOutcome &outcome) -> return_type {
-          if (1 == outcome.which()) {  // DispatchError
-            SL_WARN(
-                logger_,
-                "Extrinsic {} pushed to the block, but dispatch error occurred",
-                extrinsic.data.toHex().substr(0, 8));
+          if (auto error = boost::get<primitives::DispatchError>(&outcome)) {
+            SL_WARN(logger_,
+                    "Extrinsic {} cannot be applied and was not pushed to the "
+                    "block. (DispatchError {})",
+                    extrinsic.data.toHex().substr(0, 8),
+                    error->which());
+            return BlockBuilderError::EXTRINSIC_APPLICATION_FAILED;
           }
+          // https://github.com/paritytech/substrate/blob/943c520aa78fcfaf3509790009ad062e8d4c6990/client/block-builder/src/lib.rs#L204-L237
           extrinsics_.push_back(extrinsic);
           return extrinsics_.size() - 1;
         },

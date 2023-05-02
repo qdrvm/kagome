@@ -22,40 +22,49 @@ namespace kagome::consensus::grandpa {
     MOCK_METHOD(void,
                 onNeighborMessage,
                 (const libp2p::peer::PeerId &peer_id,
-                 const network::GrandpaNeighborMessage &msg),
+                 network::GrandpaNeighborMessage &&msg),
                 (override));
 
     MOCK_METHOD(void,
                 onVoteMessage,
-                (const PeerId &peer_id, const VoteMessage &),
+                (std::optional<std::shared_ptr<GrandpaContext>> &&,
+                 const PeerId &peer_id,
+                 const VoteMessage &),
                 (override));
 
     MOCK_METHOD(void,
                 onCommitMessage,
-                (const PeerId &peer_id, const network::FullCommitMessage &),
+                (std::optional<std::shared_ptr<GrandpaContext>> &&,
+                 const PeerId &peer_id,
+                 const network::FullCommitMessage &),
                 (override));
 
-    MOCK_METHOD(outcome::result<void>,
-                verifyJustification,
-                (const GrandpaJustification &,
-                 const primitives::AuthoritySet &),
-                (override));
+    MOCK_METHOD(
+        void,
+        verifyJustification,
+        (const GrandpaJustification &,
+         const primitives::AuthoritySet &,
+         std::shared_ptr<std::promise<outcome::result<void>>> promise_res),
+        (override));
 
-    MOCK_METHOD(outcome::result<void>,
+    MOCK_METHOD(void,
                 applyJustification,
-                (const GrandpaJustification &),
+                (const GrandpaJustification &justification,
+                 ApplyJustificationCb &&),
                 (override));
 
     MOCK_METHOD(void, reload, (), (override));
 
     MOCK_METHOD(void,
                 onCatchUpRequest,
-                (const PeerId &peer_id, const CatchUpRequest &),
+                (const PeerId &peer_id, CatchUpRequest &&),
                 (override));
 
     MOCK_METHOD(void,
                 onCatchUpResponse,
-                (const PeerId &peer_id, const CatchUpResponse &),
+                (std::optional<std::shared_ptr<GrandpaContext>> &&,
+                 const PeerId &peer_id,
+                 const CatchUpResponse &),
                 (override));
 
     MOCK_METHOD(void,

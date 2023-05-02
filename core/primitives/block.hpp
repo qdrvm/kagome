@@ -22,6 +22,14 @@ namespace kagome::primitives {
     BlockHeader header;  ///< block header
     BlockBody body{};    ///< extrinsics collection
   };
+
+  struct BlockReflection {
+    SCALE_TIE(2);
+
+    BlockHeaderReflection header;  ///< block header
+    const BlockBody &body;         ///< extrinsics collection
+  };
+
 }  // namespace kagome::primitives
 
 #endif  // KAGOME_PRIMITIVES_BLOCK_HPP

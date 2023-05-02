@@ -32,9 +32,10 @@ namespace kagome::consensus::babe {
     BOOST_ASSERT(appender_ != nullptr);
   }
 
-  outcome::result<void> BlockHeaderAppenderImpl::appendHeader(
+  void BlockHeaderAppenderImpl::appendHeader(
       primitives::BlockHeader &&block_header,
-      std::optional<primitives::Justification> const &justification) {
+      const std::optional<primitives::Justification> &justification,
+      ApplyJustificationCb &&callback) {
     auto block_context = appender_->makeBlockContext(block_header);
     auto &block_info = block_context.block_info;
 
@@ -42,11 +43,13 @@ namespace kagome::consensus::babe {
       if (last_appended_->number > block_info.number) {
         SL_TRACE(
             logger_, "Skip early appended header of block: {}", block_info);
-        return outcome::success();
+        callback(outcome::success());
+        return;
       }
       if (last_appended_.value() == block_info) {
         SL_TRACE(logger_, "Skip just appended header of block: {}", block_info);
-        return outcome::success();
+        callback(outcome::success());
+        return;
       }
     }
 
@@ -59,14 +62,16 @@ namespace kagome::consensus::babe {
           && header_res.error()
                  == blockchain::BlockTreeError::HEADER_NOT_FOUND) {
         logger_->warn("Skipping a block {} with unknown parent", block_info);
-        return BlockAdditionError::PARENT_NOT_FOUND;
+        callback(BlockAdditionError::PARENT_NOT_FOUND);
+        return;
       } else if (header_res.has_error()) {
-        return header_res.as_failure();
+        callback(header_res.as_failure());
+        return;
       }
     }
 
     // get current time to measure performance if block execution
-    auto t_start = std::chrono::high_resolution_clock::now();
+    const auto t_start = std::chrono::high_resolution_clock::now();
 
     primitives::Block block{.header = std::move(block_header)};
 
@@ -75,52 +80,81 @@ namespace kagome::consensus::babe {
         header_res.has_value()) {
       SL_DEBUG(logger_, "Skip existing header of block: {}", block_info);
 
-      OUTCOME_TRY(block_tree_->addExistingBlock(block_info.hash, block.header));
+      if (auto res =
+              block_tree_->addExistingBlock(block_info.hash, block.header);
+          res.has_error()) {
+        callback(res.as_failure());
+        return;
+      }
     } else if (header_res.error()
                != blockchain::BlockTreeError::HEADER_NOT_FOUND) {
-      return header_res.as_failure();
+      callback(header_res.as_failure());
+      return;
     } else {
-      OUTCOME_TRY(block_tree_->addBlockHeader(block.header));
+      if (auto res = block_tree_->addBlockHeader(block.header);
+          res.has_error()) {
+        callback(res.as_failure());
+        return;
+      }
     }
 
-    OUTCOME_TRY(
-        consistency_guard,
-        appender_->observeDigestsAndValidateHeader(block, block_context));
+    std::optional<ConsistencyGuard> consistency_guard{};
+    if (auto res =
+            appender_->observeDigestsAndValidateHeader(block, block_context);
+        res.has_value()) {
+      consistency_guard.emplace(std::move(res.value()));
+    } else {
+      callback(res.as_failure());
+      return;
+    }
 
-    OUTCOME_TRY(appender_->applyJustifications(block_info, justification));
+    BOOST_ASSERT(consistency_guard);
+    consistency_guard->commit();
 
-    auto now = std::chrono::high_resolution_clock::now();
-
-    SL_DEBUG(
-        logger_,
-        "Imported header of block {} within {} us",
+    appender_->applyJustifications(
         block_info,
-        std::chrono::duration_cast<std::chrono::microseconds>(now - t_start)
-            .count());
+        justification,
+        [wself{weak_from_this()},
+         block_info,
+         t_start,
+         callback{std::move(callback)}](auto &&result) mutable {
+          auto self = wself.lock();
+          if (!self) {
+            callback(BlockAdditionError::NO_INSTANCE);
+            return;
+          }
+          auto const now = std::chrono::high_resolution_clock::now();
 
-    auto block_delta = block_info.number - speed_data_.block_number;
-    auto time_delta = now - speed_data_.time;
-    if (block_delta >= 10000 or time_delta >= std::chrono::minutes(1)) {
-      SL_LOG(
-          logger_,
-          speed_data_.block_number ? log::Level::INFO
-                                   : static_cast<log::Level>(-1),
-          "Imported {} more headers of blocks {}-{}. Average speed is {} bps",
-          block_delta,
-          speed_data_.block_number,
-          block_info.number,
-          block_delta
-              / std::chrono::duration_cast<std::chrono::seconds>(time_delta)
-                    .count());
-      speed_data_.block_number = block_info.number;
-      speed_data_.time = now;
-    }
+          SL_DEBUG(self->logger_,
+                   "Imported header of block {} within {} us",
+                   block_info,
+                   std::chrono::duration_cast<std::chrono::microseconds>(
+                       now - t_start)
+                       .count());
 
-    consistency_guard.commit();
+          auto const block_delta =
+              block_info.number - self->speed_data_.block_number;
+          auto const time_delta = now - self->speed_data_.time;
+          if (block_delta >= 10000 or time_delta >= std::chrono::minutes(1)) {
+            SL_LOG(self->logger_,
+                   self->speed_data_.block_number ? log::Level::INFO
+                                                  : static_cast<log::Level>(-1),
+                   "Imported {} more headers of blocks {}-{}. Average speed is "
+                   "{} bps",
+                   block_delta,
+                   self->speed_data_.block_number,
+                   block_info.number,
+                   block_delta
+                       / std::chrono::duration_cast<std::chrono::seconds>(
+                             time_delta)
+                             .count());
+            self->speed_data_.block_number = block_info.number;
+            self->speed_data_.time = now;
+          }
 
-    last_appended_.emplace(std::move(block_info));
-
-    return outcome::success();
+          self->last_appended_.emplace(std::move(block_info));
+          callback(outcome::success());
+        });
   }
 
 }  // namespace kagome::consensus::babe
