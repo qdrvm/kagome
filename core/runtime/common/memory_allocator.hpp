@@ -206,9 +206,7 @@ namespace kagome::runtime {
               || segmentContainsPack(table_[segment_ix + 1],
                                      new_segment_mask_1))) {
         table_[segment_ix] &= ~new_segment_mask_0;
-        if (new_segment_mask_1 != 0ull) {
-          table_[segment_ix + 1] &= ~new_segment_mask_1;
-        }
+        table_[segment_ix + 1] &= ~new_segment_mask_1;
         fixupCursor();
 
         header_ptr->count = bits_len;
