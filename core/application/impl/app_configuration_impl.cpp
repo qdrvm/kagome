@@ -26,11 +26,12 @@
 #include "chain_spec_impl.hpp"
 #include "common/hexutil.hpp"
 #include "common/uri.hpp"
-#include "crypto/crypto_store/dev_mnemonic_phrase.hpp"
 #include "filesystem/directories.hpp"
+#include "utils/read_file.hpp"
 
 namespace {
   namespace fs = kagome::filesystem;
+  using kagome::application::AppConfiguration;
 
   template <typename T, typename Func>
   void find_argument(boost::program_options::variables_map &vm,
@@ -135,6 +136,20 @@ namespace {
     return std::nullopt;
   }
 
+  std::optional<AppConfiguration::AllowUnsafeRpc> parseAllowUnsafeRpc(
+      std::string_view str) {
+    if (str == "unsafe") {
+      return AppConfiguration::AllowUnsafeRpc::kUnsafe;
+    }
+    if (str == "safe") {
+      return AppConfiguration::AllowUnsafeRpc::kSafe;
+    }
+    if (str == "auto") {
+      return AppConfiguration::AllowUnsafeRpc::kAuto;
+    }
+    return std::nullopt;
+  }
+
   std::optional<kagome::application::AppConfiguration::RuntimeExecutionMethod>
   str_to_runtime_exec_method(std::string_view str) {
     using REM = kagome::application::AppConfiguration::RuntimeExecutionMethod;
@@ -179,16 +194,15 @@ namespace {
   }
 
   auto &devAccounts() {
-    static auto &dev = kagome::crypto::DevMnemonicPhrase::get();
     using Account =
         std::tuple<const char *, std::string_view, std::string_view>;
     static const std::array<Account, 6> accounts{
-        Account{"alice", "Alice", dev.alice},
-        Account{"bob", "Bob", dev.bob},
-        Account{"charlie", "Charlie", dev.charlie},
-        Account{"dave", "Dave", dev.dave},
-        Account{"eve", "Eve", dev.eve},
-        Account{"ferdie", "Ferdie", dev.ferdie},
+        Account{"alice", "Alice", "//Alice"},
+        Account{"bob", "Bob", "//Bob"},
+        Account{"charlie", "Charlie", "//Charlie"},
+        Account{"dave", "Dave", "//Dave"},
+        Account{"eve", "Eve", "//Eve"},
+        Account{"ferdie", "Ferdie", "//Ferdie"},
     };
     return accounts;
   }
@@ -244,7 +258,7 @@ namespace kagome::application {
 
   kagome::filesystem::path AppConfigurationImpl::chainPath(
       std::string chain_id) const {
-    return base_path_ / chain_id;
+    return base_path_ / "chains" / chain_id;
   }
 
   fs::path AppConfigurationImpl::databasePath(std::string chain_id) const {
@@ -804,6 +818,12 @@ namespace kagome::application {
                           "e.g. --telemetry-url 'wss://foo/bar 0'")
         ("random-walk-interval", po::value<uint32_t>()->default_value(def_random_walk_interval), "Kademlia random walk interval")
         ("node-wss-pem", po::value<std::string>(), "Path to pem file with SSL certificate for libp2p wss")
+        ("rpc-cors", po::value<std::string>(), "(unused, zombienet stub)")
+        ("unsafe-rpc-external", po::bool_switch(), "alias for \"--rpc-host 0.0.0.0\"")
+        ("rpc-methods", po::value<std::string>(), "\"auto\" (default), \"unsafe\", \"safe\"")
+        ("unsafe-ws-external", po::bool_switch(), "alias for \"--ws-host 0.0.0.0\"")
+        ("no-mdns", po::bool_switch(), "(unused, zombienet stub)")
+        ("prometheus-external", po::bool_switch(), "alias for \"--prometheus-host 0.0.0.0\"")
         ;
 
     po::options_description development_desc("Additional options");
@@ -962,13 +982,7 @@ namespace kagome::application {
     find_argument<std::string>(
         vm, "node-wss-pem", [&](const std::string &path) {
           std::string pem;
-          std::ifstream file{path, std::ios::ate};
-          if (file.good()) {
-            pem.resize(file.tellg());
-            file.seekg(0);
-            file.read(pem.data(), pem.size());
-          }
-          if (not file.good()) {
+          if (not readFile(pem, path)) {
             SL_ERROR(logger_, "--node-wss-pem {}: read error", path);
             return;
           }
@@ -1059,7 +1073,7 @@ namespace kagome::application {
     find_argument<std::string>(
         vm, "node-key", [&](const std::string &val) { node_key.emplace(val); });
     if (node_key.has_value()) {
-      auto key_res = crypto::Ed25519PrivateKey::fromHex(node_key.value());
+      auto key_res = crypto::Ed25519Seed::fromHex(node_key.value());
       if (not key_res.has_value()) {
         auto err_msg = fmt::format(
             "Node key '{}' is invalid: {}", node_key.value(), key_res.error());
@@ -1206,6 +1220,22 @@ namespace kagome::application {
           openmetrics_http_host_ = val;
         });
 
+    find_argument<bool>(vm, "unsafe-rpc-external", [&](bool flag) {
+      if (flag) {
+        rpc_http_host_ = "0.0.0.0";
+      }
+    });
+    find_argument<bool>(vm, "unsafe-ws-external", [&](bool flag) {
+      if (flag) {
+        rpc_ws_host_ = "0.0.0.0";
+      }
+    });
+    find_argument<bool>(vm, "prometheus-external", [&](bool flag) {
+      if (flag) {
+        openmetrics_http_host_ = "0.0.0.0";
+      }
+    });
+
     find_argument<uint16_t>(
         vm, "rpc-port", [&](uint16_t val) { rpc_http_port_ = val; });
 
@@ -1215,6 +1245,15 @@ namespace kagome::application {
     find_argument<uint16_t>(vm, "prometheus-port", [&](uint16_t val) {
       openmetrics_http_port_ = val;
     });
+
+    if (auto str = find_argument<std::string>(vm, "rpc-methods")) {
+      if (auto value = parseAllowUnsafeRpc(*str)) {
+        allow_unsafe_rpc_ = *value;
+      } else {
+        SL_ERROR(logger_, "Invalid --rpc-methods: \"{}\"", str);
+        return false;
+      }
+    }
 
     find_argument<uint32_t>(
         vm, "out-peers", [&](uint32_t val) { out_peers_ = val; });

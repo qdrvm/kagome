@@ -43,7 +43,7 @@ namespace kagome::application {
                 (std::string chain_id),
                 (const, override));
 
-    MOCK_METHOD(const std::optional<crypto::Ed25519PrivateKey> &,
+    MOCK_METHOD(const std::optional<crypto::Ed25519Seed> &,
                 nodeKey,
                 (),
                 (const, override));
@@ -160,6 +160,8 @@ namespace kagome::application {
                 (const, override));
 
     MOCK_METHOD(std::string, nodeWssPem, (), (const, override));
+
+    MOCK_METHOD(AllowUnsafeRpc, allowUnsafeRpc, (), (const, override));
 
     MOCK_METHOD(std::optional<BenchmarkConfigSection>,
                 getBenchmarkConfig,

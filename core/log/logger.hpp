@@ -21,6 +21,7 @@ namespace kagome::log {
 
   using Level = soralog::Level;
   using Logger = std::shared_ptr<soralog::Logger>;
+  using WLogger = std::weak_ptr<soralog::Logger>;
 
   enum class Error : uint8_t { WRONG_LEVEL = 1, WRONG_GROUP, WRONG_LOGGER };
 
@@ -48,12 +49,12 @@ namespace kagome::log {
   bool resetLevelOfLogger(const std::string &logger_name);
 
   template <typename T, typename Ret>
-  Ret format_arg(T const &t) {
+  Ret format_arg(const T &t) {
     return static_cast<Ret>(t);
   }
 
   template <typename T>
-  auto format_arg(T const *t) {
+  auto format_arg(const T *t) {
     return fmt::ptr(t);
   }
   inline std::string_view format_arg(std::string_view s) {
@@ -61,12 +62,14 @@ namespace kagome::log {
   }
 
   template <typename T, typename = std::enable_if_t<std::is_integral_v<T>>>
-  T const &format_arg(T const &arg) {
+  const T &format_arg(const T &arg) {
     return arg;
   }
 
   inline std::string format_arg(gsl::span<const uint8_t> buffer) {
-    if (buffer.size() == 0) return "";
+    if (buffer.size() == 0) {
+      return "";
+    }
     std::string res;
     if (std::all_of(buffer.begin(), buffer.end(), isalnum)) {
       res.resize(buffer.size());
@@ -91,7 +94,7 @@ namespace kagome::log {
   }
 
   template <typename Ret, typename... Args>
-  void trace_function_call(Logger const &logger,
+  void trace_function_call(const Logger &logger,
                            std::string_view func_name,
                            Ret &&ret,
                            Args &&...args) {
@@ -113,7 +116,7 @@ namespace kagome::log {
   }
 
   template <typename... Args>
-  void trace_void_function_call(Logger const &logger,
+  void trace_void_function_call(const Logger &logger,
                                 std::string_view func_name,
                                 Args &&...args) {
     if (sizeof...(args) > 0) {

@@ -87,7 +87,7 @@ namespace kagome::application {
     /**
      * @return the secret key to use for libp2p networking
      */
-    virtual const std::optional<crypto::Ed25519PrivateKey> &nodeKey() const = 0;
+    virtual const std::optional<crypto::Ed25519Seed> &nodeKey() const = 0;
 
     /**
      * @return the path to key used for libp2p networking
@@ -261,6 +261,10 @@ namespace kagome::application {
     virtual std::optional<std::string_view> devMnemonicPhrase() const = 0;
 
     virtual std::string nodeWssPem() const = 0;
+
+    enum class AllowUnsafeRpc : uint8_t { kAuto, kUnsafe, kSafe };
+
+    virtual AllowUnsafeRpc allowUnsafeRpc() const = 0;
 
     virtual std::optional<BenchmarkConfigSection> getBenchmarkConfig()
         const = 0;

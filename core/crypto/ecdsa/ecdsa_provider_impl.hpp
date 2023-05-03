@@ -8,25 +8,27 @@
 
 #include "crypto/ecdsa_provider.hpp"
 
-#include "libp2p/crypto/ecdsa_provider/ecdsa_provider_impl.hpp"
+#include <secp256k1.h>
+
+#include "crypto/secp256k1/secp256k1_provider_impl.hpp"
 #include "log/logger.hpp"
 
 namespace kagome::crypto {
+  class Hasher;
 
   class EcdsaProviderImpl : public EcdsaProvider {
    public:
-    enum class Error { VERIFICATION_FAILED = 1, SIGN_FAILED };
-    using Libp2pEcdsaProvider = libp2p::crypto::ecdsa::EcdsaProvider;
-    using Libp2pEcdsaProviderImpl = libp2p::crypto::ecdsa::EcdsaProviderImpl;
+    enum class Error {
+      VERIFICATION_FAILED = 1,
+      SIGN_FAILED,
+      DERIVE_FAILED,
+      SOFT_JUNCTION_NOT_SUPPORTED,
+    };
 
-    EcdsaProviderImpl();
+    explicit EcdsaProviderImpl(std::shared_ptr<Hasher> hasher);
 
-    explicit EcdsaProviderImpl(std::shared_ptr<Libp2pEcdsaProvider> provider);
-
-    outcome::result<EcdsaKeypairAndSeed> generate() const override;
-
-    outcome::result<EcdsaPublicKey> derive(
-        const EcdsaSeed &seed) const override;
+    outcome::result<EcdsaKeypair> generateKeypair(
+        const EcdsaSeed &seed, Junctions junctions) const override;
 
     outcome::result<EcdsaSignature> sign(
         gsl::span<const uint8_t> message,
@@ -47,8 +49,10 @@ namespace kagome::crypto {
         const EcdsaPublicKey &publicKey) const override;
 
    private:
-    std::shared_ptr<Libp2pEcdsaProvider> provider_;
+    std::unique_ptr<secp256k1_context, void (*)(secp256k1_context *)> context_;
+    std::shared_ptr<Hasher> hasher_;
     log::Logger logger_;
+    Secp256k1ProviderImpl recovery_;
   };
 
 }  // namespace kagome::crypto

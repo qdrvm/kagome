@@ -163,11 +163,6 @@ namespace kagome::crypto {
         KeyTypeId key_type) const = 0;
 
     /**
-     * @return current LibP2P keypair
-     */
-    virtual std::optional<libp2p::crypto::KeyPair> getLibp2pKeypair() const = 0;
-
-    /**
      * Acquires the key from user-provided path or generates and saves the
      * key under the path. Used when --node-key-file flag gets processed.
      * @param path - path the key file (raw bytes or hex-encoded)

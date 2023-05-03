@@ -8,6 +8,7 @@
 
 #include <libp2p/peer/peer_id.hpp>
 
+#include "consensus/grandpa/grandpa_context.hpp"
 #include "network/types/grandpa_message.hpp"
 
 namespace kagome::consensus::grandpa {
@@ -24,14 +25,16 @@ namespace kagome::consensus::grandpa {
      * @param msg catch-up-request messages
      */
     virtual void onCatchUpRequest(const libp2p::peer::PeerId &peer_id,
-                                  const network::CatchUpRequest &msg) = 0;
+                                  network::CatchUpRequest &&msg) = 0;
 
     /**
      * Handler of grandpa catch-up-response messages
      * @param msg catch-up-response messages
      */
-    virtual void onCatchUpResponse(const libp2p::peer::PeerId &peer_id,
-                                   const network::CatchUpResponse &msg) = 0;
+    virtual void onCatchUpResponse(
+        std::optional<std::shared_ptr<GrandpaContext>> &&existed_context,
+        const libp2p::peer::PeerId &peer_id,
+        const network::CatchUpResponse &msg) = 0;
   };
 
 }  // namespace kagome::consensus::grandpa

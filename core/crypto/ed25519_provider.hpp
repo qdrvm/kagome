@@ -6,28 +6,24 @@
 #ifndef KAGOME_CORE_CRYPTO_ED25519_PROVIDER_HPP
 #define KAGOME_CORE_CRYPTO_ED25519_PROVIDER_HPP
 
-#include <gsl/span>
-#include <outcome/outcome.hpp>
+#include "crypto/bip39/bip39_types.hpp"
 #include "crypto/ed25519_types.hpp"
 
 namespace kagome::crypto {
 
   class Ed25519Provider {
    public:
-    virtual ~Ed25519Provider() = default;
+    using Junctions = gsl::span<const bip39::RawJunction>;
 
-    /**
-     * Generates random keypair for signing the message
-     * @return ed25519 key pair if succeeded of error if failed
-     */
-    virtual Ed25519KeypairAndSeed generateKeypair() const = 0;
+    virtual ~Ed25519Provider() = default;
 
     /**
      * @brief generates key pair by seed
      * @param seed seed value
      * @return ed25519 key pair
      */
-    virtual Ed25519Keypair generateKeypair(const Ed25519Seed &seed) const = 0;
+    virtual outcome::result<Ed25519Keypair> generateKeypair(
+        const Ed25519Seed &seed, Junctions junctions) const = 0;
 
     /**
      * Sign message \param msg using \param keypair. If computed value is less

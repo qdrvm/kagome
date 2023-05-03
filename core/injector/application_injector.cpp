@@ -310,7 +310,8 @@ namespace {
         chain_events_engine,
         std::move(ext_events_engine),
         std::move(ext_events_key_repo),
-        std::move(justification_storage_policy));
+        std::move(justification_storage_policy),
+        injector.template create<std::shared_ptr<::boost::asio::io_context>>());
 
     if (not block_tree_res.has_value()) {
       common::raise(block_tree_res.error());
@@ -577,12 +578,15 @@ namespace {
               auto &app_config =
                   injector
                       .template create<const application::AppConfiguration &>();
+              auto &chain =
+                  injector.template create<const application::ChainSpec &>();
               auto &crypto_provider =
                   injector.template create<const crypto::Ed25519Provider &>();
+              auto &csprng = injector.template create<crypto::CSPRNG &>();
               auto &crypto_store =
                   injector.template create<crypto::CryptoStore &>();
               return injector::get_peer_keypair(
-                  app_config, crypto_provider, crypto_store);
+                  app_config, chain, crypto_provider, csprng, crypto_store);
             })[boost::di::override],
 
             di::bind<api::Listener *[]>()  // NOLINT

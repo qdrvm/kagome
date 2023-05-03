@@ -7,6 +7,7 @@ add_library(crypto_store_key_type
     key_type.cpp
     )
 target_link_libraries(crypto_store_key_type
+    blob
     Boost::boost
     outcome
     )

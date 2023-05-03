@@ -10,6 +10,7 @@
 #include "common/buffer.hpp"
 #include "crypto/bip39/impl/bip39_provider_impl.hpp"
 #include "crypto/bip39/mnemonic.hpp"
+#include "crypto/hasher/hasher_impl.hpp"
 #include "crypto/pbkdf2/impl/pbkdf2_provider_impl.hpp"
 #include "testutil/outcome.hpp"
 #include "testutil/prepare_loggers.hpp"
@@ -25,7 +26,9 @@ struct Bip39EntropyTest : public ::testing::Test {
 
   void SetUp() override {
     auto pbkdf2_provider = std::make_shared<Pbkdf2ProviderImpl>();
-    bip39_provider = std::make_shared<Bip39ProviderImpl>(pbkdf2_provider);
+    auto hasher = std::make_shared<HasherImpl>();
+    bip39_provider =
+        std::make_shared<Bip39ProviderImpl>(pbkdf2_provider, hasher);
     phrase =
         "legal winner thank year wave sausage worth useful legal winner "
         "thank yellow";
@@ -50,11 +53,11 @@ struct Bip39EntropyTest : public ::testing::Test {
  */
 TEST_F(Bip39EntropyTest, DecodeSuccess) {
   EXPECT_OUTCOME_TRUE(mnemonic, Mnemonic::parse(phrase));
-  auto joined_words = boost::algorithm::join(mnemonic.words, " ");
+  auto joined_words = boost::algorithm::join(*mnemonic.words(), " ");
   ASSERT_EQ(joined_words, phrase);
 
   EXPECT_OUTCOME_TRUE(entropy,
-                      bip39_provider->calculateEntropy(mnemonic.words));
+                      bip39_provider->calculateEntropy(*mnemonic.words()));
   ASSERT_EQ(common::Buffer(entropy).toHex(), entropy_hex);
 
   EXPECT_OUTCOME_TRUE(seed, bip39_provider->makeSeed(entropy, "Substrate"));
