@@ -30,6 +30,9 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::storage::trie_pruner,
              "info record (most likely a corrupted database)";
     case E::CREATE_PRUNER_ON_NON_PRUNED_NON_EMPTY_STORAGE:
       return "Attempt to create trie pruner on a non-pruned non-empty database";
+    case E::LAST_PRUNED_BLOCK_IS_LAST_FINALIZED:
+      return "Last pruned block is the last finalized block, so the trie "
+             "pruner cannot register the next block state";
   }
   return "Unknown TriePruner error";
 }
@@ -168,7 +171,8 @@ namespace kagome::storage::trie_pruner {
     } else {
       OUTCOME_TRY(base_block_header,
                   block_tree.getBlockHeader(last_pruned_block_.value().hash));
-      BOOST_ASSERT(block_tree.getLastFinalized().number >= base_block_.number);
+      BOOST_ASSERT(block_tree.getLastFinalized().number
+                   >= last_pruned_block_->number);
       if (auto res = restoreState(base_block_header, block_tree);
           res.has_error()) {
         SL_WARN(logger_,

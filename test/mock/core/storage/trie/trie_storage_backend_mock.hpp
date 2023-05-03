@@ -12,7 +12,7 @@
 
 namespace kagome::storage::trie {
 
-  class TrieStorageBackendMock final : public TrieStorageBackend {
+  class TrieStorageBackendMock : public TrieStorageBackend {
    public:
     MOCK_METHOD(std::unique_ptr<BufferBatch>, batch, (), (override));
 

@@ -12,7 +12,7 @@
 
 namespace kagome::storage::trie {
 
-  class TrieSerializerMock final : public TrieSerializer {
+  class TrieSerializerMock : public TrieSerializer {
    public:
     MOCK_METHOD(RootHash, getEmptyRootHash, (), (const, override));
 
