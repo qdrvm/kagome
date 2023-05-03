@@ -137,9 +137,8 @@ namespace kagome::runtime {
       }
 
       setContiguousBits<0ull>(position, bits_len);
-      while (cursor_ < table_.size() && table_[cursor_] == 0ull) {
-        ++cursor_;
-      }
+      fixupCursor();
+
       auto *const header_ptr =
           (AllocationHeader *)(toAddr(position * kGranularity));
       header_ptr->count = bits_len;
@@ -176,7 +175,8 @@ namespace kagome::runtime {
       auto *const header_ptr = (AllocationHeader *)(toAddr(alloc_begin));
 
       const auto old_bits_pack = header_ptr->count;
-      const auto bits_len = bitsPackLenFromSize(math::roundUp<kGranularity>(size + AllocationHeader::kHeaderSize));
+      const auto bits_len = bitsPackLenFromSize(
+          math::roundUp<kGranularity>(size + AllocationHeader::kHeaderSize));
 
       if (old_bits_pack >= bits_len) {
         return offset;
@@ -197,25 +197,35 @@ namespace kagome::runtime {
       new_segment_mask_0 &= ~old_segment_mask_0;
       new_segment_mask_1 &= ~old_segment_mask_1;
 
+      if (new_segment_mask_1 != 0ull && table_.size() <= segment_ix + 1) {
+        storageAdjust(1ull);
+      }
+
       if (segmentContainsPack(table_[segment_ix], new_segment_mask_0)
           && (new_segment_mask_1 == 0ull
-              || ((table_.size() > segment_ix + 1)
-                  && segmentContainsPack(table_[segment_ix + 1],
-                                         new_segment_mask_1)))) {
+              || segmentContainsPack(table_[segment_ix + 1],
+                                     new_segment_mask_1))) {
         table_[segment_ix] &= ~new_segment_mask_0;
         if (new_segment_mask_1 != 0ull) {
           table_[segment_ix + 1] &= ~new_segment_mask_1;
         }
+        fixupCursor();
+
         header_ptr->count = bits_len;
         return offset;
       }
 
       const auto new_offset = allocate(size);
-      memcpy(toAddr(new_offset),
-             toAddr(offset),
-             sizeFromBitsPackLen(old_bits_pack) - AllocationHeader::kHeaderSize);
+      memcpy(
+          toAddr(new_offset),
+          toAddr(offset),
+          sizeFromBitsPackLen(old_bits_pack) - AllocationHeader::kHeaderSize);
       deallocate(offset);
-      return offset;
+      return new_offset;
+    }
+
+    uint8_t *toAddr(uint64_t offset) {
+      return startAddr() + offset;
     }
 
     MemoryAllocatorNew(size_t preallocated) {
@@ -250,6 +260,12 @@ namespace kagome::runtime {
 
     auto segmentsToSize(size_t val) {
       return val * kSegmentSize;
+    }
+
+    void fixupCursor() {
+      while (cursor_ < table_.size() && table_[cursor_] == 0ull) {
+        ++cursor_;
+      }
     }
 
     void getFullSegmentMask(uint64_t &segment_0,
@@ -347,10 +363,6 @@ namespace kagome::runtime {
 
     uint8_t *startAddr() {
       return storage_;
-    }
-
-    uint8_t *toAddr(uint64_t offset) {
-      return startAddr() + offset;
     }
 
     template <size_t kValue>

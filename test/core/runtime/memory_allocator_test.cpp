@@ -607,7 +607,7 @@ TEST_F(MemoryAllocatorTest, RelocateTest_3) {
   ASSERT_EQ(0xffffffffffffffff, allocator_->table_[1]);
   ASSERT_EQ(0xffffffffffffffff, allocator_->table_[2]);
 
-  const auto ptr_1 = allocator_->realloc(ptr_0, 2* allocator_->kGranularity);
+  const auto ptr_1 = allocator_->realloc(ptr_0, 2 * allocator_->kGranularity);
   ASSERT_EQ(ptr_1, ptr_0);
   ASSERT_EQ(allocator_->getHeader(ptr_1).count, 3);
   ASSERT_EQ(0xfffffffffffffff8, allocator_->table_[0]);
@@ -631,7 +631,8 @@ TEST_F(MemoryAllocatorTest, RelocateTest_4) {
   ASSERT_EQ(0xffffffffffffffff, allocator_->table_[1]);
   ASSERT_EQ(0xffffffffffffffff, allocator_->table_[2]);
 
-  [[maybe_unused]] const auto ptr_2 = allocator_->allocate(allocator_->kGranularity);
+  [[maybe_unused]] const auto ptr_2 =
+      allocator_->allocate(allocator_->kGranularity);
   ASSERT_EQ(0xffffffffffffffc0, allocator_->table_[0]);
   ASSERT_EQ(0xffffffffffffffff, allocator_->table_[1]);
   ASSERT_EQ(0xffffffffffffffff, allocator_->table_[2]);
@@ -667,7 +668,8 @@ TEST_F(MemoryAllocatorTest, RelocateTest_6) {
   ASSERT_EQ(0xffffffffffffffff, allocator_->table_[1]);
   ASSERT_EQ(0xffffffffffffffff, allocator_->table_[2]);
 
-  [[maybe_unused]] const auto ptr_2 = allocator_->allocate(allocator_->kGranularity);
+  [[maybe_unused]] const auto ptr_2 =
+      allocator_->allocate(allocator_->kGranularity);
   ASSERT_EQ(0xffffffffffffffc0, allocator_->table_[0]);
   ASSERT_EQ(0xffffffffffffffff, allocator_->table_[1]);
   ASSERT_EQ(0xffffffffffffffff, allocator_->table_[2]);
@@ -691,14 +693,15 @@ TEST_F(MemoryAllocatorTest, RelocateTest_7) {
   ASSERT_EQ(0xffffffffffffffff, allocator_->table_[1]);
   ASSERT_EQ(0xffffffffffffffff, allocator_->table_[2]);
 
-  *(uint64_t*)allocator_->toAddr(ptr_0) = 0x1234567812345678ull;
+  *(uint64_t *)allocator_->toAddr(ptr_0) = 0x1234567812345678ull;
 
   const auto ptr_1 = allocator_->allocate(allocator_->kGranularity);
   ASSERT_EQ(0xfffffffffffffff0, allocator_->table_[0]);
   ASSERT_EQ(0xffffffffffffffff, allocator_->table_[1]);
   ASSERT_EQ(0xffffffffffffffff, allocator_->table_[2]);
 
-  [[maybe_unused]] const auto ptr_2 = allocator_->allocate(allocator_->kGranularity);
+  [[maybe_unused]] const auto ptr_2 =
+      allocator_->allocate(allocator_->kGranularity);
   ASSERT_EQ(0xffffffffffffffc0, allocator_->table_[0]);
   ASSERT_EQ(0xffffffffffffffff, allocator_->table_[1]);
   ASSERT_EQ(0xffffffffffffffff, allocator_->table_[2]);
@@ -712,7 +715,7 @@ TEST_F(MemoryAllocatorTest, RelocateTest_7) {
   ASSERT_EQ(0xfffffffffffff80f, allocator_->table_[0]);
   ASSERT_EQ(0xffffffffffffffff, allocator_->table_[1]);
   ASSERT_EQ(0xffffffffffffffff, allocator_->table_[2]);
-  ASSERT_EQ(*(uint64_t*)allocator_->toAddr(ptr_3), 0x1234567812345678ull);
+  ASSERT_EQ(*(uint64_t *)allocator_->toAddr(ptr_3), 0x1234567812345678ull);
 }
 
 TEST_F(MemoryAllocatorTest, RelocateTest_8) {
@@ -738,3 +741,201 @@ TEST_F(MemoryAllocatorTest, RelocateTest_8) {
   ASSERT_EQ(0xffffffffffffffff, allocator_->table_[2]);
 }
 
+TEST_F(MemoryAllocatorTest, RelocateTest_9) {
+  allocator_->allocate(allocator_->kGranularity * 63);
+  ASSERT_EQ(0x0000000000000000, allocator_->table_[0]);
+  ASSERT_EQ(0xffffffffffffffff, allocator_->table_[1]);
+  ASSERT_EQ(0xffffffffffffffff, allocator_->table_[2]);
+
+  allocator_->allocate(allocator_->kGranularity * 63);
+  ASSERT_EQ(0x0000000000000000, allocator_->table_[0]);
+  ASSERT_EQ(0x0000000000000000, allocator_->table_[1]);
+  ASSERT_EQ(0xffffffffffffffff, allocator_->table_[2]);
+
+  const auto ptr_1 = allocator_->allocate(allocator_->kGranularity * 31);
+  ASSERT_EQ(0x0000000000000000, allocator_->table_[0]);
+  ASSERT_EQ(0x0000000000000000, allocator_->table_[1]);
+  ASSERT_EQ(0xffffffff00000000, allocator_->table_[2]);
+
+  const auto ptr_3 = allocator_->realloc(ptr_1, allocator_->kGranularity * 63);
+  ASSERT_EQ(ptr_1, ptr_3);
+  ASSERT_EQ(0x0000000000000000, allocator_->table_[0]);
+  ASSERT_EQ(0x0000000000000000, allocator_->table_[1]);
+  ASSERT_EQ(0x0000000000000000, allocator_->table_[2]);
+}
+
+TEST_F(MemoryAllocatorTest, RelocateTest_10) {
+  allocator_->allocate(allocator_->kGranularity * 63);
+  ASSERT_EQ(0x0000000000000000, allocator_->table_[0]);
+  ASSERT_EQ(0xffffffffffffffff, allocator_->table_[1]);
+  ASSERT_EQ(0xffffffffffffffff, allocator_->table_[2]);
+
+  allocator_->allocate(allocator_->kGranularity * 63);
+  ASSERT_EQ(0x0000000000000000, allocator_->table_[0]);
+  ASSERT_EQ(0x0000000000000000, allocator_->table_[1]);
+  ASSERT_EQ(0xffffffffffffffff, allocator_->table_[2]);
+
+  const auto ptr_1 = allocator_->allocate(allocator_->kGranularity * 31);
+  ASSERT_EQ(0x0000000000000000, allocator_->table_[0]);
+  ASSERT_EQ(0x0000000000000000, allocator_->table_[1]);
+  ASSERT_EQ(0xffffffff00000000, allocator_->table_[2]);
+
+  const auto ptr_3 = allocator_->realloc(ptr_1, allocator_->kGranularity * 64);
+  ASSERT_EQ(ptr_1, ptr_3);
+  ASSERT_EQ(0x0000000000000000, allocator_->table_[0]);
+  ASSERT_EQ(0x0000000000000000, allocator_->table_[1]);
+  ASSERT_EQ(0x0000000000000000, allocator_->table_[2]);
+  ASSERT_EQ(0xfffffffffffffffe, allocator_->table_[3]);
+}
+
+TEST_F(MemoryAllocatorTest, RelocateTest_11) {
+  allocator_->allocate(allocator_->kGranularity * 63);
+  ASSERT_EQ(0x0000000000000000, allocator_->table_[0]);
+  ASSERT_EQ(0xffffffffffffffff, allocator_->table_[1]);
+  ASSERT_EQ(0xffffffffffffffff, allocator_->table_[2]);
+
+  allocator_->allocate(allocator_->kGranularity * 63);
+  ASSERT_EQ(0x0000000000000000, allocator_->table_[0]);
+  ASSERT_EQ(0x0000000000000000, allocator_->table_[1]);
+  ASSERT_EQ(0xffffffffffffffff, allocator_->table_[2]);
+
+  const auto ptr_1 = allocator_->allocate(allocator_->kGranularity * 63);
+  ASSERT_EQ(0x0000000000000000, allocator_->table_[0]);
+  ASSERT_EQ(0x0000000000000000, allocator_->table_[1]);
+  ASSERT_EQ(0x0000000000000000, allocator_->table_[2]);
+
+  const auto ptr_3 = allocator_->realloc(ptr_1, allocator_->kGranularity * 64);
+  ASSERT_EQ(ptr_1, ptr_3);
+  ASSERT_EQ(0x0000000000000000, allocator_->table_[0]);
+  ASSERT_EQ(0x0000000000000000, allocator_->table_[1]);
+  ASSERT_EQ(0x0000000000000000, allocator_->table_[2]);
+  ASSERT_EQ(0xfffffffffffffffe, allocator_->table_[3]);
+}
+
+TEST_F(MemoryAllocatorTest, RelocateTest_12) {
+  allocator_->allocate(allocator_->kGranularity * 63);
+  ASSERT_EQ(0x0000000000000000, allocator_->table_[0]);
+  ASSERT_EQ(0xffffffffffffffff, allocator_->table_[1]);
+  ASSERT_EQ(0xffffffffffffffff, allocator_->table_[2]);
+
+  allocator_->allocate(allocator_->kGranularity * 63);
+  ASSERT_EQ(0x0000000000000000, allocator_->table_[0]);
+  ASSERT_EQ(0x0000000000000000, allocator_->table_[1]);
+  ASSERT_EQ(0xffffffffffffffff, allocator_->table_[2]);
+
+  allocator_->allocate(allocator_->kGranularity * 63);
+  ASSERT_EQ(0x0000000000000000, allocator_->table_[0]);
+  ASSERT_EQ(0x0000000000000000, allocator_->table_[1]);
+  ASSERT_EQ(0x0000000000000000, allocator_->table_[2]);
+
+  allocator_->realloc(0ull, allocator_->kGranularity * 64);
+  ASSERT_EQ(0x0000000000000000, allocator_->table_[0]);
+  ASSERT_EQ(0x0000000000000000, allocator_->table_[1]);
+  ASSERT_EQ(0x0000000000000000, allocator_->table_[2]);
+  ASSERT_EQ(0x0000000000000000, allocator_->table_[3]);
+  ASSERT_EQ(0xfffffffffffffffe, allocator_->table_[4]);
+}
+
+TEST_F(MemoryAllocatorTest, RelocateTest_13) {
+  allocator_->allocate(allocator_->kGranularity * 63);
+  ASSERT_EQ(0x0000000000000000, allocator_->table_[0]);
+  ASSERT_EQ(0xffffffffffffffff, allocator_->table_[1]);
+  ASSERT_EQ(0xffffffffffffffff, allocator_->table_[2]);
+
+  allocator_->allocate(allocator_->kGranularity * 63);
+  ASSERT_EQ(0x0000000000000000, allocator_->table_[0]);
+  ASSERT_EQ(0x0000000000000000, allocator_->table_[1]);
+  ASSERT_EQ(0xffffffffffffffff, allocator_->table_[2]);
+
+  allocator_->allocate(allocator_->kGranularity * 62);
+  ASSERT_EQ(0x0000000000000000, allocator_->table_[0]);
+  ASSERT_EQ(0x0000000000000000, allocator_->table_[1]);
+  ASSERT_EQ(0x8000000000000000, allocator_->table_[2]);
+
+  allocator_->realloc(0ull, allocator_->kGranularity * 64);
+  ASSERT_EQ(allocator_->table_.size(), 4);
+  ASSERT_EQ(0x0000000000000000, allocator_->table_[0]);
+  ASSERT_EQ(0x0000000000000000, allocator_->table_[1]);
+  ASSERT_EQ(0x0000000000000000, allocator_->table_[2]);
+  ASSERT_EQ(0x0000000000000000, allocator_->table_[3]);
+}
+
+TEST_F(MemoryAllocatorTest, RelocateTest_14) {
+  allocator_->allocate(allocator_->kGranularity * 63);
+  ASSERT_EQ(0x0000000000000000, allocator_->table_[0]);
+  ASSERT_EQ(0xffffffffffffffff, allocator_->table_[1]);
+  ASSERT_EQ(0xffffffffffffffff, allocator_->table_[2]);
+
+  allocator_->allocate(allocator_->kGranularity * 63);
+  ASSERT_EQ(0x0000000000000000, allocator_->table_[0]);
+  ASSERT_EQ(0x0000000000000000, allocator_->table_[1]);
+  ASSERT_EQ(0xffffffffffffffff, allocator_->table_[2]);
+
+  allocator_->allocate(allocator_->kGranularity * 61);
+  ASSERT_EQ(0x0000000000000000, allocator_->table_[0]);
+  ASSERT_EQ(0x0000000000000000, allocator_->table_[1]);
+  ASSERT_EQ(0xc000000000000000, allocator_->table_[2]);
+
+  const auto p_1 = allocator_->realloc(0ull, allocator_->kGranularity);
+  ASSERT_EQ(allocator_->table_.size(), 3);
+  ASSERT_EQ(0x0000000000000000, allocator_->table_[0]);
+  ASSERT_EQ(0x0000000000000000, allocator_->table_[1]);
+  ASSERT_EQ(0x0000000000000000, allocator_->table_[2]);
+
+  const auto p_2 = allocator_->realloc(p_1, allocator_->kGranularity * 64);
+  ASSERT_EQ(allocator_->table_.size(), 4);
+  ASSERT_EQ(p_1, p_2);
+  ASSERT_EQ(0x0000000000000000, allocator_->table_[0]);
+  ASSERT_EQ(0x0000000000000000, allocator_->table_[1]);
+  ASSERT_EQ(0x0000000000000000, allocator_->table_[2]);
+  ASSERT_EQ(0x8000000000000000, allocator_->table_[3]);
+}
+
+TEST_F(MemoryAllocatorTest, RelocateTest_15) {
+  allocator_->allocate(allocator_->kGranularity * 63);
+  ASSERT_EQ(0x0000000000000000, allocator_->table_[0]);
+  ASSERT_EQ(0xffffffffffffffff, allocator_->table_[1]);
+  ASSERT_EQ(0xffffffffffffffff, allocator_->table_[2]);
+
+  const auto p_0 = allocator_->allocate(allocator_->kGranularity * 63);
+  ASSERT_EQ(0x0000000000000000, allocator_->table_[0]);
+  ASSERT_EQ(0x0000000000000000, allocator_->table_[1]);
+  ASSERT_EQ(0xffffffffffffffff, allocator_->table_[2]);
+
+  allocator_->allocate(allocator_->kGranularity * 63);
+  ASSERT_EQ(0x0000000000000000, allocator_->table_[0]);
+  ASSERT_EQ(0x0000000000000000, allocator_->table_[1]);
+  ASSERT_EQ(0x0000000000000000, allocator_->table_[2]);
+
+  allocator_->deallocate(p_0);
+  ASSERT_EQ(0x0000000000000000, allocator_->table_[0]);
+  ASSERT_EQ(0xffffffffffffffff, allocator_->table_[1]);
+  ASSERT_EQ(0x0000000000000000, allocator_->table_[2]);
+
+  const auto p_1 = allocator_->realloc(0ull, 31 * allocator_->kGranularity);
+  ASSERT_EQ(0x0000000000000000, allocator_->table_[0]);
+  ASSERT_EQ(0xffffffff00000000, allocator_->table_[1]);
+  ASSERT_EQ(0x0000000000000000, allocator_->table_[2]);
+
+  const auto p_2 = allocator_->realloc(p_1, 39 * allocator_->kGranularity);
+  ASSERT_EQ(p_2, p_1);
+  ASSERT_EQ(0x0000000000000000, allocator_->table_[0]);
+  ASSERT_EQ(0xffffff0000000000, allocator_->table_[1]);
+  ASSERT_EQ(0x0000000000000000, allocator_->table_[2]);
+  strcpy((char *)allocator_->toAddr(p_2), "This is a test str!!!(c)");
+
+  allocator_->realloc(0ull, 3 * allocator_->kGranularity);
+  ASSERT_EQ(0x0000000000000000, allocator_->table_[0]);
+  ASSERT_EQ(0xfffff00000000000, allocator_->table_[1]);
+  ASSERT_EQ(0x0000000000000000, allocator_->table_[2]);
+
+  const auto p_3 = allocator_->realloc(p_2, 40 * allocator_->kGranularity);
+  ASSERT_NE(p_3, p_2);
+  ASSERT_EQ(allocator_->table_.size(), 4);
+  ASSERT_EQ(0x0000000000000000, allocator_->table_[0]);
+  ASSERT_EQ(0xfffff0ffffffffff, allocator_->table_[1]);
+  ASSERT_EQ(0x0000000000000000, allocator_->table_[2]);
+  ASSERT_EQ(0xfffffe0000000000, allocator_->table_[3]);
+  ASSERT_EQ(strcmp((char *)allocator_->toAddr(p_3), "This is a test str!!!(c)"),
+            0);
+}
