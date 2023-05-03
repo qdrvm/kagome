@@ -141,14 +141,18 @@ namespace kagome::runtime {
         ++cursor_;
       }
       auto *const header_ptr =
-          (AllocationHeader *)(position * kGranularity + startAddr());
+          (AllocationHeader *)(toAddr(position * kGranularity));
       header_ptr->count = bits_len;
       return position * kGranularity + AllocationHeader::kHeaderSize;
     }
 
     std::optional<size_t> deallocate(size_t offset) {
+      if (offset == 0ull) {
+        return std::nullopt;
+      }
+
       const auto alloc_begin = offset - AllocationHeader::kHeaderSize;
-      auto *const header_ptr = (AllocationHeader *)(alloc_begin + startAddr());
+      auto *const header_ptr = (AllocationHeader *)(toAddr(alloc_begin));
 
       assert((alloc_begin % kGranularity) == 0ull);
       const auto position = alloc_begin / kGranularity;
@@ -164,8 +168,12 @@ namespace kagome::runtime {
         return 0ull;
       }
 
+      if (offset == 0ull) {
+        return allocate(size);
+      }
+
       const auto alloc_begin = offset - AllocationHeader::kHeaderSize;
-      auto *const header_ptr = (AllocationHeader *)(alloc_begin + startAddr());
+      auto *const header_ptr = (AllocationHeader *)(toAddr(alloc_begin));
       const auto old_size = sizeFromBitsPackLen(header_ptr->count);
       const auto allocation_size =
           math::roundUp<kGranularity>(size + AllocationHeader::kHeaderSize);
@@ -177,45 +185,35 @@ namespace kagome::runtime {
       const auto segment_ix = alloc_begin / kSegmentInBits;
       const auto bit_ix = alloc_begin % kSegmentInBits;
 
-      size_t old_remains;
-      const auto old_segment_mask_0 = getSegmentMask<true>(bit_ix, header_ptr->count, old_remains);
-      const auto old_segment_mask_1 = getSegmentMask<false>(0ull, old_remains, old_remains);
+      uint64_t old_segment_mask_0, old_segment_mask_1;
+      getFullSegmentMask(old_segment_mask_0, old_segment_mask_1, bit_ix, header_ptr->count);
 
+      uint64_t new_segment_mask_0, new_segment_mask_1;
       const auto bits_len = bitsPackLenFromSize(allocation_size);
-      size_t new_remains;
-      auto new_segment_mask_0 = getSegmentMask<true>(bit_ix, bits_len, new_remains);
-      auto new_segment_mask_1 = getSegmentMask<false>(0ull, new_remains, new_remains);
+      getFullSegmentMask(new_segment_mask_0, new_segment_mask_1, bit_ix, bits_len);
 
       new_segment_mask_0 &= ~old_segment_mask_0;
       new_segment_mask_1 &= ~old_segment_mask_1;
 
-      if ((table_[segment_ix] & new_segment_mask_0) == new_segment_mask_0) {
-        if ((table_.size() > segment_ix + 1) && ((table_[segment_ix + 1] & new_segment_mask_0) == new_segment_mask_0)) {
-          
+      if (segmentContainsPack(table_[segment_ix], new_segment_mask_0)
+          && (new_segment_mask_1 == 0ull
+              || ((table_.size() > segment_ix + 1)
+                  && segmentContainsPack(table_[segment_ix + 1],
+                                         new_segment_mask_1)))) {
+        table_[segment_ix] &= ~new_segment_mask_0;
+        if (new_segment_mask_1 != 0ull) {
+          table_[segment_ix + 1] &= ~new_segment_mask_1;
         }
-      }
-      
-
-      /*if constexpr (kValue == 0ull) {
-        table_[segment_ix] &= ~segment_mask_0;
-      } else {
-        table_[segment_ix] |= segment_mask_0;
+        header_ptr->count = bits_len;
+        return offset;
       }
 
-      if (table_.size() > segment_ix + 1) {
-        const auto segment_mask_1 =
-            remains == 0ull ? 0ull
-                            : getSegmentMask<false>(0ull, remains, remains);
-        if constexpr (kValue == 0ull) {
-          table_[segment_ix + 1] &= ~segment_mask_1;
-        } else {
-          table_[segment_ix + 1] |= segment_mask_1;
-        }
-      }*/
-
-
-      //assert((alloc_begin % kGranularity) == 0ull);
-      //const auto position = alloc_begin / kGranularity;
+      const auto new_offset = allocate(size);
+      memcpy(toAddr(new_offset),
+             toAddr(offset),
+             old_size - AllocationHeader::kHeaderSize);
+      deallocate(offset);
+      return offset;
     }
 
     MemoryAllocatorNew(size_t preallocated) {
@@ -250,6 +248,20 @@ namespace kagome::runtime {
 
     auto segmentsToSize(size_t val) {
       return val * kSegmentSize;
+    }
+
+    void getFullSegmentMask(uint64_t &segment_0, uint64_t &segment_1, size_t position, size_t count) {
+      size_t remains;
+      segment_0 = getSegmentMask<true>(position, count, remains);
+      segment_1 = getSegmentMask<false>(0ull, remains, remains);
+    }
+
+    const AllocationHeader &getHeader(uint64_t offset) {
+      return *(const AllocationHeader*)toAddr(offset - AllocationHeader::kHeaderSize);
+    }
+
+    bool segmentContainsPack(uint64_t segment, uint64_t pack) const {
+      return (segment & pack) == pack;
     }
 
     auto sizeToSegments(size_t size) {
@@ -320,8 +332,12 @@ namespace kagome::runtime {
       return AllocationHeader::kHeaderSize;
     }
 
-    const uint8_t *startAddr() const {
+    uint8_t *startAddr() {
       return storage_;
+    }
+
+    uint8_t *toAddr(uint64_t offset) {
+      return startAddr() + offset;
     }
 
     template <size_t kValue>
@@ -338,7 +354,8 @@ namespace kagome::runtime {
       }
 
       if (table_.size() > segment_ix + 1) {
-        const auto segment_mask_1 = getSegmentMask<false>(0ull, remains, remains);
+        const auto segment_mask_1 =
+            getSegmentMask<false>(0ull, remains, remains);
         if constexpr (kValue == 0ull) {
           table_[segment_ix + 1] &= ~segment_mask_1;
         } else {
