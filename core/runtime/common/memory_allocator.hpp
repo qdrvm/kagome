@@ -174,23 +174,23 @@ namespace kagome::runtime {
 
       const auto alloc_begin = offset - AllocationHeader::kHeaderSize;
       auto *const header_ptr = (AllocationHeader *)(toAddr(alloc_begin));
-      const auto old_size = sizeFromBitsPackLen(header_ptr->count);
-      const auto allocation_size =
-          math::roundUp<kGranularity>(size + AllocationHeader::kHeaderSize);
 
-      if (old_size >= allocation_size) {
+      const auto old_bits_pack = header_ptr->count;
+      const auto bits_len = bitsPackLenFromSize(math::roundUp<kGranularity>(size + AllocationHeader::kHeaderSize));
+
+      if (old_bits_pack >= bits_len) {
         return offset;
       }
 
-      const auto segment_ix = alloc_begin / kSegmentInBits;
-      const auto bit_ix = alloc_begin % kSegmentInBits;
+      const auto position = alloc_begin / kGranularity;
+      const auto segment_ix = position / kSegmentInBits;
+      const auto bit_ix = position % kSegmentInBits;
 
       uint64_t old_segment_mask_0, old_segment_mask_1;
       getFullSegmentMask(
           old_segment_mask_0, old_segment_mask_1, bit_ix, header_ptr->count);
 
       uint64_t new_segment_mask_0, new_segment_mask_1;
-      const auto bits_len = bitsPackLenFromSize(allocation_size);
       getFullSegmentMask(
           new_segment_mask_0, new_segment_mask_1, bit_ix, bits_len);
 
@@ -213,7 +213,7 @@ namespace kagome::runtime {
       const auto new_offset = allocate(size);
       memcpy(toAddr(new_offset),
              toAddr(offset),
-             old_size - AllocationHeader::kHeaderSize);
+             sizeFromBitsPackLen(old_bits_pack) - AllocationHeader::kHeaderSize);
       deallocate(offset);
       return offset;
     }
