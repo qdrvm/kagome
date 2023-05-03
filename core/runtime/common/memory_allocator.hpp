@@ -186,11 +186,13 @@ namespace kagome::runtime {
       const auto bit_ix = alloc_begin % kSegmentInBits;
 
       uint64_t old_segment_mask_0, old_segment_mask_1;
-      getFullSegmentMask(old_segment_mask_0, old_segment_mask_1, bit_ix, header_ptr->count);
+      getFullSegmentMask(
+          old_segment_mask_0, old_segment_mask_1, bit_ix, header_ptr->count);
 
       uint64_t new_segment_mask_0, new_segment_mask_1;
       const auto bits_len = bitsPackLenFromSize(allocation_size);
-      getFullSegmentMask(new_segment_mask_0, new_segment_mask_1, bit_ix, bits_len);
+      getFullSegmentMask(
+          new_segment_mask_0, new_segment_mask_1, bit_ix, bits_len);
 
       new_segment_mask_0 &= ~old_segment_mask_0;
       new_segment_mask_1 &= ~old_segment_mask_1;
@@ -250,14 +252,26 @@ namespace kagome::runtime {
       return val * kSegmentSize;
     }
 
-    void getFullSegmentMask(uint64_t &segment_0, uint64_t &segment_1, size_t position, size_t count) {
+    void getFullSegmentMask(uint64_t &segment_0,
+                            uint64_t &segment_1,
+                            size_t position,
+                            size_t count) const {
       size_t remains;
+      getFullSegmentMask(segment_0, segment_1, position, count, remains);
+    }
+
+    void getFullSegmentMask(uint64_t &segment_0,
+                            uint64_t &segment_1,
+                            size_t position,
+                            size_t count,
+                            size_t &remains) const {
       segment_0 = getSegmentMask<true>(position, count, remains);
       segment_1 = getSegmentMask<false>(0ull, remains, remains);
     }
 
     const AllocationHeader &getHeader(uint64_t offset) {
-      return *(const AllocationHeader*)toAddr(offset - AllocationHeader::kHeaderSize);
+      return *(const AllocationHeader *)toAddr(offset
+                                               - AllocationHeader::kHeaderSize);
     }
 
     bool segmentContainsPack(uint64_t segment, uint64_t pack) const {
@@ -292,10 +306,9 @@ namespace kagome::runtime {
                                                  : BSR(preprocessed_segment));
 
         if (__builtin_expect(position != kSegmentInBits, 1)) {
-          const auto segment_mask_0 =
-              getSegmentMask<true>(position, count, remains);
-          const auto segment_mask_1 =
-              getSegmentMask<false>(0ull, remains, remains);
+          uint64_t segment_mask_0, segment_mask_1;
+          getFullSegmentMask(
+              segment_mask_0, segment_mask_1, position, count, remains);
 
           /// unexisted last segment always correct for all part
           const auto n_last_segment = (segment + 1ull) != end;
