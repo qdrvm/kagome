@@ -13,6 +13,8 @@
 #include <random>
 #include <unordered_map>
 
+#include <backward.hpp>
+
 #include "libp2p/connection/stream.hpp"
 #include "libp2p/host/host.hpp"
 #include "libp2p/peer/peer_info.hpp"
@@ -266,6 +268,9 @@ namespace kagome::network {
 
    private:
     struct ProtocolDescr {
+      log::Logger logger =
+          log::createLogger("ProtoDescription", "stream_engine");
+
       std::shared_ptr<ProtocolBase> protocol;
 
       struct {
@@ -281,6 +286,22 @@ namespace kagome::network {
           deferred_messages;
 
      public:
+      void bt() {
+        backward::StackTrace trace;
+        trace.load_here(128);
+
+        backward::TraceResolver tr; tr.load_stacktrace(trace);
+        for (size_t i = 0; i < trace.size(); ++i) {
+          backward::ResolvedTrace resolved_trace = tr.resolve(trace[i]);
+          std::cout << "#" << i
+                    << " " << resolved_trace.object_filename
+                    << " " << resolved_trace.object_function
+                    << ":" << resolved_trace.source.line
+                    << " [" << resolved_trace.addr << "]"
+                    << std::endl;
+        }
+      }
+
       explicit ProtocolDescr(std::shared_ptr<ProtocolBase> proto)
           : protocol{std::move(proto)} {}
       ProtocolDescr(std::shared_ptr<ProtocolBase> proto,
@@ -307,6 +328,8 @@ namespace kagome::network {
         }
 
         outgoing.reserved = true;
+        logger->info("Reserved is set.[proto={}]", protocol->protocolName());
+        bt();
         return true;
       }
 
@@ -320,6 +343,8 @@ namespace kagome::network {
       void dropReserved() {
         BOOST_ASSERT(outgoing.reserved);
         outgoing.reserved = false;
+        logger->info("Reserved dropped.[proto={}]", protocol->protocolName());
+        bt();
       }
 
       /**

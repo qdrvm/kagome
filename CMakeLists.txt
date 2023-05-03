@@ -112,6 +112,9 @@ elseif("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
   # https://github.com/lefticus/cppbestpractices/blob/master/02-Use_the_Tools_Available.md#msvc
 endif()
 
+SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -rdynamic" )
+SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -rdynamic" )
+
 if(COVERAGE)
   include(cmake/coverage.cmake)
 endif()
