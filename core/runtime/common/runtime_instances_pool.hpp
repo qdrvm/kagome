@@ -9,6 +9,7 @@
 #include "runtime/module_repository.hpp"
 
 #include <stack>
+#include <mutex>
 
 namespace kagome::runtime {
   /**

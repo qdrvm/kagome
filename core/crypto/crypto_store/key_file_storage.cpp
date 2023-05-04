@@ -9,6 +9,7 @@
 
 #include "common/hexutil.hpp"
 #include "crypto/crypto_store/key_type.hpp"
+#include "filesystem/common.hpp"
 #include "utils/json_unquote.hpp"
 #include "utils/read_file.hpp"
 
@@ -82,15 +83,15 @@ namespace kagome::crypto {
   }
 
   outcome::result<void> KeyFileStorage::initialize() {
-    boost::system::error_code ec{};
-    bool does_exist = boost::filesystem::exists(keystore_path_, ec);
-    if (ec and ec != boost::system::errc::no_such_file_or_directory) {
+    std::error_code ec{};
+    bool does_exist = filesystem::exists(keystore_path_, ec);
+    if (ec and ec != std::errc::no_such_file_or_directory) {
       logger_->error("Error initializing key storage: {}", ec);
       return outcome::failure(ec);
     }
     if (does_exist) {
       // check whether specified path is a directory
-      if (not boost::filesystem::is_directory(keystore_path_, ec)) {
+      if (not filesystem::is_directory(keystore_path_, ec)) {
         return Error::KEYS_PATH_IS_NOT_DIRECTORY;
       }
       if (ec) {
@@ -99,7 +100,7 @@ namespace kagome::crypto {
       }
     } else {
       // try create directory
-      if (not boost::filesystem::create_directories(keystore_path_, ec)) {
+      if (not filesystem::create_directories(keystore_path_, ec)) {
         return Error::FAILED_CREATE_KEYS_DIRECTORY;
       }
       if (ec) {
@@ -127,9 +128,9 @@ namespace kagome::crypto {
 
   outcome::result<std::vector<Buffer>> KeyFileStorage::collectPublicKeys(
       KeyTypeId type) const {
-    namespace fs = boost::filesystem;
+    namespace fs = filesystem;
 
-    boost::system::error_code ec{};
+    std::error_code ec{};
 
     std::vector<Buffer> keys;
 
@@ -158,8 +159,8 @@ namespace kagome::crypto {
   outcome::result<std::optional<std::string>> KeyFileStorage::searchForPhrase(
       KeyTypeId type, gsl::span<const uint8_t> public_key_bytes) const {
     auto key_path = composeKeyPath(type, public_key_bytes);
-    namespace fs = boost::filesystem;
-    boost::system::error_code ec{};
+    namespace fs = filesystem;
+    std::error_code ec{};
 
     if (not fs::exists(key_path, ec)) {
       return std::nullopt;

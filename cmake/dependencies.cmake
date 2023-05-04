@@ -24,6 +24,10 @@ find_package(xxhash CONFIG REQUIRED)
 hunter_add_package(binaryen)
 find_package(binaryen CONFIG REQUIRED)
 
+# https://docs.hunter.sh/en/latest/packages/pkg/benchmark.html
+hunter_add_package(benchmark)
+find_package(benchmark CONFIG REQUIRED)
+
 # https://github.com/soramitsu/libp2p
 hunter_add_package(libp2p)
 find_package(libp2p CONFIG REQUIRED)

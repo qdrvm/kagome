@@ -8,7 +8,7 @@
 
 #include <unordered_set>
 
-#include <boost/filesystem.hpp>
+#include "filesystem/common.hpp"
 #include <boost/variant.hpp>
 
 #include "common/blob.hpp"

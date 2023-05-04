@@ -69,7 +69,7 @@ namespace kagome::network {
         const BufferContainer &src,
         BufferContainer::const_iterator from) {
       if (from == src.end())
-        return outcome::failure(boost::system::error_code{});
+        return outcome::failure(std::errc::invalid_argument);
 
       OUTCOME_TRY(it, AdapterType::read(out, src, from));
       return AncestorType::read(out, src, it);
@@ -112,7 +112,7 @@ namespace kagome::network {
         const BufferContainer &src,
         BufferContainer::const_iterator from) {
       if (from == src.end())
-        return outcome::failure(boost::system::error_code{});
+        return outcome::failure(std::errc::invalid_argument);
 
       return AdapterType::read(out, src, from);
     }

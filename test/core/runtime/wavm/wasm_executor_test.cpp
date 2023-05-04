@@ -5,7 +5,7 @@
 
 #include <gtest/gtest.h>
 
-#include <boost/filesystem.hpp>
+#include "filesystem/common.hpp"
 
 #include "crypto/bip39/impl/bip39_provider_impl.hpp"
 #include "crypto/crypto_store/crypto_store_impl.hpp"
@@ -82,7 +82,7 @@ using testing::_;
 using testing::Invoke;
 using testing::Return;
 
-namespace fs = boost::filesystem;
+namespace fs = kagome::filesystem;
 
 class WasmExecutorTest : public ::testing::Test {
  public:
@@ -125,7 +125,7 @@ class WasmExecutorTest : public ::testing::Test {
         std::make_shared<Bip39ProviderImpl>(pbkdf2_provider, hasher);
 
     auto keystore_path =
-        boost::filesystem::temp_directory_path() / "kagome_keystore_test_dir";
+        kagome::filesystem::temp_directory_path() / "kagome_keystore_test_dir";
     auto crypto_store = std::make_shared<CryptoStoreImpl>(
         std::make_shared<EcdsaSuite>(ecdsa_provider),
         std::make_shared<Ed25519Suite>(ed25519_provider),

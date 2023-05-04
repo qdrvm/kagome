@@ -20,6 +20,8 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::network, ProtocolError, e) {
       return "Local and remote genesis don't match";
     case E::HANDSHAKE_ERROR:
       return "Handshake exchange failed";
+    case E::NO_RESPONSE:
+      return "No response arrived";
   }
   return "Unknown error (kagome::network::ProtocolError)";
 }

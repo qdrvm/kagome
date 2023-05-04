@@ -5,12 +5,14 @@
 
 #include "metrics_watcher.hpp"
 
+#include "filesystem/common.hpp"
+
 namespace {
   constexpr auto storageSizeMetricName = "kagome_storage_size";
 }  // namespace
 
 namespace kagome::metrics {
-  namespace fs = boost::filesystem;
+  namespace fs = kagome::filesystem;
 
   MetricsWatcher::MetricsWatcher(
       std::shared_ptr<application::AppStateManager> app_state_manager,
@@ -57,7 +59,7 @@ namespace kagome::metrics {
   }
 
   outcome::result<uintmax_t> MetricsWatcher::measure_storage_size() {
-    boost::system::error_code ec;
+    std::error_code ec;
 
     fs::directory_entry entry(storage_path_);
 
@@ -65,7 +67,7 @@ namespace kagome::metrics {
       if (ec) {
         return ec;
       }
-      return boost::system::errc::invalid_argument;
+      return std::errc::invalid_argument;
     }
 
     uintmax_t total_size = 0;

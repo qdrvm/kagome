@@ -13,12 +13,12 @@
 #include <rapidjson/document.h>
 #include <rapidjson/filereadstream.h>
 #include <boost/algorithm/string.hpp>
-#include <boost/filesystem.hpp>
 #include <boost/program_options.hpp>
 #include <boost/uuid/uuid_generators.hpp>
 #include <boost/uuid/uuid_io.hpp>
 #include <charconv>
 #include <libp2p/layer/websocket/wss_adaptor.hpp>
+#include "filesystem/common.hpp"
 
 #include "api/transport/tuner.hpp"
 #include "application/build_version.hpp"
@@ -34,9 +34,9 @@ namespace {
   using kagome::application::AppConfiguration;
 
   template <typename T, typename Func>
-  inline void find_argument(boost::program_options::variables_map &vm,
-                            const char *name,
-                            Func &&f) {
+  void find_argument(boost::program_options::variables_map &vm,
+                     const char *name,
+                     Func &&f) {
     assert(nullptr != name);
     if (auto it = vm.find(name); it != vm.end()) {
       if (it->second.defaulted()) {
@@ -47,14 +47,24 @@ namespace {
   }
 
   template <typename T>
-  inline std::optional<T> find_argument(
-      boost::program_options::variables_map &vm, const std::string &name) {
+  std::optional<T> find_argument(boost::program_options::variables_map &vm,
+                                 const std::string &name) {
     if (auto it = vm.find(name); it != vm.end()) {
       if (!it->second.defaulted()) {
         return it->second.as<T>();
       }
     }
     return std::nullopt;
+  }
+
+  bool find_argument(boost::program_options::variables_map &vm,
+                     const std::string &name) {
+    if (auto it = vm.find(name); it != vm.end()) {
+      if (!it->second.defaulted()) {
+        return true;
+      }
+    }
+    return false;
   }
 
   const std::string def_rpc_http_host = "0.0.0.0";
@@ -80,7 +90,6 @@ namespace {
   const auto def_offchain_worker_mode =
       kagome::application::AppConfiguration::OffchainWorkerMode::WhenValidating;
   const bool def_enable_offchain_indexing = false;
-  const bool def_subcommand_chain_info = false;
   const std::optional<kagome::primitives::BlockId> def_block_to_recover =
       std::nullopt;
   const auto def_offchain_worker = "WhenValidating";
@@ -230,7 +239,6 @@ namespace kagome::application {
         purge_wavm_cache_(def_purge_wavm_cache_),
         offchain_worker_mode_{def_offchain_worker_mode},
         enable_offchain_indexing_{def_enable_offchain_indexing},
-        subcommand_chain_info_{def_subcommand_chain_info},
         recovery_state_{def_block_to_recover} {
     SL_INFO(logger_, "Soramitsu Kagome started. Version: {} ", buildVersion());
   }
@@ -239,16 +247,16 @@ namespace kagome::application {
     return chain_spec_path_.native();
   }
 
-  boost::filesystem::path AppConfigurationImpl::runtimeCacheDirPath() const {
-    return boost::filesystem::temp_directory_path() / "kagome/runtimes-cache";
+  kagome::filesystem::path AppConfigurationImpl::runtimeCacheDirPath() const {
+    return kagome::filesystem::temp_directory_path() / "kagome/runtimes-cache";
   }
 
-  boost::filesystem::path AppConfigurationImpl::runtimeCachePath(
+  kagome::filesystem::path AppConfigurationImpl::runtimeCachePath(
       std::string runtime_hash) const {
     return runtimeCacheDirPath() / runtime_hash;
   }
 
-  boost::filesystem::path AppConfigurationImpl::chainPath(
+  kagome::filesystem::path AppConfigurationImpl::chainPath(
       std::string chain_id) const {
     return base_path_ / "chains" / chain_id;
   }
@@ -730,6 +738,27 @@ namespace kagome::application {
   bool AppConfigurationImpl::initializeFromArgs(int argc, const char **argv) {
     namespace po = boost::program_options;
 
+    std::optional<std::string> command;
+    std::optional<std::string> subcommand;
+
+    using std::string_view_literals::operator""sv;
+
+    if (argc > 0 && argv[0] == "benchmark"sv) {
+      command = "benchmark";
+
+      if (argc > 1 && argv[1] == "block"sv) {
+        subcommand = "block";
+      } else {
+        SL_ERROR(logger_, "Usage: kagome benchmark BENCHMARK_TYPE");
+        SL_ERROR(logger_, "The only supported BENCHMARK_TYPE is 'block'");
+        return false;
+      }
+    }
+    if (subcommand) {
+      argc--;
+      argv++;
+    }
+
     // clang-format off
     po::options_description desc("General options");
     desc.add_options()
@@ -808,6 +837,12 @@ namespace kagome::application {
         ("unsafe-cached-wavm-runtime", "use WAVM runtime cache")
         ("purge-wavm-cache", "purge WAVM runtime cache")
         ;
+    po::options_description benchmark_desc("Benchmark options");
+    benchmark_desc.add_options()
+      ("from", po::value<uint32_t>(), "set the initial block for block execution benchmark")
+      ("to", po::value<uint32_t>(), "set the final block for block execution benchmark")
+      ("repeat", po::value<uint16_t>(), "set the repetition number for block execution benchmark")
+      ;
 
     po::options_description db_editor_desc("kagome db-editor - to view help message for db editor");
 
@@ -830,8 +865,12 @@ namespace kagome::application {
     desc.add(blockhain_desc)
         .add(storage_desc)
         .add(network_desc)
-        .add(development_desc)
-        .add(db_editor_desc);
+        .add(development_desc);
+    if (command == "db-editor") {
+      desc.add(db_editor_desc);
+    } else if (command == "benchmark") {
+      desc.add(benchmark_desc);
+    }
 
     if (vm.count("help") > 0) {
       std::cout << desc << std::endl;
@@ -875,11 +914,11 @@ namespace kagome::application {
 
         // Wipe base directory on demand
         if (vm.count("dev-with-wipe") > 0) {
-          boost::filesystem::remove_all(dev_env_path);
+          kagome::filesystem::remove_all(dev_env_path);
         }
 
-        if (not boost::filesystem::exists(chain_spec_path_)) {
-          boost::filesystem::create_directories(chain_spec_path_.parent_path());
+        if (not kagome::filesystem::exists(chain_spec_path_)) {
+          kagome::filesystem::create_directories(chain_spec_path_.parent_path());
 
           std::ofstream ofs;
           ofs.open(chain_spec_path_.native(), std::ios::ate);
@@ -905,7 +944,7 @@ namespace kagome::application {
           auto ma_res = chain_spec.value()->bootNodes()[0];
           listen_addresses_.emplace_back(ma_res);
 
-          boost::filesystem::create_directories(path);
+          kagome::filesystem::create_directories(path);
 
           for (auto key_descr : kagome::assets::embedded_keys) {
             ofs.open((path / key_descr.first).native(), std::ios::ate);
@@ -970,14 +1009,14 @@ namespace kagome::application {
 
     find_argument<std::string>(
         vm, "chain", [&](const std::string &val) { chain_spec_path_ = val; });
-    if (not boost::filesystem::exists(chain_spec_path_)) {
+    if (not kagome::filesystem::exists(chain_spec_path_)) {
       std::cerr << "Specified chain spec " << chain_spec_path_
                 << " does not exist." << std::endl;
     }
 
     if (vm.end() != vm.find("tmp")) {
-      base_path_ = (boost::filesystem::temp_directory_path()
-                    / boost::filesystem::unique_path());
+      auto unique_name = filesystem::unique_path();
+      base_path_ = (kagome::filesystem::temp_directory_path() / unique_name);
     } else {
       find_argument<std::string>(
           vm, "base-path", [&](const std::string &val) { base_path_ = val; });
@@ -1313,9 +1352,9 @@ namespace kagome::application {
     if (vm.count("purge-wavm-cache") > 0) {
       purge_wavm_cache_ = true;
       if (fs::exists(runtimeCacheDirPath())) {
-        boost::system::error_code ec;
-        fs::remove_all(runtimeCacheDirPath(), ec);
-        if (ec.failed()) {
+        std::error_code ec;
+        kagome::filesystem::remove_all(runtimeCacheDirPath(), ec);
+        if (ec) {
           SL_ERROR(logger_,
                    "Failed to purge cache in {} ['{}']",
                    runtimeCacheDirPath(),
@@ -1347,8 +1386,29 @@ namespace kagome::application {
     }
 
     find_argument<bool>(vm, "chain-info", [&](bool subcommand_chain_info) {
-      subcommand_chain_info_ = subcommand_chain_info;
+      subcommand_ = Subcommand::ChainInfo;
     });
+
+    if (command == "benchmark" && subcommand == "block") {
+      auto from_opt = find_argument<uint32_t>(vm, "from");
+      if (!from_opt) {
+        SL_ERROR(logger_, "Required argument --from is not provided");
+        return false;
+      }
+      auto to_opt = find_argument<uint32_t>(vm, "to");
+      if (!to_opt) {
+        SL_ERROR(logger_, "Required argument --to is not provided");
+        return false;
+      }
+      auto repeat_opt = find_argument<uint16_t>(vm, "repeat");
+      if (!to_opt) {
+        SL_ERROR(logger_, "Required argument --repeat is not provided");
+        return false;
+      }
+      benchmark_config_ = BlockBenchmarkConfig{
+          .from = *from_opt, .to = *to_opt, .times = *repeat_opt,
+      };
+    }
 
     bool has_recovery = false;
     find_argument<std::string>(vm, "recovery", [&](const std::string &val) {

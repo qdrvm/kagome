@@ -17,7 +17,7 @@ add_library(key_file_storage
     key_file_storage.cpp
     )
 target_link_libraries(key_file_storage
-    Boost::filesystem
+    filesystem
     crypto_store_key_type
     )
 kagome_install(key_file_storage)

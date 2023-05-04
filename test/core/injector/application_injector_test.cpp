@@ -12,11 +12,12 @@
 #include "crypto/hasher/hasher_impl.hpp"
 #include "crypto/random_generator/boost_generator.hpp"
 #include "crypto/sr25519/sr25519_provider_impl.hpp"
+#include "filesystem/common.hpp"
 #include "mock/core/application/app_configuration_mock.hpp"
 #include "network/impl/router_libp2p.hpp"
 #include "testutil/prepare_loggers.hpp"
 
-namespace fs = boost::filesystem;
+namespace fs = kagome::filesystem;
 using testing::_;
 
 namespace {

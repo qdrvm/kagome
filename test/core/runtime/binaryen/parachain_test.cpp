@@ -26,7 +26,7 @@ using kagome::runtime::ParachainHostImpl;
 using ::testing::_;
 using ::testing::Return;
 
-namespace fs = boost::filesystem;
+namespace fs = kagome::filesystem;
 
 class ParachainHostTest : public BinaryenRuntimeTest {
  public:

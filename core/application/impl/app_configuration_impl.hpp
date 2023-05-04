@@ -63,18 +63,19 @@ namespace kagome::application {
     AppConfigurationImpl(AppConfigurationImpl &&) = default;
     AppConfigurationImpl &operator=(AppConfigurationImpl &&) = default;
 
-    [[nodiscard]] bool initializeFromArgs(int argc, const char **argv);
+    [[nodiscard]] bool initializeFromArgs(int argc,
+                                          const char **argv);
 
     network::Roles roles() const override {
       return roles_;
     }
-    boost::filesystem::path chainSpecPath() const override;
-    boost::filesystem::path runtimeCacheDirPath() const override;
-    boost::filesystem::path runtimeCachePath(
+    filesystem::path chainSpecPath() const override;
+    filesystem::path runtimeCacheDirPath() const override;
+    filesystem::path runtimeCachePath(
         std::string runtime_hash) const override;
-    boost::filesystem::path chainPath(std::string chain_id) const override;
-    boost::filesystem::path databasePath(std::string chain_id) const override;
-    boost::filesystem::path keystorePath(std::string chain_id) const override;
+    filesystem::path chainPath(std::string chain_id) const override;
+    filesystem::path databasePath(std::string chain_id) const override;
+    filesystem::path keystorePath(std::string chain_id) const override;
 
     const std::optional<crypto::Ed25519Seed> &nodeKey() const override {
       return node_key_;
@@ -176,8 +177,8 @@ namespace kagome::application {
     bool isOffchainIndexingEnabled() const override {
       return enable_offchain_indexing_;
     }
-    bool subcommandChainInfo() const override {
-      return subcommand_chain_info_;
+    std::optional<Subcommand> subcommand() const override {
+      return subcommand_;
     }
     std::optional<primitives::BlockId> recoverState() const override {
       return recovery_state_;
@@ -195,8 +196,13 @@ namespace kagome::application {
       return node_wss_pem_;
     }
 
+
     AllowUnsafeRpc allowUnsafeRpc() const override {
       return allow_unsafe_rpc_;
+    }
+
+    std::optional<BenchmarkConfigSection> getBenchmarkConfig() const override {
+      return benchmark_config_;
     }
 
    private:
@@ -311,9 +317,9 @@ namespace kagome::application {
     std::string rpc_http_host_;
     std::string rpc_ws_host_;
     std::string openmetrics_http_host_;
-    boost::filesystem::path chain_spec_path_;
-    boost::filesystem::path base_path_;
-    std::optional<boost::filesystem::path> keystore_path_;
+    filesystem::path chain_spec_path_;
+    filesystem::path base_path_;
+    std::optional<filesystem::path> keystore_path_;
     uint16_t rpc_http_port_;
     uint16_t rpc_ws_port_;
     uint16_t openmetrics_http_port_;
@@ -333,11 +339,12 @@ namespace kagome::application {
     bool purge_wavm_cache_;
     OffchainWorkerMode offchain_worker_mode_;
     bool enable_offchain_indexing_;
-    bool subcommand_chain_info_;
+    std::optional<Subcommand> subcommand_;
     std::optional<primitives::BlockId> recovery_state_;
     StorageBackend storage_backend_ = StorageBackend::RocksDB;
     std::optional<std::string> dev_mnemonic_phrase_;
     std::string node_wss_pem_;
+    std::optional<BenchmarkConfigSection> benchmark_config_;
     AllowUnsafeRpc allow_unsafe_rpc_ = AllowUnsafeRpc::kAuto;
   };
 

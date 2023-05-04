@@ -3,8 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include <filesystem>
-
 #include <kagome/application/impl/chain_spec_impl.hpp>
 #include <kagome/blockchain/impl/block_header_repository_impl.hpp>
 #include <kagome/blockchain/impl/block_storage_impl.hpp>
@@ -16,6 +14,7 @@
 #include <kagome/crypto/pbkdf2/impl/pbkdf2_provider_impl.hpp>
 #include <kagome/crypto/secp256k1/secp256k1_provider_impl.hpp>
 #include <kagome/crypto/sr25519/sr25519_provider_impl.hpp>
+#include <kagome/filesystem/common.hpp>
 #include <kagome/host_api/impl/host_api_factory_impl.hpp>
 #include <kagome/log/configurator.hpp>
 #include <kagome/offchain/impl/offchain_persistent_storage.hpp>
@@ -87,7 +86,7 @@ int main() {
   using std::string_literals::operator""s;
 
   auto chain_spec = kagome::application::ChainSpecImpl::loadFrom(
-                        std::filesystem::path(__FILE__).parent_path()
+                        kagome::filesystem::path(__FILE__).parent_path()
                         / "../../../examples/polkadot/polkadot.json"s)
                         .value();
 

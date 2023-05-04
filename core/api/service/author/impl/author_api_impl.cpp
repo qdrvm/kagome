@@ -186,7 +186,7 @@ namespace kagome::api {
   AuthorApiImpl::removeExtrinsic(
       const std::vector<primitives::ExtrinsicKey> &keys) {
     BOOST_ASSERT_MSG(false, "not implemented");  // NOLINT
-    return outcome::failure(boost::system::error_code{});
+    return outcome::failure(std::errc::not_supported);
   }
 
   outcome::result<AuthorApi::SubscriptionId>

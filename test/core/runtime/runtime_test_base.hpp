@@ -8,7 +8,6 @@
 
 #include <gtest/gtest.h>
 
-#include <boost/filesystem/path.hpp>
 #include <fstream>
 #include <memory>
 
@@ -21,6 +20,7 @@
 #include "crypto/random_generator/boost_generator.hpp"
 #include "crypto/secp256k1/secp256k1_provider_impl.hpp"
 #include "crypto/sr25519/sr25519_provider_impl.hpp"
+#include "filesystem/common.hpp"
 #include "host_api/impl/host_api_factory_impl.hpp"
 #include "mock/core/application/app_configuration_mock.hpp"
 #include "mock/core/blockchain/block_header_repository_mock.hpp"
@@ -81,8 +81,7 @@ class RuntimeTestBase : public ::testing::Test {
     auto bip39_provider =
         std::make_shared<crypto::Bip39ProviderImpl>(pbkdf2_provider, hasher_);
     auto keystore_path =
-        boost::filesystem::temp_directory_path()
-        / boost::filesystem::unique_path("kagome_keystore_test_dir");
+        filesystem::temp_directory_path() / filesystem::unique_path();
     auto crypto_store = std::make_shared<crypto::CryptoStoreImpl>(
         std::make_shared<crypto::EcdsaSuite>(ecdsa_provider),
         std::make_shared<crypto::Ed25519Suite>(ed25519_provider),
@@ -143,7 +142,7 @@ class RuntimeTestBase : public ::testing::Test {
 
     auto module_factory = createModuleFactory();
 
-    auto wasm_path = boost::filesystem::path(__FILE__).parent_path().string()
+    auto wasm_path = kagome::filesystem::path(__FILE__).parent_path().string()
                    + "/wasm/sub2dev.wasm";
     wasm_provider_ = std::make_shared<runtime::BasicCodeProvider>(wasm_path);
 

@@ -6,8 +6,9 @@
 #ifndef KAGOME_LOG_CONFIGURATOR
 #define KAGOME_LOG_CONFIGURATOR
 
-#include <boost/filesystem.hpp>
 #include <soralog/impl/configurator_from_yaml.hpp>
+
+#include "filesystem/common.hpp"
 
 namespace kagome::log {
 
@@ -21,7 +22,7 @@ namespace kagome::log {
                           std::string config);
 
     explicit Configurator(std::shared_ptr<PrevConfigurator> previous,
-                          boost::filesystem::path path);
+                          filesystem::path path);
   };
 
 }  // namespace kagome::log

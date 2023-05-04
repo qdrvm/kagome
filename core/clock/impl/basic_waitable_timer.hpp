@@ -27,8 +27,8 @@ namespace kagome::clock {
 
     void cancel() override;
 
-    void asyncWait(
-        const std::function<void(const std::error_code &)> &h) override;
+    void asyncWait(const std::function<void(const boost::system::error_code &)>
+                       &h) override;
 
    private:
     std::shared_ptr<boost::asio::io_context> io_context_;
