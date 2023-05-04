@@ -61,8 +61,10 @@ namespace kagome::parachain {
     using Type = std::decay_t<D>;
     SCALE_TIE(2)
 
-    Indexed(Type payload, ValidatorIndex ix) : Indexed{payload, ix} {}
-
+    // Indexed() = default;
+    // Indexed(Type &&payload, ValidatorIndex ix)
+    //     : Indexed{std::forward<Type>(payload), ix} {}
+    //
     Type payload;
     ValidatorIndex ix;
   };

@@ -134,8 +134,23 @@ namespace kagome::dispute {
         const CandidateHash &candidate_hash,
         const CandidateReceipt &candidate_receipt,
         SessionIndex session,
-        bool valid,
-        Timestamp now);
+        bool valid);
+
+    outcome::result<void> handle_incoming(
+        const DisputeCoordinatorMessage &message);
+
+    outcome::result<void> handle_incoming_ImportStatements(
+        const ImportStatements &msg);
+    outcome::result<void> handle_incoming_RecentDisputes(
+        const RecentDisputesRequest_ &msg);
+    outcome::result<void> handle_incoming_ActiveDisputes(
+        const ActiveDisputes &msg);
+    outcome::result<void> handle_incoming_QueryCandidateVotes(
+        const QueryCandidateVotes &msg);
+    outcome::result<void> handle_incoming_IssueLocalStatement(
+        const IssueLocalStatement &msg);
+    outcome::result<void> handle_incoming_DetermineUndisputedChain(
+        const DetermineUndisputedChain &msg);
 
     std::shared_ptr<application::AppStateManager> app_state_manager_;
     std::shared_ptr<libp2p::basic::Scheduler> scheduler_;
