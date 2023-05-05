@@ -147,7 +147,7 @@ namespace kagome::consensus::grandpa {
             const primitives::events::BabeStateEventParams &event) {
           if (auto self = wself.lock()) {
             if (event == babe::Babe::State::SYNCHRONIZED) {
-              self->synchronized_once_ = true;
+              self->synchronized_once_.test_and_set();
             }
           }
         });
@@ -472,7 +472,7 @@ namespace kagome::consensus::grandpa {
           peer_id, network::reputation::benefit::NEIGHBOR_MESSAGE);
     }
 
-    // Iff peer just reached one of recent round, then share known votes
+    // If peer just reached one of recent round, then share known votes
     if (not info.has_value()
         or (info->get().set_id.has_value()
             and msg.voter_set_id != info->get().set_id)
@@ -485,7 +485,7 @@ namespace kagome::consensus::grandpa {
       }
     }
 
-    if (not synchronized_once_) {
+    if (synchronized_once_.test()) {
       return;
     }
 
