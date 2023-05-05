@@ -14,6 +14,7 @@
 
 #include "log/logger.hpp"
 #include "metrics/metrics.hpp"
+#include "primitives/event_types.hpp"
 #include "utils/safe_object.hpp"
 #include "utils/thread_pool.hpp"
 
@@ -104,6 +105,8 @@ namespace kagome::consensus::grandpa {
         std::shared_ptr<network::PeerManager> peer_manager,
         std::shared_ptr<blockchain::BlockTree> block_tree,
         std::shared_ptr<network::ReputationRepository> reputation_repository,
+        primitives::events::BabeStateSubscriptionEnginePtr
+            babe_status_observable,
         std::shared_ptr<boost::asio::io_context> main_thread_context);
 
     /**
@@ -308,6 +311,13 @@ namespace kagome::consensus::grandpa {
     std::shared_ptr<network::PeerManager> peer_manager_;
     std::shared_ptr<blockchain::BlockTree> block_tree_;
     std::shared_ptr<network::ReputationRepository> reputation_repository_;
+    primitives::events::BabeStateSubscriptionEnginePtr babe_status_observable_;
+    primitives::events::BabeStateEventSubscriberPtr babe_status_observer_;
+
+    bool synchronized_once_{
+        false};  // declares if initial sync was done, does not necessarily mean
+                 // that node is currently synced. Needed for enabling neighbor
+                 // message processing
 
     std::shared_ptr<ThreadPool> execution_thread_pool_;
     std::shared_ptr<ThreadHandler> internal_thread_context_;
