@@ -8,7 +8,7 @@
 
 #include <unordered_set>
 
-#include <boost/filesystem.hpp>
+#include "filesystem/common.hpp"
 #include <boost/variant.hpp>
 
 #include "common/blob.hpp"
@@ -16,7 +16,6 @@
 #include "crypto/bip39/mnemonic.hpp"
 #include "crypto/crypto_store.hpp"
 #include "crypto/crypto_store/crypto_suites.hpp"
-#include "crypto/crypto_store/dev_mnemonic_phrase.hpp"
 #include "crypto/crypto_store/key_cache.hpp"
 #include "crypto/crypto_store/key_file_storage.hpp"
 #include "log/logger.hpp"
@@ -47,6 +46,7 @@ namespace kagome::crypto {
                     std::shared_ptr<Ed25519Suite> ed_suite,
                     std::shared_ptr<Sr25519Suite> sr_suite,
                     std::shared_ptr<Bip39Provider> bip39_provider,
+                    std::shared_ptr<CSPRNG> csprng,
                     std::shared_ptr<KeyFileStorage> key_fs);
 
     outcome::result<EcdsaKeypair> generateEcdsaKeypair(
@@ -94,8 +94,6 @@ namespace kagome::crypto {
     outcome::result<Sr25519Keys> getSr25519PublicKeys(
         KeyTypeId key_type) const override;
 
-    std::optional<libp2p::crypto::KeyPair> getLibp2pKeypair() const override;
-
     outcome::result<libp2p::crypto::KeyPair> loadLibp2pKeypair(
         const Path &key_path) const override;
 
@@ -123,22 +121,23 @@ namespace kagome::crypto {
         } else {
           // need to check if the read key's algorithm belongs to the given
           // CryptoSuite
-          OUTCOME_TRY(seed_bytes, file_storage_->searchForSeed(key_type, key));
+          OUTCOME_TRY(phrase, file_storage_->searchForPhrase(key_type, key));
           BOOST_ASSERT_MSG(
-              seed_bytes,
+              phrase,
               "The public key has just been scanned, its file has to exist");
-          if (not seed_bytes) {
+          if (not phrase) {
             logger_->error("Error reading key seed from key file storage");
             continue;
           }
-          auto seed_res = suite.toSeed(seed_bytes.value());
-          if (not seed_res) {
+          OUTCOME_TRY(bip, bip39_provider_->generateSeed(*phrase));
+          auto kp_res = suite.generateKeypair(bip);
+          if (not kp_res) {
             // cannot create a seed from file content; suppose it belongs to a
             // different algorithm
             continue;
           }
           SL_TRACE(logger_, "Loaded key {}", pk.toHex());
-          OUTCOME_TRY(kp, suite.generateKeypair(seed_res.value()));
+          OUTCOME_TRY(kp, kp_res);
           auto &&[pub, priv] = suite.decomposeKeypair(kp);
           if (pub == pk) {
             SL_TRACE(logger_, "Key is correct {}", pk.toHex());
@@ -154,17 +153,8 @@ namespace kagome::crypto {
     template <typename CryptoSuite>
     outcome::result<typename CryptoSuite::Keypair> generateKeypair(
         std::string_view mnemonic_phrase, const CryptoSuite &suite) {
-      using Seed = typename CryptoSuite::Seed;
-      if (auto seed = DevMnemonicPhrase::get().find<Seed>(mnemonic_phrase)) {
-        return suite.generateKeypair(seed.value());
-      }
-      OUTCOME_TRY(bip_seed, bip39_provider_->generateSeed(mnemonic_phrase));
-      if (bip_seed.size() < Seed::size()) {
-        return CryptoStoreError::WRONG_SEED_SIZE;
-      }
-      auto seed_span = gsl::make_span(bip_seed.data(), Seed::size());
-      OUTCOME_TRY(seed, Seed::fromSpan(seed_span));
-      return suite.generateKeypair(seed);
+      OUTCOME_TRY(bip, bip39_provider_->generateSeed(mnemonic_phrase));
+      return suite.generateKeypair(bip);
     }
 
     template <typename CryptoSuite>
@@ -172,9 +162,11 @@ namespace kagome::crypto {
         KeyTypeId key_type,
         const std::shared_ptr<CryptoSuite> &suite,
         std::unordered_map<KeyTypeId, KeyCache<CryptoSuite>> &caches) {
-      OUTCOME_TRY(kp, suite->generateRandomKeypair());
+      typename CryptoSuite::Seed seed;
+      csprng_->fillRandomly(seed);
+      OUTCOME_TRY(kp, suite->generateKeypair(seed, {}));
       getCache(suite, caches, key_type).insert(kp.public_key, kp.secret_key);
-      OUTCOME_TRY(file_storage_->saveKeyPair(key_type, kp.public_key, kp.seed));
+      OUTCOME_TRY(file_storage_->saveKeyPair(key_type, kp.public_key, seed));
       return std::move(kp);
     }
 
@@ -200,6 +192,7 @@ namespace kagome::crypto {
     std::shared_ptr<Ed25519Suite> ed_suite_;
     std::shared_ptr<Sr25519Suite> sr_suite_;
     std::shared_ptr<Bip39Provider> bip39_provider_;
+    std::shared_ptr<CSPRNG> csprng_;
     log::Logger logger_;
   };
 

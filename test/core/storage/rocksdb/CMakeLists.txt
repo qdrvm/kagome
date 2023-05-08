@@ -13,6 +13,6 @@ addtest(rocksdb_integration_test
 target_link_libraries(rocksdb_integration_test
     storage
     base_rocksdb_test
-    Boost::filesystem
+    filesystem
     hexutil
     )

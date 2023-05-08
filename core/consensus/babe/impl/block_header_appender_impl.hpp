@@ -34,9 +34,10 @@ namespace kagome::consensus::babe {
                             std::shared_ptr<crypto::Hasher> hasher,
                             std::unique_ptr<BlockAppenderBase> appender);
 
-    outcome::result<void> appendHeader(
+    void appendHeader(
         primitives::BlockHeader &&block_header,
-        std::optional<primitives::Justification> const &justification) override;
+        const std::optional<primitives::Justification> &justification,
+        ApplyJustificationCb &&callback) override;
 
    private:
     std::shared_ptr<blockchain::BlockTree> block_tree_;

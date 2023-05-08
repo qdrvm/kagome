@@ -9,7 +9,7 @@
 #include <exception>
 
 #include <gtest/gtest.h>
-#include <boost/filesystem.hpp>
+#include "filesystem/common.hpp"
 
 #include "storage/database_error.hpp"
 #include "storage/rocksdb/rocksdb.hpp"
@@ -17,7 +17,7 @@
 #include "testutil/prepare_loggers.hpp"
 
 using namespace kagome::storage;
-namespace fs = boost::filesystem;
+namespace fs = kagome::filesystem;
 
 struct RocksDb_Integration_Test : public test::BaseRocksDB_Test {
   static void SetUpTestCase() {

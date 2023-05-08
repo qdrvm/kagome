@@ -1,0 +1,3 @@
+
+add_library(kagome_benchmarks block_execution_benchmark.cpp)
+target_link_libraries(kagome_benchmarks benchmark::benchmark)

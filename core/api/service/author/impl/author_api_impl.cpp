@@ -159,7 +159,7 @@ namespace kagome::api {
 
   outcome::result<bool> AuthorApiImpl::hasKey(
       const gsl::span<const uint8_t> &public_key, crypto::KeyTypeId key_type) {
-    auto res = key_store_->searchForSeed(key_type, public_key);
+    auto res = key_store_->searchForPhrase(key_type, public_key);
     if (not res) {
       return res.error();
     } else {
@@ -186,7 +186,7 @@ namespace kagome::api {
   AuthorApiImpl::removeExtrinsic(
       const std::vector<primitives::ExtrinsicKey> &keys) {
     BOOST_ASSERT_MSG(false, "not implemented");  // NOLINT
-    return outcome::failure(boost::system::error_code{});
+    return outcome::failure(std::errc::not_supported);
   }
 
   outcome::result<AuthorApi::SubscriptionId>

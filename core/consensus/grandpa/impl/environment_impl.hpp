@@ -9,6 +9,7 @@
 #include "consensus/grandpa/environment.hpp"
 
 #include "log/logger.hpp"
+#include "utils/thread_pool.hpp"
 
 namespace kagome::blockchain {
   class BlockHeaderRepository;
@@ -25,13 +26,15 @@ namespace kagome::network {
 
 namespace kagome::consensus::grandpa {
 
-  class EnvironmentImpl : public Environment {
+  class EnvironmentImpl : public Environment,
+                          public std::enable_shared_from_this<EnvironmentImpl> {
    public:
     EnvironmentImpl(
         std::shared_ptr<blockchain::BlockTree> block_tree,
         std::shared_ptr<blockchain::BlockHeaderRepository> header_repository,
         std::shared_ptr<AuthorityManager> authority_manager,
-        std::shared_ptr<network::GrandpaTransmitter> transmitter);
+        std::shared_ptr<network::GrandpaTransmitter> transmitter,
+        std::shared_ptr<boost::asio::io_context> main_thread_context);
 
     ~EnvironmentImpl() override = default;
 
@@ -61,41 +64,37 @@ namespace kagome::consensus::grandpa {
 
     // Environment methods
 
-    outcome::result<void> onCatchUpRequested(
-        const libp2p::peer::PeerId &peer_id,
-        VoterSetId set_id,
-        RoundNumber round_number) override;
+    void onCatchUpRequested(const libp2p::peer::PeerId &peer_id,
+                            VoterSetId set_id,
+                            RoundNumber round_number) override;
 
-    outcome::result<void> onCatchUpRespond(
-        const libp2p::peer::PeerId &peer_id,
-        VoterSetId set_id,
-        RoundNumber round_number,
-        std::vector<SignedPrevote> prevote_justification,
-        std::vector<SignedPrecommit> precommit_justification,
-        BlockInfo best_final_candidate) override;
+    void onCatchUpRespond(const libp2p::peer::PeerId &peer_id,
+                          VoterSetId set_id,
+                          RoundNumber round_number,
+                          std::vector<SignedPrevote> prevote_justification,
+                          std::vector<SignedPrecommit> precommit_justification,
+                          BlockInfo best_final_candidate) override;
 
     void sendState(const libp2p::peer::PeerId &peer_id,
                    const MovableRoundState &state,
                    VoterSetId voter_set_id) override;
 
-    outcome::result<void> onVoted(RoundNumber round,
-                                  VoterSetId set_id,
-                                  const SignedMessage &vote) override;
+    void onVoted(RoundNumber round,
+                 VoterSetId set_id,
+                 const SignedMessage &vote) override;
 
-    outcome::result<void> onCommitted(
-        RoundNumber round,
-        VoterSetId voter_ser_id,
-        const BlockInfo &vote,
-        const GrandpaJustification &justification) override;
+    void onCommitted(RoundNumber round,
+                     VoterSetId voter_ser_id,
+                     const BlockInfo &vote,
+                     const GrandpaJustification &justification) override;
 
-    outcome::result<void> onNeighborMessageSent(
-        RoundNumber round,
-        VoterSetId set_id,
-        BlockNumber last_finalized) override;
+    void onNeighborMessageSent(RoundNumber round,
+                               VoterSetId set_id,
+                               BlockNumber last_finalized) override;
 
-    outcome::result<void> applyJustification(
-        const BlockInfo &block_info,
-        const primitives::Justification &justification) override;
+    void applyJustification(const BlockInfo &block_info,
+                            const primitives::Justification &justification,
+                            ApplyJustificationCb &&cb) override;
 
     outcome::result<void> finalize(
         VoterSetId id, const GrandpaJustification &justification) override;
@@ -111,6 +110,7 @@ namespace kagome::consensus::grandpa {
     std::shared_ptr<AuthorityManager> authority_manager_;
     std::shared_ptr<network::GrandpaTransmitter> transmitter_;
     std::weak_ptr<JustificationObserver> justification_observer_;
+    ThreadHandler main_thread_context_;
 
     log::Logger logger_;
   };

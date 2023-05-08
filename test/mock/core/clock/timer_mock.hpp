@@ -23,9 +23,10 @@ namespace testutil {
 
     MOCK_METHOD(void, cancel, (), (override));
 
-    MOCK_METHOD(void,
-                asyncWait,
-                (const std::function<void(const std::error_code &)> &h));
+    MOCK_METHOD(
+        void,
+        asyncWait,
+        (const std::function<void(const boost::system::error_code &)> &h));
   };
 }  // namespace testutil
 

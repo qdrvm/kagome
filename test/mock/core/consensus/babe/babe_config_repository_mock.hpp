@@ -24,6 +24,11 @@ namespace kagome::consensus::babe {
         config,
         (const primitives::BlockContext &, EpochNumber),
         (const, override));
+
+    MOCK_METHOD(void,
+                readFromState,
+                (const primitives::BlockInfo &),
+                (override));
   };
 
 }  // namespace kagome::consensus::babe

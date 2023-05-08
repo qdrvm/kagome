@@ -26,12 +26,16 @@ namespace kagome::runtime {
         RuntimeEnvironment &env) override;
 
     outcome::result<primitives::Version> version(
-        primitives::BlockHash const &block) override;
+        const primitives::BlockHash &block) override;
 
     outcome::result<primitives::Version> version() override;
 
     outcome::result<void> execute_block(
         const primitives::Block &block,
+        TrieChangesTrackerOpt changes_tracker) override;
+
+    outcome::result<void> execute_block_ref(
+        const primitives::BlockReflection &block,
         TrieChangesTrackerOpt changes_tracker) override;
 
     outcome::result<std::unique_ptr<RuntimeEnvironment>> initialize_block(

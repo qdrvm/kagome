@@ -5,11 +5,15 @@
 
 #include "crypto/bip39/mnemonic.hpp"
 
+#include <charconv>
 #include <codecvt>
 #include <locale>
 
 #include <boost/algorithm/string.hpp>
+
+#include "common/visitor.hpp"
 #include "crypto/bip39/bip39_types.hpp"
+#include "crypto/hasher.hpp"
 #include "log/logger.hpp"
 
 namespace kagome::crypto::bip39 {
@@ -31,35 +35,75 @@ namespace kagome::crypto::bip39 {
     }
   }  // namespace
 
+  RawJunction Junction::raw(const crypto::Hasher &hasher) const {
+    auto raw = visit_in_place(
+        index, [](const auto &x) { return scale::encode(x).value(); });
+    common::Hash256 result;
+    if (raw.size() > result.size()) {
+      result = hasher.blake2b_256(raw);
+    } else {
+      std::copy(raw.begin(), raw.end(), result.begin());
+    }
+    return RawJunction{hard, result};
+  }
+
   outcome::result<Mnemonic> Mnemonic::parse(std::string_view phrase) {
-    if (phrase.empty() || !isValidUtf8(std::string(phrase))) {
+    if (!isValidUtf8(std::string(phrase))) {
       return bip39::MnemonicError::INVALID_MNEMONIC;
     }
+
+    Mnemonic mnemonic;
 
     auto password_pos = phrase.find("///");
-    std::string_view mnemonic_list;
-    std::string_view password;
+    std::string_view seed;
     if (password_pos != std::string_view::npos) {
       // need to normalize password utf8 nfkd
-      password = phrase.substr(password_pos + 3);
-      mnemonic_list = phrase.substr(0, password_pos);
+      mnemonic.password = phrase.substr(password_pos + 3);
+      seed = phrase.substr(0, password_pos);
     } else {
-      mnemonic_list = phrase;
+      seed = phrase;
     }
 
-    if (mnemonic_list.find("/") != std::string_view::npos) {
-      log::createLogger("Mnemonic", "bip39")
-          ->error("junctions are not supported yet");
-      return bip39::MnemonicError::INVALID_MNEMONIC;
+    auto path = seed;
+    auto slash_pos = path.find('/');
+    if (slash_pos != std::string_view::npos) {
+      seed = seed.substr(0, slash_pos);
+      path.remove_prefix(slash_pos);
+      while (not path.empty()) {
+        path.remove_prefix(1);
+        auto hard = not path.empty() and path[0] == '/';
+        if (hard) {
+          path.remove_prefix(1);
+        }
+        slash_pos = path.find('/');
+        if (slash_pos == std::string_view::npos) {
+          slash_pos = path.size();
+        }
+        auto index = path.substr(0, slash_pos);
+        auto end = index.data() + index.size();
+        uint64_t num;
+        auto parse = std::from_chars(index.data(), end, num);
+        if (parse.ec == std::errc{} and parse.ptr == end) {
+          mnemonic.junctions.emplace_back(Junction{hard, num});
+        } else {
+          mnemonic.junctions.emplace_back(Junction{hard, std::string{index}});
+        }
+        path.remove_prefix(slash_pos);
+      }
     }
 
-    // split word list into separate words
-    std::vector<std::string> word_list;
-    boost::split(word_list, mnemonic_list, boost::algorithm::is_space());
+    if (boost::starts_with(seed, "0x")) {
+      OUTCOME_TRY(bytes, common::unhexWith0x(seed));
+      mnemonic.seed = common::Buffer{std::move(bytes)};
+    } else {
+      Words words;
+      if (not seed.empty()) {
+        boost::split(words, seed, boost::algorithm::is_space());
+      }
+      mnemonic.seed = std::move(words);
+    }
 
-    Mnemonic mnemonic{std::move(word_list), std::string(password)};
     return mnemonic;
-    //
   }
 }  // namespace kagome::crypto::bip39
 

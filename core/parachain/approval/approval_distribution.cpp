@@ -554,6 +554,15 @@ namespace kagome::parachain {
                  lost);
         pending_known_.erase(lost);
         active_tranches_.erase(lost);
+
+        if (auto block_entry = storedBlockEntries().get(lost)) {
+          for (const auto &candidate : block_entry->get().candidates) {
+            recovery_->remove(candidate.second);
+            storedCandidateEntries().extract(candidate.second);
+          }
+          storedBlockEntries().extract(lost);
+        }
+        storedDistribBlockEntries().extract(lost);
       }
     }
   }
@@ -832,11 +841,11 @@ namespace kagome::parachain {
 
     for (auto &candidate : candidates) {
       if (auto obj{boost::get<runtime::CandidateIncluded>(&candidate)}) {
-        included.emplace_back(std::make_tuple(
-            hasher_->blake2b_256(scale::encode(obj->candidate_receipt).value()),
-            std::move(obj->candidate_receipt),
-            obj->core_index,
-            obj->group_index));
+        included.emplace_back(
+            std::make_tuple(candidateHash(*hasher_, obj->candidate_receipt),
+                            std::move(obj->candidate_receipt),
+                            obj->core_index,
+                            obj->group_index));
       }
     }
     return included;

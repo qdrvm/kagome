@@ -6,6 +6,8 @@
 #ifndef KAGOME_SAFE_OBJECT_HPP
 #define KAGOME_SAFE_OBJECT_HPP
 
+#include <chrono>
+#include <condition_variable>
 #include <mutex>
 #include <shared_mutex>
 
@@ -54,6 +56,47 @@ struct SafeObject {
  private:
   T t_;
   mutable M cs_;
+};
+
+class WaitForSingleObject final {
+  std::condition_variable wait_cv_;
+  std::mutex wait_m_;
+  bool flag_;
+
+ public:
+  WaitForSingleObject(const WaitForSingleObject &) = delete;
+  WaitForSingleObject &operator=(const WaitForSingleObject &) = delete;
+
+  WaitForSingleObject(WaitForSingleObject &&) = delete;
+  WaitForSingleObject &operator=(WaitForSingleObject &&) = delete;
+
+  WaitForSingleObject() : flag_{true} {}
+
+  bool wait(std::chrono::microseconds wait_timeout) {
+    std::unique_lock<std::mutex> _lock(wait_m_);
+    return wait_cv_.wait_for(_lock, wait_timeout, [&]() {
+      auto prev = !flag_;
+      flag_ = true;
+      return prev;
+    });
+  }
+
+  void wait() {
+    std::unique_lock<std::mutex> _lock(wait_m_);
+    wait_cv_.wait(_lock, [&]() {
+      auto prev = !flag_;
+      flag_ = true;
+      return prev;
+    });
+  }
+
+  void set() {
+    {
+      std::unique_lock<std::mutex> _lock(wait_m_);
+      flag_ = false;
+    }
+    wait_cv_.notify_one();
+  }
 };
 
 #endif  // KAGOME_SAFE_OBJECT_HPP

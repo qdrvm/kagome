@@ -7,10 +7,9 @@
 #define KAGOME_CRYPTO_STORE_HPP
 
 #include <memory>
-
-#include <boost/filesystem.hpp>
-#include <libp2p/crypto/key.hpp>
 #include <optional>
+
+#include <libp2p/crypto/key.hpp>
 
 #include "crypto/bip39/bip39_provider.hpp"
 #include "crypto/crypto_store/key_type.hpp"
@@ -18,13 +17,12 @@
 #include "crypto/ed25519_types.hpp"
 #include "crypto/secp256k1_types.hpp"
 #include "crypto/sr25519_types.hpp"
+#include "filesystem/common.hpp"
 
 namespace kagome::crypto {
   class CryptoStore {
    public:
-    // currently std::filesystem::path is missing required methods in macos SDK
-    // so we have to use boost's filesystem primitives
-    using Path = boost::filesystem::path;
+    using Path = filesystem::path;
 
     virtual ~CryptoStore() = default;
 
@@ -163,11 +161,6 @@ namespace kagome::crypto {
      */
     virtual outcome::result<Sr25519Keys> getSr25519PublicKeys(
         KeyTypeId key_type) const = 0;
-
-    /**
-     * @return current LibP2P keypair
-     */
-    virtual std::optional<libp2p::crypto::KeyPair> getLibp2pKeypair() const = 0;
 
     /**
      * Acquires the key from user-provided path or generates and saves the

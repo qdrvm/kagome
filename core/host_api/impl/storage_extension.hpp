@@ -170,7 +170,9 @@ namespace kagome::host_api {
     storage::trie::PolkadotCodec codec_;
     log::Logger logger_;
 
-    constexpr static auto kDefaultLoggerTag = "WASM Runtime [StorageExtension]";
+    size_t transactions_ = 0;
+
+    static constexpr auto kDefaultLoggerTag = "WASM Runtime [StorageExtension]";
   };
 
 }  // namespace kagome::host_api

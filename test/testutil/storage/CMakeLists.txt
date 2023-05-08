@@ -6,7 +6,7 @@ add_library(base_fs_test
     base_fs_test.cpp
     )
 target_link_libraries(base_fs_test
-    Boost::filesystem
+    filesystem
     Boost::boost
     logger_for_tests
     )
@@ -17,7 +17,7 @@ add_library(base_rocksdb_test
     )
 target_link_libraries(base_rocksdb_test
     base_fs_test
-    Boost::filesystem
+    filesystem
     Boost::boost
     storage
     logger_for_tests

@@ -29,3 +29,10 @@ target_link_libraries(kagome-db-editor
 if (BACKWARD)
   add_backward(kagome-db-editor)
 endif()
+
+add_library(kagome-benchmark
+    benchmark_main.cpp
+    )
+target_link_libraries(kagome-benchmark
+    application_injector
+    )

@@ -65,7 +65,7 @@ namespace kagome::network {
   void StreamEngine::reserveStreams(
       const PeerId &peer_id, const std::shared_ptr<ProtocolBase> &protocol) {
     BOOST_ASSERT(protocol != nullptr);
-    auto const reserved = streams_.exclusiveAccess([&](auto &streams) {
+    const auto reserved = streams_.exclusiveAccess([&](auto &streams) {
       return streams[peer_id].emplace(protocol, ProtocolDescr{protocol}).second;
     });
 
@@ -95,8 +95,39 @@ namespace kagome::network {
     });
   }
 
+  void StreamEngine::del(const PeerId &peer_id,
+                         const std::shared_ptr<ProtocolBase> &protocol) {
+    SL_TRACE(logger_,
+             "Remove {} streams from peer.(peer={})",
+             protocol->protocolName(),
+             peer_id);
+    streams_.exclusiveAccess([&](auto &streams) {
+      if (auto it = streams.find(peer_id); it != streams.end()) {
+        auto &protocols = it->second;
+        for (auto protocol_it = protocols.begin();
+             protocol_it != protocols.end();
+             ++protocol_it) {
+          if (protocol_it->first == protocol) {
+            auto &descr = protocol_it->second;
+            if (descr.incoming.stream) {
+              descr.incoming.stream->reset();
+            }
+            if (descr.outgoing.stream) {
+              descr.outgoing.stream->reset();
+            }
+            protocols.erase(protocol_it);
+            break;
+          }
+        }
+        if (protocols.empty()) {
+          streams.erase(it);
+        }
+      }
+    });
+  }
+
   bool StreamEngine::reserveOutgoing(
-      PeerId const &peer_id, std::shared_ptr<ProtocolBase> const &protocol) {
+      const PeerId &peer_id, const std::shared_ptr<ProtocolBase> &protocol) {
     BOOST_ASSERT(protocol);
     return streams_.exclusiveAccess([&](PeerMap &streams) {
       auto &proto_map = streams[peer_id];
@@ -106,7 +137,7 @@ namespace kagome::network {
   }
 
   void StreamEngine::dropReserveOutgoing(
-      PeerId const &peer_id, std::shared_ptr<ProtocolBase> const &protocol) {
+      const PeerId &peer_id, const std::shared_ptr<ProtocolBase> &protocol) {
     BOOST_ASSERT(protocol);
     return streams_.exclusiveAccess([&](auto &streams) {
       forPeerProtocol(
@@ -117,11 +148,11 @@ namespace kagome::network {
   }
 
   bool StreamEngine::isAlive(
-      PeerId const &peer_id,
-      std::shared_ptr<ProtocolBase> const &protocol) const {
+      const PeerId &peer_id,
+      const std::shared_ptr<ProtocolBase> &protocol) const {
     BOOST_ASSERT(protocol);
     bool alive = false;
-    streams_.sharedAccess([&](auto const &streams) {
+    streams_.sharedAccess([&](const auto &streams) {
       forPeerProtocol(
           peer_id, streams, protocol, [&](auto, ProtocolDescr const &descr) {
             alive = descr.hasActiveOutgoing() || descr.hasActiveIncoming()
@@ -134,7 +165,7 @@ namespace kagome::network {
   size_t StreamEngine::outgoingStreamsNumber(
       const std::shared_ptr<ProtocolBase> &protocol) {
     size_t candidates_num{0};
-    streams_.sharedAccess([&](auto const &streams) {
+    streams_.sharedAccess([&](const auto &streams) {
       candidates_num = std::count_if(
           streams.begin(), streams.end(), [&protocol](const auto &entry) {
             auto &[peer_id, protocol_map] = entry;
@@ -157,8 +188,8 @@ namespace kagome::network {
   }
 
   void StreamEngine::uploadStream(std::shared_ptr<Stream> &dst,
-                                  std::shared_ptr<Stream> const &src,
-                                  std::shared_ptr<ProtocolBase> const &protocol,
+                                  const std::shared_ptr<Stream> &src,
+                                  const std::shared_ptr<ProtocolBase> &protocol,
                                   Direction direction) {
     BOOST_ASSERT(src);
     // Skip the same stream
@@ -194,7 +225,7 @@ namespace kagome::network {
     if (logger_->level() >= log::Level::DEBUG) {
       logger_->debug("DUMP: vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv");
       logger_->debug("DUMP: {}", msg);
-      forEachPeer([&](const auto &peer_id, auto const &proto_map) {
+      forEachPeer([&](const auto &peer_id, const auto &proto_map) {
         logger_->debug("DUMP:   Peer {}", peer_id);
         for (auto const &[protocol, descr] : proto_map) {
           logger_->debug("DUMP:     Protocol {}", protocol);
@@ -209,8 +240,8 @@ namespace kagome::network {
   }
 
   void StreamEngine::openOutgoingStream(
-      PeerId const &peer_id,
-      std::shared_ptr<ProtocolBase> const &protocol,
+      const PeerId &peer_id,
+      const std::shared_ptr<ProtocolBase> &protocol,
       ProtocolDescr &descr) {
     if (descr.tryReserveOutgoing()) {
       protocol->newOutgoingStream(

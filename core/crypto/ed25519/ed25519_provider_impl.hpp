@@ -8,20 +8,23 @@
 
 #include "crypto/ed25519_provider.hpp"
 
-#include "crypto/random_generator.hpp"
 #include "log/logger.hpp"
 
 namespace kagome::crypto {
+  class Hasher;
 
   class Ed25519ProviderImpl : public Ed25519Provider {
    public:
-    enum class Error { VERIFICATION_FAILED = 1, SIGN_FAILED };
+    enum class Error {
+      VERIFICATION_FAILED = 1,
+      SIGN_FAILED,
+      SOFT_JUNCTION_NOT_SUPPORTED,
+    };
 
-    explicit Ed25519ProviderImpl(std::shared_ptr<CSPRNG> generator);
+    Ed25519ProviderImpl(std::shared_ptr<crypto::Hasher> hasher);
 
-    Ed25519KeypairAndSeed generateKeypair() const override;
-
-    Ed25519Keypair generateKeypair(const Ed25519Seed &seed) const override;
+    outcome::result<Ed25519Keypair> generateKeypair(
+        const Ed25519Seed &seed, Junctions junctions) const override;
 
     outcome::result<Ed25519Signature> sign(
         const Ed25519Keypair &keypair,
@@ -33,7 +36,7 @@ namespace kagome::crypto {
         const Ed25519PublicKey &public_key) const override;
 
    private:
-    std::shared_ptr<CSPRNG> generator_;
+    std::shared_ptr<crypto::Hasher> hasher_;
     log::Logger logger_;
   };
 

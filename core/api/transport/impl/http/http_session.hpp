@@ -12,6 +12,7 @@
 #include <cstdlib>
 #include <memory>
 
+#include "api/allow_unsafe.hpp"
 #include "api/transport/session.hpp"
 #include "log/logger.hpp"
 
@@ -52,7 +53,9 @@ namespace kagome::api {
      * @param socket socket instance
      * @param config session configuration
      */
-    HttpSession(Context &context, Configuration config);
+    HttpSession(Context &context,
+                AllowUnsafe allow_unsafe,
+                Configuration config);
 
     Socket &socket() override {
       return stream_.socket();
@@ -86,6 +89,8 @@ namespace kagome::api {
     }
 
     void post(std::function<void()> cb) override;
+
+    bool isUnsafeAllowed() const override;
 
    private:
     /**
@@ -148,6 +153,7 @@ namespace kagome::api {
     /// Strand to ensure the connection's handlers are not called concurrently.
     boost::asio::strand<boost::asio::io_context::executor_type> strand_;
 
+    AllowUnsafe allow_unsafe_;
     Configuration config_;              ///< session configuration
     boost::beast::tcp_stream stream_;   ///< stream
     boost::beast::flat_buffer buffer_;  ///< read buffer

@@ -29,6 +29,8 @@ namespace kagome::consensus::babe {
         std::reference_wrapper<const primitives::BabeConfiguration>>
     config(const primitives::BlockContext &context,
            EpochNumber epoch_number) const = 0;
+
+    virtual void readFromState(const primitives::BlockInfo &block) = 0;
   };
 
 }  // namespace kagome::consensus::babe

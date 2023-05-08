@@ -20,6 +20,7 @@ namespace kagome::api {
       const application::AppConfiguration &app_config,
       SessionImpl::Configuration session_config)
       : context_{std::move(context)},
+        allow_unsafe_{app_config},
         endpoint_(app_config.rpcHttpEndpoint()),
         session_config_{session_config},
         logger_{log::createLogger("RpcHttpListener", "rpc_transport")} {
@@ -77,7 +78,8 @@ namespace kagome::api {
   }
 
   void HttpListenerImpl::acceptOnce() {
-    new_session_ = std::make_shared<SessionImpl>(*context_, session_config_);
+    new_session_ = std::make_shared<SessionImpl>(
+        *context_, allow_unsafe_, session_config_);
 
     auto on_accept = [wp = weak_from_this()](boost::system::error_code ec) {
       if (auto self = wp.lock()) {

@@ -225,11 +225,6 @@ int db_editor_main(int argc, const char **argv) {
     target_state_param = RootHash::fromHexWithPrefix(argv[2]).value();
   }
 
-  auto logging_system = std::make_shared<soralog::LoggingSystem>(
-      std::make_shared<Configurator>());
-  std::ignore = logging_system->configure();
-  log::setLoggingSystem(logging_system);
-
   auto log = log::createLogger("main", "kagome-db-editor");
 
   common::Buffer prefix{};

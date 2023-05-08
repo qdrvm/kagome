@@ -90,11 +90,6 @@ namespace kagome::crypto {
                 (KeyTypeId),
                 (const, override));
 
-    MOCK_METHOD(std::optional<libp2p::crypto::KeyPair>,
-                getLibp2pKeypair,
-                (),
-                (const, override));
-
     MOCK_METHOD(outcome::result<libp2p::crypto::KeyPair>,
                 loadLibp2pKeypair,
                 (const Path &),

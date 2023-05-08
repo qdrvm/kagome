@@ -5,11 +5,11 @@
 
 #include "application/impl/util.hpp"
 
-#define UNWRAP_ERROR_CODE(ec) \
-  {                           \
-    if (ec) {                 \
-      return (ec);            \
-    }                         \
+#define UNWRAP_ERROR_CODE(ec)      \
+  {                                \
+    if (ec) {                      \
+      return outcome::failure(ec); \
+    }                              \
   }
 
 OUTCOME_CPP_DEFINE_CATEGORY(kagome::application::util, Error, e) {
@@ -25,11 +25,11 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::application::util, Error, e) {
 
 namespace kagome::application::util {
 
-  namespace fs = boost::filesystem;
+  namespace fs = filesystem;
 
-  outcome::result<void> init_directory(const boost::filesystem::path &path) {
+  outcome::result<void> init_directory(const fs::path &path) {
     // init chain directory in base path
-    boost::system::error_code ec{};
+    std::error_code ec{};
     if (not fs::exists(path, ec)) {
       UNWRAP_ERROR_CODE(ec)
       if (not fs::create_directory(path, ec)) {
