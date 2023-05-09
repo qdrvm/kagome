@@ -315,11 +315,11 @@ namespace kagome::consensus::grandpa {
     primitives::events::BabeStateSubscriptionEnginePtr babe_status_observable_;
     primitives::events::BabeStateEventSubscriberPtr babe_status_observer_;
 
-    std::atomic_flag synchronized_once_ =
-        ATOMIC_FLAG_INIT;  // declares if initial sync was done, does not
-                           // necessarily mean that node is currently synced.
-                           // Needed for enabling neighbor message processing.
-                           // By default is false
+    std::atomic_bool synchronized_once_ =
+        false;  // declares if initial sync was done, does not
+                // necessarily mean that node is currently synced.
+                // Needed for enabling neighbor message processing.
+                // By default is false
 
     std::shared_ptr<ThreadPool> execution_thread_pool_;
     std::shared_ptr<ThreadHandler> internal_thread_context_;

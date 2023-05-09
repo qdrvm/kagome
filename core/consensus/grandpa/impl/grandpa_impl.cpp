@@ -147,7 +147,7 @@ namespace kagome::consensus::grandpa {
             const primitives::events::BabeStateEventParams &event) {
           if (auto self = wself.lock()) {
             if (event == babe::Babe::State::SYNCHRONIZED) {
-              self->synchronized_once_.test_and_set();
+              self->synchronized_once_.store(true);
             }
           }
         });
@@ -485,7 +485,7 @@ namespace kagome::consensus::grandpa {
       }
     }
 
-    if (synchronized_once_.test()) {
+    if (not synchronized_once_.load()) {
       return;
     }
 
