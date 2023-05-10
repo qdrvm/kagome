@@ -131,4 +131,10 @@ namespace kagome::runtime {
             block, "ParachainHost_inbound_hrmp_channels_contents", id);
   }
 
+  outcome::result<std::optional<dispute::ScrapedOnChainVotes>>
+  ParachainHostImpl::on_chain_votes(const primitives::BlockHash &block) {
+    return executor_->callAt<std::optional<dispute::ScrapedOnChainVotes>>(
+        block, "ParachainHost_on_chain_votes");
+  }
+
 }  // namespace kagome::runtime

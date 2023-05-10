@@ -76,6 +76,9 @@ namespace kagome::runtime {
     inbound_hrmp_channels_contents(const primitives::BlockHash &block,
                                    ParachainId id) override;
 
+    outcome::result<std::optional<dispute::ScrapedOnChainVotes>> on_chain_votes(
+        const primitives::BlockHash &block) override;
+
    private:
     std::shared_ptr<Executor> executor_;
   };

@@ -8,6 +8,7 @@
 
 #include "common/blob.hpp"
 #include "common/unused.hpp"
+#include "dispute_coordinator/types.hpp"
 #include "primitives/block_id.hpp"
 #include "primitives/common.hpp"
 #include "primitives/parachain_host.hpp"
@@ -180,6 +181,10 @@ namespace kagome::runtime {
         std::map<ParachainId, std::vector<InboundHrmpMessage>>>
     inbound_hrmp_channels_contents(const primitives::BlockHash &block,
                                    ParachainId id) = 0;
+
+    /// Get all disputes in relation to a relay parent.
+    virtual outcome::result<std::optional<dispute::ScrapedOnChainVotes>>
+    on_chain_votes(const primitives::BlockHash &block) = 0;
   };
 
 }  // namespace kagome::runtime
