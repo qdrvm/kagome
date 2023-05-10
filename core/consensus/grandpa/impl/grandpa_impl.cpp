@@ -7,6 +7,7 @@
 
 #include <libp2p/basic/scheduler/asio_scheduler_backend.hpp>
 #include <libp2p/basic/scheduler/scheduler_impl.hpp>
+#include <utility>
 
 #include "application/app_state_manager.hpp"
 #include "application/chain_spec.hpp"
@@ -78,6 +79,7 @@ namespace kagome::consensus::grandpa {
       std::shared_ptr<network::PeerManager> peer_manager,
       std::shared_ptr<blockchain::BlockTree> block_tree,
       std::shared_ptr<network::ReputationRepository> reputation_repository,
+      primitives::events::BabeStateSubscriptionEnginePtr babe_status_observable,
       std::shared_ptr<boost::asio::io_context> main_thread_context)
       : round_time_factor_{getGossipDuration(chain_spec)},
         hasher_{std::move(hasher)},
@@ -93,6 +95,7 @@ namespace kagome::consensus::grandpa {
         peer_manager_(std::move(peer_manager)),
         block_tree_(std::move(block_tree)),
         reputation_repository_(std::move(reputation_repository)),
+        babe_status_observable_(std::move(babe_status_observable)),
         execution_thread_pool_{std::make_shared<ThreadPool>(1ull)},
         internal_thread_context_{execution_thread_pool_->handler()},
         main_thread_context_{std::move(main_thread_context)},
@@ -108,6 +111,7 @@ namespace kagome::consensus::grandpa {
     BOOST_ASSERT(synchronizer_ != nullptr);
     BOOST_ASSERT(peer_manager_ != nullptr);
     BOOST_ASSERT(block_tree_ != nullptr);
+    BOOST_ASSERT(babe_status_observable_ != nullptr);
     BOOST_ASSERT(reputation_repository_ != nullptr);
 
     BOOST_ASSERT(app_state_manager != nullptr);
@@ -128,6 +132,26 @@ namespace kagome::consensus::grandpa {
   bool GrandpaImpl::prepare() {
     // Set themselves in environment
     environment_->setJustificationObserver(shared_from_this());
+
+    babe_status_observer_ =
+        std::make_shared<primitives::events::BabeStateEventSubscriber>(
+            babe_status_observable_, false);
+    babe_status_observer_->subscribe(
+        babe_status_observer_->generateSubscriptionSetId(),
+        primitives::events::BabeStateEventType::kSyncState);
+    babe_status_observer_->setCallback(
+        [wself{weak_from_this()}](
+            auto /*set_id*/,
+            bool &synchronized,
+            auto /*event_type*/,
+            const primitives::events::BabeStateEventParams &event) {
+          if (auto self = wself.lock()) {
+            if (event == babe::Babe::State::SYNCHRONIZED) {
+              self->synchronized_once_.store(true);
+            }
+          }
+        });
+
     internal_thread_context_->start();
     main_thread_context_.start();
     return true;
@@ -419,19 +443,6 @@ namespace kagome::consensus::grandpa {
 
     auto info = peer_manager_->getPeerState(peer_id);
 
-    // Iff peer just reached one of recent round, then share known votes
-    if (not info.has_value()
-        or (info->get().set_id.has_value()
-            and msg.voter_set_id != info->get().set_id)
-        or (info->get().round_number.has_value()
-            and msg.round_number > info->get().round_number)) {
-      if (auto opt_round = selectRound(msg.round_number, msg.voter_set_id);
-          opt_round.has_value()) {
-        auto &round = opt_round.value();
-        environment_->sendState(peer_id, round->state(), msg.voter_set_id);
-      }
-    }
-
     bool reputation_changed = false;
     if (info.has_value() and info->get().set_id.has_value()
         and info->get().round_number.has_value()) {
@@ -459,6 +470,23 @@ namespace kagome::consensus::grandpa {
     if (not reputation_changed) {
       reputation_repository_->change(
           peer_id, network::reputation::benefit::NEIGHBOR_MESSAGE);
+    }
+
+    // If peer just reached one of recent round, then share known votes
+    if (not info.has_value()
+        or (info->get().set_id.has_value()
+            and msg.voter_set_id != info->get().set_id)
+        or (info->get().round_number.has_value()
+            and msg.round_number > info->get().round_number)) {
+      if (auto opt_round = selectRound(msg.round_number, msg.voter_set_id);
+          opt_round.has_value()) {
+        auto &round = opt_round.value();
+        environment_->sendState(peer_id, round->state(), msg.voter_set_id);
+      }
+    }
+
+    if (not synchronized_once_.load()) {
+      return;
     }
 
     // If peer has the same voter set id

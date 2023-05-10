@@ -34,6 +34,11 @@ int main(int argc, const char **argv) {
 #if defined(BACKWARD_HAS_BACKTRACE)
   backward::SignalHandling sh;
 #endif
+
+  // Needed for zombienet
+  setvbuf(stdout, nullptr, _IOLBF, 0);
+  setvbuf(stderr, nullptr, _IOLBF, 0);
+
   {
     soralog::util::setThreadName("kagome");
 
