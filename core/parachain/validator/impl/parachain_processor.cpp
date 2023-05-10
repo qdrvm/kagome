@@ -433,6 +433,10 @@ namespace kagome::parachain {
   void ParachainProcessorImpl::onValidationProtocolMsg(
       const libp2p::peer::PeerId &peer_id,
       const network::ValidatorProtocolMessage &message) {
+    if (auto r = canProcessParachains(); r.has_error()) {
+      return;
+    }
+
     if (auto m{boost::get<network::BitfieldDistributionMessage>(&message)}) {
       auto bd{boost::get<network::BitfieldDistribution>(m)};
       BOOST_ASSERT_MSG(
