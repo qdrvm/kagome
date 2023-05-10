@@ -6,6 +6,7 @@
 #ifndef KAGOME_DISPUTE_CHAINSCRAPER
 #define KAGOME_DISPUTE_CHAINSCRAPER
 
+#include "dispute_coordinator/types.hpp"
 #include "network/types/collator_messages.hpp"
 #include "parachain/types.hpp"
 
@@ -54,6 +55,17 @@ namespace kagome::dispute {
 
     virtual std::vector<primitives::BlockInfo> get_blocks_including_candidate(
         const CandidateHash &candidate_hash) = 0;
+
+    /// Query active leaves for any candidate
+    /// `CandidateEvent::CandidateIncluded` events.
+    ///
+    /// and updates current heads, so we can query candidates for all non
+    /// finalized blocks.
+    ///
+    /// Returns: On chain votes and included candidate receipts for the leaf and
+    /// any ancestors we might not yet have seen.
+    virtual outcome::result<ScrapedUpdates> process_active_leaves_update(
+        const ActiveLeavesUpdate &update) = 0;
   };
 
 }  // namespace kagome::dispute

@@ -377,66 +377,63 @@ clang-format on
   }
 
   outcome::result<void> DisputeCoordinatorImpl::process_active_leaves_update(
-      ActiveLeavesUpdate update) {
+      const ActiveLeavesUpdate &update) {
     auto now = clock_->nowUint64();
 
-    /*
-    let scraped_updates =
-      self.scraper.process_active_leaves_update(ctx.sender(), &update).await?;
-    log_error(
-      self.participation
-        .bump_to_priority_for_candidates(ctx,
-    &scraped_updates.included_receipts) .await,
-    )?;
-    self.participation.process_active_leaves_update(ctx, &update).await?;
+    OUTCOME_TRY(scraped_updates,
+                scraper_->process_active_leaves_update(update));
 
-    if let Some(new_leaf) = update.activated {
-      match self
-        .rolling_session_window
-        .cache_session_info_for_head(ctx.sender(), new_leaf.hash)
-        .await
-      {
-        Err(e) => {
-          gum::warn!(
-            target: LOG_TARGET,
-            err = ?e,
-            "Failed to update session cache for disputes",
-          );
-          self.error = Some(e);
-        },
-        Ok(SessionWindowUpdate::Advanced {
-          new_window_end: window_end,
-          new_window_start,
-          ..
-        }) => {
-          self.error = None;
-          let session = window_end;
-          if self.highest_session < session {
-     gum::trace!(target: LOG_TARGET, session, "Observed new session.  Pruning");
-
-            self.highest_session = session;
-
-            db::v1::note_earliest_session(overlay_db, new_window_start)?;
-            self.spam_slots.prune_old(new_window_start);
-          }
-        },
-        Ok(SessionWindowUpdate::Unchanged) => {},
-      };
-
-      // The `runtime-api` subsystem has an internal queue which serializes
-    the execution,
-      // so there is no point in running these in parallel.
-      for votes in scraped_updates.on_chain_votes {
-        let _ = self.process_on_chain_votes(ctx, overlay_db, votes,
-    now).await.map_err( |error| { gum::warn!( target: LOG_TARGET, ?error,
-              "Skipping scraping block due to error",
-            );
-          },
-        );
-      }
+    auto bump_res = participation_->bump_to_priority_for_candidates(
+        scraped_updates.included_receipts);
+    if (bump_res.has_error()) {
+      // LOG-ERR
     }
 
-     */
+    OUTCOME_TRY(participation_->process_active_leaves_update(update));
+
+    if (update.activated.has_value()) {
+      auto &new_leaf = update.activated.value();
+
+      auto cache_res =
+          rolling_session_window_->cache_session_info_for_head(new_leaf.hash);
+
+      if (cache_res.has_error()) {
+        // LOG-WARN: "Failed to update session cache for disputes"
+        error_ = cache_res.as_failure();
+      } else {
+        visit_in_place(
+            cache_res.value(),
+            [&](const SessionWindowUpdate::Advanced &advanced) {
+              auto window_end = advanced.new_window_end;
+              auto new_window_start = advanced.new_window_start;
+              error_.reset();
+              auto session = window_end;
+              if (highest_session_ < session) {
+                // LOG-TRACE "Observed new session.  Pruning"
+
+                highest_session_ = session;
+
+                // https://github.com/paritytech/polkadot/blob/40974fb99c86f5c341105b7db53c7aa0df707d66/node/core/dispute-coordinator/src/initialized.rs#L310
+                // db::v1::note_earliest_session( // FIXME
+                //    overlay_db, new_window_start)?;
+                spam_slots_->prune_old(new_window_start);
+              }
+
+              return;
+            },
+            [](const SessionWindowUpdate::Unchanged &) {});
+      }
+
+      // The `runtime-api` subsystem has an internal queue which serializes the
+      // execution, so there is no point in running these in parallel.
+
+      for (auto &votes : scraped_updates.on_chain_votes) {
+        auto process_res = process_on_chain_votes(votes);
+        if (process_res.has_error()) {
+          // LOG-WARN: "Skipping scraping block due to error"
+        }
+      }
+    }
 
     return outcome::success();
   }
@@ -1084,8 +1081,7 @@ clang-format on
       const CandidateHash &candidate_hash,
       const CandidateReceipt &candidate_receipt,
       SessionIndex session,
-      bool valid,
-      Timestamp now) {
+      bool valid) {
     // https://github.com/paritytech/polkadot/blob/40974fb99c86f5c341105b7db53c7aa0df707d66/node/core/dispute-coordinator/src/initialized.rs#L1102
 
     // LOG-TRACE: "Issuing local statement for candidate!"
@@ -1236,180 +1232,224 @@ clang-format on
     const auto &candidate_receipt = msg.candidate_receipt;
     const auto &session = msg.session;
     const auto &statements = msg.statements;
-    const auto &pending_confirmation = msg.pending_confirmation;
+    // const auto &pending_confirmation = msg.pending_confirmation;
 
-    /* clang-format off
-    DisputeCoordinatorMessage::ImportStatements {
-      candidate_receipt,
-      session,
-      statements,
-      pending_confirmation,
-    } => {
-      gum::trace!(
-        target: LOG_TARGET,
-        candidate_hash = ?candidate_receipt.hash(),
-        ?session,
+    OUTCOME_TRY(
+        valid_import,
+        handle_import_statements(candidate_receipt, session, statements));
 
-      );
-      let outcome = self
-        .handle_import_statements(
-          ctx,
-          overlay_db,
-          MaybeCandidateReceipt::Provides(candidate_receipt),
-          session,
-          statements,
-          now,
-        )
-        .await?;
-      let report = move || match pending_confirmation {
-        Some(pending_confirmation) => pending_confirmation
-          .send(outcome)
-          .map_err(|_| JfyiError::DisputeImportOneshotSend),
-        None => Ok(()),
-      };
+    auto report = [
+                      // pending_confirmation{std::move(pending_confirmation)},
+                      // valid_import
+    ]() -> outcome::result<void> {
+      // if (pending_confirmation.has_value()) {
+      //   auto send_res = pending_confirmation.send(valid_import);
+      //   if (send_res.has_error()) {
+      //     return JfyiError::DisputeImportOneshotSend;
+      //   }
+      return outcome::success();
+      // }
+    };
 
-    match outcome {
-        ImportStatementsResult::InvalidImport => {
-                                                    report()?;
-},
-  // In case of valid import, delay confirmation until actual disk write:
-  ImportStatementsResult::ValidImport => return Ok(Box::new(report)),
-}
-},
-    */
-    return outcome::success();
+    if (not valid_import) {
+      return outcome::success();  // with move report?
+    }
+
+    // In case of valid import, delay confirmation until actual disk write:
+    return report();
   }
 
   outcome::result<void> DisputeCoordinatorImpl::handle_incoming_RecentDisputes(
       const RecentDisputesRequest_ &msg) {
-    /* clang-format off
-      DisputeCoordinatorMessage::RecentDisputes(tx) => {
-        // Return error if session information is missing.
-        self.ensure_available_session_info()?;
+    // Return error if session information is missing.
+    if (error_.has_value()) {
+      return RollingSessionWindowError::SessionsUnavailable;
+    }
 
-    gum::trace!(target: LOG_TARGET, "Loading recent disputes from db");
-    let recent_disputes = if let Some(disputes) = overlay_db.load_recent_disputes()? {
-      disputes
-    } else {
-        BTreeMap::new()
-    };
-    gum::trace!(target: LOG_TARGET, "Loaded recent disputes from db");
+    // LOG-TRACE: "Loading recent disputes from db"
 
-    let _ = tx.send(
-        recent_disputes.into_iter().map(|(k, v)| (k.0, k.1, v)).collect::<Vec<_>>(),
-    );
-  },
-     */
+    auto recent_disputes =
+        storage_->load_recent_disputes().value_or(RecentDisputes{});
+
+    // LOG-TRACE: "Loaded recent disputes from db"
+
+    std::vector<std::tuple<SessionIndex, CandidateHash, DisputeStatus>> data;
+    data.reserve(recent_disputes.size());
+    std::transform(
+        recent_disputes.begin(),
+        recent_disputes.end(),
+        std::back_inserter(data),
+        [](const auto &p)
+            -> std::tuple<SessionIndex, CandidateHash, DisputeStatus> {
+          return {std::get<0>(p.first), std::get<1>(p.first), p.second};
+        });
+
+    // msg.tx.send(data); // FIXME
+
     return outcome::success();
   }
 
   outcome::result<void> DisputeCoordinatorImpl::handle_incoming_ActiveDisputes(
       const ActiveDisputes &msg) {
-    /* clang-format off
-DisputeCoordinatorMessage::ActiveDisputes(tx) => {
-  // Return error if session information is missing.
-  self.ensure_available_session_info()?;
+    // Return error if session information is missing.
+    if (error_.has_value()) {
+      return RollingSessionWindowError::SessionsUnavailable;
+    }
 
-gum::trace!(target: LOG_TARGET, "DisputeCoordinatorMessage::ActiveDisputes");
+    // LOG-TRACE: "DisputeCoordinatorMessage::ActiveDisputes"
 
-let recent_disputes = if let Some(disputes) = overlay_db.load_recent_disputes()? {
-disputes
-} else {
-  BTreeMap::new()
-};
+    auto recent_disputes =
+        storage_->load_recent_disputes().value_or(RecentDisputes{});
 
-let _ = tx.send(
-  get_active_with_status(recent_disputes.into_iter(), now)
-      .map(|((session_idx, candidate_hash), dispute_status)| {
-               (session_idx, candidate_hash, dispute_status)
-           })
-      .collect(),
-);
-},
-     clang-format on */
+    auto now = clock_->nowUint64();
+
+    std::vector<std::tuple<SessionIndex, CandidateHash, DisputeStatus>> data;
+    for (const auto &p : recent_disputes) {
+      const auto &status = p.second;
+
+      auto at = visit_in_place(
+          status,
+          [](const Active &) -> std::optional<Timestamp> {
+            return std::nullopt;
+          },
+          [](const Confirmed &) -> std::optional<Timestamp> {
+            return std::nullopt;
+          },
+          [](const ConcludedFor &at) -> std::optional<Timestamp> {
+            return (Timestamp)at;
+          },
+          [](const ConcludedAgainst &at) -> std::optional<Timestamp> {
+            return (Timestamp)at;
+          });
+
+      auto dispute_is_inactive =
+          at.has_value() and at.value() + kActiveDurationSecs < now;
+
+      if (not dispute_is_inactive) {
+        data.emplace_back(std::get<0>(p.first), std::get<1>(p.first), p.second);
+      }
+    }
+
+    // msg.tx.send(data); // FIXME
+
     return outcome::success();
   }
+
   outcome::result<void>
   DisputeCoordinatorImpl::handle_incoming_QueryCandidateVotes(
       const QueryCandidateVotes &msg) {
-    /* clang-format off
-DisputeCoordinatorMessage::QueryCandidateVotes(query, tx) => {
-  // Return error if session information is missing.
-  self.ensure_available_session_info()?;
+    // Return error if session information is missing.
+    if (error_.has_value()) {
+      return RollingSessionWindowError::SessionsUnavailable;
+    }
 
-gum::trace!(target: LOG_TARGET, "DisputeCoordinatorMessage::QueryCandidateVotes");
+    // LOG-TRACE: "DisputeCoordinatorMessage::QueryCandidateVotes"
 
-let mut query_output = Vec::new();
-for (session_index, candidate_hash) in query {
-  if let Some(v) =
-        overlay_db.load_candidate_votes(session_index, &candidate_hash)?
-    {
-      query_output.push((session_index, candidate_hash, v.into()));
-    } else {
-    gum::debug!(
-        target: LOG_TARGET,
-          session_index,
-          "No votes found for candidate",
-    );
-  }
-}
-  let _ = tx.send(query_output);
-},
-     clang-format on */
+    std::vector<std::tuple<SessionIndex, CandidateHash, CandidateVotes>>
+        query_output;
+
+    for (auto &[session, candidate_hash] : msg.query) {
+      auto state_opt = storage_->load_candidate_votes(session, candidate_hash);
+      if (state_opt.has_value()) {
+        query_output.push_back(std::make_tuple(
+            session, candidate_hash, std::move(state_opt.value())));
+      } else {
+        // LOG-DEBUG: "No votes found for candidate"
+      }
+    }
+
+    // msg.tx.send(data); // FIXME
+
     return outcome::success();
   }
+
   outcome::result<void>
   DisputeCoordinatorImpl::handle_incoming_IssueLocalStatement(
       const IssueLocalStatement &msg) {
-    /* clang-format off
-DisputeCoordinatorMessage::IssueLocalStatement(
-  session,
-  candidate_hash,
-  candidate_receipt,
-  valid,
-) => {
-  gum::trace!(target: LOG_TARGET, "DisputeCoordinatorMessage::IssueLocalStatement");
-  self.issue_local_statement(
-    ctx,
-    overlay_db,
-    candidate_hash,
-    candidate_receipt,
-    session,
-    valid,
-    now,
-  )
-  .await?;
-},
-     clang-format on */
+    // LOG-TRACE: "DisputeCoordinatorMessage::IssueLocalStatement"
+    return issue_local_statement(
+        msg.candidate_hash, msg.candidate_receipt, msg.session, msg.valid);
+    // await
+
     return outcome::success();
   }
+
   outcome::result<void>
   DisputeCoordinatorImpl::handle_incoming_DetermineUndisputedChain(
       const DetermineUndisputedChain &msg) {
-    /* clang-format off
-DisputeCoordinatorMessage::DetermineUndisputedChain {
-  base: (base_number, base_hash),
-  block_descriptions,
-  tx,
-} => {
-  // Return error if session information is missing.
-  self.ensure_available_session_info()?;
-  gum::trace!(
-    target: LOG_TARGET,
-    "DisputeCoordinatorMessage::DetermineUndisputedChain"
-  );
+    // Return error if session information is missing.
+    if (error_.has_value()) {
+      return RollingSessionWindowError::SessionsUnavailable;
+    }
 
-let undisputed_chain = determine_undisputed_chain(
-  overlay_db,
-  base_number,
-  base_hash,
-  block_descriptions,
-  )?;
+    // LOG-TRACE: "DisputeCoordinatorMessage::DetermineUndisputedChain"
 
-let _ = tx.send(undisputed_chain);
-},
-     clang-format on */
+    auto undisputed_chain = determine_undisputed_chain(
+        msg.base.number, msg.base.hash, msg.block_descriptions);
+
+    // msg.tx.send(undisputed_chain); // FIXME
+
     return outcome::success();
+  }
+
+  // https://github.com/paritytech/polkadot/blob/40974fb99c86f5c341105b7db53c7aa0df707d66/node/core/dispute-coordinator/src/initialized.rs#L1272
+  outcome::result<primitives::BlockInfo>
+  DisputeCoordinatorImpl::determine_undisputed_chain(
+      const primitives::BlockNumber &base_number,
+      const primitives::BlockHash &base_hash,
+      std::vector<BlockDescription> block_descriptions) {
+    primitives::BlockInfo last(base_number + block_descriptions.size(),
+                               base_hash);
+
+    // Fast path for no disputes.
+    auto recent_disputes_opt = storage_->load_recent_disputes();
+
+    if (not recent_disputes_opt.has_value()) {
+      return last;
+    }
+    const auto &recent_disputes = recent_disputes_opt.value();
+
+    if (recent_disputes.empty()) {
+      return last;
+    }
+
+    /// Whether the disputed candidate is possibly invalid.
+    // https://github.com/paritytech/polkadot/blob/40974fb99c86f5c341105b7db53c7aa0df707d66/node/primitives/src/disputes/status.rs#L110-L111
+    auto is_possibly_invalid = [&recent_disputes](
+                                   SessionIndex session,
+                                   const CandidateHash &candidate_hash) {
+      auto it = recent_disputes.find(std::tie(session, candidate_hash));
+      if (it == recent_disputes.end()) {
+        return false;
+      }
+      return visit_in_place(
+          it->second,  // status
+          [](const ConcludedFor &) { return false; },
+          [](const auto &) { return true; });
+    };
+
+    for (size_t i = 0; i < block_descriptions.size(); ++i) {
+      const auto &session = block_descriptions[i].session;
+      const auto &candidates = block_descriptions[i].candidates;
+
+      auto r =
+          std::any_of(candidates.begin(),
+                      candidates.end(),
+                      [&](const auto &candidate_hash) {
+                        return is_possibly_invalid(session, candidate_hash);
+                      });
+
+      if (r) {
+        if (i == 0) {
+          return primitives::BlockInfo(base_number, base_hash);
+        } else {
+          return primitives::BlockInfo(base_number + i,
+                                       block_descriptions[i - 1].block_hash);
+        }
+      }
+    }
+
+    return last;
   }
 
 }  // namespace kagome::dispute

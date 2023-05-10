@@ -10,17 +10,21 @@
 
 namespace kagome::dispute {
 
+  enum class RollingSessionWindowError {
+    SessionsUnavailable = 1,
+  };
+
   enum SignatureValidationError {
     /// Invalid signature
-    InvalidSignature,
+    InvalidSignature = 1,
 
     /// Missing public key for validator,
     MissingPublicKey,
   };
 
-  enum DisputeMessageCreationError {
+  enum class DisputeMessageCreationError {
     /// There was no opposite vote available
-    NoOppositeVote,
+    NoOppositeVote = 1,
 
     /// Found vote had an invalid validator index that could not be found
     InvalidValidatorIndex,
@@ -33,9 +37,9 @@ namespace kagome::dispute {
   };
 
   /// Things that can go wrong when constructing a `DisputeMessage`.
-  enum DisputeMessageConstructingError {
+  enum class DisputeMessageConstructingError {
     /// The statements concerned different candidates.
-    CandidateHashMismatch,
+    CandidateHashMismatch = 1,
 
     /// The statements concerned different sessions.
     SessionIndexMismatch,
@@ -67,6 +71,7 @@ namespace kagome::dispute {
 
 }  // namespace kagome::dispute
 
+OUTCOME_HPP_DECLARE_ERROR(kagome::dispute, RollingSessionWindowError);
 OUTCOME_HPP_DECLARE_ERROR(kagome::dispute, SignatureValidationError);
 OUTCOME_HPP_DECLARE_ERROR(kagome::dispute, DisputeMessageCreationError);
 OUTCOME_HPP_DECLARE_ERROR(kagome::dispute, DisputeMessageConstructingError);

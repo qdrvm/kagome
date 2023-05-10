@@ -367,14 +367,17 @@ namespace kagome::dispute {
 
   /// Get candidate votes for a candidate.
   struct QueryCandidateVotes {
-    // Vec<(SessionIndex, CandidateHash)>,
+    std::vector<std::pair<SessionIndex, CandidateHash>> query;
     // oneshot::Sender<Vec<(SessionIndex, CandidateHash, CandidateVotes)>>,
   };
 
   /// Sign and issue local dispute votes. A value of `true` indicates validity,
   /// and `false` invalidity.
   struct IssueLocalStatement {
-    // SessionIndex, CandidateHash, CandidateReceipt, bool),
+    SessionIndex session;
+    CandidateHash candidate_hash;
+    CandidateReceipt candidate_receipt;
+    bool valid;
   };
 
   /// Determine the highest undisputed block within the given chain, based on
@@ -444,6 +447,19 @@ namespace kagome::dispute {
       /// inevitably going to be finalized so it is not accounted for by this
       /// function.
       DetermineUndisputedChain>;
+
+  /// ScrapedUpdates
+  ///
+  /// Updates to on_chain_votes and included receipts for new active leaf and
+  /// its unprocessed ancestors.
+  ///
+  /// on_chain_votes: New votes as seen on chain
+  /// included_receipts: Newly included parachain block candidate receipts as
+  /// seen on chain
+  struct ScrapedUpdates {
+    std::vector<ScrapedOnChainVotes> on_chain_votes;
+    std::vector<CandidateReceipt> included_receipts;
+  };
 
 }  // namespace kagome::dispute
 

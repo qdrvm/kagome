@@ -14,6 +14,7 @@
 #include "dispute_coordinator/chain_scraper.hpp"
 #include "dispute_coordinator/dispute_message.hpp"
 #include "dispute_coordinator/impl/candidate_vote_state.hpp"
+#include "dispute_coordinator/impl/errors.hpp"
 #include "dispute_coordinator/rolling_session_window.hpp"
 #include "dispute_coordinator/spam_slots.hpp"
 #include "dispute_coordinator/storage.hpp"
@@ -21,19 +22,25 @@
 #include "log/logger.hpp"
 #include "parachain/types.hpp"
 
+namespace kagome::application {
+  class AppStateManager;
+}
+
 namespace kagome::dispute {
   class ChainScraper;
   class LocalKeystore;
   class Participation;
 }  // namespace kagome::dispute
 
-namespace kagome::application {
-  class AppStateManager;
-}  // namespace kagome::application
+namespace kagome::runtime {
+  class ParachainHost;
+}
 
 namespace kagome::dispute {
 
   class DisputeCoordinatorImpl final : public DisputeCoordinator {
+    static constexpr Timestamp kActiveDurationSecs = 180;
+
    public:
     DisputeCoordinatorImpl(
         std::shared_ptr<application::AppStateManager> app_state_manager,
@@ -109,7 +116,7 @@ namespace kagome::dispute {
     outcome::result<void> process_on_chain_votes(ScrapedOnChainVotes votes);
 
     outcome::result<void> process_active_leaves_update(
-        ActiveLeavesUpdate update);
+        const ActiveLeavesUpdate &update);
 
     outcome::result<bool> handle_import_statements(
         MaybeCandidateReceipt candidate_receipt,
@@ -136,13 +143,21 @@ namespace kagome::dispute {
         SessionIndex session,
         bool valid);
 
+    /// Determine the best block and its block number.
+    /// Assumes `block_descriptions` are sorted from the one
+    /// with the lowest `BlockNumber` to the highest.
+    outcome::result<primitives::BlockInfo> determine_undisputed_chain(
+        const primitives::BlockNumber &base_number,
+        const primitives::BlockHash &base_hash,
+        std::vector<BlockDescription> block_descriptions);
+
     outcome::result<void> handle_incoming(
         const DisputeCoordinatorMessage &message);
 
     outcome::result<void> handle_incoming_ImportStatements(
         const ImportStatements &msg);
     outcome::result<void> handle_incoming_RecentDisputes(
-        const RecentDisputesRequest_ &msg);
+        const RecentDisputesRequest_ &p);
     outcome::result<void> handle_incoming_ActiveDisputes(
         const ActiveDisputes &msg);
     outcome::result<void> handle_incoming_QueryCandidateVotes(
@@ -163,10 +178,13 @@ namespace kagome::dispute {
     libp2p::basic::Scheduler::Handle processing_loop_handle_;
 
     std::shared_ptr<ChainScraper> scraper_;
+    SessionIndex highest_session_;
     std::shared_ptr<SpamSlots> spam_slots_;
     std::shared_ptr<Participation> participation_;
-
     std::shared_ptr<RollingSessionWindow> rolling_session_window_;
+
+    // This tracks only rolling session window failures.
+    std::optional<RollingSessionWindowError> error_;
 
     log::Logger log_ = log::createLogger("DisputeCoordinator", "dispute");
   };

@@ -5,6 +5,15 @@
 
 #include "dispute_coordinator/impl/errors.hpp"
 
+OUTCOME_CPP_DEFINE_CATEGORY(kagome::dispute, RollingSessionWindowError, e) {
+  using E = kagome::dispute::RollingSessionWindowError;
+  switch (e) {
+    case E::SessionsUnavailable:
+      return "Session unavailable";
+  }
+  return "unknown error (invalid RollingSessionWindowError)";
+}
+
 OUTCOME_CPP_DEFINE_CATEGORY(kagome::dispute, SignatureValidationError, e) {
   using E = kagome::dispute::SignatureValidationError;
   switch (e) {

@@ -8,7 +8,12 @@
 #ifndef KAGOME_DISPUTE_CHAINSCRAPERIMPL
 #define KAGOME_DISPUTE_CHAINSCRAPERIMPL
 
+#include "blockchain/block_tree.hpp"
 #include "dispute_coordinator/types.hpp"
+
+namespace kagome::runtime {
+  class ParachainHost;
+}
 
 namespace kagome::dispute {
 
@@ -99,7 +104,15 @@ namespace kagome::dispute {
 
   class ChainScraperImpl final : public ChainScraper {
    public:
-    ChainScraperImpl() {}
+    /// Limits the number of ancestors received for a single request.
+    static constexpr uint32_t kAncestryChunkSize = 10;
+    /// Limits the overall number of ancestors walked through for a given head.
+    ///
+    /// As long as we have `MAX_FINALITY_LAG` this makes sense as a value.
+    static constexpr uint32_t kAncestrySizeLimit = 500;
+
+    ChainScraperImpl(std::shared_ptr<runtime::ParachainHost> parachain_api,
+                     std::shared_ptr<blockchain::BlockTree> block_tree);
 
     /// Check whether we have seen a candidate included on any chain.
     bool is_candidate_included(const CandidateHash &candidate_hash) override;
@@ -109,7 +122,30 @@ namespace kagome::dispute {
     std::vector<primitives::BlockInfo> get_blocks_including_candidate(
         const CandidateHash &candidate_hash) override;
 
+    outcome::result<ScrapedUpdates> process_active_leaves_update(
+        const ActiveLeavesUpdate &update) override;
+
    private:
+    /// Returns ancestors of `head` in the descending order, stopping
+    /// either at the block present in cache or at the last finalized block.
+    ///
+    /// Both `head` and the latest finalized block are **not** included in the
+    /// result.
+    outcome::result<std::vector<primitives::BlockHash>>
+    get_unfinalized_block_ancestors(primitives::BlockHash head,
+                                    primitives::BlockNumber head_number);
+
+    /// Process candidate events of a block.
+    ///
+    /// Keep track of all included and backed candidates.
+    ///
+    /// Returns freshly included candidate receipts
+    outcome::result<std::vector<CandidateReceipt>> process_candidate_events(
+        primitives::BlockNumber block_number, primitives::BlockHash block_hash);
+
+    std::shared_ptr<runtime::ParachainHost> parachain_api_;
+    std::shared_ptr<blockchain::BlockTree> block_tree_;
+
     /// All candidates we have seen included, which not yet have been finalized.
     ScrapedCandidates included_candidates_;
 

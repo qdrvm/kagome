@@ -47,7 +47,7 @@ namespace kagome {
     }
 
     template <typename Out>
-    explicit operator Out() {
+    explicit operator Out() const {
       if constexpr (std::is_scalar_v<T>) {
         return this->Wrapper<T>::value;
       } else {
