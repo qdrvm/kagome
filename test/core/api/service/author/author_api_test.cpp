@@ -255,9 +255,6 @@ TEST_F(AuthorApiTest, InsertKeyBabe) {
   EXPECT_CALL(*store, getEd25519PublicKeys(KEY_TYPE_GRAN))
       .Times(1)
       .WillRepeatedly(Return(CryptoStore::Ed25519Keys{}));
-  EXPECT_CALL(*store, getSr25519PublicKeys(KEY_TYPE_AUDI))
-      .Times(1)
-      .WillRepeatedly(Return(CryptoStore::Sr25519Keys{}));
   EXPECT_CALL(*store, getSr25519PublicKeys(KEY_TYPE_BABE))
       .Times(2)
       .WillRepeatedly(Return(CryptoStore::Sr25519Keys{}));
@@ -278,9 +275,6 @@ TEST_F(AuthorApiTest, InsertKeyAudi) {
   EXPECT_CALL(*store, getEd25519PublicKeys(KEY_TYPE_GRAN))
       .Times(1)
       .WillRepeatedly(Return(CryptoStore::Ed25519Keys{}));
-  EXPECT_CALL(*store, getSr25519PublicKeys(KEY_TYPE_AUDI))
-      .Times(2)
-      .WillRepeatedly(Return(CryptoStore::Sr25519Keys{}));
   EXPECT_CALL(*store, getSr25519PublicKeys(KEY_TYPE_BABE))
       .Times(1)
       .WillRepeatedly(Return(CryptoStore::Sr25519Keys{}));
@@ -301,9 +295,6 @@ TEST_F(AuthorApiTest, InsertKeyGran) {
   EXPECT_CALL(*store, getEd25519PublicKeys(KEY_TYPE_GRAN))
       .Times(2)
       .WillRepeatedly(Return(CryptoStore::Ed25519Keys{}));
-  EXPECT_CALL(*store, getSr25519PublicKeys(KEY_TYPE_AUDI))
-      .Times(1)
-      .WillRepeatedly(Return(CryptoStore::Sr25519Keys{}));
   EXPECT_CALL(*store, getSr25519PublicKeys(KEY_TYPE_BABE))
       .Times(1)
       .WillRepeatedly(Return(CryptoStore::Sr25519Keys{}));

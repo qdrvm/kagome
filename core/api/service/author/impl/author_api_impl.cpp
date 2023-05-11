@@ -83,11 +83,6 @@ namespace kagome::api {
       SL_INFO(logger_, "Grandpa key already exists and won't be replaced");
       return outcome::failure(crypto::CryptoStoreError::GRAN_ALREADY_EXIST);
     }
-    if (crypto::KEY_TYPE_AUDI == key_type && keys_->getAudiKeyPair()) {
-      SL_INFO(logger_,
-              "Authority discovery key already exists and won't be replaced");
-      return outcome::failure(crypto::CryptoStoreError::AUDI_ALREADY_EXIST);
-    }
     if (crypto::KEY_TYPE_BABE == key_type
         or crypto::KEY_TYPE_AUDI == key_type) {
       OUTCOME_TRY(seed_typed, crypto::Sr25519Seed::fromSpan(seed));
@@ -114,7 +109,6 @@ namespace kagome::api {
     // explicitly load keys from store to cache
     keys_->getBabeKeyPair();
     keys_->getGranKeyPair();
-    keys_->getAudiKeyPair();
     return res;
   }
 

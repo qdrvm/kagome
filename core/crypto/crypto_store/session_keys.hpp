@@ -9,6 +9,8 @@
 #include "common/blob.hpp"
 #include "crypto/crypto_store/key_type.hpp"
 #include "network/types/roles.hpp"
+#include "primitives/authority.hpp"
+#include "primitives/authority_discovery_id.hpp"
 
 namespace kagome::application {
   class AppConfiguration;
@@ -33,6 +35,10 @@ namespace kagome::crypto {
 
   class SessionKeys {
    public:
+    template <typename T>
+    using Result = std::optional<
+        std::pair<std::shared_ptr<T>, primitives::AuthorityIndex>>;
+
     virtual ~SessionKeys() = default;
 
     /**
@@ -53,16 +59,27 @@ namespace kagome::crypto {
     /**
      * @return current AUDI session key pair
      */
-    virtual const std::shared_ptr<Sr25519Keypair> &getAudiKeyPair() = 0;
+    virtual std::shared_ptr<Sr25519Keypair> getAudiKeyPair(
+        const std::vector<primitives::AuthorityDiscoveryId> &authorities) = 0;
   };
 
   class SessionKeysImpl : public SessionKeys {
     std::shared_ptr<Sr25519Keypair> babe_key_pair_;
     std::shared_ptr<Ed25519Keypair> gran_key_pair_;
     std::shared_ptr<Sr25519Keypair> para_key_pair_;
-    std::shared_ptr<Sr25519Keypair> audi_key_pair_;
     network::Roles roles_;
     std::shared_ptr<CryptoStore> store_;
+
+    template <typename T,
+              outcome::result<std::vector<decltype(T::public_key)>> (
+                  CryptoStore::*list_public)(KeyTypeId) const,
+              outcome::result<T> (CryptoStore::*get_private)(
+                  KeyTypeId, const decltype(T::public_key) &) const,
+              typename A,
+              typename Eq>
+    Result<T> find(KeyTypeId type,
+                   const std::vector<A> &authorities,
+                   const Eq &eq);
 
    public:
     SessionKeysImpl(std::shared_ptr<CryptoStore> store,
@@ -74,7 +91,9 @@ namespace kagome::crypto {
 
     const std::shared_ptr<Sr25519Keypair> &getParaKeyPair() override;
 
-    const std::shared_ptr<Sr25519Keypair> &getAudiKeyPair() override;
+    std::shared_ptr<Sr25519Keypair> getAudiKeyPair(
+        const std::vector<primitives::AuthorityDiscoveryId> &authorities)
+        override;
   };
 
 }  // namespace kagome::crypto
