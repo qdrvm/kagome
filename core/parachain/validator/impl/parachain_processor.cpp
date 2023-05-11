@@ -147,13 +147,10 @@ namespace kagome::parachain {
                                            bool &synchronized,
                                            auto /*event_type*/,
                                            const primitives::events::
-                                               BabeStateEventParams &event) {
+                                               BabeStateEventParams
+                                                   & /*event*/) {
       if (auto self = wself.lock()) {
-        if (event != consensus::babe::Babe::State::SYNCHRONIZED) {
-          SL_INFO(self->logger_, "Parachains engine turned-off");
-          synchronized = false;
-        } else if (!synchronized) {
-          SL_INFO(self->logger_, "Parachains engine turned-on");
+        if (!synchronized) {
           synchronized = true;
           auto my_view = self->peer_view_->getMyView();
           if (!my_view) {
