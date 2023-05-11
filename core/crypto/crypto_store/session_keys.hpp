@@ -21,6 +21,7 @@ namespace kagome::crypto {
   class CryptoStore;
   struct Ed25519Keypair;
   struct Sr25519Keypair;
+  struct Sr25519PublicKey;
 
   // hardcoded keys order for polkadot
   // otherwise it could be read from chainspec palletSession/keys
@@ -54,7 +55,8 @@ namespace kagome::crypto {
     /**
      * @return current parachain validator session key pair
      */
-    virtual const std::shared_ptr<Sr25519Keypair> &getParaKeyPair() = 0;
+    virtual Result<Sr25519Keypair> getParaKeyPair(
+        const std::vector<Sr25519PublicKey> &authorities) = 0;
 
     /**
      * @return current AUDI session key pair
@@ -66,7 +68,6 @@ namespace kagome::crypto {
   class SessionKeysImpl : public SessionKeys {
     std::shared_ptr<Sr25519Keypair> babe_key_pair_;
     std::shared_ptr<Ed25519Keypair> gran_key_pair_;
-    std::shared_ptr<Sr25519Keypair> para_key_pair_;
     network::Roles roles_;
     std::shared_ptr<CryptoStore> store_;
 
@@ -89,7 +90,8 @@ namespace kagome::crypto {
 
     const std::shared_ptr<Ed25519Keypair> &getGranKeyPair() override;
 
-    const std::shared_ptr<Sr25519Keypair> &getParaKeyPair() override;
+    Result<Sr25519Keypair> getParaKeyPair(
+        const std::vector<Sr25519PublicKey> &authorities) override;
 
     std::shared_ptr<Sr25519Keypair> getAudiKeyPair(
         const std::vector<primitives::AuthorityDiscoveryId> &authorities)

@@ -80,15 +80,12 @@ namespace kagome::crypto {
     return gran_key_pair_;
   }
 
-  const std::shared_ptr<Sr25519Keypair> &SessionKeysImpl::getParaKeyPair() {
-    if (not para_key_pair_ && roles_.flags.authority) {
-      auto keys = store_->getSr25519PublicKeys(KEY_TYPE_PARA);
-      if (keys and not keys.value().empty()) {
-        auto kp = store_->findSr25519Keypair(KEY_TYPE_PARA, keys.value().at(0));
-        para_key_pair_ = std::make_shared<Sr25519Keypair>(kp.value());
-      }
-    }
-    return para_key_pair_;
+  SessionKeys::Result<Sr25519Keypair> SessionKeysImpl::getParaKeyPair(
+      const std::vector<Sr25519PublicKey> &authorities) {
+    return find<Sr25519Keypair,
+                &CryptoStore::getSr25519PublicKeys,
+                &CryptoStore::findSr25519Keypair>(
+        KEY_TYPE_PARA, authorities, std::equal_to{});
   }
 
   std::shared_ptr<Sr25519Keypair> SessionKeysImpl::getAudiKeyPair(
