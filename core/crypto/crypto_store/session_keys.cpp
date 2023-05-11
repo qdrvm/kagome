@@ -17,9 +17,22 @@ namespace kagome::crypto {
             typename A,
             typename Eq>
   SessionKeys::Result<T> SessionKeysImpl::find(
-      KeyTypeId type, const std::vector<A> &authorities, const Eq &eq) {
+      std::shared_ptr<T> &cache,
+      KeyTypeId type,
+      const std::vector<A> &authorities,
+      const Eq &eq) {
     if (not roles_.flags.authority) {
       return std::nullopt;
+    }
+    if (cache) {
+      auto it = std::find_if(
+          authorities.begin(), authorities.end(), [&](const A &authority) {
+            return eq(cache->public_key, authority);
+          });
+
+      if (it != authorities.end()) {
+        return std::make_pair(cache, it - authorities.begin());
+      }
     }
     auto keys_res = ((*store_).*list_public)(type);
     if (not keys_res) {
@@ -39,8 +52,8 @@ namespace kagome::crypto {
         continue;
       }
       auto &keypair = keypair_res.value();
-      return std::make_pair(std::make_shared<T>(keypair),
-                            it - authorities.begin());
+      cache = std::make_shared<T>(keypair);
+      return std::make_pair(cache, it - authorities.begin());
     }
     return std::nullopt;
   }
@@ -63,6 +76,7 @@ namespace kagome::crypto {
     return find<Sr25519Keypair,
                 &CryptoStore::getSr25519PublicKeys,
                 &CryptoStore::findSr25519Keypair>(
+        babe_key_pair_,
         KEY_TYPE_BABE,
         authorities,
         [](const Sr25519PublicKey &l, const primitives::Authority &r) {
@@ -86,7 +100,7 @@ namespace kagome::crypto {
     return find<Sr25519Keypair,
                 &CryptoStore::getSr25519PublicKeys,
                 &CryptoStore::findSr25519Keypair>(
-        KEY_TYPE_PARA, authorities, std::equal_to{});
+        para_key_pair_, KEY_TYPE_PARA, authorities, std::equal_to{});
   }
 
   std::shared_ptr<Sr25519Keypair> SessionKeysImpl::getAudiKeyPair(
@@ -94,7 +108,7 @@ namespace kagome::crypto {
     if (auto res = find<Sr25519Keypair,
                         &CryptoStore::getSr25519PublicKeys,
                         &CryptoStore::findSr25519Keypair>(
-            KEY_TYPE_AUDI, authorities, std::equal_to{})) {
+            audi_key_pair_, KEY_TYPE_AUDI, authorities, std::equal_to{})) {
       return std::move(res->first);
     }
     return nullptr;

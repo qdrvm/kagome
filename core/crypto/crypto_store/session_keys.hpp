@@ -67,7 +67,10 @@ namespace kagome::crypto {
   };
 
   class SessionKeysImpl : public SessionKeys {
+    std::shared_ptr<Sr25519Keypair> babe_key_pair_;
     std::shared_ptr<Ed25519Keypair> gran_key_pair_;
+    std::shared_ptr<Sr25519Keypair> para_key_pair_;
+    std::shared_ptr<Sr25519Keypair> audi_key_pair_;
     network::Roles roles_;
     std::shared_ptr<CryptoStore> store_;
 
@@ -78,7 +81,8 @@ namespace kagome::crypto {
                   KeyTypeId, const decltype(T::public_key) &) const,
               typename A,
               typename Eq>
-    Result<T> find(KeyTypeId type,
+    Result<T> find(std::shared_ptr<T> &cache,
+                   KeyTypeId type,
                    const std::vector<A> &authorities,
                    const Eq &eq);
 
