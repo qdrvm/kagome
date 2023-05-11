@@ -75,10 +75,6 @@ namespace kagome::api {
       SL_INFO(logger_, "Unsupported key type, only [{}] are accepted", types);
       return outcome::failure(crypto::CryptoStoreError::UNSUPPORTED_KEY_TYPE);
     };
-    if (crypto::KEY_TYPE_GRAN == key_type && keys_->getGranKeyPair()) {
-      SL_INFO(logger_, "Grandpa key already exists and won't be replaced");
-      return outcome::failure(crypto::CryptoStoreError::GRAN_ALREADY_EXIST);
-    }
     if (crypto::KEY_TYPE_BABE == key_type
         or crypto::KEY_TYPE_AUDI == key_type) {
       OUTCOME_TRY(seed_typed, crypto::Sr25519Seed::fromSpan(seed));
@@ -102,8 +98,6 @@ namespace kagome::api {
       }
     }
     auto res = key_store_->saveKeyPair(key_type, public_key, seed);
-    // explicitly load keys from store to cache
-    keys_->getGranKeyPair();
     return res;
   }
 

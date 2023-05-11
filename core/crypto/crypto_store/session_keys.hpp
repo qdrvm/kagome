@@ -51,7 +51,8 @@ namespace kagome::crypto {
     /**
      * @return current GRANDPA session key pair
      */
-    virtual const std::shared_ptr<Ed25519Keypair> &getGranKeyPair() = 0;
+    virtual std::shared_ptr<Ed25519Keypair> getGranKeyPair(
+        const primitives::AuthoritySet &authorities) = 0;
 
     /**
      * @return current parachain validator session key pair
@@ -93,7 +94,8 @@ namespace kagome::crypto {
     Result<Sr25519Keypair> getBabeKeyPair(
         const primitives::AuthorityList &authorities) override;
 
-    const std::shared_ptr<Ed25519Keypair> &getGranKeyPair() override;
+    std::shared_ptr<Ed25519Keypair> getGranKeyPair(
+        const primitives::AuthoritySet &authorities) override;
 
     Result<Sr25519Keypair> getParaKeyPair(
         const std::vector<Sr25519PublicKey> &authorities) override;

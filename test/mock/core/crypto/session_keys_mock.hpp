@@ -23,9 +23,9 @@ namespace kagome::crypto {
                 (const primitives::AuthorityList &),
                 (override));
 
-    MOCK_METHOD(const std::shared_ptr<Ed25519Keypair> &,
+    MOCK_METHOD(std::shared_ptr<Ed25519Keypair>,
                 getGranKeyPair,
-                (),
+                (const primitives::AuthoritySet &),
                 (override));
 
     MOCK_METHOD(Result<Sr25519Keypair>,

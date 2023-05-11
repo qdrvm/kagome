@@ -29,7 +29,6 @@ namespace kagome::crypto {
           authorities.begin(), authorities.end(), [&](const A &authority) {
             return eq(cache->public_key, authority);
           });
-
       if (it != authorities.end()) {
         return std::make_pair(cache, it - authorities.begin());
       }
@@ -47,7 +46,7 @@ namespace kagome::crypto {
       if (it == authorities.end()) {
         continue;
       }
-      auto keypair_res = store_->findSr25519Keypair(type, key);
+      auto keypair_res = ((*store_).*get_private)(type, key);
       if (not keypair_res) {
         continue;
       }
@@ -84,15 +83,20 @@ namespace kagome::crypto {
         });
   }
 
-  const std::shared_ptr<Ed25519Keypair> &SessionKeysImpl::getGranKeyPair() {
-    if (!gran_key_pair_ && roles_.flags.authority) {
-      auto keys = store_->getEd25519PublicKeys(KEY_TYPE_GRAN);
-      if (keys and not keys.value().empty()) {
-        auto kp = store_->findEd25519Keypair(KEY_TYPE_GRAN, keys.value().at(0));
-        gran_key_pair_ = std::make_shared<Ed25519Keypair>(kp.value());
-      }
+  std::shared_ptr<Ed25519Keypair> SessionKeysImpl::getGranKeyPair(
+      const primitives::AuthoritySet &authorities) {
+    if (auto res = find<Ed25519Keypair,
+                        &CryptoStore::getEd25519PublicKeys,
+                        &CryptoStore::findEd25519Keypair>(
+            gran_key_pair_,
+            KEY_TYPE_GRAN,
+            authorities.authorities,
+            [](const Ed25519PublicKey &l, const primitives::Authority &r) {
+              return l == r.id.id;
+            })) {
+      return std::move(res->first);
     }
-    return gran_key_pair_;
+    return nullptr;
   }
 
   SessionKeys::Result<Sr25519Keypair> SessionKeysImpl::getParaKeyPair(

@@ -214,6 +214,10 @@ namespace kagome::consensus::grandpa {
     }
   }
 
+  bool VotingRoundImpl::hasKeypair() const {
+    return id_.has_value();
+  }
+
   void VotingRoundImpl::play() {
     if (stage_ != Stage::INIT) {
       return;

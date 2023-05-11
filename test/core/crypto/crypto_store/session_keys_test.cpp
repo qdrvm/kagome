@@ -54,7 +54,7 @@ TEST_F(SessionKeysTest, SessionKeys) {
       .Times(1)
       .WillOnce(Return(ed_keys_empty));
   ASSERT_FALSE(session_keys->getBabeKeyPair({}));
-  ASSERT_FALSE(session_keys->getGranKeyPair());
+  ASSERT_FALSE(session_keys->getGranKeyPair({}));
 
   auto ed_key = Ed25519PublicKey::fromHex(
                     "3e765f2bde3daadd443097b3145abf1f71f99f0aa946"
@@ -97,8 +97,9 @@ TEST_F(SessionKeysTest, SessionKeys) {
       .Times(1)
       .WillOnce(Return(ed_pair));
   ASSERT_TRUE(session_keys->getBabeKeyPair({{{sr_key}, {}}}));
-  ASSERT_TRUE(session_keys->getGranKeyPair());
+  ASSERT_TRUE(session_keys->getGranKeyPair({{}, {{{ed_key}, {}}}}));
 
   // no additional calls to store, reads from cache
-  ASSERT_TRUE(session_keys->getGranKeyPair());
+  ASSERT_TRUE(session_keys->getBabeKeyPair({{{sr_key}, {}}}));
+  ASSERT_TRUE(session_keys->getGranKeyPair({{}, {{{ed_key}, {}}}}));
 }

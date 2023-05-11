@@ -33,6 +33,8 @@ namespace kagome::consensus::grandpa {
 
     MOCK_METHOD(MovableRoundState, state, (), (const, override));
 
+    MOCK_METHOD(bool, hasKeypair, (), (const, override));
+
     MOCK_METHOD(void, play, (), (override));
 
     MOCK_METHOD(void, end, (), (override));
