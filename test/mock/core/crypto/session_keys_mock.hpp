@@ -18,9 +18,9 @@ namespace kagome::application {
 namespace kagome::crypto {
   class SessionKeysMock : public SessionKeys {
    public:
-    MOCK_METHOD(const std::shared_ptr<Sr25519Keypair> &,
+    MOCK_METHOD(Result<Sr25519Keypair>,
                 getBabeKeyPair,
-                (),
+                (const primitives::AuthorityList &),
                 (override));
 
     MOCK_METHOD(const std::shared_ptr<Ed25519Keypair> &,

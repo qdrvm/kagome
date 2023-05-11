@@ -45,7 +45,8 @@ namespace kagome::crypto {
     /**
      * @return current BABE session key pair
      */
-    virtual const std::shared_ptr<Sr25519Keypair> &getBabeKeyPair() = 0;
+    virtual Result<Sr25519Keypair> getBabeKeyPair(
+        const primitives::AuthorityList &authorities) = 0;
 
     /**
      * @return current GRANDPA session key pair
@@ -66,7 +67,6 @@ namespace kagome::crypto {
   };
 
   class SessionKeysImpl : public SessionKeys {
-    std::shared_ptr<Sr25519Keypair> babe_key_pair_;
     std::shared_ptr<Ed25519Keypair> gran_key_pair_;
     network::Roles roles_;
     std::shared_ptr<CryptoStore> store_;
@@ -86,7 +86,8 @@ namespace kagome::crypto {
     SessionKeysImpl(std::shared_ptr<CryptoStore> store,
                     const application::AppConfiguration &config);
 
-    const std::shared_ptr<Sr25519Keypair> &getBabeKeyPair() override;
+    Result<Sr25519Keypair> getBabeKeyPair(
+        const primitives::AuthorityList &authorities) override;
 
     const std::shared_ptr<Ed25519Keypair> &getGranKeyPair() override;
 

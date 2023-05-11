@@ -53,7 +53,7 @@ TEST_F(SessionKeysTest, SessionKeys) {
   EXPECT_CALL(*store, getEd25519PublicKeys(KEY_TYPE_GRAN))
       .Times(1)
       .WillOnce(Return(ed_keys_empty));
-  ASSERT_FALSE(session_keys->getBabeKeyPair());
+  ASSERT_FALSE(session_keys->getBabeKeyPair({}));
   ASSERT_FALSE(session_keys->getGranKeyPair());
 
   auto ed_key = Ed25519PublicKey::fromHex(
@@ -96,10 +96,9 @@ TEST_F(SessionKeysTest, SessionKeys) {
   EXPECT_CALL(*store, findEd25519Keypair(KEY_TYPE_GRAN, _))
       .Times(1)
       .WillOnce(Return(ed_pair));
-  ASSERT_TRUE(session_keys->getBabeKeyPair());
+  ASSERT_TRUE(session_keys->getBabeKeyPair({{{sr_key}, {}}}));
   ASSERT_TRUE(session_keys->getGranKeyPair());
 
   // no additional calls to store, reads from cache
-  ASSERT_TRUE(session_keys->getBabeKeyPair());
   ASSERT_TRUE(session_keys->getGranKeyPair());
 }

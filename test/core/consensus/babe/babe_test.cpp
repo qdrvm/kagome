@@ -57,7 +57,6 @@ using testing::_;
 using testing::A;
 using testing::Ref;
 using testing::Return;
-using testing::ReturnRef;
 using std::chrono_literals::operator""ms;
 
 // TODO (kamilsa): workaround unless we bump gtest version to 1.8.1+
@@ -164,8 +163,8 @@ class BabeTest : public testing::Test {
         std::make_shared<primitives::events::BabeStateSubscriptionEngine>();
 
     session_keys_ = std::make_shared<SessionKeysMock>();
-    EXPECT_CALL(*session_keys_, getBabeKeyPair())
-        .WillRepeatedly(ReturnRef(keypair_));
+    EXPECT_CALL(*session_keys_, getBabeKeyPair(_))
+        .WillRepeatedly(Return(std::make_pair(keypair_, 0)));
 
     babe_ = std::make_shared<babe::BabeImpl>(
         app_config_,

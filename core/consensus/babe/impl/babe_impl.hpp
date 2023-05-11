@@ -212,6 +212,7 @@ namespace kagome::consensus::babe {
     std::shared_ptr<clock::SystemClock> clock_;
     std::shared_ptr<crypto::Hasher> hasher_;
     std::shared_ptr<crypto::Sr25519Provider> sr25519_provider_;
+    std::shared_ptr<crypto::SessionKeys> session_keys_;
     std::unique_ptr<clock::Timer> timer_;
     std::shared_ptr<blockchain::DigestTracker> digest_tracker_;
     std::shared_ptr<network::WarpSync> warp_sync_;

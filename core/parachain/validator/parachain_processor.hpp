@@ -80,7 +80,6 @@ namespace kagome::parachain {
         std::shared_ptr<crypto::Sr25519Provider> crypto_provider,
         std::shared_ptr<network::Router> router,
         std::shared_ptr<boost::asio::io_context> this_context,
-        std::shared_ptr<crypto::SessionKeys> session_keys,
         std::shared_ptr<crypto::Hasher> hasher,
         std::shared_ptr<network::PeerView> peer_view,
         std::shared_ptr<ThreadPool> thread_pool,
@@ -385,9 +384,6 @@ namespace kagome::parachain {
 
     bool isValidatingNode() const;
 
-    template <typename T>
-    outcome::result<network::Signature> sign(const T &t) const;
-
     std::optional<ImportStatementSummary> importStatementToTable(
         ParachainProcessorImpl::RelayParentState &relayParentState,
         const primitives::BlockHash &candidate_hash,
@@ -411,7 +407,6 @@ namespace kagome::parachain {
     SafeObject<std::unordered_map<RelayHash, network::CollationEvent>>
         pending_candidates;
     std::shared_ptr<WorkersContext> this_context_;
-    std::shared_ptr<crypto::Sr25519Keypair> keypair_;
     std::shared_ptr<crypto::Hasher> hasher_;
     std::shared_ptr<network::PeerView> peer_view_;
     network::PeerView::MyViewSubscriberPtr my_view_sub_;

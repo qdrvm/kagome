@@ -58,15 +58,16 @@ namespace kagome::crypto {
     }
   }
 
-  const std::shared_ptr<Sr25519Keypair> &SessionKeysImpl::getBabeKeyPair() {
-    if (!babe_key_pair_ && roles_.flags.authority) {
-      auto keys = store_->getSr25519PublicKeys(KEY_TYPE_BABE);
-      if (keys and not keys.value().empty()) {
-        auto kp = store_->findSr25519Keypair(KEY_TYPE_BABE, keys.value().at(0));
-        babe_key_pair_ = std::make_shared<Sr25519Keypair>(kp.value());
-      }
-    }
-    return babe_key_pair_;
+  SessionKeys::Result<Sr25519Keypair> SessionKeysImpl::getBabeKeyPair(
+      const primitives::AuthorityList &authorities) {
+    return find<Sr25519Keypair,
+                &CryptoStore::getSr25519PublicKeys,
+                &CryptoStore::findSr25519Keypair>(
+        KEY_TYPE_BABE,
+        authorities,
+        [](const Sr25519PublicKey &l, const primitives::Authority &r) {
+          return l == r.id.id;
+        });
   }
 
   const std::shared_ptr<Ed25519Keypair> &SessionKeysImpl::getGranKeyPair() {
