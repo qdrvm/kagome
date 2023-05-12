@@ -17,7 +17,7 @@ namespace kagome::crypto {
             typename A,
             typename Eq>
   SessionKeys::Result<T> SessionKeysImpl::find(
-      std::shared_ptr<T> &cache,
+      Result<T> &cache,
       KeyTypeId type,
       const std::vector<A> &authorities,
       const Eq &eq) {
@@ -25,12 +25,17 @@ namespace kagome::crypto {
       return std::nullopt;
     }
     if (cache) {
+      if (cache->second < authorities.size()
+          && eq(cache->first->public_key, authorities[cache->second])) {
+        return cache;
+      }
       auto it = std::find_if(
           authorities.begin(), authorities.end(), [&](const A &authority) {
-            return eq(cache->public_key, authority);
+            return eq(cache->first->public_key, authority);
           });
       if (it != authorities.end()) {
-        return std::make_pair(cache, it - authorities.begin());
+        cache->second = it - authorities.begin();
+        return cache;
       }
     }
     auto keys_res = ((*store_).*list_public)(type);
@@ -51,8 +56,8 @@ namespace kagome::crypto {
         continue;
       }
       auto &keypair = keypair_res.value();
-      cache = std::make_shared<T>(keypair);
-      return std::make_pair(cache, it - authorities.begin());
+      cache.emplace(std::make_shared<T>(keypair), it - authorities.begin());
+      return cache;
     }
     return std::nullopt;
   }
