@@ -98,7 +98,7 @@ namespace kagome::authority_discovery {
 
     auto audi_key = keys_->getAudiKeyPair(authorities);
     if (not audi_key) {
-      SL_VERBOSE(log_, "No authority discovery key");
+      SL_WARN(log_, "No authority discovery key");
       return outcome::success();
     }
 
