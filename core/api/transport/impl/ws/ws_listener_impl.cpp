@@ -23,7 +23,7 @@ namespace kagome::api {
       SessionImpl::Configuration session_config)
       : context_{std::move(context)},
         allow_unsafe_{app_config},
-        endpoint_(app_config.rpcWsEndpoint()),
+        endpoint_(app_config.rpcEndpoint()),
         session_config_{session_config},
         max_ws_connections_{app_config.maxWsConnections()},
         next_session_id_{1ull},

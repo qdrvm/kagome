@@ -10,22 +10,39 @@
 #include <boost/asio/dispatch.hpp>
 #include <boost/config.hpp>
 
+namespace boost::beast {
+  template <class NextLayer, class DynamicBuffer>
+  void teardown(role_type role,
+                buffered_read_stream<NextLayer, DynamicBuffer> &s,
+                error_code &ec) {
+    using boost::beast::websocket::teardown;
+    teardown(role, s.next_layer(), ec);
+  }
+
+  template <class NextLayer, class DynamicBuffer, class TeardownHandler>
+  void async_teardown(role_type role,
+                      buffered_read_stream<NextLayer, DynamicBuffer> &s,
+                      TeardownHandler &&handler) {
+    using boost::beast::websocket::async_teardown;
+    async_teardown(role, s.next_layer(), std::move(handler));
+  }
+}  // namespace boost::beast
+
 namespace kagome::api {
+  static constexpr boost::string_view kServerName = "Kagome";
 
   WsSession::WsSession(Context &context,
                        AllowUnsafe allow_unsafe,
                        Configuration config,
                        SessionId id)
-      : strand_(boost::asio::make_strand(context)),
-        socket_(strand_),
-        allow_unsafe_{allow_unsafe},
+      : allow_unsafe_{allow_unsafe},
         config_{config},
-        stream_(socket_),
+        stream_{boost::asio::make_strand(context)},
         id_(id) {}
 
   void WsSession::start() {
     boost::asio::dispatch(stream_.get_executor(),
-                          boost::beast::bind_front_handler(&WsSession::onRun,
+                          boost::beast::bind_front_handler(&WsSession::httpRead,
                                                            shared_from_this()));
     SL_DEBUG(logger_, "Session#{} BEGIN", id_);
   }
@@ -83,6 +100,21 @@ namespace kagome::api {
   void WsSession::respond(std::string_view response) {
     SL_DEBUG(logger_, "Session#{} OUT: {}", id_, response);
     post([self{shared_from_this()}, response{std::string{response}}] {
+      if (not self->is_ws_) {
+        if (self->http_response_) {
+          SL_WARN(self->logger_,
+                  "bug, WsSession::respond called more than once on http");
+          return;
+        }
+        auto &req = self->http_request_->get();
+        auto &res = self->http_response_.emplace(
+            boost::beast::http::status::ok, req.version(), std::move(response));
+        res.set(boost::beast::http::field::server, kServerName);
+        res.set(boost::beast::http::field::content_type, "application/json");
+        res.keep_alive(req.keep_alive());
+        self->httpWrite();
+        return;
+      }
       self->pending_responses_.emplace(std::move(response));
       self->asyncWrite();
     });
@@ -102,7 +134,7 @@ namespace kagome::api {
                                                          shared_from_this()));
   }
 
-  void WsSession::onRun() {
+  void WsSession::wsAccept() {
     // Set suggested timeout settings for the websocket
     stream_.set_option(boost::beast::websocket::stream_base::timeout::suggested(
         boost::beast::role_type::server));
@@ -115,7 +147,8 @@ namespace kagome::api {
                       + " websocket-server-async");
         }));
     // Accept the websocket handshake
-    stream_.async_accept(boost::beast::bind_front_handler(&WsSession::onAccept,
+    stream_.async_accept(http_request_->get(),
+                         boost::beast::bind_front_handler(&WsSession::onAccept,
                                                           shared_from_this()));
   }
 
@@ -127,6 +160,7 @@ namespace kagome::api {
       stop();
       return;
     }
+    is_ws_ = true;
 
     asyncRead();
   };
@@ -167,10 +201,80 @@ namespace kagome::api {
   }
 
   void WsSession::post(std::function<void()> cb) {
-    boost::asio::post(strand_, std::move(cb));
+    boost::asio::post(stream_.get_executor(), std::move(cb));
   }
 
   bool WsSession::isUnsafeAllowed() const {
-    return allow_unsafe_.allow(socket_.remote_endpoint());
+    return allow_unsafe_.allow(
+        stream_.next_layer().next_layer().socket().remote_endpoint());
+  }
+
+  void WsSession::httpClose() {
+    bool already_stopped = false;
+    if (stopped_.compare_exchange_strong(already_stopped, true)) {
+      stream_.next_layer().next_layer().close();
+      notifyOnClose(id_, type());
+      if (on_ws_close_) {
+        on_ws_close_();
+      }
+      SL_TRACE(logger_, "Session id = {} terminated", id_);
+    } else {
+      SL_TRACE(logger_,
+               "Session id = {} was already terminated. Doing nothing.",
+               id_);
+    }
+  }
+
+  void WsSession::httpRead() {
+    http_request_.emplace();
+    http_request_->body_limit(config_.max_request_size);
+    stream_.next_layer().next_layer().expires_after(config_.operation_timeout);
+    boost::beast::http::async_read(
+        stream_.next_layer().next_layer(),
+        stream_.next_layer().buffer(),
+        http_request_->get(),
+        [self{shared_from_this()}](boost::system::error_code ec, size_t) {
+          if (ec) {
+            self->httpClose();
+            return;
+          }
+          auto &req = self->http_request_->get();
+          if (boost::beast::websocket::is_upgrade(req)) {
+            self->wsAccept();
+            return;
+          }
+          // allow only POST method
+          if (req.method() != boost::beast::http::verb::post) {
+            auto &res = self->http_response_.emplace(
+                boost::beast::http::status::bad_request,
+                req.version(),
+                "Unsupported HTTP-method");
+            res.set(boost::beast::http::field::server, kServerName);
+            res.set(boost::beast::http::field::content_type, "text/plain");
+            res.keep_alive(req.keep_alive());
+            self->httpWrite();
+            return;
+          }
+          self->http_response_.reset();
+          self->handleRequest(req.body());
+        });
+  }
+
+  void WsSession::httpWrite() {
+    http_response_->prepare_payload();
+    boost::beast::http::async_write(
+        stream_.next_layer(),
+        *http_response_,
+        [self = shared_from_this()](boost::system::error_code ec, size_t) {
+          if (ec) {
+            self->httpClose();
+            return;
+          }
+          if (self->http_response_->need_eof()) {
+            self->httpClose();
+            return;
+          }
+          self->httpRead();
+        });
   }
 }  // namespace kagome::api
