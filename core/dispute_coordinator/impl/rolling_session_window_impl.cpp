@@ -6,6 +6,7 @@
 #include "dispute_coordinator/impl/rolling_session_window_impl.hpp"
 
 #include "blockchain/block_tree.hpp"
+#include "dispute_coordinator/impl/errors.hpp"
 
 namespace kagome::dispute {
   RollingSessionWindowImpl::RollingSessionWindowImpl(
@@ -88,6 +89,8 @@ namespace kagome::dispute {
 
     // Extend from chain state.
     if (sessions_missing_count > 0) {
+      // FIXME
+      //
       //      auto sessions_res =
       //      extend_sessions_from_chain_state(stored_sessions,
       //                                                           &mut sender,
@@ -100,12 +103,12 @@ namespace kagome::dispute {
       //      if (sessions_res.has_error()) {
       //        // todo generate error 'SessionsUnavailable'
       //        // Err(kind) => Err(SessionsUnavailable {
-      //        //	kind,
-      //        //	info: Some(SessionsUnavailableInfo {
-      //        //		window_start,
-      //        //		window_end: session_index,
-      //        //		block_hash,
-      //        //	}),
+      //        //  kind,
+      //        //  info: Some(SessionsUnavailableInfo {
+      //        //    window_start,
+      //        //    window_end: session_index,
+      //        //    block_hash,
+      //        //  }),
       //        //}),
       //      }
       //
@@ -143,9 +146,141 @@ namespace kagome::dispute {
   RollingSessionWindowImpl::load() {
     return boost::system::error_code{};  // FIXME
   }
+
   outcome::result<void> RollingSessionWindowImpl::save(
       StoredWindow stored_window) {
     return boost::system::error_code{};  // FIXME
+  }
+
+  outcome::result<SessionWindowUpdate>
+  RollingSessionWindowImpl::cache_session_info_for_head(
+      const primitives::BlockHash &block_hash) {
+    OUTCOME_TRY(session_index, api_->session_index_for_child(block_hash));
+
+    auto latest = latest_session();
+
+    // Either cached or ancient.
+    if (session_index <= latest) {
+      return SessionWindowUnchanged{};
+    }
+
+    auto last_finalized = block_tree_->getLastFinalized();
+    OUTCOME_TRY(earliest_non_finalized_block_session,
+                api_->session_index_for_child(last_finalized.hash));
+
+    auto old_window_start = earliest_session_;
+    auto old_window_end = latest;
+
+    // Ensure we keep sessions up to last finalized block by adjusting the
+    // window start. This will increase the session window to cover the full
+    // unfinalized chain.
+    auto window_start = std::min<SessionIndex>(
+        (session_index >= window_size_) ? (session_index - (window_size_ - 1))
+                                        : 0,
+        earliest_non_finalized_block_session);
+
+    // Never look back past earliest session, since if sessions beyond were not
+    // needed or available in the past remains valid for the future (window only
+    // advances forward).
+    window_start = std::max(window_start, earliest_session_);
+
+    auto sessions = session_info_;
+
+    auto sessions_out_of_window = (window_start >= old_window_start)
+                                    ? (window_start - old_window_start)
+                                    : 0;
+
+    if (sessions_out_of_window < sessions.size()) {
+      // Drop sessions based on how much the window advanced.
+      sessions.erase(sessions.begin(),
+                     sessions.begin() + sessions_out_of_window);
+    } else {
+      // Window has jumped such that we need to fetch all sessions from on
+      // chain.
+      sessions.clear();
+    };
+
+    auto res = extend_sessions_from_chain_state(
+        sessions, block_hash, window_start, session_index);
+
+    if (res.has_error()) {
+      return RollingSessionWindowError::SessionsUnavailable;
+    } else {
+      SessionWindowAdvanced update{
+          .prev_window_start = old_window_start,
+          .prev_window_end = old_window_end,
+          .new_window_start = window_start,
+          .new_window_end = session_index,
+      };
+
+      session_info_ = std::move(res.value());
+
+      // we need to account for this case:
+      // window_start ................................... session_index
+      //              old_window_start ........... latest
+      earliest_session_ = std::max(window_start, old_window_start);
+
+      // Update current window in DB.
+      save(StoredWindow{
+          .earliest_session = earliest_session_,
+          .session_info = session_info_,
+      });
+
+      return update;
+    }
+  }
+
+  outcome::result<std::vector<SessionInfo>>
+  RollingSessionWindowImpl::extend_sessions_from_chain_state(
+      std::vector<SessionInfo> stored_sessions,
+      const primitives::BlockHash &block_hash,
+      SessionIndex &window_start,
+      SessionIndex end_inclusive) {
+    // Start from the db sessions.
+    auto sessions = std::move(stored_sessions);
+
+    // We allow session fetch failures only if we won't create a gap in the
+    // window by doing so. If `allow_failure` is set to true here, fetching
+    // errors are ignored until we get a first session.
+    auto allow_failure = sessions.empty();
+
+    auto start = window_start + sessions.size();
+
+    for (auto i = start; i <= end_inclusive; ++i) {
+      auto session_info_res = api_->session_info(block_hash, i);
+
+      if (session_info_res.has_value()) {
+        auto &session_info_opt = session_info_res.value();
+        if (session_info_opt.has_value()) {
+          auto &session_info = session_info_opt.value();
+
+          // We do not allow failure anymore after having at least 1 session in
+          // window.
+          allow_failure = false;
+          sessions.push_back(std::move(session_info));
+
+        } else if (not allow_failure) {
+          return RollingSessionWindowError::Missing;
+
+        } else {
+          // Handle `allow_failure` true.
+          // If we didn't get the session, we advance window start.
+          ++window_start;
+          // LOG-DEBUG: "Session info missing from runtime."
+        }
+
+      } else if (not allow_failure) {
+        return RollingSessionWindowError::RuntimeApiError;
+
+      } else {
+        // Handle `allow_failure` true.
+        // If we didn't get the session, we advance window start.
+        ++window_start;
+        // LOG-DEBUG: "Error while fetching session information."
+      }
+    }
+
+    return sessions;
   }
 
 }  // namespace kagome::dispute

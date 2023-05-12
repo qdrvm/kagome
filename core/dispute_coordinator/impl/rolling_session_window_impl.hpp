@@ -43,15 +43,32 @@ namespace kagome::dispute {
 
     bool contains(SessionIndex session_index) const override;
 
+    outcome::result<SessionWindowUpdate> cache_session_info_for_head(
+        const primitives::BlockHash &block_hash) override;
+
    private:
     outcome::result<std::optional<StoredWindow>> load();
     outcome::result<void> save(StoredWindow stored_window);
+
+    outcome::result<SessionIndex> get_session_index_for_child(
+        const primitives::BlockHash &block_hash);
+
+    /// Attempts to extend db stored sessions with sessions missing between
+    /// `start` and up to `end_inclusive`.
+    /// Runtime session info fetching errors are ignored if that doesn't create
+    /// a gap in the window.
+    outcome::result<std::vector<SessionInfo>> extend_sessions_from_chain_state(
+        std::vector<SessionInfo> stored_sessions,
+        const primitives::BlockHash &block_hash,
+        SessionIndex &window_start,
+        SessionIndex end_inclusive);
 
     std::shared_ptr<ParachainHost> api_;
     std::shared_ptr<blockchain::BlockTree> block_tree_;
 
     SessionIndex earliest_session_;
     std::vector<SessionInfo> session_info_;
+    SessionIndex window_size_;
 
     // The option is just to enable some approval-voting tests to force feed
     // sessions in the window without dealing with the DB.

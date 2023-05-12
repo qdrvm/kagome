@@ -104,6 +104,9 @@ namespace kagome::dispute {
 
     std::optional<ParticipationRequest> dequeue() override;
 
+    outcome::result<void> prioritize_if_present(
+        const CandidateReceipt &receipt) override;
+
    private:
     std::shared_ptr<blockchain::BlockHeaderRepository> block_header_repository_;
 

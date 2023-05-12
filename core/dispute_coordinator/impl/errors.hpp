@@ -12,6 +12,8 @@ namespace kagome::dispute {
 
   enum class RollingSessionWindowError {
     SessionsUnavailable = 1,
+    RuntimeApiError,
+    Missing,
   };
 
   enum SignatureValidationError {

@@ -88,4 +88,43 @@ namespace kagome::dispute {
     return std::nullopt;
   }
 
+  outcome::result<void> QueuesImpl::prioritize_if_present(
+      const CandidateReceipt &receipt) {
+    auto candidate_hash = receipt.commitments_hash;
+
+    auto relay_parent_block_number_res =
+        block_header_repository_->getNumberByHash(
+            receipt.descriptor.relay_parent);
+
+    std::optional<primitives::BlockNumber> relay_parent_block_number_opt;
+
+    if (relay_parent_block_number_res.has_error()) {
+      if (relay_parent_block_number_res
+          != outcome::failure(blockchain::BlockTreeError::HEADER_NOT_FOUND)) {
+        return relay_parent_block_number_res.as_failure();
+      }
+
+      // LOG-WARN: "Candidate's relay_parent could not be found via chain API -
+      //            `CandidateComparator` with an empty relay parent block
+      //            number will be provided!"
+
+    } else {
+      relay_parent_block_number_opt = relay_parent_block_number_res.value();
+    }
+
+    CandidateComparator comparator{
+        .relay_parent_block_number = relay_parent_block_number_opt,
+        .candidate_hash = candidate_hash};
+
+    if (priority_.size() >= kPriorityQueueSize) {
+      return QueueError::PriorityFull;
+    }
+
+    if (auto it = best_effort_.find(comparator); it != best_effort_.end()) {
+      priority_.emplace(comparator, it->second);
+    }
+
+    return outcome::success();
+  }
+
 }  // namespace kagome::dispute

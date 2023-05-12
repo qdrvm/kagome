@@ -91,4 +91,12 @@ namespace kagome::dispute {
     return dequeue_until_capacity(recent_block.hash);
   }
 
+  outcome::result<void> ParticipationImpl::bump_to_priority_for_candidates(
+      std::vector<CandidateReceipt> &included_receipts) {
+    for (auto &receipt : included_receipts) {
+      OUTCOME_TRY(queue_->prioritize_if_present(receipt));
+    }
+    return outcome::success();
+  }
+
 }  // namespace kagome::dispute

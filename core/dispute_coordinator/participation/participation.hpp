@@ -55,6 +55,12 @@ namespace kagome::dispute {
     /// spawned).
     virtual outcome::result<void> get_participation_result(
         const ParticipationStatement &msg) = 0;
+
+    /// Moving any request concerning the given candidates from best-effort to
+    /// priority, ignoring any candidates that don't have any queued
+    /// participation requests.
+    virtual outcome::result<void> bump_to_priority_for_candidates(
+        std::vector<CandidateReceipt> &included_receipts) = 0;
   };
 
 }  // namespace kagome::dispute

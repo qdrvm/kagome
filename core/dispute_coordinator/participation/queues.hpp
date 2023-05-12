@@ -35,6 +35,11 @@ namespace kagome::dispute {
     /// Get the next best request for dispute participation if any.
     /// First the priority queue is considered and then the best effort one.
     virtual std::optional<ParticipationRequest> dequeue() = 0;
+
+    /// Reprioritizes any participation requests pertaining to the passed
+    /// candidates from best effort to priority.
+    virtual outcome::result<void> prioritize_if_present(
+        const CandidateReceipt &receipt) = 0;
   };
 
 }  // namespace kagome::dispute

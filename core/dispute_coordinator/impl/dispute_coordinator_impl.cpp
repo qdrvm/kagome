@@ -116,7 +116,7 @@ namespace kagome::dispute {
 
       auto confirm_write = visit_in_place(
           message,
-          [&](const ParticipationStatement &msg) {
+          [&](const ParticipationStatement &msg) -> outcome::result<void> {
             // LOG-TRACE: "MuxedMessage::Participation"
 
             participation_->get_participation_result(msg);
@@ -142,13 +142,7 @@ namespace kagome::dispute {
             return default_confirm;
           },
           [&](const DisputeCoordinatorMessage &msg) {
-            handle_incoming(msg);
-            /*
-clang-format off
-          FromOrchestra::Communication { msg } =>
-            self.handle_incoming(ctx, &mut overlay_db, msg, clock.now()).await?,
-clang-format on
-         */
+            return handle_incoming(msg);
           },
           [&](const Signal &msg) {
             /*
@@ -399,11 +393,11 @@ clang-format on
 
       if (cache_res.has_error()) {
         // LOG-WARN: "Failed to update session cache for disputes"
-        error_ = cache_res.as_failure();
+        // error_ = cache_res.as_failure(); // FIXME
       } else {
         visit_in_place(
             cache_res.value(),
-            [&](const SessionWindowUpdate::Advanced &advanced) {
+            [&](const SessionWindowAdvanced &advanced) {
               auto window_end = advanced.new_window_end;
               auto new_window_start = advanced.new_window_start;
               error_.reset();
@@ -421,7 +415,7 @@ clang-format on
 
               return;
             },
-            [](const SessionWindowUpdate::Unchanged &) {});
+            [](const SessionWindowUnchanged &) {});
       }
 
       // The `runtime-api` subsystem has an internal queue which serializes the

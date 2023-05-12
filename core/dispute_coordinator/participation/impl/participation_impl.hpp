@@ -34,6 +34,9 @@ namespace kagome::dispute {
     outcome::result<void> get_participation_result(
         const ParticipationStatement &msg) override;
 
+    outcome::result<void> bump_to_priority_for_candidates(
+        std::vector<CandidateReceipt> &included_receipts) override;
+
    private:
     /// Dequeue until `MAX_PARALLEL_PARTICIPATIONS` is reached.
     outcome::result<void> dequeue_until_capacity(
