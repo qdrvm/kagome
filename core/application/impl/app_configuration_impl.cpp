@@ -196,13 +196,15 @@ namespace {
   auto &devAccounts() {
     using Account =
         std::tuple<const char *, std::string_view, std::string_view>;
-    static const std::array<Account, 6> accounts{
+    static const std::array<Account, 8> accounts{
         Account{"alice", "Alice", "//Alice"},
         Account{"bob", "Bob", "//Bob"},
         Account{"charlie", "Charlie", "//Charlie"},
         Account{"dave", "Dave", "//Dave"},
         Account{"eve", "Eve", "//Eve"},
         Account{"ferdie", "Ferdie", "//Ferdie"},
+        Account{"one", "One", "//One"},
+        Account{"two", "Two", "//Two"},
     };
     return accounts;
   }
@@ -918,7 +920,8 @@ namespace kagome::application {
         }
 
         if (not kagome::filesystem::exists(chain_spec_path_)) {
-          kagome::filesystem::create_directories(chain_spec_path_.parent_path());
+          kagome::filesystem::create_directories(
+              chain_spec_path_.parent_path());
 
           std::ofstream ofs;
           ofs.open(chain_spec_path_.native(), std::ios::ate);
@@ -1406,7 +1409,9 @@ namespace kagome::application {
         return false;
       }
       benchmark_config_ = BlockBenchmarkConfig{
-          .from = *from_opt, .to = *to_opt, .times = *repeat_opt,
+          .from = *from_opt,
+          .to = *to_opt,
+          .times = *repeat_opt,
       };
     }
 
