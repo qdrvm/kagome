@@ -1225,7 +1225,6 @@ namespace kagome::parachain {
   }
 
   bool ParachainProcessorImpl::isValidatingNode() const {
-    BOOST_ASSERT(this_context_->get_executor().running_in_this_thread());
     return (app_config_.roles().flags.authority == 1);
   }
 
