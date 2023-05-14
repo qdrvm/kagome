@@ -74,6 +74,10 @@ namespace kagome::storage::trie {
      * @return hash of \param buf
      */
     virtual common::Hash256 hash256(const common::BufferView &buf) const = 0;
+
+    virtual bool shouldBeHashed(
+        const ValueAndHash &value,
+        std::optional<StateVersion> version_opt) const = 0;
   };
 
 }  // namespace kagome::storage::trie

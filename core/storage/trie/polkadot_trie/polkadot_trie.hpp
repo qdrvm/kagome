@@ -26,6 +26,9 @@ namespace kagome::storage::trie {
     using ConstBranchPtr = std::shared_ptr<const BranchNode>;
     using NodeRetrieveFunctor = std::function<outcome::result<NodePtr>(
         std::shared_ptr<OpaqueTrieNode> const &)>;
+    using ValueRetrieveFunctor =
+        std::function<outcome::result<std::optional<common::Buffer>>(
+            common::Hash256 const & /* value hash */)>;
 
     /**
      * This callback is called when a node is detached from a trie. It is called

@@ -1009,7 +1009,7 @@ namespace {
 
                   virtual outcome::result<void> addNewChildState(
                       storage::trie::RootHash const &,
-                      common::Buffer const &,
+                      common::BufferView,
                       storage::trie::PolkadotTrie const &,
                       storage::trie::StateVersion) override {
                     return outcome::success();
@@ -1021,8 +1021,7 @@ namespace {
                   }
 
                   virtual outcome::result<void> pruneFinalized(
-                      primitives::BlockHeader const &,
-                      primitives::BlockInfo const &) override {
+                      primitives::BlockHeader const &) override {
                     return outcome::success();
                   }
 
@@ -1031,9 +1030,9 @@ namespace {
                     return outcome::success();
                   }
 
-                  virtual primitives::BlockNumber getBaseBlock()
-                      const override {
-                    return 0;
+                  virtual std::optional<primitives::BlockNumber>
+                  getLastPrunedBlock() const override {
+                    return {};
                   }
 
                   virtual std::optional<uint32_t> getPruningDepth()

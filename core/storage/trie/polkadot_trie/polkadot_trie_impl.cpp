@@ -73,6 +73,7 @@ namespace kagome::storage::trie {
     }
 
     PolkadotTrie::NodeRetrieveFunctor retrieve_node_;
+    PolkadotTrie::ValueRetrieveFunctor retrieve_value_;
     std::shared_ptr<TrieNode> root_;
   };
 }  // namespace kagome::storage::trie
@@ -588,7 +589,8 @@ namespace kagome::storage::trie {
   outcome::result<void> PolkadotTrieImpl::retrieveValue(
       ValueAndHash &value) const {
     if (value.hash && !value.value) {
-      OUTCOME_TRY(nodes_->retrieve_node_(std::make_shared<DummyValue>(value)));
+      OUTCOME_TRY(loaded_value, nodes_->retrieve_value_(*value.hash));
+      value.value = std::move(loaded_value);
     }
     return outcome::success();
   }

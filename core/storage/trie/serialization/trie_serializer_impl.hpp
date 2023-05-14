@@ -37,8 +37,7 @@ namespace kagome::storage::trie {
     }
 
     outcome::result<std::shared_ptr<PolkadotTrie>> retrieveTrie(
-        common::BufferView db_key,
-        OnNodeLoaded on_node_loaded) const override;
+        common::BufferView db_key, OnNodeLoaded on_node_loaded) const override;
 
     /**
      * Fetches a node from the storage. A nullptr is returned in case that there
@@ -56,6 +55,9 @@ namespace kagome::storage::trie {
     outcome::result<PolkadotTrie::NodePtr> retrieveNode(
         const std::shared_ptr<OpaqueTrieNode> &node,
         const OnNodeLoaded &on_node_loaded) const override;
+
+    outcome::result<std::optional<common::Buffer>> retrieveValue(
+        common::Hash256 const &hash) const override;
 
    private:
     /**

@@ -79,6 +79,10 @@ namespace kagome::storage::trie {
         TrieNode::Type type,
         const KeyNibbles &partial_key,
         BufferStream &stream) const;
+
+    bool shouldBeHashed(
+        const ValueAndHash &value,
+        std::optional<StateVersion> version_opt) const override;
   };
 
 }  // namespace kagome::storage::trie

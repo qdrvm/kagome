@@ -8,6 +8,8 @@
 #include "storage/trie/polkadot_trie/polkadot_trie.hpp"
 #include "storage/trie/polkadot_trie/polkadot_trie_cursor_impl.hpp"
 
+#include <iostream>
+
 namespace kagome::storage::trie {
 
   TrieBatchBase::TrieBatchBase(std::shared_ptr<Codec> codec,
@@ -62,6 +64,7 @@ namespace kagome::storage::trie {
 
   outcome::result<void> TrieBatchBase::commitChildren(StateVersion version) {
     for (auto &[child_path, child_batch] : child_batches_) {
+      std::cout << child_path.toString() << "\n";
       OUTCOME_TRY(root, child_batch->commit(version));
       if (root == kEmptyRootHash) {
         OUTCOME_TRY(remove(child_path));

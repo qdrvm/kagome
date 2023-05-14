@@ -5,10 +5,11 @@
 
 #include "storage/trie/serialization/trie_serializer_impl.hpp"
 
-#include "codec.hpp"
+#include "common/monadic_utils.hpp"
 #include "outcome/outcome.hpp"
 #include "storage/trie/polkadot_trie/polkadot_trie_factory.hpp"
 #include "storage/trie/polkadot_trie/trie_node.hpp"
+#include "storage/trie/serialization/codec.hpp"
 #include "storage/trie/trie_storage_backend.hpp"
 
 namespace kagome::storage::trie {
@@ -58,19 +59,19 @@ namespace kagome::storage::trie {
     auto batch = backend_->batch();
     BOOST_ASSERT(batch != nullptr);
 
-    OUTCOME_TRY(
-        enc,
-        codec_->encodeNode(node,
-                           version,
-                           [&](TrieNode const &node,
-                               common::BufferView hash,
-                               common::Buffer &&encoded) {
-                             current_stats_.new_nodes_written++;
-                             if (node.getValue()) {
-                               current_stats_.values_written++;
-                             }
-                             return batch->put(hash, std::move(encoded));
-                           }));
+    OUTCOME_TRY(enc,
+                codec_->encodeNode(node,
+                                   version,
+                                   [&](TrieNode const &node,
+                                       common::BufferView hash,
+                                       common::Buffer &&encoded) {
+                                     current_stats_.new_nodes_written++;
+                                     if (node.getValue()) {
+                                       current_stats_.values_written++;
+                                     }
+                                     return batch->put(hash,
+                                                       std::move(encoded));
+                                   }));
     auto hash = codec_->hash256(enc);
     OUTCOME_TRY(batch->put(hash, std::move(enc)));
     OUTCOME_TRY(batch->commit());
@@ -81,14 +82,6 @@ namespace kagome::storage::trie {
   outcome::result<PolkadotTrie::NodePtr> TrieSerializerImpl::retrieveNode(
       const std::shared_ptr<OpaqueTrieNode> &node,
       const OnNodeLoaded &on_node_loaded) const {
-    if (auto p = std::dynamic_pointer_cast<DummyValue>(node); p != nullptr) {
-      OUTCOME_TRY(value, backend_->get(*p->value.hash));
-      if (on_node_loaded) {
-        on_node_loaded(value);
-      }
-      p->value.value = value.into();
-      return nullptr;
-    }
     if (auto p = std::dynamic_pointer_cast<DummyNode>(node); p != nullptr) {
       OUTCOME_TRY(n, retrieveNode(p->db_key, on_node_loaded));
       return std::move(n);
@@ -115,6 +108,14 @@ namespace kagome::storage::trie {
     OUTCOME_TRY(n, codec_->decodeNode(enc));
     auto node = std::dynamic_pointer_cast<TrieNode>(n);
     return node;
+  }
+
+  outcome::result<std::optional<common::Buffer>>
+  TrieSerializerImpl::retrieveValue(common::Hash256 const &hash) const {
+    OUTCOME_TRY(value, backend_->tryGet(hash));
+    return common::map_optional(value, [](auto& value) {
+      return value.owned();
+    });
   }
 
 }  // namespace kagome::storage::trie

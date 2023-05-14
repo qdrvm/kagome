@@ -64,6 +64,9 @@ namespace kagome::storage::trie {
         const std::shared_ptr<OpaqueTrieNode> &node,
         const OnNodeLoaded &on_node_loaded = [](auto) {}) const = 0;
 
+    virtual outcome::result<std::optional<common::Buffer>> retrieveValue(
+        common::Hash256 const &hash) const = 0;
+
     virtual TrieStoreStats const &getLatestStats() const = 0;
   };
 

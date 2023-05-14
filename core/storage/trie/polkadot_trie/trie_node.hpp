@@ -86,8 +86,17 @@ namespace kagome::storage::trie {
                  std::optional<common::Hash256> hash,
                  bool dirty = true)
         : hash{hash}, value{std::move(value)}, dirty_{dirty} {}
+
     operator bool() const {
-      return hash || value;
+      return is_some();
+    }
+
+    bool is_none() const {
+      return !is_some();
+    }
+
+    bool is_some() const {
+      return hash.has_value() || value.has_value();
     }
 
     bool dirty() const {
@@ -234,11 +243,11 @@ namespace kagome::storage::trie {
    * @see PolkadotTrieImpl::retrieveValue
    * @see TrieSerializerImpl::retrieveNode
    */
-  struct DummyValue : OpaqueTrieNode {
-    DummyValue(ValueAndHash &value) : value{value} {}
-
-    ValueAndHash &value;
-  };
+//  struct DummyValue {
+//    DummyValue(ValueAndHash &value) : value{value} {}
+//
+//    ValueAndHash &value;
+//  };
 }  // namespace kagome::storage::trie
 
 template <>

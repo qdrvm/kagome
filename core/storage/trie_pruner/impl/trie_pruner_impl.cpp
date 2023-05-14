@@ -57,10 +57,17 @@ namespace kagome::storage::trie_pruner {
     OUTCOME_TRY(encoded_info,
                 storage->getSpace(kTriePruner)->tryGet(TRIE_PRUNER_INFO_KEY));
     if (encoded_info.has_value()) {
-      OUTCOME_TRY(info, scale::decode<TriePrunerInfo>(*encoded_info));
-      pruner->last_pruned_block_ = info.last_pruned_block;
-      pruner->child_states_.insert(info.child_states.begin(),
-                                   info.child_states.end());
+      if (auto info_res = scale::decode<TriePrunerInfo>(*encoded_info);
+          info_res.has_value()) {
+        auto &info = info_res.value();
+        pruner->last_pruned_block_ = info.last_pruned_block;
+        pruner->child_states_.insert(info.child_states.begin(),
+                                     info.child_states.end());
+      } else {
+        SL_ERROR(pruner->logger_,
+                 "Failed to decode pruner info: {}",
+                 info_res.error());
+      }
     }
     return pruner;
   }
@@ -139,7 +146,8 @@ namespace kagome::storage::trie_pruner {
                                       return visitChild(node, merkle_value);
                                       return outcome::success();
                                     }));
-        SL_TRACE(logger, "Cache miss {} = {}", fmt::ptr(&node), hash.toHex());
+        // SL_TRACE(logger, "Cache miss {} = {}", fmt::ptr(&node),
+        // hash.toHex());
         if (is_branch) {
           enc_cache[&node] = hash;
         }
@@ -150,19 +158,26 @@ namespace kagome::storage::trie_pruner {
 
   outcome::result<void> TriePrunerImpl::init(
       const blockchain::BlockTree &block_tree) {
+    SL_DEBUG(
+        logger_,
+        "Initialize trie pruner with pruning depth {}, last pruned block {}",
+        pruning_depth_,
+        last_pruned_block_);
     if (!last_pruned_block_.has_value()) {
       OUTCOME_TRY(first_hash_opt, block_tree.getBlockHash(1));
       if (first_hash_opt.has_value()) {
         SL_WARN(logger_,
                 "Running pruner on a non-empty non-pruned storage may lead to "
-                "performance degradation for the next prune.");
+                "skipping some stored states.");
         OUTCOME_TRY(
-            genesis,
-            block_tree.getBlockHeader(block_tree.getGenesisBlockHash()));
+            last_finalized,
+            block_tree.getBlockHeader(block_tree.getLastFinalized().hash));
 
-        if (auto res = restoreState(genesis, block_tree); res.has_error()) {
+        if (auto res = restoreState(last_finalized, block_tree);
+            res.has_error()) {
           SL_ERROR(logger_,
-                   "Failed to restore trie pruner state starting from genesis "
+                   "Failed to restore trie pruner state starting from last "
+                   "finalized "
                    "block: {}",
                    res.error().message());
           return res;
@@ -275,6 +290,21 @@ namespace kagome::storage::trie_pruner {
         removed++;
         ref_count_.erase(merkle_value);
         OUTCOME_TRY(batch->remove(merkle_value));
+        if (node->getValue().is_some()) {
+          common::Hash256 hash;
+          if (node->getValue().value
+              && (!node->getValue().hash
+                  || codec_->shouldBeHashed(node->getValue(),
+                                            trie::StateVersion::V1))) {
+            hash = codec_->hash256(node->getValue().value.value());
+          } else {
+            hash = node->getValue().hash.value();
+          }
+          value_ref_count_[hash]--;
+          if (value_ref_count_[hash] == 0) {
+            OUTCOME_TRY(batch->remove(hash));
+          }
+        }
         if (node->isBranch()) {
           auto branch = static_cast<const trie::BranchNode &>(*node);
           for (auto opaque_child : branch.children) {
@@ -310,7 +340,7 @@ namespace kagome::storage::trie_pruner {
 
   outcome::result<void> TriePrunerImpl::addNewChildState(
       storage::trie::RootHash const &parent_root,
-      common::Buffer const &key,
+      common::BufferView key,
       trie::PolkadotTrie const &new_trie,
       trie::StateVersion version) {
     OUTCOME_TRY(child_root_hash,
@@ -351,6 +381,7 @@ namespace kagome::storage::trie_pruner {
     OUTCOME_TRY(root_value,
                 encoder.getMerkleValue(*new_trie.getRoot(), version));
     OUTCOME_TRY(root_hash, calcHash(*codec_, *new_trie.getRoot(), version));
+    SL_DEBUG(logger_, "Add new state with hash: {}", root_hash);
 
     ref_count_[root_value] += 1;
 
@@ -366,9 +397,25 @@ namespace kagome::storage::trie_pruner {
                ref_count_[hash]);
 
       referenced_nodes_num++;
-      if (auto node = dynamic_cast<trie::TrieNode const *>(opaque_node.get());
+      auto node = dynamic_cast<trie::TrieNode const *>(opaque_node.get());
+      bool is_new_node_with_value = node != nullptr && ref_count_[hash] == 1
+                                 && node->getValue().is_some();
+      if (is_new_node_with_value) {
+        common::Hash256 hash;
+        if (node->getValue().value
+            && (!node->getValue().hash
+                || codec_->shouldBeHashed(node->getValue(), version))) {
+          hash = codec_->hash256(node->getValue().value.value());
+        } else {
+          hash = node->getValue().hash.value();
+        }
+        value_ref_count_[hash]++;
+      }
+
+      bool is_new_branch_node =
           node != nullptr && node->isBranch()
-          && (config.shouldAddAllNodes() || ref_count_[hash] == 1)) {
+          && (config.shouldAddAllNodes() || ref_count_[hash] == 1);
+      if (is_new_branch_node) {
         auto branch = static_cast<const trie::BranchNode *>(opaque_node.get());
         for (auto opaque_child : branch->children) {
           if (opaque_child != nullptr) {

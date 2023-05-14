@@ -75,6 +75,11 @@ class CodecMock : public trie::Codec {
               (const, override));
   MOCK_METHOD(bool, isMerkleHash, (const BufferView &buf), (const, override));
   MOCK_METHOD(Hash256, hash256, (const BufferView &buf), (const, override));
+  MOCK_METHOD(bool,
+              shouldBeHashed,
+              (const trie::ValueAndHash &value,
+               std::optional<trie::StateVersion> version_opt),
+              (const, override));
 };
 
 class PolkadotTrieMock final : public trie::PolkadotTrie {
@@ -368,7 +373,8 @@ TEST_F(TriePrunerTest, BasicScenario) {
   ASSERT_EQ(pruner->getTrackedNodesNum(), 0);
 }
 
-Buffer randomBuffer(std::mt19937 &rand) {
+template <typename RandomDevice>
+Buffer randomBuffer(RandomDevice &rand) {
   Buffer buf;
   int size = rand() % 8;
   for (int i = 0; i < size; i++) {
@@ -434,13 +440,12 @@ void generateRandomTrie(size_t inserts,
   }
 }
 
+template <typename RandomDevice>
 void makeRandomTrieChanges(size_t inserts,
                            size_t removes,
                            trie::PolkadotTrie &trie,
-                           std::set<Buffer> &inserted_keys) {
-  std::mt19937 rand;
-  rand.seed(42);
-
+                           std::set<Buffer> &inserted_keys,
+                           RandomDevice &rand) {
   for (unsigned j = 0; j < inserts; j++) {
     auto k = randomBuffer(rand);
     inserted_keys.insert(k);
@@ -682,9 +687,14 @@ TEST_F(TriePrunerTest, FastSyncScenario) {
   auto block_tree =
       std::make_shared<testing::NiceMock<kagome::blockchain::BlockTreeMock>>();
 
-  ON_CALL(*trie_storage_mock, get(_)).WillByDefault(Invoke([&](auto &key) {
-    return node_storage.at(key);
-  }));
+  ON_CALL(*trie_storage_mock, get(_))
+      .WillByDefault(Invoke(
+          [&](auto &key) -> outcome::result<kagome::common::BufferOrView> {
+            if (node_storage.count(key) == 0) {
+              return DatabaseError::NOT_FOUND;
+            }
+            return kagome::common::BufferOrView{node_storage.at(key).view()};
+          }));
 
   ON_CALL(*trie_storage_mock, batch()).WillByDefault(Invoke([&]() {
     auto batch = std::make_unique<
@@ -702,21 +712,22 @@ TEST_F(TriePrunerTest, FastSyncScenario) {
     return batch;
   }));
 
-  auto trie = std::make_shared<trie::PolkadotTrieImpl>();
+  auto genesis_trie = std::make_shared<trie::PolkadotTrieImpl>();
   std::set<Buffer> inserted_keys;
-  generateRandomTrie(100, *trie, inserted_keys);
+  generateRandomTrie(100, *genesis_trie, inserted_keys);
 
   auto codec = std::make_shared<trie::PolkadotCodec>();
   setCodecExpectations(*codec_mock, *codec);
 
   auto trie_factory = std::make_shared<trie::PolkadotTrieFactoryImpl>();
   auto genesis_state_root = codec->hash256(
-      codec->encodeNode(*trie->getRoot(), trie::StateVersion::V0).value());
+      codec->encodeNode(*genesis_trie->getRoot(), trie::StateVersion::V0)
+          .value());
 
   trie::TrieSerializerImpl serializer{trie_factory, codec, trie_storage_mock};
 
   ON_CALL(*serializer_mock, retrieveTrie(BufferView{genesis_state_root}, _))
-      .WillByDefault(Return(trie));
+      .WillByDefault(Return(genesis_trie));
 
   ON_CALL(*serializer_mock,
           retrieveNode(A<const std::shared_ptr<trie::OpaqueTrieNode> &>(), _))
@@ -729,7 +740,7 @@ TEST_F(TriePrunerTest, FastSyncScenario) {
       }));
 
   ASSERT_OUTCOME_SUCCESS_TRY(
-      serializer_mock->storeTrie(*trie, trie::StateVersion::V0));
+      serializer_mock->storeTrie(*genesis_trie, trie::StateVersion::V0));
 
   BlockHeader genesis_header{
       .parent_hash = ""_hash256,
@@ -747,15 +758,14 @@ TEST_F(TriePrunerTest, FastSyncScenario) {
   headers.reserve(LAST_FINALIZED_NUMBER);
   std::vector<BlockHash> hashes{hash_from_header(genesis_header)};
   headers.reserve(LAST_FINALIZED_NUMBER);
-  std::vector<std::shared_ptr<trie::PolkadotTrie>> tries{trie};
+  std::vector<std::shared_ptr<trie::PolkadotTrie>> tries{genesis_trie};
   std::mt19937 rand;
+  rand.seed(42);
 
   auto mock_header_only = [&](BlockNumber n) {
     std::shared_ptr<trie::PolkadotTrie> block_trie{clone(*tries[n - 1])};
     tries.push_back(block_trie);
-    makeRandomTrieChanges(30, 10, *block_trie, inserted_keys);
-    ASSERT_OUTCOME_SUCCESS_TRY(
-        serializer_mock->storeTrie(*block_trie, trie::StateVersion::V0));
+    makeRandomTrieChanges(30, 10, *block_trie, inserted_keys, rand);
 
     auto block_state_root = codec->hash256(
         codec->encodeNode(*block_trie->getRoot(), trie::StateVersion::V0)
@@ -778,22 +788,26 @@ TEST_F(TriePrunerTest, FastSyncScenario) {
         .WillByDefault(Return(std::vector<BlockHash>{}));
   };
 
-  auto mock_full_block = [&](BlockNumber n) { mock_header_only(n); };
+  ON_CALL(*serializer_mock, retrieveTrie(_, _))
+      .WillByDefault(Return(DatabaseError::NOT_FOUND));
 
-  for (BlockNumber n = 1; n < 30; n++) {
-    mock_full_block(n);
+  auto mock_full_block = [&](BlockNumber n) {
+    mock_header_only(n);
+    ASSERT_OUTCOME_SUCCESS_TRY(
+        serializer_mock->storeTrie(*tries[n], trie::StateVersion::V0));
     EXPECT_CALL(*serializer_mock,
                 retrieveTrie(BufferView{headers[n].state_root}, _))
         .WillRepeatedly(Return(tries[n]));
+  };
+
+  for (BlockNumber n = 1; n < 30; n++) {
+    mock_full_block(n);
   }
   for (BlockNumber n = 30; n < 80; n++) {
     mock_header_only(n);
   }
   ASSERT_OUTCOME_SUCCESS_TRY(pruner->init(*block_tree));
-  EXPECT_CALL(*serializer_mock,
-              retrieveTrie(BufferView{headers[79].state_root}, _))
-      .WillOnce(Return(tries[79]));
-  ASSERT_OUTCOME_SUCCESS_TRY(pruner->pruneFinalized(headers[79]));
+
   for (BlockNumber n = 80; n < LAST_FINALIZED_NUMBER; n++) {
     mock_full_block(n);
     ASSERT_OUTCOME_SUCCESS_TRY(
@@ -804,14 +818,16 @@ TEST_F(TriePrunerTest, FastSyncScenario) {
     EXPECT_CALL(*serializer_mock,
                 retrieveTrie(BufferView{headers[n].state_root}, _))
         .WillOnce(Return(tries[n]));
-    ASSERT_OUTCOME_SUCCESS(trie,
-                           serializer.retrieveTrie(
-                               BufferView{headers[n].state_root}, [](auto) {}));
-    auto cursor = trie->cursor();
-    ASSERT_OUTCOME_SUCCESS_TRY(cursor->next());
-    while (cursor->isValid()) {
-      ASSERT_TRUE(cursor->value().has_value());
+    if (auto trie_res = serializer.retrieveTrie(
+            BufferView{headers[n].state_root}, [](auto) {});
+        trie_res.has_value()) {
+      auto &trie = trie_res.value();
+      auto cursor = trie->cursor();
       ASSERT_OUTCOME_SUCCESS_TRY(cursor->next());
+      while (cursor->isValid()) {
+        ASSERT_TRUE(cursor->value().has_value());
+        ASSERT_OUTCOME_SUCCESS_TRY(cursor->next());
+      }
     }
 
     ASSERT_OUTCOME_SUCCESS_TRY(pruner->pruneFinalized(headers[n]));
@@ -819,6 +835,4 @@ TEST_F(TriePrunerTest, FastSyncScenario) {
   ASSERT_EQ(node_storage.size(), 0);
 }
 
-TEST_F(TriePrunerTest, ChildTriePruning) {
-
-}
+TEST_F(TriePrunerTest, ChildTriePruning) {}

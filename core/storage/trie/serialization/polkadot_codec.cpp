@@ -39,13 +39,14 @@ namespace kagome::storage::trie {
     return out;
   }
 
-  inline bool shouldBeHashed(const TrieNode &node,
-                             std::optional<StateVersion> version_opt) {
+  bool PolkadotCodec::shouldBeHashed(
+      const ValueAndHash &value,
+      std::optional<StateVersion> version_opt) const {
     if (!version_opt.has_value()) {
       return false;
     }
     auto &version = *version_opt;
-    if (node.getValue().hash || !node.getValue().value) {
+    if (value.hash || !value.value) {
       return false;
     }
     switch (version) {
@@ -53,10 +54,10 @@ namespace kagome::storage::trie {
         return false;
       }
       case StateVersion::V1: {
-        if (!node.getValue().dirty()) {
+        if (!value.dirty()) {
           return false;
         }
-        return node.getValue().value->size() >= kMaxInlineValueSizeVersion1;
+        return value.value->size() >= kMaxInlineValueSizeVersion1;
       }
     }
     BOOST_UNREACHABLE_RETURN();
@@ -150,7 +151,7 @@ namespace kagome::storage::trie {
     uint8_t partial_length_mask;  // max partial key length
 
     auto type = getType(node);
-    if (shouldBeHashed(node, version)) {
+    if (shouldBeHashed(node.getValue(), version)) {
       if (node.isBranch()) {
         type = TrieNode::Type::BranchContainingHashes;
       } else {
@@ -222,7 +223,7 @@ namespace kagome::storage::trie {
       std::optional<StateVersion> version,
       const ChildVisitor &child_visitor) const {
     auto hash = node.getValue().hash;
-    if (shouldBeHashed(node, version)) {
+    if (shouldBeHashed(node.getValue(), version)) {
       hash = hash256(*node.getValue().value);
       if (child_visitor) {
         OUTCOME_TRY(child_visitor(node, *hash, Buffer{*node.getValue().value}));

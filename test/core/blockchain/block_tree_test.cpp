@@ -139,7 +139,7 @@ struct BlockTreeTest : public testing::Test {
     ON_CALL(*state_pruner_, pruneDiscarded(_))
         .WillByDefault(Return(outcome::success()));
 
-    ON_CALL(*state_pruner_, pruneFinalized(_, _))
+    ON_CALL(*state_pruner_, pruneFinalized(_))
         .WillByDefault(Return(outcome::success()));
 
     putNumToHash(kGenesisBlockInfo);

@@ -28,8 +28,7 @@ namespace kagome::storage::trie {
 
     MOCK_METHOD(outcome::result<PolkadotTrie::NodePtr>,
                 retrieveNode,
-                (common::BufferView db_key,
-                 const OnNodeLoaded &on_node_loaded),
+                (common::BufferView db_key, const OnNodeLoaded &on_node_loaded),
                 (const, override));
 
     MOCK_METHOD(outcome::result<PolkadotTrie::NodePtr>,
@@ -37,6 +36,11 @@ namespace kagome::storage::trie {
                 (const std::shared_ptr<OpaqueTrieNode> &node,
                  const OnNodeLoaded &on_node_loaded),
                 (const, override));
+
+    MOCK_METHOD(outcome::result<std::optional<common::Buffer>>,
+                retrieveValue,
+                (common::Hash256 const &hash),
+                (const));
 
     MOCK_METHOD(TrieStoreStats const &, getLatestStats, (), (const));
   };

@@ -206,6 +206,15 @@ namespace kagome::common {
       return {src.begin(), src.end()};
     }
 
+    template<typename Prefix>
+    bool startsWith(const Prefix& prefix) const {
+      if (this->size() >= prefix.size()) {
+        auto this_view = view().subspan(prefix.size());
+        return std::equal(this_view.begin(), this_view.end(), std::cbegin(prefix), std::cend(prefix));
+      }
+      return false;
+    }
+
     using Base::operator==;
 
     bool operator==(const BufferView &other) const noexcept {

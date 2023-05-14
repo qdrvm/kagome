@@ -23,20 +23,19 @@ namespace kagome::storage::trie_pruner {
     MOCK_METHOD(outcome::result<void>,
                 addNewChildState,
                 (storage::trie::RootHash const &parent_root,
-                 common::Buffer const& key,
+                 common::BufferView key,
                  trie::PolkadotTrie const &new_trie,
                  trie::StateVersion version),
                 (override));
 
     MOCK_METHOD(outcome::result<void>,
                 markAsChild,
-                (Parent parent, common::Buffer const& key, Child child),
+                (Parent parent, common::Buffer const &key, Child child),
                 (override));
 
     MOCK_METHOD(outcome::result<void>,
                 pruneFinalized,
-                (primitives::BlockHeader const &state,
-                 primitives::BlockInfo const &next_block),
+                (primitives::BlockHeader const &state),
                 (override));
 
     MOCK_METHOD(outcome::result<void>,
@@ -44,7 +43,10 @@ namespace kagome::storage::trie_pruner {
                 (primitives::BlockHeader const &state),
                 (override));
 
-    MOCK_METHOD(primitives::BlockNumber, getBaseBlock, (), (const, override));
+    MOCK_METHOD(std::optional<primitives::BlockNumber>,
+                getLastPrunedBlock,
+                (),
+                (const, override));
 
     MOCK_METHOD(std::optional<uint32_t>,
                 getPruningDepth,

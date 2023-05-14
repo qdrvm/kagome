@@ -44,12 +44,6 @@ namespace kagome::storage::trie {
     virtual outcome::result<std::unique_ptr<TrieBatchBase>> createFromTrieHash(
         const RootHash &trie_hash) = 0;
 
-    auto getChildTries() const {
-      return child_batches_ | boost::adaptors::transformed([](auto &key_value) {
-               return std::make_pair(key_value.first, key_value.second->trie_);
-             });
-    }
-
     outcome::result<void> commitChildren(StateVersion version);
 
     log::Logger logger_ = log::createLogger("TrieBatch", "storage");

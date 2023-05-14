@@ -44,7 +44,7 @@ namespace kagome::storage::trie_pruner {
      */
     virtual outcome::result<void> addNewChildState(
         storage::trie::RootHash const &parent_root,
-        common::Buffer const &key,
+        common::BufferView key,
         trie::PolkadotTrie const &new_trie,
         trie::StateVersion version) = 0;
 

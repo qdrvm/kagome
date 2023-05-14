@@ -22,6 +22,8 @@ namespace kagome::storage {
     kTrieNode,
     kTriePruner,
 
+    BLOCK_DATA,
+
     //
     kTotal
   };
