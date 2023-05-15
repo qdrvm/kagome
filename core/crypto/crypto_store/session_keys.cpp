@@ -10,10 +10,8 @@
 
 namespace kagome::crypto {
   template <typename T,
-            outcome::result<std::vector<decltype(T::public_key)>> (
-                CryptoStore::*list_public)(KeyTypeId) const,
-            outcome::result<T> (CryptoStore::*get_private)(
-                KeyTypeId, const decltype(T::public_key) &) const,
+            SessionKeysImpl::FnListPublic<T> list_public,
+            SessionKeysImpl::FnGetPrivate<T> get_private,
             typename A,
             typename Eq>
   SessionKeys::Result<T> SessionKeysImpl::find(

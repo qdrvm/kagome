@@ -75,11 +75,15 @@ namespace kagome::crypto {
     network::Roles roles_;
     std::shared_ptr<CryptoStore> store_;
 
+    template <typename T>
+    using FnListPublic = outcome::result<std::vector<decltype(T::public_key)>> (
+        CryptoStore::*)(KeyTypeId) const;
+    template <typename T>
+    using FnGetPrivate = outcome::result<T> (CryptoStore::*)(
+        KeyTypeId, const decltype(T::public_key) &) const;
     template <typename T,
-              outcome::result<std::vector<decltype(T::public_key)>> (
-                  CryptoStore::*list_public)(KeyTypeId) const,
-              outcome::result<T> (CryptoStore::*get_private)(
-                  KeyTypeId, const decltype(T::public_key) &) const,
+              FnListPublic<T> list_public,
+              FnGetPrivate<T> get_private,
               typename A,
               typename Eq>
     Result<T> find(Result<T> &cache,
