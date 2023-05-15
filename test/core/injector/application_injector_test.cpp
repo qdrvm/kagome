@@ -106,10 +106,7 @@ namespace {
         .WillRepeatedly(
             testing::ReturnRefOfCopy<std::vector<libp2p::multi::Multiaddress>>(
                 {}));
-    EXPECT_CALL(config_mock, rpcHttpEndpoint())
-        .WillRepeatedly(
-            testing::ReturnRefOfCopy<boost::asio::ip::tcp::endpoint>({}));
-    EXPECT_CALL(config_mock, rpcWsEndpoint())
+    EXPECT_CALL(config_mock, rpcEndpoint())
         .WillRepeatedly(
             testing::ReturnRefOfCopy<boost::asio::ip::tcp::endpoint>({}));
     EXPECT_CALL(config_mock, openmetricsHttpEndpoint())

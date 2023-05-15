@@ -9,13 +9,13 @@
 #include <backward.hpp>
 #endif
 
-#include "api/transport/impl/http/http_listener_impl.hpp"
+#include "api/transport/impl/ws/ws_listener_impl.hpp"
 #include "core/api/client/http_client.hpp"
 
-using kagome::api::HttpListenerImpl;
+using kagome::api::WsListenerImpl;
 using test::HttpClient;
 
-using HttpListenerTest = ListenerTest<HttpListenerImpl>;
+using HttpListenerTest = ListenerTest<WsListenerImpl>;
 
 /**
  * @given running HTTP transport based RPC service

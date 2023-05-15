@@ -24,8 +24,8 @@ class AppConfigurationTest : public testing::Test {
     testutil::prepareLoggers();
   }
 
-  filesystem::path tmp_dir = filesystem::temp_directory_path()
-                                    / filesystem::unique_path();
+  filesystem::path tmp_dir =
+      filesystem::temp_directory_path() / filesystem::unique_path();
   std::string config_path = (tmp_dir / "config.json").native();
   std::string invalid_config_path = (tmp_dir / "invalid_config.json").native();
   std::string damaged_config_path = (tmp_dir / "damaged_config.json").native();
@@ -46,10 +46,8 @@ class AppConfigurationTest : public testing::Test {
         },
         "network" : {
               "port" : 2345,
-              "rpc-host" : "1.1.1.1",
-              "rpc-port" : 1234,
-              "ws-host" : "2.2.2.2",
-              "ws-port" : 3456,
+              "rpc-host" : "2.2.2.2",
+              "rpc-port" : 3456,
               "name" : "Bob's node",
               "telemetry-endpoints": [
                   "ws://localhost/submit 0",
@@ -76,9 +74,7 @@ class AppConfigurationTest : public testing::Test {
         "network" : {
               "port" : "13",
               "rpc-host" : 7,
-              "rpc-port" : "1312",
-              "ws-host" : 5,
-              "ws-port" : "AWESOME_PORT"
+              "rpc-port" : "1312"
         },
         "additional" : {
           "single-finalizing-node" : "order1800"
@@ -148,8 +144,6 @@ class AppConfigurationTest : public testing::Test {
  * @then only default values are available
  */
 TEST_F(AppConfigurationTest, DefaultValuesTest) {
-  boost::asio::ip::tcp::endpoint const http_endpoint =
-      get_endpoint("0.0.0.0", 9933);
   boost::asio::ip::tcp::endpoint const ws_endpoint =
       get_endpoint("0.0.0.0", 9944);
   const char *args[] = {"/path/",
@@ -161,8 +155,7 @@ TEST_F(AppConfigurationTest, DefaultValuesTest) {
   ASSERT_TRUE(app_config_->initializeFromArgs(std::size(args), args));
 
   ASSERT_EQ(app_config_->p2pPort(), 30363);
-  ASSERT_EQ(app_config_->rpcHttpEndpoint(), http_endpoint);
-  ASSERT_EQ(app_config_->rpcWsEndpoint(), ws_endpoint);
+  ASSERT_EQ(app_config_->rpcEndpoint(), ws_endpoint);
   ASSERT_EQ(app_config_->log(), std::vector<std::string>());
 }
 
@@ -172,8 +165,6 @@ TEST_F(AppConfigurationTest, DefaultValuesTest) {
  * @then we must receive correct endpoints on call
  */
 TEST_F(AppConfigurationTest, EndpointsTest) {
-  boost::asio::ip::tcp::endpoint const http_endpoint =
-      get_endpoint("1.2.3.4", 1111);
   boost::asio::ip::tcp::endpoint const ws_endpoint =
       get_endpoint("5.6.7.8", 2222);
   const char *args[] = {
@@ -183,19 +174,14 @@ TEST_F(AppConfigurationTest, EndpointsTest) {
       "--base-path",
       base_path.native().c_str(),
       "--rpc-host",
-      "1.2.3.4",
-      "--ws-host",
       "5.6.7.8",
       "--rpc-port",
-      "1111",
-      "--ws-port",
       "2222",
   };
 
   ASSERT_TRUE(app_config_->initializeFromArgs(std::size(args), args));
 
-  ASSERT_EQ(app_config_->rpcHttpEndpoint(), http_endpoint);
-  ASSERT_EQ(app_config_->rpcWsEndpoint(), ws_endpoint);
+  ASSERT_EQ(app_config_->rpcEndpoint(), ws_endpoint);
 }
 
 /**
@@ -222,8 +208,6 @@ TEST_F(AppConfigurationTest, GenesisPathTest) {
  * @then we must select cmd line version
  */
 TEST_F(AppConfigurationTest, CrossConfigTest) {
-  boost::asio::ip::tcp::endpoint const http_endpoint =
-      get_endpoint("1.2.3.4", 1111);
   boost::asio::ip::tcp::endpoint const ws_endpoint =
       get_endpoint("5.6.7.8", 2222);
   const char *args[] = {
@@ -231,19 +215,14 @@ TEST_F(AppConfigurationTest, CrossConfigTest) {
       "--config-file",
       config_path.c_str(),
       "--rpc-host",
-      "1.2.3.4",
-      "--ws-host",
       "5.6.7.8",
       "--rpc-port",
-      "1111",
-      "--ws-port",
       "2222",
   };
 
   ASSERT_TRUE(app_config_->initializeFromArgs(std::size(args), args));
 
-  ASSERT_EQ(app_config_->rpcHttpEndpoint(), http_endpoint);
-  ASSERT_EQ(app_config_->rpcWsEndpoint(), ws_endpoint);
+  ASSERT_EQ(app_config_->rpcEndpoint(), ws_endpoint);
 }
 
 /**
@@ -324,8 +303,6 @@ TEST_F(AppConfigurationTest, RocksDBStorageBackend) {
  * @then we must put to config data from file
  */
 TEST_F(AppConfigurationTest, ConfigFileTest) {
-  boost::asio::ip::tcp::endpoint const http_endpoint =
-      get_endpoint("1.1.1.1", 1234);
   boost::asio::ip::tcp::endpoint const ws_endpoint =
       get_endpoint("2.2.2.2", 3456);
 
@@ -338,8 +315,7 @@ TEST_F(AppConfigurationTest, ConfigFileTest) {
   ASSERT_EQ(app_config_->databasePath("test_chain42"),
             base_path / "chains/test_chain42/db");
   ASSERT_EQ(app_config_->p2pPort(), 2345);
-  ASSERT_EQ(app_config_->rpcHttpEndpoint(), http_endpoint);
-  ASSERT_EQ(app_config_->rpcWsEndpoint(), ws_endpoint);
+  ASSERT_EQ(app_config_->rpcEndpoint(), ws_endpoint);
   ASSERT_EQ(app_config_->log(), std::vector<std::string>{"debug"});
   ASSERT_EQ(app_config_->nodeName(), "Bob's node");
   ASSERT_EQ(app_config_->getRandomWalkInterval(), std::chrono::seconds(30));
@@ -352,8 +328,6 @@ TEST_F(AppConfigurationTest, ConfigFileTest) {
  * @then we must receive default values
  */
 TEST_F(AppConfigurationTest, InvalidConfigFileTest) {
-  boost::asio::ip::tcp::endpoint const http_endpoint =
-      get_endpoint("0.0.0.0", 9933);
   boost::asio::ip::tcp::endpoint const ws_endpoint =
       get_endpoint("0.0.0.0", 9944);
 
@@ -372,8 +346,7 @@ TEST_F(AppConfigurationTest, InvalidConfigFileTest) {
   ASSERT_EQ(app_config_->databasePath("test_chain42"),
             base_path / "chains/test_chain42/db");
   ASSERT_EQ(app_config_->p2pPort(), 30363);
-  ASSERT_EQ(app_config_->rpcHttpEndpoint(), http_endpoint);
-  ASSERT_EQ(app_config_->rpcWsEndpoint(), ws_endpoint);
+  ASSERT_EQ(app_config_->rpcEndpoint(), ws_endpoint);
   ASSERT_EQ(app_config_->log(), std::vector<std::string>());
 }
 
@@ -383,8 +356,6 @@ TEST_F(AppConfigurationTest, InvalidConfigFileTest) {
  * @then we must receive default values
  */
 TEST_F(AppConfigurationTest, DamagedConfigFileTest) {
-  boost::asio::ip::tcp::endpoint const http_endpoint =
-      get_endpoint("0.0.0.0", 9933);
   boost::asio::ip::tcp::endpoint const ws_endpoint =
       get_endpoint("0.0.0.0", 9944);
 
@@ -403,8 +374,7 @@ TEST_F(AppConfigurationTest, DamagedConfigFileTest) {
   ASSERT_EQ(app_config_->databasePath("test_chain42"),
             base_path / "chains/test_chain42/db");
   ASSERT_EQ(app_config_->p2pPort(), 30363);
-  ASSERT_EQ(app_config_->rpcHttpEndpoint(), http_endpoint);
-  ASSERT_EQ(app_config_->rpcWsEndpoint(), ws_endpoint);
+  ASSERT_EQ(app_config_->rpcEndpoint(), ws_endpoint);
   ASSERT_EQ(app_config_->log(), std::vector<std::string>());
 }
 
@@ -414,8 +384,6 @@ TEST_F(AppConfigurationTest, DamagedConfigFileTest) {
  * @then we must receive default values
  */
 TEST_F(AppConfigurationTest, NoConfigFileTest) {
-  boost::asio::ip::tcp::endpoint const http_endpoint =
-      get_endpoint("0.0.0.0", 9933);
   boost::asio::ip::tcp::endpoint const ws_endpoint =
       get_endpoint("0.0.0.0", 9944);
 
@@ -434,8 +402,7 @@ TEST_F(AppConfigurationTest, NoConfigFileTest) {
   ASSERT_EQ(app_config_->databasePath("test_chain42"),
             base_path / "chains/test_chain42/db");
   ASSERT_EQ(app_config_->p2pPort(), 30363);
-  ASSERT_EQ(app_config_->rpcHttpEndpoint(), http_endpoint);
-  ASSERT_EQ(app_config_->rpcWsEndpoint(), ws_endpoint);
+  ASSERT_EQ(app_config_->rpcEndpoint(), ws_endpoint);
   ASSERT_EQ(app_config_->log(), std::vector<std::string>());
 }
 
