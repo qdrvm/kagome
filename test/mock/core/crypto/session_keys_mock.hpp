@@ -18,7 +18,7 @@ namespace kagome::application {
 namespace kagome::crypto {
   class SessionKeysMock : public SessionKeys {
    public:
-    MOCK_METHOD(Result<Sr25519Keypair>,
+    MOCK_METHOD(KeypairWithIndexOpt<Sr25519Keypair>,
                 getBabeKeyPair,
                 (const primitives::AuthorityList &),
                 (override));
@@ -28,7 +28,7 @@ namespace kagome::crypto {
                 (const primitives::AuthoritySet &),
                 (override));
 
-    MOCK_METHOD(Result<Sr25519Keypair>,
+    MOCK_METHOD(KeypairWithIndexOpt<Sr25519Keypair>,
                 getParaKeyPair,
                 (const std::vector<Sr25519PublicKey> &),
                 (override));

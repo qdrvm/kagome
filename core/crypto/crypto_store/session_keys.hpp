@@ -37,7 +37,7 @@ namespace kagome::crypto {
   class SessionKeys {
    public:
     template <typename T>
-    using Result = std::optional<
+    using KeypairWithIndexOpt = std::optional<
         std::pair<std::shared_ptr<T>, primitives::AuthorityIndex>>;
 
     virtual ~SessionKeys() = default;
@@ -45,7 +45,7 @@ namespace kagome::crypto {
     /**
      * @return current BABE session key pair
      */
-    virtual Result<Sr25519Keypair> getBabeKeyPair(
+    virtual KeypairWithIndexOpt<Sr25519Keypair> getBabeKeyPair(
         const primitives::AuthorityList &authorities) = 0;
 
     /**
@@ -57,7 +57,7 @@ namespace kagome::crypto {
     /**
      * @return current parachain validator session key pair
      */
-    virtual Result<Sr25519Keypair> getParaKeyPair(
+    virtual KeypairWithIndexOpt<Sr25519Keypair> getParaKeyPair(
         const std::vector<Sr25519PublicKey> &authorities) = 0;
 
     /**
@@ -68,10 +68,10 @@ namespace kagome::crypto {
   };
 
   class SessionKeysImpl : public SessionKeys {
-    Result<Sr25519Keypair> babe_key_pair_;
-    Result<Ed25519Keypair> gran_key_pair_;
-    Result<Sr25519Keypair> para_key_pair_;
-    Result<Sr25519Keypair> audi_key_pair_;
+    KeypairWithIndexOpt<Sr25519Keypair> babe_key_pair_;
+    KeypairWithIndexOpt<Ed25519Keypair> gran_key_pair_;
+    KeypairWithIndexOpt<Sr25519Keypair> para_key_pair_;
+    KeypairWithIndexOpt<Sr25519Keypair> audi_key_pair_;
     network::Roles roles_;
     std::shared_ptr<CryptoStore> store_;
 
@@ -86,22 +86,22 @@ namespace kagome::crypto {
               FnGetPrivate<T> get_private,
               typename A,
               typename Eq>
-    Result<T> find(Result<T> &cache,
-                   KeyTypeId type,
-                   const std::vector<A> &authorities,
-                   const Eq &eq);
+    KeypairWithIndexOpt<T> find(KeypairWithIndexOpt<T> &cache,
+                                KeyTypeId type,
+                                const std::vector<A> &authorities,
+                                const Eq &eq);
 
    public:
     SessionKeysImpl(std::shared_ptr<CryptoStore> store,
                     const application::AppConfiguration &config);
 
-    Result<Sr25519Keypair> getBabeKeyPair(
+    KeypairWithIndexOpt<Sr25519Keypair> getBabeKeyPair(
         const primitives::AuthorityList &authorities) override;
 
     std::shared_ptr<Ed25519Keypair> getGranKeyPair(
         const primitives::AuthoritySet &authorities) override;
 
-    Result<Sr25519Keypair> getParaKeyPair(
+    KeypairWithIndexOpt<Sr25519Keypair> getParaKeyPair(
         const std::vector<Sr25519PublicKey> &authorities) override;
 
     std::shared_ptr<Sr25519Keypair> getAudiKeyPair(

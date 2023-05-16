@@ -14,8 +14,8 @@ namespace kagome::crypto {
             SessionKeysImpl::FnGetPrivate<T> get_private,
             typename A,
             typename Eq>
-  SessionKeys::Result<T> SessionKeysImpl::find(
-      Result<T> &cache,
+  SessionKeys::KeypairWithIndexOpt<T> SessionKeysImpl::find(
+      KeypairWithIndexOpt<T> &cache,
       KeyTypeId type,
       const std::vector<A> &authorities,
       const Eq &eq) {
@@ -73,7 +73,8 @@ namespace kagome::crypto {
     }
   }
 
-  SessionKeys::Result<Sr25519Keypair> SessionKeysImpl::getBabeKeyPair(
+  SessionKeys::KeypairWithIndexOpt<Sr25519Keypair>
+  SessionKeysImpl::getBabeKeyPair(
       const primitives::AuthorityList &authorities) {
     return find<Sr25519Keypair,
                 &CryptoStore::getSr25519PublicKeys,
@@ -102,7 +103,8 @@ namespace kagome::crypto {
     return nullptr;
   }
 
-  SessionKeys::Result<Sr25519Keypair> SessionKeysImpl::getParaKeyPair(
+  SessionKeys::KeypairWithIndexOpt<Sr25519Keypair>
+  SessionKeysImpl::getParaKeyPair(
       const std::vector<Sr25519PublicKey> &authorities) {
     return find<Sr25519Keypair,
                 &CryptoStore::getSr25519PublicKeys,
