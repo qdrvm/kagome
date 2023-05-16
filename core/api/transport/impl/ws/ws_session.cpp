@@ -31,25 +31,63 @@ namespace boost::beast {
 namespace kagome::api {
   static constexpr boost::string_view kServerName = "Kagome";
 
-  WsSession::WsSession(Context &context,
+  WsSessionImpl::WsSessionImpl(std::shared_ptr<WsSession> impl,
+                               SessionId id,
+                               SessionType type,
+                               bool unsafe_allowed)
+      : impl_{std::move(impl)},
+        id_{id},
+        type_{type},
+        unsafe_allowed_{unsafe_allowed} {}
+
+  void WsSessionImpl::respond(std::string_view response) {
+    std::unique_lock lock{mutex_};
+    if (auto impl = impl_) {
+      lock.unlock();
+      impl->respond(response);
+    }
+  }
+
+  void WsSessionImpl::post(std::function<void()> cb) {
+    std::unique_lock lock{mutex_};
+    if (auto impl = impl_) {
+      lock.unlock();
+      impl->post(std::move(cb));
+    }
+  }
+
+  void WsSessionImpl::close() {
+    std::unique_lock lock{mutex_};
+    impl_.reset();
+    lock.unlock();
+    notifyOnClose(id(), type());
+  }
+
+  WsSession::WsSession(Session::Context &context,
+                       GetId get_id,
+                       OnSession on_session,
                        AllowUnsafe allow_unsafe,
-                       Configuration config,
-                       SessionId id)
-      : allow_unsafe_{allow_unsafe},
+                       WsSession::Configuration config)
+      : get_id_{std::move(get_id)},
+        on_session_{std::move(on_session)},
+        allow_unsafe_{allow_unsafe},
         config_{config},
-        stream_{boost::asio::make_strand(context)},
-        id_(id) {}
+        stream_{boost::asio::make_strand(context)} {}
 
   void WsSession::start() {
     boost::asio::dispatch(stream_.get_executor(),
                           boost::beast::bind_front_handler(&WsSession::httpRead,
                                                            shared_from_this()));
-    SL_DEBUG(logger_, "Session#{} BEGIN", id_);
   }
 
   void WsSession::reject() {
-    stop(boost::beast::websocket::close_code::try_again_later);
-    SL_DEBUG(logger_, "Session#{} END", id_);
+    auto &res = http_response_.emplace();
+    res.result(boost::beast::http::status::too_many_requests);
+    res.body() = "Too many requests.\n";
+    res.set(boost::beast::http::field::server, kServerName);
+    res.set(boost::beast::http::field::content_type, "text/plain");
+    res.keep_alive(false);
+    httpWrite();
   }
 
   void WsSession::stop() {
@@ -63,17 +101,10 @@ namespace kagome::api {
       boost::system::error_code ec;
       stream_.close(boost::beast::websocket::close_reason(code), ec);
       boost::ignore_unused(ec);
-      notifyOnClose(id_, type());
+      sessionClose();
       if (on_ws_close_) {
         on_ws_close_();
       }
-      SL_TRACE(logger_, "Session id = {} terminated, reason = {} ", id_, code);
-    } else {
-      SL_TRACE(logger_,
-               "Session id = {} was already terminated. Doing nothing. Called "
-               "for reason = {}",
-               id_,
-               code);
     }
   }
 
@@ -83,8 +114,17 @@ namespace kagome::api {
   }
 
   void WsSession::handleRequest(std::string_view data) {
-    SL_DEBUG(logger_, "Session#{} IN:  {}", id_, data);
-    processRequest(data, shared_from_this());
+    std::shared_ptr<WsSessionImpl> session;
+    if (is_ws_) {
+      session = session_.lock();
+      if (not session) {
+        stop();
+        return;
+      }
+    } else {
+      session = sessionMake();
+    }
+    session->processRequest(data, session);
   }
 
   void WsSession::asyncRead() {
@@ -93,14 +133,10 @@ namespace kagome::api {
                                                         shared_from_this()));
   }
 
-  kagome::api::Session::SessionId WsSession::id() const {
-    return id_;
-  }
-
   void WsSession::respond(std::string_view response) {
-    SL_DEBUG(logger_, "Session#{} OUT: {}", id_, response);
     post([self{shared_from_this()}, response{std::string{response}}] {
       if (not self->is_ws_) {
+        self->sessionClose();
         if (self->http_response_) {
           SL_WARN(self->logger_,
                   "bug, WsSession::respond called more than once on http");
@@ -161,6 +197,7 @@ namespace kagome::api {
       return;
     }
     is_ws_ = true;
+    sessionMake();
 
     asyncRead();
   };
@@ -209,19 +246,33 @@ namespace kagome::api {
         stream_.next_layer().next_layer().socket().remote_endpoint());
   }
 
+  std::shared_ptr<WsSessionImpl> WsSession::sessionMake() {
+    auto session = std::make_shared<WsSessionImpl>(
+        shared_from_this(),
+        get_id_(),
+        is_ws_ ? SessionType::kWs : SessionType::kHttp,
+        isUnsafeAllowed());
+    if (on_session_) {
+      (*on_session_)(session);
+    }
+    session_ = session;
+    return session;
+  }
+
+  void WsSession::sessionClose() {
+    if (auto session = session_.lock()) {
+      session->close();
+    }
+    session_.reset();
+  }
+
   void WsSession::httpClose() {
     bool already_stopped = false;
     if (stopped_.compare_exchange_strong(already_stopped, true)) {
       stream_.next_layer().next_layer().close();
-      notifyOnClose(id_, type());
       if (on_ws_close_) {
         on_ws_close_();
       }
-      SL_TRACE(logger_, "Session id = {} terminated", id_);
-    } else {
-      SL_TRACE(logger_,
-               "Session id = {} was already terminated. Doing nothing.",
-               id_);
     }
   }
 
