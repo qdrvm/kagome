@@ -12,6 +12,7 @@
 #include <queue>
 
 #include <boost/asio/strand.hpp>
+#include <boost/beast/core/buffered_read_stream.hpp>
 #include <boost/beast/core/multi_buffer.hpp>
 #include <boost/beast/core/tcp_stream.hpp>
 #include <boost/beast/websocket.hpp>
@@ -50,7 +51,7 @@ namespace kagome::api {
               SessionId id);
 
     Socket &socket() override {
-      return socket_;
+      return stream_.next_layer().next_layer().socket();
     }
 
     /**
@@ -69,7 +70,7 @@ namespace kagome::api {
      * @return type of the session
      */
     SessionType type() const override {
-      return SessionType::kWs;
+      return is_ws_ ? SessionType::kWs : SessionType::kHttp;
     }
 
     /**
@@ -124,9 +125,9 @@ namespace kagome::api {
     void asyncWrite();
 
     /**
-     * @brief connected callback
+     * @brief async upgrade http to ws
      */
-    void onRun();
+    void wsAccept();
 
     /**
      * @brief handshake completion callback
@@ -150,16 +151,23 @@ namespace kagome::api {
      */
     void reportError(boost::system::error_code ec, std::string_view message);
 
-    /// Strand to ensure the connection's handlers are not called concurrently.
-    boost::asio::strand<boost::asio::io_context::executor_type> strand_;
-
-    /// Socket for the connection.
-    boost::asio::ip::tcp::socket socket_;
+    void httpClose();
+    void httpRead();
+    void httpWrite();
 
     AllowUnsafe allow_unsafe_;
     Configuration config_;  ///< session configuration
-    boost::beast::websocket::stream<boost::asio::ip::tcp::socket &> stream_;
+    boost::beast::websocket::stream<
+        boost::beast::buffered_read_stream<boost::beast::tcp_stream,
+                                           boost::beast::flat_buffer>>
+        stream_;
     boost::beast::flat_buffer rbuffer_;  ///< read buffer
+    std::optional<
+        boost::beast::http::request_parser<boost::beast::http::string_body>>
+        http_request_;
+    std::optional<boost::beast::http::response<boost::beast::http::string_body>>
+        http_response_;
+    bool is_ws_ = false;
 
     std::queue<std::string> pending_responses_;
 

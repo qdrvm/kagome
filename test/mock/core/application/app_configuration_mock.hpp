@@ -18,10 +18,7 @@ namespace kagome::application {
 
     MOCK_METHOD(filesystem::path, chainSpecPath, (), (const, override));
 
-    MOCK_METHOD(filesystem::path,
-                runtimeCacheDirPath,
-                (),
-                (const, override));
+    MOCK_METHOD(filesystem::path, runtimeCacheDirPath, (), (const, override));
 
     MOCK_METHOD(filesystem::path,
                 runtimeCachePath,
@@ -73,12 +70,7 @@ namespace kagome::application {
     MOCK_METHOD(uint16_t, p2pPort, (), (const, override));
 
     MOCK_METHOD(const boost::asio::ip::tcp::endpoint &,
-                rpcHttpEndpoint,
-                (),
-                (const, override));
-
-    MOCK_METHOD(const boost::asio::ip::tcp::endpoint &,
-                rpcWsEndpoint,
+                rpcEndpoint,
                 (),
                 (const, override));
 
