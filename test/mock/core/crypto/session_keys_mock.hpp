@@ -16,31 +16,26 @@ namespace kagome::application {
 }  // namespace kagome::application
 
 namespace kagome::crypto {
-
-  class CryptoStore;
-  struct Ed25519Keypair;
-  struct Sr25519Keypair;
-
   class SessionKeysMock : public SessionKeys {
    public:
-    MOCK_METHOD(const std::shared_ptr<Sr25519Keypair> &,
+    MOCK_METHOD(KeypairWithIndexOpt<Sr25519Keypair>,
                 getBabeKeyPair,
-                (),
+                (const primitives::AuthorityList &),
                 (override));
 
-    MOCK_METHOD(const std::shared_ptr<Ed25519Keypair> &,
+    MOCK_METHOD(std::shared_ptr<Ed25519Keypair>,
                 getGranKeyPair,
-                (),
+                (const primitives::AuthoritySet &),
                 (override));
 
-    MOCK_METHOD(const std::shared_ptr<Sr25519Keypair> &,
+    MOCK_METHOD(KeypairWithIndexOpt<Sr25519Keypair>,
                 getParaKeyPair,
-                (),
+                (const std::vector<Sr25519PublicKey> &),
                 (override));
 
-    MOCK_METHOD(const std::shared_ptr<Sr25519Keypair> &,
+    MOCK_METHOD(std::shared_ptr<Sr25519Keypair>,
                 getAudiKeyPair,
-                (),
+                (const std::vector<primitives::AuthorityDiscoveryId> &),
                 (override));
   };
 }  // namespace kagome::crypto

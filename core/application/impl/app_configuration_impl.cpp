@@ -194,13 +194,15 @@ namespace {
   auto &devAccounts() {
     using Account =
         std::tuple<const char *, std::string_view, std::string_view>;
-    static const std::array<Account, 6> accounts{
+    static const std::array<Account, 8> accounts{
         Account{"alice", "Alice", "//Alice"},
         Account{"bob", "Bob", "//Bob"},
         Account{"charlie", "Charlie", "//Charlie"},
         Account{"dave", "Dave", "//Dave"},
         Account{"eve", "Eve", "//Eve"},
         Account{"ferdie", "Ferdie", "//Ferdie"},
+        Account{"one", "One", "//One"},
+        Account{"two", "Two", "//Two"},
     };
     return accounts;
   }
