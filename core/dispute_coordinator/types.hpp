@@ -51,6 +51,8 @@ namespace kagome::dispute {
 
   /// A valid statement, of the given kind
   struct ValidDisputeStatement {
+    SCALE_TIE(3);
+
     ValidDisputeStatementKind kind;
     ValidatorIndex index;
     ValidatorSignature signature;
@@ -58,6 +60,8 @@ namespace kagome::dispute {
 
   /// An invalid statement, of the given kind.
   struct InvalidDisputeStatement {
+    SCALE_TIE(3);
+
     InvalidDisputeStatementKind kind;
     ValidatorIndex index;
     ValidatorSignature signature;
@@ -71,9 +75,9 @@ namespace kagome::dispute {
       boost::variant<ValidDisputeStatement,     // 0 - Valid
                      InvalidDisputeStatement>;  // 1 - Invalid
 
-  common::Buffer getPayload(const DisputeStatement_ &statement,
-                            CandidateHash candidate_hash,
-                            SessionIndex session) {
+  inline common::Buffer getSignablePayload(const DisputeStatement_ &statement,
+                                           CandidateHash candidate_hash,
+                                           SessionIndex session) {
     common::Buffer res;
     visit_in_place(
         statement,
@@ -264,6 +268,8 @@ namespace kagome::dispute {
 
   /// A set of statements about a specific candidate.
   struct DisputeStatementSet {
+    SCALE_TIE(3);
+
     /// The candidate referenced by this set.
     CandidateHash candidate_hash;
 
@@ -279,6 +285,8 @@ namespace kagome::dispute {
 
   /// Scraped runtime backing votes and resolved disputes.
   struct ScrapedOnChainVotes {
+    SCALE_TIE(3);
+
     /// The session in which the block was included.
     SessionIndex session;
 

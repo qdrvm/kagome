@@ -10,22 +10,29 @@
 
 #include "utils/tuple_hash.hpp"
 
+namespace kagome::storage {
+  class SpacedStorage;
+}
+
 namespace kagome::dispute {
 
   class StorageImpl final : public Storage {
    public:
-    StorageImpl();
+    StorageImpl(std::shared_ptr<storage::SpacedStorage> storage);
 
     std::optional<SessionIndex> load_earliest_session() override;
 
-    std::optional<RecentDisputes> load_recent_disputes() override;
+    outcome::result<std::optional<RecentDisputes>> load_recent_disputes()
+        override;
 
-    std::optional<CandidateVotes> load_candidate_votes(
+    outcome::result<std::optional<CandidateVotes>> load_candidate_votes(
         SessionIndex session, const CandidateHash &candidate_hash) override;
 
     void write_recent_disputes(RecentDisputes recent_disputes) override;
 
    private:
+    std::shared_ptr<storage::SpacedStorage> storage_;
+
     // `nullopt` means unchanged.
     std::optional<SessionIndex> earliest_session_{};
     // `nullopt` means unchanged.

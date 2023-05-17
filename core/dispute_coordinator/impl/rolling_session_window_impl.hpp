@@ -30,9 +30,10 @@ namespace kagome::dispute {
    public:
     static const size_t kWindowSize = 6;
 
-    RollingSessionWindowImpl(std::shared_ptr<blockchain::BlockTree> block_tree,
-                             std::shared_ptr<ParachainHost> api,
-                             primitives::BlockHash block_hash);
+    static outcome::result<std::unique_ptr<RollingSessionWindow>> create(
+        std::shared_ptr<blockchain::BlockTree> block_tree,
+        std::shared_ptr<ParachainHost> api,
+        primitives::BlockHash block_hash);
 
     std::optional<std::reference_wrapper<SessionInfo>> session_info(
         SessionIndex index) override;
@@ -47,7 +48,7 @@ namespace kagome::dispute {
         const primitives::BlockHash &block_hash) override;
 
    private:
-    outcome::result<std::optional<StoredWindow>> load();
+    static outcome::result<std::optional<StoredWindow>> load();
     outcome::result<void> save(StoredWindow stored_window);
 
     outcome::result<SessionIndex> get_session_index_for_child(
@@ -57,11 +58,12 @@ namespace kagome::dispute {
     /// `start` and up to `end_inclusive`.
     /// Runtime session info fetching errors are ignored if that doesn't create
     /// a gap in the window.
-    outcome::result<std::vector<SessionInfo>> extend_sessions_from_chain_state(
-        std::vector<SessionInfo> stored_sessions,
-        const primitives::BlockHash &block_hash,
-        SessionIndex &window_start,
-        SessionIndex end_inclusive);
+    static outcome::result<std::vector<SessionInfo>>
+    extend_sessions_from_chain_state(const std::shared_ptr<ParachainHost> &api,
+                                     std::vector<SessionInfo> stored_sessions,
+                                     const primitives::BlockHash &block_hash,
+                                     SessionIndex &window_start,
+                                     SessionIndex end_inclusive);
 
     std::shared_ptr<ParachainHost> api_;
     std::shared_ptr<blockchain::BlockTree> block_tree_;

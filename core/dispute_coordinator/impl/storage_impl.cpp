@@ -5,9 +5,13 @@
 
 #include "dispute_coordinator/impl/storage_impl.hpp"
 
+#include "storage/predefined_keys.hpp"
+#include "storage/spaced_storage.hpp"
+
 namespace kagome::dispute {
 
-  StorageImpl::StorageImpl() {
+  StorageImpl::StorageImpl(std::shared_ptr<storage::SpacedStorage> storage)
+      : storage_(std::move(storage)) {
     //
   }
 
@@ -15,24 +19,35 @@ namespace kagome::dispute {
     if (earliest_session_.has_value()) {
       return earliest_session_.value();
     }
+
     // load from base
     // see: {polkadot}/node/core/dispute-coordinator/src/backend.rs:101
     throw std::runtime_error("need to implement");
     return std::nullopt;
   }
 
-  std::optional<RecentDisputes> StorageImpl::load_recent_disputes() {
-    if (recent_disputes_.has_value()) {
-      return recent_disputes_.value();
+  outcome::result<std::optional<RecentDisputes>>
+  StorageImpl::load_recent_disputes() {
+    if (not recent_disputes_.has_value()) {
+      // load from base
+      auto dispute_space = storage_->getSpace(storage::Space::kDisputeData);
+      OUTCOME_TRY(data_opt,
+                  dispute_space->tryGet(storage::kRecentDisputeLookupKey));
+      if (not data_opt.has_value()) {
+        return std::nullopt;
+      }
+      OUTCOME_TRY(recent_disputes,
+                  scale::decode<RecentDisputes>(data_opt.value()));
+
+      recent_disputes_ = std::move(recent_disputes);
     }
-    // load from base
-    // see: {polkadot}/node/core/dispute-coordinator/src/backend.rs:110
-    throw std::runtime_error("need to implement");
-    return std::nullopt;
+
+    return recent_disputes_.value();
   }
 
-  std::optional<CandidateVotes> StorageImpl::load_candidate_votes(
-      SessionIndex session, const CandidateHash &candidate_hash) {
+  outcome::result<std::optional<CandidateVotes>>
+  StorageImpl::load_candidate_votes(SessionIndex session,
+                                    const CandidateHash &candidate_hash) {
     auto it = candidate_votes_.find(std::tie(session, candidate_hash));
     if (it != candidate_votes_.end()) {
       return it->second;

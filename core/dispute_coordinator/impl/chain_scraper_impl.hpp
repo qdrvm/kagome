@@ -104,12 +104,42 @@ namespace kagome::dispute {
 
   class ChainScraperImpl final : public ChainScraper {
    public:
+    /// Number of hashes to keep in the LRU.
+    ///
+    ///
+    /// When traversing the ancestry of a block we will stop once we hit a hash
+    /// that we find in the `last_observed_blocks` LRU. This means, this value
+    /// should the very least be as large as the number of expected forks for
+    /// keeping chain scraping efficient. Making the LRU much larger than that
+    /// has very limited use.
+    static constexpr size_t kLruObservedBlocksCapacity = 20;
+
     /// Limits the number of ancestors received for a single request.
     static constexpr uint32_t kAncestryChunkSize = 10;
+
     /// Limits the overall number of ancestors walked through for a given head.
     ///
     /// As long as we have `MAX_FINALITY_LAG` this makes sense as a value.
     static constexpr uint32_t kAncestrySizeLimit = 500;
+
+    /// How many blocks after finalization an information about backed/included
+    /// candidate should be kept.
+    ///
+    /// We don't want to remove scraped candidates on finalization because we
+    /// want to be sure that disputes will conclude on abandoned forks. Removing
+    /// the candidate on finalization creates a possibility for an attacker to
+    /// avoid slashing. If a bad fork is abandoned too quickly because another
+    /// better one gets finalized the entries for the bad fork will be pruned
+    /// and we might never participate in a dispute for it.
+    ///
+    /// This value should consider the timeout we allow for participation in
+    /// approval-voting. In particular, the following condition should hold:
+    ///
+    /// slot time * `DISPUTE_CANDIDATE_LIFETIME_AFTER_FINALIZATION` >
+    /// `APPROVAL_EXECUTION_TIMEOUT`
+    /// + slot time
+    static constexpr primitives::BlockNumber
+        kDisputeCandidateLifetimeAfterFinalization = 10;
 
     ChainScraperImpl(std::shared_ptr<runtime::ParachainHost> parachain_api,
                      std::shared_ptr<blockchain::BlockTree> block_tree);
@@ -124,6 +154,9 @@ namespace kagome::dispute {
 
     outcome::result<ScrapedUpdates> process_active_leaves_update(
         const ActiveLeavesUpdate &update) override;
+
+    outcome::result<void> process_finalized_block(
+        const primitives::BlockInfo &finalized) override;
 
    private:
     /// Returns ancestors of `head` in the descending order, stopping

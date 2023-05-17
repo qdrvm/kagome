@@ -13,8 +13,13 @@
 #include "application/app_state_manager.hpp"
 #include "common/visitor.hpp"
 #include "dispute_coordinator/chain_scraper.hpp"
+#include "dispute_coordinator/impl/chain_scraper_impl.hpp"
 #include "dispute_coordinator/impl/errors.hpp"
+#include "dispute_coordinator/impl/rolling_session_window_impl.hpp"
+#include "dispute_coordinator/impl/spam_slots_impl.hpp"
 #include "dispute_coordinator/participation/participation.hpp"
+#include "utils/thread_pool.hpp"
+#include "utils/tuple_hash.hpp"
 
 namespace kagome::dispute {
 
@@ -25,14 +30,22 @@ namespace kagome::dispute {
       std::shared_ptr<LocalKeystore> keystore,
       std::shared_ptr<crypto::SessionKeys> session_keys,
       std::shared_ptr<Storage> storage,
-      std::shared_ptr<crypto::Sr25519Provider> sr25519_crypto_provider)
+      std::shared_ptr<crypto::Sr25519Provider> sr25519_crypto_provider,
+      std::shared_ptr<crypto::Hasher> hasher,
+      std::shared_ptr<blockchain::BlockTree> block_tree,
+      std::shared_ptr<runtime::ParachainHost> api)
       : app_state_manager_(std::move(app_state_manager)),
         scheduler_(std::move(scheduler)),
         clock_(std::move(clock)),
         keystore_(std::move(keystore)),
         session_keys_(std::move(session_keys)),
         storage_(std::move(storage)),
-        sr25519_crypto_provider_(std::move(sr25519_crypto_provider)) {
+        sr25519_crypto_provider_(std::move(sr25519_crypto_provider)),
+        hasher_(std::move(hasher)),
+        block_tree_(std::move(block_tree)),
+        api_(std::move(api)),
+        int_pool_{std::make_shared<ThreadPool>(1ull)},
+        internal_context_{int_pool_->handler()} {
     BOOST_ASSERT(app_state_manager_ != nullptr);
     BOOST_ASSERT(scheduler_ != nullptr);
     BOOST_ASSERT(clock_ != nullptr);
@@ -40,141 +53,348 @@ namespace kagome::dispute {
     BOOST_ASSERT(session_keys_ != nullptr);
     BOOST_ASSERT(storage_ != nullptr);
     BOOST_ASSERT(sr25519_crypto_provider_ != nullptr);
+    BOOST_ASSERT(hasher_ != nullptr);
+    BOOST_ASSERT(block_tree_ != nullptr);
+    BOOST_ASSERT(api_ != nullptr);
+  }
+
+  bool DisputeCoordinatorImpl::prepare() {
+    my_view_sub_ = std::make_shared<network::PeerView::MyViewSubscriber>(
+        peer_view_->getMyViewObservable(), false);
+    my_view_sub_->subscribe(my_view_sub_->generateSubscriptionSetId(),
+                            network::PeerView::EventType::kViewUpdated);
+    my_view_sub_->setCallback([wptr{weak_from_this()}](
+                                  auto /*set_id*/,
+                                  auto && /*internal_obj*/,
+                                  auto /*event_type*/,
+                                  const network::ExView &event) {
+      if (auto self = wptr.lock()) {
+        if (not event.new_head_hash.has_value()) {
+          auto hash_res =
+              primitives::calculateBlockHash(event.new_head, *self->hasher_);
+          if (hash_res.has_error()) {
+            self->log_->error("Block header hashing failed: {}",
+                              hash_res.error());
+            return;
+          }
+          event.new_head_hash.emplace(std::move(hash_res.value()));
+        }
+
+        self->on_active_leaves_update(event);
+      }
+    });
+
+    chain_sub_ = std::make_shared<primitives::events::ChainEventSubscriber>(
+        peer_view_->intoChainEventsEngine());
+    chain_sub_->subscribe(chain_sub_->generateSubscriptionSetId(),
+                          primitives::events::ChainEventType::kFinalizedHeads);
+    chain_sub_->setCallback(
+        [wp = weak_from_this()](
+            auto /*set_id*/,
+            auto && /*internal_obj*/,
+            auto type,
+            const primitives::events::ChainEventParams &event) {
+          if (type != primitives::events::ChainEventType::kFinalizedHeads) {
+            return;
+          }
+          if (auto self = wp.lock()) {
+            const auto &header =
+                boost::get<primitives::events::HeadsEventParams>(event).get();
+            auto hash =
+                self->hasher_->blake2b_256(scale::encode(header).value());
+
+            self->on_finalized_block({header.number, hash});
+          }
+        });
+
+    return true;
   }
 
   bool DisputeCoordinatorImpl::start() {
-    processing_loop_handle_ = scheduler_->scheduleWithHandle([&] { run(); });
+    internal_context_->start();
     return true;
   }
 
   void DisputeCoordinatorImpl::stop() {
-    processing_loop_handle_.cancel();
+    internal_context_->stop();
   }
 
-  void DisputeCoordinatorImpl::run() {
-    auto res = run_until_error();
-    if (not res.has_error()) {
-      // LOG-INFO "received `Conclude` signal, exiting"
+  void DisputeCoordinatorImpl::startup(const network::ExView &updated) {
+    if (initialized_) {
       return;
     }
 
-    // LOG-ERROR "Error happened: " res.error
+    auto rsw_res = RollingSessionWindowImpl::create(
+        block_tree_, api_, updated.new_head_hash.value());
+    if (rsw_res.has_error()) {
+      log_->error("Can't create rolling session window: {}", rsw_res.error());
+      return;
+    }
+    rolling_session_window_ = std::move(rsw_res.value());
 
-    if (app_state_manager_->state()
-        < application::AppStateManager::State::ShuttingDown) {
-      std::ignore =
-          processing_loop_handle_.reschedule(std::chrono::milliseconds(0));
+    auto first_leaf = ActivatedLeaf{.hash = updated.new_head_hash.value(),
+                                    .number = updated.new_head.number,
+                                    .status = LeafStatus::Fresh};
+
+    // Prune obsolete disputes:
+    // db::v1::note_earliest_session( // FIXME Needed or not?
+    //     overlay_db, rolling_session_window.earliest_session())?;
+
+    auto now = clock_->nowUint64();
+
+    auto recent_disputes_res = storage_->load_recent_disputes();
+    if (recent_disputes_res.has_error()) {
+      log_->error("Failed initial load of recent disputes: {}",
+                  recent_disputes_res.error());
+      return;
+    }
+    auto &recent_disputes = recent_disputes_res.value();
+
+    std::vector<std::tuple<SessionIndex, CandidateHash, DisputeStatus>>
+        active_disputes;
+    if (recent_disputes.has_value()) {
+      for (const auto &p : recent_disputes.value()) {
+        const auto &status = p.second;
+
+        auto at = visit_in_place(
+            status,
+            [](const Active &) -> std::optional<Timestamp> {
+              return std::nullopt;
+            },
+            [](const Confirmed &) -> std::optional<Timestamp> {
+              return std::nullopt;
+            },
+            [](const ConcludedFor &at) -> std::optional<Timestamp> {
+              return (Timestamp)at;
+            },
+            [](const ConcludedAgainst &at) -> std::optional<Timestamp> {
+              return (Timestamp)at;
+            });
+
+        auto dispute_is_inactive =
+            at.has_value() and at.value() + kActiveDurationSecs < now;
+
+        if (not dispute_is_inactive) {
+          active_disputes.emplace_back(
+              std::get<0>(p.first), std::get<1>(p.first), p.second);
+        }
+      }
+    }
+
+    std::vector<std::tuple<ParticipationPriority, ParticipationRequest>>
+        participation_requests;
+
+    SpamSlotsImpl::UnconfirmedDisputes spam_disputes;
+
+    auto scraper = std::make_unique<ChainScraperImpl>(api_, block_tree_);
+
+    ActiveLeavesUpdate update{.activated = first_leaf, .deactivated = {}};
+    auto updates_res = scraper->process_active_leaves_update(update);
+    if (updates_res.has_error()) {
+      log_->error("Failed initialize scrapper: {}", updates_res.error());
+      return;
+    }
+    auto &votes = updates_res.value().on_chain_votes;
+
+    // https://github.com/paritytech/polkadot/blob/40974fb99c86f5c341105b7db53c7aa0df707d66/node/core/dispute-coordinator/src/lib.rs#L298
+    for (auto &[session, candidate_hash, _] : active_disputes) {
+      auto env_opt = makeCandidateEnvironment(
+          *session_keys_, *rolling_session_window_, session);
+      if (not env_opt.has_value()) {
+        continue;
+      }
+      auto &env = env_opt.value();
+
+      auto votes_res = storage_->load_candidate_votes(session, candidate_hash);
+      if (votes_res.has_error()) {
+        // LOG-ERROR: "Failed initial load of candidate votes: {}",
+        continue;
+      }
+      if (not votes_res.value().has_value()) {
+        // LOG-ERROR: "Failed initial load of candidate votes: {}",
+        continue;
+      }
+      auto &candidate_votes = votes_res.value().value();
+
+      auto vote_state =
+          CandidateVoteState::create(candidate_votes, env, clock_->nowUint64());
+
+      auto potential_spam = is_potential_spam(vote_state, candidate_hash);
+      auto is_included = scraper_->is_candidate_included(
+          vote_state.votes.candidate_receipt.commitments_hash);
+
+      if (potential_spam) {
+        // LOG-TRACE:
+        // "Found potential spam dispute on startup (session={}, candidate={})",
+        // session,
+        // candidate_hash
+
+        std::set<ValidatorIndex> voted_indices;
+        for (auto &[key, _] : vote_state.votes.valid) {
+          voted_indices.emplace(key);
+        }
+        for (auto &[key, _] : vote_state.votes.invalid) {
+          voted_indices.emplace(key);
+        }
+
+        spam_disputes.emplace(std::make_tuple(session, candidate_hash),
+                              std::move(voted_indices));
+      } else {
+        auto own_vote = if_type<Voted>(vote_state.own_vote);
+        if (own_vote.has_value() and own_vote->get().empty()) {
+          // Participate if need be:
+
+          // LOG-TRACE: "Found valid dispute, with no vote from us on startup -
+          //  participating."
+          // session,
+          // candidate_hash
+
+          auto &receipt = vote_state.votes.candidate_receipt;
+
+          participation_requests.emplace_back(
+              static_cast<ParticipationPriority>(is_included),
+              ParticipationRequest{.candidate_hash = receipt.commitments_hash,
+                                   .candidate_receipt = receipt,
+                                   .session = session});
+
+        } else {
+          // Else make sure our own vote is distributed:
+
+          // LOG-TRACE: "Found valid dispute, with vote from us on startup -
+          //    send vote."
+          // session,
+          // candidate_hash
+
+          send_dispute_messages(env, vote_state);
+        }
+      }
+    }
+
+    // https://github.com/paritytech/polkadot/blob/40974fb99c86f5c341105b7db53c7aa0df707d66/node/core/dispute-coordinator/src/spam_slots.rs#L64
+    SpamSlotsImpl::Slots slots;
+    for (auto &[session_and_candidate, validators] : spam_disputes) {
+      auto &session = std::get<0>(session_and_candidate);
+      for (auto &validator : validators) {
+        auto &spam_vote_count = slots[std::make_tuple(session, validator)];
+        ++spam_vote_count;
+        if (spam_vote_count > SpamSlotsImpl::kMaxSpamVotes) {
+          SL_DEBUG(log_,
+                   "Import exceeded spam slot for validator "
+                   "(session={}, validator={}, count={})",
+                   session,
+                   validator,
+                   spam_vote_count);
+        }
+      }
+    }
+    spam_slots_ = std::make_unique<SpamSlotsImpl>(std::move(slots),
+                                                  std::move(spam_disputes));
+
+    scraper_ = std::move(scraper);
+
+    initialized_ = true;
+
+    // https://github.com/paritytech/polkadot/blob/40974fb99c86f5c341105b7db53c7aa0df707d66/node/core/dispute-coordinator/src/initialized.rs#L166
+    for (const auto &[priority, request] : std::move(participation_requests)) {
+      auto res = participation_->queue_participation(priority, request);
+      if (res.has_error()) {
+        SL_ERROR(log_, "Can't queue startup participation: {}", res.error());
+      }
+    }
+
+    // https://github.com/paritytech/polkadot/blob/40974fb99c86f5c341105b7db53c7aa0df707d66/node/core/dispute-coordinator/src/initialized.rs#L160
+    for (auto &vote : votes) {
+      auto res = process_on_chain_votes(vote);
+      if (res.has_error()) {
+        // LOG-WARN: "Skipping scraping block due to error"
+      }
+    }
+
+    // Also provide first leaf to participation for good measure.
+    // https://github.com/paritytech/polkadot/blob/40974fb99c86f5c341105b7db53c7aa0df707d66/node/core/dispute-coordinator/src/initialized.rs#L192
+    auto first_leaf_update_res = participation_->process_active_leaves_update(
+        ActiveLeavesUpdate{.activated = first_leaf});
+    if (first_leaf_update_res.has_error()) {
+      SL_ERROR(log_,
+               "Can't process first active leaf update: {}",
+               first_leaf_update_res.error());
     }
   }
 
-  outcome::result<void> DisputeCoordinatorImpl::run_until_error() {
-    std::vector<std::pair<ParticipationPriority, ParticipationRequest>>
-        participation;
-    std::vector<ScrapedOnChainVotes> on_chain_votes;
-    std::optional<ActivatedLeaf> first_leaf;
-
-    // https://github.com/paritytech/polkadot/blob/40974fb99c86f5c341105b7db53c7aa0df707d66/node/core/dispute-coordinator/src/initialized.rs#L166
-    for (const auto &[priority, request] : std::move(participation)) {
-      OUTCOME_TRY(participation_->queue_participation(priority, request));
+  void DisputeCoordinatorImpl::on_participation(
+      const ParticipationStatement &_message) {
+    if (not initialized_) {
+      return;
     }
 
-    {
-      // https://github.com/paritytech/polkadot/blob/40974fb99c86f5c341105b7db53c7aa0df707d66/node/core/dispute-coordinator/src/initialized.rs#L160
-      // auto  overlay_db = OverlayedBackend::new (backend);
-      for (auto votes : on_chain_votes) {
-        auto res = process_on_chain_votes(votes);
-        if (res.has_error()) {
-          // LOG-WARN: "Skipping scraping block due to error"
-        }
+    REINVOKE_1(*internal_context_, on_participation, _message, message);
+
+    // LOG-TRACE: "MuxedMessage::Participation"
+
+    auto res = participation_->get_participation_result(message);
+    if (res.has_error()) {
+      // LOG-ERROR:
+      return;
+    }
+
+    const auto session = message.session;
+    const auto &candidate_hash = message.candidate_hash;
+    const auto &candidate_receipt = message.candidate_receipt;
+    const auto outcome = message.outcome;
+
+    if (outcome == ParticipationOutcome::Valid
+        or outcome == ParticipationOutcome::Invalid) {
+      // LOG-TRACE: "Issuing local statement based on participation
+      // outcome."
+
+      auto issue_res =
+          issue_local_statement(candidate_hash,
+                                candidate_receipt,
+                                session,
+                                outcome == ParticipationOutcome::Valid);
+      if (issue_res.has_error()) {
+        SL_ERROR(log_, "Can't issue local statement: {}", issue_res.error());
+        return;
       }
-      // if !overlay_db {
-      //   .is_empty() {
-      //     let ops = overlay_db.into_write_ops();
-      //     backend.write(ops) ? ;
-      //   }
-      // }
+
+    } else {
+      // LOG-WARN: "Dispute participation failed"
+    }
+  }
+
+  void DisputeCoordinatorImpl::on_message(
+      const DisputeCoordinatorMessage &_message) {
+    if (not initialized_) {
+      return;
     }
 
-    if (first_leaf.has_value()) {
-      // Also provide first leaf to participation for good measure.
-      // https://github.com/paritytech/polkadot/blob/40974fb99c86f5c341105b7db53c7aa0df707d66/node/core/dispute-coordinator/src/initialized.rs#L192
-      OUTCOME_TRY(participation_->process_active_leaves_update(
-          ActiveLeavesUpdate{.activated = first_leaf}));
+    REINVOKE_1(*internal_context_, on_message, _message, message);
+
+    auto res = handle_incoming(message);
+    if (res.has_error()) {
+      SL_ERROR(log_, "Can't handle incoming message: {}", res.error());
+      return;
+    }
+  }
+
+  void DisputeCoordinatorImpl::on_active_leaves_update(
+      const network::ExView &_updated) {
+    REINVOKE_1(*internal_context_, on_active_leaves_update, _updated, updated);
+
+    if (not initialized_) {
+      return startup(_updated);
     }
 
-    for (;;) {
-      // LOG-TRACE: "Waiting for message"
+    ActiveLeavesUpdate update{
+        .activated = {{.hash = updated.new_head_hash.value(),
+                       .number = updated.new_head.number,
+                       .status = LeafStatus::Fresh}},
+        .deactivated = updated.lost};
 
-      // auto overlay_db = OverlayedBackend::new(backend);
-      auto default_confirm = outcome::success();
-
-      struct Signal {};  // FIXME
-      using MuxedMessage = boost::
-          variant<ParticipationStatement, DisputeCoordinatorMessage, Signal>;
-
-      MuxedMessage message;  // = receive(self.participation_receiver)
-
-      auto confirm_write = visit_in_place(
-          message,
-          [&](const ParticipationStatement &msg) -> outcome::result<void> {
-            // LOG-TRACE: "MuxedMessage::Participation"
-
-            participation_->get_participation_result(msg);
-
-            const auto session = msg.session;
-            const auto &candidate_hash = msg.candidate_hash;
-            const auto &candidate_receipt = msg.candidate_receipt;
-            const auto outcome = msg.outcome;
-
-            if (outcome == ParticipationOutcome::Valid
-                or outcome == ParticipationOutcome::Invalid) {
-              // LOG-TRACE: "Issuing local statement based on participation
-              // outcome."
-
-              issue_local_statement(candidate_hash,
-                                    candidate_receipt,
-                                    session,
-                                    outcome == ParticipationOutcome::Valid);
-
-            } else {
-              // LOG-WARN: "Dispute participation failed"
-            }
-            return default_confirm;
-          },
-          [&](const DisputeCoordinatorMessage &msg) {
-            return handle_incoming(msg);
-          },
-          [&](const Signal &msg) {
-            /*
-clang-format off
-          FromOrchestra::Signal(OverseerSignal::Conclude) => return Ok(()),
-          FromOrchestra::Signal(OverseerSignal::ActiveLeaves(update)) => {
-            gum::trace!(target: LOG_TARGET, "OverseerSignal::ActiveLeaves");
-            self.process_active_leaves_update(
-              ctx,
-              &mut overlay_db,
-              update,
-              clock.now(),
-            )
-            .await?;
-            default_confirm
-          },
-          FromOrchestra::Signal(OverseerSignal::BlockFinalized(_, n)) => {
-            gum::trace!(target: LOG_TARGET, "OverseerSignal::BlockFinalized");
-            self.scraper.process_finalized_block(&n);
-            default_confirm
-          },
-clang-format on
-*/
-          });
-
-      // if (!overlay_db.is_empty()) {
-      //   let ops = overlay_db.into_write_ops();
-      //   backend.write(ops)?;
-      // }
-      // // even if the changeset was empty,
-      // // otherwise the caller will error.
-      // confirm_write()?;
+    auto res = process_active_leaves_update(update);
+    if (res.has_error()) {
+      SL_ERROR(log_, "Can't handle active list update: {}", res.error());
+      return;
     }
   }
 
@@ -238,7 +458,7 @@ clang-format on
           ValidDisputeStatement statement{
               valid_statement_kind, validator_index, validator_signature};
 
-          auto payload = getPayload(statement, candidate_hash, session);
+          auto payload = getSignablePayload(statement, candidate_hash, session);
 
           auto validation_res = sr25519_crypto_provider_->verify(
               validator_signature, payload, validator_public);
@@ -255,16 +475,18 @@ clang-format on
         BOOST_ASSERT_MSG(check_sig(),
                          "Scraped backing votes had invalid signature!");
 
-        SignedDisputeStatement signed_dispute_statement{
-            ValidDisputeStatement{
-                valid_statement_kind, session, validator_signature},
-            candidate_hash,
-            validator_public,
-            validator_signature,
-            session,
-        };
+        Indexed<SignedDisputeStatement> statement{
+            {
+                ValidDisputeStatement{
+                    valid_statement_kind, session, validator_signature},
+                candidate_hash,
+                validator_public,
+                validator_signature,
+                session,
+            },
+            validator_index};
 
-        statements.emplace_back(signed_dispute_statement, validator_index);
+        statements.emplace_back(std::move(statement));
       }
 
       // Importantly, handling import statements for backing votes also
@@ -324,7 +546,8 @@ clang-format on
                 ValidDisputeStatement statement{
                     valid_statement_kind, validator_index, validator_signature};
 
-                auto payload = getPayload(statement, candidate_hash, session);
+                auto payload =
+                    getSignablePayload(statement, candidate_hash, session);
 
                 auto validation_res = sr25519_crypto_provider_->verify(
                     validator_signature, payload, validator_public);
@@ -341,17 +564,19 @@ clang-format on
               BOOST_ASSERT_MSG(check_sig(),
                                "Scraped dispute votes had invalid signature!");
 
-              SignedDisputeStatement signed_dispute_statement{
-                  ValidDisputeStatement{
-                      valid_statement_kind, session, validator_signature},
-                  candidate_hash,
-                  validator_public,
-                  validator_signature,
-                  session,
-              };
+              Indexed<SignedDisputeStatement> _statement{
+                  {
+                      ValidDisputeStatement{
+                          valid_statement_kind, session, validator_signature},
+                      candidate_hash,
+                      validator_public,
+                      validator_signature,
+                      session,
+                  },
+                  validator_index};
 
-              statements.emplace_back(signed_dispute_statement,
-                                      validator_index);
+              statements.emplace_back(std::move(_statement));
+              return outcome::success();
             }));
       }
 
@@ -372,8 +597,6 @@ clang-format on
 
   outcome::result<void> DisputeCoordinatorImpl::process_active_leaves_update(
       const ActiveLeavesUpdate &update) {
-    auto now = clock_->nowUint64();
-
     OUTCOME_TRY(scraped_updates,
                 scraper_->process_active_leaves_update(update));
 
@@ -432,6 +655,22 @@ clang-format on
     return outcome::success();
   }
 
+  void DisputeCoordinatorImpl::on_finalized_block(
+      const primitives::BlockInfo &_finalized) {
+    REINVOKE_1(*internal_context_, on_finalized_block, _finalized, finalized);
+
+    auto res = process_finalized_block(finalized);
+    if (res.has_error()) {
+      SL_ERROR(
+          log_, "Can't process finalized block {}: {}", finalized, res.error());
+    }
+  }
+
+  outcome::result<void> DisputeCoordinatorImpl::process_finalized_block(
+      const primitives::BlockInfo &finalized) {
+    return scraper_->process_finalized_block(finalized);
+  }
+
   outcome::result<void> DisputeCoordinatorImpl::onImportStatements(
       CandidateReceipt candidate_receipt,
       SessionIndex session,
@@ -443,6 +682,35 @@ clang-format on
         handle_import_statements(candidate_receipt, session, statements));
 
     return outcome::success();
+  }
+
+  std::optional<CandidateEnvironment>
+  DisputeCoordinatorImpl::makeCandidateEnvironment(
+      crypto::SessionKeys &session_keys,
+      RollingSessionWindow &rolling_session_window,
+      SessionIndex session) {
+    auto session_info_opt = rolling_session_window.session_info(session);
+    if (not session_info_opt.has_value()) {
+      return std::nullopt;
+    }
+    auto &session_info = session_info_opt.value().get();
+
+    std::unordered_set<ValidatorIndex> controlled_indices;
+    auto &keypair = session_keys.getParaKeyPair();
+    if (keypair != nullptr) {
+      for (ValidatorIndex index = 0; index < session_info.validators.size();
+           ++index) {
+        auto &validator = session_info.validators[index];
+
+        if (keypair->public_key == validator) {
+          controlled_indices.emplace(index);
+        }
+      }
+    }
+
+    return CandidateEnvironment{.session_index = session,
+                                .session = session_info,
+                                .controlled_indices = controlled_indices};
   }
 
   outcome::result<bool> DisputeCoordinatorImpl::handle_import_statements(
@@ -463,31 +731,15 @@ clang-format on
                   .commitments_hash
             : boost::relaxed_get<CandidateHash>(candidate_receipt);
 
-    auto session_info_opt = rolling_session_window_->session_info(session);
-    if (not session_info_opt.has_value()) {
+    auto env_opt = makeCandidateEnvironment(
+        *session_keys_, *rolling_session_window_, session);
+    if (not env_opt.has_value()) {
       SL_DEBUG(log_,
                "We are lacking a `SessionInfo` for handling import of "
                "statements.");
       return outcome::success(false);
     }
-    auto &session_info = session_info_opt.value().get();
-
-    std::unordered_set<ValidatorIndex> controlled_indices;
-    auto &keypair = session_keys_->getParaKeyPair();
-    if (keypair != nullptr) {
-      for (ValidatorIndex index = 0; index < session_info.validators.size();
-           ++index) {
-        auto &validator = session_info.validators[index];
-
-        if (keypair->public_key == validator) {
-          controlled_indices.emplace(index);
-        }
-      }
-    }
-
-    CandidateEnvironment env{.session_index = session,
-                             .session = session_info,
-                             .controlled_indices = controlled_indices};
+    auto &env = env_opt.value();
 
     // In case we are not provided with a candidate receipt we operate under
     // the assumption, that a previous vote which included a
@@ -500,8 +752,8 @@ clang-format on
 
     CandidateVoteState old_state;
 
-    auto old_state_opt =
-        storage_->load_candidate_votes(session, candidate_hash);
+    OUTCOME_TRY(old_state_opt,
+                storage_->load_candidate_votes(session, candidate_hash));
     if (old_state_opt.has_value()) {
       old_state = CandidateVoteState::create(old_state_opt.value(), env, now);
     } else {
@@ -853,13 +1105,13 @@ clang-format on
           auto &valid_dispute_statement =
               valid_dispute_statement_opt.value().get();
           if (is_type<ApprovalChecking>(valid_dispute_statement.kind)) {
-            if (validator_index >= session_info.validators.size()) {
+            if (validator_index >= env.session.validators.size()) {
               SL_DEBUG(log_,
                        "Could not find pub key in `SessionInfo` for our own "
                        "approval vote!");
               continue;
             }
-            auto &pub_key = session_info.validators[validator_index];
+            auto &pub_key = env.session.validators[validator_index];
 
             SignedDisputeStatement statement{
                 ValidDisputeStatement{ApprovalChecking{}, {}, {}},  // FIXME
@@ -871,7 +1123,7 @@ clang-format on
             // LOG-TRACE: "Sending out own approval vote"
 
             auto dispute_message_res = make_dispute_message(
-                session_info, new_state.votes, statement, validator_index);
+                env.session, new_state.votes, statement, validator_index);
 
             if (dispute_message_res.has_value()) {
               auto &dispute_message = dispute_message_res.value();
@@ -894,8 +1146,8 @@ clang-format on
 
       // Only bother with db access, if there was an actual change.
       if (is_freshly_disputed or is_freshly_confirmed or is_freshly_concluded) {
-        auto recent_disputes =
-            storage_->load_recent_disputes().value_or(RecentDisputes{});
+        OUTCOME_TRY(recent_disputes_opt, storage_->load_recent_disputes());
+        auto recent_disputes = recent_disputes_opt.value_or(RecentDisputes{});
 
         auto [it, fresh] = recent_disputes.emplace(
             std::make_tuple(session, candidate_hash), Active{});
@@ -961,7 +1213,7 @@ clang-format on
 
       // check sig
 
-      auto payload = getPayload(
+      auto payload = getSignablePayload(
           statement, our_vote.candidate_hash, our_vote.session_index);
 
       auto validation_res = sr25519_crypto_provider_->verify(
@@ -1071,6 +1323,66 @@ clang-format on
     };
   }
 
+  void DisputeCoordinatorImpl::send_dispute_messages(
+      const CandidateEnvironment &env, const CandidateVoteState &vote_state) {
+    auto votes = if_type<const Voted>(vote_state.own_vote);
+    if (not votes.has_value()) {
+      return;
+    }
+
+    // https://github.com/paritytech/polkadot/blob/40974fb99c86f5c341105b7db53c7aa0df707d66/node/core/dispute-coordinator/src/lib.rs#L450
+    for (auto &[validator_index, dispute_statement, validator_signature] :
+         votes.value().get()) {
+      if (validator_index >= env.session.validators.size()) {
+        SL_DEBUG(log_,
+                 "Could not find our own key in `SessionInfo` "
+                 "(session={}, validator_index={})",
+                 env.session_index,
+                 validator_index);
+        continue;
+      }
+      auto &validator_public = env.session.validators[validator_index];
+
+      auto &candidate_hash =
+          vote_state.votes.candidate_receipt.commitments_hash;
+
+      auto payload = getSignablePayload(
+          dispute_statement, candidate_hash, env.session_index);
+
+      auto validation_res = sr25519_crypto_provider_->verify(
+          validator_signature, payload, validator_public);
+
+      if (validation_res.has_error()) {
+        // LOG-ERROR: "Checking our own signature failed - db corruption?"
+        continue;
+      }
+      if (not validation_res.value()) {
+        // LOG-ERROR: "Checking our own signature failed - db corruption?"
+        continue;
+      }
+
+      SignedDisputeStatement our_vote_signed{
+          dispute_statement,
+          candidate_hash,
+          validator_public,
+          validator_signature,
+          env.session_index,
+      };
+
+      auto msg_res = make_dispute_message(
+          env.session, vote_state.votes, our_vote_signed, validator_index);
+      if (msg_res.has_error()) {
+        // LOG-DEBUG:  "Creating dispute message failed: {}", msg_res.error());
+        continue;
+      }
+      auto &dispute_message = msg_res.value();
+
+      // TODO implement it
+      // send_message(DisputeDistributionMessage::SendDispute(dispute_message))
+      // await
+    }
+  }
+
   outcome::result<void> DisputeCoordinatorImpl::issue_local_statement(
       const CandidateHash &candidate_hash,
       const CandidateReceipt &candidate_receipt,
@@ -1107,8 +1419,8 @@ clang-format on
 
     CandidateVotes votes;
 
-    auto old_state_opt =
-        storage_->load_candidate_votes(session, candidate_hash);
+    OUTCOME_TRY(old_state_opt,
+                storage_->load_candidate_votes(session, candidate_hash));
     if (old_state_opt.has_value()) {
       votes = {
           .candidate_receipt = old_state_opt->candidate_receipt,
@@ -1146,20 +1458,22 @@ clang-format on
               ? DisputeStatement_{ValidDisputeStatement{.kind = Explicit{}}}
               : DisputeStatement_{InvalidDisputeStatement{.kind = Explicit{}}};
 
-      auto payload = getPayload(dispute_statement, candidate_hash, session);
+      auto payload =
+          getSignablePayload(dispute_statement, candidate_hash, session);
 
       // TODO check if sign-calculation is right
       OUTCOME_TRY(signature, sr25519_crypto_provider_->sign(*keypair, payload));
 
-      SignedDisputeStatement signed_dispute_statement{
-          dispute_statement,
-          candidate_hash,
-          keypair->public_key,
-          signature,
-          session,
-      };
+      Indexed<SignedDisputeStatement> statement{{
+                                                    dispute_statement,
+                                                    candidate_hash,
+                                                    keypair->public_key,
+                                                    signature,
+                                                    session,
+                                                },
+                                                index};
 
-      statements.emplace_back(signed_dispute_statement, index);
+      statements.emplace_back(std::move(statement));
     }
 
     // Get our message out:
@@ -1262,8 +1576,8 @@ clang-format on
 
     // LOG-TRACE: "Loading recent disputes from db"
 
-    auto recent_disputes =
-        storage_->load_recent_disputes().value_or(RecentDisputes{});
+    OUTCOME_TRY(recent_disputes_opt, storage_->load_recent_disputes());
+    auto recent_disputes = recent_disputes_opt.value_or(RecentDisputes{});
 
     // LOG-TRACE: "Loaded recent disputes from db"
 
@@ -1292,8 +1606,8 @@ clang-format on
 
     // LOG-TRACE: "DisputeCoordinatorMessage::ActiveDisputes"
 
-    auto recent_disputes =
-        storage_->load_recent_disputes().value_or(RecentDisputes{});
+    OUTCOME_TRY(recent_disputes_opt, storage_->load_recent_disputes());
+    auto recent_disputes = recent_disputes_opt.value_or(RecentDisputes{});
 
     auto now = clock_->nowUint64();
 
@@ -1343,7 +1657,8 @@ clang-format on
         query_output;
 
     for (auto &[session, candidate_hash] : msg.query) {
-      auto state_opt = storage_->load_candidate_votes(session, candidate_hash);
+      OUTCOME_TRY(state_opt,
+                  storage_->load_candidate_votes(session, candidate_hash));
       if (state_opt.has_value()) {
         query_output.push_back(std::make_tuple(
             session, candidate_hash, std::move(state_opt.value())));
@@ -1396,7 +1711,7 @@ clang-format on
                                base_hash);
 
     // Fast path for no disputes.
-    auto recent_disputes_opt = storage_->load_recent_disputes();
+    OUTCOME_TRY(recent_disputes_opt, storage_->load_recent_disputes());
 
     if (not recent_disputes_opt.has_value()) {
       return last;

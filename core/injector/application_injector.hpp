@@ -39,6 +39,10 @@ namespace kagome {
     class BlockExecutionBenchmark;
   }
 
+  namespace dispute {
+    class DisputeCoordinator;
+  }
+
   namespace metrics {
     class Exposer;
     class MetricsWatcher;
@@ -118,6 +122,7 @@ namespace kagome::injector {
     injectApprovalDistribution();
     std::shared_ptr<network::DisputeRequestObserver>
     injectDisputeRequestObserver();
+    std::shared_ptr<dispute::DisputeCoordinator> injectDisputeCoordinator();
     std::shared_ptr<consensus::grandpa::Grandpa> injectGrandpa();
     std::shared_ptr<soralog::LoggingSystem> injectLoggingSystem();
     std::shared_ptr<storage::trie::TrieStorage> injectTrieStorage();

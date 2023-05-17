@@ -83,6 +83,28 @@ namespace kagome::dispute {
     return std::move(scraped_updates);
   }
 
+  outcome::result<void> ChainScraperImpl::process_finalized_block(
+      const primitives::BlockInfo &finalized) {
+    // `kDisputeCandidateLifetimeAfterFinalization - 1` because
+    // `finalized_block_number` counts to the candidate lifetime.
+
+    if (finalized.number < kDisputeCandidateLifetimeAfterFinalization - 1) {
+      // Nothing to prune. We are still in the beginning of the chain and there
+      // are not enough finalized blocks yet.
+      return outcome::success();
+    }
+
+    auto key_to_prune =
+        finalized.number - (kDisputeCandidateLifetimeAfterFinalization - 1);
+
+    backed_candidates_.remove_up_to_height(key_to_prune);
+    auto candidates_modified =
+        included_candidates_.remove_up_to_height(key_to_prune);
+    inclusions_.remove_up_to_height(key_to_prune, candidates_modified);
+
+    return outcome::success();
+  }
+
   // https://github.com/paritytech/polkadot/blob/40974fb99c86f5c341105b7db53c7aa0df707d66/node/core/dispute-coordinator/src/scraping/mod.rs#L336
   outcome::result<std::vector<primitives::BlockHash>>
   ChainScraperImpl::get_unfinalized_block_ancestors(

@@ -66,6 +66,14 @@ namespace kagome::dispute {
     /// any ancestors we might not yet have seen.
     virtual outcome::result<ScrapedUpdates> process_active_leaves_update(
         const ActiveLeavesUpdate &update) = 0;
+
+    /// Prune finalized candidates.
+    ///
+    /// We keep each candidate for
+    /// `DISPUTE_CANDIDATE_LIFETIME_AFTER_FINALIZATION` blocks after
+    /// finalization. After that we treat it as low priority.
+    virtual outcome::result<void> process_finalized_block(
+        const primitives::BlockInfo &finalized) = 0;
   };
 
 }  // namespace kagome::dispute

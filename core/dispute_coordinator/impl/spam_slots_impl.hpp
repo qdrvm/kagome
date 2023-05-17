@@ -27,6 +27,18 @@ namespace kagome::dispute {
     using SpamCount = uint32_t;
     static const SpamCount kMaxSpamVotes = 50;
 
+    using Slots =
+        std::unordered_map<std::tuple<SessionIndex, ValidatorIndex>, SpamCount>;
+
+    /// Unconfirmed disputes to be passed at initialization.
+    using UnconfirmedDisputes =
+        std::unordered_map<std::tuple<SessionIndex, CandidateHash>,
+                           std::set<ValidatorIndex>>;
+
+    SpamSlotsImpl(Slots slots, UnconfirmedDisputes unconfirmed_disputes)
+        : slots_(std::move(slots)),
+          unconfirmed_(std::move(unconfirmed_disputes)){};
+
     bool add_unconfirmed(SessionIndex session,
                          CandidateHash candidate,
                          ValidatorIndex validator) override;
@@ -39,13 +51,10 @@ namespace kagome::dispute {
     /// Counts per validator and session.
     ///
     /// Must not exceed `MAX_SPAM_VOTES`.
-    std::unordered_map<std::tuple<SessionIndex, ValidatorIndex>, SpamCount>
-        slots_;
+    Slots slots_;
 
     /// All unconfirmed candidates we are aware of right now.
-    std::unordered_map<std::tuple<SessionIndex, CandidateHash>,
-                       std::set<ValidatorIndex>>
-        unconfirmed_;
+    UnconfirmedDisputes unconfirmed_;
   };
 
 }  // namespace kagome::dispute

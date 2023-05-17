@@ -46,8 +46,9 @@ namespace kagome::dispute {
   outcome::result<void> ParticipationImpl::dequeue_until_capacity(
       const primitives::BlockHash &recent_head) {
     while (running_participations_.size() < kMaxParallelParticipations) {
-      if (let Some(req) = self.queue.dequeue()) {
-        fork_participation(req, recent_head);
+      auto req = queue_->dequeue();
+      if (req.has_value()) {
+        OUTCOME_TRY(fork_participation(req.value(), recent_head));
       } else {
         break;
       }
@@ -66,7 +67,7 @@ namespace kagome::dispute {
         recent_block_ = std::make_optional<primitives::BlockInfo>(
             activated.number, activated.hash);
         // Work got potentially unblocked:
-        dequeue_until_capacity(activated.hash);
+        OUTCOME_TRY(dequeue_until_capacity(activated.hash));
 
       } else if (activated.number > recent_block_->number) {
         recent_block_ = std::make_optional<primitives::BlockInfo>(

@@ -15,12 +15,19 @@
 #include "dispute_coordinator/dispute_message.hpp"
 #include "dispute_coordinator/impl/candidate_vote_state.hpp"
 #include "dispute_coordinator/impl/errors.hpp"
+#include "dispute_coordinator/participation/types.hpp"
 #include "dispute_coordinator/rolling_session_window.hpp"
 #include "dispute_coordinator/spam_slots.hpp"
 #include "dispute_coordinator/storage.hpp"
 #include "dispute_coordinator/types.hpp"
 #include "log/logger.hpp"
+#include "network/peer_view.hpp"
 #include "parachain/types.hpp"
+
+namespace kagome {
+  class ThreadPool;
+  class ThreadHandler;
+}  // namespace kagome
 
 namespace kagome::application {
   class AppStateManager;
@@ -38,7 +45,9 @@ namespace kagome::runtime {
 
 namespace kagome::dispute {
 
-  class DisputeCoordinatorImpl final : public DisputeCoordinator {
+  class DisputeCoordinatorImpl final
+      : public DisputeCoordinator,
+        public std::enable_shared_from_this<DisputeCoordinatorImpl> {
     static constexpr Timestamp kActiveDurationSecs = 180;
 
    public:
@@ -49,8 +58,12 @@ namespace kagome::dispute {
         std::shared_ptr<LocalKeystore> keystore,
         std::shared_ptr<crypto::SessionKeys> session_keys,
         std::shared_ptr<Storage> storage,
-        std::shared_ptr<crypto::Sr25519Provider> sr25519_crypto_provider);
+        std::shared_ptr<crypto::Sr25519Provider> sr25519_crypto_provider,
+        std::shared_ptr<crypto::Hasher> hasher,
+        std::shared_ptr<blockchain::BlockTree> block_tree,
+        std::shared_ptr<runtime::ParachainHost> api);
 
+    bool prepare();
     bool start();
     void stop();
 
@@ -103,20 +116,24 @@ namespace kagome::dispute {
     clang-format on */
 
    private:
-    void run();
+    void startup(const network::ExView &updated);
+    void on_message(const DisputeCoordinatorMessage &message);
+    void on_participation(const ParticipationStatement &message);
+    void on_active_leaves_update(const network::ExView &updated);
+    void on_finalized_block(const primitives::BlockInfo &finalized);
 
-    // Run the subsystem until an error is encountered or a `conclude` signal is
-    // received. Most errors are non-fatal and should lead to another call to
-    // this function.
-    //
-    // A return success indicates that an exit should be made, while non-fatal
-    // errors lead to another call to this function.
-    outcome::result<void> run_until_error();
+    static std::optional<CandidateEnvironment> makeCandidateEnvironment(
+        crypto::SessionKeys &session_keys,
+        RollingSessionWindow &rolling_session_window,
+        SessionIndex session);
 
     outcome::result<void> process_on_chain_votes(ScrapedOnChainVotes votes);
 
     outcome::result<void> process_active_leaves_update(
         const ActiveLeavesUpdate &update);
+
+    outcome::result<void> process_finalized_block(
+        const primitives::BlockInfo &finalized);
 
     outcome::result<bool> handle_import_statements(
         MaybeCandidateReceipt candidate_receipt,
@@ -130,6 +147,13 @@ namespace kagome::dispute {
         CandidateVotes votes,
         SignedDisputeStatement our_vote,
         ValidatorIndex our_index);
+
+    /// Tell dispute-distribution to send all our votes.
+    ///
+    /// Should be called on startup for all active disputes where there are
+    /// votes from us already.
+    void send_dispute_messages(const CandidateEnvironment &env,
+                               const CandidateVoteState &vote_state);
 
     void find_controlled_validator_indices(
         Indexed<std::vector<ValidatorId>> validators);
@@ -174,6 +198,15 @@ namespace kagome::dispute {
     std::shared_ptr<crypto::SessionKeys> session_keys_;
     std::shared_ptr<Storage> storage_;
     std::shared_ptr<crypto::Sr25519Provider> sr25519_crypto_provider_;
+    std::shared_ptr<crypto::Hasher> hasher_;
+    std::shared_ptr<blockchain::BlockTree> block_tree_;
+    std::shared_ptr<runtime::ParachainHost> api_;
+
+    std::shared_ptr<network::PeerView> peer_view_;
+    std::shared_ptr<network::PeerView::MyViewSubscriber> my_view_sub_;
+    std::shared_ptr<primitives::events::ChainEventSubscriber> chain_sub_;
+
+    std::atomic_bool initialized_ = false;
 
     libp2p::basic::Scheduler::Handle processing_loop_handle_;
 
@@ -181,10 +214,14 @@ namespace kagome::dispute {
     SessionIndex highest_session_;
     std::shared_ptr<SpamSlots> spam_slots_;
     std::shared_ptr<Participation> participation_;
-    std::shared_ptr<RollingSessionWindow> rolling_session_window_;
+    std::unique_ptr<RollingSessionWindow> rolling_session_window_;
 
     // This tracks only rolling session window failures.
     std::optional<RollingSessionWindowError> error_;
+
+    //
+    std::shared_ptr<ThreadPool> int_pool_;
+    std::shared_ptr<ThreadHandler> internal_context_;
 
     log::Logger log_ = log::createLogger("DisputeCoordinator", "dispute");
   };

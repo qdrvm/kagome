@@ -9,22 +9,23 @@
 #include "dispute_coordinator/impl/errors.hpp"
 
 namespace kagome::dispute {
-  RollingSessionWindowImpl::RollingSessionWindowImpl(
+  outcome::result<std::unique_ptr<RollingSessionWindow>>
+  RollingSessionWindowImpl::create(
       std::shared_ptr<blockchain::BlockTree> block_tree,
       std::shared_ptr<ParachainHost> api,
-      primitives::BlockHash block_hash)
-      : api_(std::move(api)), block_tree_(std::move(block_tree)) {
-    BOOST_ASSERT(api_ != nullptr);
+      primitives::BlockHash block_hash) {
+    BOOST_ASSERT(block_tree != nullptr);
+    BOOST_ASSERT(api != nullptr);
 
     // At first, determine session window start using the chain state.
-    auto session_index_res = api_->session_index_for_child(block_hash);
+    auto session_index_res = api->session_index_for_child(block_hash);
     const auto &session_index = session_index_res.value();
 
     // We want to get the session index for the child of the last finalized
     // block.
-    auto last_finalized = block_tree_->getLastFinalized();
+    auto last_finalized = block_tree->getLastFinalized();
     auto earliest_non_finalized_block_session_res =
-        api_->session_index_for_child(last_finalized.hash);
+        api->session_index_for_child(last_finalized.hash);
     const auto &earliest_non_finalized_block_session =
         earliest_non_finalized_block_session_res.value();
 
@@ -45,6 +46,7 @@ namespace kagome::dispute {
     auto stored_window_res = load();
     if (stored_window_res.has_error()) {
       // Can't load
+      return stored_window_res.as_failure();
     }
     auto &stored_window_opt = stored_window_res.value();
     // Get the DB stored sessions and recompute window start based on DB data.
@@ -88,36 +90,32 @@ namespace kagome::dispute {
             : 0;
 
     // Extend from chain state.
+    std::vector<SessionInfo> sessions;
     if (sessions_missing_count > 0) {
-      // FIXME
-      //
-      //      auto sessions_res =
-      //      extend_sessions_from_chain_state(stored_sessions,
-      //                                                           &mut sender,
-      //                                                           block_hash,
-      //                                                           &mut
-      //                                                           window_start,
-      //                                                           session_index,
-      //                                                           );
-      //
-      //      if (sessions_res.has_error()) {
-      //        // todo generate error 'SessionsUnavailable'
-      //        // Err(kind) => Err(SessionsUnavailable {
-      //        //  kind,
-      //        //  info: Some(SessionsUnavailableInfo {
-      //        //    window_start,
-      //        //    window_end: session_index,
-      //        //    block_hash,
-      //        //  }),
-      //        //}),
-      //      }
-      //
-      //      session_info_ = std::move(sessions_res.value());
+      auto sessions_res =
+          extend_sessions_from_chain_state(api,
+                                           std::move(stored_sessions),
+                                           block_hash,
+                                           window_start,
+                                           session_index);
+
+      if (sessions_res.has_error()) {
+        return RollingSessionWindowError::SessionsUnavailable;
+      }
+
+      sessions = std::move(sessions_res.value());
+    } else {
+      sessions = std::move(stored_sessions);
     }
 
-    earliest_session_ = window_start;
+    RollingSessionWindowImpl rsw;
+    rsw.api_ = api;
+    rsw.block_tree_ = block_tree;
+    rsw.earliest_session_ = window_start;
+    rsw.session_info_ = sessions;
+    rsw.window_size_ = kWindowSize;
 
-    // db_params: Some(db_params),
+    return std::make_unique<RollingSessionWindowImpl>(std::move(rsw));
   }
 
   std::optional<std::reference_wrapper<SessionInfo>>
@@ -201,7 +199,7 @@ namespace kagome::dispute {
     };
 
     auto res = extend_sessions_from_chain_state(
-        sessions, block_hash, window_start, session_index);
+        api_, sessions, block_hash, window_start, session_index);
 
     if (res.has_error()) {
       return RollingSessionWindowError::SessionsUnavailable;
@@ -232,6 +230,7 @@ namespace kagome::dispute {
 
   outcome::result<std::vector<SessionInfo>>
   RollingSessionWindowImpl::extend_sessions_from_chain_state(
+      const std::shared_ptr<ParachainHost> &api,
       std::vector<SessionInfo> stored_sessions,
       const primitives::BlockHash &block_hash,
       SessionIndex &window_start,
@@ -247,7 +246,7 @@ namespace kagome::dispute {
     auto start = window_start + sessions.size();
 
     for (auto i = start; i <= end_inclusive; ++i) {
-      auto session_info_res = api_->session_info(block_hash, i);
+      auto session_info_res = api->session_info(block_hash, i);
 
       if (session_info_res.has_value()) {
         auto &session_info_opt = session_info_res.value();

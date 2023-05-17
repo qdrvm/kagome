@@ -3,9 +3,12 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include <tuple>
-#include <functional>
+#ifndef KAGOME_UTILS_TUPLEHASH_HPP_
+#define KAGOME_UTILS_TUPLEHASH_HPP_
+
 #include <boost/container_hash/hash.hpp>
+#include <functional>
+#include <tuple>
 
 template <class... Args>
 struct std::hash<std::tuple<Args...>> {
@@ -29,3 +32,5 @@ struct std::hash<std::tuple<Args...>> {
     return result;
   }
 };
+
+#endif  // KAGOME_UTILS_TUPLEHASH_HPP_
