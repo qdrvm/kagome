@@ -48,13 +48,6 @@ namespace kagome::api {
     virtual ~Session() = default;
 
     /**
-     * @brief starts listening on socket
-     */
-    virtual void start() = 0;
-
-    virtual Socket &socket() = 0;
-
-    /**
      * @brief connects `on request` callback
      * @param callback `on request` callback
      */
