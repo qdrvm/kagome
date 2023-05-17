@@ -93,11 +93,14 @@ namespace kagome::api {
   }
 
   void WsListenerImpl::acceptOnce() {
-    new_session_ =
-        std::make_shared<SessionImpl>(*context_,
-                                      allow_unsafe_,
-                                      session_config_,
-                                      next_session_id_.fetch_add(1ull));
+    auto get_id = [weak = weak_from_this()]() -> Session::SessionId {
+      if (auto self = weak.lock()) {
+        return self->next_session_id_++;
+      }
+      return 0;
+    };
+    new_session_ = std::make_shared<SessionImpl>(
+        *context_, get_id, on_new_session_, allow_unsafe_, session_config_);
     auto session_stopped_handler = [wp = weak_from_this()] {
       if (auto self = wp.lock()) {
         self->closed_session_->inc();
@@ -124,9 +127,6 @@ namespace kagome::api {
                      self->active_connections_.load());
           } else {
             self->opened_session_->inc();
-            if (self->on_new_session_) {
-              (*self->on_new_session_)(self->new_session_);
-            }
             self->new_session_->start();
             SL_TRACE(self->log_,
                      "New session started. Active connections count is {}",

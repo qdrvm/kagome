@@ -22,10 +22,11 @@ namespace kagome::api {
    protected:
     using Acceptor = boost::asio::ip::tcp::acceptor;
     using Endpoint = boost::asio::ip::tcp::endpoint;
+
+   public:
     using NewSessionHandler =
         std::function<void(const std::shared_ptr<Session> &)>;
 
-   public:
     using Context = RpcContext;
 
     virtual ~Listener() = default;
