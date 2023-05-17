@@ -374,9 +374,15 @@ namespace {
                         kagome::parachain::approval::AllRequiredTranche{}),
           std::numeric_limits<kagome::network::Tick>::max());
     }
-    if (kagome::is_type<kagome::parachain::approval::PendingRequiredTranche>(
+    if (auto pending = kagome::if_type<
+            const kagome::parachain::approval::PendingRequiredTranche>(
             required_tranches)) {
-      // TODO Empty-statement branch?
+      const auto drifted_tranche_now = kagome::math::sat_sub_unsigned(
+          tranche_now,
+          kagome::network::DelayTranche(pending->get().clock_drift));
+      return approval_entry.our_assignment->tranche
+              <= pending->get().maximum_broadcast
+          && approval_entry.our_assignment->tranche <= drifted_tranche_now;
     }
     if (kagome::is_type<kagome::parachain::approval::ExactRequiredTranche>(
             required_tranches)) {
