@@ -47,17 +47,7 @@ namespace kagome::network {
         const PeerId &peer_id,
         RequestType request,
         std::function<void(outcome::result<ResponseType>)> &&response_handler) {
-      auto addresses_res =
-          base_.host().getPeerRepository().getAddressRepository().getAddresses(
-              peer_id);
-      if (!addresses_res.has_value()) {
-        response_handler(addresses_res.as_failure());
-        return;
-      }
-
-      doRequest({peer_id, std::move(addresses_res.value())},
-                std::move(request),
-                std::move(response_handler));
+      doRequest({peer_id, {}}, std::move(request), std::move(response_handler));
     }
 
     void doRequest(
@@ -97,7 +87,7 @@ namespace kagome::network {
    protected:
     virtual outcome::result<ResponseType> onRxRequest(
         RequestType request, std::shared_ptr<Stream> stream) = 0;
-    virtual void onTxRequest(RequestType const &request) = 0;
+    virtual void onTxRequest(const RequestType &request) = 0;
 
     ProtocolBaseImpl &base() {
       return base_;

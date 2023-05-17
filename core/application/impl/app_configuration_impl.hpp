@@ -63,16 +63,14 @@ namespace kagome::application {
     AppConfigurationImpl(AppConfigurationImpl &&) = default;
     AppConfigurationImpl &operator=(AppConfigurationImpl &&) = default;
 
-    [[nodiscard]] bool initializeFromArgs(int argc,
-                                          const char **argv);
+    [[nodiscard]] bool initializeFromArgs(int argc, const char **argv);
 
     network::Roles roles() const override {
       return roles_;
     }
     filesystem::path chainSpecPath() const override;
     filesystem::path runtimeCacheDirPath() const override;
-    filesystem::path runtimeCachePath(
-        std::string runtime_hash) const override;
+    filesystem::path runtimeCachePath(std::string runtime_hash) const override;
     filesystem::path chainPath(std::string chain_id) const override;
     filesystem::path databasePath(std::string chain_id) const override;
     filesystem::path keystorePath(std::string chain_id) const override;
@@ -118,11 +116,8 @@ namespace kagome::application {
     uint32_t luckyPeers() const override {
       return lucky_peers_;
     }
-    const boost::asio::ip::tcp::endpoint &rpcHttpEndpoint() const override {
-      return rpc_http_endpoint_;
-    }
-    const boost::asio::ip::tcp::endpoint &rpcWsEndpoint() const override {
-      return rpc_ws_endpoint_;
+    const boost::asio::ip::tcp::endpoint &rpcEndpoint() const override {
+      return rpc_endpoint_;
     }
     const boost::asio::ip::tcp::endpoint &openmetricsHttpEndpoint()
         const override {
@@ -199,7 +194,6 @@ namespace kagome::application {
     std::string nodeWssPem() const override {
       return node_wss_pem_;
     }
-
 
     AllowUnsafeRpc allowUnsafeRpc() const override {
       return allow_unsafe_rpc_;
@@ -313,19 +307,16 @@ namespace kagome::application {
     bool is_telemetry_enabled_;
     uint16_t p2p_port_;
     bool p2p_port_explicitly_defined_ = false;
-    boost::asio::ip::tcp::endpoint rpc_http_endpoint_;
-    boost::asio::ip::tcp::endpoint rpc_ws_endpoint_;
+    boost::asio::ip::tcp::endpoint rpc_endpoint_;
     boost::asio::ip::tcp::endpoint openmetrics_http_endpoint_;
     std::vector<std::string> logger_tuning_config_;
     uint32_t max_blocks_in_response_;
-    std::string rpc_http_host_;
-    std::string rpc_ws_host_;
+    std::string rpc_host_;
     std::string openmetrics_http_host_;
     filesystem::path chain_spec_path_;
     filesystem::path base_path_;
     std::optional<filesystem::path> keystore_path_;
-    uint16_t rpc_http_port_;
-    uint16_t rpc_ws_port_;
+    uint16_t rpc_port_;
     uint16_t openmetrics_http_port_;
     uint32_t out_peers_;
     uint32_t in_peers_;

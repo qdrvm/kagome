@@ -77,12 +77,14 @@ namespace kagome::application {
     /**
      * @return path to the node's database for the chain \arg chain_id
      */
-    virtual kagome::filesystem::path databasePath(std::string chain_id) const = 0;
+    virtual kagome::filesystem::path databasePath(
+        std::string chain_id) const = 0;
 
     /**
      * @return path to the node's keystore for the chain \arg chain_id
      */
-    virtual kagome::filesystem::path keystorePath(std::string chain_id) const = 0;
+    virtual kagome::filesystem::path keystorePath(
+        std::string chain_id) const = 0;
 
     /**
      * @return the secret key to use for libp2p networking
@@ -143,14 +145,9 @@ namespace kagome::application {
         const = 0;
 
     /**
-     * @return endpoint for RPC over HTTP.
+     * @return endpoint for RPC over HTTP and Websocket.
      */
-    virtual const boost::asio::ip::tcp::endpoint &rpcHttpEndpoint() const = 0;
-
-    /**
-     * @return endpoint for RPC over Websocket protocol.
-     */
-    virtual const boost::asio::ip::tcp::endpoint &rpcWsEndpoint() const = 0;
+    virtual const boost::asio::ip::tcp::endpoint &rpcEndpoint() const = 0;
 
     /**
      * @return endpoint for OpenMetrics over HTTP protocol.

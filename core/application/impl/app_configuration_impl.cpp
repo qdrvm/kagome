@@ -66,11 +66,9 @@ namespace {
     return false;
   }
 
-  const std::string def_rpc_http_host = "0.0.0.0";
-  const std::string def_rpc_ws_host = "0.0.0.0";
+  const std::string def_rpc_host = "0.0.0.0";
   const std::string def_openmetrics_http_host = "0.0.0.0";
-  const uint16_t def_rpc_http_port = 9933;
-  const uint16_t def_rpc_ws_port = 9944;
+  const uint16_t def_rpc_port = 9944;
   const uint16_t def_openmetrics_http_port = 9615;
   const uint32_t def_ws_max_connections = 500;
   const uint16_t def_p2p_port = 30363;
@@ -195,13 +193,15 @@ namespace {
   auto &devAccounts() {
     using Account =
         std::tuple<const char *, std::string_view, std::string_view>;
-    static const std::array<Account, 6> accounts{
+    static const std::array<Account, 8> accounts{
         Account{"alice", "Alice", "//Alice"},
         Account{"bob", "Bob", "//Bob"},
         Account{"charlie", "Charlie", "//Charlie"},
         Account{"dave", "Dave", "//Dave"},
         Account{"eve", "Eve", "//Eve"},
         Account{"ferdie", "Ferdie", "//Ferdie"},
+        Account{"one", "One", "//One"},
+        Account{"two", "Two", "//Two"},
     };
     return accounts;
   }
@@ -217,11 +217,9 @@ namespace kagome::application {
         p2p_port_(def_p2p_port),
         p2p_port_explicitly_defined_(false),
         max_blocks_in_response_(kAbsolutMaxBlocksInResponse),
-        rpc_http_host_(def_rpc_http_host),
-        rpc_ws_host_(def_rpc_ws_host),
+        rpc_host_(def_rpc_host),
         openmetrics_http_host_(def_openmetrics_http_host),
-        rpc_http_port_(def_rpc_http_port),
-        rpc_ws_port_(def_rpc_ws_port),
+        rpc_port_(def_rpc_port),
         openmetrics_http_port_(def_openmetrics_http_port),
         out_peers_(def_out_peers),
         in_peers_(def_in_peers),
@@ -429,10 +427,8 @@ namespace kagome::application {
     load_ma(val, "public-addr", public_addresses_);
     load_ma(val, "bootnodes", boot_nodes_);
     load_u16(val, "port", p2p_port_);
-    load_str(val, "rpc-host", rpc_http_host_);
-    load_u16(val, "rpc-port", rpc_http_port_);
-    load_str(val, "ws-host", rpc_ws_host_);
-    load_u16(val, "ws-port", rpc_ws_port_);
+    load_str(val, "rpc-host", rpc_host_);
+    load_u16(val, "rpc-port", rpc_port_);
     load_u32(val, "ws-max-connections", max_ws_connections_);
     load_str(val, "prometheus-host", openmetrics_http_host_);
     load_u16(val, "prometheus-port", openmetrics_http_port_);
@@ -479,16 +475,9 @@ namespace kagome::application {
       return false;
     }
 
-    if (rpc_ws_port_ == 0) {
+    if (rpc_port_ == 0) {
       SL_ERROR(logger_,
-               "RPC ws port is 0, "
-               "please specify a valid path with --ws-port option");
-      return false;
-    }
-
-    if (rpc_http_port_ == 0) {
-      SL_ERROR(logger_,
-               "RPC http port is 0, "
+               "RPC port is 0, "
                "please specify a valid path with --rpc-port option");
       return false;
     }
@@ -800,10 +789,8 @@ namespace kagome::application {
         ("save-node-key", po::bool_switch(), "save generated libp2p networking key, key will be reused on node restart")
         ("bootnodes", po::value<std::vector<std::string>>()->multitoken(), "multiaddresses of bootstrap nodes")
         ("port,p", po::value<uint16_t>(), "port for peer to peer interactions")
-        ("rpc-host", po::value<std::string>(), "address for RPC over HTTP")
-        ("rpc-port", po::value<uint16_t>(), "port for RPC over HTTP")
-        ("ws-host", po::value<std::string>(), "address for RPC over Websocket protocol")
-        ("ws-port", po::value<uint16_t>(), "port for RPC over Websocket protocol")
+        ("rpc-host", po::value<std::string>(), "address for RPC over HTTP and Websocket")
+        ("rpc-port", po::value<uint16_t>(), "port for RPC over HTTP and Websocket")
         ("ws-max-connections", po::value<uint32_t>(), "maximum number of WS RPC server connections")
         ("prometheus-host", po::value<std::string>(), "address for OpenMetrics over HTTP")
         ("prometheus-port", po::value<uint16_t>(), "port for OpenMetrics over HTTP")
@@ -822,7 +809,6 @@ namespace kagome::application {
         ("rpc-cors", po::value<std::string>(), "(unused, zombienet stub)")
         ("unsafe-rpc-external", po::bool_switch(), "alias for \"--rpc-host 0.0.0.0\"")
         ("rpc-methods", po::value<std::string>(), "\"auto\" (default), \"unsafe\", \"safe\"")
-        ("unsafe-ws-external", po::bool_switch(), "alias for \"--ws-host 0.0.0.0\"")
         ("no-mdns", po::bool_switch(), "(unused, zombienet stub)")
         ("prometheus-external", po::bool_switch(), "alias for \"--prometheus-host 0.0.0.0\"")
         ;
@@ -919,7 +905,8 @@ namespace kagome::application {
         }
 
         if (not kagome::filesystem::exists(chain_spec_path_)) {
-          kagome::filesystem::create_directories(chain_spec_path_.parent_path());
+          kagome::filesystem::create_directories(
+              chain_spec_path_.parent_path());
 
           std::ofstream ofs;
           ofs.open(chain_spec_path_.native(), std::ios::ate);
@@ -957,11 +944,9 @@ namespace kagome::application {
         roles_.flags.full = 0;
         roles_.flags.authority = 1;
         p2p_port_ = def_p2p_port;
-        rpc_http_host_ = def_rpc_http_host;
-        rpc_ws_host_ = def_rpc_ws_host;
+        rpc_host_ = def_rpc_host;
         openmetrics_http_host_ = def_openmetrics_http_host;
-        rpc_http_port_ = def_rpc_http_port;
-        rpc_ws_port_ = def_rpc_ws_port;
+        rpc_port_ = def_rpc_port;
         openmetrics_http_port_ = def_openmetrics_http_port;
       }
     }
@@ -1211,10 +1196,7 @@ namespace kagome::application {
         });
 
     find_argument<std::string>(
-        vm, "rpc-host", [&](const std::string &val) { rpc_http_host_ = val; });
-
-    find_argument<std::string>(
-        vm, "ws-host", [&](const std::string &val) { rpc_ws_host_ = val; });
+        vm, "rpc-host", [&](const std::string &val) { rpc_host_ = val; });
 
     find_argument<std::string>(
         vm, "prometheus-host", [&](const std::string &val) {
@@ -1223,12 +1205,7 @@ namespace kagome::application {
 
     find_argument<bool>(vm, "unsafe-rpc-external", [&](bool flag) {
       if (flag) {
-        rpc_http_host_ = "0.0.0.0";
-      }
-    });
-    find_argument<bool>(vm, "unsafe-ws-external", [&](bool flag) {
-      if (flag) {
-        rpc_ws_host_ = "0.0.0.0";
+        rpc_host_ = "0.0.0.0";
       }
     });
     find_argument<bool>(vm, "prometheus-external", [&](bool flag) {
@@ -1238,10 +1215,7 @@ namespace kagome::application {
     });
 
     find_argument<uint16_t>(
-        vm, "rpc-port", [&](uint16_t val) { rpc_http_port_ = val; });
-
-    find_argument<uint16_t>(
-        vm, "ws-port", [&](uint16_t val) { rpc_ws_port_ = val; });
+        vm, "rpc-port", [&](uint16_t val) { rpc_port_ = val; });
 
     find_argument<uint16_t>(vm, "prometheus-port", [&](uint16_t val) {
       openmetrics_http_port_ = val;
@@ -1276,8 +1250,7 @@ namespace kagome::application {
       random_walk_interval_ = val;
     });
 
-    rpc_http_endpoint_ = getEndpointFrom(rpc_http_host_, rpc_http_port_);
-    rpc_ws_endpoint_ = getEndpointFrom(rpc_ws_host_, rpc_ws_port_);
+    rpc_endpoint_ = getEndpointFrom(rpc_host_, rpc_port_);
     openmetrics_http_endpoint_ =
         getEndpointFrom(openmetrics_http_host_, openmetrics_http_port_);
 
@@ -1407,7 +1380,9 @@ namespace kagome::application {
         return false;
       }
       benchmark_config_ = BlockBenchmarkConfig{
-          .from = *from_opt, .to = *to_opt, .times = *repeat_opt,
+          .from = *from_opt,
+          .to = *to_opt,
+          .times = *repeat_opt,
       };
     }
 

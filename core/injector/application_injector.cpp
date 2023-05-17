@@ -36,8 +36,6 @@
 #include "api/service/state/state_jrpc_processor.hpp"
 #include "api/service/system/impl/system_api_impl.hpp"
 #include "api/service/system/system_jrpc_processor.hpp"
-#include "api/transport/impl/http/http_listener_impl.hpp"
-#include "api/transport/impl/http/http_session.hpp"
 #include "api/transport/impl/ws/ws_listener_impl.hpp"
 #include "api/transport/impl/ws/ws_session.hpp"
 #include "api/transport/rpc_thread_pool.hpp"
@@ -542,7 +540,6 @@ namespace {
                                Ts &&...args) {
     // default values for configurations
     api::RpcThreadPool::Configuration rpc_thread_pool_config{};
-    api::HttpSession::Configuration http_config{};
     api::WsSession::Configuration ws_config{};
     transaction_pool::PoolModeratorImpl::Params pool_moderator_config{};
     transaction_pool::TransactionPool::Limits tp_pool_limits{};
@@ -554,7 +551,6 @@ namespace {
         make_injector(
             // bind configs
             useConfig(rpc_thread_pool_config),
-            useConfig(http_config),
             useConfig(ws_config),
             useConfig(pool_moderator_config),
             useConfig(tp_pool_limits),
@@ -604,7 +600,7 @@ namespace {
             })[boost::di::override],
 
             di::bind<api::Listener *[]>()  // NOLINT
-                .template to<api::HttpListenerImpl, api::WsListenerImpl>(),
+                .template to<api::WsListenerImpl>(),
             di::bind<api::JRpcProcessor *[]>()  // NOLINT
                 .template to<api::child_state::ChildStateJrpcProcessor,
                              api::state::StateJrpcProcessor,

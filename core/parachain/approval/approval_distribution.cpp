@@ -1182,9 +1182,6 @@ namespace kagome::parachain {
             return;
           }
           auto &available_data = opt_result->value();
-          BOOST_ASSERT(self->internal_context_->io_context()
-                           ->get_executor()
-                           .running_in_this_thread());
           [[maybe_unused]] auto const para_id = candidate.descriptor.para_id;
 
           auto result = self->parachain_host_->validation_code_by_hash(
@@ -2077,21 +2074,27 @@ namespace kagome::parachain {
                   block_number,
                   candidate_hash](auto &&ec) {
       if (auto self = wself.lock()) {
-        auto &target_block = self->active_tranches_[block_hash];
-        auto target_candidate_it = target_block.find(candidate_hash);
-        BOOST_ASSERT(target_candidate_it != target_block.end());
+        BOOST_ASSERT(self->internal_context_->io_context()
+                         ->get_executor()
+                         .running_in_this_thread());
+        if (auto target_block_it = self->active_tranches_.find(block_hash);
+            target_block_it != self->active_tranches_.end()) {
+          auto &target_block = target_block_it->second;
+          if (auto target_candidate_it = target_block.find(candidate_hash);
+              target_candidate_it != target_block.end()) {
+            auto t = std::move(target_candidate_it->second.second);
+            target_block.erase(target_candidate_it);
 
-        auto t = std::move(target_candidate_it->second.second);
-        target_block.erase(target_candidate_it);
-
-        if (ec) {
-          SL_ERROR(self->logger_,
-                   "error happened while waiting on tranche the "
-                   "timer: {}",
-                   ec.message());
-          return;
+            if (ec) {
+              SL_ERROR(self->logger_,
+                       "error happened while waiting on tranche the "
+                       "timer: {}",
+                       ec.message());
+              return;
+            }
+            self->handleTranche(block_hash, block_number, candidate_hash);
+          }
         }
-        self->handleTranche(block_hash, block_number, candidate_hash);
       }
     });
     target_block.insert_or_assign(candidate_hash,

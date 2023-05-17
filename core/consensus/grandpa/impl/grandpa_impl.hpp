@@ -284,7 +284,9 @@ namespace kagome::consensus::grandpa {
      * @return VotingRound that we can execute
      */
     std::shared_ptr<VotingRound> makeInitialRound(
-        const MovableRoundState &round_state, std::shared_ptr<VoterSet> voters);
+        const MovableRoundState &round_state,
+        std::shared_ptr<VoterSet> voters,
+        const primitives::AuthoritySet &authority_set);
 
     /**
      * Takes given round and creates next one for it
@@ -306,7 +308,7 @@ namespace kagome::consensus::grandpa {
     std::shared_ptr<Environment> environment_;
     std::shared_ptr<crypto::Ed25519Provider> crypto_provider_;
     std::shared_ptr<runtime::GrandpaApi> grandpa_api_;
-    std::shared_ptr<crypto::Ed25519Keypair> keypair_;
+    std::shared_ptr<crypto::SessionKeys> session_keys_;
     std::shared_ptr<AuthorityManager> authority_manager_;
     std::shared_ptr<network::Synchronizer> synchronizer_;
     std::shared_ptr<network::PeerManager> peer_manager_;

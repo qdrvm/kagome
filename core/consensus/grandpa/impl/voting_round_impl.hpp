@@ -94,6 +94,7 @@ namespace kagome::consensus::grandpa {
 
     // Start/stop round
 
+    bool hasKeypair() const override;
     void play() override;
     void end() override;
 

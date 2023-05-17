@@ -57,7 +57,7 @@ namespace kagome::api {
     const uint32_t max_ws_connections_;
 
     std::unique_ptr<Acceptor> acceptor_;
-    std::unique_ptr<NewSessionHandler> on_new_session_;
+    std::shared_ptr<NewSessionHandler> on_new_session_;
 
     std::atomic<Session::SessionId> next_session_id_;
     std::shared_ptr<SessionImpl> new_session_;

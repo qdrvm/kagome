@@ -10,29 +10,84 @@
 #include <boost/asio/dispatch.hpp>
 #include <boost/config.hpp>
 
-namespace kagome::api {
+namespace boost::beast {
+  template <class NextLayer, class DynamicBuffer>
+  void teardown(role_type role,
+                buffered_read_stream<NextLayer, DynamicBuffer> &s,
+                error_code &ec) {
+    using boost::beast::websocket::teardown;
+    teardown(role, s.next_layer(), ec);
+  }
 
-  WsSession::WsSession(Context &context,
+  template <class NextLayer, class DynamicBuffer, class TeardownHandler>
+  void async_teardown(role_type role,
+                      buffered_read_stream<NextLayer, DynamicBuffer> &s,
+                      TeardownHandler &&handler) {
+    using boost::beast::websocket::async_teardown;
+    async_teardown(role, s.next_layer(), std::move(handler));
+  }
+}  // namespace boost::beast
+
+namespace kagome::api {
+  static constexpr boost::string_view kServerName = "Kagome";
+
+  WsSessionImpl::WsSessionImpl(std::shared_ptr<WsSession> impl,
+                               SessionId id,
+                               SessionType type,
+                               bool unsafe_allowed)
+      : impl_{std::move(impl)},
+        id_{id},
+        type_{type},
+        unsafe_allowed_{unsafe_allowed} {}
+
+  void WsSessionImpl::respond(std::string_view response) {
+    std::unique_lock lock{mutex_};
+    if (auto impl = impl_) {
+      lock.unlock();
+      impl->respond(response);
+    }
+  }
+
+  void WsSessionImpl::post(std::function<void()> cb) {
+    std::unique_lock lock{mutex_};
+    if (auto impl = impl_) {
+      lock.unlock();
+      impl->post(std::move(cb));
+    }
+  }
+
+  void WsSessionImpl::close() {
+    std::unique_lock lock{mutex_};
+    impl_.reset();
+    lock.unlock();
+    notifyOnClose(id(), type());
+  }
+
+  WsSession::WsSession(Session::Context &context,
+                       GetId get_id,
+                       OnSession on_session,
                        AllowUnsafe allow_unsafe,
-                       Configuration config,
-                       SessionId id)
-      : strand_(boost::asio::make_strand(context)),
-        socket_(strand_),
+                       WsSession::Configuration config)
+      : get_id_{std::move(get_id)},
+        on_session_{std::move(on_session)},
         allow_unsafe_{allow_unsafe},
         config_{config},
-        stream_(socket_),
-        id_(id) {}
+        stream_{boost::asio::make_strand(context)} {}
 
   void WsSession::start() {
     boost::asio::dispatch(stream_.get_executor(),
-                          boost::beast::bind_front_handler(&WsSession::onRun,
+                          boost::beast::bind_front_handler(&WsSession::httpRead,
                                                            shared_from_this()));
-    SL_DEBUG(logger_, "Session#{} BEGIN", id_);
   }
 
   void WsSession::reject() {
-    stop(boost::beast::websocket::close_code::try_again_later);
-    SL_DEBUG(logger_, "Session#{} END", id_);
+    auto &res = http_response_.emplace();
+    res.result(boost::beast::http::status::too_many_requests);
+    res.body() = "Too many requests.\n";
+    res.set(boost::beast::http::field::server, kServerName);
+    res.set(boost::beast::http::field::content_type, "text/plain");
+    res.keep_alive(false);
+    httpWrite();
   }
 
   void WsSession::stop() {
@@ -46,17 +101,10 @@ namespace kagome::api {
       boost::system::error_code ec;
       stream_.close(boost::beast::websocket::close_reason(code), ec);
       boost::ignore_unused(ec);
-      notifyOnClose(id_, type());
+      sessionClose();
       if (on_ws_close_) {
         on_ws_close_();
       }
-      SL_TRACE(logger_, "Session id = {} terminated, reason = {} ", id_, code);
-    } else {
-      SL_TRACE(logger_,
-               "Session id = {} was already terminated. Doing nothing. Called "
-               "for reason = {}",
-               id_,
-               code);
     }
   }
 
@@ -66,8 +114,17 @@ namespace kagome::api {
   }
 
   void WsSession::handleRequest(std::string_view data) {
-    SL_DEBUG(logger_, "Session#{} IN:  {}", id_, data);
-    processRequest(data, shared_from_this());
+    std::shared_ptr<WsSessionImpl> session;
+    if (is_ws_) {
+      session = session_.lock();
+      if (not session) {
+        stop();
+        return;
+      }
+    } else {
+      session = sessionMake();
+    }
+    session->processRequest(data, session);
   }
 
   void WsSession::asyncRead() {
@@ -76,13 +133,24 @@ namespace kagome::api {
                                                         shared_from_this()));
   }
 
-  kagome::api::Session::SessionId WsSession::id() const {
-    return id_;
-  }
-
   void WsSession::respond(std::string_view response) {
-    SL_DEBUG(logger_, "Session#{} OUT: {}", id_, response);
     post([self{shared_from_this()}, response{std::string{response}}] {
+      if (not self->is_ws_) {
+        self->sessionClose();
+        if (self->http_response_) {
+          SL_WARN(self->logger_,
+                  "bug, WsSession::respond called more than once on http");
+          return;
+        }
+        auto &req = self->http_request_->get();
+        auto &res = self->http_response_.emplace(
+            boost::beast::http::status::ok, req.version(), std::move(response));
+        res.set(boost::beast::http::field::server, kServerName);
+        res.set(boost::beast::http::field::content_type, "application/json");
+        res.keep_alive(req.keep_alive());
+        self->httpWrite();
+        return;
+      }
       self->pending_responses_.emplace(std::move(response));
       self->asyncWrite();
     });
@@ -102,7 +170,7 @@ namespace kagome::api {
                                                          shared_from_this()));
   }
 
-  void WsSession::onRun() {
+  void WsSession::wsAccept() {
     // Set suggested timeout settings for the websocket
     stream_.set_option(boost::beast::websocket::stream_base::timeout::suggested(
         boost::beast::role_type::server));
@@ -115,7 +183,8 @@ namespace kagome::api {
                       + " websocket-server-async");
         }));
     // Accept the websocket handshake
-    stream_.async_accept(boost::beast::bind_front_handler(&WsSession::onAccept,
+    stream_.async_accept(http_request_->get(),
+                         boost::beast::bind_front_handler(&WsSession::onAccept,
                                                           shared_from_this()));
   }
 
@@ -127,6 +196,8 @@ namespace kagome::api {
       stop();
       return;
     }
+    is_ws_ = true;
+    sessionMake();
 
     asyncRead();
   };
@@ -167,10 +238,94 @@ namespace kagome::api {
   }
 
   void WsSession::post(std::function<void()> cb) {
-    boost::asio::post(strand_, std::move(cb));
+    boost::asio::post(stream_.get_executor(), std::move(cb));
   }
 
   bool WsSession::isUnsafeAllowed() const {
-    return allow_unsafe_.allow(socket_.remote_endpoint());
+    return allow_unsafe_.allow(
+        stream_.next_layer().next_layer().socket().remote_endpoint());
+  }
+
+  std::shared_ptr<WsSessionImpl> WsSession::sessionMake() {
+    auto session = std::make_shared<WsSessionImpl>(
+        shared_from_this(),
+        get_id_(),
+        is_ws_ ? SessionType::kWs : SessionType::kHttp,
+        isUnsafeAllowed());
+    if (on_session_) {
+      (*on_session_)(session);
+    }
+    session_ = session;
+    return session;
+  }
+
+  void WsSession::sessionClose() {
+    if (auto session = session_.lock()) {
+      session->close();
+    }
+    session_.reset();
+  }
+
+  void WsSession::httpClose() {
+    bool already_stopped = false;
+    if (stopped_.compare_exchange_strong(already_stopped, true)) {
+      stream_.next_layer().next_layer().close();
+      if (on_ws_close_) {
+        on_ws_close_();
+      }
+    }
+  }
+
+  void WsSession::httpRead() {
+    http_request_.emplace();
+    http_request_->body_limit(config_.max_request_size);
+    stream_.next_layer().next_layer().expires_after(config_.operation_timeout);
+    boost::beast::http::async_read(
+        stream_.next_layer().next_layer(),
+        stream_.next_layer().buffer(),
+        http_request_->get(),
+        [self{shared_from_this()}](boost::system::error_code ec, size_t) {
+          if (ec) {
+            self->httpClose();
+            return;
+          }
+          auto &req = self->http_request_->get();
+          if (boost::beast::websocket::is_upgrade(req)) {
+            self->wsAccept();
+            return;
+          }
+          // allow only POST method
+          if (req.method() != boost::beast::http::verb::post) {
+            auto &res = self->http_response_.emplace(
+                boost::beast::http::status::bad_request,
+                req.version(),
+                "Unsupported HTTP-method");
+            res.set(boost::beast::http::field::server, kServerName);
+            res.set(boost::beast::http::field::content_type, "text/plain");
+            res.keep_alive(req.keep_alive());
+            self->httpWrite();
+            return;
+          }
+          self->http_response_.reset();
+          self->handleRequest(req.body());
+        });
+  }
+
+  void WsSession::httpWrite() {
+    http_response_->prepare_payload();
+    boost::beast::http::async_write(
+        stream_.next_layer(),
+        *http_response_,
+        [self = shared_from_this()](boost::system::error_code ec, size_t) {
+          if (ec) {
+            self->httpClose();
+            return;
+          }
+          if (self->http_response_->need_eof()) {
+            self->httpClose();
+            return;
+          }
+          self->httpRead();
+        });
   }
 }  // namespace kagome::api

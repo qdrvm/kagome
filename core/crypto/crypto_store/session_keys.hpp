@@ -9,6 +9,8 @@
 #include "common/blob.hpp"
 #include "crypto/crypto_store/key_type.hpp"
 #include "network/types/roles.hpp"
+#include "primitives/authority.hpp"
+#include "primitives/authority_discovery_id.hpp"
 
 namespace kagome::application {
   class AppConfiguration;
@@ -19,6 +21,7 @@ namespace kagome::crypto {
   class CryptoStore;
   struct Ed25519Keypair;
   struct Sr25519Keypair;
+  struct Sr25519PublicKey;
 
   // hardcoded keys order for polkadot
   // otherwise it could be read from chainspec palletSession/keys
@@ -33,48 +36,77 @@ namespace kagome::crypto {
 
   class SessionKeys {
    public:
+    template <typename T>
+    using KeypairWithIndexOpt = std::optional<
+        std::pair<std::shared_ptr<T>, primitives::AuthorityIndex>>;
+
     virtual ~SessionKeys() = default;
 
     /**
      * @return current BABE session key pair
      */
-    virtual const std::shared_ptr<Sr25519Keypair> &getBabeKeyPair() = 0;
+    virtual KeypairWithIndexOpt<Sr25519Keypair> getBabeKeyPair(
+        const primitives::AuthorityList &authorities) = 0;
 
     /**
      * @return current GRANDPA session key pair
      */
-    virtual const std::shared_ptr<Ed25519Keypair> &getGranKeyPair() = 0;
+    virtual std::shared_ptr<Ed25519Keypair> getGranKeyPair(
+        const primitives::AuthoritySet &authorities) = 0;
 
     /**
      * @return current parachain validator session key pair
      */
-    virtual const std::shared_ptr<Sr25519Keypair> &getParaKeyPair() = 0;
+    virtual KeypairWithIndexOpt<Sr25519Keypair> getParaKeyPair(
+        const std::vector<Sr25519PublicKey> &authorities) = 0;
 
     /**
      * @return current AUDI session key pair
      */
-    virtual const std::shared_ptr<Sr25519Keypair> &getAudiKeyPair() = 0;
+    virtual std::shared_ptr<Sr25519Keypair> getAudiKeyPair(
+        const std::vector<primitives::AuthorityDiscoveryId> &authorities) = 0;
   };
 
   class SessionKeysImpl : public SessionKeys {
-    std::shared_ptr<Sr25519Keypair> babe_key_pair_;
-    std::shared_ptr<Ed25519Keypair> gran_key_pair_;
-    std::shared_ptr<Sr25519Keypair> para_key_pair_;
-    std::shared_ptr<Sr25519Keypair> audi_key_pair_;
+    KeypairWithIndexOpt<Sr25519Keypair> babe_key_pair_;
+    KeypairWithIndexOpt<Ed25519Keypair> gran_key_pair_;
+    KeypairWithIndexOpt<Sr25519Keypair> para_key_pair_;
+    KeypairWithIndexOpt<Sr25519Keypair> audi_key_pair_;
     network::Roles roles_;
     std::shared_ptr<CryptoStore> store_;
+
+    template <typename T>
+    using FnListPublic = outcome::result<std::vector<decltype(T::public_key)>> (
+        CryptoStore::*)(KeyTypeId) const;
+    template <typename T>
+    using FnGetPrivate = outcome::result<T> (CryptoStore::*)(
+        KeyTypeId, const decltype(T::public_key) &) const;
+    template <typename T,
+              FnListPublic<T> list_public,
+              FnGetPrivate<T> get_private,
+              typename A,
+              typename Eq>
+    KeypairWithIndexOpt<T> find(KeypairWithIndexOpt<T> &cache,
+                                KeyTypeId type,
+                                const std::vector<A> &authorities,
+                                const Eq &eq);
 
    public:
     SessionKeysImpl(std::shared_ptr<CryptoStore> store,
                     const application::AppConfiguration &config);
 
-    const std::shared_ptr<Sr25519Keypair> &getBabeKeyPair() override;
+    KeypairWithIndexOpt<Sr25519Keypair> getBabeKeyPair(
+        const primitives::AuthorityList &authorities) override;
 
-    const std::shared_ptr<Ed25519Keypair> &getGranKeyPair() override;
+    std::shared_ptr<Ed25519Keypair> getGranKeyPair(
+        const primitives::AuthoritySet &authorities) override;
 
-    const std::shared_ptr<Sr25519Keypair> &getParaKeyPair() override;
+    KeypairWithIndexOpt<Sr25519Keypair> getParaKeyPair(
+        const std::vector<Sr25519PublicKey> &authorities) override;
 
-    const std::shared_ptr<Sr25519Keypair> &getAudiKeyPair() override;
+    std::shared_ptr<Sr25519Keypair> getAudiKeyPair(
+        const std::vector<primitives::AuthorityDiscoveryId> &authorities)
+        override;
   };
 
 }  // namespace kagome::crypto

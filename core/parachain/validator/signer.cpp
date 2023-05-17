@@ -50,22 +50,16 @@ namespace kagome::parachain {
 
   outcome::result<std::optional<ValidatorSigner>> ValidatorSignerFactory::at(
       const primitives::BlockHash &relay_parent) {
-    auto &keypair = session_keys_->getParaKeyPair();
-    if (keypair == nullptr) {
-      return std::nullopt;
-    }
     OUTCOME_TRY(validators, parachain_api_->validators(relay_parent));
-    auto it =
-        std::find(validators.begin(), validators.end(), keypair->public_key);
-    if (it == validators.end()) {
+    auto keypair = session_keys_->getParaKeyPair(validators);
+    if (not keypair) {
       return std::nullopt;
     }
-    network::ValidatorIndex validator_index = it - validators.begin();
     OUTCOME_TRY(context, SigningContext::make(parachain_api_, relay_parent));
     return ValidatorSigner{
-        validator_index,
+        keypair->second,
         context,
-        keypair,
+        std::move(keypair->first),
         hasher_,
         sr25519_provider_,
     };

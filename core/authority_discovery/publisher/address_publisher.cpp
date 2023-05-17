@@ -92,19 +92,13 @@ namespace kagome::authority_discovery {
       return outcome::success();
     }
 
-    auto audi_key = keys_->getAudiKeyPair();
-    if (not audi_key) {
-      SL_VERBOSE(log_, "No authority discovery key");
-      return outcome::success();
-    }
-
     OUTCOME_TRY(
         authorities,
         authority_discovery_api_->authorities(block_tree_->bestLeaf().hash));
 
-    if (std::find(authorities.begin(), authorities.end(), audi_key->public_key)
-        == authorities.end()) {
-      // we are not authority
+    auto audi_key = keys_->getAudiKeyPair(authorities);
+    if (not audi_key) {
+      SL_WARN(log_, "No authority discovery key");
       return outcome::success();
     }
 

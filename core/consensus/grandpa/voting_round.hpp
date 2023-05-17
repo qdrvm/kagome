@@ -39,6 +39,7 @@ namespace kagome::consensus::grandpa {
 
     // Control lifecycle
 
+    virtual bool hasKeypair() const = 0;
     virtual void play() = 0;
     virtual void end() = 0;
 
