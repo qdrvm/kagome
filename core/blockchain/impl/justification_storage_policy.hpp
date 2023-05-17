@@ -6,6 +6,7 @@
 #ifndef KAGOME_JUSTIFICATION_STORAGE_POLICY_HPP
 #define KAGOME_JUSTIFICATION_STORAGE_POLICY_HPP
 
+#include "injector/lazy.hpp"
 #include "outcome/outcome.hpp"
 #include "primitives/block_header.hpp"
 
@@ -20,20 +21,18 @@ namespace kagome::blockchain {
     virtual ~JustificationStoragePolicy() = default;
 
     virtual outcome::result<bool> shouldStoreFor(
-        const primitives::BlockHeader &block) const = 0;
+        const primitives::BlockHeader &block,
+        primitives::BlockNumber last_finalized_number) const = 0;
   };
 
   class JustificationStoragePolicyImpl final
       : public JustificationStoragePolicy {
    public:
     virtual outcome::result<bool> shouldStoreFor(
-        const primitives::BlockHeader &block) const override;
+        const primitives::BlockHeader &block,
+        primitives::BlockNumber last_finalized_number) const override;
 
-    virtual void initBlockchainInfo(
-        std::shared_ptr<const blockchain::BlockTree> block_tree);
-
-   private:
-    std::shared_ptr<const blockchain::BlockTree> block_tree_;
+    virtual void initBlockchainInfo();
   };
 
 }  // namespace kagome::blockchain

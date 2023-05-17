@@ -6,6 +6,7 @@
 #ifndef KAGOME_NETWORK_IMPL_PROTOCOLS_PROTOCOL_FETCH_AVAILABLE_DATA_HPP
 #define KAGOME_NETWORK_IMPL_PROTOCOLS_PROTOCOL_FETCH_AVAILABLE_DATA_HPP
 
+#include "blockchain/genesis_block_hash.hpp"
 #include "log/logger.hpp"
 #include "network/common.hpp"
 #include "network/helpers/scale_message_read_writer.hpp"
@@ -25,7 +26,7 @@ namespace kagome::network {
     FetchAvailableDataProtocol(
         libp2p::Host &host,
         application::ChainSpec const &chain_spec,
-        const primitives::BlockHash &genesis_hash,
+        const blockchain::GenesisBlockHash &genesis_hash,
         std::shared_ptr<parachain::AvailabilityStore> av_store)
         : RequestResponseProtocol<
             FetchAvailableDataRequest,
@@ -63,7 +64,7 @@ namespace kagome::network {
     StatmentFetchingProtocol(
         libp2p::Host &host,
         application::ChainSpec const &chain_spec,
-        const primitives::BlockHash &genesis_hash,
+        const blockchain::GenesisBlockHash &genesis_hash,
         std::shared_ptr<parachain::BackingStore> backing_store)
         : RequestResponseProtocol<
             FetchStatementRequest,
@@ -85,12 +86,13 @@ namespace kagome::network {
           "hash={})",
           req.relay_parent,
           req.candidate_hash);
+
       if (auto res = backing_store_->get_candidate(req.candidate_hash)) {
         return std::move(*res);
       }
 
       base().logger()->error("No fetch statement response.");
-      return outcome::failure(boost::system::error_code{});
+      return ProtocolError::NO_RESPONSE;
     }
 
     void onTxRequest(const RequestType &) override {}

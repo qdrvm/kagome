@@ -20,7 +20,6 @@ add_library(network
     impl/stream_engine.cpp
     impl/protocols/protocol_error.cpp
     impl/protocols/state_protocol_impl.cpp
-    impl/protocols/protocol_factory.cpp
     impl/protocols/sync_protocol_impl.cpp
     impl/protocols/propagate_transactions_protocol.cpp
     impl/protocols/grandpa_protocol.cpp
@@ -33,6 +32,7 @@ add_library(network
     adapters/adapter_errors.cpp
     impl/protocols/protocol_req_pov.cpp
     warp/cache.cpp
+    warp/sync.cpp
     )
 target_link_libraries(network
     light_api_proto

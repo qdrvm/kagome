@@ -27,11 +27,16 @@ namespace kagome {
   namespace application::mode {
     class PrintChainInfoMode;
     class RecoveryMode;
+    class BenchmarkMode;
   }  // namespace application::mode
 
   namespace authority_discovery {
     class AddressPublisher;
   }  // namespace authority_discovery
+
+  namespace benchmark {
+    class BlockExecutionBenchmark;
+  }
 
   namespace metrics {
     class Exposer;
@@ -46,7 +51,7 @@ namespace kagome {
   }  // namespace network
 
   namespace parachain {
-    struct ParachainObserverImpl;
+    class ParachainObserver;
     struct ParachainProcessorImpl;
     struct ApprovalDistribution;
   }  // namespace parachain
@@ -103,9 +108,9 @@ namespace kagome::injector {
     std::shared_ptr<api::ApiService> injectRpcApiService();
     std::shared_ptr<clock::SystemClock> injectSystemClock();
     std::shared_ptr<consensus::babe::Babe> injectBabe();
-    std::shared_ptr<network::StateProtocolObserver> injectStateObserver();
     std::shared_ptr<network::SyncProtocolObserver> injectSyncObserver();
-    std::shared_ptr<parachain::ParachainObserverImpl> injectParachainObserver();
+    std::shared_ptr<network::StateProtocolObserver> injectStateObserver();
+    std::shared_ptr<parachain::ParachainObserver> injectParachainObserver();
     std::shared_ptr<parachain::ParachainProcessorImpl>
     injectParachainProcessor();
     std::shared_ptr<parachain::ApprovalDistribution>
@@ -124,6 +129,7 @@ namespace kagome::injector {
     std::shared_ptr<application::mode::PrintChainInfoMode>
     injectPrintChainInfoMode();
     std::shared_ptr<application::mode::RecoveryMode> injectRecoveryMode();
+    std::shared_ptr<benchmark::BlockExecutionBenchmark> injectBlockBenchmark();
 
    protected:
     std::shared_ptr<class KagomeNodeInjectorImpl> pimpl_;

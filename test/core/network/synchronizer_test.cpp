@@ -11,6 +11,7 @@
 
 #include "mock/core/application/app_configuration_mock.hpp"
 #include "mock/core/application/app_state_manager_mock.hpp"
+#include "mock/core/blockchain/block_storage_mock.hpp"
 #include "mock/core/blockchain/block_tree_mock.hpp"
 #include "mock/core/consensus/babe/block_appender_mock.hpp"
 #include "mock/core/consensus/babe/block_executor_mock.hpp"
@@ -18,6 +19,8 @@
 #include "mock/core/crypto/hasher_mock.hpp"
 #include "mock/core/network/protocols/sync_protocol_mock.hpp"
 #include "mock/core/network/router_mock.hpp"
+#include "mock/core/runtime/core_mock.hpp"
+#include "mock/core/runtime/module_factory_mock.hpp"
 #include "mock/core/storage/persistent_map_mock.hpp"
 #include "mock/core/storage/spaced_storage_mock.hpp"
 #include "mock/core/storage/trie_pruner/trie_pruner_mock.hpp"
@@ -41,8 +44,6 @@ using primitives::BlockHash;
 using primitives::BlockHeader;
 using primitives::BlockInfo;
 using primitives::BlockNumber;
-using storage::BufferStorageMock;
-using storage::SpacedStorageMock;
 
 using ::testing::_;
 using ::testing::AnyNumber;
@@ -78,9 +79,6 @@ class SynchronizerTest
     EXPECT_CALL(app_config, syncMethod())
         .WillOnce(Return(application::AppConfiguration::SyncMethod::Full));
 
-    EXPECT_CALL(*spaced_storage, getSpace(kagome::storage::Space::kDefault))
-        .WillRepeatedly(Return(buffer_storage));
-
     auto state_pruner =
         std::make_shared<kagome::storage::trie_pruner::TriePrunerMock>();
 
@@ -88,6 +86,7 @@ class SynchronizerTest
         std::make_shared<network::SynchronizerImpl>(app_config,
                                                     app_state_manager,
                                                     block_tree,
+                                                    block_storage,
                                                     block_appender,
                                                     block_executor,
                                                     serializer,
@@ -96,10 +95,9 @@ class SynchronizerTest
                                                     router,
                                                     scheduler,
                                                     hasher,
-                                                    nullptr,
-                                                    nullptr,
-                                                    nullptr,
-                                                    spaced_storage,
+                                                    module_factory,
+                                                    core_api,
+                                                    chain_sub_engine,
                                                     grandpa_environment);
   }
 
@@ -108,6 +106,8 @@ class SynchronizerTest
       std::make_shared<application::AppStateManagerMock>();
   std::shared_ptr<blockchain::BlockTreeMock> block_tree =
       std::make_shared<blockchain::BlockTreeMock>();
+  std::shared_ptr<blockchain::BlockStorageMock> block_storage =
+      std::make_shared<blockchain::BlockStorageMock>();
   std::shared_ptr<BlockHeaderAppenderMock> block_appender =
       std::make_shared<BlockHeaderAppenderMock>();
   std::shared_ptr<BlockExecutorMock> block_executor =
@@ -124,8 +124,12 @@ class SynchronizerTest
       std::make_shared<libp2p::basic::SchedulerMock>();
   std::shared_ptr<crypto::HasherMock> hasher =
       std::make_shared<crypto::HasherMock>();
-  std::shared_ptr<SpacedStorageMock> spaced_storage =
-      std::make_shared<SpacedStorageMock>();
+  std::shared_ptr<runtime::ModuleFactoryMock> module_factory =
+      std::make_shared<runtime::ModuleFactoryMock>();
+  std::shared_ptr<runtime::CoreMock> core_api =
+      std::make_shared<runtime::CoreMock>();
+  primitives::events::ChainSubscriptionEnginePtr chain_sub_engine =
+      std::make_shared<primitives::events::ChainSubscriptionEngine>();
   std::shared_ptr<BufferStorageMock> buffer_storage =
       std::make_shared<BufferStorageMock>();
   std::shared_ptr<EnvironmentMock> grandpa_environment =

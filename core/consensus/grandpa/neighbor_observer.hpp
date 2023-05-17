@@ -9,6 +9,7 @@
 #include <libp2p/peer/peer_id.hpp>
 
 #include "network/types/grandpa_message.hpp"
+#include "utils/box.hpp"
 
 namespace kagome::consensus::grandpa {
 
@@ -23,9 +24,8 @@ namespace kagome::consensus::grandpa {
      * Handler of grandpa neighbor messages
      * @param msg neighbor messages
      */
-    virtual void onNeighborMessage(
-        const libp2p::peer::PeerId &peer_id,
-        const network::GrandpaNeighborMessage &msg) = 0;
+    virtual void onNeighborMessage(const libp2p::peer::PeerId &peer_id,
+                                   network::GrandpaNeighborMessage &&msg) = 0;
   };
 
 }  // namespace kagome::consensus::grandpa

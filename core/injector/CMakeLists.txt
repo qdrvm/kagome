@@ -15,10 +15,11 @@ target_link_libraries(application_injector
     app_config
     app_state_manager
     authority_discovery_api
-    print_chain_info_mode
+    application_modes
     assets
     storage
     babe_api
+    kagome_benchmarks
     binaryen_executor_factory
     binaryen_runtime_external_interface
     binaryen_wasm_memory
@@ -36,6 +37,7 @@ target_link_libraries(application_injector
     crypto_store
     ecdsa_provider
     ed25519_provider
+    filesystem
     transaction_pool
     host_api_factory
     key_file_storage
@@ -79,5 +81,6 @@ target_link_libraries(application_injector
     session_keys_api
     validator_parachain
     fd_limit
+    recovery_mode
     )
 kagome_clear_objects(application_injector)

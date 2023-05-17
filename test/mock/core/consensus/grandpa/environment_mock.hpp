@@ -20,7 +20,7 @@ namespace kagome::consensus::grandpa {
                 (std::weak_ptr<JustificationObserver> justification_observer),
                 (override));
 
-    MOCK_METHOD(outcome::result<void>,
+    MOCK_METHOD(void,
                 onVoted,
                 (RoundNumber round,
                  VoterSetId set_id,
@@ -34,7 +34,7 @@ namespace kagome::consensus::grandpa {
                  VoterSetId set_id),
                 (override));
 
-    MOCK_METHOD(outcome::result<void>,
+    MOCK_METHOD(void,
                 onCommitted,
                 (RoundNumber round,
                  VoterSetId set_id,
@@ -42,18 +42,18 @@ namespace kagome::consensus::grandpa {
                  const GrandpaJustification &justification),
                 (override));
 
-    MOCK_METHOD(outcome::result<void>,
+    MOCK_METHOD(void,
                 onNeighborMessageSent,
                 (RoundNumber round,
                  VoterSetId set_id,
                  BlockNumber last_finalized),
                 (override));
 
-    MOCK_METHOD(outcome::result<void>,
-                applyJustification,
-                (const BlockInfo &block_info,
-                 const primitives::Justification &justification),
-                (override));
+    void applyJustification(const BlockInfo &block_info,
+                            const primitives::Justification &justification,
+                            Environment::ApplyJustificationCb &&cb) override {
+      cb(outcome::success());
+    }
 
     MOCK_METHOD(outcome::result<void>,
                 finalize,
@@ -65,14 +65,14 @@ namespace kagome::consensus::grandpa {
                 (const BlockHash &block_hash),
                 (override));
 
-    MOCK_METHOD(outcome::result<void>,
+    MOCK_METHOD(void,
                 onCatchUpRequested,
                 (const libp2p::peer::PeerId &peer_id,
                  VoterSetId set_id,
                  RoundNumber round_number),
                 (override));
 
-    MOCK_METHOD(outcome::result<void>,
+    MOCK_METHOD(void,
                 onCatchUpRespond,
                 (const libp2p::peer::PeerId &peer_id,
                  VoterSetId set_id,

@@ -6,18 +6,14 @@
 #ifndef KAGOME_CORE_CRYPTO_ECDSA_TYPES_HPP
 #define KAGOME_CORE_CRYPTO_ECDSA_TYPES_HPP
 
-#include <cstdint>
-
-#include <libp2p/crypto/ecdsa_types.hpp>
-
-#include "common/blob.hpp"
+#include "crypto/secp256k1_types.hpp"
 
 namespace kagome::crypto {
   namespace constants::ecdsa {
     enum {
-      PRIVKEY_SIZE = sizeof(libp2p::crypto::ecdsa::PrivateKey),
-      PUBKEY_SIZE = sizeof(libp2p::crypto::ecdsa::PublicKey),
-      SIGNATURE_SIZE = 65,  // As according to spec in D.3.14.
+      PRIVKEY_SIZE = 32,
+      PUBKEY_SIZE = secp256k1::constants::kCompressedPublicKeySize,
+      SIGNATURE_SIZE = secp256k1::constants::kCompactSignatureSize,
       SEED_SIZE = PRIVKEY_SIZE,
     };
   }
@@ -29,6 +25,12 @@ KAGOME_BLOB_STRICT_TYPEDEF(kagome::crypto,
 KAGOME_BLOB_STRICT_TYPEDEF(kagome::crypto,
                            EcdsaPublicKey,
                            constants::ecdsa::PUBKEY_SIZE);
+KAGOME_BLOB_STRICT_TYPEDEF(kagome::crypto,
+                           EcdsaSignature,
+                           constants::ecdsa::SIGNATURE_SIZE);
+KAGOME_BLOB_STRICT_TYPEDEF(kagome::crypto,
+                           EcdsaSeed,
+                           constants::ecdsa::SEED_SIZE);
 
 namespace kagome::crypto {
 
@@ -40,9 +42,7 @@ namespace kagome::crypto {
     bool operator!=(const EcdsaKeypair &other) const;
   };
 
-  using EcdsaSignature = std::vector<uint8_t>;
-  using EcdsaSeed = common::Blob<constants::ecdsa::SEED_SIZE>;
-  using EcdsaPrehashedMessage = libp2p::crypto::ecdsa::PrehashedMessage;
+  using EcdsaPrehashedMessage = secp256k1::MessageHash;
 
   struct EcdsaKeypairAndSeed : EcdsaKeypair {
     EcdsaSeed seed;

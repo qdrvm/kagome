@@ -11,6 +11,7 @@
 #include "application/app_configuration.hpp"
 #include "application/app_state_manager.hpp"
 #include "application/chain_spec.hpp"
+#include "filesystem/common.hpp"
 #include "metrics/metrics.hpp"
 #include "outcome/outcome.hpp"
 
@@ -23,14 +24,13 @@ namespace kagome::metrics {
         const application::AppConfiguration &app_config,
         std::shared_ptr<application::ChainSpec> chain_spec);
 
-    bool prepare();
     bool start();
     void stop();
 
    private:
     outcome::result<uintmax_t> measure_storage_size();
 
-    boost::filesystem::path storage_path_;
+    filesystem::path storage_path_;
 
     volatile bool shutdown_requested_ = false;
     std::thread thread_;

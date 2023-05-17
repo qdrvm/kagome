@@ -63,20 +63,21 @@ namespace kagome::application {
     AppConfigurationImpl(AppConfigurationImpl &&) = default;
     AppConfigurationImpl &operator=(AppConfigurationImpl &&) = default;
 
-    [[nodiscard]] bool initializeFromArgs(int argc, const char **argv);
+    [[nodiscard]] bool initializeFromArgs(int argc,
+                                          const char **argv);
 
     network::Roles roles() const override {
       return roles_;
     }
-    boost::filesystem::path chainSpecPath() const override;
-    boost::filesystem::path runtimeCacheDirPath() const override;
-    boost::filesystem::path runtimeCachePath(
+    filesystem::path chainSpecPath() const override;
+    filesystem::path runtimeCacheDirPath() const override;
+    filesystem::path runtimeCachePath(
         std::string runtime_hash) const override;
-    boost::filesystem::path chainPath(std::string chain_id) const override;
-    boost::filesystem::path databasePath(std::string chain_id) const override;
-    boost::filesystem::path keystorePath(std::string chain_id) const override;
+    filesystem::path chainPath(std::string chain_id) const override;
+    filesystem::path databasePath(std::string chain_id) const override;
+    filesystem::path keystorePath(std::string chain_id) const override;
 
-    const std::optional<crypto::Ed25519PrivateKey> &nodeKey() const override {
+    const std::optional<crypto::Ed25519Seed> &nodeKey() const override {
       return node_key_;
     }
 
@@ -176,8 +177,8 @@ namespace kagome::application {
     bool isOffchainIndexingEnabled() const override {
       return enable_offchain_indexing_;
     }
-    bool subcommandChainInfo() const override {
-      return subcommand_chain_info_;
+    std::optional<Subcommand> subcommand() const override {
+      return subcommand_;
     }
     std::optional<primitives::BlockId> recoverState() const override {
       return recovery_state_;
@@ -199,6 +200,15 @@ namespace kagome::application {
       return node_wss_pem_;
     }
 
+
+    AllowUnsafeRpc allowUnsafeRpc() const override {
+      return allow_unsafe_rpc_;
+    }
+
+    std::optional<BenchmarkConfigSection> getBenchmarkConfig() const override {
+      return benchmark_config_;
+    }
+
    private:
     void parse_general_segment(const rapidjson::Value &val);
     void parse_blockchain_segment(const rapidjson::Value &val);
@@ -210,7 +220,7 @@ namespace kagome::application {
     /// member-function ptrs
     struct SegmentHandler {
       using Handler = std::function<void(rapidjson::Value &)>;
-      char const *segment_name;
+      const char *segment_name;
       Handler handler;
     };
 
@@ -229,28 +239,28 @@ namespace kagome::application {
     void read_config_from_file(const std::string &filepath);
 
     bool load_ms(const rapidjson::Value &val,
-                 char const *name,
+                 const char *name,
                  std::vector<std::string> &target);
 
     bool load_ma(const rapidjson::Value &val,
-                 char const *name,
+                 const char *name,
                  std::vector<libp2p::multi::Multiaddress> &target);
     bool load_telemetry_uris(const rapidjson::Value &val,
-                             char const *name,
+                             const char *name,
                              std::vector<telemetry::TelemetryEndpoint> &target);
     bool load_str(const rapidjson::Value &val,
-                  char const *name,
+                  const char *name,
                   std::string &target);
     bool load_u16(const rapidjson::Value &val,
-                  char const *name,
+                  const char *name,
                   uint16_t &target);
     bool load_u32(const rapidjson::Value &val,
-                  char const *name,
+                  const char *name,
                   uint32_t &target);
     bool load_i32(const rapidjson::Value &val,
-                  char const *name,
+                  const char *name,
                   int32_t &target);
-    bool load_bool(const rapidjson::Value &val, char const *name, bool &target);
+    bool load_bool(const rapidjson::Value &val, const char *name, bool &target);
 
     /**
      * Convert given values into boost tcp::endpoint representation format
@@ -293,7 +303,7 @@ namespace kagome::application {
     log::Logger logger_;
 
     network::Roles roles_;
-    std::optional<crypto::Ed25519PrivateKey> node_key_;
+    std::optional<crypto::Ed25519Seed> node_key_;
     std::optional<std::string> node_key_file_;
     bool save_node_key_;
     std::vector<libp2p::multi::Multiaddress> listen_addresses_;
@@ -311,9 +321,9 @@ namespace kagome::application {
     std::string rpc_http_host_;
     std::string rpc_ws_host_;
     std::string openmetrics_http_host_;
-    boost::filesystem::path chain_spec_path_;
-    boost::filesystem::path base_path_;
-    std::optional<boost::filesystem::path> keystore_path_;
+    filesystem::path chain_spec_path_;
+    filesystem::path base_path_;
+    std::optional<filesystem::path> keystore_path_;
     uint16_t rpc_http_port_;
     uint16_t rpc_ws_port_;
     uint16_t openmetrics_http_port_;
@@ -333,12 +343,14 @@ namespace kagome::application {
     bool purge_wavm_cache_;
     OffchainWorkerMode offchain_worker_mode_;
     bool enable_offchain_indexing_;
-    bool subcommand_chain_info_;
+    std::optional<Subcommand> subcommand_;
     std::optional<primitives::BlockId> recovery_state_;
     StorageBackend storage_backend_ = StorageBackend::RocksDB;
     std::optional<size_t> state_pruning_depth_;
     std::optional<std::string> dev_mnemonic_phrase_;
     std::string node_wss_pem_;
+    std::optional<BenchmarkConfigSection> benchmark_config_;
+    AllowUnsafeRpc allow_unsafe_rpc_ = AllowUnsafeRpc::kAuto;
   };
 
 }  // namespace kagome::application

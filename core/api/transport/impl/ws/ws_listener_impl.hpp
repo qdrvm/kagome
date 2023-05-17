@@ -16,7 +16,8 @@
 
 namespace kagome::application {
   class AppStateManager;
-}
+  class AppConfiguration;
+}  // namespace kagome::application
 
 namespace kagome::api {
   /**
@@ -30,7 +31,7 @@ namespace kagome::api {
 
     WsListenerImpl(application::AppStateManager &app_state_manager,
                    std::shared_ptr<Context> context,
-                   Configuration listener_config,
+                   const application::AppConfiguration &app_config,
                    SessionImpl::Configuration session_config);
 
     ~WsListenerImpl() override = default;
@@ -50,7 +51,8 @@ namespace kagome::api {
     void acceptOnce() override;
 
     std::shared_ptr<Context> context_;
-    const Configuration config_;
+    AllowUnsafe allow_unsafe_;
+    const Endpoint endpoint_;
     const SessionImpl::Configuration session_config_;
     const uint32_t max_ws_connections_;
 

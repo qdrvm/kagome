@@ -21,9 +21,10 @@
 #include "mock/core/consensus/babe/block_executor_mock.hpp"
 #include "mock/core/consensus/babe/consistency_keeper_mock.hpp"
 #include "mock/core/consensus/babe_lottery_mock.hpp"
-#include "mock/core/consensus/grandpa/environment_mock.hpp"
+#include "mock/core/consensus/grandpa/grandpa_mock.hpp"
 #include "mock/core/consensus/validation/block_validator_mock.hpp"
 #include "mock/core/crypto/hasher_mock.hpp"
+#include "mock/core/crypto/session_keys_mock.hpp"
 #include "mock/core/crypto/sr25519_provider_mock.hpp"
 #include "mock/core/network/block_announce_transmitter_mock.hpp"
 #include "mock/core/network/synchronizer_mock.hpp"
@@ -34,6 +35,7 @@
 #include "mock/core/storage/trie/trie_storage_mock.hpp"
 #include "mock/core/transaction_pool/transaction_pool_mock.hpp"
 #include "storage/trie/serialization/ordered_trie_hash.hpp"
+#include "testutil/lazy.hpp"
 #include "testutil/literals.hpp"
 #include "testutil/prepare_loggers.hpp"
 #include "testutil/sr25519_utils.hpp"
@@ -97,7 +99,7 @@ class BabeTest : public testing::Test {
     lottery_ = std::make_shared<BabeLotteryMock>();
     synchronizer_ = std::make_shared<network::SynchronizerMock>();
     babe_block_validator_ = std::make_shared<BlockValidatorMock>();
-    grandpa_environment_ = std::make_shared<grandpa::EnvironmentMock>();
+    grandpa_ = std::make_shared<GrandpaMock>();
     tx_pool_ = std::make_shared<transaction_pool::TransactionPoolMock>();
     core_ = std::make_shared<runtime::CoreMock>();
     proposer_ = std::make_shared<ProposerMock>();
@@ -161,30 +163,39 @@ class BabeTest : public testing::Test {
     babe_status_observable_ =
         std::make_shared<primitives::events::BabeStateSubscriptionEngine>();
 
-    babe_ = std::make_shared<babe::BabeImpl>(app_config_,
-                                             app_state_manager_,
-                                             lottery_,
-                                             babe_config_repo_,
-                                             proposer_,
-                                             block_tree_,
-                                             block_announce_transmitter_,
-                                             sr25519_provider,
-                                             keypair_,
-                                             clock_,
-                                             hasher_,
-                                             std::move(timer_mock_),
-                                             digest_tracker_,
-                                             synchronizer_,
-                                             babe_util_,
-                                             bitfield_store_,
-                                             backing_store_,
-                                             storage_sub_engine_,
-                                             chain_events_engine_,
-                                             offchain_worker_api_,
-                                             core_,
-                                             consistency_keeper_,
-                                             trie_storage_,
-                                             babe_status_observable_);
+    session_keys_ = std::make_shared<SessionKeysMock>();
+    EXPECT_CALL(*session_keys_, getBabeKeyPair())
+        .WillRepeatedly(ReturnRef(keypair_));
+
+    babe_ = std::make_shared<babe::BabeImpl>(
+        app_config_,
+        app_state_manager_,
+        lottery_,
+        babe_config_repo_,
+        proposer_,
+        block_tree_,
+        block_announce_transmitter_,
+        sr25519_provider,
+        session_keys_,
+        clock_,
+        hasher_,
+        std::move(timer_mock_),
+        digest_tracker_,
+        // safe null, because object is not used during test
+        nullptr,
+        testutil::sptr_to_lazy<network::WarpProtocol>(warp_protocol_),
+        grandpa_,
+        synchronizer_,
+        babe_util_,
+        bitfield_store_,
+        backing_store_,
+        storage_sub_engine_,
+        chain_events_engine_,
+        offchain_worker_api_,
+        core_,
+        consistency_keeper_,
+        trie_storage_,
+        babe_status_observable_);
 
     epoch_.start_slot = 0;
     epoch_.epoch_number = 0;
@@ -207,7 +218,7 @@ class BabeTest : public testing::Test {
   std::shared_ptr<BabeLotteryMock> lottery_;
   std::shared_ptr<Synchronizer> synchronizer_;
   std::shared_ptr<BlockValidator> babe_block_validator_;
-  std::shared_ptr<grandpa::EnvironmentMock> grandpa_environment_;
+  std::shared_ptr<GrandpaMock> grandpa_;
   std::shared_ptr<runtime::CoreMock> core_;
   std::shared_ptr<ProposerMock> proposer_;
   std::shared_ptr<BlockTreeMock> block_tree_;
@@ -215,11 +226,13 @@ class BabeTest : public testing::Test {
   std::shared_ptr<BlockAnnounceTransmitterMock> block_announce_transmitter_;
   std::shared_ptr<Sr25519Keypair> keypair_ =
       std::make_shared<Sr25519Keypair>(generateSr25519Keypair());
+  std::shared_ptr<SessionKeysMock> session_keys_;
   std::shared_ptr<SystemClockMock> clock_;
   std::shared_ptr<HasherMock> hasher_;
   std::unique_ptr<testutil::TimerMock> timer_mock_;
   testutil::TimerMock *timer_;
   std::shared_ptr<DigestTrackerMock> digest_tracker_;
+  std::shared_ptr<network::WarpProtocol> warp_protocol_;
   std::shared_ptr<primitives::BabeConfiguration> babe_config_;
   std::shared_ptr<BabeConfigRepositoryMock> babe_config_repo_;
   std::shared_ptr<BabeUtilMock> babe_util_;
@@ -303,13 +316,17 @@ TEST_F(BabeTest, Success) {
   EXPECT_CALL(*babe_util_, syncEpoch(_)).Times(testing::AnyNumber());
 
   testing::Sequence s;
-  auto breaker = [](const std::error_code &ec) {
+  auto breaker = [](const boost::system::error_code &ec) {
     throw std::logic_error("Must not be called");
   };
-  std::function<void(const std::error_code &ec)> on_process_slot_1 = breaker;
-  std::function<void(const std::error_code &ec)> on_run_slot_2 = breaker;
-  std::function<void(const std::error_code &ec)> on_process_slot_2 = breaker;
-  std::function<void(const std::error_code &ec)> on_run_slot_3 = breaker;
+  std::function<void(const boost::system::error_code &ec)> on_process_slot_1 =
+      breaker;
+  std::function<void(const boost::system::error_code &ec)> on_run_slot_2 =
+      breaker;
+  std::function<void(const boost::system::error_code &ec)> on_process_slot_2 =
+      breaker;
+  std::function<void(const boost::system::error_code &ec)> on_run_slot_3 =
+      breaker;
   EXPECT_CALL(*timer_, asyncWait(_))
       .InSequence(s)
       .WillOnce(testing::SaveArg<0>(&on_process_slot_1))
@@ -335,7 +352,7 @@ TEST_F(BabeTest, Success) {
   EXPECT_CALL(*block_tree_, getBlockHeader(created_block_hash_))
       .WillRepeatedly(Return(outcome::success(block_header_)));
 
-  EXPECT_CALL(*proposer_, propose(best_leaf, _, _, _))
+  EXPECT_CALL(*proposer_, propose(best_leaf, _, _, _, _))
       .WillOnce(Return(created_block_));
 
   EXPECT_CALL(*hasher_, blake2b_256(_))
@@ -362,7 +379,7 @@ TEST_F(BabeTest, NotAuthority) {
   EXPECT_CALL(*babe_util_, slotFinishTime(_)).Times(testing::AnyNumber());
   EXPECT_CALL(*babe_util_, syncEpoch(_));
   EXPECT_CALL(*timer_, expiresAt(_));
-  std::function<void(const std::error_code &)> process_slot;
+  std::function<void(const boost::system::error_code &)> process_slot;
   EXPECT_CALL(*timer_, asyncWait(_))
       .WillOnce(testing::SaveArg<0>(&process_slot));
   babe_->runEpoch(epoch_);

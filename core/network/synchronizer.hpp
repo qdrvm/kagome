@@ -19,6 +19,7 @@ namespace kagome::network {
    public:
     using SyncResultHandler =
         std::function<void(outcome::result<primitives::BlockInfo>)>;
+    using CbResultVoid = std::function<void(outcome::result<void>)>;
 
     virtual ~Synchronizer() = default;
 
@@ -54,7 +55,13 @@ namespace kagome::network {
                            const primitives::BlockInfo &block,
                            SyncResultHandler &&handler) = 0;
 
-    virtual bool hasIncompleteRequestOfStateSync() const = 0;
+    /**
+     * Sync block at height 1 for babe genesis slot.
+     * Sync block with latest babe consensus digest.
+     */
+    virtual void syncBabeDigest(const libp2p::peer::PeerId &peer_id,
+                                const primitives::BlockInfo &block,
+                                CbResultVoid &&cb) = 0;
   };
 
 }  // namespace kagome::network

@@ -5,6 +5,11 @@
 
 #include "consensus/grandpa/impl/grandpa_impl.hpp"
 
+#include <utility>
+
+#include <libp2p/basic/scheduler/asio_scheduler_backend.hpp>
+#include <libp2p/basic/scheduler/scheduler_impl.hpp>
+
 #include "application/app_state_manager.hpp"
 #include "application/chain_spec.hpp"
 #include "blockchain/block_tree.hpp"
@@ -18,6 +23,7 @@
 #include "consensus/grandpa/impl/voting_round_impl.hpp"
 #include "consensus/grandpa/vote_graph/vote_graph_impl.hpp"
 #include "consensus/grandpa/voting_round_error.hpp"
+#include "crypto/crypto_store/session_keys.hpp"
 #include "network/helpers/peer_id_formatter.hpp"
 #include "network/peer_manager.hpp"
 #include "network/reputation_repository.hpp"
@@ -63,42 +69,54 @@ namespace kagome::consensus::grandpa {
 
   GrandpaImpl::GrandpaImpl(
       std::shared_ptr<application::AppStateManager> app_state_manager,
+      std::shared_ptr<crypto::Hasher> hasher,
       std::shared_ptr<Environment> environment,
       std::shared_ptr<crypto::Ed25519Provider> crypto_provider,
       std::shared_ptr<runtime::GrandpaApi> grandpa_api,
-      std::shared_ptr<crypto::Ed25519Keypair> keypair,
+      std::shared_ptr<crypto::SessionKeys> session_keys,
       const application::ChainSpec &chain_spec,
-      std::shared_ptr<Clock> clock,
-      std::shared_ptr<libp2p::basic::Scheduler> scheduler,
       std::shared_ptr<AuthorityManager> authority_manager,
       std::shared_ptr<network::Synchronizer> synchronizer,
       std::shared_ptr<network::PeerManager> peer_manager,
       std::shared_ptr<blockchain::BlockTree> block_tree,
-      std::shared_ptr<network::ReputationRepository> reputation_repository)
+      std::shared_ptr<network::ReputationRepository> reputation_repository,
+      primitives::events::BabeStateSubscriptionEnginePtr babe_status_observable,
+      std::shared_ptr<boost::asio::io_context> main_thread_context)
       : round_time_factor_{getGossipDuration(chain_spec)},
+        hasher_{std::move(hasher)},
         environment_{std::move(environment)},
         crypto_provider_{std::move(crypto_provider)},
         grandpa_api_{std::move(grandpa_api)},
-        keypair_{std::move(keypair)},
-        clock_{std::move(clock)},
-        scheduler_{std::move(scheduler)},
+        keypair_([&] {
+          BOOST_ASSERT(session_keys != nullptr);
+          return session_keys->getGranKeyPair();
+        }()),
         authority_manager_(std::move(authority_manager)),
         synchronizer_(std::move(synchronizer)),
         peer_manager_(std::move(peer_manager)),
         block_tree_(std::move(block_tree)),
-        reputation_repository_(std::move(reputation_repository)) {
+        reputation_repository_(std::move(reputation_repository)),
+        babe_status_observable_(std::move(babe_status_observable)),
+        execution_thread_pool_{std::make_shared<ThreadPool>(1ull)},
+        internal_thread_context_{execution_thread_pool_->handler()},
+        main_thread_context_{std::move(main_thread_context)},
+        scheduler_{std::make_shared<libp2p::basic::SchedulerImpl>(
+            std::make_shared<libp2p::basic::AsioSchedulerBackend>(
+                internal_thread_context_->io_context()),
+            libp2p::basic::Scheduler::Config{})} {
     BOOST_ASSERT(environment_ != nullptr);
     BOOST_ASSERT(crypto_provider_ != nullptr);
     BOOST_ASSERT(grandpa_api_ != nullptr);
-    BOOST_ASSERT(clock_ != nullptr);
     BOOST_ASSERT(scheduler_ != nullptr);
     BOOST_ASSERT(authority_manager_ != nullptr);
     BOOST_ASSERT(synchronizer_ != nullptr);
     BOOST_ASSERT(peer_manager_ != nullptr);
     BOOST_ASSERT(block_tree_ != nullptr);
+    BOOST_ASSERT(babe_status_observable_ != nullptr);
     BOOST_ASSERT(reputation_repository_ != nullptr);
 
     BOOST_ASSERT(app_state_manager != nullptr);
+    BOOST_ASSERT(nullptr != internal_thread_context_);
 
     // Register metrics
     metrics_registry_->registerGaugeFamily(highestGrandpaRoundMetricName,
@@ -115,10 +133,41 @@ namespace kagome::consensus::grandpa {
   bool GrandpaImpl::prepare() {
     // Set themselves in environment
     environment_->setJustificationObserver(shared_from_this());
+
+    babe_status_observer_ =
+        std::make_shared<primitives::events::BabeStateEventSubscriber>(
+            babe_status_observable_, false);
+    babe_status_observer_->subscribe(
+        babe_status_observer_->generateSubscriptionSetId(),
+        primitives::events::BabeStateEventType::kSyncState);
+    babe_status_observer_->setCallback(
+        [wself{weak_from_this()}](
+            auto /*set_id*/,
+            bool &synchronized,
+            auto /*event_type*/,
+            const primitives::events::BabeStateEventParams &event) {
+          if (auto self = wself.lock()) {
+            if (event == babe::Babe::State::SYNCHRONIZED) {
+              self->synchronized_once_.store(true);
+            }
+          }
+        });
+
+    internal_thread_context_->start();
+    main_thread_context_.start();
     return true;
   }
 
   bool GrandpaImpl::start() {
+    if (!internal_thread_context_->isInCurrentThread()) {
+      internal_thread_context_->execute([wptr{weak_from_this()}] {
+        if (auto self = wptr.lock()) {
+          self->start();
+        }
+      });
+      return true;
+    }
+
     // Obtain last completed round
     auto round_state_res = getLastCompletedRound();
     if (not round_state_res.has_value()) {
@@ -143,17 +192,13 @@ namespace kagome::consensus::grandpa {
     }
     auto &authority_set = authorities_res.value();
 
-    auto voters = std::make_shared<VoterSet>(authority_set->id);
-    for (const auto &authority : authority_set->authorities) {
-      auto res = voters->insert(primitives::GrandpaSessionKey(authority.id.id),
-                                authority.weight);
-      if (res.has_error()) {
-        logger_->critical(
-            "Can't make voter set: {}. Stopping grandpa execution",
-            res.error());
-        return false;
-      }
+    auto voters_res = VoterSet::make(*authority_set);
+    if (not voters_res) {
+      logger_->critical("Can't make voter set: {}. Stopping grandpa execution",
+                        voters_res.error());
+      return false;
     }
+    auto &voters = voters_res.value();
 
     current_round_ = makeInitialRound(round_state, std::move(voters));
     BOOST_ASSERT(current_round_ != nullptr);
@@ -186,11 +231,12 @@ namespace kagome::consensus::grandpa {
         std::chrono::minutes(1));
 
     tryExecuteNextRound(current_round_);
-
     return true;
   }
 
   void GrandpaImpl::stop() {
+    main_thread_context_.stop();
+    internal_thread_context_->stop();
     fallback_timer_handle_.cancel();
   }
 
@@ -212,13 +258,12 @@ namespace kagome::consensus::grandpa {
     auto new_round = std::make_shared<VotingRoundImpl>(
         shared_from_this(),
         std::move(config),
-        authority_manager_,
+        hasher_,
         environment_,
         std::move(vote_crypto_provider),
         std::make_shared<VoteTrackerImpl>(),  // Prevote tracker
         std::make_shared<VoteTrackerImpl>(),  // Precommit tracker
         std::move(vote_graph),
-        clock_,
         scheduler_,
         round_state);
 
@@ -244,15 +289,12 @@ namespace kagome::consensus::grandpa {
     auto &authority_set = authorities_opt.value();
     BOOST_ASSERT(not authority_set->authorities.empty());
 
-    auto voters = std::make_shared<VoterSet>(authority_set->id);
-    for (const auto &authority : authority_set->authorities) {
-      auto res = voters->insert(primitives::GrandpaSessionKey(authority.id.id),
-                                authority.weight);
-      if (res.has_error()) {
-        SL_WARN(logger_, "Can't make voter set: {}", res.error());
-        return res.as_failure();
-      }
+    auto voters_res = VoterSet::make(*authority_set);
+    if (not voters_res) {
+      SL_WARN(logger_, "Can't make voter set: {}", voters_res.error());
+      return voters_res.error();
     }
+    auto &voters = voters_res.value();
 
     const auto new_round_number =
         round->voterSetId() == voters->id() ? (round->roundNumber() + 1) : 1;
@@ -273,13 +315,12 @@ namespace kagome::consensus::grandpa {
     auto new_round = std::make_shared<VotingRoundImpl>(
         shared_from_this(),
         std::move(config),
-        authority_manager_,
+        hasher_,
         environment_,
         std::move(vote_crypto_provider),
         std::make_shared<VoteTrackerImpl>(),  // Prevote tracker
         std::make_shared<VoteTrackerImpl>(),  // Precommit tracker
         std::move(vote_graph),
-        clock_,
         scheduler_,
         round);
     return new_round;
@@ -343,7 +384,8 @@ namespace kagome::consensus::grandpa {
   }
 
   void GrandpaImpl::tryExecuteNextRound(
-      const std::shared_ptr<VotingRound> &prev_round) {
+      const std::shared_ptr<VotingRound> &pr) {
+    REINVOKE_1(*internal_thread_context_, tryExecuteNextRound, pr, prev_round);
     if (current_round_ != prev_round) {
       return;
     }
@@ -375,7 +417,8 @@ namespace kagome::consensus::grandpa {
     }
   }
 
-  void GrandpaImpl::updateNextRound(RoundNumber round_number) {
+  void GrandpaImpl::updateNextRound(RoundNumber rn) {
+    REINVOKE_1(*internal_thread_context_, updateNextRound, rn, round_number);
     if (auto opt_round = selectRound(round_number + 1, std::nullopt);
         opt_round.has_value()) {
       auto &round = opt_round.value();
@@ -385,9 +428,12 @@ namespace kagome::consensus::grandpa {
     }
   }
 
-  void GrandpaImpl::onNeighborMessage(
-      const libp2p::peer::PeerId &peer_id,
-      const network::GrandpaNeighborMessage &msg) {
+  void GrandpaImpl::onNeighborMessage(const libp2p::peer::PeerId &p_,
+                                      network::GrandpaNeighborMessage &&m_) {
+    REINVOKE_2(
+        *internal_thread_context_, onNeighborMessage, p_, m_, peer_id, msg);
+
+    BOOST_ASSERT(internal_thread_context_->isInCurrentThread());
     SL_DEBUG(logger_,
              "NeighborMessage set_id={} round={} last_finalized={} "
              "has received from {}",
@@ -397,19 +443,6 @@ namespace kagome::consensus::grandpa {
              peer_id);
 
     auto info = peer_manager_->getPeerState(peer_id);
-
-    // Iff peer just reached one of recent round, then share known votes
-    if (not info.has_value()
-        or (info->get().set_id.has_value()
-            and msg.voter_set_id != info->get().set_id)
-        or (info->get().round_number.has_value()
-            and msg.round_number > info->get().round_number)) {
-      if (auto opt_round = selectRound(msg.round_number, msg.voter_set_id);
-          opt_round.has_value()) {
-        auto &round = opt_round.value();
-        environment_->sendState(peer_id, round->state(), msg.voter_set_id);
-      }
-    }
 
     bool reputation_changed = false;
     if (info.has_value() and info->get().set_id.has_value()
@@ -440,6 +473,23 @@ namespace kagome::consensus::grandpa {
           peer_id, network::reputation::benefit::NEIGHBOR_MESSAGE);
     }
 
+    // If peer just reached one of recent round, then share known votes
+    if (not info.has_value()
+        or (info->get().set_id.has_value()
+            and msg.voter_set_id != info->get().set_id)
+        or (info->get().round_number.has_value()
+            and msg.round_number > info->get().round_number)) {
+      if (auto opt_round = selectRound(msg.round_number, msg.voter_set_id);
+          opt_round.has_value()) {
+        auto &round = opt_round.value();
+        environment_->sendState(peer_id, round->state(), msg.voter_set_id);
+      }
+    }
+
+    if (not synchronized_once_.load()) {
+      return;
+    }
+
     // If peer has the same voter set id
     if (msg.voter_set_id == current_round_->voterSetId()) {
       // Check if needed to catch-up peer, then do that
@@ -447,34 +497,31 @@ namespace kagome::consensus::grandpa {
           >= current_round_->roundNumber() + kCatchUpThreshold) {
         // Do catch-up only when another one is not in progress
         if (not pending_catchup_request_.has_value()) {
-          auto res = environment_->onCatchUpRequested(
+          environment_->onCatchUpRequested(
               peer_id, msg.voter_set_id, msg.round_number - 1);
-          if (res.has_value()) {
-            if (pending_catchup_request_.has_value()) {
-              SL_WARN(logger_,
-                      "Catch up request pending, but another one has done");
-            }
-            pending_catchup_request_.emplace(
-                peer_id,
-                network::CatchUpRequest{msg.round_number - 1,
-                                        msg.voter_set_id});
-            catchup_request_timer_handle_ = scheduler_->scheduleWithHandle(
-                [wp = weak_from_this()] {
-                  auto self = wp.lock();
-                  if (not self) {
-                    return;
-                  }
-                  if (self->pending_catchup_request_.has_value()) {
-                    const auto &peer_id =
-                        std::get<0>(self->pending_catchup_request_.value());
-                    self->reputation_repository_->change(
-                        peer_id,
-                        network::reputation::cost::CATCH_UP_REQUEST_TIMEOUT);
-                    self->pending_catchup_request_.reset();
-                  }
-                },
-                toMilliseconds(kCatchupRequestTimeout));
+          if (pending_catchup_request_.has_value()) {
+            SL_WARN(logger_,
+                    "Catch up request pending, but another one has done");
           }
+          pending_catchup_request_.emplace(
+              peer_id,
+              network::CatchUpRequest{msg.round_number - 1, msg.voter_set_id});
+          catchup_request_timer_handle_ = scheduler_->scheduleWithHandle(
+              [wp = weak_from_this()] {
+                auto self = wp.lock();
+                if (not self) {
+                  return;
+                }
+                if (self->pending_catchup_request_.has_value()) {
+                  const auto &peer_id =
+                      std::get<0>(self->pending_catchup_request_.value());
+                  self->reputation_repository_->change(
+                      peer_id,
+                      network::reputation::cost::CATCH_UP_REQUEST_TIMEOUT);
+                  self->pending_catchup_request_.reset();
+                }
+              },
+              toMilliseconds(kCatchupRequestTimeout));
         }
       }
       return;
@@ -485,37 +532,47 @@ namespace kagome::consensus::grandpa {
       return;
     }
 
-    if (info->get().last_finalized <= block_tree_->bestLeaf().number) {
+    if (info->get().last_finalized > block_tree_->getLastFinalized().number) {
       //  Trying to substitute with justifications' request only
-      auto last_finalized = block_tree_->getLastFinalized();
-      synchronizer_->syncMissingJustifications(
-          peer_id,
-          last_finalized,
-          std::nullopt,
-          [wp = weak_from_this(), last_finalized, msg](auto res) {
-            auto self = wp.lock();
-            if (not self) {
-              return;
-            }
-            if (res.has_error()) {
-              SL_DEBUG(self->logger_,
-                      "Missing justifications between blocks {} and "
-                      "{} was not loaded: {}",
-                      last_finalized,
-                      msg.last_finalized,
-                      res.error());
-            } else {
-              SL_DEBUG(self->logger_,
-                       "Loaded justifications for blocks in range {} - {}",
-                       last_finalized,
-                       res.value());
-            }
-          });
+      main_thread_context_.execute([wself{weak_from_this()},
+                                    peer_id,
+                                    last_finalized{
+                                        block_tree_->getLastFinalized()},
+                                    msg{std::move(msg)}]() mutable {
+        if (auto self = wself.lock()) {
+          self->synchronizer_->syncMissingJustifications(
+              peer_id,
+              last_finalized,
+              std::nullopt,
+              [wp{wself}, last_finalized, msg](auto res) {
+                auto self = wp.lock();
+                if (not self) {
+                  return;
+                }
+                if (res.has_error()) {
+                  SL_DEBUG(self->logger_,
+                          "Missing justifications between blocks {} and "
+                          "{} was not loaded: {}",
+                          last_finalized,
+                          msg.last_finalized,
+                          res.error());
+                } else {
+                  SL_DEBUG(self->logger_,
+                           "Loaded justifications for blocks in range {} - {}",
+                           last_finalized,
+                           res.value());
+                }
+              });
+        }
+      });
     }
   }
 
-  void GrandpaImpl::onCatchUpRequest(const libp2p::peer::PeerId &peer_id,
-                                     const network::CatchUpRequest &msg) {
+  void GrandpaImpl::onCatchUpRequest(const libp2p::peer::PeerId &p_,
+                                     network::CatchUpRequest &&m_) {
+    REINVOKE_2(
+        *internal_thread_context_, onCatchUpRequest, p_, m_, peer_id, msg);
+
     auto info_opt = peer_manager_->getPeerState(peer_id);
     if (not info_opt.has_value() or not info_opt->get().set_id.has_value()
         or not info_opt->get().round_number.has_value()) {
@@ -631,13 +688,29 @@ namespace kagome::consensus::grandpa {
                                    network::reputation::cost::CATCH_UP_REPLY);
   }
 
-  void GrandpaImpl::onCatchUpResponse(const libp2p::peer::PeerId &peer_id,
-                                      const network::CatchUpResponse &msg) {
-    bool need_cleanup_when_exiting_scope = false;
-    GrandpaContext::Guard cg;
+  void GrandpaImpl::onCatchUpResponse(
+      std::optional<std::shared_ptr<GrandpaContext>> &&e_,
+      const libp2p::peer::PeerId &p_,
+      const network::CatchUpResponse &m_) {
+    REINVOKE_3(*internal_thread_context_,
+               onCatchUpResponse,
+               e_,
+               p_,
+               m_,
+               existed_context,
+               peer_id,
+               msg);
 
-    auto ctx = GrandpaContext::get().value();
-    if (not ctx->peer_id.has_value()) {
+    bool need_cleanup_when_exiting_scope = false;
+    GrandpaContext grandpa_context{
+        [](std::optional<std::shared_ptr<GrandpaContext>> &&existed_context) {
+          if (existed_context) {
+            return std::move(**existed_context);
+          }
+          return GrandpaContext{};
+        }(std::move(existed_context))};
+
+    if (not grandpa_context.peer_id.has_value()) {
       if (not pending_catchup_request_.has_value()) {
         SL_DEBUG(logger_,
                  "Catch-up request to round #{} received from {}, "
@@ -768,41 +841,38 @@ namespace kagome::consensus::grandpa {
       }
       auto &authority_set = authorities_opt.value();
 
-      auto voters = std::make_shared<VoterSet>(msg.voter_set_id);
-      for (const auto &authority : authority_set->authorities) {
-        auto res = voters->insert(
-            primitives::GrandpaSessionKey(authority.id.id), authority.weight);
-        if (res.has_error()) {
-          SL_WARN(logger_, "Can't make voter set: {}", res.error());
-          return;
-        }
+      auto voters_res = VoterSet::make(*authority_set);
+      if (not voters_res) {
+        SL_WARN(logger_, "Can't make voter set: {}", voters_res.error());
+        return;
       }
+      auto &voters = voters_res.value();
 
       auto round = makeInitialRound(round_state, std::move(voters));
 
       if (not round->completable()
           and not round->finalizedBlock().has_value()) {
         // Met unknown voter - cost reputation
-        if (ctx->unknown_voter_counter > 0) {
+        if (grandpa_context.unknown_voter_counter > 0) {
           reputation_repository_->change(
               peer_id,
               network::reputation::cost::UNKNOWN_VOTER
-                  * ctx->unknown_voter_counter);
+                  * grandpa_context.unknown_voter_counter);
         }
         // Met invalid signature - cost reputation
-        if (ctx->invalid_signature_counter > 0) {
+        if (grandpa_context.invalid_signature_counter > 0) {
           reputation_repository_->change(
               peer_id,
               network::reputation::cost::BAD_CATCHUP_RESPONSE
-                  * ctx->checked_signature_counter);
+                  * grandpa_context.checked_signature_counter);
         }
         // Check if missed block are detected and if this is first attempt
         // (considering by definition peer id in context)
-        if (not ctx->missing_blocks.empty()) {
-          if (not ctx->peer_id.has_value()) {
-            ctx->peer_id.emplace(peer_id);
-            ctx->catch_up_response.emplace(msg);
-            loadMissingBlocks();
+        if (not grandpa_context.missing_blocks.empty()) {
+          if (not grandpa_context.peer_id.has_value()) {
+            grandpa_context.peer_id.emplace(peer_id);
+            grandpa_context.catch_up_response.emplace(msg);
+            loadMissingBlocks(std::move(grandpa_context));
           }
         }
         return;
@@ -812,17 +882,18 @@ namespace kagome::consensus::grandpa {
       current_round_ = std::move(round);
 
     } else {
+      std::optional<GrandpaContext> gp_context{std::move(grandpa_context)};
       bool is_prevotes_changed = false;
       bool is_precommits_changed = false;
       for (auto &vote : msg.prevote_justification) {
-        if (current_round_->onPrevote(vote,
-                                      VotingRound::Propagation::NEEDLESS)) {
+        if (current_round_->onPrevote(
+                gp_context, vote, VotingRound::Propagation::NEEDLESS)) {
           is_prevotes_changed = true;
         }
       }
       for (auto &vote : msg.precommit_justification) {
-        if (current_round_->onPrecommit(vote,
-                                        VotingRound::Propagation::NEEDLESS)) {
+        if (current_round_->onPrecommit(
+                gp_context, vote, VotingRound::Propagation::NEEDLESS)) {
           is_precommits_changed = true;
         }
       }
@@ -838,26 +909,26 @@ namespace kagome::consensus::grandpa {
       // Check if catch-up round is not completable
       if (not current_round_->completable()) {
         // Met unknown voter - cost reputation
-        if (ctx->unknown_voter_counter > 0) {
+        if (gp_context->unknown_voter_counter > 0) {
           reputation_repository_->change(
               peer_id,
               network::reputation::cost::UNKNOWN_VOTER
-                  * ctx->unknown_voter_counter);
+                  * gp_context->unknown_voter_counter);
         }
         // Met invalid signature - cost reputation
-        if (ctx->invalid_signature_counter > 0) {
+        if (gp_context->invalid_signature_counter > 0) {
           reputation_repository_->change(
               peer_id,
               network::reputation::cost::BAD_CATCHUP_RESPONSE
-                  * ctx->checked_signature_counter);
+                  * gp_context->checked_signature_counter);
         }
         // Check if missed block are detected and if this is first attempt
         // (considering by definition peer id in context)
-        if (not ctx->missing_blocks.empty()) {
-          if (not ctx->peer_id.has_value()) {
-            ctx->peer_id.emplace(peer_id);
-            ctx->catch_up_response.emplace(msg);
-            loadMissingBlocks();
+        if (not gp_context->missing_blocks.empty()) {
+          if (not gp_context->peer_id.has_value()) {
+            gp_context->peer_id.emplace(peer_id);
+            gp_context->catch_up_response.emplace(msg);
+            loadMissingBlocks(std::move(gp_context.value()));
           }
         }
         return;
@@ -870,8 +941,19 @@ namespace kagome::consensus::grandpa {
         peer_id, network::reputation::benefit::BASIC_VALIDATED_CATCH_UP);
   }
 
-  void GrandpaImpl::onVoteMessage(const libp2p::peer::PeerId &peer_id,
-                                  const VoteMessage &msg) {
+  void GrandpaImpl::onVoteMessage(
+      std::optional<std::shared_ptr<GrandpaContext>> &&e_,
+      const libp2p::peer::PeerId &p_,
+      const VoteMessage &m_) {
+    REINVOKE_3(*internal_thread_context_,
+               onVoteMessage,
+               e_,
+               p_,
+               m_,
+               existed_context,
+               peer_id,
+               msg);
+
     auto info = peer_manager_->getPeerState(peer_id);
     if (not info.has_value() or not info->get().set_id.has_value()
         or not info->get().round_number.has_value()) {
@@ -1004,43 +1086,53 @@ namespace kagome::consensus::grandpa {
              msg.vote.getBlockInfo(),
              peer_id);
 
-    GrandpaContext::Guard cg;
+    std::optional<GrandpaContext> opt_grandpa_context{
+        [](std::optional<std::shared_ptr<GrandpaContext>> &&existed_context) {
+          if (existed_context) {
+            return std::move(**existed_context);
+          }
+          return GrandpaContext{};
+        }(std::move(existed_context))};
+    GrandpaContext &grandpa_context = *opt_grandpa_context;
 
     bool is_prevotes_changed = false;
     bool is_precommits_changed = false;
     visit_in_place(
         msg.vote.message,
         [&](const PrimaryPropose &) {
-          target_round->onProposal(msg.vote,
+          target_round->onProposal(opt_grandpa_context,
+                                   msg.vote,
                                    VotingRound::Propagation::REQUESTED);
         },
         [&](const Prevote &) {
-          if (target_round->onPrevote(msg.vote,
+          if (target_round->onPrevote(opt_grandpa_context,
+                                      msg.vote,
                                       VotingRound::Propagation::REQUESTED)) {
             is_prevotes_changed = true;
           }
         },
         [&](const Precommit &) {
-          if (target_round->onPrecommit(msg.vote,
+          if (target_round->onPrecommit(opt_grandpa_context,
+                                        msg.vote,
                                         VotingRound::Propagation::REQUESTED)) {
             is_precommits_changed = true;
           }
         });
 
-    auto ctx = GrandpaContext::get().value();
-
     // Met invalid signature - cost reputation
-    if (ctx->invalid_signature_counter > 0) {
-      reputation_repository_->change(peer_id,
-                                     network::reputation::cost::BAD_SIGNATURE
-                                         * ctx->checked_signature_counter);
+    if (grandpa_context.invalid_signature_counter > 0) {
+      reputation_repository_->change(
+          peer_id,
+          network::reputation::cost::BAD_SIGNATURE
+              * grandpa_context.checked_signature_counter);
     }
 
     // Met unknown voter - cost reputation
-    if (ctx->unknown_voter_counter > 0) {
-      reputation_repository_->change(peer_id,
-                                     network::reputation::cost::UNKNOWN_VOTER
-                                         * ctx->unknown_voter_counter);
+    if (grandpa_context.unknown_voter_counter > 0) {
+      reputation_repository_->change(
+          peer_id,
+          network::reputation::cost::UNKNOWN_VOTER
+              * grandpa_context.unknown_voter_counter);
     }
 
     if (is_prevotes_changed or is_precommits_changed) {
@@ -1056,19 +1148,30 @@ namespace kagome::consensus::grandpa {
     if (not target_round->finalizedBlock().has_value()) {
       // Check if missed block are detected and if this is first attempt
       // (considering by definition peer id in context)
-      if (not ctx->missing_blocks.empty()) {
-        if (not ctx->peer_id.has_value()) {
-          ctx->peer_id.emplace(peer_id);
-          ctx->vote.emplace(msg);
-          loadMissingBlocks();
+      if (not grandpa_context.missing_blocks.empty()) {
+        if (not grandpa_context.peer_id.has_value()) {
+          grandpa_context.peer_id.emplace(peer_id);
+          grandpa_context.vote.emplace(msg);
+          loadMissingBlocks(std::move(grandpa_context));
         }
       }
       return;
     }
   }
 
-  void GrandpaImpl::onCommitMessage(const libp2p::peer::PeerId &peer_id,
-                                    const network::FullCommitMessage &msg) {
+  void GrandpaImpl::onCommitMessage(
+      std::optional<std::shared_ptr<GrandpaContext>> &&e_,
+      const libp2p::peer::PeerId &p_,
+      const network::FullCommitMessage &m_) {
+    REINVOKE_3(*internal_thread_context_,
+               onCommitMessage,
+               e_,
+               p_,
+               m_,
+               existed_context,
+               peer_id,
+               msg);
+
     // TODO check if height of commit less then previous one
     // if (new_commit_height < last_commit_height) {
     //   reputation_repository_->change(
@@ -1158,10 +1261,15 @@ namespace kagome::consensus::grandpa {
       justification.items.emplace_back(std::move(commit));
     }
 
-    GrandpaContext::Guard cg;
-    auto ctx = GrandpaContext::get().value();
-    ctx->peer_id.emplace(peer_id);
-    ctx->commit.emplace(msg);
+    GrandpaContext grandpa_context{
+        [](std::optional<std::shared_ptr<GrandpaContext>> &&existed_context) {
+          if (existed_context) {
+            return std::move(**existed_context);
+          }
+          return GrandpaContext{};
+        }(std::move(existed_context))};
+    grandpa_context.peer_id.emplace(peer_id);
+    grandpa_context.commit.emplace(msg);
 
     // Check if commit of already finalized block
     if (block_tree_->getLastFinalized().number
@@ -1178,44 +1286,109 @@ namespace kagome::consensus::grandpa {
       return;
     }
 
+    auto check_missed_blocks = [peer_id, msg, wself{weak_from_this()}](
+                                   GrandpaContext &&grandpa_context) mutable {
+      // Check if missed block are detected and if this is first attempt
+      // (considering by definition peer id in context)
+      if (auto self = wself.lock()) {
+        if (not grandpa_context.missing_blocks.empty()) {
+          if (not grandpa_context.peer_id.has_value()) {
+            grandpa_context.peer_id.emplace(peer_id);
+            grandpa_context.commit.emplace(msg);
+            self->loadMissingBlocks(std::move(grandpa_context));
+          }
+        }
+      }
+    };
+
     auto has_direct_chain = block_tree_->hasDirectChain(
         block_tree_->getLastFinalized().hash, justification.block_info.hash);
     if (has_direct_chain) {
-      auto res = applyJustification(justification.block_info, justification);
-      if (res.has_value()) {
-        reputation_repository_->change(
-            peer_id, network::reputation::benefit::BASIC_VALIDATED_COMMIT);
-        return;
-      }
+      applyJustification(
+          justification,
+          [wself{weak_from_this()},
+           check_missed_blocks{std::move(check_missed_blocks)},
+           peer_id,
+           msg,
+           grandpa_context{std::move(grandpa_context)}](auto &&res) mutable {
+            if (auto self = wself.lock()) {
+              if (res.has_value()) {
+                self->reputation_repository_->change(
+                    peer_id,
+                    network::reputation::benefit::BASIC_VALIDATED_COMMIT);
+                return;
+              }
 
-      if (ctx->missing_blocks.empty()) {
-        SL_WARN(logger_,
-                "Commit with set_id={} in round={} for block {} "
-                "has received from {} and has not applied: {}",
-                msg.set_id,
-                msg.round,
-                BlockInfo(msg.message.target_number, msg.message.target_hash),
-                peer_id,
-                res.error());
-        return;
-      }
+              if (grandpa_context.missing_blocks.empty()) {
+                SL_WARN(self->logger_,
+                        "Commit with set_id={} in round={} for block {} "
+                        "has received from {} and has not applied: {}",
+                        msg.set_id,
+                        msg.round,
+                        BlockInfo(msg.message.target_number,
+                                  msg.message.target_hash),
+                        peer_id,
+                        res.error());
+                return;
+              }
+              check_missed_blocks(std::move(grandpa_context));
+            }
+          });
     } else {
-      ctx->missing_blocks.emplace(justification.block_info);
-    }
-
-    // Check if missed block are detected and if this is first attempt
-    // (considering by definition peer id in context)
-    if (not ctx->missing_blocks.empty()) {
-      if (not ctx->peer_id.has_value()) {
-        ctx->peer_id.emplace(peer_id);
-        ctx->commit.emplace(msg);
-        loadMissingBlocks();
-      }
+      grandpa_context.missing_blocks.emplace(justification.block_info);
+      check_missed_blocks(std::move(grandpa_context));
     }
   }
 
-  outcome::result<void> GrandpaImpl::applyJustification(
-      const BlockInfo &block_info, const GrandpaJustification &justification) {
+  void GrandpaImpl::callbackCall(ApplyJustificationCb &&callback,
+                                 outcome::result<void> &&result) {
+    main_thread_context_.execute(
+        [callback{std::move(callback)}, result{std::move(result)}]() mutable {
+          callback(std::move(result));
+        });
+  }
+
+  void GrandpaImpl::verifyJustification(
+      const GrandpaJustification &jst,
+      const primitives::AuthoritySet &auth,
+      std::shared_ptr<std::promise<outcome::result<void>>> pr) {
+    REINVOKE_3(*internal_thread_context_,
+               verifyJustification,
+               jst,
+               auth,
+               pr,
+               justification,
+               authorities,
+               promise_res)
+
+    auto voters = VoterSet::make(authorities).value();
+    MovableRoundState state;
+    state.round_number = justification.round_number;
+    VotingRoundImpl round{
+        shared_from_this(),
+        GrandpaConfig{voters, justification.round_number, {}, {}},
+        hasher_,
+        environment_,
+        std::make_shared<VoteCryptoProviderImpl>(
+            nullptr, crypto_provider_, justification.round_number, voters),
+        std::make_shared<VoteTrackerImpl>(),
+        std::make_shared<VoteTrackerImpl>(),
+        std::make_shared<VoteGraphImpl>(
+            primitives::BlockInfo{}, voters, environment_),
+        scheduler_,
+        state,
+    };
+    promise_res->set_value(round.validatePrecommitJustification(justification));
+  }
+
+  void GrandpaImpl::applyJustification(const GrandpaJustification &j,
+                                       ApplyJustificationCb &&cb) {
+    REINVOKE_2(*internal_thread_context_,
+               applyJustification,
+               j,
+               cb,
+               justification,
+               callback)
     auto round_opt = selectRound(justification.round_number, std::nullopt);
     std::shared_ptr<VotingRound> round;
     bool need_to_make_round_current = false;
@@ -1223,14 +1396,19 @@ namespace kagome::consensus::grandpa {
       round = std::move(round_opt.value());
     } else {
       // This is justification for already finalized block
-      if (current_round_->lastFinalizedBlock().number > block_info.number) {
-        return VotingRoundError::JUSTIFICATION_FOR_BLOCK_IN_PAST;
+      if (current_round_->lastFinalizedBlock().number
+          > justification.block_info.number) {
+        callbackCall(std::move(callback),
+                     VotingRoundError::JUSTIFICATION_FOR_BLOCK_IN_PAST);
+        return;
       }
 
-      auto authorities_opt =
-          authority_manager_->authorities(block_info, IsBlockFinalized{false});
+      auto authorities_opt = authority_manager_->authorities(
+          justification.block_info, IsBlockFinalized{false});
       if (!authorities_opt) {
-        return VotingRoundError::NO_KNOWN_AUTHORITIES_FOR_BLOCK;
+        callbackCall(std::move(callback),
+                     VotingRoundError::NO_KNOWN_AUTHORITIES_FOR_BLOCK);
+        return;
       }
       auto &authority_set = authorities_opt.value();
 
@@ -1244,7 +1422,8 @@ namespace kagome::consensus::grandpa {
           SL_DEBUG(logger_,
                    "Can't create next round to apply justification: {}",
                    res.error());
-          return res.as_failure();
+          callbackCall(std::move(callback), res.as_failure());
+          return;
         }
 
         round = res.value();
@@ -1258,17 +1437,23 @@ namespace kagome::consensus::grandpa {
             .round_number = justification.round_number,
             .last_finalized_block = current_round_->lastFinalizedBlock(),
             .votes = {},
-            .finalized = block_info};
+            .finalized = justification.block_info,
+        };
 
         // This is justification for non-actual round
         if (authority_set->id < current_round_->voterSetId()) {
-          return VotingRoundError::JUSTIFICATION_FOR_AUTHORITY_SET_IN_PAST;
+          callbackCall(
+              std::move(callback),
+              VotingRoundError::JUSTIFICATION_FOR_AUTHORITY_SET_IN_PAST);
+          return;
         }
         if (authority_set->id == current_round_->voterSetId()
             && justification.round_number < current_round_->roundNumber()) {
           if (not isWestendPastRound(block_tree_->getGenesisBlockHash(),
                                      justification.block_info)) {
-            return VotingRoundError::JUSTIFICATION_FOR_ROUND_IN_PAST;
+            callbackCall(std::move(callback),
+                         VotingRoundError::JUSTIFICATION_FOR_ROUND_IN_PAST);
+            return;
           }
         }
 
@@ -1276,20 +1461,18 @@ namespace kagome::consensus::grandpa {
           SL_WARN(logger_,
                   "Authority set on block {} with justification has id {}, "
                   "while the current round set id is {} (difference must be 1)",
-                  block_info,
+                  justification.block_info,
                   authority_set->id,
                   current_round_->voterSetId());
         }
 
-        auto voters = std::make_shared<VoterSet>(authority_set->id);
-        for (const auto &authority : authority_set->authorities) {
-          auto res = voters->insert(
-              primitives::GrandpaSessionKey(authority.id.id), authority.weight);
-          if (res.has_error()) {
-            SL_CRITICAL(logger_, "Can't make voter set: {}", res.error());
-            return res.as_failure();
-          }
+        auto voters_res = VoterSet::make(*authority_set);
+        if (not voters_res) {
+          SL_CRITICAL(logger_, "Can't make voter set: {}", voters_res.error());
+          callbackCall(std::move(callback), voters_res.error());
+          return;
         }
+        auto &voters = voters_res.value();
 
         round = makeInitialRound(round_state, std::move(voters));
         need_to_make_round_current = true;
@@ -1301,7 +1484,10 @@ namespace kagome::consensus::grandpa {
       }
     }
 
-    OUTCOME_TRY(round->applyJustification(block_info, justification));
+    if (auto r = round->applyJustification(justification); r.has_error()) {
+      callbackCall(std::move(callback), r.as_failure());
+      return;
+    }
 
     if (need_to_make_round_current) {
       current_round_->end();
@@ -1312,66 +1498,81 @@ namespace kagome::consensus::grandpa {
 
     // if round == current round, then execution of the next round will be
     // elsewhere
-    return outcome::success();
+    callbackCall(std::move(callback), outcome::success());
   }
 
-  void GrandpaImpl::loadMissingBlocks() {
-    auto ctx = GrandpaContext::get().value();
-    BOOST_ASSERT(ctx);
+  void GrandpaImpl::reload() {
+    if (not start()) {
+      SL_ERROR(logger_, "reload: start failed");
+    }
+  }
 
-    if (not ctx->peer_id.has_value()) {
+  void GrandpaImpl::loadMissingBlocks(GrandpaContext &&gc) {
+    if (not gc.peer_id.has_value() || gc.missing_blocks.empty()) {
       return;
     }
 
-    if (ctx->missing_blocks.empty()) {
-      return;
-    }
-
-    auto final = [wp = weak_from_this(), ctx] {
-      if (auto self = wp.lock()) {
-        GrandpaContext::set(ctx);
-        if (ctx->vote.has_value()) {
-          self->onVoteMessage(ctx->peer_id.value(), ctx->vote.value());
-        } else if (ctx->catch_up_response.has_value()) {
-          self->onCatchUpResponse(ctx->peer_id.value(),
-                                  ctx->catch_up_response.value());
-        } else if (ctx->commit.has_value()) {
-          self->onCommitMessage(ctx->peer_id.value(), ctx->commit.value());
+    auto grandpa_context = std::make_shared<GrandpaContext>(std::move(gc));
+    main_thread_context_.execute([wself{weak_from_this()},
+                                  grandpa_context]() mutable {
+      auto final = [wp{wself}](
+                       std::shared_ptr<GrandpaContext> grandpa_context) {
+        if (auto self = wp.lock()) {
+          if (grandpa_context->vote.has_value()) {
+            auto const &peer_id = grandpa_context->peer_id.value();
+            auto const &vote = grandpa_context->vote.value();
+            self->onVoteMessage(std::move(grandpa_context), peer_id, vote);
+          } else if (grandpa_context->catch_up_response.has_value()) {
+            auto const &peer_id = grandpa_context->peer_id.value();
+            auto const &catch_up_response =
+                grandpa_context->catch_up_response.value();
+            self->onCatchUpResponse(
+                std::move(grandpa_context), peer_id, catch_up_response);
+          } else if (grandpa_context->commit.has_value()) {
+            auto const &peer_id = grandpa_context->peer_id.value();
+            auto const &commit = grandpa_context->commit.value();
+            self->onCommitMessage(std::move(grandpa_context), peer_id, commit);
+          }
         }
-      }
-    };
+      };
 
-    auto do_request_ptr = std::make_shared<std::function<void()>>();
-    auto &do_request = *do_request_ptr;
+      auto do_request_ptr = std::make_shared<
+          std::function<void(std::shared_ptr<GrandpaContext>)>>();
+      auto &do_request = *do_request_ptr;
 
-    do_request = [wp = weak_from_this(),
-                  ctx = std::move(ctx),
-                  do_request_ptr = std::move(do_request_ptr),
-                  final = std::move(final)]() mutable {
-      if (auto self = wp.lock()) {
-        auto &peer_id = ctx->peer_id.value();
-        auto &blocks = ctx->missing_blocks;
-        if (not blocks.empty()) {
-          auto it = blocks.rbegin();
-          auto node = blocks.extract((++it).base());
-          auto block = node.value();
-          self->synchronizer_->syncByBlockInfo(
-              block,
-              peer_id,
-              [wp, ctx, do_request_ptr = std::move(do_request_ptr)](auto res) {
-                if (do_request_ptr != nullptr) {
-                  auto do_request = std::move(*do_request_ptr);
-                  do_request();
-                }
-              },
-              true);
-          return;
-        }
-        final();
-        do_request_ptr.reset();
-      }
-    };
-
-    do_request();
+      do_request =
+          [wp{wself},
+           do_request_ptr = std::move(do_request_ptr),
+           final = std::move(final)](
+              std::shared_ptr<GrandpaContext> grandpa_context) mutable {
+            BOOST_ASSERT(grandpa_context);
+            if (auto self = wp.lock()) {
+              auto &peer_id = grandpa_context->peer_id.value();
+              auto &blocks = grandpa_context->missing_blocks;
+              if (not blocks.empty()) {
+                auto it = blocks.rbegin();
+                auto node = blocks.extract((++it).base());
+                auto block = node.value();
+                self->synchronizer_->syncByBlockInfo(
+                    block,
+                    peer_id,
+                    [wp,
+                     grandpa_context{std::move(grandpa_context)},
+                     do_request_ptr =
+                         std::move(do_request_ptr)](auto res) mutable {
+                      if (do_request_ptr != nullptr) {
+                        auto do_request = std::move(*do_request_ptr);
+                        do_request(std::move(grandpa_context));
+                      }
+                    },
+                    true);
+                return;
+              }
+              final(std::move(grandpa_context));
+              do_request_ptr.reset();
+            }
+          };
+      do_request(std::move(grandpa_context));
+    });
   }
 }  // namespace kagome::consensus::grandpa

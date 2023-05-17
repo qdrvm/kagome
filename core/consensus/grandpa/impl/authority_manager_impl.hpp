@@ -105,12 +105,11 @@ namespace kagome::consensus::grandpa {
     outcome::result<void> applyForcedChange(
         const primitives::BlockContext &context,
         const primitives::AuthorityList &authorities,
-        primitives::BlockNumber delay_start,
-        size_t delay) override;
+        primitives::BlockNumber activate_at) override;
 
     outcome::result<void> applyOnDisabled(
         const primitives::BlockContext &context,
-        uint64_t authority_index) override;
+        primitives::AuthorityIndex authority_index) override;
 
     outcome::result<void> applyPause(
         const primitives::BlockContext &context,
@@ -119,6 +118,10 @@ namespace kagome::consensus::grandpa {
     outcome::result<void> applyResume(
         const primitives::BlockContext &context,
         primitives::BlockNumber activate_at) override;
+
+    void warp(const primitives::BlockInfo &block,
+              const primitives::BlockHeader &header,
+              const primitives::AuthoritySet &authorities) override;
 
    private:
     void prune(const primitives::BlockInfo &block);

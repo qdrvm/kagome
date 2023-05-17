@@ -24,7 +24,7 @@ addtest(app_config_test
     )
 target_link_libraries(app_config_test
     app_config
-    Boost::filesystem
+    filesystem
     logger_for_tests
     telemetry
     )

@@ -5,7 +5,7 @@
 
 #include <gtest/gtest.h>
 
-#include <boost/filesystem.hpp>
+#include "filesystem/common.hpp"
 
 #include "crypto/bip39/impl/bip39_provider_impl.hpp"
 #include "crypto/crypto_store/crypto_store_impl.hpp"
@@ -84,7 +84,7 @@ using testing::_;
 using testing::Invoke;
 using testing::Return;
 
-namespace fs = boost::filesystem;
+namespace fs = kagome::filesystem;
 
 class WasmExecutorTest : public ::testing::Test {
  public:
@@ -118,23 +118,23 @@ class WasmExecutorTest : public ::testing::Test {
         std::make_shared<TrieStorageProviderImpl>(trie_db, serializer);
 
     auto random_generator = std::make_shared<BoostRandomGenerator>();
-    auto ecdsa_provider = std::make_shared<EcdsaProviderImpl>();
-    auto sr25519_provider =
-        std::make_shared<Sr25519ProviderImpl>(random_generator);
-    auto ed25519_provider =
-        std::make_shared<Ed25519ProviderImpl>(random_generator);
-    auto secp256k1_provider = std::make_shared<Secp256k1ProviderImpl>();
     auto hasher = std::make_shared<HasherImpl>();
+    auto ecdsa_provider = std::make_shared<EcdsaProviderImpl>(hasher);
+    auto sr25519_provider = std::make_shared<Sr25519ProviderImpl>();
+    auto ed25519_provider = std::make_shared<Ed25519ProviderImpl>(hasher);
+    auto secp256k1_provider = std::make_shared<Secp256k1ProviderImpl>();
     auto pbkdf2_provider = std::make_shared<Pbkdf2ProviderImpl>();
-    auto bip39_provider = std::make_shared<Bip39ProviderImpl>(pbkdf2_provider);
+    auto bip39_provider =
+        std::make_shared<Bip39ProviderImpl>(pbkdf2_provider, hasher);
 
     auto keystore_path =
-        boost::filesystem::temp_directory_path() / "kagome_keystore_test_dir";
+        kagome::filesystem::temp_directory_path() / "kagome_keystore_test_dir";
     auto crypto_store = std::make_shared<CryptoStoreImpl>(
         std::make_shared<EcdsaSuite>(ecdsa_provider),
         std::make_shared<Ed25519Suite>(ed25519_provider),
         std::make_shared<Sr25519Suite>(sr25519_provider),
         bip39_provider,
+        random_generator,
         KeyFileStorage::createAt(keystore_path).value());
     auto offchain_persistent_storage =
         std::make_shared<kagome::offchain::OffchainPersistentStorageMock>();
@@ -149,7 +149,6 @@ class WasmExecutorTest : public ::testing::Test {
             secp256k1_provider,
             hasher,
             crypto_store,
-            bip39_provider,
             offchain_persistent_storage,
             offchain_worker_pool);
 

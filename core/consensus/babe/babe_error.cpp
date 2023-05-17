@@ -28,6 +28,8 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::consensus::babe, BlockAdditionError, e) {
       return "Block without a header cannot be appended";
     case E::PARENT_NOT_FOUND:
       return "Parent not found";
+    case E::NO_INSTANCE:
+      return "No instance";
   }
   return "Unknown error";
 }

@@ -53,7 +53,8 @@ namespace kagome::consensus::grandpa {
      * @param context data about block where a digest with this change was
      * discovered
      * @param authorities is authority set for renewal
-     * @param activateAt is number of block when changes will applied
+     * @param activateAt is number of block after finalization of which changes
+     * will be applied
      */
     virtual outcome::result<void> applyScheduledChange(
         const primitives::BlockContext &context,
@@ -67,15 +68,12 @@ namespace kagome::consensus::grandpa {
      * @param context data about block where a digest with this change was
      * discovered
      * @param authorities new authority set
-     * @param delay_start block at which the delay before this change is applied
-     * starts
-     * @param delay the chain length until the delay is over
+     * @param activateAt is number of block when changes will applied
      */
     virtual outcome::result<void> applyForcedChange(
         const primitives::BlockContext &context,
         const primitives::AuthorityList &authorities,
-        primitives::BlockNumber delay_start,
-        size_t delay) = 0;
+        primitives::BlockNumber activate_at) = 0;
 
     /**
      * @brief An index of the individual authority in the current authority list
@@ -92,7 +90,8 @@ namespace kagome::consensus::grandpa {
      * @param authority_index is index of one authority in current authority set
      */
     virtual outcome::result<void> applyOnDisabled(
-        const primitives::BlockContext &context, uint64_t authority_index) = 0;
+        const primitives::BlockContext &context,
+        primitives::AuthorityIndex authority_index) = 0;
 
     /**
      * @brief A signal to pause the current authority set after the given delay,
@@ -100,7 +99,8 @@ namespace kagome::consensus::grandpa {
      * block, the authorities should stop voting.
      * @param context data about block where a digest with this change was
      * discovered
-     * @param activateAt is number of block when changes will applied
+     * @param activateAt is number of block after finalization of which changes
+     * will be applied
      */
     virtual outcome::result<void> applyPause(
         const primitives::BlockContext &context,
@@ -118,6 +118,13 @@ namespace kagome::consensus::grandpa {
     virtual outcome::result<void> applyResume(
         const primitives::BlockContext &context,
         primitives::BlockNumber activate_at) = 0;
+
+    /**
+     * Warp synced to `block` with `authorities`.
+     */
+    virtual void warp(const primitives::BlockInfo &block,
+                      const primitives::BlockHeader &header,
+                      const primitives::AuthoritySet &authorities) = 0;
   };
 }  // namespace kagome::consensus::grandpa
 

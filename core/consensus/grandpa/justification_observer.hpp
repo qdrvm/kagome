@@ -6,6 +6,8 @@
 #ifndef KAGOME_CONSENSUS_GRANDPA_JUSTIFICATIONOBSERVER
 #define KAGOME_CONSENSUS_GRANDPA_JUSTIFICATIONOBSERVER
 
+#include <future>
+
 #include "consensus/grandpa/structs.hpp"
 #include "outcome/outcome.hpp"
 #include "primitives/common.hpp"
@@ -18,18 +20,30 @@ namespace kagome::consensus::grandpa {
    */
   struct JustificationObserver {
     virtual ~JustificationObserver() = default;
+    using ApplyJustificationCb = std::function<void(outcome::result<void> &&)>;
 
     /**
-     * Validate provided {@param justification} for finalization {@param block}.
-     * If it valid finalize {@param block} and save {@param justification} in
+     * Validate {@param justification} with {@param authorities}.
+     */
+    virtual void verifyJustification(
+        const GrandpaJustification &justification,
+        const primitives::AuthoritySet &authorities,
+        std::shared_ptr<std::promise<outcome::result<void>>> promise_res) = 0;
+
+    /**
+     * Validate provided {@param justification} for finalization.
+     * If it valid finalize block and save {@param justification} in
      * storage.
-     * @param block is observed block info
-     * @param justification justification of finalization of provided block
+     * @param justification justification of finalization
      * @return nothing or on error
      */
-    virtual outcome::result<void> applyJustification(
-        const primitives::BlockInfo &block_info,
-        const GrandpaJustification &justification) = 0;
+    virtual void applyJustification(const GrandpaJustification &justification,
+                                    ApplyJustificationCb &&callback) = 0;
+
+    /**
+     * Reload round after warp sync.
+     */
+    virtual void reload() = 0;
   };
 
 }  // namespace kagome::consensus::grandpa

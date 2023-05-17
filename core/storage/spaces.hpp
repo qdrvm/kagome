@@ -24,7 +24,6 @@ namespace kagome::storage {
 
     BLOCK_DATA,
 
-    //
     kTotal
   };
 }

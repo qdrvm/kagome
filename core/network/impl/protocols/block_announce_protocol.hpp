@@ -28,6 +28,10 @@
 #include "network/types/block_announce_handshake.hpp"
 #include "utils/non_copyable.hpp"
 
+namespace kagome::blockchain {
+  class GenesisBlockHash;
+}
+
 namespace kagome::network {
 
   KAGOME_DECLARE_CACHE(BlockAnnounceProtocol, KAGOME_CACHE_UNIT(BlockAnnounce));
@@ -44,14 +48,13 @@ namespace kagome::network {
     BlockAnnounceProtocol(libp2p::Host &host,
                           const application::AppConfiguration &app_config,
                           const application::ChainSpec &chain_spec,
-                          const primitives::BlockHash &genesis_hash,
+                          const blockchain::GenesisBlockHash &genesis_hash,
                           std::shared_ptr<StreamEngine> stream_engine,
                           std::shared_ptr<blockchain::BlockTree> block_tree,
                           std::shared_ptr<BlockAnnounceObserver> observer,
                           std::shared_ptr<PeerManager> peer_manager);
 
     bool start() override;
-    bool stop() override;
 
     const std::string &protocolName() const override;
 

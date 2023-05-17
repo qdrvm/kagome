@@ -22,6 +22,7 @@ namespace kagome::parachain {
 
     virtual ~Recovery() = default;
 
+    virtual void remove(const CandidateHash &candidate) = 0;
     virtual void recover(CandidateReceipt receipt,
                          SessionIndex session_index,
                          std::optional<GroupIndex> backing_group,

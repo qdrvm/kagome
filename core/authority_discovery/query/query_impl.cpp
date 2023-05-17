@@ -48,14 +48,18 @@ namespace kagome::authority_discovery {
         key_marshaller_{std::move(key_marshaller)},
         host_{host},
         kademlia_{std::move(kademlia)},
+        scheduler_{[&] {
+          BOOST_ASSERT(scheduler != nullptr);
+          return std::move(scheduler);
+        }()},
         interval_{
             kIntervalInitial,
             kIntervalMax,
-            std::move(scheduler),
+            scheduler_,
         },
         log_{log::createLogger("AuthorityDiscoveryQuery",
                                "authority_discovery")} {
-    app_state_manager->atLaunch([=] { return start(); });
+    app_state_manager->takeControl(*this);
   }
 
   bool QueryImpl::start() {
@@ -119,16 +123,24 @@ namespace kagome::authority_discovery {
       queue_.pop_back();
 
       common::Buffer hash = crypto::sha256(authority);
-      std::ignore = kademlia_->getValue(
-          hash, [=](outcome::result<std::vector<uint8_t>> _res) {
-            std::unique_lock lock{mutex_};
-            --active_;
-            pop();
-            auto r = add(authority, std::move(_res));
-            if (not r) {
-              SL_DEBUG(log_, "add: {}", r.error());
-            }
-          });
+      scheduler_->schedule([=, wp = weak_from_this()] {
+        if (auto self = wp.lock()) {
+          std::ignore = kademlia_->getValue(
+              hash, [=](outcome::result<std::vector<uint8_t>> res) {
+                std::unique_lock lock{mutex_};
+                --active_;
+                pop();
+                if (res.has_error()) {
+                  SL_DEBUG(log_, "Kademlia can't get value: {}", res.error());
+                  return;
+                }
+                auto r = add(authority, std::move(res.value()));
+                if (not r) {
+                  SL_DEBUG(log_, "Can't add: {}", r.error());
+                }
+              });
+        }
+      });
     }
   }
 

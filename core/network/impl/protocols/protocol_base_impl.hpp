@@ -70,10 +70,6 @@ namespace kagome::network {
       return true;
     }
 
-    bool stop() {
-      return true;
-    }
-
     const ProtocolName &protocolName() const {
       return name_;
     }

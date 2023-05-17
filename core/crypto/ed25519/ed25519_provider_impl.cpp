@@ -5,11 +5,11 @@
 
 #include "crypto/ed25519/ed25519_provider_impl.hpp"
 
-#include <random>
-
 extern "C" {
 #include <schnorrkel/schnorrkel.h>
 }
+
+#include "crypto/hasher.hpp"
 
 OUTCOME_CPP_DEFINE_CATEGORY(kagome::crypto, Ed25519ProviderImpl::Error, e) {
   using E = kagome::crypto::Ed25519ProviderImpl::Error;
@@ -18,26 +18,28 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::crypto, Ed25519ProviderImpl::Error, e) {
       return "Internal error during ed25519 signature verification";
     case E::SIGN_FAILED:
       return "Internal error during ed25519 signing";
+    case E::SOFT_JUNCTION_NOT_SUPPORTED:
+      return "Soft junction not supported for ed25519";
   }
   return "Unknown error in ed25519 provider";
 }
 
 namespace kagome::crypto {
+  Ed25519ProviderImpl::Ed25519ProviderImpl(
+      std::shared_ptr<crypto::Hasher> hasher)
+      : hasher_{std::move(hasher)},
+        logger_{log::createLogger("Ed25519Provider", "ed25519")} {}
 
-  Ed25519ProviderImpl::Ed25519ProviderImpl(std::shared_ptr<CSPRNG> generator)
-      : generator_{std::move(generator)},
-        logger_{log::createLogger("Ed25519Provider", "ed25519")} {
-    BOOST_ASSERT(generator_ != nullptr);
-  }
-
-  Ed25519KeypairAndSeed Ed25519ProviderImpl::generateKeypair() const {
-    Ed25519Seed seed;
-    generator_->fillRandomly(seed);
-    return Ed25519KeypairAndSeed{generateKeypair(seed), seed};
-  }
-
-  Ed25519Keypair Ed25519ProviderImpl::generateKeypair(
-      const Ed25519Seed &seed) const {
+  outcome::result<Ed25519Keypair> Ed25519ProviderImpl::generateKeypair(
+      const Ed25519Seed &_seed, Junctions junctions) const {
+    auto seed = _seed;
+    for (auto &junction : junctions) {
+      if (not junction.hard) {
+        return Error::SOFT_JUNCTION_NOT_SUPPORTED;
+      }
+      seed = hasher_->blake2b_256(
+          scale::encode("Ed25519HDKD", seed, junction.cc).value());
+    }
     std::array<uint8_t, ED25519_KEYPAIR_LENGTH> kp_bytes{};
     ed25519_keypair_from_seed(kp_bytes.data(), seed.data());
     Ed25519Keypair kp;

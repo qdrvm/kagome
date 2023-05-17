@@ -40,7 +40,7 @@ namespace kagome::runtime {
      * @return runtime version
      */
     virtual outcome::result<primitives::Version> version(
-        primitives::BlockHash const &block) = 0;
+        const primitives::BlockHash &block) = 0;
 
     /**
      * @brief Returns the version of the runtime - version for nested calls,
@@ -56,6 +56,9 @@ namespace kagome::runtime {
      */
     virtual outcome::result<void> execute_block(
         const primitives::Block &block,
+        TrieChangesTrackerOpt changes_tracker) = 0;
+    virtual outcome::result<void> execute_block_ref(
+        const primitives::BlockReflection &block,
         TrieChangesTrackerOpt changes_tracker) = 0;
 
     /**

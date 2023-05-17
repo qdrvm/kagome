@@ -6,6 +6,7 @@
 #ifndef KAGOME_CRYPTO_KEY_TYPE_HPP
 #define KAGOME_CRYPTO_KEY_TYPE_HPP
 
+#include "common/buffer.hpp"
 #include "outcome/outcome.hpp"
 
 namespace kagome::crypto {
@@ -31,7 +32,6 @@ namespace kagome::crypto {
     KEY_TYPE_ACCO = 0x6f636361u, // Account control [sr25519, ed25519, secp256k1]
     KEY_TYPE_IMON = 0x6e6f6d69u, // I'm Online, sr25519
     KEY_TYPE_AUDI = 0x69647561u, // Account discovery [sr25519, ed25519, secp256k1]
-    KEY_TYPE_LP2P = 0x7032706cu, // LibP2P
     KEY_TYPE_ASGN = 0x6e677361u, // ASGN
     KEY_TYPE_PARA = 0x61726170u, // PARA
     // clang-format on
@@ -57,6 +57,11 @@ namespace kagome::crypto {
    * @return true if supported, false otherwise
    */
   bool isSupportedKeyType(KeyTypeId k);
+
+  std::string encodeKeyFileName(KeyTypeId type, common::BufferView key);
+
+  outcome::result<std::pair<KeyTypeId, common::Buffer>> decodeKeyFileName(
+      std::string_view name);
 }  // namespace kagome::crypto
 
 OUTCOME_HPP_DECLARE_ERROR(kagome::crypto, KeyTypeError);

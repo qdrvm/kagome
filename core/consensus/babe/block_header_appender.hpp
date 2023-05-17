@@ -6,6 +6,7 @@
 #ifndef KAGOME_CONSENSUS_BLOCKAPPENDER
 #define KAGOME_CONSENSUS_BLOCKAPPENDER
 
+#include "consensus/grandpa/environment.hpp"
 #include "outcome/outcome.hpp"
 #include "primitives/block_data.hpp"
 
@@ -16,11 +17,13 @@ namespace kagome::consensus::babe {
    */
   class BlockHeaderAppender {
    public:
+    using ApplyJustificationCb = grandpa::Environment::ApplyJustificationCb;
     virtual ~BlockHeaderAppender() = default;
 
-    virtual outcome::result<void> appendHeader(
+    virtual void appendHeader(
         primitives::BlockHeader &&block_header,
-        std::optional<primitives::Justification> const &justification) = 0;
+        const std::optional<primitives::Justification> &justification,
+        ApplyJustificationCb &&callback) = 0;
   };
 
 }  // namespace kagome::consensus::babe

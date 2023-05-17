@@ -44,10 +44,13 @@ namespace kagome::consensus::babe {
     BOOST_ASSERT(nullptr != grandpa_environment_);
     BOOST_ASSERT(nullptr != babe_util_);
     BOOST_ASSERT(nullptr != hasher_);
+
+    postponed_justifications_ = std::make_shared<
+        std::map<primitives::BlockInfo, primitives::Justification>>();
   }
 
   primitives::BlockContext BlockAppenderBase::makeBlockContext(
-      primitives::BlockHeader const &header) const {
+      const primitives::BlockHeader &header) const {
     auto block_hash = hasher_->blake2b_256(scale::encode(header).value());
     return primitives::BlockContext{
         .block_info = {header.number, block_hash},
@@ -55,25 +58,32 @@ namespace kagome::consensus::babe {
     };
   }
 
-  outcome::result<void> BlockAppenderBase::applyJustifications(
+  void BlockAppenderBase::applyJustifications(
       const primitives::BlockInfo &block_info,
-      std::optional<primitives::Justification> const &opt_justification) {
+      const std::optional<primitives::Justification> &opt_justification,
+      ApplyJustificationCb &&callback) {
     // try to apply postponed justifications first if any
-    if (not postponed_justifications_.empty()) {
-      std::vector<primitives::BlockInfo> to_remove;
-      for (const auto &[block_justified_for, justification] :
-           postponed_justifications_) {
+    if (not postponed_justifications_->empty()) {
+      for (auto it = postponed_justifications_->begin();
+           it != postponed_justifications_->end();) {
+        const auto &block_justified_for = it->first;
+        const auto &justification = it->second;
+
         SL_DEBUG(logger_,
                  "Try to apply postponed justification received for block {}",
                  block_justified_for);
-        auto res = grandpa_environment_->applyJustification(block_justified_for,
-                                                            justification);
-        if (res.has_value()) {
-          to_remove.push_back(block_justified_for);
-        }
-      }
-      for (const auto &item : to_remove) {
-        postponed_justifications_.erase(item);
+        grandpa_environment_->applyJustification(
+            block_justified_for,
+            justification,
+            [block_justified_for,
+             wpp{std::weak_ptr<PostponedJustifications>{
+                 postponed_justifications_}}](auto &&result) mutable {
+              if (auto pp = wpp.lock()) {
+                if (result.has_value()) {
+                  pp->erase(block_justified_for);
+                }
+              }
+            });
       }
     }
 
@@ -83,39 +93,60 @@ namespace kagome::consensus::babe {
       SL_VERBOSE(
           logger_, "Apply justification received for block {}", block_info);
 
-      auto res = grandpa_environment_->applyJustification(
-          block_info, opt_justification.value());
-      if (res.has_error()) {
-        // If the total weight is not enough, this justification is deferred to
-        // try to apply it after the next block is added. One of the reasons for
-        // this error is the presence of preliminary votes for future blocks
-        // that have not yet been applied.
-        if (res
-            == outcome::failure(grandpa::VotingRoundError::NOT_ENOUGH_WEIGHT)) {
-          postponed_justifications_.emplace(block_info,
-                                            opt_justification.value());
-          SL_VERBOSE(logger_,
-                     "Postpone justification received for block {}: {}",
-                     block_info,
-                     res);
-        } else {
-          SL_ERROR(logger_,
-                   "Error while applying justification of block {}: {}",
-                   block_info,
-                   res.error());
-          return res.as_failure();
-        }
-      } else {
-        // safely could be cleared if current justification applied successfully
-        postponed_justifications_.clear();
-      }
+      grandpa_environment_->applyJustification(
+          block_info,
+          opt_justification.value(),
+          [wlogger{log::WLogger{logger_}},
+           callback{std::move(callback)},
+           block_info,
+           justification{opt_justification.value()},
+           wpp{std::weak_ptr<PostponedJustifications>{
+               postponed_justifications_}}](auto &&result) mutable {
+            if (auto pp = wpp.lock()) {
+              if (result.has_error()) {
+                // If the total weight is not enough, this justification is
+                // deferred to try to apply it after the next block is added.
+                // One of the reasons for this error is the presence of
+                // preliminary votes for future blocks that have not yet been
+                // applied.
+                if (result
+                    == outcome::failure(
+                        grandpa::VotingRoundError::NOT_ENOUGH_WEIGHT)) {
+                  pp->emplace(block_info, justification);
+                  if (auto logger = wlogger.lock()) {
+                    SL_VERBOSE(
+                        logger,
+                        "Postpone justification received for block {}: {}",
+                        block_info,
+                        result);
+                  }
+                } else {
+                  if (auto logger = wlogger.lock()) {
+                    SL_ERROR(
+                        logger,
+                        "Error while applying justification of block {}: {}",
+                        block_info,
+                        result.error());
+                  }
+                  callback(result.as_failure());
+                  return;
+                }
+              } else {
+                // safely could be cleared if current justification applied
+                // successfully
+                pp->clear();
+              }
+              callback(outcome::success());
+            }
+          });
+    } else {
+      callback(outcome::success());
     }
-    return outcome::success();
   }
 
   outcome::result<ConsistencyGuard>
   BlockAppenderBase::observeDigestsAndValidateHeader(
-      primitives::Block const &block, primitives::BlockContext const &context) {
+      const primitives::Block &block, const primitives::BlockContext &context) {
     OUTCOME_TRY(babe_digests, getBabeDigests(block.header));
 
     const auto &babe_header = babe_digests.second;
@@ -217,7 +248,7 @@ namespace kagome::consensus::babe {
   }
 
   outcome::result<BlockAppenderBase::SlotInfo> BlockAppenderBase::getSlotInfo(
-      primitives::BlockHeader const &header) const {
+      const primitives::BlockHeader &header) const {
     OUTCOME_TRY(babe_digests, getBabeDigests(header));
 
     const auto &babe_header = babe_digests.second;

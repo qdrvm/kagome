@@ -18,6 +18,7 @@
 #include <libp2p/peer/peer_id.hpp>
 
 #include "common/blob.hpp"
+#include "injector/lazy.hpp"
 #include "log/logger.hpp"
 #include "primitives/author_api_primitives.hpp"
 #include "primitives/transaction.hpp"
@@ -72,11 +73,10 @@ namespace kagome::api {
                   sptr<crypto::CryptoStore> store,
                   sptr<crypto::SessionKeys> keys,
                   sptr<crypto::KeyFileStorage> key_store,
-                  sptr<blockchain::BlockTree> block_tree);
+                  LazySPtr<blockchain::BlockTree> block_tree,
+                  LazySPtr<api::ApiService> api_service);
 
     ~AuthorApiImpl() override = default;
-
-    void setApiService(sptr<api::ApiService> const &api_service) override;
 
     outcome::result<common::Hash256> submitExtrinsic(
         TransactionSource source,
@@ -113,8 +113,8 @@ namespace kagome::api {
     sptr<crypto::CryptoStore> store_;
     sptr<crypto::SessionKeys> keys_;
     sptr<crypto::KeyFileStorage> key_store_;
-    std::weak_ptr<api::ApiService> api_service_;
-    sptr<blockchain::BlockTree> block_tree_;
+    LazySPtr<api::ApiService> api_service_;
+    LazySPtr<blockchain::BlockTree> block_tree_;
 
     log::Logger logger_;
   };

@@ -10,7 +10,8 @@
 
 #include <rocksdb/db.h>
 #include <boost/container/flat_map.hpp>
-#include <boost/filesystem/path.hpp>
+
+#include "filesystem/common.hpp"
 #include "log/logger.hpp"
 #include "storage/spaced_storage.hpp"
 
@@ -18,8 +19,16 @@ namespace kagome::storage {
 
   class RocksDb : public SpacedStorage,
                   public std::enable_shared_from_this<RocksDb> {
+   private:
+    using ColumnFamilyHandlePtr = rocksdb::ColumnFamilyHandle *;
+
    public:
     ~RocksDb() override;
+
+    RocksDb(const RocksDb &) = delete;
+    RocksDb(RocksDb &&) noexcept = delete;
+    RocksDb &operator=(const RocksDb &) = delete;
+    RocksDb &operator=(RocksDb &&) noexcept = delete;
 
     /**
      * @brief Factory method to create an instance of RocksDb class.
@@ -29,26 +38,27 @@ namespace kagome::storage {
      * @return instance of RocksDB
      */
     static outcome::result<std::shared_ptr<RocksDb>> create(
-        const boost::filesystem::path &path,
+        const filesystem::path &path,
         rocksdb::Options options = rocksdb::Options(),
         bool prevent_destruction = false);
 
     std::shared_ptr<BufferStorage> getSpace(Space space) override;
 
+    /**
+     * Implementation specific way to erase the whole space data.
+     * Not exposed at SpacedStorage level as only used in pruner.
+     * @param space - storage space identifier to clear
+     */
+    void dropColumn(Space space);
+
     friend class RocksDbSpace;
     friend class RocksDbBatch;
 
    private:
-    struct ColumnFamilyHandle {
-      std::string name;
-      rocksdb::ColumnFamilyHandle *handle;
-    };
+    RocksDb();
 
-    RocksDb(bool prevent_destruction, std::vector<ColumnFamilyHandle> columns);
-
-    bool prevent_destruction_;
-    std::unique_ptr<rocksdb::DB> db_;
-    std::vector<ColumnFamilyHandle> cf_handles_;
+    rocksdb::DB *db_{};
+    std::vector<ColumnFamilyHandlePtr> column_family_handles_;
     boost::container::flat_map<Space, std::shared_ptr<BufferStorage>> spaces_;
     rocksdb::ReadOptions ro_;
     rocksdb::WriteOptions wo_;
@@ -60,7 +70,7 @@ namespace kagome::storage {
     ~RocksDbSpace() override = default;
 
     RocksDbSpace(std::weak_ptr<RocksDb> storage,
-                 RocksDb::ColumnFamilyHandle column,
+                 const RocksDb::ColumnFamilyHandlePtr &column,
                  log::Logger logger);
 
     std::unique_ptr<BufferBatch> batch() override;
@@ -92,7 +102,7 @@ namespace kagome::storage {
     outcome::result<std::shared_ptr<RocksDb>> use() const;
 
     std::weak_ptr<RocksDb> storage_;
-    RocksDb::ColumnFamilyHandle column_;
+    const RocksDb::ColumnFamilyHandlePtr &column_;
     log::Logger logger_;
   };
 }  // namespace kagome::storage

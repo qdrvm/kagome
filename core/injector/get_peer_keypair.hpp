@@ -6,7 +6,10 @@
 #ifndef KAGOME_CORE_INJECTOR_GET_PEER_KEYPAIR_HPP
 #define KAGOME_CORE_INJECTOR_GET_PEER_KEYPAIR_HPP
 
+#include <fstream>
+
 #include "application/app_configuration.hpp"
+#include "common/bytestr.hpp"
 #include "common/outcome_throw.hpp"
 #include "crypto/crypto_store/crypto_store_impl.hpp"
 #include "crypto/ed25519_provider.hpp"
@@ -14,15 +17,17 @@
 namespace kagome::injector {
   inline std::shared_ptr<libp2p::crypto::KeyPair> get_peer_keypair(
       const application::AppConfiguration &app_config,
+      const application::ChainSpec &chain,
       const crypto::Ed25519Provider &crypto_provider,
+      crypto::CSPRNG &csprng,
       crypto::CryptoStore &crypto_store) {
     auto log = log::createLogger("Injector", "injector");
 
     if (app_config.nodeKey()) {
       log->info("Will use LibP2P keypair from config or 'node-key' CLI arg");
 
-      auto provided_keypair = crypto_provider.generateKeypair(
-          crypto::Ed25519Seed{app_config.nodeKey().value()});
+      auto provided_keypair =
+          crypto_provider.generateKeypair(*app_config.nodeKey(), {}).value();
       BOOST_ASSERT(provided_keypair.secret_key == app_config.nodeKey().value());
 
       auto key_pair = std::make_shared<libp2p::crypto::KeyPair>(
@@ -48,12 +53,13 @@ namespace kagome::injector {
       }
     }
 
-    if (crypto_store.getLibp2pKeypair().has_value()) {
+    auto path = app_config.chainPath(chain.id()) / "network/secret_ed25519";
+    if (auto r = crypto_store.loadLibp2pKeypair(path)) {
       log->info(
           "Will use LibP2P keypair from config or args (loading from base "
           "path)");
 
-      auto stored_keypair = crypto_store.getLibp2pKeypair().value();
+      auto &stored_keypair = r.value();
 
       auto key_pair =
           std::make_shared<libp2p::crypto::KeyPair>(std::move(stored_keypair));
@@ -65,20 +71,13 @@ namespace kagome::injector {
         "Can not obtain a libp2p keypair from crypto storage. "
         "A unique one will be generated");
 
-    kagome::crypto::Ed25519Keypair generated_keypair;
+    crypto::Ed25519Seed seed;
+    csprng.fillRandomly(seed);
+    auto generated_keypair = crypto_provider.generateKeypair(seed, {}).value();
     auto save = app_config.shouldSaveNodeKey();
     if (save) {
-      auto res = crypto_store.generateEd25519KeypairOnDisk(
-          crypto::KnownKeyTypeId::KEY_TYPE_LP2P);
-      if (res.has_error()) {
-        log->warn("Can't save libp2p keypair: {}", res.error());
-        save = false;
-      } else {
-        generated_keypair = res.value();
-      }
-    }
-    if (not save) {
-      generated_keypair = crypto_provider.generateKeypair();
+      std::ofstream file{path.c_str()};
+      file.write(byte2str(seed).data(), seed.size());
     }
 
     auto key_pair = std::make_shared<libp2p::crypto::KeyPair>(

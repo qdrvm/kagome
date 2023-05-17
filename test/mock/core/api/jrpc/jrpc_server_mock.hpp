@@ -18,21 +18,21 @@ namespace kagome::api {
 
     MOCK_METHOD(void,
                 registerHandler,
-                (const std::string &name, Method method),
+                (const std::string &name, Method method, bool),
                 (override));
 
     MOCK_METHOD(std::vector<std::string>, getHandlerNames, (), (override));
 
     MOCK_METHOD(void,
                 processData,
-                (std::string_view request, const ResponseHandler &cb),
+                (std::string_view, bool, const ResponseHandler &),
                 (override));
 
     MOCK_METHOD(void,
                 processJsonData,
                 (std::string,
                  const jsonrpc::Request::Parameters &,
-                 FormatterHandler const &cb),
+                 const FormatterHandler &cb),
                 (override));
   };
 

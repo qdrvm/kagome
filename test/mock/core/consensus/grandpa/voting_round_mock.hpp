@@ -54,17 +54,23 @@ namespace kagome::consensus::grandpa {
 
     MOCK_METHOD(void,
                 onProposal,
-                (const SignedMessage &, Propagation),
+                (std::optional<GrandpaContext> & grandpa_context,
+                 const SignedMessage &,
+                 Propagation),
                 (override));
 
     MOCK_METHOD(bool,
                 onPrevote,
-                (const SignedMessage &, Propagation),
+                (std::optional<GrandpaContext> & grandpa_context,
+                 const SignedMessage &,
+                 Propagation),
                 (override));
 
     MOCK_METHOD(bool,
                 onPrecommit,
-                (const SignedMessage &, Propagation),
+                (std::optional<GrandpaContext> & grandpa_context,
+                 const SignedMessage &,
+                 Propagation),
                 (override));
 
     MOCK_METHOD(void,
@@ -83,7 +89,7 @@ namespace kagome::consensus::grandpa {
 
     MOCK_METHOD(outcome::result<void>,
                 applyJustification,
-                (const BlockInfo &, const GrandpaJustification &),
+                (const GrandpaJustification &),
                 (override));
 
     MOCK_METHOD(void, attemptToFinalizeRound, (), (override));

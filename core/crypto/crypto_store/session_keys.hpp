@@ -32,6 +32,31 @@ namespace kagome::crypto {
                                                  KEY_TYPE_AUDI};
 
   class SessionKeys {
+   public:
+    virtual ~SessionKeys() = default;
+
+    /**
+     * @return current BABE session key pair
+     */
+    virtual const std::shared_ptr<Sr25519Keypair> &getBabeKeyPair() = 0;
+
+    /**
+     * @return current GRANDPA session key pair
+     */
+    virtual const std::shared_ptr<Ed25519Keypair> &getGranKeyPair() = 0;
+
+    /**
+     * @return current parachain validator session key pair
+     */
+    virtual const std::shared_ptr<Sr25519Keypair> &getParaKeyPair() = 0;
+
+    /**
+     * @return current AUDI session key pair
+     */
+    virtual const std::shared_ptr<Sr25519Keypair> &getAudiKeyPair() = 0;
+  };
+
+  class SessionKeysImpl : public SessionKeys {
     std::shared_ptr<Sr25519Keypair> babe_key_pair_;
     std::shared_ptr<Ed25519Keypair> gran_key_pair_;
     std::shared_ptr<Sr25519Keypair> para_key_pair_;
@@ -40,29 +65,18 @@ namespace kagome::crypto {
     std::shared_ptr<CryptoStore> store_;
 
    public:
-    SessionKeys(std::shared_ptr<CryptoStore> store,
-                const application::AppConfiguration &config);
+    SessionKeysImpl(std::shared_ptr<CryptoStore> store,
+                    const application::AppConfiguration &config);
 
-    /**
-     * @return current BABE session key pair
-     */
-    const std::shared_ptr<Sr25519Keypair> &getBabeKeyPair();
+    const std::shared_ptr<Sr25519Keypair> &getBabeKeyPair() override;
 
-    /**
-     * @return current GRANDPA session key pair
-     */
-    const std::shared_ptr<Ed25519Keypair> &getGranKeyPair();
+    const std::shared_ptr<Ed25519Keypair> &getGranKeyPair() override;
 
-    /**
-     * @return current parachain validator session key pair
-     */
-    const std::shared_ptr<Sr25519Keypair> &getParaKeyPair();
+    const std::shared_ptr<Sr25519Keypair> &getParaKeyPair() override;
 
-    /**
-     * @return current AUDI session key pair
-     */
-    const std::shared_ptr<Sr25519Keypair> &getAudiKeyPair();
+    const std::shared_ptr<Sr25519Keypair> &getAudiKeyPair() override;
   };
+
 }  // namespace kagome::crypto
 
 #endif  // KAGOME_CRYPTO_SESSION_KEYS_HPP

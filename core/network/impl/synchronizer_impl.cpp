@@ -9,6 +9,7 @@
 
 #include "application/app_configuration.hpp"
 #include "blockchain/block_tree_error.hpp"
+#include "consensus/babe/impl/babe_digests_util.hpp"
 #include "consensus/grandpa/environment.hpp"
 #include "consensus/grandpa/has_authority_set_change.hpp"
 #include "network/helpers/peer_id_formatter.hpp"
@@ -51,6 +52,7 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::network, SynchronizerImpl::Error, e) {
 namespace {
   constexpr const char *kImportQueueLength =
       "kagome_import_queue_blocks_submitted";
+  constexpr uint32_t kBabeDigestBatch = 100;
 
   kagome::network::BlockAttributes attributesForSync(
       kagome::application::AppConfiguration::SyncMethod method) {
@@ -60,6 +62,7 @@ namespace {
         return kagome::network::BlocksRequest::kBasicAttributes;
       case SM::Fast:
       case SM::FastWithoutState:
+      case SM::Warp:
         return kagome::network::BlockAttribute::HEADER
              | kagome::network::BlockAttribute::JUSTIFICATION;
     }
@@ -73,6 +76,7 @@ namespace kagome::network {
       const application::AppConfiguration &app_config,
       std::shared_ptr<application::AppStateManager> app_state_manager,
       std::shared_ptr<blockchain::BlockTree> block_tree,
+      std::shared_ptr<blockchain::BlockStorage> block_storage,
       std::shared_ptr<consensus::babe::BlockHeaderAppender> block_appender,
       std::shared_ptr<consensus::babe::BlockExecutor> block_executor,
       std::shared_ptr<storage::trie::TrieSerializer> serializer,
@@ -84,10 +88,10 @@ namespace kagome::network {
       std::shared_ptr<runtime::ModuleFactory> module_factory,
       std::shared_ptr<runtime::Core> core_api,
       primitives::events::ChainSubscriptionEnginePtr chain_sub_engine,
-      std::shared_ptr<storage::SpacedStorage> spaced_storage,
       std::shared_ptr<consensus::grandpa::Environment> grandpa_environment)
       : app_state_manager_(std::move(app_state_manager)),
         block_tree_(std::move(block_tree)),
+        block_storage_{std::move(block_storage)},
         block_appender_(std::move(block_appender)),
         block_executor_(std::move(block_executor)),
         serializer_(std::move(serializer)),
@@ -99,8 +103,7 @@ namespace kagome::network {
         module_factory_(std::move(module_factory)),
         core_api_(std::move(core_api)),
         grandpa_environment_{std::move(grandpa_environment)},
-        chain_sub_engine_(std::move(chain_sub_engine)),
-        buffer_storage_(spaced_storage->getSpace(storage::Space::kDefault)) {
+        chain_sub_engine_(std::move(chain_sub_engine)) {
     BOOST_ASSERT(app_state_manager_);
     BOOST_ASSERT(block_tree_);
     BOOST_ASSERT(block_executor_);
@@ -110,8 +113,10 @@ namespace kagome::network {
     BOOST_ASSERT(router_);
     BOOST_ASSERT(scheduler_);
     BOOST_ASSERT(hasher_);
-    BOOST_ASSERT(buffer_storage_);
+    BOOST_ASSERT(module_factory_);
+    BOOST_ASSERT(core_api_);
     BOOST_ASSERT(grandpa_environment_);
+    BOOST_ASSERT(chain_sub_engine_);
 
     sync_method_ = app_config.syncMethod();
 
@@ -123,16 +128,6 @@ namespace kagome::network {
     metric_import_queue_length_->set(0);
 
     app_state_manager_->takeControl(*this);
-  }
-
-  /** @see AppStateManager::takeControl */
-  bool SynchronizerImpl::prepare() {
-    return true;
-  }
-
-  /** @see AppStateManager::takeControl */
-  bool SynchronizerImpl::start() {
-    return true;
   }
 
   /** @see AppStateManager::takeControl */
@@ -975,6 +970,126 @@ namespace kagome::network {
     protocol->request(peer_id, std::move(request), std::move(response_handler));
   }
 
+  void SynchronizerImpl::syncBabeDigest(const libp2p::peer::PeerId &peer_id,
+                                        const primitives::BlockInfo &_block,
+                                        CbResultVoid &&cb) {
+    auto block = _block;
+
+    auto hash_res = block_tree_->getBlockHash(1);
+    if (!hash_res) {
+      SL_ERROR(
+          log_, "Error retrieving the first block hash: {}", hash_res.error());
+      return;
+    }
+    auto& hash_opt = hash_res.value();
+    // BabeConfigRepositoryImpl first block slot
+    if (not hash_opt or not block_tree_->getBlockHeader(hash_opt.value())) {
+      auto cb2 = [=, cb{std::move(cb)}, weak{weak_from_this()}](
+                     outcome::result<BlocksResponse> _res) mutable {
+        auto self = weak.lock();
+        if (not self) {
+          return;
+        }
+        if (not _res) {
+          cb(_res.error());
+          return;
+        }
+        auto &res = _res.value();
+        if (res.blocks.empty()) {
+          cb(Error::EMPTY_RESPONSE);
+          return;
+        }
+        auto &header = res.blocks[0].header;
+        if (not header) {
+          cb(Error::RESPONSE_WITHOUT_BLOCK_HEADER);
+          return;
+        }
+        if (header->number != 1) {
+          cb(Error::INVALID_HASH);
+          return;
+        }
+        if (header->parent_hash != block_tree_->getGenesisBlockHash()) {
+          cb(Error::INVALID_HASH);
+          return;
+        }
+        auto hash = self->block_storage_->putBlockHeader(*header).value();
+        if (header->number < self->block_tree_->getLastFinalized().number) {
+          self->block_storage_->assignNumberToHash({header->number, hash})
+              .value();
+        }
+        self->syncBabeDigest(peer_id, block, std::move(cb));
+      };
+      router_->getSyncProtocol()->request(
+          peer_id,
+          {BlockAttribute::HEADER, 1, Direction::DESCENDING, 1},
+          std::move(cb2));
+      return;
+    }
+    // BabeConfigRepositoryImpl NextEpoch
+    while (block.number != 0) {
+      if (auto _header = block_tree_->getBlockHeader(block.hash)) {
+        auto &header = _header.value();
+        if (consensus::babe::getNextEpochDigest(header)) {
+          break;
+        }
+        block = {header.number - 1, header.parent_hash};
+        continue;
+      }
+      auto cb2 = [=, weak{weak_from_this()}, cb{std::move(cb)}](
+                     outcome::result<BlocksResponse> _res) mutable {
+        auto self = weak.lock();
+        if (not self) {
+          return;
+        }
+        if (not _res) {
+          cb(_res.error());
+          return;
+        }
+        auto &res = _res.value();
+        if (res.blocks.empty()) {
+          cb(Error::EMPTY_RESPONSE);
+          return;
+        }
+        for (auto &item : res.blocks) {
+          auto &header = item.header;
+          if (not header) {
+            cb(Error::RESPONSE_WITHOUT_BLOCK_HEADER);
+            return;
+          }
+          primitives::BlockInfo info{
+              header->number,
+              self->hasher_->blake2b_256(scale::encode(*header).value())};
+          if (info != block) {
+            cb(Error::INVALID_HASH);
+            return;
+          }
+          self->block_storage_->putBlockHeader(*header).value();
+          if (block.number < self->block_tree_->getLastFinalized().number) {
+            self->block_storage_->assignNumberToHash(block).value();
+          }
+          if (consensus::babe::getNextEpochDigest(*header)) {
+            cb(outcome::success());
+            return;
+          }
+          if (block.number != 0) {
+            block = {header->number - 1, header->parent_hash};
+          }
+        }
+        self->syncBabeDigest(peer_id, block, std::move(cb));
+      };
+      router_->getSyncProtocol()->request(peer_id,
+                                          {
+                                              BlockAttribute::HEADER,
+                                              block.hash,
+                                              Direction::DESCENDING,
+                                              kBabeDigestBatch,
+                                          },
+                                          std::move(cb2));
+      return;
+    }
+    cb(outcome::success());
+  }
+
   void SynchronizerImpl::syncState(const libp2p::peer::PeerId &peer_id,
                                    const primitives::BlockInfo &block,
                                    SyncResultHandler &&handler) {
@@ -993,8 +1108,14 @@ namespace kagome::network {
       return;
     }
     auto &header = _header.value();
+    if (storage_->getEphemeralBatchAt(header.state_root)) {
+      handler(block);
+      return;
+    }
+    if (not state_sync_flow_ or state_sync_flow_->blockInfo() != block) {
+      state_sync_flow_.emplace(trie_pruner_, block, header);
+    }
     state_sync_.emplace(StateSync{
-        StateSyncRequestFlow{trie_pruner_, block, header},
         peer_id,
         std::move(handler),
     });
@@ -1007,9 +1128,9 @@ namespace kagome::network {
     SL_TRACE(log_,
              "State sync request has sent to {} for block {}",
              state_sync_->peer,
-             state_sync_->flow.blockInfo());
+             state_sync_flow_->blockInfo());
 
-    auto request = state_sync_->flow.nextRequest();
+    auto request = state_sync_flow_->nextRequest();
 
     auto protocol = router_->getStateProtocol();
     BOOST_ASSERT_MSG(protocol, "Router did not provide state protocol");
@@ -1038,16 +1159,17 @@ namespace kagome::network {
       std::unique_lock<std::mutex> &lock,
       outcome::result<StateResponse> &&_res) {
     OUTCOME_TRY(res, _res);
-    OUTCOME_TRY(state_sync_->flow.onResponse(res));
+    OUTCOME_TRY(state_sync_flow_->onResponse(res));
     entries_ += res.entries[0].entries.size();
-    if (not state_sync_->flow.complete()) {
+    if (not state_sync_flow_->complete()) {
       SL_TRACE(log_, "State syncing continues. {} entries loaded", entries_);
       syncState();
       return outcome::success();
     }
     OUTCOME_TRY(
-        state_sync_->flow.commit(*module_factory_, *core_api_, *serializer_));
-    auto block = state_sync_->flow.blockInfo();
+        state_sync_flow_->commit(*module_factory_, *core_api_, *serializer_));
+    auto block = state_sync_flow_->blockInfo();
+    state_sync_flow_.reset();
     SL_INFO(log_, "State syncing block {} has finished.", block);
     chain_sub_engine_->notify(primitives::events::ChainEventType::kNewRuntime,
                               block.hash);
@@ -1096,7 +1218,6 @@ namespace kagome::network {
     auto node = known_blocks_.extract(hash);
     if (node) {
       auto &block_data = node.mapped().data;
-      auto &peers = node.mapped().peers;
       BOOST_ASSERT(block_data.header.has_value());
       const BlockInfo block_info(block_data.header->number, block_data.hash);
 
@@ -1127,7 +1248,15 @@ namespace kagome::network {
         }
 
       } else {
-        outcome::result<void> block_addition_result = outcome::success();
+        auto callback =
+            [wself{weak_from_this()}, hash, handler{std::move(handler)}](
+                auto &&block_addition_result) mutable {
+              if (auto self = wself.lock()) {
+                self->processBlockAdditionResult(
+                    std::move(block_addition_result), hash, std::move(handler));
+                self->postApplyBlock(hash);
+              }
+            };
 
         if (sync_method_ == application::AppConfiguration::SyncMethod::Full) {
           // Regular syncing
@@ -1135,15 +1264,16 @@ namespace kagome::network {
               .header = std::move(block_data.header.value()),
               .body = std::move(block_data.body.value()),
           };
-          block_addition_result = block_executor_->applyBlock(
-              std::move(block), block_data.justification);
+          block_executor_->applyBlock(
+              std::move(block), block_data.justification, std::move(callback));
 
         } else {
           // Fast syncing
           if (not state_sync_) {
             // Headers loading
-            block_addition_result = block_appender_->appendHeader(
-                std::move(block_data.header.value()), block_data.justification);
+            block_appender_->appendHeader(std::move(block_data.header.value()),
+                                          block_data.justification,
+                                          std::move(callback));
 
           } else {
             // State syncing in progress; Temporary discard all new blocks
@@ -1160,76 +1290,92 @@ namespace kagome::network {
             return;
           }
         }
+        return;
+      }
+    }
+    postApplyBlock(hash);
+  }
 
-        notifySubscribers(block_info, block_addition_result);
+  void SynchronizerImpl::processBlockAdditionResult(
+      outcome::result<void> &&block_addition_result,
+      const primitives::BlockHash &hash,
+      SyncResultHandler &&handler) {
+    auto node = known_blocks_.extract(hash);
+    if (node) {
+      auto &block_data = node.mapped().data;
+      auto &peers = node.mapped().peers;
+      BOOST_ASSERT(block_data.header.has_value());
+      const BlockInfo block_info(block_data.header->number, block_data.hash);
 
-        if (not block_addition_result.has_value()) {
-          if (block_addition_result
-              != outcome::failure(blockchain::BlockTreeError::BLOCK_EXISTS)) {
-            notifySubscribers(block_info, block_addition_result.as_failure());
-            auto n = discardBlock(block_data.hash);
-            SL_WARN(
-                log_,
-                "Block {} {} been discarded: {}",
-                block_info,
-                n ? fmt::format("and {} others have", n) : fmt::format("has"),
-                block_addition_result.error());
-            if (handler) {
-              handler(Error::DISCARDED_BLOCK);
-            }
-          } else {
-            SL_DEBUG(log_, "Block {} is skipped as existing", block_info);
-            if (handler) {
-              handler(block_info);
-            }
+      notifySubscribers(block_info, block_addition_result);
+
+      if (not block_addition_result.has_value()) {
+        if (block_addition_result
+            != outcome::failure(blockchain::BlockTreeError::BLOCK_EXISTS)) {
+          notifySubscribers(block_info, block_addition_result.as_failure());
+          auto n = discardBlock(block_data.hash);
+          SL_WARN(log_,
+                  "Block {} {} been discarded: {}",
+                  block_info,
+                  n ? fmt::format("and {} others have", n) : fmt::format("has"),
+                  block_addition_result.error());
+          if (handler) {
+            handler(Error::DISCARDED_BLOCK);
           }
         } else {
-          telemetry_->notifyBlockImported(
-              block_info, telemetry::BlockOrigin::kNetworkInitialSync);
+          SL_DEBUG(log_, "Block {} is skipped as existing", block_info);
           if (handler) {
             handler(block_info);
           }
+        }
+      } else {
+        telemetry_->notifyBlockImported(
+            block_info, telemetry::BlockOrigin::kNetworkInitialSync);
+        if (handler) {
+          handler(block_info);
+        }
 
-          // Check if finality lag greater than justification saving interval
-          static const BlockNumber kJustificationInterval = 512;
-          static const BlockNumber kMaxJustificationLag = 5;
-          auto last_finalized = block_tree_->getLastFinalized();
-          if (consensus::grandpa::HasAuthoritySetChange{*block_data.header}
-                  .scheduled
-              or (block_info.number - kMaxJustificationLag)
-                         / kJustificationInterval
-                     > last_finalized.number / kJustificationInterval) {
-            //  Trying to substitute with justifications' request only
-            for (const auto &peer_id : peers) {
-              syncMissingJustifications(
-                  peer_id,
-                  last_finalized,
-                  kJustificationInterval * 2,
-                  [wp = weak_from_this(), last_finalized, block_info](
-                      auto res) {
-                    if (auto self = wp.lock()) {
-                      if (res.has_value()) {
-                        SL_DEBUG(
-                            self->log_,
-                            "Loaded justifications for blocks in range {} - {}",
-                            last_finalized,
-                            res.value());
-                        return;
-                      }
-
-                      SL_DEBUG(self->log_,
-                              "Missing justifications between blocks {} and "
-                              "{} was not loaded: {}",
-                              last_finalized,
-                              block_info.number,
-                              res.error());
+        // Check if finality lag greater than justification saving interval
+        static const BlockNumber kJustificationInterval = 512;
+        static const BlockNumber kMaxJustificationLag = 5;
+        auto last_finalized = block_tree_->getLastFinalized();
+        if (consensus::grandpa::HasAuthoritySetChange{*block_data.header}
+                .scheduled
+            or (block_info.number - kMaxJustificationLag)
+                       / kJustificationInterval
+                   > last_finalized.number / kJustificationInterval) {
+          //  Trying to substitute with justifications' request only
+          for (const auto &peer_id : peers) {
+            syncMissingJustifications(
+                peer_id,
+                last_finalized,
+                kJustificationInterval * 2,
+                [wp = weak_from_this(), last_finalized, block_info](auto res) {
+                  if (auto self = wp.lock()) {
+                    if (res.has_value()) {
+                      SL_DEBUG(
+                          self->log_,
+                          "Loaded justifications for blocks in range {} - {}",
+                          last_finalized,
+                          res.value());
+                      return;
                     }
-                  });
-            }
+
+                    SL_DEBUG(self->log_,
+                             "Missing justifications between blocks {} and "
+                             "{} was not loaded: {}",
+                             last_finalized,
+                             block_info.number,
+                             res.error());
+                  }
+                });
           }
         }
       }
     }
+  }
+
+  void SynchronizerImpl::postApplyBlock(const primitives::BlockHash &hash) {
     ancestry_.erase(hash);
 
     auto minPreloadedBlockAmount =
@@ -1276,16 +1422,17 @@ namespace kagome::network {
       auto [block_info, justification] = std::move(justifications.front());
       const auto &block = block_info;  // SL_WARN compilation WA
       justifications.pop();
-      auto res =
-          grandpa_environment_->applyJustification(block_info, justification);
-      if (res.has_error()) {
-        SL_WARN(log_,
-                "Justification for block {} was not applied: {}",
-                block,
-                res.error());
-      } else {
-        SL_TRACE(log_, "Applied justification for block {}", block);
-      }
+      grandpa_environment_->applyJustification(
+          block_info, justification, [block, log{log_}](auto &&res) mutable {
+            if (res.has_error()) {
+              SL_WARN(log,
+                      "Justification for block {} was not applied: {}",
+                      block,
+                      res.error());
+            } else {
+              SL_TRACE(log, "Applied justification for block {}", block);
+            }
+          });
     }
   }
 

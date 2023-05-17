@@ -90,6 +90,7 @@ namespace kagome::network {
         const application::AppConfiguration &app_config,
         std::shared_ptr<application::AppStateManager> app_state_manager,
         std::shared_ptr<blockchain::BlockTree> block_tree,
+        std::shared_ptr<blockchain::BlockStorage> block_storage,
         std::shared_ptr<consensus::babe::BlockHeaderAppender> block_appender,
         std::shared_ptr<consensus::babe::BlockExecutor> block_executor,
         std::shared_ptr<storage::trie::TrieSerializer> serializer,
@@ -101,14 +102,7 @@ namespace kagome::network {
         std::shared_ptr<runtime::ModuleFactory> module_factory,
         std::shared_ptr<runtime::Core> core_api,
         primitives::events::ChainSubscriptionEnginePtr chain_sub_engine,
-        std::shared_ptr<storage::SpacedStorage> spaced_storage,
         std::shared_ptr<consensus::grandpa::Environment> grandpa_environment);
-
-    /** @see AppStateManager::takeControl */
-    bool prepare();
-
-    /** @see AppStateManager::takeControl */
-    bool start();
 
     /** @see AppStateManager::takeControl */
     void stop();
@@ -144,6 +138,10 @@ namespace kagome::network {
                    const primitives::BlockInfo &block,
                    SyncResultHandler &&handler) override;
 
+    void syncBabeDigest(const libp2p::peer::PeerId &peer_id,
+                        const primitives::BlockInfo &block,
+                        CbResultVoid &&cb) override;
+
     /// Finds best common block with peer {@param peer_id} in provided interval.
     /// It is using tail-recursive algorithm, till {@param hint} is
     /// the needed block
@@ -174,13 +172,12 @@ namespace kagome::network {
                             std::optional<uint32_t> limit,
                             SyncResultHandler &&handler);
 
-    /// Check if incomplete requests of state sync exists
-    bool hasIncompleteRequestOfStateSync() const override {
-      std::unique_lock lock{state_sync_mutex_};
-      return state_sync_.has_value();
-    }
-
    private:
+    void postApplyBlock(const primitives::BlockHash &hash);
+    void processBlockAdditionResult(
+        outcome::result<void> &&block_addition_result,
+        const primitives::BlockHash &hash,
+        SyncResultHandler &&handler);
     /// Subscribes handler for block with provided {@param block_info}
     /// {@param handler} will be called When block is received or discarded
     /// @returns true if subscription is successful
@@ -220,6 +217,7 @@ namespace kagome::network {
 
     std::shared_ptr<application::AppStateManager> app_state_manager_;
     std::shared_ptr<blockchain::BlockTree> block_tree_;
+    std::shared_ptr<blockchain::BlockStorage> block_storage_;
     std::shared_ptr<consensus::babe::BlockHeaderAppender> block_appender_;
     std::shared_ptr<consensus::babe::BlockExecutor> block_executor_;
     std::shared_ptr<storage::trie::TrieSerializer> serializer_;
@@ -232,7 +230,6 @@ namespace kagome::network {
     std::shared_ptr<runtime::Core> core_api_;
     std::shared_ptr<consensus::grandpa::Environment> grandpa_environment_;
     primitives::events::ChainSubscriptionEnginePtr chain_sub_engine_;
-    std::shared_ptr<storage::BufferStorage> buffer_storage_;
 
     application::AppConfiguration::SyncMethod sync_method_;
 
@@ -244,12 +241,12 @@ namespace kagome::network {
     telemetry::Telemetry telemetry_ = telemetry::createTelemetryService();
 
     struct StateSync {
-      StateSyncRequestFlow flow;
       libp2p::peer::PeerId peer;
       SyncResultHandler cb;
     };
 
     mutable std::mutex state_sync_mutex_;
+    std::optional<StateSyncRequestFlow> state_sync_flow_;
     std::optional<StateSync> state_sync_;
 
     bool node_is_shutting_down_ = false;

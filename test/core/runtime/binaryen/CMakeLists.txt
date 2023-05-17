@@ -1,5 +1,6 @@
 add_library(binaryen_runtime_test INTERFACE)
 target_link_libraries(binaryen_runtime_test INTERFACE
+    filesystem
     key_file_storage
     sr25519_provider
     ecdsa_provider
@@ -30,6 +31,7 @@ target_link_libraries(tagged_transaction_queue_test
     basic_code_provider
     core_api
     logger_for_tests
+    filesystem
     )
 
 addtest(block_builder_api_test
@@ -40,6 +42,7 @@ target_link_libraries(block_builder_api_test
     block_builder_api
     basic_code_provider
     core_api
+    filesystem
     logger_for_tests
     )
 
@@ -51,6 +54,7 @@ target_link_libraries(parachain_test
     parachain_host_api
     basic_code_provider
     core_api
+    filesystem
     hasher
     pbkdf2_provider
     )
@@ -66,6 +70,7 @@ target_link_libraries(grandpa_api_test
     key_file_storage
     core_api
     logger_for_tests
+    filesystem
     )
 
 addtest(metadata_test

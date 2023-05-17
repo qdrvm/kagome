@@ -8,6 +8,7 @@
 #include <unordered_set>
 
 #include "blockchain/block_tree_error.hpp"
+#include "consensus/grandpa/ancestry_verifier.hpp"
 #include "consensus/grandpa/environment.hpp"
 #include "consensus/grandpa/grandpa.hpp"
 #include "consensus/grandpa/grandpa_config.hpp"
@@ -51,20 +52,19 @@ namespace kagome::consensus::grandpa {
   VotingRoundImpl::VotingRoundImpl(
       const std::shared_ptr<Grandpa> &grandpa,
       const GrandpaConfig &config,
-      std::shared_ptr<AuthorityManager> authority_manager,
+      std::shared_ptr<crypto::Hasher> hasher,
       std::shared_ptr<Environment> env,
       std::shared_ptr<VoteCryptoProvider> vote_crypto_provider,
       std::shared_ptr<VoteTracker> prevotes,
       std::shared_ptr<VoteTracker> precommits,
       std::shared_ptr<VoteGraph> vote_graph,
-      std::shared_ptr<Clock> clock,
       std::shared_ptr<libp2p::basic::Scheduler> scheduler)
       : voter_set_{std::move(config.voters)},
         round_number_{config.round_number},
         duration_{config.duration},
         id_{config.id},
         grandpa_(grandpa),
-        authority_manager_{std::move(authority_manager)},
+        hasher_{std::move(hasher)},
         env_{std::move(env)},
         vote_crypto_provider_{std::move(vote_crypto_provider)},
         graph_{std::move(vote_graph)},
@@ -72,7 +72,6 @@ namespace kagome::consensus::grandpa {
         prevotes_{std::move(prevotes)},
         precommits_{std::move(precommits)} {
     BOOST_ASSERT(not grandpa_.expired());
-    BOOST_ASSERT(authority_manager_ != nullptr);
     BOOST_ASSERT(vote_crypto_provider_ != nullptr);
     BOOST_ASSERT(prevotes_ != nullptr);
     BOOST_ASSERT(precommits_ != nullptr);
@@ -100,24 +99,22 @@ namespace kagome::consensus::grandpa {
   VotingRoundImpl::VotingRoundImpl(
       const std::shared_ptr<Grandpa> &grandpa,
       const GrandpaConfig &config,
-      const std::shared_ptr<AuthorityManager> authority_manager,
+      std::shared_ptr<crypto::Hasher> hasher,
       const std::shared_ptr<Environment> &env,
       const std::shared_ptr<VoteCryptoProvider> &vote_crypto_provider,
       const std::shared_ptr<VoteTracker> &prevotes,
       const std::shared_ptr<VoteTracker> &precommits,
       const std::shared_ptr<VoteGraph> &vote_graph,
-      const std::shared_ptr<Clock> &clock,
       const std::shared_ptr<libp2p::basic::Scheduler> &scheduler,
       const std::shared_ptr<VotingRound> &previous_round)
       : VotingRoundImpl(grandpa,
                         config,
-                        authority_manager,
+                        std::move(hasher),
                         env,
                         vote_crypto_provider,
                         prevotes,
                         precommits,
                         vote_graph,
-                        clock,
                         scheduler) {
     BOOST_ASSERT(previous_round != nullptr);
 
@@ -129,24 +126,22 @@ namespace kagome::consensus::grandpa {
   VotingRoundImpl::VotingRoundImpl(
       const std::shared_ptr<Grandpa> &grandpa,
       const GrandpaConfig &config,
-      const std::shared_ptr<AuthorityManager> authority_manager,
+      std::shared_ptr<crypto::Hasher> hasher,
       const std::shared_ptr<Environment> &env,
       const std::shared_ptr<VoteCryptoProvider> &vote_crypto_provider,
       const std::shared_ptr<VoteTracker> &prevotes,
       const std::shared_ptr<VoteTracker> &precommits,
       const std::shared_ptr<VoteGraph> &vote_graph,
-      const std::shared_ptr<Clock> &clock,
       const std::shared_ptr<libp2p::basic::Scheduler> &scheduler,
       const MovableRoundState &round_state)
       : VotingRoundImpl(grandpa,
                         config,
-                        authority_manager,
+                        std::move(hasher),
                         env,
                         vote_crypto_provider,
                         prevotes,
                         precommits,
                         vote_graph,
-                        clock,
                         scheduler) {
     last_finalized_block_ = round_state.last_finalized_block;
 
@@ -159,12 +154,16 @@ namespace kagome::consensus::grandpa {
         visit_in_place(
             vote.message,
             [&](const Prevote &) {
-              if (VotingRoundImpl::onPrevote(vote, Propagation::NEEDLESS)) {
+              std::optional<GrandpaContext> empty_context{};
+              if (VotingRoundImpl::onPrevote(
+                      empty_context, vote, Propagation::NEEDLESS)) {
                 is_prevotes_changed = true;
               }
             },
             [&](const Precommit &) {
-              if (VotingRoundImpl::onPrecommit(vote, Propagation::NEEDLESS)) {
+              std::optional<GrandpaContext> empty_context{};
+              if (VotingRoundImpl::onPrecommit(
+                      empty_context, vote, Propagation::NEEDLESS)) {
                 is_precommits_changed = true;
               }
             },
@@ -197,7 +196,7 @@ namespace kagome::consensus::grandpa {
             return weight.total(VoteType::Precommit,
                                 precommit_equivocators_,
                                 *voter_set_)
-                   >= threshold_;
+                >= threshold_;
           };
 
           finalized_ = graph_->findAncestor(VoteType::Precommit,
@@ -501,14 +500,7 @@ namespace kagome::consensus::grandpa {
           round_number_);
     }
     const auto &signed_primary_proposal = signed_primary_proposal_opt.value();
-
-    auto res =
-        env_->onVoted(round_number_, voter_set_->id(), signed_primary_proposal);
-    if (not res) {
-      logger_->error("Round #{}: Primary proposal was not sent: {}",
-                     round_number_,
-                     res.error());
-    }
+    env_->onVoted(round_number_, voter_set_->id(), signed_primary_proposal);
   }
 
   void VotingRoundImpl::doPrevote() {
@@ -565,12 +557,7 @@ namespace kagome::consensus::grandpa {
       return;
     }
     auto &signed_prevote = signed_prevote_opt.value();
-
-    auto res = env_->onVoted(round_number_, voter_set_->id(), signed_prevote);
-    if (not res) {
-      logger_->error(
-          "Round #{}: Prevote was not sent: {}", round_number_, res.error());
-    }
+    env_->onVoted(round_number_, voter_set_->id(), signed_prevote);
   }
 
   void VotingRoundImpl::doPrecommit() {
@@ -597,8 +584,7 @@ namespace kagome::consensus::grandpa {
     // either equal to the last round estimate or is descendant of it
     const bool should_precommit =
         prevote_ghost == last_round_estimate
-        or env_->isEqualOrDescendOf(last_round_estimate.hash,
-                                    prevote_ghost.hash);
+        or env_->hasAncestry(last_round_estimate.hash, prevote_ghost.hash);
 
     if (should_precommit) {
       precommit_ = prevote_ghost;
@@ -621,12 +607,7 @@ namespace kagome::consensus::grandpa {
       return;
     }
     auto &signed_precommit = signed_precommit_opt.value();
-
-    auto res = env_->onVoted(round_number_, voter_set_->id(), signed_precommit);
-    if (not res) {
-      logger_->error(
-          "Round #{}: Precommit was not sent: {}", round_number_, res.error());
-    }
+    env_->onVoted(round_number_, voter_set_->id(), signed_precommit);
   }
 
   void VotingRoundImpl::doFinalize() {
@@ -668,14 +649,7 @@ namespace kagome::consensus::grandpa {
              round_number_,
              block);
 
-    auto committed = env_->onCommitted(
-        round_number_, voter_set_->id(), block, justification);
-    if (not committed) {
-      logger_->error("Round #{}: Commit message was not sent: {}",
-                     round_number_,
-                     committed.error());
-      return;
-    }
+    env_->onCommitted(round_number_, voter_set_->id(), block, justification);
   }
 
   bool VotingRoundImpl::isPrimary(const Id &id) const {
@@ -684,14 +658,14 @@ namespace kagome::consensus::grandpa {
   }
 
   outcome::result<void> VotingRoundImpl::applyJustification(
-      const BlockInfo &block_info, const GrandpaJustification &justification) {
+      const GrandpaJustification &justification) {
     // validate message
-    OUTCOME_TRY(validatePrecommitJustification(block_info, justification));
+    OUTCOME_TRY(validatePrecommitJustification(justification));
 
     SL_DEBUG(logger_,
              "Round #{}: Finalisation of round is received for block {}",
              round_number_,
-             block_info);
+             justification.block_info);
 
     bool is_prevotes_changed = false;
     bool is_precommits_changed = false;
@@ -700,12 +674,16 @@ namespace kagome::consensus::grandpa {
       visit_in_place(
           vote.message,
           [&](const Prevote &) {
-            if (VotingRoundImpl::onPrevote(vote, Propagation::NEEDLESS)) {
+            std::optional<GrandpaContext> empty_context{};
+            if (VotingRoundImpl::onPrevote(
+                    empty_context, vote, Propagation::NEEDLESS)) {
               is_prevotes_changed = true;
             }
           },
           [&](const Precommit &) {
-            if (VotingRoundImpl::onPrecommit(vote, Propagation::NEEDLESS)) {
+            std::optional<GrandpaContext> empty_context{};
+            if (VotingRoundImpl::onPrecommit(
+                    empty_context, vote, Propagation::NEEDLESS)) {
               is_precommits_changed = true;
             }
           },
@@ -723,11 +701,12 @@ namespace kagome::consensus::grandpa {
         auto possible_to_finalize = [&](const VoteWeight &weight) {
           return weight.total(
                      VoteType::Precommit, precommit_equivocators_, *voter_set_)
-                 >= threshold_;
+              >= threshold_;
         };
 
-        finalized_ = graph_->findAncestor(
-            VoteType::Precommit, block_info, std::move(possible_to_finalize));
+        finalized_ = graph_->findAncestor(VoteType::Precommit,
+                                          justification.block_info,
+                                          std::move(possible_to_finalize));
 
         BOOST_ASSERT(finalized_.has_value());
       } else {
@@ -735,8 +714,8 @@ namespace kagome::consensus::grandpa {
       }
     }
 
-    if (not env_->isEqualOrDescendOf(block_info.hash,
-                                     finalized_.value().hash)) {
+    if (not env_->hasAncestry(justification.block_info.hash,
+                              finalized_.value().hash)) {
       return VotingRoundError::
           JUSTIFIED_BLOCK_IS_GREATER_THAN_ACTUALLY_FINALIZED;
     }
@@ -750,11 +729,21 @@ namespace kagome::consensus::grandpa {
   }
 
   outcome::result<void> VotingRoundImpl::validatePrecommitJustification(
-      const BlockInfo &vote, const GrandpaJustification &justification) const {
+      const GrandpaJustification &justification) const {
+    AncestryVerifier ancestry_verifier{
+        justification.votes_ancestries,
+        *hasher_,
+    };
+    auto has_ancestry = [&](const BlockInfo &ancestor,
+                            const BlockInfo &descendant) {
+      return ancestry_verifier.hasAncestry(ancestor, descendant)
+          or env_->hasAncestry(ancestor.hash, descendant.hash);
+    };
+
     size_t total_weight = 0;
 
     auto threshold = threshold_;
-    std::unordered_map<Id, BlockHash> validators;
+    std::unordered_map<Id, BlockInfo> validators;
     std::unordered_set<Id> equivocators;
 
     for (const auto &signed_precommit : justification.items) {
@@ -781,7 +770,7 @@ namespace kagome::consensus::grandpa {
       // that voter to the total weight
 
       if (auto [it, success] = validators.emplace(
-              signed_precommit.id, signed_precommit.getBlockHash());
+              signed_precommit.id, signed_precommit.getBlockInfo());
           success) {
         // New vote
         auto weight_opt = voter_set_->voterWeight(signed_precommit.id);
@@ -791,19 +780,20 @@ namespace kagome::consensus::grandpa {
                    signed_precommit.id.toHex());
           continue;
         }
-        if (env_->hasAncestry(vote.hash, signed_precommit.getBlockHash())) {
+        if (has_ancestry(justification.block_info,
+                         signed_precommit.getBlockInfo())) {
           total_weight += weight_opt.value();
         } else {
           SL_DEBUG(logger_,
                    "Vote does not have ancestry with target block: "
                    "vote={} target={}",
-                   vote.hash,
-                   signed_precommit.getBlockHash());
+                   justification.block_info,
+                   signed_precommit.getBlockInfo());
         }
 
       } else if (equivocators.emplace(signed_precommit.id).second) {
         // Detected equivocation
-        if (env_->hasAncestry(vote.hash, it->second)) {
+        if (has_ancestry(justification.block_info, it->second)) {
           auto weight = voter_set_->voterWeight(signed_precommit.id).value();
           total_weight -= weight;
           threshold -= weight;
@@ -811,8 +801,8 @@ namespace kagome::consensus::grandpa {
           SL_DEBUG(logger_,
                    "Vote does not have ancestry with target block: "
                    "vote={} target={}",
-                   vote.hash.toHex(),
-                   signed_precommit.getBlockHash());
+                   justification.block_info,
+                   signed_precommit.getBlockInfo());
         }
 
       } else {
@@ -875,8 +865,10 @@ namespace kagome::consensus::grandpa {
     return voter_set_->id();
   }
 
-  void VotingRoundImpl::onProposal(const SignedMessage &proposal,
-                                   Propagation propagation) {
+  void VotingRoundImpl::onProposal(
+      std::optional<GrandpaContext> &grandpa_context,
+      const SignedMessage &proposal,
+      Propagation propagation) {
     if (not isPrimary(proposal.id)) {
       logger_->warn(
           "Round #{}: Proposal signed by {} was rejected: "
@@ -886,9 +878,8 @@ namespace kagome::consensus::grandpa {
       return;
     }
 
-    if (auto ctx_opt = GrandpaContext::get()) {
-      const auto &ctx = ctx_opt.value();
-      ctx->checked_signature_counter++;
+    if (grandpa_context) {
+      grandpa_context->checked_signature_counter++;
     }
 
     bool isValid = vote_crypto_provider_->verifyPrimaryPropose(proposal);
@@ -899,9 +890,8 @@ namespace kagome::consensus::grandpa {
           round_number_,
           proposal.id);
 
-      if (auto ctx_opt = GrandpaContext::get()) {
-        const auto &ctx = ctx_opt.value();
-        ctx->invalid_signature_counter++;
+      if (grandpa_context) {
+        grandpa_context->invalid_signature_counter++;
       }
 
       return;
@@ -909,9 +899,8 @@ namespace kagome::consensus::grandpa {
 
     auto result = voter_set_->indexAndWeight(proposal.id);
     if (!result) {
-      if (auto ctx_opt = GrandpaContext::get()) {
-        const auto &ctx = ctx_opt.value();
-        ctx->unknown_voter_counter++;
+      if (grandpa_context) {
+        grandpa_context->unknown_voter_counter++;
       }
     }
 
@@ -927,9 +916,8 @@ namespace kagome::consensus::grandpa {
       // Check if node hasn't block
       auto res = env_->hasBlock(proposal.getBlockHash());
       if (res.has_value() and not res.value()) {
-        if (auto ctx_opt = GrandpaContext::get(); ctx_opt.has_value()) {
-          auto ctx = ctx_opt.value();
-          ctx->missing_blocks.emplace(proposal.getBlockInfo());
+        if (grandpa_context) {
+          grandpa_context->missing_blocks.emplace(proposal.getBlockInfo());
         }
         return;
       }
@@ -938,20 +926,16 @@ namespace kagome::consensus::grandpa {
     primary_vote_.emplace(proposal.getBlockInfo());
 
     if (propagation == Propagation::REQUESTED) {
-      auto res = env_->onVoted(round_number_, voter_set_->id(), proposal);
-      if (not res) {
-        logger_->error("Round #{}: Primary proposal was not propagated: {}",
-                       round_number_,
-                       res.error());
-      }
+      env_->onVoted(round_number_, voter_set_->id(), proposal);
     }
   }
 
-  bool VotingRoundImpl::onPrevote(const SignedMessage &prevote,
-                                  Propagation propagation) {
-    if (auto ctx_opt = GrandpaContext::get()) {
-      const auto &ctx = ctx_opt.value();
-      ctx->checked_signature_counter++;
+  bool VotingRoundImpl::onPrevote(
+      std::optional<GrandpaContext> &grandpa_context,
+      const SignedMessage &prevote,
+      Propagation propagation) {
+    if (grandpa_context) {
+      grandpa_context->checked_signature_counter++;
     }
 
     bool isValid = vote_crypto_provider_->verifyPrevote(prevote);
@@ -961,15 +945,15 @@ namespace kagome::consensus::grandpa {
           round_number_,
           prevote.id);
 
-      if (auto ctx_opt = GrandpaContext::get()) {
-        const auto &ctx = ctx_opt.value();
-        ctx->invalid_signature_counter++;
+      if (grandpa_context) {
+        grandpa_context->invalid_signature_counter++;
       }
 
       return false;
     }
 
-    if (auto result = onSigned<Prevote>(prevote); result.has_failure()) {
+    if (auto result = onSigned<Prevote>(grandpa_context, prevote);
+        result.has_failure()) {
       if (result == outcome::failure(VotingRoundError::DUPLICATED_VOTE)) {
         return false;
       }
@@ -978,9 +962,8 @@ namespace kagome::consensus::grandpa {
         return false;
       }
       if (result == outcome::failure(VotingRoundError::UNKNOWN_VOTER)) {
-        if (auto ctx_opt = GrandpaContext::get()) {
-          const auto &ctx = ctx_opt.value();
-          ctx->unknown_voter_counter++;
+        if (grandpa_context) {
+          grandpa_context->unknown_voter_counter++;
         }
       }
       if (result != outcome::failure(VotingRoundError::EQUIVOCATED_VOTE)) {
@@ -1007,22 +990,18 @@ namespace kagome::consensus::grandpa {
     }
 
     if (propagation == Propagation::REQUESTED) {
-      auto res = env_->onVoted(round_number_, voter_set_->id(), prevote);
-      if (not res) {
-        logger_->error("Round #{}: Prevote was not propagated: {}",
-                       round_number_,
-                       res.error());
-      }
+      env_->onVoted(round_number_, voter_set_->id(), prevote);
     }
 
     return true;
   }
 
-  bool VotingRoundImpl::onPrecommit(const SignedMessage &precommit,
-                                    Propagation propagation) {
-    if (auto ctx_opt = GrandpaContext::get()) {
-      const auto &ctx = ctx_opt.value();
-      ctx->checked_signature_counter++;
+  bool VotingRoundImpl::onPrecommit(
+      std::optional<GrandpaContext> &grandpa_context,
+      const SignedMessage &precommit,
+      Propagation propagation) {
+    if (grandpa_context) {
+      grandpa_context->checked_signature_counter++;
     }
 
     bool isValid = vote_crypto_provider_->verifyPrecommit(precommit);
@@ -1033,15 +1012,15 @@ namespace kagome::consensus::grandpa {
           round_number_,
           precommit.id);
 
-      if (auto ctx_opt = GrandpaContext::get()) {
-        const auto &ctx = ctx_opt.value();
-        ctx->invalid_signature_counter++;
+      if (grandpa_context) {
+        grandpa_context->invalid_signature_counter++;
       }
 
       return false;
     }
 
-    if (auto result = onSigned<Precommit>(precommit); result.has_failure()) {
+    if (auto result = onSigned<Precommit>(grandpa_context, precommit);
+        result.has_failure()) {
       if (result == outcome::failure(VotingRoundError::DUPLICATED_VOTE)) {
         return false;
       }
@@ -1074,12 +1053,7 @@ namespace kagome::consensus::grandpa {
     }
 
     if (propagation == Propagation::REQUESTED) {
-      auto res = env_->onVoted(round_number_, voter_set_->id(), precommit);
-      if (not res) {
-        logger_->error("Round #{}: Precommit was not propagated: {}",
-                       round_number_,
-                       res.error());
-      }
+      env_->onVoted(round_number_, voter_set_->id(), precommit);
     }
 
     return true;
@@ -1143,7 +1117,9 @@ namespace kagome::consensus::grandpa {
   }
 
   template <typename T>
-  outcome::result<void> VotingRoundImpl::onSigned(const SignedMessage &vote) {
+  outcome::result<void> VotingRoundImpl::onSigned(
+      std::optional<GrandpaContext> &grandpa_context,
+      const SignedMessage &vote) {
     BOOST_ASSERT(vote.is<T>());
 
     // Check if voter is contained in current voter set
@@ -1195,9 +1171,8 @@ namespace kagome::consensus::grandpa {
           if (result
               == outcome::failure(
                   blockchain::BlockTreeError::HEADER_NOT_FOUND)) {
-            if (auto ctx_opt = GrandpaContext::get(); ctx_opt.has_value()) {
-              auto &ctx = ctx_opt.value();
-              ctx->missing_blocks.emplace(vote.getBlockInfo());
+            if (grandpa_context) {
+              grandpa_context->missing_blocks.emplace(vote.getBlockInfo());
               log_lvl = log::Level::DEBUG;
             }
           }
@@ -1226,9 +1201,11 @@ namespace kagome::consensus::grandpa {
   }
 
   template outcome::result<void> VotingRoundImpl::onSigned<Prevote>(
+      std::optional<GrandpaContext> &grandpa_context,
       const SignedMessage &vote);
 
   template outcome::result<void> VotingRoundImpl::onSigned<Precommit>(
+      std::optional<GrandpaContext> &grandpa_context,
       const SignedMessage &vote);
 
   bool VotingRoundImpl::updateGrandpaGhost() {
@@ -1247,7 +1224,7 @@ namespace kagome::consensus::grandpa {
 
     auto possible_to_prevote = [this](const VoteWeight &weight) {
       return weight.total(VoteType::Prevote, prevote_equivocators_, *voter_set_)
-             >= threshold_;
+          >= threshold_;
     };
 
     /// @see spec: Grandpa-Ghost
@@ -1302,7 +1279,7 @@ namespace kagome::consensus::grandpa {
       auto possible_to_finalize = [&](const VoteWeight &weight) {
         return weight.total(
                    VoteType::Precommit, precommit_equivocators_, *voter_set_)
-               >= threshold_;
+            >= threshold_;
       };
 
       finalized_ = graph_->findAncestor(
@@ -1444,15 +1421,15 @@ namespace kagome::consensus::grandpa {
 
     // spec: L <- Best-Final-Candidate(r-1)
     auto best_final_candidate = previous_round_
-                                    ? previous_round_->bestFinalCandidate()
-                                    : last_finalized_block_;
+                                  ? previous_round_->bestFinalCandidate()
+                                  : last_finalized_block_;
 
     // spec: Bpv <- GRANDPA-GHOST(r)
     auto best_chain =
         env_->bestChainContaining(best_final_candidate.hash, voter_set_->id());
     auto best_prevote_candidate = best_chain.has_value()
-                                      ? convertToBlockInfo(best_chain.value())
-                                      : last_finalized_block_;
+                                    ? convertToBlockInfo(best_chain.value())
+                                    : last_finalized_block_;
 
     // spec: N <- Bpv
     prevote_ = best_prevote_candidate;
@@ -1502,8 +1479,8 @@ namespace kagome::consensus::grandpa {
               [this, &prevotes, &estimate](
                   const SignedMessage &voting_message) {
                 if (voting_message.is<Prevote>()) {
-                  if (env_->isEqualOrDescendOf(estimate.hash,
-                                               voting_message.getBlockHash())) {
+                  if (env_->hasAncestry(estimate.hash,
+                                        voting_message.getBlockHash())) {
                     prevotes.push_back(
                         static_cast<const SignedPrevote &>(voting_message));
                   }
@@ -1569,8 +1546,8 @@ namespace kagome::consensus::grandpa {
                   BOOST_ASSERT(voting_message.is<Precommit>());
 
                   if (estimate.number <= voting_message.getBlockNumber()
-                      and env_->isEqualOrDescendOf(
-                          estimate.hash, voting_message.getBlockHash())) {
+                      and env_->hasAncestry(estimate.hash,
+                                            voting_message.getBlockHash())) {
                     auto &signed_precommit =
                         static_cast<const SignedPrecommit &>(voting_message);
                     weight +=
@@ -1597,25 +1574,19 @@ namespace kagome::consensus::grandpa {
     auto precommit_justification =
         getPrecommitJustification(finalized_block, precommits_->getMessages());
 
-    auto result = env_->onCatchUpRespond(peer_id,
-                                         voter_set_->id(),
-                                         round_number_,
-                                         std::move(prevote_justification),
-                                         std::move(precommit_justification),
-                                         finalized_block);
-    if (not result) {
-      logger_->warn("Catch-Up-Response was not sent: {}", result.error());
-    }
+    env_->onCatchUpRespond(peer_id,
+                           voter_set_->id(),
+                           round_number_,
+                           std::move(prevote_justification),
+                           std::move(precommit_justification),
+                           finalized_block);
   }
 
   void VotingRoundImpl::sendNeighborMessage() {
-    auto res = env_->onNeighborMessageSent(
+    env_->onNeighborMessageSent(
         round_number_,
         voter_set_->id(),
         finalized_.value_or(last_finalized_block_).number);
-    if (res.has_error()) {
-      logger_->warn("Neighbor message was not sent: {}", res.error());
-    }
   }
 
   void VotingRoundImpl::pending() {
@@ -1632,18 +1603,18 @@ namespace kagome::consensus::grandpa {
           }
           auto r = round->roundNumber();
           auto s = round->voterSetId();
-          if (r == 0) return;
+          if (r == 0) {
+            return;
+          }
           SL_DEBUG(logger_, "Round #{}: resend votes", r);
           for (const auto &graph : {round->prevotes_, round->precommits_}) {
             for (const auto &vote_variant : graph->getMessages()) {
               visit_in_place(
                   vote_variant,
-                  [&](const SignedMessage &vote) {
-                    std::ignore = env_->onVoted(r, s, vote);
-                  },
+                  [&](const SignedMessage &vote) { env_->onVoted(r, s, vote); },
                   [&](const EquivocatorySignedMessage &pair) {
-                    std::ignore = env_->onVoted(r, s, pair.first);
-                    std::ignore = env_->onVoted(r, s, pair.second);
+                    env_->onVoted(r, s, pair.first);
+                    env_->onVoted(r, s, pair.second);
                   });
             }
           }

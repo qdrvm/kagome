@@ -66,9 +66,7 @@ namespace kagome::telemetry {
     if (enabled_) {
       message_pool_ = std::make_shared<MessagePool>(
           kTelemetryMessageMaxLengthBytes, kTelemetryMessagePoolSize);
-      app_state_manager_->registerHandlers([&]() { return prepare(); },
-                                           [&]() { return start(); },
-                                           [&]() { stop(); });
+      app_state_manager_->takeControl(*this);
     } else {
       SL_INFO(log_, "Telemetry disabled");
     }

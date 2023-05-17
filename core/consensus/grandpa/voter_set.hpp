@@ -27,6 +27,9 @@ namespace kagome::consensus::grandpa {
 
     explicit VoterSet(VoterSetId id_of_set);
 
+    static outcome::result<std::shared_ptr<VoterSet>> make(
+        const primitives::AuthoritySet &voters);
+
     /**
      * Insert voter \param voter with \param weight
      */

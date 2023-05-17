@@ -131,6 +131,8 @@ TEST_F(StateProtocolObserverTest, Simple) {
 
   StateRequest request{
       .hash = "1"_hash256,
+      .start = {},
+      .no_proof = false
   };
 
   EXPECT_OUTCOME_TRUE(response,

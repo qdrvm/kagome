@@ -153,16 +153,18 @@ struct BlockTreeTest : public testing::Test {
     auto extrinsic_event_key_repo =
         std::make_shared<subscription::ExtrinsicEventKeyRepository>();
 
-    block_tree_ = BlockTreeImpl::create(header_repo_,
-                                        storage_,
-                                        extrinsic_observer_,
-                                        hasher_,
-                                        chain_events_engine,
-                                        ext_events_engine,
-                                        extrinsic_event_key_repo,
-                                        justification_storage_policy_,
-                                        state_pruner_)
-                      .value();
+    block_tree_ =
+        BlockTreeImpl::create(header_repo_,
+                              storage_,
+                              extrinsic_observer_,
+                              hasher_,
+                              chain_events_engine,
+                              ext_events_engine,
+                              extrinsic_event_key_repo,
+                              justification_storage_policy_,
+                              state_pruner_,
+                              std::make_shared<::boost::asio::io_context>())
+            .value();
   }
 
   /**
@@ -409,7 +411,7 @@ TEST_F(BlockTreeTest, Finalize) {
   EXPECT_CALL(*storage_, getBlockBody(hash))
       .WillRepeatedly(Return(outcome::success(body)));
   EXPECT_CALL(*justification_storage_policy_,
-              shouldStoreFor(finalized_block_header_))
+              shouldStoreFor(finalized_block_header_, _))
       .WillOnce(Return(outcome::success(false)));
 
   // WHEN
@@ -475,7 +477,7 @@ TEST_F(BlockTreeTest, FinalizeWithPruning) {
   EXPECT_CALL(*storage_, removeJustification(kFinalizedBlockInfo.hash))
       .WillRepeatedly(Return(outcome::success()));
   EXPECT_CALL(*justification_storage_policy_,
-              shouldStoreFor(finalized_block_header_))
+              shouldStoreFor(finalized_block_header_, _))
       .WillOnce(Return(outcome::success(false)));
 
   // WHEN
@@ -543,7 +545,7 @@ TEST_F(BlockTreeTest, FinalizeWithPruningDeepestLeaf) {
   EXPECT_CALL(*storage_, removeJustification(kFinalizedBlockInfo.hash))
       .WillRepeatedly(Return(outcome::success()));
   EXPECT_CALL(*justification_storage_policy_,
-              shouldStoreFor(finalized_block_header_))
+              shouldStoreFor(finalized_block_header_, _))
       .WillOnce(Return(outcome::success(false)));
 
   // WHEN
@@ -583,7 +585,7 @@ std::shared_ptr<TreeNode> makeFullTree(size_t depth, size_t branching_factor) {
 }
 
 struct NodeProcessor {
-  MOCK_METHOD(void, foo, (TreeNode const &), (const));
+  MOCK_METHOD(void, foo, (const TreeNode &), (const));
 };
 
 /**
@@ -844,7 +846,7 @@ TEST_F(BlockTreeTest, Reorganize) {
   EXPECT_CALL(*storage_, removeJustification(kFinalizedBlockInfo.hash))
       .WillRepeatedly(Return(outcome::success()));
   EXPECT_CALL(*justification_storage_policy_,
-              shouldStoreFor(finalized_block_header_))
+              shouldStoreFor(finalized_block_header_, _))
       .WillOnce(Return(outcome::success(false)));
 
   ASSERT_OUTCOME_SUCCESS_TRY(block_tree_->finalize(C2_hash, {}));
@@ -882,7 +884,7 @@ TEST_F(BlockTreeTest, CleanupObsoleteJustificationOnFinalized) {
 
   // shouldn't keep old justification
   EXPECT_CALL(*justification_storage_policy_,
-              shouldStoreFor(finalized_block_header_))
+              shouldStoreFor(finalized_block_header_, _))
       .WillOnce(Return(false));
   // store new justification
   EXPECT_CALL(*storage_, putJustification(new_justification, b56))
@@ -904,7 +906,7 @@ TEST_F(BlockTreeTest, KeepLastFinalizedJustificationIfItShouldBeStored) {
 
   // shouldn't keep old justification
   EXPECT_CALL(*justification_storage_policy_,
-              shouldStoreFor(finalized_block_header_))
+              shouldStoreFor(finalized_block_header_, _))
       .WillOnce(Return(true));
   // store new justification
   EXPECT_CALL(*storage_, putJustification(new_justification, b56))

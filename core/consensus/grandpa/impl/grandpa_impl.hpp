@@ -9,10 +9,15 @@
 #include "consensus/grandpa/grandpa.hpp"
 #include "consensus/grandpa/grandpa_observer.hpp"
 
+#include <atomic>
+#include <boost/asio/io_context.hpp>
 #include <libp2p/basic/scheduler.hpp>
 
 #include "log/logger.hpp"
 #include "metrics/metrics.hpp"
+#include "primitives/event_types.hpp"
+#include "utils/safe_object.hpp"
+#include "utils/thread_pool.hpp"
 
 namespace kagome::application {
   class AppStateManager;
@@ -32,7 +37,8 @@ namespace kagome::consensus::grandpa {
 
 namespace kagome::crypto {
   class Ed25519Provider;
-}
+  class SessionKeys;
+}  // namespace kagome::crypto
 
 namespace kagome::network {
   class PeerManager;
@@ -89,18 +95,20 @@ namespace kagome::consensus::grandpa {
 
     GrandpaImpl(
         std::shared_ptr<application::AppStateManager> app_state_manager,
+        std::shared_ptr<crypto::Hasher> hasher,
         std::shared_ptr<Environment> environment,
         std::shared_ptr<crypto::Ed25519Provider> crypto_provider,
         std::shared_ptr<runtime::GrandpaApi> grandpa_api,
-        std::shared_ptr<crypto::Ed25519Keypair> keypair,
+        std::shared_ptr<crypto::SessionKeys> session_keys,
         const application::ChainSpec &chain_spec,
-        std::shared_ptr<Clock> clock,
-        std::shared_ptr<libp2p::basic::Scheduler> scheduler,
         std::shared_ptr<AuthorityManager> authority_manager,
         std::shared_ptr<network::Synchronizer> synchronizer,
         std::shared_ptr<network::PeerManager> peer_manager,
         std::shared_ptr<blockchain::BlockTree> block_tree,
-        std::shared_ptr<network::ReputationRepository> reputation_repository);
+        std::shared_ptr<network::ReputationRepository> reputation_repository,
+        primitives::events::BabeStateSubscriptionEnginePtr
+            babe_status_observable,
+        std::shared_ptr<boost::asio::io_context> main_thread_context);
 
     /**
      * Prepares for grandpa round execution: e.g. sets justification observer
@@ -139,7 +147,7 @@ namespace kagome::consensus::grandpa {
      * @param msg received grandpa neighbour message
      */
     void onNeighborMessage(const libp2p::peer::PeerId &peer_id,
-                           const network::GrandpaNeighborMessage &msg) override;
+                           network::GrandpaNeighborMessage &&msg) override;
 
     // Catch-up methods
 
@@ -154,7 +162,7 @@ namespace kagome::consensus::grandpa {
      * @param msg network message containing catch up request
      */
     void onCatchUpRequest(const libp2p::peer::PeerId &peer_id,
-                          const network::CatchUpRequest &msg) override;
+                          network::CatchUpRequest &&msg) override;
 
     /**
      * Catch up response processing according to
@@ -169,8 +177,10 @@ namespace kagome::consensus::grandpa {
      * @param peer_id id of remote peer that sent catch up response
      * @param msg message containing catch up response
      */
-    void onCatchUpResponse(const libp2p::peer::PeerId &peer_id,
-                           const network::CatchUpResponse &msg) override;
+    void onCatchUpResponse(
+        std::optional<std::shared_ptr<GrandpaContext>> &&existed_context,
+        const libp2p::peer::PeerId &peer_id,
+        const network::CatchUpResponse &msg) override;
 
     // Voting methods
 
@@ -184,8 +194,10 @@ namespace kagome::consensus::grandpa {
      * @param msg vote message that could be either primary propose, prevote, or
      * precommit message
      */
-    void onVoteMessage(const libp2p::peer::PeerId &peer_id,
-                       const network::VoteMessage &msg) override;
+    void onVoteMessage(
+        std::optional<std::shared_ptr<GrandpaContext>> &&existed_context,
+        const libp2p::peer::PeerId &peer_id,
+        const network::VoteMessage &msg) override;
 
     /**
      * Processing of commit message
@@ -196,22 +208,33 @@ namespace kagome::consensus::grandpa {
      * @param peer_id id of remote peer
      * @param msg message containing commit message with justification
      */
-    void onCommitMessage(const libp2p::peer::PeerId &peer_id,
-                         const network::FullCommitMessage &msg) override;
+    void onCommitMessage(
+        std::optional<std::shared_ptr<GrandpaContext>> &&existed_context,
+        const libp2p::peer::PeerId &peer_id,
+        const network::FullCommitMessage &msg) override;
+
+    /**
+     * Check justification votes signatures, ancestry and threshold.
+     */
+    void verifyJustification(
+        const GrandpaJustification &justification,
+        const primitives::AuthoritySet &authorities,
+        std::shared_ptr<std::promise<outcome::result<void>>> promise_res)
+        override;
 
     /**
      * Selects round that corresponds for justification, checks justification,
      * finalizes corresponding block and stores justification in storage
      *
      * If there is no corresponding round, it will be created
-     * @param block_info block being finalized by justification
      * @param justification justification containing precommit votes and
      * signatures for block info
      * @return nothing or an error
      */
-    outcome::result<void> applyJustification(
-        const BlockInfo &block_info,
-        const GrandpaJustification &justification) override;
+    void applyJustification(const GrandpaJustification &justification,
+                            ApplyJustificationCb &&callback) override;
+
+    void reload() override;
 
     // Round processing method
 
@@ -235,6 +258,8 @@ namespace kagome::consensus::grandpa {
     void updateNextRound(RoundNumber round_number) override;
 
    private:
+    void callbackCall(ApplyJustificationCb &&callback,
+                      outcome::result<void> &&result);
     /**
      * Selects round by provided number and voter set id
      * @param round_number number of round to be selected
@@ -273,21 +298,33 @@ namespace kagome::consensus::grandpa {
      * Request blocks that are missing to run consensus (for example when we
      * cannot accept precommit when there is no corresponding block)
      */
-    void loadMissingBlocks();
+    void loadMissingBlocks(GrandpaContext &&grandpa_context);
 
     const Clock::Duration round_time_factor_;
 
+    std::shared_ptr<crypto::Hasher> hasher_;
     std::shared_ptr<Environment> environment_;
     std::shared_ptr<crypto::Ed25519Provider> crypto_provider_;
     std::shared_ptr<runtime::GrandpaApi> grandpa_api_;
     std::shared_ptr<crypto::Ed25519Keypair> keypair_;
-    std::shared_ptr<Clock> clock_;
-    std::shared_ptr<libp2p::basic::Scheduler> scheduler_;
     std::shared_ptr<AuthorityManager> authority_manager_;
     std::shared_ptr<network::Synchronizer> synchronizer_;
     std::shared_ptr<network::PeerManager> peer_manager_;
     std::shared_ptr<blockchain::BlockTree> block_tree_;
     std::shared_ptr<network::ReputationRepository> reputation_repository_;
+    primitives::events::BabeStateSubscriptionEnginePtr babe_status_observable_;
+    primitives::events::BabeStateEventSubscriberPtr babe_status_observer_;
+
+    std::atomic_bool synchronized_once_ =
+        false;  // declares if initial sync was done, does not
+                // necessarily mean that node is currently synced.
+                // Needed for enabling neighbor message processing.
+                // By default is false
+
+    std::shared_ptr<ThreadPool> execution_thread_pool_;
+    std::shared_ptr<ThreadHandler> internal_thread_context_;
+    ThreadHandler main_thread_context_;
+    std::shared_ptr<libp2p::basic::Scheduler> scheduler_;
 
     std::shared_ptr<VotingRound> current_round_;
     std::optional<

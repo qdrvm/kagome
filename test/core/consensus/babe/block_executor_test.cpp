@@ -6,6 +6,7 @@
 #include "consensus/babe/impl/block_executor_impl.hpp"
 
 #include <gtest/gtest.h>
+#include <iostream>
 
 #include "blockchain/block_tree_error.hpp"
 #include "consensus/babe/impl/block_appender_base.hpp"
@@ -76,6 +77,26 @@ using testing::ReturnRef;
 namespace kagome::primitives {
   std::ostream &operator<<(std::ostream &s,
                            const detail::DigestItemCommon &dic) {
+    return s;
+  }
+
+  std::ostream &operator<<(std::ostream &s, const ScheduledChange &) {
+    return s;
+  }
+
+  std::ostream &operator<<(std::ostream &s, const ForcedChange &) {
+    return s;
+  }
+
+  std::ostream &operator<<(std::ostream &s, const OnDisabled &) {
+    return s;
+  }
+
+  std::ostream &operator<<(std::ostream &s, const Pause &) {
+    return s;
+  }
+
+  std::ostream &operator<<(std::ostream &s, const Resume &) {
     return s;
   }
 }  // namespace kagome::primitives
@@ -214,7 +235,7 @@ TEST_F(BlockExecutorTest, JustificationFollowDigests) {
               getBestContaining("grandparent_hash"_hash256,
                                 std::optional<BlockNumber>{}))
       .WillOnce(testing::Return(BlockInfo{41, "parent_hash"_hash256}));
-  EXPECT_CALL(*core_, execute_block(_, _))
+  EXPECT_CALL(*core_, execute_block_ref(_, _))
       .WillOnce(testing::Return(outcome::success()));
   EXPECT_CALL(*block_tree_, addBlock(_))
       .WillOnce(testing::Return(outcome::success()));
@@ -227,11 +248,6 @@ TEST_F(BlockExecutorTest, JustificationFollowDigests) {
     EXPECT_CALL(
         *digest_tracker_,
         onDigest(BlockContext{.block_info = {42, "some_hash"_hash256}}, _))
-        .WillOnce(testing::Return(outcome::success()));
-
-    EXPECT_CALL(
-        *grandpa_environment_,
-        applyJustification(BlockInfo{42, "some_hash"_hash256}, justification))
         .WillOnce(testing::Return(outcome::success()));
   }
   EXPECT_CALL(
@@ -248,6 +264,8 @@ TEST_F(BlockExecutorTest, JustificationFollowDigests) {
   EXPECT_CALL(*consistency_keeper_, rollback(block_info))
       .WillRepeatedly(Return());
 
-  EXPECT_OUTCOME_TRUE_1(block_executor_->applyBlock(
-      Block{block_data.header.value(), block_data.body.value()}, justification))
+  block_executor_->applyBlock(
+      Block{block_data.header.value(), block_data.body.value()},
+      justification,
+      [](auto &&result) { EXPECT_OUTCOME_TRUE_1(result); });
 }

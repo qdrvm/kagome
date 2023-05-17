@@ -41,7 +41,7 @@ namespace kagome::clock {
      * happens
      */
     virtual void asyncWait(
-        const std::function<void(const std::error_code &)> &h) = 0;
+        const std::function<void(const boost::system::error_code &)> &h) = 0;
   };
 }  // namespace kagome::clock
 

@@ -18,11 +18,16 @@
 #include <libp2p/connection/stream.hpp>
 #include <libp2p/host/host.hpp>
 #include "application/chain_spec.hpp"
+#include "blockchain/genesis_block_hash.hpp"
 #include "log/logger.hpp"
 #include "network/impl/protocols/protocol_base_impl.hpp"
 #include "network/reputation_repository.hpp"
 #include "network/sync_protocol_observer.hpp"
 #include "utils/non_copyable.hpp"
+
+namespace kagome::blockchain {
+  class GenesisBlockHash;
+}
 
 namespace kagome::network {
 
@@ -107,12 +112,11 @@ namespace kagome::network {
     SyncProtocolImpl(
         libp2p::Host &host,
         const application::ChainSpec &chain_spec,
-        const primitives::BlockHash &genesis_hash,
+        const blockchain::GenesisBlockHash &genesis_hash,
         std::shared_ptr<SyncProtocolObserver> sync_observer,
         std::shared_ptr<ReputationRepository> reputation_repository);
 
     bool start() override;
-    bool stop() override;
 
     const std::string &protocolName() const override {
       return kSyncProtocolName;

@@ -143,21 +143,14 @@ enum Command : uint8_t { COMPACT, DUMP };
 
 void usage() {
   std::string help(R"(
-Kagome DB Editor
+Kagome DB Editor - a storage pruner. Allows to reduce occupied disk space.
 Usage:
-    kagome-db-editor <db-path> <root-state> <command>
+    kagome db-editor <db-path>
 
     <db-path>     full or relative path to kagome database. It is usually path
                     polkadot/db inside base path set in kagome options.
-    <root-state>  root state hash in 0x prefixed hex format. [Optional]
-    <command>
-         dump:    dumps the state from the DB to file hex_full_state.yaml in
-                    format ready for use in polkadot-test.
-         compact: compacts the kagome DB. Leaves only keys of the state passed
-                    as an arguments. Removes all other keys. [Default]
 
 Example:
-    kagome-db-editor base-path/polkadot/db 0x1e22e dump
     kagome-db-editor base-path/polkadot/db
 )");
   std::cout << help;
@@ -233,11 +226,6 @@ int db_editor_main(int argc, const char **argv) {
     target_state_param = RootHash::fromHexWithPrefix(argv[2]).value();
   }
 
-  auto logging_system = std::make_shared<soralog::LoggingSystem>(
-      std::make_shared<Configurator>());
-  std::ignore = logging_system->configure();
-  log::setLoggingSystem(logging_system);
-
   auto log = log::createLogger("main", "kagome-db-editor");
 
   common::Buffer prefix{};
@@ -250,6 +238,7 @@ int db_editor_main(int argc, const char **argv) {
     try {
       storage =
           storage::RocksDb::create(argv[DB_PATH], rocksdb::Options()).value();
+      storage->dropColumn(storage::Space::kBlockBody);
       buffer_storage = storage->getSpace(storage::Space::kDefault);
     } catch (std::system_error &e) {
       log->error("{}", e.what());
@@ -402,16 +391,15 @@ int db_editor_main(int argc, const char **argv) {
         }
       }
 
-      auto db_cursor = buffer_storage->cursor();
-      auto db_batch = buffer_storage->batch();
-      auto res = check(db_cursor->seek(prefix));
+      auto db_cursor = trie_buffer_storage->cursor();
+      auto db_batch = trie_buffer_storage->batch();
+      auto res = check(db_cursor->seekFirst());
       int count = 0;
       {
         TicToc t2("Process DB.", log);
-        while (db_cursor->isValid() && db_cursor->key().has_value()
-               && boost::starts_with(db_cursor->key().value(), prefix)) {
+        while (db_cursor->isValid() && db_cursor->key().has_value()) {
           auto key = db_cursor->key().value();
-          if (trie_tracker->tracked(key.view(prefix.size()))) {
+          if (trie_tracker->tracked(key)) {
             db_cursor->next().value();
             continue;
           }

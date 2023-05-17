@@ -37,7 +37,7 @@ namespace kagome::host_api {
   void StorageExtension::reset() {
     // rollback will have value until there are opened transactions that need
     // to be closed
-    while (true) {
+    for (; transactions_ != 0; --transactions_) {
       if (auto res = storage_provider_->rollbackTransaction();
           res.has_error()) {
         if (res.error()
@@ -300,6 +300,7 @@ namespace kagome::host_api {
       logger_->error("Storage transaction start has failed: {}", res.error());
       throw std::runtime_error(res.error().message());
     }
+    ++transactions_;
   }
 
   void StorageExtension::ext_storage_commit_transaction_version_1() {
@@ -310,6 +311,7 @@ namespace kagome::host_api {
                      res.error());
       throw std::runtime_error(res.error().message());
     }
+    --transactions_;
   }
 
   void StorageExtension::ext_storage_rollback_transaction_version_1() {
@@ -319,6 +321,7 @@ namespace kagome::host_api {
       logger_->error("Storage transaction commit has failed: {}", res.error());
       throw std::runtime_error(res.error().message());
     }
+    --transactions_;
   }
 
   namespace {

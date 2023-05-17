@@ -30,6 +30,8 @@
 #include "storage/trie/trie_storage.hpp"
 #include "subscription/extrinsic_event_key_repository.hpp"
 #include "telemetry/service.hpp"
+#include "utils/safe_object.hpp"
+#include "utils/thread_pool.hpp"
 
 namespace kagome::storage::trie_pruner {
   class TriePruner;
@@ -56,7 +58,8 @@ namespace kagome::blockchain {
             extrinsic_event_key_repo,
         std::shared_ptr<const class JustificationStoragePolicy>
             justification_storage_policy,
-        std::shared_ptr<storage::trie_pruner::TriePruner> state_pruner);
+        std::shared_ptr<storage::trie_pruner::TriePruner> state_pruner,
+        std::shared_ptr<::boost::asio::io_context> io_context);
 
     /// Recover block tree state at provided block
     static outcome::result<void> recover(
@@ -135,7 +138,27 @@ namespace kagome::blockchain {
 
     primitives::BlockInfo getLastFinalized() const override;
 
+    void warp(const primitives::BlockInfo &block_info) override;
+
+    void notifyBestAndFinalized() override;
+
    private:
+    struct BlockTreeData {
+      std::shared_ptr<BlockHeaderRepository> header_repo_;
+      std::shared_ptr<BlockStorage> storage_;
+      std::shared_ptr<storage::trie_pruner::TriePruner> state_pruner_;
+      std::unique_ptr<CachedTree> tree_;
+      std::shared_ptr<network::ExtrinsicObserver> extrinsic_observer_;
+      std::shared_ptr<crypto::Hasher> hasher_;
+      std::shared_ptr<subscription::ExtrinsicEventKeyRepository>
+          extrinsic_event_key_repo_;
+      std::shared_ptr<const class JustificationStoragePolicy>
+          justification_storage_policy_;
+      std::optional<primitives::BlockHash> genesis_block_hash_;
+
+      BlockTreeData() = delete;
+    };
+
     /**
      * Private constructor, so that instances are created only through the
      * factory method
@@ -153,48 +176,102 @@ namespace kagome::blockchain {
             extrinsic_event_key_repo,
         std::shared_ptr<const class JustificationStoragePolicy>
             justification_storage_policy,
-        std::shared_ptr<storage::trie_pruner::TriePruner> state_pruner);
+        std::shared_ptr<storage::trie_pruner::TriePruner> state_pruner,
+        std::shared_ptr<::boost::asio::io_context> io_context);
 
     /**
      * Walks the chain backwards starting from \param start until the current
      * block number is less or equal than \param limit
      */
-    outcome::result<primitives::BlockHash> walkBackUntilLess(
+    outcome::result<primitives::BlockHash> walkBackUntilLessNoLock(
+        const BlockTreeData &p,
         const primitives::BlockHash &start,
         const primitives::BlockNumber &limit) const;
 
     /**
      * @returns the tree leaves sorted by their depth
      */
-    std::vector<primitives::BlockHash> getLeavesSorted() const;
+    std::vector<primitives::BlockHash> getLeavesSortedNoLock(
+        const BlockTreeData &p) const;
 
-    outcome::result<std::vector<primitives::BlockHash>> prune(
-        const std::shared_ptr<TreeNode> &lastFinalizedNode);
+    outcome::result<void> pruneNoLock(
+        BlockTreeData &p, const std::shared_ptr<TreeNode> &lastFinalizedNode);
 
-    outcome::result<void> pruneTrie(
-        primitives::BlockNumber old_finalized,
-        primitives::BlockNumber new_finalized);
+    outcome::result<primitives::BlockHeader> getBlockHeaderNoLock(
+        const BlockTreeData &p, const primitives::BlockHash &block_hash) const;
 
-    outcome::result<void> reorganize();
+    outcome::result<void> pruneTrie(const BlockTreeData &block_tree_data,
+                                    primitives::BlockNumber old_finalized,
+                                    primitives::BlockNumber new_finalized);
 
-    std::shared_ptr<BlockHeaderRepository> header_repo_;
-    std::shared_ptr<BlockStorage> storage_;
-    std::shared_ptr<storage::trie_pruner::TriePruner> state_pruner_;
+    outcome::result<void> reorganizeNoLock(BlockTreeData &p);
 
-    std::unique_ptr<CachedTree> tree_;
+    primitives::BlockInfo getLastFinalizedNoLock(const BlockTreeData &p) const;
+    primitives::BlockInfo bestLeafNoLock(const BlockTreeData &p) const;
 
-    std::shared_ptr<network::ExtrinsicObserver> extrinsic_observer_;
+    bool hasDirectChainNoLock(const BlockTreeData &p,
+                              const primitives::BlockHash &ancestor,
+                              const primitives::BlockHash &descendant) const;
+    std::vector<primitives::BlockHash> getLeavesNoLock(
+        const BlockTreeData &p) const;
 
-    std::shared_ptr<crypto::Hasher> hasher_;
-    primitives::events::ChainSubscriptionEnginePtr chain_events_engine_;
-    primitives::events::ExtrinsicSubscriptionEnginePtr extrinsic_events_engine_;
-    std::shared_ptr<subscription::ExtrinsicEventKeyRepository>
-        extrinsic_event_key_repo_;
-    std::shared_ptr<const class JustificationStoragePolicy>
-        justification_storage_policy_;
+    BlockTree::BlockHashVecRes getDescendingChainToBlockNoLock(
+        const BlockTreeData &p,
+        const primitives::BlockHash &to_block,
+        uint64_t maximum) const;
 
-    std::optional<primitives::BlockHash> genesis_block_hash_;
+    outcome::result<void> addExistingBlockNoLock(
+        BlockTreeData &p,
+        const primitives::BlockHash &block_hash,
+        const primitives::BlockHeader &block_header);
 
+    void notifyChainEventsEngine(primitives::events::ChainEventType event,
+                                 const primitives::BlockHeader &header);
+    void notifyExtrinsicEventsEngine(
+        subscription::ExtrinsicEventKeyRepository::ExtrinsicKey event,
+        const primitives::events::ExtrinsicLifecycleEvent &data);
+
+    class SafeBlockTreeData {
+     public:
+      SafeBlockTreeData(BlockTreeData data);
+
+      template <typename F>
+      decltype(auto) exclusiveAccess(F &&f) {
+        // if this thread owns the mutex, it shall not be unlocked until this
+        // function exits
+        if (exclusive_owner_.load(std::memory_order_acquire)
+            == std::this_thread::get_id()) {
+          return f(block_tree_data_.unsafeGet());
+        }
+        return block_tree_data_.exclusiveAccess(
+            [&f, this](BlockTreeData &data) {
+              exclusive_owner_ = std::this_thread::get_id();
+              auto &&res = f(data);
+              exclusive_owner_ = std::nullopt;
+              return res;
+            });
+      }
+
+      template <typename F>
+      decltype(auto) sharedAccess(F &&f) const {
+        // if this thread owns the mutex, it shall not be unlocked until this
+        // function exits
+        if (exclusive_owner_.load(std::memory_order_acquire)
+            == std::this_thread::get_id()) {
+          return f(block_tree_data_.unsafeGet());
+        }
+        return block_tree_data_.sharedAccess(std::forward<F>(f));
+      }
+
+     private:
+      SafeObject<BlockTreeData> block_tree_data_;
+      std::atomic<std::optional<std::thread::id>> exclusive_owner_;
+
+    } block_tree_data_;
+
+    primitives::events::ExtrinsicSubscriptionEnginePtr
+        extrinsic_events_engine_ = {};
+    primitives::events::ChainSubscriptionEnginePtr chain_events_engine_ = {};
     log::Logger log_ = log::createLogger("BlockTree", "block_tree");
 
     // Metrics
@@ -202,6 +279,7 @@ namespace kagome::blockchain {
     metrics::Gauge *metric_best_block_height_;
     metrics::Gauge *metric_finalized_block_height_;
     metrics::Gauge *metric_known_chain_leaves_;
+    ThreadHandler main_thread_;
     telemetry::Telemetry telemetry_ = telemetry::createTelemetryService();
   };
 }  // namespace kagome::blockchain

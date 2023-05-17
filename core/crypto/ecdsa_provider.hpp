@@ -6,22 +6,19 @@
 #ifndef KAGOME_CORE_CRYPTO_ECDSA_PROVIDER_HPP
 #define KAGOME_CORE_CRYPTO_ECDSA_PROVIDER_HPP
 
-#include <gsl/span>
-
-#include "outcome/outcome.hpp"
-
+#include "crypto/bip39/bip39_types.hpp"
 #include "crypto/ecdsa_types.hpp"
 
 namespace kagome::crypto {
 
   class EcdsaProvider {
    public:
+    using Junctions = gsl::span<const bip39::RawJunction>;
+
     virtual ~EcdsaProvider() = default;
 
-    virtual outcome::result<EcdsaKeypairAndSeed> generate() const = 0;
-
-    virtual outcome::result<EcdsaPublicKey> derive(
-        const EcdsaSeed &seed) const = 0;
+    virtual outcome::result<EcdsaKeypair> generateKeypair(
+        const EcdsaSeed &seed, Junctions junctions) const = 0;
 
     virtual outcome::result<EcdsaSignature> sign(
         gsl::span<const uint8_t> message, const EcdsaPrivateKey &key) const = 0;

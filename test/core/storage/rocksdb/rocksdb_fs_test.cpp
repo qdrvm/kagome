@@ -6,14 +6,14 @@
 #include "testutil/storage/base_fs_test.hpp"
 
 #include <gtest/gtest.h>
-#include <boost/filesystem.hpp>
+#include "filesystem/common.hpp"
 #include "storage/database_error.hpp"
 #include "storage/rocksdb/rocksdb.hpp"
 #include "testutil/outcome.hpp"
 #include "testutil/prepare_loggers.hpp"
 
 using namespace kagome::storage;
-namespace fs = boost::filesystem;
+namespace fs = kagome::filesystem;
 
 struct RocksDb_Open : public test::BaseFS_Test {
   static void SetUpTestCase() {
@@ -49,6 +49,6 @@ TEST_F(RocksDb_Open, OpenExistingDB) {
   EXPECT_OUTCOME_TRUE_2(db, RocksDb::create(getPathString(), options));
   EXPECT_TRUE(db) << "db is nullptr";
 
-  boost::filesystem::path p(getPathString());
+  kagome::filesystem::path p(getPathString());
   EXPECT_TRUE(fs::exists(p));
 }

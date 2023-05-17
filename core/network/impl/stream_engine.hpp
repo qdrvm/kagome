@@ -128,14 +128,17 @@ namespace kagome::network {
 
     void del(const PeerId &peer_id);
 
-    bool reserveOutgoing(PeerId const &peer_id,
-                         std::shared_ptr<ProtocolBase> const &protocol);
+    void del(const PeerId &peer_id,
+             const std::shared_ptr<ProtocolBase> &protocol);
 
-    void dropReserveOutgoing(PeerId const &peer_id,
-                             std::shared_ptr<ProtocolBase> const &protocol);
+    bool reserveOutgoing(const PeerId &peer_id,
+                         const std::shared_ptr<ProtocolBase> &protocol);
 
-    bool isAlive(PeerId const &peer_id,
-                 std::shared_ptr<ProtocolBase> const &protocol) const;
+    void dropReserveOutgoing(const PeerId &peer_id,
+                             const std::shared_ptr<ProtocolBase> &protocol);
+
+    bool isAlive(const PeerId &peer_id,
+                 const std::shared_ptr<ProtocolBase> &protocol) const;
 
     template <typename T>
     void send(const PeerId &peer_id,
@@ -145,7 +148,7 @@ namespace kagome::network {
       BOOST_ASSERT(protocol != nullptr);
 
       bool was_sent = false;
-      streams_.sharedAccess([&](auto const &streams) {
+      streams_.sharedAccess([&](const auto &streams) {
         forPeerProtocol(
             peer_id, streams, protocol, [&](auto type, auto const &descr) {
               if (descr.hasActiveOutgoing()) {
@@ -225,7 +228,7 @@ namespace kagome::network {
 
     template <typename F>
     size_t count(F &&filter) const {
-      return streams_.sharedAccess([&](auto const &streams) {
+      return streams_.sharedAccess([&](const auto &streams) {
         size_t result = 0;
         for (auto const &stream : streams) {
           if (filter(stream.first)) {
@@ -256,7 +259,7 @@ namespace kagome::network {
 
     template <typename F>
     void forEachPeer(F &&f) const {
-      streams_.sharedAccess([&](auto const &streams) {
+      streams_.sharedAccess([&](const auto &streams) {
         for (auto const &[peer_id, protocol_map] : streams) {
           std::forward<F>(f)(peer_id, protocol_map);
         }
@@ -338,15 +341,15 @@ namespace kagome::network {
     using PeerMap = std::map<PeerId, ProtocolMap>;
 
     void uploadStream(std::shared_ptr<Stream> &dst,
-                      std::shared_ptr<Stream> const &src,
-                      std::shared_ptr<ProtocolBase> const &protocol,
+                      const std::shared_ptr<Stream> &src,
+                      const std::shared_ptr<ProtocolBase> &protocol,
                       Direction direction);
 
     template <typename T>
-    void send(PeerId const &peer_id,
-              std::shared_ptr<ProtocolBase> const &protocol,
+    void send(const PeerId &peer_id,
+              const std::shared_ptr<ProtocolBase> &protocol,
               std::shared_ptr<Stream> stream,
-              std::shared_ptr<T> const &msg) {
+              const std::shared_ptr<T> &msg) {
       BOOST_ASSERT(stream != nullptr);
 
       auto read_writer = std::make_shared<ScaleMessageReadWriter>(stream);
@@ -382,9 +385,9 @@ namespace kagome::network {
     }
 
     template <typename PM, typename F>
-    static void forPeerProtocol(PeerId const &peer_id,
+    static void forPeerProtocol(const PeerId &peer_id,
                                 PM &streams,
-                                std::shared_ptr<ProtocolBase> const &protocol,
+                                const std::shared_ptr<ProtocolBase> &protocol,
                                 F &&f) {
       if (auto it = streams.find(peer_id); it != streams.end()) {
         forProtocol(it->second, protocol, [&](auto &descr) {
@@ -395,8 +398,8 @@ namespace kagome::network {
 
     [[maybe_unused]] void dump(std::string_view msg);
 
-    void openOutgoingStream(PeerId const &peer_id,
-                            std::shared_ptr<ProtocolBase> const &protocol,
+    void openOutgoingStream(const PeerId &peer_id,
+                            const std::shared_ptr<ProtocolBase> &protocol,
                             ProtocolDescr &descr);
 
     template <typename T>

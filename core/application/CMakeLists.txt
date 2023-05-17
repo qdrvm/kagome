@@ -2,7 +2,7 @@ add_library(application_util
     impl/util.cpp
     )
 target_link_libraries(application_util
-    Boost::filesystem
+    filesystem
     outcome
     )
 
@@ -42,7 +42,7 @@ add_library(chain_spec
     impl/chain_spec_impl.cpp
     )
 target_link_libraries(chain_spec
-    Boost::filesystem
+    filesystem
     p2p::p2p_multiaddress
     p2p::p2p_peer_id
     sr25519_types
@@ -57,12 +57,20 @@ target_link_libraries(app_state_manager
     )
 kagome_install(app_state_manager)
 
-add_library(print_chain_info_mode
+add_library(application_modes
     modes/print_chain_info_mode.cpp
     )
-target_link_libraries(print_chain_info_mode
+target_link_libraries(application_modes
     hexutil
     RapidJSON::rapidjson
+    benchmark::benchmark
+    )
+
+add_library(recovery_mode
+    modes/recovery_mode.cpp
+    )
+target_link_libraries(recovery_mode
+    logger
     )
 
 add_library(kagome_application

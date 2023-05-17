@@ -24,7 +24,8 @@
 #include <random>
 
 namespace kagome::authority_discovery {
-  class QueryImpl : public Query {
+  class QueryImpl : public Query,
+                    public std::enable_shared_from_this<QueryImpl> {
    public:
     enum class Error {
       DECODE_ERROR = 1,
@@ -66,6 +67,7 @@ namespace kagome::authority_discovery {
     std::shared_ptr<libp2p::crypto::marshaller::KeyMarshaller> key_marshaller_;
     libp2p::Host &host_;
     std::shared_ptr<libp2p::protocol::kademlia::Kademlia> kademlia_;
+    std::shared_ptr<libp2p::basic::Scheduler> scheduler_;
     ExpIncInterval interval_;
 
     mutable std::mutex mutex_;

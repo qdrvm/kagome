@@ -12,11 +12,9 @@
 
 namespace kagome::crypto {
   struct Ed25519ProviderMock : public Ed25519Provider {
-    MOCK_METHOD(Ed25519KeypairAndSeed, generateKeypair, (), (const, override));
-
-    MOCK_METHOD(Ed25519Keypair,
+    MOCK_METHOD(outcome::result<Ed25519Keypair>,
                 generateKeypair,
-                (const Ed25519Seed &seed),
+                (const Ed25519Seed &, Junctions),
                 (const, override));
 
     MOCK_METHOD(outcome::result<Ed25519Signature>,

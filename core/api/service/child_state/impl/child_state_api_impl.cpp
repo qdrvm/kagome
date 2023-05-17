@@ -33,12 +33,6 @@ namespace kagome::api {
     BOOST_ASSERT(nullptr != metadata_);
   }
 
-  void ChildStateApiImpl::setApiService(
-      const std::shared_ptr<api::ApiService> &api_service) {
-    BOOST_ASSERT(api_service != nullptr);
-    api_service_ = api_service;
-  }
-
   outcome::result<std::vector<common::Buffer>> ChildStateApiImpl::getKeys(
       const common::Buffer &child_storage_key,
       const std::optional<common::Buffer> &prefix_opt,
