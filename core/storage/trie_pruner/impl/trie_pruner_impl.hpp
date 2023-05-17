@@ -155,52 +155,9 @@ namespace kagome::storage::trie_pruner {
 
     outcome::result<void> prune(primitives::BlockHeader const &state);
 
-    // policy of adding a new trie to the pruner ref counters
-    struct AddConfig {
-      enum AddType {
-        // register only the nodes which are already loaded in memory with the
-        // pruner (these are the nodes that were modified between this trie and
-        // its parent)
-        AddLoadedOnly,
-        // register only the nodes which are altered between this trie and its
-        // parent, loading dummy nodes when required
-        AddNewLoadDummies,
-        // load the whole state into memory and register it with the pruner
-        // (this is a pretty expensive operation)
-        AddWholeState,
-      } type;
-
-      bool shouldLoadDummies() const {
-        switch (type) {
-          case AddLoadedOnly:
-            return false;
-          case AddNewLoadDummies:
-            return true;
-          case AddWholeState:
-            return true;
-        }
-        BOOST_ASSERT_MSG(false, "Unreachable");
-        return false;
-      }
-
-      bool shouldAddAllNodes() const {
-        switch (type) {
-          case AddLoadedOnly:
-            return false;
-          case AddNewLoadDummies:
-            return false;
-          case AddWholeState:
-            return true;
-        }
-        BOOST_ASSERT_MSG(false, "Unreachable");
-        return false;
-      }
-    };
-
     outcome::result<storage::trie::RootHash> addNewStateWith(
         trie::PolkadotTrie const &new_trie,
-        trie::StateVersion version,
-        AddConfig config);
+        trie::StateVersion version);
 
     // resets the pruner state and builds it from scratch from the state
     // of the provided block
@@ -211,6 +168,7 @@ namespace kagome::storage::trie_pruner {
     // store the persistent pruner info to the database
     outcome::result<void> savePersistentState() const;
 
+    std::mutex ref_count_mutex_;
     std::unordered_map<common::Buffer, size_t> ref_count_;
     std::unordered_map<common::Hash256, size_t> value_ref_count_;
 

@@ -120,7 +120,6 @@ namespace kagome::storage::trie_pruner {
         const trie::OpaqueTrieNode &node,
         std::optional<trie::StateVersion> version) {
       encode_called++;
-      bool is_branch = dynamic_cast<const trie::BranchNode *>(&node) != nullptr;
       // TODO(Harrm): cache is broken and thus temporarily disabled
       if (auto it = enc_cache.find(&node); false && it != enc_cache.end()) {
         SL_TRACE(
@@ -148,6 +147,8 @@ namespace kagome::storage::trie_pruner {
                                     }));
         // SL_TRACE(logger, "Cache miss {} = {}", fmt::ptr(&node),
         // hash.toHex());
+        bool is_branch =
+            dynamic_cast<const trie::BranchNode *>(&node) != nullptr;
         if (is_branch) {
           enc_cache[&node] = hash;
         }
@@ -264,6 +265,9 @@ namespace kagome::storage::trie_pruner {
                   root_value);
 
     auto batch = trie_storage_->batch();
+
+    std::scoped_lock lock{ref_count_mutex_};
+
     // iterate nodes, decrement their ref count and delete if ref count becomes
     // zero
     while (!queued_nodes.empty()) {
@@ -342,11 +346,7 @@ namespace kagome::storage::trie_pruner {
 
   outcome::result<void> TriePrunerImpl::addNewState(
       const trie::PolkadotTrie &new_trie, trie::StateVersion version) {
-    OUTCOME_TRY(addNewStateWith(new_trie,
-                                version,
-                                AddConfig{
-                                    .type = AddConfig::AddLoadedOnly,
-                                }));
+    OUTCOME_TRY(addNewStateWith(new_trie, version));
     OUTCOME_TRY(savePersistentState());
     return outcome::success();
   }
@@ -356,12 +356,7 @@ namespace kagome::storage::trie_pruner {
       common::BufferView key,
       const trie::PolkadotTrie &new_trie,
       trie::StateVersion version) {
-    OUTCOME_TRY(child_root_hash,
-                addNewStateWith(new_trie,
-                                version,
-                                AddConfig{
-                                    .type = AddConfig::AddLoadedOnly,
-                                }));
+    OUTCOME_TRY(child_root_hash, addNewStateWith(new_trie, version));
     OUTCOME_TRY(markAsChild(Parent{parent_root}, key, Child{child_root_hash}));
     return outcome::success();
   }
@@ -369,15 +364,14 @@ namespace kagome::storage::trie_pruner {
   outcome::result<void> TriePrunerImpl::markAsChild(Parent parent,
                                                     const common::Buffer &key,
                                                     Child child) {
+    std::scoped_lock lock{ref_count_mutex_};
     child_states_[parent.hash].emplace_back(ChildStorageInfo{key, child.hash});
     OUTCOME_TRY(savePersistentState());
     return outcome::success();
   }
 
   outcome::result<storage::trie::RootHash> TriePrunerImpl::addNewStateWith(
-      const trie::PolkadotTrie &new_trie,
-      trie::StateVersion version,
-      AddConfig config) {
+      const trie::PolkadotTrie &new_trie, trie::StateVersion version) {
     if (new_trie.getRoot() == nullptr) {
       SL_DEBUG(logger_, "Attempt to add a trie with a null root");
       return outcome::success();
@@ -395,6 +389,8 @@ namespace kagome::storage::trie_pruner {
                 encoder.getMerkleValue(*new_trie.getRoot(), version));
     OUTCOME_TRY(root_hash, calcHash(*codec_, *new_trie.getRoot(), version));
     SL_DEBUG(logger_, "Add new state with hash: {}", root_hash);
+
+    std::scoped_lock lock{ref_count_mutex_};
 
     ref_count_[root_value] += 1;
 
@@ -428,8 +424,7 @@ namespace kagome::storage::trie_pruner {
       }
 
       bool is_new_branch_node =
-          node != nullptr && node->isBranch()
-          && (config.shouldAddAllNodes() || ref_count_[hash] == 1);
+          node != nullptr && node->isBranch() && ref_count_[hash] == 1;
       if (is_new_branch_node) {
         auto branch = static_cast<const trie::BranchNode *>(opaque_node.get());
         for (auto opaque_child : branch->children) {
@@ -438,12 +433,8 @@ namespace kagome::storage::trie_pruner {
                         encoder.getMerkleValue(*opaque_child, version));
             ref_count_[child_hash] += 1;
             SL_TRACE(logger_, "Add - Child {}", child_hash.toHex());
-            if (config.shouldLoadDummies()) {
-              OUTCOME_TRY(child, serializer_->retrieveNode(opaque_child));
-              queued_nodes.push_back(child);
-            } else {
-              queued_nodes.push_back(opaque_child);
-            }
+            OUTCOME_TRY(child, serializer_->retrieveNode(opaque_child));
+            queued_nodes.push_back(child);
           }
         }
       }
@@ -483,9 +474,7 @@ namespace kagome::storage::trie_pruner {
       return outcome::success();
     }
     OUTCOME_TRY(base_tree, std::move(base_tree_res));
-    OUTCOME_TRY(addNewStateWith(*base_tree,
-                                trie::StateVersion::V0,
-                                AddConfig{.type = AddConfig::AddWholeState}));
+    OUTCOME_TRY(addNewStateWith(*base_tree, trie::StateVersion::V0));
     std::queue<primitives::BlockHash> block_queue;
 
     {
@@ -511,10 +500,7 @@ namespace kagome::storage::trie_pruner {
         continue;
       }
       OUTCOME_TRY(tree, tree_res);
-      OUTCOME_TRY(
-          addNewStateWith(*tree,
-                          trie::StateVersion::V0,
-                          AddConfig{.type = AddConfig::AddNewLoadDummies}));
+      OUTCOME_TRY(addNewStateWith(*tree, trie::StateVersion::V0));
 
       block_queue.pop();
       OUTCOME_TRY(children, block_tree.getChildren(block_hash));

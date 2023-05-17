@@ -13,6 +13,7 @@
 #include "mock/core/blockchain/block_tree_mock.hpp"
 #include "mock/core/storage/persistent_map_mock.hpp"
 #include "mock/core/storage/spaced_storage_mock.hpp"
+#include "mock/core/storage/trie/serialization/codec_mock.hpp"
 #include "mock/core/storage/trie/serialization/trie_serializer_mock.hpp"
 #include "mock/core/storage/trie/trie_storage_backend_mock.hpp"
 #include "mock/core/storage/write_batch_mock.hpp"
@@ -53,34 +54,6 @@ auto hash_from_header(const BlockHeader &header) {
   static crypto::HasherImpl hasher;
   return hasher.blake2b_256(scale::encode(header).value());
 }
-
-class CodecMock : public trie::Codec {
- public:
-  MOCK_METHOD(outcome::result<Buffer>,
-              encodeNode,
-              (const trie::TrieNode &opaque_node,
-               std::optional<trie::StateVersion> version,
-               const ChildVisitor &child_visitor),
-              (const, override));
-  MOCK_METHOD(outcome::result<std::shared_ptr<trie::TrieNode>>,
-              decodeNode,
-              (gsl::span<const uint8_t> encoded_data),
-              (const, override));
-  MOCK_METHOD(Buffer, merkleValue, (const BufferView &buf), (const, override));
-  MOCK_METHOD(outcome::result<Buffer>,
-              merkleValue,
-              (const trie::OpaqueTrieNode &opaque_node,
-               std::optional<trie::StateVersion> version,
-               const ChildVisitor &child_visitor),
-              (const, override));
-  MOCK_METHOD(bool, isMerkleHash, (const BufferView &buf), (const, override));
-  MOCK_METHOD(Hash256, hash256, (const BufferView &buf), (const, override));
-  MOCK_METHOD(bool,
-              shouldBeHashed,
-              (const trie::ValueAndHash &value,
-               std::optional<trie::StateVersion> version_opt),
-              (const, override));
-};
 
 class PolkadotTrieMock final : public trie::PolkadotTrie {
  public:
@@ -193,7 +166,7 @@ class TriePrunerTest : public testing::Test {
     persistent_storage_mock.reset(
         new testing::NiceMock<kagome::storage::SpacedStorageMock>);
     serializer_mock.reset(new testing::NiceMock<trie::TrieSerializerMock>);
-    codec_mock.reset(new CodecMock);
+    codec_mock.reset(new trie::CodecMock);
     hasher = std::make_shared<crypto::HasherImpl>();
 
     pruner_space = std::make_shared<testing::NiceMock<BufferStorageMock>>();
@@ -279,7 +252,7 @@ class TriePrunerTest : public testing::Test {
   std::shared_ptr<trie::TrieSerializerMock> serializer_mock;
   std::shared_ptr<trie::TrieStorageBackendMock> trie_storage_mock;
   std::shared_ptr<testing::NiceMock<SpacedStorageMock>> persistent_storage_mock;
-  std::shared_ptr<CodecMock> codec_mock;
+  std::shared_ptr<trie::CodecMock> codec_mock;
   std::shared_ptr<crypto::Hasher> hasher;
   std::shared_ptr<testing::NiceMock<BufferStorageMock>> pruner_space;
 };
@@ -303,7 +276,7 @@ struct NodeRetriever {
   std::map<Buffer, std::shared_ptr<trie::TrieNode>> decoded_nodes;
 };
 
-auto setCodecExpectations(CodecMock &mock, trie::Codec &codec) {
+auto setCodecExpectations(trie::CodecMock &mock, trie::Codec &codec) {
   EXPECT_CALL(mock, encodeNode(_, _, _))
       .WillRepeatedly(Invoke([&codec](auto &node, auto ver, auto &visitor) {
         return codec.encodeNode(node, ver, visitor);
@@ -384,10 +357,10 @@ Buffer randomBuffer(RandomDevice &rand) {
 }
 
 template <typename F>
-void forAllLoadedNodes(trie::TrieNode const &node, const F &f) {
+void forAllLoadedNodes(const trie::TrieNode &node, const F &f) {
   f(node);
   if (node.isBranch()) {
-    auto &branch = static_cast<trie::BranchNode const &>(node);
+    auto &branch = static_cast<const trie::BranchNode &>(node);
     for (auto &child : branch.children) {
       if (auto transparent_child =
               dynamic_cast<const trie::TrieNode *>(child.get());
@@ -402,7 +375,7 @@ template <typename F>
 void forAllNodes(trie::PolkadotTrie &trie, trie::TrieNode &root, const F &f) {
   f(root);
   if (root.isBranch()) {
-    auto &branch = static_cast<trie::BranchNode const &>(root);
+    auto &branch = static_cast<const trie::BranchNode &>(root);
     uint8_t idx = 0;
     for (auto &child : branch.children) {
       if (child != nullptr) {
@@ -415,7 +388,7 @@ void forAllNodes(trie::PolkadotTrie &trie, trie::TrieNode &root, const F &f) {
 }
 
 std::set<Buffer> collectReferencedNodes(trie::PolkadotTrie &trie,
-                                        trie::PolkadotCodec const &codec) {
+                                        const trie::PolkadotCodec &codec) {
   std::set<Buffer> res;
   if (trie.getRoot() == nullptr) {
     return {};

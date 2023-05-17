@@ -237,17 +237,6 @@ namespace kagome::storage::trie {
     common::Buffer db_key;
   };
 
-  // TODO(turuslan): #1470, refactor retrieve
-  /**
-   * Workaround to retrieve value from hash if value is not present.
-   * @see PolkadotTrieImpl::retrieveValue
-   * @see TrieSerializerImpl::retrieveNode
-   */
-//  struct DummyValue {
-//    DummyValue(ValueAndHash &value) : value{value} {}
-//
-//    ValueAndHash &value;
-//  };
 }  // namespace kagome::storage::trie
 
 template <>

@@ -97,10 +97,10 @@ namespace kagome::storage::trie {
       const OpaqueTrieNode &node,
       std::optional<StateVersion> version,
       const ChildVisitor &child_visitor) const {
-    if (auto dummy = dynamic_cast<DummyNode const *>(&node); dummy != nullptr) {
+    if (auto dummy = dynamic_cast<const DummyNode *>(&node); dummy != nullptr) {
       return dummy->db_key;
     }
-    auto &trie_node = static_cast<TrieNode const &>(node);
+    auto &trie_node = static_cast<const TrieNode &>(node);
     OUTCOME_TRY(enc, encodeNode(trie_node, version, child_visitor));
     return merkleValue(enc);
   }
@@ -220,14 +220,10 @@ namespace kagome::storage::trie {
   outcome::result<void> PolkadotCodec::encodeValue(
       common::Buffer &out,
       const TrieNode &node,
-      std::optional<StateVersion> version,
-      const ChildVisitor &child_visitor) const {
+      std::optional<StateVersion> version) const {
     auto hash = node.getValue().hash;
     if (shouldBeHashed(node.getValue(), version)) {
       hash = hash256(*node.getValue().value);
-      if (child_visitor) {
-        OUTCOME_TRY(child_visitor(node, *hash, Buffer{*node.getValue().value}));
-      }
     }
     if (hash) {
       out += *hash;
@@ -252,7 +248,11 @@ namespace kagome::storage::trie {
     // children bitmap
     encoding += ushortToBytes(node.childrenBitmap());
 
-    OUTCOME_TRY(encodeValue(encoding, node, version, child_visitor));
+    OUTCOME_TRY(encodeValue(encoding, node, version));
+    if (child_visitor && node.getValue().hash.has_value()) {
+      OUTCOME_TRY(child_visitor(
+          node, *node.getValue().hash, Buffer{*node.getValue().value}));
+    }
 
     // encode each child
     for (auto &child : node.children) {
@@ -292,7 +292,11 @@ namespace kagome::storage::trie {
       return Error::NO_NODE_VALUE;
     }
 
-    OUTCOME_TRY(encodeValue(encoding, node, version, child_visitor));
+    OUTCOME_TRY(encodeValue(encoding, node, version));
+    if (child_visitor && node.getValue().hash.has_value()) {
+      OUTCOME_TRY(child_visitor(
+          node, *node.getValue().hash, Buffer{*node.getValue().value}));
+    }
 
     return outcome::success(std::move(encoding));
   }

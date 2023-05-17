@@ -15,10 +15,12 @@ namespace kagome::log {
   extern Logger profiling_logger;
 
   struct ProfileScope {
+    using Clock = ::kagome::clock::SteadyClockImpl;
+
     ProfileScope(std::string_view scope, log::Logger logger)
         : scope{scope}, logger{logger} {
       BOOST_ASSERT(logger != nullptr);
-      start = ::kagome::clock::SteadyClockImpl{}.now();
+      start = Clock{}.now();
     }
 
     ProfileScope(ProfileScope &&) = delete;
@@ -34,7 +36,7 @@ namespace kagome::log {
 
     void end() {
       done = true;
-      auto end = ::kagome::clock::SteadyClockImpl{}.now();
+      auto end = Clock{}.now();
       SL_DEBUG(
           logger,
           "{} took {} ms",
@@ -46,7 +48,7 @@ namespace kagome::log {
    private:
     bool done = false;
     std::string_view scope{};
-    kagome::clock::SteadyClock::TimePoint start;
+    Clock::TimePoint start;
     log::Logger logger;
   };
 }  // namespace kagome::log

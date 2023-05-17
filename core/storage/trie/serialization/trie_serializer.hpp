@@ -45,7 +45,7 @@ namespace kagome::storage::trie {
      */
     virtual outcome::result<std::shared_ptr<PolkadotTrie>> retrieveTrie(
         common::BufferView db_key,
-        OnNodeLoaded on_node_loaded = [](auto) {}) const = 0;
+        OnNodeLoaded on_node_loaded = [](EncodedNode) {}) const = 0;
 
     /**
      * Fetches a node from the storage. A nullptr is returned in case that there
@@ -54,7 +54,7 @@ namespace kagome::storage::trie {
      */
     virtual outcome::result<PolkadotTrie::NodePtr> retrieveNode(
         common::BufferView db_key,
-        const OnNodeLoaded &on_node_loaded = [](auto) {}) const = 0;
+        const OnNodeLoaded &on_node_loaded = [](EncodedNode) {}) const = 0;
 
     /**
      * Retrieves a node, replacing a dummy node to an actual node if
@@ -62,12 +62,12 @@ namespace kagome::storage::trie {
      */
     virtual outcome::result<PolkadotTrie::NodePtr> retrieveNode(
         const std::shared_ptr<OpaqueTrieNode> &node,
-        const OnNodeLoaded &on_node_loaded = [](auto) {}) const = 0;
+        const OnNodeLoaded &on_node_loaded = [](EncodedNode) {}) const = 0;
 
     virtual outcome::result<std::optional<common::Buffer>> retrieveValue(
-        common::Hash256 const &hash) const = 0;
+        const common::Hash256 &hash) const = 0;
 
-    virtual TrieStoreStats const &getLatestStats() const = 0;
+    virtual const TrieStoreStats &getLatestStats() const = 0;
   };
 
 }  // namespace kagome::storage::trie

@@ -59,8 +59,8 @@ namespace kagome::storage::trie {
    private:
     outcome::result<void> encodeValue(common::Buffer &out,
                                       const TrieNode &node,
-                                      std::optional<StateVersion> version,
-                                      const ChildVisitor &child_visitor) const;
+                                      std::optional<StateVersion> version) const;
+
     outcome::result<Buffer> encodeBranch(
         const BranchNode &node,
         std::optional<StateVersion> version,
