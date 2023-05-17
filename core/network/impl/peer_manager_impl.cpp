@@ -120,7 +120,6 @@ namespace kagome::network {
       log_->critical(
           "Does not have any bootstrap nodes. "
           "Provide them by chain spec or CLI argument `--bootnodes'");
-      return false;
     }
 
     return true;
