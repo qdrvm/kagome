@@ -9,6 +9,7 @@
 #include <chrono>
 #include <cstdlib>
 #include <memory>
+#include <mutex>
 #include <queue>
 
 #include <boost/asio/strand.hpp>
@@ -18,70 +19,81 @@
 #include <boost/beast/websocket.hpp>
 
 #include "api/allow_unsafe.hpp"
+#include "api/transport/listener.hpp"
 #include "api/transport/session.hpp"
 #include "log/logger.hpp"
 
 namespace kagome::api {
+  class WsSession;
 
-  class WsSession : public Session,
-                    public std::enable_shared_from_this<WsSession> {
+  class WsSessionImpl : public Session {
+   public:
+    WsSessionImpl(std::shared_ptr<WsSession> impl,
+                  SessionId id,
+                  SessionType type,
+                  bool unsafe_allowed);
+
+    ~WsSessionImpl() override = default;
+
+    void respond(std::string_view response) override;
+
+    SessionId id() const override {
+      return id_;
+    }
+
+    SessionType type() const override {
+      return type_;
+    }
+
+    void post(std::function<void()> cb) override;
+
+    bool isUnsafeAllowed() const override {
+      return unsafe_allowed_;
+    }
+
+    void close();
+
+   private:
+    std::mutex mutex_;
+    std::shared_ptr<WsSession> impl_;
+    SessionId id_;
+    SessionType type_;
+    bool unsafe_allowed_;
+  };
+
+  class WsSession : public std::enable_shared_from_this<WsSession> {
     using WsError = boost::beast::websocket::error;
     using OnWsSessionCloseHandler = std::function<void()>;
+    using GetId = std::function<Session::SessionId()>;
+    using OnSession = std::shared_ptr<Listener::NewSessionHandler>;
 
    public:
     struct Configuration {
       static constexpr size_t kDefaultRequestSize = 10000u;
-      static constexpr Duration kDefaultTimeout = std::chrono::seconds(30);
+      static constexpr Session::Duration kDefaultTimeout =
+          std::chrono::seconds(30);
 
       size_t max_request_size{kDefaultRequestSize};
-      Duration operation_timeout{kDefaultTimeout};
+      Session::Duration operation_timeout{kDefaultTimeout};
     };
 
-    ~WsSession() override = default;
-
-    /**
-     * @brief constructor
-     * @param socket socket instance
-     * @param config session configuration
-     * @param id session id
-     */
-    WsSession(Context &context,
+    WsSession(Session::Context &context,
+              GetId get_id,
+              OnSession on_session,
               AllowUnsafe allow_unsafe,
-              Configuration config,
-              SessionId id);
+              Configuration config);
 
-    Socket &socket() override {
+    Session::Socket &socket() {
       return stream_.next_layer().next_layer().socket();
     }
 
-    /**
-     * @brief starts session
-     */
-    void start() override;
+    void start();
 
-    /**
-     * @brief method to get id of the session
-     * @return id of the session
-     */
-    Session::SessionId id() const override;
+    void respond(std::string_view response);
 
-    /**
-     * @brief method to get type of the session
-     * @return type of the session
-     */
-    SessionType type() const override {
-      return is_ws_ ? SessionType::kWs : SessionType::kHttp;
-    }
+    void post(std::function<void()> cb);
 
-    /**
-     * @brief sends response wrapped by websocket frame
-     * @param response message to send
-     */
-    void respond(std::string_view response) override;
-
-    void post(std::function<void()> cb) override;
-
-    bool isUnsafeAllowed() const override;
+    bool isUnsafeAllowed() const;
 
     /**
      * @brief Closes the incoming connection with "try again later" response
@@ -151,10 +163,15 @@ namespace kagome::api {
      */
     void reportError(boost::system::error_code ec, std::string_view message);
 
+    std::shared_ptr<WsSessionImpl> sessionMake();
+    void sessionClose();
+
     void httpClose();
     void httpRead();
     void httpWrite();
 
+    GetId get_id_;
+    OnSession on_session_;
     AllowUnsafe allow_unsafe_;
     Configuration config_;  ///< session configuration
     boost::beast::websocket::stream<
@@ -174,9 +191,10 @@ namespace kagome::api {
     bool writing_in_progress_ = false;
     std::atomic_bool stopped_ = false;
 
-    const SessionId id_;
     OnWsSessionCloseHandler on_ws_close_;
     log::Logger logger_ = log::createLogger("WsSession", "rpc_transport");
+
+    std::weak_ptr<WsSessionImpl> session_;
   };
 
 }  // namespace kagome::api
