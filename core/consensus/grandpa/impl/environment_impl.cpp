@@ -154,46 +154,43 @@ namespace kagome::consensus::grandpa {
     transmitter_->sendCatchUpResponse(peer_id, std::move(message));
   }
 
-  void EnvironmentImpl::onVoted(RoundNumber _round,
-                                VoterSetId _set_id,
-                                const SignedMessage &_vote) {
-    REINVOKE_3(main_thread_context_,
-               onVoted,
-               _round,
-               _set_id,
-               _vote,
-               round,
-               set_id,
-               vote);
-    SL_DEBUG(logger_,
-             "Round #{}: Send {} signed by {} for block {}",
-             round,
-             visit_in_place(
-                 vote.message,
-                 [&](const Prevote &) { return "prevote"; },
-                 [&](const Precommit &) { return "precommit"; },
-                 [&](const PrimaryPropose &) { return "primary propose"; }),
-             vote.id,
-             vote.getBlockInfo());
+  void EnvironmentImpl::onVoted(RoundNumber round,
+                                VoterSetId set_id,
+                                const SignedMessage &vote) {
+    main_thread_context_.execute([wself{weak_from_this()},
+                                  round{std::move(round)},
+                                  set_id{std::move(set_id)},
+                                  vote] mutable {
+      if (auto self = wself.lock()) {
+        SL_INFO(self->logger_,
+                "Round #{}: Send {} signed by {} for block {}",
+                round,
+                visit_in_place(
+                    vote.message,
+                    [&](const Prevote &) { return "prevote"; },
+                    [&](const Precommit &) { return "precommit"; },
+                    [&](const PrimaryPropose &) { return "primary propose"; }),
+                vote.id,
+                vote.getBlockInfo());
 
-    network::GrandpaVote message{
-        {.round_number = round, .counter = set_id, .vote = vote}};
-    transmitter_->sendVoteMessage(std::move(message));
+        self->transmitter_->sendVoteMessage(
+            network::GrandpaVote{{.round_number = std::move(round),
+                                  .counter = std::move(set_id),
+                                  .vote = std::move(vote)}});
+      }
+    });
   }
 
-  void EnvironmentImpl::sendState(const libp2p::peer::PeerId &_peer_id,
-                                  const MovableRoundState &_state,
-                                  VoterSetId _voter_set_id) {
-    REINVOKE_3(main_thread_context_,
-               sendState,
-               _peer_id,
-               _state,
-               _voter_set_id,
-               peer_id,
-               state,
-               voter_set_id);
+  void EnvironmentImpl::sendState(const libp2p::peer::PeerId &peer_id,
+                                  const MovableRoundState &state,
+                                  VoterSetId voter_set_id) {
+    main_thread_context_.execute([wself{weak_from_this()},
+                                  peer_id,
+                                  voter_set_id{std::move(voter_set_id)},
+                                  state] mutable {
+      if (auto self = wself.lock()) {
     auto send = [&](const SignedMessage &vote) {
-      SL_DEBUG(logger_,
+      SL_DEBUG(self->logger_,
                "Round #{}: Send {} signed by {} for block {} (as send state)",
                state.round_number,
                visit_in_place(
@@ -204,10 +201,10 @@ namespace kagome::consensus::grandpa {
                vote.id,
                vote.getBlockInfo());
 
-      network::GrandpaVote message{{.round_number = state.round_number,
+      ;
+      self->transmitter_->sendVoteMessage(peer_id, network::GrandpaVote {{.round_number = state.round_number,
                                     .counter = voter_set_id,
-                                    .vote = vote}};
-      transmitter_->sendVoteMessage(peer_id, std::move(message));
+                                    .vote = vote}});
     };
 
     for (const auto &vv : state.votes) {
@@ -219,6 +216,8 @@ namespace kagome::consensus::grandpa {
             send(pair_vote.second);
           });
     }
+      }
+    });
   }
 
   void EnvironmentImpl::onCommitted(
