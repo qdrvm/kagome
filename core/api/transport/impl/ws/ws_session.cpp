@@ -285,6 +285,7 @@ namespace kagome::api {
         stream_.next_layer().buffer(),
         http_request_->get(),
         [self{shared_from_this()}](boost::system::error_code ec, size_t) {
+          self->stream_.next_layer().next_layer().expires_never();
           if (ec) {
             self->httpClose();
             return;
@@ -313,10 +314,12 @@ namespace kagome::api {
 
   void WsSession::httpWrite() {
     http_response_->prepare_payload();
+    stream_.next_layer().next_layer().expires_after(config_.operation_timeout);
     boost::beast::http::async_write(
         stream_.next_layer(),
         *http_response_,
         [self = shared_from_this()](boost::system::error_code ec, size_t) {
+          self->stream_.next_layer().next_layer().expires_never();
           if (ec) {
             self->httpClose();
             return;
