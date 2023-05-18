@@ -189,33 +189,36 @@ namespace kagome::consensus::grandpa {
                                   voter_set_id{std::move(voter_set_id)},
                                   state] mutable {
       if (auto self = wself.lock()) {
-    auto send = [&](const SignedMessage &vote) {
-      SL_DEBUG(self->logger_,
-               "Round #{}: Send {} signed by {} for block {} (as send state)",
-               state.round_number,
-               visit_in_place(
-                   vote.message,
-                   [&](const Prevote &) { return "prevote"; },
-                   [&](const Precommit &) { return "precommit"; },
-                   [&](const PrimaryPropose &) { return "primary propose"; }),
-               vote.id,
-               vote.getBlockInfo());
+        auto send = [&](const SignedMessage &vote) {
+          SL_DEBUG(
+              self->logger_,
+              "Round #{}: Send {} signed by {} for block {} (as send state)",
+              state.round_number,
+              visit_in_place(
+                  vote.message,
+                  [&](const Prevote &) { return "prevote"; },
+                  [&](const Precommit &) { return "precommit"; },
+                  [&](const PrimaryPropose &) { return "primary propose"; }),
+              vote.id,
+              vote.getBlockInfo());
 
-      ;
-      self->transmitter_->sendVoteMessage(peer_id, network::GrandpaVote {{.round_number = state.round_number,
+          ;
+          self->transmitter_->sendVoteMessage(
+              peer_id,
+              network::GrandpaVote{{.round_number = state.round_number,
                                     .counter = voter_set_id,
                                     .vote = vote}});
-    };
+        };
 
-    for (const auto &vv : state.votes) {
-      visit_in_place(
-          vv,
-          [&](const SignedMessage &vote) { send(vote); },
-          [&](const EquivocatorySignedMessage &pair_vote) {
-            send(pair_vote.first);
-            send(pair_vote.second);
-          });
-    }
+        for (const auto &vv : state.votes) {
+          visit_in_place(
+              vv,
+              [&](const SignedMessage &vote) { send(vote); },
+              [&](const EquivocatorySignedMessage &pair_vote) {
+                send(pair_vote.first);
+                send(pair_vote.second);
+              });
+        }
       }
     });
   }
