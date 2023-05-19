@@ -10,6 +10,10 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::dispute, RollingSessionWindowError, e) {
   switch (e) {
     case E::SessionsUnavailable:
       return "Session unavailable";
+    case E::RuntimeApiError:
+      return "Error while fetching session information";
+    case E::Missing:
+      return "Session info missing from runtime";
   }
   return "unknown error (invalid RollingSessionWindowError)";
 }

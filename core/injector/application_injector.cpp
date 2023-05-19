@@ -82,6 +82,7 @@
 #include "crypto/sr25519/sr25519_provider_impl.hpp"
 #include "crypto/vrf/vrf_provider_impl.hpp"
 #include "dispute_coordinator/impl/dispute_coordinator_impl.hpp"
+#include "dispute_coordinator/impl/storage_impl.hpp"
 #include "host_api/impl/host_api_factory_impl.hpp"
 #include "injector/bind_by_lambda.hpp"
 #include "injector/calculate_genesis_state.hpp"
@@ -769,6 +770,7 @@ namespace {
             di::bind<consensus::babe::BabeLottery>.template to<consensus::babe::BabeLotteryImpl>(),
             di::bind<network::BlockAnnounceObserver>.template to<consensus::babe::BabeImpl>(),
             di::bind<dispute::DisputeCoordinator>.template to<dispute::DisputeCoordinatorImpl>(),
+            di::bind<dispute::Storage>.template to<dispute::StorageImpl>(),
             di::bind<network::SendDisputeProtocol>.template to<network::SendDisputeProtocolImpl>(),
 
             // user-defined overrides...
@@ -883,6 +885,11 @@ namespace kagome::injector {
   std::shared_ptr<network::DisputeRequestObserver>
   KagomeNodeInjector::injectDisputeRequestObserver() {
     return pimpl_->injector_.create<sptr<network::DisputeRequestObserver>>();
+  }
+
+  std::shared_ptr<dispute::DisputeCoordinator>
+  KagomeNodeInjector::injectDisputeCoordinator() {
+    return pimpl_->injector_.create<sptr<dispute::DisputeCoordinator>>();
   }
 
   std::shared_ptr<consensus::babe::Babe> KagomeNodeInjector::injectBabe() {

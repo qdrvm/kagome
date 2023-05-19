@@ -9,7 +9,6 @@
 #include <unordered_set>
 #include <vector>
 
-#include "../../../test/testutil/outcome/dummy_error.hpp"
 #include "application/app_state_manager.hpp"
 #include "common/visitor.hpp"
 #include "dispute_coordinator/chain_scraper.hpp"
@@ -27,7 +26,6 @@ namespace kagome::dispute {
       std::shared_ptr<application::AppStateManager> app_state_manager,
       std::shared_ptr<libp2p::basic::Scheduler> scheduler,
       std::shared_ptr<clock::SystemClock> clock,
-      std::shared_ptr<LocalKeystore> keystore,
       std::shared_ptr<crypto::SessionKeys> session_keys,
       std::shared_ptr<Storage> storage,
       std::shared_ptr<crypto::Sr25519Provider> sr25519_crypto_provider,
@@ -37,7 +35,6 @@ namespace kagome::dispute {
       : app_state_manager_(std::move(app_state_manager)),
         scheduler_(std::move(scheduler)),
         clock_(std::move(clock)),
-        keystore_(std::move(keystore)),
         session_keys_(std::move(session_keys)),
         storage_(std::move(storage)),
         sr25519_crypto_provider_(std::move(sr25519_crypto_provider)),
@@ -49,7 +46,6 @@ namespace kagome::dispute {
     BOOST_ASSERT(app_state_manager_ != nullptr);
     BOOST_ASSERT(scheduler_ != nullptr);
     BOOST_ASSERT(clock_ != nullptr);
-    BOOST_ASSERT(keystore_ != nullptr);
     BOOST_ASSERT(session_keys_ != nullptr);
     BOOST_ASSERT(storage_ != nullptr);
     BOOST_ASSERT(sr25519_crypto_provider_ != nullptr);
@@ -219,11 +215,16 @@ namespace kagome::dispute {
       auto vote_state =
           CandidateVoteState::create(candidate_votes, env, clock_->nowUint64());
 
-      auto potential_spam = is_potential_spam(vote_state, candidate_hash);
-      auto is_included = scraper_->is_candidate_included(
-          vote_state.votes.candidate_receipt.commitments_hash);
+      auto is_included = scraper_->is_candidate_included(candidate_hash);
+      auto is_backed = scraper_->is_candidate_backed(candidate_hash);
+      auto is_disputed = vote_state.dispute_status.has_value();
+      auto is_confirmed =
+          is_disputed ? is_type<Confirmed>(vote_state.dispute_status.value())
+                      : false;
+      auto is_potential_spam =
+          is_disputed && !is_included && !is_backed && !is_confirmed;
 
-      if (potential_spam) {
+      if (is_potential_spam) {
         // LOG-TRACE:
         // "Found potential spam dispute on startup (session={}, candidate={})",
         // session,
@@ -696,16 +697,9 @@ namespace kagome::dispute {
     auto &session_info = session_info_opt.value().get();
 
     std::unordered_set<ValidatorIndex> controlled_indices;
-    auto &keypair = session_keys.getParaKeyPair();
-    if (keypair != nullptr) {
-      for (ValidatorIndex index = 0; index < session_info.validators.size();
-           ++index) {
-        auto &validator = session_info.validators[index];
-
-        if (keypair->public_key == validator) {
-          controlled_indices.emplace(index);
-        }
-      }
+    auto keypair = session_keys.getParaKeyPair(session_info.validators);
+    if (keypair.has_value()) {
+      controlled_indices.emplace(keypair->second);
     }
 
     return CandidateEnvironment{.session_index = session,
@@ -938,7 +932,7 @@ namespace kagome::dispute {
           [](const CandidateHash &)
           -> outcome::result<
               std::unordered_map<ValidatorIndex, ValidatorSignature>> {
-        return testutil::DummyError::ERROR;
+        return RollingSessionWindowError::Missing;  // FIXME temporary stabbed!
       };
 
       auto res = getApprovalSignaturesForCandidate(candidate_hash);
@@ -1021,25 +1015,25 @@ namespace kagome::dispute {
     auto &new_state = import_result.new_state;
 
     auto is_included = scraper_->is_candidate_included(candidate_hash);
-    // auto is_backed = scraper_->is_candidate_backed(candidate_hash);
+    auto is_backed = scraper_->is_candidate_backed(candidate_hash);
     auto own_vote_missing =
         is_type<CannotVote>(new_state.own_vote)
         or boost::relaxed_get<Voted>(new_state.own_vote).empty();
     auto is_disputed = new_state.dispute_status.has_value();
-    // auto is_confirmed = is_disputed
-    //                    ?
-    //                    is_type<Confirmed>(new_state.dispute_status.value())
-    //                    : false;
-    auto potential_spam = is_potential_spam(new_state, candidate_hash);
+    auto is_confirmed = is_disputed
+                          ? is_type<Confirmed>(new_state.dispute_status.value())
+                          : false;
+    auto is_potential_spam =
+        is_disputed && !is_included && !is_backed && !is_confirmed;
 
     // We participate only in disputes which are not potential spam.
-    auto allow_participation = not potential_spam;
+    auto allow_participation = not is_potential_spam;
 
     // This check is responsible for all clearing of spam slots. It runs
     // whenever a vote is imported from on or off chain, and decrements
     // slots whenever a candidate is newly backed, confirmed, or has our
     // own vote.
-    if (not potential_spam) {
+    if (not is_potential_spam) {
       spam_slots_->clear(session, candidate_hash);
 
       // Potential spam:
@@ -1405,16 +1399,9 @@ namespace kagome::dispute {
         .session = session_info_opt.value().get(),
     };
 
-    auto &keypair = session_keys_->getParaKeyPair();
-    if (keypair != nullptr) {
-      for (ValidatorIndex index = 0; index < env.session.validators.size();
-           ++index) {
-        auto &validator = env.session.validators[index];
-
-        if (keypair->public_key == validator) {
-          env.controlled_indices.emplace(index);
-        }
-      }
+    auto keypair = session_keys_->getParaKeyPair(env.session.validators);
+    if (keypair.has_value()) {
+      env.controlled_indices.emplace(keypair->second);
     }
 
     CandidateVotes votes;
@@ -1462,12 +1449,13 @@ namespace kagome::dispute {
           getSignablePayload(dispute_statement, candidate_hash, session);
 
       // TODO check if sign-calculation is right
-      OUTCOME_TRY(signature, sr25519_crypto_provider_->sign(*keypair, payload));
+      OUTCOME_TRY(signature,
+                  sr25519_crypto_provider_->sign(*keypair->first, payload));
 
       Indexed<SignedDisputeStatement> statement{{
                                                     dispute_statement,
                                                     candidate_hash,
-                                                    keypair->public_key,
+                                                    keypair->first->public_key,
                                                     signature,
                                                     session,
                                                 },

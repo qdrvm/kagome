@@ -35,7 +35,6 @@ namespace kagome::application {
 
 namespace kagome::dispute {
   class ChainScraper;
-  class LocalKeystore;
   class Participation;
 }  // namespace kagome::dispute
 
@@ -55,7 +54,6 @@ namespace kagome::dispute {
         std::shared_ptr<application::AppStateManager> app_state_manager,
         std::shared_ptr<libp2p::basic::Scheduler> scheduler,
         std::shared_ptr<clock::SystemClock> clock,
-        std::shared_ptr<LocalKeystore> keystore,
         std::shared_ptr<crypto::SessionKeys> session_keys,
         std::shared_ptr<Storage> storage,
         std::shared_ptr<crypto::Sr25519Provider> sr25519_crypto_provider,
@@ -155,11 +153,11 @@ namespace kagome::dispute {
     void send_dispute_messages(const CandidateEnvironment &env,
                                const CandidateVoteState &vote_state);
 
-    void find_controlled_validator_indices(
-        Indexed<std::vector<ValidatorId>> validators);
-
-    bool is_potential_spam(const CandidateVoteState &vote_state,
-                           const CandidateHash &candidate_hash);
+    //    void find_controlled_validator_indices(
+    //        Indexed<std::vector<ValidatorId>> validators);
+    //
+    //    bool is_potential_spam(const CandidateVoteState &vote_state,
+    //                           const CandidateHash &candidate_hash);
 
     outcome::result<void> issue_local_statement(
         const CandidateHash &candidate_hash,
@@ -194,7 +192,6 @@ namespace kagome::dispute {
     std::shared_ptr<application::AppStateManager> app_state_manager_;
     std::shared_ptr<libp2p::basic::Scheduler> scheduler_;
     std::shared_ptr<clock::SystemClock> clock_;
-    std::shared_ptr<LocalKeystore> keystore_;
     std::shared_ptr<crypto::SessionKeys> session_keys_;
     std::shared_ptr<Storage> storage_;
     std::shared_ptr<crypto::Sr25519Provider> sr25519_crypto_provider_;
