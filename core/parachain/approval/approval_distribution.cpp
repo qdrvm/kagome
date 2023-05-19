@@ -1590,6 +1590,82 @@ namespace kagome::parachain {
     runDistributeApproval(vote);
   }
 
+  void ApprovalDistribution::getApprovalSignaturesForCandidate(
+      const CandidateHash &_candidate,
+      SignaturesForCandidateCallback &&_callback) {
+    REINVOKE_2(*internal_context_,
+               getApprovalSignaturesForCandidate,
+               _candidate,
+               _callback,
+               candidate_hash,
+               callback);
+
+    if (!parachain_processor_->canProcessParachains()) {
+      callback(SignaturesForCandidate{});
+      return;
+    }
+
+    auto r = storedCandidateEntries().get(candidate_hash);
+    if (!r) {
+      SL_DEBUG(logger_,
+               "Sent back empty votes because the candidate was not found in "
+               "db. (candidate={})",
+               candidate_hash);
+      callback(SignaturesForCandidate{});
+      return;
+    }
+    auto &entry = r->get();
+
+    SignaturesForCandidate all_sigs;
+    for (const auto &[hash, _] : entry.block_assignments) {
+      if (auto block_entry = storedBlockEntries().get(hash)) {
+        for (size_t candidate_index = 0ull;
+             candidate_index < block_entry->get().candidates.size();
+             ++candidate_index) {
+          const auto &[_core_index, c_hash] =
+              block_entry->get().candidates[candidate_index];
+          if (c_hash == candidate_hash) {
+            const auto index = candidate_index;
+            if (auto distrib_block_entry =
+                    storedDistribBlockEntries().get(hash)) {
+              if (index < distrib_block_entry->get().candidates.size()) {
+                const auto &candidate_entry =
+                    distrib_block_entry->get().candidates[index];
+                for (const auto &[validator_index, message_state] :
+                     candidate_entry.messages) {
+                  if (auto approval_state =
+                          if_type<const DistribApprovalStateApproved>(
+                              message_state.approval_state)) {
+                    const auto &[__, sig] = approval_state->get();
+                    all_sigs[validator_index] = sig;
+                  }
+                }
+              } else {
+                SL_DEBUG(logger_,
+                         "`getApprovalSignaturesForCandidate`: could not find "
+                         "candidate entry for given hash and index!. (hash={}, "
+                         "index={})",
+                         hash,
+                         index);
+              }
+            } else {
+              SL_DEBUG(logger_,
+                       "`getApprovalSignaturesForCandidate`: could not find "
+                       "block entry for given hash!. (hash={})",
+                       hash);
+            }
+          }
+        }
+      } else {
+        SL_DEBUG(logger_,
+                 "Block entry for assignment missing. (candidate={}, hash={})",
+                 candidate_hash,
+                 hash);
+      }
+    }
+    callback(std::move(all_sigs));
+  }
+
   void ApprovalDistribution::onValidationProtocolMsg(
       const libp2p::peer::PeerId &pid,
       const network::ValidatorProtocolMessage &msg) {
