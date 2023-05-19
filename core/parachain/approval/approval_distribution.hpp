@@ -276,6 +276,15 @@ namespace kagome::parachain {
         const libp2p::peer::PeerId &peer_id,
         const network::ValidatorProtocolMessage &message);
 
+    using SignaturesForCandidate =
+        std::unordered_map<ValidatorIndex, ValidatorSignature>;
+    using SignaturesForCandidateCallback =
+        std::function<void(SignaturesForCandidate &&)>;
+
+    void getApprovalSignaturesForCandidate(
+        const CandidateHash &candidate,
+        SignaturesForCandidateCallback &&callback);
+
    private:
     using CandidateIncludedList =
         std::vector<std::tuple<CandidateHash,
