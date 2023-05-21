@@ -939,3 +939,27 @@ TEST_F(MemoryAllocatorTest, RelocateTest_15) {
   ASSERT_EQ(strcmp((char *)allocator_->toAddr(p_3), "This is a test str!!!(c)"),
             0);
 }
+
+TEST_F(MemoryAllocatorTest, AllocateTest_NoPreAlloc) {
+  allocator_ = std::make_unique<runtime::MemoryAllocatorNew<8ull>>(0ull);
+  ASSERT_EQ(allocator_->table_.size(), 0);
+}
+
+TEST_F(MemoryAllocatorTest, AllocateTest_Capacity_0) {
+  allocator_ = std::make_unique<runtime::MemoryAllocatorNew<8ull>>(0ull);
+  ASSERT_EQ(allocator_->capacity(), 0);
+}
+
+TEST_F(MemoryAllocatorTest, AllocateTest_Capacity_1) {
+  allocator_ = std::make_unique<runtime::MemoryAllocatorNew<8ull>>(0ull);
+
+  allocator_->allocate(1ull);
+  ASSERT_EQ(allocator_->capacity(), 512);
+}
+
+TEST_F(MemoryAllocatorTest, AllocateTest_Capacity_512) {
+  allocator_ = std::make_unique<runtime::MemoryAllocatorNew<8ull>>(0ull);
+
+  allocator_->allocate(512ull);
+  ASSERT_EQ(allocator_->capacity(), 1024);
+}

@@ -226,6 +226,10 @@ namespace kagome::runtime {
       return startAddr() + offset;
     }
 
+    size_t capacity() const {
+      return table_.size() * kSegmentSize;
+    }
+
     MemoryAllocatorNew(size_t preallocated) {
       storageAdjust(preallocated);
     }
@@ -302,7 +306,11 @@ namespace kagome::runtime {
     /// @param remains number of bits outside the range
     /// @return index of the pack begins, -1 otherwise
     size_t searchContiguousBitPack(const size_t count, size_t &remains) const {
-      assert(!table_.empty());
+      remains = count;
+      if (table_.empty()) {
+        return 0ull;
+      }
+
       const auto *const begin = table_.data();
       const auto *const end = table_.data() + table_.size();
 
@@ -311,7 +319,6 @@ namespace kagome::runtime {
           std::numeric_limits<uint64_t>::max();
 
       size_t position = 0ull;
-      remains = count;
       while (end != segment) {
         remains = count;
         const auto preprocessed_segment =
@@ -460,6 +467,54 @@ namespace kagome::runtime {
     std::vector<uint64_t> table_{};
     uint8_t *storage_ = nullptr;
     size_t cursor_ = 0ull;
+  };
+
+  struct GenericAllocator {
+    GenericAllocator(size_t heap_base) : heap_base_{heap_base} {}
+
+    size_t allocate(size_t size) {
+      if ((size - 1ull) / l0.bank.kSegmentSize == 0ull) {
+        return l0.bank.allocate(size);
+      }
+      if ((size - 1ull) / l1.bank.kSegmentSize == 0ull) {
+        return l1.bank.allocate(size);
+      }
+      if ((size - 1ull) / l2.bank.kSegmentSize == 0ull) {
+        return l2.bank.allocate(size);
+      }
+      assert(false && "No layer for current allocation!");
+      return 0ull;
+    }
+
+    /*std::optional<size_t> deallocate(size_t offset) {
+
+    }    
+
+    size_t realloc(size_t offset, size_t size) {
+    }*/
+
+
+    private:
+    template<size_t Granularity>
+    struct Layer {
+      const size_t address_offset;
+      MemoryAllocatorNew<Granularity> bank;
+    };
+
+    const size_t heap_base_;
+
+    Layer<8ull> l0 {
+      .address_offset = 0ull,
+      .bank = {0ull},
+    };
+    Layer<8ull * 64ull> l1 {
+      .address_offset = 1ull*1024ull*1024ull*1024ull,
+      .bank = {0ull},
+    };
+    Layer<8ull * 64ull * 64ull> l2 {
+      .address_offset = 2ull*1024ull*1024ull*1024ull,
+      .bank = {0ull},
+    };
   };
 
 }  // namespace kagome::runtime
