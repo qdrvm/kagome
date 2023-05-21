@@ -40,8 +40,6 @@ add_library(api
     service/system/system_jrpc_processor.cpp
     service/payment/impl/payment_api_impl.cpp
     service/payment/payment_jrpc_processor.cpp
-    transport/impl/http/http_listener_impl.cpp
-    transport/impl/http/http_session.cpp
     transport/impl/ws/ws_session.cpp
     transport/impl/ws/ws_listener_impl.cpp
     transport/tuner.cpp

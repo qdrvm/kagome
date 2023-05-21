@@ -6,7 +6,7 @@
 #include "runtime/common/executor.hpp"
 
 #include <gtest/gtest.h>
-#include <boost/filesystem.hpp>
+#include "filesystem/common.hpp"
 
 #include "mock/core/blockchain/block_header_repository_mock.hpp"
 #include "mock/core/host_api/host_api_mock.hpp"
@@ -60,7 +60,7 @@ class ExecutorTest : public testing::Test {
     header_repo_ = std::make_shared<BlockHeaderRepositoryMock>();
 
     auto code_provider = std::make_shared<BasicCodeProvider>(
-        boost::filesystem::path(__FILE__).parent_path().string()
+        kagome::filesystem::path(__FILE__).parent_path().string()
         + "/wasm/sumtwo.wasm");
     auto module_repo = std::make_shared<ModuleRepositoryMock>();
     env_factory_ =

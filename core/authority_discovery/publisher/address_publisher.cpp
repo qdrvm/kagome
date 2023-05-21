@@ -85,16 +85,10 @@ namespace kagome::authority_discovery {
   }
 
   outcome::result<void> AddressPublisher::publishOwnAddress() {
-    auto addresses = host_.getAddresses();
+    auto addresses = host_.getPeerInfo().addresses;
     // TODO(turuslan): #1357, filter local addresses
     if (addresses.empty()) {
       SL_ERROR(log_, "No listening addresses");
-      return outcome::success();
-    }
-
-    auto audi_key = keys_->getAudiKeyPair();
-    if (not audi_key) {
-      SL_VERBOSE(log_, "No authority discovery key");
       return outcome::success();
     }
 
@@ -102,9 +96,9 @@ namespace kagome::authority_discovery {
         authorities,
         authority_discovery_api_->authorities(block_tree_->bestLeaf().hash));
 
-    if (std::find(authorities.begin(), authorities.end(), audi_key->public_key)
-        == authorities.end()) {
-      // we are not authority
+    auto audi_key = keys_->getAudiKeyPair(authorities);
+    if (not audi_key) {
+      SL_WARN(log_, "No authority discovery key");
       return outcome::success();
     }
 

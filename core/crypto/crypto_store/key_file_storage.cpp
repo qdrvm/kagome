@@ -9,6 +9,9 @@
 
 #include "common/hexutil.hpp"
 #include "crypto/crypto_store/key_type.hpp"
+#include "filesystem/common.hpp"
+#include "utils/json_unquote.hpp"
+#include "utils/read_file.hpp"
 
 OUTCOME_CPP_DEFINE_CATEGORY(kagome::crypto, KeyFileStorage::Error, e) {
   using E = kagome::crypto::KeyFileStorage::Error;
@@ -50,31 +53,20 @@ namespace kagome::crypto {
 
   outcome::result<std::pair<KeyTypeId, Buffer>>
   KeyFileStorage::parseKeyFileName(std::string_view file_name) const {
-    if (file_name.size() < 4) {
-      return Error::WRONG_KEYFILE_NAME;
-    }
-
-    auto key_type_str = file_name.substr(0, 4);
-    auto key_type = decodeKeyTypeIdFromStr(key_type_str);
-    if (!isSupportedKeyType(key_type)) {
+    OUTCOME_TRY(info, decodeKeyFileName(file_name));
+    auto key_type_str = file_name.substr(0, 8);
+    if (not isSupportedKeyType(info.first)) {
       logger_->warn(
           "key type <ascii: {}, hex: {:08x}> is not officially supported",
           key_type_str,
-          key_type);
+          info.first);
     }
-    auto public_key_hex = file_name.substr(4);
-
-    OUTCOME_TRY(public_key, Buffer::fromHex(public_key_hex));
-
-    return {key_type, public_key};
+    return std::move(info);
   }
 
   KeyFileStorage::Path KeyFileStorage::composeKeyPath(
       KeyTypeId key_type, gsl::span<const uint8_t> public_key) const {
-    auto &&key_type_str = encodeKeyTypeIdToStr(key_type);
-    auto &&public_key_hex = common::hex_lower(public_key);
-
-    return keystore_path_ / (key_type_str + public_key_hex);
+    return keystore_path_ / encodeKeyFileName(key_type, public_key);
   }
 
   outcome::result<void> KeyFileStorage::saveKeyPair(
@@ -91,15 +83,15 @@ namespace kagome::crypto {
   }
 
   outcome::result<void> KeyFileStorage::initialize() {
-    boost::system::error_code ec{};
-    bool does_exist = boost::filesystem::exists(keystore_path_, ec);
-    if (ec and ec != boost::system::errc::no_such_file_or_directory) {
+    std::error_code ec{};
+    bool does_exist = filesystem::exists(keystore_path_, ec);
+    if (ec and ec != std::errc::no_such_file_or_directory) {
       logger_->error("Error initializing key storage: {}", ec);
       return outcome::failure(ec);
     }
     if (does_exist) {
       // check whether specified path is a directory
-      if (not boost::filesystem::is_directory(keystore_path_, ec)) {
+      if (not filesystem::is_directory(keystore_path_, ec)) {
         return Error::KEYS_PATH_IS_NOT_DIRECTORY;
       }
       if (ec) {
@@ -108,7 +100,7 @@ namespace kagome::crypto {
       }
     } else {
       // try create directory
-      if (not boost::filesystem::create_directories(keystore_path_, ec)) {
+      if (not filesystem::create_directories(keystore_path_, ec)) {
         return Error::FAILED_CREATE_KEYS_DIRECTORY;
       }
       if (ec) {
@@ -118,25 +110,6 @@ namespace kagome::crypto {
     }
 
     return outcome::success();
-  }
-
-  outcome::result<std::string> KeyFileStorage::loadFileContent(
-      const Path &file_path) const {
-    if (!boost::filesystem::exists(file_path)) {
-      return Error::FILE_DOESNT_EXIST;
-    }
-
-    std::ifstream file;
-
-    file.open(file_path.string(), std::ios::in | std::ios::binary);
-    if (!file.is_open()) {
-      return Error::FAILED_OPEN_FILE;
-    }
-
-    std::string content;
-    file >> content;
-    SL_TRACE(logger_, "Loaded seed {} from {}", content, file_path.native());
-    return content;
   }
 
   outcome::result<void> KeyFileStorage::saveKeyHexAtPath(
@@ -155,9 +128,9 @@ namespace kagome::crypto {
 
   outcome::result<std::vector<Buffer>> KeyFileStorage::collectPublicKeys(
       KeyTypeId type) const {
-    namespace fs = boost::filesystem;
+    namespace fs = filesystem;
 
-    boost::system::error_code ec{};
+    std::error_code ec{};
 
     std::vector<Buffer> keys;
 
@@ -183,18 +156,27 @@ namespace kagome::crypto {
     return keys;
   }
 
-  outcome::result<std::optional<Buffer>> KeyFileStorage::searchForSeed(
+  outcome::result<std::optional<std::string>> KeyFileStorage::searchForPhrase(
       KeyTypeId type, gsl::span<const uint8_t> public_key_bytes) const {
     auto key_path = composeKeyPath(type, public_key_bytes);
-    namespace fs = boost::filesystem;
-    boost::system::error_code ec{};
+    namespace fs = filesystem;
+    std::error_code ec{};
 
     if (not fs::exists(key_path, ec)) {
       return std::nullopt;
     }
-    OUTCOME_TRY(content, loadFileContent(key_path));
-    OUTCOME_TRY(seed_bytes, common::unhexWith0x(content));
-    return Buffer{std::move(seed_bytes)};
+    std::string content;
+    if (not readFile(content, key_path.string())) {
+      return std::nullopt;
+    }
+    if (not content.empty() and content[0] == '"') {
+      if (auto str = jsonUnquote(content)) {
+        return str;
+      }
+      return Error::INVALID_FILE_FORMAT;
+    }
+    OUTCOME_TRY(common::unhexWith0x(content));
+    return content;
   }
 
 }  // namespace kagome::crypto

@@ -7,6 +7,7 @@
 
 #include <libp2p/basic/scheduler/asio_scheduler_backend.hpp>
 #include <libp2p/basic/scheduler/scheduler_impl.hpp>
+#include <utility>
 
 #include "application/app_state_manager.hpp"
 #include "application/chain_spec.hpp"
@@ -78,21 +79,20 @@ namespace kagome::consensus::grandpa {
       std::shared_ptr<network::PeerManager> peer_manager,
       std::shared_ptr<blockchain::BlockTree> block_tree,
       std::shared_ptr<network::ReputationRepository> reputation_repository,
+      primitives::events::BabeStateSubscriptionEnginePtr babe_status_observable,
       std::shared_ptr<boost::asio::io_context> main_thread_context)
       : round_time_factor_{getGossipDuration(chain_spec)},
         hasher_{std::move(hasher)},
         environment_{std::move(environment)},
         crypto_provider_{std::move(crypto_provider)},
         grandpa_api_{std::move(grandpa_api)},
-        keypair_([&] {
-          BOOST_ASSERT(session_keys != nullptr);
-          return session_keys->getGranKeyPair();
-        }()),
+        session_keys_{std::move(session_keys)},
         authority_manager_(std::move(authority_manager)),
         synchronizer_(std::move(synchronizer)),
         peer_manager_(std::move(peer_manager)),
         block_tree_(std::move(block_tree)),
         reputation_repository_(std::move(reputation_repository)),
+        babe_status_observable_(std::move(babe_status_observable)),
         execution_thread_pool_{std::make_shared<ThreadPool>(1ull)},
         internal_thread_context_{execution_thread_pool_->handler()},
         main_thread_context_{std::move(main_thread_context)},
@@ -108,6 +108,7 @@ namespace kagome::consensus::grandpa {
     BOOST_ASSERT(synchronizer_ != nullptr);
     BOOST_ASSERT(peer_manager_ != nullptr);
     BOOST_ASSERT(block_tree_ != nullptr);
+    BOOST_ASSERT(babe_status_observable_ != nullptr);
     BOOST_ASSERT(reputation_repository_ != nullptr);
 
     BOOST_ASSERT(app_state_manager != nullptr);
@@ -128,6 +129,26 @@ namespace kagome::consensus::grandpa {
   bool GrandpaImpl::prepare() {
     // Set themselves in environment
     environment_->setJustificationObserver(shared_from_this());
+
+    babe_status_observer_ =
+        std::make_shared<primitives::events::BabeStateEventSubscriber>(
+            babe_status_observable_, false);
+    babe_status_observer_->subscribe(
+        babe_status_observer_->generateSubscriptionSetId(),
+        primitives::events::BabeStateEventType::kSyncState);
+    babe_status_observer_->setCallback(
+        [wself{weak_from_this()}](
+            auto /*set_id*/,
+            bool &synchronized,
+            auto /*event_type*/,
+            const primitives::events::BabeStateEventParams &event) {
+          if (auto self = wself.lock()) {
+            if (event == babe::Babe::State::SYNCHRONIZED) {
+              self->synchronized_once_.store(true);
+            }
+          }
+        });
+
     internal_thread_context_->start();
     main_thread_context_.start();
     return true;
@@ -175,7 +196,8 @@ namespace kagome::consensus::grandpa {
     }
     auto &voters = voters_res.value();
 
-    current_round_ = makeInitialRound(round_state, std::move(voters));
+    current_round_ =
+        makeInitialRound(round_state, std::move(voters), *authority_set);
     BOOST_ASSERT(current_round_ != nullptr);
 
     if (not current_round_->finalizedBlock().has_value()) {
@@ -216,19 +238,23 @@ namespace kagome::consensus::grandpa {
   }
 
   std::shared_ptr<VotingRound> GrandpaImpl::makeInitialRound(
-      const MovableRoundState &round_state, std::shared_ptr<VoterSet> voters) {
+      const MovableRoundState &round_state,
+      std::shared_ptr<VoterSet> voters,
+      const primitives::AuthoritySet &authority_set) {
     auto vote_graph = std::make_shared<VoteGraphImpl>(
         round_state.last_finalized_block, voters, environment_);
 
-    GrandpaConfig config{.voters = std::move(voters),
-                         .round_number = round_state.round_number,
-                         .duration = round_time_factor_,
-                         .id = keypair_
-                                 ? std::make_optional(keypair_->public_key)
-                                 : std::nullopt};
+    auto keypair = session_keys_->getGranKeyPair(authority_set);
+
+    GrandpaConfig config{
+        .voters = std::move(voters),
+        .round_number = round_state.round_number,
+        .duration = round_time_factor_,
+        .id = keypair ? std::make_optional(keypair->public_key) : std::nullopt,
+    };
 
     auto vote_crypto_provider = std::make_shared<VoteCryptoProviderImpl>(
-        keypair_, crypto_provider_, round_state.round_number, config.voters);
+        keypair, crypto_provider_, round_state.round_number, config.voters);
 
     auto new_round = std::make_shared<VotingRoundImpl>(
         shared_from_this(),
@@ -277,15 +303,17 @@ namespace kagome::consensus::grandpa {
     auto vote_graph =
         std::make_shared<VoteGraphImpl>(best_block, voters, environment_);
 
-    GrandpaConfig config{.voters = std::move(voters),
-                         .round_number = new_round_number,
-                         .duration = round_time_factor_,
-                         .id = keypair_
-                                 ? std::make_optional(keypair_->public_key)
-                                 : std::nullopt};
+    auto keypair = session_keys_->getGranKeyPair(*authority_set);
+
+    GrandpaConfig config{
+        .voters = std::move(voters),
+        .round_number = new_round_number,
+        .duration = round_time_factor_,
+        .id = keypair ? std::make_optional(keypair->public_key) : std::nullopt,
+    };
 
     auto vote_crypto_provider = std::make_shared<VoteCryptoProviderImpl>(
-        keypair_, crypto_provider_, new_round_number, config.voters);
+        keypair, crypto_provider_, new_round_number, config.voters);
 
     auto new_round = std::make_shared<VotingRoundImpl>(
         shared_from_this(),
@@ -382,7 +410,7 @@ namespace kagome::consensus::grandpa {
     }
 
     metric_highest_round_->set(current_round_->roundNumber());
-    if (keypair_) {
+    if (current_round_->hasKeypair()) {
       current_round_->play();
     } else {
       auto round = std::dynamic_pointer_cast<VotingRoundImpl>(current_round_);
@@ -419,19 +447,6 @@ namespace kagome::consensus::grandpa {
 
     auto info = peer_manager_->getPeerState(peer_id);
 
-    // Iff peer just reached one of recent round, then share known votes
-    if (not info.has_value()
-        or (info->get().set_id.has_value()
-            and msg.voter_set_id != info->get().set_id)
-        or (info->get().round_number.has_value()
-            and msg.round_number > info->get().round_number)) {
-      if (auto opt_round = selectRound(msg.round_number, msg.voter_set_id);
-          opt_round.has_value()) {
-        auto &round = opt_round.value();
-        environment_->sendState(peer_id, round->state(), msg.voter_set_id);
-      }
-    }
-
     bool reputation_changed = false;
     if (info.has_value() and info->get().set_id.has_value()
         and info->get().round_number.has_value()) {
@@ -459,6 +474,23 @@ namespace kagome::consensus::grandpa {
     if (not reputation_changed) {
       reputation_repository_->change(
           peer_id, network::reputation::benefit::NEIGHBOR_MESSAGE);
+    }
+
+    // If peer just reached one of recent round, then share known votes
+    if (not info.has_value()
+        or (info->get().set_id.has_value()
+            and msg.voter_set_id != info->get().set_id)
+        or (info->get().round_number.has_value()
+            and msg.round_number > info->get().round_number)) {
+      if (auto opt_round = selectRound(msg.round_number, msg.voter_set_id);
+          opt_round.has_value()) {
+        auto &round = opt_round.value();
+        environment_->sendState(peer_id, round->state(), msg.voter_set_id);
+      }
+    }
+
+    if (not synchronized_once_.load()) {
+      return;
     }
 
     // If peer has the same voter set id
@@ -819,7 +851,8 @@ namespace kagome::consensus::grandpa {
       }
       auto &voters = voters_res.value();
 
-      auto round = makeInitialRound(round_state, std::move(voters));
+      auto round =
+          makeInitialRound(round_state, std::move(voters), *authority_set);
 
       if (not round->completable()
           and not round->finalizedBlock().has_value()) {
@@ -1445,7 +1478,8 @@ namespace kagome::consensus::grandpa {
         }
         auto &voters = voters_res.value();
 
-        round = makeInitialRound(round_state, std::move(voters));
+        round =
+            makeInitialRound(round_state, std::move(voters), *authority_set);
         need_to_make_round_current = true;
         BOOST_ASSERT(round);
 

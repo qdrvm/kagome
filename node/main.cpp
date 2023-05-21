@@ -26,20 +26,19 @@ using kagome::application::AppConfigurationImpl;
 int storage_explorer_main(int argc, const char **argv);
 int db_editor_main(int argc, const char **argv);
 
-int main(int argc, const char **argv) {
-  if (argc > 1) {
-    std::string_view name{argv[1]};
-    if (name == "storage-explorer") {
-      return storage_explorer_main(argc - 1, argv + 1);
-    }
-    if (name == "db-editor") {
-      return db_editor_main(argc - 1, argv + 1);
-    }
-  }
+namespace kagome {
+  int benchmark_main(int argc, const char **argv);
+}
 
+int main(int argc, const char **argv) {
 #if defined(BACKWARD_HAS_BACKTRACE)
   backward::SignalHandling sh;
 #endif
+
+  // Needed for zombienet
+  setvbuf(stdout, nullptr, _IOLBF, 0);
+  setvbuf(stderr, nullptr, _IOLBF, 0);
+
   {
     soralog::util::setThreadName("kagome");
 
@@ -57,6 +56,18 @@ int main(int argc, const char **argv) {
 
     kagome::log::setLoggingSystem(logging_system);
   }
+  if (argc > 1) {
+    std::string_view name{argv[1]};
+    if (name == "storage-explorer") {
+      return storage_explorer_main(argc - 1, argv + 1);
+    }
+    if (name == "db-editor") {
+      return db_editor_main(argc - 1, argv + 1);
+    }
+    if (name == "benchmark") {
+      return kagome::benchmark_main(argc - 1, argv + 1);
+    }
+  }
 
   auto logger = kagome::log::createLogger("AppConfiguration",
                                           kagome::log::defaultGroupName);
@@ -70,8 +81,12 @@ int main(int argc, const char **argv) {
     auto app = std::make_shared<kagome::application::KagomeApplicationImpl>(
         configuration);
 
-    if (configuration->subcommandChainInfo()) {
-      return app->chainInfo();
+    if (configuration->subcommand().has_value()) {
+      switch (*configuration->subcommand()) {
+        using kagome::application::Subcommand;
+        case Subcommand::ChainInfo:
+          return app->chainInfo();
+      }
     }
 
     // Recovery mode

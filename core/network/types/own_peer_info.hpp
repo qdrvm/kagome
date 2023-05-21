@@ -10,32 +10,21 @@
 #include <libp2p/crypto/key_marshaller.hpp>
 #include <libp2p/peer/peer_info.hpp>
 
+#include "application/app_configuration.hpp"
 #include "crypto/crypto_store.hpp"
-#include "injector/get_peer_keypair.hpp"
 #include "scale/libp2p_types.hpp"
 
 namespace kagome::network {
 
   struct OwnPeerInfo : public libp2p::peer::PeerInfo {
-    OwnPeerInfo(libp2p::peer::PeerId peer_id,
-                std::vector<libp2p::multi::Multiaddress> public_addrs,
-                std::vector<libp2p::multi::Multiaddress> listen_addrs)
-        : PeerInfo{.id = std::move(peer_id),
-                   .addresses = std::move(public_addrs)},
-          listen_addresses{std::move(listen_addrs)} {}
-
     OwnPeerInfo(const application::AppConfiguration &config,
                 libp2p::crypto::marshaller::KeyMarshaller &key_marshaller,
-                const crypto::Ed25519Provider &crypto_provider,
-                crypto::CryptoStore &crypto_store)
+                const libp2p::crypto::KeyPair &local_pair)
         : PeerInfo{.id = scale::PeerInfoSerializable::dummyPeerId(),
                    .addresses = {}},
           listen_addresses{config.listenAddresses()} {
-      auto local_pair =
-          injector::get_peer_keypair(config, crypto_provider, crypto_store);
-
       id = libp2p::peer::PeerId::fromPublicKey(
-               key_marshaller.marshal(local_pair->publicKey).value())
+               key_marshaller.marshal(local_pair.publicKey).value())
                .value();
 
       addresses = config.publicAddresses();

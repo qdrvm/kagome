@@ -75,19 +75,6 @@ namespace kagome::api {
       SL_INFO(logger_, "Unsupported key type, only [{}] are accepted", types);
       return outcome::failure(crypto::CryptoStoreError::UNSUPPORTED_KEY_TYPE);
     };
-    if (crypto::KEY_TYPE_BABE == key_type && keys_->getBabeKeyPair()) {
-      SL_INFO(logger_, "Babe key already exists and won't be replaced");
-      return outcome::failure(crypto::CryptoStoreError::BABE_ALREADY_EXIST);
-    }
-    if (crypto::KEY_TYPE_GRAN == key_type && keys_->getGranKeyPair()) {
-      SL_INFO(logger_, "Grandpa key already exists and won't be replaced");
-      return outcome::failure(crypto::CryptoStoreError::GRAN_ALREADY_EXIST);
-    }
-    if (crypto::KEY_TYPE_AUDI == key_type && keys_->getAudiKeyPair()) {
-      SL_INFO(logger_,
-              "Authority discovery key already exists and won't be replaced");
-      return outcome::failure(crypto::CryptoStoreError::AUDI_ALREADY_EXIST);
-    }
     if (crypto::KEY_TYPE_BABE == key_type
         or crypto::KEY_TYPE_AUDI == key_type) {
       OUTCOME_TRY(seed_typed, crypto::Sr25519Seed::fromSpan(seed));
@@ -111,10 +98,6 @@ namespace kagome::api {
       }
     }
     auto res = key_store_->saveKeyPair(key_type, public_key, seed);
-    // explicitly load keys from store to cache
-    keys_->getBabeKeyPair();
-    keys_->getGranKeyPair();
-    keys_->getAudiKeyPair();
     return res;
   }
 
@@ -159,7 +142,7 @@ namespace kagome::api {
 
   outcome::result<bool> AuthorApiImpl::hasKey(
       const gsl::span<const uint8_t> &public_key, crypto::KeyTypeId key_type) {
-    auto res = key_store_->searchForSeed(key_type, public_key);
+    auto res = key_store_->searchForPhrase(key_type, public_key);
     if (not res) {
       return res.error();
     } else {
@@ -186,7 +169,7 @@ namespace kagome::api {
   AuthorApiImpl::removeExtrinsic(
       const std::vector<primitives::ExtrinsicKey> &keys) {
     BOOST_ASSERT_MSG(false, "not implemented");  // NOLINT
-    return outcome::failure(boost::system::error_code{});
+    return outcome::failure(std::errc::not_supported);
   }
 
   outcome::result<AuthorApi::SubscriptionId>

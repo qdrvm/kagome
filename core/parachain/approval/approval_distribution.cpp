@@ -20,6 +20,7 @@
 #include "primitives/authority.hpp"
 #include "runtime/runtime_api/parachain_host_types.hpp"
 #include "utils/async_sequence.hpp"
+#include "utils/weak_from_shared.hpp"
 
 #define _STRINGIZE(s) #s
 
@@ -64,15 +65,18 @@ namespace {
   kagome::network::Tick slotNumberToTick(
       uint64_t slot_duration_millis,
       kagome::consensus::babe::BabeSlotNumber slot) {
-    auto ticks_per_slot = slot_duration_millis / kTickDurationMs;
+    const auto ticks_per_slot = slot_duration_millis / kTickDurationMs;
     return slot * ticks_per_slot;
   }
 
+  uint64_t msNow() {
+    return uint64_t(std::chrono::duration_cast<std::chrono::milliseconds>(
+                        std::chrono::system_clock::now().time_since_epoch())
+                        .count());
+  }
+
   kagome::network::Tick tickNow() {
-    return std::chrono::duration_cast<std::chrono::milliseconds>(
-               std::chrono::system_clock::now().time_since_epoch())
-               .count()
-         / kTickDurationMs;
+    return msNow() / kTickDurationMs;
   }
 
   kagome::parachain::approval::DelayTranche trancheNow(
@@ -370,9 +374,15 @@ namespace {
                         kagome::parachain::approval::AllRequiredTranche{}),
           std::numeric_limits<kagome::network::Tick>::max());
     }
-    if (kagome::is_type<kagome::parachain::approval::PendingRequiredTranche>(
+    if (auto pending = kagome::if_type<
+            const kagome::parachain::approval::PendingRequiredTranche>(
             required_tranches)) {
-      // TODO Empty-statement branch?
+      const auto drifted_tranche_now = kagome::math::sat_sub_unsigned(
+          tranche_now,
+          kagome::network::DelayTranche(pending->get().clock_drift));
+      return approval_entry.our_assignment->tranche
+              <= pending->get().maximum_broadcast
+          && approval_entry.our_assignment->tranche <= drifted_tranche_now;
     }
     if (kagome::is_type<kagome::parachain::approval::ExactRequiredTranche>(
             required_tranches)) {
@@ -458,7 +468,6 @@ namespace kagome::parachain {
       std::shared_ptr<consensus::babe::BabeUtil> babe_util,
       std::shared_ptr<crypto::CryptoStore> keystore,
       std::shared_ptr<crypto::Hasher> hasher,
-      std::shared_ptr<boost::asio::io_context> this_context,
       std::shared_ptr<network::PeerView> peer_view,
       std::shared_ptr<ParachainProcessorImpl> parachain_processor,
       std::shared_ptr<crypto::Sr25519Provider> crypto_provider,
@@ -467,12 +476,14 @@ namespace kagome::parachain {
       std::shared_ptr<blockchain::BlockTree> block_tree,
       std::shared_ptr<parachain::Pvf> pvf,
       std::shared_ptr<parachain::Recovery> recovery)
-      : thread_pool_{std::move(thread_pool)},
+      : int_pool_{std::make_shared<ThreadPool>(1ull)},
+        internal_context_{int_pool_->handler()},
+        thread_pool_{std::move(thread_pool)},
+        thread_pool_context_{thread_pool_->handler()},
         parachain_host_(std::move(parachain_host)),
         babe_util_(std::move(babe_util)),
         keystore_(std::move(keystore)),
         hasher_(std::move(hasher)),
-        this_context_(std::move(this_context)),
         config_(ApprovalVotingSubsystem{.slot_duration_millis = 6'000}),
         peer_view_(std::move(peer_view)),
         parachain_processor_(std::move(parachain_processor)),
@@ -487,7 +498,6 @@ namespace kagome::parachain {
     BOOST_ASSERT(parachain_host_);
     BOOST_ASSERT(babe_util_);
     BOOST_ASSERT(keystore_);
-    BOOST_ASSERT(this_context_);
     BOOST_ASSERT(peer_view_);
     BOOST_ASSERT(hasher_);
     BOOST_ASSERT(parachain_processor_);
@@ -499,13 +509,6 @@ namespace kagome::parachain {
     BOOST_ASSERT(pvf_);
     BOOST_ASSERT(recovery_);
     app_state_manager->takeControl(*this);
-  }
-
-  ApprovalDistribution::~ApprovalDistribution() {
-    for (auto &it : active_tranches_) {
-      BOOST_ASSERT(it.second);
-    }
-    active_tranches_.clear();
   }
 
   bool ApprovalDistribution::prepare() {
@@ -535,28 +538,39 @@ namespace kagome::parachain {
             auto /*event_type*/,
             const primitives::events::ChainEventParams &event) {
           if (auto self = wptr.lock()) {
-            if (auto const value = if_type<
-                    const primitives::events::RemoveAfterFinalizationParams>(
-                    event)) {
-              for (auto const &lost : value->get()) {
-                self->logger_->trace(
-                    "Cleaning up stale pending messages.(block hash={})", lost);
-                self->pending_known_.erase(lost);
-
-                if (auto block_entry = self->storedBlockEntries().get(lost)) {
-                  for (auto const &candidate : block_entry->get().candidates) {
-                    self->recovery_->remove(candidate.second);
-                    self->storedCandidateEntries().extract(candidate.second);
-                  }
-                  self->storedBlockEntries().extract(lost);
-                }
-                self->storedDistribBlockEntries().extract(lost);
-              }
-            }
+            self->clearCaches(event);
           }
         });
 
+    internal_context_->start();
+    thread_pool_context_->start();
     return true;
+  }
+
+  void ApprovalDistribution::clearCaches(
+      const primitives::events::ChainEventParams &ev) {
+    REINVOKE_1(*internal_context_, clearCaches, ev, event);
+
+    if (const auto value =
+            if_type<const primitives::events::RemoveAfterFinalizationParams>(
+                event)) {
+      for (const auto &lost : value->get()) {
+        SL_TRACE(logger_,
+                 "Cleaning up stale pending messages.(block hash={})",
+                 lost);
+        pending_known_.erase(lost);
+        active_tranches_.erase(lost);
+
+        if (auto block_entry = storedBlockEntries().get(lost)) {
+          for (const auto &candidate : block_entry->get().candidates) {
+            recovery_->remove(candidate.second);
+            storedCandidateEntries().extract(candidate.second);
+          }
+          storedBlockEntries().extract(lost);
+        }
+        storedDistribBlockEntries().extract(lost);
+      }
+    }
   }
 
   std::optional<std::pair<ValidatorIndex, crypto::Sr25519Keypair>>
@@ -629,31 +643,74 @@ namespace kagome::parachain {
   }
 
   void ApprovalDistribution::imported_block_info(
-      const primitives::BlockHash &block_hash,
-      const primitives::BlockHeader &block_header,
-      const std::shared_ptr<boost::asio::io_context> &callback_exec_context) {
-    BOOST_ASSERT(this_context_->get_executor().running_in_this_thread());
-    request_included_candidates(block_hash);
-    request_session_index_and_info(block_hash, block_header.parent_hash);
-    request_babe_epoch_and_block_header(
-        callback_exec_context, block_header, block_hash);
+      const primitives::BlockHash &b_hash,
+      const primitives::BlockHeader &b_header) {
+    REINVOKE_2(*thread_pool_context_,
+               imported_block_info,
+               b_hash,
+               b_header,
+               block_hash,
+               block_header);
+
+    auto call = [&]() -> outcome::result<NewHeadDataContext> {
+      OUTCOME_TRY(included_candidates, request_included_candidates(block_hash));
+      OUTCOME_TRY(
+          index_and_pair,
+          request_session_index_and_info(block_hash, block_header.parent_hash));
+      OUTCOME_TRY(
+          block_and_header,
+          request_babe_epoch_and_block_header(block_header, block_hash));
+      return std::make_tuple(std::move(included_candidates),
+                             std::move(index_and_pair),
+                             std::move(block_and_header));
+    };
+
+    if (auto res = call(); res.has_value()) {
+      storeNewHeadContext(block_hash, std::move(res.value()));
+    } else {
+      SL_ERROR(logger_,
+               "Error while retrieve neccessary data.(error={})",
+               res.error().message());
+    }
+  }
+
+  void ApprovalDistribution::storeNewHeadContext(
+      const primitives::BlockHash &b_hash, NewHeadDataContext &&ctx) {
+    REINVOKE_2(*internal_context_,
+               storeNewHeadContext,
+               b_hash,
+               ctx,
+               block_hash,
+               context);
+
+    for_ACU(block_hash, [this, context{std::move(context)}](auto &acu) {
+      auto &&[included, session, babe_config] = std::move(context);
+      auto &&[session_index, session_info] = std::move(session);
+      auto &&[epoch_number, babe_block_header, authorities, randomness] =
+          std::move(babe_config);
+
+      acu.second.included_candidates = std::move(included);
+      acu.second.session_index = session_index;
+      acu.second.session_info = std::move(session_info);
+      acu.second.babe_epoch = epoch_number;
+      acu.second.babe_block_header = std::move(babe_block_header);
+      acu.second.authorities = std::move(authorities);
+      acu.second.randomness = std::move(randomness);
+
+      this->try_process_approving_context(acu);
+    });
   }
 
   template <typename Func>
   void ApprovalDistribution::for_ACU(const primitives::BlockHash &block_hash,
                                      Func &&func) {
-    BOOST_ASSERT(this_context_->get_executor().running_in_this_thread());
+    BOOST_ASSERT(internal_context_->io_context()
+                     ->get_executor()
+                     .running_in_this_thread());
     if (auto it = approving_context_map_.find(block_hash);
         it != approving_context_map_.end()) {
       std::forward<Func>(func)(*it);
     }
-  }
-
-  void ApprovalDistribution::store_included_candidates(
-      ApprovingContextUnit &acu,
-      const ApprovalDistribution::CandidateIncludedList &candidates_list) {
-    ApprovingContext &context = acu.second;
-    context.included_candidates = candidates_list;
   }
 
   void ApprovalDistribution::try_process_approving_context(
@@ -735,105 +792,69 @@ namespace kagome::parachain {
     return std::nullopt;
   }
 
-  void ApprovalDistribution::request_session_index_and_info(
+  outcome::result<std::pair<SessionIndex, runtime::SessionInfo>>
+  ApprovalDistribution::request_session_index_and_info(
       const primitives::BlockHash &block_hash,
       const primitives::BlockHash &parent_hash) {
-    auto call = [&]() -> outcome::result<void> {
-      OUTCOME_TRY(session_index,
-                  parachain_host_->session_index_for_child(parent_hash));
-      OUTCOME_TRY(session_info,
-                  parachain_host_->session_info(block_hash, session_index));
-      if (!session_info) {
-        SL_ERROR(logger_,
-                 "No session info for [session_index: {}, block_hash: {}]",
-                 session_index,
-                 block_hash);
-        return Error::NO_SESSION_INFO;
-      } else {
-        SL_INFO(logger_,
-                "Found session info. (block hash={}, session index={}, "
-                "validators count={}, assignment keys count={}, "
-                "availability cores={}, delay tranches ={})",
-                block_hash,
-                session_index,
-                session_info->validators.size(),
-                session_info->assignment_keys.size(),
-                session_info->n_cores,
-                session_info->n_delay_tranches);
-      }
+    OUTCOME_TRY(session_index,
+                parachain_host_->session_index_for_child(parent_hash));
+    OUTCOME_TRY(session_info,
+                parachain_host_->session_info(block_hash, session_index));
 
-      for_ACU(block_hash, [&](auto &acu) {
-        acu.second.session_index = session_index;
-        acu.second.session_info = std::move(*session_info);
-        try_process_approving_context(acu);
-      });
-
-      return outcome::success();
-    };
-    if (auto res = call(); res.has_error()) {
-      SL_DEBUG(logger_,
-               "Error while retrieve session index and info.(error={})",
-               res.error().message());
+    if (!session_info) {
+      SL_ERROR(logger_,
+               "No session info for [session_index: {}, block_hash: {}]",
+               session_index,
+               block_hash);
+      return Error::NO_SESSION_INFO;
     }
+
+    SL_TRACE(logger_,
+             "Found session info. (block hash={}, session index={}, "
+             "validators count={}, assignment keys count={}, "
+             "availability cores={}, delay tranches ={})",
+             block_hash,
+             session_index,
+             session_info->validators.size(),
+             session_info->assignment_keys.size(),
+             session_info->n_cores,
+             session_info->n_delay_tranches);
+    return std::make_pair(session_index, std::move(*session_info));
   }
 
-  void ApprovalDistribution::request_babe_epoch_and_block_header(
-      const std::shared_ptr<boost::asio::io_context> &exec_context,
+  outcome::result<std::tuple<consensus::babe::EpochNumber,
+                             consensus::babe::BabeBlockHeader,
+                             primitives::AuthorityList,
+                             primitives::Randomness>>
+  ApprovalDistribution::request_babe_epoch_and_block_header(
       const primitives::BlockHeader &block_header,
       const primitives::BlockHash &block_hash) {
-    auto call = [&]() -> outcome::result<void> {
-      OUTCOME_TRY(babe_digests, consensus::babe::getBabeDigests(block_header));
-      OUTCOME_TRY(babe_config, babe_api_->configuration(block_hash));
-      const consensus::babe::EpochNumber epoch_number =
-          babe_util_->slotToEpoch(babe_digests.second.slot_number);
+    OUTCOME_TRY(babe_digests, consensus::babe::getBabeDigests(block_header));
+    OUTCOME_TRY(babe_config, babe_api_->configuration(block_hash));
 
-      for_ACU(block_hash, [&](auto &acu) {
-        acu.second.babe_epoch = epoch_number;
-        acu.second.babe_block_header = std::move(babe_digests.second);
-        acu.second.authorities = std::move(babe_config.authorities);
-        acu.second.randomness = std::move(babe_config.randomness);
-
-        try_process_approving_context(acu);
-      });
-
-      return outcome::success();
-    };
-    if (auto res = call(); res.has_error()) {
-      SL_DEBUG(logger_,
-               "Error while retrieve babe epoch and block header.(error={})",
-               res.error().message());
-    }
+    return std::make_tuple(
+        babe_util_->slotToEpoch(babe_digests.second.slot_number),
+        std::move(babe_digests.second),
+        std::move(babe_config.authorities),
+        std::move(babe_config.randomness));
   }
 
-  void ApprovalDistribution::request_included_candidates(
+  outcome::result<ApprovalDistribution::CandidateIncludedList>
+  ApprovalDistribution::request_included_candidates(
       const primitives::BlockHash &block_hash) {
-    auto call = [&]() -> outcome::result<void> {
-      OUTCOME_TRY(candidates, parachain_host_->candidate_events(block_hash));
-      ApprovalDistribution::CandidateIncludedList included;
+    OUTCOME_TRY(candidates, parachain_host_->candidate_events(block_hash));
+    ApprovalDistribution::CandidateIncludedList included;
 
-      for (auto &candidate : candidates) {
-        if (auto obj{boost::get<runtime::CandidateIncluded>(&candidate)}) {
-          included.emplace_back(std::make_tuple(
-              hasher_->blake2b_256(
-                  scale::encode(obj->candidate_receipt).value()),
-              std::move(obj->candidate_receipt),
-              obj->core_index,
-              obj->group_index));
-        }
+    for (auto &candidate : candidates) {
+      if (auto obj{boost::get<runtime::CandidateIncluded>(&candidate)}) {
+        included.emplace_back(
+            std::make_tuple(candidateHash(*hasher_, obj->candidate_receipt),
+                            std::move(obj->candidate_receipt),
+                            obj->core_index,
+                            obj->group_index));
       }
-
-      for_ACU(block_hash, [&](auto &acu) {
-        store_included_candidates(acu, std::move(included));
-        try_process_approving_context(acu);
-      });
-
-      return outcome::success();
-    };
-    if (auto res = call(); res.has_error()) {
-      SL_DEBUG(logger_,
-               "Error while retrieve included candidates.(error={})",
-               res.error().message());
     }
+    return included;
   }
 
   outcome::result<std::vector<
@@ -1031,7 +1052,9 @@ namespace kagome::parachain {
   void ApprovalDistribution::handle_new_head(const primitives::BlockHash &head,
                                              const network::ExView &updated,
                                              Func &&func) {
-    BOOST_ASSERT(this_context_->get_executor().running_in_this_thread());
+    BOOST_ASSERT(internal_context_->io_context()
+                     ->get_executor()
+                     .running_in_this_thread());
 
     /// clear unuseful heads
     for (const auto &l_head : updated.lost) {
@@ -1054,7 +1077,7 @@ namespace kagome::parachain {
             .babe_block_header = std::nullopt,
             .babe_epoch = std::nullopt,
             .session_info = std::nullopt,
-            .complete_callback_context = this_context_,
+            .complete_callback_context = internal_context_->io_context(),
             .complete_callback =
                 [wself{weak_from_this()},
                  block_hash{head},
@@ -1081,16 +1104,12 @@ namespace kagome::parachain {
                       std::move(block_info.value())));
                 }});
 
-    imported_block_info(head, std::move(updated.new_head), this_context_);
+    imported_block_info(head, std::move(updated.new_head));
   }
 
   void ApprovalDistribution::on_active_leaves_update(
-      const network::ExView &updated) {
-    /*
-     * THIS CODE DISABLED TO PREVENT EXTRA CPU USAGE BECAUSE OF INFINITE TASKS
-     * IN MAIN THREAD.
-     */
-    return;
+      const network::ExView &upd) {
+    REINVOKE_1(*internal_context_, on_active_leaves_update, upd, updated);
 
     if (!parachain_processor_->canProcessParachains()) {
       return;
@@ -1101,26 +1120,27 @@ namespace kagome::parachain {
         [[maybe_unused]] auto &_ = pending_known_[result.value()];
       }
 
-      handle_new_head(
-          result.value(),
-          updated,
-          [wself{weak_from_this()},
-           head{result.value()}](auto &&possible_candidate) {
-            if (auto self = wself.lock()) {
-              if (possible_candidate.has_error()) {
-                SL_ERROR(self->logger_,
-                         "Internal error while retrieve block imported "
-                         "candidates: {}",
-                         possible_candidate.error().message());
-                return;
-              }
+      handle_new_head(result.value(),
+                      updated,
+                      [wself{weak_from_this()},
+                       head{result.value()}](auto &&possible_candidate) {
+                        if (auto self = wself.lock()) {
+                          if (possible_candidate.has_error()) {
+                            SL_ERROR(
+                                self->logger_,
+                                "Internal error while retrieve block imported "
+                                "candidates: {}",
+                                possible_candidate.error().message());
+                            return;
+                          }
 
-              BOOST_ASSERT(
-                  self->this_context_->get_executor().running_in_this_thread());
-              self->scheduleTranche(head,
-                                    std::move(possible_candidate.value()));
-            }
-          });
+                          BOOST_ASSERT(self->internal_context_->io_context()
+                                           ->get_executor()
+                                           .running_in_this_thread());
+                          self->scheduleTranche(
+                              head, std::move(possible_candidate.value()));
+                        }
+                      });
     } else {
       logger_->error("Block header hashing failed: {}",
                      result.error().message());
@@ -1171,8 +1191,6 @@ namespace kagome::parachain {
             return;
           }
           auto &available_data = opt_result->value();
-          BOOST_ASSERT(
-              self->this_context_->get_executor().running_in_this_thread());
           [[maybe_unused]] auto const para_id = candidate.descriptor.para_id;
 
           auto result = self->parachain_host_->validation_code_by_hash(
@@ -1201,13 +1219,8 @@ namespace kagome::parachain {
                   available_data.pov,
                   candidate,
                   validation_code)) {
-            self->this_context_->wrap(  /// IssueApproval
-                [wself, candidate_hash, validator_index, relay_block_hash]() {
-                  if (auto self = wself.lock()) {
-                    self->issue_approval(
-                        candidate_hash, validator_index, relay_block_hash);
-                  }
-                });
+            self->issue_approval(
+                candidate_hash, validator_index, relay_block_hash);
           }
         };
 
@@ -1246,7 +1259,9 @@ namespace kagome::parachain {
   ApprovalDistribution::check_and_import_assignment(
       const approval::IndirectAssignmentCert &assignment,
       CandidateIndex candidate_index) {
-    BOOST_ASSERT(this_context_->get_executor().running_in_this_thread());
+    BOOST_ASSERT(internal_context_->io_context()
+                     ->get_executor()
+                     .running_in_this_thread());
     const auto tick_now = ::tickNow();
 
     GET_OPT_VALUE_OR_EXIT(block_entry,
@@ -1397,7 +1412,9 @@ namespace kagome::parachain {
       const MessageSource &source,
       const approval::IndirectAssignmentCert &assignment,
       CandidateIndex claimed_candidate_index) {
-    BOOST_ASSERT(this_context_->get_executor().running_in_this_thread());
+    BOOST_ASSERT(internal_context_->io_context()
+                     ->get_executor()
+                     .running_in_this_thread());
     const auto &block_hash = assignment.block_hash;
     const auto validator_index = assignment.validator;
     auto opt_entry = storedDistribBlockEntries().get(block_hash);
@@ -1488,7 +1505,9 @@ namespace kagome::parachain {
   void ApprovalDistribution::import_and_circulate_approval(
       const MessageSource &source,
       const network::IndirectSignedApprovalVote &vote) {
-    BOOST_ASSERT(this_context_->get_executor().running_in_this_thread());
+    BOOST_ASSERT(internal_context_->io_context()
+                     ->get_executor()
+                     .running_in_this_thread());
     const auto &block_hash = vote.payload.payload.block_hash;
     const auto validator_index = vote.payload.ix;
     const auto candidate_index = vote.payload.payload.candidate_index;
@@ -1571,14 +1590,91 @@ namespace kagome::parachain {
     runDistributeApproval(vote);
   }
 
+  void ApprovalDistribution::getApprovalSignaturesForCandidate(
+      const CandidateHash &_candidate,
+      SignaturesForCandidateCallback &&_callback) {
+    REINVOKE_2(*internal_context_,
+               getApprovalSignaturesForCandidate,
+               _candidate,
+               _callback,
+               candidate_hash,
+               callback);
+
+    if (!parachain_processor_->canProcessParachains()) {
+      callback(SignaturesForCandidate{});
+      return;
+    }
+
+    auto r = storedCandidateEntries().get(candidate_hash);
+    if (!r) {
+      SL_DEBUG(logger_,
+               "Sent back empty votes because the candidate was not found in "
+               "db. (candidate={})",
+               candidate_hash);
+      callback(SignaturesForCandidate{});
+      return;
+    }
+    auto &entry = r->get();
+
+    SignaturesForCandidate all_sigs;
+    for (const auto &[hash, _] : entry.block_assignments) {
+      if (auto block_entry = storedBlockEntries().get(hash)) {
+        for (size_t candidate_index = 0ull;
+             candidate_index < block_entry->get().candidates.size();
+             ++candidate_index) {
+          const auto &[_core_index, c_hash] =
+              block_entry->get().candidates[candidate_index];
+          if (c_hash == candidate_hash) {
+            const auto index = candidate_index;
+            if (auto distrib_block_entry =
+                    storedDistribBlockEntries().get(hash)) {
+              if (index < distrib_block_entry->get().candidates.size()) {
+                const auto &candidate_entry =
+                    distrib_block_entry->get().candidates[index];
+                for (const auto &[validator_index, message_state] :
+                     candidate_entry.messages) {
+                  if (auto approval_state =
+                          if_type<const DistribApprovalStateApproved>(
+                              message_state.approval_state)) {
+                    const auto &[__, sig] = approval_state->get();
+                    all_sigs[validator_index] = sig;
+                  }
+                }
+              } else {
+                SL_DEBUG(logger_,
+                         "`getApprovalSignaturesForCandidate`: could not find "
+                         "candidate entry for given hash and index!. (hash={}, "
+                         "index={})",
+                         hash,
+                         index);
+              }
+            } else {
+              SL_DEBUG(logger_,
+                       "`getApprovalSignaturesForCandidate`: could not find "
+                       "block entry for given hash!. (hash={})",
+                       hash);
+            }
+          }
+        }
+      } else {
+        SL_DEBUG(logger_,
+                 "Block entry for assignment missing. (candidate={}, hash={})",
+                 candidate_hash,
+                 hash);
+      }
+    }
+    callback(std::move(all_sigs));
+  }
+
   void ApprovalDistribution::onValidationProtocolMsg(
-      const libp2p::peer::PeerId &peer_id,
-      const network::ValidatorProtocolMessage &message) {
-    /*
-     * THIS CODE DISABLED TO PREVENT EXTRA CPU USAGE BECAUSE OF INFINITE TASKS
-     * IN MAIN THREAD.
-     */
-    return;
+      const libp2p::peer::PeerId &pid,
+      const network::ValidatorProtocolMessage &msg) {
+    REINVOKE_2(*internal_context_,
+               onValidationProtocolMsg,
+               pid,
+               msg,
+               peer_id,
+               message);
 
     if (!parachain_processor_->canProcessParachains()) {
       return;
@@ -1587,20 +1683,21 @@ namespace kagome::parachain {
       visit_in_place(
           *m,
           [&](const network::Assignments &assignments) {
-            logger_->info("Received assignments.(peer_id={}, count={})",
-                          peer_id,
-                          assignments.assignments.size());
+            SL_TRACE(logger_,
+                     "Received assignments.(peer_id={}, count={})",
+                     peer_id,
+                     assignments.assignments.size());
             for (auto const &assignment : assignments.assignments) {
               if (auto it = pending_known_.find(
                       assignment.indirect_assignment_cert.block_hash);
                   it != pending_known_.end()) {
-                logger_->trace(
-                    "Pending assignment.(block hash={}, claimed index={}, "
-                    "validator={}, peer={})",
-                    assignment.indirect_assignment_cert.block_hash,
-                    assignment.candidate_ix,
-                    assignment.indirect_assignment_cert.validator,
-                    peer_id);
+                SL_TRACE(logger_,
+                         "Pending assignment.(block hash={}, claimed index={}, "
+                         "validator={}, peer={})",
+                         assignment.indirect_assignment_cert.block_hash,
+                         assignment.candidate_ix,
+                         assignment.indirect_assignment_cert.validator,
+                         peer_id);
                 it->second.emplace_back(
                     std::make_pair(peer_id, PendingMessage{assignment}));
                 continue;
@@ -1613,20 +1710,21 @@ namespace kagome::parachain {
             }
           },
           [&](const network::Approvals &approvals) {
-            logger_->info("Received approvals.(peer_id={}, count={})",
-                          peer_id,
-                          approvals.approvals.size());
+            SL_TRACE(logger_,
+                     "Received approvals.(peer_id={}, count={})",
+                     peer_id,
+                     approvals.approvals.size());
             for (auto const &approval_vote : approvals.approvals) {
               if (auto it = pending_known_.find(
                       approval_vote.payload.payload.block_hash);
                   it != pending_known_.end()) {
-                logger_->trace(
-                    "Pending approval.(block hash={}, candidate index={}, "
-                    "validator={}, peer={})",
-                    approval_vote.payload.payload.block_hash,
-                    approval_vote.payload.payload.candidate_index,
-                    approval_vote.payload.ix,
-                    peer_id);
+                SL_TRACE(logger_,
+                         "Pending approval.(block hash={}, candidate index={}, "
+                         "validator={}, peer={})",
+                         approval_vote.payload.payload.block_hash,
+                         approval_vote.payload.payload.candidate_index,
+                         approval_vote.payload.ix,
+                         peer_id);
                 it->second.emplace_back(
                     std::make_pair(peer_id, PendingMessage{approval_vote}));
                 continue;
@@ -1679,9 +1777,18 @@ namespace kagome::parachain {
                       }}));
   }
 
-  void ApprovalDistribution::issue_approval(const CandidateHash &candidate_hash,
-                                            ValidatorIndex validator_index,
-                                            const RelayHash &block_hash) {
+  void ApprovalDistribution::issue_approval(const CandidateHash &can_hash,
+                                            ValidatorIndex val_index,
+                                            const RelayHash &bl_hash) {
+    REINVOKE_3(*internal_context_,
+               issue_approval,
+               can_hash,
+               val_index,
+               bl_hash,
+               candidate_hash,
+               validator_index,
+               block_hash)
+
     auto be = storedBlockEntries().get(block_hash);
     if (!be) {
       logger_->info("No block entry for {}. Staled.", block_hash);
@@ -1826,15 +1933,14 @@ namespace kagome::parachain {
           },
           [&tick_now](const approval::ExactRequiredTranche &e) {
             auto filter = [](Tick const &t, Tick const &ref) {
-              auto const v = t + kApprovalDelay;
-              return ((v > ref) ? std::optional<Tick>{v}
+              return ((t > ref) ? std::optional<Tick>{t}
                                 : std::optional<Tick>{});
             };
             return approval::min_or_some(
                 e.next_no_show,
-                (e.last_assignment_tick
-                     ? filter(*e.last_assignment_tick, tick_now)
-                     : std::optional<Tick>{}));
+                (e.last_assignment_tick ? filter(
+                     *e.last_assignment_tick + kApprovalDelay, tick_now)
+                                        : std::optional<Tick>{}));
           },
           [&](const approval::PendingRequiredTranche &e) {
             std::optional<DelayTranche> next_announced{};
@@ -1987,7 +2093,9 @@ namespace kagome::parachain {
   void ApprovalDistribution::scheduleTranche(
       const primitives::BlockHash &head, BlockImportedCandidates &&candidate) {
     /// this_thread_ context execution.
-    BOOST_ASSERT(this_context_->get_executor().running_in_this_thread());
+    BOOST_ASSERT(internal_context_->io_context()
+                     ->get_executor()
+                     .running_in_this_thread());
     SL_TRACE(logger_,
              "Imported new block {}:{} with candidates count {}",
              candidate.block_number,
@@ -2021,42 +2129,70 @@ namespace kagome::parachain {
       primitives::BlockNumber block_number,
       const CandidateHash &candidate_hash,
       Tick tick) {
-    SL_TRACE(
-        logger_,
-        "Scheduling wakeup. Block hash {}, candidate hash {}, block number {}, "
-        "tick {}",
-        block_hash,
-        candidate_hash,
-        block_number,
-        tick);
+    const auto ms_now = msNow();
+    const auto ms_wakeup = tick * kTickDurationMs;
+    const auto ms_wakeup_after = math::sat_sub_unsigned(ms_wakeup, ms_now);
 
-    auto t = std::make_unique<clock::BasicWaitableTimer>(this_context_);
-    t->expiresAfter(std::chrono::milliseconds(tick));
+    auto &target_block = active_tranches_[block_hash];
+    auto target_candidate = target_block.find(candidate_hash);
+    if (target_candidate != target_block.end()) {
+      if (target_candidate->second.first <= tick) {
+        return;
+      }
+    }
+
+    SL_TRACE(logger_,
+             "Scheduling wakeup. (block_hash={}, candidate_hash={}, "
+             "block_number={}, tick={}, after={})",
+             block_hash,
+             candidate_hash,
+             block_number,
+             tick,
+             ms_wakeup_after);
+
+    auto t = std::make_unique<clock::BasicWaitableTimer>(
+        internal_context_->io_context());
+    t->expiresAfter(std::chrono::milliseconds(ms_wakeup_after));
     t->asyncWait([wself{weak_from_this()},
                   id{uintptr_t(t.get())},
                   block_hash,
                   block_number,
                   candidate_hash](auto &&ec) {
       if (auto self = wself.lock()) {
-        self->active_tranches_.erase(id);
-        if (ec) {
-          SL_ERROR(self->logger_,
-                   "error happened while waiting on tranche the "
-                   "timer: {}",
-                   ec.message());
-          return;
+        BOOST_ASSERT(self->internal_context_->io_context()
+                         ->get_executor()
+                         .running_in_this_thread());
+        if (auto target_block_it = self->active_tranches_.find(block_hash);
+            target_block_it != self->active_tranches_.end()) {
+          auto &target_block = target_block_it->second;
+          if (auto target_candidate_it = target_block.find(candidate_hash);
+              target_candidate_it != target_block.end()) {
+            auto t = std::move(target_candidate_it->second.second);
+            target_block.erase(target_candidate_it);
+
+            if (ec) {
+              SL_ERROR(self->logger_,
+                       "error happened while waiting on tranche the "
+                       "timer: {}",
+                       ec.message());
+              return;
+            }
+            self->handleTranche(block_hash, block_number, candidate_hash);
+          }
         }
-        self->handleTranche(block_hash, block_number, candidate_hash);
       }
     });
-    active_tranches_[uintptr_t(t.get())] = std::move(t);
+    target_block.insert_or_assign(candidate_hash,
+                                  std::make_pair(tick, std::move(t)));
   }
 
   void ApprovalDistribution::handleTranche(
       const primitives::BlockHash &block_hash,
       primitives::BlockNumber block_number,
       const CandidateHash &candidate_hash) {
-    BOOST_ASSERT(this_context_->get_executor().running_in_this_thread());
+    BOOST_ASSERT(internal_context_->io_context()
+                     ->get_executor()
+                     .running_in_this_thread());
 
     auto opt_block_entry = storedBlockEntries().get(block_hash);
     auto opt_candidate_entry = storedCandidateEntries().get(candidate_hash);

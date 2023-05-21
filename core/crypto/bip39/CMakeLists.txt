@@ -13,8 +13,10 @@ target_link_libraries(bip39_provider
     PUBLIC OpenSSL::SSL
     OpenSSL::Crypto
     blob
+    hasher
     logger
     pbkdf2_provider
+    scale::scale
     sha
     )
 kagome_install(bip39_provider)

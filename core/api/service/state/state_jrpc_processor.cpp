@@ -44,8 +44,8 @@ namespace kagome::api::state {
     server_->registerHandler("state_getStorageAt",
                              Handler<request::GetStorage>(api_));
 
-    server_->registerHandler("state_queryStorage",
-                             Handler<request::QueryStorage>(api_));
+    server_->registerHandlerUnsafe("state_queryStorage",
+                                   Handler<request::QueryStorage>(api_));
     server_->registerHandler("state_queryStorageAt",
                              Handler<request::QueryStorageAt>(api_));
 

@@ -11,6 +11,7 @@
 #include "application/app_configuration.hpp"
 #include "application/app_state_manager.hpp"
 #include "application/chain_spec.hpp"
+#include "filesystem/common.hpp"
 #include "metrics/metrics.hpp"
 #include "outcome/outcome.hpp"
 
@@ -29,7 +30,7 @@ namespace kagome::metrics {
    private:
     outcome::result<uintmax_t> measure_storage_size();
 
-    boost::filesystem::path storage_path_;
+    filesystem::path storage_path_;
 
     volatile bool shutdown_requested_ = false;
     std::thread thread_;

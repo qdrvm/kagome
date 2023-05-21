@@ -35,6 +35,7 @@ target_link_libraries(core_integration_test
     core_api
     basic_code_provider
     storage
+    filesystem
     logger_for_tests
     )
 

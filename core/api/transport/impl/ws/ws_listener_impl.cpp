@@ -22,7 +22,8 @@ namespace kagome::api {
       const application::AppConfiguration &app_config,
       SessionImpl::Configuration session_config)
       : context_{std::move(context)},
-        endpoint_(app_config.rpcWsEndpoint()),
+        allow_unsafe_{app_config},
+        endpoint_(app_config.rpcEndpoint()),
         session_config_{session_config},
         max_ws_connections_{app_config.maxWsConnections()},
         next_session_id_{1ull},
@@ -43,8 +44,8 @@ namespace kagome::api {
 
   bool WsListenerImpl::prepare() {
     try {
-      acceptor_ = acceptOnFreePort(
-          context_, endpoint_, kDefaultPortTolerance, log_);
+      acceptor_ =
+          acceptOnFreePort(context_, endpoint_, kDefaultPortTolerance, log_);
     } catch (const boost::wrapexcept<boost::system::system_error> &exception) {
       SL_CRITICAL(log_, "Failed to prepare a listener: {}", exception.what());
       return false;
@@ -92,8 +93,14 @@ namespace kagome::api {
   }
 
   void WsListenerImpl::acceptOnce() {
+    auto get_id = [weak = weak_from_this()]() -> Session::SessionId {
+      if (auto self = weak.lock()) {
+        return self->next_session_id_++;
+      }
+      return 0;
+    };
     new_session_ = std::make_shared<SessionImpl>(
-        *context_, session_config_, next_session_id_.fetch_add(1ull));
+        *context_, get_id, on_new_session_, allow_unsafe_, session_config_);
     auto session_stopped_handler = [wp = weak_from_this()] {
       if (auto self = wp.lock()) {
         self->closed_session_->inc();
@@ -120,9 +127,6 @@ namespace kagome::api {
                      self->active_connections_.load());
           } else {
             self->opened_session_->inc();
-            if (self->on_new_session_) {
-              (*self->on_new_session_)(self->new_session_);
-            }
             self->new_session_->start();
             SL_TRACE(self->log_,
                      "New session started. Active connections count is {}",

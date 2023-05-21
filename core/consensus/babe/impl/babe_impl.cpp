@@ -84,13 +84,10 @@ namespace kagome::consensus::babe {
         proposer_{std::move(proposer)},
         block_tree_{std::move(block_tree)},
         block_announce_transmitter_{std::move(block_announce_transmitter)},
-        keypair_([&] {
-          BOOST_ASSERT(session_keys != nullptr);
-          return session_keys->getBabeKeyPair();
-        }()),
         clock_{std::move(clock)},
         hasher_{std::move(hasher)},
         sr25519_provider_{std::move(sr25519_provider)},
+        session_keys_{std::move(session_keys)},
         timer_{std::move(timer)},
         digest_tracker_(std::move(digest_tracker)),
         warp_sync_{std::move(warp_sync)},
@@ -229,25 +226,21 @@ namespace kagome::consensus::babe {
              current_epoch_.epoch_number,
              current_epoch_.start_slot);
 
-    if (keypair_) {
-      auto babe_config = babe_config_repo_->config({.block_info = best_block_},
-                                                   current_epoch_.epoch_number);
-      if (not babe_config.has_value()) {
-        SL_CRITICAL(
-            log_,
-            "Can't obtain digest of epoch {} from block tree for block {}",
-            current_epoch_.epoch_number,
-            best_block_);
-        return false;
-      }
-
-      const auto &authorities = babe_config->get().authorities;
-      if (authorities.size() == 1
-          and authorities[0].id.id == keypair_->public_key) {
-        SL_INFO(log_, "Starting single validating node.");
-        onSynchronized();
-        return true;
-      }
+    auto babe_config = babe_config_repo_->config({.block_info = best_block_},
+                                                 current_epoch_.epoch_number);
+    if (not babe_config.has_value()) {
+      SL_CRITICAL(
+          log_,
+          "Can't obtain digest of epoch {} from block tree for block {}",
+          current_epoch_.epoch_number,
+          best_block_);
+      return false;
+    }
+    const auto &authorities = babe_config->get().authorities;
+    if (authorities.size() == 1 && session_keys_->getBabeKeyPair(authorities)) {
+      SL_INFO(log_, "Starting single validating node.");
+      onSynchronized();
+      return true;
     }
 
     switch (app_config_.syncMethod()) {
@@ -265,25 +258,6 @@ namespace kagome::consensus::babe {
     }
 
     return true;
-  }
-
-  /**
-   * @brief Get index of authority
-   * @param authorities list of authorities
-   * @param authority_key authority
-   * @return index of authority in list of authorities
-   */
-  std::optional<primitives::AuthorityIndex> getAuthorityIndex(
-      const primitives::AuthorityList &authorities,
-      const primitives::BabeSessionKey &authority_key) {
-    primitives::AuthorityIndex n = 0;
-    for (auto &authority : authorities) {
-      if (authority.id.id == authority_key) {
-        return n;
-      }
-      ++n;
-    }
-    return std::nullopt;
   }
 
   outcome::result<EpochDescriptor> BabeImpl::getInitialEpochDescriptor() {
@@ -375,19 +349,15 @@ namespace kagome::consensus::babe {
       return;
     }
 
-    BOOST_ASSERT(keypair_ != nullptr);
-
     adjustEpochDescriptor();
 
-    SL_DEBUG(
-        log_,
-        "Starting an epoch {}. Session key: {:l}. Secondary slots allowed={}",
-        epoch.epoch_number,
-        keypair_->public_key,
-        babe_config_repo_
-            ->config({.block_info = best_block_}, epoch.epoch_number)
-            ->get()
-            .isSecondarySlotsAllowed());
+    SL_DEBUG(log_,
+             "Starting an epoch {}. Secondary slots allowed={}",
+             epoch.epoch_number,
+             babe_config_repo_
+                 ->config({.block_info = best_block_}, epoch.epoch_number)
+                 ->get()
+                 .isSecondarySlotsAllowed());
     current_epoch_ = epoch;
     current_slot_ = current_epoch_.start_slot;
 
@@ -741,14 +711,6 @@ namespace kagome::consensus::babe {
   }
 
   void BabeImpl::onSynchronized() {
-    // won't start block production without keypair
-    if (not keypair_) {
-      current_state_ = State::WAIT_BLOCK_ANNOUNCE;
-      babe_status_observable_->notify(
-          primitives::events::BabeStateEventType::kSyncState, current_state_);
-      return;
-    }
-
     current_state_ = State::SYNCHRONIZED;
     was_synchronized_ = true;
     telemetry_->notifyWasSynchronized();
@@ -767,8 +729,6 @@ namespace kagome::consensus::babe {
   }
 
   void BabeImpl::runSlot() {
-    BOOST_ASSERT(keypair_ != nullptr);
-
     bool rewind_slots;  // NOLINT
     auto slot = current_slot_;
 
@@ -826,8 +786,6 @@ namespace kagome::consensus::babe {
   }
 
   void BabeImpl::processSlot(clock::SystemClock::TimePoint slot_timestamp) {
-    BOOST_ASSERT(keypair_ != nullptr);
-
     best_block_ = block_tree_->bestLeaf();
 
     // Resolve slot collisions: if best block slot greater than current slot,
@@ -861,15 +819,14 @@ namespace kagome::consensus::babe {
         {.block_info = best_block_}, current_epoch_.epoch_number);
     if (babe_config_opt) {
       auto &babe_config = babe_config_opt.value().get();
-      auto authority_index_res =
-          getAuthorityIndex(babe_config.authorities, keypair_->public_key);
-      if (not authority_index_res) {
+      auto keypair = session_keys_->getBabeKeyPair(babe_config.authorities);
+      if (not keypair) {
         SL_ERROR(log_,
                  "Authority not known, skipping slot processing. "
                  "Probably authority list has changed.");
       } else {
-        const auto &authority_index = authority_index_res.value();
-
+        keypair_ = std::move(keypair->first);
+        const auto &authority_index = keypair->second;
         if (lottery_->getEpoch() != current_epoch_) {
           changeLotteryEpoch(current_epoch_, authority_index, babe_config);
         }

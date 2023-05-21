@@ -516,18 +516,6 @@ int storage_explorer_main(int argc, const char **argv) {
   CommandParser parser;
   parser.addCommand(std::make_unique<PrintHelpCommand>(parser));
 
-  auto logging_system = std::make_shared<soralog::LoggingSystem>(
-      std::make_shared<kagome::log::Configurator>(
-          std::make_shared<libp2p::log::Configurator>()));
-
-  auto r = logging_system->configure();
-  if (not r.message.empty()) {
-    (r.has_error ? std::cerr : std::cout) << r.message << std::endl;
-  }
-  if (r.has_error) {
-    exit(EXIT_FAILURE);
-  }
-  kagome::log::setLoggingSystem(logging_system);
   kagome::log::setLevelOfGroup("*", kagome::log::Level::WARN);
 
   auto logger = kagome::log::createLogger("AppConfiguration", "main");

@@ -1085,7 +1085,7 @@ namespace kagome::blockchain {
 
     // Try to use optimal way, if ancestor and descendant in the finalized
     // chain
-    if (descendant_depth <= getLastFinalized().number) {
+    if (descendant_depth <= getLastFinalizedNoLock(p).number) {
       auto res = p.header_repo_->getHashByNumber(descendant_depth);
       BOOST_ASSERT_MSG(res.has_value(),
                        "Any finalized block must be accessible by number");

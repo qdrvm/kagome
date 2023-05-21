@@ -48,13 +48,6 @@ namespace kagome::api {
     virtual ~Session() = default;
 
     /**
-     * @brief starts listening on socket
-     */
-    virtual void start() = 0;
-
-    virtual Socket &socket() = 0;
-
-    /**
      * @brief connects `on request` callback
      * @param callback `on request` callback
      */
@@ -91,7 +84,9 @@ namespace kagome::api {
      * @param type type of the closed session
      */
     void notifyOnClose(SessionId id, SessionType type) {
-      if (nullptr != on_close_) on_close_(id, type);
+      if (nullptr != on_close_) {
+        on_close_(id, type);
+      }
     }
 
     /**
@@ -114,6 +109,11 @@ namespace kagome::api {
      * queued writes will complete.
      */
     virtual void post(std::function<void()> cb) = 0;
+
+    /**
+     * Can call unsafe methods
+     */
+    virtual bool isUnsafeAllowed() const = 0;
 
    private:
     std::function<OnRequestSignature> on_request_;  ///< `on request` callback

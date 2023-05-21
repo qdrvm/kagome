@@ -36,8 +36,6 @@
 #include "api/service/state/state_jrpc_processor.hpp"
 #include "api/service/system/impl/system_api_impl.hpp"
 #include "api/service/system/system_jrpc_processor.hpp"
-#include "api/transport/impl/http/http_listener_impl.hpp"
-#include "api/transport/impl/http/http_session.hpp"
 #include "api/transport/impl/ws/ws_listener_impl.hpp"
 #include "api/transport/impl/ws/ws_session.hpp"
 #include "api/transport/rpc_thread_pool.hpp"
@@ -51,6 +49,7 @@
 #include "authorship/impl/block_builder_factory_impl.hpp"
 #include "authorship/impl/block_builder_impl.hpp"
 #include "authorship/impl/proposer_impl.hpp"
+#include "benchmark/block_execution_benchmark.hpp"
 #include "blockchain/impl/block_header_repository_impl.hpp"
 #include "blockchain/impl/block_storage_impl.hpp"
 #include "blockchain/impl/block_tree_impl.hpp"
@@ -174,7 +173,7 @@ namespace {
   using uptr = std::unique_ptr<T>;
 
   namespace di = boost::di;
-  namespace fs = boost::filesystem;
+  namespace fs = kagome::filesystem;
   using namespace kagome;  // NOLINT
 
   template <typename C>
@@ -225,11 +224,10 @@ namespace {
                                  prevent_destruction);
     if (!db_res) {
       auto log = log::createLogger("Injector", "injector");
-      log->critical("Can't create RocksDB in {}: {}",
-                    fs::absolute(app_config.databasePath(chain_spec->id()),
-                                 fs::current_path())
-                        .native(),
-                    db_res.error());
+      log->critical(
+          "Can't create RocksDB in {}: {}",
+          fs::absolute(app_config.databasePath(chain_spec->id())).native(),
+          db_res.error());
       exit(EXIT_FAILURE);
     }
     auto db = std::move(db_res.value());
@@ -245,10 +243,9 @@ namespace {
         application::ChainSpecImpl::loadFrom(chainspec_path.native());
     if (not chain_spec_res.has_value()) {
       auto log = log::createLogger("Injector", "injector");
-      log->critical(
-          "Can't load chain spec from {}: {}",
-          fs::absolute(chainspec_path.native(), fs::current_path()).native(),
-          chain_spec_res.error());
+      log->critical("Can't load chain spec from {}: {}",
+                    fs::absolute(chainspec_path.native()).native(),
+                    chain_spec_res.error());
       exit(EXIT_FAILURE);
     }
     auto &chain_spec = chain_spec_res.value();
@@ -529,7 +526,6 @@ namespace {
                                Ts &&...args) {
     // default values for configurations
     api::RpcThreadPool::Configuration rpc_thread_pool_config{};
-    api::HttpSession::Configuration http_config{};
     api::WsSession::Configuration ws_config{};
     transaction_pool::PoolModeratorImpl::Params pool_moderator_config{};
     transaction_pool::TransactionPool::Limits tp_pool_limits{};
@@ -541,7 +537,6 @@ namespace {
         make_injector(
             // bind configs
             useConfig(rpc_thread_pool_config),
-            useConfig(http_config),
             useConfig(ws_config),
             useConfig(pool_moderator_config),
             useConfig(tp_pool_limits),
@@ -579,16 +574,19 @@ namespace {
               auto &app_config =
                   injector
                       .template create<const application::AppConfiguration &>();
+              auto &chain =
+                  injector.template create<const application::ChainSpec &>();
               auto &crypto_provider =
                   injector.template create<const crypto::Ed25519Provider &>();
+              auto &csprng = injector.template create<crypto::CSPRNG &>();
               auto &crypto_store =
                   injector.template create<crypto::CryptoStore &>();
               return injector::get_peer_keypair(
-                  app_config, crypto_provider, crypto_store);
+                  app_config, chain, crypto_provider, csprng, crypto_store);
             })[boost::di::override],
 
             di::bind<api::Listener *[]>()  // NOLINT
-                .template to<api::HttpListenerImpl, api::WsListenerImpl>(),
+                .template to<api::WsListenerImpl>(),
             di::bind<api::JRpcProcessor *[]>()  // NOLINT
                 .template to<api::child_state::ChildStateJrpcProcessor,
                              api::state::StateJrpcProcessor,
@@ -940,4 +938,11 @@ namespace kagome::injector {
     return pimpl_->injector_
         .template create<sptr<authority_discovery::AddressPublisher>>();
   }
+
+  std::shared_ptr<benchmark::BlockExecutionBenchmark>
+  KagomeNodeInjector::injectBlockBenchmark() {
+    return pimpl_->injector_
+        .template create<sptr<benchmark::BlockExecutionBenchmark>>();
+  }
+
 }  // namespace kagome::injector

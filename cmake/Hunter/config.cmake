@@ -17,6 +17,13 @@ hunter_config(
 )
 
 hunter_config(
+    benchmark
+    URL https://github.com/google/benchmark/archive/refs/tags/v1.7.1.zip
+    SHA1 988246a257b0eeb1a8b112cff6ab3edfbe162912
+    CMAKE_ARGS BENCHMARK_ENABLE_TESTING=OFF
+)
+
+hunter_config(
     soralog
     VERSION 0.1.5
     KEEP_PACKAGE_SOURCES

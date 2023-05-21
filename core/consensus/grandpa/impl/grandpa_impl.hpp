@@ -9,11 +9,13 @@
 #include "consensus/grandpa/grandpa.hpp"
 #include "consensus/grandpa/grandpa_observer.hpp"
 
+#include <atomic>
 #include <boost/asio/io_context.hpp>
 #include <libp2p/basic/scheduler.hpp>
 
 #include "log/logger.hpp"
 #include "metrics/metrics.hpp"
+#include "primitives/event_types.hpp"
 #include "utils/safe_object.hpp"
 #include "utils/thread_pool.hpp"
 
@@ -104,6 +106,8 @@ namespace kagome::consensus::grandpa {
         std::shared_ptr<network::PeerManager> peer_manager,
         std::shared_ptr<blockchain::BlockTree> block_tree,
         std::shared_ptr<network::ReputationRepository> reputation_repository,
+        primitives::events::BabeStateSubscriptionEnginePtr
+            babe_status_observable,
         std::shared_ptr<boost::asio::io_context> main_thread_context);
 
     /**
@@ -280,7 +284,9 @@ namespace kagome::consensus::grandpa {
      * @return VotingRound that we can execute
      */
     std::shared_ptr<VotingRound> makeInitialRound(
-        const MovableRoundState &round_state, std::shared_ptr<VoterSet> voters);
+        const MovableRoundState &round_state,
+        std::shared_ptr<VoterSet> voters,
+        const primitives::AuthoritySet &authority_set);
 
     /**
      * Takes given round and creates next one for it
@@ -302,12 +308,20 @@ namespace kagome::consensus::grandpa {
     std::shared_ptr<Environment> environment_;
     std::shared_ptr<crypto::Ed25519Provider> crypto_provider_;
     std::shared_ptr<runtime::GrandpaApi> grandpa_api_;
-    std::shared_ptr<crypto::Ed25519Keypair> keypair_;
+    std::shared_ptr<crypto::SessionKeys> session_keys_;
     std::shared_ptr<AuthorityManager> authority_manager_;
     std::shared_ptr<network::Synchronizer> synchronizer_;
     std::shared_ptr<network::PeerManager> peer_manager_;
     std::shared_ptr<blockchain::BlockTree> block_tree_;
     std::shared_ptr<network::ReputationRepository> reputation_repository_;
+    primitives::events::BabeStateSubscriptionEnginePtr babe_status_observable_;
+    primitives::events::BabeStateEventSubscriberPtr babe_status_observer_;
+
+    std::atomic_bool synchronized_once_ =
+        false;  // declares if initial sync was done, does not
+                // necessarily mean that node is currently synced.
+                // Needed for enabling neighbor message processing.
+                // By default is false
 
     std::shared_ptr<ThreadPool> execution_thread_pool_;
     std::shared_ptr<ThreadHandler> internal_thread_context_;

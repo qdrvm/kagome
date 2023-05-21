@@ -10,12 +10,10 @@
 #include <gtest/gtest.h>
 #include <gsl/span>
 
-#include "crypto/bip39/impl/bip39_provider_impl.hpp"
 #include "crypto/crypto_store/crypto_store_impl.hpp"
 #include "crypto/ecdsa/ecdsa_provider_impl.hpp"
 #include "crypto/ed25519/ed25519_provider_impl.hpp"
 #include "crypto/hasher/hasher_impl.hpp"
-#include "crypto/pbkdf2/impl/pbkdf2_provider_impl.hpp"
 #include "crypto/random_generator/boost_generator.hpp"
 #include "crypto/secp256k1/secp256k1_provider_impl.hpp"
 #include "crypto/sr25519/sr25519_provider_impl.hpp"
@@ -31,8 +29,6 @@
 using namespace kagome::host_api;
 using kagome::common::Blob;
 using kagome::common::Buffer;
-using kagome::crypto::Bip39Provider;
-using kagome::crypto::Bip39ProviderImpl;
 using kagome::crypto::BoostRandomGenerator;
 using kagome::crypto::CryptoStore;
 using kagome::crypto::CryptoStoreImpl;
@@ -53,8 +49,6 @@ using kagome::crypto::Ed25519Seed;
 using kagome::crypto::Ed25519Signature;
 using kagome::crypto::Hasher;
 using kagome::crypto::HasherImpl;
-using kagome::crypto::Pbkdf2Provider;
-using kagome::crypto::Pbkdf2ProviderImpl;
 using kagome::crypto::Secp256k1Provider;
 using kagome::crypto::Secp256k1ProviderImpl;
 using kagome::crypto::Sr25519Keypair;
@@ -112,15 +106,11 @@ class CryptoExtensionTest : public ::testing::Test {
             Return(std::optional<std::reference_wrapper<Memory>>(*memory_)));
 
     random_generator_ = std::make_shared<BoostRandomGenerator>();
-    ecdsa_provider_ = std::make_shared<EcdsaProviderImpl>();
-    sr25519_provider_ =
-        std::make_shared<Sr25519ProviderImpl>(random_generator_);
-    ed25519_provider_ =
-        std::make_shared<Ed25519ProviderImpl>(random_generator_);
-    secp256k1_provider_ = std::make_shared<Secp256k1ProviderImpl>();
     hasher_ = std::make_shared<HasherImpl>();
-    bip39_provider_ = std::make_shared<Bip39ProviderImpl>(
-        std::make_shared<Pbkdf2ProviderImpl>());
+    ecdsa_provider_ = std::make_shared<EcdsaProviderImpl>(hasher_);
+    sr25519_provider_ = std::make_shared<Sr25519ProviderImpl>();
+    ed25519_provider_ = std::make_shared<Ed25519ProviderImpl>(hasher_);
+    secp256k1_provider_ = std::make_shared<Secp256k1ProviderImpl>();
 
     crypto_store_ = std::make_shared<CryptoStoreMock>();
     crypto_ext_ = std::make_shared<CryptoExtension>(memory_provider_,
@@ -129,8 +119,7 @@ class CryptoExtensionTest : public ::testing::Test {
                                                     ed25519_provider_,
                                                     secp256k1_provider_,
                                                     hasher_,
-                                                    crypto_store_,
-                                                    bip39_provider_);
+                                                    crypto_store_);
 
     EXPECT_OUTCOME_TRUE(seed_tmp,
                         kagome::common::Blob<32>::fromHexWithPrefix(seed_hex));
@@ -142,10 +131,11 @@ class CryptoExtensionTest : public ::testing::Test {
     std::optional<std::string> optional_mnemonic(mnemonic);
     mnemonic_buffer.put(scale::encode(optional_mnemonic).value());
 
-    sr25519_keypair = sr25519_provider_->generateKeypair(Sr25519Seed{seed});
+    sr25519_keypair = sr25519_provider_->generateKeypair(Sr25519Seed{seed}, {});
     sr25519_signature = sr25519_provider_->sign(sr25519_keypair, input).value();
 
-    ed25519_keypair = ed25519_provider_->generateKeypair(Ed25519Seed{seed});
+    ed25519_keypair =
+        ed25519_provider_->generateKeypair(Ed25519Seed{seed}, {}).value();
     ed25519_signature = ed25519_provider_->sign(ed25519_keypair, input).value();
 
     secp_message_hash =
@@ -219,7 +209,6 @@ class CryptoExtensionTest : public ::testing::Test {
   std::shared_ptr<Hasher> hasher_;
   std::shared_ptr<CryptoStoreMock> crypto_store_;
   std::shared_ptr<CryptoExtension> crypto_ext_;
-  std::shared_ptr<Bip39Provider> bip39_provider_;
 
   inline static Buffer input{"6920616d2064617461"_unhex};
 
@@ -361,7 +350,9 @@ TEST_F(CryptoExtensionTest, KeccakValid) {
  * @then verification is successful
  */
 TEST_F(CryptoExtensionTest, Ed25519VerifySuccess) {
-  auto keypair = ed25519_provider_->generateKeypair();
+  Ed25519Seed seed;
+  random_generator_->fillRandomly(seed);
+  auto keypair = ed25519_provider_->generateKeypair(seed, {}).value();
   EXPECT_OUTCOME_TRUE(signature, ed25519_provider_->sign(keypair, input));
 
   Buffer pubkey_buf(keypair.public_key);
@@ -394,7 +385,9 @@ TEST_F(CryptoExtensionTest, Ed25519VerifySuccess) {
  * @then verification fails
  */
 TEST_F(CryptoExtensionTest, Ed25519VerifyFailure) {
-  auto keypair = ed25519_provider_->generateKeypair();
+  Ed25519Seed seed;
+  random_generator_->fillRandomly(seed);
+  auto keypair = ed25519_provider_->generateKeypair(seed, {}).value();
   Ed25519Signature invalid_signature;
   invalid_signature.fill(0x11);
 

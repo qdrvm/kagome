@@ -5,7 +5,7 @@
 
 #include "storage/rocksdb/rocksdb.hpp"
 
-#include <boost/filesystem.hpp>
+#include "filesystem/common.hpp"
 
 #include "filesystem/directories.hpp"
 #include "storage/database_error.hpp"
@@ -15,7 +15,7 @@
 #include "storage/rocksdb/rocksdb_util.hpp"
 
 namespace kagome::storage {
-  namespace fs = boost::filesystem;
+  namespace fs = filesystem;
 
   RocksDb::RocksDb() : logger_(log::createLogger("RocksDB", "storage")) {
     ro_.fill_cache = false;
@@ -37,9 +37,9 @@ namespace kagome::storage {
     }
 
     auto log = log::createLogger("RocksDB", "storage");
-    auto absolute_path = fs::absolute(path, fs::current_path());
+    auto absolute_path = fs::absolute(path);
 
-    boost::system::error_code ec;
+    std::error_code ec;
     if (not fs::create_directory(absolute_path.native(), ec) and ec.value()) {
       log->error("Can't create directory {} for database: {}",
                  absolute_path.native(),

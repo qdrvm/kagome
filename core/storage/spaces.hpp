@@ -21,7 +21,6 @@ namespace kagome::storage {
     kJustification,
     kTrieNode,
 
-    //
     kTotal
   };
 }

@@ -16,34 +16,31 @@ namespace kagome::application {
    public:
     MOCK_METHOD(network::Roles, roles, (), (const, override));
 
-    MOCK_METHOD(boost::filesystem::path, chainSpecPath, (), (const, override));
+    MOCK_METHOD(filesystem::path, chainSpecPath, (), (const, override));
 
-    MOCK_METHOD(boost::filesystem::path,
-                runtimeCacheDirPath,
-                (),
-                (const, override));
+    MOCK_METHOD(filesystem::path, runtimeCacheDirPath, (), (const, override));
 
-    MOCK_METHOD(boost::filesystem::path,
+    MOCK_METHOD(filesystem::path,
                 runtimeCachePath,
                 (std::string runtime_hash),
                 (const, override));
 
-    MOCK_METHOD(boost::filesystem::path,
+    MOCK_METHOD(filesystem::path,
                 chainPath,
                 (std::string chain_id),
                 (const, override));
 
-    MOCK_METHOD(boost::filesystem::path,
+    MOCK_METHOD(filesystem::path,
                 databasePath,
                 (std::string chain_id),
                 (const, override));
 
-    MOCK_METHOD(boost::filesystem::path,
+    MOCK_METHOD(filesystem::path,
                 keystorePath,
                 (std::string chain_id),
                 (const, override));
 
-    MOCK_METHOD(const std::optional<crypto::Ed25519PrivateKey> &,
+    MOCK_METHOD(const std::optional<crypto::Ed25519Seed> &,
                 nodeKey,
                 (),
                 (const, override));
@@ -73,12 +70,7 @@ namespace kagome::application {
     MOCK_METHOD(uint16_t, p2pPort, (), (const, override));
 
     MOCK_METHOD(const boost::asio::ip::tcp::endpoint &,
-                rpcHttpEndpoint,
-                (),
-                (const, override));
-
-    MOCK_METHOD(const boost::asio::ip::tcp::endpoint &,
-                rpcWsEndpoint,
+                rpcEndpoint,
                 (),
                 (const, override));
 
@@ -135,7 +127,7 @@ namespace kagome::application {
 
     MOCK_METHOD(bool, isOffchainIndexingEnabled, (), (const, override));
 
-    MOCK_METHOD(bool, subcommandChainInfo, (), (const, override));
+    MOCK_METHOD(std::optional<Subcommand>, subcommand, (), (const, override));
 
     MOCK_METHOD(std::optional<primitives::BlockId>,
                 recoverState,
@@ -160,6 +152,13 @@ namespace kagome::application {
                 (const, override));
 
     MOCK_METHOD(std::string, nodeWssPem, (), (const, override));
+
+    MOCK_METHOD(AllowUnsafeRpc, allowUnsafeRpc, (), (const, override));
+
+    MOCK_METHOD(std::optional<BenchmarkConfigSection>,
+                getBenchmarkConfig,
+                (),
+                (const, override));
   };
 
 }  // namespace kagome::application

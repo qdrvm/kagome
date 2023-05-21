@@ -26,6 +26,7 @@ namespace kagome::api {
   JRpcServerImpl::JRpcServerImpl() {
     // register json format handler
     jsonrpc_handler_.RegisterFormatHandler(format_handler_);
+    jsonrpc_handler_safe_.RegisterFormatHandler(format_handler_);
 
     // Register metrics
     metrics_registry_->registerCounterFamily(rpcRequestsCountMetricName,
@@ -35,8 +36,14 @@ namespace kagome::api {
         metrics_registry_->registerCounterMetric(rpcRequestsCountMetricName);
   }
 
-  void JRpcServerImpl::registerHandler(const std::string &name, Method method) {
+  void JRpcServerImpl::registerHandler(const std::string &name,
+                                       Method method,
+                                       bool unsafe) {
     auto &dispatcher = jsonrpc_handler_.GetDispatcher();
+    auto &dispatcher_safe = jsonrpc_handler_safe_.GetDispatcher();
+    if (not unsafe) {
+      dispatcher_safe.AddMethod(name, method);
+    }
     dispatcher.AddMethod(name, std::move(method));
   }
 
@@ -79,8 +86,10 @@ namespace kagome::api {
   }
 
   void JRpcServerImpl::processData(std::string_view request,
+                                   bool allow_unsafe,
                                    const ResponseHandler &cb) {
-    JrpcHandleBatch response(jsonrpc_handler_, request);
+    JrpcHandleBatch response(
+        allow_unsafe ? jsonrpc_handler_ : jsonrpc_handler_safe_, request);
     cb(response.response());
   }
 

@@ -13,12 +13,12 @@
 #include <rapidjson/document.h>
 #include <rapidjson/filereadstream.h>
 #include <boost/algorithm/string.hpp>
-#include <boost/filesystem.hpp>
 #include <boost/program_options.hpp>
 #include <boost/uuid/uuid_generators.hpp>
 #include <boost/uuid/uuid_io.hpp>
 #include <charconv>
 #include <libp2p/layer/websocket/wss_adaptor.hpp>
+#include "filesystem/common.hpp"
 
 #include "api/transport/tuner.hpp"
 #include "application/build_version.hpp"
@@ -26,16 +26,17 @@
 #include "chain_spec_impl.hpp"
 #include "common/hexutil.hpp"
 #include "common/uri.hpp"
-#include "crypto/crypto_store/dev_mnemonic_phrase.hpp"
 #include "filesystem/directories.hpp"
+#include "utils/read_file.hpp"
 
 namespace {
   namespace fs = kagome::filesystem;
+  using kagome::application::AppConfiguration;
 
   template <typename T, typename Func>
-  inline void find_argument(boost::program_options::variables_map &vm,
-                            const char *name,
-                            Func &&f) {
+  void find_argument(boost::program_options::variables_map &vm,
+                     const char *name,
+                     Func &&f) {
     assert(nullptr != name);
     if (auto it = vm.find(name); it != vm.end()) {
       if (it->second.defaulted()) {
@@ -46,8 +47,8 @@ namespace {
   }
 
   template <typename T>
-  inline std::optional<T> find_argument(
-      boost::program_options::variables_map &vm, const std::string &name) {
+  std::optional<T> find_argument(boost::program_options::variables_map &vm,
+                                 const std::string &name) {
     if (auto it = vm.find(name); it != vm.end()) {
       if (!it->second.defaulted()) {
         return it->second.as<T>();
@@ -56,11 +57,19 @@ namespace {
     return std::nullopt;
   }
 
-  const std::string def_rpc_http_host = "0.0.0.0";
-  const std::string def_rpc_ws_host = "0.0.0.0";
+  bool find_argument(boost::program_options::variables_map &vm,
+                     const std::string &name) {
+    if (auto it = vm.find(name); it != vm.end()) {
+      if (!it->second.defaulted()) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  const std::string def_rpc_host = "0.0.0.0";
   const std::string def_openmetrics_http_host = "0.0.0.0";
-  const uint16_t def_rpc_http_port = 9933;
-  const uint16_t def_rpc_ws_port = 9944;
+  const uint16_t def_rpc_port = 9944;
   const uint16_t def_openmetrics_http_port = 9615;
   const uint32_t def_ws_max_connections = 500;
   const uint16_t def_p2p_port = 30363;
@@ -79,7 +88,6 @@ namespace {
   const auto def_offchain_worker_mode =
       kagome::application::AppConfiguration::OffchainWorkerMode::WhenValidating;
   const bool def_enable_offchain_indexing = false;
-  const bool def_subcommand_chain_info = false;
   const std::optional<kagome::primitives::BlockId> def_block_to_recover =
       std::nullopt;
   const auto def_offchain_worker = "WhenValidating";
@@ -122,6 +130,20 @@ namespace {
     }
     if (str == "Warp") {
       return SM::Warp;
+    }
+    return std::nullopt;
+  }
+
+  std::optional<AppConfiguration::AllowUnsafeRpc> parseAllowUnsafeRpc(
+      std::string_view str) {
+    if (str == "unsafe") {
+      return AppConfiguration::AllowUnsafeRpc::kUnsafe;
+    }
+    if (str == "safe") {
+      return AppConfiguration::AllowUnsafeRpc::kSafe;
+    }
+    if (str == "auto") {
+      return AppConfiguration::AllowUnsafeRpc::kAuto;
     }
     return std::nullopt;
   }
@@ -170,16 +192,17 @@ namespace {
   }
 
   auto &devAccounts() {
-    static auto &dev = kagome::crypto::DevMnemonicPhrase::get();
     using Account =
         std::tuple<const char *, std::string_view, std::string_view>;
-    static const std::array<Account, 6> accounts{
-        Account{"alice", "Alice", dev.alice},
-        Account{"bob", "Bob", dev.bob},
-        Account{"charlie", "Charlie", dev.charlie},
-        Account{"dave", "Dave", dev.dave},
-        Account{"eve", "Eve", dev.eve},
-        Account{"ferdie", "Ferdie", dev.ferdie},
+    static const std::array<Account, 8> accounts{
+        Account{"alice", "Alice", "//Alice"},
+        Account{"bob", "Bob", "//Bob"},
+        Account{"charlie", "Charlie", "//Charlie"},
+        Account{"dave", "Dave", "//Dave"},
+        Account{"eve", "Eve", "//Eve"},
+        Account{"ferdie", "Ferdie", "//Ferdie"},
+        Account{"one", "One", "//One"},
+        Account{"two", "Two", "//Two"},
     };
     return accounts;
   }
@@ -195,11 +218,9 @@ namespace kagome::application {
         p2p_port_(def_p2p_port),
         p2p_port_explicitly_defined_(false),
         max_blocks_in_response_(kAbsolutMaxBlocksInResponse),
-        rpc_http_host_(def_rpc_http_host),
-        rpc_ws_host_(def_rpc_ws_host),
+        rpc_host_(def_rpc_host),
         openmetrics_http_host_(def_openmetrics_http_host),
-        rpc_http_port_(def_rpc_http_port),
-        rpc_ws_port_(def_rpc_ws_port),
+        rpc_port_(def_rpc_port),
         openmetrics_http_port_(def_openmetrics_http_port),
         out_peers_(def_out_peers),
         in_peers_(def_in_peers),
@@ -216,7 +237,6 @@ namespace kagome::application {
         purge_wavm_cache_(def_purge_wavm_cache_),
         offchain_worker_mode_{def_offchain_worker_mode},
         enable_offchain_indexing_{def_enable_offchain_indexing},
-        subcommand_chain_info_{def_subcommand_chain_info},
         recovery_state_{def_block_to_recover} {
     SL_INFO(logger_, "Soramitsu Kagome started. Version: {} ", buildVersion());
   }
@@ -225,18 +245,18 @@ namespace kagome::application {
     return chain_spec_path_.native();
   }
 
-  boost::filesystem::path AppConfigurationImpl::runtimeCacheDirPath() const {
-    return boost::filesystem::temp_directory_path() / "kagome/runtimes-cache";
+  kagome::filesystem::path AppConfigurationImpl::runtimeCacheDirPath() const {
+    return kagome::filesystem::temp_directory_path() / "kagome/runtimes-cache";
   }
 
-  boost::filesystem::path AppConfigurationImpl::runtimeCachePath(
+  kagome::filesystem::path AppConfigurationImpl::runtimeCachePath(
       std::string runtime_hash) const {
     return runtimeCacheDirPath() / runtime_hash;
   }
 
-  boost::filesystem::path AppConfigurationImpl::chainPath(
+  kagome::filesystem::path AppConfigurationImpl::chainPath(
       std::string chain_id) const {
-    return base_path_ / chain_id;
+    return base_path_ / "chains" / chain_id;
   }
 
   fs::path AppConfigurationImpl::databasePath(std::string chain_id) const {
@@ -407,10 +427,8 @@ namespace kagome::application {
     load_ma(val, "public-addr", public_addresses_);
     load_ma(val, "bootnodes", boot_nodes_);
     load_u16(val, "port", p2p_port_);
-    load_str(val, "rpc-host", rpc_http_host_);
-    load_u16(val, "rpc-port", rpc_http_port_);
-    load_str(val, "ws-host", rpc_ws_host_);
-    load_u16(val, "ws-port", rpc_ws_port_);
+    load_str(val, "rpc-host", rpc_host_);
+    load_u16(val, "rpc-port", rpc_port_);
     load_u32(val, "ws-max-connections", max_ws_connections_);
     load_str(val, "prometheus-host", openmetrics_http_host_);
     load_u16(val, "prometheus-port", openmetrics_http_port_);
@@ -457,16 +475,9 @@ namespace kagome::application {
       return false;
     }
 
-    if (rpc_ws_port_ == 0) {
+    if (rpc_port_ == 0) {
       SL_ERROR(logger_,
-               "RPC ws port is 0, "
-               "please specify a valid path with --ws-port option");
-      return false;
-    }
-
-    if (rpc_http_port_ == 0) {
-      SL_ERROR(logger_,
-               "RPC http port is 0, "
+               "RPC port is 0, "
                "please specify a valid path with --rpc-port option");
       return false;
     }
@@ -716,6 +727,27 @@ namespace kagome::application {
   bool AppConfigurationImpl::initializeFromArgs(int argc, const char **argv) {
     namespace po = boost::program_options;
 
+    std::optional<std::string> command;
+    std::optional<std::string> subcommand;
+
+    using std::string_view_literals::operator""sv;
+
+    if (argc > 0 && argv[0] == "benchmark"sv) {
+      command = "benchmark";
+
+      if (argc > 1 && argv[1] == "block"sv) {
+        subcommand = "block";
+      } else {
+        SL_ERROR(logger_, "Usage: kagome benchmark BENCHMARK_TYPE");
+        SL_ERROR(logger_, "The only supported BENCHMARK_TYPE is 'block'");
+        return false;
+      }
+    }
+    if (subcommand) {
+      argc--;
+      argv++;
+    }
+
     // clang-format off
     po::options_description desc("General options");
     desc.add_options()
@@ -756,10 +788,8 @@ namespace kagome::application {
         ("save-node-key", po::bool_switch(), "save generated libp2p networking key, key will be reused on node restart")
         ("bootnodes", po::value<std::vector<std::string>>()->multitoken(), "multiaddresses of bootstrap nodes")
         ("port,p", po::value<uint16_t>(), "port for peer to peer interactions")
-        ("rpc-host", po::value<std::string>(), "address for RPC over HTTP")
-        ("rpc-port", po::value<uint16_t>(), "port for RPC over HTTP")
-        ("ws-host", po::value<std::string>(), "address for RPC over Websocket protocol")
-        ("ws-port", po::value<uint16_t>(), "port for RPC over Websocket protocol")
+        ("rpc-host", po::value<std::string>(), "address for RPC over HTTP and Websocket")
+        ("rpc-port", po::value<uint16_t>(), "port for RPC over HTTP and Websocket")
         ("ws-max-connections", po::value<uint32_t>(), "maximum number of WS RPC server connections")
         ("prometheus-host", po::value<std::string>(), "address for OpenMetrics over HTTP")
         ("prometheus-port", po::value<uint16_t>(), "port for OpenMetrics over HTTP")
@@ -775,6 +805,11 @@ namespace kagome::application {
                           "e.g. --telemetry-url 'wss://foo/bar 0'")
         ("random-walk-interval", po::value<uint32_t>()->default_value(def_random_walk_interval), "Kademlia random walk interval")
         ("node-wss-pem", po::value<std::string>(), "Path to pem file with SSL certificate for libp2p wss")
+        ("rpc-cors", po::value<std::string>(), "(unused, zombienet stub)")
+        ("unsafe-rpc-external", po::bool_switch(), "alias for \"--rpc-host 0.0.0.0\"")
+        ("rpc-methods", po::value<std::string>(), "\"auto\" (default), \"unsafe\", \"safe\"")
+        ("no-mdns", po::bool_switch(), "(unused, zombienet stub)")
+        ("prometheus-external", po::bool_switch(), "alias for \"--prometheus-host 0.0.0.0\"")
         ;
 
     po::options_description development_desc("Additional options");
@@ -788,6 +823,12 @@ namespace kagome::application {
         ("unsafe-cached-wavm-runtime", "use WAVM runtime cache")
         ("purge-wavm-cache", "purge WAVM runtime cache")
         ;
+    po::options_description benchmark_desc("Benchmark options");
+    benchmark_desc.add_options()
+      ("from", po::value<uint32_t>(), "set the initial block for block execution benchmark")
+      ("to", po::value<uint32_t>(), "set the final block for block execution benchmark")
+      ("repeat", po::value<uint16_t>(), "set the repetition number for block execution benchmark")
+      ;
 
     po::options_description db_editor_desc("kagome db-editor - to view help message for db editor");
 
@@ -810,8 +851,12 @@ namespace kagome::application {
     desc.add(blockhain_desc)
         .add(storage_desc)
         .add(network_desc)
-        .add(development_desc)
-        .add(db_editor_desc);
+        .add(development_desc);
+    if (command == "db-editor") {
+      desc.add(db_editor_desc);
+    } else if (command == "benchmark") {
+      desc.add(benchmark_desc);
+    }
 
     if (vm.count("help") > 0) {
       std::cout << desc << std::endl;
@@ -855,11 +900,12 @@ namespace kagome::application {
 
         // Wipe base directory on demand
         if (vm.count("dev-with-wipe") > 0) {
-          boost::filesystem::remove_all(dev_env_path);
+          kagome::filesystem::remove_all(dev_env_path);
         }
 
-        if (not boost::filesystem::exists(chain_spec_path_)) {
-          boost::filesystem::create_directories(chain_spec_path_.parent_path());
+        if (not kagome::filesystem::exists(chain_spec_path_)) {
+          kagome::filesystem::create_directories(
+              chain_spec_path_.parent_path());
 
           std::ofstream ofs;
           ofs.open(chain_spec_path_.native(), std::ios::ate);
@@ -885,7 +931,7 @@ namespace kagome::application {
           auto ma_res = chain_spec.value()->bootNodes()[0];
           listen_addresses_.emplace_back(ma_res);
 
-          boost::filesystem::create_directories(path);
+          kagome::filesystem::create_directories(path);
 
           for (auto key_descr : kagome::assets::embedded_keys) {
             ofs.open((path / key_descr.first).native(), std::ios::ate);
@@ -897,11 +943,9 @@ namespace kagome::application {
         roles_.flags.full = 0;
         roles_.flags.authority = 1;
         p2p_port_ = def_p2p_port;
-        rpc_http_host_ = def_rpc_http_host;
-        rpc_ws_host_ = def_rpc_ws_host;
+        rpc_host_ = def_rpc_host;
         openmetrics_http_host_ = def_openmetrics_http_host;
-        rpc_http_port_ = def_rpc_http_port;
-        rpc_ws_port_ = def_rpc_ws_port;
+        rpc_port_ = def_rpc_port;
         openmetrics_http_port_ = def_openmetrics_http_port;
       }
     }
@@ -923,13 +967,7 @@ namespace kagome::application {
     find_argument<std::string>(
         vm, "node-wss-pem", [&](const std::string &path) {
           std::string pem;
-          std::ifstream file{path, std::ios::ate};
-          if (file.good()) {
-            pem.resize(file.tellg());
-            file.seekg(0);
-            file.read(pem.data(), pem.size());
-          }
-          if (not file.good()) {
+          if (not readFile(pem, path)) {
             SL_ERROR(logger_, "--node-wss-pem {}: read error", path);
             return;
           }
@@ -956,14 +994,14 @@ namespace kagome::application {
 
     find_argument<std::string>(
         vm, "chain", [&](const std::string &val) { chain_spec_path_ = val; });
-    if (not boost::filesystem::exists(chain_spec_path_)) {
+    if (not kagome::filesystem::exists(chain_spec_path_)) {
       std::cerr << "Specified chain spec " << chain_spec_path_
                 << " does not exist." << std::endl;
     }
 
     if (vm.end() != vm.find("tmp")) {
-      base_path_ = (boost::filesystem::temp_directory_path()
-                    / boost::filesystem::unique_path());
+      auto unique_name = filesystem::unique_path();
+      base_path_ = (kagome::filesystem::temp_directory_path() / unique_name);
     } else {
       find_argument<std::string>(
           vm, "base-path", [&](const std::string &val) { base_path_ = val; });
@@ -1020,7 +1058,7 @@ namespace kagome::application {
     find_argument<std::string>(
         vm, "node-key", [&](const std::string &val) { node_key.emplace(val); });
     if (node_key.has_value()) {
-      auto key_res = crypto::Ed25519PrivateKey::fromHex(node_key.value());
+      auto key_res = crypto::Ed25519Seed::fromHex(node_key.value());
       if (not key_res.has_value()) {
         auto err_msg = fmt::format(
             "Node key '{}' is invalid: {}", node_key.value(), key_res.error());
@@ -1157,25 +1195,39 @@ namespace kagome::application {
         });
 
     find_argument<std::string>(
-        vm, "rpc-host", [&](const std::string &val) { rpc_http_host_ = val; });
-
-    find_argument<std::string>(
-        vm, "ws-host", [&](const std::string &val) { rpc_ws_host_ = val; });
+        vm, "rpc-host", [&](const std::string &val) { rpc_host_ = val; });
 
     find_argument<std::string>(
         vm, "prometheus-host", [&](const std::string &val) {
           openmetrics_http_host_ = val;
         });
 
-    find_argument<uint16_t>(
-        vm, "rpc-port", [&](uint16_t val) { rpc_http_port_ = val; });
+    find_argument<bool>(vm, "unsafe-rpc-external", [&](bool flag) {
+      if (flag) {
+        rpc_host_ = "0.0.0.0";
+      }
+    });
+    find_argument<bool>(vm, "prometheus-external", [&](bool flag) {
+      if (flag) {
+        openmetrics_http_host_ = "0.0.0.0";
+      }
+    });
 
     find_argument<uint16_t>(
-        vm, "ws-port", [&](uint16_t val) { rpc_ws_port_ = val; });
+        vm, "rpc-port", [&](uint16_t val) { rpc_port_ = val; });
 
     find_argument<uint16_t>(vm, "prometheus-port", [&](uint16_t val) {
       openmetrics_http_port_ = val;
     });
+
+    if (auto str = find_argument<std::string>(vm, "rpc-methods")) {
+      if (auto value = parseAllowUnsafeRpc(*str)) {
+        allow_unsafe_rpc_ = *value;
+      } else {
+        SL_ERROR(logger_, "Invalid --rpc-methods: \"{}\"", str);
+        return false;
+      }
+    }
 
     find_argument<uint32_t>(
         vm, "out-peers", [&](uint32_t val) { out_peers_ = val; });
@@ -1197,8 +1249,7 @@ namespace kagome::application {
       random_walk_interval_ = val;
     });
 
-    rpc_http_endpoint_ = getEndpointFrom(rpc_http_host_, rpc_http_port_);
-    rpc_ws_endpoint_ = getEndpointFrom(rpc_ws_host_, rpc_ws_port_);
+    rpc_endpoint_ = getEndpointFrom(rpc_host_, rpc_port_);
     openmetrics_http_endpoint_ =
         getEndpointFrom(openmetrics_http_host_, openmetrics_http_port_);
 
@@ -1274,9 +1325,9 @@ namespace kagome::application {
     if (vm.count("purge-wavm-cache") > 0) {
       purge_wavm_cache_ = true;
       if (fs::exists(runtimeCacheDirPath())) {
-        boost::system::error_code ec;
-        fs::remove_all(runtimeCacheDirPath(), ec);
-        if (ec.failed()) {
+        std::error_code ec;
+        kagome::filesystem::remove_all(runtimeCacheDirPath(), ec);
+        if (ec) {
           SL_ERROR(logger_,
                    "Failed to purge cache in {} ['{}']",
                    runtimeCacheDirPath(),
@@ -1308,8 +1359,31 @@ namespace kagome::application {
     }
 
     find_argument<bool>(vm, "chain-info", [&](bool subcommand_chain_info) {
-      subcommand_chain_info_ = subcommand_chain_info;
+      subcommand_ = Subcommand::ChainInfo;
     });
+
+    if (command == "benchmark" && subcommand == "block") {
+      auto from_opt = find_argument<uint32_t>(vm, "from");
+      if (!from_opt) {
+        SL_ERROR(logger_, "Required argument --from is not provided");
+        return false;
+      }
+      auto to_opt = find_argument<uint32_t>(vm, "to");
+      if (!to_opt) {
+        SL_ERROR(logger_, "Required argument --to is not provided");
+        return false;
+      }
+      auto repeat_opt = find_argument<uint16_t>(vm, "repeat");
+      if (!to_opt) {
+        SL_ERROR(logger_, "Required argument --repeat is not provided");
+        return false;
+      }
+      benchmark_config_ = BlockBenchmarkConfig{
+          .from = *from_opt,
+          .to = *to_opt,
+          .times = *repeat_opt,
+      };
+    }
 
     bool has_recovery = false;
     find_argument<std::string>(vm, "recovery", [&](const std::string &val) {

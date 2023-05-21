@@ -6,16 +6,17 @@
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 #include <boost/assert.hpp>
-#include <boost/filesystem.hpp>
 #include <boost/format.hpp>
 #include <fstream>
 
 #include "application/impl/app_configuration_impl.hpp"
+#include "filesystem/common.hpp"
 #include "log/logger.hpp"
 #include "testutil/prepare_loggers.hpp"
 
 using kagome::application::AppConfiguration;
 using kagome::application::AppConfigurationImpl;
+namespace filesystem = kagome::filesystem;
 
 class AppConfigurationTest : public testing::Test {
  public:
@@ -23,15 +24,15 @@ class AppConfigurationTest : public testing::Test {
     testutil::prepareLoggers();
   }
 
-  boost::filesystem::path tmp_dir = boost::filesystem::temp_directory_path()
-                                    / boost::filesystem::unique_path();
+  filesystem::path tmp_dir =
+      filesystem::temp_directory_path() / filesystem::unique_path();
   std::string config_path = (tmp_dir / "config.json").native();
   std::string invalid_config_path = (tmp_dir / "invalid_config.json").native();
   std::string damaged_config_path = (tmp_dir / "damaged_config.json").native();
-  boost::filesystem::path base_path = tmp_dir / "base_path";
-  boost::filesystem::path chain_path = tmp_dir / "genesis.json";
+  filesystem::path base_path = tmp_dir / "base_path";
+  filesystem::path chain_path = tmp_dir / "genesis.json";
 
-  static constexpr char const *file_content =
+  static constexpr const char *file_content =
       R"({
         "general" : {
           "roles": "full",
@@ -45,10 +46,8 @@ class AppConfigurationTest : public testing::Test {
         },
         "network" : {
               "port" : 2345,
-              "rpc-host" : "1.1.1.1",
-              "rpc-port" : 1234,
-              "ws-host" : "2.2.2.2",
-              "ws-port" : 3456,
+              "rpc-host" : "2.2.2.2",
+              "rpc-port" : 3456,
               "name" : "Bob's node",
               "telemetry-endpoints": [
                   "ws://localhost/submit 0",
@@ -60,7 +59,7 @@ class AppConfigurationTest : public testing::Test {
           "single-finalizing-node" : true
         }
       })";
-  static constexpr char const *invalid_file_content =
+  static constexpr const char *invalid_file_content =
       R"({
         "general" : {
           "roles": "azaza",
@@ -75,15 +74,13 @@ class AppConfigurationTest : public testing::Test {
         "network" : {
               "port" : "13",
               "rpc-host" : 7,
-              "rpc-port" : "1312",
-              "ws-host" : 5,
-              "ws-port" : "AWESOME_PORT"
+              "rpc-port" : "1312"
         },
         "additional" : {
           "single-finalizing-node" : "order1800"
         }
       })";
-  static constexpr char const *damaged_file_content =
+  static constexpr const char *damaged_file_content =
       R"({
         "general" : {
           "roles": "full",
@@ -96,7 +93,7 @@ class AppConfigurationTest : public testing::Test {
         }
       })";
 
-  boost::asio::ip::tcp::endpoint get_endpoint(char const *host, uint16_t port) {
+  boost::asio::ip::tcp::endpoint get_endpoint(const char *host, uint16_t port) {
     boost::asio::ip::tcp::endpoint endpoint;
     boost::system::error_code err;
     endpoint.address(boost::asio::ip::address::from_string(host, err));
@@ -105,18 +102,18 @@ class AppConfigurationTest : public testing::Test {
   }
 
   kagome::telemetry::TelemetryEndpoint get_telemetry_endpoint(
-      char const *endpoint_uri, uint8_t verbosity_level) {
+      const char *endpoint_uri, uint8_t verbosity_level) {
     auto uri = kagome::common::Uri::parse(endpoint_uri);
     BOOST_VERIFY(not uri.error().has_value());
     return {std::move(uri), verbosity_level};
   }
 
   void SetUp() override {
-    boost::filesystem::create_directory(tmp_dir);
-    ASSERT_TRUE(boost::filesystem::exists(tmp_dir));
+    filesystem::create_directory(tmp_dir);
+    ASSERT_TRUE(filesystem::exists(tmp_dir));
 
-    auto spawn_file = [](std::string const &path,
-                         std::string const &file_content) {
+    auto spawn_file = [](const std::string &path,
+                         const std::string &file_content) {
       std::ofstream file(path, std::ofstream::out | std::ofstream::trunc);
       file << file_content;
     };
@@ -128,7 +125,7 @@ class AppConfigurationTest : public testing::Test {
     spawn_file(invalid_config_path, invalid_file_content);
     spawn_file(damaged_config_path, damaged_file_content);
     spawn_file(chain_path.native(), "");
-    ASSERT_TRUE(boost::filesystem::create_directory(base_path));
+    ASSERT_TRUE(filesystem::create_directory(base_path));
 
     auto logger = kagome::log::createLogger("AppConfigTest", "testing");
     app_config_ = std::make_shared<AppConfigurationImpl>(logger);
@@ -147,11 +144,9 @@ class AppConfigurationTest : public testing::Test {
  * @then only default values are available
  */
 TEST_F(AppConfigurationTest, DefaultValuesTest) {
-  boost::asio::ip::tcp::endpoint const http_endpoint =
-      get_endpoint("0.0.0.0", 9933);
   boost::asio::ip::tcp::endpoint const ws_endpoint =
       get_endpoint("0.0.0.0", 9944);
-  char const *args[] = {"/path/",
+  const char *args[] = {"/path/",
                         "--chain",
                         chain_path.native().c_str(),
                         "--base-path",
@@ -160,8 +155,7 @@ TEST_F(AppConfigurationTest, DefaultValuesTest) {
   ASSERT_TRUE(app_config_->initializeFromArgs(std::size(args), args));
 
   ASSERT_EQ(app_config_->p2pPort(), 30363);
-  ASSERT_EQ(app_config_->rpcHttpEndpoint(), http_endpoint);
-  ASSERT_EQ(app_config_->rpcWsEndpoint(), ws_endpoint);
+  ASSERT_EQ(app_config_->rpcEndpoint(), ws_endpoint);
   ASSERT_EQ(app_config_->log(), std::vector<std::string>());
 }
 
@@ -171,30 +165,23 @@ TEST_F(AppConfigurationTest, DefaultValuesTest) {
  * @then we must receive correct endpoints on call
  */
 TEST_F(AppConfigurationTest, EndpointsTest) {
-  boost::asio::ip::tcp::endpoint const http_endpoint =
-      get_endpoint("1.2.3.4", 1111);
   boost::asio::ip::tcp::endpoint const ws_endpoint =
       get_endpoint("5.6.7.8", 2222);
-  char const *args[] = {
+  const char *args[] = {
       "/path/",
       "--chain",
       chain_path.native().c_str(),
       "--base-path",
       base_path.native().c_str(),
       "--rpc-host",
-      "1.2.3.4",
-      "--ws-host",
       "5.6.7.8",
       "--rpc-port",
-      "1111",
-      "--ws-port",
       "2222",
   };
 
   ASSERT_TRUE(app_config_->initializeFromArgs(std::size(args), args));
 
-  ASSERT_EQ(app_config_->rpcHttpEndpoint(), http_endpoint);
-  ASSERT_EQ(app_config_->rpcWsEndpoint(), ws_endpoint);
+  ASSERT_EQ(app_config_->rpcEndpoint(), ws_endpoint);
 }
 
 /**
@@ -203,7 +190,7 @@ TEST_F(AppConfigurationTest, EndpointsTest) {
  * @then we must receive this value from chainSpecPath() call
  */
 TEST_F(AppConfigurationTest, GenesisPathTest) {
-  char const *args[] = {"/path/",
+  const char *args[] = {"/path/",
                         "--chain",
                         chain_path.native().c_str(),
                         "--base-path",
@@ -221,28 +208,21 @@ TEST_F(AppConfigurationTest, GenesisPathTest) {
  * @then we must select cmd line version
  */
 TEST_F(AppConfigurationTest, CrossConfigTest) {
-  boost::asio::ip::tcp::endpoint const http_endpoint =
-      get_endpoint("1.2.3.4", 1111);
   boost::asio::ip::tcp::endpoint const ws_endpoint =
       get_endpoint("5.6.7.8", 2222);
-  char const *args[] = {
+  const char *args[] = {
       "/path/",
       "--config-file",
       config_path.c_str(),
       "--rpc-host",
-      "1.2.3.4",
-      "--ws-host",
       "5.6.7.8",
       "--rpc-port",
-      "1111",
-      "--ws-port",
       "2222",
   };
 
   ASSERT_TRUE(app_config_->initializeFromArgs(std::size(args), args));
 
-  ASSERT_EQ(app_config_->rpcHttpEndpoint(), http_endpoint);
-  ASSERT_EQ(app_config_->rpcWsEndpoint(), ws_endpoint);
+  ASSERT_EQ(app_config_->rpcEndpoint(), ws_endpoint);
 }
 
 /**
@@ -255,7 +235,7 @@ TEST_F(AppConfigurationTest, TelemetryEndpointsFromConfig) {
       get_telemetry_endpoint("ws://localhost/submit", 0),
       get_telemetry_endpoint("wss://telemetry.soramitsu.co.jp/submit", 4),
   };
-  char const *args[] = {
+  const char *args[] = {
       "/path/",
       "--config-file",
       config_path.c_str(),
@@ -271,7 +251,7 @@ TEST_F(AppConfigurationTest, TelemetryEndpointsFromConfig) {
  * @then telemetry broadcasting considered to be enabled
  */
 TEST_F(AppConfigurationTest, TelemetryDefaultlyEnabled) {
-  char const *args[] = {
+  const char *args[] = {
       "/path/",
       "--config-file",
       config_path.c_str(),
@@ -287,7 +267,7 @@ TEST_F(AppConfigurationTest, TelemetryDefaultlyEnabled) {
  * @then telemetry broadcasting reported to be disabled
  */
 TEST_F(AppConfigurationTest, TelemetryExplicitlyDisabled) {
-  char const *args[] = {
+  const char *args[] = {
       "/path/",
       "--config-file",
       config_path.c_str(),
@@ -304,7 +284,7 @@ TEST_F(AppConfigurationTest, TelemetryExplicitlyDisabled) {
  * @then RocksDB storage backend is going to be used
  */
 TEST_F(AppConfigurationTest, RocksDBStorageBackend) {
-  char const *args[] = {
+  const char *args[] = {
       "/path/",
       "--config-file",
       config_path.c_str(),
@@ -323,22 +303,19 @@ TEST_F(AppConfigurationTest, RocksDBStorageBackend) {
  * @then we must put to config data from file
  */
 TEST_F(AppConfigurationTest, ConfigFileTest) {
-  boost::asio::ip::tcp::endpoint const http_endpoint =
-      get_endpoint("1.1.1.1", 1234);
   boost::asio::ip::tcp::endpoint const ws_endpoint =
       get_endpoint("2.2.2.2", 3456);
 
-  char const *args[] = {"/path/", "--config-file", config_path.c_str()};
+  const char *args[] = {"/path/", "--config-file", config_path.c_str()};
   ASSERT_TRUE(app_config_->initializeFromArgs(std::size(args), args));
 
   ASSERT_EQ(app_config_->chainSpecPath(), chain_path);
   ASSERT_EQ(app_config_->keystorePath("test_chain42"),
-            base_path / "test_chain42/keystore");
+            base_path / "chains/test_chain42/keystore");
   ASSERT_EQ(app_config_->databasePath("test_chain42"),
-            base_path / "test_chain42/db");
+            base_path / "chains/test_chain42/db");
   ASSERT_EQ(app_config_->p2pPort(), 2345);
-  ASSERT_EQ(app_config_->rpcHttpEndpoint(), http_endpoint);
-  ASSERT_EQ(app_config_->rpcWsEndpoint(), ws_endpoint);
+  ASSERT_EQ(app_config_->rpcEndpoint(), ws_endpoint);
   ASSERT_EQ(app_config_->log(), std::vector<std::string>{"debug"});
   ASSERT_EQ(app_config_->nodeName(), "Bob's node");
   ASSERT_EQ(app_config_->getRandomWalkInterval(), std::chrono::seconds(30));
@@ -351,12 +328,10 @@ TEST_F(AppConfigurationTest, ConfigFileTest) {
  * @then we must receive default values
  */
 TEST_F(AppConfigurationTest, InvalidConfigFileTest) {
-  boost::asio::ip::tcp::endpoint const http_endpoint =
-      get_endpoint("0.0.0.0", 9933);
   boost::asio::ip::tcp::endpoint const ws_endpoint =
       get_endpoint("0.0.0.0", 9944);
 
-  char const *args[] = {"/path/",
+  const char *args[] = {"/path/",
                         "--base-path",
                         base_path.native().c_str(),
                         "--chain",
@@ -367,12 +342,11 @@ TEST_F(AppConfigurationTest, InvalidConfigFileTest) {
 
   ASSERT_EQ(app_config_->chainSpecPath(), chain_path.native().c_str());
   ASSERT_EQ(app_config_->keystorePath("test_chain42"),
-            base_path / "test_chain42/keystore");
+            base_path / "chains/test_chain42/keystore");
   ASSERT_EQ(app_config_->databasePath("test_chain42"),
-            base_path / "test_chain42/db");
+            base_path / "chains/test_chain42/db");
   ASSERT_EQ(app_config_->p2pPort(), 30363);
-  ASSERT_EQ(app_config_->rpcHttpEndpoint(), http_endpoint);
-  ASSERT_EQ(app_config_->rpcWsEndpoint(), ws_endpoint);
+  ASSERT_EQ(app_config_->rpcEndpoint(), ws_endpoint);
   ASSERT_EQ(app_config_->log(), std::vector<std::string>());
 }
 
@@ -382,12 +356,10 @@ TEST_F(AppConfigurationTest, InvalidConfigFileTest) {
  * @then we must receive default values
  */
 TEST_F(AppConfigurationTest, DamagedConfigFileTest) {
-  boost::asio::ip::tcp::endpoint const http_endpoint =
-      get_endpoint("0.0.0.0", 9933);
   boost::asio::ip::tcp::endpoint const ws_endpoint =
       get_endpoint("0.0.0.0", 9944);
 
-  char const *args[] = {"/path/",
+  const char *args[] = {"/path/",
                         "--base-path",
                         base_path.native().c_str(),
                         "--chain",
@@ -398,12 +370,11 @@ TEST_F(AppConfigurationTest, DamagedConfigFileTest) {
 
   ASSERT_EQ(app_config_->chainSpecPath(), chain_path.native().c_str());
   ASSERT_EQ(app_config_->keystorePath("test_chain42"),
-            base_path / "test_chain42/keystore");
+            base_path / "chains/test_chain42/keystore");
   ASSERT_EQ(app_config_->databasePath("test_chain42"),
-            base_path / "test_chain42/db");
+            base_path / "chains/test_chain42/db");
   ASSERT_EQ(app_config_->p2pPort(), 30363);
-  ASSERT_EQ(app_config_->rpcHttpEndpoint(), http_endpoint);
-  ASSERT_EQ(app_config_->rpcWsEndpoint(), ws_endpoint);
+  ASSERT_EQ(app_config_->rpcEndpoint(), ws_endpoint);
   ASSERT_EQ(app_config_->log(), std::vector<std::string>());
 }
 
@@ -413,12 +384,10 @@ TEST_F(AppConfigurationTest, DamagedConfigFileTest) {
  * @then we must receive default values
  */
 TEST_F(AppConfigurationTest, NoConfigFileTest) {
-  boost::asio::ip::tcp::endpoint const http_endpoint =
-      get_endpoint("0.0.0.0", 9933);
   boost::asio::ip::tcp::endpoint const ws_endpoint =
       get_endpoint("0.0.0.0", 9944);
 
-  char const *args[] = {"/path/",
+  const char *args[] = {"/path/",
                         "--base-path",
                         base_path.native().c_str(),
                         "--chain",
@@ -429,12 +398,11 @@ TEST_F(AppConfigurationTest, NoConfigFileTest) {
 
   ASSERT_EQ(app_config_->chainSpecPath(), chain_path.native().c_str());
   ASSERT_EQ(app_config_->keystorePath("test_chain42"),
-            base_path / "test_chain42/keystore");
+            base_path / "chains/test_chain42/keystore");
   ASSERT_EQ(app_config_->databasePath("test_chain42"),
-            base_path / "test_chain42/db");
+            base_path / "chains/test_chain42/db");
   ASSERT_EQ(app_config_->p2pPort(), 30363);
-  ASSERT_EQ(app_config_->rpcHttpEndpoint(), http_endpoint);
-  ASSERT_EQ(app_config_->rpcWsEndpoint(), ws_endpoint);
+  ASSERT_EQ(app_config_->rpcEndpoint(), ws_endpoint);
   ASSERT_EQ(app_config_->log(), std::vector<std::string>());
 }
 
@@ -444,7 +412,7 @@ TEST_F(AppConfigurationTest, NoConfigFileTest) {
  * @then we must receive this value from base_path() call
  */
 TEST_F(AppConfigurationTest, KeystorePathTest) {
-  char const *args[] = {"/path/",
+  const char *args[] = {"/path/",
                         "--chain",
                         chain_path.native().c_str(),
                         "--base-path",
@@ -454,9 +422,9 @@ TEST_F(AppConfigurationTest, KeystorePathTest) {
       std::size(args), args));
 
   ASSERT_EQ(app_config_->keystorePath("test_chain42"),
-            base_path / "test_chain42/keystore");
+            base_path / "chains/test_chain42/keystore");
   ASSERT_EQ(app_config_->databasePath("test_chain42"),
-            base_path / "test_chain42/db");
+            base_path / "chains/test_chain42/db");
 }
 
 /**
@@ -465,7 +433,7 @@ TEST_F(AppConfigurationTest, KeystorePathTest) {
  * @then we must receive this value from base_path() call
  */
 TEST_F(AppConfigurationTest, base_pathPathTest) {
-  char const *args[] = {"/path/",
+  const char *args[] = {"/path/",
                         "--chain",
                         chain_path.native().c_str(),
                         "--base-path",
@@ -473,9 +441,9 @@ TEST_F(AppConfigurationTest, base_pathPathTest) {
   ASSERT_TRUE(app_config_->initializeFromArgs(std::size(args), args));
 
   ASSERT_EQ(app_config_->keystorePath("test_chain42"),
-            base_path / "test_chain42/keystore");
+            base_path / "chains/test_chain42/keystore");
   ASSERT_EQ(app_config_->databasePath("test_chain42"),
-            base_path / "test_chain42/db");
+            base_path / "chains/test_chain42/db");
 }
 
 /**
@@ -486,7 +454,7 @@ TEST_F(AppConfigurationTest, base_pathPathTest) {
  */
 TEST_F(AppConfigurationTest, VerbosityCmdLineTest) {
   {
-    char const *args[] = {
+    const char *args[] = {
         "/path/",
         "--log",
         "info",
@@ -499,7 +467,7 @@ TEST_F(AppConfigurationTest, VerbosityCmdLineTest) {
     ASSERT_EQ(app_config_->log(), std::vector<std::string>{"info"});
   }
   {
-    char const *args[] = {
+    const char *args[] = {
         "/path/",
         "--log",
         "verbose",
@@ -512,7 +480,7 @@ TEST_F(AppConfigurationTest, VerbosityCmdLineTest) {
     ASSERT_EQ(app_config_->log(), std::vector<std::string>{"verbose"});
   }
   {
-    char const *args[] = {
+    const char *args[] = {
         "/path/",
         "--log",
         "debug",
@@ -525,7 +493,7 @@ TEST_F(AppConfigurationTest, VerbosityCmdLineTest) {
     ASSERT_EQ(app_config_->log(), std::vector<std::string>{"debug"});
   }
   {
-    char const *args[] = {
+    const char *args[] = {
         "/path/",
         "--log",
         "trace",
@@ -545,7 +513,7 @@ TEST_F(AppConfigurationTest, VerbosityCmdLineTest) {
  * @then we expect last saved value(def. kagome::log::Level::INFO)
  */
 TEST_F(AppConfigurationTest, UnexpVerbosityCmdLineTest) {
-  char const *args[] = {"/path/",
+  const char *args[] = {"/path/",
                         "--log",
                         "",
                         "--chain",
@@ -562,7 +530,7 @@ TEST_F(AppConfigurationTest, UnexpVerbosityCmdLineTest) {
  * @then the name is correctly passed to configuration
  */
 TEST_F(AppConfigurationTest, NodeNameAsCommandLineOption) {
-  char const *args[] = {"/path/",
+  const char *args[] = {"/path/",
                         "--chain",
                         chain_path.native().c_str(),
                         "--base-path",
@@ -580,7 +548,7 @@ TEST_F(AppConfigurationTest, NodeNameAsCommandLineOption) {
  */
 TEST_F(AppConfigurationTest, SingleTelemetryCliArg) {
   const auto reference = get_telemetry_endpoint("ws://localhost/submit", 0);
-  char const *args[] = {"/path/",
+  const char *args[] = {"/path/",
                         "--chain",
                         chain_path.native().c_str(),
                         "--base-path",
@@ -604,7 +572,7 @@ TEST_F(AppConfigurationTest, MultipleTelemetryCliArgs) {
       get_telemetry_endpoint("ws://localhost/submit", 0),
       get_telemetry_endpoint("wss://telemetry.soramitsu.co.jp/submit", 4),
   };
-  char const *args[] = {"/path/",
+  const char *args[] = {"/path/",
                         "--chain",
                         chain_path.native().c_str(),
                         "--base-path",
@@ -622,7 +590,7 @@ TEST_F(AppConfigurationTest, MultipleTelemetryCliArgs) {
  * @then the correct value is parsed
  */
 TEST_F(AppConfigurationTest, MaxBlocksInResponse) {
-  char const *args[] = {"/path/",
+  const char *args[] = {"/path/",
                         "--chain",
                         chain_path.native().c_str(),
                         "--base-path",
@@ -640,7 +608,7 @@ TEST_F(AppConfigurationTest, MaxBlocksInResponse) {
  * @then random walk has default value
  */
 TEST_F(AppConfigurationTest, DefaultRandomWalk) {
-  char const *args[] = {
+  const char *args[] = {
       "/path/",
       "--chain",
       chain_path.native().c_str(),
@@ -658,7 +626,7 @@ TEST_F(AppConfigurationTest, DefaultRandomWalk) {
  * @then random walk has the specified value
  */
 TEST_F(AppConfigurationTest, SetRandomWalk) {
-  char const *args[] = {"/path/",
+  const char *args[] = {"/path/",
                         "--chain",
                         chain_path.native().c_str(),
                         "--base-path",

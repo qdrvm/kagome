@@ -3,8 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include <filesystem>
-
 #include <kagome/application/impl/chain_spec_impl.hpp>
 #include <kagome/blockchain/impl/block_header_repository_impl.hpp>
 #include <kagome/blockchain/impl/block_storage_impl.hpp>
@@ -16,6 +14,7 @@
 #include <kagome/crypto/pbkdf2/impl/pbkdf2_provider_impl.hpp>
 #include <kagome/crypto/secp256k1/secp256k1_provider_impl.hpp>
 #include <kagome/crypto/sr25519/sr25519_provider_impl.hpp>
+#include <kagome/filesystem/common.hpp>
 #include <kagome/host_api/impl/host_api_factory_impl.hpp>
 #include <kagome/log/configurator.hpp>
 #include <kagome/offchain/impl/offchain_persistent_storage.hpp>
@@ -87,7 +86,7 @@ int main() {
   using std::string_literals::operator""s;
 
   auto chain_spec = kagome::application::ChainSpecImpl::loadFrom(
-                        std::filesystem::path(__FILE__).parent_path()
+                        kagome::filesystem::path(__FILE__).parent_path()
                         / "../../../examples/polkadot/polkadot.json"s)
                         .value();
 
@@ -145,15 +144,16 @@ int main() {
   auto generator =
       std::make_shared<libp2p::crypto::random::BoostRandomGenerator>();
   auto sr25519_provider =
-      std::make_shared<kagome::crypto::Sr25519ProviderImpl>(generator);
-  auto ecdsa_provider = std::make_shared<kagome::crypto::EcdsaProviderImpl>();
+      std::make_shared<kagome::crypto::Sr25519ProviderImpl>();
+  auto ecdsa_provider =
+      std::make_shared<kagome::crypto::EcdsaProviderImpl>(hasher);
   auto ed25519_provider =
-      std::make_shared<kagome::crypto::Ed25519ProviderImpl>(generator);
+      std::make_shared<kagome::crypto::Ed25519ProviderImpl>(hasher);
   auto secp256k1_provider =
       std::make_shared<kagome::crypto::Secp256k1ProviderImpl>();
   auto pbkdf2_provider = std::make_shared<kagome::crypto::Pbkdf2ProviderImpl>();
-  auto bip39_provider =
-      std::make_shared<kagome::crypto::Bip39ProviderImpl>(pbkdf2_provider);
+  auto bip39_provider = std::make_shared<kagome::crypto::Bip39ProviderImpl>(
+      pbkdf2_provider, hasher);
 
   auto ecdsa_suite =
       std::make_shared<kagome::crypto::EcdsaSuite>(ecdsa_provider);
@@ -164,8 +164,10 @@ int main() {
   std::shared_ptr<kagome::crypto::KeyFileStorage> key_fs =
       kagome::crypto::KeyFileStorage::createAt("/tmp/kagome_tmp_key_storage")
           .value();
+  auto csprng =
+      std::make_shared<libp2p::crypto::random::BoostRandomGenerator>();
   auto crypto_store = std::make_shared<kagome::crypto::CryptoStoreImpl>(
-      ecdsa_suite, ed_suite, sr_suite, bip39_provider, key_fs);
+      ecdsa_suite, ed_suite, sr_suite, bip39_provider, csprng, key_fs);
 
   auto offchain_persistent_storage =
       std::make_shared<kagome::offchain::OffchainPersistentStorageImpl>(
@@ -183,7 +185,6 @@ int main() {
           secp256k1_provider,
           hasher,
           crypto_store,
-          bip39_provider,
           offchain_persistent_storage,
           offchain_worker_pool);
 

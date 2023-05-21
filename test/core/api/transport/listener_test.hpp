@@ -88,8 +88,7 @@ struct ListenerTest : public ::testing::Test {
 
     endpoint.address(boost::asio::ip::address::from_string("127.0.0.1"));
     endpoint.port(4321);
-    ON_CALL(app_config, rpcHttpEndpoint()).WillByDefault(ReturnRef(endpoint));
-    ON_CALL(app_config, rpcWsEndpoint()).WillByDefault(ReturnRef(endpoint));
+    ON_CALL(app_config, rpcEndpoint()).WillByDefault(ReturnRef(endpoint));
     ON_CALL(app_config, maxWsConnections()).WillByDefault(Return(100));
 
     listener = std::make_shared<ListenerImpl>(

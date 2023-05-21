@@ -64,7 +64,6 @@ namespace kagome::parachain {
       std::shared_ptr<crypto::Sr25519Provider> crypto_provider,
       std::shared_ptr<network::Router> router,
       std::shared_ptr<boost::asio::io_context> this_context,
-      std::shared_ptr<crypto::SessionKeys> session_keys,
       std::shared_ptr<crypto::Hasher> hasher,
       std::shared_ptr<network::PeerView> peer_view,
       std::shared_ptr<ThreadPool> thread_pool,
@@ -83,10 +82,6 @@ namespace kagome::parachain {
         crypto_provider_(std::move(crypto_provider)),
         router_(std::move(router)),
         this_context_(std::move(this_context)),
-        keypair_([&] {
-          BOOST_ASSERT(session_keys != nullptr);
-          return session_keys->getBabeKeyPair();  // bake key used in substrate
-        }()),
         hasher_(std::move(hasher)),
         peer_view_(std::move(peer_view)),
         thread_pool_(std::move(thread_pool)),
@@ -148,13 +143,10 @@ namespace kagome::parachain {
                                            bool &synchronized,
                                            auto /*event_type*/,
                                            const primitives::events::
-                                               BabeStateEventParams &event) {
+                                               BabeStateEventParams
+                                                   & /*event*/) {
       if (auto self = wself.lock()) {
-        if (event != consensus::babe::Babe::State::SYNCHRONIZED) {
-          SL_INFO(self->logger_, "Parachains engine turned-off");
-          synchronized = false;
-        } else if (!synchronized) {
-          SL_INFO(self->logger_, "Parachains engine turned-on");
+        if (!synchronized) {
           synchronized = true;
           auto my_view = self->peer_view_->getMyView();
           if (!my_view) {
@@ -676,17 +668,6 @@ namespace kagome::parachain {
               }
               return Error::NO_INSTANCE;
             })));
-  }
-
-  template <typename T>
-  outcome::result<network::Signature> ParachainProcessorImpl::sign(
-      const T &t) const {
-    if (!keypair_) {
-      return Error::KEY_NOT_PRESENT;
-    }
-
-    auto payload = scale::encode(t).value();
-    return crypto_provider_->sign(*keypair_, payload).value();
   }
 
   std::optional<
@@ -1229,7 +1210,6 @@ namespace kagome::parachain {
   }
 
   bool ParachainProcessorImpl::isValidatingNode() const {
-    BOOST_ASSERT(this_context_->get_executor().running_in_this_thread());
     return (app_config_.roles().flags.authority == 1);
   }
 

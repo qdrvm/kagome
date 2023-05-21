@@ -57,7 +57,6 @@ using testing::_;
 using testing::A;
 using testing::Ref;
 using testing::Return;
-using testing::ReturnRef;
 using std::chrono_literals::operator""ms;
 
 // TODO (kamilsa): workaround unless we bump gtest version to 1.8.1+
@@ -164,8 +163,8 @@ class BabeTest : public testing::Test {
         std::make_shared<primitives::events::BabeStateSubscriptionEngine>();
 
     session_keys_ = std::make_shared<SessionKeysMock>();
-    EXPECT_CALL(*session_keys_, getBabeKeyPair())
-        .WillRepeatedly(ReturnRef(keypair_));
+    EXPECT_CALL(*session_keys_, getBabeKeyPair(_))
+        .WillRepeatedly(Return(std::make_pair(keypair_, 0)));
 
     babe_ = std::make_shared<babe::BabeImpl>(
         app_config_,
@@ -316,13 +315,17 @@ TEST_F(BabeTest, Success) {
   EXPECT_CALL(*babe_util_, syncEpoch(_)).Times(testing::AnyNumber());
 
   testing::Sequence s;
-  auto breaker = [](const std::error_code &ec) {
+  auto breaker = [](const boost::system::error_code &ec) {
     throw std::logic_error("Must not be called");
   };
-  std::function<void(const std::error_code &ec)> on_process_slot_1 = breaker;
-  std::function<void(const std::error_code &ec)> on_run_slot_2 = breaker;
-  std::function<void(const std::error_code &ec)> on_process_slot_2 = breaker;
-  std::function<void(const std::error_code &ec)> on_run_slot_3 = breaker;
+  std::function<void(const boost::system::error_code &ec)> on_process_slot_1 =
+      breaker;
+  std::function<void(const boost::system::error_code &ec)> on_run_slot_2 =
+      breaker;
+  std::function<void(const boost::system::error_code &ec)> on_process_slot_2 =
+      breaker;
+  std::function<void(const boost::system::error_code &ec)> on_run_slot_3 =
+      breaker;
   EXPECT_CALL(*timer_, asyncWait(_))
       .InSequence(s)
       .WillOnce(testing::SaveArg<0>(&on_process_slot_1))
@@ -375,7 +378,7 @@ TEST_F(BabeTest, NotAuthority) {
   EXPECT_CALL(*babe_util_, slotFinishTime(_)).Times(testing::AnyNumber());
   EXPECT_CALL(*babe_util_, syncEpoch(_));
   EXPECT_CALL(*timer_, expiresAt(_));
-  std::function<void(const std::error_code &)> process_slot;
+  std::function<void(const boost::system::error_code &)> process_slot;
   EXPECT_CALL(*timer_, asyncWait(_))
       .WillOnce(testing::SaveArg<0>(&process_slot));
   babe_->runEpoch(epoch_);

@@ -136,6 +136,9 @@ namespace kagome::consensus::babe {
               block_info.number - self->speed_data_.block_number;
           auto const time_delta = now - self->speed_data_.time;
           if (block_delta >= 10000 or time_delta >= std::chrono::minutes(1)) {
+            const auto td =
+                std::chrono::duration_cast<std::chrono::seconds>(time_delta)
+                    .count();
             SL_LOG(self->logger_,
                    self->speed_data_.block_number ? log::Level::INFO
                                                   : static_cast<log::Level>(-1),
@@ -144,10 +147,7 @@ namespace kagome::consensus::babe {
                    block_delta,
                    self->speed_data_.block_number,
                    block_info.number,
-                   block_delta
-                       / std::chrono::duration_cast<std::chrono::seconds>(
-                             time_delta)
-                             .count());
+                   td != 0ull ? block_delta / td : 0ull);
             self->speed_data_.block_number = block_info.number;
             self->speed_data_.time = now;
           }

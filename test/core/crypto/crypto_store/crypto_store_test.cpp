@@ -10,6 +10,7 @@
 #include "crypto/bip39/impl/bip39_provider_impl.hpp"
 #include "crypto/ecdsa/ecdsa_provider_impl.hpp"
 #include "crypto/ed25519/ed25519_provider_impl.hpp"
+#include "crypto/hasher/hasher_impl.hpp"
 #include "crypto/pbkdf2/impl/pbkdf2_provider_impl.hpp"
 #include "crypto/random_generator/boost_generator.hpp"
 #include "crypto/sr25519/sr25519_provider_impl.hpp"
@@ -39,6 +40,7 @@ using kagome::crypto::Ed25519ProviderImpl;
 using kagome::crypto::Ed25519PublicKey;
 using kagome::crypto::Ed25519Seed;
 using kagome::crypto::Ed25519Suite;
+using kagome::crypto::HasherImpl;
 using kagome::crypto::KeyTypeId;
 using kagome::crypto::KnownKeyTypeId;
 using kagome::crypto::Pbkdf2Provider;
@@ -52,7 +54,7 @@ using kagome::crypto::Sr25519Seed;
 using kagome::crypto::Sr25519Suite;
 
 static CryptoStoreImpl::Path crypto_store_test_directory =
-    boost::filesystem::temp_directory_path() / "crypto_store_test";
+    kagome::filesystem::temp_directory_path() / "crypto_store_test";
 
 struct CryptoStoreTest : public test::BaseFS_Test {
   static void SetUpTestCase() {
@@ -62,19 +64,21 @@ struct CryptoStoreTest : public test::BaseFS_Test {
   CryptoStoreTest() : BaseFS_Test(crypto_store_test_directory) {}
 
   void SetUp() override {
+    auto hasher = std::make_shared<HasherImpl>();
     auto csprng = std::make_shared<BoostRandomGenerator>();
-    auto ecdsa_provider = std::make_shared<EcdsaProviderImpl>();
-    auto ed25519_provider = std::make_shared<Ed25519ProviderImpl>(csprng);
-    auto sr25519_provider = std::make_shared<Sr25519ProviderImpl>(csprng);
+    auto ecdsa_provider = std::make_shared<EcdsaProviderImpl>(hasher);
+    auto ed25519_provider = std::make_shared<Ed25519ProviderImpl>(hasher);
+    auto sr25519_provider = std::make_shared<Sr25519ProviderImpl>();
 
     auto pbkdf2_provider = std::make_shared<Pbkdf2ProviderImpl>();
     bip39_provider =
-        std::make_shared<Bip39ProviderImpl>(std::move(pbkdf2_provider));
+        std::make_shared<Bip39ProviderImpl>(std::move(pbkdf2_provider), hasher);
     crypto_store = std::make_shared<CryptoStoreImpl>(
         std::make_shared<EcdsaSuite>(std::move(ecdsa_provider)),
         std::make_shared<Ed25519Suite>(std::move(ed25519_provider)),
         std::make_shared<Sr25519Suite>(std::move(sr25519_provider)),
         bip39_provider,
+        csprng,
         kagome::crypto::KeyFileStorage::createAt(crypto_store_test_directory)
             .value());
 
@@ -112,10 +116,9 @@ struct CryptoStoreTest : public test::BaseFS_Test {
   }
 
   bool isStoredOnDisk(KeyTypeId kt, const Blob<32> &public_key) {
-    auto file_name =
-        kagome::crypto::encodeKeyTypeIdToStr(kt) + public_key.toHex();
+    auto file_name = kagome::crypto::encodeKeyFileName(kt, public_key);
     auto file_path = crypto_store_test_directory / file_name;
-    return boost::filesystem::exists(file_path);
+    return kagome::filesystem::exists(file_path);
   }
 
   std::shared_ptr<Bip39Provider> bip39_provider;
@@ -267,9 +270,6 @@ TEST_F(CryptoStoreTest, getEd25519PublicKeysSuccess) {
   EXPECT_OUTCOME_TRUE(pair2,
                       crypto_store->generateEd25519KeypairOnDisk(
                           KnownKeyTypeId::KEY_TYPE_BABE));
-  EXPECT_OUTCOME_SUCCESS(pair3,
-                         crypto_store->generateEd25519KeypairOnDisk(
-                             KnownKeyTypeId::KEY_TYPE_LP2P));
   EXPECT_OUTCOME_SUCCESS(pair4,
                          crypto_store->generateSr25519KeypairOnDisk(
                              KnownKeyTypeId::KEY_TYPE_BABE));
@@ -298,9 +298,6 @@ TEST_F(CryptoStoreTest, getSr25519PublicKeysSuccess) {
   EXPECT_OUTCOME_TRUE(pair2,
                       crypto_store->generateSr25519KeypairOnDisk(
                           KnownKeyTypeId::KEY_TYPE_BABE));
-  EXPECT_OUTCOME_SUCCESS(pair3,
-                         crypto_store->generateSr25519KeypairOnDisk(
-                             KnownKeyTypeId::KEY_TYPE_LP2P));
   EXPECT_OUTCOME_SUCCESS(pair4,
                          crypto_store->generateEd25519KeypairOnDisk(
                              KnownKeyTypeId::KEY_TYPE_BABE));
@@ -319,47 +316,27 @@ TEST_F(CryptoStoreTest, getSr25519PublicKeysSuccess) {
 }
 
 /**
- * @given an empty crypto storage
- * @when having inserted keys into it
- * @then session keys are initialized with inserted keys of the corresponding
- * types
- */
-TEST_F(CryptoStoreTest, SessionKeys) {
-  // GIVEN
-  ASSERT_FALSE(crypto_store->getLibp2pKeypair());
-
-  // WHEN
-  EXPECT_OUTCOME_TRUE(
-      pair,
-      crypto_store->generateEd25519KeypairOnDisk(KnownKeyTypeId::KEY_TYPE_LP2P))
-
-  // THEN
-  ASSERT_TRUE(crypto_store->getLibp2pKeypair());
-  ASSERT_THAT(pair.secret_key,
-              testing::ElementsAreArray(
-                  crypto_store->getLibp2pKeypair().value().privateKey.data));
-}
-
-/**
  * Currently incompatible with subkey because subkey doesn't append key type to
  * filename
  */
 TEST(CryptoStoreCompatibilityTest, DISABLED_SubkeyCompat) {
+  auto hasher = std::make_shared<HasherImpl>();
   auto csprng = std::make_shared<BoostRandomGenerator>();
-  auto ecdsa_provider = std::make_shared<EcdsaProviderImpl>();
-  auto ed25519_provider = std::make_shared<Ed25519ProviderImpl>(csprng);
-  auto sr25519_provider = std::make_shared<Sr25519ProviderImpl>(csprng);
+  auto ecdsa_provider = std::make_shared<EcdsaProviderImpl>(hasher);
+  auto ed25519_provider = std::make_shared<Ed25519ProviderImpl>(hasher);
+  auto sr25519_provider = std::make_shared<Sr25519ProviderImpl>();
 
   auto pbkdf2_provider = std::make_shared<Pbkdf2ProviderImpl>();
   auto bip39_provider =
-      std::make_shared<Bip39ProviderImpl>(std::move(pbkdf2_provider));
-  auto keystore_path = boost::filesystem::path(__FILE__).parent_path()
+      std::make_shared<Bip39ProviderImpl>(std::move(pbkdf2_provider), hasher);
+  auto keystore_path = kagome::filesystem::path(__FILE__).parent_path()
                        / "subkey_keys" / "keystore";
   auto crypto_store = std::make_shared<CryptoStoreImpl>(
       std::make_shared<EcdsaSuite>(std::move(ecdsa_provider)),
       std::make_shared<Ed25519Suite>(std::move(ed25519_provider)),
       std::make_shared<Sr25519Suite>(std::move(sr25519_provider)),
       bip39_provider,
+      csprng,
       kagome::crypto::KeyFileStorage::createAt(keystore_path).value());
   EXPECT_OUTCOME_TRUE(
       keys, crypto_store->getEd25519PublicKeys(KnownKeyTypeId::KEY_TYPE_BABE));

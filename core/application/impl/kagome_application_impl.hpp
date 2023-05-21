@@ -14,7 +14,13 @@
 
 namespace kagome::application {
 
-  class KagomeApplicationImpl : public KagomeApplication {
+  class KagomeApplicationImpl final : public KagomeApplication {
+    template <class T>
+    using sptr = std::shared_ptr<T>;
+
+    template <class T>
+    using uptr = std::unique_ptr<T>;
+
    public:
     ~KagomeApplicationImpl() override = default;
 
