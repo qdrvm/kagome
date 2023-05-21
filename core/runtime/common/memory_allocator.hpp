@@ -473,48 +473,73 @@ namespace kagome::runtime {
     GenericAllocator(size_t heap_base) : heap_base_{heap_base} {}
 
     size_t allocate(size_t size) {
-      if ((size - 1ull) / l0.bank.kSegmentSize == 0ull) {
-        return l0.bank.allocate(size);
+      if ((size - 1ull) / l0.kSegmentSize == 0ull) {
+        return l0.allocate(size) + heap_base_;
       }
-      if ((size - 1ull) / l1.bank.kSegmentSize == 0ull) {
-        return l1.bank.allocate(size);
+
+      if ((size - 1ull) / l1.kSegmentSize == 0ull) {
+        return l1.allocate(size) + heap_base_;
       }
-      if ((size - 1ull) / l2.bank.kSegmentSize == 0ull) {
-        return l2.bank.allocate(size);
+
+      if ((size - 1ull) / l2.kSegmentSize == 0ull) {
+        return l2.allocate(size) + heap_base_;
       }
+
       assert(false && "No layer for current allocation!");
       return 0ull;
     }
 
-    /*std::optional<size_t> deallocate(size_t offset) {
+    std::optional<size_t> deallocate(size_t offset) {
+      const auto raw_offset = offset - heap_base_;
+      if (l0.offsetLocatesHere(raw_offset))
+        return l0.deallocate(raw_offset);
 
-    }    
+      if (l1.offsetLocatesHere(raw_offset))
+        return l1.deallocate(raw_offset);
 
-    size_t realloc(size_t offset, size_t size) {
+      if (l2.offsetLocatesHere(raw_offset))
+        return l2.deallocate(raw_offset);
+
+      return std::nullopt;
+    }
+
+    /*size_t realloc(size_t offset, size_t size) {
     }*/
 
-
-    private:
-    template<size_t Granularity>
+   private:
+    template <size_t Granularity>
     struct Layer {
-      const size_t address_offset;
-      MemoryAllocatorNew<Granularity> bank;
+      static constexpr auto kSegmentSize =
+          MemoryAllocatorNew<Granularity>::kSegmentSize;
+      Layer(size_t address_offset, size_t preallocated = 0ull)
+          : address_offset_{address_offset}, bank_{preallocated} {}
+
+      bool offsetLocatesHere(size_t offset) const {
+        return ((offset - address_offset_) < bank_.capacity());
+      }
+
+      size_t allocate(size_t size) {
+        return bank_.allocate(size) + address_offset_;
+      }
+
+      std::optional<size_t> deallocate(size_t offset) {
+        return bank_.deallocate(offset - address_offset_);
+      }
+
+      size_t realloc(size_t offset, size_t size) {
+        return bank_.realloc(offset - address_offset_, size) + address_offset_;
+      }
+
+     private:
+      const size_t address_offset_;
+      MemoryAllocatorNew<Granularity> bank_;
     };
 
     const size_t heap_base_;
 
-    Layer<8ull> l0 {
-      .address_offset = 0ull,
-      .bank = {0ull},
-    };
-    Layer<8ull * 64ull> l1 {
-      .address_offset = 1ull*1024ull*1024ull*1024ull,
-      .bank = {0ull},
-    };
-    Layer<8ull * 64ull * 64ull> l2 {
-      .address_offset = 2ull*1024ull*1024ull*1024ull,
-      .bank = {0ull},
-    };
+    Layer<8ull> l0{0ull};
+    Layer<8ull * 64ull> l1{1ull * 1024ull * 1024ull * 1024ull};
+    Layer<8ull * 64ull * 64ull> l2{2ull * 1024ull * 1024ull * 1024ull};
   };
 
 }  // namespace kagome::runtime
