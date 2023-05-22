@@ -39,16 +39,19 @@ namespace kagome::runtime {
       std::shared_ptr<const RuntimeCodeProvider> code_provider,
       const primitives::BlockInfo &block,
       const primitives::BlockHeader &header) {
+        static std::mutex cs_{};
+    std::lock_guard s_{cs_};
+
     KAGOME_PROFILE_START(code_retrieval)
     OUTCOME_TRY(state, runtime_upgrade_tracker_->getLastCodeUpdateState(block));
     KAGOME_PROFILE_END(code_retrieval)
 
     KAGOME_PROFILE_START(module_retrieval) {
       // Add compiled module if any
-      if (auto module = last_compiled_module_->try_extract();
-          module.has_value()) {
-        runtime_instances_pool_->putModule(state, module.value());
-      }
+      //if (auto module = last_compiled_module_->try_extract();
+        //  module.has_value()) {
+        //runtime_instances_pool_->putModule(state, module.value());
+      //}
 
       // Compile new module if required
       if (auto opt_module = runtime_instances_pool_->getModule(state);
