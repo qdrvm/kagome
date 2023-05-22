@@ -526,17 +526,6 @@ namespace kagome::blockchain {
     });
   }
 
-  void BlockTreeImpl::notifyExtrinsicEventsEngine(
-      subscription::ExtrinsicEventKeyRepository::ExtrinsicKey event,
-      const primitives::events::ExtrinsicLifecycleEvent &data) {
-    main_thread_.execute([wself{weak_from_this()}, event, data]() mutable {
-      if (auto self = wself.lock()) {
-        self->extrinsic_events_engine_->notify(std::move(event),
-                                               std::move(data));
-      }
-    });
-  }
-
   outcome::result<void> BlockTreeImpl::removeLeaf(
       const primitives::BlockHash &block_hash) {
     return block_tree_data_.exclusiveAccess(
