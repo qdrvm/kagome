@@ -22,14 +22,14 @@ namespace kagome::runtime {
    public:
     BorrowedInstance(std::weak_ptr<RuntimeInstancesPool> pool,
                      const RuntimeInstancesPool::RootHash &state,
-                     std::shared_ptr<ModuleInstance> instance)
+                     std::shared_ptr<ModuleInstance> instance, std::shared_ptr<Module> m)
         : pool_{std::move(pool)},
           state_{state},
-          instance_{std::move(instance)} {}
+          instance_{std::move(instance)}, m_{std::move(m)} {}
           
     ~BorrowedInstance() {
       if (auto pool = pool_.lock()) {
-        pool->release(state_, std::move(instance_));
+        pool->release(state_, std::move(instance_), std::move(m_));
       }
     }
 
@@ -63,6 +63,7 @@ namespace kagome::runtime {
     std::weak_ptr<RuntimeInstancesPool> pool_;
     RuntimeInstancesPool::RootHash state_;
     std::shared_ptr<ModuleInstance> instance_;
+    std::shared_ptr<Module> m_;
   };
 
   RuntimeInstancesPool::RuntimeInstancesPool() {
@@ -77,23 +78,23 @@ namespace kagome::runtime {
       auto top = std::move(pool.top());
       pool.pop();
       return std::make_shared<BorrowedInstance>(
-          weak_from_this(), state, std::move(top));
+          weak_from_this(), state, std::move(top.first), std::move(top.second));
     }
 
     auto opt_module = getCache().get(state);
     BOOST_ASSERT(opt_module.has_value());
-    auto module = opt_module.value();
-    OUTCOME_TRY(instance, module.get()->instantiate());
+    auto m = opt_module.value();
+    OUTCOME_TRY(instance, m.get()->instantiate());
 
     return std::make_shared<BorrowedInstance>(
-        weak_from_this(), state, std::move(instance));
+        weak_from_this(), state, std::move(instance), m);
   }
 
   void RuntimeInstancesPool::release(
       const RuntimeInstancesPool::RootHash &state,
-      std::shared_ptr<ModuleInstance> &&instance) {
+      std::shared_ptr<ModuleInstance> &&instance, std::shared_ptr<Module> &&m) {
     auto &pool = getPools()[state];
-    pool.emplace(std::move(instance));
+    pool.emplace(std::make_pair(std::move(instance), std::move(m)));
   }
 
   std::optional<std::shared_ptr<Module>> RuntimeInstancesPool::getModule(
@@ -112,8 +113,8 @@ namespace kagome::runtime {
     return modules_;
   }
 
-  std::map<RuntimeInstancesPool::RootHash, std::stack<std::shared_ptr<ModuleInstance>>> &RuntimeInstancesPool::getPools() {
-    thread_local std::map<RuntimeInstancesPool::RootHash, std::stack<std::shared_ptr<ModuleInstance>>> pools_;
+  std::map<RuntimeInstancesPool::RootHash, std::stack<std::pair<std::shared_ptr<ModuleInstance>, std::shared_ptr<Module>>>> &RuntimeInstancesPool::getPools() {
+    thread_local std::map<RuntimeInstancesPool::RootHash, std::stack<std::pair<std::shared_ptr<ModuleInstance>, std::shared_ptr<Module>>>> pools_;
     return pools_;
   }
 

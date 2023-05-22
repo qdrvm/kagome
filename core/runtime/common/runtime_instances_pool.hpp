@@ -86,11 +86,11 @@ namespace kagome::runtime {
    */
   class RuntimeInstancesPool final
       : public std::enable_shared_from_this<RuntimeInstancesPool> {
-    using ModuleInstancePool = std::stack<std::shared_ptr<ModuleInstance>>;
+    using ModuleInstancePool = std::stack<std::pair<std::shared_ptr<ModuleInstance>, std::shared_ptr<Module>>>;
 
    public:
     RuntimeInstancesPool();
-    
+
     using RootHash = storage::trie::RootHash;
     using ModuleCache =
         SmallLruCache<storage::trie::RootHash, std::shared_ptr<Module>>;
@@ -114,7 +114,7 @@ namespace kagome::runtime {
      * @param instance - instance to be released.
      */
     void release(const RootHash &state,
-                 std::shared_ptr<ModuleInstance> &&instance);
+                 std::shared_ptr<ModuleInstance> &&instance, std::shared_ptr<Module> &&);
 
     /**
      * @brief Get the module for state from internal cache
