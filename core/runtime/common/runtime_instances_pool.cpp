@@ -65,6 +65,10 @@ namespace kagome::runtime {
     std::shared_ptr<ModuleInstance> instance_;
   };
 
+  RuntimeInstancesPool::RuntimeInstancesPool() {
+
+  }
+
   outcome::result<std::shared_ptr<ModuleInstance>>
   RuntimeInstancesPool::tryAcquire(
       const RuntimeInstancesPool::RootHash &state) {
@@ -108,7 +112,7 @@ namespace kagome::runtime {
     return modules_;
   }
 
-  std::map<RuntimeInstancesPool::RootHash, std::stack<std::shared_ptr<ModuleInstance>>> &getPools() {
+  std::map<RuntimeInstancesPool::RootHash, std::stack<std::shared_ptr<ModuleInstance>>> &RuntimeInstancesPool::getPools() {
     thread_local std::map<RuntimeInstancesPool::RootHash, std::stack<std::shared_ptr<ModuleInstance>>> pools_;
     return pools_;
   }

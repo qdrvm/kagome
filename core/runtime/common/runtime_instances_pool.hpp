@@ -89,6 +89,8 @@ namespace kagome::runtime {
     using ModuleInstancePool = std::stack<std::shared_ptr<ModuleInstance>>;
 
    public:
+    RuntimeInstancesPool();
+    
     using RootHash = storage::trie::RootHash;
     using ModuleCache =
         SmallLruCache<storage::trie::RootHash, std::shared_ptr<Module>>;
