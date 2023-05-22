@@ -23,12 +23,12 @@ namespace kagome::storage::trie {
 
     MOCK_METHOD(outcome::result<std::shared_ptr<PolkadotTrie>>,
                 retrieveTrie,
-                (common::BufferView, OnNodeLoaded),
+                (RootHash, OnNodeLoaded),
                 (const, override));
 
     MOCK_METHOD(outcome::result<PolkadotTrie::NodePtr>,
                 retrieveNode,
-                (common::BufferView db_key, const OnNodeLoaded &on_node_loaded),
+                (MerkleValue db_key, const OnNodeLoaded &on_node_loaded),
                 (const, override));
 
     MOCK_METHOD(outcome::result<PolkadotTrie::NodePtr>,
@@ -41,8 +41,6 @@ namespace kagome::storage::trie {
                 retrieveValue,
                 (common::Hash256 const &hash),
                 (const));
-
-    MOCK_METHOD(TrieStoreStats const &, getLatestStats, (), (const));
   };
 
 }  // namespace kagome::storage::trie

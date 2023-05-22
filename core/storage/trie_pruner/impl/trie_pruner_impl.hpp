@@ -75,15 +75,14 @@ namespace kagome::storage::trie_pruner {
           child_states;
     };
 
-    outcome::result<void> init(const blockchain::BlockTree &block_tree);
-
     static outcome::result<std::unique_ptr<TriePrunerImpl>> create(
         std::shared_ptr<const application::AppConfiguration> config,
         std::shared_ptr<storage::trie::TrieStorageBackend> trie_storage,
         std::shared_ptr<const storage::trie::TrieSerializer> serializer,
         std::shared_ptr<const storage::trie::Codec> codec,
         std::shared_ptr<storage::SpacedStorage> storage,
-        std::shared_ptr<const crypto::Hasher> hasher);
+        std::shared_ptr<const crypto::Hasher> hasher,
+        const blockchain::BlockTree &block_tree);
 
     virtual outcome::result<void> addNewState(
         trie::PolkadotTrie const &new_trie,
@@ -169,7 +168,7 @@ namespace kagome::storage::trie_pruner {
     outcome::result<void> savePersistentState() const;
 
     std::mutex ref_count_mutex_;
-    std::unordered_map<common::Buffer, size_t> ref_count_;
+    std::unordered_map<common::Hash256, size_t> ref_count_;
     std::unordered_map<common::Hash256, size_t> value_ref_count_;
 
     std::optional<primitives::BlockInfo> last_pruned_block_;

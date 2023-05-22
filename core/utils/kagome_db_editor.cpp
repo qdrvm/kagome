@@ -259,7 +259,7 @@ int db_editor_main(int argc, const char **argv) {
         }),
         di::bind<TrieStorageBackend>.template to(trie_tracker),
         di::bind<storage::trie_pruner::TriePruner>.template to(
-            (storage::trie_pruner::TriePruner *)nullptr),
+            std::shared_ptr<storage::trie_pruner::TriePruner>(nullptr)),
         di::bind<Codec>.template to<PolkadotCodec>(),
         di::bind<PolkadotTrieFactory>.to(factory),
         di::bind<crypto::Hasher>.template to<crypto::HasherImpl>(),

@@ -17,24 +17,23 @@ namespace kagome::storage::trie {
     MOCK_METHOD(outcome::result<Buffer>,
                 encodeNode,
                 (const trie::TrieNode &opaque_node,
-                 std::optional<trie::StateVersion> version,
+                 trie::StateVersion version,
                  const ChildVisitor &child_visitor),
                 (const, override));
     MOCK_METHOD(outcome::result<std::shared_ptr<trie::TrieNode>>,
                 decodeNode,
-                (gsl::span<const uint8_t> encoded_data),
+                (common::BufferView encoded_data),
                 (const, override));
-    MOCK_METHOD(Buffer,
+    MOCK_METHOD(MerkleValue,
                 merkleValue,
                 (const BufferView &buf),
                 (const, override));
-    MOCK_METHOD(outcome::result<Buffer>,
+    MOCK_METHOD(outcome::result<MerkleValue>,
                 merkleValue,
                 (const trie::OpaqueTrieNode &opaque_node,
-                 std::optional<trie::StateVersion> version,
+                 trie::StateVersion version,
                  const ChildVisitor &child_visitor),
                 (const, override));
-    MOCK_METHOD(bool, isMerkleHash, (const BufferView &buf), (const, override));
     MOCK_METHOD(common::Hash256,
                 hash256,
                 (const BufferView &buf),
@@ -42,7 +41,7 @@ namespace kagome::storage::trie {
     MOCK_METHOD(bool,
                 shouldBeHashed,
                 (const trie::ValueAndHash &value,
-                 std::optional<trie::StateVersion> version_opt),
+                 trie::StateVersion version_opt),
                 (const, override));
   };
 }  // namespace kagome::storage::trie

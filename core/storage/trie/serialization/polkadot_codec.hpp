@@ -33,19 +33,17 @@ namespace kagome::storage::trie {
 
     outcome::result<Buffer> encodeNode(
         const TrieNode &node,
-        std::optional<StateVersion> version,
+        StateVersion version,
         const ChildVisitor &child_visitor = NoopChildVisitor) const override;
 
     outcome::result<std::shared_ptr<TrieNode>> decodeNode(
-        gsl::span<const uint8_t> encoded_data) const override;
+        BufferView encoded_data) const override;
 
-    common::Buffer merkleValue(const BufferView &buf) const override;
-    outcome::result<common::Buffer> merkleValue(
+    MerkleValue merkleValue(const BufferView &buf) const override;
+    outcome::result<MerkleValue> merkleValue(
         const OpaqueTrieNode &node,
-        std::optional<StateVersion> version,
+        StateVersion version,
         const ChildVisitor &child_visitor = NoopChildVisitor) const override;
-
-    bool isMerkleHash(const common::BufferView &buf) const override;
 
     common::Hash256 hash256(const BufferView &buf) const override;
 
@@ -53,20 +51,22 @@ namespace kagome::storage::trie {
      * Encodes a node header according to the specification
      * @see Algorithm 3: partial key length encoding
      */
-    outcome::result<Buffer> encodeHeader(
-        const TrieNode &node, std::optional<StateVersion> version) const;
+    outcome::result<Buffer> encodeHeader(const TrieNode &node,
+                                         StateVersion version) const;
 
    private:
-    outcome::result<void> encodeValue(common::Buffer &out,
-                                      const TrieNode &node,
-                                      std::optional<StateVersion> version) const;
+    outcome::result<void> encodeValue(
+        common::Buffer &out,
+        const TrieNode &node,
+        StateVersion version,
+        const ChildVisitor &child_visitor = NoopChildVisitor) const;
 
     outcome::result<Buffer> encodeBranch(
         const BranchNode &node,
-        std::optional<StateVersion> version,
+        StateVersion version,
         const ChildVisitor &child_visitor) const;
     outcome::result<Buffer> encodeLeaf(const LeafNode &node,
-                                       std::optional<StateVersion> version,
+                                       StateVersion version,
                                        const ChildVisitor &child_visitor) const;
 
     outcome::result<std::pair<TrieNode::Type, size_t>> decodeHeader(
@@ -80,9 +80,8 @@ namespace kagome::storage::trie {
         const KeyNibbles &partial_key,
         BufferStream &stream) const;
 
-    bool shouldBeHashed(
-        const ValueAndHash &value,
-        std::optional<StateVersion> version_opt) const override;
+    bool shouldBeHashed(const ValueAndHash &value,
+                        StateVersion version) const override;
   };
 
 }  // namespace kagome::storage::trie

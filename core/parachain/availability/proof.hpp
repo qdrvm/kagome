@@ -30,10 +30,12 @@ namespace kagome::parachain {
 
     using Ptr = const storage::trie::TrieNode *;
     std::unordered_map<Ptr, common::Buffer> db;
-    auto store = [&](const storage::trie::TrieNode &ref,
-                     common::BufferView,
-                     common::Buffer &&encoded) {
-      db.emplace(&ref, std::move(encoded));
+    auto store = [&](storage::trie::Codec::Visitee visitee) {
+      if (auto child_data =
+              std::get_if<storage::trie::Codec::ChildData>(&visitee);
+          child_data != nullptr) {
+        db.emplace(&child_data->child, std::move(child_data->encoding));
+      }
       return outcome::success();
     };
     auto root_encoded =
@@ -78,17 +80,18 @@ namespace kagome::parachain {
         -> outcome::result<std::shared_ptr<storage::trie::TrieNode>> {
       auto merkle =
           dynamic_cast<const storage::trie::DummyNode &>(*node).db_key;
-      if (merkle.empty() or merkle == storage::trie::kEmptyRootHash) {
+      if (merkle.asBuffer() == storage::trie::kEmptyRootHash) {
         return nullptr;
       }
-      if (codec.isMerkleHash(merkle)) {
-        auto it = db.find(common::Hash256::fromSpan(merkle).value());
+      if (merkle.isHash()) {
+        auto it = db.find(*merkle.asHash());
         if (it == db.end()) {
           return ErasureCodingRootError::MISMATCH;
         }
-        merkle = it->second;
+        OUTCOME_TRY(n, codec.decodeNode(it->second));
+        return std::dynamic_pointer_cast<storage::trie::TrieNode>(n);
       }
-      OUTCOME_TRY(n, codec.decodeNode(merkle));
+      OUTCOME_TRY(n, codec.decodeNode(merkle.asBuffer()));
       return std::dynamic_pointer_cast<storage::trie::TrieNode>(n);
     };
     OUTCOME_TRY(root,

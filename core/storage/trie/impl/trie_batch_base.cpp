@@ -64,7 +64,6 @@ namespace kagome::storage::trie {
 
   outcome::result<void> TrieBatchBase::commitChildren(StateVersion version) {
     for (auto &[child_path, child_batch] : child_batches_) {
-      std::cout << child_path.toString() << "\n";
       OUTCOME_TRY(root, child_batch->commit(version));
       if (root == kEmptyRootHash) {
         OUTCOME_TRY(remove(child_path));

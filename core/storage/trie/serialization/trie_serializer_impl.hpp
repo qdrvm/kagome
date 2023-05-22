@@ -32,12 +32,8 @@ namespace kagome::storage::trie {
     outcome::result<RootHash> storeTrie(PolkadotTrie &trie,
                                         StateVersion version) override;
 
-    TrieStoreStats const &getLatestStats() const override {
-      return current_stats_;
-    }
-
     outcome::result<std::shared_ptr<PolkadotTrie>> retrieveTrie(
-        common::BufferView db_key, OnNodeLoaded on_node_loaded) const override;
+        RootHash db_key, OnNodeLoaded on_node_loaded) const override;
 
     /**
      * Fetches a node from the storage. A nullptr is returned in case that there
@@ -45,8 +41,7 @@ namespace kagome::storage::trie {
      * nodes as its children
      */
     outcome::result<PolkadotTrie::NodePtr> retrieveNode(
-        common::BufferView db_key,
-        const OnNodeLoaded &on_node_loaded) const override;
+        MerkleValue db_key, const OnNodeLoaded &on_node_loaded) const override;
 
     /**
      * Retrieves a node, replacing a dummy node to an actual node if
@@ -57,7 +52,7 @@ namespace kagome::storage::trie {
         const OnNodeLoaded &on_node_loaded) const override;
 
     outcome::result<std::optional<common::Buffer>> retrieveValue(
-        common::Hash256 const &hash) const override;
+        const common::Hash256 &hash) const override;
 
    private:
     /**
@@ -71,8 +66,6 @@ namespace kagome::storage::trie {
     std::shared_ptr<PolkadotTrieFactory> trie_factory_;
     std::shared_ptr<Codec> codec_;
     std::shared_ptr<TrieStorageBackend> backend_;
-
-    TrieStoreStats current_stats_;
   };
 }  // namespace kagome::storage::trie
 

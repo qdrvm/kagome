@@ -3,8 +3,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include <kagome/application/impl/chain_spec_impl.hpp>
 #include <kagome/application/impl/app_configuration_impl.hpp>
+#include <kagome/application/impl/chain_spec_impl.hpp>
 #include <kagome/blockchain/impl/block_header_repository_impl.hpp>
 #include <kagome/blockchain/impl/block_storage_impl.hpp>
 #include <kagome/crypto/bip39/impl/bip39_provider_impl.hpp>
@@ -106,9 +106,14 @@ int main() {
   auto serializer = std::make_shared<kagome::storage::trie::TrieSerializerImpl>(
       trie_factory, codec, storage_backend);
 
-  auto state_pruner =
-      std::shared_ptr(kagome::storage::trie_pruner::TriePrunerImpl::create(
-          config, storage_backend, serializer, codec, database, hasher)
+  auto state_pruner = std::shared_ptr(
+      kagome::storage::trie_pruner::TriePrunerImpl::create(config,
+                                                           storage_backend,
+                                                           serializer,
+                                                           codec,
+                                                           database,
+                                                           hasher,
+                                                           block_tree)
           .value());
 
   std::shared_ptr<kagome::storage::trie::TrieStorageImpl> trie_storage =

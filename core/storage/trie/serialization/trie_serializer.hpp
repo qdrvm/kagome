@@ -12,11 +12,6 @@
 
 namespace kagome::storage::trie {
 
-  struct TrieStoreStats {
-    size_t new_nodes_written{};
-    size_t values_written{};
-  };
-
   /**
    * Serializes PolkadotTrie and stores it in an external storage
    */
@@ -44,7 +39,7 @@ namespace kagome::storage::trie {
      * is no entry for provided key.
      */
     virtual outcome::result<std::shared_ptr<PolkadotTrie>> retrieveTrie(
-        common::BufferView db_key,
+        RootHash db_key,
         OnNodeLoaded on_node_loaded = [](EncodedNode) {}) const = 0;
 
     /**
@@ -53,7 +48,7 @@ namespace kagome::storage::trie {
      * nodes as its children
      */
     virtual outcome::result<PolkadotTrie::NodePtr> retrieveNode(
-        common::BufferView db_key,
+        MerkleValue db_key,
         const OnNodeLoaded &on_node_loaded = [](EncodedNode) {}) const = 0;
 
     /**
@@ -66,8 +61,6 @@ namespace kagome::storage::trie {
 
     virtual outcome::result<std::optional<common::Buffer>> retrieveValue(
         const common::Hash256 &hash) const = 0;
-
-    virtual const TrieStoreStats &getLatestStats() const = 0;
   };
 
 }  // namespace kagome::storage::trie

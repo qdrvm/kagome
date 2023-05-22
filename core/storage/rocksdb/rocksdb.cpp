@@ -53,9 +53,21 @@ namespace kagome::storage {
     }
 
     std::vector<rocksdb::ColumnFamilyDescriptor> column_family_descriptors;
-    for (auto i = 0; i < Space::kTotal; ++i) {
-      column_family_descriptors.emplace_back(rocksdb::ColumnFamilyDescriptor{
-          spaceName(static_cast<Space>(i)), {}});
+
+    std::vector<std::string> column_families;
+    rocksdb::DB::ListColumnFamilies(options, path.native(), &column_families);
+    // temporary fix to avoid messing with column families on existing bases
+    // each time the column family list is changed
+    if (column_families.size() > Space::kTotal) {
+      for (size_t i = 0; i < column_families.size(); ++i) {
+        column_family_descriptors.emplace_back(
+            rocksdb::ColumnFamilyDescriptor{column_families[i], {}});
+      }
+    } else {
+      for (size_t i = 0; i < Space::kTotal; ++i) {
+        column_family_descriptors.emplace_back(rocksdb::ColumnFamilyDescriptor{
+            spaceName(static_cast<Space>(i)), {}});
+      }
     }
 
     std::vector<rocksdb::ColumnFamilyHandle *> column_family_handles;

@@ -79,6 +79,50 @@ namespace kagome::storage::trie {
     }
   };
 
+  using MerkleHash = common::Hash256;
+
+  struct MerkleValue final {
+   public:
+    // the only error is zero size or exceeding size limit, so returns an
+    // optional
+    static std::optional<MerkleValue> create(common::BufferView merkle_value) {
+      auto size = static_cast<size_t>(merkle_value.size());
+      if (size == common::Hash256::size()) {
+        return MerkleValue{common::Hash256::fromSpan(merkle_value).value(),
+                           size};
+      } else if (size < common::Hash256::size() && size > 0) {
+        common::Hash256 hash;
+        std::copy_n(merkle_value.begin(), size, hash.begin());
+        return MerkleValue{hash, size};
+      }
+      return std::nullopt;
+    }
+
+    MerkleValue(const MerkleHash &hash)
+        : value{hash}, size{MerkleHash::size()} {}
+
+    bool isHash() const {
+      return size == MerkleHash::size();
+    }
+
+    std::optional<MerkleHash> asHash() const {
+      if (isHash()) {
+        return value;
+      }
+      return std::nullopt;
+    }
+
+    common::BufferView asBuffer() const {
+      return common::BufferView{value.begin(), value.begin() + size};
+    }
+
+   private:
+    MerkleValue(const common::Hash256 &value, size_t size)
+        : value{value}, size{size} {}
+    common::Hash256 value;
+    size_t size;
+  };
+
   class ValueAndHash {
    public:
     ValueAndHash() = default;
@@ -142,7 +186,7 @@ namespace kagome::storage::trie {
 
     virtual bool isBranch() const noexcept = 0;
 
-    KeyNibbles const &getKeyNibbles() const {
+    const KeyNibbles &getKeyNibbles() const {
       return key_nibbles_;
     }
 
@@ -154,7 +198,7 @@ namespace kagome::storage::trie {
       key_nibbles_ = std::move(key_nibbles);
     }
 
-    ValueAndHash const &getValue() const {
+    const ValueAndHash &getValue() const {
       return value_;
     }
 
@@ -162,7 +206,7 @@ namespace kagome::storage::trie {
       return value_;
     }
 
-    void setValue(ValueAndHash const &new_value) {
+    void setValue(const ValueAndHash &new_value) {
       value_ = new_value;
     }
 
@@ -210,7 +254,7 @@ namespace kagome::storage::trie {
 
   struct LeafNode : public TrieNode {
     LeafNode() = default;
-    LeafNode(KeyNibbles key_nibbles, std::optional<common::Buffer> value)
+    LeafNode(KeyNibbles key_nibbles, common::Buffer value)
         : TrieNode{std::move(key_nibbles), {std::move(value), std::nullopt}} {}
     LeafNode(KeyNibbles key_nibbles, ValueAndHash value)
         : TrieNode{std::move(key_nibbles), std::move(value)} {}
@@ -232,9 +276,9 @@ namespace kagome::storage::trie {
      * @param key a storage key, which is a hash of an encoded node according to
      * PolkaDot specification
      */
-    explicit DummyNode(common::Buffer key) : db_key{std::move(key)} {}
+    explicit DummyNode(const MerkleValue &key) : db_key{key} {}
 
-    common::Buffer db_key;
+    MerkleValue db_key;
   };
 
 }  // namespace kagome::storage::trie

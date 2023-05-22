@@ -32,7 +32,6 @@ namespace kagome::runtime::wavm {
     WAVM::IR::FeatureSpec featureSpec;
 
     featureSpec.extendedNameSection = true;
-
     log::Logger logger = log::createLogger("WAVM Module", "wavm");
     logger->info(
         "Compiling WebAssembly module for Runtime (going to take a few dozens "

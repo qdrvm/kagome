@@ -52,16 +52,12 @@ namespace kagome::storage::trie {
     while (child_tries->isValid()
            && child_tries->key().value().startsWith(":child_trie:"sv)) {
       auto child_key = child_tries->value().value();
-      OUTCOME_TRY(trie, serializer_->retrieveTrie(child_key, nullptr));
+      OUTCOME_TRY(child_hash, RootHash::fromSpan(child_key));
+      OUTCOME_TRY(trie, serializer_->retrieveTrie(child_hash, nullptr));
       OUTCOME_TRY(
           state_pruner_->addNewChildState(root, child_key, *trie, version));
     }
     SL_TRACE_FUNC_CALL(logger_, root);
-    auto &stats = serializer_->getLatestStats();
-    SL_DEBUG(logger_,
-             "Written {} new nodes and {} values",
-             stats.new_nodes_written,
-             stats.values_written);
     return std::move(root);
   }
 
