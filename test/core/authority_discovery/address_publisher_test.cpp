@@ -37,6 +37,8 @@ using libp2p::HostMock;
 using libp2p::basic::SchedulerMock;
 using libp2p::crypto::marshaller::KeyMarshallerMock;
 using libp2p::multi::Multiaddress;
+using libp2p::peer::PeerId;
+using libp2p::peer::PeerInfo;
 using libp2p::protocol::kademlia::KademliaMock;
 using testing::_;
 using testing::Return;
@@ -53,7 +55,8 @@ struct AddressPublisherTest : public testing::Test {
     libp2p_key_.privateKey.type = libp2p::crypto::Key::Type::Ed25519;
     libp2p_key_.privateKey.data.resize(Ed25519PrivateKey::size());
     libp2p_key_.publicKey.data.resize(Ed25519PublicKey::size());
-    addresses_.push_back(Multiaddress::create("/ip4/127.0.0.1").value());
+    peer_info_.addresses.push_back(
+        Multiaddress::create("/ip4/127.0.0.1").value());
 
     EXPECT_CALL(*app_state_manager_, atLaunch(_));
     EXPECT_CALL(*key_marshaller_, marshal(libp2p_key_.publicKey))
@@ -95,7 +98,11 @@ struct AddressPublisherTest : public testing::Test {
   std::shared_ptr<SchedulerMock> scheduler_ = std::make_shared<SchedulerMock>();
   std::shared_ptr<CryptoStoreMock> crypto_store_ =
       std::make_shared<CryptoStoreMock>();
-  std::vector<Multiaddress> addresses_;
+  PeerInfo peer_info_{
+      PeerId::fromBase58("12D3KooWGYLoNGrZn2nwewBiPFZuKHZebPDL9QAF26cVgLxwuiTZ")
+          .value(),
+      {}};
+
   Sr25519PublicKey audi_key_;
   std::shared_ptr<AddressPublisher> publisher_;
 };
@@ -106,7 +113,7 @@ struct AddressPublisherTest : public testing::Test {
  * @then success
  */
 TEST_F(AddressPublisherTest, Success) {
-  EXPECT_CALL(*host_, getAddresses()).WillOnce(Return(addresses_));
+  EXPECT_CALL(*host_, getPeerInfo()).WillOnce(Return(peer_info_));
   EXPECT_CALL(*crypto_store_, getSr25519PublicKeys(_))
       .WillOnce(Return(std::vector{audi_key_}));
   EXPECT_CALL(*crypto_store_, findSr25519Keypair(_, _))

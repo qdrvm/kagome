@@ -85,7 +85,7 @@ namespace kagome::authority_discovery {
   }
 
   outcome::result<void> AddressPublisher::publishOwnAddress() {
-    auto addresses = host_.getAddresses();
+    auto addresses = host_.getPeerInfo().addresses;
     // TODO(turuslan): #1357, filter local addresses
     if (addresses.empty()) {
       SL_ERROR(log_, "No listening addresses");

@@ -34,8 +34,8 @@ namespace {
 
   template <typename P, typename F>
   bool openOutgoing(std::shared_ptr<kagome::network::StreamEngine> &se,
-                    std::shared_ptr<P> const &protocol,
-                    kagome::network::PeerManager::PeerInfo const &pi,
+                    const std::shared_ptr<P> &protocol,
+                    const kagome::network::PeerManager::PeerInfo &pi,
                     F &&func) {
     BOOST_ASSERT(se);
     BOOST_ASSERT(protocol);
@@ -120,7 +120,6 @@ namespace kagome::network {
       log_->critical(
           "Does not have any bootstrap nodes. "
           "Provide them by chain spec or CLI argument `--bootnodes'");
-      return false;
     }
 
     return true;
@@ -255,7 +254,7 @@ namespace kagome::network {
 
   void PeerManagerImpl::setCollating(
       const PeerId &peer_id,
-      network::CollatorPublicKey const &collator_id,
+      const network::CollatorPublicKey &collator_id,
       network::ParachainId para_id) {
     if (auto it = peer_states_.find(peer_id); it != peer_states_.end()) {
       it->second.collator_state =
@@ -272,7 +271,7 @@ namespace kagome::network {
   }
 
   outcome::result<
-      std::pair<network::CollatorPublicKey const &, network::ParachainId>>
+      std::pair<const network::CollatorPublicKey &, network::ParachainId>>
   PeerManagerImpl::retrieveCollatorData(
       PeerState &peer_state, const primitives::BlockHash &relay_parent) {
     if (!peer_state.collator_state) {
@@ -300,15 +299,15 @@ namespace kagome::network {
     std::vector<ItemType> peers_list;
     peers_list.reserve(active_peers_.size());
 
-    uint64_t const now_ms =
+    const uint64_t now_ms =
         std::chrono::time_point_cast<std::chrono::milliseconds>(clock_->now())
             .time_since_epoch()
             .count();
-    uint64_t const idle_ms =
+    const uint64_t idle_ms =
         std::chrono::duration_cast<std::chrono::milliseconds>(peer_ttl).count();
 
     for (const auto &[peer_id, desc] : active_peers_) {
-      uint64_t const last_activity_ms =
+      const uint64_t last_activity_ms =
           std::chrono::time_point_cast<std::chrono::milliseconds>(
               desc.time_point)
               .time_since_epoch()
@@ -333,7 +332,7 @@ namespace kagome::network {
 
     std::sort(peers_list.begin(),
               peers_list.end(),
-              [](auto const &l, auto const &r) { return r.first < l.first; });
+              [](const auto &l, const auto &r) { return r.first < l.first; });
 
     for (; !peers_list.empty()
            && (peers_list.size() > hard_limit
@@ -585,8 +584,8 @@ namespace kagome::network {
 
   template <typename F>
   void PeerManagerImpl::openBlockAnnounceProtocol(
-      PeerInfo const &peer_info,
-      libp2p::network::ConnectionManager::ConnectionSPtr const &connection,
+      const PeerInfo &peer_info,
+      const libp2p::network::ConnectionManager::ConnectionSPtr &connection,
       F &&opened_callback) {
     auto block_announce_protocol = router_->getBlockAnnounceProtocol();
     BOOST_ASSERT_MSG(block_announce_protocol,
@@ -665,7 +664,7 @@ namespace kagome::network {
     }
   }
 
-  void PeerManagerImpl::tryOpenGrandpaProtocol(PeerInfo const &peer_info,
+  void PeerManagerImpl::tryOpenGrandpaProtocol(const PeerInfo &peer_info,
                                                PeerState &r_info) {
     if (auto o_info_opt = getPeerState(own_peer_info_.id);
         o_info_opt.has_value()) {
@@ -683,7 +682,7 @@ namespace kagome::network {
     }
   }
 
-  void PeerManagerImpl::tryOpenValidationProtocol(PeerInfo const &peer_info,
+  void PeerManagerImpl::tryOpenValidationProtocol(const PeerInfo &peer_info,
                                                   PeerState &peer_state) {
     /// If validator start validation protocol
     if (peer_state.roles.flags.authority) {
@@ -786,7 +785,7 @@ namespace kagome::network {
         peer_info,
         connection,
         [](std::shared_ptr<PeerManagerImpl> &self,
-           PeerInfo const &peer_info,
+           const PeerInfo &peer_info,
            std::optional<std::reference_wrapper<PeerState>> peer_state) {
           if (peer_state.has_value()) {
             self->tryOpenGrandpaProtocol(peer_info, peer_state.value().get());
