@@ -26,6 +26,7 @@ namespace kagome::runtime {
         : pool_{std::move(pool)},
           state_{state},
           instance_{std::move(instance)} {}
+          
     ~BorrowedInstance() {
       if (auto pool = pool_.lock()) {
         pool->release(state_, std::move(instance_));
@@ -67,9 +68,7 @@ namespace kagome::runtime {
   outcome::result<std::shared_ptr<ModuleInstance>>
   RuntimeInstancesPool::tryAcquire(
       const RuntimeInstancesPool::RootHash &state) {
-    std::scoped_lock guard{mt_};
-    auto &pool = pools_[state];
-
+    auto &pool = getPools()[state];
     if (not pool.empty()) {
       auto top = std::move(pool.top());
       pool.pop();
@@ -77,7 +76,7 @@ namespace kagome::runtime {
           weak_from_this(), state, std::move(top));
     }
 
-    auto opt_module = modules_.get(state);
+    auto opt_module = getCache().get(state);
     BOOST_ASSERT(opt_module.has_value());
     auto module = opt_module.value();
     OUTCOME_TRY(instance, module.get()->instantiate());
@@ -89,23 +88,29 @@ namespace kagome::runtime {
   void RuntimeInstancesPool::release(
       const RuntimeInstancesPool::RootHash &state,
       std::shared_ptr<ModuleInstance> &&instance) {
-    std::lock_guard guard{mt_};
-    auto &pool = pools_[state];
-
+    auto &pool = getPools()[state];
     pool.emplace(std::move(instance));
   }
 
   std::optional<std::shared_ptr<Module>> RuntimeInstancesPool::getModule(
       const RuntimeInstancesPool::RootHash &state) {
-    std::lock_guard guard{mt_};
-    return modules_.get(state);
+    return getCache().get(state);
   }
 
   void RuntimeInstancesPool::putModule(
       const RuntimeInstancesPool::RootHash &state,
       std::shared_ptr<Module> module) {
-    std::lock_guard guard{mt_};
-    modules_.put(state, std::move(module));
+    getCache().put(state, std::move(module));
+  }
+
+  RuntimeInstancesPool::ModuleCache &RuntimeInstancesPool::getCache() {
+    thread_local ModuleCache modules_{MODULES_CACHE_SIZE};
+    return modules_;
+  }
+
+  std::map<RuntimeInstancesPool::RootHash, std::stack<std::shared_ptr<ModuleInstance>>> &getPools() {
+    thread_local std::map<RuntimeInstancesPool::RootHash, std::stack<std::shared_ptr<ModuleInstance>>> pools_;
+    return pools_;
   }
 
 }  // namespace kagome::runtime

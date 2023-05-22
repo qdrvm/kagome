@@ -130,11 +130,11 @@ namespace kagome::runtime {
      */
     void putModule(const RootHash &state, std::shared_ptr<Module> module);
 
+    ModuleCache &getCache();
+    std::map<RootHash, ModuleInstancePool> &getPools();
+
    private:
-    std::mutex mt_;
     static constexpr size_t MODULES_CACHE_SIZE = 2;
-    ModuleCache modules_{MODULES_CACHE_SIZE};
-    std::map<RootHash, ModuleInstancePool> pools_;
   };
 
 }  // namespace kagome::runtime
