@@ -835,7 +835,14 @@ namespace kagome::application {
     // clang-format on
 
     for (auto &[flag, name, dev] : devAccounts()) {
-      development_desc.add_options()(flag, po::bool_switch());
+      development_desc.add_options()(
+          flag,
+          po::bool_switch(),
+          fmt::format("Shortcut for `--name {} --validator` with session keys "
+                      "for `{}` added to keystore",
+                      name,
+                      name)
+              .c_str());
     }
 
     po::variables_map vm;
@@ -961,6 +968,9 @@ namespace kagome::application {
         dev_account_flag = flag;
         node_name_ = name;
         dev_mnemonic_phrase_ = dev;
+        // if dev account is passed node is considered as validator
+        roles_.flags.full = 0;
+        roles_.flags.authority = 1;
       }
     }
 

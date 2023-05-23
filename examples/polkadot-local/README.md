@@ -89,18 +89,18 @@ polkadot build-spec --chain polkadot-local-custom-spec.json --raw > polkadot-loc
 
 Open four terminals and run a unique instance of KAGOME in each of them
 ```
-kagome --chain polkadot-local-custom.json --validator --base-path alice   --name Alice   -p 10001 --rpc-port 11001 --ws-port 12001 --prometheus-port 13001
-kagome --chain polkadot-local-custom.json --validator --base-path bob     --name Bob     -p 10002 --rpc-port 11002 --ws-port 12002 --prometheus-port 13002
-kagome --chain polkadot-local-custom.json --validator --base-path charlie --name Charlie -p 10003 --rpc-port 11003 --ws-port 12003 --prometheus-port 13003
-kagome --chain polkadot-local-custom.json --validator --base-path dave    --name Dave    -p 10004 --rpc-port 11004 --ws-port 12004 --prometheus-port 13004
+kagome --chain polkadot-local-custom.json --base-path alice   --alice   --port=10001 --rpc-port=11001 --prometheus-port=12001 --node-key=95d11fd8fc41db64f8f90fecccc1420af9a3ff8dacef6d6a96c3679177860516
+kagome --chain polkadot-local-custom.json --base-path bob-sub --bob     --port=10002 --rpc-port=11002 --prometheus-port=12002 --node-key=a9c7609d2c48c88f5ca3b147fc946ae0664dae7d824a2549379127ef3eadea35
+kagome --chain polkadot-local-custom.json --base-path charlie --charlie --port=10003 --rpc-port=11003 --prometheus-port 12003 --node-key=f69b297baa6a2a1d2652ee0f72bf07f45fc92c0facc07250679dcc164c53e9a5
+kagome --chain polkadot-local-custom.json --base-path dave    --dave    --port=10004 --rpc-port=11004 --prometheus-port 12004 --node-key=e0d0ba382d0c82b8e1bffc23e316bb9dac07a63408b83480402aee1499515c72
 ```
 
 ### Run Polkadot network
 ```
-polkadot --chain polkadot-local-custom.json --base-path=alice-sub   --alice   --port=10001 --rpc-port=11001 --ws-port=12001 --prometheus-port=13001 --node-key=95d11fd8fc41db64f8f90fecccc1420af9a3ff8dacef6d6a96c3679177860516
-polkadot --chain polkadot-local-custom.json --base-path=bob-sub     --bob     --port=10002 --rpc-port=11002 --ws-port=12002 --prometheus-port=13002 --node-key=a9c7609d2c48c88f5ca3b147fc946ae0664dae7d824a2549379127ef3eadea35
-polkadot --chain polkadot-local-custom.json --base-path=charlie-sub --charlie --port=10003 --rpc-port=11003 --ws-port=12003 --prometheus-port=13003 --node-key=f69b297baa6a2a1d2652ee0f72bf07f45fc92c0facc07250679dcc164c53e9a5
-polkadot --chain polkadot-local-custom.json --base-path=dave-sub    --dave    --port=10004 --rpc-port=11004 --ws-port=12004 --prometheus-port=13004 --node-key=e0d0ba382d0c82b8e1bffc23e316bb9dac07a63408b83480402aee1499515c72
+polkadot --chain polkadot-local-custom.json --base-path=alice   --alice   --port=10001 --rpc-port=11001 --prometheus-port=12001 --node-key=95d11fd8fc41db64f8f90fecccc1420af9a3ff8dacef6d6a96c3679177860516
+polkadot --chain polkadot-local-custom.json --base-path=bob     --bob     --port=10002 --rpc-port=11002 --prometheus-port=12002 --node-key=a9c7609d2c48c88f5ca3b147fc946ae0664dae7d824a2549379127ef3eadea35
+polkadot --chain polkadot-local-custom.json --base-path=charlie --charlie --port=10003 --rpc-port=11003 --prometheus-port=12003 --node-key=f69b297baa6a2a1d2652ee0f72bf07f45fc92c0facc07250679dcc164c53e9a5
+polkadot --chain polkadot-local-custom.json --base-path=dave    --dave    --port=10004 --rpc-port=11004 --prometheus-port=12004 --node-key=e0d0ba382d0c82b8e1bffc23e316bb9dac07a63408b83480402aee1499515c72
 ```
 
 > Note, you may run network composed of both KAGOME and Polkadot type of validators
