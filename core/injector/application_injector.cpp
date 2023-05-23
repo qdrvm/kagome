@@ -199,17 +199,12 @@ namespace {
     // hack for recovery mode (otherwise - fails due to rocksdb bug)
     bool prevent_destruction = app_config.recoverState().has_value();
 
-    rocksdb::BlockBasedTableOptions table_options;
-    table_options.block_cache = rocksdb::NewLRUCache(512 * 1024 * 1024);
-    table_options.block_size = 32 * 1024;
-    table_options.cache_index_and_filter_blocks = true;
-    table_options.filter_policy.reset(rocksdb::NewBloomFilterPolicy(10, false));
-
     auto options = rocksdb::Options{};
     options.create_if_missing = true;
+    options.create_missing_column_families = true;
     options.optimize_filters_for_hits = true;
-    options.table_factory.reset(
-        rocksdb::NewBlockBasedTableFactory(table_options));
+    options.table_factory.reset(rocksdb::NewBlockBasedTableFactory(
+        storage::RocksDb::tableOptionsConfiguration()));
 
     // Setting limit for open rocksdb files to a half of system soft limit
     auto soft_limit = common::getFdLimit();
@@ -221,6 +216,7 @@ namespace {
     auto db_res =
         storage::RocksDb::create(app_config.databasePath(chain_spec->id()),
                                  options,
+                                 app_config.dbCacheSize(),
                                  prevent_destruction);
     if (!db_res) {
       auto log = log::createLogger("Injector", "injector");

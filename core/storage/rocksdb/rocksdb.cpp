@@ -4,6 +4,8 @@
  */
 
 #include "storage/rocksdb/rocksdb.hpp"
+#include <rocksdb/filter_policy.h>
+#include <rocksdb/table.h>
 
 #include "filesystem/common.hpp"
 
@@ -31,6 +33,7 @@ namespace kagome::storage {
   outcome::result<std::shared_ptr<RocksDb>> RocksDb::create(
       const filesystem::path &path,
       rocksdb::Options options,
+      uint32_t memory_budget_mib,
       bool prevent_destruction) {
     if (!filesystem::createDirectoryRecursive(path)) {
       return DatabaseError::DB_PATH_NOT_CREATED;
@@ -52,24 +55,29 @@ namespace kagome::storage {
       return DatabaseError::IO_ERROR;
     }
 
+    // calculate state cache size per space
+    const auto memory_budget = memory_budget_mib * 1024 * 1024;
+    const uint32_t trie_space_cache_size = memory_budget * 0.9;
+    const uint32_t other_spaces_cache_size =
+        (memory_budget - trie_space_cache_size) / (storage::Space::kTotal - 1);
     std::vector<rocksdb::ColumnFamilyDescriptor> column_family_descriptors;
     for (auto i = 0; i < Space::kTotal; ++i) {
       column_family_descriptors.emplace_back(rocksdb::ColumnFamilyDescriptor{
-          spaceName(static_cast<Space>(i)), {}});
+          spaceName(static_cast<Space>(i)),
+          configureColumn(i != Space::kTrieNode ? other_spaces_cache_size
+                                                : trie_space_cache_size)});
     }
 
     std::vector<rocksdb::ColumnFamilyHandle *> column_family_handles;
-    options.create_missing_column_families = true;
 
-    auto rocksdb = std::shared_ptr<RocksDb>(new RocksDb);
-
+    auto rocks_db = std::shared_ptr<RocksDb>(new RocksDb);
     auto status = rocksdb::DB::Open(options,
                                     path.native(),
                                     column_family_descriptors,
-                                    &rocksdb->column_family_handles_,
-                                    &rocksdb->db_);
+                                    &rocks_db->column_family_handles_,
+                                    &rocks_db->db_);
     if (status.ok()) {
-      return rocksdb;
+      return rocks_db;
     }
 
     SL_ERROR(log,
@@ -121,6 +129,29 @@ namespace kagome::storage {
     e(db_->DropColumnFamily(handle));
     e(db_->DestroyColumnFamilyHandle(handle));
     e(db_->CreateColumnFamily({}, space_name, &handle));
+  }
+
+  rocksdb::BlockBasedTableOptions RocksDb::tableOptionsConfiguration(
+      uint32_t lru_cache_size_mib, uint32_t block_size_kib) {
+    rocksdb::BlockBasedTableOptions table_options;
+    table_options.format_version = 5;
+    table_options.block_cache = rocksdb::NewLRUCache(
+        static_cast<uint64_t>(lru_cache_size_mib * 1024 * 1024));
+    table_options.block_size = static_cast<size_t>(block_size_kib * 1024);
+    table_options.cache_index_and_filter_blocks = true;
+    table_options.filter_policy.reset(rocksdb::NewBloomFilterPolicy(10, false));
+    return table_options;
+  }
+
+  rocksdb::ColumnFamilyOptions RocksDb::configureColumn(
+      uint32_t memory_budget) {
+    rocksdb::ColumnFamilyOptions options;
+    options.level_compaction_dynamic_level_bytes = true;
+    options.OptimizeLevelStyleCompaction(memory_budget);
+    auto table_options = tableOptionsConfiguration(kDefaultLruCacheSizeMiB,
+                                                   kDefaultBlockSizeKiB);
+    options.table_factory.reset(NewBlockBasedTableFactory(table_options));
+    return options;
   }
 
   RocksDbSpace::RocksDbSpace(std::weak_ptr<RocksDb> storage,
@@ -272,4 +303,5 @@ namespace kagome::storage {
     }
     return rocks;
   }
+
 }  // namespace kagome::storage
