@@ -201,7 +201,6 @@ namespace {
 
     auto options = rocksdb::Options{};
     options.create_if_missing = true;
-    options.create_missing_column_families = true;
     options.optimize_filters_for_hits = true;
     options.table_factory.reset(rocksdb::NewBlockBasedTableFactory(
         storage::RocksDb::tableOptionsConfiguration()));
