@@ -3,15 +3,21 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_DISPUTE_DISPUTEMESSAGE
-#define KAGOME_DISPUTE_DISPUTEMESSAGE
+#ifndef KAGOME_NETWORK_DISPUTEMESSAGE
+#define KAGOME_NETWORK_DISPUTEMESSAGE
 
 #include "dispute_coordinator/types.hpp"
+#include "scale/tie.hpp"
 
-namespace kagome::dispute {
+namespace kagome::network {
+
+  using InvalidDisputeStatementKind = dispute::InvalidDisputeStatementKind;
+  using ValidDisputeStatementKind = dispute::ValidDisputeStatementKind;
 
   /// Any invalid vote (currently only explicit).
   struct InvalidDisputeVote {
+    SCALE_TIE(3);
+
     /// The voting validator index.
     ValidatorIndex index;
 
@@ -25,6 +31,8 @@ namespace kagome::dispute {
 
   /// Any valid vote (backing, approval, explicit).
   struct ValidDisputeVote {
+    SCALE_TIE(3);
+
     /// The voting validator index.
     ValidatorIndex index;
 
@@ -47,6 +55,8 @@ namespace kagome::dispute {
   /// need to be versioned.
   // https://github.com/paritytech/polkadot/blob/40974fb99c86f5c341105b7db53c7aa0df707d66/node/primitives/src/disputes/message.rs#L40
   struct DisputeMessage {
+    SCALE_TIE(4);
+
     /// The candidate being disputed.
     CandidateReceipt candidate_receipt;
 
@@ -60,6 +70,6 @@ namespace kagome::dispute {
     ValidDisputeVote valid_vote;
   };
 
-}  // namespace kagome::dispute
+}  // namespace kagome::network
 
-#endif  // KAGOME_DISPUTE_DISPUTEMESSAGE
+#endif  // KAGOME_NETWORK_DISPUTEMESSAGE

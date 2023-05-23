@@ -24,12 +24,14 @@
 #include "consensus/grandpa/justification_observer.hpp"
 #include "crypto/crypto_store/session_keys.hpp"
 #include "crypto/sr25519_provider.hpp"
+#include "dispute_coordinator/dispute_coordinator.hpp"
 #include "network/block_announce_transmitter.hpp"
 #include "network/helpers/peer_id_formatter.hpp"
 #include "network/synchronizer.hpp"
 #include "network/types/collator_messages.hpp"
 #include "network/warp/protocol.hpp"
 #include "network/warp/sync.hpp"
+#include "parachain/parachain_inherent_data.hpp"
 #include "runtime/runtime_api/core.hpp"
 #include "runtime/runtime_api/offchain_worker_api.hpp"
 #include "storage/changes_trie/impl/storage_changes_tracker_impl.hpp"
@@ -44,7 +46,7 @@ namespace {
 using namespace std::literals::chrono_literals;
 
 namespace kagome::consensus::babe {
-  using ParachainInherentData = network::ParachainInherentData;
+  using ParachainInherentData = parachain::ParachainInherentData;
   using SyncMethod = application::AppConfiguration::SyncMethod;
 
   BabeImpl::BabeImpl(
@@ -76,7 +78,8 @@ namespace kagome::consensus::babe {
       std::shared_ptr<runtime::Core> core,
       std::shared_ptr<ConsistencyKeeper> consistency_keeper,
       std::shared_ptr<storage::trie::TrieStorage> trie_storage,
-      primitives::events::BabeStateSubscriptionEnginePtr babe_status_observable)
+      primitives::events::BabeStateSubscriptionEnginePtr babe_status_observable,
+      std::shared_ptr<dispute::DisputeCoordinator> dispute_coordinator)
       : app_config_(app_config),
         app_state_manager_(app_state_manager),
         lottery_{std::move(lottery)},
@@ -109,6 +112,7 @@ namespace kagome::consensus::babe {
         consistency_keeper_(std::move(consistency_keeper)),
         trie_storage_(std::move(trie_storage)),
         babe_status_observable_(std::move(babe_status_observable)),
+        dispute_coordinator_(std::move(dispute_coordinator)),
         log_{log::createLogger("Babe", "babe")},
         telemetry_{telemetry::createTelemetryService()} {
     BOOST_ASSERT(app_state_manager_);
@@ -130,6 +134,7 @@ namespace kagome::consensus::babe {
     BOOST_ASSERT(consistency_keeper_);
     BOOST_ASSERT(trie_storage_);
     BOOST_ASSERT(babe_status_observable_);
+    BOOST_ASSERT(dispute_coordinator_);
 
     BOOST_ASSERT(app_state_manager);
 
@@ -1019,23 +1024,43 @@ namespace kagome::consensus::babe {
       return;
     }
 
-    ParachainInherentData paras_inherent_data;
+    ParachainInherentData parachain_inherent_data;
 
     {
       auto &relay_parent = best_block_.hash;
-      paras_inherent_data.bitfields =
+      parachain_inherent_data.bitfields =
           bitfield_store_->getBitfields(relay_parent);
 
-      paras_inherent_data.backed_candidates = backing_store_->get(relay_parent);
+      parachain_inherent_data.backed_candidates =
+          backing_store_->get(relay_parent);
       SL_TRACE(log_,
                "Get backed candidates from store.(count={}, relay_parent={})",
-               paras_inherent_data.backed_candidates.size(),
+               parachain_inherent_data.backed_candidates.size(),
                relay_parent);
 
-      paras_inherent_data.parent_header = std::move(best_header);
+      parachain_inherent_data.parent_header = std::move(best_header);
+
+      {  // Fill disputes
+        auto promise_res = std::promise<
+            outcome::result<dispute::DisputeCoordinator::OutputDisputes>>();
+        auto res_future = promise_res.get_future();
+
+        // TODO look at how it work in substrate with provisioner
+        dispute_coordinator_->handle_incoming_RecentDisputes(
+            [promise_res = std::ref(promise_res)](
+                outcome::result<dispute::DisputeCoordinator::OutputDisputes>
+                    res) { promise_res.get().set_value(std::move(res)); });
+
+        if (res_future.valid()) {
+          auto res = res_future.get();
+          if (res.has_value()) {
+            // parachain_inherent_data.disputes = res.value(); // FIXME
+          }
+        }
+      }
     }
 
-    if (auto res = inherent_data.putData(kParachainId, paras_inherent_data);
+    if (auto res = inherent_data.putData(kParachainId, parachain_inherent_data);
         res.has_error()) {
       SL_ERROR(log_, "cannot put an inherent data: {}", res.error());
       return;

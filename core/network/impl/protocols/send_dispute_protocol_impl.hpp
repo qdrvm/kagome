@@ -47,7 +47,7 @@ namespace kagome::network {
 
     void request(
         const PeerId &peer_id,
-        DisputeRequest dispute_request,
+        DisputeMessage dispute_request,
         std::function<void(outcome::result<void>)> &&response_handler) override;
 
     void readRequest(std::shared_ptr<Stream> dispute_request_res);
@@ -55,7 +55,7 @@ namespace kagome::network {
     void writeResponse(std::shared_ptr<Stream> stream);
 
     void writeRequest(std::shared_ptr<Stream> stream,
-                      DisputeRequest dispute_request,
+                      DisputeMessage dispute_request,
                       std::function<void(outcome::result<void>)> &&cb);
 
     void readResponse(
@@ -63,7 +63,7 @@ namespace kagome::network {
         std::function<void(outcome::result<void>)> &&response_handler);
 
    private:
-    const static inline auto kDisputeProtocolName = "DisputeProtocol"s;
+    inline static const auto kDisputeProtocolName = "DisputeProtocol"s;
     ProtocolBaseImpl base_;
     std::shared_ptr<DisputeRequestObserver> dispute_observer_;
     std::shared_ptr<ReputationRepository> reputation_repository_;

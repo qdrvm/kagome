@@ -50,6 +50,10 @@ namespace kagome::crypto {
   class SessionKeys;
 }  // namespace kagome::crypto
 
+namespace kagome::dispute {
+  class DisputeCoordinator;
+}
+
 namespace kagome::network {
   class Synchronizer;
   class BlockAnnounceTransmitter;
@@ -121,7 +125,8 @@ namespace kagome::consensus::babe {
         std::shared_ptr<ConsistencyKeeper> consistency_keeper,
         std::shared_ptr<storage::trie::TrieStorage> trie_storage,
         primitives::events::BabeStateSubscriptionEnginePtr
-            babe_status_observable);
+            babe_status_observable,
+        std::shared_ptr<dispute::DisputeCoordinator> dispute_coordinator);
 
     ~BabeImpl() override = default;
 
@@ -232,6 +237,7 @@ namespace kagome::consensus::babe {
     std::shared_ptr<ConsistencyKeeper> consistency_keeper_;
     std::shared_ptr<storage::trie::TrieStorage> trie_storage_;
     primitives::events::BabeStateSubscriptionEnginePtr babe_status_observable_;
+    std::shared_ptr<dispute::DisputeCoordinator> dispute_coordinator_;
 
     bool warp_sync_busy_ = false;
 

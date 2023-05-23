@@ -168,6 +168,43 @@ namespace kagome {
   auto && (out_5) = func##x5;                                                 \
   auto && (out_6) = func##x6;
 
+#define REINVOKE_5(ctx,                                            \
+                   func,                                           \
+                   in_1,                                           \
+                   in_2,                                           \
+                   in_3,                                           \
+                   in_4,                                           \
+                   in_5,                                           \
+                   out_1,                                          \
+                   out_2,                                          \
+                   out_3,                                          \
+                   out_4,                                          \
+                   out_5)                                          \
+  auto res##func = (ctx).reinvoke(                                 \
+      [wself(weak_from_this())](                                   \
+          auto &&x1, auto &&x2, auto &&x3, auto &&x4, auto &&x5) { \
+        if (auto self = wself.lock()) {                            \
+          self->func(std::move(x1),                                \
+                     std::move(x2),                                \
+                     std::move(x3),                                \
+                     std::move(x4),                                \
+                     std::move(x5));                               \
+        }                                                          \
+      },                                                           \
+      std::move(in_1),                                             \
+      std::move(in_2),                                             \
+      std::move(in_3),                                             \
+      std::move(in_4),                                             \
+      std::move(in_5));                                            \
+  if (!(res##func)) return;                                        \
+  auto &&[func##x1, func##x2, func##x3, func##x4, func##x5] =      \
+      std::move(*(res##func));                                     \
+  auto && (out_1) = func##x1;                                      \
+  auto && (out_2) = func##x2;                                      \
+  auto && (out_3) = func##x3;                                      \
+  auto && (out_4) = func##x4;                                      \
+  auto && (out_5) = func##x5;
+
 #define REINVOKE_4(                                                           \
     ctx, func, in_1, in_2, in_3, in_4, out_1, out_2, out_3, out_4)            \
   auto res##func = (ctx).reinvoke(                                            \

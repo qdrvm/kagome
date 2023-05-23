@@ -431,40 +431,6 @@ namespace kagome::network {
         statement;  /// A varying datatype and implies the dispute statement
   };
 
-  /// The dispute request is sent by clients who want to issue a dispute about a
-  /// candidate.
-  /// @details https://spec.polkadot.network/#net-msg-dispute-request
-  struct DisputeRequest {
-    SCALE_TIE(4);
-
-    CommittedCandidateReceipt
-        candidate;           /// The candidate that is being disputed
-    uint32_t session_index;  /// An unsigned 32-bit integer indicating the
-                             /// session index the candidate appears in
-    Vote invalid_vote;       /// The invalid vote that makes up the request
-    Vote valid_vote;  /// The valid vote that makes this dispute request valid
-  };
-
-  struct ParachainInherentData {
-    SCALE_TIE(4);
-
-    std::vector<SignedBitfield>
-        bitfields;  /// The array of signed bitfields by validators claiming the
-                    /// candidate is available (or not). @note The array must be
-                    /// sorted by validator index corresponding to the authority
-                    /// set
-    std::vector<network::BackedCandidate>
-        backed_candidates;  /// The array of backed candidates for inclusion in
-                            /// the current block
-    std::vector<DisputeRequest> disputes;  /// Array of disputes
-    primitives::BlockHeader
-        parent_header;  /// The head data is contains information about a
-                        /// parachain block. The head data is returned by
-                        /// executing the parachain Runtime and relay chain
-                        /// validators are not concerned with its inner
-                        /// structure and treat it as a byte arrays.
-  };
-
   /**
    * Validator -> Validator.
    * Used by validators to broadcast relevant information about certain steps in

@@ -12,7 +12,6 @@
 #include "parachain/types.hpp"
 #include "primitives/block.hpp"
 #include "runtime/runtime_api/parachain_host_types.hpp"
-// #include "network/types/collator_messages.hpp"
 
 namespace kagome::dispute {
 
@@ -314,80 +313,6 @@ namespace kagome::dispute {
     std::vector<CandidateHash> candidates;
   };
 
-  /// Import statements by validators about a candidate.
-  ///
-  /// The subsystem will silently discard ancient statements or sets of only
-  /// dispute-specific statements for candidates that are previously unknown to
-  /// the subsystem. The former is simply because ancient data is not relevant
-  /// and the latter is as a DoS prevention mechanism. Both backing and approval
-  /// statements already undergo anti-DoS procedures in their respective
-  /// subsystems, but statements cast specifically for disputes are not
-  /// necessarily relevant to any candidate the system is already aware of and
-  /// thus present a DoS vector. Our expectation is that nodes will notify each
-  /// other of disputes over the network by providing (at least) 2 conflicting
-  /// statements, of which one is either a backing or validation statement.
-  ///
-  /// This does not do any checking of the message signature.
-  struct ImportStatements {
-    /// The candidate receipt itself.
-    CandidateReceipt candidate_receipt;
-    /// The session the candidate appears in.
-    SessionIndex session;
-    /// Statements, with signatures checked, by validators participating in
-    /// disputes.
-    ///
-    /// The validator index passed alongside each statement should correspond to
-    /// the index of the validator in the set.
-    std::vector<Indexed<SignedDisputeStatement>> statements;
-    /// Inform the requester once we finished importing (if a sender was
-    /// provided).
-    ///
-    /// This is:
-    /// - we discarded the votes because
-    ///		- they were ancient or otherwise invalid (result:
-    ///`InvalidImport`)
-    ///		- or we were not able to recover availability for an unknown
-    /// candidate (result: 		`InvalidImport`)
-    ///		- or were known already (in that case the result will still be
-    ///`ValidImport`)
-    /// - or we recorded them because (`ValidImport`)
-    ///		- we cast our own vote already on that dispute
-    ///		- or we have approval votes on that candidate
-    ///		- or other explicit votes on that candidate already recorded
-    ///		- or recovered availability for the candidate
-    ///		- or the imported statements are backing/approval votes, which
-    /// are always accepted.
-    // Option<oneshot::Sender<ImportStatementsResult>> pending_confirmation,
-  };
-
-  /// Fetch a list of all recent disputes the coordinator is aware of.
-  /// These are disputes which have occurred any time in recent sessions,
-  /// and which may have already concluded.
-  struct RecentDisputesRequest_ {
-    // (oneshot::Sender<Vec<(SessionIndex, CandidateHash, DisputeStatus)>>),
-  };
-
-  /// Fetch a list of all active disputes that the coordinator is aware of.
-  /// These disputes are either not yet concluded or recently concluded.
-  struct ActiveDisputes {
-    // oneshot::Sender<Vec<(SessionIndex, CandidateHash, DisputeStatus)>>),
-  };
-
-  /// Get candidate votes for a candidate.
-  struct QueryCandidateVotes {
-    std::vector<std::pair<SessionIndex, CandidateHash>> query;
-    // oneshot::Sender<Vec<(SessionIndex, CandidateHash, CandidateVotes)>>,
-  };
-
-  /// Sign and issue local dispute votes. A value of `true` indicates validity,
-  /// and `false` invalidity.
-  struct IssueLocalStatement {
-    SessionIndex session;
-    CandidateHash candidate_hash;
-    CandidateReceipt candidate_receipt;
-    bool valid;
-  };
-
   /// Determine the highest undisputed block within the given chain, based on
   /// where candidates were included. If even the base block should not be
   /// finalized due to a dispute, then `None` should be returned on the channel.
@@ -405,56 +330,6 @@ namespace kagome::dispute {
     /// The block to vote on, might be base in case there is no better.
     // tx: oneshot::Sender<(BlockNumber, Hash)>,
   };
-
-  /// Messages received by the dispute coordinator subsystem.
-  ///
-  /// NOTE: Any response oneshots might get cancelled if the
-  /// `DisputeCoordinator` was not yet properly initialized for some reason.
-  using DisputeCoordinatorMessage = boost::variant<
-      /// Import statements by validators about a candidate.
-      ///
-      /// The subsystem will silently discard ancient statements or sets of only
-      /// dispute-specific statements for candidates that are previously unknown
-      /// to the subsystem. The former is simply because ancient data is not
-      /// relevant and the latter is as a DoS prevention mechanism. Both backing
-      /// and approval statements already undergo anti-DoS procedures in their
-      /// respective subsystems, but statements cast specifically for disputes
-      /// are not necessarily relevant to any candidate the system is already
-      /// aware of and thus present a DoS vector. Our expectation is that nodes
-      /// will notify each other of disputes over the network by providing (at
-      /// least) 2 conflicting statements, of which one is either a backing or
-      /// validation statement.
-      ///
-      /// This does not do any checking of the message signature.
-      ImportStatements,
-
-      /// Fetch a list of all recent disputes the coordinator is aware of.
-      /// These are disputes which have occurred any time in recent sessions,
-      /// and which may have already concluded.
-      RecentDisputesRequest_,
-
-      /// Fetch a list of all active disputes that the coordinator is aware of.
-      /// These disputes are either not yet concluded or recently concluded.
-      ActiveDisputes,
-
-      /// Get candidate votes for a candidate.
-      QueryCandidateVotes,
-
-      /// Sign and issue local dispute votes. A value of `true` indicates
-      /// validity, and `false` invalidity.
-      IssueLocalStatement,
-
-      /// Determine the highest undisputed block within the given chain, based
-      /// on where candidates were included. If even the base block should not
-      /// be finalized due to a dispute, then `None` should be returned on the
-      /// channel.
-      ///
-      /// The block descriptions begin counting upwards from the block after the
-      /// given `base_number`. The `base_number` is typically the number of the
-      /// last finalized block but may be slightly higher. This block is
-      /// inevitably going to be finalized so it is not accounted for by this
-      /// function.
-      DetermineUndisputedChain>;
 
   /// ScrapedUpdates
   ///

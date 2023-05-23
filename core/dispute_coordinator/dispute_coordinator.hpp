@@ -6,15 +6,26 @@
 #ifndef KAGOME_DISPUTE_DISPUTECOORDINATOR
 #define KAGOME_DISPUTE_DISPUTECOORDINATOR
 
+#include "network/dispute_request_observer.hpp"
+
 #include "dispute_coordinator/types.hpp"
 
 namespace kagome::dispute {
 
   class DisputeCoordinator {
    public:
+    template <typename Result>
+    using CbOutcome = std::function<void(outcome::result<Result>)>;
+    using QueryCandidateVotes =
+        std::vector<std::pair<SessionIndex, CandidateHash>>;
+    using OutputCandidateVotes =
+        std::vector<std::tuple<SessionIndex, CandidateHash, CandidateVotes>>;
+    using OutputDisputes =
+        std::vector<std::tuple<SessionIndex, CandidateHash, DisputeStatus>>;
+
     virtual ~DisputeCoordinator() = default;
 
-    /// Import a statement by a validator about a candidate.
+    /// Import statements by validators about a candidate.
     ///
     /// The subsystem will silently discard ancient statements or sets of only
     /// dispute-specific statements for candidates that are previously unknown
@@ -29,39 +40,65 @@ namespace kagome::dispute {
     /// statement.
     ///
     /// This does not do any checking of the message signature.
-    virtual outcome::result<void> onImportStatements(
-        /// The candidate receipt itself.
+    ///
+    /// @param candidate_receipt - The candidate receipt itself
+    /// @param session - The session the candidate appears in
+    /// @param statements - Statements, with signatures checked, by validators
+    /// participating in disputes. The validator index passed alongside each
+    /// statement should correspond to the index of the validator in the set.
+    /// @param cb - Callback for result
+    virtual void handle_incoming_ImportStatements(
         CandidateReceipt candidate_receipt,
-
-        /// The session the candidate appears in.
         SessionIndex session,
+        std::vector<Indexed<SignedDisputeStatement>>
+            statements,  // FIXME avoid copy
+        CbOutcome<void> &&cb) = 0;
 
-        /// Statements, with signatures checked, by validators participating in
-        /// disputes.
-        ///
-        /// The validator index passed alongside each statement should
-        /// correspond to the index of the validator in the set.
-        std::vector<Indexed<SignedDisputeStatement>> statements,
+    /// Fetch a list of all recent disputes the coordinator is aware of.
+    /// These are disputes which have occurred any time in recent sessions,
+    /// and which may have already concluded.
+    virtual void handle_incoming_RecentDisputes(
+        CbOutcome<OutputDisputes> &&cb) = 0;
 
-        /// Inform the requester once we finished importing (if a sender was
-        /// provided).
-        ///
-        /// This is:
-        /// - we discarded the votes because
-        ///   - they were ancient or otherwise invalid (result: `InvalidImport`)
-        ///   - or we were not able to recover availability for an unknown
-        ///   candidate (result: `InvalidImport`)
-        ///   - or were known already (in that case the result will still be
-        ///   `ValidImport`)
-        /// - or we recorded them because (`ValidImport`)
-        ///   - we cast our own vote already on that dispute
-        ///   - or we have approval votes on that candidate
-        ///   - or other explicit votes on that candidate already recorded
-        ///   - or recovered availability for the candidate
-        ///   - or the imported statements are backing/approval votes, which are
-        ///   always accepted.
-        std::optional<std::function<void(outcome::result<void>)>>
-            pending_confirmation) = 0;
+    /// Fetch a list of all active disputes that the coordinator is aware of.
+    /// These disputes are either not yet concluded or recently concluded.
+    virtual void handle_incoming_ActiveDisputes(
+        CbOutcome<OutputDisputes> &&cb) = 0;
+
+    /// Get candidate votes for a candidate.
+    virtual void handle_incoming_QueryCandidateVotes(
+        const QueryCandidateVotes &msg,
+        CbOutcome<OutputCandidateVotes> &&cb) = 0;
+
+    /// Sign and issue local dispute votes. A value of `true` indicates
+    /// validity, and `false` invalidity.
+    virtual void handle_incoming_IssueLocalStatement(
+        SessionIndex session,
+        CandidateHash candidate_hash,
+        CandidateReceipt candidate_receipt,
+        bool valid,
+        CbOutcome<void> &&cb) = 0;
+
+    /// Determine the highest undisputed block within the given chain, based
+    /// on where candidates were included. If even the base block should not
+    /// be finalized due to a dispute, then `None` should be returned on the
+    /// channel.
+    ///
+    /// The block descriptions begin counting upwards from the block after the
+    /// given `base_number`. The `base_number` is typically the number of the
+    /// last finalized block but may be slightly higher. This block is
+    /// inevitably going to be finalized so it is not accounted for by this
+    /// function.
+    ///
+    /// @param base - The lowest possible block to vote on
+    /// @param block_descriptions - Descriptions of all the blocks counting
+    /// upwards from the block after the base number
+    /// @param cb - Callback for result
+    /// @note The block to vote on, might be base in case there is no better.
+    virtual void handle_incoming_DetermineUndisputedChain(
+        primitives::BlockInfo base,
+        std::vector<BlockDescription> block_descriptions,
+        CbOutcome<primitives::BlockInfo> &&cb) = 0;
   };
 
 }  // namespace kagome::dispute

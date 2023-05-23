@@ -9,17 +9,19 @@
 #include "outcome/outcome.hpp"
 
 namespace kagome::network {
-  struct DisputeRequest;
+  struct DisputeMessage;
 }
 
 namespace kagome::network {
 
   class DisputeRequestObserver {
    public:
+    using CbOutcome = std::function<void(outcome::result<void>)>;
+
     virtual ~DisputeRequestObserver() = default;
 
-    virtual outcome::result<void> onDisputeRequest(
-        const DisputeRequest &request) = 0;
+    virtual void onDisputeRequest(const DisputeMessage &request,
+                                  CbOutcome &&cb) = 0;
   };
 
 }  // namespace kagome::network

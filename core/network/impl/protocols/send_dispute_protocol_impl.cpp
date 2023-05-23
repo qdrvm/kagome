@@ -10,7 +10,7 @@
 #include "network/helpers/peer_id_formatter.hpp"
 #include "network/helpers/scale_message_read_writer.hpp"
 #include "network/impl/protocols/protocol_error.hpp"
-#include "network/types/collator_messages.hpp"
+#include "network/types/dispute_messages.hpp"
 
 namespace kagome::network {
 
@@ -90,7 +90,7 @@ namespace kagome::network {
              protocolName(),
              stream->remotePeerId().value());
 
-    read_writer->read<DisputeRequest>([stream, wp = weak_from_this()](
+    read_writer->read<DisputeMessage>([stream, wp = weak_from_this()](
                                           auto &&dispute_request_res) mutable {
       auto self = wp.lock();
       if (not self) {
@@ -119,8 +119,8 @@ namespace kagome::network {
         self->base_.logger()->verbose(std::move(logmsg));
       }
 
-      auto dispute_response_res =
-          self->dispute_observer_->onDisputeRequest(dispute_request);
+      //      auto dispute_response_res =
+      //          self->dispute_observer_->onDisputeRequest(dispute_request);
 
       if (not dispute_response_res) {
         SL_VERBOSE(
@@ -173,7 +173,7 @@ namespace kagome::network {
 
   void SendDisputeProtocolImpl::writeRequest(
       std::shared_ptr<Stream> stream,
-      DisputeRequest dispute_request,
+      DisputeMessage dispute_request,
       std::function<void(outcome::result<void>)> &&cb) {
     auto read_writer = std::make_shared<ScaleMessageReadWriter>(stream);
 
@@ -261,7 +261,7 @@ namespace kagome::network {
 
   void SendDisputeProtocolImpl::request(
       const PeerId &peer_id,
-      DisputeRequest dispute_request,
+      DisputeMessage dispute_request,
       std::function<void(outcome::result<void>)> &&response_handler) {
     //
   }

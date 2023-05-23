@@ -537,6 +537,7 @@ namespace {
     host_api::OffchainExtensionConfig offchain_ext_config{
         config->isOffchainIndexingEnabled()};
 
+    // clang-format off
     return di::
         make_injector(
             // bind configs
@@ -775,6 +776,7 @@ namespace {
 
             // user-defined overrides...
             std::forward<decltype(args)>(args)...);
+    // clang-format on
   }
 
   template <typename... Ts>

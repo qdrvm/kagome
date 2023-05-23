@@ -5,6 +5,7 @@
 
 #include "dispute_coordinator/impl/dispute_coordinator_impl.hpp"
 
+#include <future>
 #include <set>
 #include <unordered_set>
 #include <vector>
@@ -17,6 +18,7 @@
 #include "dispute_coordinator/impl/rolling_session_window_impl.hpp"
 #include "dispute_coordinator/impl/spam_slots_impl.hpp"
 #include "dispute_coordinator/participation/participation.hpp"
+#include "parachain/approval/approval_distribution.hpp"
 #include "utils/thread_pool.hpp"
 #include "utils/tuple_hash.hpp"
 
@@ -31,7 +33,8 @@ namespace kagome::dispute {
       std::shared_ptr<crypto::Sr25519Provider> sr25519_crypto_provider,
       std::shared_ptr<crypto::Hasher> hasher,
       std::shared_ptr<blockchain::BlockTree> block_tree,
-      std::shared_ptr<runtime::ParachainHost> api)
+      std::shared_ptr<runtime::ParachainHost> api,
+      std::shared_ptr<parachain::ApprovalDistribution> approval_distribution)
       : app_state_manager_(std::move(app_state_manager)),
         scheduler_(std::move(scheduler)),
         clock_(std::move(clock)),
@@ -41,6 +44,7 @@ namespace kagome::dispute {
         hasher_(std::move(hasher)),
         block_tree_(std::move(block_tree)),
         api_(std::move(api)),
+        approval_distribution_(std::move(approval_distribution)),
         int_pool_{std::make_shared<ThreadPool>(1ull)},
         internal_context_{int_pool_->handler()} {
     BOOST_ASSERT(app_state_manager_ != nullptr);
@@ -52,6 +56,7 @@ namespace kagome::dispute {
     BOOST_ASSERT(hasher_ != nullptr);
     BOOST_ASSERT(block_tree_ != nullptr);
     BOOST_ASSERT(api_ != nullptr);
+    BOOST_ASSERT(approval_distribution_ != nullptr);
   }
 
   bool DisputeCoordinatorImpl::prepare() {
@@ -363,21 +368,6 @@ namespace kagome::dispute {
     }
   }
 
-  void DisputeCoordinatorImpl::on_message(
-      const DisputeCoordinatorMessage &_message) {
-    if (not initialized_) {
-      return;
-    }
-
-    REINVOKE_1(*internal_context_, on_message, _message, message);
-
-    auto res = handle_incoming(message);
-    if (res.has_error()) {
-      SL_ERROR(log_, "Can't handle incoming message: {}", res.error());
-      return;
-    }
-  }
-
   void DisputeCoordinatorImpl::on_active_leaves_update(
       const network::ExView &_updated) {
     REINVOKE_1(*internal_context_, on_active_leaves_update, _updated, updated);
@@ -672,19 +662,6 @@ namespace kagome::dispute {
     return scraper_->process_finalized_block(finalized);
   }
 
-  outcome::result<void> DisputeCoordinatorImpl::onImportStatements(
-      CandidateReceipt candidate_receipt,
-      SessionIndex session,
-      std::vector<Indexed<SignedDisputeStatement>> statements,
-      std::optional<std::function<void(outcome::result<void>)>>
-          pending_confirmation) {
-    // see:https://github.com/paritytech/polkadot/blob/40974fb99c86f5c341105b7db53c7aa0df707d66/node/core/dispute-coordinator/src/initialized.rs#L563
-    OUTCOME_TRY(
-        handle_import_statements(candidate_receipt, session, statements));
-
-    return outcome::success();
-  }
-
   std::optional<CandidateEnvironment>
   DisputeCoordinatorImpl::makeCandidateEnvironment(
       crypto::SessionKeys &session_keys,
@@ -705,6 +682,11 @@ namespace kagome::dispute {
     return CandidateEnvironment{.session_index = session,
                                 .session = session_info,
                                 .controlled_indices = controlled_indices};
+  }
+
+  void DisputeCoordinatorImpl::onDisputeRequest(
+      const network::DisputeMessage &message) {
+    //
   }
 
   outcome::result<bool> DisputeCoordinatorImpl::handle_import_statements(
@@ -928,21 +910,25 @@ namespace kagome::dispute {
 
       // see:
       // {polkadot}/node/core/dispute-coordinator/src/initialized.rs:809
-      auto getApprovalSignaturesForCandidate =  // TODO IT IS STAB!!
-          [](const CandidateHash &)
-          -> outcome::result<
-              std::unordered_map<ValidatorIndex, ValidatorSignature>> {
-        return RollingSessionWindowError::Missing;  // FIXME temporary stabbed!
-      };
 
-      auto res = getApprovalSignaturesForCandidate(candidate_hash);
-      if (res.has_error()) {
+      auto promise_res = std::promise<
+          std::unordered_map<ValidatorIndex, ValidatorSignature>>();
+      auto res_future = promise_res.get_future();
+
+      approval_distribution_->getApprovalSignaturesForCandidate(
+          candidate_hash,
+          [promise_res = std::ref(promise_res)](
+              std::unordered_map<ValidatorIndex, ValidatorSignature> res) {
+            promise_res.get().set_value(std::move(res));
+          });
+
+      if (not res_future.valid()) {
         // LOG "Fetch for approval votes got cancelled, only expected during
         // shutdown!"
         import_result = std::move(intermediate_result);
       } else {
         // LOG "Successfully received approval votes."
-        auto &approval_votes = res.value();
+        auto approval_votes = res_future.get();
 
         // import approval votes
 
@@ -1496,110 +1482,91 @@ namespace kagome::dispute {
     return outcome::success();
   }
 
-  outcome::result<void> DisputeCoordinatorImpl::handle_incoming(
-      const DisputeCoordinatorMessage &message) {
-    return visit_in_place(
-        message,
-        [&](const ImportStatements &msg) {
-          return handle_incoming_ImportStatements(msg);
-        },
-        [&](const RecentDisputesRequest_ &msg) {
-          return handle_incoming_RecentDisputes(msg);
-        },
-        [&](const ActiveDisputes &msg) {
-          return handle_incoming_ActiveDisputes(msg);
-        },
-        [&](const QueryCandidateVotes &msg) {
-          return handle_incoming_QueryCandidateVotes(msg);
-        },
-        [&](const IssueLocalStatement &msg) {
-          return handle_incoming_IssueLocalStatement(msg);
-        },
-        [&](const DetermineUndisputedChain &msg) {
-          return handle_incoming_DetermineUndisputedChain(msg);
-        });
-  }
+  void DisputeCoordinatorImpl::handle_incoming_ImportStatements(
+      CandidateReceipt _candidate_receipt,
+      SessionIndex _session,
+      std::vector<Indexed<SignedDisputeStatement>> _statements,
+      CbOutcome<void> &&_cb) {
+    REINVOKE_4(*internal_context_,
+               handle_incoming_ImportStatements,
+               _candidate_receipt,
+               _session,
+               _statements,
+               _cb,
+               candidate_receipt,
+               session,
+               statements,
+               cb);
 
-  outcome::result<void>
-  DisputeCoordinatorImpl::handle_incoming_ImportStatements(
-      const ImportStatements &msg) {
+    // TODO входящее сообщение из сети
+
     // LOG-TRACE: "DisputeCoordinatorMessage::ImportStatements"
 
-    const auto &candidate_receipt = msg.candidate_receipt;
-    const auto &session = msg.session;
-    const auto &statements = msg.statements;
-    // const auto &pending_confirmation = msg.pending_confirmation;
-
-    OUTCOME_TRY(
-        valid_import,
-        handle_import_statements(candidate_receipt, session, statements));
-
-    auto report = [
-                      // pending_confirmation{std::move(pending_confirmation)},
-                      // valid_import
-    ]() -> outcome::result<void> {
-      // if (pending_confirmation.has_value()) {
-      //   auto send_res = pending_confirmation.send(valid_import);
-      //   if (send_res.has_error()) {
-      //     return JfyiError::DisputeImportOneshotSend;
-      //   }
-      return outcome::success();
-      // }
-    };
-
-    if (not valid_import) {
-      return outcome::success();  // with move report?
+    auto res = handle_import_statements(candidate_receipt, session, statements);
+    if (res.has_error()) {
+      return cb(res.as_failure());
     }
 
-    // In case of valid import, delay confirmation until actual disk write:
-    return report();
+    auto &valid_import = res.value();
+
+    return cb(outcome::success());
   }
 
-  outcome::result<void> DisputeCoordinatorImpl::handle_incoming_RecentDisputes(
-      const RecentDisputesRequest_ &msg) {
+  void DisputeCoordinatorImpl::handle_incoming_RecentDisputes(
+      CbOutcome<OutputDisputes> &&_cb) {
+    REINVOKE_1(*internal_context_, handle_incoming_RecentDisputes, _cb, cb);
+
     // Return error if session information is missing.
     if (error_.has_value()) {
-      return RollingSessionWindowError::SessionsUnavailable;
+      return cb(RollingSessionWindowError::SessionsUnavailable);
     }
 
     // LOG-TRACE: "Loading recent disputes from db"
 
-    OUTCOME_TRY(recent_disputes_opt, storage_->load_recent_disputes());
-    auto recent_disputes = recent_disputes_opt.value_or(RecentDisputes{});
+    auto recent_disputes_res = storage_->load_recent_disputes();
+    if (recent_disputes_res.has_error()) {
+      return cb(recent_disputes_res.as_failure());
+    }
+    auto recent_disputes =
+        recent_disputes_res.value().value_or(RecentDisputes{});
 
     // LOG-TRACE: "Loaded recent disputes from db"
 
-    std::vector<std::tuple<SessionIndex, CandidateHash, DisputeStatus>> data;
-    data.reserve(recent_disputes.size());
+    OutputDisputes output;
+    output.reserve(recent_disputes.size());
     std::transform(
         recent_disputes.begin(),
         recent_disputes.end(),
-        std::back_inserter(data),
+        std::back_inserter(output),
         [](const auto &p)
             -> std::tuple<SessionIndex, CandidateHash, DisputeStatus> {
           return {std::get<0>(p.first), std::get<1>(p.first), p.second};
         });
 
-    // msg.tx.send(data); // FIXME
-
-    return outcome::success();
+    cb(std::move(output));
   }
 
-  outcome::result<void> DisputeCoordinatorImpl::handle_incoming_ActiveDisputes(
-      const ActiveDisputes &msg) {
+  void DisputeCoordinatorImpl::handle_incoming_ActiveDisputes(
+      CbOutcome<OutputDisputes> &&_cb) {
+    REINVOKE_1(*internal_context_, handle_incoming_ActiveDisputes, _cb, cb);
+
     // Return error if session information is missing.
     if (error_.has_value()) {
-      return RollingSessionWindowError::SessionsUnavailable;
+      return cb(RollingSessionWindowError::SessionsUnavailable);
     }
 
     // LOG-TRACE: "DisputeCoordinatorMessage::ActiveDisputes"
 
-    OUTCOME_TRY(recent_disputes_opt, storage_->load_recent_disputes());
-    auto recent_disputes = recent_disputes_opt.value_or(RecentDisputes{});
+    auto recent_disputes_res = storage_->load_recent_disputes();
+    if (recent_disputes_res.has_error()) {
+      return cb(recent_disputes_res.as_failure());
+    }
+    auto recent_disputes =
+        recent_disputes_res.value().value_or(RecentDisputes{});
+
+    OutputDisputes output;
 
     auto now = clock_->nowUint64();
-
-    std::vector<std::tuple<SessionIndex, CandidateHash, DisputeStatus>> data;
     for (const auto &p : recent_disputes) {
       const auto &status = p.second;
 
@@ -1622,71 +1589,117 @@ namespace kagome::dispute {
           at.has_value() and at.value() + kActiveDurationSecs < now;
 
       if (not dispute_is_inactive) {
-        data.emplace_back(std::get<0>(p.first), std::get<1>(p.first), p.second);
+        output.emplace_back(
+            std::get<0>(p.first), std::get<1>(p.first), p.second);
       }
     }
 
-    // msg.tx.send(data); // FIXME
-
-    return outcome::success();
+    cb(std::move(output));
   }
 
-  outcome::result<void>
-  DisputeCoordinatorImpl::handle_incoming_QueryCandidateVotes(
-      const QueryCandidateVotes &msg) {
+  void DisputeCoordinatorImpl::handle_incoming_QueryCandidateVotes(
+      const QueryCandidateVotes &_query,
+      CbOutcome<OutputCandidateVotes> &&_cb) {
+    REINVOKE_2(*internal_context_,
+               handle_incoming_QueryCandidateVotes,
+               _query,
+               _cb,
+               query,
+               cb);
+
+    // TODO возвращаем данные, которые попадут в параинхеренты при создании
+    // блока
+
     // Return error if session information is missing.
     if (error_.has_value()) {
-      return RollingSessionWindowError::SessionsUnavailable;
+      return cb(RollingSessionWindowError::SessionsUnavailable);
     }
 
     // LOG-TRACE: "DisputeCoordinatorMessage::QueryCandidateVotes"
 
-    std::vector<std::tuple<SessionIndex, CandidateHash, CandidateVotes>>
-        query_output;
+    std::vector<std::tuple<SessionIndex, CandidateHash, CandidateVotes>> output;
 
-    for (auto &[session, candidate_hash] : msg.query) {
-      OUTCOME_TRY(state_opt,
-                  storage_->load_candidate_votes(session, candidate_hash));
+    for (auto &[session, candidate_hash] : query) {
+      auto state_res = storage_->load_candidate_votes(session, candidate_hash);
+      if (state_res.has_error()) {
+        cb(state_res.as_failure());
+        return;
+      }
+      auto &state_opt = state_res.value();
       if (state_opt.has_value()) {
-        query_output.push_back(std::make_tuple(
+        output.push_back(std::make_tuple(
             session, candidate_hash, std::move(state_opt.value())));
       } else {
         // LOG-DEBUG: "No votes found for candidate"
       }
     }
 
-    // msg.tx.send(data); // FIXME
-
-    return outcome::success();
+    cb(std::move(output));
   }
 
-  outcome::result<void>
-  DisputeCoordinatorImpl::handle_incoming_IssueLocalStatement(
-      const IssueLocalStatement &msg) {
+  void DisputeCoordinatorImpl::handle_incoming_IssueLocalStatement(
+      SessionIndex _session,
+      CandidateHash _candidate_hash,
+      CandidateReceipt _candidate_receipt,
+      bool _valid,
+      CbOutcome<void> &&_cb) {
+    REINVOKE_5(*internal_context_,
+               handle_incoming_IssueLocalStatement,
+               _session,
+               _candidate_hash,
+               _candidate_receipt,
+               _valid,
+               _cb,
+               session,
+               candidate_hash,
+               candidate_receipt,
+               valid,
+               cb);
+
+    // TODO ничего не возвращаем, вызывается из апрувала и партисипейшена
+
     // LOG-TRACE: "DisputeCoordinatorMessage::IssueLocalStatement"
-    return issue_local_statement(
-        msg.candidate_hash, msg.candidate_receipt, msg.session, msg.valid);
-    // await
+    auto res = issue_local_statement(
+        candidate_hash, candidate_receipt, session, valid);
 
-    return outcome::success();
+    if (res.has_error()) {
+      return cb(res.as_failure());
+    }
+
+    cb(outcome::success());
   }
 
-  outcome::result<void>
-  DisputeCoordinatorImpl::handle_incoming_DetermineUndisputedChain(
-      const DetermineUndisputedChain &msg) {
+  // TODO вызывается из грандпа, возвращается блок без диспутов
+  void DisputeCoordinatorImpl::handle_incoming_DetermineUndisputedChain(
+      primitives::BlockInfo _base,
+      std::vector<BlockDescription> _block_descriptions,
+      CbOutcome<primitives::BlockInfo> &&_cb) {
+    REINVOKE_3(*internal_context_,
+               handle_incoming_DetermineUndisputedChain,
+               _base,
+               _block_descriptions,
+               _cb,
+               base,
+               block_descriptions,
+               cb);
+
     // Return error if session information is missing.
     if (error_.has_value()) {
-      return RollingSessionWindowError::SessionsUnavailable;
+      return cb(RollingSessionWindowError::SessionsUnavailable);
     }
 
     // LOG-TRACE: "DisputeCoordinatorMessage::DetermineUndisputedChain"
 
-    auto undisputed_chain = determine_undisputed_chain(
-        msg.base.number, msg.base.hash, msg.block_descriptions);
+    auto res =
+        determine_undisputed_chain(base.number, base.hash, block_descriptions);
 
-    // msg.tx.send(undisputed_chain); // FIXME
+    if (res.has_error()) {
+      return cb(res.as_failure());
+    }
 
-    return outcome::success();
+    auto &undisputed_chain = res.value();
+
+    cb(std::move(undisputed_chain));
   }
 
   // https://github.com/paritytech/polkadot/blob/40974fb99c86f5c341105b7db53c7aa0df707d66/node/core/dispute-coordinator/src/initialized.rs#L1272

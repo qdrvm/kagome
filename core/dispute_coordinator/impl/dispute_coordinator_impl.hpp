@@ -6,13 +6,12 @@
 #ifndef KAGOME_DISPUTE_DISPUTECOORDINATORIMPL
 #define KAGOME_DISPUTE_DISPUTECOORDINATORIMPL
 
-#include <libp2p/basic/scheduler.hpp>
 #include "dispute_coordinator/dispute_coordinator.hpp"
+#include "network/dispute_request_observer.hpp"
 
 #include "crypto/crypto_store/session_keys.hpp"
 #include "crypto/sr25519_provider.hpp"
 #include "dispute_coordinator/chain_scraper.hpp"
-#include "dispute_coordinator/dispute_message.hpp"
 #include "dispute_coordinator/impl/candidate_vote_state.hpp"
 #include "dispute_coordinator/impl/errors.hpp"
 #include "dispute_coordinator/participation/types.hpp"
@@ -38,6 +37,14 @@ namespace kagome::dispute {
   class Participation;
 }  // namespace kagome::dispute
 
+namespace kagome::network {
+  struct DisputeMessage;
+}
+
+namespace kagome::parachain {
+  struct ApprovalDistribution;
+}
+
 namespace kagome::runtime {
   class ParachainHost;
 }
@@ -46,6 +53,7 @@ namespace kagome::dispute {
 
   class DisputeCoordinatorImpl final
       : public DisputeCoordinator,
+        public network::DisputeRequestObserver,
         public std::enable_shared_from_this<DisputeCoordinatorImpl> {
     static constexpr Timestamp kActiveDurationSecs = 180;
 
@@ -59,63 +67,44 @@ namespace kagome::dispute {
         std::shared_ptr<crypto::Sr25519Provider> sr25519_crypto_provider,
         std::shared_ptr<crypto::Hasher> hasher,
         std::shared_ptr<blockchain::BlockTree> block_tree,
-        std::shared_ptr<runtime::ParachainHost> api);
+        std::shared_ptr<runtime::ParachainHost> api,
+        std::shared_ptr<parachain::ApprovalDistribution> approval_distribution);
 
     bool prepare();
     bool start();
     void stop();
 
-    outcome::result<void> onImportStatements(
+    void onDisputeRequest(const network::DisputeMessage &message) override;
+
+    void handle_incoming_ImportStatements(
         CandidateReceipt candidate_receipt,
         SessionIndex session,
         std::vector<Indexed<SignedDisputeStatement>> statements,
-        std::optional<std::function<void(outcome::result<void>)>>
-            pending_confirmation) override;
+        CbOutcome<void> &&cb) override;
 
-    /* clang-format off
+    void handle_incoming_RecentDisputes(
+        CbOutcome<OutputDisputes> &&cb) override;
 
-    /// Fetch a list of all recent disputes that the coordinator is aware of.
-    /// These are disputes which have occurred any time in recent sessions,
-    /// which may have already concluded.
-    void RecentDisputes(ResponseChannel<Vec<(SessionIndex, CandidateHash)>>);
+    void handle_incoming_ActiveDisputes(
+        CbOutcome<OutputDisputes> &&cb) override;
 
-    /// Fetch a list of all active disputes that the coordinator is aware of.
-    /// These disputes are either unconcluded or recently concluded.
-    void ActiveDisputes(ResponseChannel<Vec<(SessionIndex, CandidateHash)>>);
+    void handle_incoming_QueryCandidateVotes(
+        const QueryCandidateVotes &msg,
+        CbOutcome<OutputCandidateVotes> &&cb) override;
 
-    /// Get candidate votes for a candidate.
-    void QueryCandidateVotes(SessionIndex,
-                             CandidateHash,
-                             ResponseChannel<Option<CandidateVotes>>);
+    void handle_incoming_IssueLocalStatement(SessionIndex session,
+                                             CandidateHash candidate_hash,
+                                             CandidateReceipt candidate_receipt,
+                                             bool valid,
+                                             CbOutcome<void> &&cb) override;
 
-    /// Sign and issue local dispute votes. A value of `true` indicates
-    /// validity, and `false` invalidity.
-    void IssueLocalStatement(SessionIndex,
-                             CandidateHash,
-                             CandidateReceipt,
-                             bool);
-
-    /// Determine the highest undisputed block within the given chain, based on
-    /// where candidates were included. If even the base block should not be
-    /// finalized due to a dispute, then `None` should be returned on the
-    /// channel.
-    ///
-    /// The block descriptions begin counting upwards from the block after the
-    /// given `base_number`. The `base_number` is typically the number of the
-    /// last finalized block but may be slightly higher. This block is
-    /// inevitably going to be finalized so it is not accounted for by this
-    /// function.
-    void DetermineUndisputedChain{
-      base_number : BlockNumber,
-      block_descriptions : Vec<(BlockHash, SessionIndex, Vec<CandidateHash>)>,
-      rx : ResponseSender<Option<(BlockNumber, BlockHash)>>,
-    };
-
-    clang-format on */
+    void handle_incoming_DetermineUndisputedChain(
+        primitives::BlockInfo base,
+        std::vector<BlockDescription> block_descriptions,
+        CbOutcome<primitives::BlockInfo> &&cb) override;
 
    private:
     void startup(const network::ExView &updated);
-    void on_message(const DisputeCoordinatorMessage &message);
     void on_participation(const ParticipationStatement &message);
     void on_active_leaves_update(const network::ExView &updated);
     void on_finalized_block(const primitives::BlockInfo &finalized);
@@ -153,12 +142,6 @@ namespace kagome::dispute {
     void send_dispute_messages(const CandidateEnvironment &env,
                                const CandidateVoteState &vote_state);
 
-    //    void find_controlled_validator_indices(
-    //        Indexed<std::vector<ValidatorId>> validators);
-    //
-    //    bool is_potential_spam(const CandidateVoteState &vote_state,
-    //                           const CandidateHash &candidate_hash);
-
     outcome::result<void> issue_local_statement(
         const CandidateHash &candidate_hash,
         const CandidateReceipt &candidate_receipt,
@@ -173,22 +156,6 @@ namespace kagome::dispute {
         const primitives::BlockHash &base_hash,
         std::vector<BlockDescription> block_descriptions);
 
-    outcome::result<void> handle_incoming(
-        const DisputeCoordinatorMessage &message);
-
-    outcome::result<void> handle_incoming_ImportStatements(
-        const ImportStatements &msg);
-    outcome::result<void> handle_incoming_RecentDisputes(
-        const RecentDisputesRequest_ &p);
-    outcome::result<void> handle_incoming_ActiveDisputes(
-        const ActiveDisputes &msg);
-    outcome::result<void> handle_incoming_QueryCandidateVotes(
-        const QueryCandidateVotes &msg);
-    outcome::result<void> handle_incoming_IssueLocalStatement(
-        const IssueLocalStatement &msg);
-    outcome::result<void> handle_incoming_DetermineUndisputedChain(
-        const DetermineUndisputedChain &msg);
-
     std::shared_ptr<application::AppStateManager> app_state_manager_;
     std::shared_ptr<libp2p::basic::Scheduler> scheduler_;
     std::shared_ptr<clock::SystemClock> clock_;
@@ -198,6 +165,7 @@ namespace kagome::dispute {
     std::shared_ptr<crypto::Hasher> hasher_;
     std::shared_ptr<blockchain::BlockTree> block_tree_;
     std::shared_ptr<runtime::ParachainHost> api_;
+    std::shared_ptr<parachain::ApprovalDistribution> approval_distribution_;
 
     std::shared_ptr<network::PeerView> peer_view_;
     std::shared_ptr<network::PeerView::MyViewSubscriber> my_view_sub_;
