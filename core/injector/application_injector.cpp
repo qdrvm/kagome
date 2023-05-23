@@ -326,16 +326,6 @@ namespace {
     runtime_upgrade_tracker->subscribeToBlockchainEvents(chain_events_engine,
                                                          block_tree);
 
-    auto pruner =
-        injector.template create<sptr<storage::trie_pruner::TriePruner>>();
-
-    // there's also IdlePruner declared in this file, which does nothing
-    auto *pruner_impl =
-        dynamic_cast<storage::trie_pruner::TriePrunerImpl *>(pruner.get());
-    if (pruner_impl) {
-      pruner_impl->init(*block_tree).value();
-    }
-
     return block_tree;
   }
 
@@ -652,9 +642,6 @@ namespace {
               return get_rocks_db(config, chain_spec);
             }),
             bind_by_lambda<blockchain::BlockStorage>([](const auto &injector) {
-              auto pruner =
-                  injector
-                      .template create<sptr<storage::trie_pruner::TriePruner>>();
               auto root =
                   injector::calculate_genesis_state(
                       injector
@@ -662,8 +649,7 @@ namespace {
                       injector
                           .template create<const runtime::ModuleFactory &>(),
                       injector
-                          .template create<storage::trie::TrieSerializer &>(),
-                      *pruner)
+                          .template create<storage::trie::TrieSerializer &>())
                       .value();
               const auto &hasher =
                   injector.template create<sptr<crypto::Hasher>>();
@@ -728,8 +714,8 @@ namespace {
                       injector.template create<sptr<storage::SpacedStorage>>();
                   return get_trie_storage_backend(storage);
                 }),
-            bind_by_lambda<storage::trie::TrieStorage>(
-                [](const auto &injector) {
+            bind_by_lambda<storage::trie::TrieStorage>([](const auto
+                                                              &injector) {
               return storage::trie::TrieStorageImpl::createEmpty(
                          injector.template create<
                              sptr<storage::trie::PolkadotTrieFactory>>(),
@@ -739,20 +725,25 @@ namespace {
                          injector.template create<
                              sptr<storage::trie_pruner::TriePruner>>())
                   .value();
-                }),
+            }),
             di::bind<storage::trie::PolkadotTrieFactory>.template to<storage::trie::PolkadotTrieFactoryImpl>(),
             di::bind<storage::trie::Codec>.template to<storage::trie::PolkadotCodec>(),
             di::bind<storage::trie::TrieSerializer>.template to<storage::trie::TrieSerializerImpl>(),
             bind_by_lambda<storage::trie_pruner::TriePruner>(
-                [](auto const &injector)
+                [](const auto &injector)
                     -> std::shared_ptr<storage::trie_pruner::TriePruner> {
-                  auto app_config =
-                      injector
-                          .template create<sptr<application::AppConfiguration>>();
+                  auto app_config = injector.template create<
+                      sptr<application::AppConfiguration>>();
                   if (!app_config->statePruningDepth().has_value()) {
                     class IdlePruner final
                         : public storage::trie_pruner::TriePruner {
                      public:
+                      virtual outcome::result<void> addNewState(
+                          storage::trie::RootHash const &,
+                          storage::trie::StateVersion) override {
+                        return outcome::success();
+                      }
+
                       virtual outcome::result<void> addNewState(
                           storage::trie::PolkadotTrie const &,
                           storage::trie::StateVersion) override {
@@ -782,7 +773,7 @@ namespace {
                         return outcome::success();
                       }
 
-                      virtual std::optional<primitives::BlockNumber>
+                      virtual std::optional<primitives::BlockInfo>
                       getLastPrunedBlock() const override {
                         return {};
                       }
@@ -791,28 +782,36 @@ namespace {
                           const override {
                         return {};
                       }
+
+                      virtual outcome::result<void> restoreState(
+                          const primitives::BlockHeader &last_pruned_block,
+                          const blockchain::BlockTree &block_tree) override {
+                        return outcome::success();
+                      }
                     };
                     return std::make_shared<IdlePruner>();
                   }
 
-                  auto config =
-                      injector
-                          .template create<sptr<application::AppConfiguration>>();
-                  auto hasher = injector.template create<sptr<crypto::Hasher>>();
-                  auto serializer =
-                      injector
-                          .template create<sptr<storage::trie::TrieSerializer>>();
-                  auto codec =
-                      injector
-                          .template create<sptr<storage::trie::PolkadotCodec>>();
+                  auto config = injector.template create<
+                      sptr<application::AppConfiguration>>();
+                  auto hasher =
+                      injector.template create<sptr<crypto::Hasher>>();
+                  auto serializer = injector.template create<
+                      sptr<storage::trie::TrieSerializer>>();
+                  auto codec = injector.template create<
+                      sptr<storage::trie::PolkadotCodec>>();
                   auto trie_storage = injector.template create<
                       sptr<storage::trie::TrieStorageBackend>>();
                   auto storage =
                       injector.template create<sptr<storage::SpacedStorage>>();
+                  auto res = storage::trie_pruner::TriePrunerImpl::create(
+                      config, trie_storage, serializer, codec, storage, hasher);
+                  if (!res) {
+                    throw std::runtime_error{"Error initializing trie pruner: "
+                                             + res.error().message()};
+                  }
                   return std::shared_ptr<storage::trie_pruner::TriePruner>{
-                      storage::trie_pruner::TriePrunerImpl::create(
-                          config, trie_storage, serializer, codec, storage, hasher)
-                          .value()};
+                      std::move(res.value())};
                 }),
             di::bind<runtime::RuntimeCodeProvider>.template to<runtime::StorageCodeProvider>(),
             bind_by_lambda<application::ChainSpec>([](const auto &injector) {

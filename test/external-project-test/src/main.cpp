@@ -112,8 +112,7 @@ int main() {
                                                            serializer,
                                                            codec,
                                                            database,
-                                                           hasher,
-                                                           block_tree)
+                                                           hasher)
           .value());
 
   std::shared_ptr<kagome::storage::trie::TrieStorageImpl> trie_storage =

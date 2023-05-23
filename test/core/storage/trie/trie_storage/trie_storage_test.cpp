@@ -62,7 +62,9 @@ TEST(TriePersistencyTest, CreateDestroyCreate) {
             rocks_db->getSpace(Space::kDefault)));
 
     auto state_pruner = std::make_shared<TriePrunerMock>();
-    ON_CALL(*state_pruner, addNewState(_, _))
+    ON_CALL(*state_pruner,
+            addNewState(
+                testing::A<const kagome::storage::trie::PolkadotTrie &>(), _))
         .WillByDefault(Return(outcome::success()));
 
     auto storage =

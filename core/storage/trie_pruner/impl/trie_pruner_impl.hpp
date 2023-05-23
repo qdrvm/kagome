@@ -56,7 +56,7 @@ namespace kagome::storage::trie_pruner {
       LAST_PRUNED_BLOCK_IS_LAST_FINALIZED,
     };
 
-    static inline const common::Buffer TRIE_PRUNER_INFO_KEY =
+    inline static const common::Buffer TRIE_PRUNER_INFO_KEY =
         ":trie_pruner:info"_buf;
 
     struct ChildStorageInfo {
@@ -81,47 +81,51 @@ namespace kagome::storage::trie_pruner {
         std::shared_ptr<const storage::trie::TrieSerializer> serializer,
         std::shared_ptr<const storage::trie::Codec> codec,
         std::shared_ptr<storage::SpacedStorage> storage,
-        std::shared_ptr<const crypto::Hasher> hasher,
-        const blockchain::BlockTree &block_tree);
+        std::shared_ptr<const crypto::Hasher> hasher);
 
     virtual outcome::result<void> addNewState(
-        trie::PolkadotTrie const &new_trie,
+        const storage::trie::RootHash &state_root,
+        trie::StateVersion version) override;
+
+    virtual outcome::result<void> addNewState(
+        const trie::PolkadotTrie &new_trie,
         trie::StateVersion version) override;
 
     virtual outcome::result<void> addNewChildState(
-        storage::trie::RootHash const &parent_root,
+        const storage::trie::RootHash &parent_root,
         common::BufferView key,
-        trie::PolkadotTrie const &new_trie,
+        const trie::PolkadotTrie &new_trie,
         trie::StateVersion version) override;
 
     virtual outcome::result<void> markAsChild(Parent parent,
-                                              common::Buffer const &key,
+                                              const common::Buffer &key,
                                               Child child) override;
 
     virtual outcome::result<void> pruneFinalized(
-        primitives::BlockHeader const &state) override;
+        const primitives::BlockHeader &state) override;
 
     virtual outcome::result<void> pruneDiscarded(
-        primitives::BlockHeader const &state) override;
+        const primitives::BlockHeader &state) override;
 
-    std::optional<primitives::BlockNumber> getLastPrunedBlock() const override {
-      if (last_pruned_block_) {
-        return last_pruned_block_.value().number;
-      }
-      return std::nullopt;
+    virtual outcome::result<void> restoreState(
+        const primitives::BlockHeader &base_block,
+        const blockchain::BlockTree &block_tree) override;
+
+    std::optional<primitives::BlockInfo> getLastPrunedBlock() const override {
+      return last_pruned_block_;
     }
 
     size_t getTrackedNodesNum() const {
       return ref_count_.size();
     }
 
-    size_t getRefCountOf(common::Hash256 const &node) const {
+    size_t getRefCountOf(const common::Hash256 &node) const {
       auto it = ref_count_.find(node);
       return it == ref_count_.end() ? 0 : it->second;
     }
 
     template <typename F>
-    void forRefCounts(F const &f) {
+    void forRefCounts(const F &f) {
       for (auto &[node, count] : ref_count_) {
         f(node, count);
       }
@@ -152,17 +156,10 @@ namespace kagome::storage::trie_pruner {
       BOOST_ASSERT(hasher_ != nullptr);
     }
 
-    outcome::result<void> prune(primitives::BlockHeader const &state);
+    outcome::result<void> prune(const primitives::BlockHeader &state);
 
     outcome::result<storage::trie::RootHash> addNewStateWith(
-        trie::PolkadotTrie const &new_trie,
-        trie::StateVersion version);
-
-    // resets the pruner state and builds it from scratch from the state
-    // of the provided block
-    outcome::result<void> restoreState(
-        primitives::BlockHeader const &base_block,
-        blockchain::BlockTree const &block_tree);
+        const trie::PolkadotTrie &new_trie, trie::StateVersion version);
 
     // store the persistent pruner info to the database
     outcome::result<void> savePersistentState() const;

@@ -47,7 +47,8 @@ std::shared_ptr<TrieStorage> makeEmptyInMemoryTrie() {
   auto serializer =
       std::make_shared<TrieSerializerImpl>(trie_factory, codec, backend);
   auto state_pruner = std::make_shared<TriePrunerMock>();
-  ON_CALL(*state_pruner, addNewState(_, _))
+  ON_CALL(*state_pruner,
+          addNewState(testing::A<const storage::trie::PolkadotTrie &>(), _))
       .WillByDefault(Return(outcome::success()));
 
   return kagome::storage::trie::TrieStorageImpl::createEmpty(
@@ -129,11 +130,7 @@ TEST_F(StateProtocolObserverTest, Simple) {
   EXPECT_CALL(*headers_, getBlockHeader({"1"_hash256}))
       .WillRepeatedly(testing::Return(header));
 
-  StateRequest request{
-      .hash = "1"_hash256,
-      .start = {},
-      .no_proof = false
-  };
+  StateRequest request{.hash = "1"_hash256, .start = {}, .no_proof = false};
 
   EXPECT_OUTCOME_TRUE(response,
                       state_protocol_observer_->onStateRequest(request));

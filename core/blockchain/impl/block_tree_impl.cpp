@@ -17,6 +17,7 @@
 #include "crypto/blake2/blake2b.h"
 #include "log/profiling_logger.hpp"
 #include "storage/database_error.hpp"
+#include "storage/trie_pruner/recover_pruner_state.hpp"
 #include "storage/trie_pruner/trie_pruner.hpp"
 
 namespace {
@@ -245,6 +246,9 @@ namespace kagome::blockchain {
       SL_TRACE(
           log, "Existing non-finalized block {} is added to block tree", block);
     }
+
+    OUTCOME_TRY(
+        storage::trie_pruner::recoverPrunerState(*state_pruner, *block_tree));
 
     return block_tree;
   }
@@ -1420,8 +1424,8 @@ namespace kagome::blockchain {
     BOOST_ASSERT(root_node->depth == old_finalized);
     auto last_pruned = block_tree_data.state_pruner_->getLastPrunedBlock();
     BOOST_ASSERT(!last_pruned.has_value()
-                 || last_pruned.value() <= root_node->depth);
-    auto next_pruned_number = last_pruned ? *last_pruned + 1 : 0;
+                 || last_pruned.value().number <= root_node->depth);
+    auto next_pruned_number = last_pruned ? last_pruned->number + 1 : 0;
     OUTCOME_TRY(hash_opt, getBlockHash(next_pruned_number));
     BOOST_ASSERT(hash_opt.has_value());
     primitives::BlockHash hash = std::move(*hash_opt);
@@ -1438,12 +1442,13 @@ namespace kagome::blockchain {
       OUTCOME_TRY(block_tree_data.state_pruner_->pruneFinalized(header));
       hash = std::move(next_hash);
     }
-    BOOST_ASSERT(block_tree_data.state_pruner_->getLastPrunedBlock().has_value()
-                 && block_tree_data.state_pruner_->getLastPrunedBlock().value()
-                        == root_node->depth);
+    BOOST_ASSERT(
+        block_tree_data.state_pruner_->getLastPrunedBlock().has_value()
+        && block_tree_data.state_pruner_->getLastPrunedBlock().value().number
+               == root_node->depth);
 
     auto *current_node = root_node;
-    for (auto n = *block_tree_data.state_pruner_->getLastPrunedBlock();
+    for (auto n = block_tree_data.state_pruner_->getLastPrunedBlock()->number;
          n < last_to_prune;
          n++) {
       BOOST_ASSERT(current_node->children.size() == 1);

@@ -13,6 +13,10 @@
 #include "primitives/block_id.hpp"
 #include "storage/trie/types.hpp"
 
+namespace kagome::blockchain {
+  class BlockTree;
+}
+
 namespace kagome::storage::trie {
   class PolkadotTrie;
 }
@@ -34,7 +38,19 @@ namespace kagome::storage::trie_pruner {
      * @param version trie version used by runtime when creating this trie.
      */
     virtual outcome::result<void> addNewState(
-        trie::PolkadotTrie const &new_trie, trie::StateVersion version) = 0;
+        const storage::trie::RootHash &state_root,
+        trie::StateVersion version) = 0;
+
+    /**
+     * Register a new trie with the trie pruner so that the trie nodes
+     * this trie references are kept until the block this trie belongs to is
+     * pruned.
+     * @note This overload avoids downloading trie nodes that are already in
+     * memory from the database
+     * @param version trie version used by runtime when creating this trie.
+     */
+    virtual outcome::result<void> addNewState(
+        const trie::PolkadotTrie &new_trie, trie::StateVersion version) = 0;
 
     /**
      * Register a new child trie with the trie pruner so that the trie nodes
@@ -43,21 +59,21 @@ namespace kagome::storage::trie_pruner {
      * @param version trie version used by runtime when creating this trie.
      */
     virtual outcome::result<void> addNewChildState(
-        storage::trie::RootHash const &parent_root,
+        const storage::trie::RootHash &parent_root,
         common::BufferView key,
-        trie::PolkadotTrie const &new_trie,
+        const trie::PolkadotTrie &new_trie,
         trie::StateVersion version) = 0;
 
     /// wrapper for RootHash to avoid confusing parameter order
     struct Parent {
-      explicit Parent(storage::trie::RootHash const &hash) : hash{hash} {}
-      storage::trie::RootHash const &hash;
+      explicit Parent(const storage::trie::RootHash &hash) : hash{hash} {}
+      const storage::trie::RootHash &hash;
     };
 
     /// wrapper for RootHash to avoid confusing parameter order
     struct Child {
-      explicit Child(storage::trie::RootHash const &hash) : hash{hash} {}
-      storage::trie::RootHash const &hash;
+      explicit Child(const storage::trie::RootHash &hash) : hash{hash} {}
+      const storage::trie::RootHash &hash;
     };
 
     /**
@@ -65,7 +81,7 @@ namespace kagome::storage::trie_pruner {
      * purposes.
      */
     virtual outcome::result<void> markAsChild(Parent parent,
-                                              common::Buffer const &key,
+                                              const common::Buffer &key,
                                               Child child) = 0;
 
     /**
@@ -77,7 +93,7 @@ namespace kagome::storage::trie_pruner {
      * (required for pruner state persistency purposes).
      */
     virtual outcome::result<void> pruneFinalized(
-        primitives::BlockHeader const &state) = 0;
+        const primitives::BlockHeader &state) = 0;
 
     /**
      * Prune the trie of a discarded block \param state.
@@ -87,13 +103,19 @@ namespace kagome::storage::trie_pruner {
      * (required for pruner state persistency purposes).
      */
     virtual outcome::result<void> pruneDiscarded(
-        primitives::BlockHeader const &state) = 0;
+        const primitives::BlockHeader &state) = 0;
+
+    /** Resets the pruner state and builds it from scratch from the state
+     * of the provided block
+     */
+    virtual outcome::result<void> restoreState(
+        const primitives::BlockHeader &base_block,
+        const blockchain::BlockTree &block_tree) = 0;
 
     /**
      * @return the last pruned block.
      */
-    virtual std::optional<primitives::BlockNumber> getLastPrunedBlock()
-        const = 0;
+    virtual std::optional<primitives::BlockInfo> getLastPrunedBlock() const = 0;
 
     /**
      * @return the number of blocks behind the last finalized one

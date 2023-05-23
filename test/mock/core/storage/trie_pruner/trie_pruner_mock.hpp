@@ -16,34 +16,46 @@ namespace kagome::storage::trie_pruner {
    public:
     MOCK_METHOD(outcome::result<void>,
                 addNewState,
-                (trie::PolkadotTrie const &new_trie,
+                (const storage::trie::RootHash &new_trie,
+                 trie::StateVersion version),
+                (override));
+
+    MOCK_METHOD(outcome::result<void>,
+                addNewState,
+                (const trie::PolkadotTrie &new_trie,
                  trie::StateVersion version),
                 (override));
 
     MOCK_METHOD(outcome::result<void>,
                 addNewChildState,
-                (storage::trie::RootHash const &parent_root,
+                (const storage::trie::RootHash &parent_root,
                  common::BufferView key,
-                 trie::PolkadotTrie const &new_trie,
+                 const trie::PolkadotTrie &new_trie,
                  trie::StateVersion version),
                 (override));
 
     MOCK_METHOD(outcome::result<void>,
                 markAsChild,
-                (Parent parent, common::Buffer const &key, Child child),
+                (Parent parent, const common::Buffer &key, Child child),
                 (override));
 
     MOCK_METHOD(outcome::result<void>,
                 pruneFinalized,
-                (primitives::BlockHeader const &state),
+                (const primitives::BlockHeader &state),
                 (override));
 
     MOCK_METHOD(outcome::result<void>,
                 pruneDiscarded,
-                (primitives::BlockHeader const &state),
+                (const primitives::BlockHeader &state),
                 (override));
 
-    MOCK_METHOD(std::optional<primitives::BlockNumber>,
+    MOCK_METHOD(outcome::result<void>,
+                restoreState,
+                (const primitives::BlockHeader &base_block,
+                 const blockchain::BlockTree &block_tree),
+                (override));
+
+    MOCK_METHOD(std::optional<primitives::BlockInfo>,
                 getLastPrunedBlock,
                 (),
                 (const, override));

@@ -45,8 +45,7 @@ namespace kagome::storage::trie_pruner {
       std::shared_ptr<const storage::trie::TrieSerializer> serializer,
       std::shared_ptr<const storage::trie::Codec> codec,
       std::shared_ptr<storage::SpacedStorage> storage,
-      std::shared_ptr<const crypto::Hasher> hasher,
-      const blockchain::BlockTree &block_tree) {
+      std::shared_ptr<const crypto::Hasher> hasher) {
     auto pruner = std::unique_ptr<TriePrunerImpl>(
         new TriePrunerImpl{config->statePruningDepth(),
                            trie_storage,
@@ -71,50 +70,10 @@ namespace kagome::storage::trie_pruner {
       }
     }
     SL_DEBUG(
-        logger_,
+        pruner->logger_,
         "Initialize trie pruner with pruning depth {}, last pruned block {}",
-        pruning_depth_,
-        last_pruned_block_);
-    if (!last_pruned_block_.has_value()) {
-      OUTCOME_TRY(first_hash_opt, block_tree.getBlockHash(1));
-      if (first_hash_opt.has_value()) {
-        SL_WARN(logger_,
-                "Running pruner on a non-empty non-pruned storage may lead to "
-                "skipping some stored states.");
-        OUTCOME_TRY(
-            last_finalized,
-            block_tree.getBlockHeader(block_tree.getLastFinalized().hash));
-
-        if (auto res = restoreState(last_finalized, block_tree);
-            res.has_error()) {
-          SL_ERROR(logger_,
-                   "Failed to restore trie pruner state starting from last "
-                   "finalized "
-                   "block: {}",
-                   res.error().message());
-          return res.as_failure();
-        }
-      } else {
-        OUTCOME_TRY(genesis_header,
-                    block_tree.getBlockHeader(getGenesisBlockHash()));
-        OUTCOME_TRY(genesis_trie,
-                    serializer_->retrieveTrie(genesis_header.state_root));
-        OUTCOME_TRY(addNewState(genesis_trie, trie::StateVersion::V0));
-      }
-    } else {
-      OUTCOME_TRY(base_block_header,
-                  block_tree.getBlockHeader(last_pruned_block_.value().hash));
-      BOOST_ASSERT(block_tree.getLastFinalized().number
-                   >= last_pruned_block_->number);
-      if (auto res = restoreState(base_block_header, block_tree);
-          res.has_error()) {
-        SL_WARN(logger_,
-                "Failed to restore trie pruner state starting from base "
-                "block {}: {}",
-                last_pruned_block_.value(),
-                res.error().message());
-      }
-    }
+        pruner->pruning_depth_,
+        pruner->last_pruned_block_);
 
     return pruner;
   }
@@ -334,6 +293,14 @@ namespace kagome::storage::trie_pruner {
              values_removed,
              values_unknown);
 
+    return outcome::success();
+  }
+
+  outcome::result<void> TriePrunerImpl::addNewState(
+      const storage::trie::RootHash &state_root, trie::StateVersion version) {
+    OUTCOME_TRY(trie, serializer_->retrieveTrie(state_root));
+    OUTCOME_TRY(addNewStateWith(*trie, version));
+    OUTCOME_TRY(savePersistentState());
     return outcome::success();
   }
 

@@ -55,12 +55,14 @@ class TrieBatchTest : public test::BaseRocksDB_Test {
     empty_hash = serializer->getEmptyRootHash();
 
     auto state_pruner = std::make_shared<TriePrunerMock>();
-    ON_CALL(*state_pruner, addNewState(_, _))
+    ON_CALL(*state_pruner,
+            addNewState(
+                testing::A<const kagome::storage::trie::PolkadotTrie &>(), _))
         .WillByDefault(Return(outcome::success()));
 
-    trie = TrieStorageImpl::createEmpty(
-               factory, codec, serializer, state_pruner)
-               .value();
+    trie =
+        TrieStorageImpl::createEmpty(factory, codec, serializer, state_pruner)
+            .value();
   }
 
   static const std::vector<std::pair<Buffer, Buffer>> data;
@@ -204,12 +206,14 @@ TEST_F(TrieBatchTest, ConsistentOnFailure) {
   auto serializer = std::make_shared<TrieSerializerImpl>(
       factory, codec, std::make_shared<TrieStorageBackendImpl>(std::move(db)));
   auto state_pruner = std::make_shared<TriePrunerMock>();
-  ON_CALL(*state_pruner, addNewState(_, _))
+  ON_CALL(
+      *state_pruner,
+      addNewState(testing::A<const kagome::storage::trie::PolkadotTrie &>(), _))
       .WillByDefault(Return(outcome::success()));
 
-  auto trie = TrieStorageImpl::createEmpty(
-                  factory, codec, serializer, state_pruner)
-                  .value();
+  auto trie =
+      TrieStorageImpl::createEmpty(factory, codec, serializer, state_pruner)
+          .value();
   auto batch = trie->getPersistentBatchAt(empty_hash, std::nullopt).value();
 
   ASSERT_OUTCOME_SUCCESS_TRY(batch->put("123"_buf, "111"_buf));

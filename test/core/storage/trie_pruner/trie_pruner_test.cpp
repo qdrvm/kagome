@@ -23,6 +23,7 @@
 #include "storage/trie/serialization/polkadot_codec.hpp"
 #include "storage/trie/serialization/trie_serializer_impl.hpp"
 #include "storage/trie_pruner/impl/trie_pruner_impl.hpp"
+#include "storage/trie_pruner/recover_pruner_state.hpp"
 #include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
 #include "testutil/prepare_loggers.hpp"
@@ -798,7 +799,7 @@ TEST_F(TriePrunerTest, FastSyncScenario) {
 
   // initOnBlock(BlockInfo{0, hash_from_header(headers.at(0))});
 
-  ASSERT_OUTCOME_SUCCESS_TRY(pruner->init(*block_tree));
+  ASSERT_OUTCOME_SUCCESS_TRY(recoverPrunerState(*pruner, *block_tree));
 
   for (BlockNumber n = 80; n < LAST_BLOCK_NUMBER; n++) {
     mock_full_block(n);
