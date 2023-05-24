@@ -18,7 +18,6 @@ add_library(network
     impl/transactions_transmitter_impl.cpp
     impl/sync_protocol_observer_impl.cpp
     impl/stream_engine.cpp
-    impl/dispute_request_observer_impl.cpp
     impl/protocols/protocol_error.cpp
     impl/protocols/state_protocol_impl.cpp
     impl/protocols/sync_protocol_impl.cpp
@@ -26,7 +25,6 @@ add_library(network
     impl/protocols/grandpa_protocol.cpp
     impl/protocols/protocol_req_collation.cpp
     impl/protocols/block_announce_protocol.cpp
-    impl/protocols/send_dispute_protocol_impl.cpp
     impl/peer_view.cpp
     impl/peer_manager_impl.cpp
     impl/reputation_repository_impl.cpp
