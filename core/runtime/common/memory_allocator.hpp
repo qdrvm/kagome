@@ -551,9 +551,25 @@ namespace kagome::runtime {
       const auto position = allocate(size);
       auto *dst = toPtr(position);
       auto *src = toPtr(offset);
+      const auto src_sz = size(offset);
 
+      memcpy(dst, src, src_sz);
       deallocate(offset);
       return position;
+    }
+
+    WsmSize size(WsmPtr offset) {
+      const auto raw_offset = WsmRawPtr(offset - heap_base_);
+      WsmSize result{0ull};
+      for_each_layer([&](auto &layer) {
+        if (!layer.offsetLocatesHere(raw_offset)) {
+          return;
+        }
+
+        assert(result.t == 0ull);
+        result = layer.size(raw_offset);
+      });
+      return result;
     }
 
     uint8_t *toPtr(WsmPtr offset) {
@@ -620,6 +636,10 @@ namespace kagome::runtime {
 
       uint8_t *toAddr(WsmRawPtr offset) {
         return bank_.toAddr(offset - AddressOffset);
+      }
+
+      WsmSize size(WsmRawPtr offset) const {
+        return bank_.size(offset - AddressOffset);
       }
 
 #ifndef TEST_MODE
