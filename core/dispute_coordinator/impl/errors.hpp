@@ -71,11 +71,17 @@ namespace kagome::dispute {
     InvalidStatementInvalidValidatorIndex,
   };
 
+  enum class BatchError {
+    /// Had to drop messages, because we reached limit on concurrent batches
+    MaxBatchLimitReached = 1,
+  };
+
 }  // namespace kagome::dispute
 
 OUTCOME_HPP_DECLARE_ERROR(kagome::dispute, RollingSessionWindowError);
 OUTCOME_HPP_DECLARE_ERROR(kagome::dispute, SignatureValidationError);
 OUTCOME_HPP_DECLARE_ERROR(kagome::dispute, DisputeMessageCreationError);
 OUTCOME_HPP_DECLARE_ERROR(kagome::dispute, DisputeMessageConstructingError);
+OUTCOME_HPP_DECLARE_ERROR(kagome::dispute, BatchError);
 
 #endif  // KAGOME_DISPUTE_ERRORS_HPP

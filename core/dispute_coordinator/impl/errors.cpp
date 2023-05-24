@@ -71,3 +71,13 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::dispute,
   }
   return "unknown error (invalid DisputeMessageConstructingError)";
 };
+
+OUTCOME_CPP_DEFINE_CATEGORY(kagome::dispute, BatchError, e) {
+  using E = kagome::dispute::BatchError;
+  switch (e) {
+    case E::MaxBatchLimitReached:
+      return "Had to drop messages, because we reached limit on concurrent "
+             "batches";
+  }
+  return "unknown error (invalid BatchError)";
+};
