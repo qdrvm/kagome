@@ -17,7 +17,7 @@
 #include "network/impl/protocols/protocol_fetch_chunk.hpp"
 #include "network/impl/protocols/protocol_req_collation.hpp"
 #include "network/impl/protocols/protocol_req_pov.hpp"
-#include "network/protocols/send_dispute_protocol.hpp"
+#include "network/impl/protocols/send_dispute_protocol.hpp"
 #include "network/protocols/state_protocol.hpp"
 #include "network/protocols/sync_protocol.hpp"
 
@@ -42,7 +42,7 @@ namespace kagome::network {
         const = 0;
     virtual std::shared_ptr<FetchAvailableDataProtocol>
     getFetchAvailableDataProtocol() const = 0;
-    virtual std::shared_ptr<StatmentFetchingProtocol>
+    virtual std::shared_ptr<StatementFetchingProtocol>
     getFetchStatementProtocol() const = 0;
     virtual std::shared_ptr<PropagateTransactionsProtocol>
     getPropagateTransactionsProtocol() const = 0;

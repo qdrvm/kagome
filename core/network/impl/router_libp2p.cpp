@@ -25,7 +25,7 @@ namespace kagome::network {
       LazySPtr<ReqPovProtocol> req_pov_protocol,
       LazySPtr<FetchChunkProtocol> fetch_chunk_protocol,
       LazySPtr<FetchAvailableDataProtocol> fetch_available_data_protocol,
-      LazySPtr<StatmentFetchingProtocol> statement_fetching_protocol,
+      LazySPtr<StatementFetchingProtocol> statement_fetching_protocol,
       LazySPtr<SendDisputeProtocol> send_dispute_protocol,
       LazySPtr<libp2p::protocol::Ping> ping_protocol)
       : app_state_manager_{app_state_manager},
@@ -210,7 +210,7 @@ namespace kagome::network {
     return fetch_available_data_protocol_.get();
   }
 
-  std::shared_ptr<StatmentFetchingProtocol>
+  std::shared_ptr<StatementFetchingProtocol>
   RouterLibp2p::getFetchStatementProtocol() const {
     return statement_fetching_protocol_.get();
   }

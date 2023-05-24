@@ -3,8 +3,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_NETWORK_SENDDISPUTEPROTOCOLIMPL2
-#define KAGOME_NETWORK_SENDDISPUTEPROTOCOLIMPL2
+#ifndef KAGOME_NETWORK_SENDDISPUTEPROTOCOLIMPL
+#define KAGOME_NETWORK_SENDDISPUTEPROTOCOLIMPL
 
 #include "network/impl/protocols/request_response_protocol.hpp"
 
@@ -29,21 +29,20 @@ namespace kagome::network {
 
   struct ReqPovProtocolImpl;
 
-  class SendDisputeProtocolImpl final
+  class SendDisputeProtocol final
       : public RequestResponseProtocol<DisputeMessage,
                                        boost::variant<kagome::Empty>,
                                        ScaleMessageReadWriter>,
         NonCopyable,
         NonMovable {
    public:
-    SendDisputeProtocolImpl() = delete;
-    ~SendDisputeProtocolImpl() override = default;
+    SendDisputeProtocol() = delete;
+    ~SendDisputeProtocol() override = default;
 
-    SendDisputeProtocolImpl(libp2p::Host &host,
-                            const application::ChainSpec &chain_spec,
-                            const blockchain::GenesisBlockHash &genesis_hash,
-                            std::shared_ptr<network::DisputeRequestObserver>
-                                dispute_request_observer)
+    SendDisputeProtocol(libp2p::Host &host,
+                        const blockchain::GenesisBlockHash &genesis_hash,
+                        std::shared_ptr<network::DisputeRequestObserver>
+                            dispute_request_observer)
         : RequestResponseProtocol<
             DisputeMessage,
             boost::variant<kagome::Empty>,
@@ -59,22 +58,38 @@ namespace kagome::network {
     }
 
    private:
-    outcome::result<ResponseType> onRxRequest(
-        RequestType request, std::shared_ptr<Stream> /*stream*/) override {
+    std::optional<outcome::result<ResponseType>> onRxRequest(
+        RequestType request, std::shared_ptr<Stream> stream) override {
       SL_INFO(base().logger(),
               "Processing dispute request.(candidate={}, session={})",
               request.candidate_receipt.commitments_hash,
               request.session_index);
-      auto res =
-          dispute_request_observer_->onDisputeRequest(std::move(request));
-      if (res.has_error()) {
-        SL_WARN(base().logger(),
-                "Processing dispute request failed: {}",
-                res.error());
-      } else {
-        SL_TRACE(base().logger(), "Processing dispute request successful.");
-      }
-      return res;
+
+      BOOST_ASSERT(stream->remotePeerId().has_value());
+
+      dispute_request_observer_->onDisputeRequest(
+          stream->remotePeerId().value(),
+          std::move(request),
+          [wp = weak_from_this(),
+           &logger = base().logger(),
+           write = &SendDisputeProtocol::writeResponse,
+           stream{std::move(stream)}](outcome::result<void> res) {
+            if (auto self = wp.lock()) {
+              if (res.has_error()) {
+                SL_WARN(logger,
+                        "Processing dispute request failed: {}",
+                        res.error());
+                stream->reset();
+                return;
+              }
+
+              SL_TRACE(logger, "Processing dispute request successful.");
+              ((*self).*write)(std::move(stream),
+                               ResponseType{kagome::Empty{}});
+            }
+          });
+
+      return std::nullopt;
     }
 
     void onTxRequest(const RequestType &request) override {
@@ -90,4 +105,4 @@ namespace kagome::network {
 
 }  // namespace kagome::network
 
-#endif  // KAGOME_NETWORK_SENDDISPUTEPROTOCOLIMPL2
+#endif  // KAGOME_NETWORK_SENDDISPUTEPROTOCOLIMPL

@@ -98,7 +98,7 @@
 #include "network/impl/extrinsic_observer_impl.hpp"
 #include "network/impl/grandpa_transmitter_impl.hpp"
 #include "network/impl/peer_manager_impl.hpp"
-#include "network/impl/protocols/send_dispute_protocol_impl.hpp"
+#include "network/impl/protocols/send_dispute_protocol.hpp"
 #include "network/impl/protocols/state_protocol_impl.hpp"
 #include "network/impl/protocols/sync_protocol_impl.hpp"
 #include "network/impl/reputation_repository_impl.hpp"
@@ -772,7 +772,6 @@ namespace {
             di::bind<network::BlockAnnounceObserver>.template to<consensus::babe::BabeImpl>(),
             di::bind<dispute::DisputeCoordinator>.template to<dispute::DisputeCoordinatorImpl>(),
             di::bind<dispute::Storage>.template to<dispute::StorageImpl>(),
-            di::bind<network::SendDisputeProtocol>.template to<network::SendDisputeProtocolImpl>(),
 
             // user-defined overrides...
             std::forward<decltype(args)>(args)...);
