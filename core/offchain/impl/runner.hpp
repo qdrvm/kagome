@@ -32,7 +32,7 @@ namespace kagome::offchain {
       if (tasks_.size() >= max_tasks_) {
         tasks_.pop_front();
       }
-      if (free_threads_ <= 0) {
+      if (free_threads_ == 0) {
         tasks_.emplace_back(std::move(task));
         return;
       }
