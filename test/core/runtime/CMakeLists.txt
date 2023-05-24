@@ -14,6 +14,9 @@ addtest(memory_allocator_test
     memory_allocator_test.cpp
     )
 target_link_libraries(memory_allocator_test
+    memory_allocator
+    testutil_primitives_generator
+    logger_for_tests
     )
 
 addtest(storage_code_provider_test

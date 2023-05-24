@@ -994,10 +994,120 @@ TEST_F(MemoryAllocatorTest, AllocateTest_Size_512) {
   ASSERT_EQ(allocator_->size(ptr), 512ull);
 }
 
+class TicToc {
+  std::chrono::time_point<std::chrono::high_resolution_clock> t_;
+
+ public:
+  TicToc(std::string &&) = delete;
+  TicToc(std::string const &) = delete;
+  TicToc() {
+    t_ = std::chrono::high_resolution_clock::now();
+  }
+
+  size_t toc() {
+    auto prev = t_;
+    t_ = std::chrono::high_resolution_clock::now();
+    return std::chrono::duration_cast<std::chrono::nanoseconds>(t_ - prev).count();
+  }
+};
+
+#include "testutil/prepare_loggers.hpp"
 TEST_F(MemoryAllocatorTest, GenericAllocator_Allocate) {
+  testutil::prepareLoggers();
   allocator_.reset();
   runtime::GenericAllocator a_{100};
-  // ASSERT_EQ(a_.);
+
+  std::vector<uint8_t> memory;
+  runtime::MemoryAllocator b_(
+                           runtime::MemoryAllocator::MemoryHandle{
+                           [&](auto new_size) { memory.resize(new_size); },
+                           [&]() { return memory.size(); }},
+  100
+  );
+
+  TicToc t;
+  const auto ptr_0 = a_.allocate(runtime::WsmSize(1));
+  const auto elapsed_0 = t.toc();
+  const auto ptr_1 = a_.allocate(runtime::WsmSize(512));
+  const auto elapsed_1 = t.toc();
+  auto *m = (uint8_t*)malloc(512);
+  const auto elapsed_2 = t.toc();
+  const auto ptr_3 = b_.allocate(1);
+  const auto elapsed_3 = t.toc();
+  const auto ptr_4 = b_.allocate(512);
+  const auto elapsed_4 = t.toc();
+  const auto ptr_5 = b_.allocate(1);
+  const auto elapsed_5 = t.toc();
+  const auto ptr_6 = a_.allocate(runtime::WsmSize(1));
+  const auto elapsed_6 = t.toc();
+  const auto ptr_7 = b_.allocate(512);
+  const auto elapsed_7 = t.toc();
+  const auto ptr_8 = a_.allocate(runtime::WsmSize(512));
+  const auto elapsed_8 = t.toc();
+  a_.deallocate(ptr_1);
+  const auto elapsed_9 = t.toc();
+  b_.deallocate(ptr_4);
+  const auto elapsed_10 = t.toc();
+  const auto ptr_11 = a_.allocate(runtime::WsmSize(512));
+  const auto elapsed_11 = t.toc();
+  const auto ptr_12 = b_.allocate(512);
+  const auto elapsed_12 = t.toc();
+
+  a_.deallocate(ptr_11);
+  b_.deallocate(ptr_12);
+
+  t.toc();
+  for (size_t i = 0; i < 200; ++i) {
+    const auto ptr_13 = a_.allocate(runtime::WsmSize(32));
+  }
+  const auto elapsed_13 = t.toc();
+
+  for (size_t i = 0; i < 200; ++i) {
+    const auto ptr_14 = b_.allocate(32);
+  }
+  const auto elapsed_14 = t.toc();
+
+  const auto ptr_15 = a_.allocate(runtime::WsmSize(25*1024*1024));
+  const auto elapsed_15 = t.toc();
+  const auto ptr_16 = b_.allocate(25*1024*1024);
+  const auto elapsed_16 = t.toc();
+
+  a_.deallocate(ptr_15);
+  b_.deallocate(ptr_16);
+
+  t.toc();
+  const auto ptr_17 = a_.allocate(runtime::WsmSize(25*1024*1024));
+  const auto elapsed_17 = t.toc();
+  const auto ptr_18 = b_.allocate(25*1024*1024);
+  const auto elapsed_18 = t.toc();
+
+  free(m);
+  std::cerr << "ELAPSED_NEW_1_0: " << elapsed_0 << std::endl;
+  std::cerr << "ELAPSED_NEW_512_1: " << elapsed_1 << std::endl;
+  std::cerr << "ELAPSED_REF_512_2: " << elapsed_2 << std::endl;
+  std::cerr << "ELAPSED_OLD_1_3: " << elapsed_3 << std::endl;
+  std::cerr << "ELAPSED_OLD_512_4: " << elapsed_4 << std::endl;
+  std::cerr << "ELAPSED_OLD_1_5: " << elapsed_5 << std::endl;
+  std::cerr << "ELAPSED_NEW_1_6: " << elapsed_6 << std::endl;
+  std::cerr << "ELAPSED_OLD_512_7: " << elapsed_7 << std::endl;
+  std::cerr << "ELAPSED_NEW_512_8: " << elapsed_8 << std::endl;
+  std::cerr << "DEALLOC ELAPSED_NEW_512_9: " << elapsed_9 << std::endl;
+  std::cerr << "DEALLOC ELAPSED_OLD_512_10: " << elapsed_10 << std::endl;
+  std::cerr << "ELAPSED_NEW_512_11: " << elapsed_11 << std::endl;
+  std::cerr << "ELAPSED_OLD_512_12: " << elapsed_12 << std::endl;
+  std::cerr << "ELAPSED_NEW_200x32_13: " << elapsed_13 << std::endl;
+  std::cerr << "ELAPSED_OLD_200x32_14: " << elapsed_14 << std::endl;
+  std::cerr << "ELAPSED_NEW_25MB_15: " << elapsed_15 << std::endl;
+  std::cerr << "ELAPSED_OLD_25MB_16: " << elapsed_16 << std::endl;
+  std::cerr << "ELAPSED_NEW_25MB_17: " << elapsed_17 << std::endl;
+  std::cerr << "ELAPSED_OLD_25MB_18: " << elapsed_18 << std::endl;
+
+
+  std::cerr 
+    << (uintptr_t)a_.toPtr(ptr_0) << std::endl 
+    << (uintptr_t)a_.toPtr(ptr_1) << std::endl 
+    << (uintptr_t)a_.toPtr(ptr_6) << std::endl 
+    << (uintptr_t)m << std::endl;
 }
 
 struct A1 {

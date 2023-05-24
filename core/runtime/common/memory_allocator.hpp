@@ -8,6 +8,7 @@
 
 #include <algorithm>
 #include <map>
+#include <cstring>
 #include <memory>
 #include <optional>
 #include <unordered_map>
@@ -551,14 +552,14 @@ namespace kagome::runtime {
       const auto position = allocate(size);
       auto *dst = toPtr(position);
       auto *src = toPtr(offset);
-      const auto src_sz = size(offset);
+      const auto src_sz = allocationSize(offset);
 
-      memcpy(dst, src, src_sz);
+      memcpy(dst, src, src_sz.t);
       deallocate(offset);
       return position;
     }
 
-    WsmSize size(WsmPtr offset) {
+    WsmSize allocationSize(WsmPtr offset) {
       const auto raw_offset = WsmRawPtr(offset - heap_base_);
       WsmSize result{0ull};
       for_each_layer([&](auto &layer) {
@@ -639,7 +640,7 @@ namespace kagome::runtime {
       }
 
       WsmSize size(WsmRawPtr offset) const {
-        return bank_.size(offset - AddressOffset);
+        return WsmSize(bank_.size(offset - AddressOffset));
       }
 
 #ifndef TEST_MODE
