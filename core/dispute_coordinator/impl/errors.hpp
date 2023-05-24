@@ -10,10 +10,12 @@
 
 namespace kagome::dispute {
 
-  enum class RollingSessionWindowError {
+  enum class SessionObtainingError {
     SessionsUnavailable = 1,
     RuntimeApiError,
     Missing,
+    /// We tried fetching a session info which was not available.
+    NoSuchSession,
   };
 
   enum SignatureValidationError {
@@ -78,7 +80,7 @@ namespace kagome::dispute {
 
 }  // namespace kagome::dispute
 
-OUTCOME_HPP_DECLARE_ERROR(kagome::dispute, RollingSessionWindowError);
+OUTCOME_HPP_DECLARE_ERROR(kagome::dispute, SessionObtainingError);
 OUTCOME_HPP_DECLARE_ERROR(kagome::dispute, SignatureValidationError);
 OUTCOME_HPP_DECLARE_ERROR(kagome::dispute, DisputeMessageCreationError);
 OUTCOME_HPP_DECLARE_ERROR(kagome::dispute, DisputeMessageConstructingError);

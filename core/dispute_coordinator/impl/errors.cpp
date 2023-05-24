@@ -5,8 +5,8 @@
 
 #include "dispute_coordinator/impl/errors.hpp"
 
-OUTCOME_CPP_DEFINE_CATEGORY(kagome::dispute, RollingSessionWindowError, e) {
-  using E = kagome::dispute::RollingSessionWindowError;
+OUTCOME_CPP_DEFINE_CATEGORY(kagome::dispute, SessionObtainingError, e) {
+  using E = kagome::dispute::SessionObtainingError;
   switch (e) {
     case E::SessionsUnavailable:
       return "Session unavailable";
@@ -14,8 +14,10 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::dispute, RollingSessionWindowError, e) {
       return "Error while fetching session information";
     case E::Missing:
       return "Session info missing from runtime";
+    case E::NoSuchSession:
+      return "There was no session with the given index";
   }
-  return "unknown error (invalid RollingSessionWindowError)";
+  return "unknown error (invalid SessionObtainingError)";
 }
 
 OUTCOME_CPP_DEFINE_CATEGORY(kagome::dispute, SignatureValidationError, e) {
