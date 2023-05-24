@@ -891,6 +891,26 @@ TEST_F(MemoryAllocatorTest, RelocateTest_14) {
   ASSERT_EQ(0x8000000000000000, allocator_->table_[3]);
 }
 
+TEST_F(MemoryAllocatorTest, AllocateWithGap_1) {
+  const auto ptr_0 = allocator_->allocate(168);
+  ASSERT_EQ(0xffffffffffc00000, allocator_->table_[0]);
+
+  const auto ptr_1 = allocator_->allocate(168);
+  ASSERT_EQ(0xfffff00000000000, allocator_->table_[0]);
+
+  const auto ptr_2 = allocator_->allocate(168);
+  ASSERT_EQ(0x0000000000000000, allocator_->table_[0]);
+  ASSERT_EQ(0xfffffffffffffffc, allocator_->table_[1]);
+
+  allocator_->deallocate(ptr_1);
+  ASSERT_EQ(0x00000fffffc00000, allocator_->table_[0]);
+  ASSERT_EQ(0xfffffffffffffffc, allocator_->table_[1]);
+
+  const auto ptr_3 = allocator_->allocate(169);
+  ASSERT_EQ(0x00000fffffc00000, allocator_->table_[0]);
+  ASSERT_EQ(0xfffffffffe000000, allocator_->table_[1]);
+}
+
 TEST_F(MemoryAllocatorTest, RelocateTest_15) {
   allocator_->allocate(allocator_->kGranularity * 63);
   ASSERT_EQ(0x0000000000000000, allocator_->table_[0]);
