@@ -963,3 +963,51 @@ TEST_F(MemoryAllocatorTest, AllocateTest_Capacity_512) {
   allocator_->allocate(512ull);
   ASSERT_EQ(allocator_->capacity(), 1024);
 }
+
+struct A1 {
+  int p;
+};
+struct A2 {
+  int p;
+};
+struct A3 {
+  int p;
+};
+
+/*template<typename F>
+bool for_each_layer(std::tuple<A1, A2, A3> &layers_, F &&func) {
+  bool found = false;
+  auto f_result = [&] (auto &value) {
+    found |= func(value);
+  };
+
+  std::apply([&](auto &...value)
+  {
+    (..., (f_result(value)));
+  }, layers_);
+  return found;
+}*/
+
+template <typename F>
+bool for_each_layer(std::tuple<A1, A2, A3> &layers_, F &&func) {
+  return std::apply(
+      [&](auto &...value) {
+        bool found = false;
+        (..., (found |= func(value)));
+        return found;
+      },
+      layers_);
+}
+
+TEST_F(MemoryAllocatorTest, AllocateTest_Layers) {
+  auto layers{std::make_tuple(A1{1}, A2{2}, A3{3})};
+
+  auto r = for_each_layer(layers, [](auto &l) {
+    if (l.p < 5) {
+      return false;
+    }
+    std::cerr << l.p << std::endl;
+    return true;
+  });
+  std::cerr << "r: " << r << std::endl;
+}

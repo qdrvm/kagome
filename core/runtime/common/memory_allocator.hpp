@@ -8,6 +8,7 @@
 
 #include <algorithm>
 #include <map>
+#include <memory>
 #include <optional>
 #include <unordered_map>
 #include <vector>
@@ -108,6 +109,22 @@ namespace kagome::runtime {
 
 #define BSR(val) __builtin_ctzll(val)
 #define BSF(val) __builtin_clzll(val)
+
+  template <typename T, typename>
+  struct Type {
+    T t;
+
+    template <typename... Args>
+    explicit Type(Args &&...args) : t(std::forward<Args>(args)...) {}
+
+    operator T &() {
+      return t;
+    }
+  };
+
+  using WsmPtr = Type<size_t, struct Pointer>;
+  using WsmRawPtr = Type<size_t, struct RawPointer>;
+  using WsmSize = Type<size_t, struct Size>;
 
   template <size_t G, size_t A = 8ull>
   struct MemoryAllocatorNew {
@@ -472,74 +489,154 @@ namespace kagome::runtime {
   struct GenericAllocator {
     GenericAllocator(size_t heap_base) : heap_base_{heap_base} {}
 
-    size_t allocate(size_t size) {
-      if ((size - 1ull) / l0.kSegmentSize == 0ull) {
-        return l0.allocate(size) + heap_base_;
+    WsmPtr allocate(WsmSize size) {
+      if ((size - 1ull) / std::get<0>(layers_).kSegmentSize == 0ull) {
+        return WsmPtr(std::get<0>(layers_).allocate(size) + heap_base_);
       }
 
-      if ((size - 1ull) / l1.kSegmentSize == 0ull) {
-        return l1.allocate(size) + heap_base_;
+      if ((size - 1ull) / std::get<1>(layers_).kSegmentSize == 0ull) {
+        return WsmPtr(std::get<1>(layers_).allocate(size) + heap_base_);
       }
 
-      if ((size - 1ull) / l2.kSegmentSize == 0ull) {
-        return l2.allocate(size) + heap_base_;
+      if ((size - 1ull) / std::get<2>(layers_).kSegmentSize == 0ull) {
+        return WsmPtr(std::get<2>(layers_).allocate(size) + heap_base_);
+      }
+
+      if ((size - 1ull) / std::get<3>(layers_).kSegmentSize == 0ull) {
+        return WsmPtr(std::get<3>(layers_).allocate(size) + heap_base_);
       }
 
       assert(false && "No layer for current allocation!");
-      return 0ull;
+      return WsmPtr(0ull);
     }
 
-    std::optional<size_t> deallocate(size_t offset) {
-      const auto raw_offset = offset - heap_base_;
-      if (l0.offsetLocatesHere(raw_offset))
-        return l0.deallocate(raw_offset);
+    std::optional<WsmSize> deallocate(WsmPtr offset) {
+      const auto raw_offset = WsmRawPtr(offset - heap_base_);
+      std::optional<WsmSize> result;
+      for_each_layer([&](auto &layer) {
+        if (!layer.offsetLocatesHere(raw_offset)) {
+          return;
+        }
 
-      if (l1.offsetLocatesHere(raw_offset))
-        return l1.deallocate(raw_offset);
-
-      if (l2.offsetLocatesHere(raw_offset))
-        return l2.deallocate(raw_offset);
-
-      return std::nullopt;
+        assert(!result);
+        result = layer.deallocate(raw_offset);
+      });
+      return result;
     }
 
-    /*size_t realloc(size_t offset, size_t size) {
-    }*/
+    WsmPtr realloc(WsmPtr offset, WsmSize size) {
+      if (offset == 0ull) {
+        return allocate(size);
+      }
+
+      if (const auto position = tryReallocInLayer(offset, size);
+          position.t != 0ull) {
+        return position;
+      }
+
+      const auto position = allocate(size);
+
+      return WsmPtr(0ull);
+    }
+
+    uint8_t *toPtr(WsmPtr offset) {
+      const auto raw_offset = WsmRawPtr(offset - heap_base_);
+      uint8_t *result = nullptr;
+      for_each_layer([&](auto &layer) {
+        if (!layer.offsetLocatesHere(raw_offset)) {
+          return;
+        }
+
+        assert(result == nullptr);
+        result = layer.toAddr(raw_offset);
+      });
+      return result;
+    }
 
    private:
-    template <size_t Granularity>
-    struct Layer {
+    /*template<typename F>
+    bool for_each_layer(F &&func) {
+      return std::apply([&](auto &...value)
+      {
+        bool found = false;
+        (..., (found |= func(value)));
+        return found;
+      }, layers_);
+    }*/
+
+    template <typename F>
+    void for_each_layer(F &&func) {
+      return std::apply([&](auto &...value) { (..., (func(value))); }, layers_);
+    }
+
+    /*std::shared_ptr<MemoryLayer> layerByOffset(WsmRawPtr raw_offset) {
+      for (auto &l : layers_)
+        if (l.offsetLocatesHere(raw_offset))
+          return l;
+
+      return nullptr;
+    }
+
+    std::shared_ptr<MemoryLayer> layerByOffset(WsmPtr offset) {
+      const auto raw_offset = WsmRawPtr(offset - heap_base_);
+      return layerByOffset(raw_offset, size);
+    }*/
+
+    WsmPtr tryReallocInLayer(WsmPtr offset, WsmSize size) {
+      const auto raw_offset = WsmRawPtr(offset - heap_base_);
+      WsmRawPtr result{0ull};
+      for_each_layer([&](auto &layer) {
+        if (!layer.offsetLocatesHere(raw_offset)) {
+          return;
+        }
+
+        assert(result == 0ull);
+        result = layer.realloc(raw_offset, size);
+      });
+      return WsmPtr(result.t + heap_base_);
+    }
+
+    template <size_t Granularity, size_t AddressOffset>
+    struct Layer final {
       static constexpr auto kSegmentSize =
           MemoryAllocatorNew<Granularity>::kSegmentSize;
-      Layer(size_t address_offset, size_t preallocated = 0ull)
-          : address_offset_{address_offset}, bank_{preallocated} {}
+      explicit Layer(size_t preallocated = 0ull) : bank_{preallocated} {}
 
-      bool offsetLocatesHere(size_t offset) const {
-        return ((offset - address_offset_) < bank_.capacity());
+      bool offsetLocatesHere(WsmRawPtr offset) const {
+        return ((offset - AddressOffset) < bank_.capacity());
       }
 
-      size_t allocate(size_t size) {
-        return bank_.allocate(size) + address_offset_;
+      WsmRawPtr allocate(WsmSize size) {
+        return WsmRawPtr(bank_.allocate(size) + AddressOffset);
       }
 
-      std::optional<size_t> deallocate(size_t offset) {
-        return bank_.deallocate(offset - address_offset_);
+      std::optional<WsmSize> deallocate(WsmRawPtr offset) {
+        if (auto result = bank_.deallocate(offset - AddressOffset)) {
+          return WsmSize(*result);
+        }
+        return std::nullopt;
       }
 
-      size_t realloc(size_t offset, size_t size) {
-        return bank_.realloc(offset - address_offset_, size) + address_offset_;
+      WsmRawPtr realloc(WsmRawPtr offset, WsmSize size) {
+        return WsmRawPtr(bank_.realloc(offset - AddressOffset, size)
+                         + AddressOffset);
+      }
+
+      uint8_t *toAddr(WsmRawPtr offset) {
+        return bank_.toAddr(offset - AddressOffset);
       }
 
      private:
-      const size_t address_offset_;
       MemoryAllocatorNew<Granularity> bank_;
     };
 
     const size_t heap_base_;
-
-    Layer<8ull> l0{0ull};
-    Layer<8ull * 64ull> l1{1ull * 1024ull * 1024ull * 1024ull};
-    Layer<8ull * 64ull * 64ull> l2{2ull * 1024ull * 1024ull * 1024ull};
+    std::tuple<Layer<8ull, 0ull>,
+               Layer<8ull * 64ull, 1ull * 1024ull * 1024ull * 1024ull>,
+               Layer<8ull * 64ull * 64ull, 2ull * 1024ull * 1024ull * 1024ull>,
+               Layer<8ull * 64ull * 64ull * 64ull,
+                     3ull * 1024ull * 1024ull * 1024ull> >
+        layers_;
   };
 
 }  // namespace kagome::runtime
