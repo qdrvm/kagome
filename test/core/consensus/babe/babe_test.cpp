@@ -318,19 +318,13 @@ TEST_F(BabeTest, Success) {
   auto breaker = [](const boost::system::error_code &ec) {
     throw std::logic_error("Must not be called");
   };
-  std::function<void(const boost::system::error_code &ec)> on_process_slot_1 =
-      breaker;
   std::function<void(const boost::system::error_code &ec)> on_run_slot_2 =
-      breaker;
-  std::function<void(const boost::system::error_code &ec)> on_process_slot_2 =
       breaker;
   std::function<void(const boost::system::error_code &ec)> on_run_slot_3 =
       breaker;
   EXPECT_CALL(*timer_, asyncWait(_))
       .InSequence(s)
-      .WillOnce(testing::SaveArg<0>(&on_process_slot_1))
       .WillOnce(testing::SaveArg<0>(&on_run_slot_2))
-      .WillOnce(testing::SaveArg<0>(&on_process_slot_2))
       .WillOnce(testing::SaveArg<0>(&on_run_slot_3));
   EXPECT_CALL(*timer_, expiresAt(_)).WillRepeatedly(Return());
 
@@ -362,9 +356,7 @@ TEST_F(BabeTest, Success) {
       .WillOnce(CheckBlockHeader(created_block_.header));
 
   babe_->runEpoch(epoch_);
-  ASSERT_NO_THROW(on_process_slot_1({}));
   ASSERT_NO_THROW(on_run_slot_2({}));
-  ASSERT_NO_THROW(on_process_slot_2({}));
 }
 
 /**
@@ -374,23 +366,17 @@ TEST_F(BabeTest, Success) {
  */
 TEST_F(BabeTest, NotAuthority) {
   EXPECT_CALL(*clock_, now());
-  EXPECT_CALL(*babe_config_repo_, slotDuration());
   EXPECT_CALL(*babe_util_, slotFinishTime(_)).Times(testing::AnyNumber());
-  EXPECT_CALL(*babe_util_, syncEpoch(_));
-  EXPECT_CALL(*timer_, expiresAt(_));
-  std::function<void(const boost::system::error_code &)> process_slot;
-  EXPECT_CALL(*timer_, asyncWait(_))
-      .WillOnce(testing::SaveArg<0>(&process_slot));
-  babe_->runEpoch(epoch_);
 
   EXPECT_CALL(*block_tree_, bestLeaf()).WillRepeatedly(Return(best_leaf));
   EXPECT_CALL(*block_tree_, getBlockHeader(best_block_hash_))
       .WillOnce(Return(best_block_header_));
-  EXPECT_CALL(*babe_util_, syncEpoch(_));
+  EXPECT_CALL(*babe_util_, syncEpoch(_)).Times(2);
   EXPECT_CALL(*babe_util_, slotStartTime(_));
 
   expected_epoch_digest.authorities.clear();
   EXPECT_CALL(*timer_, expiresAt(_));
   EXPECT_CALL(*timer_, asyncWait(_));
-  process_slot({});
+
+  babe_->runEpoch(epoch_);
 }
