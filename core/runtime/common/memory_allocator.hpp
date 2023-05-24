@@ -544,9 +544,8 @@ namespace kagome::runtime {
         return allocate(size);
       }
 
-      if (const auto position = tryReallocInLayer(offset, size);
-          position.t != 0ull) {
-        return position;
+      if (auto position = tryReallocInLayer(offset, size)) {
+        return *position;
       }
 
       const auto position = allocate(size);
@@ -595,22 +594,24 @@ namespace kagome::runtime {
       return std::apply([&](auto &...value) { (..., (func(value))); }, layers_);
     }
 
-    WsmPtr tryReallocInLayer(WsmPtr offset, WsmSize size) {
+    std::optional<WsmPtr> tryReallocInLayer(WsmPtr offset, WsmSize size) {
       const auto raw_offset = WsmRawPtr(offset - heap_base_);
-      WsmRawPtr result{0ull};
+      std::optional<WsmRawPtr> result;
       for_each_layer([&](auto &layer) {
         if (!layer.offsetLocatesHere(raw_offset)) {
           return;
         }
 
-        assert(result == 0ull);
+        assert(!result);
         result = layer.realloc(raw_offset, size);
       });
-      return WsmPtr(result.t + heap_base_);
+      return result ? WsmPtr(result->t + heap_base_) : std::optional<WsmPtr>{};
     }
 
     template <size_t Granularity, size_t AddressOffset>
     struct Layer final {
+      static constexpr auto kAddressOffset = AddressOffset;
+      static constexpr auto kGranularity = Granularity;
       static constexpr auto kSegmentSize =
           MemoryAllocatorNew<Granularity>::kSegmentSize;
       explicit Layer(size_t preallocated = 0ull) : bank_{preallocated} {}
@@ -630,9 +631,9 @@ namespace kagome::runtime {
         return std::nullopt;
       }
 
-      WsmRawPtr realloc(WsmRawPtr offset, WsmSize size) {
-        return WsmRawPtr(bank_.realloc(offset - AddressOffset, size)
-                         + AddressOffset);
+      std::optional<WsmRawPtr> realloc(WsmRawPtr offset, WsmSize size) {
+        const auto ptr = bank_.realloc(offset - AddressOffset, size);
+        return ptr != 0ull ? WsmRawPtr(ptr + AddressOffset) : std::optional<WsmRawPtr>{};
       }
 
       uint8_t *toAddr(WsmRawPtr offset) {

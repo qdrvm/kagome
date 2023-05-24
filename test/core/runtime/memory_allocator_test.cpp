@@ -994,6 +994,79 @@ TEST_F(MemoryAllocatorTest, AllocateTest_Size_512) {
   ASSERT_EQ(allocator_->size(ptr), 512ull);
 }
 
+TEST_F(MemoryAllocatorTest, GenericAllocator_Allocate_0) {
+  allocator_.reset();
+  const auto kHeapBase = 100ull;
+  runtime::GenericAllocator a_{kHeapBase};
+
+  const auto ptr = a_.allocate(runtime::WsmSize(1ull));
+  ASSERT_EQ(ptr.t, kHeapBase + 8ull);
+  ASSERT_EQ(0xfffffffffffffffc, std::get<0>(a_.layers_).bank_.table_[0]);
+}
+
+TEST_F(MemoryAllocatorTest, GenericAllocator_AllocateDeallocate_513) {
+  allocator_.reset();
+  const auto kHeapBase = 100ull;
+  runtime::GenericAllocator a_{kHeapBase};
+
+  const auto ptr = a_.allocate(runtime::WsmSize(513ull));
+  auto &layer = std::get<1>(a_.layers_);
+  ASSERT_EQ(ptr.t, layer.kAddressOffset + kHeapBase + 8ull);
+  ASSERT_EQ(0xfffffffffffffffc, layer.bank_.table_[0]);
+
+  auto sz = a_.deallocate(ptr);
+  ASSERT_TRUE(sz.has_value());
+  ASSERT_EQ(sz->t, layer.kGranularity*2ull - 8ull);
+  ASSERT_EQ(0xffffffffffffffff, layer.bank_.table_[0]);
+}
+
+TEST_F(MemoryAllocatorTest, GenericAllocator_AllocateDeallocate_2097152) {
+  allocator_.reset();
+  const auto kHeapBase = 130ull;
+  runtime::GenericAllocator a_{kHeapBase};
+
+  const auto ptr = a_.allocate(runtime::WsmSize(2097152ull - 8ull));
+  auto &layer = std::get<2>(a_.layers_);
+  ASSERT_EQ(ptr.t, layer.kAddressOffset + kHeapBase + 8ull);
+  ASSERT_EQ(0x0000000000000000, layer.bank_.table_[0]);
+
+  auto sz = a_.deallocate(ptr);
+  ASSERT_TRUE(sz.has_value());
+  ASSERT_EQ(sz->t, layer.kGranularity*64ull - 8ull);
+  ASSERT_EQ(0xffffffffffffffff, layer.bank_.table_[0]);
+}
+
+TEST_F(MemoryAllocatorTest, GenericAllocator_ReallocSimple_513) {
+  allocator_.reset();
+  const auto kHeapBase = 130ull;
+  runtime::GenericAllocator a_{kHeapBase};
+
+  const auto ptr = a_.realloc(runtime::WsmPtr(0ull), runtime::WsmSize(513ull));
+  auto &layer = std::get<1>(a_.layers_);
+  ASSERT_EQ(ptr.t, layer.kAddressOffset + kHeapBase + 8ull);
+  ASSERT_EQ(0xfffffffffffffffc, layer.bank_.table_[0]);
+}
+
+TEST_F(MemoryAllocatorTest, GenericAllocator_ReallocSimple_513_2097152) {
+  allocator_.reset();
+  const auto kHeapBase = 130ull;
+  runtime::GenericAllocator a_{kHeapBase};
+
+  const auto ptr = a_.realloc(runtime::WsmPtr(0ull), runtime::WsmSize(513ull));
+  auto &layer = std::get<1>(a_.layers_);
+  ASSERT_EQ(ptr.t, layer.kAddressOffset + kHeapBase + 8ull);
+  ASSERT_EQ(0xfffffffffffffffc, layer.bank_.table_[0]);
+
+  strcpy((char*)a_.toPtr(ptr), "Test string with good wishes!");
+  const auto ptr_1 = a_.realloc(ptr, runtime::WsmSize(2097153ull));
+  ASSERT_EQ(0xffffffffffffffff, layer.bank_.table_[0]);
+
+  auto &layer_1 = std::get<3>(a_.layers_);
+  ASSERT_EQ(0xfffffffffffffffc, layer_1.bank_.table_[0]);
+  ASSERT_EQ(strcmp((char*)a_.toPtr(ptr_1), "Test string with good wishes!"), 0);
+  ASSERT_EQ(a_.allocationSize(ptr_1).t, 2ull * layer_1.kGranularity - 8ull);
+}
+
 class TicToc {
   std::chrono::time_point<std::chrono::high_resolution_clock> t_;
 
