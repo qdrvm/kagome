@@ -964,6 +964,22 @@ TEST_F(MemoryAllocatorTest, AllocateTest_Capacity_512) {
   ASSERT_EQ(allocator_->capacity(), 1024);
 }
 
+TEST_F(MemoryAllocatorTest, AllocateTest_Size_1) {
+  const auto ptr = allocator_->allocate(1ull);
+  ASSERT_EQ(allocator_->size(ptr), 8ull);
+}
+
+TEST_F(MemoryAllocatorTest, AllocateTest_Size_512) {
+  const auto ptr = allocator_->allocate(512ull);
+  ASSERT_EQ(allocator_->size(ptr), 512ull);
+}
+
+TEST_F(MemoryAllocatorTest, GenericAllocator_Allocate) {
+  allocator_.reset();
+  runtime::GenericAllocator a_{100};
+  // ASSERT_EQ(a_.);
+}
+
 struct A1 {
   int p;
 };

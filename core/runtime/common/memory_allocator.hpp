@@ -243,8 +243,18 @@ namespace kagome::runtime {
       return startAddr() + offset;
     }
 
+    const uint8_t *toAddr(uint64_t offset) const {
+      return startAddr() + offset;
+    }
+
     size_t capacity() const {
       return table_.size() * kSegmentSize;
+    }
+
+    size_t size(size_t offset) const {
+      const auto alloc_begin = offset - AllocationHeader::kHeaderSize;
+      const auto *const header_ptr = (AllocationHeader *)(toAddr(alloc_begin));
+      return (header_ptr->count * kGranularity - AllocationHeader::kHeaderSize);
     }
 
     MemoryAllocatorNew(size_t preallocated) {
@@ -384,6 +394,10 @@ namespace kagome::runtime {
     }
 
     uint8_t *startAddr() {
+      return storage_;
+    }
+
+    const uint8_t *startAddr() const {
       return storage_;
     }
 
@@ -535,8 +549,11 @@ namespace kagome::runtime {
       }
 
       const auto position = allocate(size);
+      auto *dst = toPtr(position);
+      auto *src = toPtr(offset);
 
-      return WsmPtr(0ull);
+      deallocate(offset);
+      return position;
     }
 
     uint8_t *toPtr(WsmPtr offset) {
@@ -553,34 +570,13 @@ namespace kagome::runtime {
       return result;
     }
 
+#ifndef TEST_MODE
    private:
-    /*template<typename F>
-    bool for_each_layer(F &&func) {
-      return std::apply([&](auto &...value)
-      {
-        bool found = false;
-        (..., (found |= func(value)));
-        return found;
-      }, layers_);
-    }*/
-
+#endif  // TEST_MODE
     template <typename F>
     void for_each_layer(F &&func) {
       return std::apply([&](auto &...value) { (..., (func(value))); }, layers_);
     }
-
-    /*std::shared_ptr<MemoryLayer> layerByOffset(WsmRawPtr raw_offset) {
-      for (auto &l : layers_)
-        if (l.offsetLocatesHere(raw_offset))
-          return l;
-
-      return nullptr;
-    }
-
-    std::shared_ptr<MemoryLayer> layerByOffset(WsmPtr offset) {
-      const auto raw_offset = WsmRawPtr(offset - heap_base_);
-      return layerByOffset(raw_offset, size);
-    }*/
 
     WsmPtr tryReallocInLayer(WsmPtr offset, WsmSize size) {
       const auto raw_offset = WsmRawPtr(offset - heap_base_);
@@ -626,7 +622,9 @@ namespace kagome::runtime {
         return bank_.toAddr(offset - AddressOffset);
       }
 
+#ifndef TEST_MODE
      private:
+#endif  // TEST_MODE
       MemoryAllocatorNew<Granularity> bank_;
     };
 
