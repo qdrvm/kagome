@@ -544,8 +544,8 @@ namespace kagome::runtime {
         return allocate(size);
       }
 
-      if (auto position = tryReallocInLayer(offset, size)) {
-        return *position;
+      if (auto position = tryReallocInLayer(offset, size); position != 0ull) {
+        return position;
       }
 
       const auto position = allocate(size);
@@ -594,9 +594,9 @@ namespace kagome::runtime {
       return std::apply([&](auto &...value) { (..., (func(value))); }, layers_);
     }
 
-    std::optional<WsmPtr> tryReallocInLayer(WsmPtr offset, WsmSize size) {
+    WsmPtr tryReallocInLayer(WsmPtr offset, WsmSize size) {
       const auto raw_offset = WsmRawPtr(offset - heap_base_);
-      std::optional<WsmRawPtr> result;
+      WsmRawPtr result;
       for_each_layer([&](auto &layer) {
         if (!layer.offsetLocatesHere(raw_offset)) {
           return;
@@ -605,7 +605,7 @@ namespace kagome::runtime {
         assert(!result);
         result = layer.realloc(raw_offset, size);
       });
-      return result ? WsmPtr(result->t + heap_base_) : std::optional<WsmPtr>{};
+      return result != 0ull ? WsmPtr(result + heap_base_) : WsmPtr(0ull);
     }
 
     template <size_t Granularity, size_t AddressOffset>
@@ -631,9 +631,9 @@ namespace kagome::runtime {
         return std::nullopt;
       }
 
-      std::optional<WsmRawPtr> realloc(WsmRawPtr offset, WsmSize size) {
+      WsmRawPtr realloc(WsmRawPtr offset, WsmSize size) {
         const auto ptr = bank_.realloc(offset - AddressOffset, size);
-        return ptr != 0ull ? WsmRawPtr(ptr + AddressOffset) : std::optional<WsmRawPtr>{};
+        return ptr != 0ull ? WsmRawPtr(ptr + AddressOffset) : WsmRawPtr(0ull);
       }
 
       uint8_t *toAddr(WsmRawPtr offset) {
