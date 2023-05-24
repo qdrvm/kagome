@@ -544,7 +544,8 @@ namespace kagome::runtime {
         return allocate(size);
       }
 
-      if (auto position = tryReallocInLayer(offset, size); position != 0ull) {
+      if (const auto position = tryReallocInLayer(offset, size);
+          position.t != 0ull) {
         return position;
       }
 
@@ -596,16 +597,16 @@ namespace kagome::runtime {
 
     WsmPtr tryReallocInLayer(WsmPtr offset, WsmSize size) {
       const auto raw_offset = WsmRawPtr(offset - heap_base_);
-      WsmRawPtr result;
+      WsmRawPtr result{0ull};
       for_each_layer([&](auto &layer) {
         if (!layer.offsetLocatesHere(raw_offset)) {
           return;
         }
 
-        assert(!result);
+        assert(result == 0ull);
         result = layer.realloc(raw_offset, size);
       });
-      return result != 0ull ? WsmPtr(result + heap_base_) : WsmPtr(0ull);
+      return result != 0ull ? WsmPtr(result.t + heap_base_) : WsmPtr(0ull);
     }
 
     template <size_t Granularity, size_t AddressOffset>
