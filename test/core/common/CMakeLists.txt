@@ -15,7 +15,6 @@ addtest(buffer_view_test
     buffer_view_test.cpp
     )
 target_link_libraries(buffer_view_test
-#    fmt::fmt
     hexutil
     )
 
@@ -54,4 +53,11 @@ addtest(size_limited_containers_test
     )
 target_link_libraries(size_limited_containers_test
     fmt::fmt
+    )
+
+addtest(small_lru_cache_test
+    lru_cache_test.cpp
+    )
+target_link_libraries(small_lru_cache_test
+    blob
     )
