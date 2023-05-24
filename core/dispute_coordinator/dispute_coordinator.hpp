@@ -14,8 +14,6 @@ namespace kagome::dispute {
 
   class DisputeCoordinator {
    public:
-    template <typename Result>
-    using CbOutcome = std::function<void(outcome::result<Result>)>;
     using QueryCandidateVotes =
         std::vector<std::pair<SessionIndex, CandidateHash>>;
     using OutputCandidateVotes =

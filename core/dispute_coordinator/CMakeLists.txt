@@ -13,6 +13,10 @@ add_library(dispute_coordinator
     impl/scraped_candidates.cpp
     impl/spam_slots_impl.cpp
     impl/candidate_vote_state.cpp
+    impl/runtime_info.cpp
+    impl/batch.cpp
+    impl/batches.cpp
+
     impl/errors.cpp
     )
 

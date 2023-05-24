@@ -16,14 +16,18 @@
 namespace kagome::dispute {
 
   using network::CandidateReceipt;
-  using network::SessionIndex;
-  using network::ValidatorIndex;
   using parachain::CandidateHash;
+  using parachain::GroupIndex;
+  using parachain::SessionIndex;
   using parachain::ValidatorId;
+  using parachain::ValidatorIndex;
   using parachain::ValidatorSignature;
   using runtime::SessionInfo;
   template <typename T>
   using Indexed = parachain::Indexed<T>;
+
+  template <typename Result>
+  using CbOutcome = std::function<void(outcome::result<Result>)>;
 
   struct StoredWindow {
     SCALE_TIE(2);
@@ -41,12 +45,25 @@ namespace kagome::dispute {
   /// An approval vote from the approval checking phase.
   using ApprovalChecking = Tagged<Empty, struct ApprovalCheckingTag>;
 
+  //  struct Vote {
+  //    SCALE_TIE(3);
+  //
+  //    uint32_t validator_index;  /// An unsigned 32-bit integer indicating the
+  //                               /// validator index in the authority set
+  //    Signature signature;       /// The signature of the validator
+  //    DisputeStatement
+  //        statement;  /// A varying datatype and implies the dispute statement
+  //  };
+
   /// Different kinds of statements of validity on a candidate.
   using ValidDisputeStatementKind =
       boost::variant<Explicit, BackingSeconded, BackingValid, ApprovalChecking>;
 
   /// Different kinds of statements of invalidity on a candidate.
   using InvalidDisputeStatementKind = boost::variant<Explicit>;
+
+  using DisputeStatement =
+      boost::variant<ValidDisputeStatementKind, InvalidDisputeStatementKind>;
 
   /// A valid statement, of the given kind
   struct ValidDisputeStatement {
@@ -74,15 +91,15 @@ namespace kagome::dispute {
       boost::variant<ValidDisputeStatement,     // 0 - Valid
                      InvalidDisputeStatement>;  // 1 - Invalid
 
-  inline common::Buffer getSignablePayload(const DisputeStatement_ &statement,
+  inline common::Buffer getSignablePayload(const DisputeStatement &statement,
                                            CandidateHash candidate_hash,
                                            SessionIndex session) {
     common::Buffer res;
     visit_in_place(
         statement,
-        [&](const ValidDisputeStatement &statement) {
+        [&](const ValidDisputeStatementKind &kind) {
           visit_in_place(
-              statement.kind,
+              kind,
               [&](const Explicit &) -> void {
                 res.put("DISP")   // magic
                     .putUint8(1)  // valid = true
@@ -109,8 +126,8 @@ namespace kagome::dispute {
                     .putUint32(session);
               });
         },
-        [&](const InvalidDisputeStatement &statement) {
-          visit_in_place(statement.kind, [&](const Explicit &) {
+        [&](const InvalidDisputeStatementKind &kind) {
+          visit_in_place(kind, [&](const Explicit &) {
             res.put("DISP")   // magic
                 .putUint8(0)  // valid = false
                 .put(candidate_hash)
@@ -174,7 +191,7 @@ namespace kagome::dispute {
 
   /// A checked dispute statement from an associated validator.
   struct SignedDisputeStatement {
-    DisputeStatement_ dispute_statement;
+    DisputeStatement dispute_statement;
     CandidateHash candidate_hash;
     ValidatorId validator_public;
     ValidatorSignature validator_signature;
@@ -342,6 +359,16 @@ namespace kagome::dispute {
   struct ScrapedUpdates {
     std::vector<ScrapedOnChainVotes> on_chain_votes;
     std::vector<CandidateReceipt> included_receipts;
+  };
+
+  /// Ready for import.
+  struct PreparedImport {
+    CandidateReceipt candidate_receipt;
+    std::vector<Indexed<SignedDisputeStatement>> statements;
+    /// Information about original requesters.
+    std::vector<std::tuple<libp2p::peer::PeerId,
+                           std::function<void(outcome::result<void>)>>>
+        requesters;
   };
 
 }  // namespace kagome::dispute

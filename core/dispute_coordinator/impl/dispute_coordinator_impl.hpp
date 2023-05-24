@@ -9,11 +9,16 @@
 #include "dispute_coordinator/dispute_coordinator.hpp"
 #include "network/dispute_request_observer.hpp"
 
+#include <boost/asio/io_context.hpp>
+
+#include "clock/impl/basic_waitable_timer.hpp"
 #include "crypto/crypto_store/session_keys.hpp"
 #include "crypto/sr25519_provider.hpp"
 #include "dispute_coordinator/chain_scraper.hpp"
+#include "dispute_coordinator/impl/batches.hpp"
 #include "dispute_coordinator/impl/candidate_vote_state.hpp"
 #include "dispute_coordinator/impl/errors.hpp"
+#include "dispute_coordinator/impl/runtime_info.hpp"
 #include "dispute_coordinator/participation/types.hpp"
 #include "dispute_coordinator/rolling_session_window.hpp"
 #include "dispute_coordinator/spam_slots.hpp"
@@ -22,6 +27,7 @@
 #include "log/logger.hpp"
 #include "network/peer_view.hpp"
 #include "parachain/types.hpp"
+#include "primitives/authority_discovery_id.hpp"
 
 namespace kagome {
   class ThreadPool;
@@ -32,9 +38,14 @@ namespace kagome::application {
   class AppStateManager;
 }
 
+namespace kagome::authority_discovery {
+  class Query;
+}
+
 namespace kagome::dispute {
   class ChainScraper;
   class Participation;
+  class RuntimeInfo;
 }  // namespace kagome::dispute
 
 namespace kagome::network {
@@ -56,11 +67,18 @@ namespace kagome::dispute {
         public network::DisputeRequestObserver,
         public std::enable_shared_from_this<DisputeCoordinatorImpl> {
     static constexpr Timestamp kActiveDurationSecs = 180;
+    static constexpr size_t kPeerQueueCapacity = 10;
+
+    /// Rate limit on the `receiver` side.
+    ///
+    /// If messages from one peer come in at a higher rate than every
+    /// `RECEIVE_RATE_LIMIT` on average, we start dropping messages from that
+    /// peer to enforce that limit.
+    static constexpr auto kReceiveRateLimit = std::chrono::milliseconds(100);
 
    public:
     DisputeCoordinatorImpl(
         std::shared_ptr<application::AppStateManager> app_state_manager,
-        std::shared_ptr<libp2p::basic::Scheduler> scheduler,
         std::shared_ptr<clock::SystemClock> clock,
         std::shared_ptr<crypto::SessionKeys> session_keys,
         std::shared_ptr<Storage> storage,
@@ -68,13 +86,17 @@ namespace kagome::dispute {
         std::shared_ptr<crypto::Hasher> hasher,
         std::shared_ptr<blockchain::BlockTree> block_tree,
         std::shared_ptr<runtime::ParachainHost> api,
-        std::shared_ptr<parachain::ApprovalDistribution> approval_distribution);
+        std::shared_ptr<parachain::ApprovalDistribution> approval_distribution,
+        std::shared_ptr<authority_discovery::Query> authority_discovery,
+        std::shared_ptr<boost::asio::io_context> main_thread_context);
 
     bool prepare();
     bool start();
     void stop();
 
-    void onDisputeRequest(const network::DisputeMessage &message) override;
+    void onDisputeRequest(const libp2p::peer::PeerId &peer_id,
+                          const network::DisputeMessage &request,
+                          CbOutcome<void> &&cb) override;
 
     void handle_incoming_ImportStatements(
         CandidateReceipt candidate_receipt,
@@ -129,7 +151,7 @@ namespace kagome::dispute {
 
     /// Create a `DisputeMessage` to be sent to `DisputeDistribution`.
     // https://github.com/paritytech/polkadot/blob/40974fb99c86f5c341105b7db53c7aa0df707d66/node/core/dispute-coordinator/src/lib.rs#L510
-    outcome::result<DisputeMessage> make_dispute_message(
+    outcome::result<network::DisputeMessage> make_dispute_message(
         SessionInfo info,
         CandidateVotes votes,
         SignedDisputeStatement our_vote,
@@ -156,8 +178,27 @@ namespace kagome::dispute {
         const primitives::BlockHash &base_hash,
         std::vector<BlockDescription> block_descriptions);
 
+    /// Pop all heads and return them for processing.
+    ///
+    /// This gets one message from each peer that has sent at least one.
+    void process_portion_incoming_disputes();
+
+    /// Schedule processing next portion of requests. This function is rate
+    /// limited, if called in sequence it will not return more often than every
+    /// `kReceiveRateLimit`.
+    void make_task_for_next_portion();
+
+    /// Start importing votes for the given request or batch.
+    ///
+    /// Signature check and in case we already have an existing batch we import
+    /// to that batch, otherwise import to `dispute-coordinator` directly and
+    /// open a batch.
+    outcome::result<void> start_import_or_batch(
+        const network::DisputeMessage &request, CbOutcome<void> &&cb);
+
+    void sendDisputeResponse(outcome::result<void> res, CbOutcome<void> &&cb);
+
     std::shared_ptr<application::AppStateManager> app_state_manager_;
-    std::shared_ptr<libp2p::basic::Scheduler> scheduler_;
     std::shared_ptr<clock::SystemClock> clock_;
     std::shared_ptr<crypto::SessionKeys> session_keys_;
     std::shared_ptr<Storage> storage_;
@@ -166,14 +207,14 @@ namespace kagome::dispute {
     std::shared_ptr<blockchain::BlockTree> block_tree_;
     std::shared_ptr<runtime::ParachainHost> api_;
     std::shared_ptr<parachain::ApprovalDistribution> approval_distribution_;
+    std::shared_ptr<authority_discovery::Query> authority_discovery_;
+    std::unique_ptr<ThreadHandler> main_thread_context_;
 
     std::shared_ptr<network::PeerView> peer_view_;
     std::shared_ptr<network::PeerView::MyViewSubscriber> my_view_sub_;
     std::shared_ptr<primitives::events::ChainEventSubscriber> chain_sub_;
 
     std::atomic_bool initialized_ = false;
-
-    libp2p::basic::Scheduler::Handle processing_loop_handle_;
 
     std::shared_ptr<ChainScraper> scraper_;
     SessionIndex highest_session_;
@@ -184,9 +225,35 @@ namespace kagome::dispute {
     // This tracks only rolling session window failures.
     std::optional<RollingSessionWindowError> error_;
 
-    //
+    /// Queues for messages from authority peers for rate limiting.
+    ///
+    /// Invariants ensured:
+    ///
+    /// 1. No queue will ever have more than `PEER_QUEUE_CAPACITY` elements.
+    /// 2. There are no empty queues. Whenever a queue gets empty, it is
+    ///    removed. This way checking whether there are any messages queued is
+    ///    cheap.
+    /// 3. As long as not empty, `pop_reqs` will, if called in sequence, not
+    ///    return `Ready` more often than once for every `RECEIVE_RATE_LIMIT`,
+    ///    but it will always return Ready eventually.
+    /// 4. If empty `pop_reqs` will never return `Ready`, but will always be
+    ///    `Pending`.
+    /// Actual queues.
+    std::unordered_map<
+        primitives::AuthorityDiscoveryId,
+        std::deque<std::tuple<network::DisputeMessage, CbOutcome<void>>>>
+        queues_;
+
+    /// Delay timer for establishing the rate limit.
+    std::optional<clock::BasicWaitableTimer> rate_limit_timer_;
+
     std::shared_ptr<ThreadPool> int_pool_;
     std::shared_ptr<ThreadHandler> internal_context_;
+
+    std::unique_ptr<RuntimeInfo> runtime_info_;
+
+    /// Currently active batches of imports per candidate.
+    std::unique_ptr<Batches> batches_;
 
     log::Logger log_ = log::createLogger("DisputeCoordinator", "dispute");
   };

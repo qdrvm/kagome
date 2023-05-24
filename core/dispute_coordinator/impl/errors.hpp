@@ -73,6 +73,13 @@ namespace kagome::dispute {
     InvalidStatementInvalidValidatorIndex,
   };
 
+  enum class DisputeProcessingError {
+    /// Peer attempted to participate in dispute and is not a validator
+    NotAValidator = 1,
+    /// Authority sent messages at a too high rate
+    AuthorityFlooding,
+  };
+
   enum class BatchError {
     /// Had to drop messages, because we reached limit on concurrent batches
     MaxBatchLimitReached = 1,
@@ -84,6 +91,7 @@ OUTCOME_HPP_DECLARE_ERROR(kagome::dispute, SessionObtainingError);
 OUTCOME_HPP_DECLARE_ERROR(kagome::dispute, SignatureValidationError);
 OUTCOME_HPP_DECLARE_ERROR(kagome::dispute, DisputeMessageCreationError);
 OUTCOME_HPP_DECLARE_ERROR(kagome::dispute, DisputeMessageConstructingError);
+OUTCOME_HPP_DECLARE_ERROR(kagome::dispute, DisputeProcessingError);
 OUTCOME_HPP_DECLARE_ERROR(kagome::dispute, BatchError);
 
 #endif  // KAGOME_DISPUTE_ERRORS_HPP

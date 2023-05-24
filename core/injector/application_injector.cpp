@@ -94,7 +94,6 @@
 #include "metrics/impl/prometheus/handler_impl.hpp"
 #include "metrics/metrics.hpp"
 #include "network/impl/block_announce_transmitter_impl.hpp"
-#include "network/impl/dispute_request_observer_impl.hpp"
 #include "network/impl/extrinsic_observer_impl.hpp"
 #include "network/impl/grandpa_transmitter_impl.hpp"
 #include "network/impl/peer_manager_impl.hpp"
@@ -696,7 +695,7 @@ namespace {
             di::bind<storage::changes_trie::ChangesTracker>.template to<storage::changes_trie::StorageChangesTrackerImpl>(),
             di::bind<network::StateProtocolObserver>.template to<network::StateProtocolObserverImpl>(),
             di::bind<network::SyncProtocolObserver>.template to<network::SyncProtocolObserverImpl>(),
-            di::bind<network::DisputeRequestObserver>.template to<network::DisputeRequestObserverImpl>(),
+            di::bind<network::DisputeRequestObserver>.template to<dispute::DisputeCoordinatorImpl>(),
             di::bind<parachain::AvailabilityStore>.template to<parachain::AvailabilityStoreImpl>(),
             di::bind<parachain::Fetch>.template to<parachain::FetchImpl>(),
             di::bind<parachain::Recovery>.template to<parachain::RecoveryImpl>(),

@@ -8,6 +8,8 @@
 
 #include "outcome/outcome.hpp"
 
+#include <libp2p/peer/peer_id.hpp>
+
 namespace kagome::network {
   struct DisputeMessage;
 }
@@ -16,12 +18,12 @@ namespace kagome::network {
 
   class DisputeRequestObserver {
    public:
-    using CbOutcome = std::function<void(outcome::result<void>)>;
-
     virtual ~DisputeRequestObserver() = default;
 
-    virtual void onDisputeRequest(const DisputeMessage &request,
-                                  CbOutcome &&cb) = 0;
+    virtual void onDisputeRequest(
+        const libp2p::peer::PeerId &peer_id,
+        const DisputeMessage &request,
+        std::function<void(outcome::result<void>)> &&cb) = 0;
   };
 
 }  // namespace kagome::network

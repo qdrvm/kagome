@@ -11,6 +11,7 @@
 #include <vector>
 
 #include "application/app_state_manager.hpp"
+#include "authority_discovery/query/query.hpp"
 #include "common/visitor.hpp"
 #include "dispute_coordinator/chain_scraper.hpp"
 #include "dispute_coordinator/impl/chain_scraper_impl.hpp"
@@ -18,6 +19,8 @@
 #include "dispute_coordinator/impl/rolling_session_window_impl.hpp"
 #include "dispute_coordinator/impl/spam_slots_impl.hpp"
 #include "dispute_coordinator/participation/participation.hpp"
+#include "network/helpers/peer_id_formatter.hpp"
+#include "network/types/dispute_messages.hpp"
 #include "parachain/approval/approval_distribution.hpp"
 #include "utils/thread_pool.hpp"
 #include "utils/tuple_hash.hpp"
@@ -26,7 +29,6 @@ namespace kagome::dispute {
 
   DisputeCoordinatorImpl::DisputeCoordinatorImpl(
       std::shared_ptr<application::AppStateManager> app_state_manager,
-      std::shared_ptr<libp2p::basic::Scheduler> scheduler,
       std::shared_ptr<clock::SystemClock> clock,
       std::shared_ptr<crypto::SessionKeys> session_keys,
       std::shared_ptr<Storage> storage,
@@ -34,9 +36,10 @@ namespace kagome::dispute {
       std::shared_ptr<crypto::Hasher> hasher,
       std::shared_ptr<blockchain::BlockTree> block_tree,
       std::shared_ptr<runtime::ParachainHost> api,
-      std::shared_ptr<parachain::ApprovalDistribution> approval_distribution)
+      std::shared_ptr<parachain::ApprovalDistribution> approval_distribution,
+      std::shared_ptr<authority_discovery::Query> authority_discovery,
+      std::shared_ptr<boost::asio::io_context> main_thread_context)
       : app_state_manager_(std::move(app_state_manager)),
-        scheduler_(std::move(scheduler)),
         clock_(std::move(clock)),
         session_keys_(std::move(session_keys)),
         storage_(std::move(storage)),
@@ -45,10 +48,13 @@ namespace kagome::dispute {
         block_tree_(std::move(block_tree)),
         api_(std::move(api)),
         approval_distribution_(std::move(approval_distribution)),
+        authority_discovery_(std::move(authority_discovery)),
+        main_thread_context_(
+            std::make_unique<ThreadHandler>(std::move(main_thread_context))),
         int_pool_{std::make_shared<ThreadPool>(1ull)},
-        internal_context_{int_pool_->handler()} {
+        internal_context_{int_pool_->handler()},
+        runtime_info_(std::make_unique<RuntimeInfo>()) {
     BOOST_ASSERT(app_state_manager_ != nullptr);
-    BOOST_ASSERT(scheduler_ != nullptr);
     BOOST_ASSERT(clock_ != nullptr);
     BOOST_ASSERT(session_keys_ != nullptr);
     BOOST_ASSERT(storage_ != nullptr);
@@ -57,6 +63,10 @@ namespace kagome::dispute {
     BOOST_ASSERT(block_tree_ != nullptr);
     BOOST_ASSERT(api_ != nullptr);
     BOOST_ASSERT(approval_distribution_ != nullptr);
+    BOOST_ASSERT(authority_discovery_ != nullptr);
+    BOOST_ASSERT(main_thread_context_ != nullptr);
+
+    app_state_manager_->takeControl(*this);
   }
 
   bool DisputeCoordinatorImpl::prepare() {
@@ -684,11 +694,6 @@ namespace kagome::dispute {
                                 .controlled_indices = controlled_indices};
   }
 
-  void DisputeCoordinatorImpl::onDisputeRequest(
-      const network::DisputeMessage &message) {
-    //
-  }
-
   outcome::result<bool> DisputeCoordinatorImpl::handle_import_statements(
       MaybeCandidateReceipt candidate_receipt,
       const SessionIndex session,
@@ -938,19 +943,19 @@ namespace kagome::dispute {
 
         for (auto &[index, signature] : approval_votes) {
           // clang-format off
-            BOOST_ASSERT_MSG(
-                [&] {
-                // see: {polkadot}node/core/dispute-coordinator/src/import.rs:490
-                // let pub_key = &env.session_info().validators.get(index).expect("indices are validated by approval-voting subsystem; qed");
-                // let candidate_hash = votes.candidate_receipt.hash();
-                // let session_index = env.session_index();
-                // DisputeStatement::Valid(ValidDisputeStatementKind::ApprovalChecking)
-                //   .check_signature(pub_key, candidate_hash, session_index, &sig)
-                //   .is_ok();
-                  return true;  // FIXME
-                }(),
-                "Signature check for imported approval votes failed! "
-                "This is a serious bug.");
+                  BOOST_ASSERT_MSG(
+                      [&] {
+                      // see: {polkadot}node/core/dispute-coordinator/src/import.rs:490
+                      // let pub_key = &env.session_info().validators.get(index).expect("indices are validated by approval-voting subsystem; qed");
+                      // let candidate_hash = votes.candidate_receipt.hash();
+                      // let session_index = env.session_index();
+                      // DisputeStatement::Valid(ValidDisputeStatementKind::ApprovalChecking)
+                      //   .check_signature(pub_key, candidate_hash, session_index, &sig)
+                      //   .is_ok();
+                        return true;  // FIXME
+                      }(),
+                      "Signature check for imported approval votes failed! "
+                      "This is a serious bug.");
           // clang-format on
 
           /// Insert a vote, replacing any already existing vote.
@@ -1166,11 +1171,11 @@ namespace kagome::dispute {
     return outcome::success(true);
   }
 
-  outcome::result<DisputeMessage> DisputeCoordinatorImpl::make_dispute_message(
-      SessionInfo session_info,
-      CandidateVotes votes,
-      SignedDisputeStatement our_vote,
-      ValidatorIndex our_index) {
+  outcome::result<network::DisputeMessage>
+  DisputeCoordinatorImpl::make_dispute_message(SessionInfo session_info,
+                                               CandidateVotes votes,
+                                               SignedDisputeStatement our_vote,
+                                               ValidatorIndex our_index) {
     auto &validators = session_info.validators;
 
     ValidatorIndex other_index;
@@ -1283,19 +1288,19 @@ namespace kagome::dispute {
                              valid_statement.dispute_statement)
                              .kind;
 
-    ValidDisputeVote valid_vote{
+    network::ValidDisputeVote valid_vote{
         .index = valid_index,
         .signature = valid_statement.validator_signature,
         .kind = valid_kind,
     };
 
-    InvalidDisputeVote invalid_vote{
+    network::InvalidDisputeVote invalid_vote{
         .index = invalid_index,
         .signature = invalid_statement.validator_signature,
         .kind = invalid_kind,
     };
 
-    return DisputeMessage{
+    return network::DisputeMessage{
         candidate_receipt,
         session_index,
         invalid_vote,
@@ -1760,6 +1765,271 @@ namespace kagome::dispute {
     }
 
     return last;
+  }
+
+  void DisputeCoordinatorImpl::onDisputeRequest(
+      const libp2p::peer::PeerId &_peer_id,
+      const network::DisputeMessage &_request,
+      CbOutcome<void> &&_cb) {
+    REINVOKE_3(*internal_context_,
+               onDisputeRequest,
+               _peer_id,
+               _request,
+               _cb,
+               peer_id,
+               request,
+               cb);
+
+    // Only accept messages from validators, in case there are multiple
+    // `AuthorityId`s, we just take the first one. On session boundaries this
+    // might allow validators to double their rate limit for a short period of
+    // time, which seems acceptable.
+    auto authority_id_opt = authority_discovery_->get(peer_id);
+    if (not authority_id_opt.has_value()) {
+      SL_DEBUG(log_, "Peer {} is not validator - dropping message", peer_id);
+      // TODO reputation_changes: vec![COST_NOT_A_VALIDATOR],
+      return sendDisputeResponse(DisputeProcessingError::NotAValidator,
+                                 std::move(cb));
+    }
+    auto &authority_id = authority_id_opt.value();
+
+    /// Push an incoming request for a given authority.
+
+    auto &queue = queues_[peer_id];
+
+    if (queue.size() >= kPeerQueueCapacity) {
+      SL_DEBUG(log_, "Peer {} hit the rate limit - dropping message", peer_id);
+      // TODO reputation_changes: vec![COST_APPARENT_FLOOD],
+      return sendDisputeResponse(DisputeProcessingError::AuthorityFlooding,
+                                 std::move(cb));
+    }
+    queue.emplace_back(request, std::move(cb));
+
+    // We have at least one element to process - rate limit `timer` needs to
+    // exist now:
+    make_task_for_next_portion();
+
+    return;
+  }
+
+  void DisputeCoordinatorImpl::sendDisputeResponse(outcome::result<void> _res,
+                                                   CbOutcome<void> &&_cb) {
+    REINVOKE_2(*main_thread_context_, sendDisputeResponse, _res, _cb, res, cb);
+    cb(res);
+  }
+
+  void DisputeCoordinatorImpl::make_task_for_next_portion() {
+    if (not rate_limit_timer_.has_value()) {
+      rate_limit_timer_.emplace(internal_context_->io_context());
+
+      rate_limit_timer_->expiresAfter(kReceiveRateLimit);
+      rate_limit_timer_->asyncWait([wp = weak_from_this()](auto &&ec) {
+        if (auto self = wp.lock()) {
+          if (ec) {
+            SL_ERROR(
+                self->log_,
+                "error happened while waiting delayed requests processing: {}",
+                ec);
+            return;
+          }
+          BOOST_ASSERT(self->internal_context_->io_context()
+                           ->get_executor()
+                           .running_in_this_thread());
+          self->process_portion_incoming_disputes();
+        }
+      });
+    }
+  }
+
+  void DisputeCoordinatorImpl::process_portion_incoming_disputes() {
+    rate_limit_timer_.reset();
+
+    std::vector<std::tuple<network::DisputeMessage, CbOutcome<void>>> heads;
+    heads.reserve(queues_.size());
+
+    auto old_queues = std::move(queues_);
+
+    for (auto &[peer, queue] : old_queues) {
+      BOOST_ASSERT_MSG(not queue.empty(),
+                       "Invariant that queues are never empty is broken.");
+
+      heads.emplace_back(std::move(queue.front()));
+      queue.pop_front();
+
+      if (not queue.empty()) {
+        queues_.emplace(peer, queue);
+      }
+    }
+
+    if (not queues_.empty()) {
+      // Still not empty - we should get woken at some point.
+      make_task_for_next_portion();
+    }
+
+    for (auto &[request, cb] : std::move(heads)) {
+      // No early return - we cannot cancel imports of one peer, because the
+      // import of another failed:
+      auto res = start_import_or_batch(std::move(request), std::move(cb));
+      if (res.has_error()) {
+        SL_ERROR(log_, "Can't start import or batch: {}", res.error());
+      }
+    }
+  }
+
+  outcome::result<void> DisputeCoordinatorImpl::start_import_or_batch(
+      const network::DisputeMessage &request, CbOutcome<void> &&cb) {
+    libp2p::peer::PeerId peer;
+    auto &pending_response = cb;
+
+    OUTCOME_TRY(info,
+                runtime_info_->get_session_info_by_index(
+                    request.candidate_receipt.descriptor.relay_parent,
+                    request.session_index));
+
+    const auto &[candidate_receipt,
+                 session_index,
+                 unchecked_valid_vote,
+                 unchecked_invalid_vote] = request;
+    const auto &candidate_hash = candidate_receipt.commitments_hash;
+
+    const auto &session_info = info.session_info;
+
+    // https://github.com/paritytech/polkadot/blob/40974fb99c86f5c341105b7db53c7aa0df707d66/node/primitives/src/disputes/message.rs#L232
+
+    // vote valid
+    Indexed<SignedDisputeStatement> checked_valid_vote;
+    {
+      const auto &[validator_index, signature, kind] = unchecked_valid_vote;
+      if (validator_index >= session_info.validators.size()) {
+        // TODO reputation_changes: vec![COST_INVALID_SIGNATURE],
+        return DisputeMessageCreationError::InvalidValidatorIndex;
+      }
+      auto validator_public = session_info.validators[validator_index];
+
+      DisputeStatement dispute_statement{kind};
+
+      auto payload =
+          getSignablePayload(dispute_statement, candidate_hash, session_index);
+
+      auto validation_res = sr25519_crypto_provider_->verify(
+          signature, payload, validator_public);
+
+      if (validation_res.has_error()) {
+        // TODO reputation_changes: vec![COST_INVALID_SIGNATURE],
+        return SignatureValidationError::InvalidSignature;
+      }
+      if (not validation_res.value()) {
+        // TODO reputation_changes: vec![COST_INVALID_SIGNATURE],
+        return SignatureValidationError::InvalidSignature;
+      }
+
+      checked_valid_vote = {{
+                                dispute_statement,
+                                candidate_hash,
+                                validator_public,
+                                signature,
+                                session_index,
+                            },
+                            validator_index};
+    }
+
+    Indexed<SignedDisputeStatement> checked_invalid_vote;
+    {
+      const auto &[validator_index, signature, kind] = unchecked_invalid_vote;
+      if (validator_index >= session_info.validators.size()) {
+        // TODO reputation_changes: vec![COST_INVALID_SIGNATURE],
+        return DisputeMessageCreationError::InvalidValidatorIndex;
+      }
+      auto validator_public = session_info.validators[validator_index];
+
+      DisputeStatement dispute_statement{kind};
+
+      auto payload =
+          getSignablePayload(dispute_statement, candidate_hash, session_index);
+
+      auto validation_res = sr25519_crypto_provider_->verify(
+          signature, payload, validator_public);
+
+      if (validation_res.has_error()) {
+        // TODO reputation_changes: vec![COST_INVALID_SIGNATURE],
+        return SignatureValidationError::InvalidSignature;
+      }
+      if (not validation_res.value()) {
+        // TODO reputation_changes: vec![COST_INVALID_SIGNATURE],
+        return SignatureValidationError::InvalidSignature;
+      }
+
+      checked_invalid_vote = {{
+                                  dispute_statement,
+                                  candidate_hash,
+                                  validator_public,
+                                  signature,
+                                  session_index,
+                              },
+                              validator_index};
+    }
+
+    auto &valid_vote = checked_valid_vote;
+    auto &invalid_vote = checked_invalid_vote;
+
+    batches_->find_batch(candidate_hash, candidate_receipt)
+
+    /* clang-format off
+
+    match self.batches.find_batch(candidate_hash, candidate_receipt)? {
+      FoundBatch::Created(batch) => {
+        // There was no entry yet - start import immediately:
+        gum::trace!(
+          target: LOG_TARGET,
+          ?candidate_hash,
+          ?peer,
+          "No batch yet - triggering immediate import"
+        );
+        let import = PreparedImport {
+          candidate_receipt: batch.candidate_receipt().clone(),
+          statements: vec![valid_vote, invalid_vote],
+          requesters: vec![(peer, pending_response)],
+        };
+        self.start_import(import).await;
+      },
+      FoundBatch::Found(batch) => {
+        gum::trace!(target: LOG_TARGET, ?candidate_hash, "Batch exists - batching request");
+        let batch_result =
+          batch.add_votes(valid_vote, invalid_vote, peer, pending_response);
+
+        if let Err(pending_response) = batch_result {
+          // We don't expect honest peers to send redundant votes within a single batch,
+          // as the timeout for retry is much higher. Still we don't want to punish the
+          // node as it might not be the node's fault. Some other (malicious) node could have been
+          // faster sending the same votes in order to harm the reputation of that honest
+          // node. Given that we already have a rate limit, if a validator chooses to
+          // waste available rate with redundant votes - so be it. The actual dispute
+          // resolution is unaffected.
+          gum::debug!(
+            target: LOG_TARGET,
+            ?peer,
+            "Peer sent completely redundant votes within a single batch - that looks fishy!",
+          );
+          pending_response
+            .send_outgoing_response(OutgoingResponse {
+              // While we have seen duplicate votes, we cannot confirm as we don't
+              // know yet whether the batch is going to be confirmed, so we assume
+              // the worst. We don't want to push the pending response to the batch
+              // either as that would be unbounded, only limited by the rate limit.
+              result: Err(()),
+              reputation_changes: Vec::new(),
+              sent_feedback: None,
+            })
+            .map_err(|_| JfyiError::SendResponses(vec![peer]))?;
+          return Err(From::from(JfyiError::RedundantMessage(peer)))
+        }
+      },
+    }
+
+    Ok(())
+
+
+    clang-format on */
   }
 
 }  // namespace kagome::dispute

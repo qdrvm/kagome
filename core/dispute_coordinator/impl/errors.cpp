@@ -74,6 +74,17 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::dispute,
   return "unknown error (invalid DisputeMessageConstructingError)";
 };
 
+OUTCOME_CPP_DEFINE_CATEGORY(kagome::dispute, DisputeProcessingError, e) {
+  using E = kagome::dispute::DisputeProcessingError;
+  switch (e) {
+    case E::NotAValidator:
+      return "Peer attempted to participate in dispute and is not a validator";
+    case E::AuthorityFlooding:
+      return "Authority sent messages at a too high rate";
+  }
+  return "unknown error (invalid DisputeProcessingError)";
+};
+
 OUTCOME_CPP_DEFINE_CATEGORY(kagome::dispute, BatchError, e) {
   using E = kagome::dispute::BatchError;
   switch (e) {

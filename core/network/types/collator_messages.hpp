@@ -415,21 +415,21 @@ namespace kagome::network {
                                 /// within the validator group
   };
 
-  using DisputeStatement =
-      boost::variant<Tagged<Empty, struct ExplicitStatement>,
-                     Tagged<common::Hash256, struct SecondedStatement>,
-                     Tagged<common::Hash256, struct ValidStatement>,
-                     Tagged<Empty, struct AprovalVote>>;
-
-  struct Vote {
-    SCALE_TIE(3);
-
-    uint32_t validator_index;  /// An unsigned 32-bit integer indicating the
-                               /// validator index in the authority set
-    Signature signature;       /// The signature of the validator
-    DisputeStatement
-        statement;  /// A varying datatype and implies the dispute statement
-  };
+  //  using DisputeStatement =
+  //      boost::variant<Tagged<Empty, struct ExplicitStatement>,
+  //                     Tagged<common::Hash256, struct SecondedStatement>,
+  //                     Tagged<common::Hash256, struct ValidStatement>,
+  //                     Tagged<Empty, struct AprovalVote>>;
+  //
+  //  struct Vote {
+  //    SCALE_TIE(3);
+  //
+  //    uint32_t validator_index;  /// An unsigned 32-bit integer indicating the
+  //                               /// validator index in the authority set
+  //    Signature signature;       /// The signature of the validator
+  //    DisputeStatement
+  //        statement;  /// A varying datatype and implies the dispute statement
+  //  };
 
   /**
    * Validator -> Validator.
