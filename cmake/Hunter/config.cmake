@@ -19,7 +19,7 @@ hunter_config(
 hunter_config(
     erasure_coding_crust
     URL https://github.com/soramitsu/erasure-coding-crust/archive/refs/heads/feature/project_ref.zip
-    SHA1 63559b17c48c6eecbfe8acbfb6785aebb4d6a8b5
+    SHA1 d6214c8b201025ebe592904f0325762ceab8b2c6
     CMAKE_ARGS BACKWARD_TESTS=OFF
     KEEP_PACKAGE_SOURCES
 )
