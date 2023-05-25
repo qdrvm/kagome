@@ -3,8 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include <iostream>
-
 #include "storage/rocksdb/rocksdb.hpp"
 #include <rocksdb/filter_policy.h>
 #include <rocksdb/table.h>
@@ -72,7 +70,6 @@ namespace kagome::storage {
 
     std::vector<rocksdb::ColumnFamilyHandle *> column_family_handles;
 
-    std::cout << (int) options.create_missing_column_families << std::endl;
     options.create_missing_column_families = true;
     auto rocks_db = std::shared_ptr<RocksDb>(new RocksDb);
     auto status = rocksdb::DB::Open(options,
@@ -151,8 +148,7 @@ namespace kagome::storage {
       uint32_t memory_budget) {
     rocksdb::ColumnFamilyOptions options;
     options.OptimizeLevelStyleCompaction(memory_budget);
-    auto table_options = tableOptionsConfiguration(kDefaultLruCacheSizeMiB,
-                                                   kDefaultBlockSizeKiB);
+    auto table_options = tableOptionsConfiguration();
     options.table_factory.reset(NewBlockBasedTableFactory(table_options));
     return options;
   }
