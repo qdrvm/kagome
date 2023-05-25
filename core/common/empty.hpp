@@ -17,13 +17,13 @@ namespace kagome {
       return true;
     }
 
-    friend inline auto &operator<<(::scale::ScaleEncoderStream &s,
-                                   const Empty &) {
+    template <class Stream>
+    friend inline auto &operator<<(Stream &s, const Empty &) {
       return s;
     }
 
-    friend inline auto &operator>>(::scale::ScaleDecoderStream &s,
-                                   const Empty &) {
+    template <class Stream>
+    friend inline auto &operator>>(Stream &s, const Empty &) {
       return s;
     }
   };
