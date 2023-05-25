@@ -637,3 +637,21 @@ TEST_F(AppConfigurationTest, SetRandomWalk) {
   ASSERT_TRUE(app_config_->initializeFromArgs(std::size(args), args));
   ASSERT_EQ(app_config_->getRandomWalkInterval(), std::chrono::seconds(30));
 }
+
+/**
+ * @given an instance of AppConfigurationImpl
+ * @when --db-cache flag is specified with a value
+ * @then the value is correctly passed to the program
+ */
+TEST_F(AppConfigurationTest, SetDbCacheSize) {
+  const char *args[] = {"/path/",
+                        "--chain",
+                        chain_path.native().c_str(),
+                        "--base-path",
+                        base_path.native().c_str(),
+                        "--db-cache",
+                        "30"};
+
+  ASSERT_TRUE(app_config_->initializeFromArgs(std::size(args), args));
+  ASSERT_EQ(app_config_->dbCacheSize(), 30);
+}
