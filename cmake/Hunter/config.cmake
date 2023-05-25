@@ -17,6 +17,14 @@ hunter_config(
 )
 
 hunter_config(
+    ec-cpp
+    URL https://github.com/soramitsu/erasure-coding-crust/archive/refs/heads/feature/project_ref.zip
+    SHA1 2fbe8ef6586bacc9d3ffd5ca81357b643582d257
+    CMAKE_ARGS BACKWARD_TESTS=OFF
+    KEEP_PACKAGE_SOURCES
+)
+
+hunter_config(
     benchmark
     URL https://github.com/google/benchmark/archive/refs/tags/v1.7.1.zip
     SHA1 988246a257b0eeb1a8b112cff6ab3edfbe162912

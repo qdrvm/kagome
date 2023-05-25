@@ -7,12 +7,15 @@
 #define KAGOME_PARACHAIN_AVAILABILITY_CHUNKS_HPP
 
 #include <erasure_coding/erasure_coding.h>
+#include <ec-cpp/ec-cpp.hpp>
 
 #include "parachain/availability/erasure_coding_error.hpp"
 #include "runtime/runtime_api/parachain_host_types.hpp"
 
 namespace kagome::parachain {
   inline outcome::result<size_t> minChunks(size_t validators) {
+    auto const res = ec_cpp::getRecoveryThreshold(10);
+
     unsigned long out = 0;
     auto r = ECCR_get_recovery_threshold(validators, &out);
     if (r.tag != NPRSResult_Tag::NPRS_RESULT_OK) {
