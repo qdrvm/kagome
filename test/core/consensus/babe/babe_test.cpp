@@ -194,7 +194,8 @@ class BabeTest : public testing::Test {
         core_,
         consistency_keeper_,
         trie_storage_,
-        babe_status_observable_);
+        babe_status_observable_,
+        nullptr);  // FIXME dispute_coordinator);
 
     epoch_.start_slot = 0;
     epoch_.epoch_number = 0;

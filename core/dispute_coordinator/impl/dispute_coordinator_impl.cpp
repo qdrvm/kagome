@@ -447,18 +447,17 @@ namespace kagome::dispute {
 
         auto valid_statement_kind = visit_in_place(
             attestation,
-            [](const Unused<0> &) { return ValidDisputeStatementKind{}; },
+            [](const Unused<0> &) { return ValidDisputeStatement{}; },
             [&](const ImplicitValidityAttestation &) {
-              return ValidDisputeStatementKind(BackingSeconded(relay_parent));
+              return ValidDisputeStatement(BackingSeconded(relay_parent));
             },
             [&](const ExplicitValidityAttestation &) {
-              return ValidDisputeStatementKind(BackingValid(relay_parent));
+              return ValidDisputeStatement(BackingValid(relay_parent));
             });
 
-        auto check_sig = [&, validator_index = validator_index]() -> bool {
-          ValidDisputeStatement statement{
-              valid_statement_kind, validator_index, validator_signature};
+        DisputeStatement statement{valid_statement_kind};
 
+        [[maybe_unused]] auto check_sig = [&]() -> bool {
           auto payload = getSignablePayload(statement, candidate_hash, session);
 
           auto validation_res = sr25519_crypto_provider_->verify(
@@ -476,10 +475,9 @@ namespace kagome::dispute {
         BOOST_ASSERT_MSG(check_sig(),
                          "Scraped backing votes had invalid signature!");
 
-        Indexed<SignedDisputeStatement> statement{
+        Indexed<SignedDisputeStatement> signed_dispute_statement{
             {
-                ValidDisputeStatement{
-                    valid_statement_kind, session, validator_signature},
+                statement,
                 candidate_hash,
                 validator_public,
                 validator_signature,
@@ -487,7 +485,7 @@ namespace kagome::dispute {
             },
             validator_index};
 
-        statements.emplace_back(std::move(statement));
+        statements.emplace_back(std::move(signed_dispute_statement));
       }
 
       // Importantly, handling import statements for backing votes also
@@ -518,13 +516,14 @@ namespace kagome::dispute {
       // LOG-TRACE: "Importing dispute votes from chain for candidate"
 
       std::vector<Indexed<SignedDisputeStatement>> statements;
-      for (const auto &statement : dispute_statements) {
+      for (const auto &[dispute_statement,
+                        _validator_index,
+                        _validator_signature] : dispute_statements) {
+        const auto &validator_index = _validator_index;
+        const auto &validator_signature = _validator_signature;
         OUTCOME_TRY(visit_in_place(
-            statement, [&](const auto &statement) -> outcome::result<void> {
-              auto &valid_statement_kind = statement.kind;
-              auto &validator_index = statement.index;
-              auto &validator_signature = statement.signature;
-
+            dispute_statement,
+            [&](const auto &statement_kind) -> outcome::result<void> {
               auto session_info_opt =
                   rolling_session_window_->session_info(session_);
               if (not session_info_opt.has_value()) {
@@ -543,10 +542,9 @@ namespace kagome::dispute {
               ValidatorId validator_public =
                   session_info.validators[validator_index];
 
-              auto check_sig = [&]() -> bool {
-                ValidDisputeStatement statement{
-                    valid_statement_kind, validator_index, validator_signature};
+              DisputeStatement statement{statement_kind};
 
+              [[maybe_unused]] auto check_sig = [&] {
                 auto payload =
                     getSignablePayload(statement, candidate_hash, session);
 
@@ -565,10 +563,9 @@ namespace kagome::dispute {
               BOOST_ASSERT_MSG(check_sig(),
                                "Scraped dispute votes had invalid signature!");
 
-              Indexed<SignedDisputeStatement> _statement{
+              Indexed<SignedDisputeStatement> signed_dispute_statement{
                   {
-                      ValidDisputeStatement{
-                          valid_statement_kind, session, validator_signature},
+                      statement,
                       candidate_hash,
                       validator_public,
                       validator_signature,
@@ -576,7 +573,7 @@ namespace kagome::dispute {
                   },
                   validator_index};
 
-              statements.emplace_back(std::move(_statement));
+              statements.emplace_back(std::move(signed_dispute_statement));
               return outcome::success();
             }));
       }
@@ -761,89 +758,84 @@ namespace kagome::dispute {
       std::vector<ValidatorIndex> new_invalid_voters;
     };
 
-    ImportResult intermediate_result;
+    /// Import fresh statements.
+    ///
+    /// Intermediate result will be a new state plus information about things
+    /// that changed due to the import.
 
-    {
-      auto votes = std::move(old_state.votes);
+    auto votes = std::move(old_state.votes);
 
-      std::vector<ValidatorIndex> new_invalid_voters;
-      size_t imported_invalid_votes = 0;
-      size_t imported_valid_votes = 0;
+    // https://github.com/paritytech/polkadot/blob/40974fb99c86f5c341105b7db53c7aa0df707d66/node/core/dispute-coordinator/src/import.rs#L231
 
-      auto expected_candidate_hash = votes.candidate_receipt.commitments_hash;
+    std::vector<ValidatorIndex> new_invalid_voters;
+    size_t imported_invalid_votes = 0;
+    size_t imported_valid_votes = 0;
 
-      for (auto &vote : statements) {
-        auto val_index = vote.ix;
-        auto &statement = vote.payload;
+    auto expected_candidate_hash = votes.candidate_receipt.commitments_hash;
 
-        if (val_index >= env.session.validators.size()
-            or env.session.validators[val_index]
-                   != statement.validator_public) {
-          // LOG "Validator index doesn't match claimed key"
-          continue;
-        }
+    for (auto &vote : statements) {
+      auto val_index = vote.ix;
+      SignedDisputeStatement &statement = vote.payload;
 
-        if (statement.candidate_hash != expected_candidate_hash) {
-          // LOG "Vote is for unexpected candidate!"
-          continue;
-        }
-
-        if (statement.session_index != env.session_index) {
-          // LOG "Vote is for unexpected session!"
-          continue;
-        }
-
-        visit_in_place(
-            statement.dispute_statement,
-            [&](const ValidDisputeStatement &valid) {
-              auto [it, fresh] = votes.valid.emplace(
-                  val_index,
-                  ValidDisputeStatement{
-                      .kind = valid.kind,
-                      .index = val_index,
-                      .signature = statement.validator_signature});
-              if (fresh) {
-                ++imported_valid_votes;
-                return true;
-              }
-              auto &existing_kind = it->second.kind;
-              return visit_in_place(
-                  valid.kind,
-                  [&](const Explicit &) {
-                    return not is_type<Explicit>(existing_kind);
-                  },
-                  [&](const BackingSeconded &) { return false; },
-                  [&](const BackingValid &) { return false; },
-                  [&](const ApprovalChecking &kind) {
-                    return not is_type<ApprovalChecking>(existing_kind);
-                  });
-            },
-            [&](const InvalidDisputeStatement &valid) {
-              auto [it, fresh] = votes.invalid.emplace(
-                  val_index,
-                  InvalidDisputeStatement{
-                      .kind = valid.kind,
-                      .index = val_index,
-                      .signature = statement.validator_signature});
-              if (fresh) {
-                ++imported_invalid_votes;
-                new_invalid_voters.push_back(val_index);
-                return true;
-              }
-              return false;
-            });
-
-        CandidateVoteState new_state =
-            CandidateVoteState::create(votes, env, now);
-
-        intermediate_result = ImportResult{old_state,
-                                           new_state,
-                                           imported_invalid_votes,
-                                           imported_valid_votes,
-                                           0,
-                                           new_invalid_voters};
+      if (val_index >= env.session.validators.size()
+          or env.session.validators[val_index] != statement.validator_public) {
+        // LOG "Validator index doesn't match claimed key"
+        continue;
       }
+
+      if (statement.candidate_hash != expected_candidate_hash) {
+        // LOG "Vote is for unexpected candidate!"
+        continue;
+      }
+
+      if (statement.session_index != env.session_index) {
+        // LOG "Vote is for unexpected session!"
+        continue;
+      }
+
+      visit_in_place(
+          statement.dispute_statement,
+          [&](const ValidDisputeStatement &valid) {
+            auto [it, fresh] = votes.valid.emplace(
+                val_index,
+                std::make_tuple(valid, statement.validator_signature));
+            if (fresh) {
+              ++imported_valid_votes;
+              return true;
+            }
+            auto &existing = std::get<0>(it->second);
+            return visit_in_place(
+                valid,
+                [&](const Explicit &) {
+                  return not is_type<Explicit>(existing);
+                },
+                [&](const BackingSeconded &) { return false; },
+                [&](const BackingValid &) { return false; },
+                [&](const ApprovalChecking &) {
+                  return not is_type<ApprovalChecking>(existing);
+                });
+          },
+          [&](const InvalidDisputeStatement &invalid) {
+            auto [it, fresh] = votes.invalid.emplace(
+                val_index,
+                std::make_tuple(invalid, statement.validator_signature));
+            if (fresh) {
+              ++imported_invalid_votes;
+              new_invalid_voters.push_back(val_index);
+              return true;
+            }
+            return false;
+          });
     }
+
+    CandidateVoteState _new_state = CandidateVoteState::create(votes, env, now);
+
+    ImportResult intermediate_result{old_state,
+                                     _new_state,
+                                     imported_invalid_votes,
+                                     imported_valid_votes,
+                                     0,
+                                     new_invalid_voters};
 
     // Handle approval vote import:
     //
@@ -949,7 +941,7 @@ namespace kagome::dispute {
                       // let pub_key = &env.session_info().validators.get(index).expect("indices are validated by approval-voting subsystem; qed");
                       // let candidate_hash = votes.candidate_receipt.hash();
                       // let session_index = env.session_index();
-                      // DisputeStatement::Valid(ValidDisputeStatementKind::ApprovalChecking)
+                      // DisputeStatement::Valid(ValidDisputeStatement::ApprovalChecking)
                       //   .check_signature(pub_key, candidate_hash, session_index, &sig)
                       //   .is_ok();
                         return true;  // FIXME
@@ -970,20 +962,19 @@ namespace kagome::dispute {
           if (auto it = _votes.valid.find(index); it == _votes.valid.end()) {
             _votes.valid.emplace(
                 index,
-                ValidDisputeStatement{.kind = ApprovalChecking{},
-                                      .index = index,
-                                      .signature = signature});
+                std::make_tuple(ValidDisputeStatement{ApprovalChecking{}},
+                                signature));
             affected = true;
           } else {
-            if (is_type<BackingValid>(it->second.kind)
-                or is_type<BackingSeconded>(it->second.kind)) {
+            auto &existing = std::get<0>(it->second);
+            if (is_type<BackingValid>(existing)
+                or is_type<BackingSeconded>(existing)) {
               affected = false;
-            } else if (is_type<Explicit>(it->second.kind)
-                       or is_type<ApprovalChecking>(it->second.kind)) {
-              affected = not is_type<ApprovalChecking>(it->second.kind);
-              it->second = ValidDisputeStatement{.kind = ApprovalChecking{},
-                                                 .index = index,
-                                                 .signature = signature};
+            } else if (is_type<Explicit>(existing)
+                       or is_type<ApprovalChecking>(existing)) {
+              affected = not is_type<ApprovalChecking>(existing);
+              it->second = std::make_tuple(
+                  ValidDisputeStatement{ApprovalChecking{}}, signature);
             }
           }
 
@@ -1089,7 +1080,7 @@ namespace kagome::dispute {
           }
           auto &valid_dispute_statement =
               valid_dispute_statement_opt.value().get();
-          if (is_type<ApprovalChecking>(valid_dispute_statement.kind)) {
+          if (is_type<ApprovalChecking>(valid_dispute_statement)) {
             if (validator_index >= env.session.validators.size()) {
               SL_DEBUG(log_,
                        "Could not find pub key in `SessionInfo` for our own "
@@ -1099,7 +1090,7 @@ namespace kagome::dispute {
             auto &pub_key = env.session.validators[validator_index];
 
             SignedDisputeStatement statement{
-                ValidDisputeStatement{ApprovalChecking{}, {}, {}},  // FIXME
+                DisputeStatement{ValidDisputeStatement{ApprovalChecking{}}},
                 candidate_hash,
                 pub_key,
                 sig,
@@ -1186,10 +1177,9 @@ namespace kagome::dispute {
       if (it == votes.end() or ++it == votes.end()) {
         return DisputeMessageCreationError::NoOppositeVote;
       }
-      auto &statement = it->second;
 
-      auto validator_index = statement.index;
-      auto validator_signature = statement.signature;
+      auto validator_index = it->first;
+      auto &[statement_kind, validator_signature] = it->second;
 
       if (validator_index >= validators.size()) {
         return DisputeMessageCreationError::InvalidValidatorIndex;
@@ -1197,6 +1187,8 @@ namespace kagome::dispute {
       auto validator_public = validators[validator_index];
 
       // check sig
+
+      DisputeStatement statement{statement_kind};
 
       auto payload = getSignablePayload(
           statement, our_vote.candidate_hash, our_vote.session_index);
@@ -1273,20 +1265,19 @@ namespace kagome::dispute {
       return DisputeMessageConstructingError::InvalidCandidateReceipt;
     }
 
-    if (not is_type<ValidDisputeStatement>(valid_statement.dispute_statement)) {
+    auto valid_kind_opt =
+        if_type<ValidDisputeStatement>(valid_statement.dispute_statement);
+    if (not valid_kind_opt.has_value()) {
       return DisputeMessageConstructingError::ValidStatementHasInvalidKind;
     }
-    auto &valid_kind = boost::relaxed_get<ValidDisputeStatement>(
-                           valid_statement.dispute_statement)
-                           .kind;
+    auto &valid_kind = valid_kind_opt->get();
 
-    if (not is_type<InvalidDisputeStatement>(
-            valid_statement.dispute_statement)) {
+    auto invalid_kind_opt =
+        if_type<InvalidDisputeStatement>(invalid_statement.dispute_statement);
+    if (not invalid_kind_opt.has_value()) {
       return DisputeMessageConstructingError::InvalidStatementHasValidKind;
     }
-    auto &invalid_kind = boost::relaxed_get<InvalidDisputeStatement>(
-                             valid_statement.dispute_statement)
-                             .kind;
+    auto &invalid_kind = invalid_kind_opt->get();
 
     network::ValidDisputeVote valid_vote{
         .index = valid_index,
@@ -1432,9 +1423,8 @@ namespace kagome::dispute {
       }
 
       auto dispute_statement =
-          valid
-              ? DisputeStatement_{ValidDisputeStatement{.kind = Explicit{}}}
-              : DisputeStatement_{InvalidDisputeStatement{.kind = Explicit{}}};
+          valid ? DisputeStatement{ValidDisputeStatement{Explicit{}}}
+                : DisputeStatement{InvalidDisputeStatement{Explicit{}}};
 
       auto payload =
           getSignablePayload(dispute_statement, candidate_hash, session);
@@ -1795,7 +1785,7 @@ namespace kagome::dispute {
 
     /// Push an incoming request for a given authority.
 
-    auto &queue = queues_[peer_id];
+    auto &queue = queues_[authority_id];
 
     if (queue.size() >= kPeerQueueCapacity) {
       SL_DEBUG(log_, "Peer {} hit the rate limit - dropping message", peer_id);
@@ -1878,7 +1868,7 @@ namespace kagome::dispute {
 
   outcome::result<void> DisputeCoordinatorImpl::start_import_or_batch(
       const network::DisputeMessage &request, CbOutcome<void> &&cb) {
-    libp2p::peer::PeerId peer;
+    libp2p::peer::PeerId peer = libp2p::peer::PeerId::fromBase58("").value();
     auto &pending_response = cb;
 
     OUTCOME_TRY(info,
@@ -1972,64 +1962,86 @@ namespace kagome::dispute {
     auto &valid_vote = checked_valid_vote;
     auto &invalid_vote = checked_invalid_vote;
 
-    batches_->find_batch(candidate_hash, candidate_receipt)
+    OUTCOME_TRY(found_batch,
+                batches_->find_batch(candidate_hash, candidate_receipt));
+    auto &[batch, just_created] = found_batch;
 
-    /* clang-format off
+    if (just_created) {
+      // There was no entry yet - start import immediately:
 
-    match self.batches.find_batch(candidate_hash, candidate_receipt)? {
-      FoundBatch::Created(batch) => {
-        // There was no entry yet - start import immediately:
-        gum::trace!(
-          target: LOG_TARGET,
-          ?candidate_hash,
-          ?peer,
-          "No batch yet - triggering immediate import"
-        );
-        let import = PreparedImport {
-          candidate_receipt: batch.candidate_receipt().clone(),
-          statements: vec![valid_vote, invalid_vote],
-          requesters: vec![(peer, pending_response)],
-        };
-        self.start_import(import).await;
-      },
-      FoundBatch::Found(batch) => {
-        gum::trace!(target: LOG_TARGET, ?candidate_hash, "Batch exists - batching request");
-        let batch_result =
-          batch.add_votes(valid_vote, invalid_vote, peer, pending_response);
+      SL_TRACE(
+          log_,
+          "No batch yet - triggering immediate import (candidate={}, peer={})",
+          candidate_hash,
+          peer);
 
-        if let Err(pending_response) = batch_result {
-          // We don't expect honest peers to send redundant votes within a single batch,
-          // as the timeout for retry is much higher. Still we don't want to punish the
-          // node as it might not be the node's fault. Some other (malicious) node could have been
-          // faster sending the same votes in order to harm the reputation of that honest
-          // node. Given that we already have a rate limit, if a validator chooses to
-          // waste available rate with redundant votes - so be it. The actual dispute
-          // resolution is unaffected.
-          gum::debug!(
-            target: LOG_TARGET,
-            ?peer,
-            "Peer sent completely redundant votes within a single batch - that looks fishy!",
-          );
-          pending_response
-            .send_outgoing_response(OutgoingResponse {
-              // While we have seen duplicate votes, we cannot confirm as we don't
-              // know yet whether the batch is going to be confirmed, so we assume
-              // the worst. We don't want to push the pending response to the batch
-              // either as that would be unbounded, only limited by the rate limit.
-              result: Err(()),
-              reputation_changes: Vec::new(),
-              sent_feedback: None,
-            })
-            .map_err(|_| JfyiError::SendResponses(vec![peer]))?;
-          return Err(From::from(JfyiError::RedundantMessage(peer)))
-        }
-      },
+      PreparedImport prepared_import{
+          .candidate_receipt = batch->candidate_receipt,
+          .statements = {valid_vote, invalid_vote},
+          .requesters = {{peer, std::move(cb)}},
+      };
+
+      start_import(std::move(prepared_import));
+    } else {
+      SL_TRACE(log_,
+               "Batch exists - batching request (candidate={})",
+               candidate_hash);
+
+      auto cb_opt =
+          batch->add_votes(valid_vote, invalid_vote, peer, std::move(cb));
+
+      if (cb_opt.has_value()) {
+        // We don't expect honest peers to send redundant votes within a single
+        // batch, as the timeout for retry is much higher. Still we don't want
+        // to punish the node as it might not be the node's fault. Some other
+        // (malicious) node could have been faster sending the same votes in
+        // order to harm the reputation of that honest node. Given that we
+        // already have a rate limit, if a validator chooses to waste available
+        // rate with redundant votes - so be it. The actual dispute resolution
+        // is unaffected.
+        SL_DEBUG(log_,
+                 "Peer {} sent completely redundant votes within a single "
+                 "batch - that looks fishy!",
+                 peer);
+
+        // While we have seen duplicate votes, we cannot confirm as we don't
+        // know yet whether the batch is going to be confirmed, so we assume
+        // the worst. We don't want to push the pending response to the batch
+        // either as that would be unbounded, only limited by the rate limit.
+        (*cb_opt)(BatchError::RedundantMessage);
+      }
     }
 
-    Ok(())
+    return outcome::success();
+  }
 
+  // https://github.com/paritytech/polkadot/blob/40974fb99c86f5c341105b7db53c7aa0df707d66/node/network/dispute-distribution/src/receiver/mod.rs#L422
+  void DisputeCoordinatorImpl::start_import(PreparedImport &&prepared_import) {
+    auto [candidate_receipt, statements, requesters] =
+        std::move(prepared_import);
 
-    clang-format on */
+    if (statements.empty()) {
+      SL_DEBUG(log_,
+               "Not importing empty batch (candidate={})",
+               candidate_receipt.commitments_hash);
+      return;
+    }
+
+    auto &[signed_statement, validator_index] = statements.front();
+    auto &session_index = signed_statement.session_index;
+    auto &candidate_hash = signed_statement.candidate_hash;
+
+    auto pending_confirmation =
+        [requesters(std::move(requesters))](outcome::result<void> res) {
+          for (auto &[peer, cb] : requesters) {
+            cb(res);
+          }
+        };
+
+    handle_incoming_ImportStatements(candidate_receipt,
+                                     session_index,
+                                     statements,
+                                     std::move(pending_confirmation));
   }
 
 }  // namespace kagome::dispute

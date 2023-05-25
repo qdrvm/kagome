@@ -91,6 +91,8 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::dispute, BatchError, e) {
     case E::MaxBatchLimitReached:
       return "Had to drop messages, because we reached limit on concurrent "
              "batches";
+    case E::RedundantMessage:
+      return "Received votes from peer have been completely redundant";
   }
   return "unknown error (invalid BatchError)";
 };

@@ -11,8 +11,8 @@
 
 namespace kagome::network {
 
-  using InvalidDisputeStatementKind = dispute::InvalidDisputeStatementKind;
-  using ValidDisputeStatementKind = dispute::ValidDisputeStatementKind;
+  using InvalidDisputeStatement = dispute::InvalidDisputeStatement;
+  using ValidDisputeStatement = dispute::ValidDisputeStatement;
 
   /// Any invalid vote (currently only explicit).
   struct InvalidDisputeVote {
@@ -26,7 +26,7 @@ namespace kagome::network {
     ValidatorSignature signature;
 
     /// Kind of dispute statement.
-    InvalidDisputeStatementKind kind;
+    InvalidDisputeStatement kind;
   };
 
   /// Any valid vote (backing, approval, explicit).
@@ -41,7 +41,7 @@ namespace kagome::network {
     ValidatorSignature signature;
 
     /// Kind of dispute statement.
-    ValidDisputeStatementKind kind;
+    ValidDisputeStatement kind;
   };
 
   /// A dispute initiating/participating message that have been built from

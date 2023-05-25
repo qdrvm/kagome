@@ -196,6 +196,8 @@ namespace kagome::dispute {
     outcome::result<void> start_import_or_batch(
         const network::DisputeMessage &request, CbOutcome<void> &&cb);
 
+    void start_import(PreparedImport &&prepared_import);
+
     void sendDisputeResponse(outcome::result<void> res, CbOutcome<void> &&cb);
 
     std::shared_ptr<application::AppStateManager> app_state_manager_;

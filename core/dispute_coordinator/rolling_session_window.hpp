@@ -13,10 +13,8 @@
 namespace kagome::dispute {
 
   using network::CandidateReceipt;
-  using network::DisputeStatement;
   using network::SessionIndex;
   using network::ValidatorIndex;
-  using network::Vote;
   using parachain::CandidateHash;
   using parachain::ValidatorSignature;
   using runtime::SessionInfo;

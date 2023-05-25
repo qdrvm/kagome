@@ -8,6 +8,8 @@
 
 #include <unordered_set>
 
+#include <libp2p/peer/peer_id.hpp>
+
 #include "common/visitor.hpp"
 #include "parachain/types.hpp"
 #include "primitives/block.hpp"
@@ -36,6 +38,8 @@ namespace kagome::dispute {
     std::vector<SessionInfo> session_info;
   };
 
+  // Different kinds of statements of validity/invalidity on a candidate.
+
   /// An explicit statement issued as part of a dispute.
   using Explicit = Tagged<Empty, struct ExplicitTag>;
   /// A seconded statement on a candidate from the backing phase.
@@ -45,51 +49,19 @@ namespace kagome::dispute {
   /// An approval vote from the approval checking phase.
   using ApprovalChecking = Tagged<Empty, struct ApprovalCheckingTag>;
 
-  //  struct Vote {
-  //    SCALE_TIE(3);
-  //
-  //    uint32_t validator_index;  /// An unsigned 32-bit integer indicating the
-  //                               /// validator index in the authority set
-  //    Signature signature;       /// The signature of the validator
-  //    DisputeStatement
-  //        statement;  /// A varying datatype and implies the dispute statement
-  //  };
-
-  /// Different kinds of statements of validity on a candidate.
-  using ValidDisputeStatementKind =
+  /// A valid statement, of the given kind
+  using ValidDisputeStatement =
       boost::variant<Explicit, BackingSeconded, BackingValid, ApprovalChecking>;
 
-  /// Different kinds of statements of invalidity on a candidate.
-  using InvalidDisputeStatementKind = boost::variant<Explicit>;
-
-  using DisputeStatement =
-      boost::variant<ValidDisputeStatementKind, InvalidDisputeStatementKind>;
-
-  /// A valid statement, of the given kind
-  struct ValidDisputeStatement {
-    SCALE_TIE(3);
-
-    ValidDisputeStatementKind kind;
-    ValidatorIndex index;
-    ValidatorSignature signature;
-  };
-
   /// An invalid statement, of the given kind.
-  struct InvalidDisputeStatement {
-    SCALE_TIE(3);
-
-    InvalidDisputeStatementKind kind;
-    ValidatorIndex index;
-    ValidatorSignature signature;
-  };
+  using InvalidDisputeStatement = boost::variant<Explicit>;
 
   /// A statement about a candidate, to be used within some dispute resolution
   /// process.
   ///
   /// Statements are either in favor of the candidate's validity or against it.
-  using DisputeStatement_ =
-      boost::variant<ValidDisputeStatement,     // 0 - Valid
-                     InvalidDisputeStatement>;  // 1 - Invalid
+  using DisputeStatement =
+      boost::variant<ValidDisputeStatement, InvalidDisputeStatement>;
 
   inline common::Buffer getSignablePayload(const DisputeStatement &statement,
                                            CandidateHash candidate_hash,
@@ -97,7 +69,7 @@ namespace kagome::dispute {
     common::Buffer res;
     visit_in_place(
         statement,
-        [&](const ValidDisputeStatementKind &kind) {
+        [&](const ValidDisputeStatement &kind) {
           visit_in_place(
               kind,
               [&](const Explicit &) -> void {
@@ -126,7 +98,7 @@ namespace kagome::dispute {
                     .putUint32(session);
               });
         },
-        [&](const InvalidDisputeStatementKind &kind) {
+        [&](const InvalidDisputeStatement &kind) {
           visit_in_place(kind, [&](const Explicit &) {
             res.put("DISP")   // magic
                 .putUint8(0)  // valid = false
@@ -144,9 +116,13 @@ namespace kagome::dispute {
     /// The receipt of the candidate itself.
     CandidateReceipt candidate_receipt;
     /// Votes of validity, sorted by validator index.
-    std::map<ValidatorIndex, ValidDisputeStatement> valid{};
+    std::map<ValidatorIndex,
+             std::tuple<ValidDisputeStatement, ValidatorSignature>>
+        valid{};
     /// Votes of invalidity, sorted by validator index.
-    std::map<ValidatorIndex, InvalidDisputeStatement> invalid{};
+    std::map<ValidatorIndex,
+             std::tuple<InvalidDisputeStatement, ValidatorSignature>>
+        invalid{};
   };
 
   /// Timestamp based on the 1 Jan 1970 UNIX base, which is persistent across
@@ -199,7 +175,7 @@ namespace kagome::dispute {
   };
 
   using Voted = std::vector<
-      std::tuple<ValidatorIndex, DisputeStatement_, ValidatorSignature>>;
+      std::tuple<ValidatorIndex, DisputeStatement, ValidatorSignature>>;
 
   struct CannotVote : public Empty {};
 
@@ -293,7 +269,9 @@ namespace kagome::dispute {
     SessionIndex session;
 
     /// Statements about the candidate.
-    std::vector<DisputeStatement_> statements;
+    std::vector<
+        std::tuple<DisputeStatement, ValidatorIndex, ValidatorSignature>>
+        statements;
   };
 
   /// A set of dispute statements.

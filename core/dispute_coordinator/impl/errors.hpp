@@ -60,10 +60,10 @@ namespace kagome::dispute {
     /// signed statements.
     InvalidCandidateReceipt,
 
-    /// Valid statement should have `ValidDisputeStatementKind`.
+    /// Valid statement should have `ValidDisputeStatement`.
     ValidStatementHasInvalidKind,
 
-    /// Invalid statement should have `InvalidDisputeStatementKind`.
+    /// Invalid statement should have `InvalidDisputeStatement`.
     InvalidStatementHasValidKind,
 
     /// Provided index could not be found in `SessionInfo`.
@@ -83,6 +83,8 @@ namespace kagome::dispute {
   enum class BatchError {
     /// Had to drop messages, because we reached limit on concurrent batches
     MaxBatchLimitReached = 1,
+    // Received votes from peer have been completely redundant
+    RedundantMessage,
   };
 
 }  // namespace kagome::dispute
