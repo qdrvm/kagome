@@ -160,9 +160,7 @@ namespace kagome::parachain {
     if (active.chunks.size() + active.chunks_active + active.order.size()
         < active.chunks_required) {
       return done(
-          lock,
-          it,
-          ErasureCodingError{NPRSResult_Tag::NPRS_RESULT_NOT_ENOUGH_CHUNKS});
+          lock, it, ErasureCodingError{(size_t)ec_cpp::Error::kNeedMoreShards});
     }
     auto max = std::min(kParallelRequests,
                         active.chunks_required - active.chunks.size());

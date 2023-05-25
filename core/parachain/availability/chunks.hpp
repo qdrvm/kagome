@@ -6,7 +6,6 @@
 #ifndef KAGOME_PARACHAIN_AVAILABILITY_CHUNKS_HPP
 #define KAGOME_PARACHAIN_AVAILABILITY_CHUNKS_HPP
 
-#include <erasure_coding/erasure_coding.h>
 #include <ec-cpp/ec-cpp.hpp>
 
 #include "parachain/availability/erasure_coding_error.hpp"
