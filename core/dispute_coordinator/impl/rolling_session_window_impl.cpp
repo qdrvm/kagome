@@ -100,7 +100,7 @@ namespace kagome::dispute {
                                            session_index);
 
       if (sessions_res.has_error()) {
-        return RollingSessionWindowError::SessionsUnavailable;
+        return SessionObtainingError::SessionsUnavailable;
       }
 
       sessions = std::move(sessions_res.value());
@@ -202,7 +202,7 @@ namespace kagome::dispute {
         api_, sessions, block_hash, window_start, session_index);
 
     if (res.has_error()) {
-      return RollingSessionWindowError::SessionsUnavailable;
+      return SessionObtainingError::SessionsUnavailable;
     } else {
       SessionWindowAdvanced update{
           .prev_window_start = old_window_start,
@@ -259,7 +259,7 @@ namespace kagome::dispute {
           sessions.push_back(std::move(session_info));
 
         } else if (not allow_failure) {
-          return RollingSessionWindowError::Missing;
+          return SessionObtainingError::Missing;
 
         } else {
           // Handle `allow_failure` true.
@@ -269,7 +269,7 @@ namespace kagome::dispute {
         }
 
       } else if (not allow_failure) {
-        return RollingSessionWindowError::RuntimeApiError;
+        return SessionObtainingError::RuntimeApiError;
 
       } else {
         // Handle `allow_failure` true.

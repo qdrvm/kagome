@@ -53,7 +53,7 @@ namespace kagome::dispute {
             std::make_unique<ThreadHandler>(std::move(main_thread_context))),
         int_pool_{std::make_shared<ThreadPool>(1ull)},
         internal_context_{int_pool_->handler()},
-        runtime_info_(std::make_unique<RuntimeInfo>()) {
+        runtime_info_(std::make_unique<RuntimeInfo>(session_keys_)) {
     BOOST_ASSERT(app_state_manager_ != nullptr);
     BOOST_ASSERT(clock_ != nullptr);
     BOOST_ASSERT(session_keys_ != nullptr);
@@ -1513,7 +1513,7 @@ namespace kagome::dispute {
 
     // Return error if session information is missing.
     if (error_.has_value()) {
-      return cb(RollingSessionWindowError::SessionsUnavailable);
+      return cb(SessionObtainingError::SessionsUnavailable);
     }
 
     // LOG-TRACE: "Loading recent disputes from db"
@@ -1547,7 +1547,7 @@ namespace kagome::dispute {
 
     // Return error if session information is missing.
     if (error_.has_value()) {
-      return cb(RollingSessionWindowError::SessionsUnavailable);
+      return cb(SessionObtainingError::SessionsUnavailable);
     }
 
     // LOG-TRACE: "DisputeCoordinatorMessage::ActiveDisputes"
@@ -1607,7 +1607,7 @@ namespace kagome::dispute {
 
     // Return error if session information is missing.
     if (error_.has_value()) {
-      return cb(RollingSessionWindowError::SessionsUnavailable);
+      return cb(SessionObtainingError::SessionsUnavailable);
     }
 
     // LOG-TRACE: "DisputeCoordinatorMessage::QueryCandidateVotes"
@@ -1680,7 +1680,7 @@ namespace kagome::dispute {
 
     // Return error if session information is missing.
     if (error_.has_value()) {
-      return cb(RollingSessionWindowError::SessionsUnavailable);
+      return cb(SessionObtainingError::SessionsUnavailable);
     }
 
     // LOG-TRACE: "DisputeCoordinatorMessage::DetermineUndisputedChain"

@@ -225,7 +225,7 @@ namespace kagome::dispute {
     std::unique_ptr<RollingSessionWindow> rolling_session_window_;
 
     // This tracks only rolling session window failures.
-    std::optional<RollingSessionWindowError> error_;
+    std::optional<SessionObtainingError> error_;
 
     /// Queues for messages from authority peers for rate limiting.
     ///
