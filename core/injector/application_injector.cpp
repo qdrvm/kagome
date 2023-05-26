@@ -322,7 +322,12 @@ namespace {
 
   template <typename Injector>
   sptr<ThreadPool> get_thread_pool(const Injector &injector) {
-    return std::make_shared<ThreadPool>(5ull);
+    const auto cores = std::thread::hardware_concurrency();
+    if (cores == 0ul) {
+      return std::make_shared<ThreadPool>(5ull);
+    }
+
+    return std::make_shared<ThreadPool>(cores);
   }
 
   template <typename... Ts>
