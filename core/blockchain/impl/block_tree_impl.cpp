@@ -516,10 +516,15 @@ namespace kagome::blockchain {
             auto hash = p.hasher_->blake2b_256(ext.data);
             SL_DEBUG(log_, "Adding extrinsic with hash {}", hash);
             if (auto key = p.extrinsic_event_key_repo_->get(hash)) {
-              notifyExtrinsicEventsEngine(
-                  key.value(),
-                  primitives::events::ExtrinsicLifecycleEvent::InBlock(
-                      key.value(), block_hash));
+              main_thread_.execute(
+                  [wself{weak_from_this()}, key{key.value()}, block_hash]() {
+                    if (auto self = wself.lock()) {
+                      self->extrinsic_events_engine_->notify(
+                          key,
+                          primitives::events::ExtrinsicLifecycleEvent::InBlock(
+                              key, block_hash));
+                    }
+                  });
             }
           }
 
@@ -540,17 +545,6 @@ namespace kagome::blockchain {
     main_thread_.execute([wself{weak_from_this()}, event, header]() mutable {
       if (auto self = wself.lock()) {
         self->chain_events_engine_->notify(std::move(event), std::move(header));
-      }
-    });
-  }
-
-  void BlockTreeImpl::notifyExtrinsicEventsEngine(
-      subscription::ExtrinsicEventKeyRepository::ExtrinsicKey event,
-      const primitives::events::ExtrinsicLifecycleEvent &data) {
-    main_thread_.execute([wself{weak_from_this()}, event, data]() mutable {
-      if (auto self = wself.lock()) {
-        self->extrinsic_events_engine_->notify(std::move(event),
-                                               std::move(data));
       }
     });
   }
@@ -793,10 +787,16 @@ namespace kagome::blockchain {
           for (auto &ext : body.value()) {
             if (auto key = p.extrinsic_event_key_repo_->get(
                     p.hasher_->blake2b_256(ext.data))) {
-              notifyExtrinsicEventsEngine(
-                  key.value(),
-                  primitives::events::ExtrinsicLifecycleEvent::Finalized(
-                      key.value(), block_hash));
+              main_thread_.execute([wself{weak_from_this()},
+                                    key{key.value()},
+                                    block_hash]() {
+                if (auto self = wself.lock()) {
+                  self->extrinsic_events_engine_->notify(
+                      key,
+                      primitives::events::ExtrinsicLifecycleEvent::Finalized(
+                          key, block_hash));
+                }
+              });
             }
           }
         }
@@ -1361,10 +1361,16 @@ namespace kagome::blockchain {
         for (auto &ext : block_body_opt.value()) {
           if (auto key = p.extrinsic_event_key_repo_->get(
                   p.hasher_->blake2b_256(ext.data))) {
-            notifyExtrinsicEventsEngine(
-                key.value(),
-                primitives::events::ExtrinsicLifecycleEvent::Retracted(
-                    key.value(), node->block_hash));
+            main_thread_.execute([wself{weak_from_this()},
+                                  key{key.value()},
+                                  block_hash{node->block_hash}]() {
+              if (auto self = wself.lock()) {
+                self->extrinsic_events_engine_->notify(
+                    key,
+                    primitives::events::ExtrinsicLifecycleEvent::Retracted(
+                        key, block_hash));
+              }
+            });
           }
           extrinsics.emplace_back(std::move(ext));
         }

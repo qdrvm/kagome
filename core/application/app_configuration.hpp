@@ -255,6 +255,11 @@ namespace kagome::application {
     virtual std::optional<size_t> statePruningDepth() const = 0;
 
     /**
+     * @return database state cache size in MiB
+     */
+    virtual uint32_t dbCacheSize() const = 0;
+
+    /**
      * Optional phrase to use dev account (e.g. Alice and Bob)
      */
     virtual std::optional<std::string_view> devMnemonicPhrase() const = 0;

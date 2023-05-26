@@ -761,10 +761,6 @@ namespace kagome::consensus::babe {
       }
     } while (rewind_slots);
 
-    // Slot processing begins in 1/3 slot time after start
-    auto finish_time = babe_util_->slotStartTime(current_slot_)
-                     + babe_config_repo_->slotDuration() / 3;
-
     SL_VERBOSE(log_,
                "Starting a slot {} in epoch {} (remains {:.2f} sec.)",
                current_slot_,
@@ -774,15 +770,7 @@ namespace kagome::consensus::babe {
                        .count()
                    / 1000.);
 
-    // everything is OK: wait for the end of the slot
-    timer_->expiresAt(finish_time);
-    timer_->asyncWait([this, now](auto &&ec) {
-      if (ec) {
-        log_->error("error happened while waiting on the timer: {}", ec);
-        return;
-      }
-      processSlot(now);
-    });
+    processSlot(now);
   }
 
   void BabeImpl::processSlot(clock::SystemClock::TimePoint slot_timestamp) {

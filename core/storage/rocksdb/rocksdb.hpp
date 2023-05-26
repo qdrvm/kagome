@@ -9,6 +9,7 @@
 #include "storage/buffer_map_types.hpp"
 
 #include <rocksdb/db.h>
+#include <rocksdb/table.h>
 #include <boost/container/flat_map.hpp>
 
 #include "filesystem/common.hpp"
@@ -25,6 +26,10 @@ namespace kagome::storage {
    public:
     ~RocksDb() override;
 
+    static const uint32_t kDefaultStateCacheSizeMiB = 512;
+    static const uint32_t kDefaultLruCacheSizeMiB = 512;
+    static const uint32_t kDefaultBlockSizeKiB = 32;
+
     RocksDb(const RocksDb &) = delete;
     RocksDb(RocksDb &&) noexcept = delete;
     RocksDb &operator=(const RocksDb &) = delete;
@@ -35,11 +40,14 @@ namespace kagome::storage {
      * @param path filesystem path where database is going to be
      * @param options rocksdb options, such as caching, logging, etc.
      * @param prevent_destruction - avoid destruction of underlying db if true
+     * @param memory_budget_mib - state cache size in MiB, 90% would be set for
+     * trie nodes, and the rest - distributed evenly among left spaces
      * @return instance of RocksDB
      */
     static outcome::result<std::shared_ptr<RocksDb>> create(
         const filesystem::path &path,
         rocksdb::Options options = rocksdb::Options(),
+        uint32_t memory_budget_mib = kDefaultStateCacheSizeMiB,
         bool prevent_destruction = false);
 
     std::shared_ptr<BufferStorage> getSpace(Space space) override;
@@ -51,11 +59,23 @@ namespace kagome::storage {
      */
     void dropColumn(Space space);
 
+    /**
+     * Prepare configuration structure
+     * @param lru_cache_size_mib - LRU rocksdb cache in MiB
+     * @param block_size_kib - internal rocksdb block size in KiB
+     * @return options structure
+     */
+    static rocksdb::BlockBasedTableOptions tableOptionsConfiguration(
+        uint32_t lru_cache_size_mib = kDefaultLruCacheSizeMiB,
+        uint32_t block_size_kib = kDefaultBlockSizeKiB);
+
     friend class RocksDbSpace;
     friend class RocksDbBatch;
 
    private:
     RocksDb();
+
+    static rocksdb::ColumnFamilyOptions configureColumn(uint32_t memory_budget);
 
     rocksdb::DB *db_{};
     std::vector<ColumnFamilyHandlePtr> column_family_handles_;

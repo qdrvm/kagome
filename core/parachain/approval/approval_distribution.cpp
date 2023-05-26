@@ -2150,35 +2150,34 @@ namespace kagome::parachain {
     auto t = std::make_unique<clock::BasicWaitableTimer>(
         internal_context_->io_context());
     t->expiresAfter(std::chrono::milliseconds(ms_wakeup_after));
-    t->asyncWait([wself{weak_from_this()},
-                  id{uintptr_t(t.get())},
-                  block_hash,
-                  block_number,
-                  candidate_hash](auto &&ec) {
-      if (auto self = wself.lock()) {
-        BOOST_ASSERT(self->internal_context_->io_context()
-                         ->get_executor()
-                         .running_in_this_thread());
-        if (auto target_block_it = self->active_tranches_.find(block_hash);
-            target_block_it != self->active_tranches_.end()) {
-          auto &target_block = target_block_it->second;
-          if (auto target_candidate_it = target_block.find(candidate_hash);
-              target_candidate_it != target_block.end()) {
-            auto t = std::move(target_candidate_it->second.second);
-            target_block.erase(target_candidate_it);
+    t->asyncWait(
+        [wself{weak_from_this()}, block_hash, block_number, candidate_hash](
+            auto &&ec) {
+          std::unique_ptr<clock::Timer> t{};
+          if (auto self = wself.lock()) {
+            BOOST_ASSERT(self->internal_context_->io_context()
+                             ->get_executor()
+                             .running_in_this_thread());
+            if (auto target_block_it = self->active_tranches_.find(block_hash);
+                target_block_it != self->active_tranches_.end()) {
+              auto &target_block = target_block_it->second;
+              if (auto target_candidate_it = target_block.find(candidate_hash);
+                  target_candidate_it != target_block.end()) {
+                t = std::move(target_candidate_it->second.second);
+                target_block.erase(target_candidate_it);
 
-            if (ec) {
-              SL_ERROR(self->logger_,
-                       "error happened while waiting on tranche the "
-                       "timer: {}",
-                       ec.message());
-              return;
+                if (ec) {
+                  SL_ERROR(self->logger_,
+                           "error happened while waiting on tranche the "
+                           "timer: {}",
+                           ec.message());
+                  return;
+                }
+                self->handleTranche(block_hash, block_number, candidate_hash);
+              }
             }
-            self->handleTranche(block_hash, block_number, candidate_hash);
           }
-        }
-      }
-    });
+        });
     target_block.insert_or_assign(candidate_hash,
                                   std::make_pair(tick, std::move(t)));
   }
