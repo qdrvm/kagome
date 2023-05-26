@@ -176,7 +176,11 @@ namespace kagome::authority_discovery {
     auto peer_id_str = peer.id.toBase58();
     for (auto &pb : record.addresses()) {
       OUTCOME_TRY(address, libp2p::multi::Multiaddress::create(str2byte(pb)));
-      if (address.getPeerId() != peer_id_str) {
+      auto id = address.getPeerId();
+      if (not id) {
+        continue;
+      }
+      if (id != peer_id_str) {
         return Error::INCONSISTENT_PEER_ID;
       }
       peer.addresses.emplace_back(std::move(address));
