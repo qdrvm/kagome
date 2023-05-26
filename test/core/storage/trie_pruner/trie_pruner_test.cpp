@@ -782,6 +782,9 @@ TEST_F(TriePrunerTest, FastSyncScenario) {
   ON_CALL(*serializer_mock, retrieveTrie(_, _))
       .WillByDefault(Return(DatabaseError::NOT_FOUND));
 
+  EXPECT_CALL(*serializer_mock, retrieveTrie(genesis_state_root, _))
+      .WillRepeatedly(Return(genesis_trie));
+
   auto mock_full_block = [&](BlockNumber n) {
     mock_header_only(n);
     ASSERT_OUTCOME_SUCCESS_TRY(
@@ -796,8 +799,6 @@ TEST_F(TriePrunerTest, FastSyncScenario) {
   for (BlockNumber n = 30; n < 80; n++) {
     mock_header_only(n);
   }
-
-  // initOnBlock(BlockInfo{0, hash_from_header(headers.at(0))});
 
   ASSERT_OUTCOME_SUCCESS_TRY(recoverPrunerState(*pruner, *block_tree));
 

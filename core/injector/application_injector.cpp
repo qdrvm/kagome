@@ -810,8 +810,8 @@ namespace {
                     throw std::runtime_error{"Error initializing trie pruner: "
                                              + res.error().message()};
                   }
-                  return std::shared_ptr<storage::trie_pruner::TriePruner>{
-                      std::move(res.value())};
+                  auto p = res.value().release();
+                  return std::shared_ptr<storage::trie_pruner::TriePruner>{p};
                 }),
             di::bind<runtime::RuntimeCodeProvider>.template to<runtime::StorageCodeProvider>(),
             bind_by_lambda<application::ChainSpec>([](const auto &injector) {

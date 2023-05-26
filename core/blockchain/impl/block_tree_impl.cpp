@@ -228,7 +228,7 @@ namespace kagome::blockchain {
                           std::move(extrinsic_events_engine),
                           std::move(extrinsic_event_key_repo),
                           std::move(justification_storage_policy),
-                          std::move(state_pruner),
+                          state_pruner,
                           std::move(io_context)));
 
     // Add non-finalized block to the block tree
