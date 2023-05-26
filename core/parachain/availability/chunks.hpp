@@ -13,9 +13,10 @@
 
 namespace kagome::parachain {
   inline outcome::result<size_t> minChunks(size_t validators) {
-    auto res = ec_cpp::getRecoveryThreshold(10);
+    auto res = ec_cpp::getRecoveryThreshold(validators);
     if (ec_cpp::resultHasError(res)) {
-      return ErasureCodingError(ec_cpp::resultGetError(std::move(res)));
+      return ErasureCodingError(
+          toCodeError(ec_cpp::resultGetError(std::move(res))));
     }
     return ec_cpp::resultGetValue(std::move(res));
   }
@@ -27,7 +28,7 @@ namespace kagome::parachain {
     auto create_result = ec_cpp::create(validators);
     if (ec_cpp::resultHasError(create_result)) {
       return ErasureCodingError(
-          ec_cpp::resultGetError(std::move(create_result)));
+          toCodeError(ec_cpp::resultGetError(std::move(create_result))));
     }
 
     auto encoder = ec_cpp::resultGetValue(std::move(create_result));
@@ -35,7 +36,7 @@ namespace kagome::parachain {
         encoder.encode(ec_cpp::Slice<uint8_t>(message.data(), message.size()));
     if (ec_cpp::resultHasError(encode_result)) {
       return ErasureCodingError(
-          ec_cpp::resultGetError(std::move(encode_result)));
+          toCodeError(ec_cpp::resultGetError(std::move(encode_result))));
     }
 
     auto shards = ec_cpp::resultGetValue(std::move(encode_result));
@@ -56,25 +57,26 @@ namespace kagome::parachain {
     auto create_result = ec_cpp::create(validators);
     if (ec_cpp::resultHasError(create_result)) {
       return ErasureCodingError(
-          ec_cpp::resultGetError(std::move(create_result)));
+          toCodeError(ec_cpp::resultGetError(std::move(create_result))));
     }
 
     auto encoder = ec_cpp::resultGetValue(std::move(create_result));
     std::vector<decltype(encoder)::Shard> _chunks;
-    _chunks.resize(chunks.size());
+    _chunks.resize(validators);
     for (size_t i = 0; i < chunks.size(); ++i) {
-      auto &chunk = chunks[i];
-      _chunks[chunk.index] = std::move(chunk.chunk);
+      const auto &chunk = chunks[i];
+      if (chunk.index < validators) {
+        _chunks[chunk.index] = chunk.chunk;
+      }
     }
 
     auto reconstruct_result = encoder.reconstruct(_chunks);
     if (ec_cpp::resultHasError(reconstruct_result)) {
       return ErasureCodingError(
-          ec_cpp::resultGetError(std::move(reconstruct_result)));
+          toCodeError(ec_cpp::resultGetError(std::move(reconstruct_result))));
     }
     auto data = ec_cpp::resultGetValue(std::move(reconstruct_result));
-    return scale::decode<runtime::AvailableData>(
-        common::BufferView(data.data(), data.size()));
+    return scale::decode<runtime::AvailableData>(data);
   }
 }  // namespace kagome::parachain
 
