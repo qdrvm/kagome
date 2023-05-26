@@ -98,6 +98,7 @@ namespace {
   const uint32_t def_random_walk_interval = 15;
   const auto def_full_sync = "Full";
   const auto def_wasm_execution = "Interpreted";
+  const uint32_t def_db_cache_size = 1024;
 
   /**
    * Generate once at run random node name if form of UUID
@@ -419,6 +420,7 @@ namespace kagome::application {
         exit(EXIT_FAILURE);
       }
     }
+    load_u32(val, "db-cache", db_cache_size_);
   }
 
   void AppConfigurationImpl::parse_network_segment(
@@ -775,6 +777,7 @@ namespace kagome::application {
         ("keystore", po::value<std::string>(), "required, node keystore")
         ("tmp", "Use temporary storage path")
         ("database", po::value<std::string>()->default_value("rocksdb"), "Database backend to use [rocksdb]")
+        ("db-cache", po::value<uint32_t>()->default_value(def_db_cache_size), "Limit the memory the database cache can use <MiB>")
         ("enable-offchain-indexing", po::value<bool>(), "enable Offchain Indexing API, which allow block import to write to offchain DB)")
         ("recovery", po::value<std::string>(), "recovers block storage to state after provided block presented by number or hash, and stop after that")
         ;
@@ -1035,6 +1038,8 @@ namespace kagome::application {
     if (unknown_database_engine_is_set) {
       return false;
     }
+    find_argument<uint32_t>(
+        vm, "db-cache", [&](uint32_t val) { db_cache_size_ = val; });
 
     std::vector<std::string> boot_nodes;
     find_argument<std::vector<std::string>>(
