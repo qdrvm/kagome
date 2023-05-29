@@ -40,7 +40,7 @@ namespace kagome::parachain {
     }
 
     auto shards = ec_cpp::resultGetValue(std::move(encode_result));
-    assert(shards.size() == validators);
+    BOOST_ASSERT(shards.size() == validators);
 
     std::vector<network::ErasureChunk> chunks;
     chunks.resize(validators);
