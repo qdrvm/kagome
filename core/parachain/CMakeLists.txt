@@ -23,5 +23,5 @@ add_library(validator_parachain
 target_link_libraries(validator_parachain
     crypto_store
     network
-    erasure_coding_crust::erasure_coding_crust
+    erasure_coding_crust::ec-cpp
     )
