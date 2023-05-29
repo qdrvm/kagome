@@ -5,16 +5,17 @@
 
 #include "storage/trie_pruner/impl/trie_pruner_impl.hpp"
 
-#include <boost/assert.hpp>
 #include <queue>
 
+#include <boost/assert.hpp>
+
 #include "application/app_configuration.hpp"
+#include "application/app_state_manager.hpp"
 #include "blockchain/block_storage.hpp"
 #include "blockchain/block_tree.hpp"
 #include "crypto/hasher/hasher_impl.hpp"
 #include "storage/database_error.hpp"
 #include "storage/spaced_storage.hpp"
-#include "storage/spaces.hpp"
 #include "storage/trie/polkadot_trie/polkadot_trie.hpp"
 #include "storage/trie/serialization/polkadot_codec.hpp"
 #include "storage/trie/serialization/trie_serializer.hpp"
@@ -39,43 +40,57 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::storage::trie_pruner,
 
 namespace kagome::storage::trie_pruner {
 
-  outcome::result<std::unique_ptr<TriePrunerImpl>> TriePrunerImpl::create(
-      std::shared_ptr<const application::AppConfiguration> config,
+  TriePrunerImpl::TriePrunerImpl(
+      std::shared_ptr<application::AppStateManager> app_state_manager,
       std::shared_ptr<storage::trie::TrieStorageBackend> trie_storage,
       std::shared_ptr<const storage::trie::TrieSerializer> serializer,
       std::shared_ptr<const storage::trie::Codec> codec,
       std::shared_ptr<storage::SpacedStorage> storage,
-      std::shared_ptr<const crypto::Hasher> hasher) {
-    auto pruner = std::unique_ptr<TriePrunerImpl>(
-        new TriePrunerImpl{config->statePruningDepth(),
-                           trie_storage,
-                           serializer,
-                           codec,
-                           storage,
-                           hasher});
-    BOOST_ASSERT(storage->getSpace(kDefault));
-    OUTCOME_TRY(encoded_info,
-                storage->getSpace(kDefault)->tryGet(TRIE_PRUNER_INFO_KEY));
+      std::shared_ptr<const crypto::Hasher> hasher,
+      std::shared_ptr<const application::AppConfiguration> config)
+      : trie_storage_{trie_storage},
+        serializer_{serializer},
+        codec_{codec},
+        storage_{storage},
+        hasher_{hasher},
+        pruning_depth_{config->statePruningDepth()} {
+    BOOST_ASSERT(trie_storage_ != nullptr);
+    BOOST_ASSERT(serializer_ != nullptr);
+    BOOST_ASSERT(codec_ != nullptr);
+    BOOST_ASSERT(storage_ != nullptr);
+    BOOST_ASSERT(hasher_ != nullptr);
+
+    app_state_manager->takeControl(*this);
+  }
+
+  bool TriePrunerImpl::prepare() {
+    BOOST_ASSERT(storage_->getSpace(kDefault));
+    auto encoded_info_res =
+        storage_->getSpace(kDefault)->tryGet(TRIE_PRUNER_INFO_KEY);
+    if (!encoded_info_res) {
+      SL_ERROR(logger_, "Failed to obtain trie pruner metadata");
+      return false;
+    }
+    auto &encoded_info = encoded_info_res.value();
+
     if (encoded_info.has_value()) {
       if (auto info_res = scale::decode<TriePrunerInfo>(*encoded_info);
           info_res.has_value()) {
         auto &info = info_res.value();
-        pruner->last_pruned_block_ = info.last_pruned_block;
-        pruner->child_states_.insert(info.child_states.begin(),
-                                     info.child_states.end());
+        last_pruned_block_ = info.last_pruned_block;
+        child_states_.insert(info.child_states.begin(),
+                             info.child_states.end());
       } else {
-        SL_ERROR(pruner->logger_,
-                 "Failed to decode pruner info: {}",
-                 info_res.error());
+        SL_ERROR(logger_, "Failed to decode pruner info: {}", info_res.error());
+        return false;
       }
     }
     SL_DEBUG(
-        pruner->logger_,
+        logger_,
         "Initialize trie pruner with pruning depth {}, last pruned block {}",
-        pruner->pruning_depth_,
-        pruner->last_pruned_block_);
-
-    return pruner;
+        pruning_depth_,
+        last_pruned_block_);
+    return true;
   }
 
   class EncoderCache {
@@ -164,6 +179,7 @@ namespace kagome::storage::trie_pruner {
 
   outcome::result<void> TriePrunerImpl::pruneDiscarded(
       const primitives::BlockHeader &block) {
+    // should prune even when pruning depth is none
     OUTCOME_TRY(prune(block));
     return outcome::success();
   }

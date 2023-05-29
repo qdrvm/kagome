@@ -4,6 +4,7 @@
  */
 
 #include <kagome/application/impl/app_configuration_impl.hpp>
+#include <kagome/application/impl/app_state_manager_impl.hpp>
 #include <kagome/application/impl/chain_spec_impl.hpp>
 #include <kagome/blockchain/impl/block_header_repository_impl.hpp>
 #include <kagome/blockchain/impl/block_storage_impl.hpp>
@@ -106,14 +107,18 @@ int main() {
   auto serializer = std::make_shared<kagome::storage::trie::TrieSerializerImpl>(
       trie_factory, codec, storage_backend);
 
-  auto state_pruner = std::shared_ptr(
-      kagome::storage::trie_pruner::TriePrunerImpl::create(config,
-                                                           storage_backend,
-                                                           serializer,
-                                                           codec,
-                                                           database,
-                                                           hasher)
-          .value());
+  auto app_state_manager =
+      std::make_shared<kagome::application::AppStateManagerImpl>();
+
+  auto state_pruner =
+      std::make_shared<kagome::storage::trie_pruner::TriePrunerImpl>(
+          app_state_manager,
+          storage_backend,
+          serializer,
+          codec,
+          database,
+          hasher,
+          config);
 
   std::shared_ptr<kagome::storage::trie::TrieStorageImpl> trie_storage =
       kagome::storage::trie::TrieStorageImpl::createEmpty(

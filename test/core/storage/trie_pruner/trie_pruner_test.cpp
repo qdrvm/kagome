@@ -10,6 +10,7 @@
 
 #include "crypto/hasher/hasher_impl.hpp"
 #include "mock/core/application/app_configuration_mock.hpp"
+#include "mock/core/application/app_state_manager_mock.hpp"
 #include "mock/core/blockchain/block_tree_mock.hpp"
 #include "mock/core/storage/persistent_map_mock.hpp"
 #include "mock/core/storage/spaced_storage_mock.hpp"
@@ -184,17 +185,19 @@ class TriePrunerTest : public testing::Test {
     ON_CALL(*persistent_storage_mock, getSpace(kDefault))
         .WillByDefault(Invoke([this](auto) { return pruner_space; }));
 
-    pruner.reset(TriePrunerImpl::create(config_mock,
-                                        trie_storage_mock,
-                                        serializer_mock,
-                                        codec_mock,
-                                        persistent_storage_mock,
-                                        hasher)
-                     .value()
-                     .release());
+    pruner.reset(new TriePrunerImpl(
+        std::make_shared<kagome::application::AppStateManagerMock>(),
+        trie_storage_mock,
+        serializer_mock,
+        codec_mock,
+        persistent_storage_mock,
+        hasher,
+        config_mock));
+    BOOST_ASSERT(pruner->prepare());
   }
 
-  void initOnLastPrunedBlock(BlockInfo last_pruned) {
+  void initOnLastPrunedBlock(BlockInfo last_pruned,
+                             const kagome::blockchain::BlockTree &block_tree) {
     auto config_mock =
         std::make_shared<kagome::application::AppConfigurationMock>();
     ON_CALL(*config_mock, statePruningDepth()).WillByDefault(Return(16));
@@ -207,14 +210,16 @@ class TriePrunerTest : public testing::Test {
         .WillByDefault(
             Return(outcome::success(std::make_optional(Buffer{info_enc}))));
 
-    pruner.reset(TriePrunerImpl::create(config_mock,
-                                        trie_storage_mock,
-                                        serializer_mock,
-                                        codec_mock,
-                                        persistent_storage_mock,
-                                        hasher)
-                     .value()
-                     .release());
+    pruner.reset(new TriePrunerImpl(
+        std::make_shared<kagome::application::AppStateManagerMock>(),
+        trie_storage_mock,
+        serializer_mock,
+        codec_mock,
+        persistent_storage_mock,
+        hasher,
+        config_mock));
+    BOOST_ASSERT(pruner->prepare());
+    ASSERT_OUTCOME_SUCCESS_TRY(recoverPrunerState(*pruner, block_tree));
   }
 
   auto makeTrie(TrieNodeDesc desc) const {
@@ -596,8 +601,6 @@ TEST_F(TriePrunerTest, RestoreStateFromGenesis) {
     hash_to_number[hash_from_header(headers.at(n))] = n;
   }
 
-  initOnLastPrunedBlock(BlockInfo{3, hash_from_header(headers.at(3))});
-
   ON_CALL(*block_tree, getBlockHash(_))
       .WillByDefault(Invoke([&headers](auto number) {
         return hash_from_header(headers.at(number));
@@ -652,6 +655,9 @@ TEST_F(TriePrunerTest, RestoreStateFromGenesis) {
 
   ON_CALL(*block_tree, getLastFinalized())
       .WillByDefault(Return(BlockInfo{3, hash_from_header(headers.at(3))}));
+
+  initOnLastPrunedBlock(BlockInfo{3, hash_from_header(headers.at(3))},
+                        *block_tree);
 
   ASSERT_EQ(pruner->getTrackedNodesNum(), 3);
 }

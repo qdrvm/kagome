@@ -23,6 +23,7 @@
 
 namespace kagome::application {
   class AppConfiguration;
+  class AppStateManager;
 }
 
 namespace kagome::crypto {
@@ -75,13 +76,16 @@ namespace kagome::storage::trie_pruner {
           child_states;
     };
 
-    static outcome::result<std::unique_ptr<TriePrunerImpl>> create(
-        std::shared_ptr<const application::AppConfiguration> config,
+    TriePrunerImpl(
+        std::shared_ptr<application::AppStateManager> app_state_manager,
         std::shared_ptr<storage::trie::TrieStorageBackend> trie_storage,
         std::shared_ptr<const storage::trie::TrieSerializer> serializer,
         std::shared_ptr<const storage::trie::Codec> codec,
         std::shared_ptr<storage::SpacedStorage> storage,
-        std::shared_ptr<const crypto::Hasher> hasher);
+        std::shared_ptr<const crypto::Hasher> hasher,
+        std::shared_ptr<const application::AppConfiguration> config);
+
+    bool prepare();
 
     virtual outcome::result<void> addNewState(
         const storage::trie::RootHash &state_root,
@@ -136,26 +140,6 @@ namespace kagome::storage::trie_pruner {
     }
 
    private:
-    TriePrunerImpl(
-        std::optional<uint32_t> pruning_depth,
-        std::shared_ptr<storage::trie::TrieStorageBackend> trie_storage,
-        std::shared_ptr<const storage::trie::TrieSerializer> serializer,
-        std::shared_ptr<const storage::trie::Codec> codec,
-        std::shared_ptr<storage::SpacedStorage> storage,
-        std::shared_ptr<const crypto::Hasher> hasher)
-        : trie_storage_{trie_storage},
-          serializer_{serializer},
-          codec_{codec},
-          storage_{storage},
-          hasher_{hasher},
-          pruning_depth_{pruning_depth} {
-      BOOST_ASSERT(trie_storage_ != nullptr);
-      BOOST_ASSERT(serializer_ != nullptr);
-      BOOST_ASSERT(codec_ != nullptr);
-      BOOST_ASSERT(storage_ != nullptr);
-      BOOST_ASSERT(hasher_ != nullptr);
-    }
-
     outcome::result<void> prune(const primitives::BlockHeader &state);
 
     outcome::result<storage::trie::RootHash> addNewStateWith(

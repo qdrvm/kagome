@@ -136,6 +136,9 @@ struct BlockTreeTest : public testing::Test {
           return outcome::success();
         }));
 
+    ON_CALL(*state_pruner_, restoreState(_, _))
+        .WillByDefault(Return(outcome::success()));
+
     ON_CALL(*state_pruner_, pruneDiscarded(_))
         .WillByDefault(Return(outcome::success()));
 
