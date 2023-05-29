@@ -28,7 +28,7 @@ namespace kagome::api::system::request {
     // isSyncing - Whether the node is syncing.
     data["isSyncing"] =
         makeValue(api_->getBabe()->getCurrentState()
-                  == consensus::babe::Babe::State::SYNCHRONIZED);
+                  != consensus::babe::Babe::State::SYNCHRONIZED);
 
     // peers - Number of connected peers
     data["peers"] = makeValue(

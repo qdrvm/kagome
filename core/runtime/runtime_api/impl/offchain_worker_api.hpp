@@ -13,15 +13,19 @@ namespace kagome::application {
 }
 namespace kagome::offchain {
   class OffchainWorkerFactory;
-}
+  class Runner;
+}  // namespace kagome::offchain
 
 namespace kagome::runtime {
 
   class Executor;
 
-  class OffchainWorkerApiImpl final
-      : public OffchainWorkerApi,
-        std::enable_shared_from_this<OffchainWorkerApiImpl> {
+  outcome::result<void> callOffchainWorkerApi(
+      Executor &executor,
+      const primitives::BlockHash &block,
+      const primitives::BlockHeader &header);
+
+  class OffchainWorkerApiImpl final : public OffchainWorkerApi {
    public:
     OffchainWorkerApiImpl(
         const application::AppConfiguration &app_config,
@@ -35,6 +39,7 @@ namespace kagome::runtime {
    private:
     const application::AppConfiguration &app_config_;
     std::shared_ptr<offchain::OffchainWorkerFactory> ocw_factory_;
+    std::shared_ptr<offchain::Runner> runner_;
     std::shared_ptr<Executor> executor_;
   };
 

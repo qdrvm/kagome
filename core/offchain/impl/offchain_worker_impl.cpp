@@ -5,9 +5,8 @@
 
 #include "offchain/impl/offchain_worker_impl.hpp"
 
-#include <thread>
-
 #include <libp2p/host/host.hpp>
+#include <thread>
 
 #include "api/service/author/author_api.hpp"
 #include "application/app_configuration.hpp"
@@ -15,6 +14,7 @@
 #include "offchain/impl/offchain_local_storage.hpp"
 #include "offchain/offchain_worker_pool.hpp"
 #include "runtime/common/executor.hpp"
+#include "runtime/runtime_api/impl/offchain_worker_api.hpp"
 #include "storage/database_error.hpp"
 
 namespace kagome::offchain {
@@ -63,39 +63,25 @@ namespace kagome::offchain {
   outcome::result<void> OffchainWorkerImpl::run() {
     BOOST_ASSERT(not ocw_pool_->getWorker());
 
-    auto main_thread_func = [ocw = shared_from_this(), ocw_pool = ocw_pool_] {
-      soralog::util::setThreadName("ocw." + std::to_string(ocw->block_.number));
+    soralog::util::setThreadName("ocw." + std::to_string(block_.number));
 
-      ocw_pool->addWorker(ocw);
+    ocw_pool_->addWorker(shared_from_this());
+    auto remove = gsl::finally([&] { ocw_pool_->removeWorker(); });
 
-      SL_TRACE(
-          ocw->log_, "Offchain worker is started for block {}", ocw->block_);
+    SL_TRACE(log_, "Offchain worker is started for block {}", block_);
 
-      auto res = ocw->executor_->callAt<void>(
-          ocw->block_.hash, "OffchainWorkerApi_offchain_worker", ocw->header_);
+    auto res = runtime::callOffchainWorkerApi(*executor_, block_.hash, header_);
 
-      ocw_pool->removeWorker();
-
-      if (res.has_failure()) {
-        SL_ERROR(ocw->log_,
-                 "Can't execute offchain worker for block {}: {}",
-                 ocw->block_,
-                 res.error());
-        return;
-      }
-
-      SL_DEBUG(ocw->log_,
-               "Offchain worker is successfully executed for block {}",
-               ocw->block_);
-    };
-
-    try {
-      std::thread(std::move(main_thread_func)).detach();
-    } catch (const std::system_error &exception) {
-      return outcome::failure(exception.code());
-    } catch (...) {
-      BOOST_UNREACHABLE_RETURN({});
+    if (res.has_error()) {
+      SL_ERROR(log_,
+               "Can't execute offchain worker for block {}: {}",
+               block_,
+               res.error());
+      return res.error();
     }
+
+    SL_DEBUG(
+        log_, "Offchain worker is successfully executed for block {}", block_);
 
     return outcome::success();
   }

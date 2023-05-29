@@ -216,9 +216,6 @@ namespace kagome::blockchain {
 
     void notifyChainEventsEngine(primitives::events::ChainEventType event,
                                  const primitives::BlockHeader &header);
-    void notifyExtrinsicEventsEngine(
-        subscription::ExtrinsicEventKeyRepository::ExtrinsicKey event,
-        const primitives::events::ExtrinsicLifecycleEvent &data);
 
     SafeObject<BlockTreeData> block_tree_data_;
     primitives::events::ExtrinsicSubscriptionEnginePtr

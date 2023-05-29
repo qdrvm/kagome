@@ -181,6 +181,9 @@ namespace kagome::application {
     StorageBackend storageBackend() const override {
       return storage_backend_;
     }
+    uint32_t dbCacheSize() const override {
+      return db_cache_size_;
+    }
     std::optional<std::string_view> devMnemonicPhrase() const override {
       if (dev_mnemonic_phrase_) {
         return *dev_mnemonic_phrase_;
@@ -333,6 +336,7 @@ namespace kagome::application {
     std::optional<Subcommand> subcommand_;
     std::optional<primitives::BlockId> recovery_state_;
     StorageBackend storage_backend_ = StorageBackend::RocksDB;
+    uint32_t db_cache_size_;
     std::optional<std::string> dev_mnemonic_phrase_;
     std::string node_wss_pem_;
     std::optional<BenchmarkConfigSection> benchmark_config_;
