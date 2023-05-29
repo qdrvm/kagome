@@ -6,6 +6,7 @@
 #include "offchain/impl/offchain_worker_impl.hpp"
 
 #include <libp2p/host/host.hpp>
+#include <thread>
 
 #include "api/service/author/author_api.hpp"
 #include "application/app_configuration.hpp"
