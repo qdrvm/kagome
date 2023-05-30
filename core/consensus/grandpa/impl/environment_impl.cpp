@@ -160,7 +160,7 @@ namespace kagome::consensus::grandpa {
     main_thread_context_.execute([wself{weak_from_this()},
                                   round{std::move(round)},
                                   set_id{std::move(set_id)},
-                                  vote] mutable {
+                                  vote]() mutable {
       if (auto self = wself.lock()) {
         SL_INFO(self->logger_,
                 "Round #{}: Send {} signed by {} for block {}",
@@ -187,7 +187,7 @@ namespace kagome::consensus::grandpa {
     main_thread_context_.execute([wself{weak_from_this()},
                                   peer_id,
                                   voter_set_id{std::move(voter_set_id)},
-                                  state] mutable {
+                                  state]() mutable {
       if (auto self = wself.lock()) {
         auto send = [&](const SignedMessage &vote) {
           SL_DEBUG(
