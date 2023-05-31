@@ -138,7 +138,8 @@ namespace kagome::network {
   bool SynchronizerImpl::subscribeToBlock(
       const primitives::BlockInfo &block_info, SyncResultHandler &&handler) {
     // Check if block is already in tree
-    if (block_tree_->hasBlockHeader(block_info.hash)) {
+    auto has = block_tree_->hasBlockHeader(block_info.hash);
+    if (has and has.value()) {
       scheduler_->schedule(
           [handler = std::move(handler), block_info] { handler(block_info); });
       return false;
@@ -146,7 +147,7 @@ namespace kagome::network {
 
     auto last_finalized_block = block_tree_->getLastFinalized();
     // Check if block from discarded side-chain
-    if (last_finalized_block.number <= block_info.number) {
+    if (last_finalized_block.number >= block_info.number) {
       scheduler_->schedule(
           [handler = std::move(handler)] { handler(Error::DISCARDED_BLOCK); });
       return false;
@@ -1215,9 +1216,8 @@ namespace kagome::network {
       }
     }
 
-    auto node = known_blocks_.extract(hash);
-    if (node) {
-      auto &block_data = node.mapped().data;
+    if (auto it = known_blocks_.find(hash); it != known_blocks_.end()) {
+      auto &block_data = it->second.data;
       BOOST_ASSERT(block_data.header.has_value());
       const BlockInfo block_info(block_data.header->number, block_data.hash);
 
@@ -1312,7 +1312,6 @@ namespace kagome::network {
       if (not block_addition_result.has_value()) {
         if (block_addition_result
             != outcome::failure(blockchain::BlockTreeError::BLOCK_EXISTS)) {
-          notifySubscribers(block_info, block_addition_result.as_failure());
           auto n = discardBlock(block_data.hash);
           SL_WARN(log_,
                   "Block {} {} been discarded: {}",
