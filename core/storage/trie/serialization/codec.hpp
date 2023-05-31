@@ -33,7 +33,7 @@ namespace kagome::storage::trie {
     using ChildVisitor = std::function<outcome::result<void>(Visitee)>;
 
     static constexpr auto NoopChildVisitor =
-        [](std::variant<ChildData, ValueData>) -> outcome::result<void> {
+        [](Visitee) -> outcome::result<void> {
       return outcome::success();
     };
 

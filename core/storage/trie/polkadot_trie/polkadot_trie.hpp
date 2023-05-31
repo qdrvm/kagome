@@ -25,10 +25,10 @@ namespace kagome::storage::trie {
     using BranchPtr = std::shared_ptr<BranchNode>;
     using ConstBranchPtr = std::shared_ptr<const BranchNode>;
     using NodeRetrieveFunctor = std::function<outcome::result<NodePtr>(
-        std::shared_ptr<OpaqueTrieNode> const &)>;
+        const std::shared_ptr<OpaqueTrieNode> &)>;
     using ValueRetrieveFunctor =
         std::function<outcome::result<std::optional<common::Buffer>>(
-            common::Hash256 const & /* value hash */)>;
+            const common::Hash256 & /* value hash */)>;
 
     /**
      * This callback is called when a node is detached from a trie. It is called
@@ -81,7 +81,7 @@ namespace kagome::storage::trie {
         ConstNodePtr parent, const NibblesView &key_nibbles) const = 0;
 
     using BranchVisitor = std::function<outcome::result<void>(
-        BranchNode const &, uint8_t idx, TrieNode const &child)>;
+        const BranchNode &, uint8_t idx, const TrieNode &child)>;
     /**
      * Invokes callback on each node starting from \arg parent and ending on the
      * node corresponding to the \arg path

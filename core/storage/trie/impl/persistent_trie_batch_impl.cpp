@@ -54,8 +54,10 @@ namespace kagome::storage::trie {
       auto child_key = child_tries->value().value();
       OUTCOME_TRY(child_hash, RootHash::fromSpan(child_key));
       OUTCOME_TRY(trie, serializer_->retrieveTrie(child_hash, nullptr));
-      OUTCOME_TRY(
-          state_pruner_->addNewChildState(root, child_key, *trie, version));
+      OUTCOME_TRY(state_pruner_->markAsChild(
+          trie_pruner::TriePruner::Parent{root},
+          child_tries->key().value(),
+          trie_pruner::TriePruner::Child{child_hash}));
     }
     SL_TRACE_FUNC_CALL(logger_, root);
     return std::move(root);

@@ -243,9 +243,10 @@ namespace kagome::blockchain {
         return block_tree_data_.exclusiveAccess(
             [&f, this](BlockTreeData &data) {
               exclusive_owner_ = std::this_thread::get_id();
-              auto &&res = f(data);
-              exclusive_owner_ = std::nullopt;
-              return res;
+              auto reset = gsl::finally([&] {
+                exclusive_owner_ = std::nullopt;
+              });
+              return f(data);
             });
       }
 

@@ -52,7 +52,8 @@ namespace kagome::storage::trie {
         const OnNodeLoaded &on_node_loaded) const override;
 
     outcome::result<std::optional<common::Buffer>> retrieveValue(
-        const common::Hash256 &hash) const override;
+        const common::Hash256 &hash,
+        const OnNodeLoaded &on_node_loaded) const override;
 
    private:
     /**

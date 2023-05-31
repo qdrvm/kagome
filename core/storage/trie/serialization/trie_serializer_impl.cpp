@@ -65,9 +65,15 @@ namespace kagome::storage::trie {
             version,
             [&](Codec::Visitee visitee) -> outcome::result<void> {
               if (auto child_data = std::get_if<Codec::ChildData>(&visitee);
-                  child_data != nullptr && child_data->merkle_value.isHash()) {
-                return batch->put(child_data->merkle_value.asBuffer(),
-                                  std::move(child_data->encoding));
+                  child_data != nullptr) {
+                if (child_data->merkle_value.isHash()) {
+                  return batch->put(child_data->merkle_value.asBuffer(),
+                                    std::move(child_data->encoding));
+                } else {
+                  return outcome::success();  // nodes which encoding is shorter
+                                              // than its hash are not stored in
+                                              // the DB separately
+                }
               }
               if (auto value_data = std::get_if<Codec::ValueData>(&visitee);
                   value_data != nullptr) {
@@ -114,10 +120,15 @@ namespace kagome::storage::trie {
   }
 
   outcome::result<std::optional<common::Buffer>>
-  TrieSerializerImpl::retrieveValue(const common::Hash256 &hash) const {
+  TrieSerializerImpl::retrieveValue(const common::Hash256 &hash,
+                                    const OnNodeLoaded &on_node_loaded) const {
     OUTCOME_TRY(value, backend_->tryGet(hash));
-    return common::map_optional(value,
-                                [](auto &value) { return value.owned(); });
+    return common::map_optional(value, [&](auto &value) {
+      if (on_node_loaded) {
+        on_node_loaded(value);
+      }
+      return value.owned();
+    });
   }
 
 }  // namespace kagome::storage::trie

@@ -80,7 +80,8 @@ namespace kagome::parachain {
         -> outcome::result<std::shared_ptr<storage::trie::TrieNode>> {
       auto merkle =
           dynamic_cast<const storage::trie::DummyNode &>(*node).db_key;
-      if (merkle.asBuffer() == storage::trie::kEmptyRootHash) {
+      // dummy node's key is always a hash
+      if (merkle.asHash() == storage::trie::kEmptyRootHash) {
         return nullptr;
       }
       if (merkle.isHash()) {

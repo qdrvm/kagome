@@ -213,8 +213,10 @@ namespace kagome::storage::trie {
     auto hash = node.getValue().hash;
     if (shouldBeHashed(node.getValue(), version)) {
       hash = hash256(*node.getValue().value);
-      OUTCOME_TRY(
-          child_visitor(ValueData{node, *hash, *node.getValue().value}));
+      if (child_visitor) {
+        OUTCOME_TRY(
+            child_visitor(ValueData{node, *hash, *node.getValue().value}));
+      }
     }
     if (hash) {
       out += *hash;
@@ -250,13 +252,13 @@ namespace kagome::storage::trie {
           OUTCOME_TRY(scale_enc, scale::encode(merkle_value.asBuffer()));
           encoding.put(scale_enc);
         } else {
-          auto child_node = std::dynamic_pointer_cast<TrieNode>(child);
-          BOOST_ASSERT(child_node != nullptr);
-          OUTCOME_TRY(enc, encodeNode(*child_node, version, child_visitor));
+          // because a node is either a dummy or a trienode
+          auto& child_node = dynamic_cast<TrieNode&>(*child);
+          OUTCOME_TRY(enc, encodeNode(child_node, version, child_visitor));
           auto merkle = merkleValue(enc);
           if (merkle.isHash() && child_visitor) {
             OUTCOME_TRY(
-                child_visitor(ChildData{*child_node, merkle, std::move(enc)}));
+                child_visitor(ChildData{child_node, merkle, std::move(enc)}));
           }
           OUTCOME_TRY(scale_enc, scale::encode(merkle.asBuffer()));
           encoding.put(scale_enc);

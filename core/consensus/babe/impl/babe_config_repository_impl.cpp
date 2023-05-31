@@ -849,8 +849,8 @@ namespace kagome::consensus::babe {
 
   outcome::result<void> BabeConfigRepositoryImpl::readFromStateOutcome(
       const primitives::BlockInfo &block) {
-    //OUTCOME_TRY(hash1, block_tree_->getBlockHash(1));
-    //OUTCOME_TRY(header1, block_tree_->getBlockHeader(hash1));
+    OUTCOME_TRY(hash1, block_tree_->getBlockHash(1));
+    OUTCOME_TRY(header1, block_tree_->getBlockHeader(hash1));
     OUTCOME_TRY(header, block_tree_->getBlockHeader(block.hash));
     auto parent = header;
     std::optional<EpochDigest> next_epoch;

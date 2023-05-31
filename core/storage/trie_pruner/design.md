@@ -13,7 +13,7 @@ When a node is deleted for longer than N blocks, prune it.
 
 Insertion: remove new nodes from the list of deleted nodes using index.
 
-Deletion: add deleted nodes to the list.
+Deletion: add deleted nodes to the list. Requires full traversal of deleted sub-trees.
 
 Clear prefix: add all deleted nodes to the list.
 

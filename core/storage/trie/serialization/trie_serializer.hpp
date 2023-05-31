@@ -60,7 +60,8 @@ namespace kagome::storage::trie {
         const OnNodeLoaded &on_node_loaded = [](EncodedNode) {}) const = 0;
 
     virtual outcome::result<std::optional<common::Buffer>> retrieveValue(
-        const common::Hash256 &hash) const = 0;
+        const common::Hash256 &hash,
+        const OnNodeLoaded &on_node_loaded) const = 0;
   };
 
 }  // namespace kagome::storage::trie
