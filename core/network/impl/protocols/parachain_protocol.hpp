@@ -50,11 +50,11 @@ namespace kagome::network {
     ~ParachainProtocol() override = default;
 
     ParachainProtocol(libp2p::Host &host,
-                      application::AppConfiguration const &app_config,
-                      application::ChainSpec const &chain_spec,
+                      const application::AppConfiguration &app_config,
+                      const application::ChainSpec &chain_spec,
                       const blockchain::GenesisBlockHash &genesis_hash,
                       std::shared_ptr<ObserverType> observer,
-                      Protocol const &protocol,
+                      const Protocol &protocol,
                       std::shared_ptr<network::PeerView> peer_view,
                       log::Logger logger)
         : base_(kParachainProtocolName,
@@ -73,7 +73,7 @@ namespace kagome::network {
       doCollatorHandshake<true>(
           stream,
           [wptr{this->weak_from_this()}](
-              std::shared_ptr<Stream> const &stream) mutable {
+              const std::shared_ptr<Stream> &stream) mutable {
             if (!stream) {
               return;
             }
@@ -134,13 +134,18 @@ namespace kagome::network {
     }
 
     const std::string &protocolName() const override {
-      return protocol_;
+      static std::optional<std::string> protocol_name;
+      if (!protocol_name) {
+        protocol_name = base_.protocolIds().size() > 0 ? base_.protocolIds()[0]
+                                                       : base_.protocolName();
+      }
+      return protocol_name.value();
     }
 
    private:
     template <bool DirectionIncoming, typename F>
     void exchangeHandshake(
-        std::shared_ptr<kagome::network::Stream> const &stream, F &&func) {
+        const std::shared_ptr<kagome::network::Stream> &stream, F &&func) {
       auto read_writer = std::make_shared<ScaleMessageReadWriter>(stream);
       if constexpr (DirectionIncoming) {
         read_writer->read<Roles>([wptr{this->weak_from_this()},
@@ -180,7 +185,7 @@ namespace kagome::network {
 
     template <bool DirectionIncoming, typename F>
     void doCollatorHandshake(
-        std::shared_ptr<kagome::network::Stream> const &stream, F &&func) {
+        const std::shared_ptr<kagome::network::Stream> &stream, F &&func) {
       exchangeHandshake<DirectionIncoming>(
           stream,
           [func{std::forward<F>(func)}, stream, wptr{this->weak_from_this()}](
@@ -262,12 +267,12 @@ namespace kagome::network {
           });
     }
 
-    const static inline auto kParachainProtocolName = "ParachainProtocol"s;
+    inline static const auto kParachainProtocolName = "ParachainProtocol"s;
 
     ProtocolBaseImpl base_;
     std::shared_ptr<ObserverType> observer_;
-    application::AppConfiguration const &app_config_;
-    Protocol const protocol_;
+    const application::AppConfiguration &app_config_;
+    const Protocol protocol_;
     std::shared_ptr<network::PeerView> peer_view_;
   };
 
