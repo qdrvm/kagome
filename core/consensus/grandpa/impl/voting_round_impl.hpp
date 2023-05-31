@@ -81,6 +81,7 @@ namespace kagome::consensus::grandpa {
       // Stages for precommit mechanism
       START_PRECOMMIT,
       PRECOMMIT_RUNS,
+      PRECOMMIT_WAITS_FOR_PREVOTES,
       END_PRECOMMIT,
 
       // Stages for waiting finalisation
