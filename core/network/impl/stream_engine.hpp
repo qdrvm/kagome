@@ -318,7 +318,6 @@ namespace kagome::network {
        * Drops the flag that outgoing stream establishing.
        */
       void dropReserved() {
-        BOOST_ASSERT(outgoing.reserved);
         outgoing.reserved = false;
       }
 
