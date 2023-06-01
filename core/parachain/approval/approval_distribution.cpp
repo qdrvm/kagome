@@ -1210,6 +1210,7 @@ namespace kagome::parachain {
               "Make exhaustive validation. Candidate hash {}, validator index "
               "{}, block hash {}",
               candidate_hash,
+              validator_index,
               block_hash);
 
           runtime::ValidationCode &validation_code = *result.value();
