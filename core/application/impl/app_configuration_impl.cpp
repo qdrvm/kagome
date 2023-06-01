@@ -238,7 +238,8 @@ namespace kagome::application {
         purge_wavm_cache_(def_purge_wavm_cache_),
         offchain_worker_mode_{def_offchain_worker_mode},
         enable_offchain_indexing_{def_enable_offchain_indexing},
-        recovery_state_{def_block_to_recover} {
+        recovery_state_{def_block_to_recover},
+        db_cache_size_{def_db_cache_size} {
     SL_INFO(logger_, "Soramitsu Kagome started. Version: {} ", buildVersion());
   }
 
