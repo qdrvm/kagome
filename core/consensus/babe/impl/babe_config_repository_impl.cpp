@@ -842,15 +842,35 @@ namespace kagome::consensus::babe {
 
   void BabeConfigRepositoryImpl::readFromState(
       const primitives::BlockInfo &block) {
+    auto check_res = [this, &block](const auto &res, const auto &msg) {
+      if (!res) {
+        logger_->error("readFromState {}, error: {}", block, msg);
+        return false;
+      }
+      return true;
+    };
+    auto hash1_opt_res = block_tree_->getBlockHash(1);
+    if (!check_res(hash1_opt_res, hash1_opt_res.error())) {
+      return;
+    }
+    if (!check_res(hash1_opt_res.value().has_value(),
+                   "Block #1 not present in the storage")) {
+      return;
+    }
+
+    auto header1_res = block_tree_->getBlockHeader(*hash1_opt_res.value());
+    if (!check_res(header1_res,
+                   header1_res.error())) {
+      return;
+    }
+
     if (auto r = readFromStateOutcome(block); not r) {
-      logger_->error("readFromState {}, error {}", block, r.error());
+      logger_->error("readFromState {}, error: {}", block, r.error());
     }
   }
 
   outcome::result<void> BabeConfigRepositoryImpl::readFromStateOutcome(
       const primitives::BlockInfo &block) {
-    OUTCOME_TRY(hash1, block_tree_->getBlockHash(1));
-    OUTCOME_TRY(header1, block_tree_->getBlockHeader(hash1));
     OUTCOME_TRY(header, block_tree_->getBlockHeader(block.hash));
     auto parent = header;
     std::optional<EpochDigest> next_epoch;
