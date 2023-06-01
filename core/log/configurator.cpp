@@ -62,6 +62,8 @@ groups:
                 children:
                   - name: voting_round
           - name: parachain
+          - name: dispute
+            level: trace
           - name: runtime
             children:
               - name: runtime_api

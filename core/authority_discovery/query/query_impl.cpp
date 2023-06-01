@@ -222,8 +222,8 @@ namespace kagome::authority_discovery {
       return Error::INVALID_SIGNATURE;
     }
 
-    auth_to_peer_cache_.insert_or_assign(authority, std::move(peer));
     peer_to_auth_cache_.insert_or_assign(peer.id, authority);
+    auth_to_peer_cache_.insert_or_assign(authority, std::move(peer));
 
     return outcome::success();
   }

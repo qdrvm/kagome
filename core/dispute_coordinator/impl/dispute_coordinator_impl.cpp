@@ -17,9 +17,11 @@
 #include "dispute_coordinator/impl/chain_scraper_impl.hpp"
 #include "dispute_coordinator/impl/errors.hpp"
 #include "dispute_coordinator/impl/rolling_session_window_impl.hpp"
+#include "dispute_coordinator/impl/sending_dispute.hpp"
 #include "dispute_coordinator/impl/spam_slots_impl.hpp"
 #include "dispute_coordinator/participation/participation.hpp"
 #include "network/helpers/peer_id_formatter.hpp"
+#include "network/router.hpp"
 #include "network/types/dispute_messages.hpp"
 #include "parachain/approval/approval_distribution.hpp"
 #include "utils/thread_pool.hpp"
@@ -38,7 +40,11 @@ namespace kagome::dispute {
       std::shared_ptr<runtime::ParachainHost> api,
       std::shared_ptr<parachain::ApprovalDistribution> approval_distribution,
       std::shared_ptr<authority_discovery::Query> authority_discovery,
-      std::shared_ptr<boost::asio::io_context> main_thread_context)
+      std::shared_ptr<boost::asio::io_context> main_thread_context,
+      std::shared_ptr<network::Router> router,
+      std::shared_ptr<network::PeerView> peer_view,
+      std::shared_ptr<primitives::events::BabeStateSubscriptionEngine>
+          babe_status_observable)
       : app_state_manager_(std::move(app_state_manager)),
         clock_(std::move(clock)),
         session_keys_(std::move(session_keys)),
@@ -51,6 +57,9 @@ namespace kagome::dispute {
         authority_discovery_(std::move(authority_discovery)),
         main_thread_context_(
             std::make_unique<ThreadHandler>(std::move(main_thread_context))),
+        router_(std::move(router)),
+        peer_view_(std::move(peer_view)),
+        babe_status_observable_(std::move(babe_status_observable)),
         int_pool_{std::make_shared<ThreadPool>(1ull)},
         internal_context_{int_pool_->handler()},
         runtime_info_(std::make_unique<RuntimeInfo>(session_keys_)) {
@@ -65,11 +74,19 @@ namespace kagome::dispute {
     BOOST_ASSERT(approval_distribution_ != nullptr);
     BOOST_ASSERT(authority_discovery_ != nullptr);
     BOOST_ASSERT(main_thread_context_ != nullptr);
+    BOOST_ASSERT(router_ != nullptr);
+    BOOST_ASSERT(peer_view_ != nullptr);
 
     app_state_manager_->takeControl(*this);
   }
 
   bool DisputeCoordinatorImpl::prepare() {
+    auto leaves = block_tree_->getLeaves();
+    active_heads_.insert(leaves.begin(), leaves.end());
+
+    scraper_ = std::make_unique<ChainScraperImpl>(api_, block_tree_);
+
+    // subscribe to leaves update
     my_view_sub_ = std::make_shared<network::PeerView::MyViewSubscriber>(
         peer_view_->getMyViewObservable(), false);
     my_view_sub_->subscribe(my_view_sub_->generateSubscriptionSetId(),
@@ -95,6 +112,7 @@ namespace kagome::dispute {
       }
     });
 
+    // subscribe to finalization
     chain_sub_ = std::make_shared<primitives::events::ChainEventSubscriber>(
         peer_view_->intoChainEventsEngine());
     chain_sub_->subscribe(chain_sub_->generateSubscriptionSetId(),
@@ -118,6 +136,26 @@ namespace kagome::dispute {
           }
         });
 
+    // subscribe to first successful sync
+    babe_status_sub_ =
+        std::make_shared<primitives::events::BabeStateEventSubscriber>(
+            babe_status_observable_, false);
+    babe_status_sub_->subscribe(
+        babe_status_sub_->generateSubscriptionSetId(),
+        primitives::events::BabeStateEventType::kSyncState);
+    babe_status_sub_->setCallback(
+        [wself{weak_from_this()}](
+            auto /*set_id*/,
+            bool &synchronized,
+            auto /*event_type*/,
+            const primitives::events::BabeStateEventParams & /*event*/) {
+          if (auto self = wself.lock()) {
+            if (synchronized) {
+              self->was_synchronized_ = true;
+            }
+          }
+        });
+
     return true;
   }
 
@@ -136,9 +174,10 @@ namespace kagome::dispute {
     }
 
     auto rsw_res = RollingSessionWindowImpl::create(
-        block_tree_, api_, updated.new_head_hash.value());
+        block_tree_, api_, updated.new_head_hash.value(), log_);
     if (rsw_res.has_error()) {
-      log_->error("Can't create rolling session window: {}", rsw_res.error());
+      SL_ERROR(
+          log_, "Can't create rolling session window: {}", rsw_res.error());
       return;
     }
     rolling_session_window_ = std::move(rsw_res.value());
@@ -208,7 +247,7 @@ namespace kagome::dispute {
     auto &votes = updates_res.value().on_chain_votes;
 
     // https://github.com/paritytech/polkadot/blob/40974fb99c86f5c341105b7db53c7aa0df707d66/node/core/dispute-coordinator/src/lib.rs#L298
-    for (auto &[session, candidate_hash, _] : active_disputes) {
+    for (auto &[session, candidate_hash, status] : active_disputes) {
       auto env_opt = makeCandidateEnvironment(
           *session_keys_, *rolling_session_window_, session);
       if (not env_opt.has_value()) {
@@ -380,6 +419,10 @@ namespace kagome::dispute {
 
   void DisputeCoordinatorImpl::on_active_leaves_update(
       const network::ExView &_updated) {
+    if (not was_synchronized_) {
+      return;
+    }
+
     REINVOKE_1(*internal_context_, on_active_leaves_update, _updated, updated);
 
     if (not initialized_) {
@@ -648,13 +691,158 @@ namespace kagome::dispute {
           // LOG-WARN: "Skipping scraping block due to error"
         }
       }
+
+      // https://github.com/paritytech/polkadot/blob/40974fb99c86f5c341105b7db53c7aa0df707d66/node/network/dispute-distribution/src/sender/mod.rs#L205
+      active_heads_.emplace(new_leaf.hash);
+    }
+
+    // https://github.com/paritytech/polkadot/blob/40974fb99c86f5c341105b7db53c7aa0df707d66/node/network/dispute-distribution/src/sender/mod.rs#L206
+    for (auto &leaf : update.deactivated) {
+      active_heads_.erase(leaf);
+    }
+
+    // Initiate fetching for new active disputes if needed
+    auto res = refresh_sessions();
+    if (not res.has_error()) {
+      auto sessions_updated = res.value();
+
+      auto waiting = std::move(waiting_for_active_disputes_);
+      if (not waiting.has_value()) {
+        // https://github.com/paritytech/polkadot/blob/40974fb99c86f5c341105b7db53c7aa0df707d66/node/network/dispute-distribution/src/sender/mod.rs#L196
+
+        waiting_for_active_disputes_.emplace(
+            WaitForActiveDisputesState{sessions_updated});
+
+        internal_context_->execute([wp = weak_from_this()] {
+          // https://github.com/paritytech/polkadot/blob/40974fb99c86f5c341105b7db53c7aa0df707d66/node/network/dispute-distribution/src/sender/mod.rs#L219
+          if (auto self = wp.lock()) {
+            self->handle_incoming_ActiveDisputes(
+                [wp](auto active_disputes_res) {
+
+                });
+          }
+        });
+
+      } else {
+        // https://github.com/paritytech/polkadot/blob/40974fb99c86f5c341105b7db53c7aa0df707d66/node/network/dispute-distribution/src/sender/mod.rs#L196
+
+        if (sessions_updated) {
+          waiting_for_active_disputes_->have_new_sessions = true;
+        }
+
+        SL_DEBUG(log_,
+                 "Dispute coordinator slow? We are still waiting for data on "
+                 "next active leaves update.");
+      }
     }
 
     return outcome::success();
   }
 
+  outcome::result<bool> DisputeCoordinatorImpl::refresh_sessions() {
+    // https://github.com/paritytech/polkadot/blob/40974fb99c86f5c341105b7db53c7aa0df707d66/node/network/dispute-distribution/src/sender/mod.rs#L294
+    std::unordered_map<SessionIndex, primitives::BlockHash> new_sessions;
+
+    // Iterate all heads we track as active and fetch the child' session
+    // indices.
+    for (auto &head : active_heads_) {
+      OUTCOME_TRY(session_index,
+                  runtime_info_->get_session_index_for_child(head));
+      new_sessions.emplace(session_index, head);
+    }
+
+    /// Make active sessions correspond to currently active heads.
+    auto sessions_updated =
+        std::equal(active_sessions_.begin(),
+                   active_sessions_.end(),
+                   new_sessions.begin(),
+                   new_sessions.end(),
+                   [](auto it1, auto it2) { return it1.first == it2.first; });
+
+    // Update in any case, so we use current heads for queries:
+    // https://github.com/paritytech/polkadot/blob/40974fb99c86f5c341105b7db53c7aa0df707d66/node/network/dispute-distribution/src/sender/mod.rs#L304
+    active_sessions_ = std::move(new_sessions);
+
+    return sessions_updated;
+  }
+
+  /// Handle new active disputes response.
+  ///
+  /// - Initiate a retry of failed sends which are still active.
+  /// - Get new authorities to send messages to.
+  /// - Get rid of obsolete tasks and disputes.
+  ///
+  /// This function ensures the `SEND_RATE_LIMIT`, therefore it might block.
+  void DisputeCoordinatorImpl::handle_active_dispute_response(
+      outcome::result<OutputDisputes> active_disputes_res) {
+    // https://github.com/paritytech/polkadot/blob/40974fb99c86f5c341105b7db53c7aa0df707d66/node/network/dispute-distribution/src/sender/mod.rs#L184
+    auto state = std::move(waiting_for_active_disputes_);
+    auto have_new_sessions = state.has_value() and state->have_new_sessions;
+
+    if (active_disputes_res.has_error()) {
+      SL_WARN(log_,
+              "Active dispute obtaining was failed: {}",
+              active_disputes_res.error());
+      return;
+    }
+    auto &active_disputes = active_disputes_res.value();
+
+    /// Handle new active disputes response.
+
+    // https://github.com/paritytech/polkadot/blob/40974fb99c86f5c341105b7db53c7aa0df707d66/node/network/dispute-distribution/src/sender/mod.rs#L261
+    std::unordered_set<CandidateHash> candidates;
+    std::for_each(active_disputes.begin(),
+                  active_disputes.end(),
+                  [&](const auto &active_dispute) {
+                    candidates.emplace(std::get<1>(active_dispute));
+                  });
+
+    // Cleanup obsolete senders (retain keeps order of remaining
+    // elements):
+    for (auto it = sending_disputes_.begin(); it != sending_disputes_.end();) {
+      auto &candidate_hash = std::get<0>(*it);
+      if (candidates.count(candidate_hash) == 0) {
+        it = sending_disputes_.erase(it);
+      } else {
+        ++it;
+      }
+    }
+
+    // Iterates in order of insertion:
+    // https://github.com/paritytech/polkadot/blob/40974fb99c86f5c341105b7db53c7aa0df707d66/node/network/dispute-distribution/src/sender/mod.rs#L267
+    auto should_rate_limit = true;
+    for (auto &[candidate_hash, sending_dispute] : sending_disputes_) {
+      if (not have_new_sessions and not sending_dispute->has_failed_sends()) {
+        continue;
+      }
+
+      if (should_rate_limit) {
+        // self.rate_limit
+        //   .limit("while going through new sessions/failed sends",
+        //   *candidate_hash) .await;
+      }
+
+      auto sends_happened =
+          sending_dispute->refresh_sends(*runtime_info_, active_sessions_);
+      //.await?;
+
+      // Only rate limit if we actually sent something out _and_ it was not just
+      // because of errors on previous sends.
+      //
+      // Reasoning: It would not be acceptable to slow down the whole subsystem,
+      // just because of a few bad peers having problems. It is actually better
+      // to risk running into their rate limit in that case and accept a minor
+      // reputation change.
+      should_rate_limit = sends_happened && have_new_sessions;
+    }
+  }
+
   void DisputeCoordinatorImpl::on_finalized_block(
       const primitives::BlockInfo &_finalized) {
+    if (not initialized_) {
+      return;
+    }
+
     REINVOKE_1(*internal_context_, on_finalized_block, _finalized, finalized);
 
     auto res = process_finalized_block(finalized);
@@ -760,8 +948,8 @@ namespace kagome::dispute {
 
     /// Import fresh statements.
     ///
-    /// Intermediate result will be a new state plus information about things
-    /// that changed due to the import.
+    /// Intermediate result will be a new state plus information about
+    /// things that changed due to the import.
 
     auto votes = std::move(old_state.votes);
 
@@ -1104,11 +1292,9 @@ namespace kagome::dispute {
             if (dispute_message_res.has_value()) {
               auto &dispute_message = dispute_message_res.value();
 
-              throw std::runtime_error("not implemented");  // TODO Implement it
-              // DisputeDistributionMessage::SendDispute(dispute_message);
+              sendDisputeRequest(dispute_message, {});
             } else {
-              // LOG-ERROR: "No ongoing dispute, but we checked there is
-              // one!"
+              // LOG-ERROR: "No ongoing dispute, but we checked there is one!"
             }
           }
         }
@@ -1348,14 +1534,13 @@ namespace kagome::dispute {
       auto msg_res = make_dispute_message(
           env.session, vote_state.votes, our_vote_signed, validator_index);
       if (msg_res.has_error()) {
-        // LOG-DEBUG:  "Creating dispute message failed: {}", msg_res.error());
+        // LOG-DEBUG:  "Creating dispute message failed: {}",
+        // msg_res.error());
         continue;
       }
       auto &dispute_message = msg_res.value();
 
-      // TODO implement it
-      // send_message(DisputeDistributionMessage::SendDispute(dispute_message))
-      // await
+      sendDisputeRequest(dispute_message, {});
     }
   }
 
@@ -1453,10 +1638,9 @@ namespace kagome::dispute {
         // LOG-ERR: "Creating dispute message failed."
         continue;
       }
+      auto &dispute_message = dispute_message_res.value();
 
-      // TODO implement it
-      // send_message(DisputeDistributionMessage::SendDispute(dispute_message))
-      // await
+      sendDisputeRequest(dispute_message, {});
     }
 
     // Do import
@@ -1492,8 +1676,6 @@ namespace kagome::dispute {
                session,
                statements,
                cb);
-
-    // TODO входящее сообщение из сети
 
     // LOG-TRACE: "DisputeCoordinatorMessage::ImportStatements"
 
@@ -1771,9 +1953,9 @@ namespace kagome::dispute {
                cb);
 
     // Only accept messages from validators, in case there are multiple
-    // `AuthorityId`s, we just take the first one. On session boundaries this
-    // might allow validators to double their rate limit for a short period of
-    // time, which seems acceptable.
+    // `AuthorityId`s, we just take the first one. On session boundaries
+    // this might allow validators to double their rate limit for a short
+    // period of time, which seems acceptable.
     auto authority_id_opt = authority_discovery_->get(peer_id);
     if (not authority_id_opt.has_value()) {
       SL_DEBUG(log_, "Peer {} is not validator - dropping message", peer_id);
@@ -1816,10 +1998,10 @@ namespace kagome::dispute {
       rate_limit_timer_->asyncWait([wp = weak_from_this()](auto &&ec) {
         if (auto self = wp.lock()) {
           if (ec) {
-            SL_ERROR(
-                self->log_,
-                "error happened while waiting delayed requests processing: {}",
-                ec);
+            SL_ERROR(self->log_,
+                     "error happened while waiting delayed requests "
+                     "processing: {}",
+                     ec);
             return;
           }
           BOOST_ASSERT(self->internal_context_->io_context()
@@ -1969,11 +2151,11 @@ namespace kagome::dispute {
     if (just_created) {
       // There was no entry yet - start import immediately:
 
-      SL_TRACE(
-          log_,
-          "No batch yet - triggering immediate import (candidate={}, peer={})",
-          candidate_hash,
-          peer);
+      SL_TRACE(log_,
+               "No batch yet - triggering immediate import (candidate={}, "
+               "peer={})",
+               candidate_hash,
+               peer);
 
       PreparedImport prepared_import{
           .candidate_receipt = batch->candidate_receipt,
@@ -1991,14 +2173,14 @@ namespace kagome::dispute {
           batch->add_votes(valid_vote, invalid_vote, peer, std::move(cb));
 
       if (cb_opt.has_value()) {
-        // We don't expect honest peers to send redundant votes within a single
-        // batch, as the timeout for retry is much higher. Still we don't want
-        // to punish the node as it might not be the node's fault. Some other
-        // (malicious) node could have been faster sending the same votes in
-        // order to harm the reputation of that honest node. Given that we
-        // already have a rate limit, if a validator chooses to waste available
-        // rate with redundant votes - so be it. The actual dispute resolution
-        // is unaffected.
+        // We don't expect honest peers to send redundant votes within a
+        // single batch, as the timeout for retry is much higher. Still we
+        // don't want to punish the node as it might not be the node's
+        // fault. Some other (malicious) node could have been faster sending
+        // the same votes in order to harm the reputation of that honest
+        // node. Given that we already have a rate limit, if a validator
+        // chooses to waste available rate with redundant votes - so be it.
+        // The actual dispute resolution is unaffected.
         SL_DEBUG(log_,
                  "Peer {} sent completely redundant votes within a single "
                  "batch - that looks fishy!",
@@ -2006,8 +2188,9 @@ namespace kagome::dispute {
 
         // While we have seen duplicate votes, we cannot confirm as we don't
         // know yet whether the batch is going to be confirmed, so we assume
-        // the worst. We don't want to push the pending response to the batch
-        // either as that would be unbounded, only limited by the rate limit.
+        // the worst. We don't want to push the pending response to the
+        // batch either as that would be unbounded, only limited by the rate
+        // limit.
         (*cb_opt)(BatchError::RedundantMessage);
       }
     }
@@ -2042,6 +2225,30 @@ namespace kagome::dispute {
                                      session_index,
                                      statements,
                                      std::move(pending_confirmation));
+  }
+
+  void DisputeCoordinatorImpl::sendDisputeRequest(
+      const network::DisputeMessage &request, CbOutcome<void> &&cb) {
+    auto &candidate_hash = request.candidate_receipt.commitments_hash;
+
+    for (auto &[_candidate_hash, _] : sending_disputes_) {
+      if (_candidate_hash == candidate_hash) {
+        SL_TRACE(log_,
+                 "Dispute (candidate={}) sending already active.",
+                 candidate_hash);
+        return;
+      }
+    }
+
+    auto protocol = router_->getSendDisputeProtocol();
+    BOOST_ASSERT_MSG(protocol,
+                     "Router did not provide `send dispute` protocol");
+
+    auto &[_, sending_dispute] = sending_disputes_.emplace_back(
+        candidate_hash, std::make_unique<SendingDispute>(protocol, request));
+
+    std::ignore =
+        sending_dispute->refresh_sends(*runtime_info_, active_sessions_);
   }
 
 }  // namespace kagome::dispute

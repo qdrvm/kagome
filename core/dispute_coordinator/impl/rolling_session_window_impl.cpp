@@ -9,16 +9,25 @@
 #include "dispute_coordinator/impl/errors.hpp"
 
 namespace kagome::dispute {
+
   outcome::result<std::unique_ptr<RollingSessionWindow>>
   RollingSessionWindowImpl::create(
       std::shared_ptr<blockchain::BlockTree> block_tree,
       std::shared_ptr<ParachainHost> api,
-      primitives::BlockHash block_hash) {
+      primitives::BlockHash block_hash,
+      log::Logger log) {
     BOOST_ASSERT(block_tree != nullptr);
     BOOST_ASSERT(api != nullptr);
+    BOOST_ASSERT(log != nullptr);
 
     // At first, determine session window start using the chain state.
     auto session_index_res = api->session_index_for_child(block_hash);
+    if (session_index_res.has_error()) {
+      SL_DEBUG(log,
+               "Call 'session_index_for_child' was failed: {}",
+               session_index_res.error());
+      return SessionObtainingError::SessionsUnavailable;
+    }
     const auto &session_index = session_index_res.value();
 
     // We want to get the session index for the child of the last finalized
@@ -109,6 +118,7 @@ namespace kagome::dispute {
     }
 
     RollingSessionWindowImpl rsw;
+    rsw.log_ = std::move(log);
     rsw.api_ = api;
     rsw.block_tree_ = block_tree;
     rsw.earliest_session_ = window_start;

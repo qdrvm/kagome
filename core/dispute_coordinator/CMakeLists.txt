@@ -16,7 +16,7 @@ add_library(dispute_coordinator
     impl/runtime_info.cpp
     impl/batch.cpp
     impl/batches.cpp
-
+    impl/sending_dispute.cpp
     impl/errors.cpp
     )
 

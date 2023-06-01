@@ -8,6 +8,7 @@
 
 #include "dispute_coordinator/rolling_session_window.hpp"
 
+#include "log/logger.hpp"
 #include "runtime/runtime_api/parachain_host.hpp"
 
 namespace kagome::blockchain {
@@ -31,7 +32,8 @@ namespace kagome::dispute {
     static outcome::result<std::unique_ptr<RollingSessionWindow>> create(
         std::shared_ptr<blockchain::BlockTree> block_tree,
         std::shared_ptr<ParachainHost> api,
-        primitives::BlockHash block_hash);
+        primitives::BlockHash block_hash,
+        log::Logger log);
 
     std::optional<std::reference_wrapper<SessionInfo>> session_info(
         SessionIndex index) override;
@@ -63,6 +65,7 @@ namespace kagome::dispute {
                                      SessionIndex &window_start,
                                      SessionIndex end_inclusive);
 
+    log::Logger log_;
     std::shared_ptr<ParachainHost> api_;
     std::shared_ptr<blockchain::BlockTree> block_tree_;
 

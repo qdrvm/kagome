@@ -6,20 +6,26 @@
 #ifndef KAGOME_DISPUTE_PARTICIPATIONIMPL
 #define KAGOME_DISPUTE_PARTICIPATIONIMPL
 
+#include "dispute_coordinator/participation/impl/queues_impl.hpp"
 #include "dispute_coordinator/participation/participation.hpp"
+#include "utils/thread_pool.hpp"
 
 #include <unordered_set>
 
-namespace kagome::dispute {
-  class Queues;
-  class WorkerMessageSender;
-}  // namespace kagome::dispute
+namespace kagome {
+  class ThreadHandler;
+}
 
 namespace kagome::dispute {
 
   class ParticipationImpl final : Participation {
    public:
     static const size_t kMaxParallelParticipations = 3;
+
+    ParticipationImpl(std::shared_ptr<ThreadHandler> internal_context)
+        : internal_context_(std::move(internal_context)) {
+      BOOST_ASSERT(internal_context != nullptr);
+    }
 
     outcome::result<void> queue_participation(
         ParticipationPriority priority, ParticipationRequest request) override;
@@ -41,6 +47,8 @@ namespace kagome::dispute {
     /// Dequeue until `MAX_PARALLEL_PARTICIPATIONS` is reached.
     outcome::result<void> dequeue_until_capacity(
         const primitives::BlockHash &recent_head);
+
+    std::shared_ptr<ThreadHandler> internal_context_;
 
     /// Participations currently being processed.
     std::unordered_set<CandidateHash> running_participations_;

@@ -10,6 +10,7 @@
 #include "network/dispute_request_observer.hpp"
 
 #include <boost/asio/io_context.hpp>
+#include <list>
 
 #include "clock/impl/basic_waitable_timer.hpp"
 #include "crypto/crypto_store/session_keys.hpp"
@@ -42,15 +43,22 @@ namespace kagome::authority_discovery {
   class Query;
 }
 
+namespace kagome::blockchain {
+  class BlockTree;
+}
+
 namespace kagome::dispute {
   class ChainScraper;
   class Participation;
   class RuntimeInfo;
+  class SendingDispute;
 }  // namespace kagome::dispute
 
 namespace kagome::network {
   struct DisputeMessage;
-}
+  class Router;
+  class PeerView;
+}  // namespace kagome::network
 
 namespace kagome::parachain {
   struct ApprovalDistribution;
@@ -88,7 +96,11 @@ namespace kagome::dispute {
         std::shared_ptr<runtime::ParachainHost> api,
         std::shared_ptr<parachain::ApprovalDistribution> approval_distribution,
         std::shared_ptr<authority_discovery::Query> authority_discovery,
-        std::shared_ptr<boost::asio::io_context> main_thread_context);
+        std::shared_ptr<boost::asio::io_context> main_thread_context,
+        std::shared_ptr<network::Router> router,
+        std::shared_ptr<network::PeerView> peer_view,
+        primitives::events::BabeStateSubscriptionEnginePtr
+            babe_status_observable);
 
     bool prepare();
     bool start();
@@ -200,6 +212,14 @@ namespace kagome::dispute {
 
     void sendDisputeResponse(outcome::result<void> res, CbOutcome<void> &&cb);
 
+    void sendDisputeRequest(const network::DisputeMessage &request,
+                            CbOutcome<void> &&cb);
+
+    outcome::result<bool> refresh_sessions();
+
+    void handle_active_dispute_response(
+        outcome::result<OutputDisputes> active_disputes_res);
+
     std::shared_ptr<application::AppStateManager> app_state_manager_;
     std::shared_ptr<clock::SystemClock> clock_;
     std::shared_ptr<crypto::SessionKeys> session_keys_;
@@ -211,11 +231,16 @@ namespace kagome::dispute {
     std::shared_ptr<parachain::ApprovalDistribution> approval_distribution_;
     std::shared_ptr<authority_discovery::Query> authority_discovery_;
     std::unique_ptr<ThreadHandler> main_thread_context_;
-
+    std::shared_ptr<network::Router> router_;
     std::shared_ptr<network::PeerView> peer_view_;
+    primitives::events::BabeStateSubscriptionEnginePtr babe_status_observable_;
+
+    std::shared_ptr<primitives::events::BabeStateEventSubscriber>
+        babe_status_sub_;
     std::shared_ptr<network::PeerView::MyViewSubscriber> my_view_sub_;
     std::shared_ptr<primitives::events::ChainEventSubscriber> chain_sub_;
 
+    std::atomic_bool was_synchronized_ = false;
     std::atomic_bool initialized_ = false;
 
     std::shared_ptr<ChainScraper> scraper_;
@@ -256,6 +281,31 @@ namespace kagome::dispute {
 
     /// Currently active batches of imports per candidate.
     std::unique_ptr<Batches> batches_;
+
+    /// All heads we currently consider active.
+    std::unordered_set<primitives::BlockHash> active_heads_;
+
+    /// List of currently active sessions.
+    ///
+    /// Value is the hash that was used for the query.
+    std::unordered_map<SessionIndex, primitives::BlockHash> active_sessions_;
+
+    /// State we keep while waiting for active disputes.
+    ///
+    /// When we send `DisputeCoordinatorMessage::ActiveDisputes`, this is the
+    /// state we keep while waiting for the response.
+    struct WaitForActiveDisputesState {
+      /// Have we seen any new sessions since last refresh?
+      bool have_new_sessions;
+    };
+
+    std::optional<WaitForActiveDisputesState> waiting_for_active_disputes_;
+
+    /// All ongoing dispute sendings this subsystem is aware of.
+    ///
+    /// Using an `IndexMap` so items can be iterated in the order of insertion.
+    std::list<std::tuple<CandidateHash, std::shared_ptr<SendingDispute>>>
+        sending_disputes_;
 
     log::Logger log_ = log::createLogger("DisputeCoordinator", "dispute");
   };
