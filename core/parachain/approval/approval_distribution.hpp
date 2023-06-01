@@ -266,7 +266,8 @@ namespace kagome::parachain {
         std::shared_ptr<network::Router> router,
         std::shared_ptr<blockchain::BlockTree> block_tree,
         std::shared_ptr<parachain::Pvf> pvf,
-        std::shared_ptr<parachain::Recovery> recovery);
+        std::shared_ptr<parachain::Recovery> recovery,
+        std::shared_ptr<boost::asio::io_context> this_context);
     ~ApprovalDistribution() = default;
 
     /// AppStateManager impl
@@ -655,6 +656,7 @@ namespace kagome::parachain {
     std::shared_ptr<blockchain::BlockTree> block_tree_;
     std::shared_ptr<parachain::Pvf> pvf_;
     std::shared_ptr<parachain::Recovery> recovery_;
+    ThreadHandler this_context_;
     std::unordered_map<
         Hash,
         std::vector<std::pair<libp2p::peer::PeerId, PendingMessage>>>
