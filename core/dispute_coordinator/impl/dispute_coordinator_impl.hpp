@@ -243,7 +243,7 @@ namespace kagome::dispute {
     std::atomic_bool was_synchronized_ = false;
     std::atomic_bool initialized_ = false;
 
-    std::shared_ptr<ChainScraper> scraper_;
+    std::unique_ptr<ChainScraper> scraper_;
     SessionIndex highest_session_;
     std::shared_ptr<SpamSlots> spam_slots_;
     std::shared_ptr<Participation> participation_;

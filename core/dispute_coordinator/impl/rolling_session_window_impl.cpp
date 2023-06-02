@@ -7,15 +7,22 @@
 
 #include "blockchain/block_tree.hpp"
 #include "dispute_coordinator/impl/errors.hpp"
+#include "dispute_coordinator/storage.hpp"
+#include "storage/spaced_storage.hpp"
 
+namespace kagome::dispute {
+  class Storage;
+}
 namespace kagome::dispute {
 
   outcome::result<std::unique_ptr<RollingSessionWindow>>
   RollingSessionWindowImpl::create(
-      std::shared_ptr<blockchain::BlockTree> block_tree,
-      std::shared_ptr<ParachainHost> api,
-      primitives::BlockHash block_hash,
+      const std::shared_ptr<Storage> &storage,
+      const std::shared_ptr<blockchain::BlockTree> &block_tree,
+      const std::shared_ptr<ParachainHost> &api,
+      const primitives::BlockHash &block_hash,
       log::Logger log) {
+    BOOST_ASSERT(storage != nullptr);
     BOOST_ASSERT(block_tree != nullptr);
     BOOST_ASSERT(api != nullptr);
     BOOST_ASSERT(log != nullptr);
@@ -52,7 +59,7 @@ namespace kagome::dispute {
     std::vector<SessionInfo> stored_sessions;
 
     // Fetch session information from DB.
-    auto stored_window_res = load();
+    auto stored_window_res = storage->loadSessionsWindow();
     if (stored_window_res.has_error()) {
       // Can't load
       return stored_window_res.as_failure();
@@ -120,6 +127,7 @@ namespace kagome::dispute {
     RollingSessionWindowImpl rsw;
     rsw.log_ = std::move(log);
     rsw.api_ = api;
+    rsw.storage_ = storage;
     rsw.block_tree_ = block_tree;
     rsw.earliest_session_ = window_start;
     rsw.session_info_ = sessions;
@@ -148,16 +156,6 @@ namespace kagome::dispute {
   bool RollingSessionWindowImpl::contains(SessionIndex session_index) const {
     return session_index >= earliest_session_
        and session_index <= latest_session();
-  }
-
-  outcome::result<std::optional<StoredWindow>>
-  RollingSessionWindowImpl::load() {
-    return boost::system::error_code{};  // FIXME
-  }
-
-  outcome::result<void> RollingSessionWindowImpl::save(
-      StoredWindow stored_window) {
-    return boost::system::error_code{};  // FIXME
   }
 
   outcome::result<SessionWindowUpdate>
@@ -229,7 +227,7 @@ namespace kagome::dispute {
       earliest_session_ = std::max(window_start, old_window_start);
 
       // Update current window in DB.
-      save(StoredWindow{
+      std::ignore = storage_->saveSessionsWindow(StoredWindow{
           .earliest_session = earliest_session_,
           .session_info = session_info_,
       });

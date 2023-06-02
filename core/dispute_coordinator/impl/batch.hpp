@@ -49,7 +49,9 @@ namespace kagome::dispute {
     /// This ensures a timely import of batches.
     static constexpr uint32_t kMinKeepBatchAliveVotes = 10;
 
-    Batch(CandidateReceipt candidate_receipt, TimePoint now);
+    Batch(CandidateHash candidate_hash,
+          CandidateReceipt candidate_receipt,
+          TimePoint now);
 
     /// Add votes from a validator into the batch.
     ///
@@ -77,11 +79,11 @@ namespace kagome::dispute {
       return next_tick_time_;
     };
 
+    /// Cache of `CandidateHash` (candidate_receipt.hash()).
+    CandidateHash candidate_hash;
+
     /// The actual candidate this batch is concerned with.
     CandidateReceipt candidate_receipt;
-
-    /// Cache of `CandidateHash` (candidate_receipt.hash()).
-    const CandidateHash &candidate_hash;
 
    private:
     /// Expiry time for the batch.

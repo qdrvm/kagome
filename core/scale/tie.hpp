@@ -65,9 +65,30 @@ namespace scale {
       auto &[v0, v1, v2, v3, v4, v5, v6, v7, v8, v9] = v;
       return std::forward<F>(f)(
           std::tie(v0, v1, v2, v3, v4, v5, v6, v7, v8, v9));
+    } else if constexpr (N == 11) {
+      auto &[v0, v1, v2, v3, v4, v5, v6, v7, v8, v9, v10] = v;
+      return std::forward<F>(f)(
+          std::tie(v0, v1, v2, v3, v4, v5, v6, v7, v8, v9, v10));
+    } else if constexpr (N == 12) {
+      auto &[v0, v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11] = v;
+      return std::forward<F>(f)(
+          std::tie(v0, v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11));
+    } else if constexpr (N == 13) {
+      auto &[v0, v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11, v12] = v;
+      return std::forward<F>(f)(
+          std::tie(v0, v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11, v12));
+    } else if constexpr (N == 14) {
+      auto &[v0, v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11, v12, v13] = v;
+      return std::forward<F>(f)(
+          std::tie(v0, v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11, v12, v13));
+    } else if constexpr (N == 15) {
+      auto &[v0, v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11, v12, v13, v14] =
+          v;
+      return std::forward<F>(f)(std::tie(
+          v0, v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11, v12, v13, v14));
     } else {
       // generate code for bigger tuples
-      static_assert(1 <= N && N <= 10);
+      static_assert(N > 15 && "No code for such big tuple");
     }
   }
 

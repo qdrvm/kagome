@@ -22,7 +22,7 @@ namespace kagome::dispute {
   /// contained votes.
   class Batches final {
    public:
-    Batches(clock::SteadyClock &clock);
+    Batches(clock::SteadyClock &clock, std::shared_ptr<crypto::Hasher> hasher);
 
     /// Find a particular batch.
     ///
@@ -47,6 +47,9 @@ namespace kagome::dispute {
     std::vector<PreparedImport> check_batches();
 
    private:
+    clock::SteadyClock &clock_;
+    std::shared_ptr<crypto::Hasher> hasher_;
+
     /// The batches we manage.
     ///
     /// Kept invariants:
@@ -60,8 +63,6 @@ namespace kagome::dispute {
     /// For each entry in the `waiting_queue` there exists a corresponding entry
     /// in `batches`.
     std::queue<CandidateHash> waiting_queue_;
-
-    clock::SteadyClock &clock_;
   };
 
 }  // namespace kagome::dispute

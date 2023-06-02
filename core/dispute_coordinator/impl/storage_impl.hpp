@@ -30,6 +30,11 @@ namespace kagome::dispute {
 
     void write_recent_disputes(RecentDisputes recent_disputes) override;
 
+    outcome::result<std::optional<StoredWindow>> loadSessionsWindow() override;
+
+    outcome::result<void> saveSessionsWindow(
+        const StoredWindow &stored_window) override;
+
    private:
     std::shared_ptr<storage::SpacedStorage> storage_;
 

@@ -31,7 +31,7 @@ namespace kagome::dispute {
 
   outcome::result<void> QueuesImpl::queue(ParticipationPriority priority,
                                           ParticipationRequest request) {
-    const auto &candidate_hash = request.candidate_receipt.commitments_hash;
+    const auto &candidate_hash = request.candidate_receipt.hash(*hasher_);
     auto block_number_res = block_header_repository_->getNumberByHash(
         request.candidate_receipt.descriptor.relay_parent);
 
@@ -90,7 +90,7 @@ namespace kagome::dispute {
 
   outcome::result<void> QueuesImpl::prioritize_if_present(
       const CandidateReceipt &receipt) {
-    auto candidate_hash = receipt.commitments_hash;
+    auto candidate_hash = receipt.hash(*hasher_);
 
     auto relay_parent_block_number_res =
         block_header_repository_->getNumberByHash(

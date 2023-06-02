@@ -232,7 +232,7 @@ namespace kagome::parachain {
         return prev;
       }
 
-      bool operator==(const CandidateEntry &c) {
+      bool operator==(const CandidateEntry &c) const {
         auto block_assignments_eq = [&]() {
           if (block_assignments.size() != c.block_assignments.size()) {
             return false;

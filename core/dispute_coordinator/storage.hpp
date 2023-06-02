@@ -36,6 +36,12 @@ namespace kagome::dispute {
     ///
     /// Later calls to this function will override earlier ones.
     virtual void write_recent_disputes(RecentDisputes recent_disputes) = 0;
+
+    virtual outcome::result<std::optional<StoredWindow>>
+    loadSessionsWindow() = 0;
+
+    virtual outcome::result<void> saveSessionsWindow(
+        const StoredWindow &stored_window) = 0;
   };
 
 }  // namespace kagome::dispute

@@ -9,7 +9,9 @@
 
 namespace kagome::dispute {
 
-  Batches::Batches(clock::SteadyClock &clock) : clock_(clock) {}
+  Batches::Batches(clock::SteadyClock &clock,
+                   std::shared_ptr<crypto::Hasher> hasher)
+      : clock_(clock), hasher_(std::move(hasher)) {}
 
   outcome::result<std::tuple<std::shared_ptr<Batch>, bool>> Batches::find_batch(
       const CandidateHash &candidate_hash,
@@ -17,7 +19,7 @@ namespace kagome::dispute {
     if (batches_.size() >= 1000 /* kMaxBatchSize */) {  // FIXME
       return BatchError::MaxBatchLimitReached;
     }
-    BOOST_ASSERT(candidate_hash == candidate_receipt.commitments_hash);
+    BOOST_ASSERT(candidate_hash == candidate_receipt.hash(*hasher_));
 
     auto it = batches_.find(candidate_hash);
     if (it != batches_.end()) {
@@ -27,7 +29,8 @@ namespace kagome::dispute {
     auto batch =
         batches_
             .emplace(candidate_hash,
-                     std::make_shared<Batch>(candidate_receipt, clock_.now()))
+                     std::make_shared<Batch>(
+                         candidate_hash, candidate_receipt, clock_.now()))
             .first->second;
     return {batch, true};
   }

@@ -11,11 +11,14 @@ namespace kagome::dispute {
 
   ChainScraperImpl::ChainScraperImpl(
       std::shared_ptr<runtime::ParachainHost> parachain_api,
-      std::shared_ptr<blockchain::BlockTree> block_tree)
+      std::shared_ptr<blockchain::BlockTree> block_tree,
+      std::shared_ptr<crypto::Hasher> hasher)
       : parachain_api_(std::move(parachain_api)),
-        block_tree_(std::move(block_tree)) {
+        block_tree_(std::move(block_tree)),
+        hasher_(std::move(hasher)) {
     BOOST_ASSERT(parachain_api_);
     BOOST_ASSERT(block_tree_);
+    BOOST_ASSERT(hasher_);
   }
 
   bool ChainScraperImpl::is_candidate_included(
@@ -180,7 +183,7 @@ namespace kagome::dispute {
           event,
           [&](const runtime::CandidateIncluded &ev) {
             auto &receipt = ev.candidate_receipt;
-            auto &candidate_hash = receipt.commitments_hash;
+            auto &candidate_hash = receipt.hash(*hasher_);
             // LOG-TRACE: "Processing included event"
             included_candidates_.insert(block_number, candidate_hash);
             inclusions_.insert(candidate_hash, block_number, block_hash);
@@ -188,7 +191,7 @@ namespace kagome::dispute {
           },
           [&](const runtime::CandidateBacked &ev) {
             auto &receipt = ev.candidate_receipt;
-            auto &candidate_hash = receipt.commitments_hash;
+            auto &candidate_hash = receipt.hash(*hasher_);
             // LOG-TRACE: "Processing backed event"
             backed_candidates_.insert(block_number, candidate_hash);
           },

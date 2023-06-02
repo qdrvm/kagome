@@ -52,7 +52,10 @@ namespace kagome::storage {
         fmt::format(":kagome:auth_mngr_state:{}", tag));
   }
 
-  inline const common::Buffer kRecentDisputeLookupKey = "recent-disputes"_buf;
+  inline const common::Buffer kRecentDisputeLookupKey = "recent_disputes"_buf;
+
+  inline const common::Buffer kSessionsWindowLookupKey =
+      "rolling_session_window"_buf;
 
   inline const common::Buffer kEarliestSessionLookupKey =
       "earliest-session"_buf;

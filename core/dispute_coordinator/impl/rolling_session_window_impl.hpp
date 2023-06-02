@@ -16,6 +16,10 @@ namespace kagome::blockchain {
 }
 
 namespace kagome::dispute {
+  class Storage;
+}  // namespace kagome::dispute
+
+namespace kagome::dispute {
 
   using network::CandidateReceipt;
   using network::SessionIndex;
@@ -30,9 +34,10 @@ namespace kagome::dispute {
     static const size_t kWindowSize = 6;
 
     static outcome::result<std::unique_ptr<RollingSessionWindow>> create(
-        std::shared_ptr<blockchain::BlockTree> block_tree,
-        std::shared_ptr<ParachainHost> api,
-        primitives::BlockHash block_hash,
+        const std::shared_ptr<Storage> &storage,
+        const std::shared_ptr<blockchain::BlockTree> &block_tree,
+        const std::shared_ptr<ParachainHost> &api,
+        const primitives::BlockHash &block_hash,
         log::Logger log);
 
     std::optional<std::reference_wrapper<SessionInfo>> session_info(
@@ -48,9 +53,6 @@ namespace kagome::dispute {
         const primitives::BlockHash &block_hash) override;
 
    private:
-    static outcome::result<std::optional<StoredWindow>> load();
-    outcome::result<void> save(StoredWindow stored_window);
-
     outcome::result<SessionIndex> get_session_index_for_child(
         const primitives::BlockHash &block_hash);
 
@@ -65,6 +67,7 @@ namespace kagome::dispute {
                                      SessionIndex &window_start,
                                      SessionIndex end_inclusive);
 
+    std::shared_ptr<Storage> storage_;
     log::Logger log_;
     std::shared_ptr<ParachainHost> api_;
     std::shared_ptr<blockchain::BlockTree> block_tree_;

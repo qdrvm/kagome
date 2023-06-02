@@ -88,11 +88,11 @@ namespace kagome::runtime {
         return 0;
       }
 
-      auto const cores_normalized =
+      const auto cores_normalized =
           std::min(cores, size_t(std::numeric_limits<CoreIndex>::max()));
-      auto const blocks_since_start =
+      const auto blocks_since_start =
           math::sat_sub_unsigned(now_block_num, session_start_block);
-      auto const rotations = blocks_since_start / group_rotation_frequency;
+      const auto rotations = blocks_since_start / group_rotation_frequency;
 
       /// g = c + r mod cores_normalized
       return GroupIndex((size_t(core_index) + size_t(rotations))
@@ -181,6 +181,8 @@ namespace kagome::runtime {
   using AuthorityDiscoveryId = common::Hash256;
   using AssignmentId = common::Blob<32>;
   struct SessionInfo {
+    SCALE_TIE(13);
+
     /****** New in v2 *******/
     /// All the validators actively participating in parachain consensus.
     /// Indices are into the broader validator set.

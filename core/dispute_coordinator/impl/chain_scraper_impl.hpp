@@ -142,7 +142,8 @@ namespace kagome::dispute {
         kDisputeCandidateLifetimeAfterFinalization = 10;
 
     ChainScraperImpl(std::shared_ptr<runtime::ParachainHost> parachain_api,
-                     std::shared_ptr<blockchain::BlockTree> block_tree);
+                     std::shared_ptr<blockchain::BlockTree> block_tree,
+                     std::shared_ptr<crypto::Hasher> hasher);
 
     /// Check whether we have seen a candidate included on any chain.
     bool is_candidate_included(const CandidateHash &candidate_hash) override;
@@ -178,6 +179,7 @@ namespace kagome::dispute {
 
     std::shared_ptr<runtime::ParachainHost> parachain_api_;
     std::shared_ptr<blockchain::BlockTree> block_tree_;
+    std::shared_ptr<crypto::Hasher> hasher_;
 
     /// All candidates we have seen included, which not yet have been finalized.
     ScrapedCandidates included_candidates_;
