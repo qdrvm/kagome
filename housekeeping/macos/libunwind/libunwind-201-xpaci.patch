@@ -1,0 +1,67 @@
+diff --git a/submodule/libunwind/src/CompactUnwinder.hpp b/submodule/libunwind/src/CompactUnwinder.hpp
+index d09e024..7f48ac6 100644
+--- a/submodule/libunwind/src/CompactUnwinder.hpp
++++ b/submodule/libunwind/src/CompactUnwinder.hpp
+@@ -609,7 +609,7 @@ int CompactUnwinder_arm64<A>::stepWithCompactEncodingFrameless(
+   registers.normalizeNewLinkRegister(linkRegister, procInfoFlags);
+ 
+   // set pc to be value in lr
+-  registers.setIP(linkRegister);
++  registers.setIP(__unw_xpaci(linkRegister));
+ 
+   return UNW_STEP_SUCCESS;
+ }
+@@ -695,7 +695,7 @@ int CompactUnwinder_arm64<A>::stepWithCompactEncodingFrame(
+ 
+   registers.normalizeNewLinkRegister(linkRegister, procInfoFlags);
+ 
+-  registers.setIP(linkRegister);
++  registers.setIP(__unw_xpaci(linkRegister));
+ 
+   return UNW_STEP_SUCCESS;
+ }
+diff --git a/submodule/libunwind/src/DwarfInstructions.hpp b/submodule/libunwind/src/DwarfInstructions.hpp
+index 5b5e00e..ff489e9 100644
+--- a/submodule/libunwind/src/DwarfInstructions.hpp
++++ b/submodule/libunwind/src/DwarfInstructions.hpp
+@@ -268,7 +268,7 @@ int DwarfInstructions<A, R>::stepWithDwarf(A &addressSpace, pint_t pc,
+ 
+       // Return address is address after call site instruction, so setting IP to
+       // that does simualates a return.
+-      newRegisters.setIP(returnAddress);
++      newRegisters.setIP(__unw_xpaci(returnAddress));
+ 
+       // Simulate the step by replacing the register set with the new ones.
+       registers = newRegisters;
+diff --git a/submodule/libunwind/src/UnwindRegistersSave.S b/submodule/libunwind/src/UnwindRegistersSave.S
+index e5a968c..ada415a 100644
+--- a/submodule/libunwind/src/UnwindRegistersSave.S
++++ b/submodule/libunwind/src/UnwindRegistersSave.S
+@@ -699,6 +699,10 @@ DEFINE_LIBUNWIND_FUNCTION(__unw_getcontext)
+ 
+ #elif defined(__aarch64__)
+ 
++DEFINE_LIBUNWIND_FUNCTION(__unw_xpaci)
++  xpaci x0
++  ret
++
+ //
+ // extern int __unw_getcontext(unw_context_t* thread_state)
+ //
+diff --git a/submodule/libunwind/src/libunwind_ext.h b/submodule/libunwind/src/libunwind_ext.h
+index ba9861d..4352715 100644
+--- a/submodule/libunwind/src/libunwind_ext.h
++++ b/submodule/libunwind/src/libunwind_ext.h
+@@ -23,6 +23,12 @@
+ extern "C" {
+ #endif
+ 
++#ifdef __aarch64__
++extern uint64_t __unw_xpaci(uint64_t);
++#else
++#define __unw_xpaci(x) (x)
++#endif
++
+ extern int __unw_getcontext(unw_context_t *);
+ extern int __unw_init_local(unw_cursor_t *, unw_context_t *);
+ extern int __unw_step(unw_cursor_t *);

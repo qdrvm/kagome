@@ -1,0 +1,4 @@
+[submodule "housekeeping/macos/libunwind/submodule"]
+	path = housekeeping/macos/libunwind/submodule
+	url = https://github.com/apple-oss-distributions/libunwind
+	branch = libunwind-201
