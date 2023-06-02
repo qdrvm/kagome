@@ -25,7 +25,14 @@ namespace kagome::runtime::binaryen {
                    std::make_unique<MemoryAllocator>(
                        MemoryAllocator::MemoryHandle{
                            [this](auto new_size) { return resize(new_size); },
-                           [this]() { return size_; }},
+                           [this]() { return size_; },
+                           [this](auto addr, uint32_t value) {
+                             memory_->set<uint32_t>(addr, value);
+                           },
+                           [this](auto addr) {
+                             return memory_->get<uint32_t>(addr);
+                           }}  // namespace kagome::runtime::binaryen
+                       ,
                        heap_base)} {}
 
   WasmPointer MemoryImpl::allocate(WasmSize size) {

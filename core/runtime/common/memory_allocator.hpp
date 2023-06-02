@@ -7,6 +7,7 @@
 #define KAGOME_CORE_RUNTIME_COMMON_MEMORY_ALLOCATOR_HPP
 
 #include <map>
+#include <stack>
 #include <unordered_map>
 
 #include <optional>
@@ -38,6 +39,18 @@ namespace kagome::runtime {
     return math::roundUp<kAlignment>(t);
   }
 
+  inline bool isPowerOf2(size_t x) {
+    return ((x > 0ull) && ((x & (x - 1ull)) == 0));
+  }
+
+  inline size_t nextHighPowerOf2(size_t k) {
+    if (isPowerOf2(k)) {
+      return k;
+    }
+    const auto p = k == 0ull ? 0ull : 64ull - __builtin_clzll(k);
+    return (1ull << p);
+  }
+
   /**
    * Implementation of allocator for the runtime memory
    * Combination of monotonic and free-list allocator
@@ -47,10 +60,12 @@ namespace kagome::runtime {
     struct MemoryHandle {
       std::function<void(size_t)> resize;
       std::function<size_t()> getSize;
+      std::function<void(WasmPointer, uint32_t)> storeSz;
+      std::function<uint32_t(WasmPointer)> loadSz;
     };
     MemoryAllocator(MemoryHandle memory, WasmPointer heap_base);
 
-    WasmPointer allocate(WasmSize size);
+    WasmPointer allocate(WasmSize size, bool search_in_deallocates = true);
     std::optional<WasmSize> deallocate(WasmPointer ptr);
 
     template <typename T>
@@ -76,7 +91,6 @@ namespace kagome::runtime {
      * @return address of memory of given size, or -1 if it is impossible to
      * allocate this amount of memory
      */
-    WasmPointer freealloc(WasmSize size);
 
     /**
      * Resize memory and allocate memory segment of given size
@@ -92,10 +106,11 @@ namespace kagome::runtime {
     MemoryHandle memory_;
 
     // map containing addresses of allocated MemoryImpl chunks
-    std::unordered_map<WasmPointer, WasmSize> allocated_;
+    // std::unordered_map<WasmPointer, WasmSize> allocated_;
 
     // map containing addresses to the deallocated MemoryImpl chunks
-    std::map<WasmPointer, WasmSize> deallocated_;
+    // std::map<WasmPointer, WasmSize> deallocated_;
+    std::unordered_map<WasmSize, std::stack<WasmPointer>> available_;
 
     // Offset on the tail of the last allocated MemoryImpl chunk
     size_t offset_;

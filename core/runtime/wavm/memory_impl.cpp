@@ -24,7 +24,11 @@ namespace kagome::runtime::wavm {
                    std::make_unique<MemoryAllocator>(
                        MemoryAllocator::MemoryHandle{
                            [this](auto size) { return resize(size); },
-                           [this]() { return size(); }},
+                           [this]() { return size(); },
+                           [this](auto addr, uint32_t value) {
+                             store<uint32_t>(addr, value);
+                           },
+                           [this](auto addr) { return load<uint32_t>(addr); }},
                        heap_base)} {}
 
   WasmPointer MemoryImpl::allocate(WasmSize size) {

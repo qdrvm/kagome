@@ -17,7 +17,7 @@ namespace kagome::runtime {
 
   MemoryAllocator::MemoryAllocator(MemoryHandle memory, WasmPointer heap_base)
       : memory_{std::move(memory)},
-        offset_{heap_base},
+        offset_{roundUpAlign(heap_base)},
         logger_{log::createLogger("Allocator", "runtime")} {
     // Heap base (and offset in according) must be non-zero to prohibit
     // allocating memory at 0 in the future, as returning 0 from allocate method
@@ -27,17 +27,31 @@ namespace kagome::runtime {
     BOOST_ASSERT(memory_.resize);
   }
 
-  WasmPointer MemoryAllocator::allocate(WasmSize size) {
+  WasmPointer MemoryAllocator::allocate(WasmSize size,
+                                        bool search_in_deallocates) {
     if (size == 0) {
       return 0;
     }
+
+    const size_t sz = nextHighPowerOf2(
+        roundUpAlign(size)
+        + (search_in_deallocates ? roundUpAlign(sizeof(uint32_t)) : 0ull));
+    if (search_in_deallocates) {
+      auto &preallocates = available_[sz];
+      if (!preallocates.empty()) {
+        const auto ptr = preallocates.top();
+        preallocates.pop();
+
+        memory_.storeSz(ptr, sz);
+        return ptr + roundUpAlign(sizeof(uint32_t));
+      }
+    }
+
     const auto ptr = offset_;
-    const auto new_offset = roundUpAlign(ptr + size);  // align
+    const auto new_offset = ptr + sz;  // align
 
     // Round up allocating chunk of memory
-    size = new_offset - ptr;
-
-    BOOST_ASSERT(allocated_.find(ptr) == allocated_.end());
+    size = sz;
     if (Memory::kMaxMemorySize - offset_ < size) {  // overflow
       logger_->error(
           "overflow occurred while trying to allocate {} bytes at offset "
@@ -46,102 +60,21 @@ namespace kagome::runtime {
           offset_);
       return 0;
     }
+
     if (new_offset <= memory_.getSize()) {
       offset_ = new_offset;
-      allocated_[ptr] = size;
+      memory_.storeSz(ptr, size);
       SL_TRACE_FUNC_CALL(logger_, ptr, this, size);
-      return ptr;
+      return ptr + roundUpAlign(sizeof(uint32_t));
     }
 
-    auto res = freealloc(size);
-    SL_TRACE_FUNC_CALL(logger_, res, this, size);
-    return res;
+    return growAlloc(size);
   }
 
   std::optional<WasmSize> MemoryAllocator::deallocate(WasmPointer ptr) {
-    auto a_it = allocated_.find(ptr);
-    if (a_it == allocated_.end()) {
-      return std::nullopt;
-    }
-
-    auto a_node = allocated_.extract(a_it);
-    auto size = a_node.mapped();
-    auto [d_it, is_emplaced] = deallocated_.emplace(ptr, size);
-    BOOST_ASSERT(is_emplaced);
-
-    // Combine with next chunk if it adjacent
-    while (true) {
-      auto node = deallocated_.extract(ptr + size);
-      if (not node) break;
-      d_it->second += node.mapped();
-    }
-
-    // Combine with previous chunk if it adjacent
-    while (deallocated_.begin() != d_it) {
-      auto d_it_prev = std::prev(d_it);
-      if (d_it_prev->first + d_it_prev->second != d_it->first) {
-        break;
-      }
-      d_it_prev->second += d_it->second;
-      deallocated_.erase(d_it);
-      d_it = d_it_prev;
-    }
-
-    auto d_it_next = std::next(d_it);
-    if (d_it_next == deallocated_.end()) {
-      if (d_it->first + d_it->second == offset_) {
-        offset_ = d_it->first;
-        deallocated_.erase(d_it);
-      }
-    }
-
-    SL_TRACE_FUNC_CALL(logger_, size, this, ptr);
-    return size;
-  }
-
-  WasmPointer MemoryAllocator::freealloc(WasmSize size) {
-    if (size == 0) {
-      return 0;
-    }
-
-    // Round up size of allocating memory chunk
-    size = roundUpAlign(size);
-
-    auto min_chunk_size = std::numeric_limits<WasmPointer>::max();
-    WasmPointer ptr = 0;
-    for (const auto &[chunk_ptr, chunk_size] : deallocated_) {
-      BOOST_ASSERT(chunk_size > 0);
-      if (chunk_size >= size and chunk_size < min_chunk_size) {
-        min_chunk_size = chunk_size;
-        ptr = chunk_ptr;
-        if (min_chunk_size == size) {
-          break;
-        }
-      }
-    }
-    if (ptr == 0) {
-      // if did not find available space among deallocated memory chunks,
-      // then grow memory and allocate in new space
-      return growAlloc(size);
-    }
-
-    const auto node = deallocated_.extract(ptr);
-    BOOST_ASSERT_MSG(!node.empty(),
-                     "pointer to the node was received by searching list of "
-                     "deallocated nodes, must not be none");
-
-    auto old_size = node.mapped();
-    if (old_size > size) {
-      auto new_ptr = ptr + size;
-      auto new_size = old_size - size;
-      BOOST_ASSERT(new_size > 0);
-
-      deallocated_[new_ptr] = new_size;
-    }
-
-    allocated_[ptr] = size;
-
-    return ptr;
+    const auto sz = memory_.loadSz(ptr - roundUpAlign(sizeof(uint32_t)));
+    available_[sz].push(ptr - roundUpAlign(sizeof(uint32_t)));
+    return sz;
   }
 
   WasmPointer MemoryAllocator::growAlloc(WasmSize size) {
@@ -156,14 +89,8 @@ namespace kagome::runtime {
     // try to increase memory size up to offset + size * 4 (we multiply by 4
     // to have more memory than currently needed to avoid resizing every time
     // when we exceed current memory)
-    if ((Memory::kMaxMemorySize - offset_) / 4 > size) {
-      resize(offset_ + size * 4);
-    } else {
-      // if we can't increase by size * 4 then increase memory size by
-      // provided size
-      resize(offset_ + size);
-    }
-    return allocate(size);
+    resize(offset_ + size);
+    return allocate(size, false);
   }
 
   void MemoryAllocator::resize(WasmSize new_size) {
@@ -172,24 +99,20 @@ namespace kagome::runtime {
 
   std::optional<WasmSize> MemoryAllocator::getDeallocatedChunkSize(
       WasmPointer ptr) const {
-    auto it = deallocated_.find(ptr);
-    return it != deallocated_.cend() ? std::make_optional(it->second)
-                                     : std::nullopt;
+    return std::nullopt;
   }
 
   std::optional<WasmSize> MemoryAllocator::getAllocatedChunkSize(
       WasmPointer ptr) const {
-    auto it = allocated_.find(ptr);
-    return it != allocated_.cend() ? std::make_optional(it->second)
-                                   : std::nullopt;
+    return std::nullopt;
   }
 
   size_t MemoryAllocator::getAllocatedChunksNum() const {
-    return allocated_.size();
+    return 0ull;  // allocated_.size();
   }
 
   size_t MemoryAllocator::getDeallocatedChunksNum() const {
-    return deallocated_.size();
+    return 0ull;  // deallocated_.size();
   }
 
 }  // namespace kagome::runtime
