@@ -36,6 +36,19 @@ namespace kagome::runtime {
     const size_t sz = nextHighPowerOf2(
         roundUpAlign(size)
         + (search_in_deallocates ? roundUpAlign(sizeof(uint32_t)) : 0ull));
+
+    const auto ptr = offset_;
+    const auto new_offset = ptr + sz;  // align
+
+    // Round up allocating chunk of memory
+    size = sz;
+    if (new_offset <= memory_.getSize()) {
+      offset_ = new_offset;
+      memory_.storeSz(ptr, size);
+      SL_TRACE_FUNC_CALL(logger_, ptr, this, size);
+      return ptr + roundUpAlign(sizeof(uint32_t));
+    }
+
     if (search_in_deallocates) {
       auto &preallocates = available_[sz];
       if (!preallocates.empty()) {
@@ -45,27 +58,6 @@ namespace kagome::runtime {
         memory_.storeSz(ptr, sz);
         return ptr + roundUpAlign(sizeof(uint32_t));
       }
-    }
-
-    const auto ptr = offset_;
-    const auto new_offset = ptr + sz;  // align
-
-    // Round up allocating chunk of memory
-    size = sz;
-    if (Memory::kMaxMemorySize - offset_ < size) {  // overflow
-      logger_->error(
-          "overflow occurred while trying to allocate {} bytes at offset "
-          "0x{:x}",
-          size,
-          offset_);
-      return 0;
-    }
-
-    if (new_offset <= memory_.getSize()) {
-      offset_ = new_offset;
-      memory_.storeSz(ptr, size);
-      SL_TRACE_FUNC_CALL(logger_, ptr, this, size);
-      return ptr + roundUpAlign(sizeof(uint32_t));
     }
 
     return growAlloc(size);
