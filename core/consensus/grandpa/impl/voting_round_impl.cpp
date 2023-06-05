@@ -370,9 +370,18 @@ namespace kagome::consensus::grandpa {
     if (stage_ == Stage::COMPLETED) {
       return;
     }
-    BOOST_ASSERT(stage_ == Stage::PRECOMMIT_RUNS);
+    BOOST_ASSERT(stage_ == Stage::PRECOMMIT_RUNS
+                 || stage_ == Stage::PRECOMMIT_WAITS_FOR_PREVOTES);
 
     stage_timer_handle_.cancel();
+
+    // https://github.com/paritytech/finality-grandpa/blob/8c45a664c05657f0c71057158d3ba555ba7d20de/src/voter/voting_round.rs#L630-L633
+    if (not prevote_ghost_) {
+      stage_ = Stage::PRECOMMIT_WAITS_FOR_PREVOTES;
+      logger_->debug("Round #{}: Precommit waits for prevotes", round_number_);
+      return;
+    }
+
     on_complete_handler_ = nullptr;
 
     stage_ = Stage::END_PRECOMMIT;
@@ -579,8 +588,8 @@ namespace kagome::consensus::grandpa {
     // we wait for the last round's estimate to be equal to or
     // the ancestor of the current round's p-Ghost before precommitting.
 
-    const auto &prevote_ghost =
-        prevote_ghost_.value_or(previous_round_->bestFinalCandidate());
+    BOOST_ASSERT(prevote_ghost_.has_value());
+    const auto &prevote_ghost = prevote_ghost_.value();
 
     auto last_round_estimate = previous_round_->bestFinalCandidate();
 
@@ -1075,6 +1084,13 @@ namespace kagome::consensus::grandpa {
     if (need_to_update_grandpa_ghost) {
       if (updateGrandpaGhost()) {
         need_to_update_estimate = true;
+      }
+      if (prevote_ghost_) {
+        scheduler_->schedule([&] {
+          if (stage_ == Stage::PRECOMMIT_WAITS_FOR_PREVOTES) {
+            endPrecommitStage();
+          }
+        });
       }
     }
 

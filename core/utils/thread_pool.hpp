@@ -10,6 +10,7 @@
 #include <boost/asio/executor_work_guard.hpp>
 #include <boost/asio/io_context.hpp>
 #include <memory>
+#include <optional>
 #include <thread>
 
 #include "utils/non_copyable.hpp"
@@ -105,6 +106,10 @@ namespace kagome {
       for (auto &thread : threads_) {
         thread.join();
       }
+    }
+
+    const std::shared_ptr<boost::asio::io_context> &io_context() const {
+      return ioc_;
     }
 
     std::shared_ptr<ThreadHandler> handler() {

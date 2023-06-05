@@ -6,9 +6,21 @@
 #include "runtime/runtime_api/impl/offchain_worker_api.hpp"
 
 #include "application/app_configuration.hpp"
+#include "offchain/impl/runner.hpp"
 #include "offchain/offchain_worker_factory.hpp"
+#include "runtime/common/executor.hpp"
 
 namespace kagome::runtime {
+  constexpr size_t kMaxThreads = 3;
+  constexpr size_t kMaxTasks = 1000;
+
+  outcome::result<void> callOffchainWorkerApi(
+      Executor &executor,
+      const primitives::BlockHash &block,
+      const primitives::BlockHeader &header) {
+    return executor.callAt<void>(
+        block, "OffchainWorkerApi_offchain_worker", header);
+  }
 
   OffchainWorkerApiImpl::OffchainWorkerApiImpl(
       const application::AppConfiguration &app_config,
@@ -16,6 +28,7 @@ namespace kagome::runtime {
       std::shared_ptr<Executor> executor)
       : app_config_(app_config),
         ocw_factory_(std::move(ocw_factory)),
+        runner_{std::make_shared<offchain::Runner>(kMaxThreads, kMaxTasks)},
         executor_(std::move(executor)) {
     BOOST_ASSERT(ocw_factory_);
     BOOST_ASSERT(executor_);
@@ -39,11 +52,11 @@ namespace kagome::runtime {
       }
     }
 
-    auto worker = ocw_factory_->make(executor_, header);
+    runner_->run([worker = ocw_factory_->make(executor_, header)] {
+      std::ignore = worker->run();
+    });
 
-    auto res = worker->run();
-
-    return res;
+    return outcome::success();
   }
 
 }  // namespace kagome::runtime
