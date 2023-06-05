@@ -85,9 +85,9 @@ namespace kagome::authority_discovery {
   }
 
   outcome::result<void> AddressPublisher::publishOwnAddress() {
-    auto addresses = host_.getPeerInfo().addresses;
+    const auto peer_info = host_.getPeerInfo();
     // TODO(turuslan): #1357, filter local addresses
-    if (addresses.empty()) {
+    if (peer_info.addresses.empty()) {
       SL_ERROR(log_, "No listening addresses");
       return outcome::success();
     }
@@ -102,6 +102,18 @@ namespace kagome::authority_discovery {
       return outcome::success();
     }
 
+    std::unordered_set<libp2p::multi::Multiaddress> addresses;
+    for (const auto &address : peer_info.addresses) {
+      if (address.getPeerId()) {
+        addresses.emplace(address);
+        continue;
+      }
+      std::string s{address.getStringAddress()};
+      s.append("/p2p/");
+      s.append(peer_info.id.toBase58());
+      OUTCOME_TRY(address2, libp2p::multi::Multiaddress::create(s));
+      addresses.emplace(std::move(address2));
+    }
     ::authority_discovery::v2::AuthorityRecord record;
     for (const auto &address : addresses) {
       PB_SPAN_ADD(record, addresses, address.getBytesAddress());

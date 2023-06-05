@@ -31,7 +31,7 @@ hunter_config(
 
 hunter_config(
     libp2p
-    VERSION 0.1.11
+    VERSION 0.1.12
     KEEP_PACKAGE_SOURCES
 )
 
