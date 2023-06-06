@@ -56,7 +56,7 @@ class WavmMemoryHeapTest : public ::testing::Test {
                                            std::move(allocator));
   }
 
-  const static uint32_t memory_size_ = kInitialMemorySize;
+  static const uint32_t memory_size_ = kInitialMemorySize;
 
   std::unique_ptr<MemoryImpl> memory_;
   std::unique_ptr<IntrinsicModuleInstance> instance_;
@@ -267,7 +267,6 @@ TEST_F(WavmMemoryHeapTest, CombineDeallocatedChunks) {
   }
 
   EXPECT_EQ(allocator_->getDeallocatedChunksNum(), 1);
-  EXPECT_EQ(allocator_->getAllocatedChunksNum(), 2);
   EXPECT_TRUE(allocator_->getAllocatedChunkSize(ptr1));
   EXPECT_TRUE(allocator_->getAllocatedChunkSize(ptr7));
 }

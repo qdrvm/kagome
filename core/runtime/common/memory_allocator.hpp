@@ -6,8 +6,8 @@
 #ifndef KAGOME_CORE_RUNTIME_COMMON_MEMORY_ALLOCATOR_HPP
 #define KAGOME_CORE_RUNTIME_COMMON_MEMORY_ALLOCATOR_HPP
 
+#include <deque>
 #include <map>
-#include <stack>
 #include <unordered_map>
 
 #include <optional>
@@ -65,7 +65,7 @@ namespace kagome::runtime {
     };
     MemoryAllocator(MemoryHandle memory, WasmPointer heap_base);
 
-    WasmPointer allocate(WasmSize size, bool search_in_deallocates = true);
+    WasmPointer allocate(WasmSize size, bool first_entry = true);
     std::optional<WasmSize> deallocate(WasmPointer ptr);
 
     template <typename T>
@@ -80,7 +80,6 @@ namespace kagome::runtime {
     /// following methods are needed mostly for testing purposes
     std::optional<WasmSize> getDeallocatedChunkSize(WasmPointer ptr) const;
     std::optional<WasmSize> getAllocatedChunkSize(WasmPointer ptr) const;
-    size_t getAllocatedChunksNum() const;
     size_t getDeallocatedChunksNum() const;
 
    private:
@@ -104,13 +103,7 @@ namespace kagome::runtime {
 
    private:
     MemoryHandle memory_;
-
-    // map containing addresses of allocated MemoryImpl chunks
-    // std::unordered_map<WasmPointer, WasmSize> allocated_;
-
-    // map containing addresses to the deallocated MemoryImpl chunks
-    // std::map<WasmPointer, WasmSize> deallocated_;
-    std::unordered_map<WasmSize, std::stack<WasmPointer>> available_;
+    std::unordered_map<WasmSize, std::deque<WasmPointer>> available_;
 
     // Offset on the tail of the last allocated MemoryImpl chunk
     size_t offset_;

@@ -27,15 +27,14 @@ namespace kagome::runtime {
     BOOST_ASSERT(memory_.resize);
   }
 
-  WasmPointer MemoryAllocator::allocate(WasmSize size,
-                                        bool search_in_deallocates) {
+  WasmPointer MemoryAllocator::allocate(WasmSize size, bool first_entry) {
     if (size == 0) {
       return 0;
     }
 
     const size_t sz = nextHighPowerOf2(
         roundUpAlign(size)
-        + (search_in_deallocates ? roundUpAlign(sizeof(uint32_t)) : 0ull));
+        + (first_entry ? roundUpAlign(sizeof(uint32_t)) : 0ull));
 
     const auto ptr = offset_;
     const auto new_offset = ptr + sz;  // align
@@ -49,11 +48,11 @@ namespace kagome::runtime {
       return ptr + roundUpAlign(sizeof(uint32_t));
     }
 
-    if (search_in_deallocates) {
+    if (first_entry) {
       auto &preallocates = available_[sz];
       if (!preallocates.empty()) {
-        const auto ptr = preallocates.top();
-        preallocates.pop();
+        const auto ptr = preallocates.back();
+        preallocates.pop_back();
 
         memory_.storeSz(ptr, sz);
         return ptr + roundUpAlign(sizeof(uint32_t));
@@ -65,7 +64,7 @@ namespace kagome::runtime {
 
   std::optional<WasmSize> MemoryAllocator::deallocate(WasmPointer ptr) {
     const auto sz = memory_.loadSz(ptr - roundUpAlign(sizeof(uint32_t)));
-    available_[sz].push(ptr - roundUpAlign(sizeof(uint32_t)));
+    available_[sz].push_back(ptr - roundUpAlign(sizeof(uint32_t)));
     return sz;
   }
 
@@ -89,22 +88,34 @@ namespace kagome::runtime {
     memory_.resize(new_size);
   }
 
+  /*
+    Slow function with O(N) complexity. Can be used ONLY in tests.
+  */
   std::optional<WasmSize> MemoryAllocator::getDeallocatedChunkSize(
       WasmPointer ptr) const {
+    for (const auto &[sz, ptrs] : available_) {
+      for (const auto &p : ptrs) {
+        if (ptr == p) {
+          return sz;
+        }
+      }
+    }
+
     return std::nullopt;
   }
 
   std::optional<WasmSize> MemoryAllocator::getAllocatedChunkSize(
       WasmPointer ptr) const {
-    return std::nullopt;
-  }
-
-  size_t MemoryAllocator::getAllocatedChunksNum() const {
-    return 0ull;  // allocated_.size();
+    return memory_.loadSz(ptr - roundUpAlign(sizeof(uint32_t)));
   }
 
   size_t MemoryAllocator::getDeallocatedChunksNum() const {
-    return 0ull;  // deallocated_.size();
+    size_t size = 0ull;
+    for (const auto &[sz, ptrs] : available_) {
+      size += ptrs.size();
+    }
+
+    return size;
   }
 
 }  // namespace kagome::runtime

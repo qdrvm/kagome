@@ -45,7 +45,7 @@ class BinaryenMemoryHeapTest : public ::testing::Test {
     rei_.reset();
   }
 
-  const static uint32_t memory_size_ = kInitialMemorySize;
+  static const uint32_t memory_size_ = kInitialMemorySize;
 
   std::unique_ptr<runtime::binaryen::RuntimeExternalInterface> rei_;
   std::unique_ptr<MemoryImpl> memory_;
@@ -256,7 +256,6 @@ TEST_F(BinaryenMemoryHeapTest, CombineDeallocatedChunks) {
   }
 
   EXPECT_EQ(allocator_->getDeallocatedChunksNum(), 1);
-  EXPECT_EQ(allocator_->getAllocatedChunksNum(), 2);
   EXPECT_TRUE(allocator_->getAllocatedChunkSize(ptr1));
   EXPECT_TRUE(allocator_->getAllocatedChunkSize(ptr7));
 }
