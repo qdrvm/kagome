@@ -65,7 +65,7 @@ namespace kagome::dispute {
         babe_status_observable_(std::move(babe_status_observable)),
         int_pool_{std::make_shared<ThreadPool>(1ull)},
         internal_context_{int_pool_->handler()},
-        runtime_info_(std::make_unique<RuntimeInfo>(session_keys_)) {
+        runtime_info_(std::make_unique<RuntimeInfo>(api_, session_keys_)) {
     BOOST_ASSERT(app_state_manager_ != nullptr);
     BOOST_ASSERT(clock_ != nullptr);
     BOOST_ASSERT(session_keys_ != nullptr);
@@ -371,7 +371,7 @@ namespace kagome::dispute {
     }
 
     participation_ = std::make_shared<ParticipationImpl>(
-        block_header_repository_, hasher_, internal_context_);
+        block_header_repository_, hasher_, api_, internal_context_);
 
     // Also provide first leaf to participation for good measure.
     // https://github.com/paritytech/polkadot/blob/40974fb99c86f5c341105b7db53c7aa0df707d66/node/core/dispute-coordinator/src/initialized.rs#L192

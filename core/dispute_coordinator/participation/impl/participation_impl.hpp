@@ -25,6 +25,7 @@ namespace kagome::dispute {
     ParticipationImpl(std::shared_ptr<blockchain::BlockHeaderRepository>
                           block_header_repository,
                       std::shared_ptr<crypto::Hasher> hasher,
+                      std::shared_ptr<runtime::ParachainHost> api,
                       std::shared_ptr<ThreadHandler> internal_context);
 
     outcome::result<void> queue_participation(
@@ -49,7 +50,6 @@ namespace kagome::dispute {
         const primitives::BlockHash &recent_head);
 
     std::shared_ptr<blockchain::BlockHeaderRepository> block_header_repository_;
-    std::shared_ptr<crypto::Hasher> hasher_;
     std::shared_ptr<ThreadHandler> internal_context_;
 
     /// Participations currently being processed.

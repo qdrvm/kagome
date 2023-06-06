@@ -14,6 +14,10 @@ namespace kagome::blockchain {
   class BlockHeaderRepository;
 }
 
+namespace kagome::runtime {
+  class ParachainHost;
+}
+
 namespace kagome::dispute {
 
   /// What can go wrong when queuing a request.
@@ -98,7 +102,8 @@ namespace kagome::dispute {
 
     QueuesImpl(std::shared_ptr<blockchain::BlockHeaderRepository>
                    block_header_repository,
-               std::shared_ptr<crypto::Hasher> hasher);
+               std::shared_ptr<crypto::Hasher> hasher,
+               std::shared_ptr<runtime::ParachainHost> api);
 
     outcome::result<void> queue(ParticipationPriority priority,
                                 ParticipationRequest request) override;
@@ -111,6 +116,7 @@ namespace kagome::dispute {
    private:
     std::shared_ptr<blockchain::BlockHeaderRepository> block_header_repository_;
     std::shared_ptr<crypto::Hasher> hasher_;
+    std::shared_ptr<runtime::ParachainHost> api_;
 
     /// Set of best effort participation requests.
     std::map<CandidateComparator, ParticipationRequest> best_effort_;

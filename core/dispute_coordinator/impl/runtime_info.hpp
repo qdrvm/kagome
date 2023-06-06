@@ -47,7 +47,8 @@ namespace kagome::dispute {
   /// as we might need it.
   class RuntimeInfo final {
    public:
-    RuntimeInfo(std::shared_ptr<crypto::SessionKeys> session_keys);
+    RuntimeInfo(std::shared_ptr<runtime::ParachainHost> api,
+                std::shared_ptr<crypto::SessionKeys> session_keys);
     virtual ~RuntimeInfo() = default;
 
     /// Returns the session index expected at any child of the `parent` block.
@@ -80,11 +81,11 @@ namespace kagome::dispute {
     std::optional<ValidatorIndex> get_our_index(
         const std::vector<ValidatorId> &validators);
 
+    std::shared_ptr<runtime::ParachainHost> api_;
+
     /// Key store for determining whether we are a validator and what
     /// `ValidatorIndex` we have.
     std::shared_ptr<crypto::SessionKeys> session_keys_;
-
-    std::shared_ptr<runtime::ParachainHost> api_;
 
     /// Get the session index for a given relay parent.
     ///

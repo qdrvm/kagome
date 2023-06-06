@@ -7,6 +7,7 @@
 
 #include "blockchain/block_header_repository.hpp"
 #include "blockchain/block_tree_error.hpp"
+#include "runtime/runtime_api/parachain_host.hpp"
 
 OUTCOME_CPP_DEFINE_CATEGORY(kagome::dispute, QueueError, e) {
   using E = kagome::dispute::QueueError;
@@ -25,11 +26,14 @@ namespace kagome::dispute {
 
   QueuesImpl::QueuesImpl(std::shared_ptr<blockchain::BlockHeaderRepository>
                              block_header_repository,
-                         std::shared_ptr<crypto::Hasher> hasher)
+                         std::shared_ptr<crypto::Hasher> hasher,
+                         std::shared_ptr<runtime::ParachainHost> api)
       : block_header_repository_(std::move(block_header_repository)),
-        hasher_(std::move(hasher)) {
+        hasher_(std::move(hasher)),
+        api_(std::move(api)) {
     BOOST_ASSERT(block_header_repository_);
     BOOST_ASSERT(hasher_);
+    BOOST_ASSERT(api_);
   }
 
   outcome::result<void> QueuesImpl::queue(ParticipationPriority priority,
@@ -80,12 +84,18 @@ namespace kagome::dispute {
   }
 
   std::optional<ParticipationRequest> QueuesImpl::dequeue() {
-    if (auto priority_node = priority_.extract(priority_.end())) {
-      return std::move(priority_node.mapped());
+    if (not priority_.empty()) {
+      if (auto priority_node =
+              priority_.extract((std::next(priority_.rbegin()).base()))) {
+        return std::move(priority_node.mapped());
+      }
     }
 
-    if (auto best_effort_node = best_effort_.extract(best_effort_.end())) {
-      return std::move(best_effort_node.mapped());
+    if (not best_effort_.empty()) {
+      if (auto best_effort_node =
+              best_effort_.extract((std::next(best_effort_.rbegin()).base()))) {
+        return std::move(best_effort_node.mapped());
+      }
     }
 
     return std::nullopt;

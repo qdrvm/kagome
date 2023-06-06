@@ -11,10 +11,13 @@
 
 namespace kagome::dispute {
 
-  RuntimeInfo::RuntimeInfo(std::shared_ptr<crypto::SessionKeys> session_keys)
-      : session_keys_(std::move(session_keys)),
+  RuntimeInfo::RuntimeInfo(std::shared_ptr<runtime::ParachainHost> api,
+                           std::shared_ptr<crypto::SessionKeys> session_keys)
+      : api_(std::move(api)),
+        session_keys_(std::move(session_keys)),
         session_index_cache_(10),
         session_info_cache_(10) {
+    BOOST_ASSERT(api_ != nullptr);
     BOOST_ASSERT(session_keys_ != nullptr);
   }
 
