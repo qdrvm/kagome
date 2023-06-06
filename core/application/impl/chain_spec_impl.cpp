@@ -8,8 +8,10 @@
 #include <boost/property_tree/json_parser.hpp>
 #include <charconv>
 #include <libp2p/multi/multiaddress.hpp>
+#include <sstream>
 #include <system_error>
 
+#include "assets/embedded_chainspec.hpp"
 #include "common/hexutil.hpp"
 #include "common/visitor.hpp"
 
@@ -48,7 +50,12 @@ namespace kagome::application {
     config_path_ = file_path;
     pt::ptree tree;
     try {
-      pt::read_json(file_path, tree);
+      if (auto asset = assets::getEmbeddedChainspec(file_path)) {
+        std::istringstream s{std::string{*asset}};
+        pt::json_parser::read_json(s, tree);
+      } else {
+        pt::read_json(file_path, tree);
+      }
     } catch (pt::json_parser_error &e) {
       log_->error(
           "Parser error: {}, line {}: {}", e.filename(), e.line(), e.message());
