@@ -19,7 +19,7 @@
 #include "dispute_coordinator/impl/rolling_session_window_impl.hpp"
 #include "dispute_coordinator/impl/sending_dispute.hpp"
 #include "dispute_coordinator/impl/spam_slots_impl.hpp"
-#include "dispute_coordinator/participation/participation.hpp"
+#include "dispute_coordinator/participation/impl/participation_impl.hpp"
 #include "network/helpers/peer_id_formatter.hpp"
 #include "network/router.hpp"
 #include "network/types/dispute_messages.hpp"
@@ -35,6 +35,8 @@ namespace kagome::dispute {
       std::shared_ptr<crypto::SessionKeys> session_keys,
       std::shared_ptr<Storage> storage,
       std::shared_ptr<crypto::Sr25519Provider> sr25519_crypto_provider,
+      std::shared_ptr<blockchain::BlockHeaderRepository>
+          block_header_repository,
       std::shared_ptr<crypto::Hasher> hasher,
       std::shared_ptr<blockchain::BlockTree> block_tree,
       std::shared_ptr<runtime::ParachainHost> api,
@@ -50,6 +52,7 @@ namespace kagome::dispute {
         session_keys_(std::move(session_keys)),
         storage_(std::move(storage)),
         sr25519_crypto_provider_(std::move(sr25519_crypto_provider)),
+        block_header_repository_(std::move(block_header_repository)),
         hasher_(std::move(hasher)),
         block_tree_(std::move(block_tree)),
         api_(std::move(api)),
@@ -68,6 +71,7 @@ namespace kagome::dispute {
     BOOST_ASSERT(session_keys_ != nullptr);
     BOOST_ASSERT(storage_ != nullptr);
     BOOST_ASSERT(sr25519_crypto_provider_ != nullptr);
+    BOOST_ASSERT(block_header_repository_ != nullptr);
     BOOST_ASSERT(hasher_ != nullptr);
     BOOST_ASSERT(block_tree_ != nullptr);
     BOOST_ASSERT(api_ != nullptr);
@@ -366,6 +370,9 @@ namespace kagome::dispute {
       }
     }
 
+    participation_ = std::make_shared<ParticipationImpl>(
+        block_header_repository_, hasher_, internal_context_);
+
     // Also provide first leaf to participation for good measure.
     // https://github.com/paritytech/polkadot/blob/40974fb99c86f5c341105b7db53c7aa0df707d66/node/core/dispute-coordinator/src/initialized.rs#L192
     auto first_leaf_update_res = participation_->process_active_leaves_update(
@@ -481,19 +488,27 @@ namespace kagome::dispute {
                    "Missing public key for validator #{} (all={})",
                    validator_index,
                    session_info.validators.size());
-          return SignatureValidationError::MissingPublicKey;
+          continue;  // https://github.com/paritytech/polkadot/blob/40974fb99c86f5c341105b7db53c7aa0df707d66/node/core/dispute-coordinator/src/initialized.rs#L391
         }
 
         ValidatorId validator_public = session_info.validators[validator_index];
 
         ValidatorSignature validator_signature = visit_in_place(
             attestation,
-            [](const Unused<0> &) { return ValidatorSignature{}; },
-            [](const auto &sig) { return (ValidatorSignature)sig; });
+            [](const Unused<0> &) {
+              UNREACHABLE;
+              return ValidatorSignature{};
+            },
+            [](const auto &sig) {  //
+              return (ValidatorSignature)sig;
+            });
 
         auto valid_statement_kind = visit_in_place(
             attestation,
-            [](const Unused<0> &) { return ValidDisputeStatement{}; },
+            [](const Unused<0> &) {
+              UNREACHABLE;
+              return ValidDisputeStatement{};
+            },
             [&](const ImplicitValidityAttestation &) {
               return ValidDisputeStatement(BackingSeconded(relay_parent));
             },

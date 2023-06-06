@@ -60,9 +60,11 @@ namespace kagome::storage {
   inline const common::Buffer kEarliestSessionLookupKey =
       "earliest-session"_buf;
 
-  template <typename Tag>
-  inline common::Buffer kCandidateVotesLookupKey(Tag tag) {
-    return common::Buffer::fromString(fmt::format("candidate-votes:{}", tag));
+  template <typename SessionT, typename CandidateHashT>
+  inline common::Buffer kCandidateVotesLookupKey(
+      SessionT session, const CandidateHashT &candidate) {
+    return common::Buffer::fromString(
+        fmt::format("candidate-votes:{}:{}", session, candidate));
   }
 
   /// Until what session have votes been cleaned up already?

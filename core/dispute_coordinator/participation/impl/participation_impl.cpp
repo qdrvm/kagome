@@ -5,9 +5,25 @@
 
 #include "dispute_coordinator/participation/impl/participation_impl.hpp"
 
+#include "dispute_coordinator/participation/impl/queues_impl.hpp"
 #include "dispute_coordinator/participation/queues.hpp"
 
 namespace kagome::dispute {
+
+  ParticipationImpl::ParticipationImpl(
+      std::shared_ptr<blockchain::BlockHeaderRepository>
+          block_header_repository,
+      std::shared_ptr<crypto::Hasher> hasher,
+      std::shared_ptr<ThreadHandler> internal_context)
+      : block_header_repository_(std::move(block_header_repository)),
+        hasher_(std::move(hasher)),
+        internal_context_(std::move(internal_context)),
+        queue_(
+            std::make_unique<QueuesImpl>(block_header_repository_, hasher_)) {
+    BOOST_ASSERT(block_header_repository_ != nullptr);
+    BOOST_ASSERT(hasher_ != nullptr);
+    BOOST_ASSERT(internal_context_ != nullptr);
+  }
 
   outcome::result<void> ParticipationImpl::queue_participation(
       ParticipationPriority priority, ParticipationRequest request) {

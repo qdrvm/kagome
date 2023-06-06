@@ -24,9 +24,12 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::dispute, QueueError, e) {
 namespace kagome::dispute {
 
   QueuesImpl::QueuesImpl(std::shared_ptr<blockchain::BlockHeaderRepository>
-                             block_header_repository)
-      : block_header_repository_(std::move(block_header_repository)) {
+                             block_header_repository,
+                         std::shared_ptr<crypto::Hasher> hasher)
+      : block_header_repository_(std::move(block_header_repository)),
+        hasher_(std::move(hasher)) {
     BOOST_ASSERT(block_header_repository_);
+    BOOST_ASSERT(hasher_);
   }
 
   outcome::result<void> QueuesImpl::queue(ParticipationPriority priority,

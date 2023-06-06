@@ -97,7 +97,8 @@ namespace kagome::dispute {
     static const size_t kBestEffortQueueSize = 100;
 
     QueuesImpl(std::shared_ptr<blockchain::BlockHeaderRepository>
-                   block_header_repository);
+                   block_header_repository,
+               std::shared_ptr<crypto::Hasher> hasher);
 
     outcome::result<void> queue(ParticipationPriority priority,
                                 ParticipationRequest request) override;
@@ -109,6 +110,7 @@ namespace kagome::dispute {
 
    private:
     std::shared_ptr<blockchain::BlockHeaderRepository> block_header_repository_;
+    std::shared_ptr<crypto::Hasher> hasher_;
 
     /// Set of best effort participation requests.
     std::map<CandidateComparator, ParticipationRequest> best_effort_;

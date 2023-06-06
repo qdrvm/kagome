@@ -20,8 +20,7 @@ namespace kagome::dispute {
    public:
     virtual ~Storage() = default;
 
-    /// Load the candidate votes for the specific session-candidate pair, if
-    /// any.
+    /// Load the candidate votes for the specific session-candidate pair, if any
     virtual outcome::result<std::optional<CandidateVotes>> load_candidate_votes(
         SessionIndex session, const CandidateHash &candidate_hash) = 0;
 

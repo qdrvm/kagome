@@ -50,13 +50,26 @@ namespace kagome::dispute {
   StorageImpl::load_candidate_votes(SessionIndex session,
                                     const CandidateHash &candidate_hash) {
     auto it = candidate_votes_.find(std::tie(session, candidate_hash));
-    if (it != candidate_votes_.end()) {
-      return it->second;
+    if (it == candidate_votes_.end()) {
+      auto dispute_space = storage_->getSpace(storage::Space::kDisputeData);
+      OUTCOME_TRY(encoded_opt,
+                  dispute_space->tryGet(storage::kCandidateVotesLookupKey(
+                      session, candidate_hash)));
+      if (not encoded_opt.has_value()) {
+        it = candidate_votes_
+                 .emplace(std::tie(session, candidate_hash), std::nullopt)
+                 .first;
+      } else {
+        auto &encoded = encoded_opt.value();
+        OUTCOME_TRY(candidate_votes, scale::decode<CandidateVotes>(encoded));
+        it = candidate_votes_
+                 .emplace(std::tie(session, candidate_hash),
+                          std::move(candidate_votes))
+                 .first;
+      }
     }
-    // load from base
-    // see: {polkadot}/node/core/dispute-coordinator/src/backend.rs:123
-    throw std::runtime_error("need to implement");
-    return std::nullopt;
+
+    return it->second;
   }
 
   void StorageImpl::write_recent_disputes(RecentDisputes recent_disputes) {

@@ -60,53 +60,57 @@ namespace kagome::dispute {
   /// process.
   ///
   /// Statements are either in favor of the candidate's validity or against it.
-  using DisputeStatement =
-      boost::variant<ValidDisputeStatement, InvalidDisputeStatement>;
+  using DisputeStatement = boost::variant<ValidDisputeStatement,   // 0
+                                          InvalidDisputeStatement  // 1
+                                          >;
 
   inline common::Buffer getSignablePayload(const DisputeStatement &statement,
                                            CandidateHash candidate_hash,
                                            SessionIndex session) {
-    common::Buffer res;
-    visit_in_place(
+    auto res = visit_in_place(
         statement,
         [&](const ValidDisputeStatement &kind) {
-          visit_in_place(
+          return visit_in_place(
               kind,
-              [&](const Explicit &) -> void {
-                res.put("DISP")   // magic
-                    .putUint8(1)  // valid = true
-                    .put(candidate_hash)
-                    .putUint32(session);
+              [&](const Explicit &) {
+                std::array<uint8_t, 4> magic{'D', 'I', 'S', 'P'};
+                bool validity = true;
+                return scale::encode(
+                    std::tie(magic, validity, candidate_hash, session));
               },
               [&](const BackingSeconded &inclusion_parent) {
-                res.put("BKNG")   // magic
-                    .putUint8(1)  // discriminant (BackingSeconded)
-                    .put(candidate_hash)
-                    .putUint32(session)      // signing context
-                    .put(inclusion_parent);  // -//-
+                std::array<uint8_t, 4> magic{'B', 'K', 'N', 'G'};
+                uint8_t discriminant = 1;  // Seconded
+                return scale::encode(std::tie(magic,
+                                              discriminant,
+                                              candidate_hash,
+                                              session,
+                                              inclusion_parent));
               },
               [&](const BackingValid &inclusion_parent) {
-                res.put("BKNG")   // magic
-                    .putUint8(1)  // discriminant (BackingSeconded)
-                    .put(candidate_hash)
-                    .putUint32(session)      // signing context
-                    .put(inclusion_parent);  // -//-
+                std::array<uint8_t, 4> magic{'B', 'K', 'N', 'G'};
+                uint8_t discriminant = 2;  // Valid
+                return scale::encode(std::tie(magic,
+                                              discriminant,
+                                              candidate_hash,
+                                              session,
+                                              inclusion_parent));
               },
               [&](const ApprovalChecking &statement) {
-                res.put("APPR")  // magic
-                    .put(candidate_hash)
-                    .putUint32(session);
+                std::array<uint8_t, 4> magic{'A', 'P', 'P', 'R'};
+                return scale::encode(std::tie(magic, candidate_hash, session));
               });
         },
         [&](const InvalidDisputeStatement &kind) {
-          visit_in_place(kind, [&](const Explicit &) {
-            res.put("DISP")   // magic
-                .putUint8(0)  // valid = false
-                .put(candidate_hash)
-                .putUint32(session);
+          return visit_in_place(kind, [&](const Explicit &) {
+            std::array<uint8_t, 4> magic{'D', 'I', 'S', 'P'};
+            bool validity = false;
+            return scale::encode(
+                std::tie(magic, validity, candidate_hash, session));
           });
         });
-    return res;
+    BOOST_ASSERT_MSG(res.has_value(), "Successful scale encoding expected");
+    return common::Buffer(std::move(res.value()));
   }
 
   /// Tracked votes on candidates, for the purposes of dispute resolution.

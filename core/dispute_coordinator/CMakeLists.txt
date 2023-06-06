@@ -18,6 +18,8 @@ add_library(dispute_coordinator
     impl/batches.cpp
     impl/sending_dispute.cpp
     impl/errors.cpp
+    participation/impl/participation_impl.cpp
+    participation/impl/queues_impl.cpp
     )
 
 target_link_libraries(dispute_coordinator

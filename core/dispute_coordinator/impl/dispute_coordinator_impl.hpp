@@ -45,7 +45,8 @@ namespace kagome::authority_discovery {
 
 namespace kagome::blockchain {
   class BlockTree;
-}
+  class BlockHeaderRepository;
+}  // namespace kagome::blockchain
 
 namespace kagome::dispute {
   class ChainScraper;
@@ -91,6 +92,8 @@ namespace kagome::dispute {
         std::shared_ptr<crypto::SessionKeys> session_keys,
         std::shared_ptr<Storage> storage,
         std::shared_ptr<crypto::Sr25519Provider> sr25519_crypto_provider,
+        std::shared_ptr<blockchain::BlockHeaderRepository>
+            block_header_repository,
         std::shared_ptr<crypto::Hasher> hasher,
         std::shared_ptr<blockchain::BlockTree> block_tree,
         std::shared_ptr<runtime::ParachainHost> api,
@@ -225,6 +228,7 @@ namespace kagome::dispute {
     std::shared_ptr<crypto::SessionKeys> session_keys_;
     std::shared_ptr<Storage> storage_;
     std::shared_ptr<crypto::Sr25519Provider> sr25519_crypto_provider_;
+    std::shared_ptr<blockchain::BlockHeaderRepository> block_header_repository_;
     std::shared_ptr<crypto::Hasher> hasher_;
     std::shared_ptr<blockchain::BlockTree> block_tree_;
     std::shared_ptr<runtime::ParachainHost> api_;

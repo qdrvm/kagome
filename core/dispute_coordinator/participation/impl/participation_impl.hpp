@@ -18,14 +18,14 @@ namespace kagome {
 
 namespace kagome::dispute {
 
-  class ParticipationImpl final : Participation {
+  class ParticipationImpl final : public Participation {
    public:
     static const size_t kMaxParallelParticipations = 3;
 
-    ParticipationImpl(std::shared_ptr<ThreadHandler> internal_context)
-        : internal_context_(std::move(internal_context)) {
-      BOOST_ASSERT(internal_context != nullptr);
-    }
+    ParticipationImpl(std::shared_ptr<blockchain::BlockHeaderRepository>
+                          block_header_repository,
+                      std::shared_ptr<crypto::Hasher> hasher,
+                      std::shared_ptr<ThreadHandler> internal_context);
 
     outcome::result<void> queue_participation(
         ParticipationPriority priority, ParticipationRequest request) override;
@@ -48,6 +48,8 @@ namespace kagome::dispute {
     outcome::result<void> dequeue_until_capacity(
         const primitives::BlockHash &recent_head);
 
+    std::shared_ptr<blockchain::BlockHeaderRepository> block_header_repository_;
+    std::shared_ptr<crypto::Hasher> hasher_;
     std::shared_ptr<ThreadHandler> internal_context_;
 
     /// Participations currently being processed.
