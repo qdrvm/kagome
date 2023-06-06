@@ -201,7 +201,6 @@ namespace kagome::blockchain {
         const BlockTreeData &p, const primitives::BlockHash &block_hash) const;
 
     outcome::result<void> pruneTrie(const BlockTreeData &block_tree_data,
-                                    primitives::BlockNumber old_finalized,
                                     primitives::BlockNumber new_finalized);
 
     outcome::result<void> reorganizeNoLock(BlockTreeData &p);

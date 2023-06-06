@@ -472,7 +472,8 @@ namespace kagome::parachain {
       std::shared_ptr<network::Router> router,
       std::shared_ptr<blockchain::BlockTree> block_tree,
       std::shared_ptr<parachain::Pvf> pvf,
-      std::shared_ptr<parachain::Recovery> recovery)
+      std::shared_ptr<parachain::Recovery> recovery,
+      std::shared_ptr<boost::asio::io_context> this_context)
       : int_pool_{std::make_shared<ThreadPool>(1ull)},
         internal_context_{int_pool_->handler()},
         thread_pool_{std::move(thread_pool)},
@@ -490,7 +491,8 @@ namespace kagome::parachain {
         babe_api_(std::move(babe_api)),
         block_tree_(std::move(block_tree)),
         pvf_(std::move(pvf)),
-        recovery_(std::move(recovery)) {
+        recovery_(std::move(recovery)),
+        this_context_{std::move(this_context)} {
     BOOST_ASSERT(thread_pool_);
     BOOST_ASSERT(parachain_host_);
     BOOST_ASSERT(babe_util_);
@@ -1735,8 +1737,15 @@ namespace kagome::parachain {
   }
 
   void ApprovalDistribution::runDistributeAssignment(
-      const approval::IndirectAssignmentCert &indirect_cert,
-      CandidateIndex candidate_index) {
+      const approval::IndirectAssignmentCert &_indirect_cert,
+      CandidateIndex _candidate_index) {
+    REINVOKE_2(this_context_,
+               runDistributeAssignment,
+               _indirect_cert,
+               _candidate_index,
+               indirect_cert,
+               candidate_index);
+
     logger_->info(
         "Distributing assignment on candidate (block hash={}, candidate "
         "index={})",
@@ -1757,7 +1766,9 @@ namespace kagome::parachain {
   }
 
   void ApprovalDistribution::runDistributeApproval(
-      const network::IndirectSignedApprovalVote &vote) {
+      const network::IndirectSignedApprovalVote &_vote) {
+    REINVOKE_1(this_context_, runDistributeApproval, _vote, vote);
+
     logger_->info(
         "Distributing our approval vote on candidate (block={}, index={})",
         vote.payload.payload.block_hash,

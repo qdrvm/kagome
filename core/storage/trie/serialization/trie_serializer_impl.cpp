@@ -75,11 +75,8 @@ namespace kagome::storage::trie {
                                               // the DB separately
                 }
               }
-              if (auto value_data = std::get_if<Codec::ValueData>(&visitee);
-                  value_data != nullptr) {
-                return batch->put(value_data->hash, value_data->value.view());
-              }
-              BOOST_UNREACHABLE_RETURN();
+              auto value_data = std::get<Codec::ValueData>(visitee);
+              return batch->put(value_data.hash, value_data.value.view());
             }));
     auto hash = codec_->hash256(enc);
     OUTCOME_TRY(batch->put(hash, std::move(enc)));

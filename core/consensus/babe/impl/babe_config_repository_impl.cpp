@@ -842,25 +842,21 @@ namespace kagome::consensus::babe {
 
   void BabeConfigRepositoryImpl::readFromState(
       const primitives::BlockInfo &block) {
-    auto check_res = [this, &block](const auto &res, const auto &msg) {
-      if (!res) {
-        logger_->error("readFromState {}, error: {}", block, msg);
-        return false;
-      }
-      return true;
-    };
     auto hash1_opt_res = block_tree_->getBlockHash(1);
-    if (!check_res(hash1_opt_res, hash1_opt_res.error())) {
+    if (!hash1_opt_res) {
+      logger_->error(
+          "readFromState {}, error: {}", block, hash1_opt_res.error());
       return;
     }
-    if (!check_res(hash1_opt_res.value().has_value(),
-                   "Block #1 not present in the storage")) {
+    if (!hash1_opt_res.value().has_value()) {
+      logger_->error(
+          "readFromState {}, error: \"Block #1 not present in the storage\"",
+          block);
       return;
     }
-
     auto header1_res = block_tree_->getBlockHeader(*hash1_opt_res.value());
-    if (!check_res(header1_res,
-                   header1_res.error())) {
+    if (!header1_res) {
+      logger_->error("readFromState {}, error: {}", block, header1_res.error());
       return;
     }
 

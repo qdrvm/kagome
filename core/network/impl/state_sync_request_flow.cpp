@@ -116,12 +116,6 @@ namespace kagome::network {
     if (actual != block_.state_root) {
       return Error::HASH_MISMATCH;
     }
-    for (auto &[child_key, child_hash] : child_hashes) {
-      using Parent = storage::trie_pruner::TriePruner::Parent;
-      using Child = storage::trie_pruner::TriePruner::Child;
-      OUTCOME_TRY(state_pruner_->markAsChild(
-          Parent{actual}, child_key, Child{child_hash}));
-    }
     return outcome::success();
   }
 }  // namespace kagome::network

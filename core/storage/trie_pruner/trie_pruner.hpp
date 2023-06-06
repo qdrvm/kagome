@@ -53,44 +53,10 @@ namespace kagome::storage::trie_pruner {
         const trie::PolkadotTrie &new_trie, trie::StateVersion version) = 0;
 
     /**
-     * Register a new child trie with the trie pruner so that the trie nodes
-     * this trie references are kept until the block this trie belongs to is
-     * pruned.
-     * @param version trie version used by runtime when creating this trie.
-     */
-    virtual outcome::result<void> addNewChildState(
-        const storage::trie::RootHash &parent_root,
-        common::BufferView key,
-        const trie::PolkadotTrie &new_trie,
-        trie::StateVersion version) = 0;
-
-    /// wrapper for RootHash to avoid confusing parameter order
-    struct Parent {
-      explicit Parent(const storage::trie::RootHash &hash) : hash{hash} {}
-      const storage::trie::RootHash &hash;
-    };
-
-    /// wrapper for RootHash to avoid confusing parameter order
-    struct Child {
-      explicit Child(const storage::trie::RootHash &hash) : hash{hash} {}
-      const storage::trie::RootHash &hash;
-    };
-
-    /**
-     * Mark \param child as the child trie of \param parent for pruning
-     * purposes.
-     */
-    virtual outcome::result<void> markAsChild(Parent parent,
-                                              const common::Buffer &key,
-                                              Child child) = 0;
-
-    /**
      * Prune the trie of a finalized block \param state.
      * Nodes belonging to this trie are deleted if no other trie references
      * them.
-     * @param state header of the block which state should be pruned.
-     * @param next_block the next finalized block after the pruned one
-     * (required for pruner state persistency purposes).
+     * @param state header of the block which state is to be pruned.
      */
     virtual outcome::result<void> pruneFinalized(
         const primitives::BlockHeader &state) = 0;
@@ -99,17 +65,17 @@ namespace kagome::storage::trie_pruner {
      * Prune the trie of a discarded block \param state.
      * Nodes belonging to this trie are deleted if no other trie references
      * them.
-     * @param state header of the block which state should be pruned.
-     * (required for pruner state persistency purposes).
+     * @param state header of the block which state is to be pruned.
      */
     virtual outcome::result<void> pruneDiscarded(
         const primitives::BlockHeader &state) = 0;
 
-    /** Resets the pruner state and builds it from scratch from the state
-     * of the provided block
+    /**
+     * Resets the pruner state, sets the provided block as the last pruned,
+     * adds all its children states to the pruner reference counter
      */
     virtual outcome::result<void> restoreState(
-        const primitives::BlockHeader &base_block,
+        const primitives::BlockHeader &last_pruned_block,
         const blockchain::BlockTree &block_tree) = 0;
 
     /**

@@ -768,8 +768,7 @@ namespace kagome::blockchain {
         node->has_justification = true;
 
         OUTCOME_TRY(pruneNoLock(p, node));
-        OUTCOME_TRY(pruneTrie(
-            p, last_finalized_block_info.number, node->getBlockInfo().number));
+        OUTCOME_TRY(pruneTrie(p, node->getBlockInfo().number));
 
         p.tree_->updateTreeRoot(node);
 
@@ -1375,7 +1374,8 @@ namespace kagome::blockchain {
           extrinsics.emplace_back(std::move(ext));
         }
         BOOST_ASSERT(block_header_opt.has_value());
-        OUTCOME_TRY(p.state_pruner_->pruneDiscarded(block_header_opt.value()));
+        OUTCOME_TRY(p.state_pruner_->pruneDiscarded(
+            block_header_opt.value()));
       }
 
       p.tree_->removeFromMeta(node);
@@ -1420,27 +1420,24 @@ namespace kagome::blockchain {
 
   outcome::result<void> BlockTreeImpl::pruneTrie(
       const BlockTreeData &block_tree_data,
-      primitives::BlockNumber old_finalized,
       primitives::BlockNumber new_finalized) {
     // pruning is disabled
     if (!block_tree_data.state_pruner_->getPruningDepth().has_value()) {
       return outcome::success();
     }
     auto *root_node = &block_tree_data.tree_->getRoot();
-    BOOST_ASSERT(root_node->depth == old_finalized);
     auto last_pruned = block_tree_data.state_pruner_->getLastPrunedBlock();
     BOOST_ASSERT(!last_pruned.has_value()
                  || last_pruned.value().number <= root_node->depth);
     auto next_pruned_number = last_pruned ? last_pruned->number + 1 : 0;
+
     OUTCOME_TRY(hash_opt, getBlockHash(next_pruned_number));
     BOOST_ASSERT(hash_opt.has_value());
     primitives::BlockHash hash = std::move(*hash_opt);
     auto last_to_prune =
         new_finalized
         - block_tree_data.state_pruner_->getPruningDepth().value_or(0);
-    for (auto n = next_pruned_number;
-         n < std::min(old_finalized, last_to_prune);
-         n++) {
+    for (auto n = next_pruned_number; n < last_to_prune; n++) {
       OUTCOME_TRY(next_hash_opt, getBlockHash(n + 1));
       BOOST_ASSERT(next_hash_opt.has_value());
       auto &next_hash = *next_hash_opt;
@@ -1448,27 +1445,7 @@ namespace kagome::blockchain {
       OUTCOME_TRY(block_tree_data.state_pruner_->pruneFinalized(header));
       hash = std::move(next_hash);
     }
-    BOOST_ASSERT(
-        block_tree_data.state_pruner_->getLastPrunedBlock().has_value()
-        && block_tree_data.state_pruner_->getLastPrunedBlock().value().number
-               == root_node->depth);
 
-    auto *current_node = root_node;
-    for (auto n = block_tree_data.state_pruner_->getLastPrunedBlock()->number;
-         n < last_to_prune;
-         n++) {
-      BOOST_ASSERT(current_node->children.size() == 1);
-      auto next_node = current_node->children[0].get();
-      OUTCOME_TRY(
-          header_opt,
-          block_tree_data.storage_->getBlockHeader(current_node->block_hash));
-      if (!header_opt.has_value()) {
-        return BlockTreeError::HEADER_NOT_FOUND;
-      }
-      auto &header = header_opt.value();
-      OUTCOME_TRY(block_tree_data.state_pruner_->pruneFinalized(header));
-      current_node = next_node;
-    }
     return outcome::success();
   }
 

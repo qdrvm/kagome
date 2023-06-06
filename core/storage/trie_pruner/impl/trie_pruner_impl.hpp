@@ -24,7 +24,7 @@
 namespace kagome::application {
   class AppConfiguration;
   class AppStateManager;
-}
+}  // namespace kagome::application
 
 namespace kagome::crypto {
   class Hasher;
@@ -52,28 +52,16 @@ namespace kagome::storage::trie_pruner {
   class TriePrunerImpl final : public TriePruner {
    public:
     enum class Error {
-      CREATE_PRUNER_ON_NON_PRUNED_NON_EMPTY_STORAGE = 1,
-      OUTDATED_PRUNE_BASE,
-      LAST_PRUNED_BLOCK_IS_LAST_FINALIZED,
+      LAST_PRUNED_BLOCK_IS_LAST_FINALIZED = 1,
     };
 
     inline static const common::Buffer TRIE_PRUNER_INFO_KEY =
         ":trie_pruner:info"_buf;
 
-    struct ChildStorageInfo {
-      SCALE_TIE(2);
-
-      common::Buffer key;
-      storage::trie::RootHash root;
-    };
-
     struct TriePrunerInfo {
-      SCALE_TIE(2);
+      SCALE_TIE(1);
 
       std::optional<primitives::BlockInfo> last_pruned_block;
-      std::vector<
-          std::pair<primitives::BlockHash, std::vector<ChildStorageInfo>>>
-          child_states;
     };
 
     TriePrunerImpl(
@@ -95,16 +83,6 @@ namespace kagome::storage::trie_pruner {
         const trie::PolkadotTrie &new_trie,
         trie::StateVersion version) override;
 
-    virtual outcome::result<void> addNewChildState(
-        const storage::trie::RootHash &parent_root,
-        common::BufferView key,
-        const trie::PolkadotTrie &new_trie,
-        trie::StateVersion version) override;
-
-    virtual outcome::result<void> markAsChild(Parent parent,
-                                              const common::Buffer &key,
-                                              Child child) override;
-
     virtual outcome::result<void> pruneFinalized(
         const primitives::BlockHeader &state) override;
 
@@ -112,7 +90,7 @@ namespace kagome::storage::trie_pruner {
         const primitives::BlockHeader &state) override;
 
     virtual outcome::result<void> restoreState(
-        const primitives::BlockHeader &base_block,
+        const primitives::BlockHeader &last_pruned_block,
         const blockchain::BlockTree &block_tree) override;
 
     std::optional<primitives::BlockInfo> getLastPrunedBlock() const override {
@@ -140,10 +118,14 @@ namespace kagome::storage::trie_pruner {
     }
 
    private:
-    outcome::result<void> prune(const primitives::BlockHeader &state);
+    outcome::result<void> prune(const storage::trie::RootHash &state);
 
     outcome::result<storage::trie::RootHash> addNewStateWith(
         const trie::PolkadotTrie &new_trie, trie::StateVersion version);
+
+    outcome::result<void> addChildStates(const trie::PolkadotTrie &parent,
+                                         const trie::RootHash &parent_root);
+    outcome::result<void> pruneChildStates(const trie::PolkadotTrie &parent);
 
     // store the persistent pruner info to the database
     outcome::result<void> savePersistentState() const;
@@ -159,8 +141,6 @@ namespace kagome::storage::trie_pruner {
     std::shared_ptr<storage::SpacedStorage> storage_;
     std::shared_ptr<const crypto::Hasher> hasher_;
 
-    std::unordered_map<storage::trie::RootHash, std::vector<ChildStorageInfo>>
-        child_states_;
     const std::optional<uint32_t> pruning_depth_{};
     log::Logger logger_ = log::createLogger("TriePruner", "trie_pruner");
   };
