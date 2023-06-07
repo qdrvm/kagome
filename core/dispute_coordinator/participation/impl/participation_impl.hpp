@@ -16,9 +16,16 @@ namespace kagome {
   class ThreadHandler;
 }
 
+namespace kagome::parachain {
+  class Recovery;
+  class Pvf;
+}  // namespace kagome::parachain
+
 namespace kagome::dispute {
 
-  class ParticipationImpl final : public Participation {
+  class ParticipationImpl final
+      : public Participation,
+        public std::enable_shared_from_this<ParticipationImpl> {
    public:
     static const size_t kMaxParallelParticipations = 3;
 
@@ -26,6 +33,8 @@ namespace kagome::dispute {
                           block_header_repository,
                       std::shared_ptr<crypto::Hasher> hasher,
                       std::shared_ptr<runtime::ParachainHost> api,
+                      std::shared_ptr<parachain::Recovery> recovery,
+                      std::shared_ptr<parachain::Pvf> pvf,
                       std::shared_ptr<ThreadHandler> internal_context);
 
     outcome::result<void> queue_participation(
@@ -45,11 +54,33 @@ namespace kagome::dispute {
         std::vector<CandidateReceipt> &included_receipts) override;
 
    private:
+    void participate(ParticipationRequest request,
+                     primitives::BlockHash recent_head);
+
+    struct ParticipationContext {
+      ParticipationRequest request;
+      primitives::BlockHash block_hash;
+      std::optional<runtime::AvailableData> available_data{};
+      std::optional<runtime::ValidationCode> validation_code{};
+    };
+    using ParticipationContextPtr = std::shared_ptr<ParticipationContext>;
+    using ParticipationCallback = std::function<void(ParticipationOutcome)>;
+
+    void participate_stage1(ParticipationContextPtr ctx,
+                            ParticipationCallback &&cb);
+    void participate_stage2(ParticipationContextPtr ctx,
+                            ParticipationCallback &&cb);
+    void participate_stage3(ParticipationContextPtr ctx,
+                            ParticipationCallback &&cb);
+
     /// Dequeue until `MAX_PARALLEL_PARTICIPATIONS` is reached.
     outcome::result<void> dequeue_until_capacity(
         const primitives::BlockHash &recent_head);
 
     std::shared_ptr<blockchain::BlockHeaderRepository> block_header_repository_;
+    std::shared_ptr<runtime::ParachainHost> api_;
+    std::shared_ptr<parachain::Recovery> recovery_;
+    std::shared_ptr<parachain::Pvf> pvf_;
     std::shared_ptr<ThreadHandler> internal_context_;
 
     /// Participations currently being processed.

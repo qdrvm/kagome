@@ -63,7 +63,9 @@ namespace kagome::network {
 
 namespace kagome::parachain {
   struct ApprovalDistribution;
-}
+  class Recovery;
+  class Pvf;
+}  // namespace kagome::parachain
 
 namespace kagome::runtime {
   class ParachainHost;
@@ -97,6 +99,8 @@ namespace kagome::dispute {
         std::shared_ptr<crypto::Hasher> hasher,
         std::shared_ptr<blockchain::BlockTree> block_tree,
         std::shared_ptr<runtime::ParachainHost> api,
+        std::shared_ptr<parachain::Recovery> recovery,
+        std::shared_ptr<parachain::Pvf> pvf,
         std::shared_ptr<parachain::ApprovalDistribution> approval_distribution,
         std::shared_ptr<authority_discovery::Query> authority_discovery,
         std::shared_ptr<boost::asio::io_context> main_thread_context,
@@ -232,6 +236,8 @@ namespace kagome::dispute {
     std::shared_ptr<crypto::Hasher> hasher_;
     std::shared_ptr<blockchain::BlockTree> block_tree_;
     std::shared_ptr<runtime::ParachainHost> api_;
+    std::shared_ptr<parachain::Recovery> recovery_;
+    std::shared_ptr<parachain::Pvf> pvf_;
     std::shared_ptr<parachain::ApprovalDistribution> approval_distribution_;
     std::shared_ptr<authority_discovery::Query> authority_discovery_;
     std::unique_ptr<ThreadHandler> main_thread_context_;

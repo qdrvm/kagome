@@ -286,6 +286,16 @@ namespace kagome::parachain {
         const CandidateHash &candidate,
         SignaturesForCandidateCallback &&callback);
 
+    void validateCandidateExhaustive(
+        const runtime::PersistedValidationData &data,
+        const network::ParachainBlock &pov,
+        const network::CandidateReceipt &receipt,
+        const ParachainRuntime &code,
+        std::function<void(bool)> &&cb) {
+      cb(validate_candidate_exhaustive(data, pov, receipt, code)
+         == ApprovalOutcome::Approved);
+    };
+
    private:
     using CandidateIncludedList =
         std::vector<std::tuple<CandidateHash,

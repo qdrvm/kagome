@@ -40,6 +40,8 @@ namespace kagome::dispute {
       std::shared_ptr<crypto::Hasher> hasher,
       std::shared_ptr<blockchain::BlockTree> block_tree,
       std::shared_ptr<runtime::ParachainHost> api,
+      std::shared_ptr<parachain::Recovery> recovery,
+      std::shared_ptr<parachain::Pvf> pvf,
       std::shared_ptr<parachain::ApprovalDistribution> approval_distribution,
       std::shared_ptr<authority_discovery::Query> authority_discovery,
       std::shared_ptr<boost::asio::io_context> main_thread_context,
@@ -56,6 +58,8 @@ namespace kagome::dispute {
         hasher_(std::move(hasher)),
         block_tree_(std::move(block_tree)),
         api_(std::move(api)),
+        recovery_(std::move(recovery)),
+        pvf_(std::move(pvf)),
         approval_distribution_(std::move(approval_distribution)),
         authority_discovery_(std::move(authority_discovery)),
         main_thread_context_(
@@ -75,6 +79,8 @@ namespace kagome::dispute {
     BOOST_ASSERT(hasher_ != nullptr);
     BOOST_ASSERT(block_tree_ != nullptr);
     BOOST_ASSERT(api_ != nullptr);
+    BOOST_ASSERT(recovery_ != nullptr);
+    BOOST_ASSERT(pvf_ != nullptr);
     BOOST_ASSERT(approval_distribution_ != nullptr);
     BOOST_ASSERT(authority_discovery_ != nullptr);
     BOOST_ASSERT(main_thread_context_ != nullptr);
@@ -370,8 +376,13 @@ namespace kagome::dispute {
       }
     }
 
-    participation_ = std::make_shared<ParticipationImpl>(
-        block_header_repository_, hasher_, api_, internal_context_);
+    participation_ =
+        std::make_shared<ParticipationImpl>(block_header_repository_,
+                                            hasher_,
+                                            api_,
+                                            recovery_,
+                                            pvf_,
+                                            internal_context_);
 
     // Also provide first leaf to participation for good measure.
     // https://github.com/paritytech/polkadot/blob/40974fb99c86f5c341105b7db53c7aa0df707d66/node/core/dispute-coordinator/src/initialized.rs#L192
