@@ -1427,6 +1427,8 @@ namespace kagome::blockchain {
     }
     auto *root_node = &block_tree_data.tree_->getRoot();
     auto last_pruned = block_tree_data.state_pruner_->getLastPrunedBlock();
+
+
     BOOST_ASSERT(!last_pruned.has_value()
                  || last_pruned.value().number <= root_node->depth);
     auto next_pruned_number = last_pruned ? last_pruned->number + 1 : 0;

@@ -68,7 +68,27 @@ namespace kagome::storage {
                                                 : trie_space_cache_size)});
     }
 
-    std::vector<rocksdb::ColumnFamilyHandle *> column_family_handles;
+    std::vector<std::string> existing_families;
+    auto res = rocksdb::DB::ListColumnFamilies(
+        options, path.native(), &existing_families);
+    if (!res.ok() && !res.IsNotFound()) {
+      SL_ERROR(log,
+               "Can't open database in {}: {}",
+               absolute_path.native(),
+               res.ToString());
+      return status_as_error(res);
+    }
+    for (auto &family : existing_families) {
+      if (std::find_if(column_family_descriptors.begin(),
+                       column_family_descriptors.end(),
+                       [&family](rocksdb::ColumnFamilyDescriptor &desc) {
+                         return desc.name == family;
+                       })
+          == column_family_descriptors.end()) {
+        column_family_descriptors.emplace_back(rocksdb::ColumnFamilyDescriptor{
+            family, configureColumn(other_spaces_cache_size)});
+      }
+    }
 
     options.create_missing_column_families = true;
     auto rocks_db = std::shared_ptr<RocksDb>(new RocksDb);

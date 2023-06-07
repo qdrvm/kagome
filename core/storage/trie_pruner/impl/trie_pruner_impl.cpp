@@ -405,30 +405,28 @@ namespace kagome::storage::trie_pruner {
     OUTCOME_TRY(last_pruned_enc, scale::encode(last_pruned_block));
     auto last_pruned_hash = hasher_->blake2b_256(last_pruned_enc);
 
-    OUTCOME_TRY(last_pruned_children, block_tree.getChildren(last_pruned_hash));
-    if (last_pruned_children.size() > 1 || last_pruned_children.empty()) {
-      return Error::LAST_PRUNED_BLOCK_IS_LAST_FINALIZED;
-    }
-    auto &base_block_hash = last_pruned_children.at(0);
-    OUTCOME_TRY(base_block, block_tree.getBlockHeader(base_block_hash));
-    auto base_tree_res = serializer_->retrieveTrie(base_block.state_root);
-    if (base_tree_res.has_error()
-        && base_tree_res.error() == storage::DatabaseError::NOT_FOUND) {
-      SL_DEBUG(
-          logger_,
-          "Failed to restore pruner state, probably node is fast-syncing.");
-      return outcome::success();
-    }
-    OUTCOME_TRY(base_tree, std::move(base_tree_res));
-    OUTCOME_TRY(addNewStateWith(*base_tree, trie::StateVersion::V0));
     std::queue<primitives::BlockHash> block_queue;
 
-    {
+    OUTCOME_TRY(last_pruned_children, block_tree.getChildren(last_pruned_hash));
+    if (!last_pruned_children.empty()) {
+      auto &base_block_hash = last_pruned_children.at(0);
+      OUTCOME_TRY(base_block, block_tree.getBlockHeader(base_block_hash));
+      auto base_tree_res = serializer_->retrieveTrie(base_block.state_root);
+      if (base_tree_res.has_error()
+          && base_tree_res.error() == storage::DatabaseError::NOT_FOUND) {
+        SL_DEBUG(
+            logger_,
+            "Failed to restore pruner state, probably node is fast-syncing.");
+        return outcome::success();
+      }
+      OUTCOME_TRY(base_tree, std::move(base_tree_res));
+      OUTCOME_TRY(addNewStateWith(*base_tree, trie::StateVersion::V0));
       OUTCOME_TRY(children, block_tree.getChildren(base_block_hash));
       for (auto child : children) {
         block_queue.push(child);
       }
     }
+
     while (!block_queue.empty()) {
       auto block_hash = block_queue.front();
       OUTCOME_TRY(header, block_tree.getBlockHeader(block_hash));
