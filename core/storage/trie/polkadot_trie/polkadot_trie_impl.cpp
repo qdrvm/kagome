@@ -51,7 +51,7 @@ namespace kagome::storage::trie {
     }
 
     [[nodiscard]] outcome::result<std::shared_ptr<const TrieNode>> getChild(
-        BranchNode const &parent, uint8_t idx) const {
+        const BranchNode &parent, uint8_t idx) const {
       // SAFETY: changing a parent's opaque child node from a handle to a node
       // to the actual node doesn't break it's const correctness, because opaque
       // nodes are meant to hide their content
@@ -63,7 +63,7 @@ namespace kagome::storage::trie {
     }
 
     [[nodiscard]] outcome::result<std::shared_ptr<TrieNode>> getChild(
-        BranchNode const &parent, uint8_t idx) {
+        const BranchNode &parent, uint8_t idx) {
       // SAFETY: adding constness, not removing
       auto const_this = const_cast<const OpaqueNodeStorage *>(this);
       OUTCOME_TRY(const_child, const_this->getChild(parent, idx));
@@ -296,6 +296,18 @@ namespace {
 namespace kagome::storage::trie {
   PolkadotTrieImpl::PolkadotTrieImpl(PolkadotTrieImpl &&) = default;
   PolkadotTrieImpl &PolkadotTrieImpl::operator=(PolkadotTrieImpl &&) = default;
+
+  std::shared_ptr<PolkadotTrieImpl> PolkadotTrieImpl::createEmpty(
+      PolkadotTrie::NodeRetrieveFunctor f) {
+    return std::shared_ptr<PolkadotTrieImpl>(
+        new PolkadotTrieImpl{std::move(f)});
+  }
+
+  std::shared_ptr<PolkadotTrieImpl> PolkadotTrieImpl::create(
+      NodePtr root, PolkadotTrie::NodeRetrieveFunctor f) {
+    return std::shared_ptr<PolkadotTrieImpl>(
+        new PolkadotTrieImpl{root, std::move(f)});
+  }
 
   PolkadotTrieImpl::PolkadotTrieImpl(NodeRetrieveFunctor f)
       : nodes_{std::make_unique<OpaqueNodeStorage>(std::move(f), nullptr)},

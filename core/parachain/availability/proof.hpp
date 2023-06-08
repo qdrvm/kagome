@@ -20,7 +20,7 @@ namespace kagome::parachain {
       std::vector<network::ErasureChunk> &chunks) {
     storage::trie::PolkadotCodec codec;
 
-    auto trie = std::make_shared<storage::trie::PolkadotTrieImpl>();
+    auto trie = storage::trie::PolkadotTrieImpl::createEmpty();
     for (size_t i = 0; i < chunks.size(); ++i) {
       if (chunks[i].index != i) {
         throw std::logic_error{"ErasureChunk.index is wrong"};
@@ -97,9 +97,9 @@ namespace kagome::parachain {
     };
     OUTCOME_TRY(root,
                 load(std::make_shared<storage::trie::DummyNode>(root_hash)));
-    storage::trie::PolkadotTrieImpl trie{root, load};
+    auto trie = storage::trie::PolkadotTrieImpl::create(root, load);
 
-    OUTCOME_TRY(_expected, trie.get(makeTrieProofKey(chunk.index)));
+    OUTCOME_TRY(_expected, trie->get(makeTrieProofKey(chunk.index)));
     OUTCOME_TRY(expected, common::Hash256::fromSpan(_expected));
     auto actual = codec.hash256(chunk.chunk);
     if (actual != expected) {

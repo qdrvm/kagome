@@ -17,7 +17,7 @@ namespace kagome::storage::trie {
      * @param f functor that a trie uses to obtain a child of a branch. If
      * optional is none, the default one will be used
      */
-    virtual std::unique_ptr<PolkadotTrie> createEmpty(
+    virtual std::shared_ptr<PolkadotTrie> createEmpty(
         PolkadotTrie::NodeRetrieveFunctor f =
             PolkadotTrie::defaultNodeRetrieveFunctor) const = 0;
 

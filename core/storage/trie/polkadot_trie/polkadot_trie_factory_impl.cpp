@@ -7,14 +7,14 @@
 
 namespace kagome::storage::trie {
 
-  std::unique_ptr<PolkadotTrie> PolkadotTrieFactoryImpl::createEmpty(
+  std::shared_ptr<PolkadotTrie> PolkadotTrieFactoryImpl::createEmpty(
       PolkadotTrie::NodeRetrieveFunctor f) const {
-    return std::make_unique<PolkadotTrieImpl>(f);
+    return PolkadotTrieImpl::createEmpty(f);
   }
 
   std::shared_ptr<PolkadotTrie> PolkadotTrieFactoryImpl::createFromRoot(
       PolkadotTrie::NodePtr root, PolkadotTrie::NodeRetrieveFunctor f) const {
-    return std::make_shared<PolkadotTrieImpl>(std::move(root), std::move(f));
+    return PolkadotTrieImpl::create(std::move(root), std::move(f));
   }
 
 }  // namespace kagome::storage::trie

@@ -354,12 +354,12 @@ namespace kagome::host_api {
       auto res = memory.storeBuffer(storage::trie::kEmptyRootHash);
       return runtime::PtrSize(res).ptr;
     }
-    storage::trie::PolkadotTrieImpl trie;
+    auto trie = storage::trie::PolkadotTrieImpl::createEmpty();
     for (auto &&p : pv) {
       auto &&key = p.first;
       common::BufferView value = p.second;
       // already scale-encoded
-      auto put_res = trie.put(key, value);
+      auto put_res = trie->put(key, value);
       if (not put_res) {
         logger_->error(
             "Insertion of value {} with key {} into the trie failed due to "
@@ -370,7 +370,7 @@ namespace kagome::host_api {
       }
     }
     const auto &enc =
-        codec.encodeNode(*trie.getRoot(), storage::trie::StateVersion::V0, {});
+        codec.encodeNode(*trie->getRoot(), storage::trie::StateVersion::V0, {});
     if (!enc) {
       logger_->error("failed to encode trie root: {}", enc.error());
       throw std::runtime_error(enc.error().message());

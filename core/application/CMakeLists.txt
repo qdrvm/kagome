@@ -42,6 +42,7 @@ add_library(chain_spec
     impl/chain_spec_impl.cpp
     )
 target_link_libraries(chain_spec
+    assets
     filesystem
     p2p::p2p_multiaddress
     p2p::p2p_peer_id

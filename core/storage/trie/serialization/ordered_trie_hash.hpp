@@ -26,7 +26,7 @@ namespace kagome::storage::trie {
   outcome::result<common::Buffer> calculateOrderedTrieHash(StateVersion version,
                                                            const It &begin,
                                                            const It &end) {
-    PolkadotTrieImpl trie;
+    auto trie = storage::trie::PolkadotTrieImpl::createEmpty();
     PolkadotCodec codec;
     // empty root
     if (begin == end) {
@@ -38,10 +38,10 @@ namespace kagome::storage::trie {
     scale::CompactInteger key = 0;
     while (it != end) {
       OUTCOME_TRY(enc, scale::encode(key++));
-      OUTCOME_TRY(trie.put(enc, BufferView{*it}));
+      OUTCOME_TRY(trie->put(enc, BufferView{*it}));
       it++;
     }
-    OUTCOME_TRY(enc, codec.encodeNode(*trie.getRoot(), version, {}));
+    OUTCOME_TRY(enc, codec.encodeNode(*trie->getRoot(), version, {}));
     return common::Buffer{codec.hash256(enc)};
   }
 

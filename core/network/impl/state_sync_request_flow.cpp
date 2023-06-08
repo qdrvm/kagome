@@ -29,7 +29,7 @@ namespace kagome::network {
       const primitives::BlockHeader &block)
       : state_pruner_{state_pruner}, block_info_{block_info}, block_{block} {
     BOOST_ASSERT(state_pruner_ != nullptr);
-    roots_.insert({std::nullopt, Root{storage::trie::PolkadotTrieImpl{}, {}}});
+    roots_.insert({std::nullopt, Root{storage::trie::PolkadotTrieImpl::createEmpty(), {}}});
   }
 
   bool StateSyncRequestFlow::complete() const {
@@ -74,7 +74,7 @@ namespace kagome::network {
           OUTCOME_TRY(hash, RootHash::fromSpan(value));
           roots_[hash].children.emplace_back(key);
         } else {
-          root.trie.put(key, common::BufferView{value}).value();
+          root.trie->put(key, common::BufferView{value}).value();
         }
       }
       if (entry.complete) {
@@ -90,7 +90,7 @@ namespace kagome::network {
       storage::trie::TrieSerializer &trie_serializer) {
     assert(complete());
     auto &top = roots_[std::nullopt];
-    OUTCOME_TRY(code, top.trie.get(storage::kRuntimeCodeKey));
+    OUTCOME_TRY(code, top.trie->get(storage::kRuntimeCodeKey));
     OUTCOME_TRY(env,
                 runtime::RuntimeEnvironment::fromCode(module_factory, code));
     OUTCOME_TRY(runtime_version, core_api.version(env));
@@ -101,18 +101,18 @@ namespace kagome::network {
       if (not expected) {
         continue;
       }
-      OUTCOME_TRY(actual, trie_serializer.storeTrie(root.trie, version));
-      OUTCOME_TRY(state_pruner_->addNewState(root.trie, version));
+      OUTCOME_TRY(actual, trie_serializer.storeTrie(*root.trie, version));
+      OUTCOME_TRY(state_pruner_->addNewState(*root.trie, version));
       if (actual != expected) {
         return Error::HASH_MISMATCH;
       }
       for (auto &child : root.children) {
         child_hashes.emplace_back(child, actual);
-        top.trie.put(child, common::BufferView{actual}).value();
+        top.trie->put(child, common::BufferView{actual}).value();
       }
     }
-    OUTCOME_TRY(actual, trie_serializer.storeTrie(top.trie, version));
-    OUTCOME_TRY(state_pruner_->addNewState(top.trie, version));
+    OUTCOME_TRY(actual, trie_serializer.storeTrie(*top.trie, version));
+    OUTCOME_TRY(state_pruner_->addNewState(*top.trie, version));
     if (actual != block_.state_root) {
       return Error::HASH_MISMATCH;
     }

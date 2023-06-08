@@ -447,12 +447,18 @@ namespace kagome::consensus::grandpa {
              peer_id);
 
     auto info = peer_manager_->getPeerState(peer_id);
+    std::optional<VoterSetId> info_set;
+    std::optional<RoundNumber> info_round;
+    // copy values before `updatePeerState`
+    if (info) {
+      info_set = info->get().set_id;
+      info_round = info->get().round_number;
+    }
 
     bool reputation_changed = false;
-    if (info.has_value() and info->get().set_id.has_value()
-        and info->get().round_number.has_value()) {
-      const auto prev_set_id = info->get().set_id.value();
-      const auto prev_round_number = info->get().round_number.value();
+    if (info_set and info_round) {
+      const auto prev_set_id = *info_set;
+      const auto prev_round_number = *info_round;
 
       // bad order of set id
       if (msg.voter_set_id < prev_set_id) {
@@ -478,11 +484,8 @@ namespace kagome::consensus::grandpa {
     }
 
     // If peer just reached one of recent round, then share known votes
-    if (not info.has_value()
-        or (info->get().set_id.has_value()
-            and msg.voter_set_id != info->get().set_id)
-        or (info->get().round_number.has_value()
-            and msg.round_number > info->get().round_number)) {
+    if (msg.voter_set_id != info_set or not info_round
+        or msg.round_number > *info_round) {
       if (auto opt_round = selectRound(msg.round_number, msg.voter_set_id);
           opt_round.has_value()) {
         auto &round = opt_round.value();

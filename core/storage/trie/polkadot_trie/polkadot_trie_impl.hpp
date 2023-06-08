@@ -23,21 +23,34 @@ namespace kagome::storage::trie {
     PolkadotTrieImpl(PolkadotTrieImpl &&);
     PolkadotTrieImpl &operator=(PolkadotTrieImpl &&);
 
-    PolkadotTrieImpl(PolkadotTrieImpl const &) = delete;
-    PolkadotTrieImpl &operator=(PolkadotTrieImpl const &) = delete;
+    PolkadotTrieImpl(const PolkadotTrieImpl &) = delete;
+    PolkadotTrieImpl &operator=(const PolkadotTrieImpl &) = delete;
 
     /**
-     * Creates an empty Trie
+     * Creates an empty Trie.
      * @param f a functor that will be used to obtain a child of a branch node
      * by its index. Most useful if Trie grows too big to occupy main memory and
      * is stored on an external storage
+     * @note since creation of a trie cursor uses shared_from_this, should be a
+     * shared_ptr
      */
-    explicit PolkadotTrieImpl(PolkadotTrie::NodeRetrieveFunctor f =
-                                  PolkadotTrie::defaultNodeRetrieveFunctor);
+    static std::shared_ptr<PolkadotTrieImpl> createEmpty(
+        PolkadotTrie::NodeRetrieveFunctor f =
+            PolkadotTrie::defaultNodeRetrieveFunctor);
 
-    explicit PolkadotTrieImpl(NodePtr root,
-                              PolkadotTrie::NodeRetrieveFunctor f =
-                                  PolkadotTrie::defaultNodeRetrieveFunctor);
+    /**
+     * Creates a Trie from the given root.
+     * @param f a functor that will be used to obtain a child of a branch node
+     * by its index. Most useful if Trie grows too big to occupy main memory and
+     * is stored on an external storage
+     * @note since creation of a trie cursor uses shared_from_this, should be a
+     * shared_ptr
+     */
+    static std::shared_ptr<PolkadotTrieImpl> create(
+        NodePtr root,
+        PolkadotTrie::NodeRetrieveFunctor f =
+            PolkadotTrie::defaultNodeRetrieveFunctor);
+
     ~PolkadotTrieImpl();
 
     NodePtr getRoot() override;
@@ -87,6 +100,13 @@ namespace kagome::storage::trie {
     outcome::result<void> retrieveValue(ValueAndHash &value) const override;
 
    private:
+    explicit PolkadotTrieImpl(PolkadotTrie::NodeRetrieveFunctor f =
+                                  PolkadotTrie::defaultNodeRetrieveFunctor);
+
+    explicit PolkadotTrieImpl(NodePtr root,
+                              PolkadotTrie::NodeRetrieveFunctor f =
+                                  PolkadotTrie::defaultNodeRetrieveFunctor);
+
     outcome::result<NodePtr> insert(const NodePtr &parent,
                                     const NibblesView &key_nibbles,
                                     NodePtr node);

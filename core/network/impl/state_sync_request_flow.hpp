@@ -38,7 +38,8 @@ namespace kagome::network {
   class StateSyncRequestFlow {
     using RootHash = storage::trie::RootHash;
     struct Root {
-      storage::trie::PolkadotTrieImpl trie;
+      std::shared_ptr<storage::trie::PolkadotTrie> trie =
+          storage::trie::PolkadotTrieImpl::createEmpty();
       std::vector<common::Buffer> children;
     };
 

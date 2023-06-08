@@ -21,6 +21,7 @@
 #include "api/transport/tuner.hpp"
 #include "application/build_version.hpp"
 #include "assets/assets.hpp"
+#include "assets/embedded_chainspec.hpp"
 #include "chain_spec_impl.hpp"
 #include "common/hexutil.hpp"
 #include "common/uri.hpp"
@@ -205,6 +206,11 @@ namespace {
         Account{"two", "Two", "//Two"},
     };
     return accounts;
+  }
+
+  inline bool chainspecExists(const fs::path &path) {
+    return kagome::assets::getEmbeddedChainspec(path.native())
+        or fs::exists(path);
   }
 }  // namespace
 
@@ -451,7 +457,7 @@ namespace kagome::application {
   }
 
   bool AppConfigurationImpl::validate_config() {
-    if (not fs::exists(chain_spec_path_)) {
+    if (not chainspecExists(chain_spec_path_)) {
       SL_ERROR(logger_,
                "Chain path {} does not exist, "
                "please specify a valid path with --chain option",
@@ -1009,7 +1015,7 @@ namespace kagome::application {
 
     find_argument<std::string>(
         vm, "chain", [&](const std::string &val) { chain_spec_path_ = val; });
-    if (not kagome::filesystem::exists(chain_spec_path_)) {
+    if (not chainspecExists(chain_spec_path_)) {
       std::cerr << "Specified chain spec " << chain_spec_path_
                 << " does not exist." << std::endl;
     }
