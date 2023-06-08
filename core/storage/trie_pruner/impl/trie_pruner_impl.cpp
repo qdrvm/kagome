@@ -15,6 +15,7 @@
 #include "blockchain/block_tree.hpp"
 #include "crypto/hasher/hasher_impl.hpp"
 #include "storage/database_error.hpp"
+#include "storage/predefined_keys.hpp"
 #include "storage/spaced_storage.hpp"
 #include "storage/trie/polkadot_trie/polkadot_trie.hpp"
 #include "storage/trie/serialization/polkadot_codec.hpp"
@@ -493,11 +494,15 @@ namespace kagome::storage::trie_pruner {
   outcome::result<void> TriePrunerImpl::pruneChildStates(
       const trie::PolkadotTrie &parent) {
     auto child_tries = parent.trieCursor();
-    OUTCOME_TRY(child_tries->seekLowerBound(
-        common::Buffer::fromString(":child_trie:")));
-    using std::string_view_literals::operator""sv;
+    auto seek_res = child_tries->seekLowerBound(storage::kChildStoragePrefix);
+    if (seek_res.has_error() && seek_res.error() == DatabaseError::NOT_FOUND) {
+      SL_DEBUG(logger_, "No child tries have been detected during pruning.");
+      return outcome::success();
+    }
+    OUTCOME_TRY(seek_res);
     while (child_tries->isValid()
-           && child_tries->key().value().startsWith(":child_trie:"sv)) {
+           && child_tries->key().value().startsWith(
+               storage::kChildStoragePrefix)) {
       auto child_key = child_tries->value().value();
       OUTCOME_TRY(child_hash, trie::RootHash::fromSpan(child_key));
       OUTCOME_TRY(prune(child_hash));

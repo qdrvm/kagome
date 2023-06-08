@@ -466,7 +466,13 @@ TEST_F(TriePrunerTest, RandomTree) {
 
   EXPECT_CALL(*trie_storage_mock, get(_))
       .WillRepeatedly(
-          Invoke([&node_storage](auto &k) { return node_storage[k]; }));
+          Invoke([&node_storage](auto &k) -> outcome::result<BufferOrView> {
+            auto it = node_storage.find(k);
+            if (it == node_storage.end()) {
+              return DatabaseError::NOT_FOUND;
+            }
+            return it->second;
+          }));
 
   trie::TrieSerializerImpl serializer{trie_factory, codec, trie_storage_mock};
   std::vector<std::pair<Buffer, Buffer>> kv;
@@ -516,10 +522,10 @@ TEST_F(TriePrunerTest, RandomTree) {
     }
     ASSERT_OUTCOME_SUCCESS_TRY(
         trie->clearPrefix(Buffer{{static_cast<uint8_t>(rand() % 256)}},
-                         std::nullopt,
-                         [](auto &, auto) -> outcome::result<void> {
-                           return outcome::success();
-                         }));
+                          std::nullopt,
+                          [](auto &, auto) -> outcome::result<void> {
+                            return outcome::success();
+                          }));
     auto new_set = collectReferencedNodes(*trie, *codec);
     total_set.merge(new_set);
     ASSERT_OUTCOME_SUCCESS_TRY(
