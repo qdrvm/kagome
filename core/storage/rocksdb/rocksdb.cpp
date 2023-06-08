@@ -71,7 +71,7 @@ namespace kagome::storage {
     std::vector<std::string> existing_families;
     auto res = rocksdb::DB::ListColumnFamilies(
         options, path.native(), &existing_families);
-    if (!res.ok() && !res.IsNotFound()) {
+    if (!res.ok() && !res.IsPathNotFound()) {
       SL_ERROR(log,
                "Can't open database in {}: {}",
                absolute_path.native(),

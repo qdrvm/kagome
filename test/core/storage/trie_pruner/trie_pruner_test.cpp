@@ -172,8 +172,7 @@ class TriePrunerTest : public testing::Test {
     hasher = std::make_shared<crypto::HasherImpl>();
 
     pruner_space = std::make_shared<testing::NiceMock<BufferStorageMock>>();
-    trie_pruner::TriePrunerImpl::TriePrunerInfo info{.last_pruned_block = {},
-                                                     .child_states = {}};
+    trie_pruner::TriePrunerImpl::TriePrunerInfo info{.last_pruned_block = {}};
     auto info_enc = scale::encode(info).value();
     static auto key = ":trie_pruner:info"_buf;
     ON_CALL(*pruner_space, tryGetMock(key.view()))
@@ -201,8 +200,8 @@ class TriePrunerTest : public testing::Test {
     auto config_mock =
         std::make_shared<kagome::application::AppConfigurationMock>();
     ON_CALL(*config_mock, statePruningDepth()).WillByDefault(Return(16));
-    trie_pruner::TriePrunerImpl::TriePrunerInfo info{
-        .last_pruned_block = last_pruned, .child_states = {}};
+    trie_pruner::TriePrunerImpl::TriePrunerInfo info{.last_pruned_block =
+                                                         last_pruned};
 
     auto info_enc = scale::encode(info).value();
     static auto key = ":trie_pruner:info"_buf;
@@ -457,7 +456,7 @@ TEST_F(TriePrunerTest, RandomTree) {
   constexpr unsigned INSERT_PER_STATE = 100;
   constexpr unsigned REMOVES_PER_STATE = 25;
 
-  trie::PolkadotTrieImpl trie;
+  auto trie = trie::PolkadotTrieImpl::createEmpty();
   auto codec = std::make_shared<trie::PolkadotCodec>();
   setCodecExpectations(*codec_mock, *codec);
   auto trie_factory = std::make_shared<trie::PolkadotTrieFactoryImpl>();
@@ -506,25 +505,25 @@ TEST_F(TriePrunerTest, RandomTree) {
     for (unsigned j = 0; j < INSERT_PER_STATE; j++) {
       auto k = randomBuffer(rand);
       inserted_keys.insert(k);
-      ASSERT_OUTCOME_SUCCESS_TRY(trie.put(k, randomBuffer(rand)));
+      ASSERT_OUTCOME_SUCCESS_TRY(trie->put(k, randomBuffer(rand)));
     }
     for (unsigned j = 0; j < REMOVES_PER_STATE; j++) {
       auto it = inserted_keys.begin();
       std::advance(it, rand() % inserted_keys.size());
       auto &k = *it;
-      ASSERT_OUTCOME_SUCCESS_TRY(trie.remove(k));
+      ASSERT_OUTCOME_SUCCESS_TRY(trie->remove(k));
       inserted_keys.erase(k);
     }
     ASSERT_OUTCOME_SUCCESS_TRY(
-        trie.clearPrefix(Buffer{{static_cast<uint8_t>(rand() % 256)}},
+        trie->clearPrefix(Buffer{{static_cast<uint8_t>(rand() % 256)}},
                          std::nullopt,
                          [](auto &, auto) -> outcome::result<void> {
                            return outcome::success();
                          }));
-    auto new_set = collectReferencedNodes(trie, *codec);
+    auto new_set = collectReferencedNodes(*trie, *codec);
     total_set.merge(new_set);
     ASSERT_OUTCOME_SUCCESS_TRY(
-        pruner->addNewState(trie, trie::StateVersion::V0));
+        pruner->addNewState(*trie, trie::StateVersion::V0));
     std::set<Hash256> tracked_set;
     pruner->forRefCounts(
         [&](auto &node, auto count) { tracked_set.insert(node); });
@@ -535,7 +534,7 @@ TEST_F(TriePrunerTest, RandomTree) {
                                   tracked_set.end(),
                                   std::inserter(diff, diff.begin()));
     ASSERT_OUTCOME_SUCCESS(root,
-                           serializer.storeTrie(trie, trie::StateVersion::V0));
+                           serializer.storeTrie(*trie, trie::StateVersion::V0));
     roots.push_back(root);
 
     if (i >= 16) {
@@ -625,7 +624,7 @@ TEST_F(TriePrunerTest, RestoreStateFromGenesis) {
     ON_CALL(*block_tree, getChildren(header.parent_hash))
         .WillByDefault(Return(std::vector{hash}));
 
-    auto trie = std::make_shared<trie::PolkadotTrieImpl>();
+    auto trie = trie::PolkadotTrieImpl::createEmpty();
     trie->put(Buffer::fromString("key" + str_number),
               Buffer::fromString("val" + str_number))
         .value();
@@ -645,8 +644,7 @@ TEST_F(TriePrunerTest, RestoreStateFromGenesis) {
   mock_block(6);
 
   trie_pruner::TriePrunerImpl::TriePrunerInfo info{
-      .last_pruned_block = BlockInfo{3, hash_from_header(headers.at(3))},
-      .child_states = {}};
+      .last_pruned_block = BlockInfo{3, hash_from_header(headers.at(3))}};
   auto info_enc = scale::encode(info).value();
   static auto key = ":trie_pruner:info"_buf;
   ON_CALL(*pruner_space, tryGetMock(key.view()))
@@ -662,8 +660,8 @@ TEST_F(TriePrunerTest, RestoreStateFromGenesis) {
   ASSERT_EQ(pruner->getTrackedNodesNum(), 3);
 }
 
-std::unique_ptr<trie::PolkadotTrie> clone(const trie::PolkadotTrie &trie) {
-  auto new_trie = std::make_unique<trie::PolkadotTrieImpl>();
+std::shared_ptr<trie::PolkadotTrie> clone(const trie::PolkadotTrie &trie) {
+  auto new_trie = trie::PolkadotTrieImpl::createEmpty();
   auto cursor = trie.trieCursor();
   EXPECT_OUTCOME_TRUE_1(cursor->next());
   while (cursor->isValid()) {
@@ -706,7 +704,7 @@ TEST_F(TriePrunerTest, FastSyncScenario) {
     return batch;
   }));
 
-  auto genesis_trie = std::make_shared<trie::PolkadotTrieImpl>();
+  auto genesis_trie = trie::PolkadotTrieImpl::createEmpty();
   std::set<Buffer> inserted_keys;
   generateRandomTrie(100, *genesis_trie, inserted_keys);
 

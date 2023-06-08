@@ -46,14 +46,14 @@
 kagome::storage::trie::RootHash trieRoot(
     const std::vector<std::pair<kagome::common::Buffer, kagome::common::Buffer>>
         &key_vals) {
-  auto trie = kagome::storage::trie::PolkadotTrieImpl();
+  auto trie = kagome::storage::trie::PolkadotTrieImpl::createEmpty();
   auto codec = kagome::storage::trie::PolkadotCodec();
 
   for (const auto &[key, val] : key_vals) {
-    [[maybe_unused]] auto res = trie.put(key, val.view());
+    [[maybe_unused]] auto res = trie->put(key, val.view());
     BOOST_ASSERT_MSG(res.has_value(), "Insertion into trie failed");
   }
-  auto root = trie.getRoot();
+  auto root = trie->getRoot();
   if (root == nullptr) {
     return codec.hash256(kagome::common::BufferView{{0}});
   }

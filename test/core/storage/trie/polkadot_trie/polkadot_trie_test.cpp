@@ -43,12 +43,12 @@ class TrieTest
   void SetUp() override {
     testutil::prepareLoggers(soralog::Level::OFF);
 
-    trie = std::make_unique<PolkadotTrieImpl>();
+    trie = PolkadotTrieImpl::createEmpty();
   }
 
   static const std::vector<std::pair<Buffer, Buffer>> data;
 
-  std::unique_ptr<PolkadotTrieImpl> trie;
+  std::shared_ptr<PolkadotTrieImpl> trie;
 };
 
 const std::vector<std::pair<Buffer, Buffer>> TrieTest::data = {
@@ -365,10 +365,10 @@ class DeleteTest : public testing::Test,
   DeleteTest() {}
 
   void SetUp() override {
-    trie = std::make_unique<PolkadotTrieImpl>();
+    trie = PolkadotTrieImpl::createEmpty();
   }
 
-  std::unique_ptr<PolkadotTrieImpl> trie;
+  std::shared_ptr<PolkadotTrieImpl> trie;
 };
 
 size_t size(const PolkadotTrie::NodePtr &node) {
@@ -432,10 +432,10 @@ class ClearPrefixTest : public testing::Test,
   ClearPrefixTest() {}
 
   void SetUp() override {
-    trie = std::make_unique<PolkadotTrieImpl>();
+    trie = PolkadotTrieImpl::createEmpty();
   }
 
-  std::unique_ptr<PolkadotTrieImpl> trie;
+  std::shared_ptr<PolkadotTrieImpl> trie;
 };
 
 /**
