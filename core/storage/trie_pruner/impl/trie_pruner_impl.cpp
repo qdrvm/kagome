@@ -177,8 +177,7 @@ namespace kagome::storage::trie_pruner {
     return outcome::success();
   }
 
-  outcome::result<void> TriePrunerImpl::prune(
-      const trie::RootHash &root_hash) {
+  outcome::result<void> TriePrunerImpl::prune(const trie::RootHash &root_hash) {
     auto trie_res = serializer_->retrieveTrie(root_hash, nullptr);
     if (trie_res.has_error()
         && trie_res.error() == storage::DatabaseError::NOT_FOUND) {
@@ -293,12 +292,20 @@ namespace kagome::storage::trie_pruner {
 
     OUTCOME_TRY(pruneChildStates(*trie));
 
-    SL_DEBUG(
-        logger_, "Removed {} nodes, {} unknown", nodes_removed, nodes_unknown);
-    SL_DEBUG(logger_,
-             "Removed {} values, {} unknown",
-             values_removed,
-             values_unknown);
+    SL_DEBUG(logger_, "Removed {} nodes", nodes_removed);
+    if (nodes_unknown > 0) {
+      SL_WARN(logger_,
+              "Pruner detected {} unknown nodes during pruning. This indicates "
+              "a bug.",
+              nodes_unknown);
+    }
+    SL_DEBUG(logger_, "Removed {} values", values_removed);
+    if (values_unknown > 0) {
+      SL_WARN(logger_,
+              "Pruner detected {} unknown nodes during pruning. This indicates "
+              "a bug.",
+              values_unknown);
+    }
 
     return outcome::success();
   }
