@@ -471,7 +471,7 @@ TEST_F(TriePrunerTest, RandomTree) {
             if (it == node_storage.end()) {
               return DatabaseError::NOT_FOUND;
             }
-            return it->second;
+            return BufferOrView{it->second.view()};
           }));
 
   trie::TrieSerializerImpl serializer{trie_factory, codec, trie_storage_mock};
