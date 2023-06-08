@@ -1379,8 +1379,7 @@ namespace kagome::dispute {
           scraper_->get_blocks_including_candidate(candidate_hash);
 
       if (blocks_including.size() > 0) {
-        throw std::runtime_error("not implemented");  // TODO Implement it
-        // ctx.send_message(ChainSelectionMessage::RevertBlocks(blocks_including)).await;
+        block_tree_->markAsRevertedBlocks(std::move(blocks_including));
       } else {
         SL_DEBUG(log_,
                  "Could not find an including block for candidate against "
