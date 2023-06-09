@@ -197,6 +197,8 @@ namespace kagome::storage::trie_pruner {
       return outcome::success();
     }
 
+    OUTCOME_TRY(pruneChildStates(*trie));
+
     size_t nodes_removed = 0;
     size_t values_removed = 0;
     size_t nodes_unknown = 0;
@@ -290,8 +292,6 @@ namespace kagome::storage::trie_pruner {
     }
 
     OUTCOME_TRY(batch->commit());
-
-    OUTCOME_TRY(pruneChildStates(*trie));
 
     SL_DEBUG(logger_, "Removed {} nodes", nodes_removed);
     if (nodes_unknown > 0) {
@@ -479,11 +479,10 @@ namespace kagome::storage::trie_pruner {
   outcome::result<void> TriePrunerImpl::addChildStates(
       const trie::PolkadotTrie &parent, const trie::RootHash &parent_root) {
     auto child_tries = parent.trieCursor();
-    OUTCOME_TRY(child_tries->seekLowerBound(
-        common::Buffer::fromString(":child_trie:")));
+    OUTCOME_TRY(child_tries->seekLowerBound(storage::kChildStoragePrefix));
     using std::string_view_literals::operator""sv;
     while (child_tries->isValid()
-           && child_tries->key().value().startsWith(":child_trie:"sv)) {
+           && child_tries->key().value().startsWith(storage::kChildStoragePrefix)) {
       auto child_key = child_tries->value().value();
       OUTCOME_TRY(child_hash, trie::RootHash::fromSpan(child_key));
       ref_count_[child_hash]++;
@@ -494,12 +493,7 @@ namespace kagome::storage::trie_pruner {
   outcome::result<void> TriePrunerImpl::pruneChildStates(
       const trie::PolkadotTrie &parent) {
     auto child_tries = parent.trieCursor();
-    auto seek_res = child_tries->seekLowerBound(storage::kChildStoragePrefix);
-    if (seek_res.has_error() && seek_res.error() == DatabaseError::NOT_FOUND) {
-      SL_DEBUG(logger_, "No child tries have been detected during pruning.");
-      return outcome::success();
-    }
-    OUTCOME_TRY(seek_res);
+    OUTCOME_TRY(child_tries->seekLowerBound(storage::kChildStoragePrefix));
     while (child_tries->isValid()
            && child_tries->key().value().startsWith(
                storage::kChildStoragePrefix)) {
