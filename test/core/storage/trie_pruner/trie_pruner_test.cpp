@@ -14,6 +14,7 @@
 #include "mock/core/blockchain/block_tree_mock.hpp"
 #include "mock/core/storage/persistent_map_mock.hpp"
 #include "mock/core/storage/spaced_storage_mock.hpp"
+#include "mock/core/storage/trie/polkadot_trie_cursor_mock.h"
 #include "mock/core/storage/trie/serialization/codec_mock.hpp"
 #include "mock/core/storage/trie/serialization/trie_serializer_mock.hpp"
 #include "mock/core/storage/trie/trie_storage_backend_mock.hpp"
@@ -141,9 +142,12 @@ class PolkadotTrieMock final : public trie::PolkadotTrie {
   }
 
   std::unique_ptr<trie::PolkadotTrieCursor> trieCursor() const override {
-    throw std::runtime_error{"Not implemented"};
+    auto cursor =
+        std::make_unique<kagome::storage::trie::PolkadotTrieCursorMock>();
+    EXPECT_CALL(*cursor, seekLowerBound(_))
+        .WillRepeatedly(testing::Return(DatabaseError::NOT_FOUND));
+    return cursor;
   }
-
   NodePtr root;
 };
 
