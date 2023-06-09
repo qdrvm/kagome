@@ -24,6 +24,13 @@ hunter_config(
 )
 
 hunter_config(
+    binaryen
+    URL https://github.com/soramitsu/binaryen/archive/refs/heads/update_for_version_69.zip
+    SHA1 c6c03f30a2a47927bde3151cffb0e5793571c849
+    CMAKE_ARGS BENCHMARK_ENABLE_TESTING=OFF
+)
+
+hunter_config(
     soralog
     VERSION 0.1.5
     KEEP_PACKAGE_SOURCES
