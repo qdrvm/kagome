@@ -3,7 +3,7 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
-add_executable(kagome
+add_library(kagome SHARED
     main.cpp
     )
 target_link_libraries(kagome
@@ -22,4 +22,7 @@ target_link_libraries(kagome
 if (BACKWARD)
   add_backward(kagome)
 endif()
-kagome_install(kagome)
+
+set_target_properties(kagome PROPERTIES PREFIX "" DEBUG_POSTFIX "")
+add_executable(kagome_dlopen dlopen.c)
+set_target_properties(kagome_dlopen PROPERTIES OUTPUT_NAME kagome)
