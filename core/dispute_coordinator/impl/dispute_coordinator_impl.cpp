@@ -1679,7 +1679,6 @@ namespace kagome::dispute {
       auto payload =
           getSignablePayload(dispute_statement, candidate_hash, session);
 
-      // TODO check if sign-calculation is right
       OUTCOME_TRY(signature,
                   sr25519_crypto_provider_->sign(*keypair->first, payload));
 
