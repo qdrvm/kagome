@@ -88,9 +88,9 @@ namespace kagome::runtime {
      * Load bytes from provided address into the buffer of size n
      * @param addr address in memory to load bytes
      * @param n number of bytes to be loaded
-     * @return Buffer of length N
+     * @return BufferView of length N
      */
-    virtual common::Buffer loadN(WasmPointer addr, WasmSize n) const = 0;
+    virtual common::BufferView loadN(WasmPointer addr, WasmSize n) const = 0;
     /**
      * Load string from address into buffer of size n
      * @param addr address in memory to load bytes

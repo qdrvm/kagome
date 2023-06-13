@@ -66,11 +66,11 @@ namespace kagome::runtime::wavm {
     return array;
   }
 
-  common::Buffer MemoryImpl::loadN(kagome::runtime::WasmPointer addr,
+  common::BufferView MemoryImpl::loadN(kagome::runtime::WasmPointer addr,
                                    kagome::runtime::WasmSize n) const {
     common::Buffer res;
     auto byte_array = loadArray<uint8_t>(addr, n);
-    return common::Buffer{byte_array, byte_array + n};
+    return common::BufferView{common::BufferView{byte_array, byte_array + n}};
   }
 
   std::string MemoryImpl::loadStr(kagome::runtime::WasmPointer addr,

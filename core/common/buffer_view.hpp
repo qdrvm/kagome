@@ -31,6 +31,10 @@ namespace kagome::common {
       return hex_lower(*this);
     }
 
+    std::string_view toStringView() const {
+      return {(const char*)data(), (size_t)size()};
+    }
+
     bool operator==(const Span &other) const noexcept {
       return std::equal(
           Span::cbegin(), Span::cend(), other.cbegin(), other.cend());

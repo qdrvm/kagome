@@ -62,7 +62,7 @@ namespace kagome::runtime::wavm {
     uint64_t load64u(WasmPointer addr) const override;
     std::array<uint8_t, 16> load128(WasmPointer addr) const override;
 
-    common::Buffer loadN(WasmPointer addr, WasmSize n) const override;
+    common::BufferView loadN(WasmPointer addr, WasmSize n) const override;
 
     std::string loadStr(WasmPointer addr, WasmSize n) const override;
 

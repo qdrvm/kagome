@@ -73,15 +73,10 @@ namespace kagome::runtime::binaryen {
     return memory_->get<std::array<uint8_t, 16>>(addr);
   }
 
-  common::Buffer MemoryImpl::loadN(kagome::runtime::WasmPointer addr,
+  common::BufferView MemoryImpl::loadN(kagome::runtime::WasmPointer addr,
                                    kagome::runtime::WasmSize n) const {
     BOOST_ASSERT(size_ > addr and size_ - addr >= n);
-    common::Buffer res;
-    res.reserve(n);
-    for (auto i = addr; i < addr + n; i++) {
-      res.putUint8(memory_->get<uint8_t>(i));
-    }
-    return res;
+    return common::BufferView{memory_->getBuffer(addr), n};
   }
 
   std::string MemoryImpl::loadStr(kagome::runtime::WasmPointer addr,

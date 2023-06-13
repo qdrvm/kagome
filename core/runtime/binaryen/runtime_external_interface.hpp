@@ -89,6 +89,10 @@ namespace kagome::runtime::binaryen {
           return loaded;
         }
       }
+
+      const uint8_t *getBuffer(size_t address) const {
+        return (const uint8_t *)&memory[address];
+      }
     } memory;
 
     std::vector<wasm::Name> table;
