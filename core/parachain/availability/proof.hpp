@@ -6,6 +6,8 @@
 #ifndef KAGOME_PARACHAIN_AVAILABILITY_PROOF_HPP
 #define KAGOME_PARACHAIN_AVAILABILITY_PROOF_HPP
 
+#include <boost/assert.hpp>
+
 #include "network/types/collator_messages.hpp"
 #include "parachain/availability/erasure_coding_error.hpp"
 #include "storage/trie/polkadot_trie/polkadot_trie_impl.hpp"
@@ -95,9 +97,15 @@ namespace kagome::parachain {
       OUTCOME_TRY(n, codec.decodeNode(merkle.asBuffer()));
       return std::dynamic_pointer_cast<storage::trie::TrieNode>(n);
     };
+    auto load_value = [](const common::Hash256 &hash)
+        -> outcome::result<std::optional<common::Buffer>> {
+      BOOST_ASSERT_MSG(false, "Hashed values should not appear in proofs");
+      return std::nullopt;
+    };
     OUTCOME_TRY(root,
                 load(std::make_shared<storage::trie::DummyNode>(root_hash)));
-    auto trie = storage::trie::PolkadotTrieImpl::create(root, load);
+    auto trie =
+        storage::trie::PolkadotTrieImpl::create(root, {load, load_value});
 
     OUTCOME_TRY(_expected, trie->get(makeTrieProofKey(chunk.index)));
     OUTCOME_TRY(expected, common::Hash256::fromSpan(_expected));

@@ -50,7 +50,7 @@ namespace kagome::common {
     SLBuffer(const BufferView &s) : Base(s.begin(), s.end()) {}
 
     template <size_t N>
-    SLBuffer(const std::array<typename Base::value_type, N> &other)
+    explicit SLBuffer(const std::array<typename Base::value_type, N> &other)
         : Base(other.begin(), other.end()) {}
 
     SLBuffer(const uint8_t *begin, const uint8_t *end) : Base(begin, end){};

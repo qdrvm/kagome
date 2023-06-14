@@ -35,8 +35,7 @@ namespace kagome::storage::trie {
      * shared_ptr
      */
     static std::shared_ptr<PolkadotTrieImpl> createEmpty(
-        PolkadotTrie::NodeRetrieveFunctor f =
-            PolkadotTrie::defaultNodeRetrieveFunctor);
+        RetrieveFunctions retrieve_functions = {});
 
     /**
      * Creates a Trie from the given root.
@@ -48,8 +47,7 @@ namespace kagome::storage::trie {
      */
     static std::shared_ptr<PolkadotTrieImpl> create(
         NodePtr root,
-        PolkadotTrie::NodeRetrieveFunctor f =
-            PolkadotTrie::defaultNodeRetrieveFunctor);
+        RetrieveFunctions retrieve_functions = {});
 
     ~PolkadotTrieImpl();
 
@@ -100,12 +98,10 @@ namespace kagome::storage::trie {
     outcome::result<void> retrieveValue(ValueAndHash &value) const override;
 
    private:
-    explicit PolkadotTrieImpl(PolkadotTrie::NodeRetrieveFunctor f =
-                                  PolkadotTrie::defaultNodeRetrieveFunctor);
+    explicit PolkadotTrieImpl(RetrieveFunctions retrieve_functions);
 
     explicit PolkadotTrieImpl(NodePtr root,
-                              PolkadotTrie::NodeRetrieveFunctor f =
-                                  PolkadotTrie::defaultNodeRetrieveFunctor);
+                              RetrieveFunctions retrieve_functions);
 
     outcome::result<NodePtr> insert(const NodePtr &parent,
                                     const NibblesView &key_nibbles,

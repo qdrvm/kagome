@@ -21,7 +21,7 @@ namespace kagome::storage::trie {
       std::shared_ptr<storage::trie_pruner::TriePruner> state_pruner) {
     // will never be used, so content of the callback doesn't matter
     auto empty_trie =
-        trie_factory->createEmpty([](auto &) { return outcome::success(); });
+        trie_factory->createEmpty();
     // ensure retrieval of empty trie succeeds
     OUTCOME_TRY(serializer->storeTrie(*empty_trie, StateVersion::V0));
     return std::unique_ptr<TrieStorageImpl>(

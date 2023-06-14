@@ -1088,8 +1088,7 @@ namespace kagome::consensus::babe {
                 return common::Buffer{scale::encode(ext).value()};
               }));
           return ext_root_res.has_value()
-             and (ext_root_res.value()
-                  == common::Buffer(block.header.extrinsics_root));
+             and (ext_root_res.value() == block.header.extrinsics_root);
         }(),
         "Extrinsics root does not match extrinsics in the block");
 

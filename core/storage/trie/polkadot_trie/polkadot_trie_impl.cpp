@@ -26,16 +26,20 @@ namespace kagome::storage::trie {
 
   class OpaqueNodeStorage final {
    public:
-    OpaqueNodeStorage(PolkadotTrie::NodeRetrieveFunctor node_retriever,
+    OpaqueNodeStorage(PolkadotTrie::NodeRetrieveFunction node_retriever,
+                      PolkadotTrie::ValueRetrieveFunction value_retriever,
                       std::shared_ptr<TrieNode> root) noexcept
-        : retrieve_node_{std::move(node_retriever)}, root_{std::move(root)} {}
+        : retrieve_node_{std::move(node_retriever)},
+          retrieve_value_{std::move(value_retriever)},
+          root_{std::move(root)} {}
 
     static outcome::result<std::unique_ptr<OpaqueNodeStorage>> createAt(
         std::shared_ptr<OpaqueTrieNode> root,
-        PolkadotTrie::NodeRetrieveFunctor node_retriever) {
+        PolkadotTrie::NodeRetrieveFunction node_retriever,
+        PolkadotTrie::ValueRetrieveFunction value_retriever) {
       OUTCOME_TRY(root_node, node_retriever(root));
       return std::unique_ptr<OpaqueNodeStorage>{
-          new OpaqueNodeStorage{node_retriever, root_node}};
+          new OpaqueNodeStorage{node_retriever, value_retriever, root_node}};
     }
 
     [[nodiscard]] const std::shared_ptr<TrieNode> &getRoot() {
@@ -72,8 +76,8 @@ namespace kagome::storage::trie {
       return child;
     }
 
-    PolkadotTrie::NodeRetrieveFunctor retrieve_node_;
-    PolkadotTrie::ValueRetrieveFunctor retrieve_value_;
+    PolkadotTrie::NodeRetrieveFunction retrieve_node_;
+    PolkadotTrie::ValueRetrieveFunction retrieve_value_;
     std::shared_ptr<TrieNode> root_;
   };
 }  // namespace kagome::storage::trie
@@ -298,23 +302,30 @@ namespace kagome::storage::trie {
   PolkadotTrieImpl &PolkadotTrieImpl::operator=(PolkadotTrieImpl &&) = default;
 
   std::shared_ptr<PolkadotTrieImpl> PolkadotTrieImpl::createEmpty(
-      PolkadotTrie::NodeRetrieveFunctor f) {
+      RetrieveFunctions retrieve_functions) {
     return std::shared_ptr<PolkadotTrieImpl>(
-        new PolkadotTrieImpl{std::move(f)});
+        new PolkadotTrieImpl{std::move(retrieve_functions)});
   }
 
   std::shared_ptr<PolkadotTrieImpl> PolkadotTrieImpl::create(
-      NodePtr root, PolkadotTrie::NodeRetrieveFunctor f) {
+      NodePtr root, RetrieveFunctions retrieve_functions) {
     return std::shared_ptr<PolkadotTrieImpl>(
-        new PolkadotTrieImpl{root, std::move(f)});
+        new PolkadotTrieImpl{root, std::move(retrieve_functions)});
   }
 
-  PolkadotTrieImpl::PolkadotTrieImpl(NodeRetrieveFunctor f)
-      : nodes_{std::make_unique<OpaqueNodeStorage>(std::move(f), nullptr)},
+  PolkadotTrieImpl::PolkadotTrieImpl(RetrieveFunctions retrieve_functions)
+      : nodes_{std::make_unique<OpaqueNodeStorage>(
+          std::move(retrieve_functions.retrieve_node),
+          std::move(retrieve_functions.retrieve_value),
+          nullptr)},
         logger_{log::createLogger("PolkadotTrie", "trie")} {}
 
-  PolkadotTrieImpl::PolkadotTrieImpl(NodePtr root, NodeRetrieveFunctor f)
-      : nodes_{std::make_unique<OpaqueNodeStorage>(std::move(f), root)},
+  PolkadotTrieImpl::PolkadotTrieImpl(NodePtr root,
+                                     RetrieveFunctions retrieve_functions)
+      : nodes_{std::make_unique<OpaqueNodeStorage>(
+          std::move(retrieve_functions.retrieve_node),
+          std::move(retrieve_functions.retrieve_value),
+          root)},
         logger_{log::createLogger("PolkadotTrie", "trie")} {}
 
   PolkadotTrieImpl::~PolkadotTrieImpl() {}

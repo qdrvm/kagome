@@ -122,7 +122,7 @@ namespace kagome::authority_discovery {
       auto authority = queue_.back();
       queue_.pop_back();
 
-      common::Buffer hash = crypto::sha256(authority);
+      common::Buffer hash {crypto::sha256(authority)};
       scheduler_->schedule([=, wp = weak_from_this()] {
         if (auto self = wp.lock()) {
           std::ignore = kademlia_->getValue(

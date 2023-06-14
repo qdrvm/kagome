@@ -40,17 +40,26 @@ namespace kagome::storage::trie {
   outcome::result<std::shared_ptr<PolkadotTrie>>
   TrieSerializerImpl::retrieveTrie(RootHash db_key,
                                    OnNodeLoaded on_node_loaded) const {
-    PolkadotTrie::NodeRetrieveFunctor f =
+    PolkadotTrie::NodeRetrieveFunction f =
         [this, on_node_loaded](const std::shared_ptr<OpaqueTrieNode> &parent)
         -> outcome::result<PolkadotTrie::NodePtr> {
       OUTCOME_TRY(node, retrieveNode(parent, on_node_loaded));
       return std::move(node);
     };
+    PolkadotTrie::ValueRetrieveFunction v =
+        [this, on_node_loaded](const common::Hash256 &hash)
+        -> outcome::result<std::optional<common::Buffer>> {
+      OUTCOME_TRY(value, retrieveValue(hash, on_node_loaded));
+      return value;
+    };
     if (db_key == getEmptyRootHash()) {
-      return trie_factory_->createEmpty(std::move(f));
+      return trie_factory_->createEmpty(
+          PolkadotTrie::RetrieveFunctions{std::move(f), std::move(v)});
     }
     OUTCOME_TRY(root, retrieveNode(db_key, on_node_loaded));
-    return trie_factory_->createFromRoot(std::move(root), std::move(f));
+    return trie_factory_->createFromRoot(
+        std::move(root),
+        PolkadotTrie::RetrieveFunctions{std::move(f), std::move(v)});
   }
 
   outcome::result<RootHash> TrieSerializerImpl::storeRootNode(
