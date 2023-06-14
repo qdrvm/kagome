@@ -63,7 +63,7 @@ namespace kagome::runtime::binaryen {
         return memory.size();
       }
       auto getData() const {
-        return gsl::span<Mem::value_type const>(memory);
+        return gsl::span<const Mem::value_type>(memory);
       }
       template <typename T>
       void set(size_t address, T value) {

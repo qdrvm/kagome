@@ -32,7 +32,7 @@ namespace kagome::common {
     }
 
     std::string_view toStringView() const {
-      return {(const char*)data(), (size_t)size()};
+      return {(const char *)data(), (size_t)size()};
     }
 
     bool operator==(const Span &other) const noexcept {

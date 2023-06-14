@@ -259,8 +259,7 @@ namespace kagome::host_api {
       runtime::WasmPointer pubkey_data) {
     auto [msg_data, msg_len] = runtime::PtrSize(msg_span);
     auto msg = getMemory().loadN(msg_data, msg_len);
-    auto sig_bytes =
-        getMemory().loadN(sig, ed25519_constants::SIGNATURE_SIZE);
+    auto sig_bytes = getMemory().loadN(sig, ed25519_constants::SIGNATURE_SIZE);
 
     auto signature_res = crypto::Ed25519Signature::fromSpan(sig_bytes);
     if (!signature_res) {
@@ -268,8 +267,8 @@ namespace kagome::host_api {
     }
     auto &&signature = signature_res.value();
 
-    auto pubkey_bytes = getMemory()
-                            .loadN(pubkey_data, ed25519_constants::PUBKEY_SIZE);
+    auto pubkey_bytes =
+        getMemory().loadN(pubkey_data, ed25519_constants::PUBKEY_SIZE);
     auto pubkey_res = crypto::Ed25519PublicKey::fromSpan(pubkey_bytes);
     if (!pubkey_res) {
       BOOST_UNREACHABLE_RETURN(kVerifyFail);

@@ -17,14 +17,14 @@
 
 namespace kagome::runtime {
 
-  constexpr inline size_t kInitialMemorySize = []() {
+  inline constexpr size_t kInitialMemorySize = []() {
     using kagome::common::literals::operator""_MB;
     return 2_MB;
   }();
 
   // according to $3.1.2.1 in the Polkadot Host Spec
   // https://webassembly.github.io/spec/core/exec/runtime.html#memory-instances
-  constexpr inline size_t kMemoryPageSize = []() {
+  inline constexpr size_t kMemoryPageSize = []() {
     using kagome::common::literals::operator""_kB;
     return 64_kB;
   }();
@@ -41,7 +41,7 @@ namespace kagome::runtime {
    public:
     virtual ~Memory() = default;
 
-    constexpr static uint32_t kMaxMemorySize =
+    static constexpr uint32_t kMaxMemorySize =
         std::numeric_limits<uint32_t>::max();
 
     /**
