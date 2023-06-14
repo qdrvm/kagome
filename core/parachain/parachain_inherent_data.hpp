@@ -25,7 +25,7 @@ namespace kagome::parachain {
     std::vector<network::BackedCandidate> backed_candidates;
 
     /// Sets of dispute votes for inclusion,
-    std::vector<dispute::MultiDisputeStatementSet> disputes;
+    dispute::MultiDisputeStatementSet disputes;
 
     /// The head data is contains information about a parachain block. The head
     /// data is returned by  executing the parachain Runtime and relay chain

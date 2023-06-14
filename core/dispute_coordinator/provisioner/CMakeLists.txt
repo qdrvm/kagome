@@ -7,7 +7,6 @@ add_library(dispute_provisioner
     impl/request_votes.cpp
     impl/prioritized_selection.cpp
     impl/random_selection.cpp
-    impl/provisioner.cpp
     )
 
 target_link_libraries(dispute_provisioner

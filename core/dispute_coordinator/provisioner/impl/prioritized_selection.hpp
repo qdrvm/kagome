@@ -111,7 +111,7 @@ namespace kagome::dispute {
     /// from the Runtime. The user check the Runtime version before calling
     /// `select_disputes`. If the function is used with old runtime an error is
     /// logged and the logic will continue with empty onchain votes `HashMap`.
-    MultiDisputeStatementSet select_disputes(ActivatedLeaf leaf);
+    MultiDisputeStatementSet select_disputes(const primitives::BlockInfo &leaf);
 
     /// Selects dispute votes from `PartitionedDisputes` which should be sent to
     /// the runtime. Votes which are already onchain are filtered out. Result

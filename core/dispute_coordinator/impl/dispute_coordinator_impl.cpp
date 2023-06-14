@@ -20,10 +20,14 @@
 #include "dispute_coordinator/impl/sending_dispute.hpp"
 #include "dispute_coordinator/impl/spam_slots_impl.hpp"
 #include "dispute_coordinator/participation/impl/participation_impl.hpp"
+#include "dispute_coordinator/provisioner/impl/prioritized_selection.hpp"
+#include "dispute_coordinator/provisioner/impl/random_selection.hpp"
 #include "network/helpers/peer_id_formatter.hpp"
 #include "network/router.hpp"
 #include "network/types/dispute_messages.hpp"
 #include "parachain/approval/approval_distribution.hpp"
+#include "runtime/runtime_api/core.hpp"
+#include "runtime/runtime_api/parachain_host.hpp"
 #include "utils/thread_pool.hpp"
 #include "utils/tuple_hash.hpp"
 
@@ -39,6 +43,7 @@ namespace kagome::dispute {
           block_header_repository,
       std::shared_ptr<crypto::Hasher> hasher,
       std::shared_ptr<blockchain::BlockTree> block_tree,
+      std::shared_ptr<runtime::Core> core_api,
       std::shared_ptr<runtime::ParachainHost> api,
       std::shared_ptr<parachain::Recovery> recovery,
       std::shared_ptr<parachain::Pvf> pvf,
@@ -57,6 +62,7 @@ namespace kagome::dispute {
         block_header_repository_(std::move(block_header_repository)),
         hasher_(std::move(hasher)),
         block_tree_(std::move(block_tree)),
+        core_api_(std::move(core_api)),
         api_(std::move(api)),
         recovery_(std::move(recovery)),
         pvf_(std::move(pvf)),
@@ -78,6 +84,7 @@ namespace kagome::dispute {
     BOOST_ASSERT(block_header_repository_ != nullptr);
     BOOST_ASSERT(hasher_ != nullptr);
     BOOST_ASSERT(block_tree_ != nullptr);
+    BOOST_ASSERT(core_api_ != nullptr);
     BOOST_ASSERT(api_ != nullptr);
     BOOST_ASSERT(recovery_ != nullptr);
     BOOST_ASSERT(pvf_ != nullptr);
@@ -1377,7 +1384,6 @@ namespace kagome::dispute {
     if (is_freshly_concluded_against) {
       auto blocks_including =
           scraper_->get_blocks_including_candidate(candidate_hash);
-
       if (blocks_including.size() > 0) {
         block_tree_->markAsRevertedBlocks(std::move(blocks_including));
       } else {
@@ -2315,6 +2321,86 @@ namespace kagome::dispute {
 
     std::ignore =
         sending_dispute->refresh_sends(*runtime_info_, active_sessions_);
+  }
+
+  void DisputeCoordinatorImpl::getDisputeForInherentData(
+      const primitives::BlockInfo &relay_parent,
+      std::function<void(MultiDisputeStatementSet)> &&cb) {
+    SL_TRACE(log_, "Selecting disputes; relay_parent {}", relay_parent);
+
+    if (has_required_runtime(relay_parent)) {
+      SL_TRACE(log_,
+               "Selected disputes for {} (prioritized selection)",
+               relay_parent);
+
+      PrioritizedSelection selection;
+
+      auto disputes = selection.select_disputes(relay_parent);
+
+      cb(std::move(disputes));
+      return;
+    }
+
+    SL_TRACE(log_, "Selected disputes for {} (random selection)", relay_parent);
+
+    RandomSelection selection;
+
+    auto disputes = selection.select_disputes();
+    cb(std::move(disputes));
+  }
+
+  bool DisputeCoordinatorImpl::has_required_runtime(
+      const primitives::BlockInfo &relay_parent) {
+    SL_TRACE(log_,
+             "Fetching ParachainHost runtime api version for relay_parent {}",
+             relay_parent);
+
+    auto version_res = core_api_->version(relay_parent.hash);
+
+    if (version_res.has_error()) {
+      SL_TRACE(log_,
+               "Execution error while fetching ParachainHost runtime api "
+               "version for relay_parent {}: {}",
+               relay_parent,
+               version_res.error());
+      return false;
+    }
+    auto &version = version_res.value();
+
+    auto &apis = version.apis;
+
+    static const common::Hash64 parachain_host_api_hash =
+        hasher_->blake2b_64(common::Buffer::fromString("ParachainHost"));
+
+    auto it = std::find_if(apis.begin(), apis.end(), [](auto &api_version) {
+      return api_version.first == parachain_host_api_hash;
+    });
+    if (it == apis.end()) {
+      SL_TRACE(log_,
+               "Execution error while fetching ParachainHost runtime api "
+               "version for relay_parent={}: such api not found",
+               relay_parent);
+      return false;
+    }
+
+    auto &parachain_host_api_version = it->second;
+
+    if (parachain_host_api_hash
+        >= PRIORITIZED_SELECTION_RUNTIME_VERSION_REQUIREMENT) {
+      SL_TRACE(log_,
+               "Fetched ParachainHost runtime api version for relay_parent {} "
+               "is {}; it's suitable version",
+               relay_parent,
+               parachain_host_api_version);
+      return true;
+    }
+
+    SL_TRACE(log_,
+             "Fetched ParachainHost runtime api version for relay_parent {} is "
+             "{}; it isn't suitable version",
+             relay_parent,
+             parachain_host_api_version);
+    return false;
   }
 
 }  // namespace kagome::dispute

@@ -4,11 +4,12 @@
  */
 
 #include "dispute_coordinator/provisioner/impl/prioritized_selection.hpp"
+#include "utils/tuple_hash.hpp"
 
 namespace kagome::dispute {
 
   MultiDisputeStatementSet PrioritizedSelection::select_disputes(
-      ActivatedLeaf leaf) {
+      const primitives::BlockInfo &leaf) {
     // TODO need to be implemented
 
     /* clang-format off
@@ -83,6 +84,7 @@ namespace kagome::dispute {
     make_multi_dispute_statement_set(metrics, result)
 
     clang-format on */
+    return {};
   }
 
   std::map<std::tuple<SessionIndex, CandidateHash>, CandidateVotes>
@@ -158,6 +160,7 @@ namespace kagome::dispute {
     result
 
     clang-format on */
+    return {};
   }
 
   bool PrioritizedSelection::concluded_onchain(DisputeState &onchain_state) {
@@ -172,6 +175,7 @@ namespace kagome::dispute {
       onchain_state.validators_against.count_ones() >= supermajority
 
     clang-format on */
+    return {};
   }
 
   PartitionedDisputes PrioritizedSelection::partition_recent_disputes(
@@ -233,6 +237,7 @@ namespace kagome::dispute {
     partitioned
 
     clang-format on */
+    return {};
   }
 
   /// Determines if a vote is worth to be kept, based on the onchain disputes
@@ -286,6 +291,7 @@ namespace kagome::dispute {
     !in_validators_for && !in_validators_against
 
     clang-format on */
+    return {};
   }
 
   /// Request disputes identified by `CandidateHash` and the `SessionIndex`.
@@ -308,6 +314,7 @@ namespace kagome::dispute {
     recent_disputes
 
     clang-format on */
+    return {};
   }
 
   MultiDisputeStatementSet
@@ -345,6 +352,7 @@ namespace kagome::dispute {
       .collect()
 
     clang-format on */
+    return {};
   }
 
   outcome::result<
@@ -374,6 +382,9 @@ namespace kagome::dispute {
       .map(|v| v.into_iter().map(|e| ((e.0, e.1), e.2)).collect())
 
     clang-format on */
+    std::unordered_map<std::tuple<SessionIndex, CandidateHash>, DisputeState>
+        r{};
+    return outcome::success(std::move(r));
   }
 
 }  // namespace kagome::dispute

@@ -125,7 +125,7 @@ namespace kagome::blockchain {
      * @param block_hashes is vector of reverted block hashes
      */
     virtual outcome::result<void> markAsRevertedBlocks(
-        const std::vector<primitives::BlockHash> &block_hashes) = 0;
+        const std::vector<primitives::BlockInfo> &blocks) = 0;
 
     /**
      * Add a new block to the tree

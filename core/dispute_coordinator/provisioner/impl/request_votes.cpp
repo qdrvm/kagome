@@ -11,6 +11,7 @@ namespace kagome::dispute {
   request_votes(
       std::vector<std::tuple<SessionIndex, CandidateHash>> disputes_to_query) {
     //
+    return {};
   }
 
 }  // namespace kagome::dispute

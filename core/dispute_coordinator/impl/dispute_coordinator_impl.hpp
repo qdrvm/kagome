@@ -69,7 +69,8 @@ namespace kagome::parachain {
 
 namespace kagome::runtime {
   class ParachainHost;
-}
+  class Core;
+}  // namespace kagome::runtime
 
 namespace kagome::dispute {
 
@@ -79,6 +80,9 @@ namespace kagome::dispute {
         public std::enable_shared_from_this<DisputeCoordinatorImpl> {
     static constexpr Timestamp kActiveDurationSecs = 180;
     static constexpr size_t kPeerQueueCapacity = 10;
+    // Dispute runtime version requirement
+    static constexpr uint32_t
+        PRIORITIZED_SELECTION_RUNTIME_VERSION_REQUIREMENT = 3;
 
     /// Rate limit on the `receiver` side.
     ///
@@ -98,6 +102,7 @@ namespace kagome::dispute {
             block_header_repository,
         std::shared_ptr<crypto::Hasher> hasher,
         std::shared_ptr<blockchain::BlockTree> block_tree,
+        std::shared_ptr<runtime::Core> core_api,
         std::shared_ptr<runtime::ParachainHost> api,
         std::shared_ptr<parachain::Recovery> recovery,
         std::shared_ptr<parachain::Pvf> pvf,
@@ -143,6 +148,10 @@ namespace kagome::dispute {
         primitives::BlockInfo base,
         std::vector<BlockDescription> block_descriptions,
         CbOutcome<primitives::BlockInfo> &&cb) override;
+
+    void getDisputeForInherentData(
+        const primitives::BlockInfo &relay_parent,
+        std::function<void(MultiDisputeStatementSet)> &&cb) override;
 
    private:
     void startup(const network::ExView &updated);
@@ -227,6 +236,8 @@ namespace kagome::dispute {
     void handle_active_dispute_response(
         outcome::result<OutputDisputes> active_disputes_res);
 
+    bool has_required_runtime(const primitives::BlockInfo &relay_parent);
+
     std::shared_ptr<application::AppStateManager> app_state_manager_;
     std::shared_ptr<clock::SystemClock> clock_;
     std::shared_ptr<crypto::SessionKeys> session_keys_;
@@ -235,6 +246,7 @@ namespace kagome::dispute {
     std::shared_ptr<blockchain::BlockHeaderRepository> block_header_repository_;
     std::shared_ptr<crypto::Hasher> hasher_;
     std::shared_ptr<blockchain::BlockTree> block_tree_;
+    std::shared_ptr<runtime::Core> core_api_;
     std::shared_ptr<runtime::ParachainHost> api_;
     std::shared_ptr<parachain::Recovery> recovery_;
     std::shared_ptr<parachain::Pvf> pvf_;

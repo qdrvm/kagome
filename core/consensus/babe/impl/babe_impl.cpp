@@ -25,6 +25,7 @@
 #include "crypto/crypto_store/session_keys.hpp"
 #include "crypto/sr25519_provider.hpp"
 #include "dispute_coordinator/dispute_coordinator.hpp"
+#include "dispute_coordinator/types.hpp"
 #include "network/block_announce_transmitter.hpp"
 #include "network/helpers/peer_id_formatter.hpp"
 #include "network/synchronizer.hpp"
@@ -1041,21 +1042,19 @@ namespace kagome::consensus::babe {
       parachain_inherent_data.parent_header = std::move(best_header);
 
       {  // Fill disputes
-        auto promise_res = std::promise<
-            outcome::result<dispute::DisputeCoordinator::OutputDisputes>>();
+        auto promise_res = std::promise<dispute::MultiDisputeStatementSet>();
         auto res_future = promise_res.get_future();
 
-        // TODO look at how it work in substrate with provisioner
-        dispute_coordinator_->handle_incoming_RecentDisputes(
-            [promise_res = std::ref(promise_res)](
-                outcome::result<dispute::DisputeCoordinator::OutputDisputes>
-                    res) { promise_res.get().set_value(std::move(res)); });
+        dispute_coordinator_->getDisputeForInherentData(
+            best_block_,
+            [promise_res =
+                 std::ref(promise_res)](dispute::MultiDisputeStatementSet res) {
+              promise_res.get().set_value(std::move(res));
+            });
 
         if (res_future.valid()) {
           auto res = res_future.get();
-          if (res.has_value()) {
-            // parachain_inherent_data.disputes = res.value(); // FIXME
-          }
+          parachain_inherent_data.disputes = std::move(res);
         }
       }
     }

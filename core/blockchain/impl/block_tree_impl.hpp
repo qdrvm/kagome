@@ -98,6 +98,9 @@ namespace kagome::blockchain {
     outcome::result<void> markAsParachainDataBlock(
         const primitives::BlockHash &block_hash) override;
 
+    outcome::result<void> markAsRevertedBlocks(
+        const std::vector<primitives::BlockInfo> &blocks) override;
+
     outcome::result<void> addBlockBody(
         const primitives::BlockHash &block_hash,
         const primitives::BlockBody &body) override;

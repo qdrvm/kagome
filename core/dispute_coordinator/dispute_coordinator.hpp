@@ -97,6 +97,10 @@ namespace kagome::dispute {
         primitives::BlockInfo base,
         std::vector<BlockDescription> block_descriptions,
         CbOutcome<primitives::BlockInfo> &&cb) = 0;
+
+    virtual void getDisputeForInherentData(
+        const primitives::BlockInfo &relay_parent,
+        std::function<void(MultiDisputeStatementSet)> &&cb) = 0;
   };
 
 }  // namespace kagome::dispute

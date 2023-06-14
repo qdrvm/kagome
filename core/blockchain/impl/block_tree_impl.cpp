@@ -592,6 +592,13 @@ namespace kagome::blockchain {
         });
   }
 
+  outcome::result<void> BlockTreeImpl::markAsRevertedBlocks(
+      const std::vector<primitives::BlockInfo> &blocks) {
+    // TODO Must be implemented
+#warning "Must be implemented"
+    return outcome::success();
+  }
+
   outcome::result<void> BlockTreeImpl::addExistingBlockNoLock(
       BlockTreeData &p,
       const primitives::BlockHash &block_hash,

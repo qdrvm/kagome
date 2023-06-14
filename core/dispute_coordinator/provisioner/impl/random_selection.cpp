@@ -40,6 +40,7 @@ namespace kagome::dispute {
       .collect()
 
      clang-format on */
+    return {};
   }
 
   void RandomSelection::extend_by_random_subset_without_repetition(
@@ -148,6 +149,7 @@ namespace kagome::dispute {
       .collect()
 
       clang-format on */
+    return {};
   }
 
 }  // namespace kagome::dispute
