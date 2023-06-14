@@ -27,61 +27,73 @@ namespace kagome::runtime {
     BOOST_ASSERT(memory_.resize);
   }
 
-  WasmPointer MemoryAllocator::allocate(WasmSize size, bool first_entry) {
+  WasmPointer MemoryAllocator::allocate(const WasmSize size) {
     if (size == 0) {
       return 0;
     }
 
-    const size_t sz = nextHighPowerOf2(
-        roundUpAlign(size)
-        + (first_entry ? roundUpAlign(sizeof(uint32_t)) : 0ull));
+    const size_t sz =
+        nextHighPowerOf2(roundUpAlign(size) + AlloocationHeaderSz);
 
     const auto ptr = offset_;
     const auto new_offset = ptr + sz;  // align
 
     // Round up allocating chunk of memory
-    size = sz;
     if (new_offset <= memory_.getSize()) {
       offset_ = new_offset;
-      memory_.storeSz(ptr, size);
-      SL_TRACE_FUNC_CALL(logger_, ptr, this, size);
-      return ptr + roundUpAlign(sizeof(uint32_t));
-    }
-
-    if (first_entry) {
-      auto &preallocates = available_[sz];
-      if (!preallocates.empty()) {
-        const auto ptr = preallocates.back();
-        preallocates.pop_back();
-
-        memory_.storeSz(ptr, sz);
-        return ptr + roundUpAlign(sizeof(uint32_t));
+      AllocationHeader{
+          .chunk_sz = (uint32_t)sz,
+          .allocation_sz = roundUpAlign(size),
       }
+          .serialize(ptr, memory_);
+      SL_TRACE_FUNC_CALL(logger_, ptr, this, size);
+      return ptr + AlloocationHeaderSz;
     }
 
-    return growAlloc(size);
+    auto &preallocates = available_[sz];
+    if (!preallocates.empty()) {
+      const auto ptr = preallocates.back();
+      preallocates.pop_back();
+
+      AllocationHeader{
+          .chunk_sz = (uint32_t)sz,
+          .allocation_sz = roundUpAlign(size),
+      }
+          .serialize(ptr, memory_);
+      return ptr + AlloocationHeaderSz;
+    }
+
+    return growAlloc(sz, size);
   }
 
   std::optional<WasmSize> MemoryAllocator::deallocate(WasmPointer ptr) {
-    const auto sz = memory_.loadSz(ptr - roundUpAlign(sizeof(uint32_t)));
-    available_[sz].push_back(ptr - roundUpAlign(sizeof(uint32_t)));
-    return sz;
+    AllocationHeader header{
+        .chunk_sz = 0,
+        .allocation_sz = 0,
+    };
+    header.deserialize(ptr - AlloocationHeaderSz, memory_);
+    BOOST_ASSERT(isPowerOf2(header.chunk_sz));
+
+    available_[header.chunk_sz].push_back(ptr - AlloocationHeaderSz);
+    BOOST_ASSERT(!available_.empty());
+    return header.allocation_sz;
   }
 
-  WasmPointer MemoryAllocator::growAlloc(WasmSize size) {
+  WasmPointer MemoryAllocator::growAlloc(size_t chunk_sz,
+                                         WasmSize allocation_sz) {
     // check that we do not exceed max memory size
-    if (Memory::kMaxMemorySize - offset_ < size) {
+    if (Memory::kMaxMemorySize - offset_ < chunk_sz) {
       logger_->error(
           "Memory size exceeded when growing it on {} bytes, offset was 0x{:x}",
-          size,
+          chunk_sz,
           offset_);
       return 0;
     }
     // try to increase memory size up to offset + size * 4 (we multiply by 4
     // to have more memory than currently needed to avoid resizing every time
     // when we exceed current memory)
-    resize(offset_ + size);
-    return allocate(size, false);
+    resize(offset_ + chunk_sz);
+    return allocate(allocation_sz);
   }
 
   void MemoryAllocator::resize(WasmSize new_size) {
@@ -106,7 +118,14 @@ namespace kagome::runtime {
 
   std::optional<WasmSize> MemoryAllocator::getAllocatedChunkSize(
       WasmPointer ptr) const {
-    return memory_.loadSz(ptr - roundUpAlign(sizeof(uint32_t)));
+    AllocationHeader header{
+        .chunk_sz = 0,
+        .allocation_sz = 0,
+    };
+    header.deserialize(ptr - AlloocationHeaderSz, memory_);
+    BOOST_ASSERT(isPowerOf2(header.chunk_sz));
+
+    return header.allocation_sz;
   }
 
   size_t MemoryAllocator::getDeallocatedChunksNum() const {

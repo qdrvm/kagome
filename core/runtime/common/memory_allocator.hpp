@@ -63,9 +63,10 @@ namespace kagome::runtime {
       std::function<void(WasmPointer, uint32_t)> storeSz;
       std::function<uint32_t(WasmPointer)> loadSz;
     };
+
     MemoryAllocator(MemoryHandle memory, WasmPointer heap_base);
 
-    WasmPointer allocate(WasmSize size, bool first_entry = true);
+    WasmPointer allocate(const WasmSize size);
     std::optional<WasmSize> deallocate(WasmPointer ptr);
 
     template <typename T>
@@ -83,13 +84,21 @@ namespace kagome::runtime {
     size_t getDeallocatedChunksNum() const;
 
    private:
-    /**
-     * Finds memory segment of given size among deallocated pieces of memory
-     * and allocates a memory there
-     * @param size of target memory
-     * @return address of memory of given size, or -1 if it is impossible to
-     * allocate this amount of memory
-     */
+    struct AllocationHeader {
+      uint32_t chunk_sz;
+      uint32_t allocation_sz;
+
+      void serialize(WasmPointer ptr, MemoryHandle &mh) const {
+        mh.storeSz(ptr, chunk_sz);
+        mh.storeSz(ptr + sizeof(chunk_sz), allocation_sz);
+      }
+      void deserialize(WasmPointer ptr, const MemoryHandle &mh) {
+        chunk_sz = mh.loadSz(ptr);
+        allocation_sz = mh.loadSz(ptr + sizeof(chunk_sz));
+      }
+    };
+    static constexpr size_t AlloocationHeaderSz =
+        roundUpAlign(sizeof(AllocationHeader));
 
     /**
      * Resize memory and allocate memory segment of given size
@@ -97,12 +106,17 @@ namespace kagome::runtime {
      * @return pointer to the allocated memory @or 0 if it is impossible to
      * allocate this amount of memory
      */
-    WasmPointer growAlloc(WasmSize size);
+    WasmPointer growAlloc(size_t chunk_sz, WasmSize allocation_sz);
 
     void resize(WasmSize size);
 
    private:
     MemoryHandle memory_;
+
+    /**
+     * Contains information about available chunks for allocation. Key is size
+     * and is power of 2.
+     */
     std::unordered_map<WasmSize, std::deque<WasmPointer>> available_;
 
     // Offset on the tail of the last allocated MemoryImpl chunk

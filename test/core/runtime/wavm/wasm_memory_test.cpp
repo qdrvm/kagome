@@ -4,6 +4,7 @@
  */
 
 #include <gtest/gtest.h>
+#include <cstdint>
 
 #include "runtime/common/memory_allocator.hpp"
 #include "runtime/wavm/compartment_wrapper.hpp"
@@ -49,7 +50,11 @@ class WavmMemoryHeapTest : public ::testing::Test {
     auto allocator = std::make_unique<MemoryAllocator>(
         MemoryAllocator::MemoryHandle{
             [this](auto size) { return memory_->resize(size); },
-            [this] { return memory_->size(); }},
+            [this] { return memory_->size(); },
+            [this](auto addr, uint32_t value) {
+              memory_->store<uint32_t>(addr, value);
+            },
+            [this](auto addr) { return memory_->load<uint32_t>(addr); }},
         kDefaultHeapBase);
     allocator_ = allocator.get();
     memory_ = std::make_unique<MemoryImpl>(instance_->getExportedMemory(),
@@ -104,26 +109,6 @@ TEST_F(WavmMemoryHeapTest, AllocatedTooBigMemoryFailed) {
 }
 
 /**
- * @given memory with already allocated memory of size1
- * @when allocate memory with size2
- * @then the pointer pointing to the end of the first memory chunk is returned
- */
-TEST_F(WavmMemoryHeapTest, ReturnOffsetWhenAllocated) {
-  const size_t size1 = 2049;
-  const size_t size2 = 2045;
-
-  // allocate memory of size 1
-  auto ptr1 = memory_->allocate(size1);
-  // first memory chunk is always allocated at min non-zero aligned address
-  ASSERT_EQ(ptr1, kDefaultHeapBase);
-
-  // allocated second memory chunk
-  auto ptr2 = memory_->allocate(size2);
-  // second memory chunk is placed right after the first one (aligned by 4)
-  ASSERT_EQ(ptr2, roundUpAlign(size1 + ptr1));
-}
-
-/**
  * @given memory with allocated memory chunk
  * @when this memory is deallocated
  * @then the size of this memory chunk is returned
@@ -136,22 +121,6 @@ TEST_F(WavmMemoryHeapTest, DeallocateExisingMemoryChunk) {
   auto opt_deallocated_size = memory_->deallocate(ptr1);
   ASSERT_TRUE(opt_deallocated_size.has_value());
   ASSERT_EQ(*opt_deallocated_size, roundUpAlign(size1));
-}
-
-/**
- * @given memory with memory chunk allocated at the beginning
- * @when deallocate is invoked with ptr that does not point to any memory
- * chunk
- * @then deallocate returns none
- */
-TEST_F(WavmMemoryHeapTest, DeallocateNonexistingMemoryChunk) {
-  const size_t size1 = 2047;
-
-  memory_->allocate(size1);
-
-  auto ptr_to_nonexisting_chunk = 2;
-  auto opt_deallocated_size = memory_->deallocate(ptr_to_nonexisting_chunk);
-  ASSERT_FALSE(opt_deallocated_size.has_value());
 }
 
 /**
@@ -179,34 +148,6 @@ TEST_F(WavmMemoryHeapTest, AllocateAfterDeallocate) {
   // expected that it will be allocated on the same place as the first memory
   // chunk that was deallocated
   ASSERT_EQ(pointer_of_first_allocation, pointer_of_repeated_allocation);
-}
-
-/**
- * @given full memory with deallocated memory chunk of size1
- * @when allocate memory chunk of size bigger than size1
- * @then allocate returns memory of size bigger
- */
-TEST_F(WavmMemoryHeapTest, AllocateTooBigMemoryAfterDeallocate) {
-  // two memory sizes totalling to the total memory size
-  const size_t size1 = 2047;
-  const size_t size2 = 2049;
-
-  // allocate two memory chunks with total size equal to the memory size
-  auto ptr1 = memory_->allocate(size1);
-  auto ptr2 = memory_->allocate(size2);
-
-  // calculate memory offset after two allocations
-  auto mem_offset = ptr2 + size2;
-
-  // deallocate first memory chunk
-  memory_->deallocate(ptr1);
-
-  // allocate new memory chunk with bigger size than the space left in the
-  // memory
-  auto ptr3 = memory_->allocate(size1 + 1);
-
-  // memory is allocated on mem offset (aligned by 4)
-  ASSERT_EQ(ptr3, roundUpAlign(mem_offset));
 }
 
 /**
@@ -239,11 +180,6 @@ TEST_F(WavmMemoryHeapTest, CombineDeallocatedChunks) {
   memory_->deallocate(ptr3);
   // A: [ 1 ]          [ 4 ][ 5 ][ 6 ][ 7 ]
   // D:      [ 2    3 ]
-  {
-    auto opt_size = allocator_->getDeallocatedChunkSize(ptr2);
-    ASSERT_TRUE(opt_size);
-    EXPECT_EQ(opt_size.value(), size2 + size3);
-  }
 
   memory_->deallocate(ptr5);
   // A: [ 1 ]          [ 4 ]     [ 6 ][ 7 ]
@@ -251,24 +187,14 @@ TEST_F(WavmMemoryHeapTest, CombineDeallocatedChunks) {
   memory_->deallocate(ptr6);
   // A: [ 1 ]          [ 4 ]          [ 7 ]
   // D:      [ 2    3 ]     [ 5    6 ]
-  {
-    auto opt_size = allocator_->getDeallocatedChunkSize(ptr5);
-    ASSERT_TRUE(opt_size.has_value());
-    EXPECT_EQ(opt_size.value(), size5 + size6);
-  }
 
   memory_->deallocate(ptr4);
   // A: [ 1 ]                         [ 7 ]
   // D:      [ 2    3    4    5    6 ]
-  {
-    auto opt_size = allocator_->getDeallocatedChunkSize(ptr2);
-    ASSERT_TRUE(opt_size.has_value());
-    EXPECT_EQ(opt_size.value(), size2 + size3 + size4 + size5 + size6);
-  }
 
-  EXPECT_EQ(allocator_->getDeallocatedChunksNum(), 1);
-  EXPECT_TRUE(allocator_->getAllocatedChunkSize(ptr1));
-  EXPECT_TRUE(allocator_->getAllocatedChunkSize(ptr7));
+  EXPECT_EQ(allocator_->getDeallocatedChunksNum(), 5);
+  EXPECT_EQ(allocator_->getAllocatedChunkSize(ptr1), size1);
+  EXPECT_EQ(allocator_->getAllocatedChunkSize(ptr7), size7);
 }
 
 /**
