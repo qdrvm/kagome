@@ -10,40 +10,46 @@ namespace kagome::dispute {
 
   MultiDisputeStatementSet PrioritizedSelection::select_disputes(
       const primitives::BlockInfo &leaf) {
-    // TODO need to be implemented
+    // SL_TRACE(
+    //     log_,
+    //     "Selecting disputes for inherent data using prioritized  selection; "
+    //     "relay parent {}",
+    //     leaf);
+
+    // Fetch the onchain disputes. We'll do a prioritization based on them.
+    std::unordered_map<std::tuple<SessionIndex, CandidateHash>, DisputeState>
+        onchain;
+    auto onchain_res = get_onchain_disputes(leaf.hash);
+    if (onchain_res.has_value()) {
+      onchain.swap(onchain_res.value());
+    } else {
+      // SL_ERROR(log_, "Can't fetch onchain disputes: {}",
+      // onchain_res.error());
+    }
 
     /* clang-format off
-
-    gum::trace!(
-      target: LOG_TARGET,
-      ?leaf,
-      "Selecting disputes for inherent data using prioritized selection"
-    );
 
     // Fetch the onchain disputes. We'll do a prioritization based on them.
     let onchain = match get_onchain_disputes(sender, leaf.hash).await {
       Ok(r) => r,
       Err(GetOnchainDisputesError::NotSupported(runtime_api_err, relay_parent)) => {
         // Runtime version is checked before calling this method, so the error below should never happen!
-        gum::error!(
-          target: LOG_TARGET,
+        SL_ERROR(log_,
           ?runtime_api_err,
           ?relay_parent,
-          "Can't fetch onchain disputes, because ParachainHost runtime api version is old. Will continue with empty onchain disputes set.",
+          "because ParachainHost runtime api version is old. Will continue with empty onchain disputes set.",
         );
         HashMap::new()
       },
       Err(GetOnchainDisputesError::Channel) => {
         // This error usually means the node is shutting down. Log just in case.
-        gum::debug!(
-          target: LOG_TARGET,
+        SL_DEBUG(log_,
           "Channel error occurred while fetching onchain disputes. Will continue with empty onchain disputes set.",
         );
         HashMap::new()
       },
       Err(GetOnchainDisputesError::Execution(runtime_api_err, parent_hash)) => {
-        gum::warn!(
-          target: LOG_TARGET,
+        SL_WARN(log_,
           ?runtime_api_err,
           ?parent_hash,
           "Unexpected execution error occurred while fetching onchain votes. Will continue with empty onchain disputes set.",
@@ -53,8 +59,7 @@ namespace kagome::dispute {
     };
 
     let recent_disputes = request_disputes(sender).await;
-    gum::trace!(
-      target: LOG_TARGET,
+    SL_TRACE(log_,
       ?leaf,
       "Got {} recent disputes and {} onchain disputes.",
       recent_disputes.len(),
@@ -72,8 +77,7 @@ namespace kagome::dispute {
     metrics.on_partition_recent_disputes(&partitioned);
 
     if partitioned.inactive_unknown_onchain.len() > 0 {
-      gum::warn!(
-        target: LOG_TARGET,
+      SL_WARN(log_,
         ?leaf,
         "Got {} inactive unknown onchain disputes. This should not happen!",
         partitioned.inactive_unknown_onchain.len()
@@ -151,8 +155,7 @@ namespace kagome::dispute {
       }
     }
 
-    gum::trace!(
-      target: LOG_TARGET,
+    SL_TRACE(log_,
       ?request_votes_counter,
       "vote_selection DisputeCoordinatorMessage::QueryCandidateVotes counter",
     );
@@ -308,7 +311,7 @@ namespace kagome::dispute {
     sender.send_unbounded_message(msg);
 
     let recent_disputes = rx.await.unwrap_or_else(|err| {
-      gum::warn!(target: LOG_TARGET, err=?err, "Unable to gather recent disputes");
+      SL_WARN(log_,  err=?err, "Unable to gather recent disputes");
       Vec::new()
     });
     recent_disputes
@@ -363,7 +366,7 @@ namespace kagome::dispute {
 
     /* clang-format off
 
-    gum::trace!(target: LOG_TARGET, ?relay_parent, "Fetching on-chain disputes");
+    SL_TRACE(log_,  ?relay_parent, "Fetching on-chain disputes");
     let (tx, rx) = oneshot::channel();
     sender
       .send_message(RuntimeApiMessage::Request(relay_parent, RuntimeApiRequest::Disputes(tx)))

@@ -81,8 +81,8 @@ namespace kagome::dispute {
     static constexpr Timestamp kActiveDurationSecs = 180;
     static constexpr size_t kPeerQueueCapacity = 10;
     // Dispute runtime version requirement
-    static constexpr uint32_t
-        PRIORITIZED_SELECTION_RUNTIME_VERSION_REQUIREMENT = 3;
+    static constexpr uint32_t kPrioritizedSelectionRuntimeVersionRequirement =
+        3;
 
     /// Rate limit on the `receiver` side.
     ///

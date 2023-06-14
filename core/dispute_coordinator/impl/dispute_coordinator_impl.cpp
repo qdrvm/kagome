@@ -2383,10 +2383,10 @@ namespace kagome::dispute {
       return false;
     }
 
-    auto &parachain_host_api_version = it->second;
+    auto parachain_host_api_version = it->second;
 
-    if (parachain_host_api_hash
-        >= PRIORITIZED_SELECTION_RUNTIME_VERSION_REQUIREMENT) {
+    if (parachain_host_api_version
+        >= kPrioritizedSelectionRuntimeVersionRequirement) {
       SL_TRACE(log_,
                "Fetched ParachainHost runtime api version for relay_parent {} "
                "is {}; it's suitable version",

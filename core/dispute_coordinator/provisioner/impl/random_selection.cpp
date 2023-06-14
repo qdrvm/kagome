@@ -24,8 +24,7 @@ namespace kagome::dispute {
     let disputes = match rx.await {
       Ok(r) => r,
       Err(oneshot::Canceled) => {
-        gum::warn!(
-          target: LOG_TARGET,
+        SL_WARN(log_,
           "Channel closed: unable to gather {:?} disputes",
           active_or_recent
         );
@@ -80,7 +79,7 @@ namespace kagome::dispute {
 
     /* clang-format off
 
-    gum::trace!(target: LOG_TARGET, "Selecting disputes for inherent data using random selection");
+    SL_TRACE(log_,  "Selecting disputes for inherent data using random selection");
 
     // We use `RecentDisputes` instead of `ActiveDisputes` because redundancy is fine.
     // It's heavier than `ActiveDisputes` but ensures that everything from the dispute
@@ -90,8 +89,7 @@ namespace kagome::dispute {
     // If the active ones are already exceeding the bounds, randomly select a subset.
     let recent = request_confirmed_disputes(sender, RequestType::Recent).await;
     let disputes = if recent.len() > MAX_DISPUTES_FORWARDED_TO_RUNTIME {
-      gum::warn!(
-        target: LOG_TARGET,
+      SL_WARN(log_,
         "Recent disputes are excessive ({} > {}), reduce to active ones, and selected",
         recent.len(),
         MAX_DISPUTES_FORWARDED_TO_RUNTIME
