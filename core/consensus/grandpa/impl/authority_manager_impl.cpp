@@ -1080,6 +1080,7 @@ namespace kagome::consensus::grandpa {
           std::make_shared<primitives::AuthoritySet>(
               authorities.id + 1, change.scheduled->authorities),
       };
+      fixKusamaHardFork(block_tree_->getGenesisBlockHash(), *root_);
     }
     persistent_storage_
         ->put(storage::kAuthorityManagerStateLookupKey("last"),

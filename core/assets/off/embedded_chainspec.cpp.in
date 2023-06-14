@@ -1,0 +1,6 @@
+// Chain-spec was not embed. EMBEDDINGS option is OFF
+
+#include <assets/assets.hpp>
+
+// clang-format off
+const char *const kagome::assets::@EMBEDDED_CHAINSPEC_NAME@ = nullptr;
