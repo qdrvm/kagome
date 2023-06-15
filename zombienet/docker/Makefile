@@ -1,5 +1,6 @@
 build:
-	docker build -t soramitsu/zombie-builder -f builder.Dockerfile .
+	DOCKER_BUILDKIT=0 docker build -t soramitsu/zombie-builder -f builder.Dockerfile --build-arg CUMULUS_RELEASE=v0.9.420 --build-arg POLKADOT_RELEASE=v0.9.42 --build-arg POLKADOT_RELEASE_GLOBAL=v0.9.42 .
+#	DOCKER_BUILDKIT=0 docker build -t soramitsu/zombie-builder -f builder.Dockerfile --build-arg CUMULUS_RELEASE=v0.9.420 --build-arg POLKADOT_RELEASE=v0.9.42 .
 #   git clone https://github.com/paritytech/cumulus.git && cd cumulus
 # 	cd cumulus && \
 # 	git ls-remote --tags --refs --sort tag origin "refs/tags/v[0-9]*\.[0-9]*\.[0-9]*" | grep -v -e "-rc*" | cut -d'/' -f3 | tail -n 1 && \

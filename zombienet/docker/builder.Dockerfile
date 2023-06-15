@@ -1,3 +1,4 @@
+# syntax=docker/dockerfile:1
 # # Base image with all dependencies
 # FROM docker.io/paritytech/zombienet:v1.3.55 AS base
 
@@ -64,6 +65,7 @@
 #     apt-get install --no-install-recommends -y libstdc++6 libc6 libnsl2 nano && \
 #     rm -rf /var/lib/apt/lists/*
 
+ARG POLKADOT_RELEASE_GLOBAL
 
 FROM node:18-bullseye-slim as zombie-builder
 USER root
@@ -85,38 +87,47 @@ RUN groupadd --gid 10001 nonroot && \
              --uid 10000 nonroot
 WORKDIR /home/nonroot/
 
+
+
 # Image with polkadot-parachain binary
 FROM zombie-builder AS polkadot-parachain
-RUN git clone --depth 1 --branch v0.9.420 https://github.com/paritytech/cumulus.git
+ARG CUMULUS_RELEASE
+RUN git clone --depth 1 --branch $CUMULUS_RELEASE https://github.com/paritytech/cumulus.git
 WORKDIR /home/nonroot/cumulus
 RUN cargo build --release --bin polkadot-parachain
 
 # Image with polkadot-parachain binary
 FROM zombie-builder AS test-parachain
-RUN git clone --depth 1 --branch v0.9.420 https://github.com/paritytech/cumulus.git
+ARG CUMULUS_RELEASE
+RUN git clone --depth 1 --branch $CUMULUS_RELEASE https://github.com/paritytech/cumulus.git
 WORKDIR /home/nonroot/cumulus
 RUN cargo build --release --locked --bin test-parachain
 
+
 # Image with test-parachain-adder-collator binary
 FROM zombie-builder AS test-parachain-adder-collator
-RUN git clone --depth 1 --branch v0.9.42 https://github.com/paritytech/polkadot.git
+ARG POLKADOT_RELEASE
+RUN git clone --depth 1 --branch $POLKADOT_RELEASE https://github.com/paritytech/polkadot.git
 WORKDIR /home/nonroot/polkadot
 RUN cargo build -p test-parachain-adder-collator
 
 # Image with test-parachain-undying-collator
 FROM zombie-builder AS test-parachain-undying-collator
-RUN git clone --depth 1 --branch v0.9.42 https://github.com/paritytech/polkadot.git
+ARG POLKADOT_RELEASE
+RUN git clone --depth 1 --branch $POLKADOT_RELEASE https://github.com/paritytech/polkadot.git
 WORKDIR /home/nonroot/polkadot
 RUN cargo build -p test-parachain-undying-collator
 
 # Image with polkadot-test-malus
 FROM zombie-builder AS polkadot-test-malus
-RUN git clone --depth 1 --branch v0.9.42 https://github.com/paritytech/polkadot.git
+ARG POLKADOT_RELEASE
+RUN git clone --depth 1 --branch $POLKADOT_RELEASE https://github.com/paritytech/polkadot.git
 WORKDIR /home/nonroot/polkadot
 RUN cargo build -p polkadot-test-malus
 
-# Image with polkadot 
-FROM docker.io/parity/polkadot:v0.9.42 AS polkadot
+# Image with polkadot
+FROM docker.io/parity/polkadot:$POLKADOT_RELEASE_GLOBAL AS polkadot
+
 #Image with kagome
 FROM soramitsu/kagome:latest as kagome
 
