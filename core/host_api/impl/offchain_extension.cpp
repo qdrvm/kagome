@@ -240,40 +240,40 @@ namespace kagome::host_api {
 
     auto [uri_ptr, uri_size] = runtime::PtrSize(uri_pos);
     auto uri_buffer = memory.loadN(uri_ptr, uri_size);
-    auto uri = uri_buffer.toString();
+    auto uri = uri_buffer.toStringView();
 
     auto [meta_ptr, meta_size] = runtime::PtrSize(meta_pos);
     [[maybe_unused]]  // It is future-reserved field, is not used now
     auto meta_buffer = memory.loadN(meta_ptr, meta_size);
 
     HttpMethod method = HttpMethod::Undefined;
-    if (method_buffer.toString() == "Get") {
+    if (method_buffer.toStringView() == "Get") {
       method = HttpMethod::Get;
-    } else if (method_buffer.toString() == "Post") {
+    } else if (method_buffer.toStringView() == "Post") {
       method = HttpMethod::Post;
     } else {
       SL_TRACE(
           log_,
           "ext_offchain_http_request_start_version_1( {}, {}, {} ) failed: "
           "Reason: unknown method",
-          method_buffer.toString(),
+          method_buffer.toStringView(),
           uri,
-          meta_buffer.toString());
+          meta_buffer.toStringView());
     }
 
     auto result = worker->httpRequestStart(method, uri, meta_buffer);
 
     if (result.isSuccess()) {
       SL_TRACE_FUNC_CALL(
-          log_, result.value(), method_buffer.toString(), uri, meta_buffer);
+          log_, result.value(), method_buffer.toStringView(), uri, meta_buffer);
 
     } else {
       SL_TRACE(log_,
                "ext_offchain_http_request_start_version_1( {}, {}, {} ) failed "
                "during execution",
-               method_buffer.toString(),
+               method_buffer.toStringView(),
                uri,
-               meta_buffer.toString());
+               meta_buffer.toStringView());
     }
 
     return memory.storeBuffer(scale::encode(result).value());
@@ -290,11 +290,11 @@ namespace kagome::host_api {
 
     auto [name_ptr, name_size] = runtime::PtrSize(name_pos);
     auto name_buffer = memory.loadN(name_ptr, name_size);
-    auto name = name_buffer.toString();
+    auto name = name_buffer.toStringView();
 
     auto [value_ptr, value_size] = runtime::PtrSize(value_pos);
     auto value_buffer = memory.loadN(value_ptr, value_size);
-    auto value = value_buffer.toString();
+    auto value = value_buffer.toStringView();
 
     auto result = worker->httpRequestAddHeader(request_id, name, value);
 

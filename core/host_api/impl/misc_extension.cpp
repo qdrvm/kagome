@@ -82,7 +82,7 @@ namespace kagome::host_api {
       runtime::WasmSpan data) const {
     auto [ptr, len] = runtime::splitSpan(data);
     auto buf = memory_provider_->getCurrentMemory()->get().loadN(ptr, len);
-    logger_->info("utf8: {}", buf.toString());
+    logger_->info("utf8: {}", buf.toStringView());
   }
 
 }  // namespace kagome::host_api
