@@ -7,12 +7,23 @@
 #define KAGOME_DISPUTE_PRIORITIZEDSELECTION
 
 #include "dispute_coordinator/types.hpp"
+#include "log/logger.hpp"
 #include "scale/bitvec.hpp"
+
+namespace kagome::runtime {
+  class ParachainHost;
+}
+
+namespace kagome::dispute {
+  class DisputeCoordinator;
+}
 
 namespace kagome::dispute {
 
   /// The entire state of a dispute.
   struct DisputeState {
+    SCALE_TIE(4);
+
     /// A bitfield indicating all validators for the candidate.
     scale::BitVec validators_for;
     /// A bitfield indicating all validators against the candidate.
@@ -80,6 +91,16 @@ namespace kagome::dispute {
     /// messages to `dispute-coordinator`.
     static constexpr size_t kVotesSelectionBatchSize = 1'100;
 
+    PrioritizedSelection(
+        clock::SystemClock &clock,
+        std::shared_ptr<runtime::ParachainHost> api,
+        std::shared_ptr<dispute::DisputeCoordinator> dispute_coordinator,
+        log::Logger log)
+        : clock_(clock),
+          api_(std::move(api)),
+          dispute_coordinator_(std::move(dispute_coordinator)),
+          log_(std::move(log)) {}
+
     /// Implements the `select_disputes` function which selects dispute votes
     /// which should be sent to the Runtime.
     ///
@@ -113,6 +134,7 @@ namespace kagome::dispute {
     /// logged and the logic will continue with empty onchain votes `HashMap`.
     MultiDisputeStatementSet select_disputes(const primitives::BlockInfo &leaf);
 
+   private:
     /// Selects dispute votes from `PartitionedDisputes` which should be sent to
     /// the runtime. Votes which are already onchain are filtered out. Result
     /// should be sorted by `(SessionIndex, CandidateHash)` which is enforced by
@@ -121,8 +143,6 @@ namespace kagome::dispute {
     vote_selection(PartitionedDisputes partitioned,
                    std::unordered_map<std::tuple<SessionIndex, CandidateHash>,
                                       DisputeState> onchain);
-
-    bool concluded_onchain(DisputeState &onchain_state);
 
     PartitionedDisputes partition_recent_disputes(
         std::vector<std::tuple<SessionIndex, CandidateHash, DisputeStatus>>
@@ -133,22 +153,12 @@ namespace kagome::dispute {
     /// Determines if a vote is worth to be kept, based on the onchain disputes
     bool is_vote_worth_to_keep(ValidatorIndex validator_index,
                                DisputeStatement dispute_statement,
-                               DisputeState onchain_state);
+                               const DisputeState &onchain_state);
 
-    /// Request disputes identified by `CandidateHash` and the `SessionIndex`.
-    std::vector<std::tuple<SessionIndex, CandidateHash, DisputeStatus>>
-    request_disputes();
-
-    // This function produces the return value for `pub fn select_disputes()`
-    MultiDisputeStatementSet make_multi_dispute_statement_set(
-        std::map<std::tuple<SessionIndex, CandidateHash>, CandidateVotes>
-            dispute_candidate_votes);
-
-    /// Gets the on-chain disputes at a given block number and returns them as a
-    /// `HashMap` so that searching in them is cheap.
-    outcome::result<std::unordered_map<std::tuple<SessionIndex, CandidateHash>,
-                                       DisputeState>>
-    get_onchain_disputes(const primitives::BlockHash &relay_parent);
+    clock::SystemClock &clock_;
+    std::shared_ptr<runtime::ParachainHost> api_;
+    std::shared_ptr<dispute::DisputeCoordinator> dispute_coordinator_;
+    log::Logger log_;
   };
 
 }  // namespace kagome::dispute
