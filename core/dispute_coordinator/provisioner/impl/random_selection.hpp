@@ -6,7 +6,17 @@
 #ifndef KAGOME_DISPUTE_RANDOMSELECTION
 #define KAGOME_DISPUTE_RANDOMSELECTION
 
+#include <random>
 #include "dispute_coordinator/types.hpp"
+#include "log/logger.hpp"
+
+namespace kagome::runtime {
+  class ParachainHost;
+}
+
+namespace kagome::dispute {
+  class DisputeCoordinator;
+}
 
 namespace kagome::dispute {
 
@@ -22,8 +32,17 @@ namespace kagome::dispute {
     /// The maximum number of disputes Provisioner will include in the inherent
     /// data.
     /// Serves as a protection not to flood the Runtime with excessive data.
-    static constexpr size_t kMaxDDisputesForwardedToRuntime = 1'000;
+    static constexpr size_t kMaxDisputesForwardedToRuntime = 1'000;
 
+    RandomSelection(
+        std::shared_ptr<dispute::DisputeCoordinator> dispute_coordinator,
+        log::Logger log)
+        : dispute_coordinator_(std::move(dispute_coordinator)),
+          log_(std::move(log)) {}
+
+    MultiDisputeStatementSet select_disputes();
+
+   private:
     enum class RequestType {
       /// Query recent disputes, could be an excessive amount.
       Recent,
@@ -44,7 +63,9 @@ namespace kagome::dispute {
         std::vector<std::tuple<SessionIndex, CandidateHash>> extension,
         size_t n);
 
-    MultiDisputeStatementSet select_disputes();
+    std::shared_ptr<dispute::DisputeCoordinator> dispute_coordinator_;
+    std::default_random_engine random_;
+    log::Logger log_;
   };
 
 }  // namespace kagome::dispute

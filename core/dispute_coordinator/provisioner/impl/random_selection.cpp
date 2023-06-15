@@ -5,149 +5,159 @@
 
 #include "dispute_coordinator/provisioner/impl/random_selection.hpp"
 
+#include <future>
+
+#include "dispute_coordinator/dispute_coordinator.hpp"
+#include "dispute_coordinator/provisioner/impl/request_votes.hpp"
+#include "utils/tuple_hash.hpp"
+
 namespace kagome::dispute {
+
+  MultiDisputeStatementSet RandomSelection::select_disputes() {
+    SL_TRACE(log_,
+             "Selecting disputes for inherent data using random selection");
+
+    // We use `RecentDisputes` instead of `ActiveDisputes` because redundancy is
+    // fine.
+    // It's heavier than `ActiveDisputes` but ensures that everything from the
+    // dispute window gets on-chain, unlike `ActiveDisputes`.
+    // In case of an overload condition, we limit ourselves to active disputes,
+    // and fill up to the upper bound of disputes to pass to wasm `fn
+    // create_inherent_data`.
+    // If the active ones are already exceeding the bounds, randomly select a
+    // subset.
+
+    auto recent = request_confirmed_disputes(RequestType::Recent);
+
+    std::vector<std::tuple<SessionIndex, CandidateHash>> disputes;
+
+    if (recent.size() > kMaxDisputesForwardedToRuntime) {
+      SL_WARN(log_,
+              "Recent disputes are excessive ({} > {}), "
+              "reduce to active ones, and selected",
+              recent.size(),
+              kMaxDisputesForwardedToRuntime);
+      auto active = request_confirmed_disputes(RequestType::Active);
+
+      disputes.reserve(kMaxDisputesForwardedToRuntime);
+
+      if (active.size() > kMaxDisputesForwardedToRuntime) {
+        extend_by_random_subset_without_repetition(
+            disputes, active, kMaxDisputesForwardedToRuntime);
+      } else {
+        extend_by_random_subset_without_repetition(
+            disputes, recent, kMaxDisputesForwardedToRuntime - active.size());
+      }
+
+    } else {
+      disputes = std::move(recent);
+    }
+
+    // Load all votes for all disputes from the coordinator.
+    auto dispute_candidate_votes =
+        request_votes(dispute_coordinator_, std::move(disputes));
+
+    // Transform all `CandidateVotes` into `MultiDisputeStatementSet`.
+    MultiDisputeStatementSet result;
+    for (auto &[session, candidate, votes] : dispute_candidate_votes) {
+      auto &statement_set =
+          result.emplace_back(DisputeStatementSet{candidate, session, {}});
+
+      for (auto &[validator_index, value] : votes.valid) {
+        auto &[statement, validator_signature] = value;
+        statement_set.statements.emplace_back(
+            ValidDisputeStatement(statement),  //
+            validator_index,
+            validator_signature);
+      }
+
+      for (auto &[validator_index, value] : votes.invalid) {
+        auto &[statement, validator_signature] = value;
+        statement_set.statements.emplace_back(
+            InvalidDisputeStatement(statement),
+            validator_index,
+            validator_signature);
+      }
+    }
+
+    return result;
+  }
 
   std::vector<std::tuple<SessionIndex, CandidateHash>>
   RandomSelection::request_confirmed_disputes(
       RandomSelection::RequestType active_or_recent) {
-    // TODO need to be implemented
+    auto promise_res =
+        std::promise<dispute::DisputeCoordinator::OutputDisputes>();
+    auto res_future = promise_res.get_future();
 
-    /* clang-format off
+    auto cb =
+        [promise_res = std::ref(promise_res)](
+            outcome::result<dispute::DisputeCoordinator::OutputDisputes> res) {
+          dispute::DisputeCoordinator::OutputDisputes disputes;
+          if (res.has_value()) {
+            disputes = std::move(res.value());
+          }
+          promise_res.get().set_value(std::move(disputes));
+        };
 
-    let (tx, rx) = oneshot::channel();
-    let msg = match active_or_recent {
-      RequestType::Recent => DisputeCoordinatorMessage::RecentDisputes(tx),
-      RequestType::Active => DisputeCoordinatorMessage::ActiveDisputes(tx),
-    };
+    if (active_or_recent == RequestType::Recent) {
+      dispute_coordinator_->handle_incoming_RecentDisputes(cb);
+    } else {
+      dispute_coordinator_->handle_incoming_ActiveDisputes(cb);
+    }
 
-    sender.send_unbounded_message(msg);
-    let disputes = match rx.await {
-      Ok(r) => r,
-      Err(oneshot::Canceled) => {
-        SL_WARN(log_,
-          "Channel closed: unable to gather {:?} disputes",
-          active_or_recent
-        );
-        Vec::new()
-      },
-    };
+    dispute::DisputeCoordinator::OutputDisputes disputes;
+    if (not res_future.valid()) {
+      SL_WARN(log_,
+              "Unable to gather {} disputes; only expected during shutdown!",
+              active_or_recent == RequestType::Recent ? "recent" : "active");
+    } else {
+      disputes = res_future.get();
+    }
 
-    disputes
-      .into_iter()
-      .filter(|d| d.2.is_confirmed_concluded())
-      .map(|d| (d.0, d.1))
-      .collect()
+    std::vector<std::tuple<SessionIndex, CandidateHash>> result;
 
-     clang-format on */
-    return {};
+    for (const auto &[session, candidate, status] : disputes) {
+      if (not is_type<Active>(status)) {
+        result.emplace_back(session, candidate);
+      }
+    }
+
+    return result;
   }
 
   void RandomSelection::extend_by_random_subset_without_repetition(
       std::vector<std::tuple<SessionIndex, CandidateHash>> &acc,
       std::vector<std::tuple<SessionIndex, CandidateHash>> extension,
       size_t n) {
-    // TODO need to be implemented
+    std::unordered_set<std::tuple<SessionIndex, CandidateHash>> lut;
+    for (auto &ext : acc) {
+      lut.emplace(ext);
+    }
 
-    /* clang-format off
-
-    use rand::Rng;
-
-    let lut = acc.iter().cloned().collect::<HashSet<(SessionIndex, CandidateHash)>>();
-
-    let mut unique_new =
-      extension.into_iter().filter(|recent| !lut.contains(recent)).collect::<Vec<_>>();
-
-    // we can simply add all
-    if unique_new.len() <= n {
-      acc.extend(unique_new)
-    } else {
-      acc.reserve(n);
-      let mut rng = rand::thread_rng();
-      for _ in 0..n {
-        let idx = rng.gen_range(0..unique_new.len());
-        acc.push(unique_new.swap_remove(idx));
+    std::unordered_set<std::tuple<SessionIndex, CandidateHash>> unique_new;
+    for (auto &ext : std::move(extension)) {
+      if (lut.count(ext) == 0) {
+        unique_new.emplace(ext);
       }
     }
-    // assure sorting stays candid according to session index
-    acc.sort_unstable_by(|a, b| a.0.cmp(&b.0));
 
-    clang-format on */
-  }
-
-  MultiDisputeStatementSet RandomSelection::select_disputes() {
-    // TODO need to be implemented
-
-    /* clang-format off
-
-    SL_TRACE(log_,  "Selecting disputes for inherent data using random selection");
-
-    // We use `RecentDisputes` instead of `ActiveDisputes` because redundancy is fine.
-    // It's heavier than `ActiveDisputes` but ensures that everything from the dispute
-    // window gets on-chain, unlike `ActiveDisputes`.
-    // In case of an overload condition, we limit ourselves to active disputes, and fill up to the
-    // upper bound of disputes to pass to wasm `fn create_inherent_data`.
-    // If the active ones are already exceeding the bounds, randomly select a subset.
-    let recent = request_confirmed_disputes(sender, RequestType::Recent).await;
-    let disputes = if recent.len() > MAX_DISPUTES_FORWARDED_TO_RUNTIME {
-      SL_WARN(log_,
-        "Recent disputes are excessive ({} > {}), reduce to active ones, and selected",
-        recent.len(),
-        MAX_DISPUTES_FORWARDED_TO_RUNTIME
-      );
-      let mut active = request_confirmed_disputes(sender, RequestType::Active).await;
-      let n_active = active.len();
-      let active = if active.len() > MAX_DISPUTES_FORWARDED_TO_RUNTIME {
-        let mut picked = Vec::with_capacity(MAX_DISPUTES_FORWARDED_TO_RUNTIME);
-        extend_by_random_subset_without_repetition(
-          &mut picked,
-          active,
-          MAX_DISPUTES_FORWARDED_TO_RUNTIME,
-        );
-        picked
-      } else {
-        extend_by_random_subset_without_repetition(
-          &mut active,
-          recent,
-          MAX_DISPUTES_FORWARDED_TO_RUNTIME.saturating_sub(n_active),
-        );
-        active
-      };
-      active
+    // we can simply add all
+    if (unique_new.size() <= n) {
+      acc.insert(acc.end(), unique_new.begin(), unique_new.end());
     } else {
-      recent
-    };
+      extension.assign(unique_new.begin(), unique_new.end());
+      std::shuffle(extension.begin(), extension.end(), random_);
+      extension.resize(n);
 
-    // Load all votes for all disputes from the coordinator.
-    let dispute_candidate_votes = super::request_votes(sender, disputes).await;
+      acc.reserve(acc.size() + n);
+      acc.insert(acc.end(), extension.begin(), extension.end());
+    }
 
-    // Transform all `CandidateVotes` into `MultiDisputeStatementSet`.
-    dispute_candidate_votes
-      .into_iter()
-      .map(|(session_index, candidate_hash, votes)| {
-        let valid_statements = votes
-          .valid
-          .into_iter()
-          .map(|(i, (s, sig))| (DisputeStatement::Valid(s), i, sig));
-
-        let invalid_statements = votes
-          .invalid
-          .into_iter()
-          .map(|(i, (s, sig))| (DisputeStatement::Invalid(s), i, sig));
-
-        metrics.inc_valid_statements_by(valid_statements.len());
-        metrics.inc_invalid_statements_by(invalid_statements.len());
-        metrics.inc_dispute_statement_sets_by(1);
-
-        DisputeStatementSet {
-          candidate_hash,
-          session: session_index,
-          statements: valid_statements.chain(invalid_statements).collect(),
-        }
-      })
-      .collect()
-
-      clang-format on */
-    return {};
+    // assure sorting stays candid according to session index
+    std::sort(acc.begin(), acc.begin(), [](const auto &lhs, const auto &rhs) {
+      return std::get<0>(lhs) < std::get<0>(rhs);
+    });
   }
 
 }  // namespace kagome::dispute
