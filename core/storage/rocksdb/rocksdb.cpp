@@ -262,9 +262,10 @@ namespace kagome::storage {
     std::string value;
     auto status = rocks->db_->Get(rocks->ro_, column_, make_slice(key), &value);
     if (status.ok()) {
-      return std::make_optional(Buffer(
+      auto buf = Buffer(
           reinterpret_cast<uint8_t *>(value.data()),                   // NOLINT
-          reinterpret_cast<uint8_t *>(value.data()) + value.size()));  // NOLINT
+          reinterpret_cast<uint8_t *>(value.data()) + value.size());
+      return std::make_optional(BufferOrView(std::move(buf)));  // NOLINT
     }
 
     if (status.IsNotFound()) {

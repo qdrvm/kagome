@@ -349,7 +349,7 @@ namespace kagome::storage::trie {
     // will be written back to the storage only on storeNode call
     OUTCOME_TRY(
         n,
-        insert(root, k_enc, std::make_shared<LeafNode>(k_enc, value.into())));
+        insert(root, k_enc, std::make_shared<LeafNode>(k_enc, value.into_buffer())));
     nodes_->setRoot(n);
 
     return outcome::success();

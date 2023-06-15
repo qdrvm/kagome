@@ -115,7 +115,7 @@ namespace kagome::storage::trie {
       if (on_node_loaded) {
         on_node_loaded(db);
       }
-      enc = db.into();
+      enc = db.into_buffer();
     } else {
       // `isMerkleHash(db_key) == false` means `db_key` is value itself
       enc = db_key.asBuffer();
@@ -129,12 +129,13 @@ namespace kagome::storage::trie {
   TrieSerializerImpl::retrieveValue(const common::Hash256 &hash,
                                     const OnNodeLoaded &on_node_loaded) const {
     OUTCOME_TRY(value, backend_->tryGet(hash));
-    return common::map_optional(value, [&](auto &value) {
-      if (on_node_loaded) {
-        on_node_loaded(value);
-      }
-      return value.owned();
-    });
+    return common::map_optional(std::move(value),
+                                [&](common::BufferOrView &&value) {
+                                  if (on_node_loaded) {
+                                    on_node_loaded(value);
+                                  }
+                                  return value.into_buffer();
+                                });
   }
 
 }  // namespace kagome::storage::trie

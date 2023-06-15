@@ -67,7 +67,7 @@ namespace kagome::offchain {
       const common::BufferView &key) {
     auto iKey = internalKey(key);
     OUTCOME_TRY(value, storage_->get(iKey));
-    return value.into();
+    return value.into_buffer();
   }
 
 }  // namespace kagome::offchain
