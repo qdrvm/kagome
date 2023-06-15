@@ -90,8 +90,10 @@ namespace kagome::runtime::binaryen {
         }
       }
 
-      const uint8_t *getBuffer(size_t address) const {
-        return (const uint8_t *)&memory[address];
+      template <typename T, typename = std::enable_if_t<std::is_pod_v<T>>>
+      gsl::span<T> getBuffer(size_t address, size_t n) const {
+        return gsl::span<T>((T *)&memory[address], n);
+        ;
       }
     } memory;
 

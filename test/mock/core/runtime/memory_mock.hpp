@@ -47,7 +47,7 @@ namespace kagome::runtime {
                 (WasmPointer),
                 (const, override));
 
-    MOCK_METHOD(common::Buffer,
+    MOCK_METHOD(common::BufferView,
                 loadN,
                 (WasmPointer, WasmSize),
                 (const, override));

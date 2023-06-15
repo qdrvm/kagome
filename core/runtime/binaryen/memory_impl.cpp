@@ -76,7 +76,7 @@ namespace kagome::runtime::binaryen {
   common::BufferView MemoryImpl::loadN(kagome::runtime::WasmPointer addr,
                                        kagome::runtime::WasmSize n) const {
     BOOST_ASSERT(size_ > addr and size_ - addr >= n);
-    return common::BufferView{memory_->getBuffer(addr), n};
+    return common::BufferView{memory_->getBuffer<const uint8_t>(addr, n)};
   }
 
   std::string MemoryImpl::loadStr(kagome::runtime::WasmPointer addr,

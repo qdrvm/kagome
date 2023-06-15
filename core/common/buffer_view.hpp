@@ -8,6 +8,7 @@
 
 #include <gsl/span>
 
+#include "common/bytestr.hpp"
 #include "common/hexutil.hpp"
 #include "macro/endianness_utils.hpp"
 
@@ -32,7 +33,7 @@ namespace kagome::common {
     }
 
     std::string_view toStringView() const {
-      return {(const char *)data(), (size_t)size()};
+      return byte2str(*this);
     }
 
     bool operator==(const Span &other) const noexcept {
