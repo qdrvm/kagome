@@ -79,6 +79,12 @@ namespace kagome::runtime {
     outcome::result<std::optional<dispute::ScrapedOnChainVotes>> on_chain_votes(
         const primitives::BlockHash &block) override;
 
+    /// Returns all on-chain disputes at given block number. Available in `v3`.
+    outcome::result<std::vector<std::tuple<dispute::SessionIndex,
+                                           dispute::CandidateHash,
+                                           dispute::DisputeState>>>
+    disputes(const primitives::BlockHash &block) override;
+
    private:
     std::shared_ptr<Executor> executor_;
   };

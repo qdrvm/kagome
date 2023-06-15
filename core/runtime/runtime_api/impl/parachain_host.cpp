@@ -137,4 +137,14 @@ namespace kagome::runtime {
         block, "ParachainHost_on_chain_votes");
   }
 
+  outcome::result<std::vector<std::tuple<dispute::SessionIndex,
+                                         dispute::CandidateHash,
+                                         dispute::DisputeState>>>
+  ParachainHostImpl::disputes(const primitives::BlockHash &block) {
+    return executor_->callAt<std::vector<std::tuple<dispute::SessionIndex,
+                                                    dispute::CandidateHash,
+                                                    dispute::DisputeState>>>(
+        block, "ParachainHost_disputes");  // TODO ensure if it works
+  }
+
 }  // namespace kagome::runtime
