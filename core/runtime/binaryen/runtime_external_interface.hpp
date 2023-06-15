@@ -63,7 +63,7 @@ namespace kagome::runtime::binaryen {
         return memory.size();
       }
       auto getData() const {
-        return gsl::span<Mem::value_type const>(memory);
+        return gsl::span<const Mem::value_type>(memory);
       }
       template <typename T>
       void set(size_t address, T value) {
@@ -88,6 +88,12 @@ namespace kagome::runtime::binaryen {
           std::memcpy(&loaded, &memory[address], sizeof(T));
           return loaded;
         }
+      }
+
+      template <typename T, typename = std::enable_if_t<std::is_pod_v<T>>>
+      gsl::span<T> getBuffer(size_t address, size_t n) const {
+        return gsl::span<T>((T *)&memory[address], n);
+        ;
       }
     } memory;
 

@@ -8,6 +8,7 @@
 
 #include <gsl/span>
 
+#include "common/bytestr.hpp"
 #include "common/hexutil.hpp"
 #include "macro/endianness_utils.hpp"
 
@@ -29,6 +30,10 @@ namespace kagome::common {
 
     std::string toHex() const {
       return hex_lower(*this);
+    }
+
+    std::string_view toStringView() const {
+      return byte2str(*this);
     }
 
     bool operator==(const Span &other) const noexcept {
