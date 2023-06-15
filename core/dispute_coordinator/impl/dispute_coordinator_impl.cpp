@@ -35,7 +35,7 @@ namespace kagome::dispute {
 
   DisputeCoordinatorImpl::DisputeCoordinatorImpl(
       std::shared_ptr<application::AppStateManager> app_state_manager,
-      std::shared_ptr<clock::SystemClock> clock,
+      clock::SystemClock &clock,
       std::shared_ptr<crypto::SessionKeys> session_keys,
       std::shared_ptr<Storage> storage,
       std::shared_ptr<crypto::Sr25519Provider> sr25519_crypto_provider,
@@ -55,7 +55,7 @@ namespace kagome::dispute {
       std::shared_ptr<primitives::events::BabeStateSubscriptionEngine>
           babe_status_observable)
       : app_state_manager_(std::move(app_state_manager)),
-        clock_(std::move(clock)),
+        clock_(clock),
         session_keys_(std::move(session_keys)),
         storage_(std::move(storage)),
         sr25519_crypto_provider_(std::move(sr25519_crypto_provider)),
@@ -77,7 +77,6 @@ namespace kagome::dispute {
         internal_context_{int_pool_->handler()},
         runtime_info_(std::make_unique<RuntimeInfo>(api_, session_keys_)) {
     BOOST_ASSERT(app_state_manager_ != nullptr);
-    BOOST_ASSERT(clock_ != nullptr);
     BOOST_ASSERT(session_keys_ != nullptr);
     BOOST_ASSERT(storage_ != nullptr);
     BOOST_ASSERT(sr25519_crypto_provider_ != nullptr);
@@ -207,7 +206,7 @@ namespace kagome::dispute {
     // db::v1::note_earliest_session( // FIXME Needed or not?
     //     overlay_db, rolling_session_window.earliest_session())?;
 
-    auto now = clock_->nowUint64();
+    auto now = clock_.nowUint64();
 
     auto recent_disputes_res = storage_->load_recent_disputes();
     if (recent_disputes_res.has_error()) {
@@ -284,7 +283,7 @@ namespace kagome::dispute {
       auto &candidate_votes = votes_res.value().value();
 
       auto vote_state =
-          CandidateVoteState::create(candidate_votes, env, clock_->nowUint64());
+          CandidateVoteState::create(candidate_votes, env, clock_.nowUint64());
 
       auto is_included = scraper_->is_candidate_included(candidate_hash);
       auto is_backed = scraper_->is_candidate_backed(candidate_hash);
@@ -930,7 +929,7 @@ namespace kagome::dispute {
       std::vector<Indexed<SignedDisputeStatement>> statements) {
     BOOST_ASSERT(initialized_);
 
-    auto now = clock_->nowUint64();
+    auto now = clock_.nowUint64();
 
     if (not rolling_session_window_->contains(session)) {
       // It is not valid to participate in an ancient dispute (spam?) or too
@@ -1385,7 +1384,8 @@ namespace kagome::dispute {
       auto blocks_including =
           scraper_->get_blocks_including_candidate(candidate_hash);
       if (blocks_including.size() > 0) {
-        block_tree_->markAsRevertedBlocks(std::move(blocks_including));
+        std::ignore =
+            block_tree_->markAsRevertedBlocks(std::move(blocks_including));
       } else {
         SL_DEBUG(log_,
                  "Could not find an including block for candidate against "
@@ -1815,7 +1815,7 @@ namespace kagome::dispute {
 
     OutputDisputes output;
 
-    auto now = clock_->nowUint64();
+    auto now = clock_.nowUint64();
     for (const auto &p : recent_disputes) {
       const auto &status = p.second;
 
@@ -2123,7 +2123,6 @@ namespace kagome::dispute {
   outcome::result<void> DisputeCoordinatorImpl::start_import_or_batch(
       const network::DisputeMessage &request, CbOutcome<void> &&cb) {
     libp2p::peer::PeerId peer = libp2p::peer::PeerId::fromBase58("").value();
-    auto &pending_response = cb;
 
     OUTCOME_TRY(info,
                 runtime_info_->get_session_info_by_index(
@@ -2284,7 +2283,7 @@ namespace kagome::dispute {
 
     auto &[signed_statement, validator_index] = statements.front();
     auto &session_index = signed_statement.session_index;
-    auto &candidate_hash = signed_statement.candidate_hash;
+    // auto &candidate_hash = signed_statement.candidate_hash;
 
     auto pending_confirmation =
         [requesters(std::move(requesters))](outcome::result<void> res) {
@@ -2333,7 +2332,7 @@ namespace kagome::dispute {
                "Selected disputes for {} (prioritized selection)",
                relay_parent);
 
-      PrioritizedSelection selection;
+      PrioritizedSelection selection(clock_, api_, shared_from_this(), log_);
 
       auto disputes = selection.select_disputes(relay_parent);
 
@@ -2343,7 +2342,7 @@ namespace kagome::dispute {
 
     SL_TRACE(log_, "Selected disputes for {} (random selection)", relay_parent);
 
-    RandomSelection selection;
+    RandomSelection selection(shared_from_this(), log_);
 
     auto disputes = selection.select_disputes();
     cb(std::move(disputes));

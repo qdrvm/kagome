@@ -78,6 +78,7 @@ namespace kagome::dispute {
       : public DisputeCoordinator,
         public network::DisputeRequestObserver,
         public std::enable_shared_from_this<DisputeCoordinatorImpl> {
+   public:
     static constexpr Timestamp kActiveDurationSecs = 180;
     static constexpr size_t kPeerQueueCapacity = 10;
     // Dispute runtime version requirement
@@ -91,10 +92,9 @@ namespace kagome::dispute {
     /// peer to enforce that limit.
     static constexpr auto kReceiveRateLimit = std::chrono::milliseconds(100);
 
-   public:
     DisputeCoordinatorImpl(
         std::shared_ptr<application::AppStateManager> app_state_manager,
-        std::shared_ptr<clock::SystemClock> clock,
+        clock::SystemClock &clock,
         std::shared_ptr<crypto::SessionKeys> session_keys,
         std::shared_ptr<Storage> storage,
         std::shared_ptr<crypto::Sr25519Provider> sr25519_crypto_provider,
@@ -239,7 +239,7 @@ namespace kagome::dispute {
     bool has_required_runtime(const primitives::BlockInfo &relay_parent);
 
     std::shared_ptr<application::AppStateManager> app_state_manager_;
-    std::shared_ptr<clock::SystemClock> clock_;
+    clock::SystemClock &clock_;
     std::shared_ptr<crypto::SessionKeys> session_keys_;
     std::shared_ptr<Storage> storage_;
     std::shared_ptr<crypto::Sr25519Provider> sr25519_crypto_provider_;

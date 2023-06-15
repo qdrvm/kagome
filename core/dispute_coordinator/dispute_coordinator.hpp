@@ -15,7 +15,7 @@ namespace kagome::dispute {
   class DisputeCoordinator {
    public:
     using QueryCandidateVotes =
-        std::vector<std::pair<SessionIndex, CandidateHash>>;
+        std::vector<std::tuple<SessionIndex, CandidateHash>>;
     using OutputCandidateVotes =
         std::vector<std::tuple<SessionIndex, CandidateHash, CandidateVotes>>;
     using OutputDisputes =
