@@ -931,8 +931,7 @@ namespace kagome::dispute {
     auto now = clock_.nowUint64();
 
     if (not rolling_session_window_->contains(session)) {
-      // It is not valid to participate in an ancient dispute (spam?) or too
-      // new.
+      // It is not valid to participate in an ancient dispute (spam?) or too new
       return outcome::success(false);
     }
 
@@ -1732,13 +1731,13 @@ namespace kagome::dispute {
     return outcome::success();
   }
 
-  void DisputeCoordinatorImpl::handle_incoming_ImportStatements(
+  void DisputeCoordinatorImpl::importStatements(
       CandidateReceipt _candidate_receipt,
       SessionIndex _session,
       std::vector<Indexed<SignedDisputeStatement>> _statements,
       CbOutcome<void> &&_cb) {
     REINVOKE_4(*internal_context_,
-               handle_incoming_ImportStatements,
+               importStatements,
                _candidate_receipt,
                _session,
                _statements,
@@ -1877,24 +1876,21 @@ namespace kagome::dispute {
     cb(std::move(output));
   }
 
-  void DisputeCoordinatorImpl::handle_incoming_IssueLocalStatement(
+  void DisputeCoordinatorImpl::issueLocalStatement(
       SessionIndex _session,
       CandidateHash _candidate_hash,
       CandidateReceipt _candidate_receipt,
-      bool _valid,
-      CbOutcome<void> &&_cb) {
-    REINVOKE_5(*internal_context_,
-               handle_incoming_IssueLocalStatement,
+      bool _valid) {
+    REINVOKE_4(*internal_context_,
+               issueLocalStatement,
                _session,
                _candidate_hash,
                _candidate_receipt,
                _valid,
-               _cb,
                session,
                candidate_hash,
                candidate_receipt,
-               valid,
-               cb);
+               valid);
 
     // TODO ничего не возвращаем, вызывается из апрувала и партисипейшена
 
@@ -1903,10 +1899,8 @@ namespace kagome::dispute {
         candidate_hash, candidate_receipt, session, valid);
 
     if (res.has_error()) {
-      return cb(res.as_failure());
+      SL_ERROR(log_, "Error during issue local statement: {}", res.error());
     }
-
-    cb(outcome::success());
   }
 
   void DisputeCoordinatorImpl::determineUndisputedChain(
@@ -2282,10 +2276,10 @@ namespace kagome::dispute {
           }
         };
 
-    handle_incoming_ImportStatements(candidate_receipt,
-                                     session_index,
-                                     statements,
-                                     std::move(pending_confirmation));
+    importStatements(candidate_receipt,
+                     session_index,
+                     statements,
+                     std::move(pending_confirmation));
   }
 
   void DisputeCoordinatorImpl::sendDisputeRequest(

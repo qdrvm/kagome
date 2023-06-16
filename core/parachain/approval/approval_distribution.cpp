@@ -476,7 +476,8 @@ namespace kagome::parachain {
       std::shared_ptr<blockchain::BlockTree> block_tree,
       std::shared_ptr<parachain::Pvf> pvf,
       std::shared_ptr<parachain::Recovery> recovery,
-      std::shared_ptr<boost::asio::io_context> this_context)
+      std::shared_ptr<boost::asio::io_context> this_context,
+      LazySPtr<dispute::DisputeCoordinator> dispute_coordinator)
       : int_pool_{std::make_shared<ThreadPool>(1ull)},
         internal_context_{int_pool_->handler()},
         thread_pool_{std::move(thread_pool)},
@@ -495,7 +496,8 @@ namespace kagome::parachain {
         block_tree_(std::move(block_tree)),
         pvf_(std::move(pvf)),
         recovery_(std::move(recovery)),
-        this_context_{std::move(this_context)} {
+        this_context_{std::move(this_context)},
+        dispute_coordinator_{std::move(dispute_coordinator)} {
     BOOST_ASSERT(thread_pool_);
     BOOST_ASSERT(parachain_host_);
     BOOST_ASSERT(babe_util_);
@@ -1153,13 +1155,13 @@ namespace kagome::parachain {
       const RelayHash &relay_block_hash,
       const CandidateHash &candidate_hash,
       SessionIndex session_index,
-      const network::CandidateReceipt &candidate,
+      const network::CandidateReceipt &candidate_receipt,
       ValidatorIndex validator_index,
       Hash block_hash,
       GroupIndex backing_group) {
     auto on_recover_complete =
         [wself{weak_from_this()},
-         candidate,
+         candidate_receipt,
          block_hash,
          session_index,
          validator_index,
@@ -1172,7 +1174,7 @@ namespace kagome::parachain {
             return;
           }
 
-          if (!opt_result) {
+          if (!opt_result) {  // Unavailable
             self->logger_->warn(
                 "No available parachain data.(session index={}, candidate "
                 "hash={}, relay block hash={})",
@@ -1190,13 +1192,16 @@ namespace kagome::parachain {
                 session_index,
                 candidate_hash,
                 relay_block_hash);
+            self->dispute_coordinator_.get()->issueLocalStatement(
+                session_index, candidate_hash, candidate_receipt, false);
             return;
           }
           auto &available_data = opt_result->value();
-          [[maybe_unused]] auto const para_id = candidate.descriptor.para_id;
+          [[maybe_unused]] auto const para_id =
+              candidate_receipt.descriptor.para_id;
 
           auto result = self->parachain_host_->validation_code_by_hash(
-              block_hash, candidate.descriptor.validation_code_hash);
+              block_hash, candidate_receipt.descriptor.validation_code_hash);
           if (result.has_error() || !result.value()) {
             self->logger_->warn(
                 "Approval state is failed. Block hash {}, session index {}, "
@@ -1204,7 +1209,7 @@ namespace kagome::parachain {
                 block_hash,
                 session_index,
                 validator_index,
-                candidate.descriptor.relay_parent);
+                candidate_receipt.descriptor.relay_parent);
             return;  /// ApprovalState::failed
           }
 
@@ -1216,18 +1221,23 @@ namespace kagome::parachain {
               block_hash);
 
           runtime::ValidationCode &validation_code = *result.value();
-          if (ApprovalOutcome::Approved
-              == self->validate_candidate_exhaustive(
-                  available_data.validation_data,
-                  available_data.pov,
-                  candidate,
-                  validation_code)) {
+
+          auto outcome = self->validate_candidate_exhaustive(
+              available_data.validation_data,
+              available_data.pov,
+              candidate_receipt,
+              validation_code);
+
+          if (ApprovalOutcome::Approved == outcome) {
             self->issue_approval(
                 candidate_hash, validator_index, relay_block_hash);
+          } else if (ApprovalOutcome::Failed == outcome) {
+            self->dispute_coordinator_.get()->issueLocalStatement(
+                session_index, candidate_hash, candidate_receipt, false);
           }
         };
 
-    recovery_->recover(candidate,
+    recovery_->recover(candidate_receipt,
                        session_index,
                        backing_group,
                        std::move(on_recover_complete));

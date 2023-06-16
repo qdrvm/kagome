@@ -112,7 +112,7 @@ namespace kagome::dispute {
       auto &[session_index, candidate_hash] = key;
 
       auto &statement_set = result.emplace_back(
-          DisputeStatementSet{candidate_hash, session_index});
+          DisputeStatementSet{candidate_hash, session_index, {}});
 
       for (auto &[validator_index, value] : votes.valid) {
         auto &[statement, validator_signature] = value;

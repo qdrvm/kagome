@@ -23,34 +23,11 @@ namespace kagome::dispute {
 
     virtual ~DisputeCoordinator() = default;
 
-    /// Import statements by validators about a candidate.
-    ///
-    /// The subsystem will silently discard ancient statements or sets of only
-    /// dispute-specific statements for candidates that are previously unknown
-    /// to the subsystem. The former is simply because ancient data is not
-    /// relevant and the latter is as a DoS prevention mechanism. Both backing
-    /// and approval statements already undergo anti-DoS procedures in their
-    /// respective subsystems, but statements cast specifically for disputes are
-    /// not necessarily relevant to any candidate the system is already aware of
-    /// and thus present a DoS vector. Our expectation is that nodes will notify
-    /// each other of disputes over the network by providing (at least) 2
-    /// conflicting statements, of which one is either a backing or validation
-    /// statement.
-    ///
-    /// This does not do any checking of the message signature.
-    ///
-    /// @param candidate_receipt - The candidate receipt itself
-    /// @param session - The session the candidate appears in
-    /// @param statements - Statements, with signatures checked, by validators
-    /// participating in disputes. The validator index passed alongside each
-    /// statement should correspond to the index of the validator in the set.
-    /// @param cb - Callback for result
-    virtual void handle_incoming_ImportStatements(
-        CandidateReceipt candidate_receipt,
-        SessionIndex session,
-        std::vector<Indexed<SignedDisputeStatement>>
-            statements,  // FIXME avoid copy
-        CbOutcome<void> &&cb) = 0;
+    //    virtual void importStatements(CandidateReceipt candidate_receipt,
+    //                                  SessionIndex session,
+    //                                  std::vector<Indexed<SignedDisputeStatement>>
+    //                                      statements,  // FIXME avoid copy
+    //                                  CbOutcome<void> &&cb) = 0;
 
     /// Fetch a list of all recent disputes the coordinator is aware of.
     /// These are disputes which have occurred any time in recent sessions,
@@ -67,12 +44,10 @@ namespace kagome::dispute {
 
     /// Sign and issue local dispute votes. A value of `true` indicates
     /// validity, and `false` invalidity.
-    virtual void handle_incoming_IssueLocalStatement(
-        SessionIndex session,
-        CandidateHash candidate_hash,
-        CandidateReceipt candidate_receipt,
-        bool valid,
-        CbOutcome<void> &&cb) = 0;
+    virtual void issueLocalStatement(SessionIndex session,
+                                     CandidateHash candidate_hash,
+                                     CandidateReceipt candidate_receipt,
+                                     bool valid) = 0;
 
     /// Determine the highest undisputed block within the given chain, based on
     /// where candidates were included. If even the base block should not be

@@ -122,12 +122,6 @@ namespace kagome::dispute {
                           const network::DisputeMessage &request,
                           CbOutcome<void> &&cb) override;
 
-    void handle_incoming_ImportStatements(
-        CandidateReceipt candidate_receipt,
-        SessionIndex session,
-        std::vector<Indexed<SignedDisputeStatement>> statements,
-        CbOutcome<void> &&cb) override;
-
     void getRecentDisputes(CbOutcome<OutputDisputes> &&cb) override;
 
     void getActiveDisputes(CbOutcome<OutputDisputes> &&cb) override;
@@ -135,11 +129,10 @@ namespace kagome::dispute {
     void queryCandidateVotes(const QueryCandidateVotes &msg,
                              CbOutcome<OutputCandidateVotes> &&cb) override;
 
-    void handle_incoming_IssueLocalStatement(SessionIndex session,
-                                             CandidateHash candidate_hash,
-                                             CandidateReceipt candidate_receipt,
-                                             bool valid,
-                                             CbOutcome<void> &&cb) override;
+    void issueLocalStatement(SessionIndex session,
+                             CandidateHash candidate_hash,
+                             CandidateReceipt candidate_receipt,
+                             bool valid) override;
 
     void determineUndisputedChain(
         primitives::BlockInfo base,
@@ -155,6 +148,34 @@ namespace kagome::dispute {
     void on_participation(const ParticipationStatement &message);
     void on_active_leaves_update(const network::ExView &updated);
     void on_finalized_block(const primitives::BlockInfo &finalized);
+
+    /// Import statements by validators about a candidate.
+    ///
+    /// The subsystem will silently discard ancient statements or sets of only
+    /// dispute-specific statements for candidates that are previously unknown
+    /// to the subsystem. The former is simply because ancient data is not
+    /// relevant and the latter is as a DoS prevention mechanism. Both backing
+    /// and approval statements already undergo anti-DoS procedures in their
+    /// respective subsystems, but statements cast specifically for disputes are
+    /// not necessarily relevant to any candidate the system is already aware of
+    /// and thus present a DoS vector. Our expectation is that nodes will notify
+    /// each other of disputes over the network by providing (at least) 2
+    /// conflicting statements, of which one is either a backing or validation
+    /// statement.
+    ///
+    /// This does not do any checking of the message signature.
+    ///
+    /// @param candidate_receipt - The candidate receipt itself
+    /// @param session - The session the candidate appears in
+    /// @param statements - Statements, with signatures checked, by validators
+    /// participating in disputes. The validator index passed alongside each
+    /// statement should correspond to the index of the validator in the set.
+    /// @param cb - Callback for result
+    void importStatements(
+        CandidateReceipt candidate_receipt,
+        SessionIndex session,
+        std::vector<Indexed<SignedDisputeStatement>> statements,
+        CbOutcome<void> &&cb);
 
     static std::optional<CandidateEnvironment> makeCandidateEnvironment(
         crypto::SessionKeys &session_keys,
