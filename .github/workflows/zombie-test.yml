@@ -1,0 +1,21 @@
+name: Build
+
+on:
+  push:
+    branches: [ master ]
+    tags: [ '*' ]
+  pull_request:
+
+jobs:
+  zombie-tests:
+    runs-on: [ ubuntu-latest, kagome, self-hosted, linux ]
+    steps:
+      - uses: actions/checkout@dc323e67f16fb5f7663d20ff7941f27f5809e9b6
+      - name: build zombie-tester
+        working-directory: ./zombienet/docker  
+        run: make tester
+      - name: run zombienet tests
+        working-directory: ./zombienet/docker  
+        run: make test
+        
+    

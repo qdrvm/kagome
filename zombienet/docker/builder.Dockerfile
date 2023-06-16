@@ -128,9 +128,6 @@ RUN cargo build -p polkadot-test-malus
 # Image with polkadot
 FROM docker.io/parity/polkadot:$POLKADOT_RELEASE_GLOBAL AS polkadot
 
-#Image with kagome
-FROM soramitsu/kagome:latest as kagome
-
 FROM zombie-builder AS final
 RUN mkdir -p /home/nonroot/bin
 COPY --from=polkadot-parachain /home/nonroot/cumulus/target/release/polkadot-parachain /home/nonroot/bin
