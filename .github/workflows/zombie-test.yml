@@ -7,15 +7,34 @@ on:
   pull_request:
 
 jobs:
-  zombie-tests:
+  zombie-test0001-parachains-smoke-test:
     runs-on: [ ubuntu-latest, kagome, self-hosted, linux ]
     steps:
       - uses: actions/checkout@dc323e67f16fb5f7663d20ff7941f27f5809e9b6
       - name: build zombie-tester
-        working-directory: ./zombienet/docker  
+        working-directory: ./zombienet/docker
         run: make tester
-      - name: run zombienet tests
-        working-directory: ./zombienet/docker  
-        run: make test
+      - name: parachains smoke test
+        working-directory: ./zombienet/docker
+        run: make test0001
+  zombie-test0002-parachains-upgrade-smoke-test:
+    runs-on: [ ubuntu-latest, kagome, self-hosted, linux ]
+    steps:
+      - uses: actions/checkout@dc323e67f16fb5f7663d20ff7941f27f5809e9b6
+      - name: build zombie-tester
+        working-directory: ./zombienet/docker
+        run: make tester
+      - name: parachains upgrade smoke test
+        working-directory: ./zombienet/docker
+        run: make test0002
+  zombie-test0003-parachains-smoke-test-cumulus:
+    runs-on: [ ubuntu-latest, kagome, self-hosted, linux ]
+    steps:
+      - uses: actions/checkout@dc323e67f16fb5f7663d20ff7941f27f5809e9b6
+      - name: build zombie-tester
+        working-directory: ./zombienet/docker
+        run: make tester
+      - name: parachains smoke test cumulus
+        working-directory: ./zombienet/docker
+        run: make test0003
         
-    

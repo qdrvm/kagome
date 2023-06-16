@@ -9,5 +9,14 @@ builder:
 tester:
 	docker build -t soramitsu/zombie-tester:latest -f tester.Dockerfile .
 
-test:
-	docker run soramitsu/zombie-tester:latest
+tests:
+	docker run -it soramitsu/zombie-tester:latest
+
+test0001:
+	docker run soramitsu/zombie-tester:latest zombienet-linux-x64 test -p native kagome/zombienet/0001-parachains-smoke-test/0001-parachains-smoke-test.zndsl
+
+test0002:
+	docker run soramitsu/zombie-tester:latest zombienet-linux-x64 test -p native kagome/zombienet/0002-parachains-upgrade-smoke-tests/0002-parachains-upgrade-smoke-test.zndsl
+
+test0003:
+	docker run soramitsu/zombie-tester:latest zombienet-linux-x64 test -p native kagome/zombienet/0003-parachains-smoke-test-cumulus/0003-parachains-smoke-test-cumulus.zndsl
