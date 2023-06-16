@@ -10,4 +10,4 @@ tester:
 	docker build -t soramitsu/zombie-tester:latest -f tester.Dockerfile .
 
 test:
-	docker run -it soramitsu/zombie-tester:latest 
+	docker run soramitsu/zombie-tester:latest
