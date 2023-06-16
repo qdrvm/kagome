@@ -98,14 +98,11 @@ extern void getThreadReport(std::unique_ptr<IReportViewer>& report);
 
 class ProfilerMarker final {
     char const* const tag_;
-    timespec begin_{};
+    std::chrono::time_point<std::chrono::high_resolution_clock> start_;
 
     inline PerformanceCounter getCounter() const {
-        timespec end{};
-        clock_gettime(CLOCK_MONOTONIC_RAW, &end);
-
-        return ((end.tv_sec - begin_.tv_sec) * 1000000000ull +
-            (end.tv_nsec - begin_.tv_nsec));
+        const auto end = std::chrono::high_resolution_clock::now();
+        return std::chrono::duration_cast<std::chrono::nanoseconds>(end - start_).count();
     }
 
 public:
@@ -118,7 +115,7 @@ public:
     ProfilerMarker(Hash f_hash, char const *tag) : tag_(tag) {
         assert(nullptr != tag_);
         pushFunctionEntry(f_hash);
-        clock_gettime(CLOCK_MONOTONIC_RAW, &begin_);
+        start_ = std::chrono::high_resolution_clock::now();
     }
     ~ProfilerMarker() {
         popFunctionEntry(getCounter(), tag_);

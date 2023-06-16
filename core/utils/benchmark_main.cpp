@@ -70,7 +70,10 @@ namespace kagome {
         auto &m_it = thread_viewer.getMethodIterator();
         auto &s_it = thread_viewer.getStackIterator();
 
+        m_it.sortMethods(iroha::performance_tools::SortType::kSortByCounter, false);
         m_it.printMethods(report);
+
+        s_it.sortStacks(iroha::performance_tools::SortType::kSortByCounter, false);
         s_it.printStacks(report);
       } while (thread_viewer.threadNext());
     }
