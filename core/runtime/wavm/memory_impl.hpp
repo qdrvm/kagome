@@ -45,11 +45,12 @@ namespace kagome::runtime::wavm {
       return res;
     }
 
-    template <typename T, typename = std::enable_if_t<std::is_integral_v<T>>>
-    T *loadArray(WasmPointer addr, size_t num) const {
+    template <typename T, typename = std::enable_if_t<std::is_pod_v<T>>>
+    gsl::span<T> loadArray(WasmPointer addr, size_t num) const {
       auto res = WAVM::Runtime::memoryArrayPtr<T>(memory_, addr, num);
-      SL_TRACE_FUNC_CALL(logger_, gsl::span<T>(res, num), this, addr);
-      return res;
+      gsl::span<T> buffer(res, num);
+      SL_TRACE_FUNC_CALL(logger_, buffer, this, addr);
+      return buffer;
     }
 
     int8_t load8s(WasmPointer addr) const override;
@@ -62,7 +63,7 @@ namespace kagome::runtime::wavm {
     uint64_t load64u(WasmPointer addr) const override;
     std::array<uint8_t, 16> load128(WasmPointer addr) const override;
 
-    common::Buffer loadN(WasmPointer addr, WasmSize n) const override;
+    common::BufferView loadN(WasmPointer addr, WasmSize n) const override;
 
     std::string loadStr(WasmPointer addr, WasmSize n) const override;
 

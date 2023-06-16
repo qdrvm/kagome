@@ -6,6 +6,7 @@
 #ifndef KAGOME_CORE_RUNTIME_COMMON_MEMORY_ALLOCATOR_HPP
 #define KAGOME_CORE_RUNTIME_COMMON_MEMORY_ALLOCATOR_HPP
 
+#include <deque>
 #include <map>
 #include <unordered_map>
 
@@ -38,6 +39,18 @@ namespace kagome::runtime {
     return math::roundUp<kAlignment>(t);
   }
 
+  inline bool isPowerOf2(size_t x) {
+    return ((x > 0ull) && ((x & (x - 1ull)) == 0));
+  }
+
+  inline size_t nextHighPowerOf2(size_t k) {
+    if (isPowerOf2(k)) {
+      return k;
+    }
+    const auto p = k == 0ull ? 0ull : 64ull - __builtin_clzll(k);
+    return (1ull << p);
+  }
+
   /**
    * Implementation of allocator for the runtime memory
    * Combination of monotonic and free-list allocator
@@ -47,10 +60,13 @@ namespace kagome::runtime {
     struct MemoryHandle {
       std::function<void(size_t)> resize;
       std::function<size_t()> getSize;
+      std::function<void(WasmPointer, uint32_t)> storeSz;
+      std::function<uint32_t(WasmPointer)> loadSz;
     };
+
     MemoryAllocator(MemoryHandle memory, WasmPointer heap_base);
 
-    WasmPointer allocate(WasmSize size);
+    WasmPointer allocate(const WasmSize size);
     std::optional<WasmSize> deallocate(WasmPointer ptr);
 
     template <typename T>
@@ -62,40 +78,51 @@ namespace kagome::runtime {
       return offset_ > addr and offset_ - addr >= size;
     }
 
-    /// following methods are needed mostly for testing purposes
+    /*
+      Following methods are needed mostly for testing purposes.
+      getDeallocatedChunkSize is a slow function with O(N) complexity.
+    */
     std::optional<WasmSize> getDeallocatedChunkSize(WasmPointer ptr) const;
     std::optional<WasmSize> getAllocatedChunkSize(WasmPointer ptr) const;
-    size_t getAllocatedChunksNum() const;
     size_t getDeallocatedChunksNum() const;
 
    private:
-    /**
-     * Finds memory segment of given size among deallocated pieces of memory
-     * and allocates a memory there
-     * @param size of target memory
-     * @return address of memory of given size, or -1 if it is impossible to
-     * allocate this amount of memory
-     */
-    WasmPointer freealloc(WasmSize size);
+    struct AllocationHeader {
+      uint32_t chunk_sz;
+      uint32_t allocation_sz;
+
+      void serialize(WasmPointer ptr, MemoryHandle &mh) const {
+        mh.storeSz(ptr, chunk_sz);
+        mh.storeSz(ptr + sizeof(chunk_sz), allocation_sz);
+      }
+      void deserialize(WasmPointer ptr, const MemoryHandle &mh) {
+        chunk_sz = mh.loadSz(ptr);
+        allocation_sz = mh.loadSz(ptr + sizeof(chunk_sz));
+      }
+    };
+    static constexpr size_t AlloocationHeaderSz =
+        roundUpAlign(sizeof(AllocationHeader));
 
     /**
      * Resize memory and allocate memory segment of given size
-     * @param size memory size to be allocated
+     * @param allocation_sz memory size to be allocated
+     * @param chunk_sz is the memory size which is next pow of 2 from
+     * alligned(allocation size) + alligned(AllocationHeaderSize)
      * @return pointer to the allocated memory @or 0 if it is impossible to
      * allocate this amount of memory
      */
-    WasmPointer growAlloc(WasmSize size);
+    WasmPointer growAlloc(size_t chunk_sz, WasmSize allocation_sz);
 
     void resize(WasmSize size);
 
    private:
     MemoryHandle memory_;
 
-    // map containing addresses of allocated MemoryImpl chunks
-    std::unordered_map<WasmPointer, WasmSize> allocated_;
-
-    // map containing addresses to the deallocated MemoryImpl chunks
-    std::map<WasmPointer, WasmSize> deallocated_;
+    /**
+     * Contains information about available chunks for allocation. Key is size
+     * and is power of 2.
+     */
+    std::unordered_map<WasmSize, std::deque<WasmPointer>> available_;
 
     // Offset on the tail of the last allocated MemoryImpl chunk
     size_t offset_;

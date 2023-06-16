@@ -24,7 +24,11 @@ namespace kagome::runtime::wavm {
                    std::make_unique<MemoryAllocator>(
                        MemoryAllocator::MemoryHandle{
                            [this](auto size) { return resize(size); },
-                           [this]() { return size(); }},
+                           [this]() { return size(); },
+                           [this](auto addr, uint32_t value) {
+                             store<uint32_t>(addr, value);
+                           },
+                           [this](auto addr) { return load<uint32_t>(addr); }},
                        heap_base)} {}
 
   WasmPointer MemoryImpl::allocate(WasmSize size) {
@@ -62,15 +66,13 @@ namespace kagome::runtime::wavm {
   std::array<uint8_t, 16> MemoryImpl::load128(WasmPointer addr) const {
     auto byte_array = loadArray<uint8_t>(addr, 16);
     std::array<uint8_t, 16> array;
-    std::copy_n(byte_array, 16, array.begin());
+    memcpy(array.data(), byte_array.data(), 16);
     return array;
   }
 
-  common::Buffer MemoryImpl::loadN(kagome::runtime::WasmPointer addr,
-                                   kagome::runtime::WasmSize n) const {
-    common::Buffer res;
-    auto byte_array = loadArray<uint8_t>(addr, n);
-    return common::Buffer{byte_array, byte_array + n};
+  common::BufferView MemoryImpl::loadN(kagome::runtime::WasmPointer addr,
+                                       kagome::runtime::WasmSize n) const {
+    return loadArray<uint8_t>(addr, n);
   }
 
   std::string MemoryImpl::loadStr(kagome::runtime::WasmPointer addr,
