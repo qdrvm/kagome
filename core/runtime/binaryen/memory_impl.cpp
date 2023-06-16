@@ -21,12 +21,17 @@ namespace kagome::runtime::binaryen {
 
   MemoryImpl::MemoryImpl(RuntimeExternalInterface::InternalMemory *memory,
                          WasmSize heap_base)
-      : MemoryImpl{memory,
-                   std::make_unique<MemoryAllocator>(
-                       MemoryAllocator::MemoryHandle{
-                           [this](auto new_size) { return resize(new_size); },
-                           [this]() { return size_; }},
-                       heap_base)} {}
+      : MemoryImpl{
+          memory,
+          std::make_unique<MemoryAllocator>(
+              MemoryAllocator::MemoryHandle{
+                  [this](auto new_size) { return resize(new_size); },
+                  [this]() { return size_; },
+                  [this](auto addr, uint32_t value) {
+                    memory_->set<uint32_t>(addr, value);
+                  },
+                  [this](auto addr) { return memory_->get<uint32_t>(addr); }},
+              heap_base)} {}
 
   WasmPointer MemoryImpl::allocate(WasmSize size) {
     return allocator_->allocate(size);
@@ -73,15 +78,10 @@ namespace kagome::runtime::binaryen {
     return memory_->get<std::array<uint8_t, 16>>(addr);
   }
 
-  common::Buffer MemoryImpl::loadN(kagome::runtime::WasmPointer addr,
-                                   kagome::runtime::WasmSize n) const {
+  common::BufferView MemoryImpl::loadN(kagome::runtime::WasmPointer addr,
+                                       kagome::runtime::WasmSize n) const {
     BOOST_ASSERT(size_ > addr and size_ - addr >= n);
-    common::Buffer res;
-    res.reserve(n);
-    for (auto i = addr; i < addr + n; i++) {
-      res.putUint8(memory_->get<uint8_t>(i));
-    }
-    return res;
+    return common::BufferView{memory_->getBuffer<const uint8_t>(addr, n)};
   }
 
   std::string MemoryImpl::loadStr(kagome::runtime::WasmPointer addr,

@@ -17,14 +17,14 @@
 
 namespace kagome::runtime {
 
-  constexpr inline size_t kInitialMemorySize = []() {
+  inline constexpr size_t kInitialMemorySize = []() {
     using kagome::common::literals::operator""_MB;
     return 2_MB;
   }();
 
   // according to $3.1.2.1 in the Polkadot Host Spec
   // https://webassembly.github.io/spec/core/exec/runtime.html#memory-instances
-  constexpr inline size_t kMemoryPageSize = []() {
+  inline constexpr size_t kMemoryPageSize = []() {
     using kagome::common::literals::operator""_kB;
     return 64_kB;
   }();
@@ -41,7 +41,7 @@ namespace kagome::runtime {
    public:
     virtual ~Memory() = default;
 
-    constexpr static uint32_t kMaxMemorySize =
+    static constexpr uint32_t kMaxMemorySize =
         std::numeric_limits<uint32_t>::max();
 
     /**
@@ -88,9 +88,9 @@ namespace kagome::runtime {
      * Load bytes from provided address into the buffer of size n
      * @param addr address in memory to load bytes
      * @param n number of bytes to be loaded
-     * @return Buffer of length N
+     * @return BufferView of length N
      */
-    virtual common::Buffer loadN(WasmPointer addr, WasmSize n) const = 0;
+    virtual common::BufferView loadN(WasmPointer addr, WasmSize n) const = 0;
     /**
      * Load string from address into buffer of size n
      * @param addr address in memory to load bytes
