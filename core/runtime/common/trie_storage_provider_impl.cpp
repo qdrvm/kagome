@@ -8,6 +8,7 @@
 #include "runtime/common/runtime_transaction_error.hpp"
 #include "storage/trie/impl/topper_trie_batch_impl.hpp"
 #include "storage/trie/trie_batches.hpp"
+#include "profiler/profiler.hpp"
 
 OUTCOME_CPP_DEFINE_CATEGORY(kagome::runtime,
                             TrieStorageProviderImpl::Error,
@@ -39,6 +40,7 @@ namespace kagome::runtime {
 
   outcome::result<void> TrieStorageProviderImpl::setToEphemeralAt(
       const common::Hash256 &state_root) {
+    PROFILER_ADD_FUNCTION;
     SL_DEBUG(logger_,
              "Setting storage provider to ephemeral batch with root {}",
              state_root);
@@ -50,6 +52,7 @@ namespace kagome::runtime {
   outcome::result<void> TrieStorageProviderImpl::setToPersistentAt(
       const common::Hash256 &state_root,
       TrieChangesTrackerOpt changes_tracker) {
+    PROFILER_ADD_FUNCTION;
     SL_DEBUG(logger_,
              "Setting storage provider to new persistent batch with root {}",
              state_root);
@@ -62,6 +65,7 @@ namespace kagome::runtime {
 
   void TrieStorageProviderImpl::setTo(
       std::shared_ptr<storage::trie::TrieBatch> batch) {
+    PROFILER_ADD_FUNCTION;
     SL_DEBUG(logger_, "Setting storage provider to new batch");
     child_batches_.clear();
     base_batch_ = batch;
@@ -77,6 +81,7 @@ namespace kagome::runtime {
   outcome::result<std::optional<std::shared_ptr<storage::trie::TrieBatch>>>
   TrieStorageProviderImpl::findChildBatchAt(
       const common::Buffer &root_path) const {
+    PROFILER_ADD_FUNCTION;
     for (auto transaction_it = transaction_stack_.rbegin();
          transaction_it != transaction_stack_.rend();
          transaction_it++) {
@@ -95,6 +100,7 @@ namespace kagome::runtime {
   outcome::result<std::shared_ptr<storage::trie::TrieBatch>>
   TrieStorageProviderImpl::createBaseChildBatchAt(
       const common::Buffer &root_path) {
+    PROFILER_ADD_FUNCTION;
     SL_DEBUG(logger_,
              "Creating new base batch for child storage {}",
              root_path.toHex());
@@ -110,6 +116,7 @@ namespace kagome::runtime {
 
   outcome::result<std::reference_wrapper<const storage::trie::TrieBatch>>
   TrieStorageProviderImpl::getChildBatchAt(const common::Buffer &root_path) {
+    PROFILER_ADD_FUNCTION;
     OUTCOME_TRY(batch_opt, findChildBatchAt(root_path));
     if (batch_opt.has_value()) {
       return **batch_opt;
@@ -122,6 +129,7 @@ namespace kagome::runtime {
   TrieStorageProviderImpl::getMutableChildBatchAt(
       const common::Buffer &root_path) {
     // if we already have the batch, return it
+    PROFILER_ADD_FUNCTION;
     if (!transaction_stack_.empty()
         && transaction_stack_.back().child_batches.count(root_path) != 0) {
       return *transaction_stack_.back().child_batches.at(root_path);
@@ -136,6 +144,8 @@ namespace kagome::runtime {
       base_batch = it->second;
     }
     auto highest_child_batch = base_batch;
+
+    PROFILER_ADD_POINT_0;
     for (auto &transaction : transaction_stack_) {
       // if we have a batch at this level, just memorize it
       if (auto it = transaction.child_batches.find(root_path);
@@ -155,6 +165,7 @@ namespace kagome::runtime {
 
   outcome::result<storage::trie::RootHash> TrieStorageProviderImpl::commit(
       StateVersion version) {
+    PROFILER_ADD_FUNCTION;
     if (!transaction_stack_.empty()) {
       return Error::UNFINISHED_TRANSACTIONS_LEFT;
     }
@@ -166,6 +177,7 @@ namespace kagome::runtime {
   }
 
   outcome::result<void> TrieStorageProviderImpl::startTransaction() {
+    PROFILER_ADD_FUNCTION;
     transaction_stack_.emplace_back(Transaction{
         std::make_shared<TopperTrieBatchImpl>(getCurrentBatch()), {}});
     SL_TRACE(logger_,
@@ -175,6 +187,7 @@ namespace kagome::runtime {
   }
 
   outcome::result<void> TrieStorageProviderImpl::rollbackTransaction() {
+    PROFILER_ADD_FUNCTION;
     if (transaction_stack_.empty()) {
       return RuntimeTransactionError::NO_TRANSACTIONS_WERE_STARTED;
     }
@@ -187,6 +200,7 @@ namespace kagome::runtime {
   }
 
   outcome::result<void> TrieStorageProviderImpl::commitTransaction() {
+    PROFILER_ADD_FUNCTION;
     if (transaction_stack_.empty()) {
       return RuntimeTransactionError::NO_TRANSACTIONS_WERE_STARTED;
     }

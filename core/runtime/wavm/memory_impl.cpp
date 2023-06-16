@@ -77,6 +77,7 @@ namespace kagome::runtime::wavm {
 
   std::string MemoryImpl::loadStr(kagome::runtime::WasmPointer addr,
                                   kagome::runtime::WasmSize n) const {
+    PROFILER_ADD_FUNCTION;
     std::string res;
     res.reserve(n);
     for (auto i = addr; i < addr + n; i++) {

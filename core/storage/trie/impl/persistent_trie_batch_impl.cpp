@@ -11,6 +11,7 @@
 #include "storage/trie/polkadot_trie/polkadot_trie_cursor_impl.hpp"
 #include "storage/trie/polkadot_trie/trie_error.hpp"
 #include "storage/trie/serialization/trie_serializer.hpp"
+#include "profiler/profiler.hpp"
 
 OUTCOME_CPP_DEFINE_CATEGORY(kagome::storage::trie,
                             PersistentTrieBatchImpl::Error,
@@ -38,6 +39,7 @@ namespace kagome::storage::trie {
 
   outcome::result<RootHash> PersistentTrieBatchImpl::commit(
       StateVersion version) {
+    PROFILER_ADD_FUNCTION;
     OUTCOME_TRY(commitChildren(version));
     OUTCOME_TRY(root, serializer_->storeTrie(*trie_, version));
     SL_TRACE_FUNC_CALL(logger_, root);
@@ -47,6 +49,7 @@ namespace kagome::storage::trie {
   outcome::result<std::tuple<bool, uint32_t>>
   PersistentTrieBatchImpl::clearPrefix(const BufferView &prefix,
                                        std::optional<uint64_t> limit) {
+    PROFILER_ADD_FUNCTION;
     SL_TRACE_VOID_FUNC_CALL(logger_, prefix);
     return trie_->clearPrefix(
         prefix, limit, [&](const auto &key, auto &&) -> outcome::result<void> {
@@ -59,6 +62,7 @@ namespace kagome::storage::trie {
 
   outcome::result<void> PersistentTrieBatchImpl::put(const BufferView &key,
                                                      BufferOrView &&value) {
+    PROFILER_ADD_FUNCTION;
     OUTCOME_TRY(contains, trie_->contains(key));
     bool is_new_entry = not contains;
     auto value_copy = value.mut();
@@ -72,6 +76,7 @@ namespace kagome::storage::trie {
   }
 
   outcome::result<void> PersistentTrieBatchImpl::remove(const BufferView &key) {
+    PROFILER_ADD_FUNCTION;
     OUTCOME_TRY(trie_->remove(key));
     if (changes_.has_value()) {
       SL_TRACE_VOID_FUNC_CALL(logger_, key);
@@ -82,6 +87,7 @@ namespace kagome::storage::trie {
 
   outcome::result<std::unique_ptr<TrieBatch>>
   PersistentTrieBatchImpl::createFromTrieHash(const RootHash &trie_hash) {
+    PROFILER_ADD_FUNCTION;
     OUTCOME_TRY(trie, serializer_->retrieveTrie(trie_hash, nullptr));
     return std::make_unique<PersistentTrieBatchImpl>(
         codec_, serializer_, changes_, trie);

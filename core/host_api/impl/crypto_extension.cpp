@@ -383,6 +383,7 @@ namespace kagome::host_api {
       runtime::WasmPointer pubkey_data) {
     // TODO(Harrm): this should support deprecated signatures from schnorrkel
     // 0.1.1 in contrary to version_2
+    PROFILER_ADD_FUNCTION;
     auto [msg_data, msg_len] = runtime::PtrSize(msg_span);
     auto msg = getMemory().loadN(msg_data, msg_len);
     auto signature_buffer =
@@ -401,6 +402,7 @@ namespace kagome::host_api {
                 sr25519_constants::SIGNATURE_SIZE,
                 signature.begin());
 
+    PROFILER_ADD_POINT_0;
     auto verify_res = sr25519_provider_->verify_deprecated(signature, msg, key);
 
     auto res = verify_res && verify_res.value() ? kVerifySuccess : kVerifyFail;

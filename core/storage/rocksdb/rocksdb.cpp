@@ -15,6 +15,7 @@
 #include "storage/rocksdb/rocksdb_cursor.hpp"
 #include "storage/rocksdb/rocksdb_spaces.hpp"
 #include "storage/rocksdb/rocksdb_util.hpp"
+#include "profiler/profiler.hpp"
 
 namespace kagome::storage {
   namespace fs = filesystem;
@@ -90,6 +91,7 @@ namespace kagome::storage {
   }
 
   std::shared_ptr<BufferStorage> RocksDb::getSpace(Space space) {
+    PROFILER_ADD_FUNCTION;
     if (spaces_.contains(space)) {
       return spaces_[space];
     }
@@ -110,6 +112,7 @@ namespace kagome::storage {
   }
 
   void RocksDb::dropColumn(kagome::storage::Space space) {
+    PROFILER_ADD_FUNCTION;
     auto space_name = spaceName(space);
     auto column_it =
         std::find_if(column_family_handles_.begin(),
@@ -134,6 +137,7 @@ namespace kagome::storage {
 
   rocksdb::BlockBasedTableOptions RocksDb::tableOptionsConfiguration(
       uint32_t lru_cache_size_mib, uint32_t block_size_kib) {
+    PROFILER_ADD_FUNCTION;
     rocksdb::BlockBasedTableOptions table_options;
     table_options.format_version = 5;
     table_options.block_cache = rocksdb::NewLRUCache(
@@ -146,6 +150,7 @@ namespace kagome::storage {
 
   rocksdb::ColumnFamilyOptions RocksDb::configureColumn(
       uint32_t memory_budget) {
+    PROFILER_ADD_FUNCTION;
     rocksdb::ColumnFamilyOptions options;
     options.OptimizeLevelStyleCompaction(memory_budget);
     auto table_options = tableOptionsConfiguration();
@@ -165,6 +170,7 @@ namespace kagome::storage {
   }
 
   size_t RocksDbSpace::size() const {
+    PROFILER_ADD_FUNCTION;
     auto rocks = storage_.lock();
     if (!rocks) {
       return 0;
@@ -188,6 +194,7 @@ namespace kagome::storage {
   }
 
   std::unique_ptr<RocksDbSpace::Cursor> RocksDbSpace::cursor() {
+    PROFILER_ADD_FUNCTION;
     auto rocks = storage_.lock();
     if (!rocks) {
       throw DatabaseError::STORAGE_GONE;
@@ -198,6 +205,7 @@ namespace kagome::storage {
   }
 
   outcome::result<bool> RocksDbSpace::contains(const BufferView &key) const {
+    PROFILER_ADD_FUNCTION;
     OUTCOME_TRY(rocks, use());
     std::string value;
     auto status = rocks->db_->Get(rocks->ro_, column_, make_slice(key), &value);
@@ -213,6 +221,7 @@ namespace kagome::storage {
   }
 
   bool RocksDbSpace::empty() const {
+    PROFILER_ADD_FUNCTION;
     auto rocks = storage_.lock();
     if (!rocks) {
       return true;
@@ -224,6 +233,7 @@ namespace kagome::storage {
   }
 
   outcome::result<BufferOrView> RocksDbSpace::get(const BufferView &key) const {
+    PROFILER_ADD_FUNCTION;
     OUTCOME_TRY(rocks, use());
     std::string value;
     auto status = rocks->db_->Get(rocks->ro_, column_, make_slice(key), &value);
@@ -238,6 +248,7 @@ namespace kagome::storage {
 
   outcome::result<std::optional<BufferOrView>> RocksDbSpace::tryGet(
       const BufferView &key) const {
+    PROFILER_ADD_FUNCTION;
     OUTCOME_TRY(rocks, use());
     std::string value;
     auto status = rocks->db_->Get(rocks->ro_, column_, make_slice(key), &value);
@@ -256,6 +267,7 @@ namespace kagome::storage {
 
   outcome::result<void> RocksDbSpace::put(const BufferView &key,
                                           BufferOrView &&value) {
+    PROFILER_ADD_FUNCTION;
     OUTCOME_TRY(rocks, use());
     auto status = rocks->db_->Put(
         rocks->wo_, column_, make_slice(key), make_slice(value));
@@ -267,6 +279,7 @@ namespace kagome::storage {
   }
 
   outcome::result<void> RocksDbSpace::remove(const BufferView &key) {
+    PROFILER_ADD_FUNCTION;
     OUTCOME_TRY(rocks, use());
     auto status = rocks->db_->Delete(rocks->wo_, column_, make_slice(key));
     if (status.ok()) {
@@ -277,6 +290,7 @@ namespace kagome::storage {
   }
 
   void RocksDbSpace::compact(const Buffer &first, const Buffer &last) {
+    PROFILER_ADD_FUNCTION;
     auto rocks = storage_.lock();
     if (!rocks) {
       return;
@@ -296,6 +310,7 @@ namespace kagome::storage {
   }
 
   outcome::result<std::shared_ptr<RocksDb>> RocksDbSpace::use() const {
+    PROFILER_ADD_FUNCTION;
     auto rocks = storage_.lock();
     if (!rocks) {
       return DatabaseError::STORAGE_GONE;

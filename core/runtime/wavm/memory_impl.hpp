@@ -17,6 +17,7 @@
 #include "primitives/math.hpp"
 #include "runtime/types.hpp"
 #include "runtime/wavm/intrinsics/intrinsic_functions.hpp"
+#include "profiler/profiler.hpp"
 
 namespace kagome::runtime {
   class MemoryAllocator;
@@ -40,6 +41,7 @@ namespace kagome::runtime::wavm {
 
     template <typename T, typename = std::enable_if_t<std::is_integral_v<T>>>
     T load(WasmPointer addr) const {
+      PROFILER_ADD_FUNCTION;
       auto res = WAVM::Runtime::memoryRef<T>(memory_, addr);
       SL_TRACE_FUNC_CALL(logger_, res, this, addr);
       return res;
@@ -47,6 +49,7 @@ namespace kagome::runtime::wavm {
 
     template <typename T, typename = std::enable_if_t<std::is_pod_v<T>>>
     gsl::span<T> loadArray(WasmPointer addr, size_t num) const {
+      PROFILER_ADD_FUNCTION;
       auto res = WAVM::Runtime::memoryArrayPtr<T>(memory_, addr, num);
       gsl::span<T> buffer(res, num);
       SL_TRACE_FUNC_CALL(logger_, buffer, this, addr);
@@ -69,6 +72,7 @@ namespace kagome::runtime::wavm {
 
     template <typename T, typename = std::enable_if_t<std::is_integral_v<T>>>
     void store(WasmPointer addr, T value) {
+      PROFILER_ADD_FUNCTION;
       SL_TRACE_VOID_FUNC_CALL(logger_, this, addr, value);
       std::memcpy(
           WAVM::Runtime::memoryArrayPtr<uint8_t>(memory_, addr, sizeof(value)),
@@ -78,6 +82,7 @@ namespace kagome::runtime::wavm {
 
     template <typename T, typename = std::enable_if_t<std::is_integral_v<T>>>
     void storeArray(WasmPointer addr, gsl::span<T> array) {
+      PROFILER_ADD_FUNCTION;
       SL_TRACE_VOID_FUNC_CALL(logger_, this, addr, array);
       std::memcpy(WAVM::Runtime::memoryArrayPtr<uint8_t>(
                       memory_, addr, sizeof(array.size_bytes())),
@@ -100,6 +105,7 @@ namespace kagome::runtime::wavm {
     }
 
     void resize(WasmSize new_size) override {
+      PROFILER_ADD_FUNCTION;
       /**
        * We use this condition to avoid deallocated_ pointers fixup
        */

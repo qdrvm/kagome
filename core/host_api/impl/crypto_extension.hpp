@@ -14,6 +14,7 @@
 #include "log/logger.hpp"
 #include "runtime/memory_provider.hpp"
 #include "runtime/types.hpp"
+#include "profiler/profiler.hpp"
 
 namespace kagome::crypto {
   class Sr25519Provider;

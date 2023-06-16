@@ -20,6 +20,7 @@
 #include "storage/trie/impl/topper_trie_batch_impl.hpp"
 #include "storage/trie/polkadot_trie/trie_error.hpp"
 #include "storage/trie/serialization/ordered_trie_hash.hpp"
+#include "profiler/profiler.hpp"
 
 using kagome::common::Buffer;
 
@@ -55,6 +56,7 @@ namespace kagome::host_api {
       runtime::WasmSpan key_pos,
       runtime::WasmSpan value_out,
       runtime::WasmOffset offset) {
+    PROFILER_ADD_FUNCTION;
     auto [key_ptr, key_size] = runtime::PtrSize(key_pos);
     auto value = runtime::PtrSize(value_out);
     auto &memory = memory_provider_->getCurrentMemory()->get();
@@ -86,11 +88,13 @@ namespace kagome::host_api {
 
   outcome::result<std::optional<common::BufferOrView>> StorageExtension::get(
       const common::BufferView &key) const {
+    PROFILER_ADD_FUNCTION;
     auto batch = storage_provider_->getCurrentBatch();
     return batch->tryGet(key);
   }
 
   common::Buffer StorageExtension::loadKey(runtime::WasmSpan key) const {
+    PROFILER_ADD_FUNCTION;
     auto [key_ptr, key_size] = runtime::PtrSize(key);
     auto &memory = memory_provider_->getCurrentMemory()->get();
     return memory.loadN(key_ptr, key_size);
@@ -125,6 +129,7 @@ namespace kagome::host_api {
 
   runtime::WasmSpan StorageExtension::ext_storage_get_version_1(
       runtime::WasmSpan key) {
+    PROFILER_ADD_FUNCTION;
     auto [key_ptr, key_size] = runtime::PtrSize(key);
     auto &memory = memory_provider_->getCurrentMemory()->get();
     auto key_buffer = memory.loadN(key_ptr, key_size);
@@ -142,10 +147,12 @@ namespace kagome::host_api {
 
     auto &option = result.value();
 
-    return memory.storeBuffer(
-        scale::encode(common::map_optional(option, [](auto &r) {
+    PROFILER_ADD_POINT_0;
+    auto k1 = scale::encode(common::map_optional(option, [](auto &r) {
           return r.view();
-        })).value());
+        })).value();
+    PROFILER_ADD_POINT_1;
+    return memory.storeBuffer(std::move(k1));
   }
 
   void StorageExtension::ext_storage_clear_version_1(

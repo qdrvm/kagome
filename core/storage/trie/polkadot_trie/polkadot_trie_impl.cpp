@@ -10,6 +10,7 @@
 
 #include "storage/trie/polkadot_trie/polkadot_trie_cursor_impl.hpp"
 #include "storage/trie/polkadot_trie/trie_error.hpp"
+#include "profiler/profiler.hpp"
 
 using kagome::common::Buffer;
 
@@ -297,15 +298,18 @@ namespace kagome::storage::trie {
   PolkadotTrieImpl::~PolkadotTrieImpl() {}
 
   PolkadotTrie::ConstNodePtr PolkadotTrieImpl::getRoot() const {
+    PROFILER_ADD_FUNCTION;
     return nodes_->getRoot();
   }
 
   PolkadotTrie::NodePtr PolkadotTrieImpl::getRoot() {
+    PROFILER_ADD_FUNCTION;
     return nodes_->getRoot();
   }
 
   outcome::result<void> PolkadotTrieImpl::put(const BufferView &key,
                                               BufferOrView &&value) {
+    PROFILER_ADD_FUNCTION;
     auto k_enc = KeyNibbles::fromByteBuffer(key);
 
     NodePtr root = nodes_->getRoot();
@@ -325,6 +329,7 @@ namespace kagome::storage::trie {
       const common::BufferView &prefix,
       std::optional<uint64_t> limit,
       const OnDetachCallback &callback) {
+    PROFILER_ADD_FUNCTION;
     bool finished = true;
     uint32_t count = 0;
     auto key_nibbles = KeyNibbles::fromByteBuffer(prefix);
@@ -345,6 +350,7 @@ namespace kagome::storage::trie {
   outcome::result<PolkadotTrie::NodePtr> PolkadotTrieImpl::insert(
       const NodePtr &parent, const NibblesView &key_nibbles, NodePtr node) {
     // just update the node key and return it as the new root
+    PROFILER_ADD_FUNCTION;
     if (parent == nullptr) {
       node->key_nibbles = key_nibbles;
       return node;
@@ -401,6 +407,7 @@ namespace kagome::storage::trie {
 
   outcome::result<PolkadotTrie::NodePtr> PolkadotTrieImpl::updateBranch(
       BranchPtr parent, const NibblesView &key_nibbles, const NodePtr &node) {
+    PROFILER_ADD_FUNCTION;
     auto length = getCommonPrefixLength(key_nibbles, parent->key_nibbles);
 
     if (length == parent->key_nibbles.size()) {
@@ -438,6 +445,7 @@ namespace kagome::storage::trie {
 
   outcome::result<BufferOrView> PolkadotTrieImpl::get(
       const common::BufferView &key) const {
+    PROFILER_ADD_FUNCTION;
     OUTCOME_TRY(opt_value, tryGet(key));
     if (opt_value.has_value()) {
       return std::move(*opt_value);
@@ -447,6 +455,7 @@ namespace kagome::storage::trie {
 
   outcome::result<std::optional<BufferOrView>> PolkadotTrieImpl::tryGet(
       const common::BufferView &key) const {
+    PROFILER_ADD_FUNCTION;
     if (not nodes_->getRoot()) {
       return std::nullopt;
     }
@@ -461,6 +470,7 @@ namespace kagome::storage::trie {
 
   outcome::result<PolkadotTrie::NodePtr> PolkadotTrieImpl::getNode(
       ConstNodePtr parent, const NibblesView &key_nibbles) {
+    PROFILER_ADD_FUNCTION;
     // SAFETY: changing a parent's opaque child node from a handle to a node
     // to the actual node doesn't break it's const correctness, because opaque
     // nodes are meant to hide their content
@@ -473,6 +483,7 @@ namespace kagome::storage::trie {
 
   outcome::result<PolkadotTrie::ConstNodePtr> PolkadotTrieImpl::getNode(
       ConstNodePtr current, const NibblesView &nibbles) const {
+    PROFILER_ADD_FUNCTION;
     if (current == nullptr) {
       return nullptr;
     }
@@ -501,6 +512,7 @@ namespace kagome::storage::trie {
       const NibblesView &path,
       const std::function<outcome::result<void>(BranchNode const &,
                                                 uint8_t idx)> &callback) const {
+    PROFILER_ADD_FUNCTION;
     if (parent == nullptr) {
       return TrieError::NO_VALUE;
     }
@@ -532,11 +544,13 @@ namespace kagome::storage::trie {
   }
 
   std::unique_ptr<PolkadotTrieCursor> PolkadotTrieImpl::trieCursor() {
+    PROFILER_ADD_FUNCTION;
     return std::make_unique<PolkadotTrieCursorImpl>(shared_from_this());
   }
 
   outcome::result<bool> PolkadotTrieImpl::contains(
       const common::BufferView &key) const {
+    PROFILER_ADD_FUNCTION;
     if (not nodes_->getRoot()) {
       return false;
     }
@@ -547,11 +561,13 @@ namespace kagome::storage::trie {
   }
 
   bool PolkadotTrieImpl::empty() const {
+    PROFILER_ADD_FUNCTION;
     return nodes_->getRoot() == nullptr;
   }
 
   outcome::result<void> PolkadotTrieImpl::remove(
       const common::BufferView &key) {
+    PROFILER_ADD_FUNCTION;
     auto key_nibbles = KeyNibbles::fromByteBuffer(key);
     // delete node will fetch nodes that it needs from the storage (the
     // nodes typically are a path in the trie) and work on them in memory
@@ -565,17 +581,20 @@ namespace kagome::storage::trie {
 
   outcome::result<PolkadotTrie::ConstNodePtr> PolkadotTrieImpl::retrieveChild(
       const BranchNode &parent, uint8_t idx) const {
+    PROFILER_ADD_FUNCTION;
     OUTCOME_TRY(node, nodes_->getChild(parent, idx));
     return std::move(node);
   }
 
   outcome::result<PolkadotTrie::NodePtr> PolkadotTrieImpl::retrieveChild(
       const BranchNode &parent, uint8_t idx) {
+    PROFILER_ADD_FUNCTION;
     return nodes_->getChild(parent, idx);
   }
 
   outcome::result<void> PolkadotTrieImpl::retrieveValue(
       ValueAndHash &value) const {
+    PROFILER_ADD_FUNCTION;
     if (value.hash && !value.value) {
       OUTCOME_TRY(nodes_->retrieve_node_(std::make_shared<DummyValue>(value)));
     }
