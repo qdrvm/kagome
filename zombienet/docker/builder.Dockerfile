@@ -139,7 +139,6 @@ COPY --from=test-parachain-adder-collator /home/nonroot/polkadot/target/debug/ad
 COPY --from=test-parachain-undying-collator /home/nonroot/polkadot/target/debug/undying-collator /home/nonroot/bin
 COPY --from=polkadot-test-malus /home/nonroot/polkadot/target/debug/malus /home/nonroot/bin
 COPY --from=polkadot /usr/bin/polkadot /home/nonroot/bin
-COPY --from=kagome /usr/local/bin/kagome /home/nonroot/bin
 ENV PATH=/home/nonroot/bin:$PATH
 
 RUN apt-get update && \
@@ -152,8 +151,10 @@ RUN apt-get update && \
     apt-get update && \
     apt-get install --no-install-recommends -y libstdc++6 libc6 libnsl2 nano && \
     rm -rf /var/lib/apt/lists/*
+
 RUN wget https://github.com/paritytech/zombienet/releases/download/v1.3.55/zombienet-linux-x64 && \
     chmod +x zombienet-linux-x64 && \
-    cp zombienet-linux-x64 /usr/local/bin
+    cp zombienet-linux-x64 /home/nonroot/bin && \
+    rm -rf zombienet-linux-x64
 
-
+RUN chown -R root. /home/nonroot
