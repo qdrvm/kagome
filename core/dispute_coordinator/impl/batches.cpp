@@ -40,8 +40,6 @@ namespace kagome::dispute {
 
     // Wait for at least one batch to become ready
 
-    // TODO waiting
-
     BOOST_ASSERT_MSG(not waiting_queue_.empty(),
                      "Can't try to check if nothing waiting");
 

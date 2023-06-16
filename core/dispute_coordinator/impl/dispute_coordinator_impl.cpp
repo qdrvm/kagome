@@ -759,10 +759,9 @@ namespace kagome::dispute {
         internal_context_->execute([wp = weak_from_this()] {
           // https://github.com/paritytech/polkadot/blob/40974fb99c86f5c341105b7db53c7aa0df707d66/node/network/dispute-distribution/src/sender/mod.rs#L219
           if (auto self = wp.lock()) {
-            self->handle_incoming_ActiveDisputes(
-                [wp](auto active_disputes_res) {
+            self->getActiveDisputes([wp](auto active_disputes_res) {
 
-                });
+            });
           }
         });
 
@@ -1761,9 +1760,9 @@ namespace kagome::dispute {
     return cb(outcome::success());
   }
 
-  void DisputeCoordinatorImpl::handle_incoming_RecentDisputes(
+  void DisputeCoordinatorImpl::getRecentDisputes(
       CbOutcome<OutputDisputes> &&_cb) {
-    REINVOKE_1(*internal_context_, handle_incoming_RecentDisputes, _cb, cb);
+    REINVOKE_1(*internal_context_, getRecentDisputes, _cb, cb);
 
     // Return error if session information is missing.
     if (error_.has_value()) {
@@ -1795,9 +1794,9 @@ namespace kagome::dispute {
     cb(std::move(output));
   }
 
-  void DisputeCoordinatorImpl::handle_incoming_ActiveDisputes(
+  void DisputeCoordinatorImpl::getActiveDisputes(
       CbOutcome<OutputDisputes> &&_cb) {
-    REINVOKE_1(*internal_context_, handle_incoming_ActiveDisputes, _cb, cb);
+    REINVOKE_1(*internal_context_, getActiveDisputes, _cb, cb);
 
     // Return error if session information is missing.
     if (error_.has_value()) {
@@ -1846,18 +1845,10 @@ namespace kagome::dispute {
     cb(std::move(output));
   }
 
-  void DisputeCoordinatorImpl::handle_incoming_QueryCandidateVotes(
+  void DisputeCoordinatorImpl::queryCandidateVotes(
       const QueryCandidateVotes &_query,
       CbOutcome<OutputCandidateVotes> &&_cb) {
-    REINVOKE_2(*internal_context_,
-               handle_incoming_QueryCandidateVotes,
-               _query,
-               _cb,
-               query,
-               cb);
-
-    // TODO возвращаем данные, которые попадут в параинхеренты при создании
-    // блока
+    REINVOKE_2(*internal_context_, queryCandidateVotes, _query, _cb, query, cb);
 
     // Return error if session information is missing.
     if (error_.has_value()) {
@@ -1918,13 +1909,12 @@ namespace kagome::dispute {
     cb(outcome::success());
   }
 
-  // TODO вызывается из грандпа, возвращается блок без диспутов
-  void DisputeCoordinatorImpl::handle_incoming_DetermineUndisputedChain(
+  void DisputeCoordinatorImpl::determineUndisputedChain(
       primitives::BlockInfo _base,
       std::vector<BlockDescription> _block_descriptions,
       CbOutcome<primitives::BlockInfo> &&_cb) {
     REINVOKE_3(*internal_context_,
-               handle_incoming_DetermineUndisputedChain,
+               determineUndisputedChain,
                _base,
                _block_descriptions,
                _cb,

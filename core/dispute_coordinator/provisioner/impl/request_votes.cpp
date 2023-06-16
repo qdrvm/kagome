@@ -22,7 +22,7 @@ namespace kagome::dispute {
     auto res_future = promise_res.get_future();
 
     // https://github.com/paritytech/polkadot/blob/40974fb99c86f5c341105b7db53c7aa0df707d66/node/core/provisioner/src/disputes/mod.rs#L37
-    dispute_coordinator->handle_incoming_QueryCandidateVotes(
+    dispute_coordinator->queryCandidateVotes(
         disputes,
         [promise_res = std::ref(promise_res)](
             outcome::result<DisputeCoordinator::OutputCandidateVotes> res) {

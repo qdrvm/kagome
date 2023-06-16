@@ -101,9 +101,9 @@ namespace kagome::dispute {
         };
 
     if (active_or_recent == RequestType::Recent) {
-      dispute_coordinator_->handle_incoming_RecentDisputes(cb);
+      dispute_coordinator_->getRecentDisputes(cb);
     } else {
-      dispute_coordinator_->handle_incoming_ActiveDisputes(cb);
+      dispute_coordinator_->getActiveDisputes(cb);
     }
 
     dispute::DisputeCoordinator::OutputDisputes disputes;

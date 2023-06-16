@@ -55,18 +55,15 @@ namespace kagome::dispute {
     /// Fetch a list of all recent disputes the coordinator is aware of.
     /// These are disputes which have occurred any time in recent sessions,
     /// and which may have already concluded.
-    virtual void handle_incoming_RecentDisputes(
-        CbOutcome<OutputDisputes> &&cb) = 0;
+    virtual void getRecentDisputes(CbOutcome<OutputDisputes> &&cb) = 0;
 
     /// Fetch a list of all active disputes that the coordinator is aware of.
     /// These disputes are either not yet concluded or recently concluded.
-    virtual void handle_incoming_ActiveDisputes(
-        CbOutcome<OutputDisputes> &&cb) = 0;
+    virtual void getActiveDisputes(CbOutcome<OutputDisputes> &&cb) = 0;
 
-    /// Get candidate votes for a candidate.
-    virtual void handle_incoming_QueryCandidateVotes(
-        const QueryCandidateVotes &msg,
-        CbOutcome<OutputCandidateVotes> &&cb) = 0;
+    /// Get candidate votes for a candidate (QueryCandidateVotes)
+    virtual void queryCandidateVotes(const QueryCandidateVotes &msg,
+                                     CbOutcome<OutputCandidateVotes> &&cb) = 0;
 
     /// Sign and issue local dispute votes. A value of `true` indicates
     /// validity, and `false` invalidity.
@@ -77,23 +74,23 @@ namespace kagome::dispute {
         bool valid,
         CbOutcome<void> &&cb) = 0;
 
-    /// Determine the highest undisputed block within the given chain, based
-    /// on where candidates were included. If even the base block should not
-    /// be finalized due to a dispute, then `None` should be returned on the
+    /// Determine the highest undisputed block within the given chain, based on
+    /// where candidates were included. If even the base block should not be
+    /// finalized due to a dispute, then `None` should be returned on the
     /// channel.
     ///
     /// The block descriptions begin counting upwards from the block after the
     /// given `base_number`. The `base_number` is typically the number of the
     /// last finalized block but may be slightly higher. This block is
-    /// inevitably going to be finalized so it is not accounted for by this
-    /// function.
+    /// inevitably going to be finalized so it is not accounted for by
+    /// thisfunction.
     ///
     /// @param base - The lowest possible block to vote on
     /// @param block_descriptions - Descriptions of all the blocks counting
     /// upwards from the block after the base number
     /// @param cb - Callback for result
     /// @note The block to vote on, might be base in case there is no better.
-    virtual void handle_incoming_DetermineUndisputedChain(
+    virtual void determineUndisputedChain(
         primitives::BlockInfo base,
         std::vector<BlockDescription> block_descriptions,
         CbOutcome<primitives::BlockInfo> &&cb) = 0;

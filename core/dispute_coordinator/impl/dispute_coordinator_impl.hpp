@@ -128,15 +128,12 @@ namespace kagome::dispute {
         std::vector<Indexed<SignedDisputeStatement>> statements,
         CbOutcome<void> &&cb) override;
 
-    void handle_incoming_RecentDisputes(
-        CbOutcome<OutputDisputes> &&cb) override;
+    void getRecentDisputes(CbOutcome<OutputDisputes> &&cb) override;
 
-    void handle_incoming_ActiveDisputes(
-        CbOutcome<OutputDisputes> &&cb) override;
+    void getActiveDisputes(CbOutcome<OutputDisputes> &&cb) override;
 
-    void handle_incoming_QueryCandidateVotes(
-        const QueryCandidateVotes &msg,
-        CbOutcome<OutputCandidateVotes> &&cb) override;
+    void queryCandidateVotes(const QueryCandidateVotes &msg,
+                             CbOutcome<OutputCandidateVotes> &&cb) override;
 
     void handle_incoming_IssueLocalStatement(SessionIndex session,
                                              CandidateHash candidate_hash,
@@ -144,7 +141,7 @@ namespace kagome::dispute {
                                              bool valid,
                                              CbOutcome<void> &&cb) override;
 
-    void handle_incoming_DetermineUndisputedChain(
+    void determineUndisputedChain(
         primitives::BlockInfo base,
         std::vector<BlockDescription> block_descriptions,
         CbOutcome<primitives::BlockInfo> &&cb) override;

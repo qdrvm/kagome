@@ -54,7 +54,7 @@ namespace kagome::dispute {
         std::promise<dispute::DisputeCoordinator::OutputDisputes>();
     auto res_future = promise_res.get_future();
 
-    dispute_coordinator_->handle_incoming_RecentDisputes(
+    dispute_coordinator_->getRecentDisputes(
         [promise_res = std::ref(promise_res)](
             outcome::result<dispute::DisputeCoordinator::OutputDisputes> res) {
           dispute::DisputeCoordinator::OutputDisputes recent_disputes;
