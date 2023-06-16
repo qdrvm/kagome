@@ -28,6 +28,7 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::consensus::babe,
     case E::ERROR:
       return "error";
   }
+  return fmt::format("BabeConfigRepositoryImpl::Error({})", e);
 }
 
 namespace kagome::consensus::babe {
