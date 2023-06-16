@@ -21,19 +21,17 @@ namespace kagome::runtime::binaryen {
 
   MemoryImpl::MemoryImpl(RuntimeExternalInterface::InternalMemory *memory,
                          WasmSize heap_base)
-      : MemoryImpl{memory,
-                   std::make_unique<MemoryAllocator>(
-                       MemoryAllocator::MemoryHandle{
-                           [this](auto new_size) { return resize(new_size); },
-                           [this]() { return size_; },
-                           [this](auto addr, uint32_t value) {
-                             memory_->set<uint32_t>(addr, value);
-                           },
-                           [this](auto addr) {
-                             return memory_->get<uint32_t>(addr);
-                           }}  // namespace kagome::runtime::binaryen
-                       ,
-                       heap_base)} {}
+      : MemoryImpl{
+          memory,
+          std::make_unique<MemoryAllocator>(
+              MemoryAllocator::MemoryHandle{
+                  [this](auto new_size) { return resize(new_size); },
+                  [this]() { return size_; },
+                  [this](auto addr, uint32_t value) {
+                    memory_->set<uint32_t>(addr, value);
+                  },
+                  [this](auto addr) { return memory_->get<uint32_t>(addr); }},
+              heap_base)} {}
 
   WasmPointer MemoryImpl::allocate(WasmSize size) {
     return allocator_->allocate(size);

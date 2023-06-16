@@ -32,17 +32,17 @@ namespace kagome::runtime {
       return 0;
     }
 
-    const size_t sz =
+    const size_t chunk_size =
         nextHighPowerOf2(roundUpAlign(size) + AlloocationHeaderSz);
 
     const auto ptr = offset_;
-    const auto new_offset = ptr + sz;  // align
+    const auto new_offset = ptr + chunk_size;  // align
 
     // Round up allocating chunk of memory
     if (new_offset <= memory_.getSize()) {
       offset_ = new_offset;
       AllocationHeader{
-          .chunk_sz = (uint32_t)sz,
+          .chunk_sz = (uint32_t)chunk_size,
           .allocation_sz = roundUpAlign(size),
       }
           .serialize(ptr, memory_);
@@ -50,20 +50,20 @@ namespace kagome::runtime {
       return ptr + AlloocationHeaderSz;
     }
 
-    auto &preallocates = available_[sz];
+    auto &preallocates = available_[chunk_size];
     if (!preallocates.empty()) {
       const auto ptr = preallocates.back();
       preallocates.pop_back();
 
       AllocationHeader{
-          .chunk_sz = (uint32_t)sz,
+          .chunk_sz = (uint32_t)chunk_size,
           .allocation_sz = roundUpAlign(size),
       }
           .serialize(ptr, memory_);
       return ptr + AlloocationHeaderSz;
     }
 
-    return growAlloc(sz, size);
+    return growAlloc(chunk_size, size);
   }
 
   std::optional<WasmSize> MemoryAllocator::deallocate(WasmPointer ptr) {
@@ -89,9 +89,6 @@ namespace kagome::runtime {
           offset_);
       return 0;
     }
-    // try to increase memory size up to offset + size * 4 (we multiply by 4
-    // to have more memory than currently needed to avoid resizing every time
-    // when we exceed current memory)
     resize(offset_ + chunk_sz);
     return allocate(allocation_sz);
   }
@@ -100,15 +97,12 @@ namespace kagome::runtime {
     memory_.resize(new_size);
   }
 
-  /*
-    Slow function with O(N) complexity. Can be used ONLY in tests.
-  */
   std::optional<WasmSize> MemoryAllocator::getDeallocatedChunkSize(
       WasmPointer ptr) const {
-    for (const auto &[sz, ptrs] : available_) {
+    for (const auto &[chunk_size, ptrs] : available_) {
       for (const auto &p : ptrs) {
         if (ptr == p) {
-          return sz;
+          return chunk_size;
         }
       }
     }
@@ -130,7 +124,7 @@ namespace kagome::runtime {
 
   size_t MemoryAllocator::getDeallocatedChunksNum() const {
     size_t size = 0ull;
-    for (const auto &[sz, ptrs] : available_) {
+    for (const auto &[_, ptrs] : available_) {
       size += ptrs.size();
     }
 

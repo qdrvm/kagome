@@ -78,7 +78,10 @@ namespace kagome::runtime {
       return offset_ > addr and offset_ - addr >= size;
     }
 
-    /// following methods are needed mostly for testing purposes
+    /*
+      Following methods are needed mostly for testing purposes.
+      getDeallocatedChunkSize is a slow function with O(N) complexity.
+    */
     std::optional<WasmSize> getDeallocatedChunkSize(WasmPointer ptr) const;
     std::optional<WasmSize> getAllocatedChunkSize(WasmPointer ptr) const;
     size_t getDeallocatedChunksNum() const;
@@ -102,7 +105,9 @@ namespace kagome::runtime {
 
     /**
      * Resize memory and allocate memory segment of given size
-     * @param size memory size to be allocated
+     * @param allocation_sz memory size to be allocated
+     * @param chunk_sz is the memory size which is next pow of 2 from
+     * alligned(allocation size) + alligned(AllocationHeaderSize)
      * @return pointer to the allocated memory @or 0 if it is impossible to
      * allocate this amount of memory
      */
