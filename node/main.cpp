@@ -19,6 +19,7 @@
 #include "common/fd_limit.hpp"
 #include "log/configurator.hpp"
 #include "log/logger.hpp"
+#include "profiler/profiler.hpp"
 
 using kagome::application::AppConfiguration;
 using kagome::application::AppConfigurationImpl;

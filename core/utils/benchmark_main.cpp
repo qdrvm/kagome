@@ -7,6 +7,7 @@
 #include "benchmark/block_execution_benchmark.hpp"
 #include "injector/application_injector.hpp"
 #include "runtime/runtime_api/impl/core.hpp"
+#include "profiler/profiler.hpp"
 
 namespace kagome {
 
@@ -58,6 +59,22 @@ namespace kagome {
       return res.error().value();
     }
 
+    std::cout << "-------------------------------" << std::endl;
+
+    iroha::performance_tools::prepareThreadReport();
+    std::unique_ptr<iroha::performance_tools::IReportViewer> viewer;
+    iroha::performance_tools::getThreadReport(viewer);
+    std::string report;
+    if (auto &thread_viewer = viewer->getThreadIterator(); thread_viewer.threadFirst()) {
+      do {
+        auto &m_it = thread_viewer.getMethodIterator();
+        auto &s_it = thread_viewer.getStackIterator();
+
+        m_it.printMethods(report);
+        s_it.printStacks(report);
+      } while (thread_viewer.threadNext());
+    }
+    std::cout << report << std::endl;
     return 0;
   }
 

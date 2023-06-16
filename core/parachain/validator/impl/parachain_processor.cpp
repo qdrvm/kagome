@@ -13,6 +13,7 @@
 
 #include "crypto/crypto_store/session_keys.hpp"
 #include "crypto/hasher.hpp"
+#include "profiler/profiler.hpp"
 #include "crypto/sr25519_provider.hpp"
 #include "network/common.hpp"
 #include "network/helpers/peer_id_formatter.hpp"

@@ -6,5 +6,5 @@
 add_library(profiler profiler.cpp)
 target_link_libraries(profiler
     )
-
+kagome_install(profiler)
 

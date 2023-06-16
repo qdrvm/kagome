@@ -18,6 +18,7 @@ target_link_libraries(kagome
     kagome-db-editor
     storage_explorer
     filesystem
+    profiler
     )
 if (BACKWARD)
   add_backward(kagome)
