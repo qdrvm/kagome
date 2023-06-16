@@ -99,6 +99,11 @@ namespace kagome::blockchain {
                 (const primitives::BlockHash &, const primitives::BlockHash &),
                 (const, override));
 
+    MOCK_METHOD(bool,
+                isFinalized,
+                (const primitives::BlockInfo &),
+                (const, override));
+
     MOCK_METHOD(outcome::result<primitives::BlockInfo>,
                 getBestContaining,
                 (const primitives::BlockHash &,

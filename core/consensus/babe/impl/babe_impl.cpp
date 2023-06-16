@@ -226,9 +226,9 @@ namespace kagome::consensus::babe {
              current_epoch_.epoch_number,
              current_epoch_.start_slot);
 
-    auto babe_config = babe_config_repo_->config({.block_info = best_block_},
-                                                 current_epoch_.epoch_number);
-    if (not babe_config.has_value()) {
+    auto babe_config =
+        babe_config_repo_->config(best_block_, current_epoch_.epoch_number);
+    if (not babe_config and app_config_.syncMethod() != SyncMethod::Warp) {
       SL_CRITICAL(
           log_,
           "Can't obtain digest of epoch {} from block tree for block {}",
@@ -236,11 +236,14 @@ namespace kagome::consensus::babe {
           best_block_);
       return false;
     }
-    const auto &authorities = babe_config->get().authorities;
-    if (authorities.size() == 1 && session_keys_->getBabeKeyPair(authorities)) {
-      SL_INFO(log_, "Starting single validating node.");
-      onSynchronized();
-      return true;
+    if (babe_config) {
+      const auto &authorities = babe_config.value()->authorities;
+      if (authorities.size() == 1
+          && session_keys_->getBabeKeyPair(authorities)) {
+        SL_INFO(log_, "Starting single validating node.");
+        onSynchronized();
+        return true;
+      }
     }
 
     switch (app_config_.syncMethod()) {
@@ -354,10 +357,9 @@ namespace kagome::consensus::babe {
     SL_DEBUG(log_,
              "Starting an epoch {}. Secondary slots allowed={}",
              epoch.epoch_number,
-             babe_config_repo_
-                 ->config({.block_info = best_block_}, epoch.epoch_number)
-                 ->get()
-                 .isSecondarySlotsAllowed());
+             babe_config_repo_->config(best_block_, epoch.epoch_number)
+                 .value()
+                 ->isSecondarySlotsAllowed());
     current_epoch_ = epoch;
     current_slot_ = current_epoch_.start_slot;
 
@@ -694,7 +696,6 @@ namespace kagome::consensus::babe {
                   }
 
                   self->adjustEpochDescriptor();
-                  self->babe_config_repo_->readFromState(block_at_state);
                   self->justification_observer_->reload();
                   self->block_tree_->notifyBestAndFinalized();
 
@@ -803,10 +804,10 @@ namespace kagome::consensus::babe {
       BOOST_ASSERT(babe_digests_res.has_value());
     }
 
-    auto babe_config_opt = babe_config_repo_->config(
-        {.block_info = best_block_}, current_epoch_.epoch_number);
+    auto babe_config_opt =
+        babe_config_repo_->config(best_block_, current_epoch_.epoch_number);
     if (babe_config_opt) {
-      auto &babe_config = babe_config_opt.value().get();
+      auto &babe_config = *babe_config_opt.value();
       auto keypair = session_keys_->getBabeKeyPair(babe_config.authorities);
       if (not keypair) {
         SL_ERROR(log_,

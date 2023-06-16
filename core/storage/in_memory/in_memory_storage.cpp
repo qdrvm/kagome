@@ -6,6 +6,7 @@
 #include "storage/in_memory/in_memory_storage.hpp"
 
 #include "storage/database_error.hpp"
+#include "storage/in_memory/cursor.hpp"
 #include "storage/in_memory/in_memory_batch.hpp"
 
 using kagome::common::Buffer;
@@ -65,7 +66,7 @@ namespace kagome::storage {
   }
 
   std::unique_ptr<InMemoryStorage::Cursor> InMemoryStorage::cursor() {
-    return nullptr;
+    return std::make_unique<InMemoryCursor>(*this);
   }
 
   size_t InMemoryStorage::size() const {
