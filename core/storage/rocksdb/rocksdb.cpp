@@ -224,27 +224,41 @@ namespace kagome::storage {
   }
 
   outcome::result<BufferOrView> RocksDbSpace::get(const BufferView &key) const {
+    if (auto cached = internal_cache_.get(key)) {
+      return *cached;
+    }
+
     OUTCOME_TRY(rocks, use());
     std::string value;
     auto status = rocks->db_->Get(rocks->ro_, column_, make_slice(key), &value);
     if (status.ok()) {
       // cannot move string content to a buffer
-      return Buffer(
+      Buffer(
           reinterpret_cast<uint8_t *>(value.data()),                  // NOLINT
           reinterpret_cast<uint8_t *>(value.data()) + value.size());  // NOLINT
+      common::BufferView res{ret};
+      internal_cache_.set(key, std::move(ret));
+      return res;
     }
     return status_as_error(status);
   }
 
   outcome::result<std::optional<BufferOrView>> RocksDbSpace::tryGet(
       const BufferView &key) const {
+    if (auto cached = internal_cache_.get(key)) {
+      return std::make_optional(*cached);
+    }
+
     OUTCOME_TRY(rocks, use());
     std::string value;
     auto status = rocks->db_->Get(rocks->ro_, column_, make_slice(key), &value);
     if (status.ok()) {
-      return std::make_optional(Buffer(
+      Buffer ret(
           reinterpret_cast<uint8_t *>(value.data()),                   // NOLINT
-          reinterpret_cast<uint8_t *>(value.data()) + value.size()));  // NOLINT
+          reinterpret_cast<uint8_t *>(value.data()) + value.size());
+      common::BufferView res{ret};
+      internal_cache_.set(key, std::move(ret));
+      return std::make_optional(res);  // NOLINT
     }
 
     if (status.IsNotFound()) {
@@ -260,6 +274,7 @@ namespace kagome::storage {
     auto status = rocks->db_->Put(
         rocks->wo_, column_, make_slice(key), make_slice(value));
     if (status.ok()) {
+      internal_cache_.set(key, std::move(value));      
       return outcome::success();
     }
 
@@ -267,6 +282,7 @@ namespace kagome::storage {
   }
 
   outcome::result<void> RocksDbSpace::remove(const BufferView &key) {
+    internal_cache_.remove(key);
     OUTCOME_TRY(rocks, use());
     auto status = rocks->db_->Delete(rocks->wo_, column_, make_slice(key));
     if (status.ok()) {

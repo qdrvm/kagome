@@ -9,6 +9,7 @@
 #include "storage/buffer_map_types.hpp"
 
 #include <rocksdb/db.h>
+#include <list>
 #include <rocksdb/table.h>
 #include <boost/container/flat_map.hpp>
 
@@ -85,6 +86,47 @@ namespace kagome::storage {
     log::Logger logger_;
   };
 
+  class RocksDbCache final {
+    using DataContainer = std::list<std::pair<Buffer, Buffer>>;
+
+    size_t limit_;
+    DataContainer data_{};
+    std::unordered_map<Buffer, DataContainer::iterator> index_{};
+
+  public:
+    RocksDbCache(size_t limit) : limit_{limit} {}
+
+    void set(BufferOrView key, BufferOrView value) {
+      const auto &elem = data_.emplace_front(std::make_pair(key.into(), value.into()));
+      index_[elem.first] = data_.begin();
+      if (data_.size() > limit_) {
+        auto &back = data_.back();
+        index_.erase(back.first);
+        data_.pop_back();
+      }
+    }
+
+    std::optional<BufferView> get(BufferView key) {
+        if (auto it = index_.find(key); it != index_.end()) {
+          if (it->second != data_.begin() ) {
+              data_.splice(data_.begin(), data_, it->second, std::next(it->second));
+          }
+          return {{data_.front().second}};
+        }
+        return std::nullopt;
+    }
+
+    std::optional<std::pair<Buffer, Buffer>> remove(const BufferView &key) {
+        if (auto it = index_.find(key); it != index_.end()) {
+          auto tmp = std::move(*it->second);
+          data_.erase(it->second);
+          index_.erase(it);
+          return tmp;
+        }
+        return std::nullopt;
+    }
+  };
+
   class RocksDbSpace : public BufferStorage {
    public:
     ~RocksDbSpace() override = default;
@@ -120,6 +162,7 @@ namespace kagome::storage {
    private:
     // gather storage instance from weak ptr
     outcome::result<std::shared_ptr<RocksDb>> use() const;
+    mutable RocksDbCache internal_cache_{1000ull};
 
     std::weak_ptr<RocksDb> storage_;
     const RocksDb::ColumnFamilyHandlePtr &column_;
