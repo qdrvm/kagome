@@ -134,7 +134,7 @@ namespace kagome::runtime {
     std::mutex mt_;
     static constexpr size_t MODULES_CACHE_SIZE = 2;
     ModuleCache modules_{MODULES_CACHE_SIZE};
-    std::map<RootHash, ModuleInstancePool> pools_;
+    std::unordered_map<RootHash, ModuleInstancePool> pools_;
   };
 
 }  // namespace kagome::runtime

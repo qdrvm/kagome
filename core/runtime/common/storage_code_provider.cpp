@@ -12,6 +12,7 @@
 #include "runtime/runtime_upgrade_tracker.hpp"
 #include "storage/predefined_keys.hpp"
 #include "storage/trie/trie_storage.hpp"
+#include "profiler/profiler.hpp"
 
 namespace kagome::runtime {
 
@@ -32,6 +33,7 @@ namespace kagome::runtime {
 
   outcome::result<gsl::span<const uint8_t>> StorageCodeProvider::getCodeAt(
       const storage::trie::RootHash &state) const {
+    PROFILER_ADD_FUNCTION;
     std::unique_lock lock{mutex_};
     if (last_state_root_ != state) {
       auto block_info =

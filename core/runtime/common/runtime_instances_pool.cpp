@@ -11,6 +11,7 @@
 #include "runtime/module_factory.hpp"
 #include "runtime/module_instance.hpp"
 #include "runtime/runtime_upgrade_tracker.hpp"
+#include "profiler/profiler.hpp"
 
 namespace kagome::runtime {
   /**
@@ -67,6 +68,7 @@ namespace kagome::runtime {
   outcome::result<std::shared_ptr<ModuleInstance>>
   RuntimeInstancesPool::tryAcquire(
       const RuntimeInstancesPool::RootHash &state) {
+    PROFILER_ADD_FUNCTION;
     std::scoped_lock guard{mt_};
     auto &pool = pools_[state];
 
@@ -97,6 +99,7 @@ namespace kagome::runtime {
 
   std::optional<std::shared_ptr<Module>> RuntimeInstancesPool::getModule(
       const RuntimeInstancesPool::RootHash &state) {
+    PROFILER_ADD_FUNCTION;
     std::lock_guard guard{mt_};
     return modules_.get(state);
   }
@@ -104,6 +107,7 @@ namespace kagome::runtime {
   void RuntimeInstancesPool::putModule(
       const RuntimeInstancesPool::RootHash &state,
       std::shared_ptr<Module> module) {
+    PROFILER_ADD_FUNCTION;
     std::lock_guard guard{mt_};
     modules_.put(state, std::move(module));
   }

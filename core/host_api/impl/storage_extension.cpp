@@ -144,7 +144,7 @@ namespace kagome::host_api {
     auto &memory = memory_provider_->getCurrentMemory()->get();
     auto key_buffer = memory.loadN(key_ptr, key_size);
 
-    if (auto it = cache_test.find(key_buffer); it != cache_test.end()) {
+    if (auto it = cache_test.find(key_buffer); false && it != cache_test.end()) {
 //      SL_INFO(logger_, "=> ext_storage_get_version_1 from cache {}, value={}", 
 //        key_buffer.toHex(), 
 //        common::BufferView{it->second.value}.toHex());

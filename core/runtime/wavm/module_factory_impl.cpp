@@ -9,6 +9,7 @@
 #include "runtime/wavm/module.hpp"
 #include "runtime/wavm/module_cache.hpp"
 #include "runtime/wavm/module_params.hpp"
+#include "profiler/profiler.hpp"
 
 namespace kagome::runtime::wavm {
 
@@ -37,6 +38,7 @@ namespace kagome::runtime::wavm {
 
   outcome::result<std::unique_ptr<Module>> ModuleFactoryImpl::make(
       gsl::span<const uint8_t> code) const {
+    PROFILER_ADD_FUNCTION;
     return ModuleImpl::compileFrom(compartment_,
                                    *module_params_,
                                    intrinsic_module_,

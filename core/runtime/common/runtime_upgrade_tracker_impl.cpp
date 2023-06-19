@@ -11,6 +11,7 @@
 #include "log/profiling_logger.hpp"
 #include "runtime/common/storage_code_provider.hpp"
 #include "storage/predefined_keys.hpp"
+#include "profiler/profiler.hpp"
 
 namespace kagome::runtime {
   outcome::result<std::unique_ptr<RuntimeUpgradeTrackerImpl>>
@@ -113,6 +114,7 @@ namespace kagome::runtime {
   outcome::result<storage::trie::RootHash>
   RuntimeUpgradeTrackerImpl::getLastCodeUpdateState(
       const primitives::BlockInfo &block) {
+    PROFILER_ADD_FUNCTION;
     if (hasCodeSubstitute(block)) {
       OUTCOME_TRY(push(block.hash));
     }
