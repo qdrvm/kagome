@@ -65,7 +65,8 @@ TEST(ChangesTrieTest, IntegrationWithOverlay) {
       codec,
       serializer,
       std::make_optional(changes_tracker),
-      factory->createEmpty([](auto &) { return outcome::success(); }),
+      factory->createEmpty({[](auto &) { return outcome::success(); },
+                            [](auto &) { return outcome::success(); }}),
       std::make_shared<TriePrunerMock>());
 
   EXPECT_OUTCOME_TRUE_1(

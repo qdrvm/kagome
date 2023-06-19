@@ -145,7 +145,7 @@ class PolkadotTrieMock final : public trie::PolkadotTrie {
     auto cursor =
         std::make_unique<kagome::storage::trie::PolkadotTrieCursorMock>();
     EXPECT_CALL(*cursor, seekLowerBound(_))
-        .WillRepeatedly(testing::Return(DatabaseError::NOT_FOUND));
+        .WillRepeatedly(testing::Return(outcome::success()));
     return cursor;
   }
   NodePtr root;
@@ -236,11 +236,11 @@ class TriePrunerTest : public testing::Test {
     if (desc.type == NODE) {
       if (desc.children.empty()) {
         auto node = std::make_shared<trie::LeafNode>(
-            trie::KeyNibbles{}, trie::ValueAndHash{desc.merkle_value, {}});
+            trie::KeyNibbles{}, trie::ValueAndHash{{}, desc.merkle_value});
         return node;
       }
-      auto node = std::make_shared<trie::BranchNode>(trie::KeyNibbles{},
-                                                     desc.merkle_value);
+      auto node = std::make_shared<trie::BranchNode>(
+          trie::KeyNibbles{}, Buffer{desc.merkle_value});
       for (auto [idx, child] : desc.children) {
         node->children[idx] = makeNode(child);
       }
@@ -315,7 +315,7 @@ TEST_F(TriePrunerTest, BasicScenario) {
   ON_CALL(*codec_mock, merkleValue(_, _, _))
       .WillByDefault(Invoke([](auto &node, auto version, auto) {
         return trie::MerkleValue::create(
-                   *static_cast<const trie::TrieNode &>(node).getValue().value)
+                   *static_cast<const trie::TrieNode &>(node).getValue().hash)
             .value();
       }));
 
