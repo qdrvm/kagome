@@ -12,6 +12,7 @@
 #include "primitives/runtime_dispatch_info.hpp"
 #include "runtime/runtime_api/core.hpp"
 #include "storage/trie/trie_storage.hpp"
+#include "profiler/profiler.hpp"
 
 OUTCOME_CPP_DEFINE_CATEGORY(kagome::benchmark,
                             BlockExecutionBenchmark::Error,
@@ -217,6 +218,7 @@ namespace kagome::benchmark {
   }
 
   outcome::result<void> BlockExecutionBenchmark::run(const Config config) {
+    PROFILER_ADD_FUNCTION;    
     OUTCOME_TRY_MSG(current_hash,
                     block_tree_->getBlockHash(config.start),
                     "retrieving hash of block {}",
