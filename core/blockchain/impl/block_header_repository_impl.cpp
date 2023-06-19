@@ -10,6 +10,7 @@
 #include "blockchain/block_tree_error.hpp"
 #include "blockchain/impl/storage_util.hpp"
 #include "scale/scale.hpp"
+#include "profiler/profiler.hpp"
 
 using kagome::primitives::BlockHash;
 using kagome::primitives::BlockNumber;
@@ -33,6 +34,7 @@ namespace kagome::blockchain {
   outcome::result<primitives::BlockHash>
   BlockHeaderRepositoryImpl::getHashByNumber(
       primitives::BlockNumber number) const {
+    PROFILER_ADD_FUNCTION;
     auto num_to_idx_key = blockNumberToKey(number);
     auto key_space = storage_->getSpace(Space::kLookupKey);
     auto res = key_space->get(num_to_idx_key);
@@ -45,6 +47,7 @@ namespace kagome::blockchain {
   outcome::result<primitives::BlockHeader>
   BlockHeaderRepositoryImpl::getBlockHeader(
       const primitives::BlockHash &block_hash) const {
+    PROFILER_ADD_FUNCTION;
     OUTCOME_TRY(header_opt,
                 getFromSpace(*storage_, Space::kHeader, block_hash));
     if (header_opt.has_value()) {

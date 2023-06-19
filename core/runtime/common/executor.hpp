@@ -26,6 +26,7 @@
 #include "scale/scale.hpp"
 #include "storage/trie/trie_batches.hpp"
 #include "storage/trie/trie_storage.hpp"
+#include "profiler/profiler.hpp"
 
 #ifdef __has_builtin
 #if __has_builtin(__builtin_expect)
@@ -61,6 +62,7 @@ namespace kagome::runtime {
     outcome::result<std::unique_ptr<RuntimeEnvironment>> persistentAt(
         primitives::BlockHash const &block_hash,
         TrieChangesTrackerOpt changes_tracker) {
+      PROFILER_ADD_FUNCTION;
       OUTCOME_TRY(env_template, env_factory_->start(block_hash));
       OUTCOME_TRY(env,
                   env_template->persistent()
@@ -80,6 +82,7 @@ namespace kagome::runtime {
                                    storage::trie::RootHash const &storage_state,
                                    std::string_view name,
                                    Args &&...args) {
+      PROFILER_ADD_FUNCTION;
       OUTCOME_TRY(env, env_factory_->start(block_info, storage_state)->make());
       return callWithCache<Result>(*env, name, std::forward<Args>(args)...);
     }
@@ -93,6 +96,7 @@ namespace kagome::runtime {
     outcome::result<Result> callAt(primitives::BlockHash const &block_hash,
                                    std::string_view name,
                                    Args &&...args) {
+      PROFILER_ADD_FUNCTION;
       OUTCOME_TRY(env_template, env_factory_->start(block_hash));
       OUTCOME_TRY(env, env_template->make());
       return callWithCache<Result>(*env, name, std::forward<Args>(args)...);
@@ -106,6 +110,7 @@ namespace kagome::runtime {
     template <typename Result, typename... Args>
     outcome::result<Result> callAtGenesis(std::string_view name,
                                           Args &&...args) {
+      PROFILER_ADD_FUNCTION;
       OUTCOME_TRY(env_template, env_factory_->start());
       OUTCOME_TRY(env, env_template->make());
       return callWithCache<Result>(*env, name, std::forward<Args>(args)...);
@@ -115,6 +120,7 @@ namespace kagome::runtime {
         const primitives::BlockHash &block_hash,
         std::string_view name,
         const common::Buffer &encoded_args) override {
+      PROFILER_ADD_FUNCTION;
       OUTCOME_TRY(env_template, env_factory_->start(block_hash));
       OUTCOME_TRY(env, env_template->make());
 
@@ -145,6 +151,7 @@ namespace kagome::runtime {
     outcome::result<Result> call(RuntimeEnvironment &env,
                                  std::string_view name,
                                  Args &&...args) {
+      PROFILER_ADD_FUNCTION;
       auto &memory = env.memory_provider->getCurrentMemory()->get();
 
       Buffer encoded_args{};
@@ -194,6 +201,7 @@ namespace kagome::runtime {
     inline outcome::result<Result> callWithCache(RuntimeEnvironment &env,
                                                  std::string_view name,
                                                  Args &&...args) {
+      PROFILER_ADD_FUNCTION;
       if constexpr (std::is_same_v<Result, primitives::Version>) {
         if (likely(name == "Core_version")) {
           return cache_->getVersion(env.module_instance->getCodeHash(), [&] {

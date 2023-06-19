@@ -120,6 +120,7 @@ namespace kagome::storage {
    private:
     // gather storage instance from weak ptr
     outcome::result<std::shared_ptr<RocksDb>> use() const;
+    mutable std::unordered_map<Buffer, Buffer> cache_test{};
 
     std::weak_ptr<RocksDb> storage_;
     const RocksDb::ColumnFamilyHandlePtr &column_;

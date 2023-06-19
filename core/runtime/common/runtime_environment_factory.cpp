@@ -11,6 +11,7 @@
 #include "runtime/module.hpp"
 #include "runtime/module_factory.hpp"
 #include "storage/trie/polkadot_trie/trie_error.hpp"
+#include "profiler/profiler.hpp"
 
 OUTCOME_CPP_DEFINE_CATEGORY(kagome::runtime,
                             RuntimeEnvironmentFactory::Error,
@@ -52,6 +53,7 @@ namespace kagome::runtime {
   outcome::result<RuntimeEnvironment> RuntimeEnvironment::fromCode(
       const runtime::ModuleFactory &module_factory,
       common::BufferView code_zstd) {
+    PROFILER_ADD_FUNCTION;
     common::Buffer code;
     OUTCOME_TRY(runtime::uncompressCodeIfNeeded(code_zstd, code));
     OUTCOME_TRY(module, module_factory.make(code));
@@ -69,6 +71,7 @@ namespace kagome::runtime {
   }
 
   outcome::result<void> resetMemory(const ModuleInstance &instance) {
+    PROFILER_ADD_FUNCTION;
     static auto log = log::createLogger("RuntimeEnvironmentFactory", "runtime");
 
     OUTCOME_TRY(opt_heap_base, instance.getGlobal("__heap_base"));
@@ -157,6 +160,7 @@ namespace kagome::runtime {
 
   outcome::result<std::unique_ptr<RuntimeEnvironment>>
   RuntimeEnvironmentFactory::RuntimeEnvironmentTemplate::make() {
+    PROFILER_ADD_FUNCTION;
     KAGOME_PROFILE_START(runtime_env_making);
     auto parent_factory = parent_factory_.lock();
     if (parent_factory == nullptr) {
@@ -254,6 +258,7 @@ namespace kagome::runtime {
   outcome::result<
       std::unique_ptr<RuntimeEnvironmentFactory::RuntimeEnvironmentTemplate>>
   RuntimeEnvironmentFactory::start() const {
+    PROFILER_ADD_FUNCTION;
     auto genesis_hash = header_repo_->getHashByNumber(0);
     if (!genesis_hash) {
       logger_->error(

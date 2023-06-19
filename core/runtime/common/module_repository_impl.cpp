@@ -13,6 +13,7 @@
 #include "runtime/module_instance.hpp"
 #include "runtime/runtime_code_provider.hpp"
 #include "runtime/runtime_upgrade_tracker.hpp"
+#include "profiler/profiler.hpp"
 
 namespace kagome::runtime {
   using kagome::primitives::ThreadNumber;
@@ -39,6 +40,7 @@ namespace kagome::runtime {
       std::shared_ptr<const RuntimeCodeProvider> code_provider,
       const primitives::BlockInfo &block,
       const primitives::BlockHeader &header) {
+    PROFILER_ADD_FUNCTION;
     KAGOME_PROFILE_START(code_retrieval)
     OUTCOME_TRY(state, runtime_upgrade_tracker_->getLastCodeUpdateState(block));
     KAGOME_PROFILE_END(code_retrieval)

@@ -102,14 +102,22 @@ namespace kagome::host_api {
 
   outcome::result<std::optional<Buffer>> StorageExtension::getStorageNextKey(
       const common::Buffer &key) const {
+    PROFILER_ADD_FUNCTION;
     auto batch = storage_provider_->getCurrentBatch();
     auto cursor = batch->trieCursor();
     OUTCOME_TRY(cursor->seekUpperBound(key));
     return cursor->key();
   }
 
+  struct CacheState {
+    std::vector<uint8_t> value{};
+    bool scaled{false};
+  };
+  std::unordered_map<Buffer, CacheState> cache_test{};
+
   void StorageExtension::ext_storage_set_version_1(
       runtime::WasmSpan key_span, runtime::WasmSpan value_span) {
+    PROFILER_ADD_FUNCTION;
     auto [key_ptr, key_size] = runtime::PtrSize(key_span);
     auto [value_ptr, value_size] = runtime::PtrSize(value_span);
     auto &memory = memory_provider_->getCurrentMemory()->get();
@@ -117,7 +125,9 @@ namespace kagome::host_api {
     auto value = memory.loadN(value_ptr, value_size);
 
     SL_TRACE_VOID_FUNC_CALL(logger_, key, value);
+    //SL_INFO(logger_, "=> ext_storage_set_version_1 from cache {}, value={}", key.toHex(), value.toHex());
 
+    cache_test[key] = CacheState{std::vector<uint8_t>{value.data(), value.data() + value.size()}, false};
     auto batch = storage_provider_->getCurrentBatch();
     auto put_result = batch->put(key, std::move(value));
     if (not put_result) {
@@ -134,9 +144,22 @@ namespace kagome::host_api {
     auto &memory = memory_provider_->getCurrentMemory()->get();
     auto key_buffer = memory.loadN(key_ptr, key_size);
 
+    if (auto it = cache_test.find(key_buffer); it != cache_test.end()) {
+//      SL_INFO(logger_, "=> ext_storage_get_version_1 from cache {}, value={}", 
+//        key_buffer.toHex(), 
+//        common::BufferView{it->second.value}.toHex());
+      if (!it->second.scaled) {
+        it->second.value = scale::encode(std::make_optional(common::BufferView{it->second.value})).value();
+        it->second.scaled = true;
+      }
+//      SL_INFO(logger_, "=> ext_storage_get_version_1 from cache {}, value={}", 
+//        key_buffer.toHex(), 
+//        common::BufferView{it->second.value}.toHex());
+      return memory.storeBuffer(it->second.value);
+    }
+
     constexpr auto error_message =
         "ext_storage_get_version_1( {} ) => value was not obtained. Reason: {}";
-
     auto result = get(key_buffer);
 
     if (result) {
@@ -146,13 +169,17 @@ namespace kagome::host_api {
     }
 
     auto &option = result.value();
-
+//    SL_INFO(logger_, "=> ext_storage_get_version_1 from trie {} value={}", key_buffer.toHex(), 
+//       option ? option->view().toHex() : std::string{"<no value>"});
+    
     PROFILER_ADD_POINT_0;
     auto k1 = scale::encode(common::map_optional(option, [](auto &r) {
           return r.view();
         })).value();
     PROFILER_ADD_POINT_1;
-    return memory.storeBuffer(std::move(k1));
+    auto res = memory.storeBuffer(k1);
+    cache_test[key_buffer] = CacheState{std::move(k1), true};
+    return res;
   }
 
   void StorageExtension::ext_storage_clear_version_1(
@@ -162,6 +189,8 @@ namespace kagome::host_api {
     auto &memory = memory_provider_->getCurrentMemory()->get();
     auto key = memory.loadN(key_ptr, key_size);
     auto del_result = batch->remove(key);
+
+    cache_test.erase(key);
     SL_TRACE_FUNC_CALL(logger_, del_result.has_value(), key);
     if (not del_result) {
       logger_->warn(

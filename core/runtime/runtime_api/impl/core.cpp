@@ -8,6 +8,7 @@
 #include "blockchain/block_header_repository.hpp"
 #include "log/logger.hpp"
 #include "runtime/common/executor.hpp"
+#include "profiler/profiler.hpp"
 
 namespace kagome::runtime {
 
@@ -35,6 +36,7 @@ namespace kagome::runtime {
   outcome::result<void> CoreImpl::execute_block_ref(
       const primitives::BlockReflection &block,
       TrieChangesTrackerOpt changes_tracker) {
+    PROFILER_ADD_FUNCTION;
     BOOST_ASSERT([&] {
       auto parent_res = header_repo_->getBlockHeader(block.header.parent_hash);
       return parent_res.has_value()
