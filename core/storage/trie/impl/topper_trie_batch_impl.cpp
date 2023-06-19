@@ -104,7 +104,7 @@ namespace kagome::storage::trie {
 
   outcome::result<void> TopperTrieBatchImpl::put(const BufferView &key,
                                                  BufferOrView &&value) {
-    cache_.insert_or_assign(Buffer{key}, value.into_buffer());
+    cache_.insert_or_assign(Buffer{key}, value.intoBuffer());
     return outcome::success();
   }
 

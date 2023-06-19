@@ -117,7 +117,7 @@ namespace kagome::storage::trie {
       if (on_node_loaded) {
         on_node_loaded(db);
       }
-      enc = db.into_buffer();
+      enc = db.intoBuffer();
     } else {
       // `isMerkleHash(db_key) == false` means `db_key` is value itself
       enc = db_key.asBuffer();
@@ -136,7 +136,7 @@ namespace kagome::storage::trie {
                                   if (on_node_loaded) {
                                     on_node_loaded(value);
                                   }
-                                  return value.into_buffer();
+                                  return value.intoBuffer();
                                 });
   }
 

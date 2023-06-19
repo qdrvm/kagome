@@ -130,7 +130,7 @@ namespace kagome::api {
     auto res = child_storage_trie_reader->tryGet(key);
     return common::map_result_optional(
         std::move(res),
-        [](common::BufferOrView &&r) { return r.into_buffer(); });
+        [](common::BufferOrView &&r) { return r.intoBuffer(); });
   }
 
   outcome::result<std::optional<primitives::BlockHash>>

@@ -42,7 +42,7 @@ namespace kagome::common {
     BufferOrView &operator=(BufferOrView &&) = default;
 
     /// Is buffer owned.
-    bool is_owned() const {
+    bool isOwned() const {
       if (variant.which() == 2) {
         throw std::logic_error{"Tried to use moved BufferOrView"};
       }
@@ -51,7 +51,7 @@ namespace kagome::common {
 
     /// Get view.
     BufferView view() const {
-      if (!is_owned()) {
+      if (!isOwned()) {
         return boost::get<BufferView>(variant);
       }
       return BufferView{boost::get<Buffer>(variant)};
@@ -69,7 +69,7 @@ namespace kagome::common {
 
     /// Get mutable buffer reference. Copy once if view.
     Buffer &mut() {
-      if (!is_owned()) {
+      if (!isOwned()) {
         auto view = boost::get<BufferView>(variant);
         variant = Buffer{view};
       }
@@ -77,7 +77,7 @@ namespace kagome::common {
     }
 
     /// Move buffer away. Copy once if view.
-    Buffer into_buffer() {
+    Buffer intoBuffer() {
       auto buffer = std::move(mut());
       variant = Moved{};
       return buffer;

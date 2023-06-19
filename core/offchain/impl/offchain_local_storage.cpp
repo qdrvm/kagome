@@ -88,6 +88,6 @@ namespace kagome::offchain {
 
     auto iKey = internalKey(key);
     OUTCOME_TRY(value, storage_->get(iKey));
-    return value.into_buffer();
+    return value.intoBuffer();
   }
 }  // namespace kagome::offchain

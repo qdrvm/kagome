@@ -34,4 +34,3 @@ target_link_libraries(kagome
 if (BACKWARD)
   add_backward(kagome)
 endif ()
-kagome_install(kagome)

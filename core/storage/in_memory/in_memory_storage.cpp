@@ -39,7 +39,7 @@ namespace kagome::storage {
       size_ -= old_value_size;
     }
     size_ += value.size();
-    storage[key.toHex()] = value.into_buffer();
+    storage[key.toHex()] = value.intoBuffer();
     return outcome::success();
   }
 
