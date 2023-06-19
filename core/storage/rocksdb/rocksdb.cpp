@@ -235,9 +235,9 @@ namespace kagome::storage {
   outcome::result<BufferOrView> RocksDbSpace::get(const BufferView &key) const {
     PROFILER_ADD_FUNCTION;
     //std::cout << "---> RDB get req" << std::endl;
-    if (auto it = cache_test.find(key); it != cache_test.end()) {
+    if (auto cached = internal_cache_.get(key)) {
       //std::cout << "---> RDB get hit" << std::endl;
-      return common::BufferView{it->second};
+      return *cached;
     }
 
     OUTCOME_TRY(rocks, use());
@@ -249,7 +249,7 @@ namespace kagome::storage {
           reinterpret_cast<uint8_t *>(value.data()),                  // NOLINT
           reinterpret_cast<uint8_t *>(value.data()) + value.size());  // NOLINT
       common::BufferView res{ret};
-      cache_test[key] = std::move(ret);
+      internal_cache_.set(key, std::move(ret));
       return res;
     }
     return status_as_error(status);
@@ -259,12 +259,9 @@ namespace kagome::storage {
       const BufferView &key) const {
     PROFILER_ADD_FUNCTION;
     //std::cout << "---> RDB get req" << std::endl;
-    if (auto it = cache_test.find(key); it != cache_test.end()) {
-      /*auto b = it->second.size();
-      auto q = it->second;
-      int p = 0; ++p;*/
+    if (auto cached = internal_cache_.get(key)) {
       //std::cout << "---> RDB get hit" << std::endl;
-      return std::make_optional(common::BufferView{it->second});
+      return std::make_optional(*cached);
     }
 
     OUTCOME_TRY(rocks, use());
@@ -275,7 +272,7 @@ namespace kagome::storage {
           reinterpret_cast<uint8_t *>(value.data()),                   // NOLINT
           reinterpret_cast<uint8_t *>(value.data()) + value.size());
       common::BufferView res{ret};
-      cache_test[key] = std::move(ret);
+      internal_cache_.set(key, std::move(ret));
       return std::make_optional(res);  // NOLINT
     }
 
@@ -293,7 +290,7 @@ namespace kagome::storage {
     auto status = rocks->db_->Put(
         rocks->wo_, column_, make_slice(key), make_slice(value));
     if (status.ok()) {
-      cache_test[key] = value.into();
+      internal_cache_.set(key, std::move(value));      
       return outcome::success();
     }
 
@@ -302,7 +299,7 @@ namespace kagome::storage {
 
   outcome::result<void> RocksDbSpace::remove(const BufferView &key) {
     PROFILER_ADD_FUNCTION;
-    cache_test.erase(key);
+    internal_cache_.remove(key);
     OUTCOME_TRY(rocks, use());
     auto status = rocks->db_->Delete(rocks->wo_, column_, make_slice(key));
     if (status.ok()) {
