@@ -233,7 +233,7 @@ namespace kagome::storage {
     auto status = rocks->db_->Get(rocks->ro_, column_, make_slice(key), &value);
     if (status.ok()) {
       // cannot move string content to a buffer
-      Buffer(
+      Buffer ret(
           reinterpret_cast<uint8_t *>(value.data()),                  // NOLINT
           reinterpret_cast<uint8_t *>(value.data()) + value.size());  // NOLINT
       common::BufferView res{ret};
@@ -253,9 +253,8 @@ namespace kagome::storage {
     std::string value;
     auto status = rocks->db_->Get(rocks->ro_, column_, make_slice(key), &value);
     if (status.ok()) {
-      Buffer ret(
-          reinterpret_cast<uint8_t *>(value.data()),                   // NOLINT
-          reinterpret_cast<uint8_t *>(value.data()) + value.size());
+      Buffer ret(reinterpret_cast<uint8_t *>(value.data()),  // NOLINT
+                 reinterpret_cast<uint8_t *>(value.data()) + value.size());
       common::BufferView res{ret};
       internal_cache_.set(key, std::move(ret));
       return std::make_optional(res);  // NOLINT
@@ -274,7 +273,7 @@ namespace kagome::storage {
     auto status = rocks->db_->Put(
         rocks->wo_, column_, make_slice(key), make_slice(value));
     if (status.ok()) {
-      internal_cache_.set(key, std::move(value));      
+      internal_cache_.set(key, std::move(value));
       return outcome::success();
     }
 
