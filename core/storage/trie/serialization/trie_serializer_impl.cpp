@@ -85,6 +85,8 @@ namespace kagome::storage::trie {
                 }
               }
               auto value_data = std::get<Codec::ValueData>(visitee);
+              // value_data.value is a reference to a buffer stored outside of
+              // this lambda, so taking its view should be okay
               return batch->put(value_data.hash, value_data.value.view());
             }));
     auto hash = codec_->hash256(enc);

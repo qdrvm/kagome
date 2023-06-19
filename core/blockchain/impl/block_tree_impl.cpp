@@ -1424,11 +1424,11 @@ namespace kagome::blockchain {
     if (!block_tree_data.state_pruner_->getPruningDepth().has_value()) {
       return outcome::success();
     }
-    auto *root_node = &block_tree_data.tree_->getRoot();
     auto last_pruned = block_tree_data.state_pruner_->getLastPrunedBlock();
 
     BOOST_ASSERT(!last_pruned.has_value()
-                 || last_pruned.value().number <= root_node->depth);
+                 || last_pruned.value().number
+                        <= block_tree_data.tree_->getRoot().depth);
     auto next_pruned_number = last_pruned ? last_pruned->number + 1 : 0;
 
     OUTCOME_TRY(hash_opt, getBlockHash(next_pruned_number));
