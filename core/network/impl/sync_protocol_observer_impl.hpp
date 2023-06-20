@@ -16,6 +16,7 @@
 #include "log/logger.hpp"
 #include "network/types/own_peer_info.hpp"
 #include "primitives/common.hpp"
+#include "network/peer_manager.hpp"
 
 namespace kagome::network {
 
@@ -27,12 +28,13 @@ namespace kagome::network {
 
     SyncProtocolObserverImpl(
         std::shared_ptr<blockchain::BlockTree> block_tree,
-        std::shared_ptr<blockchain::BlockHeaderRepository> blocks_headers);
+        std::shared_ptr<blockchain::BlockHeaderRepository> blocks_headers,
+        std::shared_ptr<PeerManager> peer_manager);
 
     ~SyncProtocolObserverImpl() override = default;
 
     outcome::result<BlocksResponse> onBlocksRequest(
-        const BlocksRequest &request) const override;
+        const BlocksRequest &request, const libp2p::peer::PeerId &peed_id) const override;
 
    private:
     blockchain::BlockTree::BlockHashVecRes retrieveRequestedHashes(
@@ -48,6 +50,7 @@ namespace kagome::network {
     std::shared_ptr<blockchain::BlockHeaderRepository> blocks_headers_;
 
     mutable std::unordered_set<BlocksRequest::Fingerprint> requested_ids_;
+    std::shared_ptr<PeerManager> peer_manager_;
 
     log::Logger log_;
   };

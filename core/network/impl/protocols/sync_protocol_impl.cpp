@@ -260,7 +260,7 @@ namespace kagome::network {
       }
 
       auto block_response_res =
-          self->sync_observer_->onBlocksRequest(block_request);
+          self->sync_observer_->onBlocksRequest(block_request, stream->remotePeerId().value());
 
       if (not block_response_res) {
         SL_VERBOSE(

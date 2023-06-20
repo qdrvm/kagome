@@ -82,6 +82,11 @@ namespace kagome::network {
     virtual void reserveStreams(const PeerId &peer_id) const = 0;
 
     /**
+     * Reserves streams needed to update our status.
+    */
+    virtual void reserveStatusStreams(const PeerId &peer_id) = 0;
+
+    /**
      * Return stream engine object.
      */
     virtual std::shared_ptr<StreamEngine> getStreamEngine() = 0;

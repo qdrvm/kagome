@@ -88,6 +88,9 @@ namespace kagome::network {
     /** @see PeerManager::reserveStreams */
     void reserveStreams(const PeerId &peer_id) const override;
 
+    /** @see PeerManager::reserveStatusStreams */
+    void reserveStatusStreams(const PeerId &peer_id) override;
+
     /** @see PeerManager::getStreamEngine */
     std::shared_ptr<StreamEngine> getStreamEngine() override;
 

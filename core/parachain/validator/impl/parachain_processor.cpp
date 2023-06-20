@@ -189,6 +189,34 @@ namespace kagome::parachain {
           }
         });
 
+    remote_view_sub_ = std::make_shared<network::PeerView::PeerViewSubscriber>(
+        peer_view_->getRemoteViewObservable(), false);
+    remote_view_sub_->subscribe(remote_view_sub_->generateSubscriptionSetId(),
+                            network::PeerView::EventType::kViewUpdated);
+    remote_view_sub_->setCallback([wptr{weak_from_this()}](
+                                  auto /*set_id*/,
+                                  auto && /*internal_obj*/,
+                                  auto /*event_type*/,
+                                  const libp2p::peer::PeerId &peer_id,
+                                  const network::View &view) {
+      if (auto self = wptr.lock()) {
+        /// clear caches
+        BOOST_ASSERT(
+            self->this_context_->get_executor().running_in_this_thread());
+
+        if (auto r = self->canProcessParachains(); r.has_error()) {
+          return;
+        }
+
+        SL_TRACE(self->logger_,
+                 "Update remote view.(peer={}, finalized={}, leaves={})",
+                 peer_id,
+                 view.finalized_number_,
+                 view.heads_.size());
+        self->broadcastViewExcept(peer_id, view);
+      }
+    });
+
     my_view_sub_ = std::make_shared<network::PeerView::MyViewSubscriber>(
         peer_view_->getMyViewObservable(), false);
     my_view_sub_->subscribe(my_view_sub_->generateSubscriptionSetId(),
@@ -230,13 +258,20 @@ namespace kagome::parachain {
     return true;
   }
 
+  void ParachainProcessorImpl::broadcastViewExcept(const libp2p::peer::PeerId &peer_id, const network::View &view) const {
+    auto msg = std::make_shared<
+        network::WireMessage<network::ValidatorProtocolMessage>>(
+        network::ViewUpdate{.view = view});
+    pm_->getStreamEngine()->broadcast(router_->getValidationProtocol(), msg, [&](const libp2p::peer::PeerId &p) {
+      return peer_id != p;
+    });
+  }    
+
   void ParachainProcessorImpl::broadcastView(const network::View &view) const {
     auto msg = std::make_shared<
         network::WireMessage<network::ValidatorProtocolMessage>>(
         network::ViewUpdate{.view = view});
-
     pm_->getStreamEngine()->broadcast(router_->getValidationProtocol(), msg);
-    pm_->getStreamEngine()->broadcast(router_->getCollationProtocol(), msg);
   }
 
   outcome::result<void> ParachainProcessorImpl::canProcessParachains() const {

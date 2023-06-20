@@ -803,6 +803,14 @@ namespace kagome::network {
     }
   }
 
+  void PeerManagerImpl::reserveStatusStreams(const PeerId &peer_id) {
+    auto proto = router_->getValidationProtocol();
+    BOOST_ASSERT_MSG(proto,
+                     "Router did not provide validation protocol");
+
+    stream_engine_->reserveStreams(peer_id, proto);
+  }
+
   void PeerManagerImpl::reserveStreams(const PeerId &peer_id) const {
     // Reserve stream slots for needed protocols
     auto grandpa_protocol = router_->getGrandpaProtocol();

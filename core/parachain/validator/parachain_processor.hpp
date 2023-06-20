@@ -338,6 +338,7 @@ namespace kagome::parachain {
      * Notification
      */
     void broadcastView(const network::View &view) const;
+    void broadcastViewExcept(const libp2p::peer::PeerId &peer_id, const network::View &view) const;
     template <typename F>
     void notify_internal(std::shared_ptr<WorkersContext> &context, F &&func) {
       BOOST_ASSERT(context);
@@ -410,6 +411,7 @@ namespace kagome::parachain {
     std::shared_ptr<crypto::Hasher> hasher_;
     std::shared_ptr<network::PeerView> peer_view_;
     network::PeerView::MyViewSubscriberPtr my_view_sub_;
+    network::PeerView::PeerViewSubscriberPtr remote_view_sub_;
     std::shared_ptr<ThreadPool> thread_pool_;
 
     std::shared_ptr<parachain::Pvf> pvf_;
