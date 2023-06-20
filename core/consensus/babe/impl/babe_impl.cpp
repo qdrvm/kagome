@@ -255,6 +255,9 @@ namespace kagome::consensus::babe {
         babe_status_observable_->notify(
             primitives::events::BabeStateEventType::kSyncState, current_state_);
       } break;
+
+      case SyncMethod::Auto:
+        UNREACHABLE;  // It must be rewritten in prepare stage
     }
 
     return true;
