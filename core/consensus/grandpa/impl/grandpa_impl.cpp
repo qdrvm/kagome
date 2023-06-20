@@ -127,9 +127,6 @@ namespace kagome::consensus::grandpa {
   }
 
   bool GrandpaImpl::prepare() {
-    // Set themselves in environment
-    environment_->setJustificationObserver(shared_from_this());
-
     babe_status_observer_ =
         std::make_shared<primitives::events::BabeStateEventSubscriber>(
             babe_status_observable_, false);
