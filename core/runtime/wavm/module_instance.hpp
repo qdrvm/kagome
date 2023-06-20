@@ -41,7 +41,7 @@ namespace kagome::runtime::wavm {
         InstanceEnvironment &&env,
         WAVM::Runtime::GCPointer<WAVM::Runtime::Instance> instance,
         WAVM::Runtime::ModuleRef module,
-        std::shared_ptr<const CompartmentWrapper> compartment,
+        WAVM::Runtime::Compartment* compartment,
         const common::Hash256 &code_hash);
 
     const common::Hash256 &getCodeHash() const override {
@@ -63,7 +63,7 @@ namespace kagome::runtime::wavm {
     InstanceEnvironment env_;
     WAVM::Runtime::GCPointer<WAVM::Runtime::Instance> instance_;
     WAVM::Runtime::ModuleRef module_;
-    std::shared_ptr<const CompartmentWrapper> compartment_;
+    WAVM::Runtime::Compartment* compartment_;
     common::Hash256 code_hash_;
     log::Logger logger_;
   };

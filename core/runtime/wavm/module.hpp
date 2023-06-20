@@ -33,7 +33,6 @@ namespace kagome::runtime::wavm {
     static std::unique_ptr<ModuleImpl> compileFrom(
         std::shared_ptr<CompartmentWrapper> compartment,
         ModuleParams &module_params,
-        std::shared_ptr<IntrinsicModule> intrinsic_module,
         std::shared_ptr<const InstanceEnvironmentFactory> env_factory,
         gsl::span<const uint8_t> code,
         const common::Hash256 &code_hash);

@@ -337,26 +337,25 @@ namespace {
     return di::make_injector(
         bind_by_lambda<runtime::wavm::CompartmentWrapper>([](const auto
                                                                  &injector) {
-          return std::make_shared<kagome::runtime::wavm::CompartmentWrapper>(
-              "Runtime Compartment");
+          return std::make_shared<kagome::runtime::wavm::CompartmentWrapper>();
         }),
-        bind_by_lambda<runtime::wavm::IntrinsicModule>(
-            [](const auto &injector) {
-              auto compartment = injector.template create<
-                  sptr<runtime::wavm::CompartmentWrapper>>();
-              runtime::wavm::ModuleParams module_params{};
-              auto module = std::make_unique<runtime::wavm::IntrinsicModule>(
-                  compartment, module_params.intrinsicMemoryType);
-              runtime::wavm::registerHostApiMethods(*module);
-              return module;
-            }),
-        bind_by_lambda<runtime::wavm::IntrinsicModuleInstance>(
-            [](const auto &injector) {
-              auto module =
-                  injector
-                      .template create<sptr<runtime::wavm::IntrinsicModule>>();
-              return module->instantiate();
-            }),
+//        bind_by_lambda<runtime::wavm::IntrinsicModule>(
+//            [](const auto &injector) {
+//              auto compartment = injector.template create<
+//                  sptr<runtime::wavm::CompartmentWrapper>>();
+//              runtime::wavm::ModuleParams module_params{};
+//              auto module = std::make_unique<runtime::wavm::IntrinsicModule>(
+//                  compartment, module_params.intrinsicMemoryType);
+//              runtime::wavm::registerHostApiMethods(*module);
+//              return module;
+//            }),
+//        bind_by_lambda<runtime::wavm::IntrinsicModuleInstance>(
+//            [](const auto &injector) {
+//              auto module =
+//                  injector
+//                      .template create<sptr<runtime::wavm::IntrinsicModule>>();
+//              return module->instantiate();
+//            }),
         di::bind<runtime::wavm::IntrinsicResolver>.template to<runtime::wavm::IntrinsicResolverImpl>(),
         std::forward<decltype(args)>(args)...);
   }
@@ -466,7 +465,6 @@ namespace {
               injector.template create<sptr<runtime::wavm::ModuleParams>>(),
               injector.template create<
                   sptr<runtime::wavm::InstanceEnvironmentFactory>>(),
-              injector.template create<sptr<runtime::wavm::IntrinsicModule>>(),
               module_cache_opt,
               injector.template create<sptr<crypto::Hasher>>());
         }),

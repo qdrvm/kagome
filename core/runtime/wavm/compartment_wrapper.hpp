@@ -8,6 +8,9 @@
 
 #include <memory>
 #include <string>
+#include <thread>
+#include <unordered_map>
+#include <mutex>
 
 namespace WAVM::Runtime {
   struct Compartment;
@@ -23,13 +26,15 @@ namespace kagome::runtime::wavm {
    */
   class CompartmentWrapper final {
    public:
-    CompartmentWrapper(std::string &&name);
     ~CompartmentWrapper();
 
-    WAVM::Runtime::Compartment *getCompartment() const;
+    WAVM::Runtime::Compartment *getThreadCompartment();
 
    private:
-    std::shared_ptr<CompartmentWrapperImpl> impl_;
+    std::mutex m_;
+    std::unordered_map<std::thread::id,
+                               std::shared_ptr<CompartmentWrapperImpl>>
+        impls_;
   };
 
 }  // namespace kagome::runtime::wavm

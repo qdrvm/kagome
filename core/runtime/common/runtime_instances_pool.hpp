@@ -8,8 +8,9 @@
 
 #include "runtime/module_repository.hpp"
 
-#include <stack>
 #include <mutex>
+#include <stack>
+#include <thread>
 
 namespace kagome::runtime {
   /**
@@ -51,9 +52,8 @@ namespace kagome::runtime {
 
     template <typename ValueArg>
     void put(const Key &key, ValueArg &&value) {
-      static_assert(std::is_convertible_v<
-                        ValueArg,
-                        Value> || std::is_constructible_v<ValueArg, Value>);
+      static_assert(std::is_convertible_v<ValueArg, Value>
+                    || std::is_constructible_v<ValueArg, Value>);
       ticks_++;
       if (cache_.size() >= kMaxSize) {
         auto min = std::min_element(cache_.begin(), cache_.end());
@@ -91,7 +91,8 @@ namespace kagome::runtime {
    public:
     using RootHash = storage::trie::RootHash;
     using ModuleCache =
-        SmallLruCache<storage::trie::RootHash, std::shared_ptr<Module>>;
+        SmallLruCache<std::pair<std::thread::id, storage::trie::RootHash>,
+                      std::shared_ptr<Module>>;
 
     /**
      * @brief Instantiate new or reuse existing ModuleInstance for the provided
@@ -134,7 +135,7 @@ namespace kagome::runtime {
     std::mutex mt_;
     static constexpr size_t MODULES_CACHE_SIZE = 2;
     ModuleCache modules_{MODULES_CACHE_SIZE};
-    std::map<RootHash, ModuleInstancePool> pools_;
+    std::map<std::pair<std::thread::id, storage::trie::RootHash>, ModuleInstancePool> pools_;
   };
 
 }  // namespace kagome::runtime

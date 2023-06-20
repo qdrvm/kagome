@@ -20,19 +20,19 @@ namespace kagome::runtime::wavm {
    public:
     static constexpr std::string_view kIntrinsicMemoryName = "Runtime Memory";
 
-    explicit IntrinsicModule(std::shared_ptr<CompartmentWrapper> compartment,
+    IntrinsicModule(WAVM::Runtime::Compartment* compartment,
                              WAVM::IR::MemoryType intrinsic_memory_type)
         : compartment_{compartment},
           intrinsic_memory_type_{intrinsic_memory_type},
           memory_{
               &module_, kIntrinsicMemoryName.data(), intrinsic_memory_type} {}
 
-    IntrinsicModule(IntrinsicModule &module,
-                    WAVM::IR::MemoryType intrinsic_memory_type)
-        : compartment_{module.compartment_},
-          intrinsic_memory_type_{intrinsic_memory_type},
-          memory_{
-              &module_, kIntrinsicMemoryName.data(), intrinsic_memory_type} {}
+//    IntrinsicModule(IntrinsicModule &module,
+//                    WAVM::IR::MemoryType intrinsic_memory_type)
+//        : compartment_{module.compartment_},
+//          intrinsic_memory_type_{intrinsic_memory_type},
+//          memory_{
+//              &module_, kIntrinsicMemoryName.data(), intrinsic_memory_type} {}
 
     std::unique_ptr<IntrinsicModuleInstance> instantiate() const {
       BOOST_ASSERT_MSG(
@@ -40,10 +40,9 @@ namespace kagome::runtime::wavm {
           "Host API methods are not registered within IntrinsicModule! See "
           "runtime/wavm/intrinsics/intrinsic_functions.hpp");
       return std::make_unique<IntrinsicModuleInstance>(
-          WAVM::Intrinsics::instantiateModule(compartment_->getCompartment(),
+          WAVM::Intrinsics::instantiateModule(compartment_,
                                               {&module_},
                                               "Intrinsic Module Instance"),
-          compartment_,
           intrinsic_memory_type_);
     }
 
@@ -60,7 +59,7 @@ namespace kagome::runtime::wavm {
     }
 
    private:
-    std::shared_ptr<CompartmentWrapper> compartment_;
+    WAVM::Runtime::Compartment* compartment_;
     WAVM::IR::MemoryType intrinsic_memory_type_;
     WAVM::Intrinsics::Module module_;
 

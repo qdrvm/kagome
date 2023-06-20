@@ -86,7 +86,7 @@ namespace kagome::runtime::wavm {
       InstanceEnvironment &&env,
       WAVM::Runtime::GCPointer<WAVM::Runtime::Instance> instance,
       WAVM::Runtime::ModuleRef module,
-      std::shared_ptr<const CompartmentWrapper> compartment,
+      WAVM::Runtime::Compartment* compartment,
       const common::Hash256 &code_hash)
       : env_{std::move(env)},
         instance_{std::move(instance)},
@@ -107,7 +107,7 @@ namespace kagome::runtime::wavm {
 
     auto res = [this, name, args_span]() -> outcome::result<PtrSize> {
       WAVM::Runtime::GCPointer<WAVM::Runtime::Context> context =
-          WAVM::Runtime::createContext(compartment_->getCompartment());
+          WAVM::Runtime::createContext(compartment_);
       WAVM::Runtime::Function *function = WAVM::Runtime::asFunctionNullable(
           WAVM::Runtime::getInstanceExport(instance_, name.data()));
       if (!function) {
@@ -163,7 +163,7 @@ namespace kagome::runtime::wavm {
         return Error::EXECUTION_ERROR;
       }
     }();
-    WAVM::Runtime::collectCompartmentGarbage(compartment_->getCompartment());
+    WAVM::Runtime::collectCompartmentGarbage(compartment_);
     return res;
   }
 
@@ -173,7 +173,7 @@ namespace kagome::runtime::wavm {
         WAVM::Runtime::getInstanceExport(instance_, name.data()));
     if (global == nullptr) return std::nullopt;
     WAVM::Runtime::GCPointer<WAVM::Runtime::Context> context =
-        WAVM::Runtime::createContext(compartment_->getCompartment());
+        WAVM::Runtime::createContext(compartment_);
     auto value = WAVM::Runtime::getGlobalValue(context, global);
     switch (value.type) {
       case WAVM::IR::ValueType::i32:

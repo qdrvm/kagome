@@ -5,9 +5,11 @@
 
 #include "runtime/wavm/compartment_wrapper.hpp"
 
+#include <sstream>
+#include <stdexcept>
+
 #include <WAVM/Runtime/Runtime.h>
 #include <boost/assert.hpp>
-#include <stdexcept>
 
 namespace kagome::runtime::wavm {
 
@@ -19,17 +21,26 @@ namespace kagome::runtime::wavm {
     WAVM::Runtime::GCPointer<WAVM::Runtime::Compartment> compartment_;
   };
 
-  CompartmentWrapper::CompartmentWrapper(std::string &&name)
-      : impl_{std::make_unique<CompartmentWrapperImpl>(WAVM::Runtime::GCPointer{
-          WAVM::Runtime::createCompartment(std::move(name))})} {}
-
   CompartmentWrapper::~CompartmentWrapper() {
-    BOOST_VERIFY(
-        WAVM::Runtime::tryCollectCompartment(std::move(impl_->compartment_)));
+    std::terminate();
+    // BOOST_VERIFY(
+    //     WAVM::Runtime::tryCollectCompartment(std::move(impls_->compartment_)));
   }
 
-  WAVM::Runtime::Compartment *CompartmentWrapper::getCompartment() const {
-    return impl_->compartment_;
+  WAVM::Runtime::Compartment *CompartmentWrapper::getThreadCompartment() {
+    if (auto it = impls_.find(std::this_thread::get_id()); it != impls_.end()) {
+      return it->second->compartment_;
+    }
+    std::stringstream ss;
+    ss << "Compartment on thread" << std::this_thread::get_id();
+    std::string name = ss.str();
+    WAVM::Runtime::GCPointer ptr{
+        WAVM::Runtime::createCompartment(std::move(name))};
+    std::scoped_lock lock{m_};
+    auto [it, _] = impls_.insert_or_assign(
+        std::this_thread::get_id(),
+        std::make_shared<CompartmentWrapperImpl>(std::move(ptr)));
+    return it->second->compartment_;
   }
 
 }  // namespace kagome::runtime::wavm

@@ -28,7 +28,6 @@ namespace kagome::runtime::wavm {
     OneModuleRepository(
         std::shared_ptr<CompartmentWrapper> compartment,
         std::shared_ptr<ModuleParams> module_params,
-        std::shared_ptr<IntrinsicModule> intrinsic_module,
         std::shared_ptr<const InstanceEnvironmentFactory> instance_env_factory,
         gsl::span<const uint8_t> code,
         const common::Hash256 &code_hash,
@@ -36,12 +35,10 @@ namespace kagome::runtime::wavm {
         : instance_env_factory_{std::move(instance_env_factory)},
           compartment_{compartment},
           module_params_{std::move(module_params)},
-          intrinsic_module_{std::move(intrinsic_module)},
           code_{code},
           last_compiled_module_{last_compiled_module} {
       BOOST_ASSERT(instance_env_factory_);
       BOOST_ASSERT(compartment_);
-      BOOST_ASSERT(intrinsic_module_);
       BOOST_ASSERT(last_compiled_module_);
     }
 
@@ -52,7 +49,6 @@ namespace kagome::runtime::wavm {
       if (instance_ == nullptr) {
         auto module = ModuleImpl::compileFrom(compartment_,
                                               *module_params_,
-                                              intrinsic_module_,
                                               instance_env_factory_,
                                               code_,
                                               code_hash_);
@@ -68,7 +64,6 @@ namespace kagome::runtime::wavm {
     std::shared_ptr<const InstanceEnvironmentFactory> instance_env_factory_;
     std::shared_ptr<CompartmentWrapper> compartment_;
     std::shared_ptr<ModuleParams> module_params_;
-    std::shared_ptr<IntrinsicModule> intrinsic_module_;
     gsl::span<const uint8_t> code_;
     const common::Hash256 code_hash_;
     std::shared_ptr<SingleModuleCache> last_compiled_module_;
@@ -90,7 +85,6 @@ namespace kagome::runtime::wavm {
   CoreApiFactoryImpl::CoreApiFactoryImpl(
       std::shared_ptr<CompartmentWrapper> compartment,
       std::shared_ptr<ModuleParams> module_params,
-      std::shared_ptr<IntrinsicModule> intrinsic_module,
       std::shared_ptr<storage::trie::TrieStorage> storage,
       std::shared_ptr<blockchain::BlockHeaderRepository> block_header_repo,
       std::shared_ptr<const InstanceEnvironmentFactory> instance_env_factory,
@@ -99,14 +93,12 @@ namespace kagome::runtime::wavm {
       : instance_env_factory_{std::move(instance_env_factory)},
         compartment_{compartment},
         module_params_{std::move(module_params)},
-        intrinsic_module_{std::move(intrinsic_module)},
         storage_{std::move(storage)},
         block_header_repo_{std::move(block_header_repo)},
         last_compiled_module_{last_compiled_module},
         cache_(std::move(cache)) {
     BOOST_ASSERT(compartment_);
     BOOST_ASSERT(module_params_);
-    BOOST_ASSERT(intrinsic_module_);
     BOOST_ASSERT(storage_);
     BOOST_ASSERT(block_header_repo_);
     BOOST_ASSERT(instance_env_factory_);
@@ -123,7 +115,6 @@ namespace kagome::runtime::wavm {
         std::make_shared<OneModuleRepository>(
             compartment_,
             module_params_,
-            intrinsic_module_,
             instance_env_factory_,
             gsl::span<const uint8_t>{
                 runtime_code.data(),

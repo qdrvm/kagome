@@ -21,7 +21,6 @@ namespace kagome::runtime::wavm {
       std::shared_ptr<storage::trie::TrieSerializer> serializer,
       std::shared_ptr<CompartmentWrapper> compartment,
       std::shared_ptr<ModuleParams> module_params,
-      std::shared_ptr<IntrinsicModule> intrinsic_module,
       std::shared_ptr<host_api::HostApiFactory> host_api_factory,
       std::shared_ptr<blockchain::BlockHeaderRepository> block_header_repo,
       std::shared_ptr<kagome::runtime::SingleModuleCache> last_compiled_module,
@@ -30,7 +29,6 @@ namespace kagome::runtime::wavm {
         serializer_{std::move(serializer)},
         compartment_{std::move(compartment)},
         module_params_{std::move(module_params)},
-        intrinsic_module_{std::move(intrinsic_module)},
         host_api_factory_{std::move(host_api_factory)},
         block_header_repo_{std::move(block_header_repo)},
         last_compiled_module_{std::move(last_compiled_module)},
@@ -39,7 +37,6 @@ namespace kagome::runtime::wavm {
     BOOST_ASSERT(serializer_ != nullptr);
     BOOST_ASSERT(compartment_ != nullptr);
     BOOST_ASSERT(module_params_ != nullptr);
-    BOOST_ASSERT(intrinsic_module_ != nullptr);
     BOOST_ASSERT(host_api_factory_ != nullptr);
     BOOST_ASSERT(block_header_repo_ != nullptr);
     BOOST_ASSERT(last_compiled_module_ != nullptr);
@@ -55,7 +52,6 @@ namespace kagome::runtime::wavm {
     auto core_factory =
         std::make_shared<CoreApiFactoryImpl>(compartment_,
                                              module_params_,
-                                             intrinsic_module_,
                                              storage_,
                                              block_header_repo_,
                                              shared_from_this(),

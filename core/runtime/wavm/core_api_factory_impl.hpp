@@ -39,7 +39,6 @@ namespace kagome::runtime::wavm {
     CoreApiFactoryImpl(
         std::shared_ptr<CompartmentWrapper> compartment,
         std::shared_ptr<ModuleParams> module_params,
-        std::shared_ptr<IntrinsicModule> intrinsic_module,
         std::shared_ptr<storage::trie::TrieStorage> storage,
         std::shared_ptr<blockchain::BlockHeaderRepository> block_header_repo,
         std::shared_ptr<const InstanceEnvironmentFactory> instance_env_factory,
@@ -54,7 +53,6 @@ namespace kagome::runtime::wavm {
     std::shared_ptr<const InstanceEnvironmentFactory> instance_env_factory_;
     std::shared_ptr<CompartmentWrapper> compartment_;
     std::shared_ptr<ModuleParams> module_params_;
-    std::shared_ptr<IntrinsicModule> intrinsic_module_;
     std::shared_ptr<storage::trie::TrieStorage> storage_;
     std::shared_ptr<blockchain::BlockHeaderRepository> block_header_repo_;
     std::shared_ptr<SingleModuleCache> last_compiled_module_;

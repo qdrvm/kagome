@@ -68,7 +68,7 @@ namespace kagome::runtime {
   RuntimeInstancesPool::tryAcquire(
       const RuntimeInstancesPool::RootHash &state) {
     std::scoped_lock guard{mt_};
-    auto &pool = pools_[state];
+    auto &pool = pools_[{std::this_thread::get_id(), state}];
 
     if (not pool.empty()) {
       auto top = std::move(pool.top());
@@ -77,7 +77,7 @@ namespace kagome::runtime {
           weak_from_this(), state, std::move(top));
     }
 
-    auto opt_module = modules_.get(state);
+    auto opt_module = modules_.get({std::this_thread::get_id(), state});
     BOOST_ASSERT(opt_module.has_value());
     auto module = opt_module.value();
     OUTCOME_TRY(instance, module.get()->instantiate());
@@ -90,7 +90,7 @@ namespace kagome::runtime {
       const RuntimeInstancesPool::RootHash &state,
       std::shared_ptr<ModuleInstance> &&instance) {
     std::lock_guard guard{mt_};
-    auto &pool = pools_[state];
+    auto &pool = pools_[{std::this_thread::get_id(), state}];
 
     pool.emplace(std::move(instance));
   }
@@ -98,14 +98,14 @@ namespace kagome::runtime {
   std::optional<std::shared_ptr<Module>> RuntimeInstancesPool::getModule(
       const RuntimeInstancesPool::RootHash &state) {
     std::lock_guard guard{mt_};
-    return modules_.get(state);
+    return modules_.get({std::this_thread::get_id(), state});
   }
 
   void RuntimeInstancesPool::putModule(
       const RuntimeInstancesPool::RootHash &state,
       std::shared_ptr<Module> module) {
     std::lock_guard guard{mt_};
-    modules_.put(state, std::move(module));
+    modules_.put({std::this_thread::get_id(), state}, std::move(module));
   }
 
 }  // namespace kagome::runtime

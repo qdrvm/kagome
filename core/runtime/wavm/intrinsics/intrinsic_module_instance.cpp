@@ -15,12 +15,9 @@ namespace kagome::runtime::wavm {
 
   IntrinsicModuleInstance::IntrinsicModuleInstance(
       WAVM::Runtime::GCPointer<WAVM::Runtime::Instance> module_instance,
-      std::shared_ptr<const CompartmentWrapper> compartment,
       WAVM::IR::MemoryType intrinsic_memory_type)
       : module_instance_{std::move(module_instance)},
-        compartment_{std::move(compartment)},
         intrinsic_memory_type_{intrinsic_memory_type} {
-    BOOST_ASSERT(compartment_);
     BOOST_ASSERT(module_instance_);
   }
 

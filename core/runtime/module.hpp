@@ -7,6 +7,7 @@
 #define KAGOME_CORE_RUNTIME_MODULE_HPP
 
 #include <optional>
+#include <thread>
 
 #include "outcome/outcome.hpp"
 #include "runtime/instance_environment.hpp"
@@ -41,7 +42,8 @@ namespace kagome::runtime {
      * @param module New compiled module to store
      */
     void set(std::shared_ptr<Module> module) {
-      module_ = module;
+      std::scoped_lock lock{m_};
+      module_[std::this_thread::get_id()] = module;
     }
 
     /**
@@ -49,13 +51,16 @@ namespace kagome::runtime {
      * @return Value if any, std::nullopt otherwise.
      */
     std::optional<std::shared_ptr<Module>> try_extract() {
-      auto module = module_;
-      module_.reset();
+      std::scoped_lock lock{m_};
+      auto module = module_[std::this_thread::get_id()];
+      module_.erase(std::this_thread::get_id());
       return module;
     }
 
    private:
-    std::optional<std::shared_ptr<Module>> module_;
+    std::mutex m_;
+    std::unordered_map<std::thread::id, std::optional<std::shared_ptr<Module>>>
+        module_;
   };
 
 }  // namespace kagome::runtime

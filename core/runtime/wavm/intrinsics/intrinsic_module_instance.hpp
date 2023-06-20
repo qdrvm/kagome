@@ -30,7 +30,6 @@ namespace kagome::runtime::wavm {
    public:
     IntrinsicModuleInstance(
         WAVM::Runtime::GCPointer<WAVM::Runtime::Instance> module_instance,
-        std::shared_ptr<const CompartmentWrapper> compartment,
         WAVM::IR::MemoryType intrinsic_memory_type);
 
     ~IntrinsicModuleInstance() {
@@ -45,7 +44,6 @@ namespace kagome::runtime::wavm {
 
    private:
     WAVM::Runtime::GCPointer<WAVM::Runtime::Instance> module_instance_;
-    const std::shared_ptr<const CompartmentWrapper> compartment_;
     WAVM::IR::MemoryType intrinsic_memory_type_;
   };
 

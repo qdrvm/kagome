@@ -23,7 +23,6 @@ namespace kagome::runtime::wavm {
   std::unique_ptr<ModuleImpl> ModuleImpl::compileFrom(
       std::shared_ptr<CompartmentWrapper> compartment,
       ModuleParams &module_params,
-      std::shared_ptr<IntrinsicModule> intrinsic_module,
       std::shared_ptr<const InstanceEnvironmentFactory> env_factory,
       gsl::span<const uint8_t> code,
       const common::Hash256 &code_hash) {
@@ -48,8 +47,8 @@ namespace kagome::runtime::wavm {
     if (not imports.empty()) {
       module_params.intrinsicMemoryType = imports[0].type;
     }
-    intrinsic_module = std::make_shared<IntrinsicModule>(
-        *intrinsic_module, module_params.intrinsicMemoryType);
+    auto intrinsic_module = std::make_shared<IntrinsicModule>(
+        compartment->getThreadCompartment(), module_params.intrinsicMemoryType);
     runtime::wavm::registerHostApiMethods(*intrinsic_module);
 
     return std::unique_ptr<ModuleImpl>(
@@ -80,7 +79,9 @@ namespace kagome::runtime::wavm {
 
   outcome::result<std::shared_ptr<ModuleInstance>> ModuleImpl::instantiate()
       const {
-    const auto &ir_module = WAVM::Runtime::getModuleIR(module_);
+    std::shared_ptr<const WAVM::Runtime::Module> const_module = module_;
+    const WAVM::IR::Module &ir_module =
+        WAVM::Runtime::getModuleIR(const_module);
     bool imports_memory =
         std::find_if(ir_module.imports.cbegin(),
                      ir_module.imports.cend(),
@@ -100,7 +101,7 @@ namespace kagome::runtime::wavm {
         std::make_shared<IntrinsicResolverImpl>(new_intrinsic_module_instance);
 
     auto internal_instance =
-        WAVM::Runtime::instantiateModule(compartment_->getCompartment(),
+        WAVM::Runtime::instantiateModule(compartment_->getThreadCompartment(),
                                          module_,
                                          link(*resolver),
                                          "runtime_module");
@@ -109,14 +110,20 @@ namespace kagome::runtime::wavm {
         memory_origin, internal_instance, new_intrinsic_module_instance);
 
     auto instance = std::make_shared<ModuleInstanceImpl>(
-        std::move(env), internal_instance, module_, compartment_, code_hash_);
+        std::move(env),
+        internal_instance,
+        module_,
+        compartment_->getThreadCompartment(),
+        code_hash_);
 
     return instance;
   }
 
   WAVM::Runtime::ImportBindings ModuleImpl::link(
       IntrinsicResolver &resolver) const {
-    auto &ir_module = WAVM::Runtime::getModuleIR(module_);
+    std::shared_ptr<const WAVM::Runtime::Module> const_module = module_;
+    const WAVM::IR::Module &ir_module =
+        WAVM::Runtime::getModuleIR(const_module);
 
     auto link_result = WAVM::Runtime::linkModule(ir_module, resolver);
     if (!link_result.success) {
