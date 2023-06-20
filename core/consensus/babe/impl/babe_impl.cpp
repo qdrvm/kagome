@@ -154,29 +154,110 @@ namespace kagome::consensus::babe {
 
     best_block_ = block_tree_->bestLeaf();
 
-    // Check if best block has state for usual sync method
-    if (app_config_.syncMethod() == SyncMethod::Full) {
-      auto best_block_header_res =
-          block_tree_->getBlockHeader(best_block_.hash);
-      if (best_block_header_res.has_error()) {
-        SL_CRITICAL(log_,
-                    "Can't get header of best block ({}): {}",
-                    best_block_,
-                    best_block_header_res.error());
-        return false;
-      }
-      const auto &best_block_header = best_block_header_res.value();
+    auto best_block_header_res = block_tree_->getBlockHeader(best_block_.hash);
+    if (best_block_header_res.has_error()) {
+      SL_CRITICAL(log_,
+                  "Can't get header of best block ({}): {}",
+                  best_block_,
+                  best_block_header_res.error());
+      return false;
+    }
+    const auto &best_block_header = best_block_header_res.value();
+    const auto &state_root = best_block_header.state_root;
 
-      const auto &state_root = best_block_header.state_root;
+    std::chrono::microseconds warp_sync_duration;
+    std::chrono::microseconds fast_sync_duration;
+    std::chrono::microseconds full_sync_duration;
 
-      // Check if target block has state
-      if (auto res = trie_storage_->getEphemeralBatchAt(state_root);
-          res.has_error()) {
+    // Calculate lag our best block by slots
+    BabeSlotNumber lag_slots = 0;
+    if (auto babe_digests_res = getBabeDigests(best_block_header);
+        babe_digests_res.has_value()) {
+      auto &[seal, babe_header] = babe_digests_res.value();
+      lag_slots = babe_util_->getCurrentSlot() - babe_header.slot_number;
+    }
+
+    // WARP: n * header_loading / k + state_loading + lag * block_execution
+    //       {               catchup              }
+    // FAST: n * header_loading + state_loading + lag' * block_execution
+    //       {             catchup'           }
+    // FULL: n * block_execution + lag" * block_execution
+    //       {     catchup"    }
+
+    {
+      auto block_execution = std::chrono::microseconds(200'000);
+      auto header_loading = std::chrono::microseconds(2'000);
+      auto state_loading = std::chrono::microseconds(1200'000'000);
+      auto warp_proportion = 512;
+
+      auto warp_catchup =
+          lag_slots * header_loading / warp_proportion + state_loading;
+      auto fast_catchup = lag_slots * header_loading + state_loading;
+      auto full_catchup = lag_slots * block_execution;
+
+      auto warp_lag = warp_catchup / babe_config_repo_->slotDuration();
+      auto fast_lag = fast_catchup / babe_config_repo_->slotDuration();
+      auto full_lag = full_catchup / babe_config_repo_->slotDuration();
+
+      warp_sync_duration = warp_catchup + warp_lag * block_execution;
+      fast_sync_duration = fast_catchup + fast_lag * block_execution;
+      full_sync_duration = full_catchup + full_lag * block_execution;
+    }
+
+    bool allow_warp_sync_for_auto = false;
+
+    // Check if target block does not have state (full sync not available)
+    bool full_sync_available = true;
+    if (auto res = trie_storage_->getEphemeralBatchAt(state_root);
+        not res.has_value()) {
+      if (sync_method_ == SyncMethod::Full) {
         SL_WARN(log_, "Can't get state of best block: {}", res.error());
         SL_CRITICAL(log_,
                     "Try restart at least once with `--sync Fast' CLI arg");
         return false;
       }
+      full_sync_available = false;
+    }
+
+    switch (sync_method_) {
+      case SyncMethod::Auto:
+        if (full_sync_duration < fast_sync_duration and full_sync_available) {
+          SL_INFO(log_, "Sync mode auto: decided Full sync");
+          sync_method_ = SyncMethod::Full;
+        } else if (fast_sync_duration < warp_sync_duration
+                   or not allow_warp_sync_for_auto) {
+          SL_INFO(log_, "Sync mode auto: decided Fast sync");
+          sync_method_ = SyncMethod::Fast;
+        } else {
+          SL_INFO(log_, "Sync mode auto: decided Warp sync");
+          sync_method_ = SyncMethod::Warp;
+        }
+        break;
+
+      case SyncMethod::Full:
+        if (fast_sync_duration < full_sync_duration) {
+          SL_INFO(log_, "Fast sync would be faster then Full such was defined");
+        } else if (warp_sync_duration < full_sync_duration) {
+          SL_INFO(log_, "Warp sync would be faster then Full such was defined");
+        }
+        break;
+
+      case SyncMethod::FastWithoutState:
+        break;
+
+      case SyncMethod::Fast:
+        if (full_sync_duration < fast_sync_duration and full_sync_available) {
+          SL_INFO(log_, "Full sync would be faster then Fast such was defined");
+        } else if (warp_sync_duration < fast_sync_duration) {
+          SL_INFO(log_, "Warp sync would be faster then Fast such was defined");
+        }
+
+      case SyncMethod::Warp:
+        if (full_sync_duration < warp_sync_duration and full_sync_available) {
+          SL_INFO(log_, "Full sync would be faster then Warp such was defined");
+        } else if (fast_sync_duration < warp_sync_duration) {
+          SL_INFO(log_, "Fast sync would be faster then Earp such was defined");
+        }
     }
 
     current_epoch_ = initial_epoch_res.value();
