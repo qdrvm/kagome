@@ -144,9 +144,11 @@ namespace kagome::consensus::babe {
   }
 
   bool BabeImpl::prepare() {
-    auto res = getInitialEpochDescriptor();
-    if (res.has_error()) {
-      SL_CRITICAL(log_, "Can't get initial epoch descriptor: {}", res.error());
+    auto initial_epoch_res = getInitialEpochDescriptor();
+    if (initial_epoch_res.has_error()) {
+      SL_CRITICAL(log_,
+                  "Can't get initial epoch descriptor: {}",
+                  initial_epoch_res.error());
       return false;
     }
 
@@ -177,7 +179,7 @@ namespace kagome::consensus::babe {
       }
     }
 
-    current_epoch_ = res.value();
+    current_epoch_ = initial_epoch_res.value();
 
     chain_sub_->subscribe(chain_sub_->generateSubscriptionSetId(),
                           primitives::events::ChainEventType::kFinalizedHeads);
@@ -399,7 +401,7 @@ namespace kagome::consensus::babe {
         startStateSyncing(peer_id);
       } else if (current_state_ == Babe::State::CATCHING_UP
                  or current_state_ == Babe::State::WAIT_REMOTE_STATUS) {
-        onSynchronized();
+        onCaughtUp(current_best_block);
       }
       return;
     }
@@ -472,20 +474,13 @@ namespace kagome::consensus::babe {
               return;
             }
 
-            // Just synced
+            // Caught up some block, possible block of current slot
             if (self->current_state_ == Babe::State::CATCHING_UP) {
-              SL_INFO(self->log_, "Catching up is finished on block {}", block);
-              self->current_state_ = Babe::State::SYNCHRONIZED;
-              self->was_synchronized_ = true;
-              self->telemetry_->notifyWasSynchronized();
-              self->babe_status_observable_->notify(
-                  primitives::events::BabeStateEventType::kSyncState,
-                  self->current_state_);
+              self->onCaughtUp(block);
             }
 
             // Synced
             if (self->current_state_ == Babe::State::SYNCHRONIZED) {
-              self->onSynchronized();
               // Set actual block status
               announce.state = block == self->block_tree_->bestLeaf()
                                  ? network::BlockState::Best
@@ -713,10 +708,37 @@ namespace kagome::consensus::babe {
         });
   }
 
+  void BabeImpl::onCaughtUp(const primitives::BlockInfo &block) {
+    SL_INFO(log_, "Caught up block {}", block);
+
+    if (not was_synchronized_) {
+      auto header_opt = block_tree_->getBlockHeader(block.hash);
+      BOOST_ASSERT_MSG(header_opt.has_value(), "Just added block; deq");
+      auto res = getBabeDigests(header_opt.value());
+      if (res.has_value()) {
+        auto &[_, babe_header] = res.value();
+        if (babe_util_->getCurrentSlot() > babe_header.slot_number + 1) {
+          current_state_ = Babe::State::WAIT_REMOTE_STATUS;
+          babe_status_observable_->notify(
+              primitives::events::BabeStateEventType::kSyncState,
+              current_state_);
+          return;
+        }
+      }
+    }
+
+    onSynchronized();
+  }
+
   void BabeImpl::onSynchronized() {
-    current_state_ = State::SYNCHRONIZED;
-    was_synchronized_ = true;
-    telemetry_->notifyWasSynchronized();
+    if (not was_synchronized_) {
+      was_synchronized_ = true;
+
+      telemetry_->notifyWasSynchronized();
+    }
+
+    current_state_ = Babe::State::SYNCHRONIZED;
+
     babe_status_observable_->notify(
         primitives::events::BabeStateEventType::kSyncState, current_state_);
 

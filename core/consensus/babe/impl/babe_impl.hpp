@@ -142,8 +142,6 @@ namespace kagome::consensus::babe {
     void onBlockAnnounce(const libp2p::peer::PeerId &peer_id,
                          const network::BlockAnnounce &announce) override;
 
-    void onSynchronized() override;
-
     bool wasSynchronized() const override;
 
    private:
@@ -160,6 +158,10 @@ namespace kagome::consensus::babe {
 
     void startCatchUp(const libp2p::peer::PeerId &peer_id,
                       const primitives::BlockInfo &target_block);
+
+    void onCaughtUp(const primitives::BlockInfo &block);
+
+    void onSynchronized();
 
     void startStateSyncing(const libp2p::peer::PeerId &peer_id);
 
