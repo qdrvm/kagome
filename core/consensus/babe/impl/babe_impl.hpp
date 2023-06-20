@@ -8,6 +8,7 @@
 
 #include "consensus/babe/babe.hpp"
 
+#include "application/app_configuration.hpp"
 #include "clock/timer.hpp"
 #include "injector/lazy.hpp"
 #include "log/logger.hpp"
@@ -20,7 +21,6 @@
 #include "telemetry/service.hpp"
 
 namespace kagome::application {
-  class AppConfiguration;
   class AppStateManager;
 }  // namespace kagome::application
 
@@ -202,7 +202,7 @@ namespace kagome::consensus::babe {
     outcome::result<primitives::Seal> sealBlock(
         const primitives::Block &block) const;
 
-    const application::AppConfiguration &app_config_;
+    application::AppConfiguration::SyncMethod sync_method_;
     std::shared_ptr<application::AppStateManager> app_state_manager_;
     std::shared_ptr<BabeLottery> lottery_;
     std::shared_ptr<BabeConfigRepository> babe_config_repo_;

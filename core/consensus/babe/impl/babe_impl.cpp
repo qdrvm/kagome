@@ -77,7 +77,7 @@ namespace kagome::consensus::babe {
       std::shared_ptr<ConsistencyKeeper> consistency_keeper,
       std::shared_ptr<storage::trie::TrieStorage> trie_storage,
       primitives::events::BabeStateSubscriptionEnginePtr babe_status_observable)
-      : app_config_(app_config),
+      : sync_method_(app_config.syncMethod()),
         app_state_manager_(app_state_manager),
         lottery_{std::move(lottery)},
         babe_config_repo_{std::move(babe_config_repo)},
@@ -245,7 +245,7 @@ namespace kagome::consensus::babe {
       return true;
     }
 
-    switch (app_config_.syncMethod()) {
+    switch (sync_method_) {
       case SyncMethod::Full:
         current_state_ = State::WAIT_REMOTE_STATUS;
         break;
@@ -499,7 +499,7 @@ namespace kagome::consensus::babe {
     if (current_state_ != State::HEADERS_LOADING) {
       return false;
     }
-    if (app_config_.syncMethod() != SyncMethod::Warp) {
+    if (sync_method_ != SyncMethod::Warp) {
       return false;
     }
     auto target = warp_sync_->request();
@@ -600,7 +600,7 @@ namespace kagome::consensus::babe {
       return;
     }
 
-    if (app_config_.syncMethod() == SyncMethod::FastWithoutState) {
+    if (sync_method_ == SyncMethod::FastWithoutState) {
       if (app_state_manager_->state()
           != application::AppStateManager::State::ShuttingDown) {
         SL_INFO(log_,
