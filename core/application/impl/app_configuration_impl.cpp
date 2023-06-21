@@ -1150,6 +1150,24 @@ namespace kagome::application {
       return false;  // just proxy erroneous case to the top level
     }
 
+    auto publish_localhost = [&] {
+      auto replace = [&](std::string_view prefix,
+                         std::string_view replacement,
+                         std::string_view str) {
+        if (boost::starts_with(str, prefix)) {
+          std::string replaced{replacement};
+          replaced += str.substr(prefix.size());
+          public_addresses_.emplace_back(
+              libp2p::multi::Multiaddress::create(replaced).value());
+        }
+      };
+      for (auto &addr : listen_addresses_) {
+        auto str = addr.getStringAddress();
+        replace("/ip4/0.0.0.0/", "/ip4/127.0.0.1/", str);
+        replace("/ip6/::/", "/ip6/::1/", str);
+      }
+    };
+
     // this goes before transforming p2p port option to listen addresses,
     // because it does not make sense to announce 0.0.0.0 as a public address.
     // Moreover, this is ok to have empty set of public addresses at this point
@@ -1159,6 +1177,7 @@ namespace kagome::application {
               "Public addresses are not specified. Using listen addresses as "
               "node's public addresses");
       public_addresses_ = listen_addresses_;
+      publish_localhost();
     }
 
     // If listen address has not defined, listen P2P TCP-port on all
@@ -1199,6 +1218,10 @@ namespace kagome::application {
                   "Automatically added IPv4 listen address {}",
                   ma_res.value().getStringAddress());
           listen_addresses_.emplace_back(std::move(ma_res.value()));
+        }
+
+        if (public_addresses_.empty()) {
+          publish_localhost();
         }
       }
     }
