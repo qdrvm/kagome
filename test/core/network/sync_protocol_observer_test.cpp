@@ -13,6 +13,7 @@
 #include "application/app_configuration.hpp"
 #include "mock/core/blockchain/block_header_repository_mock.hpp"
 #include "mock/core/blockchain/block_tree_mock.hpp"
+#include "mock/core/network/peer_manager_mock.hpp"
 #include "mock/libp2p/host/host_mock.hpp"
 #include "primitives/block.hpp"
 #include "testutil/gmock_actions.hpp"
@@ -42,8 +43,9 @@ class SynchronizerTest : public testing::Test {
   }
 
   void SetUp() override {
-    sync_protocol_observer_ =
-        std::make_shared<SyncProtocolObserverImpl>(tree_, headers_);
+    peer_manager_mock_ = std::make_shared<PeerManagerMock>();
+    sync_protocol_observer_ = std::make_shared<SyncProtocolObserverImpl>(
+        tree_, headers_, peer_manager_mock_);
   }
 
   std::shared_ptr<HostMock> host_ = std::make_shared<HostMock>();
@@ -54,6 +56,7 @@ class SynchronizerTest : public testing::Test {
       std::make_shared<BlockHeaderRepositoryMock>();
 
   std::shared_ptr<SyncProtocolObserver> sync_protocol_observer_;
+  std::shared_ptr<PeerManagerMock> peer_manager_mock_;
 
   const Hash256 block2_hash_ = "2"_hash256;
   const Block block3_{{block2_hash_, 3}, {{{0x31, 0x32}}, {{0x33, 0x34}}}};
@@ -93,10 +96,12 @@ TEST_F(SynchronizerTest, ProcessRequest) {
       .WillOnce(Return(::outcome::failure(boost::system::error_code{})));
   EXPECT_CALL(*tree_, getBlockJustification(block4_hash_))
       .WillOnce(Return(::outcome::failure(boost::system::error_code{})));
+  EXPECT_CALL(*peer_manager_mock_, reserveStatusStreams(peer_info_.id));
 
   // WHEN
-  EXPECT_OUTCOME_TRUE(
-      response, sync_protocol_observer_->onBlocksRequest(received_request));
+  EXPECT_OUTCOME_TRUE(response,
+                      sync_protocol_observer_->onBlocksRequest(received_request,
+                                                               peer_info_.id));
 
   // THEN
   const auto &received_blocks = response.blocks;

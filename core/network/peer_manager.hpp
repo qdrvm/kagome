@@ -67,7 +67,7 @@ namespace kagome::network {
     using PeerInfo = libp2p::peer::PeerInfo;
     using BlockInfo = primitives::BlockInfo;
     using AdvResult = outcome::result<
-        std::pair<network::CollatorPublicKey const &, network::ParachainId>>;
+        std::pair<const network::CollatorPublicKey &, network::ParachainId>>;
 
     virtual ~PeerManager() = default;
 
@@ -83,7 +83,7 @@ namespace kagome::network {
 
     /**
      * Reserves streams needed to update our status.
-    */
+     */
     virtual void reserveStatusStreams(const PeerId &peer_id) = 0;
 
     /**
@@ -117,7 +117,7 @@ namespace kagome::network {
      * Store advertisement from a peer to later processing;
      */
     virtual outcome::result<
-        std::pair<network::CollatorPublicKey const &, network::ParachainId>>
+        std::pair<const network::CollatorPublicKey &, network::ParachainId>>
     retrieveCollatorData(PeerState &peer_state,
                          const primitives::BlockHash &relay_parent) = 0;
 
@@ -126,7 +126,7 @@ namespace kagome::network {
      * for each peer per connection. If else -> reduce reputation.
      */
     virtual void setCollating(const PeerId &peer_id,
-                              network::CollatorPublicKey const &collator_id,
+                              const network::CollatorPublicKey &collator_id,
                               network::ParachainId para_id) = 0;
 
     /**

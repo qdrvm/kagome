@@ -99,11 +99,11 @@ namespace kagome::network {
 
     /** @see PeerManager::setCollating */
     void setCollating(const PeerId &peer_id,
-                      network::CollatorPublicKey const &collator_id,
+                      const network::CollatorPublicKey &collator_id,
                       network::ParachainId para_id) override;
 
     outcome::result<
-        std::pair<network::CollatorPublicKey const &, network::ParachainId>>
+        std::pair<const network::CollatorPublicKey &, network::ParachainId>>
     retrieveCollatorData(PeerState &peer_state,
                          const primitives::BlockHash &relay_parent) override;
 
@@ -150,12 +150,12 @@ namespace kagome::network {
 
     template <typename F>
     void openBlockAnnounceProtocol(
-        PeerInfo const &peer_info,
-        libp2p::network::ConnectionManager::ConnectionSPtr const &connection,
+        const PeerInfo &peer_info,
+        const libp2p::network::ConnectionManager::ConnectionSPtr &connection,
         F &&opened_callback);
-    void tryOpenGrandpaProtocol(PeerInfo const &peer_info,
+    void tryOpenGrandpaProtocol(const PeerInfo &peer_info,
                                 PeerState &peer_state);
-    void tryOpenValidationProtocol(PeerInfo const &peer_info,
+    void tryOpenValidationProtocol(const PeerInfo &peer_info,
                                    PeerState &peer_state);
 
     /// Opens streams set for special peer (i.e. new-discovered)

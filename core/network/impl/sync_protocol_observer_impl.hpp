@@ -14,9 +14,9 @@
 #include "blockchain/block_header_repository.hpp"
 #include "blockchain/block_tree.hpp"
 #include "log/logger.hpp"
+#include "network/peer_manager.hpp"
 #include "network/types/own_peer_info.hpp"
 #include "primitives/common.hpp"
-#include "network/peer_manager.hpp"
 
 namespace kagome::network {
 
@@ -34,7 +34,8 @@ namespace kagome::network {
     ~SyncProtocolObserverImpl() override = default;
 
     outcome::result<BlocksResponse> onBlocksRequest(
-        const BlocksRequest &request, const libp2p::peer::PeerId &peed_id) const override;
+        const BlocksRequest &request,
+        const libp2p::peer::PeerId &peed_id) const override;
 
    private:
     blockchain::BlockTree::BlockHashVecRes retrieveRequestedHashes(
