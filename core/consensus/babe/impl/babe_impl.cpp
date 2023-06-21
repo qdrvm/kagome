@@ -185,15 +185,23 @@ namespace kagome::consensus::babe {
     //       {     catchup"    }
 
     {
-      auto block_execution = std::chrono::microseconds(200'000);
-      auto header_loading = std::chrono::microseconds(2'000);
-      auto state_loading = std::chrono::microseconds(1200'000'000);
-      auto warp_proportion = 512;
+#ifdef NDEBUG
+      auto block_execution =
+          std::chrono::microseconds(650'000);  // 0.65s (wavm)
+#else
+      auto block_execution = std::chrono::microseconds(50'000);  // 50ms (wavm)
+#endif
+      auto header_loading = std::chrono::microseconds(5'000);        // 5ms
+      auto state_loading = std::chrono::microseconds(1800'000'000);  // 0.5hr
+      auto warp_proportion = 10'000;  // ~one set id change for each 10k blocks
 
-      auto warp_catchup =
-          lag_slots * header_loading / warp_proportion + state_loading;
-      auto fast_catchup = lag_slots * header_loading + state_loading;
-      auto full_catchup = lag_slots * block_execution;
+      auto warp_catchup = lag_slots * header_loading  // time of headers loading
+                            / warp_proportion  // part of requesting headers
+                        + state_loading;       // time of state loading
+      auto fast_catchup = lag_slots * header_loading  // time of headers loading
+                        + 512 * block_execution  // execute non-finalized blocks
+                        + state_loading;         // time of state loading
+      auto full_catchup = lag_slots * block_execution;  // execute all blocks
 
       auto warp_lag = warp_catchup / babe_config_repo_->slotDuration();
       auto fast_lag = fast_catchup / babe_config_repo_->slotDuration();
@@ -204,7 +212,7 @@ namespace kagome::consensus::babe {
       full_sync_duration = full_catchup + full_lag * block_execution;
     }
 
-    bool allow_warp_sync_for_auto = false;
+    bool allow_warp_sync_for_auto = false; // should it select warp for auto
 
     // Check if target block does not have state (full sync not available)
     bool full_sync_available = true;

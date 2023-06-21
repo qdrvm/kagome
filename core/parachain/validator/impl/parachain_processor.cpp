@@ -147,8 +147,8 @@ namespace kagome::parachain {
               if (not was_synchronized) {
                 self->bitfield_signer_->start(
                     self->peer_view_->intoChainEventsEngine());
+                was_synchronized = true;
               }
-              was_synchronized = true;
             }
             if (was_synchronized) {
               if (!synchronized) {
