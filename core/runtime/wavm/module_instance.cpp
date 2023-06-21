@@ -171,7 +171,9 @@ namespace kagome::runtime::wavm {
       std::string_view name) const {
     auto global = WAVM::Runtime::asGlobalNullable(
         WAVM::Runtime::getInstanceExport(instance_, name.data()));
-    if (global == nullptr) return std::nullopt;
+    if (global == nullptr) {
+      return std::nullopt;
+    }
     WAVM::Runtime::GCPointer<WAVM::Runtime::Context> context =
         WAVM::Runtime::createContext(compartment_->getCompartment());
     auto value = WAVM::Runtime::getGlobalValue(context, global);
@@ -193,12 +195,12 @@ namespace kagome::runtime::wavm {
   }
 
   void ModuleInstanceImpl::forDataSegment(
-      DataSegmentProcessor const &callback) const {
+      const DataSegmentProcessor &callback) const {
     using WAVM::Uptr;
     using WAVM::IR::DataSegment;
     using WAVM::IR::MemoryType;
     using WAVM::IR::Value;
-    auto ir = getModuleIR(module_);
+    auto &ir = getModuleIR(module_);
 
     for (Uptr segmentIndex = 0; segmentIndex < ir.dataSegments.size();
          ++segmentIndex) {
@@ -214,7 +216,7 @@ namespace kagome::runtime::wavm {
     }
   }
 
-  InstanceEnvironment const &ModuleInstanceImpl::getEnvironment() const {
+  const InstanceEnvironment &ModuleInstanceImpl::getEnvironment() const {
     return env_;
   }
 
