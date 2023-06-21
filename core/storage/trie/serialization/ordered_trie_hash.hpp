@@ -24,8 +24,8 @@ namespace kagome::storage::trie {
    */
   template <typename It>
   outcome::result<RootHash> calculateOrderedTrieHash(StateVersion version,
-                                                           const It &begin,
-                                                           const It &end) {
+                                                     const It &begin,
+                                                     const It &end) {
     auto trie = storage::trie::PolkadotTrieImpl::createEmpty();
     PolkadotCodec codec;
     // empty root

@@ -196,7 +196,7 @@ class TriePrunerTest : public testing::Test {
         persistent_storage_mock,
         hasher,
         config_mock));
-    BOOST_ASSERT(pruner->prepare());
+    ASSERT_TRUE(pruner->prepare());
   }
 
   void initOnLastPrunedBlock(BlockInfo last_pruned,

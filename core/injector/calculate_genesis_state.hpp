@@ -46,7 +46,6 @@ namespace kagome::injector {
       top_trie->put(child2, common::BufferView{root}).value();
     }
 
-    OUTCOME_TRY(code_, top_trie->get(storage::kRuntimeCodeKey));
     OUTCOME_TRY(trie_hash, trie_serializer.storeTrie(*top_trie, version));
 
     return trie_hash;

@@ -1420,28 +1420,25 @@ namespace kagome::application {
       return false;
     }
 
-    bool state_pruning_success = true;
-    find_argument<std::string>(
-        vm, "state-pruning", [&](std::string const &val) {
-          if (val == "archive") {
-            state_pruning_depth_ = std::nullopt;
-            return;
-          }
-          uint32_t depth{};
-          auto [_, err] = std::from_chars(&*val.begin(), &*val.end(), depth);
-          if (err == std::errc{}) {
-            state_pruning_depth_ = depth;
-            return;
-          } else {
-            SL_ERROR(logger_,
-                     "Failed to parse state-pruning param (which should be "
-                     "either 'archive' or an integer): {}",
-                     err);
-          }
-          state_pruning_success = false;
-        });
-    if (not state_pruning_success) {
-      return false;
+    if (auto state_pruning_opt =
+            find_argument<std::string>(vm, "state-pruning");
+        state_pruning_opt.has_value()) {
+      const auto& val = state_pruning_opt.value();
+      if (val == "archive") {
+        state_pruning_depth_ = std::nullopt;
+      } else {
+        uint32_t depth{};
+        auto [_, err] = std::from_chars(&*val.begin(), &*val.end(), depth);
+        if (err == std::errc{}) {
+          state_pruning_depth_ = depth;
+        } else {
+          SL_ERROR(logger_,
+                   "Failed to parse state-pruning param (which should be "
+                   "either 'archive' or an integer): {}",
+                   err);
+          return false;
+        }
+      }
     }
 
     // if something wrong with config print help message

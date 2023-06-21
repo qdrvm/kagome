@@ -123,8 +123,7 @@ namespace kagome::storage::trie_pruner {
     outcome::result<storage::trie::RootHash> addNewStateWith(
         const trie::PolkadotTrie &new_trie, trie::StateVersion version);
 
-    outcome::result<void> addChildStates(const trie::PolkadotTrie &parent,
-                                         const trie::RootHash &parent_root);
+    outcome::result<void> addChildStates(const trie::PolkadotTrie &parent);
     outcome::result<void> pruneChildStates(const trie::PolkadotTrie &parent);
 
     // store the persistent pruner info to the database

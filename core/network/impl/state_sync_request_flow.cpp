@@ -29,7 +29,7 @@ namespace kagome::network {
       const primitives::BlockHeader &block)
       : state_pruner_{state_pruner}, block_info_{block_info}, block_{block} {
     BOOST_ASSERT(state_pruner_ != nullptr);
-    roots_.insert({std::nullopt, Root{storage::trie::PolkadotTrieImpl::createEmpty(), {}}});
+    roots_.insert({std::nullopt, Root{}});
   }
 
   bool StateSyncRequestFlow::complete() const {
@@ -37,13 +37,13 @@ namespace kagome::network {
   }
 
   StateRequest StateSyncRequestFlow::nextRequest() const {
-    assert(not complete());
+    BOOST_ASSERT(not complete());
     return StateRequest{block_info_.hash, last_key_, true};
   }
 
   outcome::result<void> StateSyncRequestFlow::onResponse(
       const StateResponse &res) {
-    assert(not complete());
+    BOOST_ASSERT(not complete());
     auto empty = true;
     for (auto &entry : res.entries) {
       if (not entry.entries.empty() or entry.complete) {
@@ -88,15 +88,13 @@ namespace kagome::network {
       const runtime::ModuleFactory &module_factory,
       runtime::Core &core_api,
       storage::trie::TrieSerializer &trie_serializer) {
-    assert(complete());
+    BOOST_ASSERT(complete());
     auto &top = roots_[std::nullopt];
     OUTCOME_TRY(code, top.trie->get(storage::kRuntimeCodeKey));
     OUTCOME_TRY(env,
                 runtime::RuntimeEnvironment::fromCode(module_factory, code));
     OUTCOME_TRY(runtime_version, core_api.version(env));
     auto version = storage::trie::StateVersion{runtime_version.state_version};
-    std::vector<std::pair<common::Buffer, storage::trie::RootHash>>
-        child_hashes;
     for (auto &[expected, root] : roots_) {
       if (not expected) {
         continue;
@@ -107,7 +105,6 @@ namespace kagome::network {
         return Error::HASH_MISMATCH;
       }
       for (auto &child : root.children) {
-        child_hashes.emplace_back(child, actual);
         top.trie->put(child, common::BufferView{actual}).value();
       }
     }

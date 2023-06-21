@@ -38,7 +38,7 @@ namespace kagome::storage::trie {
             retrieve_value{defaultValueRetrieve} {}
 
       RetrieveFunctions(NodeRetrieveFunction retrieve_node,
-                       ValueRetrieveFunction retrieve_value)
+                        ValueRetrieveFunction retrieve_value)
           : retrieve_node{std::move(retrieve_node)},
             retrieve_value{std::move(retrieve_value)} {}
 
