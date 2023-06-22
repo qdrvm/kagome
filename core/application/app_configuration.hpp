@@ -209,7 +209,7 @@ namespace kagome::application {
     virtual const std::vector<telemetry::TelemetryEndpoint>
         &telemetryEndpoints() const = 0;
 
-    enum class SyncMethod { Full, Fast, FastWithoutState, Warp };
+    enum class SyncMethod { Full, Fast, FastWithoutState, Warp, Auto };
     /**
      * @return enum constant of the chosen sync method
      */
