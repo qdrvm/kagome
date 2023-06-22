@@ -259,8 +259,8 @@ namespace kagome::network {
         self->base_.logger()->verbose(std::move(logmsg));
       }
 
-      auto block_response_res =
-          self->sync_observer_->onBlocksRequest(block_request);
+      auto block_response_res = self->sync_observer_->onBlocksRequest(
+          block_request, stream->remotePeerId().value());
 
       if (not block_response_res) {
         SL_VERBOSE(

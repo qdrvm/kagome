@@ -230,13 +230,22 @@ namespace kagome::parachain {
     return true;
   }
 
+  void ParachainProcessorImpl::broadcastViewExcept(
+      const libp2p::peer::PeerId &peer_id, const network::View &view) const {
+    auto msg = std::make_shared<
+        network::WireMessage<network::ValidatorProtocolMessage>>(
+        network::ViewUpdate{.view = view});
+    pm_->getStreamEngine()->broadcast(
+        router_->getValidationProtocol(),
+        msg,
+        [&](const libp2p::peer::PeerId &p) { return peer_id != p; });
+  }
+
   void ParachainProcessorImpl::broadcastView(const network::View &view) const {
     auto msg = std::make_shared<
         network::WireMessage<network::ValidatorProtocolMessage>>(
         network::ViewUpdate{.view = view});
-
     pm_->getStreamEngine()->broadcast(router_->getValidationProtocol(), msg);
-    pm_->getStreamEngine()->broadcast(router_->getCollationProtocol(), msg);
   }
 
   outcome::result<void> ParachainProcessorImpl::canProcessParachains() const {
