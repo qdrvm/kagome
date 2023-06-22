@@ -65,6 +65,8 @@ namespace {
       case SM::Warp:
         return kagome::network::BlockAttribute::HEADER
              | kagome::network::BlockAttribute::JUSTIFICATION;
+      case SM::Auto:
+        UNREACHABLE;
     }
     return kagome::network::BlocksRequest::kBasicAttributes;
   }
