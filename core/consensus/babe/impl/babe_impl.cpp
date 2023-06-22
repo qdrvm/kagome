@@ -331,7 +331,7 @@ namespace kagome::consensus::babe {
 
     auto babe_config =
         babe_config_repo_->config(best_block_, current_epoch_.epoch_number);
-    if (not babe_config and app_config_.syncMethod() != SyncMethod::Warp) {
+    if (not babe_config and sync_method_ != SyncMethod::Warp) {
       SL_CRITICAL(
           log_,
           "Can't obtain digest of epoch {} from block tree for block {}",
