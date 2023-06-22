@@ -143,48 +143,18 @@ namespace kagome::consensus::babe {
     app_state_manager_->takeControl(*this);
   }
 
-  bool BabeImpl::prepare() {
-    auto initial_epoch_res = getInitialEpochDescriptor();
-    if (initial_epoch_res.has_error()) {
-      SL_CRITICAL(log_,
-                  "Can't get initial epoch descriptor: {}",
-                  initial_epoch_res.error());
-      return false;
-    }
+  namespace {
+    std::tuple<std::chrono::microseconds,
+               std::chrono::microseconds,
+               std::chrono::microseconds>
+    estimateSyncDuration(size_t lag_slots) {
+      // WARP: n * header_loading / k + state_loading + lag * block_execution
+      //       {               catchup              }
+      // FAST: n * header_loading + state_loading + lag' * block_execution
+      //       {             catchup'           }
+      // FULL: n * block_execution + lag" * block_execution
+      //       {     catchup"    }
 
-    best_block_ = block_tree_->bestLeaf();
-
-    auto best_block_header_res = block_tree_->getBlockHeader(best_block_.hash);
-    if (best_block_header_res.has_error()) {
-      SL_CRITICAL(log_,
-                  "Can't get header of best block ({}): {}",
-                  best_block_,
-                  best_block_header_res.error());
-      return false;
-    }
-    const auto &best_block_header = best_block_header_res.value();
-    const auto &state_root = best_block_header.state_root;
-
-    std::chrono::microseconds warp_sync_duration;
-    std::chrono::microseconds fast_sync_duration;
-    std::chrono::microseconds full_sync_duration;
-
-    // Calculate lag our best block by slots
-    BabeSlotNumber lag_slots = 0;
-    if (auto babe_digests_res = getBabeDigests(best_block_header);
-        babe_digests_res.has_value()) {
-      auto &[seal, babe_header] = babe_digests_res.value();
-      lag_slots = babe_util_->getCurrentSlot() - babe_header.slot_number;
-    }
-
-    // WARP: n * header_loading / k + state_loading + lag * block_execution
-    //       {               catchup              }
-    // FAST: n * header_loading + state_loading + lag' * block_execution
-    //       {             catchup'           }
-    // FULL: n * block_execution + lag" * block_execution
-    //       {     catchup"    }
-
-    {
 #ifdef NDEBUG
       auto block_execution =
           std::chrono::microseconds(650'000);  // 0.65s (wavm)
@@ -210,9 +180,45 @@ namespace kagome::consensus::babe {
       warp_sync_duration = warp_catchup + warp_lag * block_execution;
       fast_sync_duration = fast_catchup + fast_lag * block_execution;
       full_sync_duration = full_catchup + full_lag * block_execution;
+
+      return {warp_sync_duration, fast_sync_duration, full_sync_duration};
+    }
+  }  // namespace
+
+  bool BabeImpl::prepare() {
+    auto initial_epoch_res = getInitialEpochDescriptor();
+    if (initial_epoch_res.has_error()) {
+      SL_CRITICAL(log_,
+                  "Can't get initial epoch descriptor: {}",
+                  initial_epoch_res.error());
+      return false;
     }
 
-    bool allow_warp_sync_for_auto = false; // should it select warp for auto
+    best_block_ = block_tree_->bestLeaf();
+
+    auto best_block_header_res = block_tree_->getBlockHeader(best_block_.hash);
+    if (best_block_header_res.has_error()) {
+      SL_CRITICAL(log_,
+                  "Can't get header of best block ({}): {}",
+                  best_block_,
+                  best_block_header_res.error());
+      return false;
+    }
+    const auto &best_block_header = best_block_header_res.value();
+    const auto &state_root = best_block_header.state_root;
+
+    // Calculate lag our best block by slots
+    BabeSlotNumber lag_slots = 0;
+    if (auto babe_digests_res = getBabeDigests(best_block_header);
+        babe_digests_res.has_value()) {
+      auto &[seal, babe_header] = babe_digests_res.value();
+      lag_slots = babe_util_->getCurrentSlot() - babe_header.slot_number;
+    }
+
+    auto &&[warp_sync_duration, fast_sync_duration, full_sync_duration] =
+        estimateSyncDuration(lag_slots);
+
+    bool allow_warp_sync_for_auto = false;  // should it select warp for auto
 
     // Check if target block does not have state (full sync not available)
     bool full_sync_available = true;
@@ -244,9 +250,11 @@ namespace kagome::consensus::babe {
 
       case SyncMethod::Full:
         if (fast_sync_duration < full_sync_duration) {
-          SL_INFO(log_, "Fast sync would be faster then Full such was defined");
+          SL_INFO(log_,
+                  "Fast sync would be faster than Full sync that was selected");
         } else if (warp_sync_duration < full_sync_duration) {
-          SL_INFO(log_, "Warp sync would be faster then Full such was defined");
+          SL_INFO(log_,
+                  "Warp sync would be faster than Full sync that was selected");
         }
         break;
 
@@ -255,16 +263,20 @@ namespace kagome::consensus::babe {
 
       case SyncMethod::Fast:
         if (full_sync_duration < fast_sync_duration and full_sync_available) {
-          SL_INFO(log_, "Full sync would be faster then Fast such was defined");
+          SL_INFO(log_,
+                  "Full sync would be faster than Fast sync that was selected");
         } else if (warp_sync_duration < fast_sync_duration) {
-          SL_INFO(log_, "Warp sync would be faster then Fast such was defined");
+          SL_INFO(log_,
+                  "Warp sync would be faster than Fast sync that was selected");
         }
 
       case SyncMethod::Warp:
         if (full_sync_duration < warp_sync_duration and full_sync_available) {
-          SL_INFO(log_, "Full sync would be faster then Warp such was defined");
+          SL_INFO(log_,
+                  "Full sync would be faster than Warp sync that was selected");
         } else if (fast_sync_duration < warp_sync_duration) {
-          SL_INFO(log_, "Fast sync would be faster then Earp such was defined");
+          SL_INFO(log_,
+                  "Fast sync would be faster than Warp sync that was selected");
         }
     }
 
