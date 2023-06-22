@@ -18,8 +18,6 @@ namespace kagome::consensus::babe {
 
     MOCK_METHOD(State, getCurrentState, (), (const, override));
 
-    MOCK_METHOD(void, doOnSynchronized, (std::function<void()> handler));
-
     MOCK_METHOD(void,
                 onBlockAnnounceHandshake,
                 (const libp2p::peer::PeerId &peer_id,
@@ -31,8 +29,6 @@ namespace kagome::consensus::babe {
                 (const libp2p::peer::PeerId &peer_id,
                  const network::BlockAnnounce &announce),
                 (override));
-
-    MOCK_METHOD(void, onSynchronized, (), (override));
 
     MOCK_METHOD(bool, wasSynchronized, (), (const, override));
   };
