@@ -261,6 +261,10 @@ namespace kagome::network {
           CollatorState{.parachain_id = para_id, .collator_id = collator_id};
       it->second.time = clock_->now();
     }
+
+    auto proto_col = router_->getCollationProtocol();
+    BOOST_ASSERT_MSG(proto_col, "Router did not provide collaction protocol");
+    stream_engine_->reserveStreams(peer_id, proto_col);
   }
 
   void PeerManagerImpl::forOnePeer(
@@ -808,11 +812,7 @@ namespace kagome::network {
     auto proto_val = router_->getValidationProtocol();
     BOOST_ASSERT_MSG(proto_val, "Router did not provide validation protocol");
 
-    auto proto_col = router_->getCollationProtocol();
-    BOOST_ASSERT_MSG(proto_col, "Router did not provide collaction protocol");
-
     stream_engine_->reserveStreams(peer_id, proto_val);
-    stream_engine_->reserveStreams(peer_id, proto_col);
   }
 
   void PeerManagerImpl::reserveStreams(const PeerId &peer_id) const {
