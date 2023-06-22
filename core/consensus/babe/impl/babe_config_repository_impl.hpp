@@ -9,6 +9,8 @@
 #include "consensus/babe/babe_config_repository.hpp"
 #include "consensus/babe/babe_util.hpp"
 
+#include <mutex>
+
 #include "blockchain/indexer.hpp"
 #include "consensus/babe/has_authority_set_change.hpp"
 #include "log/logger.hpp"
@@ -115,6 +117,7 @@ namespace kagome::consensus::babe {
     std::shared_ptr<storage::BufferStorage> persistent_storage_;
     bool config_warp_sync_;
     std::shared_ptr<blockchain::BlockTree> block_tree_;
+    mutable std::mutex indexer_mutex_;
     mutable blockchain::Indexer<BabeIndexedValue> indexer_;
     std::shared_ptr<blockchain::BlockHeaderRepository> header_repo_;
     std::shared_ptr<runtime::BabeApi> babe_api_;

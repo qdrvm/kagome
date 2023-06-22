@@ -82,6 +82,7 @@ namespace kagome::consensus::babe {
   }
 
   bool BabeConfigRepositoryImpl::prepare() {
+    std::unique_lock lock{indexer_mutex_};
     auto finalized = block_tree_->getLastFinalized();
     auto finalized_header = block_tree_->getBlockHeader(finalized.hash).value();
     if (finalized.number - indexer_.last_finalized_indexed_.number
@@ -120,6 +121,7 @@ namespace kagome::consensus::babe {
             const primitives::events::ChainEventParams &event) {
           if (type == primitives::events::ChainEventType::kFinalizedHeads) {
             if (auto self = wp.lock()) {
+              std::unique_lock lock{self->indexer_mutex_};
               self->indexer_.finalize();
             }
           }
@@ -138,6 +140,7 @@ namespace kagome::consensus::babe {
       auto parent_epoch = slotToEpoch(parent_digest.second.slot_number);
       epoch_changed = epoch_number != parent_epoch;
     }
+    std::unique_lock lock{indexer_mutex_};
     return config(parent_info, epoch_changed);
   }
 
@@ -224,6 +227,7 @@ namespace kagome::consensus::babe {
   }
 
   void BabeConfigRepositoryImpl::warp(const primitives::BlockInfo &block) {
+    std::unique_lock lock{indexer_mutex_};
     indexer_.put(block, {}, true);
   }
 
