@@ -269,6 +269,7 @@ namespace kagome::consensus::babe {
           SL_INFO(log_,
                   "Warp sync would be faster than Fast sync that was selected");
         }
+        break;
 
       case SyncMethod::Warp:
         if (full_sync_duration < warp_sync_duration and full_sync_available) {
@@ -278,6 +279,7 @@ namespace kagome::consensus::babe {
           SL_INFO(log_,
                   "Fast sync would be faster than Warp sync that was selected");
         }
+        break;
     }
 
     current_epoch_ = initial_epoch_res.value();

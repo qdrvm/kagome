@@ -7,6 +7,7 @@
 #define KAGOME_UTILS_BLOCK_INFO_KEY_HPP
 
 #include <boost/endian/conversion.hpp>
+#include <libp2p/common/span_size.hpp>
 #include <optional>
 
 #include "primitives/common.hpp"
@@ -25,7 +26,7 @@ namespace kagome {
     }
 
     static std::optional<primitives::BlockInfo> decode(common::BufferView key) {
-      if (key.size() != Key::size()) {
+      if (libp2p::spanSize(key) != Key::size()) {
         return std::nullopt;
       }
       primitives::BlockInfo info;
