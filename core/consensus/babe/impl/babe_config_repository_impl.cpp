@@ -34,7 +34,12 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::consensus::babe,
 }
 
 namespace kagome::consensus::babe {
-  constexpr size_t kDontIndexFinalizedBlocks = 10000;
+  /**
+   * If there is more than `kMaxUnindexedBlocksNum` unindexed finalized blocks
+   * and last finalized block has state, then babe won't index all of them, but
+   * recover with runtime call and latest block with digest.
+   */
+  constexpr size_t kMaxUnindexedBlocksNum = 10000;
 
   inline static primitives::NextConfigDataV1 getConfig(
       const primitives::BabeConfiguration &state) {
@@ -88,7 +93,7 @@ namespace kagome::consensus::babe {
     auto finalized = block_tree_->getLastFinalized();
     auto finalized_header = block_tree_->getBlockHeader(finalized.hash).value();
     if (finalized.number - indexer_.last_finalized_indexed_.number
-            > kDontIndexFinalizedBlocks
+            > kMaxUnindexedBlocksNum
         and trie_storage_->getEphemeralBatchAt(finalized_header.state_root)) {
       warp(finalized);
     }
@@ -256,7 +261,7 @@ namespace kagome::consensus::babe {
             std::vector<primitives::BlockInfo> refs;
             while (true) {
               OUTCOME_TRY(header, block_tree_->getBlockHeader(info.hash));
-              if (HasAuthoritySetChange digests{header}) {
+              if (HasBabeConsensusDigest digests{header}) {
                 value.next_state = applyDigests(value.config, digests);
                 indexer_.put(info, {value, std::nullopt}, true);
                 if (not refs.empty()) {
@@ -282,7 +287,7 @@ namespace kagome::consensus::babe {
         while (true) {
           info = descent.path_.at(i_first);
           OUTCOME_TRY(header, block_tree_->getBlockHeader(info.hash));
-          if (HasAuthoritySetChange digests{header}) {
+          if (HasBabeConsensusDigest digests{header}) {
             if (not prev_state) {
               BOOST_OUTCOME_TRY(prev_state, loadPrev(prev));
             }
@@ -323,7 +328,7 @@ namespace kagome::consensus::babe {
   std::shared_ptr<primitives::BabeConfiguration>
   BabeConfigRepositoryImpl::applyDigests(
       const primitives::NextConfigDataV1 &config,
-      const HasAuthoritySetChange &digests) const {
+      const HasBabeConsensusDigest &digests) const {
     BOOST_ASSERT(digests);
     auto state = std::make_shared<primitives::BabeConfiguration>();
     state->slot_duration = slot_duration_;

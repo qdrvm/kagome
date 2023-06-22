@@ -9,7 +9,7 @@
 
 #include "application/app_configuration.hpp"
 #include "blockchain/block_tree_error.hpp"
-#include "consensus/babe/has_authority_set_change.hpp"
+#include "consensus/babe/has_babe_consensus_digest.hpp"
 #include "consensus/grandpa/environment.hpp"
 #include "consensus/grandpa/has_authority_set_change.hpp"
 #include "network/helpers/peer_id_formatter.hpp"
@@ -1022,7 +1022,7 @@ namespace kagome::network {
     while (block.number != 0) {
       if (auto _header = block_tree_->getBlockHeader(block.hash)) {
         auto &header = _header.value();
-        if (consensus::babe::HasAuthoritySetChange(header)) {
+        if (consensus::babe::HasBabeConsensusDigest(header)) {
           break;
         }
         block = {header.number - 1, header.parent_hash};
@@ -1060,7 +1060,7 @@ namespace kagome::network {
           if (block.number < self->block_tree_->getLastFinalized().number) {
             self->block_storage_->assignNumberToHash(block).value();
           }
-          if (consensus::babe::HasAuthoritySetChange(*header)) {
+          if (consensus::babe::HasBabeConsensusDigest(*header)) {
             cb(outcome::success());
             return;
           }

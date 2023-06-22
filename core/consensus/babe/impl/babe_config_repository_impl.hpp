@@ -12,7 +12,7 @@
 #include <mutex>
 
 #include "blockchain/indexer.hpp"
-#include "consensus/babe/has_authority_set_change.hpp"
+#include "consensus/babe/has_babe_consensus_digest.hpp"
 #include "log/logger.hpp"
 #include "primitives/block_data.hpp"
 #include "primitives/event_types.hpp"
@@ -106,7 +106,7 @@ namespace kagome::consensus::babe {
 
     std::shared_ptr<primitives::BabeConfiguration> applyDigests(
         const primitives::NextConfigDataV1 &config,
-        const HasAuthoritySetChange &digests) const;
+        const HasBabeConsensusDigest &digests) const;
 
     outcome::result<void> load(
         const primitives::BlockInfo &block,

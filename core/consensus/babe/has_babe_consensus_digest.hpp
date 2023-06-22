@@ -3,14 +3,20 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_CONSENSUS_BABE_HAS_AUTHORITY_SET_CHANGE_HPP
-#define KAGOME_CONSENSUS_BABE_HAS_AUTHORITY_SET_CHANGE_HPP
+#ifndef KAGOME_CONSENSUS_BABE_HAS_BABE_CONSENSUS_DIGEST_HPP
+#define KAGOME_CONSENSUS_BABE_HAS_BABE_CONSENSUS_DIGEST_HPP
 
 #include "primitives/block_header.hpp"
 
+#include "log/logger.hpp"
+
 namespace kagome::consensus::babe {
-  struct HasAuthoritySetChange {
-    HasAuthoritySetChange(const primitives::BlockHeader &block) {
+  struct HasBabeConsensusDigest {
+    static auto logger() {
+      return log::createLogger("HasBabeConsensusDigest", "babe");
+    }
+
+    HasBabeConsensusDigest(const primitives::BlockHeader &block) {
       for (auto &digest : block.digest) {
         auto consensus = boost::get<primitives::Consensus>(&digest);
         if (not consensus) {
@@ -18,6 +24,12 @@ namespace kagome::consensus::babe {
         }
         auto decoded_res = consensus->decode();
         if (not decoded_res) {
+          SL_WARN(logger(),
+                  "error decoding digest block={} engine={} digest={}: {}",
+                  block.number,
+                  consensus->consensus_engine_id.toHex(),
+                  consensus->data.toHex(),
+                  decoded_res.error());
           continue;
         }
         auto &decoded = decoded_res.value();
@@ -45,4 +57,4 @@ namespace kagome::consensus::babe {
   };
 }  // namespace kagome::consensus::babe
 
-#endif  // KAGOME_CONSENSUS_BABE_HAS_AUTHORITY_SET_CHANGE_HPP
+#endif  // KAGOME_CONSENSUS_BABE_HAS_BABE_CONSENSUS_DIGEST_HPP
