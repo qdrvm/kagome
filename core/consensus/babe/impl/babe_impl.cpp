@@ -147,7 +147,7 @@ namespace kagome::consensus::babe {
     std::tuple<std::chrono::microseconds,
                std::chrono::microseconds,
                std::chrono::microseconds>
-    estimateSyncDuration(size_t lag_slots) {
+    estimateSyncDuration(size_t lag_slots, BabeDuration slot_duration) {
       // WARP: n * header_loading / k + state_loading + lag * block_execution
       //       {               catchup              }
       // FAST: n * header_loading + state_loading + lag' * block_execution
@@ -165,21 +165,21 @@ namespace kagome::consensus::babe {
       auto state_loading = std::chrono::microseconds(1800'000'000);  // 0.5hr
       auto warp_proportion = 10'000;  // ~one set id change for each 10k blocks
 
-      auto warp_catchup = lag_slots * header_loading  // time of headers loading
+      auto warp_catchup = header_loading * lag_slots  // time of headers loading
                             / warp_proportion  // part of requesting headers
                         + state_loading;       // time of state loading
-      auto fast_catchup = lag_slots * header_loading  // time of headers loading
-                        + 512 * block_execution  // execute non-finalized blocks
+      auto fast_catchup = header_loading * lag_slots  // time of headers loading
+                        + block_execution * 512  // execute non-finalized blocks
                         + state_loading;         // time of state loading
-      auto full_catchup = lag_slots * block_execution;  // execute all blocks
+      auto full_catchup = block_execution * lag_slots;  // execute all blocks
 
-      auto warp_lag = warp_catchup / babe_config_repo_->slotDuration();
-      auto fast_lag = fast_catchup / babe_config_repo_->slotDuration();
-      auto full_lag = full_catchup / babe_config_repo_->slotDuration();
+      auto warp_lag = warp_catchup / slot_duration;
+      auto fast_lag = fast_catchup / slot_duration;
+      auto full_lag = full_catchup / slot_duration;
 
-      warp_sync_duration = warp_catchup + warp_lag * block_execution;
-      fast_sync_duration = fast_catchup + fast_lag * block_execution;
-      full_sync_duration = full_catchup + full_lag * block_execution;
+      auto warp_sync_duration = warp_catchup + block_execution * warp_lag;
+      auto fast_sync_duration = fast_catchup + block_execution * fast_lag;
+      auto full_sync_duration = full_catchup + block_execution * full_lag;
 
       return {warp_sync_duration, fast_sync_duration, full_sync_duration};
     }
@@ -216,7 +216,7 @@ namespace kagome::consensus::babe {
     }
 
     auto &&[warp_sync_duration, fast_sync_duration, full_sync_duration] =
-        estimateSyncDuration(lag_slots);
+        estimateSyncDuration(lag_slots, babe_config_repo_->slotDuration());
 
     bool allow_warp_sync_for_auto = false;  // should it select warp for auto
 
