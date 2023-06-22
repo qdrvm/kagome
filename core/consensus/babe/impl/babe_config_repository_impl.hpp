@@ -125,8 +125,6 @@ namespace kagome::consensus::babe {
     BabeDuration slot_duration_{};
     EpochLength epoch_length_{};
 
-    primitives::BlockNumber last_saved_state_block_ = 0;
-
     const BabeClock &clock_;
     std::optional<BabeSlotNumber> first_block_slot_number_;
     bool is_first_block_finalized_ = false;

@@ -85,10 +85,24 @@ namespace kagome::blockchain {
     }
 
     Indexer(std::shared_ptr<storage::BufferStorage> db,
-            std::shared_ptr<blockchain::BlockTree> block_tree,
-            const primitives::BlockInfo &genesis)
+            std::shared_ptr<blockchain::BlockTree> block_tree)
         : db_{std::move(db)}, block_tree_{std::move(block_tree)} {
-      map_.emplace(genesis, get(genesis).value_or(Indexed<T>{}));
+      primitives::BlockInfo genesis{0, block_tree_->getGenesisBlockHash()};
+      last_finalized_indexed_ = genesis;
+      auto batch = db_->batch();
+      auto db_cur = db_->cursor();
+      for (db_cur->seekFirst().value(); db_cur->isValid();
+           db_cur->next().value()) {
+        auto info = fromKey(*db_cur->key());
+        if (not block_tree_->isFinalized(info)) {
+          batch->remove(toKey(info)).value();
+          continue;
+        }
+        last_finalized_indexed_ = info;
+        map_.emplace(info, scale::decode<Indexed<T>>(*db_cur->value()).value());
+      }
+      map_.emplace(genesis, Indexed<T>{});
+      batch->commit().value();
     }
 
     Descent descend(const primitives::BlockInfo &from) const {
@@ -108,6 +122,9 @@ namespace kagome::blockchain {
     void put(const primitives::BlockInfo &block,
              const Indexed<T> &indexed,
              bool db) {
+      if (indexed.inherit and block.number <= last_finalized_indexed_.number) {
+        return;
+      }
       map_[block] = indexed;
       if (db) {
         db_->put(toKey(block), scale::encode(indexed).value()).value();
@@ -119,50 +136,30 @@ namespace kagome::blockchain {
       db_->remove(toKey(block)).value();
     }
 
-    void filterUnfinalized() {
-      for (auto it = map_.begin(); it != map_.end();) {
-        if (not block_tree_->isFinalized(it->first)) {
-          it = map_.erase(it);
-        } else {
-          ++it;
-        }
-      }
-    }
-
-    primitives::BlockInfo removeUnfinalized() {
-      for (auto it = map_.begin(); it != map_.end();) {
-        if (not block_tree_->isFinalized(it->first)) {
-          it = map_.erase(it);
-        } else {
-          ++it;
-        }
-      }
-      primitives::BlockInfo max{0, block_tree_->getGenesisBlockHash()};
+    void finalize() {
       auto batch = db_->batch();
-      auto db_cur = db_->cursor();
-      for (db_cur->seekLast().value(); db_cur->isValid();) {
-        auto info = fromKey(*db_cur->key());
-        db_cur->prev().value();
-        if (not block_tree_->isFinalized(info)) {
-          batch->remove(toKey(info)).value();
-        } else if (max < info) {
-          max = info;
-          break;
+      auto finalized = block_tree_->getLastFinalized();
+      auto first = last_finalized_indexed_.number + 1;
+      for (auto map_it = map_.lower_bound({first, {}}); map_it != map_.end();) {
+        auto &[info, indexed] = *map_it;
+        if (block_tree_->isFinalized(info)) {
+          if (not indexed.inherit) {
+            batch->put(toKey(info), scale::encode(indexed).value()).value();
+            last_finalized_indexed_ = info;
+          }
+        } else if (not block_tree_->hasDirectChain(finalized, info)) {
+          map_it = map_.erase(map_it);
+          continue;
         }
+        ++map_it;
       }
-      batch->commit().value();
-      return max;
-    }
-
-    void writeFinalized(primitives::BlockNumber first,
-                        primitives::BlockNumber last) {
-      auto begin = map_.lower_bound({first, {}}),
-           end = map_.lower_bound({last + 1, {}});
-      auto batch = db_->batch();
-      for (auto it = begin; it != end; ++it) {
-        if (block_tree_->isFinalized(it->first)) {
-          batch->put(toKey(it->first), scale::encode(it->second).value())
-              .value();
+      for (auto map_it = map_.lower_bound({first, {}});
+           map_it != map_.end()
+           and map_it->first.number < last_finalized_indexed_.number;) {
+        if (map_it->second.inherit) {
+          map_it = map_.erase(map_it);
+        } else {
+          ++map_it;
         }
       }
       batch->commit().value();
@@ -191,23 +188,10 @@ namespace kagome::blockchain {
           };
         }
         if (map_it == map_.begin()) {
-          break;
+          return std::nullopt;
         }
         --map_it;
       }
-      auto db_cur = db_->cursor();
-      for (db_cur->seekReverse(toKey(block)).value(); db_cur->isValid();
-           db_cur->prev().value()) {
-        auto info = fromKey(*db_cur->key());
-        if (not descent.can(info)) {
-          continue;
-        }
-        return SearchRaw{
-            {info, scale::decode<Indexed<T>>(*db_cur->value()).value()},
-            info,
-        };
-      }
-      return std::nullopt;
     }
 
     template <typename Cb>
@@ -220,7 +204,10 @@ namespace kagome::blockchain {
         return std::nullopt;
       }
       BOOST_ASSERT(not raw->kv.second.inherit);
-      if (not raw->kv.second.value or raw->last != block) {
+      if (not raw->kv.second.value
+          or (raw->last != block
+              and (block.number > last_finalized_indexed_.number
+                   or not block_tree_->isFinalized(block)))) {
         auto prev = raw->kv.second.value ? raw->kv.first : raw->kv.second.prev;
         auto i_first =
             descent.indexFor(raw->last.number + (raw->kv.second.value ? 1 : 0));
@@ -239,6 +226,7 @@ namespace kagome::blockchain {
 
     std::shared_ptr<storage::BufferStorage> db_;
     std::shared_ptr<blockchain::BlockTree> block_tree_;
+    primitives::BlockInfo last_finalized_indexed_;
     std::map<primitives::BlockInfo, Indexed<T>> map_;
   };
 }  // namespace kagome::blockchain

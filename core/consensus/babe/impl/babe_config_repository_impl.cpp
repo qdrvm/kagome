@@ -60,7 +60,6 @@ namespace kagome::consensus::babe {
                 storage::kBabeConfigRepositoryImplIndexerPrefix,
                 persistent_storage_),
             block_tree_,
-            {0, block_tree_->getGenesisBlockHash()},
         },
         header_repo_(std::move(header_repo)),
         babe_api_(std::move(babe_api)),
@@ -83,10 +82,10 @@ namespace kagome::consensus::babe {
   }
 
   bool BabeConfigRepositoryImpl::prepare() {
-    auto last_indexed = indexer_.removeUnfinalized();
     auto finalized = block_tree_->getLastFinalized();
     auto finalized_header = block_tree_->getBlockHeader(finalized.hash).value();
-    if (finalized.number - last_indexed.number > kDontIndexFinalizedBlocks
+    if (finalized.number - indexer_.last_finalized_indexed_.number
+            > kDontIndexFinalizedBlocks
         and trie_storage_->getEphemeralBatchAt(finalized_header.state_root)) {
       warp(finalized);
     }
@@ -121,12 +120,7 @@ namespace kagome::consensus::babe {
             const primitives::events::ChainEventParams &event) {
           if (type == primitives::events::ChainEventType::kFinalizedHeads) {
             if (auto self = wp.lock()) {
-              const auto &header =
-                  boost::get<primitives::events::HeadsEventParams>(event).get();
-              self->indexer_.filterUnfinalized();
-              self->indexer_.writeFinalized(self->last_saved_state_block_,
-                                            header.number);
-              self->last_saved_state_block_ = header.number;
+              self->indexer_.finalize();
             }
           }
         });

@@ -113,8 +113,8 @@ namespace kagome::network {
     block_storage_->setBlockTreeLeaves({op.block_info.hash}).value();
     warp_sync_cache_->warp(op.block_info);
     authority_manager_->warp(op.block_info, op.header, op.authorities);
-    babe_config_repository_->warp(op.block_info);
     block_tree_->warp(op.block_info);
+    babe_config_repository_->warp(op.block_info);
     db_->remove(storage::kWarpSyncOp).value();
   }
 }  // namespace kagome::network
