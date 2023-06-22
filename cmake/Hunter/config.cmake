@@ -17,13 +17,6 @@ hunter_config(
 )
 
 hunter_config(
-    erasure_coding_crust
-    URL https://github.com/soramitsu/erasure-coding-crust/archive/refs/heads/fix/lower_pow_2.zip
-    SHA1 c68dc375b3d758c547ab3af7b77362d77f72f38f
-    CMAKE_ARGS BENCHMARK_ENABLE_TESTING=OFF
-)
-
-hunter_config(
     benchmark
     URL https://github.com/google/benchmark/archive/refs/tags/v1.7.1.zip
     SHA1 988246a257b0eeb1a8b112cff6ab3edfbe162912
