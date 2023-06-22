@@ -651,6 +651,7 @@ namespace kagome::network {
               self->connecting_peers_.erase(peer_id);
 
               self->reserveStreams(peer_id);
+              self->reserveStatusStreams(peer_id);
               self->startPingingPeer(peer_id);
 
               /// Process callback when opened successfully
@@ -804,14 +805,14 @@ namespace kagome::network {
   }
 
   void PeerManagerImpl::reserveStatusStreams(const PeerId &peer_id) const {
-    auto proto = router_->getValidationProtocol();
-    BOOST_ASSERT_MSG(proto, "Router did not provide validation protocol");
+    auto proto_val = router_->getValidationProtocol();
+    BOOST_ASSERT_MSG(proto_val, "Router did not provide validation protocol");
 
-    auto proto_1 = router_->getCollationProtocol();
-    BOOST_ASSERT_MSG(proto_1, "Router did not provide collaction protocol");
+    auto proto_col = router_->getCollationProtocol();
+    BOOST_ASSERT_MSG(proto_col, "Router did not provide collaction protocol");
 
-    stream_engine_->reserveStreams(peer_id, proto);
-    stream_engine_->reserveStreams(peer_id, proto_1);
+    stream_engine_->reserveStreams(peer_id, proto_val);
+    stream_engine_->reserveStreams(peer_id, proto_col);
   }
 
   void PeerManagerImpl::reserveStreams(const PeerId &peer_id) const {
@@ -826,7 +827,6 @@ namespace kagome::network {
 
     stream_engine_->reserveStreams(peer_id, grandpa_protocol);
     stream_engine_->reserveStreams(peer_id, transaction_protocol);
-    reserveStatusStreams(peer_id);
   }
 
   bool PeerManagerImpl::isSelfPeer(const PeerId &peer_id) const {
