@@ -66,6 +66,11 @@ namespace kagome::blockchain {
     bool inherit = false;
   };
 
+  /**
+   * Used to store and query inheritable values for blocks.
+   * Used to store changes from digests.
+   * Ensures that no block between found and requested change that value.
+   */
   template <typename T>
   struct Indexer {
     Indexer(std::shared_ptr<storage::BufferStorage> db,
@@ -182,6 +187,14 @@ namespace kagome::blockchain {
       }
     }
 
+    /**
+     * Search first inherited value for `block` descending by `descent`.
+     * Unindexed blocks are indexed with `cb`.
+     * `cb` args:
+     * - `Option<BlockInfo>` of previous block with value.
+     * - `size_t` and `size_t` [first..last] indices into `descent.path_`
+     *   blocks. `descent.path_` is reversed, so indices decrease.
+     */
     template <typename Cb>
     std::optional<KeyValue> search(Descent &descent,
                                    const primitives::BlockInfo &block,
