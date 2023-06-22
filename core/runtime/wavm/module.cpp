@@ -44,7 +44,7 @@ namespace kagome::runtime::wavm {
       return nullptr;
     }
 
-    auto imports = WAVM::Runtime::getModuleIR(module).memories.imports;
+    auto &imports = WAVM::Runtime::getModuleIR(module).memories.imports;
     if (not imports.empty()) {
       module_params.intrinsicMemoryType = imports[0].type;
     }
