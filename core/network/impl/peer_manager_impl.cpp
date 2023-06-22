@@ -803,11 +803,15 @@ namespace kagome::network {
     }
   }
 
-  void PeerManagerImpl::reserveStatusStreams(const PeerId &peer_id) {
+  void PeerManagerImpl::reserveStatusStreams(const PeerId &peer_id) const {
     auto proto = router_->getValidationProtocol();
     BOOST_ASSERT_MSG(proto, "Router did not provide validation protocol");
 
+    auto proto_1 = router_->getCollationProtocol();
+    BOOST_ASSERT_MSG(proto_1, "Router did not provide collaction protocol");
+
     stream_engine_->reserveStreams(peer_id, proto);
+    stream_engine_->reserveStreams(peer_id, proto_1);
   }
 
   void PeerManagerImpl::reserveStreams(const PeerId &peer_id) const {
@@ -822,6 +826,7 @@ namespace kagome::network {
 
     stream_engine_->reserveStreams(peer_id, grandpa_protocol);
     stream_engine_->reserveStreams(peer_id, transaction_protocol);
+    reserveStatusStreams(peer_id);
   }
 
   bool PeerManagerImpl::isSelfPeer(const PeerId &peer_id) const {

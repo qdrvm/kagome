@@ -245,6 +245,7 @@ namespace kagome::parachain {
     auto msg = std::make_shared<
         network::WireMessage<network::ValidatorProtocolMessage>>(
         network::ViewUpdate{.view = view});
+    pm_->getStreamEngine()->broadcast(router_->getCollationProtocol(), msg);
     pm_->getStreamEngine()->broadcast(router_->getValidationProtocol(), msg);
   }
 
