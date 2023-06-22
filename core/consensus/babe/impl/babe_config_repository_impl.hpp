@@ -53,7 +53,8 @@ namespace kagome::consensus::babe {
         public std::enable_shared_from_this<BabeConfigRepositoryImpl> {
    public:
     enum class Error {
-      ERROR = 1,
+      NOT_FOUND = 1,
+      PREVIOUS_NOT_FOUND,
     };
 
     BabeConfigRepositoryImpl(

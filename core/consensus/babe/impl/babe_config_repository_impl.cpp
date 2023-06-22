@@ -25,8 +25,10 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::consensus::babe,
                             e) {
   using E = decltype(e);
   switch (e) {
-    case E::ERROR:
-      return "error";
+    case E::NOT_FOUND:
+      return "babe config not found";
+    case E::PREVIOUS_NOT_FOUND:
+      return "previous babe config not found";
   }
   return fmt::format("BabeConfigRepositoryImpl::Error({})", e);
 }
@@ -34,7 +36,7 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::consensus::babe,
 namespace kagome::consensus::babe {
   constexpr size_t kDontIndexFinalizedBlocks = 10000;
 
-  inline primitives::NextConfigDataV1 getConfig(
+  inline static primitives::NextConfigDataV1 getConfig(
       const primitives::BabeConfiguration &state) {
     return {state.leadership_rate, state.allowed_slots};
   }
@@ -303,7 +305,7 @@ namespace kagome::consensus::babe {
     auto r = indexer_.search(descent, block, cb);
     OUTCOME_TRY(cb_res);
     if (not r) {
-      return Error::ERROR;
+      return Error::NOT_FOUND;
     }
     if (not next and r->second.value->state) {
       return *r->second.value->state;
@@ -313,7 +315,7 @@ namespace kagome::consensus::babe {
       return *r->second.value->next_state;
     }
     if (not r->second.prev) {
-      return Error::ERROR;
+      return Error::PREVIOUS_NOT_FOUND;
     }
     return loadPrev(*r->second.prev);
   }
@@ -358,14 +360,14 @@ namespace kagome::consensus::babe {
   BabeConfigRepositoryImpl::loadPrev(
       const std::optional<primitives::BlockInfo> &prev) const {
     if (not prev) {
-      return Error::ERROR;
+      return Error::PREVIOUS_NOT_FOUND;
     }
     auto r = indexer_.get(*prev);
     if (not r) {
-      return Error::ERROR;
+      return Error::PREVIOUS_NOT_FOUND;
     }
     if (not r->value) {
-      return Error::ERROR;
+      return Error::PREVIOUS_NOT_FOUND;
     }
     OUTCOME_TRY(load(*prev, *r));
     return *r->value->next_state;

@@ -220,9 +220,9 @@ namespace kagome::consensus::babe {
     }
 
     OUTCOME_TRY(
-        babe_config_opt,
+        babe_config_ptr,
         babe_config_repo_->config(*block.header.parentInfo(), epoch_number));
-    auto &babe_config = *babe_config_opt;
+    auto &babe_config = *babe_config_ptr;
 
     SL_TRACE(logger_,
              "Actual epoch digest to apply block {} (slot {}, epoch {}). "

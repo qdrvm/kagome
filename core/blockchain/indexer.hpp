@@ -6,10 +6,9 @@
 #ifndef KAGOME_BLOCKCHAIN_INDEXER_HPP
 #define KAGOME_BLOCKCHAIN_INDEXER_HPP
 
-#include <boost/endian/conversion.hpp>
-
 #include "blockchain/block_tree.hpp"
 #include "storage/buffer_map_types.hpp"
+#include "utils/block_info_key.hpp"
 
 namespace kagome::blockchain {
   struct Descent {
@@ -17,7 +16,7 @@ namespace kagome::blockchain {
             primitives::BlockInfo start)
         : block_tree_{std::move(block_tree)}, path_{start} {}
 
-    bool can(const primitives::BlockInfo &to) {
+    bool descends(const primitives::BlockInfo &to) const {
       if (to == path_.front()) {
         return true;
       }
@@ -48,13 +47,13 @@ namespace kagome::blockchain {
       return to == path_.at(i);
     }
 
-    size_t indexFor(primitives::BlockNumber n) {
+    size_t indexFor(primitives::BlockNumber n) const {
       BOOST_ASSERT(n <= path_.front().number);
       return path_.front().number - n;
     }
 
     std::shared_ptr<blockchain::BlockTree> block_tree_;
-    std::vector<primitives::BlockInfo> path_;
+    mutable std::vector<primitives::BlockInfo> path_;
     bool update_path_ = true;
   };
 
@@ -69,21 +68,6 @@ namespace kagome::blockchain {
 
   template <typename T>
   struct Indexer {
-    static common::Blob<4 + 32> toKey(const primitives::BlockInfo &info) {
-      common::Blob<4 + 32> key;
-      boost::endian::store_big_u32(key.data(), info.number);
-      std::copy_n(info.hash.data(), 32, key.data() + 4);
-      return key;
-    }
-
-    static primitives::BlockInfo fromKey(common::BufferView key) {
-      BOOST_ASSERT(key.size() == 4 + 32);
-      primitives::BlockInfo info;
-      info.number = boost::endian::load_big_u32(key.data());
-      std::copy_n(key.data() + 4, 32, info.hash.data());
-      return info;
-    }
-
     Indexer(std::shared_ptr<storage::BufferStorage> db,
             std::shared_ptr<blockchain::BlockTree> block_tree)
         : db_{std::move(db)}, block_tree_{std::move(block_tree)} {
@@ -93,9 +77,9 @@ namespace kagome::blockchain {
       auto db_cur = db_->cursor();
       for (db_cur->seekFirst().value(); db_cur->isValid();
            db_cur->next().value()) {
-        auto info = fromKey(*db_cur->key());
+        auto info = BlockInfoKey::decode(*db_cur->key()).value();
         if (not block_tree_->isFinalized(info)) {
-          batch->remove(toKey(info)).value();
+          batch->remove(BlockInfoKey::encode(info)).value();
           continue;
         }
         last_finalized_indexed_ = info;
@@ -113,7 +97,7 @@ namespace kagome::blockchain {
       if (auto it = map_.find(block); it != map_.end()) {
         return it->second;
       }
-      if (auto r = db_->tryGet(toKey(block)).value()) {
+      if (auto r = db_->tryGet(BlockInfoKey::encode(block)).value()) {
         return scale::decode<Indexed<T>>(*r).value();
       }
       return std::nullopt;
@@ -127,13 +111,14 @@ namespace kagome::blockchain {
       }
       map_[block] = indexed;
       if (db) {
-        db_->put(toKey(block), scale::encode(indexed).value()).value();
+        db_->put(BlockInfoKey::encode(block), scale::encode(indexed).value())
+            .value();
       }
     }
 
     void remove(const primitives::BlockInfo &block) {
       map_.erase(block);
-      db_->remove(toKey(block)).value();
+      db_->remove(BlockInfoKey::encode(block)).value();
     }
 
     void finalize() {
@@ -144,7 +129,10 @@ namespace kagome::blockchain {
         auto &[info, indexed] = *map_it;
         if (block_tree_->isFinalized(info)) {
           if (not indexed.inherit) {
-            batch->put(toKey(info), scale::encode(indexed).value()).value();
+            batch
+                ->put(BlockInfoKey::encode(info),
+                      scale::encode(indexed).value())
+                .value();
             last_finalized_indexed_ = info;
           }
         } else if (not block_tree_->hasDirectChain(finalized, info)) {
@@ -165,9 +153,9 @@ namespace kagome::blockchain {
       batch->commit().value();
     }
 
-    using Search = std::pair<primitives::BlockInfo, Indexed<T>>;
+    using KeyValue = std::pair<primitives::BlockInfo, Indexed<T>>;
     struct SearchRaw {
-      Search kv;
+      KeyValue kv;
       primitives::BlockInfo last;
     };
 
@@ -175,7 +163,7 @@ namespace kagome::blockchain {
                                        const primitives::BlockInfo &block) {
       auto map_it = map_.lower_bound(block);
       while (true) {
-        if (map_it != map_.end() and descent.can(map_it->first)) {
+        if (map_it != map_.end() and descent.descends(map_it->first)) {
           if (not map_it->second.inherit) {
             return SearchRaw{*map_it, map_it->first};
           }
@@ -195,9 +183,9 @@ namespace kagome::blockchain {
     }
 
     template <typename Cb>
-    std::optional<Search> search(Descent &descent,
-                                 const primitives::BlockInfo &block,
-                                 const Cb &cb) {
+    std::optional<KeyValue> search(Descent &descent,
+                                   const primitives::BlockInfo &block,
+                                   const Cb &cb) {
       descent.update_path_ = true;
       auto raw = searchRaw(descent, block);
       if (not raw) {
