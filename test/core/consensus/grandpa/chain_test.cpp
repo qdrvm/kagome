@@ -6,10 +6,13 @@
 #include <gtest/gtest.h>
 
 #include "consensus/grandpa/impl/environment_impl.hpp"
+#include "consensus/grandpa/justification_observer.hpp"
 #include "mock/core/blockchain/block_header_repository_mock.hpp"
 #include "mock/core/blockchain/block_tree_mock.hpp"
 #include "mock/core/consensus/grandpa/authority_manager_mock.hpp"
+#include "mock/core/consensus/grandpa/grandpa_mock.hpp"
 #include "mock/core/network/grandpa_transmitter_mock.hpp"
+#include "testutil/lazy.hpp"
 #include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
 #include "testutil/prepare_loggers.hpp"
@@ -23,6 +26,8 @@ using kagome::common::Hash256;
 using kagome::consensus::grandpa::AuthorityManagerMock;
 using kagome::consensus::grandpa::Chain;
 using kagome::consensus::grandpa::EnvironmentImpl;
+using kagome::consensus::grandpa::GrandpaMock;
+using kagome::consensus::grandpa::JustificationObserver;
 using kagome::network::GrandpaTransmitterMock;
 using kagome::primitives::BlockHash;
 using kagome::primitives::BlockHeader;
@@ -79,12 +84,14 @@ class ChainTest : public testing::Test {
       std::make_shared<AuthorityManagerMock>();
   std::shared_ptr<GrandpaTransmitterMock> grandpa_transmitter =
       std::make_shared<GrandpaTransmitterMock>();
+  std::shared_ptr<GrandpaMock> grandpa_ = std::make_shared<GrandpaMock>();
 
   std::shared_ptr<Chain> chain = std::make_shared<EnvironmentImpl>(
       tree,
       header_repo,
       authority_manager,
       grandpa_transmitter,
+      testutil::sptr_to_lazy<JustificationObserver>(grandpa_),
       std::make_shared<boost::asio::io_context>());
 };
 
