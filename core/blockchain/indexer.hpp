@@ -11,11 +11,18 @@
 #include "utils/block_info_key.hpp"
 
 namespace kagome::blockchain {
+  /**
+   * Cached ancestry check.
+   */
   struct Descent {
     Descent(std::shared_ptr<blockchain::BlockTree> block_tree,
             primitives::BlockInfo start)
         : block_tree_{std::move(block_tree)}, path_{start} {}
 
+    /**
+     * Checks if `to` is ancestor of `start`.
+     * Caches intermediate blocks if `update_path_` is true.
+     */
     bool descends(const primitives::BlockInfo &to) const {
       if (to == path_.front()) {
         return true;
@@ -47,6 +54,9 @@ namespace kagome::blockchain {
       return to == path_.at(i);
     }
 
+    /**
+     * Get index in `path_` for block.
+     */
     size_t indexFor(primitives::BlockNumber n) const {
       BOOST_ASSERT(n <= path_.front().number);
       return path_.front().number - n;
@@ -61,8 +71,18 @@ namespace kagome::blockchain {
   struct Indexed {
     SCALE_TIE_ONLY(value, prev);
 
+    /**
+     * Empty `value` means that blocks from `prev` to current have been indexed,
+     * and current block doesn't have own `value`.
+     */
     std::optional<T> value;
+    /**
+     * Previous block with value.
+     */
     std::optional<primitives::BlockInfo> prev;
+    /**
+     * Does this block inherit value from `prev` or has own `value`.
+     */
     bool inherit = false;
   };
 

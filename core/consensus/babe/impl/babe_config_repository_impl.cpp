@@ -240,7 +240,7 @@ namespace kagome::consensus::babe {
 
   outcome::result<std::shared_ptr<const primitives::BabeConfiguration>>
   BabeConfigRepositoryImpl::config(const primitives::BlockInfo &block,
-                                   bool next) const {
+                                   bool next_epoch) const {
     auto descent = indexer_.descend(block);
     outcome::result<void> cb_res = outcome::success();
     auto cb = [&](std::optional<primitives::BlockInfo> prev,
@@ -312,10 +312,10 @@ namespace kagome::consensus::babe {
     if (not r) {
       return Error::NOT_FOUND;
     }
-    if (not next and r->second.value->state) {
+    if (not next_epoch and r->second.value->state) {
       return *r->second.value->state;
     }
-    if (next) {
+    if (next_epoch) {
       OUTCOME_TRY(load(r->first, r->second));
       return *r->second.value->next_state;
     }

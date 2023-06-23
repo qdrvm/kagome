@@ -41,8 +41,18 @@ namespace kagome::consensus::babe {
   struct BabeIndexedValue {
     SCALE_TIE_ONLY(config, state);
 
+    /**
+     * `NextConfigData` is rare digest, so always store recent config.
+     */
     primitives::NextConfigDataV1 config;
+    /**
+     * Current epoch read from runtime.
+     * Used at genesis and after warp sync.
+     */
     std::optional<std::shared_ptr<const primitives::BabeConfiguration>> state;
+    /**
+     * Next epoch lazily computed from `config` and digests.
+    */
     std::optional<std::shared_ptr<const primitives::BabeConfiguration>>
         next_state;
   };
@@ -102,7 +112,7 @@ namespace kagome::consensus::babe {
     BabeSlotNumber getFirstBlockSlotNumber();
 
     outcome::result<std::shared_ptr<const primitives::BabeConfiguration>>
-    config(const primitives::BlockInfo &block, bool next) const;
+    config(const primitives::BlockInfo &block, bool next_epoch) const;
 
     std::shared_ptr<primitives::BabeConfiguration> applyDigests(
         const primitives::NextConfigDataV1 &config,
