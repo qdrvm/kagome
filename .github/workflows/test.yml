@@ -271,8 +271,6 @@ jobs:
   #       run: ./housekeeping/docker/kagome-dev/make.sh
 
   Push-self-hosted:
-    if: ${{ github.ref == 'refs/heads/master' || github.ref == 'refs/heads/feature/DOPS-2490/zombienet' || startsWith( github.ref, 'refs/tags/' ) }}
-    #needs: [clang-tidy, MacOS, Minideb-self-hosted]
     strategy:
       fail-fast: false
       matrix:
@@ -308,7 +306,6 @@ jobs:
         run: ./housekeeping/docker/kagome/build_and_push.sh
 
   zombie-test0001-parachains-smoke-test:
-    if: ${{ github.ref == 'refs/heads/master' || github.ref == 'refs/heads/feature/DOPS-2490/zombienet' }}
     runs-on: [ ubuntu-latest, kagome, self-hosted, linux ]
     needs: [Push-self-hosted]
     steps:
@@ -321,7 +318,6 @@ jobs:
         run: make test0001
 
   zombie-test0002-parachains-upgrade-smoke-test:
-    if: ${{ github.ref == 'refs/heads/master' || github.ref == 'refs/heads/feature/DOPS-2490/zombienet' }}
     runs-on: [ ubuntu-latest, kagome, self-hosted, linux ]
     needs: [Push-self-hosted]
     steps:
@@ -334,7 +330,6 @@ jobs:
         run: make test0002
   
   zombie-test0003-parachains-smoke-test-cumulus:
-    if: ${{ github.ref == 'refs/heads/master' || github.ref == 'refs/heads/feature/DOPS-2490/zombienet' }}
     runs-on: [ ubuntu-latest, kagome, self-hosted, linux ]
     needs: [Push-self-hosted]
     steps:
