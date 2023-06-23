@@ -1351,6 +1351,7 @@ namespace kagome::blockchain {
         }
       }
 
+      retired_hashes.emplace_back(node->block_hash);
       p.tree_->removeFromMeta(node);
       OUTCOME_TRY(p.storage_->removeBlock(node->block_hash));
     }

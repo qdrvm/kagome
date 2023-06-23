@@ -34,12 +34,6 @@ namespace kagome::consensus::grandpa {
     ~Environment() override = default;
 
     /**
-     * Sets back-link to Grandpa
-     */
-    virtual void setJustificationObserver(
-        std::weak_ptr<JustificationObserver> justification_observer) = 0;
-
-    /**
      * Make catch-up-request
      */
     virtual void onCatchUpRequested(const libp2p::peer::PeerId &peer_id,

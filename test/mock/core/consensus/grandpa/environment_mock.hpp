@@ -16,11 +16,6 @@ namespace kagome::consensus::grandpa {
   class EnvironmentMock : public Environment, public ChainMock {
    public:
     MOCK_METHOD(void,
-                setJustificationObserver,
-                (std::weak_ptr<JustificationObserver> justification_observer),
-                (override));
-
-    MOCK_METHOD(void,
                 onVoted,
                 (RoundNumber round,
                  VoterSetId set_id,

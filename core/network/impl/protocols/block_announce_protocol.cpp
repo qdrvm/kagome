@@ -110,6 +110,7 @@ namespace kagome::network {
           }
 
           self->peer_manager_->reserveStreams(peer_id);
+          self->peer_manager_->reserveStatusStreams(peer_id);
           self->peer_manager_->startPingingPeer(peer_id);
 
           SL_VERBOSE(self->base_.logger(),

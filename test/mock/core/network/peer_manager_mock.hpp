@@ -18,6 +18,11 @@ namespace kagome::network {
 
     MOCK_METHOD(void, reserveStreams, (const PeerId &), (const, override));
 
+    MOCK_METHOD(void,
+                reserveStatusStreams,
+                (const PeerId &),
+                (const, override));
+
     MOCK_METHOD(void, keepAlive, (const PeerId &), (override));
 
     MOCK_METHOD(void, startPingingPeer, (const PeerId &), (override));
@@ -32,7 +37,7 @@ namespace kagome::network {
     MOCK_METHOD(void,
                 setCollating,
                 (const PeerId &,
-                 network::CollatorPublicKey const &,
+                 const network::CollatorPublicKey &,
                  network::ParachainId),
                 (override));
 
