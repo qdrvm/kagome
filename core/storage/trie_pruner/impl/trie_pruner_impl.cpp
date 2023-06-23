@@ -360,8 +360,8 @@ namespace kagome::storage::trie_pruner {
     while (!queued_nodes.empty()) {
       auto [node, hash] = queued_nodes.back();
       queued_nodes.pop_back();
-      auto ref_count = ref_count_[hash];
-      SL_TRACE(logger_, "Add - Node {}, ref count {}", hash.toHex(), ref_count);
+      const size_t ref_count = ++ref_count_[hash];
+      SL_TRACE(logger_, "Add node {}, ref count {}", hash.toHex(), ref_count);
 
       referenced_nodes_num++;
       bool is_new_node_with_value =
@@ -384,8 +384,7 @@ namespace kagome::storage::trie_pruner {
             OUTCOME_TRY(child_merkle_val,
                         encoder.getMerkleValue(*child, version));
             if (child_merkle_val.isHash()) {
-              ref_count_[*child_merkle_val.asHash()] += 1;
-              SL_TRACE(logger_, "Add - Child {}", child_merkle_val.asBuffer());
+              SL_TRACE(logger_, "Queue child {}", child_merkle_val.asBuffer());
               queued_nodes.push_back({child, *child_merkle_val.asHash()});
             }
           }
@@ -477,7 +476,7 @@ namespace kagome::storage::trie_pruner {
   }
 
   outcome::result<void> TriePrunerImpl::addChildStates(
-      const trie::PolkadotTrie &parent, const trie::RootHash &parent_root) {
+      const trie::PolkadotTrie &parent) {
     auto child_tries = parent.trieCursor();
     OUTCOME_TRY(child_tries->seekLowerBound(storage::kChildStoragePrefix));
     using std::string_view_literals::operator""sv;

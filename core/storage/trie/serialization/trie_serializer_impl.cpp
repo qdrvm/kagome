@@ -108,7 +108,7 @@ namespace kagome::storage::trie {
 
   outcome::result<PolkadotTrie::NodePtr> TrieSerializerImpl::retrieveNode(
       MerkleValue db_key, const OnNodeLoaded &on_node_loaded) const {
-    if (db_key.asBuffer() == getEmptyRootHash()) {
+    if (db_key.asHash() == getEmptyRootHash()) {
       return nullptr;
     }
     Buffer enc;
