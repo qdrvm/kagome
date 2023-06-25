@@ -236,11 +236,12 @@ class TriePrunerTest : public testing::Test {
     if (desc.type == NODE) {
       if (desc.children.empty()) {
         auto node = std::make_shared<trie::LeafNode>(
-            trie::KeyNibbles{}, trie::ValueAndHash{{}, desc.merkle_value});
+            trie::KeyNibbles{},
+            trie::ValueAndHash{Buffer{desc.merkle_value}, {}});
         return node;
       }
-      auto node = std::make_shared<trie::BranchNode>(
-          trie::KeyNibbles{}, Buffer{desc.merkle_value});
+      auto node = std::make_shared<trie::BranchNode>(trie::KeyNibbles{},
+                                                     Buffer{desc.merkle_value});
       for (auto [idx, child] : desc.children) {
         node->children[idx] = makeNode(child);
       }
@@ -315,7 +316,7 @@ TEST_F(TriePrunerTest, BasicScenario) {
   ON_CALL(*codec_mock, merkleValue(_, _, _))
       .WillByDefault(Invoke([](auto &node, auto version, auto) {
         return trie::MerkleValue::create(
-                   *static_cast<const trie::TrieNode &>(node).getValue().hash)
+                   *static_cast<const trie::TrieNode &>(node).getValue().value)
             .value();
       }));
 
@@ -339,7 +340,7 @@ TEST_F(TriePrunerTest, BasicScenario) {
        {{0, {NODE, "_0"_hash256, {}}}, {5, {NODE, "_5"_hash256, {}}}}});
   ASSERT_OUTCOME_SUCCESS_TRY(
       pruner->addNewState(*trie_1, trie::StateVersion::V1));
-  ASSERT_EQ(pruner->getTrackedNodesNum(), 4);
+  EXPECT_EQ(pruner->getTrackedNodesNum(), 4);
 
   EXPECT_CALL(
       *serializer_mock,

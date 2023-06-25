@@ -169,6 +169,7 @@ kagome_install_setup(
   core/scale
   core/storage
   core/subscription
+  core/telemetry
   core/utils)
 
 include(CMakePackageConfigHelpers)

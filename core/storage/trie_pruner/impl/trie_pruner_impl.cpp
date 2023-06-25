@@ -363,16 +363,14 @@ namespace kagome::storage::trie_pruner {
     SL_DEBUG(logger_, "Add new state with hash: {}", root_hash.asBuffer());
     queued_nodes.push_back({new_trie.getRoot(), *root_hash.asHash()});
 
-    ref_count_[*root_hash.asHash()] += 1;
-
     size_t referenced_nodes_num = 0;
     size_t referenced_values_num = 0;
 
     while (!queued_nodes.empty()) {
       auto [node, hash] = queued_nodes.back();
       queued_nodes.pop_back();
-      auto ref_count = ref_count_[hash];
-      SL_TRACE(logger_, "Add - Node {}, ref count {}", hash.toHex(), ref_count);
+      const size_t ref_count = ++ref_count_[hash];
+      SL_TRACE(logger_, "Add node {}, ref count {}", hash.toHex(), ref_count);
 
       referenced_nodes_num++;
       bool is_new_node_with_value =
@@ -395,8 +393,7 @@ namespace kagome::storage::trie_pruner {
             OUTCOME_TRY(child_merkle_val,
                         encoder.getMerkleValue(*child, version));
             if (child_merkle_val.isHash()) {
-              ref_count_[*child_merkle_val.asHash()] += 1;
-              SL_TRACE(logger_, "Add - Child {}", child_merkle_val.asBuffer());
+              SL_TRACE(logger_, "Queue child {}", child_merkle_val.asBuffer());
               queued_nodes.push_back({child, *child_merkle_val.asHash()});
             }
           }
