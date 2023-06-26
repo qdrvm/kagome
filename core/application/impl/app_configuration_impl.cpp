@@ -132,6 +132,9 @@ namespace {
     if (str == "Warp") {
       return SM::Warp;
     }
+    if (str == "Auto") {
+      return SM::Auto;
+    }
     return std::nullopt;
   }
 

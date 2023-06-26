@@ -18,7 +18,10 @@ namespace kagome::network {
 
     MOCK_METHOD(void, reserveStreams, (const PeerId &), (const, override));
 
-    MOCK_METHOD(void, reserveStatusStreams, (const PeerId &), (override));
+    MOCK_METHOD(void,
+                reserveStatusStreams,
+                (const PeerId &),
+                (const, override));
 
     MOCK_METHOD(void, keepAlive, (const PeerId &), (override));
 

@@ -129,7 +129,6 @@ namespace kagome::parachain {
                 self->router_->getValidationProtocol(), msg);
           }
         });
-    bitfield_signer_->start(peer_view_->intoChainEventsEngine());
 
     babe_status_observer_ =
         std::make_shared<primitives::events::BabeStateEventSubscriber>(
@@ -137,29 +136,38 @@ namespace kagome::parachain {
     babe_status_observer_->subscribe(
         babe_status_observer_->generateSubscriptionSetId(),
         primitives::events::BabeStateEventType::kSyncState);
-    babe_status_observer_->setCallback([wself{weak_from_this()}](
-                                           auto /*set_id*/,
-                                           bool &synchronized,
-                                           auto /*event_type*/,
-                                           const primitives::events::
-                                               BabeStateEventParams
-                                                   & /*event*/) {
-      if (auto self = wself.lock()) {
-        if (!synchronized) {
-          synchronized = true;
-          auto my_view = self->peer_view_->getMyView();
-          if (!my_view) {
-            SL_WARN(
-                self->logger_,
-                "Broadcast my view failed, because my view still not exists.");
-            return;
-          }
+    babe_status_observer_->setCallback(
+        [wself{weak_from_this()}, was_synchronized = false](
+            auto /*set_id*/,
+            bool &synchronized,
+            auto /*event_type*/,
+            const primitives::events::BabeStateEventParams &event) mutable {
+          if (auto self = wself.lock()) {
+            if (event == consensus::babe::Babe::State::SYNCHRONIZED) {
+              if (not was_synchronized) {
+                self->bitfield_signer_->start(
+                    self->peer_view_->intoChainEventsEngine());
+                was_synchronized = true;
+              }
+            }
+            if (was_synchronized) {
+              if (!synchronized) {
+                synchronized = true;
+                auto my_view = self->peer_view_->getMyView();
+                if (!my_view) {
+                  SL_WARN(self->logger_,
+                          "Broadcast my view failed, "
+                          "because my view still not exists.");
+                  return;
+                }
 
-          SL_TRACE(self->logger_, "Broadcast my view because synchronized.");
-          self->broadcastView(my_view->get().view);
-        }
-      }
-    });
+                SL_TRACE(self->logger_,
+                         "Broadcast my view because synchronized.");
+                self->broadcastView(my_view->get().view);
+              }
+            }
+          }
+        });
 
     chain_sub_ = std::make_shared<primitives::events::ChainEventSubscriber>(
         peer_view_->intoChainEventsEngine());
@@ -245,6 +253,7 @@ namespace kagome::parachain {
     auto msg = std::make_shared<
         network::WireMessage<network::ValidatorProtocolMessage>>(
         network::ViewUpdate{.view = view});
+    pm_->getStreamEngine()->broadcast(router_->getCollationProtocol(), msg);
     pm_->getStreamEngine()->broadcast(router_->getValidationProtocol(), msg);
   }
 
