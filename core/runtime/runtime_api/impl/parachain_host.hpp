@@ -6,6 +6,7 @@
 #ifndef KAGOME_CORE_RUNTIME_IMPL_PARACHAIN_HOST_HPP
 #define KAGOME_CORE_RUNTIME_IMPL_PARACHAIN_HOST_HPP
 
+#include "common/lru_cache.hpp"
 #include "primitives/block_id.hpp"
 #include "runtime/runtime_api/parachain_host.hpp"
 
@@ -26,7 +27,7 @@ namespace kagome::runtime {
     outcome::result<std::optional<Buffer>> parachain_head(
         const primitives::BlockHash &block, ParachainId id) override;
 
-    outcome::result<std::optional<kagome::common::Buffer>> parachain_code(
+    outcome::result<std::optional<Buffer>> parachain_code(
         const primitives::BlockHash &block, ParachainId id) override;
 
     outcome::result<std::vector<ValidatorId>> validators(
@@ -78,6 +79,25 @@ namespace kagome::runtime {
 
    private:
     std::shared_ptr<Executor> executor_;
+
+    template <typename T, typename... Ts>
+    using C = LruCache<std::tuple<primitives::BlockHash, Ts...>, T, true>;
+
+    C<std::vector<ParachainId>> active_parachains_{10};
+    C<std::optional<Buffer>> parachain_head_{10};
+    C<std::optional<Buffer>, ParachainId> parachain_code_{10};
+    C<std::vector<ValidatorId>> validators_{10};
+    C<ValidatorGroupsAndDescriptor> validator_groups_{10};
+    C<std::vector<CoreState>> availability_cores_{10};
+    C<SessionIndex> session_index_for_child_{10};
+    C<std::optional<Buffer>, ValidationCodeHash> validation_code_by_hash_{10};
+    C<std::optional<CommittedCandidateReceipt>, ParachainId>
+        candidate_pending_availability_{10};
+    C<std::vector<CandidateEvent>> candidate_events_{10};
+    C<std::optional<SessionInfo>, SessionIndex> session_info_{10};
+    C<std::vector<InboundDownwardMessage>, ParachainId> dmq_contents_{10};
+    C<std::map<ParachainId, std::vector<InboundHrmpMessage>>, ParachainId>
+        inbound_hrmp_channels_contents_{10};
   };
 
 }  // namespace kagome::runtime
