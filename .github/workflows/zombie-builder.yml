@@ -1,0 +1,17 @@
+on:
+  push:
+    branches: [ master ]
+    tags: [ '*' ]
+  pull_request:
+
+jobs:
+  build_and_push_zombie_builder:
+    runs-on: [ ubuntu-latest, kagome, self-hosted, linux ]
+    steps:
+    - uses: actions/checkout@dc323e67f16fb5f7663d20ff7941f27f5809e9b6
+    - name: build zombie-builder
+      working-directory: ./zombienet/docker
+      run: make builder_last
+    - name: parachains upgrade smoke test
+      working-directory: ./zombienet/docker
+      run: make builder_push
