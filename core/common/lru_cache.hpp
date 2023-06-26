@@ -8,23 +8,33 @@
 
 #include <algorithm>
 #include <cstdint>
+#include <functional>
+#include <memory>
 #include <optional>
 #include <vector>
 
 #include <boost/assert.hpp>
 
+#include "outcome/outcome.hpp"
+
 namespace kagome {
   /**
    * LRU cache designed for small amounts of data (as its get() is O(N))
    */
-  template <typename Key, typename Value, typename PriorityType = uint64_t>
+  template <typename Key,
+            typename Value,
+            bool ValueMaybeShared = false,
+            typename PriorityType = uint64_t>
   struct SmallLruCache final {
    public:
     static_assert(std::is_unsigned_v<PriorityType>);
 
+    using CachedValue =
+        std::conditional_t<ValueMaybeShared, std::shared_ptr<Value>, Value>;
+
     struct CacheEntry {
       Key key;
-      Value value;
+      CachedValue value;
       PriorityType latest_use_tick_;
 
       bool operator<(const CacheEntry &rhs) const {
@@ -45,7 +55,12 @@ namespace kagome {
       for (auto &entry : cache_) {
         if (entry.key == key) {
           entry.latest_use_tick_ = ticks_;
-          return entry.value;
+          if constexpr (ValueMaybeShared) {
+            auto &value = *entry.value;
+            return value;
+          } else {
+            return entry.value;
+          }
         }
       }
       return std::nullopt;
@@ -60,9 +75,58 @@ namespace kagome {
         auto min = std::min_element(cache_.begin(), cache_.end());
         cache_.erase(min);
       }
-      auto &entry = cache_.emplace_back(
-          CacheEntry{key, std::forward<ValueArg>(value), ticks_});
-      return entry.value;
+
+      if constexpr (ValueMaybeShared) {
+        if constexpr (std::is_same_v<ValueArg, Value>) {
+          auto it =
+              std::find_if(cache_.begin(), cache_.end(), [&](const auto &item) {
+                return *item.value == value;
+              });
+          if (it != cache_.end()) {
+            auto &entry =
+                cache_.emplace_back(CacheEntry{key, it->value, ticks_});
+            return *entry.value;
+          }
+          auto &entry = cache_.emplace_back(
+              CacheEntry{key,
+                         std::make_shared<Value>(std::forward<ValueArg>(value)),
+                         ticks_});
+          return *entry.value;
+
+        } else {
+          CachedValue value_sptr =
+              std::make_shared<Value>(std::forward<ValueArg>(value));
+          auto it =
+              std::find_if(cache_.begin(), cache_.end(), [&](const auto &item) {
+                return *item.value == *value_sptr;
+              });
+          if (it != cache_.end()) {
+            auto &entry =
+                cache_.emplace_back(CacheEntry{key, it->value, ticks_});
+            return *entry.value;
+          }
+          auto &entry = cache_.emplace_back(
+              CacheEntry{key, std::move(value_sptr), ticks_});
+          return *entry.value;
+        }
+
+      } else {
+        auto &entry = cache_.emplace_back(
+            CacheEntry{key, std::forward<ValueArg>(value), ticks_});
+        return entry.value;
+      }
+    }
+
+    outcome::result<std::reference_wrapper<const Value>> get_else(
+        const Key &key, const std::function<outcome::result<Value>()> &func) {
+      if (auto opt = get(key); opt.has_value()) {
+        return opt.value();
+      }
+      if (auto res = func(); res.has_value()) {
+        return put(key, std::move(res.value()));
+      } else {
+        return res.as_failure();
+      }
     }
 
    private:
@@ -83,8 +147,11 @@ namespace kagome {
     std::vector<CacheEntry> cache_;
   };
 
-  template <typename... T>
-  using LruCache = SmallLruCache<T...>;
+  template <typename Key,
+            typename Value,
+            bool ValueMaybeShared = false,
+            typename PriorityType = uint64_t>
+  using LruCache = SmallLruCache<Key, Value, ValueMaybeShared, PriorityType>;
 
 }  // namespace kagome
 
