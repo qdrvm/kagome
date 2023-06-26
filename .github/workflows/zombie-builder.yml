@@ -8,8 +8,10 @@ jobs:
   build_and_push_zombie_builder:
     runs-on: [ ubuntu-latest, kagome, self-hosted, linux ]
     steps:
+    - name: Set owner of working dir recurively
+      run: sudo chown -R $(whoami) .
     - uses: actions/checkout@dc323e67f16fb5f7663d20ff7941f27f5809e9b6
-    - name: Set up Python 3.10
+    - name: Set up Python 3.6
       uses: actions/setup-python@v2
       with:
         python-version: '3.6'
