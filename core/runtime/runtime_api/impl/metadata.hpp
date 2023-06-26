@@ -9,6 +9,7 @@
 #include "runtime/runtime_api/metadata.hpp"
 
 #include "blockchain/block_header_repository.hpp"
+#include "common/lru_cache.hpp"
 
 namespace kagome::runtime {
 
@@ -16,16 +17,15 @@ namespace kagome::runtime {
 
   class MetadataImpl final : public Metadata {
    public:
-    MetadataImpl(
-        std::shared_ptr<blockchain::BlockHeaderRepository> block_header_repo,
-        std::shared_ptr<Executor> executor);
+    MetadataImpl(std::shared_ptr<Executor> executor);
 
     outcome::result<OpaqueMetadata> metadata(
         const primitives::BlockHash &block_hash) override;
 
    private:
     std::shared_ptr<Executor> executor_;
-    std::shared_ptr<blockchain::BlockHeaderRepository> block_header_repo_;
+
+    LruCache<primitives::BlockHash, OpaqueMetadata, true> metadata_{10};
   };
 
 }  // namespace kagome::runtime
