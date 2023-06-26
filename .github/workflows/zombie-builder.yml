@@ -9,6 +9,15 @@ jobs:
     runs-on: [ ubuntu-latest, kagome, self-hosted, linux ]
     steps:
     - uses: actions/checkout@dc323e67f16fb5f7663d20ff7941f27f5809e9b6
+    - name: Set up Python 3.10
+      uses: actions/setup-python@v2
+      with:
+        python-version: 3.10
+    - name: Install dependencies
+      working-directory: ./zombienet/docker
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r ./requirements.txt
     - name: build zombie-builder
       working-directory: ./zombienet/docker
       run: make builder_last

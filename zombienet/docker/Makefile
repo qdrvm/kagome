@@ -1,5 +1,4 @@
 builder_last:
-	pip install GitPython==3.1.31 && \
 	python version.py https://github.com/paritytech/polkadot.git && \
 	python version.py https://github.com/paritytech/cumulus.git && \
 	export $(shell [ ! -n "polkadot-version.txt" ] || cat polkadot-version.txt | grep -v \
