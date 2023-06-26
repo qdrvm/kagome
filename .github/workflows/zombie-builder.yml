@@ -11,15 +11,17 @@ jobs:
     - name: Set owner of working dir recurively
       run: sudo chown -R $(whoami) .
     - uses: actions/checkout@dc323e67f16fb5f7663d20ff7941f27f5809e9b6
-    - name: Set up Python 3.6
-      uses: actions/setup-python@v2
-      with:
-        python-version: '3.6.15'
-      env:
-        AGENT_TOOLSDIRECTORY: /opt/hostedtoolcache
+    # - name: Set up Python 3.6
+    #   uses: actions/setup-python@v2
+    #   with:
+    #     python-version: '3.6.15'
+    #   env:
+    #     AGENT_TOOLSDIRECTORY: /opt/hostedtoolcache
     - name: Install dependencies
       working-directory: ./zombienet/docker
       run: |
+        apt update
+        apt install python
         python -m pip install --upgrade pip
         pip install -r ./requirements.txt
     - name: build zombie-builder
