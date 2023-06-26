@@ -277,10 +277,10 @@ jobs:
         options:
           - name: "Push Debug Docker image"
             build-type: "Debug"
-          # - name: "Push Release Docker image"
-          #   build-type: "Release"
-          # - name: "Push RelWithDebInfo Docker image"
-          #   build-type: "RelWithDebInfo"
+          - name: "Push Release Docker image"
+            build-type: "Release"
+          - name: "Push RelWithDebInfo Docker image"
+            build-type: "RelWithDebInfo"
     runs-on: [ ubuntu-latest, kagome, self-hosted, linux ]
     container: soramitsu/kagome-dev@sha256:a3153bda78e15337fc38b6800f508e8c3b27758cba6319e60e7c805b06e071f6
     steps:
@@ -308,6 +308,14 @@ jobs:
   zombie-test0001-parachains-smoke-test:
     strategy:
       fail-fast: false
+      matrix:
+        options:
+          - name: "Parachains smoke test"
+            test: "test0001"
+          - name: "Parachains upgrade smoke test"
+            test: "test0002"
+          - name: "Parachains smoke test cumulus"
+            test: "test0003"
     runs-on: [ ubuntu-latest, kagome, self-hosted, linux ]
     needs: [Push-self-hosted]
     steps:
@@ -317,41 +325,9 @@ jobs:
       - name: build zombie-tester
         working-directory: ./zombienet/docker
         run: make tester
-      - name: parachains smoke test
+      - name: Run test
         working-directory: ./zombienet/docker
-        run: make test0001
-
-  zombie-test0002-parachains-upgrade-smoke-test:
-    strategy:
-      fail-fast: false
-    runs-on: [ ubuntu-latest, kagome, self-hosted, linux ]
-    needs: [Push-self-hosted]
-    steps:
-      - name: Set owner of working dir recurively
-        run: sudo chown -R $(whoami) .
-      - uses: actions/checkout@dc323e67f16fb5f7663d20ff7941f27f5809e9b6
-      - name: build zombie-tester
-        working-directory: ./zombienet/docker
-        run: make tester
-      - name: parachains upgrade smoke test
-        working-directory: ./zombienet/docker
-        run: make test0002
-  
-  zombie-test0003-parachains-smoke-test-cumulus:
-    strategy:
-      fail-fast: false
-    runs-on: [ ubuntu-latest, kagome, self-hosted, linux ]
-    needs: [Push-self-hosted]
-    steps:
-      - name: Set owner of working dir recurively
-        run: sudo chown -R $(whoami) .
-      - uses: actions/checkout@dc323e67f16fb5f7663d20ff7941f27f5809e9b6
-      - name: build zombie-tester
-        working-directory: ./zombienet/docker
-        run: make tester
-      - name: parachains smoke test cumulus
-        working-directory: ./zombienet/docker
-        run: make test0003
+        run: make ${{ matrix.options.test }}
 
   # Trigger_CD:
   #   if: ${{ github.ref == 'refs/heads/master' }}
