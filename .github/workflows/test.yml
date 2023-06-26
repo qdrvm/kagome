@@ -306,15 +306,11 @@ jobs:
         run: ./housekeeping/docker/kagome/build_and_push.sh
 
   zombie-test0001-parachains-smoke-test:
+    strategy:
+      fail-fast: false
     runs-on: [ ubuntu-latest, kagome, self-hosted, linux ]
     needs: [Push-self-hosted]
     steps:
-      - name: cleanup runner workspace
-        run: |
-          echo $GITHUB_WORKSPACE
-          rm -rf $GITHUB_WORKSPACE
-          mkdir $GITHUB_WORKSPACE
-        shell: bash
       - uses: actions/checkout@dc323e67f16fb5f7663d20ff7941f27f5809e9b6
       - name: build zombie-tester
         working-directory: ./zombienet/docker
@@ -324,15 +320,11 @@ jobs:
         run: make test0001
 
   zombie-test0002-parachains-upgrade-smoke-test:
+    strategy:
+      fail-fast: false
     runs-on: [ ubuntu-latest, kagome, self-hosted, linux ]
     needs: [Push-self-hosted]
     steps:
-      - name: cleanup runner workspace
-        run: |
-          echo $GITHUB_WORKSPACE
-          rm -rf $GITHUB_WORKSPACE
-          mkdir $GITHUB_WORKSPACE
-        shell: bash
       - uses: actions/checkout@dc323e67f16fb5f7663d20ff7941f27f5809e9b6
       - name: build zombie-tester
         working-directory: ./zombienet/docker
@@ -342,15 +334,11 @@ jobs:
         run: make test0002
   
   zombie-test0003-parachains-smoke-test-cumulus:
+    strategy:
+      fail-fast: false
     runs-on: [ ubuntu-latest, kagome, self-hosted, linux ]
     needs: [Push-self-hosted]
     steps:
-      - name: cleanup runner workspace
-        run: |
-          echo $GITHUB_WORKSPACE
-          rm -rf $GITHUB_WORKSPACE
-          mkdir $GITHUB_WORKSPACE
-        shell: bash
       - uses: actions/checkout@dc323e67f16fb5f7663d20ff7941f27f5809e9b6
       - name: build zombie-tester
         working-directory: ./zombienet/docker
