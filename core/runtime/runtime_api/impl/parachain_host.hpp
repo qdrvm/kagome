@@ -6,15 +6,20 @@
 #ifndef KAGOME_CORE_RUNTIME_IMPL_PARACHAIN_HOST_HPP
 #define KAGOME_CORE_RUNTIME_IMPL_PARACHAIN_HOST_HPP
 
-#include "common/lru_cache.hpp"
-#include "primitives/block_id.hpp"
 #include "runtime/runtime_api/parachain_host.hpp"
+
+#include "common/lru_cache.hpp"
+#include "network/peer_view.hpp"
+#include "primitives/block_id.hpp"
+#include "primitives/event_types.hpp"
 
 namespace kagome::runtime {
 
   class Executor;
 
-  class ParachainHostImpl final : public ParachainHost {
+  class ParachainHostImpl final
+      : public ParachainHost,
+        public std::enable_shared_from_this<ParachainHostImpl> {
    public:
     explicit ParachainHostImpl(std::shared_ptr<Executor> executor);
 
@@ -78,7 +83,13 @@ namespace kagome::runtime {
                                    ParachainId id) override;
 
    private:
+    bool prepare();
+    void clearCaches(const std::vector<primitives::BlockHash> &blocks);
+
     std::shared_ptr<Executor> executor_;
+    std::shared_ptr<network::PeerView> peer_view_;
+
+    std::shared_ptr<primitives::events::ChainEventSubscriber> chain_sub_;
 
     template <typename T, typename... Ts>
     using C = LruCache<std::tuple<primitives::BlockHash, Ts...>, T>;

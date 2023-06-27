@@ -173,4 +173,52 @@ namespace kagome::runtime {
     return *ref;
   }
 
+  bool ParachainHostImpl::prepare() {
+    chain_sub_ = std::make_shared<primitives::events::ChainEventSubscriber>(
+        peer_view_->intoChainEventsEngine());
+    chain_sub_->subscribe(
+        chain_sub_->generateSubscriptionSetId(),
+        primitives::events::ChainEventType::kDeactivateAfterFinalization);
+    chain_sub_->setCallback([wptr{weak_from_this()}](
+                                auto /*set_id*/,
+                                auto && /*internal_obj*/,
+                                auto /*event_type*/,
+                                const primitives::events::ChainEventParams
+                                    &event) {
+      if (auto self = wptr.lock()) {
+        auto event_opt =
+            if_type<const primitives::events::RemoveAfterFinalizationParams>(
+                event);
+        if (event_opt.has_value()) {
+              self->clearCaches(event_opt.value()));
+        }
+      }
+    });
+
+    return false;
+  }
+
+  void ParachainHostImpl::clearCaches(
+      const std::vector<primitives::BlockHash> &blocks) {
+    for (auto &block : blocks) {
+      auto by_block = [&](auto &key, auto &) {
+        return std::get<0>(key) == block;
+      };
+
+      active_parachains_.erase(block);
+      parachain_head_.erase(block);
+      parachain_code_.erase_if(by_block);
+      validators_.erase(block);
+      validator_groups_.erase(block);
+      availability_cores_.erase(block);
+      session_index_for_child_.erase(block);
+      validation_code_by_hash_.erase_if(by_block);
+      candidate_pending_availability_.erase_if();
+      candidate_events_.erase(block);
+      session_info_.erase_if(by_block);
+      dmq_contents_.erase_if(by_block);
+      inbound_hrmp_channels_contents_.erase_if(by_block);
+    }
+  }
+
 }  // namespace kagome::runtime
