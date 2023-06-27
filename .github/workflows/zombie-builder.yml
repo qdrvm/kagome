@@ -7,16 +7,11 @@ on:
 jobs:
   build_and_push_zombie_builder:
     runs-on: [ ubuntu-latest, kagome, self-hosted, linux ]
+    container: soramitsu/kagome-dev@sha256:a3153bda78e15337fc38b6800f508e8c3b27758cba6319e60e7c805b06e071f6
     steps:
     - name: Set owner of working dir recurively
       run: sudo chown -R $(whoami) .
     - uses: actions/checkout@dc323e67f16fb5f7663d20ff7941f27f5809e9b6
-    # - name: Set up Python 3.6
-    #   uses: actions/setup-python@v2
-    #   with:
-    #     python-version: '3.6.15'
-    #   env:
-    #     AGENT_TOOLSDIRECTORY: /opt/hostedtoolcache
     - name: Install dependencies
       working-directory: ./zombienet/docker
       run: |

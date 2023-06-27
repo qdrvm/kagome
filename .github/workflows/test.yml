@@ -1,28 +1,28 @@
-name: Build
+# name: Build
 
-on:
-  push:
-    branches: [ master ]
-    tags: [ '*' ]
-  pull_request:
+# on:
+#   push:
+#     branches: [ master ]
+#     tags: [ '*' ]
+#   pull_request:
 
-env:
-  BUILD_DIR: build
-  CTEST_OUTPUT_ON_FAILURE: 1
-  GITHUB_HUNTER_USERNAME: ${{ secrets.HUNTER_USERNAME }}
-  GITHUB_HUNTER_TOKEN: ${{ secrets.HUNTER_TOKEN }}
-  # Change all container: values to this variable once this feature is available
-  # https://github.community/t/how-to-set-and-access-a-workflow-variable/17335/6
-  INDOCKER_IMAGE: soramitsu/kagome-dev@sha256:a3153bda78e15337fc38b6800f508e8c3b27758cba6319e60e7c805b06e071f6
-  CACHE_VERSION: v07
-  CACHE_PATHS: |
-    ~/Library/Caches/pip
-    ~/.cargo
-    ~/.ccache
-    ~/.hunter
-    ~/.rustup
+# env:
+#   BUILD_DIR: build
+#   CTEST_OUTPUT_ON_FAILURE: 1
+#   GITHUB_HUNTER_USERNAME: ${{ secrets.HUNTER_USERNAME }}
+#   GITHUB_HUNTER_TOKEN: ${{ secrets.HUNTER_TOKEN }}
+#   # Change all container: values to this variable once this feature is available
+#   # https://github.community/t/how-to-set-and-access-a-workflow-variable/17335/6
+#   INDOCKER_IMAGE: soramitsu/kagome-dev@sha256:a3153bda78e15337fc38b6800f508e8c3b27758cba6319e60e7c805b06e071f6
+#   CACHE_VERSION: v07
+#   CACHE_PATHS: |
+#     ~/Library/Caches/pip
+#     ~/.cargo
+#     ~/.ccache
+#     ~/.hunter
+#     ~/.rustup
 
-jobs:
+# jobs:
   # MacOS:
   #   runs-on: macos-11
   #   steps:
@@ -270,64 +270,64 @@ jobs:
   #         BUILD_TYPE: "${{ matrix.options.build-type }}"
   #       run: ./housekeeping/docker/kagome-dev/make.sh
 
-  Push-self-hosted:
-    strategy:
-      fail-fast: false
-      matrix:
-        options:
-          - name: "Push Debug Docker image"
-            build-type: "Debug"
-          - name: "Push Release Docker image"
-            build-type: "Release"
-          - name: "Push RelWithDebInfo Docker image"
-            build-type: "RelWithDebInfo"
-    runs-on: [ ubuntu-latest, kagome, self-hosted, linux ]
-    container: soramitsu/kagome-dev@sha256:a3153bda78e15337fc38b6800f508e8c3b27758cba6319e60e7c805b06e071f6
-    steps:
-      - uses: actions/checkout@dc323e67f16fb5f7663d20ff7941f27f5809e9b6
-      - uses: actions/cache@937d24475381cd9c75ae6db12cb4e79714b926ed
-        with:
-          path: ${{ env.CACHE_PATHS }}
-          key: ${{ github.job }}-${{ env.CACHE_VERSION }}
-      - run: git fetch --prune --unshallow
-      - name: build
-        env:
-          BUILD_TYPE: "${{ matrix.options.build-type }}"
-        run: ./housekeeping/docker/kagome-dev/make.sh
-      - uses: azure/docker-login@83efeb77770c98b620c73055fbb59b2847e17dc0
-        with:
-          login-server: https://index.docker.io/v1/
-          username: ${{ secrets.DOCKER_USERNAME }}
-          password: ${{ secrets.DOCKER_TOKEN }}
-      - name: docker pack and push
-        env:
-          VERSION: ${{ github.ref }}
-          BUILD_TYPE: "${{ matrix.options.build-type }}"
-        run: ./housekeeping/docker/kagome/build_and_push.sh
+  # Push-self-hosted:
+  #   strategy:
+  #     fail-fast: false
+  #     matrix:
+  #       options:
+  #         - name: "Push Debug Docker image"
+  #           build-type: "Debug"
+  #         - name: "Push Release Docker image"
+  #           build-type: "Release"
+  #         - name: "Push RelWithDebInfo Docker image"
+  #           build-type: "RelWithDebInfo"
+  #   runs-on: [ ubuntu-latest, kagome, self-hosted, linux ]
+  #   container: soramitsu/kagome-dev@sha256:a3153bda78e15337fc38b6800f508e8c3b27758cba6319e60e7c805b06e071f6
+  #   steps:
+  #     - uses: actions/checkout@dc323e67f16fb5f7663d20ff7941f27f5809e9b6
+  #     - uses: actions/cache@937d24475381cd9c75ae6db12cb4e79714b926ed
+  #       with:
+  #         path: ${{ env.CACHE_PATHS }}
+  #         key: ${{ github.job }}-${{ env.CACHE_VERSION }}
+  #     - run: git fetch --prune --unshallow
+  #     - name: build
+  #       env:
+  #         BUILD_TYPE: "${{ matrix.options.build-type }}"
+  #       run: ./housekeeping/docker/kagome-dev/make.sh
+  #     - uses: azure/docker-login@83efeb77770c98b620c73055fbb59b2847e17dc0
+  #       with:
+  #         login-server: https://index.docker.io/v1/
+  #         username: ${{ secrets.DOCKER_USERNAME }}
+  #         password: ${{ secrets.DOCKER_TOKEN }}
+  #     - name: docker pack and push
+  #       env:
+  #         VERSION: ${{ github.ref }}
+  #         BUILD_TYPE: "${{ matrix.options.build-type }}"
+  #       run: ./housekeeping/docker/kagome/build_and_push.sh
 
-  zombie-test0001-parachains-smoke-test:
-    strategy:
-      fail-fast: false
-      matrix:
-        options:
-          - name: "Parachains smoke test"
-            test: "test0001"
-          - name: "Parachains upgrade smoke test"
-            test: "test0002"
-          - name: "Parachains smoke test cumulus"
-            test: "test0003"
-    runs-on: [ ubuntu-latest, kagome, self-hosted, linux ]
-    needs: [Push-self-hosted]
-    steps:
-      - name: Set owner of working dir recurively
-        run: sudo chown -R $(whoami) .
-      - uses: actions/checkout@dc323e67f16fb5f7663d20ff7941f27f5809e9b6
-      - name: build zombie-tester
-        working-directory: ./zombienet/docker
-        run: make tester
-      - name: Run test
-        working-directory: ./zombienet/docker
-        run: make ${{ matrix.options.test }}
+  # zombie-test0001-parachains-smoke-test:
+  #   strategy:
+  #     fail-fast: false
+  #     matrix:
+  #       options:
+  #         - name: "Parachains smoke test"
+  #           test: "test0001"
+  #         - name: "Parachains upgrade smoke test"
+  #           test: "test0002"
+  #         - name: "Parachains smoke test cumulus"
+  #           test: "test0003"
+  #   runs-on: [ ubuntu-latest, kagome, self-hosted, linux ]
+  #   needs: [Push-self-hosted]
+  #   steps:
+  #     - name: Set owner of working dir recurively
+  #       run: sudo chown -R $(whoami) .
+  #     - uses: actions/checkout@dc323e67f16fb5f7663d20ff7941f27f5809e9b6
+  #     - name: build zombie-tester
+  #       working-directory: ./zombienet/docker
+  #       run: make tester
+  #     - name: Run test
+  #       working-directory: ./zombienet/docker
+  #       run: make ${{ matrix.options.test }}
 
   # Trigger_CD:
   #   if: ${{ github.ref == 'refs/heads/master' }}
