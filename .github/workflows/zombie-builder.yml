@@ -17,6 +17,11 @@ jobs:
     - name: build zombie-builder
       working-directory: ./zombienet/docker
       run: make builder_last
-    - name: parachains upgrade smoke test
+    - uses: azure/docker-login@83efeb77770c98b620c73055fbb59b2847e17dc0
+      with:
+        login-server: https://index.docker.io/v1/
+        username: ${{ secrets.DOCKER_USERNAME }}
+        password: ${{ secrets.DOCKER_TOKEN }}
+    - name: Push zombie-builder docker image 
       working-directory: ./zombienet/docker
       run: make builder_push
