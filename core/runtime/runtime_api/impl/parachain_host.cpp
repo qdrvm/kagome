@@ -190,7 +190,7 @@ namespace kagome::runtime {
             if_type<const primitives::events::RemoveAfterFinalizationParams>(
                 event);
         if (event_opt.has_value()) {
-              self->clearCaches(event_opt.value()));
+              self->clearCaches(event_opt.value());
         }
       }
     });
@@ -213,7 +213,7 @@ namespace kagome::runtime {
       availability_cores_.erase(block);
       session_index_for_child_.erase(block);
       validation_code_by_hash_.erase_if(by_block);
-      candidate_pending_availability_.erase_if();
+      candidate_pending_availability_.erase_if(by_block);
       candidate_events_.erase(block);
       session_info_.erase_if(by_block);
       dmq_contents_.erase_if(by_block);
