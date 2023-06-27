@@ -18,23 +18,67 @@
 #include "outcome/outcome.hpp"
 
 namespace kagome {
+
+  namespace {
+
+    template <template <bool> class Lockable, bool IsLockable>
+    struct LockGuard {
+      inline LockGuard(const Lockable<IsLockable> &) {}
+    };
+
+    template <template <bool> class Lockable>
+    struct LockGuard<Lockable, true> {
+      LockGuard(const Lockable<true> &protected_object)
+          : protected_object_(protected_object) {
+        protected_object_.lock();
+      }
+      ~LockGuard() {
+        protected_object_.unlock();
+      }
+
+     private:
+      const Lockable<true> &protected_object_;
+    };
+
+    template <bool IsLockable>
+    class Lockable {
+     protected:
+      friend struct LockGuard<Lockable, IsLockable>;
+      inline void lock() const noexcept {}
+      inline void unlock() const noexcept {}
+    };
+
+    template <>
+    class Lockable<true> {
+     protected:
+      friend struct LockGuard<Lockable, true>;
+      inline void lock() const noexcept {
+        mutex_.lock();
+      }
+      inline void unlock() const noexcept {
+        mutex_.unlock();
+      }
+      mutable std::mutex mutex_;
+    };
+
+  }  // namespace
+
   /**
    * LRU cache designed for small amounts of data (as its get() is O(N))
    */
   template <typename Key,
             typename Value,
-            bool ValueMaybeShared = false,
+            bool ThreadSafe = false,
             typename PriorityType = uint64_t>
-  struct SmallLruCache final {
+  struct SmallLruCache final : public Lockable<ThreadSafe> {
    public:
     static_assert(std::is_unsigned_v<PriorityType>);
 
-    using CachedValue =
-        std::conditional_t<ValueMaybeShared, std::shared_ptr<Value>, Value>;
+    using Mutex = Lockable<ThreadSafe>;
 
     struct CacheEntry {
       Key key;
-      CachedValue value;
+      std::shared_ptr<Value> value;
       PriorityType latest_use_tick_;
 
       bool operator<(const CacheEntry &rhs) const {
@@ -47,77 +91,66 @@ namespace kagome {
       cache_.reserve(kMaxSize);
     }
 
-    std::optional<std::reference_wrapper<const Value>> get(const Key &key) {
-      ticks_++;
-      if (ticks_ == 0) {
+    std::optional<std::shared_ptr<const Value>> get(const Key &key) {
+      LockGuard lg(*this);
+      if (++ticks_ == 0) {
         handleTicksOverflow();
       }
       for (auto &entry : cache_) {
         if (entry.key == key) {
           entry.latest_use_tick_ = ticks_;
-          if constexpr (ValueMaybeShared) {
-            auto &value = *entry.value;
-            return value;
-          } else {
-            return entry.value;
-          }
+          return entry.value;
         }
       }
       return std::nullopt;
     }
 
     template <typename ValueArg>
-    std::reference_wrapper<const Value> put(const Key &key, ValueArg &&value) {
+    std::shared_ptr<const Value> put(const Key &key, ValueArg &&value) {
       static_assert(std::is_convertible_v<ValueArg, Value>
                     || std::is_constructible_v<ValueArg, Value>);
-      ticks_++;
       if (cache_.size() >= kMaxSize) {
         auto min = std::min_element(cache_.begin(), cache_.end());
         cache_.erase(min);
       }
 
-      if constexpr (ValueMaybeShared) {
-        if constexpr (std::is_same_v<ValueArg, Value>) {
-          auto it =
-              std::find_if(cache_.begin(), cache_.end(), [&](const auto &item) {
-                return *item.value == value;
-              });
-          if (it != cache_.end()) {
-            auto &entry =
-                cache_.emplace_back(CacheEntry{key, it->value, ticks_});
-            return *entry.value;
-          }
-          auto &entry = cache_.emplace_back(
-              CacheEntry{key,
-                         std::make_shared<Value>(std::forward<ValueArg>(value)),
-                         ticks_});
-          return *entry.value;
+      if (++ticks_ == 0) {
+        handleTicksOverflow();
+      }
 
-        } else {
-          CachedValue value_sptr =
-              std::make_shared<Value>(std::forward<ValueArg>(value));
-          auto it =
-              std::find_if(cache_.begin(), cache_.end(), [&](const auto &item) {
-                return *item.value == *value_sptr;
-              });
-          if (it != cache_.end()) {
-            auto &entry =
-                cache_.emplace_back(CacheEntry{key, it->value, ticks_});
-            return *entry.value;
-          }
-          auto &entry = cache_.emplace_back(
-              CacheEntry{key, std::move(value_sptr), ticks_});
-          return *entry.value;
+      if constexpr (std::is_same_v<ValueArg, Value>) {
+        auto it =
+            std::find_if(cache_.begin(), cache_.end(), [&](const auto &item) {
+              return *item.value == value;
+            });
+        if (it != cache_.end()) {
+          auto &entry = cache_.emplace_back(CacheEntry{key, it->value, ticks_});
+          return entry.value;
         }
+        auto &entry = cache_.emplace_back(
+            CacheEntry{key,
+                       std::make_shared<Value>(std::forward<ValueArg>(value)),
+                       ticks_});
+        return entry.value;
 
       } else {
-        auto &entry = cache_.emplace_back(
-            CacheEntry{key, std::forward<ValueArg>(value), ticks_});
+        auto value_sptr =
+            std::make_shared<Value>(std::forward<ValueArg>(value));
+        auto it =
+            std::find_if(cache_.begin(), cache_.end(), [&](const auto &item) {
+              return *item.value == *value_sptr;
+            });
+        if (it != cache_.end()) {
+          auto &entry = cache_.emplace_back(CacheEntry{key, it->value, ticks_});
+          return entry.value;
+        }
+        auto &entry =
+            cache_.emplace_back(CacheEntry{key, std::move(value_sptr), ticks_});
         return entry.value;
       }
     }
 
-    outcome::result<std::reference_wrapper<const Value>> get_else(
+    outcome::result<std::shared_ptr<const Value>> get_else(
         const Key &key, const std::function<outcome::result<Value>()> &func) {
       if (auto opt = get(key); opt.has_value()) {
         return opt.value();
@@ -127,6 +160,19 @@ namespace kagome {
       } else {
         return res.as_failure();
       }
+    }
+
+    std::optional<std::shared_ptr<const Value>> erase(const Key &key) {
+      LockGuard lg(*this);
+      auto it = std::find_if(cache_.begin(),
+                             cache_.end(),
+                             [&](const auto &item) { return item.key == key; });
+      if (it == cache_.end()) {
+        return std::nullopt;
+      }
+      auto value = it->value;
+      cache_.erase(it);
+      return std::move(value);
     }
 
    private:
@@ -149,9 +195,9 @@ namespace kagome {
 
   template <typename Key,
             typename Value,
-            bool ValueMaybeShared = false,
+            bool ThreadSafe = true,
             typename PriorityType = uint64_t>
-  using LruCache = SmallLruCache<Key, Value, ValueMaybeShared, PriorityType>;
+  using LruCache = SmallLruCache<Key, Value, ThreadSafe, PriorityType>;
 
 }  // namespace kagome
 
