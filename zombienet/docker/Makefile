@@ -1,6 +1,9 @@
 builder_last:
 	python version.py https://github.com/paritytech/polkadot.git && \
 	python version.py https://github.com/paritytech/cumulus.git && \
+	make fetch_and_run
+
+fetch_and_run:
 	export $(shell [ ! -n "polkadot-version.txt" ] || cat polkadot-version.txt | grep -v \
     --perl-regexp '^('$$(env | sed 's/=.*//'g | tr '\n' '|')')\=') && \
 	export $(shell [ ! -n "cumulus-version.txt" ] || cat cumulus-version.txt | grep -v \
