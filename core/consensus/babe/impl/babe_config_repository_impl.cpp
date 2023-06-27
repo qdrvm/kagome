@@ -85,6 +85,10 @@ namespace kagome::consensus::babe {
     BOOST_ASSERT(babe_api_ != nullptr);
     BOOST_ASSERT(hasher_ != nullptr);
 
+    if (auto r = indexer_.init(); not r) {
+      logger_->error("Indexer::init error: {}", r.error());
+    }
+
     app_state_manager.atPrepare([this] { return prepare(); });
   }
 

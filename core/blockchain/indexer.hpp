@@ -98,20 +98,26 @@ namespace kagome::blockchain {
         : db_{std::move(db)}, block_tree_{std::move(block_tree)} {
       primitives::BlockInfo genesis{0, block_tree_->getGenesisBlockHash()};
       last_finalized_indexed_ = genesis;
+      map_.emplace(genesis, Indexed<T>{});
+    }
+
+    outcome::result<void> init() {
       auto batch = db_->batch();
       auto db_cur = db_->cursor();
-      for (db_cur->seekFirst().value(); db_cur->isValid();
-           db_cur->next().value()) {
+      OUTCOME_TRY(db_cur->seekFirst());
+      while (db_cur->isValid()) {
         auto info = BlockInfoKey::decode(*db_cur->key()).value();
         if (not block_tree_->isFinalized(info)) {
-          batch->remove(BlockInfoKey::encode(info)).value();
-          continue;
+          OUTCOME_TRY(batch->remove(BlockInfoKey::encode(info)));
+        } else {
+          last_finalized_indexed_ = info;
+          BOOST_OUTCOME_TRY(map_[info],
+                            scale::decode<Indexed<T>>(*db_cur->value()));
         }
-        last_finalized_indexed_ = info;
-        map_.emplace(info, scale::decode<Indexed<T>>(*db_cur->value()).value());
+        OUTCOME_TRY(db_cur->next());
       }
-      map_.emplace(genesis, Indexed<T>{});
-      batch->commit().value();
+      OUTCOME_TRY(batch->commit());
+      return outcome::success();
     }
 
     Descent descend(const primitives::BlockInfo &from) const {
