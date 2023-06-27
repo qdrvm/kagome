@@ -13,7 +13,6 @@ jobs:
     - name: Install dependencies
       working-directory: ./zombienet/docker
       run: |
-        python -m pip install --upgrade pip
         pip install -r ./requirements.txt
     - name: build zombie-builder
       working-directory: ./zombienet/docker
