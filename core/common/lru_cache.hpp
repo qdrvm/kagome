@@ -162,17 +162,24 @@ namespace kagome {
       }
     }
 
-    std::optional<std::shared_ptr<const Value>> erase(const Key &key) {
+    void erase(const Key &key) {
       LockGuard lg(*this);
       auto it = std::find_if(cache_.begin(),
                              cache_.end(),
                              [&](const auto &item) { return item.key == key; });
-      if (it == cache_.end()) {
-        return std::nullopt;
+      if (it != cache_.end()) {
+        cache_.erase(it);
       }
-      auto value = it->value;
-      cache_.erase(it);
-      return std::move(value);
+    }
+
+    void erase_if(const std::function<bool(const Key &key, const Value &value)>
+                      &predicate) {
+      LockGuard lg(*this);
+      auto it =
+          std::remove_if(cache_.begin(), cache_.end(), [&](const auto &item) {
+            return predicate(item.key, *item.value);
+          });
+      cache_.erase(it, cache_.end());
     }
 
    private:
