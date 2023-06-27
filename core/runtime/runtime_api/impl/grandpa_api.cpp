@@ -40,7 +40,7 @@ namespace kagome::runtime {
       return executor_->callAt<AuthorityList>(block_hash,
                                               "GrandpaApi_grandpa_authorities");
     }));
-    return ref.get();
+    return *ref;
   }
 
   outcome::result<primitives::AuthoritySetId> GrandpaApiImpl::current_set_id(
@@ -49,7 +49,7 @@ namespace kagome::runtime {
       return executor_->callAt<primitives::AuthoritySetId>(
           block_hash, "GrandpaApi_current_set_id");
     }));
-    return ref.get();
+    return *ref;
   }
 
 }  // namespace kagome::runtime

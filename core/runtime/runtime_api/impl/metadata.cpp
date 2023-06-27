@@ -19,7 +19,7 @@ namespace kagome::runtime {
     OUTCOME_TRY(ref, metadata_.get_else(block_hash, [&] {
       return executor_->callAt<OpaqueMetadata>(block_hash, "Metadata_metadata");
     }));
-    return ref.get();
+    return *ref;
   }
 
 }  // namespace kagome::runtime

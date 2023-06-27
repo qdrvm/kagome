@@ -37,7 +37,7 @@ namespace kagome::runtime {
     std::shared_ptr<blockchain::BlockHeaderRepository> block_header_repo_;
     std::shared_ptr<Executor> executor_;
 
-    LruCache<primitives::BlockHash, AuthorityList, true> authorities_{10};
+    LruCache<primitives::BlockHash, AuthorityList> authorities_{10};
     LruCache<primitives::BlockHash, primitives::AuthoritySetId> set_id_{10};
   };
 

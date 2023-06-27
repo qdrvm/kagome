@@ -23,7 +23,7 @@ namespace kagome::runtime {
     std::shared_ptr<Executor> executor_;
 
     using Auths = std::vector<primitives::AuthorityDiscoveryId>;
-    LruCache<primitives::BlockHash, Auths, true> cache_{10};
+    LruCache<primitives::BlockHash, Auths> cache_{10};
   };
 }  // namespace kagome::runtime
 

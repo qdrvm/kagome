@@ -20,7 +20,7 @@ namespace kagome::runtime {
       return executor_->callAt<primitives::BabeConfiguration>(
           block, "BabeApi_configuration");
     }));
-    return ref.get();
+    return *ref;
   }
 
 }  // namespace kagome::runtime

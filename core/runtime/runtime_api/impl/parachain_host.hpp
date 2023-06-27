@@ -81,7 +81,7 @@ namespace kagome::runtime {
     std::shared_ptr<Executor> executor_;
 
     template <typename T, typename... Ts>
-    using C = LruCache<std::tuple<primitives::BlockHash, Ts...>, T, true>;
+    using C = LruCache<std::tuple<primitives::BlockHash, Ts...>, T>;
 
     C<std::vector<ParachainId>> active_parachains_{10};
     C<std::optional<Buffer>> parachain_head_{10};

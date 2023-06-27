@@ -27,7 +27,7 @@ namespace kagome::runtime {
       return executor_->callAt<std::vector<ParachainId>>(
           block, "ParachainHost_active_parachains");
     }));
-    return ref.get();
+    return *ref;
   }
 
   outcome::result<std::optional<common::Buffer>>
@@ -37,7 +37,7 @@ namespace kagome::runtime {
       return executor_->callAt<std::optional<Buffer>>(
           block, "ParachainHost_parachain_head", id);
     }));
-    return ref.get();
+    return *ref;
   }
 
   outcome::result<std::optional<common::Buffer>>
@@ -47,7 +47,7 @@ namespace kagome::runtime {
       return executor_->callAt<std::optional<common::Buffer>>(
           block, "ParachainHost_parachain_code", id);
     }));
-    return ref.get();
+    return *ref;
   }
 
   outcome::result<std::vector<ValidatorId>> ParachainHostImpl::validators(
@@ -56,7 +56,7 @@ namespace kagome::runtime {
       return executor_->callAt<std::vector<ValidatorId>>(
           block, "ParachainHost_validators");
     }));
-    return ref.get();
+    return *ref;
   }
 
   outcome::result<ValidatorGroupsAndDescriptor>
@@ -65,7 +65,7 @@ namespace kagome::runtime {
       return executor_->callAt<ValidatorGroupsAndDescriptor>(
           block, "ParachainHost_validator_groups");
     }));
-    return ref.get();
+    return *ref;
   }
 
   outcome::result<std::vector<CoreState>> ParachainHostImpl::availability_cores(
@@ -74,7 +74,7 @@ namespace kagome::runtime {
       return executor_->callAt<std::vector<CoreState>>(
           block, "ParachainHost_availability_cores");
     }));
-    return ref.get();
+    return *ref;
   }
 
   outcome::result<std::optional<PersistedValidationData>>
@@ -100,7 +100,7 @@ namespace kagome::runtime {
       return executor_->callAt<SessionIndex>(
           block, "ParachainHost_session_index_for_child");
     }));
-    return ref.get();
+    return *ref;
   }
 
   outcome::result<std::optional<ValidationCode>>
@@ -119,7 +119,7 @@ namespace kagome::runtime {
                   return executor_->callAt<std::optional<ValidationCode>>(
                       block, "ParachainHost_validation_code_by_hash", hash);
                 }));
-    return ref.get();
+    return *ref;
   }
 
   outcome::result<std::optional<CommittedCandidateReceipt>>
@@ -130,7 +130,7 @@ namespace kagome::runtime {
           return executor_->callAt<std::optional<CommittedCandidateReceipt>>(
               block, "ParachainHost_candidate_pending_availability", id);
         }));
-    return ref.get();
+    return *ref;
   }
 
   outcome::result<std::vector<CandidateEvent>>
@@ -139,7 +139,7 @@ namespace kagome::runtime {
       return executor_->callAt<std::vector<CandidateEvent>>(
           block, "ParachainHost_candidate_events");
     }));
-    return ref.get();
+    return *ref;
   }
 
   outcome::result<std::optional<SessionInfo>> ParachainHostImpl::session_info(
@@ -148,7 +148,7 @@ namespace kagome::runtime {
       return executor_->callAt<std::optional<SessionInfo>>(
           block, "ParachainHost_session_info", index);
     }));
-    return ref.get();
+    return *ref;
   }
 
   outcome::result<std::vector<InboundDownwardMessage>>
@@ -158,7 +158,7 @@ namespace kagome::runtime {
       return executor_->callAt<std::vector<InboundDownwardMessage>>(
           block, "ParachainHost_dmq_contents", id);
     }));
-    return ref.get();
+    return *ref;
   }
 
   outcome::result<std::map<ParachainId, std::vector<InboundHrmpMessage>>>
@@ -170,7 +170,7 @@ namespace kagome::runtime {
               ->callAt<std::map<ParachainId, std::vector<InboundHrmpMessage>>>(
                   block, "ParachainHost_inbound_hrmp_channels_contents", id);
         }));
-    return ref.get();
+    return *ref;
   }
 
 }  // namespace kagome::runtime

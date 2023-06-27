@@ -48,7 +48,7 @@ namespace kagome::runtime {
     std::shared_ptr<Executor> executor_;
     std::shared_ptr<const blockchain::BlockHeaderRepository> header_repo_;
 
-    LruCache<primitives::BlockHash, primitives::Version, true> version_{10};
+    LruCache<primitives::BlockHash, primitives::Version> version_{10};
   };
 
 }  // namespace kagome::runtime

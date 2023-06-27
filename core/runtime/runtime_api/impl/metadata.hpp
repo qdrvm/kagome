@@ -25,7 +25,7 @@ namespace kagome::runtime {
    private:
     std::shared_ptr<Executor> executor_;
 
-    LruCache<primitives::BlockHash, OpaqueMetadata, true> metadata_{10};
+    LruCache<primitives::BlockHash, OpaqueMetadata> metadata_{10};
   };
 
 }  // namespace kagome::runtime

@@ -20,6 +20,6 @@ namespace kagome::runtime {
       return executor_->callAt<std::vector<primitives::AuthorityDiscoveryId>>(
           block, "AuthorityDiscoveryApi_authorities");
     }));
-    return ref.get();
+    return *ref;
   }
 }  // namespace kagome::runtime
