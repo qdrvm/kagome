@@ -15,6 +15,9 @@
 #include "telemetry/service.hpp"
 
 namespace kagome::application {
+  KagomeApplicationImpl::~KagomeApplicationImpl() {
+    kagome::telemetry::setTelemetryService(nullptr);
+  }
 
   KagomeApplicationImpl::KagomeApplicationImpl(
       std::shared_ptr<AppConfiguration> app_config)

@@ -269,6 +269,7 @@ namespace kagome::consensus::babe {
           SL_INFO(log_,
                   "Warp sync would be faster than Fast sync that was selected");
         }
+        break;
 
       case SyncMethod::Warp:
         if (full_sync_duration < warp_sync_duration and full_sync_available) {
@@ -278,6 +279,7 @@ namespace kagome::consensus::babe {
           SL_INFO(log_,
                   "Fast sync would be faster than Warp sync that was selected");
         }
+        break;
     }
 
     current_epoch_ = initial_epoch_res.value();
@@ -331,7 +333,7 @@ namespace kagome::consensus::babe {
 
     auto babe_config = babe_config_repo_->config({.block_info = best_block_},
                                                  current_epoch_.epoch_number);
-    if (not babe_config.has_value()) {
+    if (not babe_config and sync_method_ != SyncMethod::Warp) {
       SL_CRITICAL(
           log_,
           "Can't obtain digest of epoch {} from block tree for block {}",
@@ -339,11 +341,14 @@ namespace kagome::consensus::babe {
           best_block_);
       return false;
     }
-    const auto &authorities = babe_config->get().authorities;
-    if (authorities.size() == 1 && session_keys_->getBabeKeyPair(authorities)) {
-      SL_INFO(log_, "Starting single validating node.");
-      onSynchronized();
-      return true;
+    if (babe_config) {
+      const auto &authorities = babe_config->get().authorities;
+      if (authorities.size() == 1
+          && session_keys_->getBabeKeyPair(authorities)) {
+        SL_INFO(log_, "Starting single validating node.");
+        onSynchronized();
+        return true;
+      }
     }
 
     switch (sync_method_) {

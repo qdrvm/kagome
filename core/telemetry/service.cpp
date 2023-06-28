@@ -42,6 +42,9 @@ namespace kagome::telemetry {
 
       void setActualImplementation(Telemetry service) {
         service_ = std::move(service);
+        if (not service_) {
+          return;
+        }
         if (was_synchronized_) {
           service_->notifyWasSynchronized();
         }

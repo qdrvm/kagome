@@ -124,7 +124,7 @@ TEST_F(StateProtocolObserverTest, Simple) {
   StateRequest request{
       .hash = "1"_hash256,
       .start = {},
-      .no_proof = false
+      .no_proof = false,
   };
 
   EXPECT_OUTCOME_TRUE(response,
@@ -132,7 +132,7 @@ TEST_F(StateProtocolObserverTest, Simple) {
 
   StateResponse ref = {
       .entries = {{
-          .state_root = RootHash::fromSpan(std::vector<uint8_t>(32, 0)).value(),
+          .state_root = {},
           .entries = {{.key = "abc"_buf, .value = "123"_buf},
                       {.key = "cde"_buf, .value = "345"_buf}},
           .complete = true,
