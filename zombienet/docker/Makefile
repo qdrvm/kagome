@@ -9,8 +9,6 @@ fetch_and_run:
 	export $(shell [ ! -n "cumulus-version.txt" ] || cat cumulus-version.txt | grep -v \
     --perl-regexp '^('$$(env | sed 's/=.*//'g | tr '\n' '|')')\=') && \
 	DOCKER_BUILDKIT=0 docker build -t soramitsu/zombie-builder:latest -f builder.Dockerfile --build-arg CUMULUS_RELEASE=$$CUMULUS_RELEASE --build-arg POLKADOT_RELEASE=$$POLKADOT_RELEASE --build-arg POLKADOT_RELEASE_GLOBAL=$$POLKADOT_RELEASE .
-#rm -rf polkadot &&
-#rm -rf cumulus
 
 builder_push:
 	docker push soramitsu/zombie-builder:latest

@@ -21,7 +21,7 @@ if [ "$VERSION" = "refs/heads/master" ]; then
 elif [[ "$VERSION"  == refs/tags/* ]]; then
   VERSION="${VERSION#refs/tags/}"
 else
-  VERSION=devopstest
+  VERSION=$VERSION
 fi
 
 if [ "$BUILD_TYPE" = "Debug" ]; then
@@ -65,6 +65,6 @@ else
   exit 1
 fi
 
-#docker push $TAG
+docker push $TAG
 
 rm -R ${CTX_DIR}

@@ -1,8 +1,7 @@
+# Update zombie builder image each Sunday night
 on:
-  push:
-    branches: [ master ]
-    tags: [ '*' ]
-  pull_request:
+  schedule:
+    - cron: '0 2 * * 0'
 
 jobs:
   build_and_push_zombie_builder:
