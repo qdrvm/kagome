@@ -8,6 +8,8 @@
 
 #include "application/chain_spec.hpp"
 #include "runtime/runtime_api/impl/core.hpp"
+#include "runtime/module_factory.hpp"
+#include "runtime/module.hpp"
 #include "storage/predefined_keys.hpp"
 #include "storage/trie/polkadot_trie/polkadot_trie_impl.hpp"
 #include "storage/trie/serialization/trie_serializer.hpp"
@@ -26,13 +28,13 @@ namespace kagome::injector {
     };
     auto top_trie = trie_from(chain_spec.getGenesisTopSection());
     OUTCOME_TRY(code, top_trie.get(storage::kRuntimeCodeKey));
-    OUTCOME_TRY(env,
-                runtime::RuntimeEnvironment::fromCode(module_factory, code));
+    OUTCOME_TRY(module, module_factory.make(code));
+    OUTCOME_TRY(instance, module->instantiate());
     runtime::CoreImpl core_api{
         std::make_shared<runtime::Executor>(nullptr, nullptr),
         nullptr,
     };
-    OUTCOME_TRY(runtime_version, core_api.version(env));
+    OUTCOME_TRY(runtime_version, core_api.version(*instance));
     auto version = storage::trie::StateVersion{runtime_version.state_version};
     for (auto &[child, kv] : chain_spec.getGenesisChildrenDefaultSection()) {
       auto trie = trie_from(kv);

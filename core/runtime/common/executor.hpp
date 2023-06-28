@@ -59,7 +59,7 @@ namespace kagome::runtime {
      * The call will be done on the \param block_info state
      */
     outcome::result<std::unique_ptr<RuntimeEnvironment>> persistentAt(
-        primitives::BlockHash const &block_hash,
+        const primitives::BlockHash &block_hash,
         TrieChangesTrackerOpt changes_tracker) {
       OUTCOME_TRY(env_template, env_factory_->start(block_hash));
       OUTCOME_TRY(env,
@@ -76,12 +76,13 @@ namespace kagome::runtime {
      * on \param storage_state storage state
      */
     template <typename Result, typename... Args>
-    outcome::result<Result> callAt(primitives::BlockInfo const &block_info,
-                                   storage::trie::RootHash const &storage_state,
+    outcome::result<Result> callAt(const primitives::BlockInfo &block_info,
+                                   const storage::trie::RootHash &storage_state,
                                    std::string_view name,
                                    Args &&...args) {
       OUTCOME_TRY(env, env_factory_->start(block_info, storage_state)->make());
-      return callWithCache<Result>(*env, name, std::forward<Args>(args)...);
+      return callWithCache<Result>(
+          *env->module_instance, name, std::forward<Args>(args)...);
     }
 
     /**
@@ -90,12 +91,13 @@ namespace kagome::runtime {
      * The call will be done on the \param block_hash state
      */
     template <typename Result, typename... Args>
-    outcome::result<Result> callAt(primitives::BlockHash const &block_hash,
+    outcome::result<Result> callAt(const primitives::BlockHash &block_hash,
                                    std::string_view name,
                                    Args &&...args) {
       OUTCOME_TRY(env_template, env_factory_->start(block_hash));
       OUTCOME_TRY(env, env_template->make());
-      return callWithCache<Result>(*env, name, std::forward<Args>(args)...);
+      return callWithCache<Result>(
+          *env->module_instance, name, std::forward<Args>(args)...);
     }
 
     /**
@@ -108,7 +110,8 @@ namespace kagome::runtime {
                                           Args &&...args) {
       OUTCOME_TRY(env_template, env_factory_->start());
       OUTCOME_TRY(env, env_template->make());
-      return callWithCache<Result>(*env, name, std::forward<Args>(args)...);
+      return callWithCache<Result>(
+          *env->module_instance, name, std::forward<Args>(args)...);
     }
 
     outcome::result<common::Buffer> callAtRaw(
@@ -142,10 +145,11 @@ namespace kagome::runtime {
      * Changes, made to the Host API state, are reset after the call.
      */
     template <typename Result, typename... Args>
-    outcome::result<Result> call(RuntimeEnvironment &env,
-                                 std::string_view name,
-                                 Args &&...args) {
-      auto &memory = env.memory_provider->getCurrentMemory()->get();
+    static outcome::result<Result> call(ModuleInstance &instance,
+                                        std::string_view name,
+                                        Args &&...args) {
+      auto &memory =
+          instance.getEnvironment().memory_provider->getCurrentMemory()->get();
 
       Buffer encoded_args{};
       if constexpr (sizeof...(args) > 0) {
@@ -155,13 +159,12 @@ namespace kagome::runtime {
 
       KAGOME_PROFILE_START(call_execution)
 
-      auto result_span =
-          env.module_instance->callExportFunction(name, encoded_args);
+      auto result_span = instance.callExportFunction(name, encoded_args);
 
       KAGOME_PROFILE_END(call_execution)
       OUTCOME_TRY(span, result_span);
 
-      OUTCOME_TRY(env.module_instance->resetEnvironment());
+      OUTCOME_TRY(instance.resetEnvironment());
 
       if constexpr (std::is_void_v<Result>) {
         return outcome::success();
@@ -173,7 +176,8 @@ namespace kagome::runtime {
           s >> t;
           // Check whether the whole byte buffer was consumed
           if (s.hasMore(1)) {
-            SL_ERROR(logger_,
+            static auto logger = log::createLogger("Executor", "runtime");
+            SL_ERROR(logger,
                      "Runtime API call result size exceeds the size of the "
                      "type to initialize {} (read {}, total size {})",
                      typeid(Result).name(),
@@ -191,26 +195,26 @@ namespace kagome::runtime {
    private:
     // returns cached results for some common runtime calls
     template <typename Result, typename... Args>
-    inline outcome::result<Result> callWithCache(RuntimeEnvironment &env,
+    inline outcome::result<Result> callWithCache(ModuleInstance &instance,
                                                  std::string_view name,
                                                  Args &&...args) {
       if constexpr (std::is_same_v<Result, primitives::Version>) {
         if (likely(name == "Core_version")) {
-          return cache_->getVersion(env.module_instance->getCodeHash(), [&] {
-            return call<Result>(env, name, std::forward<Args>(args)...);
+          return cache_->getVersion(instance.getCodeHash(), [&] {
+            return call<Result>(instance, name, std::forward<Args>(args)...);
           });
         }
       }
 
       if constexpr (std::is_same_v<Result, primitives::OpaqueMetadata>) {
         if (likely(name == "Metadata_metadata")) {
-          return cache_->getMetadata(env.module_instance->getCodeHash(), [&] {
-            return call<Result>(env, name, std::forward<Args>(args)...);
+          return cache_->getMetadata(instance.getCodeHash(), [&] {
+            return call<Result>(instance, name, std::forward<Args>(args)...);
           });
         }
       }
 
-      return call<Result>(env, name, std::forward<Args>(args)...);
+      return call<Result>(instance, name, std::forward<Args>(args)...);
     }
 
     std::shared_ptr<RuntimeEnvironmentFactory> env_factory_;

@@ -7,6 +7,9 @@
 
 #include "network/impl/state_sync_request_flow.hpp"
 #include "runtime/runtime_api/core.hpp"
+#include "runtime/runtime_environment_factory.hpp"
+#include "runtime/module_factory.hpp"
+#include "runtime/module.hpp"
 #include "storage/predefined_keys.hpp"
 #include "storage/trie/serialization/trie_serializer.hpp"
 
@@ -88,9 +91,9 @@ namespace kagome::network {
     assert(complete());
     auto &top = roots_[std::nullopt];
     OUTCOME_TRY(code, top.trie.get(storage::kRuntimeCodeKey));
-    OUTCOME_TRY(env,
-                runtime::RuntimeEnvironment::fromCode(module_factory, code));
-    OUTCOME_TRY(runtime_version, core_api.version(env));
+    OUTCOME_TRY(module, module_factory.make(code));
+    OUTCOME_TRY(module_instance, module->instantiate());
+    OUTCOME_TRY(runtime_version, core_api.version(*module_instance));
     auto version = storage::trie::StateVersion{runtime_version.state_version};
     for (auto &[expected, root] : roots_) {
       if (not expected) {

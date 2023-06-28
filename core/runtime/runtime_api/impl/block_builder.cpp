@@ -25,9 +25,10 @@ namespace kagome::runtime {
         std::ignore = env.storage_provider->rollbackTransaction();
       }
     });
-    OUTCOME_TRY(result,
-                executor_->call<primitives::ApplyExtrinsicResult>(
-                    env, "BlockBuilder_apply_extrinsic", extrinsic));
+    OUTCOME_TRY(
+        result,
+        Executor::call<primitives::ApplyExtrinsicResult>(
+            *env.module_instance, "BlockBuilder_apply_extrinsic", extrinsic));
     if (auto ok = boost::get<primitives::DispatchOutcome>(&result);
         ok and boost::get<primitives::DispatchSuccess>(ok)) {
       should_rollback = false;
@@ -38,8 +39,8 @@ namespace kagome::runtime {
 
   outcome::result<primitives::BlockHeader> BlockBuilderImpl::finalize_block(
       RuntimeEnvironment &env) {
-    return executor_->call<primitives::BlockHeader>(
-        env, "BlockBuilder_finalize_block");
+    return Executor::call<primitives::BlockHeader>(
+        *env.module_instance, "BlockBuilder_finalize_block");
   }
 
   outcome::result<std::vector<primitives::Extrinsic>>
@@ -54,9 +55,10 @@ namespace kagome::runtime {
     OUTCOME_TRY(env.storage_provider->startTransaction());
     auto rollback = gsl::finally(
         [&] { std::ignore = env.storage_provider->rollbackTransaction(); });
-    OUTCOME_TRY(result,
-                executor_->call<std::vector<primitives::Extrinsic>>(
-                    env, "BlockBuilder_inherent_extrinsics", data));
+    OUTCOME_TRY(
+        result,
+        Executor::call<std::vector<primitives::Extrinsic>>(
+            *env.module_instance, "BlockBuilder_inherent_extrinsics", data));
     return std::move(result);
   }
 

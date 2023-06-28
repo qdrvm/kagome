@@ -16,10 +16,12 @@
 #include "primitives/common.hpp"
 #include "primitives/transaction_validity.hpp"
 #include "primitives/version.hpp"
-#include "runtime/runtime_environment_factory.hpp"
+#include "storage/changes_trie/changes_tracker.hpp"
 
 namespace kagome::runtime {
+  class ModuleInstance;
   class RuntimeCodeProvider;
+  class RuntimeEnvironment;
 
   /**
    * Core represents mandatory part of runtime api
@@ -33,7 +35,7 @@ namespace kagome::runtime {
      * @return runtime version
      */
     virtual outcome::result<primitives::Version> version(
-        RuntimeEnvironment &env) = 0;
+        ModuleInstance& instance) = 0;
 
     /**
      * @brief Returns the version of the runtime

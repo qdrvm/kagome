@@ -78,8 +78,9 @@ namespace kagome::network {
   struct ParachainBlock {
     SCALE_TIE(1);
 
-    common::Buffer payload;  /// Contains the necessary data to for parachain
-    /// specific state transition logic
+    /// Contains the necessary data to for parachain specific state transition
+    /// logic
+    common::Buffer payload;
   };
 
   using RequestPov = CandidateHash;
@@ -318,7 +319,7 @@ namespace kagome::network {
     primitives::BlockNumber finalized_number_;
 
     bool contains(const primitives::BlockHash &hash) const {
-      auto const it = std::lower_bound(heads_.begin(), heads_.end(), hash);
+      const auto it = std::lower_bound(heads_.begin(), heads_.end(), hash);
       return it != heads_.end() && *it == hash;
     }
   };
@@ -560,7 +561,7 @@ struct fmt::formatter<kagome::network::SignedBitfield> {
   auto format(const kagome::network::SignedBitfield &val,
               FormatContext &ctx) const -> decltype(ctx.out()) {
     char buf[8] = {0};
-    auto const &bits = val.payload.payload.bits;
+    const auto &bits = val.payload.payload.bits;
 
     static_assert(sizeof(buf) > 1, "Because of last zero-terminate symbol");
     size_t ix = 0;

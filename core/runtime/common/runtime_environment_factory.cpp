@@ -42,8 +42,7 @@ namespace kagome::runtime {
       primitives::BlockInfo blockchain_state)
       : module_instance{std::move(module_instance)},
         memory_provider{std::move(memory_provider)},
-        storage_provider{std::move(storage_provider)},
-        blockchain_state_{std::move(blockchain_state)} {
+        storage_provider{std::move(storage_provider)} {
     BOOST_ASSERT(this->module_instance);
     BOOST_ASSERT(this->memory_provider);
     BOOST_ASSERT(this->storage_provider);

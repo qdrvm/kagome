@@ -15,6 +15,10 @@
 #include "runtime/runtime_api/parachain_host.hpp"
 #include "runtime/runtime_properties_cache.hpp"
 
+namespace kagome::runtime {
+  class ModuleInstance;
+}
+
 namespace kagome::parachain {
   enum class PvfError {
     // NO_DATA conflicted with <netdb.h>
@@ -61,6 +65,8 @@ namespace kagome::parachain {
     outcome::result<std::pair<PersistedValidationData, ParachainRuntime>>
     findData(const CandidateDescriptor &descriptor) const;
     outcome::result<ValidationResult> callWasm(
+        ParachainId para_id,
+        const common::Hash256 &code_hash,
         const ParachainRuntime &code_zstd,
         const ValidationParams &params) const;
     outcome::result<CandidateCommitments> fromOutputs(
@@ -73,6 +79,10 @@ namespace kagome::parachain {
     std::shared_ptr<crypto::Sr25519Provider> sr25519_provider_;
     std::shared_ptr<runtime::ParachainHost> parachain_api_;
     log::Logger log_;
+
+    mutable std::unordered_map<ParachainId,
+                               std::shared_ptr<runtime::ModuleInstance>>
+        instance_cache_;
   };
 }  // namespace kagome::parachain
 

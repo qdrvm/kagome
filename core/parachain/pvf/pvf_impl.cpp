@@ -131,7 +131,8 @@ namespace kagome::parachain {
                                                 params.block_data.payload));
     params.relay_parent_number = data.relay_parent_number;
     params.relay_parent_storage_root = data.relay_parent_storage_root;
-    OUTCOME_TRY(result, callWasm(code, params));
+    OUTCOME_TRY(result,
+                callWasm(receipt.descriptor.para_id, code_hash, code, params));
 
     OUTCOME_TRY(commitments, fromOutputs(receipt, std::move(result)));
     return std::make_pair(std::move(commitments), std::move(data));
@@ -190,18 +191,22 @@ namespace kagome::parachain {
   }
 
   outcome::result<ValidationResult> PvfImpl::callWasm(
-      const ParachainRuntime &code_zstd, const ValidationParams &params) const {
-    ParachainRuntime code;
-    OUTCOME_TRY(runtime::uncompressCodeIfNeeded(code_zstd, code));
-    OUTCOME_TRY(module, module_factory_->make(code));
-    OUTCOME_TRY(instance, module->instantiate());
-    auto env_factory = std::make_shared<runtime::RuntimeEnvironmentFactory>(
-        std::make_shared<DontProvideCode>(),
-        std::make_shared<ReturnModuleInstance>(instance),
-        block_header_repository_);
-    auto executor = std::make_unique<runtime::Executor>(
-        env_factory, runtime_properties_cache_);
-    return executor->callAtGenesis<ValidationResult>("validate_block", params);
+      ParachainId para_id,
+      const common::Hash256 &code_hash,
+      const ParachainRuntime &code_zstd,
+      const ValidationParams &params) const {
+    auto it = instance_cache_.find(para_id);
+    if (it == instance_cache_.end() || it->second->getCodeHash() != code_hash) {
+      ParachainRuntime code;
+      OUTCOME_TRY(runtime::uncompressCodeIfNeeded(code_zstd, code));
+      OUTCOME_TRY(module, module_factory_->make(code));
+      OUTCOME_TRY(instance, module->instantiate());
+      auto [new_it, _] = instance_cache_.insert_or_assign(para_id, instance);
+      it = new_it;
+    }
+
+    return runtime::Executor::call<ValidationResult>(
+        *it->second, "validate_block", params);
   }
 
   outcome::result<Pvf::CandidateCommitments> PvfImpl::fromOutputs(

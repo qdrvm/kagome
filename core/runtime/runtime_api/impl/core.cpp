@@ -19,8 +19,8 @@ namespace kagome::runtime {
   }
 
   outcome::result<primitives::Version> CoreImpl::version(
-      RuntimeEnvironment &env) {
-    return executor_->call<primitives::Version>(env, "Core_version");
+      ModuleInstance &instance) {
+    return Executor::call<primitives::Version>(instance, "Core_version");
   }
 
   outcome::result<primitives::Version> CoreImpl::version(
@@ -43,7 +43,8 @@ namespace kagome::runtime {
     OUTCOME_TRY(env,
                 executor_->persistentAt(block.header.parent_hash,
                                         std::move(changes_tracker)));
-    OUTCOME_TRY(executor_->call<void>(*env, "Core_execute_block", block));
+    OUTCOME_TRY(executor_->call<void>(
+        *env->module_instance, "Core_execute_block", block));
     return outcome::success();
   }
 
@@ -71,7 +72,8 @@ namespace kagome::runtime {
     OUTCOME_TRY(env,
                 executor_->persistentAt(header.parent_hash,
                                         std::move(changes_tracker)));
-    OUTCOME_TRY(executor_->call<void>(*env, "Core_initialize_block", header));
+    OUTCOME_TRY(Executor::call<void>(
+        *env->module_instance, "Core_initialize_block", header));
     return std::move(env);
   }
 
