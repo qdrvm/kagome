@@ -608,6 +608,9 @@ namespace kagome::consensus::babe {
     if (sync_method_ != SyncMethod::Warp) {
       return false;
     }
+    if (not block_tree_->getBlockHash(1)) {
+      return false;
+    }
     auto target = warp_sync_->request();
     if (not target) {
       current_state_ = State::HEADERS_LOADED;
