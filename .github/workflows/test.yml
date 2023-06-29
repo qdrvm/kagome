@@ -307,44 +307,29 @@ jobs:
           BUILD_TYPE: "${{ matrix.options.build-type }}"
         run: ./housekeeping/docker/kagome/build_and_push.sh
 
-  zombie-test0001-parachains-smoke-test:
-    if: ${{ github.ref == 'refs/heads/master' }}
+  zombie-tests:
+    strategy:
+      fail-fast: false
+      matrix:
+        options:
+          - name: "Parachains smoke test"
+            test: "test0001"
+          - name: "Parachains upgrade smoke test"
+            test: "test0002"
+          - name: "Parachains smoke test cumulus"
+            test: "test0003"
     runs-on: [ ubuntu-latest, kagome, self-hosted, linux ]
     needs: [Push-self-hosted]
     steps:
+      - name: Set owner of working dir recurively
+        run: sudo chown -R $(whoami) .
       - uses: actions/checkout@dc323e67f16fb5f7663d20ff7941f27f5809e9b6
       - name: build zombie-tester
         working-directory: ./zombienet/docker
         run: make tester
-      - name: parachains smoke test
+      - name: Run test
         working-directory: ./zombienet/docker
-        run: make test0001
-
-  zombie-test0002-parachains-upgrade-smoke-test:
-    if: ${{ github.ref == 'refs/heads/master' }}
-    runs-on: [ ubuntu-latest, kagome, self-hosted, linux ]
-    needs: [Push-self-hosted]
-    steps:
-      - uses: actions/checkout@dc323e67f16fb5f7663d20ff7941f27f5809e9b6
-      - name: build zombie-tester
-        working-directory: ./zombienet/docker
-        run: make tester
-      - name: parachains upgrade smoke test
-        working-directory: ./zombienet/docker
-        run: make test0002
-  
-  zombie-test0003-parachains-smoke-test-cumulus:
-    if: ${{ github.ref == 'refs/heads/master' }}
-    runs-on: [ ubuntu-latest, kagome, self-hosted, linux ]
-    needs: [Push-self-hosted]
-    steps:
-      - uses: actions/checkout@dc323e67f16fb5f7663d20ff7941f27f5809e9b6
-      - name: build zombie-tester
-        working-directory: ./zombienet/docker
-        run: make tester
-      - name: parachains smoke test cumulus
-        working-directory: ./zombienet/docker
-        run: make test0003
+        run: make ${{ matrix.options.test }}
 
   Trigger_CD:
     if: ${{ github.ref == 'refs/heads/master' }}
