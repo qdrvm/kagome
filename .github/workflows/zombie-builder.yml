@@ -1,0 +1,26 @@
+# Update zombie builder image each Sunday night
+on:
+  schedule:
+    - cron: '0 2 * * 0'
+
+jobs:
+  build_and_push_zombie_builder:
+    runs-on: [ ubuntu-latest, kagome, self-hosted, linux ]
+    container: soramitsu/kagome-dev@sha256:a3153bda78e15337fc38b6800f508e8c3b27758cba6319e60e7c805b06e071f6
+    steps:
+    - uses: actions/checkout@dc323e67f16fb5f7663d20ff7941f27f5809e9b6
+    - name: Install dependencies
+      working-directory: ./zombienet/docker
+      run: |
+        pip install -r ./requirements.txt
+    - name: build zombie-builder
+      working-directory: ./zombienet/docker
+      run: make builder_last
+    - uses: azure/docker-login@83efeb77770c98b620c73055fbb59b2847e17dc0
+      with:
+        login-server: https://index.docker.io/v1/
+        username: ${{ secrets.DOCKER_USERNAME }}
+        password: ${{ secrets.DOCKER_TOKEN }}
+    - name: Push zombie-builder docker image 
+      working-directory: ./zombienet/docker
+      run: make builder_push
