@@ -26,6 +26,7 @@
 #include "crypto/sr25519_provider.hpp"
 #include "network/block_announce_transmitter.hpp"
 #include "network/helpers/peer_id_formatter.hpp"
+#include "network/peer_manager.hpp"
 #include "network/synchronizer.hpp"
 #include "network/types/collator_messages.hpp"
 #include "network/warp/protocol.hpp"
@@ -50,6 +51,7 @@ namespace kagome::consensus::babe {
   BabeImpl::BabeImpl(
       const application::AppConfiguration &app_config,
       std::shared_ptr<application::AppStateManager> app_state_manager,
+      std::shared_ptr<network::PeerManager> peer_manager,
       std::shared_ptr<BabeLottery> lottery,
       std::shared_ptr<BabeConfigRepository> babe_config_repo,
       std::shared_ptr<authorship::Proposer> proposer,
@@ -79,6 +81,7 @@ namespace kagome::consensus::babe {
       primitives::events::BabeStateSubscriptionEnginePtr babe_status_observable)
       : sync_method_(app_config.syncMethod()),
         app_state_manager_(app_state_manager),
+        peer_manager_{std::move(peer_manager)},
         lottery_{std::move(lottery)},
         babe_config_repo_{std::move(babe_config_repo)},
         proposer_{std::move(proposer)},
@@ -294,6 +297,7 @@ namespace kagome::consensus::babe {
                                     &event) {
       if (type == primitives::events::ChainEventType::kFinalizedHeads) {
         if (auto self = wp.lock()) {
+          self->warpSync();
           if (self->current_state_ != Babe::State::HEADERS_LOADING
               and self->current_state_ != Babe::State::STATE_LOADING) {
             const auto &header =
@@ -600,15 +604,43 @@ namespace kagome::consensus::babe {
         });
   }
 
+  bool BabeImpl::canWarpSync() const {
+    return sync_method_ == SyncMethod::Warp
+       and current_state_ == State::HEADERS_LOADING
+       and block_tree_->getLastFinalized().number >= 1
+       and block_tree_->getBlockHash(1);
+  }
+
+  void BabeImpl::warpSync() {
+    if (not canWarpSync()) {
+      return;
+    }
+    if (warp_sync_busy_) {
+      return;
+    }
+    auto target = warp_sync_->request();
+    auto finalized = block_tree_->getLastFinalized().number;
+    std::optional<std::pair<libp2p::peer::PeerId, primitives::BlockNumber>>
+        warp;
+    peer_manager_->forEachPeer([&](const libp2p::peer::PeerId &peer_id) {
+      if (warp) {
+        return;
+      }
+      if (auto state = peer_manager_->getPeerState(peer_id)) {
+        auto &peer_last = state->get().best_block.number;
+        if (target ? peer_last > target->number : peer_last >= finalized) {
+          warp.emplace(peer_id, peer_last);
+        }
+      }
+    });
+    if (warp) {
+      warpSync(warp->first, warp->second);
+    }
+  }
+
   bool BabeImpl::warpSync(const libp2p::peer::PeerId &peer_id,
                           primitives::BlockNumber block_number) {
-    if (current_state_ != State::HEADERS_LOADING) {
-      return false;
-    }
-    if (sync_method_ != SyncMethod::Warp) {
-      return false;
-    }
-    if (not block_tree_->getBlockHash(1)) {
+    if (not canWarpSync()) {
       return false;
     }
     auto target = warp_sync_->request();
