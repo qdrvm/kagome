@@ -20,6 +20,7 @@
 #include "common/buffer.hpp"
 #include "log/logger.hpp"
 #include "log/profiling_logger.hpp"
+#include "storage/buffer_map_types.hpp"
 
 namespace kagome::application {
   class AppConfiguration;
@@ -118,13 +119,11 @@ namespace kagome::storage::trie_pruner {
     }
 
    private:
-    outcome::result<void> prune(const storage::trie::RootHash &state);
+    outcome::result<void> prune(BufferBatch &batch,
+                                const storage::trie::RootHash &state);
 
     outcome::result<storage::trie::RootHash> addNewStateWith(
         const trie::PolkadotTrie &new_trie, trie::StateVersion version);
-
-    outcome::result<void> addChildStates(const trie::PolkadotTrie &parent);
-    outcome::result<void> pruneChildStates(const trie::PolkadotTrie &parent);
 
     // store the persistent pruner info to the database
     outcome::result<void> savePersistentState() const;
