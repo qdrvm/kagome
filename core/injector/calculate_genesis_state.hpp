@@ -28,13 +28,13 @@ namespace kagome::injector {
     };
     auto top_trie = trie_from(chain_spec.getGenesisTopSection());
     OUTCOME_TRY(code, top_trie.get(storage::kRuntimeCodeKey));
-    OUTCOME_TRY(module, module_factory.make(code));
-    OUTCOME_TRY(instance, module->instantiate());
+    OUTCOME_TRY(env,
+                runtime::RuntimeEnvironment::fromCode(module_factory, code));
     runtime::CoreImpl core_api{
         std::make_shared<runtime::Executor>(nullptr, nullptr),
         nullptr,
     };
-    OUTCOME_TRY(runtime_version, core_api.version(*instance));
+    OUTCOME_TRY(runtime_version, core_api.version(*env.module_instance));
     auto version = storage::trie::StateVersion{runtime_version.state_version};
     for (auto &[child, kv] : chain_spec.getGenesisChildrenDefaultSection()) {
       auto trie = trie_from(kv);
