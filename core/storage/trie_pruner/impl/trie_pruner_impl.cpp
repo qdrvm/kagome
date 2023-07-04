@@ -263,13 +263,15 @@ namespace kagome::storage::trie_pruner {
         OUTCOME_TRY(batch.remove(hash));
         auto hash_opt = node->getValue().hash;
         if (hash_opt.has_value()) {
-          auto &value_ref_count = value_ref_count_[hash];
-          if (value_ref_count == 0) {
+          auto value_ref_it = value_ref_count_.find(hash);
+          if (value_ref_it == value_ref_count_.end()) {
             values_unknown++;
           } else {
+            auto& value_ref_count = value_ref_it->second;
             value_ref_count--;
             if (value_ref_count == 0) {
               OUTCOME_TRY(batch.remove(hash));
+              value_ref_count_.erase(value_ref_it);
               values_removed++;
             }
           }
