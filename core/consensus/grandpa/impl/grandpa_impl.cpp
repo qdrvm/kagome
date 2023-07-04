@@ -5,9 +5,10 @@
 
 #include "consensus/grandpa/impl/grandpa_impl.hpp"
 
+#include <utility>
+
 #include <libp2p/basic/scheduler/asio_scheduler_backend.hpp>
 #include <libp2p/basic/scheduler/scheduler_impl.hpp>
-#include <utility>
 
 #include "application/app_state_manager.hpp"
 #include "application/chain_spec.hpp"
@@ -553,7 +554,7 @@ namespace kagome::consensus::grandpa {
                   return;
                 }
                 if (res.has_error()) {
-                  SL_WARN(self->logger_,
+                  SL_DEBUG(self->logger_,
                           "Missing justifications between blocks {} and "
                           "{} was not loaded: {}",
                           last_finalized,

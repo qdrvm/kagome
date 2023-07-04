@@ -30,16 +30,16 @@ TEST_P(NodeDecodingTest, GetHeader) {
       encoded, codec->encodeNode(*node, storage::trie::StateVersion::V0, {}));
   EXPECT_OUTCOME_TRUE(decoded, codec->decodeNode(encoded));
   auto decoded_node = std::dynamic_pointer_cast<TrieNode>(decoded);
-  EXPECT_EQ(decoded_node->key_nibbles, node->key_nibbles);
-  EXPECT_EQ(decoded_node->value, node->value);
+  EXPECT_EQ(decoded_node->getKeyNibbles(), node->getKeyNibbles());
+  EXPECT_EQ(decoded_node->getValue(), node->getValue());
 }
 
 template <typename T>
 std::shared_ptr<TrieNode> make(const common::Buffer &key_nibbles,
                                const common::Buffer &value) {
   auto node = std::make_shared<T>();
-  node->key_nibbles = key_nibbles;
-  node->value.value = value;
+  node->setKeyNibbles(key_nibbles);
+  node->getMutableValue().value = value;
   return node;
 }
 
@@ -57,10 +57,10 @@ std::shared_ptr<TrieNode> branch_with_2_children = []() {
 
 using T = TrieNode::Type;
 
-static const std::vector<std::shared_ptr<TrieNode>> CASES = {
+static const std::vector<std::shared_ptr<TrieNode>> DECODING_CASES = {
     make<LeafNode>("010203"_hex2buf, "abcdef"_hex2buf),
     make<LeafNode>("0a0b0c"_hex2buf, "abcdef"_hex2buf),
     make<BranchNode>("010203"_hex2buf, "abcdef"_hex2buf),
     branch_with_2_children};
 
-INSTANTIATE_TEST_SUITE_P(PolkadotCodec, NodeDecodingTest, ValuesIn(CASES));
+INSTANTIATE_TEST_SUITE_P(PolkadotCodec, NodeDecodingTest, ValuesIn(DECODING_CASES));

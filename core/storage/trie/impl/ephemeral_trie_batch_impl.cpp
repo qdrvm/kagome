@@ -47,7 +47,7 @@ namespace kagome::storage::trie {
     return kEmptyRootHash;
   }
 
-  outcome::result<std::unique_ptr<TrieBatch>>
+  outcome::result<std::unique_ptr<TrieBatchBase>>
   EphemeralTrieBatchImpl::createFromTrieHash(const RootHash &trie_hash) {
     OUTCOME_TRY(trie, serializer_->retrieveTrie(trie_hash, nullptr));
     return std::make_unique<EphemeralTrieBatchImpl>(

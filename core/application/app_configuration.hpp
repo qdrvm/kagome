@@ -252,6 +252,8 @@ namespace kagome::application {
      */
     virtual StorageBackend storageBackend() const = 0;
 
+    virtual std::optional<size_t> statePruningDepth() const = 0;
+
     /**
      * @return database state cache size in MiB
      */

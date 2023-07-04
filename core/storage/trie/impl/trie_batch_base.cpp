@@ -8,6 +8,8 @@
 #include "storage/trie/polkadot_trie/polkadot_trie.hpp"
 #include "storage/trie/polkadot_trie/polkadot_trie_cursor_impl.hpp"
 
+#include <iostream>
+
 namespace kagome::storage::trie {
 
   TrieBatchBase::TrieBatchBase(std::shared_ptr<Codec> codec,
@@ -51,7 +53,7 @@ namespace kagome::storage::trie {
                          : serializer_->getEmptyRootHash();
 
     OUTCOME_TRY(unique_batch, createFromTrieHash(child_root_hash));
-    auto batch = std::shared_ptr<TrieBatch>{std::move(unique_batch)};
+    auto batch = std::shared_ptr<TrieBatchBase>{std::move(unique_batch)};
 
     auto [it, success] = child_batches_.insert({path, batch});
     if (success) {

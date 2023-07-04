@@ -33,8 +33,27 @@ namespace kagome::storage::trie {
                                         StateVersion version) override;
 
     outcome::result<std::shared_ptr<PolkadotTrie>> retrieveTrie(
-        const common::Buffer &db_key,
-        OnNodeLoaded on_node_loaded) const override;
+        RootHash db_key, OnNodeLoaded on_node_loaded) const override;
+
+    /**
+     * Fetches a node from the storage. A nullptr is returned in case that there
+     * is no entry for provided key. Mind that a branch node will have dummy
+     * nodes as its children
+     */
+    outcome::result<PolkadotTrie::NodePtr> retrieveNode(
+        MerkleValue db_key, const OnNodeLoaded &on_node_loaded) const override;
+
+    /**
+     * Retrieves a node, replacing a dummy node to an actual node if
+     * needed
+     */
+    outcome::result<PolkadotTrie::NodePtr> retrieveNode(
+        const std::shared_ptr<OpaqueTrieNode> &node,
+        const OnNodeLoaded &on_node_loaded) const override;
+
+    outcome::result<std::optional<common::Buffer>> retrieveValue(
+        const common::Hash256 &hash,
+        const OnNodeLoaded &on_node_loaded) const override;
 
    private:
     /**
@@ -44,21 +63,6 @@ namespace kagome::storage::trie {
      */
     outcome::result<RootHash> storeRootNode(TrieNode &node,
                                             StateVersion version);
-    /**
-     * Fetches a node from the storage. A nullptr is returned in case that there
-     * is no entry for provided key. Mind that a branch node will have dummy
-     * nodes as its children
-     */
-    outcome::result<PolkadotTrie::NodePtr> retrieveNode(
-        const common::Buffer &db_key, const OnNodeLoaded &on_node_loaded) const;
-
-    /**
-     * Retrieves a node, replacing a dummy node to an actual node if
-     * needed
-     */
-    outcome::result<PolkadotTrie::NodePtr> retrieveNode(
-        const std::shared_ptr<OpaqueTrieNode> &node,
-        const OnNodeLoaded &on_node_loaded) const;
 
     std::shared_ptr<PolkadotTrieFactory> trie_factory_;
     std::shared_ptr<Codec> codec_;

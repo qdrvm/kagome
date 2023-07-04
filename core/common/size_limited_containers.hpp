@@ -50,7 +50,7 @@ namespace kagome::common {
 
     SizeLimitedContainer() = default;
 
-    SizeLimitedContainer(size_t size)
+    explicit SizeLimitedContainer(size_t size)
         : Base([&] {
             if constexpr (size_check_is_enabled) {
               if (unlikely(size > max_size())) {

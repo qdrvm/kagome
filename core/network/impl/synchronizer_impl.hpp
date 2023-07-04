@@ -28,6 +28,10 @@ namespace kagome::application {
   class AppConfiguration;
 }
 
+namespace kagome::storage::trie_pruner {
+  class TriePruner;
+}
+
 namespace kagome::consensus::babe {
   class BlockHeaderAppender;
   class BlockExecutor;
@@ -91,6 +95,7 @@ namespace kagome::network {
         std::shared_ptr<consensus::babe::BlockExecutor> block_executor,
         std::shared_ptr<storage::trie::TrieSerializer> serializer,
         std::shared_ptr<storage::trie::TrieStorage> storage,
+        std::shared_ptr<storage::trie_pruner::TriePruner> trie_pruner,
         std::shared_ptr<network::Router> router,
         std::shared_ptr<libp2p::basic::Scheduler> scheduler,
         std::shared_ptr<crypto::Hasher> hasher,
@@ -217,6 +222,7 @@ namespace kagome::network {
     std::shared_ptr<consensus::babe::BlockExecutor> block_executor_;
     std::shared_ptr<storage::trie::TrieSerializer> serializer_;
     std::shared_ptr<storage::trie::TrieStorage> storage_;
+    std::shared_ptr<storage::trie_pruner::TriePruner> trie_pruner_;
     std::shared_ptr<network::Router> router_;
     std::shared_ptr<libp2p::basic::Scheduler> scheduler_;
     std::shared_ptr<crypto::Hasher> hasher_;

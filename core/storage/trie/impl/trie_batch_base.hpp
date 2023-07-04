@@ -8,6 +8,9 @@
 
 #include "storage/trie/trie_batches.hpp"
 
+#include <boost/range.hpp>
+#include <boost/range/adaptors.hpp>
+
 #include "log/logger.hpp"
 #include "storage/trie/serialization/trie_serializer.hpp"
 
@@ -38,7 +41,7 @@ namespace kagome::storage::trie {
     createChildBatch(common::BufferView path) override;
 
    protected:
-    virtual outcome::result<std::unique_ptr<TrieBatch>> createFromTrieHash(
+    virtual outcome::result<std::unique_ptr<TrieBatchBase>> createFromTrieHash(
         const RootHash &trie_hash) = 0;
 
     outcome::result<void> commitChildren(StateVersion version);
@@ -50,7 +53,7 @@ namespace kagome::storage::trie {
     std::shared_ptr<PolkadotTrie> trie_;
 
    private:
-    std::unordered_map<common::Buffer, std::shared_ptr<TrieBatch>>
+    std::unordered_map<common::Buffer, std::shared_ptr<TrieBatchBase>>
         child_batches_;
   };
 

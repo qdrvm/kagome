@@ -122,7 +122,7 @@ namespace kagome::authority_discovery {
       auto authority = queue_.back();
       queue_.pop_back();
 
-      common::Buffer hash = crypto::sha256(authority);
+      common::Buffer hash{crypto::sha256(authority)};
       scheduler_->schedule([=, wp = weak_from_this()] {
         if (auto self = wp.lock()) {
           std::ignore = kademlia_->getValue(
@@ -131,12 +131,12 @@ namespace kagome::authority_discovery {
                 --active_;
                 pop();
                 if (res.has_error()) {
-                  SL_WARN(log_, "Kademlia can't get value: {}", res.error());
+                  SL_DEBUG(log_, "Kademlia can't get value: {}", res.error());
                   return;
                 }
                 auto r = add(authority, std::move(res.value()));
                 if (not r) {
-                  SL_WARN(log_, "Can't add: {}", r.error());
+                  SL_DEBUG(log_, "Can't add: {}", r.error());
                 }
               });
         }
