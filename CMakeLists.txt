@@ -26,7 +26,10 @@ link_libraries(Threads::Threads)
 if(THREADS_HAVE_PTHREAD_ARG)
   link_libraries(pthread)
 endif()
-link_libraries(atomic)
+
+if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
+  link_libraries(atomic)
+endif()
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
