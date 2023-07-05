@@ -26,7 +26,8 @@ link_libraries(Threads::Threads)
 if(THREADS_HAVE_PTHREAD_ARG)
   link_libraries(pthread)
 endif()
-
+link_libraries(atomic)
+g
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 # cmake-format: off
