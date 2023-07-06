@@ -9,7 +9,7 @@
 #include "runtime/common/uncompress_code_if_needed.hpp"
 #include "runtime/module.hpp"
 #include "runtime/runtime_code_provider.hpp"
-#include "runtime/runtime_environment_factory.hpp"
+#include "runtime/module_factory.hpp"
 
 OUTCOME_CPP_DEFINE_CATEGORY(kagome::parachain, PvfError, e) {
   using kagome::parachain::PvfError;
@@ -87,14 +87,14 @@ namespace kagome::parachain {
 
   PvfImpl::PvfImpl(
       std::shared_ptr<crypto::Hasher> hasher,
-      std::shared_ptr<runtime::RuntimeEnvironmentFactory> runtime_factory,
+      std::shared_ptr<runtime::ModuleFactory> module_factory,
       std::shared_ptr<runtime::RuntimePropertiesCache> runtime_properties_cache,
       std::shared_ptr<blockchain::BlockHeaderRepository>
           block_header_repository,
       std::shared_ptr<crypto::Sr25519Provider> sr25519_provider,
       std::shared_ptr<runtime::ParachainHost> parachain_api)
       : hasher_{std::move(hasher)},
-        runtime_factory_{std::move(runtime_factory)},
+        module_factory_{std::move(module_factory)},
         runtime_properties_cache_{std::move(runtime_properties_cache)},
         block_header_repository_{std::move(block_header_repository)},
         sr25519_provider_{std::move(sr25519_provider)},
@@ -200,15 +200,20 @@ namespace kagome::parachain {
     if (it == instance_cache_.end() || it->second->getCodeHash() != code_hash) {
       ParachainRuntime code;
       OUTCOME_TRY(runtime::uncompressCodeIfNeeded(code_zstd, code));
-      OUTCOME_TRY(runtime_template, runtime_factory_->start());
-      OUTCOME_TRY(runtime_env, runtime_template->make());
+      OUTCOME_TRY(module, module_factory_->make(code));
+      OUTCOME_TRY(instance, module->instantiate());
       auto [new_it, _] = instance_cache_.insert_or_assign(
-          para_id, runtime_env->module_instance);
+          para_id, instance);
       it = new_it;
     }
-
-    return runtime::Executor::call<ValidationResult>(
-        *it->second, "validate_block", params);
+    auto instance = it->second;
+    auto env_factory = std::make_shared<runtime::RuntimeEnvironmentFactory>(
+        std::make_shared<DontProvideCode>(),
+        std::make_shared<ReturnModuleInstance>(instance),
+        block_header_repository_);
+    auto executor = std::make_unique<runtime::Executor>(
+        env_factory, runtime_properties_cache_);
+    return executor->callAtGenesis<ValidationResult>("validate_block", params);
   }
 
   outcome::result<Pvf::CandidateCommitments> PvfImpl::fromOutputs(

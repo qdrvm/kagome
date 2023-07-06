@@ -81,7 +81,7 @@ namespace kagome::runtime {
   };
 
   /**
-   * @brief Pool of runtime instances - per state. Incapsulates modules cache.
+   * @brief Pool of runtime instances - per state. Encapsulates modules cache.
    *
    */
   class RuntimeInstancesPool final
