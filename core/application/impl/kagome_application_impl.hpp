@@ -22,7 +22,7 @@ namespace kagome::application {
     using uptr = std::unique_ptr<T>;
 
    public:
-    ~KagomeApplicationImpl() override = default;
+    ~KagomeApplicationImpl() override;
 
     explicit KagomeApplicationImpl(std::shared_ptr<AppConfiguration> config);
 
