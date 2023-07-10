@@ -117,6 +117,7 @@ namespace kagome::runtime::wavm {
                     runtime_code.size())},
             code_hash,
             last_compiled_module_),
+        block_header_repo_,
         cache_);
     return std::make_unique<CoreImpl>(std::move(executor), block_header_repo_);
   }

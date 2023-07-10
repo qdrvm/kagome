@@ -52,7 +52,7 @@ namespace kagome::parachain {
                     boost::get<primitives::events::HeadsEventParams>(event))
                     .value()));
             if (r.has_error()) {
-              SL_WARN(log(), "onBlock error {}", r.error());
+              SL_DEBUG(log(), "onBlock error {}", r.error());
             }
           }
         });

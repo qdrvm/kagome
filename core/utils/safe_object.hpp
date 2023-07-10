@@ -53,6 +53,14 @@ struct SafeObject {
     return std::forward<F>(f)(t_);
   }
 
+  T& unsafeGet() {
+    return t_;
+  }
+
+  const T& unsafeGet() const {
+    return t_;
+  }
+
  private:
   T t_;
   mutable M cs_;

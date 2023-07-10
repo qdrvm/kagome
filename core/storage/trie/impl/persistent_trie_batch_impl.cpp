@@ -11,6 +11,7 @@
 #include "storage/trie/polkadot_trie/polkadot_trie_cursor_impl.hpp"
 #include "storage/trie/polkadot_trie/trie_error.hpp"
 #include "storage/trie/serialization/trie_serializer.hpp"
+#include "storage/trie_pruner/trie_pruner.hpp"
 
 OUTCOME_CPP_DEFINE_CATEGORY(kagome::storage::trie,
                             PersistentTrieBatchImpl::Error,
@@ -29,17 +30,21 @@ namespace kagome::storage::trie {
       std::shared_ptr<Codec> codec,
       std::shared_ptr<TrieSerializer> serializer,
       TrieChangesTrackerOpt changes,
-      std::shared_ptr<PolkadotTrie> trie)
+      std::shared_ptr<PolkadotTrie> trie,
+      std::shared_ptr<storage::trie_pruner::TriePruner> state_pruner)
       : TrieBatchBase{std::move(codec), std::move(serializer), std::move(trie)},
-        changes_{std::move(changes)} {
+        changes_{std::move(changes)},
+        state_pruner_{std::move(state_pruner)} {
     BOOST_ASSERT((changes_.has_value() && changes_.value() != nullptr)
                  or not changes_.has_value());
+    BOOST_ASSERT(state_pruner_ != nullptr);
   }
 
   outcome::result<RootHash> PersistentTrieBatchImpl::commit(
       StateVersion version) {
     OUTCOME_TRY(commitChildren(version));
     OUTCOME_TRY(root, serializer_->storeTrie(*trie_, version));
+    OUTCOME_TRY(state_pruner_->addNewState(*trie_, version));
     SL_TRACE_FUNC_CALL(logger_, root);
     return std::move(root);
   }
@@ -80,11 +85,11 @@ namespace kagome::storage::trie {
     return outcome::success();
   }
 
-  outcome::result<std::unique_ptr<TrieBatch>>
+  outcome::result<std::unique_ptr<TrieBatchBase>>
   PersistentTrieBatchImpl::createFromTrieHash(const RootHash &trie_hash) {
     OUTCOME_TRY(trie, serializer_->retrieveTrie(trie_hash, nullptr));
     return std::make_unique<PersistentTrieBatchImpl>(
-        codec_, serializer_, changes_, trie);
+        codec_, serializer_, changes_, trie, state_pruner_);
   }
 
 }  // namespace kagome::storage::trie

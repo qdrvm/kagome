@@ -47,11 +47,17 @@ namespace kagome::runtime {
    public:
     using Buffer = common::Buffer;
 
-    Executor(std::shared_ptr<ModuleRepository> module_repo,
-             std::shared_ptr<RuntimePropertiesCache> cache)
+    Executor(
+        std::shared_ptr<ModuleRepository> module_repo,
+        std::shared_ptr<const blockchain::BlockHeaderRepository> header_repo,
+        std::shared_ptr<RuntimePropertiesCache> cache)
         : module_repo_(std::move(module_repo)),
+          header_repo_(std::move(header_repo)),
           cache_(std::move(cache)),
-          logger_{log::createLogger("Executor", "runtime")} {}
+          logger_{log::createLogger("Executor", "runtime")} {
+      BOOST_ASSERT(module_repo_);
+      BOOST_ASSERT(header_repo_);
+    }
 
     /**
      * Call a runtime method in a persistent environment, e. g. the storage
@@ -247,7 +253,7 @@ namespace kagome::runtime {
 
     // std::shared_ptr<RuntimeEnvironmentFactory> env_factory_;
     std::shared_ptr<ModuleRepository> module_repo_;
-    std::shared_ptr<blockchain::BlockHeaderRepository> header_repo_;
+    std::shared_ptr<const blockchain::BlockHeaderRepository> header_repo_;
     std::shared_ptr<RuntimePropertiesCache> cache_;
     log::Logger logger_;
   };

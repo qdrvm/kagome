@@ -43,7 +43,7 @@ namespace kagome::storage {
 
     std::unique_ptr<Cursor> cursor() override;
 
-    size_t size() const override;
+    std::optional<size_t> byteSizeHint() const override;
 
    private:
     std::map<std::string, common::Buffer> storage;

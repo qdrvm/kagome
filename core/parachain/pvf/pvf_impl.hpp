@@ -8,6 +8,8 @@
 
 #include "parachain/pvf/pvf.hpp"
 
+#include <thread>
+
 #include "blockchain/block_header_repository.hpp"
 #include "crypto/sr25519_provider.hpp"
 #include "log/logger.hpp"
@@ -17,7 +19,7 @@
 namespace kagome::runtime {
   class ModuleInstance;
   class ModuleFactory;
-}
+}  // namespace kagome::runtime
 
 namespace kagome::parachain {
   enum class PvfError {
@@ -80,7 +82,8 @@ namespace kagome::parachain {
     std::shared_ptr<runtime::ParachainHost> parachain_api_;
     log::Logger log_;
 
-    mutable std::unordered_map<ParachainId,
+    mutable std::mutex instance_cache_mutex_;
+    mutable std::map<std::pair<std::thread::id, ParachainId>,
                                std::shared_ptr<runtime::ModuleInstance>>
         instance_cache_;
   };

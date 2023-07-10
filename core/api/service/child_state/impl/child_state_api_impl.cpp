@@ -129,7 +129,8 @@ namespace kagome::api {
                 storage_->getEphemeralBatchAt(child_root_hash));
     auto res = child_storage_trie_reader->tryGet(key);
     return common::map_result_optional(
-        std::move(res), [](common::BufferOrView &&r) { return r.into(); });
+        std::move(res),
+        [](common::BufferOrView &&r) { return r.intoBuffer(); });
   }
 
   outcome::result<std::optional<primitives::BlockHash>>

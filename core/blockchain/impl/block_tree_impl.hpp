@@ -33,6 +33,10 @@
 #include "utils/safe_object.hpp"
 #include "utils/thread_pool.hpp"
 
+namespace kagome::storage::trie_pruner {
+  class TriePruner;
+}
+
 namespace kagome::blockchain {
 
   class TreeNode;
@@ -54,6 +58,7 @@ namespace kagome::blockchain {
             extrinsic_event_key_repo,
         std::shared_ptr<const class JustificationStoragePolicy>
             justification_storage_policy,
+        std::shared_ptr<storage::trie_pruner::TriePruner> state_pruner,
         std::shared_ptr<::boost::asio::io_context> io_context);
 
     /// Recover block tree state at provided block
@@ -68,7 +73,7 @@ namespace kagome::blockchain {
 
     const primitives::BlockHash &getGenesisBlockHash() const override;
 
-    outcome::result<primitives::BlockHash> getBlockHash(
+    outcome::result<std::optional<primitives::BlockHash>> getBlockHash(
         primitives::BlockNumber block_number) const override;
 
     outcome::result<bool> hasBlockHeader(
@@ -141,6 +146,7 @@ namespace kagome::blockchain {
     struct BlockTreeData {
       std::shared_ptr<BlockHeaderRepository> header_repo_;
       std::shared_ptr<BlockStorage> storage_;
+      std::shared_ptr<storage::trie_pruner::TriePruner> state_pruner_;
       std::unique_ptr<CachedTree> tree_;
       std::shared_ptr<network::ExtrinsicObserver> extrinsic_observer_;
       std::shared_ptr<crypto::Hasher> hasher_;
@@ -170,6 +176,7 @@ namespace kagome::blockchain {
             extrinsic_event_key_repo,
         std::shared_ptr<const class JustificationStoragePolicy>
             justification_storage_policy,
+        std::shared_ptr<storage::trie_pruner::TriePruner> state_pruner,
         std::shared_ptr<::boost::asio::io_context> io_context);
 
     /**
@@ -192,6 +199,9 @@ namespace kagome::blockchain {
 
     outcome::result<primitives::BlockHeader> getBlockHeaderNoLock(
         const BlockTreeData &p, const primitives::BlockHash &block_hash) const;
+
+    outcome::result<void> pruneTrie(const BlockTreeData &block_tree_data,
+                                    primitives::BlockNumber new_finalized);
 
     outcome::result<void> reorganizeNoLock(BlockTreeData &p);
 
@@ -217,7 +227,45 @@ namespace kagome::blockchain {
     void notifyChainEventsEngine(primitives::events::ChainEventType event,
                                  const primitives::BlockHeader &header);
 
-    SafeObject<BlockTreeData> block_tree_data_;
+    class SafeBlockTreeData {
+     public:
+      SafeBlockTreeData(BlockTreeData data);
+
+      template <typename F>
+      decltype(auto) exclusiveAccess(F &&f) {
+        // if this thread owns the mutex, it shall not be unlocked until this
+        // function exits
+        if (exclusive_owner_.load(std::memory_order_acquire)
+            == std::this_thread::get_id()) {
+          return f(block_tree_data_.unsafeGet());
+        }
+        return block_tree_data_.exclusiveAccess(
+            [&f, this](BlockTreeData &data) {
+              exclusive_owner_ = std::this_thread::get_id();
+              auto reset = gsl::finally([&] {
+                exclusive_owner_ = std::nullopt;
+              });
+              return f(data);
+            });
+      }
+
+      template <typename F>
+      decltype(auto) sharedAccess(F &&f) const {
+        // if this thread owns the mutex, it shall not be unlocked until this
+        // function exits
+        if (exclusive_owner_.load(std::memory_order_acquire)
+            == std::this_thread::get_id()) {
+          return f(block_tree_data_.unsafeGet());
+        }
+        return block_tree_data_.sharedAccess(std::forward<F>(f));
+      }
+
+     private:
+      SafeObject<BlockTreeData> block_tree_data_;
+      std::atomic<std::optional<std::thread::id>> exclusive_owner_;
+
+    } block_tree_data_;
+
     primitives::events::ExtrinsicSubscriptionEnginePtr
         extrinsic_events_engine_ = {};
     primitives::events::ChainSubscriptionEnginePtr chain_events_engine_ = {};

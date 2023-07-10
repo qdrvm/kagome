@@ -175,13 +175,14 @@ namespace kagome::parachain {
       const common::Hash256 &code_hash,
       const ParachainRuntime &code_zstd,
       const ValidationParams &params) const {
-    auto it = instance_cache_.find(para_id);
+    auto key = std::make_pair(std::this_thread::get_id(), para_id);
+    auto it = instance_cache_.find(key);
     if (it == instance_cache_.end() || it->second->getCodeHash() != code_hash) {
       ParachainRuntime code;
       OUTCOME_TRY(runtime::uncompressCodeIfNeeded(code_zstd, code));
       OUTCOME_TRY(module, module_factory_->make(code));
       OUTCOME_TRY(instance, module->instantiate());
-      auto [new_it, _] = instance_cache_.insert_or_assign(para_id, instance);
+      auto [new_it, _] = instance_cache_.insert_or_assign(key, instance);
       it = new_it;
     }
     auto instance = it->second;

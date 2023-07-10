@@ -144,6 +144,11 @@ namespace kagome::application {
 
     MOCK_METHOD(bool, isTelemetryEnabled, (), (const, override));
 
+    MOCK_METHOD(std::optional<size_t>,
+                statePruningDepth,
+                (),
+                (const, override));
+
     MOCK_METHOD(StorageBackend, storageBackend, (), (const, override));
 
     MOCK_METHOD(uint32_t, dbCacheSize, (), (const, override));
