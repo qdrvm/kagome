@@ -19,8 +19,13 @@ namespace kagome::runtime {
   }
 
   outcome::result<primitives::Version> CoreImpl::version(
-      ModuleInstance &instance) {
-    return Executor::call<primitives::Version>(instance, "Core_version");
+      std::shared_ptr<ModuleInstance> instance) {
+    OUTCOME_TRY(genesis_hash, header_repo_->getHashByNumber(0));
+    OUTCOME_TRY(genesis_header, header_repo_->getBlockHeader(genesis_hash));
+
+    OUTCOME_TRY(ctx,
+                RuntimeContext::ephemeral(instance, genesis_header.state_root));
+    return Executor::call<primitives::Version>(ctx, "Core_version");
   }
 
   outcome::result<primitives::Version> CoreImpl::version(
@@ -40,11 +45,10 @@ namespace kagome::runtime {
       return parent_res.has_value()
          and parent_res.value().number == block.header.number - 1;
     }());
-    OUTCOME_TRY(env,
-                executor_->persistentAt(block.header.parent_hash,
-                                        std::move(changes_tracker)));
-    OUTCOME_TRY(executor_->call<void>(
-        *env->module_instance, "Core_execute_block", block));
+    OUTCOME_TRY(ctx,
+                executor_->getPersistentContextAt(block.header.parent_hash,
+                                                  std::move(changes_tracker)));
+    OUTCOME_TRY(executor_->call<void>(*ctx, "Core_execute_block", block));
     return outcome::success();
   }
 
@@ -66,15 +70,14 @@ namespace kagome::runtime {
         std::move(changes_tracker));
   }
 
-  outcome::result<std::unique_ptr<RuntimeEnvironment>>
-  CoreImpl::initialize_block(const primitives::BlockHeader &header,
-                             TrieChangesTrackerOpt changes_tracker) {
-    OUTCOME_TRY(env,
-                executor_->persistentAt(header.parent_hash,
-                                        std::move(changes_tracker)));
-    OUTCOME_TRY(Executor::call<void>(
-        *env->module_instance, "Core_initialize_block", header));
-    return std::move(env);
+  outcome::result<std::unique_ptr<RuntimeContext>> CoreImpl::initialize_block(
+      const primitives::BlockHeader &header,
+      TrieChangesTrackerOpt changes_tracker) {
+    OUTCOME_TRY(ctx,
+                executor_->getPersistentContextAt(header.parent_hash,
+                                                  std::move(changes_tracker)));
+    OUTCOME_TRY(Executor::call<void>(*ctx, "Core_initialize_block", header));
+    return std::move(ctx);
   }
 
 }  // namespace kagome::runtime

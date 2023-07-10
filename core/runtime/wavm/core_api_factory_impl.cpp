@@ -46,9 +46,8 @@ namespace kagome::runtime::wavm {
     }
 
     outcome::result<std::shared_ptr<ModuleInstance>> getInstanceAt(
-        std::shared_ptr<const RuntimeCodeProvider>,
         const primitives::BlockInfo &,
-        const primitives::BlockHeader &) override {
+        const storage::trie::RootHash &) override {
       if (instance_ == nullptr) {
         auto module = ModuleImpl::compileFrom(compartment_,
                                               *module_params_,
@@ -72,19 +71,6 @@ namespace kagome::runtime::wavm {
     gsl::span<const uint8_t> code_;
     const common::Hash256 code_hash_;
     std::shared_ptr<SingleModuleCache> last_compiled_module_;
-  };
-
-  class OneCodeProvider final : public RuntimeCodeProvider {
-   public:
-    explicit OneCodeProvider(gsl::span<const uint8_t> code) : code_{code} {}
-
-    virtual outcome::result<gsl::span<const uint8_t>> getCodeAt(
-        const storage::trie::RootHash &) const {
-      return code_;
-    }
-
-   private:
-    gsl::span<const uint8_t> code_;
   };
 
   CoreApiFactoryImpl::CoreApiFactoryImpl(
@@ -118,8 +104,8 @@ namespace kagome::runtime::wavm {
       std::shared_ptr<const crypto::Hasher> hasher,
       const std::vector<uint8_t> &runtime_code) const {
     auto code_hash = hasher->sha2_256(runtime_code);
-    auto env_factory = std::make_shared<runtime::RuntimeEnvironmentFactory>(
-        std::make_shared<OneCodeProvider>(runtime_code),
+
+    auto executor = std::make_unique<runtime::Executor>(
         std::make_shared<OneModuleRepository>(
             compartment_,
             module_params_,
@@ -131,8 +117,7 @@ namespace kagome::runtime::wavm {
                     runtime_code.size())},
             code_hash,
             last_compiled_module_),
-        block_header_repo_);
-    auto executor = std::make_unique<runtime::Executor>(env_factory, cache_);
+        cache_);
     return std::make_unique<CoreImpl>(std::move(executor), block_header_repo_);
   }
 

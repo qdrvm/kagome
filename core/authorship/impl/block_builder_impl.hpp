@@ -22,7 +22,7 @@ namespace kagome::authorship {
     ~BlockBuilderImpl() override = default;
 
     BlockBuilderImpl(primitives::BlockHeader block_header,
-                     std::unique_ptr<runtime::RuntimeEnvironment> env,
+                     std::unique_ptr<runtime::RuntimeContext> ctx,
                      std::shared_ptr<runtime::BlockBuilder> block_builder_api);
 
     outcome::result<std::vector<primitives::Extrinsic>> getInherentExtrinsics(
@@ -40,7 +40,7 @@ namespace kagome::authorship {
 
     primitives::BlockHeader block_header_;
     std::shared_ptr<runtime::BlockBuilder> block_builder_api_;
-    std::unique_ptr<runtime::RuntimeEnvironment> env_;
+    std::unique_ptr<runtime::RuntimeContext> ctx_;
     log::Logger logger_;
 
     std::vector<primitives::Extrinsic> extrinsics_{};

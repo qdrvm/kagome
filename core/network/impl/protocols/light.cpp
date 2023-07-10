@@ -6,8 +6,8 @@
 #include "network/impl/protocols/light.hpp"
 
 #include "network/common.hpp"
+#include "runtime/common/executor.hpp"
 #include "runtime/common/trie_storage_provider_impl.hpp"
-#include "runtime/runtime_environment_factory.hpp"
 
 namespace kagome::network {
   LightProtocol::LightProtocol(
@@ -16,7 +16,7 @@ namespace kagome::network {
       const primitives::GenesisBlockHeader &genesis,
       std::shared_ptr<blockchain::BlockHeaderRepository> repository,
       std::shared_ptr<storage::trie::TrieStorage> storage,
-      std::shared_ptr<runtime::RuntimeEnvironmentFactory> env_factory)
+      std::shared_ptr<runtime::ModuleRepository> module_repo)
       : RequestResponseProtocolType{
           kName,
           host,
@@ -25,7 +25,7 @@ namespace kagome::network {
       },
       repository_{std::move(repository)},
       storage_{std::move(storage)},
-      env_factory_{std::move(env_factory)} {}
+      module_repo_{std::move(module_repo)} {}
 
   outcome::result<LightProtocol::ResponseType> LightProtocol::onRxRequest(
       RequestType req, std::shared_ptr<Stream>) {
@@ -36,11 +36,11 @@ namespace kagome::network {
                 storage_->getProofReaderBatchAt(header.state_root, prove));
     auto call = boost::get<LightProtocolRequest::Call>(&req.op);
     if (call) {
-      OUTCOME_TRY(factory, env_factory_->start(req.block));
-      OUTCOME_TRY(env, factory->withStorageBatch(std::move(batch)).make());
-      OUTCOME_TRY(
-          env->module_instance->callExportFunction(call->method, call->args));
-      OUTCOME_TRY(env->module_instance->resetEnvironment());
+      OUTCOME_TRY(instance,
+                  module_repo_->getInstanceAt({req.block, header.number},
+                                              header.state_root));
+      OUTCOME_TRY(runtime::Executor::callAtRaw(
+          instance, header.state_root, call->method, call->args));
     } else {
       auto &read = boost::get<LightProtocolRequest::Read>(req.op);
       runtime::TrieStorageProviderImpl provider{storage_, nullptr};

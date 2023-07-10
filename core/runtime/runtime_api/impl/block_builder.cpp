@@ -15,36 +15,38 @@ namespace kagome::runtime {
   }
 
   outcome::result<primitives::ApplyExtrinsicResult>
-  BlockBuilderImpl::apply_extrinsic(RuntimeEnvironment &env,
+  BlockBuilderImpl::apply_extrinsic(RuntimeContext &ctx,
                                     const primitives::Extrinsic &extrinsic) {
     // https://github.com/paritytech/substrate/blob/943c520aa78fcfaf3509790009ad062e8d4c6990/client/block-builder/src/lib.rs#L204-L237
-    OUTCOME_TRY(env.storage_provider->startTransaction());
+    OUTCOME_TRY(ctx.module_instance->getEnvironment()
+                    .storage_provider->startTransaction());
     auto should_rollback = true;
     auto rollback = gsl::finally([&] {
       if (should_rollback) {
-        std::ignore = env.storage_provider->rollbackTransaction();
+        std::ignore = ctx.module_instance->getEnvironment()
+                          .storage_provider->rollbackTransaction();
       }
     });
-    OUTCOME_TRY(
-        result,
-        Executor::call<primitives::ApplyExtrinsicResult>(
-            *env.module_instance, "BlockBuilder_apply_extrinsic", extrinsic));
+    OUTCOME_TRY(result,
+                Executor::call<primitives::ApplyExtrinsicResult>(
+                    ctx, "BlockBuilder_apply_extrinsic", extrinsic));
     if (auto ok = boost::get<primitives::DispatchOutcome>(&result);
         ok and boost::get<primitives::DispatchSuccess>(ok)) {
       should_rollback = false;
-      OUTCOME_TRY(env.storage_provider->commitTransaction());
+      OUTCOME_TRY(ctx.module_instance->getEnvironment()
+                      .storage_provider->commitTransaction());
     }
     return std::move(result);
   }
 
   outcome::result<primitives::BlockHeader> BlockBuilderImpl::finalize_block(
-      RuntimeEnvironment &env) {
+      RuntimeContext &ctx) {
     return Executor::call<primitives::BlockHeader>(
-        *env.module_instance, "BlockBuilder_finalize_block");
+        ctx, "BlockBuilder_finalize_block");
   }
 
   outcome::result<std::vector<primitives::Extrinsic>>
-  BlockBuilderImpl::inherent_extrinsics(RuntimeEnvironment &env,
+  BlockBuilderImpl::inherent_extrinsics(RuntimeContext &ctx,
                                         const primitives::InherentData &data) {
     // https://github.com/paritytech/substrate/blob/ea4fbcb84cf3883123d1341068e1e70310ab2049/client/block-builder/src/lib.rs#L285
     // `create_inherents` should not change any state, to ensure this we always
@@ -52,13 +54,15 @@ namespace kagome::runtime {
     //
     // Can't use `EphemeralTrieBatch`, because we must `call` in context of
     // `env.storage_provider`s `PersistentTrieBatch`.
-    OUTCOME_TRY(env.storage_provider->startTransaction());
-    auto rollback = gsl::finally(
-        [&] { std::ignore = env.storage_provider->rollbackTransaction(); });
-    OUTCOME_TRY(
-        result,
-        Executor::call<std::vector<primitives::Extrinsic>>(
-            *env.module_instance, "BlockBuilder_inherent_extrinsics", data));
+    OUTCOME_TRY(ctx.module_instance->getEnvironment()
+                    .storage_provider->startTransaction());
+    auto rollback = gsl::finally([&] {
+      std::ignore = ctx.module_instance->getEnvironment()
+                        .storage_provider->rollbackTransaction();
+    });
+    OUTCOME_TRY(result,
+                Executor::call<std::vector<primitives::Extrinsic>>(
+                    ctx, "BlockBuilder_inherent_extrinsics", data));
     return std::move(result);
   }
 

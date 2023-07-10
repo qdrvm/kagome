@@ -23,121 +23,42 @@
 namespace kagome::runtime {
   class ModuleFactory;
 
-  class RuntimeEnvironment {
+  class RuntimeContext {
    public:
-    RuntimeEnvironment(std::shared_ptr<ModuleInstance> module_instance,
-                       std::shared_ptr<const MemoryProvider> memory_provider,
-                       std::shared_ptr<TrieStorageProvider> storage_provider,
-                       primitives::BlockInfo blockchain_state);
+    enum class Error {
+      ABSENT_HEAP_BASE = 1,
+      HEAP_BASE_TOO_LOW,
+    };
 
-    static outcome::result<RuntimeEnvironment> fromCode(
+    RuntimeContext() = delete;
+    RuntimeContext(const RuntimeContext &) = delete;
+    RuntimeContext &operator=(const RuntimeContext &) = delete;
+
+    RuntimeContext(RuntimeContext &&) = default;
+    RuntimeContext &operator=(RuntimeContext &&) = default;
+
+    static outcome::result<RuntimeContext> fromCode(
         const runtime::ModuleFactory &module_factory,
         common::BufferView code_zstd);
 
+    static outcome::result<RuntimeContext> persistent(
+        std::shared_ptr<ModuleInstance> module_instance,
+        const storage::trie::RootHash &state,
+        std::optional<std::shared_ptr<storage::changes_trie::ChangesTracker>>
+            changes_tracker_opt);
+
+    static outcome::result<RuntimeContext> ephemeral(
+        std::shared_ptr<ModuleInstance> module_instance,
+        const storage::trie::RootHash &state);
+
     const std::shared_ptr<ModuleInstance> module_instance;
-    const std::shared_ptr<const MemoryProvider> memory_provider;
-    const std::shared_ptr<TrieStorageProvider> storage_provider;
-  };
-
-  outcome::result<void> resetMemory(const ModuleInstance &module);
-
-  class RuntimeEnvironmentFactory
-      : public std::enable_shared_from_this<RuntimeEnvironmentFactory> {
-   public:
-    enum class Error {
-      PARENT_FACTORY_EXPIRED = 1,
-      ABSENT_BLOCK,
-      ABSENT_HEAP_BASE,
-      HEAP_BASE_TOO_LOW,
-      FAILED_TO_SET_STORAGE_STATE
-    };
-
-    struct RuntimeEnvironmentTemplate;
-
-    RuntimeEnvironmentFactory(
-        std::shared_ptr<const runtime::RuntimeCodeProvider> code_provider,
-        std::shared_ptr<ModuleRepository> module_repo,
-        std::shared_ptr<const blockchain::BlockHeaderRepository> header_repo);
-
-    virtual ~RuntimeEnvironmentFactory() = default;
-
-    /**
-     * @param blockchain_state - the block to take the runtime code from
-     * @param storage_state
-     *        need to store separately from
-     *        blockchain state because, for example, when we're in
-     *        process of producing a block, there is no particular
-     *        storage state associated with the block
-     * @return a RuntimeEnvironmentTemplate which can be used to configure and
-     * produce a RuntimeEnvironment
-     */
-    [[nodiscard]] virtual std::unique_ptr<RuntimeEnvironmentTemplate> start(
-        const primitives::BlockInfo &blockchain_state,
-        const storage::trie::RootHash &storage_state) const;
-
-    /**
-     * @brief returns a handle to make a RuntimeEnvironment at the state of the
-     * provided block
-     * @param blockchain_state - the block to take the runtime code from
-     * @return a RuntimeEnvironmentTemplate which can be used to configure and
-     * produce a RuntimeEnvironment
-     */
-    [[nodiscard]] virtual outcome::result<
-        std::unique_ptr<RuntimeEnvironmentTemplate>>
-    start(const primitives::BlockHash &blockchain_state) const;
-
-    /**
-     * @brief returns a handle to make a RuntimeEnvironment at genesis block
-     * state
-     * @return a RuntimeEnvironmentTemplate which can be used to configure and
-     * produce a RuntimeEnvironment
-     */
-    [[nodiscard]] virtual outcome::result<
-        std::unique_ptr<RuntimeEnvironmentTemplate>>
-    start() const;
 
    private:
-    std::shared_ptr<const runtime::RuntimeCodeProvider> code_provider_;
-    std::shared_ptr<ModuleRepository> module_repo_;
-    std::shared_ptr<const blockchain::BlockHeaderRepository> header_repo_;
-    log::Logger logger_;
-  };
-
-  struct RuntimeEnvironmentFactory::RuntimeEnvironmentTemplate {
-   public:
-    RuntimeEnvironmentTemplate(
-        std::weak_ptr<const RuntimeEnvironmentFactory> parent_factory_,
-        const primitives::BlockInfo &blockchain_state,
-        const storage::trie::RootHash &storage_state);
-
-    virtual ~RuntimeEnvironmentTemplate() = default;
-
-    [[nodiscard]] virtual RuntimeEnvironmentTemplate &persistent();
-    [[nodiscard]] virtual RuntimeEnvironmentTemplate &withStorageBatch(
-        std::shared_ptr<storage::trie::TrieBatch> batch);
-    [[nodiscard]] virtual RuntimeEnvironmentTemplate &withChangesTracker(
-        TrieChangesTrackerOpt changes_tracker);
-
-    [[nodiscard]] virtual outcome::result<std::unique_ptr<RuntimeEnvironment>>
-    make();
-
-   private:
-    primitives::BlockInfo blockchain_state_;
-
-    // need to store separately from
-    // blockchain state because, for example, when we're in
-    // process of producing a block, there is no particular
-    // storage state associated with the block
-    storage::trie::RootHash storage_state_;
-
-    std::weak_ptr<const RuntimeEnvironmentFactory> parent_factory_;
-    bool persistent_{false};
-    std::shared_ptr<storage::trie::TrieBatch> batch_;
-    TrieChangesTrackerOpt changes_tracker_;
+    RuntimeContext(std::shared_ptr<ModuleInstance> module_instance);
   };
 
 }  // namespace kagome::runtime
 
-OUTCOME_HPP_DECLARE_ERROR(kagome::runtime, RuntimeEnvironmentFactory::Error);
+OUTCOME_HPP_DECLARE_ERROR(kagome::runtime, RuntimeContext::Error);
 
 #endif  // KAGOME_CORE_RUNTIME_RUNTIME_ENVIRONMENT_FACTORY_HPP

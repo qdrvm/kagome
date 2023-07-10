@@ -21,7 +21,7 @@
 namespace kagome::runtime {
   class ModuleInstance;
   class RuntimeCodeProvider;
-  class RuntimeEnvironment;
+  class RuntimeContext;
 
   /**
    * Core represents mandatory part of runtime api
@@ -35,7 +35,7 @@ namespace kagome::runtime {
      * @return runtime version
      */
     virtual outcome::result<primitives::Version> version(
-        ModuleInstance& instance) = 0;
+        std::shared_ptr<ModuleInstance> instance) = 0;
 
     /**
      * @brief Returns the version of the runtime
@@ -68,7 +68,7 @@ namespace kagome::runtime {
      * @param header header used for block initialization
      * @param changes_tracker storage writes and deletes tracker
      */
-    virtual outcome::result<std::unique_ptr<RuntimeEnvironment>>
+    virtual outcome::result<std::unique_ptr<RuntimeContext>>
     initialize_block(const primitives::BlockHeader &header,
                      TrieChangesTrackerOpt changes_tracker) = 0;
   };

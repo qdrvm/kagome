@@ -8,8 +8,8 @@
 #include "runtime/common/executor.hpp"
 #include "runtime/common/uncompress_code_if_needed.hpp"
 #include "runtime/module.hpp"
-#include "runtime/runtime_code_provider.hpp"
 #include "runtime/module_factory.hpp"
+#include "runtime/runtime_code_provider.hpp"
 
 OUTCOME_CPP_DEFINE_CATEGORY(kagome::parachain, PvfError, e) {
   using kagome::parachain::PvfError;
@@ -43,27 +43,6 @@ namespace kagome::parachain {
   using network::UpwardMessage;
   using primitives::BlockNumber;
   using runtime::PersistedValidationData;
-
-  struct DontProvideCode : runtime::RuntimeCodeProvider {
-    outcome::result<gsl::span<const uint8_t>> getCodeAt(
-        const storage::trie::RootHash &) const override {
-      abort();
-    }
-  };
-
-  struct ReturnModuleInstance : runtime::ModuleRepository {
-    ReturnModuleInstance(std::shared_ptr<runtime::ModuleInstance> instance)
-        : instance{std::move(instance)} {}
-
-    outcome::result<std::shared_ptr<runtime::ModuleInstance>> getInstanceAt(
-        std::shared_ptr<const runtime::RuntimeCodeProvider>,
-        const primitives::BlockInfo &,
-        const primitives::BlockHeader &) override {
-      return instance;
-    }
-
-    std::shared_ptr<runtime::ModuleInstance> instance;
-  };
 
   struct ValidationParams {
     SCALE_TIE(4);
@@ -202,18 +181,20 @@ namespace kagome::parachain {
       OUTCOME_TRY(runtime::uncompressCodeIfNeeded(code_zstd, code));
       OUTCOME_TRY(module, module_factory_->make(code));
       OUTCOME_TRY(instance, module->instantiate());
-      auto [new_it, _] = instance_cache_.insert_or_assign(
-          para_id, instance);
+      auto [new_it, _] = instance_cache_.insert_or_assign(para_id, instance);
       it = new_it;
     }
     auto instance = it->second;
-    auto env_factory = std::make_shared<runtime::RuntimeEnvironmentFactory>(
-        std::make_shared<DontProvideCode>(),
-        std::make_shared<ReturnModuleInstance>(instance),
-        block_header_repository_);
-    auto executor = std::make_unique<runtime::Executor>(
-        env_factory, runtime_properties_cache_);
-    return executor->callAtGenesis<ValidationResult>("validate_block", params);
+
+    OUTCOME_TRY(genesis_hash, block_header_repository_->getHashByNumber(0));
+    OUTCOME_TRY(genesis_header,
+                block_header_repository_->getBlockHeader(genesis_hash));
+    OUTCOME_TRY(ctx,
+                runtime::RuntimeContext::ephemeral(instance,
+                                                   genesis_header.state_root));
+
+    return runtime::Executor::call<ValidationResult>(
+        ctx, "validate_block", params);
   }
 
   outcome::result<Pvf::CandidateCommitments> PvfImpl::fromOutputs(

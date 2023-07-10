@@ -19,7 +19,7 @@ namespace kagome::primitives {
 }  // namespace kagome::primitives
 
 namespace kagome::runtime {
-  class RuntimeEnvironmentFactory;
+  class ModuleRepository;
 }  // namespace kagome::runtime
 
 namespace kagome::storage::trie {
@@ -47,7 +47,7 @@ namespace kagome::network {
         const primitives::GenesisBlockHeader &genesis,
         std::shared_ptr<blockchain::BlockHeaderRepository> repository,
         std::shared_ptr<storage::trie::TrieStorage> storage,
-        std::shared_ptr<runtime::RuntimeEnvironmentFactory> env_factory);
+        std::shared_ptr<runtime::ModuleRepository> module_repo);
 
     outcome::result<ResponseType> onRxRequest(RequestType req,
                                               std::shared_ptr<Stream>) override;
@@ -57,7 +57,7 @@ namespace kagome::network {
    private:
     std::shared_ptr<blockchain::BlockHeaderRepository> repository_;
     std::shared_ptr<storage::trie::TrieStorage> storage_;
-    std::shared_ptr<runtime::RuntimeEnvironmentFactory> env_factory_;
+    std::shared_ptr<runtime::ModuleRepository> module_repo_;
   };
 }  // namespace kagome::network
 

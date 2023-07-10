@@ -258,10 +258,9 @@ namespace kagome::benchmark {
     auto duration_stat_it = duration_stats.begin();
     for (size_t block_i = 0; block_i < blocks.size(); block_i++) {
       OUTCOME_TRY(module_repo_->getInstanceAt(
-          code_provider_,
           primitives::BlockInfo{block_hashes[block_i],
                                 blocks[block_i].header.number},
-          blocks[block_i].header));
+          blocks[block_i].header.state_root));
       for (uint16_t i = 0; i < config.times; i++) {
         auto start = clock.now();
         OUTCOME_TRY_MSG_VOID(

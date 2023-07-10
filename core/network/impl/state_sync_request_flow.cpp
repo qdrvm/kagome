@@ -91,9 +91,9 @@ namespace kagome::network {
     assert(complete());
     auto &top = roots_[std::nullopt];
     OUTCOME_TRY(code, top.trie.get(storage::kRuntimeCodeKey));
-    OUTCOME_TRY(module, module_factory.make(code));
-    OUTCOME_TRY(module_instance, module->instantiate());
-    OUTCOME_TRY(runtime_version, core_api.version(*module_instance));
+    OUTCOME_TRY(runtime_module, module_factory.make(code));
+    OUTCOME_TRY(module_instance, runtime_module->instantiate());
+    OUTCOME_TRY(runtime_version, core_api.version(module_instance));
     auto version = storage::trie::StateVersion{runtime_version.state_version};
     for (auto &[expected, root] : roots_) {
       if (not expected) {
