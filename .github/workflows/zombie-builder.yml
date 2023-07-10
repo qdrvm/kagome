@@ -6,7 +6,7 @@ on:
 jobs:
   build_and_push_zombie_builder:
     runs-on: [ ubuntu-latest, kagome, self-hosted, linux ]
-    container: soramitsu/kagome-dev@sha256:a3153bda78e15337fc38b6800f508e8c3b27758cba6319e60e7c805b06e071f6
+    container: soramitsu/kagome-dev@sha256:28fb2d20a3ace7ac3ef86a27739a98d28f82140d3483a28236c42c8371a21fec
     steps:
     - uses: actions/checkout@dc323e67f16fb5f7663d20ff7941f27f5809e9b6
     - name: Install dependencies
