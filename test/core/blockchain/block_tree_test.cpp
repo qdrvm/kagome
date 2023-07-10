@@ -22,6 +22,7 @@
 #include "mock/core/consensus/babe/babe_config_repository_mock.hpp"
 #include "mock/core/consensus/babe/babe_util_mock.hpp"
 #include "mock/core/runtime/core_mock.hpp"
+#include "mock/core/storage/trie_pruner/trie_pruner_mock.hpp"
 #include "mock/core/transaction_pool/transaction_pool_mock.hpp"
 #include "network/impl/extrinsic_observer_impl.hpp"
 #include "primitives/block_id.hpp"
@@ -135,6 +136,15 @@ struct BlockTreeTest : public testing::Test {
           return outcome::success();
         }));
 
+    ON_CALL(*state_pruner_, restoreState(_, _))
+        .WillByDefault(Return(outcome::success()));
+
+    ON_CALL(*state_pruner_, pruneDiscarded(_))
+        .WillByDefault(Return(outcome::success()));
+
+    ON_CALL(*state_pruner_, pruneFinalized(_))
+        .WillByDefault(Return(outcome::success()));
+
     putNumToHash(kGenesisBlockInfo);
     putNumToHash(kFinalizedBlockInfo);
 
@@ -155,6 +165,7 @@ struct BlockTreeTest : public testing::Test {
                               ext_events_engine,
                               extrinsic_event_key_repo,
                               justification_storage_policy_,
+                              state_pruner_,
                               std::make_shared<::boost::asio::io_context>())
             .value();
   }
@@ -245,6 +256,9 @@ struct BlockTreeTest : public testing::Test {
   std::shared_ptr<JustificationStoragePolicyMock>
       justification_storage_policy_ =
           std::make_shared<StrictMock<JustificationStoragePolicyMock>>();
+
+  std::shared_ptr<storage::trie_pruner::TriePrunerMock> state_pruner_ =
+      std::make_shared<storage::trie_pruner::TriePrunerMock>();
 
   std::shared_ptr<application::AppStateManagerMock> app_state_manager_ =
       std::make_shared<application::AppStateManagerMock>();

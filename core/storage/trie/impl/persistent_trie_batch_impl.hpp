@@ -13,9 +13,13 @@
 #include "log/logger.hpp"
 #include "primitives/event_types.hpp"
 #include "storage/changes_trie/changes_tracker.hpp"
-#include "storage/trie/codec.hpp"
+#include "storage/trie/serialization/codec.hpp"
 #include "storage/trie/serialization/trie_serializer.hpp"
 #include "storage/trie/trie_batches.hpp"
+
+namespace kagome::storage::trie_pruner {
+  class TriePruner;
+}
 
 namespace kagome::storage::trie {
 
@@ -25,11 +29,12 @@ namespace kagome::storage::trie {
       NO_TRIE = 1,
     };
 
-    PersistentTrieBatchImpl(std::shared_ptr<Codec> codec,
-                            std::shared_ptr<TrieSerializer> serializer,
-                            TrieChangesTrackerOpt changes,
-                            std::shared_ptr<PolkadotTrie> trie);
-
+    PersistentTrieBatchImpl(
+        std::shared_ptr<Codec> codec,
+        std::shared_ptr<TrieSerializer> serializer,
+        TrieChangesTrackerOpt changes,
+        std::shared_ptr<PolkadotTrie> trie,
+        std::shared_ptr<storage::trie_pruner::TriePruner> state_pruner);
     ~PersistentTrieBatchImpl() override = default;
 
     outcome::result<RootHash> commit(StateVersion version) override;
@@ -42,11 +47,12 @@ namespace kagome::storage::trie {
     outcome::result<void> remove(const BufferView &key) override;
 
    protected:
-    virtual outcome::result<std::unique_ptr<TrieBatch>> createFromTrieHash(
+    virtual outcome::result<std::unique_ptr<TrieBatchBase>> createFromTrieHash(
         const RootHash &trie_hash) override;
 
    private:
     TrieChangesTrackerOpt changes_;
+    std::shared_ptr<storage::trie_pruner::TriePruner> state_pruner_;
   };
 
 }  // namespace kagome::storage::trie

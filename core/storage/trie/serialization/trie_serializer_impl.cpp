@@ -5,10 +5,11 @@
 
 #include "storage/trie/serialization/trie_serializer_impl.hpp"
 
+#include "common/monadic_utils.hpp"
 #include "outcome/outcome.hpp"
-#include "storage/trie/codec.hpp"
 #include "storage/trie/polkadot_trie/polkadot_trie_factory.hpp"
 #include "storage/trie/polkadot_trie/trie_node.hpp"
+#include "storage/trie/serialization/codec.hpp"
 #include "storage/trie/trie_storage_backend.hpp"
 
 namespace kagome::storage::trie {
@@ -37,77 +38,106 @@ namespace kagome::storage::trie {
   }
 
   outcome::result<std::shared_ptr<PolkadotTrie>>
-  TrieSerializerImpl::retrieveTrie(const common::Buffer &db_key,
+  TrieSerializerImpl::retrieveTrie(RootHash db_key,
                                    OnNodeLoaded on_node_loaded) const {
-    PolkadotTrie::NodeRetrieveFunctor f =
+    PolkadotTrie::NodeRetrieveFunction f =
         [this, on_node_loaded](const std::shared_ptr<OpaqueTrieNode> &parent)
         -> outcome::result<PolkadotTrie::NodePtr> {
       OUTCOME_TRY(node, retrieveNode(parent, on_node_loaded));
       return std::move(node);
     };
+    PolkadotTrie::ValueRetrieveFunction v =
+        [this, on_node_loaded](const common::Hash256 &hash)
+        -> outcome::result<std::optional<common::Buffer>> {
+      OUTCOME_TRY(value, retrieveValue(hash, on_node_loaded));
+      return value;
+    };
     if (db_key == getEmptyRootHash()) {
-      return trie_factory_->createEmpty(std::move(f));
+      return trie_factory_->createEmpty(
+          PolkadotTrie::RetrieveFunctions{std::move(f), std::move(v)});
     }
     OUTCOME_TRY(root, retrieveNode(db_key, on_node_loaded));
-    return trie_factory_->createFromRoot(std::move(root), std::move(f));
+    return trie_factory_->createFromRoot(
+        std::move(root),
+        PolkadotTrie::RetrieveFunctions{std::move(f), std::move(v)});
   }
 
   outcome::result<RootHash> TrieSerializerImpl::storeRootNode(
       TrieNode &node, StateVersion version) {
     auto batch = backend_->batch();
+    BOOST_ASSERT(batch != nullptr);
 
-    OUTCOME_TRY(enc,
-                codec_->encodeNode(node,
-                                   version,
-                                   [&](const TrieNode *,
-                                       common::BufferView hash,
-                                       common::Buffer &&encoded) {
-                                     return batch->put(hash,
-                                                       std::move(encoded));
-                                   }));
-    auto key = codec_->hash256(enc);
-    OUTCOME_TRY(batch->put(key, std::move(enc)));
+    OUTCOME_TRY(
+        enc,
+        codec_->encodeNode(
+            node,
+            version,
+            [&](Codec::Visitee visitee) -> outcome::result<void> {
+              if (auto child_data = std::get_if<Codec::ChildData>(&visitee);
+                  child_data != nullptr) {
+                if (child_data->merkle_value.isHash()) {
+                  return batch->put(child_data->merkle_value.asBuffer(),
+                                    std::move(child_data->encoding));
+                } else {
+                  return outcome::success();  // nodes which encoding is shorter
+                                              // than its hash are not stored in
+                                              // the DB separately
+                }
+              }
+              auto value_data = std::get<Codec::ValueData>(visitee);
+              // value_data.value is a reference to a buffer stored outside of
+              // this lambda, so taking its view should be okay
+              return batch->put(value_data.hash, value_data.value.view());
+            }));
+    auto hash = codec_->hash256(enc);
+    OUTCOME_TRY(batch->put(hash, std::move(enc)));
     OUTCOME_TRY(batch->commit());
 
-    return key;
+    return hash;
   }
 
   outcome::result<PolkadotTrie::NodePtr> TrieSerializerImpl::retrieveNode(
-      const std::shared_ptr<OpaqueTrieNode> &parent,
+      const std::shared_ptr<OpaqueTrieNode> &node,
       const OnNodeLoaded &on_node_loaded) const {
-    if (auto p = std::dynamic_pointer_cast<DummyValue>(parent); p != nullptr) {
-      OUTCOME_TRY(value, backend_->get(*p->value.hash));
-      if (on_node_loaded) {
-        on_node_loaded(value);
-      }
-      p->value.value = value.into();
-      return nullptr;
-    }
-    if (auto p = std::dynamic_pointer_cast<DummyNode>(parent); p != nullptr) {
+    if (auto p = std::dynamic_pointer_cast<DummyNode>(node); p != nullptr) {
       OUTCOME_TRY(n, retrieveNode(p->db_key, on_node_loaded));
       return std::move(n);
     }
-    return std::dynamic_pointer_cast<TrieNode>(parent);
+    return std::dynamic_pointer_cast<TrieNode>(node);
   }
 
   outcome::result<PolkadotTrie::NodePtr> TrieSerializerImpl::retrieveNode(
-      const common::Buffer &db_key, const OnNodeLoaded &on_node_loaded) const {
-    if (db_key.empty() or db_key == getEmptyRootHash()) {
+      MerkleValue db_key, const OnNodeLoaded &on_node_loaded) const {
+    if (db_key.asHash() == getEmptyRootHash()) {
       return nullptr;
     }
     Buffer enc;
-    if (codec_->isMerkleHash(db_key)) {
-      OUTCOME_TRY(db, backend_->get(db_key));
+    if (db_key.isHash()) {
+      OUTCOME_TRY(db, backend_->get(db_key.asBuffer()));
       if (on_node_loaded) {
         on_node_loaded(db);
       }
-      enc = db.into();
+      enc = db.intoBuffer();
     } else {
       // `isMerkleHash(db_key) == false` means `db_key` is value itself
-      enc = db_key;
+      enc = db_key.asBuffer();
     }
     OUTCOME_TRY(n, codec_->decodeNode(enc));
-    return std::dynamic_pointer_cast<TrieNode>(n);
+    auto node = std::dynamic_pointer_cast<TrieNode>(n);
+    return node;
+  }
+
+  outcome::result<std::optional<common::Buffer>>
+  TrieSerializerImpl::retrieveValue(const common::Hash256 &hash,
+                                    const OnNodeLoaded &on_node_loaded) const {
+    OUTCOME_TRY(value, backend_->tryGet(hash));
+    return common::map_optional(std::move(value),
+                                [&](common::BufferOrView &&value) {
+                                  if (on_node_loaded) {
+                                    on_node_loaded(value);
+                                  }
+                                  return value.intoBuffer();
+                                });
   }
 
 }  // namespace kagome::storage::trie

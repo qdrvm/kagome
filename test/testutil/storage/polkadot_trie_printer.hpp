@@ -41,8 +41,8 @@ namespace kagome::storage::trie {
         } else {
           stream_ << std::setfill('-') << std::setw(nest_level) << ""
                   << std::setw(0) << "(leaf) key: <"
-                  << hex_lower(node->key_nibbles.toByteBuffer())
-                  << "> value: " << node->value.value->toHex() << "\n";
+                  << hex_lower(node->getKeyNibbles().toByteBuffer())
+                  << "> value: " << node->getValue().value->toHex() << "\n";
         }
         return stream_;
       }
@@ -53,11 +53,12 @@ namespace kagome::storage::trie {
                        size_t nest_level) {
         std::string indent(nest_level, '\t');
         auto value =
-            (node->value ? "\"" + node->value.value->toHex() + "\"" : "NONE");
+            (node->getValue() ? "\"" + node->getValue().value->toHex() + "\""
+                              : "NONE");
         auto branch = std::dynamic_pointer_cast<const BranchNode>(node);
         stream_ << std::setfill('-') << std::setw(nest_level) << ""
                 << std::setw(0) << "(branch) key: <"
-                << hex_lower(node->key_nibbles.toByteBuffer())
+                << hex_lower(node->getKeyNibbles().toByteBuffer())
                 << "> value: " << value << " children: ";
         for (size_t i = 0; i < branch->children.size(); i++) {
           if (branch->children[i]) {
@@ -65,9 +66,7 @@ namespace kagome::storage::trie {
           }
         }
         stream_ << "\n";
-        if (false) {
-          printEncAndHash(node, nest_level);
-        }
+        printEncAndHash(node, nest_level);
         for (size_t i = 0; i < branch->children.size(); i++) {
           auto child = branch->children.at(i);
           if (child) {
@@ -91,16 +90,16 @@ namespace kagome::storage::trie {
         }
         if (print_hash_) {
           stream_ << std::setfill('-') << std::setw(nest_level) << ""
-                  << std::setw(0)
-                  << "hash: " << common::hex_upper(codec_.merkleValue(enc))
+                  << std::setw(0) << "hash: "
+                  << common::hex_upper(codec_.merkleValue(enc).asBuffer())
                   << "\n";
         }
       }
 
       Stream &stream_;
       PolkadotCodec codec_;
-      bool print_enc_;
-      bool print_hash_;
+      bool print_enc_ = false;
+      bool print_hash_ = true;
     };
   }  // namespace printer_internal
 

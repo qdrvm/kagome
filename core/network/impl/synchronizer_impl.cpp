@@ -83,6 +83,7 @@ namespace kagome::network {
       std::shared_ptr<consensus::babe::BlockExecutor> block_executor,
       std::shared_ptr<storage::trie::TrieSerializer> serializer,
       std::shared_ptr<storage::trie::TrieStorage> storage,
+      std::shared_ptr<storage::trie_pruner::TriePruner> trie_pruner,
       std::shared_ptr<network::Router> router,
       std::shared_ptr<libp2p::basic::Scheduler> scheduler,
       std::shared_ptr<crypto::Hasher> hasher,
@@ -97,6 +98,7 @@ namespace kagome::network {
         block_executor_(std::move(block_executor)),
         serializer_(std::move(serializer)),
         storage_(std::move(storage)),
+        trie_pruner_(std::move(trie_pruner)),
         router_(std::move(router)),
         scheduler_(std::move(scheduler)),
         hasher_(std::move(hasher)),
@@ -109,6 +111,7 @@ namespace kagome::network {
     BOOST_ASSERT(block_executor_);
     BOOST_ASSERT(serializer_);
     BOOST_ASSERT(storage_);
+    BOOST_ASSERT(trie_pruner_);
     BOOST_ASSERT(router_);
     BOOST_ASSERT(scheduler_);
     BOOST_ASSERT(hasher_);
@@ -844,7 +847,7 @@ namespace kagome::network {
             std::make_tuple(peer_id, request_fingerprint),
             "load justifications");
         not r.second) {
-      SL_ERROR(log_,
+      SL_DEBUG(log_,
                "Can't load justification from {} for block {}: Duplicate '{}' "
                "request",
                peer_id,
@@ -870,7 +873,7 @@ namespace kagome::network {
       }
 
       if (response_res.has_error()) {
-        SL_ERROR(self->log_,
+        SL_DEBUG(self->log_,
                  "Can't load justification from {} for block {}: {}",
                  peer_id,
                  target_block,
@@ -974,9 +977,16 @@ namespace kagome::network {
                                         const primitives::BlockInfo &_block,
                                         CbResultVoid &&cb) {
     auto block = _block;
+
+    auto hash_res = block_tree_->getBlockHash(1);
+    if (!hash_res) {
+      SL_ERROR(
+          log_, "Error retrieving the first block hash: {}", hash_res.error());
+      return;
+    }
+    auto& hash_opt = hash_res.value();
     // BabeConfigRepositoryImpl first block slot
-    if (auto hash = block_tree_->getBlockHash(1);
-        not hash or not block_tree_->getBlockHeader(hash.value())) {
+    if (not hash_opt or not block_tree_->getBlockHeader(hash_opt.value())) {
       auto cb2 = [=, cb{std::move(cb)}, weak{weak_from_this()}](
                      outcome::result<BlocksResponse> _res) mutable {
         auto self = weak.lock();
@@ -1106,7 +1116,7 @@ namespace kagome::network {
       return;
     }
     if (not state_sync_flow_ or state_sync_flow_->blockInfo() != block) {
-      state_sync_flow_.emplace(block, header);
+      state_sync_flow_.emplace(trie_pruner_, block, header);
     }
     state_sync_.emplace(StateSync{
         peer_id,
@@ -1352,12 +1362,12 @@ namespace kagome::network {
                       return;
                     }
 
-                    SL_WARN(self->log_,
-                            "Missing justifications between blocks {} and "
-                            "{} was not loaded: {}",
-                            last_finalized,
-                            block_info.number,
-                            res.error());
+                    SL_DEBUG(self->log_,
+                             "Missing justifications between blocks {} and "
+                             "{} was not loaded: {}",
+                             last_finalized,
+                             block_info.number,
+                             res.error());
                   }
                 });
           }

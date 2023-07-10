@@ -39,8 +39,29 @@ namespace kagome::storage::trie {
      * is no entry for provided key.
      */
     virtual outcome::result<std::shared_ptr<PolkadotTrie>> retrieveTrie(
-        const common::Buffer &db_key,
-        OnNodeLoaded on_node_loaded) const = 0;
+        RootHash db_key,
+        OnNodeLoaded on_node_loaded = [](EncodedNode) {}) const = 0;
+
+    /**
+     * Fetches a node from the storage. A nullptr is returned in case that there
+     * is no entry for provided key. Mind that a branch node will have dummy
+     * nodes as its children
+     */
+    virtual outcome::result<PolkadotTrie::NodePtr> retrieveNode(
+        MerkleValue db_key,
+        const OnNodeLoaded &on_node_loaded = [](EncodedNode) {}) const = 0;
+
+    /**
+     * Retrieves a node, replacing a dummy node to an actual node if
+     * needed
+     */
+    virtual outcome::result<PolkadotTrie::NodePtr> retrieveNode(
+        const std::shared_ptr<OpaqueTrieNode> &node,
+        const OnNodeLoaded &on_node_loaded = [](EncodedNode) {}) const = 0;
+
+    virtual outcome::result<std::optional<common::Buffer>> retrieveValue(
+        const common::Hash256 &hash,
+        const OnNodeLoaded &on_node_loaded) const = 0;
   };
 
 }  // namespace kagome::storage::trie

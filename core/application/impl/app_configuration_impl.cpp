@@ -5,7 +5,6 @@
 
 #include "application/impl/app_configuration_impl.hpp"
 
-#include <fstream>
 #include <limits>
 #include <regex>
 #include <string>
@@ -18,7 +17,6 @@
 #include <boost/uuid/uuid_io.hpp>
 #include <charconv>
 #include <libp2p/layer/websocket/wss_adaptor.hpp>
-#include "filesystem/common.hpp"
 
 #include "api/transport/tuner.hpp"
 #include "application/build_version.hpp"
@@ -27,6 +25,7 @@
 #include "chain_spec_impl.hpp"
 #include "common/hexutil.hpp"
 #include "common/uri.hpp"
+#include "filesystem/common.hpp"
 #include "filesystem/directories.hpp"
 #include "utils/read_file.hpp"
 
@@ -248,7 +247,8 @@ namespace kagome::application {
         offchain_worker_mode_{def_offchain_worker_mode},
         enable_offchain_indexing_{def_enable_offchain_indexing},
         recovery_state_{def_block_to_recover},
-        db_cache_size_{def_db_cache_size} {
+        db_cache_size_{def_db_cache_size},
+        state_pruning_depth_{} {
     SL_INFO(logger_, "Soramitsu Kagome started. Version: {} ", buildVersion());
   }
 
@@ -790,6 +790,7 @@ namespace kagome::application {
         ("db-cache", po::value<uint32_t>()->default_value(def_db_cache_size), "Limit the memory the database cache can use <MiB>")
         ("enable-offchain-indexing", po::value<bool>(), "enable Offchain Indexing API, which allow block import to write to offchain DB)")
         ("recovery", po::value<std::string>(), "recovers block storage to state after provided block presented by number or hash, and stop after that")
+        ("state-pruning", po::value<std::string>()->default_value("archive"), "state pruning policy. 'archive' or the number of finalized blocks to keep.")
         ;
 
     po::options_description network_desc("Network options");
@@ -1443,6 +1444,27 @@ namespace kagome::application {
     });
     if (has_recovery and not recovery_state_.has_value()) {
       return false;
+    }
+
+    if (auto state_pruning_opt =
+            find_argument<std::string>(vm, "state-pruning");
+        state_pruning_opt.has_value()) {
+      const auto& val = state_pruning_opt.value();
+      if (val == "archive") {
+        state_pruning_depth_ = std::nullopt;
+      } else {
+        uint32_t depth{};
+        auto [_, err] = std::from_chars(&*val.begin(), &*val.end(), depth);
+        if (err == std::errc{}) {
+          state_pruning_depth_ = depth;
+        } else {
+          SL_ERROR(logger_,
+                   "Failed to parse state-pruning param (which should be "
+                   "either 'archive' or an integer): {}",
+                   err);
+          return false;
+        }
+      }
     }
 
     // if something wrong with config print help message

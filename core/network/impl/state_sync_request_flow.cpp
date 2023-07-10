@@ -9,6 +9,7 @@
 #include "runtime/runtime_api/core.hpp"
 #include "storage/predefined_keys.hpp"
 #include "storage/trie/serialization/trie_serializer.hpp"
+#include "storage/trie_pruner/trie_pruner.hpp"
 
 OUTCOME_CPP_DEFINE_CATEGORY(kagome::network, StateSyncRequestFlow::Error, e) {
   using E = decltype(e);
@@ -23,10 +24,12 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::network, StateSyncRequestFlow::Error, e) {
 
 namespace kagome::network {
   StateSyncRequestFlow::StateSyncRequestFlow(
+      std::shared_ptr<storage::trie_pruner::TriePruner> state_pruner,
       const primitives::BlockInfo &block_info,
       const primitives::BlockHeader &block)
-      : block_info_{block_info}, block_{block} {
-    roots_[std::nullopt];
+      : state_pruner_{state_pruner}, block_info_{block_info}, block_{block} {
+    BOOST_ASSERT(state_pruner_ != nullptr);
+    roots_.insert({std::nullopt, Root{}});
   }
 
   bool StateSyncRequestFlow::complete() const {
@@ -34,13 +37,13 @@ namespace kagome::network {
   }
 
   StateRequest StateSyncRequestFlow::nextRequest() const {
-    assert(not complete());
+    BOOST_ASSERT(not complete());
     return StateRequest{block_info_.hash, last_key_, true};
   }
 
   outcome::result<void> StateSyncRequestFlow::onResponse(
       const StateResponse &res) {
-    assert(not complete());
+    BOOST_ASSERT(not complete());
     auto empty = true;
     for (auto &entry : res.entries) {
       if (not entry.entries.empty() or entry.complete) {
@@ -71,7 +74,7 @@ namespace kagome::network {
           OUTCOME_TRY(hash, RootHash::fromSpan(value));
           roots_[hash].children.emplace_back(key);
         } else {
-          root.trie.put(key, common::BufferView{value}).value();
+          root.trie->put(key, common::BufferView{value}).value();
         }
       }
       if (entry.complete) {
@@ -85,9 +88,9 @@ namespace kagome::network {
       const runtime::ModuleFactory &module_factory,
       runtime::Core &core_api,
       storage::trie::TrieSerializer &trie_serializer) {
-    assert(complete());
+    BOOST_ASSERT(complete());
     auto &top = roots_[std::nullopt];
-    OUTCOME_TRY(code, top.trie.get(storage::kRuntimeCodeKey));
+    OUTCOME_TRY(code, top.trie->get(storage::kRuntimeCodeKey));
     OUTCOME_TRY(env,
                 runtime::RuntimeEnvironment::fromCode(module_factory, code));
     OUTCOME_TRY(runtime_version, core_api.version(env));
@@ -96,15 +99,17 @@ namespace kagome::network {
       if (not expected) {
         continue;
       }
-      OUTCOME_TRY(actual, trie_serializer.storeTrie(root.trie, version));
+      OUTCOME_TRY(actual, trie_serializer.storeTrie(*root.trie, version));
+      OUTCOME_TRY(state_pruner_->addNewState(*root.trie, version));
       if (actual != expected) {
         return Error::HASH_MISMATCH;
       }
       for (auto &child : root.children) {
-        top.trie.put(child, common::BufferView{actual}).value();
+        top.trie->put(child, common::BufferView{actual}).value();
       }
     }
-    OUTCOME_TRY(actual, trie_serializer.storeTrie(top.trie, version));
+    OUTCOME_TRY(actual, trie_serializer.storeTrie(*top.trie, version));
+    OUTCOME_TRY(state_pruner_->addNewState(*top.trie, version));
     if (actual != block_.state_root) {
       return Error::HASH_MISMATCH;
     }

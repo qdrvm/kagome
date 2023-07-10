@@ -12,7 +12,6 @@
 
 #include "common/blob.hpp"
 #include "common/buffer.hpp"
-#include "storage/trie/node.hpp"
 
 namespace kagome::storage::trie {
 
@@ -80,15 +79,68 @@ namespace kagome::storage::trie {
     }
   };
 
+  using MerkleHash = common::Hash256;
+
+  struct MerkleValue final {
+   public:
+    // the only error is zero size or exceeding size limit, so returns an
+    // optional
+    static std::optional<MerkleValue> create(common::BufferView merkle_value) {
+      auto size = static_cast<size_t>(merkle_value.size());
+      if (size == common::Hash256::size()) {
+        return MerkleValue{common::Hash256::fromSpan(merkle_value).value(),
+                           size};
+      } else if (size < common::Hash256::size() && size > 0) {
+        common::Hash256 hash;
+        std::copy_n(merkle_value.begin(), size, hash.begin());
+        return MerkleValue{hash, size};
+      }
+      return std::nullopt;
+    }
+
+    MerkleValue(const MerkleHash &hash)
+        : value{hash}, size{MerkleHash::size()} {}
+
+    bool isHash() const {
+      return size == MerkleHash::size();
+    }
+
+    std::optional<MerkleHash> asHash() const {
+      if (isHash()) {
+        return value;
+      }
+      return std::nullopt;
+    }
+
+    common::BufferView asBuffer() const {
+      return common::BufferView{value.begin(), value.begin() + size};
+    }
+
+   private:
+    MerkleValue(const common::Hash256 &value, size_t size)
+        : value{value}, size{size} {}
+    common::Hash256 value;
+    size_t size;
+  };
+
   class ValueAndHash {
    public:
     ValueAndHash() = default;
-    ValueAndHash(std::optional<common::Hash256> hash,
-                 std::optional<common::Buffer> value,
+    ValueAndHash(std::optional<common::Buffer> value,
+                 std::optional<common::Hash256> hash,
                  bool dirty = true)
         : hash{hash}, value{std::move(value)}, dirty_{dirty} {}
+
     operator bool() const {
-      return hash || value;
+      return is_some();
+    }
+
+    bool is_none() const {
+      return !is_some();
+    }
+
+    bool is_some() const {
+      return hash.has_value() || value.has_value();
     }
 
     bool dirty() const {
@@ -112,14 +164,14 @@ namespace kagome::storage::trie {
    * 5.3 The Trie structure in the Polkadot Host specification
    */
 
-  struct OpaqueTrieNode : public Node {};
+  struct OpaqueTrieNode {
+    virtual ~OpaqueTrieNode() = default;
+  };
 
   struct TrieNode : public OpaqueTrieNode {
     TrieNode() = default;
     TrieNode(KeyNibbles key_nibbles, ValueAndHash value)
-        : key_nibbles{std::move(key_nibbles)}, value{std::move(value)} {}
-
-    ~TrieNode() override = default;
+        : key_nibbles_{std::move(key_nibbles)}, value_{std::move(value)} {}
 
     enum class Type {
       Special,                    // -
@@ -132,10 +184,39 @@ namespace kagome::storage::trie {
       ReservedForCompactEncoding  // 0001 0000
     };
 
-    inline bool isBranch() const noexcept;
+    virtual bool isBranch() const noexcept = 0;
 
-    KeyNibbles key_nibbles;
-    ValueAndHash value;
+    const KeyNibbles &getKeyNibbles() const {
+      return key_nibbles_;
+    }
+
+    KeyNibbles &getMutKeyNibbles() {
+      return key_nibbles_;
+    }
+
+    void setKeyNibbles(KeyNibbles &&key_nibbles) {
+      key_nibbles_ = std::move(key_nibbles);
+    }
+
+    const ValueAndHash &getValue() const {
+      return value_;
+    }
+
+    ValueAndHash &getMutableValue() {
+      return value_;
+    }
+
+    void setValue(const ValueAndHash &new_value) {
+      value_ = new_value;
+    }
+
+    void setValue(ValueAndHash &&new_value) {
+      value_ = std::move(new_value);
+    }
+
+   private:
+    KeyNibbles key_nibbles_;
+    ValueAndHash value_;
   };
 
   struct BranchNode : public TrieNode {
@@ -144,9 +225,23 @@ namespace kagome::storage::trie {
     BranchNode() = default;
     explicit BranchNode(KeyNibbles key_nibbles,
                         std::optional<common::Buffer> value = std::nullopt)
-        : TrieNode{std::move(key_nibbles), {std::nullopt, std::move(value)}} {}
+        : TrieNode{std::move(key_nibbles), {std::move(value), std::nullopt}} {}
 
     ~BranchNode() override = default;
+
+    uint8_t getNextChildIdxFrom(uint8_t child_idx) const {
+      while (child_idx < kMaxChildren) {
+        if (children[child_idx]) {
+          return child_idx;
+        }
+        child_idx++;
+      }
+      return kMaxChildren;
+    }
+
+    virtual bool isBranch() const noexcept override {
+      return true;
+    }
 
     uint16_t childrenBitmap() const;
     uint8_t childrenNum() const;
@@ -157,16 +252,16 @@ namespace kagome::storage::trie {
     std::array<std::shared_ptr<OpaqueTrieNode>, kMaxChildren> children;
   };
 
-  bool TrieNode::isBranch() const noexcept {
-    return dynamic_cast<const BranchNode *>(this) != nullptr;
-  }
-
   struct LeafNode : public TrieNode {
     LeafNode() = default;
-    LeafNode(KeyNibbles key_nibbles, std::optional<common::Buffer> value)
-        : TrieNode{std::move(key_nibbles), {std::nullopt, std::move(value)}} {}
+    LeafNode(KeyNibbles key_nibbles, common::Buffer value)
+        : TrieNode{std::move(key_nibbles), {std::move(value), std::nullopt}} {}
     LeafNode(KeyNibbles key_nibbles, ValueAndHash value)
         : TrieNode{std::move(key_nibbles), std::move(value)} {}
+
+    virtual bool isBranch() const noexcept override {
+      return false;
+    }
 
     ~LeafNode() override = default;
   };
@@ -181,22 +276,11 @@ namespace kagome::storage::trie {
      * @param key a storage key, which is a hash of an encoded node according to
      * PolkaDot specification
      */
-    explicit DummyNode(common::Buffer key) : db_key{std::move(key)} {}
+    explicit DummyNode(const MerkleValue &key) : db_key{key} {}
 
-    common::Buffer db_key;
+    MerkleValue db_key;
   };
 
-  // TODO(turuslan): #1470, refactor retrieve
-  /**
-   * Workaround to retrieve value from hash if value is not present.
-   * @see PolkadotTrieImpl::retrieveValue
-   * @see TrieSerializerImpl::retrieveNode
-   */
-  struct DummyValue : OpaqueTrieNode {
-    DummyValue(ValueAndHash &value) : value{value} {}
-
-    ValueAndHash &value;
-  };
 }  // namespace kagome::storage::trie
 
 template <>

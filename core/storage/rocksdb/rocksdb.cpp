@@ -184,7 +184,7 @@ namespace kagome::storage {
     return std::make_unique<RocksDbBatch>(*this);
   }
 
-  size_t RocksDbSpace::size() const {
+  std::optional<size_t> RocksDbSpace::byteSizeHint() const {
     auto rocks = storage_.lock();
     if (!rocks) {
       return 0;
@@ -262,9 +262,10 @@ namespace kagome::storage {
     std::string value;
     auto status = rocks->db_->Get(rocks->ro_, column_, make_slice(key), &value);
     if (status.ok()) {
-      return std::make_optional(Buffer(
-          reinterpret_cast<uint8_t *>(value.data()),                   // NOLINT
-          reinterpret_cast<uint8_t *>(value.data()) + value.size()));  // NOLINT
+      auto buf = Buffer(
+          reinterpret_cast<uint8_t *>(value.data()),                  // NOLINT
+          reinterpret_cast<uint8_t *>(value.data()) + value.size());  // NOLINT
+      return std::make_optional(BufferOrView(std::move(buf)));
     }
 
     if (status.IsNotFound()) {

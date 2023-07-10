@@ -409,7 +409,7 @@ namespace kagome::consensus::babe {
   void BabeImpl::adjustEpochDescriptor() {
     auto first_slot_number = babe_util_->syncEpoch([&]() {
       auto hash_res = block_tree_->getBlockHash(primitives::BlockNumber(1));
-      if (hash_res.has_error()) {
+      if (hash_res.has_error() || !hash_res.value().has_value()) {
         SL_TRACE(log_,
                  "First block slot is {}: no first block (at adjusting)",
                  babe_util_->getCurrentSlot());
@@ -417,7 +417,7 @@ namespace kagome::consensus::babe {
       }
 
       auto first_block_header_res =
-          block_tree_->getBlockHeader(hash_res.value());
+          block_tree_->getBlockHeader(*hash_res.value());
       if (first_block_header_res.has_error()) {
         SL_CRITICAL(log_,
                     "Database is not consistent: "
@@ -1254,8 +1254,7 @@ namespace kagome::consensus::babe {
                 return common::Buffer{scale::encode(ext).value()};
               }));
           return ext_root_res.has_value()
-             and (ext_root_res.value()
-                  == common::Buffer(block.header.extrinsics_root));
+             and (ext_root_res.value() == block.header.extrinsics_root);
         }(),
         "Extrinsics root does not match extrinsics in the block");
 
@@ -1381,8 +1380,8 @@ namespace kagome::consensus::babe {
     current_epoch_.start_slot = current_slot_;
 
     babe_util_->syncEpoch([&]() {
-      auto hash_res = block_tree_->getBlockHash(primitives::BlockNumber(1));
-      if (hash_res.has_error()) {
+      auto hash_opt_res = block_tree_->getBlockHash(primitives::BlockNumber(1));
+      if (hash_opt_res.has_error() || !hash_opt_res.value().has_value()) {
         SL_TRACE(log_,
                  "First block slot is {}: no first block (at start next epoch)",
                  babe_util_->getCurrentSlot());
@@ -1390,7 +1389,7 @@ namespace kagome::consensus::babe {
       }
 
       auto first_block_header_res =
-          block_tree_->getBlockHeader(hash_res.value());
+          block_tree_->getBlockHeader(*hash_opt_res.value());
       if (first_block_header_res.has_error()) {
         SL_CRITICAL(log_,
                     "Database is not consistent: "
