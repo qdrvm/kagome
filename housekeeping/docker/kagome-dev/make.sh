@@ -14,8 +14,6 @@ else
   BUILD_THREADS="${BUILD_THREADS:-$(( $(nproc 2>/dev/null || sysctl -n hw.ncpu) / 2 + 1 ))}"
 fi
 
-git submodule update --init
-
 cd "$(dirname $0)/../../.."
 
 cmake . -B"${BUILD_DIR}" -G 'Unix Makefiles' -DCMAKE_BUILD_TYPE="${BUILD_TYPE}"
