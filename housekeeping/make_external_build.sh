@@ -10,13 +10,6 @@ function realpath {
   fi
 }
 
-# Configure CI git security
-if [ -d "/__w/kagome/kagome" ]
-then
-  echo "Directory /__w/kagome/kagome exists. Updating safe.directory"
-  git config --global --add safe.directory /__w/kagome/kagome
-fi
-
 SCRIPT_DIR=$(realpath "$(dirname "${BASH_SOURCE[0]}")")
 
 cd "$SCRIPT_DIR"
