@@ -3,10 +3,12 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "runtime/runtime_environment_factory.hpp"
+#include "runtime/runtime_context.hpp"
 
 #include "log/profiling_logger.hpp"
 #include "runtime/common/uncompress_code_if_needed.hpp"
+#include "runtime/memory_provider.hpp"
+#include "runtime/trie_storage_provider.hpp"
 #include "runtime/instance_environment.hpp"
 #include "runtime/module.hpp"
 #include "runtime/module_factory.hpp"

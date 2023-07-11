@@ -11,7 +11,7 @@
 #include "runtime/module_repository.hpp"
 #include "runtime/runtime_api/impl/core.hpp"
 #include "runtime/runtime_api/impl/runtime_properties_cache_impl.hpp"
-#include "runtime/runtime_environment_factory.hpp"
+#include "runtime/runtime_context.hpp"
 #include "runtime/wavm/compartment_wrapper.hpp"
 #include "runtime/wavm/instance_environment_factory.hpp"
 #include "runtime/wavm/intrinsics/intrinsic_functions.hpp"

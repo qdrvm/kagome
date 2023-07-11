@@ -6,7 +6,7 @@
 #ifndef KAGOME_TEST_MOCK_CORE_RUNTIME_RUNTIME_ENVIRONMENT_FACTORY_MOCK_HPP
 #define KAGOME_TEST_MOCK_CORE_RUNTIME_RUNTIME_ENVIRONMENT_FACTORY_MOCK_HPP
 
-#include "runtime/runtime_environment_factory.hpp"
+#include "runtime/runtime_context.hpp"
 
 #include <gmock/gmock.h>
 

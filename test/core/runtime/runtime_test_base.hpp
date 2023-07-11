@@ -45,7 +45,7 @@
 #include "runtime/common/runtime_upgrade_tracker_impl.hpp"
 #include "runtime/core_api_factory.hpp"
 #include "runtime/module.hpp"
-#include "runtime/runtime_environment_factory.hpp"
+#include "runtime/runtime_context.hpp"
 #include "storage/in_memory/in_memory_storage.hpp"
 #include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"

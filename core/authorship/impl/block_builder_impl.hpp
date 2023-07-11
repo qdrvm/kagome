@@ -13,7 +13,7 @@
 #include "primitives/event_types.hpp"
 #include "runtime/runtime_api/block_builder.hpp"
 #include "runtime/runtime_api/core.hpp"
-#include "runtime/runtime_environment_factory.hpp"
+#include "runtime/runtime_context.hpp"
 
 namespace kagome::authorship {
 

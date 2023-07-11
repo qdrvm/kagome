@@ -11,6 +11,7 @@
 #include <optional>
 
 #include "common/buffer.hpp"
+#include "blockchain/block_header_repository.hpp"
 #include "host_api/host_api.hpp"
 #include "log/logger.hpp"
 #include "log/profiling_logger.hpp"
@@ -20,7 +21,7 @@
 #include "runtime/module_instance.hpp"
 #include "runtime/module_repository.hpp"
 #include "runtime/runtime_api/metadata.hpp"
-#include "runtime/runtime_environment_factory.hpp"
+#include "runtime/runtime_context.hpp"
 #include "runtime/runtime_properties_cache.hpp"
 #include "runtime/trie_storage_provider.hpp"
 #include "scale/scale.hpp"

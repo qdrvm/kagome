@@ -6,19 +6,13 @@
 #ifndef KAGOME_CORE_RUNTIME_RUNTIME_ENVIRONMENT_FACTORY_HPP
 #define KAGOME_CORE_RUNTIME_RUNTIME_ENVIRONMENT_FACTORY_HPP
 
-#include "blockchain/block_header_repository.hpp"
-#include "common/buffer.hpp"
-#include "host_api/host_api.hpp"
-#include "host_api/host_api_factory.hpp"
 #include "log/logger.hpp"
 #include "outcome/outcome.hpp"
-#include "primitives/version.hpp"
-#include "runtime/memory_provider.hpp"
 #include "runtime/module_instance.hpp"
-#include "runtime/module_repository.hpp"
-#include "runtime/trie_storage_provider.hpp"
-#include "scale/scale.hpp"
-#include "storage/trie/trie_batches.hpp"
+
+namespace kagome::storage::changes_trie {
+  class ChangesTracker;
+}
 
 namespace kagome::runtime {
   class ModuleFactory;
