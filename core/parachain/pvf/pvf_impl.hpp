@@ -9,6 +9,7 @@
 #include "parachain/pvf/pvf.hpp"
 
 #include <thread>
+#include <shared_mutex>
 
 #include "blockchain/block_header_repository.hpp"
 #include "crypto/sr25519_provider.hpp"
@@ -82,7 +83,7 @@ namespace kagome::parachain {
     std::shared_ptr<runtime::ParachainHost> parachain_api_;
     log::Logger log_;
 
-    mutable std::mutex instance_cache_mutex_;
+    mutable std::shared_mutex instance_cache_mutex_;
     mutable std::map<std::pair<std::thread::id, ParachainId>,
                                std::shared_ptr<runtime::ModuleInstance>>
         instance_cache_;

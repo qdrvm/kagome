@@ -10,6 +10,10 @@
 #include "outcome/outcome.hpp"
 #include "runtime/module_instance.hpp"
 
+namespace kagome::storage::trie {
+  class TrieBatch;
+}
+
 namespace kagome::storage::changes_trie {
   class ChangesTracker;
 }
@@ -29,11 +33,14 @@ namespace kagome::runtime {
     RuntimeContext &operator=(const RuntimeContext &) = delete;
 
     RuntimeContext(RuntimeContext &&) = default;
-    RuntimeContext &operator=(RuntimeContext &&) = default;
 
     static outcome::result<RuntimeContext> fromCode(
         const runtime::ModuleFactory &module_factory,
         common::BufferView code_zstd);
+
+    static outcome::result<RuntimeContext> fromBatch(
+        std::shared_ptr<ModuleInstance> module_instance,
+        std::shared_ptr<storage::trie::TrieBatch> batch);
 
     static outcome::result<RuntimeContext> persistent(
         std::shared_ptr<ModuleInstance> module_instance,

@@ -145,16 +145,16 @@ namespace kagome::runtime {
       OUTCOME_TRY(instance,
                   module_repo_->getInstanceAt({block_hash, header.number},
                                               header.state_root));
-      return callAtRaw(instance, header.state_root, name, encoded_args);
+      OUTCOME_TRY(ctx, RuntimeContext::ephemeral(instance, header.state_root));
+      return callAtRaw(ctx, header.state_root, name, encoded_args);
     }
 
     static outcome::result<common::Buffer> callAtRaw(
-        std::shared_ptr<ModuleInstance> instance,
+        RuntimeContext& context,
         const storage::trie::RootHash &state_hash,
         std::string_view name,
         const common::Buffer &encoded_args) {
-      OUTCOME_TRY(ctx, RuntimeContext::ephemeral(instance, state_hash));
-
+      auto& instance = context.module_instance;
       auto &memory =
           instance->getEnvironment().memory_provider->getCurrentMemory()->get();
 

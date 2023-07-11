@@ -39,8 +39,11 @@ namespace kagome::network {
       OUTCOME_TRY(instance,
                   module_repo_->getInstanceAt({req.block, header.number},
                                               header.state_root));
+      OUTCOME_TRY(ctx,
+                  runtime::RuntimeContext::fromBatch(
+                      instance, std::shared_ptr{std::move(batch)}));
       OUTCOME_TRY(runtime::Executor::callAtRaw(
-          instance, header.state_root, call->method, call->args));
+          ctx, header.state_root, call->method, call->args));
     } else {
       auto &read = boost::get<LightProtocolRequest::Read>(req.op);
       runtime::TrieStorageProviderImpl provider{storage_, nullptr};

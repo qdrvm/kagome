@@ -9,7 +9,6 @@
 #include "runtime/common/uncompress_code_if_needed.hpp"
 #include "runtime/module.hpp"
 #include "runtime/module_factory.hpp"
-#include "runtime/runtime_code_provider.hpp"
 
 OUTCOME_CPP_DEFINE_CATEGORY(kagome::parachain, PvfError, e) {
   using kagome::parachain::PvfError;
@@ -176,12 +175,17 @@ namespace kagome::parachain {
       const ParachainRuntime &code_zstd,
       const ValidationParams &params) const {
     auto key = std::make_pair(std::this_thread::get_id(), para_id);
+
+    std::shared_lock read_lock{instance_cache_mutex_};
     auto it = instance_cache_.find(key);
+    read_lock.unlock();
+
     if (it == instance_cache_.end() || it->second->getCodeHash() != code_hash) {
       ParachainRuntime code;
       OUTCOME_TRY(runtime::uncompressCodeIfNeeded(code_zstd, code));
       OUTCOME_TRY(module, module_factory_->make(code));
       OUTCOME_TRY(instance, module->instantiate());
+      std::unique_lock write_lock{instance_cache_mutex_};
       auto [new_it, _] = instance_cache_.insert_or_assign(key, instance);
       it = new_it;
     }

@@ -7,16 +7,14 @@
 
 #include "log/profiling_logger.hpp"
 #include "runtime/common/uncompress_code_if_needed.hpp"
-#include "runtime/memory_provider.hpp"
-#include "runtime/trie_storage_provider.hpp"
 #include "runtime/instance_environment.hpp"
+#include "runtime/memory_provider.hpp"
 #include "runtime/module.hpp"
 #include "runtime/module_factory.hpp"
+#include "runtime/trie_storage_provider.hpp"
 #include "storage/trie/polkadot_trie/trie_error.hpp"
 
-OUTCOME_CPP_DEFINE_CATEGORY(kagome::runtime,
-                            RuntimeContext::Error,
-                            e) {
+OUTCOME_CPP_DEFINE_CATEGORY(kagome::runtime, RuntimeContext::Error, e) {
   using E = kagome::runtime::RuntimeContext::Error;
 
   switch (e) {
@@ -36,7 +34,6 @@ namespace kagome::runtime {
       : module_instance{std::move(module_instance)} {
     BOOST_ASSERT(this->module_instance);
   }
-
 
   outcome::result<void> resetMemory(const ModuleInstance &instance) {
     static auto log = log::createLogger("RuntimeEnvironmentFactory", "runtime");
@@ -107,6 +104,17 @@ namespace kagome::runtime {
     instance->getEnvironment()
         .storage_provider->setToEphemeralAt(storage::trie::kEmptyRootHash)
         .value();
+    OUTCOME_TRY(resetMemory(*instance));
+    return ctx;
+  }
+
+  outcome::result<RuntimeContext> RuntimeContext::fromBatch(
+      std::shared_ptr<ModuleInstance> instance,
+      std::shared_ptr<storage::trie::TrieBatch> batch) {
+    runtime::RuntimeContext ctx{
+        instance,
+    };
+    instance->getEnvironment().storage_provider->setTo(batch);
     OUTCOME_TRY(resetMemory(*instance));
     return ctx;
   }
