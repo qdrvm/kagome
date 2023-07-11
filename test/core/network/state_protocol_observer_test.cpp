@@ -137,7 +137,7 @@ TEST_F(StateProtocolObserverTest, Simple) {
 
   StateResponse ref = {
       .entries = {{
-          .state_root = RootHash::fromSpan(std::vector<uint8_t>(32, 0)).value(),
+          .state_root = {},
           .entries = {{.key = "abc"_buf, .value = "123"_buf},
                       {.key = "cde"_buf, .value = "345"_buf}},
           .complete = true,
