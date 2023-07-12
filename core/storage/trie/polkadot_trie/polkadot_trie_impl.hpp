@@ -16,26 +16,39 @@ namespace kagome::storage::trie {
 
   class OpaqueNodeStorage;
 
-  class PolkadotTrieImpl final
-      : public PolkadotTrie,
-        public std::enable_shared_from_this<PolkadotTrieImpl> {
+  class PolkadotTrieImpl final : public PolkadotTrie {
    public:
     enum class Error { INVALID_NODE_TYPE = 1 };
 
     PolkadotTrieImpl(PolkadotTrieImpl &&);
+    PolkadotTrieImpl &operator=(PolkadotTrieImpl &&);
+
+    PolkadotTrieImpl(const PolkadotTrieImpl &) = delete;
+    PolkadotTrieImpl &operator=(const PolkadotTrieImpl &) = delete;
 
     /**
-     * Creates an empty Trie
+     * Creates an empty Trie.
      * @param f a functor that will be used to obtain a child of a branch node
      * by its index. Most useful if Trie grows too big to occupy main memory and
      * is stored on an external storage
+     * @note since creation of a trie cursor uses shared_from_this, should be a
+     * shared_ptr
      */
-    explicit PolkadotTrieImpl(PolkadotTrie::NodeRetrieveFunctor f =
-                                  PolkadotTrie::defaultNodeRetrieveFunctor);
+    static std::shared_ptr<PolkadotTrieImpl> createEmpty(
+        RetrieveFunctions retrieve_functions = {});
 
-    explicit PolkadotTrieImpl(NodePtr root,
-                              PolkadotTrie::NodeRetrieveFunctor f =
-                                  PolkadotTrie::defaultNodeRetrieveFunctor);
+    /**
+     * Creates a Trie from the given root.
+     * @param f a functor that will be used to obtain a child of a branch node
+     * by its index. Most useful if Trie grows too big to occupy main memory and
+     * is stored on an external storage
+     * @note since creation of a trie cursor uses shared_from_this, should be a
+     * shared_ptr
+     */
+    static std::shared_ptr<PolkadotTrieImpl> create(
+        NodePtr root,
+        RetrieveFunctions retrieve_functions = {});
+
     ~PolkadotTrieImpl();
 
     NodePtr getRoot() override;
@@ -49,8 +62,7 @@ namespace kagome::storage::trie {
     outcome::result<void> forNodeInPath(
         ConstNodePtr parent,
         const NibblesView &path,
-        const std::function<outcome::result<void>(
-            BranchNode const &, uint8_t idx)> &callback) const override;
+        const BranchVisitor &callback) const override;
 
     /**
      * Remove all entries, which key starts with the prefix
@@ -71,7 +83,7 @@ namespace kagome::storage::trie {
     outcome::result<std::optional<BufferOrView>> tryGet(
         const common::BufferView &key) const override;
 
-    std::unique_ptr<PolkadotTrieCursor> trieCursor() override;
+    std::unique_ptr<PolkadotTrieCursor> trieCursor() const override;
 
     outcome::result<bool> contains(
         const common::BufferView &key) const override;
@@ -86,6 +98,11 @@ namespace kagome::storage::trie {
     outcome::result<void> retrieveValue(ValueAndHash &value) const override;
 
    private:
+    explicit PolkadotTrieImpl(RetrieveFunctions retrieve_functions);
+
+    explicit PolkadotTrieImpl(NodePtr root,
+                              RetrieveFunctions retrieve_functions);
+
     outcome::result<NodePtr> insert(const NodePtr &parent,
                                     const NibblesView &key_nibbles,
                                     NodePtr node);

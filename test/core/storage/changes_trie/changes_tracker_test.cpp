@@ -8,6 +8,7 @@
 #include "storage/changes_trie/impl/storage_changes_tracker_impl.hpp"
 
 #include "mock/core/blockchain/block_header_repository_mock.hpp"
+#include "mock/core/storage/trie_pruner/trie_pruner_mock.hpp"
 #include "primitives/event_types.hpp"
 #include "scale/scale.hpp"
 #include "storage/in_memory/in_memory_storage.hpp"
@@ -35,6 +36,7 @@ using kagome::storage::trie::PolkadotCodec;
 using kagome::storage::trie::PolkadotTrieFactoryImpl;
 using kagome::storage::trie::TrieSerializerImpl;
 using kagome::storage::trie::TrieStorageBackendImpl;
+using kagome::storage::trie_pruner::TriePrunerMock;
 using testing::_;
 using testing::AnyOf;
 using testing::Return;
@@ -63,7 +65,9 @@ TEST(ChangesTrieTest, IntegrationWithOverlay) {
       codec,
       serializer,
       std::make_optional(changes_tracker),
-      factory->createEmpty([](auto &) { return outcome::success(); }));
+      factory->createEmpty({[](auto &) { return outcome::success(); },
+                            [](auto &) { return outcome::success(); }}),
+      std::make_shared<TriePrunerMock>());
 
   EXPECT_OUTCOME_TRUE_1(
       batch->put(":extrinsic_index"_buf, Buffer{scale::encode(42).value()}));

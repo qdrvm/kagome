@@ -9,6 +9,7 @@
 #include "storage/buffer_map_types.hpp"
 
 #include "storage/trie/polkadot_trie/polkadot_trie_cursor.hpp"
+#include "storage/trie/polkadot_trie/trie_error.hpp"
 #include "storage/trie/polkadot_trie/trie_node.hpp"
 
 namespace kagome::storage::trie {
@@ -17,14 +18,47 @@ namespace kagome::storage::trie {
    * For specification see Polkadot Runtime Environment Protocol Specification
    * '2.1.2 The General Tree Structure' and further
    */
-  class PolkadotTrie : public BufferStorage {
+  class PolkadotTrie : public BufferStorage,
+                       public std::enable_shared_from_this<PolkadotTrie> {
    public:
     using NodePtr = std::shared_ptr<TrieNode>;
     using ConstNodePtr = std::shared_ptr<const TrieNode>;
     using BranchPtr = std::shared_ptr<BranchNode>;
     using ConstBranchPtr = std::shared_ptr<const BranchNode>;
-    using NodeRetrieveFunctor = std::function<outcome::result<NodePtr>(
-        std::shared_ptr<OpaqueTrieNode> const &)>;
+
+    using NodeRetrieveFunction = std::function<outcome::result<NodePtr>(
+        const std::shared_ptr<OpaqueTrieNode> &)>;
+    using ValueRetrieveFunction =
+        std::function<outcome::result<std::optional<common::Buffer>>(
+            const common::Hash256 & /* value hash */)>;
+
+    struct RetrieveFunctions {
+      RetrieveFunctions()
+          : retrieve_node{defaultNodeRetrieve},
+            retrieve_value{defaultValueRetrieve} {}
+
+      RetrieveFunctions(NodeRetrieveFunction retrieve_node,
+                        ValueRetrieveFunction retrieve_value)
+          : retrieve_node{std::move(retrieve_node)},
+            retrieve_value{std::move(retrieve_value)} {}
+
+      inline static outcome::result<NodePtr> defaultNodeRetrieve(
+          const std::shared_ptr<OpaqueTrieNode> &node) {
+        BOOST_ASSERT_MSG(
+            node == nullptr
+                or std::dynamic_pointer_cast<TrieNode>(node) != nullptr,
+            "Unexpected Dummy node.");
+        return std::dynamic_pointer_cast<TrieNode>(node);
+      }
+
+      inline static outcome::result<std::optional<common::Buffer>>
+      defaultValueRetrieve(const common::Hash256 &) {
+        return TrieError::VALUE_RETRIEVE_NOT_PROVIDED;
+      }
+
+      NodeRetrieveFunction retrieve_node;
+      ValueRetrieveFunction retrieve_value;
+    };
 
     /**
      * This callback is called when a node is detached from a trie. It is called
@@ -76,6 +110,8 @@ namespace kagome::storage::trie {
     virtual outcome::result<ConstNodePtr> getNode(
         ConstNodePtr parent, const NibblesView &key_nibbles) const = 0;
 
+    using BranchVisitor = std::function<outcome::result<void>(
+        const BranchNode &, uint8_t idx, const TrieNode &child)>;
     /**
      * Invokes callback on each node starting from \arg parent and ending on the
      * node corresponding to the \arg path
@@ -84,22 +120,12 @@ namespace kagome::storage::trie {
     virtual outcome::result<void> forNodeInPath(
         ConstNodePtr parent,
         const NibblesView &path,
-        const std::function<outcome::result<void>(
-            BranchNode const &, uint8_t idx)> &callback) const = 0;
+        const BranchVisitor &callback) const = 0;
 
-    virtual std::unique_ptr<PolkadotTrieCursor> trieCursor() = 0;
+    virtual std::unique_ptr<PolkadotTrieCursor> trieCursor() const = 0;
 
     std::unique_ptr<Cursor> cursor() final {
       return trieCursor();
-    }
-
-    inline static outcome::result<NodePtr> defaultNodeRetrieveFunctor(
-        const std::shared_ptr<OpaqueTrieNode> &node) {
-      BOOST_ASSERT_MSG(
-          node == nullptr
-              or std::dynamic_pointer_cast<TrieNode>(node) != nullptr,
-          "Unexpected Dummy node.");
-      return std::dynamic_pointer_cast<TrieNode>(node);
     }
   };
 

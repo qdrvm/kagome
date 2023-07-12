@@ -17,6 +17,8 @@
 #include "crypto/blake2/blake2b.h"
 #include "log/profiling_logger.hpp"
 #include "storage/database_error.hpp"
+#include "storage/trie_pruner/recover_pruner_state.hpp"
+#include "storage/trie_pruner/trie_pruner.hpp"
 
 namespace {
   constexpr auto blockHeightMetricName = "kagome_block_height";
@@ -105,6 +107,9 @@ namespace kagome::blockchain {
     }
   }  // namespace
 
+  BlockTreeImpl::SafeBlockTreeData::SafeBlockTreeData(BlockTreeData data)
+      : block_tree_data_{std::move(data)} {}
+
   outcome::result<std::shared_ptr<BlockTreeImpl>> BlockTreeImpl::create(
       std::shared_ptr<BlockHeaderRepository> header_repo,
       std::shared_ptr<BlockStorage> storage,
@@ -117,6 +122,7 @@ namespace kagome::blockchain {
           extrinsic_event_key_repo,
       std::shared_ptr<const class JustificationStoragePolicy>
           justification_storage_policy,
+      std::shared_ptr<storage::trie_pruner::TriePruner> state_pruner,
       std::shared_ptr<::boost::asio::io_context> io_context) {
     BOOST_ASSERT(storage != nullptr);
     BOOST_ASSERT(header_repo != nullptr);
@@ -234,10 +240,18 @@ namespace kagome::blockchain {
           observed.emplace(block.hash);
 
           auto &header = header_opt.value();
-
-          collected.emplace(block, std::move(header));
+          if (header.number < last_finalized_block_info.number) {
+            SL_WARN(log,
+                    "Detected a leaf {} lower than the last finalized block "
+                    "#{}",
+                    block,
+                    last_finalized_block_info.number);
+            break;
+          }
 
           block = {header.number - 1, header.parent_hash};
+
+          collected.emplace(block, std::move(header));
         }
       }
 
@@ -272,6 +286,7 @@ namespace kagome::blockchain {
                           std::move(extrinsic_events_engine),
                           std::move(extrinsic_event_key_repo),
                           std::move(justification_storage_policy),
+                          state_pruner,
                           std::move(io_context)));
 
     // Add non-finalized block to the block tree
@@ -289,6 +304,9 @@ namespace kagome::blockchain {
       SL_TRACE(
           log, "Existing non-finalized block {} is added to block tree", block);
     }
+
+    OUTCOME_TRY(
+        storage::trie_pruner::recoverPrunerState(*state_pruner, *block_tree));
 
     return block_tree;
   }
@@ -404,10 +422,12 @@ namespace kagome::blockchain {
           extrinsic_event_key_repo,
       std::shared_ptr<const JustificationStoragePolicy>
           justification_storage_policy,
+      std::shared_ptr<storage::trie_pruner::TriePruner> state_pruner,
       std::shared_ptr<::boost::asio::io_context> io_context)
       : block_tree_data_{BlockTreeData{
           .header_repo_ = std::move(header_repo),
           .storage_ = std::move(storage),
+          .state_pruner_ = std::move(state_pruner),
           .tree_ = std::move(cached_tree),
           .extrinsic_observer_ = std::move(extrinsic_observer),
           .hasher_ = std::move(hasher),
@@ -424,6 +444,7 @@ namespace kagome::blockchain {
       BOOST_ASSERT(p.hasher_ != nullptr);
       BOOST_ASSERT(p.extrinsic_event_key_repo_ != nullptr);
       BOOST_ASSERT(p.justification_storage_policy_ != nullptr);
+      BOOST_ASSERT(p.state_pruner_ != nullptr);
 
       // Register metrics
       BOOST_ASSERT(telemetry_ != nullptr);
@@ -805,6 +826,7 @@ namespace kagome::blockchain {
         node->has_justification = true;
 
         OUTCOME_TRY(pruneNoLock(p, node));
+        OUTCOME_TRY(pruneTrie(p, node->getBlockInfo().number));
 
         p.tree_->updateTreeRoot(node);
 
@@ -900,15 +922,13 @@ namespace kagome::blockchain {
     });
   }
 
-  outcome::result<primitives::BlockHash> BlockTreeImpl::getBlockHash(
-      primitives::BlockNumber block_number) const {
+  outcome::result<std::optional<primitives::BlockHash>>
+  BlockTreeImpl::getBlockHash(primitives::BlockNumber block_number) const {
     return block_tree_data_.sharedAccess(
-        [&](const auto &p) -> outcome::result<primitives::BlockHash> {
+        [&](const auto &p)
+            -> outcome::result<std::optional<primitives::BlockHash>> {
           OUTCOME_TRY(hash_opt, p.storage_->getBlockHash(block_number));
-          if (hash_opt.has_value()) {
-            return hash_opt.value();
-          }
-          return BlockTreeError::HEADER_NOT_FOUND;
+          return hash_opt;
         });
   }
 
@@ -1390,10 +1410,12 @@ namespace kagome::blockchain {
     // remove from storage
     retired_hashes.reserve(to_remove.size());
     for (const auto &node : to_remove) {
-      OUTCOME_TRY(block_body_res, p.storage_->getBlockBody(node->block_hash));
-      if (block_body_res.has_value()) {
-        extrinsics.reserve(extrinsics.size() + block_body_res.value().size());
-        for (auto &ext : block_body_res.value()) {
+      OUTCOME_TRY(block_header_opt,
+                  p.storage_->getBlockHeader(node->block_hash));
+      OUTCOME_TRY(block_body_opt, p.storage_->getBlockBody(node->block_hash));
+      if (block_body_opt.has_value()) {
+        extrinsics.reserve(extrinsics.size() + block_body_opt.value().size());
+        for (auto &ext : block_body_opt.value()) {
           if (auto key = p.extrinsic_event_key_repo_->get(
                   p.hasher_->blake2b_256(ext.data))) {
             main_thread_.execute([wself{weak_from_this()},
@@ -1409,6 +1431,8 @@ namespace kagome::blockchain {
           }
           extrinsics.emplace_back(std::move(ext));
         }
+        BOOST_ASSERT(block_header_opt.has_value());
+        OUTCOME_TRY(p.state_pruner_->pruneDiscarded(block_header_opt.value()));
       }
 
       retired_hashes.emplace_back(node->block_hash);
@@ -1452,10 +1476,46 @@ namespace kagome::blockchain {
     return outcome::success();
   }
 
+  outcome::result<void> BlockTreeImpl::pruneTrie(
+      const BlockTreeData &block_tree_data,
+      primitives::BlockNumber new_finalized) {
+    // pruning is disabled
+    if (!block_tree_data.state_pruner_->getPruningDepth().has_value()) {
+      return outcome::success();
+    }
+    auto last_pruned = block_tree_data.state_pruner_->getLastPrunedBlock();
+
+    BOOST_ASSERT(!last_pruned.has_value()
+                 || last_pruned.value().number
+                        <= block_tree_data.tree_->getRoot().depth);
+    auto next_pruned_number = last_pruned ? last_pruned->number + 1 : 0;
+
+    OUTCOME_TRY(hash_opt, getBlockHash(next_pruned_number));
+    BOOST_ASSERT(hash_opt.has_value());
+    primitives::BlockHash hash = std::move(*hash_opt);
+    auto pruning_depth =
+        block_tree_data.state_pruner_->getPruningDepth().value_or(0);
+    if (new_finalized < pruning_depth) {
+      return outcome::success();
+    }
+
+    auto last_to_prune = new_finalized - pruning_depth;
+    for (auto n = next_pruned_number; n < last_to_prune; n++) {
+      OUTCOME_TRY(next_hash_opt, getBlockHash(n + 1));
+      BOOST_ASSERT(next_hash_opt.has_value());
+      auto &next_hash = *next_hash_opt;
+      OUTCOME_TRY(header, getBlockHeader(hash));
+      OUTCOME_TRY(block_tree_data.state_pruner_->pruneFinalized(header));
+      hash = std::move(next_hash);
+    }
+
+    return outcome::success();
+  }
+
   outcome::result<void> BlockTreeImpl::reorganizeNoLock(BlockTreeData &p) {
     auto block = BlockTreeImpl::bestLeafNoLock(p);
 
-    // Remove assigning of obsoleted best upper blocks chain
+    // Remove assigning of obsolete best upper blocks chain
     auto prev_max_best_block_number = block.number;
     for (;;) {
       auto hash_res =

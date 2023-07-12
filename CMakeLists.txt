@@ -27,6 +27,10 @@ if(THREADS_HAVE_PTHREAD_ARG)
   link_libraries(pthread)
 endif()
 
+if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
+  link_libraries(atomic)
+endif()
+
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 # cmake-format: off
@@ -95,6 +99,7 @@ if("${CMAKE_CXX_COMPILER_ID}" MATCHES "^(AppleClang|Clang|GNU)$")
     add_flag(-Werror=sign-compare)     # warn the user if they compare a signed and unsigned numbers
     add_flag(-Werror=reorder)          # field '$1' will be initialized after field '$2'
     add_flag(-Werror=mismatched-tags)  # warning: class '$1' was previously declared as struct
+    add_flag(-Werror=switch)  # unhandled values in a switch statement
     # cmake-format: on
   else()
     # promote to errors
@@ -104,6 +109,7 @@ if("${CMAKE_CXX_COMPILER_ID}" MATCHES "^(AppleClang|Clang|GNU)$")
     add_flag(-Werror-non-virtual-dtor) # warn the user if a class with virtual functions has a non-virtual destructor. This helps catch hard to track down memory errors
     add_flag(-Werror-sign-compare)     # warn the user if they compare a signed and unsigned numbers
     add_flag(-Werror-reorder)          # field '$1' will be initialized after field '$2'
+    add_flag(-Werror-switch)          # unhandled values in a switch statement
     # cmake-format: on
   endif()
 elseif("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
@@ -111,6 +117,9 @@ elseif("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
   # TODO(warchant): add flags
   # https://github.com/lefticus/cppbestpractices/blob/master/02-Use_the_Tools_Available.md#msvc
 endif()
+
+print("C flags: ${CMAKE_C_FLAGS}")
+print("CXX flags: ${CMAKE_CXX_FLAGS}")
 
 if(COVERAGE)
   include(cmake/coverage.cmake)
@@ -164,6 +173,7 @@ kagome_install_setup(
   core/scale
   core/storage
   core/subscription
+  core/telemetry
   core/utils)
 
 include(CMakePackageConfigHelpers)

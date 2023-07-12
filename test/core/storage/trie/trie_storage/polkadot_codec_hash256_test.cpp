@@ -22,7 +22,7 @@ TEST_P(Hash256Test, Valid) {
   auto [in, out] = GetParam();
   auto codec = std::make_unique<PolkadotCodec>();
   auto actualOut = codec->merkleValue(in);
-  EXPECT_EQ(actualOut.toHex(), out.toHex());
+  EXPECT_EQ(actualOut.asBuffer().toHex(), out.toHex());
 }
 
 Buffer getBlake2b(const Buffer &in) {

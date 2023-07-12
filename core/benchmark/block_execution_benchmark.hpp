@@ -32,6 +32,7 @@ namespace kagome::benchmark {
    public:
     enum class Error {
       BLOCK_WEIGHT_DECODE_FAILED,
+      BLOCK_NOT_FOUND,
     };
 
     struct Config {
