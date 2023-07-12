@@ -8,7 +8,7 @@
 #include "common/lru_cache.hpp"
 
 TEST(SmallLruCacheTest, TicksOverflow) {
-  auto cache = kagome::SmallLruCache<int, int, uint8_t>{3};
+  auto cache = kagome::SmallLruCache<int, int, false, uint8_t>{3};
   cache.put(1, 42);
   cache.put(2, 42);
   cache.put(3, 42);
