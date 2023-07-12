@@ -21,7 +21,7 @@ if [ "$VERSION" = "refs/heads/master" ]; then
 elif [[ "$VERSION"  == refs/tags/* ]]; then
   VERSION="${VERSION#refs/tags/}"
 else
-  VERSION=devops
+  VERSION=$VERSION
 fi
 
 if [ "$BUILD_TYPE" = "Debug" ]; then
