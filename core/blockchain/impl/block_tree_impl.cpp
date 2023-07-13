@@ -129,82 +129,140 @@ namespace kagome::blockchain {
 
     log::Logger log = log::createLogger("BlockTree", "block_tree");
 
-    OUTCOME_TRY(block_tree_leaves, loadLeaves(storage, header_repo, log));
-
-    BOOST_ASSERT_MSG(not block_tree_leaves.empty(),
-                     "Must be known or calculated at least one leaf");
-
-    // Find the least and best leaf
-    auto best_leaf = *block_tree_leaves.rbegin();
-
     OUTCOME_TRY(last_finalized_block_info, storage->getLastFinalized());
 
-    // call chain_events_engine->notify to init babe_config_repo preventive
     auto finalized_block_header_res =
         storage->getBlockHeader(last_finalized_block_info.hash);
     BOOST_ASSERT_MSG(finalized_block_header_res.has_value()
                          and finalized_block_header_res.value().has_value(),
                      "Initialized block tree must be have finalized block");
     auto &finalized_block_header = finalized_block_header_res.value().value();
+    // call chain_events_engine->notify to init babe_config_repo preventive
     chain_events_engine->notify(
         primitives::events::ChainEventType::kFinalizedHeads,
         finalized_block_header);
 
     OUTCOME_TRY(storage->getJustification(last_finalized_block_info.hash));
+
+    OUTCOME_TRY(block_tree_leaves, loadLeaves(storage, header_repo, log));
+    BOOST_ASSERT_MSG(not block_tree_leaves.empty(),
+                     "Must be known or calculated at least one leaf");
+
+    auto highest_leaf = *block_tree_leaves.rbegin();
     SL_INFO(log,
-            "Best block: {}, Last finalized: {}",
-            best_leaf,
+            "Highest block: {}, Last finalized: {}",
+            highest_leaf,
             last_finalized_block_info);
 
     // Load non-finalized block from block storage
-    std::multimap<primitives::BlockInfo, primitives::BlockHeader> collected;
+    std::map<primitives::BlockInfo, primitives::BlockHeader> collected;
 
     {
       std::unordered_set<primitives::BlockHash> observed;
+      std::unordered_set<primitives::BlockInfo> dead;
+      // Iterate leaves
       for (auto &leaf : block_tree_leaves) {
-        for (auto hash = leaf.hash;;) {
-          if (hash == last_finalized_block_info.hash) {
+        std::unordered_set<primitives::BlockInfo> subchain;
+        // Iterate subchain from leaf to finalized or early observer
+        for (auto block = leaf;;) {
+          // Met last finalized
+          if (block.hash == last_finalized_block_info.hash) {
             break;
           }
 
-          if (not observed.emplace(hash).second) {
+          // Met early observed block
+          if (observed.count(block.hash) != 0) {
             break;
           }
 
-          auto header_res = storage->getBlockHeader(hash);
+          // Met known dead block
+          if (dead.count(block) != 0) {
+            dead.insert(subchain.begin(), subchain.end());
+            break;
+          }
+
+          // Check if non-pruned fork has detected
+          if (block.number == last_finalized_block_info.number) {
+            dead.insert(subchain.begin(), subchain.end());
+
+            auto main = last_finalized_block_info;
+            auto fork = block;
+
+            // Collect as dead all blocks that differ from the finalized chain
+            for (;;) {
+              dead.emplace(fork);
+
+              auto f_res = storage->getBlockHeader(fork.hash);
+              if (f_res.has_error() or not f_res.value().has_value()) {
+                break;
+              }
+              const auto &fork_header = f_res.value().value();
+
+              auto m_res = storage->getBlockHeader(main.hash);
+              if (m_res.has_error() or not m_res.value().has_value()) {
+                break;
+              }
+              const auto &main_header = m_res.value().value();
+
+              BOOST_ASSERT(fork_header.number == main_header.number);
+              if (fork_header.parent_hash == main_header.parent_hash) {
+                break;
+              }
+
+              fork = {fork_header.number - 1, fork_header.parent_hash};
+              main = {main_header.number - 1, main_header.parent_hash};
+            }
+
+            break;
+          };
+
+          subchain.emplace(block);
+
+          auto header_res = storage->getBlockHeader(block.hash);
           if (header_res.has_error()) {
             SL_WARN(log,
                     "Can't get header of existing non-finalized block {}: {}",
-                    hash,
+                    block,
                     header_res.error());
-            break;
+            return header_res.as_failure();
           }
+
           auto &header_opt = header_res.value();
-          if (!header_opt.has_value()) {
+          if (not header_opt.has_value()) {
             SL_WARN(log,
                     "Can't get header of existing block {}: "
                     "not found in block storage",
-                    hash);
+                    block);
+            dead.insert(subchain.begin(), subchain.end());
             break;
           }
 
-          const auto &header = header_opt.value();
+          observed.emplace(block.hash);
+
+          auto &header = header_opt.value();
           if (header.number < last_finalized_block_info.number) {
-            SL_WARN(
-                log,
-                "Detected a leaf #{}({}) lower than the last finalized block "
-                "#{}",
-                header.number,
-                hash,
-                last_finalized_block_info.number);
+            SL_WARN(log,
+                    "Detected a leaf {} lower than the last finalized block "
+                    "#{}",
+                    block,
+                    last_finalized_block_info.number);
             break;
           }
 
-          primitives::BlockInfo block(header.number, hash);
+          block = {header.number - 1, header.parent_hash};
 
-          collected.emplace(block, header);
+          collected.emplace(block, std::move(header));
+        }
+      }
 
-          hash = header.parent_hash;
+      if (not dead.empty()) {
+        SL_WARN(log,
+                "Found {} orphan blocks; "
+                "these block will be removed for consistency",
+                dead.size());
+        for (auto &block : dead) {
+          collected.erase(block);
+          std::ignore = storage->removeBlock(block.hash);
         }
       }
     }
