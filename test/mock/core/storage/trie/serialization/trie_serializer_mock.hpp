@@ -39,7 +39,7 @@ namespace kagome::storage::trie {
 
     MOCK_METHOD(outcome::result<std::optional<common::Buffer>>,
                 retrieveValue,
-                (common::Hash256 const &hash,
+                (const common::Hash256 &hash,
                  const OnNodeLoaded &on_node_loaded),
                 (const));
   };

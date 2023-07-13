@@ -267,7 +267,7 @@ namespace kagome::storage::trie_pruner {
           if (value_ref_it == value_ref_count_.end()) {
             values_unknown++;
           } else {
-            auto& value_ref_count = value_ref_it->second;
+            auto &value_ref_count = value_ref_it->second;
             value_ref_count--;
             if (value_ref_count == 0) {
               OUTCOME_TRY(batch.remove(hash));

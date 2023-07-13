@@ -66,7 +66,7 @@ namespace kagome::parachain {
 
   outcome::result<void> BitfieldSigner::sign(const ValidatorSigner &signer,
                                              const Candidates &candidates) {
-    BlockHash const &relay_parent = signer.relayParent();
+    const BlockHash &relay_parent = signer.relayParent();
     scale::BitVec bitfield;
     bitfield.bits.reserve(candidates.size());
     for (auto &candidate : candidates) {

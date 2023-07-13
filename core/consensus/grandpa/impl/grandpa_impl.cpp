@@ -555,11 +555,11 @@ namespace kagome::consensus::grandpa {
                 }
                 if (res.has_error()) {
                   SL_DEBUG(self->logger_,
-                          "Missing justifications between blocks {} and "
-                          "{} was not loaded: {}",
-                          last_finalized,
-                          msg.last_finalized,
-                          res.error());
+                           "Missing justifications between blocks {} and "
+                           "{} was not loaded: {}",
+                           last_finalized,
+                           msg.last_finalized,
+                           res.error());
                 } else {
                   SL_DEBUG(self->logger_,
                            "Loaded justifications for blocks in range {} - {}",

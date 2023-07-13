@@ -1449,7 +1449,7 @@ namespace kagome::application {
     if (auto state_pruning_opt =
             find_argument<std::string>(vm, "state-pruning");
         state_pruning_opt.has_value()) {
-      const auto& val = state_pruning_opt.value();
+      const auto &val = state_pruning_opt.value();
       if (val == "archive") {
         state_pruning_depth_ = std::nullopt;
       } else {

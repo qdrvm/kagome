@@ -19,6 +19,6 @@ namespace kagome::storage::trie_pruner {
   outcome::result<void> recoverPrunerState(
       TriePruner &pruner, const blockchain::BlockTree &block_tree);
 
-}
+}  // namespace kagome::storage::trie_pruner
 
 #endif  // KAGOME_RECOVER_PRUNER_STATE_HPP

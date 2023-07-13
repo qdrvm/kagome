@@ -984,7 +984,7 @@ namespace kagome::network {
           log_, "Error retrieving the first block hash: {}", hash_res.error());
       return;
     }
-    auto& hash_opt = hash_res.value();
+    auto &hash_opt = hash_res.value();
     // BabeConfigRepositoryImpl first block slot
     if (not hash_opt or not block_tree_->getBlockHeader(hash_opt.value())) {
       auto cb2 = [=, cb{std::move(cb)}, weak{weak_from_this()}](

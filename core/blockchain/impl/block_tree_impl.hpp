@@ -242,14 +242,12 @@ namespace kagome::blockchain {
             == std::this_thread::get_id()) {
           return f(block_tree_data_.unsafeGet());
         }
-        return block_tree_data_.exclusiveAccess(
-            [&f, this](BlockTreeData &data) {
-              exclusive_owner_ = std::this_thread::get_id();
-              auto reset = gsl::finally([&] {
-                exclusive_owner_ = std::nullopt;
-              });
-              return f(data);
-            });
+        return block_tree_data_.exclusiveAccess([&f,
+                                                 this](BlockTreeData &data) {
+          exclusive_owner_ = std::this_thread::get_id();
+          auto reset = gsl::finally([&] { exclusive_owner_ = std::nullopt; });
+          return f(data);
+        });
       }
 
       template <typename F>
