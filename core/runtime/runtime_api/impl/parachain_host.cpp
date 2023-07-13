@@ -131,4 +131,12 @@ namespace kagome::runtime {
             block, "ParachainHost_inbound_hrmp_channels_contents", id);
   }
 
+  outcome::result<std::optional<std::vector<ExecutorParam>>>
+  ParachainHostImpl::session_executor_params(const primitives::BlockHash &block,
+                          SessionIndex idx) {
+    return executor_
+        ->callAt<std::optional<std::vector<ExecutorParam>>>(
+            block, "ParachainHost_session_executor_params", idx);
+  }
+
 }  // namespace kagome::runtime

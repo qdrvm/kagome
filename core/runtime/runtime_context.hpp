@@ -23,6 +23,7 @@ namespace kagome::runtime {
 
   class RuntimeContext {
    public:
+
     enum class Error {
       ABSENT_HEAP_BASE = 1,
       HEAP_BASE_TOO_LOW,

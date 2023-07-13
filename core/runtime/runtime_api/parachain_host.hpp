@@ -11,7 +11,7 @@
 #include "primitives/block_id.hpp"
 #include "primitives/common.hpp"
 #include "primitives/parachain_host.hpp"
-#include "runtime/runtime_api/parachain_host_types.hpp"
+#include "runtime/runtime_api/parachain_hosgit_types.hpp"
 
 namespace kagome::runtime {
 
@@ -180,6 +180,10 @@ namespace kagome::runtime {
         std::map<ParachainId, std::vector<InboundHrmpMessage>>>
     inbound_hrmp_channels_contents(const primitives::BlockHash &block,
                                    ParachainId id) = 0;
+
+    virtual outcome::result<std::optional<std::vector<ExecutorParam>>>
+    session_executor_params(const primitives::BlockHash &block,
+                            SessionIndex idx) = 0;
   };
 
 }  // namespace kagome::runtime

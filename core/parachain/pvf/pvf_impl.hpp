@@ -8,8 +8,8 @@
 
 #include "parachain/pvf/pvf.hpp"
 
-#include <thread>
 #include <shared_mutex>
+#include <thread>
 
 #include "blockchain/block_header_repository.hpp"
 #include "crypto/sr25519_provider.hpp"
@@ -52,6 +52,7 @@ namespace kagome::parachain {
                 block_header_repository,
             std::shared_ptr<crypto::Sr25519Provider> sr25519_provider,
             std::shared_ptr<runtime::ParachainHost> parachain_api);
+    ~PvfImpl() override;
 
     outcome::result<Result> pvfSync(const CandidateReceipt &receipt,
                                     const ParachainBlock &pov) const override;
@@ -76,17 +77,13 @@ namespace kagome::parachain {
         const CandidateReceipt &receipt, ValidationResult &&result) const;
 
     std::shared_ptr<crypto::Hasher> hasher_;
-    std::shared_ptr<runtime::ModuleFactory> module_factory_;
     std::shared_ptr<runtime::RuntimePropertiesCache> runtime_properties_cache_;
     std::shared_ptr<blockchain::BlockHeaderRepository> block_header_repository_;
     std::shared_ptr<crypto::Sr25519Provider> sr25519_provider_;
     std::shared_ptr<runtime::ParachainHost> parachain_api_;
     log::Logger log_;
 
-    mutable std::shared_mutex instance_cache_mutex_;
-    mutable std::map<std::pair<std::thread::id, ParachainId>,
-                               std::shared_ptr<runtime::ModuleInstance>>
-        instance_cache_;
+    std::unique_ptr<class PvfRuntimeCache> runtime_cache_;
   };
 }  // namespace kagome::parachain
 

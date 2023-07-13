@@ -5,6 +5,7 @@
 
 #include "parachain/pvf/pvf_impl.hpp"
 
+#include "parachain/pvf/pvf_runtime_cache.hpp"
 #include "runtime/common/executor.hpp"
 #include "runtime/common/uncompress_code_if_needed.hpp"
 #include "runtime/module.hpp"
@@ -72,12 +73,13 @@ namespace kagome::parachain {
       std::shared_ptr<crypto::Sr25519Provider> sr25519_provider,
       std::shared_ptr<runtime::ParachainHost> parachain_api)
       : hasher_{std::move(hasher)},
-        module_factory_{std::move(module_factory)},
         runtime_properties_cache_{std::move(runtime_properties_cache)},
         block_header_repository_{std::move(block_header_repository)},
         sr25519_provider_{std::move(sr25519_provider)},
         parachain_api_{std::move(parachain_api)},
         log_{log::createLogger("Pvf")} {}
+
+  PvfImpl::~PvfImpl() {}
 
   outcome::result<Pvf::Result> PvfImpl::pvfValidate(
       const PersistedValidationData &data,
@@ -174,32 +176,21 @@ namespace kagome::parachain {
       const common::Hash256 &code_hash,
       const ParachainRuntime &code_zstd,
       const ValidationParams &params) const {
-    auto key = std::make_pair(std::this_thread::get_id(), para_id);
-
-    std::shared_lock read_lock{instance_cache_mutex_};
-    auto it = instance_cache_.find(key);
-    read_lock.unlock();
-
-    if (it == instance_cache_.end() || it->second->getCodeHash() != code_hash) {
-      ParachainRuntime code;
-      OUTCOME_TRY(runtime::uncompressCodeIfNeeded(code_zstd, code));
-      OUTCOME_TRY(module, module_factory_->make(code));
-      OUTCOME_TRY(instance, module->instantiate());
-      std::unique_lock write_lock{instance_cache_mutex_};
-      auto [new_it, _] = instance_cache_.insert_or_assign(key, instance);
-      it = new_it;
-    }
-    auto instance = it->second;
+    OUTCOME_TRY(instance,
+                runtime_cache_->requestInstance(para_id, code_hash, code_zstd));
 
     OUTCOME_TRY(genesis_hash, block_header_repository_->getHashByNumber(0));
     OUTCOME_TRY(genesis_header,
                 block_header_repository_->getBlockHeader(genesis_hash));
-    OUTCOME_TRY(ctx,
-                runtime::RuntimeContext::ephemeral(instance,
-                                                   genesis_header.state_root));
-
-    return runtime::Executor::call<ValidationResult>(
-        ctx, "validate_block", params);
+    return instance.get().exclusiveAccess(
+        [&genesis_header,
+         &params](auto &instance) -> outcome::result<ValidationResult> {
+          OUTCOME_TRY(ctx,
+                      runtime::RuntimeContext::ephemeral(
+                          instance, genesis_header.state_root));
+          return runtime::Executor::call<ValidationResult>(
+              ctx, "validate_block", params);
+        });
   }
 
   outcome::result<Pvf::CandidateCommitments> PvfImpl::fromOutputs(

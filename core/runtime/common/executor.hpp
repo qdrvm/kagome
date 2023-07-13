@@ -252,7 +252,6 @@ namespace kagome::runtime {
       return call<Result>(ctx, name, std::forward<Args>(args)...);
     }
 
-    // std::shared_ptr<RuntimeEnvironmentFactory> env_factory_;
     std::shared_ptr<ModuleRepository> module_repo_;
     std::shared_ptr<const blockchain::BlockHeaderRepository> header_repo_;
     std::shared_ptr<RuntimePropertiesCache> cache_;
