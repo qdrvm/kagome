@@ -37,6 +37,7 @@ target_link_libraries(app_config
     chain_spec
     build_version
     )
+kagome_install(app_config)
 
 add_library(chain_spec
     impl/chain_spec_impl.cpp

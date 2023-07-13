@@ -23,6 +23,10 @@ namespace kagome::storage::trie {
   class TrieSerializer;
 }  // namespace kagome::storage::trie
 
+namespace kagome::storage::trie_pruner {
+  class TriePruner;
+}  // namespace kagome::storage::trie_pruner
+
 namespace kagome::primitives {
   struct BlockHeader;
 }  // namespace kagome::primitives
@@ -34,7 +38,8 @@ namespace kagome::network {
   class StateSyncRequestFlow {
     using RootHash = storage::trie::RootHash;
     struct Root {
-      storage::trie::PolkadotTrieImpl trie;
+      std::shared_ptr<storage::trie::PolkadotTrie> trie =
+          storage::trie::PolkadotTrieImpl::createEmpty();
       std::vector<common::Buffer> children;
     };
 
@@ -44,8 +49,10 @@ namespace kagome::network {
       HASH_MISMATCH,
     };
 
-    StateSyncRequestFlow(const primitives::BlockInfo &block_info,
-                         const primitives::BlockHeader &block);
+    StateSyncRequestFlow(
+        std::shared_ptr<storage::trie_pruner::TriePruner> state_pruner,
+        const primitives::BlockInfo &block_info,
+        const primitives::BlockHeader &block);
 
     auto &blockInfo() const {
       return block_info_;
@@ -63,6 +70,8 @@ namespace kagome::network {
         storage::trie::TrieSerializer &trie_serializer);
 
    private:
+    std::shared_ptr<storage::trie_pruner::TriePruner> state_pruner_;
+
     primitives::BlockInfo block_info_;
     primitives::BlockHeader block_;
 

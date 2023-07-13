@@ -24,7 +24,6 @@ target_link_libraries(kagome-db-editor
     hasher
     storage
     runtime_upgrade_tracker
-    storage
     )
 if (BACKWARD)
   add_backward(kagome-db-editor)

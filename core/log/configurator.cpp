@@ -108,6 +108,7 @@ groups:
           - name: storage
             children:
               - name: trie
+              - name: trie_pruner
           - name: transactions
           - name: pubsub
       - name: others

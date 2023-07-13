@@ -1,6 +1,7 @@
 
 function(external_project_link_libraries target prefix)
     set(targets
+        app_config
         executor
         runtime_wavm
         core_api

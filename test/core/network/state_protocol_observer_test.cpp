@@ -9,6 +9,7 @@
 #include <cstdint>
 
 #include "mock/core/blockchain/block_header_repository_mock.hpp"
+#include "mock/core/storage/trie_pruner/trie_pruner_mock.hpp"
 #include "network/types/state_request.hpp"
 #include "storage/in_memory/in_memory_storage.hpp"
 #include "storage/trie/impl/trie_storage_backend_impl.hpp"
@@ -31,6 +32,10 @@ using namespace primitives;
 using namespace storage;
 
 using namespace trie;
+using namespace trie_pruner;
+
+using testing::_;
+using testing::Return;
 
 std::shared_ptr<TrieStorage> makeEmptyInMemoryTrie() {
   auto backend =
@@ -41,9 +46,13 @@ std::shared_ptr<TrieStorage> makeEmptyInMemoryTrie() {
   auto codec = std::make_shared<PolkadotCodec>();
   auto serializer =
       std::make_shared<TrieSerializerImpl>(trie_factory, codec, backend);
+  auto state_pruner = std::make_shared<TriePrunerMock>();
+  ON_CALL(*state_pruner,
+          addNewState(testing::A<const storage::trie::PolkadotTrie &>(), _))
+      .WillByDefault(Return(outcome::success()));
 
   return kagome::storage::trie::TrieStorageImpl::createEmpty(
-             trie_factory, codec, serializer)
+             trie_factory, codec, serializer, state_pruner)
       .value();
 }
 
@@ -132,7 +141,7 @@ TEST_F(StateProtocolObserverTest, Simple) {
 
   StateResponse ref = {
       .entries = {{
-          .state_root = RootHash::fromSpan(std::vector<uint8_t>(32, 0)).value(),
+          .state_root = {},
           .entries = {{.key = "abc"_buf, .value = "123"_buf},
                       {.key = "cde"_buf, .value = "345"_buf}},
           .complete = true,

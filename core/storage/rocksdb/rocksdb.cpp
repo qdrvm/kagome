@@ -68,7 +68,27 @@ namespace kagome::storage {
                                                 : trie_space_cache_size)});
     }
 
-    std::vector<rocksdb::ColumnFamilyHandle *> column_family_handles;
+    std::vector<std::string> existing_families;
+    auto res = rocksdb::DB::ListColumnFamilies(
+        options, path.native(), &existing_families);
+    if (!res.ok() && !res.IsPathNotFound()) {
+      SL_ERROR(log,
+               "Can't open database in {}: {}",
+               absolute_path.native(),
+               res.ToString());
+      return status_as_error(res);
+    }
+    for (auto &family : existing_families) {
+      if (std::find_if(column_family_descriptors.begin(),
+                       column_family_descriptors.end(),
+                       [&family](rocksdb::ColumnFamilyDescriptor &desc) {
+                         return desc.name == family;
+                       })
+          == column_family_descriptors.end()) {
+        column_family_descriptors.emplace_back(rocksdb::ColumnFamilyDescriptor{
+            family, configureColumn(other_spaces_cache_size)});
+      }
+    }
 
     options.create_missing_column_families = true;
     auto rocks_db = std::shared_ptr<RocksDb>(new RocksDb);
@@ -164,7 +184,7 @@ namespace kagome::storage {
     return std::make_unique<RocksDbBatch>(*this);
   }
 
-  size_t RocksDbSpace::size() const {
+  std::optional<size_t> RocksDbSpace::byteSizeHint() const {
     auto rocks = storage_.lock();
     if (!rocks) {
       return 0;
@@ -242,9 +262,10 @@ namespace kagome::storage {
     std::string value;
     auto status = rocks->db_->Get(rocks->ro_, column_, make_slice(key), &value);
     if (status.ok()) {
-      return std::make_optional(Buffer(
-          reinterpret_cast<uint8_t *>(value.data()),                   // NOLINT
-          reinterpret_cast<uint8_t *>(value.data()) + value.size()));  // NOLINT
+      auto buf = Buffer(
+          reinterpret_cast<uint8_t *>(value.data()),                  // NOLINT
+          reinterpret_cast<uint8_t *>(value.data()) + value.size());  // NOLINT
+      return std::make_optional(BufferOrView(std::move(buf)));
     }
 
     if (status.IsNotFound()) {

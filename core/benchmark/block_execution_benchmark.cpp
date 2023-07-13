@@ -20,6 +20,8 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::benchmark,
     using E = kagome::benchmark::BlockExecutionBenchmark::Error;
     case E::BLOCK_WEIGHT_DECODE_FAILED:
       return "Failed to decode block weight";
+    case E::BLOCK_NOT_FOUND:
+      return "A block expected to be present in the block tree is not found";
   }
   return "Unknown BlockExecutionBenchmark error";
 }
@@ -221,8 +223,12 @@ namespace kagome::benchmark {
                     block_tree_->getBlockHash(config.start),
                     "retrieving hash of block {}",
                     config.start);
+    if (!current_hash) {
+      SL_ERROR(logger_, "Start block {} is not found!", config.start);
+      return Error::BLOCK_NOT_FOUND;
+    }
 
-    primitives::BlockInfo current_block_info = {config.start, current_hash};
+    primitives::BlockInfo current_block_info = {config.start, *current_hash};
     std::vector<primitives::BlockHash> block_hashes;
     std::vector<primitives::Block> blocks;
     while (current_block_info.number <= config.end) {
@@ -244,7 +250,14 @@ namespace kagome::benchmark {
                       "retrieving hash of block {}",
                       current_block_info.number + 1);
       current_block_info.number += 1;
-      current_block_info.hash = next_hash;
+
+      if (!next_hash) {
+        SL_ERROR(logger_,
+                 "Next block {} is not found!",
+                 current_block_info.number + 1);
+        return Error::BLOCK_NOT_FOUND;
+      }
+      current_block_info.hash = *next_hash;
     }
 
     std::chrono::steady_clock clock;
@@ -291,7 +304,8 @@ namespace kagome::benchmark {
               *trie_storage_,
               blocks[stat.getBlock().number - config.start].header.state_root));
       fmt::print(
-          "Block #{}: consumed {} ns out of declared {} ns on average. ({} %)\n",
+          "Block #{}: consumed {} ns out of declared {} ns on average. ({} "
+          "%)\n",
           stat.getBlock().number,
           stat.avg().count(),
           block_weight_ns.count(),

@@ -209,7 +209,7 @@ namespace kagome::application {
     virtual const std::vector<telemetry::TelemetryEndpoint>
         &telemetryEndpoints() const = 0;
 
-    enum class SyncMethod { Full, Fast, FastWithoutState, Warp };
+    enum class SyncMethod { Full, Fast, FastWithoutState, Warp, Auto };
     /**
      * @return enum constant of the chosen sync method
      */
@@ -251,6 +251,8 @@ namespace kagome::application {
      * @return enum constant of the chosen storage backend
      */
     virtual StorageBackend storageBackend() const = 0;
+
+    virtual std::optional<size_t> statePruningDepth() const = 0;
 
     /**
      * @return database state cache size in MiB

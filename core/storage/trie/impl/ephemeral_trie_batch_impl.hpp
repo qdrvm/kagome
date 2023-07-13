@@ -8,8 +8,8 @@
 
 #include "storage/trie/impl/trie_batch_base.hpp"
 
-#include "storage/trie/codec.hpp"
 #include "storage/trie/polkadot_trie/polkadot_trie.hpp"
+#include "storage/trie/serialization/codec.hpp"
 #include "storage/trie/serialization/trie_serializer.hpp"
 #include "storage/trie/trie_batches.hpp"
 
@@ -32,7 +32,7 @@ namespace kagome::storage::trie {
     outcome::result<RootHash> commit(StateVersion version) override;
 
    protected:
-    virtual outcome::result<std::unique_ptr<TrieBatch>> createFromTrieHash(
+    virtual outcome::result<std::unique_ptr<TrieBatchBase>> createFromTrieHash(
         const RootHash &trie_hash) override;
 
    private:

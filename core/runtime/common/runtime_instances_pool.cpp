@@ -46,11 +46,11 @@ namespace kagome::runtime {
       return instance_->getGlobal(name);
     }
 
-    void forDataSegment(DataSegmentProcessor const &callback) const override {
+    void forDataSegment(const DataSegmentProcessor &callback) const override {
       return instance_->forDataSegment(callback);
     }
 
-    InstanceEnvironment const &getEnvironment() const override {
+    const InstanceEnvironment &getEnvironment() const override {
       return instance_->getEnvironment();
     }
 

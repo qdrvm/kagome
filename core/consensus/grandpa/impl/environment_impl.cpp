@@ -30,11 +30,13 @@ namespace kagome::consensus::grandpa {
       std::shared_ptr<blockchain::BlockHeaderRepository> header_repository,
       std::shared_ptr<AuthorityManager> authority_manager,
       std::shared_ptr<network::GrandpaTransmitter> transmitter,
+      LazySPtr<JustificationObserver> justification_observer,
       std::shared_ptr<boost::asio::io_context> main_thread_context)
       : block_tree_{std::move(block_tree)},
         header_repository_{std::move(header_repository)},
         authority_manager_{std::move(authority_manager)},
         transmitter_{std::move(transmitter)},
+        justification_observer_(std::move(justification_observer)),
         main_thread_context_{std::move(main_thread_context)},
         logger_{log::createLogger("GrandpaEnvironment", "grandpa")} {
     BOOST_ASSERT(block_tree_ != nullptr);
@@ -280,9 +282,6 @@ namespace kagome::consensus::grandpa {
       const BlockInfo &block_info,
       const primitives::Justification &raw_justification,
       ApplyJustificationCb &&cb) {
-    auto justification_observer = justification_observer_.lock();
-    BOOST_ASSERT(justification_observer);
-
     auto res = scale::decode<GrandpaJustification>(raw_justification.data);
     if (res.has_error()) {
       cb(res.as_failure());
@@ -300,7 +299,8 @@ namespace kagome::consensus::grandpa {
              justification.round_number,
              justification.block_info);
 
-    justification_observer->applyJustification(justification, std::move(cb));
+    justification_observer_.get()->applyJustification(justification,
+                                                      std::move(cb));
   }
 
   outcome::result<void> EnvironmentImpl::finalize(

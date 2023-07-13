@@ -5,7 +5,6 @@
 
 #include "application/impl/app_configuration_impl.hpp"
 
-#include <fstream>
 #include <limits>
 #include <regex>
 #include <string>
@@ -18,7 +17,6 @@
 #include <boost/uuid/uuid_io.hpp>
 #include <charconv>
 #include <libp2p/layer/websocket/wss_adaptor.hpp>
-#include "filesystem/common.hpp"
 
 #include "api/transport/tuner.hpp"
 #include "application/build_version.hpp"
@@ -27,6 +25,7 @@
 #include "chain_spec_impl.hpp"
 #include "common/hexutil.hpp"
 #include "common/uri.hpp"
+#include "filesystem/common.hpp"
 #include "filesystem/directories.hpp"
 #include "utils/read_file.hpp"
 
@@ -132,6 +131,9 @@ namespace {
     }
     if (str == "Warp") {
       return SM::Warp;
+    }
+    if (str == "Auto") {
+      return SM::Auto;
     }
     return std::nullopt;
   }
@@ -245,7 +247,8 @@ namespace kagome::application {
         offchain_worker_mode_{def_offchain_worker_mode},
         enable_offchain_indexing_{def_enable_offchain_indexing},
         recovery_state_{def_block_to_recover},
-        db_cache_size_{def_db_cache_size} {
+        db_cache_size_{def_db_cache_size},
+        state_pruning_depth_{} {
     SL_INFO(logger_, "Soramitsu Kagome started. Version: {} ", buildVersion());
   }
 
@@ -787,6 +790,7 @@ namespace kagome::application {
         ("db-cache", po::value<uint32_t>()->default_value(def_db_cache_size), "Limit the memory the database cache can use <MiB>")
         ("enable-offchain-indexing", po::value<bool>(), "enable Offchain Indexing API, which allow block import to write to offchain DB)")
         ("recovery", po::value<std::string>(), "recovers block storage to state after provided block presented by number or hash, and stop after that")
+        ("state-pruning", po::value<std::string>()->default_value("archive"), "state pruning policy. 'archive' or the number of finalized blocks to keep.")
         ;
 
     po::options_description network_desc("Network options");
@@ -1147,6 +1151,24 @@ namespace kagome::application {
       return false;  // just proxy erroneous case to the top level
     }
 
+    auto publish_localhost = [&] {
+      auto replace = [&](std::string_view prefix,
+                         std::string_view replacement,
+                         std::string_view str) {
+        if (boost::starts_with(str, prefix)) {
+          std::string replaced{replacement};
+          replaced += str.substr(prefix.size());
+          public_addresses_.emplace_back(
+              libp2p::multi::Multiaddress::create(replaced).value());
+        }
+      };
+      for (auto &addr : listen_addresses_) {
+        auto str = addr.getStringAddress();
+        replace("/ip4/0.0.0.0/", "/ip4/127.0.0.1/", str);
+        replace("/ip6/::/", "/ip6/::1/", str);
+      }
+    };
+
     // this goes before transforming p2p port option to listen addresses,
     // because it does not make sense to announce 0.0.0.0 as a public address.
     // Moreover, this is ok to have empty set of public addresses at this point
@@ -1156,6 +1178,7 @@ namespace kagome::application {
               "Public addresses are not specified. Using listen addresses as "
               "node's public addresses");
       public_addresses_ = listen_addresses_;
+      publish_localhost();
     }
 
     // If listen address has not defined, listen P2P TCP-port on all
@@ -1196,6 +1219,10 @@ namespace kagome::application {
                   "Automatically added IPv4 listen address {}",
                   ma_res.value().getStringAddress());
           listen_addresses_.emplace_back(std::move(ma_res.value()));
+        }
+
+        if (public_addresses_.empty()) {
+          publish_localhost();
         }
       }
     }
@@ -1417,6 +1444,27 @@ namespace kagome::application {
     });
     if (has_recovery and not recovery_state_.has_value()) {
       return false;
+    }
+
+    if (auto state_pruning_opt =
+            find_argument<std::string>(vm, "state-pruning");
+        state_pruning_opt.has_value()) {
+      const auto& val = state_pruning_opt.value();
+      if (val == "archive") {
+        state_pruning_depth_ = std::nullopt;
+      } else {
+        uint32_t depth{};
+        auto [_, err] = std::from_chars(&*val.begin(), &*val.end(), depth);
+        if (err == std::errc{}) {
+          state_pruning_depth_ = depth;
+        } else {
+          SL_ERROR(logger_,
+                   "Failed to parse state-pruning param (which should be "
+                   "either 'archive' or an integer): {}",
+                   err);
+          return false;
+        }
+      }
     }
 
     // if something wrong with config print help message

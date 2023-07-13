@@ -32,7 +32,6 @@ namespace kagome::runtime::wavm {
     WAVM::IR::FeatureSpec featureSpec;
 
     featureSpec.extendedNameSection = true;
-
     log::Logger logger = log::createLogger("WAVM Module", "wavm");
     logger->info(
         "Compiling WebAssembly module for Runtime (going to take a few dozens "
@@ -44,7 +43,7 @@ namespace kagome::runtime::wavm {
       return nullptr;
     }
 
-    auto imports = WAVM::Runtime::getModuleIR(module).memories.imports;
+    auto &imports = WAVM::Runtime::getModuleIR(module).memories.imports;
     if (not imports.empty()) {
       module_params.intrinsicMemoryType = imports[0].type;
     }

@@ -105,10 +105,10 @@ namespace kagome::consensus::babe {
 
     // First, look up slot number of block number 1 sync epochs
     if (finalized_block.number > 0) {
-      OUTCOME_TRY(first_block_hash, block_tree_->getBlockHash(1));
+      OUTCOME_TRY(first_block_hash_opt, block_tree_->getBlockHash(1));
 
       OUTCOME_TRY(first_block_header,
-                  block_tree_->getBlockHeader(first_block_hash));
+                  block_tree_->getBlockHeader(first_block_hash_opt.value()));
 
       auto babe_digest_res = getBabeDigests(first_block_header);
       BOOST_ASSERT_MSG(babe_digest_res.has_value(),
@@ -227,7 +227,8 @@ namespace kagome::consensus::babe {
                 block_hash_res.error());
         return block_hash_res.as_failure();
       }
-      const auto &block_hash = block_hash_res.value();
+      // If no error occurred, hash of a finalized block should be present
+      const auto &block_hash = *block_hash_res.value();
 
       auto block_header_res = block_tree_->getBlockHeader(block_hash);
       if (block_header_res.has_error()) {
@@ -841,15 +842,31 @@ namespace kagome::consensus::babe {
 
   void BabeConfigRepositoryImpl::readFromState(
       const primitives::BlockInfo &block) {
+    auto hash1_opt_res = block_tree_->getBlockHash(1);
+    if (!hash1_opt_res) {
+      logger_->error(
+          "readFromState {}, error: {}", block, hash1_opt_res.error());
+      return;
+    }
+    if (!hash1_opt_res.value().has_value()) {
+      logger_->error(
+          "readFromState {}, error: \"Block #1 not present in the storage\"",
+          block);
+      return;
+    }
+    auto header1_res = block_tree_->getBlockHeader(*hash1_opt_res.value());
+    if (!header1_res) {
+      logger_->error("readFromState {}, error: {}", block, header1_res.error());
+      return;
+    }
+
     if (auto r = readFromStateOutcome(block); not r) {
-      logger_->error("readFromState {}, error {}", block, r.error());
+      logger_->error("readFromState {}, error: {}", block, r.error());
     }
   }
 
   outcome::result<void> BabeConfigRepositoryImpl::readFromStateOutcome(
       const primitives::BlockInfo &block) {
-    OUTCOME_TRY(hash1, block_tree_->getBlockHash(1));
-    OUTCOME_TRY(header1, block_tree_->getBlockHeader(hash1));
     OUTCOME_TRY(header, block_tree_->getBlockHeader(block.hash));
     auto parent = header;
     std::optional<EpochDigest> next_epoch;

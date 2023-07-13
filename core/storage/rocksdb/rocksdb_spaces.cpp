@@ -6,15 +6,14 @@
 #include "storage/rocksdb/rocksdb_spaces.hpp"
 
 #include <array>
-#include <cassert>
 
 #include <rocksdb/db.h>
+#include <boost/assert.hpp>
 
 namespace kagome::storage {
 
   std::string spaceName(Space space) {
-    static const std::vector<std::string> names = {
-        rocksdb::kDefaultColumnFamilyName,
+    static constexpr std::array kNames{
         "lookup_key",
         "header",
         "block_body",
@@ -22,8 +21,15 @@ namespace kagome::storage {
         "trie_node",
         "dispute_data",
     };
-    assert(names.size() == Space::kTotal);
-    assert(space < Space::kTotal);
+    static_assert(kNames.size() == Space::kTotal - 1);
+
+    static const std::vector<std::string> names = []() {
+      std::vector<std::string> names;
+      names.push_back(rocksdb::kDefaultColumnFamilyName);
+      names.insert(names.end(), kNames.begin(), kNames.end());
+      return names;
+    }();
+    BOOST_ASSERT(space < Space::kTotal);
     return names.at(space);
   }
 

@@ -35,7 +35,9 @@ namespace kagome::storage::trie {
   PolkadotTrieCursorImpl::SearchState::visitChild(uint8_t index,
                                                   const TrieNode &child) {
     auto *current_as_branch = dynamic_cast<const BranchNode *>(current_);
-    if (current_as_branch == nullptr) return Error::INVALID_NODE_TYPE;
+    if (current_as_branch == nullptr) {
+      return Error::INVALID_NODE_TYPE;
+    }
     path_.emplace_back(*current_as_branch, index);
     current_ = &child;
     return outcome::success();
@@ -86,7 +88,7 @@ namespace kagome::storage::trie {
     auto &current = std::get<SearchState>(state_).getCurrent();
     // while there is a node in a trie with the given key, it contains no value,
     // thus cannot be pointed at by the cursor
-    if (not current.value) {
+    if (not current.getValue()) {
       state_ = InvalidState{Error::KEY_NOT_FOUND};
       return false;
     }
@@ -125,11 +127,11 @@ namespace kagome::storage::trie {
     auto [sought_nibbles_mismatch, current_mismatch] =
         std::mismatch(sought_nibbles.begin(),
                       sought_nibbles.end(),
-                      current.key_nibbles.begin(),
-                      current.key_nibbles.end());
+                      current.getKeyNibbles().begin(),
+                      current.getKeyNibbles().end());
     // one nibble sequence is a prefix of the other
     bool sought_is_prefix = sought_nibbles_mismatch == sought_nibbles.end();
-    bool current_is_prefix = current_mismatch == current.key_nibbles.end();
+    bool current_is_prefix = current_mismatch == current.getKeyNibbles().end();
 
     // if sought nibbles are lexicographically less or equal to the current
     // nibbles, we just take the closest node with value
@@ -140,7 +142,7 @@ namespace kagome::storage::trie {
              "The sought key '{}' is {} than current '{}'",
              common::hex_lower(sought_nibbles),
              sought_less_or_eq ? "less or eq" : "greater",
-             common::hex_lower(current.key_nibbles));
+             common::hex_lower(current.getKeyNibbles()));
     if (sought_less_or_eq) {
       if (current.isBranch()) {
         SL_TRACE(log_, "We're in a branch and search next node in subtree");
@@ -232,7 +234,7 @@ namespace kagome::storage::trie {
   outcome::result<void> PolkadotTrieCursorImpl::nextNodeWithValueInSubTree(
       const TrieNode &parent) {
     auto *current = &parent;
-    while (not current->value) {
+    while (not current->getValue()) {
       if (not current->isBranch()) {
         return Error::INVALID_NODE_TYPE;
       }
@@ -294,7 +296,7 @@ namespace kagome::storage::trie {
 
     if (std::holds_alternative<UninitializedState>(state_)) {
       state_ = SearchState{*trie_->getRoot()};
-      if (trie_->getRoot()->value) {
+      if (trie_->getRoot()->getValue()) {
         return outcome::success();
       }
     }
@@ -335,12 +337,12 @@ namespace kagome::storage::trie {
     for (const auto &node_idx : search_state.getPath()) {
       const auto &node = node_idx.parent;
       auto idx = node_idx.child_idx;
-      std::copy(node.key_nibbles.begin(),
-                node.key_nibbles.end(),
+      std::copy(node.getKeyNibbles().begin(),
+                node.getKeyNibbles().end(),
                 std::back_inserter<Buffer>(key_nibbles));
       key_nibbles.putUint8(idx);
     }
-    key_nibbles.put(search_state.getCurrent().key_nibbles);
+    key_nibbles.put(search_state.getCurrent().getKeyNibbles());
     return key_nibbles.toByteBuffer();
   }
 
@@ -355,7 +357,7 @@ namespace kagome::storage::trie {
   std::optional<BufferOrView> PolkadotTrieCursorImpl::value() const {
     if (const auto *search_state = std::get_if<SearchState>(&state_);
         search_state != nullptr) {
-      const auto &value_opt = search_state->getCurrent().value;
+      const auto &value_opt = search_state->getCurrent().getValue();
       if (value_opt) {
         // TODO(turuslan): #1470, return error
         if (auto r =
@@ -381,12 +383,12 @@ namespace kagome::storage::trie {
     }
     SearchState search_state{*trie_->getRoot()};
 
-    auto add_visited_child = [&search_state, this](
+    auto add_visited_child = [&search_state](
                                  auto &branch,
-                                 auto idx) mutable -> outcome::result<void> {
-      OUTCOME_TRY(child, trie_->retrieveChild(branch, idx));
+                                 auto idx,
+                                 auto &child) mutable -> outcome::result<void> {
       BOOST_VERIFY(  // NOLINT(bugprone-lambda-function-name)
-          search_state.visitChild(idx, *child));
+          search_state.visitChild(idx, child));
       return outcome::success();
     };
     auto res = trie_->forNodeInPath(

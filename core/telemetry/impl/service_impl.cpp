@@ -402,7 +402,7 @@ namespace kagome::telemetry {
       height.SetInt(last_imported_.block.number);
       finalized_height.SetInt(last_finalized_.block.number);
       tx_count.SetInt(tx_pool_->getStatus().ready_num);
-      state_size.SetInt(buffer_storage_->size());
+      state_size.SetInt(buffer_storage_->byteSizeHint().value_or(0));
       best_hash = str_val(fmt::format("{:l}", last_imported_.block.hash));
       finalized_hash = str_val(fmt::format("{:l}", last_finalized_.block.hash));
     }

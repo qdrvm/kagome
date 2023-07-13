@@ -211,7 +211,8 @@ namespace kagome::consensus::grandpa {
                 block_hash_res.error());
         return block_hash_res.as_failure();
       }
-      const auto &block_hash = block_hash_res.value();
+      // a finalized block should be present
+      const auto &block_hash = *block_hash_res.value();
 
       auto block_header_res = block_tree_->getBlockHeader(block_hash);
       if (block_header_res.has_error()) {
@@ -989,7 +990,6 @@ namespace kagome::consensus::grandpa {
              "Looking if direct chain exists between {} and {}",
              ancestor,
              descendant);
-    KAGOME_PROFILE_START(direct_chain_exists)
     // Check if it's one-block chain
     if (ancestor == descendant) {
       return true;
@@ -1003,7 +1003,6 @@ namespace kagome::consensus::grandpa {
       return false;
     }
     auto result = block_tree_->hasDirectChain(ancestor.hash, descendant.hash);
-    KAGOME_PROFILE_END(direct_chain_exists)
     return result;
   }
 

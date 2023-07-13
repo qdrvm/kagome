@@ -31,6 +31,7 @@
 #include "storage/trie/polkadot_trie/polkadot_trie_factory_impl.hpp"
 #include "storage/trie/serialization/polkadot_codec.hpp"
 #include "storage/trie/serialization/trie_serializer_impl.hpp"
+#include "storage/trie_pruner/impl/trie_pruner_impl.hpp"
 #include "utils/profiler.hpp"
 
 namespace di = boost::di;
@@ -257,6 +258,8 @@ int db_editor_main(int argc, const char **argv) {
               injector.template create<sptr<TrieStorageBackend>>());
         }),
         di::bind<TrieStorageBackend>.template to(trie_tracker),
+        di::bind<storage::trie_pruner::TriePruner>.template to(
+            std::shared_ptr<storage::trie_pruner::TriePruner>(nullptr)),
         di::bind<Codec>.template to<PolkadotCodec>(),
         di::bind<PolkadotTrieFactory>.to(factory),
         di::bind<crypto::Hasher>.template to<crypto::HasherImpl>(),
@@ -360,10 +363,12 @@ int db_editor_main(int argc, const char **argv) {
           .value();
     }
 
-    auto trie = TrieStorageImpl::createFromStorage(
-                    injector.template create<sptr<Codec>>(),
-                    injector.template create<sptr<TrieSerializer>>())
-                    .value();
+    auto trie =
+        TrieStorageImpl::createFromStorage(
+            injector.template create<sptr<Codec>>(),
+            injector.template create<sptr<TrieSerializer>>(),
+            injector.template create<sptr<storage::trie_pruner::TriePruner>>())
+            .value();
 
     if (COMPACT == cmd) {
       auto batch = check(persistent_batch(trie, target_state)).value();

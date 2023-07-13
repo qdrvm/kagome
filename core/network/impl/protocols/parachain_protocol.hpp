@@ -224,7 +224,7 @@ namespace kagome::network {
             }
 
             if (!result) {
-              SL_WARN(
+              SL_DEBUG(
                   self->base_.logger(),
                   "Can't read incoming collation message from stream {} with "
                   "error {}",

@@ -164,6 +164,7 @@
 #include "storage/trie/polkadot_trie/polkadot_trie_factory_impl.hpp"
 #include "storage/trie/serialization/polkadot_codec.hpp"
 #include "storage/trie/serialization/trie_serializer_impl.hpp"
+#include "storage/trie_pruner/impl/trie_pruner_impl.hpp"
 #include "telemetry/impl/service_impl.hpp"
 #include "transaction_pool/impl/pool_moderator_impl.hpp"
 #include "transaction_pool/impl/transaction_pool_impl.hpp"
@@ -281,6 +282,8 @@ namespace {
         injector.template create<sptr<blockchain::BlockHeaderRepository>>();
 
     auto storage = injector.template create<sptr<blockchain::BlockStorage>>();
+    auto state_pruner =
+        injector.template create<sptr<storage::trie_pruner::TriePruner>>();
 
     auto extrinsic_observer =
         injector.template create<sptr<network::ExtrinsicObserver>>();
@@ -307,6 +310,7 @@ namespace {
         std::move(ext_events_engine),
         std::move(ext_events_key_repo),
         std::move(justification_storage_policy),
+        std::move(state_pruner),
         injector.template create<std::shared_ptr<::boost::asio::io_context>>());
 
     if (not block_tree_res.has_value()) {
@@ -722,12 +726,15 @@ namespace {
                              sptr<storage::trie::PolkadotTrieFactory>>(),
                          injector.template create<sptr<storage::trie::Codec>>(),
                          injector.template create<
-                             sptr<storage::trie::TrieSerializer>>())
+                             sptr<storage::trie::TrieSerializer>>(),
+                         injector.template create<
+                             sptr<storage::trie_pruner::TriePruner>>())
                   .value();
             }),
             di::bind<storage::trie::PolkadotTrieFactory>.template to<storage::trie::PolkadotTrieFactoryImpl>(),
             di::bind<storage::trie::Codec>.template to<storage::trie::PolkadotCodec>(),
             di::bind<storage::trie::TrieSerializer>.template to<storage::trie::TrieSerializerImpl>(),
+            di::bind<storage::trie_pruner::TriePruner>.template to<storage::trie_pruner::TriePrunerImpl>(),
             di::bind<runtime::RuntimeCodeProvider>.template to<runtime::StorageCodeProvider>(),
             bind_by_lambda<application::ChainSpec>([](const auto &injector) {
               const application::AppConfiguration &config =

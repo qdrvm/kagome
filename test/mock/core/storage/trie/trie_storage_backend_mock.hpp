@@ -16,31 +16,37 @@ namespace kagome::storage::trie {
    public:
     MOCK_METHOD(std::unique_ptr<BufferBatch>, batch, (), (override));
 
-    MOCK_METHOD(std::unique_ptr<face::MapCursor<Buffer, Buffer>>,
+    MOCK_METHOD((std::unique_ptr<face::MapCursor<Buffer, Buffer>>),
                 cursor,
                 (),
                 (override));
 
-    MOCK_METHOD(outcome::result<Buffer>,
+    MOCK_METHOD(outcome::result<BufferOrView>,
                 get,
-                (const Buffer &key),
+                (const BufferView &key),
+                (const, override));
+
+    MOCK_METHOD(outcome::result<std::optional<BufferOrView>>,
+                tryGet,
+                (const BufferView &key),
                 (const, override));
 
     MOCK_METHOD(outcome::result<bool>,
                 contains,
-                (const Buffer &key),
+                (const BufferView &key),
                 (const, override));
+
+    MOCK_METHOD(bool, empty, (), (const, override));
 
     MOCK_METHOD(outcome::result<void>,
                 put,
-                (const Buffer &key, const Buffer &value),
+                (const BufferView &key, BufferOrView &&value),
                 (override));
-    outcome::result<void> put(const common::Buffer &k,
-                              common::Buffer &&v) override {
-      return put(k, v);
-    }
 
-    MOCK_METHOD(outcome::result<void>, remove, (const Buffer &key), (override));
+    MOCK_METHOD(outcome::result<void>,
+                remove,
+                (const BufferView &key),
+                (override));
   };
 
 }  // namespace kagome::storage::trie

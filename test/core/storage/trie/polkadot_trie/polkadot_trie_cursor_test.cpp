@@ -43,7 +43,7 @@ std::tuple<std::shared_ptr<PolkadotTrie>, std::set<Buffer>> generateRandomTrie(
     size_t max_key_length = 32,
     size_t key_alphabet_size = 16) noexcept {
   std::tuple<std::shared_ptr<PolkadotTrie>, std::set<Buffer>> res;
-  auto trie = std::make_shared<PolkadotTrieImpl>();
+  auto trie = PolkadotTrieImpl::createEmpty();
   std::mt19937 eng(5489u);  // explicitly set default seed
   std::uniform_int_distribution<std::mt19937::result_type> key_dist(
       0, key_alphabet_size);
@@ -65,7 +65,7 @@ std::tuple<std::shared_ptr<PolkadotTrie>, std::set<Buffer>> generateRandomTrie(
 
 std::shared_ptr<PolkadotTrie> makeTrie(
     const std::vector<std::pair<Buffer, Buffer>> &vals) {
-  auto trie = std::make_shared<PolkadotTrieImpl>();
+  auto trie = PolkadotTrieImpl::createEmpty();
   for (auto &p : vals) {
     EXPECT_OUTCOME_TRUE_1(trie->put(p.first, BufferView{p.second}));
   }

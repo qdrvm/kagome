@@ -8,6 +8,7 @@
 
 #include "consensus/grandpa/environment.hpp"
 
+#include "injector/lazy.hpp"
 #include "log/logger.hpp"
 #include "utils/thread_pool.hpp"
 
@@ -34,17 +35,10 @@ namespace kagome::consensus::grandpa {
         std::shared_ptr<blockchain::BlockHeaderRepository> header_repository,
         std::shared_ptr<AuthorityManager> authority_manager,
         std::shared_ptr<network::GrandpaTransmitter> transmitter,
+        LazySPtr<JustificationObserver> justification_observer,
         std::shared_ptr<boost::asio::io_context> main_thread_context);
 
     ~EnvironmentImpl() override = default;
-
-    // Back link to Grandpa
-
-    void setJustificationObserver(
-        std::weak_ptr<JustificationObserver> justification_observer) override {
-      BOOST_ASSERT(justification_observer_.expired());
-      justification_observer_ = std::move(justification_observer);
-    }
 
     // Chain methods
 
@@ -109,7 +103,7 @@ namespace kagome::consensus::grandpa {
     std::shared_ptr<blockchain::BlockHeaderRepository> header_repository_;
     std::shared_ptr<AuthorityManager> authority_manager_;
     std::shared_ptr<network::GrandpaTransmitter> transmitter_;
-    std::weak_ptr<JustificationObserver> justification_observer_;
+    LazySPtr<JustificationObserver> justification_observer_;
     ThreadHandler main_thread_context_;
 
     log::Logger logger_;

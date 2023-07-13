@@ -13,6 +13,8 @@
 #include <random>
 #include <unordered_map>
 
+#include <backward.hpp>
+
 #include "libp2p/connection/stream.hpp"
 #include "libp2p/host/host.hpp"
 #include "libp2p/peer/peer_info.hpp"
@@ -267,6 +269,8 @@ namespace kagome::network {
    private:
     struct ProtocolDescr {
       std::shared_ptr<ProtocolBase> protocol;
+      log::Logger logger =
+          log::createLogger("ProtoDescription", "stream_engine");
 
       struct {
         std::shared_ptr<Stream> stream;
@@ -307,6 +311,7 @@ namespace kagome::network {
         }
 
         outgoing.reserved = true;
+        //bt();
         return true;
       }
 
@@ -318,7 +323,9 @@ namespace kagome::network {
        * Drops the flag that outgoing stream establishing.
        */
       void dropReserved() {
+        //BOOST_ASSERT(outgoing.reserved);
         outgoing.reserved = false;
+        //bt();
       }
 
       /**

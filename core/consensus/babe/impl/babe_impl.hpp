@@ -8,6 +8,7 @@
 
 #include "consensus/babe/babe.hpp"
 
+#include "application/app_configuration.hpp"
 #include "clock/timer.hpp"
 #include "injector/lazy.hpp"
 #include "log/logger.hpp"
@@ -20,7 +21,6 @@
 #include "telemetry/service.hpp"
 
 namespace kagome::application {
-  class AppConfiguration;
   class AppStateManager;
 }  // namespace kagome::application
 
@@ -59,6 +59,7 @@ namespace kagome::network {
   class BlockAnnounceTransmitter;
   class WarpSync;
   class WarpProtocol;
+  class PeerManager;
 }  // namespace kagome::network
 
 namespace kagome::runtime {
@@ -98,6 +99,7 @@ namespace kagome::consensus::babe {
     BabeImpl(
         const application::AppConfiguration &app_config,
         std::shared_ptr<application::AppStateManager> app_state_manager,
+        std::shared_ptr<network::PeerManager> peer_manager,
         std::shared_ptr<BabeLottery> lottery,
         std::shared_ptr<BabeConfigRepository> babe_config_repo,
         std::shared_ptr<authorship::Proposer> proposer,
@@ -147,11 +149,12 @@ namespace kagome::consensus::babe {
     void onBlockAnnounce(const libp2p::peer::PeerId &peer_id,
                          const network::BlockAnnounce &announce) override;
 
-    void onSynchronized() override;
-
     bool wasSynchronized() const override;
 
    private:
+    bool canWarpSync() const;
+    void warpSync();
+
     /**
      * Warp sync from `peer_id` if `block_number`.
      * @return false if can't warp sync
@@ -165,6 +168,10 @@ namespace kagome::consensus::babe {
 
     void startCatchUp(const libp2p::peer::PeerId &peer_id,
                       const primitives::BlockInfo &target_block);
+
+    void onCaughtUp(const primitives::BlockInfo &block);
+
+    void onSynchronized();
 
     void startStateSyncing(const libp2p::peer::PeerId &peer_id);
 
@@ -205,8 +212,9 @@ namespace kagome::consensus::babe {
     outcome::result<primitives::Seal> sealBlock(
         const primitives::Block &block) const;
 
-    const application::AppConfiguration &app_config_;
+    application::AppConfiguration::SyncMethod sync_method_;
     std::shared_ptr<application::AppStateManager> app_state_manager_;
+    std::shared_ptr<network::PeerManager> peer_manager_;
     std::shared_ptr<BabeLottery> lottery_;
     std::shared_ptr<BabeConfigRepository> babe_config_repo_;
     std::shared_ptr<authorship::Proposer> proposer_;
