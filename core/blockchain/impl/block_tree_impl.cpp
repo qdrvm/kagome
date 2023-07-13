@@ -237,17 +237,17 @@ namespace kagome::blockchain {
             break;
           }
 
+          observed.emplace(block.hash);
+
           auto &header = header_opt.value();
           if (header.number < last_finalized_block_info.number) {
-            SL_WARN(
-                log,
-                "Detected a leaf {} lower than the last finalized block #{}",
-                block,
-                last_finalized_block_info.number);
+            SL_WARN(log,
+                    "Detected a leaf {} lower than the last finalized block "
+                    "#{}",
+                    block,
+                    last_finalized_block_info.number);
             break;
           }
-
-          observed.emplace(block.hash);
 
           block = {header.number - 1, header.parent_hash};
 
