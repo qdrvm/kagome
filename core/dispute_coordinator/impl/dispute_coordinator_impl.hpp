@@ -240,7 +240,9 @@ namespace kagome::dispute {
     /// to that batch, otherwise import to `dispute-coordinator` directly and
     /// open a batch.
     outcome::result<void> start_import_or_batch(
-        const network::DisputeMessage &request, CbOutcome<void> &&cb);
+        const libp2p::peer::PeerId &peer,
+        const network::DisputeMessage &request,
+        CbOutcome<void> &&cb);
 
     void start_import(PreparedImport &&prepared_import);
 

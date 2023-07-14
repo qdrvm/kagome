@@ -35,7 +35,7 @@ namespace kagome::dispute {
   ChainScraperImpl::get_blocks_including_candidate(
       const CandidateHash &candidate_hash) {
     std::vector<primitives::BlockInfo> res;
-
+    // TODO Must be implemented before merge
     return res;
   }
 
@@ -80,8 +80,7 @@ namespace kagome::dispute {
       }
     }
 
-    last_observed_blocks_.emplace(activated.hash,
-                                  std::chrono::steady_clock::now());
+    last_observed_blocks_.put(activated.hash, Empty{});
 
     return std::move(scraped_updates);
   }
@@ -117,7 +116,7 @@ namespace kagome::dispute {
     std::vector<primitives::BlockHash> ancestors;
 
     // If head_number <= target_ancestor + 1 the ancestry will be empty.
-    if (last_observed_blocks_.find(head) != last_observed_blocks_.end()
+    if (last_observed_blocks_.get(head).has_value()
         or head_number <= target_ancestor + 1) {
       return ancestors;
     }
@@ -154,8 +153,7 @@ namespace kagome::dispute {
 
         // Return if we either met target/cached block or
         // hit the size limit for the returned ancestry of head.
-        if (last_observed_blocks_.find(block_hash)
-                != last_observed_blocks_.end()
+        if (last_observed_blocks_.get(block_hash).has_value()
             or block_number <= target_ancestor
             or ancestors.size() >= kAncestrySizeLimit) {
           return ancestors;

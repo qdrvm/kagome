@@ -183,9 +183,7 @@ namespace kagome::dispute {
   }
 
   void DisputeCoordinatorImpl::startup(const network::ExView &updated) {
-    if (initialized_) {
-      return;
-    }
+    BOOST_ASSERT(not initialized_);
 
     scraper_ = std::make_unique<ChainScraperImpl>(api_, block_tree_, hasher_);
 
@@ -2072,20 +2070,30 @@ namespace kagome::dispute {
   void DisputeCoordinatorImpl::process_portion_incoming_disputes() {
     rate_limit_timer_.reset();
 
-    std::vector<std::tuple<network::DisputeMessage, CbOutcome<void>>> heads;
+    std::vector<std::tuple<libp2p::peer::PeerId,
+                           network::DisputeMessage,
+                           CbOutcome<void>>>
+        heads;
     heads.reserve(queues_.size());
 
     auto old_queues = std::move(queues_);
 
-    for (auto &[peer, queue] : old_queues) {
+    for (auto &[auth, queue] : old_queues) {
+      auto peer_opt = authority_discovery_->get(auth);
+      if (not peer_opt.has_value()) {
+        continue;
+      }
+      const auto &peer_id = peer_opt->id;
+
       BOOST_ASSERT_MSG(not queue.empty(),
                        "Invariant that queues are never empty is broken.");
 
-      heads.emplace_back(std::move(queue.front()));
+      auto &[msg, cb] = queue.front();
+      heads.emplace_back(peer_id, std::move(msg), std::move(cb));
       queue.pop_front();
 
       if (not queue.empty()) {
-        queues_.emplace(peer, queue);
+        queues_.emplace(auth, queue);
       }
     }
 
@@ -2094,10 +2102,10 @@ namespace kagome::dispute {
       make_task_for_next_portion();
     }
 
-    for (auto &[request, cb] : std::move(heads)) {
+    for (auto &[peer, request, cb] : std::move(heads)) {
       // No early return - we cannot cancel imports of one peer, because the
       // import of another failed:
-      auto res = start_import_or_batch(std::move(request), std::move(cb));
+      auto res = start_import_or_batch(peer, std::move(request), std::move(cb));
       if (res.has_error()) {
         SL_ERROR(log_, "Can't start import or batch: {}", res.error());
       }
@@ -2105,9 +2113,9 @@ namespace kagome::dispute {
   }
 
   outcome::result<void> DisputeCoordinatorImpl::start_import_or_batch(
-      const network::DisputeMessage &request, CbOutcome<void> &&cb) {
-    libp2p::peer::PeerId peer = libp2p::peer::PeerId::fromBase58("").value();
-
+      const libp2p::peer::PeerId &peer,
+      const network::DisputeMessage &request,
+      CbOutcome<void> &&cb) {
     OUTCOME_TRY(info,
                 runtime_info_->get_session_info_by_index(
                     request.candidate_receipt.descriptor.relay_parent,

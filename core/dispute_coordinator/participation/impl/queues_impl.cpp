@@ -42,21 +42,22 @@ namespace kagome::dispute {
     auto block_number_res = block_header_repository_->getNumberByHash(
         request.candidate_receipt.descriptor.relay_parent);
 
-    std::optional<primitives::BlockNumber> block_number{};
+    std::optional<primitives::BlockNumber> block_number_opt{};
     if (block_number_res.has_value()) {
-      block_number = block_number_res.value();
+      block_number_opt = block_number_res.value();
     } else if (block_number_res
                != outcome::failure(
                    blockchain::BlockTreeError::HEADER_NOT_FOUND)) {
       return block_number_res.as_failure();
     } else {
-      // LOG-WARN: "Candidate's relay_parent could not be found via chain API
-      // - `CandidateComparator` with an empty relay parent block number will
-      // be provided!"
+      // LOG-WARN: "Candidate's relay_parent could not be found via chain API -
+      //            `CandidateComparator` with an empty relay parent block
+      //            number will be provided!"
     }
 
-    CandidateComparator comparator{.relay_parent_block_number = block_number,
-                                   .candidate_hash = candidate_hash};
+    CandidateComparator comparator{
+        .relay_parent_block_number = block_number_opt,
+        .candidate_hash = candidate_hash};
 
     if (priority == ParticipationPriority::Priority) {
       if (priority_.size() >= kPriorityQueueSize) {
@@ -103,30 +104,25 @@ namespace kagome::dispute {
 
   outcome::result<void> QueuesImpl::prioritize_if_present(
       const CandidateReceipt &receipt) {
-    auto candidate_hash = receipt.hash(*hasher_);
+    const auto &candidate_hash = receipt.hash(*hasher_);
+    auto block_number_res = block_header_repository_->getNumberByHash(
+        receipt.descriptor.relay_parent);
 
-    auto relay_parent_block_number_res =
-        block_header_repository_->getNumberByHash(
-            receipt.descriptor.relay_parent);
-
-    std::optional<primitives::BlockNumber> relay_parent_block_number_opt;
-
-    if (relay_parent_block_number_res.has_error()) {
-      if (relay_parent_block_number_res
-          != outcome::failure(blockchain::BlockTreeError::HEADER_NOT_FOUND)) {
-        return relay_parent_block_number_res.as_failure();
-      }
-
+    std::optional<primitives::BlockNumber> block_number_opt{};
+    if (block_number_res.has_value()) {
+      block_number_opt = block_number_res.value();
+    } else if (block_number_res
+               != outcome::failure(
+                   blockchain::BlockTreeError::HEADER_NOT_FOUND)) {
+      return block_number_res.as_failure();
+    } else {
       // LOG-WARN: "Candidate's relay_parent could not be found via chain API -
       //            `CandidateComparator` with an empty relay parent block
       //            number will be provided!"
-
-    } else {
-      relay_parent_block_number_opt = relay_parent_block_number_res.value();
     }
 
     CandidateComparator comparator{
-        .relay_parent_block_number = relay_parent_block_number_opt,
+        .relay_parent_block_number = block_number_opt,
         .candidate_hash = candidate_hash};
 
     if (priority_.size() >= kPriorityQueueSize) {

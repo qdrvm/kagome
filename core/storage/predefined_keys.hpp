@@ -64,7 +64,7 @@ namespace kagome::storage {
   inline common::Buffer kCandidateVotesLookupKey(
       SessionT session, const CandidateHashT &candidate) {
     return common::Buffer::fromString(
-        fmt::format("candidate-votes:{}:{}", session, candidate));
+        fmt::format("candidate-votes:{:0>10}:{}", session, candidate));
   }
 
   /// Until what session have votes been cleaned up already?

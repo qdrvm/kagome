@@ -75,14 +75,13 @@ namespace kagome::dispute {
     CandidateHash candidate_hash;
 
     bool operator<(const CandidateComparator &other) const {
-      if (relay_parent_block_number.value()
-          == other.relay_parent_block_number.value()) {
+      if (relay_parent_block_number == other.relay_parent_block_number) {
         // if the relay parent is the same for both -> compare hashes
         return candidate_hash < other.candidate_hash;
       } else if (relay_parent_block_number.has_value()
                  xor other.relay_parent_block_number.has_value()) {
         // Candidates with known relay parents are always with priority
-        return not relay_parent_block_number.has_value();
+        return relay_parent_block_number.has_value();
       } else {
         // Otherwise compare by number
         return relay_parent_block_number.value()

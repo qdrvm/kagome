@@ -16,14 +16,15 @@ namespace kagome::dispute {
   outcome::result<std::tuple<std::shared_ptr<Batch>, bool>> Batches::find_batch(
       const CandidateHash &candidate_hash,
       const CandidateReceipt &candidate_receipt) {
-    if (batches_.size() >= 1000 /* kMaxBatchSize */) {  // FIXME
-      return BatchError::MaxBatchLimitReached;
-    }
     BOOST_ASSERT(candidate_hash == candidate_receipt.hash(*hasher_));
 
     auto it = batches_.find(candidate_hash);
     if (it != batches_.end()) {
       return {it->second, false};
+    }
+
+    if (batches_.size() >= 1000 /* kMaxBatchSize */) {  // FIXME
+      return BatchError::MaxBatchLimitReached;
     }
 
     auto batch =

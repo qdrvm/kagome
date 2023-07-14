@@ -72,8 +72,7 @@ namespace kagome::dispute {
       for (GroupIndex group_index = 0; group_index < groups.size();
            ++group_index) {
         auto &group = groups[group_index];
-        for (ValidatorIndex validator_index = 0; validator_index < group.size();
-             ++validator_index) {
+        for (auto validator_index : group) {
           if (our_index == validator_index) {
             return ValidatorInfo{
                 .our_index = our_index,

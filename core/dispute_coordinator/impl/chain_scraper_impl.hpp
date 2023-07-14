@@ -9,6 +9,7 @@
 #define KAGOME_DISPUTE_CHAINSCRAPERIMPL
 
 #include "blockchain/block_tree.hpp"
+#include "common/lru_cache.hpp"
 #include "dispute_coordinator/types.hpp"
 
 namespace kagome::runtime {
@@ -41,6 +42,16 @@ namespace kagome::dispute {
       std::unordered_set<CandidateHash> candidates_modified;
       auto end = candidates_by_block_number_.upper_bound(height);
       for (auto it = candidates_by_block_number_.begin(); it != end;) {
+        for (auto &candidate : it->second) {
+          if (auto candidate_it = candidates_.find(candidate);
+              candidate_it != candidates_.end()) {
+            if (candidate_it->second > 1) {
+              --candidate_it->second;
+            } else {
+              candidates_.erase(candidate_it);
+            }
+          }
+        }
         auto cit = it++;
         candidates_modified.merge(
             std::move(candidates_by_block_number_.extract(cit).mapped()));
@@ -50,7 +61,7 @@ namespace kagome::dispute {
 
     void insert(primitives::BlockNumber block_number,
                 CandidateHash candidate_hash) {
-      ++candidates_.emplace(candidate_hash, 0).first;
+      ++candidates_[candidate_hash];
       candidates_by_block_number_[block_number].emplace(candidate_hash);
     }
   };
@@ -191,9 +202,7 @@ namespace kagome::dispute {
     ///
     /// We assume that ancestors of cached blocks are already processed, i.e. we
     /// have saved corresponding included candidates.
-    std::unordered_map<primitives::BlockHash,
-                       std::chrono::steady_clock::time_point>
-        last_observed_blocks_;
+    LruCache<primitives::BlockHash, Empty> last_observed_blocks_{20};
 
     /// Maps included candidate hashes to one or more relay block heights and
     /// hashes. These correspond to all the relay blocks which marked a

@@ -42,6 +42,7 @@ namespace kagome::dispute {
     auto last_finalized = block_tree->getLastFinalized();
     auto earliest_non_finalized_block_session_res =
         api->session_index_for_child(last_finalized.hash);
+    BOOST_ASSERT(earliest_non_finalized_block_session_res.has_value());
     const auto &earliest_non_finalized_block_session =
         earliest_non_finalized_block_session_res.value();
 
@@ -138,11 +139,10 @@ namespace kagome::dispute {
 
   std::optional<std::reference_wrapper<SessionInfo>>
   RollingSessionWindowImpl::session_info(SessionIndex index) {
-    if (index < earliest_session_) {
-      return std::nullopt;
-    } else {
-      return session_info_.at(index - earliest_session_);
+    if (index >= earliest_session() and index <= latest_session()) {
+      return session_info_[index - earliest_session_];
     }
+    return std::nullopt;
   }
 
   SessionIndex RollingSessionWindowImpl::earliest_session() const {

@@ -46,7 +46,8 @@ namespace kagome::dispute {
             disputes, active, kMaxDisputesForwardedToRuntime);
       } else {
         extend_by_random_subset_without_repetition(
-            disputes, recent, kMaxDisputesForwardedToRuntime - active.size());
+            active, recent, kMaxDisputesForwardedToRuntime - active.size());
+        disputes = std::move(active);
       }
 
     } else {
