@@ -11,27 +11,19 @@
 namespace kagome::runtime::binaryen {
 
   MemoryImpl::MemoryImpl(RuntimeExternalInterface::InternalMemory *memory,
-                         std::unique_ptr<MemoryAllocator> &&allocator)
+                         const MemoryConfig &config)
       : memory_{memory},
         size_{kInitialMemorySize},
-        allocator_{std::move(allocator)},
-        logger_{log::createLogger("Binaryen Memory", "binaryen")} {
-    resize(size_);
-  }
-
-  MemoryImpl::MemoryImpl(RuntimeExternalInterface::InternalMemory *memory,
-                         WasmSize heap_base)
-      : MemoryImpl{
-          memory,
-          std::make_unique<MemoryAllocator>(
-              MemoryAllocator::MemoryHandle{
-                  [this](auto new_size) { return resize(new_size); },
-                  [this]() { return size_; },
-                  [this](auto addr, uint32_t value) {
-                    memory_->set<uint32_t>(addr, value);
-                  },
-                  [this](auto addr) { return memory_->get<uint32_t>(addr); }},
-              heap_base)} {}
+        allocator_{std::make_unique<MemoryAllocator>(
+            MemoryAllocator::MemoryHandle{
+                [this](auto new_size) { return resize(new_size); },
+                [this]() { return size_; },
+                [this](auto addr, uint32_t value) {
+                  memory_->set<uint32_t>(addr, value);
+                },
+                [this](auto addr) { return memory_->get<uint32_t>(addr); }},
+            config)},
+        logger_{log::createLogger("Binaryen Memory", "binaryen")} {}
 
   WasmPointer MemoryImpl::allocate(WasmSize size) {
     return allocator_->allocate(size);

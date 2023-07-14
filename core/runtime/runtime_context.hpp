@@ -35,23 +35,33 @@ namespace kagome::runtime {
 
     RuntimeContext(RuntimeContext &&) = default;
 
+    struct ContextParams {
+      ContextParams() = delete;
+
+      MemoryConfig memory_config;
+    };
+
     static outcome::result<RuntimeContext> fromCode(
         const runtime::ModuleFactory &module_factory,
-        common::BufferView code_zstd);
+        common::BufferView code_zstd,
+        ContextParams params = {});
 
     static outcome::result<RuntimeContext> fromBatch(
         std::shared_ptr<ModuleInstance> module_instance,
-        std::shared_ptr<storage::trie::TrieBatch> batch);
+        std::shared_ptr<storage::trie::TrieBatch> batch,
+        ContextParams params = {});
 
     static outcome::result<RuntimeContext> persistent(
         std::shared_ptr<ModuleInstance> module_instance,
         const storage::trie::RootHash &state,
         std::optional<std::shared_ptr<storage::changes_trie::ChangesTracker>>
-            changes_tracker_opt);
+            changes_tracker_opt,
+        ContextParams params = {});
 
     static outcome::result<RuntimeContext> ephemeral(
         std::shared_ptr<ModuleInstance> module_instance,
-        const storage::trie::RootHash &state);
+        const storage::trie::RootHash &state,
+        ContextParams params = {});
 
     const std::shared_ptr<ModuleInstance> module_instance;
 

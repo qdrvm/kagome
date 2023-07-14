@@ -44,6 +44,9 @@ namespace kagome::parachain {
 
   class PvfImpl : public Pvf {
    public:
+    struct Config {
+      uint64_t instance_cache_size;
+    };
     PvfImpl(std::shared_ptr<crypto::Hasher> hasher,
             std::shared_ptr<runtime::ModuleFactory> module_factory,
             std::shared_ptr<runtime::RuntimePropertiesCache>
@@ -51,7 +54,8 @@ namespace kagome::parachain {
             std::shared_ptr<blockchain::BlockHeaderRepository>
                 block_header_repository,
             std::shared_ptr<crypto::Sr25519Provider> sr25519_provider,
-            std::shared_ptr<runtime::ParachainHost> parachain_api);
+            std::shared_ptr<runtime::ParachainHost> parachain_api,
+            const Config& config);
     ~PvfImpl() override;
 
     outcome::result<Result> pvfSync(const CandidateReceipt &receipt,

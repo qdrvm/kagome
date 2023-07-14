@@ -64,7 +64,7 @@ namespace kagome::runtime {
       std::function<uint32_t(WasmPointer)> loadSz;
     };
 
-    MemoryAllocator(MemoryHandle memory, WasmPointer heap_base);
+    MemoryAllocator(MemoryHandle memory, const struct MemoryConfig &config);
 
     WasmPointer allocate(const WasmSize size);
     std::optional<WasmSize> deallocate(WasmPointer ptr);
@@ -100,7 +100,7 @@ namespace kagome::runtime {
         allocation_sz = mh.loadSz(ptr + sizeof(chunk_sz));
       }
     };
-    static constexpr size_t AlloocationHeaderSz =
+    static constexpr size_t AllocationHeaderSz =
         roundUpAlign(sizeof(AllocationHeader));
 
     /**
@@ -126,6 +126,9 @@ namespace kagome::runtime {
 
     // Offset on the tail of the last allocated MemoryImpl chunk
     size_t offset_;
+    WasmSize max_stack_size_;
+    WasmSize max_stack_values_num_;
+    WasmSize max_memory_pages_num_;
 
     log::Logger logger_;
   };

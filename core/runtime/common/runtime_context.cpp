@@ -35,7 +35,8 @@ namespace kagome::runtime {
     BOOST_ASSERT(this->module_instance);
   }
 
-  outcome::result<void> resetMemory(const ModuleInstance &instance) {
+  outcome::result<void> resetMemory(const ModuleInstance &instance,
+                                    const MemoryConfig &config) {
     static auto log = log::createLogger("RuntimeEnvironmentFactory", "runtime");
 
     OUTCOME_TRY(opt_heap_base, instance.getGlobal("__heap_base"));
@@ -48,7 +49,7 @@ namespace kagome::runtime {
 
     auto &memory_provider = instance.getEnvironment().memory_provider;
     OUTCOME_TRY(
-        const_cast<MemoryProvider &>(*memory_provider).resetMemory(heap_base));
+        const_cast<MemoryProvider &>(*memory_provider).resetMemory(config));
     auto &memory = memory_provider->getCurrentMemory()->get();
 
     static auto heappages_key = ":heappages"_buf;
@@ -93,7 +94,8 @@ namespace kagome::runtime {
 
   outcome::result<RuntimeContext> RuntimeContext::fromCode(
       const runtime::ModuleFactory &module_factory,
-      common::BufferView code_zstd) {
+      common::BufferView code_zstd,
+      ContextParams params) {
     common::Buffer code;
     OUTCOME_TRY(runtime::uncompressCodeIfNeeded(code_zstd, code));
     OUTCOME_TRY(runtime_module, module_factory.make(code));
@@ -104,18 +106,19 @@ namespace kagome::runtime {
     instance->getEnvironment()
         .storage_provider->setToEphemeralAt(storage::trie::kEmptyRootHash)
         .value();
-    OUTCOME_TRY(resetMemory(*instance));
+    OUTCOME_TRY(resetMemory(*instance, params.memory_config));
     return ctx;
   }
 
   outcome::result<RuntimeContext> RuntimeContext::fromBatch(
       std::shared_ptr<ModuleInstance> instance,
-      std::shared_ptr<storage::trie::TrieBatch> batch) {
+      std::shared_ptr<storage::trie::TrieBatch> batch,
+      ContextParams params) {
     runtime::RuntimeContext ctx{
         instance,
     };
     instance->getEnvironment().storage_provider->setTo(batch);
-    OUTCOME_TRY(resetMemory(*instance));
+    OUTCOME_TRY(resetMemory(*instance, params.memory_config));
     return ctx;
   }
 
@@ -123,25 +126,27 @@ namespace kagome::runtime {
       std::shared_ptr<ModuleInstance> instance,
       const storage::trie::RootHash &state,
       std::optional<std::shared_ptr<storage::changes_trie::ChangesTracker>>
-          changes_tracker_opt) {
+          changes_tracker_opt,
+      ContextParams params) {
     runtime::RuntimeContext ctx{
         instance,
     };
     OUTCOME_TRY(instance->getEnvironment().storage_provider->setToPersistentAt(
         state, changes_tracker_opt));
-    OUTCOME_TRY(resetMemory(*instance));
+    OUTCOME_TRY(resetMemory(*instance, params.memory_config));
     return ctx;
   }
 
   outcome::result<RuntimeContext> RuntimeContext::ephemeral(
       std::shared_ptr<ModuleInstance> instance,
-      const storage::trie::RootHash &state) {
+      const storage::trie::RootHash &state,
+      ContextParams params) {
     runtime::RuntimeContext ctx{
         instance,
     };
     OUTCOME_TRY(
         instance->getEnvironment().storage_provider->setToEphemeralAt(state));
-    OUTCOME_TRY(resetMemory(*instance));
+    OUTCOME_TRY(resetMemory(*instance, params.memory_config));
     return ctx;
   }
 

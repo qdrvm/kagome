@@ -8,6 +8,7 @@
 
 #include <cstdint>
 #include <utility>
+#include <optional>
 
 namespace kagome::runtime {
   /**
@@ -45,6 +46,13 @@ namespace kagome::runtime {
 
   using WasmI32 = int32_t;
   using WasmU64 = uint64_t;
+
+  struct MemoryConfig {
+    WasmSize heap_base;
+    std::optional<WasmSize> max_stack_size{};
+    std::optional<WasmSize> max_stack_values_num{};
+    std::optional<WasmSize> max_memory_pages_num{};
+  };
 
   /**
    * Splits 64 bit wasm span on 32 bit pointer and 32 bit address

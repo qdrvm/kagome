@@ -11,7 +11,7 @@
 #include "primitives/block_id.hpp"
 #include "primitives/common.hpp"
 #include "primitives/parachain_host.hpp"
-#include "runtime/runtime_api/parachain_hosgit_types.hpp"
+#include "runtime/runtime_api/parachain_host_types.hpp"
 
 namespace kagome::runtime {
 

@@ -14,9 +14,11 @@
 #include "runtime/wavm/module_params.hpp"
 #include "testutil/prepare_loggers.hpp"
 
+using kagome::common::literals::operator""_MB;
 using kagome::runtime::kDefaultHeapBase;
 using kagome::runtime::kInitialMemorySize;
 using kagome::runtime::MemoryAllocator;
+using kagome::runtime::MemoryConfig;
 using kagome::runtime::roundUpAlign;
 using kagome::runtime::wavm::CompartmentWrapper;
 using kagome::runtime::wavm::IntrinsicModule;
@@ -47,21 +49,12 @@ class WavmMemoryHeapTest : public ::testing::Test {
         WAVM::IR::FunctionType{});
     instance_ = intr_module->instantiate();
 
-    auto allocator = std::make_unique<MemoryAllocator>(
-        MemoryAllocator::MemoryHandle{
-            [this](auto size) { return memory_->resize(size); },
-            [this] { return memory_->size(); },
-            [this](auto addr, uint32_t value) {
-              memory_->store<uint32_t>(addr, value);
-            },
-            [this](auto addr) { return memory_->load<uint32_t>(addr); }},
-        kDefaultHeapBase);
-    allocator_ = allocator.get();
     memory_ = std::make_unique<MemoryImpl>(instance_->getExportedMemory(),
-                                           std::move(allocator));
+                                           MemoryConfig{kDefaultHeapBase});
   }
 
   static const uint32_t memory_size_ = kInitialMemorySize;
+  static const uint32_t memory_page_limit_ = 512_MB;
 
   std::unique_ptr<MemoryImpl> memory_;
   std::unique_ptr<IntrinsicModuleInstance> instance_;
@@ -104,7 +97,8 @@ TEST_F(WavmMemoryHeapTest, AllocatedTooBigMemoryFailed) {
 
   // The memory size that can be allocated is within interval (0, kMaxMemorySize
   // - memory_size_]. Trying to allocate more
-  auto big_memory_size = MemoryImpl::kMaxMemorySize - memory_size_ + 1;
+  auto big_memory_size =
+      memory_page_limit_ * kagome::runtime::kMemoryPageSize - memory_size_ + 1;
   ASSERT_EQ(memory_->allocate(big_memory_size), 0);
 }
 

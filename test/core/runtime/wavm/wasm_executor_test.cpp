@@ -67,7 +67,6 @@ using kagome::crypto::Sr25519Suite;
 using kagome::primitives::BlockHash;
 using kagome::runtime::Executor;
 using kagome::runtime::RuntimeCodeProvider;
-using kagome::runtime::RuntimeEnvironmentFactory;
 using kagome::runtime::RuntimeInstancesPool;
 using kagome::runtime::RuntimePropertiesCacheMock;
 using kagome::runtime::TrieStorageProvider;
@@ -193,7 +192,8 @@ class WasmExecutorTest : public ::testing::Test {
         std::make_shared<RuntimeInstancesPool>(),
         runtime_upgrade_tracker_,
         module_factory,
-        bogus_smc);
+        bogus_smc,
+        wasm_provider_);
 
     auto core_provider =
         std::make_shared<kagome::runtime::wavm::CoreApiFactoryImpl>(
@@ -209,9 +209,6 @@ class WasmExecutorTest : public ::testing::Test {
         std::shared_ptr<kagome::host_api::HostApi>{host_api_factory->make(
             core_provider, memory_provider, storage_provider_)};
 
-    auto env_factory = std::make_shared<RuntimeEnvironmentFactory>(
-        wasm_provider_, module_repo, header_repo_);
-
     cache_ = std::make_shared<RuntimePropertiesCacheMock>();
     ON_CALL(*cache_, getVersion(_, _))
         .WillByDefault(
@@ -220,7 +217,7 @@ class WasmExecutorTest : public ::testing::Test {
         .WillByDefault(
             Invoke([](const auto &hash, auto func) { return func(); }));
 
-    executor_ = std::make_shared<Executor>(env_factory, cache_);
+    executor_ = std::make_shared<Executor>(module_repo, header_repo_, cache_);
   }
 
  protected:

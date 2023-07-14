@@ -39,7 +39,6 @@ using kagome::runtime::MemoryMock;
 using kagome::runtime::MemoryProviderMock;
 using kagome::runtime::ModuleRepositoryMock;
 using kagome::runtime::PtrSize;
-using kagome::runtime::RuntimeEnvironmentFactoryMock;
 using kagome::runtime::TrieStorageProviderMock;
 using kagome::runtime::WasmEnum;
 using kagome::runtime::WasmLogLevel;
@@ -95,8 +94,6 @@ class REITest : public ::testing::Test {
         std::make_shared<ConstantCodeProvider>(kagome::common::Buffer{});
     auto module_repo = std::make_shared<ModuleRepositoryMock>();
     auto header_repo = std::make_shared<BlockHeaderRepositoryMock>();
-    runtime_env_factory_ = std::make_shared<RuntimeEnvironmentFactoryMock>(
-        code_provider, module_repo, header_repo);
   }
 
   void executeWasm(std::string call_code) {
@@ -124,7 +121,6 @@ class REITest : public ::testing::Test {
  protected:
   std::shared_ptr<MemoryMock> memory_;
   std::shared_ptr<CoreApiFactoryMock> core_api_factory_;
-  std::shared_ptr<RuntimeEnvironmentFactoryMock> runtime_env_factory_;
   std::shared_ptr<HostApiMock> host_api_;
   std::shared_ptr<HostApiFactoryMock> host_api_factory_;
   std::shared_ptr<TrieStorageProviderMock> storage_provider_;

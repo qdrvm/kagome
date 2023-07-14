@@ -16,6 +16,7 @@
 #include "primitives/common.hpp"
 #include "primitives/transaction_validity.hpp"
 #include "primitives/version.hpp"
+#include "runtime/runtime_context.hpp"
 #include "storage/changes_trie/changes_tracker.hpp"
 
 namespace kagome::runtime {
@@ -68,9 +69,9 @@ namespace kagome::runtime {
      * @param header header used for block initialization
      * @param changes_tracker storage writes and deletes tracker
      */
-    virtual outcome::result<std::unique_ptr<RuntimeContext>>
-    initialize_block(const primitives::BlockHeader &header,
-                     TrieChangesTrackerOpt changes_tracker) = 0;
+    virtual outcome::result<std::unique_ptr<RuntimeContext>> initialize_block(
+        const primitives::BlockHeader &header,
+        TrieChangesTrackerOpt changes_tracker) = 0;
   };
 
 }  // namespace kagome::runtime

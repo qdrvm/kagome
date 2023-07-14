@@ -158,13 +158,11 @@ class RuntimeTestBase : public ::testing::Test {
         std::make_shared<runtime::RuntimeInstancesPool>(),
         upgrade_tracker,
         module_factory,
-        std::make_shared<runtime::SingleModuleCache>());
-
-    runtime_env_factory_ = std::make_shared<runtime::RuntimeEnvironmentFactory>(
-        std::move(wasm_provider_), std::move(module_repo), header_repo_);
+        std::make_shared<runtime::SingleModuleCache>(),
+        wasm_provider_);
 
     executor_ =
-        std::make_shared<runtime::Executor>(runtime_env_factory_, cache_);
+        std::make_shared<runtime::Executor>(module_repo, header_repo_, cache_);
   }
 
   void preparePersistentStorageExpects() {
@@ -242,7 +240,6 @@ class RuntimeTestBase : public ::testing::Test {
   std::shared_ptr<runtime::RuntimeCodeProvider> wasm_provider_;
   std::shared_ptr<storage::trie::TrieStorageMock> trie_storage_;
   std::shared_ptr<storage::trie::TrieSerializerMock> serializer_;
-  std::shared_ptr<runtime::RuntimeEnvironmentFactory> runtime_env_factory_;
   std::shared_ptr<runtime::RuntimePropertiesCacheMock> cache_;
   std::shared_ptr<runtime::Executor> executor_;
   std::shared_ptr<offchain::OffchainPersistentStorageMock> offchain_storage_;

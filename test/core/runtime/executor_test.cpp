@@ -36,8 +36,7 @@ using kagome::runtime::ModuleInstanceMock;
 using kagome::runtime::ModuleRepository;
 using kagome::runtime::ModuleRepositoryMock;
 using kagome::runtime::PtrSize;
-using kagome::runtime::RuntimeEnvironment;
-using kagome::runtime::RuntimeEnvironmentTemplateMock;
+using kagome::runtime::RuntimeContext;
 using kagome::runtime::RuntimePropertiesCacheMock;
 using kagome::runtime::TrieStorageProviderMock;
 using kagome::storage::trie::TrieBatch;
@@ -62,10 +61,7 @@ class ExecutorTest : public testing::Test {
     auto code_provider = std::make_shared<BasicCodeProvider>(
         kagome::filesystem::path(__FILE__).parent_path().string()
         + "/wasm/sumtwo.wasm");
-    auto module_repo = std::make_shared<ModuleRepositoryMock>();
-    env_factory_ =
-        std::make_shared<kagome::runtime::RuntimeEnvironmentFactoryMock>(
-            code_provider, module_repo, header_repo_);
+    module_repo_ = std::make_shared<ModuleRepositoryMock>();
 
     cache_ = std::make_shared<RuntimePropertiesCacheMock>();
     ON_CALL(*cache_, getVersion(_, _))
@@ -79,8 +75,8 @@ class ExecutorTest : public testing::Test {
   }
 
   void preparePersistentCall(
-      kagome::primitives::BlockInfo const &blockchain_state,
-      kagome::storage::trie::RootHash const &storage_state,
+      const kagome::primitives::BlockInfo &blockchain_state,
+      const kagome::storage::trie::RootHash &storage_state,
       int arg1,
       int arg2,
       int res) {
@@ -91,55 +87,11 @@ class ExecutorTest : public testing::Test {
     Buffer enc_res{scale::encode(res).value()};
     EXPECT_CALL(*memory_, loadN(RESULT_LOCATION.ptr, RESULT_LOCATION.size))
         .WillOnce(Return(enc_res));
-    EXPECT_CALL(*env_factory_, start(blockchain_state.hash))
-        .WillOnce(Invoke(
-            [weak_env_factory =
-                 std::weak_ptr<kagome::runtime::RuntimeEnvironmentFactoryMock>{
-                     env_factory_},
-             blockchain_state,
-             storage_state,
-             this,
-             RESULT_LOCATION](auto &) {
-              auto env_template =
-                  std::make_unique<RuntimeEnvironmentTemplateMock>(
-                      weak_env_factory, blockchain_state, storage_state);
-              EXPECT_CALL(*env_template, persistent())
-                  .WillOnce(ReturnRef(*env_template));
-              EXPECT_CALL(*env_template, make())
-                  .WillOnce(Invoke([this, RESULT_LOCATION, blockchain_state] {
-                    auto module_instance =
-                        std::make_shared<ModuleInstanceMock>();
-                    EXPECT_CALL(*module_instance, resetEnvironment())
-                        .WillOnce(Return(outcome::success()));
-                    EXPECT_CALL(*module_instance,
-                                callExportFunction(std::string_view{"addTwo"},
-                                                   enc_args.view()))
-                        .WillOnce(Return(RESULT_LOCATION));
-                    auto memory_provider =
-                        std::make_shared<kagome::runtime::MemoryProviderMock>();
-                    EXPECT_CALL(*memory_provider, getCurrentMemory())
-                        .WillOnce(
-                            Return(std::optional<std::reference_wrapper<
-                                       kagome::runtime::Memory>>(*memory_)));
-
-                    auto storage_provider = std::make_shared<
-                        kagome::runtime::TrieStorageProviderMock>();
-                    auto batch = std::make_shared<
-                        kagome::storage::trie::TrieBatchMock>();
-
-                    return std::make_unique<RuntimeEnvironment>(
-                        module_instance,
-                        memory_provider,
-                        storage_provider,
-                        blockchain_state);
-                  }));
-              return env_template;
-            }));
   }
 
   void prepareEphemeralCall(
-      kagome::primitives::BlockInfo const &blockchain_state,
-      kagome::storage::trie::RootHash const &storage_state,
+      const kagome::primitives::BlockInfo &blockchain_state,
+      const kagome::storage::trie::RootHash &storage_state,
       int arg1,
       int arg2,
       int res) {
@@ -149,63 +101,26 @@ class ExecutorTest : public testing::Test {
     Buffer enc_res{scale::encode(res).value()};
     EXPECT_CALL(*memory_, loadN(RESULT_LOCATION.ptr, RESULT_LOCATION.size))
         .WillOnce(Return(enc_res));
-    EXPECT_CALL(*env_factory_, start(blockchain_state, storage_state))
-        .WillOnce(Invoke(
-            [weak_env_factory =
-                 std::weak_ptr<kagome::runtime::RuntimeEnvironmentFactoryMock>{
-                     env_factory_},
-             this,
-             RESULT_LOCATION](auto &blockchain_state, auto &storage_state) {
-              auto env_template =
-                  std::make_unique<RuntimeEnvironmentTemplateMock>(
-                      weak_env_factory, blockchain_state, storage_state);
-              EXPECT_CALL(*env_template, make())
-                  .WillOnce(Invoke([this, blockchain_state, RESULT_LOCATION] {
-                    auto module_instance =
-                        std::make_shared<ModuleInstanceMock>();
-                    EXPECT_CALL(*module_instance, resetEnvironment())
-                        .WillOnce(Return(outcome::success()));
-                    EXPECT_CALL(*module_instance,
-                                callExportFunction(std::string_view{"addTwo"},
-                                                   enc_args.view()))
-                        .WillOnce(Return(RESULT_LOCATION));
-                    auto memory_provider =
-                        std::make_shared<kagome::runtime::MemoryProviderMock>();
-                    EXPECT_CALL(*memory_provider, getCurrentMemory())
-                        .WillOnce(
-                            Return(std::optional<std::reference_wrapper<
-                                       kagome::runtime::Memory>>(*memory_)));
-
-                    auto storage_provider = std::make_shared<
-                        kagome::runtime::TrieStorageProviderMock>();
-
-                    return std::make_unique<RuntimeEnvironment>(
-                        module_instance,
-                        memory_provider,
-                        storage_provider,
-                        blockchain_state);
-                  }));
-              return env_template;
-            }));
   }
 
  protected:
   std::unique_ptr<MemoryMock> memory_;
-  std::shared_ptr<kagome::runtime::RuntimeEnvironmentFactoryMock> env_factory_;
   std::shared_ptr<kagome::runtime::RuntimePropertiesCacheMock> cache_;
   std::shared_ptr<BlockHeaderRepositoryMock> header_repo_;
   std::shared_ptr<kagome::storage::trie::TrieStorageMock> storage_;
+  std::shared_ptr<ModuleRepositoryMock> module_repo_;
 };
 
 TEST_F(ExecutorTest, LatestStateSwitchesCorrectly) {
-  Executor executor{env_factory_, cache_};
+  Executor executor{module_repo_, header_repo_, cache_};
   kagome::primitives::BlockInfo block_info1{42, "block_hash1"_hash256};
   kagome::primitives::BlockInfo block_info2{43, "block_hash2"_hash256};
   kagome::primitives::BlockInfo block_info3{44, "block_hash3"_hash256};
 
   preparePersistentCall(block_info1, "state_hash1"_hash256, 2, 3, 5);
-  auto env = executor.persistentAt(block_info1.hash, std::nullopt).value();
-  EXPECT_EQ(executor.call<int>(*env, "addTwo", 2, 3).value(), 5);
+  auto ctx =
+      executor.getPersistentContextAt(block_info1.hash, std::nullopt).value();
+  EXPECT_EQ(executor.call<int>(*ctx, "addTwo", 2, 3).value(), 5);
 
   prepareEphemeralCall(block_info1, "state_hash2"_hash256, 7, 10, 17);
   EXPECT_OUTCOME_TRUE(res2,
@@ -214,8 +129,9 @@ TEST_F(ExecutorTest, LatestStateSwitchesCorrectly) {
   ASSERT_EQ(res2, 17);
 
   preparePersistentCall(block_info1, "state_hash2"_hash256, 0, 0, 0);
-  auto env3 = executor.persistentAt(block_info1.hash, std::nullopt).value();
-  EXPECT_EQ(executor.call<int>(*env3, "addTwo", 0, 0).value(), 0);
+  auto ctx3 =
+      executor.getPersistentContextAt(block_info1.hash, std::nullopt).value();
+  EXPECT_EQ(executor.call<int>(*ctx, "addTwo", 0, 0).value(), 0);
 
   prepareEphemeralCall(block_info1, "state_hash3"_hash256, 7, 10, 17);
   EXPECT_OUTCOME_TRUE(res4,
@@ -224,8 +140,9 @@ TEST_F(ExecutorTest, LatestStateSwitchesCorrectly) {
   ASSERT_EQ(res4, 17);
 
   preparePersistentCall(block_info2, "state_hash4"_hash256, -5, 5, 0);
-  auto env5 = executor.persistentAt(block_info2.hash, std::nullopt).value();
-  EXPECT_EQ(executor.call<int>(*env5, "addTwo", -5, 5).value(), 0);
+  auto ctx5 =
+      executor.getPersistentContextAt(block_info2.hash, std::nullopt).value();
+  EXPECT_EQ(executor.call<int>(*ctx5, "addTwo", -5, 5).value(), 0);
 
   prepareEphemeralCall(block_info2, "state_hash5"_hash256, 7, 10, 17);
   EXPECT_OUTCOME_TRUE(res6,

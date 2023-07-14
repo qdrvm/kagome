@@ -66,6 +66,9 @@ struct SafeObject {
   mutable M cs_;
 };
 
+template <typename T, typename M = std::shared_mutex>
+SafeObject(T&&) -> SafeObject<T, M>;
+
 class WaitForSingleObject final {
   std::condition_variable wait_cv_;
   std::mutex wait_m_;

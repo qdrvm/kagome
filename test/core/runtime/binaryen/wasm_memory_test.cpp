@@ -14,6 +14,7 @@
 
 using namespace kagome;
 
+using common::literals::operator""_MB;
 using runtime::kDefaultHeapBase;
 using runtime::kInitialMemorySize;
 using runtime::MemoryAllocator;
@@ -31,18 +32,11 @@ class BinaryenMemoryHeapTest : public ::testing::Test {
     auto host_api = std::make_shared<host_api::HostApiMock>();
     rei_ =
         std::make_unique<runtime::binaryen::RuntimeExternalInterface>(host_api);
-    auto allocator = std::make_unique<MemoryAllocator>(
-        MemoryAllocator::MemoryHandle{
-            [this](auto size) { return memory_->resize(size); },
-            [this] { return memory_->size(); },
-            [this](auto addr, uint32_t value) {
-              memory_->store32(addr, value);
-            },
-            [this](auto addr) { return memory_->load32u(addr); }},
-        kDefaultHeapBase);
-    allocator_ = allocator.get();
-    memory_ =
-        std::make_unique<MemoryImpl>(rei_->getMemory(), std::move(allocator));
+
+    memory_ = std::make_unique<MemoryImpl>(rei_->getMemory(),
+                                           runtime::MemoryConfig{
+
+                                           });
   }
 
   void TearDown() override {
@@ -51,6 +45,7 @@ class BinaryenMemoryHeapTest : public ::testing::Test {
   }
 
   static const uint32_t memory_size_ = kInitialMemorySize;
+  static const uint32_t memory_page_limit_ = 512_MB / runtime::kMemoryPageSize;
 
   std::unique_ptr<runtime::binaryen::RuntimeExternalInterface> rei_;
   std::unique_ptr<MemoryImpl> memory_;
@@ -93,7 +88,8 @@ TEST_F(BinaryenMemoryHeapTest, AllocatedTooBigMemoryFailed) {
 
   // The memory size that can be allocated is within interval (0, kMaxMemorySize
   // - memory_size_]. Trying to allocate more
-  auto big_memory_size = MemoryImpl::kMaxMemorySize - memory_size_ + 1;
+  auto big_memory_size =
+      runtime::kMemoryPageSize * memory_page_limit_ - memory_size_ + 1;
   ASSERT_EQ(memory_->allocate(big_memory_size), 0);
 }
 

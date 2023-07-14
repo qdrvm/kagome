@@ -71,13 +71,16 @@ namespace kagome::parachain {
       std::shared_ptr<blockchain::BlockHeaderRepository>
           block_header_repository,
       std::shared_ptr<crypto::Sr25519Provider> sr25519_provider,
-      std::shared_ptr<runtime::ParachainHost> parachain_api)
+      std::shared_ptr<runtime::ParachainHost> parachain_api,
+      const Config &config)
       : hasher_{std::move(hasher)},
         runtime_properties_cache_{std::move(runtime_properties_cache)},
         block_header_repository_{std::move(block_header_repository)},
         sr25519_provider_{std::move(sr25519_provider)},
         parachain_api_{std::move(parachain_api)},
-        log_{log::createLogger("Pvf")} {}
+        log_{log::createLogger("Pvf")},
+        runtime_cache_{std::make_unique<PvfRuntimeCache>(
+            module_factory, config.instance_cache_size)} {}
 
   PvfImpl::~PvfImpl() {}
 
