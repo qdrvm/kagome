@@ -1,6 +1,7 @@
-Description: Parachain smoke test
-Network: ./0001-parachains-smoke-test.toml
+Description: Parachain smoke test - 100% kagome
+Network: ./0001-parachains-smoke-test-kagome.toml
 Creds: config
+
 
 alice: is up
 bob: is up
