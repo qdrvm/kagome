@@ -7,6 +7,7 @@
 
 #include <future>
 
+#include "dispute_coordinator/dispute_coordinator.hpp"
 #include "dispute_coordinator/participation/impl/queues_impl.hpp"
 #include "dispute_coordinator/participation/queues.hpp"
 #include "parachain/availability/recovery/recovery.hpp"
@@ -22,12 +23,14 @@ namespace kagome::dispute {
       std::shared_ptr<runtime::ParachainHost> api,
       std::shared_ptr<parachain::Recovery> recovery,
       std::shared_ptr<parachain::Pvf> pvf,
-      std::shared_ptr<ThreadHandler> internal_context)
+      std::shared_ptr<ThreadHandler> internal_context,
+      std::weak_ptr<DisputeCoordinator> dispute_coordinator)
       : block_header_repository_(std::move(block_header_repository)),
         api_(std::move(api)),
         recovery_(std::move(recovery)),
         pvf_(std::move(pvf)),
         internal_context_(std::move(internal_context)),
+        dispute_coordinator_(std::move(dispute_coordinator)),
         queue_(std::make_unique<QueuesImpl>(
             block_header_repository_, std::move(hasher), std::move(api))) {
     BOOST_ASSERT(block_header_repository_ != nullptr);
@@ -35,6 +38,7 @@ namespace kagome::dispute {
     BOOST_ASSERT(recovery_ != nullptr);
     BOOST_ASSERT(pvf_ != nullptr);
     BOOST_ASSERT(internal_context_ != nullptr);
+    BOOST_ASSERT(not dispute_coordinator_.expired());
   }
 
   outcome::result<void> ParticipationImpl::queue_participation(
@@ -134,11 +138,17 @@ namespace kagome::dispute {
     auto ctx = std::make_shared<ParticipationContext>(
         ParticipationContext{std::move(request), std::move(block_hash)});
 
-    participate_stage1(ctx, [wp = weak_from_this()](ParticipationOutcome res) {
-      if (auto self = wp.lock()) {
-        //
-      }
-    });
+    participate_stage1(
+        ctx, [request, wp = dispute_coordinator_](ParticipationOutcome res) {
+          if (auto dispute_coordinator = wp.lock()) {
+            dispute_coordinator->onParticipation(ParticipationStatement{
+                .session = request.session,
+                .candidate_hash = request.candidate_hash,
+                .candidate_receipt = request.candidate_receipt,
+                .outcome = res,
+            });
+          }
+        });
   }
 
   void ParticipationImpl::participate_stage1(ParticipationContextPtr ctx,

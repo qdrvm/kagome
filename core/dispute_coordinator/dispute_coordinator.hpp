@@ -8,6 +8,7 @@
 
 #include "network/dispute_request_observer.hpp"
 
+#include "dispute_coordinator/participation/types.hpp"
 #include "dispute_coordinator/types.hpp"
 
 namespace kagome::dispute {
@@ -33,6 +34,8 @@ namespace kagome::dispute {
     /// These are disputes which have occurred any time in recent sessions,
     /// and which may have already concluded.
     virtual void getRecentDisputes(CbOutcome<OutputDisputes> &&cb) = 0;
+
+    virtual void onParticipation(const ParticipationStatement &message) = 0;
 
     /// Fetch a list of all active disputes that the coordinator is aware of.
     /// These disputes are either not yet concluded or recently concluded.

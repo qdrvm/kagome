@@ -122,6 +122,8 @@ namespace kagome::dispute {
                           const network::DisputeMessage &request,
                           CbOutcome<void> &&cb) override;
 
+    void onParticipation(const ParticipationStatement &message) override;
+
     void getRecentDisputes(CbOutcome<OutputDisputes> &&cb) override;
 
     void getActiveDisputes(CbOutcome<OutputDisputes> &&cb) override;
@@ -145,7 +147,6 @@ namespace kagome::dispute {
 
    private:
     void startup(const network::ExView &updated);
-    void on_participation(const ParticipationStatement &message);
     void on_active_leaves_update(const network::ExView &updated);
     void on_finalized_block(const primitives::BlockInfo &finalized);
 

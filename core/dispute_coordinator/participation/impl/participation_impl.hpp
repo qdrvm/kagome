@@ -22,6 +22,10 @@ namespace kagome::parachain {
 }  // namespace kagome::parachain
 
 namespace kagome::dispute {
+  class DisputeCoordinator;
+}
+
+namespace kagome::dispute {
 
   class ParticipationImpl final
       : public Participation,
@@ -35,7 +39,8 @@ namespace kagome::dispute {
                       std::shared_ptr<runtime::ParachainHost> api,
                       std::shared_ptr<parachain::Recovery> recovery,
                       std::shared_ptr<parachain::Pvf> pvf,
-                      std::shared_ptr<ThreadHandler> internal_context);
+                      std::shared_ptr<ThreadHandler> internal_context,
+                      std::weak_ptr<DisputeCoordinator> dispute_coordinator);
 
     outcome::result<void> queue_participation(
         ParticipationPriority priority, ParticipationRequest request) override;
@@ -82,6 +87,7 @@ namespace kagome::dispute {
     std::shared_ptr<parachain::Recovery> recovery_;
     std::shared_ptr<parachain::Pvf> pvf_;
     std::shared_ptr<ThreadHandler> internal_context_;
+    std::weak_ptr<DisputeCoordinator> dispute_coordinator_;
 
     /// Participations currently being processed.
     std::unordered_set<CandidateHash> running_participations_;

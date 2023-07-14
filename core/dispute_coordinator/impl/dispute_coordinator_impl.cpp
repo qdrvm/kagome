@@ -386,7 +386,8 @@ namespace kagome::dispute {
                                             api_,
                                             recovery_,
                                             pvf_,
-                                            internal_context_);
+                                            internal_context_,
+                                            weak_from_this());
 
     // Also provide first leaf to participation for good measure.
     // https://github.com/paritytech/polkadot/blob/40974fb99c86f5c341105b7db53c7aa0df707d66/node/core/dispute-coordinator/src/initialized.rs#L192
@@ -399,13 +400,13 @@ namespace kagome::dispute {
     }
   }
 
-  void DisputeCoordinatorImpl::on_participation(
+  void DisputeCoordinatorImpl::onParticipation(
       const ParticipationStatement &_message) {
     if (not initialized_) {
       return;
     }
 
-    REINVOKE_1(*internal_context_, on_participation, _message, message);
+    REINVOKE_1(*internal_context_, onParticipation, _message, message);
 
     SL_TRACE(log_, "MuxedMessage::Participation");
 

@@ -66,8 +66,8 @@ namespace kagome::dispute {
     }
   };
 
-  class Inclusions
-      : private std::map<CandidateHash,
+  class Inclusions : private std::unordered_map<
+                         CandidateHash,
                          std::map<primitives::BlockNumber,
                                   std::vector<primitives::BlockHash>>> {
    public:

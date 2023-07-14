@@ -34,9 +34,7 @@ namespace kagome::dispute {
   std::vector<primitives::BlockInfo>
   ChainScraperImpl::get_blocks_including_candidate(
       const CandidateHash &candidate_hash) {
-    std::vector<primitives::BlockInfo> res;
-    // TODO Must be implemented before merge
-    return res;
+    return inclusions_.get(candidate_hash);
   }
 
   // https://github.com/paritytech/polkadot/blob/40974fb99c86f5c341105b7db53c7aa0df707d66/node/core/dispute-coordinator/src/scraping/mod.rs#L288
@@ -145,7 +143,7 @@ namespace kagome::dispute {
 
       // The reversed order is parent, grandparent, etc. excluding the head.
       for (size_t i = 0; i < hashes.size(); ++i) {
-        const auto block_number = head_number - i;
+        const auto block_number = head_number - i - 1;
         const auto &block_hash = hashes[i];
         if (block_hash == head) {
           continue;
