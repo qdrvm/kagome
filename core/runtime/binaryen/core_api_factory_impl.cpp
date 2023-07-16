@@ -9,7 +9,7 @@
 #include "runtime/binaryen/instance_environment_factory.hpp"
 #include "runtime/binaryen/module/module_impl.hpp"
 #include "runtime/common/constant_code_provider.hpp"
-#include "runtime/common/executor.hpp"
+#include "runtime/common/executor_impl.hpp"
 #include "runtime/common/trie_storage_provider_impl.hpp"
 #include "runtime/runtime_api/impl/core.hpp"
 #include "runtime/runtime_api/impl/runtime_properties_cache_impl.hpp"

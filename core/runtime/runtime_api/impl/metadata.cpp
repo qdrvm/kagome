@@ -5,7 +5,7 @@
 
 #include "runtime/runtime_api/impl/metadata.hpp"
 
-#include "runtime/common/executor.hpp"
+#include "runtime/common/executor_impl.hpp"
 
 namespace kagome::runtime {
 

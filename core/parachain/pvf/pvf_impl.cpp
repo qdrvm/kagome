@@ -6,7 +6,7 @@
 #include "parachain/pvf/pvf_impl.hpp"
 
 #include "parachain/pvf/pvf_runtime_cache.hpp"
-#include "runtime/common/executor.hpp"
+#include "runtime/common/executor_impl.hpp"
 #include "runtime/common/uncompress_code_if_needed.hpp"
 #include "runtime/module.hpp"
 #include "runtime/module_factory.hpp"
@@ -186,12 +186,12 @@ namespace kagome::parachain {
     OUTCOME_TRY(genesis_header,
                 block_header_repository_->getBlockHeader(genesis_hash));
     return instance.get().exclusiveAccess(
-        [&genesis_header,
-         &params](auto &instance) -> outcome::result<ValidationResult> {
+        [this, &genesis_header, &params](
+            auto &instance) -> outcome::result<ValidationResult> {
           OUTCOME_TRY(ctx,
                       runtime::RuntimeContext::ephemeral(
                           instance, genesis_header.state_root));
-          return runtime::Executor::call<ValidationResult>(
+          return executor_->callWithCtx<ValidationResult>(
               ctx, "validate_block", params);
         });
   }

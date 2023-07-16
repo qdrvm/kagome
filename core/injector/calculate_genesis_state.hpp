@@ -7,7 +7,7 @@
 #define KAGOME_CORE_INJECTOR_GET_GENESIS_STATE_HPP
 
 #include "application/chain_spec.hpp"
-#include "runtime/common/executor.hpp"
+#include "runtime/common/executor_impl.hpp"
 #include "runtime/runtime_api/impl/core.hpp"
 #include "storage/predefined_keys.hpp"
 #include "storage/trie/polkadot_trie/polkadot_trie_impl.hpp"

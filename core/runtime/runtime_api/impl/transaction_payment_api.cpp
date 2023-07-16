@@ -6,7 +6,7 @@
 #include "runtime/runtime_api/impl/transaction_payment_api.hpp"
 
 #include "crypto/hasher.hpp"
-#include "runtime/common/executor.hpp"
+#include "runtime/common/executor_impl.hpp"
 
 OUTCOME_CPP_DEFINE_CATEGORY(kagome::runtime,
                             TransactionPaymentApiImpl::Error,

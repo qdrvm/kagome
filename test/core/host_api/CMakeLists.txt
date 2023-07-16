@@ -31,7 +31,7 @@ addtest(misc_extension_test
     )
 target_link_libraries(misc_extension_test
     misc_extension
-    runtime_environment_factory
+    runtime_context
     logger_for_tests
     )
 

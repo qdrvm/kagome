@@ -6,12 +6,12 @@
 #ifndef KAGOME_CORE_RUNTIME_COMMON_EXECUTOR_HPP
 #define KAGOME_CORE_RUNTIME_COMMON_EXECUTOR_HPP
 
-#include "runtime/raw_executor.hpp"
+#include "runtime/executor.hpp"
 
 #include <optional>
 
-#include "common/buffer.hpp"
 #include "blockchain/block_header_repository.hpp"
+#include "common/buffer.hpp"
 #include "host_api/host_api.hpp"
 #include "log/logger.hpp"
 #include "log/profiling_logger.hpp"
@@ -44,11 +44,11 @@ namespace kagome::runtime {
    * Provides access to the Runtime API methods, which can be called by their
    * names with the required environment
    */
-  class Executor : public RawExecutor {
+  class ExecutorImpl : public Executor {
    public:
     using Buffer = common::Buffer;
 
-    Executor(
+    ExecutorImpl(
         std::shared_ptr<ModuleRepository> module_repo,
         std::shared_ptr<const blockchain::BlockHeaderRepository> header_repo,
         std::shared_ptr<RuntimePropertiesCache> cache)
@@ -122,9 +122,8 @@ namespace kagome::runtime {
      * changes, made by this call, will NOT persist in the node's Trie storage
      * The call will be done on the genesis state
      */
-    template <typename Result, typename... Args>
-    outcome::result<Result> callAtGenesis(std::string_view name,
-                                          Args &&...args) {
+    outcome::result<common::Buffer> callAtGenesis(
+        std::string_view name, const common::Buffer &encoded_args) {
       OUTCOME_TRY(genesis_hash, header_repo_->getHashByNumber(0));
       OUTCOME_TRY(genesis_header, header_repo_->getBlockHeader(genesis_hash));
       OUTCOME_TRY(instance,
@@ -137,7 +136,7 @@ namespace kagome::runtime {
       return callWithCache<Result>(ctx, name, std::forward<Args>(args)...);
     }
 
-    outcome::result<common::Buffer> callAtRaw(
+    outcome::result<common::Buffer> callAt(
         const primitives::BlockHash &block_hash,
         std::string_view name,
         const common::Buffer &encoded_args) override {
@@ -146,85 +145,7 @@ namespace kagome::runtime {
                   module_repo_->getInstanceAt({block_hash, header.number},
                                               header.state_root));
       OUTCOME_TRY(ctx, RuntimeContext::ephemeral(instance, header.state_root));
-      return callAtRaw(ctx, header.state_root, name, encoded_args);
-    }
-
-    static outcome::result<common::Buffer> callAtRaw(
-        RuntimeContext& context,
-        const storage::trie::RootHash &state_hash,
-        std::string_view name,
-        const common::Buffer &encoded_args) {
-      auto& instance = context.module_instance;
-      auto &memory =
-          instance->getEnvironment().memory_provider->getCurrentMemory()->get();
-
-      KAGOME_PROFILE_START(call_execution)
-
-      auto result_span = instance->callExportFunction(name, encoded_args);
-
-      KAGOME_PROFILE_END(call_execution)
-      OUTCOME_TRY(span, result_span);
-
-      OUTCOME_TRY(instance->resetEnvironment());
-      auto result = memory.loadN(span.ptr, span.size);
-
-      return result;
-    }
-
-    /**
-     * Internal method for calling a Runtime API method
-     * Resets the runtime memory with the module's heap base,
-     * encodes the arguments with SCALE codec, calls the method from the
-     * provided module instance and  returns a result, decoded from SCALE.
-     * Changes, made to the Host API state, are reset after the call.
-     */
-    template <typename Result, typename... Args>
-    static outcome::result<Result> call(RuntimeContext &context,
-                                        std::string_view name,
-                                        Args &&...args) {
-      auto &instance = *context.module_instance;
-      auto &memory =
-          instance.getEnvironment().memory_provider->getCurrentMemory()->get();
-
-      Buffer encoded_args{};
-      if constexpr (sizeof...(args) > 0) {
-        OUTCOME_TRY(res, scale::encode(std::forward<Args>(args)...));
-        encoded_args.put(std::move(res));
-      }
-
-      KAGOME_PROFILE_START(call_execution)
-
-      auto result_span = instance.callExportFunction(name, encoded_args);
-
-      KAGOME_PROFILE_END(call_execution)
-      OUTCOME_TRY(span, result_span);
-
-      OUTCOME_TRY(instance.resetEnvironment());
-
-      if constexpr (std::is_void_v<Result>) {
-        return outcome::success();
-      } else {
-        auto result = memory.loadN(span.ptr, span.size);
-        Result t{};
-        scale::ScaleDecoderStream s(result);
-        try {
-          s >> t;
-          // Check whether the whole byte buffer was consumed
-          if (s.hasMore(1)) {
-            static auto logger = log::createLogger("Executor", "runtime");
-            SL_ERROR(logger,
-                     "Runtime API call result size exceeds the size of the "
-                     "type to initialize {} (read {}, total size {})",
-                     typeid(Result).name(),
-                     s.currentIndex(),
-                     s.span().size_bytes());
-            return outcome::failure(std::errc::illegal_byte_sequence);
-          }
-          return outcome::success(std::move(t));
-        } catch (std::system_error &e) {
-          return outcome::failure(e.code());
-        }
-      }
+      return callWithCtx(ctx, name, encoded_args);
     }
 
    private:
@@ -236,7 +157,7 @@ namespace kagome::runtime {
       if constexpr (std::is_same_v<Result, primitives::Version>) {
         if (likely(name == "Core_version")) {
           return cache_->getVersion(ctx.module_instance->getCodeHash(), [&] {
-            return call<Result>(ctx, name, std::forward<Args>(args)...);
+            return callWithCtx<Result>(ctx, name, std::forward<Args>(args)...);
           });
         }
       }
@@ -244,12 +165,12 @@ namespace kagome::runtime {
       if constexpr (std::is_same_v<Result, primitives::OpaqueMetadata>) {
         if (likely(name == "Metadata_metadata")) {
           return cache_->getMetadata(ctx.module_instance->getCodeHash(), [&] {
-            return call<Result>(ctx, name, std::forward<Args>(args)...);
+            return callWithCtx<Result>(ctx, name, std::forward<Args>(args)...);
           });
         }
       }
 
-      return call<Result>(ctx, name, std::forward<Args>(args)...);
+      return callWithCtx<Result>(ctx, name, std::forward<Args>(args)...);
     }
 
     std::shared_ptr<ModuleRepository> module_repo_;

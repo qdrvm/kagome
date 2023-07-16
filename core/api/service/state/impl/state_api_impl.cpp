@@ -14,7 +14,7 @@
 
 #include "common/hexutil.hpp"
 #include "common/monadic_utils.hpp"
-#include "runtime/common/executor.hpp"
+#include "runtime/common/executor_impl.hpp"
 
 OUTCOME_CPP_DEFINE_CATEGORY(kagome::api, StateApiImpl::Error, e) {
   using E = kagome::api::StateApiImpl::Error;

@@ -31,12 +31,17 @@ namespace kagome::runtime {
                 (std::string_view name),
                 (const, override));
 
-    MOCK_METHOD(InstanceEnvironment const &,
+    MOCK_METHOD(const InstanceEnvironment &,
                 getEnvironment,
                 (),
                 (const, override));
 
     MOCK_METHOD(outcome::result<void>, resetEnvironment, (), (override));
+
+    MOCK_METHOD(outcome::result<void>,
+                resetMemory,
+                (const MemoryConfig &config),
+                (override));
   };
 }  // namespace kagome::runtime
 

@@ -60,14 +60,14 @@ add_library(module_repository
 target_link_libraries(module_repository outcome)
 kagome_install(module_repository)
 
-add_library(runtime_environment_factory runtime_context.cpp)
-target_link_libraries(runtime_environment_factory
+add_library(runtime_context runtime_context.cpp module_instance.cpp)
+target_link_libraries(runtime_context
     logger
     uncompress_if_needed
     storage
     mp_utils
     )
-kagome_install(runtime_environment_factory)
+kagome_install(runtime_context)
 
 add_library(memory_allocator memory_allocator.cpp)
 target_link_libraries(memory_allocator

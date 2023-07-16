@@ -54,7 +54,7 @@ target_link_libraries(application_injector
     pbkdf2_provider
     block_builder
     runtime_upgrade_tracker
-    runtime_environment_factory
+    runtime_context
     runtime_properties_cache
     executor
     secp256k1_provider

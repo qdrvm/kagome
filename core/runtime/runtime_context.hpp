@@ -8,7 +8,8 @@
 
 #include "log/logger.hpp"
 #include "outcome/outcome.hpp"
-#include "runtime/module_instance.hpp"
+#include "runtime/types.hpp"
+#include "storage/trie/types.hpp"
 
 namespace kagome::storage::trie {
   class TrieBatch;
@@ -20,15 +21,10 @@ namespace kagome::storage::changes_trie {
 
 namespace kagome::runtime {
   class ModuleFactory;
+  class ModuleInstance;
 
   class RuntimeContext {
    public:
-
-    enum class Error {
-      ABSENT_HEAP_BASE = 1,
-      HEAP_BASE_TOO_LOW,
-    };
-
     RuntimeContext() = delete;
     RuntimeContext(const RuntimeContext &) = delete;
     RuntimeContext &operator=(const RuntimeContext &) = delete;
@@ -70,7 +66,5 @@ namespace kagome::runtime {
   };
 
 }  // namespace kagome::runtime
-
-OUTCOME_HPP_DECLARE_ERROR(kagome::runtime, RuntimeContext::Error);
 
 #endif  // KAGOME_CORE_RUNTIME_RUNTIME_ENVIRONMENT_FACTORY_HPP

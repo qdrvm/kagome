@@ -7,7 +7,7 @@
 
 #include "blockchain/block_header_repository.hpp"
 #include "log/logger.hpp"
-#include "runtime/common/executor.hpp"
+#include "runtime/common/executor_impl.hpp"
 
 namespace kagome::runtime {
 

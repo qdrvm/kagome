@@ -6,7 +6,7 @@
 #include "network/impl/protocols/light.hpp"
 
 #include "network/common.hpp"
-#include "runtime/common/executor.hpp"
+#include "runtime/common/executor_impl.hpp"
 #include "runtime/common/trie_storage_provider_impl.hpp"
 
 namespace kagome::network {

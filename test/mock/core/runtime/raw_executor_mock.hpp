@@ -6,7 +6,7 @@
 #ifndef KAGOME_TEST_MOCK_CORE_RUNTIME_RAW_EXECUTOR_MOCK_HPP
 #define KAGOME_TEST_MOCK_CORE_RUNTIME_RAW_EXECUTOR_MOCK_HPP
 
-#include "runtime/raw_executor.hpp"
+#include "runtime/executor.hpp"
 
 #include <gmock/gmock.h>
 

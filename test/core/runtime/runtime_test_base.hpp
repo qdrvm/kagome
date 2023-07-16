@@ -38,7 +38,7 @@
 #include "primitives/block.hpp"
 #include "primitives/block_header.hpp"
 #include "primitives/block_id.hpp"
-#include "runtime/common/executor.hpp"
+#include "runtime/common/executor_impl.hpp"
 #include "runtime/common/module_repository_impl.hpp"
 #include "runtime/common/runtime_instances_pool.hpp"
 #include "runtime/common/runtime_transaction_error.hpp"

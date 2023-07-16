@@ -24,7 +24,7 @@
 #include "mock/core/runtime/runtime_properties_cache_mock.hpp"
 #include "mock/core/runtime/runtime_upgrade_tracker_mock.hpp"
 #include "mock/core/storage/trie_pruner/trie_pruner_mock.hpp"
-#include "runtime/common/executor.hpp"
+#include "runtime/common/executor_impl.hpp"
 #include "runtime/common/module_repository_impl.hpp"
 #include "runtime/common/runtime_instances_pool.hpp"
 #include "runtime/common/trie_storage_provider_impl.hpp"

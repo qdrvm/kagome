@@ -8,7 +8,7 @@
 
 #include "offchain/offchain_worker.hpp"
 
-#include "runtime/common/executor.hpp"
+#include "runtime/common/executor_impl.hpp"
 
 namespace kagome::offchain {
 
