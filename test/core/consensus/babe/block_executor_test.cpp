@@ -43,6 +43,7 @@ using kagome::consensus::babe::BlockValidator;
 using kagome::consensus::babe::BlockValidatorMock;
 using kagome::consensus::babe::ConsistencyGuard;
 using kagome::consensus::babe::ConsistencyKeeperMock;
+using kagome::consensus::babe::EpochDescriptor;
 using kagome::consensus::babe::EpochDigest;
 using kagome::consensus::grandpa::Environment;
 using kagome::consensus::grandpa::EnvironmentMock;
@@ -130,8 +131,8 @@ class BlockExecutorTest : public testing::Test {
     digest_tracker_ = std::make_shared<DigestTrackerMock>();
 
     babe_util_ = std::make_shared<BabeUtilMock>();
-    ON_CALL(*babe_util_, syncEpoch(_)).WillByDefault(Return(1));
-    ON_CALL(*babe_util_, slotToEpoch(_)).WillByDefault(Return(1));
+    ON_CALL(*babe_util_, slotToEpochDescriptor(_, _))
+        .WillByDefault(Return(EpochDescriptor{1, 0}));
 
     offchain_worker_api_ = std::make_shared<OffchainWorkerApiMock>();
     storage_sub_engine_ = std::make_shared<

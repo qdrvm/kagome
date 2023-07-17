@@ -53,8 +53,7 @@ namespace kagome::consensus::babe {
         std::shared_ptr<runtime::BabeApi> babe_api,
         std::shared_ptr<crypto::Hasher> hasher,
         std::shared_ptr<storage::trie::TrieStorage> trie_storage,
-        primitives::events::ChainSubscriptionEnginePtr chain_events_engine,
-        const BabeClock &clock);
+        primitives::events::ChainSubscriptionEnginePtr chain_events_engine);
 
     bool prepare();
 
@@ -83,18 +82,13 @@ namespace kagome::consensus::babe {
 
     // BabeUtil
 
-    BabeSlotNumber syncEpoch(
-        std::function<std::tuple<BabeSlotNumber, bool>()> &&f) override;
-
-    BabeSlotNumber getCurrentSlot() const override;
+    BabeSlotNumber timeToSlot(BabeTimePoint time) const override;
 
     BabeTimePoint slotStartTime(BabeSlotNumber slot) const override;
-    BabeDuration remainToStartOfSlot(BabeSlotNumber slot) const override;
     BabeTimePoint slotFinishTime(BabeSlotNumber slot) const override;
-    BabeDuration remainToFinishOfSlot(BabeSlotNumber slot) const override;
 
-    EpochNumber slotToEpoch(BabeSlotNumber slot) const override;
-    BabeSlotNumber slotInEpoch(BabeSlotNumber slot) const override;
+    outcome::result<EpochDescriptor> slotToEpochDescriptor(
+        const primitives::BlockInfo &parent_info, BabeSlotNumber slot) override;
 
    private:
     outcome::result<void> load();
@@ -127,7 +121,8 @@ namespace kagome::consensus::babe {
     bool directChainExists(const primitives::BlockInfo &ancestor,
                            const primitives::BlockInfo &descendant) const;
 
-    BabeSlotNumber getFirstBlockSlotNumber();
+    outcome::result<BabeSlotNumber> getFirstBlockSlotNumber(
+        const primitives::BlockInfo &parent_info);
 
     outcome::result<void> readFromStateOutcome(
         const primitives::BlockInfo &block);
@@ -147,9 +142,7 @@ namespace kagome::consensus::babe {
     std::shared_ptr<BabeConfigNode> root_;
     primitives::BlockNumber last_saved_state_block_ = 0;
 
-    const BabeClock &clock_;
     std::optional<BabeSlotNumber> first_block_slot_number_;
-    bool is_first_block_finalized_ = false;
 
     log::Logger logger_;
   };

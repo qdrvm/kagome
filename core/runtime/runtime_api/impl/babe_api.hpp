@@ -17,7 +17,10 @@ namespace kagome::runtime {
     explicit BabeApiImpl(std::shared_ptr<Executor> executor);
 
     outcome::result<primitives::BabeConfiguration> configuration(
-        primitives::BlockHash const &block) override;
+        const primitives::BlockHash &block) override;
+
+    outcome::result<primitives::Epoch> next_epoch(
+        const primitives::BlockHash &block) override;
 
    private:
     std::shared_ptr<Executor> executor_;

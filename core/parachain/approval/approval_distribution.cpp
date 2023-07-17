@@ -830,12 +830,14 @@ namespace kagome::parachain {
       const primitives::BlockHash &block_hash) {
     OUTCOME_TRY(babe_digests, consensus::babe::getBabeDigests(block_header));
     OUTCOME_TRY(babe_config, babe_api_->configuration(block_hash));
+    OUTCOME_TRY(epoch,
+                babe_util_->slotToEpoch(*block_header.parentInfo(),
+                                        babe_digests.second.slot_number));
 
-    return std::make_tuple(
-        babe_util_->slotToEpoch(babe_digests.second.slot_number),
-        std::move(babe_digests.second),
-        std::move(babe_config.authorities),
-        std::move(babe_config.randomness));
+    return std::make_tuple(epoch,
+                           std::move(babe_digests.second),
+                           std::move(babe_config.authorities),
+                           std::move(babe_config.randomness));
   }
 
   outcome::result<ApprovalDistribution::CandidateIncludedList>

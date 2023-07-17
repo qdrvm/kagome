@@ -37,6 +37,9 @@ namespace kagome::consensus::babe {
         [](const auto &) { return std::nullopt; });
   }
 
+  outcome::result<BabeSlotNumber> getBabeSlot(
+      const primitives::BlockHeader &header);
+
   outcome::result<std::pair<Seal, BabeBlockHeader>> getBabeDigests(
       const primitives::BlockHeader &header);
 

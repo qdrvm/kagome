@@ -131,7 +131,8 @@ class BabeTest : public testing::Test {
         .WillByDefault(Return(babe_config_->epoch_length));
 
     babe_util_ = std::make_shared<BabeUtilMock>();
-    EXPECT_CALL(*babe_util_, slotToEpoch(_)).WillRepeatedly(Return(0));
+    EXPECT_CALL(*babe_util_, slotToEpochDescriptor(_, _))
+        .WillRepeatedly(Return(EpochDescriptor{}));
 
     storage_sub_engine_ =
         std::make_shared<primitives::events::StorageSubscriptionEngine>();
@@ -169,7 +170,6 @@ class BabeTest : public testing::Test {
     babe_ = std::make_shared<babe::BabeImpl>(
         app_config_,
         app_state_manager_,
-        nullptr,
         lottery_,
         babe_config_repo_,
         proposer_,
@@ -273,8 +273,6 @@ class BabeTest : public testing::Test {
   Block created_block_{block_header_, {extrinsic_}};
 
   Hash256 created_block_hash_{"block#1"_hash256};
-
-  consensus::babe::EpochDigest expected_epoch_digest;
 };
 
 ACTION_P(CheckBlockHeader, expected_block_header) {
@@ -307,13 +305,9 @@ TEST_F(BabeTest, Success) {
       .WillRepeatedly(Return(clock::SystemClockMock::zero()));
 
   EXPECT_CALL(*babe_config_repo_, slotDuration()).WillRepeatedly(Return(1ms));
-  EXPECT_CALL(*babe_util_, slotStartTime(_))
-      .WillRepeatedly(Return(clock::SystemClockMock::zero()));
   EXPECT_CALL(*babe_util_, slotFinishTime(_))
-      .WillRepeatedly(Return(clock::SystemClockMock::zero()));
-  EXPECT_CALL(*babe_util_, remainToStartOfSlot(_)).WillRepeatedly(Return(1ms));
-  EXPECT_CALL(*babe_util_, remainToFinishOfSlot(_)).WillRepeatedly(Return(1ms));
-  EXPECT_CALL(*babe_util_, syncEpoch(_)).Times(testing::AnyNumber());
+      .WillRepeatedly(Return(clock::SystemClockMock::zero()
+                             + babe_config_repo_->slotDuration()));
 
   testing::Sequence s;
   auto breaker = [](const boost::system::error_code &ec) {
@@ -356,7 +350,7 @@ TEST_F(BabeTest, Success) {
   EXPECT_CALL(*block_announce_transmitter_, blockAnnounce(_))
       .WillOnce(CheckBlockHeader(created_block_.header));
 
-  babe_->runEpoch(epoch_);
+  babe_->runEpoch();
   ASSERT_NO_THROW(on_run_slot_2({}));
 }
 
@@ -370,14 +364,10 @@ TEST_F(BabeTest, NotAuthority) {
   EXPECT_CALL(*babe_util_, slotFinishTime(_)).Times(testing::AnyNumber());
 
   EXPECT_CALL(*block_tree_, bestLeaf()).WillRepeatedly(Return(best_leaf));
-  EXPECT_CALL(*block_tree_, getBlockHeader(best_block_hash_))
-      .WillOnce(Return(best_block_header_));
-  EXPECT_CALL(*babe_util_, syncEpoch(_)).Times(2);
-  EXPECT_CALL(*babe_util_, slotStartTime(_));
 
-  expected_epoch_digest.authorities.clear();
+  babe_config_->authorities.clear();
   EXPECT_CALL(*timer_, expiresAt(_));
   EXPECT_CALL(*timer_, asyncWait(_));
 
-  babe_->runEpoch(epoch_);
+  babe_->runEpoch();
 }

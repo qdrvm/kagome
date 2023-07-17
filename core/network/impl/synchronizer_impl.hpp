@@ -138,10 +138,6 @@ namespace kagome::network {
                    const primitives::BlockInfo &block,
                    SyncResultHandler &&handler) override;
 
-    void syncBabeDigest(const libp2p::peer::PeerId &peer_id,
-                        const primitives::BlockInfo &block,
-                        CbResultVoid &&cb) override;
-
     /// Finds best common block with peer {@param peer_id} in provided interval.
     /// It is using tail-recursive algorithm, till {@param hint} is
     /// the needed block

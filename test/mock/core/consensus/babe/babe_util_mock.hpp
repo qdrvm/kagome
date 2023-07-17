@@ -16,21 +16,10 @@ namespace kagome::consensus::babe {
    public:
     using SyncFunctor = std::function<std::tuple<BabeSlotNumber, bool>()>;
 
-    MOCK_METHOD(BabeSlotNumber, syncEpoch, (SyncFunctor &), ());
-
-    BabeSlotNumber syncEpoch(SyncFunctor &&func) override {
-      return syncEpoch(func);
-    }
-
-    MOCK_METHOD(BabeSlotNumber, getCurrentSlot, (), (const, override));
+    MOCK_METHOD(BabeSlotNumber, timeToSlot, (BabeTimePoint), (const, override));
 
     MOCK_METHOD(BabeTimePoint,
                 slotStartTime,
-                (BabeSlotNumber slot),
-                (const, override));
-
-    MOCK_METHOD(BabeDuration,
-                remainToStartOfSlot,
                 (BabeSlotNumber slot),
                 (const, override));
 
@@ -39,17 +28,10 @@ namespace kagome::consensus::babe {
                 (BabeSlotNumber slot),
                 (const, override));
 
-    MOCK_METHOD(BabeDuration,
-                remainToFinishOfSlot,
-                (BabeSlotNumber slot),
-                (const, override));
-
-    MOCK_METHOD(EpochNumber, slotToEpoch, (BabeSlotNumber), (const, override));
-
-    MOCK_METHOD(BabeSlotNumber,
-                slotInEpoch,
-                (BabeSlotNumber),
-                (const, override));
+    MOCK_METHOD(outcome::result<EpochDescriptor>,
+                slotToEpochDescriptor,
+                (const primitives::BlockInfo &, BabeSlotNumber),
+                (override));
   };
 
 }  // namespace kagome::consensus::babe

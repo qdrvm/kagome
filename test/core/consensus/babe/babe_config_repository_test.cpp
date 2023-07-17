@@ -12,7 +12,6 @@
 #include "mock/core/application/app_state_manager_mock.hpp"
 #include "mock/core/blockchain/block_header_repository_mock.hpp"
 #include "mock/core/blockchain/block_tree_mock.hpp"
-#include "mock/core/clock/clock_mock.hpp"
 #include "mock/core/crypto/hasher_mock.hpp"
 #include "mock/core/runtime/babe_api_mock.hpp"
 #include "mock/core/storage/persistent_map_mock.hpp"
@@ -26,7 +25,6 @@ using namespace kagome;
 using application::AppConfigurationMock;
 using blockchain::BlockHeaderRepositoryMock;
 using blockchain::BlockTreeMock;
-using clock::SystemClockMock;
 using common::Buffer;
 using common::BufferView;
 using consensus::babe::BabeConfigRepositoryImpl;
@@ -86,7 +84,6 @@ class BabeConfigRepositoryTest : public testing::Test {
     hasher = std::make_shared<HasherMock>();
     trie_storage = std::make_shared<TrieStorageMock>();
     chain_events_engine = std::make_shared<ChainSubscriptionEngine>();
-    clock = std::make_shared<SystemClockMock>();
 
     babe_config_repo_ =
         std::make_shared<BabeConfigRepositoryImpl>(*app_state_manager,
@@ -97,8 +94,7 @@ class BabeConfigRepositoryTest : public testing::Test {
                                                    babe_api,
                                                    hasher,
                                                    trie_storage,
-                                                   chain_events_engine,
-                                                   *clock);
+                                                   chain_events_engine);
   }
 
   primitives::BabeConfiguration babe_config;
@@ -113,7 +109,6 @@ class BabeConfigRepositoryTest : public testing::Test {
   std::shared_ptr<crypto::Hasher> hasher;
   std::shared_ptr<TrieStorageMock> trie_storage;
   primitives::events::ChainSubscriptionEnginePtr chain_events_engine;
-  std::shared_ptr<SystemClockMock> clock;
 
   std::shared_ptr<BabeConfigRepositoryImpl> babe_config_repo_;
 };
@@ -128,8 +123,7 @@ TEST_F(BabeConfigRepositoryTest, getCurrentSlot) {
       .WillOnce(Return(outcome::success()));
   babe_config_repo_->prepare();
   auto time = std::chrono::system_clock::now();
-  EXPECT_CALL(*clock, now()).Times(1).WillOnce(Return(time));
   EXPECT_EQ(static_cast<BabeSlotNumber>(time.time_since_epoch()
                                         / babe_config.slot_duration),
-            babe_config_repo_->getCurrentSlot());
+            babe_config_repo_->timeToSlot(time));
 }

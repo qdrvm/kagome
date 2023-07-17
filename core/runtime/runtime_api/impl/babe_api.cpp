@@ -15,9 +15,13 @@ namespace kagome::runtime {
   }
 
   outcome::result<primitives::BabeConfiguration> BabeApiImpl::configuration(
-      primitives::BlockHash const &block) {
+      const primitives::BlockHash &block) {
     return executor_->callAt<primitives::BabeConfiguration>(
         block, "BabeApi_configuration");
   }
 
+  outcome::result<primitives::Epoch> BabeApiImpl::next_epoch(
+      const primitives::BlockHash &block) {
+    return executor_->callAt<primitives::Epoch>(block, "BabeApi_next_epoch");
+  }
 }  // namespace kagome::runtime
