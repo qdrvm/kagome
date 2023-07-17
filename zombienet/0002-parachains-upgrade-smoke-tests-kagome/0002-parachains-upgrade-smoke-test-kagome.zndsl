@@ -2,7 +2,6 @@ Description: Parachain upgrade smoke test - 100% kagome
 Network: ./0002-parachains-upgrade-smoke-test-kagome.toml
 Creds: config
 
-
 alice: is up
 bob: is up
 bob: parachain 100 is registered within 225 seconds

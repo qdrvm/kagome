@@ -8,13 +8,11 @@ chain = "rococo-local"
   command = "kagome"
   prometheus_prefix = "kagome"
 
-
   [[relaychain.nodes]]
   name = "bob"
   validator = true
   command = "kagome"
   prometheus_prefix = "kagome"
-
 
 [[parachains]]
 id = 2000
