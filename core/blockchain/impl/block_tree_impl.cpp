@@ -241,17 +241,18 @@ namespace kagome::blockchain {
 
           auto &header = header_opt.value();
           if (header.number < last_finalized_block_info.number) {
-            SL_WARN(log,
-                    "Detected a leaf {} lower than the last finalized block "
-                    "#{}",
-                    block,
-                    last_finalized_block_info.number);
+            SL_WARN(
+                log,
+                "Detected a leaf {} lower than the last finalized block #{}",
+                block,
+                last_finalized_block_info.number);
             break;
           }
 
-          collected.emplace(block, std::move(header));
+          auto [it, ok] = collected.emplace(block, std::move(header));
+          auto &parent_hash = it->second.parent_hash;
 
-          block = {header.number - 1, header.parent_hash};
+          block = {header.number - 1, parent_hash};
         }
       }
 
