@@ -75,7 +75,10 @@ namespace kagome::application {
     }
 
     app_state_manager->atLaunch([ctx{io_context}, log{logger_}] {
-      std::thread asio_runner([ctx{ctx}, log{log}] { ctx->run(); });
+      std::thread asio_runner([ctx{ctx}, log{log}] {
+        soralog::util::setThreadName("kagome");  // explicitly for macos
+        ctx->run();
+      });
       asio_runner.detach();
       return true;
     });
