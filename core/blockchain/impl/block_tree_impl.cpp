@@ -249,9 +249,9 @@ namespace kagome::blockchain {
             break;
           }
 
-          block = {header.number - 1, header.parent_hash};
-
           collected.emplace(block, std::move(header));
+
+          block = {header.number - 1, header.parent_hash};
         }
       }
 
