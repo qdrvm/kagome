@@ -37,9 +37,8 @@ namespace kagome::storage::trie_pruner {
                 (override));
 
     MOCK_METHOD(outcome::result<void>,
-                restoreState,
-                (const primitives::BlockHeader &base_block,
-                 const blockchain::BlockTree &block_tree),
+                recoverState,
+                (const blockchain::BlockTree &block_tree),
                 (override));
 
     MOCK_METHOD(std::optional<primitives::BlockInfo>,
