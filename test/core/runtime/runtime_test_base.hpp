@@ -162,7 +162,7 @@ class RuntimeTestBase : public ::testing::Test {
         wasm_provider_);
 
     executor_ =
-        std::make_shared<runtime::Executor>(module_repo, header_repo_, cache_);
+        std::make_shared<runtime::ExecutorImpl>(module_repo, header_repo_, cache_);
   }
 
   void preparePersistentStorageExpects() {

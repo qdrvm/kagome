@@ -480,7 +480,8 @@ namespace kagome::parachain {
         const runtime::PersistedValidationData &data,
         const network::ParachainBlock &pov,
         const network::CandidateReceipt &receipt,
-        const ParachainRuntime &code);
+        const ParachainRuntime &code,
+        const SessionIndex& session_index);
 
     AssignmentCheckResult check_and_import_assignment(
         const approval::IndirectAssignmentCert &assignment,

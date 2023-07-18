@@ -24,7 +24,7 @@ namespace kagome::runtime {
   using namespace kagome::common::literals;
 
   outcome::result<void> ModuleInstance::resetMemory(
-      const MemoryConfig &config) {
+      const MemoryLimits &limits) {
     static auto log = log::createLogger("RuntimeEnvironmentFactory", "runtime");
 
     OUTCOME_TRY(opt_heap_base, getGlobal("__heap_base"));
@@ -34,10 +34,11 @@ namespace kagome::runtime {
       return ModuleInstance::Error::ABSENT_HEAP_BASE;
     }
     int32_t heap_base = boost::get<int32_t>(*opt_heap_base);
-
+    BOOST_ASSERT(heap_base > 0);
     auto &memory_provider = getEnvironment().memory_provider;
-    OUTCOME_TRY(
-        const_cast<MemoryProvider &>(*memory_provider).resetMemory(config));
+    OUTCOME_TRY(const_cast<MemoryProvider &>(*memory_provider)
+                    .resetMemory(MemoryConfig{static_cast<WasmSize>(heap_base),
+                                              limits}));
     auto &memory = memory_provider->getCurrentMemory()->get();
 
     static auto heappages_key = ":heappages"_buf;

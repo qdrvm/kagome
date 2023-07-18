@@ -105,7 +105,7 @@ namespace kagome::runtime::wavm {
       const std::vector<uint8_t> &runtime_code) const {
     auto code_hash = hasher->sha2_256(runtime_code);
 
-    auto executor = std::make_unique<runtime::Executor>(
+    auto executor = std::make_unique<runtime::ExecutorImpl>(
         std::make_shared<OneModuleRepository>(
             compartment_,
             module_params_,

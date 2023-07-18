@@ -10,8 +10,8 @@
 #include "runtime/instance_environment.hpp"
 #include "runtime/memory_provider.hpp"
 #include "runtime/module.hpp"
-#include "runtime/module_instance.hpp"
 #include "runtime/module_factory.hpp"
+#include "runtime/module_instance.hpp"
 #include "runtime/trie_storage_provider.hpp"
 #include "storage/trie/polkadot_trie/trie_error.hpp"
 
@@ -38,7 +38,7 @@ namespace kagome::runtime {
     instance->getEnvironment()
         .storage_provider->setToEphemeralAt(storage::trie::kEmptyRootHash)
         .value();
-    OUTCOME_TRY(instance->resetMemory(params.memory_config));
+    OUTCOME_TRY(instance->resetMemory(params.memory_limits));
     return ctx;
   }
 
@@ -50,7 +50,7 @@ namespace kagome::runtime {
         instance,
     };
     instance->getEnvironment().storage_provider->setTo(batch);
-    OUTCOME_TRY(instance->resetMemory(params.memory_config));
+    OUTCOME_TRY(instance->resetMemory(params.memory_limits));
     return ctx;
   }
 
@@ -65,7 +65,7 @@ namespace kagome::runtime {
     };
     OUTCOME_TRY(instance->getEnvironment().storage_provider->setToPersistentAt(
         state, changes_tracker_opt));
-    OUTCOME_TRY(instance->resetMemory(params.memory_config));
+    OUTCOME_TRY(instance->resetMemory(params.memory_limits));
     return ctx;
   }
 
@@ -78,7 +78,7 @@ namespace kagome::runtime {
     };
     OUTCOME_TRY(
         instance->getEnvironment().storage_provider->setToEphemeralAt(state));
-    OUTCOME_TRY(instance->resetMemory(params.memory_config));
+    OUTCOME_TRY(instance->resetMemory(params.memory_limits));
     return ctx;
   }
 

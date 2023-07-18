@@ -19,10 +19,11 @@ namespace kagome::runtime {
                                    const MemoryConfig &config)
       : memory_{std::move(memory)},
         offset_{roundUpAlign(config.heap_base)},
-        max_stack_size_{config.max_stack_size.value_or(config.heap_base)},
-        max_stack_values_num_{config.max_stack_values_num.value_or(
+        max_stack_size_{
+            config.limits.max_stack_size.value_or(config.heap_base)},
+        max_stack_values_num_{config.limits.max_stack_values_num.value_or(
             std::numeric_limits<WasmSize>::max())},
-        max_memory_pages_num_{config.max_memory_pages_num.value_or(
+        max_memory_pages_num_{config.limits.max_memory_pages_num.value_or(
             std::numeric_limits<WasmSize>::max())},
         logger_{log::createLogger("Allocator", "runtime")} {
     // Heap base (and offset in according) must be non-zero to prohibit

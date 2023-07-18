@@ -28,7 +28,7 @@ namespace kagome::runtime {
       }
     });
     OUTCOME_TRY(result,
-                Executor::call<primitives::ApplyExtrinsicResult>(
+                executor_->decodedCallWithCtx<primitives::ApplyExtrinsicResult>(
                     ctx, "BlockBuilder_apply_extrinsic", extrinsic));
     if (auto ok = boost::get<primitives::DispatchOutcome>(&result);
         ok and boost::get<primitives::DispatchSuccess>(ok)) {
@@ -41,7 +41,7 @@ namespace kagome::runtime {
 
   outcome::result<primitives::BlockHeader> BlockBuilderImpl::finalize_block(
       RuntimeContext &ctx) {
-    return Executor::call<primitives::BlockHeader>(
+    return executor_->decodedCallWithCtx<primitives::BlockHeader>(
         ctx, "BlockBuilder_finalize_block");
   }
 
@@ -60,9 +60,10 @@ namespace kagome::runtime {
       std::ignore = ctx.module_instance->getEnvironment()
                         .storage_provider->rollbackTransaction();
     });
-    OUTCOME_TRY(result,
-                Executor::call<std::vector<primitives::Extrinsic>>(
-                    ctx, "BlockBuilder_inherent_extrinsics", data));
+    OUTCOME_TRY(
+        result,
+        executor_->decodedCallWithCtx<std::vector<primitives::Extrinsic>>(
+            ctx, "BlockBuilder_inherent_extrinsics", data));
     return std::move(result);
   }
 

@@ -3,8 +3,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_CORE_RUNTIME_COMMON_EXECUTOR_HPP
-#define KAGOME_CORE_RUNTIME_COMMON_EXECUTOR_HPP
+#ifndef KAGOME_CORE_RUNTIME_COMMON_EXECUTOR_IMPL_HPP
+#define KAGOME_CORE_RUNTIME_COMMON_EXECUTOR_IMPL_HPP
 
 #include "runtime/executor.hpp"
 
@@ -55,10 +55,7 @@ namespace kagome::runtime {
         : module_repo_(std::move(module_repo)),
           header_repo_(std::move(header_repo)),
           cache_(std::move(cache)),
-          logger_{log::createLogger("Executor", "runtime")} {
-      BOOST_ASSERT(module_repo_);
-      BOOST_ASSERT(header_repo_);
-    }
+          logger_{log::createLogger("Executor", "runtime")} {}
 
     /**
      * Call a runtime method in a persistent environment, e. g. the storage
@@ -67,7 +64,7 @@ namespace kagome::runtime {
      */
     outcome::result<std::unique_ptr<RuntimeContext>> getPersistentContextAt(
         const primitives::BlockHash &block_hash,
-        TrieChangesTrackerOpt changes_tracker) {
+        TrieChangesTrackerOpt changes_tracker) override {
       OUTCOME_TRY(header, header_repo_->getBlockHeader(block_hash));
       OUTCOME_TRY(instance,
                   module_repo_->getInstanceAt({block_hash, header.number},
@@ -80,50 +77,33 @@ namespace kagome::runtime {
       return std::make_unique<RuntimeContext>(std::move(ctx));
     }
 
-    /**
-     * Call a runtime method in an ephemeral environment, e. g. the storage
-     * changes, made by this call, will NOT persist in the node's Trie storage
-     * The call will be done with the runtime code from \param block_info state
-     * on \param storage_state storage state
-     */
-    template <typename Result, typename... Args>
-    outcome::result<Result> callAt(const primitives::BlockInfo &block_info,
-                                   const storage::trie::RootHash &storage_state,
-                                   std::string_view name,
-                                   Args &&...args) {
-      OUTCOME_TRY(header, header_repo_->getBlockHeader(block_info.hash));
-      OUTCOME_TRY(instance,
-                  module_repo_->getInstanceAt(block_info, header.state_root));
-
-      OUTCOME_TRY(ctx, RuntimeContext::ephemeral(instance, storage_state));
-      return callWithCache<Result>(ctx, name, std::forward<Args>(args)...);
-    }
-
-    /**
-     * Call a runtime method in an ephemeral environment, e. g. the storage
-     * changes, made by this call, will NOT persist in the node's Trie storage
-     * The call will be done on the \param block_hash state
-     */
-    template <typename Result, typename... Args>
-    outcome::result<Result> callAt(const primitives::BlockHash &block_hash,
-                                   std::string_view name,
-                                   Args &&...args) {
+    outcome::result<std::unique_ptr<RuntimeContext>> getEphemeralContextAt(
+        const primitives::BlockHash &block_hash) override {
       OUTCOME_TRY(header, header_repo_->getBlockHeader(block_hash));
       OUTCOME_TRY(instance,
                   module_repo_->getInstanceAt({block_hash, header.number},
                                               header.state_root));
 
       OUTCOME_TRY(ctx, RuntimeContext::ephemeral(instance, header.state_root));
-      return callWithCache<Result>(ctx, name, std::forward<Args>(args)...);
+
+      return std::make_unique<RuntimeContext>(std::move(ctx));
     }
 
-    /**
-     * Call a runtime method in an ephemeral environment, e.g. the storage
-     * changes, made by this call, will NOT persist in the node's Trie storage
-     * The call will be done on the genesis state
-     */
-    outcome::result<common::Buffer> callAtGenesis(
-        std::string_view name, const common::Buffer &encoded_args) {
+    outcome::result<std::unique_ptr<RuntimeContext>> getEphemeralContextAt(
+        const primitives::BlockHash &block_hash,
+        const storage::trie::RootHash &state_hash) override {
+      OUTCOME_TRY(header, header_repo_->getBlockHeader(block_hash));
+      OUTCOME_TRY(instance,
+                  module_repo_->getInstanceAt({block_hash, header.number},
+                                              header.state_root));
+
+      OUTCOME_TRY(ctx, RuntimeContext::ephemeral(instance, state_hash));
+
+      return std::make_unique<RuntimeContext>(std::move(ctx));
+    }
+
+    outcome::result<std::unique_ptr<RuntimeContext>>
+    getEphemeralContextAtGenesis() override {
       OUTCOME_TRY(genesis_hash, header_repo_->getHashByNumber(0));
       OUTCOME_TRY(genesis_header, header_repo_->getBlockHeader(genesis_hash));
       OUTCOME_TRY(instance,
@@ -133,46 +113,23 @@ namespace kagome::runtime {
       OUTCOME_TRY(
           ctx, RuntimeContext::ephemeral(instance, genesis_header.state_root));
 
-      return callWithCache<Result>(ctx, name, std::forward<Args>(args)...);
+      return std::make_unique<RuntimeContext>(std::move(ctx));
     }
 
-    outcome::result<common::Buffer> callAt(
-        const primitives::BlockHash &block_hash,
-        std::string_view name,
-        const common::Buffer &encoded_args) override {
-      OUTCOME_TRY(header, header_repo_->getBlockHeader(block_hash));
-      OUTCOME_TRY(instance,
-                  module_repo_->getInstanceAt({block_hash, header.number},
-                                              header.state_root));
-      OUTCOME_TRY(ctx, RuntimeContext::ephemeral(instance, header.state_root));
-      return callWithCtx(ctx, name, encoded_args);
+    outcome::result<Buffer> callWithCtx(RuntimeContext &ctx,
+                                        std::string_view name,
+                                        const Buffer &encoded_args) override {
+      KAGOME_PROFILE_START(call_execution)
+      OUTCOME_TRY(result,
+                  ctx.module_instance->callExportFunction(name, encoded_args));
+      auto memory = ctx.module_instance->getEnvironment()
+                        .memory_provider->getCurrentMemory();
+      BOOST_ASSERT(memory.has_value());
+      OUTCOME_TRY(ctx.module_instance->resetEnvironment());
+      return memory->get().loadN(result.ptr, result.size);
     }
 
    private:
-    // returns cached results for some common runtime calls
-    template <typename Result, typename... Args>
-    inline outcome::result<Result> callWithCache(RuntimeContext &ctx,
-                                                 std::string_view name,
-                                                 Args &&...args) {
-      if constexpr (std::is_same_v<Result, primitives::Version>) {
-        if (likely(name == "Core_version")) {
-          return cache_->getVersion(ctx.module_instance->getCodeHash(), [&] {
-            return callWithCtx<Result>(ctx, name, std::forward<Args>(args)...);
-          });
-        }
-      }
-
-      if constexpr (std::is_same_v<Result, primitives::OpaqueMetadata>) {
-        if (likely(name == "Metadata_metadata")) {
-          return cache_->getMetadata(ctx.module_instance->getCodeHash(), [&] {
-            return callWithCtx<Result>(ctx, name, std::forward<Args>(args)...);
-          });
-        }
-      }
-
-      return callWithCtx<Result>(ctx, name, std::forward<Args>(args)...);
-    }
-
     std::shared_ptr<ModuleRepository> module_repo_;
     std::shared_ptr<const blockchain::BlockHeaderRepository> header_repo_;
     std::shared_ptr<RuntimePropertiesCache> cache_;

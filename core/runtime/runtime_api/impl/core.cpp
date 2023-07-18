@@ -7,7 +7,7 @@
 
 #include "blockchain/block_header_repository.hpp"
 #include "log/logger.hpp"
-#include "runtime/common/executor_impl.hpp"
+#include "runtime/executor.hpp"
 
 namespace kagome::runtime {
 
@@ -25,7 +25,8 @@ namespace kagome::runtime {
 
     OUTCOME_TRY(ctx,
                 RuntimeContext::ephemeral(instance, genesis_header.state_root));
-    return Executor::call<primitives::Version>(ctx, "Core_version");
+    return executor_->decodedCallWithCtx<primitives::Version>(ctx,
+                                                              "Core_version");
   }
 
   outcome::result<primitives::Version> CoreImpl::version(
@@ -48,7 +49,8 @@ namespace kagome::runtime {
     OUTCOME_TRY(ctx,
                 executor_->getPersistentContextAt(block.header.parent_hash,
                                                   std::move(changes_tracker)));
-    OUTCOME_TRY(executor_->call<void>(*ctx, "Core_execute_block", block));
+    OUTCOME_TRY(
+        executor_->decodedCallWithCtx<void>(*ctx, "Core_execute_block", block));
     return outcome::success();
   }
 
@@ -76,7 +78,8 @@ namespace kagome::runtime {
     OUTCOME_TRY(ctx,
                 executor_->getPersistentContextAt(header.parent_hash,
                                                   std::move(changes_tracker)));
-    OUTCOME_TRY(Executor::call<void>(*ctx, "Core_initialize_block", header));
+    OUTCOME_TRY(executor_->decodedCallWithCtx<void>(
+        *ctx, "Core_initialize_block", header));
     return std::move(ctx);
   }
 

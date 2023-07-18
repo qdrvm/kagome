@@ -40,7 +40,7 @@ namespace kagome::runtime {
 
     MOCK_METHOD(outcome::result<void>,
                 resetMemory,
-                (const MemoryConfig &config),
+                (const MemoryLimits &limits),
                 (override));
   };
 }  // namespace kagome::runtime

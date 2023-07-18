@@ -50,7 +50,7 @@ class WavmMemoryHeapTest : public ::testing::Test {
     instance_ = intr_module->instantiate();
 
     memory_ = std::make_unique<MemoryImpl>(instance_->getExportedMemory(),
-                                           MemoryConfig{kDefaultHeapBase});
+                                           MemoryConfig{kDefaultHeapBase, {}});
   }
 
   static const uint32_t memory_size_ = kInitialMemorySize;

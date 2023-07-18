@@ -64,7 +64,7 @@ namespace kagome::runtime::binaryen {
       std::shared_ptr<const crypto::Hasher> hasher,
       const std::vector<uint8_t> &runtime_code) const {
     auto code_hash = hasher->sha2_256(runtime_code);
-    auto executor = std::make_unique<Executor>(
+    auto executor = std::make_unique<ExecutorImpl>(
         std::make_shared<OneModuleRepository>(
             runtime_code, instance_env_factory_, code_hash),
         header_repo_,

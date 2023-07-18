@@ -16,7 +16,8 @@ namespace kagome::network {
       const primitives::GenesisBlockHeader &genesis,
       std::shared_ptr<blockchain::BlockHeaderRepository> repository,
       std::shared_ptr<storage::trie::TrieStorage> storage,
-      std::shared_ptr<runtime::ModuleRepository> module_repo)
+      std::shared_ptr<runtime::ModuleRepository> module_repo,
+      std::shared_ptr<runtime::Executor> executor)
       : RequestResponseProtocolType{
           kName,
           host,
@@ -25,7 +26,8 @@ namespace kagome::network {
       },
       repository_{std::move(repository)},
       storage_{std::move(storage)},
-      module_repo_{std::move(module_repo)} {}
+      module_repo_{std::move(module_repo)},
+      executor_{std::move(executor)} {}
 
   outcome::result<LightProtocol::ResponseType> LightProtocol::onRxRequest(
       RequestType req, std::shared_ptr<Stream>) {
@@ -42,8 +44,7 @@ namespace kagome::network {
       OUTCOME_TRY(ctx,
                   runtime::RuntimeContext::fromBatch(
                       instance, std::shared_ptr{std::move(batch)}));
-      OUTCOME_TRY(runtime::Executor::callAtRaw(
-          ctx, header.state_root, call->method, call->args));
+      OUTCOME_TRY(executor_->callWithCtx(ctx, call->method, call->args));
     } else {
       auto &read = boost::get<LightProtocolRequest::Read>(req.op);
       runtime::TrieStorageProviderImpl provider{storage_, nullptr};

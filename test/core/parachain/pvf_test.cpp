@@ -11,6 +11,7 @@
 #include "mock/core/crypto/hasher_mock.hpp"
 #include "mock/core/crypto/sr25519_provider_mock.hpp"
 #include "mock/core/host_api/host_api_mock.hpp"
+#include "mock/core/runtime/executor_mock.hpp"
 #include "mock/core/runtime/memory_provider_mock.hpp"
 #include "mock/core/runtime/module_factory_mock.hpp"
 #include "mock/core/runtime/module_instance_mock.hpp"
@@ -18,6 +19,7 @@
 #include "mock/core/runtime/parachain_host_mock.hpp"
 #include "mock/core/runtime/runtime_properties_cache_mock.hpp"
 #include "mock/core/runtime/trie_storage_provider_mock.hpp"
+#include "parachain/types.hpp"
 #include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
 #include "testutil/prepare_loggers.hpp"
@@ -31,6 +33,7 @@ namespace crypto = kagome::crypto;
 namespace runtime = kagome::runtime;
 namespace blockchain = kagome::blockchain;
 namespace primitives = kagome::primitives;
+namespace parachain = kagome::parachain;
 
 using namespace kagome::common::literals;
 
@@ -43,7 +46,9 @@ class PvfTest : public testing::Test {
  public:
   void SetUp() {
     testutil::prepareLoggers();
-    auto hasher = std::make_shared<crypto::HasherMock>();
+    hasher_ = std::make_shared<testing::NiceMock<crypto::HasherMock>>();
+    EXPECT_CALL(*hasher_, blake2b_256(_)).WillRepeatedly(Return(""_hash256));
+
     module_factory_ = std::make_shared<runtime::ModuleFactoryMock>();
     auto runtime_properties_cache =
         std::make_shared<runtime::RuntimePropertiesCacheMock>();
@@ -61,19 +66,62 @@ class PvfTest : public testing::Test {
     ON_CALL(*block_header_repository, getBlockHeader(_))
         .WillByDefault(Return(primitives::BlockHeader{}));
 
-    pvf_ = std::make_shared<PvfImpl>(hasher,
+    auto executor = std::make_shared<runtime::ExecutorMock>();
+    kagome::parachain::ValidationResult res;
+    ON_CALL(*executor, callWithCtx(_, "validate_block", _))
+        .WillByDefault(Return(Buffer{scale::encode(res).value()}));
+
+    EXPECT_CALL(*parachain_api, check_validation_outputs(_, _, _))
+        .WillRepeatedly(Return(outcome::success(true)));
+    EXPECT_CALL(*parachain_api, session_executor_params(_, _))
+        .WillRepeatedly(Return(outcome::success(std::nullopt)));
+
+    pvf_ = std::make_shared<PvfImpl>(hasher_,
                                      module_factory_,
                                      runtime_properties_cache,
                                      block_header_repository,
                                      sr25519_provider,
                                      parachain_api,
+                                     executor,
                                      config);
   }
 
  protected:
   std::shared_ptr<PvfImpl> pvf_;
+  std::shared_ptr<crypto::HasherMock> hasher_;
   std::shared_ptr<runtime::ModuleFactoryMock> module_factory_;
 };
+
+outcome::result<std::unique_ptr<runtime::Module>> make_module_mock(
+    gsl::span<const uint8_t> code, const Hash256 &code_hash) {
+  auto module = std::make_unique<runtime::ModuleMock>();
+  auto instance = std::make_shared<runtime::ModuleInstanceMock>();
+  ON_CALL(*module, instantiate()).WillByDefault(Return(instance));
+
+  auto memory_provider = std::make_shared<runtime::MemoryProviderMock>();
+  auto storage_provider = std::make_shared<runtime::TrieStorageProviderMock>();
+  ON_CALL(*storage_provider, setToEphemeralAt(_))
+      .WillByDefault(Return(outcome::success()));
+  auto host_api = std::make_shared<kagome::host_api::HostApiMock>();
+  static runtime::InstanceEnvironment env{
+      memory_provider,
+      storage_provider,
+      host_api,
+      [](runtime::InstanceEnvironment &) {}};
+  ON_CALL(*instance, getEnvironment()).WillByDefault(ReturnRef(env));
+  ON_CALL(*instance, getGlobal("__heap_base")).WillByDefault(Return(42));
+  ON_CALL(*instance, resetMemory(_)).WillByDefault(Return(outcome::success()));
+  ON_CALL(*instance, getCodeHash()).WillByDefault(ReturnRef(code_hash));
+  return module;
+}
+
+Pvf::CandidateReceipt makeReceipt(parachain::ParachainId id,
+                                  const Hash256 &code_hash) {
+  Pvf::CandidateReceipt receipt{};
+  receipt.descriptor.validation_code_hash = code_hash;
+  receipt.descriptor.para_id = id;
+  return receipt;
+}
 
 TEST_F(PvfTest, InstancesCached) {
   Pvf::PersistedValidationData pvf_validation_data{
@@ -82,40 +130,90 @@ TEST_F(PvfTest, InstancesCached) {
       .relay_parent_storage_root = "root"_hash256,
       .max_pov_size = 100,
   };
-  Pvf::ParachainBlock para_block;
-  Pvf::CandidateReceipt receipt;
-  ParachainRuntime code = "code1"_buf;
-  EXPECT_CALL(*module_factory_, make(code.view()))
-      .WillOnce(
-          Invoke([](gsl::span<const uint8_t> code)
-                     -> outcome::result<std::unique_ptr<runtime::Module>> {
-            auto module = std::make_unique<runtime::ModuleMock>();
-            auto instance = std::make_shared<runtime::ModuleInstanceMock>();
-            ON_CALL(*module, instantiate()).WillByDefault(Return(instance));
+  parachain::SessionIndex sid{};
+  Pvf::ParachainBlock para_block{};
+  ParachainRuntime code1 = "code1"_buf;
+  auto code_hash_1 = "code_hash_1"_hash256;
+  EXPECT_CALL(*module_factory_, make(code1.view()))
+      .WillOnce(Invoke([&code_hash_1](auto code) {
+        return make_module_mock(code, code_hash_1);
+      }));
+  EXPECT_CALL(*hasher_, blake2b_256(code1.view()))
+      .WillRepeatedly(Return(code_hash_1));
+  // validate with empty cache, instance with code1 for parachain 0 is cached
+  ASSERT_OUTCOME_SUCCESS_TRY(pvf_->pvfValidate(pvf_validation_data,
+                                               para_block,
+                                               makeReceipt(0, code_hash_1),
+                                               code1,
+                                               sid));
 
-            auto memory_provider =
-                std::make_shared<runtime::MemoryProviderMock>();
-            auto storage_provider =
-                std::make_shared<runtime::TrieStorageProviderMock>();
-            ON_CALL(*storage_provider, setToEphemeralAt(_))
-                .WillByDefault(Return(outcome::success()));
-            auto host_api = std::make_shared<kagome::host_api::HostApiMock>();
-            static runtime::InstanceEnvironment env{
-                memory_provider,
-                storage_provider,
-                host_api,
-                [](runtime::InstanceEnvironment &) {}};
-            ON_CALL(*instance, getEnvironment()).WillByDefault(ReturnRef(env));
-            ON_CALL(*instance, getGlobal("__heap_base"))
-                .WillByDefault(Return(42));
-            ON_CALL(*instance, resetMemory(_))
-                .WillByDefault(Return(outcome::success()));
-            ON_CALL(*instance, callExportFunction("validate_block", _))
-                .WillByDefault(Return(runtime::PtrSize(0, 0)));
-            ON_CALL(*instance, resetEnvironment())
-                .WillByDefault(Return(outcome::success()));
-            return module;
-          }));
-  ASSERT_OUTCOME_SUCCESS_TRY(
-      pvf_->pvfValidate(pvf_validation_data, para_block, receipt, code));
+  // instance with code1 for parachain 0 is taken from the cache
+  ASSERT_OUTCOME_SUCCESS_TRY(pvf_->pvfValidate(pvf_validation_data,
+                                               para_block,
+                                               makeReceipt(0, code_hash_1),
+                                               code1,
+                                               sid));
+
+  ParachainRuntime code2 = "code2"_buf;
+  auto code_hash_2 = "code_hash_2"_hash256;
+  EXPECT_CALL(*module_factory_, make(code2.view()))
+      .WillOnce(Invoke([&code_hash_2](auto code) {
+        return make_module_mock(code, code_hash_2);
+      }));
+  EXPECT_CALL(*hasher_, blake2b_256(code2.view()))
+      .WillRepeatedly(Return(code_hash_2));
+  // instance with code2 for parachain 0 is cached, replacing instance for code1
+  ASSERT_OUTCOME_SUCCESS_TRY(pvf_->pvfValidate(pvf_validation_data,
+                                               para_block,
+                                               makeReceipt(0, code_hash_2),
+                                               code2,
+                                               sid));
+
+  EXPECT_CALL(*module_factory_, make(code1.view()))
+      .WillOnce(Invoke([&code_hash_1](auto code) {
+        return make_module_mock(code, code_hash_1);
+      }));
+  // instance with code1 for parachain 1 is cached, limit of 2 instances is
+  // reached
+  ASSERT_OUTCOME_SUCCESS_TRY(pvf_->pvfValidate(pvf_validation_data,
+                                               para_block,
+                                               makeReceipt(1, code_hash_1),
+                                               code1,
+                                               sid));
+
+  // instance with code1 for parachain 1 is taken from cache
+  ASSERT_OUTCOME_SUCCESS_TRY(pvf_->pvfValidate(pvf_validation_data,
+                                               para_block,
+                                               makeReceipt(1, code_hash_1),
+                                               code1,
+                                               sid));
+
+  // instance with code2 for parachain 0 is taken from cache
+  ASSERT_OUTCOME_SUCCESS_TRY(pvf_->pvfValidate(pvf_validation_data,
+                                               para_block,
+                                               makeReceipt(0, code_hash_2),
+                                               code2,
+                                               sid));
+
+  EXPECT_CALL(*module_factory_, make(code1.view()))
+      .WillOnce(Invoke([&code_hash_1](auto code) {
+        return make_module_mock(code, code_hash_1);
+      }));
+  // instance with code1 for parachain 2 is cached, replacing instance of the
+  // least recently used parachain 1
+  ASSERT_OUTCOME_SUCCESS_TRY(pvf_->pvfValidate(pvf_validation_data,
+                                               para_block,
+                                               makeReceipt(2, code_hash_1),
+                                               code1,
+                                               sid));
+
+  EXPECT_CALL(*module_factory_, make(code1.view()))
+      .WillOnce(Invoke([&code_hash_1](auto code) {
+        return make_module_mock(code, code_hash_1);
+      }));
+  ASSERT_OUTCOME_SUCCESS_TRY(pvf_->pvfValidate(pvf_validation_data,
+                                               para_block,
+                                               makeReceipt(0, code_hash_1),
+                                               code1,
+                                               sid));
 }

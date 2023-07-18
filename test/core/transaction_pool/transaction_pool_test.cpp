@@ -68,13 +68,13 @@ class TransactionPoolTest : public testing::Test {
 };
 
 Transaction makeTx(Transaction::Hash hash,
-                   std::initializer_list<Transaction::Tag> provides,
-                   std::initializer_list<Transaction::Tag> requires,
+                   std::initializer_list<Transaction::Tag> provided_tags,
+                   std::initializer_list<Transaction::Tag> required_tags,
                    Transaction::Longevity valid_till = 10000) {
   Transaction tx;
   tx.hash = std::move(hash);
-  tx.provides = std::vector(provides);
-  tx.requires = std::vector(requires);
+  tx.provided_tags = std::vector(provided_tags);
+  tx.required_tags = std::vector(required_tags);
   tx.valid_till = valid_till;
   return tx;
 }

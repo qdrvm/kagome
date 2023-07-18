@@ -73,6 +73,7 @@ namespace kagome::parachain {
     for (auto it = last_usage_time_.begin();
          it != last_usage_time_.end()
          && last_usage_time_.size() > instances_limit_;) {
+      instance_cache_.erase(it->second);
       it = last_usage_time_.erase(it);
     }
   }
@@ -83,7 +84,10 @@ namespace kagome::parachain {
     // the exclusive access callback because destroying a locked mutex is
     // UB)
     it->second.instance.exclusiveAccess(
-        [this, it](auto) { return instance_cache_.extract(it); });
+        [this, it](auto) {
+          last_usage_time_.erase(it->second.last_used);
+          return instance_cache_.extract(it);
+        });
   }
 
 }  // namespace kagome::parachain

@@ -34,7 +34,7 @@ namespace kagome::runtime {
     struct ContextParams {
       ContextParams() = delete;
 
-      MemoryConfig memory_config;
+      MemoryLimits memory_limits;
     };
 
     static outcome::result<RuntimeContext> fromCode(

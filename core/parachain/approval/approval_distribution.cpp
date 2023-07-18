@@ -1218,7 +1218,8 @@ namespace kagome::parachain {
                   available_data.validation_data,
                   available_data.pov,
                   candidate,
-                  validation_code)) {
+                  validation_code,
+                  session_index)) {
             self->issue_approval(
                 candidate_hash, validator_index, relay_block_hash);
           }
@@ -1235,8 +1236,10 @@ namespace kagome::parachain {
       const runtime::PersistedValidationData &data,
       const network::ParachainBlock &pov,
       const network::CandidateReceipt &receipt,
-      const ParachainRuntime &code) {
-    if (auto result = pvf_->pvfValidate(data, pov, receipt, code);
+      const ParachainRuntime &code,
+      const SessionIndex &session_index) {
+    if (auto result =
+            pvf_->pvfValidate(data, pov, receipt, code, session_index);
         result.has_error()) {
       logger_->warn(
           "Approval validation failed.(parachain id={}, relay parent={})",

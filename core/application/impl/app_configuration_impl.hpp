@@ -166,6 +166,10 @@ namespace kagome::application {
     bool purgeWavmCache() const override {
       return purge_wavm_cache_;
     }
+    uint32_t parachainRuntimeInstanceCacheSize() const override {
+      return parachain_runtime_instance_cache_size_;
+    }
+
     OffchainWorkerMode offchainWorkerMode() const override {
       return offchain_worker_mode_;
     }
@@ -345,6 +349,7 @@ namespace kagome::application {
     std::string node_wss_pem_;
     std::optional<BenchmarkConfigSection> benchmark_config_;
     AllowUnsafeRpc allow_unsafe_rpc_ = AllowUnsafeRpc::kAuto;
+    uint32_t parachain_runtime_instance_cache_size_ = 100;
   };
 
 }  // namespace kagome::application

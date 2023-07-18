@@ -480,7 +480,7 @@ namespace {
               runtime::binaryen::ModuleFactoryImpl,
               runtime::wavm::ModuleFactoryImpl>(injector, method);
         }),
-        di::bind<runtime::RawExecutor>.template to<runtime::Executor>(),
+        di::bind<runtime::Executor>.template to<runtime::ExecutorImpl>(),
         di::bind<runtime::TaggedTransactionQueue>.template to<runtime::TaggedTransactionQueueImpl>(),
         di::bind<runtime::ParachainHost>.template to<runtime::ParachainHostImpl>(),
         di::bind<runtime::OffchainWorkerApi>.template to<runtime::OffchainWorkerApiImpl>(),

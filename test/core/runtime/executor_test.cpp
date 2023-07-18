@@ -30,6 +30,7 @@ using kagome::common::Buffer;
 using kagome::host_api::HostApiMock;
 using kagome::runtime::BasicCodeProvider;
 using kagome::runtime::Executor;
+using kagome::runtime::ExecutorImpl;
 using kagome::runtime::MemoryMock;
 using kagome::runtime::MemoryProviderMock;
 using kagome::runtime::ModuleInstanceMock;
@@ -112,7 +113,7 @@ class ExecutorTest : public testing::Test {
 };
 
 TEST_F(ExecutorTest, LatestStateSwitchesCorrectly) {
-  Executor executor{module_repo_, header_repo_, cache_};
+  ExecutorImpl executor{module_repo_, header_repo_, cache_};
   kagome::primitives::BlockInfo block_info1{42, "block_hash1"_hash256};
   kagome::primitives::BlockInfo block_info2{43, "block_hash2"_hash256};
   kagome::primitives::BlockInfo block_info3{44, "block_hash3"_hash256};
@@ -120,33 +121,34 @@ TEST_F(ExecutorTest, LatestStateSwitchesCorrectly) {
   preparePersistentCall(block_info1, "state_hash1"_hash256, 2, 3, 5);
   auto ctx =
       executor.getPersistentContextAt(block_info1.hash, std::nullopt).value();
-  EXPECT_EQ(executor.call<int>(*ctx, "addTwo", 2, 3).value(), 5);
+  auto res = executor.decodedCallWithCtx<int>(*ctx, "addTwo", 2, 3).value();
+  EXPECT_EQ(res, 5);
 
   prepareEphemeralCall(block_info1, "state_hash2"_hash256, 7, 10, 17);
   EXPECT_OUTCOME_TRUE(res2,
                       executor.callAt<int>(
-                          block_info1, "state_hash2"_hash256, "addTwo", 7, 10));
+                          block_info1.hash, "state_hash2"_hash256, "addTwo", 7, 10));
   ASSERT_EQ(res2, 17);
 
   preparePersistentCall(block_info1, "state_hash2"_hash256, 0, 0, 0);
   auto ctx3 =
       executor.getPersistentContextAt(block_info1.hash, std::nullopt).value();
-  EXPECT_EQ(executor.call<int>(*ctx, "addTwo", 0, 0).value(), 0);
+  EXPECT_EQ(executor.decodedCallWithCtx<int>(*ctx, "addTwo", 0, 0).value(), 0);
 
   prepareEphemeralCall(block_info1, "state_hash3"_hash256, 7, 10, 17);
   EXPECT_OUTCOME_TRUE(res4,
                       executor.callAt<int>(
-                          block_info1, "state_hash3"_hash256, "addTwo", 7, 10));
+                          block_info1.hash, "state_hash3"_hash256, "addTwo", 7, 10));
   ASSERT_EQ(res4, 17);
 
   preparePersistentCall(block_info2, "state_hash4"_hash256, -5, 5, 0);
   auto ctx5 =
       executor.getPersistentContextAt(block_info2.hash, std::nullopt).value();
-  EXPECT_EQ(executor.call<int>(*ctx5, "addTwo", -5, 5).value(), 0);
+  EXPECT_EQ(executor.decodedCallWithCtx<int>(*ctx5, "addTwo", -5, 5).value(), 0);
 
   prepareEphemeralCall(block_info2, "state_hash5"_hash256, 7, 10, 17);
   EXPECT_OUTCOME_TRUE(res6,
                       executor.callAt<int>(
-                          block_info2, "state_hash5"_hash256, "addTwo", 7, 10));
+                          block_info2.hash, "state_hash5"_hash256, "addTwo", 7, 10));
   ASSERT_EQ(res6, 17);
 }

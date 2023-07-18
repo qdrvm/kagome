@@ -60,7 +60,7 @@ namespace kagome::runtime {
     virtual const InstanceEnvironment &getEnvironment() const = 0;
     virtual outcome::result<void> resetEnvironment() = 0;
 
-    virtual outcome::result<void> resetMemory(const MemoryConfig &config);
+    virtual outcome::result<void> resetMemory(const MemoryLimits &config);
   };
 
 }  // namespace kagome::runtime

@@ -28,15 +28,17 @@ namespace kagome::injector {
     };
     auto top_trie = trie_from(chain_spec.getGenesisTopSection());
     OUTCOME_TRY(code, top_trie->get(storage::kRuntimeCodeKey));
-    OUTCOME_TRY(env, runtime::RuntimeContext::fromCode(module_factory, code));
-    OUTCOME_TRY(
-        runtime_version,
-        runtime::Executor::call<primitives::Version>(env, "Core_version"));
+
+    runtime::ExecutorImpl executor{nullptr, nullptr, nullptr};
+    OUTCOME_TRY(ctx, runtime::RuntimeContext::fromCode(module_factory, code));
+    OUTCOME_TRY(runtime_version,
+                executor.decodedCallWithCtx<primitives::Version>(ctx, "Core_version"));
     auto version = storage::trie::StateVersion{runtime_version.state_version};
     std::vector<std::shared_ptr<storage::trie::PolkadotTrie>> child_tries;
     for (auto &[child, kv] : chain_spec.getGenesisChildrenDefaultSection()) {
       child_tries.emplace_back(trie_from(kv));
-      OUTCOME_TRY(root, trie_serializer.storeTrie(*child_tries.back(), version));
+      OUTCOME_TRY(root,
+                  trie_serializer.storeTrie(*child_tries.back(), version));
 
       common::Buffer child2;
       child2 += storage::kChildStorageDefaultPrefix;

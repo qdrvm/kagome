@@ -66,6 +66,7 @@ using kagome::crypto::Sr25519ProviderImpl;
 using kagome::crypto::Sr25519Suite;
 using kagome::primitives::BlockHash;
 using kagome::runtime::Executor;
+using kagome::runtime::ExecutorImpl;
 using kagome::runtime::RuntimeCodeProvider;
 using kagome::runtime::RuntimeInstancesPool;
 using kagome::runtime::RuntimePropertiesCacheMock;
@@ -217,7 +218,7 @@ class WasmExecutorTest : public ::testing::Test {
         .WillByDefault(
             Invoke([](const auto &hash, auto func) { return func(); }));
 
-    executor_ = std::make_shared<Executor>(module_repo, header_repo_, cache_);
+    executor_ = std::make_shared<ExecutorImpl>(module_repo, header_repo_, cache_);
   }
 
  protected:
