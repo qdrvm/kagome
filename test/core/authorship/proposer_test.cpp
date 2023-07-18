@@ -125,8 +125,7 @@ TEST_F(ProposerTest, CreateBlockSuccess) {
   std::map<Transaction::Hash, std::shared_ptr<Transaction>> ready_transactions{
       std::make_pair("fakeHash"_hash256, std::make_shared<Transaction>())};
 
-  EXPECT_CALL(*transaction_pool_, getReadyTransactions())
-      .WillOnce(Return(ready_transactions));
+  EXPECT_CALL(*transaction_pool_, getReadyTransactions(_));
 
   EXPECT_CALL(*transaction_pool_, removeOne("fakeHash"_hash256))
       .WillOnce(Return(outcome::success()));
@@ -223,8 +222,7 @@ TEST_F(ProposerTest, PushFailed) {
   std::map<Transaction::Hash, std::shared_ptr<Transaction>> ready_transactions{
       std::make_pair("fakeHash"_hash256, std::make_shared<Transaction>())};
 
-  EXPECT_CALL(*transaction_pool_, getReadyTransactions())
-      .WillOnce(Return(ready_transactions));
+  EXPECT_CALL(*transaction_pool_, getReadyTransactions(_));
   EXPECT_CALL(*transaction_pool_, removeStale(BlockId(expected_block_.number)))
       .WillOnce(Return(outcome::success()));
 
@@ -272,8 +270,7 @@ TEST_F(ProposerTest, TrxSkippedDueToOverflow) {
   EXPECT_CALL(*transaction_pool_, removeOne(_))
       .WillRepeatedly(
           Return(outcome::failure(TransactionPoolError::TX_NOT_FOUND)));
-  EXPECT_CALL(*transaction_pool_, getReadyTransactions())
-      .WillRepeatedly(Return(ready_transactions));
+  EXPECT_CALL(*transaction_pool_, getReadyTransactions(_));
   EXPECT_CALL(*transaction_pool_, removeStale(BlockId(expected_block_.number)))
       .WillRepeatedly(Return(outcome::success()));
 
@@ -321,8 +318,7 @@ TEST_F(ProposerTest, TrxSkippedDueToResourceExhausted) {
   EXPECT_CALL(*transaction_pool_, removeOne(_))
       .WillRepeatedly(
           Return(outcome::failure(TransactionPoolError::TX_NOT_FOUND)));
-  EXPECT_CALL(*transaction_pool_, getReadyTransactions())
-      .WillRepeatedly(Return(ready_transactions));
+  EXPECT_CALL(*transaction_pool_, getReadyTransactions(_));
   EXPECT_CALL(*transaction_pool_, removeStale(BlockId(expected_block_.number)))
       .WillRepeatedly(Return(outcome::success()));
 

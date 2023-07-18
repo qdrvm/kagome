@@ -68,7 +68,7 @@ class SystemApiTest : public ::testing::Test {
   // Alice's account from subkey
   static constexpr auto kSs58Account =
       "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY";
-  static inline kagome::crypto::Sr25519PublicKey kAccountId{
+  inline static kagome::crypto::Sr25519PublicKey kAccountId{
       kagome::common::Blob<32>(std::array<uint8_t, 32>{
           0xd4, 0x35, 0x93, 0xc7, 0x15, 0xfd, 0xd3, 0x1c, 0x61, 0x14, 0x1a,
           0xbd, 0x04, 0xa9, 0x9f, 0xd6, 0x82, 0x2c, 0x85, 0x58, 0x85, 0x4c,
@@ -92,7 +92,7 @@ TEST_F(SystemApiTest, GetNonceNoPendingTxs) {
   EXPECT_CALL(*hasher_mock_,
               blake2b_512(gsl::span<const uint8_t>(hash_preimage)))
       .WillOnce(Return(kagome::common::Hash512{{'\035', '!'}}));
-  EXPECT_CALL(*transaction_pool_mock_, getReadyTransactions());
+  EXPECT_CALL(*transaction_pool_mock_, getReadyTransactions(_));
 
   EXPECT_OUTCOME_TRUE(nonce, system_api_->getNonceFor(kSs58Account))
   ASSERT_EQ(nonce, kInitialNonce);
@@ -128,8 +128,7 @@ TEST_F(SystemApiTest, GetNonceWithPendingTxs) {
             Transaction{.provides = {encoded_nonces[i]}});
   }
 
-  EXPECT_CALL(*transaction_pool_mock_, getReadyTransactions())
-      .WillOnce(Return(ready_txs));
+  EXPECT_CALL(*transaction_pool_mock_, getReadyTransactions(_));
 
   EXPECT_OUTCOME_TRUE(nonce, system_api_->getNonceFor(kSs58Account));
   ASSERT_EQ(nonce, kInitialNonce + kReadyTxNum);

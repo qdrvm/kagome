@@ -14,11 +14,10 @@ namespace kagome::transaction_pool {
 
   class TransactionPoolMock : public TransactionPool {
    public:
-    MOCK_METHOD(
-        (std::unordered_map<Transaction::Hash, std::shared_ptr<Transaction>> &),
-        getPendingTransactions,
-        (),
-        (const));
+    MOCK_METHOD(void,
+                getPendingTransactions,
+                (TransactionPool::TxRequestCallback &&),
+                (const));
 
     MOCK_METHOD(outcome::result<Transaction::Hash>,
                 submitExtrinsic,
@@ -39,9 +38,9 @@ namespace kagome::transaction_pool {
 
     MOCK_METHOD(void, remove, (const std::vector<Transaction::Hash> &), ());
 
-    MOCK_METHOD((std::map<Transaction::Hash, std::shared_ptr<Transaction>>),
+    MOCK_METHOD(void,
                 getReadyTransactions,
-                (),
+                (TransactionPool::TxRequestCallback &&),
                 (const));
 
     MOCK_METHOD(outcome::result<std::vector<Transaction>>,

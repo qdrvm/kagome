@@ -65,15 +65,19 @@ namespace kagome::api {
   primitives::AccountNonce SystemApiImpl::adjustNonce(
       const primitives::AccountId &account_id,
       primitives::AccountNonce current_nonce) const {
-    auto txs = transaction_pool_->getReadyTransactions();
+    std::deque<std::shared_ptr<const primitives::Transaction>> txs;
+    transaction_pool_->getReadyTransactions(
+        [&](const auto &tx) { txs.emplace_back(tx); });
 
     // txs authored by the provided account sorted by nonce
     std::map<primitives::AccountNonce,
              std::reference_wrapper<const primitives::Transaction>>
         sorted_txs;
 
-    for (auto &[tx_hash, tx_ptr] : txs) {
-      if (tx_ptr->provides.empty()) continue;
+    for (const auto &tx_ptr : txs) {
+      if (tx_ptr->provides.empty()) {
+        continue;
+      }
 
       // the assumption that the tag with nonce is encoded this way is taken
       // from substrate
