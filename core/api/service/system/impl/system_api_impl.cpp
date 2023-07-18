@@ -65,16 +65,16 @@ namespace kagome::api {
   primitives::AccountNonce SystemApiImpl::adjustNonce(
       const primitives::AccountId &account_id,
       primitives::AccountNonce current_nonce) const {
-    std::deque<std::shared_ptr<const primitives::Transaction>> txs;
-    transaction_pool_->getReadyTransactions(
-        [&](const auto &tx) { txs.emplace_back(tx); });
+    std::vector<std::pair<primitives::Transaction::Hash,
+                          std::shared_ptr<const primitives::Transaction>>>
+        txs = transaction_pool_->getReadyTransactions();
 
     // txs authored by the provided account sorted by nonce
     std::map<primitives::AccountNonce,
              std::reference_wrapper<const primitives::Transaction>>
         sorted_txs;
 
-    for (const auto &tx_ptr : txs) {
+    for (const auto &[_, tx_ptr] : txs) {
       if (tx_ptr->provides.empty()) {
         continue;
       }

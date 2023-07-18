@@ -92,7 +92,7 @@ TEST_F(SystemApiTest, GetNonceNoPendingTxs) {
   EXPECT_CALL(*hasher_mock_,
               blake2b_512(gsl::span<const uint8_t>(hash_preimage)))
       .WillOnce(Return(kagome::common::Hash512{{'\035', '!'}}));
-  EXPECT_CALL(*transaction_pool_mock_, getReadyTransactions(_));
+  EXPECT_CALL(*transaction_pool_mock_, getReadyTransactions());
 
   EXPECT_OUTCOME_TRUE(nonce, system_api_->getNonceFor(kSs58Account))
   ASSERT_EQ(nonce, kInitialNonce);
@@ -119,16 +119,19 @@ TEST_F(SystemApiTest, GetNonceWithPendingTxs) {
 
   constexpr auto kReadyTxNum = 5;
   std::array<std::vector<uint8_t>, kReadyTxNum> encoded_nonces;
-  std::map<Transaction::Hash, std::shared_ptr<Transaction>> ready_txs;
+  std::vector<std::pair<Transaction::Hash, std::shared_ptr<const Transaction>>>
+      ready_txs;
   for (size_t i = 0; i < kReadyTxNum; i++) {
     EXPECT_OUTCOME_TRUE(enc_nonce, scale::encode(kAccountId, kInitialNonce + i))
     encoded_nonces[i] = std::move(enc_nonce);
-    ready_txs[Hash256{{static_cast<uint8_t>(i)}}] =
-        std::make_shared<Transaction>(
-            Transaction{.provides = {encoded_nonces[i]}});
+    ready_txs.emplace_back(
+        std::make_pair(Hash256{{static_cast<uint8_t>(i)}},
+                       std::make_shared<Transaction>(
+                           Transaction{.provides = {encoded_nonces[i]}})));
   }
 
-  EXPECT_CALL(*transaction_pool_mock_, getReadyTransactions(_));
+  EXPECT_CALL(*transaction_pool_mock_, getReadyTransactions())
+      .WillOnce(Return(ready_txs));
 
   EXPECT_OUTCOME_TRUE(nonce, system_api_->getNonceFor(kSs58Account));
   ASSERT_EQ(nonce, kInitialNonce + kReadyTxNum);
