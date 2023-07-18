@@ -11,7 +11,7 @@ RUN apt-get update && \
     wget -O - https://apt.llvm.org/llvm-snapshot.gpg.key | apt-key add - && \  
     add-apt-repository -y "deb http://deb.debian.org/debian/ testing main" && \
     apt-get update && \
-    apt-get install --no-install-recommends -y libstdc++6 libc6 libnsl2 && \
+    apt-get install --no-install-recommends -y libstdc++6 libc6 libnsl2 libatomic1 && \
     rm -rf /var/lib/apt/lists/*
 
 

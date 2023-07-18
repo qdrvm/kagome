@@ -64,7 +64,7 @@ namespace kagome::network {
             entry.entries.emplace_back(
                 StateEntry{cursor->key().value(), {*value_opt}});
             size += entry.entries.back().key.size()
-                    + entry.entries.back().value.size();
+                  + entry.entries.back().value.size();
           }
         }
         res = cursor->next();
@@ -89,9 +89,6 @@ namespace kagome::network {
                     : cursor->seekUpperBound(request.start[0]));
     unsigned size = 0;
     KeyValueStateEntry entry;
-    // main state storage hash is marked with zeros in response
-    entry.state_root =
-        storage::trie::RootHash::fromSpan(std::vector<uint8_t>(32, 0)).value();
 
     StateResponse response;
     response.entries.emplace_back(std::move(entry));

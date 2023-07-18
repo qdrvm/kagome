@@ -170,6 +170,7 @@ class BabeTest : public testing::Test {
     babe_ = std::make_shared<babe::BabeImpl>(
         app_config_,
         app_state_manager_,
+        nullptr,
         lottery_,
         babe_config_repo_,
         proposer_,

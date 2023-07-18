@@ -63,7 +63,12 @@ namespace kagome::offchain {
   outcome::result<void> OffchainWorkerImpl::run() {
     BOOST_ASSERT(not ocw_pool_->getWorker());
 
-    soralog::util::setThreadName("ocw." + std::to_string(block_.number));
+    auto at_end =
+        gsl::finally([prev_thread_name = soralog::util::getThreadName()] {
+          soralog::util::setThreadName(prev_thread_name);
+        });
+
+    soralog::util::setThreadName("ocw.#" + std::to_string(block_.number));
 
     ocw_pool_->addWorker(shared_from_this());
     auto remove = gsl::finally([&] { ocw_pool_->removeWorker(); });

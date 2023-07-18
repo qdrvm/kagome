@@ -15,6 +15,9 @@
 #include "telemetry/service.hpp"
 
 namespace kagome::application {
+  KagomeApplicationImpl::~KagomeApplicationImpl() {
+    kagome::telemetry::setTelemetryService(nullptr);
+  }
 
   KagomeApplicationImpl::KagomeApplicationImpl(
       std::shared_ptr<AppConfiguration> app_config)
@@ -72,7 +75,10 @@ namespace kagome::application {
     }
 
     app_state_manager->atLaunch([ctx{io_context}, log{logger_}] {
-      std::thread asio_runner([ctx{ctx}, log{log}] { ctx->run(); });
+      std::thread asio_runner([ctx{ctx}, log{log}] {
+        soralog::util::setThreadName("kagome");  // explicitly for macos
+        ctx->run();
+      });
       asio_runner.detach();
       return true;
     });
