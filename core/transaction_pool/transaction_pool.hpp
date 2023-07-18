@@ -65,6 +65,9 @@ namespace kagome::transaction_pool {
      * @return transactions ready to included in the next block
      */
     virtual void getReadyTransactions(TxRequestCallback &&callback) const = 0;
+    virtual std::vector<
+        std::pair<Transaction::Hash, std::shared_ptr<const Transaction>>>
+    getReadyTransactions() const = 0;
 
     /**
      * Remove from the pool and temporarily ban transactions which longevity is

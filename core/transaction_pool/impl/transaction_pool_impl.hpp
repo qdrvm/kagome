@@ -80,6 +80,9 @@ namespace kagome::transaction_pool {
         const Transaction::Hash &tx_hash) override;
 
     void getReadyTransactions(TxRequestCallback &&callback) const override;
+    std::vector<
+        std::pair<Transaction::Hash, std::shared_ptr<const Transaction>>>
+    getReadyTransactions() const override;
 
     outcome::result<std::vector<Transaction>> removeStale(
         const primitives::BlockId &at) override;

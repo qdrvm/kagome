@@ -348,6 +348,17 @@ namespace kagome::transaction_pool {
     });
   }
 
+  std::vector<std::pair<Transaction::Hash, std::shared_ptr<const Transaction>>>
+  TransactionPoolImpl::getReadyTransactions() const {
+    std::vector<
+        std::pair<Transaction::Hash, std::shared_ptr<const Transaction>>>
+        txs;
+    getReadyTransactions([&](const auto &tx) {
+      txs.emplace_back(std::make_pair(tx->hash, tx));
+    });
+    return txs;
+  }
+
   void TransactionPoolImpl::getPendingTransactions(
       TxRequestCallback &&callback) const {
     return pool_state_.sharedAccess([&](const auto &pool_state) {

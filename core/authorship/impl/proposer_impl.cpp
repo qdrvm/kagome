@@ -88,9 +88,11 @@ namespace kagome::authorship {
                parent_block);
     }
 
-    std::deque<std::shared_ptr<const primitives::Transaction>> ready_txs;
-    transaction_pool_->getReadyTransactions(
-        [&](const auto &tx) { ready_txs.emplace_back(tx); });
+    /// TODO(iceseer): switch to callback case(this case is needed to make tests
+    /// complete)
+    std::vector<std::pair<primitives::Transaction::Hash,
+                          std::shared_ptr<const primitives::Transaction>>>
+        ready_txs = transaction_pool_->getReadyTransactions();
 
     bool transaction_pushed = false;
     bool hit_block_size_limit = false;
@@ -107,8 +109,7 @@ namespace kagome::authorship {
 
     size_t included_tx_count = 0;
     std::vector<primitives::Transaction::Hash> included_hashes;
-    for (const auto &tx : ready_txs) {
-      const auto &hash = tx->hash;
+    for (const auto &[hash, tx] : ready_txs) {
       if (deadline && clock_->now() >= deadline) {
         break;
       }

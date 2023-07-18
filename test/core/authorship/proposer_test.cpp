@@ -122,10 +122,12 @@ TEST_F(ProposerTest, CreateBlockSuccess) {
       .WillOnce(Return(outcome::success()));
 
   // getReadyTransaction will return vector with single transaction
-  std::map<Transaction::Hash, std::shared_ptr<Transaction>> ready_transactions{
-      std::make_pair("fakeHash"_hash256, std::make_shared<Transaction>())};
+  std::vector<std::pair<Transaction::Hash, std::shared_ptr<const Transaction>>>
+      ready_transactions{
+          std::make_pair("fakeHash"_hash256, std::make_shared<Transaction>())};
 
-  EXPECT_CALL(*transaction_pool_, getReadyTransactions(_));
+  EXPECT_CALL(*transaction_pool_, getReadyTransactions())
+      .WillOnce(Return(ready_transactions));
 
   EXPECT_CALL(*transaction_pool_, removeOne("fakeHash"_hash256))
       .WillOnce(Return(outcome::success()));
@@ -219,10 +221,12 @@ TEST_F(ProposerTest, PushFailed) {
   EXPECT_CALL(*block_builder_, estimateBlockSize()).WillOnce(Return(1));
   EXPECT_CALL(*block_builder_, bake()).WillOnce(Return(expected_block));
 
-  std::map<Transaction::Hash, std::shared_ptr<Transaction>> ready_transactions{
-      std::make_pair("fakeHash"_hash256, std::make_shared<Transaction>())};
+  std::vector<std::pair<Transaction::Hash, std::shared_ptr<const Transaction>>>
+      ready_transactions{
+          std::make_pair("fakeHash"_hash256, std::make_shared<Transaction>())};
 
-  EXPECT_CALL(*transaction_pool_, getReadyTransactions(_));
+  EXPECT_CALL(*transaction_pool_, getReadyTransactions())
+      .WillOnce(Return(ready_transactions));
   EXPECT_CALL(*transaction_pool_, removeStale(BlockId(expected_block_.number)))
       .WillOnce(Return(outcome::success()));
 
@@ -256,7 +260,8 @@ TEST_F(ProposerTest, TrxSkippedDueToOverflow) {
   EXPECT_CALL(*block_builder_, bake()).WillOnce(Return(expected_block));
 
   // number of trxs is kMaxSkippedTransactions + 1
-  std::map<Transaction::Hash, std::shared_ptr<Transaction>> ready_transactions;
+  std::vector<std::pair<Transaction::Hash, std::shared_ptr<const Transaction>>>
+      ready_transactions;
   std::generate_n(std::inserter(ready_transactions, ready_transactions.end()),
                   ProposerImpl::kMaxSkippedTransactions + 1,
                   []() {
@@ -270,7 +275,9 @@ TEST_F(ProposerTest, TrxSkippedDueToOverflow) {
   EXPECT_CALL(*transaction_pool_, removeOne(_))
       .WillRepeatedly(
           Return(outcome::failure(TransactionPoolError::TX_NOT_FOUND)));
-  EXPECT_CALL(*transaction_pool_, getReadyTransactions(_));
+  EXPECT_CALL(*transaction_pool_, getReadyTransactions())
+      .WillOnce(Return(ready_transactions));
+  ;
   EXPECT_CALL(*transaction_pool_, removeStale(BlockId(expected_block_.number)))
       .WillRepeatedly(Return(outcome::success()));
 
@@ -304,7 +311,8 @@ TEST_F(ProposerTest, TrxSkippedDueToResourceExhausted) {
   EXPECT_CALL(*block_builder_, bake()).WillOnce(Return(expected_block));
 
   // number is kMaxSkippedTransactions + 1
-  std::map<Transaction::Hash, std::shared_ptr<Transaction>> ready_transactions;
+  std::vector<std::pair<Transaction::Hash, std::shared_ptr<const Transaction>>>
+      ready_transactions;
   std::generate_n(std::inserter(ready_transactions, ready_transactions.end()),
                   ProposerImpl::kMaxSkippedTransactions + 1,
                   []() {
@@ -318,7 +326,10 @@ TEST_F(ProposerTest, TrxSkippedDueToResourceExhausted) {
   EXPECT_CALL(*transaction_pool_, removeOne(_))
       .WillRepeatedly(
           Return(outcome::failure(TransactionPoolError::TX_NOT_FOUND)));
-  EXPECT_CALL(*transaction_pool_, getReadyTransactions(_));
+  EXPECT_CALL(*transaction_pool_, getReadyTransactions())
+      .WillOnce(Return(ready_transactions));
+  ;
+  ;
   EXPECT_CALL(*transaction_pool_, removeStale(BlockId(expected_block_.number)))
       .WillRepeatedly(Return(outcome::success()));
 

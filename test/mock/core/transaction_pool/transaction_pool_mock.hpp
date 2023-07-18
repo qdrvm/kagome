@@ -43,6 +43,12 @@ namespace kagome::transaction_pool {
                 (TransactionPool::TxRequestCallback &&),
                 (const));
 
+    MOCK_METHOD((std::vector<std::pair<Transaction::Hash,
+                                       std::shared_ptr<const Transaction>>>),
+                getReadyTransactions,
+                (),
+                (const));
+
     MOCK_METHOD(outcome::result<std::vector<Transaction>>,
                 removeStale,
                 (const primitives::BlockId &),
