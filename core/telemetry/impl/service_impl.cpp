@@ -93,8 +93,10 @@ namespace kagome::telemetry {
           scheduler_);
       connections_.emplace_back(std::move(connection));
     }
-    worker_thread_ = std::make_shared<std::thread>(
-        [io_context{io_context_}] { io_context->run(); });
+    worker_thread_ = std::make_shared<std::thread>([io_context{io_context_}] {
+      soralog::util::setThreadName("telemetry");
+      io_context->run();
+    });
     worker_thread_->detach();
     return true;
   }

@@ -34,6 +34,7 @@ namespace kagome::metrics {
 
   bool MetricsWatcher::start() {
     thread_ = std::thread([this] {
+      soralog::util::setThreadName("metric-watcher");
       while (not shutdown_requested_) {
         auto storage_size_res = measure_storage_size();
         if (storage_size_res.has_value()) {
@@ -43,7 +44,9 @@ namespace kagome::metrics {
         // Granulated waiting
         for (auto i = 0; i < 30; ++i) {
           std::this_thread::sleep_for(std::chrono::seconds(1));
-          if (shutdown_requested_) break;
+          if (shutdown_requested_) {
+            break;
+          }
         }
       }
     });
