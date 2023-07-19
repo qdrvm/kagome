@@ -13,10 +13,10 @@ namespace kagome::runtime::binaryen {
   MemoryImpl::MemoryImpl(RuntimeExternalInterface::InternalMemory *memory,
                          std::unique_ptr<MemoryAllocator> &&allocator)
       : memory_{memory},
-        size_{kInitialMemorySize},
+        size_{memory->size()},
         allocator_{std::move(allocator)},
         logger_{log::createLogger("Binaryen Memory", "binaryen")} {
-    resize(size_);
+    resize(kInitialMemorySize);
   }
 
   MemoryImpl::MemoryImpl(RuntimeExternalInterface::InternalMemory *memory,
