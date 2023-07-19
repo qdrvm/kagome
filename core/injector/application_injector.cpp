@@ -777,7 +777,6 @@ namespace {
             di::bind<api::InternalApi>.template to<api::InternalApiImpl>(),
             di::bind<consensus::babe::BabeConfigRepository>.template to<consensus::babe::BabeConfigRepositoryImpl>(),
             di::bind<blockchain::DigestTracker>.template to<blockchain::DigestTrackerImpl>(),
-            di::bind<consensus::babe::BabeDigestObserver>.template to<consensus::babe::BabeConfigRepositoryImpl>(),
             di::bind<authority_discovery::Query>.template to<authority_discovery::QueryImpl>(),
             di::bind<crypto::SessionKeys>.template to<crypto::SessionKeysImpl>(),
             di::bind<network::SyncProtocol>.template to<network::SyncProtocolImpl>(),

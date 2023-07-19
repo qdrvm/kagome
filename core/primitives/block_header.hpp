@@ -41,6 +41,13 @@ namespace kagome::primitives {
     bool operator!=(const BlockHeader &rhs) const {
       return !operator==(rhs);
     }
+
+    std::optional<primitives::BlockInfo> parentInfo() const {
+      if (number != 0) {
+        return primitives::BlockInfo{number - 1, parent_hash};
+      }
+      return std::nullopt;
+    }
   };
 
   struct BlockHeaderReflection {

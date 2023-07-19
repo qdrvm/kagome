@@ -6,9 +6,13 @@
 #ifndef KAGOME_CORE_NETWORK_TYPES_ROLES_HPP
 #define KAGOME_CORE_NETWORK_TYPES_ROLES_HPP
 
+#include "scale/tie.hpp"
+
 namespace kagome::network {
 
   union Roles {
+    SCALE_TIE_ONLY(value);
+
     struct {
       /**
        * Full node, does not participate in consensus.
@@ -45,43 +49,6 @@ namespace kagome::network {
     }
     return to_string(r.value);
   }
-
-  /**
-   * @brief compares two Roles instances
-   * @param lhs first instance
-   * @param rhs second instance
-   * @return true if equal false otherwise
-   */
-  inline bool operator==(const Roles &lhs, const Roles &rhs) {
-    return lhs.value == rhs.value;
-  }
-
-  /**
-   * @brief outputs object of type Roles to stream
-   * @tparam Stream output stream type
-   * @param s stream reference
-   * @param v value to output
-   * @return reference to stream
-   */
-  template <class Stream,
-            typename = std::enable_if_t<Stream::is_encoder_stream>>
-  Stream &operator<<(Stream &s, const Roles &v) {
-    return s << v.value;
-  }
-
-  /**
-   * @brief decodes object of type Roles from stream
-   * @tparam Stream input stream type
-   * @param s stream reference
-   * @param v value to decode
-   * @return reference to stream
-   */
-  template <class Stream,
-            typename = std::enable_if_t<Stream::is_decoder_stream>>
-  Stream &operator>>(Stream &s, Roles &v) {
-    return s >> v.value;
-  }
-
 }  // namespace kagome::network
 
 #endif  // KAGOME_CORE_NETWORK_TYPES_ROLES_HPP

@@ -81,22 +81,21 @@ namespace kagome::runtime::binaryen {
        * We use this condition to avoid
        * deallocated_ pointers fixup
        */
-      if (new_size >= size_) {
+      if (new_size >= size()) {
         if (auto mod = new_size % kMemoryPageSize) {
           new_size += kMemoryPageSize - mod;
         }
-        size_ = new_size;
         memory_->resize(new_size);
       }
     }
 
     WasmSize size() const override {
-      return size_;
+      BOOST_ASSERT(memory_ != nullptr);
+      return memory_->getSize();
     }
 
    private:
     RuntimeExternalInterface::InternalMemory *memory_;
-    WasmSize size_;
     std::unique_ptr<MemoryAllocator> allocator_;
 
     log::Logger logger_;
