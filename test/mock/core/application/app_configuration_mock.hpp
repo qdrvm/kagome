@@ -120,6 +120,11 @@ namespace kagome::application {
 
     MOCK_METHOD(bool, purgeWavmCache, (), (const, override));
 
+    MOCK_METHOD(uint32_t,
+                parachainRuntimeInstanceCacheSize,
+                (),
+                (const, override));
+
     MOCK_METHOD(AppConfiguration::OffchainWorkerMode,
                 offchainWorkerMode,
                 (),

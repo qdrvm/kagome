@@ -101,7 +101,10 @@ namespace kagome::runtime {
           offset_);
       return 0;
     }
-    resize(offset_ + chunk_sz);
+    auto new_size = offset_ + chunk_sz;
+    resize(new_size);
+    auto current_size = memory_.getSize();
+    BOOST_ASSERT(current_size >= new_size);
     return allocate(allocation_sz);
   }
 

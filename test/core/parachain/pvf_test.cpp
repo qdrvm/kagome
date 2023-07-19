@@ -7,6 +7,7 @@
 
 #include "parachain/pvf/pvf_impl.hpp"
 
+#include "mock/core/application/app_configuration_mock.hpp"
 #include "mock/core/blockchain/block_header_repository_mock.hpp"
 #include "mock/core/crypto/hasher_mock.hpp"
 #include "mock/core/crypto/sr25519_provider_mock.hpp"
@@ -56,9 +57,9 @@ class PvfTest : public testing::Test {
         std::make_shared<blockchain::BlockHeaderRepositoryMock>();
     auto sr25519_provider = std::make_shared<crypto::Sr25519ProviderMock>();
     auto parachain_api = std::make_shared<runtime::ParachainHostMock>();
-    PvfImpl::Config config{
-        .instance_cache_size = 2,
-    };
+    auto config = std::make_shared<kagome::application::AppConfigurationMock>();
+    ON_CALL(*config, parachainRuntimeInstanceCacheSize())
+        .WillByDefault(Return(2));
 
     ON_CALL(*sr25519_provider, verify(_, _, _)).WillByDefault(Return(true));
     ON_CALL(*block_header_repository, getHashByNumber(_))
