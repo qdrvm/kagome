@@ -13,7 +13,6 @@ namespace kagome::runtime::binaryen {
   MemoryImpl::MemoryImpl(RuntimeExternalInterface::InternalMemory *memory,
                          std::unique_ptr<MemoryAllocator> &&allocator)
       : memory_{memory},
-        size_{static_cast<WasmSize>(memory->getSize())},
         allocator_{std::move(allocator)},
         logger_{log::createLogger("Binaryen Memory", "binaryen")} {
     resize(kInitialMemorySize);
@@ -26,7 +25,7 @@ namespace kagome::runtime::binaryen {
           std::make_unique<MemoryAllocator>(
               MemoryAllocator::MemoryHandle{
                   [this](auto new_size) { return resize(new_size); },
-                  [this]() { return size_; },
+                  [this]() { return size(); },
                   [this](auto addr, uint32_t value) {
                     memory_->set<uint32_t>(addr, value);
                   },
@@ -80,13 +79,13 @@ namespace kagome::runtime::binaryen {
 
   common::BufferView MemoryImpl::loadN(kagome::runtime::WasmPointer addr,
                                        kagome::runtime::WasmSize n) const {
-    BOOST_ASSERT(size_ > addr and size_ - addr >= n);
+    BOOST_ASSERT(size() > addr and size() - addr >= n);
     return common::BufferView{memory_->getBuffer<const uint8_t>(addr, n)};
   }
 
   std::string MemoryImpl::loadStr(kagome::runtime::WasmPointer addr,
                                   kagome::runtime::WasmSize length) const {
-    BOOST_ASSERT(size_ > addr and size_ - addr >= length);
+    BOOST_ASSERT(size() > addr and size() - addr >= length);
     std::string res;
     res.reserve(length);
     for (auto i = addr; i < addr + length; i++) {
