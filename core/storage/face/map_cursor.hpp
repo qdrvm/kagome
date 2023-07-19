@@ -36,6 +36,28 @@ namespace kagome::storage::face {
     virtual outcome::result<bool> seek(const View<K> &key) = 0;
 
     /**
+     * Lower bound in reverse order.
+     *   rocks_db.put(2)
+     *   rocks_db.seek(1) -> 2
+     *   rocks_db.seek(2) -> 2
+     *   rocks_db.seek(3) -> none
+     *   seekReverse(rocks_db, 1) -> none
+     *   seekReverse(rocks_db, 2) -> 2
+     *   seekReverse(rocks_db, 3) -> 2
+     */
+    outcome::result<bool> seekReverse(const View<K> &prefix) {
+      OUTCOME_TRY(ok, seek(prefix));
+      if (not ok) {
+        return seekLast();
+      }
+      if (View<K>{*key()} > prefix) {
+        OUTCOME_TRY(prev());
+        return isValid();
+      }
+      return true;
+    }
+
+    /**
      * @brief Same as std::rbegin(...);, e.g. points to the last valid element
      * @return error if any, true if trie is not empty, false otherwise
      */

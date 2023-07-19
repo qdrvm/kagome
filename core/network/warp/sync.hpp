@@ -18,6 +18,10 @@ namespace kagome::blockchain {
   class BlockStorage;
 }  // namespace kagome::blockchain
 
+namespace kagome::consensus::babe {
+  class BabeConfigRepository;
+}  // namespace kagome::consensus::babe
+
 namespace kagome::consensus::grandpa {
   struct JustificationObserver;
   class AuthorityManager;
@@ -59,6 +63,8 @@ namespace kagome::network {
         std::shared_ptr<blockchain::BlockStorage> block_storage,
         std::shared_ptr<network::WarpSyncCache> warp_sync_cache,
         std::shared_ptr<consensus::grandpa::AuthorityManager> authority_manager,
+        std::shared_ptr<consensus::babe::BabeConfigRepository>
+            babe_config_repository,
         std::shared_ptr<blockchain::BlockTree> block_tree);
 
     /**
@@ -84,6 +90,8 @@ namespace kagome::network {
     std::shared_ptr<blockchain::BlockStorage> block_storage_;
     std::shared_ptr<network::WarpSyncCache> warp_sync_cache_;
     std::shared_ptr<consensus::grandpa::AuthorityManager> authority_manager_;
+    std::shared_ptr<consensus::babe::BabeConfigRepository>
+        babe_config_repository_;
     std::shared_ptr<blockchain::BlockTree> block_tree_;
     std::shared_ptr<storage::BufferStorage> db_;
     bool done_ = false;

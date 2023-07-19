@@ -40,6 +40,8 @@ namespace kagome::primitives {
     SCALE_EMPTY_CODER(BadOrigin);
     /// A custom error in a module.
     struct Module {
+      SCALE_TIE_ONLY(index, error);
+
       /// Module index, matching the metadata module index.
       uint8_t index;
       /// Module specific error value.
@@ -48,19 +50,6 @@ namespace kagome::primitives {
       std::optional<std::string>
           message;  // not currently used in rust impl, thus not scale encoded
     };
-
-    template <typename Stream,
-              typename = std::enable_if_t<Stream::is_encoder_stream>>
-    Stream &operator<<(Stream &s, const Module &v) {
-      return s << v.index << v.error;
-    }
-
-    template <typename Stream,
-              typename = std::enable_if_t<Stream::is_decoder_stream>>
-    Stream &operator>>(Stream &s, Module &v) {
-      s >> v.index >> v.error;
-      return s;
-    }
 
     /// At least one consumer is remaining so the account cannot be destroyed.
     struct ConsumerRemaining {};
