@@ -13,6 +13,7 @@
 
 #include "common/blob.hpp"
 #include "macro/endianness_utils.hpp"
+#include "scale/tie.hpp"
 
 namespace kagome::primitives {
   using BlockNumber = uint32_t;
@@ -25,6 +26,8 @@ namespace kagome::primitives {
     template <typename Tag>
     struct BlockInfoT : public boost::equality_comparable<BlockInfoT<Tag>>,
                         public boost::less_than_comparable<BlockInfoT<Tag>> {
+      SCALE_TIE_ONLY(hash, number);
+
       BlockInfoT() = default;
 
       BlockInfoT(const BlockNumber &n, const BlockHash &h)
@@ -36,28 +39,10 @@ namespace kagome::primitives {
       BlockNumber number{};
       BlockHash hash{};
 
-      bool operator==(const BlockInfoT<Tag> &o) const {
-        return number == o.number && hash == o.hash;
-      }
-
       bool operator<(const BlockInfoT<Tag> &o) const {
         return number < o.number or (number == o.number and hash < o.hash);
       }
     };
-
-    template <class Stream,
-              typename Tag,
-              typename = std::enable_if_t<Stream::is_encoder_stream>>
-    Stream &operator<<(Stream &s, const BlockInfoT<Tag> &msg) {
-      return s << msg.hash << msg.number;
-    }
-
-    template <class Stream,
-              typename Tag,
-              typename = std::enable_if_t<Stream::is_decoder_stream>>
-    Stream &operator>>(Stream &s, BlockInfoT<Tag> &msg) {
-      return s >> msg.hash >> msg.number;
-    }
   }  // namespace detail
 
   using BlockInfo = detail::BlockInfoT<struct BlockInfoTag>;
