@@ -449,7 +449,7 @@ namespace kagome::parachain {
     std::shared_ptr<blockchain::BlockTree> block_tree_;
     std::shared_ptr<consensus::grandpa::AuthorityManager> authority_manager_;
     std::shared_ptr<consensus::babe::BabeUtil> babe_util_;
-    std::shared_ptr<BabeConfigRepository> babe_config_repo_;
+    std::shared_ptr<consensus::babe::BabeConfigRepository> babe_config_repo_;
 
     std::shared_ptr<primitives::events::ChainEventSubscriber> chain_sub_;
     std::shared_ptr<ThreadHandler> thread_handler_;

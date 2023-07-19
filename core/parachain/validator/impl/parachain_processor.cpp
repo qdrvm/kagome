@@ -83,7 +83,7 @@ namespace kagome::parachain {
       std::shared_ptr<blockchain::BlockTree> block_tree,
       std::shared_ptr<consensus::grandpa::AuthorityManager> authority_manager,
       std::shared_ptr<consensus::babe::BabeUtil> babe_util,
-      std::shared_ptr<BabeConfigRepository> babe_config_repo)
+      std::shared_ptr<consensus::babe::BabeConfigRepository> babe_config_repo)
       : pm_(std::move(pm)),
         crypto_provider_(std::move(crypto_provider)),
         router_(std::move(router)),
@@ -104,7 +104,7 @@ namespace kagome::parachain {
         block_tree_{std::move(block_tree)},
         authority_manager_{std::move(authority_manager)},
         babe_util_{std::move(babe_util)},
-        babe_config_repo_{std::move(babe_config_repo_)},
+        babe_config_repo_{std::move(babe_config_repo)},
         thread_handler_{thread_pool_->handler()} {
     BOOST_ASSERT(pm_);
     BOOST_ASSERT(peer_view_);
@@ -225,7 +225,7 @@ namespace kagome::parachain {
     auto &babe_config = babe_config_opt.value().get();
 
     const auto &authority_id =
-        babe_config.authorities[babe_header.authority_index].id;
+        babe_config.authorities[babe_block_header.authority_index].id;
     return std::ref(statistics.target_stat[authority_id]);
   }
 
