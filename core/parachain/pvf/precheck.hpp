@@ -26,7 +26,7 @@ namespace kagome::runtime {
 }  // namespace kagome::runtime
 
 namespace kagome::parachain {
-  /// Signs, stores and broadcasts bitfield for every new head.
+  /// Signs pvf check statement for every new head.
   class PvfPrecheck : public std::enable_shared_from_this<PvfPrecheck> {
    public:
     using BroadcastCallback = std::function<void(

@@ -83,6 +83,11 @@ namespace kagome::parachain {
         OUTCOME_TRY(module_factory_->make(code));
         return outcome::success();
       }();
+      if (res) {
+        SL_VERBOSE(logger_, "approve {}", code_hash);
+      } else {
+        SL_WARN(logger_, "reject {}: {}", code_hash, res.error());
+      }
       PvfCheckStatement statement{
           res.has_value(),
           code_hash,
