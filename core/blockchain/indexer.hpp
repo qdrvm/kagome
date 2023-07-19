@@ -44,6 +44,7 @@ namespace kagome::blockchain {
         if (chain.size() <= 1) {
           return false;
         }
+        path_.reserve(path_.size() + chain.size() - 1);
         for (size_t j = 1; j < chain.size(); ++j) {
           path_.emplace_back(path_.back().number - 1, chain[j]);
         }
