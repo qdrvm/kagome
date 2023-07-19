@@ -121,7 +121,7 @@ class BlockExecutorTest : public testing::Test {
 
     babe_config_repo_ = std::make_shared<BabeConfigRepositoryMock>();
     ON_CALL(*babe_config_repo_, config(_, _))
-        .WillByDefault(Return(std::make_optional(std::cref(*babe_config_))));
+        .WillByDefault(Return(babe_config_));
 
     block_validator_ = std::make_shared<BlockValidatorMock>();
     grandpa_environment_ = std::make_shared<EnvironmentMock>();

@@ -26,23 +26,13 @@ namespace kagome::network {
    * posibility of the correct communication with it.
    */
   struct BlockAnnounceHandshake {
+    SCALE_TIE_ONLY(roles, best_block.number, best_block.hash, genesis_hash);
+
     Roles roles;  //!< Supported roles.
 
     primitives::BlockInfo best_block;  //!< Best block.
 
     BlockHash genesis_hash;  //!< Genesis block hash.
-
-    friend inline scale::ScaleEncoderStream &operator<<(
-        scale::ScaleEncoderStream &s, const BlockAnnounceHandshake &v) {
-      return s << v.roles << v.best_block.number << v.best_block.hash
-               << v.genesis_hash;
-    }
-
-    friend inline scale::ScaleDecoderStream &operator>>(
-        scale::ScaleDecoderStream &s, BlockAnnounceHandshake &v) {
-      return s >> v.roles >> v.best_block.number >> v.best_block.hash
-          >> v.genesis_hash;
-    }
   };
 
 }  // namespace kagome::network
