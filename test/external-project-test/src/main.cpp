@@ -3,6 +3,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+#include <kagome/application/impl/app_configuration_impl.hpp>
+#include <kagome/application/impl/app_state_manager_impl.hpp>
 #include <kagome/application/impl/chain_spec_impl.hpp>
 #include <kagome/blockchain/impl/block_header_repository_impl.hpp>
 #include <kagome/blockchain/impl/block_storage_impl.hpp>
@@ -37,20 +39,21 @@
 #include <kagome/storage/trie/polkadot_trie/polkadot_trie_factory_impl.hpp>
 #include <kagome/storage/trie/serialization/polkadot_codec.hpp>
 #include <kagome/storage/trie/serialization/trie_serializer_impl.hpp>
+#include <kagome/storage/trie_pruner/impl/trie_pruner_impl.hpp>
 #include <libp2p/crypto/random_generator/boost_generator.hpp>
 #include <libp2p/log/configurator.hpp>
 
 kagome::storage::trie::RootHash trieRoot(
     const std::vector<std::pair<kagome::common::Buffer, kagome::common::Buffer>>
         &key_vals) {
-  auto trie = kagome::storage::trie::PolkadotTrieImpl();
+  auto trie = kagome::storage::trie::PolkadotTrieImpl::createEmpty();
   auto codec = kagome::storage::trie::PolkadotCodec();
 
   for (const auto &[key, val] : key_vals) {
-    [[maybe_unused]] auto res = trie.put(key, val.view());
+    [[maybe_unused]] auto res = trie->put(key, val.view());
     BOOST_ASSERT_MSG(res.has_value(), "Insertion into trie failed");
   }
-  auto root = trie.getRoot();
+  auto root = trie->getRoot();
   if (root == nullptr) {
     return codec.hash256(kagome::common::BufferView{{0}});
   }
@@ -93,6 +96,9 @@ int main() {
   auto code_substitutes = chain_spec->codeSubstitutes();
   auto storage = std::make_shared<kagome::storage::InMemoryStorage>();
 
+  auto config = std::make_shared<kagome::application::AppConfigurationImpl>(
+      kagome::log::createLogger("AppConfiguration"));
+
   auto trie_factory =
       std::make_shared<kagome::storage::trie::PolkadotTrieFactoryImpl>();
   auto codec = std::make_shared<kagome::storage::trie::PolkadotCodec>();
@@ -101,9 +107,22 @@ int main() {
   auto serializer = std::make_shared<kagome::storage::trie::TrieSerializerImpl>(
       trie_factory, codec, storage_backend);
 
+  auto app_state_manager =
+      std::make_shared<kagome::application::AppStateManagerImpl>();
+
+  auto state_pruner =
+      std::make_shared<kagome::storage::trie_pruner::TriePrunerImpl>(
+          app_state_manager,
+          storage_backend,
+          serializer,
+          codec,
+          database,
+          hasher,
+          config);
+
   std::shared_ptr<kagome::storage::trie::TrieStorageImpl> trie_storage =
       kagome::storage::trie::TrieStorageImpl::createEmpty(
-          trie_factory, codec, serializer)
+          trie_factory, codec, serializer, state_pruner)
           .value();
 
   auto batch =

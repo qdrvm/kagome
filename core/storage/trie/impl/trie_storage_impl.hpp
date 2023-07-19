@@ -10,9 +10,13 @@
 
 #include "log/logger.hpp"
 #include "primitives/event_types.hpp"
-#include "storage/trie/codec.hpp"
 #include "storage/trie/polkadot_trie/polkadot_trie_factory.hpp"
+#include "storage/trie/serialization/codec.hpp"
 #include "storage/trie/serialization/trie_serializer.hpp"
+
+namespace kagome::storage::trie_pruner {
+  class TriePruner;
+}
 
 namespace kagome::storage::trie {
 
@@ -24,11 +28,13 @@ namespace kagome::storage::trie {
     static outcome::result<std::unique_ptr<TrieStorageImpl>> createEmpty(
         const std::shared_ptr<PolkadotTrieFactory> &trie_factory,
         std::shared_ptr<Codec> codec,
-        std::shared_ptr<TrieSerializer> serializer);
+        std::shared_ptr<TrieSerializer> serializer,
+        std::shared_ptr<storage::trie_pruner::TriePruner> state_pruner);
 
     static outcome::result<std::unique_ptr<TrieStorageImpl>> createFromStorage(
         std::shared_ptr<Codec> codec,
-        std::shared_ptr<TrieSerializer> serializer);
+        std::shared_ptr<TrieSerializer> serializer,
+        std::shared_ptr<storage::trie_pruner::TriePruner> state_pruner);
 
     TrieStorageImpl(TrieStorageImpl const &) = delete;
     void operator=(const TrieStorageImpl &) = delete;
@@ -46,12 +52,15 @@ namespace kagome::storage::trie {
         const OnNodeLoaded &on_node_loaded) const override;
 
    protected:
-    TrieStorageImpl(std::shared_ptr<Codec> codec,
-                    std::shared_ptr<TrieSerializer> serializer);
+    TrieStorageImpl(
+        std::shared_ptr<Codec> codec,
+        std::shared_ptr<TrieSerializer> serializer,
+        std::shared_ptr<storage::trie_pruner::TriePruner> state_pruner);
 
    private:
     std::shared_ptr<Codec> codec_;
     std::shared_ptr<TrieSerializer> serializer_;
+    std::shared_ptr<storage::trie_pruner::TriePruner> state_pruner_;
     log::Logger logger_;
   };
 

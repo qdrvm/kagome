@@ -13,7 +13,9 @@ namespace kagome::storage::trie {
    * @brief TrieDbError enum provides error codes for TrieDb methods
    */
   enum class TrieError {
-    NO_VALUE = 1,  // no stored value found by the given key
+    NO_VALUE = 1,                 // no stored value found by the given key
+    VALUE_RETRIEVE_NOT_PROVIDED,  // attempt to retrieve a value by hash with no
+                                  // corresponding callback provided
   };
 }  // namespace kagome::storage::trie
 

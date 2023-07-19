@@ -40,7 +40,7 @@ namespace kagome::storage {
       size_ -= old_value_size;
     }
     size_ += value.size();
-    storage[key.toHex()] = value.into();
+    storage[key.toHex()] = value.intoBuffer();
     return outcome::success();
   }
 
@@ -69,7 +69,7 @@ namespace kagome::storage {
     return std::make_unique<InMemoryCursor>(*this);
   }
 
-  size_t InMemoryStorage::size() const {
+  std::optional<size_t> InMemoryStorage::byteSizeHint() const {
     return size_;
   }
 }  // namespace kagome::storage

@@ -5,9 +5,10 @@
 
 #include "consensus/grandpa/impl/grandpa_impl.hpp"
 
+#include <utility>
+
 #include <libp2p/basic/scheduler/asio_scheduler_backend.hpp>
 #include <libp2p/basic/scheduler/scheduler_impl.hpp>
-#include <utility>
 
 #include "application/app_state_manager.hpp"
 #include "application/chain_spec.hpp"
@@ -93,7 +94,7 @@ namespace kagome::consensus::grandpa {
         block_tree_(std::move(block_tree)),
         reputation_repository_(std::move(reputation_repository)),
         babe_status_observable_(std::move(babe_status_observable)),
-        execution_thread_pool_{std::make_shared<ThreadPool>(1ull)},
+        execution_thread_pool_{std::make_shared<ThreadPool>("grandpa", 1ull)},
         internal_thread_context_{execution_thread_pool_->handler()},
         main_thread_context_{std::move(main_thread_context)},
         scheduler_{std::make_shared<libp2p::basic::SchedulerImpl>(
@@ -553,7 +554,7 @@ namespace kagome::consensus::grandpa {
                   return;
                 }
                 if (res.has_error()) {
-                  SL_WARN(self->logger_,
+                  SL_DEBUG(self->logger_,
                           "Missing justifications between blocks {} and "
                           "{} was not loaded: {}",
                           last_finalized,

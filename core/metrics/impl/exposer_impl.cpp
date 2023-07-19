@@ -60,8 +60,10 @@ namespace kagome::metrics {
                   acceptor_->local_endpoint().port());
     acceptOnce();
 
-    thread_ = std::make_shared<std::thread>(
-        [context = context_]() { context->run(); });
+    thread_ = std::make_shared<std::thread>([context = context_] {
+      soralog::util::setThreadName("metric-exposer");
+      context->run();
+    });
     thread_->detach();
 
     return true;

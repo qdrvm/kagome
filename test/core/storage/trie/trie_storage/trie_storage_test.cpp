@@ -8,6 +8,7 @@
 #include <gtest/gtest.h>
 
 #include "filesystem/common.hpp"
+#include "mock/core/storage/trie_pruner/trie_pruner_mock.hpp"
 #include "outcome/outcome.hpp"
 #include "storage/rocksdb/rocksdb.hpp"
 #include "storage/trie/impl/trie_storage_backend_impl.hpp"
@@ -30,12 +31,15 @@ using kagome::storage::trie::StateVersion;
 using kagome::storage::trie::TrieSerializerImpl;
 using kagome::storage::trie::TrieStorageBackendImpl;
 using kagome::storage::trie::TrieStorageImpl;
+using kagome::storage::trie_pruner::TriePrunerMock;
 using kagome::subscription::SubscriptionEngine;
+using testing::_;
+using testing::Return;
 
 /**
  * @given an empty persistent trie with RocksDb backend
- * @when putting a value into it @and its intance is destroyed @and a new
- * instance initialsed with the same DB
+ * @when putting a value into it @and its instance is destroyed @and a new
+ * instance initialised with the same DB
  * @then the new instance contains the same data
  */
 TEST(TriePersistencyTest, CreateDestroyCreate) {
@@ -57,8 +61,15 @@ TEST(TriePersistencyTest, CreateDestroyCreate) {
         std::make_shared<TrieStorageBackendImpl>(
             rocks_db->getSpace(Space::kDefault)));
 
+    auto state_pruner = std::make_shared<TriePrunerMock>();
+    ON_CALL(*state_pruner,
+            addNewState(
+                testing::A<const kagome::storage::trie::PolkadotTrie &>(), _))
+        .WillByDefault(Return(outcome::success()));
+
     auto storage =
-        TrieStorageImpl::createEmpty(factory, codec, serializer).value();
+        TrieStorageImpl::createEmpty(factory, codec, serializer, state_pruner)
+            .value();
 
     auto batch =
         storage
@@ -77,7 +88,10 @@ TEST(TriePersistencyTest, CreateDestroyCreate) {
       codec,
       std::make_shared<TrieStorageBackendImpl>(
           new_rocks_db->getSpace(Space::kDefault)));
-  auto storage = TrieStorageImpl::createFromStorage(codec, serializer).value();
+  auto state_pruner = std::make_shared<TriePrunerMock>();
+  auto storage =
+      TrieStorageImpl::createFromStorage(codec, serializer, state_pruner)
+          .value();
   auto batch = storage->getPersistentBatchAt(root, std::nullopt).value();
   EXPECT_OUTCOME_TRUE(v1, batch->get("123"_buf));
   ASSERT_EQ(v1, "abc"_buf);

@@ -33,10 +33,10 @@ Using kubernetes as provider we can simply spawn this network by running:
 ```sh
 zombienet test -p kubernetes 0001-parachains-smoke-test.zndsl
 ```
-or simplier, since kubernetes is the default provider as:
+or simpler, since kubernetes is the default provider as:
 
 ```sh
 zombienet test 0001-parachains-smoke-test.zndsl
 ```
 
-NOTE: Add correct images for tests in confing(toml file) 
+NOTE: Add correct images for tests in config(toml file) 

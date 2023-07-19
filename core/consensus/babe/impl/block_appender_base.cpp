@@ -155,7 +155,7 @@ namespace kagome::consensus::babe {
 
     babe_util_->syncEpoch([&] {
       auto hash_res = block_tree_->getBlockHash(primitives::BlockNumber(1));
-      if (hash_res.has_error()) {
+      if (hash_res.has_error() || !hash_res.value().has_value()) {
         if (block.header.number == 1) {
           SL_TRACE(logger_,
                    "First block slot is {}: it is first block (at executing)",
@@ -170,7 +170,7 @@ namespace kagome::consensus::babe {
       }
 
       auto first_block_header_res =
-          block_tree_->getBlockHeader(hash_res.value());
+          block_tree_->getBlockHeader(*hash_res.value());
       if (first_block_header_res.has_error()) {
         SL_CRITICAL(logger_,
                     "Database is not consistent: "

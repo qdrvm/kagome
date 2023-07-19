@@ -55,6 +55,7 @@ namespace kagome::network {
   class BlockAnnounceTransmitter;
   class WarpSync;
   class WarpProtocol;
+  class PeerManager;
 }  // namespace kagome::network
 
 namespace kagome::runtime {
@@ -94,6 +95,7 @@ namespace kagome::consensus::babe {
     BabeImpl(
         const application::AppConfiguration &app_config,
         std::shared_ptr<application::AppStateManager> app_state_manager,
+        std::shared_ptr<network::PeerManager> peer_manager,
         std::shared_ptr<BabeLottery> lottery,
         std::shared_ptr<BabeConfigRepository> babe_config_repo,
         std::shared_ptr<authorship::Proposer> proposer,
@@ -145,6 +147,9 @@ namespace kagome::consensus::babe {
     bool wasSynchronized() const override;
 
    private:
+    bool canWarpSync() const;
+    void warpSync();
+
     /**
      * Warp sync from `peer_id` if `block_number`.
      * @return false if can't warp sync
@@ -204,6 +209,7 @@ namespace kagome::consensus::babe {
 
     application::AppConfiguration::SyncMethod sync_method_;
     std::shared_ptr<application::AppStateManager> app_state_manager_;
+    std::shared_ptr<network::PeerManager> peer_manager_;
     std::shared_ptr<BabeLottery> lottery_;
     std::shared_ptr<BabeConfigRepository> babe_config_repo_;
     std::shared_ptr<authorship::Proposer> proposer_;

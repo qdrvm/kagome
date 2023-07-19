@@ -26,8 +26,8 @@ namespace kagome::storage::face {
      * Reports RAM state size
      * @return size in bytes
      */
-    virtual size_t size() const {
-      throw std::logic_error{"GenericStorage::size not implemented"};
+    virtual std::optional<size_t> byteSizeHint() const {
+      return std::nullopt;
     }
   };
 

@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include <boost/asio.hpp>
 #include <boost/date_time/posix_time/posix_time.hpp>
 
 #include "clock/impl/basic_waitable_timer.hpp"
@@ -21,8 +20,6 @@
 #include "runtime/runtime_api/parachain_host_types.hpp"
 #include "utils/async_sequence.hpp"
 #include "utils/weak_from_shared.hpp"
-
-#define _STRINGIZE(s) #s
 
 OUTCOME_CPP_DEFINE_CATEGORY(kagome::parachain, ApprovalDistribution::Error, e) {
   using E = kagome::parachain::ApprovalDistribution::Error;
@@ -477,7 +474,7 @@ namespace kagome::parachain {
       std::shared_ptr<parachain::Pvf> pvf,
       std::shared_ptr<parachain::Recovery> recovery,
       std::shared_ptr<boost::asio::io_context> this_context)
-      : int_pool_{std::make_shared<ThreadPool>(1ull)},
+      : int_pool_{std::make_shared<ThreadPool>("approval", 1ull)},
         internal_context_{int_pool_->handler()},
         thread_pool_{std::move(thread_pool)},
         thread_pool_context_{thread_pool_->handler()},

@@ -43,7 +43,7 @@ namespace kagome::blockchain {
      * @param block_number of the block header we are looking for
      * @return result containing block hash if it exists, error otherwise
      */
-    virtual outcome::result<primitives::BlockHash> getBlockHash(
+    virtual outcome::result<std::optional<primitives::BlockHash>> getBlockHash(
         primitives::BlockNumber block_number) const = 0;
 
     /**
