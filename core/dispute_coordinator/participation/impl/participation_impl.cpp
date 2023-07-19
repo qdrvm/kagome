@@ -32,7 +32,7 @@ namespace kagome::dispute {
         internal_context_(std::move(internal_context)),
         dispute_coordinator_(std::move(dispute_coordinator)),
         queue_(std::make_unique<QueuesImpl>(
-            block_header_repository_, std::move(hasher), std::move(api))) {
+            block_header_repository_, std::move(hasher), api_)) {
     BOOST_ASSERT(block_header_repository_ != nullptr);
     BOOST_ASSERT(api_ != nullptr);
     BOOST_ASSERT(recovery_ != nullptr);
