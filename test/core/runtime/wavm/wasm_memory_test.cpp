@@ -51,6 +51,7 @@ class WavmMemoryHeapTest : public ::testing::Test {
 
     memory_ = std::make_unique<MemoryImpl>(instance_->getExportedMemory(),
                                            MemoryConfig{kDefaultHeapBase, {}});
+
   }
 
   static const uint32_t memory_size_ = kInitialMemorySize;
@@ -58,7 +59,6 @@ class WavmMemoryHeapTest : public ::testing::Test {
 
   std::unique_ptr<MemoryImpl> memory_;
   std::unique_ptr<IntrinsicModuleInstance> instance_;
-  MemoryAllocator *allocator_;
 };
 
 /**
@@ -186,9 +186,9 @@ TEST_F(WavmMemoryHeapTest, CombineDeallocatedChunks) {
   // A: [ 1 ]                         [ 7 ]
   // D:      [ 2    3    4    5    6 ]
 
-  EXPECT_EQ(allocator_->getDeallocatedChunksNum(), 5);
-  EXPECT_EQ(allocator_->getAllocatedChunkSize(ptr1), size1);
-  EXPECT_EQ(allocator_->getAllocatedChunkSize(ptr7), size7);
+  EXPECT_EQ(memory_->getAllocator().getDeallocatedChunksNum(), 5);
+  EXPECT_EQ(memory_->getAllocator().getAllocatedChunkSize(ptr1), size1);
+  EXPECT_EQ(memory_->getAllocator().getAllocatedChunkSize(ptr7), size7);
 }
 
 /**

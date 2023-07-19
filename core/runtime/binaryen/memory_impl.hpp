@@ -92,6 +92,11 @@ namespace kagome::runtime::binaryen {
       return size_;
     }
 
+    // for testing purposes
+    const MemoryAllocator& getAllocator() const {
+      return *allocator_;
+    }
+
    private:
     RuntimeExternalInterface::InternalMemory *memory_;
     WasmSize size_;

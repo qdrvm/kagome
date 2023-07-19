@@ -110,6 +110,11 @@ namespace kagome::runtime::wavm {
       }
     }
 
+    // for testing purposes
+    const MemoryAllocator& getAllocator() const {
+      return *allocator_;
+    }
+
    private:
     void fill(PtrSize span, uint8_t value) {
       auto native_ptr =

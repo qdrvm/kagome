@@ -54,6 +54,9 @@ namespace kagome::runtime {
   };
 
   struct MemoryConfig {
+    MemoryConfig(WasmSize heap_base, MemoryLimits limits = {})
+        : heap_base{heap_base}, limits{std::move(limits)} {}
+
     WasmSize heap_base;
     MemoryLimits limits;
   };

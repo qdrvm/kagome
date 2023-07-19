@@ -102,6 +102,10 @@ namespace kagome::runtime {
       return 0;
     }
     auto new_size = offset_ + chunk_sz;
+    if (new_size > std::numeric_limits<WasmSize>::max()) {
+      return 0;
+    }
+    auto current_size_ = memory_.getSize();
     resize(new_size);
     auto current_size = memory_.getSize();
     BOOST_ASSERT(current_size >= new_size);

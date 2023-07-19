@@ -71,34 +71,63 @@ class ExecutorTest : public testing::Test {
     ON_CALL(*cache_, getMetadata(_, _))
         .WillByDefault(
             Invoke([](const auto &hash, auto func) { return func(); }));
+    ON_CALL(*memory_, loadN(_, _))
+        .WillByDefault(
+            testing::Throw(std::runtime_error{"unexpected memory access"}));
 
     storage_ = std::make_shared<kagome::storage::trie::TrieStorageMock>();
   }
 
-  void preparePersistentCall(
-      const kagome::primitives::BlockInfo &blockchain_state,
-      const kagome::storage::trie::RootHash &storage_state,
-      int arg1,
-      int arg2,
-      int res) {
-    static Buffer enc_args;
-    enc_args = Buffer{scale::encode(arg1, arg2).value()};
-    const PtrSize RESULT_LOCATION{3, 4};
+  enum class CallType { Persistent, Ephemeral };
 
-    Buffer enc_res{scale::encode(res).value()};
-    EXPECT_CALL(*memory_, loadN(RESULT_LOCATION.ptr, RESULT_LOCATION.size))
-        .WillOnce(Return(enc_res));
-  }
+  void prepareCall(const kagome::primitives::BlockInfo &blockchain_state,
+                   const kagome::storage::trie::RootHash &storage_state,
+                   CallType type,
+                   const Buffer &encoded_args,
+                   int res) {
+    static constexpr PtrSize RESULT_LOCATION{3, 4};
 
-  void prepareEphemeralCall(
-      const kagome::primitives::BlockInfo &blockchain_state,
-      const kagome::storage::trie::RootHash &storage_state,
-      int arg1,
-      int arg2,
-      int res) {
-    static Buffer enc_args;
-    enc_args = Buffer{scale::encode(arg1, arg2).value()};
-    const PtrSize RESULT_LOCATION{3, 4};
+    EXPECT_CALL(*header_repo_, getBlockHeader(blockchain_state.hash))
+        .WillRepeatedly(Return(kagome::primitives::BlockHeader{
+            .number = blockchain_state.number,
+            .state_root = storage_state,
+        }));
+
+    auto module_instance = std::make_shared<ModuleInstanceMock>();
+    EXPECT_CALL(*module_instance, resetEnvironment())
+        .WillRepeatedly(Return(outcome::success()));
+    EXPECT_CALL(*module_instance, resetMemory(_))
+        .WillRepeatedly(Return(outcome::success()));
+    EXPECT_CALL(
+        *module_instance,
+        callExportFunction(std::string_view{"addTwo"}, _))
+        .WillRepeatedly(Return(RESULT_LOCATION));
+    auto memory_provider =
+        std::make_shared<kagome::runtime::MemoryProviderMock>();
+    EXPECT_CALL(*memory_provider, getCurrentMemory())
+        .WillRepeatedly(Return(
+            std::optional<std::reference_wrapper<kagome::runtime::Memory>>(
+                *memory_)));
+
+    auto storage_provider =
+        std::make_shared<kagome::runtime::TrieStorageProviderMock>();
+    if (type == CallType::Persistent) {
+      EXPECT_CALL(*storage_provider, setToPersistentAt(storage_state, _))
+          .WillOnce(Return(outcome::success()));
+    } else {
+      EXPECT_CALL(*storage_provider, setToEphemeralAt(storage_state))
+          .WillOnce(Return(outcome::success()));
+    }
+    auto env = std::make_shared<kagome::runtime::InstanceEnvironment>(
+        memory_provider, storage_provider, nullptr, nullptr);
+    EXPECT_CALL(*module_instance, getEnvironment())
+        .WillRepeatedly(testing::Invoke(
+            [env]() -> const kagome::runtime::InstanceEnvironment & {
+              return *env;
+            }));
+    EXPECT_CALL(*module_repo_, getInstanceAt(blockchain_state, storage_state))
+        .WillRepeatedly(testing::Return(module_instance));
+
     Buffer enc_res{scale::encode(res).value()};
     EXPECT_CALL(*memory_, loadN(RESULT_LOCATION.ptr, RESULT_LOCATION.size))
         .WillOnce(Return(enc_res));
@@ -118,37 +147,53 @@ TEST_F(ExecutorTest, LatestStateSwitchesCorrectly) {
   kagome::primitives::BlockInfo block_info2{43, "block_hash2"_hash256};
   kagome::primitives::BlockInfo block_info3{44, "block_hash3"_hash256};
 
-  preparePersistentCall(block_info1, "state_hash1"_hash256, 2, 3, 5);
+  Buffer enc_args{scale::encode(2, 3).value()};
+  prepareCall(
+      block_info1, "state_hash1"_hash256, CallType::Persistent, enc_args, 5);
   auto ctx =
       executor.getPersistentContextAt(block_info1.hash, std::nullopt).value();
   auto res = executor.decodedCallWithCtx<int>(*ctx, "addTwo", 2, 3).value();
   EXPECT_EQ(res, 5);
 
-  prepareEphemeralCall(block_info1, "state_hash2"_hash256, 7, 10, 17);
-  EXPECT_OUTCOME_TRUE(res2,
-                      executor.callAt<int>(
-                          block_info1.hash, "state_hash2"_hash256, "addTwo", 7, 10));
+  enc_args = scale::encode(7, 10).value();
+  prepareCall(
+      block_info1, "state_hash2"_hash256, CallType::Ephemeral, enc_args, 17);
+  EXPECT_OUTCOME_TRUE(
+      res2,
+      executor.callAt<int>(
+          block_info1.hash, "state_hash2"_hash256, "addTwo", 7, 10));
   ASSERT_EQ(res2, 17);
 
-  preparePersistentCall(block_info1, "state_hash2"_hash256, 0, 0, 0);
+  enc_args = scale::encode(0, 0).value();
+  prepareCall(
+      block_info1, "state_hash2"_hash256, CallType::Persistent, enc_args, 0);
   auto ctx3 =
       executor.getPersistentContextAt(block_info1.hash, std::nullopt).value();
   EXPECT_EQ(executor.decodedCallWithCtx<int>(*ctx, "addTwo", 0, 0).value(), 0);
 
-  prepareEphemeralCall(block_info1, "state_hash3"_hash256, 7, 10, 17);
-  EXPECT_OUTCOME_TRUE(res4,
-                      executor.callAt<int>(
-                          block_info1.hash, "state_hash3"_hash256, "addTwo", 7, 10));
+  enc_args = scale::encode(7, 10).value();
+  prepareCall(
+      block_info1, "state_hash3"_hash256, CallType::Ephemeral, enc_args, 17);
+  EXPECT_OUTCOME_TRUE(
+      res4,
+      executor.callAt<int>(
+          block_info1.hash, "state_hash3"_hash256, "addTwo", 7, 10));
   ASSERT_EQ(res4, 17);
 
-  preparePersistentCall(block_info2, "state_hash4"_hash256, -5, 5, 0);
+  enc_args = scale::encode(-5, 5).value();
+  prepareCall(
+      block_info2, "state_hash4"_hash256, CallType::Persistent, enc_args, 0);
   auto ctx5 =
       executor.getPersistentContextAt(block_info2.hash, std::nullopt).value();
-  EXPECT_EQ(executor.decodedCallWithCtx<int>(*ctx5, "addTwo", -5, 5).value(), 0);
+  EXPECT_EQ(executor.decodedCallWithCtx<int>(*ctx5, "addTwo", -5, 5).value(),
+            0);
 
-  prepareEphemeralCall(block_info2, "state_hash5"_hash256, 7, 10, 17);
-  EXPECT_OUTCOME_TRUE(res6,
-                      executor.callAt<int>(
-                          block_info2.hash, "state_hash5"_hash256, "addTwo", 7, 10));
+  enc_args = scale::encode(7, 10).value();
+  prepareCall(
+      block_info2, "state_hash5"_hash256, CallType::Ephemeral, enc_args, 17);
+  EXPECT_OUTCOME_TRUE(
+      res6,
+      executor.callAt<int>(
+          block_info2.hash, "state_hash5"_hash256, "addTwo", 7, 10));
   ASSERT_EQ(res6, 17);
 }
