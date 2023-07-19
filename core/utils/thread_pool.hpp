@@ -264,4 +264,12 @@ namespace kagome {
   if (!(res##func)) return;                 \
   auto && (out) = std::get<0>(std::move(*(res##func)));
 
+#define REINVOKE_0(ctx, func)                                   \
+  auto res##func = (ctx).reinvoke([wself(weak_from_this())]() { \
+    if (auto self = wself.lock()) {                             \
+      self->func();                                             \
+    }                                                           \
+  });                                                           \
+  if (!(res##func)) return;
+
 #endif  // KAGOME_UTILS_THREAD_POOL_HPP

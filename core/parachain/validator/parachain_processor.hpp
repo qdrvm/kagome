@@ -21,6 +21,8 @@
 #include "application/app_configuration.hpp"
 #include "authority_discovery/query/query.hpp"
 #include "common/visitor.hpp"
+#include "consensus/babe/babe_config_repository.hpp"
+#include "consensus/grandpa/authority_manager.hpp"
 #include "crypto/hasher.hpp"
 #include "network/peer_manager.hpp"
 #include "network/peer_view.hpp"
@@ -49,7 +51,13 @@ namespace kagome::crypto {
   class SessionKeys;
 }  // namespace kagome::crypto
 
+namespace kagome::consensus::babe {
+  class BabeUtil;
+}
+
 namespace kagome::parachain {
+  struct TargetStatistics;
+  struct CommonStatistics;
 
   struct ParachainProcessorImpl
       : std::enable_shared_from_this<ParachainProcessorImpl> {
@@ -94,7 +102,12 @@ namespace kagome::parachain {
         std::shared_ptr<application::AppStateManager> app_state_manager,
         primitives::events::BabeStateSubscriptionEnginePtr
             babe_status_observable,
-        std::shared_ptr<authority_discovery::Query> query_audi);
+        std::shared_ptr<authority_discovery::Query> query_audi,
+        std::shared_ptr<blockchain::BlockTree> block_tree,
+        std::shared_ptr<consensus::grandpa::AuthorityManager> authority_manager,
+        std::shared_ptr<consensus::babe::BabeUtil> babe_util,
+        std::shared_ptr<consensus::babe::BabeConfigRepository>
+            babe_config_repo);
     ~ParachainProcessorImpl() = default;
 
     bool prepare();
@@ -386,6 +399,14 @@ namespace kagome::parachain {
 
     bool isValidatingNode() const;
 
+    void agregateStatistics(int p);
+    void agregateStatistics1(int _p);
+    std::optional<std::reference_wrapper<TargetStatistics>>
+    agregateBlockHeaderData(CommonStatistics &statistics,
+                            const primitives::BlockHeader &header);
+    void agregateBlockBodyData(TargetStatistics &statistics,
+                               const primitives::BlockBody &body);
+
     std::optional<ImportStatementSummary> importStatementToTable(
         ParachainProcessorImpl::RelayParentState &relayParentState,
         const primitives::BlockHash &candidate_hash,
@@ -425,6 +446,10 @@ namespace kagome::parachain {
     primitives::events::BabeStateSubscriptionEnginePtr babe_status_observable_;
     primitives::events::BabeStateEventSubscriberPtr babe_status_observer_;
     std::shared_ptr<authority_discovery::Query> query_audi_;
+    std::shared_ptr<blockchain::BlockTree> block_tree_;
+    std::shared_ptr<consensus::grandpa::AuthorityManager> authority_manager_;
+    std::shared_ptr<consensus::babe::BabeUtil> babe_util_;
+    std::shared_ptr<BabeConfigRepository> babe_config_repo_;
 
     std::shared_ptr<primitives::events::ChainEventSubscriber> chain_sub_;
     std::shared_ptr<ThreadHandler> thread_handler_;
