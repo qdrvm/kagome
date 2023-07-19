@@ -25,12 +25,12 @@ namespace kagome::consensus::babe {
 
     /// Returns the actual babe configuration
     /// @return the actual babe configuration
-    virtual std::optional<
-        std::reference_wrapper<const primitives::BabeConfiguration>>
-    config(const primitives::BlockContext &context,
+    virtual outcome::result<
+        std::shared_ptr<const primitives::BabeConfiguration>>
+    config(const primitives::BlockInfo &parent_info,
            EpochNumber epoch_number) const = 0;
 
-    virtual void readFromState(const primitives::BlockInfo &block) = 0;
+    virtual void warp(const primitives::BlockInfo &block) = 0;
   };
 
 }  // namespace kagome::consensus::babe

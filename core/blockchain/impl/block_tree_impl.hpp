@@ -124,6 +124,8 @@ namespace kagome::blockchain {
     bool hasDirectChain(const primitives::BlockHash &ancestor,
                         const primitives::BlockHash &descendant) const override;
 
+    bool isFinalized(const primitives::BlockInfo &block) const override;
+
     primitives::BlockInfo bestLeaf() const override;
 
     outcome::result<primitives::BlockInfo> getBestContaining(
