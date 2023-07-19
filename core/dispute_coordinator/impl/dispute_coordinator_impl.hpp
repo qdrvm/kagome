@@ -94,7 +94,8 @@ namespace kagome::dispute {
 
     DisputeCoordinatorImpl(
         std::shared_ptr<application::AppStateManager> app_state_manager,
-        clock::SystemClock &clock,
+        clock::SystemClock &system_clock,
+        clock::SteadyClock &steady_clock,
         std::shared_ptr<crypto::SessionKeys> session_keys,
         std::shared_ptr<Storage> storage,
         std::shared_ptr<crypto::Sr25519Provider> sr25519_crypto_provider,
@@ -260,7 +261,8 @@ namespace kagome::dispute {
     bool has_required_runtime(const primitives::BlockInfo &relay_parent);
 
     std::shared_ptr<application::AppStateManager> app_state_manager_;
-    clock::SystemClock &clock_;
+    clock::SystemClock &system_clock_;
+    clock::SteadyClock &steady_clock_;
     std::shared_ptr<crypto::SessionKeys> session_keys_;
     std::shared_ptr<Storage> storage_;
     std::shared_ptr<crypto::Sr25519Provider> sr25519_crypto_provider_;

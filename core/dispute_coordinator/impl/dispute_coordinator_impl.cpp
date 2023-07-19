@@ -35,7 +35,8 @@ namespace kagome::dispute {
 
   DisputeCoordinatorImpl::DisputeCoordinatorImpl(
       std::shared_ptr<application::AppStateManager> app_state_manager,
-      clock::SystemClock &clock,
+      clock::SystemClock &system_clock,
+      clock::SteadyClock &steady_clock,
       std::shared_ptr<crypto::SessionKeys> session_keys,
       std::shared_ptr<Storage> storage,
       std::shared_ptr<crypto::Sr25519Provider> sr25519_crypto_provider,
@@ -55,7 +56,8 @@ namespace kagome::dispute {
       std::shared_ptr<primitives::events::BabeStateSubscriptionEngine>
           babe_status_observable)
       : app_state_manager_(std::move(app_state_manager)),
-        clock_(clock),
+        system_clock_(system_clock),
+        steady_clock_(steady_clock),
         session_keys_(std::move(session_keys)),
         storage_(std::move(storage)),
         sr25519_crypto_provider_(std::move(sr25519_crypto_provider)),
@@ -75,7 +77,8 @@ namespace kagome::dispute {
         babe_status_observable_(std::move(babe_status_observable)),
         int_pool_{std::make_shared<ThreadPool>(1ull)},
         internal_context_{int_pool_->handler()},
-        runtime_info_(std::make_unique<RuntimeInfo>(api_, session_keys_)) {
+        runtime_info_(std::make_unique<RuntimeInfo>(api_, session_keys_)),
+        batches_(std::make_unique<Batches>(steady_clock_, hasher_)) {
     BOOST_ASSERT(app_state_manager_ != nullptr);
     BOOST_ASSERT(session_keys_ != nullptr);
     BOOST_ASSERT(storage_ != nullptr);
@@ -204,7 +207,7 @@ namespace kagome::dispute {
     // db::v1::note_earliest_session( // FIXME Needed or not?
     //     overlay_db, rolling_session_window.earliest_session())?;
 
-    auto now = clock_.nowUint64();
+    auto now = system_clock_.nowUint64();
 
     auto recent_disputes_res = storage_->load_recent_disputes();
     if (recent_disputes_res.has_error()) {
@@ -280,8 +283,8 @@ namespace kagome::dispute {
       }
       auto &candidate_votes = votes_res.value().value();
 
-      auto vote_state =
-          CandidateVoteState::create(candidate_votes, env, clock_.nowUint64());
+      auto vote_state = CandidateVoteState::create(
+          candidate_votes, env, system_clock_.nowUint64());
 
       auto is_included = scraper_->is_candidate_included(candidate_hash);
       auto is_backed = scraper_->is_candidate_backed(candidate_hash);
@@ -927,7 +930,7 @@ namespace kagome::dispute {
       std::vector<Indexed<SignedDisputeStatement>> statements) {
     BOOST_ASSERT(initialized_);
 
-    auto now = clock_.nowUint64();
+    auto now = system_clock_.nowUint64();
 
     if (not rolling_session_window_->contains(session)) {
       // It is not valid to participate in an ancient dispute (spam?) or too new
@@ -1812,7 +1815,7 @@ namespace kagome::dispute {
 
     OutputDisputes output;
 
-    auto now = clock_.nowUint64();
+    auto now = system_clock_.nowUint64();
     for (const auto &p : recent_disputes) {
       const auto &status = p.second;
 
@@ -2325,7 +2328,8 @@ namespace kagome::dispute {
                "Selected disputes for {} (prioritized selection)",
                relay_parent);
 
-      PrioritizedSelection selection(clock_, api_, shared_from_this(), log_);
+      PrioritizedSelection selection(
+          system_clock_, api_, shared_from_this(), log_);
 
       auto disputes = selection.select_disputes(relay_parent);
 
