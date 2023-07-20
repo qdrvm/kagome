@@ -17,6 +17,18 @@
 #include "primitives/event_types.hpp"
 #include "telemetry/service.hpp"
 
+namespace boost::asio {
+  class io_context;
+}  // namespace boost::asio
+
+namespace kagome {
+  class ThreadPool;
+}  // namespace kagome
+
+namespace kagome::application {
+  class AppConfiguration;
+}  // namespace kagome::application
+
 namespace kagome::runtime {
   class OffchainWorkerApi;
   class Core;
@@ -37,13 +49,16 @@ namespace kagome::transaction_pool {
 namespace kagome::consensus::babe {
 
   class BlockAppenderBase;
+  class ConsistencyGuard;
 
   class BlockExecutorImpl
       : public BlockExecutor,
         public std::enable_shared_from_this<BlockExecutorImpl> {
    public:
     BlockExecutorImpl(
+        const application::AppConfiguration &app_config,
         std::shared_ptr<blockchain::BlockTree> block_tree,
+        const ThreadPool &thread_pool,
         std::shared_ptr<runtime::Core> core,
         std::shared_ptr<transaction_pool::TransactionPool> tx_pool,
         std::shared_ptr<crypto::Hasher> hasher,
@@ -60,7 +75,18 @@ namespace kagome::consensus::babe {
         ApplyJustificationCb &&callback) override;
 
    private:
+    void applyBlockExecuted(
+        primitives::Block &&block,
+        const std::optional<primitives::Justification> &justification,
+        ApplyJustificationCb &&callback,
+        const primitives::BlockInfo &block_info,
+        clock::SteadyClock::TimePoint start_time,
+        ConsistencyGuard &consistency_guard,
+        const primitives::BlockInfo &previous_best_block);
+
+    const application::AppConfiguration &app_config_;
     std::shared_ptr<blockchain::BlockTree> block_tree_;
+    std::shared_ptr<boost::asio::io_context> io_context_;
     std::shared_ptr<runtime::Core> core_;
     std::shared_ptr<transaction_pool::TransactionPool> tx_pool_;
     std::shared_ptr<crypto::Hasher> hasher_;
