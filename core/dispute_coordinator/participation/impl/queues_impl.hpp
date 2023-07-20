@@ -81,11 +81,11 @@ namespace kagome::dispute {
       } else if (relay_parent_block_number.has_value()
                  xor other.relay_parent_block_number.has_value()) {
         // Candidates with known relay parents are always with priority
-        return relay_parent_block_number.has_value();
+        return not relay_parent_block_number.has_value();
       } else {
         // Otherwise compare by number
         return relay_parent_block_number.value()
-             < other.relay_parent_block_number.value();
+             > other.relay_parent_block_number.value();
       }
     }
   };
