@@ -1219,6 +1219,14 @@ namespace kagome::blockchain {
     });
   }
 
+  bool BlockTreeImpl::isFinalized(const primitives::BlockInfo &block) const {
+    return block_tree_data_.sharedAccess([&](const BlockTreeData &p) {
+      return block.number <= getLastFinalizedNoLock(p).number
+         and p.header_repo_->getHashByNumber(block.number)
+                 == outcome::success(block.hash);
+    });
+  }
+
   primitives::BlockInfo BlockTreeImpl::bestLeafNoLock(
       const BlockTreeData &p) const {
     auto leaf = p.tree_->getMetadata().best_leaf.lock();

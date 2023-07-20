@@ -7,6 +7,7 @@
 
 #include "blockchain/block_storage.hpp"
 #include "blockchain/block_tree.hpp"
+#include "consensus/babe/babe_config_repository.hpp"
 #include "consensus/grandpa/authority_manager.hpp"
 #include "consensus/grandpa/has_authority_set_change.hpp"
 #include "consensus/grandpa/justification_observer.hpp"
@@ -24,12 +25,15 @@ namespace kagome::network {
       std::shared_ptr<blockchain::BlockStorage> block_storage,
       std::shared_ptr<network::WarpSyncCache> warp_sync_cache,
       std::shared_ptr<consensus::grandpa::AuthorityManager> authority_manager,
+      std::shared_ptr<consensus::babe::BabeConfigRepository>
+          babe_config_repository,
       std::shared_ptr<blockchain::BlockTree> block_tree)
       : hasher_{std::move(hasher)},
         grandpa_{std::move(grandpa)},
         block_storage_{std::move(block_storage)},
         warp_sync_cache_{std::move(warp_sync_cache)},
         authority_manager_{std::move(authority_manager)},
+        babe_config_repository_{std::move(babe_config_repository)},
         block_tree_{std::move(block_tree)},
         db_{db.getSpace(storage::Space::kDefault)} {
     app_state_manager.atLaunch([this] {
@@ -110,6 +114,7 @@ namespace kagome::network {
     warp_sync_cache_->warp(op.block_info);
     authority_manager_->warp(op.block_info, op.header, op.authorities);
     block_tree_->warp(op.block_info);
+    babe_config_repository_->warp(op.block_info);
     db_->remove(storage::kWarpSyncOp).value();
   }
 }  // namespace kagome::network

@@ -127,7 +127,7 @@ class BabeTest : public testing::Test {
 
     babe_config_repo_ = std::make_shared<BabeConfigRepositoryMock>();
     ON_CALL(*babe_config_repo_, config(_, _))
-        .WillByDefault(Return(*babe_config_));
+        .WillByDefault(Return(babe_config_));
     ON_CALL(*babe_config_repo_, epochLength())
         .WillByDefault(Return(babe_config_->epoch_length));
 

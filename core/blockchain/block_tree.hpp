@@ -200,6 +200,13 @@ namespace kagome::blockchain {
         const primitives::BlockHash &ancestor,
         const primitives::BlockHash &descendant) const = 0;
 
+    bool hasDirectChain(const primitives::BlockInfo &ancestor,
+                        const primitives::BlockInfo &descendant) const {
+      return hasDirectChain(ancestor.hash, descendant.hash);
+    }
+
+    virtual bool isFinalized(const primitives::BlockInfo &block) const = 0;
+
     /**
      * Get a best leaf of the tree
      * @return best leaf
