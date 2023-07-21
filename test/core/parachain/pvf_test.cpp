@@ -68,6 +68,10 @@ class PvfTest : public testing::Test {
         .WillByDefault(Return(primitives::BlockHeader{}));
 
     auto ctx_factory = std::make_shared<runtime::RuntimeContextFactoryMock>();
+    auto instance = std::make_shared<runtime::ModuleInstanceMock>();
+    ON_CALL(*ctx_factory, ephemeral(_, _, _))
+        .WillByDefault(Return(
+            outcome::success(runtime::RuntimeContext::create_TEST(instance))));
     auto cache = std::make_shared<runtime::RuntimePropertiesCacheMock>();
 
     auto executor = std::make_shared<runtime::ExecutorMock>(ctx_factory, cache);

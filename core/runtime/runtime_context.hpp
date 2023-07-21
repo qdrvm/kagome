@@ -30,11 +30,18 @@ namespace kagome::runtime {
 
   class RuntimeContext {
    public:
+    // should be created from runtime contex factory
     RuntimeContext() = delete;
     RuntimeContext(const RuntimeContext &) = delete;
     RuntimeContext &operator=(const RuntimeContext &) = delete;
 
     RuntimeContext(RuntimeContext &&) = default;
+
+    // constructor for tests
+    static RuntimeContext create_TEST(
+        std::shared_ptr<ModuleInstance> module_instance) {
+      return RuntimeContext{module_instance};
+    }
 
     struct ContextParams {
       ContextParams() = delete;
