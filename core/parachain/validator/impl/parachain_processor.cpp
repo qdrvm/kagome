@@ -7,6 +7,7 @@
 
 #include <array>
 #include <gsl/span>
+#include <queue>
 #include <unordered_map>
 
 #include <erasure_coding/erasure_coding.h>
@@ -158,20 +159,28 @@ namespace kagome::parachain {
   void ParachainProcessorImpl::agregateBlockBodyData(
       TargetStatistics &statistics, const primitives::BlockBody &body) {
     for (const auto &extrinsic : body) {
-      auto tmp = scale::decode<common::Buffer>(extrinsic.data).value();
-      if (!boost::starts_with(tmp, "\x04\x2d\x00")) {
+      auto &tmp = extrinsic.data;
+
+      /// look for "\x04\x2d\x00"
+      if (tmp[0] != 0x04 || tmp[1] != 0x2d || tmp[2] != 0x00) {
         continue;
       }
 
       auto data = gsl::span(tmp.data(), tmp.size()).subspan(3);
       auto para_inherent =
           scale::decode<network::ParachainInherentData>(data).value();
+      int p = 0; ++p;
     }
   }
 
   std::optional<std::reference_wrapper<TargetStatistics>>
   ParachainProcessorImpl::agregateBlockHeaderData(
-      CommonStatistics &statistics, const primitives::BlockHeader &header) {
+      primitives::AuthorityList &authority_list,
+      CommonStatistics &statistics,
+      const primitives::BlockHeader &header) {
+    auto *ts = new TargetStatistics{};
+    return std::ref(*ts);
+
     const auto res_babe_digests = consensus::babe::getBabeDigests(header);
     if (res_babe_digests.has_error()) {
       SL_ERROR(logger_,
@@ -182,24 +191,26 @@ namespace kagome::parachain {
     }
 
     const auto &[seal, babe_block_header] = res_babe_digests.value();
-    const auto slot_number = babe_block_header.slot_number;
-    auto epoch_number = babe_util_->slotToEpoch(slot_number);
+    // const auto slot_number = babe_block_header.slot_number;
+    // auto epoch_number = babe_util_->slotToEpoch(slot_number);
     const auto authority_index = babe_block_header.authority_index;
 
-    auto block_hash = hasher_->blake2b_256(scale::encode(header).value());
-    primitives::BlockContext context{
-        .block_info = {header.number, block_hash},
-        .header = header,
-    };
+    return std::ref(statistics.target_stat[authority_list[authority_index].id]);
 
-    primitives::BlockInfo block_info{header.number, block_hash};
+    //    auto block_hash = hasher_->blake2b_256(scale::encode(header).value());
+    //    primitives::BlockContext context{
+    //        .block_info = {header.number, block_hash},
+    //        .header = header,
+    //    };
+    //
+    //    primitives::BlockInfo block_info{header.number, block_hash};
 
     //    auto opt_auth_set = authority_manager_->authorities(
     //        block_info, consensus::grandpa::IsBlockFinalized{true});
     //    if (!opt_auth_set) {
     //      SL_ERROR(logger_,
-    //               "Retrieve auth set failed. (block number={}, block
-    //               info={})", header.number, block_info);
+    //               "Retrieve auth set failed. (block number={}, block"
+    //               "info={})", header.number, block_info);
     //      statistics.inc_errors();
     //      return std::nullopt;
     //    }
@@ -213,20 +224,26 @@ namespace kagome::parachain {
     //                IsBlockFinalized finalized) const = 0;
     //
 
-    auto babe_config_opt = babe_config_repo_->config(context, epoch_number);
-    if (!babe_config_opt.has_value()) {
-      SL_ERROR(logger_,
-               "Retrieve auth set failed. (block number={}, block info={})",
-               header.number,
-               block_info);
-      statistics.inc_errors();
-      return std::nullopt;
-    }
-    auto &babe_config = babe_config_opt.value().get();
+    //    D1      D2       N         K
+    //
+    //    2*epoch_len - 1
+    //
+    //    [N, K]
+    //   M <<  N-1
 
-    const auto &authority_id =
-        babe_config.authorities[babe_block_header.authority_index].id;
-    return std::ref(statistics.target_stat[authority_id]);
+    //    auto babe_config_opt = babe_config_repo_->config(context,
+    //    epoch_number); if (!babe_config_opt.has_value()) {
+    //      SL_ERROR(logger_,
+    //               "Retrieve auth set failed. (block number={}, block
+    //               info={})", header.number, block_info);
+    //      statistics.inc_errors();
+    //      return std::nullopt;
+    //    }
+    //    auto &babe_config = babe_config_opt.value().get();
+    //
+    //    const auto &authority_id =
+    //        babe_config.authorities[babe_block_header.authority_index].id;
+    //    return std::ref(statistics.target_stat[authority_id]);
   }
 
   void ParachainProcessorImpl::agregateStatistics(int _p) {
@@ -239,10 +256,58 @@ namespace kagome::parachain {
     });
   }
 
+  std::optional<std::deque<primitives::AuthorityList>>
+  ParachainProcessorImpl::findAuthoroties(const primitives::BlockNumber from) {
+    auto block_number = from;
+    std::deque<primitives::AuthorityList> authorities{};
+
+    do {
+      auto result = block_tree_->getBlockHash(block_number);
+      if (result.has_error() || !result.value()) {
+        SL_ERROR(
+            logger_,
+            "Retrieve block hash by number failed. (Block number={}, error={})",
+            block_number,
+            (result.has_error() ? result.error().message()
+                                : std::string("no error")));
+        return std::nullopt;
+      }
+
+      const auto &block_hash = *result.value();
+      auto result_block_header = block_tree_->getBlockHeader(block_hash);
+      if (result_block_header.has_error()) {
+        SL_WARN(logger_,
+                "Retrieve block header failed. (Block number={}, "
+                "block_hash={}, error={})",
+                block_number,
+                block_hash,
+                result_block_header.error().message());
+        return std::nullopt;
+      }
+
+      const auto &block_header = result_block_header.value();
+      const auto res_epoch_dig =
+          consensus::babe::getNextEpochDigest(block_header);
+      if (res_epoch_dig.has_value()) {
+        authorities.push_front(std::move(res_epoch_dig.value().authorities));
+      }
+
+      --block_number;
+    } while (authorities.size() < 2);
+
+    return authorities;
+  }
+
   void ParachainProcessorImpl::agregateStatistics1(int _p) {
     const primitives::BlockNumber from = 16624637;
     const primitives::BlockNumber to = 16628235;
     CommonStatistics statistics{};
+
+    auto opt_authorities = findAuthoroties(from);
+    if (!opt_authorities) {
+      return;
+    }
+    auto &authorities = *opt_authorities;
 
     for (auto block_number = from; block_number <= to; ++block_number) {
       auto result = block_tree_->getBlockHash(block_number);
@@ -269,9 +334,17 @@ namespace kagome::parachain {
         statistics.inc_no_headers();
         continue;
       }
-
       const auto &block_header = result_block_header.value();
-      auto opt_target_stat = agregateBlockHeaderData(statistics, block_header);
+
+      if (const auto res_epoch_dig =
+              consensus::babe::getNextEpochDigest(block_header);
+          res_epoch_dig.has_value()) {
+        authorities.push_back(std::move(res_epoch_dig.value().authorities));
+        authorities.pop_front();
+      }
+
+      auto opt_target_stat = agregateBlockHeaderData(
+          authorities.front(), statistics, block_header);
       if (!opt_target_stat) {
         continue;
       }

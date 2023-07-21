@@ -401,8 +401,11 @@ namespace kagome::parachain {
 
     void agregateStatistics(int p);
     void agregateStatistics1(int _p);
+    std::optional<std::deque<primitives::AuthorityList>> findAuthoroties(
+        const primitives::BlockNumber from);
     std::optional<std::reference_wrapper<TargetStatistics>>
-    agregateBlockHeaderData(CommonStatistics &statistics,
+    agregateBlockHeaderData(primitives::AuthorityList &authority_list,
+                            CommonStatistics &statistics,
                             const primitives::BlockHeader &header);
     void agregateBlockBodyData(TargetStatistics &statistics,
                                const primitives::BlockBody &body);
