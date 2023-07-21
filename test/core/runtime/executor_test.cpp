@@ -75,6 +75,9 @@ class ExecutorTest : public testing::Test {
             testing::Throw(std::runtime_error{"unexpected memory access"}));
 
     storage_ = std::make_shared<kagome::storage::trie::TrieStorageMock>();
+
+    ctx_factory_ = std::make_shared<kagome::runtime::RuntimeContextFactoryImpl>(
+        module_repo_, header_repo_);
   }
 
   enum class CallType { Persistent, Ephemeral };
@@ -97,6 +100,9 @@ class ExecutorTest : public testing::Test {
         .WillRepeatedly(Return(outcome::success()));
     EXPECT_CALL(*module_instance, resetMemory(_))
         .WillRepeatedly(Return(outcome::success()));
+    static const auto code_hash = "code_hash"_hash256;
+    EXPECT_CALL(*module_instance, getCodeHash())
+        .WillRepeatedly(ReturnRef(code_hash));
     EXPECT_CALL(*module_instance,
                 callExportFunction(std::string_view{"addTwo"}, _))
         .WillRepeatedly(Return(RESULT_LOCATION));
@@ -129,9 +135,6 @@ class ExecutorTest : public testing::Test {
     Buffer enc_res{scale::encode(res).value()};
     EXPECT_CALL(*memory_, loadN(RESULT_LOCATION.ptr, RESULT_LOCATION.size))
         .WillOnce(Return(enc_res));
-
-    ctx_factory_ = std::make_shared<kagome::runtime::RuntimeContextFactoryImpl>(
-        module_repo_, header_repo_);
   }
 
  protected:
