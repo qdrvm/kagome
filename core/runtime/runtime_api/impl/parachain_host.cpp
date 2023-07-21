@@ -6,7 +6,7 @@
 #include "runtime/runtime_api/impl/parachain_host.hpp"
 
 #include "common/blob.hpp"
-#include "runtime/common/executor_impl.hpp"
+#include "runtime/executor.hpp"
 #include "runtime/runtime_api/impl/parachain_host_types_serde.hpp"
 
 namespace kagome::runtime {

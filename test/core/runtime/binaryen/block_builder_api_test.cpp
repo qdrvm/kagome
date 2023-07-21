@@ -65,10 +65,9 @@ TEST_F(BlockBuilderApiTest, ApplyExtrinsic) {
   preparePersistentStorageExpects();
   createBlock("block_hash_43"_hash256, 43);
   auto ctx =
-      executor_->getPersistentContextAt("block_hash_43"_hash256, std::nullopt)
-          .value();
+      ctx_factory_->persistentAt("block_hash_43"_hash256, std::nullopt).value();
   EXPECT_OUTCOME_FALSE_1(
-      builder_->apply_extrinsic(*ctx, Extrinsic{Buffer{1, 2, 3}}));
+      builder_->apply_extrinsic(ctx, Extrinsic{Buffer{1, 2, 3}}));
 }
 
 /**
@@ -90,9 +89,8 @@ TEST_F(BlockBuilderApiTest, InherentExtrinsics) {
   preparePersistentStorageExpects();
   createBlock("block_hash_44"_hash256, 44);
   auto ctx =
-      executor_->getPersistentContextAt("block_hash_44"_hash256, std::nullopt)
-          .value();
-  EXPECT_OUTCOME_FALSE_1(builder_->inherent_extrinsics(*ctx, InherentData{}));
+      ctx_factory_->persistentAt("block_hash_44"_hash256, std::nullopt).value();
+  EXPECT_OUTCOME_FALSE_1(builder_->inherent_extrinsics(ctx, InherentData{}));
 }
 
 /**
@@ -105,7 +103,7 @@ TEST_F(BlockBuilderApiTest, DISABLED_FinalizeBlock) {
   preparePersistentStorageExpects();
   createBlock("block_hash"_hash256, 42);
   auto ctx =
-      executor_->getPersistentContextAt("block_hash"_hash256, std::nullopt)
+      ctx_factory_->persistentAt("block_hash"_hash256, std::nullopt)
           .value();
-  EXPECT_OUTCOME_FALSE_1(builder_->finalize_block(*ctx));
+  EXPECT_OUTCOME_FALSE_1(builder_->finalize_block(ctx));
 }

@@ -7,7 +7,7 @@
 
 #include "application/app_configuration.hpp"
 #include "parachain/pvf/pvf_runtime_cache.hpp"
-#include "runtime/common/executor_impl.hpp"
+#include "runtime/executor.hpp"
 #include "runtime/common/uncompress_code_if_needed.hpp"
 #include "runtime/module.hpp"
 #include "runtime/module_factory.hpp"
@@ -63,6 +63,7 @@ namespace kagome::parachain {
       std::shared_ptr<crypto::Sr25519Provider> sr25519_provider,
       std::shared_ptr<runtime::ParachainHost> parachain_api,
       std::shared_ptr<runtime::Executor> executor,
+      std::shared_ptr<runtime::RuntimeContextFactory> ctx_factory,
       std::shared_ptr<application::AppConfiguration> config)
       : hasher_{std::move(hasher)},
         runtime_properties_cache_{std::move(runtime_properties_cache)},
@@ -70,6 +71,7 @@ namespace kagome::parachain {
         sr25519_provider_{std::move(sr25519_provider)},
         parachain_api_{std::move(parachain_api)},
         executor_{std::move(executor)},
+        ctx_factory_{std::move(ctx_factory)},
         log_{log::createLogger("Pvf")},
         runtime_cache_{std::make_unique<PvfRuntimeCache>(
             module_factory, config->parachainRuntimeInstanceCacheSize())} {}
@@ -198,7 +200,7 @@ namespace kagome::parachain {
             auto &instance) -> outcome::result<ValidationResult> {
           OUTCOME_TRY(
               ctx,
-              runtime::RuntimeContext::ephemeral(
+              ctx_factory_->ephemeral(
                   instance, genesis_header.state_root, executor_params));
           return executor_->decodedCallWithCtx<ValidationResult>(
               ctx, "validate_block", params);

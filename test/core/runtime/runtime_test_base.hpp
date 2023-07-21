@@ -38,7 +38,7 @@
 #include "primitives/block.hpp"
 #include "primitives/block_header.hpp"
 #include "primitives/block_id.hpp"
-#include "runtime/common/executor_impl.hpp"
+#include "runtime/executor.hpp"
 #include "runtime/common/module_repository_impl.hpp"
 #include "runtime/common/runtime_instances_pool.hpp"
 #include "runtime/common/runtime_transaction_error.hpp"
@@ -161,8 +161,10 @@ class RuntimeTestBase : public ::testing::Test {
         std::make_shared<runtime::SingleModuleCache>(),
         wasm_provider_);
 
-    executor_ =
-        std::make_shared<runtime::ExecutorImpl>(module_repo, header_repo_, cache_);
+    ctx_factory_ = std::make_shared<runtime::RuntimeContextFactoryImpl>(
+        module_repo, header_repo_);
+
+    executor_ = std::make_shared<runtime::Executor>(ctx_factory_, cache_);
   }
 
   void preparePersistentStorageExpects() {
@@ -242,6 +244,7 @@ class RuntimeTestBase : public ::testing::Test {
   std::shared_ptr<storage::trie::TrieSerializerMock> serializer_;
   std::shared_ptr<runtime::RuntimePropertiesCacheMock> cache_;
   std::shared_ptr<runtime::Executor> executor_;
+  std::shared_ptr<runtime::RuntimeContextFactoryImpl> ctx_factory_;
   std::shared_ptr<offchain::OffchainPersistentStorageMock> offchain_storage_;
   std::shared_ptr<offchain::OffchainWorkerPoolMock> offchain_worker_pool_;
   std::shared_ptr<crypto::Hasher> hasher_;

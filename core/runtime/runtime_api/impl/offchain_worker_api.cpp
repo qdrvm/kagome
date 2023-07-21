@@ -8,7 +8,7 @@
 #include "application/app_configuration.hpp"
 #include "offchain/impl/runner.hpp"
 #include "offchain/offchain_worker_factory.hpp"
-#include "runtime/common/executor_impl.hpp"
+#include "runtime/executor.hpp"
 
 namespace kagome::runtime {
   constexpr size_t kMaxThreads = 3;

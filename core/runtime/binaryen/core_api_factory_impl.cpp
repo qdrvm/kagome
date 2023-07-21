@@ -9,10 +9,11 @@
 #include "runtime/binaryen/instance_environment_factory.hpp"
 #include "runtime/binaryen/module/module_impl.hpp"
 #include "runtime/common/constant_code_provider.hpp"
-#include "runtime/common/executor_impl.hpp"
+#include "runtime/module_repository.hpp"
+#include "runtime/executor.hpp"
+#include "runtime/common/runtime_properties_cache_impl.hpp"
 #include "runtime/common/trie_storage_provider_impl.hpp"
 #include "runtime/runtime_api/impl/core.hpp"
-#include "runtime/runtime_api/impl/runtime_properties_cache_impl.hpp"
 
 namespace kagome::runtime::binaryen {
 
@@ -64,12 +65,13 @@ namespace kagome::runtime::binaryen {
       std::shared_ptr<const crypto::Hasher> hasher,
       const std::vector<uint8_t> &runtime_code) const {
     auto code_hash = hasher->sha2_256(runtime_code);
-    auto executor = std::make_unique<ExecutorImpl>(
+    auto ctx_factory = std::make_shared<RuntimeContextFactoryImpl>(
         std::make_shared<OneModuleRepository>(
             runtime_code, instance_env_factory_, code_hash),
-        header_repo_,
-        cache_);
-    return std::make_unique<CoreImpl>(std::move(executor), header_repo_);
+        header_repo_);
+    auto executor = std::make_unique<Executor>(ctx_factory, cache_);
+    return std::make_unique<CoreImpl>(
+        std::move(executor), ctx_factory, header_repo_);
   }
 
 }  // namespace kagome::runtime::binaryen

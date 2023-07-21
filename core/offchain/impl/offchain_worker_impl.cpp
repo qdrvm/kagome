@@ -13,7 +13,7 @@
 #include "crypto/hasher.hpp"
 #include "offchain/impl/offchain_local_storage.hpp"
 #include "offchain/offchain_worker_pool.hpp"
-#include "runtime/common/executor_impl.hpp"
+#include "runtime/executor.hpp"
 #include "runtime/runtime_api/impl/offchain_worker_api.hpp"
 #include "storage/database_error.hpp"
 

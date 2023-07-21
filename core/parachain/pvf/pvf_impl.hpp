@@ -25,6 +25,7 @@ namespace kagome::runtime {
   class ModuleInstance;
   class ModuleFactory;
   class Executor;
+  class RuntimeContextFactory;
 }  // namespace kagome::runtime
 
 namespace kagome::parachain {
@@ -68,6 +69,7 @@ namespace kagome::parachain {
             std::shared_ptr<crypto::Sr25519Provider> sr25519_provider,
             std::shared_ptr<runtime::ParachainHost> parachain_api,
             std::shared_ptr<runtime::Executor> executor,
+            std::shared_ptr<runtime::RuntimeContextFactory> ctx_factory,
             std::shared_ptr<application::AppConfiguration> config);
     ~PvfImpl() override;
 
@@ -102,6 +104,7 @@ namespace kagome::parachain {
     std::shared_ptr<crypto::Sr25519Provider> sr25519_provider_;
     std::shared_ptr<runtime::ParachainHost> parachain_api_;
     std::shared_ptr<runtime::Executor> executor_;
+    std::shared_ptr<runtime::RuntimeContextFactory> ctx_factory_;
     log::Logger log_;
 
     std::unique_ptr<class PvfRuntimeCache> runtime_cache_;

@@ -7,8 +7,4 @@ add_subdirectory(common)
 add_subdirectory(binaryen)
 add_subdirectory(wavm)
 
-add_library(executor INTERFACE)
-target_link_libraries(executor INTERFACE Boost::boost blob runtime_context)
-kagome_install(executor)
-
 add_subdirectory(runtime_api/impl)

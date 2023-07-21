@@ -7,6 +7,7 @@
 
 #include "runtime/memory_provider.hpp"
 #include "runtime/trie_storage_provider.hpp"
+#include "common/int_serialization.hpp"
 
 OUTCOME_CPP_DEFINE_CATEGORY(kagome::runtime, ModuleInstance::Error, e) {
   using E = kagome::runtime::ModuleInstance::Error;

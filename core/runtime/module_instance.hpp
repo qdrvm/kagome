@@ -12,9 +12,9 @@
 #include <optional>
 
 #include "common/buffer.hpp"
+#include "common/blob.hpp"
 #include "outcome/outcome.hpp"
 #include "runtime/instance_environment.hpp"
-#include "runtime/module_repository.hpp"
 #include "runtime/ptr_size.hpp"
 
 namespace kagome::runtime {

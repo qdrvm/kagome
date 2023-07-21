@@ -10,7 +10,7 @@
 
 #include <gmock/gmock.h>
 
-#include "runtime/common/executor_impl.hpp"
+#include "runtime/executor.hpp"
 #include "runtime/runtime_api/core.hpp"
 
 namespace kagome::runtime {

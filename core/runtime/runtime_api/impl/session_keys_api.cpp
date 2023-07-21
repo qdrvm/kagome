@@ -5,7 +5,7 @@
 
 #include "runtime/runtime_api/impl/session_keys_api.hpp"
 
-#include "runtime/common/executor_impl.hpp"
+#include "runtime/executor.hpp"
 
 namespace kagome::runtime {
 

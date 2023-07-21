@@ -9,7 +9,18 @@
 #include "common/buffer.hpp"
 #include "outcome/outcome.hpp"
 #include "primitives/common.hpp"
+#include "runtime/module_instance.hpp"
 #include "runtime/runtime_context.hpp"
+#include "runtime/runtime_properties_cache.hpp"
+
+#ifdef __has_builtin
+#if __has_builtin(__builtin_expect)
+#define likely(x) __builtin_expect((x), 1)
+#endif
+#endif
+#ifndef likely
+#define likely(x) (x)
+#endif
 
 namespace kagome::runtime {
 
@@ -17,58 +28,35 @@ namespace kagome::runtime {
    public:
     using Buffer = common::Buffer;
     using BlockHash = primitives::BlockHash;
+
+    explicit Executor(std::shared_ptr<RuntimeContextFactory> ctx_factory,
+                      std::shared_ptr<RuntimePropertiesCache> cache);
+
     virtual ~Executor() = default;
-
-    /**
-     * Call a runtime method in a persistent environment, e. g. the storage
-     * changes, made by this call, will persist in the node's Trie storage
-     * The call will be done on the \param block_info state
-     */
-    virtual outcome::result<std::unique_ptr<RuntimeContext>>
-    getPersistentContextAt(
-        const primitives::BlockHash &block_hash,
-        std::optional<std::shared_ptr<storage::changes_trie::ChangesTracker>>
-            changes_tracker) = 0;
-
-    virtual outcome::result<std::unique_ptr<RuntimeContext>>
-    getEphemeralContextAt(const primitives::BlockHash &block_hash) = 0;
-
-    /**
-     * Call a runtime method in a persistent environment, e. g. the storage
-     * changes, made by this call, will persist in the node's Trie storage
-     * The call will be done on the code of \param block_info state at \param
-     * state_hash state
-     */
-    virtual outcome::result<std::unique_ptr<RuntimeContext>>
-    getEphemeralContextAt(const primitives::BlockHash &block_hash,
-                          const storage::trie::RootHash &state_hash) = 0;
-
-    virtual outcome::result<std::unique_ptr<RuntimeContext>>
-    getEphemeralContextAtGenesis() = 0;
 
     virtual outcome::result<Buffer> callWithCtx(RuntimeContext &ctx,
                                                 std::string_view name,
-                                                const Buffer &encoded_args) = 0;
+                                                const Buffer &encoded_args);
 
     outcome::result<Buffer> callAt(const primitives::BlockHash &block_hash,
                                    std::string_view name,
                                    const Buffer &encoded_args) {
-      OUTCOME_TRY(ctx, getEphemeralContextAt(block_hash));
-      return callWithCtx(*ctx, name, encoded_args);
+      OUTCOME_TRY(ctx, ctx_factory_->ephemeralAt(block_hash));
+      return callWithCtx(ctx, name, encoded_args);
     }
 
     outcome::result<Buffer> callAt(const primitives::BlockHash &block_hash,
                                    const storage::trie::RootHash &state_hash,
                                    std::string_view name,
                                    const Buffer &encoded_args) {
-      OUTCOME_TRY(ctx, getEphemeralContextAt(block_hash, state_hash));
-      return callWithCtx(*ctx, name, encoded_args);
+      OUTCOME_TRY(ctx, ctx_factory_->ephemeralAt(block_hash, state_hash));
+      return callWithCtx(ctx, name, encoded_args);
     }
 
     outcome::result<Buffer> callAtGenesis(std::string_view name,
                                           const Buffer &encoded_args) {
-      OUTCOME_TRY(ctx, getEphemeralContextAtGenesis());
-      return callWithCtx(*ctx, name, encoded_args);
+      OUTCOME_TRY(ctx, ctx_factory_->ephemeralAtGenesis());
+      return callWithCtx(ctx, name, encoded_args);
     }
 
     /**
@@ -79,13 +67,17 @@ namespace kagome::runtime {
      * Changes, made to the Host API state, are reset after the call.
      */
     template <typename Result, typename... Args>
-    outcome::result<Result> decodedCallWithCtx(RuntimeContext &context,
-                                        std::string_view name,
-                                        Args &&...args) {
+    outcome::result<Result> decodedCallWithCtx(RuntimeContext &ctx,
+                                               std::string_view name,
+                                               Args &&...args) {
       OUTCOME_TRY(encoded_args, encodeArgs(std::forward<Args>(args)...));
-      OUTCOME_TRY(result_buf, callWithCtx(context, name, encoded_args));
-
-      return decodeResult<Result>(std::move(result_buf));
+      return cachedCall<Result>(
+          ctx.module_instance->getCodeHash(),
+          name,
+          [this, &ctx, name, &encoded_args]() -> outcome::result<Result> {
+            OUTCOME_TRY(result_buf, callWithCtx(ctx, name, encoded_args));
+            return decodeResult<Result>(std::move(result_buf));
+          });
     }
 
     template <typename Result, typename... Args>
@@ -93,9 +85,14 @@ namespace kagome::runtime {
                                    std::string_view name,
                                    Args &&...args) {
       OUTCOME_TRY(encoded_args, encodeArgs(std::forward<Args>(args)...));
-      OUTCOME_TRY(result_buf, callAt(block_hash, name, encoded_args));
-
-      return decodeResult<Result>(std::move(result_buf));
+      OUTCOME_TRY(ctx, ctx_factory_->ephemeralAt(block_hash));
+      return cachedCall<Result>(
+          ctx.module_instance->getCodeHash(),
+          name,
+          [this, &ctx, name, &encoded_args]() -> outcome::result<Result> {
+            OUTCOME_TRY(result_buf, callWithCtx(ctx, name, encoded_args));
+            return decodeResult<Result>(std::move(result_buf));
+          });
     }
 
     template <typename Result, typename... Args>
@@ -104,18 +101,28 @@ namespace kagome::runtime {
                                    std::string_view name,
                                    Args &&...args) {
       OUTCOME_TRY(encoded_args, encodeArgs(std::forward<Args>(args)...));
-      OUTCOME_TRY(result_buf, callAt(block_hash, name, encoded_args));
-
-      return decodeResult<Result>(std::move(result_buf));
+      OUTCOME_TRY(ctx, ctx_factory_->ephemeralAt(block_hash, state_hash));
+      return cachedCall<Result>(
+          ctx.module_instance->getCodeHash(),
+          name,
+          [this, &ctx, name, &encoded_args]() -> outcome::result<Result> {
+            OUTCOME_TRY(result_buf, callWithCtx(ctx, name, encoded_args));
+            return decodeResult<Result>(std::move(result_buf));
+          });
     }
 
     template <typename Result, typename... Args>
     outcome::result<Result> callAtGenesis(std::string_view name,
                                           Args &&...args) {
       OUTCOME_TRY(encoded_args, encodeArgs(std::forward<Args>(args)...));
-      OUTCOME_TRY(result_buf, callAtGenesis(name, encoded_args));
-
-      return decodeResult<Result>(std::move(result_buf));
+      OUTCOME_TRY(ctx, ctx_factory_->ephemeralAtGenesis());
+      return cachedCall<Result>(
+          ctx.module_instance->getCodeHash(),
+          name,
+          [this, &ctx, name, &encoded_args]() -> outcome::result<Result> {
+            OUTCOME_TRY(result_buf, callWithCtx(ctx, name, encoded_args));
+            return decodeResult<Result>(std::move(result_buf));
+          });
     }
 
    private:
@@ -155,8 +162,31 @@ namespace kagome::runtime {
         }
       }
     }
+
+   private:
+    template <typename Res, typename F>
+    outcome::result<Res> cachedCall(const common::Hash256 &code_hash,
+                                    std::string_view name,
+                                    const F &call) {
+      if constexpr (std::is_same_v<Res, primitives::Version>) {
+        if (likely(name == "Core_version")) {
+          return cache_->getVersion(code_hash, call);
+        }
+      }
+      if constexpr (std::is_same_v<Res, primitives::OpaqueMetadata>) {
+        if (likely(name == "Metadata_metadata")) {
+          return cache_->getMetadata(code_hash, call);
+        }
+      }
+      return call();
+    }
+
+    std::shared_ptr<RuntimeContextFactory> ctx_factory_;
+    std::shared_ptr<RuntimePropertiesCache> cache_;
   };
 
 }  // namespace kagome::runtime
+
+#undef likely
 
 #endif  // KAGOME_CORE_RUNTIME_RAW_EXECUTOR_HPP

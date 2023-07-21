@@ -67,7 +67,10 @@ class PvfTest : public testing::Test {
     ON_CALL(*block_header_repository, getBlockHeader(_))
         .WillByDefault(Return(primitives::BlockHeader{}));
 
-    auto executor = std::make_shared<runtime::ExecutorMock>();
+    auto ctx_factory = std::make_shared<runtime::RuntimeContextFactoryMock>();
+    auto cache = std::make_shared<runtime::RuntimePropertiesCacheMock>();
+
+    auto executor = std::make_shared<runtime::ExecutorMock>(ctx_factory, cache);
     kagome::parachain::ValidationResult res;
     ON_CALL(*executor, callWithCtx(_, "validate_block", _))
         .WillByDefault(Return(Buffer{scale::encode(res).value()}));
@@ -84,6 +87,7 @@ class PvfTest : public testing::Test {
                                      sr25519_provider,
                                      parachain_api,
                                      executor,
+                                     ctx_factory,
                                      config);
   }
 

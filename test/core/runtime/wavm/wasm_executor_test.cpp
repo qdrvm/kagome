@@ -24,7 +24,7 @@
 #include "mock/core/runtime/runtime_properties_cache_mock.hpp"
 #include "mock/core/runtime/runtime_upgrade_tracker_mock.hpp"
 #include "mock/core/storage/trie_pruner/trie_pruner_mock.hpp"
-#include "runtime/common/executor_impl.hpp"
+#include "runtime/executor.hpp"
 #include "runtime/common/module_repository_impl.hpp"
 #include "runtime/common/runtime_instances_pool.hpp"
 #include "runtime/common/trie_storage_provider_impl.hpp"
@@ -66,7 +66,6 @@ using kagome::crypto::Sr25519ProviderImpl;
 using kagome::crypto::Sr25519Suite;
 using kagome::primitives::BlockHash;
 using kagome::runtime::Executor;
-using kagome::runtime::ExecutorImpl;
 using kagome::runtime::RuntimeCodeProvider;
 using kagome::runtime::RuntimeInstancesPool;
 using kagome::runtime::RuntimePropertiesCacheMock;
@@ -218,7 +217,10 @@ class WasmExecutorTest : public ::testing::Test {
         .WillByDefault(
             Invoke([](const auto &hash, auto func) { return func(); }));
 
-    executor_ = std::make_shared<ExecutorImpl>(module_repo, header_repo_, cache_);
+    auto ctx_factory =
+        std::make_shared<kagome::runtime::RuntimeContextFactoryImpl>(
+            module_repo, header_repo_);
+    executor_ = std::make_shared<Executor>(ctx_factory, cache_);
   }
 
  protected:
@@ -236,7 +238,7 @@ class WasmExecutorTest : public ::testing::Test {
  * @when call is invoked with wasm code with addTwo function
  * @then proper result is returned
  */
-TEST_F(WasmExecutorTest, DISABLED_ExecuteCode) {
+TEST_F(WasmExecutorTest, ExecuteCode) {
   EXPECT_CALL(*header_repo_, getHashByNumber(0))
       .WillOnce(Return("blockhash0"_hash256));
   EXPECT_CALL(*header_repo_, getBlockHeader("blockhash0"_hash256))

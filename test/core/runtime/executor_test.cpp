@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "runtime/common/executor_impl.hpp"
+#include "runtime/executor.hpp"
 
 #include <gtest/gtest.h>
 #include "filesystem/common.hpp"
@@ -14,7 +14,7 @@
 #include "mock/core/runtime/memory_provider_mock.hpp"
 #include "mock/core/runtime/module_instance_mock.hpp"
 #include "mock/core/runtime/module_repository_mock.hpp"
-#include "mock/core/runtime/runtime_environment_factory_mock.hpp"
+#include "mock/core/runtime/runtime_context_factory_mock.hpp"
 #include "mock/core/runtime/runtime_properties_cache_mock.hpp"
 #include "mock/core/runtime/trie_storage_provider_mock.hpp"
 #include "mock/core/storage/trie/trie_batches_mock.hpp"
@@ -30,7 +30,6 @@ using kagome::common::Buffer;
 using kagome::host_api::HostApiMock;
 using kagome::runtime::BasicCodeProvider;
 using kagome::runtime::Executor;
-using kagome::runtime::ExecutorImpl;
 using kagome::runtime::MemoryMock;
 using kagome::runtime::MemoryProviderMock;
 using kagome::runtime::ModuleInstanceMock;
@@ -98,9 +97,8 @@ class ExecutorTest : public testing::Test {
         .WillRepeatedly(Return(outcome::success()));
     EXPECT_CALL(*module_instance, resetMemory(_))
         .WillRepeatedly(Return(outcome::success()));
-    EXPECT_CALL(
-        *module_instance,
-        callExportFunction(std::string_view{"addTwo"}, _))
+    EXPECT_CALL(*module_instance,
+                callExportFunction(std::string_view{"addTwo"}, _))
         .WillRepeatedly(Return(RESULT_LOCATION));
     auto memory_provider =
         std::make_shared<kagome::runtime::MemoryProviderMock>();
@@ -131,10 +129,14 @@ class ExecutorTest : public testing::Test {
     Buffer enc_res{scale::encode(res).value()};
     EXPECT_CALL(*memory_, loadN(RESULT_LOCATION.ptr, RESULT_LOCATION.size))
         .WillOnce(Return(enc_res));
+
+    ctx_factory_ = std::make_shared<kagome::runtime::RuntimeContextFactoryImpl>(
+        module_repo_, header_repo_);
   }
 
  protected:
   std::unique_ptr<MemoryMock> memory_;
+  std::shared_ptr<kagome::runtime::RuntimeContextFactoryImpl> ctx_factory_;
   std::shared_ptr<kagome::runtime::RuntimePropertiesCacheMock> cache_;
   std::shared_ptr<BlockHeaderRepositoryMock> header_repo_;
   std::shared_ptr<kagome::storage::trie::TrieStorageMock> storage_;
@@ -142,7 +144,7 @@ class ExecutorTest : public testing::Test {
 };
 
 TEST_F(ExecutorTest, LatestStateSwitchesCorrectly) {
-  ExecutorImpl executor{module_repo_, header_repo_, cache_};
+  Executor executor{ctx_factory_, cache_};
   kagome::primitives::BlockInfo block_info1{42, "block_hash1"_hash256};
   kagome::primitives::BlockInfo block_info2{43, "block_hash2"_hash256};
   kagome::primitives::BlockInfo block_info3{44, "block_hash3"_hash256};
@@ -151,8 +153,8 @@ TEST_F(ExecutorTest, LatestStateSwitchesCorrectly) {
   prepareCall(
       block_info1, "state_hash1"_hash256, CallType::Persistent, enc_args, 5);
   auto ctx =
-      executor.getPersistentContextAt(block_info1.hash, std::nullopt).value();
-  auto res = executor.decodedCallWithCtx<int>(*ctx, "addTwo", 2, 3).value();
+      ctx_factory_->persistentAt(block_info1.hash, std::nullopt).value();
+  auto res = executor.decodedCallWithCtx<int>(ctx, "addTwo", 2, 3).value();
   EXPECT_EQ(res, 5);
 
   enc_args = scale::encode(7, 10).value();
@@ -168,8 +170,8 @@ TEST_F(ExecutorTest, LatestStateSwitchesCorrectly) {
   prepareCall(
       block_info1, "state_hash2"_hash256, CallType::Persistent, enc_args, 0);
   auto ctx3 =
-      executor.getPersistentContextAt(block_info1.hash, std::nullopt).value();
-  EXPECT_EQ(executor.decodedCallWithCtx<int>(*ctx, "addTwo", 0, 0).value(), 0);
+      ctx_factory_->persistentAt(block_info1.hash, std::nullopt).value();
+  EXPECT_EQ(executor.decodedCallWithCtx<int>(ctx, "addTwo", 0, 0).value(), 0);
 
   enc_args = scale::encode(7, 10).value();
   prepareCall(
@@ -184,8 +186,8 @@ TEST_F(ExecutorTest, LatestStateSwitchesCorrectly) {
   prepareCall(
       block_info2, "state_hash4"_hash256, CallType::Persistent, enc_args, 0);
   auto ctx5 =
-      executor.getPersistentContextAt(block_info2.hash, std::nullopt).value();
-  EXPECT_EQ(executor.decodedCallWithCtx<int>(*ctx5, "addTwo", -5, 5).value(),
+      ctx_factory_->persistentAt(block_info2.hash, std::nullopt).value();
+  EXPECT_EQ(executor.decodedCallWithCtx<int>(ctx5, "addTwo", -5, 5).value(),
             0);
 
   enc_args = scale::encode(7, 10).value();

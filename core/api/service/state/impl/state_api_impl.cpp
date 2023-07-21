@@ -65,8 +65,7 @@ namespace kagome::api {
       const std::optional<primitives::BlockHash> &opt_at) const {
     auto at =
         opt_at.has_value() ? opt_at.value() : block_tree_->bestLeaf().hash;
-    OUTCOME_TRY(ctx, executor_->getEphemeralContextAt(at));
-    return executor_->callWithCtx(*ctx, method, data);
+    return executor_->callAt(at, method, data);
   }
 
   outcome::result<std::vector<common::Buffer>> StateApiImpl::getKeysPaged(

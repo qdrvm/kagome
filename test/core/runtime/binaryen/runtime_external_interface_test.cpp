@@ -17,7 +17,7 @@
 #include "mock/core/runtime/memory_mock.hpp"
 #include "mock/core/runtime/memory_provider_mock.hpp"
 #include "mock/core/runtime/module_repository_mock.hpp"
-#include "mock/core/runtime/runtime_environment_factory_mock.hpp"
+#include "mock/core/runtime/runtime_context_factory_mock.hpp"
 #include "mock/core/runtime/trie_storage_provider_mock.hpp"
 #include "runtime/common/constant_code_provider.hpp"
 #include "runtime/common/memory_allocator.hpp"

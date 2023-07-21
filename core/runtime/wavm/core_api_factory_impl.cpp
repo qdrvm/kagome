@@ -6,11 +6,11 @@
 #include "runtime/wavm/core_api_factory_impl.hpp"
 
 #include "runtime/common/constant_code_provider.hpp"
-#include "runtime/common/executor_impl.hpp"
+#include "runtime/executor.hpp"
+#include "runtime/common/runtime_properties_cache_impl.hpp"
 #include "runtime/common/trie_storage_provider_impl.hpp"
 #include "runtime/module_repository.hpp"
 #include "runtime/runtime_api/impl/core.hpp"
-#include "runtime/runtime_api/impl/runtime_properties_cache_impl.hpp"
 #include "runtime/runtime_context.hpp"
 #include "runtime/wavm/compartment_wrapper.hpp"
 #include "runtime/wavm/instance_environment_factory.hpp"
@@ -105,7 +105,7 @@ namespace kagome::runtime::wavm {
       const std::vector<uint8_t> &runtime_code) const {
     auto code_hash = hasher->sha2_256(runtime_code);
 
-    auto executor = std::make_unique<runtime::ExecutorImpl>(
+    auto ctx_factory = std::make_shared<runtime::RuntimeContextFactoryImpl>(
         std::make_shared<OneModuleRepository>(
             compartment_,
             module_params_,
@@ -117,9 +117,10 @@ namespace kagome::runtime::wavm {
                     runtime_code.size())},
             code_hash,
             last_compiled_module_),
-        block_header_repo_,
-        cache_);
-    return std::make_unique<CoreImpl>(std::move(executor), block_header_repo_);
+        block_header_repo_);
+    auto executor = std::make_unique<runtime::Executor>(ctx_factory, cache_);
+    return std::make_unique<CoreImpl>(
+        std::move(executor), ctx_factory, block_header_repo_);
   }
 
 }  // namespace kagome::runtime::wavm

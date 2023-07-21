@@ -10,33 +10,20 @@
 
 #include <gmock/gmock.h>
 
+#include "mock/core/runtime/runtime_context_factory_mock.hpp"
+#include "mock/core/runtime/runtime_properties_cache_mock.hpp"
+
 namespace kagome::runtime {
 
   class ExecutorMock : public Executor {
    public:
-    MOCK_METHOD(
-        outcome::result<std::unique_ptr<RuntimeContext>>,
-        getPersistentContextAt,
-        (const primitives::BlockHash &block_hash,
-         std::optional<std::shared_ptr<storage::changes_trie::ChangesTracker>>
-             changes_tracker),
-        (override));
+    ExecutorMock()
+        : Executor(std::make_shared<RuntimeContextFactoryMock>(),
+                   std::make_shared<RuntimePropertiesCacheMock>()) {}
 
-    MOCK_METHOD(outcome::result<std::unique_ptr<RuntimeContext>>,
-                getEphemeralContextAt,
-                (const primitives::BlockHash &block_hash),
-                (override));
-
-    MOCK_METHOD(outcome::result<std::unique_ptr<RuntimeContext>>,
-                getEphemeralContextAt,
-                (const primitives::BlockHash &block_hash,
-                 const storage::trie::RootHash &state_hash),
-                (override));
-
-    MOCK_METHOD(outcome::result<std::unique_ptr<RuntimeContext>>,
-                getEphemeralContextAtGenesis,
-                (),
-                (override));
+    ExecutorMock(std::shared_ptr<RuntimeContextFactoryMock> ctx_factory,
+                 std::shared_ptr<RuntimePropertiesCacheMock> cache)
+        : Executor(ctx_factory, cache) {}
 
     MOCK_METHOD(outcome::result<Buffer>,
                 callWithCtx,
