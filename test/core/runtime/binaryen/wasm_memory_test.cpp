@@ -45,8 +45,9 @@ class BinaryenMemoryHeapTest : public ::testing::Test {
     rei_.reset();
   }
 
-  static const uint32_t memory_size_ = kInitialMemorySize;
-  static const uint32_t memory_page_limit_ = 512_MB / runtime::kMemoryPageSize;
+  static constexpr uint32_t memory_size_ = kInitialMemorySize;
+  static constexpr uint32_t memory_page_limit_ =
+      512_MB / runtime::kMemoryPageSize;
 
   std::unique_ptr<runtime::binaryen::RuntimeExternalInterface> rei_;
   std::unique_ptr<MemoryImpl> memory_;
