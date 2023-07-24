@@ -19,13 +19,10 @@
 #include "mock/core/crypto/hasher_mock.hpp"
 #include "mock/core/network/protocols/sync_protocol_mock.hpp"
 #include "mock/core/network/router_mock.hpp"
-#include "mock/core/runtime/core_mock.hpp"
-#include "mock/core/runtime/module_factory_mock.hpp"
 #include "mock/core/storage/persistent_map_mock.hpp"
 #include "mock/core/storage/spaced_storage_mock.hpp"
-#include "mock/core/storage/trie_pruner/trie_pruner_mock.hpp"
-#include "mock/core/storage/trie/serialization/trie_serializer_mock.hpp"
 #include "mock/core/storage/trie/trie_storage_mock.hpp"
+#include "mock/core/storage/trie_pruner/trie_pruner_mock.hpp"
 #include "network/impl/synchronizer_impl.hpp"
 #include "primitives/common.hpp"
 #include "testutil/literals.hpp"
@@ -89,14 +86,12 @@ class SynchronizerTest
                                                     block_storage,
                                                     block_appender,
                                                     block_executor,
-                                                    serializer,
+                                                    nullptr,
                                                     storage,
                                                     state_pruner,
                                                     router,
                                                     scheduler,
                                                     hasher,
-                                                    module_factory,
-                                                    core_api,
                                                     chain_sub_engine,
                                                     grandpa_environment);
   }
@@ -114,8 +109,6 @@ class SynchronizerTest
       std::make_shared<BlockExecutorMock>();
   std::shared_ptr<trie::TrieStorageMock> storage =
       std::make_shared<trie::TrieStorageMock>();
-  std::shared_ptr<trie::TrieSerializerMock> serializer =
-      std::make_shared<trie::TrieSerializerMock>();
   std::shared_ptr<network::SyncProtocolMock> sync_protocol =
       std::make_shared<network::SyncProtocolMock>();
   std::shared_ptr<network::RouterMock> router =
@@ -124,10 +117,6 @@ class SynchronizerTest
       std::make_shared<libp2p::basic::SchedulerMock>();
   std::shared_ptr<crypto::HasherMock> hasher =
       std::make_shared<crypto::HasherMock>();
-  std::shared_ptr<runtime::ModuleFactoryMock> module_factory =
-      std::make_shared<runtime::ModuleFactoryMock>();
-  std::shared_ptr<runtime::CoreMock> core_api =
-      std::make_shared<runtime::CoreMock>();
   primitives::events::ChainSubscriptionEnginePtr chain_sub_engine =
       std::make_shared<primitives::events::ChainSubscriptionEngine>();
   std::shared_ptr<BufferStorageMock> buffer_storage =

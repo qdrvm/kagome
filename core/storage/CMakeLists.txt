@@ -10,6 +10,7 @@ add_library(storage
     database_error.cpp
     changes_trie/impl/storage_changes_tracker_impl.cpp
     in_memory/in_memory_storage.cpp
+    trie/compact_decode.cpp
     trie/impl/trie_batch_base.cpp
     trie/impl/ephemeral_trie_batch_impl.cpp
     trie/impl/trie_storage_impl.cpp

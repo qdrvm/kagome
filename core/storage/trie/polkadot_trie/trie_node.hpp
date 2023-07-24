@@ -90,7 +90,7 @@ namespace kagome::storage::trie {
       if (size == common::Hash256::size()) {
         return MerkleValue{common::Hash256::fromSpan(merkle_value).value(),
                            size};
-      } else if (size < common::Hash256::size() && size > 0) {
+      } else if (size < common::Hash256::size()) {
         common::Hash256 hash;
         std::copy_n(merkle_value.begin(), size, hash.begin());
         return MerkleValue{hash, size};
@@ -114,6 +114,10 @@ namespace kagome::storage::trie {
 
     common::BufferView asBuffer() const {
       return common::BufferView{value.begin(), value.begin() + size};
+    }
+
+    bool empty() const {
+      return size == 0;
     }
 
    private:

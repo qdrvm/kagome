@@ -12,15 +12,10 @@
 #include "network/types/state_request.hpp"
 #include "network/types/state_response.hpp"
 #include "primitives/block_header.hpp"
-#include "storage/trie/polkadot_trie/polkadot_trie_impl.hpp"
-
-namespace kagome::runtime {
-  class Core;
-  class ModuleFactory;
-}  // namespace kagome::runtime
+#include "storage/trie/polkadot_trie/trie_node.hpp"
 
 namespace kagome::storage::trie {
-  class TrieSerializer;
+  class TrieStorageBackend;
 }  // namespace kagome::storage::trie
 
 namespace kagome::storage::trie_pruner {
@@ -33,24 +28,35 @@ namespace kagome::primitives {
 
 namespace kagome::network {
   /**
+   * Recursive coroutine to fetch missing trie nodes with "/state/2" protocol.
+   *
    * https://github.com/paritytech/substrate/blob/master/client/network/sync/src/state.rs
    */
   class StateSyncRequestFlow {
-    using RootHash = storage::trie::RootHash;
-    struct Root {
-      std::shared_ptr<storage::trie::PolkadotTrie> trie =
-          storage::trie::PolkadotTrieImpl::createEmpty();
-      std::vector<common::Buffer> children;
-    };
-
    public:
     enum class Error {
       EMPTY_RESPONSE = 1,
       HASH_MISMATCH,
     };
 
+    using Child = boost::variant<uint8_t, bool>;
+
+    struct Item {
+      common::Hash256 hash;
+      common::Buffer encoded;
+      std::shared_ptr<storage::trie::TrieNode> node;
+      std::optional<uint8_t> branch;
+      Child child;
+    };
+
+    struct Level {
+      common::Hash256 root;
+      std::vector<Item> stack;
+    };
+
     StateSyncRequestFlow(
         std::shared_ptr<storage::trie_pruner::TriePruner> state_pruner,
+        std::shared_ptr<storage::trie::TrieStorageBackend> db,
         const primitives::BlockInfo &block_info,
         const primitives::BlockHeader &block);
 
@@ -64,20 +70,20 @@ namespace kagome::network {
 
     outcome::result<void> onResponse(const StateResponse &res);
 
-    outcome::result<void> commit(
-        const runtime::ModuleFactory &module_factory,
-        runtime::Core &core_api,
-        storage::trie::TrieSerializer &trie_serializer);
+    outcome::result<void> commit();
 
    private:
+    bool isKnown(const common::Hash256 &hash);
+
     std::shared_ptr<storage::trie_pruner::TriePruner> state_pruner_;
+    std::shared_ptr<storage::trie::TrieStorageBackend> db_;
 
     primitives::BlockInfo block_info_;
     primitives::BlockHeader block_;
 
-    std::vector<common::Buffer> last_key_;
-    std::unordered_map<std::optional<RootHash>, Root> roots_;
-    std::unordered_set<std::optional<RootHash>> complete_roots_;
+    std::vector<Level> levels_;
+    std::unordered_set<common::Hash256> known_;
+    std::vector<common::Hash256> child_roots_;
   };
 }  // namespace kagome::network
 

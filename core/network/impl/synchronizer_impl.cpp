@@ -81,14 +81,12 @@ namespace kagome::network {
       std::shared_ptr<blockchain::BlockStorage> block_storage,
       std::shared_ptr<consensus::babe::BlockHeaderAppender> block_appender,
       std::shared_ptr<consensus::babe::BlockExecutor> block_executor,
-      std::shared_ptr<storage::trie::TrieSerializer> serializer,
+      std::shared_ptr<storage::trie::TrieStorageBackend> trie_db,
       std::shared_ptr<storage::trie::TrieStorage> storage,
       std::shared_ptr<storage::trie_pruner::TriePruner> trie_pruner,
       std::shared_ptr<network::Router> router,
       std::shared_ptr<libp2p::basic::Scheduler> scheduler,
       std::shared_ptr<crypto::Hasher> hasher,
-      std::shared_ptr<runtime::ModuleFactory> module_factory,
-      std::shared_ptr<runtime::Core> core_api,
       primitives::events::ChainSubscriptionEnginePtr chain_sub_engine,
       std::shared_ptr<consensus::grandpa::Environment> grandpa_environment)
       : app_state_manager_(std::move(app_state_manager)),
@@ -96,27 +94,22 @@ namespace kagome::network {
         block_storage_{std::move(block_storage)},
         block_appender_(std::move(block_appender)),
         block_executor_(std::move(block_executor)),
-        serializer_(std::move(serializer)),
+        trie_db_(std::move(trie_db)),
         storage_(std::move(storage)),
         trie_pruner_(std::move(trie_pruner)),
         router_(std::move(router)),
         scheduler_(std::move(scheduler)),
         hasher_(std::move(hasher)),
-        module_factory_(std::move(module_factory)),
-        core_api_(std::move(core_api)),
         grandpa_environment_{std::move(grandpa_environment)},
         chain_sub_engine_(std::move(chain_sub_engine)) {
     BOOST_ASSERT(app_state_manager_);
     BOOST_ASSERT(block_tree_);
     BOOST_ASSERT(block_executor_);
-    BOOST_ASSERT(serializer_);
     BOOST_ASSERT(storage_);
     BOOST_ASSERT(trie_pruner_);
     BOOST_ASSERT(router_);
     BOOST_ASSERT(scheduler_);
     BOOST_ASSERT(hasher_);
-    BOOST_ASSERT(module_factory_);
-    BOOST_ASSERT(core_api_);
     BOOST_ASSERT(grandpa_environment_);
     BOOST_ASSERT(chain_sub_engine_);
 
@@ -984,7 +977,7 @@ namespace kagome::network {
           log_, "Error retrieving the first block hash: {}", hash_res.error());
       return;
     }
-    auto& hash_opt = hash_res.value();
+    auto &hash_opt = hash_res.value();
     // BabeConfigRepositoryImpl first block slot
     if (not hash_opt or not block_tree_->getBlockHeader(hash_opt.value())) {
       auto cb2 = [=, cb{std::move(cb)}, weak{weak_from_this()}](
@@ -1116,13 +1109,12 @@ namespace kagome::network {
       return;
     }
     if (not state_sync_flow_ or state_sync_flow_->blockInfo() != block) {
-      state_sync_flow_.emplace(trie_pruner_, block, header);
+      state_sync_flow_.emplace(trie_pruner_, trie_db_, block, header);
     }
     state_sync_.emplace(StateSync{
         peer_id,
         std::move(handler),
     });
-    entries_ = 0;
     SL_INFO(log_, "Sync of state for block {} has started", block);
     syncState();
   }
@@ -1163,14 +1155,11 @@ namespace kagome::network {
       outcome::result<StateResponse> &&_res) {
     OUTCOME_TRY(res, _res);
     OUTCOME_TRY(state_sync_flow_->onResponse(res));
-    entries_ += res.entries[0].entries.size();
     if (not state_sync_flow_->complete()) {
-      SL_TRACE(log_, "State syncing continues. {} entries loaded", entries_);
       syncState();
       return outcome::success();
     }
-    OUTCOME_TRY(
-        state_sync_flow_->commit(*module_factory_, *core_api_, *serializer_));
+    OUTCOME_TRY(state_sync_flow_->commit());
     auto block = state_sync_flow_->blockInfo();
     state_sync_flow_.reset();
     SL_INFO(log_, "State syncing block {} has finished.", block);
