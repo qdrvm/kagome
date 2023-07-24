@@ -47,7 +47,9 @@ namespace kagome::network {
                                               header.state_root));
       OUTCOME_TRY(
           ctx,
-          ctx_factory_->fromBatch(instance, std::shared_ptr{std::move(batch)}));
+          ctx_factory_->fromBatch(
+              instance,
+              std::shared_ptr<storage::trie::TrieBatch>{std::move(batch)}));
       OUTCOME_TRY(executor_->callWithCtx(ctx, call->method, call->args));
     } else {
       auto &read = boost::get<LightProtocolRequest::Read>(req.op);
