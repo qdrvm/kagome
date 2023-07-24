@@ -67,6 +67,7 @@ namespace kagome::parachain {
       std::shared_ptr<network::PeerView> peer_view,
       std::shared_ptr<ThreadPool> thread_pool,
       std::shared_ptr<parachain::BitfieldSigner> bitfield_signer,
+      std::shared_ptr<parachain::PvfPrecheck> pvf_precheck,
       std::shared_ptr<parachain::BitfieldStore> bitfield_store,
       std::shared_ptr<parachain::BackingStore> backing_store,
       std::shared_ptr<parachain::Pvf> pvf,
@@ -87,6 +88,7 @@ namespace kagome::parachain {
         pvf_(std::move(pvf)),
         signer_factory_(std::move(signer_factory)),
         bitfield_signer_(std::move(bitfield_signer)),
+        pvf_precheck_(std::move(pvf_precheck)),
         bitfield_store_(std::move(bitfield_store)),
         backing_store_(std::move(backing_store)),
         av_store_(std::move(av_store)),
@@ -146,6 +148,8 @@ namespace kagome::parachain {
             if (event == consensus::babe::Babe::State::SYNCHRONIZED) {
               if (not was_synchronized) {
                 self->bitfield_signer_->start(
+                    self->peer_view_->intoChainEventsEngine());
+                self->pvf_precheck_->start(
                     self->peer_view_->intoChainEventsEngine());
                 was_synchronized = true;
               }

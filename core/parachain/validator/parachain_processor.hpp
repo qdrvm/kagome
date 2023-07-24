@@ -30,6 +30,7 @@
 #include "parachain/availability/bitfield/signer.hpp"
 #include "parachain/availability/store/store.hpp"
 #include "parachain/backing/store.hpp"
+#include "parachain/pvf/precheck.hpp"
 #include "parachain/pvf/pvf.hpp"
 #include "parachain/validator/signer.hpp"
 #include "primitives/common.hpp"
@@ -84,6 +85,7 @@ namespace kagome::parachain {
         std::shared_ptr<network::PeerView> peer_view,
         std::shared_ptr<ThreadPool> thread_pool,
         std::shared_ptr<parachain::BitfieldSigner> bitfield_signer,
+        std::shared_ptr<parachain::PvfPrecheck> pvf_precheck,
         std::shared_ptr<parachain::BitfieldStore> bitfield_store,
         std::shared_ptr<parachain::BackingStore> backing_store,
         std::shared_ptr<parachain::Pvf> pvf,
@@ -417,6 +419,7 @@ namespace kagome::parachain {
     std::shared_ptr<parachain::Pvf> pvf_;
     std::shared_ptr<parachain::ValidatorSignerFactory> signer_factory_;
     std::shared_ptr<parachain::BitfieldSigner> bitfield_signer_;
+    std::shared_ptr<parachain::PvfPrecheck> pvf_precheck_;
     std::shared_ptr<parachain::BitfieldStore> bitfield_store_;
     std::shared_ptr<parachain::BackingStore> backing_store_;
     std::shared_ptr<parachain::AvailabilityStore> av_store_;
