@@ -160,8 +160,10 @@ namespace kagome::consensus::babe {
     auto epoch_changed = true;
     if (parent_info.number != 0) {
       OUTCOME_TRY(parent_header, block_tree_->getBlockHeader(parent_info.hash));
-      OUTCOME_TRY(parent_digest, getBabeDigests(parent_header));
-      auto parent_epoch = slotToEpoch(parent_digest.second.slot_number);
+      OUTCOME_TRY(parent_slot, getBabeSlot(parent_header));
+      auto mut_this = const_cast<BabeConfigRepositoryImpl *>(this);
+      OUTCOME_TRY(parent_epoch,
+                  mut_this->slotToEpoch(parent_info, parent_slot));
       epoch_changed = epoch_number != parent_epoch;
     }
     std::unique_lock lock{indexer_mutex_};
@@ -270,28 +272,19 @@ namespace kagome::consensus::babe {
           auto state = std::make_shared<primitives::BabeConfiguration>(
               std::move(_state));
           BabeIndexedValue value{getConfig(*state), state, state};
-          if (info.number == 0) {
-            indexer_.put(info, {value, std::nullopt}, true);
-          } else {
-            std::vector<primitives::BlockInfo> refs;
-            while (true) {
-              OUTCOME_TRY(header, block_tree_->getBlockHeader(info.hash));
-              if (HasBabeConsensusDigest digests{header}) {
-                value.next_state = applyDigests(value.config, digests);
-                indexer_.put(info, {value, std::nullopt}, true);
-                if (not refs.empty()) {
-                  indexer_.remove(refs.front());
-                }
-                break;
-              }
-              refs.emplace_back(info);
-              info = *header.parentInfo();
-            }
-            std::reverse(refs.begin(), refs.end());
-            for (auto &block : refs) {
-              indexer_.put(block, {std::nullopt, info, true}, false);
-            }
+          if (info.number != 0) {
+            OUTCOME_TRY(next, babe_api_->next_epoch(info.hash));
+            value.next_state = std::make_shared<primitives::BabeConfiguration>(
+                primitives::BabeConfiguration{
+                    state->slot_duration,
+                    state->epoch_length,
+                    next.leadership_rate,
+                    std::move(next.authorities),
+                    next.randomness,
+                    next.allowed_slots,
+                });
           }
+          indexer_.put(info, {value, std::nullopt}, true);
           if (i_first == i_last) {
             return outcome::success();
           }
