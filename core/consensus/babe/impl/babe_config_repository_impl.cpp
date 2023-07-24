@@ -93,19 +93,14 @@ namespace kagome::consensus::babe {
   }
 
   bool BabeConfigRepositoryImpl::prepare() {
+    std::unique_lock lock{indexer_mutex_};
     auto finalized = block_tree_->getLastFinalized();
     auto finalized_header = block_tree_->getBlockHeader(finalized.hash).value();
 
-    primitives::BlockNumber indexer_last_finalized;
-    {
-      std::unique_lock lock{indexer_mutex_};
-      indexer_last_finalized = indexer_.last_finalized_indexed_.number;
-    }
-
-    if (finalized.number - indexer_last_finalized
+    if (finalized.number - indexer_.last_finalized_indexed_.number
             > kMaxUnindexedBlocksNum
         and trie_storage_->getEphemeralBatchAt(finalized_header.state_root)) {
-      warp(finalized);
+      warp(lock, finalized);
     }
 
     auto genesis_res = config({block_tree_->getGenesisBlockHash(), 0}, false);
@@ -243,9 +238,14 @@ namespace kagome::consensus::babe {
     return 0;
   }
 
+  void BabeConfigRepositoryImpl::warp(std::unique_lock<std::mutex> &lock,
+                                      const primitives::BlockInfo &block) {
+    indexer_.put(block, {}, true);
+  }
+
   void BabeConfigRepositoryImpl::warp(const primitives::BlockInfo &block) {
     std::unique_lock lock{indexer_mutex_};
-    indexer_.put(block, {}, true);
+    warp(lock, block);
   }
 
   outcome::result<std::shared_ptr<const primitives::BabeConfiguration>>
