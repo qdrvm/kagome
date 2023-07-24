@@ -93,10 +93,16 @@ namespace kagome::consensus::babe {
   }
 
   bool BabeConfigRepositoryImpl::prepare() {
-    std::unique_lock lock{indexer_mutex_};
     auto finalized = block_tree_->getLastFinalized();
     auto finalized_header = block_tree_->getBlockHeader(finalized.hash).value();
-    if (finalized.number - indexer_.last_finalized_indexed_.number
+
+    primitives::BlockNumber indexer_last_finalized;
+    {
+      std::unique_lock lock{indexer_mutex_};
+      indexer_last_finalized = indexer_.last_finalized_indexed_.number;
+    }
+
+    if (finalized.number - indexer_last_finalized
             > kMaxUnindexedBlocksNum
         and trie_storage_->getEphemeralBatchAt(finalized_header.state_root)) {
       warp(finalized);
