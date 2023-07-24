@@ -85,7 +85,8 @@ namespace kagome::parachain {
       std::shared_ptr<blockchain::BlockTree> block_tree,
       std::shared_ptr<consensus::grandpa::AuthorityManager> authority_manager,
       std::shared_ptr<consensus::babe::BabeUtil> babe_util,
-      std::shared_ptr<consensus::babe::BabeConfigRepository> babe_config_repo, std::shared_ptr<crypto::SessionKeys> session_keys)
+      std::shared_ptr<consensus::babe::BabeConfigRepository> babe_config_repo,
+      std::shared_ptr<crypto::SessionKeys> session_keys)
       : pm_(std::move(pm)),
         crypto_provider_(std::move(crypto_provider)),
         router_(std::move(router)),
@@ -106,7 +107,8 @@ namespace kagome::parachain {
         block_tree_{std::move(block_tree)},
         authority_manager_{std::move(authority_manager)},
         babe_util_{std::move(babe_util)},
-        babe_config_repo_{std::move(babe_config_repo)}, session_keys_{std::move(session_keys)},
+        babe_config_repo_{std::move(babe_config_repo)},
+        session_keys_{std::move(session_keys)},
         thread_handler_{thread_pool_->handler()} {
     BOOST_ASSERT(pm_);
     BOOST_ASSERT(peer_view_);
@@ -292,7 +294,7 @@ namespace kagome::parachain {
             ++by_para_stat.explicit_validity_votes;
           } else if (kagome::is_type<network::ValidityAttestation::Implicit>(
                          validity_vote.kind)) {
-            ++by_para_stat.explicit_validity_votes;
+            ++by_para_stat.implicit_validity_votes;
           } else {
             SL_WARN(logger_,
                     "Backed candidate doesn't have implicit/explicit validity "
@@ -509,14 +511,26 @@ namespace kagome::parachain {
       }
     }
 
+    std::string formatted;
     for (const auto &[auth_id, target_stat] : statistics.target_stat) {
+      formatted.clear();
+      for (const auto &[para_id, by_para_stat] : target_stat.by_parachain) {
+        formatted += fmt::format(
+            "\nPara_id={}, candidates_count={}, implicit={}, explicit={}",
+            para_id,
+            by_para_stat.candidates_count,
+            by_para_stat.implicit_validity_votes,
+            by_para_stat.explicit_validity_votes);
+      }
+
       SL_INFO(logger_,
               "Statistics result. (auth_id={}, para_inherent={}, "
-              "bitfields={}, backed_candidates={})",
+              "bitfields={}, backed_candidates={}): {}",
               auth_id.id,
               target_stat.blocks_with_para_inherent,
               target_stat.bitfields,
-              target_stat.backed_candidates);
+              target_stat.backed_candidates,
+              formatted);
     }
 
     int p = 0;
