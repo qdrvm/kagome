@@ -52,7 +52,7 @@ namespace kagome::consensus::babe {
     std::optional<std::shared_ptr<const primitives::BabeConfiguration>> state;
     /**
      * Next epoch lazily computed from `config` and digests.
-    */
+     */
     std::optional<std::shared_ptr<const primitives::BabeConfiguration>>
         next_state;
   };
@@ -124,6 +124,9 @@ namespace kagome::consensus::babe {
 
     outcome::result<std::shared_ptr<const primitives::BabeConfiguration>>
     loadPrev(const std::optional<primitives::BlockInfo> &prev) const;
+
+    void warp(std::unique_lock<std::mutex> &lock,
+              const primitives::BlockInfo &block);
 
     std::shared_ptr<storage::BufferStorage> persistent_storage_;
     bool config_warp_sync_;
