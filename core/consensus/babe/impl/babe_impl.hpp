@@ -196,6 +196,7 @@ namespace kagome::consensus::babe {
         const primitives::Block &block) const;
 
     application::AppConfiguration::SyncMethod sync_method_;
+    bool app_config_validator_;
     std::shared_ptr<application::AppStateManager> app_state_manager_;
     std::shared_ptr<BabeLottery> lottery_;
     std::shared_ptr<BabeConfigRepository> babe_config_repo_;

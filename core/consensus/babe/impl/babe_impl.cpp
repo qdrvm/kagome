@@ -84,6 +84,7 @@ namespace kagome::consensus::babe {
       std::shared_ptr<storage::trie::TrieStorage> trie_storage,
       primitives::events::BabeStateSubscriptionEnginePtr babe_status_observable)
       : sync_method_(app_config.syncMethod()),
+        app_config_validator_{app_config.roles().flags.authority != 0},
         app_state_manager_(app_state_manager),
         lottery_{std::move(lottery)},
         babe_config_repo_{std::move(babe_config_repo)},
@@ -799,9 +800,11 @@ namespace kagome::consensus::babe {
       auto &babe_config = *babe_config_opt.value();
       auto keypair = session_keys_->getBabeKeyPair(babe_config.authorities);
       if (not keypair) {
-        SL_ERROR(log_,
-                 "Authority not known, skipping slot processing. "
-                 "Probably authority list has changed.");
+        if (app_config_validator_) {
+          SL_ERROR(log_,
+                   "Authority not known, skipping slot processing. "
+                   "Probably authority list has changed.");
+        }
       } else {
         keypair_ = std::move(keypair->first);
         const auto &authority_index = keypair->second;
