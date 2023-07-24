@@ -23,31 +23,6 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::network, StateSyncRequestFlow::Error, e) {
 }
 
 namespace kagome::network {
-  inline void match(StateSyncRequestFlow::Child &child, uint8_t nibble) {
-    static const auto kNibbles =
-        storage::trie::KeyNibbles::fromByteBuffer(storage::kChildStoragePrefix);
-    if (auto offset = boost::get<uint8_t>(&child)) {
-      if (kNibbles[*offset] == nibble) {
-        ++*offset;
-        if (*offset >= kNibbles.size()) {
-          child = true;
-        }
-      } else {
-        child = false;
-      }
-    }
-  }
-
-  inline void match(StateSyncRequestFlow::Child &child,
-                    common::BufferView nibbles) {
-    for (auto &nibble : nibbles) {
-      match(child, nibble);
-      if (boost::get<bool>(&child)) {
-        break;
-      }
-    }
-  }
-
   StateSyncRequestFlow::StateSyncRequestFlow(
       std::shared_ptr<storage::trie_pruner::TriePruner> state_pruner,
       std::shared_ptr<storage::trie::TrieStorageBackend> db,
@@ -94,13 +69,13 @@ namespace kagome::network {
       auto &level = levels_.back();
       auto next_level = false;
       auto on_node = [&](decltype(nodes)::iterator it) {
-        Child child;
+        storage::trie::ChildPrefix child;
         if (levels_.size() != 1) {
           child = false;
         } else if (not level.stack.empty()) {
           auto &top = level.stack.back();
           child = top.child;
-          match(child, *top.branch);
+          child.match(*top.branch);
         }
         known_.emplace(it->first);
         auto &item = level.stack.emplace_back(Item{
@@ -111,8 +86,8 @@ namespace kagome::network {
             child,
         });
         nodes.erase(it);
-        match(item.child, item.node->getKeyNibbles());
-        if (auto child = boost::get<bool>(&item.child); child and *child) {
+        item.child.match(item.node->getKeyNibbles());
+        if (item.child) {
           auto &value = item.node->getValue().value;
           if (value and value->size() == common::Hash256::size()) {
             auto root = common::Hash256::fromSpan(*value).value();

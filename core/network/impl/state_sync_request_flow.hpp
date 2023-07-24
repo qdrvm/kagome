@@ -12,6 +12,7 @@
 #include "network/types/state_request.hpp"
 #include "network/types/state_response.hpp"
 #include "primitives/block_header.hpp"
+#include "storage/trie/child_prefix.hpp"
 #include "storage/trie/polkadot_trie/trie_node.hpp"
 
 namespace kagome::storage::trie {
@@ -39,14 +40,12 @@ namespace kagome::network {
       HASH_MISMATCH,
     };
 
-    using Child = boost::variant<uint8_t, bool>;
-
     struct Item {
       common::Hash256 hash;
       common::Buffer encoded;
       std::shared_ptr<storage::trie::TrieNode> node;
       std::optional<uint8_t> branch;
-      Child child;
+      storage::trie::ChildPrefix child;
     };
 
     struct Level {
