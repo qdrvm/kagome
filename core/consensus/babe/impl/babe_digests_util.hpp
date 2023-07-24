@@ -21,8 +21,6 @@ namespace kagome::consensus::babe {
   enum class DigestError {
     REQUIRED_DIGESTS_NOT_FOUND = 1,
     NO_TRAILING_SEAL_DIGEST,
-    MULTIPLE_EPOCH_CHANGE_DIGESTS,
-    NEXT_EPOCH_DIGEST_DOES_NOT_EXIST
   };
 
   template <typename T, typename VarT>
@@ -42,10 +40,6 @@ namespace kagome::consensus::babe {
 
   outcome::result<std::pair<Seal, BabeBlockHeader>> getBabeDigests(
       const primitives::BlockHeader &header);
-
-  outcome::result<EpochDigest> getNextEpochDigest(
-      const primitives::BlockHeader &header);
-
 }  // namespace kagome::consensus::babe
 
 OUTCOME_HPP_DECLARE_ERROR(kagome::consensus::babe, DigestError)

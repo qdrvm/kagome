@@ -178,11 +178,10 @@ namespace kagome::consensus::babe {
       return digest_tracking_res.as_failure();
     }
 
-    auto babe_config_opt = babe_config_repo_->config(context, epoch_number);
-    if (!babe_config_opt.has_value()) {
-      return BlockAdditionError::ORPHAN_BLOCK;
-    }
-    auto &babe_config = babe_config_opt.value().get();
+    OUTCOME_TRY(
+        babe_config_ptr,
+        babe_config_repo_->config(*block.header.parentInfo(), epoch_number));
+    auto &babe_config = *babe_config_ptr;
 
     SL_TRACE(logger_,
              "Actual epoch digest to apply block {} (slot {}, epoch {}). "

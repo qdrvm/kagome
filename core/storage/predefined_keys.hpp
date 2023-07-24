@@ -43,11 +43,8 @@ namespace kagome::storage {
   inline const common::Buffer kBabeConfigRepositoryImplGenesisSlot =
       ":kagome:BabeConfigRepositoryImpl:genesis_slot"_buf;
 
-  template <typename Tag>
-  inline common::Buffer kBabeConfigRepoStateLookupKey(Tag tag) {
-    return common::Buffer::fromString(
-        fmt::format(":kagome:babe_config_repo_state:{}", tag));
-  }
+  inline const common::Buffer kBabeConfigRepositoryImplIndexerPrefix =
+      ":kagome:BabeConfigRepositoryImpl:Indexer:"_buf;
 
   template <typename Tag>
   inline common::Buffer kAuthorityManagerStateLookupKey(Tag tag) {

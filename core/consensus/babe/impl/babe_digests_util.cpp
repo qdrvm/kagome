@@ -15,10 +15,6 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::consensus::babe, DigestError, e) {
              "header and seal digests";
     case E::NO_TRAILING_SEAL_DIGEST:
       return "the block must contain a seal digest as the last digest";
-    case E::MULTIPLE_EPOCH_CHANGE_DIGESTS:
-      return "the block contains multiple epoch change digests";
-    case E::NEXT_EPOCH_DIGEST_DOES_NOT_EXIST:
-      return "next epoch digest does not exist";
   }
   return "unknown error";
 }
@@ -60,39 +56,5 @@ namespace kagome::consensus::babe {
     }
 
     return DigestError::REQUIRED_DIGESTS_NOT_FOUND;
-  }
-
-  outcome::result<EpochDigest> getNextEpochDigest(
-      const primitives::BlockHeader &header) {
-    // https://github.com/paritytech/substrate/blob/d8df977d024ebeb5330bacac64cf7193a7c242ed/core/consensus/babe/src/lib.rs#L497
-    outcome::result<EpochDigest> epoch_digest =
-        DigestError::NEXT_EPOCH_DIGEST_DOES_NOT_EXIST;
-
-    for (const auto &log : header.digest) {
-      visit_in_place(
-          log,
-          [&epoch_digest](const primitives::Consensus &consensus) {
-            if (consensus.consensus_engine_id == primitives::kBabeEngineId) {
-              auto consensus_log_res =
-                  scale::decode<primitives::BabeDigest>(consensus.data);
-              if (not consensus_log_res) {
-                return;
-              }
-
-              visit_in_place(
-                  consensus_log_res.value(),
-                  [&epoch_digest](const primitives::NextEpochData &next_epoch) {
-                    if (not epoch_digest) {
-                      epoch_digest = static_cast<EpochDigest>(next_epoch);
-                    } else {
-                      epoch_digest = DigestError::MULTIPLE_EPOCH_CHANGE_DIGESTS;
-                    }
-                  },
-                  [](const auto &) {});
-            }
-          },
-          [](const auto &) {});
-    }
-    return epoch_digest;
   }
 }  // namespace kagome::consensus::babe

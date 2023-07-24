@@ -9,7 +9,7 @@
 
 #include "application/app_configuration.hpp"
 #include "blockchain/block_tree_error.hpp"
-#include "consensus/babe/impl/babe_digests_util.hpp"
+#include "consensus/babe/has_babe_consensus_digest.hpp"
 #include "consensus/grandpa/environment.hpp"
 #include "consensus/grandpa/has_authority_set_change.hpp"
 #include "network/helpers/peer_id_formatter.hpp"

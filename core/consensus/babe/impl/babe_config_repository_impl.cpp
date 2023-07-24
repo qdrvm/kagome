@@ -16,10 +16,35 @@
 #include "primitives/block_header.hpp"
 #include "runtime/runtime_api/babe_api.hpp"
 #include "scale/scale.hpp"
+#include "storage/map_prefix/prefix.hpp"
 #include "storage/predefined_keys.hpp"
 #include "storage/trie/trie_storage.hpp"
 
+OUTCOME_CPP_DEFINE_CATEGORY(kagome::consensus::babe,
+                            BabeConfigRepositoryImpl::Error,
+                            e) {
+  using E = decltype(e);
+  switch (e) {
+    case E::NOT_FOUND:
+      return "babe config not found";
+    case E::PREVIOUS_NOT_FOUND:
+      return "previous babe config not found";
+  }
+  return fmt::format("BabeConfigRepositoryImpl::Error({})", e);
+}
+
 namespace kagome::consensus::babe {
+  /**
+   * If there is more than `kMaxUnindexedBlocksNum` unindexed finalized blocks
+   * and last finalized block has state, then babe won't index all of them, but
+   * recover with runtime call and latest block with digest.
+   */
+  constexpr size_t kMaxUnindexedBlocksNum = 10000;
+
+  inline static primitives::NextConfigDataV1 getConfig(
+      const primitives::BabeConfiguration &state) {
+    return {state.leadership_rate, state.allowed_slots};
+  }
 
   BabeConfigRepositoryImpl::BabeConfigRepositoryImpl(
       application::AppStateManager &app_state_manager,
@@ -36,6 +61,12 @@ namespace kagome::consensus::babe {
         config_warp_sync_{app_config.syncMethod()
                           == application::AppConfiguration::SyncMethod::Warp},
         block_tree_(std::move(block_tree)),
+        indexer_{
+            std::make_shared<storage::MapPrefix>(
+                storage::kBabeConfigRepositoryImplIndexerPrefix,
+                persistent_storage_),
+            block_tree_,
+        },
         header_repo_(std::move(header_repo)),
         babe_api_(std::move(babe_api)),
         hasher_(std::move(hasher)),
@@ -52,21 +83,56 @@ namespace kagome::consensus::babe {
     BOOST_ASSERT(babe_api_ != nullptr);
     BOOST_ASSERT(hasher_ != nullptr);
 
+    if (auto r = indexer_.init(); not r) {
+      logger_->error("Indexer::init error: {}", r.error());
+    }
+
     app_state_manager.atPrepare([this] { return prepare(); });
   }
 
   bool BabeConfigRepositoryImpl::prepare() {
-    auto load_res = load();
-    auto best_info = block_tree_->bestLeaf();
-    auto best_block = block_tree_->getBlockHeader(best_info.hash).value();
-    if ((not load_res or not config({best_info}, 0))
-        and trie_storage_->getEphemeralBatchAt(best_block.state_root)) {
-      readFromState(best_info);
-      load_res = outcome::success();
+    if (auto res = persistent_storage_->tryGet(
+            storage::kBabeConfigRepositoryImplGenesisSlot)) {
+      if (auto &genesis_slot_raw = res.value()) {
+        if (auto res = scale::decode<BabeSlotNumber>(*genesis_slot_raw)) {
+          first_block_slot_number_ = res.value();
+        } else {
+          SL_ERROR(logger_, "genesis slot decode error: {}", res.error());
+          std::ignore = persistent_storage_->remove(
+              storage::kBabeConfigRepositoryImplGenesisSlot);
+        }
+      }
+    } else {
+      SL_ERROR(logger_, "genesis slot db read error: {}", res.error());
+      return false;
     }
-    if (load_res.has_error()) {
-      SL_VERBOSE(logger_, "Can not load state: {}", load_res.error());
-      return config_warp_sync_;
+    std::unique_lock lock{indexer_mutex_};
+    auto finalized = block_tree_->getLastFinalized();
+    auto finalized_header = block_tree_->getBlockHeader(finalized.hash).value();
+    if (finalized.number - indexer_.last_finalized_indexed_.number
+            > kMaxUnindexedBlocksNum
+        and trie_storage_->getEphemeralBatchAt(finalized_header.state_root)) {
+      warp(finalized);
+    }
+
+    auto genesis_res = config({block_tree_->getGenesisBlockHash(), 0}, false);
+    if (not genesis_res) {
+      SL_ERROR(logger_, "get config at genesis error: {}", genesis_res.error());
+      return false;
+    }
+    auto &genesis = genesis_res.value();
+    slot_duration_ = genesis->slot_duration;
+    epoch_length_ = genesis->epoch_length;
+
+    auto best = block_tree_->bestLeaf();
+    auto best_header = block_tree_->getBlockHeader(best.hash).value();
+    if (auto res = config(best, true); not res and not config_warp_sync_) {
+      SL_ERROR(logger_, "get config at best {} error: {}", best, res.error());
+      if (not trie_storage_->getEphemeralBatchAt(best_header.state_root)) {
+        SL_ERROR(logger_,
+                 "warp sync was not completed, restart with \"--sync Warp\"");
+      }
+      return false;
     }
 
     chain_sub_->subscribe(chain_sub_->generateSubscriptionSetId(),
@@ -79,18 +145,8 @@ namespace kagome::consensus::babe {
             const primitives::events::ChainEventParams &event) {
           if (type == primitives::events::ChainEventType::kFinalizedHeads) {
             if (auto self = wp.lock()) {
-              const auto &header =
-                  boost::get<primitives::events::HeadsEventParams>(event).get();
-              auto hash =
-                  self->hasher_->blake2b_256(scale::encode(header).value());
-
-              auto save_res = self->save();
-              if (save_res.has_error()) {
-                SL_WARN(self->logger_,
-                        "Can not save state at finalization: {}",
-                        save_res.error());
-              }
-              self->prune({header.number, hash});
+              std::unique_lock lock{self->indexer_mutex_};
+              self->indexer_.finalize();
             }
           }
         });
@@ -98,383 +154,18 @@ namespace kagome::consensus::babe {
     return true;
   }
 
-  outcome::result<void> BabeConfigRepositoryImpl::load() {
-    const auto finalized_block = block_tree_->getLastFinalized();
-
-    OUTCOME_TRY(genesis_slot_raw,
-                persistent_storage_->tryGet(
-                    storage::kBabeConfigRepositoryImplGenesisSlot));
-    if (genesis_slot_raw) {
-      BOOST_OUTCOME_TRY(first_block_slot_number_,
-                        scale::decode<BabeSlotNumber>(*genesis_slot_raw));
-    }
-
-    // 1. Load last state
-    OUTCOME_TRY(encoded_last_state_opt,
-                persistent_storage_->tryGet(
-                    storage::kBabeConfigRepoStateLookupKey("last")));
-
-    if (encoded_last_state_opt.has_value()) {
-      auto last_state_res = scale::decode<std::shared_ptr<BabeConfigNode>>(
-          encoded_last_state_opt.value());
-
-      if (last_state_res.has_value()) {
-        auto &last_state = last_state_res.value();
-        if (last_state->block.number <= finalized_block.number) {
-          root_ = std::move(last_state);
-          SL_DEBUG(logger_,
-                   "State was initialized by last saved on block {}",
-                   root_->block);
-        } else {
-          SL_WARN(
-              logger_,
-              "Last state not match with last finalized; Try to use savepoint");
-        }
-      } else {
-        SL_WARN(
-            logger_, "Can not decode last state: {}", last_state_res.error());
-        std::ignore = persistent_storage_->remove(
-            storage::kBabeConfigRepoStateLookupKey("last"));
-      }
-    }
-
-    // 2. Load from last control point, if state is still not found
-    if (root_ == nullptr) {
-      for (auto block_number =
-               (finalized_block.number / kSavepointBlockInterval)
-               * kSavepointBlockInterval;
-           block_number > 0;
-           block_number -= kSavepointBlockInterval) {
-        OUTCOME_TRY(encoded_saved_state_opt,
-                    persistent_storage_->tryGet(
-                        storage::kBabeConfigRepoStateLookupKey(block_number)));
-
-        if (not encoded_saved_state_opt.has_value()) {
-          continue;
-        }
-
-        auto saved_state_res = scale::decode<std::shared_ptr<BabeConfigNode>>(
-            encoded_saved_state_opt.value());
-
-        if (saved_state_res.has_error()) {
-          SL_WARN(logger_,
-                  "Can not decode state saved on block {}: {}",
-                  block_number,
-                  saved_state_res.error());
-          std::ignore = persistent_storage_->remove(
-              storage::kBabeConfigRepoStateLookupKey(block_number));
-          continue;
-        }
-
-        root_ = std::move(saved_state_res.value());
-        SL_VERBOSE(logger_,
-                   "State was initialized by savepoint on block {}",
-                   root_->block);
-        break;
-      }
-    }
-
-    // 3. Load state from genesis, if state is still not found
-    if (root_ == nullptr) {
-      auto genesis_hash = block_tree_->getGenesisBlockHash();
-      auto babe_config_res = babe_api_->configuration(genesis_hash);
-      if (babe_config_res.has_error()) {
-        SL_WARN(logger_,
-                "Can't get babe config over babe API on genesis block: {}",
-                babe_config_res.error());
-        return babe_config_res.as_failure();
-      }
-      auto &babe_config = babe_config_res.value();
-
-      root_ = BabeConfigNode::createAsRoot(
-          {0, genesis_hash},
-          std::make_shared<primitives::BabeConfiguration>(
-              std::move(babe_config)));
-      SL_VERBOSE(logger_, "State was initialized by genesis block");
-    }
-
-    BOOST_ASSERT_MSG(root_ != nullptr, "The root must be initialized by now");
-
-    // Init slot duration and epoch length
-    auto slot_duration = std::chrono::duration_cast<std::chrono::milliseconds>(
-        root_->config->slot_duration);
-    BOOST_ASSERT_MSG(slot_duration.count() > 0,
-                     "Slot duration must be greater zero");
-    const_cast<BabeDuration &>(slot_duration_) = slot_duration;
-    auto epoch_length = root_->config->epoch_length;
-    BOOST_ASSERT_MSG(epoch_length, "Epoch length must be greater zero");
-    const_cast<EpochLength &>(epoch_length_) = epoch_length;
-
-    std::list<primitives::BlockHeader> refs;
-
-    // 4. Apply digests before last finalized
-    bool need_to_save = false;
-    for (auto block_number = root_->block.number + 1;
-         block_number <= finalized_block.number;
-         ++block_number) {
-      auto block_hash_res = block_tree_->getBlockHash(block_number);
-      if (block_hash_res.has_error()) {
-        SL_WARN(logger_,
-                "Can't get hash of an already finalized block #{}: {}",
-                block_number,
-                block_hash_res.error());
-        return block_hash_res.as_failure();
-      }
-      // If no error occurred, hash of a finalized block should be present
-      const auto &block_hash = *block_hash_res.value();
-
-      auto block_header_res = block_tree_->getBlockHeader(block_hash);
-      if (block_header_res.has_error()) {
-        SL_WARN(logger_,
-                "Can't get header of an already finalized block #{}: {}",
-                block_number,
-                block_header_res.error());
-        return block_header_res.as_failure();
-      }
-      const auto &block_header =
-          refs.emplace_back(std::move(block_header_res.value()));
-
-      primitives::BlockContext context{
-          .block_info = {block_number, block_hash},
-          .header = block_header,
-      };
-
-      for (auto &item : block_header.digest) {
-        auto res = visit_in_place(
-            item,
-            [&](const primitives::PreRuntime &msg) -> outcome::result<void> {
-              if (msg.consensus_engine_id == primitives::kBabeEngineId) {
-                OUTCOME_TRY(digest_item,
-                            scale::decode<BabeBlockHeader>(msg.data));
-
-                return onDigest(context, digest_item);
-              }
-              return outcome::success();
-            },
-            [&](const primitives::Consensus &msg) -> outcome::result<void> {
-              if (msg.consensus_engine_id == primitives::kBabeEngineId) {
-                OUTCOME_TRY(digest_item,
-                            scale::decode<primitives::BabeDigest>(msg.data));
-
-                return onDigest(context, digest_item);
-              }
-              return outcome::success();
-            },
-            [](const auto &) { return outcome::success(); });
-        if (res.has_error()) {
-          SL_WARN(logger_,
-                  "Can't apply babe digest of finalized block {}: {}",
-                  context.block_info,
-                  res.error());
-          return res.as_failure();
-        }
-      }
-
-      prune(context.block_info);
-
-      if (context.block_info.number % (kSavepointBlockInterval / 10) == 0) {
-        // Make savepoint
-        auto save_res = save();
-        if (save_res.has_error()) {
-          SL_WARN(logger_, "Can't re-make savepoint: {}", save_res.error());
-        } else {
-          need_to_save = false;
-        }
-      } else {
-        need_to_save = true;
-      }
-    }
-
-    // Save state on finalized part of blockchain
-    if (need_to_save) {
-      if (auto save_res = save(); save_res.has_error()) {
-        SL_WARN(logger_, "Can't re-save state: {}", save_res.error());
-      }
-    }
-
-    // 4. Collect and apply digests of non-finalized blocks
-    auto leaves = block_tree_->getLeaves();
-    std::map<primitives::BlockContext,
-             std::vector<boost::variant<consensus::babe::BabeBlockHeader,
-                                        primitives::BabeDigest>>>
-        digests;
-    // 4.1 Collect digests
-    for (auto &leave_hash : leaves) {
-      for (auto hash = leave_hash;;) {
-        auto block_header_res = block_tree_->getBlockHeader(hash);
-        if (block_header_res.has_error()) {
-          SL_WARN(logger_,
-                  "Can't get header of non-finalized block {}: {}",
-                  hash,
-                  block_header_res.error());
-          return block_header_res.as_failure();
-        }
-        const auto &block_header =
-            refs.emplace_back(std::move(block_header_res.value()));
-
-        // This block is finalized
-        if (block_header.number <= finalized_block.number) {
-          break;
-        }
-
-        primitives::BlockContext context{
-            .block_info = {block_header.number, hash},
-            .header = block_header,
-        };
-
-        // This block was meet earlier
-        if (digests.find(context) != digests.end()) {
-          break;
-        }
-
-        auto &digest_of_block = digests[context];
-
-        // Search and collect babe digests
-        for (auto &item : block_header.digest) {
-          auto res = visit_in_place(
-              item,
-              [&](const primitives::PreRuntime &msg) -> outcome::result<void> {
-                if (msg.consensus_engine_id == primitives::kBabeEngineId) {
-                  auto res =
-                      scale::decode<consensus::babe::BabeBlockHeader>(msg.data);
-                  if (res.has_error()) {
-                    return res.as_failure();
-                  }
-                  const auto &digest_item = res.value();
-
-                  digest_of_block.emplace_back(digest_item);
-                }
-                return outcome::success();
-              },
-              [&](const primitives::Consensus &msg) -> outcome::result<void> {
-                if (msg.consensus_engine_id == primitives::kBabeEngineId) {
-                  auto res = scale::decode<primitives::BabeDigest>(msg.data);
-                  if (res.has_error()) {
-                    return res.as_failure();
-                  }
-                  const auto &digest_item = res.value();
-
-                  digest_of_block.emplace_back(digest_item);
-                }
-                return outcome::success();
-              },
-              [](const auto &) { return outcome::success(); });
-          if (res.has_error()) {
-            SL_WARN(logger_,
-                    "Can't collect babe digest of non-finalized block {}: {}",
-                    context.block_info,
-                    res.error());
-            return res.as_failure();
-          }
-        }
-
-        hash = block_header.parent_hash;
-      }
-    }
-    // 4.2 Apply digests
-    for (const auto &[context_tmp, digests_of_block] : digests) {
-      const auto &context = context_tmp;
-      for (const auto &digest : digests_of_block) {
-        auto res = visit_in_place(digest, [&](const auto &digest_item) {
-          return onDigest(context, digest_item);
-        });
-        if (res.has_error()) {
-          SL_WARN(logger_,
-                  "Can't apply babe digest of non-finalized block {}: {}",
-                  context.block_info,
-                  res.error());
-          return res.as_failure();
-        }
-      }
-    }
-
-    prune(finalized_block);
-
-    return outcome::success();
-  }
-
-  outcome::result<void> BabeConfigRepositoryImpl::save() {
-    const auto finalized_block = block_tree_->getLastFinalized();
-
-    BOOST_ASSERT(last_saved_state_block_ <= finalized_block.number);
-
-    auto saving_state_node = getNode({.block_info = finalized_block});
-    BOOST_ASSERT_MSG(saving_state_node != nullptr,
-                     "Finalized block must have associated node");
-    const auto saving_state_block = saving_state_node->block;
-
-    // Does not need to save
-    if (last_saved_state_block_ >= saving_state_block.number) {
-      return outcome::success();
-    }
-
-    const auto last_savepoint =
-        (last_saved_state_block_ / kSavepointBlockInterval)
-        * kSavepointBlockInterval;
-
-    const auto new_savepoint =
-        (saving_state_block.number / kSavepointBlockInterval)
-        * kSavepointBlockInterval;
-
-    // It's time to make savepoint
-    if (new_savepoint > last_savepoint) {
-      auto hash_res = header_repo_->getHashByNumber(new_savepoint);
-      if (hash_res.has_value()) {
-        primitives::BlockInfo savepoint_block(new_savepoint, hash_res.value());
-
-        auto ancestor_node = getNode({.block_info = savepoint_block});
-        if (ancestor_node != nullptr) {
-          auto node = ancestor_node->block == savepoint_block
-                        ? ancestor_node
-                        : ancestor_node->makeDescendant(savepoint_block);
-          auto res = persistent_storage_->put(
-              storage::kBabeConfigRepoStateLookupKey(new_savepoint),
-              storage::Buffer(scale::encode(node).value()));
-          if (res.has_error()) {
-            SL_WARN(logger_,
-                    "Can't make savepoint on block {}: {}",
-                    savepoint_block,
-                    hash_res.error());
-            return res.as_failure();
-          }
-          SL_DEBUG(logger_, "Savepoint has made on block {}", savepoint_block);
-        }
-      } else {
-        SL_WARN(logger_,
-                "Can't take hash of savepoint block {}: {}",
-                new_savepoint,
-                hash_res.error());
-      }
-    }
-
-    auto res = persistent_storage_->put(
-        storage::kBabeConfigRepoStateLookupKey("last"),
-        storage::Buffer(scale::encode(saving_state_node).value()));
-    if (res.has_error()) {
-      SL_WARN(logger_,
-              "Can't save last state on block {}: {}",
-              saving_state_block,
-              res.error());
-      return res.as_failure();
-    }
-    SL_DEBUG(logger_, "Last state has saved on block {}", saving_state_block);
-
-    last_saved_state_block_ = saving_state_block.number;
-
-    return outcome::success();
-  }
-
-  std::optional<std::reference_wrapper<const primitives::BabeConfiguration>>
-  BabeConfigRepositoryImpl::config(const primitives::BlockContext &context,
+  outcome::result<std::shared_ptr<const primitives::BabeConfiguration>>
+  BabeConfigRepositoryImpl::config(const primitives::BlockInfo &parent_info,
                                    EpochNumber epoch_number) const {
-    auto node = getNode(context);
-    if (node) {
-      if (epoch_number > node->epoch) {
-        return *node->next_config.value_or(node->config);
-      }
-      return *node->config;
+    auto epoch_changed = true;
+    if (parent_info.number != 0) {
+      OUTCOME_TRY(parent_header, block_tree_->getBlockHeader(parent_info.hash));
+      OUTCOME_TRY(parent_digest, getBabeDigests(parent_header));
+      auto parent_epoch = slotToEpoch(parent_digest.second.slot_number);
+      epoch_changed = epoch_number != parent_epoch;
     }
-    return std::nullopt;
+    std::unique_lock lock{indexer_mutex_};
+    return config(parent_info, epoch_changed);
   }
 
   BabeDuration BabeConfigRepositoryImpl::slotDuration() const {
@@ -486,288 +177,6 @@ namespace kagome::consensus::babe {
   EpochLength BabeConfigRepositoryImpl::epochLength() const {
     BOOST_ASSERT_MSG(epoch_length_ != 0, "Epoch length is not initialized");
     return epoch_length_;
-  }
-
-  outcome::result<void> BabeConfigRepositoryImpl::onDigest(
-      const primitives::BlockContext &context,
-      const consensus::babe::BabeBlockHeader &digest) {
-    OUTCOME_TRY(
-        epoch_number,
-        slotToEpoch(*context.header->get().parentInfo(), digest.slot_number));
-
-    auto node = getNode(context);
-    BOOST_ASSERT(node != nullptr);
-
-    SL_LOG(logger_,
-           node->epoch != epoch_number ? log::Level::DEBUG : log::Level::TRACE,
-           "BabeBlockHeader babe-digest on block {}: "
-           "slot {}, epoch {}, authority #{}, {}",
-           context.block_info,
-           digest.slot_number,
-           epoch_number,
-           digest.authority_index,
-           to_string(digest.slotType()));
-
-    if (node->block == context.block_info) {
-      return BabeError::BAD_ORDER_OF_DIGEST_ITEM;
-    }
-
-    // Create descendant if and only if epoch is changed
-    if (node->epoch != epoch_number) {
-      auto new_node = node->makeDescendant(context.block_info, epoch_number);
-
-      node->descendants.emplace_back(std::move(new_node));
-    }
-
-    return outcome::success();
-  }
-
-  outcome::result<void> BabeConfigRepositoryImpl::onDigest(
-      const primitives::BlockContext &context,
-      const primitives::BabeDigest &digest) {
-    return visit_in_place(
-        digest,
-        [&](const primitives::NextEpochData &msg) -> outcome::result<void> {
-          SL_DEBUG(logger_,
-                   "NextEpochData babe-digest on block {}: "
-                   "{} authorities, randomness {}",
-                   context.block_info,
-                   msg.authorities.size(),
-                   msg.randomness);
-          return onNextEpochData(context, msg);
-        },
-        [&](const primitives::OnDisabled &msg) {
-          SL_TRACE(
-              logger_,
-              "OnDisabled babe-digest on block {}: "
-              "disable authority #{}; ignored (it is checked only by runtime)",
-              context.block_info,
-              msg.authority_index);
-          // Implemented sending of OnDisabled events before actually preventing
-          // disabled validators from authoring, so it's possible that there are
-          // blocks on the chain that came from disabled validators (before they
-          // were booted from the set at the end of epoch). Currently, the
-          // runtime prevents disabled validators from authoring (it will just
-          // panic), so we don't do any client-side handling in substrate
-          // https://matrix.to/#/!oZltgdfyakVMtEAWCI:web3.foundation/$hArAlUKaxvquGdaRG9W8ihcsNrO6wD4Q2CQjDIb3MMY?via=web3.foundation&via=matrix.org&via=matrix.parity.io
-          return outcome::success();
-        },
-        [&](const primitives::NextConfigData &msg) {
-          return visit_in_place(
-              msg,
-              [&](const primitives::NextConfigDataV1 &msg) {
-                SL_DEBUG(logger_,
-                         "NextConfigData babe-digest on block {}: "
-                         "ratio={}/{}, second_slot={}",
-                         context.block_info,
-                         msg.ratio.first,
-                         msg.ratio.second,
-                         to_string(msg.second_slot));
-                return onNextConfigData(context, msg);
-              },
-              [&](const auto &) {
-                SL_WARN(logger_,
-                        "Unsupported NextConfigData babe-digest on block {}: "
-                        "variant #{}",
-                        context.block_info,
-                        digest.which());
-                return BabeError::UNKNOWN_DIGEST_TYPE;
-              });
-        },
-        [&](auto &) {
-          SL_WARN(logger_,
-                  "Unsupported babe-digest on block {}: variant #{}",
-                  context.block_info,
-                  digest.which());
-          return BabeError::UNKNOWN_DIGEST_TYPE;
-        });
-  }
-
-  outcome::result<void> BabeConfigRepositoryImpl::onNextEpochData(
-      const primitives::BlockContext &context,
-      const primitives::NextEpochData &msg) {
-    auto node = getNode(context);
-
-    if (node->block != context.block_info) {
-      return BabeError::BAD_ORDER_OF_DIGEST_ITEM;
-    }
-
-    auto config = node->next_config.value_or(node->config);
-
-    if (config->authorities != msg.authorities
-        or config->randomness != msg.randomness) {
-      auto new_config =
-          std::make_shared<primitives::BabeConfiguration>(*config);
-      new_config->authorities = msg.authorities;
-      new_config->randomness = msg.randomness;
-      node->next_config = std::move(new_config);
-    }
-
-    return outcome::success();
-  }
-
-  outcome::result<void> BabeConfigRepositoryImpl::onNextConfigData(
-      const primitives::BlockContext &context,
-      const primitives::NextConfigDataV1 &msg) {
-    auto node = getNode(context);
-
-    if (node->block != context.block_info) {
-      return BabeError::BAD_ORDER_OF_DIGEST_ITEM;
-    }
-
-    auto config = node->next_config.value_or(node->config);
-
-    if (config->leadership_rate != msg.ratio
-        or config->allowed_slots != msg.second_slot) {
-      auto new_config =
-          std::make_shared<primitives::BabeConfiguration>(*config);
-      new_config->leadership_rate = msg.ratio;
-      new_config->allowed_slots = msg.second_slot;
-      node->next_config = std::move(new_config);
-    }
-
-    return outcome::success();
-  }
-
-  std::shared_ptr<BabeConfigNode> BabeConfigRepositoryImpl::getNode(
-      const primitives::BlockContext &context) const {
-    BOOST_ASSERT(root_ != nullptr);
-
-    // Lazy getter of direct chain best block ('cause it may be not used)
-    auto get_block =
-        [&, block = std::optional<primitives::BlockInfo>()]() mutable {
-          if (not block.has_value()) {
-            if (context.header.has_value()) {
-              const auto &header = context.header.value().get();
-              block.emplace(header.number - 1, header.parent_hash);
-            } else {
-              block.emplace(context.block_info);
-            }
-          }
-          return block.value();
-        };
-
-    // Target block is not descendant of the current root
-    if (root_->block.number > context.block_info.number
-        || (root_->block != context.block_info
-            && not directChainExists(root_->block, get_block()))) {
-      return nullptr;
-    }
-
-    std::shared_ptr<BabeConfigNode> ancestor = root_;
-    while (ancestor->block != context.block_info) {
-      bool goto_next_generation = false;
-      for (const auto &node : ancestor->descendants) {
-        if (node->block == context.block_info) {
-          return node;
-        }
-        if (directChainExists(node->block, get_block())) {
-          ancestor = node;
-          goto_next_generation = true;
-          break;
-        }
-      }
-      if (not goto_next_generation) {
-        break;
-      }
-    }
-    return ancestor;
-  }
-
-  bool BabeConfigRepositoryImpl::directChainExists(
-      const primitives::BlockInfo &ancestor,
-      const primitives::BlockInfo &descendant) const {
-    SL_TRACE(logger_,
-             "Looking if direct chain exists between {} and {}",
-             ancestor,
-             descendant);
-    // Check if it's one-block chain
-    if (ancestor == descendant) {
-      return true;
-    }
-    // Any block is descendant of genesis
-    if (ancestor.number == 0) {
-      return true;
-    }
-    // No direct chain if order is wrong
-    if (ancestor.number > descendant.number) {
-      return false;
-    }
-    auto result = block_tree_->hasDirectChain(ancestor.hash, descendant.hash);
-    return result;
-  }
-
-  void BabeConfigRepositoryImpl::prune(const primitives::BlockInfo &block) {
-    if (block == root_->block) {
-      return;
-    }
-
-    if (block.number < root_->block.number) {
-      return;
-    }
-
-    auto node = getNode({.block_info = block});
-
-    if (not node) {
-      return;
-    }
-
-    if (node->block != block) {
-      // Reorganize ancestry
-      auto new_node = node->makeDescendant(block);
-      auto descendants = std::move(node->descendants);
-      for (auto &descendant : descendants) {
-        if (directChainExists(block, descendant->block)) {
-          new_node->descendants.emplace_back(std::move(descendant));
-        }
-      }
-      node = std::move(new_node);
-    }
-
-    root_ = std::move(node);
-
-    SL_TRACE(logger_, "Prune upto block {}", block);
-  }
-
-  void BabeConfigRepositoryImpl::cancel(const primitives::BlockInfo &block) {
-    auto ancestor = getNode({.block_info = block});
-
-    if (ancestor == nullptr) {
-      SL_TRACE(logger_, "Can't remove node of block {}: no ancestor", block);
-      return;
-    }
-
-    if (ancestor == root_) {
-      // Can't remove root
-      SL_TRACE(logger_, "Can't remove node of block {}: it is root", block);
-      return;
-    }
-
-    if (ancestor->block == block) {
-      ancestor =
-          std::const_pointer_cast<BabeConfigNode>(ancestor->parent.lock());
-      BOOST_ASSERT_MSG(ancestor != nullptr, "Non root node must have a parent");
-    }
-
-    auto it = std::find_if(ancestor->descendants.begin(),
-                           ancestor->descendants.end(),
-                           [&](std::shared_ptr<BabeConfigNode> node) {
-                             return node->block == block;
-                           });
-
-    if (it != ancestor->descendants.end()) {
-      if (not(*it)->descendants.empty()) {
-        // Has descendants - is not a leaf
-        SL_TRACE(logger_,
-                 "Can't remove node of block {}: "
-                 "not found such descendant of ancestor",
-                 block);
-        return;
-      }
-
-      ancestor->descendants.erase(it);
-      SL_DEBUG(logger_, "Node of block {} has removed", block);
-    }
   }
 
   BabeSlotNumber BabeConfigRepositoryImpl::timeToSlot(
@@ -839,36 +248,148 @@ namespace kagome::consensus::babe {
     return EpochDescriptor{slots / epochLength(), slots % epochLength()};
   }
 
-  void BabeConfigRepositoryImpl::readFromState(
-      const primitives::BlockInfo &block) {
-    if (auto r = readFromStateOutcome(block); not r) {
-      logger_->error("readFromState {}, error: {}", block, r.error());
-    }
+  void BabeConfigRepositoryImpl::warp(const primitives::BlockInfo &block) {
+    std::unique_lock lock{indexer_mutex_};
+    indexer_.put(block, {}, true);
   }
 
-  outcome::result<void> BabeConfigRepositoryImpl::readFromStateOutcome(
-      const primitives::BlockInfo &block) {
-    OUTCOME_TRY(header, block_tree_->getBlockHeader(block.hash));
-    OUTCOME_TRY(config, babe_api_->configuration(block.hash));
-    root_ = BabeConfigNode::createAsRoot(
-        block,
-        std::make_shared<primitives::BabeConfiguration>(std::move(config)));
-    if (block.number != 0) {
-      OUTCOME_TRY(slot, getBabeSlot(header));
-      BOOST_OUTCOME_TRY(root_->epoch, slotToEpoch(block, slot));
-      OUTCOME_TRY(next, babe_api_->next_epoch(block.hash));
-      auto config =
-          std::make_shared<primitives::BabeConfiguration>(*root_->config);
-      config->authorities = std::move(next.authorities);
-      config->randomness = next.randomness;
-      config->leadership_rate = next.leadership_rate;
-      config->allowed_slots = next.allowed_slots;
-      root_->next_config = config;
+  outcome::result<std::shared_ptr<const primitives::BabeConfiguration>>
+  BabeConfigRepositoryImpl::config(const primitives::BlockInfo &block,
+                                   bool next_epoch) const {
+    auto descent = indexer_.descend(block);
+    outcome::result<void> cb_res = outcome::success();
+    auto cb = [&](std::optional<primitives::BlockInfo> prev,
+                  size_t i_first,
+                  size_t i_last) {
+      cb_res = [&]() -> outcome::result<void> {
+        BOOST_ASSERT(i_first >= i_last);
+        auto info = descent.path_.at(i_first);
+        std::shared_ptr<const primitives::BabeConfiguration> prev_state;
+        if (not prev) {
+          OUTCOME_TRY(_state, babe_api_->configuration(info.hash));
+          auto state = std::make_shared<primitives::BabeConfiguration>(
+              std::move(_state));
+          BabeIndexedValue value{getConfig(*state), state, state};
+          if (info.number == 0) {
+            indexer_.put(info, {value, std::nullopt}, true);
+          } else {
+            std::vector<primitives::BlockInfo> refs;
+            while (true) {
+              OUTCOME_TRY(header, block_tree_->getBlockHeader(info.hash));
+              if (HasBabeConsensusDigest digests{header}) {
+                value.next_state = applyDigests(value.config, digests);
+                indexer_.put(info, {value, std::nullopt}, true);
+                if (not refs.empty()) {
+                  indexer_.remove(refs.front());
+                }
+                break;
+              }
+              refs.emplace_back(info);
+              info = *header.parentInfo();
+            }
+            std::reverse(refs.begin(), refs.end());
+            for (auto &block : refs) {
+              indexer_.put(block, {std::nullopt, info, true}, false);
+            }
+          }
+          if (i_first == i_last) {
+            return outcome::success();
+          }
+          prev = info;
+          prev_state = *value.next_state;
+          --i_first;
+        }
+        while (true) {
+          info = descent.path_.at(i_first);
+          OUTCOME_TRY(header, block_tree_->getBlockHeader(info.hash));
+          if (HasBabeConsensusDigest digests{header}) {
+            if (not prev_state) {
+              BOOST_OUTCOME_TRY(prev_state, loadPrev(prev));
+            }
+            auto state = applyDigests(getConfig(*prev_state), digests);
+            BabeIndexedValue value{getConfig(*state), std::nullopt, state};
+            indexer_.put(info, {value, prev}, block_tree_->isFinalized(info));
+            prev = info;
+            prev_state = state;
+          } else {
+            indexer_.put(info, {std::nullopt, prev, true}, false);
+          }
+          if (i_first == i_last) {
+            break;
+          }
+          --i_first;
+        }
+        return outcome::success();
+      }();
+    };
+    auto r = indexer_.search(descent, block, cb);
+    OUTCOME_TRY(cb_res);
+    if (not r) {
+      return Error::NOT_FOUND;
     }
-    OUTCOME_TRY(
-        persistent_storage_->put(storage::kBabeConfigRepoStateLookupKey("last"),
-                                 scale::encode(root_).value()));
-    SL_INFO(logger_, "Read state at {}", block);
+    if (not next_epoch and r->second.value->state) {
+      return *r->second.value->state;
+    }
+    if (next_epoch) {
+      OUTCOME_TRY(load(r->first, r->second));
+      return *r->second.value->next_state;
+    }
+    if (not r->second.prev) {
+      return Error::PREVIOUS_NOT_FOUND;
+    }
+    return loadPrev(*r->second.prev);
+  }
+
+  std::shared_ptr<primitives::BabeConfiguration>
+  BabeConfigRepositoryImpl::applyDigests(
+      const primitives::NextConfigDataV1 &config,
+      const HasBabeConsensusDigest &digests) const {
+    BOOST_ASSERT(digests);
+    auto state = std::make_shared<primitives::BabeConfiguration>();
+    state->slot_duration = slot_duration_;
+    state->epoch_length = epoch_length_;
+    if (digests.config) {
+      state->leadership_rate = digests.config->ratio;
+      state->allowed_slots = digests.config->second_slot;
+    } else {
+      state->leadership_rate = config.ratio;
+      state->allowed_slots = config.second_slot;
+    }
+    state->authorities = digests.epoch->authorities;
+    state->randomness = digests.epoch->randomness;
+    return state;
+  }
+
+  outcome::result<void> BabeConfigRepositoryImpl::load(
+      const primitives::BlockInfo &block,
+      blockchain::Indexed<BabeIndexedValue> &item) const {
+    if (not item.value->next_state) {
+      if (block.number == 0) {
+        BOOST_ASSERT(item.value->state);
+        item.value->next_state = item.value->state;
+      } else {
+        OUTCOME_TRY(header, block_tree_->getBlockHeader(block.hash));
+        item.value->next_state = applyDigests(item.value->config, {header});
+        indexer_.put(block, item, false);
+      }
+    }
     return outcome::success();
+  }
+
+  outcome::result<std::shared_ptr<const primitives::BabeConfiguration>>
+  BabeConfigRepositoryImpl::loadPrev(
+      const std::optional<primitives::BlockInfo> &prev) const {
+    if (not prev) {
+      return Error::PREVIOUS_NOT_FOUND;
+    }
+    auto r = indexer_.get(*prev);
+    if (not r) {
+      return Error::PREVIOUS_NOT_FOUND;
+    }
+    if (not r->value) {
+      return Error::PREVIOUS_NOT_FOUND;
+    }
+    OUTCOME_TRY(load(*prev, *r));
+    return *r->value->next_state;
   }
 }  // namespace kagome::consensus::babe
