@@ -23,6 +23,7 @@
 #include "network/impl/protocols/protocol_error.hpp"
 #include "network/peer_manager.hpp"
 #include "network/router.hpp"
+#include "parachain/approval/state.hpp"
 #include "parachain/availability/chunks.hpp"
 #include "parachain/availability/proof.hpp"
 #include "parachain/candidate_view.hpp"
@@ -84,7 +85,7 @@ namespace kagome::parachain {
       std::shared_ptr<blockchain::BlockTree> block_tree,
       std::shared_ptr<consensus::grandpa::AuthorityManager> authority_manager,
       std::shared_ptr<consensus::babe::BabeUtil> babe_util,
-      std::shared_ptr<consensus::babe::BabeConfigRepository> babe_config_repo)
+      std::shared_ptr<consensus::babe::BabeConfigRepository> babe_config_repo, std::shared_ptr<crypto::SessionKeys> session_keys)
       : pm_(std::move(pm)),
         crypto_provider_(std::move(crypto_provider)),
         router_(std::move(router)),
@@ -105,7 +106,7 @@ namespace kagome::parachain {
         block_tree_{std::move(block_tree)},
         authority_manager_{std::move(authority_manager)},
         babe_util_{std::move(babe_util)},
-        babe_config_repo_{std::move(babe_config_repo)},
+        babe_config_repo_{std::move(babe_config_repo)}, session_keys_{std::move(session_keys)},
         thread_handler_{thread_pool_->handler()} {
     BOOST_ASSERT(pm_);
     BOOST_ASSERT(peer_view_);
@@ -126,7 +127,29 @@ namespace kagome::parachain {
     app_state_manager->takeControl(*this);
   }
 
-  struct TargetStatistics {};
+  struct ByParachainStatistics {
+    size_t candidates_count{0ull};
+
+    size_t implicit_validity_votes{0ull};
+    size_t explicit_validity_votes{0ull};
+
+    ~ByParachainStatistics() {
+      BOOST_ASSERT(false);
+    }
+  };
+
+  struct TargetStatistics {
+    size_t blocks_with_para_inherent{0ull};
+    size_t bitfields{0ull};
+    size_t backed_candidates{0ull};
+
+    std::unordered_map<network::ParachainId, ByParachainStatistics>
+        by_parachain{};
+
+    ~TargetStatistics() {
+      BOOST_ASSERT(false);
+    }
+  };
 
   struct CommonStatistics {
     size_t errors{0ull};
@@ -135,6 +158,10 @@ namespace kagome::parachain {
     size_t blocks_with_no_body{0ull};
 
     std::map<primitives::AuthorityId, TargetStatistics> target_stat{};
+
+    ~CommonStatistics() {
+      BOOST_ASSERT(false);
+    }
 
     void inc_errors() {
       ++errors;
@@ -156,8 +183,46 @@ namespace kagome::parachain {
     }
   };
 
+  outcome::result<
+      std::unordered_map<network::ParachainId, std::vector<ValidatorId>>>
+  ParachainProcessorImpl::agregateValidatorGroups(
+      const primitives::BlockHash &relay_parent) {
+    OUTCOME_TRY(validators, parachain_host_->validators(relay_parent));
+    OUTCOME_TRY(groups, parachain_host_->validator_groups(relay_parent));
+    OUTCOME_TRY(cores, parachain_host_->availability_cores(relay_parent));
+    auto &[validator_groups, group_rotation_info] = groups;
+
+    const auto n_cores = cores.size();
+    std::unordered_map<ParachainId, std::vector<ValidatorId>> out_groups;
+    for (CoreIndex core_index = 0;
+         core_index < static_cast<CoreIndex>(cores.size());
+         ++core_index) {
+      if (const auto *scheduled =
+              boost::get<const network::ScheduledCore>(&cores[core_index])) {
+        const auto group_index =
+            group_rotation_info.groupForCore(core_index, n_cores);
+        if (group_index < validator_groups.size()) {
+          auto &g = validator_groups[group_index];
+
+          std::vector<ValidatorId> val_ids;
+          val_ids.reserve(g.validators.size());
+
+          for (const ValidatorIndex val_idx : g.validators) {
+            BOOST_ASSERT(val_idx < validators.size());
+            val_ids.emplace_back(validators[val_idx]);
+          }
+          out_groups[scheduled->para_id] = std::move(val_ids);
+        }
+      }
+    }
+    return out_groups;
+  }
+
   void ParachainProcessorImpl::agregateBlockBodyData(
-      TargetStatistics &statistics, const primitives::BlockBody &body) {
+      CommonStatistics &common_statistics,
+      TargetStatistics &statistics,
+      const primitives::BlockBody &body,
+      const primitives::BlockHash &relay_parent) {
     for (const auto &extrinsic : body) {
       auto &tmp = extrinsic.data;
 
@@ -167,9 +232,77 @@ namespace kagome::parachain {
       }
 
       auto data = gsl::span(tmp.data(), tmp.size()).subspan(3);
-      auto para_inherent =
+      network::ParachainInherentData para_inherent =
           scale::decode<network::ParachainInherentData>(data).value();
-      int p = 0; ++p;
+
+      ++statistics.blocks_with_para_inherent;
+      statistics.bitfields += para_inherent.bitfields.size();
+      statistics.backed_candidates += para_inherent.backed_candidates.size();
+
+      const auto res_validators_by_parachains =
+          agregateValidatorGroups(relay_parent);
+      if (res_validators_by_parachains.has_error()) {
+        SL_ERROR(logger_,
+                 "Unable to determine validators groups by parachains. "
+                 "(relay_parent={})",
+                 relay_parent);
+        return;
+      }
+
+      const auto &validators_by_parachains =
+          res_validators_by_parachains.value();
+      for (const network::BackedCandidate &backed_candidate :
+           para_inherent.backed_candidates) {
+        const network::ParachainId para_id =
+            backed_candidate.candidate.descriptor.para_id;
+
+        auto it_validators_group = validators_by_parachains.find(para_id);
+        if (it_validators_group == validators_by_parachains.end()) {
+          SL_ERROR(logger_,
+                   "Parachain doesn't have assigned validators group. "
+                   "(relay_parent={}, para_id={})",
+                   relay_parent,
+                   para_id);
+          return;
+        }
+        const std::vector<ValidatorId> &validators_group =
+            it_validators_group->second;
+        BOOST_ASSERT(approval::count_ones(backed_candidate.validator_indices)
+                     == backed_candidate.validity_votes.size());
+
+        for (size_t ix = 0, vv_idx = 0;
+             ix < backed_candidate.validator_indices.bits.size();
+             ++ix) {
+          if (!backed_candidate.validator_indices.bits[ix]) {
+            continue;
+          }
+
+          const network::ValidityAttestation &validity_vote =
+              backed_candidate.validity_votes[vv_idx++];
+          const ValidatorId &validator_id = validators_group[ix];
+
+          TargetStatistics &target_stat =
+              common_statistics
+                  .target_stat[primitives::AuthorityId{validator_id}];
+          ByParachainStatistics &by_para_stat =
+              target_stat.by_parachain[para_id];
+
+          if (kagome::is_type<network::ValidityAttestation::Explicit>(
+                  validity_vote.kind)) {
+            ++by_para_stat.explicit_validity_votes;
+          } else if (kagome::is_type<network::ValidityAttestation::Implicit>(
+                         validity_vote.kind)) {
+            ++by_para_stat.explicit_validity_votes;
+          } else {
+            SL_WARN(logger_,
+                    "Backed candidate doesn't have implicit/explicit validity "
+                    "attestation. "
+                    "(relay_parent={}, para_id={})",
+                    relay_parent,
+                    para_id);
+          }
+        }
+      }
     }
   }
 
@@ -178,9 +311,6 @@ namespace kagome::parachain {
       primitives::AuthorityList &authority_list,
       CommonStatistics &statistics,
       const primitives::BlockHeader &header) {
-    auto *ts = new TargetStatistics{};
-    return std::ref(*ts);
-
     const auto res_babe_digests = consensus::babe::getBabeDigests(header);
     if (res_babe_digests.has_error()) {
       SL_ERROR(logger_,
@@ -194,7 +324,6 @@ namespace kagome::parachain {
     // const auto slot_number = babe_block_header.slot_number;
     // auto epoch_number = babe_util_->slotToEpoch(slot_number);
     const auto authority_index = babe_block_header.authority_index;
-
     return std::ref(statistics.target_stat[authority_list[authority_index].id]);
 
     //    auto block_hash = hasher_->blake2b_256(scale::encode(header).value());
@@ -334,7 +463,7 @@ namespace kagome::parachain {
         statistics.inc_no_headers();
         continue;
       }
-      const auto &block_header = result_block_header.value();
+      const primitives::BlockHeader &block_header = result_block_header.value();
 
       if (const auto res_epoch_dig =
               consensus::babe::getNextEpochDigest(block_header);
@@ -362,7 +491,8 @@ namespace kagome::parachain {
         continue;
       }
       const auto &block_body = result_block_body.value();
-      agregateBlockBodyData(target_stat, block_body);
+      agregateBlockBodyData(
+          statistics, target_stat, block_body, block_header.parent_hash);
 
       auto result_events = parachain_host_->candidate_events(block_hash);
       if (result.has_error() || !result.value()) {
@@ -378,6 +508,19 @@ namespace kagome::parachain {
       for (const auto &ev : events) {
       }
     }
+
+    for (const auto &[auth_id, target_stat] : statistics.target_stat) {
+      SL_INFO(logger_,
+              "Statistics result. (auth_id={}, para_inherent={}, "
+              "bitfields={}, backed_candidates={})",
+              auth_id.id,
+              target_stat.blocks_with_para_inherent,
+              target_stat.bitfields,
+              target_stat.backed_candidates);
+    }
+
+    int p = 0;
+    ++p;
   }
 
   bool ParachainProcessorImpl::prepare() {

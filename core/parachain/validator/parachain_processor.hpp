@@ -107,7 +107,7 @@ namespace kagome::parachain {
         std::shared_ptr<consensus::grandpa::AuthorityManager> authority_manager,
         std::shared_ptr<consensus::babe::BabeUtil> babe_util,
         std::shared_ptr<consensus::babe::BabeConfigRepository>
-            babe_config_repo);
+            babe_config_repo, std::shared_ptr<crypto::SessionKeys> session_keys);
     ~ParachainProcessorImpl() = default;
 
     bool prepare();
@@ -407,8 +407,13 @@ namespace kagome::parachain {
     agregateBlockHeaderData(primitives::AuthorityList &authority_list,
                             CommonStatistics &statistics,
                             const primitives::BlockHeader &header);
-    void agregateBlockBodyData(TargetStatistics &statistics,
-                               const primitives::BlockBody &body);
+    void agregateBlockBodyData(CommonStatistics &common_statistics,
+                               TargetStatistics &statistics,
+                               const primitives::BlockBody &body,
+                               const primitives::BlockHash &relay_parent);
+    outcome::result<
+        std::unordered_map<network::ParachainId, std::vector<ValidatorId>>>
+    agregateValidatorGroups(const primitives::BlockHash &relay_parent);
 
     std::optional<ImportStatementSummary> importStatementToTable(
         ParachainProcessorImpl::RelayParentState &relayParentState,
@@ -453,6 +458,7 @@ namespace kagome::parachain {
     std::shared_ptr<consensus::grandpa::AuthorityManager> authority_manager_;
     std::shared_ptr<consensus::babe::BabeUtil> babe_util_;
     std::shared_ptr<consensus::babe::BabeConfigRepository> babe_config_repo_;
+std::shared_ptr<crypto::SessionKeys> session_keys_;
 
     std::shared_ptr<primitives::events::ChainEventSubscriber> chain_sub_;
     std::shared_ptr<ThreadHandler> thread_handler_;
