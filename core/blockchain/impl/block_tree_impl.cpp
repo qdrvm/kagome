@@ -17,7 +17,6 @@
 #include "crypto/blake2/blake2b.h"
 #include "log/profiling_logger.hpp"
 #include "storage/database_error.hpp"
-#include "storage/trie_pruner/recover_pruner_state.hpp"
 #include "storage/trie_pruner/trie_pruner.hpp"
 
 namespace {
@@ -306,8 +305,7 @@ namespace kagome::blockchain {
           log, "Existing non-finalized block {} is added to block tree", block);
     }
 
-    OUTCOME_TRY(
-        storage::trie_pruner::recoverPrunerState(*state_pruner, *block_tree));
+    OUTCOME_TRY(state_pruner->recoverState(*block_tree));
 
     return block_tree;
   }
@@ -1208,6 +1206,14 @@ namespace kagome::blockchain {
       const primitives::BlockHash &descendant) const {
     return block_tree_data_.sharedAccess([&](const auto &p) {
       return hasDirectChainNoLock(p, ancestor, descendant);
+    });
+  }
+
+  bool BlockTreeImpl::isFinalized(const primitives::BlockInfo &block) const {
+    return block_tree_data_.sharedAccess([&](const BlockTreeData &p) {
+      return block.number <= getLastFinalizedNoLock(p).number
+         and p.header_repo_->getHashByNumber(block.number)
+                 == outcome::success(block.hash);
     });
   }
 

@@ -19,18 +19,15 @@ namespace kagome::primitives {
 
     DelayInChain() = default;
     explicit DelayInChain(uint32_t delay) : subchain_length(delay) {}
-    virtual ~DelayInChain() = default;
   };
 
   struct AuthorityListChange {
-    SCALE_TIE(2);
     AuthorityList authorities{};
     uint32_t subchain_length = 0;
 
     AuthorityListChange() = default;
     AuthorityListChange(AuthorityList authorities, uint32_t delay)
         : authorities(std::move(authorities)), subchain_length(delay) {}
-    virtual ~AuthorityListChange() = default;
   };
 
   struct NextEpochData final : public consensus::babe::EpochDigest {
@@ -45,10 +42,14 @@ namespace kagome::primitives {
   using NextConfigData = boost::variant<Unused<0>, NextConfigDataV1>;
 
   struct ScheduledChange final : public AuthorityListChange {
+    SCALE_TIE_ONLY(authorities, subchain_length);
+
     using AuthorityListChange::AuthorityListChange;
   };
 
   struct ForcedChange final : public AuthorityListChange {
+    SCALE_TIE_ONLY(delay_start, authorities, subchain_length);
+
     ForcedChange() = default;
 
     ForcedChange(AuthorityList authorities,
@@ -57,18 +58,6 @@ namespace kagome::primitives {
         : AuthorityListChange(authorities, delay), delay_start{delay_start} {}
 
     BlockNumber delay_start;
-
-    friend scale::ScaleDecoderStream &operator>>(scale::ScaleDecoderStream &s,
-                                                 ForcedChange &change) {
-      return s >> change.delay_start >> change.authorities
-             >> change.subchain_length;
-    }
-
-    friend scale::ScaleEncoderStream &operator<<(scale::ScaleEncoderStream &s,
-                                                 const ForcedChange &change) {
-      return s << change.delay_start << change.authorities
-               << change.subchain_length;
-    }
   };
 
   struct OnDisabled {

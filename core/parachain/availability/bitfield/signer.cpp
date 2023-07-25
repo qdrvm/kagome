@@ -11,12 +11,6 @@
 namespace kagome::parachain {
   constexpr std::chrono::milliseconds kDelay{1500};
 
-  namespace {
-    inline auto log() {
-      return log::createLogger("BitfieldSigner");
-    }
-  }  // namespace
-
   BitfieldSigner::BitfieldSigner(
       std::shared_ptr<crypto::Hasher> hasher,
       std::shared_ptr<ValidatorSignerFactory> signer_factory,
@@ -52,7 +46,7 @@ namespace kagome::parachain {
                     boost::get<primitives::events::HeadsEventParams>(event))
                     .value()));
             if (r.has_error()) {
-              SL_DEBUG(log(), "onBlock error {}", r.error());
+              SL_DEBUG(self->logger_, "onBlock error {}", r.error());
             }
           }
         });
@@ -66,7 +60,7 @@ namespace kagome::parachain {
 
   outcome::result<void> BitfieldSigner::sign(const ValidatorSigner &signer,
                                              const Candidates &candidates) {
-    BlockHash const &relay_parent = signer.relayParent();
+    const BlockHash &relay_parent = signer.relayParent();
     scale::BitVec bitfield;
     bitfield.bits.reserve(candidates.size());
     for (auto &candidate : candidates) {
@@ -125,7 +119,7 @@ namespace kagome::parachain {
           if (auto self = weak.lock()) {
             auto r = self->sign(signer, candidates);
             if (r.has_error()) {
-              SL_WARN(log(), "sign error {}", r.error());
+              SL_WARN(self->logger_, "sign error {}", r.error());
             }
           }
         },

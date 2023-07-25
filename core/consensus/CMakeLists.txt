@@ -5,7 +5,6 @@
 
 add_library(consensus
     babe/impl/babe_digests_util.cpp
-    babe/impl/babe_config_node.cpp
     babe/impl/block_executor_impl.cpp
     babe/impl/babe_impl.cpp
     babe/impl/threshold_util.cpp

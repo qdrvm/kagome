@@ -25,7 +25,7 @@ namespace kagome::offchain {
         : threads_{threads},
           free_threads_{threads},
           max_tasks_{max_tasks},
-          thread_pool_{threads_} {}
+          thread_pool_{"ocw", threads_} {}
 
     void run(Task &&task) {
       std::unique_lock lock{mutex_};

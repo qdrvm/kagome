@@ -25,7 +25,6 @@ add_library(storage
     trie/serialization/trie_serializer_impl.cpp
     trie/serialization/polkadot_codec.cpp
     trie_pruner/impl/trie_pruner_impl.cpp
-    trie_pruner/impl/recover_pruner_state.cpp
     )
 target_link_libraries(storage
     blob

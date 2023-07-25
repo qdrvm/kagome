@@ -13,7 +13,9 @@
 #include <random>
 #include <unordered_map>
 
+#if defined(BACKWARD_HAS_BACKTRACE)
 #include <backward.hpp>
+#endif
 
 #include "libp2p/connection/stream.hpp"
 #include "libp2p/host/host.hpp"
