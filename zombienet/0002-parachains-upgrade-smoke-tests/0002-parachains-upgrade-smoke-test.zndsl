@@ -4,7 +4,7 @@ Creds: config
 
 alice: is up
 bob: is up
-bob: parachain 100 is registered within 400 seconds
+bob: parachain 100 is registered within 225 seconds
 bob: parachain 100 block height is at least 10 within 500 seconds
-bob: parachain 100 perform dummy upgrade within 600 seconds
-bob: parachain 100 block height is at least 14 within 400 seconds
+bob: parachain 100 perform dummy upgrade within 200 seconds
+bob: parachain 100 block height is at least 14 within 200 seconds
