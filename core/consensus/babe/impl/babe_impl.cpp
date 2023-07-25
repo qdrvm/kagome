@@ -584,7 +584,8 @@ namespace kagome::consensus::babe {
             }
 
             // Caught up some block, possible block of current slot
-            if (self->current_state_ == Babe::State::CATCHING_UP) {
+            if (self->current_state_ == Babe::State::CATCHING_UP
+                or self->current_state_ == State::WAIT_REMOTE_STATUS) {
               self->onCaughtUp(block);
             }
 
