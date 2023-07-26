@@ -72,6 +72,12 @@ namespace kagome::dispute {
     return it->second;
   }
 
+  void StorageImpl::write_candidate_votes(SessionIndex session,
+                                          const CandidateHash &candidate_hash,
+                                          const CandidateVotes &votes) {
+    candidate_votes_.emplace(std::tie(session, candidate_hash), votes);
+  }
+
   void StorageImpl::write_recent_disputes(RecentDisputes recent_disputes) {
     recent_disputes_ = std::move(recent_disputes);
 

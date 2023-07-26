@@ -1414,6 +1414,13 @@ namespace kagome::dispute {
                  ? is_type<Confirmed>(new_state.dispute_status.value())
                  : false);
 
+    // Only write when votes have changed.
+    if (import_result.imported_valid_votes
+        || import_result.imported_invalid_votes) {
+      storage_->write_candidate_votes(
+          session, candidate_hash, import_result.new_state.votes);
+    }
+
     return outcome::success(true);
   }
 

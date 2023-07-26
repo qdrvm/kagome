@@ -24,6 +24,10 @@ namespace kagome::dispute {
     virtual outcome::result<std::optional<CandidateVotes>> load_candidate_votes(
         SessionIndex session, const CandidateHash &candidate_hash) = 0;
 
+    virtual void write_candidate_votes(SessionIndex session,
+                                       const CandidateHash &candidate_hash,
+                                       const CandidateVotes &votes) = 0;
+
     /// Load the earliest session, if any.
     virtual std::optional<SessionIndex> load_earliest_session() = 0;
 

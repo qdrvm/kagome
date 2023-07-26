@@ -28,6 +28,10 @@ namespace kagome::dispute {
     outcome::result<std::optional<CandidateVotes>> load_candidate_votes(
         SessionIndex session, const CandidateHash &candidate_hash) override;
 
+    void write_candidate_votes(SessionIndex session,
+                               const CandidateHash &candidate_hash,
+                               const CandidateVotes &votes) override;
+
     void write_recent_disputes(RecentDisputes recent_disputes) override;
 
     outcome::result<std::optional<StoredWindow>> loadSessionsWindow() override;
