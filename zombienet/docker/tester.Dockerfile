@@ -3,7 +3,7 @@ FROM soramitsu/kagome:latest as kagome
 
 FROM soramitsu/zombie-builder:latest AS tester
 COPY --from=kagome /usr/local/bin/kagome /home/nonroot/bin
-RUN git clone https://github.com/soramitsu/kagome.git
+RUN git clone -b feature/add-zombienet-tests-part2 --single-branch https://github.com/soramitsu/kagome.git
 USER nonroot
 CMD zombienet-linux-x64 test -p native kagome/zombienet/0001-parachains-smoke-test/0001-parachains-smoke-test.zndsl && \
     zombienet-linux-x64 test -p native kagome/zombienet/0002-parachains-upgrade-smoke-tests/0002-parachains-upgrade-smoke-test.zndsl && \
