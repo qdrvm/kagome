@@ -230,7 +230,7 @@ namespace kagome::consensus::babe {
         first_block_slot_number_ = slot1;
         OUTCOME_TRY(persistent_storage_->put(
             storage::kBabeConfigRepositoryImplGenesisSlot,
-            scale::encode(slot1).value()));
+            scale::encode(*slot1).value()));
       }
     }
     return slot1.value();
