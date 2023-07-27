@@ -2280,6 +2280,13 @@ namespace kagome::dispute {
         // batch either as that would be unbounded, only limited by the rate
         // limit.
         (*cb_opt)(BatchError::RedundantMessage);
+
+      } else {  // FIXME testing code. must be removed
+        auto prepared_import =
+            batch->tick(steady_clock_.now() + Batch::kBatchCollectingInterval);
+        if (prepared_import.has_value()) {
+          start_import(std::move(prepared_import.value()));
+        }
       }
     }
 
