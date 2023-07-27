@@ -763,7 +763,10 @@ namespace kagome::dispute {
           // https://github.com/paritytech/polkadot/blob/40974fb99c86f5c341105b7db53c7aa0df707d66/node/network/dispute-distribution/src/sender/mod.rs#L219
           if (auto self = wp.lock()) {
             self->getActiveDisputes([wp](auto active_disputes_res) {
-
+              if (auto self = wp.lock()) {
+                self->handle_active_dispute_response(
+                    std::move(active_disputes_res));
+              }
             });
           }
         });
@@ -843,16 +846,14 @@ namespace kagome::dispute {
                     candidates.emplace(std::get<1>(active_dispute));
                   });
 
-    // Cleanup obsolete senders (retain keeps order of remaining
-    // elements):
-    for (auto it = sending_disputes_.begin(); it != sending_disputes_.end();) {
-      auto &candidate_hash = std::get<0>(*it);
-      if (candidates.count(candidate_hash) == 0) {
-        it = sending_disputes_.erase(it);
-      } else {
-        ++it;
-      }
-    }
+    // Cleanup obsolete senders
+    sending_disputes_.remove_if([&](const auto &x) {
+      const auto &candidate_hash = std::get<0>(x);
+      return candidates.find(candidate_hash) == candidates.end();
+    });
+
+    SL_INFO(
+        log_, "DEBUG: sending_disputes_.empty={}", sending_disputes_.empty());
 
     // Iterates in order of insertion:
     // https://github.com/paritytech/polkadot/blob/40974fb99c86f5c341105b7db53c7aa0df707d66/node/network/dispute-distribution/src/sender/mod.rs#L267
