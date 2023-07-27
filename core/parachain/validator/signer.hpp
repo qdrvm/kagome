@@ -74,6 +74,10 @@ namespace kagome::parachain {
       };
     }
 
+    outcome::result<Signature> signRaw(common::BufferView data) const {
+      return sr25519_provider_->sign(*keypair_, data);
+    }
+
     SessionIndex getSessionIndex() const;
 
     /// Get validator index.
