@@ -752,6 +752,7 @@ namespace kagome::dispute {
       auto sessions_updated = res.value();
 
       auto waiting = std::move(waiting_for_active_disputes_);
+      waiting_for_active_disputes_.reset();
       if (not waiting.has_value()) {
         // https://github.com/paritytech/polkadot/blob/40974fb99c86f5c341105b7db53c7aa0df707d66/node/network/dispute-distribution/src/sender/mod.rs#L196
 
@@ -821,6 +822,7 @@ namespace kagome::dispute {
       outcome::result<OutputDisputes> active_disputes_res) {
     // https://github.com/paritytech/polkadot/blob/40974fb99c86f5c341105b7db53c7aa0df707d66/node/network/dispute-distribution/src/sender/mod.rs#L184
     auto state = std::move(waiting_for_active_disputes_);
+    waiting_for_active_disputes_.reset();
     auto have_new_sessions = state.has_value() and state->have_new_sessions;
 
     if (active_disputes_res.has_error()) {
