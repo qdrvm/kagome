@@ -62,9 +62,19 @@ namespace kagome::dispute {
       return std::nullopt;
     }
 
-    return PreparedImport{
-
+    PreparedImport prepared_import{
+        .candidate_receipt = candidate_receipt,
+        .requesters = requesters_,
     };
+
+    for (auto &votes : {valid_votes_, invalid_votes_}) {
+      for (auto &vote : votes) {
+        prepared_import.statements.emplace_back(
+            Indexed<SignedDisputeStatement>{vote.second, vote.first});
+      }
+    }
+
+    return prepared_import;
   }
 
 }  // namespace kagome::dispute
