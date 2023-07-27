@@ -977,7 +977,7 @@ namespace kagome::dispute {
       }
       old_state = {
           .votes = {.candidate_receipt = provided_opt.value().get()},
-          .own_vote = {CannotVote{}},
+          .own_vote = CannotVote{},
           .dispute_status = std::nullopt,
       };
     }

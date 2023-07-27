@@ -34,7 +34,9 @@ namespace kagome::dispute {
         }
       }
 
-      res.own_vote = std::move(voted);
+      if (not voted.empty()) {
+        res.own_vote = std::move(voted);
+      }
     }
 
     // Check if isn't disputed

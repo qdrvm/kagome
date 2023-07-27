@@ -26,7 +26,7 @@ namespace kagome::dispute {
     CandidateVotes votes;
 
     /// Information about own votes:
-    OwnVoteState own_vote;
+    OwnVoteState own_vote = CannotVote{};
 
     /// Current dispute status, if there is any.
     std::optional<DisputeStatus> dispute_status;
