@@ -135,6 +135,9 @@ namespace kagome::parachain {
     size_t implicit_validity_votes{0ull};
     size_t explicit_validity_votes{0ull};
 
+    size_t event_candidate_included{0ull};
+    size_t event_candidate_backed{0ull};
+
     ~ByParachainStatistics() {
       BOOST_ASSERT(false);
     }
@@ -507,7 +510,21 @@ namespace kagome::parachain {
       }
 
       const auto &events = result_events.value();
-      for (const auto &ev : events) {
+      for (auto &candidate : events) {
+        if (auto obj{boost::get<runtime::CandidateIncluded>(&candidate)}) {
+          ByParachainStatistics &by_para_stat =
+              target_stat
+                  .by_parachain[obj->candidate_receipt.descriptor.para_id];
+          ++by_para_stat.event_candidate_included;
+          continue;
+        }
+        if (auto obj{boost::get<runtime::CandidateBacked>(&candidate)}) {
+          ByParachainStatistics &by_para_stat =
+              target_stat
+                  .by_parachain[obj->candidate_receipt.descriptor.para_id];
+          ++by_para_stat.event_candidate_backed;
+          continue;
+        }
       }
     }
 
@@ -516,11 +533,13 @@ namespace kagome::parachain {
       formatted.clear();
       for (const auto &[para_id, by_para_stat] : target_stat.by_parachain) {
         formatted += fmt::format(
-            "\nPara_id={}, candidates_count={}, implicit={}, explicit={}",
+            "\nPara_id={}, implicit={}, explicit={}, events_included={}, "
+            "events_backed={}",
             para_id,
-            by_para_stat.candidates_count,
             by_para_stat.implicit_validity_votes,
-            by_para_stat.explicit_validity_votes);
+            by_para_stat.explicit_validity_votes,
+            by_para_stat.event_candidate_included,
+            by_para_stat.event_candidate_backed);
       }
 
       SL_INFO(logger_,
