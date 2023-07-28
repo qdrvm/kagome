@@ -1,5 +1,5 @@
-Description: Parachains smoke test cumulus
-Network: ./0003-parachains-smoke-test-cumulus.toml
+Description: Parachains smoke test cumulus - 100% kagome
+Network: ./0003-parachains-smoke-test-cumulus-kagome.toml
 Creds: config
 
 {% set nodes = ["alice", "bob"] %}

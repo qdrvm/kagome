@@ -14,13 +14,7 @@ namespace kagome::consensus::babe {
 
   class BabeUtilMock : public BabeUtil {
    public:
-    using SyncFunctor = std::function<std::tuple<BabeSlotNumber, bool>()>;
-
-    MOCK_METHOD(BabeSlotNumber, syncEpoch, (SyncFunctor &), ());
-
-    BabeSlotNumber syncEpoch(SyncFunctor &&func) override {
-      return syncEpoch(func);
-    }
+    MOCK_METHOD(BabeSlotNumber, getFirstBlockSlotNumber, (), ());
 
     MOCK_METHOD(BabeSlotNumber, getCurrentSlot, (), (const, override));
 
