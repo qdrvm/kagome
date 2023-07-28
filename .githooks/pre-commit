@@ -78,7 +78,7 @@ fi
 #fi
 
 # result of checks
-if [ $CXX_RES = 1 ] || [ $CMAKE_RES = 1 ]; then
+if [ "$CXX_RES" = "1" ] || [ "$CMAKE_RES" = "1" ]; then
   echo "Formatter required" >&2
   exit 1
 fi
