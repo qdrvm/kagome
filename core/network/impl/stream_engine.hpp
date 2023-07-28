@@ -271,8 +271,7 @@ namespace kagome::network {
    private:
     struct ProtocolDescr {
       std::shared_ptr<ProtocolBase> protocol;
-      log::Logger logger =
-          log::createLogger("ProtoDescription", "stream_engine");
+      log::Logger logger = log::createLogger("ProtoDescription", "network");
 
       struct {
         std::shared_ptr<Stream> stream;
