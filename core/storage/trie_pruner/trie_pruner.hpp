@@ -71,11 +71,10 @@ namespace kagome::storage::trie_pruner {
         const primitives::BlockHeader &state) = 0;
 
     /**
-     * Resets the pruner state, sets the provided block as the last pruned,
-     * adds all its children states to the pruner reference counter
+     * Resets the pruner state, collects info about node reference count
+     * starting from the last finalized block
      */
-    virtual outcome::result<void> restoreState(
-        const primitives::BlockHeader &last_pruned_block,
+    virtual outcome::result<void> recoverState(
         const blockchain::BlockTree &block_tree) = 0;
 
     /**

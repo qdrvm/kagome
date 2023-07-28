@@ -52,7 +52,7 @@ namespace kagome::consensus::babe {
     std::optional<std::shared_ptr<const primitives::BabeConfiguration>> state;
     /**
      * Next epoch lazily computed from `config` and digests.
-    */
+     */
     std::optional<std::shared_ptr<const primitives::BabeConfiguration>>
         next_state;
   };
@@ -93,8 +93,7 @@ namespace kagome::consensus::babe {
 
     // BabeUtil
 
-    BabeSlotNumber syncEpoch(
-        std::function<std::tuple<BabeSlotNumber, bool>()> &&f) override;
+    BabeSlotNumber getFirstBlockSlotNumber() override;
 
     BabeSlotNumber getCurrentSlot() const override;
 
@@ -109,8 +108,6 @@ namespace kagome::consensus::babe {
     void warp(const primitives::BlockInfo &block) override;
 
    private:
-    BabeSlotNumber getFirstBlockSlotNumber();
-
     outcome::result<std::shared_ptr<const primitives::BabeConfiguration>>
     config(const primitives::BlockInfo &block, bool next_epoch) const;
 
@@ -124,6 +121,9 @@ namespace kagome::consensus::babe {
 
     outcome::result<std::shared_ptr<const primitives::BabeConfiguration>>
     loadPrev(const std::optional<primitives::BlockInfo> &prev) const;
+
+    void warp(std::unique_lock<std::mutex> &lock,
+              const primitives::BlockInfo &block);
 
     std::shared_ptr<storage::BufferStorage> persistent_storage_;
     bool config_warp_sync_;
@@ -141,7 +141,6 @@ namespace kagome::consensus::babe {
 
     const BabeClock &clock_;
     std::optional<BabeSlotNumber> first_block_slot_number_;
-    bool is_first_block_finalized_ = false;
 
     log::Logger logger_;
   };

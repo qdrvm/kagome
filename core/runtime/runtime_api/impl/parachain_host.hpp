@@ -85,6 +85,14 @@ namespace kagome::runtime {
                                            dispute::DisputeState>>>
     disputes(const primitives::BlockHash &block) override;
 
+    outcome::result<std::vector<ValidationCodeHash>> pvfs_require_precheck(
+        const primitives::BlockHash &block) override;
+
+    outcome::result<void> submit_pvf_check_statement(
+        const primitives::BlockHash &block,
+        const parachain::PvfCheckStatement &statement,
+        const parachain::Signature &signature) override;
+
    private:
     std::shared_ptr<Executor> executor_;
   };

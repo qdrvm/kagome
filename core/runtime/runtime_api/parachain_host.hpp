@@ -192,6 +192,20 @@ namespace kagome::runtime {
                                                    dispute::CandidateHash,
                                                    dispute::DisputeState>>>
     disputes(const primitives::BlockHash &block) = 0;
+
+    /**
+     * @return list of pvf requiring precheck
+     */
+    virtual outcome::result<std::vector<ValidationCodeHash>>
+    pvfs_require_precheck(const primitives::BlockHash &block) = 0;
+
+    /**
+     * @return submit pvf check statement
+     */
+    virtual outcome::result<void> submit_pvf_check_statement(
+        const primitives::BlockHash &block,
+        const parachain::PvfCheckStatement &statement,
+        const parachain::Signature &signature) = 0;
   };
 
 }  // namespace kagome::runtime
