@@ -39,7 +39,7 @@ namespace kagome::storage::trie {
 
 namespace kagome::consensus::babe {
   struct BabeIndexedValue {
-    SCALE_TIE_ONLY(config, state);
+    SCALE_TIE_ONLY(config, state, next_state_warp);
 
     /**
      * `NextConfigData` is rare digest, so always store recent config.
@@ -50,6 +50,11 @@ namespace kagome::consensus::babe {
      * Used at genesis and after warp sync.
      */
     std::optional<std::shared_ptr<const primitives::BabeConfiguration>> state;
+    /**
+     * Next epoch after warp sync, when there is no block with digest.
+     */
+    std::optional<std::shared_ptr<const primitives::BabeConfiguration>>
+        next_state_warp;
     /**
      * Next epoch lazily computed from `config` and digests.
      */

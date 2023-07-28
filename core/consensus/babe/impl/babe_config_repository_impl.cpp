@@ -277,18 +277,20 @@ namespace kagome::consensus::babe {
           OUTCOME_TRY(_state, babe_api_->configuration(info.hash));
           auto state = std::make_shared<primitives::BabeConfiguration>(
               std::move(_state));
-          BabeIndexedValue value{getConfig(*state), state, state};
+          BabeIndexedValue value{getConfig(*state), state, std::nullopt, state};
           if (info.number != 0) {
             OUTCOME_TRY(next, babe_api_->next_epoch(info.hash));
-            value.next_state = std::make_shared<primitives::BabeConfiguration>(
-                primitives::BabeConfiguration{
-                    state->slot_duration,
-                    state->epoch_length,
-                    next.leadership_rate,
-                    std::move(next.authorities),
-                    next.randomness,
-                    next.allowed_slots,
-                });
+            value.next_state_warp =
+                std::make_shared<primitives::BabeConfiguration>(
+                    primitives::BabeConfiguration{
+                        state->slot_duration,
+                        state->epoch_length,
+                        next.leadership_rate,
+                        std::move(next.authorities),
+                        next.randomness,
+                        next.allowed_slots,
+                    });
+            value.next_state = value.next_state_warp;
           }
           indexer_.put(info, {value, std::nullopt}, true);
           if (i_first == i_last) {
@@ -306,7 +308,12 @@ namespace kagome::consensus::babe {
               BOOST_OUTCOME_TRY(prev_state, loadPrev(prev));
             }
             auto state = applyDigests(getConfig(*prev_state), digests);
-            BabeIndexedValue value{getConfig(*state), std::nullopt, state};
+            BabeIndexedValue value{
+                getConfig(*state),
+                std::nullopt,
+                std::nullopt,
+                state,
+            };
             indexer_.put(info, {value, prev}, block_tree_->isFinalized(info));
             prev = info;
             prev_state = state;
@@ -366,6 +373,8 @@ namespace kagome::consensus::babe {
       if (block.number == 0) {
         BOOST_ASSERT(item.value->state);
         item.value->next_state = item.value->state;
+      } else if (item.value->next_state_warp) {
+        item.value->next_state = item.value->next_state_warp;
       } else {
         OUTCOME_TRY(header, block_tree_->getBlockHeader(block.hash));
         item.value->next_state = applyDigests(item.value->config, {header});
