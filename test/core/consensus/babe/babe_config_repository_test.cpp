@@ -15,10 +15,10 @@
 #include "mock/core/clock/clock_mock.hpp"
 #include "mock/core/crypto/hasher_mock.hpp"
 #include "mock/core/runtime/babe_api_mock.hpp"
-#include "mock/core/storage/persistent_map_mock.hpp"
 #include "mock/core/storage/spaced_storage_mock.hpp"
 #include "mock/core/storage/trie/trie_storage_mock.hpp"
 #include "primitives/babe_configuration.hpp"
+#include "storage/in_memory/in_memory_storage.hpp"
 #include "testutil/literals.hpp"
 #include "testutil/prepare_loggers.hpp"
 
@@ -38,7 +38,7 @@ using primitives::BlockId;
 using primitives::BlockInfo;
 using primitives::events::ChainSubscriptionEngine;
 using runtime::BabeApiMock;
-using storage::BufferStorageMock;
+using storage::InMemoryStorage;
 using storage::SpacedStorageMock;
 using storage::trie::TrieStorageMock;
 
@@ -62,9 +62,7 @@ class BabeConfigRepositoryTest : public testing::Test {
     app_state_manager = std::make_shared<application::AppStateManagerMock>();
     EXPECT_CALL(*app_state_manager, atPrepare(_)).WillOnce(Return());
 
-    persistent_storage = std::make_shared<BufferStorageMock>();
-    EXPECT_CALL(*persistent_storage, tryGetMock(_))
-        .WillRepeatedly(Return(std::nullopt));
+    persistent_storage = std::make_shared<InMemoryStorage>();
 
     spaced_storage = std::make_shared<SpacedStorageMock>();
     EXPECT_CALL(*spaced_storage, getSpace(_))
@@ -72,10 +70,12 @@ class BabeConfigRepositoryTest : public testing::Test {
     app_config = std::make_shared<AppConfigurationMock>();
 
     block_tree = std::make_shared<BlockTreeMock>();
+    primitives::BlockInfo genesis{0, "genesis"_hash256};
     EXPECT_CALL(*block_tree, getLastFinalized())
         .WillOnce(Return(BlockInfo{0, "genesis"_hash256}));
+    EXPECT_CALL(*block_tree, isFinalized(genesis)).WillRepeatedly(Return(true));
     EXPECT_CALL(*block_tree, getGenesisBlockHash())
-        .WillOnce(testing::ReturnRefOfCopy("genesis"_hash256));
+        .WillRepeatedly(testing::ReturnRefOfCopy(genesis.hash));
 
     header_repo = std::make_shared<BlockHeaderRepositoryMock>();
 
@@ -106,7 +106,7 @@ class BabeConfigRepositoryTest : public testing::Test {
   std::shared_ptr<application::AppStateManagerMock> app_state_manager;
   std::shared_ptr<SpacedStorageMock> spaced_storage;
   std::shared_ptr<AppConfigurationMock> app_config;
-  std::shared_ptr<BufferStorageMock> persistent_storage;
+  std::shared_ptr<InMemoryStorage> persistent_storage;
   std::shared_ptr<blockchain::BlockTreeMock> block_tree;
   std::shared_ptr<blockchain::BlockHeaderRepository> header_repo;
   std::shared_ptr<runtime::BabeApiMock> babe_api;
@@ -125,7 +125,10 @@ class BabeConfigRepositoryTest : public testing::Test {
  */
 TEST_F(BabeConfigRepositoryTest, getCurrentSlot) {
   EXPECT_CALL(*block_tree, getBlockHeader(_))
-      .WillOnce(Return(outcome::success()));
+      .WillRepeatedly(Return(outcome::success()));
+  EXPECT_CALL(*trie_storage, getEphemeralBatchAt(_)).WillOnce([] {
+    return nullptr;
+  });
   babe_config_repo_->prepare();
   auto time = std::chrono::system_clock::now();
   EXPECT_CALL(*clock, now()).Times(1).WillOnce(Return(time));

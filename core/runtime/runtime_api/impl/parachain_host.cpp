@@ -221,4 +221,19 @@ namespace kagome::runtime {
     }
   }
 
+  outcome::result<std::vector<ValidationCodeHash>>
+  ParachainHostImpl::pvfs_require_precheck(const primitives::BlockHash &block) {
+    return executor_->callAt<std::vector<ValidationCodeHash>>(
+        block, "ParachainHost_pvfs_require_precheck");
+  }
+
+  outcome::result<void> ParachainHostImpl::submit_pvf_check_statement(
+      const primitives::BlockHash &block,
+      const parachain::PvfCheckStatement &statement,
+      const parachain::Signature &signature) {
+    return executor_->callAt<void>(block,
+                                   "ParachainHost_submit_pvf_check_statement",
+                                   statement,
+                                   signature);
+  }
 }  // namespace kagome::runtime

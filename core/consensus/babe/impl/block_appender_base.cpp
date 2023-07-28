@@ -153,49 +153,6 @@ namespace kagome::consensus::babe {
 
     auto slot_number = babe_header.slot_number;
 
-    babe_util_->syncEpoch([&] {
-      auto hash_res = block_tree_->getBlockHash(primitives::BlockNumber(1));
-      if (hash_res.has_error() || !hash_res.value().has_value()) {
-        if (block.header.number == 1) {
-          SL_TRACE(logger_,
-                   "First block slot is {}: it is first block (at executing)",
-                   slot_number);
-          return std::tuple(slot_number, false);
-        } else {
-          SL_TRACE(logger_,
-                   "First block slot is {}: no first block (at executing)",
-                   babe_util_->getCurrentSlot());
-          return std::tuple(babe_util_->getCurrentSlot(), false);
-        }
-      }
-
-      auto first_block_header_res =
-          block_tree_->getBlockHeader(*hash_res.value());
-      if (first_block_header_res.has_error()) {
-        SL_CRITICAL(logger_,
-                    "Database is not consistent: "
-                    "Not found block header for existing num-to-hash record");
-        throw std::runtime_error(
-            "Not found block header for existing num-to-hash record");
-      }
-
-      const auto &first_block_header = first_block_header_res.value();
-      auto babe_digest_res = getBabeDigests(first_block_header);
-      BOOST_ASSERT_MSG(babe_digest_res.has_value(),
-                       "Any non genesis block must contain babe digest");
-      auto first_slot_number = babe_digest_res.value().second.slot_number;
-
-      auto is_first_block_finalized =
-          block_tree_->getLastFinalized().number > 0;
-
-      SL_TRACE(
-          logger_,
-          "First block slot is {}: by {}finalized first block (at executing)",
-          first_slot_number,
-          is_first_block_finalized ? "" : "non-");
-      return std::tuple(first_slot_number, is_first_block_finalized);
-    });
-
     auto epoch_number = babe_util_->slotToEpoch(slot_number);
 
     SL_VERBOSE(
@@ -219,11 +176,10 @@ namespace kagome::consensus::babe {
       return digest_tracking_res.as_failure();
     }
 
-    auto babe_config_opt = babe_config_repo_->config(context, epoch_number);
-    if (!babe_config_opt.has_value()) {
-      return BlockAdditionError::ORPHAN_BLOCK;
-    }
-    auto &babe_config = babe_config_opt.value().get();
+    OUTCOME_TRY(
+        babe_config_ptr,
+        babe_config_repo_->config(*block.header.parentInfo(), epoch_number));
+    auto &babe_config = *babe_config_ptr;
 
     SL_TRACE(logger_,
              "Actual epoch digest to apply block {} (slot {}, epoch {}). "

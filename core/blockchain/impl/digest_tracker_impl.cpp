@@ -6,19 +6,15 @@
 #include "digest_tracker_impl.hpp"
 
 #include "common/visitor.hpp"
-#include "consensus/babe/babe_digest_observer.hpp"
 #include "consensus/grandpa/grandpa_digest_observer.hpp"
 
 namespace kagome::blockchain {
 
   DigestTrackerImpl::DigestTrackerImpl(
-      std::shared_ptr<consensus::babe::BabeDigestObserver> babe_update_observer,
       std::shared_ptr<consensus::grandpa::GrandpaDigestObserver>
           grandpa_digest_observer)
-      : babe_digest_observer_(std::move(babe_update_observer)),
-        grandpa_digest_observer_(std::move(grandpa_digest_observer)),
+      : grandpa_digest_observer_(std::move(grandpa_digest_observer)),
         logger_(log::createLogger("DigestTracker", "digest_tracker")) {
-    BOOST_ASSERT(babe_digest_observer_ != nullptr);
     BOOST_ASSERT(grandpa_digest_observer_ != nullptr);
   }
 
@@ -44,11 +40,7 @@ namespace kagome::blockchain {
             return outcome::success();  // It does not processed by tracker
           },
           [&](const primitives::PreRuntime &item) {
-            SL_TRACE(logger_,
-                     "PreRuntime-digest on block {}, engine '{}'",
-                     context.block_info,
-                     item.consensus_engine_id.toString());
-            return onPreRuntime(context, item);
+            return outcome::success();
           },
           [&](const primitives::RuntimeEnvironmentUpdated &item) {
             SL_TRACE(logger_,
@@ -70,9 +62,6 @@ namespace kagome::blockchain {
   }
 
   void DigestTrackerImpl::cancel(const primitives::BlockInfo &block) {
-    // Cancel tracked babe digest
-    babe_digest_observer_->cancel(block);
-
     // Cancel tracked grandpa digest
     grandpa_digest_observer_->cancel(block);
   }
@@ -83,7 +72,7 @@ namespace kagome::blockchain {
     if (message.consensus_engine_id == primitives::kBabeEngineId) {
       OUTCOME_TRY(digest, scale::decode<primitives::BabeDigest>(message.data));
 
-      return babe_digest_observer_->onDigest(context, digest);
+      return outcome::success();
 
     } else if (message.consensus_engine_id == primitives::kGrandpaEngineId) {
       OUTCOME_TRY(digest,
@@ -109,23 +98,4 @@ namespace kagome::blockchain {
       return outcome::success();
     }
   }
-
-  outcome::result<void> DigestTrackerImpl::onPreRuntime(
-      const primitives::BlockContext &context,
-      const primitives::PreRuntime &message) {
-    if (message.consensus_engine_id == primitives::kBabeEngineId) {
-      OUTCOME_TRY(
-          digest,
-          scale::decode<consensus::babe::BabeBlockHeader>(message.data));
-
-      return babe_digest_observer_->onDigest(context, digest);
-    } else {
-      SL_WARN(logger_,
-              "Unknown consensus engine id in block {}: {}",
-              context.block_info,
-              message.consensus_engine_id.toString());
-      return outcome::success();
-    }
-  }
-
 }  // namespace kagome::blockchain

@@ -85,6 +85,7 @@
 #include "injector/bind_by_lambda.hpp"
 #include "injector/calculate_genesis_state.hpp"
 #include "injector/get_peer_keypair.hpp"
+#include "injector/idle_trie_pruner.hpp"
 #include "log/configurator.hpp"
 #include "log/logger.hpp"
 #include "metrics/impl/exposer_impl.hpp"
@@ -729,7 +730,20 @@ namespace {
             di::bind<storage::trie::PolkadotTrieFactory>.template to<storage::trie::PolkadotTrieFactoryImpl>(),
             di::bind<storage::trie::Codec>.template to<storage::trie::PolkadotCodec>(),
             di::bind<storage::trie::TrieSerializer>.template to<storage::trie::TrieSerializerImpl>(),
-            di::bind<storage::trie_pruner::TriePruner>.template to<storage::trie_pruner::TriePrunerImpl>(),
+            bind_by_lambda<storage::trie_pruner::TriePruner>(
+                [](const auto &injector)
+                    -> sptr<storage::trie_pruner::TriePruner> {
+                  const application::AppConfiguration &config =
+                      injector.template create<
+                          application::AppConfiguration const &>();
+                  if (config.statePruningDepth() == std::nullopt
+                      && !config.shouldPruneDiscardedStates()) {
+                    return std::make_shared<
+                        storage::trie_pruner::IdleTriePruner>();
+                  }
+                  return injector.template create<
+                      sptr<storage::trie_pruner::TriePrunerImpl>>();
+                }),
             di::bind<runtime::RuntimeCodeProvider>.template to<runtime::StorageCodeProvider>(),
             bind_by_lambda<application::ChainSpec>([](const auto &injector) {
               const application::AppConfiguration &config =
@@ -763,7 +777,6 @@ namespace {
             di::bind<api::InternalApi>.template to<api::InternalApiImpl>(),
             di::bind<consensus::babe::BabeConfigRepository>.template to<consensus::babe::BabeConfigRepositoryImpl>(),
             di::bind<blockchain::DigestTracker>.template to<blockchain::DigestTrackerImpl>(),
-            di::bind<consensus::babe::BabeDigestObserver>.template to<consensus::babe::BabeConfigRepositoryImpl>(),
             di::bind<authority_discovery::Query>.template to<authority_discovery::QueryImpl>(),
             di::bind<crypto::SessionKeys>.template to<crypto::SessionKeysImpl>(),
             di::bind<network::SyncProtocol>.template to<network::SyncProtocolImpl>(),

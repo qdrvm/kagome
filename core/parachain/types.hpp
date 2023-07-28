@@ -69,7 +69,7 @@ namespace kagome::parachain {
   using IndexedAndSigned = kagome::crypto::Sr25519Signed<Indexed<T>>;
 
   template <typename T>
-  [[maybe_unused]] inline T const &getPayload(IndexedAndSigned<T> const &t) {
+  [[maybe_unused]] inline const T &getPayload(const IndexedAndSigned<T> &t) {
     return t.payload.payload;
   }
 
@@ -78,6 +78,19 @@ namespace kagome::parachain {
     return t.payload.payload;
   }
 
+  struct PvfCheckStatement {
+    SCALE_TIE(4);
+
+    bool accept;
+    ValidationCodeHash subject;
+    SessionIndex session_index;
+    ValidatorIndex validator_index;
+
+    auto signable() {
+      constexpr std::array<uint8_t, 4> kMagic{'V', 'C', 'P', 'C'};
+      return scale::encode(std::make_tuple(kMagic, *this)).value();
+    }
+  };
 }  // namespace kagome::parachain
 
 #endif  // KAGOME_PARACHAIN_PRIMITIVES_HPP

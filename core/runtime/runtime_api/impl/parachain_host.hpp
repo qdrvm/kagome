@@ -82,6 +82,14 @@ namespace kagome::runtime {
     inbound_hrmp_channels_contents(const primitives::BlockHash &block,
                                    ParachainId id) override;
 
+    outcome::result<std::vector<ValidationCodeHash>> pvfs_require_precheck(
+        const primitives::BlockHash &block) override;
+
+    outcome::result<void> submit_pvf_check_statement(
+        const primitives::BlockHash &block,
+        const parachain::PvfCheckStatement &statement,
+        const parachain::Signature &signature) override;
+
    private:
     bool prepare();
     void clearCaches(const std::vector<primitives::BlockHash> &blocks);

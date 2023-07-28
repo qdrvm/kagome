@@ -90,10 +90,6 @@ namespace kagome::storage::trie_pruner {
     virtual outcome::result<void> pruneDiscarded(
         const primitives::BlockHeader &state) override;
 
-    virtual outcome::result<void> restoreState(
-        const primitives::BlockHeader &last_pruned_block,
-        const blockchain::BlockTree &block_tree) override;
-
     std::optional<primitives::BlockInfo> getLastPrunedBlock() const override {
       return last_pruned_block_;
     }
@@ -118,7 +114,14 @@ namespace kagome::storage::trie_pruner {
       return pruning_depth_;
     }
 
+    outcome::result<void> recoverState(
+        const blockchain::BlockTree &block_tree) override;
+
    private:
+    outcome::result<void> restoreStateAt(
+        const primitives::BlockHeader &last_pruned_block,
+        const blockchain::BlockTree &block_tree);
+
     outcome::result<void> prune(BufferBatch &batch,
                                 const storage::trie::RootHash &state);
 
