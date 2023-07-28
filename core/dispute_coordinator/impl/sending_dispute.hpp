@@ -32,6 +32,7 @@ namespace kagome::dispute {
     /// employing a per-peer rate limit, we need to limit the construction of
     /// new `SendTask`s.
     SendingDispute(
+        std::shared_ptr<authority_discovery::Query> authority_discovery,
         std::shared_ptr<network::SendDisputeProtocol> dispute_protocol,
         const network::DisputeMessage &request);
 

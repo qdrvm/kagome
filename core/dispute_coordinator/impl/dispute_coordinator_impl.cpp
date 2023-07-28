@@ -2343,7 +2343,9 @@ namespace kagome::dispute {
             "DEBUG: sending_disputes_.emplace_back candidate={}",
             candidate_hash);
     auto &[_, sending_dispute] = sending_disputes_.emplace_back(
-        candidate_hash, std::make_unique<SendingDispute>(protocol, request));
+        candidate_hash,
+        std::make_unique<SendingDispute>(
+            authority_discovery_, protocol, request));
 
     std::ignore =
         sending_dispute->refresh_sends(*runtime_info_, active_sessions_);

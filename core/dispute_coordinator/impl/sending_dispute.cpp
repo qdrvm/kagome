@@ -11,10 +11,13 @@
 namespace kagome::dispute {
 
   SendingDispute::SendingDispute(
+      std::shared_ptr<authority_discovery::Query> authority_discovery,
       std::shared_ptr<network::SendDisputeProtocol> dispute_protocol,
       const network::DisputeMessage &request)
-      : dispute_protocol_(std::move(dispute_protocol)),
+      : authority_discovery_(std::move(authority_discovery)),
+        dispute_protocol_(std::move(dispute_protocol)),
         request_(std::move(request)) {
+    BOOST_ASSERT(authority_discovery_ != nullptr);
     BOOST_ASSERT(dispute_protocol_.lock());
   }
 
