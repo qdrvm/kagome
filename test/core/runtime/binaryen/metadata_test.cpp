@@ -37,8 +37,7 @@ class MetadataTest : public BinaryenRuntimeTest {
     BinaryenRuntimeTest::SetUp();
     prepareEphemeralStorageExpects();
 
-    api_ = std::make_shared<MetadataImpl>(
-        std::make_shared<BlockHeaderRepositoryMock>(), executor_);
+    api_ = std::make_shared<MetadataImpl>(executor_);
   }
 
  protected:

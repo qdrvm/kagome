@@ -239,14 +239,14 @@ namespace kagome::consensus::babe {
     switch (sync_method_) {
       case SyncMethod::Auto:
         if (full_sync_duration < fast_sync_duration and full_sync_available) {
-          SL_INFO(log_, "Sync mode auto: decided Full sync");
+          SL_INFO(log_, "Sync mode auto: Full sync selected");
           sync_method_ = SyncMethod::Full;
         } else if (fast_sync_duration < warp_sync_duration
                    or not allow_warp_sync_for_auto) {
-          SL_INFO(log_, "Sync mode auto: decided Fast sync");
+          SL_INFO(log_, "Sync mode auto: Fast sync selected");
           sync_method_ = SyncMethod::Fast;
         } else {
-          SL_INFO(log_, "Sync mode auto: decided Warp sync");
+          SL_INFO(log_, "Sync mode auto: Warp sync selected");
           sync_method_ = SyncMethod::Warp;
         }
         break;
