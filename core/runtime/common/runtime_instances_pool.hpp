@@ -25,7 +25,7 @@ namespace kagome::runtime {
    public:
     using RootHash = storage::trie::RootHash;
     using ModuleCache =
-        SmallLruCache<storage::trie::RootHash, std::shared_ptr<Module>>;
+        LruCache<storage::trie::RootHash, std::shared_ptr<const Module>, true>;
 
     /**
      * @brief Instantiate new or reuse existing ModuleInstance for the provided
@@ -54,7 +54,8 @@ namespace kagome::runtime {
      * @param state - the state containing the module's code.
      * @return Module if any, nullopt otherwise
      */
-    std::optional<std::shared_ptr<Module>> getModule(const RootHash &state);
+    std::optional<std::shared_ptr<const Module>> getModule(
+        const RootHash &state);
 
     /**
      * @brief Puts new module into internal cache

@@ -30,6 +30,10 @@ namespace kagome::dispute {
     std::optional<ValidatorIndex> our_index;
     /// The group we belong to, if any.
     std::optional<GroupIndex> our_group;
+
+    bool operator==(const ValidatorInfo &other) const {
+      return our_index == other.our_index && our_group == other.our_group;
+    }
   };
 
   /// `SessionInfo` with additional useful data for validator nodes.
@@ -39,6 +43,11 @@ namespace kagome::dispute {
     /// Contains useful information about ourselves, in case this node is a
     /// validator.
     ValidatorInfo validator_info;
+
+    bool operator==(const ExtendedSessionInfo &other) const {
+      return session_info == other.session_info
+          && validator_info == other.validator_info;
+    }
   };
 
   /// Caching of session info.

@@ -25,7 +25,7 @@ namespace kagome::dispute {
       const primitives::BlockHash &parent) {
     auto session_index_opt = session_index_cache_.get(parent);
     if (session_index_opt.has_value()) {
-      return session_index_opt.value();
+      return *session_index_opt.value();
     }
     OUTCOME_TRY(session_index, api_->session_index_for_child(parent));
     session_index_cache_.put(parent, session_index);
@@ -55,10 +55,10 @@ namespace kagome::dispute {
 
       ExtendedSessionInfo ext_session_info{session_info, validator_info};
       auto ext_session_info_ref =
-          session_info_cache_.put(session_index, ext_session_info);
-      return ext_session_info_ref.get();
+          session_info_cache_.put(session_index, std::move(ext_session_info));
+      return *ext_session_info_ref;
     }
-    return cached_session_info_opt.value();
+    return *cached_session_info_opt.value();
   }
 
   outcome::result<ValidatorInfo> RuntimeInfo::get_validator_info(
