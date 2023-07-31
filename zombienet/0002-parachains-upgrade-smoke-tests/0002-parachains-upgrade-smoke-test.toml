@@ -3,7 +3,6 @@ timeout = 1000
 bootnode = true
 
 [relaychain]
-default_image = "docker.io/parity/polkadot:latest"
 chain = "rococo-local"
 default_command = "polkadot"
 
@@ -12,9 +11,7 @@ default_command = "polkadot"
 
   [[relaychain.nodes]]
   name = "bob"
-  args = [ "--bob" ]
   command = "kagome"
-  image = "soramitsu/kagome:latest"
   prometheus_prefix = "kagome"
 
 [[parachains]]
@@ -22,5 +19,4 @@ id = 100
 
   [parachains.collator]
   name = "collator01"
-  image = "docker.io/parity/polkadot-parachain:latest"
   command = "polkadot-parachain"

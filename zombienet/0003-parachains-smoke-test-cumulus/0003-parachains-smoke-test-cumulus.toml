@@ -3,13 +3,8 @@ timeout = 1000
 bootnode = false
 
 [relaychain]
-default_image = "docker.io/parity/polkadot:latest"
 chain = "rococo-local"
 default_command = "polkadot"
-
-[relaychain.genesis.runtime.runtime_genesis_config.configuration.config]
-  max_validators_per_core = 2
-  needed_approvals = 2
 
   [[relaychain.nodes]]
   name = "alice"
@@ -17,7 +12,6 @@ default_command = "polkadot"
   [[relaychain.nodes]]
   name = "bob"
   command = "kagome"
-  image = "soramitsu/kagome:latest"
   prometheus_prefix = "kagome"
 
 [[parachains]]
@@ -27,13 +21,11 @@ add_to_genesis = true
   [[parachains.collators]]
     name = "collator-1"
     command = "polkadot-parachain"
-    image = "docker.io/parity/polkadot-parachain:latest"
     args = ["-lparachain=debug"]
 
   [[parachains.collators]]
     name = "collator-2"
     command = "polkadot-parachain"
-    image = "docker.io/parity/polkadot-parachain:latest"
     args = ["-lparachain=debug"]
 
 [types.Header]

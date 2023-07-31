@@ -20,12 +20,8 @@ namespace kagome::consensus::babe {
    public:
     virtual ~BabeUtil() = default;
 
-    /**
-     * Init inner state by call {@param f} returning first block slot and flag
-     * if first block is already finalized
-     */
-    virtual BabeSlotNumber syncEpoch(
-        std::function<std::tuple<BabeSlotNumber, bool>()> &&f) = 0;
+    // TODO(turuslan): removed in https://github.com/soramitsu/kagome/pull/1700
+    virtual BabeSlotNumber getFirstBlockSlotNumber() = 0;
 
     /**
      * @returns current unix time slot number

@@ -115,7 +115,7 @@ namespace kagome::runtime::wavm {
 
   WAVM::Runtime::ImportBindings ModuleImpl::link(
       IntrinsicResolver &resolver) const {
-    auto &ir_module = WAVM::Runtime::getModuleIR(module_);
+    const WAVM::IR::Module &ir_module = WAVM::Runtime::getModuleIR(module_);
 
     auto link_result = WAVM::Runtime::linkModule(ir_module, resolver);
     if (!link_result.success) {
