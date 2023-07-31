@@ -1967,9 +1967,13 @@ namespace kagome::dispute {
   DisputeCoordinatorImpl::determine_undisputed_chain(
       const primitives::BlockNumber &base_number,
       const primitives::BlockHash &base_hash,
-      std::vector<BlockDescription> block_descriptions) {
-    primitives::BlockInfo last(base_number + block_descriptions.size(),
-                               base_hash);
+      std::vector<BlockDescription> descriptions) {
+    primitives::BlockInfo last(base_number, base_hash);
+
+    if (not descriptions.empty()) {
+      last = {last.number + descriptions.size(),
+              descriptions.back().block_hash};
+    }
 
     // Fast path for no disputes.
     OUTCOME_TRY(recent_disputes_opt, storage_->load_recent_disputes());
@@ -1998,25 +2002,20 @@ namespace kagome::dispute {
           [](const auto &) { return true; });
     };
 
-    for (size_t i = 0; i < block_descriptions.size(); ++i) {
-      const auto &session = block_descriptions[i].session;
-      const auto &candidates = block_descriptions[i].candidates;
+    last = {base_number, base_hash};
 
-      auto r =
-          std::any_of(candidates.begin(),
-                      candidates.end(),
-                      [&](const auto &candidate_hash) {
-                        return is_possibly_invalid(session, candidate_hash);
-                      });
-
-      if (r) {
-        if (i == 0) {
-          return primitives::BlockInfo(base_number, base_hash);
-        } else {
-          return primitives::BlockInfo(base_number + i,
-                                       block_descriptions[i - 1].block_hash);
-        }
+    for (const auto &description : descriptions) {
+      auto has_disputed_candidate = std::any_of(
+          description.candidates.begin(),
+          description.candidates.end(),
+          [&](const auto &candidate_hash) {
+            return is_possibly_invalid(description.session, candidate_hash);
+          });
+      if (has_disputed_candidate) {
+        return last;
       }
+
+      last = {last.number + 1, description.block_hash};
     }
 
     return last;

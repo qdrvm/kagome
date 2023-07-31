@@ -224,7 +224,7 @@ namespace kagome::dispute {
     outcome::result<primitives::BlockInfo> determine_undisputed_chain(
         const primitives::BlockNumber &base_number,
         const primitives::BlockHash &base_hash,
-        std::vector<BlockDescription> block_descriptions);
+        std::vector<BlockDescription> descriptions);
 
     /// Pop all heads and return them for processing.
     ///
