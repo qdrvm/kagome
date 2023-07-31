@@ -130,7 +130,7 @@ TEST_F(StateProtocolObserverTest, Simple) {
   EXPECT_CALL(*headers_, getBlockHeader({"1"_hash256}))
       .WillRepeatedly(testing::Return(header));
 
-  StateRequest request{.hash = "1"_hash256, .start = {}, .no_proof = false};
+  StateRequest request{.hash = "1"_hash256, .start = {}, .no_proof = true};
 
   EXPECT_OUTCOME_TRUE(response,
                       state_protocol_observer_->onStateRequest(request));
