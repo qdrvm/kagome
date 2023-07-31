@@ -194,7 +194,6 @@ namespace kagome::api {
       std::optional<primitives::BlockHash> opt_at) const {
     auto at =
         opt_at.has_value() ? opt_at.value() : block_tree_->bestLeaf().hash;
-    std::unordered_set<common::Buffer> proof;
     storage::trie::OnRead db;
     OUTCOME_TRY(header, header_repo_->getBlockHeader(at));
     OUTCOME_TRY(
