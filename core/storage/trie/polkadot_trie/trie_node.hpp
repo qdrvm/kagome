@@ -178,14 +178,13 @@ namespace kagome::storage::trie {
         : key_nibbles_{std::move(key_nibbles)}, value_{std::move(value)} {}
 
     enum class Type {
-      Special,                    // -
-      Leaf,                       // 01
-      BranchEmptyValue,           // 10
-      BranchWithValue,            // 11
-      LeafContainingHashes,       // 001
-      BranchContainingHashes,     // 0001
-      Empty,                      // 0000 0000
-      ReservedForCompactEncoding  // 0001 0000
+      Special,                 // -
+      Leaf,                    // 01
+      BranchEmptyValue,        // 10
+      BranchWithValue,         // 11
+      LeafContainingHashes,    // 001
+      BranchContainingHashes,  // 0001
+      Empty,                   // 0000 0000
     };
 
     virtual bool isBranch() const noexcept = 0;
