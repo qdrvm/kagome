@@ -155,6 +155,9 @@ namespace kagome::network {
         OUTCOME_TRY(db_->put(top.hash, std::move(top.encoded)));
         known_.emplace(top.hash);
         level.stack.pop_back();
+        if (not level.stack.empty()) {
+          ++level.stack.back().branch.value();
+        }
       }
       if (next_level) {
         continue;
