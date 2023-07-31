@@ -82,7 +82,6 @@ namespace kagome::network {
 
     std::vector<Level> levels_;
     std::unordered_set<common::Hash256> known_;
-    std::vector<common::Hash256> child_roots_;
   };
 }  // namespace kagome::network
 

@@ -91,7 +91,6 @@ namespace kagome::network {
           auto &value = item.node->getValue().value;
           if (value and value->size() == common::Hash256::size()) {
             auto root = common::Hash256::fromSpan(*value).value();
-            child_roots_.emplace_back(root);
             levels_.emplace_back(Level{root, {}});
             next_level = true;
           }
@@ -166,9 +165,6 @@ namespace kagome::network {
   outcome::result<void> StateSyncRequestFlow::commit() {
     BOOST_ASSERT(complete());
     auto version = storage::trie::StateVersion::V0;
-    for (auto &root : child_roots_) {
-      OUTCOME_TRY(state_pruner_->addNewState(root, version));
-    }
     OUTCOME_TRY(state_pruner_->addNewState(block_.state_root, version));
     return outcome::success();
   }
