@@ -16,7 +16,7 @@ namespace kagome::storage::trie {
   void ChildPrefix::match(uint8_t nibble) {
     static const auto kNibbles =
         KeyNibbles::fromByteBuffer(kChildStoragePrefix);
-    if ((state_ & kFalse) == kFalse) {
+    if (done()) {
       return;
     }
     if (kNibbles[state_] == nibble) {
@@ -30,18 +30,22 @@ namespace kagome::storage::trie {
   }
 
   void ChildPrefix::match(common::BufferView nibbles) {
-    if ((state_ & kFalse) == kFalse) {
+    if (done()) {
       return;
     }
     for (auto &nibble : nibbles) {
       match(nibble);
-      if ((state_ & kFalse) == kFalse) {
-        break;
+      if (done()) {
+        return;
       }
     }
   }
 
   ChildPrefix::operator bool() const {
     return state_ == kTrue;
+  }
+
+  bool ChildPrefix::done() const {
+    return (state_ & kFalse) == kFalse;
   }
 }  // namespace kagome::storage::trie

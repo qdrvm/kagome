@@ -21,6 +21,8 @@ namespace kagome::storage::trie {
 
     operator bool() const;
 
+    bool done() const;
+
    private:
     static constexpr uint8_t kFalse = 0xfe;
     static constexpr uint8_t kTrue = 0xff;
