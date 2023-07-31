@@ -57,12 +57,14 @@ namespace kagome::network {
 
   outcome::result<void> StateSyncRequestFlow::onResponse(
       const StateResponse &res) {
+    storage::trie::PolkadotCodec codec;
     BOOST_ASSERT(not complete());
     OUTCOME_TRY(nodes, storage::trie::compactDecode(res.proof));
     while (not levels_.empty()) {
       auto &level = levels_.back();
       auto next_level = false;
-      auto on_node = [&](decltype(nodes)::iterator it) {
+      auto on_node =
+          [&](decltype(nodes)::iterator it) -> outcome::result<void> {
         storage::trie::ChildPrefix child;
         if (levels_.size() != 1) {
           child = false;
@@ -71,7 +73,6 @@ namespace kagome::network {
           child = top.child;
           child.match(*top.branch);
         }
-        known_.emplace(it->first);
         auto &item = level.stack.emplace_back(Item{
             it->first,
             std::move(it->second.first),
@@ -80,22 +81,28 @@ namespace kagome::network {
             child,
         });
         nodes.erase(it);
+        if (not item.node) {
+          BOOST_OUTCOME_TRY(item.node, codec.decodeNode(item.encoded));
+        }
         item.child.match(item.node->getKeyNibbles());
         if (item.child) {
           auto &value = item.node->getValue().value;
           if (value and value->size() == common::Hash256::size()) {
             auto root = common::Hash256::fromSpan(*value).value();
-            levels_.emplace_back(Level{root, {}});
-            next_level = true;
+            if (not isKnown(root)) {
+              levels_.emplace_back(Level{root, {}});
+              next_level = true;
+            }
           }
         }
+        return outcome::success();
       };
       if (level.stack.empty()) {
         auto it = nodes.find(level.root);
         if (it == nodes.end()) {
           return outcome::success();
         }
-        on_node(it);
+        OUTCOME_TRY(on_node(it));
         if (next_level) {
           continue;
         }
@@ -135,7 +142,7 @@ namespace kagome::network {
               return outcome::success();
             }
             next_stack = true;
-            on_node(it);
+            OUTCOME_TRY(on_node(it));
             break;
           }
           if (next_level) {
@@ -146,6 +153,7 @@ namespace kagome::network {
           }
         }
         OUTCOME_TRY(db_->put(top.hash, std::move(top.encoded)));
+        known_.emplace(top.hash);
         level.stack.pop_back();
       }
       if (next_level) {
