@@ -64,6 +64,17 @@ namespace kagome::runtime {
     CandidateHash candidate_hash;
     /// The descriptor of the candidate occupying the core.
     CandidateDescriptor candidate_descriptor;
+
+    bool operator==(const OccupiedCore &rhs) const {
+      return next_up_on_available == rhs.next_up_on_available
+         and occupied_since == rhs.occupied_since
+         and time_out_at == rhs.time_out_at
+         and next_up_on_time_out == rhs.next_up_on_time_out
+         and availability == rhs.availability
+         and group_responsible == rhs.group_responsible
+         and candidate_hash == rhs.candidate_hash
+         and candidate_descriptor == rhs.candidate_descriptor;
+    }
   };
 
   struct GroupDescriptor {
@@ -88,11 +99,11 @@ namespace kagome::runtime {
         return 0;
       }
 
-      auto const cores_normalized =
+      const auto cores_normalized =
           std::min(cores, size_t(std::numeric_limits<CoreIndex>::max()));
-      auto const blocks_since_start =
+      const auto blocks_since_start =
           math::sat_sub_unsigned(now_block_num, session_start_block);
-      auto const rotations = blocks_since_start / group_rotation_frequency;
+      const auto rotations = blocks_since_start / group_rotation_frequency;
 
       /// g = c + r mod cores_normalized
       return GroupIndex((size_t(core_index) + size_t(rotations))
@@ -151,14 +162,32 @@ namespace kagome::runtime {
     CandidateReceipt candidate_receipt;
     HeadData head_data;
     CoreIndex core_index;
+
+    bool operator==(const Candidate &rhs) const {
+      return candidate_receipt == rhs.candidate_receipt
+         and head_data == rhs.head_data  //
+         and core_index == rhs.core_index;
+    }
   };
 
   struct CandidateBacked : public Candidate {
     GroupIndex group_index{};
+
+    bool operator==(const CandidateBacked &rhs) const {
+      return (const Candidate &)(*this) == (const Candidate &)rhs
+         and group_index == rhs.group_index;
+    }
   };
 
-  struct CandidateIncluded : public Candidate {
+  struct CandidateIncluded
+      : public Candidate,
+        public boost::equality_comparable<CandidateIncluded> {
     GroupIndex group_index{};
+
+    bool operator==(const CandidateIncluded &rhs) const {
+      return (const Candidate &)(*this) == (const Candidate &)rhs
+         and group_index == rhs.group_index;
+    }
   };
 
   struct CandidateTimedOut : public Candidate {};
@@ -239,6 +268,21 @@ namespace kagome::runtime {
     uint32_t no_show_slots;
     /// The number of validators needed to approve a block.
     uint32_t needed_approvals;
+
+    bool operator==(const SessionInfo &rhs) const {
+      return active_validator_indices == rhs.active_validator_indices
+         and random_seed == rhs.random_seed
+         and dispute_period == rhs.dispute_period
+         and validators == rhs.validators
+         and discovery_keys == rhs.discovery_keys
+         and assignment_keys == rhs.assignment_keys
+         and validator_groups == rhs.validator_groups and n_cores == rhs.n_cores
+         and zeroth_delay_tranche_width == rhs.zeroth_delay_tranche_width
+         and relay_vrf_modulo_samples == rhs.relay_vrf_modulo_samples
+         and n_delay_tranches == rhs.n_delay_tranches
+         and no_show_slots == rhs.no_show_slots
+         and needed_approvals == rhs.needed_approvals;
+    }
   };
 
   using InboundDownwardMessage = network::InboundDownwardMessage;

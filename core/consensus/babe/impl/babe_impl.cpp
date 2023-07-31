@@ -239,14 +239,14 @@ namespace kagome::consensus::babe {
     switch (sync_method_) {
       case SyncMethod::Auto:
         if (full_sync_duration < fast_sync_duration and full_sync_available) {
-          SL_INFO(log_, "Sync mode auto: decided Full sync");
+          SL_INFO(log_, "Sync mode auto: Full sync selected");
           sync_method_ = SyncMethod::Full;
         } else if (fast_sync_duration < warp_sync_duration
                    or not allow_warp_sync_for_auto) {
-          SL_INFO(log_, "Sync mode auto: decided Fast sync");
+          SL_INFO(log_, "Sync mode auto: Fast sync selected");
           sync_method_ = SyncMethod::Fast;
         } else {
-          SL_INFO(log_, "Sync mode auto: decided Warp sync");
+          SL_INFO(log_, "Sync mode auto: Warp sync selected");
           sync_method_ = SyncMethod::Warp;
         }
         break;
@@ -407,41 +407,7 @@ namespace kagome::consensus::babe {
   }
 
   void BabeImpl::adjustEpochDescriptor() {
-    auto first_slot_number = babe_util_->syncEpoch([&]() {
-      auto hash_res = block_tree_->getBlockHash(primitives::BlockNumber(1));
-      if (hash_res.has_error() || !hash_res.value().has_value()) {
-        SL_TRACE(log_,
-                 "First block slot is {}: no first block (at adjusting)",
-                 babe_util_->getCurrentSlot());
-        return std::tuple(babe_util_->getCurrentSlot(), false);
-      }
-
-      auto first_block_header_res =
-          block_tree_->getBlockHeader(*hash_res.value());
-      if (first_block_header_res.has_error()) {
-        SL_CRITICAL(log_,
-                    "Database is not consistent: "
-                    "Not found block header for existing num-to-hash record");
-        throw std::runtime_error(
-            "Not found block header for existing num-to-hash record");
-      }
-
-      const auto &first_block_header = first_block_header_res.value();
-      auto babe_digest_res = getBabeDigests(first_block_header);
-      BOOST_ASSERT_MSG(babe_digest_res.has_value(),
-                       "Any non genesis block must contain babe digest");
-      auto first_slot_number = babe_digest_res.value().second.slot_number;
-
-      auto is_first_block_finalized =
-          block_tree_->getLastFinalized().number > 0;
-
-      SL_TRACE(
-          log_,
-          "First block slot is {}: by {}finalized first block (at adjusting)",
-          first_slot_number,
-          is_first_block_finalized ? "" : "non-");
-      return std::tuple(first_slot_number, is_first_block_finalized);
-    });
+    auto first_slot_number = babe_util_->getFirstBlockSlotNumber();
 
     auto current_epoch_start_slot =
         first_slot_number
@@ -1377,42 +1343,6 @@ namespace kagome::consensus::babe {
 
     ++current_epoch_.epoch_number;
     current_epoch_.start_slot = current_slot_;
-
-    babe_util_->syncEpoch([&]() {
-      auto hash_opt_res = block_tree_->getBlockHash(primitives::BlockNumber(1));
-      if (hash_opt_res.has_error() || !hash_opt_res.value().has_value()) {
-        SL_TRACE(log_,
-                 "First block slot is {}: no first block (at start next epoch)",
-                 babe_util_->getCurrentSlot());
-        return std::tuple(babe_util_->getCurrentSlot(), false);
-      }
-
-      auto first_block_header_res =
-          block_tree_->getBlockHeader(*hash_opt_res.value());
-      if (first_block_header_res.has_error()) {
-        SL_CRITICAL(log_,
-                    "Database is not consistent: "
-                    "Not found block header for existing num-to-hash record");
-        throw std::runtime_error(
-            "Not found block header for existing num-to-hash record");
-      }
-
-      const auto &first_block_header = first_block_header_res.value();
-      auto babe_digest_res = getBabeDigests(first_block_header);
-      BOOST_ASSERT_MSG(babe_digest_res.has_value(),
-                       "Any non genesis block must contain babe digest");
-      auto first_slot_number = babe_digest_res.value().second.slot_number;
-
-      auto is_first_block_finalized =
-          block_tree_->getLastFinalized().number > 0;
-
-      SL_WARN(log_,
-              "First block slot is {}: "
-              "by {}finalized first block (at start next epoch)",
-              first_slot_number,
-              is_first_block_finalized ? "" : "non-");
-      return std::tuple(first_slot_number, is_first_block_finalized);
-    });
   }
 
 }  // namespace kagome::consensus::babe

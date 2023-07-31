@@ -525,7 +525,7 @@ TEST_F(TriePrunerTest, RandomTree) {
       inserted_keys.erase(k);
     }
     ASSERT_OUTCOME_SUCCESS_TRY(
-        trie->clearPrefix(Buffer{{static_cast<uint8_t>(rand() % 256)}},
+        trie->clearPrefix(Buffer(static_cast<uint8_t>(rand() % 256)),
                           std::nullopt,
                           [](auto &, auto) -> outcome::result<void> {
                             return outcome::success();
