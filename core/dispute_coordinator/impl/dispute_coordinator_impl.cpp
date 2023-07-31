@@ -1183,23 +1183,23 @@ namespace kagome::dispute {
 
         import_result = std::move(intermediate_result);
 
-        auto _votes = std::move(intermediate_result.new_state.votes);
+        auto _votes = std::move(import_result.new_state.votes);
 
         for (auto &[index, signature] : approval_votes) {
           // clang-format off
-                  BOOST_ASSERT_MSG(
-                      [&] {
-                      // see: {polkadot}node/core/dispute-coordinator/src/import.rs:490
-                      // let pub_key = &env.session_info().validators.get(index).expect("indices are validated by approval-voting subsystem; qed");
-                      // let candidate_hash = votes.candidate_receipt.hash();
-                      // let session_index = env.session_index();
-                      // DisputeStatement::Valid(ValidDisputeStatement::ApprovalChecking)
-                      //   .check_signature(pub_key, candidate_hash, session_index, &sig)
-                      //   .is_ok();
-                        return true;  // FIXME
-                      }(),
-                      "Signature check for imported approval votes failed! "
-                      "This is a serious bug.");
+          BOOST_ASSERT_MSG(
+              [&] {
+              // see: {polkadot}node/core/dispute-coordinator/src/import.rs:490
+              // let pub_key = &env.session_info().validators.get(index).expect("indices are validated by approval-voting subsystem; qed");
+              // let candidate_hash = votes.candidate_receipt.hash();
+              // let session_index = env.session_index();
+              // DisputeStatement::Valid(ValidDisputeStatement::ApprovalChecking)
+              //   .check_signature(pub_key, candidate_hash, session_index, &sig)
+              //   .is_ok();
+                return true;  // FIXME
+              }(),
+              "Signature check for imported approval votes failed! "
+              "This is a serious bug.");
           // clang-format on
 
           /// Insert a vote, replacing any already existing vote.
@@ -1319,15 +1319,16 @@ namespace kagome::dispute {
 
     // Also send any already existing approval vote on new disputes:
     // https://github.com/paritytech/polkadot/blob/40974fb99c86f5c341105b7db53c7aa0df707d66/node/core/dispute-coordinator/src/initialized.rs#L947
-    if (not import_result.old_state.dispute_status.has_value()
-        and import_result.new_state.dispute_status.has_value()) {
+    is_freshly_disputed = not import_result.old_state.dispute_status.has_value()
+                      and import_result.new_state.dispute_status.has_value();
+    if (is_freshly_disputed) {
       if (is_type<Voted>(new_state.own_vote)) {
         auto &own_votes = boost::relaxed_get<Voted>(new_state.own_vote);
 
         for (auto &[validator_index, dispute_statement, sig] : own_votes) {
           auto valid_dispute_statement_opt =
               if_type<ValidDisputeStatement>(dispute_statement);
-          if (valid_dispute_statement_opt.has_value()) {
+          if (not valid_dispute_statement_opt.has_value()) {
             continue;
           }
           auto &valid_dispute_statement =
@@ -1358,8 +1359,10 @@ namespace kagome::dispute {
 
               sendDisputeRequest(dispute_message, {});
             } else {
-              SL_ERROR(log_,
-                       "No ongoing dispute, but we checked there is one!");
+              SL_ERROR(
+                  log_,
+                  "No ongoing dispute, but we checked there is one! Error: {}",
+                  dispute_message_res.error());
             }
           }
         }
@@ -1448,11 +1451,12 @@ namespace kagome::dispute {
     ValidatorIndex other_index;
 
     auto get_other_vote =
-        [&](auto &votes) -> outcome::result<SignedDisputeStatement> {
-      auto it = votes.begin();
-      if (it == votes.end() or ++it == votes.end()) {
+        [&](auto &some_kind_votes) -> outcome::result<SignedDisputeStatement> {
+      if (some_kind_votes.empty()) {
         return DisputeMessageCreationError::NoOppositeVote;
       }
+
+      auto it = some_kind_votes.begin();
 
       auto validator_index = it->first;
       auto &[statement_kind, validator_signature] = it->second;
