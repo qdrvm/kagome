@@ -19,6 +19,7 @@
 #include "storage/trie/serialization/trie_serializer.hpp"
 #include "storage/trie/trie_batches.hpp"
 #include "storage/trie/trie_storage.hpp"
+#include "storage/trie_pruner/trie_pruner.hpp"
 
 OUTCOME_CPP_DEFINE_CATEGORY(kagome::network, SynchronizerImpl::Error, e) {
   using E = kagome::network::SynchronizerImpl::Error;
@@ -1109,7 +1110,7 @@ namespace kagome::network {
       return;
     }
     if (not state_sync_flow_ or state_sync_flow_->blockInfo() != block) {
-      state_sync_flow_.emplace(trie_pruner_, trie_db_, block, header);
+      state_sync_flow_.emplace(trie_db_, block, header);
     }
     state_sync_.emplace(StateSync{
         peer_id,
@@ -1159,7 +1160,8 @@ namespace kagome::network {
       syncState();
       return outcome::success();
     }
-    OUTCOME_TRY(state_sync_flow_->commit());
+    OUTCOME_TRY(trie_pruner_->addNewState(state_sync_flow_->root(),
+                                          storage::trie::StateVersion::V0));
     auto block = state_sync_flow_->blockInfo();
     state_sync_flow_.reset();
     SL_INFO(log_, "State syncing block {} has finished.", block);

@@ -9,7 +9,6 @@
 #include "storage/predefined_keys.hpp"
 #include "storage/trie/compact_decode.hpp"
 #include "storage/trie/trie_storage_backend.hpp"
-#include "storage/trie_pruner/trie_pruner.hpp"
 
 OUTCOME_CPP_DEFINE_CATEGORY(kagome::network, StateSyncRequestFlow::Error, e) {
   using E = decltype(e);
@@ -24,15 +23,10 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::network, StateSyncRequestFlow::Error, e) {
 
 namespace kagome::network {
   StateSyncRequestFlow::StateSyncRequestFlow(
-      std::shared_ptr<storage::trie_pruner::TriePruner> state_pruner,
       std::shared_ptr<storage::trie::TrieStorageBackend> db,
       const primitives::BlockInfo &block_info,
       const primitives::BlockHeader &block)
-      : state_pruner_{std::move(state_pruner)},
-        db_{std::move(db)},
-        block_info_{block_info},
-        block_{block} {
-    BOOST_ASSERT(state_pruner_ != nullptr);
+      : db_{std::move(db)}, block_info_{block_info}, block_{block} {
     if (not isKnown(block.state_root)) {
       levels_.emplace_back(Level{block.state_root, {}});
     }
@@ -159,13 +153,6 @@ namespace kagome::network {
       }
       levels_.pop_back();
     }
-    return outcome::success();
-  }
-
-  outcome::result<void> StateSyncRequestFlow::commit() {
-    BOOST_ASSERT(complete());
-    auto version = storage::trie::StateVersion::V0;
-    OUTCOME_TRY(state_pruner_->addNewState(block_.state_root, version));
     return outcome::success();
   }
 

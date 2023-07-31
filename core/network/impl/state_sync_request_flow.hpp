@@ -6,7 +6,6 @@
 #ifndef KAGOME_NETWORK_STATE_SYNC_REQUEST_FLOW_HPP
 #define KAGOME_NETWORK_STATE_SYNC_REQUEST_FLOW_HPP
 
-#include <unordered_map>
 #include <unordered_set>
 
 #include "network/types/state_request.hpp"
@@ -18,14 +17,6 @@
 namespace kagome::storage::trie {
   class TrieStorageBackend;
 }  // namespace kagome::storage::trie
-
-namespace kagome::storage::trie_pruner {
-  class TriePruner;
-}  // namespace kagome::storage::trie_pruner
-
-namespace kagome::primitives {
-  struct BlockHeader;
-}  // namespace kagome::primitives
 
 namespace kagome::network {
   /**
@@ -53,14 +44,16 @@ namespace kagome::network {
       std::vector<Item> stack;
     };
 
-    StateSyncRequestFlow(
-        std::shared_ptr<storage::trie_pruner::TriePruner> state_pruner,
-        std::shared_ptr<storage::trie::TrieStorageBackend> db,
-        const primitives::BlockInfo &block_info,
-        const primitives::BlockHeader &block);
+    StateSyncRequestFlow(std::shared_ptr<storage::trie::TrieStorageBackend> db,
+                         const primitives::BlockInfo &block_info,
+                         const primitives::BlockHeader &block);
 
     auto &blockInfo() const {
       return block_info_;
+    }
+
+    auto &root() const {
+      return block_.state_root;
     }
 
     bool complete() const;
@@ -69,12 +62,9 @@ namespace kagome::network {
 
     outcome::result<void> onResponse(const StateResponse &res);
 
-    outcome::result<void> commit();
-
    private:
     bool isKnown(const common::Hash256 &hash);
 
-    std::shared_ptr<storage::trie_pruner::TriePruner> state_pruner_;
     std::shared_ptr<storage::trie::TrieStorageBackend> db_;
 
     primitives::BlockInfo block_info_;
