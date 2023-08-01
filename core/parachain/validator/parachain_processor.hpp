@@ -406,8 +406,10 @@ namespace kagome::parachain {
           libp2p::peer::PeerId,
           std::deque<std::pair<RelayHash, network::SignedStatement>>>
           seconded_statements;
+      /// Added as independent member to prevent extra locks for
+      /// `state_by_relay_parent` which is used in internal thread only
+      SafeObject<std::unordered_set<RelayHash>> active_leaves;
     } our_current_state_;
-
     SafeObject<std::unordered_map<RelayHash, network::CollationEvent>>
         pending_candidates;
     std::shared_ptr<WorkersContext> this_context_;

@@ -205,40 +205,46 @@ namespace kagome::parachain {
         peer_view_->getMyViewObservable(), false);
     my_view_sub_->subscribe(my_view_sub_->generateSubscriptionSetId(),
                             network::PeerView::EventType::kViewUpdated);
-    my_view_sub_->setCallback([wptr{weak_from_this()}](
-                                  auto /*set_id*/,
-                                  auto && /*internal_obj*/,
-                                  auto /*event_type*/,
-                                  const network::ExView &event) {
-      if (auto self = wptr.lock()) {
-        /// clear caches
-        BOOST_ASSERT(
-            self->this_context_->get_executor().running_in_this_thread());
-        for (auto const &lost : event.lost) {
-          SL_TRACE(
-              self->logger_, "Removed backing task.(relay parent={})", lost);
+    my_view_sub_->setCallback(
+        [wptr{weak_from_this()}](auto /*set_id*/,
+                                 auto && /*internal_obj*/,
+                                 auto /*event_type*/,
+                                 const network::ExView &event) {
+          if (auto self = wptr.lock()) {
+            /// clear caches
+            BOOST_ASSERT(
+                self->this_context_->get_executor().running_in_this_thread());
+            auto const &relay_parent =
+                primitives::calculateBlockHash(event.new_head, *self->hasher_)
+                    .value();
 
-          self->our_current_state_.state_by_relay_parent.erase(lost);
-          self->pending_candidates.exclusiveAccess(
-              [&](auto &container) { container.erase(lost); });
-        }
+            self->our_current_state_.active_leaves.exclusiveAccess(
+                [&](auto &active_leaves) {
+                  for (auto const &lost : event.lost) {
+                    SL_TRACE(self->logger_,
+                             "Removed backing task.(relay parent={})",
+                             lost);
 
-        if (auto r = self->canProcessParachains(); r.has_error()) {
-          return;
-        }
+                    self->our_current_state_.state_by_relay_parent.erase(lost);
+                    self->pending_candidates.exclusiveAccess(
+                        [&](auto &container) { container.erase(lost); });
+                    active_leaves.erase(lost);
+                  }
+                  active_leaves.insert(relay_parent);
+                });
+            if (auto r = self->canProcessParachains(); r.has_error()) {
+              return;
+            }
 
-        auto const &relay_parent =
-            primitives::calculateBlockHash(event.new_head, *self->hasher_)
-                .value();
-        self->createBackingTask(relay_parent);
-        SL_TRACE(self->logger_,
-                 "Update my view.(new head={}, finalized={}, leaves={})",
-                 relay_parent,
-                 event.view.finalized_number_,
-                 event.view.heads_.size());
-        self->broadcastView(event.view);
-      }
-    });
+            self->createBackingTask(relay_parent);
+            SL_TRACE(self->logger_,
+                     "Update my view.(new head={}, finalized={}, leaves={})",
+                     relay_parent,
+                     event.view.finalized_number_,
+                     event.view.heads_.size());
+            self->broadcastView(event.view);
+          }
+        });
     return true;
   }
 
@@ -1354,6 +1360,23 @@ namespace kagome::parachain {
       const primitives::BlockHash &relay_parent,
       size_t n_validators) {
     TicToc _measure{"Parachain validation", logger_};
+
+    /// checks if we still need to execute parachain task +7-903-720-26-36
+    const auto need_to_process =
+        self->our_current_state_.active_leaves.sharedAccess(
+            [&](constauto &active_leaves) {
+              return active_leaves.count(relay_parent) != 0ull;
+            });
+
+    if (!need_to_process) {
+      SL_TRACE(logger_,
+               "Candidate validation skipped because of extruded relay parent. "
+               "(relay_parent={}, parachain_id={}, candidate_hash={})",
+               relay_parent,
+               candidate.descriptor.para_id,
+               candidate_hash);
+      return Error::VALIDATION_FAILED;
+    }
 
     const auto candidate_hash{candidateHashFrom(candidate)};
     auto validation_result = validateCandidate(candidate, pov);
