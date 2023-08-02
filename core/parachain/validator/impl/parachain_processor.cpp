@@ -355,17 +355,18 @@ namespace kagome::parachain {
   void ParachainProcessorImpl::handleFetchedCollation(
       network::CollationEvent &&pending_collation,
       network::CollationFetchingResponse &&response) {
-    logger_->info("Processing collation from {}, relay parent: {}, para id: {}",
-                  pending_collation.pending_collation.peer_id,
-                  pending_collation.pending_collation.relay_parent,
-                  pending_collation.pending_collation.para_id);
+    logger_->trace(
+        "Processing collation from {}, relay parent: {}, para id: {}",
+        pending_collation.pending_collation.peer_id,
+        pending_collation.pending_collation.relay_parent,
+        pending_collation.pending_collation.para_id);
 
     auto opt_parachain_state = tryGetStateByRelayParent(
         pending_collation.pending_collation.relay_parent);
     if (!opt_parachain_state) {
-      logger_->warn("Fetched collation from {}:{} out of view",
-                    pending_collation.pending_collation.peer_id,
-                    pending_collation.pending_collation.relay_parent);
+      logger_->trace("Fetched collation from {}:{} out of view",
+                     pending_collation.pending_collation.peer_id,
+                     pending_collation.pending_collation.relay_parent);
       return;
     }
 
@@ -721,7 +722,7 @@ namespace kagome::parachain {
     BOOST_ASSERT(this_context_->get_executor().running_in_this_thread());
     auto opt_parachain_state = tryGetStateByRelayParent(relay_parent);
     if (!opt_parachain_state) {
-      logger_->warn(
+      logger_->trace(
           "Handled statement from {}:{} out of view", peer_id, relay_parent);
       return;
     }
@@ -1256,16 +1257,16 @@ namespace kagome::parachain {
   void ParachainProcessorImpl::onValidationComplete(
       const libp2p::peer::PeerId &peer_id,
       ValidateAndSecondResult &&validation_result) {
-    logger_->warn("On validation complete. (peer={}, relay parent={})",
-                  peer_id,
-                  validation_result.relay_parent);
+    logger_->trace("On validation complete. (peer={}, relay parent={})",
+                   peer_id,
+                   validation_result.relay_parent);
 
     auto opt_parachain_state =
         tryGetStateByRelayParent(validation_result.relay_parent);
     if (!opt_parachain_state) {
-      logger_->warn("Validated candidate from {}:{} out of view",
-                    peer_id,
-                    validation_result.relay_parent);
+      logger_->trace("Validated candidate from {}:{} out of view",
+                     peer_id,
+                     validation_result.relay_parent);
       return;
     }
 

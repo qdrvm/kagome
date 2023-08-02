@@ -1457,7 +1457,7 @@ namespace kagome::parachain {
     if (auto it = candidate_entry.messages.find(validator_index);
         it != candidate_entry.messages.end()) {
       if (is_type<DistribApprovalStateApproved>(it->second.approval_state)) {
-        logger_->warn(
+        logger_->trace(
             "Already have approved state. (candidate index={}, "
             "block hash={}, validator index={})",
             claimed_candidate_index,
@@ -1553,7 +1553,7 @@ namespace kagome::parachain {
         it != candidate_entry.messages.end()) {
       if (kagome::is_type<DistribApprovalStateApproved>(
               it->second.approval_state)) {
-        logger_->warn(
+        logger_->trace(
             "Duplicate message. (candidate index={}, "
             "block hash={}, validator index={})",
             candidate_index,
