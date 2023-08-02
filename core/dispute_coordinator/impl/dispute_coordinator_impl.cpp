@@ -424,6 +424,15 @@ namespace kagome::dispute {
     const auto &candidate_receipt = message.candidate_receipt;
     const auto outcome = message.outcome;
 
+    SL_INFO(log_,  // XXX
+            "DEBUG Participation result: session {}, candidate {}, outcome {}",
+            session,
+            candidate_hash,
+            outcome == ParticipationOutcome::Valid         ? "Valid"
+            : outcome == ParticipationOutcome::Invalid     ? "Invalid"
+            : outcome == ParticipationOutcome::Unavailable ? "Unavailable"
+                                                           : "Error");
+
     if (outcome == ParticipationOutcome::Valid
         or outcome == ParticipationOutcome::Invalid) {
       SL_TRACE(log_, "Issuing local statement based on participation outcome");
@@ -1383,7 +1392,11 @@ namespace kagome::dispute {
             std::make_tuple(session, candidate_hash), Active{});
 
         if (fresh) {
-          SL_INFO(log_, "New dispute initiated for candidate");
+          SL_INFO(
+              log_,
+              "New dispute initiated for candidate. session={} candidate={}",
+              session,
+              candidate_hash);
         }
 
         // update status
@@ -1432,8 +1445,16 @@ namespace kagome::dispute {
                  : false);
 
     // Only write when votes have changed.
-    if (import_result.imported_valid_votes
-        || import_result.imported_invalid_votes) {
+    if (import_result.imported_valid_votes > 0
+        or import_result.imported_invalid_votes > 0) {
+      SL_INFO(log_,
+              "DEBUG write_candidate_votes: "
+              "session {}, candidate {}, valid {}, invalid {}",
+              session,
+              candidate_hash,
+              import_result.new_state.votes.valid.size(),
+              import_result.new_state.votes.invalid.size());
+
       storage_->write_candidate_votes(
           session, candidate_hash, import_result.new_state.votes);
     }
@@ -1649,6 +1670,13 @@ namespace kagome::dispute {
 
     SL_TRACE(log_, "Issuing local statement for candidate!");
 
+    SL_INFO(  // XXX
+        log_,
+        "DEBUG issue_local_statement: session {}, candidate {}, is valid - {}",
+        session,
+        candidate_hash,
+        valid ? "Valid" : "Invalid");
+
     // Load environment:
 
     auto session_info_opt = rolling_session_window_->session_info(session);
@@ -1677,10 +1705,21 @@ namespace kagome::dispute {
           .valid = old_state_opt->valid,
           .invalid = old_state_opt->invalid,
       };
+
+      SL_INFO(log_,
+              "DEBUG load_candidate_votes: candidate {}, valid {}, invalid {}",
+              candidate_hash,
+              old_state_opt->valid.size(),
+              old_state_opt->invalid.size());
+
     } else {
       votes = {
           .candidate_receipt = candidate_receipt,
       };
+
+      SL_INFO(log_,
+              "DEBUG load_candidate_votes: candidate {}, not found",
+              candidate_hash);
     }
 
     // Sign a statement for each validator index we control which has
@@ -1979,18 +2018,41 @@ namespace kagome::dispute {
     OUTCOME_TRY(recent_disputes_opt, storage_->load_recent_disputes());
 
     if (not recent_disputes_opt.has_value()) {
+      SL_INFO(log_,
+              "DEBUG  no saved recent disputes. undisputed chain ended by {}",
+              last);  // XXX
+
       return last;
     }
     const auto &recent_disputes = recent_disputes_opt.value();
 
     if (recent_disputes.empty()) {
+      SL_INFO(log_,
+              "DEBUG  recent disputes is empty. undisputed chain ended by {}",
+              last);  // XXX
+
       return last;
     }
 
+    SL_INFO(log_, "DEBUG  recent disputes:");  // XXX
+    for (auto &[dispute, status] : recent_disputes) {
+      auto &[session, candidate] = dispute;
+      SL_INFO(log_,
+              "DEBUG     session={} candidate={} status={}",
+              session,
+              candidate,
+              visit_in_place(
+                  status,
+                  [&](const ConcludedFor &) { return "ConcludedFor"; },
+                  [&](const Active &) { return "Active"; },
+                  [&](const ConcludedAgainst &) { return "ConcludedAgainst"; },
+                  [&](const Confirmed &) { return "Confirmed"; }));  // XXX
+    }
+    SL_INFO(log_, "DEBUG   ---");  // XXX
+
     /// Whether the disputed candidate is possibly invalid.
     // https://github.com/paritytech/polkadot/blob/40974fb99c86f5c341105b7db53c7aa0df707d66/node/primitives/src/disputes/status.rs#L110-L111
-    auto is_possibly_invalid = [&recent_disputes](
-                                   SessionIndex session,
+    auto is_possibly_invalid = [&](SessionIndex session,
                                    const CandidateHash &candidate_hash) {
       auto it = recent_disputes.find(std::tie(session, candidate_hash));
       if (it == recent_disputes.end()) {
@@ -1998,13 +2060,48 @@ namespace kagome::dispute {
       }
       return visit_in_place(
           it->second,  // status
-          [](const ConcludedFor &) { return false; },
-          [](const auto &) { return true; });
+          [&](const ConcludedFor &) {
+            SL_INFO(log_,
+                    "DEBUG        candidate {}:{} concluded FOR "
+                    "-> is not invalid",
+                    session,
+                    candidate_hash);  // XXX
+            return false;
+          },
+          [&](const Active &) {
+            SL_INFO(log_,
+                    "DEBUG        candidate {}:{} is active "
+                    "-> might be invalid",
+                    session,
+                    candidate_hash);  // XXX
+            return true;
+          },
+          [&](const ConcludedAgainst &) {
+            SL_INFO(log_,
+                    "DEBUG        candidate {}:{} concluded AGAINST "
+                    "-> definitely invalid",
+                    session,
+                    candidate_hash);  // XXX
+            return true;
+          },
+          [&](const Confirmed &) {
+            SL_INFO(log_,
+                    "DEBUG        candidate {}:{} has confirmed "
+                    "-> might be invalid",
+                    session,
+                    candidate_hash);  // XXX
+            return true;
+          }
+          //          ,[&](const auto &) { return true; }
+      );
     };
 
     last = {base_number, base_hash};
 
     for (const auto &description : descriptions) {
+      primitives::BlockInfo descr{last.number + 1, description.block_hash};
+      SL_INFO(log_, "DEBUG        probe {}", descr);  // XXX
+
       auto has_disputed_candidate = std::any_of(
           description.candidates.begin(),
           description.candidates.end(),

@@ -25,13 +25,22 @@ namespace kagome::dispute {
     BOOST_ASSERT(valid_vote.payload.candidate_hash
                  == invalid_vote.payload.candidate_hash);
 
+    SL_INFO(log_, "DEBUG Batch::add_votes");  // XXX
+
     bool duplicate = true;
 
     {
       auto &[statement, index] = valid_vote;
       if (valid_votes_.emplace(index, statement).second) {
         ++votes_batched_since_last_tick_;
+        SL_INFO(log_,  // XXX
+                "DEBUG Batch::add_votes candidate {} - new valid",
+                candidate_hash);
         duplicate = false;
+      } else {
+        SL_INFO(log_,  // XXX
+                "DEBUG Batch::add_votes candidate {} - duplicate valid",
+                candidate_hash);
       }
     }
 
@@ -39,11 +48,27 @@ namespace kagome::dispute {
       auto &[statement, index] = invalid_vote;
       if (invalid_votes_.emplace(index, statement).second) {
         ++votes_batched_since_last_tick_;
+        SL_INFO(log_,  // XXX
+                "DEBUG Batch::add_votes candidate {} - new invalid",
+                candidate_hash);
         duplicate = false;
+      } else {
+        SL_INFO(log_,  // XXX
+                "DEBUG Batch::add_votes candidate {} - duplicate invalid",
+                candidate_hash);
       }
     }
 
+    SL_INFO(log_,  // XXX
+            "DEBUG Batch::add_votes candidate {} - "
+            "votes_batched_since_last_tick_={}",
+            candidate_hash,
+            votes_batched_since_last_tick_);
+
     if (duplicate) {
+      SL_INFO(log_,  // XXX
+              "DEBUG Batch::add_votes candidate {} - both duplicated",
+              candidate_hash);
       return std::move(cb);
     }
 
@@ -54,6 +79,10 @@ namespace kagome::dispute {
   std::optional<PreparedImport> Batch::tick(Batch::TimePoint now) {
     if (votes_batched_since_last_tick_ >= kMinKeepBatchAliveVotes
         and now < best_before_) {
+      SL_INFO(log_,  // XXX
+              "DEBUG Batch::tick candidate {} - still good",
+              candidate_hash);
+
       // Still good:
       next_tick_time_ = now + kBatchCollectingInterval;
       if (next_tick_time_ > best_before_) {
@@ -61,8 +90,17 @@ namespace kagome::dispute {
       }
       // Reset counter:
       votes_batched_since_last_tick_ = 0;
+
+      SL_INFO(log_,  // XXX
+              "DEBUG Batch::tick candidate {} - reset counter",
+              candidate_hash);
+
       return std::nullopt;
     }
+
+    SL_INFO(log_,  // XXX
+            "DEBUG Batch::tick candidate {} - prepare import",
+            candidate_hash);
 
     PreparedImport prepared_import{
         .candidate_receipt = candidate_receipt,
@@ -75,6 +113,12 @@ namespace kagome::dispute {
             Indexed<SignedDisputeStatement>{vote.second, vote.first});
       }
     }
+
+    SL_INFO(
+        log_,  // XXX
+        "DEBUG Batch::tick candidate {} - prepared import with {} statements",
+        candidate_hash,
+        prepared_import.statements.size());
 
     return prepared_import;
   }

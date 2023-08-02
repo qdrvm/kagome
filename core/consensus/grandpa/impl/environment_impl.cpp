@@ -89,17 +89,40 @@ namespace kagome::consensus::grandpa {
   outcome::result<BlockInfo> EnvironmentImpl::bestChainContaining(
       const BlockHash &base, std::optional<VoterSetId> voter_set_id) const {
     SL_DEBUG(logger_, "Finding best chain containing block {}", base);
+
+    SL_INFO(logger_, "DEBUG bestChainContaining() enter");  // XXX
+
+    auto deb_base_number =
+        block_tree_->getBlockHeader(base).value().number;  // XXX
+    SL_INFO(
+        logger_, "DEBUG base: {}", BlockInfo(deb_base_number, base));  // XXX
+
     OUTCOME_TRY(best_block, block_tree_->getBestContaining(base, std::nullopt));
+
+    SL_INFO(logger_, "DEBUG best block: {}", best_block);  // XXX
 
     // Must finalize block with scheduled/forced change digest first
     auto finalized = block_tree_->getLastFinalized();
 
+    SL_INFO(logger_, "DEBUG Last finalized: {}", finalized);
+
     OUTCOME_TRY(best_chain,
                 block_tree_->getChainByBlocks(finalized.hash, best_block.hash));
+
+    SL_INFO(logger_, "DEBUG best chain");  // XXX
 
     std::vector<dispute::BlockDescription> block_descriptions;
 
     for (auto &block_hash : best_chain) {
+      // Skip base
+      if (block_hash == finalized.hash) {
+        continue;
+      }
+
+      auto deb_number =                                                   // XXX
+          block_tree_->getBlockHeader(block_hash).value().number;         // XXX
+      SL_INFO(logger_, "DEBUG   {}", BlockInfo(deb_number, block_hash));  // XXX
+
       auto session_index_res =
           parachain_api_->session_index_for_child(block_hash);
       if (session_index_res.has_error()) {
@@ -111,6 +134,8 @@ namespace kagome::consensus::grandpa {
       }
       const auto &session_index = session_index_res.value();
 
+      SL_INFO(logger_, "DEBUG       session index = {}", session_index);  // XXX
+
       auto candidates_for_block = backing_store_->get(block_hash);
 
       std::vector<dispute::CandidateHash> candidates;
@@ -121,7 +146,10 @@ namespace kagome::consensus::grandpa {
         receipt.commitments_hash = hasher_->blake2b_256(
             scale::encode(candidate.candidate.commitments).value());
 
-        auto candidate_hash = hasher_->blake2b_256(scale::encode().value());
+        auto candidate_hash =
+            hasher_->blake2b_256(scale::encode(receipt).value());
+
+        SL_INFO(logger_, "DEBUG       candidate: {}", candidate_hash);  // XXX
 
         candidates.push_back(candidate_hash);
       }
@@ -131,6 +159,8 @@ namespace kagome::consensus::grandpa {
                                     .session = session_index,
                                     .candidates = std::move(candidates)});
     }
+
+    SL_INFO(logger_, "DEBUG ---");  // XXX
 
     auto promise_res = std::promise<outcome::result<primitives::BlockInfo>>();
     auto res_future = promise_res.get_future();
@@ -152,6 +182,10 @@ namespace kagome::consensus::grandpa {
     }
 
     const auto &best_undisputed_block = best_undisputed_block_res.value();
+
+    SL_INFO(logger_,
+            "DEBUG best undisputed block : {}",
+            best_undisputed_block);  // XXX
 
     auto block = best_undisputed_block;
     while (block.number > finalized.number) {
