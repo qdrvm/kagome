@@ -107,7 +107,7 @@ namespace kagome::dispute {
     std::unordered_map<ValidatorIndex, SignedDisputeStatement> invalid_votes_;
 
     /// How many votes have been batched since the last tick/creation.
-    size_t votes_batched_since_last_tick_;
+    size_t votes_batched_since_last_tick_ = 0;
 
     /// Requesters waiting for a response.
     std::vector<std::tuple<libp2p::peer::PeerId, CbOutcome<void>>> requesters_;
