@@ -28,7 +28,11 @@ namespace kagome::network {
       : public StateProtocolObserver,
         public std::enable_shared_from_this<StateProtocolObserverImpl> {
    public:
-    enum class Error { INVALID_CHILD_ROOTHASH = 1, NOTFOUND_CHILD_ROOTHASH };
+    enum class Error {
+      INVALID_CHILD_ROOTHASH = 1,
+      NOTFOUND_CHILD_ROOTHASH,
+      VALUE_NOT_FOUND,
+    };
 
     StateProtocolObserverImpl(
         std::shared_ptr<blockchain::BlockHeaderRepository> blocks_headers,
@@ -44,6 +48,10 @@ namespace kagome::network {
         const storage::trie::RootHash &hash,
         const common::Buffer &key,
         size_t limit) const;
+
+    outcome::result<common::Buffer> prove(
+        const common::Hash256 &root,
+        const std::vector<common::Buffer> &keys) const;
 
     std::shared_ptr<blockchain::BlockHeaderRepository> blocks_headers_;
     std::shared_ptr<storage::trie::TrieStorage> storage_;
