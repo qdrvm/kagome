@@ -256,6 +256,8 @@ namespace kagome::application {
 
     virtual std::optional<size_t> statePruningDepth() const = 0;
 
+    virtual bool shouldPruneDiscardedStates() const = 0;
+
     /**
      * @return database state cache size in MiB
      */

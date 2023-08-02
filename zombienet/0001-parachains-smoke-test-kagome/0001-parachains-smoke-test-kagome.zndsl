@@ -1,0 +1,9 @@
+Description: Parachain smoke test - 100% kagome
+Network: ./0001-parachains-smoke-test-kagome.toml
+Creds: config
+
+
+alice: is up
+bob: is up
+bob: parachain 100 is registered within 225 seconds
+bob: parachain 100 block height is at least 10 within 200 seconds

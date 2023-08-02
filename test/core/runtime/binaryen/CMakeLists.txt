@@ -57,6 +57,7 @@ target_link_libraries(parachain_test
     filesystem
     hasher
     pbkdf2_provider
+    network
     )
 
 addtest(grandpa_api_test

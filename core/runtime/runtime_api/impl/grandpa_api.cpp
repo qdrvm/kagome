@@ -35,14 +35,21 @@ namespace kagome::runtime {
   outcome::result<GrandpaApi::AuthorityList> GrandpaApiImpl::authorities(
       const primitives::BlockId &block_id) {
     OUTCOME_TRY(block_hash, block_header_repo_->getHashById(block_id));
-    return executor_->callAt<AuthorityList>(block_hash,
-                                            "GrandpaApi_grandpa_authorities");
+
+    OUTCOME_TRY(ref, authorities_.get_else(block_hash, [&] {
+      return executor_->callAt<AuthorityList>(block_hash,
+                                              "GrandpaApi_grandpa_authorities");
+    }));
+    return *ref;
   }
 
   outcome::result<primitives::AuthoritySetId> GrandpaApiImpl::current_set_id(
       const primitives::BlockHash &block_hash) {
-    return executor_->callAt<primitives::AuthoritySetId>(
-        block_hash, "GrandpaApi_current_set_id");
+    OUTCOME_TRY(ref, set_id_.get_else(block_hash, [&] {
+      return executor_->callAt<primitives::AuthoritySetId>(
+          block_hash, "GrandpaApi_current_set_id");
+    }));
+    return *ref;
   }
 
 }  // namespace kagome::runtime

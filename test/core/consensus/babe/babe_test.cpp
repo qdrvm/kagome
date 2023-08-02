@@ -314,7 +314,6 @@ TEST_F(BabeTest, Success) {
       .WillRepeatedly(Return(clock::SystemClockMock::zero()));
   EXPECT_CALL(*babe_util_, remainToStartOfSlot(_)).WillRepeatedly(Return(1ms));
   EXPECT_CALL(*babe_util_, remainToFinishOfSlot(_)).WillRepeatedly(Return(1ms));
-  EXPECT_CALL(*babe_util_, syncEpoch(_)).Times(testing::AnyNumber());
 
   testing::Sequence s;
   auto breaker = [](const boost::system::error_code &ec) {
@@ -373,7 +372,6 @@ TEST_F(BabeTest, NotAuthority) {
   EXPECT_CALL(*block_tree_, bestLeaf()).WillRepeatedly(Return(best_leaf));
   EXPECT_CALL(*block_tree_, getBlockHeader(best_block_hash_))
       .WillOnce(Return(best_block_header_));
-  EXPECT_CALL(*babe_util_, syncEpoch(_)).Times(2);
   EXPECT_CALL(*babe_util_, slotStartTime(_));
 
   expected_epoch_digest.authorities.clear();

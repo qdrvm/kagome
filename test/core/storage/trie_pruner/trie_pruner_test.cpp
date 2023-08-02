@@ -25,7 +25,6 @@
 #include "storage/trie/serialization/polkadot_codec.hpp"
 #include "storage/trie/serialization/trie_serializer_impl.hpp"
 #include "storage/trie_pruner/impl/trie_pruner_impl.hpp"
-#include "storage/trie_pruner/recover_pruner_state.hpp"
 #include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
 #include "testutil/prepare_loggers.hpp"
@@ -222,7 +221,7 @@ class TriePrunerTest : public testing::Test {
         hasher,
         config_mock));
     BOOST_ASSERT(pruner->prepare());
-    ASSERT_OUTCOME_SUCCESS_TRY(recoverPrunerState(*pruner, block_tree));
+    ASSERT_OUTCOME_SUCCESS_TRY(pruner->recoverState(block_tree));
   }
 
   auto makeTrie(TrieNodeDesc desc) const {
@@ -526,7 +525,7 @@ TEST_F(TriePrunerTest, RandomTree) {
       inserted_keys.erase(k);
     }
     ASSERT_OUTCOME_SUCCESS_TRY(
-        trie->clearPrefix(Buffer{{static_cast<uint8_t>(rand() % 256)}},
+        trie->clearPrefix(Buffer(static_cast<uint8_t>(rand() % 256)),
                           std::nullopt,
                           [](auto &, auto) -> outcome::result<void> {
                             return outcome::success();
@@ -814,7 +813,7 @@ TEST_F(TriePrunerTest, FastSyncScenario) {
         .WillRepeatedly(Return(DatabaseError::NOT_FOUND));
   }
 
-  ASSERT_OUTCOME_SUCCESS_TRY(recoverPrunerState(*pruner, *block_tree));
+  ASSERT_OUTCOME_SUCCESS_TRY(pruner->recoverState(*block_tree));
 
   for (BlockNumber n = 80; n < LAST_BLOCK_NUMBER; n++) {
     mock_full_block(n);

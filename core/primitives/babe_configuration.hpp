@@ -68,8 +68,15 @@ namespace kagome::primitives {
 
     bool isSecondarySlotsAllowed() const {
       return allowed_slots == primitives::AllowedSlots::PrimaryAndSecondaryPlain
-             or allowed_slots
-                    == primitives::AllowedSlots::PrimaryAndSecondaryVRF;
+          or allowed_slots == primitives::AllowedSlots::PrimaryAndSecondaryVRF;
+    }
+
+    bool operator==(const BabeConfiguration &rhs) const {
+      return slot_duration == rhs.slot_duration
+         and epoch_length == rhs.epoch_length
+         and leadership_rate == rhs.leadership_rate
+         and authorities == rhs.authorities and randomness == rhs.randomness
+         and allowed_slots == rhs.allowed_slots;
     }
   };
 
