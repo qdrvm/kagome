@@ -1432,16 +1432,15 @@ namespace kagome::parachain {
       logger_->warn(
           "Unexpected assignment. (peer id={}, block hash={}, validator "
           "index={})",
-          source ? source->get().toBase58() : "our",
+          source ? fmt::format("{}", source->get()) : "our",
           block_hash,
           validator_index);
       return;
     }
 
     logger_->info(
-        "Import assignment. (peer id={}, block hash={}, validator "
-        "index={})",
-        source ? source->get().toBase58() : "our",
+        "Import assignment. (peer id={}, block hash={}, validator index={})",
+        source ? fmt::format("{}", source->get()) : "our",
         block_hash,
         validator_index);
 
@@ -1526,16 +1525,15 @@ namespace kagome::parachain {
       logger_->info(
           "Unexpected approval. (peer id={}, block hash={}, validator "
           "index={})",
-          source ? source->get().toBase58() : "our",
+          source ? fmt::format("{}", source->get()) : "our",
           block_hash,
           validator_index);
       return;
     }
 
     logger_->info(
-        "Import approval. (peer id={}, block hash={}, validator "
-        "index={})",
-        source ? source->get().toBase58() : "our",
+        "Import approval. (peer id={}, block hash={}, validator index={})",
+        source ? fmt::format("{}", source->get()) : "our",
         block_hash,
         validator_index);
 
