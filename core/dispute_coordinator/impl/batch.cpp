@@ -12,7 +12,9 @@ namespace kagome::dispute {
                TimePoint now)
       : candidate_hash(std::move(candidate_hash)),
         candidate_receipt(std::move(candidate_receipt)),
-        best_before_(now + kMaxBatchLifetime) {}
+        best_before_(now + kMaxBatchLifetime),
+        log_(log::createLogger(fmt::format("Batch:{}", candidate_hash),
+                               "dispute")) {}
 
   std::optional<CbOutcome<void>> Batch::add_votes(
       Indexed<SignedDisputeStatement> valid_vote,

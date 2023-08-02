@@ -10,6 +10,7 @@
 
 #include "clock/impl/clock_impl.hpp"
 #include "dispute_coordinator/types.hpp"
+#include "log/logger.hpp"
 
 namespace kagome::dispute {
 
@@ -111,6 +112,8 @@ namespace kagome::dispute {
 
     /// Requesters waiting for a response.
     std::vector<std::tuple<libp2p::peer::PeerId, CbOutcome<void>>> requesters_;
+
+    log::Logger log_;
   };
 
 }  // namespace kagome::dispute
