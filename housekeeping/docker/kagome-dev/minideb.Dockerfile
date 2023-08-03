@@ -10,9 +10,11 @@ RUN apt-get update && \
         wget \
         vim \
         python3 \
-        python3-pip \
+        python3-pip=20.3.4-4+deb11u1 \
         python3-setuptools \
         software-properties-common \
+        gdb \
+        gdbserver \
         curl && \
         rm -rf /var/lib/apt/lists/*
 
@@ -83,7 +85,7 @@ RUN curl https://sh.rustup.rs -sSf | sh -s -- -y --default-toolchain ${RUST_VERS
     rustup default ${RUST_VERSION}
 
 # install cmake and dev dependencies
-RUN python3 -m pip install --no-cache-dir --upgrade pip
+#RUN python3 -m pip install --no-cache-dir --upgrade pip
 RUN pip3 install --no-cache-dir cmake scikit-build requests gitpython gcovr pyyaml
 
 # install sonar cli
