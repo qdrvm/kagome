@@ -8,9 +8,12 @@
 
 #include <unordered_map>
 
-#include "storage/trie/serialization/polkadot_codec.hpp"
+#include "common/blob.hpp"
+#include "common/buffer.hpp"
 
 namespace kagome::storage::trie {
+  struct TrieNode;
+
   enum class CompactDecodeError {
     INCOMPLETE_PROOF = 1,
   };

@@ -8,18 +8,8 @@
 #include "network/impl/state_sync_request_flow.hpp"
 #include "storage/predefined_keys.hpp"
 #include "storage/trie/compact_decode.hpp"
+#include "storage/trie/serialization/polkadot_codec.hpp"
 #include "storage/trie/trie_storage_backend.hpp"
-
-OUTCOME_CPP_DEFINE_CATEGORY(kagome::network, StateSyncRequestFlow::Error, e) {
-  using E = decltype(e);
-  switch (e) {
-    case E::EMPTY_RESPONSE:
-      return "State sync empty response";
-    case E::HASH_MISMATCH:
-      return "State sync hash mismatch";
-  }
-  abort();
-}
 
 namespace kagome::network {
   StateSyncRequestFlow::StateSyncRequestFlow(
@@ -27,13 +17,16 @@ namespace kagome::network {
       const primitives::BlockInfo &block_info,
       const primitives::BlockHeader &block)
       : db_{std::move(db)}, block_info_{block_info}, block_{block} {
-    if (not isKnown(block.state_root)) {
-      levels_.emplace_back(Level{block.state_root, {}});
+    done_ = isKnown(block.state_root);
+    if (not done_) {
+      auto &level = levels_.emplace_back();
+      level.child = {};
+      level.branch_hash = block.state_root;
     }
   }
 
   bool StateSyncRequestFlow::complete() const {
-    return levels_.empty();
+    return done_;
   }
 
   StateRequest StateSyncRequestFlow::nextRequest() const {
@@ -62,108 +55,68 @@ namespace kagome::network {
     OUTCOME_TRY(nodes, storage::trie::compactDecode(res.proof));
     while (not levels_.empty()) {
       auto &level = levels_.back();
-      auto next_level = false;
-      auto on_node =
-          [&](decltype(nodes)::iterator it) -> outcome::result<void> {
-        storage::trie::ChildPrefix child;
-        if (levels_.size() != 1) {
-          child = false;
-        } else if (not level.stack.empty()) {
-          auto &top = level.stack.back();
-          child = top.child;
-          child.match(*top.branch);
+      auto push = [&](decltype(nodes)::iterator it) -> outcome::result<void> {
+        auto &node = it->second.second;
+        auto &raw = it->second.first;
+        if (not node) {
+          // when trie node is contained in other node value
+          BOOST_OUTCOME_TRY(node, codec.decodeNode(raw));
         }
-        auto &item = level.stack.emplace_back(Item{
-            it->first,
-            std::move(it->second.first),
-            std::move(it->second.second),
-            std::nullopt,
-            child,
-        });
+        level.push(
+            {node, std::nullopt, level.child, {it->first, std::move(raw)}});
         nodes.erase(it);
-        if (not item.node) {
-          BOOST_OUTCOME_TRY(item.node, codec.decodeNode(item.encoded));
-        }
-        item.child.match(item.node->getKeyNibbles());
-        if (item.child) {
-          auto &value = item.node->getValue().value;
-          if (value and value->size() == common::Hash256::size()) {
-            auto root = common::Hash256::fromSpan(*value).value();
-            if (not isKnown(root)) {
-              levels_.emplace_back(Level{root, {}});
-              next_level = true;
-            }
-          }
-        }
         return outcome::success();
       };
       if (level.stack.empty()) {
-        auto it = nodes.find(level.root);
+        auto it = nodes.find(*level.branch_hash);
         if (it == nodes.end()) {
           return outcome::success();
         }
-        OUTCOME_TRY(on_node(it));
-        if (next_level) {
-          continue;
-        }
+        OUTCOME_TRY(push(it));
       }
+      auto pop_level = true;
       while (not level.stack.empty()) {
-        auto &top = level.stack.back();
-        if (not top.branch) {
-          if (auto &value = top.node->getValue().hash) {
-            if (not isKnown(*value)) {
-              auto it = nodes.find(*value);
-              if (it == nodes.end()) {
-                return outcome::success();
-              }
-              OUTCOME_TRY(db_->put(it->first, std::move(it->second.first)));
-              known_.emplace(it->first);
-              nodes.erase(it);
-            }
-          }
-          top.branch = 0;
+        auto child = level.value_child;
+        if (child and not isKnown(*child)) {
+          auto &level = levels_.emplace_back();
+          level.branch_hash = child;
+          pop_level = false;
+          break;
         }
-        if (top.node->isBranch()) {
-          auto &branches =
-              dynamic_cast<storage::trie::BranchNode &>(*top.node).children;
-          auto next_stack = false;
-          for (; *top.branch < branches.size(); ++*top.branch) {
-            auto &branch = branches[*top.branch];
-            if (not branch) {
-              continue;
-            }
-            auto hash = dynamic_cast<storage::trie::DummyNode &>(*branch)
-                            .db_key.asHash();
-            if (not hash or isKnown(*hash)) {
-              continue;
-            }
-            auto it = nodes.find(*hash);
-            if (it == nodes.end()) {
-              return outcome::success();
-            }
-            next_stack = true;
-            OUTCOME_TRY(on_node(it));
-            break;
+        if (level.value_hash and not isKnown(*level.value_hash)) {
+          auto it = nodes.find(*level.value_hash);
+          if (it == nodes.end()) {
+            return outcome::success();
           }
-          if (next_level) {
-            break;
-          }
-          if (next_stack) {
+          OUTCOME_TRY(db_->put(it->first, std::move(it->second.first)));
+          known_.emplace(it->first);
+        }
+        for (level.branchInit(); not level.branch_end; level.branchNext()) {
+          if (not level.branch_hash or isKnown(*level.branch_hash)) {
             continue;
           }
+          auto it = nodes.find(*level.branch_hash);
+          if (it == nodes.end()) {
+            return outcome::success();
+          }
+          OUTCOME_TRY(push(it));
+          break;
         }
-        OUTCOME_TRY(db_->put(top.hash, std::move(top.encoded)));
-        known_.emplace(top.hash);
-        level.stack.pop_back();
-        if (not level.stack.empty()) {
-          ++level.stack.back().branch.value();
+        if (level.branch_end) {
+          auto &t = level.stack.back().t;
+          OUTCOME_TRY(db_->put(t.hash, std::move(t.encoded)));
+          known_.emplace(t.hash);
+          level.pop();
+          if (not level.stack.empty()) {
+            level.branchNext();
+          }
         }
       }
-      if (next_level) {
-        continue;
+      if (pop_level) {
+        levels_.pop_back();
       }
-      levels_.pop_back();
     }
+    done_ = true;
     return outcome::success();
   }
 

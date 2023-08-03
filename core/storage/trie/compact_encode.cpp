@@ -7,23 +7,18 @@
 
 #include <unordered_set>
 
-#include "storage/trie/child_prefix.hpp"
+#include "storage/trie/raw_cursor.hpp"
 #include "storage/trie/serialization/polkadot_codec.hpp"
 
 namespace kagome::storage::trie {
   outcome::result<common::Buffer> compactEncode(const OnRead &db,
                                                 const common::Hash256 &root) {
     storage::trie::PolkadotCodec codec;
-    struct Item {
-      size_t proof_i;
-      std::shared_ptr<storage::trie::TrieNode> node;
-      std::optional<uint8_t> branch;
-      storage::trie::ChildPrefix child;
-      bool compact;
-    };
+    std::vector<RawCursor<size_t>> levels;
+    auto &level = levels.emplace_back();
+    level.child = {};
     std::unordered_set<common::Hash256> seen, value_seen;
     std::vector<std::vector<common::Buffer>> proofs(2);
-    std::vector<std::vector<Item>> levels(1);
     auto push = [&](const common::Hash256 &hash) {
       auto it = db.db.find(hash);
       if (it == db.db.end()) {
@@ -36,100 +31,56 @@ namespace kagome::storage::trie {
       auto &node = node_res.value();
       std::optional<common::BufferView> compact;
       auto &value = node->getMutableValue();
-      if (value.hash and value_seen.emplace(*value.hash).second) {
+      if (value.hash) {
         auto it = db.db.find(*value.hash);
-        if (it != db.db.end()) {
+        if (it != db.db.end() and value_seen.emplace(*value.hash).second) {
           compact = it->second;
           value.hash.reset();
           value.value.emplace();
         }
       }
-      auto &stack = levels.back();
+      auto &level = levels.back();
       auto &proof = proofs[levels.size() - 1];
-      storage::trie::ChildPrefix child;
-      if (levels.size() != 1) {
-        child = false;
-      } else if (not stack.empty()) {
-        auto &top = stack.back();
-        child = top.child;
-        child.match(*top.branch);
-      }
-      child.match(node->getKeyNibbles());
-      stack.emplace_back(Item{
-          proof.size(),
-          std::move(node),
-          std::nullopt,
-          child,
-          compact.has_value(),
-      });
+      level.push({std::move(node), std::nullopt, level.child, proof.size()});
       proof.emplace_back();
       if (compact) {
+        proof.back().putUint8(kEscapeCompactHeader);
         proof.emplace_back(*compact);
       }
       return true;
     };
     push(root);
     while (not levels.empty()) {
-      auto next_level = false;
-      auto &stack = levels.back();
-      while (not stack.empty()) {
-        auto &top = stack.back();
-        auto &value = top.node->getMutableValue();
-        if (not top.branch) {
-          top.branch = 0;
-          if (top.child and value.value
-              and value.value->size() == common::Hash256::size()) {
-            auto root = common::Hash256::fromSpan(*value.value).value();
-            if (seen.emplace(root).second) {
-              levels.emplace_back();
-              push(root);
-              next_level = true;
-              break;
-            }
-          }
+      auto &level = levels.back();
+      auto pop_level = true;
+      while (not level.stack.empty()) {
+        auto child = level.value_child;
+        if (child and seen.emplace(*child).second) {
+          levels.emplace_back();
+          push(*child);
+          pop_level = false;
+          break;
         }
-        if (top.node->isBranch()) {
-          auto &branches =
-              dynamic_cast<storage::trie::BranchNode &>(*top.node).children;
-          auto next_stack = false;
-          for (; *top.branch < branches.size(); ++*top.branch) {
-            auto &branch = branches[*top.branch];
-            if (not branch) {
-              continue;
-            }
-            auto &merkle =
-                dynamic_cast<storage::trie::DummyNode &>(*branch).db_key;
-            auto hash = merkle.asHash();
-            if (not hash) {
-              continue;
-            }
-            if (not seen.emplace(*hash).second) {
-              continue;
-            }
-            if (push(*hash)) {
-              merkle = MerkleValue::create({}).value();
-              next_stack = true;
-              break;
-            }
-          }
-          if (next_level) {
+        for (level.branchInit(); not level.branch_end; level.branchNext()) {
+          if (level.branch_hash and seen.emplace(*level.branch_hash).second
+              and push(*level.branch_hash)) {
             break;
           }
-          if (next_stack) {
-            continue;
+        }
+        if (level.branch_end) {
+          auto &item = level.stack.back();
+          auto &proof = proofs[levels.size() - 1][item.t];
+          proof.put(codec.encodeNode(*item.node, StateVersion::V0).value());
+          level.pop();
+          if (not level.stack.empty()) {
+            *level.branch_merkle = MerkleValue::create({}).value();
+            level.branchNext();
           }
         }
-        auto &proof = proofs[levels.size() - 1][top.proof_i];
-        if (top.compact) {
-          proof.putUint8(kEscapeCompactHeader);
-        }
-        proof.put(codec.encodeNode(*top.node, StateVersion::V0).value());
-        stack.pop_back();
       }
-      if (next_level) {
-        continue;
+      if (pop_level) {
+        levels.pop_back();
       }
-      levels.pop_back();
     }
 
     // encode concatenated vectors

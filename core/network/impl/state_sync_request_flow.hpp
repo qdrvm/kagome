@@ -11,8 +11,7 @@
 #include "network/types/state_request.hpp"
 #include "network/types/state_response.hpp"
 #include "primitives/block_header.hpp"
-#include "storage/trie/child_prefix.hpp"
-#include "storage/trie/polkadot_trie/trie_node.hpp"
+#include "storage/trie/raw_cursor.hpp"
 
 namespace kagome::storage::trie {
   class TrieStorageBackend;
@@ -26,23 +25,12 @@ namespace kagome::network {
    */
   class StateSyncRequestFlow {
    public:
-    enum class Error {
-      EMPTY_RESPONSE = 1,
-      HASH_MISMATCH,
-    };
-
     struct Item {
       common::Hash256 hash;
       common::Buffer encoded;
-      std::shared_ptr<storage::trie::TrieNode> node;
-      std::optional<uint8_t> branch;
-      storage::trie::ChildPrefix child;
     };
 
-    struct Level {
-      common::Hash256 root;
-      std::vector<Item> stack;
-    };
+    using Level = storage::trie::RawCursor<Item>;
 
     StateSyncRequestFlow(std::shared_ptr<storage::trie::TrieStorageBackend> db,
                          const primitives::BlockInfo &block_info,
@@ -70,11 +58,10 @@ namespace kagome::network {
     primitives::BlockInfo block_info_;
     primitives::BlockHeader block_;
 
+    bool done_ = false;
     std::vector<Level> levels_;
     std::unordered_set<common::Hash256> known_;
   };
 }  // namespace kagome::network
-
-OUTCOME_HPP_DECLARE_ERROR(kagome::network, StateSyncRequestFlow::Error)
 
 #endif  //  KAGOME_NETWORK_STATE_SYNC_REQUEST_FLOW_HPP

@@ -5,6 +5,10 @@
 
 #include "storage/trie/compact_decode.hpp"
 
+#include "common/empty.hpp"
+#include "storage/trie/raw_cursor.hpp"
+#include "storage/trie/serialization/polkadot_codec.hpp"
+
 OUTCOME_CPP_DEFINE_CATEGORY(kagome::storage::trie, CompactDecodeError, e) {
   using E = decltype(e);
   switch (e) {
@@ -19,68 +23,56 @@ namespace kagome::storage::trie {
     storage::trie::PolkadotCodec codec;
     OUTCOME_TRY(proof, scale::decode<std::vector<common::Buffer>>(raw_proof));
     CompactDecoded db;
-    std::vector<std::pair<std::shared_ptr<TrieNode>, uint8_t>> stack;
     size_t proof_i = 0;
-    auto push = [&]() mutable -> outcome::result<void> {
-      if (proof_i >= proof.size()) {
-        return CompactDecodeError::INCOMPLETE_PROOF;
-      }
-      common::BufferView raw{proof[proof_i]};
-      ++proof_i;
-      auto compact = not raw.empty() and raw[0] == kEscapeCompactHeader;
-      if (compact) {
-        raw = raw.subspan(1);
+    while (proof_i < proof.size()) {
+      RawCursor<Empty> cursor;
+      auto push = [&]() mutable -> outcome::result<void> {
         if (proof_i >= proof.size()) {
           return CompactDecodeError::INCOMPLETE_PROOF;
         }
-      }
-      OUTCOME_TRY(node, codec.decodeNode(raw));
-      if (compact) {
-        auto &value = proof[proof_i];
+        common::BufferView raw{proof[proof_i]};
         ++proof_i;
-        auto hash = codec.hash256(value);
-        db.emplace(hash, std::make_pair(std::move(value), nullptr));
-        node->setValue({std::nullopt, hash});
-      }
-      stack.emplace_back(node, 0);
-      return outcome::success();
-    };
-    while (proof_i < proof.size()) {
-      OUTCOME_TRY(push());
-      std::optional<common::Hash256> hash;
-      while (not stack.empty()) {
-        auto &[node, i] = stack.back();
-        auto pop = true;
-        if (node->isBranch()) {
-          auto &branches =
-              dynamic_cast<storage::trie::BranchNode &>(*node).children;
-          for (; i < branches.size(); ++i) {
-            auto &branch = branches[i];
-            if (not branch) {
-              continue;
-            }
-            auto &merkle =
-                dynamic_cast<storage::trie::DummyNode &>(*branch).db_key;
-            if (not merkle.empty()) {
-              continue;
-            }
-            if (hash) {
-              merkle = *hash;
-              hash.reset();
-              continue;
-            }
-            pop = false;
-            OUTCOME_TRY(push());
-            break;
+        auto compact = not raw.empty() and raw[0] == kEscapeCompactHeader;
+        if (compact) {
+          raw = raw.subspan(1);
+          if (proof_i >= proof.size()) {
+            return CompactDecodeError::INCOMPLETE_PROOF;
           }
         }
-        if (not pop) {
-          continue;
+        OUTCOME_TRY(node, codec.decodeNode(raw));
+        if (compact) {
+          auto &value = proof[proof_i];
+          ++proof_i;
+          auto hash = codec.hash256(value);
+          db.emplace(hash, std::make_pair(std::move(value), nullptr));
+          node->setValue({std::nullopt, hash});
         }
-        OUTCOME_TRY(raw, codec.encodeNode(*node, StateVersion::V0));
-        hash = codec.hash256(raw);
-        db[*hash] = {std::move(raw), std::move(node)};
-        stack.pop_back();
+        cursor.push({node, 0, false, {}});
+        return outcome::success();
+      };
+      OUTCOME_TRY(push());
+      while (not cursor.stack.empty()) {
+        for (cursor.branchInit(); not cursor.branch_end; cursor.branchNext()) {
+          if (not cursor.branch_merkle) {
+            throw std::logic_error{"compactDecode branch_merkle=null"};
+          }
+          if (not cursor.branch_merkle->empty()) {
+            continue;
+          }
+          OUTCOME_TRY(push());
+          break;
+        }
+        if (cursor.branch_end) {
+          auto &node = cursor.stack.back().node;
+          OUTCOME_TRY(raw, codec.encodeNode(*node, StateVersion::V0));
+          auto hash = codec.hash256(raw);
+          db[hash] = {std::move(raw), std::move(node)};
+          cursor.pop();
+          if (not cursor.stack.empty()) {
+            *cursor.branch_merkle = hash;
+            cursor.branchNext();
+          }
+        }
       }
     }
     return db;
