@@ -39,7 +39,11 @@
 namespace {
   constexpr const char *kBlockProposalTime =
       "kagome_proposer_block_constructed";
-}
+
+  constexpr const char *kIsMajorSyncing = "kagome_sub_libp2p_is_major_syncing";
+  constexpr const char *kIsRelayChainValidator =
+      "kagome_node_is_active_validator";
+}  // namespace
 
 using namespace std::literals::chrono_literals;
 
@@ -136,9 +140,24 @@ namespace kagome::consensus::babe {
     // Register metrics
     metrics_registry_->registerHistogramFamily(
         kBlockProposalTime, "Time taken to construct new block");
+    // clang-format off
     metric_block_proposal_time_ = metrics_registry_->registerHistogramMetric(
         kBlockProposalTime,
         {0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1, 2.5, 5, 10});
+    // clang-format on
+
+    metrics_registry_->registerGaugeFamily(
+        kIsMajorSyncing, "Whether the node is performing a major sync or not.");
+    metric_is_major_syncing_ =
+        metrics_registry_->registerGaugeMetric(kIsMajorSyncing);
+    metric_is_major_syncing_->set(!was_synchronized_);
+    metrics_registry_->registerGaugeFamily(
+        kIsRelayChainValidator,
+        "Tracks if the validator is in the active set. Updates at session "
+        "boundary.");
+    metric_is_relaychain_validator_ =
+        metrics_registry_->registerGaugeMetric(kIsRelayChainValidator);
+    metric_is_relaychain_validator_->set(false);
 
     app_state_manager_->takeControl(*this);
   }
@@ -713,6 +732,7 @@ namespace kagome::consensus::babe {
   void BabeImpl::onSynchronized() {
     current_state_ = State::SYNCHRONIZED;
     was_synchronized_ = true;
+    metric_is_major_syncing_->set(!was_synchronized_);
     telemetry_->notifyWasSynchronized();
     babe_status_observable_->notify(
         primitives::events::BabeStateEventType::kSyncState, current_state_);
@@ -809,10 +829,12 @@ namespace kagome::consensus::babe {
       auto &babe_config = babe_config_opt.value().get();
       auto keypair = session_keys_->getBabeKeyPair(babe_config.authorities);
       if (not keypair) {
-        SL_ERROR(log_,
-                 "Authority not known, skipping slot processing. "
-                 "Probably authority list has changed.");
+        metric_is_relaychain_validator_->set(false);
+        SL_TRACE(log_,
+                 "Not a validator for current authority set (epoch {})",
+                 current_epoch_.epoch_number);
       } else {
+        metric_is_relaychain_validator_->set(true);
         keypair_ = std::move(keypair->first);
         const auto &authority_index = keypair->second;
         if (lottery_->getEpoch() != current_epoch_) {
@@ -1244,7 +1266,7 @@ namespace kagome::consensus::babe {
 
       SL_WARN(log_,
               "First block slot is {}: "
-              "by {}finalized first block (at start next epoch)",
+              "by {} finalized first block (at start next epoch)",
               first_slot_number,
               is_first_block_finalized ? "" : "non-");
       return std::tuple(first_slot_number, is_first_block_finalized);

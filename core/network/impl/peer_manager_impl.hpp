@@ -200,6 +200,7 @@ namespace kagome::network {
     // metrics
     metrics::RegistryPtr registry_ = metrics::createRegistry();
     metrics::Gauge *sync_peer_num_;
+    metrics::Gauge *peers_count_metric_;
 
     // parachain
     std::shared_ptr<network::PeerView> peer_view_;

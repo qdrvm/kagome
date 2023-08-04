@@ -17,6 +17,7 @@
 
 namespace {
   constexpr const char *syncPeerMetricName = "kagome_sync_peers";
+  constexpr const char *kPeersCountMetricName = "kagome_sub_libp2p_peers_count";
   /// Reputation change for a node when we get disconnected from it.
   static constexpr int32_t kDisconnectReputation = -256;
 }  // namespace
@@ -109,8 +110,12 @@ namespace kagome::network {
     // Register metrics
     registry_->registerGaugeFamily(syncPeerMetricName,
                                    "Number of peers we sync with");
+    registry_->registerGaugeFamily(kPeersCountMetricName,
+                                   "Number of connected peers");
     sync_peer_num_ = registry_->registerGaugeMetric(syncPeerMetricName);
     sync_peer_num_->set(0);
+    peers_count_metric_ = registry_->registerGaugeMetric(kPeersCountMetricName);
+    peers_count_metric_->set(0);
 
     app_state_manager_->takeControl(*this);
   }
@@ -172,6 +177,7 @@ namespace kagome::network {
                 self->connecting_peers_.erase(peer_id);
                 self->peer_view_->removePeer(peer_id);
                 self->sync_peer_num_->set(self->active_peers_.size());
+                self->peers_count_metric_->set(self->active_peers_.size());
                 SL_DEBUG(self->log_,
                          "Remained {} active peers",
                          self->active_peers_.size());
@@ -646,6 +652,7 @@ namespace kagome::network {
                            self->peers_in_queue_.size());
                 }
                 self->sync_peer_num_->set(self->active_peers_.size());
+                self->peers_count_metric_->set(self->active_peers_.size());
               }
 
               self->connecting_peers_.erase(peer_id);
