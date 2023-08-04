@@ -14,6 +14,13 @@ else
   BUILD_THREADS="${BUILD_THREADS:-$(( $(nproc 2>/dev/null || sysctl -n hw.ncpu) / 2 + 1 ))}"
 fi
 
+# Configure CI git security
+if [ -d "/__w/kagome/kagome" ]
+then
+  echo "Directory /__w/kagome/kagome exists. Updating safe.directory"
+  git config --global --add safe.directory /__w/kagome/kagome
+fi
+
 git submodule update --init
 
 cd "$(dirname $0)/../../.."

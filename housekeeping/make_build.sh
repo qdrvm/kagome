@@ -8,6 +8,12 @@ which git
 
 cd "$(dirname $0)/.."
 
+if [ -d "/__w/kagome/kagome" ]
+then
+  echo "Directory /__w/kagome/kagome exists. Updating safe.directory"
+  git config --global --add safe.directory /__w/kagome/kagome
+fi
+
 git submodule update --init
 
 cmake . -B${BUILD_DIR} "$@"
