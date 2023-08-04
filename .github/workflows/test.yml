@@ -101,7 +101,7 @@ jobs:
 
     name: "${{ matrix.options.name }}"
     runs-on: [ ubuntu-latest, kagome, self-hosted, linux ]
-    container: soramitsu/kagome-dev@sha256:a3153bda78e15337fc38b6800f508e8c3b27758cba6319e60e7c805b06e071f6
+    container: soramitsu/kagome-dev@sha256:d84919c95608d8accdb80b06a957025775481cad05ad1b7f906b0a6324f6fced
     steps:
       - uses: actions/checkout@dc323e67f16fb5f7663d20ff7941f27f5809e9b6
       - uses: actions/cache@937d24475381cd9c75ae6db12cb4e79714b926ed
@@ -186,7 +186,7 @@ jobs:
     #if: ${{ github.ref == 'refs/heads/master' || startsWith( github.ref, 'refs/tags/' ) }}
     name: "Linux: gcc-10 coverage/sonar"
     runs-on: [ ubuntu-latest, kagome, self-hosted, linux ]
-    container: soramitsu/kagome-dev@sha256:a3153bda78e15337fc38b6800f508e8c3b27758cba6319e60e7c805b06e071f6
+    container: soramitsu/kagome-dev@sha256:d84919c95608d8accdb80b06a957025775481cad05ad1b7f906b0a6324f6fced
     steps:
       - uses: actions/checkout@dc323e67f16fb5f7663d20ff7941f27f5809e9b6
       - uses: actions/cache@937d24475381cd9c75ae6db12cb4e79714b926ed
@@ -285,7 +285,7 @@ jobs:
           - name: "Push RelWithDebInfo Docker image"
             build-type: "RelWithDebInfo"
     runs-on: [ ubuntu-latest, kagome, self-hosted, linux ]
-    container: soramitsu/kagome-dev@sha256:a3153bda78e15337fc38b6800f508e8c3b27758cba6319e60e7c805b06e071f6
+    container: soramitsu/kagome-dev@sha256:d84919c95608d8accdb80b06a957025775481cad05ad1b7f906b0a6324f6fced
     steps:
       - uses: actions/checkout@dc323e67f16fb5f7663d20ff7941f27f5809e9b6
       - uses: actions/cache@937d24475381cd9c75ae6db12cb4e79714b926ed
