@@ -62,7 +62,6 @@ groups:
                 children:
                   - name: voting_round
           - name: parachain
-            level: trace
           - name: dispute
             level: trace
           - name: runtime
