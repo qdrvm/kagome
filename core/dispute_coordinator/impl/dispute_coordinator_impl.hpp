@@ -26,6 +26,7 @@
 #include "dispute_coordinator/storage.hpp"
 #include "dispute_coordinator/types.hpp"
 #include "log/logger.hpp"
+#include "metrics/metrics.hpp"
 #include "network/peer_view.hpp"
 #include "parachain/types.hpp"
 #include "primitives/authority_discovery_id.hpp"
@@ -37,7 +38,8 @@ namespace kagome {
 
 namespace kagome::application {
   class AppStateManager;
-}
+  class ChainSpec;
+}  // namespace kagome::application
 
 namespace kagome::authority_discovery {
   class Query;
@@ -93,6 +95,7 @@ namespace kagome::dispute {
     static constexpr auto kReceiveRateLimit = std::chrono::milliseconds(100);
 
     DisputeCoordinatorImpl(
+        std::shared_ptr<application::ChainSpec> chain_spec,
         std::shared_ptr<application::AppStateManager> app_state_manager,
         clock::SystemClock &system_clock,
         clock::SteadyClock &steady_clock,
@@ -351,6 +354,15 @@ namespace kagome::dispute {
     /// Using an `IndexMap` so items can be iterated in the order of insertion.
     std::list<std::tuple<CandidateHash, std::shared_ptr<SendingDispute>>>
         sending_disputes_;
+
+    // Metrics
+    metrics::RegistryPtr metrics_registry_ = metrics::createRegistry();
+    metrics::Counter *metric_disputes_total_;
+    metrics::Counter *metric_votes_valid_;
+    metrics::Counter *metric_votes_invalid_;
+    metrics::Counter *metric_concluded_valid_;
+    metrics::Counter *metric_concluded_invalid_;
+    metrics::Gauge *metric_disputes_finality_lag_;
 
     log::Logger log_ = log::createLogger("DisputeCoordinator", "dispute");
   };

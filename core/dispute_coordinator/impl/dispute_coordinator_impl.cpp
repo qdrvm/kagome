@@ -33,7 +33,24 @@
 
 namespace kagome::dispute {
 
+  namespace {
+
+    constexpr auto disputesTotalMetricName =
+        "kagome_parachain_candidate_disputes_total";
+
+    constexpr auto disputeVotesMetricName =  //
+        "kagome_parachain_candidate_dispute_votes";
+
+    constexpr auto disputeConcludedMetricName =
+        "kagome_parachain_candidate_dispute_concluded";
+
+    constexpr auto disputesFinalityLagMetricName =
+        "kagome_parachain_disputes_finality_lag";
+
+  }  // namespace
+
   DisputeCoordinatorImpl::DisputeCoordinatorImpl(
+      std::shared_ptr<application::ChainSpec> chain_spec,
       std::shared_ptr<application::AppStateManager> app_state_manager,
       clock::SystemClock &system_clock,
       clock::SteadyClock &steady_clock,
@@ -95,6 +112,40 @@ namespace kagome::dispute {
     BOOST_ASSERT(main_thread_context_ != nullptr);
     BOOST_ASSERT(router_ != nullptr);
     BOOST_ASSERT(peer_view_ != nullptr);
+
+    // Register metrics
+    metrics_registry_->registerCounterFamily(disputesTotalMetricName,
+                                             "Total number of raised disputes");
+    metric_disputes_total_ =
+        metrics_registry_->registerCounterMetric(disputesTotalMetricName);
+
+    metrics_registry_->registerGaugeFamily(
+        disputesFinalityLagMetricName,
+        "How far behind the head of the chain the Disputes protocol wants to "
+        "vote");
+    metric_disputes_finality_lag_ =
+        metrics_registry_->registerGaugeMetric(disputesFinalityLagMetricName);
+    metric_disputes_finality_lag_->set(0);
+
+    metrics_registry_->registerCounterFamily(
+        disputeVotesMetricName,
+        "Accumulated dispute votes, sorted by candidate is valid or invalid");
+    metric_votes_valid_ = metrics_registry_->registerCounterMetric(
+        disputeVotesMetricName,
+        {{"validity", "valid"}, {"chain", chain_spec->chainType()}});
+    metric_votes_invalid_ = metrics_registry_->registerCounterMetric(
+        disputeVotesMetricName,
+        {{"validity", "invalid"}, {"chain", chain_spec->chainType()}});
+
+    metrics_registry_->registerCounterFamily(
+        disputeConcludedMetricName,
+        "Concluded dispute votes, sorted by candidate is valid or invalid");
+    metric_concluded_valid_ = metrics_registry_->registerCounterMetric(
+        disputeConcludedMetricName,
+        {{"validity", "valid"}, {"chain", chain_spec->chainType()}});
+    metric_concluded_invalid_ = metrics_registry_->registerCounterMetric(
+        disputeConcludedMetricName,
+        {{"validity", "invalid"}, {"chain", chain_spec->chainType()}});
 
     app_state_manager_->takeControl(*this);
   }
@@ -1459,6 +1510,21 @@ namespace kagome::dispute {
           session, candidate_hash, import_result.new_state.votes);
     }
 
+    // Update metrics
+    if (is_freshly_disputed) {
+      metric_disputes_total_->inc();
+    }
+
+    metric_votes_valid_->inc(import_result.imported_valid_votes);
+    metric_votes_invalid_->inc(import_result.imported_invalid_votes);
+
+    if (is_freshly_concluded_for) {
+      metric_concluded_valid_->inc();
+    }
+    if (is_freshly_concluded_against) {
+      metric_concluded_invalid_->inc();
+    }
+
     return outcome::success(true);
   }
 
@@ -1995,8 +2061,17 @@ namespace kagome::dispute {
     if (res.has_error()) {
       return cb(res.as_failure());
     }
-
     auto &undisputed_chain = res.value();
+
+    // Update finality lag if possible
+    if (not block_descriptions.empty()) {
+      if (auto number_res = block_header_repository_->getNumberByHash(
+              block_descriptions.back().block_hash);
+          number_res.has_value()) {
+        metric_disputes_finality_lag_->set(number_res.value()
+                                           - undisputed_chain.number);
+      }
+    }
 
     cb(std::move(undisputed_chain));
   }
