@@ -9,6 +9,8 @@
 #include "consensus/grandpa/authority_manager.hpp"
 #include "consensus/grandpa/grandpa_digest_observer.hpp"
 
+#include <mutex>
+
 #include "log/logger.hpp"
 #include "primitives/authority.hpp"
 #include "primitives/block_header.hpp"
@@ -89,41 +91,35 @@ namespace kagome::consensus::grandpa {
 
     // AuthorityManager
 
-    primitives::BlockInfo base() const override;
-
     std::optional<std::shared_ptr<const primitives::AuthoritySet>> authorities(
         const primitives::BlockInfo &target_block,
         IsBlockFinalized finalized) const override;
-
-    // GrandpaDigestObserver
-
-    outcome::result<void> applyScheduledChange(
-        const primitives::BlockContext &context,
-        const primitives::AuthorityList &authorities,
-        primitives::BlockNumber activate_at) override;
-
-    outcome::result<void> applyForcedChange(
-        const primitives::BlockContext &context,
-        const primitives::AuthorityList &authorities,
-        primitives::BlockNumber activate_at) override;
-
-    outcome::result<void> applyOnDisabled(
-        const primitives::BlockContext &context,
-        primitives::AuthorityIndex authority_index) override;
-
-    outcome::result<void> applyPause(
-        const primitives::BlockContext &context,
-        primitives::BlockNumber activate_at) override;
-
-    outcome::result<void> applyResume(
-        const primitives::BlockContext &context,
-        primitives::BlockNumber activate_at) override;
 
     void warp(const primitives::BlockInfo &block,
               const primitives::BlockHeader &header,
               const primitives::AuthoritySet &authorities) override;
 
    private:
+    outcome::result<void> applyScheduledChange(
+        const primitives::BlockContext &context,
+        const primitives::AuthorityList &authorities,
+        primitives::BlockNumber activate_at);
+
+    outcome::result<void> applyForcedChange(
+        const primitives::BlockContext &context,
+        const primitives::AuthorityList &authorities,
+        primitives::BlockNumber activate_at);
+
+    outcome::result<void> applyOnDisabled(
+        const primitives::BlockContext &context,
+        primitives::AuthorityIndex authority_index);
+
+    outcome::result<void> applyPause(const primitives::BlockContext &context,
+                                     primitives::BlockNumber activate_at);
+
+    outcome::result<void> applyResume(const primitives::BlockContext &context,
+                                      primitives::BlockNumber activate_at);
+
     void prune(const primitives::BlockInfo &block);
 
     outcome::result<void> load();
@@ -148,6 +144,8 @@ namespace kagome::consensus::grandpa {
 
     void reorganize(std::shared_ptr<ScheduleNode> node,
                     std::shared_ptr<ScheduleNode> new_node);
+
+    mutable std::mutex mutex_;
 
     Config config_;
     std::shared_ptr<const blockchain::BlockTree> block_tree_;
