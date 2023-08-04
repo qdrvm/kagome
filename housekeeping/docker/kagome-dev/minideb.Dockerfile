@@ -85,7 +85,6 @@ RUN curl https://sh.rustup.rs -sSf | sh -s -- -y --default-toolchain ${RUST_VERS
     rustup default ${RUST_VERSION}
 
 # install cmake and dev dependencies
-#RUN python3 -m pip install --no-cache-dir --upgrade pip
 RUN pip3 install --no-cache-dir cmake scikit-build requests gitpython gcovr pyyaml
 
 # install sonar cli
