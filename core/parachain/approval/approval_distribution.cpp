@@ -2261,10 +2261,12 @@ namespace kagome::parachain {
       };
 
       if (auto i = block_entry.candidateIxByHash(candidate_hash)) {
-        SL_TRACE(
-          logger_, "Launching approval work. (candidate_hash={}, para_id={}, block_hash={})",
-          candidate_hash, candidate_receipt.descriptor.para_id, block_hash
-        );
+        SL_TRACE(logger_,
+                 "Launching approval work. (candidate_hash={}, para_id={}, "
+                 "block_hash={})",
+                 candidate_hash,
+                 candidate_receipt.descriptor.para_id,
+                 block_hash);
 
         runLaunchApproval(candidate_hash,
                           indirect_cert,
