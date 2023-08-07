@@ -188,18 +188,19 @@ namespace kagome::parachain {
             if (auto const value = if_type<
                     const primitives::events::RemoveAfterFinalizationParams>(
                     event)) {
-            self->our_current_state_.active_leaves.exclusiveAccess(
-                [&](auto &active_leaves) {
-              for (auto const &lost : value->get()) {
-                SL_TRACE(self->logger_,
-                         "Remove from storages.(relay parent={})",
-                         lost);
+              self->our_current_state_.active_leaves.exclusiveAccess(
+                  [&](auto &active_leaves) {
+                    for (auto const &lost : value->get()) {
+                      SL_TRACE(self->logger_,
+                               "Remove from storages.(relay parent={})",
+                               lost);
 
-                self->backing_store_->remove(lost);
-                self->av_store_->remove(lost);
-                self->bitfield_store_->remove(lost);
-                active_leaves.erase(lost);
-              }});
+                      self->backing_store_->remove(lost);
+                      self->av_store_->remove(lost);
+                      self->bitfield_store_->remove(lost);
+                      active_leaves.erase(lost);
+                    }
+                  });
             }
           }
         });
@@ -850,24 +851,23 @@ namespace kagome::parachain {
     validity_votes_out.reserve(validity_votes.size());
 
     for (auto &[validator_index, validity_vote] : validity_votes) {
-          auto validity_attestation = visit_in_place(
+      auto validity_attestation = visit_in_place(
           validity_vote,
           [](const BackingStore::ValidityVoteIssued &val) {
-            return             network::ValidityAttestation{
+            return network::ValidityAttestation{
                 network::ValidityAttestation::Implicit{},
-                ((BackingStore::Statement&)val).signature,
+                ((BackingStore::Statement &)val).signature,
             };
           },
           [](const BackingStore::ValidityVoteValid &val) {
             return network::ValidityAttestation{
                 network::ValidityAttestation::Explicit{},
-                ((BackingStore::Statement&)val).signature,
+                ((BackingStore::Statement &)val).signature,
             };
           });
 
-        validity_votes_out.emplace_back(
-            validator_index,
-            std::move(validity_attestation));
+      validity_votes_out.emplace_back(validator_index,
+                                      std::move(validity_attestation));
     }
 
     return AttestedCandidate{
@@ -1368,11 +1368,10 @@ namespace kagome::parachain {
     const auto candidate_hash{candidateHashFrom(candidate)};
 
     /// checks if we still need to execute parachain task +7-903-720-26-36
-    auto need_to_process =
-        our_current_state_.active_leaves.sharedAccess(
-            [&](const auto &active_leaves) {
-              return active_leaves.count(relay_parent) != 0ull;
-            });
+    auto need_to_process = our_current_state_.active_leaves.sharedAccess(
+        [&](const auto &active_leaves) {
+          return active_leaves.count(relay_parent) != 0ull;
+        });
 
     if (!need_to_process) {
       SL_TRACE(logger_,
@@ -1396,15 +1395,15 @@ namespace kagome::parachain {
       return Error::VALIDATION_FAILED;
     }
 
-    need_to_process =
-        our_current_state_.active_leaves.sharedAccess(
-            [&](const auto &active_leaves) {
-              return active_leaves.count(relay_parent) != 0ull;
-            });
+    need_to_process = our_current_state_.active_leaves.sharedAccess(
+        [&](const auto &active_leaves) {
+          return active_leaves.count(relay_parent) != 0ull;
+        });
 
     if (!need_to_process) {
       SL_TRACE(logger_,
-               "Candidate validation skipped before erasure-coding because of extruded relay parent. "
+               "Candidate validation skipped before erasure-coding because of "
+               "extruded relay parent. "
                "(relay_parent={}, parachain_id={}, candidate_hash={})",
                relay_parent,
                candidate.descriptor.para_id,

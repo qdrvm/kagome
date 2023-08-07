@@ -16,7 +16,7 @@ namespace kagome::parachain {
   void BackingStoreImpl::remove(const BlockHash &relay_parent) {
     backed_candidates_.erase(relay_parent);
     if (auto it = candidates_.find(relay_parent); it != candidates_.end()) {
-      for (auto const &candidate : it->second) {
+      for (const auto &candidate : it->second) {
         statements_.erase(candidate);
       }
       candidates_.erase(it);
@@ -24,12 +24,12 @@ namespace kagome::parachain {
   }
 
   bool BackingStoreImpl::is_in_group(
-      std::unordered_map<ParachainId, std::vector<ValidatorIndex>> const
+      const std::unordered_map<ParachainId, std::vector<ValidatorIndex>>
           &groups,
       GroupIndex group,
       ValidatorIndex authority) {
     if (auto it = groups.find(group); it != groups.end()) {
-      for (auto const a : it->second) {
+      for (const auto a : it->second) {
         if (a == authority) {
           return true;
         }
@@ -39,7 +39,7 @@ namespace kagome::parachain {
   }
 
   std::optional<BackingStore::ImportResult> BackingStoreImpl::put(
-      std::unordered_map<ParachainId, std::vector<ValidatorIndex>> const
+      const std::unordered_map<ParachainId, std::vector<ValidatorIndex>>
           &groups,
       Statement statement) {
     auto candidate_hash =
@@ -51,10 +51,11 @@ namespace kagome::parachain {
         return std::nullopt;
       }
       s = &s_it->second;
-      s->second.emplace(statement.payload.ix, ValidityVoteValid{std::move(statement)});
+      s->second.emplace(statement.payload.ix,
+                        ValidityVoteValid{std::move(statement)});
     } else if (auto seconded{boost::get<network::CommittedCandidateReceipt>(
                    &statement.payload.payload.candidate_state)}) {
-      auto const group = seconded->descriptor.para_id;
+      const auto group = seconded->descriptor.para_id;
       if (!is_in_group(groups, group, statement.payload.ix)) {
         return std::nullopt;
       }
@@ -62,7 +63,8 @@ namespace kagome::parachain {
       s = &statements_[candidate_hash];
       s->first = seconded->descriptor.para_id;
       candidates_[seconded->descriptor.relay_parent].emplace(candidate_hash);
-      s->second.emplace(statement.payload.ix, ValidityVoteIssued{std::move(statement)});
+      s->second.emplace(statement.payload.ix,
+                        ValidityVoteIssued{std::move(statement)});
     } else {
       return std::nullopt;
     }
@@ -74,9 +76,9 @@ namespace kagome::parachain {
     };
   }
 
-  std::optional<std::reference_wrapper<BackingStore::StatementInfo const>>
+  std::optional<std::reference_wrapper<BackingStore::const StatementInfo>>
   BackingStoreImpl::get_validity_votes(
-      network::CandidateHash const &candidate_hash) const {
+      const network::CandidateHash &candidate_hash) const {
     if (auto it = statements_.find(candidate_hash); it != statements_.end()) {
       return {{it->second}};
     }
@@ -90,20 +92,23 @@ namespace kagome::parachain {
 
   std::optional<network::CommittedCandidateReceipt>
   BackingStoreImpl::get_candidate(
-      network::CandidateHash const &candidate_hash) const {
+      const network::CandidateHash &candidate_hash) const {
     if (auto it = statements_.find(candidate_hash); it != statements_.end()) {
       for (auto &[_, validity_vote] : it->second.second) {
         const auto &statement = visit_in_place(
-          validity_vote,
-          [](const ValidityVoteIssued &val) -> std::reference_wrapper<Statement> {
-            return {(Statement&)val};
-          },
-          [](const ValidityVoteValid &val) -> std::reference_wrapper<Statement> {
-            return {(Statement&)val};
-          });
+            validity_vote,
+            [](const ValidityVoteIssued &val)
+                -> std::reference_wrapper<Statement> {
+              return {(Statement &)val};
+            },
+            [](const ValidityVoteValid &val)
+                -> std::reference_wrapper<Statement> {
+              return {(Statement &)val};
+            });
 
-        if (auto seconded = boost::get<const network::CommittedCandidateReceipt>(
-                &statement.get().payload.payload.candidate_state)) {
+        if (auto seconded =
+                boost::get<const network::CommittedCandidateReceipt>(
+                    &statement.get().payload.payload.candidate_state)) {
           return *seconded;
         }
       }

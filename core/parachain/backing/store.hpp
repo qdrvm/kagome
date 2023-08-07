@@ -6,8 +6,8 @@
 #ifndef KAGOME_PARACHAIN_BACKING_STORE_HPP
 #define KAGOME_PARACHAIN_BACKING_STORE_HPP
 
-#include "network/types/collator_messages.hpp"
 #include "common/tagged.hpp"
+#include "network/types/collator_messages.hpp"
 
 namespace kagome::parachain {
 
@@ -30,11 +30,8 @@ namespace kagome::parachain {
     };
 
     using ValidityVoteIssued = Tagged<Statement, struct Issued>;
-    using ValidityVoteValid = Tagged<Statement, struct Valid>;  
-    using ValidityVote = boost::variant<
-       ValidityVoteIssued,
-       ValidityVoteValid
-    >;
+    using ValidityVoteValid = Tagged<Statement, struct Valid>;
+    using ValidityVote = boost::variant<ValidityVoteIssued, ValidityVoteValid>;
 
     using StatementInfo =
         std::pair<network::ParachainId, std::map<ValidatorIndex, ValidityVote>>;
@@ -42,7 +39,7 @@ namespace kagome::parachain {
     virtual ~BackingStore() = default;
 
     virtual std::optional<ImportResult> put(
-        std::unordered_map<ParachainId, std::vector<ValidatorIndex>> const
+        const std::unordered_map<ParachainId, std::vector<ValidatorIndex>>
             &groups,
         Statement statement) = 0;
 
@@ -55,10 +52,10 @@ namespace kagome::parachain {
                      BackedCandidate &&candidate) = 0;
 
     virtual std::optional<network::CommittedCandidateReceipt> get_candidate(
-        network::CandidateHash const &candidate_hash) const = 0;
+        const network::CandidateHash &candidate_hash) const = 0;
 
-    virtual std::optional<std::reference_wrapper<StatementInfo const>>
-    get_validity_votes(network::CandidateHash const &candidate_hash) const = 0;
+    virtual std::optional<std::reference_wrapper<const StatementInfo>>
+    get_validity_votes(const network::CandidateHash &candidate_hash) const = 0;
   };
 }  // namespace kagome::parachain
 
