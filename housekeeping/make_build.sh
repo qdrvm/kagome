@@ -14,8 +14,6 @@ then
   git config --global --add safe.directory /__w/kagome/kagome
 fi
 
-git submodule update --init
-
 cmake . -B${BUILD_DIR} "$@"
 if [ "$BUILD_FINAL_TARGET" != "generated" ] ; then
   cmake --build "${BUILD_DIR}" -- -j${BUILD_THREADS}

@@ -21,8 +21,6 @@ then
   git config --global --add safe.directory /__w/kagome/kagome
 fi
 
-git submodule update --init
-
 cd "$(dirname $0)/../../.."
 
 cmake . -B"${BUILD_DIR}" -G 'Unix Makefiles' -DCMAKE_BUILD_TYPE="${BUILD_TYPE}"
