@@ -8,6 +8,8 @@
 
 #include "runtime/runtime_api/babe_api.hpp"
 
+#include "common/lru_cache.hpp"
+
 namespace kagome::runtime {
 
   class Executor;
@@ -24,6 +26,9 @@ namespace kagome::runtime {
 
    private:
     std::shared_ptr<Executor> executor_;
+
+    LruCache<primitives::BlockHash, primitives::BabeConfiguration> cache_{
+        10};
   };
 
 }  // namespace kagome::runtime

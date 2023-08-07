@@ -543,6 +543,7 @@ namespace kagome::parachain {
 
     internal_context_->start();
     thread_pool_context_->start();
+    this_context_.start();
     return true;
   }
 
@@ -1450,7 +1451,7 @@ namespace kagome::parachain {
     if (auto it = candidate_entry.messages.find(validator_index);
         it != candidate_entry.messages.end()) {
       if (is_type<DistribApprovalStateApproved>(it->second.approval_state)) {
-        logger_->warn(
+        logger_->trace(
             "Already have approved state. (candidate index={}, "
             "block hash={}, validator index={})",
             claimed_candidate_index,
@@ -1547,7 +1548,7 @@ namespace kagome::parachain {
         it != candidate_entry.messages.end()) {
       if (kagome::is_type<DistribApprovalStateApproved>(
               it->second.approval_state)) {
-        logger_->warn(
+        logger_->trace(
             "Duplicate message. (candidate index={}, "
             "block hash={}, validator index={})",
             candidate_index,
@@ -2244,7 +2245,7 @@ namespace kagome::parachain {
     const auto should_trigger = shouldTriggerAssignment(
         approval_entry, candidate_entry, tta, tranche_now);
     const auto backing_group = approval_entry.backing_group;
-    auto candidate_receipt = candidate_entry.candidate;
+    const auto &candidate_receipt = candidate_entry.candidate;
 
     ApprovalEntry::MaybeCert maybe_cert{};
     if (should_trigger) {
@@ -2262,6 +2263,13 @@ namespace kagome::parachain {
       };
 
       if (auto i = block_entry.candidateIxByHash(candidate_hash)) {
+        SL_TRACE(logger_,
+                 "Launching approval work. (candidate_hash={}, para_id={}, "
+                 "block_hash={})",
+                 candidate_hash,
+                 candidate_receipt.descriptor.para_id,
+                 block_hash);
+
         runLaunchApproval(candidate_hash,
                           indirect_cert,
                           tranche,

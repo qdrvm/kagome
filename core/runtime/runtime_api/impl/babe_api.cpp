@@ -16,8 +16,11 @@ namespace kagome::runtime {
 
   outcome::result<primitives::BabeConfiguration> BabeApiImpl::configuration(
       const primitives::BlockHash &block) {
-    return executor_->callAt<primitives::BabeConfiguration>(
-        block, "BabeApi_configuration");
+    OUTCOME_TRY(ref, cache_.get_else(block, [&] {
+      return executor_->callAt<primitives::BabeConfiguration>(
+          block, "BabeApi_configuration");
+    }));
+    return *ref;
   }
 
   outcome::result<primitives::Epoch> BabeApiImpl::next_epoch(
