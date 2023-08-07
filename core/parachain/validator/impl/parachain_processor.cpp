@@ -188,6 +188,8 @@ namespace kagome::parachain {
             if (auto const value = if_type<
                     const primitives::events::RemoveAfterFinalizationParams>(
                     event)) {
+            self->our_current_state_.active_leaves.exclusiveAccess(
+                [&](auto &active_leaves) {
               for (auto const &lost : value->get()) {
                 SL_TRACE(self->logger_,
                          "Remove from storages.(relay parent={})",
@@ -196,7 +198,8 @@ namespace kagome::parachain {
                 self->backing_store_->remove(lost);
                 self->av_store_->remove(lost);
                 self->bitfield_store_->remove(lost);
-              }
+                active_leaves.erase(lost);
+              }});
             }
           }
         });
@@ -846,23 +849,25 @@ namespace kagome::parachain {
         validity_votes_out;
     validity_votes_out.reserve(validity_votes.size());
 
-    for (auto &[validator_index, statement] : validity_votes) {
-      if (is_type<network::CommittedCandidateReceipt>(
-              statement.payload.payload.candidate_state)) {
-        validity_votes_out.emplace_back(
-            validator_index,
-            network::ValidityAttestation{
+    for (auto &[validator_index, validity_vote] : validity_votes) {
+          auto validity_attestation = visit_in_place(
+          validity_vote,
+          [](const BackingStore::ValidityVoteIssued &val) {
+            return             network::ValidityAttestation{
                 network::ValidityAttestation::Implicit{},
-                statement.signature,
-            });
-      } else {
+                ((BackingStore::Statement&)val).signature,
+            };
+          },
+          [](const BackingStore::ValidityVoteValid &val) {
+            return network::ValidityAttestation{
+                network::ValidityAttestation::Explicit{},
+                ((BackingStore::Statement&)val).signature,
+            };
+          });
+
         validity_votes_out.emplace_back(
             validator_index,
-            network::ValidityAttestation{
-                network::ValidityAttestation::Explicit{},
-                statement.signature,
-            });
-      }
+            std::move(validity_attestation));
     }
 
     return AttestedCandidate{
@@ -1360,11 +1365,12 @@ namespace kagome::parachain {
       const primitives::BlockHash &relay_parent,
       size_t n_validators) {
     TicToc _measure{"Parachain validation", logger_};
+    const auto candidate_hash{candidateHashFrom(candidate)};
 
     /// checks if we still need to execute parachain task +7-903-720-26-36
-    const auto need_to_process =
-        self->our_current_state_.active_leaves.sharedAccess(
-            [&](constauto &active_leaves) {
+    auto need_to_process =
+        our_current_state_.active_leaves.sharedAccess(
+            [&](const auto &active_leaves) {
               return active_leaves.count(relay_parent) != 0ull;
             });
 
@@ -1378,7 +1384,6 @@ namespace kagome::parachain {
       return Error::VALIDATION_FAILED;
     }
 
-    const auto candidate_hash{candidateHashFrom(candidate)};
     auto validation_result = validateCandidate(candidate, pov);
     if (!validation_result) {
       logger_->warn(
@@ -1388,6 +1393,22 @@ namespace kagome::parachain {
           candidate.descriptor.relay_parent,
           candidate.descriptor.para_id,
           validation_result.error().message());
+      return Error::VALIDATION_FAILED;
+    }
+
+    need_to_process =
+        our_current_state_.active_leaves.sharedAccess(
+            [&](const auto &active_leaves) {
+              return active_leaves.count(relay_parent) != 0ull;
+            });
+
+    if (!need_to_process) {
+      SL_TRACE(logger_,
+               "Candidate validation skipped before erasure-coding because of extruded relay parent. "
+               "(relay_parent={}, parachain_id={}, candidate_hash={})",
+               relay_parent,
+               candidate.descriptor.para_id,
+               candidate_hash);
       return Error::VALIDATION_FAILED;
     }
 

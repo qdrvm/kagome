@@ -7,6 +7,7 @@
 #define KAGOME_PARACHAIN_BACKING_STORE_HPP
 
 #include "network/types/collator_messages.hpp"
+#include "common/tagged.hpp"
 
 namespace kagome::parachain {
 
@@ -28,8 +29,15 @@ namespace kagome::parachain {
       uint64_t validity_votes;
     };
 
+    using ValidityVoteIssued = Tagged<Statement, struct Issued>;
+    using ValidityVoteValid = Tagged<Statement, struct Valid>;  
+    using ValidityVote = boost::variant<
+       ValidityVoteIssued,
+       ValidityVoteValid
+    >;
+
     using StatementInfo =
-        std::pair<network::ParachainId, std::map<ValidatorIndex, Statement>>;
+        std::pair<network::ParachainId, std::map<ValidatorIndex, ValidityVote>>;
 
     virtual ~BackingStore() = default;
 
