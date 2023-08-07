@@ -76,7 +76,7 @@ namespace kagome::parachain {
     };
   }
 
-  std::optional<std::reference_wrapper<BackingStore::const StatementInfo>>
+  std::optional<std::reference_wrapper<const BackingStore::StatementInfo>>
   BackingStoreImpl::get_validity_votes(
       const network::CandidateHash &candidate_hash) const {
     if (auto it = statements_.find(candidate_hash); it != statements_.end()) {
