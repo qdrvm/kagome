@@ -1,5 +1,5 @@
-FROM bitnami/minideb@sha256:297209ec9579cf8a5db349d5d3f3d3894e2d4281ee79df40d479c16896fdf41e
-
+#FROM bitnami/minideb@sha256:297209ec9579cf8a5db349d5d3f3d3894e2d4281ee79df40d479c16896fdf41e
+FROM bitnami/minideb@sha256:c84aa349081c182fbaa92434eb6f6a0e14e69fc70aa1a5af2c7a8c0279fe5e93
 MAINTAINER Vladimir Shcherba <abrehchs@gmail.com>
 
 SHELL ["/bin/bash", "-c"]

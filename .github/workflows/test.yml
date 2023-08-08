@@ -13,7 +13,7 @@ env:
   GITHUB_HUNTER_TOKEN: ${{ secrets.HUNTER_TOKEN }}
   # Change all container: values to this variable once this feature is available
   # https://github.community/t/how-to-set-and-access-a-workflow-variable/17335/6
-  INDOCKER_IMAGE: soramitsu/kagome-dev@sha256:e279f7672d54dbc1327a98d6a38bf2e176bdcbffd7a320f344c4e6fb1ae8c76f
+  INDOCKER_IMAGE: soramitsu/kagome-dev@sha256:b529a4fa2bae15f8a7109839305b1b29a166b333a8fdfc22a7056c6f404eb902
   CACHE_VERSION: v07
   CACHE_PATHS: |
     ~/Library/Caches/pip
@@ -59,7 +59,7 @@ jobs:
           
   #   name: "${{ matrix.options.name }}"
   #   runs-on: ubuntu-latest
-  #   container: soramitsu/kagome-dev@sha256:e279f7672d54dbc1327a98d6a38bf2e176bdcbffd7a320f344c4e6fb1ae8c76f
+  #   container: soramitsu/kagome-dev@sha256:b529a4fa2bae15f8a7109839305b1b29a166b333a8fdfc22a7056c6f404eb902
   #   steps:
   #     - uses: actions/checkout@dc323e67f16fb5f7663d20ff7941f27f5809e9b6
   #     - uses: actions/cache@937d24475381cd9c75ae6db12cb4e79714b926ed
@@ -101,7 +101,7 @@ jobs:
 
     name: "${{ matrix.options.name }}"
     runs-on: [ ubuntu-latest, kagome, self-hosted, linux ]
-    container: soramitsu/kagome-dev@sha256:e279f7672d54dbc1327a98d6a38bf2e176bdcbffd7a320f344c4e6fb1ae8c76f
+    container: soramitsu/kagome-dev@sha256:b529a4fa2bae15f8a7109839305b1b29a166b333a8fdfc22a7056c6f404eb902
     steps:
       - uses: actions/checkout@dc323e67f16fb5f7663d20ff7941f27f5809e9b6
       - uses: actions/cache@937d24475381cd9c75ae6db12cb4e79714b926ed
@@ -125,7 +125,7 @@ jobs:
   # clang-tidy:
   #   name: "Linux: clang-tidy"
   #   runs-on: ubuntu-latest
-  #   container: soramitsu/kagome-dev@sha256:e279f7672d54dbc1327a98d6a38bf2e176bdcbffd7a320f344c4e6fb1ae8c76f
+  #   container: soramitsu/kagome-dev@sha256:b529a4fa2bae15f8a7109839305b1b29a166b333a8fdfc22a7056c6f404eb902
   #   steps:
   #     - uses: actions/checkout@dc323e67f16fb5f7663d20ff7941f27f5809e9b6
   #       with:
@@ -146,7 +146,7 @@ jobs:
   #   if: ${{ !(github.ref == 'refs/heads/master' || startsWith( github.ref, 'refs/tags/' )) }}
   #   name: "Linux: gcc-10 coverage/sonar"
   #   runs-on: ubuntu-latest
-  #   container: soramitsu/kagome-dev@sha256:e279f7672d54dbc1327a98d6a38bf2e176bdcbffd7a320f344c4e6fb1ae8c76f
+  #   container: soramitsu/kagome-dev@sha256:b529a4fa2bae15f8a7109839305b1b29a166b333a8fdfc22a7056c6f404eb902
   #   steps:
   #     - uses: actions/checkout@dc323e67f16fb5f7663d20ff7941f27f5809e9b6
   #     - uses: actions/cache@937d24475381cd9c75ae6db12cb4e79714b926ed
@@ -186,7 +186,7 @@ jobs:
     #if: ${{ github.ref == 'refs/heads/master' || startsWith( github.ref, 'refs/tags/' ) }}
     name: "Linux: gcc-10 coverage/sonar"
     runs-on: [ ubuntu-latest, kagome, self-hosted, linux ]
-    container: soramitsu/kagome-dev@sha256:e279f7672d54dbc1327a98d6a38bf2e176bdcbffd7a320f344c4e6fb1ae8c76f
+    container: soramitsu/kagome-dev@sha256:b529a4fa2bae15f8a7109839305b1b29a166b333a8fdfc22a7056c6f404eb902
     steps:
       - uses: actions/checkout@dc323e67f16fb5f7663d20ff7941f27f5809e9b6
       - uses: actions/cache@937d24475381cd9c75ae6db12cb4e79714b926ed
@@ -234,7 +234,7 @@ jobs:
   #           build-type: "Release"
   #   name: "${{ matrix.options.name }}"
   #   runs-on: ubuntu-latest
-  #   container: soramitsu/kagome-dev@sha256:e279f7672d54dbc1327a98d6a38bf2e176bdcbffd7a320f344c4e6fb1ae8c76f
+  #   container: soramitsu/kagome-dev@sha256:b529a4fa2bae15f8a7109839305b1b29a166b333a8fdfc22a7056c6f404eb902
   #   steps:
   #     - uses: actions/checkout@dc323e67f16fb5f7663d20ff7941f27f5809e9b6
   #     - uses: actions/cache@937d24475381cd9c75ae6db12cb4e79714b926ed
@@ -258,7 +258,7 @@ jobs:
             build-type: "Release"
     name: "${{ matrix.options.name }}"
     runs-on: [ ubuntu-latest, kagome, self-hosted, linux ]
-    container: soramitsu/kagome-dev@sha256:e279f7672d54dbc1327a98d6a38bf2e176bdcbffd7a320f344c4e6fb1ae8c76f
+    container: soramitsu/kagome-dev@sha256:b529a4fa2bae15f8a7109839305b1b29a166b333a8fdfc22a7056c6f404eb902
     steps:
       - uses: actions/checkout@dc323e67f16fb5f7663d20ff7941f27f5809e9b6
       - uses: actions/cache@937d24475381cd9c75ae6db12cb4e79714b926ed
@@ -285,7 +285,7 @@ jobs:
           - name: "Push RelWithDebInfo Docker image"
             build-type: "RelWithDebInfo"
     runs-on: [ ubuntu-latest, kagome, self-hosted, linux ]
-    container: soramitsu/kagome-dev@sha256:e279f7672d54dbc1327a98d6a38bf2e176bdcbffd7a320f344c4e6fb1ae8c76f
+    container: soramitsu/kagome-dev@sha256:b529a4fa2bae15f8a7109839305b1b29a166b333a8fdfc22a7056c6f404eb902
     steps:
       - uses: actions/checkout@dc323e67f16fb5f7663d20ff7941f27f5809e9b6
       - uses: actions/cache@937d24475381cd9c75ae6db12cb4e79714b926ed
