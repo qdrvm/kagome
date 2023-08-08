@@ -704,6 +704,8 @@ namespace kagome::blockchain {
       std::stack<std::pair<primitives::BlockHash, primitives::BlockHeader>>
           to_add;
 
+      auto finalized = getLastFinalizedNoLock(p).number;
+
       for (auto hash = block_header.parent_hash;;) {
         OUTCOME_TRY(header_opt, p.storage_->getBlockHeader(hash));
         if (not header_opt.has_value()) {
@@ -714,6 +716,10 @@ namespace kagome::blockchain {
         SL_TRACE(log_,
                  "Block {} has found in storage and enqueued to add",
                  primitives::BlockInfo(header.number, hash));
+
+        if (header.number <= finalized) {
+          return BlockTreeError::BLOCK_ON_DEAD_END;
+        }
 
         to_add.emplace(hash, std::move(header));
 
