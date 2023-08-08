@@ -292,6 +292,7 @@ jobs:
         with:
           path: ${{ env.CACHE_PATHS }}
           key: ${{ github.job }}-${{ env.CACHE_VERSION }}
+      - run: git config --global --add safe.directory /__w/kagome/kagome
       - run: git fetch --prune --unshallow
       - name: build
         env:
