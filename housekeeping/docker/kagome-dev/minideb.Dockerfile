@@ -2,6 +2,7 @@ FROM bitnami/minideb@sha256:297209ec9579cf8a5db349d5d3f3d3894e2d4281ee79df40d479
 
 MAINTAINER Vladimir Shcherba <abrehchs@gmail.com>
 
+SHELL ["/bin/bash", "-c"]
 # add some required tools
 RUN apt-get update && \
     apt-get install --no-install-recommends -y \
@@ -10,7 +11,7 @@ RUN apt-get update && \
         wget \
         vim \
         python3 \
-        python3-pip=20.3.4-4+deb11u1 \
+        python3-pip \
         python3-setuptools \
         software-properties-common \
         gdb \
@@ -84,8 +85,17 @@ ENV PATH="${CARGO_HOME}/bin:${PATH}"
 RUN curl https://sh.rustup.rs -sSf | sh -s -- -y --default-toolchain ${RUST_VERSION} && \
     rustup default ${RUST_VERSION}
 
+
+# Prepare python venv
+RUN apt update && \
+    apt install --no-install-recommends -y \
+    python3.11-venv
+RUN python3 -m venv /venv && \
+    source /venv/bin/activate
+
 # install cmake and dev dependencies
-RUN pip3 install --no-cache-dir cmake scikit-build requests gitpython gcovr pyyaml
+RUN /venv/bin/python3 -m pip install --no-cache-dir --upgrade pip
+RUN /venv/bin/pip install --no-cache-dir cmake scikit-build requests gitpython gcovr pyyaml
 
 # install sonar cli
 ENV SONAR_CLI_VERSION=4.1.0.1829
@@ -105,7 +115,9 @@ ENV CC=gcc-10
 ENV CXX=g++-10
 
 # set default compilers and tools
-RUN update-alternatives --install /usr/bin/python       python       /usr/bin/python3               90 && \
+
+RUN update-alternatives --install /usr/bin/python       python       /venv/bin/python3              90 && \
+    update-alternatives --install /usr/bin/python       python       /usr/bin/python3               80 && \
     
     update-alternatives --install /usr/bin/clang-tidy   clang-tidy   /usr/bin/clang-tidy-11         90 && \
     update-alternatives --install /usr/bin/clang-format clang-format /usr/bin/clang-format-11       90 && \
