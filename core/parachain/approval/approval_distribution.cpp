@@ -764,30 +764,7 @@ namespace kagome::parachain {
                 kagome::parachain::approval::ApprovalStatus>>
   ApprovalDistribution::approval_status(const BlockEntry &block_entry,
                                         CandidateEntry &candidate_entry) {
-    std::optional<runtime::SessionInfo> opt_session_info{};
-    if (auto session_info_res = parachain_host_->session_info(
-            block_entry.parent_hash, block_entry.session);
-        session_info_res.has_value()) {
-      opt_session_info = std::move(session_info_res.value());
-    } else {
-      logger_->warn(
-          "Approval status. Session info runtime request failed. "
-          "(block_hash={}, session_index={}, error={})",
-          block_entry.parent_hash,
-          block_entry.session,
-          session_info_res.error().message());
-      return std::nullopt;
-    }
-
-    if (!opt_session_info) {
-      logger_->debug(
-          "Can't obtain SessionInfo. (parent_hash={}, session_index={})",
-          block_entry.parent_hash,
-          block_entry.session);
-      return std::nullopt;
-    }
-
-    runtime::SessionInfo &session_info = *opt_session_info;
+    auto &session_info = block_entry.session_info;
     const auto block_hash = block_entry.block_hash;
 
     const auto tranche_now =
@@ -1293,26 +1270,20 @@ namespace kagome::parachain {
                           storedBlockEntries().get(assignment.block_hash));
 
     std::optional<runtime::SessionInfo> opt_session_info{};
-    if (auto session_info_res = parachain_host_->session_info(
-            block_entry.parent_hash, block_entry.session);
-        session_info_res.has_value()) {
+    if (auto session_info_res = parachain_host_->session_info(block_entry.parent_hash, block_entry.session); session_info_res.has_value()) {
       opt_session_info = std::move(session_info_res.value());
     } else {
       logger_->warn(
-          "Assignment. Session info runtime request failed. (parent_hash={}, "
-          "session_index={}, error={})",
-          block_entry.parent_hash,
-          block_entry.session,
-          session_info_res.error().message());
-      return AssignmentCheckResult::Bad;
+          "Assignment. Session info runtime request failed. (parent_hash={}, session_index={}, error={})",
+          block_entry.parent_hash, block_entry.session, session_info_res.error().message());
+                          return AssignmentCheckResult::Bad;
     }
 
     if (!opt_session_info) {
       logger_->debug(
           "Can't obtain SessionInfo. (parent_hash={}, session_index={})",
-          block_entry.parent_hash,
-          block_entry.session);
-      return AssignmentCheckResult::Bad;
+          block_entry.parent_hash, block_entry.session);
+                          return AssignmentCheckResult::Bad;
     }
 
     runtime::SessionInfo &session_info = *opt_session_info;
@@ -1396,26 +1367,20 @@ namespace kagome::parachain {
         ApprovalCheckResult::Bad,
         storedBlockEntries().get(approval.payload.payload.block_hash));
     std::optional<runtime::SessionInfo> opt_session_info{};
-    if (auto session_info_res = parachain_host_->session_info(
-            approval.payload.payload.block_hash, block_entry.session);
-        session_info_res.has_value()) {
+    if (auto session_info_res = parachain_host_->session_info(approval.payload.payload.block_hash, block_entry.session); session_info_res.has_value()) {
       opt_session_info = std::move(session_info_res.value());
     } else {
       logger_->warn(
-          "Approval. Session info runtime request failed. (block_hash={}, "
-          "session_index={}, error={})",
-          approval.payload.payload.block_hash,
-          block_entry.session,
-          session_info_res.error().message());
-      return ApprovalCheckResult::Bad;
+          "Approval. Session info runtime request failed. (block_hash={}, session_index={}, error={})",
+          approval.payload.payload.block_hash, block_entry.session, session_info_res.error().message());
+                          return ApprovalCheckResult::Bad;
     }
 
     if (!opt_session_info) {
       logger_->debug(
           "Can't obtain SessionInfo. (parent_hash={}, session_index={})",
-          approval.payload.payload.block_hash,
-          block_entry.session);
-      return ApprovalCheckResult::Bad;
+          approval.payload.payload.block_hash, block_entry.session);
+                          return ApprovalCheckResult::Bad;
     }
 
     runtime::SessionInfo &session_info = *opt_session_info;
@@ -1886,30 +1851,7 @@ namespace kagome::parachain {
       return;
     }
 
-    std::optional<runtime::SessionInfo> opt_session_info{};
-    if (auto session_info_res = parachain_host_->session_info(
-            block_entry.parent_hash, block_entry.session);
-        session_info_res.has_value()) {
-      opt_session_info = std::move(session_info_res.value());
-    } else {
-      logger_->warn(
-          "Issue approval. Session info runtime request failed. "
-          "(block_hash={}, session_index={}, error={})",
-          block_entry.parent_hash,
-          block_entry.session,
-          session_info_res.error().message());
-      return;
-    }
-
-    if (!opt_session_info) {
-      logger_->debug(
-          "Can't obtain SessionInfo. (parent_hash={}, session_index={})",
-          block_entry.parent_hash,
-          block_entry.session);
-      return;
-    }
-
-    runtime::SessionInfo &session_info = *opt_session_info;
+    auto &session_info = block_entry.session_info;
     if (*candidate_index >= block_entry.candidates.size()) {
       logger_->warn(
           "Received malformed request to approve out-of-bounds candidate index "
@@ -2306,30 +2248,8 @@ namespace kagome::parachain {
 
     auto &block_entry = opt_block_entry->get();
     auto &candidate_entry = opt_candidate_entry->get();
-    std::optional<runtime::SessionInfo> opt_session_info{};
-    if (auto session_info_res = parachain_host_->session_info(
-            block_entry.parent_hash, block_entry.session);
-        session_info_res.has_value()) {
-      opt_session_info = std::move(session_info_res.value());
-    } else {
-      logger_->warn(
-          "Handle tranche. Session info runtime request failed. "
-          "(block_hash={}, session_index={}, error={})",
-          block_entry.parent_hash,
-          block_entry.session,
-          session_info_res.error().message());
-      return;
-    }
+    auto &session_info = opt_block_entry->get().session_info;
 
-    if (!opt_session_info) {
-      logger_->debug(
-          "Can't obtain SessionInfo. (parent_hash={}, session_index={})",
-          block_entry.parent_hash,
-          block_entry.session);
-      return;
-    }
-
-    runtime::SessionInfo &session_info = *opt_session_info;
     const auto block_tick =
         slotNumberToTick(config_.slot_duration_millis, block_entry.slot);
     const auto no_show_duration = slotNumberToTick(config_.slot_duration_millis,
