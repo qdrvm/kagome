@@ -1268,25 +1268,7 @@ namespace kagome::parachain {
     GET_OPT_VALUE_OR_EXIT(block_entry,
                           AssignmentCheckResult::Bad,
                           storedBlockEntries().get(assignment.block_hash));
-
-    std::optional<runtime::SessionInfo> opt_session_info{};
-    if (auto session_info_res = parachain_host_->session_info(block_entry.parent_hash, block_entry.session); session_info_res.has_value()) {
-      opt_session_info = std::move(session_info_res.value());
-    } else {
-      logger_->warn(
-          "Assignment. Session info runtime request failed. (parent_hash={}, session_index={}, error={})",
-          block_entry.parent_hash, block_entry.session, session_info_res.error().message());
-                          return AssignmentCheckResult::Bad;
-    }
-
-    if (!opt_session_info) {
-      logger_->debug(
-          "Can't obtain SessionInfo. (parent_hash={}, session_index={})",
-          block_entry.parent_hash, block_entry.session);
-                          return AssignmentCheckResult::Bad;
-    }
-
-    runtime::SessionInfo &session_info = *opt_session_info;
+    auto &session_info = block_entry.session_info;
     if (candidate_index >= block_entry.candidates.size()) {
       logger_->warn(
           "Candidate index more than candidates array.(candidate index={})",
@@ -1366,24 +1348,7 @@ namespace kagome::parachain {
         block_entry,
         ApprovalCheckResult::Bad,
         storedBlockEntries().get(approval.payload.payload.block_hash));
-    std::optional<runtime::SessionInfo> opt_session_info{};
-    if (auto session_info_res = parachain_host_->session_info(approval.payload.payload.block_hash, block_entry.session); session_info_res.has_value()) {
-      opt_session_info = std::move(session_info_res.value());
-    } else {
-      logger_->warn(
-          "Approval. Session info runtime request failed. (block_hash={}, session_index={}, error={})",
-          approval.payload.payload.block_hash, block_entry.session, session_info_res.error().message());
-                          return ApprovalCheckResult::Bad;
-    }
-
-    if (!opt_session_info) {
-      logger_->debug(
-          "Can't obtain SessionInfo. (parent_hash={}, session_index={})",
-          approval.payload.payload.block_hash, block_entry.session);
-                          return ApprovalCheckResult::Bad;
-    }
-
-    runtime::SessionInfo &session_info = *opt_session_info;
+    auto &session_info = block_entry.session_info;
     if (approval.payload.payload.candidate_index
         >= block_entry.candidates.size()) {
       logger_->warn(
