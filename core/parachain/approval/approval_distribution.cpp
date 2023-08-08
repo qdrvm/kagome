@@ -1464,6 +1464,10 @@ namespace kagome::parachain {
       switch (
           check_and_import_assignment(assignment, claimed_candidate_index)) {
         case AssignmentCheckResult::Accepted:
+          SL_TRACE(logger_,
+                   "Assignment accepted. (peer id={}, block hash={})",
+                   source->get(),
+                   block_hash);
           break;
         case AssignmentCheckResult::Bad:
           SL_WARN(logger_,
