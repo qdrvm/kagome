@@ -208,12 +208,6 @@ namespace kagome::consensus::grandpa {
     }
 
     /**
-     * Best block from descendants of previous round best-final-candidate
-     * @see spec: Best-PreVote-Candidate
-     */
-    BlockInfo bestPrevoteCandidate() override;
-
-    /**
      * Block what has precommit supermajority.
      * Should be descendant or equal of Best-PreVote-Candidate
      * @see spec:

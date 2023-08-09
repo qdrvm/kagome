@@ -25,6 +25,7 @@
 #include "crypto/crypto_store/session_keys.hpp"
 #include "network/peer_view.hpp"
 #include "network/types/collator_messages.hpp"
+#include "parachain/approval/approved_ancestor.hpp"
 #include "parachain/approval/store.hpp"
 #include "parachain/availability/recovery/recovery.hpp"
 #include "parachain/validator/parachain_processor.hpp"
@@ -51,7 +52,8 @@ namespace kagome::parachain {
    * candidates.
    */
   struct ApprovalDistribution final
-      : public std::enable_shared_from_this<ApprovalDistribution> {
+      : public std::enable_shared_from_this<ApprovalDistribution>,
+        public IApprovedAncestor {
     enum class Error {
       NO_INSTANCE = 1,
       NO_CONTEXT = 2,
@@ -285,6 +287,10 @@ namespace kagome::parachain {
     void getApprovalSignaturesForCandidate(
         const CandidateHash &candidate,
         SignaturesForCandidateCallback &&callback);
+
+    primitives::BlockInfo approvedAncestor(
+        const primitives::BlockInfo &min,
+        const primitives::BlockInfo &max) override;
 
    private:
     using CandidateIncludedList =
