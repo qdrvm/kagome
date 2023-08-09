@@ -544,6 +544,9 @@ namespace kagome::parachain {
     internal_context_->start();
     thread_pool_context_->start();
     this_context_.start();
+
+    /// TODO(iceseer): clear `known_by` when peer disconnected
+
     return true;
   }
 
@@ -1467,6 +1470,31 @@ namespace kagome::parachain {
 
     if (source) {
       const auto &peer_id = source->get();
+
+      if (auto it = entry.known_by.find(peer_id); it != entry.known_by.end()) {
+        if (auto &peer_knowledge = it->second;
+            peer_knowledge.contains(message_subject, message_kind)) {
+          if (!peer_knowledge.received.insert(message_subject, message_kind)) {
+            SL_TRACE(logger_,
+                     "Duplicate assignment. (peer id={}, block_hash={}, "
+                     "candidate index={}, validator index={})",
+                     peer_id,
+                     std::get<0>(message_subject),
+                     std::get<1>(message_subject),
+                     std::get<2>(message_subject));
+          }
+          return;
+        }
+      } else {
+        SL_WARN(logger_,
+                "Assignment from a peer is out of view. (peer id={}, "
+                "block_hash={}, candidate index={}, validator index={})",
+                peer_id,
+                std::get<0>(message_subject),
+                std::get<1>(message_subject),
+                std::get<2>(message_subject));
+      }
+
       /// if the assignment is known to be valid, reward the peer
       if (entry.knowledge.contains(message_subject, message_kind)) {
         /// TODO(iceseer): modify reputation
