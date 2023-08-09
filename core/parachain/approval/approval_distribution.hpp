@@ -613,7 +613,9 @@ namespace kagome::parachain {
         const approval::IndirectAssignmentCert &indirect_cert,
         CandidateIndex candidate_index);
 
-    void runDistributeApproval(const network::IndirectSignedApprovalVote &vote);
+    void runDistributeApproval(
+        const network::IndirectSignedApprovalVote &vote,
+        std::unordered_set<libp2p::peer::PeerId> &&peers);
 
     void runScheduleWakeup(const primitives::BlockHash &block_hash,
                            primitives::BlockNumber block_number,

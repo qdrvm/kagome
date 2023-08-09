@@ -1466,10 +1466,10 @@ namespace kagome::parachain {
     approval::MessageKindAssignment message_kind{};
 
     if (source) {
+      const auto &peer_id = source->get();
       /// if the assignment is known to be valid, reward the peer
       if (entry.knowledge.contains(message_subject, message_kind)) {
         /// TODO(iceseer): modify reputation
-        const auto &peer_id = source->get();
         if (auto it = entry.known_by.find(peer_id);
             it != entry.known_by.end()) {
           SL_TRACE(logger_, "Known assignment. (peer id={})", peer_id);
@@ -1479,35 +1479,57 @@ namespace kagome::parachain {
 
       switch (
           check_and_import_assignment(assignment, claimed_candidate_index)) {
-        case AssignmentCheckResult::Accepted:
+        case AssignmentCheckResult::Accepted: {
           SL_TRACE(logger_,
                    "Assignment accepted. (peer id={}, block hash={})",
                    source->get(),
                    block_hash);
-          break;
-        case AssignmentCheckResult::Bad:
+          entry.knowledge.known_messages[message_subject] = message_kind;
+          if (auto it = entry.known_by.find(peer_id);
+              it != entry.known_by.end()) {
+            it->second.received.insert(message_subject, message_kind);
+          }
+        } break;
+        case AssignmentCheckResult::Bad: {
           SL_WARN(logger_,
                   "Got bad assignment from peer. (peer id={}, block hash={})",
                   source->get(),
                   block_hash);
+        }
           return;
-        case AssignmentCheckResult::TooFarInFuture:
+        case AssignmentCheckResult::TooFarInFuture: {
           SL_TRACE(
               logger_,
               "Got an assignment too far in the future. (peer id={}, block "
               "hash={})",
               source->get(),
               block_hash);
+        }
           return;
-        case AssignmentCheckResult::AcceptedDuplicate:
+        case AssignmentCheckResult::AcceptedDuplicate: {
           SL_TRACE(logger_,
                    "Got duplicated assignment. (peer id={}, block hash={})",
                    source->get(),
                    block_hash);
+        }
           return;
       }
     } else {
-      /// TODO(iceseer): vector-clock for knowledge
+      if (!entry.knowledge.insert(message_subject, message_kind)) {
+        SL_WARN(logger_,
+                "Importing locally an already known assignment. "
+                "(block_hash={}, candidate index={}, validator index={})",
+                std::get<0>(message_subject),
+                std::get<1>(message_subject),
+                std::get<2>(message_subject));
+        return;
+      }
+      SL_TRACE(logger_,
+               "Importing locally a new assignment. (block_hash={}, candidate "
+               "index={}, validator index={})",
+               std::get<0>(message_subject),
+               std::get<1>(message_subject),
+               std::get<2>(message_subject));
     }
 
     const auto local = !source;
@@ -1576,20 +1598,77 @@ namespace kagome::parachain {
       }
     }
 
+    auto message_subject{
+        std::make_tuple(block_hash, candidate_index, validator_index)};
+    approval::MessageKindApproval message_kind{};
+
     if (source) {
-      /// TODO(iceseer): vector-clock for knowledge
+      const auto &peer_id = source->get();
+      if (!entry.knowledge.contains(message_subject,
+                                    approval::MessageKindAssignment{})) {
+        SL_TRACE(logger_,
+                 "Unknown approval assignment. (peer id={}, block hash={}, "
+                 "candidate={}, validator={})",
+                 peer_id,
+                 std::get<0>(message_subject),
+                 std::get<1>(message_subject),
+                 std::get<2>(message_subject));
+        return;
+      }
+
+      /// TODO(iceseer): known_by
+
+      /// if the approval is known to be valid, reward the peer
+      if (entry.knowledge.contains(message_subject, message_kind)) {
+        SL_TRACE(logger_,
+                 "Known approval. (peer id={}, block hash={}, "
+                 "candidate={}, validator={})",
+                 peer_id,
+                 std::get<0>(message_subject),
+                 std::get<1>(message_subject),
+                 std::get<2>(message_subject));
+
+        if (auto it = entry.known_by.find(peer_id);
+            it != entry.known_by.end()) {
+          it->second.received.insert(message_subject, message_kind);
+        }
+        return;
+      }
+
       switch (check_and_import_approval(vote)) {
-        case ApprovalCheckResult::Accepted:
-          break;
-        case ApprovalCheckResult::Bad:
+        case ApprovalCheckResult::Accepted: {
+          entry.knowledge.insert(message_subject, message_kind);
+          if (auto it = entry.known_by.find(peer_id);
+              it != entry.known_by.end()) {
+            it->second.received.insert(message_subject, message_kind);
+          }
+        } break;
+        case ApprovalCheckResult::Bad: {
           logger_->warn(
-              "Got bad approval from peer. (peer id={}, block hash={})",
+              "Got a bad approval from peer. (peer id={}, block hash={})",
               source->get(),
               block_hash);
+        }
           return;
       }
     } else {
-      /// TODO(iceseer): vector-clock for knowledge
+      if (!entry.knowledge.insert(message_subject, message_kind)) {
+        // if we already imported an approval, there is no need to distribute it
+        // again
+        SL_WARN(logger_,
+                "Importing locally an already known approval. "
+                "(block_hash={}, candidate index={}, validator index={})",
+                std::get<0>(message_subject),
+                std::get<1>(message_subject),
+                std::get<2>(message_subject));
+        return;
+      }
+      SL_TRACE(logger_,
+               "Importing locally a new approval. (block_hash={}, candidate "
+               "index={}, validator index={})",
+               std::get<0>(message_subject),
+               std::get<1>(message_subject),
+               std::get<2>(message_subject));
     }
 
     if (auto it = candidate_entry.messages.find(validator_index);
@@ -1608,7 +1687,29 @@ namespace kagome::parachain {
           validator_index);
       return;
     }
-    runDistributeApproval(vote);
+
+    auto peer_filter = [&](const auto &peer, const auto &peer_kn) {
+      if (source && peer == source->get()) {
+        return false;
+      }
+      return peer_kn.sent.contains(message_subject,
+                                   approval::MessageKindAssignment{});
+    };
+
+    std::unordered_set<libp2p::peer::PeerId> peers{};
+    for (const auto &[peer_id, peer_knowledge] : entry.known_by) {
+      if (peer_filter(peer_id, peer_knowledge)) {
+        peers.insert(peer_id);
+        if (auto it = entry.known_by.find(peer_id);
+            it != entry.known_by.end()) {
+          it->second.sent.insert(message_subject, message_kind);
+        }
+      }
+    }
+
+    if (!peers.empty()) {
+      runDistributeApproval(vote, std::move(peers));
+    }
   }
 
   void ApprovalDistribution::getApprovalSignaturesForCandidate(
@@ -1788,23 +1889,28 @@ namespace kagome::parachain {
   }
 
   void ApprovalDistribution::runDistributeApproval(
-      const network::IndirectSignedApprovalVote &_vote) {
-    REINVOKE_1(this_context_, runDistributeApproval, _vote, vote);
+      const network::IndirectSignedApprovalVote &_vote,
+      std::unordered_set<libp2p::peer::PeerId> &&_peers) {
+    REINVOKE_2(
+        this_context_, runDistributeApproval, _vote, _peers, vote, peers);
 
     logger_->info(
-        "Distributing our approval vote on candidate (block={}, index={})",
+        "Sending an approval to peers. (block={}, index={}, num peers={})",
         vote.payload.payload.block_hash,
-        vote.payload.payload.candidate_index);
+        vote.payload.payload.candidate_index,
+        peers.size());
 
     auto se = pm_->getStreamEngine();
     BOOST_ASSERT(se);
 
-    se->broadcast(router_->getValidationProtocol(),
-                  std::make_shared<
-                      network::WireMessage<network::ValidatorProtocolMessage>>(
-                      network::ApprovalDistributionMessage{network::Approvals{
-                          .approvals = {vote},
-                      }}));
+    se->broadcast(
+        router_->getValidationProtocol(),
+        std::make_shared<
+            network::WireMessage<network::ValidatorProtocolMessage>>(
+            network::ApprovalDistributionMessage{network::Approvals{
+                .approvals = {vote},
+            }}),
+        [&](const libp2p::peer::PeerId &p) { return peers.count(p) != 0ull; });
   }
 
   void ApprovalDistribution::issue_approval(const CandidateHash &can_hash,
