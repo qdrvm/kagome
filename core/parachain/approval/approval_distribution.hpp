@@ -26,6 +26,7 @@
 #include "network/peer_view.hpp"
 #include "network/types/collator_messages.hpp"
 #include "parachain/approval/approved_ancestor.hpp"
+#include "parachain/approval/knowledge.hpp"
 #include "parachain/approval/store.hpp"
 #include "parachain/availability/recovery/recovery.hpp"
 #include "parachain/validator/parachain_processor.hpp"
@@ -351,14 +352,20 @@ namespace kagome::parachain {
     /// for the same candidate, if it is included by multiple blocks - this is
     /// likely the case when there are forks.
     struct DistribCandidateEntry {
-      std::unordered_map<ValidatorIndex, MessageState> messages;
+      std::unordered_map<ValidatorIndex, MessageState> messages{};
     };
 
     /// Information about blocks in our current view as well as whether peers
     /// know of them.
     struct DistribBlockEntry {
       /// A votes entry for each candidate indexed by [`CandidateIndex`].
-      std::vector<DistribCandidateEntry> candidates;
+      std::vector<DistribCandidateEntry> candidates{};
+      /// Our knowledge of messages.
+      approval::Knowledge knowledge{};
+      /// Peers who we know are aware of this block and thus, the candidates
+      /// within it. This maps to their knowledge of messages.
+      std::unordered_map<libp2p::peer::PeerId, approval::PeerKnowledge>
+          known_by{};
     };
 
     /// Metadata regarding approval of a particular block, by way of approval of

@@ -1018,6 +1018,8 @@ namespace kagome::parachain {
       storedDistribBlockEntries().set(meta.hash,
                                       DistribBlockEntry{
                                           .candidates = std::move(candidates),
+                                          .knowledge = {},
+                                          .known_by = {},
                                       });
     }
 
@@ -1459,8 +1461,22 @@ namespace kagome::parachain {
       }
     }
 
+    auto message_subject{
+        std::make_tuple(block_hash, claimed_candidate_index, validator_index)};
+    approval::MessageKindAssignment message_kind{};
+
     if (source) {
-      /// TODO(iceseer): vector-clock for knowledge
+      /// if the assignment is known to be valid, reward the peer
+      if (entry.knowledge.contains(message_subject, message_kind)) {
+        /// TODO(iceseer): modify reputation
+        const auto &peer_id = source->get();
+        if (auto it = entry.known_by.find(peer_id);
+            it != entry.known_by.end()) {
+          SL_TRACE(logger_, "Known assignment. (peer id={})", peer_id);
+          it->second.received.insert(message_subject, message_kind);
+        }
+      }
+
       switch (
           check_and_import_assignment(assignment, claimed_candidate_index)) {
         case AssignmentCheckResult::Accepted:
