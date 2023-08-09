@@ -1677,7 +1677,30 @@ namespace kagome::parachain {
         return;
       }
 
-      /// TODO(iceseer): known_by
+      // check if our knowledge of the peer already contains this approval
+      if (auto it = entry.known_by.find(peer_id); it != entry.known_by.end()) {
+        if (auto &peer_knowledge = it->second;
+            peer_knowledge.contains(message_subject, message_kind)) {
+          if (!peer_knowledge.received.insert(message_subject, message_kind)) {
+            SL_TRACE(logger_,
+                     "Duplicate approval. (peer id={}, block_hash={}, "
+                     "candidate index={}, validator index={})",
+                     peer_id,
+                     std::get<0>(message_subject),
+                     std::get<1>(message_subject),
+                     std::get<2>(message_subject));
+          }
+          return;
+        }
+      } else {
+        SL_TRACE(logger_,
+                 "Approval from a peer is out of view. (peer id={}, "
+                 "block_hash={}, candidate index={}, validator index={})",
+                 peer_id,
+                 std::get<0>(message_subject),
+                 std::get<1>(message_subject),
+                 std::get<2>(message_subject));
+      }
 
       /// if the approval is known to be valid, reward the peer
       if (entry.knowledge.contains(message_subject, message_kind)) {
