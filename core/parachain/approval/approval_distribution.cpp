@@ -1535,8 +1535,14 @@ namespace kagome::parachain {
         }
           return;
         case AssignmentCheckResult::AcceptedDuplicate: {
+          if (auto it = entry.known_by.find(peer_id);
+              it != entry.known_by.end()) {
+            auto &peer_knowledge = it->second;
+            peer_knowledge.received.insert(message_subject, message_kind);
+          }
           SL_TRACE(logger_,
-                   "Got duplicated assignment. (peer id={}, block hash={})",
+                   "Got an `AcceptedDuplicate` assignment. (peer id={}, block "
+                   "hash={})",
                    source->get(),
                    block_hash);
         }
@@ -1570,7 +1576,34 @@ namespace kagome::parachain {
                      })
             .first->second;
 
-    runDistributeAssignment(assignment, claimed_candidate_index);
+    auto peer_filter = [&](const auto &peer, const auto &peer_kn) {
+      if (source && peer == source->get()) {
+        return false;
+      }
+
+      const bool already_sent =
+          peer_kn.sent.contains(message_subject,
+                                approval::MessageKindAssignment{})
+          || peer_kn.sent.contains(message_subject,
+                                   approval::MessageKindApproval{});
+      return !already_sent;
+    };
+
+    std::unordered_set<libp2p::peer::PeerId> peers{};
+    for (const auto &[peer_id, peer_knowledge] : entry.known_by) {
+      if (peer_filter(peer_id, peer_knowledge)) {
+        peers.insert(peer_id);
+        if (auto it = entry.known_by.find(peer_id);
+            it != entry.known_by.end()) {
+          it->second.sent.insert(message_subject, message_kind);
+        }
+      }
+    }
+
+    if (!peers.empty()) {
+      runDistributeAssignment(
+          assignment, claimed_candidate_index, std::move(peers));
+    }
   }
 
   void ApprovalDistribution::import_and_circulate_approval(
@@ -1889,13 +1922,16 @@ namespace kagome::parachain {
 
   void ApprovalDistribution::runDistributeAssignment(
       const approval::IndirectAssignmentCert &_indirect_cert,
-      CandidateIndex _candidate_index) {
-    REINVOKE_2(this_context_,
+      CandidateIndex _candidate_index,
+      std::unordered_set<libp2p::peer::PeerId> &&_peers) {
+    REINVOKE_3(this_context_,
                runDistributeAssignment,
                _indirect_cert,
                _candidate_index,
+               _peers,
                indirect_cert,
-               candidate_index);
+               candidate_index,
+               peers);
 
     logger_->info(
         "Distributing assignment on candidate (block hash={}, candidate "
@@ -1906,14 +1942,16 @@ namespace kagome::parachain {
     auto se = pm_->getStreamEngine();
     BOOST_ASSERT(se);
 
-    se->broadcast(router_->getValidationProtocol(),
-                  std::make_shared<
-                      network::WireMessage<network::ValidatorProtocolMessage>>(
-                      network::ApprovalDistributionMessage{network::Assignments{
-                          .assignments = {network::Assignment{
-                              .indirect_assignment_cert = indirect_cert,
-                              .candidate_ix = candidate_index,
-                          }}}}));
+    se->broadcast(
+        router_->getValidationProtocol(),
+        std::make_shared<
+            network::WireMessage<network::ValidatorProtocolMessage>>(
+            network::ApprovalDistributionMessage{network::Assignments{
+                .assignments = {network::Assignment{
+                    .indirect_assignment_cert = indirect_cert,
+                    .candidate_ix = candidate_index,
+                }}}}),
+        [&](const libp2p::peer::PeerId &p) { return peers.count(p) != 0ull; });
   }
 
   void ApprovalDistribution::runDistributeApproval(
