@@ -24,6 +24,7 @@
 #include "consensus/grandpa/justification_observer.hpp"
 #include "crypto/crypto_store/session_keys.hpp"
 #include "crypto/sr25519_provider.hpp"
+#include "metrics/histogram_timer.hpp"
 #include "network/block_announce_transmitter.hpp"
 #include "network/helpers/peer_id_formatter.hpp"
 #include "network/peer_manager.hpp"
@@ -37,16 +38,17 @@
 #include "storage/trie/serialization/ordered_trie_hash.hpp"
 #include "storage/trie/trie_storage.hpp"
 
-namespace {
-  constexpr const char *kBlockProposalTime =
-      "kagome_proposer_block_constructed";
-}
-
 using namespace std::literals::chrono_literals;
 
 namespace kagome::consensus::babe {
   using ParachainInherentData = network::ParachainInherentData;
   using SyncMethod = application::AppConfiguration::SyncMethod;
+
+  metrics::HistogramTimer metric_block_proposal_time{
+      "kagome_proposer_block_constructed",
+      "Time taken to construct new block",
+      {0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1, 2.5, 5, 10},
+  };
 
   BabeImpl::BabeImpl(
       const application::AppConfiguration &app_config,
@@ -135,13 +137,6 @@ namespace kagome::consensus::babe {
     BOOST_ASSERT(babe_status_observable_);
 
     BOOST_ASSERT(app_state_manager);
-
-    // Register metrics
-    metrics_registry_->registerHistogramFamily(
-        kBlockProposalTime, "Time taken to construct new block");
-    metric_block_proposal_time_ = metrics_registry_->registerHistogramMetric(
-        kBlockProposalTime,
-        {0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1, 2.5, 5, 10});
 
     app_state_manager_->takeControl(*this);
   }
@@ -1172,7 +1167,7 @@ namespace kagome::consensus::babe {
       return;
     }
 
-    auto proposal_start = std::chrono::high_resolution_clock::now();
+    auto timer = metric_block_proposal_time.manual();
     // calculate babe_pre_digest
     auto babe_pre_digest_res =
         babePreDigest(slot_type, output, authority_index);
@@ -1198,14 +1193,8 @@ namespace kagome::consensus::babe {
       return;
     }
 
-    auto proposal_end = std::chrono::high_resolution_clock::now();
-    auto duration_ms = std::chrono::duration_cast<std::chrono::milliseconds>(
-                           proposal_end - proposal_start)
-                           .count();
+    auto duration_ms = timer().count();
     SL_DEBUG(log_, "Block has been built in {} ms", duration_ms);
-
-    metric_block_proposal_time_->observe(static_cast<double>(duration_ms)
-                                         / 1000);
 
     auto block = pre_seal_block_res.value();
 

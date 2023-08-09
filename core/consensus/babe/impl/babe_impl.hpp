@@ -12,7 +12,6 @@
 #include "clock/timer.hpp"
 #include "injector/lazy.hpp"
 #include "log/logger.hpp"
-#include "metrics/metrics.hpp"
 #include "parachain/availability/bitfield/store.hpp"
 #include "parachain/backing/store.hpp"
 #include "primitives/block.hpp"
@@ -254,10 +253,6 @@ namespace kagome::consensus::babe {
     BabeSlotNumber current_slot_{};
 
     primitives::BlockInfo best_block_{};
-
-    // Metrics
-    metrics::RegistryPtr metrics_registry_ = metrics::createRegistry();
-    metrics::Histogram *metric_block_proposal_time_;
 
     log::Logger log_;
     telemetry::Telemetry telemetry_;  // telemetry
