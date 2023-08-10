@@ -128,12 +128,15 @@ namespace kagome::consensus::grandpa {
         continue;
       }
 
-      auto deb_number =                                                   // XXX
-          block_tree_->getBlockHeader(block_hash).value().number;         // XXX
+      auto deb_header =                                                   // XXX
+          block_tree_->getBlockHeader(block_hash).value();                // XXX
+      auto deb_number = deb_header.number;                                // XXX
       SL_INFO(logger_, "DEBUG   {}", BlockInfo(deb_number, block_hash));  // XXX
+      auto deb_relay_parent = deb_header.parent_hash;
 
       auto session_index_res =
           parachain_api_->session_index_for_child(block_hash);
+      //  parachain_api_->session_index_for_child(deb_relay_parent);
       if (session_index_res.has_error()) {
         SL_WARN(logger_,
                 "Unable to query undisputed chain, "
@@ -146,6 +149,7 @@ namespace kagome::consensus::grandpa {
       SL_INFO(logger_, "DEBUG       session index = {}", session_index);  // XXX
 
       auto candidates_for_block = backing_store_->get(block_hash);
+      // auto candidates_for_block = backing_store_->get(deb_relay_parent);
 
       std::vector<dispute::CandidateHash> candidates;
 
