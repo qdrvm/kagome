@@ -41,13 +41,14 @@ namespace kagome::consensus::babe {
      */
     virtual outcome::result<EpochDescriptor> slotToEpochDescriptor(
         const primitives::BlockInfo &parent_info,
-        BabeSlotNumber slot_number) = 0;
+        BabeSlotNumber slot_number) const = 0;
 
     /**
      * @returns epoch number for given parent and slot
      */
     outcome::result<EpochNumber> slotToEpoch(
-        const primitives::BlockInfo &parent_info, BabeSlotNumber slot_number) {
+        const primitives::BlockInfo &parent_info,
+        BabeSlotNumber slot_number) const {
       OUTCOME_TRY(epoch, slotToEpochDescriptor(parent_info, slot_number));
       return epoch.epoch_number;
     }

@@ -162,9 +162,7 @@ namespace kagome::consensus::babe {
     if (parent_info.number != 0) {
       OUTCOME_TRY(parent_header, block_tree_->getBlockHeader(parent_info.hash));
       OUTCOME_TRY(parent_slot, getBabeSlot(parent_header));
-      auto mut_this = const_cast<BabeConfigRepositoryImpl *>(this);
-      OUTCOME_TRY(parent_epoch,
-                  mut_this->slotToEpoch(parent_info, parent_slot));
+      OUTCOME_TRY(parent_epoch, slotToEpoch(parent_info, parent_slot));
       epoch_changed = epoch_number != parent_epoch;
     }
     std::unique_lock lock{indexer_mutex_};
@@ -200,7 +198,7 @@ namespace kagome::consensus::babe {
 
   outcome::result<BabeSlotNumber>
   BabeConfigRepositoryImpl::getFirstBlockSlotNumber(
-      const primitives::BlockInfo &parent_info) {
+      const primitives::BlockInfo &parent_info) const {
     auto slot1 = first_block_slot_number_;
     if (not slot1) {
       auto finalized = block_tree_->getLastFinalized();
@@ -239,7 +237,7 @@ namespace kagome::consensus::babe {
 
   outcome::result<EpochDescriptor>
   BabeConfigRepositoryImpl::slotToEpochDescriptor(
-      const primitives::BlockInfo &parent_info, BabeSlotNumber slot) {
+      const primitives::BlockInfo &parent_info, BabeSlotNumber slot) const {
     if (parent_info.number == 0) {
       return EpochDescriptor{0, slot};
     }
