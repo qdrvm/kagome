@@ -52,6 +52,7 @@ namespace kagome::network {
                           std::shared_ptr<StreamEngine> stream_engine,
                           std::shared_ptr<blockchain::BlockTree> block_tree,
                           std::shared_ptr<BlockAnnounceObserver> observer,
+                          std::shared_ptr<crypto::Hasher> hasher,
                           std::shared_ptr<PeerManager> peer_manager);
 
     bool start() override;
@@ -91,13 +92,14 @@ namespace kagome::network {
 
     void readAnnounce(std::shared_ptr<Stream> stream);
 
-    const static inline auto kBlockAnnounceProtocolName =
+    inline static const auto kBlockAnnounceProtocolName =
         "BlockAnnounceProtocol"s;
     ProtocolBaseImpl base_;
     const application::AppConfiguration &app_config_;
     std::shared_ptr<StreamEngine> stream_engine_;
     std::shared_ptr<blockchain::BlockTree> block_tree_;
     std::shared_ptr<BlockAnnounceObserver> observer_;
+    std::shared_ptr<crypto::Hasher> hasher_;
     std::shared_ptr<PeerManager> peer_manager_;
   };
 

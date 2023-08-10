@@ -18,9 +18,11 @@
 #include "network/types/grandpa_message.hpp"
 #include "outcome/outcome.hpp"
 #include "primitives/common.hpp"
+#include "utils/lru.hpp"
 #include "utils/non_copyable.hpp"
 
 namespace kagome::network {
+  constexpr size_t kPeerStateMaxKnownBlocks = 1024;
 
   struct CollatorState {
     network::ParachainId parachain_id;
@@ -50,6 +52,7 @@ namespace kagome::network {
     BlockNumber last_finalized = 0;
     std::optional<CollatorState> collator_state = std::nullopt;
     std::optional<View> view;
+    LruSet<primitives::BlockHash> known_blocks{kPeerStateMaxKnownBlocks};
   };
 
   struct StreamEngine;

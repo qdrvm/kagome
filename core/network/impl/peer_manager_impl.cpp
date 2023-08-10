@@ -526,28 +526,29 @@ namespace kagome::network {
 
   void PeerManagerImpl::updatePeerState(
       const PeerId &peer_id, const BlockAnnounceHandshake &handshake) {
-    auto [it, is_new] = peer_states_.emplace(peer_id, PeerState{});
-    it->second.time = clock_->now();
-    it->second.roles = handshake.roles;
-    it->second.best_block = handshake.best_block;
+    auto &state = peer_states_[peer_id];
+    state.time = clock_->now();
+    state.roles = handshake.roles;
+    state.best_block = handshake.best_block;
   }
 
   void PeerManagerImpl::updatePeerState(const PeerId &peer_id,
                                         const BlockAnnounce &announce) {
     auto hash = hasher_->blake2b_256(scale::encode(announce.header).value());
 
-    auto [it, _] = peer_states_.emplace(peer_id, PeerState{});
-    it->second.time = clock_->now();
-    it->second.best_block = {announce.header.number, hash};
+    auto &state = peer_states_[peer_id];
+    state.time = clock_->now();
+    state.best_block = {announce.header.number, hash};
+    state.known_blocks.add(hash);
   }
 
   void PeerManagerImpl::updatePeerState(
       const PeerId &peer_id, const GrandpaNeighborMessage &neighbor_message) {
-    auto [it, _] = peer_states_.emplace(peer_id, PeerState{});
-    it->second.time = clock_->now();
-    it->second.round_number = neighbor_message.round_number;
-    it->second.set_id = neighbor_message.voter_set_id;
-    it->second.last_finalized = neighbor_message.last_finalized;
+    auto &state = peer_states_[peer_id];
+    state.time = clock_->now();
+    state.round_number = neighbor_message.round_number;
+    state.set_id = neighbor_message.voter_set_id;
+    state.last_finalized = neighbor_message.last_finalized;
   }
 
   std::optional<std::reference_wrapper<PeerState>>
