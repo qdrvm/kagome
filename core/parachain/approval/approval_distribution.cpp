@@ -11,6 +11,7 @@
 #include "crypto/crypto_store.hpp"
 #include "crypto/hasher.hpp"
 #include "crypto/sr25519_provider.hpp"
+#include "log/logger.hpp"
 #include "network/peer_manager.hpp"
 #include "network/router.hpp"
 #include "parachain/approval/approval.hpp"
@@ -215,7 +216,19 @@ namespace {
       kagome::network::DelayTranche tranche_now,
       kagome::parachain::Tick block_tick,
       kagome::parachain::Tick no_show_duration,
-      size_t needed_approvals) {
+      size_t needed_approvals,
+      kagome::log::Logger log) {
+    SL_INFO(log,
+            "DEBUG enter to tranchesToApprove(): "
+            "tranche_now={}, "
+            "block_tick={}, "
+            "no_show_duration={}, "
+            "needed_approvals={}",
+            tranche_now,
+            block_tick,
+            no_show_duration,
+            needed_approvals);
+
     const auto tick_now = tranche_now + block_tick;
     const auto n_validators = approval_entry.n_validators();
 
@@ -289,6 +302,43 @@ namespace {
             return std::nullopt;
           });
 
+      kagome::visit_in_place(
+          output,
+          [&](const kagome::parachain::approval::AllRequiredTranche &t) {
+            SL_INFO(log,
+                    "DEBUG tranchesToApprove(): lambda of {} returned "
+                    "AllRequiredTranche()",
+                    tranche);
+          },
+          [&](const kagome::parachain::approval::PendingRequiredTranche &t) {
+            SL_INFO(log,
+                    "DEBUG tranchesToApprove(): lambda of {} returned "
+                    "returned PendingRequiredTranche("
+                    "considered={}, "
+                    "next_no_show={}, "
+                    "maximum_broadcast={}, "
+                    "clock_drift={})",
+                    tranche,
+                    t.considered,
+                    t.next_no_show,
+                    t.maximum_broadcast,
+                    t.clock_drift);
+          },
+          [&](const kagome::parachain::approval::ExactRequiredTranche &t) {
+            SL_INFO(log,
+                    "DEBUG tranchesToApprove(): lambda of {} returned "
+                    "returned ExactRequiredTranche("
+                    "needed={}, "
+                    "tolerated_missing={}, "
+                    "next_no_show={}, "
+                    "last_assignment_tick={})",
+                    tranche,
+                    t.needed,
+                    t.tolerated_missing,
+                    t.next_no_show,
+                    t.last_assignment_tick);
+          });
+
       return output;
     };
 
@@ -297,6 +347,40 @@ namespace {
     while (auto req_trn = it(tranche++)) {
       required_tranches = *req_trn;
     }
+
+    kagome::visit_in_place(
+        required_tranches,
+        [&](const kagome::parachain::approval::AllRequiredTranche &t) {
+          SL_INFO(log,
+                  "DEBUG exit from tranchesToApprove(): returned "
+                  "AllRequiredTranche()");
+        },
+        [&](const kagome::parachain::approval::PendingRequiredTranche &t) {
+          SL_INFO(log,
+                  "DEBUG exit from tranchesToApprove(): "
+                  "returned PendingRequiredTranche("
+                  "considered={}, "
+                  "next_no_show={}, "
+                  "maximum_broadcast={}, "
+                  "clock_drift={})",
+                  t.considered,
+                  t.next_no_show,
+                  t.maximum_broadcast,
+                  t.clock_drift);
+        },
+        [&](const kagome::parachain::approval::ExactRequiredTranche &t) {
+          SL_INFO(log,
+                  "DEBUG exit from tranchesToApprove(): "
+                  "returned ExactRequiredTranche("
+                  "needed={}, "
+                  "tolerated_missing={}, "
+                  "next_no_show={}, "
+                  "last_assignment_tick={})",
+                  t.needed,
+                  t.tolerated_missing,
+                  t.next_no_show,
+                  t.last_assignment_tick);
+        });
 
     return required_tranches;
   }
@@ -782,7 +866,8 @@ namespace kagome::parachain {
                                                  tranche_now,
                                                  block_tick,
                                                  no_show_duration,
-                                                 session_info.needed_approvals);
+                                                 session_info.needed_approvals,
+                                                 logger_);
       return std::make_pair(
           *approval_entry,
           approval::ApprovalStatus{
@@ -1942,6 +2027,64 @@ namespace kagome::parachain {
       Tick block_tick,
       Tick tick_now,
       const approval::RequiredTranches &required_tranches) {
+    kagome::visit_in_place(
+        required_tranches,
+        [&](const kagome::parachain::approval::AllRequiredTranche &t) {
+          SL_INFO(logger_,
+                  "DEBUG enter to schedule_wakeup_action(): "
+                  "block {}, "
+                  "candidate={}, "
+                  "block_tick={}, "
+                  "tick_now={} ",
+                  "required_tranches=AllRequiredTranche()",
+                  primitives::BlockInfo(block_number, block_hash),
+                  candidate_hash,
+                  block_tick,
+                  tick_now);
+        },
+        [&](const kagome::parachain::approval::PendingRequiredTranche &t) {
+          SL_INFO(logger_,
+                  "DEBUG enter to schedule_wakeup_action(): "
+                  "block {}, "
+                  "candidate={}, "
+                  "block_tick={}, "
+                  "tick_now={}, ",
+                  "required_tranches=PendingRequiredTranche("
+                  "considered={}, "
+                  "next_no_show={}, "
+                  "maximum_broadcast={}, "
+                  "clock_drift={})",
+                  primitives::BlockInfo(block_number, block_hash),
+                  candidate_hash,
+                  block_tick,
+                  tick_now,
+                  t.considered,
+                  t.next_no_show,
+                  t.maximum_broadcast,
+                  t.clock_drift);
+        },
+        [&](const kagome::parachain::approval::ExactRequiredTranche &t) {
+          SL_INFO(logger_,
+                  "DEBUG enter to schedule_wakeup_action(): "
+                  "block {}, "
+                  "candidate={}, "
+                  "block_tick={}, "
+                  "tick_now={}, ",
+                  "required_tranches=ExactRequiredTranche("
+                  "needed={}, "
+                  "tolerated_missing={}, "
+                  "next_no_show={}, "
+                  "last_assignment_tick={})",
+                  primitives::BlockInfo(block_number, block_hash),
+                  candidate_hash,
+                  block_tick,
+                  tick_now,
+                  t.needed,
+                  t.tolerated_missing,
+                  t.next_no_show,
+                  t.last_assignment_tick);
+        });
+
     std::optional<Tick> tick{};
     if (!approval_entry.approved) {
       tick = visit_in_place(
@@ -2247,7 +2390,8 @@ namespace kagome::parachain {
                                        tranche_now,
                                        block_tick,
                                        no_show_duration,
-                                       session_info.needed_approvals);
+                                       session_info.needed_approvals,
+                                       logger_);
     const auto should_trigger = shouldTriggerAssignment(
         approval_entry, candidate_entry, tta, tranche_now);
     const auto backing_group = approval_entry.backing_group;
