@@ -52,9 +52,9 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::parachain, ApprovalDistribution::Error, e) {
   return "Unknown approval-distribution error";
 }
 
-static constexpr uint64_t kTickDurationMs = 500;
-static constexpr kagome::network::Tick kApprovalDelay = 2;
-static constexpr kagome::network::Tick kTickTooFarInFuture = 20;  // 10 seconds.
+static constexpr uint64_t kTickDurationMs = 500ull;
+static constexpr kagome::network::Tick kApprovalDelay = 2ull;
+static constexpr kagome::network::Tick kTickTooFarInFuture = 20ull;  // 10 seconds.
 
 namespace {
 
@@ -262,9 +262,7 @@ namespace {
             auto const is_no_show =
                 !has_approved && no_show_at <= drifted_tick_now;
             if (!is_no_show && !has_approved) {
-              next_no_show =
-                  std::min(no_show_at + clock_drift,
-                           next_no_show ? *next_no_show : uint64_t{0ull});
+              next_no_show = kagome::parachain::approval::min_or_some(next_no_show, std::make_optional(no_show_at + clock_drift));
             }
             if (is_no_show) {
               ++no_shows;
