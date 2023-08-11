@@ -144,11 +144,11 @@ namespace kagome::runtime {
 
   outcome::result<std::optional<SessionInfo>> ParachainHostImpl::session_info(
       const primitives::BlockHash &block, SessionIndex index) {
-    OUTCOME_TRY(ref, session_info_.get_else(std::tie(block, index), [&] {
-      return executor_->callAt<std::optional<SessionInfo>>(
-          block, "ParachainHost_session_info", index);
-    }));
-    return *ref;
+    // OUTCOME_TRY(ref, session_info_.get_else(std::tie(block, index), [&] {
+    return executor_->callAt<std::optional<SessionInfo>>(
+        block, "ParachainHost_session_info", index);
+    // }));
+    // return *ref;
   }
 
   outcome::result<std::vector<InboundDownwardMessage>>
