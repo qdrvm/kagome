@@ -790,7 +790,7 @@ namespace kagome::application {
         ("db-cache", po::value<uint32_t>()->default_value(def_db_cache_size), "Limit the memory the database cache can use <MiB>")
         ("enable-offchain-indexing", po::value<bool>(), "enable Offchain Indexing API, which allow block import to write to offchain DB)")
         ("recovery", po::value<std::string>(), "recovers block storage to state after provided block presented by number or hash, and stop after that")
-        ("state-pruning", po::value<std::string>()->default_value("archive"), "state pruning policy. 'archive' or the number of finalized blocks to keep.")
+        ("state-pruning", po::value<std::string>()->default_value("archive"), "state pruning policy. 'archive', 'prune-discarded', or the number of finalized blocks to keep.")
         ;
 
     po::options_description network_desc("Network options");
@@ -1449,9 +1449,12 @@ namespace kagome::application {
     if (auto state_pruning_opt =
             find_argument<std::string>(vm, "state-pruning");
         state_pruning_opt.has_value()) {
-      const auto& val = state_pruning_opt.value();
+      const auto &val = state_pruning_opt.value();
       if (val == "archive") {
         state_pruning_depth_ = std::nullopt;
+      } else if (val == "prune-discarded") {
+        state_pruning_depth_ = std::nullopt;
+        prune_discarded_states_ = true;
       } else {
         uint32_t depth{};
         auto [_, err] = std::from_chars(&*val.begin(), &*val.end(), depth);

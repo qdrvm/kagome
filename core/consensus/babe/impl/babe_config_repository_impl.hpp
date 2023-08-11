@@ -7,13 +7,16 @@
 #define KAGOME_CONSENSUS_BABE_BABECONFIGREPOSITORYIMPL
 
 #include "consensus/babe/babe_config_repository.hpp"
-#include "consensus/babe/babe_digest_observer.hpp"
 #include "consensus/babe/babe_util.hpp"
 
-#include "consensus/babe/impl/babe_config_node.hpp"
+#include <mutex>
+
+#include "blockchain/indexer.hpp"
+#include "consensus/babe/has_babe_consensus_digest.hpp"
 #include "log/logger.hpp"
 #include "primitives/block_data.hpp"
 #include "primitives/event_types.hpp"
+#include "primitives/scheduled_change.hpp"
 #include "storage/spaced_storage.hpp"
 
 namespace kagome::application {
@@ -35,15 +38,35 @@ namespace kagome::storage::trie {
 }  // namespace kagome::storage::trie
 
 namespace kagome::consensus::babe {
+  struct BabeIndexedValue {
+    SCALE_TIE_ONLY(config, state);
+
+    /**
+     * `NextConfigData` is rare digest, so always store recent config.
+     */
+    primitives::NextConfigDataV1 config;
+    /**
+     * Current epoch read from runtime.
+     * Used at genesis and after warp sync.
+     */
+    std::optional<std::shared_ptr<const primitives::BabeConfiguration>> state;
+    /**
+     * Next epoch lazily computed from `config` and digests.
+     */
+    std::optional<std::shared_ptr<const primitives::BabeConfiguration>>
+        next_state;
+  };
 
   class BabeConfigRepositoryImpl final
       : public BabeConfigRepository,
-        public BabeDigestObserver,
         public BabeUtil,
         public std::enable_shared_from_this<BabeConfigRepositoryImpl> {
-    static const primitives::BlockNumber kSavepointBlockInterval = 100000;
-
    public:
+    enum class Error {
+      NOT_FOUND = 1,
+      PREVIOUS_NOT_FOUND,
+    };
+
     BabeConfigRepositoryImpl(
         application::AppStateManager &app_state_manager,
         std::shared_ptr<storage::SpacedStorage> persistent_storage,
@@ -58,33 +81,19 @@ namespace kagome::consensus::babe {
 
     bool prepare();
 
-    // BabeDigestObserver
-
-    outcome::result<void> onDigest(const primitives::BlockContext &context,
-                                   const BabeBlockHeader &digest) override;
-
-    outcome::result<void> onDigest(
-        const primitives::BlockContext &context,
-        const primitives::BabeDigest &digest) override;
-
-    void cancel(const primitives::BlockInfo &block) override;
-
     // BabeConfigRepository
 
     BabeDuration slotDuration() const override;
 
     EpochLength epochLength() const override;
 
-    std::optional<std::reference_wrapper<const primitives::BabeConfiguration>>
-    config(const primitives::BlockContext &context,
+    outcome::result<std::shared_ptr<const primitives::BabeConfiguration>>
+    config(const primitives::BlockInfo &parent_info,
            EpochNumber epoch_number) const override;
-
-    void readFromState(const primitives::BlockInfo &block) override;
 
     // BabeUtil
 
-    BabeSlotNumber syncEpoch(
-        std::function<std::tuple<BabeSlotNumber, bool>()> &&f) override;
+    BabeSlotNumber getFirstBlockSlotNumber() override;
 
     BabeSlotNumber getCurrentSlot() const override;
 
@@ -96,64 +105,49 @@ namespace kagome::consensus::babe {
     EpochNumber slotToEpoch(BabeSlotNumber slot) const override;
     BabeSlotNumber slotInEpoch(BabeSlotNumber slot) const override;
 
+    void warp(const primitives::BlockInfo &block) override;
+
    private:
-    outcome::result<void> load();
-    outcome::result<void> save();
+    outcome::result<std::shared_ptr<const primitives::BabeConfiguration>>
+    config(const primitives::BlockInfo &block, bool next_epoch) const;
 
-    void prune(const primitives::BlockInfo &block);
+    std::shared_ptr<primitives::BabeConfiguration> applyDigests(
+        const primitives::NextConfigDataV1 &config,
+        const HasBabeConsensusDigest &digests) const;
 
-    outcome::result<void> onNextEpochData(
-        const primitives::BlockContext &context,
-        const primitives::NextEpochData &msg);
+    outcome::result<void> load(
+        const primitives::BlockInfo &block,
+        blockchain::Indexed<BabeIndexedValue> &item) const;
 
-    outcome::result<void> onNextConfigData(
-        const primitives::BlockContext &context,
-        const primitives::NextConfigDataV1 &msg);
+    outcome::result<std::shared_ptr<const primitives::BabeConfiguration>>
+    loadPrev(const std::optional<primitives::BlockInfo> &prev) const;
 
-    /**
-     * @brief Find node according to the block
-     * @param block for which to find the schedule node
-     * @return oldest node according to the block
-     */
-    std::shared_ptr<BabeConfigNode> getNode(
-        const primitives::BlockContext &context) const;
-
-    /**
-     * @brief Check if one block is direct ancestor of second one
-     * @param ancestor - hash of block, which is at the top of the chain
-     * @param descendant - hash of block, which is the bottom of the chain
-     * @return true if \param ancestor is direct ancestor of \param descendant
-     */
-    bool directChainExists(const primitives::BlockInfo &ancestor,
-                           const primitives::BlockInfo &descendant) const;
-
-    BabeSlotNumber getFirstBlockSlotNumber();
-
-    outcome::result<void> readFromStateOutcome(
-        const primitives::BlockInfo &block);
+    void warp(std::unique_lock<std::mutex> &lock,
+              const primitives::BlockInfo &block);
 
     std::shared_ptr<storage::BufferStorage> persistent_storage_;
     bool config_warp_sync_;
     std::shared_ptr<blockchain::BlockTree> block_tree_;
+    mutable std::mutex indexer_mutex_;
+    mutable blockchain::Indexer<BabeIndexedValue> indexer_;
     std::shared_ptr<blockchain::BlockHeaderRepository> header_repo_;
     std::shared_ptr<runtime::BabeApi> babe_api_;
     std::shared_ptr<crypto::Hasher> hasher_;
     std::shared_ptr<storage::trie::TrieStorage> trie_storage_;
     std::shared_ptr<primitives::events::ChainEventSubscriber> chain_sub_;
 
-    const BabeDuration slot_duration_{};
-    const EpochLength epoch_length_{};
-
-    std::shared_ptr<BabeConfigNode> root_;
-    primitives::BlockNumber last_saved_state_block_ = 0;
+    BabeDuration slot_duration_{};
+    EpochLength epoch_length_{};
 
     const BabeClock &clock_;
     std::optional<BabeSlotNumber> first_block_slot_number_;
-    bool is_first_block_finalized_ = false;
 
     log::Logger logger_;
   };
 
 }  // namespace kagome::consensus::babe
+
+OUTCOME_HPP_DECLARE_ERROR(kagome::consensus::babe,
+                          BabeConfigRepositoryImpl::Error)
 
 #endif  // KAGOME_CONSENSUS_BABE_BABECONFIGREPOSITORYIMPL

@@ -314,10 +314,20 @@ jobs:
         options:
           - name: "Parachains smoke test"
             test: "test0001"
+          - name: "Parachains smoke test kagome"
+            test: "test0001_kagome"
           - name: "Parachains upgrade smoke test"
             test: "test0002"
+          - name: "Parachains upgrade smoke test kagome"
+            test: "test0002_kagome"
           - name: "Parachains smoke test cumulus"
             test: "test0003"
+          - name: "Parachains smoke test cumulus kagome"
+            test: "test0003_kagome"
+          - name: "Runtime upgrade"
+            test: "test0004"
+          - name: "Runtime upgrade kagome"
+            test: "test0004_kagome"           
     runs-on: [ ubuntu-latest, kagome, self-hosted, linux ]
     needs: [Push-self-hosted]
     steps:
