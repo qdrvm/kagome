@@ -1066,6 +1066,11 @@ namespace kagome::parachain {
              block_hash,
              parent_hash,
              num_candidates);
+
+    for (auto &a : imported_block.assignments) {
+      SL_TRACE(logger_, "  assigment core={}", a.first);
+    }
+
     OUTCOME_TRY(entries,
                 add_block_entry(block_number,
                                 block_hash,
@@ -2264,6 +2269,14 @@ namespace kagome::parachain {
              candidate.imported_candidates.size());
 
     for (const auto &[c_hash, c_entry] : candidate.imported_candidates) {
+      SL_TRACE(logger_, "Candidate {}", c_hash);
+      for (auto &[a_hash, a_entry] : c_entry.block_assignments) {
+        SL_TRACE(logger_,
+                 "  Block {}, is out_assigment exists? = {}",
+                 a_hash,
+                 a_entry.our_assignment.has_value());
+      }
+
       const auto &block_assignments = c_entry.block_assignments.at(head);
       if (block_assignments.our_assignment) {
         const auto our_tranche = block_assignments.our_assignment->tranche;
