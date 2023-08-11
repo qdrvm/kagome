@@ -561,6 +561,7 @@ namespace kagome::parachain {
                  lost);
         pending_known_.erase(lost);
         active_tranches_.erase(lost);
+        approving_context_map_.erase(lost);
 
         if (auto block_entry = storedBlockEntries().get(lost)) {
           for (const auto &candidate : block_entry->get().candidates) {
@@ -1058,11 +1059,6 @@ namespace kagome::parachain {
     BOOST_ASSERT(internal_context_->io_context()
                      ->get_executor()
                      .running_in_this_thread());
-
-    /// clear unuseful heads
-    for (const auto &l_head : updated.lost) {
-      approving_context_map_.erase(l_head);
-    }
 
     const auto block_number = updated.new_head.number;
     auto parent_hash{updated.new_head.parent_hash};
