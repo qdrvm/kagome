@@ -40,7 +40,11 @@
 namespace {
   constexpr const char *kBlockProposalTime =
       "kagome_proposer_block_constructed";
-}
+
+  constexpr const char *kIsMajorSyncing = "kagome_sub_libp2p_is_major_syncing";
+  constexpr const char *kIsRelayChainValidator =
+      "kagome_node_is_active_validator";
+}  // namespace
 
 using namespace std::literals::chrono_literals;
 
@@ -142,6 +146,19 @@ namespace kagome::consensus::babe {
     metric_block_proposal_time_ = metrics_registry_->registerHistogramMetric(
         kBlockProposalTime,
         {0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1, 2.5, 5, 10});
+
+    metrics_registry_->registerGaugeFamily(
+        kIsMajorSyncing, "Whether the node is performing a major sync or not.");
+    metric_is_major_syncing_ =
+        metrics_registry_->registerGaugeMetric(kIsMajorSyncing);
+    metric_is_major_syncing_->set(!was_synchronized_);
+    metrics_registry_->registerGaugeFamily(
+        kIsRelayChainValidator,
+        "Tracks if the validator is in the active set. Updates at session "
+        "boundary.");
+    metric_is_relaychain_validator_ =
+        metrics_registry_->registerGaugeMetric(kIsRelayChainValidator);
+    metric_is_relaychain_validator_->set(false);
 
     app_state_manager_->takeControl(*this);
   }
@@ -842,7 +859,7 @@ namespace kagome::consensus::babe {
 
       telemetry_->notifyWasSynchronized();
     }
-
+    metric_is_major_syncing_->set(!was_synchronized_);
     current_state_ = Babe::State::SYNCHRONIZED;
 
     babe_status_observable_->notify(
@@ -940,10 +957,12 @@ namespace kagome::consensus::babe {
       auto &babe_config = *babe_config_opt.value();
       auto keypair = session_keys_->getBabeKeyPair(babe_config.authorities);
       if (not keypair) {
-        SL_ERROR(log_,
-                 "Authority not known, skipping slot processing. "
-                 "Probably authority list has changed.");
+        metric_is_relaychain_validator_->set(false);
+        SL_TRACE(log_,
+                 "Not a validator for current authority set (epoch {})",
+                 current_epoch_.epoch_number);
       } else {
+        metric_is_relaychain_validator_->set(true);
         keypair_ = std::move(keypair->first);
         const auto &authority_index = keypair->second;
         if (lottery_->getEpoch() != current_epoch_) {
