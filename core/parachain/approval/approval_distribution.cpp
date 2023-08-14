@@ -2293,4 +2293,39 @@ namespace kagome::parachain {
                            approval::WakeupProcessed{});
   }
 
+  primitives::BlockInfo ApprovalDistribution::approvedAncestor(
+      const primitives::BlockInfo &min,
+      const primitives::BlockInfo &max) const {
+    if (not internal_context_->io_context()
+                ->get_executor()
+                .running_in_this_thread()) {
+      std::promise<primitives::BlockInfo> p;
+      internal_context_->execute(
+          [&] { p.set_value(approvedAncestor(min, max)); });
+      return p.get_future().get();
+    }
+
+    if (max.number <= min.number) {
+      return min;
+    }
+    auto count = max.number - min.number;
+    auto chain_res = block_tree_->getDescendingChainToBlock(max.hash, count);
+    if (not chain_res) {
+      return min;
+    }
+    auto &chain = chain_res.value();
+    BOOST_ASSERT(not chain.empty() and chain[0] == max.hash);
+    BOOST_ASSERT(chain.size() == count);
+    std::reverse(chain.begin(), chain.end());
+    BOOST_ASSERT(chain[0] != min.hash);
+    primitives::BlockInfo result = min;
+    for (auto &hash : chain) {
+      auto entry = storedBlockEntries().get(hash);
+      if (not entry or not entry->get().is_fully_approved()) {
+        break;
+      }
+      result = {result.number + 1, hash};
+    }
+    return result;
+  }
 }  // namespace kagome::parachain

@@ -16,6 +16,7 @@
 #include "mock/core/network/grandpa_transmitter_mock.hpp"
 #include "mock/core/parachain/backing_store_mock.hpp"
 #include "mock/core/runtime/parachain_host_mock.hpp"
+#include "mock/core/parachain/approved_ancestor.hpp"
 #include "testutil/lazy.hpp"
 #include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
@@ -36,6 +37,7 @@ using kagome::crypto::HasherMock;
 using kagome::dispute::DisputeCoordinatorMock;
 using kagome::network::GrandpaTransmitterMock;
 using kagome::parachain::BackingStoreMock;
+using kagome::parachain::ApprovedAncestorMock;
 using kagome::primitives::BlockHash;
 using kagome::primitives::BlockHeader;
 using kagome::primitives::BlockInfo;
@@ -102,12 +104,15 @@ class ChainTest : public testing::Test {
   std::shared_ptr<BackingStoreMock> backing_store =
       std::make_shared<BackingStoreMock>();
   std::shared_ptr<HasherMock> hasher = std::make_shared<HasherMock>();
+  std::shared_ptr<ApprovedAncestorMock> approved_ancestor =
+      std::make_shared<ApprovedAncestorMock>();
 
   std::shared_ptr<Chain> chain = std::make_shared<EnvironmentImpl>(
       tree,
       header_repo,
       authority_manager,
       grandpa_transmitter,
+      approved_ancestor,
       testutil::sptr_to_lazy<JustificationObserver>(grandpa_),
       dispute_coordinator,
       parachain_api,

@@ -672,6 +672,7 @@ namespace {
             di::bind<clock::Timer>.template to<clock::BasicWaitableTimer>(),
             di::bind<network::Synchronizer>.template to<network::SynchronizerImpl>(),
             di::bind<consensus::grandpa::Environment>.template to<consensus::grandpa::EnvironmentImpl>(),
+            di::bind<parachain::IApprovedAncestor>.template to<parachain::ApprovalDistribution>(),
             di::bind<consensus::babe::BlockValidator>.template to<consensus::babe::BabeBlockValidator>(),
             di::bind<crypto::EcdsaProvider>.template to<crypto::EcdsaProviderImpl>(),
             di::bind<crypto::Ed25519Provider>.template to<crypto::Ed25519ProviderImpl>(),

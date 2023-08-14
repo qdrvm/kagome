@@ -27,6 +27,7 @@
 #include "injector/lazy.hpp"
 #include "network/peer_view.hpp"
 #include "network/types/collator_messages.hpp"
+#include "parachain/approval/approved_ancestor.hpp"
 #include "parachain/approval/store.hpp"
 #include "parachain/availability/recovery/recovery.hpp"
 #include "parachain/validator/parachain_processor.hpp"
@@ -53,7 +54,8 @@ namespace kagome::parachain {
    * candidates.
    */
   struct ApprovalDistribution final
-      : public std::enable_shared_from_this<ApprovalDistribution> {
+      : public std::enable_shared_from_this<ApprovalDistribution>,
+        public IApprovedAncestor {
     enum class Error {
       NO_INSTANCE = 1,
       NO_CONTEXT = 2,
@@ -289,15 +291,9 @@ namespace kagome::parachain {
         const CandidateHash &candidate,
         SignaturesForCandidateCallback &&callback);
 
-    void validateCandidateExhaustive(
-        const runtime::PersistedValidationData &data,
-        const network::ParachainBlock &pov,
-        const network::CandidateReceipt &receipt,
-        const ParachainRuntime &code,
-        std::function<void(bool)> &&cb) {
-      cb(validate_candidate_exhaustive(data, pov, receipt, code)
-         == ApprovalOutcome::Approved);
-    };
+    primitives::BlockInfo approvedAncestor(
+        const primitives::BlockInfo &min,
+        const primitives::BlockInfo &max) const override;
 
    private:
     using CandidateIncludedList =
@@ -632,6 +628,10 @@ namespace kagome::parachain {
     }
 
     auto &storedBlockEntries() {
+      return as<StorePair<RelayHash, BlockEntry>>(store_);
+    }
+
+    auto &storedBlockEntries() const {
       return as<StorePair<RelayHash, BlockEntry>>(store_);
     }
 
