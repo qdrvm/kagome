@@ -1434,40 +1434,6 @@ namespace kagome::consensus::grandpa {
     return completable_;
   }
 
-  BlockInfo VotingRoundImpl::bestPrevoteCandidate() {
-    if (prevote_.has_value()) {
-      return prevote_.value();
-    }
-
-    // spec: L <- Best-Final-Candidate(r-1)
-    auto best_final_candidate = previous_round_
-                                  ? previous_round_->bestFinalCandidate()
-                                  : last_finalized_block_;
-
-    // spec: Bpv <- GRANDPA-GHOST(r)
-    auto best_chain =
-        env_->bestChainContaining(best_final_candidate.hash, voter_set_->id());
-    auto best_prevote_candidate = best_chain.has_value()
-                                    ? convertToBlockInfo(best_chain.value())
-                                    : last_finalized_block_;
-
-    // spec: N <- Bpv
-    prevote_ = best_prevote_candidate;
-
-    // spec: if Received(Bprim) and Bpv >= Bprim > L
-    if (primary_vote_.has_value()) {
-      auto &primary = primary_vote_.value();
-
-      if (best_prevote_candidate.number >= primary.number
-          and primary.number > best_final_candidate.number) {
-        // spec: N <- Bprim
-        prevote_ = primary;
-      }
-    }
-
-    return prevote_.value();
-  }
-
   BlockInfo VotingRoundImpl::bestFinalCandidate() {
     return estimate_.value_or(finalized_.value_or(last_finalized_block_));
   }

@@ -12,6 +12,7 @@
 #include "mock/core/consensus/grandpa/authority_manager_mock.hpp"
 #include "mock/core/consensus/grandpa/grandpa_mock.hpp"
 #include "mock/core/network/grandpa_transmitter_mock.hpp"
+#include "mock/core/parachain/approved_ancestor.hpp"
 #include "testutil/lazy.hpp"
 #include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
@@ -29,6 +30,7 @@ using kagome::consensus::grandpa::EnvironmentImpl;
 using kagome::consensus::grandpa::GrandpaMock;
 using kagome::consensus::grandpa::JustificationObserver;
 using kagome::network::GrandpaTransmitterMock;
+using kagome::parachain::ApprovedAncestorMock;
 using kagome::primitives::BlockHash;
 using kagome::primitives::BlockHeader;
 using kagome::primitives::BlockInfo;
@@ -86,11 +88,15 @@ class ChainTest : public testing::Test {
       std::make_shared<GrandpaTransmitterMock>();
   std::shared_ptr<GrandpaMock> grandpa_ = std::make_shared<GrandpaMock>();
 
+  std::shared_ptr<ApprovedAncestorMock> approved_ancestor =
+      std::make_shared<ApprovedAncestorMock>();
+
   std::shared_ptr<Chain> chain = std::make_shared<EnvironmentImpl>(
       tree,
       header_repo,
       authority_manager,
       grandpa_transmitter,
+      approved_ancestor,
       testutil::sptr_to_lazy<JustificationObserver>(grandpa_),
       std::make_shared<boost::asio::io_context>());
 };
