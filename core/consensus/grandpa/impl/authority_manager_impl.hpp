@@ -100,23 +100,75 @@ namespace kagome::consensus::grandpa {
               const primitives::AuthoritySet &authorities) override;
 
    private:
+    /**
+     * @brief Schedule an authority set change after the given delay of N
+     * blocks, after next one would be finalized by the finality consensus
+     * engine
+     * @param context data about block where a digest with this change was
+     * discovered
+     * @param authorities is authority set for renewal
+     * @param activateAt is number of block after finalization of which changes
+     * will be applied
+     */
     outcome::result<void> applyScheduledChange(
         const primitives::BlockContext &context,
         const primitives::AuthorityList &authorities,
         primitives::BlockNumber activate_at);
 
+    /**
+     * @brief Force an authority set change after the given delay of N blocks,
+     * after next one would be imported block which has been validated by the
+     * block production consensus engine.
+     * @param context data about block where a digest with this change was
+     * discovered
+     * @param authorities new authority set
+     * @param activateAt is number of block when changes will applied
+     */
     outcome::result<void> applyForcedChange(
         const primitives::BlockContext &context,
         const primitives::AuthorityList &authorities,
         primitives::BlockNumber activate_at);
 
+    /**
+     * @brief An index of the individual authority in the current authority list
+     * that should be immediately disabled until the next authority set change.
+     * When an authority gets disabled, the node should stop performing any
+     * authority functionality from that authority, including authoring blocks
+     * and casting GRANDPA votes for finalization. Similarly, other nodes should
+     * ignore all messages from the indicated authority which pertain to their
+     * authority role. Once an authority set change after the given delay of N
+     * blocks, is an imported block which has been validated by the block
+     * production consensus engine.
+     * @param context data about block where a digest with this change was
+     * discovered
+     * @param authority_index is index of one authority in current authority set
+     */
+
     outcome::result<void> applyOnDisabled(
         const primitives::BlockContext &context,
         primitives::AuthorityIndex authority_index);
 
+    /**
+     * @brief A signal to pause the current authority set after the given delay,
+     * is a block finalized by the finality consensus engine. After finalizing
+     * block, the authorities should stop voting.
+     * @param context data about block where a digest with this change was
+     * discovered
+     * @param activateAt is number of block after finalization of which changes
+     * will be applied
+     */
     outcome::result<void> applyPause(const primitives::BlockContext &context,
                                      primitives::BlockNumber activate_at);
 
+    /**
+     * @brief A signal to resume the current authority set after the given
+     * delay, is an imported block and validated by the block production
+     * consensus engine. After authoring the block B 0 , the authorities should
+     * resume voting.
+     * @param context data about block where a digest with this change was
+     * discovered
+     * @param activateAt is number of block when changes will applied
+     */
     outcome::result<void> applyResume(const primitives::BlockContext &context,
                                       primitives::BlockNumber activate_at);
 
