@@ -2286,7 +2286,8 @@ namespace kagome::parachain {
   }
 
   primitives::BlockInfo ApprovalDistribution::approvedAncestor(
-      const primitives::BlockInfo &min, const primitives::BlockInfo &max) {
+      const primitives::BlockInfo &min,
+      const primitives::BlockInfo &max) const {
     if (not internal_context_->io_context()
                 ->get_executor()
                 .running_in_this_thread()) {

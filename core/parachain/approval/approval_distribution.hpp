@@ -290,7 +290,7 @@ namespace kagome::parachain {
 
     primitives::BlockInfo approvedAncestor(
         const primitives::BlockInfo &min,
-        const primitives::BlockInfo &max) override;
+        const primitives::BlockInfo &max) const override;
 
    private:
     using CandidateIncludedList =
@@ -625,6 +625,10 @@ namespace kagome::parachain {
     }
 
     auto &storedBlockEntries() {
+      return as<StorePair<RelayHash, BlockEntry>>(store_);
+    }
+
+    auto &storedBlockEntries() const {
       return as<StorePair<RelayHash, BlockEntry>>(store_);
     }
 
