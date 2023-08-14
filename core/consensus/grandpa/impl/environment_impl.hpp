@@ -10,6 +10,8 @@
 
 #include "injector/lazy.hpp"
 #include "log/logger.hpp"
+#include "metrics/metrics.hpp"
+#include "parachain/approval/approved_ancestor.hpp"
 #include "utils/thread_pool.hpp"
 
 namespace kagome::blockchain {
@@ -35,6 +37,7 @@ namespace kagome::consensus::grandpa {
         std::shared_ptr<blockchain::BlockHeaderRepository> header_repository,
         std::shared_ptr<AuthorityManager> authority_manager,
         std::shared_ptr<network::GrandpaTransmitter> transmitter,
+        std::shared_ptr<parachain::IApprovedAncestor> approved_ancestor,
         LazySPtr<JustificationObserver> justification_observer,
         std::shared_ptr<boost::asio::io_context> main_thread_context);
 
@@ -103,8 +106,12 @@ namespace kagome::consensus::grandpa {
     std::shared_ptr<blockchain::BlockHeaderRepository> header_repository_;
     std::shared_ptr<AuthorityManager> authority_manager_;
     std::shared_ptr<network::GrandpaTransmitter> transmitter_;
+    std::shared_ptr<parachain::IApprovedAncestor> approved_ancestor_;
     LazySPtr<JustificationObserver> justification_observer_;
     ThreadHandler main_thread_context_;
+
+    metrics::RegistryPtr metrics_registry_ = metrics::createRegistry();
+    metrics::Gauge *metric_approval_lag_;
 
     log::Logger logger_;
   };
