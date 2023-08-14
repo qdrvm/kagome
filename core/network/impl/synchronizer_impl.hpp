@@ -237,6 +237,7 @@ namespace kagome::network {
     metrics::RegistryPtr metrics_registry_ = metrics::createRegistry();
     metrics::Gauge *metric_import_queue_length_;
 
+    std::array<char, 100> buf_{};  // TODO(kamilsa): Help variable for #1732
     log::Logger log_ = log::createLogger("Synchronizer", "synchronizer");
     telemetry::Telemetry telemetry_ = telemetry::createTelemetryService();
 
