@@ -2029,9 +2029,15 @@ namespace kagome::dispute {
       if (auto number_res = block_header_repository_->getNumberByHash(
               block_descriptions.back().block_hash);
           number_res.has_value()) {
-        metric_disputes_finality_lag_->set(number_res.value()
-                                           - undisputed_chain.number);
+        if (number_res.value() > undisputed_chain.number) {
+          metric_disputes_finality_lag_->set(number_res.value()
+                                             - undisputed_chain.number);
+        } else {
+          metric_disputes_finality_lag_->set(0);
+        }
       }
+    } else {
+      metric_disputes_finality_lag_->set(0);
     }
 
     cb(std::move(undisputed_chain));
