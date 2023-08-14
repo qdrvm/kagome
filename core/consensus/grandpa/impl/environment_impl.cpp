@@ -30,12 +30,14 @@ namespace kagome::consensus::grandpa {
       std::shared_ptr<blockchain::BlockHeaderRepository> header_repository,
       std::shared_ptr<AuthorityManager> authority_manager,
       std::shared_ptr<network::GrandpaTransmitter> transmitter,
+      std::shared_ptr<parachain::IApprovedAncestor> approved_ancestor,
       LazySPtr<JustificationObserver> justification_observer,
       std::shared_ptr<boost::asio::io_context> main_thread_context)
       : block_tree_{std::move(block_tree)},
         header_repository_{std::move(header_repository)},
         authority_manager_{std::move(authority_manager)},
         transmitter_{std::move(transmitter)},
+        approved_ancestor_(std::move(approved_ancestor)),
         justification_observer_(std::move(justification_observer)),
         main_thread_context_{std::move(main_thread_context)},
         logger_{log::createLogger("GrandpaEnvironment", "grandpa")} {
@@ -43,6 +45,13 @@ namespace kagome::consensus::grandpa {
     BOOST_ASSERT(header_repository_ != nullptr);
     BOOST_ASSERT(authority_manager_ != nullptr);
     BOOST_ASSERT(transmitter_ != nullptr);
+
+    auto kApprovalLag = "kagome_parachain_approval_checking_finality_lag";
+    metrics_registry_->registerGaugeFamily(
+        kApprovalLag,
+        "How far behind the head of the chain the Approval Checking protocol "
+        "wants to vote");
+    metric_approval_lag_ = metrics_registry_->registerGaugeMetric(kApprovalLag);
 
     main_thread_context_.start();
   }
@@ -104,6 +113,10 @@ namespace kagome::consensus::grandpa {
         best_block = parent_block;
       }
     }
+
+    auto approved = approved_ancestor_->approvedAncestor(finalized, best_block);
+    auto lag = best_block.number - approved.number;
+    metric_approval_lag_->set(lag);
 
     SL_DEBUG(logger_, "Found best chain: {}", best_block);
     return std::move(best_block);
