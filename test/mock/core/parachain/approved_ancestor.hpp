@@ -13,7 +13,7 @@ namespace kagome::parachain {
     MOCK_METHOD(primitives::BlockInfo,
                 approvedAncestor,
                 (const primitives::BlockInfo &, const primitives::BlockInfo &),
-                (override));
+                (const, override));
   };
 }  // namespace kagome::parachain
 
