@@ -1188,6 +1188,11 @@ namespace kagome::network {
   }
 
   void SynchronizerImpl::applyNextBlock() {
+    if (*reinterpret_cast<size_t *>(buf_.data()) != 0ull) {
+      throw "Non-zero buf in SynchronizerImpl::applyNextBlock";
+    }
+    // TODO(kamilsa): Help variable for #1732 (Logger crash in Synchronizer)
+    volatile auto this_remove_me_when_crash_is_fixed = this;
     if (generations_.empty()) {
       SL_TRACE(log_, "No block for applying");
       return;
