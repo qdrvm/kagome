@@ -22,6 +22,7 @@
 #include "authority_discovery/query/query.hpp"
 #include "common/visitor.hpp"
 #include "crypto/hasher.hpp"
+#include "metrics/metrics.hpp"
 #include "network/peer_manager.hpp"
 #include "network/peer_view.hpp"
 #include "network/protocols/req_collation_protocol.hpp"
@@ -226,6 +227,8 @@ namespace kagome::parachain {
         size_t validity_threshold);
     std::optional<BackingStore::BackedCandidate> table_attested_to_backed(
         AttestedCandidate &&attested, TableContext &table_context);
+    outcome::result<std::optional<ValidatorSigner>> isParachainValidator(
+        const primitives::BlockHash &relay_parent) const;
 
     /*
      * Logic.
@@ -435,6 +438,9 @@ namespace kagome::parachain {
 
     std::shared_ptr<primitives::events::ChainEventSubscriber> chain_sub_;
     std::shared_ptr<ThreadHandler> thread_handler_;
+
+    metrics::RegistryPtr metrics_registry_ = metrics::createRegistry();
+    metrics::Gauge *metric_is_parachain_validator_;
   };
 
 }  // namespace kagome::parachain

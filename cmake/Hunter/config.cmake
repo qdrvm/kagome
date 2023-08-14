@@ -43,7 +43,7 @@ hunter_config(
 
 hunter_config(
     wavm
-    VERSION 1.0.8
+    VERSION 1.0.10
     CMAKE_ARGS
       TESTING=OFF
       WAVM_ENABLE_FUZZ_TARGETS=OFF
