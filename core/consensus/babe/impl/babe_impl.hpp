@@ -254,6 +254,11 @@ namespace kagome::consensus::babe {
 
     primitives::BlockInfo best_block_{};
 
+    // Metrics
+    metrics::RegistryPtr metrics_registry_ = metrics::createRegistry();
+    metrics::Gauge *metric_is_major_syncing_;
+    metrics::Gauge *metric_is_relaychain_validator_;
+
     log::Logger log_;
     telemetry::Telemetry telemetry_;  // telemetry
   };
