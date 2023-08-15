@@ -12,6 +12,7 @@
 #include "clock/timer.hpp"
 #include "injector/lazy.hpp"
 #include "log/logger.hpp"
+#include "metrics/metrics.hpp"
 #include "parachain/availability/bitfield/store.hpp"
 #include "parachain/backing/store.hpp"
 #include "primitives/block.hpp"
