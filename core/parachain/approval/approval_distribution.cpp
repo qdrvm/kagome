@@ -23,6 +23,9 @@
 #include "utils/async_sequence.hpp"
 #include "utils/weak_from_shared.hpp"
 
+static constexpr size_t kMaxAssignmentBatchSize = 200ull;
+static constexpr size_t kMaxApprovalBatchSize = 300ull;
+
 OUTCOME_CPP_DEFINE_CATEGORY(kagome::parachain, ApprovalDistribution::Error, e) {
   using E = kagome::parachain::ApprovalDistribution::Error;
   switch (e) {
@@ -2041,6 +2044,67 @@ namespace kagome::parachain {
         [&](const libp2p::peer::PeerId &p) { return peers.count(p) != 0ull; });
   }
 
+  void ApprovalDistribution::send_assignments_batched(
+      std::deque<network::Assignment> &&_assignments,
+      const libp2p::peer::PeerId &_peer_id) {
+    REINVOKE_2(this_context_,
+               send_assignments_batched,
+               _assignments,
+               _peer_id,
+               assignments,
+               peer_id);
+
+    auto se = pm_->getStreamEngine();
+    BOOST_ASSERT(se);  // kMaxAssignmentBatchSize
+
+    while (!assignments.empty()) {
+      auto begin = assignments.begin();
+      auto end = (assignments.size() > kMaxAssignmentBatchSize)
+                   ? assignments.begin() + kMaxAssignmentBatchSize
+                   : assignments.end();
+
+      auto msg = std::make_shared<
+          network::WireMessage<network::ValidatorProtocolMessage>>(
+          network::ApprovalDistributionMessage{network::Assignments{
+              .assignments = std::vector<network::Assignment>(begin, end),
+          }});
+
+      se->send(peer_id, router_->getValidationProtocol(), msg);
+      assignments.erase(begin, end);
+    }
+  }
+
+  void ApprovalDistribution::send_approvals_batched(
+      std::deque<network::IndirectSignedApprovalVote> &&_approvals,
+      const libp2p::peer::PeerId &_peer_id) {
+    REINVOKE_2(this_context_,
+               send_approvals_batched,
+               _approvals,
+               _peer_id,
+               approvals,
+               peer_id);
+
+    auto se = pm_->getStreamEngine();
+    BOOST_ASSERT(se);  // kMaxApprovalBatchSize
+
+    while (!approvals.empty()) {
+      auto begin = approvals.begin();
+      auto end = (approvals.size() > kMaxApprovalBatchSize)
+                   ? approvals.begin() + kMaxApprovalBatchSize
+                   : approvals.end();
+
+      auto msg = std::make_shared<
+          network::WireMessage<network::ValidatorProtocolMessage>>(
+          network::ApprovalDistributionMessage{network::Approvals{
+              .approvals =
+                  std::vector<network::IndirectSignedApprovalVote>(begin, end),
+          }});
+
+      se->send(peer_id, router_->getValidationProtocol(), msg);
+      approvals.erase(begin, end);
+    }
+  }
+
   void ApprovalDistribution::runDistributeApproval(
       const network::IndirectSignedApprovalVote &_vote,
       std::unordered_set<libp2p::peer::PeerId> &&_peers) {
@@ -2699,6 +2763,13 @@ namespace kagome::parachain {
 
         block = entry.parent_hash;
       }
+    }
+
+    if (!assignments_to_send.empty()) {
+      SL_TRACE(logger_,
+               "Sending assignments to unified peer. (peer id={}, count={})",
+               peer_id,
+               assignments_to_send.size());
     }
   }
 

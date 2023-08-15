@@ -623,6 +623,13 @@ namespace kagome::parachain {
         CandidateIndex candidate_index,
         std::unordered_set<libp2p::peer::PeerId> &&peers);
 
+    void send_assignments_batched(std::deque<network::Assignment> &&assignments,
+                                  const libp2p::peer::PeerId &peer_id);
+
+    void send_approvals_batched(
+        std::deque<network::IndirectSignedApprovalVote> &&approvals,
+        const libp2p::peer::PeerId &peer_id);
+
     void runDistributeApproval(
         const network::IndirectSignedApprovalVote &vote,
         std::unordered_set<libp2p::peer::PeerId> &&peers);
