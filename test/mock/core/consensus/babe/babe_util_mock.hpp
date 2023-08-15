@@ -29,7 +29,7 @@ namespace kagome::consensus::babe {
     MOCK_METHOD(outcome::result<EpochDescriptor>,
                 slotToEpochDescriptor,
                 (const primitives::BlockInfo &, BabeSlotNumber),
-                (override));
+                (const, override));
   };
 
 }  // namespace kagome::consensus::babe
