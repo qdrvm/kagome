@@ -53,11 +53,11 @@ struct SafeObject {
     return std::forward<F>(f)(t_);
   }
 
-  T& unsafeGet() {
+  T &unsafeGet() {
     return t_;
   }
 
-  const T& unsafeGet() const {
+  const T &unsafeGet() const {
     return t_;
   }
 

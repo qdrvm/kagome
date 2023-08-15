@@ -315,10 +315,11 @@ namespace kagome::parachain {
 
     network::CandidateReceipt candidateFromCommittedCandidateReceipt(
         const network::CommittedCandidateReceipt &data) {
-      return network::CandidateReceipt{
-          .descriptor = data.descriptor,
-          .commitments_hash =
-              hasher_->blake2b_256(scale::encode(data.commitments).value())};
+      network::CandidateReceipt receipt;
+      receipt.descriptor = data.descriptor,
+      receipt.commitments_hash =
+          hasher_->blake2b_256(scale::encode(data.commitments).value());
+      return receipt;
     }
 
     primitives::BlockHash candidateHashFrom(

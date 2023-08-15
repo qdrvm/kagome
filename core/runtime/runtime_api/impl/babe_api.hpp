@@ -24,8 +24,7 @@ namespace kagome::runtime {
    private:
     std::shared_ptr<Executor> executor_;
 
-    LruCache<primitives::BlockHash, primitives::BabeConfiguration> cache_{
-        10};
+    LruCache<primitives::BlockHash, primitives::BabeConfiguration> cache_{10};
   };
 
 }  // namespace kagome::runtime

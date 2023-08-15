@@ -19,6 +19,7 @@ namespace kagome::storage {
         "block_body",
         "justification",
         "trie_node",
+        "dispute_data",
     };
     static_assert(kNames.size() == Space::kTotal - 1);
 

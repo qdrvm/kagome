@@ -14,7 +14,7 @@ namespace kagome::api::child_state::request {
     }
     auto &param0 = params[0];
 
-    if (not param0.IsString()) {
+    if (not param0.IsString() or param0.IsNil()) {
       throw jsonrpc::InvalidParametersFault(
           "Parameter '[child_storage_key]' must be a hex string");
     }

@@ -69,6 +69,11 @@ namespace kagome::blockchain {
                 (override));
 
     MOCK_METHOD(outcome::result<void>,
+                markAsRevertedBlocks,
+                (const std::vector<primitives::BlockInfo> &),
+                (override));
+
+    MOCK_METHOD(outcome::result<void>,
                 removeLeaf,
                 (const primitives::BlockHash &),
                 (override));

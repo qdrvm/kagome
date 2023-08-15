@@ -9,8 +9,8 @@ namespace kagome::api::state::request {
 
   outcome::result<void> UnsubscribeStorage::init(
       const jsonrpc::Request::Parameters &params) {
-    if (params.size() != 1) {
-      throw jsonrpc::InvalidParametersFault("unsubscribeStorage takes one parameter");
+    if (params.size() > 1 or params.empty()) {
+      throw jsonrpc::InvalidParametersFault("Incorrect number of params");
     }
 
     auto &id = params[0];

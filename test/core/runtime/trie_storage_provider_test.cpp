@@ -48,10 +48,9 @@ class TrieStorageProviderTest : public ::testing::Test {
     auto state_pruner =
         std::make_shared<kagome::storage::trie_pruner::TriePrunerMock>();
 
-    auto trieDb =
-        kagome::storage::trie::TrieStorageImpl::createEmpty(
-            trie_factory, codec, serializer, state_pruner)
-            .value();
+    auto trieDb = kagome::storage::trie::TrieStorageImpl::createEmpty(
+                      trie_factory, codec, serializer, state_pruner)
+                      .value();
 
     storage_provider_ =
         std::make_shared<kagome::runtime::TrieStorageProviderImpl>(

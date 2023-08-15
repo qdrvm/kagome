@@ -105,7 +105,7 @@ namespace kagome::api {
     OUTCOME_TRY(encoded_session_keys,
                 keys_api_->generate_session_keys(
                     block_tree_.get()->bestLeaf().hash, std::nullopt));
-    return std::move(encoded_session_keys);
+    return encoded_session_keys;
   }
 
   // logic here is polkadot specific only!

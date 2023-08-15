@@ -49,8 +49,8 @@ namespace kagome::network {
         std::shared_ptr<storage::trie::TrieStorage> storage,
         std::shared_ptr<runtime::RuntimeEnvironmentFactory> env_factory);
 
-    outcome::result<ResponseType> onRxRequest(RequestType req,
-                                              std::shared_ptr<Stream>) override;
+    std::optional<outcome::result<ResponseType>> onRxRequest(
+        RequestType req, std::shared_ptr<Stream>) override;
 
     void onTxRequest(const RequestType &) override {}
 

@@ -82,6 +82,15 @@ namespace kagome::runtime {
     inbound_hrmp_channels_contents(const primitives::BlockHash &block,
                                    ParachainId id) override;
 
+    outcome::result<std::optional<dispute::ScrapedOnChainVotes>> on_chain_votes(
+        const primitives::BlockHash &block) override;
+
+    /// Returns all on-chain disputes at given block number. Available in `v3`.
+    outcome::result<std::vector<std::tuple<dispute::SessionIndex,
+                                           dispute::CandidateHash,
+                                           dispute::DisputeState>>>
+    disputes(const primitives::BlockHash &block) override;
+
     outcome::result<std::vector<ValidationCodeHash>> pvfs_require_precheck(
         const primitives::BlockHash &block) override;
 

@@ -74,7 +74,7 @@ namespace kagome::network {
       return name_;
     }
 
-    Protocols const &protocolIds() const {
+    const Protocols &protocolIds() const {
       return protocols_;
     }
 
@@ -82,7 +82,7 @@ namespace kagome::network {
       return host_;
     }
 
-    log::Logger const &logger() const {
+    const log::Logger &logger() const {
       return log_;
     }
 
@@ -93,9 +93,9 @@ namespace kagome::network {
         if (auto self = wptr.lock()) {
           if (!result) {
             SL_DEBUG(log,
-                    "Stream {} was not closed successfully with {}",
-                    self->protocolName(),
-                    stream->remotePeerId().value());
+                     "Stream {} was not closed successfully with {}",
+                     self->protocolName(),
+                     stream->remotePeerId().value());
 
           } else {
             SL_VERBOSE(log,
