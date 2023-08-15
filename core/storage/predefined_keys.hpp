@@ -49,6 +49,25 @@ namespace kagome::storage {
         fmt::format(":kagome:auth_mngr_state:{}", tag));
   }
 
+  inline const common::Buffer kRecentDisputeLookupKey = "recent_disputes"_buf;
+
+  inline const common::Buffer kSessionsWindowLookupKey =
+      "rolling_session_window"_buf;
+
+  inline const common::Buffer kEarliestSessionLookupKey =
+      "earliest-session"_buf;
+
+  template <typename SessionT, typename CandidateHashT>
+  inline common::Buffer kCandidateVotesLookupKey(
+      SessionT session, const CandidateHashT &candidate) {
+    return common::Buffer::fromString(
+        fmt::format("candidate-votes:{:0>10}:{:l}", session, candidate));
+  }
+
+  /// Until what session have votes been cleaned up already?
+  inline const common::Buffer kCleanedVotesWatermarkLookupKey =
+      "cleaned-votes-watermark"_buf;
+
 }  // namespace kagome::storage
 
 #endif  // KAGOME_CORE_STORAGE_PREDEFINED_KEYS_HPP

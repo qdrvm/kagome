@@ -75,8 +75,18 @@ namespace kagome::authority_discovery {
   std::optional<libp2p::peer::PeerInfo> QueryImpl::get(
       const primitives::AuthorityDiscoveryId &authority) const {
     std::unique_lock lock{mutex_};
-    auto it = cache_.find(authority);
-    if (it != cache_.end()) {
+    auto it = auth_to_peer_cache_.find(authority);
+    if (it != auth_to_peer_cache_.end()) {
+      return it->second;
+    }
+    return std::nullopt;
+  }
+
+  std::optional<primitives::AuthorityDiscoveryId> QueryImpl::get(
+      const libp2p::peer::PeerId &peer_id) const {
+    std::unique_lock lock{mutex_};
+    auto it = peer_to_auth_cache_.find(peer_id);
+    if (it != peer_to_auth_cache_.end()) {
       return it->second;
     }
     return std::nullopt;
@@ -99,12 +109,22 @@ namespace kagome::authority_discovery {
                              != local_keys.end();
                        }),
         authorities.end());
-    for (auto it = cache_.begin(); it != cache_.end();) {
+    for (auto it = auth_to_peer_cache_.begin();
+         it != auth_to_peer_cache_.end();) {
       if (std::find(authorities.begin(), authorities.end(), it->first)
           != authorities.end()) {
         ++it;
       } else {
-        it = cache_.erase(it);
+        it = auth_to_peer_cache_.erase(it);
+      }
+    }
+    for (auto it = peer_to_auth_cache_.begin();
+         it != peer_to_auth_cache_.end();) {
+      if (std::find(authorities.begin(), authorities.end(), it->second)
+          != authorities.end()) {
+        ++it;
+      } else {
+        it = peer_to_auth_cache_.erase(it);
       }
     }
     std::shuffle(authorities.begin(), authorities.end(), random_);
@@ -202,7 +222,8 @@ namespace kagome::authority_discovery {
       return Error::INVALID_SIGNATURE;
     }
 
-    cache_.insert_or_assign(authority, std::move(peer));
+    peer_to_auth_cache_.insert_or_assign(peer.id, authority);
+    auth_to_peer_cache_.insert_or_assign(authority, std::move(peer));
 
     return outcome::success();
   }

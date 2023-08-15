@@ -56,10 +56,19 @@ namespace kagome::crypto {
     OUTCOME_TRY(info, decodeKeyFileName(file_name));
     auto key_type_str = file_name.substr(0, 8);
     if (not isSupportedKeyType(info.first)) {
-      logger_->warn(
-          "key type <ascii: {}, hex: {:08x}> is not officially supported",
-          key_type_str,
-          info.first);
+      auto ascii_res = common::unhex(key_type_str);
+      if (ascii_res.has_value()) {
+        std::string_view ascii(
+            reinterpret_cast<const char *>(ascii_res.value().data()),  // NOLINT
+            ascii_res.value().size());
+        logger_->warn(
+            "key type <ascii: '{}', hex: {:08x}> is not officially supported",
+            ascii,
+            info.first);
+      } else {
+        logger_->warn("key type <hex: {:08x}> is not officially supported",
+                      info.first);
+      }
     }
     return std::move(info);
   }

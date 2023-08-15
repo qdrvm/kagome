@@ -271,8 +271,7 @@ namespace kagome::network {
    private:
     struct ProtocolDescr {
       std::shared_ptr<ProtocolBase> protocol;
-      log::Logger logger =
-          log::createLogger("ProtoDescription", "stream_engine");
+      log::Logger logger = log::createLogger("ProtoDescription", "network");
 
       struct {
         std::shared_ptr<Stream> stream;
@@ -313,7 +312,7 @@ namespace kagome::network {
         }
 
         outgoing.reserved = true;
-        //bt();
+        // bt();
         return true;
       }
 
@@ -325,9 +324,9 @@ namespace kagome::network {
        * Drops the flag that outgoing stream establishing.
        */
       void dropReserved() {
-        //BOOST_ASSERT(outgoing.reserved);
+        // BOOST_ASSERT(outgoing.reserved);
         outgoing.reserved = false;
-        //bt();
+        // bt();
       }
 
       /**

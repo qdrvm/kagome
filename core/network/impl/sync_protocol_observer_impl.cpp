@@ -135,13 +135,13 @@ namespace kagome::network {
         OUTCOME_TRY(
             chain_hash,
             block_tree_->getBestChainFromBlock(from_hash, request_count));
-        return std::move(chain_hash);
+        return chain_hash;
       }
       case blockchain::BlockTree::GetChainDirection::DESCEND: {
         OUTCOME_TRY(
             chain_hash,
             block_tree_->getDescendingChainToBlock(from_hash, request_count));
-        return std::move(chain_hash);
+        return chain_hash;
       }
       default:
         BOOST_UNREACHABLE_RETURN({});
