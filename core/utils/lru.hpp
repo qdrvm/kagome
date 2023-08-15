@@ -16,19 +16,14 @@ namespace kagome {
   template <typename K, typename V>
   class Lru {
    public:
-    struct ItFwd {
-      // gcc bug
-      void *raw;
-    };
-
+    struct Item;
+    // TODO(turuslan): remove unique_ptr after deprecating gcc 10
+    using Map = std::unordered_map<K, std::unique_ptr<Item>>;
+    using It = typename Map::iterator;
     struct Item {
       V v;
-      ItFwd more, less;
+      It more, less;
     };
-
-    using Map = std::unordered_map<K, Item>;
-    using It = typename Map::iterator;
-    static_assert(sizeof(It) == sizeof(ItFwd));
 
     Lru(size_t capacity) : capacity_{capacity} {
       if (capacity_ == 0) {
@@ -53,23 +48,14 @@ namespace kagome {
         return std::nullopt;
       }
       lru_use(it);
-      return std::ref(it->second.v);
+      return std::ref(it->second->v);
     }
 
     V &put(const K &k, V v) {
-      return put2(k, std::move(v)).first->second.v;
+      return put2(k, std::move(v)).first->second->v;
     }
 
    private:
-    static auto cast(const ItFwd &it) {
-      return reinterpret_cast<const It &>(it);
-    }
-    static auto cast(const It &it) {
-      return reinterpret_cast<const ItFwd &>(it);
-    }
-    static auto empty(const ItFwd &it) {
-      return empty(cast(it));
-    }
     static auto empty(const It &it) {
       return it == It{};
     }
@@ -80,11 +66,12 @@ namespace kagome {
         if (map_.size() >= capacity_) {
           lru_pop();
         }
-        it = map_.emplace(k, Item{std::move(v), cast(It{}), cast(It{})}).first;
+        it = map_.emplace(k, std::make_unique<Item>(Item{std::move(v), {}, {}}))
+                 .first;
         lru_push(it);
         return {it, true};
       }
-      it->second.v = std::move(v);
+      it->second->v = std::move(v);
       lru_use(it);
       return {it, false};
     }
@@ -93,16 +80,16 @@ namespace kagome {
       if (it == most_) {
         return;
       }
-      lru_extract(it->second);
+      lru_extract(*it->second);
       lru_push(it);
     }
 
     void lru_push(It it) {
-      BOOST_ASSERT(empty(it->second.less));
-      BOOST_ASSERT(empty(it->second.more));
-      it->second.less = cast(most_);
+      BOOST_ASSERT(empty(it->second->less));
+      BOOST_ASSERT(empty(it->second->more));
+      it->second->less = most_;
       if (not empty(most_)) {
-        most_->second.more = cast(it);
+        most_->second->more = it;
       }
       most_ = it;
       if (empty(least_)) {
@@ -112,22 +99,22 @@ namespace kagome {
 
     void lru_extract(Item &v) {
       if (not empty(v.more)) {
-        cast(v.more)->second.less = v.less;
+        v.more->second->less = v.less;
       } else {
-        most_ = cast(v.less);
+        most_ = v.less;
       }
       if (not empty(v.less)) {
-        cast(v.less)->second.more = v.more;
+        v.less->second->more = v.more;
       } else {
-        least_ = cast(v.more);
+        least_ = v.more;
       }
-      v.more = cast(It{});
-      v.less = cast(It{});
+      v.more = It{};
+      v.less = It{};
     }
 
     void lru_pop() {
       auto it = least_;
-      lru_extract(it->second);
+      lru_extract(*it->second);
       map_.erase(it);
     }
 
