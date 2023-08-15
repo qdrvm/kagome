@@ -4,6 +4,7 @@
  */
 
 #include <boost/date_time/posix_time/posix_time.hpp>
+#include <optional>
 
 #include "clock/impl/basic_waitable_timer.hpp"
 #include "common/visitor.hpp"
@@ -17,6 +18,7 @@
 #include "parachain/approval/approval_distribution.hpp"
 #include "parachain/approval/state.hpp"
 #include "primitives/authority.hpp"
+#include "primitives/math.hpp"
 #include "runtime/runtime_api/parachain_host_types.hpp"
 #include "utils/async_sequence.hpp"
 #include "utils/weak_from_shared.hpp"
@@ -54,7 +56,8 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::parachain, ApprovalDistribution::Error, e) {
 
 static constexpr uint64_t kTickDurationMs = 500ull;
 static constexpr kagome::network::Tick kApprovalDelay = 2ull;
-static constexpr kagome::network::Tick kTickTooFarInFuture = 20ull;  // 10 seconds.
+static constexpr kagome::network::Tick kTickTooFarInFuture =
+    20ull;  // 10 seconds.
 
 namespace {
 
@@ -262,7 +265,8 @@ namespace {
             auto const is_no_show =
                 !has_approved && no_show_at <= drifted_tick_now;
             if (!is_no_show && !has_approved) {
-              next_no_show = kagome::parachain::approval::min_or_some(next_no_show, std::make_optional(no_show_at + clock_drift));
+              next_no_show = kagome::parachain::approval::min_or_some(
+                  next_no_show, std::make_optional(no_show_at + clock_drift));
             }
             if (is_no_show) {
               ++no_shows;
@@ -588,7 +592,6 @@ namespace kagome::parachain {
         return std::make_pair((ValidatorIndex)ix, std::move(res.value()));
       }
     }
-    SL_TRACE(logger_, "No assignment key");
     return std::nullopt;
   }
 
@@ -600,21 +603,8 @@ namespace kagome::parachain {
       const CandidateIncludedList &leaving_cores) {
     if (config.n_cores == 0 || config.assignment_keys.empty()
         || config.validator_groups.empty()) {
-      SL_TRACE(logger_,
-               "Not producing assignments because config is degenerate "
-               "(n_cores:{}, has_assignment_keys:{}, has_validator_groups:{})",
-               config.n_cores,
-               config.assignment_keys.size(),
-               config.validator_groups.size());
       return {};
     }
-
-    SL_INFO(logger_,
-            "Compute assignments."
-            "(n_cores:{}, has_assignment_keys:{}, has_validator_groups:{})",
-            config.n_cores,
-            config.assignment_keys.size(),
-            config.validator_groups.size());
 
     std::optional<std::pair<ValidatorIndex, crypto::Sr25519Keypair>>
         founded_key = findAssignmentKey(keystore, config);
@@ -692,14 +682,12 @@ namespace kagome::parachain {
           std::move(babe_config);
 
       acu.second.included_candidates = std::move(included);
-      acu.second.session_index = session_index;
-      acu.second.session_info = std::move(session_info);
       acu.second.babe_epoch = epoch_number;
       acu.second.babe_block_header = std::move(babe_block_header);
       acu.second.authorities = std::move(authorities);
       acu.second.randomness = std::move(randomness);
 
-      this->try_process_approving_context(acu);
+      this->try_process_approving_context(acu, session_index, session_info);
     });
   }
 
@@ -716,7 +704,9 @@ namespace kagome::parachain {
   }
 
   void ApprovalDistribution::try_process_approving_context(
-      ApprovalDistribution::ApprovingContextUnit &acu) {
+      ApprovalDistribution::ApprovingContextUnit &acu,
+      SessionIndex session_index,
+      const runtime::SessionInfo &session_info) {
     ApprovingContext &ac = acu.second;
     if (!ac.is_complete()) {
       return;
@@ -745,18 +735,17 @@ namespace kagome::parachain {
       return;
     }
     auto assignments = compute_assignments(
-        keystore_, *ac.session_info, relay_vrf, *ac.included_candidates);
+        keystore_, session_info, relay_vrf, *ac.included_candidates);
 
     /// TODO(iceseer): force approve impl
 
     ac.complete_callback(ImportedBlockInfo{
         .included_candidates = std::move(*ac.included_candidates),
-        .session_index = *ac.session_index,
+        .session_index = session_index,
         .assignments = std::move(assignments),
-        .n_validators = ac.session_info->validators.size(),
+        .n_validators = session_info.validators.size(),
         .relay_vrf_story = relay_vrf,
         .slot = unsafe_vrf.slot,
-        .session_info = std::move(*ac.session_info),
         .force_approve = std::nullopt});
   }
 
@@ -766,7 +755,30 @@ namespace kagome::parachain {
                 kagome::parachain::approval::ApprovalStatus>>
   ApprovalDistribution::approval_status(const BlockEntry &block_entry,
                                         CandidateEntry &candidate_entry) {
-    auto &session_info = block_entry.session_info;
+    std::optional<runtime::SessionInfo> opt_session_info{};
+    if (auto session_info_res = parachain_host_->session_info(
+            block_entry.parent_hash, block_entry.session);
+        session_info_res.has_value()) {
+      opt_session_info = std::move(session_info_res.value());
+    } else {
+      logger_->warn(
+          "Approval status. Session info runtime request failed. "
+          "(block_hash={}, session_index={}, error={})",
+          block_entry.parent_hash,
+          block_entry.session,
+          session_info_res.error().message());
+      return std::nullopt;
+    }
+
+    if (!opt_session_info) {
+      logger_->debug(
+          "Can't obtain SessionInfo. (parent_hash={}, session_index={})",
+          block_entry.parent_hash,
+          block_entry.session);
+      return std::nullopt;
+    }
+
+    runtime::SessionInfo &session_info = *opt_session_info;
     const auto block_hash = block_entry.block_hash;
 
     const auto tranche_now =
@@ -866,7 +878,7 @@ namespace kagome::parachain {
       const primitives::BlockHash &block_hash,
       const primitives::BlockHash &parent_hash,
       scale::BitVec &&approved_bitfield,
-      ImportedBlockInfo &&block_info) {
+      const ImportedBlockInfo &block_info) {
     std::vector<std::pair<CandidateHash, CandidateEntry>> entries;
     std::vector<std::pair<CoreIndex, CandidateHash>> candidates;
     if (auto blocks = storedBlocks().get_or_create(block_number);
@@ -881,10 +893,6 @@ namespace kagome::parachain {
     for (const auto &[candidateHash, candidateReceipt, coreIndex, groupIndex] :
          block_info.included_candidates) {
       std::optional<std::reference_wrapper<OurAssignment>> assignment{};
-      if (auto assignment_it = block_info.assignments.find(coreIndex);
-          assignment_it != block_info.assignments.end()) {
-        assignment = assignment_it->second;
-      }
 
       auto candidate_entry =
           storedCandidateEntries().get_or_create(candidateHash,
@@ -910,7 +918,6 @@ namespace kagome::parachain {
                    .parent_hash = parent_hash,
                    .block_number = block_number,
                    .session = block_info.session_index,
-                   .session_info = std::move(block_info.session_info),
                    .slot = block_info.slot,
                    .relay_vrf_story = std::move(block_info.relay_vrf_story),
                    .candidates = std::move(candidates),
@@ -933,33 +940,49 @@ namespace kagome::parachain {
              block_hash,
              parent_hash);
 
+    OUTCOME_TRY(session_info,
+                parachain_host_->session_info(block_hash,
+                                              imported_block.session_index));
+
+    if (!session_info) {
+      SL_TRACE(logger_,
+               "No session info. (block number={}, block hash={}, "
+               "parent hash={}, session index={})",
+               block_number,
+               block_hash,
+               parent_hash,
+               imported_block.session_index);
+      return Error::NO_SESSION_INFO;
+    }
+
     const auto block_tick =
         slotNumberToTick(config_.slot_duration_millis, imported_block.slot);
 
-    const auto no_show_duration =
-        slotNumberToTick(config_.slot_duration_millis,
-                         imported_block.session_info.no_show_slots);
+    const auto no_show_duration = slotNumberToTick(config_.slot_duration_millis,
+                                                   session_info->no_show_slots);
 
-    const auto needed_approvals = imported_block.session_info.needed_approvals;
+    const auto needed_approvals = session_info->needed_approvals;
     const auto num_candidates = imported_block.included_candidates.size();
 
     scale::BitVec approved_bitfield;
     size_t num_ones = 0ull;
 
     if (0 == needed_approvals) {
-      SL_TRACE(logger_, "Auto-approving all candidates: {}", block_hash);
+      SL_TRACE(logger_, "Insta-approving all candidates. {}", block_hash);
       approved_bitfield.bits.insert(
-          approved_bitfield.bits.begin(), num_candidates, true);
+          approved_bitfield.bits.end(), num_candidates, true);
       num_ones = num_candidates;
     } else {
       approved_bitfield.bits.insert(
-          approved_bitfield.bits.begin(), num_candidates, false);
+          approved_bitfield.bits.end(), num_candidates, false);
       for (size_t ix = 0; ix < imported_block.included_candidates.size();
            ++ix) {
         const auto &[_0, _1, _2, backing_group] =
             imported_block.included_candidates[ix];
-        const auto backing_group_size =
-            imported_block.session_info.validator_groups[backing_group].size();
+        const size_t backing_group_size =
+            ((backing_group < session_info->validator_groups.size())
+                 ? session_info->validator_groups[backing_group].size()
+                 : 0ull);
         if (math::sat_sub_unsigned(imported_block.n_validators,
                                    backing_group_size)
             < needed_approvals) {
@@ -986,7 +1009,7 @@ namespace kagome::parachain {
                                 block_hash,
                                 parent_hash,
                                 std::move(approved_bitfield),
-                                std::move(imported_block)));
+                                imported_block));
 
     std::vector<CandidateHash> candidates;
     for (const auto &[hash, _0, _1, _2] : imported_block.included_candidates) {
@@ -1072,10 +1095,8 @@ namespace kagome::parachain {
         ApprovingContext{
             .block_header = updated.new_head,
             .included_candidates = std::nullopt,
-            .session_index = std::nullopt,
             .babe_block_header = std::nullopt,
             .babe_epoch = std::nullopt,
-            .session_info = std::nullopt,
             .complete_callback_context = internal_context_->io_context(),
             .complete_callback =
                 [wself{weak_from_this()},
@@ -1267,7 +1288,31 @@ namespace kagome::parachain {
     GET_OPT_VALUE_OR_EXIT(block_entry,
                           AssignmentCheckResult::Bad,
                           storedBlockEntries().get(assignment.block_hash));
-    auto &session_info = block_entry.session_info;
+
+    std::optional<runtime::SessionInfo> opt_session_info{};
+    if (auto session_info_res = parachain_host_->session_info(
+            block_entry.parent_hash, block_entry.session);
+        session_info_res.has_value()) {
+      opt_session_info = std::move(session_info_res.value());
+    } else {
+      logger_->warn(
+          "Assignment. Session info runtime request failed. (parent_hash={}, "
+          "session_index={}, error={})",
+          block_entry.parent_hash,
+          block_entry.session,
+          session_info_res.error().message());
+      return AssignmentCheckResult::Bad;
+    }
+
+    if (!opt_session_info) {
+      logger_->debug(
+          "Can't obtain SessionInfo. (parent_hash={}, session_index={})",
+          block_entry.parent_hash,
+          block_entry.session);
+      return AssignmentCheckResult::Bad;
+    }
+
+    runtime::SessionInfo &session_info = *opt_session_info;
     if (candidate_index >= block_entry.candidates.size()) {
       logger_->warn(
           "Candidate index more than candidates array.(candidate index={})",
@@ -1347,7 +1392,30 @@ namespace kagome::parachain {
         block_entry,
         ApprovalCheckResult::Bad,
         storedBlockEntries().get(approval.payload.payload.block_hash));
-    auto &session_info = block_entry.session_info;
+    std::optional<runtime::SessionInfo> opt_session_info{};
+    if (auto session_info_res = parachain_host_->session_info(
+            approval.payload.payload.block_hash, block_entry.session);
+        session_info_res.has_value()) {
+      opt_session_info = std::move(session_info_res.value());
+    } else {
+      logger_->warn(
+          "Approval. Session info runtime request failed. (block_hash={}, "
+          "session_index={}, error={})",
+          approval.payload.payload.block_hash,
+          block_entry.session,
+          session_info_res.error().message());
+      return ApprovalCheckResult::Bad;
+    }
+
+    if (!opt_session_info) {
+      logger_->debug(
+          "Can't obtain SessionInfo. (parent_hash={}, session_index={})",
+          approval.payload.payload.block_hash,
+          block_entry.session);
+      return ApprovalCheckResult::Bad;
+    }
+
+    runtime::SessionInfo &session_info = *opt_session_info;
     if (approval.payload.payload.candidate_index
         >= block_entry.candidates.size()) {
       logger_->warn(
@@ -2025,7 +2093,30 @@ namespace kagome::parachain {
       return;
     }
 
-    auto &session_info = block_entry.session_info;
+    std::optional<runtime::SessionInfo> opt_session_info{};
+    if (auto session_info_res = parachain_host_->session_info(
+            block_entry.parent_hash, block_entry.session);
+        session_info_res.has_value()) {
+      opt_session_info = std::move(session_info_res.value());
+    } else {
+      logger_->warn(
+          "Issue approval. Session info runtime request failed. "
+          "(block_hash={}, session_index={}, error={})",
+          block_entry.parent_hash,
+          block_entry.session,
+          session_info_res.error().message());
+      return;
+    }
+
+    if (!opt_session_info) {
+      logger_->debug(
+          "Can't obtain SessionInfo. (parent_hash={}, session_index={})",
+          block_entry.parent_hash,
+          block_entry.session);
+      return;
+    }
+
+    runtime::SessionInfo &session_info = *opt_session_info;
     if (*candidate_index >= block_entry.candidates.size()) {
       logger_->warn(
           "Received malformed request to approve out-of-bounds candidate index "
@@ -2422,8 +2513,30 @@ namespace kagome::parachain {
 
     auto &block_entry = opt_block_entry->get();
     auto &candidate_entry = opt_candidate_entry->get();
-    auto &session_info = opt_block_entry->get().session_info;
+    std::optional<runtime::SessionInfo> opt_session_info{};
+    if (auto session_info_res = parachain_host_->session_info(
+            block_entry.parent_hash, block_entry.session);
+        session_info_res.has_value()) {
+      opt_session_info = std::move(session_info_res.value());
+    } else {
+      logger_->warn(
+          "Handle tranche. Session info runtime request failed. "
+          "(block_hash={}, session_index={}, error={})",
+          block_entry.parent_hash,
+          block_entry.session,
+          session_info_res.error().message());
+      return;
+    }
 
+    if (!opt_session_info) {
+      logger_->debug(
+          "Can't obtain SessionInfo. (parent_hash={}, session_index={})",
+          block_entry.parent_hash,
+          block_entry.session);
+      return;
+    }
+
+    runtime::SessionInfo &session_info = *opt_session_info;
     const auto block_tick =
         slotNumberToTick(config_.slot_duration_millis, block_entry.slot);
     const auto no_show_duration = slotNumberToTick(config_.slot_duration_millis,

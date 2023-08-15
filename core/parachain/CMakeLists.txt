@@ -25,4 +25,5 @@ target_link_libraries(validator_parachain
     crypto_store
     network
     erasure_coding_crust::ec-cpp
+    waitable_timer
     )

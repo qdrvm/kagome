@@ -16,6 +16,7 @@ addtest(crypto_store_test
 target_link_libraries(crypto_store_test
     crypto_store
     base_fs_test
+    validator_parachain
     )
 
 addtest(session_keys_test

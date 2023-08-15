@@ -112,7 +112,7 @@ namespace kagome::parachain {
             our_assignment{assignment},
             approved(false) {
         assignments.bits.insert(
-            assignments.bits.begin(), assignments_size, false);
+            assignments.bits.end(), assignments_size, false);
       }
 
       /// Whether a validator is already assigned.
@@ -207,7 +207,7 @@ namespace kagome::parachain {
                      SessionIndex session_index,
                      size_t approvals_size)
           : candidate(receipt), session(session_index) {
-        approvals.bits.insert(approvals.bits.begin(), approvals_size, false);
+        approvals.bits.insert(approvals.bits.end(), approvals_size, false);
       }
 
       std::optional<std::reference_wrapper<ApprovalEntry>> approval_entry(
@@ -276,6 +276,19 @@ namespace kagome::parachain {
     /// AppStateManager impl
     bool prepare();
 
+    using CandidateIncludedList =
+        std::vector<std::tuple<CandidateHash,
+                               network::CandidateReceipt,
+                               CoreIndex,
+                               GroupIndex>>;
+    using AssignmentsList = std::unordered_map<CoreIndex, OurAssignment>;
+
+    static AssignmentsList compute_assignments(
+        const std::shared_ptr<crypto::CryptoStore> &keystore,
+        const runtime::SessionInfo &config,
+        const RelayVRFStory &relay_vrf_story,
+        const CandidateIncludedList &leaving_cores);
+
     void onValidationProtocolMsg(
         const libp2p::peer::PeerId &peer_id,
         const network::ValidatorProtocolMessage &message);
@@ -294,13 +307,6 @@ namespace kagome::parachain {
         const primitives::BlockInfo &max) const override;
 
    private:
-    using CandidateIncludedList =
-        std::vector<std::tuple<CandidateHash,
-                               network::CandidateReceipt,
-                               CoreIndex,
-                               GroupIndex>>;
-    using AssignmentsList = std::unordered_map<CoreIndex, OurAssignment>;
-
     struct ImportedBlockInfo {
       CandidateIncludedList included_candidates;
       SessionIndex session_index;
@@ -308,27 +314,24 @@ namespace kagome::parachain {
       size_t n_validators;
       RelayVRFStory relay_vrf_story;
       consensus::babe::BabeSlotNumber slot;
-      runtime::SessionInfo session_info;
       std::optional<primitives::BlockNumber> force_approve;
     };
 
     struct ApprovingContext {
       primitives::BlockHeader block_header;
       std::optional<CandidateIncludedList> included_candidates;
-      std::optional<SessionIndex> session_index;
       std::optional<consensus::babe::BabeBlockHeader> babe_block_header;
       std::optional<consensus::babe::EpochNumber> babe_epoch;
       std::optional<primitives::Randomness> randomness;
       std::optional<primitives::AuthorityList> authorities;
-      std::optional<runtime::SessionInfo> session_info;
 
       std::shared_ptr<boost::asio::io_context> complete_callback_context;
       std::function<void(outcome::result<ImportedBlockInfo> &&)>
           complete_callback;
 
       bool is_complete() const {
-        return included_candidates && babe_epoch && session_index
-            && session_info && babe_block_header && randomness && authorities;
+        return included_candidates && babe_epoch && babe_block_header
+            && randomness && authorities;
       }
     };
 
@@ -375,7 +378,6 @@ namespace kagome::parachain {
       primitives::BlockHash parent_hash;
       primitives::BlockNumber block_number;
       SessionIndex session;
-      runtime::SessionInfo session_info;
       consensus::babe::BabeSlotNumber slot;
       RelayVRFStory relay_vrf_story;
       // The candidates included as-of this block and the index of the core they
@@ -424,11 +426,12 @@ namespace kagome::parachain {
 
     /// Information about a block and imported candidates.
     struct BlockImportedCandidates {
-      primitives::BlockHash block_hash;
-      primitives::BlockNumber block_number;
-      network::Tick block_tick;
-      network::Tick no_show_duration;
-      std::vector<std::pair<CandidateHash, CandidateEntry>> imported_candidates;
+      primitives::BlockHash block_hash{};
+      primitives::BlockNumber block_number{};
+      network::Tick block_tick{};
+      network::Tick no_show_duration{};
+      std::vector<std::pair<CandidateHash, CandidateEntry>>
+          imported_candidates{};
     };
 
     using AssignmentOrApproval =
@@ -480,12 +483,6 @@ namespace kagome::parachain {
                               primitives::AuthorityList,
                               primitives::Randomness>>;
 
-    AssignmentsList compute_assignments(
-        const std::shared_ptr<crypto::CryptoStore> &keystore,
-        const runtime::SessionInfo &config,
-        const RelayVRFStory &relay_vrf_story,
-        const CandidateIncludedList &leaving_cores);
-
     void imported_block_info(const primitives::BlockHash &block_hash,
                              const primitives::BlockHeader &block_header);
 
@@ -533,9 +530,12 @@ namespace kagome::parachain {
     template <typename Func>
     void for_ACU(const primitives::BlockHash &block_hash, Func &&func);
 
-    void try_process_approving_context(ApprovingContextUnit &acu);
+    void try_process_approving_context(
+        ApprovingContextUnit &acu,
+        SessionIndex session_index,
+        const runtime::SessionInfo &session_info);
 
-    std::optional<std::pair<ValidatorIndex, crypto::Sr25519Keypair>>
+    static std::optional<std::pair<ValidatorIndex, crypto::Sr25519Keypair>>
     findAssignmentKey(const std::shared_ptr<crypto::CryptoStore> &keystore,
                       const runtime::SessionInfo &config);
 
@@ -550,7 +550,7 @@ namespace kagome::parachain {
                     const primitives::BlockHash &block_hash,
                     const primitives::BlockHash &parent_hash,
                     scale::BitVec &&approved_bitfield,
-                    ImportedBlockInfo &&block_info);
+                    const ImportedBlockInfo &block_info);
 
     void on_active_leaves_update(const network::ExView &updated);
 
