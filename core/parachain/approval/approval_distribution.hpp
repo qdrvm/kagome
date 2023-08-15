@@ -703,6 +703,8 @@ namespace kagome::parachain {
         std::vector<std::pair<libp2p::peer::PeerId, PendingMessage>>>
         pending_known_;
     std::unordered_map<libp2p::peer::PeerId, network::View> peer_views_;
+    std::map<primitives::BlockNumber, std::unordered_set<primitives::BlockHash>>
+        blocks_by_number_;
 
     /// thread_pool_ context access
     using ScheduledCandidateTimer =

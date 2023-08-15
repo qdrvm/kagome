@@ -574,6 +574,25 @@ namespace kagome::parachain {
       const libp2p::peer::PeerId &_peer_id, const network::View &_view) {
     REINVOKE_2(
         *internal_context_, store_remote_view, _peer_id, _view, peer_id, view);
+
+    primitives::BlockNumber old_finalized_number{0ull};
+    if (auto it = peer_views_.find(peer_id); it != peer_views_.end()) {
+      old_finalized_number = it->second.finalized_number_;
+    }
+
+    for (primitives::BlockNumber bn = old_finalized_number;
+         bn <= view.finalized_number_;
+         ++bn) {
+      if (auto it = blocks_by_number_.find(bn); it != blocks_by_number_.end()) {
+        for (const auto &bh : it->second) {
+          if (auto opt_entry = storedDistribBlockEntries().get(bh)) {
+            opt_entry->get().known_by.erase(peer_id);
+          }
+        }
+      }
+    }
+
+    unify_with_peer(storedDistribBlockEntries(), peer_id, view);
     peer_views_[peer_id] = std::move(view);
   }
 
@@ -591,6 +610,7 @@ namespace kagome::parachain {
         pending_known_.erase(lost);
         active_tranches_.erase(lost);
         approving_context_map_.erase(lost);
+        /// TODO(iceseer): `blocks_by_number_` clear on finalization
 
         if (auto block_entry = storedBlockEntries().get(lost)) {
           for (const auto &candidate : block_entry->get().candidates) {
@@ -1078,6 +1098,7 @@ namespace kagome::parachain {
                                           .number = meta.number,
                                           .parent_hash = meta.parent_hash,
                                       });
+      blocks_by_number_[meta.number].insert(meta.hash);
     }
 
     logger_->trace("Got new block.(hash={})", new_hash);
