@@ -16,7 +16,10 @@ namespace kagome {
   template <typename K, typename V>
   class Lru {
    public:
-    struct ItFwd;
+    struct ItFwd {
+      // gcc bug
+      void *raw;
+    };
 
     struct Item {
       V v;
@@ -25,12 +28,7 @@ namespace kagome {
 
     using Map = std::unordered_map<K, Item>;
     using It = typename Map::iterator;
-
-    struct ItFwd : It {
-      operator bool() const {
-        return *this != It{};
-      }
-    };
+    static_assert(sizeof(It) == sizeof(ItFwd));
 
     Lru(size_t capacity) : capacity_{capacity} {
       if (capacity_ == 0) {
@@ -63,13 +61,26 @@ namespace kagome {
     }
 
    private:
+    static auto cast(const ItFwd &it) {
+      return reinterpret_cast<const It &>(it);
+    }
+    static auto cast(const It &it) {
+      return reinterpret_cast<const ItFwd &>(it);
+    }
+    static auto empty(const ItFwd &it) {
+      return empty(cast(it));
+    }
+    static auto empty(const It &it) {
+      return it == It{};
+    }
+
     std::pair<It, bool> put2(const K &k, V &&v) {
       auto it = map_.find(k);
       if (it == map_.end()) {
         if (map_.size() >= capacity_) {
           lru_pop();
         }
-        it = map_.emplace(k, Item{std::move(v), {}, {}}).first;
+        it = map_.emplace(k, Item{std::move(v), cast(It{}), cast(It{})}).first;
         lru_push(it);
         return {it, true};
       }
@@ -87,31 +98,31 @@ namespace kagome {
     }
 
     void lru_push(It it) {
-      BOOST_ASSERT(not it->second.less);
-      BOOST_ASSERT(not it->second.more);
-      it->second.less = most_;
-      if (most_) {
-        most_->second.more = ItFwd{it};
+      BOOST_ASSERT(empty(it->second.less));
+      BOOST_ASSERT(empty(it->second.more));
+      it->second.less = cast(most_);
+      if (not empty(most_)) {
+        most_->second.more = cast(it);
       }
-      most_ = ItFwd{it};
-      if (not least_) {
+      most_ = it;
+      if (empty(least_)) {
         least_ = most_;
       }
     }
 
     void lru_extract(Item &v) {
-      if (v.more) {
-        v.more->second.less = v.less;
+      if (not empty(v.more)) {
+        cast(v.more)->second.less = v.less;
       } else {
-        most_ = v.less;
+        most_ = cast(v.less);
       }
-      if (v.less) {
-        v.less->second.more = v.more;
+      if (not empty(v.less)) {
+        cast(v.less)->second.more = v.more;
       } else {
-        least_ = v.more;
+        least_ = cast(v.more);
       }
-      v.more = {};
-      v.less = {};
+      v.more = cast(It{});
+      v.less = cast(It{});
     }
 
     void lru_pop() {
@@ -122,7 +133,7 @@ namespace kagome {
 
     Map map_;
     size_t capacity_;
-    ItFwd most_, least_;
+    It most_, least_;
 
     template <typename>
     friend class LruSet;
