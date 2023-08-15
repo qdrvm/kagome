@@ -263,7 +263,6 @@ namespace kagome::consensus::babe {
 
     // Metrics
     metrics::RegistryPtr metrics_registry_ = metrics::createRegistry();
-    metrics::Histogram *metric_block_proposal_time_;
     metrics::Gauge *metric_is_major_syncing_;
     metrics::Gauge *metric_is_relaychain_validator_;
 
