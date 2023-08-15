@@ -1046,6 +1046,7 @@ namespace kagome::parachain {
                                           .knowledge = {},
                                           .known_by = {},
                                           .number = meta.number,
+                                          .parent_hash = meta.parent_hash,
                                       });
     }
 
@@ -2614,17 +2615,18 @@ namespace kagome::parachain {
       const libp2p::peer::PeerId &peer_id,
       const network::View &view) {
     std::vector<network::Assignment> assignments_to_send;
-    std::vector<network::Approvals> approvals_to_send;
+    std::vector<network::IndirectSignedApprovalVote> approvals_to_send;
 
     const auto view_finalized_number = view.finalized_number_;
     for (const auto &head : view.heads_) {
       primitives::BlockHash block = head;
       while (true) {
-        auto entry = entries.get(block);
-        if (!entry || entry->get().number <= view_finalized_number) {
+        auto opt_entry = entries.get(block);
+        if (!opt_entry || opt_entry->get().number <= view_finalized_number) {
           break;
         }
 
+        auto &entry = opt_entry->get();
         if (entry.known_by.count(peer_id) != 0ull) {
           break;
         }
@@ -2637,24 +2639,65 @@ namespace kagome::parachain {
           for (auto &[validator, message_state] : c.messages) {
             auto message_subject{
                 std::make_tuple(block, candidate_index, validator)};
-            const auto &cert = visit_in_place(
+            const auto &[ref_cert, opt_ref_approval_sig] = visit_in_place(
                 message_state.approval_state,
-                [](const DistribApprovalStateAssigned &val) { return val; },
-                [](const DistribApprovalStateApproved &val) {
-                  const auto &[cert, _] = val;
-                  return cert;
+                [](const DistribApprovalStateAssigned &cert)
+                    -> std::pair<
+                        std::reference_wrapper<const approval::AssignmentCert>,
+                        std::optional<
+                            std::reference_wrapper<const ValidatorSignature>>> {
+                  return std::make_pair(std::cref(cert), std::nullopt);
+                },
+                [](const DistribApprovalStateApproved &val)
+                    -> std::pair<
+                        std::reference_wrapper<const approval::AssignmentCert>,
+                        std::optional<
+                            std::reference_wrapper<const ValidatorSignature>>> {
+                  const auto &[cert, sig] = val;
+                  return std::make_pair(std::cref(cert), std::cref(sig));
                 });
-            network::Assignment assignment_message{
-                .indirect_assignment_cert =
-                    approval::IndirectAssignmentCert{
-                        .block_hash = block,
-                        .validator = validator,
-                        .cert = cert,
-                    },
-                .candidate_ix = candidate_index,
-            };
+
+            if (!peer_knowledge.contains(message_subject,
+                                         approval::MessageKindAssignment{})) {
+              peer_knowledge.sent.insert(message_subject,
+                                         approval::MessageKindAssignment{});
+
+              assignments_to_send.emplace_back(network::Assignment{
+                  .indirect_assignment_cert =
+                      approval::IndirectAssignmentCert{
+                          .block_hash = block,
+                          .validator = validator,
+                          .cert = ref_cert.get(),
+                      },
+                  .candidate_ix = candidate_index,
+              });
+            }
+
+            if (opt_ref_approval_sig) {
+              if (!peer_knowledge.contains(message_subject,
+                                           approval::MessageKindApproval{})) {
+                peer_knowledge.sent.insert(message_subject,
+                                           approval::MessageKindApproval{});
+
+                approvals_to_send.emplace_back(
+                    network::IndirectSignedApprovalVote{
+                        .payload =
+                            {
+                                .payload =
+                                    network::ApprovalVote{
+                                        .block_hash = block,
+                                        .candidate_index = candidate_index,
+                                    },
+                                .ix = validator,
+                            },
+                        .signature = opt_ref_approval_sig->get(),
+                    });
+              }
+            }
           }
         }
+
+        block = entry.parent_hash;
       }
     }
   }

@@ -371,6 +371,8 @@ namespace kagome::parachain {
           known_by{};
       /// The number of the block.
       primitives::BlockNumber number;
+      /// The parent hash of the block.
+      RelayHash parent_hash;
     };
 
     /// Metadata regarding approval of a particular block, by way of approval of
