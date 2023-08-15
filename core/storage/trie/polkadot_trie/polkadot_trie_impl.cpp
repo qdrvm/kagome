@@ -347,9 +347,10 @@ namespace kagome::storage::trie {
     // insert fetches a sequence of nodes (a path) from the storage and
     // these nodes are processed in memory, so any changes applied to them
     // will be written back to the storage only on storeNode call
-    OUTCOME_TRY(
-        n,
-        insert(root, k_enc, std::make_shared<LeafNode>(k_enc, value.intoBuffer())));
+    OUTCOME_TRY(n,
+                insert(root,
+                       k_enc,
+                       std::make_shared<LeafNode>(k_enc, value.intoBuffer())));
     nodes_->setRoot(n);
 
     return outcome::success();

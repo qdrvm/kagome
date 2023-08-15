@@ -66,19 +66,6 @@ namespace kagome::network {
                    SyncResultHandler &&handler) override {
       return syncState(peer_id, block_info, handler);
     }
-
-    MOCK_METHOD(void,
-                syncBabeDigest,
-                (const libp2p::peer::PeerId &,
-                 const primitives::BlockInfo &,
-                 const CbResultVoid &),
-                ());
-
-    void syncBabeDigest(const libp2p::peer::PeerId &peer_id,
-                        const primitives::BlockInfo &block_info,
-                        CbResultVoid &&cb) override {
-      return syncBabeDigest(peer_id, block_info, cb);
-    }
   };
 
 }  // namespace kagome::network

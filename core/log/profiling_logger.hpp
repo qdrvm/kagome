@@ -24,8 +24,8 @@ namespace kagome::log {
     }
 
     ProfileScope(ProfileScope &&) = delete;
-    ProfileScope(ProfileScope const &) = delete;
-    ProfileScope &operator=(ProfileScope const &) = delete;
+    ProfileScope(const ProfileScope &) = delete;
+    ProfileScope &operator=(const ProfileScope &) = delete;
     ProfileScope &operator=(ProfileScope &&) = delete;
 
     ~ProfileScope() {
@@ -58,8 +58,7 @@ namespace kagome::log {
 #define KAGOME_PROFILE_START_L(logger, scope) \
   auto _profiling_scope_##scope = ::kagome::log::ProfileScope{#scope, logger};
 
-#define KAGOME_PROFILE_END_L(logger, scope)                               \
-  _profiling_scope_##scope .end();
+#define KAGOME_PROFILE_END_L(logger, scope) _profiling_scope_##scope.end();
 
 #define KAGOME_PROFILE_START(scope) \
   KAGOME_PROFILE_START_L(::kagome::log::profiling_logger, scope)

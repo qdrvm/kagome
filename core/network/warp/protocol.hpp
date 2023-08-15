@@ -19,18 +19,18 @@ namespace kagome::network {
 
    public:
     WarpProtocol(libp2p::Host &host,
-                 const application::ChainSpec &chain_spec,
-                 const primitives::GenesisBlockHeader &genesis,
-                 std::shared_ptr<WarpSyncCache> cache)
-        : RequestResponseProtocolType{
-            kName,
-            host,
-            make_protocols(kWarpProtocol, genesis, chain_spec),
-            log::createLogger(kName, "warp_sync_protocol"),
-        },
-        cache_{std::move(cache)} {}
+                   const application::ChainSpec &chain_spec,
+                   const primitives::GenesisBlockHeader &genesis,
+                   std::shared_ptr<WarpSyncCache> cache)
+          : RequestResponseProtocolType{
+              kName,
+              host,
+              make_protocols(kWarpProtocol, genesis, chain_spec),
+              log::createLogger(kName, "warp_sync_protocol"),
+          },
+          cache_{std::move(cache)} {}
 
-    outcome::result<ResponseType> onRxRequest(
+    std::optional<outcome::result<ResponseType>> onRxRequest(
         RequestType after_hash, std::shared_ptr<Stream>) override {
       return cache_->getProof(after_hash);
     }

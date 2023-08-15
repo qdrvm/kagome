@@ -39,7 +39,7 @@ namespace kagome::storage::trie {
 
 namespace kagome::consensus::babe {
   struct BabeIndexedValue {
-    SCALE_TIE_ONLY(config, state);
+    SCALE_TIE_ONLY(config, state, next_state_warp);
 
     /**
      * `NextConfigData` is rare digest, so always store recent config.
@@ -50,6 +50,11 @@ namespace kagome::consensus::babe {
      * Used at genesis and after warp sync.
      */
     std::optional<std::shared_ptr<const primitives::BabeConfiguration>> state;
+    /**
+     * Next epoch after warp sync, when there is no block with digest.
+     */
+    std::optional<std::shared_ptr<const primitives::BabeConfiguration>>
+        next_state_warp;
     /**
      * Next epoch lazily computed from `config` and digests.
      */
@@ -76,8 +81,7 @@ namespace kagome::consensus::babe {
         std::shared_ptr<runtime::BabeApi> babe_api,
         std::shared_ptr<crypto::Hasher> hasher,
         std::shared_ptr<storage::trie::TrieStorage> trie_storage,
-        primitives::events::ChainSubscriptionEnginePtr chain_events_engine,
-        const BabeClock &clock);
+        primitives::events::ChainSubscriptionEnginePtr chain_events_engine);
 
     bool prepare();
 
@@ -93,21 +97,21 @@ namespace kagome::consensus::babe {
 
     // BabeUtil
 
-    BabeSlotNumber getFirstBlockSlotNumber() override;
-
-    BabeSlotNumber getCurrentSlot() const override;
+    BabeSlotNumber timeToSlot(BabeTimePoint time) const override;
 
     BabeTimePoint slotStartTime(BabeSlotNumber slot) const override;
-    BabeDuration remainToStartOfSlot(BabeSlotNumber slot) const override;
     BabeTimePoint slotFinishTime(BabeSlotNumber slot) const override;
-    BabeDuration remainToFinishOfSlot(BabeSlotNumber slot) const override;
 
-    EpochNumber slotToEpoch(BabeSlotNumber slot) const override;
-    BabeSlotNumber slotInEpoch(BabeSlotNumber slot) const override;
+    outcome::result<EpochDescriptor> slotToEpochDescriptor(
+        const primitives::BlockInfo &parent_info,
+        BabeSlotNumber slot) const override;
 
     void warp(const primitives::BlockInfo &block) override;
 
    private:
+    outcome::result<BabeSlotNumber> getFirstBlockSlotNumber(
+        const primitives::BlockInfo &parent_info) const;
+
     outcome::result<std::shared_ptr<const primitives::BabeConfiguration>>
     config(const primitives::BlockInfo &block, bool next_epoch) const;
 
@@ -139,8 +143,7 @@ namespace kagome::consensus::babe {
     BabeDuration slot_duration_{};
     EpochLength epoch_length_{};
 
-    const BabeClock &clock_;
-    std::optional<BabeSlotNumber> first_block_slot_number_;
+    mutable std::optional<BabeSlotNumber> first_block_slot_number_;
 
     log::Logger logger_;
   };

@@ -813,6 +813,7 @@ TEST_F(TriePrunerTest, FastSyncScenario) {
         .WillRepeatedly(Return(DatabaseError::NOT_FOUND));
   }
 
+  EXPECT_CALL(*block_tree, bestLeaf()).WillOnce(Return(BlockInfo{1, {}}));
   ASSERT_OUTCOME_SUCCESS_TRY(pruner->recoverState(*block_tree));
 
   for (BlockNumber n = 80; n < LAST_BLOCK_NUMBER; n++) {

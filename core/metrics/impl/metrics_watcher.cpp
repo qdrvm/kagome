@@ -44,7 +44,9 @@ namespace kagome::metrics {
         // Granulated waiting
         for (auto i = 0; i < 30; ++i) {
           std::this_thread::sleep_for(std::chrono::seconds(1));
-          if (shutdown_requested_) break;
+          if (shutdown_requested_) {
+            break;
+          }
         }
       }
     });
