@@ -544,7 +544,6 @@ namespace kagome::parachain {
                       const runtime::SessionInfo &config);
 
     void unify_with_peer(StoreUnit<StorePair<Hash, DistribBlockEntry>> &entries,
-                         size_t total_peers,
                          const libp2p::peer::PeerId &peer_id,
                          const network::View &view);
 
@@ -552,6 +551,7 @@ namespace kagome::parachain {
         primitives::BlockNumber block_number,
         const primitives::BlockHash &block_hash,
         const primitives::BlockHash &parent_hash,
+        primitives::BlockNumber finalized_block_number,
         ImportedBlockInfo &&block_info);
 
     outcome::result<std::vector<std::pair<CandidateHash, CandidateEntry>>>
@@ -589,7 +589,8 @@ namespace kagome::parachain {
         const network::CandidateReceipt &candidate,
         GroupIndex backing_group);
 
-    void runNewBlocks(approval::BlockApprovalMeta &&approval_meta);
+    void runNewBlocks(approval::BlockApprovalMeta &&approval_meta,
+                      primitives::BlockNumber finalized_block_number);
 
     std::optional<ValidatorSignature> sign_approval(
         const crypto::Sr25519PublicKey &pubkey,
@@ -641,6 +642,9 @@ namespace kagome::parachain {
 
     void clearCaches(const primitives::events::ChainEventParams &event);
 
+    void store_remote_view(const libp2p::peer::PeerId &peer_id,
+                           const network::View &view);
+
     auto &storedBlocks() {
       return as<StorePair<primitives::BlockNumber,
                           std::unordered_set<network::Hash>>>(store_);
@@ -676,6 +680,7 @@ namespace kagome::parachain {
     const ApprovalVotingSubsystem config_;
     std::shared_ptr<network::PeerView> peer_view_;
     network::PeerView::MyViewSubscriberPtr my_view_sub_;
+    network::PeerView::PeerViewSubscriberPtr remote_view_sub_;
     std::shared_ptr<primitives::events::ChainEventSubscriber> chain_sub_;
 
     Store<StorePair<primitives::BlockNumber, std::unordered_set<Hash>>,
@@ -697,6 +702,7 @@ namespace kagome::parachain {
         Hash,
         std::vector<std::pair<libp2p::peer::PeerId, PendingMessage>>>
         pending_known_;
+    std::unordered_map<libp2p::peer::PeerId, network::View> peer_views_;
 
     /// thread_pool_ context access
     using ScheduledCandidateTimer =

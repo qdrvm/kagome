@@ -530,6 +530,21 @@ namespace kagome::parachain {
           }
         });
 
+    remote_view_sub_ = std::make_shared<network::PeerView::PeerViewSubscriber>(
+        peer_view_->getRemoteViewObservable(), false);
+    remote_view_sub_->subscribe(remote_view_sub_->generateSubscriptionSetId(),
+                                network::PeerView::EventType::kViewUpdated);
+    remote_view_sub_->setCallback(
+        [wptr{weak_from_this()}](auto /*set_id*/,
+                                 auto && /*internal_obj*/,
+                                 auto /*event_type*/,
+                                 const libp2p::peer::PeerId &peer_id,
+                                 const network::View &view) {
+          if (auto self = wptr.lock()) {
+            self->store_remote_view(peer_id, view);
+          }
+        });
+
     chain_sub_ = std::make_shared<primitives::events::ChainEventSubscriber>(
         peer_view_->intoChainEventsEngine());
     chain_sub_->subscribe(
@@ -553,6 +568,13 @@ namespace kagome::parachain {
     /// TODO(iceseer): clear `known_by` when peer disconnected
 
     return true;
+  }
+
+  void ApprovalDistribution::store_remote_view(
+      const libp2p::peer::PeerId &_peer_id, const network::View &_view) {
+    REINVOKE_2(
+        *internal_context_, store_remote_view, _peer_id, _view, peer_id, view);
+    peer_views_[peer_id] = std::move(view);
   }
 
   void ApprovalDistribution::clearCaches(
@@ -935,6 +957,7 @@ namespace kagome::parachain {
       primitives::BlockNumber block_number,
       const primitives::BlockHash &block_hash,
       const primitives::BlockHash &parent_hash,
+      primitives::BlockNumber finalized_block_number,
       ApprovalDistribution::ImportedBlockInfo &&imported_block) {
     SL_TRACE(logger_,
              "Star imported block processing. (block number={}, block hash={}, "
@@ -1019,14 +1042,16 @@ namespace kagome::parachain {
       candidates.emplace_back(hash);
     }
 
-    runNewBlocks(approval::BlockApprovalMeta{
-        .hash = block_hash,
-        .number = block_number,
-        .parent_hash = parent_hash,
-        .candidates = std::move(candidates),
-        .slot = imported_block.slot,
-        .session = imported_block.session_index,
-    });
+    runNewBlocks(
+        approval::BlockApprovalMeta{
+            .hash = block_hash,
+            .number = block_number,
+            .parent_hash = parent_hash,
+            .candidates = std::move(candidates),
+            .slot = imported_block.slot,
+            .session = imported_block.session_index,
+        },
+        finalized_block_number);
 
     return BlockImportedCandidates{.block_hash = block_hash,
                                    .block_number = block_number,
@@ -1035,7 +1060,9 @@ namespace kagome::parachain {
                                    .imported_candidates = std::move(entries)};
   }
 
-  void ApprovalDistribution::runNewBlocks(approval::BlockApprovalMeta &&meta) {
+  void ApprovalDistribution::runNewBlocks(
+      approval::BlockApprovalMeta &&meta,
+      primitives::BlockNumber finalized_block_number) {
     std::optional<primitives::BlockHash> new_hash;
     if (!storedDistribBlockEntries().get(meta.hash)) {
       const auto candidates_count = meta.candidates.size();
@@ -1054,7 +1081,18 @@ namespace kagome::parachain {
     }
 
     logger_->trace("Got new block.(hash={})", new_hash);
-    /// TODO(iceseer): intersection in views
+    for (const auto &[peed_id, view] : peer_views_) {
+      for (const auto &h : view.heads_) {
+        if (h == meta.hash) {
+          unify_with_peer(storedDistribBlockEntries(),
+                          peed_id,
+                          network::View{
+                              .heads_ = {h},
+                              .finalized_number_ = finalized_block_number,
+                          });
+        }
+      }
+    }
 
     for (auto it = pending_known_.begin(); it != pending_known_.end();) {
       if (!storedDistribBlockEntries().get(it->first)) {
@@ -1107,6 +1145,7 @@ namespace kagome::parachain {
                 [wself{weak_from_this()},
                  block_hash{head},
                  block_number,
+                 finalized_block_number{updated.view.finalized_number_},
                  parent_hash{std::move(parent_hash)},
                  func(std::forward<Func>(func))](
                     outcome::result<ImportedBlockInfo> &&block_info) mutable {
@@ -1126,6 +1165,7 @@ namespace kagome::parachain {
                       block_number,
                       block_hash,
                       parent_hash,
+                      finalized_block_number,
                       std::move(block_info.value())));
                 }});
 
@@ -2675,11 +2715,10 @@ namespace kagome::parachain {
 
   void ApprovalDistribution::unify_with_peer(
       StoreUnit<StorePair<Hash, DistribBlockEntry>> &entries,
-      size_t total_peers,
       const libp2p::peer::PeerId &peer_id,
       const network::View &view) {
-    std::vector<network::Assignment> assignments_to_send;
-    std::vector<network::IndirectSignedApprovalVote> approvals_to_send;
+    std::deque<network::Assignment> assignments_to_send;
+    std::deque<network::IndirectSignedApprovalVote> approvals_to_send;
 
     const auto view_finalized_number = view.finalized_number_;
     for (const auto &head : view.heads_) {
@@ -2770,6 +2809,15 @@ namespace kagome::parachain {
                "Sending assignments to unified peer. (peer id={}, count={})",
                peer_id,
                assignments_to_send.size());
+      send_assignments_batched(std::move(assignments_to_send), peer_id);
+    }
+
+    if (!approvals_to_send.empty()) {
+      SL_TRACE(logger_,
+               "Sending approvals to unified peer. (peer id={}, count={})",
+               peer_id,
+               assignments_to_send.size());
+      send_approvals_batched(std::move(approvals_to_send), peer_id);
     }
   }
 
