@@ -1045,6 +1045,7 @@ namespace kagome::parachain {
                                           .candidates = std::move(candidates),
                                           .knowledge = {},
                                           .known_by = {},
+                                          .number = meta.number,
                                       });
     }
 
@@ -2605,6 +2606,57 @@ namespace kagome::parachain {
                            candidate_hash,
                            candidate_entry,
                            approval::WakeupProcessed{});
+  }
+
+  void ApprovalDistribution::unify_with_peer(
+      StoreUnit<StorePair<Hash, DistribBlockEntry>> &entries,
+      size_t total_peers,
+      const libp2p::peer::PeerId &peer_id,
+      const network::View &view) {
+    std::vector<network::Assignment> assignments_to_send;
+    std::vector<network::Approvals> approvals_to_send;
+
+    const auto view_finalized_number = view.finalized_number_;
+    for (const auto &head : view.heads_) {
+      primitives::BlockHash block = head;
+      while (true) {
+        auto entry = entries.get(block);
+        if (!entry || entry->get().number <= view_finalized_number) {
+          break;
+        }
+
+        if (entry.known_by.count(peer_id) != 0ull) {
+          break;
+        }
+
+        auto &peer_knowledge = entry.known_by[peer_id];
+        for (uint32_t candidate_index = 0;
+             candidate_index < entry.candidates.size();
+             ++candidate_index) {
+          auto &c = entry.candidates[candidate_index];
+          for (auto &[validator, message_state] : c.messages) {
+            auto message_subject{
+                std::make_tuple(block, candidate_index, validator)};
+            const auto &cert = visit_in_place(
+                message_state.approval_state,
+                [](const DistribApprovalStateAssigned &val) { return val; },
+                [](const DistribApprovalStateApproved &val) {
+                  const auto &[cert, _] = val;
+                  return cert;
+                });
+            network::Assignment assignment_message{
+                .indirect_assignment_cert =
+                    approval::IndirectAssignmentCert{
+                        .block_hash = block,
+                        .validator = validator,
+                        .cert = cert,
+                    },
+                .candidate_ix = candidate_index,
+            };
+          }
+        }
+      }
+    }
   }
 
   primitives::BlockInfo ApprovalDistribution::approvedAncestor(

@@ -369,6 +369,8 @@ namespace kagome::parachain {
       /// within it. This maps to their knowledge of messages.
       std::unordered_map<libp2p::peer::PeerId, approval::PeerKnowledge>
           known_by{};
+      /// The number of the block.
+      primitives::BlockNumber number;
     };
 
     /// Metadata regarding approval of a particular block, by way of approval of
@@ -538,6 +540,11 @@ namespace kagome::parachain {
     static std::optional<std::pair<ValidatorIndex, crypto::Sr25519Keypair>>
     findAssignmentKey(const std::shared_ptr<crypto::CryptoStore> &keystore,
                       const runtime::SessionInfo &config);
+
+    void unify_with_peer(StoreUnit<StorePair<Hash, DistribBlockEntry>> &entries,
+                         size_t total_peers,
+                         const libp2p::peer::PeerId &peer_id,
+                         const network::View &view);
 
     outcome::result<BlockImportedCandidates> processImportedBlock(
         primitives::BlockNumber block_number,
