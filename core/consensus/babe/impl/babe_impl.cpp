@@ -24,12 +24,16 @@
 #include "consensus/grandpa/justification_observer.hpp"
 #include "crypto/crypto_store/session_keys.hpp"
 #include "crypto/sr25519_provider.hpp"
+#include "dispute_coordinator/dispute_coordinator.hpp"
+#include "dispute_coordinator/types.hpp"
+#include "metrics/histogram_timer.hpp"
 #include "network/block_announce_transmitter.hpp"
 #include "network/helpers/peer_id_formatter.hpp"
 #include "network/synchronizer.hpp"
 #include "network/types/collator_messages.hpp"
 #include "network/warp/protocol.hpp"
 #include "network/warp/sync.hpp"
+#include "parachain/parachain_inherent_data.hpp"
 #include "runtime/runtime_api/core.hpp"
 #include "runtime/runtime_api/offchain_worker_api.hpp"
 #include "storage/changes_trie/impl/storage_changes_tracker_impl.hpp"
@@ -37,15 +41,22 @@
 #include "storage/trie/trie_storage.hpp"
 
 namespace {
-  constexpr const char *kBlockProposalTime =
-      "kagome_proposer_block_constructed";
-}
+  constexpr const char *kIsMajorSyncing = "kagome_sub_libp2p_is_major_syncing";
+  constexpr const char *kIsRelayChainValidator =
+      "kagome_node_is_active_validator";
+}  // namespace
 
 using namespace std::literals::chrono_literals;
 
 namespace kagome::consensus::babe {
-  using ParachainInherentData = network::ParachainInherentData;
+  using ParachainInherentData = parachain::ParachainInherentData;
   using SyncMethod = application::AppConfiguration::SyncMethod;
+
+  metrics::HistogramTimer metric_block_proposal_time{
+      "kagome_proposer_block_constructed",
+      "Time taken to construct new block",
+      {0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1, 2.5, 5, 10},
+  };
 
   inline auto fmtRemains(const BabeClock &clock, BabeTimePoint time) {
     auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(
@@ -82,7 +93,8 @@ namespace kagome::consensus::babe {
       std::shared_ptr<runtime::Core> core,
       std::shared_ptr<ConsistencyKeeper> consistency_keeper,
       std::shared_ptr<storage::trie::TrieStorage> trie_storage,
-      primitives::events::BabeStateSubscriptionEnginePtr babe_status_observable)
+      primitives::events::BabeStateSubscriptionEnginePtr babe_status_observable,
+      std::shared_ptr<dispute::DisputeCoordinator> dispute_coordinator)
       : sync_method_(app_config.syncMethod()),
         app_config_validator_{app_config.roles().flags.authority != 0},
         app_state_manager_(app_state_manager),
@@ -116,6 +128,7 @@ namespace kagome::consensus::babe {
         consistency_keeper_(std::move(consistency_keeper)),
         trie_storage_(std::move(trie_storage)),
         babe_status_observable_(std::move(babe_status_observable)),
+        dispute_coordinator_(std::move(dispute_coordinator)),
         log_{log::createLogger("Babe", "babe")},
         telemetry_{telemetry::createTelemetryService()} {
     BOOST_ASSERT(app_state_manager_);
@@ -137,15 +150,23 @@ namespace kagome::consensus::babe {
     BOOST_ASSERT(consistency_keeper_);
     BOOST_ASSERT(trie_storage_);
     BOOST_ASSERT(babe_status_observable_);
+    BOOST_ASSERT(dispute_coordinator_);
 
     BOOST_ASSERT(app_state_manager);
 
     // Register metrics
-    metrics_registry_->registerHistogramFamily(
-        kBlockProposalTime, "Time taken to construct new block");
-    metric_block_proposal_time_ = metrics_registry_->registerHistogramMetric(
-        kBlockProposalTime,
-        {0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1, 2.5, 5, 10});
+    metrics_registry_->registerGaugeFamily(
+        kIsMajorSyncing, "Whether the node is performing a major sync or not.");
+    metric_is_major_syncing_ =
+        metrics_registry_->registerGaugeMetric(kIsMajorSyncing);
+    metric_is_major_syncing_->set(!was_synchronized_);
+    metrics_registry_->registerGaugeFamily(
+        kIsRelayChainValidator,
+        "Tracks if the validator is in the active set. Updates at session "
+        "boundary.");
+    metric_is_relaychain_validator_ =
+        metrics_registry_->registerGaugeMetric(kIsRelayChainValidator);
+    metric_is_relaychain_validator_->set(false);
 
     app_state_manager_->takeControl(*this);
   }
@@ -733,7 +754,7 @@ namespace kagome::consensus::babe {
 
       telemetry_->notifyWasSynchronized();
     }
-
+    metric_is_major_syncing_->set(!was_synchronized_);
     current_state_ = Babe::State::SYNCHRONIZED;
 
     babe_status_observable_->notify(
@@ -801,12 +822,14 @@ namespace kagome::consensus::babe {
       auto &babe_config = *babe_config_opt.value();
       auto keypair = session_keys_->getBabeKeyPair(babe_config.authorities);
       if (not keypair) {
+        metric_is_relaychain_validator_->set(false);
         if (app_config_validator_) {
-          SL_ERROR(log_,
+          SL_VERBOSE(log_,
                    "Authority not known, skipping slot processing. "
                    "Probably authority list has changed.");
         }
       } else {
+        metric_is_relaychain_validator_->set(true);
         keypair_ = std::move(keypair->first);
         const auto &authority_index = keypair->second;
         if (lottery_->getEpoch() != current_epoch_) {
@@ -1002,29 +1025,47 @@ namespace kagome::consensus::babe {
       return;
     }
 
-    ParachainInherentData paras_inherent_data;
+    ParachainInherentData parachain_inherent_data;
 
     {
       auto &relay_parent = best_block_.hash;
-      paras_inherent_data.bitfields =
+      parachain_inherent_data.bitfields =
           bitfield_store_->getBitfields(relay_parent);
 
-      paras_inherent_data.backed_candidates = backing_store_->get(relay_parent);
+      parachain_inherent_data.backed_candidates =
+          backing_store_->get(relay_parent);
       SL_TRACE(log_,
                "Get backed candidates from store.(count={}, relay_parent={})",
-               paras_inherent_data.backed_candidates.size(),
+               parachain_inherent_data.backed_candidates.size(),
                relay_parent);
 
-      paras_inherent_data.parent_header = std::move(best_header);
+      parachain_inherent_data.parent_header = std::move(best_header);
+
+      {  // Fill disputes
+        auto promise_res = std::promise<dispute::MultiDisputeStatementSet>();
+        auto res_future = promise_res.get_future();
+
+        dispute_coordinator_->getDisputeForInherentData(
+            best_block_,
+            [promise_res =
+                 std::ref(promise_res)](dispute::MultiDisputeStatementSet res) {
+              promise_res.get().set_value(std::move(res));
+            });
+
+        if (res_future.valid()) {
+          auto res = res_future.get();
+          parachain_inherent_data.disputes = std::move(res);
+        }
+      }
     }
 
-    if (auto res = inherent_data.putData(kParachainId, paras_inherent_data);
+    if (auto res = inherent_data.putData(kParachainId, parachain_inherent_data);
         res.has_error()) {
       SL_ERROR(log_, "cannot put an inherent data: {}", res.error());
       return;
     }
 
-    auto proposal_start = std::chrono::high_resolution_clock::now();
+    auto timer = metric_block_proposal_time.manual();
     // calculate babe_pre_digest
     auto babe_pre_digest_res =
         babePreDigest(slot_type, output, authority_index);
@@ -1050,14 +1091,8 @@ namespace kagome::consensus::babe {
       return;
     }
 
-    auto proposal_end = std::chrono::high_resolution_clock::now();
-    auto duration_ms = std::chrono::duration_cast<std::chrono::milliseconds>(
-                           proposal_end - proposal_start)
-                           .count();
+    auto duration_ms = timer().count();
     SL_DEBUG(log_, "Block has been built in {} ms", duration_ms);
-
-    metric_block_proposal_time_->observe(static_cast<double>(duration_ms)
-                                         / 1000);
 
     auto block = pre_seal_block_res.value();
 

@@ -20,6 +20,10 @@
 #include "subscription/subscription_engine.hpp"
 #include "utils/non_copyable.hpp"
 
+namespace kagome::blockchain {
+  class BlockTree;
+}
+
 namespace kagome::network {
 
   /**

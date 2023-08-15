@@ -36,7 +36,7 @@ namespace kagome::storage::trie {
         std::shared_ptr<TrieSerializer> serializer,
         std::shared_ptr<storage::trie_pruner::TriePruner> state_pruner);
 
-    TrieStorageImpl(TrieStorageImpl const &) = delete;
+    TrieStorageImpl(const TrieStorageImpl &) = delete;
     void operator=(const TrieStorageImpl &) = delete;
 
     TrieStorageImpl(TrieStorageImpl &&) = default;

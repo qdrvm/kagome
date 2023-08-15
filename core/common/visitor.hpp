@@ -14,6 +14,8 @@
 #include <boost/variant.hpp>
 #include <boost/variant/apply_visitor.hpp>  // for boost::apply_visitor
 
+#include "common/tagged.hpp"
+
 namespace kagome {
 
   template <typename... Lambdas>
@@ -131,9 +133,14 @@ namespace kagome {
     return std::nullopt;
   }
 
-  template <typename T, typename TVariant>
+  template <typename Type, typename TVariant>
   constexpr bool is_type(TVariant &&variant) {
-    return boost::get<T>(&variant) != nullptr;
+    return boost::get<Type>(&variant) != nullptr;
+  }
+
+  template <typename T, typename Tag, typename TVariant>
+  constexpr bool is_tagged_by(TVariant &&variant) {
+    return is_type<Tagged<T, Tag>>(&variant);
   }
 
   /// apply Matcher to optional T

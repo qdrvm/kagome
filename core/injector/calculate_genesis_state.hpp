@@ -38,7 +38,8 @@ namespace kagome::injector {
     std::vector<std::shared_ptr<storage::trie::PolkadotTrie>> child_tries;
     for (auto &[child, kv] : chain_spec.getGenesisChildrenDefaultSection()) {
       child_tries.emplace_back(trie_from(kv));
-      OUTCOME_TRY(root, trie_serializer.storeTrie(*child_tries.back(), version));
+      OUTCOME_TRY(root,
+                  trie_serializer.storeTrie(*child_tries.back(), version));
 
       common::Buffer child2;
       child2 += storage::kChildStorageDefaultPrefix;

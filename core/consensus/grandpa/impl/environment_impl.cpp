@@ -15,8 +15,13 @@
 #include "consensus/grandpa/justification_observer.hpp"
 #include "consensus/grandpa/movable_round_state.hpp"
 #include "consensus/grandpa/voting_round_error.hpp"
+#include "crypto/hasher.hpp"
+#include "dispute_coordinator/dispute_coordinator.hpp"
+#include "dispute_coordinator/types.hpp"
 #include "network/grandpa_transmitter.hpp"
+#include "parachain/backing/store.hpp"
 #include "primitives/common.hpp"
+#include "runtime/runtime_api/parachain_host.hpp"
 #include "scale/scale.hpp"
 
 namespace kagome::consensus::grandpa {
@@ -30,19 +35,40 @@ namespace kagome::consensus::grandpa {
       std::shared_ptr<blockchain::BlockHeaderRepository> header_repository,
       std::shared_ptr<AuthorityManager> authority_manager,
       std::shared_ptr<network::GrandpaTransmitter> transmitter,
+      std::shared_ptr<parachain::IApprovedAncestor> approved_ancestor,
       LazySPtr<JustificationObserver> justification_observer,
+      std::shared_ptr<dispute::DisputeCoordinator> dispute_coordinator,
+      std::shared_ptr<runtime::ParachainHost> parachain_api,
+      std::shared_ptr<parachain::BackingStore> backing_store,
+      std::shared_ptr<crypto::Hasher> hasher,
       std::shared_ptr<boost::asio::io_context> main_thread_context)
       : block_tree_{std::move(block_tree)},
         header_repository_{std::move(header_repository)},
         authority_manager_{std::move(authority_manager)},
         transmitter_{std::move(transmitter)},
+        approved_ancestor_(std::move(approved_ancestor)),
         justification_observer_(std::move(justification_observer)),
+        dispute_coordinator_(std::move(dispute_coordinator)),
+        parachain_api_(std::move(parachain_api)),
+        backing_store_(std::move(backing_store)),
+        hasher_(std::move(hasher)),
         main_thread_context_{std::move(main_thread_context)},
         logger_{log::createLogger("GrandpaEnvironment", "grandpa")} {
     BOOST_ASSERT(block_tree_ != nullptr);
     BOOST_ASSERT(header_repository_ != nullptr);
     BOOST_ASSERT(authority_manager_ != nullptr);
     BOOST_ASSERT(transmitter_ != nullptr);
+    BOOST_ASSERT(dispute_coordinator_ != nullptr);
+    BOOST_ASSERT(parachain_api_ != nullptr);
+    BOOST_ASSERT(backing_store_ != nullptr);
+    BOOST_ASSERT(hasher_ != nullptr);
+
+    auto kApprovalLag = "kagome_parachain_approval_checking_finality_lag";
+    metrics_registry_->registerGaugeFamily(
+        kApprovalLag,
+        "How far behind the head of the chain the Approval Checking protocol "
+        "wants to vote");
+    metric_approval_lag_ = metrics_registry_->registerGaugeMetric(kApprovalLag);
 
     main_thread_context_.start();
   }
@@ -61,7 +87,7 @@ namespace kagome::consensus::grandpa {
 
     OUTCOME_TRY(chain, block_tree_->getChainByBlocks(base, block));
     std::reverse(chain.begin(), chain.end());
-    return std::move(chain);
+    return chain;
   }
 
   bool EnvironmentImpl::hasAncestry(const BlockHash &base,
@@ -76,7 +102,67 @@ namespace kagome::consensus::grandpa {
 
     // Must finalize block with scheduled/forced change digest first
     auto finalized = block_tree_->getLastFinalized();
-    auto block = best_block;
+
+    OUTCOME_TRY(best_chain,
+                block_tree_->getChainByBlocks(finalized.hash, best_block.hash));
+
+    std::vector<dispute::BlockDescription> block_descriptions;
+
+    for (auto &block_hash : best_chain) {
+      auto session_index_res =
+          parachain_api_->session_index_for_child(block_hash);
+      if (session_index_res.has_error()) {
+        SL_WARN(logger_,
+                "Unable to query undisputed chain, "
+                "'cause can't get session index for one best chain block: {}",
+                session_index_res.error());
+        return session_index_res.as_failure();
+      }
+      const auto &session_index = session_index_res.value();
+
+      auto candidates_for_block = backing_store_->get(block_hash);
+
+      std::vector<dispute::CandidateHash> candidates;
+
+      for (auto &candidate : candidates_for_block) {
+        network::CandidateReceipt receipt;
+        receipt.descriptor = candidate.candidate.descriptor,
+        receipt.commitments_hash = hasher_->blake2b_256(
+            scale::encode(candidate.candidate.commitments).value());
+
+        auto candidate_hash = hasher_->blake2b_256(scale::encode().value());
+
+        candidates.push_back(candidate_hash);
+      }
+
+      block_descriptions.emplace_back(
+          dispute::BlockDescription{.block_hash = block_hash,
+                                    .session = session_index,
+                                    .candidates = std::move(candidates)});
+    }
+
+    auto promise_res = std::promise<outcome::result<primitives::BlockInfo>>();
+    auto res_future = promise_res.get_future();
+
+    dispute_coordinator_->determineUndisputedChain(
+        finalized,
+        block_descriptions,
+        [promise_res = std::ref(promise_res)](
+            outcome::result<primitives::BlockInfo> res) {
+          promise_res.get().set_value(std::move(res));
+        });
+
+    auto best_undisputed_block_res = res_future.get();
+    if (best_undisputed_block_res.has_error()) {
+      SL_WARN(logger_,
+              "Unable to query undisputed chain: {}",
+              best_undisputed_block_res.error());
+      return best_undisputed_block_res.as_failure();
+    }
+
+    const auto &best_undisputed_block = best_undisputed_block_res.value();
+
+    auto block = best_undisputed_block;
     while (block.number > finalized.number) {
       OUTCOME_TRY(header, header_repository_->getBlockHeader(block.hash));
       if (HasAuthoritySetChange{header}) {
@@ -105,8 +191,12 @@ namespace kagome::consensus::grandpa {
       }
     }
 
+    auto approved = approved_ancestor_->approvedAncestor(finalized, best_block);
+    auto lag = best_block.number - approved.number;
+    metric_approval_lag_->set(lag);
+
     SL_DEBUG(logger_, "Found best chain: {}", best_block);
-    return std::move(best_block);
+    return best_block;
   }
 
   void EnvironmentImpl::onCatchUpRequested(const libp2p::peer::PeerId &_peer_id,

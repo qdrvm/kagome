@@ -26,6 +26,7 @@
 #include "mock/core/crypto/hasher_mock.hpp"
 #include "mock/core/crypto/session_keys_mock.hpp"
 #include "mock/core/crypto/sr25519_provider_mock.hpp"
+#include "mock/core/dispute_coordinator/dispute_coordinator_mock.hpp"
 #include "mock/core/network/block_announce_transmitter_mock.hpp"
 #include "mock/core/network/synchronizer_mock.hpp"
 #include "mock/core/parachain/backing_store_mock.hpp"
@@ -158,14 +159,19 @@ class BabeTest : public testing::Test {
     EXPECT_CALL(*sr25519_provider, sign(_, _))
         .WillRepeatedly(Return(Sr25519Signature{}));
 
-    bitfield_store_ = std::make_shared<parachain::BitfieldStoreMock>();
-    backing_store_ = std::make_shared<parachain::BackingStoreMock>();
+    bitfield_store_ = std::make_shared<kagome::parachain::BitfieldStoreMock>();
+    backing_store_ = std::make_shared<kagome::parachain::BackingStoreMock>();
     babe_status_observable_ =
         std::make_shared<primitives::events::BabeStateSubscriptionEngine>();
 
     session_keys_ = std::make_shared<SessionKeysMock>();
     EXPECT_CALL(*session_keys_, getBabeKeyPair(_))
         .WillRepeatedly(Return(std::make_pair(keypair_, 0)));
+
+    dispute_coordinator_ = std::make_shared<dispute::DisputeCoordinatorMock>();
+    ON_CALL(*dispute_coordinator_, getDisputeForInherentData(_, _))
+        .WillByDefault(testing::WithArg<1>(testing::Invoke(
+            [](const auto &f) { f(dispute::MultiDisputeStatementSet()); })));
 
     babe_ = std::make_shared<babe::BabeImpl>(
         app_config_,
@@ -195,7 +201,8 @@ class BabeTest : public testing::Test {
         core_,
         consistency_keeper_,
         trie_storage_,
-        babe_status_observable_);
+        babe_status_observable_,
+        dispute_coordinator_);
 
     epoch_.start_slot = 0;
     epoch_.epoch_number = 0;
@@ -242,9 +249,10 @@ class BabeTest : public testing::Test {
   std::shared_ptr<babe::ConsistencyKeeperMock> consistency_keeper_;
   std::shared_ptr<storage::trie::TrieStorageMock> trie_storage_;
   std::shared_ptr<boost::asio::io_context> io_context_;
-  std::shared_ptr<parachain::BitfieldStoreMock> bitfield_store_;
-  std::shared_ptr<parachain::BackingStoreMock> backing_store_;
+  std::shared_ptr<kagome::parachain::BitfieldStoreMock> bitfield_store_;
+  std::shared_ptr<kagome::parachain::BackingStoreMock> backing_store_;
   primitives::events::BabeStateSubscriptionEnginePtr babe_status_observable_;
+  std::shared_ptr<dispute::DisputeCoordinatorMock> dispute_coordinator_;
 
   std::shared_ptr<babe::BabeImpl> babe_;
 

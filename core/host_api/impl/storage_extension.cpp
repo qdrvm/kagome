@@ -203,11 +203,7 @@ namespace kagome::host_api {
       throw std::runtime_error(msg);
     }
     auto limit_opt = std::move(limit_res.value());
-    if (limit_opt) {
-      SL_TRACE_VOID_FUNC_CALL(logger_, prefix, limit_opt.value());
-    } else {
-      SL_TRACE_VOID_FUNC_CALL(logger_, prefix, std::string_view{"none"});
-    }
+    SL_TRACE_VOID_FUNC_CALL(logger_, prefix, limit_opt);
     return clearPrefix(prefix, limit_opt);
   }
 

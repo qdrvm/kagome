@@ -672,6 +672,13 @@ namespace kagome::blockchain {
         });
   }
 
+  outcome::result<void> BlockTreeImpl::markAsRevertedBlocks(
+      const std::vector<primitives::BlockInfo> &blocks) {
+    // TODO Must be implemented
+#warning "Must be implemented"
+    return outcome::success();
+  }
+
   outcome::result<void> BlockTreeImpl::addExistingBlockNoLock(
       BlockTreeData &p,
       const primitives::BlockHash &block_hash,
@@ -1027,11 +1034,12 @@ namespace kagome::blockchain {
 
       OUTCOME_TRY(chain,
                   getDescendingChainToBlockNoLock(p, finish_block_hash, count));
+
       if (chain.back() != block) {
         return std::vector{block};
       }
       std::reverse(chain.begin(), chain.end());
-      return std::move(chain);
+      return chain;
     });
   }
 
@@ -1103,7 +1111,7 @@ namespace kagome::blockchain {
             return BlockTreeError::BLOCK_ON_DEAD_END;
           }
           std::reverse(chain.begin(), chain.end());
-          return std::move(chain);
+          return chain;
         });
   }
 

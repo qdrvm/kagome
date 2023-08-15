@@ -17,6 +17,7 @@
 
 namespace {
   constexpr const char *syncPeerMetricName = "kagome_sync_peers";
+  constexpr const char *kPeersCountMetricName = "kagome_sub_libp2p_peers_count";
   /// Reputation change for a node when we get disconnected from it.
   static constexpr int32_t kDisconnectReputation = -256;
 }  // namespace
@@ -109,8 +110,12 @@ namespace kagome::network {
     // Register metrics
     registry_->registerGaugeFamily(syncPeerMetricName,
                                    "Number of peers we sync with");
+    registry_->registerGaugeFamily(kPeersCountMetricName,
+                                   "Number of connected peers");
     sync_peer_num_ = registry_->registerGaugeMetric(syncPeerMetricName);
     sync_peer_num_->set(0);
+    peers_count_metric_ = registry_->registerGaugeMetric(kPeersCountMetricName);
+    peers_count_metric_->set(0);
 
     app_state_manager_->takeControl(*this);
   }
@@ -172,6 +177,7 @@ namespace kagome::network {
                 self->connecting_peers_.erase(peer_id);
                 self->peer_view_->removePeer(peer_id);
                 self->sync_peer_num_->set(self->active_peers_.size());
+                self->peers_count_metric_->set(self->active_peers_.size());
                 SL_DEBUG(self->log_,
                          "Remained {} active peers",
                          self->active_peers_.size());
@@ -526,28 +532,29 @@ namespace kagome::network {
 
   void PeerManagerImpl::updatePeerState(
       const PeerId &peer_id, const BlockAnnounceHandshake &handshake) {
-    auto [it, is_new] = peer_states_.emplace(peer_id, PeerState{});
-    it->second.time = clock_->now();
-    it->second.roles = handshake.roles;
-    it->second.best_block = handshake.best_block;
+    auto &state = peer_states_[peer_id];
+    state.time = clock_->now();
+    state.roles = handshake.roles;
+    state.best_block = handshake.best_block;
   }
 
   void PeerManagerImpl::updatePeerState(const PeerId &peer_id,
                                         const BlockAnnounce &announce) {
     auto hash = hasher_->blake2b_256(scale::encode(announce.header).value());
 
-    auto [it, _] = peer_states_.emplace(peer_id, PeerState{});
-    it->second.time = clock_->now();
-    it->second.best_block = {announce.header.number, hash};
+    auto &state = peer_states_[peer_id];
+    state.time = clock_->now();
+    state.best_block = {announce.header.number, hash};
+    state.known_blocks.add(hash);
   }
 
   void PeerManagerImpl::updatePeerState(
       const PeerId &peer_id, const GrandpaNeighborMessage &neighbor_message) {
-    auto [it, _] = peer_states_.emplace(peer_id, PeerState{});
-    it->second.time = clock_->now();
-    it->second.round_number = neighbor_message.round_number;
-    it->second.set_id = neighbor_message.voter_set_id;
-    it->second.last_finalized = neighbor_message.last_finalized;
+    auto &state = peer_states_[peer_id];
+    state.time = clock_->now();
+    state.round_number = neighbor_message.round_number;
+    state.set_id = neighbor_message.voter_set_id;
+    state.last_finalized = neighbor_message.last_finalized;
   }
 
   std::optional<std::reference_wrapper<PeerState>>
@@ -650,6 +657,7 @@ namespace kagome::network {
                            self->peers_in_queue_.size());
                 }
                 self->sync_peer_num_->set(self->active_peers_.size());
+                self->peers_count_metric_->set(self->active_peers_.size());
               }
 
               self->connecting_peers_.erase(peer_id);

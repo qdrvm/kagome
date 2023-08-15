@@ -23,8 +23,11 @@
 #include "consensus/babe/types/babe_block_header.hpp"
 #include "crypto/crypto_store/key_file_storage.hpp"
 #include "crypto/crypto_store/session_keys.hpp"
+#include "dispute_coordinator/dispute_coordinator.hpp"
+#include "injector/lazy.hpp"
 #include "network/peer_view.hpp"
 #include "network/types/collator_messages.hpp"
+#include "parachain/approval/approved_ancestor.hpp"
 #include "parachain/approval/store.hpp"
 #include "parachain/availability/recovery/recovery.hpp"
 #include "parachain/validator/parachain_processor.hpp"
@@ -51,7 +54,8 @@ namespace kagome::parachain {
    * candidates.
    */
   struct ApprovalDistribution final
-      : public std::enable_shared_from_this<ApprovalDistribution> {
+      : public std::enable_shared_from_this<ApprovalDistribution>,
+        public IApprovedAncestor {
     enum class Error {
       NO_INSTANCE = 1,
       NO_CONTEXT = 2,
@@ -232,7 +236,7 @@ namespace kagome::parachain {
         return prev;
       }
 
-      bool operator==(const CandidateEntry &c) {
+      bool operator==(const CandidateEntry &c) const {
         auto block_assignments_eq = [&]() {
           if (block_assignments.size() != c.block_assignments.size()) {
             return false;
@@ -267,7 +271,8 @@ namespace kagome::parachain {
         std::shared_ptr<blockchain::BlockTree> block_tree,
         std::shared_ptr<parachain::Pvf> pvf,
         std::shared_ptr<parachain::Recovery> recovery,
-        std::shared_ptr<boost::asio::io_context> this_context);
+        std::shared_ptr<boost::asio::io_context> this_context,
+        LazySPtr<dispute::DisputeCoordinator> dispute_coordinator);
     ~ApprovalDistribution() = default;
 
     /// AppStateManager impl
@@ -285,6 +290,10 @@ namespace kagome::parachain {
     void getApprovalSignaturesForCandidate(
         const CandidateHash &candidate,
         SignaturesForCandidateCallback &&callback);
+
+    primitives::BlockInfo approvedAncestor(
+        const primitives::BlockInfo &min,
+        const primitives::BlockInfo &max) const override;
 
    private:
     using CandidateIncludedList =
@@ -622,6 +631,10 @@ namespace kagome::parachain {
       return as<StorePair<RelayHash, BlockEntry>>(store_);
     }
 
+    auto &storedBlockEntries() const {
+      return as<StorePair<RelayHash, BlockEntry>>(store_);
+    }
+
     auto &storedDistribBlockEntries() {
       return as<StorePair<Hash, DistribBlockEntry>>(store_);
     }
@@ -657,6 +670,8 @@ namespace kagome::parachain {
     std::shared_ptr<parachain::Pvf> pvf_;
     std::shared_ptr<parachain::Recovery> recovery_;
     ThreadHandler this_context_;
+    LazySPtr<dispute::DisputeCoordinator> dispute_coordinator_;
+
     std::unordered_map<
         Hash,
         std::vector<std::pair<libp2p::peer::PeerId, PendingMessage>>>

@@ -18,7 +18,7 @@ namespace kagome::network {
                               NonCopyable,
                               NonMovable {
     ReqPovProtocolImpl(libp2p::Host &host,
-                       application::ChainSpec const &chain_spec,
+                       const application::ChainSpec &chain_spec,
                        const blockchain::GenesisBlockHash &genesis_hash,
                        std::shared_ptr<ReqPovObserver> observer)
         : RequestResponseProtocol<
@@ -34,7 +34,7 @@ namespace kagome::network {
           observer_{std::move(observer)} {}
 
    protected:
-    outcome::result<ResponsePov> onRxRequest(
+    std::optional<outcome::result<ResponsePov>> onRxRequest(
         RequestPov request, std::shared_ptr<Stream> /*stream*/) override {
       BOOST_ASSERT(observer_);
       base().logger()->info("Received PoV request(candidate hash={})", request);
@@ -54,20 +54,21 @@ namespace kagome::network {
       return response;
     }
 
-    void onTxRequest(RequestPov const &request) override {
+    void onTxRequest(const RequestPov &request) override {
       base().logger()->trace("Transmit PoV request(candidate hash={})",
                              request);
     }
 
    private:
-    const static inline auto kReqPovProtocolName = "ReqPovProtocol"s;
+    inline static const auto kReqPovProtocolName = "ReqPovProtocol"s;
     std::shared_ptr<ReqPovObserver> observer_;
   };
 
-  ReqPovProtocol::ReqPovProtocol(libp2p::Host &host,
-                                 application::ChainSpec const &chain_spec,
-                                 const blockchain::GenesisBlockHash &genesis_hash,
-                                 std::shared_ptr<ReqPovObserver> observer)
+  ReqPovProtocol::ReqPovProtocol(
+      libp2p::Host &host,
+      const application::ChainSpec &chain_spec,
+      const blockchain::GenesisBlockHash &genesis_hash,
+      std::shared_ptr<ReqPovObserver> observer)
       : impl_{std::make_shared<ReqPovProtocolImpl>(
           host, chain_spec, genesis_hash, std::move(observer))} {}
 
