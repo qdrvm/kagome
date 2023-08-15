@@ -59,7 +59,6 @@ namespace kagome::network {
   class BlockAnnounceTransmitter;
   class WarpSync;
   class WarpProtocol;
-  class PeerManager;
 }  // namespace kagome::network
 
 namespace kagome::runtime {
@@ -99,7 +98,6 @@ namespace kagome::consensus::babe {
     BabeImpl(
         const application::AppConfiguration &app_config,
         std::shared_ptr<application::AppStateManager> app_state_manager,
-        std::shared_ptr<network::PeerManager> peer_manager,
         std::shared_ptr<BabeLottery> lottery,
         std::shared_ptr<BabeConfigRepository> babe_config_repo,
         std::shared_ptr<authorship::Proposer> proposer,
@@ -138,7 +136,7 @@ namespace kagome::consensus::babe {
     /** @see AppStateManager::takeControl */
     bool start();
 
-    void runEpoch(EpochDescriptor epoch) override;
+    void runEpoch();
 
     State getCurrentState() const override;
 
@@ -152,9 +150,6 @@ namespace kagome::consensus::babe {
     bool wasSynchronized() const override;
 
    private:
-    bool canWarpSync() const;
-    void warpSync();
-
     /**
      * Warp sync from `peer_id` if `block_number`.
      * @return false if can't warp sync
@@ -162,9 +157,7 @@ namespace kagome::consensus::babe {
     bool warpSync(const libp2p::peer::PeerId &peer_id,
                   primitives::BlockNumber block_number);
 
-    outcome::result<EpochDescriptor> getInitialEpochDescriptor();
-
-    void adjustEpochDescriptor();
+    bool updateSlot(BabeTimePoint now);
 
     void startCatchUp(const libp2p::peer::PeerId &peer_id,
                       const primitives::BlockInfo &target_block);
@@ -194,11 +187,6 @@ namespace kagome::consensus::babe {
         std::optional<std::reference_wrapper<const crypto::VRFOutput>> output,
         primitives::AuthorityIndex authority_index);
 
-    /**
-     * Finish the Babe epoch
-     */
-    void startNextEpoch();
-
     void changeLotteryEpoch(
         const EpochDescriptor &epoch,
         primitives::AuthorityIndex authority_index,
@@ -213,8 +201,8 @@ namespace kagome::consensus::babe {
         const primitives::Block &block) const;
 
     application::AppConfiguration::SyncMethod sync_method_;
+    bool app_config_validator_;
     std::shared_ptr<application::AppStateManager> app_state_manager_;
-    std::shared_ptr<network::PeerManager> peer_manager_;
     std::shared_ptr<BabeLottery> lottery_;
     std::shared_ptr<BabeConfigRepository> babe_config_repo_;
     std::shared_ptr<authorship::Proposer> proposer_;

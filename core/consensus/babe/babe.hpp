@@ -40,22 +40,6 @@ namespace kagome::consensus::babe {
     };
 
     /**
-     * Start a Babe production
-     * @param epoch - epoch, which is going to be run
-     * epoch.starting_slot_finish_time - when the slot, from which the BABE
-     * starts, ends; for example, we start from
-     * 5th slot of the some epoch. Then, we need to set time when 5th slot
-     * finishes; most probably, that time will be calculated using Median
-     * algorithm
-     *
-     * @note the function will automatically continue launching all further
-     * epochs of the Babe production
-     * @note in fact, it is an implementation of "Invoke-Block-Authoring" from
-     * the spec
-     */
-    virtual void runEpoch(EpochDescriptor epoch) = 0;
-
-    /**
      * @returns current state
      */
     virtual State getCurrentState() const = 0;

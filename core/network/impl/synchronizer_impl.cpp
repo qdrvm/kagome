@@ -52,7 +52,6 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::network, SynchronizerImpl::Error, e) {
 namespace {
   constexpr const char *kImportQueueLength =
       "kagome_import_queue_blocks_submitted";
-  constexpr uint32_t kBabeDigestBatch = 100;
 
   kagome::network::BlockAttributes attributesForSync(
       kagome::application::AppConfiguration::SyncMethod method) {
@@ -971,126 +970,6 @@ namespace kagome::network {
     auto protocol = router_->getSyncProtocol();
     BOOST_ASSERT_MSG(protocol, "Router did not provide sync protocol");
     protocol->request(peer_id, std::move(request), std::move(response_handler));
-  }
-
-  void SynchronizerImpl::syncBabeDigest(const libp2p::peer::PeerId &peer_id,
-                                        const primitives::BlockInfo &_block,
-                                        CbResultVoid &&cb) {
-    auto block = _block;
-
-    auto hash_res = block_tree_->getBlockHash(1);
-    if (!hash_res) {
-      SL_ERROR(
-          log_, "Error retrieving the first block hash: {}", hash_res.error());
-      return;
-    }
-    auto &hash_opt = hash_res.value();
-    // BabeConfigRepositoryImpl first block slot
-    if (not hash_opt or not block_tree_->getBlockHeader(hash_opt.value())) {
-      auto cb2 = [=, cb{std::move(cb)}, weak{weak_from_this()}](
-                     outcome::result<BlocksResponse> _res) mutable {
-        auto self = weak.lock();
-        if (not self) {
-          return;
-        }
-        if (not _res) {
-          cb(_res.error());
-          return;
-        }
-        auto &res = _res.value();
-        if (res.blocks.empty()) {
-          cb(Error::EMPTY_RESPONSE);
-          return;
-        }
-        auto &header = res.blocks[0].header;
-        if (not header) {
-          cb(Error::RESPONSE_WITHOUT_BLOCK_HEADER);
-          return;
-        }
-        if (header->number != 1) {
-          cb(Error::INVALID_HASH);
-          return;
-        }
-        if (header->parent_hash != block_tree_->getGenesisBlockHash()) {
-          cb(Error::INVALID_HASH);
-          return;
-        }
-        auto hash = self->block_storage_->putBlockHeader(*header).value();
-        if (header->number < self->block_tree_->getLastFinalized().number) {
-          self->block_storage_->assignNumberToHash({header->number, hash})
-              .value();
-        }
-        self->syncBabeDigest(peer_id, block, std::move(cb));
-      };
-      router_->getSyncProtocol()->request(
-          peer_id,
-          {BlockAttribute::HEADER, 1, Direction::DESCENDING, 1},
-          std::move(cb2));
-      return;
-    }
-    // BabeConfigRepositoryImpl NextEpoch
-    while (block.number != 0) {
-      if (auto _header = block_tree_->getBlockHeader(block.hash)) {
-        auto &header = _header.value();
-        if (consensus::babe::HasBabeConsensusDigest(header)) {
-          break;
-        }
-        block = {header.number - 1, header.parent_hash};
-        continue;
-      }
-      auto cb2 = [=, weak{weak_from_this()}, cb{std::move(cb)}](
-                     outcome::result<BlocksResponse> _res) mutable {
-        auto self = weak.lock();
-        if (not self) {
-          return;
-        }
-        if (not _res) {
-          cb(_res.error());
-          return;
-        }
-        auto &res = _res.value();
-        if (res.blocks.empty()) {
-          cb(Error::EMPTY_RESPONSE);
-          return;
-        }
-        for (auto &item : res.blocks) {
-          auto &header = item.header;
-          if (not header) {
-            cb(Error::RESPONSE_WITHOUT_BLOCK_HEADER);
-            return;
-          }
-          primitives::BlockInfo info{
-              header->number,
-              self->hasher_->blake2b_256(scale::encode(*header).value())};
-          if (info != block) {
-            cb(Error::INVALID_HASH);
-            return;
-          }
-          self->block_storage_->putBlockHeader(*header).value();
-          if (block.number < self->block_tree_->getLastFinalized().number) {
-            self->block_storage_->assignNumberToHash(block).value();
-          }
-          if (consensus::babe::HasBabeConsensusDigest(*header)) {
-            cb(outcome::success());
-            return;
-          }
-          if (block.number != 0) {
-            block = {header->number - 1, header->parent_hash};
-          }
-        }
-        self->syncBabeDigest(peer_id, block, std::move(cb));
-      };
-      router_->getSyncProtocol()->request(peer_id,
-                                          {
-                                              BlockAttribute::HEADER,
-                                              block.hash,
-                                              Direction::DESCENDING,
-                                              kBabeDigestBatch,
-                                          },
-                                          std::move(cb2));
-      return;
-    }
-    cb(outcome::success());
   }
 
   void SynchronizerImpl::syncState(const libp2p::peer::PeerId &peer_id,
