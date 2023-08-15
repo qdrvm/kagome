@@ -39,3 +39,10 @@ test0003:
 
 test0003_kagome:
 	docker run soramitsu/zombie-tester:latest zombienet-linux-x64 test -p native kagome/zombienet/0003-parachains-smoke-test-cumulus-kagome/0003-parachains-smoke-test-cumulus-kagome.zndsl
+
+test0004:
+	docker run soramitsu/zombie-tester:latest zombienet-linux-x64 test -p native kagome/zombienet/0004-runtime-upgrade/0004-runtime-upgrade.zndsl
+
+test0004_kagome:
+	docker run soramitsu/zombie-tester:latest zombienet-linux-x64 test -p native kagome/zombienet/0004-runtime-upgrade-kagome/0004-runtime-upgrade-kagome.zndsl
+
