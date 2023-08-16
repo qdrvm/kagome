@@ -96,9 +96,12 @@ namespace kagome::consensus::grandpa {
   }
 
   outcome::result<BlockInfo> EnvironmentImpl::bestChainContaining(
-      const BlockHash &base, std::optional<VoterSetId> voter_set_id) const {
-    SL_DEBUG(logger_, "Finding best chain containing block {}", base);
-    OUTCOME_TRY(best_block, block_tree_->getBestContaining(base, std::nullopt));
+      const BlockHash &base_hash,
+      std::optional<VoterSetId> voter_set_id) const {
+    SL_DEBUG(logger_, "Finding best chain containing block {}", base_hash);
+
+    OUTCOME_TRY(best_block,
+                block_tree_->getBestContaining(base_hash, std::nullopt));
 
     // Must finalize block with scheduled/forced change digest first
     auto finalized = block_tree_->getLastFinalized();
