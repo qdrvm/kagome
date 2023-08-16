@@ -16,20 +16,13 @@ namespace kagome {
   template <typename K, typename V>
   class Lru {
    public:
-    struct ItFwd;
-
+    struct Item;
+    // TODO(turuslan): remove unique_ptr after deprecating gcc 10
+    using Map = std::unordered_map<K, std::unique_ptr<Item>>;
+    using It = typename Map::iterator;
     struct Item {
       V v;
-      ItFwd more, less;
-    };
-
-    using Map = std::unordered_map<K, Item>;
-    using It = typename Map::iterator;
-
-    struct ItFwd : It {
-      operator bool() const {
-        return *this != It{};
-      }
+      It more, less;
     };
 
     Lru(size_t capacity) : capacity_{capacity} {
@@ -55,25 +48,30 @@ namespace kagome {
         return std::nullopt;
       }
       lru_use(it);
-      return std::ref(it->second.v);
+      return std::ref(it->second->v);
     }
 
     V &put(const K &k, V v) {
-      return put2(k, std::move(v)).first->second.v;
+      return put2(k, std::move(v)).first->second->v;
     }
 
    private:
+    static auto empty(const It &it) {
+      return it == It{};
+    }
+
     std::pair<It, bool> put2(const K &k, V &&v) {
       auto it = map_.find(k);
       if (it == map_.end()) {
         if (map_.size() >= capacity_) {
           lru_pop();
         }
-        it = map_.emplace(k, Item{std::move(v), {}, {}}).first;
+        it = map_.emplace(k, std::make_unique<Item>(Item{std::move(v), {}, {}}))
+                 .first;
         lru_push(it);
         return {it, true};
       }
-      it->second.v = std::move(v);
+      it->second->v = std::move(v);
       lru_use(it);
       return {it, false};
     }
@@ -82,47 +80,47 @@ namespace kagome {
       if (it == most_) {
         return;
       }
-      lru_extract(it->second);
+      lru_extract(*it->second);
       lru_push(it);
     }
 
     void lru_push(It it) {
-      BOOST_ASSERT(not it->second.less);
-      BOOST_ASSERT(not it->second.more);
-      it->second.less = most_;
-      if (most_) {
-        most_->second.more = ItFwd{it};
+      BOOST_ASSERT(empty(it->second->less));
+      BOOST_ASSERT(empty(it->second->more));
+      it->second->less = most_;
+      if (not empty(most_)) {
+        most_->second->more = it;
       }
-      most_ = ItFwd{it};
-      if (not least_) {
+      most_ = it;
+      if (empty(least_)) {
         least_ = most_;
       }
     }
 
     void lru_extract(Item &v) {
-      if (v.more) {
-        v.more->second.less = v.less;
+      if (not empty(v.more)) {
+        v.more->second->less = v.less;
       } else {
         most_ = v.less;
       }
-      if (v.less) {
-        v.less->second.more = v.more;
+      if (not empty(v.less)) {
+        v.less->second->more = v.more;
       } else {
         least_ = v.more;
       }
-      v.more = {};
-      v.less = {};
+      v.more = It{};
+      v.less = It{};
     }
 
     void lru_pop() {
       auto it = least_;
-      lru_extract(it->second);
+      lru_extract(*it->second);
       map_.erase(it);
     }
 
     Map map_;
     size_t capacity_;
-    ItFwd most_, least_;
+    It most_, least_;
 
     template <typename>
     friend class LruSet;

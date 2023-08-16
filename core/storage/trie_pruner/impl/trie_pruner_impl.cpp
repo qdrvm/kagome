@@ -427,8 +427,7 @@ namespace kagome::storage::trie_pruner {
         log::createLogger("PrunerStateRecovery", "storage");
     auto last_pruned_block = getLastPrunedBlock();
     if (!last_pruned_block.has_value()) {
-      OUTCOME_TRY(first_hash_opt, block_tree.getBlockHash(1));
-      if (first_hash_opt.has_value()) {
+      if (block_tree.bestLeaf().number != 0) {
         SL_WARN(logger,
                 "Running pruner on a non-empty non-pruned storage may lead to "
                 "skipping some stored states.");

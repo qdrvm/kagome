@@ -23,6 +23,8 @@
 #include "consensus/babe/types/babe_block_header.hpp"
 #include "crypto/crypto_store/key_file_storage.hpp"
 #include "crypto/crypto_store/session_keys.hpp"
+#include "dispute_coordinator/dispute_coordinator.hpp"
+#include "injector/lazy.hpp"
 #include "network/peer_view.hpp"
 #include "network/types/collator_messages.hpp"
 #include "parachain/approval/approved_ancestor.hpp"
@@ -235,7 +237,7 @@ namespace kagome::parachain {
         return prev;
       }
 
-      bool operator==(const CandidateEntry &c) {
+      bool operator==(const CandidateEntry &c) const {
         auto block_assignments_eq = [&]() {
           if (block_assignments.size() != c.block_assignments.size()) {
             return false;
@@ -270,7 +272,8 @@ namespace kagome::parachain {
         std::shared_ptr<blockchain::BlockTree> block_tree,
         std::shared_ptr<parachain::Pvf> pvf,
         std::shared_ptr<parachain::Recovery> recovery,
-        std::shared_ptr<boost::asio::io_context> this_context);
+        std::shared_ptr<boost::asio::io_context> this_context,
+        LazySPtr<dispute::DisputeCoordinator> dispute_coordinator);
     ~ApprovalDistribution() = default;
 
     /// AppStateManager impl
@@ -698,6 +701,8 @@ namespace kagome::parachain {
     std::shared_ptr<parachain::Pvf> pvf_;
     std::shared_ptr<parachain::Recovery> recovery_;
     ThreadHandler this_context_;
+    LazySPtr<dispute::DisputeCoordinator> dispute_coordinator_;
+
     std::unordered_map<
         Hash,
         std::vector<std::pair<libp2p::peer::PeerId, PendingMessage>>>

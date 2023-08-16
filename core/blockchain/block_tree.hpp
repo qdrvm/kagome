@@ -120,6 +120,14 @@ namespace kagome::blockchain {
         const primitives::BlockHash &block_hash) = 0;
 
     /**
+     * The passed blocks will be marked as reverted, and their descendants will
+     * be marked as non-viable
+     * @param block_hashes is vector of reverted block hashes
+     */
+    virtual outcome::result<void> markAsRevertedBlocks(
+        const std::vector<primitives::BlockInfo> &blocks) = 0;
+
+    /**
      * Add a new block to the tree
      * @param block to be stored and added to tree
      * @return nothing or error; if error happens, no changes in the tree are

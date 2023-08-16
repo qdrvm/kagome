@@ -13,41 +13,10 @@
 namespace kagome::consensus::grandpa {
 
   struct AuthorityManagerMock : public AuthorityManager {
-    MOCK_METHOD(primitives::BlockInfo, base, (), (const, override));
-
     MOCK_METHOD(std::optional<std::shared_ptr<const primitives::AuthoritySet>>,
                 authorities,
                 (const primitives::BlockInfo &, IsBlockFinalized),
                 (const, override));
-
-    MOCK_METHOD(outcome::result<void>,
-                applyScheduledChange,
-                (const primitives::BlockContext &,
-                 const primitives::AuthorityList &,
-                 primitives::BlockNumber),
-                (override));
-
-    MOCK_METHOD(outcome::result<void>,
-                applyForcedChange,
-                (const primitives::BlockContext &,
-                 const primitives::AuthorityList &,
-                 primitives::BlockNumber),
-                (override));
-
-    MOCK_METHOD(outcome::result<void>,
-                applyOnDisabled,
-                (const primitives::BlockContext &, primitives::BlockNumber),
-                (override));
-
-    MOCK_METHOD(outcome::result<void>,
-                applyPause,
-                (const primitives::BlockContext &, primitives::BlockNumber),
-                (override));
-
-    MOCK_METHOD(outcome::result<void>,
-                applyResume,
-                (const primitives::BlockContext &, primitives::BlockNumber),
-                (override));
 
     MOCK_METHOD(void,
                 warp,

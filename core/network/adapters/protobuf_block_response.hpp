@@ -131,7 +131,7 @@ namespace kagome::network {
             scale::decode<T>(gsl::span<const uint8_t>(
                 reinterpret_cast<const uint8_t *>(buffer.data()),  // NOLINT
                 buffer.size())));
-        return std::move(decoded);
+        return decoded;
       }
       return AdaptersError::EMPTY_DATA;
     }
