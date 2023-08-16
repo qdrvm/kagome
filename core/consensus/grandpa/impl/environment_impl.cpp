@@ -171,7 +171,8 @@ namespace kagome::consensus::grandpa {
 
     const auto &best_undisputed_block = best_undisputed_block_res.value();
 
-    auto block = best_undisputed_block;
+    best_block = best_undisputed_block;
+    auto block = best_block;
     while (block.number > finalized.number) {
       OUTCOME_TRY(header, header_repository_->getBlockHeader(block.hash));
       if (HasAuthoritySetChange{header}) {
