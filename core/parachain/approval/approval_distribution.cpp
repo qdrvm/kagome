@@ -860,7 +860,7 @@ namespace kagome::parachain {
     OUTCOME_TRY(session_index,
                 parachain_host_->session_index_for_child(parent_hash));
     OUTCOME_TRY(session_info,
-                parachain_host_->session_info(parent_hash, session_index));
+                parachain_host_->session_info(block_hash, session_index));
 
     if (!session_info) {
       SL_ERROR(logger_,
@@ -991,7 +991,7 @@ namespace kagome::parachain {
              parent_hash);
 
     OUTCOME_TRY(session_info,
-                parachain_host_->session_info(parent_hash,
+                parachain_host_->session_info(block_hash,
                                               imported_block.session_index));
 
     if (!session_info) {
