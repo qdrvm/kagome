@@ -2710,6 +2710,10 @@ namespace kagome::parachain {
       BOOST_ASSERT(storedCandidateEntries().get(candidate_hash)->get()
                    == candidate_entry);
     }
+    SL_TRACE(logger_,
+             "Wakeup processed. (should trigger={}, cert={})",
+             should_trigger,
+             (bool)maybe_cert);
 
     if (maybe_cert) {
       const auto &[cert, val_index, tranche] = *maybe_cert;
