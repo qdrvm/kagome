@@ -109,7 +109,6 @@ namespace kagome::consensus::grandpa {
     auto approved = approved_ancestor_->approvedAncestor(finalized, best_block);
 
     auto lag = best_block.number - approved.number;
-    metric_approval_lag_->set(lag);
 
     if (best_block.number > approved.number) {
       SL_INFO(logger_,
@@ -117,6 +116,9 @@ namespace kagome::consensus::grandpa {
               best_block,
               approved);
       best_block = approved;
+      metric_approval_lag_->set(lag);
+    } else {
+      metric_approval_lag_->set(0);
     }
 
     OUTCOME_TRY(best_chain,
