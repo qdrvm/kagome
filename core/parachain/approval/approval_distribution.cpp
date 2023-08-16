@@ -358,13 +358,14 @@ namespace {
       const kagome::parachain::ApprovalDistribution::CandidateEntry
           &candidate_entry,
       const kagome::parachain::approval::RequiredTranches &required_tranches,
-      kagome::network::DelayTranche const tranche_now) {
+      kagome::network::DelayTranche const tranche_now,
+      kagome::log::Logger &logger) {
     if (!approval_entry.our_assignment) {
-      SL_TRACE(logger_, "No assignment");
+      SL_TRACE(logger, "No assignment");
       return false;
     }
     if (approval_entry.our_assignment->triggered) {
-      SL_TRACE(logger_, "Already triggered");
+      SL_TRACE(logger, "Already triggered");
       return false;
     }
     if (approval_entry.our_assignment->tranche == 0) {
@@ -377,7 +378,7 @@ namespace {
                         approval_entry,
                         kagome::parachain::approval::AllRequiredTranche{}),
           std::numeric_limits<kagome::network::Tick>::max());
-      SL_TRACE(logger_, "AllRequiredTranche return. (res={})", r);
+      SL_TRACE(logger, "AllRequiredTranche return. (res={})", r);
       return r;
     }
     if (auto pending = kagome::if_type<
@@ -390,7 +391,7 @@ namespace {
           approval_entry.our_assignment->tranche
               <= pending->get().maximum_broadcast
           && approval_entry.our_assignment->tranche <= drifted_tranche_now;
-      SL_TRACE(logger_, "PendingRequiredTranche return. (res={})", r);
+      SL_TRACE(logger, "PendingRequiredTranche return. (res={})", r);
       return r;
     }
     if (kagome::is_type<kagome::parachain::approval::ExactRequiredTranche>(
@@ -402,7 +403,7 @@ namespace {
   }
 
   outcome::result<kagome::network::DelayTranche> checkAssignmentCert(
-      kagome::network::CoreIndex claimed_core_index,
+      kagome::network::CreIndex claimed_core_index,
       kagome::network::ValidatorIndex validator_index,
       const kagome::runtime::SessionInfo &config,
       const RelayVRFStory &relay_vrf_story,
@@ -790,7 +791,10 @@ namespace kagome::parachain {
       return;
     }
 
-    SL_TRACE(logger_, "UNSAFE VRF: {}", common::BufferView(relay_vrf.data, sizeof(relay_vrf.data)).toHex());
+    SL_TRACE(
+        logger_,
+        "UNSAFE VRF: {}",
+        common::BufferView(relay_vrf.data, sizeof(relay_vrf.data)).toHex());
     auto assignments = compute_assignments(
         keystore_, session_info, relay_vrf, *ac.included_candidates);
 
@@ -912,7 +916,7 @@ namespace kagome::parachain {
              babe_config.randomness.toHex());
 
     for (const auto &a : babe_config.authorities) {
-      SL_TRACE(logger_, "Auth. (a={})", a);
+      SL_TRACE(logger_, "Auth. (a={})", a.id.id.toHex());
     }
 
     return std::make_tuple(epoch,
@@ -2719,7 +2723,7 @@ namespace kagome::parachain {
                                        no_show_duration,
                                        session_info.needed_approvals);
     const auto should_trigger = shouldTriggerAssignment(
-        approval_entry, candidate_entry, tta, tranche_now);
+        approval_entry, candidate_entry, tta, tranche_now, logger_);
     const auto backing_group = approval_entry.backing_group;
     const auto &candidate_receipt = candidate_entry.candidate;
 
