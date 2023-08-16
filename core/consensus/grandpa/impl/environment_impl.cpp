@@ -108,9 +108,16 @@ namespace kagome::consensus::grandpa {
 
     std::vector<dispute::BlockDescription> block_descriptions;
 
+    primitives::BlockHash parent_hash;
     for (auto &block_hash : best_chain) {
+      // Skip base
+      if (block_hash == finalized.hash) {
+        parent_hash = block_hash;
+        continue;
+      }
+
       auto session_index_res =
-          parachain_api_->session_index_for_child(block_hash);
+          parachain_api_->session_index_for_child(parent_hash);
       if (session_index_res.has_error()) {
         SL_WARN(logger_,
                 "Unable to query undisputed chain, "
@@ -139,6 +146,8 @@ namespace kagome::consensus::grandpa {
           dispute::BlockDescription{.block_hash = block_hash,
                                     .session = session_index,
                                     .candidates = std::move(candidates)});
+
+      parent_hash = block_hash;
     }
 
     auto promise_res = std::promise<outcome::result<primitives::BlockInfo>>();
