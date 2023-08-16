@@ -360,9 +360,11 @@ namespace {
       const kagome::parachain::approval::RequiredTranches &required_tranches,
       kagome::network::DelayTranche const tranche_now) {
     if (!approval_entry.our_assignment) {
+      SL_TRACE(logger_, "No assignment");
       return false;
     }
     if (approval_entry.our_assignment->triggered) {
+      SL_TRACE(logger_, "Already triggered");
       return false;
     }
     if (approval_entry.our_assignment->tranche == 0) {
@@ -370,11 +372,13 @@ namespace {
     }
     if (kagome::is_type<kagome::parachain::approval::AllRequiredTranche>(
             required_tranches)) {
-      return !kagome::parachain::approval::is_approved(
+      const bool r = !kagome::parachain::approval::is_approved(
           checkApproval(candidate_entry,
                         approval_entry,
                         kagome::parachain::approval::AllRequiredTranche{}),
           std::numeric_limits<kagome::network::Tick>::max());
+      SL_TRACE(logger_, "AllRequiredTranche return. (res={})", r);
+      return r;
     }
     if (auto pending = kagome::if_type<
             const kagome::parachain::approval::PendingRequiredTranche>(
@@ -382,12 +386,15 @@ namespace {
       const auto drifted_tranche_now = kagome::math::sat_sub_unsigned(
           tranche_now,
           kagome::network::DelayTranche(pending->get().clock_drift));
-      return approval_entry.our_assignment->tranche
+      const auto r = approval_entry.our_assignment->tranche
               <= pending->get().maximum_broadcast
           && approval_entry.our_assignment->tranche <= drifted_tranche_now;
+      SL_TRACE(logger_, "PendingRequiredTranche return. (res={})", r);
+      return r;
     }
     if (kagome::is_type<kagome::parachain::approval::ExactRequiredTranche>(
             required_tranches)) {
+      SL_TRACE(logger_, "ExactRequiredTranche return false.");
       return false;
     }
     UNREACHABLE;
