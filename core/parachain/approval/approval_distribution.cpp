@@ -789,6 +789,8 @@ namespace kagome::parachain {
       logger_->warn("Relay VRF return error.(error={})", res.error().message());
       return;
     }
+
+    SL_TRACE(logger_, "UNSAFE VRF: {}", common::BufferView(relay_vrf.data, sizeof(relay_vrf.data)).toHex());
     auto assignments = compute_assignments(
         keystore_, session_info, relay_vrf, *ac.included_candidates);
 
@@ -903,16 +905,11 @@ namespace kagome::parachain {
     OUTCOME_TRY(epoch,
                 babe_util_->slotToEpoch(*block_header.parentInfo(),
                                         babe_digests.second.slot_number));
-    OUTCOME_TRY(epoch2,
-                babe_util_->slotToEpoch(
-                    primitives::BlockInfo(block_header.number, block_hash),
-                    babe_digests.second.slot_number));
 
     SL_TRACE(logger_,
-             "REQUEST BABE DATA. (epoch={}, randomness={}, epoch2={})",
+             "REQUEST BABE DATA. (epoch={}, randomness={})",
              epoch,
-             babe_config.randomness.toHex(),
-             epoch2);
+             babe_config.randomness.toHex());
 
     for (const auto &a : babe_config.authorities) {
       SL_TRACE(logger_, "Auth. (a={})", a);
