@@ -106,6 +106,19 @@ namespace kagome::consensus::grandpa {
     // Must finalize block with scheduled/forced change digest first
     auto finalized = block_tree_->getLastFinalized();
 
+    auto approved = approved_ancestor_->approvedAncestor(finalized, best_block);
+
+    auto lag = best_block.number - approved.number;
+    metric_approval_lag_->set(lag);
+
+    if (best_block.number > approved.number) {
+      SL_INFO(logger_,
+              "Found best chain is longer than approved: {} > {}; truncate it",
+              best_block,
+              approved);
+      best_block = approved;
+    }
+
     OUTCOME_TRY(best_chain,
                 block_tree_->getChainByBlocks(finalized.hash, best_block.hash));
 
@@ -203,10 +216,6 @@ namespace kagome::consensus::grandpa {
         best_block = parent_block;
       }
     }
-
-    auto approved = approved_ancestor_->approvedAncestor(finalized, best_block);
-    auto lag = best_block.number - approved.number;
-    metric_approval_lag_->set(lag);
 
     SL_DEBUG(logger_, "Found best chain: {}", best_block);
     return best_block;
