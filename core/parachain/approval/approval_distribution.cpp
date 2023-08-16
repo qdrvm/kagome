@@ -858,7 +858,7 @@ namespace kagome::parachain {
     OUTCOME_TRY(session_index,
                 parachain_host_->session_index_for_child(parent_hash));
     OUTCOME_TRY(session_info,
-                parachain_host_->session_info(block_hash, session_index));
+                parachain_host_->session_info(parent_hash, session_index));
 
     if (!session_info) {
       SL_ERROR(logger_,
@@ -987,7 +987,7 @@ namespace kagome::parachain {
              parent_hash);
 
     OUTCOME_TRY(session_info,
-                parachain_host_->session_info(block_hash,
+                parachain_host_->session_info(parent_hash,
                                               imported_block.session_index));
 
     if (!session_info) {
@@ -2607,8 +2607,8 @@ namespace kagome::parachain {
                 target_block.erase(target_candidate_it);
 
                 if (ec) {
-                  SL_ERROR(self->logger_,
-                           "error happened while waiting on tranche the "
+                  SL_TRACE(self->logger_,
+                           "Tranche operation waiting failed "
                            "timer: {}",
                            ec.message());
                   return;
