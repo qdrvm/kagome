@@ -858,7 +858,7 @@ namespace kagome::parachain {
       const primitives::BlockHash &block_hash,
       const primitives::BlockHash &parent_hash) {
     OUTCOME_TRY(session_index,
-                parachain_host_->session_index_for_child(parent_hash));
+                parachain_host_->session_index_for_child(block_hash));
     OUTCOME_TRY(session_info,
                 parachain_host_->session_info(block_hash, session_index));
 
