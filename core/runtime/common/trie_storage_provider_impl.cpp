@@ -160,7 +160,7 @@ namespace kagome::runtime {
     }
     if (base_batch_ != nullptr) {
       OUTCOME_TRY(root, base_batch_->commit(version));
-      return std::move(root);
+      return root;
     }
     return Error::NO_BATCH;
   }

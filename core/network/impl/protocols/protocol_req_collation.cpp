@@ -19,7 +19,7 @@ namespace kagome::network {
         NonCopyable,
         NonMovable {
     ReqCollationProtocolImpl(libp2p::Host &host,
-                             application::ChainSpec const &chain_spec,
+                             const application::ChainSpec &chain_spec,
                              const blockchain::GenesisBlockHash &genesis_hash,
                              std::shared_ptr<ReqCollationObserver> observer)
         : RequestResponseProtocol<
@@ -36,19 +36,19 @@ namespace kagome::network {
           observer_{std::move(observer)} {}
 
    protected:
-    outcome::result<CollationFetchingResponse> onRxRequest(
+    std::optional<outcome::result<CollationFetchingResponse>> onRxRequest(
         CollationFetchingRequest request,
         std::shared_ptr<Stream> /*stream*/) override {
       BOOST_ASSERT(observer_);
       return observer_->OnCollationRequest(std::move(request));
     }
 
-    void onTxRequest(CollationFetchingRequest const &request) override {
+    void onTxRequest(const CollationFetchingRequest &request) override {
       base().logger()->debug("Requesting collation");
     }
 
    private:
-    const static inline auto kReqCollationProtocolName =
+    inline static const auto kReqCollationProtocolName =
         "ReqCollationProtocol"s;
 
     std::shared_ptr<ReqCollationObserver> observer_;
@@ -56,7 +56,7 @@ namespace kagome::network {
 
   ReqCollationProtocol::ReqCollationProtocol(
       libp2p::Host &host,
-      application::ChainSpec const &chain_spec,
+      const application::ChainSpec &chain_spec,
       const blockchain::GenesisBlockHash &genesis_hash,
       std::shared_ptr<ReqCollationObserver> observer)
       : impl_{std::make_shared<ReqCollationProtocolImpl>(

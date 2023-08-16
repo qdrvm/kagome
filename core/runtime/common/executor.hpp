@@ -66,7 +66,7 @@ namespace kagome::runtime {
                   env_template->persistent()
                       .withChangesTracker(std::move(changes_tracker))
                       .make());
-      return std::move(env);
+      return env;
     }
 
     /**
