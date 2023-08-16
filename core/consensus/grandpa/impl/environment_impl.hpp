@@ -72,7 +72,7 @@ namespace kagome::consensus::grandpa {
                      const primitives::BlockHash &block) const override;
 
     outcome::result<BlockInfo> bestChainContaining(
-        const primitives::BlockHash &base,
+        const primitives::BlockHash &base_hash,
         std::optional<VoterSetId> voter_set_id) const override;
 
     // Environment methods
