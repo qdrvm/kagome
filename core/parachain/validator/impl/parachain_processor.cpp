@@ -1355,9 +1355,7 @@ namespace kagome::parachain {
       const network::CandidateReceipt &candidate,
       const network::ParachainBlock &pov,
       const primitives::BlockHash &relay_parent) {
-    OUTCOME_TRY(session_index,
-        parachain_host_->session_index_for_child(relay_parent));
-    return pvf_->pvfSync(candidate, pov, session_index);
+    return pvf_->pvfSync(candidate, pov);
   }
 
   outcome::result<std::vector<network::ErasureChunk>>

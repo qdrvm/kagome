@@ -8,9 +8,6 @@
 
 #include "parachain/pvf/pvf.hpp"
 
-#include <shared_mutex>
-#include <thread>
-
 #include "blockchain/block_header_repository.hpp"
 #include "crypto/sr25519_provider.hpp"
 #include "log/logger.hpp"
@@ -74,14 +71,12 @@ namespace kagome::parachain {
     ~PvfImpl() override;
 
     outcome::result<Result> pvfSync(const CandidateReceipt &receipt,
-                                    const ParachainBlock &pov,
-                                    const SessionIndex &session_index) const override;
+                                    const ParachainBlock &pov) const override;
     outcome::result<Result> pvfValidate(
         const PersistedValidationData &data,
         const ParachainBlock &pov,
         const CandidateReceipt &receipt,
-        const ParachainRuntime &code,
-        const SessionIndex& session_index) const override;
+        const ParachainRuntime &code) const override;
 
    private:
     using CandidateDescriptor = network::CandidateDescriptor;
@@ -93,8 +88,7 @@ namespace kagome::parachain {
         ParachainId para_id,
         const common::Hash256 &code_hash,
         const ParachainRuntime &code_zstd,
-        const ValidationParams &params,
-        const SessionIndex& session_index) const;
+        const ValidationParams &params) const;
     outcome::result<CandidateCommitments> fromOutputs(
         const CandidateReceipt &receipt, ValidationResult &&result) const;
 

@@ -27,6 +27,7 @@ namespace kagome::runtime {
   class Executor {
    public:
     using Buffer = common::Buffer;
+    using BufferView = common::BufferView;
     using BlockHash = primitives::BlockHash;
 
     explicit Executor(std::shared_ptr<RuntimeContextFactory> ctx_factory,
@@ -36,11 +37,11 @@ namespace kagome::runtime {
 
     virtual outcome::result<Buffer> callWithCtx(RuntimeContext &ctx,
                                                 std::string_view name,
-                                                const Buffer &encoded_args);
+                                                BufferView encoded_args);
 
     outcome::result<Buffer> callAt(const primitives::BlockHash &block_hash,
                                    std::string_view name,
-                                   const Buffer &encoded_args) {
+                                   BufferView encoded_args) {
       OUTCOME_TRY(ctx, ctx_factory_->ephemeralAt(block_hash));
       return callWithCtx(ctx, name, encoded_args);
     }
@@ -48,13 +49,13 @@ namespace kagome::runtime {
     outcome::result<Buffer> callAt(const primitives::BlockHash &block_hash,
                                    const storage::trie::RootHash &state_hash,
                                    std::string_view name,
-                                   const Buffer &encoded_args) {
+                                   BufferView encoded_args) {
       OUTCOME_TRY(ctx, ctx_factory_->ephemeralAt(block_hash, state_hash));
       return callWithCtx(ctx, name, encoded_args);
     }
 
     outcome::result<Buffer> callAtGenesis(std::string_view name,
-                                          const Buffer &encoded_args) {
+                                          BufferView encoded_args) {
       OUTCOME_TRY(ctx, ctx_factory_->ephemeralAtGenesis());
       return callWithCtx(ctx, name, encoded_args);
     }

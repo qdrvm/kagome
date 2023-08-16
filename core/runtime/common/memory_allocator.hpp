@@ -126,8 +126,6 @@ namespace kagome::runtime {
 
     // Offset on the tail of the last allocated MemoryImpl chunk
     size_t offset_;
-    WasmSize max_stack_size_;
-    WasmSize max_stack_values_num_;
     WasmSize max_memory_pages_num_;
 
     log::Logger logger_;

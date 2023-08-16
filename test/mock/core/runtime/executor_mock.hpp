@@ -29,7 +29,7 @@ namespace kagome::runtime {
                 callWithCtx,
                 (RuntimeContext & ctx,
                  std::string_view name,
-                 const Buffer &encoded_args),
+                 BufferView encoded_args),
                 (override));
   };
 

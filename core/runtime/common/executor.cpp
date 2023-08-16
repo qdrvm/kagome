@@ -29,7 +29,7 @@ namespace kagome::runtime {
       : ctx_factory_{ctx_factory}, cache_{cache} {}
 
   outcome::result<common::Buffer> Executor::callWithCtx(
-      RuntimeContext &ctx, std::string_view name, const Buffer &encoded_args) {
+      RuntimeContext &ctx, std::string_view name, BufferView encoded_args) {
     KAGOME_PROFILE_START(call_execution)
     OUTCOME_TRY(result,
                 ctx.module_instance->callExportFunction(name, encoded_args));
@@ -41,7 +41,5 @@ namespace kagome::runtime {
   }
 
 }  // namespace kagome::runtime
-
-#undef likely
 
 #endif  // KAGOME_CORE_RUNTIME_COMMON_EXECUTOR_HPP

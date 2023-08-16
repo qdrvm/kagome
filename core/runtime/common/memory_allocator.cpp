@@ -19,10 +19,6 @@ namespace kagome::runtime {
                                    const MemoryConfig &config)
       : memory_{std::move(memory)},
         offset_{roundUpAlign(config.heap_base)},
-        max_stack_size_{
-            config.limits.max_stack_size.value_or(config.heap_base)},
-        max_stack_values_num_{config.limits.max_stack_values_num.value_or(
-            std::numeric_limits<WasmSize>::max())},
         max_memory_pages_num_{config.limits.max_memory_pages_num.value_or(
             std::numeric_limits<WasmSize>::max())},
         logger_{log::createLogger("Allocator", "runtime")} {
@@ -31,8 +27,6 @@ namespace kagome::runtime {
     // means that wasm memory was exhausted
     BOOST_ASSERT(offset_ > 0);
     BOOST_ASSERT(max_memory_pages_num_ > 0);
-    BOOST_ASSERT(max_stack_values_num_ > 0);
-    BOOST_ASSERT(max_stack_size_ > 0);
     BOOST_ASSERT(memory_.getSize);
     BOOST_ASSERT(memory_.resize);
   }
@@ -105,7 +99,7 @@ namespace kagome::runtime {
     if (new_size > std::numeric_limits<WasmSize>::max()) {
       return 0;
     }
-    auto current_size_ = memory_.getSize();
+
     resize(new_size);
     auto current_size = memory_.getSize();
     BOOST_ASSERT(current_size >= new_size);

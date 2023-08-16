@@ -1240,7 +1240,7 @@ namespace kagome::parachain {
       const ParachainRuntime &code,
       const SessionIndex &session_index) {
     if (auto result =
-            pvf_->pvfValidate(data, pov, receipt, code, session_index);
+            pvf_->pvfValidate(data, pov, receipt, code);
         result.has_error()) {
       logger_->warn(
           "Approval validation failed.(parachain id={}, relay parent={})",

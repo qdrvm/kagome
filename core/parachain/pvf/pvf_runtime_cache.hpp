@@ -12,6 +12,7 @@
 #include <unordered_set>
 
 #include "common/blob.hpp"
+#include "utils/lru.hpp"
 #include "parachain/types.hpp"
 #include "utils/safe_object.hpp"
 
@@ -37,23 +38,17 @@ namespace kagome::parachain {
 
    private:
     struct Entry {
-      Entry(std::shared_ptr<runtime::ModuleInstance> instance,
-            uint64_t last_used)
-          : instance{instance}, last_used{last_used} {}
+      Entry(std::shared_ptr<runtime::ModuleInstance> instance)
+          : instance{instance} {}
 
       SafeInstance instance;
-      uint64_t last_used = 0;
     };
-    void cleanup(const std::unique_lock<std::mutex> &lock);
 
     std::shared_ptr<runtime::ModuleFactory> module_factory_;
     std::mutex instance_cache_mutex_;
-    std::unordered_map<ParachainId, Entry> instance_cache_;
-    std::map<uint64_t, ParachainId> last_usage_time_;
-    const uint32_t instances_limit_ = 43;
-    std::atomic<uint64_t> time_ = 0;
+    Lru<ParachainId, Entry> instance_cache_;
 
-    void erase(decltype(instance_cache_)::iterator it);
+    const uint32_t instances_limit_ = 43;
   };
 
 }  // namespace kagome::parachain

@@ -363,7 +363,7 @@ namespace kagome::runtime {
                                        PrecheckingMaxMemory,
                                        PvfPrepTimeout,
                                        PvfExecTimeout,
-                                       Unused<1>>;  // WasmExtBulkMemory
+                                       Unused<7>>;  // WasmExtBulkMemory
 
 }  // namespace kagome::runtime
 #endif  // KAGOME_CORE_RUNTIME_PARACHAIN_HOST_TYPES_HPP

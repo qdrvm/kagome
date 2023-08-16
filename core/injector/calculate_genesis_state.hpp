@@ -15,6 +15,12 @@
 #include "storage/trie_pruner/trie_pruner.hpp"
 
 namespace kagome::injector {
+
+  outcome::result<primitives::Version> callCoreVersion(
+      runtime::Executor &executor, runtime::RuntimeContext &ctx) {
+    return executor.decodedCallWithCtx<primitives::Version>(ctx, "Core_version");
+  }
+
   inline outcome::result<storage::trie::RootHash> calculate_genesis_state(
       const application::ChainSpec &chain_spec,
       const runtime::ModuleFactory &module_factory,
@@ -35,7 +41,7 @@ namespace kagome::injector {
                 runtime::RuntimeContextFactory::fromCode(module_factory, code));
     OUTCOME_TRY(
         runtime_version,
-        executor.decodedCallWithCtx<primitives::Version>(ctx, "Core_version"));
+        callCoreVersion(executor, ctx));
     auto version = storage::trie::StateVersion{runtime_version.state_version};
     std::vector<std::shared_ptr<storage::trie::PolkadotTrie>> child_tries;
     for (auto &[child, kv] : chain_spec.getGenesisChildrenDefaultSection()) {

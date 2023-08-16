@@ -127,7 +127,6 @@ TEST_F(PvfTest, InstancesCached) {
       .relay_parent_storage_root = "root"_hash256,
       .max_pov_size = 100,
   };
-  parachain::SessionIndex sid{};
   Pvf::ParachainBlock para_block{};
   ParachainRuntime code1 = "code1"_buf;
   auto code_hash_1 = "code_hash_1"_hash256;
@@ -141,15 +140,13 @@ TEST_F(PvfTest, InstancesCached) {
   ASSERT_OUTCOME_SUCCESS_TRY(pvf_->pvfValidate(pvf_validation_data,
                                                para_block,
                                                makeReceipt(0, code_hash_1),
-                                               code1,
-                                               sid));
+                                               code1));
 
   // instance with code1 for parachain 0 is taken from the cache
   ASSERT_OUTCOME_SUCCESS_TRY(pvf_->pvfValidate(pvf_validation_data,
                                                para_block,
                                                makeReceipt(0, code_hash_1),
-                                               code1,
-                                               sid));
+                                               code1));
 
   ParachainRuntime code2 = "code2"_buf;
   auto code_hash_2 = "code_hash_2"_hash256;
@@ -163,8 +160,7 @@ TEST_F(PvfTest, InstancesCached) {
   ASSERT_OUTCOME_SUCCESS_TRY(pvf_->pvfValidate(pvf_validation_data,
                                                para_block,
                                                makeReceipt(0, code_hash_2),
-                                               code2,
-                                               sid));
+                                               code2));
 
   EXPECT_CALL(*module_factory_, make(code1.view()))
       .WillOnce(Invoke([&code_hash_1, this](auto code) {
@@ -175,22 +171,19 @@ TEST_F(PvfTest, InstancesCached) {
   ASSERT_OUTCOME_SUCCESS_TRY(pvf_->pvfValidate(pvf_validation_data,
                                                para_block,
                                                makeReceipt(1, code_hash_1),
-                                               code1,
-                                               sid));
+                                               code1));
 
   // instance with code1 for parachain 1 is taken from cache
   ASSERT_OUTCOME_SUCCESS_TRY(pvf_->pvfValidate(pvf_validation_data,
                                                para_block,
                                                makeReceipt(1, code_hash_1),
-                                               code1,
-                                               sid));
+                                               code1));
 
   // instance with code2 for parachain 0 is taken from cache
   ASSERT_OUTCOME_SUCCESS_TRY(pvf_->pvfValidate(pvf_validation_data,
                                                para_block,
                                                makeReceipt(0, code_hash_2),
-                                               code2,
-                                               sid));
+                                               code2));
 
   EXPECT_CALL(*module_factory_, make(code1.view()))
       .WillOnce(Invoke([&code_hash_1, this](auto code) {
@@ -201,8 +194,7 @@ TEST_F(PvfTest, InstancesCached) {
   ASSERT_OUTCOME_SUCCESS_TRY(pvf_->pvfValidate(pvf_validation_data,
                                                para_block,
                                                makeReceipt(2, code_hash_1),
-                                               code1,
-                                               sid));
+                                               code1));
 
   EXPECT_CALL(*module_factory_, make(code1.view()))
       .WillOnce(Invoke([&code_hash_1, this](auto code) {
@@ -211,6 +203,5 @@ TEST_F(PvfTest, InstancesCached) {
   ASSERT_OUTCOME_SUCCESS_TRY(pvf_->pvfValidate(pvf_validation_data,
                                                para_block,
                                                makeReceipt(0, code_hash_1),
-                                               code1,
-                                               sid));
+                                               code1));
 }

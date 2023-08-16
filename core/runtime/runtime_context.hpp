@@ -44,8 +44,6 @@ namespace kagome::runtime {
     }
 
     struct ContextParams {
-      ContextParams() = delete;
-
       MemoryLimits memory_limits;
     };
 

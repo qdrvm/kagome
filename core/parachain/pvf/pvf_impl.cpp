@@ -7,8 +7,8 @@
 
 #include "application/app_configuration.hpp"
 #include "parachain/pvf/pvf_runtime_cache.hpp"
-#include "runtime/executor.hpp"
 #include "runtime/common/uncompress_code_if_needed.hpp"
+#include "runtime/executor.hpp"
 #include "runtime/module.hpp"
 #include "runtime/module_factory.hpp"
 
@@ -82,8 +82,7 @@ namespace kagome::parachain {
       const PersistedValidationData &data,
       const ParachainBlock &pov,
       const CandidateReceipt &receipt,
-      const ParachainRuntime &code,
-      const SessionIndex &session_index) const {
+      const ParachainRuntime &code) const {
     OUTCOME_TRY(pov_encoded, scale::encode(pov));
     if (pov_encoded.size() > data.max_pov_size) {
       return PvfError::POV_SIZE;
@@ -114,8 +113,7 @@ namespace kagome::parachain {
                 callWasm(receipt.descriptor.para_id,
                          code_hash,
                          code,
-                         params,
-                         session_index));
+                         params));
 
     OUTCOME_TRY(commitments, fromOutputs(receipt, std::move(result)));
     return std::make_pair(std::move(commitments), std::move(data));
@@ -123,15 +121,14 @@ namespace kagome::parachain {
 
   outcome::result<Pvf::Result> PvfImpl::pvfSync(
       const CandidateReceipt &receipt,
-      const ParachainBlock &pov,
-      const SessionIndex &session_index) const {
+      const ParachainBlock &pov) const {
     SL_DEBUG(log_,
              "pvfSync relay_parent={} para_id={}",
              receipt.descriptor.relay_parent,
              receipt.descriptor.para_id);
     OUTCOME_TRY(data_code, findData(receipt.descriptor));
     auto &[data, code] = data_code;
-    return pvfValidate(data, pov, receipt, code, session_index);
+    return pvfValidate(data, pov, receipt, code);
   }
 
   outcome::result<std::pair<PersistedValidationData, ParachainRuntime>>
@@ -179,29 +176,28 @@ namespace kagome::parachain {
       ParachainId para_id,
       const common::Hash256 &code_hash,
       const ParachainRuntime &code_zstd,
-      const ValidationParams &params,
-      const SessionIndex &session_index) const {
+      const ValidationParams &params) const {
     OUTCOME_TRY(instance,
                 runtime_cache_->requestInstance(para_id, code_hash, code_zstd));
 
-    OUTCOME_TRY(genesis_hash, block_header_repository_->getHashByNumber(0));
-    OUTCOME_TRY(genesis_header,
-                block_header_repository_->getBlockHeader(genesis_hash));
     runtime::RuntimeContext::ContextParams executor_params{};
     OUTCOME_TRY(
         parent_hash,
         block_header_repository_->getHashByNumber(params.relay_parent_number));
     OUTCOME_TRY(
+        session_index,
+        parachain_api_->session_index_for_child(parent_hash));
+    OUTCOME_TRY(
         session_params,
         parachain_api_->session_executor_params(parent_hash, session_index));
 
     return instance.get().exclusiveAccess(
-        [this, &genesis_header, &params, &executor_params](
+        [this, &params, &executor_params](
             auto &instance) -> outcome::result<ValidationResult> {
           OUTCOME_TRY(
               ctx,
               ctx_factory_->ephemeral(
-                  instance, genesis_header.state_root, executor_params));
+                  instance, storage::trie::kEmptyRootHash, executor_params));
           return executor_->decodedCallWithCtx<ValidationResult>(
               ctx, "validate_block", params);
         });

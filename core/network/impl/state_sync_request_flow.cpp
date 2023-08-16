@@ -6,6 +6,7 @@
 #include <boost/algorithm/string/predicate.hpp>
 
 #include "network/impl/state_sync_request_flow.hpp"
+#include "runtime/common/uncompress_code_if_needed.hpp"
 #include "runtime/module.hpp"
 #include "runtime/module_factory.hpp"
 #include "runtime/runtime_api/core.hpp"
@@ -94,7 +95,9 @@ namespace kagome::network {
     BOOST_ASSERT(complete());
     auto &top = roots_[std::nullopt];
     OUTCOME_TRY(code, top.trie->get(storage::kRuntimeCodeKey));
-    OUTCOME_TRY(runtime_module, module_factory.make(code));
+    common::Buffer uncompressed_code;
+    OUTCOME_TRY(runtime::uncompressCodeIfNeeded(code, uncompressed_code));
+    OUTCOME_TRY(runtime_module, module_factory.make(uncompressed_code));
     OUTCOME_TRY(module_instance, runtime_module->instantiate());
     OUTCOME_TRY(runtime_version, core_api.version(module_instance));
     auto version = storage::trie::StateVersion{runtime_version.state_version};
