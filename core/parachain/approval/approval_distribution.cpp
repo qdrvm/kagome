@@ -802,7 +802,7 @@ namespace kagome::parachain {
                                         CandidateEntry &candidate_entry) {
     std::optional<runtime::SessionInfo> opt_session_info{};
     if (auto session_info_res = parachain_host_->session_info(
-            block_entry.parent_hash, block_entry.session);
+            block_entry.block_hash, block_entry.session);
         session_info_res.has_value()) {
       opt_session_info = std::move(session_info_res.value());
     } else {
@@ -858,7 +858,7 @@ namespace kagome::parachain {
     OUTCOME_TRY(session_index,
                 parachain_host_->session_index_for_child(parent_hash));
     OUTCOME_TRY(session_info,
-                parachain_host_->session_info(parent_hash, session_index));
+                parachain_host_->session_info(block_hash, session_index));
 
     if (!session_info) {
       SL_ERROR(logger_,
@@ -987,7 +987,7 @@ namespace kagome::parachain {
              parent_hash);
 
     OUTCOME_TRY(session_info,
-                parachain_host_->session_info(parent_hash,
+                parachain_host_->session_info(block_hash,
                                               imported_block.session_index));
 
     if (!session_info) {
@@ -1357,7 +1357,7 @@ namespace kagome::parachain {
 
     std::optional<runtime::SessionInfo> opt_session_info{};
     if (auto session_info_res = parachain_host_->session_info(
-            block_entry.parent_hash, block_entry.session);
+            block_entry.block_hash, block_entry.session);
         session_info_res.has_value()) {
       opt_session_info = std::move(session_info_res.value());
     } else {
@@ -2222,7 +2222,7 @@ namespace kagome::parachain {
 
     std::optional<runtime::SessionInfo> opt_session_info{};
     if (auto session_info_res = parachain_host_->session_info(
-            block_entry.parent_hash, block_entry.session);
+            block_entry.block_hash, block_entry.session);
         session_info_res.has_value()) {
       opt_session_info = std::move(session_info_res.value());
     } else {
@@ -2642,7 +2642,7 @@ namespace kagome::parachain {
     auto &candidate_entry = opt_candidate_entry->get();
     std::optional<runtime::SessionInfo> opt_session_info{};
     if (auto session_info_res = parachain_host_->session_info(
-            block_entry.parent_hash, block_entry.session);
+            block_entry.block_hash, block_entry.session);
         session_info_res.has_value()) {
       opt_session_info = std::move(session_info_res.value());
     } else {
