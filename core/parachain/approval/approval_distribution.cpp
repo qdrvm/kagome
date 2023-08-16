@@ -386,7 +386,8 @@ namespace {
       const auto drifted_tranche_now = kagome::math::sat_sub_unsigned(
           tranche_now,
           kagome::network::DelayTranche(pending->get().clock_drift));
-      const auto r = approval_entry.our_assignment->tranche
+      const auto r =
+          approval_entry.our_assignment->tranche
               <= pending->get().maximum_broadcast
           && approval_entry.our_assignment->tranche <= drifted_tranche_now;
       SL_TRACE(logger_, "PendingRequiredTranche return. (res={})", r);
@@ -902,6 +903,20 @@ namespace kagome::parachain {
     OUTCOME_TRY(epoch,
                 babe_util_->slotToEpoch(*block_header.parentInfo(),
                                         babe_digests.second.slot_number));
+    OUTCOME_TRY(epoch2,
+                babe_util_->slotToEpoch(
+                    primitives::BlockInfo(block_header.number, block_hash),
+                    babe_digests.second.slot_number));
+
+    SL_TRACE(logger_,
+             "REQUEST BABE DATA. (epoch={}, randomness={}, epoch2={})",
+             epoch,
+             babe_config.randomness.toHex(),
+             epoch2);
+
+    for (const auto &a : babe_config.authorities) {
+      SL_TRACE(logger_, "Auth. (a={})", a);
+    }
 
     return std::make_tuple(epoch,
                            std::move(babe_digests.second),
