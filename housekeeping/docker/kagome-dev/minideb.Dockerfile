@@ -95,7 +95,7 @@ RUN python3 -m venv /venv && \
 
 # install cmake and dev dependencies
 RUN /venv/bin/python3 -m pip install --no-cache-dir --upgrade pip
-RUN /venv/bin/pip install --no-cache-dir cmake scikit-build requests gitpython gcovr pyyaml
+RUN /venv/bin/pip install --no-cache-dir cmake==3.25 scikit-build requests gitpython gcovr pyyaml
 
 # install sonar cli
 ENV SONAR_CLI_VERSION=4.1.0.1829
