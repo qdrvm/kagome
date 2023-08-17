@@ -714,9 +714,9 @@ namespace kagome::parachain {
         blocks_by_number_;
 
     /// thread_pool_ context access
-    using ScheduledCandidateTimer =
-        std::unordered_map<CandidateHash,
-                           std::pair<Tick, std::unique_ptr<clock::Timer>>>;
+    using ScheduledCandidateTimer = std::unordered_map<
+        CandidateHash,
+        std::vector<std::pair<Tick, std::unique_ptr<clock::Timer>>>>;
     std::unordered_map<network::BlockHash, ScheduledCandidateTimer>
         active_tranches_;
 

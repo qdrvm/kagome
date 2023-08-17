@@ -2624,12 +2624,12 @@ namespace kagome::parachain {
     const auto ms_wakeup_after = math::sat_sub_unsigned(ms_wakeup, ms_now);
 
     auto &target_block = active_tranches_[block_hash];
-    auto target_candidate = target_block.find(candidate_hash);
-    if (target_candidate != target_block.end()) {
-      if (target_candidate->second.first <= tick) {
-        return;
-      }
-    }
+    // auto target_candidate = target_block.find(candidate_hash);
+    /*    if (target_candidate != target_block.end()) {
+          if (target_candidate->second.first <= tick) {
+            return;
+          }
+        }*/
 
     SL_TRACE(logger_,
              "Scheduling wakeup. (block_hash={}, candidate_hash={}, "
@@ -2653,26 +2653,18 @@ namespace kagome::parachain {
                              .running_in_this_thread());
             if (auto target_block_it = self->active_tranches_.find(block_hash);
                 target_block_it != self->active_tranches_.end()) {
-              auto &target_block = target_block_it->second;
-              if (auto target_candidate_it = target_block.find(candidate_hash);
-                  target_candidate_it != target_block.end()) {
-                t = std::move(target_candidate_it->second.second);
-                target_block.erase(target_candidate_it);
-
-                if (ec) {
-                  SL_TRACE(self->logger_,
-                           "Tranche operation waiting failed "
-                           "timer: {}",
-                           ec.message());
-                  return;
-                }
-                self->handleTranche(block_hash, block_number, candidate_hash);
+              if (ec) {
+                SL_TRACE(self->logger_,
+                         "Tranche operation waiting failed "
+                         "timer: {}",
+                         ec.message());
+                return;
               }
+              self->handleTranche(block_hash, block_number, candidate_hash);
             }
           }
         });
-    target_block.insert_or_assign(candidate_hash,
-                                  std::make_pair(tick, std::move(t)));
+    target_block[candidate_hash].emplace_back(tick, std::move(t));
   }
 
   void ApprovalDistribution::handleTranche(
