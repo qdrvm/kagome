@@ -190,7 +190,7 @@ namespace kagome::runtime {
             if_type<const primitives::events::RemoveAfterFinalizationParams>(
                 event);
         if (event_opt.has_value()) {
-              self->clearCaches(event_opt.value());
+          self->clearCaches(event_opt.value());
         }
       }
     });
@@ -223,10 +223,26 @@ namespace kagome::runtime {
 
   outcome::result<std::optional<std::vector<ExecutorParam>>>
   ParachainHostImpl::session_executor_params(const primitives::BlockHash &block,
-                          SessionIndex idx) {
+                                             SessionIndex idx) {
     return executor_
         ->callAt<std::optional<std::vector<ExecutorParam>>>(
             block, "ParachainHost_session_executor_params", idx);
+  }
+
+  outcome::result<std::optional<dispute::ScrapedOnChainVotes>>
+  ParachainHostImpl::on_chain_votes(const primitives::BlockHash &block) {
+    return executor_->callAt<std::optional<dispute::ScrapedOnChainVotes>>(
+        block, "ParachainHost_on_chain_votes");
+  }
+
+  outcome::result<std::vector<std::tuple<dispute::SessionIndex,
+                                         dispute::CandidateHash,
+                                         dispute::DisputeState>>>
+  ParachainHostImpl::disputes(const primitives::BlockHash &block) {
+    return executor_->callAt<std::vector<std::tuple<dispute::SessionIndex,
+                                                    dispute::CandidateHash,
+                                                    dispute::DisputeState>>>(
+        block, "ParachainHost_disputes");  // TODO ensure if it works
   }
 
   outcome::result<std::vector<ValidationCodeHash>>
@@ -244,4 +260,5 @@ namespace kagome::runtime {
                                    statement,
                                    signature);
   }
+
 }  // namespace kagome::runtime

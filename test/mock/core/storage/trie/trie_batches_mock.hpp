@@ -26,7 +26,7 @@ namespace kagome::storage::trie {
 
     outcome::result<BufferOrView> get(const BufferView &key) const override {
       OUTCOME_TRY(value, getMock(key));
-      return std::move(value);
+      return value;
     }
 
     outcome::result<std::optional<BufferOrView>> tryGet(

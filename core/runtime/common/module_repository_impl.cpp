@@ -71,6 +71,6 @@ namespace kagome::runtime {
     OUTCOME_TRY(runtime_instance, runtime_instances_pool_->tryAcquire(state));
     KAGOME_PROFILE_END(module_retrieval)
 
-    return std::move(runtime_instance);
+    return runtime_instance;
   }
 }  // namespace kagome::runtime

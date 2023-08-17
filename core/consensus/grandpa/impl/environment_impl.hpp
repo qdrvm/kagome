@@ -19,12 +19,24 @@ namespace kagome::blockchain {
   class BlockTree;
 }  // namespace kagome::blockchain
 
+namespace kagome::dispute {
+  class DisputeCoordinator;
+}
+
 namespace kagome::consensus::grandpa {
   class AuthorityManager;
 }
 
 namespace kagome::network {
   class GrandpaTransmitter;
+}
+
+namespace kagome::runtime {
+  class ParachainHost;
+}
+
+namespace kagome::parachain {
+  class BackingStore;
 }
 
 namespace kagome::consensus::grandpa {
@@ -39,6 +51,10 @@ namespace kagome::consensus::grandpa {
         std::shared_ptr<network::GrandpaTransmitter> transmitter,
         std::shared_ptr<parachain::IApprovedAncestor> approved_ancestor,
         LazySPtr<JustificationObserver> justification_observer,
+        std::shared_ptr<dispute::DisputeCoordinator> dispute_coordinator,
+        std::shared_ptr<runtime::ParachainHost> parachain_api,
+        std::shared_ptr<parachain::BackingStore> backing_store,
+        std::shared_ptr<crypto::Hasher> hasher,
         std::shared_ptr<boost::asio::io_context> main_thread_context);
 
     ~EnvironmentImpl() override = default;
@@ -108,6 +124,10 @@ namespace kagome::consensus::grandpa {
     std::shared_ptr<network::GrandpaTransmitter> transmitter_;
     std::shared_ptr<parachain::IApprovedAncestor> approved_ancestor_;
     LazySPtr<JustificationObserver> justification_observer_;
+    std::shared_ptr<dispute::DisputeCoordinator> dispute_coordinator_;
+    std::shared_ptr<runtime::ParachainHost> parachain_api_;
+    std::shared_ptr<parachain::BackingStore> backing_store_;
+    std::shared_ptr<crypto::Hasher> hasher_;
     ThreadHandler main_thread_context_;
 
     metrics::RegistryPtr metrics_registry_ = metrics::createRegistry();

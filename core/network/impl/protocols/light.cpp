@@ -33,8 +33,8 @@ namespace kagome::network {
       executor_{std::move(executor)},
       ctx_factory_(std::move(ctx_factory)) {}
 
-  outcome::result<LightProtocol::ResponseType> LightProtocol::onRxRequest(
-      RequestType req, std::shared_ptr<Stream>) {
+  std::optional<outcome::result<LightProtocol::ResponseType>>
+  LightProtocol::onRxRequest(RequestType req, std::shared_ptr<Stream>) {
     std::unordered_set<common::Buffer> proof;
     auto prove = [&](common::BufferView raw) { proof.emplace(raw); };
     OUTCOME_TRY(header, repository_->getBlockHeader(req.block));
@@ -65,6 +65,7 @@ namespace kagome::network {
         OUTCOME_TRY(trie.get().tryGet(key));
       }
     }
-    return LightProtocolResponse{{proof.begin(), proof.end()}, call != nullptr};
+    return {
+        LightProtocolResponse{{proof.begin(), proof.end()}, call != nullptr}};
   }
 }  // namespace kagome::network

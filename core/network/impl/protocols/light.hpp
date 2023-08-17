@@ -52,8 +52,8 @@ namespace kagome::network {
                   std::shared_ptr<runtime::Executor> executor,
                   std::shared_ptr<runtime::RuntimeContextFactory> ctx_factory);
 
-    outcome::result<ResponseType> onRxRequest(RequestType req,
-                                              std::shared_ptr<Stream>) override;
+    std::optional<outcome::result<ResponseType>> onRxRequest(
+        RequestType req, std::shared_ptr<Stream>) override;
 
     void onTxRequest(const RequestType &) override {}
 

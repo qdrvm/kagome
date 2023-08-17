@@ -19,7 +19,7 @@ namespace kagome::api::child_state::request {
     // childKey
     auto &param0 = params[0];
 
-    if (not param0.IsString()) {
+    if (not param0.IsString() or param0.IsNil()) {
       throw jsonrpc::InvalidParametersFault(
           "Parameter '[child_storage_key]' must be a hex string");
     }
@@ -29,7 +29,7 @@ namespace kagome::api::child_state::request {
 
     auto &param1 = params[1];
 
-    if (not param1.IsString()) {
+    if (not param1.IsString() and not param1.IsNil()) {
       throw jsonrpc::InvalidParametersFault(
           "Parameter '[prefix]' must be a hex string");
     }
@@ -48,17 +48,16 @@ namespace kagome::api::child_state::request {
       return outcome::success();
     }
 
-    if (not params[2].IsNil()) {
-      // process at param
-      if (not params[2].IsString()) {
-        throw jsonrpc::InvalidParametersFault(
-            "Parameter '[at]' must be a hex string representation of an "
-            "encoded optional byte sequence");
-      }
-      OUTCOME_TRY(at_span, common::unhexWith0x(params[2].AsString()));
-      OUTCOME_TRY(at, primitives::BlockHash::fromSpan(at_span));
-      at_ = at;
+    // process at param
+    if (not params[2].IsString()) {
+      throw jsonrpc::InvalidParametersFault(
+          "Parameter '[at]' must be a hex string representation of an encoded "
+          "optional byte sequence");
     }
+    OUTCOME_TRY(at_span, common::unhexWith0x(params[2].AsString()));
+    OUTCOME_TRY(at, primitives::BlockHash::fromSpan(at_span));
+    at_ = at;
+
     return outcome::success();
   }
 

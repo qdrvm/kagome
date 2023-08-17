@@ -8,6 +8,8 @@
 
 #include "common/blob.hpp"
 #include "common/unused.hpp"
+#include "dispute_coordinator/provisioner/impl/prioritized_selection.hpp"
+#include "dispute_coordinator/types.hpp"
 #include "primitives/block_id.hpp"
 #include "primitives/common.hpp"
 #include "primitives/parachain_host.hpp"
@@ -184,6 +186,16 @@ namespace kagome::runtime {
     virtual outcome::result<std::optional<std::vector<ExecutorParam>>>
     session_executor_params(const primitives::BlockHash &block,
                             SessionIndex idx) = 0;
+
+    /// Get all disputes in relation to a relay parent.
+    virtual outcome::result<std::optional<dispute::ScrapedOnChainVotes>>
+    on_chain_votes(const primitives::BlockHash &block) = 0;
+
+    /// Returns all on-chain disputes at given block number. Available in `v3`.
+    virtual outcome::result<std::vector<std::tuple<dispute::SessionIndex,
+                                                   dispute::CandidateHash,
+                                                   dispute::DisputeState>>>
+    disputes(const primitives::BlockHash &block) = 0;
 
     /**
      * @return list of pvf requiring precheck

@@ -64,7 +64,7 @@ namespace kagome::primitives {
     Randomness randomness;  // can be changed by NextEpochData
 
     /// Type of allowed slots.
-    AllowedSlots allowed_slots;  // can be changed by NextConfigData
+    AllowedSlots allowed_slots{};  // can be changed by NextConfigData
 
     bool isSecondarySlotsAllowed() const {
       return allowed_slots == primitives::AllowedSlots::PrimaryAndSecondaryPlain
@@ -103,6 +103,18 @@ namespace kagome::primitives {
     config.allowed_slots = static_cast<AllowedSlots>(allowed_slots);
     return s;
   }
+
+  struct Epoch {
+    SCALE_TIE(7);
+
+    consensus::babe::EpochNumber epoch_index;
+    consensus::babe::BabeSlotNumber start_slot;
+    consensus::babe::EpochLength duration;
+    AuthorityList authorities;
+    Randomness randomness;
+    std::pair<uint64_t, uint64_t> leadership_rate;
+    AllowedSlots allowed_slots;
+  };
 }  // namespace kagome::primitives
 
 #endif  // KAGOME_CORE_PRIMITIVES_BABE_CONFIGURATION_HPP

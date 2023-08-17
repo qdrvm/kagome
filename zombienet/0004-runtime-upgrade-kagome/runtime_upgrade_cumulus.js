@@ -21,8 +21,4 @@ async function run(nodeName, networkInfo, args) {
     assert.equal( oldVersionIncremented, versionAtCurrent.specVersion.toHuman(), "Running version should be the incremented version");
 }
 
-<<<<<<< HEAD
 module.exports = { run }
-=======
-module.exports = { run }
->>>>>>> 85aaa388f1727cbec8b9667008ab1f19ce53c0a8

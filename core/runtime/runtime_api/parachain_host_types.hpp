@@ -210,6 +210,8 @@ namespace kagome::runtime {
   using AuthorityDiscoveryId = common::Hash256;
   using AssignmentId = common::Blob<32>;
   struct SessionInfo {
+    SCALE_TIE(13);
+
     /****** New in v2 *******/
     /// All the validators actively participating in parachain consensus.
     /// Indices are into the broader validator set.

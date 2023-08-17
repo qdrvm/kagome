@@ -62,6 +62,8 @@ groups:
                 children:
                   - name: voting_round
           - name: parachain
+          - name: dispute
+            level: trace
           - name: runtime
             children:
               - name: runtime_api
@@ -101,6 +103,7 @@ groups:
                       - name: req_available_data_protocol
                       - name: req_statement_protocol
                       - name: req_pov_protocol
+                      - name: dispute_protocol
           - name: changes_trie
           - name: storage
             children:

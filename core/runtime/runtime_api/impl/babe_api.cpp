@@ -23,4 +23,8 @@ namespace kagome::runtime {
     return *ref;
   }
 
+  outcome::result<primitives::Epoch> BabeApiImpl::next_epoch(
+      const primitives::BlockHash &block) {
+    return executor_->callAt<primitives::Epoch>(block, "BabeApi_next_epoch");
+  }
 }  // namespace kagome::runtime

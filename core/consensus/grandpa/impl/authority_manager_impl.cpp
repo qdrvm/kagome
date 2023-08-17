@@ -65,6 +65,8 @@ namespace kagome::consensus::grandpa {
   AuthorityManagerImpl::~AuthorityManagerImpl() {}
 
   bool AuthorityManagerImpl::prepare() {
+    std::unique_lock lock{mutex_};
+
     auto load_res = load();
     if (load_res.has_error()) {
       SL_VERBOSE(logger_, "Can not load state: {}", load_res.error());
@@ -85,6 +87,8 @@ namespace kagome::consensus::grandpa {
                   boost::get<primitives::events::HeadsEventParams>(event).get();
               auto hash =
                   self->hasher_->blake2b_256(scale::encode(header).value());
+
+              std::unique_lock lock{self->mutex_};
 
               auto save_res = self->save();
               if (save_res.has_error()) {
@@ -238,7 +242,7 @@ namespace kagome::consensus::grandpa {
                     digest_item,
                     scale::decode<consensus::babe::BabeBlockHeader>(msg.data));
 
-                return onDigest(context, digest_item);
+                return onDigestNoLock(context, digest_item);
               }
               return outcome::success();
             },
@@ -247,7 +251,7 @@ namespace kagome::consensus::grandpa {
                 OUTCOME_TRY(digest_item,
                             scale::decode<primitives::GrandpaDigest>(msg.data));
 
-                return onDigest(context, digest_item);
+                return onDigestNoLock(context, digest_item);
               }
               return outcome::success();
             },
@@ -370,7 +374,7 @@ namespace kagome::consensus::grandpa {
       const auto &context = context_tmp;
       for (const auto &digest : digests_of_block) {
         auto res = visit_in_place(digest, [&](const auto &digest_item) {
-          return onDigest(context, digest_item);
+          return onDigestNoLock(context, digest_item);
         });
         if (res.has_error()) {
           SL_WARN(logger_,
@@ -459,17 +463,11 @@ namespace kagome::consensus::grandpa {
     return outcome::success();
   }
 
-  primitives::BlockInfo AuthorityManagerImpl::base() const {
-    if (not root_) {
-      logger_->critical("Authority manager has null root");
-      std::terminate();
-    }
-    return root_->block;
-  }
-
   std::optional<std::shared_ptr<const primitives::AuthoritySet>>
   AuthorityManagerImpl::authorities(const primitives::BlockInfo &target_block,
                                     IsBlockFinalized finalized) const {
+    std::unique_lock lock{mutex_};
+
     auto node = getNode({.block_info = target_block});
 
     if (node == nullptr) {
@@ -851,6 +849,13 @@ namespace kagome::consensus::grandpa {
   outcome::result<void> AuthorityManagerImpl::onDigest(
       const primitives::BlockContext &context,
       const consensus::babe::BabeBlockHeader &digest) {
+    std::unique_lock lock{mutex_};
+    return onDigestNoLock(context, digest);
+  }
+
+  outcome::result<void> AuthorityManagerImpl::onDigestNoLock(
+      const primitives::BlockContext &context,
+      const consensus::babe::BabeBlockHeader &digest) {
     auto node = getNode(context);
 
     SL_TRACE(logger_,
@@ -869,6 +874,13 @@ namespace kagome::consensus::grandpa {
   }
 
   outcome::result<void> AuthorityManagerImpl::onDigest(
+      const primitives::BlockContext &context,
+      const primitives::GrandpaDigest &digest) {
+    std::unique_lock lock{mutex_};
+    return onDigestNoLock(context, digest);
+  }
+
+  outcome::result<void> AuthorityManagerImpl::onDigestNoLock(
       const primitives::BlockContext &context,
       const primitives::GrandpaDigest &digest) {
     return visit_in_place(
@@ -1028,6 +1040,8 @@ namespace kagome::consensus::grandpa {
   }
 
   void AuthorityManagerImpl::cancel(const primitives::BlockInfo &block) {
+    std::unique_lock lock{mutex_};
+
     auto ancestor = getNode({.block_info = block});
 
     if (ancestor == nullptr) {
@@ -1070,6 +1084,8 @@ namespace kagome::consensus::grandpa {
   void AuthorityManagerImpl::warp(const primitives::BlockInfo &block,
                                   const primitives::BlockHeader &header,
                                   const primitives::AuthoritySet &authorities) {
+    std::unique_lock lock{mutex_};
+
     root_ = ScheduleNode::createAsRoot(
         std::make_shared<primitives::AuthoritySet>(authorities), block);
     HasAuthoritySetChange change{header};

@@ -153,7 +153,9 @@ namespace kagome::consensus::babe {
 
     auto slot_number = babe_header.slot_number;
 
-    auto epoch_number = babe_util_->slotToEpoch(slot_number);
+    OUTCOME_TRY(
+        epoch_number,
+        babe_util_->slotToEpoch(*block.header.parentInfo(), slot_number));
 
     SL_VERBOSE(
         logger_,
@@ -205,12 +207,7 @@ namespace kagome::consensus::babe {
 
   outcome::result<BlockAppenderBase::SlotInfo> BlockAppenderBase::getSlotInfo(
       const primitives::BlockHeader &header) const {
-    OUTCOME_TRY(babe_digests, getBabeDigests(header));
-
-    const auto &babe_header = babe_digests.second;
-
-    auto slot_number = babe_header.slot_number;
-
+    OUTCOME_TRY(slot_number, getBabeSlot(header));
     auto start_time = babe_util_->slotStartTime(slot_number);
     auto slot_duration = babe_config_repo_->slotDuration();
     return outcome::success(SlotInfo{start_time, slot_duration});

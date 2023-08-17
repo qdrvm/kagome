@@ -126,10 +126,34 @@ namespace kagome::network {
    * execution.
    */
   struct CandidateReceipt {
-    SCALE_TIE(2);
-
     CandidateDescriptor descriptor;  /// Candidate descriptor
     Hash commitments_hash;           /// Hash of candidate commitments
+
+    const Hash &hash(const crypto::Hasher &hasher) const {
+      if (not hash_.has_value()) {
+        hash_.emplace(hasher.blake2b_256(
+            scale::encode(std::tie(descriptor, commitments_hash)).value()));
+      }
+      return hash_.value();
+    }
+
+    inline bool operator==(const CandidateReceipt &other) const {
+      return descriptor == other.descriptor
+         and commitments_hash == other.commitments_hash;
+    }
+
+    friend inline scale::ScaleDecoderStream &operator>>(
+        scale::ScaleDecoderStream &s, CandidateReceipt &cr) {
+      return s >> cr.descriptor >> cr.commitments_hash;
+    }
+
+    friend inline scale::ScaleEncoderStream &operator<<(
+        scale::ScaleEncoderStream &s, const CandidateReceipt &cr) {
+      return s << cr.descriptor << cr.commitments_hash;
+    }
+
+   private:
+    mutable std::optional<Hash> hash_{};
   };
 
   struct CollationResponse {
@@ -262,17 +286,18 @@ namespace kagome::network {
   };
 
   using CandidateState =
-      boost::variant<Dummy,                      /// not used
+      boost::variant<Unused<0>,                  /// not used
                      CommittedCandidateReceipt,  /// Candidate receipt. Should
-                                                 /// be sent if
-                     /// validator seconded the candidate
+                                                 /// be sent if validator
+                                                 /// seconded the candidate
                      CandidateHash  /// validator has deemed the candidate valid
                                     /// and send the candidate hash
                      >;
 
   struct Statement {
     SCALE_TIE(1);
-    CandidateState candidate_state;
+    Statement() = default;
+    CandidateState candidate_state{Unused<0>{}};
   };
   using SignedStatement = IndexedAndSigned<Statement>;
 
@@ -280,7 +305,7 @@ namespace kagome::network {
     SCALE_TIE(2);
 
     primitives::BlockHash relay_parent;  /// relay parent hash
-    SignedStatement statement;           /// statement of seconded candidate
+    SignedStatement statement{};         /// statement of seconded candidate
   };
 
   /// Signed availability bitfield.
@@ -328,6 +353,8 @@ namespace kagome::network {
     View view;
     primitives::BlockHeader new_head;
     std::vector<primitives::BlockHash> lost;
+    //
+    mutable std::optional<primitives::BlockHash> new_head_hash;
   };
 
   using StatementDistributionMessage =
@@ -413,55 +440,21 @@ namespace kagome::network {
                                 /// within the validator group
   };
 
-  using DisputeStatement =
-      boost::variant<Tagged<Empty, struct ExplicitStatement>,
-                     Tagged<common::Hash256, struct SecondedStatement>,
-                     Tagged<common::Hash256, struct ValidStatement>,
-                     Tagged<Empty, struct AprovalVote>>;
-
-  struct Vote {
-    SCALE_TIE(3);
-
-    uint32_t validator_index;  /// An unsigned 32-bit integer indicating the
-                               /// validator index in the authority set
-    Signature signature;       /// The signature of the validator
-    DisputeStatement
-        statement;  /// A varying datatype and implies the dispute statement
-  };
-
-  /// The dispute request is sent by clients who want to issue a dispute about a
-  /// candidate.
-  /// @details https://spec.polkadot.network/#net-msg-dispute-request
-  struct DisputeRequest {
-    SCALE_TIE(4);
-
-    CommittedCandidateReceipt
-        candidate;           /// The candidate that is being disputed
-    uint32_t session_index;  /// An unsigned 32-bit integer indicating the
-                             /// session index the candidate appears in
-    Vote invalid_vote;       /// The invalid vote that makes up the request
-    Vote valid_vote;  /// The valid vote that makes this dispute request valid
-  };
-
-  struct ParachainInherentData {
-    SCALE_TIE(4);
-
-    std::vector<SignedBitfield>
-        bitfields;  /// The array of signed bitfields by validators claiming the
-                    /// candidate is available (or not). @note The array must be
-                    /// sorted by validator index corresponding to the authority
-                    /// set
-    std::vector<network::BackedCandidate>
-        backed_candidates;  /// The array of backed candidates for inclusion in
-                            /// the current block
-    std::vector<DisputeRequest> disputes;  /// Array of disputes
-    primitives::BlockHeader
-        parent_header;  /// The head data is contains information about a
-                        /// parachain block. The head data is returned by
-                        /// executing the parachain Runtime and relay chain
-                        /// validators are not concerned with its inner
-                        /// structure and treat it as a byte arrays.
-  };
+  //  using DisputeStatement =
+  //      boost::variant<Tagged<Empty, struct ExplicitStatement>,
+  //                     Tagged<common::Hash256, struct SecondedStatement>,
+  //                     Tagged<common::Hash256, struct ValidStatement>,
+  //                     Tagged<Empty, struct AprovalVote>>;
+  //
+  //  struct Vote {
+  //    SCALE_TIE(3);
+  //
+  //    uint32_t validator_index;  /// An unsigned 32-bit integer indicating the
+  //                               /// validator index in the authority set
+  //    Signature signature;       /// The signature of the validator
+  //    DisputeStatement
+  //        statement;  /// A varying datatype and implies the dispute statement
+  //  };
 
   /**
    * Validator -> Validator.
@@ -530,12 +523,10 @@ namespace kagome::network {
 
   inline CandidateHash candidateHash(const crypto::Hasher &hasher,
                                      const CommittedCandidateReceipt &receipt) {
-    return candidateHash(
-        hasher,
-        CandidateReceipt{
-            receipt.descriptor,
-            hasher.blake2b_256(scale::encode(receipt.commitments).value()),
-        });
+    auto commitments_hash =
+        hasher.blake2b_256(scale::encode(receipt.commitments).value());
+    return hasher.blake2b_256(
+        scale::encode(std::tie(receipt.descriptor, commitments_hash)).value());
   }
 
   inline CandidateHash candidateHash(const crypto::Hasher &hasher,

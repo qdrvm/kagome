@@ -18,25 +18,18 @@ namespace kagome {
   template <typename K, typename V>
   class Lru {
    public:
-    struct ItFwd;
-
-    struct Item {
-      template <typename... Args>
-      Item(Args &&...args)
-          : v{std::forward<Args>(args)...}, more{}, less{} {}
-
-      V v;
-      ItFwd more, less;
-    };
-
-    using Map = std::unordered_map<K, Item>;
+    struct Item;
+    // TODO(turuslan): remove unique_ptr after deprecating gcc 10
+    using Map = std::unordered_map<K, std::unique_ptr<Item>>;
     using It = typename Map::iterator;
     using ConstIt = typename Map::const_iterator;
 
-    struct ItFwd : It {
-      operator bool() const {
-        return *this != It{};
-      }
+    struct Item {
+      template <typename... Args>
+      Item(Args &&...args) : v{std::forward<Args>(args)...}, more{}, less{} {}
+
+      V v;
+      It more, less;
     };
 
     enum class IteratorQualifier {
@@ -58,11 +51,11 @@ namespace kagome {
       // mutable version
       template <IteratorQualifier _Qualifier = Qualifier>
       std::enable_if_t<_Qualifier == IteratorQualifier::Mutable, V &> value() {
-        return iter_->second.v;
+        return iter_->second->v;
       }
 
       const V &value() const {
-        return iter_->second.v;
+        return iter_->second->v;
       }
 
       Iterator &operator++() {
@@ -109,7 +102,7 @@ namespace kagome {
         return std::nullopt;
       }
       lru_use(it);
-      return std::ref(it->second.v);
+      return std::ref(it->second->v);
     }
 
     ConstIterator begin() const {
@@ -145,7 +138,7 @@ namespace kagome {
         return typename Map::node_type{};
       }
       auto handle = map_.extract(it);
-      lru_process_remove(it->second);
+      lru_process_remove(*it->second);
       return handle;
     }
 
@@ -157,12 +150,10 @@ namespace kagome {
         if (map_.size() >= capacity_) {
           lru_pop();
         }
-        it = map_.emplace(
-                     std::piecewise_construct,
-                     std::forward_as_tuple(k),
-                     std::forward_as_tuple(
-                         std::forward<ValueArgs>(args)...))
-                 .first;
+        it =
+            map_.emplace(
+                    k, std::make_unique<Item>(std::forward<ValueArgs>(args)...))
+                .first;
         lru_push(it);
         return {it, true};
       }
@@ -175,14 +166,11 @@ namespace kagome {
         if (map_.size() >= capacity_) {
           lru_pop();
         }
-        it = map_.emplace(std::piecewise_construct,
-                          std::forward_as_tuple(k),
-                          std::forward_as_tuple(std::move(v)))
-                 .first;
+        it = map_.emplace(k, std::make_unique<Item>(std::move(v))).first;
         lru_push(it);
         return {it, true};
       }
-      it->second.v = std::move(v);
+      it->second->v = std::move(v);
       lru_use(it);
       return {it, false};
     }
@@ -191,47 +179,47 @@ namespace kagome {
       if (it == most_) {
         return;
       }
-      lru_process_remove(it->second);
+      lru_process_remove(*it->second);
       lru_push(it);
     }
 
     void lru_push(It it) {
-      BOOST_ASSERT(not it->second.less);
-      BOOST_ASSERT(not it->second.more);
-      it->second.less = most_;
-      if (most_) {
-        most_->second.more = ItFwd{it};
+      BOOST_ASSERT(it->second->less == It{});
+      BOOST_ASSERT(it->second->more == It{});
+      it->second->less = most_;
+      if (most_ != It{}) {
+        most_->second->more = it;
       }
-      most_ = ItFwd{it};
-      if (not least_) {
+      most_ = it;
+      if (least_ == It{}) {
         least_ = most_;
       }
     }
 
     void lru_process_remove(Item &v) {
-      if (v.more) {
-        v.more->second.less = v.less;
+      if (v.more != It{}) {
+        v.more->second->less = v.less;
       } else {
         most_ = v.less;
       }
-      if (v.less) {
-        v.less->second.more = v.more;
+      if (v.less != It{}) {
+        v.less->second->more = v.more;
       } else {
         least_ = v.more;
       }
-      v.more = {};
-      v.less = {};
+      v.more = It{};
+      v.less = It{};
     }
 
     void lru_pop() {
       auto it = least_;
-      lru_process_remove(it->second);
+      lru_process_remove(*it->second);
       map_.erase(it);
     }
 
     Map map_;
     size_t capacity_;
-    ItFwd most_, least_;
+    It most_, least_;
 
     template <typename>
     friend class LruSet;

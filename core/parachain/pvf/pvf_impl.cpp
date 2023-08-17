@@ -6,11 +6,14 @@
 #include "parachain/pvf/pvf_impl.hpp"
 
 #include "application/app_configuration.hpp"
+#include "metrics/histogram_timer.hpp"
 #include "parachain/pvf/pvf_runtime_cache.hpp"
 #include "runtime/common/uncompress_code_if_needed.hpp"
 #include "runtime/executor.hpp"
 #include "runtime/module.hpp"
 #include "runtime/module_factory.hpp"
+#include "runtime/module_repository.hpp"
+#include "runtime/runtime_code_provider.hpp"
 
 OUTCOME_CPP_DEFINE_CATEGORY(kagome::parachain, PvfError, e) {
   using kagome::parachain::PvfError;
@@ -44,6 +47,48 @@ namespace kagome::parachain {
   using network::UpwardMessage;
   using primitives::BlockNumber;
   using runtime::PersistedValidationData;
+
+  metrics::HistogramTimer metric_pvf_execution_time{
+      "kagome_pvf_execution_time",
+      "Time spent in executing PVFs",
+      {
+          0.01,
+          0.025,
+          0.05,
+          0.1,
+          0.25,
+          0.5,
+          1.0,
+          2.0,
+          3.0,
+          4.0,
+          5.0,
+          6.0,
+          8.0,
+          10.0,
+          12.0,
+      },
+  };
+
+  struct DontProvideCode : runtime::RuntimeCodeProvider {
+    outcome::result<gsl::span<const uint8_t>> getCodeAt(
+        const storage::trie::RootHash &) const override {
+      abort();
+    }
+  };
+
+  struct ReturnModuleInstance : runtime::ModuleRepository {
+    ReturnModuleInstance(std::shared_ptr<runtime::ModuleInstance> instance)
+        : instance{std::move(instance)} {}
+
+    outcome::result<std::shared_ptr<runtime::ModuleInstance>> getInstanceAt(
+        const primitives::BlockInfo &,
+        const storage::trie::RootHash &) override {
+      return instance;
+    }
+
+    std::shared_ptr<runtime::ModuleInstance> instance;
+  };
 
   struct ValidationParams {
     SCALE_TIE(4);
@@ -103,6 +148,7 @@ namespace kagome::parachain {
       return PvfError::SIGNATURE;
     }
 
+    auto timer = metric_pvf_execution_time.timer();
     ValidationParams params;
     params.parent_head = data.parent_head;
     OUTCOME_TRY(runtime::uncompressCodeIfNeeded(pov.payload,
@@ -110,18 +156,15 @@ namespace kagome::parachain {
     params.relay_parent_number = data.relay_parent_number;
     params.relay_parent_storage_root = data.relay_parent_storage_root;
     OUTCOME_TRY(result,
-                callWasm(receipt.descriptor.para_id,
-                         code_hash,
-                         code,
-                         params));
+                callWasm(receipt.descriptor.para_id, code_hash, code, params));
+    timer.reset();
 
     OUTCOME_TRY(commitments, fromOutputs(receipt, std::move(result)));
     return std::make_pair(std::move(commitments), std::move(data));
   }
 
   outcome::result<Pvf::Result> PvfImpl::pvfSync(
-      const CandidateReceipt &receipt,
-      const ParachainBlock &pov) const {
+      const CandidateReceipt &receipt, const ParachainBlock &pov) const {
     SL_DEBUG(log_,
              "pvfSync relay_parent={} para_id={}",
              receipt.descriptor.relay_parent,
@@ -184,9 +227,8 @@ namespace kagome::parachain {
     OUTCOME_TRY(
         parent_hash,
         block_header_repository_->getHashByNumber(params.relay_parent_number));
-    OUTCOME_TRY(
-        session_index,
-        parachain_api_->session_index_for_child(parent_hash));
+    OUTCOME_TRY(session_index,
+                parachain_api_->session_index_for_child(parent_hash));
     OUTCOME_TRY(
         session_params,
         parachain_api_->session_executor_params(parent_hash, session_index));

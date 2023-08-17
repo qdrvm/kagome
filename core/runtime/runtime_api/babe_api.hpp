@@ -25,6 +25,12 @@ namespace kagome::runtime {
      */
     virtual outcome::result<primitives::BabeConfiguration> configuration(
         const primitives::BlockHash &block) = 0;
+
+    /**
+     * Get next config from last digest.
+     */
+    virtual outcome::result<primitives::Epoch> next_epoch(
+        const primitives::BlockHash &block) = 0;
   };
 
 }  // namespace kagome::runtime

@@ -167,7 +167,7 @@ namespace kagome::crypto {
       OUTCOME_TRY(kp, suite->generateKeypair(seed, {}));
       getCache(suite, caches, key_type).insert(kp.public_key, kp.secret_key);
       OUTCOME_TRY(file_storage_->saveKeyPair(key_type, kp.public_key, seed));
-      return std::move(kp);
+      return kp;
     }
 
     template <typename Suite>
