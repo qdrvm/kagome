@@ -1138,42 +1138,52 @@ namespace kagome::parachain {
       blocks_by_number_[meta.number].insert(meta.hash);
     }
 
-    logger_->trace("Got new block.(hash={})", new_hash);
-    for (const auto &[peed_id, view] : peer_views_) {
-      for (const auto &h : view.heads_) {
-        if (h == meta.hash) {
-          unify_with_peer(storedDistribBlockEntries(),
-                          peed_id,
-                          network::View{
-                              .heads_ = {h},
-                              .finalized_number_ = finalized_block_number,
-                          });
+    internal_context_->execute([wself{weak_from_this()},
+                                new_hash,
+                                finalized_block_number,
+                                meta{std::move(meta)}]() {
+      if (auto self = wself.lock()) {
+        SL_TRACE(self->logger_, "Got new block.(hash={})", new_hash);
+        for (const auto &[peed_id, view] : self->peer_views_) {
+          for (const auto &h : view.heads_) {
+            if (h == meta.hash) {
+              self->unify_with_peer(
+                  self->storedDistribBlockEntries(),
+                  peed_id,
+                  network::View{
+                      .heads_ = {h},
+                      .finalized_number_ = finalized_block_number,
+                  });
+            }
+          }
         }
-      }
-    }
 
-    for (auto it = pending_known_.begin(); it != pending_known_.end();) {
-      if (!storedDistribBlockEntries().get(it->first)) {
-        ++it;
-      } else {
-        logger_->trace("Processing pending assignment/approvals.(count={})",
-                       it->second.size());
-        for (auto i = it->second.begin(); i != it->second.end(); ++i) {
-          visit_in_place(
-              i->second,
-              [&](const network::Assignment &assignment) {
-                import_and_circulate_assignment(
-                    i->first,
-                    assignment.indirect_assignment_cert,
-                    assignment.candidate_ix);
-              },
-              [&](const network::IndirectSignedApprovalVote &approval) {
-                import_and_circulate_approval(i->first, approval);
-              });
+        for (auto it = self->pending_known_.begin();
+             it != self->pending_known_.end();) {
+          if (!self->storedDistribBlockEntries().get(it->first)) {
+            ++it;
+          } else {
+            self->logger_->trace(
+                "Processing pending assignment/approvals.(count={})",
+                it->second.size());
+            for (auto i = it->second.begin(); i != it->second.end(); ++i) {
+              visit_in_place(
+                  i->second,
+                  [&](const network::Assignment &assignment) {
+                    self->import_and_circulate_assignment(
+                        i->first,
+                        assignment.indirect_assignment_cert,
+                        assignment.candidate_ix);
+                  },
+                  [&](const network::IndirectSignedApprovalVote &approval) {
+                    self->import_and_circulate_approval(i->first, approval);
+                  });
+            }
+            it = self->pending_known_.erase(it);
+          }
         }
-        it = pending_known_.erase(it);
       }
-    }
+    });
   }
 
   template <typename Func>
