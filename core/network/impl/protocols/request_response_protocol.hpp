@@ -85,7 +85,7 @@ namespace kagome::network {
     }
 
    protected:
-    virtual outcome::result<ResponseType> onRxRequest(
+    virtual std::optional<outcome::result<ResponseType>> onRxRequest(
         RequestType request, std::shared_ptr<Stream> stream) = 0;
     virtual void onTxRequest(const RequestType &request) = 0;
 
@@ -93,7 +93,6 @@ namespace kagome::network {
       return base_;
     }
 
-   private:
     friend class ProtocolBaseImpl;
 
     void onIncomingStream(std::shared_ptr<Stream> stream) override {
@@ -296,7 +295,13 @@ namespace kagome::network {
                    && !!"If self not exists then we can not get result as OK.");
 
             auto request = std::move(result.value());
-            auto response_result = self->onRxRequest(request, stream);
+            auto response_opt = self->onRxRequest(request, stream);
+            if (not response_opt) {
+              // Request processing asynchronously
+              return;
+            }
+            auto &response_result = response_opt.value();
+
             if (!response_result) {
               SL_VERBOSE(self->base_.logger(),
                          "Error at execute request from incoming {} stream "

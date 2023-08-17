@@ -14,6 +14,8 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::consensus::babe, BabeError, e) {
       return "bad order of digest item; PreRuntime must be first";
     case E::UNKNOWN_DIGEST_TYPE:
       return "unknown type of digest";
+    case E::SLOT_BEFORE_GENESIS:
+      return "slot before genesis";
   }
   return "unknown error";
 }

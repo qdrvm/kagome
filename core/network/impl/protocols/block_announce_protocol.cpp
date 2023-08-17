@@ -24,6 +24,7 @@ namespace kagome::network {
       std::shared_ptr<StreamEngine> stream_engine,
       std::shared_ptr<blockchain::BlockTree> block_tree,
       std::shared_ptr<BlockAnnounceObserver> observer,
+      std::shared_ptr<crypto::Hasher> hasher,
       std::shared_ptr<PeerManager> peer_manager)
       : base_(kBlockAnnounceProtocolName,
               host,
@@ -34,6 +35,7 @@ namespace kagome::network {
         stream_engine_(std::move(stream_engine)),
         block_tree_(std::move(block_tree)),
         observer_(std::move(observer)),
+        hasher_(std::move(hasher)),
         peer_manager_(std::move(peer_manager)) {
     BOOST_ASSERT(stream_engine_ != nullptr);
     BOOST_ASSERT(block_tree_ != nullptr);
@@ -372,6 +374,8 @@ namespace kagome::network {
   }
 
   void BlockAnnounceProtocol::blockAnnounce(BlockAnnounce &&announce) {
+    auto hash = hasher_->blake2b_256(scale::encode(announce.header).value());
+
     auto shared_msg =
         KAGOME_EXTRACT_SHARED_CACHE(BlockAnnounceProtocol, BlockAnnounce);
     (*shared_msg) = std::move(announce);
@@ -380,11 +384,10 @@ namespace kagome::network {
         base_.logger(), "Send announce of block #{}", announce.header.number);
 
     stream_engine_->broadcast(
-        shared_from_this(),
-        shared_msg,
-        RandomGossipStrategy{
-            stream_engine_->outgoingStreamsNumber(shared_from_this()),
-            app_config_.luckyPeers()});
+        shared_from_this(), shared_msg, [&](const PeerId &peer) {
+          auto state = peer_manager_->getPeerState(peer);
+          return state and state->get().known_blocks.add(hash);
+        });
   }
 
 }  // namespace kagome::network

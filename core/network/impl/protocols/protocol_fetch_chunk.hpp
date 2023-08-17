@@ -36,7 +36,7 @@ namespace kagome::network {
     ~FetchChunkProtocol() override = default;
 
     FetchChunkProtocol(libp2p::Host &host,
-                       application::ChainSpec const &chain_spec,
+                       const application::ChainSpec &chain_spec,
                        const blockchain::GenesisBlockHash &genesis_hash,
                        std::shared_ptr<parachain::ParachainProcessorImpl> pp)
         : RequestResponseProtocol<
@@ -54,7 +54,7 @@ namespace kagome::network {
     }
 
    private:
-    outcome::result<ResponseType> onRxRequest(
+    std::optional<outcome::result<ResponseType>> onRxRequest(
         RequestType request, std::shared_ptr<Stream> /*stream*/) override {
       base().logger()->info("Fetching chunk request.(chunk={}, candidate={})",
                             request.chunk_index,
@@ -66,23 +66,23 @@ namespace kagome::network {
       } else {
         visit_in_place(
             res.value(),
-            [&](network::Chunk const &r) {
+            [&](const network::Chunk &r) {
               base().logger()->info("Fetching chunk response with data.");
             },
-            [&](auto const &) {
+            [&](const auto &) {
               base().logger()->info("Fetching chunk response empty.");
             });
       }
       return res;
     }
 
-    void onTxRequest(RequestType const &request) override {
+    void onTxRequest(const RequestType &request) override {
       base().logger()->debug("Fetching chunk candidate: {}, index: {}",
                              request.candidate,
                              request.chunk_index);
     }
 
-    const static inline auto kFetchChunkProtocolName = "FetchChunkProtocol"s;
+    inline static const auto kFetchChunkProtocolName = "FetchChunkProtocol"s;
     std::shared_ptr<parachain::ParachainProcessorImpl> pp_;
   };
 

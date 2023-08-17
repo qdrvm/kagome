@@ -138,10 +138,6 @@ namespace kagome::network {
                    const primitives::BlockInfo &block,
                    SyncResultHandler &&handler) override;
 
-    void syncBabeDigest(const libp2p::peer::PeerId &peer_id,
-                        const primitives::BlockInfo &block,
-                        CbResultVoid &&cb) override;
-
     /// Finds best common block with peer {@param peer_id} in provided interval.
     /// It is using tail-recursive algorithm, till {@param hint} is
     /// the needed block
@@ -237,6 +233,7 @@ namespace kagome::network {
     metrics::RegistryPtr metrics_registry_ = metrics::createRegistry();
     metrics::Gauge *metric_import_queue_length_;
 
+    std::array<char, 100> buf_{};  // TODO(kamilsa): Help variable for #1732
     log::Logger log_ = log::createLogger("Synchronizer", "synchronizer");
     telemetry::Telemetry telemetry_ = telemetry::createTelemetryService();
 

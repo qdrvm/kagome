@@ -81,6 +81,8 @@
 #include "crypto/secp256k1/secp256k1_provider_impl.hpp"
 #include "crypto/sr25519/sr25519_provider_impl.hpp"
 #include "crypto/vrf/vrf_provider_impl.hpp"
+#include "dispute_coordinator/impl/dispute_coordinator_impl.hpp"
+#include "dispute_coordinator/impl/storage_impl.hpp"
 #include "host_api/impl/host_api_factory_impl.hpp"
 #include "injector/bind_by_lambda.hpp"
 #include "injector/calculate_genesis_state.hpp"
@@ -96,6 +98,7 @@
 #include "network/impl/extrinsic_observer_impl.hpp"
 #include "network/impl/grandpa_transmitter_impl.hpp"
 #include "network/impl/peer_manager_impl.hpp"
+#include "network/impl/protocols/send_dispute_protocol.hpp"
 #include "network/impl/protocols/state_protocol_impl.hpp"
 #include "network/impl/protocols/sync_protocol_impl.hpp"
 #include "network/impl/reputation_repository_impl.hpp"
@@ -538,6 +541,7 @@ namespace {
     host_api::OffchainExtensionConfig offchain_ext_config{
         config->isOffchainIndexingEnabled()};
 
+    // clang-format off
     return di::
         make_injector(
             // bind configs
@@ -668,6 +672,7 @@ namespace {
             di::bind<clock::Timer>.template to<clock::BasicWaitableTimer>(),
             di::bind<network::Synchronizer>.template to<network::SynchronizerImpl>(),
             di::bind<consensus::grandpa::Environment>.template to<consensus::grandpa::EnvironmentImpl>(),
+            di::bind<parachain::IApprovedAncestor>.template to<parachain::ApprovalDistribution>(),
             di::bind<consensus::babe::BlockValidator>.template to<consensus::babe::BabeBlockValidator>(),
             di::bind<crypto::EcdsaProvider>.template to<crypto::EcdsaProviderImpl>(),
             di::bind<crypto::Ed25519Provider>.template to<crypto::Ed25519ProviderImpl>(),
@@ -696,6 +701,7 @@ namespace {
             di::bind<storage::changes_trie::ChangesTracker>.template to<storage::changes_trie::StorageChangesTrackerImpl>(),
             di::bind<network::StateProtocolObserver>.template to<network::StateProtocolObserverImpl>(),
             di::bind<network::SyncProtocolObserver>.template to<network::SyncProtocolObserverImpl>(),
+            di::bind<network::DisputeRequestObserver>.template to<dispute::DisputeCoordinatorImpl>(),
             di::bind<parachain::AvailabilityStore>.template to<parachain::AvailabilityStoreImpl>(),
             di::bind<parachain::Fetch>.template to<parachain::FetchImpl>(),
             di::bind<parachain::Recovery>.template to<parachain::RecoveryImpl>(),
@@ -784,9 +790,12 @@ namespace {
             di::bind<consensus::babe::Babe>.template to<consensus::babe::BabeImpl>(),
             di::bind<consensus::babe::BabeLottery>.template to<consensus::babe::BabeLotteryImpl>(),
             di::bind<network::BlockAnnounceObserver>.template to<consensus::babe::BabeImpl>(),
+            di::bind<dispute::DisputeCoordinator>.template to<dispute::DisputeCoordinatorImpl>(),
+            di::bind<dispute::Storage>.template to<dispute::StorageImpl>(),
 
             // user-defined overrides...
             std::forward<decltype(args)>(args)...);
+    // clang-format on
   }
 
   template <typename... Ts>
@@ -892,6 +901,16 @@ namespace kagome::injector {
   KagomeNodeInjector::injectApprovalDistribution() {
     return pimpl_->injector_
         .template create<sptr<parachain::ApprovalDistribution>>();
+  }
+
+  std::shared_ptr<network::DisputeRequestObserver>
+  KagomeNodeInjector::injectDisputeRequestObserver() {
+    return pimpl_->injector_.create<sptr<network::DisputeRequestObserver>>();
+  }
+
+  std::shared_ptr<dispute::DisputeCoordinator>
+  KagomeNodeInjector::injectDisputeCoordinator() {
+    return pimpl_->injector_.create<sptr<dispute::DisputeCoordinator>>();
   }
 
   std::shared_ptr<consensus::babe::Babe> KagomeNodeInjector::injectBabe() {

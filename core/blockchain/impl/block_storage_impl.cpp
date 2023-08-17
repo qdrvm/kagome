@@ -209,7 +209,7 @@ namespace kagome::blockchain {
       OUTCOME_TRY(
           header,
           scale::decode<primitives::BlockHeader>(encoded_header_opt.value()));
-      return std::move(header);
+      return header;
     }
     return std::nullopt;
   }
@@ -265,7 +265,7 @@ namespace kagome::blockchain {
       OUTCOME_TRY(justification,
                   scale::decode<primitives::Justification>(
                       encoded_justification_opt.value()));
-      return std::move(justification);
+      return justification;
     }
     return std::nullopt;
   }
@@ -298,7 +298,7 @@ namespace kagome::blockchain {
                   primitives::BlockInfo(block.header.number, block_hash),
                   primitives::BlockInfo(block.header.number - 1,
                                         block.header.parent_hash));
-    return std::move(block_hash);
+    return block_hash;
   }
 
   outcome::result<std::optional<primitives::BlockData>>

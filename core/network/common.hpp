@@ -36,6 +36,7 @@ namespace kagome::network {
       "/{}/req_available_data/1"};
   const libp2p::peer::ProtocolName kFetchStatementProtocol{
       "/{}/req_statement/1"};
+  const libp2p::peer::ProtocolName kSendDisputeProtocol{"/{}/send_dispute/1"};
 
   template <typename... Args>
   libp2p::StreamProtocols make_protocols(std::string_view format,

@@ -52,6 +52,9 @@ namespace kagome::authority_discovery {
     std::optional<libp2p::peer::PeerInfo> get(
         const primitives::AuthorityDiscoveryId &authority) const override;
 
+    std::optional<primitives::AuthorityDiscoveryId> get(
+        const libp2p::peer::PeerId &peer_id) const override;
+
     outcome::result<void> update();
 
    private:
@@ -73,7 +76,9 @@ namespace kagome::authority_discovery {
     mutable std::mutex mutex_;
     std::default_random_engine random_;
     std::unordered_map<primitives::AuthorityDiscoveryId, libp2p::peer::PeerInfo>
-        cache_;
+        auth_to_peer_cache_;
+    std::unordered_map<libp2p::peer::PeerId, primitives::AuthorityDiscoveryId>
+        peer_to_auth_cache_;
     std::vector<primitives::AuthorityDiscoveryId> queue_;
     size_t active_ = 0;
 

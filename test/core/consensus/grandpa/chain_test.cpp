@@ -11,7 +11,12 @@
 #include "mock/core/blockchain/block_tree_mock.hpp"
 #include "mock/core/consensus/grandpa/authority_manager_mock.hpp"
 #include "mock/core/consensus/grandpa/grandpa_mock.hpp"
+#include "mock/core/crypto/hasher_mock.hpp"
+#include "mock/core/dispute_coordinator/dispute_coordinator_mock.hpp"
 #include "mock/core/network/grandpa_transmitter_mock.hpp"
+#include "mock/core/parachain/approved_ancestor.hpp"
+#include "mock/core/parachain/backing_store_mock.hpp"
+#include "mock/core/runtime/parachain_host_mock.hpp"
 #include "testutil/lazy.hpp"
 #include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
@@ -28,12 +33,18 @@ using kagome::consensus::grandpa::Chain;
 using kagome::consensus::grandpa::EnvironmentImpl;
 using kagome::consensus::grandpa::GrandpaMock;
 using kagome::consensus::grandpa::JustificationObserver;
+using kagome::crypto::HasherMock;
+using kagome::dispute::DisputeCoordinatorMock;
 using kagome::network::GrandpaTransmitterMock;
+using kagome::parachain::ApprovedAncestorMock;
+using kagome::parachain::BackingStoreMock;
 using kagome::primitives::BlockHash;
 using kagome::primitives::BlockHeader;
 using kagome::primitives::BlockInfo;
 using kagome::primitives::BlockNumber;
+using kagome::runtime::ParachainHostMock;
 using testing::_;
+using testing::Invoke;
 using testing::Return;
 
 class ChainTest : public testing::Test {
@@ -86,12 +97,27 @@ class ChainTest : public testing::Test {
       std::make_shared<GrandpaTransmitterMock>();
   std::shared_ptr<GrandpaMock> grandpa_ = std::make_shared<GrandpaMock>();
 
+  std::shared_ptr<DisputeCoordinatorMock> dispute_coordinator =
+      std::make_shared<DisputeCoordinatorMock>();
+  std::shared_ptr<ParachainHostMock> parachain_api =
+      std::make_shared<ParachainHostMock>();
+  std::shared_ptr<BackingStoreMock> backing_store =
+      std::make_shared<BackingStoreMock>();
+  std::shared_ptr<HasherMock> hasher = std::make_shared<HasherMock>();
+  std::shared_ptr<ApprovedAncestorMock> approved_ancestor =
+      std::make_shared<ApprovedAncestorMock>();
+
   std::shared_ptr<Chain> chain = std::make_shared<EnvironmentImpl>(
       tree,
       header_repo,
       authority_manager,
       grandpa_transmitter,
+      approved_ancestor,
       testutil::sptr_to_lazy<JustificationObserver>(grandpa_),
+      dispute_coordinator,
+      parachain_api,
+      backing_store,
+      hasher,
       std::make_shared<boost::asio::io_context>());
 };
 
@@ -186,6 +212,14 @@ TEST_F(ChainTest, BestChainContaining) {
   EXPECT_CALL(*tree, getBestContaining(_, _))
       .WillOnce(Return(BlockInfo{42, h[3]}));
   EXPECT_CALL(*tree, getLastFinalized()).WillOnce(Return(BlockInfo{42, h[3]}));
+  std::vector<BlockHash> best_chain{h[3]};
+  EXPECT_CALL(*tree, getChainByBlocks(_, _)).WillOnce(Return(best_chain));
+  EXPECT_CALL(*approved_ancestor, approvedAncestor(_, _))
+      .WillOnce(testing::ReturnArg<1>());
+  EXPECT_CALL(*dispute_coordinator, determineUndisputedChain(_, _, _))
+      .WillOnce(testing::Invoke(
+          [&](auto base, auto, auto &&cb) { return cb(base); }));
+
   ASSERT_OUTCOME_SUCCESS(r, chain->bestChainContaining(h[2], std::nullopt));
 
   ASSERT_EQ(h[3], r.hash);

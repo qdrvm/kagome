@@ -5,6 +5,7 @@
 
 #include "parachain/pvf/precheck.hpp"
 
+#include "metrics/histogram_timer.hpp"
 #include "offchain/offchain_worker_factory.hpp"
 #include "offchain/offchain_worker_pool.hpp"
 #include "runtime/common/uncompress_code_if_needed.hpp"
@@ -12,6 +13,26 @@
 #include "runtime/module_factory.hpp"
 
 namespace kagome::parachain {
+  metrics::HistogramTimer metric_pvf_preparation_time{
+      "kagome_pvf_preparation_time",
+      "Time spent in preparing PVF artifacts in seconds",
+      {
+          0.1,
+          0.5,
+          1.0,
+          2.0,
+          3.0,
+          10.0,
+          20.0,
+          30.0,
+          60.0,
+          120.0,
+          240.0,
+          360.0,
+          480.0,
+      },
+  };
+
   PvfPrecheck::PvfPrecheck(
       std::shared_ptr<crypto::Hasher> hasher,
       std::shared_ptr<ValidatorSignerFactory> signer_factory,
@@ -78,11 +99,13 @@ namespace kagome::parachain {
       }
       auto &code_zstd = *code_zstd_res.value();
       ParachainRuntime code;
+      auto timer = metric_pvf_preparation_time.timer();
       auto res = [&]() -> outcome::result<void> {
         OUTCOME_TRY(runtime::uncompressCodeIfNeeded(code_zstd, code));
         OUTCOME_TRY(module_factory_->make(code));
         return outcome::success();
       }();
+      timer.reset();
       if (res) {
         SL_VERBOSE(logger_, "approve {}", code_hash);
       } else {

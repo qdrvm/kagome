@@ -21,11 +21,13 @@ namespace kagome::runtime {
     outcome::result<primitives::BabeConfiguration> configuration(
         const primitives::BlockHash &block) override;
 
+    outcome::result<primitives::Epoch> next_epoch(
+        const primitives::BlockHash &block) override;
+
    private:
     std::shared_ptr<Executor> executor_;
 
-    LruCache<primitives::BlockHash, primitives::BabeConfiguration> cache_{
-        10};
+    LruCache<primitives::BlockHash, primitives::BabeConfiguration> cache_{10};
   };
 
 }  // namespace kagome::runtime
