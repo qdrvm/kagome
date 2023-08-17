@@ -85,7 +85,7 @@ namespace kagome::parachain {
     outcome::result<std::pair<PersistedValidationData, ParachainRuntime>>
     findData(const CandidateDescriptor &descriptor) const;
     outcome::result<ValidationResult> callWasm(
-        ParachainId para_id,
+        const CandidateReceipt &receipt,
         const common::Hash256 &code_hash,
         const ParachainRuntime &code_zstd,
         const ValidationParams &params) const;

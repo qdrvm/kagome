@@ -155,8 +155,7 @@ namespace kagome::parachain {
                                                 params.block_data.payload));
     params.relay_parent_number = data.relay_parent_number;
     params.relay_parent_storage_root = data.relay_parent_storage_root;
-    OUTCOME_TRY(result,
-                callWasm(receipt.descriptor.para_id, code_hash, code, params));
+    OUTCOME_TRY(result, callWasm(receipt, code_hash, code, params));
     timer.reset();
 
     OUTCOME_TRY(commitments, fromOutputs(receipt, std::move(result)));
@@ -216,7 +215,7 @@ namespace kagome::parachain {
   }
 
   outcome::result<ValidationResult> PvfImpl::callWasm(
-      ParachainId para_id,
+      const CandidateReceipt &receipt,
       const common::Hash256 &code_hash,
       const ParachainRuntime &code_zstd,
       const ValidationParams &params) const {
@@ -224,9 +223,7 @@ namespace kagome::parachain {
                 runtime_cache_->requestInstance(para_id, code_hash, code_zstd));
 
     runtime::RuntimeContext::ContextParams executor_params{};
-    OUTCOME_TRY(
-        parent_hash,
-        block_header_repository_->getHashByNumber(params.relay_parent_number));
+    auto &parent_hash = receipt.descriptor.relay_parent;
     OUTCOME_TRY(session_index,
                 parachain_api_->session_index_for_child(parent_hash));
     OUTCOME_TRY(
