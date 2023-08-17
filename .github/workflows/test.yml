@@ -31,6 +31,10 @@ jobs:
       with:
         path: ${{ env.CACHE_PATHS }}
         key: ${{ github.job }}-${{ env.CACHE_VERSION }}
+    - name: Setup cmake
+      uses: jwlawson/actions-setup-cmake@v1.14.1
+      with:
+        cmake-version: '3.25'
     - name: install
       run: ./housekeeping/macos/dependency.sh
     - name: build
