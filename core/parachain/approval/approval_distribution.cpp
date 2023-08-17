@@ -396,14 +396,14 @@ namespace {
     }
     if (kagome::is_type<kagome::parachain::approval::ExactRequiredTranche>(
             required_tranches)) {
-      SL_TRACE(logger_, "ExactRequiredTranche return false.");
+      SL_TRACE(logger, "ExactRequiredTranche return false.");
       return false;
     }
     UNREACHABLE;
   }
 
   outcome::result<kagome::network::DelayTranche> checkAssignmentCert(
-      kagome::network::CreIndex claimed_core_index,
+      kagome::network::CoreIndex claimed_core_index,
       kagome::network::ValidatorIndex validator_index,
       const kagome::runtime::SessionInfo &config,
       const RelayVRFStory &relay_vrf_story,
@@ -638,7 +638,12 @@ namespace kagome::parachain {
   std::optional<std::pair<ValidatorIndex, crypto::Sr25519Keypair>>
   ApprovalDistribution::findAssignmentKey(
       const std::shared_ptr<crypto::CryptoStore> &keystore,
-      const runtime::SessionInfo &config) {
+      const runtime::SessionInfo &config,
+      log::Logger &logger) {
+    auto keys = keystore->getSr25519PublicKeys(crypto::KEY_TYPE_ASGN).value();
+    for (const auto &key : keys) {
+      SL_TRACE(logger, "PK FOR ASSIGNMENT: {}", key.toHex());
+    }
     for (size_t ix = 0; ix < config.assignment_keys.size(); ++ix) {
       const auto &pk = config.assignment_keys[ix];
       if (auto res = keystore->findSr25519Keypair(
@@ -656,14 +661,15 @@ namespace kagome::parachain {
       const std::shared_ptr<crypto::CryptoStore> &keystore,
       const runtime::SessionInfo &config,
       const RelayVRFStory &relay_vrf_story,
-      const CandidateIncludedList &leaving_cores) {
+      const CandidateIncludedList &leaving_cores,
+      log::Logger &logger) {
     if (config.n_cores == 0 || config.assignment_keys.empty()
         || config.validator_groups.empty()) {
       return {};
     }
 
     std::optional<std::pair<ValidatorIndex, crypto::Sr25519Keypair>>
-        founded_key = findAssignmentKey(keystore, config);
+        founded_key = findAssignmentKey(keystore, config, logger);
     if (!founded_key) {
       return {};
     }
@@ -796,7 +802,7 @@ namespace kagome::parachain {
         "UNSAFE VRF: {}",
         common::BufferView(relay_vrf.data, sizeof(relay_vrf.data)).toHex());
     auto assignments = compute_assignments(
-        keystore_, session_info, relay_vrf, *ac.included_candidates);
+        keystore_, session_info, relay_vrf, *ac.included_candidates, logger_);
 
     /// TODO(iceseer): force approve impl
 
