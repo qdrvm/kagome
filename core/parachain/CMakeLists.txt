@@ -13,7 +13,6 @@ add_library(validator_parachain
     backing/store_impl.cpp
     pvf/precheck.cpp
     pvf/pvf_impl.cpp
-    pvf/pvf_runtime_cache.cpp
     validator/impl/parachain_observer_impl.cpp
     validator/impl/parachain_processor.cpp
     validator/signer.cpp
@@ -24,6 +23,7 @@ add_library(validator_parachain
 
 target_link_libraries(validator_parachain
     crypto_store
+    module_repository
     network
     erasure_coding_crust::ec-cpp
     )

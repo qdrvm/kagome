@@ -127,13 +127,13 @@
 #include "runtime/binaryen/core_api_factory_impl.hpp"
 #include "runtime/binaryen/instance_environment_factory.hpp"
 #include "runtime/binaryen/module/module_factory_impl.hpp"
-#include "runtime/executor.hpp"
 #include "runtime/common/module_repository_impl.hpp"
 #include "runtime/common/runtime_instances_pool.hpp"
 #include "runtime/common/runtime_properties_cache_impl.hpp"
 #include "runtime/common/runtime_upgrade_tracker_impl.hpp"
 #include "runtime/common/storage_code_provider.hpp"
 #include "runtime/common/trie_storage_provider_impl.hpp"
+#include "runtime/executor.hpp"
 #include "runtime/module_factory.hpp"
 #include "runtime/runtime_api/impl/account_nonce_api.hpp"
 #include "runtime/runtime_api/impl/authority_discovery_api.hpp"
@@ -450,6 +450,9 @@ namespace {
             }),
         makeWavmInjector(method),
         makeBinaryenInjector(method),
+        bind_by_lambda<runtime::RuntimeInstancesPool>([](const auto &injector) {
+          return std::make_shared<runtime::RuntimeInstancesPool>();
+        }),
         di::bind<runtime::ModuleRepository>.template to<runtime::ModuleRepositoryImpl>(),
         bind_by_lambda<runtime::CoreApiFactory>([method](const auto &injector) {
           return choose_runtime_implementation<

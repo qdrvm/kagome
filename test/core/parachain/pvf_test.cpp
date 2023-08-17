@@ -77,6 +77,8 @@ class PvfTest : public testing::Test {
 
     EXPECT_CALL(*parachain_api, check_validation_outputs(_, _, _))
         .WillRepeatedly(Return(outcome::success(true)));
+    EXPECT_CALL(*parachain_api, session_index_for_child(_))
+        .WillRepeatedly(Return(outcome::success()));
     EXPECT_CALL(*parachain_api, session_executor_params(_, _))
         .WillRepeatedly(Return(outcome::success(std::nullopt)));
 
@@ -91,9 +93,9 @@ class PvfTest : public testing::Test {
                                      config);
   }
 
-  outcome::result<std::unique_ptr<runtime::Module>> make_module_mock(
+  outcome::result<std::shared_ptr<runtime::Module>> make_module_mock(
       gsl::span<const uint8_t> code, const Hash256 &code_hash) {
-    auto module = std::make_unique<runtime::ModuleMock>();
+    auto module = std::make_shared<runtime::ModuleMock>();
     auto instance = std::make_shared<runtime::ModuleInstanceMock>();
     ON_CALL(*module, instantiate()).WillByDefault(Return(instance));
     ON_CALL(*instance, getCodeHash()).WillByDefault(ReturnRef(code_hash));
@@ -109,7 +111,6 @@ class PvfTest : public testing::Test {
   std::shared_ptr<crypto::HasherMock> hasher_;
   std::shared_ptr<runtime::ModuleFactoryMock> module_factory_;
   std::shared_ptr<runtime::RuntimeContextFactoryMock> ctx_factory;
-
 };
 
 Pvf::CandidateReceipt makeReceipt(parachain::ParachainId id,
@@ -137,16 +138,12 @@ TEST_F(PvfTest, InstancesCached) {
   EXPECT_CALL(*hasher_, blake2b_256(code1.view()))
       .WillRepeatedly(Return(code_hash_1));
   // validate with empty cache, instance with code1 for parachain 0 is cached
-  ASSERT_OUTCOME_SUCCESS_TRY(pvf_->pvfValidate(pvf_validation_data,
-                                               para_block,
-                                               makeReceipt(0, code_hash_1),
-                                               code1));
+  ASSERT_OUTCOME_SUCCESS_TRY(pvf_->pvfValidate(
+      pvf_validation_data, para_block, makeReceipt(0, code_hash_1), code1));
 
   // instance with code1 for parachain 0 is taken from the cache
-  ASSERT_OUTCOME_SUCCESS_TRY(pvf_->pvfValidate(pvf_validation_data,
-                                               para_block,
-                                               makeReceipt(0, code_hash_1),
-                                               code1));
+  ASSERT_OUTCOME_SUCCESS_TRY(pvf_->pvfValidate(
+      pvf_validation_data, para_block, makeReceipt(0, code_hash_1), code1));
 
   ParachainRuntime code2 = "code2"_buf;
   auto code_hash_2 = "code_hash_2"_hash256;
@@ -157,51 +154,27 @@ TEST_F(PvfTest, InstancesCached) {
   EXPECT_CALL(*hasher_, blake2b_256(code2.view()))
       .WillRepeatedly(Return(code_hash_2));
   // instance with code2 for parachain 0 is cached, replacing instance for code1
-  ASSERT_OUTCOME_SUCCESS_TRY(pvf_->pvfValidate(pvf_validation_data,
-                                               para_block,
-                                               makeReceipt(0, code_hash_2),
-                                               code2));
+  ASSERT_OUTCOME_SUCCESS_TRY(pvf_->pvfValidate(
+      pvf_validation_data, para_block, makeReceipt(0, code_hash_2), code2));
 
-  EXPECT_CALL(*module_factory_, make(code1.view()))
-      .WillOnce(Invoke([&code_hash_1, this](auto code) {
-        return make_module_mock(code, code_hash_1);
-      }));
   // instance with code1 for parachain 1 is cached, limit of 2 instances is
   // reached
-  ASSERT_OUTCOME_SUCCESS_TRY(pvf_->pvfValidate(pvf_validation_data,
-                                               para_block,
-                                               makeReceipt(1, code_hash_1),
-                                               code1));
+  ASSERT_OUTCOME_SUCCESS_TRY(pvf_->pvfValidate(
+      pvf_validation_data, para_block, makeReceipt(1, code_hash_1), code1));
 
   // instance with code1 for parachain 1 is taken from cache
-  ASSERT_OUTCOME_SUCCESS_TRY(pvf_->pvfValidate(pvf_validation_data,
-                                               para_block,
-                                               makeReceipt(1, code_hash_1),
-                                               code1));
+  ASSERT_OUTCOME_SUCCESS_TRY(pvf_->pvfValidate(
+      pvf_validation_data, para_block, makeReceipt(1, code_hash_1), code1));
 
   // instance with code2 for parachain 0 is taken from cache
-  ASSERT_OUTCOME_SUCCESS_TRY(pvf_->pvfValidate(pvf_validation_data,
-                                               para_block,
-                                               makeReceipt(0, code_hash_2),
-                                               code2));
+  ASSERT_OUTCOME_SUCCESS_TRY(pvf_->pvfValidate(
+      pvf_validation_data, para_block, makeReceipt(0, code_hash_2), code2));
 
-  EXPECT_CALL(*module_factory_, make(code1.view()))
-      .WillOnce(Invoke([&code_hash_1, this](auto code) {
-        return make_module_mock(code, code_hash_1);
-      }));
   // instance with code1 for parachain 2 is cached, replacing instance of the
   // least recently used parachain 1
-  ASSERT_OUTCOME_SUCCESS_TRY(pvf_->pvfValidate(pvf_validation_data,
-                                               para_block,
-                                               makeReceipt(2, code_hash_1),
-                                               code1));
+  ASSERT_OUTCOME_SUCCESS_TRY(pvf_->pvfValidate(
+      pvf_validation_data, para_block, makeReceipt(2, code_hash_1), code1));
 
-  EXPECT_CALL(*module_factory_, make(code1.view()))
-      .WillOnce(Invoke([&code_hash_1, this](auto code) {
-        return make_module_mock(code, code_hash_1);
-      }));
-  ASSERT_OUTCOME_SUCCESS_TRY(pvf_->pvfValidate(pvf_validation_data,
-                                               para_block,
-                                               makeReceipt(0, code_hash_1),
-                                               code1));
+  ASSERT_OUTCOME_SUCCESS_TRY(pvf_->pvfValidate(
+      pvf_validation_data, para_block, makeReceipt(0, code_hash_1), code1));
 }

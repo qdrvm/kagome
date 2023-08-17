@@ -23,6 +23,7 @@ namespace kagome::runtime {
   class ModuleFactory;
   class Executor;
   class RuntimeContextFactory;
+  class RuntimeInstancesPool;
 }  // namespace kagome::runtime
 
 namespace kagome::parachain {
@@ -101,7 +102,7 @@ namespace kagome::parachain {
     std::shared_ptr<runtime::RuntimeContextFactory> ctx_factory_;
     log::Logger log_;
 
-    std::unique_ptr<class PvfRuntimeCache> runtime_cache_;
+    std::unique_ptr<runtime::RuntimeInstancesPool> runtime_cache_;
   };
 }  // namespace kagome::parachain
 

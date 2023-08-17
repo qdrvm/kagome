@@ -7,7 +7,7 @@
 
 #include "application/app_configuration.hpp"
 #include "metrics/histogram_timer.hpp"
-#include "parachain/pvf/pvf_runtime_cache.hpp"
+#include "runtime/common/runtime_instances_pool.hpp"
 #include "runtime/common/uncompress_code_if_needed.hpp"
 #include "runtime/executor.hpp"
 #include "runtime/module.hpp"
@@ -118,7 +118,7 @@ namespace kagome::parachain {
         executor_{std::move(executor)},
         ctx_factory_{std::move(ctx_factory)},
         log_{log::createLogger("Pvf")},
-        runtime_cache_{std::make_unique<PvfRuntimeCache>(
+        runtime_cache_{std::make_unique<runtime::RuntimeInstancesPool>(
             module_factory, config->parachainRuntimeInstanceCacheSize())} {}
 
   PvfImpl::~PvfImpl() {}
@@ -219,8 +219,7 @@ namespace kagome::parachain {
       const common::Hash256 &code_hash,
       const ParachainRuntime &code_zstd,
       const ValidationParams &params) const {
-    OUTCOME_TRY(instance,
-                runtime_cache_->requestInstance(para_id, code_hash, code_zstd));
+    OUTCOME_TRY(instance, runtime_cache_->instantiate(code_hash, code_zstd));
 
     runtime::RuntimeContext::ContextParams executor_params{};
     auto &parent_hash = receipt.descriptor.relay_parent;
@@ -229,17 +228,11 @@ namespace kagome::parachain {
     OUTCOME_TRY(
         session_params,
         parachain_api_->session_executor_params(parent_hash, session_index));
-
-    return instance.get().exclusiveAccess(
-        [this, &params, &executor_params](
-            auto &instance) -> outcome::result<ValidationResult> {
-          OUTCOME_TRY(
-              ctx,
-              ctx_factory_->ephemeral(
-                  instance, storage::trie::kEmptyRootHash, executor_params));
-          return executor_->decodedCallWithCtx<ValidationResult>(
-              ctx, "validate_block", params);
-        });
+    OUTCOME_TRY(ctx,
+                ctx_factory_->ephemeral(
+                    instance, storage::trie::kEmptyRootHash, executor_params));
+    return executor_->decodedCallWithCtx<ValidationResult>(
+        ctx, "validate_block", params);
   }
 
   outcome::result<Pvf::CandidateCommitments> PvfImpl::fromOutputs(

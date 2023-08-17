@@ -11,13 +11,14 @@
 #include <boost/variant.hpp>
 #include <optional>
 
-#include "common/buffer.hpp"
 #include "common/blob.hpp"
+#include "common/buffer.hpp"
 #include "outcome/outcome.hpp"
 #include "runtime/instance_environment.hpp"
 #include "runtime/ptr_size.hpp"
 
 namespace kagome::runtime {
+  class Module;
 
   static_assert(sizeof(float) == 4);
   static_assert(sizeof(double) == 8);
@@ -37,6 +38,8 @@ namespace kagome::runtime {
     virtual ~ModuleInstance() = default;
 
     virtual const common::Hash256 &getCodeHash() const = 0;
+
+    virtual std::shared_ptr<const Module> getModule() const = 0;
 
     /**
      * Call the instance's function
