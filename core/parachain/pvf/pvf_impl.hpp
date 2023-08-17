@@ -69,7 +69,6 @@ namespace kagome::parachain {
             std::shared_ptr<runtime::Executor> executor,
             std::shared_ptr<runtime::RuntimeContextFactory> ctx_factory,
             std::shared_ptr<application::AppConfiguration> config);
-    ~PvfImpl() override;
 
     outcome::result<Result> pvfSync(const CandidateReceipt &receipt,
                                     const ParachainBlock &pov) const override;
@@ -102,7 +101,7 @@ namespace kagome::parachain {
     std::shared_ptr<runtime::RuntimeContextFactory> ctx_factory_;
     log::Logger log_;
 
-    std::unique_ptr<runtime::RuntimeInstancesPool> runtime_cache_;
+    std::shared_ptr<runtime::RuntimeInstancesPool> runtime_cache_;
   };
 }  // namespace kagome::parachain
 

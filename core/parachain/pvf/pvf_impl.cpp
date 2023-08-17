@@ -118,10 +118,8 @@ namespace kagome::parachain {
         executor_{std::move(executor)},
         ctx_factory_{std::move(ctx_factory)},
         log_{log::createLogger("Pvf")},
-        runtime_cache_{std::make_unique<runtime::RuntimeInstancesPool>(
+        runtime_cache_{std::make_shared<runtime::RuntimeInstancesPool>(
             module_factory, config->parachainRuntimeInstanceCacheSize())} {}
-
-  PvfImpl::~PvfImpl() {}
 
   outcome::result<Pvf::Result> PvfImpl::pvfValidate(
       const PersistedValidationData &data,
