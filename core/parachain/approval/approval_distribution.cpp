@@ -2884,7 +2884,7 @@ namespace kagome::parachain {
       SL_TRACE(logger_,
                "Sending approvals to unified peer. (peer id={}, count={})",
                peer_id,
-               assignments_to_send.size());
+               approvals_to_send.size());
       send_approvals_batched(std::move(approvals_to_send), peer_id);
     }
   }
