@@ -19,6 +19,7 @@ if [ -d "/__w/kagome/kagome" ]
 then
   echo "Directory /__w/kagome/kagome exists. Updating safe.directory"
   git config --global --add safe.directory /__w/kagome/kagome
+  source /venv/bin/activate
 fi
 
 cd "$(dirname $0)/../../.."
