@@ -8,9 +8,6 @@ sudo python3 -m pip install scikit-build
 cmake --version
 which cmake
 rm -rf /usr/local/bin/cmake
-cmake --version
-which cmake
-
 sudo python3 -m pip install cmake==3.25 requests gitpython gcovr
 
 cmake --version
