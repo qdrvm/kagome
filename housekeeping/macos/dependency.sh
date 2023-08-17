@@ -7,6 +7,8 @@ sudo python3 -m pip install scikit-build
 cmake --version
 which cmake
 sudo python3 -m pip install cmake==3.25 requests gitpython gcovr
+cmake --version
+which cmake
 curl https://sh.rustup.rs -sSf | sh -s -- -y --default-toolchain nightly-2022-11-20 --profile minimal
 
 brew install llvm@12
