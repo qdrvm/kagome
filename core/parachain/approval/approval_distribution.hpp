@@ -108,7 +108,7 @@ namespace kagome::parachain {
 
       ApprovalEntry(
           GroupIndex group_index,
-          std::optional<std::reference_wrapper<OurAssignment>> assignment,
+          std::optional<std::reference_wrapper<const OurAssignment>> assignment,
           size_t assignments_size)
           : backing_group{group_index},
             our_assignment{assignment},

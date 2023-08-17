@@ -970,7 +970,7 @@ namespace kagome::parachain {
     candidates.reserve(block_info.included_candidates.size());
     for (const auto &[candidateHash, candidateReceipt, coreIndex, groupIndex] :
          block_info.included_candidates) {
-      std::optional<std::reference_wrapper<OurAssignment>> assignment{};
+      std::optional<std::reference_wrapper<const OurAssignment>> assignment{};
       if (auto assignment_it = block_info.assignments.find(coreIndex);
           assignment_it != block_info.assignments.end()) {
         assignment = assignment_it->second;
