@@ -20,6 +20,11 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::consensus::babe, DigestError, e) {
 }
 
 namespace kagome::consensus::babe {
+  outcome::result<BabeSlotNumber> getBabeSlot(
+      const primitives::BlockHeader &header) {
+    OUTCOME_TRY(digests, getBabeDigests(header));
+    return digests.second.slot_number;
+  }
 
   outcome::result<std::pair<Seal, BabeBlockHeader>> getBabeDigests(
       const primitives::BlockHeader &block_header) {

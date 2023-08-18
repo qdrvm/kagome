@@ -55,8 +55,7 @@ namespace kagome::consensus::babe {
       std::shared_ptr<runtime::BabeApi> babe_api,
       std::shared_ptr<crypto::Hasher> hasher,
       std::shared_ptr<storage::trie::TrieStorage> trie_storage,
-      primitives::events::ChainSubscriptionEnginePtr chain_events_engine,
-      const BabeClock &clock)
+      primitives::events::ChainSubscriptionEnginePtr chain_events_engine)
       : persistent_storage_(
           persistent_storage->getSpace(storage::Space::kDefault)),
         config_warp_sync_{app_config.syncMethod()
@@ -77,7 +76,6 @@ namespace kagome::consensus::babe {
           return std::make_shared<primitives::events::ChainEventSubscriber>(
               chain_events_engine);
         }()),
-        clock_(clock),
         logger_(log::createLogger("BabeConfigRepo", "babe_config_repo")) {
     BOOST_ASSERT(persistent_storage_ != nullptr);
     BOOST_ASSERT(block_tree_ != nullptr);
@@ -93,6 +91,21 @@ namespace kagome::consensus::babe {
   }
 
   bool BabeConfigRepositoryImpl::prepare() {
+    if (auto res = persistent_storage_->tryGet(
+            storage::kBabeConfigRepositoryImplGenesisSlot)) {
+      if (auto &genesis_slot_raw = res.value()) {
+        if (auto res = scale::decode<BabeSlotNumber>(*genesis_slot_raw)) {
+          first_block_slot_number_ = res.value();
+        } else {
+          SL_ERROR(logger_, "genesis slot decode error: {}", res.error());
+          std::ignore = persistent_storage_->remove(
+              storage::kBabeConfigRepositoryImplGenesisSlot);
+        }
+      }
+    } else {
+      SL_ERROR(logger_, "genesis slot db read error: {}", res.error());
+      return false;
+    }
     std::unique_lock lock{indexer_mutex_};
     auto finalized = block_tree_->getLastFinalized();
     auto finalized_header = block_tree_->getBlockHeader(finalized.hash).value();
@@ -148,8 +161,8 @@ namespace kagome::consensus::babe {
     auto epoch_changed = true;
     if (parent_info.number != 0) {
       OUTCOME_TRY(parent_header, block_tree_->getBlockHeader(parent_info.hash));
-      OUTCOME_TRY(parent_digest, getBabeDigests(parent_header));
-      auto parent_epoch = slotToEpoch(parent_digest.second.slot_number);
+      OUTCOME_TRY(parent_slot, getBabeSlot(parent_header));
+      OUTCOME_TRY(parent_epoch, slotToEpoch(parent_info, parent_slot));
       epoch_changed = epoch_number != parent_epoch;
     }
     std::unique_lock lock{indexer_mutex_};
@@ -167,24 +180,15 @@ namespace kagome::consensus::babe {
     return epoch_length_;
   }
 
-  BabeSlotNumber BabeConfigRepositoryImpl::getCurrentSlot() const {
-    return static_cast<BabeSlotNumber>(clock_.now().time_since_epoch()
+  BabeSlotNumber BabeConfigRepositoryImpl::timeToSlot(
+      BabeTimePoint time) const {
+    return static_cast<BabeSlotNumber>(time.time_since_epoch()
                                        / slotDuration());
   }
 
   BabeTimePoint BabeConfigRepositoryImpl::slotStartTime(
       BabeSlotNumber slot) const {
-    return clock_.zero() + slot * slotDuration();
-  }
-
-  BabeDuration BabeConfigRepositoryImpl::remainToStartOfSlot(
-      BabeSlotNumber slot) const {
-    auto deadline = slotStartTime(slot);
-    auto now = clock_.now();
-    if (deadline > now) {
-      return deadline - now;
-    }
-    return BabeDuration{};
+    return BabeTimePoint{} + slot * slotDuration();
   }
 
   BabeTimePoint BabeConfigRepositoryImpl::slotFinishTime(
@@ -192,50 +196,57 @@ namespace kagome::consensus::babe {
     return slotStartTime(slot + 1);
   }
 
-  BabeDuration BabeConfigRepositoryImpl::remainToFinishOfSlot(
-      BabeSlotNumber slot) const {
-    return remainToStartOfSlot(slot + 1);
-  }
-
-  BabeSlotNumber BabeConfigRepositoryImpl::getFirstBlockSlotNumber() {
-    if (first_block_slot_number_.has_value()) {
-      return first_block_slot_number_.value();
-    }
-
-    auto r = [&]() -> outcome::result<BabeSlotNumber> {
-      OUTCOME_TRY(hash, header_repo_->getHashByNumber(1));
-      OUTCOME_TRY(header, header_repo_->getBlockHeader(hash));
-      OUTCOME_TRY(digest, getBabeDigests(header));
-      auto &slot = digest.second.slot_number;
-      if (block_tree_->getLastFinalized().number != 0) {
-        first_block_slot_number_ = slot;
+  outcome::result<BabeSlotNumber>
+  BabeConfigRepositoryImpl::getFirstBlockSlotNumber(
+      const primitives::BlockInfo &parent_info) const {
+    auto slot1 = first_block_slot_number_;
+    if (not slot1) {
+      auto finalized = block_tree_->getLastFinalized();
+      OUTCOME_TRY(parent, block_tree_->getBlockHeader(parent_info.hash));
+      if (parent.number == 1) {
+        BOOST_OUTCOME_TRY(slot1, getBabeSlot(parent));
+      } else if (finalized.number != 0) {
+        OUTCOME_TRY(hash1, block_tree_->getBlockHash(1));
+        if (hash1) {
+          OUTCOME_TRY(header1, block_tree_->getBlockHeader(*hash1));
+          BOOST_OUTCOME_TRY(slot1, getBabeSlot(header1));
+        }
       }
-      return slot;
-    }();
-    if (r) {
-      return r.value();
+      if (not slot1 and trie_storage_->getEphemeralBatchAt(parent.state_root)) {
+        OUTCOME_TRY(epoch, babe_api_->next_epoch(parent_info.hash));
+        slot1 = epoch.start_slot - epoch.epoch_index * epoch.duration;
+      }
+      if (not slot1) {
+        auto header1 = parent;
+        while (header1.number != 1) {
+          BOOST_OUTCOME_TRY(header1,
+                            block_tree_->getBlockHeader(header1.parent_hash));
+        }
+        BOOST_OUTCOME_TRY(slot1, getBabeSlot(header1));
+      }
+      if (finalized.number != 0
+          and block_tree_->hasDirectChain(finalized, parent_info)) {
+        first_block_slot_number_ = slot1;
+        OUTCOME_TRY(persistent_storage_->put(
+            storage::kBabeConfigRepositoryImplGenesisSlot,
+            scale::encode(*slot1).value()));
+      }
     }
-
-    return getCurrentSlot();
+    return slot1.value();
   }
 
-  EpochNumber BabeConfigRepositoryImpl::slotToEpoch(BabeSlotNumber slot) const {
-    auto genesis_slot_number =
-        const_cast<BabeConfigRepositoryImpl &>(*this).getFirstBlockSlotNumber();
-    if (slot > genesis_slot_number) {
-      return (slot - genesis_slot_number) / epochLength();
+  outcome::result<EpochDescriptor>
+  BabeConfigRepositoryImpl::slotToEpochDescriptor(
+      const primitives::BlockInfo &parent_info, BabeSlotNumber slot) const {
+    if (parent_info.number == 0) {
+      return EpochDescriptor{0, slot};
     }
-    return 0;
-  }
-
-  BabeSlotNumber BabeConfigRepositoryImpl::slotInEpoch(
-      BabeSlotNumber slot) const {
-    auto genesis_slot_number =
-        const_cast<BabeConfigRepositoryImpl &>(*this).getFirstBlockSlotNumber();
-    if (slot > genesis_slot_number) {
-      return (slot - genesis_slot_number) % epochLength();
+    OUTCOME_TRY(slot1, getFirstBlockSlotNumber(parent_info));
+    if (slot < slot1) {
+      return BabeError::SLOT_BEFORE_GENESIS;
     }
-    return 0;
+    auto slots = slot - slot1;
+    return EpochDescriptor{slots / epochLength(), slots % epochLength()};
   }
 
   void BabeConfigRepositoryImpl::warp(std::unique_lock<std::mutex> &lock,
@@ -264,29 +275,22 @@ namespace kagome::consensus::babe {
           OUTCOME_TRY(_state, babe_api_->configuration(info.hash));
           auto state = std::make_shared<primitives::BabeConfiguration>(
               std::move(_state));
-          BabeIndexedValue value{getConfig(*state), state, state};
-          if (info.number == 0) {
-            indexer_.put(info, {value, std::nullopt}, true);
-          } else {
-            std::vector<primitives::BlockInfo> refs;
-            while (true) {
-              OUTCOME_TRY(header, block_tree_->getBlockHeader(info.hash));
-              if (HasBabeConsensusDigest digests{header}) {
-                value.next_state = applyDigests(value.config, digests);
-                indexer_.put(info, {value, std::nullopt}, true);
-                if (not refs.empty()) {
-                  indexer_.remove(refs.front());
-                }
-                break;
-              }
-              refs.emplace_back(info);
-              info = *header.parentInfo();
-            }
-            std::reverse(refs.begin(), refs.end());
-            for (auto &block : refs) {
-              indexer_.put(block, {std::nullopt, info, true}, false);
-            }
+          BabeIndexedValue value{getConfig(*state), state, std::nullopt, state};
+          if (info.number != 0) {
+            OUTCOME_TRY(next, babe_api_->next_epoch(info.hash));
+            value.next_state_warp =
+                std::make_shared<primitives::BabeConfiguration>(
+                    primitives::BabeConfiguration{
+                        state->slot_duration,
+                        state->epoch_length,
+                        next.leadership_rate,
+                        std::move(next.authorities),
+                        next.randomness,
+                        next.allowed_slots,
+                    });
+            value.next_state = value.next_state_warp;
           }
+          indexer_.put(info, {value, std::nullopt}, true);
           if (i_first == i_last) {
             return outcome::success();
           }
@@ -302,7 +306,12 @@ namespace kagome::consensus::babe {
               BOOST_OUTCOME_TRY(prev_state, loadPrev(prev));
             }
             auto state = applyDigests(getConfig(*prev_state), digests);
-            BabeIndexedValue value{getConfig(*state), std::nullopt, state};
+            BabeIndexedValue value{
+                getConfig(*state),
+                std::nullopt,
+                std::nullopt,
+                state,
+            };
             indexer_.put(info, {value, prev}, block_tree_->isFinalized(info));
             prev = info;
             prev_state = state;
@@ -362,6 +371,8 @@ namespace kagome::consensus::babe {
       if (block.number == 0) {
         BOOST_ASSERT(item.value->state);
         item.value->next_state = item.value->state;
+      } else if (item.value->next_state_warp) {
+        item.value->next_state = item.value->next_state_warp;
       } else {
         OUTCOME_TRY(header, block_tree_->getBlockHeader(block.hash));
         item.value->next_state = applyDigests(item.value->config, {header});

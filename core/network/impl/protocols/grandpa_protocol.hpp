@@ -111,6 +111,8 @@ namespace kagome::network {
                         consensus::grandpa::VoterSetId>>
         recent_catchup_requests_by_round_;
 
+    GrandpaNeighborMessage last_neighbor_{};
+
     std::set<libp2p::peer::PeerId> recent_catchup_requests_by_peer_;
   };
 
