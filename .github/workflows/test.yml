@@ -32,7 +32,7 @@ jobs:
         path: ${{ env.CACHE_PATHS }}
         key: ${{ github.job }}-${{ env.CACHE_VERSION }}
     - name: Setup cmake
-      uses: jwlawson/actions-setup-cmake@v1.14.1
+      uses: jwlawson/actions-setup-cmake@187efd9581ed20ee4e03c0dfb9ac2cd5896c4835
       with:
         cmake-version: '3.25.0'
     - name: install

@@ -5,7 +5,6 @@ BUILD_FINAL_TARGET="${BUILD_FINAL_TARGET:-test}"
 BUILD_THREADS="${BUILD_THREADS:-$(( $(nproc 2>/dev/null || sysctl -n hw.ncpu) / 2 + 1))}"
 
 which git
-which cmake
 
 cd "$(dirname $0)/.."
 
