@@ -14,9 +14,9 @@
 #include "mock/core/crypto/hasher_mock.hpp"
 #include "mock/core/dispute_coordinator/dispute_coordinator_mock.hpp"
 #include "mock/core/network/grandpa_transmitter_mock.hpp"
+#include "mock/core/parachain/approved_ancestor.hpp"
 #include "mock/core/parachain/backing_store_mock.hpp"
 #include "mock/core/runtime/parachain_host_mock.hpp"
-#include "mock/core/parachain/approved_ancestor.hpp"
 #include "testutil/lazy.hpp"
 #include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
@@ -36,8 +36,8 @@ using kagome::consensus::grandpa::JustificationObserver;
 using kagome::crypto::HasherMock;
 using kagome::dispute::DisputeCoordinatorMock;
 using kagome::network::GrandpaTransmitterMock;
-using kagome::parachain::BackingStoreMock;
 using kagome::parachain::ApprovedAncestorMock;
+using kagome::parachain::BackingStoreMock;
 using kagome::primitives::BlockHash;
 using kagome::primitives::BlockHeader;
 using kagome::primitives::BlockInfo;
@@ -214,7 +214,8 @@ TEST_F(ChainTest, BestChainContaining) {
   EXPECT_CALL(*tree, getLastFinalized()).WillOnce(Return(BlockInfo{42, h[3]}));
   std::vector<BlockHash> best_chain{h[3]};
   EXPECT_CALL(*tree, getChainByBlocks(_, _)).WillOnce(Return(best_chain));
-  EXPECT_CALL(*parachain_api, session_index_for_child(_)).WillOnce(Return(0));
+  EXPECT_CALL(*approved_ancestor, approvedAncestor(_, _))
+      .WillOnce(testing::ReturnArg<1>());
   EXPECT_CALL(*dispute_coordinator, determineUndisputedChain(_, _, _))
       .WillOnce(testing::Invoke(
           [&](auto base, auto, auto &&cb) { return cb(base); }));

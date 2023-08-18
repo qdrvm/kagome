@@ -72,6 +72,7 @@ namespace kagome::consensus::grandpa {
       SL_VERBOSE(logger_, "Can not load state: {}", load_res.error());
       return false;
     }
+    lock.unlock();
 
     chain_sub_->subscribe(chain_sub_->generateSubscriptionSetId(),
                           primitives::events::ChainEventType::kFinalizedHeads);
@@ -242,7 +243,7 @@ namespace kagome::consensus::grandpa {
                     digest_item,
                     scale::decode<consensus::babe::BabeBlockHeader>(msg.data));
 
-                return onDigest(context, digest_item);
+                return onDigestNoLock(context, digest_item);
               }
               return outcome::success();
             },
@@ -251,7 +252,7 @@ namespace kagome::consensus::grandpa {
                 OUTCOME_TRY(digest_item,
                             scale::decode<primitives::GrandpaDigest>(msg.data));
 
-                return onDigest(context, digest_item);
+                return onDigestNoLock(context, digest_item);
               }
               return outcome::success();
             },
@@ -374,7 +375,7 @@ namespace kagome::consensus::grandpa {
       const auto &context = context_tmp;
       for (const auto &digest : digests_of_block) {
         auto res = visit_in_place(digest, [&](const auto &digest_item) {
-          return onDigest(context, digest_item);
+          return onDigestNoLock(context, digest_item);
         });
         if (res.has_error()) {
           SL_WARN(logger_,
@@ -850,7 +851,12 @@ namespace kagome::consensus::grandpa {
       const primitives::BlockContext &context,
       const consensus::babe::BabeBlockHeader &digest) {
     std::unique_lock lock{mutex_};
+    return onDigestNoLock(context, digest);
+  }
 
+  outcome::result<void> AuthorityManagerImpl::onDigestNoLock(
+      const primitives::BlockContext &context,
+      const consensus::babe::BabeBlockHeader &digest) {
     auto node = getNode(context);
 
     SL_TRACE(logger_,
@@ -872,7 +878,12 @@ namespace kagome::consensus::grandpa {
       const primitives::BlockContext &context,
       const primitives::GrandpaDigest &digest) {
     std::unique_lock lock{mutex_};
+    return onDigestNoLock(context, digest);
+  }
 
+  outcome::result<void> AuthorityManagerImpl::onDigestNoLock(
+      const primitives::BlockContext &context,
+      const primitives::GrandpaDigest &digest) {
     return visit_in_place(
         digest,
         [this, &context](
