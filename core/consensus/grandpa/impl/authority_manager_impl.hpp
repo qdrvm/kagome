@@ -100,6 +100,16 @@ namespace kagome::consensus::grandpa {
               const primitives::AuthoritySet &authorities) override;
 
    private:
+    // TODO(Harrm): Refactor me to something safer than hoping
+    // that nobody would forget to call the proper method
+    outcome::result<void> onDigestNoLock(
+        const primitives::BlockContext &context,
+        const consensus::babe::BabeBlockHeader &digest);
+
+    outcome::result<void> onDigestNoLock(
+        const primitives::BlockContext &context,
+        const primitives::GrandpaDigest &digest);
+
     /**
      * @brief Schedule an authority set change after the given delay of N
      * blocks, after next one would be finalized by the finality consensus
