@@ -614,24 +614,34 @@ namespace kagome::parachain {
     if (const auto value =
             if_type<const primitives::events::RemoveAfterFinalizationParams>(
                 event)) {
-      for (const auto &lost : value->get()) {
-        SL_TRACE(logger_,
-                 "Cleaning up stale pending messages.(block hash={})",
-                 lost);
-        pending_known_.erase(lost);
-        active_tranches_.erase(lost);
-        approving_context_map_.erase(lost);
-        /// TODO(iceseer): `blocks_by_number_` clear on finalization
+      approvals_cache_.exclusiveAccess([&](auto &approvals_cache) {
+        for (const auto &lost : value->get()) {
+          SL_TRACE(logger_,
+                   "Cleaning up stale pending messages.(block hash={})",
+                   lost);
+          pending_known_.erase(lost);
+          active_tranches_.erase(lost);
+          approving_context_map_.erase(lost);
+          /// TODO(iceseer): `blocks_by_number_` clear on finalization
 
-        if (auto block_entry = storedBlockEntries().get(lost)) {
-          for (const auto &candidate : block_entry->get().candidates) {
-            recovery_->remove(candidate.second);
-            storedCandidateEntries().extract(candidate.second);
+          if (auto block_entry = storedBlockEntries().get(lost)) {
+            for (const auto &candidate : block_entry->get().candidates) {
+              recovery_->remove(candidate.second);
+              storedCandidateEntries().extract(candidate.second);
+              if (auto it_cached = approvals_cache.find(candidate.second);
+                  it_cached != approvals_cache.end()) {
+                ApprovalCache &approval_cache = it_cached->second;
+                approval_cache.blocks_.erase(lost);
+                if (approval_cache.blocks_.empty()) {
+                  approvals_cache.erase(it_cached);
+                }
+              }
+            }
+            storedBlockEntries().extract(lost);
           }
-          storedBlockEntries().extract(lost);
+          storedDistribBlockEntries().extract(lost);
         }
-        storedDistribBlockEntries().extract(lost);
-      }
+      });
     }
   }
 
@@ -1357,6 +1367,13 @@ namespace kagome::parachain {
               candidate_receipt,
               validation_code);
 
+          self->approvals_cache_.exclusiveAccess([&](auto &approvals_cache) {
+            if (auto it = approvals_cache.find(candidate_hash);
+                it != approvals_cache.end()) {
+              ApprovalCache &ac = it->second;
+              ac.approval_result = outcome;
+            }
+          });
           if (ApprovalOutcome::Approved == outcome) {
             self->issue_approval(
                 candidate_hash, validator_index, relay_block_hash);
@@ -2396,14 +2413,35 @@ namespace kagome::parachain {
 
     import_and_circulate_assignment(
         std::nullopt, indirect_cert, candidate_index);
-    /// TODO(iceseer): make cache by 'candidate_hash'
-    launch_approval(relay_block_hash,
-                    candidate_hash,
-                    session,
-                    candidate,
-                    validator_index,
-                    block_hash,
-                    backing_group);
+
+    std::optional<ApprovalOutcome> approval_state =
+        approvals_cache_.exclusiveAccess(
+            [&](auto &approvals_cache) -> std::optional<ApprovalOutcome> {
+              if (auto it = approvals_cache.find(candidate_hash);
+                  it != approvals_cache.end()) {
+                it->second.blocks_.insert(relay_block_hash);
+                return it->second.approval_result;
+              }
+              approvals_cache.emplace(
+                  candidate_hash,
+                  ApprovalCache{
+                      .blocks_ = {relay_block_hash},
+                      .approval_result = ApprovalOutcome::Failed,
+                  });
+              return std::nullopt;
+            });
+
+    if (!approval_state) {
+      launch_approval(relay_block_hash,
+                      candidate_hash,
+                      session,
+                      candidate,
+                      validator_index,
+                      block_hash,
+                      backing_group);
+    } else if (*approval_state == ApprovalOutcome::Approved) {
+      issue_approval(candidate_hash, validator_index, block_hash);
+    }
   }
 
   void ApprovalDistribution::schedule_wakeup_action(

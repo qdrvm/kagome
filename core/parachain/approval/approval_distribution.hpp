@@ -720,6 +720,13 @@ namespace kagome::parachain {
     std::unordered_map<network::BlockHash, ScheduledCandidateTimer>
         active_tranches_;
 
+    struct ApprovalCache {
+      std::unordered_set<primitives::BlockHash> blocks_;
+      ApprovalOutcome approval_result;
+    };
+    SafeObject<std::unordered_map<CandidateHash, ApprovalCache>, std::mutex>
+        approvals_cache_;
+
     log::Logger logger_ =
         log::createLogger("ApprovalDistribution", "parachain");
   };
