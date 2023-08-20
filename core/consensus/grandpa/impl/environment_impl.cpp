@@ -96,21 +96,46 @@ namespace kagome::consensus::grandpa {
   }
 
   outcome::result<BlockInfo> EnvironmentImpl::bestChainContaining(
-      const BlockHash &base, std::optional<VoterSetId> voter_set_id) const {
-    SL_DEBUG(logger_, "Finding best chain containing block {}", base);
-    OUTCOME_TRY(best_block, block_tree_->getBestContaining(base, std::nullopt));
+      const BlockHash &base_hash,
+      std::optional<VoterSetId> voter_set_id) const {
+    SL_DEBUG(logger_, "Finding best chain containing block {}", base_hash);
+
+    OUTCOME_TRY(best_block,
+                block_tree_->getBestContaining(base_hash, std::nullopt));
 
     // Must finalize block with scheduled/forced change digest first
     auto finalized = block_tree_->getLastFinalized();
+
+    auto approved = approved_ancestor_->approvedAncestor(finalized, best_block);
+
+    auto lag = best_block.number - approved.number;
+
+    if (best_block.number > approved.number) {
+      SL_INFO(logger_,
+              "Found best chain is longer than approved: {} > {}; truncate it",
+              best_block,
+              approved);
+      best_block = approved;
+      metric_approval_lag_->set(lag);
+    } else {
+      metric_approval_lag_->set(0);
+    }
 
     OUTCOME_TRY(best_chain,
                 block_tree_->getChainByBlocks(finalized.hash, best_block.hash));
 
     std::vector<dispute::BlockDescription> block_descriptions;
 
+    primitives::BlockHash parent_hash;
     for (auto &block_hash : best_chain) {
+      // Skip base
+      if (block_hash == finalized.hash) {
+        parent_hash = block_hash;
+        continue;
+      }
+
       auto session_index_res =
-          parachain_api_->session_index_for_child(block_hash);
+          parachain_api_->session_index_for_child(parent_hash);
       if (session_index_res.has_error()) {
         SL_WARN(logger_,
                 "Unable to query undisputed chain, "
@@ -139,6 +164,8 @@ namespace kagome::consensus::grandpa {
           dispute::BlockDescription{.block_hash = block_hash,
                                     .session = session_index,
                                     .candidates = std::move(candidates)});
+
+      parent_hash = block_hash;
     }
 
     auto promise_res = std::promise<outcome::result<primitives::BlockInfo>>();
@@ -162,7 +189,8 @@ namespace kagome::consensus::grandpa {
 
     const auto &best_undisputed_block = best_undisputed_block_res.value();
 
-    auto block = best_undisputed_block;
+    best_block = best_undisputed_block;
+    auto block = best_block;
     while (block.number > finalized.number) {
       OUTCOME_TRY(header, header_repository_->getBlockHeader(block.hash));
       if (HasAuthoritySetChange{header}) {
@@ -190,10 +218,6 @@ namespace kagome::consensus::grandpa {
         best_block = parent_block;
       }
     }
-
-    auto approved = approved_ancestor_->approvedAncestor(finalized, best_block);
-    auto lag = best_block.number - approved.number;
-    metric_approval_lag_->set(lag);
 
     SL_DEBUG(logger_, "Found best chain: {}", best_block);
     return best_block;
