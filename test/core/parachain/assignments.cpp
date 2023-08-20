@@ -27,37 +27,7 @@
 
 using kagome::common::Blob;
 using kagome::common::Buffer;
-using kagome::crypto::Bip39Provider;
-using kagome::crypto::Bip39ProviderImpl;
-using kagome::crypto::BoostRandomGenerator;
-using kagome::crypto::CryptoStore;
-using kagome::crypto::CryptoStoreError;
-using kagome::crypto::CryptoStoreImpl;
-using kagome::crypto::EcdsaKeypair;
-using kagome::crypto::EcdsaPrivateKey;
-using kagome::crypto::EcdsaProvider;
-using kagome::crypto::EcdsaProviderImpl;
-using kagome::crypto::EcdsaPublicKey;
-using kagome::crypto::EcdsaSuite;
-using kagome::crypto::Ed25519Keypair;
-using kagome::crypto::Ed25519PrivateKey;
-using kagome::crypto::Ed25519Provider;
-using kagome::crypto::Ed25519ProviderImpl;
-using kagome::crypto::Ed25519PublicKey;
-using kagome::crypto::Ed25519Seed;
-using kagome::crypto::Ed25519Suite;
-using kagome::crypto::HasherImpl;
-using kagome::crypto::KeyTypeId;
-using kagome::crypto::KnownKeyTypeId;
-using kagome::crypto::Pbkdf2Provider;
-using kagome::crypto::Pbkdf2ProviderImpl;
-using kagome::crypto::Sr25519Keypair;
-using kagome::crypto::Sr25519Provider;
-using kagome::crypto::Sr25519ProviderImpl;
-using kagome::crypto::Sr25519PublicKey;
-using kagome::crypto::Sr25519SecretKey;
-using kagome::crypto::Sr25519Seed;
-using kagome::crypto::Sr25519Suite;
+using namespace kagome::crypto;
 
 static CryptoStoreImpl::Path assignments_directory =
     kagome::filesystem::temp_directory_path() / "assignments_test";
@@ -115,6 +85,9 @@ struct AssignmentsTest : public test::BaseFS_Test {
   }
 };
 
+/**
+ * There should be no assignments in no cores available.
+ */
 TEST_F(AssignmentsTest, succeeds_empty_for_0_cores) {
   auto cs = create_crypto_store();
   auto asgn_keys =
@@ -138,11 +111,14 @@ TEST_F(AssignmentsTest, succeeds_empty_for_0_cores) {
 
   auto assignments =
       kagome::parachain::ApprovalDistribution::compute_assignments(
-          cs, si, vrf_story, leaving_cores, logger);
+          cs, si, vrf_story, leaving_cores);
 
   ASSERT_EQ(assignments.size(), 0ull);
 }
 
+/**
+ * There should be an assignment for a 1 core.
+ */
 TEST_F(AssignmentsTest, assign_to_nonzero_core) {
   auto cs = create_crypto_store();
   auto asgn_keys =
@@ -185,7 +161,7 @@ TEST_F(AssignmentsTest, assign_to_nonzero_core) {
                        (kagome::parachain::GroupIndex)1)};
   auto assignments =
       kagome::parachain::ApprovalDistribution::compute_assignments(
-          cs, si, vrf_story, leaving_cores, logger);
+          cs, si, vrf_story, leaving_cores);
 
   ASSERT_EQ(assignments.size(), 1ull);
 
@@ -218,6 +194,9 @@ TEST_F(AssignmentsTest, assign_to_nonzero_core) {
                    kagome::crypto::constants::sr25519::vrf::OUTPUT_SIZE));
 }
 
+/**
+ * There should be an assignment for a 1 core.
+ */
 TEST_F(AssignmentsTest, assignments_produced_for_non_backing) {
   auto cs = create_crypto_store();
   auto asgn_keys =
@@ -260,7 +239,7 @@ TEST_F(AssignmentsTest, assignments_produced_for_non_backing) {
                        (kagome::parachain::GroupIndex)0)};
   auto assignments =
       kagome::parachain::ApprovalDistribution::compute_assignments(
-          cs, si, vrf_story, leaving_cores, logger);
+          cs, si, vrf_story, leaving_cores);
 
   ASSERT_EQ(assignments.size(), 1ull);
 

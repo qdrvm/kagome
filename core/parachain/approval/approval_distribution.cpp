@@ -358,14 +358,11 @@ namespace {
       const kagome::parachain::ApprovalDistribution::CandidateEntry
           &candidate_entry,
       const kagome::parachain::approval::RequiredTranches &required_tranches,
-      kagome::network::DelayTranche const tranche_now,
-      kagome::log::Logger &logger) {
+      kagome::network::DelayTranche const tranche_now) {
     if (!approval_entry.our_assignment) {
-      SL_TRACE(logger, "No assignment");
       return false;
     }
     if (approval_entry.our_assignment->triggered) {
-      SL_TRACE(logger, "Already triggered");
       return false;
     }
     if (approval_entry.our_assignment->tranche == 0) {
@@ -373,13 +370,11 @@ namespace {
     }
     if (kagome::is_type<kagome::parachain::approval::AllRequiredTranche>(
             required_tranches)) {
-      const bool r = !kagome::parachain::approval::is_approved(
+      return !kagome::parachain::approval::is_approved(
           checkApproval(candidate_entry,
                         approval_entry,
                         kagome::parachain::approval::AllRequiredTranche{}),
           std::numeric_limits<kagome::network::Tick>::max());
-      SL_TRACE(logger, "AllRequiredTranche return. (res={})", r);
-      return r;
     }
     if (auto pending = kagome::if_type<
             const kagome::parachain::approval::PendingRequiredTranche>(
@@ -387,16 +382,12 @@ namespace {
       const auto drifted_tranche_now = kagome::math::sat_sub_unsigned(
           tranche_now,
           kagome::network::DelayTranche(pending->get().clock_drift));
-      const auto r =
-          approval_entry.our_assignment->tranche
+      return approval_entry.our_assignment->tranche
               <= pending->get().maximum_broadcast
           && approval_entry.our_assignment->tranche <= drifted_tranche_now;
-      SL_TRACE(logger, "PendingRequiredTranche return. (res={})", r);
-      return r;
     }
     if (kagome::is_type<kagome::parachain::approval::ExactRequiredTranche>(
             required_tranches)) {
-      SL_TRACE(logger, "ExactRequiredTranche return false.");
       return false;
     }
     UNREACHABLE;
@@ -648,12 +639,7 @@ namespace kagome::parachain {
   std::optional<std::pair<ValidatorIndex, crypto::Sr25519Keypair>>
   ApprovalDistribution::findAssignmentKey(
       const std::shared_ptr<crypto::CryptoStore> &keystore,
-      const runtime::SessionInfo &config,
-      log::Logger &logger) {
-    auto keys = keystore->getSr25519PublicKeys(crypto::KEY_TYPE_ASGN).value();
-    for (const auto &key : keys) {
-      SL_TRACE(logger, "PK FOR ASSIGNMENT: {}", key.toHex());
-    }
+      const runtime::SessionInfo &config) {
     for (size_t ix = 0; ix < config.assignment_keys.size(); ++ix) {
       const auto &pk = config.assignment_keys[ix];
       if (auto res = keystore->findSr25519Keypair(
@@ -671,15 +657,14 @@ namespace kagome::parachain {
       const std::shared_ptr<crypto::CryptoStore> &keystore,
       const runtime::SessionInfo &config,
       const RelayVRFStory &relay_vrf_story,
-      const CandidateIncludedList &leaving_cores,
-      log::Logger &logger) {
+      const CandidateIncludedList &leaving_cores) {
     if (config.n_cores == 0 || config.assignment_keys.empty()
         || config.validator_groups.empty()) {
       return {};
     }
 
     std::optional<std::pair<ValidatorIndex, crypto::Sr25519Keypair>>
-        founded_key = findAssignmentKey(keystore, config, logger);
+        founded_key = findAssignmentKey(keystore, config);
     if (!founded_key) {
       return {};
     }
@@ -807,12 +792,8 @@ namespace kagome::parachain {
       return;
     }
 
-    SL_TRACE(
-        logger_,
-        "UNSAFE VRF: {}",
-        common::BufferView(relay_vrf.data, sizeof(relay_vrf.data)).toHex());
     auto assignments = compute_assignments(
-        keystore_, session_info, relay_vrf, *ac.included_candidates, logger_);
+        keystore_, session_info, relay_vrf, *ac.included_candidates);
 
     /// TODO(iceseer): force approve impl
 
@@ -925,15 +906,6 @@ namespace kagome::parachain {
     OUTCOME_TRY(epoch,
                 babe_util_->slotToEpoch(*block_header.parentInfo(),
                                         babe_digests.second.slot_number));
-
-    SL_TRACE(logger_,
-             "REQUEST BABE DATA. (epoch={}, randomness={})",
-             epoch,
-             babe_config.randomness.toHex());
-
-    for (const auto &a : babe_config.authorities) {
-      SL_TRACE(logger_, "Auth. (a={})", a.id.id.toHex());
-    }
 
     return std::make_tuple(epoch,
                            std::move(babe_digests.second),
@@ -1665,7 +1637,7 @@ namespace kagome::parachain {
 
     auto message_subject{
         std::make_tuple(block_hash, claimed_candidate_index, validator_index)};
-    approval::MessageKindAssignment message_kind{};
+    auto message_kind{approval::MessageKind::Assignment};
 
     if (source) {
       const auto &peer_id = source->get();
@@ -1782,20 +1754,17 @@ namespace kagome::parachain {
 
       const bool already_sent =
           peer_kn.sent.contains(message_subject,
-                                approval::MessageKindAssignment{})
+                                approval::MessageKind::Assignment)
           || peer_kn.sent.contains(message_subject,
-                                   approval::MessageKindApproval{});
+                                   approval::MessageKind::Approval);
       return !already_sent;
     };
 
     std::unordered_set<libp2p::peer::PeerId> peers{};
-    for (const auto &[peer_id, peer_knowledge] : entry.known_by) {
+    for (auto &[peer_id, peer_knowledge] : entry.known_by) {
       if (peer_filter(peer_id, peer_knowledge)) {
         peers.insert(peer_id);
-        if (auto it = entry.known_by.find(peer_id);
-            it != entry.known_by.end()) {
-          it->second.sent.insert(message_subject, message_kind);
-        }
+        peer_knowledge.sent.insert(message_subject, message_kind);
       }
     }
 
@@ -1859,12 +1828,12 @@ namespace kagome::parachain {
 
     auto message_subject{
         std::make_tuple(block_hash, candidate_index, validator_index)};
-    approval::MessageKindApproval message_kind{};
+    auto message_kind{approval::MessageKind::Approval};
 
     if (source) {
       const auto &peer_id = source->get();
       if (!entry.knowledge.contains(message_subject,
-                                    approval::MessageKindAssignment{})) {
+                                    approval::MessageKind::Assignment)) {
         SL_TRACE(logger_,
                  "Unknown approval assignment. (peer id={}, block hash={}, "
                  "candidate={}, validator={})",
@@ -1975,17 +1944,14 @@ namespace kagome::parachain {
         return false;
       }
       return peer_kn.sent.contains(message_subject,
-                                   approval::MessageKindAssignment{});
+                                   approval::MessageKind::Assignment);
     };
 
     std::unordered_set<libp2p::peer::PeerId> peers{};
-    for (const auto &[peer_id, peer_knowledge] : entry.known_by) {
+    for (auto &[peer_id, peer_knowledge] : entry.known_by) {
       if (peer_filter(peer_id, peer_knowledge)) {
         peers.insert(peer_id);
-        if (auto it = entry.known_by.find(peer_id);
-            it != entry.known_by.end()) {
-          it->second.sent.insert(message_subject, message_kind);
-        }
+        peer_knowledge.sent.insert(message_subject, message_kind);
       }
     }
 
@@ -2662,13 +2628,6 @@ namespace kagome::parachain {
     const auto ms_wakeup_after = math::sat_sub_unsigned(ms_wakeup, ms_now);
 
     auto &target_block = active_tranches_[block_hash];
-    // auto target_candidate = target_block.find(candidate_hash);
-    /*    if (target_candidate != target_block.end()) {
-          if (target_candidate->second.first <= tick) {
-            return;
-          }
-        }*/
-
     SL_TRACE(logger_,
              "Scheduling wakeup. (block_hash={}, candidate_hash={}, "
              "block_number={}, tick={}, after={})",
@@ -2693,8 +2652,7 @@ namespace kagome::parachain {
                 target_block_it != self->active_tranches_.end()) {
               if (ec) {
                 SL_TRACE(self->logger_,
-                         "Tranche operation waiting failed "
-                         "timer: {}",
+                         "Tranche operation waiting failed timer: {}",
                          ec.message());
                 return;
               }
@@ -2773,7 +2731,7 @@ namespace kagome::parachain {
                                        no_show_duration,
                                        session_info.needed_approvals);
     const auto should_trigger = shouldTriggerAssignment(
-        approval_entry, candidate_entry, tta, tranche_now, logger_);
+        approval_entry, candidate_entry, tta, tranche_now);
     const auto backing_group = approval_entry.backing_group;
     const auto &candidate_receipt = candidate_entry.candidate;
 
@@ -2869,9 +2827,9 @@ namespace kagome::parachain {
                 });
 
             if (!peer_knowledge.contains(message_subject,
-                                         approval::MessageKindAssignment{})) {
+                                         approval::MessageKind::Assignment)) {
               peer_knowledge.sent.insert(message_subject,
-                                         approval::MessageKindAssignment{});
+                                         approval::MessageKind::Assignment);
 
               assignments_to_send.emplace_back(network::Assignment{
                   .indirect_assignment_cert =
@@ -2886,9 +2844,9 @@ namespace kagome::parachain {
 
             if (opt_ref_approval_sig) {
               if (!peer_knowledge.contains(message_subject,
-                                           approval::MessageKindApproval{})) {
+                                           approval::MessageKind::Approval)) {
                 peer_knowledge.sent.insert(message_subject,
-                                           approval::MessageKindApproval{});
+                                           approval::MessageKind::Approval);
 
                 approvals_to_send.emplace_back(
                     network::IndirectSignedApprovalVote{

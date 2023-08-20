@@ -290,8 +290,7 @@ namespace kagome::parachain {
         const std::shared_ptr<crypto::CryptoStore> &keystore,
         const runtime::SessionInfo &config,
         const RelayVRFStory &relay_vrf_story,
-        const CandidateIncludedList &leaving_cores,
-        log::Logger &logger);
+        const CandidateIncludedList &leaving_cores);
 
     void onValidationProtocolMsg(
         const libp2p::peer::PeerId &peer_id,
@@ -545,8 +544,7 @@ namespace kagome::parachain {
 
     static std::optional<std::pair<ValidatorIndex, crypto::Sr25519Keypair>>
     findAssignmentKey(const std::shared_ptr<crypto::CryptoStore> &keystore,
-                      const runtime::SessionInfo &config,
-                      log::Logger &logger);
+                      const runtime::SessionInfo &config);
 
     void unify_with_peer(StoreUnit<StorePair<Hash, DistribBlockEntry>> &entries,
                          const libp2p::peer::PeerId &peer_id,

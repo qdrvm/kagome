@@ -17,10 +17,7 @@
 
 namespace kagome::parachain::approval {
 
-  struct MessageKindAssignment {};
-  struct MessageKindApproval {};
-  using MessageKind =
-      boost::variant<MessageKindAssignment, MessageKindApproval>;
+  enum struct MessageKind { Assignment, Approval };
   using MessageSubject = std::tuple<Hash, CandidateIndex, ValidatorIndex>;
 
   struct MessageSubjectHash {
@@ -46,10 +43,10 @@ namespace kagome::parachain::approval {
       if (it == known_messages.end()) {
         return false;
       }
-      if (is_type<MessageKindAssignment>(kind)) {
+      if (MessageKind::Assignment == kind) {
         return true;
       }
-      return is_type<MessageKindApproval>(it->second);
+      return MessageKind::Approval == it->second;
     }
 
     bool insert(const MessageSubject &message, const MessageKind &kind) {
@@ -57,9 +54,9 @@ namespace kagome::parachain::approval {
       if (inserted) {
         return true;
       }
-      if (is_type<MessageKindAssignment>(it->second)
-          && is_type<MessageKindApproval>(kind)) {
-        it->second = MessageKindApproval{};
+      if (MessageKind::Assignment == it->second
+          && MessageKind::Approval == kind) {
+        it->second = MessageKind::Approval;
         return true;
       }
       return false;
