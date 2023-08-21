@@ -29,8 +29,6 @@ namespace kagome::consensus::grandpa {
 
     virtual BlockInfo lastFinalizedBlock() const = 0;
 
-    virtual BlockInfo bestPrevoteCandidate() = 0;
-
     virtual BlockInfo bestFinalCandidate() = 0;
 
     virtual const std::optional<BlockInfo> &finalizedBlock() const = 0;

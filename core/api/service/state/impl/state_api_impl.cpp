@@ -122,7 +122,8 @@ namespace kagome::api {
     OUTCOME_TRY(trie_reader, storage_->getEphemeralBatchAt(header.state_root));
     auto res = trie_reader->tryGet(key);
     return common::map_result_optional(
-        std::move(res), [](common::BufferOrView &&r) { return r.intoBuffer(); });
+        std::move(res),
+        [](common::BufferOrView &&r) { return r.intoBuffer(); });
   }
 
   outcome::result<std::vector<StateApiImpl::StorageChangeSet>>

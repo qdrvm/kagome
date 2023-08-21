@@ -46,8 +46,7 @@ namespace kagome::storage::trie {
      * shared_ptr
      */
     static std::shared_ptr<PolkadotTrieImpl> create(
-        NodePtr root,
-        RetrieveFunctions retrieve_functions = {});
+        NodePtr root, RetrieveFunctions retrieve_functions = {});
 
     ~PolkadotTrieImpl();
 

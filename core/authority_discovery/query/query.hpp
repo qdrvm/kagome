@@ -23,6 +23,12 @@ namespace kagome::authority_discovery {
      */
     virtual std::optional<libp2p::peer::PeerInfo> get(
         const primitives::AuthorityDiscoveryId &authority) const = 0;
+
+    /**
+     * Get cached authority discovery public key by peer id.
+     */
+    virtual std::optional<primitives::AuthorityDiscoveryId> get(
+        const libp2p::peer::PeerId &peer_id) const = 0;
   };
 }  // namespace kagome::authority_discovery
 

@@ -25,7 +25,7 @@ namespace kagome::network {
 
     FetchAvailableDataProtocol(
         libp2p::Host &host,
-        application::ChainSpec const &chain_spec,
+        const application::ChainSpec &chain_spec,
         const blockchain::GenesisBlockHash &genesis_hash,
         std::shared_ptr<parachain::AvailabilityStore> av_store)
         : RequestResponseProtocol<
@@ -41,7 +41,7 @@ namespace kagome::network {
           av_store_{std::move(av_store)} {}
 
    private:
-    outcome::result<ResponseType> onRxRequest(
+    std::optional<outcome::result<ResponseType>> onRxRequest(
         RequestType candidate_hash, std::shared_ptr<Stream>) override {
       if (auto r = av_store_->getPovAndData(candidate_hash)) {
         return std::move(*r);
@@ -54,16 +54,16 @@ namespace kagome::network {
     std::shared_ptr<parachain::AvailabilityStore> av_store_;
   };
 
-  class StatmentFetchingProtocol final
+  class StatementFetchingProtocol final
       : public RequestResponseProtocol<FetchStatementRequest,
                                        FetchStatementResponse,
                                        ScaleMessageReadWriter> {
    public:
     static constexpr const char *kName = "FetchStatementProtocol";
 
-    StatmentFetchingProtocol(
+    StatementFetchingProtocol(
         libp2p::Host &host,
-        application::ChainSpec const &chain_spec,
+        const application::ChainSpec &chain_spec,
         const blockchain::GenesisBlockHash &genesis_hash,
         std::shared_ptr<parachain::BackingStore> backing_store)
         : RequestResponseProtocol<
@@ -79,7 +79,7 @@ namespace kagome::network {
           backing_store_{std::move(backing_store)} {}
 
    private:
-    outcome::result<ResponseType> onRxRequest(
+    std::optional<outcome::result<ResponseType>> onRxRequest(
         RequestType req, std::shared_ptr<Stream>) override {
       base().logger()->trace(
           "Statement fetch request received.(relay parent={}, candidate "
@@ -92,7 +92,7 @@ namespace kagome::network {
       }
 
       base().logger()->error("No fetch statement response.");
-      return ProtocolError::NO_RESPONSE;
+      return {{ProtocolError::NO_RESPONSE}};
     }
 
     void onTxRequest(const RequestType &) override {}

@@ -8,6 +8,7 @@
 
 #include "consensus/babe/common.hpp"
 #include "consensus/babe/types/epoch_descriptor.hpp"
+#include "primitives/common.hpp"
 
 namespace kagome::consensus::babe {
 
@@ -20,13 +21,10 @@ namespace kagome::consensus::babe {
    public:
     virtual ~BabeUtil() = default;
 
-    // TODO(turuslan): removed in https://github.com/soramitsu/kagome/pull/1700
-    virtual BabeSlotNumber getFirstBlockSlotNumber() = 0;
-
     /**
-     * @returns current unix time slot number
+     * @returns slot for time
      */
-    virtual BabeSlotNumber getCurrentSlot() const = 0;
+    virtual BabeSlotNumber timeToSlot(BabeTimePoint time) const = 0;
 
     /**
      * @returns timepoint of start of slot #{@param slot}
@@ -34,30 +32,26 @@ namespace kagome::consensus::babe {
     virtual BabeTimePoint slotStartTime(BabeSlotNumber slot) const = 0;
 
     /**
-     * @returns duration to start of slot #{@param slot}
-     */
-    virtual BabeDuration remainToStartOfSlot(BabeSlotNumber slot) const = 0;
-
-    /**
      * @returns timepoint of finish of slot #{@param slot}
      */
     virtual BabeTimePoint slotFinishTime(BabeSlotNumber slot) const = 0;
 
     /**
-     * @returns duration to finish of slot #{@param slot}
+     * @returns epoch descriptor for given parent and slot
      */
-    virtual BabeDuration remainToFinishOfSlot(BabeSlotNumber slot) const = 0;
+    virtual outcome::result<EpochDescriptor> slotToEpochDescriptor(
+        const primitives::BlockInfo &parent_info,
+        BabeSlotNumber slot_number) const = 0;
 
     /**
-     * @returns number of epoch by provided {@param slot_number}
+     * @returns epoch number for given parent and slot
      */
-    virtual EpochNumber slotToEpoch(BabeSlotNumber slot_number) const = 0;
-
-    /**
-     * @returns ordinal number of the slot in the corresponding epoch by
-     * provided {@param slot_number}
-     */
-    virtual BabeSlotNumber slotInEpoch(BabeSlotNumber slot_number) const = 0;
+    outcome::result<EpochNumber> slotToEpoch(
+        const primitives::BlockInfo &parent_info,
+        BabeSlotNumber slot_number) const {
+      OUTCOME_TRY(epoch, slotToEpochDescriptor(parent_info, slot_number));
+      return epoch.epoch_number;
+    }
   };
 
 }  // namespace kagome::consensus::babe
