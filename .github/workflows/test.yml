@@ -331,7 +331,11 @@ jobs:
           - name: "Runtime upgrade"
             test: "test0004"
           - name: "Runtime upgrade kagome"
-            test: "test0004_kagome"           
+            test: "test0004_kagome"
+          - name: "Dispute valid block"
+            test: "test0005"
+          - name: "Parachains disputes"
+            test: "test0006"
     runs-on: [ ubuntu-latest, kagome, self-hosted, linux ]
     needs: [Push-self-hosted]
     steps:
