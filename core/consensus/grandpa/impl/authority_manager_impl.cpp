@@ -72,6 +72,7 @@ namespace kagome::consensus::grandpa {
       SL_VERBOSE(logger_, "Can not load state: {}", load_res.error());
       return false;
     }
+    lock.unlock();
 
     chain_sub_->subscribe(chain_sub_->generateSubscriptionSetId(),
                           primitives::events::ChainEventType::kFinalizedHeads);

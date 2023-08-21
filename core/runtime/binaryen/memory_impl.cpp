@@ -23,7 +23,9 @@ namespace kagome::runtime::binaryen {
                 [this](auto addr) { return memory_->get<uint32_t>(addr); }},
             config)},
         logger_{log::createLogger("Binaryen Memory", "binaryen")} {
-    resize(kInitialMemorySize);
+    // TODO(Harrm): #1714 temporary fix because binaryen doesn't recognize
+    // our memory resizes from our allocator
+    memory_->resize(kInitialMemorySize);
   }
 
   WasmPointer MemoryImpl::allocate(WasmSize size) {
