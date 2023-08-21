@@ -10,6 +10,7 @@ addtest(pvf_test
 target_link_libraries(pvf_test
     validator_parachain
     log_configurator
+    )
 
 addtest(assignments_test
     assignments.cpp
