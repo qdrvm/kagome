@@ -1353,7 +1353,8 @@ namespace kagome::parachain {
   outcome::result<kagome::parachain::Pvf::Result>
   ParachainProcessorImpl::validateCandidate(
       const network::CandidateReceipt &candidate,
-      const network::ParachainBlock &pov) {
+      const network::ParachainBlock &pov,
+      const primitives::BlockHash &relay_parent) {
     return pvf_->pvfSync(candidate, pov);
   }
 
@@ -1386,7 +1387,7 @@ namespace kagome::parachain {
     TicToc _measure{"Parachain validation", logger_};
 
     const auto candidate_hash{candidateHashFrom(candidate)};
-    auto validation_result = validateCandidate(candidate, pov);
+    auto validation_result = validateCandidate(candidate, pov, relay_parent);
     if (!validation_result) {
       logger_->warn(
           "Candidate {} on relay_parent {}, para_id {} validation failed with "

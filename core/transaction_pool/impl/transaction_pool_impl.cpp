@@ -87,8 +87,8 @@ namespace kagome::transaction_pool {
                                          hash,
                                          v.priority,
                                          res.first.number + v.longevity,
-                                         std::move(v.requires),
-                                         std::move(v.provides),
+                                         std::move(v.required_tags),
+                                         std::move(v.provided_tags),
                                          v.propagate};
         });
   }
@@ -189,7 +189,7 @@ namespace kagome::transaction_pool {
 
   void TransactionPoolImpl::addTransactionAsWaiting(
       const std::shared_ptr<Transaction> &tx) {
-    for (auto &tag : tx->requires) {
+    for (auto &tag : tx->required_tags) {
       tx_waits_tag_.emplace(tag, tx);
     }
     if (auto key = ext_key_repo_->get(tx->hash); key.has_value()) {
@@ -241,7 +241,7 @@ namespace kagome::transaction_pool {
 
   void TransactionPoolImpl::delTransactionAsWaiting(
       const std::shared_ptr<Transaction> &tx) {
-    for (auto &tag : tx->requires) {
+    for (auto &tag : tx->required_tags) {
       auto range = tx_waits_tag_.equal_range(tag);
       for (auto i = range.first; i != range.second;) {
         if (i->second.lock() == tx) {
@@ -303,7 +303,7 @@ namespace kagome::transaction_pool {
   bool TransactionPoolImpl::checkForReady(
       const std::shared_ptr<const Transaction> &tx) const {
     return std::all_of(
-        tx->requires.begin(), tx->requires.end(), [this](auto &&tag) {
+        tx->required_tags.begin(), tx->required_tags.end(), [this](auto &&tag) {
           auto range = tx_provides_tag_.equal_range(tag);
           return range.first != range.second;
         });
@@ -323,7 +323,7 @@ namespace kagome::transaction_pool {
 
   void TransactionPoolImpl::commitRequiredTags(
       const std::shared_ptr<Transaction> &tx) {
-    for (auto &tag : tx->requires) {
+    for (auto &tag : tx->required_tags) {
       auto range = tx_waits_tag_.equal_range(tag);
       for (auto i = range.first; i != range.second;) {
         auto ci = i++;
@@ -338,7 +338,7 @@ namespace kagome::transaction_pool {
 
   void TransactionPoolImpl::commitProvidedTags(
       const std::shared_ptr<Transaction> &tx) {
-    for (auto &tag : tx->provides) {
+    for (auto &tag : tx->provided_tags) {
       tx_provides_tag_.emplace(tag, tx);
 
       provideTag(tag);
@@ -373,14 +373,14 @@ namespace kagome::transaction_pool {
 
   void TransactionPoolImpl::rollbackRequiredTags(
       const std::shared_ptr<Transaction> &tx) {
-    for (auto &tag : tx->requires) {
+    for (auto &tag : tx->required_tags) {
       tx_waits_tag_.emplace(tag, tx);
     }
   }
 
   void TransactionPoolImpl::rollbackProvidedTags(
       const std::shared_ptr<Transaction> &tx) {
-    for (auto &tag : tx->provides) {
+    for (auto &tag : tx->provided_tags) {
       auto range = tx_provides_tag_.equal_range(tag);
       for (auto i = range.first; i != range.second; ++i) {
         if (i->second.lock() == tx) {

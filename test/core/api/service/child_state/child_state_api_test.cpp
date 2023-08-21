@@ -16,6 +16,7 @@
 #include "mock/core/storage/trie/trie_batches_mock.hpp"
 #include "mock/core/storage/trie/trie_storage_mock.hpp"
 #include "primitives/block_header.hpp"
+#include "runtime/runtime_context.hpp"
 #include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
 

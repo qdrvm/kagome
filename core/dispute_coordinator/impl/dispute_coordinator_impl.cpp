@@ -12,6 +12,7 @@
 
 #include "application/app_state_manager.hpp"
 #include "authority_discovery/query/query.hpp"
+#include "blockchain/block_header_repository.hpp"
 #include "common/visitor.hpp"
 #include "dispute_coordinator/chain_scraper.hpp"
 #include "dispute_coordinator/impl/chain_scraper_impl.hpp"

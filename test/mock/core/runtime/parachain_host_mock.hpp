@@ -3,8 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_RUNTIME_PARQACHAINHOSTMOCK
-#define KAGOME_RUNTIME_PARQACHAINHOSTMOCK
+#pragma once
 
 #include "runtime/runtime_api/parachain_host.hpp"
 
@@ -121,6 +120,11 @@ namespace kagome::runtime {
                 (const primitives::BlockHash &),
                 (override));
 
+    MOCK_METHOD(outcome::result<std::optional<std::vector<ExecutorParam>>>,
+                session_executor_params,
+                (const primitives::BlockHash &block, SessionIndex idx),
+                (override));
+
     MOCK_METHOD(outcome::result<std::vector<ValidationCodeHash>>,
                 pvfs_require_precheck,
                 (const primitives::BlockHash &),
@@ -135,5 +139,3 @@ namespace kagome::runtime {
   };
 
 }  // namespace kagome::runtime
-
-#endif  // KAGOME_RUNTIME_PARQACHAINHOSTMOCK

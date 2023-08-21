@@ -11,9 +11,20 @@
 #include "blockchain/block_header_repository.hpp"
 #include "crypto/sr25519_provider.hpp"
 #include "log/logger.hpp"
-#include "runtime/module_factory.hpp"
 #include "runtime/runtime_api/parachain_host.hpp"
 #include "runtime/runtime_properties_cache.hpp"
+
+namespace kagome::application {
+  class AppConfiguration;
+}
+
+namespace kagome::runtime {
+  class ModuleInstance;
+  class ModuleFactory;
+  class Executor;
+  class RuntimeContextFactory;
+  class RuntimeInstancesPool;
+}  // namespace kagome::runtime
 
 namespace kagome::parachain {
   enum class PvfError {
@@ -33,7 +44,17 @@ OUTCOME_HPP_DECLARE_ERROR(kagome::parachain, PvfError)
 
 namespace kagome::parachain {
   struct ValidationParams;
-  struct ValidationResult;
+
+  struct ValidationResult {
+    SCALE_TIE(6);
+
+    HeadData head_data;
+    std::optional<ParachainRuntime> new_validation_code;
+    std::vector<UpwardMessage> upward_messages;
+    std::vector<network::OutboundHorizontal> horizontal_messages;
+    uint32_t processed_downward_messages;
+    BlockNumber hrmp_watermark;
+  };
 
   class PvfImpl : public Pvf {
    public:
@@ -44,7 +65,10 @@ namespace kagome::parachain {
             std::shared_ptr<blockchain::BlockHeaderRepository>
                 block_header_repository,
             std::shared_ptr<crypto::Sr25519Provider> sr25519_provider,
-            std::shared_ptr<runtime::ParachainHost> parachain_api);
+            std::shared_ptr<runtime::ParachainHost> parachain_api,
+            std::shared_ptr<runtime::Executor> executor,
+            std::shared_ptr<runtime::RuntimeContextFactory> ctx_factory,
+            std::shared_ptr<application::AppConfiguration> config);
 
     outcome::result<Result> pvfSync(const CandidateReceipt &receipt,
                                     const ParachainBlock &pov) const override;
@@ -61,18 +85,23 @@ namespace kagome::parachain {
     outcome::result<std::pair<PersistedValidationData, ParachainRuntime>>
     findData(const CandidateDescriptor &descriptor) const;
     outcome::result<ValidationResult> callWasm(
+        const CandidateReceipt &receipt,
+        const common::Hash256 &code_hash,
         const ParachainRuntime &code_zstd,
         const ValidationParams &params) const;
     outcome::result<CandidateCommitments> fromOutputs(
         const CandidateReceipt &receipt, ValidationResult &&result) const;
 
     std::shared_ptr<crypto::Hasher> hasher_;
-    std::shared_ptr<runtime::ModuleFactory> module_factory_;
     std::shared_ptr<runtime::RuntimePropertiesCache> runtime_properties_cache_;
     std::shared_ptr<blockchain::BlockHeaderRepository> block_header_repository_;
     std::shared_ptr<crypto::Sr25519Provider> sr25519_provider_;
     std::shared_ptr<runtime::ParachainHost> parachain_api_;
+    std::shared_ptr<runtime::Executor> executor_;
+    std::shared_ptr<runtime::RuntimeContextFactory> ctx_factory_;
     log::Logger log_;
+
+    std::shared_ptr<runtime::RuntimeInstancesPool> runtime_cache_;
   };
 }  // namespace kagome::parachain
 

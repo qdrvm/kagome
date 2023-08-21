@@ -16,10 +16,13 @@
 #include "primitives/common.hpp"
 #include "primitives/transaction_validity.hpp"
 #include "primitives/version.hpp"
-#include "runtime/runtime_environment_factory.hpp"
+#include "runtime/runtime_context.hpp"
+#include "storage/changes_trie/changes_tracker.hpp"
 
 namespace kagome::runtime {
+  class ModuleInstance;
   class RuntimeCodeProvider;
+  class RuntimeContext;
 
   /**
    * Core represents mandatory part of runtime api
@@ -33,7 +36,7 @@ namespace kagome::runtime {
      * @return runtime version
      */
     virtual outcome::result<primitives::Version> version(
-        RuntimeEnvironment &env) = 0;
+        std::shared_ptr<ModuleInstance> instance) = 0;
 
     /**
      * @brief Returns the version of the runtime
@@ -66,9 +69,9 @@ namespace kagome::runtime {
      * @param header header used for block initialization
      * @param changes_tracker storage writes and deletes tracker
      */
-    virtual outcome::result<std::unique_ptr<RuntimeEnvironment>>
-    initialize_block(const primitives::BlockHeader &header,
-                     TrieChangesTrackerOpt changes_tracker) = 0;
+    virtual outcome::result<std::unique_ptr<RuntimeContext>> initialize_block(
+        const primitives::BlockHeader &header,
+        TrieChangesTrackerOpt changes_tracker) = 0;
   };
 
 }  // namespace kagome::runtime

@@ -278,7 +278,7 @@ namespace kagome::consensus::grandpa {
                                   set_id{std::move(set_id)},
                                   vote]() mutable {
       if (auto self = wself.lock()) {
-        SL_INFO(self->logger_,
+        SL_VERBOSE(self->logger_,
                 "Round #{}: Send {} signed by {} for block {}",
                 round,
                 visit_in_place(

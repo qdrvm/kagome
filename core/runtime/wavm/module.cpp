@@ -20,7 +20,7 @@
 
 namespace kagome::runtime::wavm {
 
-  std::unique_ptr<ModuleImpl> ModuleImpl::compileFrom(
+  std::shared_ptr<ModuleImpl> ModuleImpl::compileFrom(
       std::shared_ptr<CompartmentWrapper> compartment,
       ModuleParams &module_params,
       std::shared_ptr<IntrinsicModule> intrinsic_module,
@@ -51,12 +51,11 @@ namespace kagome::runtime::wavm {
         *intrinsic_module, module_params.intrinsicMemoryType);
     runtime::wavm::registerHostApiMethods(*intrinsic_module);
 
-    return std::unique_ptr<ModuleImpl>(
-        new ModuleImpl{std::move(compartment),
-                       std::move(intrinsic_module),
-                       std::move(env_factory),
-                       std::move(module),
-                       code_hash});
+    return std::make_shared<ModuleImpl>(std::move(compartment),
+                                        std::move(intrinsic_module),
+                                        std::move(env_factory),
+                                        std::move(module),
+                                        code_hash);
   }
 
   ModuleImpl::ModuleImpl(
@@ -107,8 +106,11 @@ namespace kagome::runtime::wavm {
     auto env = env_factory_->make(
         memory_origin, internal_instance, new_intrinsic_module_instance);
 
-    auto instance = std::make_shared<ModuleInstanceImpl>(
-        std::move(env), internal_instance, module_, compartment_, code_hash_);
+    auto instance = std::make_shared<ModuleInstanceImpl>(std::move(env),
+                                                         internal_instance,
+                                                         shared_from_this(),
+                                                         compartment_,
+                                                         code_hash_);
 
     return instance;
   }

@@ -25,6 +25,7 @@
 #include "mock/core/runtime/core_mock.hpp"
 #include "mock/core/storage/trie/trie_storage_mock.hpp"
 #include "primitives/event_types.hpp"
+#include "runtime/runtime_context.hpp"
 #include "subscription/extrinsic_event_key_repository.hpp"
 #include "subscription/subscriber.hpp"
 #include "testutil/outcome.hpp"
