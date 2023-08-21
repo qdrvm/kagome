@@ -163,9 +163,6 @@ namespace kagome::transaction_pool {
 
   outcome::result<void> TransactionPoolImpl::processTransaction(
       const std::shared_ptr<Transaction> &tx) {
-    //    std::cout << std::endl << "BEFORE SET" << std::endl;
-    //    printAll();
-
     pool_state_.exclusiveAccess([&](auto &pool_state) {
       if (is_ready(pool_state, tx)) {
         setReady(pool_state, tx);
@@ -187,10 +184,6 @@ namespace kagome::transaction_pool {
                             ExtrinsicLifecycleEvent::Future(key.value()));
       }
     });
-
-    //    std::cout << "AFTER SET" << std::endl;
-    //    printAll();
-    //    std::cout << std::endl;
 
     return outcome::success();
   }
@@ -253,41 +246,6 @@ namespace kagome::transaction_pool {
                           ExtrinsicLifecycleEvent::Future(key.value()));
     }
   }
-
-  //  void TransactionPoolImpl::printDependencies(
-  //      const std::unordered_map<Transaction::Hash,
-  //      std::shared_ptr<TxReadyState>>
-  //          &dependents) const {
-  //    for (const auto &[hash, ready_state] : dependents) {
-  //      std::cout << " {" << hash << "}";
-  //    }
-  //  }
-
-  //  void TransactionPoolImpl::printAll() const {
-  //    std::cout << "[Ready " << ready_txs_.size() << "]" << std::endl;
-  //    for (const auto &[hash, ready_status] : ready_txs_) {
-  //      std::cout << "Hash:" << hash
-  //                << ", triggered:" << ready_status.triggered.size() <<
-  //                std::endl;
-  //    }
-  //
-  //    std::cout << "[Pending " << pending_txs_.size() << "]" << std::endl;
-  //    for (const auto &[hash, w_ready_state] : pending_txs_) {
-  //      auto ready_state = w_ready_state.lock();
-  //      std::cout << "Hash:" << hash << ", requires remains:"
-  //                << ready_state->remains_required_txs_count << std::endl;
-  //    }
-  //
-  //    std::cout << "[Graph]" << std::endl;
-  //    for (const auto &[tag, pending_status] : dependency_graph_) {
-  //      std::cout << "Tag:";
-  //      printTag(tag);
-  //      std::cout << ", tag provided:" << pending_status.tag_provided
-  //                << ", dependencies:";
-  //      printDependencies(pending_status.dependents);
-  //      std::cout << std::endl;
-  //    }
-  //  }
 
   outcome::result<Transaction> TransactionPoolImpl::removeOne(
       const Transaction::Hash &tx_hash) {

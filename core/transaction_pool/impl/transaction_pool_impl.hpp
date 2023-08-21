@@ -30,21 +30,6 @@ namespace kagome::network {
   class TransactionsTransmitter;
 }
 
-/*namespace kagome {
-  struct HashTag {
-    auto operator()(const primitives::Transaction::Tag &tag) const {
-      return boost::hash_range(tag.data(), tag.data() + tag.size());
-    }
-  };
-
-  struct EqualTo {
-    bool operator()(const primitives::Transaction::Tag& __x, const
-primitives::Transaction::Tag& __y) const { return __x.size() == __y.size() &&
-         memcmp(__x.data(), __y.data(), __x.size()) == 0;
-    }
-  };
-}*/
-
 namespace kagome::transaction_pool {
 
   class TransactionPoolImpl : public TransactionPool {
@@ -146,18 +131,6 @@ namespace kagome::transaction_pool {
                   const std::shared_ptr<const Transaction> &tx) const;
     size_t imported_txs_count() const;
 
-    //    void printTag(const Transaction::Tag &tag) const {
-    //      for (auto v : tag) {
-    //        std::cout << std::hex << (uint32_t)v;
-    //      }
-    //      std::cout << std::dec;
-    //    }
-    //    void printDependencies(
-    //        const std::unordered_map<Transaction::Hash,
-    //                                 std::shared_ptr<TxReadyState>>
-    //                                 &dependents)
-    //        const;
-    //    void printAll() const;
     void rollback(PoolState &pool_state, const Transaction::Hash &tx_hash);
 
     outcome::result<void> submitOneInternal(
