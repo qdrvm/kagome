@@ -1847,7 +1847,7 @@ namespace kagome::dispute {
       return cb(res.as_failure());
     }
 
-    auto &valid_import = res.value();
+    [[maybe_unused]] auto &valid_import = res.value();
 
     return cb(outcome::success());
   }
