@@ -35,6 +35,7 @@
 #include "mock/core/runtime/offchain_worker_api_mock.hpp"
 #include "mock/core/storage/trie/trie_storage_mock.hpp"
 #include "mock/core/transaction_pool/transaction_pool_mock.hpp"
+#include "runtime/runtime_context.hpp"
 #include "storage/trie/serialization/ordered_trie_hash.hpp"
 #include "testutil/lazy.hpp"
 #include "testutil/literals.hpp"

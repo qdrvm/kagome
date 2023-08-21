@@ -87,8 +87,8 @@ namespace kagome::transaction_pool {
                                          hash,
                                          v.priority,
                                          res.first.number + v.longevity,
-                                         std::move(v.requires),
-                                         std::move(v.provides),
+                                         std::move(v.required_tags),
+                                         std::move(v.provided_tags),
                                          v.propagate};
         });
   }

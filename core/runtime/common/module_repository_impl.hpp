@@ -26,18 +26,19 @@ namespace kagome::runtime {
         std::shared_ptr<RuntimeInstancesPool> runtime_instances_pool,
         std::shared_ptr<RuntimeUpgradeTracker> runtime_upgrade_tracker,
         std::shared_ptr<const ModuleFactory> module_factory,
-        std::shared_ptr<SingleModuleCache> last_compiled_module);
+        std::shared_ptr<SingleModuleCache> last_compiled_module,
+        std::shared_ptr<const RuntimeCodeProvider> code_provider);
 
     outcome::result<std::shared_ptr<ModuleInstance>> getInstanceAt(
-        std::shared_ptr<const RuntimeCodeProvider> code_provider,
         const primitives::BlockInfo &block,
-        const primitives::BlockHeader &header) override;
+        const storage::trie::RootHash &state) override;
 
    private:
     std::shared_ptr<RuntimeInstancesPool> runtime_instances_pool_;
     std::shared_ptr<RuntimeUpgradeTracker> runtime_upgrade_tracker_;
     std::shared_ptr<const ModuleFactory> module_factory_;
     std::shared_ptr<SingleModuleCache> last_compiled_module_;
+    std::shared_ptr<const RuntimeCodeProvider> code_provider_;
     log::Logger logger_;
   };
 

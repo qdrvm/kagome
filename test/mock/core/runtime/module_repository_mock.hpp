@@ -18,9 +18,8 @@ namespace kagome::runtime {
    public:
     MOCK_METHOD(outcome::result<std::shared_ptr<ModuleInstance>>,
                 getInstanceAt,
-                (std::shared_ptr<const RuntimeCodeProvider> code_provider,
-                 const primitives::BlockInfo &block,
-                 const primitives::BlockHeader &header),
+                (const primitives::BlockInfo &block,
+                 const storage::trie::RootHash& state_root),
                 (override));
   };
 

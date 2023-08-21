@@ -7,6 +7,7 @@
 #include "benchmark/block_execution_benchmark.hpp"
 #include "injector/application_injector.hpp"
 #include "runtime/runtime_api/impl/core.hpp"
+#include "common/visitor.hpp"
 
 namespace kagome {
 

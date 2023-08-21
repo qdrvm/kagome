@@ -200,15 +200,19 @@ namespace kagome::parachain {
      */
     outcome::result<Pvf::Result> validateCandidate(
         const network::CandidateReceipt &candidate,
-        const network::ParachainBlock &pov);
+        const network::ParachainBlock &pov,
+        const primitives::BlockHash &relay_parent);
+
     outcome::result<std::vector<network::ErasureChunk>> validateErasureCoding(
         const runtime::AvailableData &validating_data, size_t n_validators);
+
     outcome::result<ValidateAndSecondResult> validateAndMakeAvailable(
         network::CandidateReceipt &&candidate,
         network::ParachainBlock &&pov,
         const libp2p::peer::PeerId &peer_id,
         const primitives::BlockHash &relay_parent,
         size_t n_validators);
+
     template <typename F>
     void requestPoV(const libp2p::peer::PeerInfo &peer_info,
                     const CandidateHash &candidate_hash,

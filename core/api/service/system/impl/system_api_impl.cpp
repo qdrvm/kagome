@@ -83,7 +83,7 @@ namespace kagome::api {
       // from substrate
       auto tag_decode_res = scale::decode<
           std::tuple<primitives::AccountId, primitives::AccountNonce>>(
-          tx_ptr->provides.at(0));  // substrate assumes that the tag with
+          tx_ptr->provided_tags.at(0));  // substrate assumes that the tag with
                                     // nonce is the first one
 
       if (tag_decode_res.has_value()) {

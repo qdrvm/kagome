@@ -87,7 +87,7 @@ target_link_libraries(session_keys_api
     )
 
 add_library(runtime_properties_cache
-    runtime_properties_cache_impl.cpp
+    ../../common/runtime_properties_cache_impl.cpp
     )
 target_link_libraries(runtime_properties_cache
     executor
