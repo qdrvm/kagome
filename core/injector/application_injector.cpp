@@ -127,12 +127,13 @@
 #include "runtime/binaryen/core_api_factory_impl.hpp"
 #include "runtime/binaryen/instance_environment_factory.hpp"
 #include "runtime/binaryen/module/module_factory_impl.hpp"
-#include "runtime/common/executor.hpp"
 #include "runtime/common/module_repository_impl.hpp"
 #include "runtime/common/runtime_instances_pool.hpp"
+#include "runtime/common/runtime_properties_cache_impl.hpp"
 #include "runtime/common/runtime_upgrade_tracker_impl.hpp"
 #include "runtime/common/storage_code_provider.hpp"
 #include "runtime/common/trie_storage_provider_impl.hpp"
+#include "runtime/executor.hpp"
 #include "runtime/module_factory.hpp"
 #include "runtime/runtime_api/impl/account_nonce_api.hpp"
 #include "runtime/runtime_api/impl/authority_discovery_api.hpp"
@@ -143,7 +144,6 @@
 #include "runtime/runtime_api/impl/metadata.hpp"
 #include "runtime/runtime_api/impl/offchain_worker_api.hpp"
 #include "runtime/runtime_api/impl/parachain_host.hpp"
-#include "runtime/runtime_api/impl/runtime_properties_cache_impl.hpp"
 #include "runtime/runtime_api/impl/session_keys_api.hpp"
 #include "runtime/runtime_api/impl/tagged_transaction_queue.hpp"
 #include "runtime/runtime_api/impl/transaction_payment_api.hpp"
@@ -450,6 +450,9 @@ namespace {
             }),
         makeWavmInjector(method),
         makeBinaryenInjector(method),
+        bind_by_lambda<runtime::RuntimeInstancesPool>([](const auto &injector) {
+          return std::make_shared<runtime::RuntimeInstancesPool>();
+        }),
         di::bind<runtime::ModuleRepository>.template to<runtime::ModuleRepositoryImpl>(),
         bind_by_lambda<runtime::CoreApiFactory>([method](const auto &injector) {
           return choose_runtime_implementation<
@@ -484,7 +487,6 @@ namespace {
               runtime::binaryen::ModuleFactoryImpl,
               runtime::wavm::ModuleFactoryImpl>(injector, method);
         }),
-        di::bind<runtime::RawExecutor>.template to<runtime::Executor>(),
         di::bind<runtime::TaggedTransactionQueue>.template to<runtime::TaggedTransactionQueueImpl>(),
         di::bind<runtime::ParachainHost>.template to<runtime::ParachainHostImpl>(),
         di::bind<runtime::OffchainWorkerApi>.template to<runtime::OffchainWorkerApiImpl>(),
@@ -654,7 +656,9 @@ namespace {
                       injector
                           .template create<const runtime::ModuleFactory &>(),
                       injector
-                          .template create<storage::trie::TrieSerializer &>())
+                          .template create<storage::trie::TrieSerializer &>(),
+                      injector.template create<
+                          sptr<runtime::RuntimePropertiesCache>>())
                       .value();
               const auto &hasher =
                   injector.template create<sptr<crypto::Hasher>>();
@@ -750,6 +754,7 @@ namespace {
                   return injector.template create<
                       sptr<storage::trie_pruner::TriePrunerImpl>>();
                 }),
+            di::bind<runtime::RuntimeContextFactory>.template to<runtime::RuntimeContextFactoryImpl>(),
             di::bind<runtime::RuntimeCodeProvider>.template to<runtime::StorageCodeProvider>(),
             bind_by_lambda<application::ChainSpec>([](const auto &injector) {
               const application::AppConfiguration &config =

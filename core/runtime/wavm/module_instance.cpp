@@ -16,6 +16,7 @@
 #include "runtime/wavm/compartment_wrapper.hpp"
 #include "runtime/wavm/intrinsics/intrinsic_functions.hpp"
 #include "runtime/wavm/memory_impl.hpp"
+#include "runtime/wavm/module.hpp"
 
 static WAVM::IR::Value evaluateInitializer(
     WAVM::IR::InitializerExpression expression) {
@@ -85,7 +86,7 @@ namespace kagome::runtime::wavm {
   ModuleInstanceImpl::ModuleInstanceImpl(
       InstanceEnvironment &&env,
       WAVM::Runtime::GCPointer<WAVM::Runtime::Instance> instance,
-      WAVM::Runtime::ModuleRef module,
+      std::shared_ptr<const ModuleImpl> module,
       std::shared_ptr<const CompartmentWrapper> compartment,
       const common::Hash256 &code_hash)
       : env_{std::move(env)},
@@ -97,6 +98,10 @@ namespace kagome::runtime::wavm {
     BOOST_ASSERT(instance_ != nullptr);
     BOOST_ASSERT(compartment_ != nullptr);
     BOOST_ASSERT(module_ != nullptr);
+  }
+
+  std::shared_ptr<const Module> ModuleInstanceImpl::getModule() const {
+    return module_;
   }
 
   outcome::result<PtrSize> ModuleInstanceImpl::callExportFunction(
@@ -200,7 +205,7 @@ namespace kagome::runtime::wavm {
     using WAVM::IR::DataSegment;
     using WAVM::IR::MemoryType;
     using WAVM::IR::Value;
-    auto &ir = getModuleIR(module_);
+    auto &ir = getModuleIR(module_->module_);
 
     for (Uptr segmentIndex = 0; segmentIndex < ir.dataSegments.size();
          ++segmentIndex) {

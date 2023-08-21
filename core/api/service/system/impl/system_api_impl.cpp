@@ -73,13 +73,13 @@ namespace kagome::api {
         sorted_txs;
 
     for (auto &[tx_hash, tx_ptr] : txs) {
-      if (tx_ptr->provides.empty()) continue;
+      if (tx_ptr->provided_tags.empty()) continue;
 
       // the assumption that the tag with nonce is encoded this way is taken
       // from substrate
       auto tag_decode_res = scale::decode<
           std::tuple<primitives::AccountId, primitives::AccountNonce>>(
-          tx_ptr->provides.at(0));  // substrate assumes that the tag with
+          tx_ptr->provided_tags.at(0));  // substrate assumes that the tag with
                                     // nonce is the first one
 
       if (tag_decode_res.has_value()) {

@@ -5,7 +5,7 @@
 
 #include "runtime/runtime_api/impl/authority_discovery_api.hpp"
 
-#include "runtime/common/executor.hpp"
+#include "runtime/executor.hpp"
 
 namespace kagome::runtime {
   AuthorityDiscoveryApiImpl::AuthorityDiscoveryApiImpl(

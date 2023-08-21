@@ -1367,7 +1367,8 @@ namespace kagome::parachain {
       const network::ParachainBlock &pov,
       const network::CandidateReceipt &receipt,
       const ParachainRuntime &code) {
-    if (auto result = pvf_->pvfValidate(data, pov, receipt, code);
+    if (auto result =
+            pvf_->pvfValidate(data, pov, receipt, code);
         result.has_error()) {
       logger_->warn(
           "Approval validation failed.(parachain id={}, relay parent={})",

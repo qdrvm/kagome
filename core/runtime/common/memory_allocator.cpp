@@ -15,14 +15,18 @@ namespace kagome::runtime {
   static_assert(kDefaultHeapBase < kInitialMemorySize,
                 "Heap base must be in memory");
 
-  MemoryAllocator::MemoryAllocator(MemoryHandle memory, WasmPointer heap_base)
+  MemoryAllocator::MemoryAllocator(MemoryHandle memory,
+                                   const MemoryConfig &config)
       : memory_{std::move(memory)},
-        offset_{roundUpAlign(heap_base)},
+        offset_{roundUpAlign(config.heap_base)},
+        max_memory_pages_num_{config.limits.max_memory_pages_num.value_or(
+            std::numeric_limits<WasmSize>::max())},
         logger_{log::createLogger("Allocator", "runtime")} {
     // Heap base (and offset in according) must be non-zero to prohibit
     // allocating memory at 0 in the future, as returning 0 from allocate method
     // means that wasm memory was exhausted
     BOOST_ASSERT(offset_ > 0);
+    BOOST_ASSERT(max_memory_pages_num_ > 0);
     BOOST_ASSERT(memory_.getSize);
     BOOST_ASSERT(memory_.resize);
   }
@@ -33,7 +37,7 @@ namespace kagome::runtime {
     }
 
     const size_t chunk_size =
-        nextHighPowerOf2(roundUpAlign(size) + AlloocationHeaderSz);
+        nextHighPowerOf2(roundUpAlign(size) + AllocationHeaderSz);
 
     const auto ptr = offset_;
     const auto new_offset = ptr + chunk_size;  // align
@@ -47,7 +51,7 @@ namespace kagome::runtime {
       }
           .serialize(ptr, memory_);
       SL_TRACE_FUNC_CALL(logger_, ptr, this, size);
-      return ptr + AlloocationHeaderSz;
+      return ptr + AllocationHeaderSz;
     }
 
     auto &preallocates = available_[chunk_size];
@@ -60,7 +64,7 @@ namespace kagome::runtime {
           .allocation_sz = roundUpAlign(size),
       }
           .serialize(ptr, memory_);
-      return ptr + AlloocationHeaderSz;
+      return ptr + AllocationHeaderSz;
     }
 
     return growAlloc(chunk_size, size);
@@ -71,10 +75,10 @@ namespace kagome::runtime {
         .chunk_sz = 0,
         .allocation_sz = 0,
     };
-    header.deserialize(ptr - AlloocationHeaderSz, memory_);
+    header.deserialize(ptr - AllocationHeaderSz, memory_);
     BOOST_ASSERT(isPowerOf2(header.chunk_sz));
 
-    available_[header.chunk_sz].push_back(ptr - AlloocationHeaderSz);
+    available_[header.chunk_sz].push_back(ptr - AllocationHeaderSz);
     BOOST_ASSERT(!available_.empty());
     return header.allocation_sz;
   }
@@ -82,14 +86,23 @@ namespace kagome::runtime {
   WasmPointer MemoryAllocator::growAlloc(size_t chunk_sz,
                                          WasmSize allocation_sz) {
     // check that we do not exceed max memory size
-    if (Memory::kMaxMemorySize - offset_ < chunk_sz) {
+    auto new_pages_num =
+        (chunk_sz + offset_ + kMemoryPageSize - 1) / kMemoryPageSize;
+    if (new_pages_num > max_memory_pages_num_) {
       logger_->error(
           "Memory size exceeded when growing it on {} bytes, offset was 0x{:x}",
           chunk_sz,
           offset_);
       return 0;
     }
-    resize(offset_ + chunk_sz);
+    auto new_size = offset_ + chunk_sz;
+    if (new_size > std::numeric_limits<WasmSize>::max()) {
+      return 0;
+    }
+
+    resize(new_size);
+    auto current_size = memory_.getSize();
+    BOOST_ASSERT(current_size >= new_size);
     return allocate(allocation_sz);
   }
 
@@ -116,7 +129,7 @@ namespace kagome::runtime {
         .chunk_sz = 0,
         .allocation_sz = 0,
     };
-    header.deserialize(ptr - AlloocationHeaderSz, memory_);
+    header.deserialize(ptr - AllocationHeaderSz, memory_);
     BOOST_ASSERT(isPowerOf2(header.chunk_sz));
 
     return header.allocation_sz;

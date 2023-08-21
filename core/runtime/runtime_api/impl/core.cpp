@@ -7,20 +7,32 @@
 
 #include "blockchain/block_header_repository.hpp"
 #include "log/logger.hpp"
-#include "runtime/common/executor.hpp"
+#include "runtime/executor.hpp"
+#include "runtime/module_instance.hpp"
+#include "runtime/runtime_properties_cache.hpp"
 
 namespace kagome::runtime {
 
   CoreImpl::CoreImpl(
       std::shared_ptr<Executor> executor,
+      std::shared_ptr<RuntimeContextFactory> ctx_factory,
       std::shared_ptr<const blockchain::BlockHeaderRepository> header_repo)
-      : executor_{std::move(executor)}, header_repo_{std::move(header_repo)} {
+      : executor_{std::move(executor)},
+        ctx_factory_{std::move(ctx_factory)},
+        header_repo_{std::move(header_repo)} {
     BOOST_ASSERT(executor_ != nullptr);
+    BOOST_ASSERT(ctx_factory_ != nullptr);
+    BOOST_ASSERT(header_repo_ != nullptr);
   }
 
   outcome::result<primitives::Version> CoreImpl::version(
-      RuntimeEnvironment &env) {
-    return executor_->call<primitives::Version>(env, "Core_version");
+      std::shared_ptr<ModuleInstance> instance) {
+    OUTCOME_TRY(genesis_hash, header_repo_->getHashByNumber(0));
+    OUTCOME_TRY(genesis_header, header_repo_->getBlockHeader(genesis_hash));
+    OUTCOME_TRY(ctx,
+                ctx_factory_->ephemeral(instance, genesis_header.state_root));
+    return executor_->decodedCallWithCtx<primitives::Version>(ctx,
+                                                              "Core_version");
   }
 
   outcome::result<primitives::Version> CoreImpl::version(
@@ -43,10 +55,11 @@ namespace kagome::runtime {
       return parent_res.has_value()
          and parent_res.value().number == block.header.number - 1;
     }());
-    OUTCOME_TRY(env,
-                executor_->persistentAt(block.header.parent_hash,
-                                        std::move(changes_tracker)));
-    OUTCOME_TRY(executor_->call<void>(*env, "Core_execute_block", block));
+    OUTCOME_TRY(ctx,
+                ctx_factory_->persistentAt(block.header.parent_hash,
+                                           std::move(changes_tracker)));
+    OUTCOME_TRY(
+        executor_->decodedCallWithCtx<void>(ctx, "Core_execute_block", block));
     return outcome::success();
   }
 
@@ -68,14 +81,15 @@ namespace kagome::runtime {
         std::move(changes_tracker));
   }
 
-  outcome::result<std::unique_ptr<RuntimeEnvironment>>
-  CoreImpl::initialize_block(const primitives::BlockHeader &header,
-                             TrieChangesTrackerOpt changes_tracker) {
-    OUTCOME_TRY(env,
-                executor_->persistentAt(header.parent_hash,
-                                        std::move(changes_tracker)));
-    OUTCOME_TRY(executor_->call<void>(*env, "Core_initialize_block", header));
-    return env;
+  outcome::result<std::unique_ptr<RuntimeContext>> CoreImpl::initialize_block(
+      const primitives::BlockHeader &header,
+      TrieChangesTrackerOpt changes_tracker) {
+    OUTCOME_TRY(ctx,
+                ctx_factory_->persistentAt(header.parent_hash,
+                                           std::move(changes_tracker)));
+    OUTCOME_TRY(executor_->decodedCallWithCtx<void>(
+        ctx, "Core_initialize_block", header));
+    return std::make_unique<RuntimeContext>(std::move(ctx));
   }
 
 }  // namespace kagome::runtime

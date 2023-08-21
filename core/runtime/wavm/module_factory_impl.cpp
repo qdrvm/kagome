@@ -35,7 +35,7 @@ namespace kagome::runtime::wavm {
     }
   }
 
-  outcome::result<std::unique_ptr<Module>> ModuleFactoryImpl::make(
+  outcome::result<std::shared_ptr<Module>> ModuleFactoryImpl::make(
       gsl::span<const uint8_t> code) const {
     return ModuleImpl::compileFrom(compartment_,
                                    *module_params_,
