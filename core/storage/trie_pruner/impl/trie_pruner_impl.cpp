@@ -330,7 +330,6 @@ namespace kagome::storage::trie_pruner {
 
   outcome::result<void> TriePrunerImpl::addNewState(
       const storage::trie::RootHash &state_root, trie::StateVersion version) {
-    std::optional<std::scoped_lock<std::mutex>> lock;
     OUTCOME_TRY(trie, serializer_->retrieveTrie(state_root));
     OUTCOME_TRY(addNewStateWith(*trie, version));
     return outcome::success();
@@ -338,7 +337,6 @@ namespace kagome::storage::trie_pruner {
 
   outcome::result<void> TriePrunerImpl::addNewState(
       const trie::PolkadotTrie &new_trie, trie::StateVersion version) {
-    std::optional<std::scoped_lock<std::mutex>> lock;
     OUTCOME_TRY(addNewStateWith(new_trie, version));
     return outcome::success();
   }
