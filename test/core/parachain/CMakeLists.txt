@@ -10,4 +10,12 @@ addtest(pvf_test
 target_link_libraries(pvf_test
     validator_parachain
     log_configurator
+
+addtest(assignments_test
+    assignments.cpp
+    )
+target_link_libraries(assignments_test
+    crypto_store
+    base_fs_test
+    validator_parachain
     )
