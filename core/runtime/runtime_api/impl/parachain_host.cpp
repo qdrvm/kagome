@@ -6,7 +6,7 @@
 #include "runtime/runtime_api/impl/parachain_host.hpp"
 
 #include "common/blob.hpp"
-#include "runtime/common/executor.hpp"
+#include "runtime/executor.hpp"
 #include "runtime/runtime_api/impl/parachain_host_types_serde.hpp"
 
 namespace kagome::runtime {
@@ -219,6 +219,14 @@ namespace kagome::runtime {
       dmq_contents_.erase_if(by_block);
       inbound_hrmp_channels_contents_.erase_if(by_block);
     }
+  }
+
+  outcome::result<std::optional<std::vector<ExecutorParam>>>
+  ParachainHostImpl::session_executor_params(const primitives::BlockHash &block,
+                                             SessionIndex idx) {
+    return executor_
+        ->callAt<std::optional<std::vector<ExecutorParam>>>(
+            block, "ParachainHost_session_executor_params", idx);
   }
 
   outcome::result<std::optional<dispute::ScrapedOnChainVotes>>

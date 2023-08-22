@@ -16,7 +16,7 @@ namespace kagome::runtime {
 
   class ModuleFactoryMock final : public ModuleFactory {
    public:
-    MOCK_METHOD(outcome::result<std::unique_ptr<Module>>,
+    MOCK_METHOD(outcome::result<std::shared_ptr<Module>>,
                 make,
                 (gsl::span<const uint8_t>),
                 (const, override));

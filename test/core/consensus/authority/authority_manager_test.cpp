@@ -16,7 +16,7 @@
 #include "mock/core/storage/persistent_map_mock.hpp"
 #include "mock/core/storage/spaced_storage_mock.hpp"
 #include "primitives/digest.hpp"
-#include "runtime/common/executor.hpp"
+#include "runtime/executor.hpp"
 #include "storage/in_memory/in_memory_storage.hpp"
 #include "storage/predefined_keys.hpp"
 #include "testutil/literals.hpp"
