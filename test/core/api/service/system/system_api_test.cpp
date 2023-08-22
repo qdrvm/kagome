@@ -68,7 +68,7 @@ class SystemApiTest : public ::testing::Test {
   // Alice's account from subkey
   static constexpr auto kSs58Account =
       "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY";
-  static inline kagome::crypto::Sr25519PublicKey kAccountId{
+  inline static kagome::crypto::Sr25519PublicKey kAccountId{
       kagome::common::Blob<32>(std::array<uint8_t, 32>{
           0xd4, 0x35, 0x93, 0xc7, 0x15, 0xfd, 0xd3, 0x1c, 0x61, 0x14, 0x1a,
           0xbd, 0x04, 0xa9, 0x9f, 0xd6, 0x82, 0x2c, 0x85, 0x58, 0x85, 0x4c,
@@ -119,13 +119,15 @@ TEST_F(SystemApiTest, GetNonceWithPendingTxs) {
 
   constexpr auto kReadyTxNum = 5;
   std::array<std::vector<uint8_t>, kReadyTxNum> encoded_nonces;
-  std::map<Transaction::Hash, std::shared_ptr<Transaction>> ready_txs;
+  std::vector<std::pair<Transaction::Hash, std::shared_ptr<const Transaction>>>
+      ready_txs;
   for (size_t i = 0; i < kReadyTxNum; i++) {
     EXPECT_OUTCOME_TRUE(enc_nonce, scale::encode(kAccountId, kInitialNonce + i))
     encoded_nonces[i] = std::move(enc_nonce);
-    ready_txs[Hash256{{static_cast<uint8_t>(i)}}] =
-        std::make_shared<Transaction>(
-            Transaction{.provided_tags = {encoded_nonces[i]}});
+    ready_txs.emplace_back(
+        std::make_pair(Hash256{{static_cast<uint8_t>(i)}},
+                       std::make_shared<Transaction>(
+                           Transaction{.provided_tags = {encoded_nonces[i]}})));
   }
 
   EXPECT_CALL(*transaction_pool_mock_, getReadyTransactions())

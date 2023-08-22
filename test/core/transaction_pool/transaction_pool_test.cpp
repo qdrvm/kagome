@@ -111,8 +111,8 @@ TEST_F(TransactionPoolTest, CorrectImportToReady) {
   ASSERT_EQ(pool_->getStatus().ready_num, 3);
 
   EXPECT_OUTCOME_TRUE_1(submit(*pool_.get(), {txs[3]}));
-  EXPECT_EQ(pool_->getStatus().waiting_num, 1);
-  ASSERT_EQ(pool_->getStatus().ready_num, 3);
+  EXPECT_EQ(pool_->getStatus().waiting_num, 0);
+  ASSERT_EQ(pool_->getStatus().ready_num, 4);
 
   // already imported
   {
