@@ -153,12 +153,13 @@ namespace kagome::transaction_pool {
   bool TransactionPoolImpl::is_ready(
       const PoolState &pool_state,
       const std::shared_ptr<const Transaction> &tx) const {
-    return std::all_of(
-        tx->requires.begin(), tx->requires.end(), [&](const auto &tag) {
-          auto it = pool_state.dependency_graph_.find(tag);
-          return it != pool_state.dependency_graph_.end()
-              && it->second.tag_provided;
-        });
+    return std::all_of(tx->required_tags.begin(),
+                       tx->required_tags.end(),
+                       [&](const auto &tag) {
+                         auto it = pool_state.dependency_graph_.find(tag);
+                         return it != pool_state.dependency_graph_.end()
+                             && it->second.tag_provided;
+                       });
   }
 
   outcome::result<void> TransactionPoolImpl::processTransaction(
@@ -170,7 +171,7 @@ namespace kagome::transaction_pool {
       }
       auto state = std::make_shared<TxReadyState>(tx);
       pool_state.pending_txs_[tx->hash] = state;
-      for (auto &tag : tx->requires) {
+      for (auto &tag : tx->required_tags) {
         auto &pending_status = pool_state.dependency_graph_[tag];
         if (pending_status.tag_provided) {
           --state->remains_required_txs_count;
@@ -200,7 +201,7 @@ namespace kagome::transaction_pool {
       BOOST_ASSERT(state->tx);
       BOOST_ASSERT(state->remains_required_txs_count != 0);
 
-      for (auto &requirement : state->tx->requires) {
+      for (auto &requirement : state->tx->required_tags) {
         auto &pending_status = pool_state.dependency_graph_[requirement];
         if (!pending_status.tag_provided
             && pending_status.dependents.count(tx_hash) == 0) {
@@ -218,7 +219,7 @@ namespace kagome::transaction_pool {
         pool_state.pending_txs_[state->tx->hash] = state;
 
         // прописываем ее реквайременты в граф
-        for (auto &requirement : state->tx->requires) {
+        for (auto &requirement : state->tx->required_tags) {
           PendingStatus &ps = pool_state.dependency_graph_[requirement];
           if (ps.tag_provided) {
             --state->remains_required_txs_count;
@@ -228,7 +229,7 @@ namespace kagome::transaction_pool {
         }
 
         // проставляем провайдеры как нот тригеред
-        for (auto &provider : state->tx->provides) {
+        for (auto &provider : state->tx->provided_tags) {
           PendingStatus &ps = pool_state.dependency_graph_[provider];
           BOOST_ASSERT(ps.tag_provided);
           ps.tag_provided = false;
@@ -259,7 +260,7 @@ namespace kagome::transaction_pool {
             auto state = it->second.lock();
             BOOST_ASSERT(state);
             BOOST_ASSERT(state->tx);
-            for (auto &tag : state->tx->requires) {
+            for (auto &tag : state->tx->required_tags) {
               pool_state.dependency_graph_[tag].dependents.erase(tx_hash);
             }
 
@@ -270,7 +271,7 @@ namespace kagome::transaction_pool {
           if (auto it = pool_state.ready_txs_.find(tx_hash);
               it != pool_state.ready_txs_.end()) {
             ReadyStatus &ready_status = it->second;
-            for (auto &provider : ready_status.tx->provides) {
+            for (auto &provider : ready_status.tx->provided_tags) {
               PendingStatus &ps = pool_state.dependency_graph_[provider];
               BOOST_ASSERT(ps.tag_provided);
               ps.tag_provided = false;
@@ -374,7 +375,7 @@ namespace kagome::transaction_pool {
                             ExtrinsicLifecycleEvent::Ready(key.value()));
       }
 
-      for (const auto &tag : tx->provides) {
+      for (const auto &tag : tx->provided_tags) {
         PendingStatus &status = pool_state.dependency_graph_[tag];
         status.tag_provided = true;
 

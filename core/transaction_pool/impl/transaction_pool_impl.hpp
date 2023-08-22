@@ -84,10 +84,10 @@ namespace kagome::transaction_pool {
       std::shared_ptr<Transaction> tx;
 
       explicit TxReadyState(Transaction &&other)
-          : remains_required_txs_count{(uint32_t)other.requires.size()},
+          : remains_required_txs_count{(uint32_t)other.required_tags.size()},
             tx{std::make_shared<Transaction>(std::move(other))} {}
       explicit TxReadyState(const std::shared_ptr<Transaction> &other)
-          : remains_required_txs_count{(uint32_t)other->requires.size()},
+          : remains_required_txs_count{(uint32_t)other->required_tags.size()},
             tx{other} {}
 
       TxReadyState(const TxReadyState &) = delete;

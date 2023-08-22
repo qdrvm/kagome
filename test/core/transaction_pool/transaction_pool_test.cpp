@@ -73,10 +73,8 @@ Transaction makeTx(Transaction::Hash hash,
                    Transaction::Longevity valid_till = 10000) {
   Transaction tx;
   tx.hash = std::move(hash);
-  tx.provides = std::vector(provides);
-  tx.
-    requires
-  = std::vector(requires);
+  tx.provided_tags = std::vector(provided_tags);
+  tx.required_tags = std::vector(required_tags);
   tx.valid_till = valid_till;
   return tx;
 }

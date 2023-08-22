@@ -75,7 +75,7 @@ namespace kagome::api {
         sorted_txs;
 
     for (const auto &[_, tx_ptr] : txs) {
-      if (tx_ptr->provides.empty()) {
+      if (tx_ptr->provided_tags.empty()) {
         continue;
       }
 
@@ -84,7 +84,7 @@ namespace kagome::api {
       auto tag_decode_res = scale::decode<
           std::tuple<primitives::AccountId, primitives::AccountNonce>>(
           tx_ptr->provided_tags.at(0));  // substrate assumes that the tag with
-                                    // nonce is the first one
+                                         // nonce is the first one
 
       if (tag_decode_res.has_value()) {
         auto &&[id, nonce] = std::move(tag_decode_res.value());
