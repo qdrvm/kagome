@@ -46,3 +46,8 @@ test0004:
 test0004_kagome:
 	docker run soramitsu/zombie-tester:latest zombienet-linux-x64 test -p native kagome/zombienet/0004-runtime-upgrade-kagome/0004-runtime-upgrade-kagome.zndsl
 
+test0005:
+	docker run soramitsu/zombie-tester:latest zombienet-linux-x64 test -p native kagome/zombienet/0005-dispute-valid-block-1-kagome/0005-dispute-valid-block-1-kagome.zndsl
+
+test0006:
+	docker run soramitsu/zombie-tester:latest zombienet-linux-x64 test -p native kagome/zombienet/0006-parachains-disputes-1-kagome/0006-parachains-disputes-1-kagome.zndsl
