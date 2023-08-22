@@ -23,6 +23,7 @@ namespace kagome::network {
 
   GrandpaProtocol::GrandpaProtocol(
       libp2p::Host &host,
+      std::shared_ptr<crypto::Hasher> hasher,
       std::shared_ptr<boost::asio::io_context> io_context,
       const application::AppConfiguration &app_config,
       std::shared_ptr<consensus::grandpa::GrandpaObserver> grandpa_observer,
@@ -35,6 +36,7 @@ namespace kagome::network {
               host,
               make_protocols(kGrandpaProtocol, genesis_hash, "paritytech"),
               log::createLogger(kGrandpaProtocolName, "grandpa_protocol")),
+        hasher_{std::move(hasher)},
         io_context_(std::move(io_context)),
         app_config_(app_config),
         grandpa_observer_(std::move(grandpa_observer)),
@@ -303,14 +305,17 @@ namespace kagome::network {
           }
 
           auto peer_id = stream->remotePeerId().value();
+          auto &message = grandpa_message_res.value();
+          auto hash = self->getHash(message);
           visit_in_place(
-              std::move(grandpa_message_res.value()),
+              std::move(message),
               [&](network::GrandpaVote &&vote_message) {
                 SL_VERBOSE(self->base_.logger(),
                            "VoteMessage has received from {}",
                            peer_id);
                 self->grandpa_observer_->onVoteMessage(
                     std::nullopt, peer_id, vote_message);
+                self->addKnown(peer_id, hash);
               },
               [&](FullCommitMessage &&commit_message) {
                 SL_VERBOSE(self->base_.logger(),
@@ -318,6 +323,7 @@ namespace kagome::network {
                            peer_id);
                 self->grandpa_observer_->onCommitMessage(
                     std::nullopt, peer_id, commit_message);
+                self->addKnown(peer_id, hash);
               },
               [&](GrandpaNeighborMessage &&neighbor_message) {
                 if (peer_id != self->own_info_.id) {
@@ -421,6 +427,7 @@ namespace kagome::network {
     if (not peer_id.has_value()) {
       broadcast(std::move(shared_msg), filter);
     } else {
+      addKnown(*peer_id, getHash(*shared_msg));
       stream_engine_->send(
           peer_id.value(), shared_from_this(), std::move(shared_msg));
     };
@@ -542,6 +549,7 @@ namespace kagome::network {
     if (not peer_id.has_value()) {
       broadcast(std::move(shared_msg), filter);
     } else {
+      addKnown(*peer_id, getHash(*shared_msg));
       stream_engine_->send(
           peer_id.value(), shared_from_this(), std::move(shared_msg));
     }
@@ -705,6 +713,16 @@ namespace kagome::network {
     stream_engine_->send(peer_id, shared_from_this(), std::move(shared_msg));
   }
 
+  common::Hash256 GrandpaProtocol::getHash(
+      const GrandpaMessage &message) const {
+    return hasher_->blake2b_256(scale::encode(message).value());
+  }
+
+  bool GrandpaProtocol::addKnown(const PeerId &peer,
+                                 const common::Hash256 &hash) {
+    auto info = peer_manager_->getPeerState(peer);
+    return info and info->get().known_grandpa_messages.add(hash);
+  }
 
   template <typename F>
   void GrandpaProtocol::broadcast(std::shared_ptr<GrandpaMessage> message,
@@ -722,19 +740,26 @@ namespace kagome::network {
             .emplace_back(peer);
       }
     });
-    std::shuffle(authorities.begin(), authorities.end(), random_);
+    auto hash = getHash(*message);
     size_t need = 0;
-    for (need += kAuthorities; not authorities.empty() and need != 0; --need) {
-      stream_engine_->send(authorities.back(), shared_from_this(), message);
-      authorities.pop_back();
-    }
+    auto loop = [&](std::vector<PeerId> &peers) {
+      while (not peers.empty() and need != 0) {
+        auto &peer = peers.back();
+        if (addKnown(peer, hash)) {
+          stream_engine_->send(peer, shared_from_this(), message);
+          --need;
+        }
+        peers.pop_back();
+      }
+    };
+    std::shuffle(authorities.begin(), authorities.end(), random_);
+    need += kAuthorities;
+    loop(authorities);
     any.insert(any.end(),
                std::make_move_iterator(authorities.begin()),
                std::make_move_iterator(authorities.end()));
     std::shuffle(any.begin(), any.end(), random_);
-    for (need += kAny; not any.empty() and need != 0; --need) {
-      stream_engine_->send(any.back(), shared_from_this(), message);
-      any.pop_back();
-    }
+    need += kAny;
+    loop(any);
   }
 }  // namespace kagome::network

@@ -45,6 +45,7 @@ namespace kagome::network {
 
     GrandpaProtocol(
         libp2p::Host &host,
+        std::shared_ptr<crypto::Hasher> hasher,
         std::shared_ptr<boost::asio::io_context> io_context,
         const application::AppConfiguration &app_config,
         std::shared_ptr<consensus::grandpa::GrandpaObserver> grandpa_observer,
@@ -93,6 +94,9 @@ namespace kagome::network {
         const int &msg,
         std::function<void(outcome::result<std::shared_ptr<Stream>>)> &&cb);
 
+    common::Hash256 getHash(const GrandpaMessage &message) const;
+    bool addKnown(const PeerId &peer, const common::Hash256 &hash);
+
     template <typename F>
     void broadcast(std::shared_ptr<GrandpaMessage> message, const F &predicate);
 
@@ -103,6 +107,7 @@ namespace kagome::network {
         std::chrono::seconds(300);
 
     ProtocolBaseImpl base_;
+    std::shared_ptr<crypto::Hasher> hasher_;
     std::shared_ptr<boost::asio::io_context> io_context_;
     const application::AppConfiguration &app_config_;
     std::shared_ptr<consensus::grandpa::GrandpaObserver> grandpa_observer_;
