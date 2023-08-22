@@ -353,19 +353,11 @@ namespace kagome::network {
              "Send vote message: grandpa round number {}",
              vote_message.round_number);
 
-    auto filter = [&, &msg = vote_message](const PeerId &peer_id) {
-      auto info_opt = peer_manager_->getPeerState(peer_id);
-      if (not info_opt.has_value()) {
-        SL_DEBUG(base_.logger(),
-                 "Vote signed by {} with set_id={} in round={} "
-                 "has not been sent to {}: peer is not connected",
-                 msg.id(),
-                 msg.counter,
-                 msg.round_number,
-                 peer_id);
+    auto filter = [&, &msg = vote_message](const PeerId &peer_id,
+                                           const PeerState &info) {
+      if (info.roles.flags.light != 0) {
         return false;
       }
-      const auto &info = info_opt.value().get();
 
       if (not info.set_id.has_value() or not info.round_number.has_value()) {
         SL_DEBUG(base_.logger(),
@@ -393,9 +385,8 @@ namespace kagome::network {
         return false;
       }
 
-      // If a peer is at round r, is impolite to send messages about r-2 or
-      // earlier
-      if (msg.round_number + 2 < info.round_number.value()) {
+      // only r-1 ... r+1
+      if (msg.round_number + 1 < info.round_number.value()) {
         SL_DEBUG(
             base_.logger(),
             "Vote signed by {} with set_id={} in round={} "
@@ -408,9 +399,7 @@ namespace kagome::network {
         return false;
       }
 
-      // If a peer is at round r, is extremely impolite to send messages about
-      // r+1 or later
-      if (msg.round_number > info.round_number.value()) {
+      if (msg.round_number > info.round_number.value() + 1) {
         SL_DEBUG(base_.logger(),
                  "Vote signed by {} with set_id={} in round={} "
                  "has not been sent to {} as impolite: their round is old: {}",
@@ -430,8 +419,7 @@ namespace kagome::network {
     (*shared_msg) = GrandpaMessage(std::move(vote_message));
 
     if (not peer_id.has_value()) {
-      stream_engine_->broadcast<GrandpaMessage>(
-          shared_from_this(), std::move(shared_msg), filter);
+      broadcast(std::move(shared_msg), filter);
     } else {
       stream_engine_->send(
           peer_id.value(), shared_from_this(), std::move(shared_msg));
@@ -492,20 +480,8 @@ namespace kagome::network {
     auto filter = [this,
                    set_id = msg.set_id,
                    round_number = msg.round,
-                   finalizing =
-                       msg.message.target_number](const PeerId &peer_id) {
-      auto info_opt = peer_manager_->getPeerState(peer_id);
-      if (not info_opt.has_value()) {
-        SL_DEBUG(base_.logger(),
-                 "Commit with set_id={} in round={} "
-                 "has not been sent to {}: peer is not connected",
-                 set_id,
-                 round_number,
-                 peer_id);
-        return false;
-      }
-      const auto &info = info_opt.value().get();
-
+                   finalizing = msg.message.target_number](
+                      const PeerId &peer_id, const PeerState &info) {
       if (not info.set_id.has_value() or not info.round_number.has_value()) {
         SL_DEBUG(base_.logger(),
                  "Commit with set_id={} in round={} "
@@ -564,8 +540,7 @@ namespace kagome::network {
     (*shared_msg) = GrandpaMessage(std::move(msg));
 
     if (not peer_id.has_value()) {
-      stream_engine_->broadcast<GrandpaMessage>(
-          shared_from_this(), std::move(shared_msg), filter);
+      broadcast(std::move(shared_msg), filter);
     } else {
       stream_engine_->send(
           peer_id.value(), shared_from_this(), std::move(shared_msg));
@@ -730,4 +705,36 @@ namespace kagome::network {
     stream_engine_->send(peer_id, shared_from_this(), std::move(shared_msg));
   }
 
+
+  template <typename F>
+  void GrandpaProtocol::broadcast(std::shared_ptr<GrandpaMessage> message,
+                                  const F &predicate) {
+    constexpr size_t kAuthorities = 4;
+    constexpr size_t kAny = 4;
+    std::vector<PeerId> authorities, any;
+    peer_manager_->forEachPeer([&](const PeerId &peer) {
+      if (auto info_ref = peer_manager_->getPeerState(peer)) {
+        auto &info = info_ref->get();
+        if (not predicate(peer, info)) {
+          return;
+        }
+        (info.roles.flags.authority != 0 ? authorities : any)
+            .emplace_back(peer);
+      }
+    });
+    std::shuffle(authorities.begin(), authorities.end(), random_);
+    size_t need = 0;
+    for (need += kAuthorities; not authorities.empty() and need != 0; --need) {
+      stream_engine_->send(authorities.back(), shared_from_this(), message);
+      authorities.pop_back();
+    }
+    any.insert(any.end(),
+               std::make_move_iterator(authorities.begin()),
+               std::make_move_iterator(authorities.end()));
+    std::shuffle(any.begin(), any.end(), random_);
+    for (need += kAny; not any.empty() and need != 0; --need) {
+      stream_engine_->send(any.back(), shared_from_this(), message);
+      any.pop_back();
+    }
+  }
 }  // namespace kagome::network

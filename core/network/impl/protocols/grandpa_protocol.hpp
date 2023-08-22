@@ -9,6 +9,7 @@
 #include "network/protocol_base.hpp"
 
 #include <memory>
+#include <random>
 
 #include <libp2p/basic/scheduler.hpp>
 #include <libp2p/connection/stream.hpp>
@@ -92,6 +93,9 @@ namespace kagome::network {
         const int &msg,
         std::function<void(outcome::result<std::shared_ptr<Stream>>)> &&cb);
 
+    template <typename F>
+    void broadcast(std::shared_ptr<GrandpaMessage> message, const F &predicate);
+
     /// Node should send catch-up requests rarely to be polite, because
     /// processing of them consume more enough resources.
     /// How long replying outgoing catch-up requests must be suppressed
@@ -114,6 +118,8 @@ namespace kagome::network {
     GrandpaNeighborMessage last_neighbor_{};
 
     std::set<libp2p::peer::PeerId> recent_catchup_requests_by_peer_;
+
+    std::default_random_engine random_;
   };
 
 }  // namespace kagome::network
