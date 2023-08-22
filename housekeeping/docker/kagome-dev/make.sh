@@ -10,6 +10,8 @@ fi
 
 if [ "$BUILD_TYPE" = "Release" ]; then
   BUILD_THREADS=1
+elif [ "$BUILD_TYPE" = "RelWithDebInfo" ]; then
+  BUILD_THREADS=2
 else
   BUILD_THREADS="${BUILD_THREADS:-$(( $(nproc 2>/dev/null || sysctl -n hw.ncpu) / 2 + 1 ))}"
 fi
