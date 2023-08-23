@@ -1,0 +1,35 @@
+[settings]
+timeout = 1000
+
+[relaychain]
+chain = "rococo-local"
+default_command = "polkadot"
+
+  [[relaychain.nodes]]
+  name = "alice"
+  extra_args = [ "-lparachain=debug" ]
+
+  [[relaychain.nodes]]
+  name = "bob"
+  command = "kagome"
+  prometheus_prefix = "kagome"
+  extra_args = [ "-lparachain=debug" ]
+
+  [[relaychain.nodes]]
+  name = "charlie"
+  extra_args = [ "-lparachain=debug" ]
+
+  [[relaychain.nodes]]
+  name = "dave"
+  validator = true
+  command = "malus dispute-ancestor"
+  extra_args = ["-lparachain=debug"]
+
+
+[[parachains]]
+id = 100
+
+  [parachains.collator]
+  name = "collator01"
+  command = "adder-collator"
+  args = ["-lparachain=debug"]

@@ -7,6 +7,7 @@
 #define KAGOME_RUNTIME_TYPES_HPP
 
 #include <cstdint>
+#include <optional>
 #include <utility>
 
 namespace kagome::runtime {
@@ -45,6 +46,20 @@ namespace kagome::runtime {
 
   using WasmI32 = int32_t;
   using WasmU64 = uint64_t;
+
+  struct MemoryLimits {
+    std::optional<WasmSize> max_stack_size{};
+    std::optional<WasmSize> max_stack_values_num{};
+    std::optional<WasmSize> max_memory_pages_num{};
+  };
+
+  struct MemoryConfig {
+    MemoryConfig(WasmSize heap_base, MemoryLimits limits = {})
+        : heap_base{heap_base}, limits{std::move(limits)} {}
+
+    WasmSize heap_base;
+    MemoryLimits limits;
+  };
 
   /**
    * Splits 64 bit wasm span on 32 bit pointer and 32 bit address

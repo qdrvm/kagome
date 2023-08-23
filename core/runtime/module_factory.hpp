@@ -20,7 +20,7 @@ namespace kagome::runtime {
    public:
     virtual ~ModuleFactory() = default;
 
-    virtual outcome::result<std::unique_ptr<Module>> make(
+    virtual outcome::result<std::shared_ptr<Module>> make(
         gsl::span<const uint8_t> code) const = 0;
   };
 

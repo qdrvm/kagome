@@ -21,7 +21,7 @@ namespace kagome::runtime::wavm {
 
     std::optional<std::reference_wrapper<runtime::Memory>> getCurrentMemory()
         const override;
-    outcome::result<void> resetMemory(WasmSize heap_base) override;
+    outcome::result<void> resetMemory(const MemoryConfig&) override;
 
    private:
     WAVM::Runtime::Memory *memory_;
