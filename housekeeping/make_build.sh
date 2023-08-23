@@ -2,7 +2,7 @@
 
 BUILD_DIR="${BUILD_DIR:?BUILD_DIR variable is not defined}"
 BUILD_FINAL_TARGET="${BUILD_FINAL_TARGET:-test}"
-BUILD_THREADS="${BUILD_THREADS:-$(( $(nproc 2>/dev/null || sysctl -n hw.ncpu) / 2))}"
+BUILD_THREADS="${BUILD_THREADS:-$(( $(nproc 2>/dev/null || sysctl -n hw.ncpu) ))}"
 
 which git
 

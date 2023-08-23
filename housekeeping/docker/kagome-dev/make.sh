@@ -9,11 +9,11 @@ if [ "$BUILD_TYPE" != "Debug" ] && [ "$BUILD_TYPE" != "Release" ] && [ "$BUILD_T
 fi
 
 if [ "$BUILD_TYPE" = "Release" ]; then
-  BUILD_THREADS=1
+  BUILD_THREADS="${BUILD_THREADS:-$(( $(nproc 2>/dev/null || sysctl -n hw.ncpu) ))}"
 elif [ "$BUILD_TYPE" = "RelWithDebInfo" ]; then
-  BUILD_THREADS=2
+  BUILD_THREADS="${BUILD_THREADS:-$(( $(nproc 2>/dev/null || sysctl -n hw.ncpu) ))}"
 else
-  BUILD_THREADS="${BUILD_THREADS:-$(( $(nproc 2>/dev/null || sysctl -n hw.ncpu) / 2 + 1 ))}"
+  BUILD_THREADS="${BUILD_THREADS:-$(( $(nproc 2>/dev/null || sysctl -n hw.ncpu) ))}"
 fi
 
 git submodule update --init
