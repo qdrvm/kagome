@@ -203,15 +203,19 @@ namespace kagome::parachain {
             if (auto const value = if_type<
                     const primitives::events::RemoveAfterFinalizationParams>(
                     event)) {
-              for (auto const &lost : value->get()) {
-                SL_TRACE(self->logger_,
-                         "Remove from storages.(relay parent={})",
-                         lost);
+              self->our_current_state_.active_leaves.exclusiveAccess(
+                  [&](auto &active_leaves) {
+                    for (auto const &lost : value->get()) {
+                      SL_TRACE(self->logger_,
+                               "Remove from storages.(relay parent={})",
+                               lost);
 
-                self->backing_store_->remove(lost);
-                self->av_store_->remove(lost);
-                self->bitfield_store_->remove(lost);
-              }
+                      self->backing_store_->remove(lost);
+                      self->av_store_->remove(lost);
+                      self->bitfield_store_->remove(lost);
+                      active_leaves.erase(lost);
+                    }
+                  });
             }
           }
         });
@@ -220,40 +224,46 @@ namespace kagome::parachain {
         peer_view_->getMyViewObservable(), false);
     my_view_sub_->subscribe(my_view_sub_->generateSubscriptionSetId(),
                             network::PeerView::EventType::kViewUpdated);
-    my_view_sub_->setCallback([wptr{weak_from_this()}](
-                                  auto /*set_id*/,
-                                  auto && /*internal_obj*/,
-                                  auto /*event_type*/,
-                                  const network::ExView &event) {
-      if (auto self = wptr.lock()) {
-        /// clear caches
-        BOOST_ASSERT(
-            self->this_context_->get_executor().running_in_this_thread());
-        for (auto const &lost : event.lost) {
-          SL_TRACE(
-              self->logger_, "Removed backing task.(relay parent={})", lost);
+    my_view_sub_->setCallback(
+        [wptr{weak_from_this()}](auto /*set_id*/,
+                                 auto && /*internal_obj*/,
+                                 auto /*event_type*/,
+                                 const network::ExView &event) {
+          if (auto self = wptr.lock()) {
+            /// clear caches
+            BOOST_ASSERT(
+                self->this_context_->get_executor().running_in_this_thread());
+            auto const &relay_parent =
+                primitives::calculateBlockHash(event.new_head, *self->hasher_)
+                    .value();
 
-          self->our_current_state_.state_by_relay_parent.erase(lost);
-          self->pending_candidates.exclusiveAccess(
-              [&](auto &container) { container.erase(lost); });
-        }
+            self->our_current_state_.active_leaves.exclusiveAccess(
+                [&](auto &active_leaves) {
+                  for (auto const &lost : event.lost) {
+                    SL_TRACE(self->logger_,
+                             "Removed backing task.(relay parent={})",
+                             lost);
 
-        if (auto r = self->canProcessParachains(); r.has_error()) {
-          return;
-        }
+                    self->our_current_state_.state_by_relay_parent.erase(lost);
+                    self->pending_candidates.exclusiveAccess(
+                        [&](auto &container) { container.erase(lost); });
+                    active_leaves.erase(lost);
+                  }
+                  active_leaves.insert(relay_parent);
+                });
+            if (auto r = self->canProcessParachains(); r.has_error()) {
+              return;
+            }
 
-        auto const &relay_parent =
-            primitives::calculateBlockHash(event.new_head, *self->hasher_)
-                .value();
-        self->createBackingTask(relay_parent);
-        SL_TRACE(self->logger_,
-                 "Update my view.(new head={}, finalized={}, leaves={})",
-                 relay_parent,
-                 event.view.finalized_number_,
-                 event.view.heads_.size());
-        self->broadcastView(event.view);
-      }
-    });
+            self->createBackingTask(relay_parent);
+            SL_TRACE(self->logger_,
+                     "Update my view.(new head={}, finalized={}, leaves={})",
+                     relay_parent,
+                     event.view.finalized_number_,
+                     event.view.heads_.size());
+            self->broadcastView(event.view);
+          }
+        });
     return true;
   }
 
@@ -870,23 +880,24 @@ namespace kagome::parachain {
         validity_votes_out;
     validity_votes_out.reserve(validity_votes.size());
 
-    for (auto &[validator_index, statement] : validity_votes) {
-      if (is_type<network::CommittedCandidateReceipt>(
-              statement.payload.payload.candidate_state)) {
-        validity_votes_out.emplace_back(
-            validator_index,
-            network::ValidityAttestation{
+    for (auto &[validator_index, validity_vote] : validity_votes) {
+      auto validity_attestation = visit_in_place(
+          validity_vote,
+          [](const BackingStore::ValidityVoteIssued &val) {
+            return network::ValidityAttestation{
                 network::ValidityAttestation::Implicit{},
-                statement.signature,
-            });
-      } else {
-        validity_votes_out.emplace_back(
-            validator_index,
-            network::ValidityAttestation{
+                ((BackingStore::Statement &)val).signature,
+            };
+          },
+          [](const BackingStore::ValidityVoteValid &val) {
+            return network::ValidityAttestation{
                 network::ValidityAttestation::Explicit{},
-                statement.signature,
-            });
-      }
+                ((BackingStore::Statement &)val).signature,
+            };
+          });
+
+      validity_votes_out.emplace_back(validator_index,
+                                      std::move(validity_attestation));
     }
 
     return AttestedCandidate{
@@ -1385,8 +1396,24 @@ namespace kagome::parachain {
       const primitives::BlockHash &relay_parent,
       size_t n_validators) {
     TicToc _measure{"Parachain validation", logger_};
-
     const auto candidate_hash{candidateHashFrom(candidate)};
+
+    /// checks if we still need to execute parachain task
+    auto need_to_process = our_current_state_.active_leaves.sharedAccess(
+        [&](const auto &active_leaves) {
+          return active_leaves.count(relay_parent) != 0ull;
+        });
+
+    if (!need_to_process) {
+      SL_TRACE(logger_,
+               "Candidate validation skipped because of extruded relay parent. "
+               "(relay_parent={}, parachain_id={}, candidate_hash={})",
+               relay_parent,
+               candidate.descriptor.para_id,
+               candidate_hash);
+      return Error::VALIDATION_FAILED;
+    }
+
     auto validation_result = validateCandidate(candidate, pov, relay_parent);
     if (!validation_result) {
       logger_->warn(
@@ -1396,6 +1423,22 @@ namespace kagome::parachain {
           candidate.descriptor.relay_parent,
           candidate.descriptor.para_id,
           validation_result.error().message());
+      return Error::VALIDATION_FAILED;
+    }
+
+    need_to_process = our_current_state_.active_leaves.sharedAccess(
+        [&](const auto &active_leaves) {
+          return active_leaves.count(relay_parent) != 0ull;
+        });
+
+    if (!need_to_process) {
+      SL_TRACE(logger_,
+               "Candidate validation skipped before erasure-coding because of "
+               "extruded relay parent. "
+               "(relay_parent={}, parachain_id={}, candidate_hash={})",
+               relay_parent,
+               candidate.descriptor.para_id,
+               candidate_hash);
       return Error::VALIDATION_FAILED;
     }
 
