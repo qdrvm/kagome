@@ -23,6 +23,7 @@
 
 namespace kagome::network {
   constexpr size_t kPeerStateMaxKnownBlocks = 1024;
+  constexpr size_t kPeerStateMaxKnownGrandpaMessages = 8192;
 
   struct CollatorState {
     network::ParachainId parachain_id;
@@ -53,6 +54,9 @@ namespace kagome::network {
     std::optional<CollatorState> collator_state = std::nullopt;
     std::optional<View> view;
     LruSet<primitives::BlockHash> known_blocks{kPeerStateMaxKnownBlocks};
+    LruSet<common::Hash256> known_grandpa_messages{
+        kPeerStateMaxKnownGrandpaMessages,
+    };
   };
 
   struct StreamEngine;
