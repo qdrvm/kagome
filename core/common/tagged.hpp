@@ -75,11 +75,12 @@ namespace kagome {
     }
   };
 
-template <typename T,
-            typename Tag,
-            typename Base =
-                std::conditional_t<std::is_scalar_v<T>, Wrapper<T>, T>>
-  inline std::ostream &operator<<(std::ostream &os, const Tagged<T, Tag, Base> &view) {
+  template <
+      typename T,
+      typename Tag,
+      typename Base = std::conditional_t<std::is_scalar_v<T>, Wrapper<T>, T>>
+  inline std::ostream &operator<<(std::ostream &os,
+                                  const Tagged<T, Tag, Base> &view) {
     return os << (const T &)view;
   }
 
