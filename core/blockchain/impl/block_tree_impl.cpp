@@ -674,8 +674,8 @@ namespace kagome::blockchain {
 
   outcome::result<void> BlockTreeImpl::markAsRevertedBlocks(
       const std::vector<primitives::BlockInfo> &blocks) {
-    // TODO Must be implemented
-#warning "Must be implemented"
+    // TODO(xDimon): #1659
+    SL_WARN(log_, "markAsRevertedBlocks must be implemented (issue #1659)");
     return outcome::success();
   }
 

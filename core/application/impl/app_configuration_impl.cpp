@@ -57,16 +57,6 @@ namespace {
     return std::nullopt;
   }
 
-  bool find_argument(boost::program_options::variables_map &vm,
-                     const std::string &name) {
-    if (auto it = vm.find(name); it != vm.end()) {
-      if (!it->second.defaulted()) {
-        return true;
-      }
-    }
-    return false;
-  }
-
   const std::string def_rpc_host = "0.0.0.0";
   const std::string def_openmetrics_http_host = "0.0.0.0";
   const uint16_t def_rpc_port = 9944;

@@ -7,6 +7,7 @@
 #include <libp2p/log/configurator.hpp>
 
 #include "application/impl/app_configuration_impl.hpp"
+#include "application/chain_spec.hpp"
 #include "blockchain/block_storage.hpp"
 #include "blockchain/impl/block_header_repository_impl.hpp"
 #include "blockchain/impl/block_tree_impl.hpp"
@@ -16,6 +17,7 @@
 #include "injector/application_injector.hpp"
 #include "log/configurator.hpp"
 #include "runtime/runtime_api/impl/grandpa_api.hpp"
+#include "storage/rocksdb/rocksdb.hpp"
 #include "storage/trie/trie_storage.hpp"
 
 using kagome::blockchain::BlockStorage;
@@ -39,7 +41,7 @@ class CommandExecutionError : public std::runtime_error {
       : std::runtime_error{what}, command_name{command_name} {}
 
   friend std::ostream &operator<<(std::ostream &out,
-                                  CommandExecutionError const &err) {
+                                  const CommandExecutionError &err) {
     return out << "Error in command '" << err.command_name
                << "': " << err.what() << "\n";
   }
@@ -162,7 +164,7 @@ std::optional<kagome::primitives::BlockId> parseBlockId(const char *string) {
 
 class PrintHelpCommand final : public Command {
  public:
-  explicit PrintHelpCommand(CommandParser const &parser)
+  explicit PrintHelpCommand(const CommandParser &parser)
       : Command{"help", "print help message"}, parser{parser} {}
 
   virtual void execute(std::ostream &out, const ArgumentList &args) override {
@@ -171,7 +173,7 @@ class PrintHelpCommand final : public Command {
   }
 
  private:
-  CommandParser const &parser;
+  const CommandParser &parser;
 };
 
 class InspectBlockCommand : public Command {
@@ -423,7 +425,7 @@ class SearchChainCommand : public Command {
   }
 
   void searchBlock(std::ostream &out,
-                   BlockHeader const &header,
+                   const BlockHeader &header,
                    Target target) const {
     switch (target) {
       case Target::Justification:
@@ -454,7 +456,7 @@ class SearchChainCommand : public Command {
   }
 
   void searchForAuthorityUpdate(std::ostream &out,
-                                BlockHeader const &header) const {
+                                const BlockHeader &header) const {
     for (auto &digest_item : header.digest) {
       auto *consensus_digest =
           boost::get<kagome::primitives::Consensus>(&digest_item);
@@ -471,7 +473,7 @@ class SearchChainCommand : public Command {
 
   void reportAuthorityUpdate(std::ostream &out,
                              BlockNumber digest_origin,
-                             GrandpaDigest const &digest) const {
+                             const GrandpaDigest &digest) const {
     using namespace kagome::primitives;
     if (auto *scheduled_change = boost::get<ScheduledChange>(&digest);
         scheduled_change) {
@@ -508,6 +510,62 @@ class SearchChainCommand : public Command {
   std::shared_ptr<BlockStorage> block_storage;
   std::shared_ptr<TrieStorage> trie_storage;
   std::shared_ptr<Hasher> hasher;
+};
+
+class DbStatsCommand : public Command {
+ public:
+  DbStatsCommand(std::filesystem::path db_path)
+      : Command("db-stats", "Print RocksDb stats"), db_path{db_path} {}
+
+  virtual void execute(std::ostream &out, const ArgumentList &args) override {
+    rocksdb::Options options;
+    rocksdb::DB *db;
+
+    std::vector<std::string> existing_families;
+    auto res = rocksdb::DB::ListColumnFamilies(
+        options, db_path.native(), &existing_families);
+    if (!res.ok()) {
+      throwError("Failed to open database at {}: {}",
+                 db_path.native(),
+                 res.ToString());
+    }
+    std::vector<rocksdb::ColumnFamilyDescriptor> column_families;
+    for (auto &family : existing_families) {
+      column_families.emplace_back(rocksdb::ColumnFamilyDescriptor{family, {}});
+    }
+    std::vector<rocksdb::ColumnFamilyHandle *> column_handles;
+    auto status = rocksdb::DB::OpenForReadOnly(
+        options, db_path, column_families, &column_handles, &db);
+    if (!status.ok()) {
+      throwError("Failed to open database at {}: {}",
+                 db_path.native(),
+                 status.ToString());
+    }
+
+    std::vector<rocksdb::ColumnFamilyMetaData> columns_data;
+    db->GetAllColumnFamilyMetaData(&columns_data);
+    fmt::print(out, "{:{}} | {:{}}    | {:{}} |\n", "NAME", 30, "SIZE", 10, "COUNT", 5);
+    for (auto column_data : columns_data) {
+      constexpr std::array sizes {
+          "B ", "KB", "MB", "GB", "TB"
+      };
+      double size = column_data.size;
+      int idx = 0;
+      while (size > 1024.0) {
+        size /= 1024.0;
+        idx++;
+      }
+      fmt::print(out,
+                 "{:{}} | {:{}.2f} {} | {:{}} |\n",
+                 column_data.name, 30,
+                 size, 10,
+                 sizes[idx],
+                 column_data.file_count, 5);
+    }
+  }
+
+ private:
+  std::filesystem::path db_path;
 };
 
 int storage_explorer_main(int argc, const char **argv) {
@@ -547,6 +605,7 @@ int storage_explorer_main(int argc, const char **argv) {
   auto block_tree = injector.injectBlockTree();
   auto executor = injector.injectExecutor();
   auto persistent_storage = injector.injectStorage();
+  auto chain_spec = injector.injectChainSpec();
   auto hasher = std::make_shared<kagome::crypto::HasherImpl>();
 
   auto header_repo =
@@ -572,6 +631,8 @@ int storage_explorer_main(int argc, const char **argv) {
   parser.addCommand(std::make_unique<QueryStateCommand>(trie_storage));
   parser.addCommand(std::make_unique<SearchChainCommand>(
       block_storage, trie_storage, authority_manager, hasher));
+  parser.addCommand(std::make_unique<DbStatsCommand>(
+      configuration->databasePath(chain_spec->id())));
 
   parser.invoke(args.subspan(0, kagome_args_start));
 

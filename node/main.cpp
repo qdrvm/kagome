@@ -67,6 +67,9 @@ int main(int argc, const char **argv) {
     if (name == "benchmark") {
       return kagome::benchmark_main(argc - 1, argv + 1);
     }
+  } else {
+    std::cerr
+        << "Available subcommands: storage-explorer db-editor benchmark\n";
   }
 
   auto logger = kagome::log::createLogger("AppConfiguration",
