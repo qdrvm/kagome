@@ -301,6 +301,10 @@ namespace kagome::network {
   };
   using SignedStatement = IndexedAndSigned<Statement>;
 
+  inline std::ostream &operator<<(std::ostream &os, const SignedStatement &t) {
+    return os << "Statement (validator index:" << t.payload.ix << ')';
+  }
+
   struct Seconded {
     SCALE_TIE(2);
 
