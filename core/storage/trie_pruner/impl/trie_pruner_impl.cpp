@@ -70,7 +70,8 @@ namespace kagome::storage::trie_pruner {
         codec_{codec},
         storage_{storage},
         hasher_{hasher},
-        pruning_depth_{config->statePruningDepth()} {
+        pruning_depth_{config->statePruningDepth()},
+        thorough_pruning_{config->enableThoroughPruning()} {
     BOOST_ASSERT(trie_storage_ != nullptr);
     BOOST_ASSERT(serializer_ != nullptr);
     BOOST_ASSERT(codec_ != nullptr);
@@ -337,17 +338,6 @@ namespace kagome::storage::trie_pruner {
 
   outcome::result<void> TriePrunerImpl::addNewState(
       const trie::PolkadotTrie &new_trie, trie::StateVersion version) {
-    /*EncoderCache encoder{*codec_, logger_};
-
-    OUTCOME_TRY(root_hash,
-                encoder.getMerkleValue(*new_trie.getRoot(), version));
-    OUTCOME_TRY(root_in_storage,
-                trie_storage_->contains(root_hash.asHash().value()));
-    if(root_in_storage) {
-      SL_WARN(logger_, "Indexing a trie already stored in DB. Root: {}",
-    root_hash.asHash());
-    }*/
-
     OUTCOME_TRY(addNewStateWith(new_trie, version));
     return outcome::success();
   }
@@ -383,7 +373,7 @@ namespace kagome::storage::trie_pruner {
       auto [node, hash] = queued_nodes.back();
       queued_nodes.pop_back();
       auto &ref_count = ref_count_[hash];
-      if (ref_count == 0) {
+      if (ref_count == 0 && !thorough_pruning_) {
         OUTCOME_TRY(hash_is_in_storage, trie_storage_->contains(hash));
         if (hash_is_in_storage) {
           // the node is present in storage but pruner has not indexed it

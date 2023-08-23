@@ -143,6 +143,7 @@ namespace kagome::storage::trie_pruner {
     std::shared_ptr<const crypto::Hasher> hasher_;
 
     const std::optional<uint32_t> pruning_depth_{};
+    const bool thorough_pruning_{false};
     log::Logger logger_ = log::createLogger("TriePruner", "trie_pruner");
   };
 

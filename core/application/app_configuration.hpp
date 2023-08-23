@@ -256,6 +256,8 @@ namespace kagome::application {
 
     virtual bool shouldPruneDiscardedStates() const = 0;
 
+    virtual bool enableThoroughPruning() const = 0;
+
     /**
      * @return database state cache size in MiB
      */
