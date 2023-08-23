@@ -60,3 +60,11 @@ target_link_libraries(wasm_executor_test
     logger_for_tests
     module_repository
     )
+
+addtest(wavm_module_init_test
+    wavm_module_init_test.cpp
+    )
+target_link_libraries(wavm_module_init_test
+    runtime_wavm
+    basic_code_provider
+    )
