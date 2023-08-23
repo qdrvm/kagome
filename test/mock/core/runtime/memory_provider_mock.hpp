@@ -18,7 +18,10 @@ namespace kagome::runtime {
                 (),
                 (const, override));
 
-    MOCK_METHOD(outcome::result<void>, resetMemory, (WasmSize), (override));
+    MOCK_METHOD(outcome::result<void>,
+                resetMemory,
+                (const MemoryConfig &),
+                (override));
   };
 
 }  // namespace kagome::runtime

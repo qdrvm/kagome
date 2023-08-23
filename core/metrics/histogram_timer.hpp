@@ -6,19 +6,42 @@
 #ifndef KAGOME_METRICS_HISTOGRAM_TIMER_HPP
 #define KAGOME_METRICS_HISTOGRAM_TIMER_HPP
 
+#include <gsl/gsl_util>
+
 #include "metrics/metrics.hpp"
 
 namespace kagome::metrics {
-  struct HistogramTimer {
-    using Clock = std::chrono::steady_clock;
-    using Time = Clock::time_point;
+  inline std::vector<double> exponentialBuckets(double start,
+                                                double factor,
+                                                size_t count) {
+    std::vector<double> buckets;
+    for (auto bucket = start; buckets.size() < count; bucket *= factor) {
+      buckets.emplace_back(bucket);
+    }
+    return buckets;
+  }
 
-    HistogramTimer(const std::string &name,
-                   const std::string &help,
-                   std::vector<double> buckets) {
+  struct HistogramHelper {
+    HistogramHelper(const std::string &name,
+                    const std::string &help,
+                    std::vector<double> buckets) {
       registry_->registerHistogramFamily(name, help);
       metric_ = registry_->registerHistogramMetric(name, buckets);
     }
+
+    void observe(double value) {
+      metric_->observe(value);
+    }
+
+    metrics::RegistryPtr registry_ = metrics::createRegistry();
+    metrics::Histogram *metric_;
+  };
+
+  struct HistogramTimer : HistogramHelper {
+    using Clock = std::chrono::steady_clock;
+    using Time = Clock::time_point;
+
+    using HistogramHelper::HistogramHelper;
 
     auto observe(const Time &begin) {
       auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(
@@ -34,9 +57,6 @@ namespace kagome::metrics {
     auto timer() {
       return std::make_optional(gsl::finally(manual()));
     }
-
-    metrics::RegistryPtr registry_ = metrics::createRegistry();
-    metrics::Histogram *metric_;
   };
 }  // namespace kagome::metrics
 

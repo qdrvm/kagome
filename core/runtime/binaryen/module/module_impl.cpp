@@ -43,7 +43,7 @@ namespace kagome::runtime::binaryen {
     BOOST_ASSERT(env_factory_ != nullptr);
   }
 
-  outcome::result<std::unique_ptr<ModuleImpl>> ModuleImpl::createFromCode(
+  outcome::result<std::shared_ptr<ModuleImpl>> ModuleImpl::createFromCode(
       const std::vector<uint8_t> &code,
       std::shared_ptr<const InstanceEnvironmentFactory> env_factory,
       const common::Hash256 &code_hash) {
@@ -58,7 +58,7 @@ namespace kagome::runtime::binaryen {
     {
       wasm::WasmBinaryBuilder parser(
           *module,
-          reinterpret_cast<std::vector<char> const &>(code),  // NOLINT
+          reinterpret_cast<const std::vector<char> &>(code),  // NOLINT
           false);
 
       try {
@@ -73,16 +73,15 @@ namespace kagome::runtime::binaryen {
 
     module->memory.initial = kDefaultHeappages;
 
-    std::unique_ptr<ModuleImpl> wasm_module_impl(
-        new ModuleImpl(std::move(module), std::move(env_factory), code_hash));
-    return wasm_module_impl;
+    return std::make_shared<ModuleImpl>(
+        std::move(module), std::move(env_factory), code_hash);
   }
 
   outcome::result<std::shared_ptr<ModuleInstance>> ModuleImpl::instantiate()
       const {
     auto env = env_factory_->make();
     return std::make_shared<ModuleInstanceImpl>(
-        std::move(env.env), module_, env.rei, code_hash_);
+        std::move(env.env), shared_from_this(), env.rei, code_hash_);
   }
 
 }  // namespace kagome::runtime::binaryen

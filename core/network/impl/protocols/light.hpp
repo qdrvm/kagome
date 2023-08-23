@@ -19,7 +19,9 @@ namespace kagome::primitives {
 }  // namespace kagome::primitives
 
 namespace kagome::runtime {
-  class RuntimeEnvironmentFactory;
+  class ModuleRepository;
+  class Executor;
+  class RuntimeContextFactory;
 }  // namespace kagome::runtime
 
 namespace kagome::storage::trie {
@@ -41,13 +43,14 @@ namespace kagome::network {
     static constexpr auto kName = "LightProtocol";
 
    public:
-    LightProtocol(
-        libp2p::Host &host,
-        const application::ChainSpec &chain_spec,
-        const primitives::GenesisBlockHeader &genesis,
-        std::shared_ptr<blockchain::BlockHeaderRepository> repository,
-        std::shared_ptr<storage::trie::TrieStorage> storage,
-        std::shared_ptr<runtime::RuntimeEnvironmentFactory> env_factory);
+    LightProtocol(libp2p::Host &host,
+                  const application::ChainSpec &chain_spec,
+                  const primitives::GenesisBlockHeader &genesis,
+                  std::shared_ptr<blockchain::BlockHeaderRepository> repository,
+                  std::shared_ptr<storage::trie::TrieStorage> storage,
+                  std::shared_ptr<runtime::ModuleRepository> module_repo,
+                  std::shared_ptr<runtime::Executor> executor,
+                  std::shared_ptr<runtime::RuntimeContextFactory> ctx_factory);
 
     std::optional<outcome::result<ResponseType>> onRxRequest(
         RequestType req, std::shared_ptr<Stream>) override;
@@ -57,7 +60,9 @@ namespace kagome::network {
    private:
     std::shared_ptr<blockchain::BlockHeaderRepository> repository_;
     std::shared_ptr<storage::trie::TrieStorage> storage_;
-    std::shared_ptr<runtime::RuntimeEnvironmentFactory> env_factory_;
+    std::shared_ptr<runtime::ModuleRepository> module_repo_;
+    std::shared_ptr<runtime::Executor> executor_;
+    std::shared_ptr<runtime::RuntimeContextFactory> ctx_factory_;
   };
 }  // namespace kagome::network
 

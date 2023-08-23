@@ -11,11 +11,13 @@
 #include <mutex>
 #include <stack>
 
-#include "common/lru_cache.hpp"
+#include "utils/lru.hpp"
 
 namespace kagome::runtime {
+  class ModuleFactory;
+
   /**
-   * @brief Pool of runtime instances - per state. Incapsulates modules cache.
+   * @brief Pool of runtime instances - per state. Encapsulates modules cache.
    *
    */
   class RuntimeInstancesPool final
@@ -24,8 +26,14 @@ namespace kagome::runtime {
 
    public:
     using RootHash = storage::trie::RootHash;
-    using ModuleCache =
-        LruCache<storage::trie::RootHash, std::shared_ptr<const Module>, true>;
+
+    RuntimeInstancesPool();
+
+    RuntimeInstancesPool(std::shared_ptr<ModuleFactory> module_factory,
+                         size_t capacity);
+
+    outcome::result<std::shared_ptr<ModuleInstance>> instantiate(
+        const RootHash &code_hash, common::BufferView code_zstd);
 
     /**
      * @brief Instantiate new or reuse existing ModuleInstance for the provided
@@ -66,10 +74,19 @@ namespace kagome::runtime {
     void putModule(const RootHash &state, std::shared_ptr<Module> module);
 
    private:
+    struct Entry {
+      std::shared_ptr<const Module> module;
+      std::vector<std::shared_ptr<ModuleInstance>> instances;
+
+      outcome::result<std::shared_ptr<ModuleInstance>> instantiate(
+          std::unique_lock<std::mutex> &lock);
+    };
+
+    std::shared_ptr<ModuleFactory> module_factory_;
+
     std::mutex mt_;
     static constexpr size_t MODULES_CACHE_SIZE = 2;
-    ModuleCache modules_{MODULES_CACHE_SIZE};
-    std::map<RootHash, ModuleInstancePool> pools_;
+    Lru<common::Hash256, Entry> pools_;
   };
 
 }  // namespace kagome::runtime

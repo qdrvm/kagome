@@ -15,17 +15,17 @@ namespace kagome::runtime {
    public:
     MOCK_METHOD(outcome::result<primitives::ApplyExtrinsicResult>,
                 apply_extrinsic,
-                (RuntimeEnvironment &, const primitives::Extrinsic &),
+                (RuntimeContext &, const primitives::Extrinsic &),
                 (override));
 
     MOCK_METHOD(outcome::result<primitives::BlockHeader>,
                 finalize_block,
-                (RuntimeEnvironment &),
+                (RuntimeContext &),
                 (override));
 
     MOCK_METHOD(outcome::result<std::vector<primitives::Extrinsic>>,
                 inherent_extrinsics,
-                (RuntimeEnvironment &, const primitives::InherentData &),
+                (RuntimeContext &, const primitives::InherentData &),
                 (override));
 
     MOCK_METHOD(outcome::result<primitives::CheckInherentsResult>,

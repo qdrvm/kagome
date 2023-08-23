@@ -34,7 +34,8 @@ add_library(runtime_wavm
 target_link_libraries(runtime_wavm
     wavm_memory
     constant_code_provider
-    Boost::boost
+    executor
+		Boost::boost
     compartment_wrapper
     trie_storage_provider
     )
