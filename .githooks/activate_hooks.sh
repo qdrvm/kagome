@@ -9,6 +9,8 @@ fi
 
 cd "$(dirname "$0")/.." || (echo "Run script from file" | exit 1)
 
+chmod +x .githooks/*
+
 ${GIT} config --local core.hooksPath .githooks || (echo "Hooks activation has failed" | exit 1)
 
 echo "Hooks activated successfully"

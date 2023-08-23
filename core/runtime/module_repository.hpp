@@ -33,16 +33,14 @@ namespace kagome::runtime {
     /**
      * @brief Returns a module instance for runtime at the \arg block state,
      * loading its code using the provided \arg code_provider
-     * @param code_provider the code provider used to extract the runtime code
-     * from the given block
      * @param block info of the block at which the runtime code should be
      * extracted
-     * @param header of the block at which the runtime code should be extracted
+     * @param state_hash of the block at which the runtime code should be
+     * extracted
      */
     virtual outcome::result<std::shared_ptr<ModuleInstance>> getInstanceAt(
-        std::shared_ptr<const RuntimeCodeProvider> code_provider,
         const primitives::BlockInfo &block,
-        const primitives::BlockHeader &header) = 0;
+        const storage::trie::RootHash &state_hash) = 0;
   };
 
 }  // namespace kagome::runtime

@@ -11,6 +11,7 @@
 #include "runtime/binaryen/module/module_instance_impl.hpp"
 
 #include "runtime/binaryen/memory_impl.hpp"
+#include "runtime/binaryen/module/module_impl.hpp"
 #include "runtime/memory_provider.hpp"
 
 #include <binaryen/wasm-interpreter.h>
@@ -77,19 +78,23 @@ namespace kagome::runtime::binaryen {
 
   ModuleInstanceImpl::ModuleInstanceImpl(
       InstanceEnvironment &&env,
-      std::shared_ptr<wasm::Module> parent,
+      std::shared_ptr<const ModuleImpl> parent,
       std::shared_ptr<RuntimeExternalInterface> rei,
       const common::Hash256 &code_hash)
       : env_{std::move(env)},
         rei_{std::move(rei)},
         parent_{std::move(parent)},
         code_hash_(code_hash),
-        module_instance_{
-            std::make_unique<wasm::ModuleInstance>(*parent_, rei_.get())},
+        module_instance_{std::make_unique<wasm::ModuleInstance>(
+            *parent_->module_, rei_.get())},
         logger_{log::createLogger("ModuleInstance", "binaryen")} {
     BOOST_ASSERT(parent_);
     BOOST_ASSERT(module_instance_);
     BOOST_ASSERT(rei_);
+  }
+
+  std::shared_ptr<const Module> ModuleInstanceImpl::getModule() const {
+    return parent_;
   }
 
   outcome::result<PtrSize> ModuleInstanceImpl::callExportFunction(
@@ -146,7 +151,7 @@ namespace kagome::runtime::binaryen {
     }
   }
 
-  InstanceEnvironment const &ModuleInstanceImpl::getEnvironment() const {
+  const InstanceEnvironment &ModuleInstanceImpl::getEnvironment() const {
     return env_;
   }
 
@@ -156,15 +161,15 @@ namespace kagome::runtime::binaryen {
   }
 
   void ModuleInstanceImpl::forDataSegment(
-      DataSegmentProcessor const &callback) const {
-    for (auto &segment : parent_->memory.segments) {
+      const DataSegmentProcessor &callback) const {
+    for (auto &segment : parent_->module_->memory.segments) {
       wasm::Address offset =
           (uint32_t)wasm::ConstantExpressionRunner<wasm::TrivialGlobalManager>(
               module_instance_->globals)
               .visit(segment.offset)
               .value.geti32();
       if (offset + segment.data.size()
-          > parent_->memory.initial * wasm::Memory::kPageSize) {
+          > parent_->module_->memory.initial * wasm::Memory::kPageSize) {
         throw std::runtime_error("invalid offset when initializing memory");
       }
       callback(offset,

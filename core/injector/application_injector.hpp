@@ -11,6 +11,7 @@
 #include <boost/asio/io_context.hpp>
 
 #include "clock/clock.hpp"
+#include "network/dispute_request_observer.hpp"
 #include "storage/spaced_storage.hpp"
 
 namespace soralog {
@@ -36,6 +37,10 @@ namespace kagome {
 
   namespace benchmark {
     class BlockExecutionBenchmark;
+  }
+
+  namespace dispute {
+    class DisputeCoordinator;
   }
 
   namespace metrics {
@@ -115,6 +120,9 @@ namespace kagome::injector {
     injectParachainProcessor();
     std::shared_ptr<parachain::ApprovalDistribution>
     injectApprovalDistribution();
+    std::shared_ptr<network::DisputeRequestObserver>
+    injectDisputeRequestObserver();
+    std::shared_ptr<dispute::DisputeCoordinator> injectDisputeCoordinator();
     std::shared_ptr<consensus::grandpa::Grandpa> injectGrandpa();
     std::shared_ptr<soralog::LoggingSystem> injectLoggingSystem();
     std::shared_ptr<storage::trie::TrieStorage> injectTrieStorage();

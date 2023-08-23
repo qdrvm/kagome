@@ -8,80 +8,16 @@
 
 #include "runtime/module_repository.hpp"
 
-#include <stack>
 #include <mutex>
+#include <stack>
+
+#include "utils/lru.hpp"
 
 namespace kagome::runtime {
-  /**
-   * LRU cache designed for small amounts of data (as its get() is O(N))
-   */
-  template <typename Key, typename Value, typename PriorityType = uint64_t>
-  struct SmallLruCache final {
-   public:
-    static_assert(std::is_unsigned_v<PriorityType>);
-
-    struct CacheEntry {
-      Key key;
-      Value value;
-      PriorityType latest_use_tick_;
-
-      bool operator<(const CacheEntry &rhs) const {
-        return latest_use_tick_ < rhs.latest_use_tick_;
-      }
-    };
-
-    SmallLruCache(size_t max_size) : kMaxSize{max_size} {
-      BOOST_ASSERT(kMaxSize > 0);
-      cache_.reserve(kMaxSize);
-    }
-
-    std::optional<std::reference_wrapper<const Value>> get(const Key &key) {
-      ticks_++;
-      if (ticks_ == 0) {
-        handleTicksOverflow();
-      }
-      for (auto &entry : cache_) {
-        if (entry.key == key) {
-          entry.latest_use_tick_ = ticks_;
-          return entry.value;
-        }
-      }
-      return std::nullopt;
-    }
-
-    template <typename ValueArg>
-    void put(const Key &key, ValueArg &&value) {
-      static_assert(std::is_convertible_v<
-                        ValueArg,
-                        Value> || std::is_constructible_v<ValueArg, Value>);
-      ticks_++;
-      if (cache_.size() >= kMaxSize) {
-        auto min = std::min_element(cache_.begin(), cache_.end());
-        cache_.erase(min);
-      }
-      cache_.push_back(CacheEntry{key, std::forward<ValueArg>(value), ticks_});
-    }
-
-   private:
-    void handleTicksOverflow() {
-      // 'compress' timestamps of entries in the cache (works because we care
-      // only about their order, not actual timestamps)
-      std::sort(cache_.begin(), cache_.end());
-      for (auto &entry : cache_) {
-        entry.latest_use_tick_ = ticks_;
-        ticks_++;
-      }
-    }
-
-    const size_t kMaxSize;
-    // an abstract representation of time to implement 'recency' without
-    // depending on real time. Incremented on each cache access
-    PriorityType ticks_{};
-    std::vector<CacheEntry> cache_;
-  };
+  class ModuleFactory;
 
   /**
-   * @brief Pool of runtime instances - per state. Incapsulates modules cache.
+   * @brief Pool of runtime instances - per state. Encapsulates modules cache.
    *
    */
   class RuntimeInstancesPool final
@@ -90,8 +26,14 @@ namespace kagome::runtime {
 
    public:
     using RootHash = storage::trie::RootHash;
-    using ModuleCache =
-        SmallLruCache<storage::trie::RootHash, std::shared_ptr<Module>>;
+
+    RuntimeInstancesPool();
+
+    RuntimeInstancesPool(std::shared_ptr<ModuleFactory> module_factory,
+                         size_t capacity);
+
+    outcome::result<std::shared_ptr<ModuleInstance>> instantiate(
+        const RootHash &code_hash, common::BufferView code_zstd);
 
     /**
      * @brief Instantiate new or reuse existing ModuleInstance for the provided
@@ -120,7 +62,8 @@ namespace kagome::runtime {
      * @param state - the state containing the module's code.
      * @return Module if any, nullopt otherwise
      */
-    std::optional<std::shared_ptr<Module>> getModule(const RootHash &state);
+    std::optional<std::shared_ptr<const Module>> getModule(
+        const RootHash &state);
 
     /**
      * @brief Puts new module into internal cache
@@ -131,10 +74,19 @@ namespace kagome::runtime {
     void putModule(const RootHash &state, std::shared_ptr<Module> module);
 
    private:
+    struct Entry {
+      std::shared_ptr<const Module> module;
+      std::vector<std::shared_ptr<ModuleInstance>> instances;
+
+      outcome::result<std::shared_ptr<ModuleInstance>> instantiate(
+          std::unique_lock<std::mutex> &lock);
+    };
+
+    std::shared_ptr<ModuleFactory> module_factory_;
+
     std::mutex mt_;
     static constexpr size_t MODULES_CACHE_SIZE = 2;
-    ModuleCache modules_{MODULES_CACHE_SIZE};
-    std::map<RootHash, ModuleInstancePool> pools_;
+    Lru<common::Hash256, Entry> pools_;
   };
 
 }  // namespace kagome::runtime

@@ -168,26 +168,16 @@ namespace kagome::network {
                        stream->remotePeerId().value());
 
             // Send neighbor message first
-            auto own_peer_state =
-                self->peer_manager_->getPeerState(self->own_info_.id);
-            if (own_peer_state.has_value()) {
-              GrandpaNeighborMessage msg{
-                  .round_number =
-                      own_peer_state->get().round_number.value_or(1),
-                  .voter_set_id = own_peer_state->get().set_id.value_or(0),
-                  .last_finalized = own_peer_state->get().last_finalized};
+            SL_DEBUG(self->base_.logger(),
+                     "Send initial neighbor message: grandpa round number {}",
+                     self->last_neighbor_.round_number);
 
-              SL_DEBUG(self->base_.logger(),
-                       "Send initial neighbor message: grandpa round number {}",
-                       msg.round_number);
+            auto shared_msg =
+                KAGOME_EXTRACT_SHARED_CACHE(GrandpaProtocol, GrandpaMessage);
+            (*shared_msg) = self->last_neighbor_;
 
-              auto shared_msg =
-                  KAGOME_EXTRACT_SHARED_CACHE(GrandpaProtocol, GrandpaMessage);
-              (*shared_msg) = GrandpaMessage(std::move(msg));
-
-              self->stream_engine_->send(
-                  stream->remotePeerId().value(), self, std::move(shared_msg));
-            }
+            self->stream_engine_->send(
+                stream->remotePeerId().value(), self, std::move(shared_msg));
 
             cb(std::move(stream));
           };
@@ -449,6 +439,12 @@ namespace kagome::network {
   }
 
   void GrandpaProtocol::neighbor(GrandpaNeighborMessage &&msg) {
+    if (msg == last_neighbor_) {
+      return;
+    }
+    auto set_changed = msg.voter_set_id != last_neighbor_.voter_set_id;
+    last_neighbor_ = msg;
+
     SL_DEBUG(base_.logger(),
              "Send neighbor message: grandpa round number {}",
              msg.round_number);
@@ -456,6 +452,7 @@ namespace kagome::network {
     peer_manager_->updatePeerState(own_info_.id, msg);
 
     auto filter = [this,
+                   set_changed,
                    set_id = msg.voter_set_id,
                    round_number = msg.round_number](const PeerId &peer_id) {
       auto info_opt = peer_manager_->getPeerState(peer_id);
@@ -470,19 +467,8 @@ namespace kagome::network {
       }
       const auto &info = info_opt.value().get();
 
-      if (info.roles.flags.light and info.set_id.has_value()) {
-        // Neighbor message will be sent for light clients only when they lag by
-        // voter-set
-        if (info.set_id >= set_id) {
-          SL_DEBUG(
-              base_.logger(),
-              "Neighbor message with set_id={} in round={} has not been sent "
-              "to {}: peer is light-client and his voter-set id same or bigger",
-              set_id,
-              round_number,
-              peer_id);
-          return false;
-        }
+      if (not set_changed and info.roles.flags.light) {
+        return false;
       }
 
       return true;

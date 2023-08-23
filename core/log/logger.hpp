@@ -78,7 +78,7 @@ namespace kagome::log {
       res = ::kagome::common::hex_lower(buffer);
     }
     if (res.size() > 256) {
-      return res.substr(0, 256) + "...";
+      return res.substr(0, 256) + "…";
     }
     return res;
   }
@@ -90,7 +90,7 @@ namespace kagome::log {
 
   template <typename T>
   auto format_arg(const std::optional<T> &t) {
-    return t ? format_arg(t.value()) : "none";
+    return fmt::format("{}", t);
   }
 
   template <typename Ret, typename... Args>
@@ -150,5 +150,35 @@ namespace kagome::log {
 }  // namespace kagome::log
 
 OUTCOME_HPP_DECLARE_ERROR(kagome::log, Error);
+
+template <typename T>
+struct fmt::formatter<std::optional<T>> {
+  // Parses format specifications. Must be empty
+  constexpr auto parse(format_parse_context &ctx) -> decltype(ctx.begin()) {
+    // Parse the presentation format and store it in the formatter:
+    auto it = ctx.begin(), end = ctx.end();
+
+    // Check if reached the end of the range:
+    if (it != end && *it != '}') {
+      throw format_error("invalid format");
+    }
+
+    // Return an iterator past the end of the parsed range:
+    return it;
+  }
+
+  // Formats the optional value
+  template <typename FormatContext>
+  auto format(const std::optional<T> &opt, FormatContext &ctx) const
+      -> decltype(ctx.out()) {
+    // ctx.out() is an output iterator to write to.
+
+    if (opt.has_value()) {
+      return format_to(ctx.out(), "{}", opt.value());
+    } else {
+      return format_to(ctx.out(), "<none>");
+    }
+  }
+};
 
 #endif  // KAGOME_LOGGER_HPP

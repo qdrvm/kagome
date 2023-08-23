@@ -17,15 +17,17 @@ namespace kagome::blockchain {
 namespace kagome::runtime {
 
   class Executor;
+  class RuntimePropertiesCache;
 
   class CoreImpl final : public Core {
    public:
     CoreImpl(
         std::shared_ptr<Executor> executor,
+        std::shared_ptr<RuntimeContextFactory> ctx_factory,
         std::shared_ptr<const blockchain::BlockHeaderRepository> header_repo);
 
     outcome::result<primitives::Version> version(
-        RuntimeEnvironment &env) override;
+        std::shared_ptr<ModuleInstance> instance) override;
 
     outcome::result<primitives::Version> version(
         const primitives::BlockHash &block) override;
@@ -40,12 +42,13 @@ namespace kagome::runtime {
         const primitives::BlockReflection &block,
         TrieChangesTrackerOpt changes_tracker) override;
 
-    outcome::result<std::unique_ptr<RuntimeEnvironment>> initialize_block(
+    outcome::result<std::unique_ptr<RuntimeContext>> initialize_block(
         const primitives::BlockHeader &header,
         TrieChangesTrackerOpt changes_tracker) override;
 
    private:
     std::shared_ptr<Executor> executor_;
+    std::shared_ptr<RuntimeContextFactory> ctx_factory_;
     std::shared_ptr<const blockchain::BlockHeaderRepository> header_repo_;
 
     LruCache<primitives::BlockHash, primitives::Version> version_{10};

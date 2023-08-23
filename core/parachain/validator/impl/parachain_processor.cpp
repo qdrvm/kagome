@@ -56,6 +56,11 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::parachain,
   return "Unknown parachain processor error";
 }
 
+namespace {
+  constexpr const char *kIsParachainValidator =
+      "kagome_node_is_parachain_validator";
+}
+
 namespace kagome::parachain {
 
   ParachainProcessorImpl::ParachainProcessorImpl(
@@ -114,6 +119,16 @@ namespace kagome::parachain {
     BOOST_ASSERT(babe_status_observable_);
     BOOST_ASSERT(query_audi_);
     app_state_manager->takeControl(*this);
+
+    metrics_registry_->registerGaugeFamily(
+        kIsParachainValidator,
+        "Tracks if the validator participates in parachain consensus. "
+        "Parachain validators are a subset of the active set validators that "
+        "perform approval checking of all parachain candidates in a session. "
+        "Updates at session boundary.");
+    metric_is_parachain_validator_ =
+        metrics_registry_->registerGaugeMetric(kIsParachainValidator);
+    metric_is_parachain_validator_->set(false);
   }
 
   bool ParachainProcessorImpl::prepare() {
@@ -271,6 +286,12 @@ namespace kagome::parachain {
     pm_->getStreamEngine()->broadcast(router_->getValidationProtocol(), msg);
   }
 
+  outcome::result<std::optional<ValidatorSigner>>
+  ParachainProcessorImpl::isParachainValidator(
+      const primitives::BlockHash &relay_parent) const {
+    return signer_factory_->at(relay_parent);
+  }
+
   outcome::result<void> ParachainProcessorImpl::canProcessParachains() const {
     if (!isValidatingNode()) {
       return Error::NOT_A_VALIDATOR;
@@ -289,16 +310,21 @@ namespace kagome::parachain {
   outcome::result<kagome::parachain::ParachainProcessorImpl::RelayParentState>
   ParachainProcessorImpl::initNewBackingTask(
       const primitives::BlockHash &relay_parent) {
+    bool is_parachain_validator = false;
+    auto metric_updater = gsl::finally([self{this}, &is_parachain_validator] {
+      self->metric_is_parachain_validator_->set(is_parachain_validator);
+    });
     OUTCOME_TRY(validators, parachain_host_->validators(relay_parent));
     OUTCOME_TRY(groups, parachain_host_->validator_groups(relay_parent));
     OUTCOME_TRY(cores, parachain_host_->availability_cores(relay_parent));
-    OUTCOME_TRY(validator, signer_factory_->at(relay_parent));
+    OUTCOME_TRY(validator, isParachainValidator(relay_parent));
     auto &[validator_groups, group_rotation_info] = groups;
 
     if (!validator) {
-      logger_->error("Not a validator, or no para keys.");
+      SL_TRACE(logger_, "Not a validator, or no para keys.");
       return Error::KEY_NOT_PRESENT;
     }
+    is_parachain_validator = true;
 
     const auto n_cores = cores.size();
     std::optional<ParachainId> assignment;
@@ -461,10 +487,6 @@ namespace kagome::parachain {
   void ParachainProcessorImpl::onValidationProtocolMsg(
       const libp2p::peer::PeerId &peer_id,
       const network::ValidatorProtocolMessage &message) {
-    if (auto r = canProcessParachains(); r.has_error()) {
-      return;
-    }
-
     if (auto m{boost::get<network::BitfieldDistributionMessage>(&message)}) {
       auto bd{boost::get<network::BitfieldDistribution>(m)};
       BOOST_ASSERT_MSG(
@@ -480,6 +502,13 @@ namespace kagome::parachain {
 
     if (auto msg{boost::get<network::StatementDistributionMessage>(&message)}) {
       if (auto statement_msg{boost::get<network::Seconded>(msg)}) {
+        if (auto r = canProcessParachains(); r.has_error()) {
+          return;
+        }
+        if (auto r = isParachainValidator(statement_msg->relay_parent);
+            r.has_error() || !r.value()) {
+          return;
+        }
         SL_TRACE(
             logger_, "Imported statement on {}", statement_msg->relay_parent);
         handleStatement(
@@ -1335,7 +1364,8 @@ namespace kagome::parachain {
   outcome::result<kagome::parachain::Pvf::Result>
   ParachainProcessorImpl::validateCandidate(
       const network::CandidateReceipt &candidate,
-      const network::ParachainBlock &pov) {
+      const network::ParachainBlock &pov,
+      const primitives::BlockHash &relay_parent) {
     return pvf_->pvfSync(candidate, pov);
   }
 
@@ -1368,7 +1398,7 @@ namespace kagome::parachain {
     TicToc _measure{"Parachain validation", logger_};
     const auto candidate_hash{candidateHashFrom(candidate)};
 
-    /// checks if we still need to execute parachain task +7-903-720-26-36
+    /// checks if we still need to execute parachain task
     auto need_to_process = our_current_state_.active_leaves.sharedAccess(
         [&](const auto &active_leaves) {
           return active_leaves.count(relay_parent) != 0ull;
@@ -1384,7 +1414,7 @@ namespace kagome::parachain {
       return Error::VALIDATION_FAILED;
     }
 
-    auto validation_result = validateCandidate(candidate, pov);
+    auto validation_result = validateCandidate(candidate, pov, relay_parent);
     if (!validation_result) {
       logger_->warn(
           "Candidate {} on relay_parent {}, para_id {} validation failed with "

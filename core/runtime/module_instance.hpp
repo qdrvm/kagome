@@ -11,13 +11,14 @@
 #include <boost/variant.hpp>
 #include <optional>
 
+#include "common/blob.hpp"
 #include "common/buffer.hpp"
 #include "outcome/outcome.hpp"
 #include "runtime/instance_environment.hpp"
-#include "runtime/module_repository.hpp"
 #include "runtime/ptr_size.hpp"
 
 namespace kagome::runtime {
+  class Module;
 
   static_assert(sizeof(float) == 4);
   static_assert(sizeof(double) == 8);
@@ -29,9 +30,16 @@ namespace kagome::runtime {
    */
   class ModuleInstance {
    public:
+    enum class Error {
+      ABSENT_HEAP_BASE = 1,
+      HEAP_BASE_TOO_LOW,
+    };
+
     virtual ~ModuleInstance() = default;
 
     virtual const common::Hash256 &getCodeHash() const = 0;
+
+    virtual std::shared_ptr<const Module> getModule() const = 0;
 
     /**
      * Call the instance's function
@@ -50,12 +58,16 @@ namespace kagome::runtime {
     using SegmentData = gsl::span<const uint8_t>;
     using DataSegmentProcessor =
         std::function<void(SegmentOffset, SegmentData)>;
-    virtual void forDataSegment(DataSegmentProcessor const &callback) const = 0;
+    virtual void forDataSegment(const DataSegmentProcessor &callback) const = 0;
 
-    virtual InstanceEnvironment const &getEnvironment() const = 0;
+    virtual const InstanceEnvironment &getEnvironment() const = 0;
     virtual outcome::result<void> resetEnvironment() = 0;
+
+    virtual outcome::result<void> resetMemory(const MemoryLimits &config);
   };
 
 }  // namespace kagome::runtime
+
+OUTCOME_HPP_DECLARE_ERROR(kagome::runtime, ModuleInstance::Error);
 
 #endif  // KAGOME_CORE_RUNTIME_MODULE_INSTANCE_HPP

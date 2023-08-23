@@ -87,112 +87,162 @@ namespace kagome::transaction_pool {
                                          hash,
                                          v.priority,
                                          res.first.number + v.longevity,
-                                         std::move(v.requires),
-                                         std::move(v.provides),
+                                         std::move(v.required_tags),
+                                         std::move(v.provided_tags),
                                          v.propagate};
         });
+  }
+
+  bool TransactionPoolImpl::imported(const Transaction &tx) const {
+    return pool_state_.sharedAccess([&](const auto &pool_state) {
+      return pool_state.pending_txs_.find(tx.hash)
+              != pool_state.pending_txs_.end()
+          || pool_state.ready_txs_.find(tx.hash) != pool_state.ready_txs_.end();
+    });
   }
 
   outcome::result<Transaction::Hash> TransactionPoolImpl::submitExtrinsic(
       primitives::TransactionSource source, primitives::Extrinsic extrinsic) {
     OUTCOME_TRY(tx, constructTransaction(source, extrinsic));
+    if (imported(tx)) {
+      return TransactionPoolError::TX_ALREADY_IMPORTED;
+    }
 
-    if (tx.should_propagate && !imported_txs_.count(tx.hash)) {
+    if (tx.should_propagate) {
       tx_transmitter_->propagateTransactions(gsl::make_span(std::vector{tx}));
     }
-    auto hash = tx.hash;
-    // send to pool
-    OUTCOME_TRY(submitOne(std::move(tx)));
+
+    const auto hash = tx.hash;
+    OUTCOME_TRY(
+        submitOneInternal(std::make_shared<Transaction>(std::move(tx))));
 
     return hash;
   }
 
   outcome::result<void> TransactionPoolImpl::submitOne(Transaction &&tx) {
-    return submitOne(std::make_shared<Transaction>(std::move(tx)));
-  }
-
-  outcome::result<void> TransactionPoolImpl::submitOne(
-      const std::shared_ptr<Transaction> &tx) {
-    if (auto [_, ok] = imported_txs_.emplace(tx->hash, tx); !ok) {
+    if (imported(tx)) {
       return TransactionPoolError::TX_ALREADY_IMPORTED;
     }
+    return submitOneInternal(std::make_shared<Transaction>(std::move(tx)));
+  }
 
-    auto processResult = processTransaction(tx);
-    if (processResult.has_error()
-        && processResult.error() == TransactionPoolError::POOL_IS_FULL) {
+  size_t TransactionPoolImpl::imported_txs_count() const {
+    return pool_state_.sharedAccess([&](const auto &pool_state) {
+      return pool_state.pending_txs_.size() + pool_state.ready_txs_.size();
+    });
+  }
+
+  outcome::result<void> TransactionPoolImpl::submitOneInternal(
+      const std::shared_ptr<Transaction> &tx) {
+    if (imported_txs_count() >= limits_.capacity) {
       if (auto key = ext_key_repo_->get(tx->hash); key.has_value()) {
         sub_engine_->notify(key.value(),
                             ExtrinsicLifecycleEvent::Dropped(key.value()));
       }
-      imported_txs_.erase(tx->hash);
-    } else {
-      SL_DEBUG(logger_,
-               "Extrinsic {} with hash {} was added to the pool",
-               tx->ext.data.toHex(),
-               tx->hash.toHex());
+      return TransactionPoolError::POOL_IS_FULL;
     }
 
-    return processResult;
+    SL_DEBUG(logger_,
+             "Extrinsic {} with hash {} was added to the pool",
+             tx->ext.data.toHex(),
+             tx->hash.toHex());
+
+    return processTransaction(tx);
+  }
+
+  bool TransactionPoolImpl::is_ready(
+      const PoolState &pool_state,
+      const std::shared_ptr<const Transaction> &tx) const {
+    return std::all_of(tx->required_tags.begin(),
+                       tx->required_tags.end(),
+                       [&](const auto &tag) {
+                         auto it = pool_state.dependency_graph_.find(tag);
+                         return it != pool_state.dependency_graph_.end()
+                             && it->second.tag_provided;
+                       });
   }
 
   outcome::result<void> TransactionPoolImpl::processTransaction(
       const std::shared_ptr<Transaction> &tx) {
-    OUTCOME_TRY(ensureSpace());
-    if (checkForReady(tx)) {
-      OUTCOME_TRY(processTransactionAsReady(tx));
+    pool_state_.exclusiveAccess([&](auto &pool_state) {
+      if (is_ready(pool_state, tx)) {
+        setReady(pool_state, tx);
+        return;
+      }
+      auto state = std::make_shared<TxReadyState>(tx);
+      pool_state.pending_txs_[tx->hash] = state;
+      for (auto &tag : tx->required_tags) {
+        auto &pending_status = pool_state.dependency_graph_[tag];
+        if (pending_status.tag_provided) {
+          --state->remains_required_txs_count;
+          BOOST_ASSERT(state->remains_required_txs_count != 0ull);
+        } else {
+          pending_status.dependents[tx->hash] = state;
+        }
+      }
+      if (auto key = ext_key_repo_->get(tx->hash); key.has_value()) {
+        sub_engine_->notify(key.value(),
+                            ExtrinsicLifecycleEvent::Future(key.value()));
+      }
+    });
+
+    return outcome::success();
+  }
+
+  void TransactionPoolImpl::rollback(PoolState &pool_state,
+                                     const Transaction::Hash &tx_hash) {
+    if (auto it = pool_state.pending_txs_.find(tx_hash);
+        it != pool_state.pending_txs_.end()) {
+      // восстанавливаем зависимости реквайрементов, которые не тригернулись
+      BOOST_ASSERT(pool_state.ready_txs_.find(tx_hash)
+                   == pool_state.ready_txs_.end());
+      auto state = it->second.lock();
+      BOOST_ASSERT(state);
+      BOOST_ASSERT(state->tx);
+      BOOST_ASSERT(state->remains_required_txs_count != 0);
+
+      for (auto &requirement : state->tx->required_tags) {
+        auto &pending_status = pool_state.dependency_graph_[requirement];
+        if (!pending_status.tag_provided
+            && pending_status.dependents.count(tx_hash) == 0) {
+          ++state->remains_required_txs_count;
+          pending_status.dependents[tx_hash] = state;
+        }
+      }
     } else {
-      OUTCOME_TRY(processTransactionAsWaiting(tx));
+      if (auto it = pool_state.ready_txs_.find(tx_hash);
+          it != pool_state.ready_txs_.end()) {
+        ReadyStatus ready_status{std::move(it->second)};
+        auto state = std::make_shared<TxReadyState>(std::move(ready_status.tx));
+
+        // перемещаем в пендинг
+        pool_state.pending_txs_[state->tx->hash] = state;
+
+        // прописываем ее реквайременты в граф
+        for (auto &requirement : state->tx->required_tags) {
+          PendingStatus &ps = pool_state.dependency_graph_[requirement];
+          if (ps.tag_provided) {
+            --state->remains_required_txs_count;
+          } else {
+            ps.dependents[state->tx->hash] = state;
+          }
+        }
+
+        // проставляем провайдеры как нот тригеред
+        for (auto &provider : state->tx->provided_tags) {
+          PendingStatus &ps = pool_state.dependency_graph_[provider];
+          BOOST_ASSERT(ps.tag_provided);
+          ps.tag_provided = false;
+        }
+
+        // вызываем для каждого child rollback
+        for (auto &h : ready_status.triggered) {
+          rollback(pool_state, h);
+        }
+        pool_state.ready_txs_.erase(it);
+      }
     }
-    return outcome::success();
-  }
-
-  outcome::result<void> TransactionPoolImpl::processTransactionAsReady(
-      const std::shared_ptr<Transaction> &tx) {
-    if (hasSpaceInReady()) {
-      setReady(tx);
-    } else {
-      postponeTransaction(tx);
-    }
-
-    return outcome::success();
-  }
-
-  bool TransactionPoolImpl::hasSpaceInReady() const {
-    return ready_txs_.size() < limits_.max_ready_num;
-  }
-
-  void TransactionPoolImpl::postponeTransaction(
-      const std::shared_ptr<Transaction> &tx) {
-    postponed_txs_.push_back(tx);
-    if (auto key = ext_key_repo_->get(tx->hash); key.has_value()) {
-      sub_engine_->notify(key.value(),
-                          ExtrinsicLifecycleEvent::Future(key.value()));
-    }
-  }
-
-  outcome::result<void> TransactionPoolImpl::processTransactionAsWaiting(
-      const std::shared_ptr<Transaction> &tx) {
-    OUTCOME_TRY(ensureSpace());
-
-    addTransactionAsWaiting(tx);
-
-    return outcome::success();
-  }
-
-  outcome::result<void> TransactionPoolImpl::ensureSpace() const {
-    if (imported_txs_.size() > limits_.capacity) {
-      return TransactionPoolError::POOL_IS_FULL;
-    }
-
-    return outcome::success();
-  }
-
-  void TransactionPoolImpl::addTransactionAsWaiting(
-      const std::shared_ptr<Transaction> &tx) {
-    for (auto &tag : tx->requires) {
-      tx_waits_tag_.emplace(tag, tx);
-    }
-    if (auto key = ext_key_repo_->get(tx->hash); key.has_value()) {
+    if (auto key = ext_key_repo_->get(tx_hash); key.has_value()) {
       sub_engine_->notify(key.value(),
                           ExtrinsicLifecycleEvent::Future(key.value()));
     }
@@ -200,72 +250,84 @@ namespace kagome::transaction_pool {
 
   outcome::result<Transaction> TransactionPoolImpl::removeOne(
       const Transaction::Hash &tx_hash) {
-    auto tx_node = imported_txs_.extract(tx_hash);
-    if (tx_node.empty()) {
-      SL_TRACE(logger_,
-               "Extrinsic with hash {} was not found in the pool during remove",
-               tx_hash);
-      return TransactionPoolError::TX_NOT_FOUND;
-    }
-    const auto &tx = tx_node.mapped();
+    return pool_state_.exclusiveAccess(
+        [&](auto &pool_state) -> outcome::result<Transaction> {
+          if (auto it = pool_state.pending_txs_.find(tx_hash);
+              it != pool_state.pending_txs_.end()) {
+            BOOST_ASSERT(pool_state.ready_txs_.find(tx_hash)
+                         == pool_state.ready_txs_.end());
 
-    unsetReady(tx);
-    delTransactionAsWaiting(tx);
+            auto state = it->second.lock();
+            BOOST_ASSERT(state);
+            BOOST_ASSERT(state->tx);
+            for (auto &tag : state->tx->required_tags) {
+              pool_state.dependency_graph_[tag].dependents.erase(tx_hash);
+            }
 
-    processPostponedTransactions();
+            pool_state.pending_txs_.erase(it);
+            return std::move(*state->tx);
+          }
 
-    SL_DEBUG(logger_,
-             "Extrinsic {} with hash {} was removed from the pool",
-             tx->ext.data.toHex(),
-             tx->hash.toHex());
-    return std::move(*tx);
+          if (auto it = pool_state.ready_txs_.find(tx_hash);
+              it != pool_state.ready_txs_.end()) {
+            ReadyStatus &ready_status = it->second;
+            for (auto &provider : ready_status.tx->provided_tags) {
+              PendingStatus &ps = pool_state.dependency_graph_[provider];
+              BOOST_ASSERT(ps.tag_provided);
+              ps.tag_provided = false;
+            }
+
+            // вызываем для каждого child rollback
+            for (auto &h : ready_status.triggered) {
+              rollback(pool_state, h);
+            }
+
+            auto t = ready_status.tx;
+            pool_state.ready_txs_.erase(it);
+
+            BOOST_ASSERT(t);
+            return std::move(*t);
+          }
+
+          SL_TRACE(
+              logger_,
+              "Extrinsic with hash {} was not found in the pool during remove",
+              tx_hash);
+          return TransactionPoolError::TX_NOT_FOUND;
+        });
   }
 
-  void TransactionPoolImpl::processPostponedTransactions() {
-    // Move to local for avoid endless cycle at possible coming back tx
-    auto postponed_txs = std::move(postponed_txs_);
-    while (!postponed_txs.empty()) {
-      auto tx = postponed_txs.front().lock();
-      postponed_txs.pop_front();
-
-      auto result = processTransaction(tx);
-      if (result.has_error()
-          && result.error() == TransactionPoolError::POOL_IS_FULL) {
-        postponed_txs_.insert(postponed_txs_.end(),
-                              std::make_move_iterator(postponed_txs.begin()),
-                              std::make_move_iterator(postponed_txs.end()));
-        return;
-      }
-    }
-  }
-
-  void TransactionPoolImpl::delTransactionAsWaiting(
-      const std::shared_ptr<Transaction> &tx) {
-    for (auto &tag : tx->requires) {
-      auto range = tx_waits_tag_.equal_range(tag);
-      for (auto i = range.first; i != range.second;) {
-        if (i->second.lock() == tx) {
-          tx_waits_tag_.erase(i);
-          break;
-        }
-      }
-    }
-  }
-
-  std::map<Transaction::Hash, std::shared_ptr<Transaction>>
-  TransactionPoolImpl::getReadyTransactions() const {
-    std::map<Transaction::Hash, std::shared_ptr<Transaction>> ready;
-    std::for_each(ready_txs_.begin(), ready_txs_.end(), [&ready](auto it) {
-      if (auto tx = it.second.lock()) {
-        ready.emplace(it.first, std::move(tx));
+  void TransactionPoolImpl::getReadyTransactions(
+      TxRequestCallback &&callback) const {
+    return pool_state_.sharedAccess([&](const auto &pool_state) {
+      for (const auto &[_, ready_status] : pool_state.ready_txs_) {
+        BOOST_ASSERT(ready_status.tx);
+        callback(ready_status.tx);
       }
     });
-    return ready;
   }
 
-  const std::unordered_map<Transaction::Hash, std::shared_ptr<Transaction>>
-      &TransactionPoolImpl::getPendingTransactions() const {
-    return imported_txs_;
+  std::vector<std::pair<Transaction::Hash, std::shared_ptr<const Transaction>>>
+  TransactionPoolImpl::getReadyTransactions() const {
+    std::vector<
+        std::pair<Transaction::Hash, std::shared_ptr<const Transaction>>>
+        txs;
+    getReadyTransactions([&](const auto &tx) {
+      txs.emplace_back(std::make_pair(tx->hash, tx));
+    });
+    return txs;
+  }
+
+  void TransactionPoolImpl::getPendingTransactions(
+      TxRequestCallback &&callback) const {
+    return pool_state_.sharedAccess([&](const auto &pool_state) {
+      for (const auto &[_, wptr] : pool_state.pending_txs_) {
+        auto tx_ready_state = wptr.lock();
+        BOOST_ASSERT(tx_ready_state);
+
+        callback(tx_ready_state->tx);
+      }
+    });
   }
 
   outcome::result<std::vector<Transaction>> TransactionPoolImpl::removeStale(
@@ -273,12 +335,22 @@ namespace kagome::transaction_pool {
     OUTCOME_TRY(number, header_repo_->getNumberById(at));
 
     std::vector<Transaction::Hash> remove_to;
-
-    for (auto &[txHash, tx] : imported_txs_) {
-      if (moderator_->banIfStale(number, *tx)) {
-        remove_to.emplace_back(txHash);
+    pool_state_.exclusiveAccess([&](auto &pool_state) {
+      for (const auto &[txHash, ready_status] : pool_state.ready_txs_) {
+        BOOST_ASSERT(ready_status.tx);
+        if (moderator_->banIfStale(number, *ready_status.tx)) {
+          remove_to.emplace_back(txHash);
+        }
       }
-    }
+      for (const auto &[txHash, wp_tx_ready_state] : pool_state.pending_txs_) {
+        auto tx_ready_state = wp_tx_ready_state.lock();
+        BOOST_ASSERT(tx_ready_state);
+        BOOST_ASSERT(tx_ready_state->tx);
+        if (moderator_->banIfStale(number, *tx_ready_state->tx)) {
+          remove_to.emplace_back(txHash);
+        }
+      }
+    });
 
     for (auto &tx_hash : remove_to) {
       OUTCOME_TRY(tx, removeOne(tx_hash));
@@ -290,124 +362,45 @@ namespace kagome::transaction_pool {
     }
 
     moderator_->updateBan();
-
     return outcome::success();
   }
 
-  bool TransactionPoolImpl::isInReady(
-      const std::shared_ptr<const Transaction> &tx) const {
-    auto i = ready_txs_.find(tx->hash);
-    return i != ready_txs_.end() && !i->second.expired();
-  }
-
-  bool TransactionPoolImpl::checkForReady(
-      const std::shared_ptr<const Transaction> &tx) const {
-    return std::all_of(
-        tx->requires.begin(), tx->requires.end(), [this](auto &&tag) {
-          auto range = tx_provides_tag_.equal_range(tag);
-          return range.first != range.second;
-        });
-  }
-
-  void TransactionPoolImpl::setReady(const std::shared_ptr<Transaction> &tx) {
-    if (auto [_, ok] = ready_txs_.emplace(tx->hash, tx); ok) {
+  void TransactionPoolImpl::setReady(PoolState &pool_state,
+                                     const std::shared_ptr<Transaction> &tx) {
+    if (auto [it, ok] =
+            pool_state.ready_txs_.emplace(tx->hash, ReadyStatus{tx, {}});
+        ok) {
       if (auto key = ext_key_repo_->get(tx->hash); key.has_value()) {
         sub_engine_->notify(key.value(),
                             ExtrinsicLifecycleEvent::Ready(key.value()));
       }
-      commitRequiredTags(tx);
-      commitProvidedTags(tx);
-      metric_ready_txs_->set(ready_txs_.size());
-    }
-  }
 
-  void TransactionPoolImpl::commitRequiredTags(
-      const std::shared_ptr<Transaction> &tx) {
-    for (auto &tag : tx->requires) {
-      auto range = tx_waits_tag_.equal_range(tag);
-      for (auto i = range.first; i != range.second;) {
-        auto ci = i++;
-        if (ci->second.lock() == tx) {
-          auto node = tx_waits_tag_.extract(ci);
-          tx_depends_on_tag_.emplace(std::move(node.key()),
-                                     std::move(node.mapped()));
+      for (const auto &tag : tx->provided_tags) {
+        PendingStatus &status = pool_state.dependency_graph_[tag];
+        status.tag_provided = true;
+
+        for (auto &dep : status.dependents) {
+          auto dependent = std::move(dep.second);
+          if (dependent) {
+            BOOST_ASSERT(dependent->tx);
+            it->second.triggered.emplace_back(dependent->tx->hash);
+            if (--dependent->remains_required_txs_count == 0ull) {
+              pool_state.pending_txs_.erase(dependent->tx->hash);
+              setReady(pool_state, dependent->tx);
+            }
+          }
         }
+        status.dependents.clear();
       }
-    }
-  }
-
-  void TransactionPoolImpl::commitProvidedTags(
-      const std::shared_ptr<Transaction> &tx) {
-    for (auto &tag : tx->provides) {
-      tx_provides_tag_.emplace(tag, tx);
-
-      provideTag(tag);
-    }
-  }
-
-  void TransactionPoolImpl::provideTag(const Transaction::Tag &tag) {
-    auto range = tx_waits_tag_.equal_range(tag);
-    for (auto it = range.first; it != range.second;) {
-      auto tx = (it++)->second.lock();
-      if (checkForReady(tx)) {
-        if (hasSpaceInReady()) {
-          setReady(tx);
-        } else {
-          postponeTransaction(tx);
-        }
-      }
-    }
-  }
-
-  void TransactionPoolImpl::unsetReady(const std::shared_ptr<Transaction> &tx) {
-    if (auto tx_node = ready_txs_.extract(tx->hash); !tx_node.empty()) {
-      metric_ready_txs_->set(ready_txs_.size());
-      rollbackRequiredTags(tx);
-      rollbackProvidedTags(tx);
-      if (auto key = ext_key_repo_->get(tx->hash); key.has_value()) {
-        sub_engine_->notify(key.value(),
-                            ExtrinsicLifecycleEvent::Future(key.value()));
-      }
-    }
-  }
-
-  void TransactionPoolImpl::rollbackRequiredTags(
-      const std::shared_ptr<Transaction> &tx) {
-    for (auto &tag : tx->requires) {
-      tx_waits_tag_.emplace(tag, tx);
-    }
-  }
-
-  void TransactionPoolImpl::rollbackProvidedTags(
-      const std::shared_ptr<Transaction> &tx) {
-    for (auto &tag : tx->provides) {
-      auto range = tx_provides_tag_.equal_range(tag);
-      for (auto i = range.first; i != range.second; ++i) {
-        if (i->second.lock() == tx) {
-          tx_provides_tag_.erase(i);
-          break;
-        }
-      }
-
-      unprovideTag(tag);
-    }
-  }
-
-  void TransactionPoolImpl::unprovideTag(const Transaction::Tag &tag) {
-    if (tx_provides_tag_.find(tag) == tx_provides_tag_.end()) {
-      for (auto it = tx_depends_on_tag_.find(tag);
-           it != tx_depends_on_tag_.end();
-           it = tx_depends_on_tag_.find(tag)) {
-        if (auto tx = it->second.lock()) {
-          unsetReady(tx);
-        }
-        tx_depends_on_tag_.erase(it);
-      }
+      metric_ready_txs_->set(pool_state.ready_txs_.size());
     }
   }
 
   TransactionPoolImpl::Status TransactionPoolImpl::getStatus() const {
-    return Status{ready_txs_.size(), imported_txs_.size() - ready_txs_.size()};
+    return pool_state_.sharedAccess([&](const auto &pool_state) {
+      return Status{pool_state.ready_txs_.size(),
+                    pool_state.pending_txs_.size()};
+    });
   }
 
 }  // namespace kagome::transaction_pool

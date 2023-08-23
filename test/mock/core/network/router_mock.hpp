@@ -19,7 +19,7 @@ namespace kagome::network {
    public:
     virtual ~RouterMock() = default;
 
-    MOCK_METHOD(std::shared_ptr<StatmentFetchingProtocol>,
+    MOCK_METHOD(std::shared_ptr<StatementFetchingProtocol>,
                 getFetchStatementProtocol,
                 (),
                 (const, override));
@@ -75,6 +75,11 @@ namespace kagome::network {
 
     MOCK_METHOD(std::shared_ptr<GrandpaProtocol>,
                 getGrandpaProtocol,
+                (),
+                (const, override));
+
+    MOCK_METHOD(std::shared_ptr<SendDisputeProtocol>,
+                getSendDisputeProtocol,
                 (),
                 (const, override));
 

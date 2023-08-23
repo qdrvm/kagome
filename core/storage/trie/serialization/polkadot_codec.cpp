@@ -253,7 +253,7 @@ namespace kagome::storage::trie {
           encoding.put(scale_enc);
         } else {
           // because a node is either a dummy or a trienode
-          auto& child_node = dynamic_cast<TrieNode&>(*child);
+          auto &child_node = dynamic_cast<TrieNode &>(*child);
           OUTCOME_TRY(enc, encodeNode(child_node, version, child_visitor));
           auto merkle = merkleValue(enc);
           if (merkle.isHash() && child_visitor) {

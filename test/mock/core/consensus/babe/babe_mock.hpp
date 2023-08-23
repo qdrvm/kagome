@@ -14,8 +14,6 @@ namespace kagome::consensus::babe {
 
   class BabeMock final : public Babe {
    public:
-    MOCK_METHOD(void, runEpoch, (EpochDescriptor epoch), (override));
-
     MOCK_METHOD(State, getCurrentState, (), (const, override));
 
     MOCK_METHOD(void,

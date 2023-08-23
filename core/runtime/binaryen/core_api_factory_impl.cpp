@@ -9,10 +9,11 @@
 #include "runtime/binaryen/instance_environment_factory.hpp"
 #include "runtime/binaryen/module/module_impl.hpp"
 #include "runtime/common/constant_code_provider.hpp"
-#include "runtime/common/executor.hpp"
+#include "runtime/module_repository.hpp"
+#include "runtime/executor.hpp"
+#include "runtime/common/runtime_properties_cache_impl.hpp"
 #include "runtime/common/trie_storage_provider_impl.hpp"
 #include "runtime/runtime_api/impl/core.hpp"
-#include "runtime/runtime_api/impl/runtime_properties_cache_impl.hpp"
 
 namespace kagome::runtime::binaryen {
 
@@ -29,9 +30,8 @@ namespace kagome::runtime::binaryen {
     }
 
     outcome::result<std::shared_ptr<ModuleInstance>> getInstanceAt(
-        std::shared_ptr<const RuntimeCodeProvider>,
         const primitives::BlockInfo &,
-        const primitives::BlockHeader &) override {
+        const storage::trie::RootHash &) override {
       if (instance_ == nullptr) {
         OUTCOME_TRY(
             module,
@@ -47,19 +47,6 @@ namespace kagome::runtime::binaryen {
     std::shared_ptr<const InstanceEnvironmentFactory> env_factory_;
     const std::vector<uint8_t> &code_;
     const common::Hash256 code_hash_;
-  };
-
-  class OneCodeProvider final : public RuntimeCodeProvider {
-   public:
-    explicit OneCodeProvider(gsl::span<const uint8_t> code) : code_{code} {}
-
-    virtual outcome::result<gsl::span<const uint8_t>> getCodeAt(
-        const storage::trie::RootHash &) const {
-      return code_;
-    }
-
-   private:
-    gsl::span<const uint8_t> code_;
   };
 
   CoreApiFactoryImpl::CoreApiFactoryImpl(
@@ -78,13 +65,13 @@ namespace kagome::runtime::binaryen {
       std::shared_ptr<const crypto::Hasher> hasher,
       const std::vector<uint8_t> &runtime_code) const {
     auto code_hash = hasher->sha2_256(runtime_code);
-    auto env_factory = std::make_shared<runtime::RuntimeEnvironmentFactory>(
-        std::make_shared<OneCodeProvider>(runtime_code),
+    auto ctx_factory = std::make_shared<RuntimeContextFactoryImpl>(
         std::make_shared<OneModuleRepository>(
             runtime_code, instance_env_factory_, code_hash),
         header_repo_);
-    auto executor = std::make_unique<Executor>(env_factory, cache_);
-    return std::make_unique<CoreImpl>(std::move(executor), header_repo_);
+    auto executor = std::make_unique<Executor>(ctx_factory, cache_);
+    return std::make_unique<CoreImpl>(
+        std::move(executor), ctx_factory, header_repo_);
   }
 
 }  // namespace kagome::runtime::binaryen

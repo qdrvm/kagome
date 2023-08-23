@@ -26,15 +26,13 @@ namespace kagome::runtime::binaryen {
     BOOST_ASSERT(storage_ != nullptr);
   }
 
-  outcome::result<std::unique_ptr<Module>> ModuleFactoryImpl::make(
+  outcome::result<std::shared_ptr<Module>> ModuleFactoryImpl::make(
       gsl::span<const uint8_t> code) const {
     std::vector<uint8_t> code_vec{code.begin(), code.end()};
-    auto res = ModuleImpl::createFromCode(
-        code_vec, env_factory_, hasher_->sha2_256(code));
-    if (res.has_value()) {
-      return std::unique_ptr<Module>(std::move(res.value()));
-    }
-    return res.error();
+    OUTCOME_TRY(module,
+                ModuleImpl::createFromCode(
+                    code_vec, env_factory_, hasher_->sha2_256(code)));
+    return module;
   }
 
 }  // namespace kagome::runtime::binaryen

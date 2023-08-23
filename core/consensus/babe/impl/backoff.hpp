@@ -20,11 +20,11 @@ namespace kagome::consensus::babe {
     constexpr auto kUnfinalizedSlack = 50;
     constexpr auto kAuthoringBias = 2;
 
-    auto digest = getBabeDigests(best);
-    if (not digest) {
+    auto slot_res = getBabeSlot(best);
+    if (not slot_res) {
       return false;
     }
-    auto best_slot = digest.value().second.slot_number;
+    auto best_slot = slot_res.value();
     if (slot <= best_slot) {
       return false;
     }

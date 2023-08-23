@@ -5,7 +5,7 @@
 
 #include "runtime/runtime_api/impl/grandpa_api.hpp"
 
-#include "runtime/common/executor.hpp"
+#include "runtime/executor.hpp"
 
 namespace kagome::runtime {
 
@@ -19,14 +19,14 @@ namespace kagome::runtime {
   }
 
   outcome::result<std::optional<GrandpaApi::ScheduledChange>>
-  GrandpaApiImpl::pending_change(primitives::BlockHash const &block,
+  GrandpaApiImpl::pending_change(const primitives::BlockHash &block,
                                  const Digest &digest) {
     return executor_->callAt<std::optional<ScheduledChange>>(
         block, "GrandpaApi_pending_change", digest);
   }
 
   outcome::result<std::optional<GrandpaApi::ForcedChange>>
-  GrandpaApiImpl::forced_change(primitives::BlockHash const &block,
+  GrandpaApiImpl::forced_change(const primitives::BlockHash &block,
                                 const Digest &digest) {
     return executor_->callAt<std::optional<ForcedChange>>(
         block, "GrandpaApi_forced_change", digest);

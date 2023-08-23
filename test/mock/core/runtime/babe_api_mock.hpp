@@ -18,6 +18,11 @@ namespace kagome::runtime {
                 configuration,
                 (const primitives::BlockHash &block),
                 (override));
+
+    MOCK_METHOD(outcome::result<primitives::Epoch>,
+                next_epoch,
+                (const primitives::BlockHash &),
+                (override));
   };
 
 }  // namespace kagome::runtime
