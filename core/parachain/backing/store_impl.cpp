@@ -97,11 +97,7 @@ namespace kagome::parachain {
       for (auto &[_, validity_vote] : it->second.second) {
         const auto &statement = visit_in_place(
             validity_vote,
-            [](const ValidityVoteIssued &val)
-                -> std::reference_wrapper<Statement> {
-              return {(Statement &)val};
-            },
-            [](const ValidityVoteValid &val)
+            [](const auto &val)
                 -> std::reference_wrapper<Statement> {
               return {(Statement &)val};
             });
