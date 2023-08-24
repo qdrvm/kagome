@@ -41,7 +41,8 @@ namespace kagome::storage {
 }
 
 namespace kagome::storage::trie {
-  class TrieStorageBackend;
+  class TrieNodeStorageBackend;
+  class TrieValueStorageBackend;
   class TrieSerializer;
   class Codec;
 }  // namespace kagome::storage::trie
@@ -67,7 +68,8 @@ namespace kagome::storage::trie_pruner {
 
     TriePrunerImpl(
         std::shared_ptr<application::AppStateManager> app_state_manager,
-        std::shared_ptr<storage::trie::TrieStorageBackend> trie_storage,
+        std::shared_ptr<storage::trie::TrieNodeStorageBackend> node_storage,
+        std::shared_ptr<storage::trie::TrieValueStorageBackend> value_storage,
         std::shared_ptr<const storage::trie::TrieSerializer> serializer,
         std::shared_ptr<const storage::trie::Codec> codec,
         std::shared_ptr<storage::SpacedStorage> storage,
@@ -122,7 +124,8 @@ namespace kagome::storage::trie_pruner {
         const primitives::BlockHeader &last_pruned_block,
         const blockchain::BlockTree &block_tree);
 
-    outcome::result<void> prune(BufferBatch &batch,
+    outcome::result<void> prune(BufferBatch &node_batch,
+                                BufferBatch &value_batch,
                                 const storage::trie::RootHash &state);
 
     outcome::result<storage::trie::RootHash> addNewStateWith(
@@ -136,7 +139,8 @@ namespace kagome::storage::trie_pruner {
     std::unordered_map<common::Hash256, size_t> value_ref_count_;
 
     std::optional<primitives::BlockInfo> last_pruned_block_;
-    std::shared_ptr<storage::trie::TrieStorageBackend> trie_storage_;
+    std::shared_ptr<storage::trie::TrieNodeStorageBackend> node_storage_;
+    std::shared_ptr<storage::trie::TrieValueStorageBackend> value_storage_;
     std::shared_ptr<const storage::trie::TrieSerializer> serializer_;
     std::shared_ptr<const storage::trie::Codec> codec_;
     std::shared_ptr<storage::SpacedStorage> storage_;

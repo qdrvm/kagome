@@ -8,12 +8,19 @@
 #include <utility>
 
 #include "storage/trie/impl/trie_storage_backend_batch.hpp"
+#include "storage/spaces.hpp"
 
 namespace kagome::storage::trie {
 
   TrieStorageBackendImpl::TrieStorageBackendImpl(
-      std::shared_ptr<BufferStorage> storage)
-      : storage_{std::move(storage)} {
+      NodeTag, std::shared_ptr<SpacedStorage> storage)
+      : storage_{storage->getSpace(Space::kTrieNode)} {
+    BOOST_ASSERT(storage_ != nullptr);
+  }
+
+  TrieStorageBackendImpl::TrieStorageBackendImpl(
+      ValueTag, std::shared_ptr<SpacedStorage> storage)
+      : storage_{storage->getSpace(Space::kTrieValue)} {
     BOOST_ASSERT(storage_ != nullptr);
   }
 
