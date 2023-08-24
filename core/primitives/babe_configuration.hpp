@@ -9,7 +9,7 @@
 #include <fmt/core.h>
 
 #include "common/blob.hpp"
-#include "consensus/babe/common.hpp"
+#include "consensus/timeline/types.hpp"
 #include "crypto/sr25519_types.hpp"
 #include "primitives/authority.hpp"
 
@@ -17,8 +17,8 @@ namespace kagome::primitives {
 
   using consensus::Clock;
   using consensus::Duration;
+  using consensus::Randomness;
   using consensus::SlotNumber;
-  using consensus::babe::Randomness;
 
   enum class AllowedSlots : uint8_t {
     PrimaryOnly,

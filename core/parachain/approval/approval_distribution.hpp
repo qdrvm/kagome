@@ -19,8 +19,8 @@
 
 #include "blockchain/block_tree.hpp"
 #include "consensus/babe/babe_util.hpp"
-#include "consensus/babe/common.hpp"
 #include "consensus/babe/types/babe_block_header.hpp"
+#include "consensus/timeline/types.hpp"
 #include "crypto/crypto_store/key_file_storage.hpp"
 #include "crypto/crypto_store/session_keys.hpp"
 #include "dispute_coordinator/dispute_coordinator.hpp"

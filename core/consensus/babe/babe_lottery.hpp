@@ -8,7 +8,7 @@
 
 #include <optional>
 
-#include "consensus/babe/types/epoch_descriptor.hpp"
+#include "consensus/timeline/types.hpp"
 #include "crypto/sr25519_types.hpp"
 #include "primitives/babe_configuration.hpp"
 

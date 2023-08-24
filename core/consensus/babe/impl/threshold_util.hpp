@@ -6,7 +6,7 @@
 #ifndef KAGOME_CORE_CONSENSUS_BABE_IMPL_THRESHOLD_UTIL_HPP
 #define KAGOME_CORE_CONSENSUS_BABE_IMPL_THRESHOLD_UTIL_HPP
 
-#include "consensus/babe/common.hpp"
+#include "consensus/timeline/types.hpp"
 #include "primitives/authority.hpp"
 
 namespace kagome::consensus::babe {

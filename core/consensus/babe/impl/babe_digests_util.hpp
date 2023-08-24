@@ -11,8 +11,8 @@
 
 #include "common/visitor.hpp"
 #include "consensus/babe/types/babe_block_header.hpp"
-#include "consensus/babe/types/epoch_digest.hpp"
 #include "consensus/babe/types/seal.hpp"
+#include "consensus/timeline/types.hpp"
 #include "outcome/outcome.hpp"
 #include "primitives/block.hpp"
 

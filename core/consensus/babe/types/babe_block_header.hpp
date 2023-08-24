@@ -6,8 +6,8 @@
 #ifndef KAGOME_BABE_BLOCK_HEADER_HPP
 #define KAGOME_BABE_BLOCK_HEADER_HPP
 
-#include "consensus/babe/common.hpp"
 #include "consensus/babe/types/slot.hpp"
+#include "consensus/timeline/types.hpp"
 #include "crypto/sr25519_types.hpp"
 #include "primitives/authority.hpp"
 #include "primitives/common.hpp"

@@ -8,8 +8,7 @@
 
 #include <optional>
 
-#include "consensus/babe/common.hpp"
-#include "consensus/babe/types/epoch_descriptor.hpp"
+#include "consensus/timeline/types.hpp"
 #include "network/block_announce_observer.hpp"
 
 namespace kagome::consensus::babe {

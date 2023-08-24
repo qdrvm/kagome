@@ -6,7 +6,7 @@
 #ifndef KAGOME_CONSENSUS_PREPARETRANSACRIPT
 #define KAGOME_CONSENSUS_PREPARETRANSACRIPT
 
-#include "consensus/babe/common.hpp"
+#include "consensus/timeline/types.hpp"
 #include "primitives/transcript.hpp"
 
 namespace kagome::consensus::babe {

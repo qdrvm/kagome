@@ -7,7 +7,7 @@
 #define KAGOME_APPROVAL_HPP
 
 #include "common/visitor.hpp"
-#include "consensus/babe/common.hpp"
+#include "consensus/timeline/types.hpp"
 #include "consensus/validation/prepare_transcript.hpp"
 #include "outcome/outcome.hpp"
 #include "parachain/approval/state.hpp"
@@ -151,7 +151,7 @@ namespace kagome::parachain::approval {
     outcome::result<void> compute_randomness(
         ::RelayVRFStory &vrf_story,
         const primitives::AuthorityList &authorities,
-        const consensus::babe::Randomness &randomness,
+        const consensus::Randomness &randomness,
         consensus::EpochNumber epoch_index);
   };
 
