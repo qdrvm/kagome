@@ -23,6 +23,7 @@ namespace WAVM {
 }  // namespace WAVM
 
 namespace kagome::runtime::wavm {
+  class ModuleImpl;
 
   class CompartmentWrapper;
 
@@ -40,7 +41,7 @@ namespace kagome::runtime::wavm {
     ModuleInstanceImpl(
         InstanceEnvironment &&env,
         WAVM::Runtime::GCPointer<WAVM::Runtime::Instance> instance,
-        WAVM::Runtime::ModuleRef module,
+        std::shared_ptr<const ModuleImpl> module,
         std::shared_ptr<const CompartmentWrapper> compartment,
         const common::Hash256 &code_hash);
 
@@ -48,21 +49,23 @@ namespace kagome::runtime::wavm {
       return code_hash_;
     }
 
+    std::shared_ptr<const Module> getModule() const override;
+
     outcome::result<PtrSize> callExportFunction(
         std::string_view name, common::BufferView encoded_args) const override;
 
     outcome::result<std::optional<WasmValue>> getGlobal(
         std::string_view name) const override;
 
-    void forDataSegment(DataSegmentProcessor const &callback) const override;
+    void forDataSegment(const DataSegmentProcessor &callback) const override;
 
-    InstanceEnvironment const &getEnvironment() const override;
+    const InstanceEnvironment &getEnvironment() const override;
     outcome::result<void> resetEnvironment() override;
 
    private:
     InstanceEnvironment env_;
     WAVM::Runtime::GCPointer<WAVM::Runtime::Instance> instance_;
-    WAVM::Runtime::ModuleRef module_;
+    std::shared_ptr<const ModuleImpl> module_;
     std::shared_ptr<const CompartmentWrapper> compartment_;
     common::Hash256 code_hash_;
     log::Logger logger_;

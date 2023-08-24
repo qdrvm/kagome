@@ -16,6 +16,11 @@ namespace kagome::runtime {
    public:
     MOCK_METHOD(const common::Hash256 &, getCodeHash, (), (const, override));
 
+    MOCK_METHOD(std::shared_ptr<const Module>,
+                getModule,
+                (),
+                (const, override));
+
     MOCK_METHOD(outcome::result<PtrSize>,
                 callExportFunction,
                 (std::string_view name, common::BufferView args),
@@ -31,12 +36,17 @@ namespace kagome::runtime {
                 (std::string_view name),
                 (const, override));
 
-    MOCK_METHOD(InstanceEnvironment const &,
+    MOCK_METHOD(const InstanceEnvironment &,
                 getEnvironment,
                 (),
                 (const, override));
 
     MOCK_METHOD(outcome::result<void>, resetEnvironment, (), (override));
+
+    MOCK_METHOD(outcome::result<void>,
+                resetMemory,
+                (const MemoryLimits &limits),
+                (override));
   };
 }  // namespace kagome::runtime
 

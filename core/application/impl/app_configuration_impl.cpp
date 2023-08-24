@@ -99,6 +99,7 @@ namespace {
   const auto def_full_sync = "Full";
   const auto def_wasm_execution = "Interpreted";
   const uint32_t def_db_cache_size = 1024;
+  const uint32_t def_parachain_runtime_instance_cache_size = 100;
 
   /**
    * Generate once at run random node name if form of UUID
@@ -836,6 +837,9 @@ namespace kagome::application {
           "choose the desired wasm execution method (Compiled, Interpreted)")
         ("unsafe-cached-wavm-runtime", "use WAVM runtime cache")
         ("purge-wavm-cache", "purge WAVM runtime cache")
+        ("parachain-runtime-instance-cache-size",
+          po::value<uint32_t>()->default_value(def_parachain_runtime_instance_cache_size),
+          "Number of parachain runtime instances to keep cached")
         ;
     po::options_description benchmark_desc("Benchmark options");
     benchmark_desc.add_options()
@@ -1383,6 +1387,12 @@ namespace kagome::application {
                    ec);
         }
       }
+    }
+
+    if (auto arg =
+            find_argument<uint32_t>(vm, "parachain-runtime-instance-cache-size");
+        arg.has_value()) {
+      parachain_runtime_instance_cache_size_ = *arg;
     }
 
     bool offchain_worker_value_error = false;

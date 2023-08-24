@@ -213,8 +213,11 @@ namespace kagome::consensus::babe {
         }
       }
       if (not slot1 and trie_storage_->getEphemeralBatchAt(parent.state_root)) {
-        OUTCOME_TRY(epoch, babe_api_->next_epoch(parent_info.hash));
-        slot1 = epoch.start_slot - epoch.epoch_index * epoch.duration;
+        if (auto epoch_res = babe_api_->next_epoch(parent_info.hash);
+            epoch_res.has_value()) {
+          auto &epoch = epoch_res.value();
+          slot1 = epoch.start_slot - epoch.epoch_index * epoch.duration;
+        }
       }
       if (not slot1) {
         auto header1 = parent;

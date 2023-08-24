@@ -14,7 +14,7 @@
 
 #include "common/hexutil.hpp"
 #include "common/monadic_utils.hpp"
-#include "runtime/common/executor.hpp"
+#include "runtime/executor.hpp"
 
 OUTCOME_CPP_DEFINE_CATEGORY(kagome::api, StateApiImpl::Error, e) {
   using E = kagome::api::StateApiImpl::Error;
@@ -42,7 +42,7 @@ namespace kagome::api {
       std::shared_ptr<blockchain::BlockTree> block_tree,
       std::shared_ptr<runtime::Core> runtime_core,
       std::shared_ptr<runtime::Metadata> metadata,
-      std::shared_ptr<runtime::RawExecutor> executor,
+      std::shared_ptr<runtime::Executor> executor,
       LazySPtr<api::ApiService> api_service)
       : header_repo_{std::move(block_repo)},
         storage_{std::move(trie_storage)},
@@ -65,7 +65,7 @@ namespace kagome::api {
       const std::optional<primitives::BlockHash> &opt_at) const {
     auto at =
         opt_at.has_value() ? opt_at.value() : block_tree_->bestLeaf().hash;
-    return executor_->callAtRaw(at, method, data);
+    return executor_->callAt(at, method, data);
   }
 
   outcome::result<std::vector<common::Buffer>> StateApiImpl::getKeysPaged(

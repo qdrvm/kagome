@@ -24,6 +24,7 @@
 #include "mock/core/runtime/core_mock.hpp"
 #include "mock/core/runtime/offchain_worker_api_mock.hpp"
 #include "mock/core/transaction_pool/transaction_pool_mock.hpp"
+#include "runtime/runtime_context.hpp"
 #include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
 #include "testutil/prepare_loggers.hpp"

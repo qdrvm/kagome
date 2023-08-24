@@ -20,15 +20,15 @@ namespace kagome::transaction_pool {
    public:
     struct Status;
     struct Limits;
+    using TxRequestCallback =
+        std::function<void(const std::shared_ptr<const Transaction> &)>;
 
     virtual ~TransactionPool() = default;
 
     /**
      * @return pending transactions
      */
-    virtual const std::unordered_map<Transaction::Hash,
-                                     std::shared_ptr<Transaction>>
-        &getPendingTransactions() const = 0;
+    virtual void getPendingTransactions(TxRequestCallback &&callback) const = 0;
 
     /**
      * Builds and validates transaction for provided extrinsic, and submit
@@ -64,7 +64,9 @@ namespace kagome::transaction_pool {
     /**
      * @return transactions ready to included in the next block
      */
-    virtual std::map<Transaction::Hash, std::shared_ptr<Transaction>>
+    virtual void getReadyTransactions(TxRequestCallback &&callback) const = 0;
+    virtual std::vector<
+        std::pair<Transaction::Hash, std::shared_ptr<const Transaction>>>
     getReadyTransactions() const = 0;
 
     /**
