@@ -114,8 +114,8 @@ jobs:
         run: |
           df -m || true
           du -hd1 /__w /github || true
-      - name: Install mold
-        run: ./housekeeping/ci_install_mold.sh --make-default
+      # - name: Install mold
+      #   run: ./housekeeping/ci_install_mold.sh --make-default
       - name: "${{ matrix.options.name }}"
         run: "${{ matrix.options.run }}"
       - name: df du
@@ -199,8 +199,8 @@ jobs:
         run: |
           df -m || true
           du -hd1 /__w /github || true
-      - name: Install mold
-        run: ./housekeeping/ci_install_mold.sh --make-default
+      # - name: Install mold
+      #   run: ./housekeeping/ci_install_mold.sh --make-default
       - name: makeBuild
         env:
           BUILD_FINAL_TARGET: ctest_coverage
