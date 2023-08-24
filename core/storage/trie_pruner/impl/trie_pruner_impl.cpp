@@ -250,7 +250,13 @@ namespace kagome::storage::trie_pruner {
       }
 
       auto &ref_count = ref_count_it->second;
-      BOOST_ASSERT(ref_count != 0);
+      if (ref_count == 0) {
+        SL_WARN(logger_,
+                "Pruner encountered an unindexed node {} while pruning, this "
+                "indicates a bug",
+                hash);
+        continue;
+      }
       ref_count--;
       SL_TRACE(logger_,
                "Prune - {} - Node {}, ref count {}",
@@ -258,12 +264,14 @@ namespace kagome::storage::trie_pruner {
                hash,
                ref_count);
 
-      if (ref_count == 0) {
+      if (immortal_nodes_.find(hash) == immortal_nodes_.end()
+          && ref_count == 0) {
         nodes_removed++;
         ref_count_.erase(ref_count_it);
         OUTCOME_TRY(batch.remove(hash));
         auto hash_opt = node->getValue().hash;
         if (hash_opt.has_value()) {
+          auto &hash = *hash_opt;
           auto value_ref_it = value_ref_count_.find(hash);
           if (value_ref_it == value_ref_count_.end()) {
             values_unknown++;
@@ -378,10 +386,11 @@ namespace kagome::storage::trie_pruner {
         if (hash_is_in_storage) {
           // the node is present in storage but pruner has not indexed it
           // because pruner has been initialized on a newer state
-          SL_TRACE(logger_,
-                   "Node {} is already in storage, increase ref count",
-                   hash.toHex());
-          ref_count++;
+          SL_TRACE(
+              logger_,
+              "Node {} is unindexed, but already in storage, make it immortal",
+              hash.toHex());
+          immortal_nodes_.emplace(hash);
         }
       }
       ref_count++;

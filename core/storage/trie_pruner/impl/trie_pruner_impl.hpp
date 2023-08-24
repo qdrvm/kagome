@@ -134,6 +134,7 @@ namespace kagome::storage::trie_pruner {
     std::mutex ref_count_mutex_;
     std::unordered_map<common::Hash256, size_t> ref_count_;
     std::unordered_map<common::Hash256, size_t> value_ref_count_;
+    std::unordered_set<common::Hash256> immortal_nodes_;
 
     std::optional<primitives::BlockInfo> last_pruned_block_;
     std::shared_ptr<storage::trie::TrieStorageBackend> trie_storage_;
