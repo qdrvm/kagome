@@ -15,7 +15,7 @@ namespace kagome::consensus::babe {
    */
   inline bool backoff(const primitives::BlockHeader &best,
                       primitives::BlockNumber finalized,
-                      BabeSlotNumber slot) {
+                      SlotNumber slot) {
     constexpr int64_t kMaxInterval = 100;
     constexpr auto kUnfinalizedSlack = 50;
     constexpr auto kAuthoringBias = 2;

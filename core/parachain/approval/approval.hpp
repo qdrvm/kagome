@@ -98,20 +98,20 @@ namespace kagome::parachain::approval {
   using ApprovalStateTransition =
       boost::variant<RemoteApproval, LocalApproval, WakeupProcessed>;
   inline std::optional<ValidatorIndex> validator_index(
-      ApprovalStateTransition const &val) {
+      const ApprovalStateTransition &val) {
     return kagome::visit_in_place(
         val,
-        [](RemoteApproval const &v) -> std::optional<ValidatorIndex> {
+        [](const RemoteApproval &v) -> std::optional<ValidatorIndex> {
           return v.validator_ix;
         },
-        [](LocalApproval const &v) -> std::optional<ValidatorIndex> {
+        [](const LocalApproval &v) -> std::optional<ValidatorIndex> {
           return v.validator_ix;
         },
-        [](WakeupProcessed const &) -> std::optional<ValidatorIndex> {
+        [](const WakeupProcessed &) -> std::optional<ValidatorIndex> {
           return std::nullopt;
         });
   }
-  inline bool is_local_approval(ApprovalStateTransition const &val) {
+  inline bool is_local_approval(const ApprovalStateTransition &val) {
     return boost::get<LocalApproval>(&val) != nullptr;
   }
 
@@ -124,8 +124,8 @@ namespace kagome::parachain::approval {
         candidates;  /// The candidates included by the block. Note that these
     /// are not the same as the candidates that appear within
     /// the block body.
-    consensus::babe::BabeSlotNumber slot;  /// The consensus slot of the block.
-    SessionIndex session;                  /// The session of the block.
+    consensus::SlotNumber slot;  /// The consensus slot of the block.
+    SessionIndex session;        /// The session of the block.
   };
 
   struct ApprovalStatus {
@@ -139,11 +139,11 @@ namespace kagome::parachain::approval {
     enum class Error { AuthorityOutOfBounds = 1, ComputeRandomnessFailed };
 
     std::reference_wrapper<crypto::VRFOutput> vrf_output;
-    consensus::babe::BabeSlotNumber slot;
+    consensus::SlotNumber slot;
     primitives::AuthorityIndex authority_index;
 
     /// Get the slot.
-    consensus::babe::BabeSlotNumber getSlot() const {
+    consensus::SlotNumber getSlot() const {
       return slot;
     }
 
@@ -152,7 +152,7 @@ namespace kagome::parachain::approval {
         ::RelayVRFStory &vrf_story,
         const primitives::AuthorityList &authorities,
         const consensus::babe::Randomness &randomness,
-        consensus::babe::EpochNumber epoch_index);
+        consensus::EpochNumber epoch_index);
   };
 
 }  // namespace kagome::parachain::approval

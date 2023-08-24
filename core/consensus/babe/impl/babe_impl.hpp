@@ -157,7 +157,7 @@ namespace kagome::consensus::babe {
     bool warpSync(const libp2p::peer::PeerId &peer_id,
                   primitives::BlockNumber block_number);
 
-    bool updateSlot(BabeTimePoint now);
+    bool updateSlot(TimePoint now);
 
     void startCatchUp(const libp2p::peer::PeerId &peer_id,
                       const primitives::BlockInfo &target_block);
@@ -245,7 +245,7 @@ namespace kagome::consensus::babe {
 
     EpochDescriptor current_epoch_;
 
-    BabeSlotNumber current_slot_{};
+    SlotNumber current_slot_{};
 
     primitives::BlockInfo best_block_{};
 

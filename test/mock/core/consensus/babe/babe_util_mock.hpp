@@ -14,21 +14,18 @@ namespace kagome::consensus::babe {
 
   class BabeUtilMock : public BabeUtil {
    public:
-    MOCK_METHOD(BabeSlotNumber, timeToSlot, (BabeTimePoint), (const, override));
+    MOCK_METHOD(SlotNumber, timeToSlot, (TimePoint), (const, override));
 
-    MOCK_METHOD(BabeTimePoint,
-                slotStartTime,
-                (BabeSlotNumber slot),
-                (const, override));
+    MOCK_METHOD(TimePoint, slotStartTime, (SlotNumber slot), (const, override));
 
-    MOCK_METHOD(BabeTimePoint,
+    MOCK_METHOD(TimePoint,
                 slotFinishTime,
-                (BabeSlotNumber slot),
+                (SlotNumber slot),
                 (const, override));
 
     MOCK_METHOD(outcome::result<EpochDescriptor>,
                 slotToEpochDescriptor,
-                (const primitives::BlockInfo &, BabeSlotNumber),
+                (const primitives::BlockInfo &, SlotNumber),
                 (const, override));
   };
 

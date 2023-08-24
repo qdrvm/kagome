@@ -24,31 +24,31 @@ namespace kagome::consensus::babe {
     /**
      * @returns slot for time
      */
-    virtual BabeSlotNumber timeToSlot(BabeTimePoint time) const = 0;
+    virtual SlotNumber timeToSlot(TimePoint time) const = 0;
 
     /**
      * @returns timepoint of start of slot #{@param slot}
      */
-    virtual BabeTimePoint slotStartTime(BabeSlotNumber slot) const = 0;
+    virtual TimePoint slotStartTime(SlotNumber slot) const = 0;
 
     /**
      * @returns timepoint of finish of slot #{@param slot}
      */
-    virtual BabeTimePoint slotFinishTime(BabeSlotNumber slot) const = 0;
+    virtual TimePoint slotFinishTime(SlotNumber slot) const = 0;
 
     /**
      * @returns epoch descriptor for given parent and slot
      */
     virtual outcome::result<EpochDescriptor> slotToEpochDescriptor(
         const primitives::BlockInfo &parent_info,
-        BabeSlotNumber slot_number) const = 0;
+        SlotNumber slot_number) const = 0;
 
     /**
      * @returns epoch number for given parent and slot
      */
     outcome::result<EpochNumber> slotToEpoch(
         const primitives::BlockInfo &parent_info,
-        BabeSlotNumber slot_number) const {
+        SlotNumber slot_number) const {
       OUTCOME_TRY(epoch, slotToEpochDescriptor(parent_info, slot_number));
       return epoch.epoch_number;
     }

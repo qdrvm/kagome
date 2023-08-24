@@ -39,13 +39,12 @@ namespace kagome::consensus::babe {
     EpochDescriptor getEpoch() const override;
 
     std::optional<crypto::VRFOutput> getSlotLeadership(
-        primitives::BabeSlotNumber i) const override;
+        SlotNumber i) const override;
 
-    crypto::VRFOutput slotVrfSignature(
-        primitives::BabeSlotNumber slot) const override;
+    crypto::VRFOutput slotVrfSignature(SlotNumber slot) const override;
 
     std::optional<primitives::AuthorityIndex> secondarySlotAuthor(
-        primitives::BabeSlotNumber slot,
+        SlotNumber slot,
         primitives::AuthorityListSize authorities_count,
         const Randomness &randomness) const override;
 

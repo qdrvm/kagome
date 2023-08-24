@@ -100,7 +100,7 @@ class BlockValidatorTest : public testing::Test {
   Hash256 parent_hash_ =
       Hash256::fromString("c30ojfn4983u4093jv3894j3f034ojs3").value();
 
-  BabeSlotNumber slot_number_ = 2;
+  SlotNumber slot_number_ = 2;
   VRFPreOutput vrf_value_ = {1, 2, 3, 4, 5};
   VRFProof vrf_proof_{};
   AuthorityIndex authority_index_ = {1};
@@ -121,10 +121,10 @@ class BlockValidatorTest : public testing::Test {
   primitives::AuthorityList authorities_;
 
   primitives::BabeConfiguration config_{
-      .leadership_rate = {3,4},
+      .leadership_rate = {3, 4},
       .authorities = {},
       .randomness = Randomness{uint256_to_le_bytes(475995757021)},
-      .allowed_slots = {}
+      .allowed_slots = {},
   };
 };
 

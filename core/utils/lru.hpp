@@ -25,7 +25,7 @@ namespace kagome {
       It more, less;
     };
 
-    Lru(size_t capacity) : capacity_{capacity} {
+    explicit Lru(size_t capacity) : capacity_{capacity} {
       if (capacity_ == 0) {
         throw std::length_error{"Lru(capacity=0)"};
       }
@@ -150,7 +150,7 @@ namespace kagome {
   template <typename K>
   class LruSet {
    public:
-    LruSet(size_t capacity) : lru_{capacity} {}
+    explicit LruSet(size_t capacity) : lru_{capacity} {}
 
     bool has(const K &k) {
       return lru_.get(k).has_value();

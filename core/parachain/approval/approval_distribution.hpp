@@ -316,7 +316,7 @@ namespace kagome::parachain {
       AssignmentsList assignments;
       size_t n_validators;
       RelayVRFStory relay_vrf_story;
-      consensus::babe::BabeSlotNumber slot;
+      consensus::SlotNumber slot;
       std::optional<primitives::BlockNumber> force_approve;
     };
 
@@ -324,7 +324,7 @@ namespace kagome::parachain {
       primitives::BlockHeader block_header;
       std::optional<CandidateIncludedList> included_candidates;
       std::optional<consensus::babe::BabeBlockHeader> babe_block_header;
-      std::optional<consensus::babe::EpochNumber> babe_epoch;
+      std::optional<consensus::EpochNumber> babe_epoch;
       std::optional<primitives::Randomness> randomness;
       std::optional<primitives::AuthorityList> authorities;
 
@@ -385,7 +385,7 @@ namespace kagome::parachain {
       primitives::BlockHash parent_hash;
       primitives::BlockNumber block_number;
       SessionIndex session;
-      consensus::babe::BabeSlotNumber slot;
+      consensus::SlotNumber slot;
       RelayVRFStory relay_vrf_story;
       // The candidates included as-of this block and the index of the core they
       // are leaving. Sorted ascending by core index.
@@ -485,7 +485,7 @@ namespace kagome::parachain {
     using NewHeadDataContext =
         std::tuple<ApprovalDistribution::CandidateIncludedList,
                    std::pair<SessionIndex, runtime::SessionInfo>,
-                   std::tuple<consensus::babe::EpochNumber,
+                   std::tuple<consensus::EpochNumber,
                               consensus::babe::BabeBlockHeader,
                               primitives::AuthorityList,
                               primitives::Randomness>>;
@@ -523,7 +523,7 @@ namespace kagome::parachain {
 
     outcome::result<ApprovalDistribution::CandidateIncludedList>
     request_included_candidates(const primitives::BlockHash &block_hash);
-    outcome::result<std::tuple<consensus::babe::EpochNumber,
+    outcome::result<std::tuple<consensus::EpochNumber,
                                consensus::babe::BabeBlockHeader,
                                primitives::AuthorityList,
                                primitives::Randomness>>

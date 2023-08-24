@@ -14,7 +14,7 @@ namespace kagome::consensus::babe {
 
   class BabeConfigRepositoryMock : public BabeConfigRepository {
    public:
-    MOCK_METHOD(BabeDuration, slotDuration, (), (const, override));
+    MOCK_METHOD(Duration, slotDuration, (), (const, override));
 
     MOCK_METHOD(EpochLength, epochLength, (), (const, override));
 

@@ -65,9 +65,8 @@ static constexpr kagome::network::Tick kTickTooFarInFuture =
 namespace {
 
   /// assumes `slot_duration_millis` evenly divided by tick duration.
-  kagome::network::Tick slotNumberToTick(
-      uint64_t slot_duration_millis,
-      kagome::consensus::babe::BabeSlotNumber slot) {
+  kagome::network::Tick slotNumberToTick(uint64_t slot_duration_millis,
+                                         kagome::consensus::SlotNumber slot) {
     const auto ticks_per_slot = slot_duration_millis / kTickDurationMs;
     return slot * ticks_per_slot;
   }
@@ -83,8 +82,7 @@ namespace {
   }
 
   kagome::parachain::approval::DelayTranche trancheNow(
-      uint64_t slot_duration_millis,
-      kagome::consensus::babe::BabeSlotNumber base_slot) {
+      uint64_t slot_duration_millis, kagome::consensus::SlotNumber base_slot) {
     return static_cast<kagome::parachain::approval::DelayTranche>(
         kagome::math::sat_sub_unsigned(
             tickNow(), slotNumberToTick(slot_duration_millis, base_slot)));
@@ -887,7 +885,7 @@ namespace kagome::parachain {
     return std::make_pair(session_index, std::move(*session_info));
   }
 
-  outcome::result<std::tuple<consensus::babe::EpochNumber,
+  outcome::result<std::tuple<consensus::EpochNumber,
                              consensus::babe::BabeBlockHeader,
                              primitives::AuthorityList,
                              primitives::Randomness>>

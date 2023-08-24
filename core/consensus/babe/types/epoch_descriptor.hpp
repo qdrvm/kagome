@@ -12,7 +12,7 @@
 namespace kagome::consensus::babe {
 
   /**
-   * Metainformation about the Babe epoch
+   * Metainformation about the epoch
    */
   struct EpochDescriptor {
     SCALE_TIE(2);
@@ -20,8 +20,9 @@ namespace kagome::consensus::babe {
     EpochNumber epoch_number = 0;
 
     /// starting slot of the epoch
-    BabeSlotNumber start_slot = 0;
+    SlotNumber start_slot = 0;
   };
+
 }  // namespace kagome::consensus::babe
 
 #endif  // KAGOME_CONSENSUS_EPOCHDESCRIPTOR

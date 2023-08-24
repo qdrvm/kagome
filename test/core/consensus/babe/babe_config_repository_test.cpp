@@ -27,10 +27,10 @@ using blockchain::BlockHeaderRepositoryMock;
 using blockchain::BlockTreeMock;
 using common::Buffer;
 using common::BufferView;
+using consensus::SlotNumber;
 using consensus::babe::BabeConfigRepositoryImpl;
 using consensus::babe::BabeUtil;
 using crypto::HasherMock;
-using primitives::BabeSlotNumber;
 using primitives::BlockHeader;
 using primitives::BlockId;
 using primitives::BlockInfo;
@@ -126,7 +126,7 @@ TEST_F(BabeConfigRepositoryTest, getCurrentSlot) {
   });
   babe_config_repo_->prepare();
   auto time = std::chrono::system_clock::now();
-  EXPECT_EQ(static_cast<BabeSlotNumber>(time.time_since_epoch()
-                                        / babe_config.slot_duration),
+  EXPECT_EQ(static_cast<SlotNumber>(time.time_since_epoch()
+                                    / babe_config.slot_duration),
             babe_config_repo_->timeToSlot(time));
 }

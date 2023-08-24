@@ -50,7 +50,7 @@ namespace kagome::consensus::babe {
   }
 
   std::optional<crypto::VRFOutput> BabeLotteryImpl::getSlotLeadership(
-      primitives::BabeSlotNumber slot) const {
+      SlotNumber slot) const {
     BOOST_ASSERT_MSG(
         epoch_.epoch_number != std::numeric_limits<uint64_t>::max(),
         "Epoch must be initialized before this point");
@@ -71,8 +71,7 @@ namespace kagome::consensus::babe {
     return res;
   }
 
-  crypto::VRFOutput BabeLotteryImpl::slotVrfSignature(
-      primitives::BabeSlotNumber slot) const {
+  crypto::VRFOutput BabeLotteryImpl::slotVrfSignature(SlotNumber slot) const {
     BOOST_ASSERT_MSG(
         epoch_.epoch_number != std::numeric_limits<uint64_t>::max(),
         "Epoch must be initialized before this point");
@@ -87,7 +86,7 @@ namespace kagome::consensus::babe {
 
   std::optional<primitives::AuthorityIndex>
   BabeLotteryImpl::secondarySlotAuthor(
-      primitives::BabeSlotNumber slot,
+      SlotNumber slot,
       primitives::AuthorityListSize authorities_count,
       const Randomness &randomness) const {
     if (0 == authorities_count) {

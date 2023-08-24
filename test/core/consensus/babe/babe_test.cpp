@@ -69,7 +69,7 @@ namespace kagome::primitives {
   }
 }  // namespace kagome::primitives
 
-static Digest make_digest(BabeSlotNumber slot) {
+static Digest make_digest(SlotNumber slot) {
   Digest digest;
 
   BabeBlockHeader babe_header{

@@ -28,7 +28,7 @@ namespace kagome::consensus::babe {
     primitives::AuthorityIndex authority_index;
 
     /// slot, in which the block was produced
-    BabeSlotNumber slot_number;
+    SlotNumber slot_number;
 
     /// output of VRF function
     crypto::VRFOutput vrf_output{};
@@ -39,7 +39,7 @@ namespace kagome::consensus::babe {
 
     bool needVRFCheck() const {
       return slot_assignment_type == SlotType::Primary
-             or slot_assignment_type == SlotType::SecondaryVRF;
+          or slot_assignment_type == SlotType::SecondaryVRF;
     }
 
     bool needVRFWithThresholdCheck() const {
@@ -48,7 +48,7 @@ namespace kagome::consensus::babe {
 
     bool isProducedInSecondarySlot() const {
       return slot_assignment_type == SlotType::SecondaryPlain
-             or slot_assignment_type == SlotType::SecondaryVRF;
+          or slot_assignment_type == SlotType::SecondaryVRF;
     }
 
     /**

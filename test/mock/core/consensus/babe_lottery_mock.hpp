@@ -24,19 +24,17 @@ namespace kagome::consensus::babe {
 
     MOCK_METHOD(std::optional<crypto::VRFOutput>,
                 getSlotLeadership,
-                (primitives::BabeSlotNumber),
+                (SlotNumber),
                 (const, override));
 
     MOCK_METHOD(crypto::VRFOutput,
                 slotVrfSignature,
-                (primitives::BabeSlotNumber),
+                (SlotNumber),
                 (const, override));
 
     MOCK_METHOD(std::optional<primitives::AuthorityIndex>,
                 secondarySlotAuthor,
-                (primitives::BabeSlotNumber,
-                 primitives::AuthorityListSize,
-                 const Randomness &),
+                (SlotNumber, primitives::AuthorityListSize, const Randomness &),
                 (const, override));
   };
 }  // namespace kagome::consensus::babe

@@ -56,8 +56,8 @@ namespace kagome::consensus::babe {
         const primitives::BlockContext &context);
 
     struct SlotInfo {
-      BabeTimePoint start;
-      BabeDuration duration;
+      TimePoint start;
+      Duration duration;
     };
 
     outcome::result<SlotInfo> getSlotInfo(

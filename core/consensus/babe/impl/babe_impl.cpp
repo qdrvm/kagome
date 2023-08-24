@@ -58,7 +58,7 @@ namespace kagome::consensus::babe {
       {0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1, 2.5, 5, 10},
   };
 
-  inline auto fmtRemains(const BabeClock &clock, BabeTimePoint time) {
+  inline auto fmtRemains(const Clock &clock, TimePoint time) {
     auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(
         std::max(time - clock.now(), {}));
     return fmt::format("{:.2f} sec", ms.count() / 1000.0);
@@ -175,7 +175,7 @@ namespace kagome::consensus::babe {
     std::tuple<std::chrono::microseconds,
                std::chrono::microseconds,
                std::chrono::microseconds>
-    estimateSyncDuration(size_t lag_slots, BabeDuration slot_duration) {
+    estimateSyncDuration(size_t lag_slots, Duration slot_duration) {
       // WARP: n * header_loading / k + state_loading + lag * block_execution
       //       {               catchup              }
       // FAST: n * header_loading + state_loading + lag' * block_execution
@@ -228,7 +228,7 @@ namespace kagome::consensus::babe {
     const auto &state_root = best_block_header.state_root;
 
     // Calculate lag our best block by slots
-    BabeSlotNumber lag_slots = 0;
+    SlotNumber lag_slots = 0;
     if (auto slot_res = getBabeSlot(best_block_header)) {
       lag_slots = babe_util_->timeToSlot(clock_->now()) - slot_res.value();
     }
@@ -387,7 +387,7 @@ namespace kagome::consensus::babe {
     return true;
   }
 
-  bool BabeImpl::updateSlot(BabeTimePoint now) {
+  bool BabeImpl::updateSlot(TimePoint now) {
     best_block_ = block_tree_->bestLeaf();
     current_slot_ = babe_util_->timeToSlot(now);
     auto epoch_res =
@@ -825,8 +825,8 @@ namespace kagome::consensus::babe {
         metric_is_relaychain_validator_->set(false);
         if (app_config_validator_) {
           SL_VERBOSE(log_,
-                   "Authority not known, skipping slot processing. "
-                   "Probably authority list has changed.");
+                     "Authority not known, skipping slot processing. "
+                     "Probably authority list has changed.");
         }
       } else {
         metric_is_relaychain_validator_->set(true);

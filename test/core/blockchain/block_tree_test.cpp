@@ -268,7 +268,7 @@ struct BlockTreeTest : public testing::Test {
 
   const BlockId kLastFinalizedBlockId = kFinalizedBlockInfo.hash;
 
-  static Digest make_digest(BabeSlotNumber slot) {
+  static Digest make_digest(SlotNumber slot) {
     Digest digest;
 
     BabeBlockHeader babe_header{

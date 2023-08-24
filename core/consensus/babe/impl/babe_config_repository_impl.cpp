@@ -94,7 +94,7 @@ namespace kagome::consensus::babe {
     if (auto res = persistent_storage_->tryGet(
             storage::kBabeConfigRepositoryImplGenesisSlot)) {
       if (auto &genesis_slot_raw = res.value()) {
-        if (auto res = scale::decode<BabeSlotNumber>(*genesis_slot_raw)) {
+        if (auto res = scale::decode<SlotNumber>(*genesis_slot_raw)) {
           first_block_slot_number_ = res.value();
         } else {
           SL_ERROR(logger_, "genesis slot decode error: {}", res.error());
@@ -169,8 +169,8 @@ namespace kagome::consensus::babe {
     return config(parent_info, epoch_changed);
   }
 
-  BabeDuration BabeConfigRepositoryImpl::slotDuration() const {
-    BOOST_ASSERT_MSG(slot_duration_ != BabeDuration::zero(),
+  Duration BabeConfigRepositoryImpl::slotDuration() const {
+    BOOST_ASSERT_MSG(slot_duration_ != Duration::zero(),
                      "Slot duration is not initialized");
     return slot_duration_;
   }
@@ -180,24 +180,19 @@ namespace kagome::consensus::babe {
     return epoch_length_;
   }
 
-  BabeSlotNumber BabeConfigRepositoryImpl::timeToSlot(
-      BabeTimePoint time) const {
-    return static_cast<BabeSlotNumber>(time.time_since_epoch()
-                                       / slotDuration());
+  SlotNumber BabeConfigRepositoryImpl::timeToSlot(TimePoint time) const {
+    return static_cast<SlotNumber>(time.time_since_epoch() / slotDuration());
   }
 
-  BabeTimePoint BabeConfigRepositoryImpl::slotStartTime(
-      BabeSlotNumber slot) const {
-    return BabeTimePoint{} + slot * slotDuration();
+  TimePoint BabeConfigRepositoryImpl::slotStartTime(SlotNumber slot) const {
+    return TimePoint{} + slot * slotDuration();
   }
 
-  BabeTimePoint BabeConfigRepositoryImpl::slotFinishTime(
-      BabeSlotNumber slot) const {
+  TimePoint BabeConfigRepositoryImpl::slotFinishTime(SlotNumber slot) const {
     return slotStartTime(slot + 1);
   }
 
-  outcome::result<BabeSlotNumber>
-  BabeConfigRepositoryImpl::getFirstBlockSlotNumber(
+  outcome::result<SlotNumber> BabeConfigRepositoryImpl::getFirstBlockSlotNumber(
       const primitives::BlockInfo &parent_info) const {
     auto slot1 = first_block_slot_number_;
     if (not slot1) {
@@ -240,7 +235,7 @@ namespace kagome::consensus::babe {
 
   outcome::result<EpochDescriptor>
   BabeConfigRepositoryImpl::slotToEpochDescriptor(
-      const primitives::BlockInfo &parent_info, BabeSlotNumber slot) const {
+      const primitives::BlockInfo &parent_info, SlotNumber slot) const {
     if (parent_info.number == 0) {
       return EpochDescriptor{0, slot};
     }

@@ -14,7 +14,7 @@ namespace kagome::consensus::babe {
   inline primitives::Transcript &prepareTranscript(
       primitives::Transcript &transcript,
       const Randomness &randomness,
-      BabeSlotNumber slot_number,
+      SlotNumber slot_number,
       EpochNumber epoch) {
     transcript.initialize({'B', 'A', 'B', 'E'});
     transcript.append_message(

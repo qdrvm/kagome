@@ -39,4 +39,6 @@ addtest(block_executor_test
 target_link_libraries(block_executor_test
     consensus
     log_configurator
+    blockchain
+    transaction_pool_error
     )

@@ -28,7 +28,7 @@ namespace kagome::parachain::approval {
       ::RelayVRFStory &vrf_story,
       const primitives::AuthorityList &authorities,
       const consensus::babe::Randomness &randomness,
-      consensus::babe::EpochNumber epoch_index) {
+      consensus::EpochNumber epoch_index) {
     if (authorities.size() <= authority_index) {
       return Error::AuthorityOutOfBounds;
     }

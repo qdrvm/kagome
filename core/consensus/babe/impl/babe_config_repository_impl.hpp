@@ -87,7 +87,7 @@ namespace kagome::consensus::babe {
 
     // BabeConfigRepository
 
-    BabeDuration slotDuration() const override;
+    Duration slotDuration() const override;
 
     EpochLength epochLength() const override;
 
@@ -97,19 +97,19 @@ namespace kagome::consensus::babe {
 
     // BabeUtil
 
-    BabeSlotNumber timeToSlot(BabeTimePoint time) const override;
+    SlotNumber timeToSlot(TimePoint time) const override;
 
-    BabeTimePoint slotStartTime(BabeSlotNumber slot) const override;
-    BabeTimePoint slotFinishTime(BabeSlotNumber slot) const override;
+    TimePoint slotStartTime(SlotNumber slot) const override;
+    TimePoint slotFinishTime(SlotNumber slot) const override;
 
     outcome::result<EpochDescriptor> slotToEpochDescriptor(
         const primitives::BlockInfo &parent_info,
-        BabeSlotNumber slot) const override;
+        SlotNumber slot) const override;
 
     void warp(const primitives::BlockInfo &block) override;
 
    private:
-    outcome::result<BabeSlotNumber> getFirstBlockSlotNumber(
+    outcome::result<SlotNumber> getFirstBlockSlotNumber(
         const primitives::BlockInfo &parent_info) const;
 
     outcome::result<std::shared_ptr<const primitives::BabeConfiguration>>
@@ -140,10 +140,10 @@ namespace kagome::consensus::babe {
     std::shared_ptr<storage::trie::TrieStorage> trie_storage_;
     std::shared_ptr<primitives::events::ChainEventSubscriber> chain_sub_;
 
-    BabeDuration slot_duration_{};
+    Duration slot_duration_{};
     EpochLength epoch_length_{};
 
-    mutable std::optional<BabeSlotNumber> first_block_slot_number_;
+    mutable std::optional<SlotNumber> first_block_slot_number_;
 
     log::Logger logger_;
   };

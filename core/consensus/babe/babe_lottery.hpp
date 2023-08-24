@@ -55,7 +55,7 @@ namespace kagome::consensus::babe {
      * for that slot, value contains VRF value and proof
      */
     virtual std::optional<crypto::VRFOutput> getSlotLeadership(
-        primitives::BabeSlotNumber slot) const = 0;
+        SlotNumber slot) const = 0;
 
     /**
      * Computes VRF proof for the slot regardless threshold.
@@ -63,8 +63,7 @@ namespace kagome::consensus::babe {
      * @param slot is a slot number
      * @return VRF output and proof
      */
-    virtual crypto::VRFOutput slotVrfSignature(
-        primitives::BabeSlotNumber slot) const = 0;
+    virtual crypto::VRFOutput slotVrfSignature(SlotNumber slot) const = 0;
 
     /**
      * Compute the expected author for secondary slot
@@ -75,7 +74,7 @@ namespace kagome::consensus::babe {
      * empty
      */
     virtual std::optional<primitives::AuthorityIndex> secondarySlotAuthor(
-        primitives::BabeSlotNumber slot,
+        SlotNumber slot,
         primitives::AuthorityListSize authorities_count,
         const Randomness &randomness) const = 0;
   };

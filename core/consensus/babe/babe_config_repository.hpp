@@ -18,7 +18,7 @@ namespace kagome::consensus::babe {
 
     /// Returns the duration of a slot in milliseconds
     /// @return the duration of a slot in milliseconds
-    virtual BabeDuration slotDuration() const = 0;
+    virtual Duration slotDuration() const = 0;
 
     /// @return the epoch length in slots
     virtual EpochLength epochLength() const = 0;

@@ -107,7 +107,7 @@ namespace kagome::consensus::babe {
     std::shared_ptr<crypto::VRFProvider> vrf_provider_;
     std::shared_ptr<crypto::Sr25519Provider> sr25519_provider_;
 
-    mutable std::unordered_map<BabeSlotNumber,
+    mutable std::unordered_map<SlotNumber,
                                std::unordered_set<primitives::AuthorityIndex>>
         blocks_producers_;
 
