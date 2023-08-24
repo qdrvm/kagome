@@ -257,7 +257,7 @@ function(hunter_gate_download dir)
   file(
     WRITE
     "${cmakelists}"
-    "cmake_minimum_required(VERSION 3.6)\n"
+    "cmake_minimum_required(VERSION 3.2)\n"
     "project(HunterDownload LANGUAGES NONE)\n"
     "include(ExternalProject)\n"
     "ExternalProject_Add(\n"
