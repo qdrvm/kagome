@@ -66,9 +66,11 @@
 #include "consensus/babe/impl/block_executor_impl.hpp"
 #include "consensus/babe/impl/block_header_appender_impl.hpp"
 #include "consensus/babe/impl/consistency_keeper_impl.hpp"
+#include "consensus/finality_consensus.hpp"
 #include "consensus/grandpa/impl/authority_manager_impl.hpp"
 #include "consensus/grandpa/impl/environment_impl.hpp"
 #include "consensus/grandpa/impl/grandpa_impl.hpp"
+#include "consensus/production_consensus.hpp"
 #include "consensus/validation/babe_block_validator.hpp"
 #include "crypto/bip39/impl/bip39_provider_impl.hpp"
 #include "crypto/crypto_store/crypto_store_impl.hpp"
@@ -797,6 +799,16 @@ namespace {
             di::bind<network::BlockAnnounceObserver>.template to<consensus::babe::BabeImpl>(),
             di::bind<dispute::DisputeCoordinator>.template to<dispute::DisputeCoordinatorImpl>(),
             di::bind<dispute::Storage>.template to<dispute::StorageImpl>(),
+
+            di::bind<consensus::ProductionConsensus *[]>()  // NOLINT
+                .template to<consensus::babe::Babe
+                             //,consensus::aura::Aura
+                             //,consensus::sassafras::Sassafras
+                            >(),
+            di::bind<consensus::FinalityConsensus *[]>()  // NOLINT
+                .template to<
+                             consensus::grandpa::Grandpa
+                            >(),
 
             // user-defined overrides...
             std::forward<decltype(args)>(args)...);
