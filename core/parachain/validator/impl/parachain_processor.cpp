@@ -1364,6 +1364,9 @@ namespace kagome::parachain {
             network::StatementDistributionMessage{network::Seconded{
                 .relay_parent = relay_parent, .statement = statement}}});
 
+    // Send to all peers in our group.
+    // If our group is smaller than `kMinGossipPeers`
+    // select other peers randomly.
     std::unordered_set<network::PeerId> group_set;
     if (auto r = runtime_info_->get_session_info(relay_parent)) {
       auto &[session, info] = r.value();
