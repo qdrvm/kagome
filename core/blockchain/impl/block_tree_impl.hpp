@@ -160,8 +160,6 @@ namespace kagome::blockchain {
       std::shared_ptr<const class JustificationStoragePolicy>
           justification_storage_policy_;
       std::optional<primitives::BlockHash> genesis_block_hash_;
-
-      BlockTreeData() = delete;
     };
 
     /**
