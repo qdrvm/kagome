@@ -1375,7 +1375,7 @@ namespace kagome::parachain {
         }
       }
     }
-    std::vector<network::PeerId> group, any;
+    std::deque<network::PeerId> group, any;
     auto protocol = router_->getValidationProtocol();
     se->forEachPeer(protocol, [&](const network::PeerId &peer) {
       (group_set.count(peer) != 0 ? group : any).emplace_back(peer);
