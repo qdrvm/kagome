@@ -3,8 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_CONSENSUS_BABE_BABECONFIGREPOSITORYMOCK
-#define KAGOME_CONSENSUS_BABE_BABECONFIGREPOSITORYMOCK
+#pragma once
 
 #include "consensus/babe/babe_config_repository.hpp"
 
@@ -28,5 +27,3 @@ namespace kagome::consensus::babe {
   };
 
 }  // namespace kagome::consensus::babe
-
-#endif  // KAGOME_CONSENSUS_BABE_BABECONFIGREPOSITORYMOCK

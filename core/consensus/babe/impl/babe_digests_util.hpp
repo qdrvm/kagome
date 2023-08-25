@@ -3,8 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_CORE_CONSENSUS_BABE_IMPL_BABE_DIGESTS_UTIL_HPP
-#define KAGOME_CORE_CONSENSUS_BABE_IMPL_BABE_DIGESTS_UTIL_HPP
+#pragma once
 
 #include <memory>
 #include <optional>
@@ -43,5 +42,3 @@ namespace kagome::consensus::babe {
 }  // namespace kagome::consensus::babe
 
 OUTCOME_HPP_DECLARE_ERROR(kagome::consensus::babe, DigestError)
-
-#endif  // KAGOME_CORE_CONSENSUS_BABE_IMPL_BABE_DIGESTS_UTIL_HPP

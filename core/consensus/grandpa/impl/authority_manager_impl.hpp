@@ -3,8 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_CONSENSUS_AUTHORITIES_MANAGER_IMPL
-#define KAGOME_CONSENSUS_AUTHORITIES_MANAGER_IMPL
+#pragma once
 
 #include "consensus/grandpa/authority_manager.hpp"
 #include "consensus/grandpa/grandpa_digest_observer.hpp"
@@ -223,5 +222,3 @@ namespace kagome::consensus::grandpa {
     log::Logger logger_;
   };
 }  // namespace kagome::consensus::grandpa
-
-#endif  // KAGOME_CONSENSUS_AUTHORITIES_MANAGER_IMPL

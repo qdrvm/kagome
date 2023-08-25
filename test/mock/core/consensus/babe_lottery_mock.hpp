@@ -3,8 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_BABE_LOTTERY_MOCK_HPP
-#define KAGOME_BABE_LOTTERY_MOCK_HPP
+#pragma once
 
 #include "consensus/babe/babe_lottery.hpp"
 
@@ -38,5 +37,3 @@ namespace kagome::consensus::babe {
                 (const, override));
   };
 }  // namespace kagome::consensus::babe
-
-#endif  // KAGOME_BABE_LOTTERY_MOCK_HPP

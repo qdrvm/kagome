@@ -3,8 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_CONSENSUS_BLOCKEXECUTORMOCK
-#define KAGOME_CONSENSUS_BLOCKEXECUTORMOCK
+#pragma once
 
 #include "consensus/timeline/block_executor.hpp"
 
@@ -30,5 +29,3 @@ namespace kagome::consensus {
   };
 
 }  // namespace kagome::consensus
-
-#endif  // KAGOME_CONSENSUS_BLOCKEXECUTORMOCK

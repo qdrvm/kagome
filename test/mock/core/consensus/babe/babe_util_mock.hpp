@@ -3,8 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_CONSENSUS_BABEUTILMOCK
-#define KAGOME_CONSENSUS_BABEUTILMOCK
+#pragma once
 
 #include "consensus/babe/babe_util.hpp"
 
@@ -30,5 +29,3 @@ namespace kagome::consensus::babe {
   };
 
 }  // namespace kagome::consensus::babe
-
-#endif  // KAGOME_CONSENSUS_BABEUTILMOCK

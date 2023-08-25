@@ -3,8 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_CONSENSUS_BABE_BABEERROR
-#define KAGOME_CONSENSUS_BABE_BABEERROR
+#pragma once
 
 #include <outcome/outcome.hpp>
 
@@ -20,5 +19,3 @@ namespace kagome::consensus::babe {
 }  // namespace kagome::consensus::babe
 
 OUTCOME_HPP_DECLARE_ERROR(kagome::consensus::babe, BabeError)
-
-#endif  // KAGOME_CONSENSUS_BABE_BABEERROR

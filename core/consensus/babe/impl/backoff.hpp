@@ -3,8 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_CONSENSUS_BABE_IMPL_BACKOFF_HPP
-#define KAGOME_CONSENSUS_BABE_IMPL_BACKOFF_HPP
+#pragma once
 
 #include "consensus/babe/impl/babe_digests_util.hpp"
 
@@ -35,5 +34,3 @@ namespace kagome::consensus::babe {
         <= std::min(interval, kMaxInterval);
   }
 }  // namespace kagome::consensus::babe
-
-#endif  // KAGOME_CONSENSUS_BABE_IMPL_BACKOFF_HPP

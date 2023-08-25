@@ -3,8 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_CONSENSUS_PREPARETRANSACRIPT
-#define KAGOME_CONSENSUS_PREPARETRANSACRIPT
+#pragma once
 
 #include "consensus/timeline/types.hpp"
 #include "primitives/transcript.hpp"
@@ -43,5 +42,3 @@ namespace kagome::consensus::babe {
   }
 
 }  // namespace kagome::consensus::babe
-
-#endif  // KAGOME_CONSENSUS_PREPARETRANSACRIPT

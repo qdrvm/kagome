@@ -3,8 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_CONSENSUS_CONSENSUSSELECTOR
-#define KAGOME_CONSENSUS_CONSENSUSSELECTOR
+#pragma once
 
 #include "consensus/finality_consensus.hpp"
 #include "consensus/production_consensus.hpp"
@@ -30,5 +29,3 @@ namespace kagome::consensus {
   };
 
 }  // namespace kagome::consensus
-
-#endif  // KAGOME_CONSENSUS_CONSENSUSSELECTOR

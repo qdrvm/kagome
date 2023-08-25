@@ -3,8 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_CONSENSUS_GRANDPA_VOTINGROUNDIMPL
-#define KAGOME_CONSENSUS_GRANDPA_VOTINGROUNDIMPL
+#pragma once
 
 #include "consensus/grandpa/voting_round.hpp"
 
@@ -361,5 +360,3 @@ namespace kagome::consensus::grandpa {
     bool completable_ = false;
   };
 }  // namespace kagome::consensus::grandpa
-
-#endif  // KAGOME_CONSENSUS_GRANDPA_VOTINGROUNDIMPL

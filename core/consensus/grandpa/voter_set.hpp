@@ -3,8 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_CORE_CONSENSUS_GRANDPA_VOTER_SET_HPP
-#define KAGOME_CORE_CONSENSUS_GRANDPA_VOTER_SET_HPP
+#pragma once
 
 #include <optional>
 
@@ -116,5 +115,3 @@ namespace kagome::consensus::grandpa {
 }  // namespace kagome::consensus::grandpa
 
 OUTCOME_HPP_DECLARE_ERROR(kagome::consensus::grandpa, VoterSet::Error);
-
-#endif  // KAGOME_CORE_CONSENSUS_GRANDPA_VOTER_SET_HPP

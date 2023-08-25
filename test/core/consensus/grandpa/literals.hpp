@@ -3,8 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_TEST_CORE_CONSENSUS_GRANDPA_LITERALS_HPP
-#define KAGOME_TEST_CORE_CONSENSUS_GRANDPA_LITERALS_HPP
+#pragma once
 
 #include "consensus/grandpa/vote_weight.hpp"
 
@@ -54,5 +53,3 @@ inline kagome::crypto::Ed25519Signature operator"" _SIG(const char *c,
                                                         size_t s) {
   return makeSig(std::string{c, c + s});
 }
-
-#endif  // KAGOME_TEST_CORE_CONSENSUS_GRANDPA_LITERALS_HPP

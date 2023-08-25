@@ -3,8 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_CONSENSUS_BLOCKAPPENDER
-#define KAGOME_CONSENSUS_BLOCKAPPENDER
+#pragma once
 
 #include "consensus/grandpa/environment.hpp"
 #include "outcome/outcome.hpp"
@@ -27,5 +26,3 @@ namespace kagome::consensus {
   };
 
 }  // namespace kagome::consensus
-
-#endif  // KAGOME_CONSENSUS_BLOCKAPPENDER

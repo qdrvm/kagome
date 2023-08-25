@@ -3,8 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_CONSENSUS_BABE_BABECONFIGREPOSITORYIMPL
-#define KAGOME_CONSENSUS_BABE_BABECONFIGREPOSITORYIMPL
+#pragma once
 
 #include "consensus/babe/babe_config_repository.hpp"
 #include "consensus/babe/babe_util.hpp"
@@ -152,5 +151,3 @@ namespace kagome::consensus::babe {
 
 OUTCOME_HPP_DECLARE_ERROR(kagome::consensus::babe,
                           BabeConfigRepositoryImpl::Error)
-
-#endif  // KAGOME_CONSENSUS_BABE_BABECONFIGREPOSITORYIMPL

@@ -3,8 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_CONSENSUS_GRANDPA_ANCESTRY_VERIFIER_HPP
-#define KAGOME_CONSENSUS_GRANDPA_ANCESTRY_VERIFIER_HPP
+#pragma once
 
 #include <unordered_map>
 
@@ -48,5 +47,3 @@ namespace kagome::consensus::grandpa {
     std::unordered_map<primitives::BlockInfo, primitives::BlockInfo> parents;
   };
 }  // namespace kagome::consensus::grandpa
-
-#endif  // KAGOME_CONSENSUS_GRANDPA_ANCESTRY_VERIFIER_HPP

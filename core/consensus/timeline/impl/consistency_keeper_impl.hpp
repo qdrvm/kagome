@@ -3,8 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_CONSENSUS_CONSISTENCYKEEPERIMPL
-#define KAGOME_CONSENSUS_CONSISTENCYKEEPERIMPL
+#pragma once
 
 #include "consensus/timeline/consistency_keeper.hpp"
 
@@ -54,5 +53,3 @@ namespace kagome::consensus {
   };
 
 }  // namespace kagome::consensus
-
-#endif  //  KAGOME_CONSENSUS_CONSISTENCYKEEPERIMPL

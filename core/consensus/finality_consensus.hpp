@@ -3,8 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_CONSENSUS_FINALITYCONSENSUS
-#define KAGOME_CONSENSUS_FINALITYCONSENSUS
+#pragma once
 
 #include "primitives/common.hpp"
 
@@ -21,5 +20,3 @@ namespace kagome::consensus {
   };
 
 }  // namespace kagome::consensus
-
-#endif  // KAGOME_CONSENSUS_FINALITYCONSENSUS

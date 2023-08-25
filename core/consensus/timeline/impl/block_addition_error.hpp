@@ -3,8 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_CONSENSUS_BLOCKADDITIONERROR
-#define KAGOME_CONSENSUS_BLOCKADDITIONERROR
+#pragma once
 
 #include <outcome/outcome.hpp>
 
@@ -19,5 +18,3 @@ namespace kagome::consensus {
 }  // namespace kagome::consensus
 
 OUTCOME_HPP_DECLARE_ERROR(kagome::consensus, BlockAdditionError)
-
-#endif  // KAGOME_CONSENSUS_BLOCKADDITIONERROR

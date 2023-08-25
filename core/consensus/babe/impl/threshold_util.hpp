@@ -3,8 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_CORE_CONSENSUS_BABE_IMPL_THRESHOLD_UTIL_HPP
-#define KAGOME_CORE_CONSENSUS_BABE_IMPL_THRESHOLD_UTIL_HPP
+#pragma once
 
 #include "consensus/timeline/types.hpp"
 #include "primitives/authority.hpp"
@@ -20,5 +19,3 @@ namespace kagome::consensus::babe {
                                primitives::AuthorityIndex authority_index);
 
 }  // namespace kagome::consensus::babe
-
-#endif  // KAGOME_CORE_CONSENSUS_BABE_IMPL_THRESHOLD_UTIL_HPP

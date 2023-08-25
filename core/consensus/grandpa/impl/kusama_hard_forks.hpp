@@ -3,8 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_CONSENSUS_GRANDPA_IMPL_KUSAMA_HARD_FORKS_HPP
-#define KAGOME_CONSENSUS_GRANDPA_IMPL_KUSAMA_HARD_FORKS_HPP
+#pragma once
 
 #include "consensus/grandpa/common.hpp"
 #include "consensus/grandpa/impl/schedule_node.hpp"
@@ -123,5 +122,3 @@ namespace kagome::consensus::grandpa {
         action->new_authorities->id, kusamaHardForksAuthorities());
   }
 }  // namespace kagome::consensus::grandpa
-
-#endif  // KAGOME_CONSENSUS_GRANDPA_IMPL_KUSAMA_HARD_FORKS_HPP

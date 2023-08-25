@@ -3,8 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_BLOCK_VALIDATOR_HPP
-#define KAGOME_BLOCK_VALIDATOR_HPP
+#pragma once
 
 #include "outcome/outcome.hpp"
 #include "primitives/babe_configuration.hpp"
@@ -34,5 +33,3 @@ namespace kagome::consensus {
         const primitives::BabeConfiguration &config) const = 0;
   };
 }  // namespace kagome::consensus
-
-#endif  // KAGOME_BLOCK_VALIDATOR_HPP

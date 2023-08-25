@@ -3,8 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_CORE_CONSENSUS_GRANDPA_VOTE_GRAPH_VOTE_GRAPH_IMPL_HPP
-#define KAGOME_CORE_CONSENSUS_GRANDPA_VOTE_GRAPH_VOTE_GRAPH_IMPL_HPP
+#pragma once
 
 #include "consensus/grandpa/vote_graph.hpp"
 
@@ -121,5 +120,3 @@ namespace kagome::consensus::grandpa {
   };
 
 }  // namespace kagome::consensus::grandpa
-
-#endif  // KAGOME_CORE_CONSENSUS_GRANDPA_VOTE_GRAPH_VOTE_GRAPH_IMPL_HPP

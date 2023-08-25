@@ -3,11 +3,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_CONSENSUS_GRANDPA_VOTE_TYPES_HPP
-#define KAGOME_CONSENSUS_GRANDPA_VOTE_TYPES_HPP
+#pragma once
 
 namespace kagome::consensus::grandpa {
   enum class VoteType { Prevote, Precommit };
 }
-
-#endif  // KAGOME_CONSENSUS_GRANDPA_VOTE_TYPES_HPP

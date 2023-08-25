@@ -3,8 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_BABE_BLOCK_HEADER_HPP
-#define KAGOME_BABE_BLOCK_HEADER_HPP
+#pragma once
 
 #include "consensus/babe/types/slot.hpp"
 #include "consensus/timeline/types.hpp"
@@ -82,5 +81,3 @@ namespace kagome::consensus::babe {
     }
   };
 }  // namespace kagome::consensus::babe
-
-#endif  // KAGOME_BABE_BLOCK_HEADER_HPP

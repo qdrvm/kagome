@@ -3,8 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_CONSENSUS_TYPES_HPP
-#define KAGOME_CONSENSUS_TYPES_HPP
+#pragma once
 
 #include <cstdint>
 
@@ -60,5 +59,3 @@ namespace kagome::consensus {
   };
 
 }  // namespace kagome::consensus
-
-#endif  // KAGOME_CONSENSUS_TYPES_HPP

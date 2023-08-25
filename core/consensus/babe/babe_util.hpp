@@ -3,8 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_CONSENSUS_BABEUTIL
-#define KAGOME_CONSENSUS_BABEUTIL
+#pragma once
 
 #include "consensus/timeline/types.hpp"
 #include "primitives/common.hpp"
@@ -54,4 +53,3 @@ namespace kagome::consensus::babe {
   };
 
 }  // namespace kagome::consensus::babe
-#endif  // KAGOME_CONSENSUS_BABEUTIL

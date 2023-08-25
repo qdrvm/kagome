@@ -3,8 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_CONSENSUS_BABE_BABECONFIGREPOSITORY
-#define KAGOME_CONSENSUS_BABE_BABECONFIGREPOSITORY
+#pragma once
 
 #include "primitives/babe_configuration.hpp"
 #include "primitives/block_data.hpp"
@@ -34,5 +33,3 @@ namespace kagome::consensus::babe {
   };
 
 }  // namespace kagome::consensus::babe
-
-#endif  // KAGOME_CONSENSUS_BABE_BABECONFIGREPOSITORY

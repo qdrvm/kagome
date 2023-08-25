@@ -3,8 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_BABE_LOTTERY_HPP
-#define KAGOME_BABE_LOTTERY_HPP
+#pragma once
 
 #include <optional>
 
@@ -79,5 +78,3 @@ namespace kagome::consensus::babe {
         const Randomness &randomness) const = 0;
   };
 }  // namespace kagome::consensus::babe
-
-#endif  // KAGOME_BABE_LOTTERY_HPP

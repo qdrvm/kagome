@@ -3,8 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_CONSENSUS_GRANDPA_JUSTIFICATIONOBSERVER
-#define KAGOME_CONSENSUS_GRANDPA_JUSTIFICATIONOBSERVER
+#pragma once
 
 #include <future>
 
@@ -47,5 +46,3 @@ namespace kagome::consensus::grandpa {
   };
 
 }  // namespace kagome::consensus::grandpa
-
-#endif  // KAGOME_CONSENSUS_GRANDPA_JUSTIFICATIONOBSERVER

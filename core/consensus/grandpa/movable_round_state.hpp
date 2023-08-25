@@ -3,8 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_CONSENSUS_GRANDPA_MOVABLEROUNDSTATE
-#define KAGOME_CONSENSUS_GRANDPA_MOVABLEROUNDSTATE
+#pragma once
 
 #include <optional>
 
@@ -23,5 +22,3 @@ namespace kagome::consensus::grandpa {
     std::optional<BlockInfo> finalized;
   };
 }  // namespace kagome::consensus::grandpa
-
-#endif  // KAGOME_CONSENSUS_GRANDPA_MOVABLEROUNDSTATE

@@ -3,8 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_BABE_LOTTERY_IMPL_HPP
-#define KAGOME_BABE_LOTTERY_IMPL_HPP
+#pragma once
 
 #include "consensus/babe/babe_lottery.hpp"
 
@@ -60,5 +59,3 @@ namespace kagome::consensus::babe {
     crypto::Sr25519Keypair keypair_;
   };
 }  // namespace kagome::consensus::babe
-
-#endif  // KAGOME_BABE_LOTTERY_IMPL_HPP

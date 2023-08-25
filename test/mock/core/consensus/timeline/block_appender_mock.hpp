@@ -3,8 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_CONSENSUS_BLOCKAPPENDERMOCK
-#define KAGOME_CONSENSUS_BLOCKAPPENDERMOCK
+#pragma once
 
 #include "consensus/timeline/block_header_appender.hpp"
 
@@ -23,5 +22,3 @@ namespace kagome::consensus {
   };
 
 }  // namespace kagome::consensus
-
-#endif  // KAGOME_CONSENSUS_BLOCKAPPENDERMOCK

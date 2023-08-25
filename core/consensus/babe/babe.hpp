@@ -3,8 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_BABE_HPP
-#define KAGOME_BABE_HPP
+#pragma once
 
 #include <optional>
 
@@ -52,5 +51,3 @@ namespace kagome::consensus::babe {
     virtual bool wasSynchronized() const = 0;
   };
 }  // namespace kagome::consensus::babe
-
-#endif  // KAGOME_BABE_HPP

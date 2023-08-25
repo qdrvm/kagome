@@ -3,8 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_CONSENSUS_GRANDPA_STRUCTS_
-#define KAGOME_CONSENSUS_GRANDPA_STRUCTS_
+#pragma once
 
 #include "common/visitor.hpp"
 #include "consensus/grandpa/common.hpp"
@@ -187,5 +186,3 @@ namespace kagome::consensus::grandpa {
     std::vector<std::pair<Signature, Id>> auth_data{};
   };
 }  // namespace kagome::consensus::grandpa
-
-#endif  // KAGOME_CONSENSUS_GRANDPA_STRUCTS_

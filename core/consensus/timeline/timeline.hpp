@@ -3,8 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_CONSENSUS_TIMELINE
-#define KAGOME_CONSENSUS_TIMELINE
+#pragma once
 
 namespace kagome::consensus {
 
@@ -20,5 +19,3 @@ namespace kagome::consensus {
   };
 
 }  // namespace kagome::consensus
-
-#endif  // KAGOME_CONSENSUS_TIMELINE

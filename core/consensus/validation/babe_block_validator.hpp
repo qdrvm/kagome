@@ -3,8 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_BABE_BLOCK_VALIDATOR_HPP
-#define KAGOME_BABE_BLOCK_VALIDATOR_HPP
+#pragma once
 
 #include "consensus/validation/block_validator.hpp"
 
@@ -117,5 +116,3 @@ namespace kagome::consensus {
 
 OUTCOME_HPP_DECLARE_ERROR(kagome::consensus,
                           BabeBlockValidator::ValidationError)
-
-#endif  // KAGOME_BABE_BLOCK_VALIDATOR_HPP
