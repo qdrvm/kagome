@@ -77,7 +77,7 @@ else
   VERSION_COMMIT=devops
 fi
 HASH_COMMIT="$(git rev-parse --short HEAD)"
-TAG_HASH_COMMIT="$HASH_COMMIT-$VERSION_COMMIT$"
+TAG_HASH_COMMIT="$HASH_COMMIT-$VERSION_COMMIT"
 if [ "$BUILD_TYPE" = "Debug" ]; then
   TAG_HASH_COMMIT="${TAG_HASH_COMMIT}-debug"
 fi
