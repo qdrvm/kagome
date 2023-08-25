@@ -14,6 +14,7 @@
 #include "crypto/crypto_store/session_keys.hpp"
 #include "crypto/hasher.hpp"
 #include "crypto/sr25519_provider.hpp"
+#include "dispute_coordinator/impl/runtime_info.hpp"
 #include "network/common.hpp"
 #include "network/helpers/peer_id_formatter.hpp"
 #include "network/impl/protocols/protocol_error.hpp"
@@ -62,9 +63,11 @@ namespace {
 }
 
 namespace kagome::parachain {
+  constexpr size_t kMinGossipPeers = 25;
 
   ParachainProcessorImpl::ParachainProcessorImpl(
       std::shared_ptr<network::PeerManager> pm,
+      std::shared_ptr<dispute::RuntimeInfo> runtime_info,
       std::shared_ptr<crypto::Sr25519Provider> crypto_provider,
       std::shared_ptr<network::Router> router,
       std::shared_ptr<boost::asio::io_context> this_context,
@@ -84,6 +87,7 @@ namespace kagome::parachain {
       primitives::events::BabeStateSubscriptionEnginePtr babe_status_observable,
       std::shared_ptr<authority_discovery::Query> query_audi)
       : pm_(std::move(pm)),
+        runtime_info_(std::move(runtime_info)),
         crypto_provider_(std::move(crypto_provider)),
         router_(std::move(router)),
         this_context_(std::move(this_context)),
@@ -513,6 +517,13 @@ namespace kagome::parachain {
             logger_, "Imported statement on {}", statement_msg->relay_parent);
         handleStatement(
             peer_id, statement_msg->relay_parent, statement_msg->statement);
+      } else {
+        auto &large = boost::get<network::LargeStatement>(*msg);
+        // TODO(turuslan): #1757, LargeStatement
+        SL_ERROR(logger_,
+                 "Ignoring LargeStatement about {} from {}",
+                 large.payload.payload.candidate_hash,
+                 peer_id);
       }
       return;
     }
@@ -1346,19 +1357,53 @@ namespace kagome::parachain {
     auto se = pm_->getStreamEngine();
     BOOST_ASSERT(se);
 
+    // TODO(turuslan): #1757, LargeStatement
+    auto message = std::make_shared<
+        network::WireMessage<network::ValidatorProtocolMessage>>(
+        network::ValidatorProtocolMessage{
+            network::StatementDistributionMessage{network::Seconded{
+                .relay_parent = relay_parent, .statement = statement}}});
+
+    std::unordered_set<network::PeerId> group_set;
+    if (auto r = runtime_info_->get_session_info(relay_parent)) {
+      auto &[session, info] = r.value();
+      if (info.our_group) {
+        for (auto &i : session.validator_groups[*info.our_group]) {
+          if (auto peer = query_audi_->get(session.discovery_keys[i])) {
+            group_set.emplace(peer->id);
+          }
+        }
+      }
+    }
+    std::vector<network::PeerId> group, any;
+    auto protocol = router_->getValidationProtocol();
+    se->forEachPeer(protocol, [&](const network::PeerId &peer) {
+      (group_set.count(peer) != 0 ? group : any).emplace_back(peer);
+    });
+    auto lucky = kMinGossipPeers - std::min(group.size(), kMinGossipPeers);
+    if (lucky != 0) {
+      std::shuffle(any.begin(), any.end(), random_);
+      any.erase(any.begin() + std::min(any.size(), lucky), any.end());
+    } else {
+      any.clear();
+    }
+
     logger_->trace(
         "Broadcasting StatementDistributionMessage.(relay_parent={}, validator "
         "index={}, sig={})",
         relay_parent,
         statement.payload.ix,
         statement.signature);
-    se->broadcast(
-        router_->getValidationProtocol(),
-        std::make_shared<
-            network::WireMessage<network::ValidatorProtocolMessage>>(
-            network::ValidatorProtocolMessage{
-                network::StatementDistributionMessage{network::Seconded{
-                    .relay_parent = relay_parent, .statement = statement}}}));
+
+    auto send = [&](const network::PeerId &peer) {
+      se->send(peer, protocol, message);
+    };
+    for (auto &peer : group) {
+      send(peer);
+    }
+    for (auto &peer : any) {
+      send(peer);
+    }
   }
 
   outcome::result<kagome::parachain::Pvf::Result>

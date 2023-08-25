@@ -730,7 +730,7 @@ namespace kagome::network {
     constexpr size_t kAuthorities = 4;
     constexpr size_t kAny = 4;
     std::vector<PeerId> authorities, any;
-    peer_manager_->forEachPeer([&](const PeerId &peer) {
+    stream_engine_->forEachPeer(shared_from_this(), [&](const PeerId &peer) {
       if (auto info_ref = peer_manager_->getPeerState(peer)) {
         auto &info = info_ref->get();
         if (not predicate(peer, info)) {
