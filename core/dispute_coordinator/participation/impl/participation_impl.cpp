@@ -218,9 +218,10 @@ namespace kagome::dispute {
     participate_stage3(std::move(ctx), std::move(cb));
   }
 
-  void ParticipationImpl::participate_stage3(ParticipationContextPtr _ctx,
-                                             ParticipationCallback &&_cb) {
-    REINVOKE_2(*internal_context_, participate_stage3, _ctx, _cb, ctx, cb);
+  void ParticipationImpl::participate_stage3(ParticipationContextPtr ctx,
+                                             ParticipationCallback &&cb) {
+    REINVOKE(
+        *internal_context_, participate_stage3, std::move(ctx), std::move(cb));
 
     // Issue a request to validate the candidate with the provided exhaustive
     // parameters
