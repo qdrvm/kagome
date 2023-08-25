@@ -58,7 +58,6 @@ namespace kagome::dispute {
    public:
     RuntimeInfo(std::shared_ptr<runtime::ParachainHost> api,
                 std::shared_ptr<crypto::SessionKeys> session_keys);
-    virtual ~RuntimeInfo() = default;
 
     /// Returns the session index expected at any child of the `parent` block.
     /// This does not return the session index for the `parent` block.

@@ -222,6 +222,9 @@ namespace kagome::authority_discovery {
       return Error::INVALID_SIGNATURE;
     }
 
+    std::ignore = host_.getPeerRepository().getAddressRepository().addAddresses(
+        peer.id, peer.addresses, libp2p::peer::ttl::kRecentlyConnected);
+
     peer_to_auth_cache_.insert_or_assign(peer.id, authority);
     auth_to_peer_cache_.insert_or_assign(authority, std::move(peer));
 
