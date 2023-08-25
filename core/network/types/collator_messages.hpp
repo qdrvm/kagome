@@ -296,7 +296,7 @@ namespace kagome::network {
 
   struct Statement {
     SCALE_TIE(1);
-    Statement() = default;
+
     CandidateState candidate_state{Unused<0>{}};
   };
   using SignedStatement = IndexedAndSigned<Statement>;
