@@ -10,7 +10,7 @@
 
 #include <gmock/gmock.h>
 
-namespace kagome::consensus::babe {
+namespace kagome::consensus {
 
   class BlockHeaderAppenderMock : public BlockHeaderAppender {
    public:
@@ -22,6 +22,6 @@ namespace kagome::consensus::babe {
                 (override));
   };
 
-}  // namespace kagome::consensus::babe
+}  // namespace kagome::consensus
 
 #endif  // KAGOME_CONSENSUS_BLOCKAPPENDERMOCK

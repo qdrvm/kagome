@@ -10,10 +10,10 @@
 #include "crypto/sr25519_provider.hpp"
 #include "crypto/vrf_provider.hpp"
 
-OUTCOME_CPP_DEFINE_CATEGORY(kagome::consensus::babe,
+OUTCOME_CPP_DEFINE_CATEGORY(kagome::consensus,
                             BabeBlockValidator::ValidationError,
                             e) {
-  using E = kagome::consensus::babe::BabeBlockValidator::ValidationError;
+  using E = kagome::consensus::BabeBlockValidator::ValidationError;
   switch (e) {
     case E::NO_AUTHORITIES:
       return "no authorities are provided for the validation";
@@ -29,7 +29,7 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::consensus::babe,
   return "unknown error";
 }
 
-namespace kagome::consensus::babe {
+namespace kagome::consensus {
   using common::Buffer;
   using primitives::AllowedSlots;
 
@@ -61,7 +61,7 @@ namespace kagome::consensus::babe {
     SL_DEBUG(log_, "Validated block signed by authority: {}", authority_id.id);
 
     // get BABE-specific digests, which must be inside this block
-    OUTCOME_TRY(babe_digests, getBabeDigests(header));
+    OUTCOME_TRY(babe_digests, babe::getBabeDigests(header));
     const auto &[seal, babe_header] = babe_digests;
 
     // @see
@@ -70,10 +70,10 @@ namespace kagome::consensus::babe {
     if (babe_header.isProducedInSecondarySlot()) {
       bool plainAndAllowed =
           babe_config.allowed_slots == AllowedSlots::PrimaryAndSecondaryPlain
-          and babe_header.slotType() == SlotType::SecondaryPlain;
+          and babe_header.slotType() == babe::SlotType::SecondaryPlain;
       bool vrfAndAllowed =
           babe_config.allowed_slots == AllowedSlots::PrimaryAndSecondaryVRF
-          and babe_header.slotType() == SlotType::SecondaryVRF;
+          and babe_header.slotType() == babe::SlotType::SecondaryVRF;
       if (not plainAndAllowed and not vrfAndAllowed) {
         // SL_WARN unwraps to a lambda which cannot capture a local binding,
         // thus this copy
@@ -117,8 +117,8 @@ namespace kagome::consensus::babe {
 
   bool BabeBlockValidator::verifySignature(
       const primitives::BlockHeader &header,
-      const BabeBlockHeader &babe_header,
-      const Seal &seal,
+      const babe::BabeBlockHeader &babe_header,
+      const babe::Seal &seal,
       const primitives::BabeSessionKey &public_key) const {
     // firstly, take hash of the block's header without Seal, which is the last
     // digest
@@ -136,14 +136,14 @@ namespace kagome::consensus::babe {
   }
 
   bool BabeBlockValidator::verifyVRF(
-      const BabeBlockHeader &babe_header,
+      const babe::BabeBlockHeader &babe_header,
       const EpochNumber epoch_number,
       const primitives::BabeSessionKey &public_key,
       const Threshold &threshold,
       const Randomness &randomness,
       const bool checkThreshold) const {
     primitives::Transcript transcript;
-    prepareTranscript(
+    babe::prepareTranscript(
         transcript, randomness, babe_header.slot_number, epoch_number);
     SL_DEBUG(log_,
              "prepareTranscript (verifyVRF): randomness {}, slot {}, epoch {}",
@@ -166,4 +166,4 @@ namespace kagome::consensus::babe {
 
     return true;
   }
-}  // namespace kagome::consensus::babe
+}  // namespace kagome::consensus

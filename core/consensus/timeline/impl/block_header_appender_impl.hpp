@@ -3,8 +3,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_CONSENSUS_BABE_BLOCKAPPENDERIMPL
-#define KAGOME_CONSENSUS_BABE_BLOCKAPPENDERIMPL
+#ifndef KAGOME_CONSENSUS_BLOCKAPPENDERIMPL
+#define KAGOME_CONSENSUS_BLOCKAPPENDERIMPL
 
 #include "consensus/timeline/block_header_appender.hpp"
 
@@ -22,7 +22,7 @@ namespace kagome::crypto {
   class Hasher;
 }
 
-namespace kagome::consensus::babe {
+namespace kagome::consensus {
 
   class BlockAppenderBase;
 
@@ -55,6 +55,6 @@ namespace kagome::consensus::babe {
     log::Logger logger_;
   };
 
-}  // namespace kagome::consensus::babe
+}  // namespace kagome::consensus
 
-#endif  // KAGOME_CONSENSUS_BABE_BLOCKAPPENDERIMPL
+#endif  // KAGOME_CONSENSUS_BLOCKAPPENDERIMPL

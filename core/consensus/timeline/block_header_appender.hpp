@@ -10,7 +10,7 @@
 #include "outcome/outcome.hpp"
 #include "primitives/block_data.hpp"
 
-namespace kagome::consensus::babe {
+namespace kagome::consensus {
 
   /**
    * Adds a new block header to the block storage
@@ -26,6 +26,6 @@ namespace kagome::consensus::babe {
         ApplyJustificationCb &&callback) = 0;
   };
 
-}  // namespace kagome::consensus::babe
+}  // namespace kagome::consensus
 
 #endif  // KAGOME_CONSENSUS_BLOCKAPPENDER

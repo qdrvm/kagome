@@ -10,7 +10,7 @@
 #include "primitives/babe_configuration.hpp"
 #include "primitives/block.hpp"
 
-namespace kagome::consensus::babe {
+namespace kagome::consensus {
   /**
    * Validator of the blocks
    */
@@ -33,6 +33,6 @@ namespace kagome::consensus::babe {
         const Threshold &threshold,
         const primitives::BabeConfiguration &config) const = 0;
   };
-}  // namespace kagome::consensus::babe
+}  // namespace kagome::consensus
 
 #endif  // KAGOME_BLOCK_VALIDATOR_HPP

@@ -10,7 +10,7 @@
 #include "blockchain/digest_tracker.hpp"
 #include "storage/predefined_keys.hpp"
 
-namespace kagome::consensus::babe {
+namespace kagome::consensus {
 
   ConsistencyKeeperImpl::ConsistencyKeeperImpl(
       std::shared_ptr<application::AppStateManager> app_state_manager,
@@ -120,4 +120,4 @@ namespace kagome::consensus::babe {
     }
   }
 
-}  // namespace kagome::consensus::babe
+}  // namespace kagome::consensus

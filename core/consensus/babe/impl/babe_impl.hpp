@@ -33,10 +33,15 @@ namespace kagome::blockchain {
   class BlockTree;
 }  // namespace kagome::blockchain
 
+namespace kagome::consensus {
+  class ConsistencyKeeper;
+  class BlockExecutor;
+}  // namespace kagome::consensus
+
 namespace kagome::consensus::babe {
+  class BabeConfigRepository;
   class BabeLottery;
   class BabeUtil;
-  class BlockExecutor;
 }  // namespace kagome::consensus::babe
 
 namespace kagome::consensus::grandpa {
@@ -65,11 +70,6 @@ namespace kagome::runtime {
   class OffchainWorkerApi;
   class Core;
 }  // namespace kagome::runtime
-
-namespace kagome::consensus::babe {
-  class BabeConfigRepository;
-  class ConsistencyKeeper;
-}  // namespace kagome::consensus::babe
 
 namespace kagome::storage::trie {
   class TrieStorage;

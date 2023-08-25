@@ -13,10 +13,11 @@
 #include "consensus/babe/babe_util.hpp"
 #include "consensus/grandpa/environment.hpp"
 #include "consensus/timeline/consistency_keeper.hpp"
+#include "consensus/timeline/impl/block_addition_error.hpp"
 #include "consensus/timeline/impl/block_appender_base.hpp"
 #include "consensus/validation/block_validator.hpp"
 
-namespace kagome::consensus::babe {
+namespace kagome::consensus {
 
   BlockHeaderAppenderImpl::BlockHeaderAppenderImpl(
       std::shared_ptr<blockchain::BlockTree> block_tree,
@@ -157,4 +158,4 @@ namespace kagome::consensus::babe {
         });
   }
 
-}  // namespace kagome::consensus::babe
+}  // namespace kagome::consensus

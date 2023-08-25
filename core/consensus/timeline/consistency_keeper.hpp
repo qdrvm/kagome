@@ -3,12 +3,12 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_CONSENSUS_BABE_CONSISTENCYKEEPER
-#define KAGOME_CONSENSUS_BABE_CONSISTENCYKEEPER
+#ifndef KAGOME_CONSENSUS_CONSISTENCYKEEPER
+#define KAGOME_CONSENSUS_CONSISTENCYKEEPER
 
 #include "primitives/common.hpp"
 
-namespace kagome::consensus::babe {
+namespace kagome::consensus {
 
   /// Class to provide transactional applying of block and rollback that on
   /// start if last applied block was applied partially
@@ -63,6 +63,6 @@ namespace kagome::consensus::babe {
     std::optional<primitives::BlockInfo> block_;
   };
 
-}  // namespace kagome::consensus::babe
+}  // namespace kagome::consensus
 
-#endif  // KAGOME_CONSENSUS_BABE_CONSISTENCYKEEPER
+#endif  // KAGOME_CONSENSUS_CONSISTENCYKEEPER

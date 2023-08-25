@@ -3,8 +3,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_CONSENSUS_BABE_CONSISTENCYKEEPERIMPL
-#define KAGOME_CONSENSUS_BABE_CONSISTENCYKEEPERIMPL
+#ifndef KAGOME_CONSENSUS_CONSISTENCYKEEPERIMPL
+#define KAGOME_CONSENSUS_CONSISTENCYKEEPERIMPL
 
 #include "consensus/timeline/consistency_keeper.hpp"
 
@@ -22,7 +22,7 @@ namespace kagome::blockchain {
   class BlockTree;
 };  // namespace kagome::blockchain
 
-namespace kagome::consensus::babe {
+namespace kagome::consensus {
 
   class ConsistencyKeeperImpl final : public ConsistencyKeeper {
    public:
@@ -53,6 +53,6 @@ namespace kagome::consensus::babe {
     std::atomic_bool in_progress_{false};
   };
 
-}  // namespace kagome::consensus::babe
+}  // namespace kagome::consensus
 
-#endif  //  KAGOME_CONSENSUS_BABE_CONSISTENCYKEEPERIMPL
+#endif  //  KAGOME_CONSENSUS_CONSISTENCYKEEPERIMPL

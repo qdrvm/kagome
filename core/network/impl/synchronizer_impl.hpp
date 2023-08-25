@@ -32,10 +32,10 @@ namespace kagome::storage::trie_pruner {
   class TriePruner;
 }
 
-namespace kagome::consensus::babe {
+namespace kagome::consensus {
   class BlockHeaderAppender;
   class BlockExecutor;
-}  // namespace kagome::consensus::babe
+}  // namespace kagome::consensus
 
 namespace kagome::consensus::grandpa {
   class Environment;
@@ -91,8 +91,8 @@ namespace kagome::network {
         std::shared_ptr<application::AppStateManager> app_state_manager,
         std::shared_ptr<blockchain::BlockTree> block_tree,
         std::shared_ptr<blockchain::BlockStorage> block_storage,
-        std::shared_ptr<consensus::babe::BlockHeaderAppender> block_appender,
-        std::shared_ptr<consensus::babe::BlockExecutor> block_executor,
+        std::shared_ptr<consensus::BlockHeaderAppender> block_appender,
+        std::shared_ptr<consensus::BlockExecutor> block_executor,
         std::shared_ptr<storage::trie::TrieSerializer> serializer,
         std::shared_ptr<storage::trie::TrieStorage> storage,
         std::shared_ptr<storage::trie_pruner::TriePruner> trie_pruner,
@@ -215,8 +215,8 @@ namespace kagome::network {
     std::shared_ptr<application::AppStateManager> app_state_manager_;
     std::shared_ptr<blockchain::BlockTree> block_tree_;
     std::shared_ptr<blockchain::BlockStorage> block_storage_;
-    std::shared_ptr<consensus::babe::BlockHeaderAppender> block_appender_;
-    std::shared_ptr<consensus::babe::BlockExecutor> block_executor_;
+    std::shared_ptr<consensus::BlockHeaderAppender> block_appender_;
+    std::shared_ptr<consensus::BlockExecutor> block_executor_;
     std::shared_ptr<storage::trie::TrieSerializer> serializer_;
     std::shared_ptr<storage::trie::TrieStorage> storage_;
     std::shared_ptr<storage::trie_pruner::TriePruner> trie_pruner_;

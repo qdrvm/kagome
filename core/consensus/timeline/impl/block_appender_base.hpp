@@ -3,8 +3,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_BLOCK_APPENDER_BASE_HPP
-#define KAGOME_BLOCK_APPENDER_BASE_HPP
+#ifndef KAGOME_CONSENSUS_BLOCKAPPENDERBASE
+#define KAGOME_CONSENSUS_BLOCKAPPENDERBASE
 
 #include "consensus/grandpa/environment.hpp"
 #include "log/logger.hpp"
@@ -21,12 +21,15 @@ namespace kagome::crypto {
 }
 
 namespace kagome::consensus::babe {
+  class BabeConfigRepository;
+  class BabeUtil;
+}  // namespace kagome::consensus::babe
+
+namespace kagome::consensus {
 
   class BlockValidator;
-  class BabeConfigRepository;
   class ConsistencyKeeper;
   class ConsistencyGuard;
-  class BabeUtil;
 
   /**
    * Common logic for adding a new block to the blockchain
@@ -34,14 +37,15 @@ namespace kagome::consensus::babe {
   class BlockAppenderBase {
    public:
     using ApplyJustificationCb = grandpa::Environment::ApplyJustificationCb;
-    BlockAppenderBase(std::shared_ptr<ConsistencyKeeper> consistency_keeper,
-                      std::shared_ptr<blockchain::BlockTree> block_tree,
-                      std::shared_ptr<blockchain::DigestTracker> digest_tracker,
-                      std::shared_ptr<BabeConfigRepository> babe_config_repo,
-                      std::shared_ptr<BlockValidator> block_validator,
-                      std::shared_ptr<grandpa::Environment> grandpa_environment,
-                      std::shared_ptr<BabeUtil> babe_util,
-                      std::shared_ptr<crypto::Hasher> hasher);
+    BlockAppenderBase(
+        std::shared_ptr<ConsistencyKeeper> consistency_keeper,
+        std::shared_ptr<blockchain::BlockTree> block_tree,
+        std::shared_ptr<blockchain::DigestTracker> digest_tracker,
+        std::shared_ptr<babe::BabeConfigRepository> babe_config_repo,
+        std::shared_ptr<BlockValidator> block_validator,
+        std::shared_ptr<grandpa::Environment> grandpa_environment,
+        std::shared_ptr<babe::BabeUtil> babe_util,
+        std::shared_ptr<crypto::Hasher> hasher);
 
     primitives::BlockContext makeBlockContext(
         const primitives::BlockHeader &header) const;
@@ -75,13 +79,13 @@ namespace kagome::consensus::babe {
     std::shared_ptr<ConsistencyKeeper> consistency_keeper_;
     std::shared_ptr<blockchain::BlockTree> block_tree_;
     std::shared_ptr<blockchain::DigestTracker> digest_tracker_;
-    std::shared_ptr<BabeConfigRepository> babe_config_repo_;
+    std::shared_ptr<babe::BabeConfigRepository> babe_config_repo_;
     std::shared_ptr<BlockValidator> block_validator_;
     std::shared_ptr<grandpa::Environment> grandpa_environment_;
-    std::shared_ptr<BabeUtil> babe_util_;
+    std::shared_ptr<babe::BabeUtil> babe_util_;
     std::shared_ptr<crypto::Hasher> hasher_;
   };
 
-}  // namespace kagome::consensus::babe
+}  // namespace kagome::consensus
 
-#endif  // KAGOME_BLOCK_APPENDER_BASE_HPP
+#endif  // KAGOME_CONSENSUS_BLOCKAPPENDERBASE

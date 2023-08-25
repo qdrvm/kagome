@@ -18,10 +18,10 @@
 #include "mock/core/clock/timer_mock.hpp"
 #include "mock/core/consensus/babe/babe_config_repository_mock.hpp"
 #include "mock/core/consensus/babe/babe_util_mock.hpp"
-#include "mock/core/consensus/babe/block_executor_mock.hpp"
-#include "mock/core/consensus/babe/consistency_keeper_mock.hpp"
 #include "mock/core/consensus/babe_lottery_mock.hpp"
 #include "mock/core/consensus/grandpa/grandpa_mock.hpp"
+#include "mock/core/consensus/timeline/block_executor_mock.hpp"
+#include "mock/core/consensus/timeline/consistency_keeper_mock.hpp"
 #include "mock/core/consensus/validation/block_validator_mock.hpp"
 #include "mock/core/crypto/hasher_mock.hpp"
 #include "mock/core/crypto/session_keys_mock.hpp"
@@ -146,7 +146,7 @@ class BabeTest : public testing::Test {
         .WillRepeatedly(Return(outcome::success()));
 
     core_ = std::make_shared<runtime::CoreMock>();
-    consistency_keeper_ = std::make_shared<babe::ConsistencyKeeperMock>();
+    consistency_keeper_ = std::make_shared<ConsistencyKeeperMock>();
 
     trie_storage_ = std::make_shared<storage::trie::TrieStorageMock>();
 
@@ -247,7 +247,7 @@ class BabeTest : public testing::Test {
   primitives::events::StorageSubscriptionEnginePtr storage_sub_engine_;
   primitives::events::ChainSubscriptionEnginePtr chain_events_engine_;
   std::shared_ptr<runtime::OffchainWorkerApiMock> offchain_worker_api_;
-  std::shared_ptr<babe::ConsistencyKeeperMock> consistency_keeper_;
+  std::shared_ptr<ConsistencyKeeperMock> consistency_keeper_;
   std::shared_ptr<storage::trie::TrieStorageMock> trie_storage_;
   std::shared_ptr<boost::asio::io_context> io_context_;
   std::shared_ptr<kagome::parachain::BitfieldStoreMock> bitfield_store_;

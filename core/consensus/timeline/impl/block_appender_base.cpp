@@ -17,16 +17,16 @@
 #include "consensus/timeline/consistency_keeper.hpp"
 #include "consensus/validation/block_validator.hpp"
 
-namespace kagome::consensus::babe {
+namespace kagome::consensus {
 
   BlockAppenderBase::BlockAppenderBase(
       std::shared_ptr<ConsistencyKeeper> consistency_keeper,
       std::shared_ptr<blockchain::BlockTree> block_tree,
       std::shared_ptr<blockchain::DigestTracker> digest_tracker,
-      std::shared_ptr<BabeConfigRepository> babe_config_repo,
+      std::shared_ptr<babe::BabeConfigRepository> babe_config_repo,
       std::shared_ptr<BlockValidator> block_validator,
       std::shared_ptr<grandpa::Environment> grandpa_environment,
-      std::shared_ptr<BabeUtil> babe_util,
+      std::shared_ptr<babe::BabeUtil> babe_util,
       std::shared_ptr<crypto::Hasher> hasher)
       : consistency_keeper_{std::move(consistency_keeper)},
         block_tree_{std::move(block_tree)},
@@ -147,7 +147,7 @@ namespace kagome::consensus::babe {
   outcome::result<ConsistencyGuard>
   BlockAppenderBase::observeDigestsAndValidateHeader(
       const primitives::Block &block, const primitives::BlockContext &context) {
-    OUTCOME_TRY(babe_digests, getBabeDigests(block.header));
+    OUTCOME_TRY(babe_digests, babe::getBabeDigests(block.header));
 
     const auto &babe_header = babe_digests.second;
 
@@ -191,9 +191,9 @@ namespace kagome::consensus::babe {
              epoch_number,
              babe_config.randomness);
 
-    auto threshold = calculateThreshold(babe_config.leadership_rate,
-                                        babe_config.authorities,
-                                        babe_header.authority_index);
+    auto threshold = babe::calculateThreshold(babe_config.leadership_rate,
+                                              babe_config.authorities,
+                                              babe_header.authority_index);
 
     OUTCOME_TRY(block_validator_->validateHeader(
         block.header,
@@ -207,10 +207,10 @@ namespace kagome::consensus::babe {
 
   outcome::result<BlockAppenderBase::SlotInfo> BlockAppenderBase::getSlotInfo(
       const primitives::BlockHeader &header) const {
-    OUTCOME_TRY(slot_number, getBabeSlot(header));
+    OUTCOME_TRY(slot_number, babe::getBabeSlot(header));
     auto start_time = babe_util_->slotStartTime(slot_number);
     auto slot_duration = babe_config_repo_->slotDuration();
     return outcome::success(SlotInfo{start_time, slot_duration});
   }
 
-}  // namespace kagome::consensus::babe
+}  // namespace kagome::consensus

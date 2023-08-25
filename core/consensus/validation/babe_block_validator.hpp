@@ -30,7 +30,7 @@ namespace kagome::runtime {
   class TaggedTransactionQueue;
 }
 
-namespace kagome::consensus::babe {
+namespace kagome::consensus {
 
   /**
    * Validation of blocks in BABE system. Based on the algorithm described here:
@@ -81,8 +81,8 @@ namespace kagome::consensus::babe {
      * @return true if signature is valid, false otherwise
      */
     bool verifySignature(const primitives::BlockHeader &header,
-                         const BabeBlockHeader &babe_header,
-                         const Seal &seal,
+                         const babe::BabeBlockHeader &babe_header,
+                         const babe::Seal &seal,
                          const primitives::BabeSessionKey &public_key) const;
 
     /**
@@ -94,7 +94,7 @@ namespace kagome::consensus::babe {
      * @param randomness randomness for that epoch
      * @return true if vrf is valid, false otherwise
      */
-    bool verifyVRF(const BabeBlockHeader &babe_header,
+    bool verifyVRF(const babe::BabeBlockHeader &babe_header,
                    const EpochNumber epoch_number,
                    const primitives::BabeSessionKey &public_key,
                    const Threshold &threshold,
@@ -113,9 +113,9 @@ namespace kagome::consensus::babe {
 
     log::Logger log_;
   };
-}  // namespace kagome::consensus::babe
+}  // namespace kagome::consensus
 
-OUTCOME_HPP_DECLARE_ERROR(kagome::consensus::babe,
+OUTCOME_HPP_DECLARE_ERROR(kagome::consensus,
                           BabeBlockValidator::ValidationError)
 
 #endif  // KAGOME_BABE_BLOCK_VALIDATOR_HPP

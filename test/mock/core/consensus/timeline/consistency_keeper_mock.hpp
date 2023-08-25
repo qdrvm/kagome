@@ -3,14 +3,14 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_CONSENSUS_BABE_CONSISTENCYKEEPERMOCK
-#define KAGOME_CONSENSUS_BABE_CONSISTENCYKEEPERMOCK
+#ifndef KAGOME_CONSENSUS_CONSISTENCYKEEPERMOCK
+#define KAGOME_CONSENSUS_CONSISTENCYKEEPERMOCK
 
 #include "consensus/timeline/consistency_keeper.hpp"
 
 #include <gmock/gmock.h>
 
-namespace kagome::consensus::babe {
+namespace kagome::consensus {
 
   class ConsistencyKeeperMock : public ConsistencyKeeper {
    public:
@@ -25,6 +25,6 @@ namespace kagome::consensus::babe {
                 (override));
   };
 
-}  // namespace kagome::consensus::babe
+}  // namespace kagome::consensus
 
-#endif  // KAGOME_CONSENSUS_BABE_CONSISTENCYKEEPERMOCK
+#endif  // KAGOME_CONSENSUS_CONSISTENCYKEEPERMOCK

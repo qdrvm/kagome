@@ -9,11 +9,8 @@
 #include "blockchain/block_tree_error.hpp"
 #include "blockchain/digest_tracker.hpp"
 #include "consensus/babe/babe_config_repository.hpp"
-#include "consensus/babe/babe_error.hpp"
-#include "consensus/babe/impl/babe_digests_util.hpp"
-#include "consensus/babe/impl/threshold_util.hpp"
-#include "consensus/grandpa/voting_round_error.hpp"
 #include "consensus/timeline/consistency_keeper.hpp"
+#include "consensus/timeline/impl/block_addition_error.hpp"
 #include "consensus/timeline/impl/block_appender_base.hpp"
 #include "consensus/validation/block_validator.hpp"
 #include "metrics/histogram_timer.hpp"
@@ -23,7 +20,8 @@
 #include "transaction_pool/transaction_pool.hpp"
 #include "transaction_pool/transaction_pool_error.hpp"
 
-namespace kagome::consensus::babe {
+namespace kagome::consensus {
+
   metrics::HistogramTimer metric_block_execution_time{
       "kagome_block_verification_and_import_time",
       "Time taken to verify and import blocks",
@@ -272,4 +270,4 @@ namespace kagome::consensus::babe {
         });
   }
 
-}  // namespace kagome::consensus::babe
+}  // namespace kagome::consensus

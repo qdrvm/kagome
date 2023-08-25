@@ -33,7 +33,7 @@ namespace kagome::transaction_pool {
   class TransactionPool;
 }
 
-namespace kagome::consensus::babe {
+namespace kagome::consensus {
 
   class BlockAppenderBase;
 
@@ -73,6 +73,6 @@ namespace kagome::consensus::babe {
     telemetry::Telemetry telemetry_;
   };
 
-}  // namespace kagome::consensus::babe
+}  // namespace kagome::consensus
 
 #endif  // KAGOME_CONSENSUS_BLOCKEXECUTORIMPL

@@ -10,7 +10,7 @@
 
 #include <gmock/gmock.h>
 
-namespace kagome::consensus::babe {
+namespace kagome::consensus {
 
   class BlockExecutorMock : public BlockExecutor {
    public:
@@ -29,6 +29,6 @@ namespace kagome::consensus::babe {
     }
   };
 
-}  // namespace kagome::consensus::babe
+}  // namespace kagome::consensus
 
 #endif  // KAGOME_CONSENSUS_BLOCKEXECUTORMOCK

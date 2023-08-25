@@ -13,9 +13,9 @@
 #include "mock/core/application/app_state_manager_mock.hpp"
 #include "mock/core/blockchain/block_storage_mock.hpp"
 #include "mock/core/blockchain/block_tree_mock.hpp"
-#include "mock/core/consensus/babe/block_appender_mock.hpp"
-#include "mock/core/consensus/babe/block_executor_mock.hpp"
 #include "mock/core/consensus/grandpa/environment_mock.hpp"
+#include "mock/core/consensus/timeline/block_appender_mock.hpp"
+#include "mock/core/consensus/timeline/block_executor_mock.hpp"
 #include "mock/core/crypto/hasher_mock.hpp"
 #include "mock/core/network/protocols/sync_protocol_mock.hpp"
 #include "mock/core/network/router_mock.hpp"
@@ -33,6 +33,8 @@
 
 using namespace kagome;
 using namespace clock;
+using consensus::BlockExecutorMock;
+using consensus::BlockHeaderAppenderMock;
 using namespace consensus::babe;
 using namespace consensus::grandpa;
 using namespace storage;
