@@ -15,8 +15,8 @@
 #include <libp2p/basic/scheduler.hpp>
 
 #include "application/app_state_manager.hpp"
-#include "consensus/babe/block_executor.hpp"
-#include "consensus/babe/block_header_appender.hpp"
+#include "consensus/timeline/block_executor.hpp"
+#include "consensus/timeline/block_header_appender.hpp"
 #include "metrics/metrics.hpp"
 #include "network/impl/state_sync_request_flow.hpp"
 #include "network/router.hpp"

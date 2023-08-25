@@ -6,7 +6,7 @@
 #ifndef KAGOME_CONSENSUS_BLOCKEXECUTORMOCK
 #define KAGOME_CONSENSUS_BLOCKEXECUTORMOCK
 
-#include "consensus/babe/block_executor.hpp"
+#include "consensus/timeline/block_executor.hpp"
 
 #include <gmock/gmock.h>
 

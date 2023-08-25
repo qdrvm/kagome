@@ -3,15 +3,15 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "consensus/babe/impl/block_executor_impl.hpp"
+#include "consensus/timeline/impl/block_executor_impl.hpp"
 
 #include <gtest/gtest.h>
 #include <iostream>
 
 #include "blockchain/block_tree_error.hpp"
-#include "consensus/babe/impl/block_appender_base.hpp"
 #include "consensus/babe/impl/threshold_util.hpp"
 #include "consensus/babe/types/seal.hpp"
+#include "consensus/timeline/impl/block_appender_base.hpp"
 #include "mock/core/blockchain/block_tree_mock.hpp"
 #include "mock/core/blockchain/digest_tracker_mock.hpp"
 #include "mock/core/consensus/babe/babe_config_repository_mock.hpp"

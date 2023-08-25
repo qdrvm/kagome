@@ -5,14 +5,10 @@
 
 add_library(babe
     impl/babe_digests_util.cpp
-    impl/block_executor_impl.cpp
     impl/babe_impl.cpp
     impl/threshold_util.cpp
     impl/babe_lottery_impl.cpp
     impl/babe_config_repository_impl.cpp
-    impl/block_header_appender_impl.cpp
-    impl/block_appender_base.cpp
-    impl/consistency_keeper_impl.cpp
     babe_error.cpp
     )
 target_link_libraries(babe

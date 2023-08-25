@@ -6,7 +6,7 @@
 #ifndef KAGOME_CONSENSUS_BABE_BLOCKAPPENDERIMPL
 #define KAGOME_CONSENSUS_BABE_BLOCKAPPENDERIMPL
 
-#include "consensus/babe/block_header_appender.hpp"
+#include "consensus/timeline/block_header_appender.hpp"
 
 #include <libp2p/peer/peer_id.hpp>
 

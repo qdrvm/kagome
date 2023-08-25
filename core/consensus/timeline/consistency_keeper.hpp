@@ -18,16 +18,18 @@ namespace kagome::consensus::babe {
    public:
     virtual ~ConsistencyKeeper() = default;
 
-    virtual class ConsistencyGuard start(primitives::BlockInfo block) = 0;
+    virtual class ConsistencyGuard start(
+        const primitives::BlockInfo &block) = 0;
 
    protected:
-    virtual void commit(primitives::BlockInfo block) = 0;
-    virtual void rollback(primitives::BlockInfo block) = 0;
+    virtual void commit(const primitives::BlockInfo &block) = 0;
+    virtual void rollback(const primitives::BlockInfo &block) = 0;
   };
 
   class ConsistencyGuard final {
    public:
-    ConsistencyGuard(ConsistencyKeeper &keeper, primitives::BlockInfo block)
+    ConsistencyGuard(ConsistencyKeeper &keeper,
+                     const primitives::BlockInfo &block)
         : keeper_(keeper), block_(block){};
 
     ConsistencyGuard(const ConsistencyGuard &) = delete;

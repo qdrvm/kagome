@@ -3,18 +3,18 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "consensus/babe/impl/block_appender_base.hpp"
+#include "consensus/timeline/impl/block_appender_base.hpp"
 
 #include "blockchain/block_tree.hpp"
 #include "blockchain/digest_tracker.hpp"
 #include "consensus/babe/babe_config_repository.hpp"
 #include "consensus/babe/babe_error.hpp"
 #include "consensus/babe/babe_util.hpp"
-#include "consensus/babe/consistency_keeper.hpp"
 #include "consensus/babe/impl/babe_digests_util.hpp"
 #include "consensus/babe/impl/threshold_util.hpp"
 #include "consensus/grandpa/environment.hpp"
 #include "consensus/grandpa/voting_round_error.hpp"
+#include "consensus/timeline/consistency_keeper.hpp"
 #include "consensus/validation/block_validator.hpp"
 
 namespace kagome::consensus::babe {

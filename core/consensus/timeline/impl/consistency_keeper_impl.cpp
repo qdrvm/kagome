@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "consistency_keeper_impl.hpp"
+#include "consensus/timeline/impl/consistency_keeper_impl.hpp"
 
 #include "application/app_state_manager.hpp"
 #include "blockchain/block_tree.hpp"
@@ -66,7 +66,7 @@ namespace kagome::consensus::babe {
   }
 
   ConsistencyGuard ConsistencyKeeperImpl::start(
-      primitives::BlockInfo block) {
+      const primitives::BlockInfo &block) {
     bool val = false;
     BOOST_VERIFY_MSG(in_progress_.compare_exchange_strong(val, true),
                      "Allowed only one block applying in any time");
@@ -85,12 +85,12 @@ namespace kagome::consensus::babe {
     return ConsistencyGuard(*this, block);
   }
 
-  void ConsistencyKeeperImpl::commit(primitives::BlockInfo block) {
+  void ConsistencyKeeperImpl::commit(const primitives::BlockInfo &block) {
     cleanup();
     SL_DEBUG(logger_, "Applying of block {} finished successfully", block);
   }
 
-  void ConsistencyKeeperImpl::rollback(primitives::BlockInfo block) {
+  void ConsistencyKeeperImpl::rollback(const primitives::BlockInfo &block) {
     // Cancel tracked block digest
     digest_tracker_->cancel(block);
 

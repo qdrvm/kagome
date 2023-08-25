@@ -6,7 +6,7 @@
 #ifndef KAGOME_CONSENSUS_BABE_CONSISTENCYKEEPERIMPL
 #define KAGOME_CONSENSUS_BABE_CONSISTENCYKEEPERIMPL
 
-#include "consensus/babe/consistency_keeper.hpp"
+#include "consensus/timeline/consistency_keeper.hpp"
 
 #include <memory>
 
@@ -34,11 +34,11 @@ namespace kagome::consensus::babe {
 
     ~ConsistencyKeeperImpl() override = default;
 
-    ConsistencyGuard start(primitives::BlockInfo block) override;
+    ConsistencyGuard start(const primitives::BlockInfo &block) override;
 
    protected:
-    void commit(primitives::BlockInfo block) override;
-    void rollback(primitives::BlockInfo block) override;
+    void commit(const primitives::BlockInfo &block) override;
+    void rollback(const primitives::BlockInfo &block) override;
 
    private:
     bool prepare();

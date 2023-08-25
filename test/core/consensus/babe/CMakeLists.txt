@@ -37,7 +37,8 @@ addtest(block_executor_test
     block_executor_test.cpp
     )
 target_link_libraries(block_executor_test
-    consensus
+#    consensus
+    timeline
     log_configurator
     blockchain
     transaction_pool_error

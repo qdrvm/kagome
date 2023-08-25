@@ -6,7 +6,7 @@
 #ifndef KAGOME_CONSENSUS_BLOCKEXECUTORIMPL
 #define KAGOME_CONSENSUS_BLOCKEXECUTORIMPL
 
-#include "consensus/babe/block_executor.hpp"
+#include "consensus/timeline/block_executor.hpp"
 
 #include <libp2p/peer/peer_id.hpp>
 

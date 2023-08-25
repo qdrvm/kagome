@@ -6,7 +6,7 @@
 #ifndef KAGOME_CONSENSUS_BLOCKAPPENDERMOCK
 #define KAGOME_CONSENSUS_BLOCKAPPENDERMOCK
 
-#include "consensus/babe/block_header_appender.hpp"
+#include "consensus/timeline/block_header_appender.hpp"
 
 #include <gmock/gmock.h>
 
