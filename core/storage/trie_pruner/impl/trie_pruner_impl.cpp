@@ -390,6 +390,7 @@ namespace kagome::storage::trie_pruner {
               logger_,
               "Node {} is unindexed, but already in storage, make it immortal",
               hash.toHex());
+          ref_count++;
           immortal_nodes_.emplace(hash);
         }
       }
