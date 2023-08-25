@@ -573,9 +573,8 @@ namespace kagome::parachain {
   }
 
   void ApprovalDistribution::store_remote_view(
-      const libp2p::peer::PeerId &_peer_id, const network::View &_view) {
-    REINVOKE_2(
-        *internal_context_, store_remote_view, _peer_id, _view, peer_id, view);
+      const libp2p::peer::PeerId &peer_id, const network::View &view) {
+    REINVOKE(*internal_context_, store_remote_view, peer_id, view);
 
     primitives::BlockNumber old_finalized_number{0ull};
     if (auto it = peer_views_.find(peer_id); it != peer_views_.end()) {
@@ -599,8 +598,8 @@ namespace kagome::parachain {
   }
 
   void ApprovalDistribution::clearCaches(
-      const primitives::events::ChainEventParams &ev) {
-    REINVOKE_1(*internal_context_, clearCaches, ev, event);
+      const primitives::events::ChainEventParams &event) {
+    REINVOKE(*internal_context_, clearCaches, event);
 
     if (const auto value =
             if_type<const primitives::events::RemoveAfterFinalizationParams>(
@@ -692,14 +691,10 @@ namespace kagome::parachain {
   }
 
   void ApprovalDistribution::imported_block_info(
-      const primitives::BlockHash &b_hash,
-      const primitives::BlockHeader &b_header) {
-    REINVOKE_2(*thread_pool_context_,
-               imported_block_info,
-               b_hash,
-               b_header,
-               block_hash,
-               block_header);
+      const primitives::BlockHash &block_hash,
+      const primitives::BlockHeader &block_header) {
+    REINVOKE(
+        *thread_pool_context_, imported_block_info, block_hash, block_header);
 
     auto call = [&]() -> outcome::result<NewHeadDataContext> {
       OUTCOME_TRY(included_candidates, request_included_candidates(block_hash));
@@ -724,13 +719,11 @@ namespace kagome::parachain {
   }
 
   void ApprovalDistribution::storeNewHeadContext(
-      const primitives::BlockHash &b_hash, NewHeadDataContext &&ctx) {
-    REINVOKE_2(*internal_context_,
-               storeNewHeadContext,
-               b_hash,
-               ctx,
-               block_hash,
-               context);
+      const primitives::BlockHash &block_hash, NewHeadDataContext &&context) {
+    REINVOKE(*internal_context_,
+             storeNewHeadContext,
+             block_hash,
+             std::move(context));
 
     for_ACU(block_hash, [this, context{std::move(context)}](auto &acu) {
       auto &&[included, session, babe_config] = std::move(context);
@@ -1223,8 +1216,8 @@ namespace kagome::parachain {
   }
 
   void ApprovalDistribution::on_active_leaves_update(
-      const network::ExView &upd) {
-    REINVOKE_1(*internal_context_, on_active_leaves_update, upd, updated);
+      const network::ExView &updated) {
+    REINVOKE(*internal_context_, on_active_leaves_update, updated);
 
     if (!parachain_processor_->canProcessParachains()) {
       return;
@@ -1367,8 +1360,7 @@ namespace kagome::parachain {
       const network::ParachainBlock &pov,
       const network::CandidateReceipt &receipt,
       const ParachainRuntime &code) {
-    if (auto result =
-            pvf_->pvfValidate(data, pov, receipt, code);
+    if (auto result = pvf_->pvfValidate(data, pov, receipt, code);
         result.has_error()) {
       logger_->warn(
           "Approval validation failed.(parachain id={}, relay parent={})",
@@ -1962,14 +1954,12 @@ namespace kagome::parachain {
   }
 
   void ApprovalDistribution::getApprovalSignaturesForCandidate(
-      const CandidateHash &_candidate,
-      SignaturesForCandidateCallback &&_callback) {
-    REINVOKE_2(*internal_context_,
-               getApprovalSignaturesForCandidate,
-               _candidate,
-               _callback,
-               candidate_hash,
-               callback);
+      const CandidateHash &candidate_hash,
+      SignaturesForCandidateCallback &&callback) {
+    REINVOKE(*internal_context_,
+             getApprovalSignaturesForCandidate,
+             candidate_hash,
+             std::move(callback));
 
     if (!parachain_processor_->canProcessParachains()) {
       callback(SignaturesForCandidate{});
@@ -2038,14 +2028,9 @@ namespace kagome::parachain {
   }
 
   void ApprovalDistribution::onValidationProtocolMsg(
-      const libp2p::peer::PeerId &pid,
-      const network::ValidatorProtocolMessage &msg) {
-    REINVOKE_2(*internal_context_,
-               onValidationProtocolMsg,
-               pid,
-               msg,
-               peer_id,
-               message);
+      const libp2p::peer::PeerId &peer_id,
+      const network::ValidatorProtocolMessage &message) {
+    REINVOKE(*internal_context_, onValidationProtocolMsg, peer_id, message);
 
     if (!parachain_processor_->canProcessParachains()) {
       return;
@@ -2109,17 +2094,14 @@ namespace kagome::parachain {
   }
 
   void ApprovalDistribution::runDistributeAssignment(
-      const approval::IndirectAssignmentCert &_indirect_cert,
-      CandidateIndex _candidate_index,
-      std::unordered_set<libp2p::peer::PeerId> &&_peers) {
-    REINVOKE_3(this_context_,
-               runDistributeAssignment,
-               _indirect_cert,
-               _candidate_index,
-               _peers,
-               indirect_cert,
-               candidate_index,
-               peers);
+      const approval::IndirectAssignmentCert &indirect_cert,
+      CandidateIndex candidate_index,
+      std::unordered_set<libp2p::peer::PeerId> &&peers) {
+    REINVOKE(this_context_,
+             runDistributeAssignment,
+             indirect_cert,
+             candidate_index,
+             std::move(peers));
 
     logger_->info(
         "Distributing assignment on candidate (block hash={}, candidate "
@@ -2143,14 +2125,12 @@ namespace kagome::parachain {
   }
 
   void ApprovalDistribution::send_assignments_batched(
-      std::deque<network::Assignment> &&_assignments,
-      const libp2p::peer::PeerId &_peer_id) {
-    REINVOKE_2(this_context_,
-               send_assignments_batched,
-               _assignments,
-               _peer_id,
-               assignments,
-               peer_id);
+      std::deque<network::Assignment> &&assignments,
+      const libp2p::peer::PeerId &peer_id) {
+    REINVOKE(this_context_,
+             send_assignments_batched,
+             std::move(assignments),
+             peer_id);
 
     auto se = pm_->getStreamEngine();
     BOOST_ASSERT(se);  // kMaxAssignmentBatchSize
@@ -2173,14 +2153,10 @@ namespace kagome::parachain {
   }
 
   void ApprovalDistribution::send_approvals_batched(
-      std::deque<network::IndirectSignedApprovalVote> &&_approvals,
-      const libp2p::peer::PeerId &_peer_id) {
-    REINVOKE_2(this_context_,
-               send_approvals_batched,
-               _approvals,
-               _peer_id,
-               approvals,
-               peer_id);
+      std::deque<network::IndirectSignedApprovalVote> &&approvals,
+      const libp2p::peer::PeerId &peer_id) {
+    REINVOKE(
+        this_context_, send_approvals_batched, std::move(approvals), peer_id);
 
     auto se = pm_->getStreamEngine();
     BOOST_ASSERT(se);  // kMaxApprovalBatchSize
@@ -2204,10 +2180,9 @@ namespace kagome::parachain {
   }
 
   void ApprovalDistribution::runDistributeApproval(
-      const network::IndirectSignedApprovalVote &_vote,
-      std::unordered_set<libp2p::peer::PeerId> &&_peers) {
-    REINVOKE_2(
-        this_context_, runDistributeApproval, _vote, _peers, vote, peers);
+      const network::IndirectSignedApprovalVote &vote,
+      std::unordered_set<libp2p::peer::PeerId> &&peers) {
+    REINVOKE(this_context_, runDistributeApproval, vote, std::move(peers));
 
     logger_->info(
         "Sending an approval to peers. (block={}, index={}, num peers={})",
@@ -2228,17 +2203,14 @@ namespace kagome::parachain {
         [&](const libp2p::peer::PeerId &p) { return peers.count(p) != 0ull; });
   }
 
-  void ApprovalDistribution::issue_approval(const CandidateHash &can_hash,
-                                            ValidatorIndex val_index,
-                                            const RelayHash &bl_hash) {
-    REINVOKE_3(*internal_context_,
-               issue_approval,
-               can_hash,
-               val_index,
-               bl_hash,
-               candidate_hash,
-               validator_index,
-               block_hash)
+  void ApprovalDistribution::issue_approval(const CandidateHash &candidate_hash,
+                                            ValidatorIndex validator_index,
+                                            const RelayHash &block_hash) {
+    REINVOKE(*internal_context_,
+             issue_approval,
+             candidate_hash,
+             validator_index,
+             block_hash);
 
     auto be = storedBlockEntries().get(block_hash);
     if (!be) {
