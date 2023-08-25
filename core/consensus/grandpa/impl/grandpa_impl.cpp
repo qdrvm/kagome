@@ -1015,7 +1015,7 @@ namespace kagome::consensus::grandpa {
     if (msg.round_number > current_round_->roundNumber() + 1) {
       reputation_repository_->change(peer_id,
                                      network::reputation::cost::FUTURE_MESSAGE);
-    } else if (msg.round_number < current_round_->roundNumber() - 1) {
+    } else if (msg.round_number + 1 < current_round_->roundNumber()) {
       reputation_repository_->change(peer_id,
                                      network::reputation::cost::PAST_REJECTION);
     }

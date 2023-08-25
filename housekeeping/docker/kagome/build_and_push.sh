@@ -21,7 +21,7 @@ if [ "$VERSION" = "refs/heads/master" ]; then
 elif [[ "$VERSION"  == refs/tags/* ]]; then
   VERSION="${VERSION#refs/tags/}"
 else
-  VERSION=$VERSION
+  VERSION=devops
 fi
 
 if [ "$BUILD_TYPE" = "Debug" ]; then
@@ -66,5 +66,11 @@ else
 fi
 
 docker push $TAG
+
+# Push with commit hash
+COMMIT_HASH="$(git rev-parse --short HEAD)"
+TAG_HASH_COMMIT="$TAG-$COMMIT_HASH"
+docker tag $TAG $TAG_HASH_COMMIT
+docker push $TAG_HASH_COMMIT
 
 rm -R ${CTX_DIR}

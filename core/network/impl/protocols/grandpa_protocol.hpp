@@ -9,6 +9,7 @@
 #include "network/protocol_base.hpp"
 
 #include <memory>
+#include <random>
 
 #include <libp2p/basic/scheduler.hpp>
 #include <libp2p/connection/stream.hpp>
@@ -44,6 +45,7 @@ namespace kagome::network {
 
     GrandpaProtocol(
         libp2p::Host &host,
+        std::shared_ptr<crypto::Hasher> hasher,
         std::shared_ptr<boost::asio::io_context> io_context,
         const application::AppConfiguration &app_config,
         std::shared_ptr<consensus::grandpa::GrandpaObserver> grandpa_observer,
@@ -92,6 +94,12 @@ namespace kagome::network {
         const int &msg,
         std::function<void(outcome::result<std::shared_ptr<Stream>>)> &&cb);
 
+    common::Hash256 getHash(const GrandpaMessage &message) const;
+    bool addKnown(const PeerId &peer, const common::Hash256 &hash);
+
+    template <typename F>
+    void broadcast(std::shared_ptr<GrandpaMessage> message, const F &predicate);
+
     /// Node should send catch-up requests rarely to be polite, because
     /// processing of them consume more enough resources.
     /// How long replying outgoing catch-up requests must be suppressed
@@ -99,6 +107,7 @@ namespace kagome::network {
         std::chrono::seconds(300);
 
     ProtocolBaseImpl base_;
+    std::shared_ptr<crypto::Hasher> hasher_;
     std::shared_ptr<boost::asio::io_context> io_context_;
     const application::AppConfiguration &app_config_;
     std::shared_ptr<consensus::grandpa::GrandpaObserver> grandpa_observer_;
@@ -114,6 +123,8 @@ namespace kagome::network {
     GrandpaNeighborMessage last_neighbor_{};
 
     std::set<libp2p::peer::PeerId> recent_catchup_requests_by_peer_;
+
+    std::default_random_engine random_;
   };
 
 }  // namespace kagome::network

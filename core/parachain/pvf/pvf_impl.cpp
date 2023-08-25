@@ -70,6 +70,13 @@ namespace kagome::parachain {
       },
   };
 
+  metrics::HistogramHelper metric_code_size{
+      "kagome_parachain_candidate_validation_code_size",
+      "The size of the decompressed WASM validation blob used for checking a "
+      "candidate",
+      metrics::exponentialBuckets(16384, 2, 10),
+  };
+
   struct DontProvideCode : runtime::RuntimeCodeProvider {
     outcome::result<gsl::span<const uint8_t>> getCodeAt(
         const storage::trie::RootHash &) const override {
@@ -125,7 +132,7 @@ namespace kagome::parachain {
       const PersistedValidationData &data,
       const ParachainBlock &pov,
       const CandidateReceipt &receipt,
-      const ParachainRuntime &code) const {
+      const ParachainRuntime &code_zstd) const {
     OUTCOME_TRY(pov_encoded, scale::encode(pov));
     if (pov_encoded.size() > data.max_pov_size) {
       return PvfError::POV_SIZE;
@@ -134,7 +141,7 @@ namespace kagome::parachain {
     if (pov_hash != receipt.descriptor.pov_hash) {
       return PvfError::POV_HASH;
     }
-    auto code_hash = hasher_->blake2b_256(code);
+    auto code_hash = hasher_->blake2b_256(code_zstd);
     if (code_hash != receipt.descriptor.validation_code_hash) {
       return PvfError::CODE_HASH;
     }
@@ -147,6 +154,9 @@ namespace kagome::parachain {
     }
 
     auto timer = metric_pvf_execution_time.timer();
+    ParachainRuntime code;
+    OUTCOME_TRY(runtime::uncompressCodeIfNeeded(code_zstd, code));
+    metric_code_size.observe(code.size());
     ValidationParams params;
     params.parent_head = data.parent_head;
     OUTCOME_TRY(runtime::uncompressCodeIfNeeded(pov.payload,

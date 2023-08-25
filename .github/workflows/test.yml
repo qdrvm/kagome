@@ -8,6 +8,7 @@ on:
 
 env:
   BUILD_DIR: build
+  CI: true
   CTEST_OUTPUT_ON_FAILURE: 1
   GITHUB_HUNTER_USERNAME: ${{ secrets.HUNTER_USERNAME }}
   GITHUB_HUNTER_TOKEN: ${{ secrets.HUNTER_TOKEN }}

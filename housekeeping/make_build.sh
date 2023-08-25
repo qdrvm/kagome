@@ -2,7 +2,12 @@
 
 BUILD_DIR="${BUILD_DIR:?BUILD_DIR variable is not defined}"
 BUILD_FINAL_TARGET="${BUILD_FINAL_TARGET:-test}"
-BUILD_THREADS="${BUILD_THREADS:-$(( $(nproc 2>/dev/null || sysctl -n hw.ncpu) / 2))}"
+
+if [[ -z "${CI}" ]]; then
+  BUILD_THREADS="${BUILD_THREADS:-$(( $(nproc 2>/dev/null || sysctl -n hw.ncpu) / 2 + 1 ))}"
+else # CI
+  BUILD_THREADS="${BUILD_THREADS:-$(( $(nproc 2>/dev/null || sysctl -n hw.ncpu) ))}"
+fi
 
 which git
 
