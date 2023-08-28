@@ -368,31 +368,8 @@ namespace kagome::common {
       return Base::resize(size, value);
     }
 
-    bool operator==(const Base &other) const noexcept {
-      return std::equal(
-          Base::cbegin(), Base::cend(), other.cbegin(), other.cend());
-    }
-
-    bool operator==(const Span &other) const noexcept {
-      return std::equal(
-          Base::cbegin(), Base::cend(), other.cbegin(), other.cend());
-    }
-
-    bool operator!=(const Base &other) const noexcept {
-      return not(*this == other);
-    }
-
-    bool operator!=(const Span &other) const noexcept {
-      return not(*this == other);
-    }
-
-    bool operator<(const Base &other) const noexcept {
-      return std::lexicographical_compare(
-          Base::cbegin(), Base::cend(), other.cbegin(), other.cend());
-    }
-
-    bool operator<(const Span &other) const noexcept {
-      return std::lexicographical_compare(
+    auto operator<=>(const SizeLimitedContainer &other) const {
+      return std::lexicographical_compare_three_way(
           Base::cbegin(), Base::cend(), other.cbegin(), other.cend());
     }
   };

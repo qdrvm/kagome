@@ -36,30 +36,33 @@ namespace kagome::common {
       return byte2str(*this);
     }
 
-    bool operator==(const Span &other) const noexcept {
-      return std::equal(
-          Span::cbegin(), Span::cend(), other.cbegin(), other.cend());
-    }
-
-    template <size_t N>
-    bool operator==(
-        const std::array<typename Span::value_type, N> &other) const noexcept {
-      return std::equal(
-          Span::cbegin(), Span::cend(), other.cbegin(), other.cend());
-    }
-
-    bool operator<(const BufferView &other) const noexcept {
-      return std::lexicographical_compare(
-          cbegin(), cend(), other.cbegin(), other.cend());
-    }
-
-    template <size_t N>
-    bool operator<(
-        const std::array<typename Span::value_type, N> &other) const noexcept {
-      return std::lexicographical_compare(
+    template <typename OtherT>
+      requires std::is_same_v<typename OtherT::const_iterator::value_type,
+                              typename Span::const_iterator::value_type>
+    auto operator<=>(const OtherT &other) const noexcept {
+      return std::lexicographical_compare_three_way(
           Span::cbegin(), Span::cend(), other.cbegin(), other.cend());
     }
   };
+
+  template <typename L, typename R>
+    requires(std::is_base_of_v<BufferView, L>
+             or std::is_base_of_v<BufferView, R>)
+        and std::is_same_v<typename L::const_iterator::value_type,
+                           typename R::const_iterator::value_type>
+  auto operator<=>(const L &lhs, const R &rhs) noexcept {
+    return std::lexicographical_compare_three_way(
+        std::cbegin(lhs), std::cend(lhs), std::cbegin(rhs), std::cend(rhs));
+  }
+
+  template <typename L, typename R>
+    requires(std::is_base_of_v<BufferView, L>
+             or std::is_base_of_v<BufferView, R>)
+        and std::is_same_v<typename L::const_iterator::value_type,
+                           typename R::const_iterator::value_type>
+  auto operator==(const L &lhs, const R &rhs) noexcept {
+    return lhs <=> rhs == 0;
+  }
 
   inline std::ostream &operator<<(std::ostream &os, BufferView view) {
     return os << view.toHex();
