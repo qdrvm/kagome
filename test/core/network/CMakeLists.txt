@@ -11,6 +11,7 @@ addtest(block_response_cache_test
 target_link_libraries(block_response_cache_test
     p2p::p2p_peer_id
     network
+    trie_storage_provider
     )
 
 addtest(stream_engine_test
