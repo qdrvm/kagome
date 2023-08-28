@@ -729,8 +729,8 @@ namespace kagome::network {
                                   const F &predicate) {
     constexpr size_t kAuthorities = 4;
     constexpr size_t kAny = 4;
-    std::vector<PeerId> authorities, any;
-    peer_manager_->forEachPeer([&](const PeerId &peer) {
+    std::deque<PeerId> authorities, any;
+    stream_engine_->forEachPeer(shared_from_this(), [&](const PeerId &peer) {
       if (auto info_ref = peer_manager_->getPeerState(peer)) {
         auto &info = info_ref->get();
         if (not predicate(peer, info)) {
@@ -742,7 +742,7 @@ namespace kagome::network {
     });
     auto hash = getHash(*message);
     size_t need = 0;
-    auto loop = [&](std::vector<PeerId> &peers) {
+    auto loop = [&](std::deque<PeerId> &peers) {
       while (not peers.empty() and need != 0) {
         auto &peer = peers.back();
         if (addKnown(peer, hash)) {
