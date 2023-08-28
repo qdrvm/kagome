@@ -361,8 +361,8 @@ namespace kagome::network {
     mutable std::optional<primitives::BlockHash> new_head_hash;
   };
 
-  using StatementDistributionMessage =
-      boost::variant<Seconded, parachain::IndexedAndSigned<StatementMetadata>>;
+  using LargeStatement = parachain::IndexedAndSigned<StatementMetadata>;
+  using StatementDistributionMessage = boost::variant<Seconded, LargeStatement>;
 
   /**
    * Collator -> Validator and Validator -> Collator if seconded message.
