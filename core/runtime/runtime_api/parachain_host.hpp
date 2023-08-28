@@ -183,6 +183,10 @@ namespace kagome::runtime {
     inbound_hrmp_channels_contents(const primitives::BlockHash &block,
                                    ParachainId id) = 0;
 
+    virtual outcome::result<std::optional<std::vector<ExecutorParam>>>
+    session_executor_params(const primitives::BlockHash &block,
+                            SessionIndex idx) = 0;
+
     /// Get all disputes in relation to a relay parent.
     virtual outcome::result<std::optional<dispute::ScrapedOnChainVotes>>
     on_chain_votes(const primitives::BlockHash &block) = 0;

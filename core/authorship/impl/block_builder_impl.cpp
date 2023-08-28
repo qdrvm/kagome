@@ -17,11 +17,11 @@ namespace kagome::authorship {
 
   BlockBuilderImpl::BlockBuilderImpl(
       primitives::BlockHeader block_header,
-      std::unique_ptr<runtime::RuntimeEnvironment> env,
+      std::unique_ptr<runtime::RuntimeContext> ctx,
       std::shared_ptr<runtime::BlockBuilder> block_builder_api)
       : block_header_{std::move(block_header)},
         block_builder_api_{std::move(block_builder_api)},
-        env_{std::move(env)},
+        ctx_{std::move(ctx)},
         logger_{log::createLogger("BlockBuilder", "authorship")} {
     BOOST_ASSERT(block_builder_api_ != nullptr);
   }
@@ -29,12 +29,12 @@ namespace kagome::authorship {
   outcome::result<std::vector<primitives::Extrinsic>>
   BlockBuilderImpl::getInherentExtrinsics(
       const primitives::InherentData &data) const {
-    return block_builder_api_->inherent_extrinsics(*env_, data);
+    return block_builder_api_->inherent_extrinsics(*ctx_, data);
   }
 
   outcome::result<primitives::ExtrinsicIndex> BlockBuilderImpl::pushExtrinsic(
       const primitives::Extrinsic &extrinsic) {
-    auto apply_res = block_builder_api_->apply_extrinsic(*env_, extrinsic);
+    auto apply_res = block_builder_api_->apply_extrinsic(*ctx_, extrinsic);
     if (not apply_res) {
       // Takes place when API method execution fails for some technical kind of
       // problem. This WON'T be executed when apply_extrinsic returned an error
@@ -98,7 +98,7 @@ namespace kagome::authorship {
   }
 
   outcome::result<primitives::Block> BlockBuilderImpl::bake() const {
-    OUTCOME_TRY(finalized_header, block_builder_api_->finalize_block(*env_));
+    OUTCOME_TRY(finalized_header, block_builder_api_->finalize_block(*ctx_));
     return primitives::Block{finalized_header, extrinsics_};
   }
 

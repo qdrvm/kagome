@@ -12,6 +12,7 @@
 
 #include "application/app_state_manager.hpp"
 #include "authority_discovery/query/query.hpp"
+#include "blockchain/block_header_repository.hpp"
 #include "common/visitor.hpp"
 #include "dispute_coordinator/chain_scraper.hpp"
 #include "dispute_coordinator/impl/chain_scraper_impl.hpp"
@@ -455,12 +456,12 @@ namespace kagome::dispute {
   }
 
   void DisputeCoordinatorImpl::onParticipation(
-      const ParticipationStatement &_message) {
+      const ParticipationStatement &message) {
     if (not initialized_) {
       return;
     }
 
-    REINVOKE_1(*internal_context_, onParticipation, _message, message);
+    REINVOKE(*internal_context_, onParticipation, message);
 
     SL_TRACE(log_, "MuxedMessage::Participation");
 
@@ -495,15 +496,15 @@ namespace kagome::dispute {
   }
 
   void DisputeCoordinatorImpl::on_active_leaves_update(
-      const network::ExView &_updated) {
+      const network::ExView &updated) {
     if (not was_synchronized_) {
       return;
     }
 
-    REINVOKE_1(*internal_context_, on_active_leaves_update, _updated, updated);
+    REINVOKE(*internal_context_, on_active_leaves_update, updated);
 
     if (not initialized_) {
-      return startup(_updated);
+      return startup(updated);
     }
 
     ActiveLeavesUpdate update{
@@ -944,12 +945,12 @@ namespace kagome::dispute {
   }
 
   void DisputeCoordinatorImpl::on_finalized_block(
-      const primitives::BlockInfo &_finalized) {
+      const primitives::BlockInfo &finalized) {
     if (not initialized_) {
       return;
     }
 
-    REINVOKE_1(*internal_context_, on_finalized_block, _finalized, finalized);
+    REINVOKE(*internal_context_, on_finalized_block, finalized);
 
     auto res = process_finalized_block(finalized);
     if (res.has_error()) {
@@ -1825,20 +1826,16 @@ namespace kagome::dispute {
   }
 
   void DisputeCoordinatorImpl::importStatements(
-      CandidateReceipt _candidate_receipt,
-      SessionIndex _session,
-      std::vector<Indexed<SignedDisputeStatement>> _statements,
-      CbOutcome<void> &&_cb) {
-    REINVOKE_4(*internal_context_,
-               importStatements,
-               _candidate_receipt,
-               _session,
-               _statements,
-               _cb,
-               candidate_receipt,
-               session,
-               statements,
-               cb);
+      CandidateReceipt candidate_receipt,
+      SessionIndex session,
+      std::vector<Indexed<SignedDisputeStatement>> statements,
+      CbOutcome<void> &&cb) {
+    REINVOKE(*internal_context_,
+             importStatements,
+             std::move(candidate_receipt),
+             session,
+             std::move(statements),
+             std::move(cb));
 
     SL_TRACE(log_, "DisputeCoordinatorMessage::ImportStatements");
 
@@ -1847,14 +1844,14 @@ namespace kagome::dispute {
       return cb(res.as_failure());
     }
 
-    auto &valid_import = res.value();
+    [[maybe_unused]] auto &valid_import = res.value();
 
     return cb(outcome::success());
   }
 
   void DisputeCoordinatorImpl::getRecentDisputes(
-      CbOutcome<OutputDisputes> &&_cb) {
-    REINVOKE_1(*internal_context_, getRecentDisputes, _cb, cb);
+      CbOutcome<OutputDisputes> &&cb) {
+    REINVOKE(*internal_context_, getRecentDisputes, std::move(cb));
 
     // Return error if session information is missing.
     if (error_.has_value()) {
@@ -1887,8 +1884,8 @@ namespace kagome::dispute {
   }
 
   void DisputeCoordinatorImpl::getActiveDisputes(
-      CbOutcome<OutputDisputes> &&_cb) {
-    REINVOKE_1(*internal_context_, getActiveDisputes, _cb, cb);
+      CbOutcome<OutputDisputes> &&cb) {
+    REINVOKE(*internal_context_, getActiveDisputes, std::move(cb));
 
     // Return error if session information is missing.
     if (error_.has_value()) {
@@ -1938,9 +1935,8 @@ namespace kagome::dispute {
   }
 
   void DisputeCoordinatorImpl::queryCandidateVotes(
-      const QueryCandidateVotes &_query,
-      CbOutcome<OutputCandidateVotes> &&_cb) {
-    REINVOKE_2(*internal_context_, queryCandidateVotes, _query, _cb, query, cb);
+      const QueryCandidateVotes &query, CbOutcome<OutputCandidateVotes> &&cb) {
+    REINVOKE(*internal_context_, queryCandidateVotes, query, std::move(cb));
 
     // Return error if session information is missing.
     if (error_.has_value()) {
@@ -1970,20 +1966,16 @@ namespace kagome::dispute {
   }
 
   void DisputeCoordinatorImpl::issueLocalStatement(
-      SessionIndex _session,
-      CandidateHash _candidate_hash,
-      CandidateReceipt _candidate_receipt,
-      bool _valid) {
-    REINVOKE_4(*internal_context_,
-               issueLocalStatement,
-               _session,
-               _candidate_hash,
-               _candidate_receipt,
-               _valid,
-               session,
-               candidate_hash,
-               candidate_receipt,
-               valid);
+      SessionIndex session,
+      CandidateHash candidate_hash,
+      CandidateReceipt candidate_receipt,
+      bool valid) {
+    REINVOKE(*internal_context_,
+             issueLocalStatement,
+             session,
+             candidate_hash,
+             std::move(candidate_receipt),
+             valid);
 
     // TODO ничего не возвращаем, вызывается из апрувала и партисипейшена
 
@@ -1997,17 +1989,14 @@ namespace kagome::dispute {
   }
 
   void DisputeCoordinatorImpl::determineUndisputedChain(
-      primitives::BlockInfo _base,
-      std::vector<BlockDescription> _block_descriptions,
-      CbOutcome<primitives::BlockInfo> &&_cb) {
-    REINVOKE_3(*internal_context_,
-               determineUndisputedChain,
-               _base,
-               _block_descriptions,
-               _cb,
-               base,
-               block_descriptions,
-               cb);
+      primitives::BlockInfo base,
+      std::vector<BlockDescription> block_descriptions,
+      CbOutcome<primitives::BlockInfo> &&cb) {
+    REINVOKE(*internal_context_,
+             determineUndisputedChain,
+             base,
+             std::move(block_descriptions),
+             std::move(cb));
 
     // Return error if session information is missing.
     if (error_.has_value()) {
@@ -2103,17 +2092,11 @@ namespace kagome::dispute {
   }
 
   void DisputeCoordinatorImpl::onDisputeRequest(
-      const libp2p::peer::PeerId &_peer_id,
-      const network::DisputeMessage &_request,
-      CbOutcome<void> &&_cb) {
-    REINVOKE_3(*internal_context_,
-               onDisputeRequest,
-               _peer_id,
-               _request,
-               _cb,
-               peer_id,
-               request,
-               cb);
+      const libp2p::peer::PeerId &peer_id,
+      const network::DisputeMessage &request,
+      CbOutcome<void> &&cb) {
+    REINVOKE(
+        *internal_context_, onDisputeRequest, peer_id, request, std::move(cb));
 
     // Only accept messages from validators, in case there are multiple
     // `AuthorityId`s, we just take the first one. On session boundaries
@@ -2147,9 +2130,12 @@ namespace kagome::dispute {
     return;
   }
 
-  void DisputeCoordinatorImpl::sendDisputeResponse(outcome::result<void> _res,
-                                                   CbOutcome<void> &&_cb) {
-    REINVOKE_2(*main_thread_context_, sendDisputeResponse, _res, _cb, res, cb);
+  void DisputeCoordinatorImpl::sendDisputeResponse(outcome::result<void> res,
+                                                   CbOutcome<void> &&cb) {
+    REINVOKE(*main_thread_context_,
+             sendDisputeResponse,
+             std::move(res),
+             std::move(cb));
     cb(res);
   }
 

@@ -48,11 +48,11 @@ namespace kagome::primitives {
     // clang-format treats `requires` as c++20 keyword.
     // clang-format off
     /// Tags required by the transaction.
-    std::vector<Tag> requires{};
+    std::vector<Tag> required_tags{};
     // clang-format on
 
     /// Tags that this transaction provides.
-    std::vector<Tag> provides{};
+    std::vector<Tag> provided_tags{};
 
     /// Should that transaction be propagated.
     bool should_propagate{false};
@@ -60,9 +60,10 @@ namespace kagome::primitives {
 
   inline bool operator==(const Transaction &v1, const Transaction &v2) {
     return v1.ext == v2.ext && v1.bytes == v2.bytes && v1.hash == v2.hash
-           && v1.priority == v2.priority && v1.valid_till == v2.valid_till
-           && v1.requires == v2.requires && v1.provides == v2.provides
-           && v1.should_propagate == v2.should_propagate;
+        && v1.priority == v2.priority && v1.valid_till == v2.valid_till
+        && v1.required_tags == v2.required_tags
+        && v1.provided_tags == v2.provided_tags
+        && v1.should_propagate == v2.should_propagate;
   }
 
 }  // namespace kagome::primitives

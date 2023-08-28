@@ -16,7 +16,7 @@
 #include "storage/trie/trie_storage.hpp"
 
 namespace kagome::runtime {
-  class RawExecutor;
+  class Executor;
 }
 
 namespace kagome::api {
@@ -37,7 +37,7 @@ namespace kagome::api {
                  std::shared_ptr<blockchain::BlockTree> block_tree,
                  std::shared_ptr<runtime::Core> runtime_core,
                  std::shared_ptr<runtime::Metadata> metadata,
-                 std::shared_ptr<runtime::RawExecutor> executor,
+                 std::shared_ptr<runtime::Executor> executor,
                  LazySPtr<api::ApiService> api_service);
 
     outcome::result<common::Buffer> call(
@@ -97,7 +97,7 @@ namespace kagome::api {
 
     LazySPtr<api::ApiService> api_service_;
     std::shared_ptr<runtime::Metadata> metadata_;
-    std::shared_ptr<runtime::RawExecutor> executor_;
+    std::shared_ptr<runtime::Executor> executor_;
   };
 
 }  // namespace kagome::api

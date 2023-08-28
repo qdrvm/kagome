@@ -62,7 +62,7 @@ namespace kagome::primitives {
      * given tags are required to be included before that one.
      */
     std::vector<Transaction::Tag>
-    requires;
+    required_tags;
 
     /**
      * @brief Provided tags
@@ -72,7 +72,7 @@ namespace kagome::primitives {
      * dependency graph of transactions and import them in the right (linear)
      * order.
      */
-    std::vector<Transaction::Tag> provides;
+    std::vector<Transaction::Tag> provided_tags;
 
     /**
      * @brief Transaction longevity

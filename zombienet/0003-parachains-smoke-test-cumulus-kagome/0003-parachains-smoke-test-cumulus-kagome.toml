@@ -8,12 +8,13 @@ default_command = "polkadot"
 
   [[relaychain.nodes]]
   name = "alice"
+  command = "kagome"
+  prometheus_prefix = "kagome"
 
   [[relaychain.nodes]]
   name = "bob"
   command = "kagome"
   prometheus_prefix = "kagome"
-
 
 [[parachains]]
 id = 100

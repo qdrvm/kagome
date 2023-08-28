@@ -20,14 +20,14 @@ namespace kagome::runtime::wavm {
   std::optional<std::reference_wrapper<runtime::Memory>>
   WavmInternalMemoryProvider::getCurrentMemory() const {
     return current_memory_
-               ? std::optional<std::reference_wrapper<runtime::Memory>>(
-                   *current_memory_)
-               : std::nullopt;
+             ? std::optional<std::reference_wrapper<runtime::Memory>>(
+                 *current_memory_)
+             : std::nullopt;
   }
 
   outcome::result<void> WavmInternalMemoryProvider::resetMemory(
-      WasmSize heap_base) {
-    current_memory_ = std::make_unique<MemoryImpl>(memory_, heap_base);
+      const MemoryConfig& config) {
+    current_memory_ = std::make_unique<MemoryImpl>(memory_, config);
     return outcome::success();
   }
 

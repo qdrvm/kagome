@@ -8,6 +8,7 @@
 
 #include <memory>
 #include <queue>
+#include <random>
 #include <thread>
 #include <unordered_map>
 
@@ -51,6 +52,10 @@ namespace kagome::crypto {
   class SessionKeys;
 }  // namespace kagome::crypto
 
+namespace kagome::dispute {
+  class RuntimeInfo;
+}  // namespace kagome::dispute
+
 namespace kagome::parachain {
 
   struct ParachainProcessorImpl
@@ -79,6 +84,7 @@ namespace kagome::parachain {
 
     ParachainProcessorImpl(
         std::shared_ptr<network::PeerManager> pm,
+        std::shared_ptr<dispute::RuntimeInfo> runtime_info,
         std::shared_ptr<crypto::Sr25519Provider> crypto_provider,
         std::shared_ptr<network::Router> router,
         std::shared_ptr<boost::asio::io_context> this_context,
@@ -200,15 +206,19 @@ namespace kagome::parachain {
      */
     outcome::result<Pvf::Result> validateCandidate(
         const network::CandidateReceipt &candidate,
-        const network::ParachainBlock &pov);
+        const network::ParachainBlock &pov,
+        const primitives::BlockHash &relay_parent);
+
     outcome::result<std::vector<network::ErasureChunk>> validateErasureCoding(
         const runtime::AvailableData &validating_data, size_t n_validators);
+
     outcome::result<ValidateAndSecondResult> validateAndMakeAvailable(
         network::CandidateReceipt &&candidate,
         network::ParachainBlock &&pov,
         const libp2p::peer::PeerId &peer_id,
         const primitives::BlockHash &relay_parent,
         size_t n_validators);
+
     template <typename F>
     void requestPoV(const libp2p::peer::PeerInfo &peer_info,
                     const CandidateHash &candidate_hash,
@@ -398,6 +408,7 @@ namespace kagome::parachain {
         const network::SignedStatement &statement);
 
     std::shared_ptr<network::PeerManager> pm_;
+    std::shared_ptr<dispute::RuntimeInfo> runtime_info_;
     std::shared_ptr<crypto::Sr25519Provider> crypto_provider_;
     std::shared_ptr<network::Router> router_;
     log::Logger logger_ =
@@ -410,8 +421,10 @@ namespace kagome::parachain {
           libp2p::peer::PeerId,
           std::deque<std::pair<RelayHash, network::SignedStatement>>>
           seconded_statements;
+      /// Added as independent member to prevent extra locks for
+      /// `state_by_relay_parent` which is used in internal thread only
+      SafeObject<std::unordered_set<RelayHash>> active_leaves;
     } our_current_state_;
-
     SafeObject<std::unordered_map<RelayHash, network::CollationEvent>>
         pending_candidates;
     std::shared_ptr<WorkersContext> this_context_;
@@ -435,6 +448,7 @@ namespace kagome::parachain {
 
     std::shared_ptr<primitives::events::ChainEventSubscriber> chain_sub_;
     std::shared_ptr<ThreadHandler> thread_handler_;
+    std::default_random_engine random_;
 
     metrics::RegistryPtr metrics_registry_ = metrics::createRegistry();
     metrics::Gauge *metric_is_parachain_validator_;

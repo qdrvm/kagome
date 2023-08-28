@@ -18,7 +18,7 @@ namespace kagome::runtime {
 
     MOCK_METHOD(outcome::result<primitives::Version>,
                 version,
-                (RuntimeEnvironment &),
+                (std::shared_ptr<ModuleInstance>),
                 (override));
 
     MOCK_METHOD(outcome::result<primitives::Version>,
@@ -36,7 +36,7 @@ namespace kagome::runtime {
                 (const primitives::BlockReflection &, TrieChangesTrackerOpt),
                 (override));
 
-    MOCK_METHOD(outcome::result<std::unique_ptr<RuntimeEnvironment>>,
+    MOCK_METHOD(outcome::result<std::unique_ptr<RuntimeContext>>,
                 initialize_block,
                 (const primitives::BlockHeader &, TrieChangesTrackerOpt),
                 (override));

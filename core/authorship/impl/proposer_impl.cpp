@@ -87,7 +87,12 @@ namespace kagome::authorship {
                remove_res.error(),
                parent_block);
     }
-    const auto &ready_txs = transaction_pool_->getReadyTransactions();
+
+    /// TODO(iceseer): switch to callback case(this case is needed to make tests
+    /// complete)
+    std::vector<std::pair<primitives::Transaction::Hash,
+                          std::shared_ptr<const primitives::Transaction>>>
+        ready_txs = transaction_pool_->getReadyTransactions();
 
     bool transaction_pushed = false;
     bool hit_block_size_limit = false;

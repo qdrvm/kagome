@@ -78,8 +78,9 @@ namespace kagome::network {
   struct ParachainBlock {
     SCALE_TIE(1);
 
-    common::Buffer payload;  /// Contains the necessary data to for parachain
-    /// specific state transition logic
+    /// Contains the necessary data to for parachain specific state transition
+    /// logic
+    common::Buffer payload;
   };
 
   using RequestPov = CandidateHash;
@@ -300,6 +301,10 @@ namespace kagome::network {
   };
   using SignedStatement = IndexedAndSigned<Statement>;
 
+  inline std::ostream &operator<<(std::ostream &os, const SignedStatement &t) {
+    return os << "Statement (validator index:" << t.payload.ix << ')';
+  }
+
   struct Seconded {
     SCALE_TIE(2);
 
@@ -356,8 +361,8 @@ namespace kagome::network {
     mutable std::optional<primitives::BlockHash> new_head_hash;
   };
 
-  using StatementDistributionMessage =
-      boost::variant<Seconded, parachain::IndexedAndSigned<StatementMetadata>>;
+  using LargeStatement = parachain::IndexedAndSigned<StatementMetadata>;
+  using StatementDistributionMessage = boost::variant<Seconded, LargeStatement>;
 
   /**
    * Collator -> Validator and Validator -> Collator if seconded message.

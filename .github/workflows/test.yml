@@ -8,6 +8,7 @@ on:
 
 env:
   BUILD_DIR: build
+  CI: true
   CTEST_OUTPUT_ON_FAILURE: 1
   GITHUB_HUNTER_USERNAME: ${{ secrets.HUNTER_USERNAME }}
   GITHUB_HUNTER_TOKEN: ${{ secrets.HUNTER_TOKEN }}
@@ -24,7 +25,7 @@ env:
 
 jobs:
   MacOS:
-    runs-on: macos-11
+    runs-on: macos-latest
     steps:
     - uses: actions/checkout@dc323e67f16fb5f7663d20ff7941f27f5809e9b6
     - uses: actions/cache@937d24475381cd9c75ae6db12cb4e79714b926ed
@@ -38,8 +39,6 @@ jobs:
     - name: install
       run: ./housekeeping/macos/dependency.sh
     - name: build
-      env:
-        DEVELOPER_DIR: /Applications/Xcode_11.7.app/Contents/Developer
       run: ./housekeeping/make_build.sh -DCLEAR_OBJS=ON -DCOVERAGE=OFF -DCMAKE_TOOLCHAIN_FILE=cmake/toolchain/cxx17.cmake
 
   Linux:
@@ -331,7 +330,11 @@ jobs:
           - name: "Runtime upgrade"
             test: "test0004"
           - name: "Runtime upgrade kagome"
-            test: "test0004_kagome"           
+            test: "test0004_kagome"
+          - name: "Dispute valid block"
+            test: "test0005"
+          - name: "Parachains disputes"
+            test: "test0006"
     runs-on: [ ubuntu-latest, kagome, self-hosted, linux ]
     needs: [Push-self-hosted]
     steps:

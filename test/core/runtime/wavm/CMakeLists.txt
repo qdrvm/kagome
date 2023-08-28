@@ -39,31 +39,9 @@ target_link_libraries(core_integration_test
     logger_for_tests
     )
 
-addtest(wasm_executor_test
-    wasm_executor_test.cpp
-    )
-target_link_libraries(wasm_executor_test
-    runtime_wavm
-    basic_code_provider
-    core_api
-    trie_storage_provider
-    host_api_factory
-    crypto_store
-    key_file_storage
-    sr25519_provider
-    ecdsa_provider
-    ed25519_provider
-    pbkdf2_provider
-    hasher
-    primitives
-    storage
-    logger_for_tests
-    module_repository
-    )
-
 addtest(wavm_module_init_test
     wavm_module_init_test.cpp
-    )
+)
 target_link_libraries(wavm_module_init_test
     runtime_wavm
     basic_code_provider
@@ -75,4 +53,4 @@ target_link_libraries(wavm_module_init_test
     offchain_worker_pool
     runtime_properties_cache
     logger_for_tests
-    )
+)
