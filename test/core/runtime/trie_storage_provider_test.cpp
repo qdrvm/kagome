@@ -10,7 +10,7 @@
 #include "common/buffer.hpp"
 #include "mock/core/storage/trie_pruner/trie_pruner_mock.hpp"
 #include "runtime/common/runtime_transaction_error.hpp"
-#include "storage/in_memory/in_memory_storage.hpp"
+#include "storage/in_memory/in_memory_spaced_storage.hpp"
 #include "storage/trie/impl/trie_storage_backend_impl.hpp"
 #include "storage/trie/impl/trie_storage_impl.hpp"
 #include "storage/trie/polkadot_trie/polkadot_trie_factory_impl.hpp"
@@ -35,15 +35,20 @@ class TrieStorageProviderTest : public ::testing::Test {
 
     auto codec = std::make_shared<kagome::storage::trie::PolkadotCodec>();
 
-    storage_ = std::make_shared<kagome::storage::InMemoryStorage>();
+    storage_ = std::make_shared<kagome::storage::InMemorySpacedStorage>();
 
-    auto backend =
+    auto node_backend =
         std::make_shared<kagome::storage::trie::TrieStorageBackendImpl>(
+            kagome::storage::trie::TrieStorageBackendImpl::NodeTag{}, storage_);
+
+    auto value_backend =
+        std::make_shared<kagome::storage::trie::TrieStorageBackendImpl>(
+            kagome::storage::trie::TrieStorageBackendImpl::ValueTag{},
             storage_);
 
     auto serializer =
         std::make_shared<kagome::storage::trie::TrieSerializerImpl>(
-            trie_factory, codec, backend);
+            trie_factory, codec, node_backend, value_backend);
 
     auto state_pruner =
         std::make_shared<kagome::storage::trie_pruner::TriePrunerMock>();
@@ -61,7 +66,7 @@ class TrieStorageProviderTest : public ::testing::Test {
   }
 
  protected:
-  std::shared_ptr<kagome::storage::BufferStorage> storage_;
+  std::shared_ptr<kagome::storage::SpacedStorage> storage_;
   std::shared_ptr<kagome::runtime::TrieStorageProvider> storage_provider_;
 };
 

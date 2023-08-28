@@ -95,7 +95,6 @@ int main() {
                         .value();
 
   auto code_substitutes = chain_spec->codeSubstitutes();
-  auto storage = std::make_shared<kagome::storage::InMemoryStorage>();
 
   auto config = std::make_shared<kagome::application::AppConfigurationImpl>(
       kagome::log::createLogger("AppConfiguration"));
@@ -103,10 +102,15 @@ int main() {
   auto trie_factory =
       std::make_shared<kagome::storage::trie::PolkadotTrieFactoryImpl>();
   auto codec = std::make_shared<kagome::storage::trie::PolkadotCodec>();
-  auto storage_backend =
-      std::make_shared<kagome::storage::trie::TrieStorageBackendImpl>(storage);
+  auto node_storage_backend =
+      std::make_shared<kagome::storage::trie::TrieStorageBackendImpl>(
+          kagome::storage::trie::TrieStorageBackendImpl::NodeTag{}, database);
+  auto value_storage_backend =
+      std::make_shared<kagome::storage::trie::TrieStorageBackendImpl>(
+          kagome::storage::trie::TrieStorageBackendImpl::ValueTag{},
+          database);
   auto serializer = std::make_shared<kagome::storage::trie::TrieSerializerImpl>(
-      trie_factory, codec, storage_backend);
+      trie_factory, codec, node_storage_backend, value_storage_backend);
 
   auto app_state_manager =
       std::make_shared<kagome::application::AppStateManagerImpl>();
@@ -114,7 +118,8 @@ int main() {
   auto state_pruner =
       std::make_shared<kagome::storage::trie_pruner::TriePrunerImpl>(
           app_state_manager,
-          storage_backend,
+          node_storage_backend,
+          value_storage_backend,
           serializer,
           codec,
           database,
@@ -242,7 +247,7 @@ int main() {
 
   [[maybe_unused]] auto ctx_factory =
       std::make_shared<kagome::runtime::RuntimeContextFactoryImpl>(module_repo,
-                                                               header_repo);
+                                                                   header_repo);
   [[maybe_unused]] auto executor =
       kagome::runtime::Executor(ctx_factory, cache);
 

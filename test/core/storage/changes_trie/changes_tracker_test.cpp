@@ -11,6 +11,7 @@
 #include "mock/core/storage/trie_pruner/trie_pruner_mock.hpp"
 #include "primitives/event_types.hpp"
 #include "scale/scale.hpp"
+#include "storage/in_memory/in_memory_spaced_storage.hpp"
 #include "storage/in_memory/in_memory_storage.hpp"
 #include "storage/trie/impl/persistent_trie_batch_impl.hpp"
 #include "storage/trie/impl/trie_storage_backend_impl.hpp"
@@ -28,6 +29,7 @@ using kagome::primitives::BlockHash;
 using kagome::primitives::ExtrinsicIndex;
 using kagome::primitives::events::ChainSubscriptionEngine;
 using kagome::primitives::events::StorageSubscriptionEngine;
+using kagome::storage::InMemorySpacedStorage;
 using kagome::storage::InMemoryStorage;
 using kagome::storage::changes_trie::ChangesTracker;
 using kagome::storage::changes_trie::StorageChangesTrackerImpl;
@@ -52,10 +54,13 @@ TEST(ChangesTrieTest, IntegrationWithOverlay) {
   // GIVEN
   auto factory = std::make_shared<PolkadotTrieFactoryImpl>();
   auto codec = std::make_shared<PolkadotCodec>();
-  auto backend = std::make_shared<TrieStorageBackendImpl>(
-      std::make_shared<InMemoryStorage>());
-  auto serializer =
-      std::make_shared<TrieSerializerImpl>(factory, codec, backend);
+  auto in_memory_storage = std::make_shared<InMemorySpacedStorage>();
+  auto node_backend = std::make_shared<TrieStorageBackendImpl>(
+      TrieStorageBackendImpl::NodeTag{}, in_memory_storage);
+  auto value_backend = std::make_shared<TrieStorageBackendImpl>(
+      TrieStorageBackendImpl::ValueTag{}, in_memory_storage);
+  auto serializer = std::make_shared<TrieSerializerImpl>(
+      factory, codec, node_backend, value_backend);
   auto storage_subscription_engine =
       std::make_shared<StorageSubscriptionEngine>();
   auto chain_subscription_engine = std::make_shared<ChainSubscriptionEngine>();
