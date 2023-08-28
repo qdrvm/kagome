@@ -90,7 +90,9 @@ namespace kagome::runtime::binaryen {
         }
       }
 
-      template <typename T, typename = std::enable_if_t<std::is_pod_v<T>>>
+      template <typename T,
+                typename = std::enable_if_t<std::is_standard_layout_v<T>
+                                            and std::is_trivial_v<T>>>
       gsl::span<T> getBuffer(size_t address, size_t n) const {
         return gsl::span<T>((T *)&memory[address], n);
         ;

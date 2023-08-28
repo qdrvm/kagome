@@ -44,7 +44,9 @@ namespace kagome::runtime::wavm {
       return res;
     }
 
-    template <typename T, typename = std::enable_if_t<std::is_pod_v<T>>>
+    template <typename T,
+              typename = std::enable_if_t<std::is_standard_layout_v<T>
+                                          and std::is_trivial_v<T>>>
     gsl::span<T> loadArray(WasmPointer addr, size_t num) const {
       auto res = WAVM::Runtime::memoryArrayPtr<T>(memory_, addr, num);
       gsl::span<T> buffer(res, num);
@@ -111,7 +113,7 @@ namespace kagome::runtime::wavm {
     }
 
     // for testing purposes
-    const MemoryAllocator& getAllocator() const {
+    const MemoryAllocator &getAllocator() const {
       return *allocator_;
     }
 
