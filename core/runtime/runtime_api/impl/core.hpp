@@ -8,26 +8,25 @@
 
 #include "runtime/runtime_api/core.hpp"
 
-#include "common/lru_cache.hpp"
-
-namespace kagome::blockchain {
-  class BlockHeaderRepository;
-}
+#include "runtime/runtime_api/impl/lru.hpp"
 
 namespace kagome::runtime {
 
   class Executor;
   class RuntimePropertiesCache;
 
+  outcome::result<primitives::Version> callCoreVersion(
+      const ModuleFactory &module_factory,
+      common::BufferView code,
+      const std::shared_ptr<RuntimePropertiesCache> &runtime_properties_cache);
+
   class CoreImpl final : public Core {
    public:
     CoreImpl(
         std::shared_ptr<Executor> executor,
         std::shared_ptr<RuntimeContextFactory> ctx_factory,
-        std::shared_ptr<const blockchain::BlockHeaderRepository> header_repo);
-
-    outcome::result<primitives::Version> version(
-        std::shared_ptr<ModuleInstance> instance) override;
+        std::shared_ptr<const blockchain::BlockHeaderRepository> header_repo,
+        std::shared_ptr<RuntimeUpgradeTracker> runtime_upgrade_tracker);
 
     outcome::result<primitives::Version> version(
         const primitives::BlockHash &block) override;
@@ -50,8 +49,9 @@ namespace kagome::runtime {
     std::shared_ptr<Executor> executor_;
     std::shared_ptr<RuntimeContextFactory> ctx_factory_;
     std::shared_ptr<const blockchain::BlockHeaderRepository> header_repo_;
+    std::shared_ptr<RuntimeUpgradeTracker> runtime_upgrade_tracker_;
 
-    LruCache<primitives::BlockHash, primitives::Version> version_{10};
+    RuntimeApiLruCode<primitives::Version> version_{10};
   };
 
 }  // namespace kagome::runtime

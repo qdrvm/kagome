@@ -23,13 +23,6 @@ namespace kagome::runtime {
     virtual ~ParachainHost() = default;
 
     /**
-     * @brief Calls the ParachainHost_duty_roster function from wasm code
-     * @return DutyRoster structure or error if fails
-     */
-    virtual outcome::result<DutyRoster> duty_roster(
-        const primitives::BlockHash &block) = 0;
-
-    /**
      * @brief Calls the ParachainHost_active_parachains function from wasm code
      * @return vector of ParachainId items or error if fails
      */

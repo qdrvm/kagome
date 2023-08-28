@@ -126,19 +126,17 @@ namespace kagome::runtime {
           });
     }
 
-   private:
     template <typename... Args>
     static outcome::result<common::Buffer> encodeArgs(Args &&...args) {
-      common::Buffer encoded_args{};
       if constexpr (sizeof...(args) > 0) {
         OUTCOME_TRY(res, scale::encode(std::forward<Args>(args)...));
-        encoded_args.put(std::move(res));
+        return Buffer{std::move(res)};
       }
-      return encoded_args;
+      return Buffer{};
     }
 
     template <typename Result>
-    static outcome::result<Result> decodeResult(common::Buffer &&result) {
+    static outcome::result<Result> decodeResult(common::BufferView result) {
       if constexpr (std::is_void_v<Result>) {
         return outcome::success();
       } else {

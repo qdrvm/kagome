@@ -6,9 +6,9 @@
 #include "runtime/wavm/core_api_factory_impl.hpp"
 
 #include "runtime/common/constant_code_provider.hpp"
-#include "runtime/executor.hpp"
 #include "runtime/common/runtime_properties_cache_impl.hpp"
 #include "runtime/common/trie_storage_provider_impl.hpp"
+#include "runtime/executor.hpp"
 #include "runtime/module_repository.hpp"
 #include "runtime/runtime_api/impl/core.hpp"
 #include "runtime/runtime_context.hpp"
@@ -120,7 +120,7 @@ namespace kagome::runtime::wavm {
         block_header_repo_);
     auto executor = std::make_unique<runtime::Executor>(ctx_factory, cache_);
     return std::make_unique<CoreImpl>(
-        std::move(executor), ctx_factory, block_header_repo_);
+        std::move(executor), ctx_factory, block_header_repo_, nullptr);
   }
 
 }  // namespace kagome::runtime::wavm
