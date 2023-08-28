@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "consensus/consensus_selector_impl.hpp"
+#include "consensus/timeline/impl/consensus_selector_impl.hpp"
 
 namespace kagome::consensus {
 

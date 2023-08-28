@@ -9,7 +9,6 @@ add_subdirectory(grandpa)
 #add_subdirectory(sassafras)
 
 add_library(consensus
-    consensus_selector_impl.cpp
     validation/babe_block_validator.cpp
     )
 target_link_libraries(consensus
