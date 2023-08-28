@@ -11,7 +11,7 @@
 #include "mock/core/blockchain/block_header_repository_mock.hpp"
 #include "mock/core/storage/trie_pruner/trie_pruner_mock.hpp"
 #include "network/types/state_request.hpp"
-#include "storage/in_memory/in_memory_storage.hpp"
+#include "storage/in_memory/in_memory_spaced_storage.hpp"
 #include "storage/trie/impl/trie_storage_backend_impl.hpp"
 #include "storage/trie/impl/trie_storage_impl.hpp"
 #include "storage/trie/polkadot_trie/polkadot_trie_factory_impl.hpp"
@@ -38,14 +38,22 @@ using testing::_;
 using testing::Return;
 
 std::shared_ptr<TrieStorage> makeEmptyInMemoryTrie() {
-  auto backend =
+  auto spaced_storage =
+      std::make_shared<kagome::storage::InMemorySpacedStorage>();
+  auto node_backend =
       std::make_shared<kagome::storage::trie::TrieStorageBackendImpl>(
-          std::make_shared<kagome::storage::InMemoryStorage>());
+          kagome::storage::trie::TrieStorageBackendImpl::NodeTag{},
+          spaced_storage);
+
+  auto value_backend =
+      std::make_shared<kagome::storage::trie::TrieStorageBackendImpl>(
+          kagome::storage::trie::TrieStorageBackendImpl::ValueTag{},
+          spaced_storage);
 
   auto trie_factory = std::make_shared<PolkadotTrieFactoryImpl>();
   auto codec = std::make_shared<PolkadotCodec>();
-  auto serializer =
-      std::make_shared<TrieSerializerImpl>(trie_factory, codec, backend);
+  auto serializer = std::make_shared<TrieSerializerImpl>(
+      trie_factory, codec, node_backend, value_backend);
   auto state_pruner = std::make_shared<TriePrunerMock>();
   ON_CALL(*state_pruner,
           addNewState(testing::A<const storage::trie::PolkadotTrie &>(), _))

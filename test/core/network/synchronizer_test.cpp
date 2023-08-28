@@ -21,7 +21,7 @@
 #include "mock/core/network/router_mock.hpp"
 #include "mock/core/runtime/core_mock.hpp"
 #include "mock/core/runtime/module_factory_mock.hpp"
-#include "mock/core/storage/persistent_map_mock.hpp"
+#include "mock/core/storage/generic_storage_mock.hpp"
 #include "mock/core/storage/spaced_storage_mock.hpp"
 #include "mock/core/storage/trie/serialization/trie_serializer_mock.hpp"
 #include "mock/core/storage/trie/trie_storage_mock.hpp"

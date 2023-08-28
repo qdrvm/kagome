@@ -101,8 +101,7 @@ namespace kagome::runtime {
     }
 
     resize(new_size);
-    auto current_size = memory_.getSize();
-    BOOST_ASSERT(current_size >= new_size);
+    BOOST_ASSERT(memory_.getSize() >= new_size);
     return allocate(allocation_sz);
   }
 

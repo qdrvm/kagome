@@ -9,7 +9,7 @@
 
 #include "blockchain/block_storage_error.hpp"
 #include "mock/core/crypto/hasher_mock.hpp"
-#include "mock/core/storage/persistent_map_mock.hpp"
+#include "mock/core/storage/generic_storage_mock.hpp"
 #include "mock/core/storage/spaced_storage_mock.hpp"
 #include "scale/scale.hpp"
 #include "storage/database_error.hpp"

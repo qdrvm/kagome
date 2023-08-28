@@ -16,13 +16,16 @@ namespace kagome::storage::trie {
   TrieSerializerImpl::TrieSerializerImpl(
       std::shared_ptr<PolkadotTrieFactory> factory,
       std::shared_ptr<Codec> codec,
-      std::shared_ptr<TrieStorageBackend> backend)
+      std::shared_ptr<TrieNodeStorageBackend> node_backend,
+      std::shared_ptr<TrieValueStorageBackend> value_backend)
       : trie_factory_{std::move(factory)},
         codec_{std::move(codec)},
-        backend_{std::move(backend)} {
+        node_backend_{std::move(node_backend)},
+        value_backend_{std::move(value_backend)}{
     BOOST_ASSERT(trie_factory_ != nullptr);
     BOOST_ASSERT(codec_ != nullptr);
-    BOOST_ASSERT(backend_ != nullptr);
+    BOOST_ASSERT(node_backend_ != nullptr);
+    BOOST_ASSERT(value_backend_ != nullptr);
   }
 
   RootHash TrieSerializerImpl::getEmptyRootHash() const {
@@ -64,7 +67,7 @@ namespace kagome::storage::trie {
 
   outcome::result<RootHash> TrieSerializerImpl::storeRootNode(
       TrieNode &node, StateVersion version) {
-    auto batch = backend_->batch();
+    auto batch = node_backend_->batch();
     BOOST_ASSERT(batch != nullptr);
 
     OUTCOME_TRY(
@@ -113,7 +116,7 @@ namespace kagome::storage::trie {
     }
     Buffer enc;
     if (db_key.isHash()) {
-      OUTCOME_TRY(db, backend_->get(db_key.asBuffer()));
+      OUTCOME_TRY(db, node_backend_->get(db_key.asBuffer()));
       if (on_node_loaded) {
         on_node_loaded(db);
       }
@@ -130,7 +133,7 @@ namespace kagome::storage::trie {
   outcome::result<std::optional<common::Buffer>>
   TrieSerializerImpl::retrieveValue(const common::Hash256 &hash,
                                     const OnNodeLoaded &on_node_loaded) const {
-    OUTCOME_TRY(value, backend_->tryGet(hash));
+    OUTCOME_TRY(value, value_backend_->tryGet(hash));
     return common::map_optional(std::move(value),
                                 [&](common::BufferOrView &&value) {
                                   if (on_node_loaded) {

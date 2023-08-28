@@ -59,7 +59,9 @@ TEST(TriePersistencyTest, CreateDestroyCreate) {
         factory,
         codec,
         std::make_shared<TrieStorageBackendImpl>(
-            rocks_db->getSpace(Space::kDefault)));
+            TrieStorageBackendImpl::NodeTag{}, rocks_db),
+        std::make_shared<TrieStorageBackendImpl>(
+            TrieStorageBackendImpl::ValueTag{}, rocks_db));
 
     auto state_pruner = std::make_shared<TriePrunerMock>();
     ON_CALL(*state_pruner,
@@ -87,7 +89,11 @@ TEST(TriePersistencyTest, CreateDestroyCreate) {
       factory,
       codec,
       std::make_shared<TrieStorageBackendImpl>(
-          new_rocks_db->getSpace(Space::kDefault)));
+          TrieStorageBackendImpl::NodeTag{},
+          new_rocks_db),
+      std::make_shared<TrieStorageBackendImpl>(
+          TrieStorageBackendImpl::ValueTag{},
+          new_rocks_db));
   auto state_pruner = std::make_shared<TriePrunerMock>();
   auto storage =
       TrieStorageImpl::createFromStorage(codec, serializer, state_pruner)

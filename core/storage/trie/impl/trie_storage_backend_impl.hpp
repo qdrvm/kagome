@@ -8,13 +8,19 @@
 
 #include "common/buffer.hpp"
 #include "outcome/outcome.hpp"
+#include "storage/spaced_storage.hpp"
 #include "storage/trie/trie_storage_backend.hpp"
 
 namespace kagome::storage::trie {
 
-  class TrieStorageBackendImpl : public TrieStorageBackend {
+  class TrieStorageBackendImpl : public TrieNodeStorageBackend,
+                                 public TrieValueStorageBackend {
    public:
-    TrieStorageBackendImpl(std::shared_ptr<BufferStorage> storage);
+    struct NodeTag {};
+    TrieStorageBackendImpl(NodeTag, std::shared_ptr<SpacedStorage> storage);
+
+    struct ValueTag {};
+    TrieStorageBackendImpl(ValueTag, std::shared_ptr<SpacedStorage> storage);
 
     ~TrieStorageBackendImpl() override = default;
 

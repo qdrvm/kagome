@@ -7,7 +7,8 @@
 
 #include <memory>
 
-#include "mock/core/storage/persistent_map_mock.hpp"
+#include "mock/core/storage/generic_storage_mock.hpp"
+#include "mock/core/storage/spaced_storage_mock.hpp"
 #include "mock/core/storage/write_batch_mock.hpp"
 #include "storage/trie/impl/trie_storage_backend_impl.hpp"
 #include "testutil/literals.hpp"
@@ -16,6 +17,7 @@
 using kagome::common::Buffer;
 using kagome::common::BufferView;
 using kagome::storage::BufferStorageMock;
+using kagome::storage::SpacedStorageMock;
 using kagome::storage::face::WriteBatchMock;
 using kagome::storage::trie::TrieStorageBackendImpl;
 using testing::Invoke;
@@ -23,9 +25,17 @@ using testing::Return;
 
 class TrieDbBackendTest : public testing::Test {
  public:
+  void SetUp() override {
+    ON_CALL(*spaced_storage, getSpace(kagome::storage::Space::kTrieNode))
+        .WillByDefault(Return(storage));
+  }
+
   std::shared_ptr<BufferStorageMock> storage =
       std::make_shared<BufferStorageMock>();
-  TrieStorageBackendImpl backend{storage};
+  std::shared_ptr<SpacedStorageMock> spaced_storage =
+      std::make_shared<SpacedStorageMock>();
+  TrieStorageBackendImpl backend{TrieStorageBackendImpl::NodeTag{},
+                                 spaced_storage};
 };
 
 /**

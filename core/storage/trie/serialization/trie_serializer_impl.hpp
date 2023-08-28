@@ -13,7 +13,8 @@
 namespace kagome::storage::trie {
   class Codec;
   class PolkadotTrieFactory;
-  class TrieStorageBackend;
+  class TrieNodeStorageBackend;
+  class TrieValueStorageBackend;
   struct BranchNode;
   struct TrieNode;
 }  // namespace kagome::storage::trie
@@ -24,7 +25,8 @@ namespace kagome::storage::trie {
    public:
     TrieSerializerImpl(std::shared_ptr<PolkadotTrieFactory> factory,
                        std::shared_ptr<Codec> codec,
-                       std::shared_ptr<TrieStorageBackend> backend);
+                       std::shared_ptr<TrieNodeStorageBackend> node_backend,
+                       std::shared_ptr<TrieValueStorageBackend> value_backend);
     ~TrieSerializerImpl() override = default;
 
     RootHash getEmptyRootHash() const override;
@@ -66,7 +68,8 @@ namespace kagome::storage::trie {
 
     std::shared_ptr<PolkadotTrieFactory> trie_factory_;
     std::shared_ptr<Codec> codec_;
-    std::shared_ptr<TrieStorageBackend> backend_;
+    std::shared_ptr<TrieNodeStorageBackend> node_backend_;
+    std::shared_ptr<TrieValueStorageBackend> value_backend_;
   };
 }  // namespace kagome::storage::trie
 
