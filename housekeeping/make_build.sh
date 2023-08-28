@@ -15,7 +15,7 @@ cd "$(dirname $0)/.."
 
 git submodule update --init
 
-cmake . -B${BUILD_DIR} "$@"
+cmake . -B${BUILD_DIR} "$@" -DBACKWARD=OFF
 if [ "$BUILD_FINAL_TARGET" != "generated" ] ; then
   cmake --build "${BUILD_DIR}" -- -j${BUILD_THREADS}
 fi

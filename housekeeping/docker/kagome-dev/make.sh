@@ -26,5 +26,5 @@ git submodule update --init
 
 cd "$(dirname $0)/../../.."
 
-cmake . -B"${BUILD_DIR}" -G 'Unix Makefiles' -DCMAKE_BUILD_TYPE="${BUILD_TYPE}"
+cmake . -B"${BUILD_DIR}" -G 'Unix Makefiles' -DCMAKE_BUILD_TYPE="${BUILD_TYPE}" -DBACKWARD=OFF
 cmake --build "${BUILD_DIR}" --target kagome -- -j${BUILD_THREADS}
