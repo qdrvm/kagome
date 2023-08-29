@@ -228,7 +228,7 @@ namespace kagome::network {
     std::shared_ptr<consensus::grandpa::Environment> grandpa_environment_;
     primitives::events::ChainSubscriptionEnginePtr chain_sub_engine_;
 
-    application::AppConfiguration::SyncMethod sync_method_;
+    application::SyncMethod sync_method_;
 
     // Metrics
     metrics::RegistryPtr metrics_registry_ = metrics::createRegistry();

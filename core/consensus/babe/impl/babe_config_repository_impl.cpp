@@ -59,7 +59,7 @@ namespace kagome::consensus::babe {
       : persistent_storage_(
           persistent_storage->getSpace(storage::Space::kDefault)),
         config_warp_sync_{app_config.syncMethod()
-                          == application::AppConfiguration::SyncMethod::Warp},
+                          == application::SyncMethod::Warp},
         block_tree_(std::move(block_tree)),
         indexer_{
             std::make_shared<storage::MapPrefix>(

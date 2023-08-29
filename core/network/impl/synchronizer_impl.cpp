@@ -54,8 +54,8 @@ namespace {
       "kagome_import_queue_blocks_submitted";
 
   kagome::network::BlockAttributes attributesForSync(
-      kagome::application::AppConfiguration::SyncMethod method) {
-    using SM = kagome::application::AppConfiguration::SyncMethod;
+      kagome::application::SyncMethod method) {
+    using SM = kagome::application::SyncMethod;
     switch (method) {
       case SM::Full:
         return kagome::network::BlocksRequest::kBasicAttributes;
@@ -1060,7 +1060,7 @@ namespace kagome::network {
     state_sync_.reset();
 
     // State syncing has completed; Switch to the full syncing
-    sync_method_ = application::AppConfiguration::SyncMethod::Full;
+    sync_method_ = application::SyncMethod::Full;
     lock.unlock();
     cb(block);
     return outcome::success();
@@ -1144,7 +1144,7 @@ namespace kagome::network {
               }
             };
 
-        if (sync_method_ == application::AppConfiguration::SyncMethod::Full) {
+        if (sync_method_ == application::SyncMethod::Full) {
           // Regular syncing
           primitives::Block block{
               .header = std::move(block_data.header.value()),
@@ -1263,10 +1263,9 @@ namespace kagome::network {
   void SynchronizerImpl::postApplyBlock(const primitives::BlockHash &hash) {
     ancestry_.erase(hash);
 
-    auto minPreloadedBlockAmount =
-        sync_method_ == application::AppConfiguration::SyncMethod::Full
-            ? kMinPreloadedBlockAmount
-            : kMinPreloadedBlockAmountForFastSyncing;
+    auto minPreloadedBlockAmount = sync_method_ == application::SyncMethod::Full
+                                     ? kMinPreloadedBlockAmount
+                                     : kMinPreloadedBlockAmountForFastSyncing;
 
     if (known_blocks_.size() < minPreloadedBlockAmount) {
       SL_TRACE(log_,
@@ -1464,7 +1463,7 @@ namespace kagome::network {
           }
         };
 
-        if (sync_method_ == application::AppConfiguration::SyncMethod::Full) {
+        if (sync_method_ == application::SyncMethod::Full) {
           auto lower = generations_.begin()->first;
           auto upper = generations_.rbegin()->first + 1;
           auto hint = generations_.rbegin()->first;

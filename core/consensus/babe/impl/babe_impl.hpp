@@ -199,7 +199,7 @@ namespace kagome::consensus::babe {
     outcome::result<primitives::Seal> sealBlock(
         const primitives::Block &block) const;
 
-    application::AppConfiguration::SyncMethod sync_method_;
+    application::SyncMethod sync_method_;
     bool app_config_validator_;
     std::shared_ptr<application::AppStateManager> app_state_manager_;
     std::shared_ptr<BabeLottery> lottery_;

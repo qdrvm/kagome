@@ -9,6 +9,7 @@
 
 #include "application/app_configuration.hpp"
 #include "application/app_state_manager.hpp"
+#include "application/sync_method.hpp"
 #include "authorship/proposer.hpp"
 #include "blockchain/block_tree.hpp"
 #include "blockchain/block_tree_error.hpp"
@@ -50,7 +51,7 @@ using namespace std::literals::chrono_literals;
 
 namespace kagome::consensus::babe {
   using ParachainInherentData = parachain::ParachainInherentData;
-  using SyncMethod = application::AppConfiguration::SyncMethod;
+  using SyncMethod = application::SyncMethod;
 
   metrics::HistogramTimer metric_block_proposal_time{
       "kagome_proposer_block_constructed",

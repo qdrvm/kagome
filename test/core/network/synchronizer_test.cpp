@@ -79,7 +79,7 @@ class SynchronizerTest
     EXPECT_CALL(*scheduler, scheduleImplMockCall(_, _, _)).Times(AnyNumber());
 
     EXPECT_CALL(app_config, syncMethod())
-        .WillOnce(Return(application::AppConfiguration::SyncMethod::Full));
+        .WillOnce(Return(application::SyncMethod::Full));
 
     auto state_pruner =
         std::make_shared<kagome::storage::trie_pruner::TriePrunerMock>();
