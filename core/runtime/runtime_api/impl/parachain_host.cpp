@@ -108,8 +108,8 @@ namespace kagome::runtime {
     if (auto r = validation_code_by_hash_.exclusiveAccess(
             [&](typename decltype(validation_code_by_hash_)::Type
                     &validation_code_by_hash_) {
-              auto r = validation_code_by_hash_.get(hash);
-              return r ? std::make_optional(r->get()) : std::nullopt;
+              auto v = validation_code_by_hash_.get(hash);
+              return v ? std::make_optional(v->get()) : std::nullopt;
             })) {
       return *r;
     }

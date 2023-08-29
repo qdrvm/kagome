@@ -117,8 +117,8 @@ namespace kagome::runtime {
                   upgrades.getLastCodeUpdateState({block_number, block_hash}));
       if (auto r =
               lru_.exclusiveAccess([&](typename decltype(lru_)::Type &lru_) {
-                auto r = lru_.get(hash);
-                return r ? std::make_optional(r->get()) : std::nullopt;
+                auto v = lru_.get(hash);
+                return v ? std::make_optional(v->get()) : std::nullopt;
               })) {
         return *r;
       }
