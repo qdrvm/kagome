@@ -70,7 +70,9 @@
 #include "consensus/timeline/impl/block_appender_base.hpp"
 #include "consensus/timeline/impl/block_executor_impl.hpp"
 #include "consensus/timeline/impl/block_header_appender_impl.hpp"
+#include "consensus/timeline/impl/consensus_selector_impl.hpp"
 #include "consensus/timeline/impl/consistency_keeper_impl.hpp"
+#include "consensus/timeline/impl/timeline_impl.hpp"
 #include "consensus/validation/babe_block_validator.hpp"
 #include "crypto/bip39/impl/bip39_provider_impl.hpp"
 #include "crypto/crypto_store/crypto_store_impl.hpp"
@@ -809,6 +811,8 @@ namespace {
                 .template to<
                              consensus::grandpa::Grandpa
                             >(),
+            di::bind<consensus::ConsensusSelector>.template to<consensus::ConsensusSelectorImpl>(),
+            di::bind<consensus::Timeline>.template to<consensus::TimelineImpl>(),
 
             // user-defined overrides...
             std::forward<decltype(args)>(args)...);
@@ -928,6 +932,10 @@ namespace kagome::injector {
   std::shared_ptr<dispute::DisputeCoordinator>
   KagomeNodeInjector::injectDisputeCoordinator() {
     return pimpl_->injector_.create<sptr<dispute::DisputeCoordinator>>();
+  }
+
+  std::shared_ptr<consensus::Timeline> KagomeNodeInjector::injectTimeline() {
+    return pimpl_->injector_.template create<sptr<consensus::Timeline>>();
   }
 
   std::shared_ptr<consensus::babe::Babe> KagomeNodeInjector::injectBabe() {
