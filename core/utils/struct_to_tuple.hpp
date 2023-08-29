@@ -13,10 +13,6 @@
 #include <type_traits>
 #include <vector>
 
-#include <boost/variant.hpp>
-#include <gsl/span>
-#include <scale/bitvec.hpp>
-
 namespace kagome::utils {
 
   template <typename T, typename... TArgs>
@@ -81,7 +77,7 @@ namespace kagome::scale {
   outcome::result<void> encode(T &&t, Args &&...args);
 
   void putByte(uint8_t val) {
-    std::cout << std::hex << val;
+    std::cout << std::hex << (uint32_t)val;
   }
 
   template <typename... Ts>
@@ -103,7 +99,7 @@ namespace kagome::scale {
         return outcome::success();
       }
 
-      if constexpr (sizeof(T) == 1u) {
+      if constexpr (sizeof(I) == 1u) {
         putByte(static_cast<uint8_t>(v));
         return outcome::success();
       }
