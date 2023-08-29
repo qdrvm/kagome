@@ -134,6 +134,7 @@ namespace kagome::storage::trie_pruner {
     std::mutex ref_count_mutex_;
     std::unordered_map<common::Hash256, size_t> ref_count_;
     std::unordered_map<common::Hash256, size_t> value_ref_count_;
+    std::unordered_set<common::Hash256> immortal_nodes_;
 
     std::optional<primitives::BlockInfo> last_pruned_block_;
     std::shared_ptr<storage::trie::TrieStorageBackend> trie_storage_;
@@ -143,6 +144,7 @@ namespace kagome::storage::trie_pruner {
     std::shared_ptr<const crypto::Hasher> hasher_;
 
     const std::optional<uint32_t> pruning_depth_{};
+    const bool thorough_pruning_{false};
     log::Logger logger_ = log::createLogger("TriePruner", "trie_pruner");
   };
 
