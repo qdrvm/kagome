@@ -8,6 +8,9 @@ RUN cp /home/nonroot/bin/wasm_binary_spec_version_incremented.rs.compact.compres
         /home/nonroot/kagome/zombienet/0004-runtime-upgrade/ && \
     cp /home/nonroot/bin/wasm_binary_spec_version_incremented.rs.compact.compressed.wasm \
         /home/nonroot/kagome/zombienet/0004-runtime-upgrade-kagome/
+RUN mkdir /home/nonroot/.local && \
+   chown nonroot:nonroot /home/nonroot/.local && \
+   chown nonroot:nonroot /tmp
 USER nonroot
 CMD zombienet-linux-x64 test -p native kagome/zombienet/0001-parachains-smoke-test/0001-parachains-smoke-test.zndsl && \
     zombienet-linux-x64 test -p native kagome/zombienet/0002-parachains-upgrade-smoke-tests/0002-parachains-upgrade-smoke-test.zndsl && \
