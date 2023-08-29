@@ -9,6 +9,7 @@
 
 #include "application/app_configuration.hpp"
 #include "clock/timer.hpp"
+#include "consensus/production_consensus.hpp"
 #include "consensus/timeline/sync_state.hpp"
 #include "injector/lazy.hpp"
 #include "log/logger.hpp"
@@ -90,7 +91,9 @@ namespace kagome::consensus::babe {
   /// block production. This is an intentional relaxation of block dropping algo
   static constexpr auto kMaxBlockSlotsOvertime = 2;
 
-  class BabeImpl : public Babe, public std::enable_shared_from_this<BabeImpl> {
+  class BabeImpl : public Babe,
+                   public ProductionConsensus,
+                   public std::enable_shared_from_this<BabeImpl> {
    public:
     /**
      * Create an instance of Babe implementation
@@ -127,8 +130,6 @@ namespace kagome::consensus::babe {
         primitives::events::BabeStateSubscriptionEnginePtr
             babe_status_observable,
         std::shared_ptr<dispute::DisputeCoordinator> dispute_coordinator);
-
-    ~BabeImpl() override = default;
 
     /** @see AppStateManager::takeControl */
     bool prepare();

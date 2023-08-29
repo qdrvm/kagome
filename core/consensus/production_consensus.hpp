@@ -11,6 +11,7 @@ namespace kagome::consensus {
 
   class ProductionConsensus {
    public:
+    ProductionConsensus() = default;
     virtual ~ProductionConsensus() = default;
 
     ProductionConsensus(ProductionConsensus &&) noexcept = delete;
