@@ -205,8 +205,7 @@ class BabeTest : public testing::Test {
         babe_status_observable_,
         dispute_coordinator_);
 
-    epoch_.start_slot = 0;
-    epoch_.epoch_number = 0;
+    epoch_ = 0;
 
     // add extrinsics root to the header
     std::vector<common::Buffer> encoded_exts(
@@ -257,7 +256,7 @@ class BabeTest : public testing::Test {
 
   std::shared_ptr<babe::BabeImpl> babe_;
 
-  EpochDescriptor epoch_;
+  EpochNumber epoch_;
 
   VRFOutput leader_vrf_output_{uint256_to_le_bytes(50), {}};
   std::array<std::optional<VRFOutput>, 2> leadership_{std::nullopt,
@@ -305,9 +304,9 @@ ACTION_P(CheckBlockHeader, expected_block_header) {
  */
 TEST_F(BabeTest, Success) {
   Randomness randomness;
+  auto undefined_epoch = std::numeric_limits<EpochNumber>::max();
   EXPECT_CALL(*lottery_, getEpoch())
-      .WillOnce(
-          Return(EpochDescriptor{0, std::numeric_limits<uint64_t>::max()}))
+      .WillOnce(Return(undefined_epoch))
       .WillOnce(Return(epoch_));
   EXPECT_CALL(*lottery_, changeEpoch(epoch_, randomness, _, *keypair_))
       .Times(1);

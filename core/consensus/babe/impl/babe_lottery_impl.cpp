@@ -24,19 +24,19 @@ namespace kagome::consensus::babe {
     BOOST_ASSERT(hasher_);
     BOOST_ASSERT(logger_);
     BOOST_ASSERT(babe_config_repo);
-    epoch_.epoch_number = std::numeric_limits<uint64_t>::max();
+    epoch_ = std::numeric_limits<EpochNumber>::max();
   }
 
-  void BabeLotteryImpl::changeEpoch(const EpochDescriptor &epoch,
+  void BabeLotteryImpl::changeEpoch(EpochNumber epoch,
                                     const Randomness &randomness,
                                     const Threshold &threshold,
                                     const crypto::Sr25519Keypair &keypair) {
     SL_TRACE(logger_,
              "Epoch changed "
              "FROM epoch {} with randomness {} TO epoch {} with randomness {}",
-             epoch_.epoch_number,
+             epoch_,
              randomness_,
-             epoch.epoch_number,
+             epoch,
              randomness);
 
     epoch_ = epoch;
@@ -45,18 +45,17 @@ namespace kagome::consensus::babe {
     keypair_ = keypair;
   }
 
-  EpochDescriptor BabeLotteryImpl::getEpoch() const {
+  EpochNumber BabeLotteryImpl::getEpoch() const {
     return epoch_;
   }
 
   std::optional<crypto::VRFOutput> BabeLotteryImpl::getSlotLeadership(
       SlotNumber slot) const {
-    BOOST_ASSERT_MSG(
-        epoch_.epoch_number != std::numeric_limits<uint64_t>::max(),
-        "Epoch must be initialized before this point");
+    BOOST_ASSERT_MSG(epoch_ != std::numeric_limits<uint64_t>::max(),
+                     "Epoch must be initialized before this point");
 
     primitives::Transcript transcript;
-    prepareTranscript(transcript, randomness_, slot, epoch_.epoch_number);
+    prepareTranscript(transcript, randomness_, slot, epoch_);
 
     auto res = vrf_provider_->signTranscript(transcript, keypair_, threshold_);
 
@@ -65,19 +64,18 @@ namespace kagome::consensus::babe {
         "prepareTranscript (leadership): randomness {}, slot {}, epoch {}{}",
         randomness_,
         slot,
-        epoch_.epoch_number,
+        epoch_,
         res.has_value() ? " - SLOT LEADER" : "");
 
     return res;
   }
 
   crypto::VRFOutput BabeLotteryImpl::slotVrfSignature(SlotNumber slot) const {
-    BOOST_ASSERT_MSG(
-        epoch_.epoch_number != std::numeric_limits<uint64_t>::max(),
-        "Epoch must be initialized before this point");
+    BOOST_ASSERT_MSG(epoch_ != std::numeric_limits<uint64_t>::max(),
+                     "Epoch must be initialized before this point");
 
     primitives::Transcript transcript;
-    prepareTranscript(transcript, randomness_, slot, epoch_.epoch_number);
+    prepareTranscript(transcript, randomness_, slot, epoch_);
     auto res = vrf_provider_->signTranscript(transcript, keypair_);
 
     BOOST_ASSERT(res);

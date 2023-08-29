@@ -13,13 +13,13 @@ namespace kagome::consensus::babe {
   struct BabeLotteryMock : public BabeLottery {
     MOCK_METHOD(void,
                 changeEpoch,
-                (const EpochDescriptor &,
+                (EpochNumber,
                  const Randomness &,
                  const Threshold &,
                  const crypto::Sr25519Keypair &),
                 (override));
 
-    MOCK_METHOD(EpochDescriptor, getEpoch, (), (const, override));
+    MOCK_METHOD(EpochNumber, getEpoch, (), (const, override));
 
     MOCK_METHOD(std::optional<crypto::VRFOutput>,
                 getSlotLeadership,

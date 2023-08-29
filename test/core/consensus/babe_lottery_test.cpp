@@ -95,7 +95,8 @@ TEST_F(BabeLotteryTest, SlotsLeadership) {
   }
 
   // WHEN
-  lottery_.changeEpoch(current_epoch_, randomness_, threshold_, keypair_);
+  lottery_.changeEpoch(
+      current_epoch_.epoch_number, randomness_, threshold_, keypair_);
 
   std::array<std::optional<VRFOutput>, 3> leadership = {
       lottery_.getSlotLeadership(0),

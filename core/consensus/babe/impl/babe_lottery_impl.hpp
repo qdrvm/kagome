@@ -30,12 +30,12 @@ namespace kagome::consensus::babe {
                     std::shared_ptr<BabeConfigRepository> babe_config_repo,
                     std::shared_ptr<crypto::Hasher> hasher);
 
-    void changeEpoch(const EpochDescriptor &epoch,
+    void changeEpoch(EpochNumber epoch,
                      const Randomness &randomness,
                      const Threshold &threshold,
                      const crypto::Sr25519Keypair &keypair) override;
 
-    EpochDescriptor getEpoch() const override;
+    EpochNumber getEpoch() const override;
 
     std::optional<crypto::VRFOutput> getSlotLeadership(
         SlotNumber i) const override;
@@ -53,7 +53,7 @@ namespace kagome::consensus::babe {
 
     log::Logger logger_;
 
-    EpochDescriptor epoch_;
+    EpochNumber epoch_;
     Randomness randomness_;
     Threshold threshold_;
     crypto::Sr25519Keypair keypair_;

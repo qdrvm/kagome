@@ -833,8 +833,9 @@ namespace kagome::consensus::babe {
         metric_is_relaychain_validator_->set(true);
         keypair_ = std::move(keypair->first);
         const auto &authority_index = keypair->second;
-        if (lottery_->getEpoch() != current_epoch_) {
-          changeLotteryEpoch(current_epoch_, authority_index, babe_config);
+        if (lottery_->getEpoch() != current_epoch_.epoch_number) {
+          changeLotteryEpoch(
+              current_epoch_.epoch_number, authority_index, babe_config);
         }
 
         auto slot_leadership = lottery_->getSlotLeadership(current_slot_);
@@ -1211,7 +1212,7 @@ namespace kagome::consensus::babe {
   }
 
   void BabeImpl::changeLotteryEpoch(
-      const EpochDescriptor &epoch,
+      const EpochNumber &epoch,
       primitives::AuthorityIndex authority_index,
       const primitives::BabeConfiguration &babe_config) const {
     BOOST_ASSERT(keypair_ != nullptr);

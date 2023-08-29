@@ -187,7 +187,7 @@ namespace kagome::consensus::babe {
         primitives::AuthorityIndex authority_index);
 
     void changeLotteryEpoch(
-        const EpochDescriptor &epoch,
+        const EpochNumber &epoch,
         primitives::AuthorityIndex authority_index,
         const primitives::BabeConfiguration &babe_config) const;
 
