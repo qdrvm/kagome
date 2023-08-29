@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "consensus/babe/babe_error.hpp"
+#include "consensus/babe/impl/babe_error.hpp"
 
 OUTCOME_CPP_DEFINE_CATEGORY(kagome::consensus::babe, BabeError, e) {
   using E = kagome::consensus::babe::BabeError;

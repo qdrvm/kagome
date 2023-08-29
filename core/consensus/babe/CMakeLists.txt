@@ -9,7 +9,7 @@ add_library(babe
     impl/threshold_util.cpp
     impl/babe_lottery_impl.cpp
     impl/babe_config_repository_impl.cpp
-    babe_error.cpp
+    impl/babe_error.cpp
     )
 target_link_libraries(babe
 #    mp_utils
