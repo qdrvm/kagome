@@ -158,7 +158,7 @@ ACTION_P(blockTree_getBlockHeader, local_blocks) {
     if (local_blocks[block_number].hash == hash) {
       const auto &block_info = local_blocks[block_number];
       std::cout << "Result: " << block_info.hash.data() << std::endl;
-      return BlockHeader{.number = block_info.number};
+      return BlockHeader{block_info.number, {}, {}, {}, {}};
     }
   }
   std::cout << "Result: not found" << std::endl;
@@ -198,8 +198,8 @@ ACTION_P(syncProtocol_request, remote_blocks) {
   network::BlocksResponse response;
 
   if (bi.has_value()) {
-    response.blocks.emplace_back(BlockData{
-        .hash = bi->hash, .header = BlockHeader{.number = bi->number}});
+    response.blocks.emplace_back(
+        BlockData{.hash = bi->hash, .header = {{bi->number, {}, {}, {}, {}}}});
   }
 
   handler(response);

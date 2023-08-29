@@ -190,9 +190,11 @@ TEST_F(BlockExecutorTest, JustificationFollowDigests) {
   AuthorityList authorities{Authority{{"auth0"_hash256}, 1},
                             Authority{{"auth1"_hash256}, 1}};
   kagome::primitives::BlockHeader header{
-      .parent_hash = "parent_hash"_hash256,
-      .number = 42,
-      .digest = kagome::primitives::Digest{
+      42,                     // number
+      "parent_hash"_hash256,  // parent
+      {},                     // state root
+      {},                     // extrinsics root
+      kagome::primitives::Digest{
           kagome::primitives::PreRuntime{{
               kagome::primitives::kBabeEngineId,
               Buffer{scale::encode(BabeBlockHeader{.authority_index = 1,
@@ -229,7 +231,7 @@ TEST_F(BlockExecutorTest, JustificationFollowDigests) {
       .WillOnce(testing::Return(outcome::success()));
   EXPECT_CALL(*block_tree_, getBlockHeader("parent_hash"_hash256))
       .WillRepeatedly(testing::Return(kagome::primitives::BlockHeader{
-          .parent_hash = "grandparent_hash"_hash256, .number = 40}));
+          40, "grandparent_hash"_hash256, {}, {}, {}}));
   EXPECT_CALL(*block_tree_, getLastFinalized())
       .WillOnce(testing::Return(BlockInfo{40, "grandparent_hash"_hash256}))
       .WillOnce(testing::Return(BlockInfo{42, "some_hash"_hash256}));

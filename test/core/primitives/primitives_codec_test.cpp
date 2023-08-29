@@ -68,11 +68,11 @@ class Primitives : public testing::Test {
  protected:
   using array = std::array<uint8_t, 8u>;
   /// block header and corresponding scale representation
-  BlockHeader block_header_{createHash256({0}),     // parent_hash
-                            2,                      // number: number
+  BlockHeader block_header_{2,                      // number: number
+                            createHash256({0}),     // parent_hash
                             createHash256({1}),     // state_root
                             createHash256({2}),     // extrinsic root
-                            Digest{PreRuntime{}}};  // buffer: digest;
+                            Digest{PreRuntime{}}};  // digest;
   /// Extrinsic instance and corresponding scale representation
   Extrinsic extrinsic_{{1, 2, 3}};
   /// block instance and corresponding scale representation
@@ -97,8 +97,7 @@ class Primitives : public testing::Test {
   /// TransactionValidity variant instance as Valid alternative and
   /// corresponding scale representation
   ValidTransaction valid_transaction_{.priority = 1,
-                                      .required_tags
-                                      = {{0, 1}, {2, 3}},
+                                      .required_tags = {{0, 1}, {2, 3}},
                                       .provided_tags = {{4, 5}, {6, 7, 8}},
                                       .longevity = 2,
                                       .propagate = true};

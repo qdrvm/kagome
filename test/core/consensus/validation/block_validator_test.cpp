@@ -110,9 +110,11 @@ class BlockValidatorTest : public testing::Test {
                                {vrf_value_, vrf_proof_}};
   Buffer encoded_babe_header_{scale::encode(babe_header_).value()};
 
-  BlockHeader block_header_{
-      .parent_hash = parent_hash_,
-      .digest = {PreRuntime{{kEngineId, encoded_babe_header_}}}};
+  BlockHeader block_header_{123,           // number
+                            parent_hash_,  // parent
+                            {},            // state root
+                            {},            // extrinsics root
+                            {PreRuntime{{kEngineId, encoded_babe_header_}}}};
   Extrinsic ext_{Buffer{0x11, 0x22}};
   BlockBody block_body_{ext_};
   Block valid_block_{block_header_, block_body_};

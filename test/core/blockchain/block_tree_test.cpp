@@ -288,10 +288,10 @@ struct BlockTreeTest : public testing::Test {
     return digest;
   };
 
-  BlockHeader first_block_header_{.number = 1, .digest = make_digest(1)};
+  BlockHeader first_block_header_ = makeBlockHeader(1, {}, make_digest(1));
 
-  BlockHeader finalized_block_header_{.number = kFinalizedBlockInfo.number,
-                                      .digest = make_digest(42)};
+  BlockHeader finalized_block_header_ =
+      makeBlockHeader(kFinalizedBlockInfo.number, {}, make_digest(42));
 
   BlockBody finalized_block_body_{{Buffer{0x22, 0x44}}, {Buffer{0x55, 0x66}}};
 
@@ -308,6 +308,12 @@ struct BlockTreeTest : public testing::Test {
   }
   void delNumToHash(BlockNumber number) {
     num_to_hash_.erase(number);
+  }
+
+  BlockHeader makeBlockHeader(BlockNumber number,
+                              BlockHash parent,
+                              Digest digest) {
+    return BlockHeader{number, std::move(parent), {}, {}, std::move(digest)};
   }
 };
 
@@ -347,9 +353,8 @@ TEST_F(BlockTreeTest, AddBlock) {
   ASSERT_TRUE(children_res.value().empty());
 
   // WHEN
-  BlockHeader header{.parent_hash = kFinalizedBlockInfo.hash,
-                     .number = kFinalizedBlockInfo.number + 1,
-                     .digest = {PreRuntime{}}};
+  BlockHeader header = makeBlockHeader(
+      kFinalizedBlockInfo.number + 1, kFinalizedBlockInfo.hash, {PreRuntime{}});
   BlockBody body{{Buffer{0x55, 0x55}}};
   Block new_block{header, body};
   auto hash = addBlock(new_block);
@@ -374,7 +379,7 @@ TEST_F(BlockTreeTest, AddBlock) {
  */
 TEST_F(BlockTreeTest, AddBlockNoParent) {
   // GIVEN
-  BlockHeader header{.digest = {PreRuntime{}}};
+  BlockHeader header = makeBlockHeader(123, {}, {PreRuntime{}});
   BlockBody body{{Buffer{0x55, 0x55}}};
   Block new_block{header, body};
 
@@ -393,9 +398,8 @@ TEST_F(BlockTreeTest, Finalize) {
   auto &&last_finalized_hash = block_tree_->getLastFinalized().hash;
   ASSERT_EQ(last_finalized_hash, kFinalizedBlockInfo.hash);
 
-  BlockHeader header{.parent_hash = kFinalizedBlockInfo.hash,
-                     .number = kFinalizedBlockInfo.number + 1,
-                     .digest = {PreRuntime{}}};
+  BlockHeader header = makeBlockHeader(
+      kFinalizedBlockInfo.number + 1, kFinalizedBlockInfo.hash, {PreRuntime{}});
   BlockBody body{{Buffer{0x55, 0x55}}};
   Block new_block{header, body};
   auto hash = addBlock(new_block);
@@ -442,23 +446,20 @@ TEST_F(BlockTreeTest, FinalizeWithPruning) {
   auto &&A_finalized_hash = block_tree_->getLastFinalized().hash;
   ASSERT_EQ(A_finalized_hash, kFinalizedBlockInfo.hash);
 
-  BlockHeader B_header{.parent_hash = A_finalized_hash,
-                       .number = kFinalizedBlockInfo.number + 1,
-                       .digest = {PreRuntime{}}};
+  BlockHeader B_header = makeBlockHeader(
+      kFinalizedBlockInfo.number + 1, A_finalized_hash, {PreRuntime{}});
   BlockBody B_body{{Buffer{0x55, 0x55}}};
   Block B_block{B_header, B_body};
   auto B_hash = addBlock(B_block);
 
-  BlockHeader B1_header{.parent_hash = A_finalized_hash,
-                        .number = kFinalizedBlockInfo.number + 1,
-                        .digest = {PreRuntime{}}};
+  BlockHeader B1_header = makeBlockHeader(
+      kFinalizedBlockInfo.number + 1, A_finalized_hash, {PreRuntime{}});
   BlockBody B1_body{{Buffer{0x55, 0x56}}};
   Block B1_block{B1_header, B1_body};
   auto B1_hash = addBlock(B1_block);
 
-  BlockHeader C1_header{.parent_hash = B1_hash,
-                        .number = kFinalizedBlockInfo.number + 2,
-                        .digest = {PreRuntime{}}};
+  BlockHeader C1_header =
+      makeBlockHeader(kFinalizedBlockInfo.number + 2, B1_hash, {PreRuntime{}});
   BlockBody C1_body{{Buffer{0x55, 0x57}}};
   Block C1_block{C1_header, C1_body};
   auto C1_hash = addBlock(C1_block);
@@ -510,23 +511,20 @@ TEST_F(BlockTreeTest, FinalizeWithPruningDeepestLeaf) {
   auto &&A_finalized_hash = block_tree_->getLastFinalized().hash;
   ASSERT_EQ(A_finalized_hash, kFinalizedBlockInfo.hash);
 
-  BlockHeader B_header{.parent_hash = A_finalized_hash,
-                       .number = kFinalizedBlockInfo.number + 1,
-                       .digest = {PreRuntime{}}};
+  BlockHeader B_header = makeBlockHeader(
+      kFinalizedBlockInfo.number + 1, A_finalized_hash, {PreRuntime{}});
   BlockBody B_body{{Buffer{0x55, 0x55}}};
   Block B_block{B_header, B_body};
   auto B_hash = addBlock(B_block);
 
-  BlockHeader B1_header{.parent_hash = A_finalized_hash,
-                        .number = kFinalizedBlockInfo.number + 1,
-                        .digest = {PreRuntime{}}};
+  BlockHeader B1_header = makeBlockHeader(
+      kFinalizedBlockInfo.number + 1, A_finalized_hash, {PreRuntime{}});
   BlockBody B1_body{{Buffer{0x55, 0x56}}};
   Block B1_block{B1_header, B1_body};
   auto B1_hash = addBlock(B1_block);
 
-  BlockHeader C1_header{.parent_hash = B1_hash,
-                        .number = kFinalizedBlockInfo.number + 2,
-                        .digest = {PreRuntime{}}};
+  BlockHeader C1_header =
+      makeBlockHeader(kFinalizedBlockInfo.number + 2, B1_hash, {PreRuntime{}});
   BlockBody C1_body{{Buffer{0x55, 0x57}}};
   Block C1_block{C1_header, C1_body};
   auto C1_hash = addBlock(C1_block);
@@ -675,16 +673,14 @@ TEST_F(BlockTreeTest, TreeNode_applyToChain_exitTokenWorks) {
  */
 TEST_F(BlockTreeTest, GetChainByBlockAscending) {
   // GIVEN
-  BlockHeader header{.parent_hash = kFinalizedBlockInfo.hash,
-                     .number = kFinalizedBlockInfo.number + 1,
-                     .digest = {PreRuntime{}}};
+  BlockHeader header = makeBlockHeader(
+      kFinalizedBlockInfo.number + 1, kFinalizedBlockInfo.hash, {PreRuntime{}});
   BlockBody body{{Buffer{0x55, 0x55}}};
   Block new_block{header, body};
   auto hash1 = addBlock(new_block);
 
-  header = BlockHeader{.parent_hash = hash1,
-                       .number = kFinalizedBlockInfo.number + 2,
-                       .digest = {Consensus{}}};
+  header =
+      makeBlockHeader(kFinalizedBlockInfo.number + 2, hash1, {Consensus{}});
   body = BlockBody{{Buffer{0x55, 0x55}}};
   new_block = Block{header, body};
   auto hash2 = addBlock(new_block);
@@ -706,18 +702,13 @@ TEST_F(BlockTreeTest, GetChainByBlockAscending) {
  */
 TEST_F(BlockTreeTest, GetChainByBlockDescending) {
   // GIVEN
-  BlockHeader header{.parent_hash = kFinalizedBlockInfo.hash,
-                     .number = kFinalizedBlockInfo.number + 1,
-                     .digest = {PreRuntime{}}};
+  BlockHeader header = makeBlockHeader(
+      kFinalizedBlockInfo.number + 1, kFinalizedBlockInfo.hash, {PreRuntime{}});
   BlockBody body{{Buffer{0x55, 0x55}}};
   Block new_block{header, body};
   auto hash1 = addBlock(new_block);
 
-  header = BlockHeader{
-      .parent_hash = hash1,
-      .number = header.number + 1,
-      .digest = {Consensus{}},
-  };
+  header = makeBlockHeader(header.number + 1, hash1, {Consensus{}});
   body = BlockBody{{Buffer{0x55, 0x55}}};
   new_block = Block{header, body};
   auto hash2 = addBlock(new_block);

@@ -265,19 +265,24 @@ class BabeTest : public testing::Test {
 
   BlockHash best_block_hash_ = "block#0"_hash256;
   BlockNumber best_block_number_ = 0u;
-  BlockHeader best_block_header_{.parent_hash = {},
-                                 .number = best_block_number_,
-                                 .state_root = "state_root#0"_hash256,
-                                 .extrinsics_root = "extrinsic_root#0"_hash256,
-                                 .digest = {}};
+  BlockHeader best_block_header_{
+      best_block_number_,          // number
+      {},                          // parent
+      "state_root#0"_hash256,      // state_root
+      "extrinsic_root#0"_hash256,  // extrinsic_root
+      {}                           // digest
+  };
 
   primitives::BlockInfo best_leaf{best_block_number_, best_block_hash_};
 
-  BlockHeader block_header_{.parent_hash = best_block_hash_,
-                            .number = best_block_number_ + 1,
-                            .state_root = "state_root#1"_hash256,
-                            .extrinsics_root = "extrinsic_root#1"_hash256,
-                            .digest = make_digest(0)};
+  BlockHeader block_header_{
+      best_block_number_ + 1,      // number
+      best_block_hash_,            // parent
+      "state_root#1"_hash256,      // state_root
+      "extrinsic_root#1"_hash256,  // extrinsic_root
+      make_digest(0)               // digest
+  };
+
   Extrinsic extrinsic_{{1, 2, 3}};
   Block created_block_{block_header_, {extrinsic_}};
 

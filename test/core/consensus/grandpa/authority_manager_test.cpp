@@ -210,8 +210,11 @@ class AuthorityManagerTest : public testing::Test {
   void finalize_block(const primitives::BlockInfo &block) {
     EXPECT_CALL(*block_tree, getLastFinalized()).WillRepeatedly(Return(block));
     primitives::BlockHeader header{
-        .number = block.number,
-        .state_root = block.hash  // fake just for blocks differentiation
+        block.number,  // number
+        {},            // parent
+        block.hash,    // state root. it's fake just for blocks differentiation
+        {},            // extrinsics root
+        {}             // digest
     };
     static std::map<primitives::BlockHash, common::Buffer> encoded_headers;
     auto encoded_header =

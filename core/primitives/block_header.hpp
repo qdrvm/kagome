@@ -23,6 +23,18 @@ namespace kagome::primitives {
    * @struct BlockHeader represents header of a block
    */
   struct BlockHeader {
+    BlockHeader() = default;
+    BlockHeader(BlockNumber number,
+                BlockHash parent,
+                storage::trie::RootHash state_root,
+                common::Hash256 extrinsics_root,
+                Digest digest)
+        : parent_hash(std::move(parent)),
+          number(number),
+          state_root(std::move(state_root)),
+          extrinsics_root(std::move(extrinsics_root)),
+          digest(std::move(digest)) {}
+
     BlockHash parent_hash{};  ///< 32-byte Blake2s hash of parent header
     BlockNumber number = 0u;  ///< index of the block in the chain
     storage::trie::RootHash state_root{};  ///< root of the Merkle tree
@@ -48,6 +60,16 @@ namespace kagome::primitives {
       }
       return std::nullopt;
     }
+
+    const BlockHash &hash(const crypto::Hasher &hasher) const {
+      if (not hash_.has_value()) {
+        hash_.emplace(hasher.blake2b_256(scale::encode(*this).value()));
+      }
+      return hash_.value();
+    }
+
+   private:
+    mutable std::optional<BlockHash> hash_{};
   };
 
   struct BlockHeaderReflection {

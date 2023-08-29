@@ -91,8 +91,11 @@ class ExecutorTest : public testing::Test {
 
     EXPECT_CALL(*header_repo_, getBlockHeader(blockchain_state.hash))
         .WillRepeatedly(Return(kagome::primitives::BlockHeader{
-            .number = blockchain_state.number,
-            .state_root = storage_state,
+            blockchain_state.number,  // number
+            {},                       // parent
+            storage_state,            // state root
+            {},                       // extrinsics root
+            {}                        // digest
         }));
 
     auto module_instance = std::make_shared<ModuleInstanceMock>();
@@ -155,8 +158,7 @@ TEST_F(ExecutorTest, LatestStateSwitchesCorrectly) {
   Buffer enc_args{scale::encode(2, 3).value()};
   prepareCall(
       block_info1, "state_hash1"_hash256, CallType::Persistent, enc_args, 5);
-  auto ctx =
-      ctx_factory_->persistentAt(block_info1.hash, std::nullopt).value();
+  auto ctx = ctx_factory_->persistentAt(block_info1.hash, std::nullopt).value();
   auto res = executor.decodedCallWithCtx<int>(ctx, "addTwo", 2, 3).value();
   EXPECT_EQ(res, 5);
 
@@ -190,8 +192,7 @@ TEST_F(ExecutorTest, LatestStateSwitchesCorrectly) {
       block_info2, "state_hash4"_hash256, CallType::Persistent, enc_args, 0);
   auto ctx5 =
       ctx_factory_->persistentAt(block_info2.hash, std::nullopt).value();
-  EXPECT_EQ(executor.decodedCallWithCtx<int>(ctx5, "addTwo", -5, 5).value(),
-            0);
+  EXPECT_EQ(executor.decodedCallWithCtx<int>(ctx5, "addTwo", -5, 5).value(), 0);
 
   enc_args = scale::encode(7, 10).value();
   prepareCall(
