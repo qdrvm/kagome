@@ -46,7 +46,7 @@ namespace kagome::consensus::babe {
 
 namespace kagome::consensus::grandpa {
   class GrandpaDigestObserver;
-  struct JustificationObserver;
+  class JustificationObserver;
 }  // namespace kagome::consensus::grandpa
 
 namespace kagome::crypto {

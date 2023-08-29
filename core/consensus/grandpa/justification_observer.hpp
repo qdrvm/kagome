@@ -17,7 +17,8 @@ namespace kagome::consensus::grandpa {
    * @class JustificationObserver
    * @brief observes justification assigned to syncing blocks.
    */
-  struct JustificationObserver {
+  class JustificationObserver {
+   public:
     virtual ~JustificationObserver() = default;
     using ApplyJustificationCb = std::function<void(outcome::result<void> &&)>;
 

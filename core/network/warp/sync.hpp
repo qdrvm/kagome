@@ -23,7 +23,7 @@ namespace kagome::consensus::babe {
 }  // namespace kagome::consensus::babe
 
 namespace kagome::consensus::grandpa {
-  struct JustificationObserver;
+  class JustificationObserver;
   class AuthorityManager;
 }  // namespace kagome::consensus::grandpa
 
