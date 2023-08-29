@@ -50,8 +50,7 @@ namespace kagome::api::state::request {
       if (not param2.IsString()) {
         throw jsonrpc::InvalidParametersFault(
             "Parameter '[at]' must be a hex string representation of an "
-            "encoded "
-            "optional byte sequence");
+            "encoded optional byte sequence");
       }
       OUTCOME_TRY(at_span, common::unhexWith0x(param2.AsString()));
       OUTCOME_TRY(at, primitives::BlockHash::fromSpan(at_span));
