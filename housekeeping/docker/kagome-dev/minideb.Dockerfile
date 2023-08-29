@@ -43,8 +43,6 @@ RUN curl -fsSL https://download.docker.com/linux/debian/gpg | gpg --dearmor -o /
         docker-ce-cli \
         containerd.io \
         build-essential \
-        gcc-10 \
-        g++-10 \
         gcc-11 \
         g++-11 \
         gcc-12 \
@@ -65,10 +63,12 @@ RUN curl -fsSL https://download.docker.com/linux/debian/gpg | gpg --dearmor -o /
         llvm-14-dev \
         clang-tidy-14 \
         clang-format-14 \
+        libclang-rt-14-dev \
         clang-15 \
         llvm-15-dev \
         clang-tidy-15 \
         clang-format-15 \
+        libclang-rt-15-dev \
         make \
         git \
         ccache \
@@ -111,8 +111,8 @@ RUN set -e; \
 ENV LLVM_ROOT=/usr/lib/llvm-11
 ENV LLVM_DIR=/usr/lib/llvm-11/lib/cmake/llvm/
 ENV PATH=${LLVM_ROOT}/bin:${LLVM_ROOT}/share/clang:${PATH}
-ENV CC=gcc-10
-ENV CXX=g++-10
+ENV CC=gcc-11
+ENV CXX=g++-11
 
 # set default compilers and tools
 
@@ -144,14 +144,10 @@ RUN update-alternatives --install /usr/bin/python       python       /venv/bin/p
     update-alternatives --install /usr/bin/clang        clang        /usr/lib/llvm-15/bin/clang-15  50 && \
     update-alternatives --install /usr/bin/clang++      clang++      /usr/bin/clang++-15            50 && \
 
-    update-alternatives --install /usr/bin/gcc          gcc          /usr/bin/gcc-10                90 && \
-    update-alternatives --install /usr/bin/g++          g++          /usr/bin/g++-10                90 && \
-    update-alternatives --install /usr/bin/gcov         gcov         /usr/bin/gcov-10               90 && \
+    update-alternatives --install /usr/bin/gcc          gcc          /usr/bin/gcc-11                90 && \
+    update-alternatives --install /usr/bin/g++          g++          /usr/bin/g++-11                90 && \
+    update-alternatives --install /usr/bin/gcov         gcov         /usr/bin/gcov-11               90 && \
 
-    update-alternatives --install /usr/bin/gcc          gcc          /usr/bin/gcc-11                80 && \
-    update-alternatives --install /usr/bin/g++          g++          /usr/bin/g++-11                80 && \
-    update-alternatives --install /usr/bin/gcov         gcov         /usr/bin/gcov-11               80 && \
-
-    update-alternatives --install /usr/bin/gcc          gcc          /usr/bin/gcc-12                70 && \
-    update-alternatives --install /usr/bin/g++          g++          /usr/bin/g++-12                70 && \
-    update-alternatives --install /usr/bin/gcov         gcov         /usr/bin/gcov-12               70
+    update-alternatives --install /usr/bin/gcc          gcc          /usr/bin/gcc-12                80 && \
+    update-alternatives --install /usr/bin/g++          g++          /usr/bin/g++-12                80 && \
+    update-alternatives --install /usr/bin/gcov         gcov         /usr/bin/gcov-12               80
