@@ -13,6 +13,22 @@
 #include <type_traits>
 #include <vector>
 
+#define REP0(X)
+#define REP1(X) X
+#define REP2(X) REP1(X), X
+#define REP3(X) REP2(X), X
+#define REP4(X) REP3(X), X
+#define REP5(X) REP4(X), X
+#define REP6(X) REP5(X), X
+#define REP7(X) REP6(X), X
+#define REP8(X) REP7(X), X
+#define REP9(X) REP8(X), X
+#define REP10(X) REP9(X), X
+
+#define REPEAT(TENS,ONES,X) \
+  REP##TENS(REP10(X)) \
+  REP##ONES(X)
+
 namespace kagome::utils {
 
   template <typename T, typename... TArgs>
@@ -32,12 +48,7 @@ namespace kagome::utils {
   template <typename T>
   auto to_tuple(T &&object) noexcept {
     using type = std::decay_t<T>;
-    if constexpr (is_braces_constructible<type,
-                                          any_type,
-                                          any_type,
-                                          any_type,
-                                          any_type,
-                                          any_type>{}) {
+    if constexpr (is_braces_constructible<type, REPEAT(0, 5, any_type)>{}) {
       auto &&[p1, p2, p3, p4, p5] = object;
       return std::make_tuple(p1, p2, p3, p4, p5);
     } else if constexpr (is_braces_constructible<type,
