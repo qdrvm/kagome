@@ -9,6 +9,7 @@
 
 #include "application/app_configuration.hpp"
 #include "clock/timer.hpp"
+#include "consensus/timeline/sync_state.hpp"
 #include "injector/lazy.hpp"
 #include "log/logger.hpp"
 #include "metrics/metrics.hpp"
@@ -137,7 +138,7 @@ namespace kagome::consensus::babe {
 
     void runEpoch();
 
-    State getCurrentState() const override;
+    SyncState getCurrentState() const override;
 
     void onBlockAnnounceHandshake(
         const libp2p::peer::PeerId &peer_id,
@@ -236,7 +237,7 @@ namespace kagome::consensus::babe {
 
     bool warp_sync_busy_ = false;
 
-    State current_state_{State::WAIT_REMOTE_STATUS};
+    SyncState current_state_{SyncState::WAIT_REMOTE_STATUS};
 
     bool was_synchronized_{false};
 

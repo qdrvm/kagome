@@ -133,15 +133,15 @@ namespace kagome::consensus::grandpa {
             babe_status_observable_, false);
     babe_status_observer_->subscribe(
         babe_status_observer_->generateSubscriptionSetId(),
-        primitives::events::BabeStateEventType::kSyncState);
+        primitives::events::SyncStateEventType::kSyncState);
     babe_status_observer_->setCallback(
         [wself{weak_from_this()}](
             auto /*set_id*/,
             bool &synchronized,
             auto /*event_type*/,
-            const primitives::events::BabeStateEventParams &event) {
+            const primitives::events::SyncStateEventParams &event) {
           if (auto self = wself.lock()) {
-            if (event == babe::Babe::State::SYNCHRONIZED) {
+            if (event == SyncState::SYNCHRONIZED) {
               self->synchronized_once_.store(true);
             }
           }

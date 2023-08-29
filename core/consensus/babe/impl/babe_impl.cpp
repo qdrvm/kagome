@@ -311,8 +311,8 @@ namespace kagome::consensus::babe {
                                     &event) {
       if (type == primitives::events::ChainEventType::kFinalizedHeads) {
         if (auto self = wp.lock()) {
-          if (self->current_state_ != Babe::State::HEADERS_LOADING
-              and self->current_state_ != Babe::State::STATE_LOADING) {
+          if (self->current_state_ != SyncState::HEADERS_LOADING
+              and self->current_state_ != SyncState::STATE_LOADING) {
             const auto &header =
                 boost::get<primitives::events::HeadsEventParams>(event).get();
             auto hash =
@@ -370,15 +370,15 @@ namespace kagome::consensus::babe {
 
     switch (sync_method_) {
       case SyncMethod::Full:
-        current_state_ = State::WAIT_REMOTE_STATUS;
+        current_state_ = SyncState::WAIT_REMOTE_STATUS;
         break;
 
       case SyncMethod::Fast:
       case SyncMethod::Warp:
       case SyncMethod::FastWithoutState: {
-        current_state_ = State::HEADERS_LOADING;
+        current_state_ = SyncState::HEADERS_LOADING;
         babe_status_observable_->notify(
-            primitives::events::BabeStateEventType::kSyncState, current_state_);
+            primitives::events::SyncStateEventType::kSyncState, current_state_);
       } break;
 
       case SyncMethod::Auto:
@@ -409,7 +409,7 @@ namespace kagome::consensus::babe {
     runSlot();
   }
 
-  Babe::State BabeImpl::getCurrentState() const {
+  SyncState BabeImpl::getCurrentState() const {
     return current_state_;
   }
 
@@ -417,7 +417,7 @@ namespace kagome::consensus::babe {
       const libp2p::peer::PeerId &peer_id,
       const network::BlockAnnounceHandshake &handshake) {
     // If state is loading, just to ping of loading
-    if (current_state_ == Babe::State::STATE_LOADING) {
+    if (current_state_ == SyncState::STATE_LOADING) {
       startStateSyncing(peer_id);
       return;
     }
@@ -434,13 +434,13 @@ namespace kagome::consensus::babe {
     const auto &current_best_block = current_best_block_res.value();
 
     if (current_best_block == handshake.best_block) {
-      if (current_state_ == Babe::State::HEADERS_LOADING) {
-        current_state_ = Babe::State::HEADERS_LOADED;
+      if (current_state_ == SyncState::HEADERS_LOADING) {
+        current_state_ = SyncState::HEADERS_LOADED;
         babe_status_observable_->notify(
-            primitives::events::BabeStateEventType::kSyncState, current_state_);
+            primitives::events::SyncStateEventType::kSyncState, current_state_);
         startStateSyncing(peer_id);
-      } else if (current_state_ == Babe::State::CATCHING_UP
-                 or current_state_ == Babe::State::WAIT_REMOTE_STATUS) {
+      } else if (current_state_ == SyncState::CATCHING_UP
+                 or current_state_ == SyncState::WAIT_REMOTE_STATUS) {
         onCaughtUp(current_best_block);
       }
       return;
@@ -457,7 +457,7 @@ namespace kagome::consensus::babe {
   void BabeImpl::onBlockAnnounce(const libp2p::peer::PeerId &peer_id,
                                  const network::BlockAnnounce &announce) {
     // If state is loading, just to ping of loading
-    if (current_state_ == Babe::State::STATE_LOADING) {
+    if (current_state_ == SyncState::STATE_LOADING) {
       startStateSyncing(peer_id);
       return;
     }
@@ -479,8 +479,8 @@ namespace kagome::consensus::babe {
     }
 
     // Start catching up if gap recognized
-    if (current_state_ == Babe::State::SYNCHRONIZED
-        or current_state_ == Babe::State::HEADERS_LOADED) {
+    if (current_state_ == SyncState::SYNCHRONIZED
+        or current_state_ == SyncState::HEADERS_LOADED) {
       if (announce.header.number > current_best_block.number + 1) {
         auto block_hash =
             hasher_->blake2b_256(scale::encode(announce.header).value());
@@ -505,23 +505,23 @@ namespace kagome::consensus::babe {
             const auto &block = block_res.value();
 
             // Headers are loaded; Start sync of state
-            if (self->current_state_ == Babe::State::HEADERS_LOADING) {
-              self->current_state_ = Babe::State::HEADERS_LOADED;
+            if (self->current_state_ == SyncState::HEADERS_LOADING) {
+              self->current_state_ = SyncState::HEADERS_LOADED;
               self->babe_status_observable_->notify(
-                  primitives::events::BabeStateEventType::kSyncState,
+                  primitives::events::SyncStateEventType::kSyncState,
                   self->current_state_);
               self->startStateSyncing(peer_id);
               return;
             }
 
             // Caught up some block, possible block of current slot
-            if (self->current_state_ == Babe::State::CATCHING_UP
-                or self->current_state_ == State::WAIT_REMOTE_STATUS) {
+            if (self->current_state_ == SyncState::CATCHING_UP
+                or self->current_state_ == SyncState::WAIT_REMOTE_STATUS) {
               self->onCaughtUp(block);
             }
 
             // Synced
-            if (self->current_state_ == Babe::State::SYNCHRONIZED) {
+            if (self->current_state_ == SyncState::SYNCHRONIZED) {
               // Set actual block status
               announce.state = block == self->block_tree_->bestLeaf()
                                  ? network::BlockState::Best
@@ -537,7 +537,7 @@ namespace kagome::consensus::babe {
 
   bool BabeImpl::warpSync(const libp2p::peer::PeerId &peer_id,
                           primitives::BlockNumber block_number) {
-    if (current_state_ != State::HEADERS_LOADING) {
+    if (current_state_ != SyncState::HEADERS_LOADING) {
       return false;
     }
     if (sync_method_ != SyncMethod::Warp) {
@@ -545,7 +545,7 @@ namespace kagome::consensus::babe {
     }
     auto target = warp_sync_->request();
     if (not target) {
-      current_state_ = State::HEADERS_LOADED;
+      current_state_ = SyncState::HEADERS_LOADED;
       startStateSyncing(peer_id);
       return true;
     }
@@ -577,7 +577,7 @@ namespace kagome::consensus::babe {
 
   void BabeImpl::startCatchUp(const libp2p::peer::PeerId &peer_id,
                               const primitives::BlockInfo &target_block) {
-    BOOST_ASSERT(current_state_ != Babe::State::STATE_LOADING);
+    BOOST_ASSERT(current_state_ != SyncState::STATE_LOADING);
 
     // synchronize missing blocks with their bodies
     auto is_ran = synchronizer_->syncByBlockInfo(
@@ -607,37 +607,37 @@ namespace kagome::consensus::babe {
     if (is_ran) {
       SL_VERBOSE(
           log_, "Catching up {} to block {} is ran", peer_id, target_block);
-      if (current_state_ == State::HEADERS_LOADED) {
-        current_state_ = State::HEADERS_LOADING;
+      if (current_state_ == SyncState::HEADERS_LOADED) {
+        current_state_ = SyncState::HEADERS_LOADING;
         babe_status_observable_->notify(
-            primitives::events::BabeStateEventType::kSyncState, current_state_);
-      } else if (current_state_ == State::WAIT_BLOCK_ANNOUNCE
-                 or current_state_ == State::WAIT_REMOTE_STATUS
-                 or current_state_ == State::SYNCHRONIZED) {
-        current_state_ = State::CATCHING_UP;
+            primitives::events::SyncStateEventType::kSyncState, current_state_);
+      } else if (current_state_ == SyncState::WAIT_BLOCK_ANNOUNCE
+                 or current_state_ == SyncState::WAIT_REMOTE_STATUS
+                 or current_state_ == SyncState::SYNCHRONIZED) {
+        current_state_ = SyncState::CATCHING_UP;
         babe_status_observable_->notify(
-            primitives::events::BabeStateEventType::kSyncState, current_state_);
+            primitives::events::SyncStateEventType::kSyncState, current_state_);
       }
     }
   }
 
   void BabeImpl::startStateSyncing(const libp2p::peer::PeerId &peer_id) {
-    BOOST_ASSERT(current_state_ == Babe::State::HEADERS_LOADED
-                 or current_state_ == Babe::State::STATE_LOADING);
-    if (current_state_ != Babe::State::HEADERS_LOADED
-        and current_state_ != Babe::State::STATE_LOADING) {
+    BOOST_ASSERT(current_state_ == SyncState::HEADERS_LOADED
+                 or current_state_ == SyncState::STATE_LOADING);
+    if (current_state_ != SyncState::HEADERS_LOADED
+        and current_state_ != SyncState::STATE_LOADING) {
       SL_WARN(log_, "Syncing of state can not be start: Bad state of babe");
       return;
     }
 
-    current_state_ = Babe::State::STATE_LOADING;
+    current_state_ = SyncState::STATE_LOADING;
     babe_status_observable_->notify(
-        primitives::events::BabeStateEventType::kSyncState, current_state_);
+        primitives::events::SyncStateEventType::kSyncState, current_state_);
 
     auto best_block =
         block_tree_->getBlockHeader(block_tree_->bestLeaf().hash).value();
     if (trie_storage_->getEphemeralBatchAt(best_block.state_root)) {
-      current_state_ = Babe::State::CATCHING_UP;
+      current_state_ = SyncState::CATCHING_UP;
       return;
     }
 
@@ -720,9 +720,9 @@ namespace kagome::consensus::babe {
             SL_INFO(self->log_,
                     "State on block {} is synced successfully",
                     block_at_state);
-            self->current_state_ = Babe::State::CATCHING_UP;
+            self->current_state_ = SyncState::CATCHING_UP;
             self->babe_status_observable_->notify(
-                primitives::events::BabeStateEventType::kSyncState,
+                primitives::events::SyncStateEventType::kSyncState,
                 self->current_state_);
           }
         });
@@ -737,9 +737,9 @@ namespace kagome::consensus::babe {
       auto slot_res = getBabeSlot(header_opt.value());
       if (slot_res.has_value()) {
         if (babe_util_->timeToSlot(clock_->now()) > slot_res.value() + 1) {
-          current_state_ = Babe::State::WAIT_REMOTE_STATUS;
+          current_state_ = SyncState::WAIT_REMOTE_STATUS;
           babe_status_observable_->notify(
-              primitives::events::BabeStateEventType::kSyncState,
+              primitives::events::SyncStateEventType::kSyncState,
               current_state_);
           return;
         }
@@ -756,10 +756,10 @@ namespace kagome::consensus::babe {
       telemetry_->notifyWasSynchronized();
     }
     metric_is_major_syncing_->set(!was_synchronized_);
-    current_state_ = Babe::State::SYNCHRONIZED;
+    current_state_ = SyncState::SYNCHRONIZED;
 
     babe_status_observable_->notify(
-        primitives::events::BabeStateEventType::kSyncState, current_state_);
+        primitives::events::SyncStateEventType::kSyncState, current_state_);
 
     if (not active_) {
       best_block_ = block_tree_->bestLeaf();
@@ -1222,4 +1222,5 @@ namespace kagome::consensus::babe {
 
     lottery_->changeEpoch(epoch, babe_config.randomness, threshold, *keypair_);
   }
+
 }  // namespace kagome::consensus::babe

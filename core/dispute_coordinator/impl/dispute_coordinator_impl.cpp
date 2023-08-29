@@ -211,15 +211,15 @@ namespace kagome::dispute {
             babe_status_observable_, false);
     babe_status_sub_->subscribe(
         babe_status_sub_->generateSubscriptionSetId(),
-        primitives::events::BabeStateEventType::kSyncState);
+        primitives::events::SyncStateEventType::kSyncState);
     babe_status_sub_->setCallback(
         [wself{weak_from_this()}](
             auto /*set_id*/,
             bool &synchronized,
             auto /*event_type*/,
-            const primitives::events::BabeStateEventParams &event) {
+            const primitives::events::SyncStateEventParams &event) {
           if (auto self = wself.lock()) {
-            if (event == consensus::babe::Babe::State::SYNCHRONIZED) {
+            if (event == consensus::SyncState::SYNCHRONIZED) {
               self->was_synchronized_ = true;
             }
           }

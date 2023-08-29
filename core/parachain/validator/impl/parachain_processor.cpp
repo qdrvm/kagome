@@ -156,15 +156,15 @@ namespace kagome::parachain {
             babe_status_observable_, false);
     babe_status_observer_->subscribe(
         babe_status_observer_->generateSubscriptionSetId(),
-        primitives::events::BabeStateEventType::kSyncState);
+        primitives::events::SyncStateEventType::kSyncState);
     babe_status_observer_->setCallback(
         [wself{weak_from_this()}, was_synchronized = false](
             auto /*set_id*/,
             bool &synchronized,
             auto /*event_type*/,
-            const primitives::events::BabeStateEventParams &event) mutable {
+            const primitives::events::SyncStateEventParams &event) mutable {
           if (auto self = wself.lock()) {
-            if (event == consensus::babe::Babe::State::SYNCHRONIZED) {
+            if (event == consensus::SyncState::SYNCHRONIZED) {
               if (not was_synchronized) {
                 self->bitfield_signer_->start(
                     self->peer_view_->intoChainEventsEngine());
