@@ -35,27 +35,25 @@
 #define REP7Y(X) REP6Y(X), X##7
 #define REP8Y(X) REP7Y(X), X##8
 #define REP9Y(X) REP8Y(X), X##9
-#define REP10Y(X) REP9Y(X), X##10
 
 #define REPEAT(TENS, ONES, X) REP##TENS(REP10(X)) REP##ONES(X)
-#define REPEATY(TENS, ONES, X) REP##TENS##Y(REP10Y(X)) REP##ONES##Y(X)
-#define TO_TUPLE_N(TENS, ONES)                                             \
-  if constexpr (is_braces_constructible<type,                              \
-                                        REPEAT(TENS, ONES, any_type)>{}) { \
-    auto &&[REPEATY(TENS, ONES, p)] = object;                              \
-    return std::make_tuple(REPEATY(TENS, ONES, p));                        \
+#define REPEATY(ONES, X) REP##ONES##Y(X)
+#define TO_TUPLE_N(ONES)                                                      \
+  if constexpr (is_braces_constructible<type, REPEAT(0, ONES, any_type)>{}) { \
+    auto &&[REPEATY(ONES, p)] = object;                                       \
+    return std::make_tuple(REPEATY(ONES, p));                                 \
   }
 
-#define TO_TUPLE1 TO_TUPLE_N(0, 1) else { return std::make_tuple(); } 
-#define TO_TUPLE2 TO_TUPLE_N(0, 2) else TO_TUPLE1 
-#define TO_TUPLE3 TO_TUPLE_N(0, 3) else TO_TUPLE2 
-#define TO_TUPLE4 TO_TUPLE_N(0, 4) else TO_TUPLE3 
-#define TO_TUPLE5 TO_TUPLE_N(0, 5) else TO_TUPLE4 
-#define TO_TUPLE6 TO_TUPLE_N(0, 6) else TO_TUPLE5 
-#define TO_TUPLE7 TO_TUPLE_N(0, 7) else TO_TUPLE6 
-#define TO_TUPLE8 TO_TUPLE_N(0, 8) else TO_TUPLE7 
-#define TO_TUPLE9 TO_TUPLE_N(0, 9) else TO_TUPLE8 
-#define TO_TUPLE10 TO_TUPLE_N(1, 0) else TO_TUPLE9 
+#define TO_TUPLE1 \
+  TO_TUPLE_N(1) else { return std::make_tuple(); }
+#define TO_TUPLE2 TO_TUPLE_N(2) else TO_TUPLE1
+#define TO_TUPLE3 TO_TUPLE_N(3) else TO_TUPLE2
+#define TO_TUPLE4 TO_TUPLE_N(4) else TO_TUPLE3
+#define TO_TUPLE5 TO_TUPLE_N(5) else TO_TUPLE4
+#define TO_TUPLE6 TO_TUPLE_N(6) else TO_TUPLE5
+#define TO_TUPLE7 TO_TUPLE_N(7) else TO_TUPLE6
+#define TO_TUPLE8 TO_TUPLE_N(8) else TO_TUPLE7
+#define TO_TUPLE9 TO_TUPLE_N(9) else TO_TUPLE8
 
 namespace kagome::utils {
 
