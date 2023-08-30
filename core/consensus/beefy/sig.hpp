@@ -23,7 +23,7 @@ namespace kagome::consensus::beefy {
   }
 
   inline size_t threshold(size_t n) {
-    return n == 0 ? 0 : (2 * n + 1) / 3;
+    return n == 0 ? 0 : n - (n - 1) / 3;
   }
 
   inline bool verify(const crypto::EcdsaProvider &ecdsa,
