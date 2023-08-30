@@ -16,6 +16,7 @@ namespace kagome::runtime {
    */
   enum class RuntimeTransactionError {  // 0 is reserved for success
     NO_TRANSACTIONS_WERE_STARTED = 1,
+    EXPORT_FUNCTION_NOT_FOUND,
   };
 }  // namespace kagome::runtime
 

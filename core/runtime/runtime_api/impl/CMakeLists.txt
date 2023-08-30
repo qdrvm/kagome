@@ -27,6 +27,14 @@ target_link_libraries(babe_api
     executor
     )
 
+add_library(beefy_api
+    beefy.cpp
+    )
+target_link_libraries(beefy_api
+    executor
+    runtime_transaction_error
+    )
+
 add_library(block_builder_api
     block_builder.cpp
     )
