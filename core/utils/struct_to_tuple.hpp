@@ -96,8 +96,9 @@ namespace kagome::scale {
   template <typename... Ts>
   void encode(std::tuple<Ts...> &&v) {
     if constexpr (sizeof...(Ts) > 0) {
-      std::apply([&](auto &&...s) { (..., encode(std::move(s))); },
-                 std::move(v));
+      std::apply(
+          [&](auto &&...s) { (..., encode(std::forward<decltype(s)>(s))); },
+          std::forward<decltype(v)>(v));
     }
   }
 
@@ -133,7 +134,7 @@ namespace kagome::scale {
         putByte((uint8_t)((v >> (i * 8)) & 0xff));
       }
     } else {
-      encode(utils::to_tuple(std::move(v)));
+      encode(utils::to_tuple(std::forward<T>(v)));
     }
   }
 
