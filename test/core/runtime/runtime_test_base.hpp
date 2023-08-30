@@ -38,12 +38,12 @@
 #include "primitives/block.hpp"
 #include "primitives/block_header.hpp"
 #include "primitives/block_id.hpp"
-#include "runtime/executor.hpp"
 #include "runtime/common/module_repository_impl.hpp"
 #include "runtime/common/runtime_instances_pool.hpp"
 #include "runtime/common/runtime_transaction_error.hpp"
 #include "runtime/common/runtime_upgrade_tracker_impl.hpp"
 #include "runtime/core_api_factory.hpp"
+#include "runtime/executor.hpp"
 #include "runtime/module.hpp"
 #include "runtime/runtime_context.hpp"
 #include "storage/in_memory/in_memory_storage.hpp"
@@ -177,8 +177,8 @@ class RuntimeTestBase : public ::testing::Test {
   }
 
   void prepareEphemeralStorageExpects() {
-    EXPECT_CALL(*trie_storage_, getEphemeralBatchAt(_))
-        .WillOnce(testing::Invoke([this](auto &root) {
+    ON_CALL(*trie_storage_, getEphemeralBatchAt(_))
+        .WillByDefault(testing::Invoke([this](auto &root) {
           auto batch = std::make_unique<TrieBatchMock>();
           prepareStorageBatchExpectations(*batch);
           return batch;

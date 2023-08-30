@@ -18,11 +18,6 @@ namespace kagome::runtime {
 
     MOCK_METHOD(outcome::result<primitives::Version>,
                 version,
-                (std::shared_ptr<ModuleInstance>),
-                (override));
-
-    MOCK_METHOD(outcome::result<primitives::Version>,
-                version,
                 (const primitives::BlockHash &block),
                 (override));
 

@@ -8,10 +8,10 @@
 
 #include "runtime/runtime_api/parachain_host.hpp"
 
-#include "common/lru_cache.hpp"
 #include "network/peer_view.hpp"
 #include "primitives/block_id.hpp"
 #include "primitives/event_types.hpp"
+#include "runtime/runtime_api/impl/lru.hpp"
 
 namespace kagome::runtime {
 
@@ -21,10 +21,9 @@ namespace kagome::runtime {
       : public ParachainHost,
         public std::enable_shared_from_this<ParachainHostImpl> {
    public:
-    explicit ParachainHostImpl(std::shared_ptr<Executor> executor);
-
-    outcome::result<DutyRoster> duty_roster(
-        const primitives::BlockHash &block) override;
+    explicit ParachainHostImpl(
+        std::shared_ptr<Executor> executor,
+        primitives::events::ChainSubscriptionEnginePtr chain_events_engine);
 
     outcome::result<std::vector<ParachainId>> active_parachains(
         const primitives::BlockHash &block) override;
@@ -108,27 +107,34 @@ namespace kagome::runtime {
     void clearCaches(const std::vector<primitives::BlockHash> &blocks);
 
     std::shared_ptr<Executor> executor_;
-    std::shared_ptr<network::PeerView> peer_view_;
+    primitives::events::ChainSubscriptionEnginePtr chain_events_engine_;
 
     std::shared_ptr<primitives::events::ChainEventSubscriber> chain_sub_;
 
-    template <typename T, typename... Ts>
-    using C = LruCache<std::tuple<primitives::BlockHash, Ts...>, T>;
-
-    C<std::vector<ParachainId>> active_parachains_{10};
-    C<std::optional<Buffer>> parachain_head_{10};
-    C<std::optional<Buffer>, ParachainId> parachain_code_{10};
-    C<std::vector<ValidatorId>> validators_{10};
-    C<ValidatorGroupsAndDescriptor> validator_groups_{10};
-    C<std::vector<CoreState>> availability_cores_{10};
-    C<SessionIndex> session_index_for_child_{10};
-    C<std::optional<Buffer>, ValidationCodeHash> validation_code_by_hash_{10};
-    C<std::optional<CommittedCandidateReceipt>, ParachainId>
+    RuntimeApiLruBlock<std::vector<ParachainId>> active_parachains_{10};
+    RuntimeApiLruBlockArg<ParachainId, std::optional<Buffer>> parachain_head_{
+        10,
+    };
+    RuntimeApiLruBlockArg<ParachainId, std::optional<Buffer>> parachain_code_{
+        10,
+    };
+    RuntimeApiLruBlock<std::vector<ValidatorId>> validators_{10};
+    RuntimeApiLruBlock<ValidatorGroupsAndDescriptor> validator_groups_{10};
+    RuntimeApiLruBlock<std::vector<CoreState>> availability_cores_{10};
+    RuntimeApiLruBlock<SessionIndex> session_index_for_child_{10};
+    SafeObject<Lru<common::Hash256, common::Buffer>> validation_code_by_hash_{
+        10,
+    };
+    RuntimeApiLruBlockArg<ParachainId, std::optional<CommittedCandidateReceipt>>
         candidate_pending_availability_{10};
-    C<std::vector<CandidateEvent>> candidate_events_{10};
-    C<std::optional<SessionInfo>, SessionIndex> session_info_{10};
-    C<std::vector<InboundDownwardMessage>, ParachainId> dmq_contents_{10};
-    C<std::map<ParachainId, std::vector<InboundHrmpMessage>>, ParachainId>
+    RuntimeApiLruBlock<std::vector<CandidateEvent>> candidate_events_{10};
+    RuntimeApiLruBlockArg<SessionIndex, std::optional<SessionInfo>>
+        session_info_{10};
+    RuntimeApiLruBlockArg<ParachainId, std::vector<InboundDownwardMessage>>
+        dmq_contents_{10};
+    RuntimeApiLruBlockArg<
+        ParachainId,
+        std::map<ParachainId, std::vector<InboundHrmpMessage>>>
         inbound_hrmp_channels_contents_{10};
   };
 

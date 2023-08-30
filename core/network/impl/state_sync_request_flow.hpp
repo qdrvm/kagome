@@ -15,8 +15,8 @@
 #include "storage/trie/polkadot_trie/polkadot_trie_impl.hpp"
 
 namespace kagome::runtime {
-  class Core;
   class ModuleFactory;
+  class RuntimePropertiesCache;
 }  // namespace kagome::runtime
 
 namespace kagome::storage::trie {
@@ -66,7 +66,8 @@ namespace kagome::network {
 
     outcome::result<void> commit(
         const runtime::ModuleFactory &module_factory,
-        runtime::Core &core_api,
+        const std::shared_ptr<runtime::RuntimePropertiesCache>
+            &runtime_properties_cache,
         storage::trie::TrieSerializer &trie_serializer);
 
    private:
