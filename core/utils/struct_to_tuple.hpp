@@ -46,17 +46,16 @@
     return std::make_tuple(REPEATY(TENS, ONES, p));                        \
   }
 
-#define TO_TUPLE0 TO_TUPLE_N(0, 0) { return std::make_tuple(); } 
-#define TO_TUPLE1 TO_TUPLE_N(0, 1) else TO_TUPLE_N(0, 0) 
-#define TO_TUPLE2 TO_TUPLE_N(0, 2) else TO_TUPLE_N(0, 1) 
-#define TO_TUPLE3 TO_TUPLE_N(0, 3) else TO_TUPLE_N(0, 2) 
-#define TO_TUPLE4 TO_TUPLE_N(0, 4) else TO_TUPLE_N(0, 3) 
-#define TO_TUPLE5 TO_TUPLE_N(0, 5) else TO_TUPLE_N(0, 4) 
-#define TO_TUPLE6 TO_TUPLE_N(0, 6) else TO_TUPLE_N(0, 5) 
-#define TO_TUPLE7 TO_TUPLE_N(0, 7) else TO_TUPLE_N(0, 6) 
-#define TO_TUPLE8 TO_TUPLE_N(0, 8) else TO_TUPLE_N(0, 7) 
-#define TO_TUPLE9 TO_TUPLE_N(0, 9) else TO_TUPLE_N(0, 8) 
-#define TO_TUPLE10 TO_TUPLE_N(1, 0) else TO_TUPLE_N(0, 9) 
+#define TO_TUPLE1 TO_TUPLE_N(0, 1) else { return std::make_tuple(); } 
+#define TO_TUPLE2 TO_TUPLE_N(0, 2) else TO_TUPLE1 
+#define TO_TUPLE3 TO_TUPLE_N(0, 3) else TO_TUPLE2 
+#define TO_TUPLE4 TO_TUPLE_N(0, 4) else TO_TUPLE3 
+#define TO_TUPLE5 TO_TUPLE_N(0, 5) else TO_TUPLE4 
+#define TO_TUPLE6 TO_TUPLE_N(0, 6) else TO_TUPLE5 
+#define TO_TUPLE7 TO_TUPLE_N(0, 7) else TO_TUPLE6 
+#define TO_TUPLE8 TO_TUPLE_N(0, 8) else TO_TUPLE7 
+#define TO_TUPLE9 TO_TUPLE_N(0, 9) else TO_TUPLE8 
+#define TO_TUPLE10 TO_TUPLE_N(1, 0) else TO_TUPLE9 
 
 namespace kagome::utils {
 
@@ -74,40 +73,10 @@ namespace kagome::utils {
     constexpr operator T();  // non explicit
   };
 
-  /*template <typename T>
-  auto to_tuple(T &&object) noexcept {
-    using type = std::decay_t<T>;
-    TO_TUPLE5;
-  }*/
-
   template <typename T>
   auto to_tuple(T &&object) noexcept {
     using type = std::decay_t<T>;
-    if constexpr (is_braces_constructible<type, REPEAT(0, 5, any_type)>{}) {
-      auto &&[p1, p2, p3, p4, p5] = object;
-      return std::make_tuple(p1, p2, p3, p4, p5);
-    } else if constexpr (is_braces_constructible<type,
-                                                 any_type,
-                                                 any_type,
-                                                 any_type,
-                                                 any_type>{}) {
-      auto &&[p1, p2, p3, p4] = object;
-      return std::make_tuple(p1, p2, p3, p4);
-    } else if constexpr (is_braces_constructible<type,
-                                                 any_type,
-                                                 any_type,
-                                                 any_type>{}) {
-      auto &&[p1, p2, p3] = object;
-      return std::make_tuple(p1, p2, p3);
-    } else if constexpr (is_braces_constructible<type, any_type, any_type>{}) {
-      auto &&[p1, p2] = object;
-      return std::make_tuple(p1, p2);
-    } else if constexpr (is_braces_constructible<type, any_type>{}) {
-      auto &&[p1] = object;
-      return std::make_tuple(p1);
-    } else {
-      return std::make_tuple();
-    }
+    TO_TUPLE9;
   }
 }  // namespace kagome::utils
 
