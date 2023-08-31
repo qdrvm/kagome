@@ -1,4 +1,3 @@
-#FROM bitnami/minideb@sha256:297209ec9579cf8a5db349d5d3f3d3894e2d4281ee79df40d479c16896fdf41e
 FROM bitnami/minideb@sha256:c84aa349081c182fbaa92434eb6f6a0e14e69fc70aa1a5af2c7a8c0279fe5e93
 MAINTAINER Vladimir Shcherba <abrehchs@gmail.com>
 
@@ -90,8 +89,7 @@ RUN curl https://sh.rustup.rs -sSf | sh -s -- -y --default-toolchain ${RUST_VERS
 RUN apt update && \
     apt install --no-install-recommends -y \
     python3.11-venv
-RUN python3 -m venv /venv && \
-    source /venv/bin/activate
+RUN python3 -m venv /venv
 
 # install cmake and dev dependencies
 RUN /venv/bin/python3 -m pip install --no-cache-dir --upgrade pip
