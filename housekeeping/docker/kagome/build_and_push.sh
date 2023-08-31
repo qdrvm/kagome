@@ -1,7 +1,6 @@
 #!/bin/bash -ex
 
-if [[ -z "${CI}" ]]; then
-else # CI
+if [[ "${CI}" ]]; then # CI
   git config --global --add safe.directory /__w/kagome/kagome
   source /venv/bin/activate
 fi
