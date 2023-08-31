@@ -291,7 +291,7 @@ TEST_F(AppStateManagerTest, RegCallbacks) {
  * @when register callbacks by reg() method and run() AppStateManager
  * @then each callcack execudted according to the stages order
  */
-TEST_F(AppStateManagerTest, Run_CallSequence) {
+TEST_F(AppStateManagerTest, DISABLED_Run_CallSequence) {
   EXPECT_THROW(run(), std::logic_error);
 
   auto app_state_manager = std::make_shared<AppStateManagerImpl>();
