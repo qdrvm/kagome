@@ -12,6 +12,7 @@
 #include <tuple>
 #include <type_traits>
 #include <vector>
+#include <scale/types.hpp>
 
 #define REP0(X)
 #define REP1(X) X
@@ -36,12 +37,25 @@
 #define REP8Y(X) REP7Y(X), X##8
 #define REP9Y(X) REP8Y(X), X##9
 
+#define REP0Y_REF(X)
+#define REP1Y_REF(X) std::cref(X##1)
+#define REP2Y_REF(X) REP1Y_REF(X), std::cref(X##2)
+#define REP3Y_REF(X) REP2Y_REF(X), std::cref(X##3)
+#define REP4Y_REF(X) REP3Y_REF(X), std::cref(X##4)
+#define REP5Y_REF(X) REP4Y_REF(X), std::cref(X##5)
+#define REP6Y_REF(X) REP5Y_REF(X), std::cref(X##6)
+#define REP7Y_REF(X) REP6Y_REF(X), std::cref(X##7)
+#define REP8Y_REF(X) REP7Y_REF(X), std::cref(X##8)
+#define REP9Y_REF(X) REP8Y_REF(X), std::cref(X##9)
+
 #define REPEAT(TENS, ONES, X) REP##TENS(REP10(X)) REP##ONES(X)
 #define REPEATY(ONES, X) REP##ONES##Y(X)
+#define REPEATY_REF(ONES, X) REP##ONES##Y_REF(X)
+
 #define TO_TUPLE_N(ONES)                                                      \
   if constexpr (is_braces_constructible<type, REPEAT(0, ONES, any_type)>{}) { \
-    auto &&[REPEATY(ONES, p)] = object;                                       \
-    return std::make_tuple(REPEATY(ONES, p));                                 \
+    const auto &[REPEATY(ONES, p)] = object;                                       \
+    return std::make_tuple(REPEATY_REF(ONES, p));                                 \
   }
 
 #define TO_TUPLE1 \
@@ -72,7 +86,7 @@ namespace kagome::utils {
   };
 
   template <typename T>
-  auto to_tuple(T &&object) noexcept {
+  auto to_tuple(const T &object) noexcept {
     using type = std::decay_t<T>;
     TO_TUPLE9;
   }
@@ -81,39 +95,88 @@ namespace kagome::utils {
 namespace kagome::scale {
 
   template <typename T>
-  void encode(T &&v);
+  constexpr void encode(const T &v);
 
   template <typename... Ts>
-  void encode(std::tuple<Ts...> &&v);
+  constexpr void encode(const std::tuple<Ts...> &v);
 
   template <typename T, typename... Args>
-  void encode(T &&t, Args &&...args);
+  constexpr void encode(const T &t, const Args &...args);
 
-  void putByte(uint8_t val) {
-    std::cout << std::hex << (uint32_t)val;
+  template <typename T>
+  constexpr void encode(const std::vector<T> &c);
+
+  template<>
+  constexpr void encode(const ::scale::CompactInteger &value);
+
+  constexpr void putByte(const uint8_t *const val, size_t count) {
+    std::cout << count << std::endl;
+    for (size_t i = 0; i < count; ++i) {
+      std::cout << std::hex << (uint32_t)val[i];
+    }
+    std::cout << std::endl;
   }
 
-  template <typename... Ts>
-  void encode(std::tuple<Ts...> &&v) {
-    if constexpr (sizeof...(Ts) > 0) {
-      std::apply(
-          [&](auto &&...s) { (..., encode(std::forward<decltype(s)>(s))); },
-          std::forward<decltype(v)>(v));
+  template<>
+  constexpr void encode(const ::scale::CompactInteger &value) {
+      if (value < 0) {
+        raise(EncodeError::NEGATIVE_COMPACT_INTEGER);
+      }
+
+      if (value < compact::EncodingCategoryLimits::kMinUint16) {
+        encodeFirstCategory(value.convert_to<uint8_t>(), out);
+        return;
+      }
+
+      if (value < compact::EncodingCategoryLimits::kMinUint32) {
+        encodeSecondCategory(value.convert_to<uint16_t>(), out);
+        return;
+      }
+
+      if (value < compact::EncodingCategoryLimits::kMinBigInteger) {
+        encodeThirdCategory(value.convert_to<uint32_t>(), out);
+        return;
+      }
+  }
+
+  template <
+      typename It,
+      typename = std::enable_if_t<
+          !std::is_same_v<typename std::iterator_traits<It>::value_type, void>>>
+  constexpr void encode(It begin, It end) {
+    while (begin != end) {
+      encode(*begin);
+      ++begin;
     }
   }
 
   template <typename T>
-  void encode(T &&v) {
+  constexpr void encode(const std::vector<T> &c) {
+    encode(::scale::CompactInteger{c.size()});
+    encode(c.begin(), c.end());
+  }
+
+  template <typename... Ts>
+  constexpr void encode(const std::tuple<Ts...> &v) {
+    if constexpr (sizeof...(Ts) > 0) {
+      std::apply(
+          [&](const auto &...s) { (..., encode(s)); },
+          v);
+    }
+  }
+
+  template <typename T>
+  constexpr void encode(const T &v) {
     using I = std::decay_t<T>;
     if constexpr (std::is_integral_v<I>) {
       if constexpr (std::is_same_v<I, bool>) {
         const uint8_t byte = (v ? 1u : 0u);
-        putByte(byte);
+        putByte(&byte, 1ul);
         return;
       }
 
       if constexpr (sizeof(I) == 1u) {
-        putByte(static_cast<uint8_t>(v));
+        putByte(&v, 1ul);
         return;
       }
 
@@ -130,18 +193,16 @@ namespace kagome::scale {
       }
 #endif
 
-      for (size_t i = 0; i < size; ++i) {
-        putByte((uint8_t)((v >> (i * 8)) & 0xff));
-      }
+      putByte((uint8_t *)&v, size);
     } else {
-      encode(utils::to_tuple(std::forward<T>(v)));
+      encode(utils::to_tuple(v));
     }
   }
 
   template <typename T, typename... Args>
-  void encode(T &&t, Args &&...args) {
-    encode(std::forward<T>(t));
-    encode(std::forward<Args>(args)...);
+  constexpr void encode(const T &t, const Args &...args) {
+    encode(t);
+    encode(args...);
   }
 
 }  // namespace kagome::scale
