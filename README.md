@@ -11,23 +11,78 @@ KAGOME is a [Polkadot Host](https://github.com/w3f/polkadot-spec/tree/master/hos
 
 ## Status
 
-- [x] Syncing node
-    - Polkadot, Kusama and Rococo compatibility
-- [x] Validating node
-- [x] Polkadot JS apps support
-- [ ] Parachains support
+![kagome-components-Host drawio-light](https://github.com/soramitsu/kagome/assets/9370151/a39f1c26-329b-4163-a112-7bf6512b6370)
+
+- [x] JSON-RPC (compatible with Polkadot JS)
+    - [ ] New [unstable JSON-RPC](https://paritytech.github.io/json-rpc-interface-spec/)
+- [x] Scale codec
+- [x] Synchronizer
+    - [x] Full sync
+    - [x] Fast sync
+    - [x] Warp sync
+- [x] Transaction pool
+- [x] Consensus
+    - [x] BABE
+    - [x] GRANDPA
+    - [ ] SASSAFRAS (Q4 2023)
+- [x] Storage
+    - [x] Blockchain
+        - [x] Block storage
+        - [x] Block tree
+        - [x] Digest tracker
+    - [x] Trie storage (merkle trie)
+    - [x] RocksDB
+    - [x] Dynamic pruning
+    - [ ] Trie nodes caches (Q4 2023)
+    - [ ] State caches (Q4 2023)
+- [x] Runtime
+    - [x] Host API
+    - [x] WASM engine
+        - [x] Binaryen
+        - [x] WAVM
+        - [ ] Wasm edge (planned for Q3 2023)
+- [x] Parachains core
    - [x] Non-asynchronous Backing
    - [x] Data availability
    - [x] Approval voting
-   - [ ] Disputes resolution
+   - [x] Disputes resolution
+   - [ ] Async-Backing (planned for Q3 2023)
+- [x] Networking
+    - [x] Peer manager
+        - [x] /dot/block-announces/1
+        - [x] /paritytech/grandpa/1
+        - [x] /polkadot/validation/1
+        - [x] /polkadot/collation/1
+        - [x] /dot/transactions/1
+        - [x] /polkadot/req_collation/1
+        - [x] /dot/light/2
+        - [x] /polkadot/req_pov/1
+        - [x] /dot/state/2
+        - [x] /dot/sync/warp
+        - [x] /polkadot/req_statement/1
+        - [x] /dot/sync/2
+        - [x] /polkadot/req_available_data/1
+        - [x] /polkadot/req_chunk/1
+        - [x] /polkadot/send_dispute/1
+    - [x] Libp2p
+        - [x] Transport
+            - [x] TCP
+            - [ ] Quic (Q4 2023)
+            - [ ] WebRTC (Q4 2023)
+        - [x] Secure connection
+            - [x] Noise
+            - [x] TLS
+        - [x] Multiplexing
+            - [x] Yamux
+        - [x] Multiselect protocol
+        - [x] Peer discovery
+            - [x] Kademlia
+        - [x] Ping protocol
+        - [x] Identify protocol
 - [x] Offchain workers
+- [x] Keystore
 - [x] Telemetry support
 - [x] Prometheus metrics
-- [x] Fast sync
-- [ ] Warp sync
-   - [x] Incoming connections
-   - [ ] Outcoming connections
-- [x] Light client protocol
 
 More details of KAGOME development can be found within the [supported features](./README.md/#supported-features) section and in [projects board](https://github.com/soramitsu/kagome/projects/2)
 
@@ -201,4 +256,5 @@ You can find more information about the components by checking [reference docume
 * Press-release: [Soramitsu to implement Polkadot Runtime Environment in C++](https://medium.com/web3foundation/w3f-grants-soramitsu-to-implement-polkadot-runtime-environment-in-c-cf3baa08cbe6)
 * [KAGOME: C++ implementation of PRE](https://www.youtube.com/watch?v=181mk2xvBZ4&t=) presentation at DOTCon (18.08.19)
 * [KAGOME and consensus in Polkadot](https://www.youtube.com/watch?v=5OrevTjaiPA) presentation (in Russian) during Innopolis blockchain meetup (28.10.19)
-* [Web3 Builders: Soramitsu | C++ Implementation of Polkadot Host](https://www.youtube.com/watch?v=We3kiGzg60w) Polkadot's Web3 builders online presentation 
+* [Web3 Builders: Soramitsu | C++ Implementation of Polkadot Host](https://www.youtube.com/watch?v=We3kiGzg60w) Polkadot's Web3 builders online presentation
+* [Building alternative clients](https://youtu.be/TnENz6I9l8A?si=yF4oo2zQ6LdPW13N) Polkadot Decoded 2023 presentation
