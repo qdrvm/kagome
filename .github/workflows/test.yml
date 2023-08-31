@@ -41,7 +41,7 @@ jobs:
     - name: build
       run: ./housekeeping/make_build.sh -DCLEAR_OBJS=ON -DCOVERAGE=OFF -DCMAKE_TOOLCHAIN_FILE=cmake/toolchain/cxx17.cmake
       env:
-        CI: false
+        CI:
   # Linux:
   #   if: ${{ !(github.ref == 'refs/heads/master' || startsWith( github.ref, 'refs/tags/' )) }}
   #   strategy:
