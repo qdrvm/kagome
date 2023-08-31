@@ -41,7 +41,7 @@ namespace kagome {
       if (weak) {
         shared = weak->get().lock();
         // check collisions (size_t is weak hash)
-        if (*shared != v) {
+        if (shared and *shared != v) {
           shared.reset();
         }
       }

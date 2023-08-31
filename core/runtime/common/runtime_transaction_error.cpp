@@ -10,6 +10,8 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::runtime, RuntimeTransactionError, e) {
   switch (e) {
     case E::NO_TRANSACTIONS_WERE_STARTED:
       return "no transactions were started";
+    case E::EXPORT_FUNCTION_NOT_FOUND:
+      return "Export function not found";
   }
   return "unknown TransactionError";
 }
