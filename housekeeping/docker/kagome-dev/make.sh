@@ -21,7 +21,6 @@ fi
 else # CI
   BUILD_THREADS="${BUILD_THREADS:-$(( $(nproc 2>/dev/null || sysctl -n hw.ncpu) ))}"
   # Configure CI git security
-  echo "Directory /__w/kagome/kagome exists. Updating safe.directory"
   git config --global --add safe.directory /__w/kagome/kagome
   source /venv/bin/activate
 fi

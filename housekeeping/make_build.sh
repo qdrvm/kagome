@@ -7,18 +7,13 @@ if [[ -z "${CI}" ]]; then
   BUILD_THREADS="${BUILD_THREADS:-$(( $(nproc 2>/dev/null || sysctl -n hw.ncpu) / 2 + 1 ))}"
 else # CI
   BUILD_THREADS="${BUILD_THREADS:-$(( $(nproc 2>/dev/null || sysctl -n hw.ncpu) ))}"
+  git config --global --add safe.directory /__w/kagome/kagome
+  source /venv/bin/activate
 fi
 
 which git
 
 cd "$(dirname $0)/.."
-
-if [ -d "/__w/kagome/kagome" ]
-then
-  echo "Directory /__w/kagome/kagome exists. Updating safe.directory"
-  git config --global --add safe.directory /__w/kagome/kagome
-  source /venv/bin/activate
-fi
 
 cmake . -B${BUILD_DIR} "$@" -DBACKWARD=OFF
 if [ "$BUILD_FINAL_TARGET" != "generated" ] ; then
