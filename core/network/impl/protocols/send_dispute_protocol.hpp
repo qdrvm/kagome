@@ -3,8 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_NETWORK_SENDDISPUTEPROTOCOLIMPL
-#define KAGOME_NETWORK_SENDDISPUTEPROTOCOLIMPL
+#pragma once
 
 #include "network/impl/protocols/request_response_protocol.hpp"
 
@@ -65,25 +64,30 @@ namespace kagome::network {
               request.candidate_receipt.commitments_hash,
               request.session_index);
 
+      BOOST_ASSERT(stream);
       BOOST_ASSERT(stream->remotePeerId().has_value());
+      auto peer_id = stream->remotePeerId().value();
 
       dispute_request_observer_->onDisputeRequest(
-          stream->remotePeerId().value(),
+          peer_id,
           std::move(request),
           [wp = weak_from_this(),
-           &logger = base().logger(),
+           base = &SendDisputeProtocol::base,
            write = &SendDisputeProtocol::writeResponse,
-           stream{std::move(stream)}](outcome::result<void> res) {
+           stream = std::move(stream)](outcome::result<void> res) mutable {
+            BOOST_ASSERT(stream);
+
             if (auto self = wp.lock()) {
               if (res.has_error()) {
-                SL_WARN(logger,
+                SL_WARN(((*self).*base)().logger(),
                         "Processing dispute request failed: {}",
                         res.error());
-                stream->reset();
+                ((*self).*base)().closeStream(wp, std::move(stream));
                 return;
               }
 
-              SL_TRACE(logger, "Processing dispute request successful.");
+              SL_TRACE(((*self).*base)().logger(),
+                       "Processing dispute request successful");
               ((*self).*write)(std::move(stream),
                                ResponseType{kagome::Empty{}});
             }
@@ -104,5 +108,3 @@ namespace kagome::network {
   };
 
 }  // namespace kagome::network
-
-#endif  // KAGOME_NETWORK_SENDDISPUTEPROTOCOLIMPL

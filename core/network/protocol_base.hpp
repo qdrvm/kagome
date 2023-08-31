@@ -3,8 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_NETWORK_PROTOCOLBASE
-#define KAGOME_NETWORK_PROTOCOLBASE
+#pragma once
 
 #include "outcome/outcome.hpp"
 
@@ -30,7 +29,7 @@ namespace kagome::network {
     ProtocolBase(const ProtocolBase &) = delete;
     virtual ~ProtocolBase() = default;
     ProtocolBase &operator=(ProtocolBase &&) noexcept = delete;
-    ProtocolBase &operator=(ProtocolBase const &) = delete;
+    ProtocolBase &operator=(const ProtocolBase &) = delete;
 
     virtual const ProtocolName &protocolName() const = 0;
 
@@ -43,5 +42,3 @@ namespace kagome::network {
   };
 
 }  // namespace kagome::network
-
-#endif  // KAGOME_NETWORK_PEERING_CONFIG
