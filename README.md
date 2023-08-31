@@ -40,7 +40,7 @@ KAGOME is a [Polkadot Host](https://github.com/w3f/polkadot-spec/tree/master/hos
     - [x] WASM engine
         - [x] Binaryen
         - [x] WAVM
-        - [ ] Wasm edge (planned for Q3 2023)
+        - [ ] WasmEdge (planned for Q3 2023)
 - [x] Parachains core
    - [x] Non-asynchronous Backing
    - [x] Data availability
