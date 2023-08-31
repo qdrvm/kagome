@@ -78,6 +78,9 @@ namespace kagome::primitives {
          and authorities == rhs.authorities and randomness == rhs.randomness
          and allowed_slots == rhs.allowed_slots;
     }
+    bool operator!=(const BabeConfiguration &rhs) const {
+      return !operator==(rhs);
+    }
   };
 
   template <class Stream,

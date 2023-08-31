@@ -156,6 +156,8 @@ namespace kagome::application {
 
     MOCK_METHOD(bool, shouldPruneDiscardedStates, (), (const, override));
 
+    MOCK_METHOD(bool, enableThoroughPruning, (), (const, override));
+
     MOCK_METHOD(StorageBackend, storageBackend, (), (const, override));
 
     MOCK_METHOD(uint32_t, dbCacheSize, (), (const, override));

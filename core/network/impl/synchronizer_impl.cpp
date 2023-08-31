@@ -87,7 +87,7 @@ namespace kagome::network {
       std::shared_ptr<libp2p::basic::Scheduler> scheduler,
       std::shared_ptr<crypto::Hasher> hasher,
       std::shared_ptr<runtime::ModuleFactory> module_factory,
-      std::shared_ptr<runtime::Core> core_api,
+      std::shared_ptr<runtime::RuntimePropertiesCache> runtime_properties_cache,
       primitives::events::ChainSubscriptionEnginePtr chain_sub_engine,
       std::shared_ptr<consensus::grandpa::Environment> grandpa_environment)
       : app_state_manager_(std::move(app_state_manager)),
@@ -102,7 +102,7 @@ namespace kagome::network {
         scheduler_(std::move(scheduler)),
         hasher_(std::move(hasher)),
         module_factory_(std::move(module_factory)),
-        core_api_(std::move(core_api)),
+        runtime_properties_cache_{std::move(runtime_properties_cache)},
         grandpa_environment_{std::move(grandpa_environment)},
         chain_sub_engine_(std::move(chain_sub_engine)) {
     BOOST_ASSERT(app_state_manager_);
@@ -115,7 +115,7 @@ namespace kagome::network {
     BOOST_ASSERT(scheduler_);
     BOOST_ASSERT(hasher_);
     BOOST_ASSERT(module_factory_);
-    BOOST_ASSERT(core_api_);
+    BOOST_ASSERT(runtime_properties_cache_);
     BOOST_ASSERT(grandpa_environment_);
     BOOST_ASSERT(chain_sub_engine_);
 
@@ -1048,8 +1048,8 @@ namespace kagome::network {
       syncState();
       return outcome::success();
     }
-    OUTCOME_TRY(
-        state_sync_flow_->commit(*module_factory_, *core_api_, *serializer_));
+    OUTCOME_TRY(state_sync_flow_->commit(
+        *module_factory_, runtime_properties_cache_, *serializer_));
     auto block = state_sync_flow_->blockInfo();
     state_sync_flow_.reset();
     SL_INFO(log_, "State syncing block {} has finished.", block);

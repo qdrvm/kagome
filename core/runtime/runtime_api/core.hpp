@@ -6,22 +6,14 @@
 #ifndef KAGOME_RUNTIME_CORE_HPP
 #define KAGOME_RUNTIME_CORE_HPP
 
-#include <vector>
-
 #include <optional>
-#include <outcome/outcome.hpp>
 
 #include "primitives/block.hpp"
-#include "primitives/block_id.hpp"
 #include "primitives/common.hpp"
-#include "primitives/transaction_validity.hpp"
 #include "primitives/version.hpp"
-#include "runtime/runtime_context.hpp"
 #include "storage/changes_trie/changes_tracker.hpp"
 
 namespace kagome::runtime {
-  class ModuleInstance;
-  class RuntimeCodeProvider;
   class RuntimeContext;
 
   /**
@@ -30,13 +22,6 @@ namespace kagome::runtime {
   class Core {
    public:
     virtual ~Core() = default;
-
-    /**
-     * @brief Returns the version of the runtime
-     * @return runtime version
-     */
-    virtual outcome::result<primitives::Version> version(
-        std::shared_ptr<ModuleInstance> instance) = 0;
 
     /**
      * @brief Returns the version of the runtime
