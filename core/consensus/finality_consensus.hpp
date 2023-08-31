@@ -11,6 +11,7 @@ namespace kagome::consensus {
 
   class FinalityConsensus {
    public:
+    FinalityConsensus() = default;
     virtual ~FinalityConsensus() = default;
 
     FinalityConsensus(FinalityConsensus &&) noexcept = delete;

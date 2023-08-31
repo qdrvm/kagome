@@ -7,7 +7,7 @@
 
 #include <boost/asio/io_context.hpp>
 
-#include "consensus/babe/impl/babe_impl.hpp"
+#include "consensus/babe/impl/babe_impl_old.hpp"
 #include "consensus/babe/types/seal.hpp"
 #include "mock/core/application/app_configuration_mock.hpp"
 #include "mock/core/application/app_state_manager_mock.hpp"
@@ -17,7 +17,7 @@
 #include "mock/core/clock/clock_mock.hpp"
 #include "mock/core/clock/timer_mock.hpp"
 #include "mock/core/consensus/babe/babe_config_repository_mock.hpp"
-#include "mock/core/consensus/babe/babe_util_mock.hpp"
+#include "mock/core/consensus/babe/slots_util_mock.hpp"
 #include "mock/core/consensus/babe_lottery_mock.hpp"
 #include "mock/core/consensus/grandpa/grandpa_mock.hpp"
 #include "mock/core/consensus/timeline/block_executor_mock.hpp"
@@ -132,8 +132,8 @@ class BabeTest : public testing::Test {
     ON_CALL(*babe_config_repo_, epochLength())
         .WillByDefault(Return(babe_config_->epoch_length));
 
-    babe_util_ = std::make_shared<BabeUtilMock>();
-    EXPECT_CALL(*babe_util_, slotToEpochDescriptor(_, _))
+    slots_util_ = std::make_shared<SlotsUtilMock>();
+    EXPECT_CALL(*slots_util_, slotToEpochDescriptor(_, _))
         .WillRepeatedly(Return(EpochDescriptor{}));
 
     storage_sub_engine_ =
@@ -193,7 +193,7 @@ class BabeTest : public testing::Test {
         testutil::sptr_to_lazy<network::WarpProtocol>(warp_protocol_),
         grandpa_,
         synchronizer_,
-        babe_util_,
+        slots_util_,
         bitfield_store_,
         backing_store_,
         storage_sub_engine_,
@@ -242,7 +242,7 @@ class BabeTest : public testing::Test {
   std::shared_ptr<network::WarpProtocol> warp_protocol_;
   std::shared_ptr<primitives::BabeConfiguration> babe_config_;
   std::shared_ptr<BabeConfigRepositoryMock> babe_config_repo_;
-  std::shared_ptr<BabeUtilMock> babe_util_;
+  std::shared_ptr<SlotsUtilMock> slots_util_;
   primitives::events::StorageSubscriptionEnginePtr storage_sub_engine_;
   primitives::events::ChainSubscriptionEnginePtr chain_events_engine_;
   std::shared_ptr<runtime::OffchainWorkerApiMock> offchain_worker_api_;
@@ -318,7 +318,7 @@ TEST_F(BabeTest, Success) {
       .WillRepeatedly(Return(clock::SystemClockMock::zero()));
 
   EXPECT_CALL(*babe_config_repo_, slotDuration()).WillRepeatedly(Return(1ms));
-  EXPECT_CALL(*babe_util_, slotFinishTime(_))
+  EXPECT_CALL(*slots_util_, slotFinishTime(_))
       .WillRepeatedly(Return(clock::SystemClockMock::zero()
                              + babe_config_repo_->slotDuration()));
 
@@ -374,7 +374,7 @@ TEST_F(BabeTest, Success) {
  */
 TEST_F(BabeTest, NotAuthority) {
   EXPECT_CALL(*clock_, now());
-  EXPECT_CALL(*babe_util_, slotFinishTime(_)).Times(testing::AnyNumber());
+  EXPECT_CALL(*slots_util_, slotFinishTime(_)).Times(testing::AnyNumber());
 
   EXPECT_CALL(*block_tree_, bestLeaf()).WillRepeatedly(Return(best_leaf));
 

@@ -9,7 +9,7 @@
 
 #include "mock/core/application/chain_spec_mock.hpp"
 #include "mock/core/blockchain/block_tree_mock.hpp"
-#include "mock/core/consensus/babe/babe_mock.hpp"
+#include "mock/core/consensus/timeline/timeline_mock.hpp"
 #include "mock/core/crypto/hasher_mock.hpp"
 #include "mock/core/network/peer_manager_mock.hpp"
 #include "mock/core/runtime/account_nonce_api_mock.hpp"
@@ -24,7 +24,7 @@ using kagome::application::ChainSpecMock;
 using kagome::blockchain::BlockTreeMock;
 using kagome::common::Buffer;
 using kagome::common::Hash256;
-using kagome::consensus::babe::BabeMock;
+using kagome::consensus::TimelineMock;
 using kagome::crypto::HasherMock;
 using kagome::network::PeerManagerMock;
 using kagome::primitives::Transaction;
@@ -38,7 +38,7 @@ class SystemApiTest : public ::testing::Test {
  public:
   void SetUp() {
     chain_spec_mock_ = std::make_shared<ChainSpecMock>();
-    babe_mock_ = std::make_shared<BabeMock>();
+    timeline_mock_ = std::make_shared<TimelineMock>();
     peer_manager_mock_ = std::make_shared<PeerManagerMock>();
     transaction_pool_mock_ = std::make_shared<TransactionPoolMock>();
     block_tree_mock_ = std::make_shared<BlockTreeMock>();
@@ -46,7 +46,7 @@ class SystemApiTest : public ::testing::Test {
     hasher_mock_ = std::make_shared<HasherMock>();
 
     system_api_ = std::make_unique<SystemApiImpl>(chain_spec_mock_,
-                                                  babe_mock_,
+                                                  timeline_mock_,
                                                   peer_manager_mock_,
                                                   account_nonce_api_mock_,
                                                   transaction_pool_mock_,
@@ -58,7 +58,7 @@ class SystemApiTest : public ::testing::Test {
   std::unique_ptr<SystemApi> system_api_;
 
   std::shared_ptr<ChainSpecMock> chain_spec_mock_;
-  std::shared_ptr<BabeMock> babe_mock_;
+  std::shared_ptr<TimelineMock> timeline_mock_;
   std::shared_ptr<PeerManagerMock> peer_manager_mock_;
   std::shared_ptr<TransactionPoolMock> transaction_pool_mock_;
   std::shared_ptr<BlockTreeMock> block_tree_mock_;

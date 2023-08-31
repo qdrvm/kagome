@@ -26,7 +26,7 @@ namespace kagome::consensus {
 
   std::shared_ptr<ProductionConsensus>
   ConsensusSelectorImpl::getProductionConsensus(
-      const primitives::BlockInfo &parent_block) {
+      const primitives::BlockInfo &parent_block) const {
     auto consensus_opt = pc_cache_.get(parent_block);
     if (consensus_opt.has_value()) {
       return consensus_opt.value();
@@ -45,7 +45,7 @@ namespace kagome::consensus {
 
   std::shared_ptr<FinalityConsensus>
   ConsensusSelectorImpl::getFinalityConsensus(
-      const primitives::BlockInfo &parent_block) {
+      const primitives::BlockInfo &parent_block) const {
     auto consensus_opt = fc_cache_.get(parent_block);
     if (consensus_opt.has_value()) {
       return consensus_opt.value();

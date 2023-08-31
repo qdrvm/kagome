@@ -5,16 +5,14 @@
 
 #pragma once
 
-#include "consensus/babe/babe.hpp"
+#include "network/block_announce_observer.hpp"
 
 #include <gmock/gmock.h>
 
-namespace kagome::consensus::babe {
+namespace kagome::network {
 
-  class BabeMock final : public Babe {
+  class BlockAnnounceObserverMock final : public BlockAnnounceObserver {
    public:
-    MOCK_METHOD(SyncState, getCurrentState, (), (const, override));
-
     MOCK_METHOD(void,
                 onBlockAnnounceHandshake,
                 (const libp2p::peer::PeerId &peer_id,
@@ -26,8 +24,6 @@ namespace kagome::consensus::babe {
                 (const libp2p::peer::PeerId &peer_id,
                  const network::BlockAnnounce &announce),
                 (override));
-
-    MOCK_METHOD(bool, wasSynchronized, (), (const, override));
   };
 
-}  // namespace kagome::consensus::babe
+}  // namespace kagome::network

@@ -8,13 +8,13 @@
 #include "blockchain/block_tree.hpp"
 #include "blockchain/digest_tracker.hpp"
 #include "consensus/babe/babe_config_repository.hpp"
-#include "consensus/babe/babe_util.hpp"
 #include "consensus/babe/impl/babe_digests_util.hpp"
 #include "consensus/babe/impl/babe_error.hpp"
 #include "consensus/babe/impl/threshold_util.hpp"
 #include "consensus/grandpa/environment.hpp"
 #include "consensus/grandpa/voting_round_error.hpp"
 #include "consensus/timeline/consistency_keeper.hpp"
+#include "consensus/timeline/slots_util.hpp"
 #include "consensus/validation/block_validator.hpp"
 
 namespace kagome::consensus {
@@ -26,7 +26,7 @@ namespace kagome::consensus {
       std::shared_ptr<babe::BabeConfigRepository> babe_config_repo,
       std::shared_ptr<BlockValidator> block_validator,
       std::shared_ptr<grandpa::Environment> grandpa_environment,
-      std::shared_ptr<babe::BabeUtil> babe_util,
+      LazySPtr<SlotsUtil> slots_util,
       std::shared_ptr<crypto::Hasher> hasher)
       : consistency_keeper_{std::move(consistency_keeper)},
         block_tree_{std::move(block_tree)},
@@ -34,7 +34,7 @@ namespace kagome::consensus {
         babe_config_repo_{std::move(babe_config_repo)},
         block_validator_{std::move(block_validator)},
         grandpa_environment_{std::move(grandpa_environment)},
-        babe_util_{std::move(babe_util)},
+        slots_util_{std::move(slots_util)},
         hasher_{std::move(hasher)} {
     BOOST_ASSERT(nullptr != consistency_keeper_);
     BOOST_ASSERT(nullptr != block_tree_);
@@ -42,7 +42,6 @@ namespace kagome::consensus {
     BOOST_ASSERT(nullptr != babe_config_repo_);
     BOOST_ASSERT(nullptr != block_validator_);
     BOOST_ASSERT(nullptr != grandpa_environment_);
-    BOOST_ASSERT(nullptr != babe_util_);
     BOOST_ASSERT(nullptr != hasher_);
 
     postponed_justifications_ = std::make_shared<
@@ -153,9 +152,9 @@ namespace kagome::consensus {
 
     auto slot_number = babe_header.slot_number;
 
-    OUTCOME_TRY(
-        epoch_number,
-        babe_util_->slotToEpoch(*block.header.parentInfo(), slot_number));
+    OUTCOME_TRY(epoch_number,
+                slots_util_.get()->slotToEpoch(*block.header.parentInfo(),
+                                               slot_number));
 
     SL_VERBOSE(
         logger_,
@@ -208,7 +207,7 @@ namespace kagome::consensus {
   outcome::result<BlockAppenderBase::SlotInfo> BlockAppenderBase::getSlotInfo(
       const primitives::BlockHeader &header) const {
     OUTCOME_TRY(slot_number, babe::getBabeSlot(header));
-    auto start_time = babe_util_->slotStartTime(slot_number);
+    auto start_time = slots_util_.get()->slotStartTime(slot_number);
     auto slot_duration = babe_config_repo_->slotDuration();
     return outcome::success(SlotInfo{start_time, slot_duration});
   }

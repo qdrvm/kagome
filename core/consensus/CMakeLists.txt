@@ -12,6 +12,7 @@ add_library(consensus
     validation/babe_block_validator.cpp
     )
 target_link_libraries(consensus
+    timeline
     babe
 #    sassafras
     grandpa

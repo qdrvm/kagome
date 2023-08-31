@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "consensus/babe/impl/babe_impl.hpp"
+#include "consensus/babe/impl/babe_impl_old.hpp"
 
 #include <boost/range/adaptor/transformed.hpp>
 
@@ -16,22 +16,20 @@
 #include "blockchain/digest_tracker.hpp"
 #include "consensus/babe/babe_config_repository.hpp"
 #include "consensus/babe/babe_lottery.hpp"
-#include "consensus/babe/babe_util.hpp"
 #include "consensus/babe/impl/babe_digests_util.hpp"
 #include "consensus/babe/impl/babe_error.hpp"
-#include "consensus/babe/impl/backoff.hpp"
 #include "consensus/babe/impl/threshold_util.hpp"
 #include "consensus/grandpa/justification_observer.hpp"
+#include "consensus/timeline/backoff.hpp"
 #include "consensus/timeline/consistency_keeper.hpp"
+#include "consensus/timeline/slots_util.hpp"
 #include "crypto/crypto_store/session_keys.hpp"
 #include "crypto/sr25519_provider.hpp"
 #include "dispute_coordinator/dispute_coordinator.hpp"
-#include "dispute_coordinator/types.hpp"
 #include "metrics/histogram_timer.hpp"
 #include "network/block_announce_transmitter.hpp"
 #include "network/helpers/peer_id_formatter.hpp"
 #include "network/synchronizer.hpp"
-#include "network/types/collator_messages.hpp"
 #include "network/warp/protocol.hpp"
 #include "network/warp/sync.hpp"
 #include "parachain/parachain_inherent_data.hpp"
@@ -987,7 +985,8 @@ namespace kagome::consensus::babe {
                      "The best block is always known");
     auto &best_header = best_header_res.value();
 
-    if (backoff(best_header,
+    if (backoff(*this,
+                best_header,
                 block_tree_->getLastFinalized().number,
                 current_slot_)) {
       SL_INFO(log_,

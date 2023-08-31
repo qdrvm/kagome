@@ -6,6 +6,7 @@
 #pragma once
 
 #include "consensus/grandpa/environment.hpp"
+#include "injector/lazy.hpp"
 #include "log/logger.hpp"
 #include "outcome/outcome.hpp"
 #include "primitives/block_data.hpp"
@@ -19,10 +20,13 @@ namespace kagome::crypto {
   class Hasher;
 }
 
+namespace kagome::consensus {
+  class SlotsUtil;
+}
+
 namespace kagome::consensus::babe {
   class BabeConfigRepository;
-  class BabeUtil;
-}  // namespace kagome::consensus::babe
+}
 
 namespace kagome::consensus {
 
@@ -43,7 +47,7 @@ namespace kagome::consensus {
         std::shared_ptr<babe::BabeConfigRepository> babe_config_repo,
         std::shared_ptr<BlockValidator> block_validator,
         std::shared_ptr<grandpa::Environment> grandpa_environment,
-        std::shared_ptr<babe::BabeUtil> babe_util,
+        LazySPtr<SlotsUtil> slots_util,
         std::shared_ptr<crypto::Hasher> hasher);
 
     primitives::BlockContext makeBlockContext(
@@ -81,7 +85,7 @@ namespace kagome::consensus {
     std::shared_ptr<babe::BabeConfigRepository> babe_config_repo_;
     std::shared_ptr<BlockValidator> block_validator_;
     std::shared_ptr<grandpa::Environment> grandpa_environment_;
-    std::shared_ptr<babe::BabeUtil> babe_util_;
+    LazySPtr<SlotsUtil> slots_util_;
     std::shared_ptr<crypto::Hasher> hasher_;
   };
 

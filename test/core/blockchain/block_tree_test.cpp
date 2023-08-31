@@ -20,7 +20,7 @@
 #include "mock/core/blockchain/block_storage_mock.hpp"
 #include "mock/core/blockchain/justification_storage_policy.hpp"
 #include "mock/core/consensus/babe/babe_config_repository_mock.hpp"
-#include "mock/core/consensus/babe/babe_util_mock.hpp"
+#include "mock/core/consensus/timeline/slots_util_mock.hpp"
 #include "mock/core/runtime/core_mock.hpp"
 #include "mock/core/storage/trie_pruner/trie_pruner_mock.hpp"
 #include "mock/core/transaction_pool/transaction_pool_mock.hpp"

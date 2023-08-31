@@ -59,8 +59,8 @@
 #include "clock/impl/clock_impl.hpp"
 #include "common/fd_limit.hpp"
 #include "common/outcome_throw.hpp"
+#include "consensus/babe/impl/babe.hpp"
 #include "consensus/babe/impl/babe_config_repository_impl.hpp"
-#include "consensus/babe/impl/babe_impl.hpp"
 #include "consensus/babe/impl/babe_lottery_impl.hpp"
 #include "consensus/finality_consensus.hpp"
 #include "consensus/grandpa/impl/authority_manager_impl.hpp"
@@ -72,6 +72,7 @@
 #include "consensus/timeline/impl/block_header_appender_impl.hpp"
 #include "consensus/timeline/impl/consensus_selector_impl.hpp"
 #include "consensus/timeline/impl/consistency_keeper_impl.hpp"
+#include "consensus/timeline/impl/slots_util_impl.hpp"
 #include "consensus/timeline/impl/timeline_impl.hpp"
 #include "consensus/validation/babe_block_validator.hpp"
 #include "crypto/bip39/impl/bip39_provider_impl.hpp"
@@ -779,7 +780,6 @@ namespace {
             di::bind<consensus::grandpa::CatchUpObserver>.template to<consensus::grandpa::GrandpaImpl>(),
             di::bind<consensus::grandpa::NeighborObserver>.template to<consensus::grandpa::GrandpaImpl>(),
             di::bind<consensus::grandpa::GrandpaObserver>.template to<consensus::grandpa::GrandpaImpl>(),
-            di::bind<consensus::babe::BabeUtil>.template to<consensus::babe::BabeConfigRepositoryImpl>(),
             di::bind<network::BlockAnnounceTransmitter>.template to<network::BlockAnnounceTransmitterImpl>(),
             di::bind<network::GrandpaTransmitter>.template to<network::GrandpaTransmitterImpl>(),
             di::bind<network::TransactionsTransmitter>.template to<network::TransactionsTransmitterImpl>(),
@@ -796,9 +796,8 @@ namespace {
             di::bind<crypto::SessionKeys>.template to<crypto::SessionKeysImpl>(),
             di::bind<network::SyncProtocol>.template to<network::SyncProtocolImpl>(),
             di::bind<network::StateProtocol>.template to<network::StateProtocolImpl>(),
-            di::bind<consensus::babe::Babe>.template to<consensus::babe::BabeImpl>(),
             di::bind<consensus::babe::BabeLottery>.template to<consensus::babe::BabeLotteryImpl>(),
-            di::bind<network::BlockAnnounceObserver>.template to<consensus::babe::BabeImpl>(),
+            di::bind<network::BlockAnnounceObserver>.template to<consensus::TimelineImpl>(),
             di::bind<dispute::DisputeCoordinator>.template to<dispute::DisputeCoordinatorImpl>(),
             di::bind<dispute::Storage>.template to<dispute::StorageImpl>(),
 
@@ -812,6 +811,7 @@ namespace {
                              consensus::grandpa::Grandpa
                             >(),
             di::bind<consensus::ConsensusSelector>.template to<consensus::ConsensusSelectorImpl>(),
+            di::bind<consensus::SlotsUtil>.template to<consensus::SlotsUtilImpl>(),
             di::bind<consensus::Timeline>.template to<consensus::TimelineImpl>(),
 
             // user-defined overrides...
@@ -935,11 +935,9 @@ namespace kagome::injector {
   }
 
   std::shared_ptr<consensus::Timeline> KagomeNodeInjector::injectTimeline() {
+    pimpl_->injector_.template create<sptr<consensus::ConsensusSelector>>();
+    pimpl_->injector_.template create<sptr<consensus::SlotsUtil>>();
     return pimpl_->injector_.template create<sptr<consensus::Timeline>>();
-  }
-
-  std::shared_ptr<consensus::babe::Babe> KagomeNodeInjector::injectBabe() {
-    return pimpl_->injector_.template create<sptr<consensus::babe::Babe>>();
   }
 
   std::shared_ptr<consensus::grandpa::Grandpa>

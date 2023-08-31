@@ -160,7 +160,7 @@ TEST_F(KagomeInjectorTest, Inject) {
   TEST_KAGOME_INJECT(AppStateManager);
   TEST_KAGOME_INJECT(IoContext);
   TEST_KAGOME_INJECT(SystemClock);
-  TEST_KAGOME_INJECT(Babe);
+  TEST_KAGOME_INJECT(Timeline);
   TEST_KAGOME_INJECT(OpenMetricsService);
   TEST_KAGOME_INJECT(Grandpa);
   TEST_KAGOME_INJECT(Router);

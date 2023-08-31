@@ -9,6 +9,7 @@
 
 #include "application/app_configuration.hpp"
 #include "blockchain/genesis_block_hash.hpp"
+#include "consensus/timeline/timeline.hpp"
 #include "network/common.hpp"
 #include "network/impl/protocols/protocol_error.hpp"
 #include "network/types/no_data_message.hpp"
@@ -27,7 +28,7 @@ namespace kagome::network {
       const application::AppConfiguration &app_config,
       const application::ChainSpec &chain_spec,
       const blockchain::GenesisBlockHash &genesis_hash,
-      std::shared_ptr<consensus::babe::Babe> babe,
+      std::shared_ptr<consensus::Timeline> timeline,
       std::shared_ptr<ExtrinsicObserver> extrinsic_observer,
       std::shared_ptr<StreamEngine> stream_engine,
       std::shared_ptr<primitives::events::ExtrinsicSubscriptionEngine>
@@ -41,11 +42,12 @@ namespace kagome::network {
               log::createLogger(kPropagateTransactionsProtocolName,
                                 "propagate_transactions_protocol")),
         app_config_{app_config},
-        babe_(std::move(babe)),
+        timeline_(std::move(timeline)),
         extrinsic_observer_(std::move(extrinsic_observer)),
         stream_engine_(std::move(stream_engine)),
         extrinsic_events_engine_{std::move(extrinsic_events_engine)},
         ext_event_key_repo_{std::move(ext_event_key_repo)} {
+    BOOST_ASSERT(timeline_ != nullptr);
     BOOST_ASSERT(extrinsic_observer_ != nullptr);
     BOOST_ASSERT(stream_engine_ != nullptr);
     BOOST_ASSERT(extrinsic_events_engine_ != nullptr);
@@ -300,7 +302,7 @@ namespace kagome::network {
                  message.extrinsics.size(),
                  peer_id);
 
-      if (self->babe_->wasSynchronized()) {
+      if (self->timeline_->wasSynchronized()) {
         for (auto &ext : message.extrinsics) {
           auto result = self->extrinsic_observer_->onTxMessage(ext);
           if (result) {

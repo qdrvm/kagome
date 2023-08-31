@@ -465,7 +465,7 @@ namespace kagome::parachain {
       std::shared_ptr<application::AppStateManager> app_state_manager,
       std::shared_ptr<ThreadPool> thread_pool,
       std::shared_ptr<runtime::ParachainHost> parachain_host,
-      std::shared_ptr<consensus::babe::BabeUtil> babe_util,
+      LazySPtr<consensus::SlotsUtil> slots_util,
       std::shared_ptr<crypto::CryptoStore> keystore,
       std::shared_ptr<crypto::Hasher> hasher,
       std::shared_ptr<network::PeerView> peer_view,
@@ -483,7 +483,7 @@ namespace kagome::parachain {
         thread_pool_{std::move(thread_pool)},
         thread_pool_context_{thread_pool_->handler()},
         parachain_host_(std::move(parachain_host)),
-        babe_util_(std::move(babe_util)),
+        slots_util_(std::move(slots_util)),
         keystore_(std::move(keystore)),
         hasher_(std::move(hasher)),
         config_(ApprovalVotingSubsystem{.slot_duration_millis = 6'000}),
@@ -500,7 +500,6 @@ namespace kagome::parachain {
         dispute_coordinator_{std::move(dispute_coordinator)} {
     BOOST_ASSERT(thread_pool_);
     BOOST_ASSERT(parachain_host_);
-    BOOST_ASSERT(babe_util_);
     BOOST_ASSERT(keystore_);
     BOOST_ASSERT(peer_view_);
     BOOST_ASSERT(hasher_);
@@ -894,9 +893,10 @@ namespace kagome::parachain {
       const primitives::BlockHash &block_hash) {
     OUTCOME_TRY(babe_digests, consensus::babe::getBabeDigests(block_header));
     OUTCOME_TRY(babe_config, babe_api_->configuration(block_hash));
-    OUTCOME_TRY(epoch,
-                babe_util_->slotToEpoch(*block_header.parentInfo(),
-                                        babe_digests.second.slot_number));
+    OUTCOME_TRY(
+        epoch,
+        slots_util_.get()->slotToEpoch(*block_header.parentInfo(),
+                                       babe_digests.second.slot_number));
 
     return std::make_tuple(epoch,
                            std::move(babe_digests.second),

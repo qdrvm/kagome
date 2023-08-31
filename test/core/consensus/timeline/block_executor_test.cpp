@@ -15,16 +15,17 @@
 #include "mock/core/blockchain/block_tree_mock.hpp"
 #include "mock/core/blockchain/digest_tracker_mock.hpp"
 #include "mock/core/consensus/babe/babe_config_repository_mock.hpp"
-#include "mock/core/consensus/babe/babe_util_mock.hpp"
 #include "mock/core/consensus/grandpa/environment_mock.hpp"
 #include "mock/core/consensus/grandpa/grandpa_digest_observer_mock.hpp"
 #include "mock/core/consensus/timeline/consistency_keeper_mock.hpp"
+#include "mock/core/consensus/timeline/slots_util_mock.hpp"
 #include "mock/core/consensus/validation/block_validator_mock.hpp"
 #include "mock/core/crypto/hasher_mock.hpp"
 #include "mock/core/runtime/core_mock.hpp"
 #include "mock/core/runtime/offchain_worker_api_mock.hpp"
 #include "mock/core/transaction_pool/transaction_pool_mock.hpp"
 #include "runtime/runtime_context.hpp"
+#include "testutil/lazy.hpp"
 #include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
 #include "testutil/prepare_loggers.hpp"
@@ -41,10 +42,10 @@ using kagome::consensus::ConsistencyGuard;
 using kagome::consensus::ConsistencyKeeperMock;
 using kagome::consensus::EpochDescriptor;
 using kagome::consensus::EpochDigest;
+using kagome::consensus::SlotsUtil;
+using kagome::consensus::SlotsUtilMock;
 using kagome::consensus::babe::BabeBlockHeader;
 using kagome::consensus::babe::BabeConfigRepositoryMock;
-using kagome::consensus::babe::BabeUtil;
-using kagome::consensus::babe::BabeUtilMock;
 using kagome::consensus::babe::BlockValidatorMock;
 using kagome::consensus::grandpa::Environment;
 using kagome::consensus::grandpa::EnvironmentMock;
@@ -131,8 +132,8 @@ class BlockExecutorTest : public testing::Test {
     hasher_ = std::make_shared<HasherMock>();
     digest_tracker_ = std::make_shared<DigestTrackerMock>();
 
-    babe_util_ = std::make_shared<BabeUtilMock>();
-    ON_CALL(*babe_util_, slotToEpochDescriptor(_, _))
+    slots_util_ = std::make_shared<SlotsUtilMock>();
+    ON_CALL(*slots_util_, slotToEpochDescriptor(_, _))
         .WillByDefault(Return(EpochDescriptor{1, 0}));
 
     offchain_worker_api_ = std::make_shared<OffchainWorkerApiMock>();
@@ -142,14 +143,15 @@ class BlockExecutorTest : public testing::Test {
         std::make_shared<kagome::primitives::events::ChainSubscriptionEngine>();
     consistency_keeper_ = std::make_shared<ConsistencyKeeperMock>();
 
-    auto appender = std::make_unique<BlockAppenderBase>(consistency_keeper_,
-                                                        block_tree_,
-                                                        digest_tracker_,
-                                                        babe_config_repo_,
-                                                        block_validator_,
-                                                        grandpa_environment_,
-                                                        babe_util_,
-                                                        hasher_);
+    auto appender = std::make_unique<BlockAppenderBase>(
+        consistency_keeper_,
+        block_tree_,
+        digest_tracker_,
+        babe_config_repo_,
+        block_validator_,
+        grandpa_environment_,
+        testutil::sptr_to_lazy<SlotsUtil>(slots_util_),
+        hasher_);
 
     block_executor_ = std::make_shared<BlockExecutorImpl>(block_tree_,
                                                           core_,
@@ -171,7 +173,7 @@ class BlockExecutorTest : public testing::Test {
   std::shared_ptr<TransactionPoolMock> tx_pool_;
   std::shared_ptr<HasherMock> hasher_;
   std::shared_ptr<DigestTrackerMock> digest_tracker_;
-  std::shared_ptr<BabeUtilMock> babe_util_;
+  std::shared_ptr<SlotsUtilMock> slots_util_;
   std::shared_ptr<OffchainWorkerApiMock> offchain_worker_api_;
   kagome::primitives::events::StorageSubscriptionEnginePtr storage_sub_engine_;
   kagome::primitives::events::ChainSubscriptionEnginePtr chain_sub_engine_;

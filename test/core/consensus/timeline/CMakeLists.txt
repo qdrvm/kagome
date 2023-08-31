@@ -12,3 +12,13 @@ target_link_libraries(block_executor_test
     blockchain
     transaction_pool_error
     )
+
+addtest(slots_util_test
+    slots_util_test.cpp
+)
+target_link_libraries(slots_util_test
+    consensus
+    clock
+    storage
+    logger_for_tests
+)

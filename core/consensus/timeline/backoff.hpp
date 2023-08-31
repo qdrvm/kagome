@@ -5,21 +5,22 @@
 
 #pragma once
 
-#include "consensus/babe/impl/babe_digests_util.hpp"
+#include "consensus/production_consensus.hpp"
 
-namespace kagome::consensus::babe {
+namespace kagome::consensus {
   /**
    * Slow down block production proportionally to finality lag.
    * https://github.com/paritytech/substrate/blob/50de15d8740a129db9c18a6698fbd183b00326a2/client/consensus/slots/src/lib.rs#L772-L806
    */
-  inline bool backoff(const primitives::BlockHeader &best,
+  inline bool backoff(const ProductionConsensus &consensus,
+                      const primitives::BlockHeader &best,
                       primitives::BlockNumber finalized,
                       SlotNumber slot) {
     constexpr int64_t kMaxInterval = 100;
     constexpr auto kUnfinalizedSlack = 50;
     constexpr auto kAuthoringBias = 2;
 
-    auto slot_res = getBabeSlot(best);
+    auto slot_res = consensus.getSlot(best);
     if (not slot_res) {
       return false;
     }
@@ -33,4 +34,4 @@ namespace kagome::consensus::babe {
     return static_cast<int64_t>(slot - best_slot)
         <= std::min(interval, kMaxInterval);
   }
-}  // namespace kagome::consensus::babe
+}  // namespace kagome::consensus

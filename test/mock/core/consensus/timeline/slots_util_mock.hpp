@@ -5,14 +5,18 @@
 
 #pragma once
 
-#include "consensus/babe/babe_util.hpp"
+#include "consensus/timeline/slots_util.hpp"
 
 #include <gmock/gmock.h>
 
-namespace kagome::consensus::babe {
+namespace kagome::consensus {
 
-  class BabeUtilMock : public BabeUtil {
+  class SlotsUtilMock : public SlotsUtil {
    public:
+    MOCK_METHOD(Duration, slotDuration, (), (const, override));
+
+    MOCK_METHOD(EpochLength, epochLength, (), (const, override));
+
     MOCK_METHOD(SlotNumber, timeToSlot, (TimePoint), (const, override));
 
     MOCK_METHOD(TimePoint, slotStartTime, (SlotNumber slot), (const, override));
@@ -28,4 +32,4 @@ namespace kagome::consensus::babe {
                 (const, override));
   };
 
-}  // namespace kagome::consensus::babe
+}  // namespace kagome::consensus

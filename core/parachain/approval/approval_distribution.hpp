@@ -18,8 +18,8 @@
 #include <clock/timer.hpp>
 
 #include "blockchain/block_tree.hpp"
-#include "consensus/babe/babe_util.hpp"
 #include "consensus/babe/types/babe_block_header.hpp"
+#include "consensus/timeline/slots_util.hpp"
 #include "consensus/timeline/types.hpp"
 #include "crypto/crypto_store/key_file_storage.hpp"
 #include "crypto/crypto_store/session_keys.hpp"
@@ -261,7 +261,7 @@ namespace kagome::parachain {
         std::shared_ptr<application::AppStateManager> app_state_manager,
         std::shared_ptr<ThreadPool> thread_pool,
         std::shared_ptr<runtime::ParachainHost> parachain_host,
-        std::shared_ptr<consensus::babe::BabeUtil> babe_util,
+        LazySPtr<consensus::SlotsUtil> slots_util,
         std::shared_ptr<crypto::CryptoStore> keystore,
         std::shared_ptr<crypto::Hasher> hasher,
         std::shared_ptr<network::PeerView> peer_view,
@@ -677,7 +677,7 @@ namespace kagome::parachain {
     std::shared_ptr<ThreadHandler> thread_pool_context_;
 
     std::shared_ptr<runtime::ParachainHost> parachain_host_;
-    std::shared_ptr<consensus::babe::BabeUtil> babe_util_;
+    LazySPtr<consensus::SlotsUtil> slots_util_;
     std::shared_ptr<crypto::CryptoStore> keystore_;
     std::shared_ptr<crypto::Hasher> hasher_;
     const ApprovalVotingSubsystem config_;

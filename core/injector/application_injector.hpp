@@ -116,7 +116,6 @@ namespace kagome::injector {
     std::shared_ptr<api::ApiService> injectRpcApiService();
     std::shared_ptr<clock::SystemClock> injectSystemClock();
     std::shared_ptr<consensus::Timeline> injectTimeline();
-    std::shared_ptr<consensus::babe::Babe> injectBabe();
     std::shared_ptr<network::SyncProtocolObserver> injectSyncObserver();
     std::shared_ptr<network::StateProtocolObserver> injectStateObserver();
     std::shared_ptr<parachain::ParachainObserver> injectParachainObserver();

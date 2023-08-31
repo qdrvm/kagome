@@ -8,8 +8,8 @@
 #include "consensus/babe/babe.hpp"
 
 #include "application/app_configuration.hpp"
+#include "babe_digests_util.hpp"
 #include "clock/timer.hpp"
-#include "consensus/production_consensus.hpp"
 #include "consensus/timeline/sync_state.hpp"
 #include "injector/lazy.hpp"
 #include "log/logger.hpp"
@@ -91,9 +91,7 @@ namespace kagome::consensus::babe {
   /// block production. This is an intentional relaxation of block dropping algo
   static constexpr auto kMaxBlockSlotsOvertime = 2;
 
-  class BabeImpl : public Babe,
-                   public ProductionConsensus,
-                   public std::enable_shared_from_this<BabeImpl> {
+  class BabeImpl : public Babe, public std::enable_shared_from_this<BabeImpl> {
    public:
     /**
      * Create an instance of Babe implementation
@@ -175,6 +173,27 @@ namespace kagome::consensus::babe {
      * Process the current Babe slot
      */
     void processSlot(clock::SystemClock::TimePoint slot_timestamp);
+
+    [[deprecated]] ValidatorStatus getValidatorStatus(
+        const primitives::BlockInfo &parent_info,
+        EpochNumber epoch_number) const override {
+      return ValidatorStatus::NonValidator;
+    };
+
+    [[deprecated]] std::tuple<Duration, EpochLength> getTimings()
+        const override {
+      return std::tuple<Duration, EpochLength>(std::chrono::seconds(6), 200);
+    };
+
+    [[deprecated]] outcome::result<SlotNumber> getSlot(
+        const primitives::BlockHeader &header) const override {
+      return getBabeSlot(header);
+    }
+
+    [[deprecated]] outcome::result<void> processSlot(
+        SlotNumber slot, const primitives::BlockInfo &best_block) override {
+      return outcome::success();
+    };
 
     /**
      * Gather block and broadcast it
