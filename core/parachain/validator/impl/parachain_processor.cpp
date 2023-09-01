@@ -14,6 +14,7 @@
 #include "crypto/crypto_store/session_keys.hpp"
 #include "crypto/hasher.hpp"
 #include "crypto/sr25519_provider.hpp"
+#include "dispute_coordinator/impl/runtime_info.hpp"
 #include "network/common.hpp"
 #include "network/helpers/peer_id_formatter.hpp"
 #include "network/impl/protocols/protocol_error.hpp"
@@ -56,10 +57,17 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::parachain,
   return "Unknown parachain processor error";
 }
 
+namespace {
+  constexpr const char *kIsParachainValidator =
+      "kagome_node_is_parachain_validator";
+}
+
 namespace kagome::parachain {
+  constexpr size_t kMinGossipPeers = 25;
 
   ParachainProcessorImpl::ParachainProcessorImpl(
       std::shared_ptr<network::PeerManager> pm,
+      std::shared_ptr<dispute::RuntimeInfo> runtime_info,
       std::shared_ptr<crypto::Sr25519Provider> crypto_provider,
       std::shared_ptr<network::Router> router,
       std::shared_ptr<boost::asio::io_context> this_context,
@@ -79,6 +87,7 @@ namespace kagome::parachain {
       primitives::events::BabeStateSubscriptionEnginePtr babe_status_observable,
       std::shared_ptr<authority_discovery::Query> query_audi)
       : pm_(std::move(pm)),
+        runtime_info_(std::move(runtime_info)),
         crypto_provider_(std::move(crypto_provider)),
         router_(std::move(router)),
         this_context_(std::move(this_context)),
@@ -114,6 +123,16 @@ namespace kagome::parachain {
     BOOST_ASSERT(babe_status_observable_);
     BOOST_ASSERT(query_audi_);
     app_state_manager->takeControl(*this);
+
+    metrics_registry_->registerGaugeFamily(
+        kIsParachainValidator,
+        "Tracks if the validator participates in parachain consensus. "
+        "Parachain validators are a subset of the active set validators that "
+        "perform approval checking of all parachain candidates in a session. "
+        "Updates at session boundary.");
+    metric_is_parachain_validator_ =
+        metrics_registry_->registerGaugeMetric(kIsParachainValidator);
+    metric_is_parachain_validator_->set(false);
   }
 
   bool ParachainProcessorImpl::prepare() {
@@ -188,15 +207,19 @@ namespace kagome::parachain {
             if (auto const value = if_type<
                     const primitives::events::RemoveAfterFinalizationParams>(
                     event)) {
-              for (auto const &lost : value->get()) {
-                SL_TRACE(self->logger_,
-                         "Remove from storages.(relay parent={})",
-                         lost);
+              self->our_current_state_.active_leaves.exclusiveAccess(
+                  [&](auto &active_leaves) {
+                    for (auto const &lost : value->get()) {
+                      SL_TRACE(self->logger_,
+                               "Remove from storages.(relay parent={})",
+                               lost);
 
-                self->backing_store_->remove(lost);
-                self->av_store_->remove(lost);
-                self->bitfield_store_->remove(lost);
-              }
+                      self->backing_store_->remove(lost);
+                      self->av_store_->remove(lost);
+                      self->bitfield_store_->remove(lost);
+                      active_leaves.erase(lost);
+                    }
+                  });
             }
           }
         });
@@ -205,40 +228,46 @@ namespace kagome::parachain {
         peer_view_->getMyViewObservable(), false);
     my_view_sub_->subscribe(my_view_sub_->generateSubscriptionSetId(),
                             network::PeerView::EventType::kViewUpdated);
-    my_view_sub_->setCallback([wptr{weak_from_this()}](
-                                  auto /*set_id*/,
-                                  auto && /*internal_obj*/,
-                                  auto /*event_type*/,
-                                  const network::ExView &event) {
-      if (auto self = wptr.lock()) {
-        /// clear caches
-        BOOST_ASSERT(
-            self->this_context_->get_executor().running_in_this_thread());
-        for (auto const &lost : event.lost) {
-          SL_TRACE(
-              self->logger_, "Removed backing task.(relay parent={})", lost);
+    my_view_sub_->setCallback(
+        [wptr{weak_from_this()}](auto /*set_id*/,
+                                 auto && /*internal_obj*/,
+                                 auto /*event_type*/,
+                                 const network::ExView &event) {
+          if (auto self = wptr.lock()) {
+            /// clear caches
+            BOOST_ASSERT(
+                self->this_context_->get_executor().running_in_this_thread());
+            auto const &relay_parent =
+                primitives::calculateBlockHash(event.new_head, *self->hasher_)
+                    .value();
 
-          self->our_current_state_.state_by_relay_parent.erase(lost);
-          self->pending_candidates.exclusiveAccess(
-              [&](auto &container) { container.erase(lost); });
-        }
+            self->our_current_state_.active_leaves.exclusiveAccess(
+                [&](auto &active_leaves) {
+                  for (auto const &lost : event.lost) {
+                    SL_TRACE(self->logger_,
+                             "Removed backing task.(relay parent={})",
+                             lost);
 
-        if (auto r = self->canProcessParachains(); r.has_error()) {
-          return;
-        }
+                    self->our_current_state_.state_by_relay_parent.erase(lost);
+                    self->pending_candidates.exclusiveAccess(
+                        [&](auto &container) { container.erase(lost); });
+                    active_leaves.erase(lost);
+                  }
+                  active_leaves.insert(relay_parent);
+                });
+            if (auto r = self->canProcessParachains(); r.has_error()) {
+              return;
+            }
 
-        auto const &relay_parent =
-            primitives::calculateBlockHash(event.new_head, *self->hasher_)
-                .value();
-        self->createBackingTask(relay_parent);
-        SL_TRACE(self->logger_,
-                 "Update my view.(new head={}, finalized={}, leaves={})",
-                 relay_parent,
-                 event.view.finalized_number_,
-                 event.view.heads_.size());
-        self->broadcastView(event.view);
-      }
-    });
+            self->createBackingTask(relay_parent);
+            SL_TRACE(self->logger_,
+                     "Update my view.(new head={}, finalized={}, leaves={})",
+                     relay_parent,
+                     event.view.finalized_number_,
+                     event.view.heads_.size());
+            self->broadcastView(event.view);
+          }
+        });
     return true;
   }
 
@@ -261,6 +290,12 @@ namespace kagome::parachain {
     pm_->getStreamEngine()->broadcast(router_->getValidationProtocol(), msg);
   }
 
+  outcome::result<std::optional<ValidatorSigner>>
+  ParachainProcessorImpl::isParachainValidator(
+      const primitives::BlockHash &relay_parent) const {
+    return signer_factory_->at(relay_parent);
+  }
+
   outcome::result<void> ParachainProcessorImpl::canProcessParachains() const {
     if (!isValidatingNode()) {
       return Error::NOT_A_VALIDATOR;
@@ -279,16 +314,21 @@ namespace kagome::parachain {
   outcome::result<kagome::parachain::ParachainProcessorImpl::RelayParentState>
   ParachainProcessorImpl::initNewBackingTask(
       const primitives::BlockHash &relay_parent) {
+    bool is_parachain_validator = false;
+    auto metric_updater = gsl::finally([self{this}, &is_parachain_validator] {
+      self->metric_is_parachain_validator_->set(is_parachain_validator);
+    });
     OUTCOME_TRY(validators, parachain_host_->validators(relay_parent));
     OUTCOME_TRY(groups, parachain_host_->validator_groups(relay_parent));
     OUTCOME_TRY(cores, parachain_host_->availability_cores(relay_parent));
-    OUTCOME_TRY(validator, signer_factory_->at(relay_parent));
+    OUTCOME_TRY(validator, isParachainValidator(relay_parent));
     auto &[validator_groups, group_rotation_info] = groups;
 
     if (!validator) {
-      logger_->error("Not a validator, or no para keys.");
+      SL_TRACE(logger_, "Not a validator, or no para keys.");
       return Error::KEY_NOT_PRESENT;
     }
+    is_parachain_validator = true;
 
     const auto n_cores = cores.size();
     std::optional<ParachainId> assignment;
@@ -355,17 +395,18 @@ namespace kagome::parachain {
   void ParachainProcessorImpl::handleFetchedCollation(
       network::CollationEvent &&pending_collation,
       network::CollationFetchingResponse &&response) {
-    logger_->info("Processing collation from {}, relay parent: {}, para id: {}",
-                  pending_collation.pending_collation.peer_id,
-                  pending_collation.pending_collation.relay_parent,
-                  pending_collation.pending_collation.para_id);
+    logger_->trace(
+        "Processing collation from {}, relay parent: {}, para id: {}",
+        pending_collation.pending_collation.peer_id,
+        pending_collation.pending_collation.relay_parent,
+        pending_collation.pending_collation.para_id);
 
     auto opt_parachain_state = tryGetStateByRelayParent(
         pending_collation.pending_collation.relay_parent);
     if (!opt_parachain_state) {
-      logger_->warn("Fetched collation from {}:{} out of view",
-                    pending_collation.pending_collation.peer_id,
-                    pending_collation.pending_collation.relay_parent);
+      logger_->trace("Fetched collation from {}:{} out of view",
+                     pending_collation.pending_collation.peer_id,
+                     pending_collation.pending_collation.relay_parent);
       return;
     }
 
@@ -450,10 +491,6 @@ namespace kagome::parachain {
   void ParachainProcessorImpl::onValidationProtocolMsg(
       const libp2p::peer::PeerId &peer_id,
       const network::ValidatorProtocolMessage &message) {
-    if (auto r = canProcessParachains(); r.has_error()) {
-      return;
-    }
-
     if (auto m{boost::get<network::BitfieldDistributionMessage>(&message)}) {
       auto bd{boost::get<network::BitfieldDistribution>(m)};
       BOOST_ASSERT_MSG(
@@ -469,10 +506,24 @@ namespace kagome::parachain {
 
     if (auto msg{boost::get<network::StatementDistributionMessage>(&message)}) {
       if (auto statement_msg{boost::get<network::Seconded>(msg)}) {
+        if (auto r = canProcessParachains(); r.has_error()) {
+          return;
+        }
+        if (auto r = isParachainValidator(statement_msg->relay_parent);
+            r.has_error() || !r.value()) {
+          return;
+        }
         SL_TRACE(
             logger_, "Imported statement on {}", statement_msg->relay_parent);
         handleStatement(
             peer_id, statement_msg->relay_parent, statement_msg->statement);
+      } else {
+        auto &large = boost::get<network::LargeStatement>(*msg);
+        // TODO(turuslan): #1757, LargeStatement
+        SL_ERROR(logger_,
+                 "Ignoring LargeStatement about {} from {}",
+                 large.payload.payload.candidate_hash,
+                 peer_id);
       }
       return;
     }
@@ -721,7 +772,7 @@ namespace kagome::parachain {
     BOOST_ASSERT(this_context_->get_executor().running_in_this_thread());
     auto opt_parachain_state = tryGetStateByRelayParent(relay_parent);
     if (!opt_parachain_state) {
-      logger_->warn(
+      logger_->trace(
           "Handled statement from {}:{} out of view", peer_id, relay_parent);
       return;
     }
@@ -840,23 +891,24 @@ namespace kagome::parachain {
         validity_votes_out;
     validity_votes_out.reserve(validity_votes.size());
 
-    for (auto &[validator_index, statement] : validity_votes) {
-      if (is_type<network::CommittedCandidateReceipt>(
-              statement.payload.payload.candidate_state)) {
-        validity_votes_out.emplace_back(
-            validator_index,
-            network::ValidityAttestation{
+    for (auto &[validator_index, validity_vote] : validity_votes) {
+      auto validity_attestation = visit_in_place(
+          validity_vote,
+          [](const BackingStore::ValidityVoteIssued &val) {
+            return network::ValidityAttestation{
                 network::ValidityAttestation::Implicit{},
-                statement.signature,
-            });
-      } else {
-        validity_votes_out.emplace_back(
-            validator_index,
-            network::ValidityAttestation{
+                ((BackingStore::Statement &)val).signature,
+            };
+          },
+          [](const BackingStore::ValidityVoteValid &val) {
+            return network::ValidityAttestation{
                 network::ValidityAttestation::Explicit{},
-                statement.signature,
-            });
-      }
+                ((BackingStore::Statement &)val).signature,
+            };
+          });
+
+      validity_votes_out.emplace_back(validator_index,
+                                      std::move(validity_attestation));
     }
 
     return AttestedCandidate{
@@ -1256,16 +1308,16 @@ namespace kagome::parachain {
   void ParachainProcessorImpl::onValidationComplete(
       const libp2p::peer::PeerId &peer_id,
       ValidateAndSecondResult &&validation_result) {
-    logger_->warn("On validation complete. (peer={}, relay parent={})",
-                  peer_id,
-                  validation_result.relay_parent);
+    logger_->trace("On validation complete. (peer={}, relay parent={})",
+                   peer_id,
+                   validation_result.relay_parent);
 
     auto opt_parachain_state =
         tryGetStateByRelayParent(validation_result.relay_parent);
     if (!opt_parachain_state) {
-      logger_->warn("Validated candidate from {}:{} out of view",
-                    peer_id,
-                    validation_result.relay_parent);
+      logger_->trace("Validated candidate from {}:{} out of view",
+                     peer_id,
+                     validation_result.relay_parent);
       return;
     }
 
@@ -1305,25 +1357,63 @@ namespace kagome::parachain {
     auto se = pm_->getStreamEngine();
     BOOST_ASSERT(se);
 
+    // TODO(turuslan): #1757, LargeStatement
+    auto message = std::make_shared<
+        network::WireMessage<network::ValidatorProtocolMessage>>(
+        network::ValidatorProtocolMessage{
+            network::StatementDistributionMessage{network::Seconded{
+                .relay_parent = relay_parent, .statement = statement}}});
+
+    // Send to all peers in our group.
+    // If our group is smaller than `kMinGossipPeers`
+    // select other peers randomly.
+    std::unordered_set<network::PeerId> group_set;
+    if (auto r = runtime_info_->get_session_info(relay_parent)) {
+      auto &[session, info] = r.value();
+      if (info.our_group) {
+        for (auto &i : session.validator_groups[*info.our_group]) {
+          if (auto peer = query_audi_->get(session.discovery_keys[i])) {
+            group_set.emplace(peer->id);
+          }
+        }
+      }
+    }
+    std::deque<network::PeerId> group, any;
+    auto protocol = router_->getValidationProtocol();
+    se->forEachPeer(protocol, [&](const network::PeerId &peer) {
+      (group_set.count(peer) != 0 ? group : any).emplace_back(peer);
+    });
+    auto lucky = kMinGossipPeers - std::min(group.size(), kMinGossipPeers);
+    if (lucky != 0) {
+      std::shuffle(any.begin(), any.end(), random_);
+      any.erase(any.begin() + std::min(any.size(), lucky), any.end());
+    } else {
+      any.clear();
+    }
+
     logger_->trace(
         "Broadcasting StatementDistributionMessage.(relay_parent={}, validator "
         "index={}, sig={})",
         relay_parent,
         statement.payload.ix,
         statement.signature);
-    se->broadcast(
-        router_->getValidationProtocol(),
-        std::make_shared<
-            network::WireMessage<network::ValidatorProtocolMessage>>(
-            network::ValidatorProtocolMessage{
-                network::StatementDistributionMessage{network::Seconded{
-                    .relay_parent = relay_parent, .statement = statement}}}));
+
+    auto send = [&](const network::PeerId &peer) {
+      se->send(peer, protocol, message);
+    };
+    for (auto &peer : group) {
+      send(peer);
+    }
+    for (auto &peer : any) {
+      send(peer);
+    }
   }
 
   outcome::result<kagome::parachain::Pvf::Result>
   ParachainProcessorImpl::validateCandidate(
       const network::CandidateReceipt &candidate,
-      const network::ParachainBlock &pov) {
+      const network::ParachainBlock &pov,
+      const primitives::BlockHash &relay_parent) {
     return pvf_->pvfSync(candidate, pov);
   }
 
@@ -1354,9 +1444,25 @@ namespace kagome::parachain {
       const primitives::BlockHash &relay_parent,
       size_t n_validators) {
     TicToc _measure{"Parachain validation", logger_};
-
     const auto candidate_hash{candidateHashFrom(candidate)};
-    auto validation_result = validateCandidate(candidate, pov);
+
+    /// checks if we still need to execute parachain task
+    auto need_to_process = our_current_state_.active_leaves.sharedAccess(
+        [&](const auto &active_leaves) {
+          return active_leaves.count(relay_parent) != 0ull;
+        });
+
+    if (!need_to_process) {
+      SL_TRACE(logger_,
+               "Candidate validation skipped because of extruded relay parent. "
+               "(relay_parent={}, parachain_id={}, candidate_hash={})",
+               relay_parent,
+               candidate.descriptor.para_id,
+               candidate_hash);
+      return Error::VALIDATION_FAILED;
+    }
+
+    auto validation_result = validateCandidate(candidate, pov, relay_parent);
     if (!validation_result) {
       logger_->warn(
           "Candidate {} on relay_parent {}, para_id {} validation failed with "
@@ -1365,6 +1471,22 @@ namespace kagome::parachain {
           candidate.descriptor.relay_parent,
           candidate.descriptor.para_id,
           validation_result.error().message());
+      return Error::VALIDATION_FAILED;
+    }
+
+    need_to_process = our_current_state_.active_leaves.sharedAccess(
+        [&](const auto &active_leaves) {
+          return active_leaves.count(relay_parent) != 0ull;
+        });
+
+    if (!need_to_process) {
+      SL_TRACE(logger_,
+               "Candidate validation skipped before erasure-coding because of "
+               "extruded relay parent. "
+               "(relay_parent={}, parachain_id={}, candidate_hash={})",
+               relay_parent,
+               candidate.descriptor.para_id,
+               candidate_hash);
       return Error::VALIDATION_FAILED;
     }
 

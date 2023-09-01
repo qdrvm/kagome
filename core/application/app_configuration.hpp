@@ -233,6 +233,8 @@ namespace kagome::application {
      */
     virtual bool purgeWavmCache() const = 0;
 
+    virtual uint32_t parachainRuntimeInstanceCacheSize() const = 0;
+
     enum class OffchainWorkerMode { WhenValidating, Always, Never };
     /**
      * @return enum constant of the mode of run offchain workers
@@ -255,6 +257,8 @@ namespace kagome::application {
     virtual std::optional<size_t> statePruningDepth() const = 0;
 
     virtual bool shouldPruneDiscardedStates() const = 0;
+
+    virtual bool enableThoroughPruning() const = 0;
 
     /**
      * @return database state cache size in MiB

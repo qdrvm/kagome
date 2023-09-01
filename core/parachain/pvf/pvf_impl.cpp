@@ -5,9 +5,14 @@
 
 #include "parachain/pvf/pvf_impl.hpp"
 
-#include "runtime/common/executor.hpp"
+#include "application/app_configuration.hpp"
+#include "metrics/histogram_timer.hpp"
+#include "runtime/common/runtime_instances_pool.hpp"
 #include "runtime/common/uncompress_code_if_needed.hpp"
+#include "runtime/executor.hpp"
 #include "runtime/module.hpp"
+#include "runtime/module_factory.hpp"
+#include "runtime/module_repository.hpp"
 #include "runtime/runtime_code_provider.hpp"
 
 OUTCOME_CPP_DEFINE_CATEGORY(kagome::parachain, PvfError, e) {
@@ -43,6 +48,35 @@ namespace kagome::parachain {
   using primitives::BlockNumber;
   using runtime::PersistedValidationData;
 
+  metrics::HistogramTimer metric_pvf_execution_time{
+      "kagome_pvf_execution_time",
+      "Time spent in executing PVFs",
+      {
+          0.01,
+          0.025,
+          0.05,
+          0.1,
+          0.25,
+          0.5,
+          1.0,
+          2.0,
+          3.0,
+          4.0,
+          5.0,
+          6.0,
+          8.0,
+          10.0,
+          12.0,
+      },
+  };
+
+  metrics::HistogramHelper metric_code_size{
+      "kagome_parachain_candidate_validation_code_size",
+      "The size of the decompressed WASM validation blob used for checking a "
+      "candidate",
+      metrics::exponentialBuckets(16384, 2, 10),
+  };
+
   struct DontProvideCode : runtime::RuntimeCodeProvider {
     outcome::result<gsl::span<const uint8_t>> getCodeAt(
         const storage::trie::RootHash &) const override {
@@ -55,9 +89,8 @@ namespace kagome::parachain {
         : instance{std::move(instance)} {}
 
     outcome::result<std::shared_ptr<runtime::ModuleInstance>> getInstanceAt(
-        std::shared_ptr<const runtime::RuntimeCodeProvider>,
         const primitives::BlockInfo &,
-        const primitives::BlockHeader &) override {
+        const storage::trie::RootHash &) override {
       return instance;
     }
 
@@ -73,17 +106,6 @@ namespace kagome::parachain {
     Hash256 relay_parent_storage_root;
   };
 
-  struct ValidationResult {
-    SCALE_TIE(6);
-
-    HeadData head_data;
-    std::optional<ParachainRuntime> new_validation_code;
-    std::vector<UpwardMessage> upward_messages;
-    std::vector<OutboundHorizontal> horizontal_messages;
-    uint32_t processed_downward_messages;
-    BlockNumber hrmp_watermark;
-  };
-
   PvfImpl::PvfImpl(
       std::shared_ptr<crypto::Hasher> hasher,
       std::shared_ptr<runtime::ModuleFactory> module_factory,
@@ -91,20 +113,26 @@ namespace kagome::parachain {
       std::shared_ptr<blockchain::BlockHeaderRepository>
           block_header_repository,
       std::shared_ptr<crypto::Sr25519Provider> sr25519_provider,
-      std::shared_ptr<runtime::ParachainHost> parachain_api)
+      std::shared_ptr<runtime::ParachainHost> parachain_api,
+      std::shared_ptr<runtime::Executor> executor,
+      std::shared_ptr<runtime::RuntimeContextFactory> ctx_factory,
+      std::shared_ptr<application::AppConfiguration> config)
       : hasher_{std::move(hasher)},
-        module_factory_{std::move(module_factory)},
         runtime_properties_cache_{std::move(runtime_properties_cache)},
         block_header_repository_{std::move(block_header_repository)},
         sr25519_provider_{std::move(sr25519_provider)},
         parachain_api_{std::move(parachain_api)},
-        log_{log::createLogger("Pvf")} {}
+        executor_{std::move(executor)},
+        ctx_factory_{std::move(ctx_factory)},
+        log_{log::createLogger("Pvf")},
+        runtime_cache_{std::make_shared<runtime::RuntimeInstancesPool>(
+            module_factory, config->parachainRuntimeInstanceCacheSize())} {}
 
   outcome::result<Pvf::Result> PvfImpl::pvfValidate(
       const PersistedValidationData &data,
       const ParachainBlock &pov,
       const CandidateReceipt &receipt,
-      const ParachainRuntime &code) const {
+      const ParachainRuntime &code_zstd) const {
     OUTCOME_TRY(pov_encoded, scale::encode(pov));
     if (pov_encoded.size() > data.max_pov_size) {
       return PvfError::POV_SIZE;
@@ -113,7 +141,7 @@ namespace kagome::parachain {
     if (pov_hash != receipt.descriptor.pov_hash) {
       return PvfError::POV_HASH;
     }
-    auto code_hash = hasher_->blake2b_256(code);
+    auto code_hash = hasher_->blake2b_256(code_zstd);
     if (code_hash != receipt.descriptor.validation_code_hash) {
       return PvfError::CODE_HASH;
     }
@@ -125,13 +153,18 @@ namespace kagome::parachain {
       return PvfError::SIGNATURE;
     }
 
+    auto timer = metric_pvf_execution_time.timer();
+    ParachainRuntime code;
+    OUTCOME_TRY(runtime::uncompressCodeIfNeeded(code_zstd, code));
+    metric_code_size.observe(code.size());
     ValidationParams params;
     params.parent_head = data.parent_head;
     OUTCOME_TRY(runtime::uncompressCodeIfNeeded(pov.payload,
                                                 params.block_data.payload));
     params.relay_parent_number = data.relay_parent_number;
     params.relay_parent_storage_root = data.relay_parent_storage_root;
-    OUTCOME_TRY(result, callWasm(code, params));
+    OUTCOME_TRY(result, callWasm(receipt, code_hash, code, params));
+    timer.reset();
 
     OUTCOME_TRY(commitments, fromOutputs(receipt, std::move(result)));
     return std::make_pair(std::move(commitments), std::move(data));
@@ -190,18 +223,24 @@ namespace kagome::parachain {
   }
 
   outcome::result<ValidationResult> PvfImpl::callWasm(
-      const ParachainRuntime &code_zstd, const ValidationParams &params) const {
-    ParachainRuntime code;
-    OUTCOME_TRY(runtime::uncompressCodeIfNeeded(code_zstd, code));
-    OUTCOME_TRY(module, module_factory_->make(code));
-    OUTCOME_TRY(instance, module->instantiate());
-    auto env_factory = std::make_shared<runtime::RuntimeEnvironmentFactory>(
-        std::make_shared<DontProvideCode>(),
-        std::make_shared<ReturnModuleInstance>(instance),
-        block_header_repository_);
-    auto executor = std::make_unique<runtime::Executor>(
-        env_factory, runtime_properties_cache_);
-    return executor->callAtGenesis<ValidationResult>("validate_block", params);
+      const CandidateReceipt &receipt,
+      const common::Hash256 &code_hash,
+      const ParachainRuntime &code_zstd,
+      const ValidationParams &params) const {
+    OUTCOME_TRY(instance, runtime_cache_->instantiate(code_hash, code_zstd));
+
+    runtime::RuntimeContext::ContextParams executor_params{};
+    auto &parent_hash = receipt.descriptor.relay_parent;
+    OUTCOME_TRY(session_index,
+                parachain_api_->session_index_for_child(parent_hash));
+    OUTCOME_TRY(
+        session_params,
+        parachain_api_->session_executor_params(parent_hash, session_index));
+    OUTCOME_TRY(ctx,
+                ctx_factory_->ephemeral(
+                    instance, storage::trie::kEmptyRootHash, executor_params));
+    return executor_->decodedCallWithCtx<ValidationResult>(
+        ctx, "validate_block", params);
   }
 
   outcome::result<Pvf::CandidateCommitments> PvfImpl::fromOutputs(

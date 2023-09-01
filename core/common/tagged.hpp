@@ -47,7 +47,7 @@ namespace kagome {
     }
 
     template <typename Out>
-    explicit operator Out() {
+    explicit operator Out() const {
       if constexpr (std::is_scalar_v<T>) {
         return this->Wrapper<T>::value;
       } else {
@@ -74,6 +74,15 @@ namespace kagome {
       }
     }
   };
+
+  template <
+      typename T,
+      typename Tag,
+      typename Base = std::conditional_t<std::is_scalar_v<T>, Wrapper<T>, T>>
+  inline std::ostream &operator<<(std::ostream &os,
+                                  const Tagged<T, Tag, Base> &view) {
+    return os << (const T &)view;
+  }
 
 }  // namespace kagome
 

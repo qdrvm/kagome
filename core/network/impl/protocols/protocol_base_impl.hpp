@@ -3,8 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_NETWORK_PROTOCOLBASEIMPL
-#define KAGOME_NETWORK_PROTOCOLBASEIMPL
+#pragma once
 
 #include "network/protocol_base.hpp"
 
@@ -46,26 +45,34 @@ namespace kagome::network {
     }
 
     template <typename T>
-    bool start(std::weak_ptr<T> wptr) {
+    bool start(std::weak_ptr<T> wp) {
       host_.setProtocolHandler(
           protocols_,
-          [log{logger()}, wp(std::move(wptr))](auto &&stream_and_proto) {
-            network::streamReadBuffer(stream_and_proto);
-            if (auto peer_id = stream_and_proto.stream->remotePeerId()) {
-              SL_TRACE(log,
-                       "Handled {} protocol stream from: {}",
-                       stream_and_proto.protocol,
-                       peer_id.value().toBase58());
-              if (auto self = wp.lock()) {
-                self->onIncomingStream(std::move(stream_and_proto.stream));
+          [wp = std::move(wp), log = logger()](auto &&stream_and_proto) {
+            if (auto self = wp.lock()) {
+              BOOST_ASSERT(stream_and_proto.stream);
+
+              network::streamReadBuffer(stream_and_proto);
+
+              auto &[stream, protocol] = stream_and_proto;
+              BOOST_ASSERT(stream);
+
+              if (auto peer_id = stream->remotePeerId()) {
+                SL_TRACE(log,
+                         "Handled {} protocol stream from {}",
+                         protocol,
+                         peer_id);
+                BOOST_ASSERT(stream);
+                self->onIncomingStream(std::move(stream));
                 return;
               }
-            } else {
-              log->warn("Handled {} protocol stream from unknown peer",
-                        stream_and_proto.protocol);
+
+              SL_WARN(log,
+                      "Handled {} protocol stream from unknown peer",
+                      protocol);
+              BOOST_ASSERT(stream);
+              stream->close([](auto &&) {});
             }
-            stream_and_proto.stream->close(
-                [stream{stream_and_proto.stream}](auto &&) {});
           });
       return true;
     }
@@ -74,7 +81,7 @@ namespace kagome::network {
       return name_;
     }
 
-    Protocols const &protocolIds() const {
+    const Protocols &protocolIds() const {
       return protocols_;
     }
 
@@ -82,27 +89,29 @@ namespace kagome::network {
       return host_;
     }
 
-    log::Logger const &logger() const {
+    const log::Logger &logger() const {
       return log_;
     }
 
     template <typename T>
-    void closeStream(std::weak_ptr<T> wptr, std::shared_ptr<Stream> stream) {
+    void closeStream(std::weak_ptr<T> wp, std::shared_ptr<Stream> stream) {
       BOOST_ASSERT(stream);
-      stream->close([log{logger()}, wptr, stream](auto &&result) {
-        if (auto self = wptr.lock()) {
-          if (!result) {
+      stream->close([wp = std::move(wp),
+                     log = logger(),
+                     peer_id = stream->remotePeerId().value()](auto &&result) {
+        if (auto self = wp.lock()) {
+          if (result.has_value()) {
             SL_DEBUG(log,
-                    "Stream {} was not closed successfully with {}",
-                    self->protocolName(),
-                    stream->remotePeerId().value());
-
-          } else {
-            SL_VERBOSE(log,
-                       "Stream {} with {} was closed.",
-                       self->protocolName(),
-                       stream->remotePeerId().value());
+                     "Stream {} with {} was closed.",
+                     self->protocolName(),
+                     peer_id);
+            return;
           }
+          SL_DEBUG(log,
+                   "Stream {} was not closed successfully with {}: {}",
+                   self->protocolName(),
+                   peer_id,
+                   result.error());
         }
       });
     }
@@ -115,5 +124,3 @@ namespace kagome::network {
   };
 
 }  // namespace kagome::network
-
-#endif  // KAGOME_NETWORK_PROTOCOLBASEIMPL

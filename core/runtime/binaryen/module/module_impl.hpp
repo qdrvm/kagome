@@ -43,7 +43,7 @@ namespace kagome::runtime::binaryen {
 
     ~ModuleImpl() override = default;
 
-    static outcome::result<std::unique_ptr<ModuleImpl>> createFromCode(
+    static outcome::result<std::shared_ptr<ModuleImpl>> createFromCode(
         const std::vector<uint8_t> &code,
         std::shared_ptr<const InstanceEnvironmentFactory> env_factory_,
         const common::Hash256 &code_hash);
@@ -51,14 +51,16 @@ namespace kagome::runtime::binaryen {
     outcome::result<std::shared_ptr<ModuleInstance>> instantiate()
         const override;
 
-   private:
     ModuleImpl(std::unique_ptr<wasm::Module> &&module,
                std::shared_ptr<const InstanceEnvironmentFactory> env_factory,
                const common::Hash256 &code_hash);
 
+   private:
     std::shared_ptr<const InstanceEnvironmentFactory> env_factory_;
     std::shared_ptr<wasm::Module> module_;  // shared to module instances
     const common::Hash256 code_hash_;
+
+    friend class ModuleInstanceImpl;
   };
 
 }  // namespace kagome::runtime::binaryen

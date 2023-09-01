@@ -100,7 +100,8 @@ namespace kagome::network {
         std::shared_ptr<libp2p::basic::Scheduler> scheduler,
         std::shared_ptr<crypto::Hasher> hasher,
         std::shared_ptr<runtime::ModuleFactory> module_factory,
-        std::shared_ptr<runtime::Core> core_api,
+        std::shared_ptr<runtime::RuntimePropertiesCache>
+            runtime_properties_cache,
         primitives::events::ChainSubscriptionEnginePtr chain_sub_engine,
         std::shared_ptr<consensus::grandpa::Environment> grandpa_environment);
 
@@ -137,10 +138,6 @@ namespace kagome::network {
     void syncState(const libp2p::peer::PeerId &peer_id,
                    const primitives::BlockInfo &block,
                    SyncResultHandler &&handler) override;
-
-    void syncBabeDigest(const libp2p::peer::PeerId &peer_id,
-                        const primitives::BlockInfo &block,
-                        CbResultVoid &&cb) override;
 
     /// Finds best common block with peer {@param peer_id} in provided interval.
     /// It is using tail-recursive algorithm, till {@param hint} is
@@ -227,7 +224,7 @@ namespace kagome::network {
     std::shared_ptr<libp2p::basic::Scheduler> scheduler_;
     std::shared_ptr<crypto::Hasher> hasher_;
     std::shared_ptr<runtime::ModuleFactory> module_factory_;
-    std::shared_ptr<runtime::Core> core_api_;
+    std::shared_ptr<runtime::RuntimePropertiesCache> runtime_properties_cache_;
     std::shared_ptr<consensus::grandpa::Environment> grandpa_environment_;
     primitives::events::ChainSubscriptionEnginePtr chain_sub_engine_;
 
@@ -237,6 +234,7 @@ namespace kagome::network {
     metrics::RegistryPtr metrics_registry_ = metrics::createRegistry();
     metrics::Gauge *metric_import_queue_length_;
 
+    std::array<char, 100> buf_{};  // TODO(kamilsa): Help variable for #1732
     log::Logger log_ = log::createLogger("Synchronizer", "synchronizer");
     telemetry::Telemetry telemetry_ = telemetry::createTelemetryService();
 

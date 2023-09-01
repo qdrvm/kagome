@@ -64,6 +64,17 @@ namespace kagome::runtime {
     CandidateHash candidate_hash;
     /// The descriptor of the candidate occupying the core.
     CandidateDescriptor candidate_descriptor;
+
+    bool operator==(const OccupiedCore &rhs) const {
+      return next_up_on_available == rhs.next_up_on_available
+         and occupied_since == rhs.occupied_since
+         and time_out_at == rhs.time_out_at
+         and next_up_on_time_out == rhs.next_up_on_time_out
+         and availability == rhs.availability
+         and group_responsible == rhs.group_responsible
+         and candidate_hash == rhs.candidate_hash
+         and candidate_descriptor == rhs.candidate_descriptor;
+    }
   };
 
   struct GroupDescriptor {
@@ -88,11 +99,11 @@ namespace kagome::runtime {
         return 0;
       }
 
-      auto const cores_normalized =
+      const auto cores_normalized =
           std::min(cores, size_t(std::numeric_limits<CoreIndex>::max()));
-      auto const blocks_since_start =
+      const auto blocks_since_start =
           math::sat_sub_unsigned(now_block_num, session_start_block);
-      auto const rotations = blocks_since_start / group_rotation_frequency;
+      const auto rotations = blocks_since_start / group_rotation_frequency;
 
       /// g = c + r mod cores_normalized
       return GroupIndex((size_t(core_index) + size_t(rotations))
@@ -151,14 +162,32 @@ namespace kagome::runtime {
     CandidateReceipt candidate_receipt;
     HeadData head_data;
     CoreIndex core_index;
+
+    bool operator==(const Candidate &rhs) const {
+      return candidate_receipt == rhs.candidate_receipt
+         and head_data == rhs.head_data  //
+         and core_index == rhs.core_index;
+    }
   };
 
   struct CandidateBacked : public Candidate {
     GroupIndex group_index{};
+
+    bool operator==(const CandidateBacked &rhs) const {
+      return (const Candidate &)(*this) == (const Candidate &)rhs
+         and group_index == rhs.group_index;
+    }
   };
 
-  struct CandidateIncluded : public Candidate {
+  struct CandidateIncluded
+      : public Candidate,
+        public boost::equality_comparable<CandidateIncluded> {
     GroupIndex group_index{};
+
+    bool operator==(const CandidateIncluded &rhs) const {
+      return (const Candidate &)(*this) == (const Candidate &)rhs
+         and group_index == rhs.group_index;
+    }
   };
 
   struct CandidateTimedOut : public Candidate {};
@@ -181,6 +210,8 @@ namespace kagome::runtime {
   using AuthorityDiscoveryId = common::Hash256;
   using AssignmentId = common::Blob<32>;
   struct SessionInfo {
+    SCALE_TIE(13);
+
     /****** New in v2 *******/
     /// All the validators actively participating in parachain consensus.
     /// Indices are into the broader validator set.
@@ -239,10 +270,105 @@ namespace kagome::runtime {
     uint32_t no_show_slots;
     /// The number of validators needed to approve a block.
     uint32_t needed_approvals;
+
+    bool operator==(const SessionInfo &rhs) const {
+      return active_validator_indices == rhs.active_validator_indices
+         and random_seed == rhs.random_seed
+         and dispute_period == rhs.dispute_period
+         and validators == rhs.validators
+         and discovery_keys == rhs.discovery_keys
+         and assignment_keys == rhs.assignment_keys
+         and validator_groups == rhs.validator_groups and n_cores == rhs.n_cores
+         and zeroth_delay_tranche_width == rhs.zeroth_delay_tranche_width
+         and relay_vrf_modulo_samples == rhs.relay_vrf_modulo_samples
+         and n_delay_tranches == rhs.n_delay_tranches
+         and no_show_slots == rhs.no_show_slots
+         and needed_approvals == rhs.needed_approvals;
+    }
+    bool operator!=(const SessionInfo &rhs) const {
+      return !operator==(rhs);
+    }
   };
 
   using InboundDownwardMessage = network::InboundDownwardMessage;
   using InboundHrmpMessage = network::InboundHrmpMessage;
+
+  enum class PvfPrepTimeoutKind {
+    /// For prechecking requests, the time period after which the preparation
+    /// worker is considered
+    /// unresponsive and will be killed.
+    Precheck,
+
+    /// For execution and heads-up requests, the time period after which the
+    /// preparation worker is
+    /// considered unresponsive and will be killed. More lenient than the
+    /// timeout for prechecking
+    /// to prevent honest validators from timing out on valid PVFs.
+    Lenient,
+  };
+
+  /// Type discriminator for PVF execution timeouts
+  enum class PvfExecTimeoutKind {
+    /// The amount of time to spend on execution during backing.
+    Backing,
+
+    /// The amount of time to spend on execution during approval or disputes.
+    ///
+    /// This should be much longer than the backing execution timeout to ensure
+    /// that in the
+    /// absence of extremely large disparities between hardware, blocks that
+    /// pass backing are
+    /// considered executable by approval checkers or dispute participants.
+    Approval,
+  };
+
+  /// Maximum number of memory pages (64KiB bytes per page) the executor can
+  /// allocate.
+  struct MaxMemoryPages {
+    SCALE_TIE(1)
+    uint32_t limit;
+  };
+
+  /// Wasm logical stack size limit (max. number of Wasm values on stack)
+  struct StackLogicalMax {
+    SCALE_TIE(1)
+    uint32_t max_values_num;
+  };
+  /// Executor machine stack size limit, in bytes
+  struct StackNativeMax {
+    SCALE_TIE(1)
+    uint32_t max_bytes_num;
+  };
+  /// Max. amount of memory the preparation worker is allowed to use during
+  /// pre-checking, in bytes
+  struct PrecheckingMaxMemory {
+    SCALE_TIE(1)
+    uint64_t max_bytes_num;
+  };
+  /// PVF preparation timeouts, millisec
+  struct PvfPrepTimeout {
+    SCALE_TIE(2)
+    PvfPrepTimeoutKind kind;
+    uint64_t msec;
+  };
+  /// PVF execution timeouts, millisec
+  struct PvfExecTimeout {
+    SCALE_TIE(2)
+    PvfExecTimeoutKind kind;
+    uint64_t msec;
+  };
+
+  /// Enables WASM bulk memory proposal
+  using WasmExtBulkMemory = Unused<1>;
+
+  using ExecutorParam = boost::variant<Unused<0>,
+                                       MaxMemoryPages,
+                                       StackLogicalMax,
+                                       StackNativeMax,
+                                       PrecheckingMaxMemory,
+                                       PvfPrepTimeout,
+                                       PvfExecTimeout,
+                                       Unused<7>>;  // WasmExtBulkMemory
 
 }  // namespace kagome::runtime
 #endif  // KAGOME_CORE_RUNTIME_PARACHAIN_HOST_TYPES_HPP

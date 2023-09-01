@@ -36,9 +36,10 @@ namespace {
       const auto *p = reinterpret_cast<const char *>(&key_type);
       std::string key_type_str(p, p + sizeof(key_type));
 
-      log->warn("key type <ascii: {}, hex: {:08x}> is not officially supported",
-                key_type_str,
-                key_type);
+      log->warn(
+          "key type <ascii: '{}', hex: {:08x}> is not officially supported",
+          key_type_str,
+          key_type);
     }
   }
 

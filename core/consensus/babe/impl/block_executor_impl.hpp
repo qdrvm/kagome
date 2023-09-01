@@ -11,7 +11,6 @@
 #include <libp2p/peer/peer_id.hpp>
 
 #include "log/logger.hpp"
-#include "metrics/metrics.hpp"
 #include "primitives/babe_configuration.hpp"
 #include "primitives/block_header.hpp"
 #include "primitives/event_types.hpp"
@@ -95,10 +94,6 @@ namespace kagome::consensus::babe {
     primitives::events::ChainSubscriptionEnginePtr chain_subscription_engine_;
 
     std::unique_ptr<BlockAppenderBase> appender_;
-
-    // Metrics
-    metrics::RegistryPtr metrics_registry_ = metrics::createRegistry();
-    metrics::Histogram *metric_block_execution_time_;
 
     log::Logger logger_;
     telemetry::Telemetry telemetry_;

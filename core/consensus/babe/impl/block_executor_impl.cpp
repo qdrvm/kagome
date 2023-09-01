@@ -17,6 +17,7 @@
 #include "consensus/babe/impl/threshold_util.hpp"
 #include "consensus/grandpa/voting_round_error.hpp"
 #include "consensus/validation/block_validator.hpp"
+#include "metrics/histogram_timer.hpp"
 #include "runtime/runtime_api/core.hpp"
 #include "runtime/runtime_api/offchain_worker_api.hpp"
 #include "storage/changes_trie/impl/storage_changes_tracker_impl.hpp"
@@ -24,12 +25,12 @@
 #include "transaction_pool/transaction_pool_error.hpp"
 #include "utils/thread_pool.hpp"
 
-namespace {
-  constexpr const char *kBlockExecutionTime =
-      "kagome_block_verification_and_import_time";
-}
-
 namespace kagome::consensus::babe {
+  metrics::HistogramTimer metric_block_execution_time{
+      "kagome_block_verification_and_import_time",
+      "Time taken to verify and import blocks",
+      {0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1, 2.5, 5, 10},
+  };
 
   BlockExecutorImpl::BlockExecutorImpl(
       const application::AppConfiguration &app_config,
@@ -62,13 +63,6 @@ namespace kagome::consensus::babe {
     BOOST_ASSERT(logger_ != nullptr);
     BOOST_ASSERT(telemetry_ != nullptr);
     BOOST_ASSERT(appender_ != nullptr);
-
-    // Register metrics
-    metrics_registry_->registerHistogramFamily(
-        kBlockExecutionTime, "Time taken to verify and import blocks");
-    metric_block_execution_time_ = metrics_registry_->registerHistogramMetric(
-        kBlockExecutionTime,
-        {0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1, 2.5, 5, 10});
   }
 
   BlockExecutorImpl::~BlockExecutorImpl() = default;
@@ -148,7 +142,7 @@ namespace kagome::consensus::babe {
                     consistency_guard{std::make_shared<ConsistencyGuard>(
                         std::move(consistency_guard))},
                     previous_best_block]() mutable {
-      auto exec_start = std::chrono::high_resolution_clock::now();
+      auto timer = metric_block_execution_time.manual();
 
       auto parent =
           block_tree_->getBlockHeader(block.header.parent_hash).value();
@@ -184,14 +178,8 @@ namespace kagome::consensus::babe {
         return;
       }
 
-      auto exec_end = std::chrono::high_resolution_clock::now();
-      auto duration_ms = std::chrono::duration_cast<std::chrono::milliseconds>(
-                             exec_end - exec_start)
-                             .count();
+      auto duration_ms = timer().count();
       SL_DEBUG(logger_, "Core_execute_block: {} ms", duration_ms);
-
-      metric_block_execution_time_->observe(static_cast<double>(duration_ms)
-                                            / 1000);
 
       // add block header if it does not exist
       if (auto res = block_tree_->addBlock(block); res.has_error()) {

@@ -35,11 +35,11 @@ namespace kagome::runtime::binaryen {
   }
 
   outcome::result<void> BinaryenMemoryProvider::resetMemory(
-      WasmSize heap_base) {
+      const MemoryConfig& config) {
     auto rei = external_interface_.lock();
     BOOST_ASSERT(rei != nullptr);
     if (rei) {
-      memory_ = memory_factory_->make(rei->getMemory(), heap_base);
+      memory_ = memory_factory_->make(rei->getMemory(), config);
       return outcome::success();
     }
     return Error::OUTDATED_EXTERNAL_INTERFACE;

@@ -19,13 +19,13 @@
 #include "mock/core/crypto/hasher_mock.hpp"
 #include "mock/core/network/protocols/sync_protocol_mock.hpp"
 #include "mock/core/network/router_mock.hpp"
-#include "mock/core/runtime/core_mock.hpp"
 #include "mock/core/runtime/module_factory_mock.hpp"
+#include "mock/core/runtime/runtime_properties_cache_mock.hpp"
 #include "mock/core/storage/persistent_map_mock.hpp"
 #include "mock/core/storage/spaced_storage_mock.hpp"
-#include "mock/core/storage/trie_pruner/trie_pruner_mock.hpp"
 #include "mock/core/storage/trie/serialization/trie_serializer_mock.hpp"
 #include "mock/core/storage/trie/trie_storage_mock.hpp"
+#include "mock/core/storage/trie_pruner/trie_pruner_mock.hpp"
 #include "network/impl/synchronizer_impl.hpp"
 #include "primitives/common.hpp"
 #include "testutil/literals.hpp"
@@ -96,7 +96,7 @@ class SynchronizerTest
                                                     scheduler,
                                                     hasher,
                                                     module_factory,
-                                                    core_api,
+                                                    runtime_properties_cache,
                                                     chain_sub_engine,
                                                     grandpa_environment);
   }
@@ -126,8 +126,9 @@ class SynchronizerTest
       std::make_shared<crypto::HasherMock>();
   std::shared_ptr<runtime::ModuleFactoryMock> module_factory =
       std::make_shared<runtime::ModuleFactoryMock>();
-  std::shared_ptr<runtime::CoreMock> core_api =
-      std::make_shared<runtime::CoreMock>();
+  std::shared_ptr<runtime::RuntimePropertiesCacheMock>
+      runtime_properties_cache =
+          std::make_shared<runtime::RuntimePropertiesCacheMock>();
   primitives::events::ChainSubscriptionEnginePtr chain_sub_engine =
       std::make_shared<primitives::events::ChainSubscriptionEngine>();
   std::shared_ptr<BufferStorageMock> buffer_storage =

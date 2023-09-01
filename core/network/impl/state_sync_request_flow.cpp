@@ -6,7 +6,11 @@
 #include <boost/algorithm/string/predicate.hpp>
 
 #include "network/impl/state_sync_request_flow.hpp"
-#include "runtime/runtime_api/core.hpp"
+#include "runtime/common/uncompress_code_if_needed.hpp"
+#include "runtime/module.hpp"
+#include "runtime/module_factory.hpp"
+#include "runtime/runtime_api/impl/core.hpp"
+#include "runtime/runtime_context.hpp"
 #include "storage/predefined_keys.hpp"
 #include "storage/trie/serialization/trie_serializer.hpp"
 #include "storage/trie_pruner/trie_pruner.hpp"
@@ -86,14 +90,15 @@ namespace kagome::network {
 
   outcome::result<void> StateSyncRequestFlow::commit(
       const runtime::ModuleFactory &module_factory,
-      runtime::Core &core_api,
+      const std::shared_ptr<runtime::RuntimePropertiesCache>
+          &runtime_properties_cache,
       storage::trie::TrieSerializer &trie_serializer) {
     BOOST_ASSERT(complete());
     auto &top = roots_[std::nullopt];
     OUTCOME_TRY(code, top.trie->get(storage::kRuntimeCodeKey));
-    OUTCOME_TRY(env,
-                runtime::RuntimeEnvironment::fromCode(module_factory, code));
-    OUTCOME_TRY(runtime_version, core_api.version(env));
+    OUTCOME_TRY(runtime_version,
+                runtime::callCoreVersion(
+                    module_factory, code, runtime_properties_cache));
     auto version = storage::trie::StateVersion{runtime_version.state_version};
     for (auto &[expected, root] : roots_) {
       if (not expected) {

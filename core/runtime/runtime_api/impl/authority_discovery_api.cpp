@@ -5,7 +5,7 @@
 
 #include "runtime/runtime_api/impl/authority_discovery_api.hpp"
 
-#include "runtime/common/executor.hpp"
+#include "runtime/executor.hpp"
 
 namespace kagome::runtime {
   AuthorityDiscoveryApiImpl::AuthorityDiscoveryApiImpl(
@@ -16,7 +16,9 @@ namespace kagome::runtime {
 
   outcome::result<std::vector<primitives::AuthorityDiscoveryId>>
   AuthorityDiscoveryApiImpl::authorities(const primitives::BlockHash &block) {
-    return executor_->callAt<std::vector<primitives::AuthorityDiscoveryId>>(
-        block, "AuthorityDiscoveryApi_authorities");
+    OUTCOME_TRY(
+        ref,
+        cache_.call(*executor_, block, "AuthorityDiscoveryApi_authorities"));
+    return *ref;
   }
 }  // namespace kagome::runtime

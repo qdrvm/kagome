@@ -52,7 +52,8 @@ namespace kagome::network {
         LazySPtr<ReqPovProtocol> req_pov_protocol,
         LazySPtr<FetchChunkProtocol> fetch_chunk_protocol,
         LazySPtr<FetchAvailableDataProtocol> fetch_available_data_protocol,
-        LazySPtr<StatmentFetchingProtocol> statement_fetching_protocol,
+        LazySPtr<StatementFetchingProtocol> statement_fetching_protocol,
+        LazySPtr<SendDisputeProtocol> send_dispute_protocol,
         LazySPtr<libp2p::protocol::Ping> ping_protocol);
 
     ~RouterLibp2p() override = default;
@@ -84,7 +85,10 @@ namespace kagome::network {
     std::shared_ptr<FetchChunkProtocol> getFetchChunkProtocol() const override;
     std::shared_ptr<FetchAvailableDataProtocol> getFetchAvailableDataProtocol()
         const override;
-    std::shared_ptr<StatmentFetchingProtocol> getFetchStatementProtocol()
+    std::shared_ptr<StatementFetchingProtocol> getFetchStatementProtocol()
+        const override;
+
+    std::shared_ptr<SendDisputeProtocol> getSendDisputeProtocol()
         const override;
 
     std::shared_ptr<libp2p::protocol::Ping> getPingProtocol() const override;
@@ -121,7 +125,9 @@ namespace kagome::network {
     LazySPtr<ReqPovProtocol> req_pov_protocol_;
     LazySPtr<FetchChunkProtocol> fetch_chunk_protocol_;
     LazySPtr<FetchAvailableDataProtocol> fetch_available_data_protocol_;
-    LazySPtr<StatmentFetchingProtocol> statement_fetching_protocol_;
+    LazySPtr<StatementFetchingProtocol> statement_fetching_protocol_;
+
+    LazySPtr<SendDisputeProtocol> send_dispute_protocol_;
 
     LazySPtr<libp2p::protocol::Ping> ping_protocol_;
 

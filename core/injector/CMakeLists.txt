@@ -54,7 +54,7 @@ target_link_libraries(application_injector
     pbkdf2_provider
     block_builder
     runtime_upgrade_tracker
-    runtime_environment_factory
+    executor
     runtime_properties_cache
     executor
     secp256k1_provider
@@ -82,5 +82,6 @@ target_link_libraries(application_injector
     validator_parachain
     fd_limit
     recovery_mode
+    dispute_coordinator
     )
 kagome_clear_objects(application_injector)

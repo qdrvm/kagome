@@ -9,6 +9,7 @@
 #include <optional>
 
 #include "runtime/memory.hpp"
+#include "runtime/common/memory_allocator.hpp"
 
 namespace kagome::runtime {
 
@@ -20,8 +21,9 @@ namespace kagome::runtime {
 
     virtual std::optional<std::reference_wrapper<runtime::Memory>>
     getCurrentMemory() const = 0;
+
     [[nodiscard]] virtual outcome::result<void> resetMemory(
-        WasmSize heap_base) = 0;
+        const MemoryConfig&) = 0;
   };
 
 }  // namespace kagome::runtime

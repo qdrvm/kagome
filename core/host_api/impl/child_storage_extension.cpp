@@ -307,12 +307,7 @@ namespace kagome::host_api {
       result = SomeRemaining(rows);
     }
 
-    if (limit_opt) {
-      SL_TRACE_FUNC_CALL(logger_, rows, child_key_buffer, limit_opt.value());
-    } else {
-      SL_TRACE_FUNC_CALL(
-          logger_, rows, child_key_buffer, std::string_view{"none"});
-    }
+    SL_TRACE_FUNC_CALL(logger_, rows, child_key_buffer, limit_opt);
 
     return memory.storeBuffer(scale::encode(result).value());
   }
@@ -449,12 +444,7 @@ namespace kagome::host_api {
     } else {
       result = SomeRemaining(rows);
     }
-    if (limit_opt) {
-      SL_TRACE_FUNC_CALL(logger_, rows, child_key_buffer, limit_opt.value());
-    } else {
-      SL_TRACE_FUNC_CALL(
-          logger_, rows, child_key_buffer, std::string_view{"none"});
-    }
+    SL_TRACE_FUNC_CALL(logger_, rows, child_key_buffer, limit_opt);
     return memory.storeBuffer(scale::encode(result).value());
   }
 

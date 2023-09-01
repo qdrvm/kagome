@@ -21,14 +21,16 @@ namespace kagome::network {
     const bool is_outgoing =
         (dir & static_cast<uint8_t>(Direction::OUTGOING)) != 0;
 
-    std::optional<kagome::network::StreamEngine::PeerId> p;
-    if (auto r = stream->remotePeerId(); r.has_value()) {
-      p = r.value();
-    }
-    SL_TRACE(logger_,
-             "Add stream for peer.(peer={}, protocol={})",
-             p,
-             protocol->protocolName());
+    SL_TRACE(
+        logger_,
+        "Add stream for peer.(peer={}, protocol={})",
+        [&]() -> std::optional<kagome::network::StreamEngine::PeerId> {
+          if (auto r = stream->remotePeerId(); r.has_value()) {
+            return r.value();
+          }
+          return std::nullopt;
+        }(),
+        protocol->protocolName());
 
     return streams_.exclusiveAccess([&](auto &streams) {
       bool existing = false;

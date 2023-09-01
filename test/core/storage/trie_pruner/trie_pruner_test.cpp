@@ -165,6 +165,7 @@ class TriePrunerTest : public testing::Test {
     auto config_mock =
         std::make_shared<kagome::application::AppConfigurationMock>();
     ON_CALL(*config_mock, statePruningDepth()).WillByDefault(Return(16));
+    ON_CALL(*config_mock, enableThoroughPruning()).WillByDefault(Return(true));
 
     trie_storage_mock.reset(
         new testing::NiceMock<trie::TrieStorageBackendMock>());
@@ -203,6 +204,7 @@ class TriePrunerTest : public testing::Test {
     auto config_mock =
         std::make_shared<kagome::application::AppConfigurationMock>();
     ON_CALL(*config_mock, statePruningDepth()).WillByDefault(Return(16));
+    ON_CALL(*config_mock, enableThoroughPruning()).WillByDefault(Return(true));
     trie_pruner::TriePrunerImpl::TriePrunerInfo info{.last_pruned_block =
                                                          last_pruned};
 
@@ -525,7 +527,7 @@ TEST_F(TriePrunerTest, RandomTree) {
       inserted_keys.erase(k);
     }
     ASSERT_OUTCOME_SUCCESS_TRY(
-        trie->clearPrefix(Buffer{{static_cast<uint8_t>(rand() % 256)}},
+        trie->clearPrefix(Buffer(static_cast<uint8_t>(rand() % 256)),
                           std::nullopt,
                           [](auto &, auto) -> outcome::result<void> {
                             return outcome::success();
@@ -624,6 +626,12 @@ TEST_F(TriePrunerTest, RestoreStateFromGenesis) {
 
   ON_CALL(*block_tree, getChildren(_))
       .WillByDefault(Return(std::vector<kagome::primitives::BlockHash>{}));
+  
+  ON_CALL(*block_tree, bestLeaf())
+      .WillByDefault(Return(BlockInfo{6, hash_from_header(headers.at(6))}));
+
+  ON_CALL(*block_tree, bestLeaf())
+      .WillByDefault(Return(BlockInfo{6, hash_from_header(headers.at(6))}));
 
   auto mock_block = [&](unsigned int number) {
     auto str_number = std::to_string(number);
@@ -813,6 +821,7 @@ TEST_F(TriePrunerTest, FastSyncScenario) {
         .WillRepeatedly(Return(DatabaseError::NOT_FOUND));
   }
 
+  EXPECT_CALL(*block_tree, bestLeaf()).WillOnce(Return(BlockInfo{1, {}}));
   ASSERT_OUTCOME_SUCCESS_TRY(pruner->recoverState(*block_tree));
 
   for (BlockNumber n = 80; n < LAST_BLOCK_NUMBER; n++) {

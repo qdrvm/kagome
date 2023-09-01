@@ -57,6 +57,7 @@ target_link_libraries(parachain_test
     filesystem
     hasher
     pbkdf2_provider
+    network
     )
 
 addtest(grandpa_api_test
@@ -90,7 +91,7 @@ addtest(runtime_external_interface_test
     )
 target_link_libraries(runtime_external_interface_test
     binaryen_runtime_external_interface
-    runtime_environment_factory
+    executor
     constant_code_provider
     blob
     logger_for_tests

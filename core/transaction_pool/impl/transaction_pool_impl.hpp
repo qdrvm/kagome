@@ -6,6 +6,9 @@
 #ifndef KAGOME_TRANSACTION_POOL_IMPL_HPP
 #define KAGOME_TRANSACTION_POOL_IMPL_HPP
 
+#include <deque>
+#include <libp2p/common/byteutil.hpp>
+
 #include "blockchain/block_header_repository.hpp"
 #include "log/logger.hpp"
 #include "metrics/metrics.hpp"
@@ -15,6 +18,7 @@
 #include "subscription/extrinsic_event_key_repository.hpp"
 #include "transaction_pool/pool_moderator.hpp"
 #include "transaction_pool/transaction_pool.hpp"
+#include "utils/safe_object.hpp"
 
 namespace kagome::runtime {
   class TaggedTransactionQueue;
@@ -49,8 +53,7 @@ namespace kagome::transaction_pool {
     TransactionPoolImpl &operator=(TransactionPoolImpl &&) = delete;
     TransactionPoolImpl &operator=(const TransactionPoolImpl &) = delete;
 
-    const std::unordered_map<Transaction::Hash, std::shared_ptr<Transaction>>
-        &getPendingTransactions() const override;
+    void getPendingTransactions(TxRequestCallback &&callback) const override;
 
     outcome::result<Transaction::Hash> submitExtrinsic(
         primitives::TransactionSource source,
@@ -61,7 +64,9 @@ namespace kagome::transaction_pool {
     outcome::result<Transaction> removeOne(
         const Transaction::Hash &tx_hash) override;
 
-    std::map<Transaction::Hash, std::shared_ptr<Transaction>>
+    void getReadyTransactions(TxRequestCallback &&callback) const override;
+    std::vector<
+        std::pair<Transaction::Hash, std::shared_ptr<const Transaction>>>
     getReadyTransactions() const override;
 
     outcome::result<std::vector<Transaction>> removeStale(
@@ -74,50 +79,68 @@ namespace kagome::transaction_pool {
         primitives::Extrinsic extrinsic) const override;
 
    private:
-    outcome::result<void> submitOne(const std::shared_ptr<Transaction> &tx);
+    struct TxReadyState {
+      uint32_t remains_required_txs_count;
+      std::shared_ptr<Transaction> tx;
+
+      explicit TxReadyState(Transaction &&other)
+          : remains_required_txs_count{(uint32_t)other.required_tags.size()},
+            tx{std::make_shared<Transaction>(std::move(other))} {}
+      explicit TxReadyState(const std::shared_ptr<Transaction> &other)
+          : remains_required_txs_count{(uint32_t)other->required_tags.size()},
+            tx{other} {}
+
+      TxReadyState(const TxReadyState &) = delete;
+      TxReadyState(TxReadyState &&other)
+          : remains_required_txs_count{other.remains_required_txs_count},
+            tx{std::move(other.tx)} {}
+
+      TxReadyState &operator=(const TxReadyState &) = delete;
+      TxReadyState &operator=(TxReadyState &&other) noexcept {
+        if (this != &other) {
+          remains_required_txs_count = other.remains_required_txs_count;
+          tx = std::move(other.tx);
+        }
+        return *this;
+      }
+    };
+
+    struct PendingStatus {
+      bool tag_provided{false};
+      std::unordered_map<Transaction::Hash, std::shared_ptr<TxReadyState>>
+          dependents{};
+    };
+
+    struct ReadyStatus {
+      std::shared_ptr<Transaction> tx;
+      std::deque<Transaction::Hash> triggered;
+    };
+
+    struct PoolState {
+      /// pendings
+      std::unordered_map<Transaction::Tag, PendingStatus> dependency_graph_;
+      std::unordered_map<Transaction::Hash, std::weak_ptr<TxReadyState>>
+          pending_txs_;
+
+      /// Collection transaction with full-satisfied dependencies
+      std::unordered_map<Transaction::Hash, ReadyStatus> ready_txs_;
+    };
+
+    bool imported(const Transaction &tx) const;
+    bool is_ready(const PoolState &pool_state,
+                  const std::shared_ptr<const Transaction> &tx) const;
+    size_t imported_txs_count() const;
+
+    void rollback(PoolState &pool_state, const Transaction::Hash &tx_hash);
+
+    outcome::result<void> submitOneInternal(
+        const std::shared_ptr<Transaction> &tx);
 
     outcome::result<void> processTransaction(
         const std::shared_ptr<Transaction> &tx);
 
-    outcome::result<void> processTransactionAsReady(
-        const std::shared_ptr<Transaction> &tx);
-
-    outcome::result<void> processTransactionAsWaiting(
-        const std::shared_ptr<Transaction> &tx);
-
-    outcome::result<void> ensureSpace() const;
-
-    bool hasSpaceInReady() const;
-
-    void addTransactionAsWaiting(const std::shared_ptr<Transaction> &tx);
-
-    void delTransactionAsWaiting(const std::shared_ptr<Transaction> &tx);
-
-    /// Postpone ready transaction (in case ready limit was enreach before)
-    void postponeTransaction(const std::shared_ptr<Transaction> &tx);
-
-    /// Process postponed transactions (in case appearing space for them)
-    void processPostponedTransactions();
-
-    void provideTag(const Transaction::Tag &tag);
-
-    void unprovideTag(const Transaction::Tag &tag);
-
-    void commitRequiredTags(const std::shared_ptr<Transaction> &tx);
-
-    void commitProvidedTags(const std::shared_ptr<Transaction> &tx);
-
-    void rollbackRequiredTags(const std::shared_ptr<Transaction> &tx);
-
-    void rollbackProvidedTags(const std::shared_ptr<Transaction> &tx);
-
-    bool checkForReady(const std::shared_ptr<const Transaction> &tx) const;
-
-    void setReady(const std::shared_ptr<Transaction> &tx);
-
-    void unsetReady(const std::shared_ptr<Transaction> &tx);
-
-    bool isInReady(const std::shared_ptr<const Transaction> &tx) const;
+    void setReady(PoolState &pool_state,
+                  const std::shared_ptr<Transaction> &tx);
 
     std::shared_ptr<blockchain::BlockHeaderRepository> header_repo_;
 
@@ -134,28 +157,7 @@ namespace kagome::transaction_pool {
     /// bans stale and invalid transactions for some amount of time
     std::unique_ptr<PoolModerator> moderator_;
 
-    /// All of imported transaction, contained in the pool
-    std::unordered_map<Transaction::Hash, std::shared_ptr<Transaction>>
-        imported_txs_;
-
-    /// Collection transaction with full-satisfied dependencies
-    std::unordered_map<Transaction::Hash, std::weak_ptr<Transaction>>
-        ready_txs_;
-
-    /// List of ready transaction over limit. It will be process first of all
-    std::list<std::weak_ptr<Transaction>> postponed_txs_;
-
-    /// Transactions which provides specific tags
-    std::multimap<Transaction::Tag, std::weak_ptr<Transaction>>
-        tx_provides_tag_;
-
-    /// Transactions with resolved requirement of a specific tag
-    std::multimap<Transaction::Tag, std::weak_ptr<Transaction>>
-        tx_depends_on_tag_;
-
-    /// Transactions with unresolved require of specific tags
-    std::multimap<Transaction::Tag, std::weak_ptr<Transaction>> tx_waits_tag_;
-
+    SafeObject<PoolState> pool_state_;
     Limits limits_;
 
     // Metrics

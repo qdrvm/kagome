@@ -58,12 +58,15 @@ namespace kagome::crypto {
   class SessionKeys;
 }  // namespace kagome::crypto
 
+namespace kagome::dispute {
+  class DisputeCoordinator;
+}
+
 namespace kagome::network {
   class Synchronizer;
   class BlockAnnounceTransmitter;
   class WarpSync;
   class WarpProtocol;
-  class PeerManager;
 }  // namespace kagome::network
 
 namespace kagome::runtime {
@@ -107,7 +110,6 @@ namespace kagome::consensus::babe {
     BabeImpl(
         const application::AppConfiguration &app_config,
         std::shared_ptr<application::AppStateManager> app_state_manager,
-        std::shared_ptr<network::PeerManager> peer_manager,
         std::shared_ptr<BabeLottery> lottery,
         std::shared_ptr<BabeConfigRepository> babe_config_repo,
         const ThreadPool &thread_pool,
@@ -136,7 +138,8 @@ namespace kagome::consensus::babe {
         std::shared_ptr<ConsistencyKeeper> consistency_keeper,
         std::shared_ptr<storage::trie::TrieStorage> trie_storage,
         primitives::events::BabeStateSubscriptionEnginePtr
-            babe_status_observable);
+            babe_status_observable,
+        std::shared_ptr<dispute::DisputeCoordinator> dispute_coordinator);
 
     ~BabeImpl() override = default;
 
@@ -146,7 +149,7 @@ namespace kagome::consensus::babe {
     /** @see AppStateManager::takeControl */
     bool start();
 
-    void runEpoch(EpochDescriptor epoch) override;
+    void runEpoch();
 
     State getCurrentState() const override;
 
@@ -160,9 +163,6 @@ namespace kagome::consensus::babe {
     bool wasSynchronized() const override;
 
    private:
-    bool canWarpSync() const;
-    void warpSync();
-
     /**
      * Warp sync from `peer_id` if `block_number`.
      * @return false if can't warp sync
@@ -170,9 +170,7 @@ namespace kagome::consensus::babe {
     bool warpSync(const libp2p::peer::PeerId &peer_id,
                   primitives::BlockNumber block_number);
 
-    outcome::result<EpochDescriptor> getInitialEpochDescriptor();
-
-    void adjustEpochDescriptor();
+    bool updateSlot(BabeTimePoint now);
 
     void startCatchUp(const libp2p::peer::PeerId &peer_id,
                       const primitives::BlockInfo &target_block);
@@ -215,11 +213,6 @@ namespace kagome::consensus::babe {
             &&changes_tracker,
         primitives::Block &&block);
 
-    /**
-     * Finish the Babe epoch
-     */
-    void startNextEpoch();
-
     void changeLotteryEpoch(
         const EpochDescriptor &epoch,
         primitives::AuthorityIndex authority_index,
@@ -234,8 +227,8 @@ namespace kagome::consensus::babe {
         const primitives::Block &block) const;
 
     application::AppConfiguration::SyncMethod sync_method_;
+    bool app_config_validator_;
     std::shared_ptr<application::AppStateManager> app_state_manager_;
-    std::shared_ptr<network::PeerManager> peer_manager_;
     std::shared_ptr<BabeLottery> lottery_;
     std::shared_ptr<BabeConfigRepository> babe_config_repo_;
     std::shared_ptr<boost::asio::io_context> io_context_;
@@ -267,6 +260,7 @@ namespace kagome::consensus::babe {
     std::shared_ptr<ConsistencyKeeper> consistency_keeper_;
     std::shared_ptr<storage::trie::TrieStorage> trie_storage_;
     primitives::events::BabeStateSubscriptionEnginePtr babe_status_observable_;
+    std::shared_ptr<dispute::DisputeCoordinator> dispute_coordinator_;
 
     bool warp_sync_busy_ = false;
 
@@ -284,7 +278,8 @@ namespace kagome::consensus::babe {
 
     // Metrics
     metrics::RegistryPtr metrics_registry_ = metrics::createRegistry();
-    metrics::Histogram *metric_block_proposal_time_;
+    metrics::Gauge *metric_is_major_syncing_;
+    metrics::Gauge *metric_is_relaychain_validator_;
 
     log::Logger log_;
     telemetry::Telemetry telemetry_;  // telemetry

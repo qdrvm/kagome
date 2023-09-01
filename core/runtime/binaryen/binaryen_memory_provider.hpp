@@ -28,7 +28,7 @@ namespace kagome::runtime::binaryen {
         const override;
 
     [[nodiscard]] outcome::result<void> resetMemory(
-        WasmSize heap_base) override;
+        const MemoryConfig& config) override;
 
     void setExternalInterface(std::weak_ptr<RuntimeExternalInterface> rei);
 

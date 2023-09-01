@@ -39,9 +39,7 @@ namespace kagome::runtime::binaryen {
   class MemoryImpl final : public Memory {
    public:
     MemoryImpl(RuntimeExternalInterface::InternalMemory *memory,
-               std::unique_ptr<MemoryAllocator> &&allocator);
-    MemoryImpl(RuntimeExternalInterface::InternalMemory *memory,
-               WasmSize heap_base);
+               const MemoryConfig &config);
     MemoryImpl(const MemoryImpl &copy) = delete;
     MemoryImpl &operator=(const MemoryImpl &copy) = delete;
     MemoryImpl(MemoryImpl &&move) = delete;
@@ -92,6 +90,11 @@ namespace kagome::runtime::binaryen {
     WasmSize size() const override {
       BOOST_ASSERT(memory_ != nullptr);
       return memory_->getSize();
+    }
+
+    // for testing purposes
+    const MemoryAllocator& getAllocator() const {
+      return *allocator_;
     }
 
    private:

@@ -27,7 +27,7 @@ namespace kagome::storage::face {
 
     outcome::result<OwnedOrView<V>> get(const View<K> &key) const override {
       OUTCOME_TRY(value, getMock(key));
-      return std::move(value);
+      return value;
     }
 
     outcome::result<std::optional<OwnedOrView<V>>> tryGet(

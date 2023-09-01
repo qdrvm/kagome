@@ -149,8 +149,6 @@ class VotingRoundTest : public testing::Test,
     previous_round_ = std::make_shared<VotingRoundMock>();
     ON_CALL(*previous_round_, lastFinalizedBlock())
         .WillByDefault(Return(BlockInfo{0, "genesis"_H}));
-    ON_CALL(*previous_round_, bestPrevoteCandidate())
-        .WillByDefault(Return(BlockInfo{2, "B"_H}));
     EXPECT_CALL(*previous_round_, bestFinalCandidate())
         .Times(AnyNumber())
         .WillRepeatedly(Return(BlockInfo{3, "C"_H}));

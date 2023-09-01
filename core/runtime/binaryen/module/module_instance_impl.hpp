@@ -17,6 +17,7 @@ namespace wasm {
 }  // namespace wasm
 
 namespace kagome::runtime::binaryen {
+  class ModuleImpl;
 
   class RuntimeExternalInterface;
 
@@ -26,11 +27,10 @@ namespace kagome::runtime::binaryen {
       UNEXPECTED_EXIT = 1,
       EXECUTION_ERROR,
       CAN_NOT_OBTAIN_GLOBAL,
-      NO_EXPORT_FUNCTION
     };
 
     ModuleInstanceImpl(InstanceEnvironment &&env,
-                       std::shared_ptr<wasm::Module> parent,
+                       std::shared_ptr<const ModuleImpl> parent,
                        std::shared_ptr<RuntimeExternalInterface> rei,
                        const common::Hash256 &code_hash);
 
@@ -38,22 +38,24 @@ namespace kagome::runtime::binaryen {
       return code_hash_;
     }
 
+    std::shared_ptr<const Module> getModule() const override;
+
     outcome::result<PtrSize> callExportFunction(
         std::string_view name, common::BufferView args) const override;
 
     outcome::result<std::optional<WasmValue>> getGlobal(
         std::string_view name) const override;
 
-    InstanceEnvironment const &getEnvironment() const override;
+    const InstanceEnvironment &getEnvironment() const override;
 
     outcome::result<void> resetEnvironment() override;
 
-    void forDataSegment(DataSegmentProcessor const &callback) const override;
+    void forDataSegment(const DataSegmentProcessor &callback) const override;
 
    private:
     InstanceEnvironment env_;
     std::shared_ptr<RuntimeExternalInterface> rei_;
-    std::shared_ptr<wasm::Module>
+    std::shared_ptr<const ModuleImpl>
         parent_;  // must be kept alive because binaryen's module instance keeps
                   // a reference to it
     common::Hash256 code_hash_;
