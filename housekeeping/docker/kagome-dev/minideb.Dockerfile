@@ -1,7 +1,7 @@
-FROM bitnami/minideb@sha256:297209ec9579cf8a5db349d5d3f3d3894e2d4281ee79df40d479c16896fdf41e
-
+FROM bitnami/minideb@sha256:c84aa349081c182fbaa92434eb6f6a0e14e69fc70aa1a5af2c7a8c0279fe5e93
 MAINTAINER Vladimir Shcherba <abrehchs@gmail.com>
 
+SHELL ["/bin/bash", "-c"]
 # add some required tools
 RUN apt-get update && \
     apt-get install --no-install-recommends -y \
@@ -13,6 +13,8 @@ RUN apt-get update && \
         python3-pip \
         python3-setuptools \
         software-properties-common \
+        gdb \
+        gdbserver \
         curl && \
         rm -rf /var/lib/apt/lists/*
 
@@ -40,8 +42,6 @@ RUN curl -fsSL https://download.docker.com/linux/debian/gpg | gpg --dearmor -o /
         docker-ce-cli \
         containerd.io \
         build-essential \
-        gcc-10 \
-        g++-10 \
         gcc-11 \
         g++-11 \
         gcc-12 \
@@ -62,10 +62,12 @@ RUN curl -fsSL https://download.docker.com/linux/debian/gpg | gpg --dearmor -o /
         llvm-14-dev \
         clang-tidy-14 \
         clang-format-14 \
+        libclang-rt-14-dev \
         clang-15 \
         llvm-15-dev \
         clang-tidy-15 \
         clang-format-15 \
+        libclang-rt-15-dev \
         make \
         git \
         ccache \
@@ -82,9 +84,16 @@ ENV PATH="${CARGO_HOME}/bin:${PATH}"
 RUN curl https://sh.rustup.rs -sSf | sh -s -- -y --default-toolchain ${RUST_VERSION} && \
     rustup default ${RUST_VERSION}
 
+
+# Prepare python venv
+RUN apt update && \
+    apt install --no-install-recommends -y \
+    python3.11-venv
+RUN python3 -m venv /venv
+
 # install cmake and dev dependencies
-RUN python3 -m pip install --no-cache-dir --upgrade pip
-RUN pip3 install --no-cache-dir cmake scikit-build requests gitpython gcovr pyyaml
+RUN /venv/bin/python3 -m pip install --no-cache-dir --upgrade pip
+RUN /venv/bin/pip install --no-cache-dir cmake==3.25 scikit-build requests gitpython gcovr pyyaml
 
 # install sonar cli
 ENV SONAR_CLI_VERSION=4.1.0.1829
@@ -100,11 +109,13 @@ RUN set -e; \
 ENV LLVM_ROOT=/usr/lib/llvm-11
 ENV LLVM_DIR=/usr/lib/llvm-11/lib/cmake/llvm/
 ENV PATH=${LLVM_ROOT}/bin:${LLVM_ROOT}/share/clang:${PATH}
-ENV CC=gcc-10
-ENV CXX=g++-10
+ENV CC=gcc-11
+ENV CXX=g++-11
 
 # set default compilers and tools
-RUN update-alternatives --install /usr/bin/python       python       /usr/bin/python3               90 && \
+
+RUN update-alternatives --install /usr/bin/python       python       /venv/bin/python3              90 && \
+    update-alternatives --install /usr/bin/python       python       /usr/bin/python3               80 && \
     
     update-alternatives --install /usr/bin/clang-tidy   clang-tidy   /usr/bin/clang-tidy-11         90 && \
     update-alternatives --install /usr/bin/clang-format clang-format /usr/bin/clang-format-11       90 && \
@@ -131,14 +142,10 @@ RUN update-alternatives --install /usr/bin/python       python       /usr/bin/py
     update-alternatives --install /usr/bin/clang        clang        /usr/lib/llvm-15/bin/clang-15  50 && \
     update-alternatives --install /usr/bin/clang++      clang++      /usr/bin/clang++-15            50 && \
 
-    update-alternatives --install /usr/bin/gcc          gcc          /usr/bin/gcc-10                90 && \
-    update-alternatives --install /usr/bin/g++          g++          /usr/bin/g++-10                90 && \
-    update-alternatives --install /usr/bin/gcov         gcov         /usr/bin/gcov-10               90 && \
+    update-alternatives --install /usr/bin/gcc          gcc          /usr/bin/gcc-11                90 && \
+    update-alternatives --install /usr/bin/g++          g++          /usr/bin/g++-11                90 && \
+    update-alternatives --install /usr/bin/gcov         gcov         /usr/bin/gcov-11               90 && \
 
-    update-alternatives --install /usr/bin/gcc          gcc          /usr/bin/gcc-11                80 && \
-    update-alternatives --install /usr/bin/g++          g++          /usr/bin/g++-11                80 && \
-    update-alternatives --install /usr/bin/gcov         gcov         /usr/bin/gcov-11               80 && \
-
-    update-alternatives --install /usr/bin/gcc          gcc          /usr/bin/gcc-12                70 && \
-    update-alternatives --install /usr/bin/g++          g++          /usr/bin/g++-12                70 && \
-    update-alternatives --install /usr/bin/gcov         gcov         /usr/bin/gcov-12               70
+    update-alternatives --install /usr/bin/gcc          gcc          /usr/bin/gcc-12                80 && \
+    update-alternatives --install /usr/bin/g++          g++          /usr/bin/g++-12                80 && \
+    update-alternatives --install /usr/bin/gcov         gcov         /usr/bin/gcov-12               80

@@ -1,5 +1,10 @@
 #!/bin/bash -ex
 
+if [[ "${CI}" ]]; then # CI
+  git config --global --add safe.directory /__w/kagome/kagome
+  source /venv/bin/activate
+fi
+
 KAGOME_ROOT="$(dirname "$0")/../../.."
 
 # cd to kagome source root
@@ -37,7 +42,7 @@ if [ "$BUILD_TYPE" = "Custom" ]; then
   COMMIT_HASH="$(git rev-parse --short HEAD)"
   TAG="$DOCKER_USERNAME/kagome:$COMMIT_HASH"
 else
-  TAG="soramitsu/kagome:$VERSION"
+  TAG="soramitsu/kagome:devops"
 fi
 
 CTX_DIR="${BUILD_DIR}/docker_context"
