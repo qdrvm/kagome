@@ -12,7 +12,7 @@
 #include "utils/safe_object.hpp"
 
 namespace kagome::runtime {
-  constexpr auto DISABLE_RUNTIME_LRU = true;
+  constexpr auto DISABLE_RUNTIME_LRU = false;
 
   /**
    * Cache runtime calls without arguments.
