@@ -215,7 +215,12 @@ namespace kagome::application {
      */
     virtual SyncMethod syncMethod() const = 0;
 
-    enum class RuntimeExecutionMethod { Compile, Interpret };
+    enum class RuntimeExecutionMethod {
+      CompileWavm,
+      CompileWasmEdge,
+      Interpret
+    };
+
     /**
      * @return enum constant of the chosen runtime backend
      */

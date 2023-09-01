@@ -21,23 +21,22 @@ namespace kagome::runtime {
     Debug = 3,
     Trace = 4,
   };
-  /**
-   * @brief type of wasm memory is 32 bit integer
-   */
+
   using WasmPointer = uint32_t;
+
   /**
    * @brief combination of pointer and size, where less significant part
    * represents wasm pointer, and most significant represents size
    */
   using WasmSpan = uint64_t;
+
   /**
-   * @brief Size type is uint32_t because we are working in 32 bit address space
+   * @brief Size type is int32_t because we are working in 32 bit address space
    */
   using WasmSize = uint32_t;
-  /**
-   * @brief Enum value is uint32_t
-   */
+
   using WasmEnum = uint32_t;
+
   /**
    * @brief Offset type is uint32_t because we are working in 32 bit address
    * space

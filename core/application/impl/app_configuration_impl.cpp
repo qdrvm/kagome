@@ -159,8 +159,11 @@ namespace {
     if (str == "Interpreted") {
       return REM::Interpret;
     }
-    if (str == "Compiled") {
-      return REM::Compile;
+    if (str == "Compiled-Wavm") {
+      return REM::CompileWavm;
+    }
+    if (str == "Compiled-WasmEdge") {
+      return REM::CompileWasmEdge;
     }
     return std::nullopt;
   }
