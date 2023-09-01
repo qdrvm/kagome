@@ -1472,7 +1472,7 @@ namespace kagome::application {
         }
       }
 
-      if (find_argument(vm, "enable-thorough-pruning")) {
+      if (vm.count("enable-thorough-pruning")) {
         enable_thorough_pruning_ = true;
       }
     }
