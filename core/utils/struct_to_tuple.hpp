@@ -9,10 +9,11 @@
 #include <deque>
 #include <map>
 #include <optional>
+#include <scale/outcome/outcome_throw.hpp>
+#include <scale/types.hpp>
 #include <tuple>
 #include <type_traits>
 #include <vector>
-#include <scale/types.hpp>
 
 #define REP0(X)
 #define REP1(X) X
@@ -54,8 +55,8 @@
 
 #define TO_TUPLE_N(ONES)                                                      \
   if constexpr (is_braces_constructible<type, REPEAT(0, ONES, any_type)>{}) { \
-    const auto &[REPEATY(ONES, p)] = object;                                       \
-    return std::make_tuple(REPEATY_REF(ONES, p));                                 \
+    const auto &[REPEATY(ONES, p)] = object;                                  \
+    return std::make_tuple(REPEATY_REF(ONES, p));                             \
   }
 
 #define TO_TUPLE1 \
@@ -106,8 +107,16 @@ namespace kagome::scale {
   template <typename T>
   constexpr void encode(const std::vector<T> &c);
 
-  template<>
-  constexpr void encode(const ::scale::CompactInteger &value);
+  template <>
+  void encode(const ::scale::CompactInteger &value);
+
+  inline size_t countBytes(::scale::CompactInteger v) {
+    size_t counter = 0;
+    do {
+      ++counter;
+    } while ((v >>= 8) != 0);
+    return counter;
+  }
 
   constexpr void putByte(const uint8_t *const val, size_t count) {
     std::cout << count << std::endl;
@@ -117,26 +126,61 @@ namespace kagome::scale {
     std::cout << std::endl;
   }
 
-  template<>
-  constexpr void encode(const ::scale::CompactInteger &value) {
-      if (value < 0) {
-        raise(EncodeError::NEGATIVE_COMPACT_INTEGER);
-      }
+  template <typename T,
+            typename I = std::decay_t<T>,
+            typename = std::enable_if_t<std::is_unsigned_v<I>>>
+  constexpr void encodeCompact(T val) {
+    constexpr size_t sz = sizeof(I);
+    constexpr uint8_t mask = 3 << 6;
+    const uint8_t msb_byte = (uint8_t)(val >> ((sz - 1ull) * 8ull));
 
-      if (value < compact::EncodingCategoryLimits::kMinUint16) {
-        encodeFirstCategory(value.convert_to<uint8_t>(), out);
-        return;
-      }
+    BOOST_ASSERT_MSG((msb_byte & mask) == 0,
+                     "Unexpected compact value in encoder");
+    val <<= 2;
+    val += (sz / 2ull);
 
-      if (value < compact::EncodingCategoryLimits::kMinUint32) {
-        encodeSecondCategory(value.convert_to<uint16_t>(), out);
-        return;
-      }
+    encode(val);
+  }
 
-      if (value < compact::EncodingCategoryLimits::kMinBigInteger) {
-        encodeThirdCategory(value.convert_to<uint32_t>(), out);
-        return;
-      }
+  template <>
+  void encode(const ::scale::CompactInteger &value) {
+    if (value < 0) {
+      raise(::scale::EncodeError::NEGATIVE_COMPACT_INTEGER);
+    }
+
+    if (value < ::scale::compact::EncodingCategoryLimits::kMinUint16) {
+      encodeCompact(value.convert_to<uint8_t>());
+      return;
+    }
+
+    if (value < ::scale::compact::EncodingCategoryLimits::kMinUint32) {
+      encodeCompact(value.convert_to<uint16_t>());
+      return;
+    }
+
+    if (value < ::scale::compact::EncodingCategoryLimits::kMinBigInteger) {
+      encodeCompact(value.convert_to<uint32_t>());
+      return;
+    }
+
+    constexpr size_t kReserved = 68ull;
+    const size_t bigIntLength = countBytes(value);
+
+    if (bigIntLength >= kReserved) {
+      raise(::scale::EncodeError::COMPACT_INTEGER_TOO_BIG);
+    }
+
+    uint8_t result[kReserved];
+    result[0] = (bigIntLength - 4) * 4 + 3;  // header
+
+    ::scale::CompactInteger v{value};
+    size_t i = 0ull;
+    for (; i < bigIntLength; ++i) {
+      result[i + 1ull] = static_cast<uint8_t>(v & 0xFF);
+      v >>= 8;
+    }
+
+    putByte(result, i);
   }
 
   template <
@@ -159,9 +203,7 @@ namespace kagome::scale {
   template <typename... Ts>
   constexpr void encode(const std::tuple<Ts...> &v) {
     if constexpr (sizeof...(Ts) > 0) {
-      std::apply(
-          [&](const auto &...s) { (..., encode(s)); },
-          v);
+      std::apply([&](const auto &...s) { (..., encode(s)); }, v);
     }
   }
 
