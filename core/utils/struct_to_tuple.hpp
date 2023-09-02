@@ -107,6 +107,12 @@ namespace kagome::scale {
   template <typename T>
   constexpr void encode(const std::vector<T> &c);
 
+  template <size_t I, typename... Ts>
+  void encode(const boost::variant<Ts...> &v);
+
+  template <typename... Ts>
+  void encode(const boost::variant<Ts...> &v);
+
   template <>
   void encode(const ::scale::CompactInteger &value);
 
@@ -127,6 +133,24 @@ namespace kagome::scale {
       std::cout << std::hex << (uint32_t)val[i];
     }
     std::cout << std::endl;
+  }
+
+  template <uint8_t I, typename... Ts>
+  void encode(const boost::variant<Ts...> &v) {
+    using T = std::tuple_element_t<I, std::tuple<Ts...>>;
+    if (v.type() == typeid(T)) {
+      encode(I);
+      encode(boost::get<T>(v));
+      return;
+    }
+    if constexpr (sizeof...(Ts) > I + 1) {
+      encode<I + 1>(v);
+    }
+  }
+
+  template <typename... Ts>
+  void encode(const boost::variant<Ts...> &v) {
+    encode<0>(v);
   }
 
   template <typename T,
