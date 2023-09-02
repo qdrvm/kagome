@@ -110,6 +110,9 @@ namespace kagome::scale {
   template <>
   void encode(const ::scale::CompactInteger &value);
 
+  template <>
+  void encode(const ::scale::BitVec &value);
+
   inline size_t countBytes(::scale::CompactInteger v) {
     size_t counter = 0;
     do {
@@ -140,6 +143,31 @@ namespace kagome::scale {
     val += (sz / 2ull);
 
     encode(val);
+  }
+
+  template <>
+  void encode(const ::scale::BitVec &v) {
+    const size_t bitsCount = v.bits.size();
+    const size_t bytesCount = ((bitsCount + 7ull) >> 3ull);
+    const size_t blocksCount = ((bytesCount + 7ull) >> 3ull);
+
+    encode(::scale::CompactInteger{bitsCount});
+    uint64_t result;
+    size_t bitCounter = 0ull;
+    for (size_t ix = 0ull; ix < blocksCount; ++ix) {
+      result = 0ull;
+      size_t remains =
+          (bitsCount - bitCounter) > 64ull ? 64ull : (bitsCount - bitCounter);
+      do {
+        result |= ((v.bits[bitCounter] ? 1ull : 0ull) << (bitCounter % 64ull));
+        ++bitCounter;
+      } while (--remains);
+
+      const size_t bits = (bitCounter % 64ull);
+      const size_t bytes =
+          (bits != 0ull) ? ((bits + 7ull) >> 3ull) : sizeof(result);
+      putByte((uint8_t *)&result, bytes);
+    }
   }
 
   template <>
