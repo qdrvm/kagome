@@ -97,53 +97,62 @@ namespace kagome::utils {
 
 namespace kagome::scale {
 
-  template <typename T>
-  constexpr void encode(const T &v);
+  template <typename F, typename T>
+  constexpr void encode(const F &func, const T &v);
 
-  template <typename... Ts>
-  constexpr void encode(const std::tuple<Ts...> &v);
+  template <typename F, typename... Ts>
+  constexpr void encode(const F &func, const std::tuple<Ts...> &v);
 
-  template <typename T, typename... Args>
-  constexpr void encode(const T &t, const Args &...args);
+  template <typename F, typename T, typename... Args>
+  constexpr void encode(const F &func, const T &t, const Args &...args);
 
-  template <typename T>
-  constexpr void encode(const std::vector<T> &c);
+  template <typename F, typename T>
+  constexpr void encode(const F &func, const std::vector<T> &c);
 
   template <typename F, typename S>
-  constexpr void encode(const std::pair<F, S> &p);
+  constexpr void encode(const F &func, const std::pair<F, S> &p);
 
-  template <typename T, ssize_t S>
-  constexpr void encode(const gsl::span<T, S> &c);
+  template <typename F, typename T, ssize_t S>
+  constexpr void encode(const F &func, const gsl::span<T, S> &c);
 
-  template <typename T, size_t size>
-  constexpr void encode(const std::array<T, size> &c);
+  template <typename F, typename T, size_t size>
+  constexpr void encode(const F &func, const std::array<T, size> &c);
 
-  template <typename K, typename V>
-  constexpr void encode(const std::map<K, V> &c);
+  template <typename F, size_t N>
+  constexpr void encode(const F &func, const char (&c)[N]);
 
-  template <typename T>
-  constexpr void encode(const std::shared_ptr<T> &v);
+  template <typename F, typename K, typename V>
+  constexpr void encode(const F &func, const std::map<K, V> &c);
 
-  template <typename T>
-  constexpr void encode(const std::unique_ptr<T> &v);
+  template <typename F, typename T>
+  constexpr void encode(const F &func, const std::shared_ptr<T> &v);
 
-  template <typename T>
-  constexpr void encode(const std::list<T> &c);
+      template <typename F>
+  constexpr void encode(const F &func, const std::string_view &v);
 
-  template <typename T>
-  constexpr void encode(const std::deque<T> &c);
+  template <typename F>
+  constexpr void encode(const F &func, const std::string &v);
 
-  template <size_t I, typename... Ts>
-  void encode(const boost::variant<Ts...> &v);
+  template <typename F, typename T>
+  constexpr void encode(const F &func, const std::unique_ptr<T> &v);
 
-  template <typename... Ts>
-  void encode(const boost::variant<Ts...> &v);
+  template <typename F, typename T>
+  constexpr void encode(const F &func, const std::list<T> &c);
 
-  template <>
-  void encode(const ::scale::CompactInteger &value);
+  template <typename F, typename T>
+  constexpr void encode(const F &func, const std::deque<T> &c);
 
-  template <>
-  void encode(const ::scale::BitVec &value);
+  template <typename F, size_t I, typename... Ts>
+  void encode(const F &func, const boost::variant<Ts...> &v);
+
+  template <typename F, typename... Ts>
+  void encode(const F &func, const boost::variant<Ts...> &v);
+
+  template <typename F>
+  void encode(const F &func, const ::scale::CompactInteger &value);
+
+  template <typename F>
+  void encode(const F &func, const ::scale::BitVec &value);
 
   inline size_t countBytes(::scale::CompactInteger v) {
     size_t counter = 0;
@@ -153,36 +162,40 @@ namespace kagome::scale {
     return counter;
   }
 
-  constexpr void putByte(const uint8_t *const val, size_t count) {
-    std::cout << count << std::endl;
-    for (size_t i = 0; i < count; ++i) {
-      std::cout << std::hex << (uint32_t)val[i];
-    }
-    std::cout << std::endl;
+  template<typename F>
+  constexpr void putByte(const F &func, const uint8_t *const val, size_t count) {
+    func(val, count);
   }
 
-  template <uint8_t I, typename... Ts>
-  void encode(const boost::variant<Ts...> &v) {
+  template <typename F, uint8_t I, typename... Ts>
+  void encode(const F &func, const boost::variant<Ts...> &v) {
     using T = std::tuple_element_t<I, std::tuple<Ts...>>;
     if (v.type() == typeid(T)) {
-      encode(I);
-      encode(boost::get<T>(v));
+      encode(func, I);
+      encode(func, boost::get<T>(v));
       return;
     }
     if constexpr (sizeof...(Ts) > I + 1) {
-      encode<I + 1>(v);
+      encode<F, I + 1>(func, v);
     }
   }
 
-  template <typename... Ts>
-  void encode(const boost::variant<Ts...> &v) {
-    encode<0>(v);
+  template <typename F, size_t N>
+  constexpr void encode(const F &func, const char (&c)[N]) {
+      for (const auto &e : c) {
+        encode(func, e);
+      }
   }
 
-  template <typename T,
+  template <typename F, typename... Ts>
+  void encode(const F &func, const boost::variant<Ts...> &v) {
+    encode<0>(func, v);
+  }
+
+  template <typename F, typename T,
             typename I = std::decay_t<T>,
             typename = std::enable_if_t<std::is_unsigned_v<I>>>
-  constexpr void encodeCompact(T val) {
+  constexpr void encodeCompact(const F &func, T val) {
     constexpr size_t sz = sizeof(I);
     constexpr uint8_t mask = 3 << 6;
     const uint8_t msb_byte = (uint8_t)(val >> ((sz - 1ull) * 8ull));
@@ -192,16 +205,27 @@ namespace kagome::scale {
     val <<= 2;
     val += (sz / 2ull);
 
-    encode(val);
+    encode(func, val);
   }
 
-  template <>
-  void encode(const ::scale::BitVec &v) {
+    template <typename F>
+  constexpr void encode(const F &func, const std::string &v) {
+    encode(func, std::string_view{v});
+  }
+
+    template <typename F>
+  constexpr void encode(const F &func, const std::string_view &v) {
+    encode(func, ::scale::CompactInteger{v.size()});
+    encode(func, v.begin(), v.end());
+  }
+
+  template <typename F>
+  void encode(const F &func, const ::scale::BitVec &v) {
     const size_t bitsCount = v.bits.size();
     const size_t bytesCount = ((bitsCount + 7ull) >> 3ull);
     const size_t blocksCount = ((bytesCount + 7ull) >> 3ull);
 
-    encode(::scale::CompactInteger{bitsCount});
+    encode(func, ::scale::CompactInteger{bitsCount});
     uint64_t result;
     size_t bitCounter = 0ull;
     for (size_t ix = 0ull; ix < blocksCount; ++ix) {
@@ -216,28 +240,40 @@ namespace kagome::scale {
       const size_t bits = (bitCounter % 64ull);
       const size_t bytes =
           (bits != 0ull) ? ((bits + 7ull) >> 3ull) : sizeof(result);
-      putByte((uint8_t *)&result, bytes);
+
+#if __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__
+      if constexpr (size == 8) {
+        v = __builtin_bswap64(v);
+      } else if constexpr (size == 4) {
+        v = __builtin_bswap32(v);
+      } else if constexpr (size == 2) {
+        v = __builtin_bswap16(v);
+      } else {
+        UNREACHABLE;
+      }
+#endif
+      putByte(func, (uint8_t *)&result, bytes);
     }
   }
 
-  template <>
-  void encode(const ::scale::CompactInteger &value) {
+  template <typename F>
+  void encode(const F &func, const ::scale::CompactInteger &value) {
     if (value < 0) {
       raise(::scale::EncodeError::NEGATIVE_COMPACT_INTEGER);
     }
 
     if (value < ::scale::compact::EncodingCategoryLimits::kMinUint16) {
-      encodeCompact(value.convert_to<uint8_t>());
+      encodeCompact(func, value.convert_to<uint8_t>());
       return;
     }
 
     if (value < ::scale::compact::EncodingCategoryLimits::kMinUint32) {
-      encodeCompact(value.convert_to<uint16_t>());
+      encodeCompact(func, value.convert_to<uint16_t>());
       return;
     }
 
     if (value < ::scale::compact::EncodingCategoryLimits::kMinBigInteger) {
-      encodeCompact(value.convert_to<uint32_t>());
+      encodeCompact(func, value.convert_to<uint32_t>());
       return;
     }
 
@@ -258,104 +294,104 @@ namespace kagome::scale {
       v >>= 8;
     }
 
-    putByte(result, i);
+    putByte(func, result, i);
   }
 
-  template <
+  template <typename F, 
       typename It,
       typename = std::enable_if_t<
           !std::is_same_v<typename std::iterator_traits<It>::value_type, void>>>
-  constexpr void encode(It begin, It end) {
+  constexpr void encode(const F &func, It begin, It end) {
     while (begin != end) {
-      encode(*begin);
+      encode(func, *begin);
       ++begin;
     }
   }
 
-  template <typename T, ssize_t S>
-  constexpr void encode(const gsl::span<T, S> &c) {
+  template <typename F, typename T, ssize_t S>
+  constexpr void encode(const F &func, const gsl::span<T, S> &c) {
     if constexpr (S == -1) {
-      encode(::scale::CompactInteger{c.size()});
-      encode(c.begin(), c.end());
+      encode(func, ::scale::CompactInteger{c.size()});
+      encode(func, c.begin(), c.end());
     } else {
       for (const auto &e : c) {
-        encode(e);
+        encode(func, e);
       }
     }
   }
 
-  template <typename T, size_t size>
-  constexpr void encode(const std::array<T, size> &c) {
+  template <typename F, typename T, size_t size>
+  constexpr void encode(const F &func, const std::array<T, size> &c) {
     for (const auto &e : c) {
-      encode(e);
+      encode(func, e);
     }
   }
 
-  template <typename K, typename V>
-  constexpr void encode(const std::map<K, V> &c) {
-    encode(::scale::CompactInteger{c.size()});
-    encode(c.begin(), c.end());
+  template <typename F, typename K, typename V>
+  constexpr void encode(const F &func, const std::map<K, V> &c) {
+    encode(func, ::scale::CompactInteger{c.size()});
+    encode(func, c.begin(), c.end());
   }
 
   template <typename F, typename S>
-  constexpr void encode(const std::pair<F, S> &p) {
-    encode(p.first);
-    encode(p.second);
+  constexpr void encode(const F &func, const std::pair<F, S> &p) {
+    encode(func, p.first);
+    encode(func, p.second);
   }
 
-  template <typename T>
-  constexpr void encode(const std::vector<T> &c) {
-    encode(::scale::CompactInteger{c.size()});
-    encode(c.begin(), c.end());
+  template <typename F, typename T>
+  constexpr void encode(const F &func, const std::vector<T> &c) {
+    encode(func, ::scale::CompactInteger{c.size()});
+    encode(func, c.begin(), c.end());
   }
 
-  template <typename T>
-  constexpr void encode(const std::shared_ptr<T> &v) {
+  template <typename F, typename T>
+  constexpr void encode(const F &func, const std::shared_ptr<T> &v) {
     if (v == nullptr) {
       raise(::scale::EncodeError::DEREF_NULLPOINTER);
     }
-    encode(*v);
+    encode(func, *v);
   }
 
-  template <typename T>
-  constexpr void encode(const std::unique_ptr<T> &v) {
+  template <typename F, typename T>
+  constexpr void encode(const F &func, const std::unique_ptr<T> &v) {
     if (v == nullptr) {
       raise(::scale::EncodeError::DEREF_NULLPOINTER);
     }
-    encode(*v);
+    encode(func, *v);
   }
 
-  template <typename T>
-  constexpr void encode(const std::list<T> &c) {
-    encode(::scale::CompactInteger{c.size()});
-    encode(c.begin(), c.end());
+  template <typename F, typename T>
+  constexpr void encode(const F &func, const std::list<T> &c) {
+    encode(func, ::scale::CompactInteger{c.size()});
+    encode(func, c.begin(), c.end());
   }
 
-  template <typename T>
-  constexpr void encode(const std::deque<T> &c) {
-    encode(::scale::CompactInteger{c.size()});
-    encode(c.begin(), c.end());
+  template <typename F, typename T>
+  constexpr void encode(const F &func, const std::deque<T> &c) {
+    encode(func, ::scale::CompactInteger{c.size()});
+    encode(func, c.begin(), c.end());
   }
 
-  template <typename... Ts>
-  constexpr void encode(const std::tuple<Ts...> &v) {
+  template <typename F, typename... Ts>
+  constexpr void encode(const F &func, const std::tuple<Ts...> &v) {
     if constexpr (sizeof...(Ts) > 0) {
-      std::apply([&](const auto &...s) { (..., encode(s)); }, v);
+      std::apply([&](const auto &...s) { (..., encode(func, s)); }, v);
     }
   }
 
-  template <typename T>
-  constexpr void encode(const T &v) {
+  template <typename F, typename T>
+  constexpr void encode(const F &func, const T &v) {
     using I = std::decay_t<T>;
     if constexpr (std::is_integral_v<I>) {
       if constexpr (std::is_same_v<I, bool>) {
         const uint8_t byte = (v ? 1u : 0u);
-        putByte(&byte, 1ul);
+        putByte(func, &byte, 1ul);
         return;
       }
 
       if constexpr (sizeof(I) == 1u) {
-        putByte(&v, 1ul);
+        putByte(func, &v, 1ul);
         return;
       }
 
@@ -372,16 +408,16 @@ namespace kagome::scale {
       }
 #endif
 
-      putByte((uint8_t *)&v, size);
+      putByte(func, (uint8_t *)&v, size);
     } else {
-      encode(utils::to_tuple(v));
+      encode(func, utils::to_tuple(v));
     }
   }
 
-  template <typename T, typename... Args>
-  constexpr void encode(const T &t, const Args &...args) {
-    encode(t);
-    encode(args...);
+  template <typename F, typename T, typename... Args>
+  constexpr void encode(const F &func, const T &t, const Args &...args) {
+    encode(func, t);
+    encode(func, args...);
   }
 
 }  // namespace kagome::scale
