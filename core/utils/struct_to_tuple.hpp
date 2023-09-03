@@ -107,6 +107,21 @@ namespace kagome::scale {
   template <typename T>
   constexpr void encode(const std::vector<T> &c);
 
+    template <typename T, ssize_t S>
+  constexpr void encode(const gsl::span<T, S> &c);
+
+  template <typename T, size_t size>
+  constexpr void encode(const std::array<T, size> &c);
+
+  template <typename T>
+  constexpr void encode(const std::map<T> &c);
+
+  template <typename T>
+  constexpr void encode(const std::list<T> &c);
+
+  template <typename T>
+  constexpr void encode(const std::deque<T> &c);
+
   template <size_t I, typename... Ts>
   void encode(const boost::variant<Ts...> &v);
 
@@ -246,8 +261,45 @@ namespace kagome::scale {
     }
   }
 
+  template <typename T, ssize_t S>
+  constexpr void encode(const gsl::span<T, S> &c) {
+    if constexpr (S == -1) {
+      encode(::scale::CompactInteger{c.size()});
+      encode(c.begin(), c.end());
+    } else {
+      for (const auto &e : c) {
+        encode(e);
+      }
+    }
+  }
+
+  template <typename T, size_t size>
+  constexpr void encode(const std::array<T, size> &c) {
+    for (const auto &e : c) {
+      encode(e);
+    }
+  }
+
+  template <typename T>
+  constexpr void encode(const std::map<T> &c) {
+    encode(::scale::CompactInteger{c.size()});
+    encode(c.begin(), c.end());
+  }
+
   template <typename T>
   constexpr void encode(const std::vector<T> &c) {
+    encode(::scale::CompactInteger{c.size()});
+    encode(c.begin(), c.end());
+  }
+
+  template <typename T>
+  constexpr void encode(const std::list<T> &c) {
+    encode(::scale::CompactInteger{c.size()});
+    encode(c.begin(), c.end());
+  }
+
+  template <typename T>
+  constexpr void encode(const std::deque<T> &c) {
     encode(::scale::CompactInteger{c.size()});
     encode(c.begin(), c.end());
   }
