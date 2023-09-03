@@ -317,7 +317,10 @@ struct TtP {
 };
 
 TEST_F(TriePrunerTest, NewScale) {
-  std::cout << "1111111111111111111" << std::endl;
-  [[maybe_unused]] const auto r = kagome::scale::encode(TtP{10, 5}, TtP{7, 4});
+  kagome::scale::encode(TtP{10, 5}, TtP{7, 4});
 }
 
+TEST_F(TriePrunerTest, NewScaleVector) {
+  std::vector<TtP> t = {{1,2}, {3,4}, {5,6}};
+  kagome::scale::encode(t);
+}
