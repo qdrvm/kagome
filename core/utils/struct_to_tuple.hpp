@@ -59,8 +59,10 @@
     return std::make_tuple(REPEATY_REF(ONES, p));                             \
   }
 
-#define TO_TUPLE1 \
-  TO_TUPLE_N(1) else { return std::make_tuple(); }
+#define TO_TUPLE1             \
+  TO_TUPLE_N(1) else {        \
+    return std::make_tuple(); \
+  }
 #define TO_TUPLE2 TO_TUPLE_N(2) else TO_TUPLE1
 #define TO_TUPLE3 TO_TUPLE_N(3) else TO_TUPLE2
 #define TO_TUPLE4 TO_TUPLE_N(4) else TO_TUPLE3
@@ -107,14 +109,17 @@ namespace kagome::scale {
   template <typename T>
   constexpr void encode(const std::vector<T> &c);
 
-    template <typename T, ssize_t S>
+  template <typename F, typename S>
+  constexpr void encode(const std::pair<F, S> &p);
+
+  template <typename T, ssize_t S>
   constexpr void encode(const gsl::span<T, S> &c);
 
   template <typename T, size_t size>
   constexpr void encode(const std::array<T, size> &c);
 
-  template <typename T>
-  constexpr void encode(const std::map<T> &c);
+  template <typename K, typename V>
+  constexpr void encode(const std::map<K, V> &c);
 
   template <typename T>
   constexpr void encode(const std::list<T> &c);
@@ -280,10 +285,16 @@ namespace kagome::scale {
     }
   }
 
-  template <typename T>
-  constexpr void encode(const std::map<T> &c) {
+  template <typename K, typename V>
+  constexpr void encode(const std::map<K, V> &c) {
     encode(::scale::CompactInteger{c.size()});
     encode(c.begin(), c.end());
+  }
+
+  template <typename F, typename S>
+  constexpr void encode(const std::pair<F, S> &p) {
+    encode(p.first);
+    encode(p.second);
   }
 
   template <typename T>
