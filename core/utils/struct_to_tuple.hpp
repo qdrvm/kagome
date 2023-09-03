@@ -121,8 +121,8 @@ namespace kagome::scale {
   template <typename F, typename T, size_t size>
   constexpr void encode(const F &func, const std::array<T, size> &c);
 
-  template <typename F, size_t N>
-  constexpr void encode(const F &func, const char (&c)[N]);
+  template <typename F, typename T, size_t N>
+  constexpr void encode(const F &func, const T (&c)[N]);
 
   template <typename F, typename K, typename V>
   constexpr void encode(const F &func, const std::map<K, V> &c);
@@ -185,8 +185,8 @@ namespace kagome::scale {
     }
   }
 
-  template <typename F, size_t N>
-  constexpr void encode(const F &func, const char (&c)[N]) {
+  template <typename F, typename T, size_t N>
+  constexpr void encode(const F &func, const T (&c)[N]) {
     for (const auto &e : c) {
       encode(func, e);
     }
