@@ -269,7 +269,7 @@ TEST_F(BlockValidatorTest, Success) {
                  ::scale::encode(block_copy.header.digest).value());
 
   auto encoded_block_copy = ::scale::encode(block_copy.header).value();
-  // compareWithRef(block_copy.header, encoded_block_copy);
+  compareWithRef(block_copy.header, encoded_block_copy);
 
   Hash256 encoded_block_copy_hash{};  // not a real hash, but don't want to
                                       // actually take it
@@ -323,6 +323,7 @@ TEST_F(BlockValidatorTest, NoBabeHeader) {
   auto block_copy = valid_block_;
   block_copy.header.digest.pop_back();
   auto encoded_block_copy = ::scale::encode(block_copy.header).value();
+  compareWithRef(block_copy.header, encoded_block_copy);
   Hash256 encoded_block_copy_hash{};  // not a real hash, but don't want to
                                       // actually take it
   std::copy(encoded_block_copy.begin(),
@@ -356,6 +357,7 @@ TEST_F(BlockValidatorTest, NoAuthority) {
   auto block_copy = valid_block_;
   block_copy.header.digest.pop_back();
   auto encoded_block_copy = ::scale::encode(block_copy.header).value();
+  compareWithRef(block_copy.header, encoded_block_copy);
 
   Hash256 encoded_block_copy_hash{};
   std::copy(encoded_block_copy.begin(),
@@ -396,6 +398,7 @@ TEST_F(BlockValidatorTest, SignatureVerificationFail) {
   auto block_copy = valid_block_;
   block_copy.header.digest.pop_back();
   auto encoded_block_copy = ::scale::encode(block_copy.header).value();
+  compareWithRef(block_copy.header, encoded_block_copy);
   Hash256 encoded_block_copy_hash{};
   std::copy(encoded_block_copy.begin(),
             encoded_block_copy.begin() + Hash256::size(),
@@ -436,6 +439,7 @@ TEST_F(BlockValidatorTest, VRFFail) {
   auto block_copy = valid_block_;
   block_copy.header.digest.pop_back();
   auto encoded_block_copy = ::scale::encode(block_copy.header).value();
+  compareWithRef(block_copy.header, encoded_block_copy);
   Hash256 encoded_block_copy_hash{};
   std::copy(encoded_block_copy.begin(),
             encoded_block_copy.begin() + Hash256::size(),
@@ -475,6 +479,7 @@ TEST_F(BlockValidatorTest, ThresholdGreater) {
   auto block_copy = valid_block_;
   block_copy.header.digest.pop_back();
   auto encoded_block_copy = ::scale::encode(block_copy.header).value();
+  compareWithRef(block_copy.header, encoded_block_copy);
   Hash256 encoded_block_copy_hash{};
   std::copy(encoded_block_copy.begin(),
             encoded_block_copy.begin() + Hash256::size(),
