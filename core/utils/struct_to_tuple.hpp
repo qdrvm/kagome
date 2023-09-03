@@ -122,6 +122,12 @@ namespace kagome::scale {
   constexpr void encode(const std::map<K, V> &c);
 
   template <typename T>
+  constexpr void encode(const std::shared_ptr<T> &v);
+
+  template <typename T>
+  constexpr void encode(const std::unique_ptr<T> &v);
+
+  template <typename T>
   constexpr void encode(const std::list<T> &c);
 
   template <typename T>
@@ -301,6 +307,22 @@ namespace kagome::scale {
   constexpr void encode(const std::vector<T> &c) {
     encode(::scale::CompactInteger{c.size()});
     encode(c.begin(), c.end());
+  }
+
+  template <typename T>
+  constexpr void encode(const std::shared_ptr<T> &v) {
+    if (v == nullptr) {
+      raise(::scale::EncodeError::DEREF_NULLPOINTER);
+    }
+    encode(*v);
+  }
+
+  template <typename T>
+  constexpr void encode(const std::unique_ptr<T> &v) {
+    if (v == nullptr) {
+      raise(::scale::EncodeError::DEREF_NULLPOINTER);
+    }
+    encode(*v);
   }
 
   template <typename T>
