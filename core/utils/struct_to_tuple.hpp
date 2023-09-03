@@ -146,7 +146,7 @@ namespace kagome::scale {
   constexpr void encode(const F &func, const std::deque<T> &c);
 
   template <typename F, uint8_t I, typename... Ts>
-  void encodeVariant(const F &func, const boost::variant<Ts...> &v);
+  void encode(const F &func, const boost::variant<Ts...> &v);
 
   template <typename F, typename... Ts>
   void encode(const F &func, const boost::variant<Ts...> &v);
@@ -173,7 +173,7 @@ namespace kagome::scale {
   }
 
   template <typename F, uint8_t I, typename... Ts>
-  void encodeVariant(const F &func, const boost::variant<Ts...> &v) {
+  void encode(const F &func, const boost::variant<Ts...> &v) {
     using T = std::tuple_element_t<I, std::tuple<Ts...>>;
     if (v.type() == typeid(T)) {
       encode(func, I);
@@ -181,7 +181,7 @@ namespace kagome::scale {
       return;
     }
     if constexpr (sizeof...(Ts) > I + 1) {
-      encodeVariant<F, I + 1>(func, v);
+      encode<F, I + 1>(func, v);
     }
   }
 
@@ -194,7 +194,7 @@ namespace kagome::scale {
 
   template <typename F, typename... Ts>
   void encode(const F &func, const boost::variant<Ts...> &v) {
-    encodeVariant<F, 0>(func, v);
+    encode<F, 0>(func, v);
   }
 
   template <typename F,
