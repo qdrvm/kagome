@@ -97,6 +97,9 @@ namespace kagome::utils {
 
 namespace kagome::scale {
 
+  template <typename F>
+  constexpr void putByte(const F &func, const uint8_t *const val, size_t count);
+
   template <typename F, typename T>
   constexpr void encode(const F &func, const T &v);
 
@@ -109,8 +112,8 @@ namespace kagome::scale {
   template <typename F, typename T>
   constexpr void encode(const F &func, const std::vector<T> &c);
 
-  template <typename F, typename S>
-  constexpr void encode(const F &func, const std::pair<F, S> &p);
+  template <typename FN, typename F, typename S>
+  constexpr void encode(const FN &func, const std::pair<F, S> &p);
 
   template <typename F, typename T, ssize_t S>
   constexpr void encode(const F &func, const gsl::span<T, S> &c);
@@ -127,7 +130,7 @@ namespace kagome::scale {
   template <typename F, typename T>
   constexpr void encode(const F &func, const std::shared_ptr<T> &v);
 
-      template <typename F>
+  template <typename F>
   constexpr void encode(const F &func, const std::string_view &v);
 
   template <typename F>
@@ -162,8 +165,10 @@ namespace kagome::scale {
     return counter;
   }
 
-  template<typename F>
-  constexpr void putByte(const F &func, const uint8_t *const val, size_t count) {
+  template <typename F>
+  constexpr void putByte(const F &func,
+                         const uint8_t *const val,
+                         size_t count) {
     func(val, count);
   }
 
@@ -182,9 +187,9 @@ namespace kagome::scale {
 
   template <typename F, size_t N>
   constexpr void encode(const F &func, const char (&c)[N]) {
-      for (const auto &e : c) {
-        encode(func, e);
-      }
+    for (const auto &e : c) {
+      encode(func, e);
+    }
   }
 
   template <typename F, typename... Ts>
@@ -192,7 +197,8 @@ namespace kagome::scale {
     encode<0>(func, v);
   }
 
-  template <typename F, typename T,
+  template <typename F,
+            typename T,
             typename I = std::decay_t<T>,
             typename = std::enable_if_t<std::is_unsigned_v<I>>>
   constexpr void encodeCompact(const F &func, T val) {
@@ -208,15 +214,17 @@ namespace kagome::scale {
     encode(func, val);
   }
 
-    template <typename F>
+  template <typename F>
   constexpr void encode(const F &func, const std::string &v) {
     encode(func, std::string_view{v});
   }
 
-    template <typename F>
+  template <typename F>
   constexpr void encode(const F &func, const std::string_view &v) {
     encode(func, ::scale::CompactInteger{v.size()});
-    encode(func, v.begin(), v.end());
+    for (const auto c : v) {
+      encode(func, c);
+    }
   }
 
   template <typename F>
@@ -297,7 +305,8 @@ namespace kagome::scale {
     putByte(func, result, i);
   }
 
-  template <typename F, 
+  template <
+      typename F,
       typename It,
       typename = std::enable_if_t<
           !std::is_same_v<typename std::iterator_traits<It>::value_type, void>>>
@@ -333,8 +342,8 @@ namespace kagome::scale {
     encode(func, c.begin(), c.end());
   }
 
-  template <typename F, typename S>
-  constexpr void encode(const F &func, const std::pair<F, S> &p) {
+  template <typename FN, typename F, typename S>
+  constexpr void encode(const FN &func, const std::pair<F, S> &p) {
     encode(func, p.first);
     encode(func, p.second);
   }
@@ -391,7 +400,7 @@ namespace kagome::scale {
       }
 
       if constexpr (sizeof(I) == 1u) {
-        putByte(func, &v, 1ul);
+        putByte(func, (const uint8_t *)&v, size_t(1ull));
         return;
       }
 
