@@ -313,16 +313,51 @@ auto setCodecExpectations(trie::CodecMock &mock, trie::Codec &codec) {
 
 #include "utils/struct_to_tuple.hpp"
 
-struct TtP {
-  int q;
-  int m;
+struct TTT {
+  SCALE_TIE(6);
+
+  uint8_t q1;
+  std::string q2;
+  size_t q3;
+  uint32_t q4;
+  uint8_t q5;
+  size_t q6;
 };
 
 TEST_F(TriePrunerTest, NewScale) {
-  kagome::scale::encode(TtP{10, 5}, TtP{7, 4});
-}
+  std::vector<TTT> data = {{
+                               .q1 = 100,
+                               .q2 = "TEST DATA ENCRYPTED",
+                               .q3 = 0xcdff,
+                               .q4 = 0xe7ffffff,
+                               .q5 = 250,
+                               .q6 = 0xffffffffffffffff,
+                           },
+                           {
+                               .q1 = 150,
+                               .q2 = "TEST DATA ENCRYPTED - 222",
+                               .q3 = 0xceff,
+                               .q4 = 0xe7eeeeff,
+                               .q5 = 250,
+                               .q6 = 0xffffffeeeeffffff,
+                           }};
 
-TEST_F(TriePrunerTest, NewScaleVector) {
-  std::vector<TtP> t = {{1,2}, {3,4}, {5,6}};
-  kagome::scale::encode(t);
+  std::map<std::string, std::vector<TTT>> data_map;
+  data_map["KEY"] = std::move(data);
+
+  std::vector<uint8_t> data_0;
+  kagome::scale::encode(
+      [&](const uint8_t *const val, size_t count) {
+        for (size_t i = 0; i < count; ++i) {
+          data_0.emplace_back(val[i]);
+        }
+      },
+      data_map);
+
+  auto data_1 = scale::encode(data_map).value();
+
+  ASSERT_EQ(data_0.size(), data_1.size());
+  for (size_t ix = 0; ix < data_0.size(); ++ix) {
+    ASSERT_EQ(data_0[ix], data_1[ix]);
+  }
 }

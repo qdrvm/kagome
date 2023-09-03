@@ -49,6 +49,98 @@ using testing::ReturnRef;
 
 using testutil::createHash256;
 
+namespace kagome::scale {
+
+  template <typename F>
+  constexpr void encode(const F &func, const BlockHeader &bh);
+
+  template <typename F, typename ElementType, size_t MaxSize, typename... Args>
+  constexpr void encode(const F &func,
+                        const SLVector<ElementType, MaxSize, Args...> &c);
+
+  template <typename F, typename T, typename Tag, typename Base>
+  constexpr void encode(const F &func, const Tagged<T, Tag, Base> &c);
+
+  template <typename F, size_t MaxSize>
+  constexpr void encode(const F &func, const common::SLBuffer<MaxSize> &c);
+
+  template <typename F>
+  constexpr void encode(const F &func, const primitives::Other &c);
+
+  template <typename F>
+  constexpr void encode(const F &func, const primitives::Consensus &c);
+
+  template <typename F>
+  constexpr void encode(const F &func, const primitives::Seal &c);
+
+  template <typename F>
+  constexpr void encode(const F &func, const primitives::PreRuntime &c);
+
+  template <typename F>
+  constexpr void encode(const F &func,
+                        const primitives::RuntimeEnvironmentUpdated &c);
+}  // namespace kagome::scale
+
+#include "utils/struct_to_tuple.hpp"
+
+namespace kagome::scale {
+
+  template <typename F>
+  constexpr void encode(const F &func, const BlockHeader &bh) {
+    encode(func, bh.parent_hash);
+    encode(func, ::scale::CompactInteger(bh.number));
+    encode(func, bh.state_root);
+    encode(func, bh.extrinsics_root);
+    encode(func, bh.digest);
+  }
+
+  template <typename F, typename ElementType, size_t MaxSize, typename... Args>
+  constexpr void encode(const F &func,
+                        const SLVector<ElementType, MaxSize, Args...> &c) {
+    encode(func, ::scale::CompactInteger{c.size()});
+    encode(func, c.begin(), c.end());
+  }
+
+  template <typename F, typename T, typename Tag, typename Base>
+  constexpr void encode(const F &func, const Tagged<T, Tag, Base> &c) {
+    if constexpr (std::is_scalar_v<T>) {
+      encode(func, c.Wrapper<T>::value);
+    } else {
+      encode(func, static_cast<const T &>(c));
+    }
+  }
+
+  template <typename F, size_t MaxSize>
+  constexpr void encode(const F &func, const common::SLBuffer<MaxSize> &c) {
+    encode(func, static_cast<const SLVector<uint8_t, MaxSize> &>(c));
+  }
+
+  template <typename F>
+  constexpr void encode(const F &func, const primitives::Other &c) {
+    encode(func, static_cast<const common::Buffer &>(c));
+  }
+
+  template <typename F>
+  constexpr void encode(const F &func, const primitives::Consensus &c) {
+    encode(func, static_cast<const primitives::detail::DigestItemCommon &>(c));
+  }
+
+  template <typename F>
+  constexpr void encode(const F &func, const primitives::Seal &c) {
+    encode(func, static_cast<const primitives::detail::DigestItemCommon &>(c));
+  }
+
+  template <typename F>
+  constexpr void encode(const F &func, const primitives::PreRuntime &c) {
+    encode(func, static_cast<const primitives::detail::DigestItemCommon &>(c));
+  }
+
+  template <typename F>
+  constexpr void encode(const F &func,
+                        const primitives::RuntimeEnvironmentUpdated &c) {}
+
+}  // namespace kagome::scale
+
 namespace sr25519_constants = kagome::crypto::constants::sr25519;
 
 class BlockValidatorTest : public testing::Test {
@@ -76,7 +168,7 @@ class BlockValidatorTest : public testing::Test {
 
     // seal the block
     Seal seal{sr25519_signature};
-    common::Buffer encoded_seal{scale::encode(seal).value()};
+    common::Buffer encoded_seal{::scale::encode(seal).value()};
     block.header.digest.push_back(
         kagome::primitives::Seal{{kEngineId, encoded_seal}});
 
@@ -108,7 +200,7 @@ class BlockValidatorTest : public testing::Test {
                                authority_index_,
                                slot_number_,
                                {vrf_value_, vrf_proof_}};
-  Buffer encoded_babe_header_{scale::encode(babe_header_).value()};
+  Buffer encoded_babe_header_{::scale::encode(babe_header_).value()};
 
   BlockHeader block_header_{
       .parent_hash = parent_hash_,
@@ -121,11 +213,28 @@ class BlockValidatorTest : public testing::Test {
   primitives::AuthorityList authorities_;
 
   primitives::BabeConfiguration config_{
-      .leadership_rate = {3,4},
+      .leadership_rate = {3, 4},
       .authorities = {},
       .randomness = Randomness{uint256_to_le_bytes(475995757021)},
-      .allowed_slots = {}
-  };
+      .allowed_slots = {}};
+
+  template <typename T>
+  void compareWithRef(const T &t, const std::vector<uint8_t> &data_1) {
+    std::vector<uint8_t> data_0;
+    kagome::scale::encode(
+        [&](const uint8_t *const val, size_t count) {
+          for (size_t i = 0; i < count; ++i) {
+            data_0.emplace_back(val[i]);
+          }
+        },
+        t);
+
+    assert(data_0.size() == data_1.size());
+    ASSERT_EQ(data_0.size(), data_1.size());
+    for (size_t ix = 0; ix < data_0.size(); ++ix) {
+      ASSERT_EQ(data_0[ix], data_1[ix]);
+    }
+  }
 };
 
 /**
@@ -138,7 +247,30 @@ TEST_F(BlockValidatorTest, Success) {
   // get an encoded pre-seal part of the block's header
   auto block_copy = valid_block_;
   block_copy.header.digest.pop_back();
-  auto encoded_block_copy = scale::encode(block_copy.header).value();
+
+  //  compareWithRef(block_copy.header.parent_hash,
+  //  ::scale::encode(block_copy.header.parent_hash).value());
+  //  compareWithRef(::scale::CompactInteger(block_copy.header.number),
+  //  ::scale::encode(::scale::CompactInteger(block_copy.header.number)).value());
+  //  compareWithRef(block_copy.header.state_root,
+  //  ::scale::encode(block_copy.header.state_root).value());
+  //  compareWithRef(block_copy.header.extrinsics_root,
+  //  ::scale::encode(block_copy.header.extrinsics_root).value());
+
+  common::Buffer b;
+  b.push_back(10);
+  compareWithRef(b, ::scale::encode(b).value());
+
+  using TestDataT = boost::variant<primitives::Other, std::string>;
+  TestDataT d = primitives::Other{std::move(b)};
+  compareWithRef(d, ::scale::encode(d).value());
+
+  compareWithRef(block_copy.header.digest,
+                 ::scale::encode(block_copy.header.digest).value());
+
+  auto encoded_block_copy = ::scale::encode(block_copy.header).value();
+  // compareWithRef(block_copy.header, encoded_block_copy);
+
   Hash256 encoded_block_copy_hash{};  // not a real hash, but don't want to
                                       // actually take it
   std::copy(encoded_block_copy.begin(),
@@ -190,7 +322,7 @@ TEST_F(BlockValidatorTest, LessDigestsThanNeeded) {
 TEST_F(BlockValidatorTest, NoBabeHeader) {
   auto block_copy = valid_block_;
   block_copy.header.digest.pop_back();
-  auto encoded_block_copy = scale::encode(block_copy.header).value();
+  auto encoded_block_copy = ::scale::encode(block_copy.header).value();
   Hash256 encoded_block_copy_hash{};  // not a real hash, but don't want to
                                       // actually take it
   std::copy(encoded_block_copy.begin(),
@@ -223,7 +355,8 @@ TEST_F(BlockValidatorTest, NoAuthority) {
   // GIVEN
   auto block_copy = valid_block_;
   block_copy.header.digest.pop_back();
-  auto encoded_block_copy = scale::encode(block_copy.header).value();
+  auto encoded_block_copy = ::scale::encode(block_copy.header).value();
+
   Hash256 encoded_block_copy_hash{};
   std::copy(encoded_block_copy.begin(),
             encoded_block_copy.begin() + Hash256::size(),
@@ -262,7 +395,7 @@ TEST_F(BlockValidatorTest, SignatureVerificationFail) {
   // GIVEN
   auto block_copy = valid_block_;
   block_copy.header.digest.pop_back();
-  auto encoded_block_copy = scale::encode(block_copy.header).value();
+  auto encoded_block_copy = ::scale::encode(block_copy.header).value();
   Hash256 encoded_block_copy_hash{};
   std::copy(encoded_block_copy.begin(),
             encoded_block_copy.begin() + Hash256::size(),
@@ -302,7 +435,7 @@ TEST_F(BlockValidatorTest, VRFFail) {
   // GIVEN
   auto block_copy = valid_block_;
   block_copy.header.digest.pop_back();
-  auto encoded_block_copy = scale::encode(block_copy.header).value();
+  auto encoded_block_copy = ::scale::encode(block_copy.header).value();
   Hash256 encoded_block_copy_hash{};
   std::copy(encoded_block_copy.begin(),
             encoded_block_copy.begin() + Hash256::size(),
@@ -341,7 +474,7 @@ TEST_F(BlockValidatorTest, ThresholdGreater) {
   // GIVEN
   auto block_copy = valid_block_;
   block_copy.header.digest.pop_back();
-  auto encoded_block_copy = scale::encode(block_copy.header).value();
+  auto encoded_block_copy = ::scale::encode(block_copy.header).value();
   Hash256 encoded_block_copy_hash{};
   std::copy(encoded_block_copy.begin(),
             encoded_block_copy.begin() + Hash256::size(),
