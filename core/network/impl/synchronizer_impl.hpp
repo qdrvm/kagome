@@ -100,7 +100,8 @@ namespace kagome::network {
         std::shared_ptr<libp2p::basic::Scheduler> scheduler,
         std::shared_ptr<crypto::Hasher> hasher,
         std::shared_ptr<runtime::ModuleFactory> module_factory,
-        std::shared_ptr<runtime::Core> core_api,
+        std::shared_ptr<runtime::RuntimePropertiesCache>
+            runtime_properties_cache,
         primitives::events::ChainSubscriptionEnginePtr chain_sub_engine,
         std::shared_ptr<consensus::grandpa::Environment> grandpa_environment);
 
@@ -223,7 +224,7 @@ namespace kagome::network {
     std::shared_ptr<libp2p::basic::Scheduler> scheduler_;
     std::shared_ptr<crypto::Hasher> hasher_;
     std::shared_ptr<runtime::ModuleFactory> module_factory_;
-    std::shared_ptr<runtime::Core> core_api_;
+    std::shared_ptr<runtime::RuntimePropertiesCache> runtime_properties_cache_;
     std::shared_ptr<consensus::grandpa::Environment> grandpa_environment_;
     primitives::events::ChainSubscriptionEnginePtr chain_sub_engine_;
 

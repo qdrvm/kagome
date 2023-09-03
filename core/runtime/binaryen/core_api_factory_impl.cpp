@@ -9,10 +9,10 @@
 #include "runtime/binaryen/instance_environment_factory.hpp"
 #include "runtime/binaryen/module/module_impl.hpp"
 #include "runtime/common/constant_code_provider.hpp"
-#include "runtime/module_repository.hpp"
-#include "runtime/executor.hpp"
 #include "runtime/common/runtime_properties_cache_impl.hpp"
 #include "runtime/common/trie_storage_provider_impl.hpp"
+#include "runtime/executor.hpp"
+#include "runtime/module_repository.hpp"
 #include "runtime/runtime_api/impl/core.hpp"
 
 namespace kagome::runtime::binaryen {
@@ -71,7 +71,7 @@ namespace kagome::runtime::binaryen {
         header_repo_);
     auto executor = std::make_unique<Executor>(ctx_factory, cache_);
     return std::make_unique<CoreImpl>(
-        std::move(executor), ctx_factory, header_repo_);
+        std::move(executor), ctx_factory, header_repo_, nullptr);
   }
 
 }  // namespace kagome::runtime::binaryen

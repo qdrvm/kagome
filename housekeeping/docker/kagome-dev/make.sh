@@ -8,6 +8,8 @@ if [ "$BUILD_TYPE" != "Debug" ] && [ "$BUILD_TYPE" != "Release" ] && [ "$BUILD_T
   echo "Invalid build type $BUILD_TYPE, should be either Debug, Release or RelWithDebInfo"
 fi
 
+if [[ -z "${CI}" ]]; then
+
 if [ "$BUILD_TYPE" = "Release" ]; then
   BUILD_THREADS=1
 elif [ "$BUILD_TYPE" = "RelWithDebInfo" ]; then
@@ -16,9 +18,16 @@ else
   BUILD_THREADS="${BUILD_THREADS:-$(( $(nproc 2>/dev/null || sysctl -n hw.ncpu) / 2 + 1 ))}"
 fi
 
+else # CI
+  BUILD_THREADS="${BUILD_THREADS:-$(( $(nproc 2>/dev/null || sysctl -n hw.ncpu) ))}"
+  # Configure CI git security
+  git config --global --add safe.directory /__w/kagome/kagome
+  source /venv/bin/activate
+fi
+
 git submodule update --init
 
 cd "$(dirname $0)/../../.."
 
-cmake . -B"${BUILD_DIR}" -G 'Unix Makefiles' -DCMAKE_BUILD_TYPE="${BUILD_TYPE}"
+cmake . -B"${BUILD_DIR}" -G 'Unix Makefiles' -DCMAKE_BUILD_TYPE="${BUILD_TYPE}" -DBACKWARD=OFF
 cmake --build "${BUILD_DIR}" --target kagome -- -j${BUILD_THREADS}

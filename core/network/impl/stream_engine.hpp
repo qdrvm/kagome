@@ -268,6 +268,16 @@ namespace kagome::network {
       });
     }
 
+    template <typename F>
+    void forEachPeer(const std::shared_ptr<ProtocolBase> &protocol,
+                     const F &f) const {
+      forEachPeer([&](const PeerId &peer, const ProtocolMap &protocols) {
+        if (protocols.find(protocol) != protocols.end()) {
+          f(peer);
+        }
+      });
+    }
+
    private:
     struct ProtocolDescr {
       std::shared_ptr<ProtocolBase> protocol;

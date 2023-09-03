@@ -165,6 +165,7 @@ class TriePrunerTest : public testing::Test {
     auto config_mock =
         std::make_shared<kagome::application::AppConfigurationMock>();
     ON_CALL(*config_mock, statePruningDepth()).WillByDefault(Return(16));
+    ON_CALL(*config_mock, enableThoroughPruning()).WillByDefault(Return(true));
 
     trie_storage_mock.reset(
         new testing::NiceMock<trie::TrieStorageBackendMock>());
@@ -203,6 +204,7 @@ class TriePrunerTest : public testing::Test {
     auto config_mock =
         std::make_shared<kagome::application::AppConfigurationMock>();
     ON_CALL(*config_mock, statePruningDepth()).WillByDefault(Return(16));
+    ON_CALL(*config_mock, enableThoroughPruning()).WillByDefault(Return(true));
     trie_pruner::TriePrunerImpl::TriePrunerInfo info{.last_pruned_block =
                                                          last_pruned};
 
