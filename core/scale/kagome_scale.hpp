@@ -9,9 +9,9 @@
 #include "common/blob.hpp"
 #include "consensus/babe/types/babe_block_header.hpp"
 #include "consensus/babe/types/seal.hpp"
+#include "primitives/block_header.hpp"
 #include "primitives/block_id.hpp"
 #include "primitives/justification.hpp"
-#include "primitives/block_header.hpp"
 
 namespace kagome::scale {
 
@@ -122,6 +122,49 @@ namespace kagome::scale {
 
 }  // namespace kagome::scale
 
+#include "scale/scale.hpp"
+
+template <typename T>
+inline std::vector<uint8_t> compareWithRef3(T &&t) {
+  std::vector<uint8_t> data_0;
+
+  kagome::scale::encode(
+      [&](const uint8_t *const val, size_t count) {
+        for (size_t i = 0; i < count; ++i) {
+          data_0.emplace_back(val[i]);
+        }
+      },
+      t);
+
+  std::vector<uint8_t> data_1 = ::scale::encode(t).value();
+  assert(data_0.size() == data_1.size());
+  for (size_t ix = 0; ix < data_0.size(); ++ix) {
+    assert(data_0[ix] == data_1[ix]);
+  }
+
+  return data_0;
+}
+
+template <typename T>
+inline outcome::result<std::vector<uint8_t>> compareWithRef4(T &&t) {
+  std::vector<uint8_t> data_0;
+  kagome::scale::encode(
+      [&](const uint8_t *const val, size_t count) {
+        for (size_t i = 0; i < count; ++i) {
+          data_0.emplace_back(val[i]);
+        }
+      },
+      t);
+
+  std::vector<uint8_t> data_1 = ::scale::encode(t).value();
+  assert(data_0.size() == data_1.size());
+  for (size_t ix = 0; ix < data_0.size(); ++ix) {
+    assert(data_0[ix] == data_1[ix]);
+  }
+
+  return outcome::success(data_0);
+}
+
 template <typename T>
 inline void compareWithRef(const T &t, const std::vector<uint8_t> &data_1) {
   std::vector<uint8_t> data_0;
@@ -141,7 +184,8 @@ inline void compareWithRef(const T &t, const std::vector<uint8_t> &data_1) {
 }
 
 template <typename T>
-inline auto compareWithRef2(const T &t, std::vector<uint8_t> data_1) {
+inline std::vector<uint8_t> compareWithRef2(const T &t,
+                                            std::vector<uint8_t> data_1) {
   std::vector<uint8_t> data_0;
   kagome::scale::encode(
       [&](const uint8_t *const val, size_t count) {
@@ -152,9 +196,8 @@ inline auto compareWithRef2(const T &t, std::vector<uint8_t> data_1) {
       t);
 
   assert(data_0.size() == data_1.size());
-  ASSERT_EQ(data_0.size(), data_1.size());
   for (size_t ix = 0; ix < data_0.size(); ++ix) {
-    ASSERT_EQ(data_0[ix], data_1[ix]);
+    assert(data_0[ix] == data_1[ix]);
   }
 
   return data_1;

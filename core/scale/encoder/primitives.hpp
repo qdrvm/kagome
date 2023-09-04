@@ -76,6 +76,12 @@ namespace kagome::scale {
   template <typename F>
   void encode(const F &func, const ::scale::BitVec &value);
 
+  template <typename F>
+  void encode(const F &func, const std::optional<bool> &value);
+
+  template <typename F, typename T>
+  void encode(const F &func, const std::optional<T> &value);
+
   template <typename F,
             typename T,
             std::enable_if_t<!std::is_enum_v<std::decay_t<T>>, bool> = true>
@@ -357,6 +363,32 @@ namespace kagome::scale {
     }
   }
 
+  template <typename F>
+  void encode(const F &func, const std::optional<bool> &v) {
+    enum class OptionalBool : uint8_t {
+      NONE = 0u,
+      OPT_TRUE = 1u,
+      OPT_FALSE = 2u
+    };
+
+    auto result = OptionalBool::OPT_TRUE;
+    if (!v.has_value()) {
+      result = OptionalBool::NONE;
+    } else if (!*v) {
+      result = OptionalBool::OPT_FALSE;
+    }
+    encode(func, result);
+  }
+
+  template <typename F, typename T>
+  void encode(const F &func, const std::optional<T> &v) {
+    if (!v.has_value()) {
+      encode(func, uint8_t(0u));
+    } else {
+      encode(func, uint8_t(1u));
+      encode(func, *v);
+    }
+  }
 }  // namespace kagome::scale
 
 #endif  // KAGOME_SCALE_ENCODER_PRIMITIVES_HPP

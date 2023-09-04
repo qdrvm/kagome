@@ -23,6 +23,7 @@
 #include "testutil/outcome.hpp"
 #include "testutil/outcome/dummy_error.hpp"
 #include "testutil/prepare_loggers.hpp"
+#include "scale/kagome_scale.hpp"
 
 using kagome::common::Buffer;
 using kagome::common::BufferView;
@@ -303,7 +304,7 @@ TEST_P(OutcomeParameterizedTest, StorageReadTest) {
   ASSERT_EQ(offset_value_data.size(), value_data.size() - offset);
   EXPECT_OUTCOME_TRUE(
       encoded_opt_offset_val_size,
-      scale::encode(std::make_optional<uint32_t>(offset_value_data.size())));
+      compareWithRef4(std::make_optional<uint32_t>(offset_value_data.size())));
   WasmSpan res_wasm_span = 1337;
 
   // expect key loaded, then data stored
@@ -341,11 +342,11 @@ TEST_F(StorageExtensionTest, ExtStorageAppendTest) {
   Buffer key_data(key.size, 'k');
 
   Buffer value_data1(42, '1');
-  Buffer value_data1_encoded{scale::encode(value_data1).value()};
+  Buffer value_data1_encoded{compareWithRef4(value_data1).value()};
   PtrSize value1(42, value_data1_encoded.size());
 
   Buffer value_data2(43, '2');
-  Buffer value_data2_encoded{scale::encode(value_data2).value()};
+  Buffer value_data2_encoded{compareWithRef4(value_data2).value()};
   PtrSize value2(45, value_data2_encoded.size());
 
   // @given wasm memory that can provide these key and values
@@ -366,7 +367,7 @@ TEST_F(StorageExtensionTest, ExtStorageAppendTest) {
     // @then storage is inserted by scale encoded vector containing
     // EncodeOpaqueValue with value1
     vals.push_back(scale::EncodeOpaqueValue{value_data1_encoded.asVector()});
-    vals_encoded = Buffer(scale::encode(vals).value());
+    vals_encoded = Buffer(compareWithRef4(vals).value());
     EXPECT_CALL(*trie_batch_, put(key_data.view(), vals_encoded))
         .WillOnce(Return(outcome::success()));
 
@@ -382,7 +383,7 @@ TEST_F(StorageExtensionTest, ExtStorageAppendTest) {
     // @then storage is inserted by scale encoded vector containing two
     // EncodeOpaqueValues with value1 and value2
     vals.push_back(scale::EncodeOpaqueValue{value_data2_encoded.asVector()});
-    vals_encoded = Buffer(scale::encode(vals).value());
+    vals_encoded = Buffer(compareWithRef4(vals).value());
     EXPECT_CALL(*trie_batch_, put(key_data.view(), vals_encoded))
         .WillOnce(Return(outcome::success()));
 
@@ -397,11 +398,11 @@ TEST_F(StorageExtensionTest, ExtStorageAppendTestCompactLenChanged) {
   Buffer key_data(key.size, 'k');
 
   Buffer value_data1(42, '1');
-  Buffer value_data1_encoded{scale::encode(value_data1).value()};
+  Buffer value_data1_encoded{compareWithRef4(value_data1).value()};
   PtrSize value1(42, value_data1_encoded.size());
 
   Buffer value_data2(43, '2');
-  Buffer value_data2_encoded{scale::encode(value_data2).value()};
+  Buffer value_data2_encoded{compareWithRef4(value_data2).value()};
   PtrSize value2(45, value_data2_encoded.size());
 
   // @given wasm memory that can provide these key and values
@@ -415,7 +416,7 @@ TEST_F(StorageExtensionTest, ExtStorageAppendTestCompactLenChanged) {
   std::vector<scale::EncodeOpaqueValue> vals(
       scale::compact::EncodingCategoryLimits::kMinUint16 - 1,
       scale::EncodeOpaqueValue{value_data1_encoded.asVector()});
-  Buffer vals_encoded = Buffer(scale::encode(vals).value());
+  Buffer vals_encoded = Buffer(compareWithRef4(vals).value());
 
   {
     // @when encoded vals is stored by given key
@@ -424,7 +425,7 @@ TEST_F(StorageExtensionTest, ExtStorageAppendTestCompactLenChanged) {
 
     // @when storage is inserted by one more value by the same key
     vals.push_back(scale::EncodeOpaqueValue{value_data2_encoded.asVector()});
-    vals_encoded = Buffer(scale::encode(vals).value());
+    vals_encoded = Buffer(compareWithRef4(vals).value());
 
     // @then everything fine: storage is inserted with vals with new value
     EXPECT_CALL(*trie_batch_, put(key_data.view(), vals_encoded))
@@ -444,7 +445,7 @@ TEST_F(StorageExtensionTest, ExtStorageAppendTestCompactLenChanged) {
  */
 TEST_P(BuffersParametrizedTest, Blake2_256_EnumeratedTrieRoot) {
   auto &[values, hash_array] = GetParam();
-  auto values_enc = scale::encode(values).value();
+  auto values_enc = compareWithRef4(values).value();
 
   using testing::_;
   PtrSize values_span{42, static_cast<WasmSize>(values_enc.size())};
@@ -475,7 +476,7 @@ TEST_P(BuffersParametrizedTest, Blake2_256_OrderedTrieRootV1) {
   WasmSpan values_data = PtrSize(values_ptr, values_size).combine();
   WasmPointer result = 1984;
 
-  Buffer buffer{scale::encode(values).value()};
+  Buffer buffer{compareWithRef4(values).value()};
 
   EXPECT_CALL(*memory_, loadN(values_ptr, values_size))
       .WillOnce(Return(buffer));
@@ -519,7 +520,7 @@ TEST_F(StorageExtensionTest, StorageGetV1Test) {
   WasmSpan key_span = PtrSize(key_pointer, key_size).combine();
 
   Buffer value(8, 'v');
-  auto encoded_opt_value = scale::encode<std::optional<Buffer>>(value).value();
+  auto encoded_opt_value = compareWithRef4<std::optional<Buffer>>(value).value();
 
   // expect key and value were loaded
   EXPECT_CALL(*memory_, loadN(key_pointer, key_size)).WillOnce(Return(key));
@@ -593,7 +594,7 @@ TEST_F(StorageExtensionTest, ExtStorageClearPrefixV2Test) {
   WasmSize limit_size = 43;
   uint32_t limit{22};
   WasmSpan limit_span = PtrSize(limit_pointer, limit_size).combine();
-  Buffer encoded_opt_limit{scale::encode(std::make_optional(limit)).value()};
+  Buffer encoded_opt_limit{compareWithRef4(std::make_optional(limit)).value()};
 
   EXPECT_CALL(*memory_, loadN(prefix_pointer, prefix_size))
       .WillOnce(Return(prefix));
@@ -605,7 +606,7 @@ TEST_F(StorageExtensionTest, ExtStorageClearPrefixV2Test) {
               clearPrefix(prefix.view(), std::make_optional<uint64_t>(limit)))
       .WillOnce(Return(outcome::success(result)));
 
-  auto enc_result = scale::encode(result).value();
+  auto enc_result = compareWithRef4(result).value();
   WasmPointer result_pointer = 43;
   WasmSize result_size = 43;
   WasmSpan result_span = PtrSize(result_pointer, result_size).combine();
@@ -654,7 +655,7 @@ TEST_F(StorageExtensionTest, Blake2_256_TrieRootV1) {
   WasmSpan dict_data = PtrSize(values_ptr, values_size).combine();
   WasmPointer result = 1984;
 
-  Buffer buffer{scale::encode(dict).value()};
+  Buffer buffer{compareWithRef4(dict).value()};
 
   EXPECT_CALL(*memory_, loadN(values_ptr, values_size))
       .WillOnce(Return(buffer));
