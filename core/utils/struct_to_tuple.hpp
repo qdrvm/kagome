@@ -72,22 +72,6 @@
 #define TO_TUPLE8 TO_TUPLE_N(8) else TO_TUPLE7
 #define TO_TUPLE9 TO_TUPLE_N(9) else TO_TUPLE8
 
-
-#define ADD_X(X,N) X ## N
-
-#define ADD_X0(X) ADD_X(0,X) 
-#define ADD_X1(X) ADD_X(1,X) 
-#define ADD_X2(X) ADD_X(2,X) 
-#define ADD_X3(X) ADD_X(3,X) 
-#define ADD_X4(X) ADD_X(4,X) 
-#define ADD_X5(X) ADD_X(5,X) 
-#define ADD_X6(X) ADD_X(6,X) 
-#define ADD_X7(X) ADD_X(7,X) 
-#define ADD_X8(X) ADD_X(8,X) 
-#define ADD_X9(X) ADD_X(9,X) 
-
-ADD_X(,1)
-
 namespace kagome::utils {
 
   template <typename T, typename... TArgs>
@@ -115,9 +99,6 @@ namespace kagome::scale {
 
   template <typename F>
   constexpr void putByte(const F &func, const uint8_t *const val, size_t count);
-
-  template <typename F, typename T>
-  constexpr void encode(const F &func, const T &v);
 
   template <typename F, typename... Ts>
   constexpr void encode(const F &func, const std::tuple<Ts...> &v);
@@ -172,6 +153,53 @@ namespace kagome::scale {
 
   template <typename F>
   void encode(const F &func, const ::scale::BitVec &value);
+
+  template <typename F, typename T,
+            std::enable_if_t<!std::is_enum_v<std::decay_t<T>>, bool> = true>
+  constexpr void encode(const F &func, const T &v) {
+    using I = std::decay_t<T>;
+    if constexpr (std::is_integral_v<I>) {
+      if constexpr (std::is_same_v<I, bool>) {
+        const uint8_t byte = (v ? 1u : 0u);
+        putByte(func, &byte, 1ul);
+        return;
+      }
+
+      if constexpr (sizeof(I) == 1u) {
+        putByte(func, (const uint8_t *)&v, size_t(1ull));
+        return;
+      }
+
+      constexpr size_t size = sizeof(I);
+#if __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__
+      if constexpr (size == 8) {
+        v = __builtin_bswap64(v);
+      } else if constexpr (size == 4) {
+        v = __builtin_bswap32(v);
+      } else if constexpr (size == 2) {
+        v = __builtin_bswap16(v);
+      } else {
+        UNREACHABLE;
+      }
+#endif
+
+      putByte(func, (uint8_t *)&v, size);
+    } else {
+      encode(func, utils::to_tuple(v));
+    }
+  }
+
+  template <typename F, typename T,
+            std::enable_if_t<std::is_enum_v<std::decay_t<T>>, bool> = true>
+  constexpr void encode(const F &func, const T &value) {
+    encode(func, static_cast<std::underlying_type_t<std::decay_t<T>>>(value));
+  }
+
+  template <typename F, typename T, typename... Args>
+  constexpr void encode(const F &func, const T &t, const Args &...args) {
+    encode(func, t);
+    encode(func, args...);
+  }
 
   inline size_t countBytes(::scale::CompactInteger v) {
     size_t counter = 0;
@@ -405,46 +433,26 @@ namespace kagome::scale {
     }
   }
 
-  template <typename F, typename T>
-  constexpr void encode(const F &func, const T &v) {
-    using I = std::decay_t<T>;
-    if constexpr (std::is_integral_v<I>) {
-      if constexpr (std::is_same_v<I, bool>) {
-        const uint8_t byte = (v ? 1u : 0u);
-        putByte(func, &byte, 1ul);
-        return;
-      }
-
-      if constexpr (sizeof(I) == 1u) {
-        putByte(func, (const uint8_t *)&v, size_t(1ull));
-        return;
-      }
-
-      constexpr size_t size = sizeof(I);
-#if __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__
-      if constexpr (size == 8) {
-        v = __builtin_bswap64(v);
-      } else if constexpr (size == 4) {
-        v = __builtin_bswap32(v);
-      } else if constexpr (size == 2) {
-        v = __builtin_bswap16(v);
-      } else {
-        UNREACHABLE;
-      }
-#endif
-
-      putByte(func, (uint8_t *)&v, size);
-    } else {
-      encode(func, utils::to_tuple(v));
-    }
-  }
-
-  template <typename F, typename T, typename... Args>
-  constexpr void encode(const F &func, const T &t, const Args &...args) {
-    encode(func, t);
-    encode(func, args...);
-  }
-
 }  // namespace kagome::scale
+
+#include "scale/scale.hpp"
+
+template <typename T>
+inline void compareWithRef(const T &t, const std::vector<uint8_t> &data_1) {
+  std::vector<uint8_t> data_0;
+  kagome::scale::encode(
+      [&](const uint8_t *const val, size_t count) {
+        for (size_t i = 0; i < count; ++i) {
+          data_0.emplace_back(val[i]);
+        }
+      },
+      t);
+
+  assert(data_0.size() == data_1.size());
+  ASSERT_EQ(data_0.size(), data_1.size());
+  for (size_t ix = 0; ix < data_0.size(); ++ix) {
+    ASSERT_EQ(data_0[ix], data_1[ix]);
+  }
+}
 
 #endif  // KAGOME_STRUCT_TO_TUPLE_HPP

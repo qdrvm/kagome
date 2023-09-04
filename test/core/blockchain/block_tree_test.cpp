@@ -34,6 +34,106 @@
 #include "testutil/outcome/dummy_error.hpp"
 #include "testutil/prepare_loggers.hpp"
 
+namespace kagome::scale {
+
+  template <typename F>
+  constexpr void encode(const F &func, const primitives::BlockHeader &bh);
+
+//  template <typename F>
+//  constexpr void encode(const F &func, const consensus::babe::SlotType &st);
+
+  template <typename F, typename ElementType, size_t MaxSize, typename... Args>
+  constexpr void encode(const F &func,
+                        const common::SLVector<ElementType, MaxSize, Args...> &c);
+
+  template <typename F, typename T, typename Tag, typename Base>
+  constexpr void encode(const F &func, const Tagged<T, Tag, Base> &c);
+
+  template <typename F, size_t MaxSize>
+  constexpr void encode(const F &func, const common::SLBuffer<MaxSize> &c);
+
+  template <typename F>
+  constexpr void encode(const F &func, const primitives::Other &c);
+
+  template <typename F>
+  constexpr void encode(const F &func, const primitives::Consensus &c);
+
+  template <typename F>
+  constexpr void encode(const F &func, const primitives::Seal &c);
+
+  template <typename F>
+  constexpr void encode(const F &func, const primitives::PreRuntime &c);
+
+  template <typename F>
+  constexpr void encode(const F &func,
+                        const primitives::RuntimeEnvironmentUpdated &c);
+}  // namespace kagome::scale
+
+#include "utils/struct_to_tuple.hpp"
+
+namespace kagome::scale {
+
+  template <typename F>
+  constexpr void encode(const F &func, const primitives::BlockHeader &bh) {
+    encode(func, bh.parent_hash);
+    encode(func, ::scale::CompactInteger(bh.number));
+    encode(func, bh.state_root);
+    encode(func, bh.extrinsics_root);
+    encode(func, bh.digest);
+  }
+
+//  template <typename F>
+//  constexpr void encode(const F &func, const consensus::babe::SlotType &st) {
+//    encode(func, static_cast<uint8_t>(st));
+//  }
+
+  template <typename F, typename ElementType, size_t MaxSize, typename... Args>
+  constexpr void encode(const F &func,
+                        const common::SLVector<ElementType, MaxSize, Args...> &c) {
+    encode(func, ::scale::CompactInteger{c.size()});
+    encode(func, c.begin(), c.end());
+  }
+
+  template <typename F, typename T, typename Tag, typename Base>
+  constexpr void encode(const F &func, const Tagged<T, Tag, Base> &c) {
+    if constexpr (std::is_scalar_v<T>) {
+      encode(func, c.Wrapper<T>::value);
+    } else {
+      encode(func, static_cast<const T &>(c));
+    }
+  }
+
+  template <typename F, size_t MaxSize>
+  constexpr void encode(const F &func, const common::SLBuffer<MaxSize> &c) {
+    encode(func, static_cast<const common::SLVector<uint8_t, MaxSize> &>(c));
+  }
+
+  template <typename F>
+  constexpr void encode(const F &func, const primitives::Other &c) {
+    encode(func, static_cast<const common::Buffer &>(c));
+  }
+
+  template <typename F>
+  constexpr void encode(const F &func, const primitives::Consensus &c) {
+    encode(func, static_cast<const primitives::detail::DigestItemCommon &>(c));
+  }
+
+  template <typename F>
+  constexpr void encode(const F &func, const primitives::Seal &c) {
+    encode(func, static_cast<const primitives::detail::DigestItemCommon &>(c));
+  }
+
+  template <typename F>
+  constexpr void encode(const F &func, const primitives::PreRuntime &c) {
+    encode(func, static_cast<const primitives::detail::DigestItemCommon &>(c));
+  }
+
+  template <typename F>
+  constexpr void encode(const F &func,
+                        const primitives::RuntimeEnvironmentUpdated &c) {}
+
+}  // namespace kagome::scale
+
 using namespace kagome;
 using namespace storage;
 using namespace common;
@@ -176,7 +276,9 @@ struct BlockTreeTest : public testing::Test {
    * @return block, which was added, along with its hash
    */
   BlockHash addBlock(const Block &block) {
-    auto encoded_block = scale::encode(block).value();
+    auto encoded_block = ::scale::encode(block).value();
+    compareWithRef(block, encoded_block);
+
     auto hash = hasher_->blake2b_256(encoded_block);
     primitives::BlockInfo block_info(block.header.number, hash);
 
@@ -276,12 +378,19 @@ struct BlockTreeTest : public testing::Test {
         .authority_index = 0,
         .slot_number = slot,
     };
-    common::Buffer encoded_header{scale::encode(babe_header).value()};
+
+    auto m = ::scale::encode(babe_header).value();
+    compareWithRef(babe_header, m);
+
+    common::Buffer encoded_header{m};
     digest.emplace_back(
         primitives::PreRuntime{{primitives::kBabeEngineId, encoded_header}});
 
     kagome::consensus::babe::Seal seal{};
-    common::Buffer encoded_seal{scale::encode(seal).value()};
+    auto m1 = ::scale::encode(seal).value();
+    compareWithRef(seal, m1);
+
+    common::Buffer encoded_seal{m1};
     digest.emplace_back(
         primitives::Seal{{primitives::kBabeEngineId, encoded_seal}});
 
@@ -401,7 +510,9 @@ TEST_F(BlockTreeTest, Finalize) {
   auto hash = addBlock(new_block);
 
   Justification justification{{0x45, 0xF4}};
-  auto encoded_justification = scale::encode(justification).value();
+  auto encoded_justification = ::scale::encode(justification).value();
+  compareWithRef(justification, encoded_justification);
+
   EXPECT_CALL(*storage_, getJustification(kFinalizedBlockInfo.hash))
       .WillRepeatedly(Return(outcome::success(justification)));
   EXPECT_CALL(*storage_, getJustification(hash))
@@ -464,7 +575,9 @@ TEST_F(BlockTreeTest, FinalizeWithPruning) {
   auto C1_hash = addBlock(C1_block);
 
   Justification justification{{0x45, 0xF4}};
-  auto encoded_justification = scale::encode(justification).value();
+  auto encoded_justification = ::scale::encode(justification).value();
+  compareWithRef(justification, encoded_justification);
+
   EXPECT_CALL(*storage_, getJustification(B1_hash))
       .WillRepeatedly(Return(outcome::failure(boost::system::error_code{})));
   EXPECT_CALL(*storage_, putJustification(justification, B1_hash))
@@ -532,7 +645,9 @@ TEST_F(BlockTreeTest, FinalizeWithPruningDeepestLeaf) {
   auto C1_hash = addBlock(C1_block);
 
   Justification justification{{0x45, 0xF4}};
-  auto encoded_justification = scale::encode(justification).value();
+  auto encoded_justification = ::scale::encode(justification).value();
+  compareWithRef(justification, encoded_justification);
+
   EXPECT_CALL(*storage_, putJustification(justification, B_hash))
       .WillRepeatedly(Return(outcome::success()));
   EXPECT_CALL(*storage_, getBlockHeader(B_hash))
