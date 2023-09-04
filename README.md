@@ -13,6 +13,7 @@ KAGOME is a [Polkadot Host](https://github.com/w3f/polkadot-spec/tree/master/hos
 
 ![kagome-components-Host drawio-light](https://github.com/soramitsu/kagome/assets/9370151/323c1677-b628-468c-adb8-5c09c2164fc3)
 
+Just test
 
 - [x] JSON-RPC (compatible with Polkadot JS)
     - [ ] New [unstable JSON-RPC](https://paritytech.github.io/json-rpc-interface-spec/)
