@@ -72,6 +72,22 @@
 #define TO_TUPLE8 TO_TUPLE_N(8) else TO_TUPLE7
 #define TO_TUPLE9 TO_TUPLE_N(9) else TO_TUPLE8
 
+
+#define ADD_X(X,N) X ## N
+
+#define ADD_X0(X) ADD_X(0,X) 
+#define ADD_X1(X) ADD_X(1,X) 
+#define ADD_X2(X) ADD_X(2,X) 
+#define ADD_X3(X) ADD_X(3,X) 
+#define ADD_X4(X) ADD_X(4,X) 
+#define ADD_X5(X) ADD_X(5,X) 
+#define ADD_X6(X) ADD_X(6,X) 
+#define ADD_X7(X) ADD_X(7,X) 
+#define ADD_X8(X) ADD_X(8,X) 
+#define ADD_X9(X) ADD_X(9,X) 
+
+ADD_X(,1)
+
 namespace kagome::utils {
 
   template <typename T, typename... TArgs>
