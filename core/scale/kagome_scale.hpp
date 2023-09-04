@@ -11,6 +11,7 @@
 #include "consensus/babe/types/seal.hpp"
 #include "primitives/block_id.hpp"
 #include "primitives/justification.hpp"
+#include "primitives/block_header.hpp"
 
 namespace kagome::scale {
 
@@ -120,5 +121,43 @@ namespace kagome::scale {
                         const primitives::RuntimeEnvironmentUpdated &c) {}
 
 }  // namespace kagome::scale
+
+template <typename T>
+inline void compareWithRef(const T &t, const std::vector<uint8_t> &data_1) {
+  std::vector<uint8_t> data_0;
+  kagome::scale::encode(
+      [&](const uint8_t *const val, size_t count) {
+        for (size_t i = 0; i < count; ++i) {
+          data_0.emplace_back(val[i]);
+        }
+      },
+      t);
+
+  assert(data_0.size() == data_1.size());
+  ASSERT_EQ(data_0.size(), data_1.size());
+  for (size_t ix = 0; ix < data_0.size(); ++ix) {
+    ASSERT_EQ(data_0[ix], data_1[ix]);
+  }
+}
+
+template <typename T>
+inline auto compareWithRef2(const T &t, std::vector<uint8_t> data_1) {
+  std::vector<uint8_t> data_0;
+  kagome::scale::encode(
+      [&](const uint8_t *const val, size_t count) {
+        for (size_t i = 0; i < count; ++i) {
+          data_0.emplace_back(val[i]);
+        }
+      },
+      t);
+
+  assert(data_0.size() == data_1.size());
+  ASSERT_EQ(data_0.size(), data_1.size());
+  for (size_t ix = 0; ix < data_0.size(); ++ix) {
+    ASSERT_EQ(data_0[ix], data_1[ix]);
+  }
+
+  return data_1;
+}
 
 #endif  // KAGOME_KAGOME_SCALE_HPP

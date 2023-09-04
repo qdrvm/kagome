@@ -35,23 +35,6 @@
 #include "testutil/prepare_loggers.hpp"
 
 #include "scale/kagome_scale.hpp"
-template <typename T>
-inline void compareWithRef(const T &t, const std::vector<uint8_t> &data_1) {
-  std::vector<uint8_t> data_0;
-  kagome::scale::encode(
-      [&](const uint8_t *const val, size_t count) {
-        for (size_t i = 0; i < count; ++i) {
-          data_0.emplace_back(val[i]);
-        }
-      },
-      t);
-
-  assert(data_0.size() == data_1.size());
-  ASSERT_EQ(data_0.size(), data_1.size());
-  for (size_t ix = 0; ix < data_0.size(); ++ix) {
-    ASSERT_EQ(data_0[ix], data_1[ix]);
-  }
-}
 
 using namespace kagome;
 using namespace storage;
