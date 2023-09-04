@@ -12,6 +12,7 @@
 #include "primitives/block_header.hpp"
 #include "primitives/block_id.hpp"
 #include "primitives/justification.hpp"
+#include "scale/encode_append.hpp"
 
 namespace kagome::scale {
 
@@ -153,8 +154,8 @@ inline std::vector<uint8_t> compareWithRef3(T &&t) {
   return data_0;
 }
 
-template <typename T>
-inline outcome::result<std::vector<uint8_t>> compareWithRef4(T &&t) {
+template <typename...T>
+inline outcome::result<std::vector<uint8_t>> compareWithRef4(T &&...t) {
   std::vector<uint8_t> data_0;
   kagome::scale::encode(
       [&](const uint8_t *const val, size_t count) {
@@ -162,9 +163,9 @@ inline outcome::result<std::vector<uint8_t>> compareWithRef4(T &&t) {
           data_0.emplace_back(val[i]);
         }
       },
-      t);
+      t...);
 
-  std::vector<uint8_t> data_1 = ::scale::encode(t).value();
+  std::vector<uint8_t> data_1 = ::scale::encode(t...).value();
   assert(data_0.size() == data_1.size());
   for (size_t ix = 0; ix < data_0.size(); ++ix) {
     assert(data_0[ix] == data_1[ix]);

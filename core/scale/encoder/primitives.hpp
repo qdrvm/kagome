@@ -161,9 +161,14 @@ namespace kagome::scale {
 
   template <typename F, typename T, size_t N>
   constexpr void encode(const F &func, const T (&c)[N]) {
+      using E = std::decay_t<T>;
+      if constexpr (std::is_integral_v<E> && sizeof(E) == 1u) {
+        putByte(func, c, N);
+      } else {
     for (const auto &e : c) {
       encode(func, e);
     }
+      }
   }
 
   template <typename F, typename... Ts>
@@ -276,7 +281,7 @@ namespace kagome::scale {
       v >>= 8;
     }
 
-    putByte(func, result, i);
+    putByte(func, result, i + 1ull);
   }
 
   template <
