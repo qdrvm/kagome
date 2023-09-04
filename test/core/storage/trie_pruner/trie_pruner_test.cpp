@@ -311,7 +311,7 @@ auto setCodecExpectations(trie::CodecMock &mock, trie::Codec &codec) {
       }));
 }
 
-#include "utils/struct_to_tuple.hpp"
+#include "scale/encoder/primitives.hpp"
 
 struct TTT {
   SCALE_TIE(6);
