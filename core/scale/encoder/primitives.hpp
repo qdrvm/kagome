@@ -301,9 +301,9 @@ namespace kagome::scale {
       if constexpr (std::is_integral_v<E> && sizeof(E) == 1u) {
         putByte(func, c.data(), c.size());
       } else {
-      for (const auto &e : c) {
-        encode(func, e);
-      }
+        for (const auto &e : c) {
+          encode(func, e);
+        }
       }
     }
   }

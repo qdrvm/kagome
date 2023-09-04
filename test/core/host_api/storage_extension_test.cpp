@@ -18,12 +18,12 @@
 #include "mock/core/storage/trie/trie_batches_mock.hpp"
 #include "runtime/ptr_size.hpp"
 #include "scale/encode_append.hpp"
+#include "scale/kagome_scale.hpp"
 #include "storage/predefined_keys.hpp"
 #include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
 #include "testutil/outcome/dummy_error.hpp"
 #include "testutil/prepare_loggers.hpp"
-#include "scale/kagome_scale.hpp"
 
 using kagome::common::Buffer;
 using kagome::common::BufferView;
@@ -38,10 +38,10 @@ using kagome::runtime::WasmOffset;
 using kagome::runtime::WasmPointer;
 using kagome::runtime::WasmSize;
 using kagome::runtime::WasmSpan;
-using kagome::storage::trie::TrieBatchMock;
 using kagome::storage::trie::PolkadotCodec;
 using kagome::storage::trie::PolkadotTrieCursorMock;
 using kagome::storage::trie::RootHash;
+using kagome::storage::trie::TrieBatchMock;
 
 using ::testing::_;
 using ::testing::Invoke;
@@ -75,7 +75,7 @@ class StorageExtensionTest : public ::testing::Test {
   std::shared_ptr<StorageExtension> storage_extension_;
   PolkadotCodec codec_;
 
-  constexpr static uint32_t kU32Max = std::numeric_limits<uint32_t>::max();
+  static constexpr uint32_t kU32Max = std::numeric_limits<uint32_t>::max();
 };
 
 /// For the tests where it is needed to check a valid behaviour no matter if
@@ -520,7 +520,8 @@ TEST_F(StorageExtensionTest, StorageGetV1Test) {
   WasmSpan key_span = PtrSize(key_pointer, key_size).combine();
 
   Buffer value(8, 'v');
-  auto encoded_opt_value = compareWithRef4<std::optional<Buffer>>(value).value();
+  auto encoded_opt_value =
+      compareWithRef4<std::optional<Buffer>>(value).value();
 
   // expect key and value were loaded
   EXPECT_CALL(*memory_, loadN(key_pointer, key_size)).WillOnce(Return(key));

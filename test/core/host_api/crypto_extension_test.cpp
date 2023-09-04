@@ -21,11 +21,11 @@
 #include "mock/core/runtime/memory_mock.hpp"
 #include "mock/core/runtime/memory_provider_mock.hpp"
 #include "runtime/ptr_size.hpp"
+#include "scale/kagome_scale.hpp"
 #include "scale/scale.hpp"
 #include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
 #include "testutil/prepare_loggers.hpp"
-#include "scale/kagome_scale.hpp"
 
 using namespace kagome::host_api;
 using kagome::common::Blob;
@@ -128,9 +128,11 @@ class CryptoExtensionTest : public ::testing::Test {
 
     // scale-encoded string
     std::optional<gsl::span<uint8_t>> optional_seed(seed);
-    seed_buffer.put(compareWithRef2(optional_seed, ::scale::encode(optional_seed).value()));
+    seed_buffer.put(
+        compareWithRef2(optional_seed, ::scale::encode(optional_seed).value()));
     std::optional<std::string> optional_mnemonic(mnemonic);
-    mnemonic_buffer.put(compareWithRef2(optional_mnemonic, ::scale::encode(optional_mnemonic).value()));
+    mnemonic_buffer.put(compareWithRef2(
+        optional_mnemonic, ::scale::encode(optional_mnemonic).value()));
 
     sr25519_keypair = sr25519_provider_->generateKeypair(Sr25519Seed{seed}, {});
     sr25519_signature = sr25519_provider_->sign(sr25519_keypair, input).value();
@@ -156,26 +158,27 @@ class CryptoExtensionTest : public ::testing::Test {
     secp_signature =
         secp256k1::RSVSignature::fromSpan(secp_signature_bytes).value();
 
-    scale_encoded_secp_truncated_public_key =
-        Buffer(compareWithRef2(RecoverUncompressedPublicKeyReturnValue(
-                                 secp_truncated_public_key), ::scale::encode(RecoverUncompressedPublicKeyReturnValue(
-                                 secp_truncated_public_key))
-                   .value()));
+    scale_encoded_secp_truncated_public_key = Buffer(compareWithRef2(
+        RecoverUncompressedPublicKeyReturnValue(secp_truncated_public_key),
+        ::scale::encode(
+            RecoverUncompressedPublicKeyReturnValue(secp_truncated_public_key))
+            .value()));
 
-    scale_encoded_secp_compressed_public_key =
-        Buffer(compareWithRef2(RecoverCompressedPublicKeyReturnValue(
-                                 secp_compressed_pyblic_key), ::scale::encode(RecoverCompressedPublicKeyReturnValue(
-                                 secp_compressed_pyblic_key))
-                   .value()));
+    scale_encoded_secp_compressed_public_key = Buffer(compareWithRef2(
+        RecoverCompressedPublicKeyReturnValue(secp_compressed_pyblic_key),
+        ::scale::encode(
+            RecoverCompressedPublicKeyReturnValue(secp_compressed_pyblic_key))
+            .value()));
 
     // this value suits both compressed & uncompressed failure tests
-    secp_invalid_signature_error =
-        Buffer(compareWithRef2(RecoverCompressedPublicKeyReturnValue(
-                                 kagome::crypto::secp256k1::
-                                     secp256k1_verify_error::kInvalidSignature), ::scale::encode(RecoverCompressedPublicKeyReturnValue(
-                                 kagome::crypto::secp256k1::
-                                     secp256k1_verify_error::kInvalidSignature))
-                   .value()));
+    secp_invalid_signature_error = Buffer(compareWithRef2(
+        RecoverCompressedPublicKeyReturnValue(
+            kagome::crypto::secp256k1::secp256k1_verify_error::
+                kInvalidSignature),
+        ::scale::encode(RecoverCompressedPublicKeyReturnValue(
+                            kagome::crypto::secp256k1::secp256k1_verify_error::
+                                kInvalidSignature))
+            .value()));
 
     ed_public_keys_result
         .putUint8(4)  // scale-encoded size // 1
