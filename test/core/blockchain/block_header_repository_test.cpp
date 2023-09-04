@@ -18,6 +18,7 @@
 #include "testutil/outcome.hpp"
 #include "testutil/prepare_loggers.hpp"
 #include "testutil/storage/base_rocksdb_test.hpp"
+#include "scale/kagome_scale.hpp"
 
 using kagome::blockchain::BlockHeaderRepository;
 using kagome::blockchain::BlockHeaderRepositoryImpl;
@@ -48,7 +49,16 @@ class BlockHeaderRepository_Test : public test::BaseRocksDB_Test {
   outcome::result<Hash256> storeHeader(BlockNumber num, BlockHeader h) {
     BlockHeader header = std::move(h);
     header.number = num;
-    OUTCOME_TRY(enc_header, scale::encode(header));
+
+    compareWithRef4(::scale::CompactInteger(4294967295));
+
+    compareWithRef4(header.parent_hash);
+    compareWithRef4(::scale::CompactInteger(header.number));
+    compareWithRef4(header.state_root);
+    compareWithRef4(header.extrinsics_root);
+    compareWithRef4(header.digest);
+
+    OUTCOME_TRY(enc_header, compareWithRef4(header));
     auto hash = hasher_->blake2b_256(enc_header);
     OUTCOME_TRY(putToSpace(*rocks_, Space::kHeader, hash, Buffer{enc_header}));
 
@@ -92,7 +102,7 @@ TEST_F(BlockHeaderRepository_Test, UnexistingHeader) {
   }
   BlockHeader not_in_storage = getDefaultHeader();
   not_in_storage.number = chosen_number;
-  EXPECT_OUTCOME_TRUE(enc_header, scale::encode(not_in_storage))
+  EXPECT_OUTCOME_TRUE(enc_header, compareWithRef4(not_in_storage))
   auto hash = hasher_->blake2b_256(enc_header);
   EXPECT_OUTCOME_FALSE_1(header_repo_->getBlockHeader(hash))
   EXPECT_OUTCOME_FALSE_1(header_repo_->getHashById(chosen_number))
