@@ -45,6 +45,9 @@ namespace kagome::scale {
                         const primitives::RuntimeEnvironmentUpdated &c);
 
   template <typename F>
+  constexpr void encode(const F &func, const ::scale::EncodeOpaqueValue &c);
+
+  template <typename F>
   constexpr void encode(const F &func,
                         const consensus::babe::BabeBlockHeader &bh);
 
@@ -119,6 +122,13 @@ namespace kagome::scale {
   template <typename F>
   constexpr void encode(const F &func,
                         const primitives::RuntimeEnvironmentUpdated &c) {}
+
+  template <typename F>
+  constexpr void encode(const F &func, const ::scale::EncodeOpaqueValue &c) {
+    for (const auto &e : c.v) {
+      encode(func, e);
+    }
+  }
 
 }  // namespace kagome::scale
 
