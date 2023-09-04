@@ -16,6 +16,7 @@
 #include "testutil/libp2p/message_read_writer_helper.hpp"
 #include "testutil/literals.hpp"
 #include "testutil/prepare_loggers.hpp"
+#include "scale/kagome_scale.hpp"
 
 using namespace kagome;
 using namespace network;
@@ -63,8 +64,8 @@ class RpcLibp2pTest : public testing::Test {
   // request and response
   BlocksResponse request_{.blocks = {primitives::BlockData{}}};
   BlocksResponse response_{.blocks = {primitives::BlockData{}}};
-  kagome::common::Buffer encoded_request_{scale::encode(request_).value()};
-  kagome::common::Buffer encoded_response_{scale::encode(response_).value()};
+  kagome::common::Buffer encoded_request_{compareWithRef4(request_).value()};
+  kagome::common::Buffer encoded_response_{compareWithRef4(response_).value()};
 };
 
 /**

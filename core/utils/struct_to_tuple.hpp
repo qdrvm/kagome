@@ -75,10 +75,12 @@
 namespace kagome::utils {
 
   template <typename T, typename... TArgs>
-  decltype(void(T{std::declval<TArgs>()...}), std::true_type{})
+  decltype(void(T{{std::declval<TArgs>()}...}), std::true_type{})
   test_is_braces_constructible(int);
+
   template <typename, typename...>
   std::false_type test_is_braces_constructible(...);
+
   template <typename T, typename... TArgs>
   using is_braces_constructible =
       decltype(test_is_braces_constructible<T, TArgs...>(0));
@@ -89,7 +91,7 @@ namespace kagome::utils {
   };
 
   template <typename T>
-  auto to_tuple(const T &object) noexcept {
+  inline auto to_tuple(const T &object) noexcept {
     using type = std::decay_t<T>;
     TO_TUPLE9;
   }
