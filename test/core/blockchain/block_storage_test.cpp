@@ -15,6 +15,7 @@
 #include "storage/database_error.hpp"
 #include "testutil/outcome.hpp"
 #include "testutil/prepare_loggers.hpp"
+#include "scale/kagome_scale.hpp"
 
 using kagome::blockchain::BlockStorageError;
 using kagome::blockchain::BlockStorageImpl;

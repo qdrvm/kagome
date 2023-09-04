@@ -24,6 +24,7 @@
 #include "testutil/outcome.hpp"
 #include "testutil/outcome/dummy_error.hpp"
 #include "testutil/prepare_loggers.hpp"
+#include "scale/kagome_scale.hpp"
 
 using kagome::common::Buffer;
 using kagome::host_api::ChildStorageExtension;
@@ -124,7 +125,7 @@ TEST_P(ReadOutcomeParameterizedTest, GetTest) {
 
   std::vector<uint8_t> encoded_opt_value;
   if (GetParam()) {
-    encoded_opt_value = scale::encode(GetParam().value()).value();
+    encoded_opt_value = compareWithRef4(GetParam().value()).value();
   }
 
   // 'func' (lambda)
@@ -183,7 +184,7 @@ TEST_P(ReadOutcomeParameterizedTest, ReadTest) {
   WasmSize value_size = 44;
   WasmSpan value_span = PtrSize(value_pointer, value_size).combine();
   auto encoded_result =
-      scale::encode<std::optional<uint32_t>>(std::nullopt).value();
+      compareWithRef4<std::optional<uint32_t>>(std::nullopt).value();
 
   WasmOffset offset = 4;
   Buffer offset_value_data;
@@ -194,7 +195,7 @@ TEST_P(ReadOutcomeParameterizedTest, ReadTest) {
     ASSERT_EQ(offset_value_data.size(), param.size() - offset);
     EXPECT_OUTCOME_TRUE(
         encoded_opt_offset_val_size,
-        scale::encode(std::make_optional<uint32_t>(offset_value_data.size())));
+        compareWithRef4(std::make_optional<uint32_t>(offset_value_data.size())));
     encoded_result = encoded_opt_offset_val_size;
     EXPECT_CALL(
         *memory_,
