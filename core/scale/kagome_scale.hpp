@@ -154,7 +154,7 @@ inline std::vector<uint8_t> compareWithRef3(T &&t) {
   return data_0;
 }
 
-template <typename...T>
+template <typename... T>
 inline outcome::result<std::vector<uint8_t>> compareWithRef4(T &&...t) {
   std::vector<uint8_t> data_0;
   kagome::scale::encode(

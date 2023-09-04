@@ -17,6 +17,7 @@
 #include "mock/core/storage/trie/trie_batches_mock.hpp"
 #include "runtime/ptr_size.hpp"
 #include "scale/encode_append.hpp"
+#include "scale/kagome_scale.hpp"
 #include "storage/predefined_keys.hpp"
 #include "storage/trie/polkadot_trie/trie_error.hpp"
 #include "storage/trie/types.hpp"
@@ -24,7 +25,6 @@
 #include "testutil/outcome.hpp"
 #include "testutil/outcome/dummy_error.hpp"
 #include "testutil/prepare_loggers.hpp"
-#include "scale/kagome_scale.hpp"
 
 using kagome::common::Buffer;
 using kagome::host_api::ChildStorageExtension;
@@ -193,9 +193,9 @@ TEST_P(ReadOutcomeParameterizedTest, ReadTest) {
     auto &param = GetParam().value().value();
     offset_value_data = param.subbuffer(offset);
     ASSERT_EQ(offset_value_data.size(), param.size() - offset);
-    EXPECT_OUTCOME_TRUE(
-        encoded_opt_offset_val_size,
-        compareWithRef4(std::make_optional<uint32_t>(offset_value_data.size())));
+    EXPECT_OUTCOME_TRUE(encoded_opt_offset_val_size,
+                        compareWithRef4(std::make_optional<uint32_t>(
+                            offset_value_data.size())));
     encoded_result = encoded_opt_offset_val_size;
     EXPECT_CALL(
         *memory_,

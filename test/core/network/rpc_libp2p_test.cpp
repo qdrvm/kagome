@@ -12,11 +12,11 @@
 #include "mock/libp2p/host/host_mock.hpp"
 #include "network/helpers/scale_message_read_writer.hpp"
 #include "network/types/blocks_response.hpp"
+#include "scale/kagome_scale.hpp"
 #include "scale/scale.hpp"
 #include "testutil/libp2p/message_read_writer_helper.hpp"
 #include "testutil/literals.hpp"
 #include "testutil/prepare_loggers.hpp"
-#include "scale/kagome_scale.hpp"
 
 using namespace kagome;
 using namespace network;

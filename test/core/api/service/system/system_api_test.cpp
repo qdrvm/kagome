@@ -14,10 +14,10 @@
 #include "mock/core/network/peer_manager_mock.hpp"
 #include "mock/core/runtime/account_nonce_api_mock.hpp"
 #include "mock/core/transaction_pool/transaction_pool_mock.hpp"
+#include "scale/kagome_scale.hpp"
 #include "scale/scale.hpp"
 #include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
-#include "scale/kagome_scale.hpp"
 
 using kagome::api::SystemApi;
 using kagome::api::SystemApiImpl;
@@ -123,7 +123,8 @@ TEST_F(SystemApiTest, GetNonceWithPendingTxs) {
   std::vector<std::pair<Transaction::Hash, std::shared_ptr<const Transaction>>>
       ready_txs;
   for (size_t i = 0; i < kReadyTxNum; i++) {
-    EXPECT_OUTCOME_TRUE(enc_nonce, compareWithRef4(kAccountId, kInitialNonce + i))
+    EXPECT_OUTCOME_TRUE(enc_nonce,
+                        compareWithRef4(kAccountId, kInitialNonce + i))
     encoded_nonces[i] = std::move(enc_nonce);
     ready_txs.emplace_back(
         std::make_pair(Hash256{{static_cast<uint8_t>(i)}},

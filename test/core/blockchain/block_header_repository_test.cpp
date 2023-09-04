@@ -13,12 +13,12 @@
 #include "blockchain/impl/block_header_repository_impl.hpp"
 #include "blockchain/impl/storage_util.hpp"
 #include "crypto/hasher/hasher_impl.hpp"
+#include "scale/kagome_scale.hpp"
 #include "scale/scale.hpp"
 #include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
 #include "testutil/prepare_loggers.hpp"
 #include "testutil/storage/base_rocksdb_test.hpp"
-#include "scale/kagome_scale.hpp"
 
 using kagome::blockchain::BlockHeaderRepository;
 using kagome::blockchain::BlockHeaderRepositoryImpl;

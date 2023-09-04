@@ -8,7 +8,6 @@
 #include <gtest/gtest.h>
 #include "filesystem/common.hpp"
 
-#include "scale/encode_append.hpp"
 #include "mock/core/blockchain/block_header_repository_mock.hpp"
 #include "mock/core/host_api/host_api_mock.hpp"
 #include "mock/core/runtime/memory_mock.hpp"
@@ -20,11 +19,12 @@
 #include "mock/core/runtime/trie_storage_provider_mock.hpp"
 #include "mock/core/storage/trie/trie_batches_mock.hpp"
 #include "mock/core/storage/trie/trie_storage_mock.hpp"
+#include "scale/encode_append.hpp"
+#include "scale/kagome_scale.hpp"
 #include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
 #include "testutil/prepare_loggers.hpp"
 #include "testutil/runtime/common/basic_code_provider.hpp"
-#include "scale/kagome_scale.hpp"
 
 using kagome::blockchain::BlockHeaderRepository;
 using kagome::blockchain::BlockHeaderRepositoryMock;
@@ -157,8 +157,7 @@ TEST_F(ExecutorTest, LatestStateSwitchesCorrectly) {
   Buffer enc_args{compareWithRef4(2, 3).value()};
   prepareCall(
       block_info1, "state_hash1"_hash256, CallType::Persistent, enc_args, 5);
-  auto ctx =
-      ctx_factory_->persistentAt(block_info1.hash, std::nullopt).value();
+  auto ctx = ctx_factory_->persistentAt(block_info1.hash, std::nullopt).value();
   auto res = executor.decodedCallWithCtx<int>(ctx, "addTwo", 2, 3).value();
   EXPECT_EQ(res, 5);
 
@@ -192,8 +191,7 @@ TEST_F(ExecutorTest, LatestStateSwitchesCorrectly) {
       block_info2, "state_hash4"_hash256, CallType::Persistent, enc_args, 0);
   auto ctx5 =
       ctx_factory_->persistentAt(block_info2.hash, std::nullopt).value();
-  EXPECT_EQ(executor.decodedCallWithCtx<int>(ctx5, "addTwo", -5, 5).value(),
-            0);
+  EXPECT_EQ(executor.decodedCallWithCtx<int>(ctx5, "addTwo", -5, 5).value(), 0);
 
   enc_args = compareWithRef4(7, 10).value();
   prepareCall(
