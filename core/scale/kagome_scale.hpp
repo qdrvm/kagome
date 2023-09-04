@@ -125,9 +125,7 @@ namespace kagome::scale {
 
   template <typename F>
   constexpr void encode(const F &func, const ::scale::EncodeOpaqueValue &c) {
-    for (const auto &e : c.v) {
-      encode(func, e);
-    }
+    putByte(func, c.v.data(), c.v.size());
   }
 
 }  // namespace kagome::scale

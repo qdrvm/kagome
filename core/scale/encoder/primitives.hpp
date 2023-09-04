@@ -297,8 +297,13 @@ namespace kagome::scale {
       encode(func, ::scale::CompactInteger{c.size()});
       encode(func, c.begin(), c.end());
     } else {
+      using E = std::decay_t<T>;
+      if constexpr (std::is_integral_v<E> && sizeof(E) == 1u) {
+        putByte(func, c.data(), c.size());
+      } else {
       for (const auto &e : c) {
         encode(func, e);
+      }
       }
     }
   }
@@ -389,6 +394,7 @@ namespace kagome::scale {
       encode(func, *v);
     }
   }
+
 }  // namespace kagome::scale
 
 #endif  // KAGOME_SCALE_ENCODER_PRIMITIVES_HPP
