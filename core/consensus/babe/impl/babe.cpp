@@ -183,7 +183,7 @@ namespace kagome::consensus::babe {
                    "Authority not known, skipping slot processing. "
                    "Probably authority list has changed.");
       }
-      return outcome::success();
+      return BabeError::NO_VALIDATOR;
     }
 
     Context ctx{.parent = best_block,
@@ -209,20 +209,20 @@ namespace kagome::consensus::babe {
                common::Buffer(vrf_result.output),
                common::Buffer(vrf_result.proof));
 
-      processSlotLeadership(ctx,
-                            SlotType::Primary,
-                            slot_timestamp,
-                            std::cref(vrf_result),
-                            authority_index);
-    } else if (babe_config.allowed_slots
-                   == primitives::AllowedSlots::PrimaryAndSecondaryPlain
-               or babe_config.allowed_slots
-                      == primitives::AllowedSlots::PrimaryAndSecondaryVRF) {
+      return processSlotLeadership(ctx,
+                                   SlotType::Primary,
+                                   slot_timestamp,
+                                   std::cref(vrf_result),
+                                   authority_index);
+    }
+
+    if (babe_config.isSecondarySlotsAllowed()) {
       auto expected_author = lottery_->secondarySlotAuthor(
           ctx.slot, babe_config.authorities.size(), babe_config.randomness);
 
       if (expected_author.has_value()
           and authority_index == expected_author.value()) {
+        // VRF secondary slots mode
         if (babe_config.allowed_slots
             == primitives::AllowedSlots::PrimaryAndSecondaryVRF) {
           auto vrf = lottery_->slotVrfSignature(ctx.slot);
@@ -233,30 +233,31 @@ namespace kagome::consensus::babe {
                    common::Buffer(vrf.output),
                    common::Buffer(vrf.proof));
 
-          processSlotLeadership(ctx,
-                                SlotType::SecondaryVRF,
-                                slot_timestamp,
-                                std::cref(vrf),
-                                authority_index);
-        } else {  // plain secondary slots mode
-          SL_DEBUG(log_,
-                   "Babe author {} is block producer in secondary plain slot",
-                   ctx.keypair->public_key);
-
-          processSlotLeadership(ctx,
-                                SlotType::SecondaryPlain,
-                                slot_timestamp,
-                                std::nullopt,
-                                authority_index);
+          return processSlotLeadership(ctx,
+                                       SlotType::SecondaryVRF,
+                                       slot_timestamp,
+                                       std::cref(vrf),
+                                       authority_index);
         }
-      } else {
-        SL_TRACE(log_,
-                 "Babe author {} is not block producer in current slot",
+
+        // plain secondary slots mode
+        SL_DEBUG(log_,
+                 "Babe author {} is block producer in secondary plain slot",
                  ctx.keypair->public_key);
+
+        return processSlotLeadership(ctx,
+                                     SlotType::SecondaryPlain,
+                                     slot_timestamp,
+                                     std::nullopt,
+                                     authority_index);
       }
     }
 
-    return outcome::success();
+    SL_TRACE(log_,
+             "Babe author {} is not slot leader in current slot",
+             ctx.keypair->public_key);
+
+    return BabeError::NO_SLOT_LEADER;
   }
 
   outcome::result<primitives::PreRuntime> Babe::babePreDigest(
@@ -297,23 +298,20 @@ namespace kagome::consensus::babe {
       const Context &ctx, const primitives::Block &block) const {
     BOOST_ASSERT(ctx.keypair != nullptr);
 
-    auto pre_seal_hash =
-        hasher_->blake2b_256(scale::encode(block.header).value());
+    const auto &pre_seal_hash = block.header.hash(*hasher_);
 
-    Seal seal{};
-
-    if (auto signature = sr25519_provider_->sign(*ctx.keypair, pre_seal_hash);
-        signature) {
-      seal.signature = signature.value();
-    } else {
-      SL_ERROR(log_, "Error signing a block seal: {}", signature.error());
-      return signature.error();
+    auto signature_res = sr25519_provider_->sign(*ctx.keypair, pre_seal_hash);
+    if (signature_res.has_value()) {
+      Seal seal{.signature = signature_res.value()};
+      auto encoded_seal = common::Buffer(scale::encode(seal).value());
+      return primitives::Seal{{primitives::kBabeEngineId, encoded_seal}};
     }
-    auto encoded_seal = common::Buffer(scale::encode(seal).value());
-    return primitives::Seal{{primitives::kBabeEngineId, encoded_seal}};
+
+    SL_ERROR(log_, "Error signing a block seal: {}", signature_res.error());
+    return signature_res.as_failure();
   }
 
-  void Babe::processSlotLeadership(
+  outcome::result<void> Babe::processSlotLeadership(
       const Context &ctx,
       SlotType slot_type,
       clock::SystemClock::TimePoint slot_timestamp,
@@ -331,7 +329,7 @@ namespace kagome::consensus::babe {
       SL_INFO(log_,
               "Backing off claiming new slot for block authorship: finality is "
               "lagging.");
-      return;
+      return BabeError::BACKING_OFF;
     }
 
     BOOST_ASSERT(ctx.keypair != nullptr);
@@ -356,13 +354,13 @@ namespace kagome::consensus::babe {
     if (auto res = inherent_data.putData<uint64_t>(kTimestampId, now);
         res.has_error()) {
       SL_ERROR(log_, "cannot put an inherent data: {}", res.error());
-      return;
+      return BabeError::CAN_NOT_PREPARE_BLOCK;
     }
 
     if (auto res = inherent_data.putData(kBabeSlotId, ctx.slot);
         res.has_error()) {
       SL_ERROR(log_, "cannot put an inherent data: {}", res.error());
-      return;
+      return BabeError::CAN_NOT_PREPARE_BLOCK;
     }
 
     parachain::ParachainInherentData parachain_inherent_data;
@@ -402,7 +400,7 @@ namespace kagome::consensus::babe {
     if (auto res = inherent_data.putData(kParachainId, parachain_inherent_data);
         res.has_error()) {
       SL_ERROR(log_, "cannot put an inherent data: {}", res.error());
-      return;
+      return BabeError::CAN_NOT_PREPARE_BLOCK;
     }
 
     auto timer = metric_block_proposal_time.manual();
@@ -411,7 +409,7 @@ namespace kagome::consensus::babe {
         babePreDigest(ctx, slot_type, output, authority_index);
     if (not babe_pre_digest_res) {
       SL_ERROR(log_, "cannot propose a block: {}", babe_pre_digest_res.error());
-      return;
+      return BabeError::CAN_NOT_PREPARE_BLOCK;
     }
     const auto &babe_pre_digest = babe_pre_digest_res.value();
 
@@ -428,7 +426,7 @@ namespace kagome::consensus::babe {
                            changes_tracker);
     if (!pre_seal_block_res) {
       SL_ERROR(log_, "Cannot propose a block: {}", pre_seal_block_res.error());
-      return;
+      return BabeError::CAN_NOT_PROPOSE_BLOCK;
     }
 
     auto duration_ms = timer().count();
@@ -454,21 +452,21 @@ namespace kagome::consensus::babe {
     auto seal_res = sealBlock(ctx, block);
     if (!seal_res) {
       SL_ERROR(log_, "Failed to seal the block: {}", seal_res.error());
-      return;
+      return BabeError::CAN_NOT_SEAL_BLOCK;
     }
 
     // add seal digest item
     block.header.digest.emplace_back(seal_res.value());
 
-    if (clock_.now() >= slots_util_.get()->slotFinishTime(
+    if (clock_.now() > slots_util_.get()->slotFinishTime(
             ctx.slot + kMaxBlockSlotsOvertime)) {
       SL_WARN(log_,
-              "Block was not built in time. "
+              "Block was not built on time. "
               "Allowed slots ({}) have passed. "
               "If you are executing in debug mode, consider to rebuild in "
               "release",
               kMaxBlockSlotsOvertime);
-      return;
+      return BabeError::WAS_NOT_BUILD_ON_TIME;
     }
 
     const primitives::BlockInfo block_info(block.header.number,
@@ -493,7 +491,7 @@ namespace kagome::consensus::babe {
                 block_info,
                 removal_res.error());
       }
-      return;
+      return BabeError::CAN_NOT_SAVE_BLOCK;
     }
 
     changes_tracker->onBlockAdded(
@@ -512,7 +510,7 @@ namespace kagome::consensus::babe {
               "Error while tracking digest of block {}: {}",
               block_info,
               digest_tracking_res.error());
-      return;
+      return outcome::success();
     }
 
     // finally, broadcast the sealed block
@@ -546,6 +544,8 @@ namespace kagome::consensus::babe {
                     ocw_res.error());
       }
     }
+
+    return outcome::success();
   }
 
   void Babe::changeLotteryEpoch(

@@ -15,8 +15,10 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::consensus::babe, DigestError, e) {
              "header and seal digests";
     case E::NO_TRAILING_SEAL_DIGEST:
       return "the block must contain a seal digest as the last digest";
+    case E::GENESIS_BLOCK_CAN_NOT_HAVE_DIGESTS:
+      return "genesis block can not have digests";
   }
-  return "unknown error";
+  return "unknown error (kagome::consensus::babe::DigestError)";
 }
 
 namespace kagome::consensus::babe {
@@ -28,6 +30,10 @@ namespace kagome::consensus::babe {
 
   outcome::result<std::pair<Seal, BabeBlockHeader>> getBabeDigests(
       const primitives::BlockHeader &block_header) {
+    [[unlikely]] if (block_header.number == 0) {
+      return DigestError::GENESIS_BLOCK_CAN_NOT_HAVE_DIGESTS;
+    }
+
     // valid BABE block has at least two digests: BabeHeader and a seal
     if (block_header.digest.size() < 2) {
       return DigestError::REQUIRED_DIGESTS_NOT_FOUND;

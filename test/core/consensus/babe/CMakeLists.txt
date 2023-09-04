@@ -16,6 +16,14 @@ target_link_libraries(babe_test
     logger_for_tests
     )
 
+addtest(babe_lottery_test
+    babe_lottery_test.cpp
+)
+target_link_libraries(babe_lottery_test
+    consensus
+    logger_for_tests
+)
+
 addtest(threshold_util_test
     threshold_util_test.cpp
     )

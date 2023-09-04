@@ -20,6 +20,7 @@ namespace kagome::consensus::babe {
   enum class DigestError {
     REQUIRED_DIGESTS_NOT_FOUND = 1,
     NO_TRAILING_SEAL_DIGEST,
+    GENESIS_BLOCK_CAN_NOT_HAVE_DIGESTS,
   };
 
   template <typename T, typename VarT>

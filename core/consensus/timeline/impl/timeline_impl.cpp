@@ -80,7 +80,7 @@ namespace kagome::consensus {
     BOOST_ASSERT(synchronizer_);
     BOOST_ASSERT(hasher_);
     BOOST_ASSERT(block_announce_transmitter_);
-    BOOST_ASSERT(warp_sync_);
+    // BOOST_ASSERT(warp_sync_);
     BOOST_ASSERT(justification_observer_);
     BOOST_ASSERT(consistency_keeper_);
     BOOST_ASSERT(scheduler_);

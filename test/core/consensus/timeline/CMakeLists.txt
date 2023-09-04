@@ -22,3 +22,15 @@ target_link_libraries(slots_util_test
     storage
     logger_for_tests
 )
+
+addtest(timeline_test
+    timeline_test.cpp
+)
+target_link_libraries(timeline_test
+    consensus
+    clock
+    storage
+    logger_for_tests
+    network
+    telemetry
+)

@@ -116,7 +116,7 @@ namespace kagome::consensus::babe {
     outcome::result<primitives::Seal> sealBlock(
         const Context &ctx, const primitives::Block &block) const;
 
-    void processSlotLeadership(
+    outcome::result<void> processSlotLeadership(
         const Context &ctx,
         SlotType slot_type,
         clock::SystemClock::TimePoint slot_timestamp,

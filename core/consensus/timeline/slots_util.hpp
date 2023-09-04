@@ -47,7 +47,8 @@ namespace kagome::consensus {
         SlotNumber slot_number) const = 0;
 
     /// @returns epoch number for given parent and slot
-    outcome::result<EpochNumber> slotToEpoch(
+    /// @note virtual - for being mocked
+    virtual outcome::result<EpochNumber> slotToEpoch(
         const primitives::BlockInfo &parent_info,
         SlotNumber slot_number) const {
       OUTCOME_TRY(epoch, slotToEpochDescriptor(parent_info, slot_number));
