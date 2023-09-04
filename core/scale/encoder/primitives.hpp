@@ -131,6 +131,19 @@ namespace kagome::scale {
     encode(func, args...);
   }
 
+  template <typename... Args>
+  outcome::result<std::vector<uint8_t>> encode(const Args &...args) {
+    std::vector<uint8_t> res;
+    encode(
+        [&](const uint8_t *const val, size_t count) {
+          if (count != 0ull) {
+            res.insert(res.end(), &val[0], &val[count]);
+          }
+        },
+        args...);
+    return res;
+  }
+
   inline size_t countBytes(::scale::CompactInteger v) {
     size_t counter = 0;
     do {

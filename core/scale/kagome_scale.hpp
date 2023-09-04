@@ -15,6 +15,7 @@
 #include "scale/encode_append.hpp"
 
 namespace kagome::scale {
+  using CompactInteger = ::scale::CompactInteger;
 
   template <typename F>
   constexpr void encode(const F &func, const primitives::BlockHeader &bh);
