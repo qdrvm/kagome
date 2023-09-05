@@ -65,10 +65,10 @@ namespace kagome::consensus::grandpa {
         const std::shared_ptr<VotingRound> &previous_round);
 
    public:
-    
-    template<typename...Args>
+    template <typename... Args>
     static std::shared_ptr<VotingRoundImpl> create(Args &&...args) {
-      return std::make_shared<VotingRoundImpl>(std::forward<Args>(args)...);
+      return std::shared_ptr<VotingRoundImpl>(
+          new VotingRoundImpl(std::forward<Args>(args)...));
     }
 
     enum class Stage {
