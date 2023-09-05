@@ -111,18 +111,20 @@ namespace kagome ::consensus {
     // If slot still unknown, getting slot from the first block which ancestor
     // of provided
     if (not slot1.has_value()) {
-      auto header_ref = std::cref(parent);
+      auto header = parent;
       for (;;) {
-        if (header_ref.get().number == 1) {
+        [[unlikely]] if (header.number == 1) {
           auto consensus =
               consensus_selector_->getProductionConsensus(parent_info);
-          OUTCOME_TRY(slot, consensus->getSlot(header_ref.get()));
+          OUTCOME_TRY(slot, consensus->getSlot(header));
           slot1 = slot;
           break;
         }
-        OUTCOME_TRY(header,
-                    block_tree_->getBlockHeader(header_ref.get().parent_hash));
-        header_ref = header;
+        auto header_res = block_tree_->getBlockHeader(header.parent_hash);
+        if (header_res.has_error()) {
+          return header_res.as_failure();
+        }
+        header = std::move(header_res.value());
       }
     }
 
