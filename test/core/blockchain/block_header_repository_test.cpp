@@ -156,6 +156,20 @@ TEST_P(BlockHeaderRepository_NumberParametrized_Test, GetHeader) {
   ASSERT_EQ(header_by_hash, header_should_be);
 }
 
+TEST_P(BlockHeaderRepository_NumberParametrized_Test, bitvec) {
+  auto create_bit_vec = [](size_t count) {
+    ::scale::BitVec bv;
+    for (size_t i = 0; i < count; ++i)
+      bv.bits.push_back((i % 2ull) == 0ull);
+
+    return bv;
+  };
+
+  for (size_t i = 0ull; i < 200ull; ++i) {
+    compareWithRef4(create_bit_vec(i));
+  }
+}
+
 INSTANTIATE_TEST_SUITE_P(Numbers,
                          BlockHeaderRepository_NumberParametrized_Test,
                          testing::ValuesIn(ParamValues));
