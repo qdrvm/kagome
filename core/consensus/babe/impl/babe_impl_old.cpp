@@ -343,8 +343,8 @@ namespace kagome::consensus::babe {
 
     SL_DEBUG(log_,
              "Starting in epoch {} and slot {}",
-             current_epoch_.epoch_number,
-             current_epoch_.start_slot);
+             current_epoch_,
+             current_slot_);
 
     auto babe_config =
         babe_config_repo_->config(best_block_, current_epoch_.epoch_number);
@@ -389,8 +389,7 @@ namespace kagome::consensus::babe {
   bool BabeImpl::updateSlot(TimePoint now) {
     best_block_ = block_tree_->bestLeaf();
     current_slot_ = babe_util_->timeToSlot(now);
-    auto epoch_res =
-        babe_util_->slotToEpochDescriptor(best_block_, current_slot_);
+    auto epoch_res = babe_util_->slotToEpoch(best_block_, current_slot_);
     if (not epoch_res) {
       SL_ERROR(log_, "updateSlot: can't get epoch: {}", epoch_res.error());
       return false;

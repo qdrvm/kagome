@@ -263,7 +263,7 @@ namespace kagome::consensus::babe {
 
     std::atomic_bool active_{false};
 
-    EpochDescriptor current_epoch_;
+    EpochNumber current_epoch_;
 
     SlotNumber current_slot_{};
 

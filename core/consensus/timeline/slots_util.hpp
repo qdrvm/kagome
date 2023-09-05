@@ -41,19 +41,11 @@ namespace kagome::consensus {
     /// @returns timepoint of finish of slot #{@param slot}
     virtual TimePoint slotFinishTime(SlotNumber slot) const = 0;
 
-    /// @returns epoch descriptor for given parent and slot
-    virtual outcome::result<EpochDescriptor> slotToEpochDescriptor(
-        const primitives::BlockInfo &parent_info,
-        SlotNumber slot_number) const = 0;
-
     /// @returns epoch number for given parent and slot
     /// @note virtual - for being mocked
     virtual outcome::result<EpochNumber> slotToEpoch(
         const primitives::BlockInfo &parent_info,
-        SlotNumber slot_number) const {
-      OUTCOME_TRY(epoch, slotToEpochDescriptor(parent_info, slot_number));
-      return epoch.epoch_number;
-    }
+        SlotNumber slot_number) const = 0;
   };
 
 }  // namespace kagome::consensus

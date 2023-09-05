@@ -37,16 +37,6 @@ namespace kagome::consensus {
   /// random value, which serves as a seed for VRF slot leadership selection
   using Randomness = common::Blob<crypto::constants::sr25519::vrf::OUTPUT_SIZE>;
 
-  /// Metainformation about the epoch
-  struct EpochDescriptor {
-    SCALE_TIE(2);
-
-    EpochNumber epoch_number = 0;
-
-    /// starting slot of the epoch
-    SlotNumber start_slot = 0;
-  };
-
   /// Data are corresponding to the epoch
   struct EpochDigest {
     SCALE_TIE(2);

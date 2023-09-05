@@ -10,6 +10,7 @@
 #include "consensus/babe/types/babe_block_header.hpp"
 #include "consensus/babe/types/seal.hpp"
 #include "consensus/babe/types/slot.hpp"
+#include "consensus/timeline/impl/block_production_error.hpp"
 #include "consensus/timeline/impl/timeline_impl.hpp"
 #include "mock/core/application/app_configuration_mock.hpp"
 #include "mock/core/application/app_state_manager_mock.hpp"
@@ -36,11 +37,12 @@ using kagome::application::AppStateManagerMock;
 using kagome::blockchain::BlockTreeMock;
 using kagome::clock::SystemClockMock;
 using kagome::common::Buffer;
+using kagome::consensus::BlockProductionError;
 using kagome::consensus::ConsensusSelectorMock;
 using kagome::consensus::ConsistencyKeeperMock;
 using kagome::consensus::Duration;
-using kagome::consensus::EpochDescriptor;
 using kagome::consensus::EpochLength;
+using kagome::consensus::EpochNumber;
 using kagome::consensus::ProductionConsensusMock;
 using kagome::consensus::SlotNumber;
 using kagome::consensus::SlotsUtilMock;
@@ -107,7 +109,7 @@ static Digest make_digest(SlotNumber slot) {
 class TimelineTest : public testing::Test {
  public:
   static void SetUpTestCase() {
-    testutil::prepareLoggers();
+    testutil::prepareLoggers(soralog::Level::DEBUG);
   }
 
   void SetUp() override {
@@ -119,30 +121,30 @@ class TimelineTest : public testing::Test {
     slots_util = std::make_shared<SlotsUtilMock>();
     ON_CALL(*slots_util, slotDuration()).WillByDefault(Return(slot_duration));
     ON_CALL(*slots_util, epochLength()).WillByDefault(Return(epoch_length));
-    ON_CALL(*slots_util, timeToSlot(_))
-        .WillByDefault(WithArg<0>(Invoke([slot_duration](auto time) {
-          return time.time_since_epoch() / slot_duration;
-        })));
-    ON_CALL(*slots_util, slotToEpochDescriptor(_, _))
-        .WillByDefault(WithArg<1>(Invoke([epoch_length](auto slot) {
-          return EpochDescriptor{slot / epoch_length,
-                                 (slot / epoch_length) * epoch_length};
-        })));
+    ON_CALL(*slots_util, timeToSlot(_)).WillByDefault(Invoke([&] {
+      return current_slot;
+    }));
+    ON_CALL(*slots_util, slotToEpoch(_, _))
+        .WillByDefault(
+            WithArg<1>(Invoke([epoch_length](auto slot) -> EpochNumber {
+              return slot / epoch_length;
+            })));
 
     block_tree = std::make_shared<BlockTreeMock>();
-    EXPECT_CALL(*block_tree, bestLeaf()).WillRepeatedly(Return(best_block));
-    EXPECT_CALL(*block_tree, getLastFinalized())
-        .WillRepeatedly(Return(best_block));
-    EXPECT_CALL(*block_tree, getBlockHeader(best_block_hash))
-        .WillRepeatedly(Return(best_block_header));
+    ON_CALL(*block_tree, bestLeaf()).WillByDefault(Return(best_block));
+    ON_CALL(*block_tree, getLastFinalized()).WillByDefault(Return(best_block));
+    ON_CALL(*block_tree, getBlockHeader(best_block.hash))
+        .WillByDefault(Return(best_block_header));
 
     consensus_selector = std::make_shared<ConsensusSelectorMock>();
     production_consensus = std::make_shared<ProductionConsensusMock>();
-    EXPECT_CALL(*consensus_selector, getProductionConsensus(_))
-        .WillRepeatedly(Return(production_consensus));
-    EXPECT_CALL(*production_consensus, getTimings())
-        .WillRepeatedly(
-            Invoke([&]() { return std::tuple(slot_duration, epoch_length); }));
+    ON_CALL(*consensus_selector, getProductionConsensus(_))
+        .WillByDefault(Return(production_consensus));
+    ON_CALL(*production_consensus, getTimings()).WillByDefault(Invoke([&]() {
+      return std::tuple(slot_duration, epoch_length);
+    }));
+    ON_CALL(*production_consensus, getSlot(best_block_header))
+        .WillByDefault(Return(1));
 
     trie_storage = std::make_shared<TrieStorageMock>();
     synchronizer = std::make_shared<SynchronizerMock>();
@@ -202,30 +204,26 @@ class TimelineTest : public testing::Test {
 
   std::shared_ptr<ProductionConsensusMock> production_consensus;
 
-  BlockHash best_block_hash = "block#0"_hash256;
-  BlockNumber best_block_number = 0u;
+  SlotNumber current_slot;
+
+  BlockInfo genesis_block{0, "block#0"_hash256};
+  BlockHeader genesis_block_header{
+      genesis_block.number,  // number
+      {},                    // parent
+      {},                    // state_root
+      {},                    // extrinsic_root
+      {}                     // digest
+  };
+
+  BlockInfo best_block{1, "block#1"_hash256};
+  SlotNumber best_block_slot = 1;
   BlockHeader best_block_header{
-      best_block_number,           // number
-      {},                          // parent
-      "state_root#0"_hash256,      // state_root
-      "extrinsic_root#0"_hash256,  // extrinsic_root
-      {}                           // digest
+      best_block.number,            // number
+      genesis_block.hash,           // parent
+      {},                           // state_root
+      {},                           // extrinsic_root
+      make_digest(best_block_slot)  // digest
   };
-
-  BlockInfo best_block{best_block_number, best_block_hash};
-
-  BlockHeader block_header{
-      best_block_number + 1,       // number
-      best_block_hash,             // parent
-      "state_root#1"_hash256,      // state_root
-      "extrinsic_root#1"_hash256,  // extrinsic_root
-      make_digest(0)               // digest
-  };
-
-  Extrinsic extrinsic{{1, 2, 3}};
-  Block created_block{block_header, {extrinsic}};
-
-  BlockHash created_block_hash{"block#1"_hash256};
 };
 
 /**
@@ -247,22 +245,59 @@ TEST_F(TimelineTest, NonValidator) {
 }
 
 /**
- * @given start timeline
+ * @given start timeline in slot 2. best block was produced in slot 1
  * @when consensus returns we are single validator
  * @then we immediately have synchronized, and trying to process slot
  */
 TEST_F(TimelineTest, SingleValidator) {
-  EXPECT_CALL(clock, now()).Times(testing::AnyNumber());
-  EXPECT_CALL(*slots_util, slotFinishTime(_)).Times(testing::AnyNumber());
-  EXPECT_CALL(*block_tree, bestLeaf()).WillRepeatedly(Return(best_block));
-  EXPECT_CALL(*production_consensus, getValidatorStatus(_, _))
-      .WillRepeatedly(Return(ValidatorStatus::SingleValidator));
-  EXPECT_CALL(*production_consensus, processSlot(_, best_block))
-      .WillOnce(Return(outcome::success()));
+  auto breaker = [] { throw std::logic_error("Must not be called"); };
+  std::function<void()> on_run_slot = breaker;
 
-  timeline->start();
-  EXPECT_TRUE(timeline->wasSynchronized());
-  EXPECT_EQ(timeline->getCurrentState(), SyncState::SYNCHRONIZED);
+  // LAUNCH (best block on slot 1)
+  {
+    current_slot = 1;
+    EXPECT_CALL(*production_consensus, getValidatorStatus(_, _))
+        .WillRepeatedly(Return(ValidatorStatus::SingleValidator));
+    EXPECT_CALL(*production_consensus, processSlot(_, best_block)).Times(0);
+    //  - start to wait for end of current slot
+    EXPECT_CALL(*scheduler, scheduleImplMockCall(_, _, false))
+        .WillOnce(WithArg<0>(Invoke([&](auto cb) {
+          on_run_slot = std::move(cb);
+          return SchedulerMock::Handle{};
+        })));
+
+    timeline->start();
+
+    EXPECT_TRUE(timeline->wasSynchronized());
+    EXPECT_EQ(timeline->getCurrentState(), SyncState::SYNCHRONIZED);
+
+    Mock::VerifyAndClearExpectations(production_consensus.get());
+    Mock::VerifyAndClearExpectations(scheduler.get());
+  }
+
+  // SLOT 2
+  {
+    ++current_slot;
+    ASSERT_EQ(current_slot, 2);
+
+    // when: timer goes off
+    // then:
+    //  - process slot (successful for this case)
+    EXPECT_CALL(*production_consensus, processSlot(current_slot, best_block))
+        .WillOnce(Return(outcome::success()));
+    //  - start to wait for end of current slot
+    EXPECT_CALL(*scheduler, scheduleImplMockCall(_, _, false))
+        .WillOnce(WithArg<0>(
+            Invoke([&](auto cb) { return SchedulerMock::Handle{}; })));
+
+    on_run_slot();
+
+    // - node continues to be synchronized
+    EXPECT_EQ(timeline->getCurrentState(), SyncState::SYNCHRONIZED);
+
+    Mock::VerifyAndClearExpectations(production_consensus.get());
+    Mock::VerifyAndClearExpectations(scheduler.get());
+  }
 }
 
 /**
@@ -271,84 +306,124 @@ TEST_F(TimelineTest, SingleValidator) {
  * @then we immediately have synchronized, and trying to process slot
  */
 TEST_F(TimelineTest, Validator) {
-  // launch
-
-  EXPECT_CALL(clock, now()).Times(testing::AnyNumber());
-  EXPECT_CALL(*slots_util, slotFinishTime(_)).Times(testing::AnyNumber());
-  EXPECT_CALL(*block_tree, bestLeaf()).WillRepeatedly(Return(best_block));
-  EXPECT_CALL(*production_consensus, getValidatorStatus(_, _))
-      .WillRepeatedly(Return(ValidatorStatus::Validator));
-  EXPECT_CALL(*production_consensus, processSlot(_, best_block)).Times(0);
-
-  timeline->start();
-
-  EXPECT_FALSE(timeline->wasSynchronized());
-  EXPECT_EQ(timeline->getCurrentState(), SyncState::WAIT_REMOTE_STATUS);
-
-  Mock::VerifyAndClearExpectations(production_consensus.get());
-
-  // receive
-
-  EXPECT_CALL(*block_tree, getBestContaining(_, _))
-      .WillOnce(Return(best_block));
-  EXPECT_CALL(*production_consensus, getSlot(best_block_header))
-      .WillRepeatedly(Return(0));
-  EXPECT_CALL(*production_consensus, processSlot(_, best_block))
-      .WillOnce(Return(outcome::success()));
-
-  timeline->onBlockAnnounceHandshake("peer"_peerid,
-                                     {{}, best_block, best_block_hash});
-
-  EXPECT_TRUE(timeline->wasSynchronized());
-  EXPECT_EQ(timeline->getCurrentState(), SyncState::SYNCHRONIZED);
-}
-
-/**
- * @given start timeline
- * @when consensus returns we are single validator
- * @then we immediately have synchronized, and trying to process slot
- */
-TEST_F(TimelineTest, Timing) {
   auto breaker = [] { throw std::logic_error("Must not be called"); };
   std::function<void()> on_run_slot_2 = breaker;
   std::function<void()> on_run_slot_3 = breaker;
-  testing::Sequence s;
-  EXPECT_CALL(*scheduler, scheduleImplMockCall(_, _, false))
-      .InSequence(s)
-      .WillOnce(WithArg<0>(Invoke([&](auto cb) {
-        on_run_slot_2 = std::move(cb);
-        return SchedulerMock::Handle{};
-      })));
 
-  // launch
+  // given: just created Timeline
 
-  EXPECT_CALL(clock, now()).Times(testing::AnyNumber());
-  EXPECT_CALL(*slots_util, slotFinishTime(_)).Times(testing::AnyNumber());
-  EXPECT_CALL(*block_tree, bestLeaf()).WillRepeatedly(Return(best_block));
-  EXPECT_CALL(*production_consensus, getValidatorStatus(_, _))
-      .WillRepeatedly(Return(ValidatorStatus::Validator));
-  EXPECT_CALL(*scheduler, scheduleImplMockCall(_, _, _)).Times(0);
-  EXPECT_CALL(*production_consensus, processSlot(_, best_block)).Times(0);
+  // LAUNCH
+  {
+    current_slot = 1;
 
-  timeline->start();
+    // when: call start
+    // then:
+    //  - get best block to init
+    EXPECT_CALL(*block_tree, bestLeaf()).WillRepeatedly(Return(best_block));
+    //  - get validator status to know if needed to participate in block
+    //    production
+    EXPECT_CALL(*production_consensus, getValidatorStatus(_, _))
+        .WillRepeatedly(Return(ValidatorStatus::Validator));
+    //  - don't process slot, because node is not synchronized
+    EXPECT_CALL(*production_consensus, processSlot(_, best_block)).Times(0);
+    //  - don't wait time to run slot, because node is not synchronized
+    EXPECT_CALL(*scheduler, scheduleImplMockCall(_, _, _)).Times(0);
 
-  EXPECT_FALSE(timeline->wasSynchronized());
-  EXPECT_EQ(timeline->getCurrentState(), SyncState::WAIT_REMOTE_STATUS);
+    timeline->start();
 
-  Mock::VerifyAndClearExpectations(production_consensus.get());
+    //  - node isn't synchronized
+    EXPECT_FALSE(timeline->wasSynchronized());
+    //  - node is waiting data from remove peers
+    EXPECT_EQ(timeline->getCurrentState(), SyncState::WAIT_REMOTE_STATUS);
 
-  // receive
+    Mock::VerifyAndClearExpectations(production_consensus.get());
+    Mock::VerifyAndClearExpectations(scheduler.get());
+  }
 
-  EXPECT_CALL(*block_tree, getBestContaining(_, _))
-      .WillOnce(Return(best_block));
-  EXPECT_CALL(*production_consensus, getSlot(best_block_header))
-      .WillRepeatedly(Return(0));
-  EXPECT_CALL(*production_consensus, processSlot(_, best_block))
-      .WillOnce(Return(outcome::success()));
+  // SYNC (will be finished on slot 1)
+  {
+    ASSERT_EQ(current_slot, 1);
 
-  timeline->onBlockAnnounceHandshake("peer"_peerid,
-                                     {{}, best_block, best_block_hash});
+    // when: receive remote peer data enough to become synchronized
+    // then:
+    //  - check if caught up after loading blocks (our best for this case)
+    EXPECT_CALL(*block_tree, getBestContaining(_, _))
+        .WillOnce(Return(best_block));
+    //  - check by slot if caught up after loading blocks
+    EXPECT_CALL(*production_consensus, getSlot(best_block_header))
+        .WillRepeatedly(Return(0));
+    //  - process slot won't start, because slot is not changed
+    EXPECT_CALL(*production_consensus, processSlot(_, _)).Times(0);
+    //  - start to wait for end of current slot
+    EXPECT_CALL(*scheduler, scheduleImplMockCall(_, _, false))
+        .WillOnce(WithArg<0>(Invoke([&](auto cb) {
+          on_run_slot_2 = std::move(cb);
+          return SchedulerMock::Handle{};
+        })));
 
-  EXPECT_TRUE(timeline->wasSynchronized());
-  EXPECT_EQ(timeline->getCurrentState(), SyncState::SYNCHRONIZED);
+    timeline->onBlockAnnounceHandshake("peer"_peerid,
+                                       {{}, best_block, best_block.hash});
+
+    // - node is synchronized now
+    EXPECT_TRUE(timeline->wasSynchronized());
+    EXPECT_EQ(timeline->getCurrentState(), SyncState::SYNCHRONIZED);
+
+    Mock::VerifyAndClearExpectations(production_consensus.get());
+    Mock::VerifyAndClearExpectations(scheduler.get());
+  }
+
+  // SLOT 2 (nobody will add new block for this case)
+  {
+    ++current_slot;
+    ASSERT_EQ(current_slot, 2);
+
+    // when: receive remote peer data enough to become synchronized
+    // then:
+    //  - check by slot if caught up after loading blocks
+    EXPECT_CALL(*production_consensus, getSlot(best_block_header))
+        .WillRepeatedly(Return(0));
+    //  - process slot (not slot leader for this case)
+    EXPECT_CALL(*production_consensus, processSlot(current_slot, best_block))
+        .WillOnce(Return(BlockProductionError::NO_SLOT_LEADER));
+    //  - start to wait for end of current slot
+    EXPECT_CALL(*scheduler, scheduleImplMockCall(_, _, false))
+        .WillOnce(WithArg<0>(Invoke([&](auto cb) {
+          on_run_slot_3 = std::move(cb);
+          return SchedulerMock::Handle{};
+        })));
+
+    on_run_slot_2();
+
+    // - node is synchronized now
+    EXPECT_EQ(timeline->getCurrentState(), SyncState::SYNCHRONIZED);
+
+    Mock::VerifyAndClearExpectations(production_consensus.get());
+    Mock::VerifyAndClearExpectations(scheduler.get());
+  }
+
+  // SLOT 3
+  {
+    ++current_slot;
+    ASSERT_EQ(current_slot, 3);
+
+    // when: timer goes off
+    // then:
+    //  - process slot (successful for this case)
+    EXPECT_CALL(*production_consensus, processSlot(current_slot, best_block))
+        .WillOnce(Return(outcome::success()));
+    //  - start to wait for end of current slot
+    EXPECT_CALL(*scheduler, scheduleImplMockCall(_, _, false))
+        .WillOnce(WithArg<0>(Invoke([&](auto cb) {
+          on_run_slot_3 = std::move(cb);
+          return SchedulerMock::Handle{};
+        })));
+
+    on_run_slot_3();
+
+    // - node continues to be synchronized
+    EXPECT_EQ(timeline->getCurrentState(), SyncState::SYNCHRONIZED);
+
+    Mock::VerifyAndClearExpectations(production_consensus.get());
+    Mock::VerifyAndClearExpectations(scheduler.get());
+  }
 }

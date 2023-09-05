@@ -10,6 +10,7 @@
 #include "consensus/babe/impl/babe.hpp"
 #include "consensus/babe/impl/babe_digests_util.hpp"
 #include "consensus/babe/impl/babe_error.hpp"
+#include "consensus/timeline/impl/block_production_error.hpp"
 #include "mock/core/application/app_configuration_mock.hpp"
 #include "mock/core/authorship/proposer_mock.hpp"
 #include "mock/core/blockchain/block_tree_mock.hpp"
@@ -41,6 +42,7 @@ using kagome::blockchain::BlockTreeMock;
 using kagome::blockchain::DigestTrackerMock;
 using kagome::clock::SystemClockMock;
 using kagome::common::Buffer;
+using kagome::consensus::BlockProductionError;
 using kagome::consensus::EpochLength;
 using kagome::consensus::EpochNumber;
 using kagome::consensus::SlotNumber;
@@ -313,7 +315,7 @@ TEST_F(BabeTest, NonValidator) {
       .WillOnce(Return(outcome::success(epoch)));
 
   ASSERT_OUTCOME_ERROR(babe->processSlot(slot, best_block_info),
-                       BabeError::NO_VALIDATOR);
+                       BlockProductionError::NO_VALIDATOR);
 }
 
 TEST_F(BabeTest, NoSlotLeader) {
@@ -331,7 +333,7 @@ TEST_F(BabeTest, NoSlotLeader) {
   EXPECT_CALL(*lottery, getSlotLeadership(slot)).WillOnce(Return(std::nullopt));
 
   ASSERT_OUTCOME_ERROR(babe->processSlot(slot, best_block_info),
-                       BabeError::NO_SLOT_LEADER);
+                       BlockProductionError::NO_SLOT_LEADER);
 }
 
 TEST_F(BabeTest, SlotLeader) {
@@ -533,8 +535,8 @@ TEST_F(BabeTest, SlotLeader) {
 //         .WillByDefault(Return(babe_config_->epoch_length));
 //
 //     slots_util_ = std::make_shared<SlotsUtilMock>();
-//     EXPECT_CALL(*slots_util_, slotToEpochDescriptor(_, _))
-//         .WillRepeatedly(Return(EpochDescriptor{}));
+//     EXPECT_CALL(*slots_util_, slotToEpoch(_, _))
+//         .WillRepeatedly(Return(EpochNumber{}));
 //
 //     storage_sub_engine_ =
 //         std::make_shared<primitives::events::StorageSubscriptionEngine>();

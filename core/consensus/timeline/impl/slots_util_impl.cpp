@@ -60,17 +60,15 @@ namespace kagome ::consensus {
     return slotStartTime(slot + 1);
   }
 
-  outcome::result<EpochDescriptor> SlotsUtilImpl::slotToEpochDescriptor(
+  outcome::result<EpochNumber> SlotsUtilImpl::slotToEpoch(
       const primitives::BlockInfo &parent_info, SlotNumber slot) const {
-    [[unlikely]] if (parent_info.number == 0) {
-      return EpochDescriptor{0, slot};
-    }
+    [[unlikely]] if (parent_info.number == 0) { return 0; }
     OUTCOME_TRY(slot1, getFirstBlockSlotNumber(parent_info));
     if (slot < slot1) {
       return TimelineError::SLOT_BEFORE_GENESIS;
     }
     auto slots = slot - slot1;
-    return EpochDescriptor{slots / epochLength(), slots % epochLength()};
+    return slots / epochLength();
   }
 
   outcome::result<SlotNumber> SlotsUtilImpl::getFirstBlockSlotNumber(

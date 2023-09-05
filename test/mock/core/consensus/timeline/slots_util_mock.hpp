@@ -26,11 +26,6 @@ namespace kagome::consensus {
                 (SlotNumber slot),
                 (const, override));
 
-    MOCK_METHOD(outcome::result<EpochDescriptor>,
-                slotToEpochDescriptor,
-                (const primitives::BlockInfo &, SlotNumber),
-                (const, override));
-
     MOCK_METHOD(outcome::result<EpochNumber>,
                 slotToEpoch,
                 (const primitives::BlockInfo &, SlotNumber),

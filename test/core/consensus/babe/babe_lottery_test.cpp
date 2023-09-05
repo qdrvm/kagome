@@ -53,7 +53,7 @@ struct BabeLotteryTest : public testing::Test {
 
   BabeLotteryImpl lottery_{vrf_provider_, babe_config_repo_, hasher_};
 
-  EpochDescriptor current_epoch_;
+  EpochNumber current_epoch_;
 
   Randomness randomness_{{0x11, 0x22, 0x33, 0x44, 0x11, 0x22, 0x33, 0x44,
                           0x11, 0x22, 0x33, 0x44, 0x11, 0x22, 0x33, 0x44,
@@ -80,7 +80,7 @@ TEST_F(BabeLotteryTest, SlotsLeadership) {
 
   for (size_t i = 0; i < babe_config_.epoch_length; ++i) {
     primitives::Transcript transcript;
-    prepareTranscript(transcript, randomness_, i, current_epoch_.epoch_number);
+    prepareTranscript(transcript, randomness_, i, current_epoch_);
 
     if (i == 2) {
       // just random case for testing
@@ -95,8 +95,7 @@ TEST_F(BabeLotteryTest, SlotsLeadership) {
   }
 
   // WHEN
-  lottery_.changeEpoch(
-      current_epoch_.epoch_number, randomness_, threshold_, keypair_);
+  lottery_.changeEpoch(current_epoch_, randomness_, threshold_, keypair_);
 
   std::array<std::optional<VRFOutput>, 3> leadership = {
       lottery_.getSlotLeadership(0),

@@ -150,7 +150,7 @@ namespace kagome::consensus {
     SyncState current_state_{SyncState::WAIT_REMOTE_STATUS};
     bool was_synchronized_{false};
 
-    EpochDescriptor current_epoch_;
+    EpochNumber current_epoch_;
     SlotNumber current_slot_{};
     primitives::BlockInfo best_block_{};
 

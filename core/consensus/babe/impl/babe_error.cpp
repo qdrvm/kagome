@@ -8,12 +8,6 @@
 OUTCOME_CPP_DEFINE_CATEGORY(kagome::consensus::babe, BabeError, e) {
   using E = kagome::consensus::babe::BabeError;
   switch (e) {
-    case E::NO_VALIDATOR:
-      return "node is not validator in current epoch";
-    case E::NO_SLOT_LEADER:
-      return "node is not slot leader in current slot";
-    case E::BACKING_OFF:
-      return "backing off claiming new slot for block authorship";
     case E::CAN_NOT_PREPARE_BLOCK:
       return "can not prepare block";
     case E::CAN_NOT_PROPOSE_BLOCK:
@@ -33,5 +27,5 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::consensus::babe, BabeError, e) {
     case E::SLOT_BEFORE_GENESIS:
       return "slot before genesis";
   }
-  return "unknown error";
+  return "unknown error (kagome::consensus::babe::BabeError)";
 }

@@ -24,7 +24,6 @@
 #include "mock/core/runtime/core_mock.hpp"
 #include "mock/core/runtime/offchain_worker_api_mock.hpp"
 #include "mock/core/transaction_pool/transaction_pool_mock.hpp"
-#include "runtime/runtime_context.hpp"
 #include "testutil/lazy.hpp"
 #include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
@@ -40,8 +39,8 @@ using kagome::consensus::BlockExecutorImpl;
 using kagome::consensus::BlockValidator;
 using kagome::consensus::ConsistencyGuard;
 using kagome::consensus::ConsistencyKeeperMock;
-using kagome::consensus::EpochDescriptor;
 using kagome::consensus::EpochDigest;
+using kagome::consensus::EpochNumber;
 using kagome::consensus::SlotsUtil;
 using kagome::consensus::SlotsUtilMock;
 using kagome::consensus::babe::BabeBlockHeader;
@@ -78,8 +77,7 @@ using testing::ReturnRef;
 
 // TODO (kamilsa): workaround unless we bump gtest version to 1.8.1+
 namespace kagome::primitives {
-  std::ostream &operator<<(std::ostream &s,
-                           const detail::DigestItemCommon &dic) {
+  std::ostream &operator<<(std::ostream &s, const detail::DigestItemCommon &) {
     return s;
   }
 
@@ -133,8 +131,7 @@ class BlockExecutorTest : public testing::Test {
     digest_tracker_ = std::make_shared<DigestTrackerMock>();
 
     slots_util_ = std::make_shared<SlotsUtilMock>();
-    ON_CALL(*slots_util_, slotToEpochDescriptor(_, _))
-        .WillByDefault(Return(EpochDescriptor{1, 0}));
+    ON_CALL(*slots_util_, slotToEpoch(_, _)).WillByDefault(Return(1));
 
     offchain_worker_api_ = std::make_shared<OffchainWorkerApiMock>();
     storage_sub_engine_ = std::make_shared<

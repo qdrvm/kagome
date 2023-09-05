@@ -11,6 +11,7 @@
 #include "clock/impl/clock_impl.hpp"
 #include "consensus/consensus_selector.hpp"
 #include "consensus/timeline/consistency_keeper.hpp"
+#include "consensus/timeline/impl/block_production_error.hpp"
 #include "consensus/timeline/slots_util.hpp"
 #include "network/block_announce_transmitter.hpp"
 #include "network/helpers/peer_id_formatter.hpp"
@@ -275,14 +276,14 @@ namespace kagome::consensus {
 
     SL_DEBUG(log_,
              "Starting in epoch {} and slot {}",
-             current_epoch_.epoch_number,
-             current_epoch_.start_slot);
+             current_epoch_,
+             current_slot_);
 
     if (sync_method_ != SyncMethod::Warp) {
       auto consensus = consensus_selector_->getProductionConsensus(best_block_);
 
-      auto validator_status = consensus->getValidatorStatus(
-          best_block_, current_epoch_.epoch_number);
+      auto validator_status =
+          consensus->getValidatorStatus(best_block_, current_epoch_);
 
       if (validator_status == ValidatorStatus::SingleValidator) {
         SL_INFO(log_, "Starting single validating node.");
@@ -442,14 +443,17 @@ namespace kagome::consensus {
 
   bool TimelineImpl::updateSlot(TimePoint now) {
     best_block_ = block_tree_->bestLeaf();
-    current_slot_ = slots_util_->timeToSlot(now);
-    SL_DEBUG(log_,
-             "Slot updated to {}, best block is {}",
-             current_slot_,
-             best_block_);
 
-    auto epoch_res =
-        slots_util_->slotToEpochDescriptor(best_block_, current_slot_);
+    auto prev_slot = current_slot_;
+    current_slot_ = slots_util_->timeToSlot(now);
+    if (current_slot_ == prev_slot) {
+      SL_TRACE(log_,
+               "Slot was not updated, it is still the same: {}",
+               current_slot_);
+      return false;
+    }
+
+    auto epoch_res = slots_util_->slotToEpoch(best_block_, current_slot_);
     if (not epoch_res) {
       SL_ERROR(log_,
                "Slot update has failed; can't get epoch: {}",
@@ -457,6 +461,12 @@ namespace kagome::consensus {
       return false;
     }
     current_epoch_ = epoch_res.value();
+
+    SL_DEBUG(log_,
+             "Slot was updated to {}, epoch is {}, best block is {}",
+             current_slot_,
+             current_epoch_,
+             best_block_);
     return true;
   }
 
@@ -706,12 +716,20 @@ namespace kagome::consensus {
   }
 
   void TimelineImpl::runSlot() {
-    SL_DEBUG(log_, "Try to run slot");
+    SL_TRACE(log_, "Try to run slot");
     auto now = clock_.now();
-    if (not updateSlot(now)) {
-      SL_DEBUG(log_, "Not updated");
-      auto remains_ms = std::chrono::duration_cast<std::chrono::milliseconds>(
-          slots_util_->slotFinishTime(current_slot_) - now);
+
+    auto slot_has_updated = updateSlot(now);
+
+    auto remains_ms = std::chrono::duration_cast<std::chrono::milliseconds>(
+        std::max(slots_util_->slotFinishTime(current_slot_) - now, {}));
+
+    if (not slot_has_updated) {
+      SL_DEBUG(log_,
+               "Not updated. Waiting for end of slot {} (remains {:.2f} sec)",
+               current_slot_,
+               remains_ms.count() / 1000.);
+
       scheduler_->schedule(
           [wp = weak_from_this()] {
             if (auto self = wp.lock()) {
@@ -722,13 +740,10 @@ namespace kagome::consensus {
       return;
     }
 
-    auto remains_ms = std::chrono::duration_cast<std::chrono::milliseconds>(
-        std::max(slots_util_->slotFinishTime(current_slot_) - now, {}));
-
     SL_VERBOSE(log_,
-               "Starting a slot {} in epoch {} (remains {:.2f} sec)",
+               "Running a slot {} in epoch {} (remains {:.2f} sec)",
                current_slot_,
-               current_epoch_.epoch_number,
+               current_epoch_,
                remains_ms.count() / 1000.);
 
     processSlot(now);
@@ -744,46 +759,57 @@ namespace kagome::consensus {
 
       auto parent_slot = consensus->getSlot(parent_header).value();
       if (parent_slot > current_slot_) {
-        SL_ERROR(log_,
-                 "best block {} from future, current slot {}, clock is lagging",
-                 best_block_,
-                 current_slot_);
+        SL_WARN(log_,
+                "Best block {} of future slot, but current is slot {}; "
+                "Seems clock is lagging",
+                best_block_,
+                current_slot_);
         return;
       }
       if (parent_slot == current_slot_) {
         // fork or wait next slot
         SL_INFO(log_,
-                "concurrent best block {}, current slot {}, could be a fork",
+                "Concurrent best block {}, current slot {}, could be a fork",
                 best_block_,
                 current_slot_);
         best_block_ = *parent_header.parentInfo();
       }
     }
 
+    static const auto &block_production_error_category =
+        make_error_code(BlockProductionError{}).category();
+
     /// Try to run block production here
     auto consensus = consensus_selector_->getProductionConsensus(best_block_);
     auto res = consensus->processSlot(current_slot_, best_block_);
-    if (res.has_error()) {
+    if (res.has_value()) {
+      SL_DEBUG(log_,
+               "Slot {} in epoch {} has processed",
+               current_slot_,
+               current_epoch_);
+    } else if (res.as_failure().error().category()
+               == block_production_error_category) {
+      SL_DEBUG(log_,
+               "Processing of slot {} was skipped: {}",
+               current_slot_,
+               res.error());
+    } else {
       SL_ERROR(log_,
                "Processing of slot {} has failed: {}",
                current_slot_,
                res.error());
     }
 
-    SL_DEBUG(log_,
-             "Slot {} in epoch {} has finished",
-             current_slot_,
-             current_epoch_.epoch_number);
-
     auto remains_ms =
         std::chrono::duration_cast<std::chrono::milliseconds>(std::max(
             slots_util_->slotFinishTime(current_slot_) - clock_.now(), {}));
 
-    SL_DEBUG(log_,
-             "Slot {} in epoch {} will start after {:.2f} sec.",
-             current_slot_ + 1,
-             current_epoch_.epoch_number,
-             remains_ms.count() / 1000.);
+    if (remains_ms > std::chrono::milliseconds(0)) {
+      SL_DEBUG(log_,
+               "Waiting for end of slot {} (remains {:.2f} sec.)",
+               current_slot_,
+               remains_ms.count() / 1000.);
+    }
 
     // everything is OK: wait for the end of the slot
     scheduler_->schedule(

@@ -46,7 +46,7 @@ namespace kagome::consensus {
     TimePoint slotStartTime(SlotNumber slot) const override;
     TimePoint slotFinishTime(SlotNumber slot) const override;
 
-    outcome::result<EpochDescriptor> slotToEpochDescriptor(
+    outcome::result<EpochNumber> slotToEpoch(
         const primitives::BlockInfo &parent_info,
         SlotNumber slot) const override;
 

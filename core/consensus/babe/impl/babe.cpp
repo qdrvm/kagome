@@ -19,6 +19,7 @@
 #include "consensus/babe/impl/babe_error.hpp"
 #include "consensus/babe/impl/threshold_util.hpp"
 #include "consensus/timeline/backoff.hpp"
+#include "consensus/timeline/impl/block_production_error.hpp"
 #include "consensus/timeline/slots_util.hpp"
 #include "crypto/crypto_store/session_keys.hpp"
 #include "crypto/sr25519_provider.hpp"
@@ -183,7 +184,7 @@ namespace kagome::consensus::babe {
                    "Authority not known, skipping slot processing. "
                    "Probably authority list has changed.");
       }
-      return BabeError::NO_VALIDATOR;
+      return BlockProductionError::NO_VALIDATOR;
     }
 
     Context ctx{.parent = best_block,
@@ -257,7 +258,7 @@ namespace kagome::consensus::babe {
              "Babe author {} is not slot leader in current slot",
              ctx.keypair->public_key);
 
-    return BabeError::NO_SLOT_LEADER;
+    return BlockProductionError::NO_SLOT_LEADER;
   }
 
   outcome::result<primitives::PreRuntime> Babe::babePreDigest(
@@ -329,7 +330,7 @@ namespace kagome::consensus::babe {
       SL_INFO(log_,
               "Backing off claiming new slot for block authorship: finality is "
               "lagging.");
-      return BabeError::BACKING_OFF;
+      return BlockProductionError::BACKING_OFF;
     }
 
     BOOST_ASSERT(ctx.keypair != nullptr);
