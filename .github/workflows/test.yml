@@ -14,7 +14,7 @@ env:
   GITHUB_HUNTER_TOKEN: ${{ secrets.HUNTER_TOKEN }}
   # Change all container: values to this variable once this feature is available
   # https://github.community/t/how-to-set-and-access-a-workflow-variable/17335/6
-  INDOCKER_IMAGE: soramitsu/kagome-dev@sha256:a3153bda78e15337fc38b6800f508e8c3b27758cba6319e60e7c805b06e071f6
+  INDOCKER_IMAGE: qdrvm/kagome-dev@sha256:cb1976b26c05c167063d8d0edb8be6124058c56308526667da3edb59bde67d32
   CACHE_VERSION: v07
   CACHE_PATHS: |
     ~/Library/Caches/pip
@@ -40,15 +40,16 @@ jobs:
       run: ./housekeeping/macos/dependency.sh
     - name: build
       run: ./housekeeping/make_build.sh -DCLEAR_OBJS=ON -DCOVERAGE=OFF -DCMAKE_TOOLCHAIN_FILE=cmake/toolchain/cxx17.cmake
-
+      env:
+        CI:
   Linux:
     if: ${{ !(github.ref == 'refs/heads/master' || startsWith( github.ref, 'refs/tags/' )) }}
     strategy:
       fail-fast: false
       matrix:
         options:
-          - name: "Linux: gcc-10 ASAN No Toolchain"
-            run: ./housekeeping/make_build.sh -DCLEAR_OBJS=ON -DCMAKE_TOOLCHAIN_FILE=cmake/toolchain/gcc-10_cxx17.cmake -DASAN=ON
+          - name: "Linux: gcc-11 ASAN No Toolchain"
+            run: ./housekeeping/make_build.sh -DCLEAR_OBJS=ON -DCMAKE_TOOLCHAIN_FILE=cmake/toolchain/gcc-11_cxx17.cmake -DASAN=ON
           - name: "Linux: gcc-12 ASAN No Toolchain"
             run: ./housekeeping/make_build.sh -DCLEAR_OBJS=ON -DCMAKE_TOOLCHAIN_FILE=cmake/toolchain/gcc-12_cxx17.cmake -DASAN=ON
           - name: "Linux: clang-15 TSAN"
@@ -62,7 +63,7 @@ jobs:
           
     name: "${{ matrix.options.name }}"
     runs-on: ubuntu-latest
-    container: soramitsu/kagome-dev@sha256:a3153bda78e15337fc38b6800f508e8c3b27758cba6319e60e7c805b06e071f6
+    container: qdrvm/kagome-dev@sha256:cb1976b26c05c167063d8d0edb8be6124058c56308526667da3edb59bde67d32
     steps:
       - uses: actions/checkout@dc323e67f16fb5f7663d20ff7941f27f5809e9b6
       - uses: actions/cache@937d24475381cd9c75ae6db12cb4e79714b926ed
@@ -89,8 +90,8 @@ jobs:
       fail-fast: false
       matrix:
         options:
-          - name: "Linux: gcc-10 ASAN No Toolchain"
-            run: ./housekeeping/make_build.sh -DCLEAR_OBJS=ON -DCMAKE_TOOLCHAIN_FILE=cmake/toolchain/gcc-10_cxx17.cmake -DASAN=ON
+          - name: "Linux: gcc-11 ASAN No Toolchain"
+            run: ./housekeeping/make_build.sh -DCLEAR_OBJS=ON -DCMAKE_TOOLCHAIN_FILE=cmake/toolchain/gcc-11_cxx17.cmake -DASAN=ON
           - name: "Linux: gcc-12 ASAN No Toolchain"
             run: ./housekeeping/make_build.sh -DCLEAR_OBJS=ON -DCMAKE_TOOLCHAIN_FILE=cmake/toolchain/gcc-12_cxx17.cmake -DASAN=ON
           - name: "Linux: clang-15 TSAN"
@@ -104,7 +105,7 @@ jobs:
 
     name: "${{ matrix.options.name }}"
     runs-on: [ ubuntu-latest, kagome, self-hosted, linux ]
-    container: soramitsu/kagome-dev@sha256:a3153bda78e15337fc38b6800f508e8c3b27758cba6319e60e7c805b06e071f6
+    container: qdrvm/kagome-dev@sha256:cb1976b26c05c167063d8d0edb8be6124058c56308526667da3edb59bde67d32
     steps:
       - uses: actions/checkout@dc323e67f16fb5f7663d20ff7941f27f5809e9b6
       - uses: actions/cache@937d24475381cd9c75ae6db12cb4e79714b926ed
@@ -128,7 +129,7 @@ jobs:
   clang-tidy:
     name: "Linux: clang-tidy"
     runs-on: ubuntu-latest
-    container: soramitsu/kagome-dev@sha256:a3153bda78e15337fc38b6800f508e8c3b27758cba6319e60e7c805b06e071f6
+    container: qdrvm/kagome-dev@sha256:cb1976b26c05c167063d8d0edb8be6124058c56308526667da3edb59bde67d32
     steps:
       - uses: actions/checkout@dc323e67f16fb5f7663d20ff7941f27f5809e9b6
         with:
@@ -147,9 +148,9 @@ jobs:
 
   coverage:
     if: ${{ !(github.ref == 'refs/heads/master' || startsWith( github.ref, 'refs/tags/' )) }}
-    name: "Linux: gcc-10 coverage/sonar"
+    name: "Linux: gcc-11 coverage/sonar"
     runs-on: ubuntu-latest
-    container: soramitsu/kagome-dev@sha256:a3153bda78e15337fc38b6800f508e8c3b27758cba6319e60e7c805b06e071f6
+    container: qdrvm/kagome-dev@sha256:cb1976b26c05c167063d8d0edb8be6124058c56308526667da3edb59bde67d32
     steps:
       - uses: actions/checkout@dc323e67f16fb5f7663d20ff7941f27f5809e9b6
       - uses: actions/cache@937d24475381cd9c75ae6db12cb4e79714b926ed
@@ -165,7 +166,7 @@ jobs:
       - name: makeBuild
         env:
           BUILD_FINAL_TARGET: ctest_coverage
-        run: ./housekeeping/make_build.sh -DCMAKE_TOOLCHAIN_FILE=cmake/toolchain/gcc-10_cxx17.cmake -DCOVERAGE=ON -DCLEAR_OBJS=ON
+        run: ./housekeeping/make_build.sh -DCMAKE_TOOLCHAIN_FILE=cmake/toolchain/gcc-11_cxx17.cmake -DCOVERAGE=ON -DCLEAR_OBJS=ON
       - name: df du
         if: ${{ always() }}
         run: |
@@ -187,9 +188,9 @@ jobs:
 
   coverage-self-hosted:
     if: ${{ github.ref == 'refs/heads/master' || startsWith( github.ref, 'refs/tags/' ) }}
-    name: "Linux: gcc-10 coverage/sonar"
+    name: "Linux: gcc-11 coverage/sonar"
     runs-on: [ ubuntu-latest, kagome, self-hosted, linux ]
-    container: soramitsu/kagome-dev@sha256:a3153bda78e15337fc38b6800f508e8c3b27758cba6319e60e7c805b06e071f6
+    container: qdrvm/kagome-dev@sha256:cb1976b26c05c167063d8d0edb8be6124058c56308526667da3edb59bde67d32
     steps:
       - uses: actions/checkout@dc323e67f16fb5f7663d20ff7941f27f5809e9b6
       - uses: actions/cache@937d24475381cd9c75ae6db12cb4e79714b926ed
@@ -205,7 +206,7 @@ jobs:
       - name: makeBuild
         env:
           BUILD_FINAL_TARGET: ctest_coverage
-        run: ./housekeeping/make_build.sh -DCMAKE_TOOLCHAIN_FILE=cmake/toolchain/gcc-10_cxx17.cmake -DCOVERAGE=ON -DCLEAR_OBJS=ON
+        run: ./housekeeping/make_build.sh -DCMAKE_TOOLCHAIN_FILE=cmake/toolchain/gcc-11_cxx17.cmake -DCOVERAGE=ON -DCLEAR_OBJS=ON
       - name: df du
         if: ${{ always() }}
         run: |
@@ -237,7 +238,7 @@ jobs:
             build-type: "Release"
     name: "${{ matrix.options.name }}"
     runs-on: ubuntu-latest
-    container: soramitsu/kagome-dev@sha256:a3153bda78e15337fc38b6800f508e8c3b27758cba6319e60e7c805b06e071f6
+    container: qdrvm/kagome-dev@sha256:cb1976b26c05c167063d8d0edb8be6124058c56308526667da3edb59bde67d32
     steps:
       - uses: actions/checkout@dc323e67f16fb5f7663d20ff7941f27f5809e9b6
       - uses: actions/cache@937d24475381cd9c75ae6db12cb4e79714b926ed
@@ -261,7 +262,7 @@ jobs:
             build-type: "Release"
     name: "${{ matrix.options.name }}"
     runs-on: [ ubuntu-latest, kagome, self-hosted, linux ]
-    container: soramitsu/kagome-dev@sha256:a3153bda78e15337fc38b6800f508e8c3b27758cba6319e60e7c805b06e071f6
+    container: qdrvm/kagome-dev@sha256:cb1976b26c05c167063d8d0edb8be6124058c56308526667da3edb59bde67d32
     steps:
       - uses: actions/checkout@dc323e67f16fb5f7663d20ff7941f27f5809e9b6
       - uses: actions/cache@937d24475381cd9c75ae6db12cb4e79714b926ed
@@ -287,13 +288,14 @@ jobs:
           - name: "Push RelWithDebInfo Docker image"
             build-type: "RelWithDebInfo"
     runs-on: [ ubuntu-latest, kagome, self-hosted, linux ]
-    container: soramitsu/kagome-dev@sha256:a3153bda78e15337fc38b6800f508e8c3b27758cba6319e60e7c805b06e071f6
+    container: qdrvm/kagome-dev@sha256:cb1976b26c05c167063d8d0edb8be6124058c56308526667da3edb59bde67d32
     steps:
       - uses: actions/checkout@dc323e67f16fb5f7663d20ff7941f27f5809e9b6
       - uses: actions/cache@937d24475381cd9c75ae6db12cb4e79714b926ed
         with:
           path: ${{ env.CACHE_PATHS }}
           key: ${{ github.job }}-${{ env.CACHE_VERSION }}
+      - run: git config --global --add safe.directory /__w/kagome/kagome
       - run: git fetch --prune --unshallow
       - name: build
         env:
