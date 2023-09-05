@@ -61,8 +61,7 @@ namespace kagome::consensus {
     SL_DEBUG(log_, "Validated block signed by authority: {}", authority_id.id);
 
     // get BABE-specific digests, which must be inside this block
-    OUTCOME_TRY(babe_digests, babe::getBabeDigests(header));
-    const auto &[seal, babe_header] = babe_digests;
+    OUTCOME_TRY(babe_header, babe::getBabeBlockHeader(header));
 
     // @see
     // https://github.com/paritytech/substrate/blob/polkadot-v0.9.8/client/consensus/babe/src/verification.rs#L111
@@ -92,6 +91,8 @@ namespace kagome::consensus {
         return ValidationError::SECONDARY_SLOT_ASSIGNMENTS_DISABLED;
       }
     }
+
+    OUTCOME_TRY(seal, babe::getSeal(header));
 
     // signature in seal of the header must be valid
     if (!verifySignature(header,

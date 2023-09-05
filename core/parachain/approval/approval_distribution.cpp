@@ -891,15 +891,14 @@ namespace kagome::parachain {
   ApprovalDistribution::request_babe_epoch_and_block_header(
       const primitives::BlockHeader &block_header,
       const primitives::BlockHash &block_hash) {
-    OUTCOME_TRY(babe_digests, consensus::babe::getBabeDigests(block_header));
+    OUTCOME_TRY(babe_header, consensus::babe::getBabeBlockHeader(block_header));
     OUTCOME_TRY(babe_config, babe_api_->configuration(block_hash));
-    OUTCOME_TRY(
-        epoch,
-        slots_util_.get()->slotToEpoch(*block_header.parentInfo(),
-                                       babe_digests.second.slot_number));
+    OUTCOME_TRY(epoch,
+                slots_util_.get()->slotToEpoch(*block_header.parentInfo(),
+                                               babe_header.slot_number));
 
     return std::make_tuple(epoch,
-                           std::move(babe_digests.second),
+                           std::move(babe_header),
                            std::move(babe_config.authorities),
                            std::move(babe_config.randomness));
   }

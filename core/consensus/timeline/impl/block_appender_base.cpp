@@ -146,9 +146,7 @@ namespace kagome::consensus {
   outcome::result<ConsistencyGuard>
   BlockAppenderBase::observeDigestsAndValidateHeader(
       const primitives::Block &block, const primitives::BlockContext &context) {
-    OUTCOME_TRY(babe_digests, babe::getBabeDigests(block.header));
-
-    const auto &babe_header = babe_digests.second;
+    OUTCOME_TRY(babe_header, babe::getBabeBlockHeader(block.header));
 
     auto slot_number = babe_header.slot_number;
 

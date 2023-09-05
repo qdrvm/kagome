@@ -736,7 +736,7 @@ namespace kagome::consensus {
               self->runSlot();
             }
           },
-          remains_ms);
+          remains_ms.count() ? remains_ms : std::chrono::milliseconds(30));
       return;
     }
 

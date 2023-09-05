@@ -38,8 +38,11 @@ namespace kagome::consensus::babe {
   outcome::result<SlotNumber> getBabeSlot(
       const primitives::BlockHeader &header);
 
-  outcome::result<std::pair<Seal, BabeBlockHeader>> getBabeDigests(
-      const primitives::BlockHeader &header);
+  outcome::result<BabeBlockHeader> getBabeBlockHeader(
+      const primitives::BlockHeader &block_header);
+
+  outcome::result<Seal> getSeal(const primitives::BlockHeader &block_header);
+
 }  // namespace kagome::consensus::babe
 
 OUTCOME_HPP_DECLARE_ERROR(kagome::consensus::babe, DigestError)
