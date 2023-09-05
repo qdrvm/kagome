@@ -37,11 +37,9 @@ namespace kagome::consensus::grandpa {
                     std::shared_ptr<VoteGraph> vote_graph,
                     std::shared_ptr<libp2p::basic::Scheduler> scheduler);
 
-   protected:
     // This ctor is needed only for tests purposes
     VotingRoundImpl() : round_number_{}, duration_{} {}
 
-   public:
     VotingRoundImpl(
         const std::shared_ptr<Grandpa> &grandpa,
         const GrandpaConfig &config,
@@ -65,6 +63,13 @@ namespace kagome::consensus::grandpa {
         const std::shared_ptr<VoteGraph> &vote_graph,
         const std::shared_ptr<libp2p::basic::Scheduler> &scheduler,
         const std::shared_ptr<VotingRound> &previous_round);
+
+   public:
+    
+    template<typename...Args>
+    static std::shared_ptr<VotingRoundImpl> create(Args &&...args) {
+      return std::make_shared<VotingRoundImpl>(std::forward<Args>(args)...);
+    }
 
     enum class Stage {
       // Initial stage, round is just created
