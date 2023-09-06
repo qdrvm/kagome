@@ -10,6 +10,7 @@
 
 #include "common/bytestr.hpp"
 #include "common/hexutil.hpp"
+#include "cxx20/lexicographical_compare_three_way.hpp"
 #include "macro/endianness_utils.hpp"
 
 namespace kagome::common {
@@ -40,7 +41,7 @@ namespace kagome::common {
       requires std::is_same_v<typename OtherT::const_iterator::value_type,
                               typename Span::const_iterator::value_type>
     auto operator<=>(const OtherT &other) const noexcept {
-      return std::lexicographical_compare_three_way(
+      return cxx20::lexicographical_compare_three_way(
           Span::cbegin(), Span::cend(), other.cbegin(), other.cend());
     }
   };
@@ -51,7 +52,7 @@ namespace kagome::common {
         and std::is_same_v<typename L::const_iterator::value_type,
                            typename R::const_iterator::value_type>
   auto operator<=>(const L &lhs, const R &rhs) noexcept {
-    return std::lexicographical_compare_three_way(
+    return cxx20::lexicographical_compare_three_way(
         std::cbegin(lhs), std::cend(lhs), std::cbegin(rhs), std::cend(rhs));
   }
 

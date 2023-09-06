@@ -13,6 +13,8 @@
 #include <type_traits>
 #include <vector>
 
+#include "cxx20/lexicographical_compare_three_way.hpp"
+
 #ifdef __has_builtin
 #if __has_builtin(__builtin_expect)
 #define unlikely(x) __builtin_expect((x), 0)
@@ -369,7 +371,7 @@ namespace kagome::common {
     }
 
     auto operator<=>(const SizeLimitedContainer &other) const {
-      return std::lexicographical_compare_three_way(
+      return cxx20::lexicographical_compare_three_way(
           Base::cbegin(), Base::cend(), other.cbegin(), other.cend());
     }
   };
