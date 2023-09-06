@@ -25,7 +25,8 @@ namespace kagome::consensus::grandpa {
 
 namespace kagome::consensus::grandpa {
 
-  class VotingRoundImpl : public VotingRound {
+  class VotingRoundImpl : public VotingRound,
+                          public std::enable_shared_from_this<VotingRoundImpl> {
    private:
     VotingRoundImpl(const std::shared_ptr<Grandpa> &grandpa,
                     const GrandpaConfig &config,

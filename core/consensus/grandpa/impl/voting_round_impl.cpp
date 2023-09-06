@@ -230,8 +230,7 @@ namespace kagome::consensus::grandpa {
     pending_timer_handle_ = scheduler_->scheduleWithHandle(
         [wself{weak_from_this()}] {
           if (auto self = wself.lock()) {
-            auto __this = std::dynamic_pointer_cast<VotingRoundImpl>(self);
-            __this->pending();
+            self->pending();
           }
         },
         pending_interval_);
@@ -289,12 +288,11 @@ namespace kagome::consensus::grandpa {
     stage_timer_handle_ = scheduler_->scheduleWithHandle(
         [wself{weak_from_this()}] {
           if (auto self = wself.lock()) {
-            auto __this = std::dynamic_pointer_cast<VotingRoundImpl>(self);
-            if (__this->stage_ == Stage::PREVOTE_RUNS) {
-              SL_DEBUG(__this->logger_,
+            if (self->stage_ == Stage::PREVOTE_RUNS) {
+              SL_DEBUG(self->logger_,
                        "Round #{}: Time of prevote stage is out",
-                       __this->round_number_);
-              __this->endPrevoteStage();
+                       self->round_number_);
+              self->endPrevoteStage();
             }
           }
         },
@@ -357,12 +355,11 @@ namespace kagome::consensus::grandpa {
     stage_timer_handle_ = scheduler_->scheduleWithHandle(
         [wself{weak_from_this()}] {
           if (auto self = wself.lock()) {
-            auto __this = std::dynamic_pointer_cast<VotingRoundImpl>(self);
-            if (__this->stage_ == Stage::PRECOMMIT_RUNS) {
-              SL_DEBUG(__this->logger_,
+            if (self->stage_ == Stage::PRECOMMIT_RUNS) {
+              SL_DEBUG(self->logger_,
                        "Round #{}: Time of precommit stage is out",
-                       __this->round_number_);
-              __this->endPrecommitStage();
+                       self->round_number_);
+              self->endPrecommitStage();
             }
           }
         },
@@ -1100,9 +1097,8 @@ namespace kagome::consensus::grandpa {
       if (prevote_ghost_) {
         scheduler_->schedule([wself{weak_from_this()}] {
           if (auto self = wself.lock()) {
-            auto __this = std::dynamic_pointer_cast<VotingRoundImpl>(self);
-            if (__this->stage_ == Stage::PRECOMMIT_WAITS_FOR_PREVOTES) {
-              __this->endPrecommitStage();
+            if (self->stage_ == Stage::PRECOMMIT_WAITS_FOR_PREVOTES) {
+              self->endPrecommitStage();
             }
           }
         });
@@ -1627,8 +1623,7 @@ namespace kagome::consensus::grandpa {
     pending_timer_handle_ = scheduler_->scheduleWithHandle(
         [wself{weak_from_this()}] {
           if (auto self = wself.lock()) {
-            auto __this = std::dynamic_pointer_cast<VotingRoundImpl>(self);
-            __this->pending();
+            self->pending();
           }
         },
         pending_interval_);
