@@ -1562,13 +1562,13 @@ namespace kagome::parachain {
       return ApprovalCheckResult::Bad;
     }
 
-    logger_->info(
-        "Importing approval vote.(validator index={}, validator id={}, "
-        "candidate hash={}, para id={})",
-        approval.payload.ix,
-        pubkey,
-        approved_candidate_hash,
-        candidate_entry.candidate.descriptor.para_id);
+    SL_DEBUG(logger_,
+             "Importing approval vote.(validator index={}, validator id={}, "
+             "candidate hash={}, para id={})",
+             approval.payload.ix,
+             pubkey,
+             approved_candidate_hash,
+             candidate_entry.candidate.descriptor.para_id);
     advance_approval_state(block_entry,
                            approved_candidate_hash,
                            candidate_entry,
@@ -1601,7 +1601,8 @@ namespace kagome::parachain {
       return;
     }
 
-    logger_->info(
+    SL_DEBUG(
+        logger_,
         "Import assignment. (peer id={}, block hash={}, validator index={})",
         source ? fmt::format("{}", source->get()) : "our",
         block_hash,
@@ -1789,11 +1790,11 @@ namespace kagome::parachain {
       return;
     }
 
-    logger_->info(
-        "Import approval. (peer id={}, block hash={}, validator index={})",
-        source ? fmt::format("{}", source->get()) : "our",
-        block_hash,
-        validator_index);
+    SL_DEBUG(logger_,
+             "Import approval. (peer id={}, block hash={}, validator index={})",
+             source ? fmt::format("{}", source->get()) : "our",
+             block_hash,
+             validator_index);
 
     auto &entry = opt_entry->get();
     if (candidate_index >= entry.candidates.size()) {
@@ -2105,11 +2106,11 @@ namespace kagome::parachain {
              candidate_index,
              std::move(peers));
 
-    logger_->info(
-        "Distributing assignment on candidate (block hash={}, candidate "
-        "index={})",
-        indirect_cert.block_hash,
-        candidate_index);
+    SL_DEBUG(logger_,
+             "Distributing assignment on candidate (block hash={}, candidate "
+             "index={})",
+             indirect_cert.block_hash,
+             candidate_index);
 
     auto se = pm_->getStreamEngine();
     BOOST_ASSERT(se);
