@@ -9,8 +9,6 @@
 #include <functional>
 
 namespace kagome::application {
-  // handling signals causes threads to live longer than global variables
-  constexpr auto kHandleSignals = false;
 
   std::weak_ptr<AppStateManager> AppStateManagerImpl::wp_to_myself;
 
@@ -22,9 +20,6 @@ namespace kagome::application {
 
   AppStateManagerImpl::AppStateManagerImpl()
       : logger_(log::createLogger("AppStateManager", "application")) {
-    if (not kHandleSignals) {
-      return;
-    }
     struct sigaction act {};
     memset(&act, 0, sizeof(act));
     act.sa_handler = shuttingDownSignalsHandler;  // NOLINT
@@ -41,9 +36,6 @@ namespace kagome::application {
   }
 
   AppStateManagerImpl::~AppStateManagerImpl() {
-    if (not kHandleSignals) {
-      return;
-    }
     struct sigaction act {};
     memset(&act, 0, sizeof(act));
     act.sa_handler = SIG_DFL;  // NOLINT
