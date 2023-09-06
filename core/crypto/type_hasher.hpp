@@ -13,11 +13,19 @@
 namespace kagome::crypto {
 
   template <typename... T>
-  inline void hashTypes(T &&...t, gsl::span<uint8_t> out) {
+  inline void hashTypes(T &&...t, StreamHasher &hasher, gsl::span<uint8_t> out) {
+    constexpr size_t kBufferSize = 256;
+    uint8_t buffer[kBufferSize];
+    size_t counter = 0ull;
+
     encode(
         [&](const uint8_t *const val, size_t count) {
-          for (size_t i = 0; i < count; ++i) {
-            data_0.emplace_back(val[i]);
+          const auto remains = kBufferSize - counter;
+          if (remains >= count) {
+            memcpy(&buffer[counter], val, count);
+            counter += count;
+          } else {
+            memcpy(&buffer[counter], val, count);
           }
         },
         std::forward<T>(t)...);
