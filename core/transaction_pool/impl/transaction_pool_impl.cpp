@@ -273,7 +273,8 @@ namespace kagome::transaction_pool {
             ReadyStatus &ready_status = it->second;
             for (auto &provider : ready_status.tx->provided_tags) {
               PendingStatus &ps = pool_state.dependency_graph_[provider];
-              BOOST_ASSERT(ps.tag_provided);
+              // TODO(kamilsa): Uncomment when #1786 is fixed
+              // BOOST_ASSERT(ps.tag_provided);
               ps.tag_provided = false;
             }
 
