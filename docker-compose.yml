@@ -6,7 +6,7 @@ version: '3'
 
 services:
   dev:
-    image: soramitsu/kagome-dev:11
+    image: qdrvm/kagome-dev:minideb
     tty: true
     stdin_open: true
     working_dir: /app
