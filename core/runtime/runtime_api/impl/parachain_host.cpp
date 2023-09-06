@@ -105,6 +105,10 @@ namespace kagome::runtime {
   outcome::result<std::optional<ValidationCode>>
   ParachainHostImpl::validation_code_by_hash(const primitives::BlockHash &block,
                                              ValidationCodeHash hash) {
+    if (DISABLE_RUNTIME_LRU) {
+      return executor_->callAt<std::optional<ValidationCode>>(
+          block, "ParachainHost_validation_code_by_hash", hash);
+    }
     if (auto r = validation_code_by_hash_.exclusiveAccess(
             [&](typename decltype(validation_code_by_hash_)::Type
                     &validation_code_by_hash_) {

@@ -97,7 +97,7 @@ namespace kagome::network {
             auto &stream = stream_and_proto.stream;
             if (auto peer_id = stream->remotePeerId()) {
               SL_TRACE(self->log_,
-                       "Handled {} protocol stream from: {}",
+                       "Handled {} protocol stream from {}",
                        self->ping_protocol_.get()->getProtocolId(),
                        peer_id.value().toBase58());
               self->ping_protocol_.get()->handle(

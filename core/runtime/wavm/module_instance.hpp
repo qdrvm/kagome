@@ -32,8 +32,7 @@ namespace kagome::runtime::wavm {
         public std::enable_shared_from_this<ModuleInstanceImpl> {
    public:
     enum class Error {
-      FUNC_NOT_FOUND = 1,
-      WRONG_ARG_COUNT,
+      WRONG_ARG_COUNT = 1,
       EXECUTION_ERROR,
       WRONG_RETURN_TYPE
     };

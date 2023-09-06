@@ -12,6 +12,8 @@
 #include "utils/safe_object.hpp"
 
 namespace kagome::runtime {
+  constexpr auto DISABLE_RUNTIME_LRU = false;
+
   /**
    * Cache runtime calls without arguments.
    */
@@ -23,6 +25,9 @@ namespace kagome::runtime {
     outcome::result<std::shared_ptr<V>> call(Executor &executor,
                                              const primitives::BlockHash &block,
                                              std::string_view name) {
+      if (DISABLE_RUNTIME_LRU) {
+        return executor.callAt<std::shared_ptr<V>>(block, name);
+      }
       if (auto r =
               lru_.exclusiveAccess([&](typename decltype(lru_)::Type &lru_) {
                 return lru_.get(block);
@@ -37,6 +42,9 @@ namespace kagome::runtime {
     }
 
     void erase(const std::vector<primitives::BlockHash> &blocks) {
+      if (DISABLE_RUNTIME_LRU) {
+        return;
+      }
       lru_.exclusiveAccess([&](typename decltype(lru_)::Type &lru_) {
         for (auto &block : blocks) {
           lru_.erase(block);
@@ -65,6 +73,9 @@ namespace kagome::runtime {
                                              const primitives::BlockHash &block,
                                              std::string_view name,
                                              const Arg &arg) {
+      if (DISABLE_RUNTIME_LRU) {
+        return executor.callAt<std::shared_ptr<V>>(block, name, arg);
+      }
       Key key{{block, arg}};
       if (auto r =
               lru_.exclusiveAccess([&](typename decltype(lru_)::Type &lru_) {
@@ -81,6 +92,9 @@ namespace kagome::runtime {
     }
 
     void erase(const std::vector<primitives::BlockHash> &blocks) {
+      if (DISABLE_RUNTIME_LRU) {
+        return;
+      }
       lru_.exclusiveAccess([&](typename decltype(lru_)::Type &lru_) {
         lru_.erase_if([&](const Key &key, const std::shared_ptr<V> &) {
           return std::find_if(blocks.begin(),
@@ -111,6 +125,9 @@ namespace kagome::runtime {
         Executor &executor,
         const primitives::BlockHash &block_hash,
         std::string_view name) {
+      if (DISABLE_RUNTIME_LRU) {
+        return executor.callAt<V>(block_hash, name);
+      }
       OUTCOME_TRY(block_number,
                   block_header_repository.getNumberByHash(block_hash));
       OUTCOME_TRY(hash,
