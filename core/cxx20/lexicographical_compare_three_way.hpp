@@ -5,10 +5,15 @@
 
 #pragma once
 
+#ifdef __APPLE__
 #include <compare>
 #include <type_traits>
+#else
+#include <algorithm>
+#endif
 
 namespace cxx20 {
+#ifdef __APPLE__
   /// https://en.cppreference.com/w/cpp/algorithm/lexicographical_compare_three_way
   template <class I1, class I2, class Cmp>
   constexpr auto lexicographical_compare_three_way(
@@ -35,7 +40,10 @@ namespace cxx20 {
   }
   template <class I1, class I2>
   constexpr auto lexicographical_compare_three_way(I1 f1, I1 l1, I2 f2, I2 l2) {
-    return std::lexicographical_compare_three_way(
+    return ::cxx20::lexicographical_compare_three_way(
         f1, l1, f2, l2, std::compare_three_way{});
   }
+#else
+  using std::lexicographical_compare_three_way;
+#endif
 }  // namespace cxx20
