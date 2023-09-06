@@ -16,7 +16,7 @@ set(
 
 set(
     HUNTER_CACHE_SERVERS
-    "https://github.com/soramitsu/hunter-binary-cache"
+    "https://github.com/qdrvm/hunter-binary-cache"
     CACHE
     STRING
     "Binary cache server"
