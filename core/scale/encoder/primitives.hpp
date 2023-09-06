@@ -287,6 +287,8 @@ namespace kagome::scale {
     uint8_t result[kReserved];
     result[0] = (bigIntLength - 4) * 4 + 3;  // header
 
+    /// TODO(iceseer): compare with export bits
+    /// TODO(iceseer): size_t other way
     ::scale::CompactInteger v{value};
     size_t i = 0ull;
     for (; i < bigIntLength; ++i) {
