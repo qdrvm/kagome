@@ -62,7 +62,7 @@ namespace kagome::common {
         and std::is_same_v<typename L::const_iterator::value_type,
                            typename R::const_iterator::value_type>
   auto operator==(const L &lhs, const R &rhs) noexcept {
-    return lhs <=> rhs == 0;
+    return lhs <=> rhs == std::strong_ordering::equal;
   }
 
   inline std::ostream &operator<<(std::ostream &os, BufferView view) {
