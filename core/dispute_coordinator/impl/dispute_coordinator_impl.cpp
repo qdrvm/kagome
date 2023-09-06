@@ -888,13 +888,7 @@ namespace kagome::dispute {
     }
     auto &active_disputes = active_disputes_res.value();
 
-    SL_INFO(log_, "DEBUG: active_disputes.empty={}", active_disputes.empty());
-
     /// Handle new active disputes response.
-
-    SL_INFO(
-        log_, "DEBUG: sending_disputes_.empty={}", sending_disputes_.empty());
-
     // https://github.com/paritytech/polkadot/blob/40974fb99c86f5c341105b7db53c7aa0df707d66/node/network/dispute-distribution/src/sender/mod.rs#L261
     std::unordered_set<CandidateHash> candidates;
     std::for_each(active_disputes.begin(),
@@ -906,14 +900,8 @@ namespace kagome::dispute {
     // Cleanup obsolete senders
     sending_disputes_.remove_if([&](const auto &x) {
       const auto &candidate_hash = std::get<0>(x);
-      SL_INFO(log_,
-              "DEBUG: sending_disputes_.remove_if candidate={}",
-              candidate_hash);
       return candidates.find(candidate_hash) == candidates.end();
     });
-
-    SL_INFO(
-        log_, "DEBUG: sending_disputes_.empty={}", sending_disputes_.empty());
 
     // Iterates in order of insertion:
     // https://github.com/paritytech/polkadot/blob/40974fb99c86f5c341105b7db53c7aa0df707d66/node/network/dispute-distribution/src/sender/mod.rs#L267
@@ -1005,9 +993,6 @@ namespace kagome::dispute {
             ? boost::relaxed_get<CandidateReceipt>(candidate_receipt)
                   .hash(*hasher_)
             : boost::relaxed_get<CandidateHash>(candidate_receipt);
-
-    SL_TRACE(
-        log_, "DEBUG:  handle_import_statements, candidate {}", candidate_hash);
 
     auto env_opt = makeCandidateEnvironment(
         *session_keys_, *rolling_session_window_, session);
@@ -2409,9 +2394,6 @@ namespace kagome::dispute {
     BOOST_ASSERT_MSG(protocol,
                      "Router did not provide `send dispute` protocol");
 
-    SL_INFO(log_,
-            "DEBUG: sending_disputes_.emplace_back candidate={}",
-            candidate_hash);
     auto &[_, sending_dispute] = sending_disputes_.emplace_back(
         candidate_hash,
         std::make_unique<SendingDispute>(
