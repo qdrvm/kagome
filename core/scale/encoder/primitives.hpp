@@ -324,12 +324,13 @@ namespace kagome::scale {
     uint8_t result[1 + ((kReserved + limb_sz - 1) / limb_sz) * limb_sz];
     result[0] = (bigIntLength - 4) * 4 + 3;  // header
 
-    const size_t size = value.backend().size();
-    const mp::limb_type *const p = value.backend().limbs();
-
-    size_t ix = 0ull;
-    for (; ix < size; ++ix) {
-      *(mp::limb_type *)&result[1ull + ix * limb_sz] = math::toLE(p[ix]);
+    /// TODO(iceseer): compare with export bits
+    /// TODO(iceseer): size_t other way
+    ::scale::CompactInteger v{value};
+    size_t i = 0ull;
+    for (; i < bigIntLength; ++i) {
+      result[i + 1ull] = static_cast<uint8_t>(v & 0xFF);
+      v >>= 8;
     }
 
     putByte(func, result, bigIntLength + 1ull);
