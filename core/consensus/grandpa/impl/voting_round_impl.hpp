@@ -27,6 +27,10 @@ namespace kagome::consensus::grandpa {
 
   class VotingRoundImpl : public VotingRound,
                           public std::enable_shared_from_this<VotingRoundImpl> {
+   protected:
+    // This ctor is needed only for tests purposes
+    VotingRoundImpl() : round_number_{}, duration_{} {}
+
    private:
     VotingRoundImpl(const std::shared_ptr<Grandpa> &grandpa,
                     const GrandpaConfig &config,
@@ -37,9 +41,6 @@ namespace kagome::consensus::grandpa {
                     std::shared_ptr<VoteTracker> precommits,
                     std::shared_ptr<VoteGraph> vote_graph,
                     std::shared_ptr<libp2p::basic::Scheduler> scheduler);
-
-    // This ctor is needed only for tests purposes
-    VotingRoundImpl() : round_number_{}, duration_{} {}
 
     VotingRoundImpl(
         const std::shared_ptr<Grandpa> &grandpa,
