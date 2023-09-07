@@ -23,6 +23,42 @@ namespace kagome::crypto {
     hasher.get_final(out);
   }
 
+  template<typename T, size_t N>
+  struct Hashed {
+    static_assert(N == 8 || N == 16 || N == 32 || N ==64, "Unexpected hash size");
+    using Type = std::dacay_t<T>;
+    using HashType = Blob<N>;
+
+    template<typename...Args>
+    Hashed(Args &&...args) : type_{std::forward<Args>(args)...} {
+    }
+
+    const Type &get() const {
+      return type_;
+    }
+
+    Type &get() {
+      opt_hash_ = std::nullopt;
+      return type_;
+    }
+
+    const HashType &getHash() const {
+      if (!opt_hash_) {
+        Blake2b_StreamHasher<N> hasher_{};
+        HashType h;
+        
+        hashTypes(hasher_, {h}, type_);
+        opt_hash_ = std::move(h);
+      }
+      return *opt_hash_;
+    }
+
+  private:
+    T type_;
+    std::optional<HashType> opt_hash_{};
+  };
+
+
 }  // namespace kagome::crypto
 
 #endif  // KAGOME_TYPE_HASHER_HASHER_HPP_
