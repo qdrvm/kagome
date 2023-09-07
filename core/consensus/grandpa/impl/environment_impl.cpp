@@ -201,7 +201,7 @@ namespace kagome::consensus::grandpa {
 
     // Select best block with actual set_id
     if (voter_set_id.has_value()) {
-      while (true) {
+      while (best_block.number > finalized.number) {
         OUTCOME_TRY(header,
                     header_repository_->getBlockHeader(best_block.hash));
         BlockInfo parent_block{header.number - 1, header.parent_hash};
@@ -210,7 +210,7 @@ namespace kagome::consensus::grandpa {
             parent_block, IsBlockFinalized{true});
 
         if (voter_set.has_value()
-            && voter_set.value()->id == voter_set_id.value()) {
+            and voter_set.value()->id <= voter_set_id.value()) {
           // found
           break;
         }
