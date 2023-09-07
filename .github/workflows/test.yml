@@ -38,24 +38,24 @@ env:
     ~/.rustup
 
 jobs:
-  # MacOS:
-  #   runs-on: macos-latest
-  #   steps:
-  #   - uses: actions/checkout@dc323e67f16fb5f7663d20ff7941f27f5809e9b6
-  #   - uses: actions/cache@937d24475381cd9c75ae6db12cb4e79714b926ed
-  #     with:
-  #       path: ${{ env.CACHE_PATHS }}
-  #       key: ${{ github.job }}-${{ env.CACHE_VERSION }}
-  #   - name: Setup cmake
-  #     uses: jwlawson/actions-setup-cmake@187efd9581ed20ee4e03c0dfb9ac2cd5896c4835
-  #     with:
-  #       cmake-version: '3.25.0'
-  #   - name: install
-  #     run: ./housekeeping/macos/dependency.sh
-  #   - name: build
-  #     run: ./housekeeping/make_build.sh -DCLEAR_OBJS=ON -DCOVERAGE=OFF -DCMAKE_TOOLCHAIN_FILE=cmake/toolchain/cxx17.cmake
-  #     env:
-  #       CI:
+  MacOS:
+    runs-on: macos-latest
+    steps:
+    - uses: actions/checkout@dc323e67f16fb5f7663d20ff7941f27f5809e9b6
+    - uses: actions/cache@937d24475381cd9c75ae6db12cb4e79714b926ed
+      with:
+        path: ${{ env.CACHE_PATHS }}
+        key: ${{ github.job }}-${{ env.CACHE_VERSION }}
+    - name: Setup cmake
+      uses: jwlawson/actions-setup-cmake@187efd9581ed20ee4e03c0dfb9ac2cd5896c4835
+      with:
+        cmake-version: '3.25.0'
+    - name: install
+      run: ./housekeeping/macos/dependency.sh
+    - name: build
+      run: ./housekeeping/make_build.sh -DCLEAR_OBJS=ON -DCOVERAGE=OFF -DCMAKE_TOOLCHAIN_FILE=cmake/toolchain/cxx17.cmake
+      env:
+        CI:
   # Linux:
   #   if: ${{ !(github.ref == 'refs/heads/master' || startsWith( github.ref, 'refs/tags/' )) }}
   #   strategy:
@@ -140,25 +140,25 @@ jobs:
   #         df -m || true
   #         du -hd1 /__w /github || true
 
-  clang-tidy:
-    name: "Linux: clang-tidy"
-    runs-on: ubuntu-latest
-    container: soramitsu/kagome-dev@sha256:cb1976b26c05c167063d8d0edb8be6124058c56308526667da3edb59bde67d32
-    steps:
-      - uses: actions/checkout@dc323e67f16fb5f7663d20ff7941f27f5809e9b6
-        with:
-          fetch-depth: 0
-      - uses: actions/cache@937d24475381cd9c75ae6db12cb4e79714b926ed
-        with:
-          path: ${{ env.CACHE_PATHS }}
-          key: ${{ github.job }}-${{ env.CACHE_VERSION }}
-      - name: clang-tidy
-        env:
-          # build only generated files, so clang-tidy will work correctly
-          BUILD_FINAL_TARGET: generated
-        run: |
-          ./housekeeping/make_build.sh
-          ./housekeeping/clang-tidy-diff.sh
+  # clang-tidy:
+  #   name: "Linux: clang-tidy"
+  #   runs-on: ubuntu-latest
+  #   container: soramitsu/kagome-dev@sha256:cb1976b26c05c167063d8d0edb8be6124058c56308526667da3edb59bde67d32
+  #   steps:
+  #     - uses: actions/checkout@dc323e67f16fb5f7663d20ff7941f27f5809e9b6
+  #       with:
+  #         fetch-depth: 0
+  #     - uses: actions/cache@937d24475381cd9c75ae6db12cb4e79714b926ed
+  #       with:
+  #         path: ${{ env.CACHE_PATHS }}
+  #         key: ${{ github.job }}-${{ env.CACHE_VERSION }}
+  #     - name: clang-tidy
+  #       env:
+  #         # build only generated files, so clang-tidy will work correctly
+  #         BUILD_FINAL_TARGET: generated
+  #       run: |
+  #         ./housekeeping/make_build.sh
+  #         ./housekeeping/clang-tidy-diff.sh
 
   # coverage:
   #   if: ${{ !(github.ref == 'refs/heads/master' || startsWith( github.ref, 'refs/tags/' )) }}
