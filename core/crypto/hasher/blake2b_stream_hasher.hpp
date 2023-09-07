@@ -6,19 +6,36 @@
 #ifndef KAGOME_BLAKE2B_STREAM_HASHER_HASHER_HPP_
 #define KAGOME_BLAKE2B_STREAM_HASHER_HASHER_HPP_
 
+#include <gsl/span>
 #include "crypto/blake2/blake2b.h"
-#include "crypto/stream_hasher.hpp"
 
 namespace kagome::crypto {
-  struct Blake2b_StreamHasher final : StreamHasher {
-    Blake2b_StreamHasher(size_t outlen);
-    ~Blake2b_StreamHasher() override = default;
 
-    bool update(gsl::span<const uint8_t> buffer) override;
-    bool get_final(gsl::span<uint8_t> out) override;
+  template <size_t Outlen>
+  struct Blake2b_StreamHasher final {
+    static_assert((Outlen & (Outlen - 1)) == 0, "Outlen is pow 2");
+
+    Blake2b_StreamHasher() {
+      initialized_ = (0 == blake2b_init(&ctx_, Outlen, nullptr, 0ull));
+    }
+
+    bool update(gsl::span<const uint8_t> buffer) {
+      if (!initialized_) {
+        return false;
+      }
+      blake2b_update(&ctx_, buffer.data(), buffer.size());
+      return true;
+    }
+
+    bool get_final(gsl::span<uint8_t> out) {
+      if (!initialized_) {
+        return false;
+      }
+      blake2b_final(&ctx_, out.data());
+      return true;
+    }
 
    private:
-    const size_t outlen_;
     blake2b_ctx ctx_;
     bool initialized_{false};
   };
