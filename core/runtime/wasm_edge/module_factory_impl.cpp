@@ -24,7 +24,7 @@ OUTCOME_HPP_DECLARE_ERROR(kagome::runtime::wasm_edge, Error);
 OUTCOME_CPP_DEFINE_CATEGORY(kagome::runtime::wasm_edge, Error, e) {
   using E = kagome::runtime::wasm_edge::Error;
   switch (e) {
-    case kagome::runtime::wasm_edge::Error::INVALID_VALUE_TYPE:
+    case E::INVALID_VALUE_TYPE:
       return "Invalid value type";
   }
   return "Unknown WasmEdge error";
@@ -244,8 +244,18 @@ namespace kagome::runtime::wasm_edge {
 
   class MemoryImpl final : public Memory {
    public:
-    MemoryImpl(MemoryInstanceContext mem_instance, MemoryAllocator allocator)
-        : mem_instance_{std::move(mem_instance)}, allocator_{std::move(allocator)} {
+    MemoryImpl(MemoryInstanceContext mem_instance, const MemoryConfig &config)
+        : mem_instance_{std::move(mem_instance)},
+          allocator_{MemoryAllocator{
+              MemoryAllocator::MemoryHandle{
+                  .resize = [this](size_t new_size) { resize(new_size); },
+                  .getSize = [this]() -> size_t { return size(); },
+                  .storeSz = [this](WasmPointer p,
+                                    uint32_t n) { store32(p, n); },
+                  .loadSz = [this](WasmPointer p) -> uint32_t {
+                    return load32u(p);
+                  }},
+              config}} {
       BOOST_ASSERT(mem_instance_ != nullptr);
     }
     /**
@@ -400,23 +410,36 @@ namespace kagome::runtime::wasm_edge {
     std::optional<std::reference_wrapper<runtime::Memory>> getCurrentMemory()
         const override {
       if (current_memory_) {
-        return std::reference_wrapper<runtime::Memory>(*current_memory_);
+        return std::reference_wrapper<runtime::Memory>(**current_memory_);
       }
       return std::nullopt;
     }
 
     [[nodiscard]] outcome::result<void> resetMemory(
-        const MemoryConfig &) override {
-      current_memory_ = MemoryImpl{};
+        const MemoryConfig &config) override {
+      MemoryInstanceContext mem_instance =
+          WasmEdge_MemoryInstanceCreate(mem_type_);
+      current_memory_ =
+          std::make_shared<MemoryImpl>(std::move(mem_instance), config);
+      return outcome::success();
     }
 
    private:
     std::optional<std::shared_ptr<MemoryImpl>> current_memory_;
+    WasmEdge_MemoryTypeContext *mem_type_;
   };
 
   class ModuleImpl : public Module,
                      public std::enable_shared_from_this<ModuleImpl> {
    public:
+    static std::shared_ptr<ModuleImpl> create(
+        ASTModuleContext module,
+        std::shared_ptr<ExecutorContext> executor,
+        const common::Hash256 &code_hash) {
+      return std::shared_ptr<ModuleImpl>{
+          new ModuleImpl{std::move(module), executor, code_hash}};
+    }
+
     outcome::result<std::shared_ptr<ModuleInstance>> instantiate()
         const override {
       StoreContext store_ctx = WasmEdge_StoreCreate();
@@ -433,18 +456,22 @@ namespace kagome::runtime::wasm_edge {
                                WasmEdgeErrCategory{});
       }
       InstanceEnvironment instance_env{
-          .memory_provider = std::make_shared<MemoryProviderImpl>(),
-          .host_api = host_api_,
-          .storage_provider = storage_provider_,
-          .on_destruction = {},
+          std::make_shared<MemoryProviderImpl>(),
+          storage_provider_,
+          host_api_,
+          {},
       };
-      return std::make_shared<ModuleInstanceImpl>(shared_from_this(), executor_, std::move(instance_ctx), instance_env, code_hash_);
+      return std::make_shared<ModuleInstanceImpl>(shared_from_this(),
+                                                  executor_,
+                                                  std::move(instance_ctx),
+                                                  std::move(instance_env),
+                                                  code_hash_);
     }
 
    private:
     explicit ModuleImpl(ASTModuleContext module,
                         std::shared_ptr<ExecutorContext> executor,
-                        const common::Hash256 code_hash)
+                        common::Hash256 code_hash)
         : module_{std::move(module)},
           executor_{executor},
           code_hash_{code_hash} {
@@ -473,6 +500,12 @@ namespace kagome::runtime::wasm_edge {
     if (!WasmEdge_ResultOK(res)) {
       // return error
     }
+
+    auto executor = std::make_shared<ExecutorContext>(
+        WasmEdge_ExecutorCreate(nullptr, nullptr));
+
+    auto code_hash = hasher_->sha2_256(code);
+    return ModuleImpl::create(std::move(module), executor, code_hash);
   }
 
 }  // namespace kagome::runtime::wasm_edge

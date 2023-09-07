@@ -97,7 +97,8 @@ if("${CMAKE_CXX_COMPILER_ID}" MATCHES "^(AppleClang|Clang|GNU)$")
     add_flag(-Werror=unused-lambda-capture)  # error if lambda capture is unused
     add_flag(-Werror=return-type)      # warning: control reaches end of non-void function [-Wreturn-type]
     add_flag(-Werror=sign-compare)     # warn the user if they compare a signed and unsigned numbers
-    add_flag(-Werror=reorder)          # field '$1' will be initialized after field '$2'
+    # breaks soralog headers
+    # add_flag(-Werror=reorder)          # field '$1' will be initialized after field '$2'
     add_flag(-Werror=mismatched-tags)  # warning: class '$1' was previously declared as struct
     add_flag(-Werror=switch)  # unhandled values in a switch statement
     # cmake-format: on

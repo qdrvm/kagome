@@ -8,7 +8,7 @@ add_library(application_injector
     )
 target_link_libraries(application_injector
     Boost::Boost.DI
-    runtime_wavm
+    # runtime_wavm
     account_nonce_api
     address_publisher
     api
@@ -54,6 +54,7 @@ target_link_libraries(application_injector
     pbkdf2_provider
     block_builder
     runtime_upgrade_tracker
+    runtime_wasm_edge
     executor
     runtime_properties_cache
     executor
