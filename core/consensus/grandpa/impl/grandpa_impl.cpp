@@ -254,7 +254,7 @@ namespace kagome::consensus::grandpa {
     auto vote_crypto_provider = std::make_shared<VoteCryptoProviderImpl>(
         keypair, crypto_provider_, round_state.round_number, config.voters);
 
-    auto new_round = std::make_shared<VotingRoundImpl>(
+    auto new_round = VotingRoundImpl::create(
         shared_from_this(),
         std::move(config),
         hasher_,
@@ -313,7 +313,7 @@ namespace kagome::consensus::grandpa {
     auto vote_crypto_provider = std::make_shared<VoteCryptoProviderImpl>(
         keypair, crypto_provider_, new_round_number, config.voters);
 
-    auto new_round = std::make_shared<VotingRoundImpl>(
+    auto new_round = VotingRoundImpl::create(
         shared_from_this(),
         std::move(config),
         hasher_,
@@ -1357,7 +1357,7 @@ namespace kagome::consensus::grandpa {
     auto voters = VoterSet::make(authorities).value();
     MovableRoundState state;
     state.round_number = justification.round_number;
-    VotingRoundImpl round{
+    auto round = VotingRoundImpl::create(
         shared_from_this(),
         GrandpaConfig{voters, justification.round_number, {}, {}},
         hasher_,
@@ -1369,9 +1369,9 @@ namespace kagome::consensus::grandpa {
         std::make_shared<VoteGraphImpl>(
             primitives::BlockInfo{}, voters, environment_),
         scheduler_,
-        state,
-    };
-    promise_res->set_value(round.validatePrecommitJustification(justification));
+        state);
+    promise_res->set_value(
+        round->validatePrecommitJustification(justification));
   }
 
   void GrandpaImpl::applyJustification(
