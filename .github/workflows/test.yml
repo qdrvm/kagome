@@ -1,18 +1,18 @@
 name: Build
 
-# permissions:
-#   actions: read
-#   checks: read
-#   contents: read
-#   deployments: read
-#   issues: read
-#   packages: write
-#   pull-requests: read
-#   repository-projects: read
-#   security-events: read
-#   statuses: read
-
-permissions: write-all
+permissions:
+  actions: write
+  checks: write
+  contents: write
+  deployments: write
+  issues: write
+  metadata: read
+  packages: write
+  pages: write
+  pull-requests: write
+  repository-projects: write
+  security-events: write
+  statuses: write
 
 on:
   push:
