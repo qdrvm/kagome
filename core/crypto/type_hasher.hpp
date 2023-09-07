@@ -3,8 +3,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_STREAM_HASHER_HASHER_HPP_
-#define KAGOME_STREAM_HASHER_HASHER_HPP_
+#ifndef KAGOME_TYPE_HASHER_HASHER_HPP_
+#define KAGOME_TYPE_HASHER_HASHER_HPP_
 
 #include <gsl/span>
 #include "crypto/stream_hasher.hpp"
@@ -13,22 +13,40 @@
 namespace kagome::crypto {
 
   template <typename... T>
-  inline void hashTypes(T &&...t, StreamHasher &hasher, gsl::span<uint8_t> out) {
-    constexpr size_t kBufferSize = 256;
+  inline void hashTypes(StreamHasher &hasher, gsl::span<uint8_t> out, T &&...t) {
+    constexpr size_t kBufferSize = 128;
     uint8_t buffer[kBufferSize];
     size_t counter = 0ull;
 
-    encode(
+    kagome::scale::encode(
         [&](const uint8_t *const val, size_t count) {
-          const auto remains = kBufferSize - counter;
-          if (remains >= count) {
-            memcpy(&buffer[counter], val, count);
-            counter += count;
-          } else {
-            memcpy(&buffer[counter], val, count);
+          if (count >= kBufferSize) {
+            hasher.update({buffer, (ssize_t)counter});
+            counter = 0ull;
+            hasher.update({val, (ssize_t)count});
+            return;
+          }
+          
+          while (count != 0ull) {
+            const auto to_copy = std::min(kBufferSize - counter, count);
+            memcpy(&buffer[counter], val, to_copy);
+
+            counter += to_copy;
+            count -= to_copy;
+
+            if (counter == kBufferSize) {
+              hasher.update({buffer, (ssize_t)counter});
+              counter = 0ull;
+            }
           }
         },
         std::forward<T>(t)...);
+
+    if (counter != 0ull) {
+      hasher.update({buffer, (ssize_t)counter});
+    }
+
+    hasher.get_final(out);
   }
 
   //  struct StreamHasher {
@@ -52,4 +70,4 @@ namespace kagome::crypto {
   //  };
 }  // namespace kagome::crypto
 
-#endif  // KAGOME_STREAM_HASHER_HASHER_HPP_
+#endif  // KAGOME_TYPE_HASHER_HASHER_HPP_
