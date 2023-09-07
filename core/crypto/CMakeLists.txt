@@ -5,7 +5,6 @@
 
 add_library(hasher
     hasher/hasher_impl.cpp
-    hasher/blake2b_stream_hasher.cpp
     )
 target_link_libraries(hasher
     blake2
