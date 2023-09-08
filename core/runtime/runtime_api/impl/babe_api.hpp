@@ -3,12 +3,9 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_CORE_RUNTIME_IMPL_BABE_API_HPP
-#define KAGOME_CORE_RUNTIME_IMPL_BABE_API_HPP
+#pragma once
 
 #include "runtime/runtime_api/babe_api.hpp"
-
-#include "common/lru_cache.hpp"
 
 namespace kagome::runtime {
 
@@ -26,10 +23,6 @@ namespace kagome::runtime {
 
    private:
     std::shared_ptr<Executor> executor_;
-
-    LruCache<primitives::BlockHash, primitives::BabeConfiguration> cache_{10};
   };
 
 }  // namespace kagome::runtime
-
-#endif  // KAGOME_CORE_RUNTIME_IMPL_BABE_API_HPP

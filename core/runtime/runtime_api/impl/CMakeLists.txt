@@ -46,7 +46,6 @@ add_library(grandpa_api
     grandpa_api.cpp
     )
 target_link_libraries(grandpa_api
-    blockchain
     executor
     )
 
