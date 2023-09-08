@@ -227,8 +227,13 @@ namespace kagome::consensus::grandpa {
 
     SL_DEBUG(logger_, "Round #{}: Start round", round_number_);
 
-    pending_timer_handle_ =
-        scheduler_->scheduleWithHandle([&] { pending(); }, pending_interval_);
+    pending_timer_handle_ = scheduler_->scheduleWithHandle(
+        [wself{weak_from_this()}] {
+          if (auto self = wself.lock()) {
+            self->pending();
+          }
+        },
+        pending_interval_);
 
     sendNeighborMessage();
 
@@ -281,12 +286,14 @@ namespace kagome::consensus::grandpa {
     }
 
     stage_timer_handle_ = scheduler_->scheduleWithHandle(
-        [&] {
-          if (stage_ == Stage::PREVOTE_RUNS) {
-            SL_DEBUG(logger_,
-                     "Round #{}: Time of prevote stage is out",
-                     round_number_);
-            endPrevoteStage();
+        [wself{weak_from_this()}] {
+          if (auto self = wself.lock()) {
+            if (self->stage_ == Stage::PREVOTE_RUNS) {
+              SL_DEBUG(self->logger_,
+                       "Round #{}: Time of prevote stage is out",
+                       self->round_number_);
+              self->endPrevoteStage();
+            }
           }
         },
         toMilliseconds(duration_ * 2 - (scheduler_->now() - start_time_)));
@@ -346,12 +353,14 @@ namespace kagome::consensus::grandpa {
     }
 
     stage_timer_handle_ = scheduler_->scheduleWithHandle(
-        [&] {
-          if (stage_ == Stage::PRECOMMIT_RUNS) {
-            SL_DEBUG(logger_,
-                     "Round #{}: Time of precommit stage is out",
-                     round_number_);
-            endPrecommitStage();
+        [wself{weak_from_this()}] {
+          if (auto self = wself.lock()) {
+            if (self->stage_ == Stage::PRECOMMIT_RUNS) {
+              SL_DEBUG(self->logger_,
+                       "Round #{}: Time of precommit stage is out",
+                       self->round_number_);
+              self->endPrecommitStage();
+            }
           }
         },
         toMilliseconds(duration_ * 4 - (scheduler_->now() - start_time_)));
@@ -1086,9 +1095,11 @@ namespace kagome::consensus::grandpa {
         need_to_update_estimate = true;
       }
       if (prevote_ghost_) {
-        scheduler_->schedule([&] {
-          if (stage_ == Stage::PRECOMMIT_WAITS_FOR_PREVOTES) {
-            endPrecommitStage();
+        scheduler_->schedule([wself{weak_from_this()}] {
+          if (auto self = wself.lock()) {
+            if (self->stage_ == Stage::PRECOMMIT_WAITS_FOR_PREVOTES) {
+              self->endPrecommitStage();
+            }
           }
         });
       }
@@ -1609,7 +1620,12 @@ namespace kagome::consensus::grandpa {
     SL_DEBUG(logger_, "Resend votes of recent rounds");
     resend(shared_from_this());
 
-    pending_timer_handle_ =
-        scheduler_->scheduleWithHandle([&] { pending(); }, pending_interval_);
+    pending_timer_handle_ = scheduler_->scheduleWithHandle(
+        [wself{weak_from_this()}] {
+          if (auto self = wself.lock()) {
+            self->pending();
+          }
+        },
+        pending_interval_);
   }
 }  // namespace kagome::consensus::grandpa
