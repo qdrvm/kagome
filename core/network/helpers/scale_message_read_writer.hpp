@@ -37,19 +37,17 @@ namespace kagome::network {
     template <typename MsgType>
     void read(ReadCallback<MsgType> cb) const {
       read_writer_->read(
-          [self{shared_from_this()}, cb = std::move(cb)](auto &&read_res) {
+          [self{shared_from_this()}, cb = std::move(cb)](
+              libp2p::basic::MessageReadWriter::ReadCallback read_res) {
             if (!read_res) {
-              return cb(read_res.error());
+              return cb(outcome::failure(read_res.error()));
             }
 
-            if (read_res.value()) {
-              auto msg_res = scale::decode<MsgType>(*read_res.value());
-              if (!msg_res) {
-                return cb(msg_res.error());
-              }
-              return cb(std::move(msg_res.value()));
+            auto msg_res = scale::decode<MsgType>(*read_res.value());
+            if (!msg_res) {
+              return cb(outcome::failure(msg_res.error()));
             }
-            return cb(MsgType{});
+            return cb(outcome::success(std::move(msg_res.value())));
           });
     }
 
