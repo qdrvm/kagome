@@ -36,6 +36,7 @@
 #include "runtime/runtime_api/parachain_host_types.hpp"
 #include "utils/safe_object.hpp"
 #include "utils/thread_pool.hpp"
+#include "crypto/type_hasher.hpp"
 
 namespace kagome::consensus::babe {
   class BabeConfigRepository;
@@ -282,9 +283,9 @@ namespace kagome::parachain {
     /// AppStateManager impl
     bool prepare();
 
+    using HashedCandidateReceipt = crypto::Hashed<network::CandidateReceipt, 32>;
     using CandidateIncludedList =
-        std::vector<std::tuple<CandidateHash,
-                               network::CandidateReceipt,
+        std::vector<std::tuple<HashedCandidateReceipt,
                                CoreIndex,
                                GroupIndex>>;
     using AssignmentsList = std::unordered_map<CoreIndex, OurAssignment>;
