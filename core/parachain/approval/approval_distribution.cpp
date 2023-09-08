@@ -915,8 +915,7 @@ namespace kagome::parachain {
     for (auto &candidate : candidates) {
       if (auto obj{boost::get<runtime::CandidateIncluded>(&candidate)}) {
         included.emplace_back(
-            std::make_tuple(candidateHash(*hasher_, obj->candidate_receipt),
-                            std::move(obj->candidate_receipt),
+            std::make_tuple(HashedCandidateReceipt{std::move(obj->candidate_receipt)},
                             obj->core_index,
                             obj->group_index));
       }
