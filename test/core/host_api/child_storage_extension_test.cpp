@@ -17,6 +17,7 @@
 #include "mock/core/storage/trie/trie_batches_mock.hpp"
 #include "runtime/ptr_size.hpp"
 #include "scale/encode_append.hpp"
+#include "scale/kagome_scale.hpp"
 #include "storage/predefined_keys.hpp"
 #include "storage/trie/polkadot_trie/trie_error.hpp"
 #include "storage/trie/types.hpp"
@@ -24,6 +25,7 @@
 #include "testutil/outcome.hpp"
 #include "testutil/outcome/dummy_error.hpp"
 #include "testutil/prepare_loggers.hpp"
+#include "testutil/scale_test_comparator.hpp"
 
 using kagome::common::Buffer;
 using kagome::host_api::ChildStorageExtension;
@@ -124,7 +126,8 @@ TEST_P(ReadOutcomeParameterizedTest, GetTest) {
 
   std::vector<uint8_t> encoded_opt_value;
   if (GetParam()) {
-    encoded_opt_value = scale::encode(GetParam().value()).value();
+    encoded_opt_value =
+        testutil::scaleEncodeAndCompareWithRef(GetParam().value()).value();
   }
 
   // 'func' (lambda)
@@ -183,7 +186,9 @@ TEST_P(ReadOutcomeParameterizedTest, ReadTest) {
   WasmSize value_size = 44;
   WasmSpan value_span = PtrSize(value_pointer, value_size).combine();
   auto encoded_result =
-      scale::encode<std::optional<uint32_t>>(std::nullopt).value();
+      testutil::scaleEncodeAndCompareWithRef<std::optional<uint32_t>>(
+          std::nullopt)
+          .value();
 
   WasmOffset offset = 4;
   Buffer offset_value_data;
@@ -194,7 +199,8 @@ TEST_P(ReadOutcomeParameterizedTest, ReadTest) {
     ASSERT_EQ(offset_value_data.size(), param.size() - offset);
     EXPECT_OUTCOME_TRUE(
         encoded_opt_offset_val_size,
-        scale::encode(std::make_optional<uint32_t>(offset_value_data.size())));
+        testutil::scaleEncodeAndCompareWithRef(
+            std::make_optional<uint32_t>(offset_value_data.size())));
     encoded_result = encoded_opt_offset_val_size;
     EXPECT_CALL(
         *memory_,

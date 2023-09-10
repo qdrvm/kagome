@@ -626,7 +626,7 @@ TEST_F(TriePrunerTest, RestoreStateFromGenesis) {
 
   ON_CALL(*block_tree, getChildren(_))
       .WillByDefault(Return(std::vector<kagome::primitives::BlockHash>{}));
-  
+
   ON_CALL(*block_tree, bestLeaf())
       .WillByDefault(Return(BlockInfo{6, hash_from_header(headers.at(6))}));
 
@@ -846,5 +846,56 @@ TEST_F(TriePrunerTest, FastSyncScenario) {
     }
 
     ASSERT_OUTCOME_SUCCESS_TRY(pruner->pruneFinalized(headers[n]));
+  }
+}
+
+#include "scale/encoder/primitives.hpp"
+
+struct TTT {
+  SCALE_TIE(6);
+
+  uint8_t q1;
+  std::string q2;
+  size_t q3;
+  uint32_t q4;
+  uint8_t q5;
+  size_t q6;
+};
+
+TEST_F(TriePrunerTest, NewScale) {
+  std::vector<TTT> data = {{
+                               .q1 = 100,
+                               .q2 = "TEST DATA ENCRYPTED",
+                               .q3 = 0xcdff,
+                               .q4 = 0xe7ffffff,
+                               .q5 = 250,
+                               .q6 = 0xffffffffffffffff,
+                           },
+                           {
+                               .q1 = 150,
+                               .q2 = "TEST DATA ENCRYPTED - 222",
+                               .q3 = 0xceff,
+                               .q4 = 0xe7eeeeff,
+                               .q5 = 250,
+                               .q6 = 0xffffffeeeeffffff,
+                           }};
+
+  std::map<std::string, std::vector<TTT>> data_map;
+  data_map["KEY"] = std::move(data);
+
+  std::vector<uint8_t> data_0;
+  kagome::scale::encode(
+      [&](const uint8_t *const val, size_t count) {
+        for (size_t i = 0; i < count; ++i) {
+          data_0.emplace_back(val[i]);
+        }
+      },
+      data_map);
+
+  auto data_1 = scale::encode(data_map).value();
+
+  ASSERT_EQ(data_0.size(), data_1.size());
+  for (size_t ix = 0; ix < data_0.size(); ++ix) {
+    ASSERT_EQ(data_0[ix], data_1[ix]);
   }
 }

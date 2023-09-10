@@ -13,10 +13,12 @@
 #include "blockchain/impl/block_header_repository_impl.hpp"
 #include "blockchain/impl/storage_util.hpp"
 #include "crypto/hasher/hasher_impl.hpp"
+#include "scale/kagome_scale.hpp"
 #include "scale/scale.hpp"
 #include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
 #include "testutil/prepare_loggers.hpp"
+#include "testutil/scale_test_comparator.hpp"
 #include "testutil/storage/base_rocksdb_test.hpp"
 
 using kagome::blockchain::BlockHeaderRepository;
@@ -48,7 +50,10 @@ class BlockHeaderRepository_Test : public test::BaseRocksDB_Test {
   outcome::result<Hash256> storeHeader(BlockNumber num, BlockHeader h) {
     BlockHeader header = std::move(h);
     header.number = num;
-    OUTCOME_TRY(enc_header, scale::encode(header));
+
+    [[maybe_unused]] auto __1 = testutil::scaleEncodeAndCompareWithRef(
+        ::scale::CompactInteger(4294967295));
+    OUTCOME_TRY(enc_header, testutil::scaleEncodeAndCompareWithRef(header));
     auto hash = hasher_->blake2b_256(enc_header);
     OUTCOME_TRY(putToSpace(*rocks_, Space::kHeader, hash, Buffer{enc_header}));
 
@@ -92,7 +97,8 @@ TEST_F(BlockHeaderRepository_Test, UnexistingHeader) {
   }
   BlockHeader not_in_storage = getDefaultHeader();
   not_in_storage.number = chosen_number;
-  EXPECT_OUTCOME_TRUE(enc_header, scale::encode(not_in_storage))
+  EXPECT_OUTCOME_TRUE(enc_header,
+                      testutil::scaleEncodeAndCompareWithRef(not_in_storage))
   auto hash = hasher_->blake2b_256(enc_header);
   EXPECT_OUTCOME_FALSE_1(header_repo_->getBlockHeader(hash))
   EXPECT_OUTCOME_FALSE_1(header_repo_->getHashById(chosen_number))
@@ -144,6 +150,22 @@ TEST_P(BlockHeaderRepository_NumberParametrized_Test, GetHeader) {
   auto header_should_be = getDefaultHeader();
   header_should_be.number = GetParam();
   ASSERT_EQ(header_by_hash, header_should_be);
+}
+
+TEST_P(BlockHeaderRepository_NumberParametrized_Test, bitvec) {
+  auto create_bit_vec = [](size_t count) {
+    ::scale::BitVec bv;
+    for (size_t i = 0; i < count; ++i) {
+      bv.bits.push_back((i % 2ull) == 0ull);
+    }
+
+    return bv;
+  };
+
+  for (size_t i = 0ull; i < 200ull; ++i) {
+    [[maybe_unused]] auto __1 =
+        testutil::scaleEncodeAndCompareWithRef(create_bit_vec(i));
+  }
 }
 
 INSTANTIATE_TEST_SUITE_P(Numbers,

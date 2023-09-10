@@ -43,7 +43,7 @@ namespace kagome::network {
             }
 
             if (read_res.value()) {
-              auto msg_res = scale::decode<MsgType>(*read_res.value());
+              auto msg_res = ::scale::decode<MsgType>(*read_res.value());
               if (!msg_res) {
                 return cb(msg_res.error());
               }

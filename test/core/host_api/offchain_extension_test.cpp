@@ -18,10 +18,12 @@
 #include "offchain/types.hpp"
 #include "runtime/ptr_size.hpp"
 #include "scale/encode_append.hpp"
+#include "scale/kagome_scale.hpp"
 #include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
 #include "testutil/outcome/dummy_error.hpp"
 #include "testutil/prepare_loggers.hpp"
+#include "testutil/scale_test_comparator.hpp"
 
 using kagome::common::Buffer;
 using kagome::common::BufferView;
@@ -111,7 +113,7 @@ class OffchainExtensionTest : public ::testing::Test {
   std::shared_ptr<OffchainWorkerMock> offchain_worker_;
   std::shared_ptr<OffchainWorkerPoolMock> offchain_worker_pool_;
 
-  constexpr static uint32_t kU32Max = std::numeric_limits<uint32_t>::max();
+  static constexpr uint32_t kU32Max = std::numeric_limits<uint32_t>::max();
 };
 
 /// For the tests where it is needed to check a valid behaviour no matter if
@@ -164,7 +166,8 @@ TEST_F(OffchainExtensionTest, SubmitTransaction) {
   auto result_span = 44;
 
   EXPECT_CALL(*memory_, loadN(data_pointer, data_size))
-      .WillOnce(Return(Buffer{scale::encode(xt).value()}));
+      .WillOnce(
+          Return(Buffer{testutil::scaleEncodeAndCompareWithRef(xt).value()}));
   EXPECT_CALL(*offchain_worker_, submitTransaction(_))
       .WillOnce(Return(Success{}));
   EXPECT_CALL(*memory_, storeBuffer(_)).WillOnce(Return(result_span));
@@ -475,8 +478,8 @@ TEST_F(OffchainExtensionTest, HttpRequestWriteBody) {
   EXPECT_CALL(*memory_, loadN(chunk_pointer, chunk_size))
       .WillOnce(Return(chunk));
   EXPECT_CALL(*memory_, loadN(deadline_pointer, deadline_size))
-      .WillOnce(
-          Return(Buffer{gsl::make_span(scale::encode(deadline_opt).value())}));
+      .WillOnce(Return(Buffer{gsl::make_span(
+          testutil::scaleEncodeAndCompareWithRef(deadline_opt).value())}));
   EXPECT_CALL(*offchain_worker_, httpRequestWriteBody(id, chunk, deadline_opt))
       .WillOnce(Return(result));
 
@@ -521,8 +524,8 @@ TEST_F(OffchainExtensionTest, HttpResponseWait) {
   EXPECT_CALL(*memory_, loadN(ids_pointer, ids_size))
       .WillOnce(Return(Buffer{gsl::make_span(scale::encode(ids).value())}));
   EXPECT_CALL(*memory_, loadN(deadline_pointer, deadline_size))
-      .WillOnce(
-          Return(Buffer{gsl::make_span(scale::encode(deadline_opt).value())}));
+      .WillOnce(Return(Buffer{gsl::make_span(
+          testutil::scaleEncodeAndCompareWithRef(deadline_opt).value())}));
   EXPECT_CALL(*offchain_worker_, httpResponseWait(ids, deadline_opt))
       .WillOnce(Return(result));
 
@@ -639,7 +642,8 @@ TEST_F(OffchainExtensionTest, SetAuthNodes) {
   WasmSize nodes_pos_size = 43;
   std::vector<Buffer> nodes{Buffer("asd"_peerid.toVector())};
   EXPECT_CALL(*memory_, loadN(nodes_pos_pointer, nodes_pos_size))
-      .WillOnce(Return(Buffer{gsl::make_span(scale::encode(nodes).value())}));
+      .WillOnce(Return(Buffer{gsl::make_span(
+          testutil::scaleEncodeAndCompareWithRef(nodes).value())}));
   EXPECT_CALL(*offchain_worker_, setAuthorizedNodes(_, true))
       .WillOnce(Return());
   offchain_extension_->ext_offchain_set_authorized_nodes_version_1(

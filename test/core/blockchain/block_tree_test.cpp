@@ -33,6 +33,9 @@
 #include "testutil/outcome.hpp"
 #include "testutil/outcome/dummy_error.hpp"
 #include "testutil/prepare_loggers.hpp"
+#include "testutil/scale_test_comparator.hpp"
+
+#include "scale/kagome_scale.hpp"
 
 using namespace kagome;
 using namespace storage;
@@ -176,7 +179,7 @@ struct BlockTreeTest : public testing::Test {
    * @return block, which was added, along with its hash
    */
   BlockHash addBlock(const Block &block) {
-    auto encoded_block = scale::encode(block).value();
+    auto encoded_block = testutil::scaleEncodeAndCompareWithRef(block).value();
     auto hash = hasher_->blake2b_256(encoded_block);
     primitives::BlockInfo block_info(block.header.number, hash);
 
@@ -276,12 +279,16 @@ struct BlockTreeTest : public testing::Test {
         .authority_index = 0,
         .slot_number = slot,
     };
-    common::Buffer encoded_header{scale::encode(babe_header).value()};
+
+    auto m = testutil::scaleEncodeAndCompareWithRef(babe_header).value();
+    common::Buffer encoded_header{m};
     digest.emplace_back(
         primitives::PreRuntime{{primitives::kBabeEngineId, encoded_header}});
 
     kagome::consensus::babe::Seal seal{};
-    common::Buffer encoded_seal{scale::encode(seal).value()};
+    auto m1 = testutil::scaleEncodeAndCompareWithRef(seal).value();
+
+    common::Buffer encoded_seal{m1};
     digest.emplace_back(
         primitives::Seal{{primitives::kBabeEngineId, encoded_seal}});
 
@@ -401,7 +408,9 @@ TEST_F(BlockTreeTest, Finalize) {
   auto hash = addBlock(new_block);
 
   Justification justification{{0x45, 0xF4}};
-  auto encoded_justification = scale::encode(justification).value();
+  auto encoded_justification =
+      testutil::scaleEncodeAndCompareWithRef(justification).value();
+
   EXPECT_CALL(*storage_, getJustification(kFinalizedBlockInfo.hash))
       .WillRepeatedly(Return(outcome::success(justification)));
   EXPECT_CALL(*storage_, getJustification(hash))
@@ -464,7 +473,9 @@ TEST_F(BlockTreeTest, FinalizeWithPruning) {
   auto C1_hash = addBlock(C1_block);
 
   Justification justification{{0x45, 0xF4}};
-  auto encoded_justification = scale::encode(justification).value();
+  auto encoded_justification =
+      testutil::scaleEncodeAndCompareWithRef(justification).value();
+
   EXPECT_CALL(*storage_, getJustification(B1_hash))
       .WillRepeatedly(Return(outcome::failure(boost::system::error_code{})));
   EXPECT_CALL(*storage_, putJustification(justification, B1_hash))
@@ -532,7 +543,9 @@ TEST_F(BlockTreeTest, FinalizeWithPruningDeepestLeaf) {
   auto C1_hash = addBlock(C1_block);
 
   Justification justification{{0x45, 0xF4}};
-  auto encoded_justification = scale::encode(justification).value();
+  auto encoded_justification =
+      testutil::scaleEncodeAndCompareWithRef(justification).value();
+
   EXPECT_CALL(*storage_, putJustification(justification, B_hash))
       .WillRepeatedly(Return(outcome::success()));
   EXPECT_CALL(*storage_, getBlockHeader(B_hash))

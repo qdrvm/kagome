@@ -19,10 +19,13 @@
 #include "mock/core/runtime/trie_storage_provider_mock.hpp"
 #include "mock/core/storage/trie/trie_batches_mock.hpp"
 #include "mock/core/storage/trie/trie_storage_mock.hpp"
+#include "scale/encode_append.hpp"
+#include "scale/kagome_scale.hpp"
 #include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
 #include "testutil/prepare_loggers.hpp"
 #include "testutil/runtime/common/basic_code_provider.hpp"
+#include "testutil/scale_test_comparator.hpp"
 
 using kagome::blockchain::BlockHeaderRepository;
 using kagome::blockchain::BlockHeaderRepositoryMock;
@@ -132,7 +135,7 @@ class ExecutorTest : public testing::Test {
     EXPECT_CALL(*module_repo_, getInstanceAt(blockchain_state, storage_state))
         .WillRepeatedly(testing::Return(module_instance));
 
-    Buffer enc_res{scale::encode(res).value()};
+    Buffer enc_res{testutil::scaleEncodeAndCompareWithRef(res).value()};
     EXPECT_CALL(*memory_, loadN(RESULT_LOCATION.ptr, RESULT_LOCATION.size))
         .WillOnce(Return(enc_res));
   }
@@ -152,15 +155,14 @@ TEST_F(ExecutorTest, LatestStateSwitchesCorrectly) {
   kagome::primitives::BlockInfo block_info2{43, "block_hash2"_hash256};
   kagome::primitives::BlockInfo block_info3{44, "block_hash3"_hash256};
 
-  Buffer enc_args{scale::encode(2, 3).value()};
+  Buffer enc_args{testutil::scaleEncodeAndCompareWithRef(2, 3).value()};
   prepareCall(
       block_info1, "state_hash1"_hash256, CallType::Persistent, enc_args, 5);
-  auto ctx =
-      ctx_factory_->persistentAt(block_info1.hash, std::nullopt).value();
+  auto ctx = ctx_factory_->persistentAt(block_info1.hash, std::nullopt).value();
   auto res = executor.decodedCallWithCtx<int>(ctx, "addTwo", 2, 3).value();
   EXPECT_EQ(res, 5);
 
-  enc_args = scale::encode(7, 10).value();
+  enc_args = testutil::scaleEncodeAndCompareWithRef(7, 10).value();
   prepareCall(
       block_info1, "state_hash2"_hash256, CallType::Ephemeral, enc_args, 17);
   EXPECT_OUTCOME_TRUE(
@@ -169,14 +171,14 @@ TEST_F(ExecutorTest, LatestStateSwitchesCorrectly) {
           block_info1.hash, "state_hash2"_hash256, "addTwo", 7, 10));
   ASSERT_EQ(res2, 17);
 
-  enc_args = scale::encode(0, 0).value();
+  enc_args = testutil::scaleEncodeAndCompareWithRef(0, 0).value();
   prepareCall(
       block_info1, "state_hash2"_hash256, CallType::Persistent, enc_args, 0);
   auto ctx3 =
       ctx_factory_->persistentAt(block_info1.hash, std::nullopt).value();
   EXPECT_EQ(executor.decodedCallWithCtx<int>(ctx, "addTwo", 0, 0).value(), 0);
 
-  enc_args = scale::encode(7, 10).value();
+  enc_args = testutil::scaleEncodeAndCompareWithRef(7, 10).value();
   prepareCall(
       block_info1, "state_hash3"_hash256, CallType::Ephemeral, enc_args, 17);
   EXPECT_OUTCOME_TRUE(
@@ -185,15 +187,14 @@ TEST_F(ExecutorTest, LatestStateSwitchesCorrectly) {
           block_info1.hash, "state_hash3"_hash256, "addTwo", 7, 10));
   ASSERT_EQ(res4, 17);
 
-  enc_args = scale::encode(-5, 5).value();
+  enc_args = testutil::scaleEncodeAndCompareWithRef(-5, 5).value();
   prepareCall(
       block_info2, "state_hash4"_hash256, CallType::Persistent, enc_args, 0);
   auto ctx5 =
       ctx_factory_->persistentAt(block_info2.hash, std::nullopt).value();
-  EXPECT_EQ(executor.decodedCallWithCtx<int>(ctx5, "addTwo", -5, 5).value(),
-            0);
+  EXPECT_EQ(executor.decodedCallWithCtx<int>(ctx5, "addTwo", -5, 5).value(), 0);
 
-  enc_args = scale::encode(7, 10).value();
+  enc_args = testutil::scaleEncodeAndCompareWithRef(7, 10).value();
   prepareCall(
       block_info2, "state_hash5"_hash256, CallType::Ephemeral, enc_args, 17);
   EXPECT_OUTCOME_TRUE(
