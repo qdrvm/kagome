@@ -18,6 +18,7 @@
 #include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
 #include "testutil/prepare_loggers.hpp"
+#include "testutil/scale_test_comparator.hpp"
 #include "testutil/storage/base_rocksdb_test.hpp"
 
 using kagome::blockchain::BlockHeaderRepository;
@@ -50,15 +51,9 @@ class BlockHeaderRepository_Test : public test::BaseRocksDB_Test {
     BlockHeader header = std::move(h);
     header.number = num;
 
-    compareWithRef4(::scale::CompactInteger(4294967295));
-
-    compareWithRef4(header.parent_hash);
-    compareWithRef4(::scale::CompactInteger(header.number));
-    compareWithRef4(header.state_root);
-    compareWithRef4(header.extrinsics_root);
-    compareWithRef4(header.digest);
-
-    OUTCOME_TRY(enc_header, compareWithRef4(header));
+    [[maybe_unused]] auto __1 = testutil::scaleEncodeAndCompareWithRef(
+        ::scale::CompactInteger(4294967295));
+    OUTCOME_TRY(enc_header, testutil::scaleEncodeAndCompareWithRef(header));
     auto hash = hasher_->blake2b_256(enc_header);
     OUTCOME_TRY(putToSpace(*rocks_, Space::kHeader, hash, Buffer{enc_header}));
 
@@ -102,7 +97,8 @@ TEST_F(BlockHeaderRepository_Test, UnexistingHeader) {
   }
   BlockHeader not_in_storage = getDefaultHeader();
   not_in_storage.number = chosen_number;
-  EXPECT_OUTCOME_TRUE(enc_header, compareWithRef4(not_in_storage))
+  EXPECT_OUTCOME_TRUE(enc_header,
+                      testutil::scaleEncodeAndCompareWithRef(not_in_storage))
   auto hash = hasher_->blake2b_256(enc_header);
   EXPECT_OUTCOME_FALSE_1(header_repo_->getBlockHeader(hash))
   EXPECT_OUTCOME_FALSE_1(header_repo_->getHashById(chosen_number))
@@ -159,14 +155,16 @@ TEST_P(BlockHeaderRepository_NumberParametrized_Test, GetHeader) {
 TEST_P(BlockHeaderRepository_NumberParametrized_Test, bitvec) {
   auto create_bit_vec = [](size_t count) {
     ::scale::BitVec bv;
-    for (size_t i = 0; i < count; ++i)
+    for (size_t i = 0; i < count; ++i) {
       bv.bits.push_back((i % 2ull) == 0ull);
+    }
 
     return bv;
   };
 
   for (size_t i = 0ull; i < 200ull; ++i) {
-    compareWithRef4(create_bit_vec(i));
+    [[maybe_unused]] auto __1 =
+        testutil::scaleEncodeAndCompareWithRef(create_bit_vec(i));
   }
 }
 

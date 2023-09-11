@@ -35,6 +35,22 @@ namespace kagome::math {
     return res;
   }
 
+  template <typename T,
+            std::enable_if_t<std::is_integral_v<std::decay_t<T>>, bool> = true>
+  constexpr auto toLE(const T &value) {
+#if __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__
+    constexpr size_t size = sizeof(std::decay_t<T>);
+    if constexpr (size == 8) {
+      return __builtin_bswap64(value);
+    } else if constexpr (size == 4) {
+      return __builtin_bswap32(value);
+    } else if constexpr (size == 2) {
+      return __builtin_bswap16(value);
+    }
+#endif
+    return value;
+  }
+
 }  // namespace kagome::math
 
 #endif  // KAGOME_MATH_HPP

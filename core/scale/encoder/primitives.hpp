@@ -100,21 +100,10 @@ namespace kagome::scale {
       }
 
       constexpr size_t size = sizeof(I);
-#if __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__
-      if constexpr (size == 8) {
-        v = __builtin_bswap64(v);
-      } else if constexpr (size == 4) {
-        v = __builtin_bswap32(v);
-      } else if constexpr (size == 2) {
-        v = __builtin_bswap16(v);
-      } else {
-        UNREACHABLE;
-      }
-#endif
-
-      putByte(func, (uint8_t *)&v, size);
+      const auto val = math::toLE(v);
+      putByte(func, (uint8_t *)&val, size);
     } else {
-      encode(func, utils::to_tuple(v));
+      encode(func, utils::to_tuple_refs(v));
     }
   }
 
@@ -144,11 +133,17 @@ namespace kagome::scale {
     return res;
   }
 
-  inline size_t countBytes(::scale::CompactInteger v) {
-    size_t counter = 0;
+  inline size_t countBytes(::scale::CompactInteger x) {
+    namespace mp = boost::multiprecision;
+    const size_t size = x.backend().size();
+    const mp::limb_type *const p = x.backend().limbs();
+
+    auto counter = (size - 1) * sizeof(mp::limb_type);
+    auto value = p[size - 1];
     do {
       ++counter;
-    } while ((v >>= 8) != 0);
+      value >>= 8;
+    } while (value);
     return counter;
   }
 
@@ -162,7 +157,7 @@ namespace kagome::scale {
   template <typename F, uint8_t I, typename... Ts>
   void encode(const F &func, const boost::variant<Ts...> &v) {
     using T = std::tuple_element_t<I, std::tuple<Ts...>>;
-    if (v.type() == typeid(T)) {
+    if (v.which() == I) {
       encode(func, I);
       encode(func, boost::get<T>(v));
       return;
@@ -192,8 +187,8 @@ namespace kagome::scale {
   template <typename F,
             typename T,
             typename I = std::decay_t<T>,
-            typename = std::enable_if_t<std::is_unsigned_v<I>>>
-  constexpr void encodeCompact(const F &func, T val) {
+            std::enable_if_t<std::is_unsigned_v<I>, bool> = true>
+  constexpr void encodeCompactSmall(const F &func, T val) {
     constexpr size_t sz = sizeof(I);
     constexpr uint8_t mask = 3 << 6;
     const uint8_t msb_byte = (uint8_t)(val >> ((sz - 1ull) * 8ull));
@@ -207,16 +202,45 @@ namespace kagome::scale {
   }
 
   template <typename F>
+  void encodeCompact(const F &func, uint64_t val) {
+    if (val < ::scale::compact::EncodingCategoryLimits::kMinUint16) {
+      encodeCompactSmall(func, static_cast<uint8_t>(val));
+      return;
+    }
+
+    if (val < ::scale::compact::EncodingCategoryLimits::kMinUint32) {
+      encodeCompactSmall(func, static_cast<uint16_t>(val));
+      return;
+    }
+
+    if (val < ::scale::compact::EncodingCategoryLimits::kMinBigInteger) {
+      encodeCompactSmall(func, static_cast<uint32_t>(val));
+      return;
+    }
+
+    if (val >= (1ul << 63ull)) {
+      encode(func, ::scale::CompactInteger{val});
+      return;
+    }
+
+    const size_t bigIntLength = sizeof(uint64_t) - (__builtin_clzll(val) / 8);
+
+    uint8_t result[sizeof(uint64_t) + sizeof(uint8_t)];
+    result[0] = (bigIntLength - 4) * 4 + 3;  // header
+
+    *(uint64_t *)&result[1] = math::toLE(val);
+    putByte(func, result, bigIntLength + 1ull);
+  }
+
+  template <typename F>
   constexpr void encode(const F &func, const std::string &v) {
     encode(func, std::string_view{v});
   }
 
   template <typename F>
   constexpr void encode(const F &func, const std::string_view &v) {
-    encode(func, ::scale::CompactInteger{v.size()});
-    for (const auto c : v) {
-      encode(func, c);
-    }
+    encodeCompact(func, v.size());
+    putByte(func, (const uint8_t *)v.data(), v.size());
   }
 
   template <typename F>
@@ -225,13 +249,12 @@ namespace kagome::scale {
     const size_t bytesCount = ((bitsCount + 7ull) >> 3ull);
     const size_t blocksCount = ((bytesCount + 7ull) >> 3ull);
 
-    encode(func, ::scale::CompactInteger{bitsCount});
+    encodeCompact(func, bitsCount);
     uint64_t result;
     size_t bitCounter = 0ull;
     for (size_t ix = 0ull; ix < blocksCount; ++ix) {
       result = 0ull;
-      size_t remains =
-          (bitsCount - bitCounter) > 64ull ? 64ull : (bitsCount - bitCounter);
+      size_t remains = std::min(size_t(64ull), bitsCount - bitCounter);
       do {
         result |= ((v.bits[bitCounter] ? 1ull : 0ull) << (bitCounter % 64ull));
         ++bitCounter;
@@ -241,17 +264,7 @@ namespace kagome::scale {
       const size_t bytes =
           (bits != 0ull) ? ((bits + 7ull) >> 3ull) : sizeof(result);
 
-#if __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__
-      if constexpr (size == 8) {
-        v = __builtin_bswap64(v);
-      } else if constexpr (size == 4) {
-        v = __builtin_bswap32(v);
-      } else if constexpr (size == 2) {
-        v = __builtin_bswap16(v);
-      } else {
-        UNREACHABLE;
-      }
-#endif
+      result = math::toLE(result);
       putByte(func, (uint8_t *)&result, bytes);
     }
   }
@@ -263,17 +276,17 @@ namespace kagome::scale {
     }
 
     if (value < ::scale::compact::EncodingCategoryLimits::kMinUint16) {
-      encodeCompact(func, value.convert_to<uint8_t>());
+      encodeCompactSmall(func, value.convert_to<uint8_t>());
       return;
     }
 
     if (value < ::scale::compact::EncodingCategoryLimits::kMinUint32) {
-      encodeCompact(func, value.convert_to<uint16_t>());
+      encodeCompactSmall(func, value.convert_to<uint16_t>());
       return;
     }
 
     if (value < ::scale::compact::EncodingCategoryLimits::kMinBigInteger) {
-      encodeCompact(func, value.convert_to<uint32_t>());
+      encodeCompactSmall(func, value.convert_to<uint32_t>());
       return;
     }
 
@@ -287,16 +300,17 @@ namespace kagome::scale {
     uint8_t result[kReserved];
     result[0] = (bigIntLength - 4) * 4 + 3;  // header
 
-    /// TODO(iceseer): compare with export bits
-    /// TODO(iceseer): size_t other way
-    ::scale::CompactInteger v{value};
-    size_t i = 0ull;
-    for (; i < bigIntLength; ++i) {
-      result[i + 1ull] = static_cast<uint8_t>(v & 0xFF);
-      v >>= 8;
+    namespace mp = boost::multiprecision;
+    const size_t size = value.backend().size();
+    const mp::limb_type *const p = value.backend().limbs();
+
+    constexpr size_t limb_sz = sizeof(mp::limb_type);
+    size_t ix = 0ull;
+    for (; ix < size; ++ix) {
+      *(mp::limb_type *)&result[1ull + ix * limb_sz] = math::toLE(p[ix]);
     }
 
-    putByte(func, result, i + 1ull);
+    putByte(func, result, bigIntLength + 1ull);
   }
 
   template <
@@ -314,7 +328,7 @@ namespace kagome::scale {
   template <typename F, typename T, ssize_t S>
   constexpr void encode(const F &func, const gsl::span<T, S> &c) {
     if constexpr (S == -1) {
-      encode(func, ::scale::CompactInteger{c.size()});
+      encodeCompact(func, c.size());
       encode(func, c.begin(), c.end());
     } else {
       using E = std::decay_t<T>;
@@ -337,7 +351,7 @@ namespace kagome::scale {
 
   template <typename F, typename K, typename V>
   constexpr void encode(const F &func, const std::map<K, V> &c) {
-    encode(func, ::scale::CompactInteger{c.size()});
+    encodeCompact(func, c.size());
     encode(func, c.begin(), c.end());
   }
 
@@ -349,7 +363,7 @@ namespace kagome::scale {
 
   template <typename F, typename T>
   constexpr void encode(const F &func, const std::vector<T> &c) {
-    encode(func, ::scale::CompactInteger{c.size()});
+    encodeCompact(func, c.size());
     encode(func, c.begin(), c.end());
   }
 
@@ -371,13 +385,13 @@ namespace kagome::scale {
 
   template <typename F, typename T>
   constexpr void encode(const F &func, const std::list<T> &c) {
-    encode(func, ::scale::CompactInteger{c.size()});
+    encodeCompact(func, c.size());
     encode(func, c.begin(), c.end());
   }
 
   template <typename F, typename T>
   constexpr void encode(const F &func, const std::deque<T> &c) {
-    encode(func, ::scale::CompactInteger{c.size()});
+    encodeCompact(func, c.size());
     encode(func, c.begin(), c.end());
   }
 

@@ -91,10 +91,55 @@ namespace kagome::utils {
   };
 
   template <typename T>
-  inline auto to_tuple(const T &object) noexcept {
+  inline auto to_tuple_refs(const T &object) noexcept {
     using type = std::decay_t<T>;
     TO_TUPLE9;
   }
 }  // namespace kagome::utils
+
+#undef REP0
+#undef REP1
+#undef REP2
+#undef REP3
+#undef REP4
+#undef REP5
+#undef REP6
+#undef REP7
+#undef REP8
+#undef REP9
+#undef REP10
+#undef REP0Y
+#undef REP1Y
+#undef REP2Y
+#undef REP3Y
+#undef REP4Y
+#undef REP5Y
+#undef REP6Y
+#undef REP7Y
+#undef REP8Y
+#undef REP9Y
+#undef REP0Y_REF
+#undef REP1Y_REF
+#undef REP2Y_REF
+#undef REP3Y_REF
+#undef REP4Y_REF
+#undef REP5Y_REF
+#undef REP6Y_REF
+#undef REP7Y_REF
+#undef REP8Y_REF
+#undef REP9Y_REF
+#undef REPEAT
+#undef REPEATY
+#undef REPEATY_REF
+#undef TO_TUPLE_N
+#undef TO_TUPLE1
+#undef TO_TUPLE2
+#undef TO_TUPLE3
+#undef TO_TUPLE4
+#undef TO_TUPLE5
+#undef TO_TUPLE6
+#undef TO_TUPLE7
+#undef TO_TUPLE8
+#undef TO_TUPLE9
 
 #endif  // KAGOME_STRUCT_TO_TUPLE_HPP

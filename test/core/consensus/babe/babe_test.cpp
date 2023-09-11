@@ -41,6 +41,7 @@
 #include "testutil/lazy.hpp"
 #include "testutil/literals.hpp"
 #include "testutil/prepare_loggers.hpp"
+#include "testutil/scale_test_comparator.hpp"
 #include "testutil/sr25519_utils.hpp"
 
 using namespace kagome;
@@ -78,12 +79,14 @@ static Digest make_digest(BabeSlotNumber slot) {
       .authority_index = 0,
       .slot_number = slot,
   };
-  common::Buffer encoded_header{compareWithRef4(babe_header).value()};
+  common::Buffer encoded_header{
+      testutil::scaleEncodeAndCompareWithRef(babe_header).value()};
   digest.emplace_back(
       primitives::PreRuntime{{primitives::kBabeEngineId, encoded_header}});
 
   consensus::babe::Seal seal{};
-  common::Buffer encoded_seal{compareWithRef4(seal).value()};
+  common::Buffer encoded_seal{
+      testutil::scaleEncodeAndCompareWithRef(seal).value()};
   digest.emplace_back(
       primitives::Seal{{primitives::kBabeEngineId, encoded_seal}});
 
@@ -210,8 +213,8 @@ class BabeTest : public testing::Test {
     epoch_.epoch_number = 0;
 
     // add extrinsics root to the header
-    std::vector<common::Buffer> encoded_exts(
-        {common::Buffer(compareWithRef4(extrinsic_).value())});
+    std::vector<common::Buffer> encoded_exts({common::Buffer(
+        testutil::scaleEncodeAndCompareWithRef(extrinsic_).value())});
     created_block_.header.extrinsics_root =
         common::Hash256::fromSpan(
             kagome::storage::trie::calculateOrderedTrieHash(

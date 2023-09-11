@@ -72,7 +72,6 @@ namespace kagome::consensus::grandpa {
       std::shared_ptr<crypto::Hasher> hasher,
       std::shared_ptr<Environment> environment,
       std::shared_ptr<crypto::Ed25519Provider> crypto_provider,
-      std::shared_ptr<runtime::GrandpaApi> grandpa_api,
       std::shared_ptr<crypto::SessionKeys> session_keys,
       const application::ChainSpec &chain_spec,
       std::shared_ptr<AuthorityManager> authority_manager,
@@ -86,7 +85,6 @@ namespace kagome::consensus::grandpa {
         hasher_{std::move(hasher)},
         environment_{std::move(environment)},
         crypto_provider_{std::move(crypto_provider)},
-        grandpa_api_{std::move(grandpa_api)},
         session_keys_{std::move(session_keys)},
         authority_manager_(std::move(authority_manager)),
         synchronizer_(std::move(synchronizer)),
@@ -103,7 +101,6 @@ namespace kagome::consensus::grandpa {
             libp2p::basic::Scheduler::Config{})} {
     BOOST_ASSERT(environment_ != nullptr);
     BOOST_ASSERT(crypto_provider_ != nullptr);
-    BOOST_ASSERT(grandpa_api_ != nullptr);
     BOOST_ASSERT(scheduler_ != nullptr);
     BOOST_ASSERT(authority_manager_ != nullptr);
     BOOST_ASSERT(synchronizer_ != nullptr);
@@ -254,7 +251,7 @@ namespace kagome::consensus::grandpa {
     auto vote_crypto_provider = std::make_shared<VoteCryptoProviderImpl>(
         keypair, crypto_provider_, round_state.round_number, config.voters);
 
-    auto new_round = std::make_shared<VotingRoundImpl>(
+    auto new_round = VotingRoundImpl::create(
         shared_from_this(),
         std::move(config),
         hasher_,
@@ -313,7 +310,7 @@ namespace kagome::consensus::grandpa {
     auto vote_crypto_provider = std::make_shared<VoteCryptoProviderImpl>(
         keypair, crypto_provider_, new_round_number, config.voters);
 
-    auto new_round = std::make_shared<VotingRoundImpl>(
+    auto new_round = VotingRoundImpl::create(
         shared_from_this(),
         std::move(config),
         hasher_,
@@ -1357,7 +1354,7 @@ namespace kagome::consensus::grandpa {
     auto voters = VoterSet::make(authorities).value();
     MovableRoundState state;
     state.round_number = justification.round_number;
-    VotingRoundImpl round{
+    auto round = VotingRoundImpl::create(
         shared_from_this(),
         GrandpaConfig{voters, justification.round_number, {}, {}},
         hasher_,
@@ -1369,9 +1366,9 @@ namespace kagome::consensus::grandpa {
         std::make_shared<VoteGraphImpl>(
             primitives::BlockInfo{}, voters, environment_),
         scheduler_,
-        state,
-    };
-    promise_res->set_value(round.validatePrecommitJustification(justification));
+        state);
+    promise_res->set_value(
+        round->validatePrecommitJustification(justification));
   }
 
   void GrandpaImpl::applyJustification(
