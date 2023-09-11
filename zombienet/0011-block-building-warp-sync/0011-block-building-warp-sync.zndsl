@@ -1,5 +1,5 @@
 Description: Warp sync
-Network: ./test-block-building-warp-sync.toml
+Network: ./0011-block-building-warp-sync.toml
 Creds: config
 
 alice: reports node_roles is 4
