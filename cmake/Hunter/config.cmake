@@ -25,13 +25,13 @@ hunter_config(
 
 hunter_config(
     soralog
-    VERSION 0.1.5
+    VERSION 0.2.0
     KEEP_PACKAGE_SOURCES
 )
 
 hunter_config(
     libp2p
-    VERSION 0.1.12
+    VERSION 0.1.14
     KEEP_PACKAGE_SOURCES
 )
 
