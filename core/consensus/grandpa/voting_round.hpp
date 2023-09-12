@@ -15,7 +15,7 @@ namespace kagome::consensus::grandpa {
   /**
    * Handles execution of one grandpa round. For details @see VotingRoundImpl
    */
-  class VotingRound : public std::enable_shared_from_this<VotingRound> {
+  class VotingRound {
    public:
     virtual ~VotingRound() = default;
 
@@ -28,8 +28,6 @@ namespace kagome::consensus::grandpa {
     virtual bool completable() const = 0;
 
     virtual BlockInfo lastFinalizedBlock() const = 0;
-
-    virtual BlockInfo bestPrevoteCandidate() = 0;
 
     virtual BlockInfo bestFinalCandidate() = 0;
 

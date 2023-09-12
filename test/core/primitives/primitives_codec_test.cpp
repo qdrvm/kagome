@@ -97,8 +97,9 @@ class Primitives : public testing::Test {
   /// TransactionValidity variant instance as Valid alternative and
   /// corresponding scale representation
   ValidTransaction valid_transaction_{.priority = 1,
-                                      .requires = {{0, 1}, {2, 3}},
-                                      .provides = {{4, 5}, {6, 7, 8}},
+                                      .required_tags
+                                      = {{0, 1}, {2, 3}},
+                                      .provided_tags = {{4, 5}, {6, 7, 8}},
                                       .longevity = 2,
                                       .propagate = true};
 };

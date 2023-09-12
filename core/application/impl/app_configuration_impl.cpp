@@ -99,6 +99,7 @@ namespace {
   const auto def_full_sync = "Full";
   const auto def_wasm_execution = "Interpreted";
   const uint32_t def_db_cache_size = 1024;
+  const uint32_t def_parachain_runtime_instance_cache_size = 100;
 
   /**
    * Generate once at run random node name if form of UUID
@@ -249,7 +250,7 @@ namespace kagome::application {
         recovery_state_{def_block_to_recover},
         db_cache_size_{def_db_cache_size},
         state_pruning_depth_{} {
-    SL_INFO(logger_, "Soramitsu Kagome started. Version: {} ", buildVersion());
+    SL_INFO(logger_, "Kagome started. Version: {} ", buildVersion());
   }
 
   fs::path AppConfigurationImpl::chainSpecPath() const {
@@ -791,6 +792,7 @@ namespace kagome::application {
         ("enable-offchain-indexing", po::value<bool>(), "enable Offchain Indexing API, which allow block import to write to offchain DB)")
         ("recovery", po::value<std::string>(), "recovers block storage to state after provided block presented by number or hash, and stop after that")
         ("state-pruning", po::value<std::string>()->default_value("archive"), "state pruning policy. 'archive', 'prune-discarded', or the number of finalized blocks to keep.")
+        ("enable-thorough-pruning", po::bool_switch(), "Makes trie node pruner more efficient, but the node starts slowly")
         ;
 
     po::options_description network_desc("Network options");
@@ -836,6 +838,9 @@ namespace kagome::application {
           "choose the desired wasm execution method (Compiled, Interpreted)")
         ("unsafe-cached-wavm-runtime", "use WAVM runtime cache")
         ("purge-wavm-cache", "purge WAVM runtime cache")
+        ("parachain-runtime-instance-cache-size",
+          po::value<uint32_t>()->default_value(def_parachain_runtime_instance_cache_size),
+          "Number of parachain runtime instances to keep cached")
         ;
     po::options_description benchmark_desc("Benchmark options");
     benchmark_desc.add_options()
@@ -880,6 +885,8 @@ namespace kagome::application {
     }
 
     if (vm.count("help") > 0) {
+      std::cout
+          << "Available subcommands: storage-explorer db-editor benchmark\n";
       std::cout << desc << std::endl;
       return false;
     }
@@ -1385,6 +1392,12 @@ namespace kagome::application {
       }
     }
 
+    if (auto arg =
+            find_argument<uint32_t>(vm, "parachain-runtime-instance-cache-size");
+        arg.has_value()) {
+      parachain_runtime_instance_cache_size_ = *arg;
+    }
+
     bool offchain_worker_value_error = false;
     find_argument<std::string>(
         vm,
@@ -1467,6 +1480,10 @@ namespace kagome::application {
                    err);
           return false;
         }
+      }
+
+      if (find_argument(vm, "enable-thorough-pruning")) {
+        enable_thorough_pruning_ = true;
       }
     }
 

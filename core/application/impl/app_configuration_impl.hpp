@@ -166,6 +166,10 @@ namespace kagome::application {
     bool purgeWavmCache() const override {
       return purge_wavm_cache_;
     }
+    uint32_t parachainRuntimeInstanceCacheSize() const override {
+      return parachain_runtime_instance_cache_size_;
+    }
+
     OffchainWorkerMode offchainWorkerMode() const override {
       return offchain_worker_mode_;
     }
@@ -189,6 +193,9 @@ namespace kagome::application {
     }
     bool shouldPruneDiscardedStates() const override {
       return state_pruning_depth_.has_value() || prune_discarded_states_;
+    }
+    bool enableThoroughPruning() const override {
+      return enable_thorough_pruning_;
     }
     std::optional<std::string_view> devMnemonicPhrase() const override {
       if (dev_mnemonic_phrase_) {
@@ -345,10 +352,12 @@ namespace kagome::application {
     uint32_t db_cache_size_;
     std::optional<size_t> state_pruning_depth_;
     bool prune_discarded_states_ = false;
+    bool enable_thorough_pruning_ = false;
     std::optional<std::string> dev_mnemonic_phrase_;
     std::string node_wss_pem_;
     std::optional<BenchmarkConfigSection> benchmark_config_;
     AllowUnsafeRpc allow_unsafe_rpc_ = AllowUnsafeRpc::kAuto;
+    uint32_t parachain_runtime_instance_cache_size_ = 100;
   };
 
 }  // namespace kagome::application

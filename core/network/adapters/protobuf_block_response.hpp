@@ -49,13 +49,26 @@ namespace kagome::network {
           dst_block->set_message_queue(src_block.message_queue->toString());
         }
 
-        if (src_block.justification) {
+        if (t.multiple_justifications
+            and (src_block.justification or src_block.beefy_justification)) {
+          std::vector<
+              std::pair<primitives::ConsensusEngineId, common::BufferView>>
+              vec;
+          if (auto &gran = src_block.justification) {
+            vec.emplace_back(primitives::kGrandpaEngineId, gran->data);
+          }
+          if (auto &beef = src_block.beefy_justification) {
+            vec.emplace_back(primitives::kUnsupportedEngineId_BEEF, beef->data);
+          }
+          dst_block->set_justifications(
+              common::Buffer{scale::encode(vec).value()}.toString());
+        } else if (src_block.justification) {
           dst_block->set_justification(
               src_block.justification->data.toString());
 
           dst_block->set_is_empty_justification(
               src_block.justification->data.empty());
-        };
+        }
       }
 
       return appendToVec(msg, out, loaded);
@@ -100,22 +113,38 @@ namespace kagome::network {
             common::Buffer::fromString(src_block_data.message_queue());
 
         std::optional<primitives::Justification> justification;
-
-        if (not src_block_data.justification().empty()
-            || src_block_data.is_empty_justification()) {
+        std::optional<primitives::Justification> beefy_justification;
+        if (not src_block_data.justifications().empty()) {
+          using Vec = std::vector<
+              std::pair<primitives::ConsensusEngineId, common::Buffer>>;
+          OUTCOME_TRY(
+              vec,
+              scale::decode<Vec>(str2byte(src_block_data.justifications())));
+          for (auto &[engine, raw] : vec) {
+            if (engine == primitives::kGrandpaEngineId) {
+              justification = primitives::Justification{std::move(raw)};
+            }
+            if (engine == primitives::kUnsupportedEngineId_BEEF) {
+              beefy_justification = primitives::Justification{std::move(raw)};
+            }
+          }
+        } else if (not src_block_data.justification().empty()
+                   || src_block_data.is_empty_justification()) {
           auto data =
               common::Buffer::fromString(src_block_data.justification());
 
           justification.emplace(primitives::Justification{std::move(data)});
         }
 
-        dst_blocks.emplace_back(
-            primitives::BlockData{.hash = hash,
-                                  .header = std::move(header),
-                                  .body = std::move(bodies),
-                                  .receipt = std::move(receipt),
-                                  .message_queue = std::move(message_queue),
-                                  .justification = std::move(justification)});
+        dst_blocks.emplace_back(primitives::BlockData{
+            .hash = hash,
+            .header = std::move(header),
+            .body = std::move(bodies),
+            .receipt = std::move(receipt),
+            .message_queue = std::move(message_queue),
+            .justification = std::move(justification),
+            .beefy_justification = std::move(beefy_justification),
+        });
       }
 
       std::advance(from, msg.ByteSizeLong());
@@ -131,7 +160,7 @@ namespace kagome::network {
             scale::decode<T>(gsl::span<const uint8_t>(
                 reinterpret_cast<const uint8_t *>(buffer.data()),  // NOLINT
                 buffer.size())));
-        return std::move(decoded);
+        return decoded;
       }
       return AdaptersError::EMPTY_DATA;
     }

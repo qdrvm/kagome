@@ -17,7 +17,7 @@ namespace kagome::runtime::binaryen {
 
     virtual std::unique_ptr<MemoryImpl> make(
         RuntimeExternalInterface::InternalMemory *memory,
-        WasmSize heap_base) const;
+        const MemoryConfig& config) const;
   };
 
 }  // namespace kagome::runtime::binaryen

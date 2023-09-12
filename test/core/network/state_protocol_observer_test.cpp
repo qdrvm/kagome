@@ -79,7 +79,7 @@ class StateProtocolObserverTest : public testing::Test {
     auto codec = std::make_shared<PolkadotCodec>();
     OUTCOME_TRY(batch,
                 trie_->getPersistentBatchAt(kEmptyRootHash, std::nullopt));
-    return std::move(batch);
+    return batch;
   }
 
  public:
@@ -130,7 +130,11 @@ TEST_F(StateProtocolObserverTest, Simple) {
   EXPECT_CALL(*headers_, getBlockHeader({"1"_hash256}))
       .WillRepeatedly(testing::Return(header));
 
-  StateRequest request{.hash = "1"_hash256, .start = {}, .no_proof = true};
+  StateRequest request{
+      .hash = "1"_hash256,
+      .start = {},
+      .no_proof = true,
+  };
 
   EXPECT_OUTCOME_TRUE(response,
                       state_protocol_observer_->onStateRequest(request));

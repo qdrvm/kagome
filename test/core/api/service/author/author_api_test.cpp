@@ -471,8 +471,7 @@ TEST_F(AuthorApiTest, PendingExtrinsics) {
   std::unordered_map<Transaction::Hash, std::shared_ptr<Transaction>> trxs;
   std::vector<Extrinsic> expected_result;
 
-  EXPECT_CALL(*transaction_pool, getPendingTransactions())
-      .WillOnce(ReturnRef(trxs));
+  EXPECT_CALL(*transaction_pool, getPendingTransactions(_));
 
   ASSERT_OUTCOME_SUCCESS(actual_result, author_api->pendingExtrinsics());
   ASSERT_EQ(expected_result, actual_result);

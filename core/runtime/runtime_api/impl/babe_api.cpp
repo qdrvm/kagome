@@ -5,7 +5,7 @@
 
 #include "runtime/runtime_api/impl/babe_api.hpp"
 
-#include "runtime/common/executor.hpp"
+#include "runtime/executor.hpp"
 
 namespace kagome::runtime {
 
@@ -16,11 +16,12 @@ namespace kagome::runtime {
 
   outcome::result<primitives::BabeConfiguration> BabeApiImpl::configuration(
       const primitives::BlockHash &block) {
-    OUTCOME_TRY(ref, cache_.get_else(block, [&] {
-      return executor_->callAt<primitives::BabeConfiguration>(
-          block, "BabeApi_configuration");
-    }));
-    return *ref;
+    return executor_->callAt<primitives::BabeConfiguration>(
+        block, "BabeApi_configuration");
   }
 
+  outcome::result<primitives::Epoch> BabeApiImpl::next_epoch(
+      const primitives::BlockHash &block) {
+    return executor_->callAt<primitives::Epoch>(block, "BabeApi_next_epoch");
+  }
 }  // namespace kagome::runtime

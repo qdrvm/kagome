@@ -10,12 +10,14 @@
 
 #include "host_api/host_api.hpp"
 #include "log/profiling_logger.hpp"
+#include "runtime/common/runtime_transaction_error.hpp"
 #include "runtime/memory_provider.hpp"
 #include "runtime/module_repository.hpp"
 #include "runtime/trie_storage_provider.hpp"
 #include "runtime/wavm/compartment_wrapper.hpp"
 #include "runtime/wavm/intrinsics/intrinsic_functions.hpp"
 #include "runtime/wavm/memory_impl.hpp"
+#include "runtime/wavm/module.hpp"
 
 static WAVM::IR::Value evaluateInitializer(
     WAVM::IR::InitializerExpression expression) {
@@ -69,8 +71,6 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::runtime::wavm,
   switch (e) {
     case E::WRONG_ARG_COUNT:
       return "The provided function argument count should equal to 2";
-    case E::FUNC_NOT_FOUND:
-      return "The requested function not found";
     case E::EXECUTION_ERROR:
       return "An error occurred during wasm call execution; Check the logs for "
              "more information";
@@ -85,7 +85,7 @@ namespace kagome::runtime::wavm {
   ModuleInstanceImpl::ModuleInstanceImpl(
       InstanceEnvironment &&env,
       WAVM::Runtime::GCPointer<WAVM::Runtime::Instance> instance,
-      WAVM::Runtime::ModuleRef module,
+      std::shared_ptr<const ModuleImpl> module,
       std::shared_ptr<const CompartmentWrapper> compartment,
       const common::Hash256 &code_hash)
       : env_{std::move(env)},
@@ -97,6 +97,10 @@ namespace kagome::runtime::wavm {
     BOOST_ASSERT(instance_ != nullptr);
     BOOST_ASSERT(compartment_ != nullptr);
     BOOST_ASSERT(module_ != nullptr);
+  }
+
+  std::shared_ptr<const Module> ModuleInstanceImpl::getModule() const {
+    return module_;
   }
 
   outcome::result<PtrSize> ModuleInstanceImpl::callExportFunction(
@@ -112,7 +116,7 @@ namespace kagome::runtime::wavm {
           WAVM::Runtime::getInstanceExport(instance_, name.data()));
       if (!function) {
         SL_DEBUG(logger_, "The requested function {} not found", name);
-        return Error::FUNC_NOT_FOUND;
+        return RuntimeTransactionError::EXPORT_FUNCTION_NOT_FOUND;
       }
       const WAVM::IR::FunctionType functionType =
           WAVM::Runtime::getFunctionType(function);
@@ -200,7 +204,7 @@ namespace kagome::runtime::wavm {
     using WAVM::IR::DataSegment;
     using WAVM::IR::MemoryType;
     using WAVM::IR::Value;
-    auto &ir = getModuleIR(module_);
+    auto &ir = getModuleIR(module_->module_);
 
     for (Uptr segmentIndex = 0; segmentIndex < ir.dataSegments.size();
          ++segmentIndex) {

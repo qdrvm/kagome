@@ -1,5 +1,10 @@
 #!/bin/bash -ex
 
+if [[ "${CI}" ]]; then # CI
+  git config --global --add safe.directory /__w/kagome/kagome
+  source /venv/bin/activate
+fi
+
 KAGOME_ROOT="$(dirname "$0")/../../.."
 
 # cd to kagome source root
@@ -15,13 +20,14 @@ if [ "$BUILD_TYPE" != "Debug" ] && [ "$BUILD_TYPE" != "Release" ] && [ "$BUILD_T
 fi
 
 VERSION="${VERSION:?VERSION variable is not defined}"
+VERSION_COMMIT="${VERSION}"
 # For github action we need remove ref prefix
 if [ "$VERSION" = "refs/heads/master" ]; then
   VERSION=latest
 elif [[ "$VERSION"  == refs/tags/* ]]; then
   VERSION="${VERSION#refs/tags/}"
 else
-  VERSION=$VERSION
+  VERSION=devops
 fi
 
 if [ "$BUILD_TYPE" = "Debug" ]; then
@@ -36,7 +42,7 @@ if [ "$BUILD_TYPE" = "Custom" ]; then
   COMMIT_HASH="$(git rev-parse --short HEAD)"
   TAG="$DOCKER_USERNAME/kagome:$COMMIT_HASH"
 else
-  TAG="soramitsu/kagome:$VERSION"
+  TAG="qdrvm/kagome:$VERSION"
 fi
 
 CTX_DIR="${BUILD_DIR}/docker_context"
@@ -66,5 +72,23 @@ else
 fi
 
 docker push $TAG
+
+# Push with commit hash if not custom
+if [ "$BUILD_TYPE" != "Custom" ]; then
+
+HASH_COMMIT="$(git rev-parse --short HEAD)"
+TAG_HASH_COMMIT="qdrvm/kagome:$HASH_COMMIT"
+
+if [ "$BUILD_TYPE" = "Debug" ]; then
+  TAG_HASH_COMMIT="${TAG_HASH_COMMIT}-debug"
+fi
+if [ "$BUILD_TYPE" = "RelWithDebInfo" ]; then
+  TAG_HASH_COMMIT="${TAG_HASH_COMMIT}-rel-with-deb-info"
+fi
+
+docker tag $TAG $TAG_HASH_COMMIT
+docker push $TAG_HASH_COMMIT
+
+fi
 
 rm -R ${CTX_DIR}

@@ -60,20 +60,6 @@ target_link_libraries(parachain_test
     network
     )
 
-addtest(grandpa_api_test
-    grandpa_api_test.cpp
-    )
-target_link_libraries(grandpa_api_test
-    binaryen_runtime_test
-    grandpa_api
-    storage
-    basic_code_provider
-    key_file_storage
-    core_api
-    logger_for_tests
-    filesystem
-    )
-
 addtest(metadata_test
     metadata_test.cpp
     )
@@ -91,7 +77,7 @@ addtest(runtime_external_interface_test
     )
 target_link_libraries(runtime_external_interface_test
     binaryen_runtime_external_interface
-    runtime_environment_factory
+    executor
     constant_code_provider
     blob
     logger_for_tests

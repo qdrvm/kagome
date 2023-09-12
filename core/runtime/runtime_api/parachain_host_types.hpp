@@ -210,6 +210,8 @@ namespace kagome::runtime {
   using AuthorityDiscoveryId = common::Hash256;
   using AssignmentId = common::Blob<32>;
   struct SessionInfo {
+    SCALE_TIE(13);
+
     /****** New in v2 *******/
     /// All the validators actively participating in parachain consensus.
     /// Indices are into the broader validator set.
@@ -283,10 +285,90 @@ namespace kagome::runtime {
          and no_show_slots == rhs.no_show_slots
          and needed_approvals == rhs.needed_approvals;
     }
+    bool operator!=(const SessionInfo &rhs) const {
+      return !operator==(rhs);
+    }
   };
 
   using InboundDownwardMessage = network::InboundDownwardMessage;
   using InboundHrmpMessage = network::InboundHrmpMessage;
+
+  enum class PvfPrepTimeoutKind {
+    /// For prechecking requests, the time period after which the preparation
+    /// worker is considered
+    /// unresponsive and will be killed.
+    Precheck,
+
+    /// For execution and heads-up requests, the time period after which the
+    /// preparation worker is
+    /// considered unresponsive and will be killed. More lenient than the
+    /// timeout for prechecking
+    /// to prevent honest validators from timing out on valid PVFs.
+    Lenient,
+  };
+
+  /// Type discriminator for PVF execution timeouts
+  enum class PvfExecTimeoutKind {
+    /// The amount of time to spend on execution during backing.
+    Backing,
+
+    /// The amount of time to spend on execution during approval or disputes.
+    ///
+    /// This should be much longer than the backing execution timeout to ensure
+    /// that in the
+    /// absence of extremely large disparities between hardware, blocks that
+    /// pass backing are
+    /// considered executable by approval checkers or dispute participants.
+    Approval,
+  };
+
+  /// Maximum number of memory pages (64KiB bytes per page) the executor can
+  /// allocate.
+  struct MaxMemoryPages {
+    SCALE_TIE(1)
+    uint32_t limit;
+  };
+
+  /// Wasm logical stack size limit (max. number of Wasm values on stack)
+  struct StackLogicalMax {
+    SCALE_TIE(1)
+    uint32_t max_values_num;
+  };
+  /// Executor machine stack size limit, in bytes
+  struct StackNativeMax {
+    SCALE_TIE(1)
+    uint32_t max_bytes_num;
+  };
+  /// Max. amount of memory the preparation worker is allowed to use during
+  /// pre-checking, in bytes
+  struct PrecheckingMaxMemory {
+    SCALE_TIE(1)
+    uint64_t max_bytes_num;
+  };
+  /// PVF preparation timeouts, millisec
+  struct PvfPrepTimeout {
+    SCALE_TIE(2)
+    PvfPrepTimeoutKind kind;
+    uint64_t msec;
+  };
+  /// PVF execution timeouts, millisec
+  struct PvfExecTimeout {
+    SCALE_TIE(2)
+    PvfExecTimeoutKind kind;
+    uint64_t msec;
+  };
+
+  /// Enables WASM bulk memory proposal
+  using WasmExtBulkMemory = Unused<1>;
+
+  using ExecutorParam = boost::variant<Unused<0>,
+                                       MaxMemoryPages,
+                                       StackLogicalMax,
+                                       StackNativeMax,
+                                       PrecheckingMaxMemory,
+                                       PvfPrepTimeout,
+                                       PvfExecTimeout,
+                                       Unused<7>>;  // WasmExtBulkMemory
 
 }  // namespace kagome::runtime
 #endif  // KAGOME_CORE_RUNTIME_PARACHAIN_HOST_TYPES_HPP

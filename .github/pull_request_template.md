@@ -19,7 +19,7 @@
 
 <!-- What benefits will be realized by the code change? -->
 
-### Possible Drawbacks 
+### Possible Drawbacks
 
 <!-- What are the possible side-effects or negative impacts of the code change? -->
 <!-- If no drawbacks, explicitly mention this (write None) -->

@@ -672,6 +672,13 @@ namespace kagome::blockchain {
         });
   }
 
+  outcome::result<void> BlockTreeImpl::markAsRevertedBlocks(
+      const std::vector<primitives::BlockInfo> &blocks) {
+    // TODO Must be implemented
+#warning "Must be implemented"
+    return outcome::success();
+  }
+
   outcome::result<void> BlockTreeImpl::addExistingBlockNoLock(
       BlockTreeData &p,
       const primitives::BlockHash &block_hash,
@@ -704,6 +711,8 @@ namespace kagome::blockchain {
       std::stack<std::pair<primitives::BlockHash, primitives::BlockHeader>>
           to_add;
 
+      auto finalized = getLastFinalizedNoLock(p).number;
+
       for (auto hash = block_header.parent_hash;;) {
         OUTCOME_TRY(header_opt, p.storage_->getBlockHeader(hash));
         if (not header_opt.has_value()) {
@@ -714,6 +723,10 @@ namespace kagome::blockchain {
         SL_TRACE(log_,
                  "Block {} has found in storage and enqueued to add",
                  primitives::BlockInfo(header.number, hash));
+
+        if (header.number <= finalized) {
+          return BlockTreeError::BLOCK_ON_DEAD_END;
+        }
 
         to_add.emplace(hash, std::move(header));
 
@@ -1021,11 +1034,12 @@ namespace kagome::blockchain {
 
       OUTCOME_TRY(chain,
                   getDescendingChainToBlockNoLock(p, finish_block_hash, count));
+
       if (chain.back() != block) {
         return std::vector{block};
       }
       std::reverse(chain.begin(), chain.end());
-      return std::move(chain);
+      return chain;
     });
   }
 
@@ -1097,7 +1111,7 @@ namespace kagome::blockchain {
             return BlockTreeError::BLOCK_ON_DEAD_END;
           }
           std::reverse(chain.begin(), chain.end());
-          return std::move(chain);
+          return chain;
         });
   }
 

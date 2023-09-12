@@ -48,6 +48,8 @@ namespace kagome::network {
         msg.set_max_blocks(t.max.value());
       }
 
+      msg.set_support_multiple_justifications(t.multiple_justifications);
+
       return appendToVec(msg, out, loaded);
     }
 
@@ -88,6 +90,8 @@ namespace kagome::network {
       if (msg.max_blocks() > 0) {
         out.max.emplace(msg.max_blocks());
       }
+
+      out.multiple_justifications = msg.support_multiple_justifications();
 
       std::advance(from, msg.ByteSizeLong());
       return from;

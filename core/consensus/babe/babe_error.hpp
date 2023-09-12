@@ -13,6 +13,7 @@ namespace kagome::consensus::babe {
     MISSING_PROOF = 1,
     BAD_ORDER_OF_DIGEST_ITEM,
     UNKNOWN_DIGEST_TYPE,
+    SLOT_BEFORE_GENESIS,
   };
 
   enum class BlockAdditionError {

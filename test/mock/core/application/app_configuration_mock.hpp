@@ -120,6 +120,11 @@ namespace kagome::application {
 
     MOCK_METHOD(bool, purgeWavmCache, (), (const, override));
 
+    MOCK_METHOD(uint32_t,
+                parachainRuntimeInstanceCacheSize,
+                (),
+                (const, override));
+
     MOCK_METHOD(AppConfiguration::OffchainWorkerMode,
                 offchainWorkerMode,
                 (),
@@ -150,6 +155,8 @@ namespace kagome::application {
                 (const, override));
 
     MOCK_METHOD(bool, shouldPruneDiscardedStates, (), (const, override));
+
+    MOCK_METHOD(bool, enableThoroughPruning, (), (const, override));
 
     MOCK_METHOD(StorageBackend, storageBackend, (), (const, override));
 

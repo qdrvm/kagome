@@ -6,20 +6,15 @@
 #ifndef KAGOME_RUNTIME_CORE_HPP
 #define KAGOME_RUNTIME_CORE_HPP
 
-#include <vector>
-
 #include <optional>
-#include <outcome/outcome.hpp>
 
 #include "primitives/block.hpp"
-#include "primitives/block_id.hpp"
 #include "primitives/common.hpp"
-#include "primitives/transaction_validity.hpp"
 #include "primitives/version.hpp"
-#include "runtime/runtime_environment_factory.hpp"
+#include "storage/changes_trie/changes_tracker.hpp"
 
 namespace kagome::runtime {
-  class RuntimeCodeProvider;
+  class RuntimeContext;
 
   /**
    * Core represents mandatory part of runtime api
@@ -27,13 +22,6 @@ namespace kagome::runtime {
   class Core {
    public:
     virtual ~Core() = default;
-
-    /**
-     * @brief Returns the version of the runtime
-     * @return runtime version
-     */
-    virtual outcome::result<primitives::Version> version(
-        RuntimeEnvironment &env) = 0;
 
     /**
      * @brief Returns the version of the runtime
@@ -66,9 +54,9 @@ namespace kagome::runtime {
      * @param header header used for block initialization
      * @param changes_tracker storage writes and deletes tracker
      */
-    virtual outcome::result<std::unique_ptr<RuntimeEnvironment>>
-    initialize_block(const primitives::BlockHeader &header,
-                     TrieChangesTrackerOpt changes_tracker) = 0;
+    virtual outcome::result<std::unique_ptr<RuntimeContext>> initialize_block(
+        const primitives::BlockHeader &header,
+        TrieChangesTrackerOpt changes_tracker) = 0;
   };
 
 }  // namespace kagome::runtime

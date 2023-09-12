@@ -26,6 +26,7 @@
 #include "mock/core/crypto/hasher_mock.hpp"
 #include "mock/core/crypto/session_keys_mock.hpp"
 #include "mock/core/crypto/sr25519_provider_mock.hpp"
+#include "mock/core/dispute_coordinator/dispute_coordinator_mock.hpp"
 #include "mock/core/network/block_announce_transmitter_mock.hpp"
 #include "mock/core/network/synchronizer_mock.hpp"
 #include "mock/core/parachain/backing_store_mock.hpp"
@@ -34,6 +35,7 @@
 #include "mock/core/runtime/offchain_worker_api_mock.hpp"
 #include "mock/core/storage/trie/trie_storage_mock.hpp"
 #include "mock/core/transaction_pool/transaction_pool_mock.hpp"
+#include "runtime/runtime_context.hpp"
 #include "storage/trie/serialization/ordered_trie_hash.hpp"
 #include "testutil/lazy.hpp"
 #include "testutil/literals.hpp"
@@ -131,7 +133,8 @@ class BabeTest : public testing::Test {
         .WillByDefault(Return(babe_config_->epoch_length));
 
     babe_util_ = std::make_shared<BabeUtilMock>();
-    EXPECT_CALL(*babe_util_, slotToEpoch(_)).WillRepeatedly(Return(0));
+    EXPECT_CALL(*babe_util_, slotToEpochDescriptor(_, _))
+        .WillRepeatedly(Return(EpochDescriptor{}));
 
     storage_sub_engine_ =
         std::make_shared<primitives::events::StorageSubscriptionEngine>();
@@ -157,8 +160,8 @@ class BabeTest : public testing::Test {
     EXPECT_CALL(*sr25519_provider, sign(_, _))
         .WillRepeatedly(Return(Sr25519Signature{}));
 
-    bitfield_store_ = std::make_shared<parachain::BitfieldStoreMock>();
-    backing_store_ = std::make_shared<parachain::BackingStoreMock>();
+    bitfield_store_ = std::make_shared<kagome::parachain::BitfieldStoreMock>();
+    backing_store_ = std::make_shared<kagome::parachain::BackingStoreMock>();
     babe_status_observable_ =
         std::make_shared<primitives::events::BabeStateSubscriptionEngine>();
 
@@ -166,10 +169,14 @@ class BabeTest : public testing::Test {
     EXPECT_CALL(*session_keys_, getBabeKeyPair(_))
         .WillRepeatedly(Return(std::make_pair(keypair_, 0)));
 
+    dispute_coordinator_ = std::make_shared<dispute::DisputeCoordinatorMock>();
+    ON_CALL(*dispute_coordinator_, getDisputeForInherentData(_, _))
+        .WillByDefault(testing::WithArg<1>(testing::Invoke(
+            [](const auto &f) { f(dispute::MultiDisputeStatementSet()); })));
+
     babe_ = std::make_shared<babe::BabeImpl>(
         app_config_,
         app_state_manager_,
-        nullptr,
         lottery_,
         babe_config_repo_,
         proposer_,
@@ -195,7 +202,8 @@ class BabeTest : public testing::Test {
         core_,
         consistency_keeper_,
         trie_storage_,
-        babe_status_observable_);
+        babe_status_observable_,
+        dispute_coordinator_);
 
     epoch_.start_slot = 0;
     epoch_.epoch_number = 0;
@@ -242,9 +250,10 @@ class BabeTest : public testing::Test {
   std::shared_ptr<babe::ConsistencyKeeperMock> consistency_keeper_;
   std::shared_ptr<storage::trie::TrieStorageMock> trie_storage_;
   std::shared_ptr<boost::asio::io_context> io_context_;
-  std::shared_ptr<parachain::BitfieldStoreMock> bitfield_store_;
-  std::shared_ptr<parachain::BackingStoreMock> backing_store_;
+  std::shared_ptr<kagome::parachain::BitfieldStoreMock> bitfield_store_;
+  std::shared_ptr<kagome::parachain::BackingStoreMock> backing_store_;
   primitives::events::BabeStateSubscriptionEnginePtr babe_status_observable_;
+  std::shared_ptr<dispute::DisputeCoordinatorMock> dispute_coordinator_;
 
   std::shared_ptr<babe::BabeImpl> babe_;
 
@@ -273,8 +282,6 @@ class BabeTest : public testing::Test {
   Block created_block_{block_header_, {extrinsic_}};
 
   Hash256 created_block_hash_{"block#1"_hash256};
-
-  consensus::babe::EpochDigest expected_epoch_digest;
 };
 
 ACTION_P(CheckBlockHeader, expected_block_header) {
@@ -307,12 +314,9 @@ TEST_F(BabeTest, Success) {
       .WillRepeatedly(Return(clock::SystemClockMock::zero()));
 
   EXPECT_CALL(*babe_config_repo_, slotDuration()).WillRepeatedly(Return(1ms));
-  EXPECT_CALL(*babe_util_, slotStartTime(_))
-      .WillRepeatedly(Return(clock::SystemClockMock::zero()));
   EXPECT_CALL(*babe_util_, slotFinishTime(_))
-      .WillRepeatedly(Return(clock::SystemClockMock::zero()));
-  EXPECT_CALL(*babe_util_, remainToStartOfSlot(_)).WillRepeatedly(Return(1ms));
-  EXPECT_CALL(*babe_util_, remainToFinishOfSlot(_)).WillRepeatedly(Return(1ms));
+      .WillRepeatedly(Return(clock::SystemClockMock::zero()
+                             + babe_config_repo_->slotDuration()));
 
   testing::Sequence s;
   auto breaker = [](const boost::system::error_code &ec) {
@@ -355,7 +359,7 @@ TEST_F(BabeTest, Success) {
   EXPECT_CALL(*block_announce_transmitter_, blockAnnounce(_))
       .WillOnce(CheckBlockHeader(created_block_.header));
 
-  babe_->runEpoch(epoch_);
+  babe_->runEpoch();
   ASSERT_NO_THROW(on_run_slot_2({}));
 }
 
@@ -369,13 +373,10 @@ TEST_F(BabeTest, NotAuthority) {
   EXPECT_CALL(*babe_util_, slotFinishTime(_)).Times(testing::AnyNumber());
 
   EXPECT_CALL(*block_tree_, bestLeaf()).WillRepeatedly(Return(best_leaf));
-  EXPECT_CALL(*block_tree_, getBlockHeader(best_block_hash_))
-      .WillOnce(Return(best_block_header_));
-  EXPECT_CALL(*babe_util_, slotStartTime(_));
 
-  expected_epoch_digest.authorities.clear();
+  babe_config_->authorities.clear();
   EXPECT_CALL(*timer_, expiresAt(_));
   EXPECT_CALL(*timer_, asyncWait(_));
 
-  babe_->runEpoch(epoch_);
+  babe_->runEpoch();
 }

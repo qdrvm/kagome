@@ -38,14 +38,14 @@
 #include "primitives/block.hpp"
 #include "primitives/block_header.hpp"
 #include "primitives/block_id.hpp"
-#include "runtime/common/executor.hpp"
 #include "runtime/common/module_repository_impl.hpp"
 #include "runtime/common/runtime_instances_pool.hpp"
 #include "runtime/common/runtime_transaction_error.hpp"
 #include "runtime/common/runtime_upgrade_tracker_impl.hpp"
 #include "runtime/core_api_factory.hpp"
+#include "runtime/executor.hpp"
 #include "runtime/module.hpp"
-#include "runtime/runtime_environment_factory.hpp"
+#include "runtime/runtime_context.hpp"
 #include "storage/in_memory/in_memory_storage.hpp"
 #include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
@@ -158,13 +158,13 @@ class RuntimeTestBase : public ::testing::Test {
         std::make_shared<runtime::RuntimeInstancesPool>(),
         upgrade_tracker,
         module_factory,
-        std::make_shared<runtime::SingleModuleCache>());
+        std::make_shared<runtime::SingleModuleCache>(),
+        wasm_provider_);
 
-    runtime_env_factory_ = std::make_shared<runtime::RuntimeEnvironmentFactory>(
-        std::move(wasm_provider_), std::move(module_repo), header_repo_);
+    ctx_factory_ = std::make_shared<runtime::RuntimeContextFactoryImpl>(
+        module_repo, header_repo_);
 
-    executor_ =
-        std::make_shared<runtime::Executor>(runtime_env_factory_, cache_);
+    executor_ = std::make_shared<runtime::Executor>(ctx_factory_, cache_);
   }
 
   void preparePersistentStorageExpects() {
@@ -177,8 +177,8 @@ class RuntimeTestBase : public ::testing::Test {
   }
 
   void prepareEphemeralStorageExpects() {
-    EXPECT_CALL(*trie_storage_, getEphemeralBatchAt(_))
-        .WillOnce(testing::Invoke([this](auto &root) {
+    ON_CALL(*trie_storage_, getEphemeralBatchAt(_))
+        .WillByDefault(testing::Invoke([this](auto &root) {
           auto batch = std::make_unique<TrieBatchMock>();
           prepareStorageBatchExpectations(*batch);
           return batch;
@@ -242,9 +242,9 @@ class RuntimeTestBase : public ::testing::Test {
   std::shared_ptr<runtime::RuntimeCodeProvider> wasm_provider_;
   std::shared_ptr<storage::trie::TrieStorageMock> trie_storage_;
   std::shared_ptr<storage::trie::TrieSerializerMock> serializer_;
-  std::shared_ptr<runtime::RuntimeEnvironmentFactory> runtime_env_factory_;
   std::shared_ptr<runtime::RuntimePropertiesCacheMock> cache_;
   std::shared_ptr<runtime::Executor> executor_;
+  std::shared_ptr<runtime::RuntimeContextFactoryImpl> ctx_factory_;
   std::shared_ptr<offchain::OffchainPersistentStorageMock> offchain_storage_;
   std::shared_ptr<offchain::OffchainWorkerPoolMock> offchain_worker_pool_;
   std::shared_ptr<crypto::Hasher> hasher_;

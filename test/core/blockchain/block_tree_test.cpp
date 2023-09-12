@@ -27,6 +27,7 @@
 #include "network/impl/extrinsic_observer_impl.hpp"
 #include "primitives/block_id.hpp"
 #include "primitives/justification.hpp"
+#include "runtime/runtime_context.hpp"
 #include "scale/scale.hpp"
 #include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"

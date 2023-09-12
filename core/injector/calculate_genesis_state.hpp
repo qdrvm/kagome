@@ -17,7 +17,8 @@ namespace kagome::injector {
   inline outcome::result<storage::trie::RootHash> calculate_genesis_state(
       const application::ChainSpec &chain_spec,
       const runtime::ModuleFactory &module_factory,
-      storage::trie::TrieSerializer &trie_serializer) {
+      storage::trie::TrieSerializer &trie_serializer,
+      std::shared_ptr<runtime::RuntimePropertiesCache> runtime_cache) {
     auto trie_from = [](const application::GenesisRawData &kv) {
       auto trie = storage::trie::PolkadotTrieImpl::createEmpty();
       for (auto &[k, v] : kv) {
@@ -27,18 +28,15 @@ namespace kagome::injector {
     };
     auto top_trie = trie_from(chain_spec.getGenesisTopSection());
     OUTCOME_TRY(code, top_trie->get(storage::kRuntimeCodeKey));
-    OUTCOME_TRY(env,
-                runtime::RuntimeEnvironment::fromCode(module_factory, code));
-    runtime::CoreImpl core_api{
-        std::make_shared<runtime::Executor>(nullptr, nullptr),
-        nullptr,
-    };
-    OUTCOME_TRY(runtime_version, core_api.version(env));
+
+    OUTCOME_TRY(runtime_version,
+                runtime::callCoreVersion(module_factory, code, runtime_cache));
     auto version = storage::trie::StateVersion{runtime_version.state_version};
     std::vector<std::shared_ptr<storage::trie::PolkadotTrie>> child_tries;
     for (auto &[child, kv] : chain_spec.getGenesisChildrenDefaultSection()) {
       child_tries.emplace_back(trie_from(kv));
-      OUTCOME_TRY(root, trie_serializer.storeTrie(*child_tries.back(), version));
+      OUTCOME_TRY(root,
+                  trie_serializer.storeTrie(*child_tries.back(), version));
 
       common::Buffer child2;
       child2 += storage::kChildStorageDefaultPrefix;

@@ -35,9 +35,10 @@ add_library(network
     warp/sync.cpp
     )
 target_link_libraries(network
+    core_api
     light_api_proto
     p2p::p2p_basic_scheduler
-    runtime_environment_factory
+    executor
     scale_libp2p_types
     blockchain
     logger

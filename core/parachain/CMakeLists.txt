@@ -23,6 +23,9 @@ add_library(validator_parachain
 
 target_link_libraries(validator_parachain
     crypto_store
+    dispute_coordinator
+    module_repository
     network
     erasure_coding_crust::ec-cpp
+    waitable_timer
     )

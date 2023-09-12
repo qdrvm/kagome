@@ -27,6 +27,14 @@ target_link_libraries(babe_api
     executor
     )
 
+add_library(beefy_api
+    beefy.cpp
+    )
+target_link_libraries(beefy_api
+    executor
+    runtime_transaction_error
+    )
+
 add_library(block_builder_api
     block_builder.cpp
     )
@@ -38,7 +46,6 @@ add_library(grandpa_api
     grandpa_api.cpp
     )
 target_link_libraries(grandpa_api
-    blockchain
     executor
     )
 
@@ -87,7 +94,7 @@ target_link_libraries(session_keys_api
     )
 
 add_library(runtime_properties_cache
-    runtime_properties_cache_impl.cpp
+    ../../common/runtime_properties_cache_impl.cpp
     )
 target_link_libraries(runtime_properties_cache
     executor

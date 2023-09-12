@@ -38,6 +38,8 @@
 // clang-format on
 template <typename T, typename M = std::shared_mutex>
 struct SafeObject {
+  using Type = T;
+
   template <typename... Args>
   SafeObject(Args &&...args) : t_(std::forward<Args>(args)...) {}
 
@@ -53,11 +55,11 @@ struct SafeObject {
     return std::forward<F>(f)(t_);
   }
 
-  T& unsafeGet() {
+  T &unsafeGet() {
     return t_;
   }
 
-  const T& unsafeGet() const {
+  const T &unsafeGet() const {
     return t_;
   }
 
@@ -65,6 +67,9 @@ struct SafeObject {
   T t_;
   mutable M cs_;
 };
+
+template <typename T, typename M = std::shared_mutex>
+SafeObject(T &&) -> SafeObject<T, M>;
 
 class WaitForSingleObject final {
   std::condition_variable wait_cv_;
