@@ -43,7 +43,13 @@ namespace kagome::network {
               return cb(outcome::failure(read_res.error()));
             }
 
-            auto msg_res = scale::decode<MsgType>(*read_res.value());
+            auto &raw = read_res.value();
+            // TODO(turuslan): `MessageReadWriterUvarint` reuse buffer
+            if (not raw) {
+              static auto empty = std::make_shared<std::vector<uint8_t>>();
+              raw = empty;
+            }
+            auto msg_res = scale::decode<MsgType>(*raw);
             if (!msg_res) {
               return cb(outcome::failure(msg_res.error()));
             }
