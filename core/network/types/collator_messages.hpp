@@ -112,10 +112,10 @@ namespace kagome::network {
     common::Buffer signable() const {
       return common::Buffer{
           ::scale::encode(relay_parent,
-                        para_id,
-                        persisted_data_hash,
-                        pov_hash,
-                        validation_code_hash)
+                          para_id,
+                          persisted_data_hash,
+                          pov_hash,
+                          validation_code_hash)
               .value(),
       };
     }

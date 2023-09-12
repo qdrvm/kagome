@@ -23,6 +23,7 @@
 #include "consensus/timeline/types.hpp"
 #include "crypto/crypto_store/key_file_storage.hpp"
 #include "crypto/crypto_store/session_keys.hpp"
+#include "crypto/type_hasher.hpp"
 #include "dispute_coordinator/dispute_coordinator.hpp"
 #include "injector/lazy.hpp"
 #include "network/peer_view.hpp"
@@ -36,7 +37,6 @@
 #include "runtime/runtime_api/parachain_host_types.hpp"
 #include "utils/safe_object.hpp"
 #include "utils/thread_pool.hpp"
-#include "crypto/type_hasher.hpp"
 
 namespace kagome::consensus::babe {
   class BabeConfigRepository;
@@ -84,7 +84,8 @@ namespace kagome::parachain {
       bool triggered;  /// Whether the assignment has been triggered already.
     };
 
-    using HashedCandidateReceipt = crypto::Hashed<network::CandidateReceipt, 32>;
+    using HashedCandidateReceipt =
+        crypto::Hashed<network::CandidateReceipt, 32>;
 
     /// Metadata regarding a specific tranche of assignments for a specific
     /// candidate.
@@ -221,7 +222,8 @@ namespace kagome::parachain {
       CandidateEntry(const network::CandidateReceipt &receipt,
                      SessionIndex session_index,
                      size_t approvals_size)
-          : CandidateEntry(HashedCandidateReceipt{receipt}, session_index, approvals_size) { }
+          : CandidateEntry(
+              HashedCandidateReceipt{receipt}, session_index, approvals_size) {}
 
       std::optional<std::reference_wrapper<ApprovalEntry>> approval_entry(
           const network::RelayHash &relay_hash) {
@@ -262,8 +264,9 @@ namespace kagome::parachain {
           return true;
         };
 
-        return candidate.getHash() == c.candidate.getHash() && session == c.session
-            && approvals == c.approvals && block_assignments_eq();
+        return candidate.getHash() == c.candidate.getHash()
+            && session == c.session && approvals == c.approvals
+            && block_assignments_eq();
       }
     };
 
@@ -291,9 +294,7 @@ namespace kagome::parachain {
     bool prepare();
 
     using CandidateIncludedList =
-        std::vector<std::tuple<HashedCandidateReceipt,
-                               CoreIndex,
-                               GroupIndex>>;
+        std::vector<std::tuple<HashedCandidateReceipt, CoreIndex, GroupIndex>>;
     using AssignmentsList = std::unordered_map<CoreIndex, OurAssignment>;
 
     static AssignmentsList compute_assignments(
