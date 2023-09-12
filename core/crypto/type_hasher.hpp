@@ -6,6 +6,7 @@
 #ifndef KAGOME_TYPE_HASHER_HASHER_HPP_
 #define KAGOME_TYPE_HASHER_HASHER_HPP_
 
+#include <optional>
 #include <gsl/span>
 #include "crypto/hasher/blake2b_stream_hasher.hpp"
 #include "scale/kagome_scale.hpp"
@@ -26,8 +27,8 @@ namespace kagome::crypto {
   template<typename T, size_t N>
   struct Hashed {
     static_assert(N == 8 || N == 16 || N == 32 || N ==64, "Unexpected hash size");
-    using Type = std::dacay_t<T>;
-    using HashType = Blob<N>;
+    using Type = std::decay_t<T>;
+    using HashType = common::Blob<N>;
 
     template<typename...Args>
     Hashed(Args &&...args) : type_{std::forward<Args>(args)...} {
@@ -37,7 +38,9 @@ namespace kagome::crypto {
       return type_;
     }
 
-    Type &get() {
+    // todo: operator->
+
+    Type &get_mut() {
       opt_hash_ = std::nullopt;
       return type_;
     }
@@ -55,7 +58,7 @@ namespace kagome::crypto {
 
   private:
     T type_;
-    std::optional<HashType> opt_hash_{};
+    mutable std::optional<HashType> opt_hash_{};
   };
 
 
