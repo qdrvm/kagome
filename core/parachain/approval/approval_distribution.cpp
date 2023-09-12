@@ -671,7 +671,7 @@ namespace kagome::parachain {
 
     const auto &[validator_ix, assignments_key] = *founded_key;
     std::vector<CoreIndex> lc;
-    for (const auto &[candidate_hash, _, core_ix, group_ix] : leaving_cores) {
+    for (const auto &[hashed_candidate_receipt, core_ix, group_ix] : leaving_cores) {
       if (isInBackingGroup(config.validator_groups, validator_ix, group_ix)) {
         continue;
       }
@@ -944,7 +944,7 @@ namespace kagome::parachain {
 
     entries.reserve(block_info.included_candidates.size());
     candidates.reserve(block_info.included_candidates.size());
-    for (const auto &[candidateHash, candidateReceipt, coreIndex, groupIndex] :
+    for (const auto &[hashed_candidate_receipt, coreIndex, groupIndex] :
          block_info.included_candidates) {
       std::optional<std::reference_wrapper<const OurAssignment>> assignment{};
       if (auto assignment_it = block_info.assignments.find(coreIndex);
@@ -953,15 +953,15 @@ namespace kagome::parachain {
       }
 
       auto candidate_entry =
-          storedCandidateEntries().get_or_create(candidateHash,
-                                                 candidateReceipt,
+          storedCandidateEntries().get_or_create(hashed_candidate_receipt.getHash(),
+                                                 hashed_candidate_receipt.get(),
                                                  block_info.session_index,
                                                  block_info.n_validators);
       candidate_entry.get().block_assignments.insert_or_assign(
           block_hash,
           ApprovalEntry(groupIndex, assignment, block_info.n_validators));
-      entries.emplace_back(candidateHash, candidate_entry.get());
-      candidates.emplace_back(coreIndex, candidateHash);
+      entries.emplace_back(hashed_candidate_receipt.getHash(), candidate_entry.get());
+      candidates.emplace_back(coreIndex, hashed_candidate_receipt.getHash());
     }
 
     // Update the child index for the parent.
@@ -1036,7 +1036,7 @@ namespace kagome::parachain {
           approved_bitfield.bits.end(), num_candidates, false);
       for (size_t ix = 0; ix < imported_block.included_candidates.size();
            ++ix) {
-        const auto &[_0, _1, _2, backing_group] =
+        const auto &[_0, _1, backing_group] =
             imported_block.included_candidates[ix];
         const size_t backing_group_size =
             ((backing_group < session_info->validator_groups.size())
@@ -1071,8 +1071,8 @@ namespace kagome::parachain {
                                 imported_block));
 
     std::vector<CandidateHash> candidates;
-    for (const auto &[hash, _0, _1, _2] : imported_block.included_candidates) {
-      candidates.emplace_back(hash);
+    for (const auto &[hashed_candidate_receipt, _1, _2] : imported_block.included_candidates) {
+      candidates.emplace_back(hashed_candidate_receipt.getHash());
     }
 
     runNewBlocks(

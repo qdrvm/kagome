@@ -17,6 +17,7 @@
 
 namespace kagome::scale {
   using CompactInteger = ::scale::CompactInteger;
+  using BitVec = ::scale::BitVec;
 
   template <typename F>
   constexpr void encode(const F &func, const primitives::BlockHeader &bh);
