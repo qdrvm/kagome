@@ -111,7 +111,7 @@ namespace kagome::network {
 
     common::Buffer signable() const {
       return common::Buffer{
-          scale::encode(relay_parent,
+          ::scale::encode(relay_parent,
                         para_id,
                         persisted_data_hash,
                         pov_hash,
@@ -519,11 +519,6 @@ namespace kagome::network {
                        T>,  /// protocol message
       ViewUpdate            /// view update message
       >;
-
-  inline CandidateHash candidateHash(const crypto::Hasher &hasher,
-                                     const CandidateReceipt &receipt) {
-    return hasher.blake2b_256(scale::encode(receipt).value());
-  }
 
   inline CandidateHash candidateHash(const crypto::Hasher &hasher,
                                      const CommittedCandidateReceipt &receipt) {

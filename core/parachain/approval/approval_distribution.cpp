@@ -1258,19 +1258,17 @@ namespace kagome::parachain {
 
   void ApprovalDistribution::launch_approval(
       const RelayHash &relay_block_hash,
-      const CandidateHash &candidate_hash,
       SessionIndex session_index,
-      const network::CandidateReceipt &candidate_receipt,
+      const HashedCandidateReceipt &hashed_candidate,
       ValidatorIndex validator_index,
       Hash block_hash,
       GroupIndex backing_group) {
     auto on_recover_complete =
         [wself{weak_from_this()},
-         candidate_receipt,
+         hashed_candidate{hashed_candidate},
          block_hash,
          session_index,
          validator_index,
-         candidate_hash,
          relay_block_hash](
             std::optional<outcome::result<runtime::AvailableData>>
                 &&opt_result) mutable {
@@ -1279,12 +1277,13 @@ namespace kagome::parachain {
             return;
           }
 
+          const auto &candidate_receipt = hashed_candidate.get();
           if (!opt_result) {  // Unavailable
             self->logger_->warn(
                 "No available parachain data.(session index={}, candidate "
                 "hash={}, relay block hash={})",
                 session_index,
-                candidate_hash,
+                hashed_candidate.getHash(),
                 relay_block_hash);
             return;
           }
@@ -1295,16 +1294,13 @@ namespace kagome::parachain {
                 "candidate hash={}, relay block hash={})",
                 opt_result->error().message(),
                 session_index,
-                candidate_hash,
+                hashed_candidate.getHash(),
                 relay_block_hash);
             self->dispute_coordinator_.get()->issueLocalStatement(
-                session_index, candidate_hash, candidate_receipt, false);
+                session_index, hashed_candidate.getHash(), hashed_candidate.get(), false);
             return;
           }
           auto &available_data = opt_result->value();
-          [[maybe_unused]] auto const para_id =
-              candidate_receipt.descriptor.para_id;
-
           auto result = self->parachain_host_->validation_code_by_hash(
               block_hash, candidate_receipt.descriptor.validation_code_hash);
           if (result.has_error() || !result.value()) {
@@ -1321,7 +1317,7 @@ namespace kagome::parachain {
           self->logger_->info(
               "Make exhaustive validation. Candidate hash {}, validator index "
               "{}, block hash {}",
-              candidate_hash,
+              hashed_candidate.getHash(),
               validator_index,
               block_hash);
 
@@ -1334,7 +1330,7 @@ namespace kagome::parachain {
               validation_code);
 
           self->approvals_cache_.exclusiveAccess([&](auto &approvals_cache) {
-            if (auto it = approvals_cache.find(candidate_hash);
+            if (auto it = approvals_cache.find(hashed_candidate.getHash());
                 it != approvals_cache.end()) {
               ApprovalCache &ac = it->second;
               ac.approval_result = outcome;
@@ -1342,14 +1338,14 @@ namespace kagome::parachain {
           });
           if (ApprovalOutcome::Approved == outcome) {
             self->issue_approval(
-                candidate_hash, validator_index, relay_block_hash);
+                hashed_candidate.getHash(), validator_index, relay_block_hash);
           } else if (ApprovalOutcome::Failed == outcome) {
             self->dispute_coordinator_.get()->issueLocalStatement(
-                session_index, candidate_hash, candidate_receipt, false);
+                session_index, hashed_candidate.getHash(), candidate_receipt, false);
           }
         };
 
-    recovery_->recover(candidate_receipt,
+    recovery_->recover(hashed_candidate,
                        session_index,
                        backing_group,
                        std::move(on_recover_complete));
@@ -1471,7 +1467,7 @@ namespace kagome::parachain {
           "Imported assignment. (validator={}, candidate hash={}, para id={})",
           assignment.validator,
           assigned_candidate_hash,
-          candidate_entry.candidate.descriptor.para_id);
+          candidate_entry.candidate.get().descriptor.para_id);
       res = AssignmentCheckResult::Accepted;
     }
 
@@ -1567,7 +1563,7 @@ namespace kagome::parachain {
              approval.payload.ix,
              pubkey,
              approved_candidate_hash,
-             candidate_entry.candidate.descriptor.para_id);
+             candidate_entry.candidate.get().descriptor.para_id);
     advance_approval_state(block_entry,
                            approved_candidate_hash,
                            candidate_entry,
@@ -2340,13 +2336,12 @@ namespace kagome::parachain {
   }
 
   void ApprovalDistribution::runLaunchApproval(
-      const CandidateHash &candidate_hash,
       const approval::IndirectAssignmentCert &indirect_cert,
       DelayTranche assignment_tranche,
       const RelayHash &relay_block_hash,
       CandidateIndex candidate_index,
       SessionIndex session,
-      const network::CandidateReceipt &candidate,
+      const HashedCandidateReceipt &hashed_candidate,
       GroupIndex backing_group) {
     /// TODO(iceseer): don't launch approval work if the node is syncing.
     const auto &block_hash = indirect_cert.block_hash;
@@ -2358,13 +2353,13 @@ namespace kagome::parachain {
     std::optional<ApprovalOutcome> approval_state =
         approvals_cache_.exclusiveAccess(
             [&](auto &approvals_cache) -> std::optional<ApprovalOutcome> {
-              if (auto it = approvals_cache.find(candidate_hash);
+              if (auto it = approvals_cache.find(hashed_candidate.getHash());
                   it != approvals_cache.end()) {
                 it->second.blocks_.insert(relay_block_hash);
                 return it->second.approval_result;
               }
               approvals_cache.emplace(
-                  candidate_hash,
+                  hashed_candidate.getHash(),
                   ApprovalCache{
                       .blocks_ = {relay_block_hash},
                       .approval_result = ApprovalOutcome::Failed,
@@ -2374,14 +2369,13 @@ namespace kagome::parachain {
 
     if (!approval_state) {
       launch_approval(relay_block_hash,
-                      candidate_hash,
                       session,
-                      candidate,
+                      hashed_candidate,
                       validator_index,
                       block_hash,
                       backing_group);
     } else if (*approval_state == ApprovalOutcome::Approved) {
-      issue_approval(candidate_hash, validator_index, block_hash);
+      issue_approval(hashed_candidate.getHash(), validator_index, block_hash);
     }
   }
 
@@ -2708,7 +2702,7 @@ namespace kagome::parachain {
     const auto should_trigger = shouldTriggerAssignment(
         approval_entry, candidate_entry, tta, tranche_now);
     const auto backing_group = approval_entry.backing_group;
-    const auto &candidate_receipt = candidate_entry.candidate;
+    const auto &candidate_receipt = candidate_entry.candidate.get();
 
     ApprovalEntry::MaybeCert maybe_cert{};
     if (should_trigger) {
@@ -2737,13 +2731,12 @@ namespace kagome::parachain {
                  candidate_receipt.descriptor.para_id,
                  block_hash);
 
-        runLaunchApproval(candidate_hash,
-                          indirect_cert,
+        runLaunchApproval(indirect_cert,
                           tranche,
                           block_hash,
                           CandidateIndex(*i),
                           block_entry.session,
-                          candidate_receipt,
+                          candidate_entry.candidate,
                           backing_group);
       }
     }

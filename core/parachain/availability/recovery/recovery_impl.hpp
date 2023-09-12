@@ -29,7 +29,7 @@ namespace kagome::parachain {
                  std::shared_ptr<authority_discovery::Query> query_audi,
                  std::shared_ptr<network::Router> router);
 
-    void recover(CandidateReceipt receipt,
+    void recover(const HashedCandidateReceipt &hashed_receipt,
                  SessionIndex session_index,
                  std::optional<GroupIndex> backing_group,
                  Cb cb) override;

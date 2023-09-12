@@ -31,12 +31,13 @@ namespace kagome::parachain {
     cached_.erase(candidate);
   }
 
-  void RecoveryImpl::recover(CandidateReceipt receipt,
+  void RecoveryImpl::recover(const HashedCandidateReceipt &hashed_receipt,
                              SessionIndex session_index,
                              std::optional<GroupIndex> backing_group,
                              Cb cb) {
     std::unique_lock lock{mutex_};
-    auto candidate_hash = candidateHash(*hasher_, receipt);
+    const auto &receipt = hashed_receipt.get();
+    const auto &candidate_hash = hashed_receipt.getHash();
     if (auto it = cached_.find(candidate_hash); it != cached_.end()) {
       auto r = it->second;
       lock.unlock();

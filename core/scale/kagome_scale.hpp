@@ -14,10 +14,21 @@
 #include "primitives/block_id.hpp"
 #include "primitives/justification.hpp"
 #include "scale/encode_append.hpp"
+#include "scale/libp2p_types.hpp"
+#include "network/types/roles.hpp"
 
 namespace kagome::scale {
   using CompactInteger = ::scale::CompactInteger;
   using BitVec = ::scale::BitVec;
+  using ScaleDecoderStream = ::scale::ScaleDecoderStream;
+  using ScaleEncoderStream = ::scale::ScaleEncoderStream;
+  using PeerInfoSerializable = ::scale::PeerInfoSerializable;
+  using DecodeError = ::scale::DecodeError;
+
+  template<typename T>
+  inline auto decode(gsl::span<const uint8_t> data) {
+    return ::scale::decode<T>(std::move(data));
+  }
 
   template <typename F>
   constexpr void encode(const F &func, const primitives::BlockHeader &bh);
@@ -31,6 +42,9 @@ namespace kagome::scale {
 
   template <typename F, size_t MaxSize>
   constexpr void encode(const F &func, const common::SLBuffer<MaxSize> &c);
+
+  template <typename F>
+  constexpr void encode(const F &func, const network::Roles &c);
 
   template <typename F>
   constexpr void encode(const F &func, const primitives::Other &c);
@@ -129,6 +143,11 @@ namespace kagome::scale {
   template <typename F>
   constexpr void encode(const F &func, const ::scale::EncodeOpaqueValue &c) {
     putByte(func, c.v.data(), c.v.size());
+  }
+
+  template <typename F>
+  constexpr void encode(const F &func, const network::Roles &c) {
+    encode(func, c.value);
   }
 
 }  // namespace kagome::scale
