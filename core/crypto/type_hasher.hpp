@@ -31,14 +31,21 @@ namespace kagome::crypto {
     using HashType = common::Blob<N>;
 
     template<typename...Args>
-    Hashed(Args &&...args) : type_{std::forward<Args>(args)...} {
-    }
+    Hashed(Args &&...args) : type_{std::forward<Args>(args)...} { }
+
+    Hashed(const Hashed &c) = default;
+    Hashed(Hashed &&c) = default;
+
+    Hashed& operator=(const Hashed &c) = default;
+    Hashed& operator=(Hashed &&c) = default;
 
     const Type &get() const {
       return type_;
     }
 
-    // todo: operator->
+    const HashType *operator->() {
+      return &type_;
+    }
 
     Type &get_mut() {
       opt_hash_ = std::nullopt;
