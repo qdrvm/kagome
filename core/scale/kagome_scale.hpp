@@ -10,12 +10,12 @@
 #include "common/blob.hpp"
 #include "consensus/babe/types/babe_block_header.hpp"
 #include "consensus/babe/types/seal.hpp"
+#include "network/types/roles.hpp"
 #include "primitives/block_header.hpp"
 #include "primitives/block_id.hpp"
 #include "primitives/justification.hpp"
 #include "scale/encode_append.hpp"
 #include "scale/libp2p_types.hpp"
-#include "network/types/roles.hpp"
 
 namespace kagome::scale {
   using CompactInteger = ::scale::CompactInteger;
@@ -25,7 +25,7 @@ namespace kagome::scale {
   using PeerInfoSerializable = ::scale::PeerInfoSerializable;
   using DecodeError = ::scale::DecodeError;
 
-  template<typename T>
+  template <typename T>
   inline auto decode(gsl::span<const uint8_t> data) {
     return ::scale::decode<T>(std::move(data));
   }

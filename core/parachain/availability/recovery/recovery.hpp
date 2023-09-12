@@ -19,7 +19,8 @@ namespace kagome::parachain {
     using AvailableData = runtime::AvailableData;
     using Cb =
         std::function<void(std::optional<outcome::result<AvailableData>>)>;
-    using HashedCandidateReceipt = crypto::Hashed<network::CandidateReceipt, 32>;
+    using HashedCandidateReceipt =
+        crypto::Hashed<network::CandidateReceipt, 32>;
 
     virtual ~Recovery() = default;
 

@@ -671,7 +671,8 @@ namespace kagome::parachain {
 
     const auto &[validator_ix, assignments_key] = *founded_key;
     std::vector<CoreIndex> lc;
-    for (const auto &[hashed_candidate_receipt, core_ix, group_ix] : leaving_cores) {
+    for (const auto &[hashed_candidate_receipt, core_ix, group_ix] :
+         leaving_cores) {
       if (isInBackingGroup(config.validator_groups, validator_ix, group_ix)) {
         continue;
       }
@@ -916,10 +917,10 @@ namespace kagome::parachain {
 
     for (auto &candidate : candidates) {
       if (auto obj{boost::get<runtime::CandidateIncluded>(&candidate)}) {
-        included.emplace_back(
-            std::make_tuple(HashedCandidateReceipt{std::move(obj->candidate_receipt)},
-                            obj->core_index,
-                            obj->group_index));
+        included.emplace_back(std::make_tuple(
+            HashedCandidateReceipt{std::move(obj->candidate_receipt)},
+            obj->core_index,
+            obj->group_index));
       }
     }
     return included;
@@ -952,15 +953,16 @@ namespace kagome::parachain {
         assignment = assignment_it->second;
       }
 
-      auto candidate_entry =
-          storedCandidateEntries().get_or_create(hashed_candidate_receipt.getHash(),
-                                                 hashed_candidate_receipt.get(),
-                                                 block_info.session_index,
-                                                 block_info.n_validators);
+      auto candidate_entry = storedCandidateEntries().get_or_create(
+          hashed_candidate_receipt.getHash(),
+          hashed_candidate_receipt.get(),
+          block_info.session_index,
+          block_info.n_validators);
       candidate_entry.get().block_assignments.insert_or_assign(
           block_hash,
           ApprovalEntry(groupIndex, assignment, block_info.n_validators));
-      entries.emplace_back(hashed_candidate_receipt.getHash(), candidate_entry.get());
+      entries.emplace_back(hashed_candidate_receipt.getHash(),
+                           candidate_entry.get());
       candidates.emplace_back(coreIndex, hashed_candidate_receipt.getHash());
     }
 
@@ -1071,7 +1073,8 @@ namespace kagome::parachain {
                                 imported_block));
 
     std::vector<CandidateHash> candidates;
-    for (const auto &[hashed_candidate_receipt, _1, _2] : imported_block.included_candidates) {
+    for (const auto &[hashed_candidate_receipt, _1, _2] :
+         imported_block.included_candidates) {
       candidates.emplace_back(hashed_candidate_receipt.getHash());
     }
 
@@ -1297,7 +1300,10 @@ namespace kagome::parachain {
                 hashed_candidate.getHash(),
                 relay_block_hash);
             self->dispute_coordinator_.get()->issueLocalStatement(
-                session_index, hashed_candidate.getHash(), hashed_candidate.get(), false);
+                session_index,
+                hashed_candidate.getHash(),
+                hashed_candidate.get(),
+                false);
             return;
           }
           auto &available_data = opt_result->value();
@@ -1341,7 +1347,10 @@ namespace kagome::parachain {
                 hashed_candidate.getHash(), validator_index, relay_block_hash);
           } else if (ApprovalOutcome::Failed == outcome) {
             self->dispute_coordinator_.get()->issueLocalStatement(
-                session_index, hashed_candidate.getHash(), candidate_receipt, false);
+                session_index,
+                hashed_candidate.getHash(),
+                candidate_receipt,
+                false);
           }
         };
 
