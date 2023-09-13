@@ -276,10 +276,8 @@ namespace kagome::parachain {
     auto msg = std::make_shared<
         network::WireMessage<network::ValidatorProtocolMessage>>(
         network::ViewUpdate{.view = view});
-    pm_->getStreamEngine()->broadcast(
-        router_->getValidationProtocol(),
-        msg,
-        [&](const libp2p::peer::PeerId &p) { return peer_id != p; });
+    pm_->getStreamEngine()->send(
+        peer_id, router_->getValidationProtocol(), msg);
   }
 
   void ParachainProcessorImpl::broadcastView(const network::View &view) const {
@@ -1126,15 +1124,8 @@ namespace kagome::parachain {
             }
 
             auto stream = stream_result.value();
-            if (auto add_result = stream_engine->addOutgoing(
-                    std::move(stream_result.value()), protocol);
-                !add_result) {
-              self->logger_->error("Unable to store stream {} with {}: {}",
-                                   protocol->protocolName(),
-                                   peer_id,
-                                   add_result.error().message());
-              return;
-            }
+            stream_engine->addOutgoing(std::move(stream_result.value()),
+                                       protocol);
 
             std::forward<F>(callback)(std::move(stream));
           });

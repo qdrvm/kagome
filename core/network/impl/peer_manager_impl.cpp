@@ -705,37 +705,29 @@ namespace kagome::network {
 
       log_->trace("Try to open outgoing validation protocol.(peer={})",
                   peer_info.id);
-      openOutgoing(
-          stream_engine_,
-          validation_protocol,
-          peer_info,
-          [validation_protocol, peer_info, wptr{weak_from_this()}](
-              auto &&stream_result) {
-            auto self = wptr.lock();
-            if (not self) {
-              return;
-            }
+      openOutgoing(stream_engine_,
+                   validation_protocol,
+                   peer_info,
+                   [validation_protocol, peer_info, wptr{weak_from_this()}](
+                       outcome::result<std::shared_ptr<Stream>> stream_result) {
+                     auto self = wptr.lock();
+                     if (not self) {
+                       return;
+                     }
 
-            auto &peer_id = peer_info.id;
-            if (!stream_result.has_value()) {
-              self->log_->warn("Unable to create stream {} with {}: {}",
-                               validation_protocol->protocolName(),
-                               peer_id,
-                               stream_result.error().message());
-              return;
-            }
+                     auto &peer_id = peer_info.id;
+                     if (!stream_result.has_value()) {
+                       self->log_->warn(
+                           "Unable to create stream {} with {}: {}",
+                           validation_protocol->protocolName(),
+                           peer_id,
+                           stream_result.error().message());
+                       return;
+                     }
 
-            if (auto res = self->stream_engine_->addOutgoing(
-                    stream_result.value(), validation_protocol);
-                !res) {
-              SL_VERBOSE(self->log_,
-                         "Can't register outgoing {} stream with {}: {}",
-                         validation_protocol->protocolName(),
-                         stream_result.value()->remotePeerId().value(),
-                         res.error().message());
-              stream_result.value()->reset();
-            }
-          });
+                     self->stream_engine_->addOutgoing(stream_result.value(),
+                                                       validation_protocol);
+                   });
     }
   }
 
