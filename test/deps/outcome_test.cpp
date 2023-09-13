@@ -4,8 +4,12 @@
  */
 
 #include "outcome/outcome.hpp"
+
+#include <fmt/format.h>
 #include <gtest/gtest.h>
 #include <string>
+
+#include "testutil/outcome/dummy_error.hpp"
 
 using std::string_literals::operator""s;
 
@@ -57,8 +61,9 @@ outcome::result<int> convert(const std::string &str) {
     return ConversionErrc::EMPTY_STRING;
   }
 
-  if (!std::all_of(str.begin(), str.end(), ::isdigit))
+  if (!std::all_of(str.begin(), str.end(), ::isdigit)) {
     return ConversionErrc::ILLEGAL_CHAR;
+  }
 
   if (str.length() > 9) {
     return ConversionErrc::TOO_LONG;
@@ -120,4 +125,158 @@ TEST(Outcome, DivisionError) {
   ASSERT_EQ(err.message(), DIV_0_MSG);  // name of the enum
   using sooper::loong::ns::DivisionErrc;
   ASSERT_EQ(err.category().name(), typeid(DivisionErrc).name());
+}
+
+TEST(Outcome, FormatterStdErrorCore) {
+  auto error = make_error_code(testutil::DummyError::ERROR);
+
+  auto expected = error.message();
+
+  {
+    auto out = fmt::format("{}", error);
+    EXPECT_EQ(out, expected);
+  }
+  {
+    std::string out;
+    out.resize(32);
+    auto it = fmt::format_to(out.begin(), "{}", error);
+    out = out.substr(0, it - out.begin());
+    EXPECT_EQ(out, expected);
+  }
+  {
+    std::string out;
+    out.resize(32);
+    auto it = fmt::format_to_n(out.begin(), out.size(), "{}", error).out;
+    out = out.substr(0, it - out.begin());
+    EXPECT_EQ(out, expected);
+  }
+}
+
+TEST(Outcome, FormatterBoostSystemErrorCode) {
+  boost::system::error_code ec;
+
+  auto expected = ec.message();
+
+  {
+    auto out = fmt::format("{}", ec);
+    EXPECT_EQ(out, expected);
+  }
+  {
+    std::string out;
+    out.resize(32);
+    auto it = fmt::format_to(out.begin(), "{}", ec);
+    out = out.substr(0, it - out.begin());
+    EXPECT_EQ(out, expected);
+  }
+  {
+    std::string out;
+    out.resize(32);
+    auto it = fmt::format_to_n(out.begin(), out.size(), "{}", ec).out;
+    out = out.substr(0, it - out.begin());
+    EXPECT_EQ(out, expected);
+  }
+}
+
+TEST(Outcome, FormatterVoidSuccess) {
+  auto success = outcome::success();
+
+  auto expected = "<success>";
+
+  {
+    auto out = fmt::format("{}", success);
+    EXPECT_EQ(out, expected);
+  }
+  {
+    std::string out;
+    out.resize(32);
+    auto it = fmt::format_to(out.begin(), "{}", success);
+    out = out.substr(0, it - out.begin());
+    EXPECT_EQ(out, expected);
+  }
+  {
+    std::string out;
+    out.resize(32);
+    auto it = fmt::format_to_n(out.begin(), out.size(), "{}", success).out;
+    out = out.substr(0, it - out.begin());
+    EXPECT_EQ(out, expected);
+  }
+}
+
+TEST(Outcome, FormatterNonVoidSuccess) {
+  std::string data("Yahoo!");
+  auto success = outcome::success(data);
+
+  auto expected = data;
+
+  {
+    auto out = ::fmt::format("{}", success);
+    EXPECT_EQ(out, expected);
+  }
+  {
+    std::string out;
+    out.resize(32);
+    auto it = ::fmt::format_to(out.begin(), "{}", success);
+    out = out.substr(0, it - out.begin());
+    EXPECT_EQ(out, expected);
+  }
+  {
+    std::string out;
+    out.resize(32);
+    auto it =
+        soralog::fmt::format_to_n(out.begin(), out.size(), "{}", success).out;
+    out = out.substr(0, it - out.begin());
+    EXPECT_EQ(out, expected);
+  }
+}
+
+TEST(Outcome, FormatterResultSuccess) {
+  auto outcome = outcome::result<std::string>("Yahoo!");
+
+  auto expected = outcome.value();
+
+  {
+    auto out = ::fmt::format("{}", outcome);
+    EXPECT_EQ(out, expected);
+  }
+  {
+    std::string out;
+    out.resize(32);
+    auto it = ::fmt::format_to(out.begin(), "{}", outcome);
+    out = out.substr(0, it - out.begin());
+    EXPECT_EQ(out, expected);
+  }
+  {
+    std::string out;
+    out.resize(32);
+    auto it =
+        soralog::fmt::format_to_n(out.begin(), out.size(), "{}", outcome).out;
+    out = out.substr(0, it - out.begin());
+    EXPECT_EQ(out, expected);
+  }
+}
+
+TEST(Outcome, FormatterResultFailure) {
+  auto outcome = outcome::result<std::string>(testutil::DummyError::ERROR);
+
+  auto expected = outcome.error().message();
+
+  {
+    auto out = ::fmt::format("{}", outcome);
+    EXPECT_EQ(out, expected);
+  }
+  {
+    std::string out;
+    out.resize(32);
+    auto it = ::fmt::format_to(out.begin(), "{}", outcome);
+    out = out.substr(0, it - out.begin());
+    EXPECT_EQ(out, expected);
+  }
+  {
+    std::string out;
+    out.resize(32);
+    auto it =
+        soralog::fmt::format_to_n(out.begin(), out.size(), "{}", outcome).out;
+    out = out.substr(0, it - out.begin());
+    EXPECT_EQ(out, expected);
+  }
 }

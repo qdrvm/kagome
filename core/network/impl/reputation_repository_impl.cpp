@@ -7,7 +7,7 @@
 
 #include <boost/assert.hpp>
 
-#include "network/helpers/peer_id_formatter.hpp"
+#include "log/formatters/peer_id.hpp"
 
 using namespace std::chrono_literals;
 

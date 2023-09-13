@@ -10,7 +10,8 @@
 #include "clock/impl/clock_impl.hpp"
 #include "common/monadic_utils.hpp"
 #include "host_api/impl/storage_util.hpp"
-#include "log/profiling_logger.hpp"
+#include "log/formatters/optional.hpp"
+#include "log/trace_macros.hpp"
 #include "runtime/common/runtime_transaction_error.hpp"
 #include "runtime/memory_provider.hpp"
 #include "runtime/ptr_size.hpp"
@@ -18,7 +19,6 @@
 #include "scale/encode_append.hpp"
 #include "storage/predefined_keys.hpp"
 #include "storage/trie/impl/topper_trie_batch_impl.hpp"
-#include "storage/trie/polkadot_trie/trie_error.hpp"
 #include "storage/trie/serialization/ordered_trie_hash.hpp"
 
 using kagome::common::Buffer;

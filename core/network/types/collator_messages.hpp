@@ -564,12 +564,12 @@ struct fmt::formatter<kagome::network::SignedBitfield> {
       buf[ix] = bits[ix] ? '1' : '0';
     }
 
-    return format_to(ctx.out(),
-                     "sig={}, validator={}, bits=[0b{}{}]",
-                     val.signature,
-                     val.payload.ix,
-                     buf,
-                     ix == bits.size() ? "" : "…");
+    return ::fmt::format_to(ctx.out(),
+                            "sig={}, validator={}, bits=[0b{}{}]",
+                            val.signature,
+                            val.payload.ix,
+                            buf,
+                            ix == bits.size() ? "" : "…");
   }
 };
 

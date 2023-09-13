@@ -3,7 +3,9 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include <network/impl/stream_engine.hpp>
+#include "network/impl/stream_engine.hpp"
+#include "log/formatters/optional.hpp"
+#include "log/formatters/peer_id.hpp"
 
 namespace kagome::network {
 
@@ -221,24 +223,6 @@ namespace kagome::network {
                  ? fmt::format("{}", dst->remotePeerId().value())
                  : "without PeerId",
              replaced ? "replaced" : "stored");
-  }
-
-  [[maybe_unused]] void StreamEngine::dump(std::string_view msg) {
-    if (logger_->level() >= log::Level::DEBUG) {
-      logger_->debug("DUMP: vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv");
-      logger_->debug("DUMP: {}", msg);
-      forEachPeer([&](const auto &peer_id, const auto &proto_map) {
-        logger_->debug("DUMP:   Peer {}", peer_id);
-        for (auto const &[protocol, descr] : proto_map) {
-          logger_->debug("DUMP:     Protocol {}", protocol);
-          logger_->debug("DUMP:       I={} O={}   Messages:{}",
-                         descr.incoming.stream,
-                         descr.outgoing.stream,
-                         descr.deferred_messages.size());
-        }
-      });
-      logger_->debug("DUMP: ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^");
-    }
   }
 
   void StreamEngine::openOutgoingStream(

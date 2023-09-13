@@ -3,8 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_STORAGE_TRIE_POLKADOT_NODE
-#define KAGOME_STORAGE_TRIE_POLKADOT_NODE
+#pragma once
 
 #include <optional>
 
@@ -288,12 +287,10 @@ struct fmt::formatter<kagome::storage::trie::KeyNibbles> {
   auto format(const kagome::storage::trie::KeyNibbles &p,
               FormatContext &ctx) const -> decltype(ctx.out()) {
     if (p.size() % 2 != 0) {
-      format_to(ctx.out(), "{:x}", p[0]);
+      fmt::format_to(ctx.out(), "{:x}", p[0]);
     }
     for (size_t i = p.size() % 2; i < p.size() - 1; i += 2) {
-      format_to(ctx.out(), "{:02x}", p.toByte(p[i], p[i + 1]));
+      fmt::format_to(ctx.out(), "{:02x}", p.toByte(p[i], p[i + 1]));
     }
   }
 };
-
-#endif  // KAGOME_STORAGE_TRIE_POLKADOT_NODE

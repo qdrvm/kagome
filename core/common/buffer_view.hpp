@@ -3,8 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_COMMON_BUFFERVIEW
-#define KAGOME_COMMON_BUFFERVIEW
+#pragma once
 
 #include <gsl/span>
 
@@ -101,11 +100,12 @@ struct fmt::formatter<kagome::common::BufferView> {
     // ctx.out() is an output iterator to write to.
 
     if (view.empty()) {
-      return format_to(ctx.out(), "<empty>");
+      static constexpr string_view message("<empty>");
+      return std::copy(std::begin(message), std::end(message), ctx.out());
     }
 
     if (presentation == 's' && view.size() > 5) {
-      return format_to(
+      return ::fmt::format_to(
           ctx.out(),
           "0x{:04x}…{:04x}",
           // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
@@ -115,8 +115,6 @@ struct fmt::formatter<kagome::common::BufferView> {
                                                       - sizeof(uint16_t))));
     }
 
-    return format_to(ctx.out(), "0x{}", view.toHex());
+    return ::fmt::format_to(ctx.out(), "0x{}", view.toHex());
   }
 };
-
-#endif  // KAGOME_COMMON_BUFFERVIEW

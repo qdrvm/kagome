@@ -9,8 +9,8 @@
 
 #include "blockchain/block_tree.hpp"
 #include "blockchain/genesis_block_hash.hpp"
+#include "log/formatters/peer_id.hpp"
 #include "network/common.hpp"
-#include "network/helpers/peer_id_formatter.hpp"
 #include "network/impl/protocols/protocol_error.hpp"
 #include "network/peer_manager.hpp"
 #include "network/types/grandpa_message.hpp"

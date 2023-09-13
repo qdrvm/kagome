@@ -3,8 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_STREAM_ENGINE_HPP
-#define KAGOME_STREAM_ENGINE_HPP
+#pragma once
 
 #include <deque>
 #include <numeric>
@@ -21,8 +20,8 @@
 #include "libp2p/host/host.hpp"
 #include "libp2p/peer/peer_info.hpp"
 #include "libp2p/peer/protocol.hpp"
+#include "log/formatters/peer_id.hpp"
 #include "log/logger.hpp"
-#include "network/helpers/peer_id_formatter.hpp"
 #include "network/helpers/scale_message_read_writer.hpp"
 #include "network/protocol_base.hpp"
 #include "network/reputation_repository.hpp"
@@ -407,8 +406,6 @@ namespace kagome::network {
       }
     }
 
-    [[maybe_unused]] void dump(std::string_view msg);
-
     void openOutgoingStream(const PeerId &peer_id,
                             const std::shared_ptr<ProtocolBase> &protocol,
                             ProtocolDescr &descr);
@@ -438,5 +435,3 @@ namespace kagome::network {
   };
 
 }  // namespace kagome::network
-
-#endif  // KAGOME_STREAM_ENGINE_HPP

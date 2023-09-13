@@ -8,6 +8,7 @@
 #include <algorithm>
 #include <exception>
 
+#include <fmt/format.h>
 #include <boost/assert.hpp>
 #include <gsl/span>
 
@@ -18,14 +19,17 @@
 #include "crypto/hasher.hpp"
 #include "crypto/secp256k1/secp256k1_provider_impl.hpp"
 #include "crypto/sr25519_provider.hpp"
+#include "log/trace_macros.hpp"
 #include "runtime/memory.hpp"
 #include "runtime/ptr_size.hpp"
 #include "scale/scale.hpp"
 
 namespace {
-  template <typename... Args>
-  void throw_with_error(const kagome::log::Logger &logger, Args &&...fmt_args) {
-    auto msg = fmt::format(fmt_args...);
+  template <typename Format, typename... Args>
+  void throw_with_error(const kagome::log::Logger &logger,
+                        const Format &format,
+                        Args &&...fmt_args) {
+    auto msg = soralog::fmt::format(format, std::forward<Args>(fmt_args)...);
     logger->error(msg);
     throw std::runtime_error(msg);
   }

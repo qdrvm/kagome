@@ -3,8 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_CORE_RUNTIME_WAVM_IMPL_MEMORY_HPP
-#define KAGOME_CORE_RUNTIME_WAVM_IMPL_MEMORY_HPP
+#pragma once
 
 #include "runtime/memory.hpp"
 
@@ -14,6 +13,7 @@
 #include "common/buffer.hpp"
 #include "common/literals.hpp"
 #include "log/logger.hpp"
+#include "log/trace_macros.hpp"
 #include "primitives/math.hpp"
 #include "runtime/types.hpp"
 #include "runtime/wavm/intrinsics/intrinsic_functions.hpp"
@@ -40,7 +40,7 @@ namespace kagome::runtime::wavm {
     template <typename T, typename = std::enable_if_t<std::is_integral_v<T>>>
     T load(WasmPointer addr) const {
       auto res = WAVM::Runtime::memoryRef<T>(memory_, addr);
-      SL_TRACE_FUNC_CALL(logger_, res, this, addr);
+      SL_TRACE_FUNC_CALL(logger_, res, static_cast<const void *>(this), addr);
       return res;
     }
 
@@ -50,7 +50,10 @@ namespace kagome::runtime::wavm {
     gsl::span<T> loadArray(WasmPointer addr, size_t num) const {
       auto res = WAVM::Runtime::memoryArrayPtr<T>(memory_, addr, num);
       gsl::span<T> buffer(res, num);
-      SL_TRACE_FUNC_CALL(logger_, buffer, this, addr);
+      SL_TRACE_FUNC_CALL(logger_,
+                         common::BufferView(buffer),
+                         static_cast<const void *>(this),
+                         addr);
       return buffer;
     }
 
@@ -70,7 +73,8 @@ namespace kagome::runtime::wavm {
 
     template <typename T, typename = std::enable_if_t<std::is_integral_v<T>>>
     void store(WasmPointer addr, T value) {
-      SL_TRACE_VOID_FUNC_CALL(logger_, this, addr, value);
+      SL_TRACE_VOID_FUNC_CALL(
+          logger_, static_cast<const void *>(this), addr, value);
       std::memcpy(
           WAVM::Runtime::memoryArrayPtr<uint8_t>(memory_, addr, sizeof(value)),
           &value,
@@ -79,7 +83,10 @@ namespace kagome::runtime::wavm {
 
     template <typename T, typename = std::enable_if_t<std::is_integral_v<T>>>
     void storeArray(WasmPointer addr, gsl::span<T> array) {
-      SL_TRACE_VOID_FUNC_CALL(logger_, this, addr, array);
+      SL_TRACE_VOID_FUNC_CALL(logger_,
+                              static_cast<const void *>(this),
+                              addr,
+                              common::BufferView(array));
       std::memcpy(WAVM::Runtime::memoryArrayPtr<uint8_t>(
                       memory_, addr, sizeof(array.size_bytes())),
                   array.data(),
@@ -130,5 +137,3 @@ namespace kagome::runtime::wavm {
   };
 
 }  // namespace kagome::runtime::wavm
-
-#endif  // KAGOME_CORE_RUNTIME_WAVM_IMPL_MEMORY_HPP

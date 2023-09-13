@@ -26,9 +26,9 @@
 #include "crypto/sr25519_provider.hpp"
 #include "dispute_coordinator/dispute_coordinator.hpp"
 #include "dispute_coordinator/types.hpp"
+#include "log/formatters/peer_id.hpp"
 #include "metrics/histogram_timer.hpp"
 #include "network/block_announce_transmitter.hpp"
-#include "network/helpers/peer_id_formatter.hpp"
 #include "network/synchronizer.hpp"
 #include "network/types/collator_messages.hpp"
 #include "network/warp/protocol.hpp"
@@ -825,8 +825,8 @@ namespace kagome::consensus::babe {
         metric_is_relaychain_validator_->set(false);
         if (app_config_validator_) {
           SL_VERBOSE(log_,
-                   "Authority not known, skipping slot processing. "
-                   "Probably authority list has changed.");
+                     "Authority not known, skipping slot processing. "
+                     "Probably authority list has changed.");
         }
       } else {
         metric_is_relaychain_validator_->set(true);

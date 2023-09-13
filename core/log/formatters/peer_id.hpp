@@ -3,16 +3,13 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+#pragma once
+
 #include <fmt/format.h>
 #include <libp2p/peer/peer_id.hpp>
 #include <string_view>
 
-#ifndef KAGOME__FMT_FORMATTER_PEERID
-#define KAGOME__FMT_FORMATTER_PEERID
-
-#include <fmt/format.h>
-#include <libp2p/peer/peer_id.hpp>
-
+// Remove after it will be added to libp2p (will be happened compilation error)
 template <>
 struct fmt::formatter<libp2p::peer::PeerId> {
   // Presentation format: 's' - short, 'l' - long.
@@ -35,7 +32,7 @@ struct fmt::formatter<libp2p::peer::PeerId> {
     return it;
   }
 
-  // Formats the Blob using the parsed format specification (presentation)
+  // Formats the PeerId using the parsed format specification (presentation)
   // stored in this formatter.
   template <typename FormatContext>
   auto format(const libp2p::peer::PeerId &peer_id, FormatContext &ctx) const
@@ -45,15 +42,14 @@ struct fmt::formatter<libp2p::peer::PeerId> {
     auto &&b58 = peer_id.toBase58();
 
     if (presentation == 's') {
-      return format_to(ctx.out(),
-                       "…{}",
-                       std::string_view(b58.data() + b58.size()
-                                            - std::min<size_t>(6, b58.size()),
-                                        std::min<size_t>(6, b58.size())));
+      static constexpr string_view message("…");
+      auto out = std::copy(message.begin(), message.end(), ctx.out());
+      return std::copy_n(
+          b58.begin() + (b58.size() - std::min<size_t>(6, b58.size())),
+          std::min<size_t>(6, b58.size()),
+          out);
     }
 
-    return format_to(ctx.out(), "{}", b58);
+    return std::copy(std::begin(b58), std::end(b58), ctx.out());
   }
 };
-
-#endif  // KAGOME__FMT_FORMATTER_PEERID

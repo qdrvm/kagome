@@ -3,11 +3,11 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_NETWORK_COMMON_HPP
-#define KAGOME_NETWORK_COMMON_HPP
+#pragma once
 
 #include <libp2p/peer/protocol.hpp>
 #include <libp2p/peer/stream_protocols.hpp>
+#include <soralog/common.hpp>
 
 #include "application/chain_spec.hpp"
 #include "primitives/common.hpp"
@@ -45,17 +45,19 @@ namespace kagome::network {
     auto instantiate = [&](const auto &arg) {
       if constexpr (std::is_same_v<std::decay_t<decltype(arg)>,
                                    std::decay_t<primitives::BlockHash>>) {
-        protocols.emplace_back(fmt::format(format, hex_lower(arg)));
+        auto x = hex_lower(arg);
+        protocols.emplace_back(soralog::fmt::format(format, x));
       } else if constexpr (std::is_same_v<
                                std::decay_t<decltype(arg)>,
                                std::decay_t<primitives::GenesisBlockHeader>>) {
-        protocols.emplace_back(fmt::format(format, hex_lower(arg.hash)));
+        auto x = hex_lower(arg.hash);
+        protocols.emplace_back(soralog::fmt::format(format, x));
       } else if constexpr (std::is_same_v<
                                std::decay_t<decltype(arg)>,
                                std::decay_t<application::ChainSpec>>) {
-        protocols.emplace_back(fmt::format(format, arg.protocolId()));
+        protocols.emplace_back(soralog::fmt::format(format, arg.protocolId()));
       } else {
-        protocols.emplace_back(fmt::format(format, arg));
+        protocols.emplace_back(soralog::fmt::format(format, arg));
       }
     };
     (instantiate(args), ...);
@@ -63,5 +65,3 @@ namespace kagome::network {
   }
 
 }  // namespace kagome::network
-
-#endif  // KAGOME_NETWORK_COMMON_HPP

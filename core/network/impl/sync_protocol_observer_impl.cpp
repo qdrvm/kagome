@@ -8,8 +8,9 @@
 #include <boost/assert.hpp>
 
 #include "application/app_configuration.hpp"
+#include "log/formatters/peer_id.hpp"
+#include "log/formatters/variant.hpp"
 #include "network/common.hpp"
-#include "network/helpers/peer_id_formatter.hpp"
 #include "primitives/common.hpp"
 
 OUTCOME_CPP_DEFINE_CATEGORY(kagome::network,

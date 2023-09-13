@@ -8,8 +8,8 @@
 #include <gsl/span>
 
 #include "crypto/sr25519_provider.hpp"
+#include "log/formatters/peer_id.hpp"
 #include "network/common.hpp"
-#include "network/helpers/peer_id_formatter.hpp"
 #include "network/impl/protocols/protocol_error.hpp"
 #include "network/peer_manager.hpp"
 #include "parachain/approval/approval_distribution.hpp"
@@ -37,7 +37,7 @@ namespace kagome::parachain {
   }
 
   void ParachainObserverImpl::onIncomingMessage(
-      libp2p::peer::PeerId const &peer_id,
+      const libp2p::peer::PeerId &peer_id,
       network::CollationProtocolMessage &&collation_message) {
     visit_in_place(
         std::move(collation_message),
@@ -63,17 +63,17 @@ namespace kagome::parachain {
   }
 
   void ParachainObserverImpl::onIncomingCollationStream(
-      libp2p::peer::PeerId const &peer_id) {
+      const libp2p::peer::PeerId &peer_id) {
     processor_->onIncomingCollationStream(peer_id);
   }
 
   void ParachainObserverImpl::onIncomingValidationStream(
-      libp2p::peer::PeerId const &peer_id) {
+      const libp2p::peer::PeerId &peer_id) {
     processor_->onIncomingValidationStream(peer_id);
   }
 
   void ParachainObserverImpl::onIncomingMessage(
-      libp2p::peer::PeerId const &peer_id,
+      const libp2p::peer::PeerId &peer_id,
       network::ValidatorProtocolMessage &&message) {
     processor_->onValidationProtocolMsg(peer_id, message);
     approval_distribution_->onValidationProtocolMsg(peer_id, message);
@@ -91,9 +91,9 @@ namespace kagome::parachain {
     return network::ProtocolError::PROTOCOL_NOT_IMPLEMENTED;
   }
 
-  void ParachainObserverImpl::onAdvertise(libp2p::peer::PeerId const &peer_id,
+  void ParachainObserverImpl::onAdvertise(const libp2p::peer::PeerId &peer_id,
                                           primitives::BlockHash relay_parent) {
-    auto const peer_state = pm_->getPeerState(peer_id);
+    const auto peer_state = pm_->getPeerState(peer_id);
     if (!peer_state) {
       logger_->warn("Received collation advertisement from unknown peer {}",
                     peer_id);
@@ -126,11 +126,11 @@ namespace kagome::parachain {
     });
   }
 
-  void ParachainObserverImpl::onDeclare(libp2p::peer::PeerId const &peer_id,
+  void ParachainObserverImpl::onDeclare(const libp2p::peer::PeerId &peer_id,
                                         network::CollatorPublicKey pubkey,
                                         network::ParachainId para_id,
                                         network::Signature signature) {
-    auto const peer_state = pm_->getPeerState(peer_id);
+    const auto peer_state = pm_->getPeerState(peer_id);
     if (!peer_state) {
       logger_->warn("Received collation declaration from unknown peer {}:{}",
                     peer_id,

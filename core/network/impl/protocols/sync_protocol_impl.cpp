@@ -7,10 +7,10 @@
 
 #include "blockchain/genesis_block_hash.hpp"
 #include "common/visitor.hpp"
+#include "log/formatters/peer_id.hpp"
 #include "network/adapters/protobuf_block_request.hpp"
 #include "network/adapters/protobuf_block_response.hpp"
 #include "network/common.hpp"
-#include "network/helpers/peer_id_formatter.hpp"
 #include "network/helpers/protobuf_message_read_writer.hpp"
 #include "network/impl/protocols/protocol_error.hpp"
 #include "network/rpc.hpp"

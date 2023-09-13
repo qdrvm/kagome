@@ -9,15 +9,12 @@
 #include <gsl/span>
 #include <unordered_map>
 
-#include <erasure_coding/erasure_coding.h>
-
-#include "crypto/crypto_store/session_keys.hpp"
 #include "crypto/hasher.hpp"
 #include "crypto/sr25519_provider.hpp"
 #include "dispute_coordinator/impl/runtime_info.hpp"
+#include "log/formatters/optional.hpp"
+#include "log/formatters/peer_id.hpp"
 #include "network/common.hpp"
-#include "network/helpers/peer_id_formatter.hpp"
-#include "network/impl/protocols/protocol_error.hpp"
 #include "network/peer_manager.hpp"
 #include "network/router.hpp"
 #include "parachain/availability/chunks.hpp"

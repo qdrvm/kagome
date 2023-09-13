@@ -10,6 +10,7 @@
 #include <string>
 
 #include <rapidjson/document.h>
+#include <rapidjson/error/en.h>
 #include <rapidjson/filereadstream.h>
 #include <boost/algorithm/string.hpp>
 #include <boost/program_options.hpp>
@@ -27,6 +28,8 @@
 #include "common/uri.hpp"
 #include "filesystem/common.hpp"
 #include "filesystem/directories.hpp"
+#include "log/formatters/filepath.hpp"
+#include "log/formatters/optional.hpp"
 #include "utils/read_file.hpp"
 
 namespace {
@@ -536,7 +539,7 @@ namespace kagome::application {
       SL_ERROR(logger_,
                "Configuration file {} parse failed with error {}",
                filepath,
-               document.GetParseError());
+               GetParseError_En(document.GetParseError()));
       return;
     }
 
@@ -1392,8 +1395,8 @@ namespace kagome::application {
       }
     }
 
-    if (auto arg =
-            find_argument<uint32_t>(vm, "parachain-runtime-instance-cache-size");
+    if (auto arg = find_argument<uint32_t>(
+            vm, "parachain-runtime-instance-cache-size");
         arg.has_value()) {
       parachain_runtime_instance_cache_size_ = *arg;
     }
@@ -1470,14 +1473,14 @@ namespace kagome::application {
         prune_discarded_states_ = true;
       } else {
         uint32_t depth{};
-        auto [_, err] = std::from_chars(&*val.begin(), &*val.end(), depth);
+        auto err = std::from_chars(&*val.begin(), &*val.end(), depth).ec;
         if (err == std::errc{}) {
           state_pruning_depth_ = depth;
         } else {
           SL_ERROR(logger_,
-                   "Failed to parse state-pruning param (which should be "
-                   "either 'archive' or an integer): {}",
-                   err);
+                   "Failed to parse state-pruning param "
+                   "(which should be either 'archive' or an integer): {}",
+                   make_error_code(err));
           return false;
         }
       }

@@ -20,7 +20,7 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::network, WarpSyncCache::Error, e) {
     case E::NOT_IN_CHAIN:
       return "Requested block is not in chain";
   }
-  return fmt::format("WarpSyncCache::Error({})", e);
+  return "unknown error (invalid WarpSyncCache::Error";
 }
 
 namespace kagome::network {

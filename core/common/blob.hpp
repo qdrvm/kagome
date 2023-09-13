@@ -140,7 +140,7 @@ namespace kagome::common {
     /**
      * In compile-time returns size of current blob.
      */
-    constexpr static size_t size() {
+    static constexpr size_t size() {
       return size_;
     }
 
@@ -271,7 +271,7 @@ struct fmt::formatter<kagome::common::Blob<N>> {
     // ctx.out() is an output iterator to write to.
 
     if (presentation == 's') {
-      return format_to(
+      return ::fmt::format_to(
           ctx.out(),
           "0x{:04x}…{:04x}",
           // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
@@ -281,7 +281,7 @@ struct fmt::formatter<kagome::common::Blob<N>> {
                                                       - sizeof(uint16_t))));
     }
 
-    return format_to(ctx.out(), "0x{}", blob.toHex());
+    return ::fmt::format_to(ctx.out(), "0x{}", blob.toHex());
   }
 };
 

@@ -21,7 +21,7 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::authority_discovery, QueryImpl::Error, e) {
     case E::INVALID_SIGNATURE:
       return "Invalid signature";
   }
-  return fmt::format("authority_discovery::QueryImpl::Error({})", e);
+  return "unknown error (authority_discovery::QueryImpl::Error)";
 }
 
 namespace kagome::authority_discovery {
