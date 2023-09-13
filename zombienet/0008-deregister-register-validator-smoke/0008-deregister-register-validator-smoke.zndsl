@@ -7,7 +7,7 @@ bob: is up within 30 seconds
 charlie: is up within 30 seconds
 dave: is up within 30 seconds
 
-# ensure is in the validator set
+# ensure dave is in the validator set
 dave: reports kagome_node_is_parachain_validator is 1 within 240 secs
 dave: reports kagome_node_is_active_validator is 1 within 240 secs
 
