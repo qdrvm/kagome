@@ -51,3 +51,15 @@ test0005:
 
 test0006:
 	docker run qdrvm/zombie-tester:latest zombienet-linux-x64 test -p native kagome/zombienet/0006-parachains-disputes-1-kagome/0006-parachains-disputes-1-kagome.zndsl
+
+test0008:
+	docker run qdrvm/zombie-tester:latest zombienet-linux-x64 test -p native kagome/zombienet/0008-deregister-register-validator-smoke/0008-deregister-register-validator-smoke.zndsl
+
+test0009:
+	docker run qdrvm/zombie-tester:latest zombienet-linux-x64 test -p native kagome/zombienet/0009-basic-warp-sync/0009-basic-warp-sync.zndsl
+
+test0010:
+	docker run qdrvm/zombie-tester:latest zombienet-linux-x64 test -p native kagome/zombienet/0010-validators-warp-sync/0010-validators-warp-sync.zndsl
+
+test0011:
+	docker run qdrvm/zombie-tester:latest zombienet-linux-x64 test -p native kagome/zombienet/0011-block-building-warp-sync/0011-block-building-warp-sync.zndsl
