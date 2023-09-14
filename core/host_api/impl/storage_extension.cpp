@@ -137,8 +137,7 @@ namespace kagome::host_api {
     if (result) {
       SL_TRACE_FUNC_CALL(logger_, result.value(), key_buffer);
     } else {
-      auto msg =
-          ::fmt::format(error_message, key_buffer.toHex(), result.error());
+      auto msg = fmt::format(error_message, key_buffer.toHex(), result.error());
       SL_DEBUG(logger_, "{}", msg);
       throw std::runtime_error(msg);
     }
@@ -196,7 +195,7 @@ namespace kagome::host_api {
     auto enc_limit = memory.loadN(limit_ptr, limit_size);
     auto limit_res = scale::decode<std::optional<uint32_t>>(enc_limit);
     if (!limit_res) {
-      auto msg = ::fmt::format(
+      auto msg = fmt::format(
           "ext_storage_clear_prefix_version_2 failed at decoding second "
           "argument: {}",
           limit_res.error());
@@ -271,7 +270,7 @@ namespace kagome::host_api {
 
     auto val_opt_res = get(key_bytes);
     if (val_opt_res.has_error()) {
-      throw std::runtime_error(::fmt::format(
+      throw std::runtime_error(fmt::format(
           "Error fetching value from storage: {}", val_opt_res.error()));
     }
     auto &val_opt = val_opt_res.value();
@@ -422,14 +421,14 @@ namespace kagome::host_api {
         prefix, limit ? std::optional<uint64_t>(limit.value()) : std::nullopt);
     if (not res) {
       auto msg =
-          ::fmt::format("ext_storage_clear_prefix failed: {}", res.error());
+          fmt::format("ext_storage_clear_prefix failed: {}", res.error());
       logger_->error(msg);
       throw std::runtime_error(msg);
     }
     auto enc_res = scale::encode(res.value());
     if (not enc_res) {
       auto msg =
-          ::fmt::format("ext_storage_clear_prefix failed: {}", enc_res.error());
+          fmt::format("ext_storage_clear_prefix failed: {}", enc_res.error());
       logger_->error(msg);
       throw std::runtime_error(msg);
     }

@@ -132,7 +132,7 @@ TEST(Outcome, FormatterStdErrorCore) {
 
   auto expected = error.message();
 
-  auto actual = ::fmt::format("{}", error);
+  auto actual = fmt::format("{}", error);
   EXPECT_EQ(actual, expected);
 }
 
@@ -141,7 +141,7 @@ TEST(Outcome, FormatterBoostSystemErrorCode) {
 
   auto expected = ec.message();
 
-  auto actual = ::fmt::format("{}", ec);
+  auto actual = fmt::format("{}", ec);
   EXPECT_EQ(actual, expected);
 }
 
@@ -150,7 +150,7 @@ TEST(Outcome, FormatterVoidSuccess) {
 
   auto expected = "<success>";
 
-  auto actual = ::fmt::format("{}", success);
+  auto actual = fmt::format("{}", success);
   EXPECT_EQ(actual, expected);
 }
 
@@ -160,7 +160,7 @@ TEST(Outcome, FormatterNonVoidSuccess) {
 
   auto expected = data;
 
-  auto actual = ::fmt::format("{}", success);
+  auto actual = fmt::format("{}", success);
   EXPECT_EQ(actual, expected);
 }
 
@@ -169,7 +169,7 @@ TEST(Outcome, FormatterResultSuccess) {
 
   auto expected = outcome.value();
 
-  auto actual = ::fmt::format("{}", outcome);
+  auto actual = fmt::format("{}", outcome);
   EXPECT_EQ(actual, expected);
 }
 
@@ -178,6 +178,6 @@ TEST(Outcome, FormatterResultFailure) {
 
   auto expected = outcome.error().message();
 
-  auto actual = ::fmt::format("{}", outcome);
+  auto actual = fmt::format("{}", outcome);
   EXPECT_EQ(actual, expected);
 }

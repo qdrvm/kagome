@@ -17,14 +17,14 @@
 TEST(Formatter, X) {
   {
     kagome::common::Buffer x;
-    std::ignore = ::fmt::format("{}", kagome::common::hex_lower(x));
+    std::ignore = fmt::format("{}", kagome::common::hex_lower(x));
   }
   {
     std::shared_ptr<kagome::common::Buffer> x;
-    std::ignore = ::fmt::format("{}", static_cast<void *>(x.get()));
+    std::ignore = fmt::format("{}", static_cast<void *>(x.get()));
   }
   {
     kagome::primitives::BlockHash x;
-    std::ignore = ::fmt::format("{}", x);
+    std::ignore = fmt::format("{}", x);
   }
 }

@@ -78,45 +78,45 @@ TEST(MpUtilsTest, DISABLED_View) {
   {
     auto x = uint64_t(1);
     auto le = uint64_to_le_bytes(x);
-    std::cout << ::fmt::format("le64 x => {:l}\n", kagome::common::Buffer(le));
+    std::cout << fmt::format("le64 x => {:l}\n", kagome::common::Buffer(le));
     auto be = uint64_to_be_bytes(x);
-    std::cout << ::fmt::format("be64 x => {:l}\n", kagome::common::Buffer(be));
+    std::cout << fmt::format("be64 x => {:l}\n", kagome::common::Buffer(be));
   }
   {
     auto x = uint128_t(1);
     auto le = uint128_to_le_bytes(x);
-    std::cout << ::fmt::format("le128 x => {:l}\n", kagome::common::Buffer(le));
+    std::cout << fmt::format("le128 x => {:l}\n", kagome::common::Buffer(le));
     auto be = uint128_to_be_bytes(x);
-    std::cout << ::fmt::format("be128 x => {:l}\n", kagome::common::Buffer(be));
+    std::cout << fmt::format("be128 x => {:l}\n", kagome::common::Buffer(be));
   }
   {
     auto x = uint256_t(1);
     auto le = uint256_to_le_bytes(x);
-    std::cout << ::fmt::format("le256 x => {:l}\n", kagome::common::Buffer(le));
+    std::cout << fmt::format("le256 x => {:l}\n", kagome::common::Buffer(le));
     auto be = uint256_to_be_bytes(x);
-    std::cout << ::fmt::format("be256 x => {:l}\n", kagome::common::Buffer(be));
+    std::cout << fmt::format("be256 x => {:l}\n", kagome::common::Buffer(be));
   }
 
   {
     auto x = uint64_t(0xffu << 24);
     auto le = uint64_to_le_bytes(x);
-    std::cout << ::fmt::format("le64 x => {:l}\n", kagome::common::Buffer(le));
+    std::cout << fmt::format("le64 x => {:l}\n", kagome::common::Buffer(le));
     auto be = uint64_to_be_bytes(x);
-    std::cout << ::fmt::format("be64 x => {:l}\n", kagome::common::Buffer(be));
+    std::cout << fmt::format("be64 x => {:l}\n", kagome::common::Buffer(be));
   }
   {
     auto x = uint128_t(0xffu << 24);
     auto le = uint128_to_le_bytes(x);
-    std::cout << ::fmt::format("le128 x => {:l}\n", kagome::common::Buffer(le));
+    std::cout << fmt::format("le128 x => {:l}\n", kagome::common::Buffer(le));
     auto be = uint128_to_be_bytes(x);
-    std::cout << ::fmt::format("be128 x => {:l}\n", kagome::common::Buffer(be));
+    std::cout << fmt::format("be128 x => {:l}\n", kagome::common::Buffer(be));
   }
   {
     auto x = uint256_t(0xffu << 24);
     auto le = uint256_to_le_bytes(x);
-    std::cout << ::fmt::format("le256 x => {:l}\n", kagome::common::Buffer(le));
+    std::cout << fmt::format("le256 x => {:l}\n", kagome::common::Buffer(le));
     auto be = uint256_to_be_bytes(x);
-    std::cout << ::fmt::format("be256 x => {:l}\n", kagome::common::Buffer(be));
+    std::cout << fmt::format("be256 x => {:l}\n", kagome::common::Buffer(be));
   }
 }
 

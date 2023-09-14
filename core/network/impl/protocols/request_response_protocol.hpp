@@ -7,7 +7,6 @@
 
 #include "network/impl/protocols/protocol_base_impl.hpp"
 
-#include "log/formatters/peer_id.hpp"
 #include "protocol_error.hpp"
 #include "utils/box.hpp"
 

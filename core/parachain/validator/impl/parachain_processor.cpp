@@ -13,7 +13,6 @@
 #include "crypto/sr25519_provider.hpp"
 #include "dispute_coordinator/impl/runtime_info.hpp"
 #include "log/formatters/optional.hpp"
-#include "log/formatters/peer_id.hpp"
 #include "network/common.hpp"
 #include "network/peer_manager.hpp"
 #include "network/router.hpp"

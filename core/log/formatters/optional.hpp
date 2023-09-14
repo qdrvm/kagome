@@ -30,7 +30,7 @@ struct fmt::formatter<std::optional<T>> {
       -> decltype(ctx.out()) {
     // ctx.out() is an output iterator to write to.
     if (opt.has_value()) {
-      return ::fmt::format_to(ctx.out(), "{}", opt.value());
+      return fmt::format_to(ctx.out(), "{}", opt.value());
     } else {
       static constexpr string_view message("<none>");
       return std::copy(std::begin(message), std::end(message), ctx.out());

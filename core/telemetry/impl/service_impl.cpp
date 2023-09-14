@@ -157,7 +157,7 @@ namespace kagome::telemetry {
           auto schema = parts[2].first.name.substr(std::strlen("x-parity-"));
           auto path =
               std::regex_replace(parts[2].second, std::regex("%2F"), "/");
-          uri_candidate = ::fmt::format("{}://{}{}", schema, host, path);
+          uri_candidate = fmt::format("{}://{}{}", schema, host, path);
         }
       }
       auto parsed_uri = common::Uri::parse(uri_candidate);
@@ -338,7 +338,7 @@ namespace kagome::telemetry {
     rapidjson::Value payload(rapidjson::kObjectType), height;
 
     payload.AddMember(
-        "best", str_val(::fmt::format("{:l}", info.hash)), allocator);
+        "best", str_val(fmt::format("{:l}", info.hash)), allocator);
 
     if (origin.has_value()) {
       height.SetInt(info.number);
@@ -405,9 +405,8 @@ namespace kagome::telemetry {
       finalized_height.SetInt(last_finalized_.block.number);
       tx_count.SetInt(tx_pool_->getStatus().ready_num);
       state_size.SetInt(buffer_storage_->byteSizeHint().value_or(0));
-      best_hash = str_val(::fmt::format("{:l}", last_imported_.block.hash));
-      finalized_hash =
-          str_val(::fmt::format("{:l}", last_finalized_.block.hash));
+      best_hash = str_val(fmt::format("{:l}", last_imported_.block.hash));
+      finalized_hash = str_val(fmt::format("{:l}", last_finalized_.block.hash));
     }
 
     // fields order is preserved the same way substrate orders it
@@ -464,7 +463,7 @@ namespace kagome::telemetry {
 
   void TelemetryServiceImpl::setGenesisBlockHash(
       const primitives::BlockHash &hash) {
-    genesis_hash_ = ::fmt::format("{:l}", hash);
+    genesis_hash_ = fmt::format("{:l}", hash);
   }
 
   void TelemetryServiceImpl::notifyWasSynchronized() {

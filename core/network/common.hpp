@@ -7,7 +7,6 @@
 
 #include <libp2p/peer/protocol.hpp>
 #include <libp2p/peer/stream_protocols.hpp>
-#include <soralog/common.hpp>
 
 #include "application/chain_spec.hpp"
 #include "primitives/common.hpp"
@@ -46,18 +45,20 @@ namespace kagome::network {
       if constexpr (std::is_same_v<std::decay_t<decltype(arg)>,
                                    std::decay_t<primitives::BlockHash>>) {
         auto x = hex_lower(arg);
-        protocols.emplace_back(soralog::fmt::format(format, x));
+        protocols.emplace_back(fmt::vformat(format, fmt::make_format_args(x)));
       } else if constexpr (std::is_same_v<
                                std::decay_t<decltype(arg)>,
                                std::decay_t<primitives::GenesisBlockHeader>>) {
         auto x = hex_lower(arg.hash);
-        protocols.emplace_back(soralog::fmt::format(format, x));
+        protocols.emplace_back(fmt::vformat(format, fmt::make_format_args(x)));
       } else if constexpr (std::is_same_v<
                                std::decay_t<decltype(arg)>,
                                std::decay_t<application::ChainSpec>>) {
-        protocols.emplace_back(soralog::fmt::format(format, arg.protocolId()));
+        protocols.emplace_back(
+            fmt::vformat(format, fmt::make_format_args(arg.protocolId())));
       } else {
-        protocols.emplace_back(soralog::fmt::format(format, arg));
+        protocols.emplace_back(
+            fmt::vformat(format, fmt::make_format_args(arg)));
       }
     };
     (instantiate(args), ...);

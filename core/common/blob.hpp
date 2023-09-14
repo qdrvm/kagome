@@ -3,8 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_BLOB_HPP
-#define KAGOME_BLOB_HPP
+#pragma once
 
 #include <array>
 
@@ -271,7 +270,7 @@ struct fmt::formatter<kagome::common::Blob<N>> {
     // ctx.out() is an output iterator to write to.
 
     if (presentation == 's') {
-      return ::fmt::format_to(
+      return fmt::format_to(
           ctx.out(),
           "0x{:04x}…{:04x}",
           // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
@@ -281,10 +280,8 @@ struct fmt::formatter<kagome::common::Blob<N>> {
                                                       - sizeof(uint16_t))));
     }
 
-    return ::fmt::format_to(ctx.out(), "0x{}", blob.toHex());
+    return fmt::format_to(ctx.out(), "0x{}", blob.toHex());
   }
 };
 
 OUTCOME_HPP_DECLARE_ERROR(kagome::common, BlobError);
-
-#endif  // KAGOME_BLOB_HPP

@@ -260,16 +260,16 @@ namespace kagome::consensus::babe {
           auto lag = std::chrono::system_clock::now() - slot_start;
           std::string lag_msg;
           if (lag > std::chrono::hours(99)) {
-            lag_msg = ::fmt::format(
+            lag_msg = fmt::format(
                 " (lag {} days)",
                 std::chrono::duration_cast<std::chrono::hours>(lag).count()
                     / 24);
           } else if (lag > std::chrono::minutes(99)) {
-            lag_msg = ::fmt::format(
+            lag_msg = fmt::format(
                 " (lag {} hr.)",
                 std::chrono::duration_cast<std::chrono::hours>(lag).count());
           } else if (lag >= std::chrono::minutes(1)) {
-            lag_msg = ::fmt::format(
+            lag_msg = fmt::format(
                 " (lag {} min.)",
                 std::chrono::duration_cast<std::chrono::minutes>(lag).count());
           } else if (lag > slot_duration * 2) {

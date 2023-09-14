@@ -3,8 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_STUB
-#define KAGOME_STUB
+#pragma once
 
 #include "common/empty.hpp"
 #include "common/tagged.hpp"
@@ -25,7 +24,7 @@ namespace kagome {
   template <typename Tag>
   [[noreturn]] scale::ScaleEncoderStream &operator<<(
       scale::ScaleEncoderStream &s, const Stub<Tag> &data) {
-    throw std::runtime_error(::fmt::format(
+    throw std::runtime_error(fmt::format(
         "Can not encode: encoding object is stubbed type tagged by {}",
         typeid(Tag).name()));
   }
@@ -33,11 +32,9 @@ namespace kagome {
   template <typename Tag>
   [[noreturn]] scale::ScaleDecoderStream &operator>>(
       scale::ScaleDecoderStream &s, Stub<Tag> &data) {
-    throw std::runtime_error(::fmt::format(
+    throw std::runtime_error(fmt::format(
         "Can not decode: decoding object is stubbed type tagged by {}",
         typeid(Tag).name()));
   }
 
 }  // namespace kagome
-
-#endif  // KAGOME_STUB

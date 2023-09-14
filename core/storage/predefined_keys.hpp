@@ -3,8 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_CORE_STORAGE_PREDEFINED_KEYS_HPP
-#define KAGOME_CORE_STORAGE_PREDEFINED_KEYS_HPP
+#pragma once
 
 #include "common/buffer.hpp"
 
@@ -49,7 +48,7 @@ namespace kagome::storage {
   template <typename Tag>
   inline common::Buffer kAuthorityManagerStateLookupKey(Tag tag) {
     return common::Buffer::fromString(
-        ::fmt::format(":kagome:auth_mngr_state:{}", tag));
+        fmt::format(":kagome:auth_mngr_state:{}", tag));
   }
 
   inline const common::Buffer kRecentDisputeLookupKey = "recent_disputes"_buf;
@@ -64,7 +63,7 @@ namespace kagome::storage {
   inline common::Buffer kCandidateVotesLookupKey(
       SessionT session, const CandidateHashT &candidate) {
     return common::Buffer::fromString(
-        ::fmt::format("candidate-votes:{:0>10}:{:l}", session, candidate));
+        fmt::format("candidate-votes:{:0>10}:{:l}", session, candidate));
   }
 
   /// Until what session have votes been cleaned up already?
@@ -72,5 +71,3 @@ namespace kagome::storage {
       "cleaned-votes-watermark"_buf;
 
 }  // namespace kagome::storage
-
-#endif  // KAGOME_CORE_STORAGE_PREDEFINED_KEYS_HPP

@@ -16,7 +16,6 @@
 #include "application/app_configuration.hpp"
 #include "application/chain_spec.hpp"
 #include "blockchain/genesis_block_hash.hpp"
-#include "log/formatters/peer_id.hpp"
 #include "log/logger.hpp"
 #include "network/collation_observer.hpp"
 #include "network/common.hpp"

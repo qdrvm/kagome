@@ -90,7 +90,7 @@ struct fmt::formatter<kagome::primitives::detail::BlockInfoT<Tag>> {
 
     if (presentation == 's') {
       static_assert(decltype(block_info.hash)::size() > 4);
-      return ::fmt::format_to(
+      return fmt::format_to(
           ctx.out(),
           "#{} (0x{:04x}…{:04x})",
           block_info.number,
@@ -102,7 +102,7 @@ struct fmt::formatter<kagome::primitives::detail::BlockInfoT<Tag>> {
                                                       - sizeof(uint16_t))));
     }
 
-    return ::fmt::format_to(
+    return fmt::format_to(
         ctx.out(), "#{} (0x{})", block_info.number, block_info.hash.toHex());
   }
 };

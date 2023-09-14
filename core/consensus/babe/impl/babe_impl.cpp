@@ -26,7 +26,6 @@
 #include "crypto/sr25519_provider.hpp"
 #include "dispute_coordinator/dispute_coordinator.hpp"
 #include "dispute_coordinator/types.hpp"
-#include "log/formatters/peer_id.hpp"
 #include "metrics/histogram_timer.hpp"
 #include "network/block_announce_transmitter.hpp"
 #include "network/synchronizer.hpp"
@@ -62,7 +61,7 @@ namespace kagome::consensus::babe {
   inline auto fmtRemains(const BabeClock &clock, BabeTimePoint time) {
     auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(
         std::max(time - clock.now(), {}));
-    return ::fmt::format("{:.2f} sec", ms.count() / 1000.0);
+    return fmt::format("{:.2f} sec", ms.count() / 1000.0);
   }
 
   BabeImpl::BabeImpl(

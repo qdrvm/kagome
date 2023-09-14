@@ -23,7 +23,6 @@
 #include "dispute_coordinator/participation/impl/participation_impl.hpp"
 #include "dispute_coordinator/provisioner/impl/prioritized_selection.hpp"
 #include "dispute_coordinator/provisioner/impl/random_selection.hpp"
-#include "log/formatters/peer_id.hpp"
 #include "network/router.hpp"
 #include "network/types/dispute_messages.hpp"
 #include "parachain/approval/approval_distribution.hpp"

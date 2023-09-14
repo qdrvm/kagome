@@ -41,7 +41,7 @@ namespace {
                       .value();
       auto babe = sr25519_provider->generateKeypair(seed, {});
       auto babe_path =
-          (keystore_dir / ::fmt::format("babe{}", babe.public_key.toHex()))
+          (keystore_dir / fmt::format("babe{}", babe.public_key.toHex()))
               .native();
       std::ofstream babe_file{babe_path};
       babe_file << seed.toHex();
@@ -51,7 +51,7 @@ namespace {
       random_generator->fillRandomly(seed);
       auto grandpa = ed25519_provider->generateKeypair(seed, {}).value();
       auto grandpa_path =
-          (keystore_dir / ::fmt::format("gran{}", grandpa.public_key.toHex()))
+          (keystore_dir / fmt::format("gran{}", grandpa.public_key.toHex()))
               .native();
       std::ofstream grandpa_file{grandpa_path};
       grandpa_file << grandpa.secret_key.toHex();
@@ -63,7 +63,7 @@ namespace {
                       .value();
       auto libp2p = sr25519_provider->generateKeypair(seed, {});
       auto libp2p_path =
-          (keystore_dir / ::fmt::format("lp2p{}", libp2p.public_key.toHex()))
+          (keystore_dir / fmt::format("lp2p{}", libp2p.public_key.toHex()))
               .native();
       std::ofstream libp2p_file{libp2p_path};
       libp2p_file << seed.toHex();

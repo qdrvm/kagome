@@ -24,7 +24,6 @@
 #include "consensus/grandpa/vote_graph/vote_graph_impl.hpp"
 #include "consensus/grandpa/voting_round_error.hpp"
 #include "crypto/crypto_store/session_keys.hpp"
-#include "log/formatters/peer_id.hpp"
 #include "network/peer_manager.hpp"
 #include "network/reputation_repository.hpp"
 #include "network/synchronizer.hpp"

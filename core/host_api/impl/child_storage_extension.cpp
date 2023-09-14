@@ -275,7 +275,7 @@ namespace kagome::host_api {
     auto limit_res = scale::decode<std::optional<uint32_t>>(enc_limit);
 
     if (!limit_res) {
-      auto msg = ::fmt::format(
+      auto msg = fmt::format(
           "ext_default_child_storage_clear_prefix_version_2 failed at decoding "
           "second argument: {}",
           limit_res.error());
@@ -290,7 +290,7 @@ namespace kagome::host_api {
         },
         prefix_buffer);
     if (!exec_result) {
-      auto msg = ::fmt::format(
+      auto msg = fmt::format(
           "ext_default_child_storage_clear_prefix_version_2 failed with "
           "reason: {}",
           exec_result.error());
@@ -416,7 +416,7 @@ namespace kagome::host_api {
     auto limit_res = scale::decode<std::optional<uint32_t>>(enc_limit);
 
     if (!limit_res) {
-      auto msg = ::fmt::format(
+      auto msg = fmt::format(
           "ext_default_child_storage_storage_kill_version_3 failed at decoding "
           "second argument: {}",
           limit_res.error());
@@ -429,7 +429,7 @@ namespace kagome::host_api {
           return child_batch.clearPrefix({}, limit_opt);
         });
     if (!exec_result) {
-      auto msg = ::fmt::format(
+      auto msg = fmt::format(
           "ext_default_child_storage_storage_kill_version_3 failed with "
           "reason: {}",
           exec_result.error());

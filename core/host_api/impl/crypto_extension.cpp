@@ -28,8 +28,9 @@ namespace {
   template <typename Format, typename... Args>
   void throw_with_error(const kagome::log::Logger &logger,
                         const Format &format,
-                        Args &&...fmt_args) {
-    auto msg = soralog::fmt::format(format, std::forward<Args>(fmt_args)...);
+                        Args &&...args) {
+    auto msg = fmt::vformat(format,
+                            fmt::make_format_args(std::forward<Args>(args)...));
     logger->error(msg);
     throw std::runtime_error(msg);
   }

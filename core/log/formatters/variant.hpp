@@ -33,7 +33,7 @@ struct fmt::formatter<boost::variant<Args...>> {
     // ctx.out() is an output iterator to write to.
 
     return kagome::visit_in_place(variant, [&](const auto &value) {
-      return ::fmt::format_to(ctx.out(), "{}", value);
+      return fmt::format_to(ctx.out(), "{}", value);
     });
   }
 };

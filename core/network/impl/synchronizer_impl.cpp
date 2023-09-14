@@ -12,7 +12,6 @@
 #include "consensus/babe/has_babe_consensus_digest.hpp"
 #include "consensus/grandpa/environment.hpp"
 #include "consensus/grandpa/has_authority_set_change.hpp"
-#include "log/formatters/peer_id.hpp"
 #include "network/types/block_attributes.hpp"
 #include "primitives/common.hpp"
 #include "storage/predefined_keys.hpp"
@@ -1123,11 +1122,11 @@ namespace kagome::network {
         auto header_res = block_tree_->getBlockHeader(hash);
         if (not header_res.has_value()) {
           auto n = discardBlock(block_data.hash);
-          SL_WARN(log_,
-                  "Block {} {} not applied as discarded",
-                  block_info,
-                  n ? ::fmt::format("and {} others have", n)
-                    : ::fmt::format("has"));
+          SL_WARN(
+              log_,
+              "Block {} {} not applied as discarded",
+              block_info,
+              n ? fmt::format("and {} others have", n) : fmt::format("has"));
           if (handler) {
             handler(Error::DISCARDED_BLOCK);
           }
@@ -1164,12 +1163,12 @@ namespace kagome::network {
           } else {
             // State syncing in progress; Temporary discard all new blocks
             auto n = discardBlock(block_data.hash);
-            SL_WARN(log_,
-                    "Block {} {} not applied as discarded: "
-                    "state syncing on block in progress",
-                    block_info,
-                    n ? ::fmt::format("and {} others have", n)
-                      : ::fmt::format("has"));
+            SL_WARN(
+                log_,
+                "Block {} {} not applied as discarded: "
+                "state syncing on block in progress",
+                block_info,
+                n ? fmt::format("and {} others have", n) : fmt::format("has"));
             if (handler) {
               handler(Error::DISCARDED_BLOCK);
             }
@@ -1199,12 +1198,11 @@ namespace kagome::network {
         if (block_addition_result
             != outcome::failure(blockchain::BlockTreeError::BLOCK_EXISTS)) {
           auto n = discardBlock(block_data.hash);
-          SL_WARN(
-              log_,
-              "Block {} {} been discarded: {}",
-              block_info,
-              n ? ::fmt::format("and {} others have", n) : ::fmt::format("has"),
-              block_addition_result.error());
+          SL_WARN(log_,
+                  "Block {} {} been discarded: {}",
+                  block_info,
+                  n ? fmt::format("and {} others have", n) : fmt::format("has"),
+                  block_addition_result.error());
           if (handler) {
             handler(Error::DISCARDED_BLOCK);
           }

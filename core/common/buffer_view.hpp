@@ -105,7 +105,7 @@ struct fmt::formatter<kagome::common::BufferView> {
     }
 
     if (presentation == 's' && view.size() > 5) {
-      return ::fmt::format_to(
+      return fmt::format_to(
           ctx.out(),
           "0x{:04x}…{:04x}",
           // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
@@ -115,6 +115,6 @@ struct fmt::formatter<kagome::common::BufferView> {
                                                       - sizeof(uint16_t))));
     }
 
-    return ::fmt::format_to(ctx.out(), "0x{}", view.toHex());
+    return fmt::format_to(ctx.out(), "0x{}", view.toHex());
   }
 };

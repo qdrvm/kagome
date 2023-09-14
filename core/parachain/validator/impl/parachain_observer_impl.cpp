@@ -8,7 +8,6 @@
 #include <gsl/span>
 
 #include "crypto/sr25519_provider.hpp"
-#include "log/formatters/peer_id.hpp"
 #include "network/common.hpp"
 #include "network/impl/protocols/protocol_error.hpp"
 #include "network/peer_manager.hpp"

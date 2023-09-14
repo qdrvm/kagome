@@ -20,7 +20,6 @@
 #include "libp2p/host/host.hpp"
 #include "libp2p/peer/peer_info.hpp"
 #include "libp2p/peer/protocol.hpp"
-#include "log/formatters/peer_id.hpp"
 #include "log/logger.hpp"
 #include "network/helpers/scale_message_read_writer.hpp"
 #include "network/protocol_base.hpp"

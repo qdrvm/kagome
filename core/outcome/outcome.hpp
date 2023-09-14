@@ -7,8 +7,6 @@
 
 #include <libp2p/outcome/outcome.hpp>
 
-#include "log/formatters/outcome.hpp"
-
 namespace outcome {
   using libp2p::outcome::failure;
   using libp2p::outcome::result;

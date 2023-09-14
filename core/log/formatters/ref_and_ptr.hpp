@@ -33,7 +33,7 @@ struct fmt::formatter<std::reference_wrapper<T>> {
     // ctx.out() is an output iterator to write to.
 
     if (ref.has_value()) {
-      return ::fmt::format_to(ctx.out(), "{}", ref.value());
+      return fmt::format_to(ctx.out(), "{}", ref.value());
     } else {
       static constexpr string_view message("<dangling>");
       return std::copy(std::begin(message), std::end(message), ctx.out());
@@ -64,7 +64,7 @@ struct fmt::formatter<std::shared_ptr<T>> {
     // ctx.out() is an output iterator to write to.
 
     if (sptr) {
-      return ::fmt::format_to(ctx.out(), "{}", *sptr);
+      return fmt::format_to(ctx.out(), "{}", *sptr);
     } else {
       static constexpr string_view message("<nullptr>");
       return std::copy(std::begin(message), std::end(message), ctx.out());
@@ -95,7 +95,7 @@ struct fmt::formatter<std::unique_ptr<T>> {
     // ctx.out() is an output iterator to write to.
 
     if (uptr) {
-      return ::fmt::format_to(ctx.out(), "{}", *uptr);
+      return fmt::format_to(ctx.out(), "{}", *uptr);
     } else {
       static constexpr string_view message("<nullptr>");
       return std::copy(std::begin(message), std::end(message), ctx.out());
@@ -126,7 +126,7 @@ struct fmt::formatter<std::weak_ptr<T>> {
     // ctx.out() is an output iterator to write to.
 
     if (not wptr.expired()) {
-      return ::fmt::format_to(ctx.out(), "{}", *wptr.lock());
+      return fmt::format_to(ctx.out(), "{}", *wptr.lock());
     } else {
       static constexpr string_view message("<expired>");
       return std::copy(std::begin(message), std::end(message), ctx.out());

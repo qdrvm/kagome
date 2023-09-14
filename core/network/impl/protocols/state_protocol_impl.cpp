@@ -5,7 +5,6 @@
 
 #include "network/impl/protocols/state_protocol_impl.hpp"
 #include "blockchain/genesis_block_hash.hpp"
-#include "log/formatters/peer_id.hpp"
 #include "network/adapters/protobuf_state_request.hpp"
 #include "network/adapters/protobuf_state_response.hpp"
 #include "network/common.hpp"

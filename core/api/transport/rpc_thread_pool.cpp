@@ -20,12 +20,11 @@ namespace kagome::api {
     threads_.reserve(config_.max_thread_number);
     // Create a pool of threads to run all of the io_contexts.
     for (std::size_t i = 0; i < config_.min_thread_number; ++i) {
-      auto thread = std::make_shared<std::thread>(
-          [context = context_, rpc_thread_number = i + 1] {
-            soralog::util::setThreadName(
-                ::fmt::format("rpc.{}", rpc_thread_number));
-            context->run();
-          });
+      auto thread = std::make_shared<std::thread>([context = context_,
+                                                   rpc_thread_number = i + 1] {
+        soralog::util::setThreadName(fmt::format("rpc.{}", rpc_thread_number));
+        context->run();
+      });
       thread->detach();
       threads_.emplace_back(std::move(thread));
     }

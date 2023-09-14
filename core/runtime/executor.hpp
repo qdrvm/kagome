@@ -158,12 +158,12 @@ namespace kagome::runtime {
                                     std::string_view name,
                                     const F &call) {
       if constexpr (std::is_same_v<Res, primitives::Version>) {
-        likely_if(name == "Core_version") {
+        [[likely]] if (name == "Core_version") {
           return cache_->getVersion(code_hash, call);
         }
       }
       if constexpr (std::is_same_v<Res, primitives::OpaqueMetadata>) {
-        likely_if(name == "Metadata_metadata") {
+        [[likely]] if (name == "Metadata_metadata") {
           return cache_->getMetadata(code_hash, call);
         }
       }
