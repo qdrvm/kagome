@@ -37,10 +37,12 @@
 #include "mock/core/transaction_pool/transaction_pool_mock.hpp"
 #include "runtime/runtime_context.hpp"
 #include "storage/trie/serialization/ordered_trie_hash.hpp"
+#include "testutil/asio_wait.hpp"
 #include "testutil/lazy.hpp"
 #include "testutil/literals.hpp"
 #include "testutil/prepare_loggers.hpp"
 #include "testutil/sr25519_utils.hpp"
+#include "utils/thread_pool.hpp"
 
 using namespace kagome;
 using namespace consensus;
@@ -179,6 +181,7 @@ class BabeTest : public testing::Test {
         app_state_manager_,
         lottery_,
         babe_config_repo_,
+        thread_pool_,
         proposer_,
         block_tree_,
         block_announce_transmitter_,
@@ -228,6 +231,7 @@ class BabeTest : public testing::Test {
   std::shared_ptr<BlockValidator> babe_block_validator_;
   std::shared_ptr<GrandpaMock> grandpa_;
   std::shared_ptr<runtime::CoreMock> core_;
+  ThreadPool thread_pool_{"test", 1};
   std::shared_ptr<ProposerMock> proposer_;
   std::shared_ptr<BlockTreeMock> block_tree_;
   std::shared_ptr<transaction_pool::TransactionPoolMock> tx_pool_;
@@ -361,6 +365,8 @@ TEST_F(BabeTest, Success) {
 
   babe_->runEpoch();
   ASSERT_NO_THROW(on_run_slot_2({}));
+
+  testutil::wait(*thread_pool_.io_context());
 }
 
 /**
