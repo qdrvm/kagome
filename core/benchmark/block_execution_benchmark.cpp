@@ -10,8 +10,8 @@
 
 #include "blockchain/block_tree.hpp"
 #include "primitives/runtime_dispatch_info.hpp"
-#include "runtime/runtime_api/core.hpp"
 #include "runtime/module_repository.hpp"
+#include "runtime/runtime_api/core.hpp"
 #include "storage/trie/trie_storage.hpp"
 
 OUTCOME_CPP_DEFINE_CATEGORY(kagome::benchmark,
@@ -44,7 +44,7 @@ static_assert(STR(CONCAT(2, 3)) == std::string_view("23"));
                "Failure on {}: {} ({})",                  \
                #expr,                                     \
                CONCAT(_res_, __LINE__).error().message(), \
-               fmt::format(msg, __VA_ARGS__));            \
+               ::fmt::format(msg, __VA_ARGS__));          \
       return CONCAT(_res_, __LINE__).as_failure();        \
     }                                                     \
   } while (false);                                        \
@@ -58,7 +58,7 @@ static_assert(STR(CONCAT(2, 3)) == std::string_view("23"));
                "Failure on {}: {} ({})",                  \
                #expr,                                     \
                CONCAT(_res_, __LINE__).error().message(), \
-               fmt::format(msg, __VA_ARGS__));            \
+               ::fmt::format(msg, __VA_ARGS__));          \
       return CONCAT(_res_, __LINE__).as_failure();        \
     }                                                     \
   } while (false);

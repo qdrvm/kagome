@@ -69,10 +69,10 @@ class Command {
     if (args.size() < min or args.size() > max) {
       throw CommandExecutionError{
           name,
-          fmt::format("Argument count mismatch: expected {} to {}, got {}",
-                      min,
-                      max,
-                      args.size())};
+          ::fmt::format("Argument count mismatch: expected {} to {}, got {}",
+                        min,
+                        max,
+                        args.size())};
     }
   }
 
@@ -328,8 +328,8 @@ class SearchChainCommand : public Command {
     assertArgumentCount(args, 2, 4);
     Target target = parseTarget(args[1]);
     if (target == Target::LastBlock) {
-      std::cout << fmt::format("{}\n",
-                               block_storage->getLastFinalized().value());
+      std::cout << ::fmt::format("{}\n",
+                                 block_storage->getLastFinalized().value());
       return;
     }
 
@@ -390,7 +390,7 @@ class SearchChainCommand : public Command {
          current <= stop;
          current++) {
       auto current_hash_opt =
-          unwrapResult(fmt::format("Getting header of block #{}", current),
+          unwrapResult(::fmt::format("Getting header of block #{}", current),
                        block_storage->getBlockHash(current));
       if (!current_hash_opt) {
         throwError("Block header #{} not found", current);
@@ -398,7 +398,7 @@ class SearchChainCommand : public Command {
       const auto &current_hash = current_hash_opt.value();
 
       auto current_header_opt =
-          unwrapResult(fmt::format("Getting header of block #{}", current),
+          unwrapResult(::fmt::format("Getting header of block #{}", current),
                        block_storage->getBlockHeader(current_hash));
       if (!current_header_opt) {
         throwError("Block header #{} not found", current);
@@ -438,13 +438,13 @@ class SearchChainCommand : public Command {
   void searchForJustification(std::ostream &out,
                               const BlockHeader &header) const {
     auto hash_opt_res = unwrapResult(
-        fmt::format("Getting justification for block #{}", header.number),
+        ::fmt::format("Getting justification for block #{}", header.number),
         block_storage->getBlockHash(header.number));
     if (hash_opt_res.has_value()) {
       const auto &hash = hash_opt_res.value();
 
       auto just_opt = unwrapResult(
-          fmt::format("Getting justification for block #{}", header.number),
+          ::fmt::format("Getting justification for block #{}", header.number),
           block_storage->getJustification(hash));
       if (just_opt) {
         out << header.number << ", ";

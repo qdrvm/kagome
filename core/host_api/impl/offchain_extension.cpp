@@ -381,7 +381,7 @@ namespace kagome::host_api {
     auto result = worker->httpResponseHeaders(request_id);
 
     SL_TRACE_FUNC_CALL(
-        log_, fmt::format("<{} headers>", result.size()), request_id);
+        log_, ::fmt::format("<{} headers>", result.size()), request_id);
 
     return memory.storeBuffer(scale::encode(result).value());
   }

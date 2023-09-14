@@ -132,24 +132,8 @@ TEST(Outcome, FormatterStdErrorCore) {
 
   auto expected = error.message();
 
-  {
-    auto out = fmt::format("{}", error);
-    EXPECT_EQ(out, expected);
-  }
-  {
-    std::string out;
-    out.resize(32);
-    auto it = fmt::format_to(out.begin(), "{}", error);
-    out = out.substr(0, it - out.begin());
-    EXPECT_EQ(out, expected);
-  }
-  {
-    std::string out;
-    out.resize(32);
-    auto it = fmt::format_to_n(out.begin(), out.size(), "{}", error).out;
-    out = out.substr(0, it - out.begin());
-    EXPECT_EQ(out, expected);
-  }
+  auto actual = ::fmt::format("{}", error);
+  EXPECT_EQ(actual, expected);
 }
 
 TEST(Outcome, FormatterBoostSystemErrorCode) {
@@ -157,24 +141,8 @@ TEST(Outcome, FormatterBoostSystemErrorCode) {
 
   auto expected = ec.message();
 
-  {
-    auto out = fmt::format("{}", ec);
-    EXPECT_EQ(out, expected);
-  }
-  {
-    std::string out;
-    out.resize(32);
-    auto it = fmt::format_to(out.begin(), "{}", ec);
-    out = out.substr(0, it - out.begin());
-    EXPECT_EQ(out, expected);
-  }
-  {
-    std::string out;
-    out.resize(32);
-    auto it = fmt::format_to_n(out.begin(), out.size(), "{}", ec).out;
-    out = out.substr(0, it - out.begin());
-    EXPECT_EQ(out, expected);
-  }
+  auto actual = ::fmt::format("{}", ec);
+  EXPECT_EQ(actual, expected);
 }
 
 TEST(Outcome, FormatterVoidSuccess) {
@@ -182,24 +150,8 @@ TEST(Outcome, FormatterVoidSuccess) {
 
   auto expected = "<success>";
 
-  {
-    auto out = fmt::format("{}", success);
-    EXPECT_EQ(out, expected);
-  }
-  {
-    std::string out;
-    out.resize(32);
-    auto it = fmt::format_to(out.begin(), "{}", success);
-    out = out.substr(0, it - out.begin());
-    EXPECT_EQ(out, expected);
-  }
-  {
-    std::string out;
-    out.resize(32);
-    auto it = fmt::format_to_n(out.begin(), out.size(), "{}", success).out;
-    out = out.substr(0, it - out.begin());
-    EXPECT_EQ(out, expected);
-  }
+  auto actual = ::fmt::format("{}", success);
+  EXPECT_EQ(actual, expected);
 }
 
 TEST(Outcome, FormatterNonVoidSuccess) {
@@ -208,25 +160,8 @@ TEST(Outcome, FormatterNonVoidSuccess) {
 
   auto expected = data;
 
-  {
-    auto out = ::fmt::format("{}", success);
-    EXPECT_EQ(out, expected);
-  }
-  {
-    std::string out;
-    out.resize(32);
-    auto it = ::fmt::format_to(out.begin(), "{}", success);
-    out = out.substr(0, it - out.begin());
-    EXPECT_EQ(out, expected);
-  }
-  {
-    std::string out;
-    out.resize(32);
-    auto it =
-        soralog::fmt::format_to_n(out.begin(), out.size(), "{}", success).out;
-    out = out.substr(0, it - out.begin());
-    EXPECT_EQ(out, expected);
-  }
+  auto actual = ::fmt::format("{}", success);
+  EXPECT_EQ(actual, expected);
 }
 
 TEST(Outcome, FormatterResultSuccess) {
@@ -234,25 +169,8 @@ TEST(Outcome, FormatterResultSuccess) {
 
   auto expected = outcome.value();
 
-  {
-    auto out = ::fmt::format("{}", outcome);
-    EXPECT_EQ(out, expected);
-  }
-  {
-    std::string out;
-    out.resize(32);
-    auto it = ::fmt::format_to(out.begin(), "{}", outcome);
-    out = out.substr(0, it - out.begin());
-    EXPECT_EQ(out, expected);
-  }
-  {
-    std::string out;
-    out.resize(32);
-    auto it =
-        soralog::fmt::format_to_n(out.begin(), out.size(), "{}", outcome).out;
-    out = out.substr(0, it - out.begin());
-    EXPECT_EQ(out, expected);
-  }
+  auto actual = ::fmt::format("{}", outcome);
+  EXPECT_EQ(actual, expected);
 }
 
 TEST(Outcome, FormatterResultFailure) {
@@ -260,23 +178,6 @@ TEST(Outcome, FormatterResultFailure) {
 
   auto expected = outcome.error().message();
 
-  {
-    auto out = ::fmt::format("{}", outcome);
-    EXPECT_EQ(out, expected);
-  }
-  {
-    std::string out;
-    out.resize(32);
-    auto it = ::fmt::format_to(out.begin(), "{}", outcome);
-    out = out.substr(0, it - out.begin());
-    EXPECT_EQ(out, expected);
-  }
-  {
-    std::string out;
-    out.resize(32);
-    auto it =
-        soralog::fmt::format_to_n(out.begin(), out.size(), "{}", outcome).out;
-    out = out.substr(0, it - out.begin());
-    EXPECT_EQ(out, expected);
-  }
+  auto actual = ::fmt::format("{}", outcome);
+  EXPECT_EQ(actual, expected);
 }

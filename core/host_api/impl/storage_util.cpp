@@ -13,7 +13,7 @@ namespace kagome::host_api::detail {
     } else if (state_version_int == 1) {
       return kagome::storage::trie::StateVersion::V1;
     } else {
-      throw std::runtime_error(fmt::format(
+      throw std::runtime_error(::fmt::format(
           "Invalid state version: {}. Expected 0 or 1", state_version_int));
     }
   }

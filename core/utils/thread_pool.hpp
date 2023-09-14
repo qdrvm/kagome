@@ -90,9 +90,10 @@ namespace kagome {
             [io{ioc_}, thread_count, pool_n = ++pool_count, thread_n = i + 1] {
               if (thread_count > 1) {
                 soralog::util::setThreadName(
-                    fmt::format("worker.{}.{}", pool_n, thread_n));
+                    ::fmt::format("worker.{}.{}", pool_n, thread_n));
               } else {
-                soralog::util::setThreadName(fmt::format("worker.{}", pool_n));
+                soralog::util::setThreadName(
+                    ::fmt::format("worker.{}", pool_n));
               }
               io->run();
             });
@@ -112,7 +113,7 @@ namespace kagome {
                                thread_count,
                                n = i + 1] {
           if (thread_count > 1) {
-            soralog::util::setThreadName(fmt::format("{}.{}", pool_tag, n));
+            soralog::util::setThreadName(::fmt::format("{}.{}", pool_tag, n));
           } else {
             soralog::util::setThreadName(pool_tag);
           }

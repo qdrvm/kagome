@@ -220,7 +220,7 @@ namespace kagome::network {
                                                    : "Outgoing",
              protocol->protocolName(),
              dst->remotePeerId().has_value()
-                 ? fmt::format("{}", dst->remotePeerId().value())
+                 ? ::fmt::format("{}", dst->remotePeerId().value())
                  : "without PeerId",
              replaced ? "replaced" : "stored");
   }

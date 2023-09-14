@@ -722,7 +722,7 @@ namespace kagome::application {
         auto host = parts[0].second;
         auto schema = parts[2].first.name.substr(std::strlen("x-parity-"));
         auto path = std::regex_replace(parts[2].second, std::regex("%2F"), "/");
-        uri_part = fmt::format("{}://{}{}", schema, host, path);
+        uri_part = ::fmt::format("{}://{}{}", schema, host, path);
       }
     }
 
@@ -860,10 +860,10 @@ namespace kagome::application {
       development_desc.add_options()(
           flag,
           po::bool_switch(),
-          fmt::format("Shortcut for `--name {} --validator` with session keys "
-                      "for `{}` added to keystore",
-                      name,
-                      name)
+          ::fmt::format("Shortcut for `--name {} --validator` with session "
+                        "keys for `{}` added to keystore",
+                        name,
+                        name)
               .c_str());
     }
 
@@ -1073,7 +1073,7 @@ namespace kagome::application {
       for (auto &addr_str : boot_nodes) {
         auto ma_res = libp2p::multi::Multiaddress::create(addr_str);
         if (not ma_res.has_value()) {
-          auto err_msg = fmt::format(
+          auto err_msg = ::fmt::format(
               "Bootnode '{}' is invalid: {}", addr_str, ma_res.error());
           SL_ERROR(logger_, "{}", err_msg);
           std::cout << err_msg << std::endl;
@@ -1096,7 +1096,7 @@ namespace kagome::application {
     if (node_key.has_value()) {
       auto key_res = crypto::Ed25519Seed::fromHex(node_key.value());
       if (not key_res.has_value()) {
-        auto err_msg = fmt::format(
+        auto err_msg = ::fmt::format(
             "Node key '{}' is invalid: {}", node_key.value(), key_res.error());
         SL_ERROR(logger_, "{}", err_msg);
         std::cout << err_msg << std::endl;

@@ -223,7 +223,7 @@ namespace kagome::network {
       auto &block_request = block_request_res.value();
 
       if (self->base_.logger()->level() >= log::Level::VERBOSE) {
-        std::string logmsg = fmt::format(
+        std::string logmsg = ::fmt::format(
             "Block request is received from incoming {} stream with {}",
             self->protocolName(),
             stream->remotePeerId().value());
@@ -246,14 +246,14 @@ namespace kagome::network {
         }
 
         visit_in_place(block_request.from, [&](const auto &from) {
-          logmsg += fmt::format(", from {}", from);
+          logmsg += ::fmt::format(", from {}", from);
         });
 
         logmsg +=
             block_request.direction == Direction::ASCENDING ? " anc" : " desc";
 
         if (block_request.max.has_value()) {
-          logmsg += fmt::format(", max {}", block_request.max.value());
+          logmsg += ::fmt::format(", max {}", block_request.max.value());
         }
 
         self->base_.logger()->verbose(std::move(logmsg));
@@ -455,14 +455,14 @@ namespace kagome::network {
       }
 
       visit_in_place(block_request.from, [&](const auto &from) {
-        logmsg += fmt::format(" from {}", from);
+        logmsg += ::fmt::format(" from {}", from);
       });
 
       logmsg +=
           block_request.direction == Direction::ASCENDING ? " anc" : " desc";
 
       if (block_request.max.has_value()) {
-        logmsg += fmt::format(", max {}", block_request.max.value());
+        logmsg += ::fmt::format(", max {}", block_request.max.value());
       }
 
       base_.logger()->debug(std::move(logmsg));
