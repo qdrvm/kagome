@@ -1083,9 +1083,11 @@ namespace kagome::network {
       return;
     }
     SL_TRACE(log_, "Begin applying");
-    auto cleanup = gsl::finally([this] {
-      SL_TRACE(log_, "End applying");
-      applying_in_progress_ = false;
+    auto cleanup = gsl::finally([weak = weak_from_this()] {
+      if (auto self = weak.lock()) {
+        SL_TRACE(self->log_, "End applying");
+        self->applying_in_progress_ = false;
+      }
     });
 
     primitives::BlockHash hash;
@@ -1135,8 +1137,12 @@ namespace kagome::network {
 
       } else {
         auto callback =
-            [wself{weak_from_this()}, hash, handler{std::move(handler)}](
+            [wself{weak_from_this()},
+             hash,
+             handler{std::move(handler)},
+             cleanup = std::make_shared<decltype(cleanup)>(std::move(cleanup))](
                 auto &&block_addition_result) mutable {
+              cleanup.reset();
               if (auto self = wself.lock()) {
                 self->processBlockAdditionResult(
                     std::move(block_addition_result), hash, std::move(handler));
