@@ -9,8 +9,10 @@
 #include "blockchain/block_tree.hpp"
 #include "consensus/consensus_selector.hpp"
 #include "consensus/timeline/impl/timeline_error.hpp"
+#include "runtime/runtime_api/babe_api.hpp"
 #include "storage/predefined_keys.hpp"
 #include "storage/spaced_storage.hpp"
+#include "storage/trie/trie_storage.hpp"
 
 namespace kagome ::consensus {
 
@@ -18,14 +20,20 @@ namespace kagome ::consensus {
       application::AppStateManager &app_state_manager,
       std::shared_ptr<storage::SpacedStorage> persistent_storage,
       std::shared_ptr<blockchain::BlockTree> block_tree,
-      std::shared_ptr<ConsensusSelector> consensus_selector)
+      std::shared_ptr<ConsensusSelector> consensus_selector,
+      std::shared_ptr<storage::trie::TrieStorage> trie_storage,
+      std::shared_ptr<runtime::BabeApi> babe_api)
       : log_(log::createLogger("SlotsUtil", "timeline")),
         persistent_storage_(
             persistent_storage->getSpace(storage::Space::kDefault)),
         block_tree_(std::move(block_tree)),
-        consensus_selector_(std::move(consensus_selector)) {
+        consensus_selector_(std::move(consensus_selector)),
+        trie_storage_(std::move(trie_storage)),
+        babe_api_(std::move(babe_api)) {
     BOOST_ASSERT(persistent_storage_);
     BOOST_ASSERT(block_tree_);
+    BOOST_ASSERT(trie_storage_);
+    BOOST_ASSERT(babe_api_);
 
     app_state_manager.takeControl(*this);
   }
@@ -34,6 +42,18 @@ namespace kagome ::consensus {
     auto finalized = block_tree_->getLastFinalized();
     auto consensus = consensus_selector_->getProductionConsensus(finalized);
     std::tie(slot_duration_, epoch_length_) = consensus->getTimings();
+
+    if (auto slot1_res = persistent_storage_->tryGet(
+            storage::kBabeConfigRepositoryImplGenesisSlot);
+        slot1_res.has_value()) {
+      if (auto &slot1_opt = slot1_res.value(); slot1_opt.has_value()) {
+        if (auto decode_res = scale::decode<SlotNumber>(slot1_opt.value());
+            decode_res.has_value()) {
+          first_block_slot_number_.emplace(decode_res.value());
+        }
+      }
+    }
+
     return true;
   }
 
@@ -77,6 +97,8 @@ namespace kagome ::consensus {
       return first_block_slot_number_.value();
     }
 
+    std::optional<SlotNumber> slot1;
+
     // If the first block has finalized, that get slot from it
     auto finalized = block_tree_->getLastFinalized();
     if (finalized.number != 0) {
@@ -85,28 +107,25 @@ namespace kagome ::consensus {
         auto consensus =
             consensus_selector_->getProductionConsensus(parent_info);
         OUTCOME_TRY(header1, block_tree_->getBlockHeader(*hash1));
-        OUTCOME_TRY(slot1, consensus->getSlot(header1));
-        return first_block_slot_number_.emplace(slot1);
+        OUTCOME_TRY(_slot1, consensus->getSlot(header1));
+        slot1 = _slot1;
       }
     }
-
-    std::optional<SlotNumber> slot1;
 
     OUTCOME_TRY(parent, block_tree_->getBlockHeader(parent_info.hash));
 
     // Trying to get slot from consensus (internally it happens by runtime call)
-    // {
-    //   auto consensus = consensus_selector_->getProductionConsensus(
-    //      parent_info);
-    //   // TODO consensus->getTheFirstSlot();
-    //   if (trie_storage_->getEphemeralBatchAt(parent.state_root)) {
-    //     if (auto epoch_res = babe_api_->next_epoch(parent_info.hash);
-    //         epoch_res.has_value()) {
-    //       const auto &epoch = epoch_res.value();
-    //       slot1 = epoch.start_slot - epoch.epoch_index * epoch.duration;
-    //     }
-    //   }
-    // }
+    if (not slot1.has_value()) {
+      auto consensus = consensus_selector_->getProductionConsensus(parent_info);
+      // TODO consensus->getTheFirstSlot();
+      if (trie_storage_->getEphemeralBatchAt(parent.state_root)) {
+        if (auto epoch_res = babe_api_->next_epoch(parent_info.hash);
+            epoch_res.has_value()) {
+          const auto &epoch = epoch_res.value();
+          slot1 = epoch.start_slot - epoch.epoch_index * epoch.duration;
+        }
+      }
+    }
 
     // If slot still unknown, getting slot from the first block which ancestor
     // of provided

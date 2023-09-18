@@ -26,6 +26,14 @@ namespace kagome::storage {
   class SpacedStorage;
 }
 
+namespace kagome::storage::trie {
+  class TrieStorage;
+}
+
+namespace kagome::runtime {
+  class BabeApi;
+}
+
 namespace kagome::consensus {
 
   class SlotsUtilImpl final : public SlotsUtil {
@@ -33,7 +41,9 @@ namespace kagome::consensus {
     SlotsUtilImpl(application::AppStateManager &app_state_manager,
                   std::shared_ptr<storage::SpacedStorage> persistent_storage,
                   std::shared_ptr<blockchain::BlockTree> block_tree,
-                  std::shared_ptr<ConsensusSelector> consensus_selector);
+                  std::shared_ptr<ConsensusSelector> consensus_selector,
+                  std::shared_ptr<storage::trie::TrieStorage> trie_storage,
+                  std::shared_ptr<runtime::BabeApi> babe_api);
 
     bool prepare();
 
@@ -58,6 +68,8 @@ namespace kagome::consensus {
     std::shared_ptr<storage::BufferStorage> persistent_storage_;
     std::shared_ptr<blockchain::BlockTree> block_tree_;
     std::shared_ptr<ConsensusSelector> consensus_selector_;
+    std::shared_ptr<storage::trie::TrieStorage> trie_storage_;
+    std::shared_ptr<runtime::BabeApi> babe_api_;
 
     Duration slot_duration_{};
     EpochLength epoch_length_{};

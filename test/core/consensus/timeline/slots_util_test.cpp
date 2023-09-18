@@ -11,7 +11,9 @@
 #include "mock/core/blockchain/block_tree_mock.hpp"
 #include "mock/core/consensus/production_consensus_mock.hpp"
 #include "mock/core/consensus/timeline/consensus_selector_mock.hpp"
+#include "mock/core/runtime/babe_api_mock.hpp"
 #include "mock/core/storage/spaced_storage_mock.hpp"
+#include "mock/core/storage/trie/trie_storage_mock.hpp"
 #include "storage/in_memory/in_memory_storage.hpp"
 #include "testutil/prepare_loggers.hpp"
 
@@ -24,8 +26,10 @@ using consensus::EpochLength;
 using consensus::ProductionConsensusMock;
 using consensus::SlotNumber;
 using consensus::SlotsUtilImpl;
+using runtime::BabeApiMock;
 using storage::InMemoryStorage;
 using storage::SpacedStorageMock;
+using storage::trie::TrieStorageMock;
 
 using std::chrono_literals::operator""ms;
 
@@ -59,14 +63,23 @@ class SlotsUtilTest : public testing::Test {
         .WillRepeatedly(
             Invoke([&]() { return std::tuple(slot_duration, epoch_length); }));
 
-    slots_util_ = std::make_shared<SlotsUtilImpl>(
-        app_state_manager, spaced_storage, block_tree, consensus_selector);
+    trie_storage = std::make_shared<TrieStorageMock>();
+    babe_api = std::make_shared<BabeApiMock>();
+
+    slots_util_ = std::make_shared<SlotsUtilImpl>(app_state_manager,
+                                                  spaced_storage,
+                                                  block_tree,
+                                                  consensus_selector,
+                                                  trie_storage,
+                                                  babe_api);
   }
 
   AppStateManagerMock app_state_manager;
   std::shared_ptr<SpacedStorageMock> spaced_storage;
   std::shared_ptr<BlockTreeMock> block_tree;
   std::shared_ptr<ConsensusSelectorMock> consensus_selector;
+  std::shared_ptr<TrieStorageMock> trie_storage;
+  std::shared_ptr<BabeApiMock> babe_api;
   std::shared_ptr<InMemoryStorage> persistent_storage;
   std::shared_ptr<ProductionConsensusMock> production_consensus;
   Duration slot_duration;
