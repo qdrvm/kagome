@@ -186,7 +186,7 @@ namespace kagome::dispute {
     ///
     /// Returns freshly included candidate receipts
     outcome::result<std::vector<CandidateReceipt>> process_candidate_events(
-        primitives::BlockNumber block_number, primitives::BlockHash block_hash);
+        const primitives::BlockInfo &block);
 
     log::Logger log_;
 

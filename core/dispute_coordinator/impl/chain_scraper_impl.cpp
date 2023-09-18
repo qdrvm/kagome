@@ -13,7 +13,7 @@ namespace kagome::dispute {
       std::shared_ptr<runtime::ParachainHost> parachain_api,
       std::shared_ptr<blockchain::BlockTree> block_tree,
       std::shared_ptr<crypto::Hasher> hasher)
-      : log_(log::createLogger("ChainScrapper", "dispute")),
+      : log_(log::createLogger("ChainScraper", "dispute")),
         parachain_api_(std::move(parachain_api)),
         block_tree_(std::move(block_tree)),
         hasher_(std::move(hasher)) {
@@ -52,23 +52,16 @@ namespace kagome::dispute {
              primitives::BlockInfo(activated.number, activated.hash));
 
     // Fetch ancestry up to last finalized block.
-    OUTCOME_TRY(ancestors,
-                get_unfinalized_block_ancestors(
-                    /*sender,*/ activated.hash, activated.number));
+    OUTCOME_TRY(
+        ancestors,
+        get_unfinalized_block_ancestors(activated.hash, activated.number));
 
     ScrapedUpdates scraped_updates;
 
-    // Ancestors block numbers are consecutive in the descending order.
-    for (size_t i = 0; i < ancestors.size(); ++i) {
-      const auto block_number = activated.number - i;
-      const auto &block_hash = ancestors[i];
+    auto fn = [&](const primitives::BlockInfo &block) -> outcome::result<void> {
+      SL_TRACE(log_, "In block {} processing", block);
 
-      SL_TRACE(log_,
-               "In ancestor {} processing",
-               primitives::BlockInfo(block_number, block_hash));
-
-      OUTCOME_TRY(receipts_for_block,
-                  process_candidate_events(block_number, block_hash));
+      OUTCOME_TRY(receipts_for_block, process_candidate_events(block));
 
       SL_TRACE(log_, "Included {} receipts", receipts_for_block.size());
 
@@ -79,12 +72,20 @@ namespace kagome::dispute {
           std::move_iterator(receipts_for_block.begin()),
           std::move_iterator(receipts_for_block.end()));
 
-      OUTCOME_TRY(votes_opt, parachain_api_->on_chain_votes(block_hash));
+      OUTCOME_TRY(votes_opt, parachain_api_->on_chain_votes(block.hash));
 
       if (votes_opt.has_value()) {
         auto &votes = votes_opt.value();
         scraped_updates.on_chain_votes.emplace_back(std::move(votes));
       }
+      return outcome::success();
+    };
+
+    OUTCOME_TRY(fn({activated.number, activated.hash}));
+
+    // Ancestors block numbers are consecutive in the descending order.
+    for (size_t i = 0; i < ancestors.size(); ++i) {
+      OUTCOME_TRY(fn({activated.number - i - 1, ancestors[i]}));
     }
 
     last_observed_blocks_.put(activated.hash, Empty{});
@@ -146,10 +147,15 @@ namespace kagome::dispute {
 
   outcome::result<std::vector<CandidateReceipt>>
   ChainScraperImpl::process_candidate_events(
-      primitives::BlockNumber block_number, primitives::BlockHash block_hash) {
-    OUTCOME_TRY(events, parachain_api_->candidate_events(block_hash));
+      const primitives::BlockInfo &block) {
+    OUTCOME_TRY(events, parachain_api_->candidate_events(block.hash));
 
     std::vector<CandidateReceipt> included_receipts;
+
+    if (events.empty()) {
+      SL_TRACE(log_, "No candidate events in block {}", block);
+      return included_receipts;
+    }
 
     // Get included and backed events:
     for (const auto &event : events) {
@@ -160,10 +166,10 @@ namespace kagome::dispute {
             auto &candidate_hash = receipt.hash(*hasher_);
             SL_TRACE(log_,
                      "Processing included event in block {} (candidate={})",
-                     primitives::BlockInfo(block_number, block_hash),
+                     block,
                      candidate_hash);
-            included_candidates_.insert(block_number, candidate_hash);
-            inclusions_.insert(candidate_hash, block_number, block_hash);
+            included_candidates_.insert(block.number, candidate_hash);
+            inclusions_.insert(candidate_hash, block.number, block.hash);
             included_receipts.push_back(receipt);
           },
           [&](const runtime::CandidateBacked &ev) {
@@ -171,9 +177,9 @@ namespace kagome::dispute {
             auto &candidate_hash = receipt.hash(*hasher_);
             SL_TRACE(log_,
                      "Processing backed event in block {} (candidate={})",
-                     primitives::BlockInfo(block_number, block_hash),
+                     block,
                      candidate_hash);
-            backed_candidates_.insert(block_number, candidate_hash);
+            backed_candidates_.insert(block.number, candidate_hash);
           },
           [&](const auto &) {
             // skip the rest
