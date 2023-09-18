@@ -12,6 +12,7 @@
 #include "consensus/babe/impl/threshold_util.hpp"
 #include "consensus/babe/types/seal.hpp"
 #include "consensus/timeline/impl/block_appender_base.hpp"
+#include "mock/core/application/app_configuration_mock.hpp"
 #include "mock/core/blockchain/block_tree_mock.hpp"
 #include "mock/core/blockchain/digest_tracker_mock.hpp"
 #include "mock/core/consensus/babe/babe_config_repository_mock.hpp"
@@ -24,11 +25,15 @@
 #include "mock/core/runtime/core_mock.hpp"
 #include "mock/core/runtime/offchain_worker_api_mock.hpp"
 #include "mock/core/transaction_pool/transaction_pool_mock.hpp"
+#include "testutil/asio_wait.hpp"
 #include "testutil/lazy.hpp"
 #include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
 #include "testutil/prepare_loggers.hpp"
+#include "utils/thread_pool.hpp"
 
+using kagome::ThreadPool;
+using kagome::application::AppConfigurationMock;
 using kagome::blockchain::BlockTree;
 using kagome::blockchain::BlockTreeError;
 using kagome::blockchain::BlockTreeMock;
@@ -150,7 +155,9 @@ class BlockExecutorTest : public testing::Test {
         testutil::sptr_to_lazy<SlotsUtil>(slots_util_),
         hasher_);
 
-    block_executor_ = std::make_shared<BlockExecutorImpl>(block_tree_,
+    block_executor_ = std::make_shared<BlockExecutorImpl>(app_config_,
+                                                          block_tree_,
+                                                          thread_pool_,
                                                           core_,
                                                           tx_pool_,
                                                           hasher_,
@@ -161,7 +168,9 @@ class BlockExecutorTest : public testing::Test {
   }
 
  protected:
+  AppConfigurationMock app_config_;
   std::shared_ptr<BlockTreeMock> block_tree_;
+  ThreadPool thread_pool_{"test", 1};
   std::shared_ptr<CoreMock> core_;
   std::shared_ptr<BabeConfiguration> babe_config_;
   std::shared_ptr<BabeConfigRepositoryMock> babe_config_repo_;
@@ -271,4 +280,6 @@ TEST_F(BlockExecutorTest, JustificationFollowDigests) {
       Block{block_data.header.value(), block_data.body.value()},
       justification,
       [](auto &&result) { EXPECT_OUTCOME_TRUE_1(result); });
+
+  testutil::wait(*thread_pool_.io_context());
 }

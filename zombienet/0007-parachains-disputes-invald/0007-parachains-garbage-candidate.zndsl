@@ -25,7 +25,7 @@ honest-validator-1: log line contains "reverted due to a bad parachain block" wi
 # Check if disputes are concluded in less than 2 blocks.
 honest-validator-0: reports polkadot_parachain_disputes_finality_lag is lower than 2
 honest-validator-1: reports polkadot_parachain_disputes_finality_lag is lower than 2
-kagome-validator-0: reports polkadot_parachain_disputes_finality_lag is lower than 2
+kagome-validator-0: reports kagome_parachain_disputes_finality_lag is lower than 2
 
 # Allow more time for malicious validator activity.
 sleep 30 seconds
@@ -33,7 +33,7 @@ sleep 30 seconds
 # Check that garbage parachain blocks included by malicious validators are being disputed.
 honest-validator-0: reports polkadot_parachain_candidate_disputes_total is at least 2 within 15 seconds
 honest-validator-1: reports polkadot_parachain_candidate_disputes_total is at least 2 within 15 seconds
-kagome-validator-0: reports polkadot_parachain_candidate_disputes_total is at least 2 within 15 seconds
+kagome-validator-0: reports kagome_parachain_candidate_disputes_total is at least 2 within 15 seconds
 
 # Disputes should always end as "invalid"
 honest-validator-0: reports polkadot_parachain_candidate_dispute_concluded{validity="invalid"} is at least 2 within 15 seconds

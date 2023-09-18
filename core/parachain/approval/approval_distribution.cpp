@@ -8,6 +8,7 @@
 
 #include "clock/impl/basic_waitable_timer.hpp"
 #include "common/visitor.hpp"
+#include "consensus/babe/babe_config_repository.hpp"
 #include "consensus/babe/impl/babe_digests_util.hpp"
 #include "crypto/crypto_store.hpp"
 #include "crypto/hasher.hpp"
@@ -461,7 +462,7 @@ namespace {
 namespace kagome::parachain {
 
   ApprovalDistribution::ApprovalDistribution(
-      std::shared_ptr<runtime::BabeApi> babe_api,
+      std::shared_ptr<consensus::babe::BabeConfigRepository> babe_config_repo,
       std::shared_ptr<application::AppStateManager> app_state_manager,
       std::shared_ptr<ThreadPool> thread_pool,
       std::shared_ptr<runtime::ParachainHost> parachain_host,
@@ -492,7 +493,7 @@ namespace kagome::parachain {
         crypto_provider_(std::move(crypto_provider)),
         pm_(std::move(pm)),
         router_(std::move(router)),
-        babe_api_(std::move(babe_api)),
+        babe_config_repo_(std::move(babe_config_repo)),
         block_tree_(std::move(block_tree)),
         pvf_(std::move(pvf)),
         recovery_(std::move(recovery)),
@@ -507,7 +508,7 @@ namespace kagome::parachain {
     BOOST_ASSERT(crypto_provider_);
     BOOST_ASSERT(pm_);
     BOOST_ASSERT(router_);
-    BOOST_ASSERT(babe_api_);
+    BOOST_ASSERT(babe_config_repo_);
     BOOST_ASSERT(block_tree_);
     BOOST_ASSERT(pvf_);
     BOOST_ASSERT(recovery_);
@@ -892,15 +893,16 @@ namespace kagome::parachain {
       const primitives::BlockHeader &block_header,
       const primitives::BlockHash &block_hash) {
     OUTCOME_TRY(babe_header, consensus::babe::getBabeBlockHeader(block_header));
-    OUTCOME_TRY(babe_config, babe_api_->configuration(block_hash));
     OUTCOME_TRY(epoch,
                 slots_util_.get()->slotToEpoch(*block_header.parentInfo(),
                                                babe_header.slot_number));
+    OUTCOME_TRY(babe_config,
+                babe_config_repo_->config(*block_header.parentInfo(), epoch));
 
     return std::make_tuple(epoch,
                            std::move(babe_header),
-                           std::move(babe_config.authorities),
-                           std::move(babe_config.randomness));
+                           std::move(babe_config->authorities),
+                           std::move(babe_config->randomness));
   }
 
   outcome::result<ApprovalDistribution::CandidateIncludedList>
@@ -1557,13 +1559,13 @@ namespace kagome::parachain {
       return ApprovalCheckResult::Bad;
     }
 
-    logger_->info(
-        "Importing approval vote.(validator index={}, validator id={}, "
-        "candidate hash={}, para id={})",
-        approval.payload.ix,
-        pubkey,
-        approved_candidate_hash,
-        candidate_entry.candidate.descriptor.para_id);
+    SL_DEBUG(logger_,
+             "Importing approval vote.(validator index={}, validator id={}, "
+             "candidate hash={}, para id={})",
+             approval.payload.ix,
+             pubkey,
+             approved_candidate_hash,
+             candidate_entry.candidate.descriptor.para_id);
     advance_approval_state(block_entry,
                            approved_candidate_hash,
                            candidate_entry,
@@ -1596,7 +1598,8 @@ namespace kagome::parachain {
       return;
     }
 
-    logger_->info(
+    SL_DEBUG(
+        logger_,
         "Import assignment. (peer id={}, block hash={}, validator index={})",
         source ? fmt::format("{}", source->get()) : "our",
         block_hash,
@@ -1784,11 +1787,11 @@ namespace kagome::parachain {
       return;
     }
 
-    logger_->info(
-        "Import approval. (peer id={}, block hash={}, validator index={})",
-        source ? fmt::format("{}", source->get()) : "our",
-        block_hash,
-        validator_index);
+    SL_DEBUG(logger_,
+             "Import approval. (peer id={}, block hash={}, validator index={})",
+             source ? fmt::format("{}", source->get()) : "our",
+             block_hash,
+             validator_index);
 
     auto &entry = opt_entry->get();
     if (candidate_index >= entry.candidates.size()) {
@@ -2100,11 +2103,11 @@ namespace kagome::parachain {
              candidate_index,
              std::move(peers));
 
-    logger_->info(
-        "Distributing assignment on candidate (block hash={}, candidate "
-        "index={})",
-        indirect_cert.block_hash,
-        candidate_index);
+    SL_DEBUG(logger_,
+             "Distributing assignment on candidate (block hash={}, candidate "
+             "index={})",
+             indirect_cert.block_hash,
+             candidate_index);
 
     auto se = pm_->getStreamEngine();
     BOOST_ASSERT(se);

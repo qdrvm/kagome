@@ -3,8 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_APPROVAL_DISTRIBUTION_HPP
-#define KAGOME_APPROVAL_DISTRIBUTION_HPP
+#pragma once
 
 #include <unordered_set>
 #include <vector>
@@ -32,11 +31,14 @@
 #include "parachain/approval/store.hpp"
 #include "parachain/availability/recovery/recovery.hpp"
 #include "parachain/validator/parachain_processor.hpp"
-#include "runtime/runtime_api/babe_api.hpp"
 #include "runtime/runtime_api/parachain_host.hpp"
 #include "runtime/runtime_api/parachain_host_types.hpp"
 #include "utils/safe_object.hpp"
 #include "utils/thread_pool.hpp"
+
+namespace kagome::consensus::babe {
+  class BabeConfigRepository;
+}  // namespace kagome::consensus::babe
 
 namespace kagome::parachain {
   using DistributeAssignment = network::Assignment;
@@ -257,7 +259,7 @@ namespace kagome::parachain {
     };
 
     ApprovalDistribution(
-        std::shared_ptr<runtime::BabeApi> babe_api,
+        std::shared_ptr<consensus::babe::BabeConfigRepository> babe_config_repo,
         std::shared_ptr<application::AppStateManager> app_state_manager,
         std::shared_ptr<ThreadPool> thread_pool,
         std::shared_ptr<runtime::ParachainHost> parachain_host,
@@ -696,7 +698,7 @@ namespace kagome::parachain {
     std::shared_ptr<crypto::Sr25519Provider> crypto_provider_;
     std::shared_ptr<network::PeerManager> pm_;
     std::shared_ptr<network::Router> router_;
-    std::shared_ptr<runtime::BabeApi> babe_api_;
+    std::shared_ptr<consensus::babe::BabeConfigRepository> babe_config_repo_;
     std::shared_ptr<blockchain::BlockTree> block_tree_;
     std::shared_ptr<parachain::Pvf> pvf_;
     std::shared_ptr<parachain::Recovery> recovery_;
@@ -732,5 +734,3 @@ namespace kagome::parachain {
 }  // namespace kagome::parachain
 
 OUTCOME_HPP_DECLARE_ERROR(kagome::parachain, ApprovalDistribution::Error);
-
-#endif  // KAGOME_APPROVAL_DISTRIBUTION_HPP

@@ -39,7 +39,7 @@ class CommandExecutionError : public std::runtime_error {
       : std::runtime_error{what}, command_name{command_name} {}
 
   friend std::ostream &operator<<(std::ostream &out,
-                                  CommandExecutionError const &err) {
+                                  const CommandExecutionError &err) {
     return out << "Error in command '" << err.command_name
                << "': " << err.what() << "\n";
   }
@@ -162,7 +162,7 @@ std::optional<kagome::primitives::BlockId> parseBlockId(const char *string) {
 
 class PrintHelpCommand final : public Command {
  public:
-  explicit PrintHelpCommand(CommandParser const &parser)
+  explicit PrintHelpCommand(const CommandParser &parser)
       : Command{"help", "print help message"}, parser{parser} {}
 
   virtual void execute(std::ostream &out, const ArgumentList &args) override {
@@ -171,7 +171,7 @@ class PrintHelpCommand final : public Command {
   }
 
  private:
-  CommandParser const &parser;
+  const CommandParser &parser;
 };
 
 class InspectBlockCommand : public Command {
@@ -423,7 +423,7 @@ class SearchChainCommand : public Command {
   }
 
   void searchBlock(std::ostream &out,
-                   BlockHeader const &header,
+                   const BlockHeader &header,
                    Target target) const {
     switch (target) {
       case Target::Justification:
@@ -454,7 +454,7 @@ class SearchChainCommand : public Command {
   }
 
   void searchForAuthorityUpdate(std::ostream &out,
-                                BlockHeader const &header) const {
+                                const BlockHeader &header) const {
     for (auto &digest_item : header.digest) {
       auto *consensus_digest =
           boost::get<kagome::primitives::Consensus>(&digest_item);
@@ -471,7 +471,7 @@ class SearchChainCommand : public Command {
 
   void reportAuthorityUpdate(std::ostream &out,
                              BlockNumber digest_origin,
-                             GrandpaDigest const &digest) const {
+                             const GrandpaDigest &digest) const {
     using namespace kagome::primitives;
     if (auto *scheduled_change = boost::get<ScheduledChange>(&digest);
         scheduled_change) {
@@ -553,7 +553,7 @@ int storage_explorer_main(int argc, const char **argv) {
       std::make_shared<kagome::blockchain::BlockHeaderRepositoryImpl>(
           persistent_storage, hasher);
   auto grandpa_api =
-      std::make_shared<kagome::runtime::GrandpaApiImpl>(header_repo, executor);
+      std::make_shared<kagome::runtime::GrandpaApiImpl>(executor);
 
   auto chain_events_engine = std::make_shared<ChainSubscriptionEngine>();
 

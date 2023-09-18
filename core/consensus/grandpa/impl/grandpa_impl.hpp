@@ -45,10 +45,6 @@ namespace kagome::network {
   class Synchronizer;
 }  // namespace kagome::network
 
-namespace kagome::runtime {
-  class GrandpaApi;
-}
-
 namespace kagome::consensus::grandpa {
 
   // clang-format off
@@ -97,7 +93,6 @@ namespace kagome::consensus::grandpa {
         std::shared_ptr<crypto::Hasher> hasher,
         std::shared_ptr<Environment> environment,
         std::shared_ptr<crypto::Ed25519Provider> crypto_provider,
-        std::shared_ptr<runtime::GrandpaApi> grandpa_api,
         std::shared_ptr<crypto::SessionKeys> session_keys,
         const application::ChainSpec &chain_spec,
         std::shared_ptr<AuthorityManager> authority_manager,
@@ -306,7 +301,6 @@ namespace kagome::consensus::grandpa {
     std::shared_ptr<crypto::Hasher> hasher_;
     std::shared_ptr<Environment> environment_;
     std::shared_ptr<crypto::Ed25519Provider> crypto_provider_;
-    std::shared_ptr<runtime::GrandpaApi> grandpa_api_;
     std::shared_ptr<crypto::SessionKeys> session_keys_;
     std::shared_ptr<AuthorityManager> authority_manager_;
     std::shared_ptr<network::Synchronizer> synchronizer_;
