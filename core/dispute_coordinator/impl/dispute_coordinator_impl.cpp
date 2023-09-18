@@ -1437,9 +1437,15 @@ namespace kagome::dispute {
     if (is_freshly_concluded_against) {
       auto blocks_including =
           scraper_->get_blocks_including_candidate(candidate_hash);
+      SL_TRACE(log_,
+               "{} blocks include candidate={} concluded against",
+               blocks_including.size(),
+               candidate_hash);
       if (blocks_including.size() > 0) {
         std::ignore =
             block_tree_->markAsRevertedBlocks(std::move(blocks_including));
+        SL_DEBUG(
+            log_, "Would be reverted up to {} blocks", blocks_including.size());
       } else {
         SL_DEBUG(log_,
                  "Could not find an including block for candidate against "

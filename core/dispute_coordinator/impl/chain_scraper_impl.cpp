@@ -13,7 +13,8 @@ namespace kagome::dispute {
       std::shared_ptr<runtime::ParachainHost> parachain_api,
       std::shared_ptr<blockchain::BlockTree> block_tree,
       std::shared_ptr<crypto::Hasher> hasher)
-      : parachain_api_(std::move(parachain_api)),
+      : log_(log::createLogger("ChainScrapper", "dispute")),
+        parachain_api_(std::move(parachain_api)),
         block_tree_(std::move(block_tree)),
         hasher_(std::move(hasher)) {
     BOOST_ASSERT(parachain_api_);
@@ -46,6 +47,10 @@ namespace kagome::dispute {
     }
     const auto &activated = update.activated.value();
 
+    SL_TRACE(log_,
+             "Active leave {} update processing",
+             primitives::BlockInfo(activated.number, activated.hash));
+
     // Fetch ancestry up to last finalized block.
     OUTCOME_TRY(ancestors,
                 get_unfinalized_block_ancestors(
@@ -58,10 +63,14 @@ namespace kagome::dispute {
       const auto block_number = activated.number - i;
       const auto &block_hash = ancestors[i];
 
-      // LOG-TRACE: "In ancestor processing."
+      SL_TRACE(log_,
+               "In ancestor {} processing",
+               primitives::BlockInfo(block_number, block_hash));
 
       OUTCOME_TRY(receipts_for_block,
                   process_candidate_events(block_number, block_hash));
+
+      SL_TRACE(log_, "Included {} receipts", receipts_for_block.size());
 
       scraped_updates.included_receipts.reserve(
           scraped_updates.included_receipts.size() + receipts_for_block.size());
@@ -109,61 +118,30 @@ namespace kagome::dispute {
   outcome::result<std::vector<primitives::BlockHash>>
   ChainScraperImpl::get_unfinalized_block_ancestors(
       primitives::BlockHash head, primitives::BlockNumber head_number) {
-    auto target_ancestor = block_tree_->getLastFinalized().number;
+    auto last_finalized = block_tree_->getLastFinalized();
 
     std::vector<primitives::BlockHash> ancestors;
 
-    // If head_number <= target_ancestor + 1 the ancestry will be empty.
+    // If head_number <= target_ancestor + 1 the ancestry will be empty
     if (last_observed_blocks_.get(head).has_value()
-        or head_number <= target_ancestor + 1) {
+        or head_number <= last_finalized.number + 1) {
       return ancestors;
     }
 
-    for (;;) {
-      OUTCOME_TRY(
-          hashes,
-          block_tree_->getDescendingChainToBlock(head, kAncestryChunkSize));
+    // Both `head` and the latest finalized block are NOT included in the result
+    for (primitives::BlockInfo block(head_number, head);;) {
+      OUTCOME_TRY(header, block_tree_->getBlockHeader(block.hash));
 
-      if (hashes.empty()) {
-        break;
-      }
+      block = {header.number - 1, header.parent_hash};
 
-      if (head_number < hashes.size()) {
-        // It's assumed that it's impossible to retrieve
-        // more than N ancestors for block number N.
-
-        // LOG-ERR: "Received {} ancestors for block number {} from Chain API",
-        //           hashes.len(),
-        //           head_number
-
+      if (last_observed_blocks_.get(block.hash).has_value()
+          or block.number <= last_finalized.number
+          or ancestors.size() >= kAncestrySizeLimit) {
         return ancestors;
       }
 
-      auto earliest_block_number = head_number - hashes.size();
-
-      // The reversed order is parent, grandparent, etc. excluding the head.
-      for (size_t i = 0; i < hashes.size(); ++i) {
-        const auto block_number = head_number - i - 1;
-        const auto &block_hash = hashes[i];
-        if (block_hash == head) {
-          continue;
-        }
-
-        // Return if we either met target/cached block or
-        // hit the size limit for the returned ancestry of head.
-        if (last_observed_blocks_.get(block_hash).has_value()
-            or block_number <= target_ancestor
-            or ancestors.size() >= kAncestrySizeLimit) {
-          return ancestors;
-        }
-        ancestors.push_back(block_hash);
-      }
-
-      head = hashes.back();
-      head_number = earliest_block_number;
+      ancestors.push_back(block.hash);
     }
-
-    return ancestors;
   }
 
   outcome::result<std::vector<CandidateReceipt>>
@@ -180,7 +158,10 @@ namespace kagome::dispute {
           [&](const runtime::CandidateIncluded &ev) {
             auto &receipt = ev.candidate_receipt;
             auto &candidate_hash = receipt.hash(*hasher_);
-            // LOG-TRACE: "Processing included event"
+            SL_TRACE(log_,
+                     "Processing included event in block {} (candidate={})",
+                     primitives::BlockInfo(block_number, block_hash),
+                     candidate_hash);
             included_candidates_.insert(block_number, candidate_hash);
             inclusions_.insert(candidate_hash, block_number, block_hash);
             included_receipts.push_back(receipt);
@@ -188,11 +169,15 @@ namespace kagome::dispute {
           [&](const runtime::CandidateBacked &ev) {
             auto &receipt = ev.candidate_receipt;
             auto &candidate_hash = receipt.hash(*hasher_);
-            // LOG-TRACE: "Processing backed event"
+            SL_TRACE(log_,
+                     "Processing backed event in block {} (candidate={})",
+                     primitives::BlockInfo(block_number, block_hash),
+                     candidate_hash);
             backed_candidates_.insert(block_number, candidate_hash);
           },
-          [](const auto &) {
+          [&](const auto &) {
             // skip the rest
+            SL_TRACE(log_, "Skip timeout event");
           });
     }
 
