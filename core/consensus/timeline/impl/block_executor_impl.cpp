@@ -31,7 +31,6 @@ namespace kagome::consensus {
   };
 
   BlockExecutorImpl::BlockExecutorImpl(
-      const application::AppConfiguration &app_config,
       std::shared_ptr<blockchain::BlockTree> block_tree,
       const ThreadPool &thread_pool,
       std::shared_ptr<runtime::Core> core,
@@ -41,8 +40,7 @@ namespace kagome::consensus {
       primitives::events::StorageSubscriptionEnginePtr storage_sub_engine,
       primitives::events::ChainSubscriptionEnginePtr chain_sub_engine,
       std::unique_ptr<BlockAppenderBase> appender)
-      : app_config_{app_config},
-        block_tree_{std::move(block_tree)},
+      : block_tree_{std::move(block_tree)},
         io_context_{thread_pool.io_context()},
         core_{std::move(core)},
         tx_pool_{std::move(tx_pool)},

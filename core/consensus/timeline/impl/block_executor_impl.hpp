@@ -54,7 +54,6 @@ namespace kagome::consensus {
         public std::enable_shared_from_this<BlockExecutorImpl> {
    public:
     BlockExecutorImpl(
-        const application::AppConfiguration &app_config,
         std::shared_ptr<blockchain::BlockTree> block_tree,
         const ThreadPool &thread_pool,
         std::shared_ptr<runtime::Core> core,
@@ -82,7 +81,6 @@ namespace kagome::consensus {
         ConsistencyGuard &consistency_guard,
         const primitives::BlockInfo &previous_best_block);
 
-    const application::AppConfiguration &app_config_;
     std::shared_ptr<blockchain::BlockTree> block_tree_;
     std::shared_ptr<boost::asio::io_context> io_context_;
     std::shared_ptr<runtime::Core> core_;

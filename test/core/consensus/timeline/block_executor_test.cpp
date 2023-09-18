@@ -155,8 +155,7 @@ class BlockExecutorTest : public testing::Test {
         testutil::sptr_to_lazy<SlotsUtil>(slots_util_),
         hasher_);
 
-    block_executor_ = std::make_shared<BlockExecutorImpl>(app_config_,
-                                                          block_tree_,
+    block_executor_ = std::make_shared<BlockExecutorImpl>(block_tree_,
                                                           thread_pool_,
                                                           core_,
                                                           tx_pool_,
@@ -168,7 +167,6 @@ class BlockExecutorTest : public testing::Test {
   }
 
  protected:
-  AppConfigurationMock app_config_;
   std::shared_ptr<BlockTreeMock> block_tree_;
   ThreadPool thread_pool_{"test", 1};
   std::shared_ptr<CoreMock> core_;
