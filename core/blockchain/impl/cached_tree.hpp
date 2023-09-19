@@ -38,6 +38,7 @@ namespace kagome::blockchain {
     bool has_justification = false;
     bool babe_primary;
     bool contains_approved_para_block;
+    bool reverted = false;
 
     std::vector<std::shared_ptr<TreeNode>> children{};
 
@@ -80,7 +81,14 @@ namespace kagome::blockchain {
 
     bool operator==(const TreeNode &other) const;
     bool operator!=(const TreeNode &other) const;
+    bool operator<(const TreeNode &other) const;
   };
+
+  inline bool operator<(const std::shared_ptr<TreeNode> &lhs,
+                        const std::shared_ptr<TreeNode> &rhs) {
+    BOOST_ASSERT(lhs and rhs);
+    return *lhs < *rhs;
+  }
 
   /**
    * Useful information about the tree & blocks it contains to make some of

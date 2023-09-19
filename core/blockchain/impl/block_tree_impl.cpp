@@ -655,15 +655,11 @@ namespace kagome::blockchain {
       const primitives::BlockHash &block_hash) {
     return block_tree_data_.exclusiveAccess(
         [&](auto &p) -> outcome::result<void> {
-          SL_TRACE(log_,
-                   "Trying to adjust weight for block. (block hash={})",
-                   block_hash);
+          SL_TRACE(log_, "Trying to adjust weight for block {}", block_hash);
 
           auto node = p.tree_->getRoot().findByHash(block_hash);
           if (node == nullptr) {
-            SL_WARN(log_,
-                    "Block doesn't exists in block tree.(block hash={})",
-                    block_hash);
+            SL_WARN(log_, "Block {} doesn't exists in block tree", block_hash);
             return BlockTreeError::BLOCK_NOT_EXISTS;
           }
 
@@ -674,9 +670,34 @@ namespace kagome::blockchain {
 
   outcome::result<void> BlockTreeImpl::markAsRevertedBlocks(
       const std::vector<primitives::BlockInfo> &blocks) {
-    // TODO Must be implemented
-#warning "Must be implemented"
-    return outcome::success();
+    return block_tree_data_.exclusiveAccess(
+        [&](auto &p) -> outcome::result<void> {
+          for (const auto &block : blocks) {
+            SL_TRACE(log_, "Trying to revert block {}", block);
+
+            auto tree_node = p.tree_->getRoot().findByHash(block.hash);
+            if (tree_node == nullptr) {
+              SL_WARN(log_, "Block {} doesn't exists in block tree", block);
+              continue;
+            }
+
+            if (not tree_node->reverted) {
+              std::multiset<std::shared_ptr<TreeNode>> to_revert{
+                  std::move(tree_node)};
+              while (not to_revert.empty()) {
+                auto node = to_revert.extract(to_revert.begin());
+                BOOST_ASSERT(not node.empty());
+
+                auto &reverting_tree_node = node.value();
+                reverting_tree_node->reverted = true;
+
+                to_revert.insert(reverting_tree_node->children.begin(),
+                                 reverting_tree_node->children.end());
+              }
+            }
+          }
+          return outcome::success();
+        });
   }
 
   outcome::result<void> BlockTreeImpl::addExistingBlockNoLock(

@@ -29,7 +29,8 @@ namespace kagome::blockchain {
         parent{parent},
         finalized{finalized},
         babe_primary{babe_primary},
-        contains_approved_para_block{false} {}
+        contains_approved_para_block{false},
+        reverted{parent->reverted} {}
 
   outcome::result<void> TreeNode::applyToChain(
       const primitives::BlockInfo &chain_end,
@@ -115,6 +116,11 @@ namespace kagome::blockchain {
 
   bool TreeNode::operator!=(const TreeNode &other) const {
     return !(*this == other);
+  }
+
+  bool TreeNode::operator<(const TreeNode &other) const {
+    return depth < other.depth
+        or (depth == other.depth and block_hash < other.block_hash);
   }
 
   TreeMeta::TreeMeta(const std::shared_ptr<TreeNode> &subtree_root_node)
