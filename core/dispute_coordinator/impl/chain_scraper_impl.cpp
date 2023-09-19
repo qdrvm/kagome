@@ -133,7 +133,7 @@ namespace kagome::dispute {
     for (primitives::BlockInfo block(head_number, head);;) {
       OUTCOME_TRY(header, block_tree_->getBlockHeader(block.hash));
 
-      block = {header.number - 1, header.parent_hash};
+      block = *header.parentInfo();
 
       if (last_observed_blocks_.get(block.hash).has_value()
           or block.number <= last_finalized.number

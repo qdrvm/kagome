@@ -332,7 +332,7 @@ int db_editor_main(int argc, const char **argv) {
 
       after_finalized_block_state_root = header.state_root;
 
-      leafs.emplace(header.number - 1, header.parent_hash);
+      leafs.emplace(*header.parentInfo());
       to_remove.insert(std::move(node));
     }
     RootHash target_state =

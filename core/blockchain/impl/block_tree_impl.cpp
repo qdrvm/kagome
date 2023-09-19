@@ -208,8 +208,8 @@ namespace kagome::blockchain {
                 break;
               }
 
-              fork = {fork_header.number - 1, fork_header.parent_hash};
-              main = {main_header.number - 1, main_header.parent_hash};
+              fork = *fork_header.parentInfo();
+              main = *main_header.parentInfo();
             }
 
             break;
@@ -251,7 +251,7 @@ namespace kagome::blockchain {
           auto [it, ok] = collected.emplace(block, std::move(header));
           auto &parent_hash = it->second.parent_hash;
 
-          block = {header.number - 1, parent_hash};
+          block = *header.parentInfo();
         }
       }
 
@@ -385,7 +385,7 @@ namespace kagome::blockchain {
       }
 
       const auto &header = header_opt.value();
-      block_tree_leaves.emplace(block.number - 1, header.parent_hash);
+      block_tree_leaves.emplace(*header.parentInfo());
       block_tree_leaves.erase(block);
 
       std::vector<primitives::BlockHash> leaves;
@@ -733,7 +733,7 @@ namespace kagome::blockchain {
         if (p.tree_->getRoot().findByHash(header.parent_hash) != nullptr) {
           SL_TRACE(log_,
                    "Block {} parent of {} has found in block tree",
-                   primitives::BlockInfo(header.number - 1, header.parent_hash),
+                   primitives::BlockInfo(*header.parentInfo()),
                    primitives::BlockInfo(header.number, hash));
 
           break;
@@ -742,7 +742,7 @@ namespace kagome::blockchain {
         SL_TRACE(log_,
                  "Block {} has not found in block tree. "
                  "Trying to restore from storage",
-                 primitives::BlockInfo(header.number - 1, header.parent_hash));
+                 *header.parentInfo());
 
         hash = header.parent_hash;
       }
