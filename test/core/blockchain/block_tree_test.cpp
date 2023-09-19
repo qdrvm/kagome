@@ -9,9 +9,6 @@
 
 #include "blockchain/block_tree_error.hpp"
 #include "blockchain/impl/cached_tree.hpp"
-#include "blockchain/impl/storage_util.hpp"
-#include "common/blob.hpp"
-#include "consensus/babe/types/babe_block_header.hpp"
 #include "consensus/babe/types/seal.hpp"
 #include "crypto/hasher/hasher_impl.hpp"
 #include "mock/core/application/app_state_manager_mock.hpp"
@@ -21,26 +18,40 @@
 #include "mock/core/storage/trie_pruner/trie_pruner_mock.hpp"
 #include "mock/core/transaction_pool/transaction_pool_mock.hpp"
 #include "network/impl/extrinsic_observer_impl.hpp"
-#include "primitives/block_id.hpp"
-#include "primitives/justification.hpp"
 #include "scale/scale.hpp"
 #include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
-#include "testutil/outcome/dummy_error.hpp"
 #include "testutil/prepare_loggers.hpp"
 
 using namespace kagome;
-using namespace storage;
-using namespace common;
-using namespace clock;
-using namespace consensus;
-using namespace babe;
-using namespace primitives;
-using namespace blockchain;
-using namespace transaction_pool;
-using namespace testutil;
-
-using namespace std::chrono_literals;
+using application::AppStateManagerMock;
+using blockchain::BlockHeaderRepositoryMock;
+using blockchain::BlockStorageMock;
+using blockchain::BlockTreeError;
+using blockchain::BlockTreeImpl;
+using blockchain::JustificationStoragePolicyMock;
+using blockchain::TreeNode;
+using common::Buffer;
+using consensus::babe::BabeBlockHeader;
+using consensus::babe::BabeSlotNumber;
+using consensus::babe::SlotType;
+using crypto::HasherImpl;
+using network::ExtrinsicObserverImpl;
+using primitives::Block;
+using primitives::BlockBody;
+using primitives::BlockHash;
+using primitives::BlockHeader;
+using primitives::BlockId;
+using primitives::BlockInfo;
+using primitives::BlockNumber;
+using primitives::Consensus;
+using primitives::Digest;
+using primitives::Justification;
+using primitives::PreRuntime;
+using storage::trie_pruner::TriePrunerMock;
+using transaction_pool::TransactionPoolMock;
+using BabeSeal = consensus::babe::Seal;
+using Seal = primitives::Seal;
 
 using testing::_;
 using testing::Invoke;
@@ -71,7 +82,7 @@ struct BlockTreeTest : public testing::Test {
     EXPECT_CALL(*storage_, setBlockTreeLeaves(_))
         .WillRepeatedly(Return(outcome::success()));
 
-    for (kagome::primitives::BlockNumber i = 1; i < 100; ++i) {
+    for (BlockNumber i = 1; i < 100; ++i) {
       EXPECT_CALL(*storage_, getBlockHash(i))
           .WillRepeatedly(Return(kFirstBlockInfo.hash));
     }
@@ -105,7 +116,7 @@ struct BlockTreeTest : public testing::Test {
             Invoke([&](const BlockNumber &n) -> outcome::result<BlockHash> {
               auto it = num_to_hash_.find(n);
               if (it == num_to_hash_.end()) {
-                return blockchain::BlockTreeError::HEADER_NOT_FOUND;
+                return BlockTreeError::HEADER_NOT_FOUND;
               }
               return it->second;
             }));
@@ -247,24 +258,23 @@ struct BlockTreeTest : public testing::Test {
   std::shared_ptr<BlockStorageMock> storage_ =
       std::make_shared<BlockStorageMock>();
 
-  std::shared_ptr<transaction_pool::TransactionPoolMock> pool_ =
-      std::make_shared<transaction_pool::TransactionPoolMock>();
+  std::shared_ptr<TransactionPoolMock> pool_ =
+      std::make_shared<TransactionPoolMock>();
 
-  std::shared_ptr<network::ExtrinsicObserver> extrinsic_observer_ =
-      std::make_shared<network::ExtrinsicObserverImpl>(pool_);
+  std::shared_ptr<ExtrinsicObserverImpl> extrinsic_observer_ =
+      std::make_shared<ExtrinsicObserverImpl>(pool_);
 
-  std::shared_ptr<crypto::Hasher> hasher_ =
-      std::make_shared<crypto::HasherImpl>();
+  std::shared_ptr<HasherImpl> hasher_ = std::make_shared<HasherImpl>();
 
   std::shared_ptr<JustificationStoragePolicyMock>
       justification_storage_policy_ =
           std::make_shared<StrictMock<JustificationStoragePolicyMock>>();
 
-  std::shared_ptr<storage::trie_pruner::TriePrunerMock> state_pruner_ =
-      std::make_shared<storage::trie_pruner::TriePrunerMock>();
+  std::shared_ptr<TriePrunerMock> state_pruner_ =
+      std::make_shared<TriePrunerMock>();
 
-  std::shared_ptr<application::AppStateManagerMock> app_state_manager_ =
-      std::make_shared<application::AppStateManagerMock>();
+  std::shared_ptr<AppStateManagerMock> app_state_manager_ =
+      std::make_shared<AppStateManagerMock>();
 
   std::shared_ptr<BlockTreeImpl> block_tree_;
 
@@ -279,14 +289,13 @@ struct BlockTreeTest : public testing::Test {
         .authority_index = 0,
         .slot_number = slot,
     };
-    common::Buffer encoded_header{scale::encode(babe_header).value()};
+    Buffer encoded_header{scale::encode(babe_header).value()};
     digest.emplace_back(
         primitives::PreRuntime{{primitives::kBabeEngineId, encoded_header}});
 
-    kagome::consensus::babe::Seal seal{};
-    common::Buffer encoded_seal{scale::encode(seal).value()};
-    digest.emplace_back(
-        primitives::Seal{{primitives::kBabeEngineId, encoded_seal}});
+    BabeSeal seal{};
+    Buffer encoded_seal{scale::encode(seal).value()};
+    digest.emplace_back(Seal{{primitives::kBabeEngineId, encoded_seal}});
 
     return digest;
   };
@@ -652,7 +661,7 @@ TEST_F(BlockTreeTest, TreeNode_applyToChain_invalidNode) {
   auto tree = makeFullTree(3, 2);
 
   // p.foo() should not be called
-  testing::StrictMock<NodeProcessor> p;
+  StrictMock<NodeProcessor> p;
 
   ASSERT_OUTCOME_SOME_ERROR(
       tree->applyToChain({42, "213232"_hash256}, [&p](auto &node) {
