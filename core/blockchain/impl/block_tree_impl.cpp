@@ -666,17 +666,16 @@ namespace kagome::blockchain {
   }
 
   outcome::result<void> BlockTreeImpl::markAsRevertedBlocks(
-      const std::vector<primitives::BlockInfo> &blocks) {
+      const std::vector<primitives::BlockHash> &block_hashes) {
     return block_tree_data_.exclusiveAccess(
         [&](auto &p) -> outcome::result<void> {
           bool need_to_refresh_best = false;
           auto best = bestBlockNoLock(p);
-          for (const auto &block : blocks) {
-            SL_TRACE(log_, "Trying to revert block {}", block);
-
-            auto tree_node = p.tree_->getRoot().findByHash(block.hash);
+          for (const auto &block_hash : block_hashes) {
+            auto tree_node = p.tree_->getRoot().findByHash(block_hash);
             if (tree_node == nullptr) {
-              SL_WARN(log_, "Block {} doesn't exists in block tree", block);
+              SL_WARN(
+                  log_, "Block {} doesn't exists in block tree", block_hash);
               continue;
             }
 
@@ -1266,65 +1265,58 @@ namespace kagome::blockchain {
   }
 
   outcome::result<primitives::BlockInfo> BlockTreeImpl::getBestContaining(
-      const primitives::BlockHash &target_hash,
-      const std::optional<primitives::BlockNumber> &max_number) const {
-    return block_tree_data_.sharedAccess([&](const auto &p)
-                                             -> outcome::result<
-                                                 primitives::BlockInfo> {
-      OUTCOME_TRY(target_header, p.header_repo_->getBlockHeader(target_hash));
-      if (max_number.has_value() && target_header.number > max_number.value()) {
-        return BlockTreeError::TARGET_IS_PAST_MAX;
-      }
-      OUTCOME_TRY(canon_hash,
-                  p.header_repo_->getHashByNumber(target_header.number));
-      // if a max number is given we try to fetch the block at the
-      // given depth, if it doesn't exist or `max_number` is not
-      // provided, we continue to search from all leaves below.
-      if (canon_hash == target_hash) {
-        if (max_number.has_value()) {
-          OUTCOME_TRY(hash_opt, p.storage_->getBlockHash(max_number.value()));
-          if (hash_opt.has_value()) {
-            return primitives::BlockInfo{max_number.value(), hash_opt.value()};
-          }
-        }
-      } else {
-        OUTCOME_TRY(
-            last_finalized,
-            p.header_repo_->getNumberByHash(getLastFinalizedNoLock(p).hash));
-        if (last_finalized >= target_header.number) {
-          return BlockTreeError::BLOCK_ON_DEAD_END;
-        }
-      }
-      for (auto &leaf_hash : getLeavesSortedNoLock(p)) {
-        auto current_hash = leaf_hash;
-        auto best_hash = current_hash;
-        if (max_number.has_value()) {
-          OUTCOME_TRY(
-              hash,
-              walkBackUntilLessNoLock(p, current_hash, max_number.value()));
-          best_hash = hash;
-          current_hash = hash;
-        }
-        OUTCOME_TRY(best_header, p.header_repo_->getBlockHeader(best_hash));
-        primitives::BlockNumber current_block_number{};
-        do {
-          OUTCOME_TRY(current_header,
-                      p.header_repo_->getBlockHeader(current_hash));
-          if (current_hash == target_hash) {
-            return primitives::BlockInfo{best_header.number, best_hash};
-          }
-          current_block_number = current_header.number;
-          current_hash = current_header.parent_hash;
-        } while (current_block_number >= target_header.number);
-      }
+      const primitives::BlockHash &target_hash) const {
+    return block_tree_data_.sharedAccess(
+        [&](const auto &p) -> outcome::result<primitives::BlockInfo> {
+          auto &root = p.tree_->getRoot();
 
-      log_->warn(
-          "Block {} exists in chain but not found when following all leaves "
-          "backwards. Max block number = {}",
-          target_hash,
-          max_number);
-      return BlockTreeError::EXISTING_BLOCK_NOT_FOUND;
-    });
+          auto target = root.findByHash(target_hash);
+
+          // If target has not found in block tree (in memory),
+          // it means block finalized or discarded
+          if (not target) {
+            OUTCOME_TRY(target_number,
+                        p.header_repo_->getNumberByHash(target_hash));
+
+            OUTCOME_TRY(canon_hash,
+                        p.header_repo_->getHashByNumber(target_number));
+
+            if (canon_hash != target_hash) {
+              return BlockTreeError::BLOCK_ON_DEAD_END;
+            }
+
+            target = root.findByHash(root.block_hash);
+          }
+
+          auto metadata = p.tree_->getMetadata();
+
+          std::multiset<std::shared_ptr<TreeNode>> candidates{};
+          for (auto &leaf : metadata.leaves) {
+            if (auto node = target->findByHash(leaf)) {
+              candidates.emplace(std::move(node));
+            }
+          }
+
+          auto best = target;
+          while (not candidates.empty()) {
+            auto node = candidates.extract((++candidates.rbegin()).base());
+            BOOST_ASSERT(not node.empty());
+
+            auto &tree_node = node.value();
+            if (tree_node->reverted) {
+              if (auto parent = tree_node->parent.lock()) {
+                candidates.emplace(std::move(parent));
+              }
+              continue;
+            }
+
+            if (metadata.getWeight(best) < metadata.getWeight(tree_node)) {
+              best = tree_node;
+            }
+          }
+
+          return best->getBlockInfo();
+        });
   }
 
   std::vector<primitives::BlockHash> BlockTreeImpl::getLeavesNoLock(
@@ -1377,42 +1369,6 @@ namespace kagome::blockchain {
   primitives::BlockInfo BlockTreeImpl::getLastFinalized() const {
     return block_tree_data_.sharedAccess(
         [&](const auto &p) { return getLastFinalizedNoLock(p); });
-  }
-
-  std::vector<primitives::BlockHash> BlockTreeImpl::getLeavesSortedNoLock(
-      const BlockTreeData &p) const {
-    std::vector<primitives::BlockInfo> leaf_depths;
-    auto leaves = getLeavesNoLock(p);
-    leaf_depths.reserve(leaves.size());
-    for (auto &leaf : leaves) {
-      auto leaf_node = p.tree_->getRoot().findByHash(leaf);
-      leaf_depths.emplace_back(leaf_node->getBlockInfo());
-    }
-    std::sort(
-        leaf_depths.begin(),
-        leaf_depths.end(),
-        [](const auto &p1, const auto &p2) { return p1.number > p2.number; });
-    std::vector<primitives::BlockHash> leaf_hashes;
-    leaf_hashes.reserve(leaf_depths.size());
-    std::transform(leaf_depths.begin(),
-                   leaf_depths.end(),
-                   std::back_inserter(leaf_hashes),
-                   [](auto &p) { return p.hash; });
-    return leaf_hashes;
-  }
-
-  outcome::result<primitives::BlockHash> BlockTreeImpl::walkBackUntilLessNoLock(
-      const BlockTreeData &p,
-      const primitives::BlockHash &start,
-      const primitives::BlockNumber &limit) const {
-    auto current_hash = start;
-    while (true) {
-      OUTCOME_TRY(current_header, p.header_repo_->getBlockHeader(current_hash));
-      if (current_header.number <= limit) {
-        return current_hash;
-      }
-      current_hash = current_header.parent_hash;
-    }
   }
 
   outcome::result<void> BlockTreeImpl::pruneNoLock(

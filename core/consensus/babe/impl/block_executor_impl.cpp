@@ -116,7 +116,7 @@ namespace kagome::consensus::babe {
     // Calculate best block before new one will be applied
     auto last_finalized_block = block_tree_->getLastFinalized();
     auto previous_best_block_res =
-        block_tree_->getBestContaining(last_finalized_block.hash, std::nullopt);
+        block_tree_->getBestContaining(last_finalized_block.hash);
     BOOST_ASSERT(previous_best_block_res.has_value());
     const auto &previous_best_block = previous_best_block_res.value();
 
@@ -287,8 +287,8 @@ namespace kagome::consensus::babe {
           auto const last_finalized_block =
               self->block_tree_->getLastFinalized();
           self->telemetry_->notifyBlockFinalized(last_finalized_block);
-          auto current_best_block_res = self->block_tree_->getBestContaining(
-              last_finalized_block.hash, std::nullopt);
+          auto current_best_block_res =
+              self->block_tree_->getBestContaining(last_finalized_block.hash);
           BOOST_ASSERT(current_best_block_res.has_value());
           const auto &current_best_block = current_best_block_res.value();
           self->telemetry_->notifyBlockImported(

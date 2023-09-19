@@ -343,7 +343,7 @@ TEST_F(BabeTest, Success) {
   // call for check condition of offchain worker run
   EXPECT_CALL(*block_tree_, getLastFinalized())
       .WillRepeatedly(Return(best_leaf));
-  EXPECT_CALL(*block_tree_, getBestContaining(_, _))
+  EXPECT_CALL(*block_tree_, getBestContaining(_))
       .WillOnce(Return(best_leaf))
       .WillOnce(
           Return(BlockInfo(created_block_.header.number, created_block_hash_)));

@@ -69,7 +69,7 @@ namespace kagome::blockchain {
 
     MOCK_METHOD(outcome::result<void>,
                 markAsRevertedBlocks,
-                (const std::vector<primitives::BlockInfo> &),
+                (const std::vector<primitives::BlockHash> &),
                 (override));
 
     MOCK_METHOD(outcome::result<void>,
@@ -110,8 +110,7 @@ namespace kagome::blockchain {
 
     MOCK_METHOD(outcome::result<primitives::BlockInfo>,
                 getBestContaining,
-                (const primitives::BlockHash &,
-                 const std::optional<primitives::BlockNumber> &),
+                (const primitives::BlockHash &),
                 (const, override));
 
     MOCK_METHOD(primitives::BlockInfo, bestBlock, (), (const, override));

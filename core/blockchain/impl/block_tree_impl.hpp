@@ -103,7 +103,7 @@ namespace kagome::blockchain {
         const primitives::BlockHash &block_hash) override;
 
     outcome::result<void> markAsRevertedBlocks(
-        const std::vector<primitives::BlockInfo> &blocks) override;
+        const std::vector<primitives::BlockHash> &block_hashes) override;
 
     outcome::result<void> addBlockBody(
         const primitives::BlockHash &block_hash,
@@ -131,9 +131,7 @@ namespace kagome::blockchain {
     primitives::BlockInfo bestBlock() const override;
 
     outcome::result<primitives::BlockInfo> getBestContaining(
-        const primitives::BlockHash &target_hash,
-        const std::optional<primitives::BlockNumber> &max_number)
-        const override;
+        const primitives::BlockHash &target_hash) const override;
 
     std::vector<primitives::BlockHash> getLeaves() const override;
 
@@ -182,21 +180,6 @@ namespace kagome::blockchain {
             justification_storage_policy,
         std::shared_ptr<storage::trie_pruner::TriePruner> state_pruner,
         std::shared_ptr<::boost::asio::io_context> io_context);
-
-    /**
-     * Walks the chain backwards starting from \param start until the current
-     * block number is less or equal than \param limit
-     */
-    outcome::result<primitives::BlockHash> walkBackUntilLessNoLock(
-        const BlockTreeData &p,
-        const primitives::BlockHash &start,
-        const primitives::BlockNumber &limit) const;
-
-    /**
-     * @returns the tree leaves sorted by their depth
-     */
-    std::vector<primitives::BlockHash> getLeavesSortedNoLock(
-        const BlockTreeData &p) const;
 
     outcome::result<void> pruneNoLock(
         BlockTreeData &p, const std::shared_ptr<TreeNode> &lastFinalizedNode);

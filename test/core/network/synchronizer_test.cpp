@@ -250,7 +250,7 @@ SynchronizerTest::generateChains(BlockNumber finalized,
           .WillRepeatedly(testing::Return(b));
     }
     if (i == local_best) {
-      EXPECT_CALL(*block_tree, getBestContaining(_, _))
+      EXPECT_CALL(*block_tree, getBestContaining(_))
           .WillRepeatedly(testing::Return(b));
     }
   }

@@ -124,7 +124,7 @@ namespace kagome::blockchain {
      * @param block_hashes is vector of reverted block hashes
      */
     virtual outcome::result<void> markAsRevertedBlocks(
-        const std::vector<primitives::BlockInfo> &blocks) = 0;
+        const std::vector<primitives::BlockHash> &block_hashes) = 0;
 
     /**
      * Add a new block to the tree
@@ -224,8 +224,7 @@ namespace kagome::blockchain {
      * the target one) may possess
      */
     virtual outcome::result<primitives::BlockInfo> getBestContaining(
-        const primitives::BlockHash &target_hash,
-        const std::optional<primitives::BlockNumber> &max_number) const = 0;
+        const primitives::BlockHash &target_hash) const = 0;
 
     /**
      * Get all leaves of our tree

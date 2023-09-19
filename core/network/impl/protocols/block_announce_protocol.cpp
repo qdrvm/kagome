@@ -59,8 +59,7 @@ namespace kagome::network {
     /// Best block info
     BlockInfo best_block;
     const auto &last_finalized = block_tree_->getLastFinalized().hash;
-    if (auto best_res =
-            block_tree_->getBestContaining(last_finalized, std::nullopt);
+    if (auto best_res = block_tree_->getBestContaining(last_finalized);
         best_res.has_value()) {
       best_block = best_res.value();
     } else {

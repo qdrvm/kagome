@@ -238,9 +238,7 @@ TEST_F(BlockExecutorTest, JustificationFollowDigests) {
   EXPECT_CALL(*block_tree_, getLastFinalized())
       .WillOnce(testing::Return(BlockInfo{40, "grandparent_hash"_hash256}))
       .WillOnce(testing::Return(BlockInfo{42, "some_hash"_hash256}));
-  EXPECT_CALL(*block_tree_,
-              getBestContaining("grandparent_hash"_hash256,
-                                std::optional<BlockNumber>{}))
+  EXPECT_CALL(*block_tree_, getBestContaining("grandparent_hash"_hash256))
       .WillOnce(testing::Return(BlockInfo{41, "parent_hash"_hash256}));
   EXPECT_CALL(*core_, execute_block_ref(_, _))
       .WillOnce(testing::Return(outcome::success()));
@@ -257,9 +255,7 @@ TEST_F(BlockExecutorTest, JustificationFollowDigests) {
         onDigest(BlockContext{.block_info = {42, "some_hash"_hash256}}, _))
         .WillOnce(testing::Return(outcome::success()));
   }
-  EXPECT_CALL(
-      *block_tree_,
-      getBestContaining("some_hash"_hash256, std::optional<BlockNumber>{}))
+  EXPECT_CALL(*block_tree_, getBestContaining("some_hash"_hash256))
       .WillOnce(testing::Return(BlockInfo{42, "some_hash"_hash256}));
   EXPECT_CALL(*offchain_worker_api_, offchain_worker(_, _))
       .WillOnce(testing::Return(outcome::success()));

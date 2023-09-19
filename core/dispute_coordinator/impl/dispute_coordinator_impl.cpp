@@ -1442,8 +1442,13 @@ namespace kagome::dispute {
                blocks_including.size(),
                candidate_hash);
       if (blocks_including.size() > 0) {
-        std::ignore =
-            block_tree_->markAsRevertedBlocks(std::move(blocks_including));
+        std::vector<primitives::BlockHash> to_revert;
+        blocks_including.reserve(blocks_including.size());
+        std::transform(blocks_including.begin(),
+                       blocks_including.end(),
+                       std::back_inserter(to_revert),
+                       [](auto &block_info) { return block_info.hash; });
+        std::ignore = block_tree_->markAsRevertedBlocks(std::move(to_revert));
         SL_DEBUG(
             log_, "Would be reverted up to {} blocks", blocks_including.size());
       } else {
