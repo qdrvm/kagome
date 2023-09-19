@@ -740,6 +740,40 @@ namespace kagome::dispute {
                   return false;
                 }
                 if (not validation_res.value()) {
+                  SL_INFO(log_, "Invalid signature");
+                  visit_in_place(
+                      dispute_statement,
+                      [&](const ValidDisputeStatement &kind) {
+                        SL_INFO(log_, "  ValidDisputeStatement");
+                        visit_in_place(
+                            kind,
+                            [&](const Explicit &) {
+                              SL_INFO(log_, "    Explicit");
+                            },
+                            [&](const BackingSeconded &inclusion_parent) {
+                              SL_INFO(log_, "    BackingSeconded");
+                            },
+                            [&](const BackingValid &inclusion_parent) {
+                              SL_INFO(log_, "    BackingValid");
+                            },
+                            [&](const ApprovalChecking &statement) {
+                              SL_INFO(log_, "    ApprovalChecking");
+                            });
+                      },
+                      [&](const InvalidDisputeStatement &kind) {
+                        SL_INFO(log_, "  ValidDisputeStatement");
+                        return visit_in_place(kind, [&](const Explicit &) {
+                          SL_INFO(log_, "    BackingSeconded");
+                        });
+                      });
+                  SL_INFO(log_, "    candidate_hash={}", dispute_candidate);
+                  SL_INFO(log_, "    session={}", dispute_session);
+                  SL_INFO(log_, "    validator_index={}", validator_index);
+                  SL_INFO(log_, "    used session={}", session);
+                  log_->flush();
+                  auto _ = getSignablePayload(
+                      dispute_statement, dispute_candidate, dispute_session);
+
                   return false;
                 }
                 return true;

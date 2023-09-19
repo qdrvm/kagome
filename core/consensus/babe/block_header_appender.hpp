@@ -21,7 +21,7 @@ namespace kagome::consensus::babe {
     virtual ~BlockHeaderAppender() = default;
 
     virtual void appendHeader(
-        primitives::BlockHeader &&block_header,
+        const primitives::BlockHeader &block_header,
         const std::optional<primitives::Justification> &justification,
         ApplyJustificationCb &&callback) = 0;
   };

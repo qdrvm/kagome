@@ -33,7 +33,7 @@ namespace kagome::consensus::babe {
   }
 
   void BlockHeaderAppenderImpl::appendHeader(
-      primitives::BlockHeader &&block_header,
+      const primitives::BlockHeader &block_header,
       const std::optional<primitives::Justification> &justification,
       ApplyJustificationCb &&callback) {
     auto block_context = appender_->makeBlockContext(block_header);
