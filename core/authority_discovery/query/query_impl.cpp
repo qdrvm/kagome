@@ -96,7 +96,7 @@ namespace kagome::authority_discovery {
     std::unique_lock lock{mutex_};
     OUTCOME_TRY(
         authorities,
-        authority_discovery_api_->authorities(block_tree_->bestLeaf().hash));
+        authority_discovery_api_->authorities(block_tree_->bestBlock().hash));
     OUTCOME_TRY(local_keys,
                 crypto_store_->getSr25519PublicKeys(
                     crypto::KnownKeyTypeId::KEY_TYPE_AUDI));

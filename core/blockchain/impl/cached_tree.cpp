@@ -134,7 +134,7 @@ namespace kagome::blockchain {
   }
 
   TreeMeta::TreeMeta(const std::shared_ptr<TreeNode> &subtree_root_node)
-      : best_leaf{subtree_root_node}, last_finalized{subtree_root_node} {
+      : best_block{subtree_root_node}, last_finalized{subtree_root_node} {
     std::function<void(std::shared_ptr<TreeNode>)> handle =
         [&](std::shared_ptr<TreeNode> node) {
           // avoid deep recursion
@@ -247,10 +247,10 @@ namespace kagome::blockchain {
       metadata_->leaves.insert(parent->block_hash);
     }
 
-    auto best = metadata_->best_leaf.lock();
+    auto best = metadata_->best_block.lock();
     BOOST_ASSERT(best);
     if (node == best) {
-      metadata_->best_leaf = parent;
+      metadata_->best_block = parent;
       for (auto it = metadata_->leaves.begin();
            it != metadata_->leaves.end();) {
         const auto &hash = *it++;

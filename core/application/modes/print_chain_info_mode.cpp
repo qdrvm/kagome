@@ -22,7 +22,7 @@ namespace kagome::application::mode {
   int PrintChainInfoMode::run() const {
     auto &genesis_hash = block_tree_->getGenesisBlockHash();
     auto finalized = block_tree_->getLastFinalized();
-    auto best = block_tree_->bestLeaf();
+    auto best = block_tree_->bestBlock();
 
     rapidjson::Document document;
     document.SetObject();

@@ -452,7 +452,7 @@ namespace kagome::blockchain {
       metric_best_block_height_ = metrics_registry_->registerGaugeMetric(
           blockHeightMetricName, {{"status", "best"}});
       metric_best_block_height_->set(
-          p.tree_->getMetadata().best_leaf.lock()->depth);
+          p.tree_->getMetadata().best_block.lock()->depth);
 
       metric_finalized_block_height_ = metrics_registry_->registerGaugeMetric(
           blockHeightMetricName, {{"status", "finalized"}});
@@ -525,7 +525,7 @@ namespace kagome::blockchain {
 
           metric_known_chain_leaves_->set(p.tree_->getMetadata().leaves.size());
           metric_best_block_height_->set(
-              p.tree_->getMetadata().best_leaf.lock()->depth);
+              p.tree_->getMetadata().best_block.lock()->depth);
 
           notifyChainEventsEngine(primitives::events::ChainEventType::kNewHeads,
                                   header);
@@ -586,7 +586,7 @@ namespace kagome::blockchain {
 
           metric_known_chain_leaves_->set(p.tree_->getMetadata().leaves.size());
           metric_best_block_height_->set(
-              p.tree_->getMetadata().best_leaf.lock()->depth);
+              p.tree_->getMetadata().best_block.lock()->depth);
 
           SL_VERBOSE(log_,
                      "Block {} has been added into block tree",
@@ -798,7 +798,7 @@ namespace kagome::blockchain {
 
     metric_known_chain_leaves_->set(p.tree_->getMetadata().leaves.size());
     metric_best_block_height_->set(
-        p.tree_->getMetadata().best_leaf.lock()->depth);
+        p.tree_->getMetadata().best_block.lock()->depth);
 
     SL_VERBOSE(log_,
                "Block {} has been restored in block tree from storage",
@@ -1023,9 +1023,9 @@ namespace kagome::blockchain {
         return std::vector{block};
       }
 
-      auto best_leaf = p.tree_->getMetadata().best_leaf.lock();
-      BOOST_ASSERT(best_leaf != nullptr);
-      auto current_depth = best_leaf->depth;
+      auto best_block = p.tree_->getMetadata().best_block.lock();
+      BOOST_ASSERT(best_block != nullptr);
+      auto current_depth = best_block->depth;
 
       if (start_block_number >= current_depth) {
         return std::vector{block};
@@ -1246,16 +1246,16 @@ namespace kagome::blockchain {
     });
   }
 
-  primitives::BlockInfo BlockTreeImpl::bestLeafNoLock(
+  primitives::BlockInfo BlockTreeImpl::bestBlockNoLock(
       const BlockTreeData &p) const {
-    auto leaf = p.tree_->getMetadata().best_leaf.lock();
-    BOOST_ASSERT(leaf != nullptr);
-    return leaf->getBlockInfo();
+    auto best_block = p.tree_->getMetadata().best_block.lock();
+    BOOST_ASSERT(best_block != nullptr);
+    return best_block->getBlockInfo();
   }
 
-  primitives::BlockInfo BlockTreeImpl::bestLeaf() const {
+  primitives::BlockInfo BlockTreeImpl::bestBlock() const {
     return block_tree_data_.sharedAccess(
-        [&](const auto &p) { return bestLeafNoLock(p); });
+        [&](const auto &p) { return bestBlockNoLock(p); });
   }
 
   outcome::result<primitives::BlockInfo> BlockTreeImpl::getBestContaining(
@@ -1548,7 +1548,7 @@ namespace kagome::blockchain {
   }
 
   outcome::result<void> BlockTreeImpl::reorganizeNoLock(BlockTreeData &p) {
-    auto block = BlockTreeImpl::bestLeafNoLock(p);
+    auto block = BlockTreeImpl::bestBlockNoLock(p);
 
     // Remove assigning of obsolete best upper blocks chain
     auto prev_max_best_block_number = block.number;
@@ -1621,7 +1621,7 @@ namespace kagome::blockchain {
   }
 
   void BlockTreeImpl::notifyBestAndFinalized() {
-    auto best_info = bestLeaf();
+    auto best_info = bestBlock();
     auto best_header = getBlockHeader(best_info.hash).value();
     chain_events_engine_->notify(primitives::events::ChainEventType::kNewHeads,
                                  best_header);

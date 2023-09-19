@@ -3,8 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_BLOCKCHAIN_TREE_NODE_HPP
-#define KAGOME_BLOCKCHAIN_TREE_NODE_HPP
+#pragma once
 
 #include <memory>
 #include <unordered_set>
@@ -133,7 +132,7 @@ namespace kagome::blockchain {
     bool chooseBest(std::shared_ptr<TreeNode> node);
 
     std::unordered_set<primitives::BlockHash> leaves;
-    std::weak_ptr<TreeNode> best_leaf;
+    std::weak_ptr<TreeNode> best_block;
 
     std::weak_ptr<TreeNode> last_finalized;
   };
@@ -179,5 +178,3 @@ namespace kagome::blockchain {
 }  // namespace kagome::blockchain
 
 OUTCOME_HPP_DECLARE_ERROR(kagome::blockchain, TreeNode::Error);
-
-#endif  // KAGOME_BLOCKCHAIN_TREE_NODE_HPP

@@ -3,8 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_BLOCK_TREE_IMPL_HPP
-#define KAGOME_BLOCK_TREE_IMPL_HPP
+#pragma once
 
 #include "blockchain/block_tree.hpp"
 
@@ -129,7 +128,7 @@ namespace kagome::blockchain {
 
     bool isFinalized(const primitives::BlockInfo &block) const override;
 
-    primitives::BlockInfo bestLeaf() const override;
+    primitives::BlockInfo bestBlock() const override;
 
     outcome::result<primitives::BlockInfo> getBestContaining(
         const primitives::BlockHash &target_hash,
@@ -211,7 +210,7 @@ namespace kagome::blockchain {
     outcome::result<void> reorganizeNoLock(BlockTreeData &p);
 
     primitives::BlockInfo getLastFinalizedNoLock(const BlockTreeData &p) const;
-    primitives::BlockInfo bestLeafNoLock(const BlockTreeData &p) const;
+    primitives::BlockInfo bestBlockNoLock(const BlockTreeData &p) const;
 
     bool hasDirectChainNoLock(const BlockTreeData &p,
                               const primitives::BlockHash &ancestor,
@@ -283,5 +282,3 @@ namespace kagome::blockchain {
     telemetry::Telemetry telemetry_ = telemetry::createTelemetryService();
   };
 }  // namespace kagome::blockchain
-
-#endif  // KAGOME_BLOCK_TREE_IMPL_HPP
