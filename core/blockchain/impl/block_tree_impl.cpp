@@ -14,7 +14,6 @@
 #include "blockchain/impl/justification_storage_policy.hpp"
 #include "consensus/babe/impl/babe_digests_util.hpp"
 #include "consensus/babe/is_primary.hpp"
-#include "crypto/blake2/blake2b.h"
 #include "log/profiling_logger.hpp"
 #include "storage/database_error.hpp"
 #include "storage/trie_pruner/trie_pruner.hpp"
@@ -670,6 +669,8 @@ namespace kagome::blockchain {
       const std::vector<primitives::BlockInfo> &blocks) {
     return block_tree_data_.exclusiveAccess(
         [&](auto &p) -> outcome::result<void> {
+          bool need_to_refresh_best = false;
+          auto best = bestBlockNoLock(p);
           for (const auto &block : blocks) {
             SL_TRACE(log_, "Trying to revert block {}", block);
 
@@ -688,11 +689,17 @@ namespace kagome::blockchain {
 
                 auto &reverting_tree_node = node.value();
                 reverting_tree_node->reverted = true;
+                if (reverting_tree_node->getBlockInfo() == best) {
+                  need_to_refresh_best = true;
+                }
 
                 to_revert.insert(reverting_tree_node->children.begin(),
                                  reverting_tree_node->children.end());
               }
             }
+          }
+          if (need_to_refresh_best) {
+            p.tree_->forceRefreshBest();
           }
           return outcome::success();
         });
