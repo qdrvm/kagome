@@ -131,6 +131,9 @@ namespace kagome::blockchain {
      */
     bool chooseBest(std::shared_ptr<TreeNode> node);
 
+    /// Force find and update actual best block
+    void forceRefreshBest();
+
     std::unordered_set<primitives::BlockHash> leaves;
     std::weak_ptr<TreeNode> best_block;
 
@@ -157,6 +160,8 @@ namespace kagome::blockchain {
     void updateTreeRoot(std::shared_ptr<TreeNode> new_trie_root);
 
     void updateMeta(const std::shared_ptr<TreeNode> &new_node);
+
+    void forceRefreshBest();
 
     /**
      * @brief
