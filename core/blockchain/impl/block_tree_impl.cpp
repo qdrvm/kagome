@@ -249,9 +249,8 @@ namespace kagome::blockchain {
           }
 
           auto [it, ok] = collected.emplace(block, std::move(header));
-          auto &parent_hash = it->second.parent_hash;
 
-          block = *header.parentInfo();
+          block = *it->second.parentInfo();
         }
       }
 
@@ -273,7 +272,7 @@ namespace kagome::blockchain {
                                            nullptr,
                                            true,
                                            false);
-    SL_DEBUG(log, "Last finalized block #{}", tree->depth);
+    SL_DEBUG(log, "Last finalized block {}", tree->getBlockInfo());
     auto meta = std::make_shared<TreeMeta>(tree);
 
     std::shared_ptr<BlockTreeImpl> block_tree(
@@ -633,8 +632,7 @@ namespace kagome::blockchain {
 
             primitives::BlockInfo block{node->depth - 1, hash_opt.value()};
 
-            auto tree = std::make_shared<TreeNode>(
-                block.hash, block.number, nullptr, true, false);
+            auto tree = std::make_shared<TreeNode>(block.hash, block.number);
             auto meta = std::make_shared<TreeMeta>(tree);
             p.tree_ =
                 std::make_unique<CachedTree>(std::move(tree), std::move(meta));
@@ -832,18 +830,18 @@ namespace kagome::blockchain {
       const primitives::Justification &justification) {
     return block_tree_data_.exclusiveAccess([&](auto &p)
                                                 -> outcome::result<void> {
-      auto node = p.tree_->getRoot().findByHash(block_hash);
+      const auto node = p.tree_->getRoot().findByHash(block_hash);
       if (!node) {
         return BlockTreeError::NON_FINALIZED_BLOCK_NOT_FOUND;
       }
+      const auto block = node->getBlockInfo();
+
       auto last_finalized_block_info = getLastFinalizedNoLock(p);
 
       auto justification_stored = false;
 
       if (node->depth > last_finalized_block_info.number) {
-        SL_DEBUG(log_,
-                 "Finalizing block {}",
-                 primitives::BlockInfo(node->depth, block_hash));
+        SL_DEBUG(log_, "Finalizing block {}", block);
 
         OUTCOME_TRY(header_opt, p.storage_->getBlockHeader(node->block_hash));
         if (!header_opt.has_value()) {
@@ -891,9 +889,8 @@ namespace kagome::blockchain {
           }
         }
 
-        primitives::BlockInfo finalized_block(node->depth, block_hash);
-        log_->info("Finalized block {}", finalized_block);
-        telemetry_->notifyBlockFinalized(finalized_block);
+        log_->info("Finalized block {}", block);
+        telemetry_->notifyBlockFinalized(block);
         metric_finalized_block_height_->set(node->depth);
 
       } else if (node->block_hash == last_finalized_block_info.hash) {
@@ -918,10 +915,7 @@ namespace kagome::blockchain {
       if (not justification_stored) {
         OUTCOME_TRY(p.storage_->putJustification(justification, block_hash));
       }
-      SL_DEBUG(log_,
-               "Store justification for finalized block #{} {}",
-               node->depth,
-               block_hash);
+      SL_DEBUG(log_, "Store justification for finalized block {}", block);
 
       if (last_finalized_block_info.number < node->depth) {
         // we store justification for last finalized block only as long as it is
@@ -1256,7 +1250,7 @@ namespace kagome::blockchain {
       const BlockTreeData &p) const {
     auto leaf = p.tree_->getMetadata().best_leaf.lock();
     BOOST_ASSERT(leaf != nullptr);
-    return {leaf->depth, leaf->block_hash};
+    return leaf->getBlockInfo();
   }
 
   primitives::BlockInfo BlockTreeImpl::bestLeaf() const {
@@ -1385,8 +1379,7 @@ namespace kagome::blockchain {
     leaf_depths.reserve(leaves.size());
     for (auto &leaf : leaves) {
       auto leaf_node = p.tree_->getRoot().findByHash(leaf);
-      leaf_depths.emplace_back(
-          primitives::BlockInfo{leaf_node->depth, leaf_node->block_hash});
+      leaf_depths.emplace_back(leaf_node->getBlockInfo());
     }
     std::sort(
         leaf_depths.begin(),

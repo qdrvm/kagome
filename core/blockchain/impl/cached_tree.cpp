@@ -20,6 +20,16 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::blockchain, TreeNode::Error, e) {
 
 namespace kagome::blockchain {
   TreeNode::TreeNode(const primitives::BlockHash &hash,
+                     primitives::BlockNumber depth)
+      : block_hash{hash},
+        depth{depth},
+        parent{},
+        finalized{true},
+        babe_primary{false},
+        contains_approved_para_block{false},
+        reverted{false} {}
+
+  TreeNode::TreeNode(const primitives::BlockHash &hash,
                      primitives::BlockNumber depth,
                      const std::shared_ptr<TreeNode> &parent,
                      bool finalized,
@@ -30,7 +40,7 @@ namespace kagome::blockchain {
         finalized{finalized},
         babe_primary{babe_primary},
         contains_approved_para_block{false},
-        reverted{parent->reverted} {}
+        reverted{parent ? parent->reverted : false} {}
 
   outcome::result<void> TreeNode::applyToChain(
       const primitives::BlockInfo &chain_end,

@@ -25,6 +25,8 @@ namespace kagome::blockchain {
    public:
     enum class Error { NO_CHAIN_BETWEEN_BLOCKS = 1 };
 
+    TreeNode(const primitives::BlockHash &hash, primitives::BlockNumber depth);
+
     TreeNode(const primitives::BlockHash &hash,
              primitives::BlockNumber depth,
              const std::shared_ptr<TreeNode> &parent,
@@ -38,7 +40,7 @@ namespace kagome::blockchain {
     bool has_justification = false;
     bool babe_primary;
     bool contains_approved_para_block;
-    bool reverted = false;
+    bool reverted;
 
     std::vector<std::shared_ptr<TreeNode>> children{};
 
