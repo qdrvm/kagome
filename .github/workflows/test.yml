@@ -346,7 +346,7 @@ jobs:
           - name: "Block building warp sync"
             test: "test0011"
     runs-on: [ kagome ]
-    needs: [Push-self-hosted]
+    #needs: [Push-self-hosted]
     steps:
       - name: Set owner of working dir recurively
         run: sudo chown -R $(whoami) .
