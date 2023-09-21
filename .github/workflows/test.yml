@@ -24,293 +24,293 @@ env:
     ~/.rustup
 
 jobs:
-  # MacOS:
-  #   runs-on: macos-latest
-  #   steps:
-  #   - uses: actions/checkout@dc323e67f16fb5f7663d20ff7941f27f5809e9b6
-  #   - uses: actions/cache@937d24475381cd9c75ae6db12cb4e79714b926ed
-  #     with:
-  #       path: ${{ env.CACHE_PATHS }}
-  #       key: ${{ github.job }}-${{ env.CACHE_VERSION }}
-  #   - name: Setup cmake
-  #     uses: jwlawson/actions-setup-cmake@187efd9581ed20ee4e03c0dfb9ac2cd5896c4835
-  #     with:
-  #       cmake-version: '3.25.0'
-  #   - name: install
-  #     run: ./housekeeping/macos/dependency.sh
-  #   - name: build
-  #     run: ./housekeeping/make_build.sh -DCLEAR_OBJS=ON -DCOVERAGE=OFF -DCMAKE_TOOLCHAIN_FILE=cmake/toolchain/cxx17.cmake
-  #     env:
-  #       CI:
-  # Linux:
-  #   if: ${{ !(github.ref == 'refs/heads/master' || startsWith( github.ref, 'refs/tags/' )) }}
-  #   strategy:
-  #     fail-fast: false
-  #     matrix:
-  #       options:
-  #         - name: "Linux: gcc-11 ASAN No Toolchain"
-  #           run: ./housekeeping/make_build.sh -DCLEAR_OBJS=ON -DCMAKE_TOOLCHAIN_FILE=cmake/toolchain/gcc-11_cxx17.cmake -DASAN=ON
-  #         - name: "Linux: gcc-12 ASAN No Toolchain"
-  #           run: ./housekeeping/make_build.sh -DCLEAR_OBJS=ON -DCMAKE_TOOLCHAIN_FILE=cmake/toolchain/gcc-12_cxx17.cmake -DASAN=ON
-  #         - name: "Linux: clang-15 TSAN"
-  #           run: ./housekeeping/make_build.sh -DCLEAR_OBJS=ON -DCMAKE_TOOLCHAIN_FILE=cmake/toolchain/clang-15_cxx17.cmake -DTSAN=ON
-  #         - name: "Linux: clang-11 UBSAN"
-  #           run: ./housekeeping/make_build.sh -DCLEAR_OBJS=ON -DCMAKE_TOOLCHAIN_FILE=cmake/toolchain/clang-11_cxx17.cmake -DUBSAN=ON
-  #         - name: "Linux: clang-15 External Project"
-  #           run: ./housekeeping/make_external_build.sh -DCLEAR_OBJS=ON -DCMAKE_TOOLCHAIN_FILE=../../cmake/toolchain/clang-15_cxx17.cmake
-  #         - name: "Linux: clang-15 UBSAN"
-  #           run: ./housekeeping/make_build.sh -DCLEAR_OBJS=ON -DCMAKE_TOOLCHAIN_FILE=cmake/toolchain/clang-15_cxx17.cmake -DUBSAN=ON
+  MacOS:
+    runs-on: macos-latest
+    steps:
+    - uses: actions/checkout@dc323e67f16fb5f7663d20ff7941f27f5809e9b6
+    - uses: actions/cache@937d24475381cd9c75ae6db12cb4e79714b926ed
+      with:
+        path: ${{ env.CACHE_PATHS }}
+        key: ${{ github.job }}-${{ env.CACHE_VERSION }}
+    - name: Setup cmake
+      uses: jwlawson/actions-setup-cmake@187efd9581ed20ee4e03c0dfb9ac2cd5896c4835
+      with:
+        cmake-version: '3.25.0'
+    - name: install
+      run: ./housekeeping/macos/dependency.sh
+    - name: build
+      run: ./housekeeping/make_build.sh -DCLEAR_OBJS=ON -DCOVERAGE=OFF -DCMAKE_TOOLCHAIN_FILE=cmake/toolchain/cxx17.cmake
+      env:
+        CI:
+  Linux:
+    if: ${{ !(github.ref == 'refs/heads/master' || startsWith( github.ref, 'refs/tags/' )) }}
+    strategy:
+      fail-fast: false
+      matrix:
+        options:
+          - name: "Linux: gcc-11 ASAN No Toolchain"
+            run: ./housekeeping/make_build.sh -DCLEAR_OBJS=ON -DCMAKE_TOOLCHAIN_FILE=cmake/toolchain/gcc-11_cxx17.cmake -DASAN=ON
+          - name: "Linux: gcc-12 ASAN No Toolchain"
+            run: ./housekeeping/make_build.sh -DCLEAR_OBJS=ON -DCMAKE_TOOLCHAIN_FILE=cmake/toolchain/gcc-12_cxx17.cmake -DASAN=ON
+          - name: "Linux: clang-15 TSAN"
+            run: ./housekeeping/make_build.sh -DCLEAR_OBJS=ON -DCMAKE_TOOLCHAIN_FILE=cmake/toolchain/clang-15_cxx17.cmake -DTSAN=ON
+          - name: "Linux: clang-11 UBSAN"
+            run: ./housekeeping/make_build.sh -DCLEAR_OBJS=ON -DCMAKE_TOOLCHAIN_FILE=cmake/toolchain/clang-11_cxx17.cmake -DUBSAN=ON
+          - name: "Linux: clang-15 External Project"
+            run: ./housekeeping/make_external_build.sh -DCLEAR_OBJS=ON -DCMAKE_TOOLCHAIN_FILE=../../cmake/toolchain/clang-15_cxx17.cmake
+          - name: "Linux: clang-15 UBSAN"
+            run: ./housekeeping/make_build.sh -DCLEAR_OBJS=ON -DCMAKE_TOOLCHAIN_FILE=cmake/toolchain/clang-15_cxx17.cmake -DUBSAN=ON
           
-  #   name: "${{ matrix.options.name }}"
-  #   runs-on: ubuntu-latest
-  #   container: qdrvm/kagome-dev@sha256:cb1976b26c05c167063d8d0edb8be6124058c56308526667da3edb59bde67d32
-  #   steps:
-  #     - uses: actions/checkout@dc323e67f16fb5f7663d20ff7941f27f5809e9b6
-  #     - uses: actions/cache@937d24475381cd9c75ae6db12cb4e79714b926ed
-  #       with:
-  #         path: ${{ env.CACHE_PATHS }}
-  #         key: ${{ github.job }}-${{ matrix.options.name }}-${{ env.CACHE_VERSION }}
-  #     - name: df du
-  #       run: |
-  #         df -m || true
-  #         du -hd1 /__w /github || true
-  #     - name: Install mold
-  #       run: ./housekeeping/ci_install_mold.sh --make-default
-  #     - name: "${{ matrix.options.name }}"
-  #       run: "${{ matrix.options.run }}"
-  #     - name: df du
-  #       if: ${{ always() }}
-  #       run: |
-  #         df -m || true
-  #         du -hd1 /__w /github || true
+    name: "${{ matrix.options.name }}"
+    runs-on: ubuntu-latest
+    container: qdrvm/kagome-dev@sha256:cb1976b26c05c167063d8d0edb8be6124058c56308526667da3edb59bde67d32
+    steps:
+      - uses: actions/checkout@dc323e67f16fb5f7663d20ff7941f27f5809e9b6
+      - uses: actions/cache@937d24475381cd9c75ae6db12cb4e79714b926ed
+        with:
+          path: ${{ env.CACHE_PATHS }}
+          key: ${{ github.job }}-${{ matrix.options.name }}-${{ env.CACHE_VERSION }}
+      - name: df du
+        run: |
+          df -m || true
+          du -hd1 /__w /github || true
+      - name: Install mold
+        run: ./housekeeping/ci_install_mold.sh --make-default
+      - name: "${{ matrix.options.name }}"
+        run: "${{ matrix.options.run }}"
+      - name: df du
+        if: ${{ always() }}
+        run: |
+          df -m || true
+          du -hd1 /__w /github || true
 
-  # Linux-self-hosted:
-  #   if: ${{ github.ref == 'refs/heads/master' || startsWith( github.ref, 'refs/tags/' ) }}
-  #   strategy:
-  #     fail-fast: false
-  #     matrix:
-  #       options:
-  #         - name: "Linux: gcc-11 ASAN No Toolchain"
-  #           run: ./housekeeping/make_build.sh -DCLEAR_OBJS=ON -DCMAKE_TOOLCHAIN_FILE=cmake/toolchain/gcc-11_cxx17.cmake -DASAN=ON
-  #         - name: "Linux: gcc-12 ASAN No Toolchain"
-  #           run: ./housekeeping/make_build.sh -DCLEAR_OBJS=ON -DCMAKE_TOOLCHAIN_FILE=cmake/toolchain/gcc-12_cxx17.cmake -DASAN=ON
-  #         - name: "Linux: clang-15 TSAN"
-  #           run: ./housekeeping/make_build.sh -DCLEAR_OBJS=ON -DCMAKE_TOOLCHAIN_FILE=cmake/toolchain/clang-15_cxx17.cmake -DTSAN=ON
-  #         - name: "Linux: clang-11 UBSAN"
-  #           run: ./housekeeping/make_build.sh -DCLEAR_OBJS=ON -DCMAKE_TOOLCHAIN_FILE=cmake/toolchain/clang-11_cxx17.cmake -DUBSAN=ON
-  #         - name: "Linux: clang-15 External Project"
-  #           run: ./housekeeping/make_external_build.sh -DCLEAR_OBJS=ON -DCMAKE_TOOLCHAIN_FILE=../../cmake/toolchain/clang-15_cxx17.cmake
-  #         - name: "Linux: clang-15 UBSAN"
-  #           run: ./housekeeping/make_build.sh -DCLEAR_OBJS=ON -DCMAKE_TOOLCHAIN_FILE=cmake/toolchain/clang-15_cxx17.cmake -DUBSAN=ON
+  Linux-self-hosted:
+    if: ${{ github.ref == 'refs/heads/master' || startsWith( github.ref, 'refs/tags/' ) }}
+    strategy:
+      fail-fast: false
+      matrix:
+        options:
+          - name: "Linux: gcc-11 ASAN No Toolchain"
+            run: ./housekeeping/make_build.sh -DCLEAR_OBJS=ON -DCMAKE_TOOLCHAIN_FILE=cmake/toolchain/gcc-11_cxx17.cmake -DASAN=ON
+          - name: "Linux: gcc-12 ASAN No Toolchain"
+            run: ./housekeeping/make_build.sh -DCLEAR_OBJS=ON -DCMAKE_TOOLCHAIN_FILE=cmake/toolchain/gcc-12_cxx17.cmake -DASAN=ON
+          - name: "Linux: clang-15 TSAN"
+            run: ./housekeeping/make_build.sh -DCLEAR_OBJS=ON -DCMAKE_TOOLCHAIN_FILE=cmake/toolchain/clang-15_cxx17.cmake -DTSAN=ON
+          - name: "Linux: clang-11 UBSAN"
+            run: ./housekeeping/make_build.sh -DCLEAR_OBJS=ON -DCMAKE_TOOLCHAIN_FILE=cmake/toolchain/clang-11_cxx17.cmake -DUBSAN=ON
+          - name: "Linux: clang-15 External Project"
+            run: ./housekeeping/make_external_build.sh -DCLEAR_OBJS=ON -DCMAKE_TOOLCHAIN_FILE=../../cmake/toolchain/clang-15_cxx17.cmake
+          - name: "Linux: clang-15 UBSAN"
+            run: ./housekeeping/make_build.sh -DCLEAR_OBJS=ON -DCMAKE_TOOLCHAIN_FILE=cmake/toolchain/clang-15_cxx17.cmake -DUBSAN=ON
 
-  #   name: "${{ matrix.options.name }}"
-  #   runs-on: [ kagome ]
-  #   container: qdrvm/kagome-dev@sha256:cb1976b26c05c167063d8d0edb8be6124058c56308526667da3edb59bde67d32
-  #   steps:
-  #     - uses: actions/checkout@dc323e67f16fb5f7663d20ff7941f27f5809e9b6
-  #     - uses: actions/cache@937d24475381cd9c75ae6db12cb4e79714b926ed
-  #       with:
-  #         path: ${{ env.CACHE_PATHS }}
-  #         key: ${{ github.job }}-${{ matrix.options.name }}-${{ env.CACHE_VERSION }}
-  #     - name: df du
-  #       run: |
-  #         df -m || true
-  #         du -hd1 /__w /github || true
-  #     - name: Install mold
-  #       run: ./housekeeping/ci_install_mold.sh --make-default
-  #     - name: "${{ matrix.options.name }}"
-  #       run: "${{ matrix.options.run }}"
-  #     - name: df du
-  #       if: ${{ always() }}
-  #       run: |
-  #         df -m || true
-  #         du -hd1 /__w /github || true
+    name: "${{ matrix.options.name }}"
+    runs-on: [ kagome ]
+    container: qdrvm/kagome-dev@sha256:cb1976b26c05c167063d8d0edb8be6124058c56308526667da3edb59bde67d32
+    steps:
+      - uses: actions/checkout@dc323e67f16fb5f7663d20ff7941f27f5809e9b6
+      - uses: actions/cache@937d24475381cd9c75ae6db12cb4e79714b926ed
+        with:
+          path: ${{ env.CACHE_PATHS }}
+          key: ${{ github.job }}-${{ matrix.options.name }}-${{ env.CACHE_VERSION }}
+      - name: df du
+        run: |
+          df -m || true
+          du -hd1 /__w /github || true
+      - name: Install mold
+        run: ./housekeeping/ci_install_mold.sh --make-default
+      - name: "${{ matrix.options.name }}"
+        run: "${{ matrix.options.run }}"
+      - name: df du
+        if: ${{ always() }}
+        run: |
+          df -m || true
+          du -hd1 /__w /github || true
 
-  # clang-tidy:
-  #   name: "Linux: clang-tidy"
-  #   runs-on: ubuntu-latest
-  #   container: qdrvm/kagome-dev@sha256:cb1976b26c05c167063d8d0edb8be6124058c56308526667da3edb59bde67d32
-  #   steps:
-  #     - uses: actions/checkout@dc323e67f16fb5f7663d20ff7941f27f5809e9b6
-  #       with:
-  #         fetch-depth: 0
-  #     - uses: actions/cache@937d24475381cd9c75ae6db12cb4e79714b926ed
-  #       with:
-  #         path: ${{ env.CACHE_PATHS }}
-  #         key: ${{ github.job }}-${{ env.CACHE_VERSION }}
-  #     - name: clang-tidy
-  #       env:
-  #         # build only generated files, so clang-tidy will work correctly
-  #         BUILD_FINAL_TARGET: generated
-  #       run: |
-  #         ./housekeeping/make_build.sh
-  #         ./housekeeping/clang-tidy-diff.sh
+  clang-tidy:
+    name: "Linux: clang-tidy"
+    runs-on: ubuntu-latest
+    container: qdrvm/kagome-dev@sha256:cb1976b26c05c167063d8d0edb8be6124058c56308526667da3edb59bde67d32
+    steps:
+      - uses: actions/checkout@dc323e67f16fb5f7663d20ff7941f27f5809e9b6
+        with:
+          fetch-depth: 0
+      - uses: actions/cache@937d24475381cd9c75ae6db12cb4e79714b926ed
+        with:
+          path: ${{ env.CACHE_PATHS }}
+          key: ${{ github.job }}-${{ env.CACHE_VERSION }}
+      - name: clang-tidy
+        env:
+          # build only generated files, so clang-tidy will work correctly
+          BUILD_FINAL_TARGET: generated
+        run: |
+          ./housekeeping/make_build.sh
+          ./housekeeping/clang-tidy-diff.sh
 
-  # coverage:
-  #   if: ${{ !(github.ref == 'refs/heads/master' || startsWith( github.ref, 'refs/tags/' )) }}
-  #   name: "Linux: gcc-11 coverage/sonar"
-  #   runs-on: ubuntu-latest
-  #   container: qdrvm/kagome-dev@sha256:cb1976b26c05c167063d8d0edb8be6124058c56308526667da3edb59bde67d32
-  #   steps:
-  #     - uses: actions/checkout@dc323e67f16fb5f7663d20ff7941f27f5809e9b6
-  #     - uses: actions/cache@937d24475381cd9c75ae6db12cb4e79714b926ed
-  #       with:
-  #         path: ${{ env.CACHE_PATHS }}
-  #         key: ${{ github.job }}-${{ env.CACHE_VERSION }}
-  #     - name: df du
-  #       run: |
-  #         df -m || true
-  #         du -hd1 /__w /github || true
-  #     - name: Install mold
-  #       run: ./housekeeping/ci_install_mold.sh --make-default
-  #     - name: makeBuild
-  #       env:
-  #         BUILD_FINAL_TARGET: ctest_coverage
-  #       run: ./housekeeping/make_build.sh -DCMAKE_TOOLCHAIN_FILE=cmake/toolchain/gcc-11_cxx17.cmake -DCOVERAGE=ON -DCLEAR_OBJS=ON
-  #     - name: df du
-  #       if: ${{ always() }}
-  #       run: |
-  #         df -m || true
-  #         du -hd1 /__w /github || true
-  #     - if: ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository }}
-  #       name: Submit Coverage
-  #       env:
-  #         CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
-  #       run: if [ "CODECOV_TOKEN" != "null" ]; then ./housekeeping/codecov.sh; else echo "Some secret undefined. Step passed..."; fi
-  #     - if: ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository }}
-  #       name: Sonar
-  #       env:
-  #         SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-  #         GITHUB_USERNAME: ${{ secrets.GITHUB_USERNAME }}
-  #         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-  #         BRANCH_NAME: ${{ github.ref }}
-  #       run: if [ "$SONAR_TOKEN" != "null" -a "$GITHUB_USERNAME" != "null" -a "$GITHUB_TOKEN" != "null" ]; then ./housekeeping/sonar.sh; else echo "Some secret undefined. Step passed..."; fi
+  coverage:
+    if: ${{ !(github.ref == 'refs/heads/master' || startsWith( github.ref, 'refs/tags/' )) }}
+    name: "Linux: gcc-11 coverage/sonar"
+    runs-on: ubuntu-latest
+    container: qdrvm/kagome-dev@sha256:cb1976b26c05c167063d8d0edb8be6124058c56308526667da3edb59bde67d32
+    steps:
+      - uses: actions/checkout@dc323e67f16fb5f7663d20ff7941f27f5809e9b6
+      - uses: actions/cache@937d24475381cd9c75ae6db12cb4e79714b926ed
+        with:
+          path: ${{ env.CACHE_PATHS }}
+          key: ${{ github.job }}-${{ env.CACHE_VERSION }}
+      - name: df du
+        run: |
+          df -m || true
+          du -hd1 /__w /github || true
+      - name: Install mold
+        run: ./housekeeping/ci_install_mold.sh --make-default
+      - name: makeBuild
+        env:
+          BUILD_FINAL_TARGET: ctest_coverage
+        run: ./housekeeping/make_build.sh -DCMAKE_TOOLCHAIN_FILE=cmake/toolchain/gcc-11_cxx17.cmake -DCOVERAGE=ON -DCLEAR_OBJS=ON
+      - name: df du
+        if: ${{ always() }}
+        run: |
+          df -m || true
+          du -hd1 /__w /github || true
+      - if: ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository }}
+        name: Submit Coverage
+        env:
+          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+        run: if [ "CODECOV_TOKEN" != "null" ]; then ./housekeeping/codecov.sh; else echo "Some secret undefined. Step passed..."; fi
+      - if: ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository }}
+        name: Sonar
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          GITHUB_USERNAME: ${{ secrets.GITHUB_USERNAME }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          BRANCH_NAME: ${{ github.ref }}
+        run: if [ "$SONAR_TOKEN" != "null" -a "$GITHUB_USERNAME" != "null" -a "$GITHUB_TOKEN" != "null" ]; then ./housekeeping/sonar.sh; else echo "Some secret undefined. Step passed..."; fi
 
-  # coverage-self-hosted:
-  #   if: ${{ github.ref == 'refs/heads/master' || startsWith( github.ref, 'refs/tags/' ) }}
-  #   name: "Linux: gcc-11 coverage/sonar"
-  #   runs-on: [ kagome ]
-  #   container: qdrvm/kagome-dev@sha256:cb1976b26c05c167063d8d0edb8be6124058c56308526667da3edb59bde67d32
-  #   steps:
-  #     - uses: actions/checkout@dc323e67f16fb5f7663d20ff7941f27f5809e9b6
-  #     - uses: actions/cache@937d24475381cd9c75ae6db12cb4e79714b926ed
-  #       with:
-  #         path: ${{ env.CACHE_PATHS }}
-  #         key: ${{ github.job }}-${{ env.CACHE_VERSION }}
-  #     - name: df du
-  #       run: |
-  #         df -m || true
-  #         du -hd1 /__w /github || true
-  #     - name: Install mold
-  #       run: ./housekeeping/ci_install_mold.sh --make-default
-  #     - name: makeBuild
-  #       env:
-  #         BUILD_FINAL_TARGET: ctest_coverage
-  #       run: ./housekeeping/make_build.sh -DCMAKE_TOOLCHAIN_FILE=cmake/toolchain/gcc-11_cxx17.cmake -DCOVERAGE=ON -DCLEAR_OBJS=ON
-  #     - name: df du
-  #       if: ${{ always() }}
-  #       run: |
-  #         df -m || true
-  #         du -hd1 /__w /github || true
-  #     - if: ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository }}
-  #       name: Submit Coverage
-  #       env:
-  #         CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
-  #       run: if [ "CODECOV_TOKEN" != "null" ]; then ./housekeeping/codecov.sh; else echo "Some secret undefined. Step passed..."; fi
-  #     - if: ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository }}
-  #       name: Sonar
-  #       env:
-  #         SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-  #         GITHUB_USERNAME: ${{ secrets.GITHUB_USERNAME }}
-  #         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-  #         BRANCH_NAME: ${{ github.ref }}
-  #       run: if [ "$SONAR_TOKEN" != "null" -a "$GITHUB_USERNAME" != "null" -a "$GITHUB_TOKEN" != "null" ]; then ./housekeeping/sonar.sh; else echo "Some secret undefined. Step passed..."; fi
+  coverage-self-hosted:
+    if: ${{ github.ref == 'refs/heads/master' || startsWith( github.ref, 'refs/tags/' ) }}
+    name: "Linux: gcc-11 coverage/sonar"
+    runs-on: [ kagome ]
+    container: qdrvm/kagome-dev@sha256:cb1976b26c05c167063d8d0edb8be6124058c56308526667da3edb59bde67d32
+    steps:
+      - uses: actions/checkout@dc323e67f16fb5f7663d20ff7941f27f5809e9b6
+      - uses: actions/cache@937d24475381cd9c75ae6db12cb4e79714b926ed
+        with:
+          path: ${{ env.CACHE_PATHS }}
+          key: ${{ github.job }}-${{ env.CACHE_VERSION }}
+      - name: df du
+        run: |
+          df -m || true
+          du -hd1 /__w /github || true
+      - name: Install mold
+        run: ./housekeeping/ci_install_mold.sh --make-default
+      - name: makeBuild
+        env:
+          BUILD_FINAL_TARGET: ctest_coverage
+        run: ./housekeeping/make_build.sh -DCMAKE_TOOLCHAIN_FILE=cmake/toolchain/gcc-11_cxx17.cmake -DCOVERAGE=ON -DCLEAR_OBJS=ON
+      - name: df du
+        if: ${{ always() }}
+        run: |
+          df -m || true
+          du -hd1 /__w /github || true
+      - if: ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository }}
+        name: Submit Coverage
+        env:
+          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+        run: if [ "CODECOV_TOKEN" != "null" ]; then ./housekeeping/codecov.sh; else echo "Some secret undefined. Step passed..."; fi
+      - if: ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository }}
+        name: Sonar
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          GITHUB_USERNAME: ${{ secrets.GITHUB_USERNAME }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          BRANCH_NAME: ${{ github.ref }}
+        run: if [ "$SONAR_TOKEN" != "null" -a "$GITHUB_USERNAME" != "null" -a "$GITHUB_TOKEN" != "null" ]; then ./housekeeping/sonar.sh; else echo "Some secret undefined. Step passed..."; fi
 
-  # Minideb:
-  #   if: ${{ !(github.ref == 'refs/heads/master' || startsWith( github.ref, 'refs/tags/' )) }}
-  #   strategy:
-  #     fail-fast: false
-  #     matrix:
-  #       options:
-  #         - name: "Minideb: Build Debug"
-  #           build-type: "Debug"
-  #         - name: "Minideb: Build Release"
-  #           build-type: "Release"
-  #   name: "${{ matrix.options.name }}"
-  #   runs-on: ubuntu-latest
-  #   container: qdrvm/kagome-dev@sha256:cb1976b26c05c167063d8d0edb8be6124058c56308526667da3edb59bde67d32
-  #   steps:
-  #     - uses: actions/checkout@dc323e67f16fb5f7663d20ff7941f27f5809e9b6
-  #     - uses: actions/cache@937d24475381cd9c75ae6db12cb4e79714b926ed
-  #       with:
-  #         path: ${{ env.CACHE_PATHS }}
-  #         key: ${{ github.job }}-${{ matrix.options.name }}-${{ env.CACHE_VERSION }}
-  #     - name: "${{ matrix.options.name }}"
-  #       env:
-  #         BUILD_TYPE: "${{ matrix.options.build-type }}"
-  #       run: ./housekeeping/docker/kagome-dev/make.sh
+  Minideb:
+    if: ${{ !(github.ref == 'refs/heads/master' || startsWith( github.ref, 'refs/tags/' )) }}
+    strategy:
+      fail-fast: false
+      matrix:
+        options:
+          - name: "Minideb: Build Debug"
+            build-type: "Debug"
+          - name: "Minideb: Build Release"
+            build-type: "Release"
+    name: "${{ matrix.options.name }}"
+    runs-on: ubuntu-latest
+    container: qdrvm/kagome-dev@sha256:cb1976b26c05c167063d8d0edb8be6124058c56308526667da3edb59bde67d32
+    steps:
+      - uses: actions/checkout@dc323e67f16fb5f7663d20ff7941f27f5809e9b6
+      - uses: actions/cache@937d24475381cd9c75ae6db12cb4e79714b926ed
+        with:
+          path: ${{ env.CACHE_PATHS }}
+          key: ${{ github.job }}-${{ matrix.options.name }}-${{ env.CACHE_VERSION }}
+      - name: "${{ matrix.options.name }}"
+        env:
+          BUILD_TYPE: "${{ matrix.options.build-type }}"
+        run: ./housekeeping/docker/kagome-dev/make.sh
 
-  # Minideb-self-hosted:
-  #   if: ${{ github.ref == 'refs/heads/master' || startsWith( github.ref, 'refs/tags/' ) }}
-  #   strategy:
-  #     fail-fast: false
-  #     matrix:
-  #       options:
-  #         - name: "Minideb: Build Debug"
-  #           build-type: "Debug"
-  #         - name: "Minideb: Build Release"
-  #           build-type: "Release"
-  #   name: "${{ matrix.options.name }}"
-  #   runs-on: [ kagome ]
-  #   container: qdrvm/kagome-dev@sha256:cb1976b26c05c167063d8d0edb8be6124058c56308526667da3edb59bde67d32
-  #   steps:
-  #     - uses: actions/checkout@dc323e67f16fb5f7663d20ff7941f27f5809e9b6
-  #     - uses: actions/cache@937d24475381cd9c75ae6db12cb4e79714b926ed
-  #       with:
-  #         path: ${{ env.CACHE_PATHS }}
-  #         key: ${{ github.job }}-${{ matrix.options.name }}-${{ env.CACHE_VERSION }}
-  #     - name: "${{ matrix.options.name }}"
-  #       env:
-  #         BUILD_TYPE: "${{ matrix.options.build-type }}"
-  #       run: ./housekeeping/docker/kagome-dev/make.sh
+  Minideb-self-hosted:
+    if: ${{ github.ref == 'refs/heads/master' || startsWith( github.ref, 'refs/tags/' ) }}
+    strategy:
+      fail-fast: false
+      matrix:
+        options:
+          - name: "Minideb: Build Debug"
+            build-type: "Debug"
+          - name: "Minideb: Build Release"
+            build-type: "Release"
+    name: "${{ matrix.options.name }}"
+    runs-on: [ kagome ]
+    container: qdrvm/kagome-dev@sha256:cb1976b26c05c167063d8d0edb8be6124058c56308526667da3edb59bde67d32
+    steps:
+      - uses: actions/checkout@dc323e67f16fb5f7663d20ff7941f27f5809e9b6
+      - uses: actions/cache@937d24475381cd9c75ae6db12cb4e79714b926ed
+        with:
+          path: ${{ env.CACHE_PATHS }}
+          key: ${{ github.job }}-${{ matrix.options.name }}-${{ env.CACHE_VERSION }}
+      - name: "${{ matrix.options.name }}"
+        env:
+          BUILD_TYPE: "${{ matrix.options.build-type }}"
+        run: ./housekeeping/docker/kagome-dev/make.sh
 
-  # Push-self-hosted:
-  #   if: ${{ github.ref == 'refs/heads/master' || startsWith( github.ref, 'refs/tags/' ) }}
-  #   needs: [clang-tidy, MacOS, Minideb-self-hosted]
-  #   strategy:
-  #     fail-fast: false
-  #     matrix:
-  #       options:
-  #         - name: "Push Debug Docker image"
-  #           build-type: "Debug"
-  #         - name: "Push Release Docker image"
-  #           build-type: "Release"
-  #         - name: "Push RelWithDebInfo Docker image"
-  #           build-type: "RelWithDebInfo"
-  #   runs-on: [ kagome ]
-  #   container: qdrvm/kagome-dev@sha256:cb1976b26c05c167063d8d0edb8be6124058c56308526667da3edb59bde67d32
-  #   steps:
-  #     - uses: actions/checkout@dc323e67f16fb5f7663d20ff7941f27f5809e9b6
-  #     - uses: actions/cache@937d24475381cd9c75ae6db12cb4e79714b926ed
-  #       with:
-  #         path: ${{ env.CACHE_PATHS }}
-  #         key: ${{ github.job }}-${{ env.CACHE_VERSION }}
-  #     - run: git config --global --add safe.directory /__w/kagome/kagome
-  #     - run: git fetch --prune --unshallow
-  #     - name: build
-  #       env:
-  #         BUILD_TYPE: "${{ matrix.options.build-type }}"
-  #       run: ./housekeeping/docker/kagome-dev/make.sh
-  #     - uses: azure/docker-login@83efeb77770c98b620c73055fbb59b2847e17dc0
-  #       with:
-  #         login-server: https://index.docker.io/v1/
-  #         username: ${{ secrets.DOCKER_USERNAME }}
-  #         password: ${{ secrets.DOCKER_TOKEN }}
-  #     - name: docker pack and push
-  #       env:
-  #         VERSION: ${{ github.ref }}
-  #         BUILD_TYPE: "${{ matrix.options.build-type }}"
-  #       run: ./housekeeping/docker/kagome/build_and_push.sh
+  Push-self-hosted:
+    if: ${{ github.ref == 'refs/heads/master' || startsWith( github.ref, 'refs/tags/' ) }}
+    needs: [clang-tidy, MacOS, Minideb-self-hosted]
+    strategy:
+      fail-fast: false
+      matrix:
+        options:
+          - name: "Push Debug Docker image"
+            build-type: "Debug"
+          - name: "Push Release Docker image"
+            build-type: "Release"
+          - name: "Push RelWithDebInfo Docker image"
+            build-type: "RelWithDebInfo"
+    runs-on: [ kagome ]
+    container: qdrvm/kagome-dev@sha256:cb1976b26c05c167063d8d0edb8be6124058c56308526667da3edb59bde67d32
+    steps:
+      - uses: actions/checkout@dc323e67f16fb5f7663d20ff7941f27f5809e9b6
+      - uses: actions/cache@937d24475381cd9c75ae6db12cb4e79714b926ed
+        with:
+          path: ${{ env.CACHE_PATHS }}
+          key: ${{ github.job }}-${{ env.CACHE_VERSION }}
+      - run: git config --global --add safe.directory /__w/kagome/kagome
+      - run: git fetch --prune --unshallow
+      - name: build
+        env:
+          BUILD_TYPE: "${{ matrix.options.build-type }}"
+        run: ./housekeeping/docker/kagome-dev/make.sh
+      - uses: azure/docker-login@83efeb77770c98b620c73055fbb59b2847e17dc0
+        with:
+          login-server: https://index.docker.io/v1/
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_TOKEN }}
+      - name: docker pack and push
+        env:
+          VERSION: ${{ github.ref }}
+          BUILD_TYPE: "${{ matrix.options.build-type }}"
+        run: ./housekeeping/docker/kagome/build_and_push.sh
 
   zombie-tests:
     strategy:
@@ -346,7 +346,7 @@ jobs:
           - name: "Block building warp sync"
             test: "test0011"
     runs-on: [ kagome ]
-    #needs: [Push-self-hosted]
+    needs: [Push-self-hosted]
     steps:
       - name: Set owner of working dir recurively
         run: sudo chown -R $(whoami) .
@@ -358,12 +358,12 @@ jobs:
         working-directory: ./zombienet/docker
         run: make ${{ matrix.options.test }}
 
-  # Trigger_CD:
-  #   if: ${{ github.ref == 'refs/heads/master' }}
-  #   needs: [Push-self-hosted]
-  #   runs-on: ubuntu-latest
-  #   steps:
-  #     - name: trigger cd job
-  #       run: |
-  #         curl -fI "${{ secrets.JENKINS_URL }}kagome-test&token=${{ secrets.JENKINS_TOKEN }}"
-  #         curl -fI "${{ secrets.JENKINS_URL }}polkadot-test&token=${{ secrets.JENKINS_TOKEN }}"
+  Trigger_CD:
+    if: ${{ github.ref == 'refs/heads/master' }}
+    needs: [Push-self-hosted]
+    runs-on: ubuntu-latest
+    steps:
+      - name: trigger cd job
+        run: |
+          curl -fI "${{ secrets.JENKINS_URL }}kagome-test&token=${{ secrets.JENKINS_TOKEN }}"
+          curl -fI "${{ secrets.JENKINS_URL }}polkadot-test&token=${{ secrets.JENKINS_TOKEN }}"
