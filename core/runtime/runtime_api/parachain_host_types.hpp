@@ -285,6 +285,9 @@ namespace kagome::runtime {
          and no_show_slots == rhs.no_show_slots
          and needed_approvals == rhs.needed_approvals;
     }
+    bool operator!=(const SessionInfo &rhs) const {
+      return !operator==(rhs);
+    }
   };
 
   using InboundDownwardMessage = network::InboundDownwardMessage;

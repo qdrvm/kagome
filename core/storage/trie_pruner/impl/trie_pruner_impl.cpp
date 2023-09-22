@@ -70,7 +70,8 @@ namespace kagome::storage::trie_pruner {
         codec_{codec},
         storage_{storage},
         hasher_{hasher},
-        pruning_depth_{config->statePruningDepth()} {
+        pruning_depth_{config->statePruningDepth()},
+        thorough_pruning_{config->enableThoroughPruning()} {
     BOOST_ASSERT(trie_storage_ != nullptr);
     BOOST_ASSERT(serializer_ != nullptr);
     BOOST_ASSERT(codec_ != nullptr);
@@ -249,7 +250,13 @@ namespace kagome::storage::trie_pruner {
       }
 
       auto &ref_count = ref_count_it->second;
-      BOOST_ASSERT(ref_count != 0);
+      if (ref_count == 0) {
+        SL_WARN(logger_,
+                "Pruner encountered an unindexed node {} while pruning, this "
+                "indicates a bug",
+                hash);
+        continue;
+      }
       ref_count--;
       SL_TRACE(logger_,
                "Prune - {} - Node {}, ref count {}",
@@ -257,12 +264,14 @@ namespace kagome::storage::trie_pruner {
                hash,
                ref_count);
 
-      if (ref_count == 0) {
+      if (immortal_nodes_.find(hash) == immortal_nodes_.end()
+          && ref_count == 0) {
         nodes_removed++;
         ref_count_.erase(ref_count_it);
         OUTCOME_TRY(batch.remove(hash));
         auto hash_opt = node->getValue().hash;
         if (hash_opt.has_value()) {
+          auto &hash = *hash_opt;
           auto value_ref_it = value_ref_count_.find(hash);
           if (value_ref_it == value_ref_count_.end()) {
             values_unknown++;
@@ -330,7 +339,6 @@ namespace kagome::storage::trie_pruner {
 
   outcome::result<void> TriePrunerImpl::addNewState(
       const storage::trie::RootHash &state_root, trie::StateVersion version) {
-    std::optional<std::scoped_lock<std::mutex>> lock;
     OUTCOME_TRY(trie, serializer_->retrieveTrie(state_root));
     OUTCOME_TRY(addNewStateWith(*trie, version));
     return outcome::success();
@@ -338,7 +346,6 @@ namespace kagome::storage::trie_pruner {
 
   outcome::result<void> TriePrunerImpl::addNewState(
       const trie::PolkadotTrie &new_trie, trie::StateVersion version) {
-    std::optional<std::scoped_lock<std::mutex>> lock;
     OUTCOME_TRY(addNewStateWith(new_trie, version));
     return outcome::success();
   }
@@ -373,7 +380,21 @@ namespace kagome::storage::trie_pruner {
     while (!queued_nodes.empty()) {
       auto [node, hash] = queued_nodes.back();
       queued_nodes.pop_back();
-      const size_t ref_count = ++ref_count_[hash];
+      auto &ref_count = ref_count_[hash];
+      if (ref_count == 0 && !thorough_pruning_) {
+        OUTCOME_TRY(hash_is_in_storage, trie_storage_->contains(hash));
+        if (hash_is_in_storage) {
+          // the node is present in storage but pruner has not indexed it
+          // because pruner has been initialized on a newer state
+          SL_TRACE(
+              logger_,
+              "Node {} is unindexed, but already in storage, make it immortal",
+              hash.toHex());
+          ref_count++;
+          immortal_nodes_.emplace(hash);
+        }
+      }
+      ref_count++;
       SL_TRACE(logger_, "Add node {}, ref count {}", hash.toHex(), ref_count);
 
       referenced_nodes_num++;
@@ -396,6 +417,8 @@ namespace kagome::storage::trie_pruner {
             OUTCOME_TRY(child, serializer_->retrieveNode(opaque_child));
             OUTCOME_TRY(child_merkle_val,
                         encoder.getMerkleValue(*child, version));
+            // otherwise it is not stored as a separated node, but as a part of
+            // the branch
             if (child_merkle_val.isHash()) {
               SL_TRACE(logger_, "Queue child {}", child_merkle_val.asBuffer());
               queued_nodes.push_back({child, *child_merkle_val.asHash()});

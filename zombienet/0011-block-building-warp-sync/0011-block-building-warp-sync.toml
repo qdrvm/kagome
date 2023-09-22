@@ -1,0 +1,31 @@
+[settings]
+enable_tracing = false
+
+[relaychain]
+default_command = "polkadot"
+
+chain = "gen-db"
+chain_spec_path = "kagome/zombienet/0011-block-building-warp-sync/gen-db-raw.json"
+
+  #we need at least 3 nodes for warp sync
+  [[relaychain.nodes]]
+  name = "alice"
+  validator = true
+  db_snapshot="https://www.googleapis.com/drive/v3/files/12T_sO7BGc3aRNw8aMIZDf36bO6HUsEgY?alt=media&key=AIzaSyB-qssH0qmtahNKJf_T6iMZMs-9SkColu8"
+
+  [[relaychain.nodes]]
+  name = "bob"
+  validator = true
+  db_snapshot="https://www.googleapis.com/drive/v3/files/12T_sO7BGc3aRNw8aMIZDf36bO6HUsEgY?alt=media&key=AIzaSyB-qssH0qmtahNKJf_T6iMZMs-9SkColu8"
+
+  [[relaychain.nodes]]
+  name = "charlie"
+  validator = false
+  db_snapshot="https://www.googleapis.com/drive/v3/files/12T_sO7BGc3aRNw8aMIZDf36bO6HUsEgY?alt=media&key=AIzaSyB-qssH0qmtahNKJf_T6iMZMs-9SkColu8"
+
+  [[relaychain.nodes]]
+  name = "dave"
+  validator = false
+  command = "kagome"
+  prometheus_prefix = "kagome"
+  args = ["--sync Warp"]

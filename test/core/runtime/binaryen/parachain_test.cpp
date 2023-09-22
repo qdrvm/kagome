@@ -14,6 +14,7 @@
 
 using kagome::common::Buffer;
 using kagome::host_api::HostApiImpl;
+using kagome::primitives::events::ChainSubscriptionEngine;
 using kagome::primitives::parachain::Chain;
 using kagome::primitives::parachain::DutyRoster;
 using kagome::primitives::parachain::Parachain;
@@ -33,7 +34,8 @@ class ParachainHostTest : public BinaryenRuntimeTest {
   void SetUp() override {
     BinaryenRuntimeTest::SetUp();
 
-    api_ = std::make_shared<ParachainHostImpl>(executor_);
+    api_ = std::make_shared<ParachainHostImpl>(
+        executor_, std::make_shared<ChainSubscriptionEngine>());
   }
 
   ParaId createParachainId() const {
@@ -43,16 +45,6 @@ class ParachainHostTest : public BinaryenRuntimeTest {
  protected:
   std::shared_ptr<ParachainHost> api_;
 };
-
-// TODO(yuraz): PRE-157 find out do we need to give block_id to api functions
-/**
- * @given initialized parachain host api
- * @when dutyRoster() is invoked
- * @then successful result is returned
- */
-TEST_F(ParachainHostTest, DISABLED_DutyRosterTest) {
-  ASSERT_TRUE(api_->duty_roster("block_hash"_hash256));
-}
 
 /**
  * @given initialized parachain host api
