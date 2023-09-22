@@ -223,6 +223,13 @@ namespace kagome::host_api {
                                               runtime::WasmPointer key) const;
 
     /**
+     * @see HostApi::ext_crypto_ecdsa_verify
+     */
+    int32_t ext_crypto_ecdsa_verify_version_2(runtime::WasmPointer sig,
+                                              runtime::WasmSpan msg,
+                                              runtime::WasmPointer key) const;
+
+    /**
      * @see HostApi::ext_crypto_ecdsa_verify_prehashed_version_1
      */
     int32_t ext_crypto_ecdsa_verify_prehashed_version_1(

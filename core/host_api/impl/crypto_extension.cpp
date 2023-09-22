@@ -693,6 +693,15 @@ namespace kagome::host_api {
     return res;
   }
 
+  int32_t CryptoExtension::ext_crypto_ecdsa_verify_version_2(
+      runtime::WasmPointer sig,
+      runtime::WasmSpan msg_span,
+      runtime::WasmPointer pubkey_data) const {
+    SL_TRACE_FUNC_CALL(logger_,
+                       "delegated to ext_crypto_ecdsa_verify_version_1");
+    return ext_crypto_ecdsa_verify_version_1(sig, msg_span, pubkey_data);
+  }
+
   int32_t CryptoExtension::ext_crypto_ecdsa_verify_prehashed_version_1(
       runtime::WasmPointer sig,
       runtime::WasmPointer msg,

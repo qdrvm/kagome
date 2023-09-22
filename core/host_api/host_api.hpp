@@ -448,6 +448,14 @@ namespace kagome::host_api {
         runtime::WasmPointer pubkey_data) = 0;
 
     /**
+     * @see HostApi::ext_crypto_ecdsa_verify_version_1
+     */
+    [[nodiscard]] virtual int32_t ext_crypto_ecdsa_verify_version_2(
+        runtime::WasmPointer sig_data,
+        runtime::WasmSpan msg,
+        runtime::WasmPointer pubkey_data) = 0;
+
+    /**
      * @brief Verifies an ecdsa signature. Returns true when the verification is
      * either successful or batched. If no batching verification extension is
      * registered, this function will fully verify the signature and return the

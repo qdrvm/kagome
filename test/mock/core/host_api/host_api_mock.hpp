@@ -302,6 +302,13 @@ namespace kagome::host_api {
                 (override));
 
     MOCK_METHOD(int32_t,
+                ext_crypto_ecdsa_verify_version_2,
+                (runtime::WasmPointer sig,
+                 runtime::WasmSpan msg,
+                 runtime::WasmPointer key),
+                (override));
+
+    MOCK_METHOD(int32_t,
                 ext_crypto_ecdsa_verify_prehashed_version_1,
                 (runtime::WasmPointer sig,
                  runtime::WasmPointer msg,

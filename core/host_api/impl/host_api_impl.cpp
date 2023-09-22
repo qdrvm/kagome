@@ -289,6 +289,13 @@ namespace kagome::host_api {
     return crypto_ext_.ext_crypto_ecdsa_verify_version_1(sig, msg, key);
   }
 
+  int32_t HostApiImpl::ext_crypto_ecdsa_verify_version_2(
+      runtime::WasmPointer sig,
+      runtime::WasmSpan msg,
+      runtime::WasmPointer key) {
+    return crypto_ext_.ext_crypto_ecdsa_verify_version_2(sig, msg, key);
+  }
+
   int32_t HostApiImpl::ext_crypto_ecdsa_verify_prehashed_version_1(
       runtime::WasmPointer sig,
       runtime::WasmPointer msg,
