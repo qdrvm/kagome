@@ -119,6 +119,18 @@ namespace kagome::host_api {
         runtime::WasmPointer pubkey_data);
 
     /**
+     * @see HostApi::ext_crypto_ed25519_batch_verify
+     * Deprecated and left here for backward-compatibility with old runtimes and
+     * not going to be used now.
+     *
+     * Emulates the behavior, but isn't doing any batch verification.
+     */
+    runtime::WasmSize ext_crypto_ed25519_batch_verify_version_1(
+        runtime::WasmPointer sig,
+        runtime::WasmSpan msg,
+        runtime::WasmPointer pubkey_data);
+
+    /**
      * @see HostApi::ext_crypto_sr25519_public_keys
      */
     runtime::WasmSpan ext_crypto_sr25519_public_keys_version_1(
@@ -142,6 +154,18 @@ namespace kagome::host_api {
      * @see HostApi::ext_crypto_sr25519_verify
      */
     int32_t ext_crypto_sr25519_verify_version_1(
+        runtime::WasmPointer sig,
+        runtime::WasmSpan msg,
+        runtime::WasmPointer pubkey_data);
+
+    /**
+     * @see HostApi::ext_crypto_sr25519_batch_verify
+     * Deprecated and left here for backward-compatibility with old runtimes and
+     * not going to be used now.
+     *
+     * Emulates the behavior, but isn't doing any batch verification.
+     */
+    int32_t ext_crypto_sr25519_batch_verify_version_1(
         runtime::WasmPointer sig,
         runtime::WasmSpan msg,
         runtime::WasmPointer pubkey_data);
@@ -203,7 +227,7 @@ namespace kagome::host_api {
      */
     int32_t ext_crypto_ecdsa_verify_prehashed_version_1(
         runtime::WasmPointer sig,
-        runtime::WasmSpan msg,
+        runtime::WasmPointer msg,
         runtime::WasmPointer key) const;
 
    private:

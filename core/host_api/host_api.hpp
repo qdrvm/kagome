@@ -316,6 +316,15 @@ namespace kagome::host_api {
         runtime::WasmPointer pubkey_data) = 0;
 
     /**
+     * @see Extension::ext_ed25519_batch_verify
+     */
+    [[nodiscard]] virtual runtime::WasmSize
+    ext_crypto_ed25519_batch_verify_version_1(
+        runtime::WasmPointer sig_data,
+        runtime::WasmSpan msg,
+        runtime::WasmPointer pubkey_data) = 0;
+
+    /**
      * @see Extension::ext_sr25519_public_keys
      */
     [[nodiscard]] virtual runtime::WasmSpan
@@ -355,6 +364,15 @@ namespace kagome::host_api {
         runtime::WasmPointer pubkey_data) = 0;
 
     [[nodiscard]] virtual int32_t ext_crypto_sr25519_verify_version_2(
+        runtime::WasmPointer sig_data,
+        runtime::WasmSpan msg,
+        runtime::WasmPointer pubkey_data) = 0;
+
+    /**
+     * Left for backwards compatibility with older runtimes and should not be
+     * used anymore.
+     */
+    [[nodiscard]] virtual int32_t ext_crypto_sr25519_batch_verify_version_1(
         runtime::WasmPointer sig_data,
         runtime::WasmSpan msg,
         runtime::WasmPointer pubkey_data) = 0;
@@ -449,7 +467,7 @@ namespace kagome::host_api {
      */
     [[nodiscard]] virtual int32_t ext_crypto_ecdsa_verify_prehashed_version_1(
         runtime::WasmPointer sig_data,
-        runtime::WasmSpan msg,
+        runtime::WasmPointer msg,
         runtime::WasmPointer pubkey_data) = 0;
 
     // ---------------------------- Misc extensions ----------------------------

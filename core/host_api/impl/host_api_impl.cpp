@@ -207,6 +207,14 @@ namespace kagome::host_api {
         sig_data, msg, pubkey_data);
   }
 
+  runtime::WasmSize HostApiImpl::ext_crypto_ed25519_batch_verify_version_1(
+      runtime::WasmPointer sig_data,
+      runtime::WasmSpan msg,
+      runtime::WasmPointer pubkey_data) {
+    return crypto_ext_.ext_crypto_ed25519_batch_verify_version_1(
+        sig_data, msg, pubkey_data);
+  }
+
   runtime::WasmSpan HostApiImpl::ext_crypto_sr25519_public_keys_version_1(
       runtime::WasmSize key_type) {
     return crypto_ext_.ext_crypto_sr25519_public_keys_version_1(key_type);
@@ -238,6 +246,14 @@ namespace kagome::host_api {
       runtime::WasmSpan msg,
       runtime::WasmPointer pubkey_data) {
     return crypto_ext_.ext_crypto_sr25519_verify_version_2(
+        sig_data, msg, pubkey_data);
+  }
+
+  int32_t HostApiImpl::ext_crypto_sr25519_batch_verify_version_1(
+      runtime::WasmPointer sig_data,
+      runtime::WasmSpan msg,
+      runtime::WasmPointer pubkey_data) {
+    return crypto_ext_.ext_crypto_sr25519_batch_verify_version_1(
         sig_data, msg, pubkey_data);
   }
 
@@ -275,7 +291,7 @@ namespace kagome::host_api {
 
   int32_t HostApiImpl::ext_crypto_ecdsa_verify_prehashed_version_1(
       runtime::WasmPointer sig,
-      runtime::WasmSpan msg,
+      runtime::WasmPointer msg,
       runtime::WasmPointer key) {
     return crypto_ext_.ext_crypto_ecdsa_verify_prehashed_version_1(
         sig, msg, key);

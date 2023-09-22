@@ -153,11 +153,13 @@ namespace kagome::runtime::binaryen {
     REGISTER_HOST_API_FUNC(ext_crypto_ed25519_generate_version_1);
     REGISTER_HOST_API_FUNC(ext_crypto_ed25519_sign_version_1);
     REGISTER_HOST_API_FUNC(ext_crypto_ed25519_verify_version_1);
+    REGISTER_HOST_API_FUNC(ext_crypto_ed25519_batch_verify_version_1);
     REGISTER_HOST_API_FUNC(ext_crypto_sr25519_public_keys_version_1);
     REGISTER_HOST_API_FUNC(ext_crypto_sr25519_generate_version_1);
     REGISTER_HOST_API_FUNC(ext_crypto_sr25519_sign_version_1);
     REGISTER_HOST_API_FUNC(ext_crypto_sr25519_verify_version_1);
     REGISTER_HOST_API_FUNC(ext_crypto_sr25519_verify_version_2);
+    REGISTER_HOST_API_FUNC(ext_crypto_sr25519_batch_verify_version_1);
     REGISTER_HOST_API_FUNC(ext_crypto_ecdsa_public_keys_version_1);
     REGISTER_HOST_API_FUNC(ext_crypto_ecdsa_sign_version_1);
     REGISTER_HOST_API_FUNC(ext_crypto_ecdsa_sign_prehashed_version_1);

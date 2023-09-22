@@ -143,6 +143,11 @@ namespace kagome::host_api {
         runtime::WasmSpan msg,
         runtime::WasmPointer pubkey_data) override;
 
+    runtime::WasmSize ext_crypto_ed25519_batch_verify_version_1(
+        runtime::WasmPointer sig_data,
+        runtime::WasmSpan msg,
+        runtime::WasmPointer pubkey_data) override;
+
     runtime::WasmSpan ext_crypto_sr25519_public_keys_version_1(
         runtime::WasmSize key_type) override;
 
@@ -162,6 +167,11 @@ namespace kagome::host_api {
     int32_t ext_crypto_sr25519_verify_version_2(runtime::WasmPointer,
                                                 runtime::WasmSpan,
                                                 runtime::WasmPointer) override;
+
+    int32_t ext_crypto_sr25519_batch_verify_version_1(
+        runtime::WasmPointer sig_data,
+        runtime::WasmSpan msg,
+        runtime::WasmPointer pubkey_data) override;
 
     runtime::WasmSpan ext_crypto_ecdsa_public_keys_version_1(
         runtime::WasmSize key_type) override;
@@ -186,7 +196,7 @@ namespace kagome::host_api {
 
     int32_t ext_crypto_ecdsa_verify_prehashed_version_1(
         runtime::WasmPointer sig,
-        runtime::WasmSpan msg,
+        runtime::WasmPointer msg,
         runtime::WasmPointer key) override;
 
     // ------------------------- Hashing extension/crypto ---------------
