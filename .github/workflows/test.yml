@@ -338,6 +338,14 @@ jobs:
             test: "test0005"
           - name: "Parachains disputes"
             test: "test0006"
+          - name: "Deregister register validator smoke"
+            test: "test0008"
+          - name: "Basic warp sync"
+            test: "test0009"
+          - name: "Validators warp sync"
+            test: "test0010"
+          - name: "Block building warp sync"
+            test: "test0011"
     runs-on: [ kagome ]
     needs: [Push-self-hosted]
     steps:
