@@ -8,6 +8,7 @@
 #include <boost/assert.hpp>
 
 #include "application/app_configuration.hpp"
+#include "network/beefy/i_beefy.hpp"
 #include "network/common.hpp"
 #include "network/helpers/peer_id_formatter.hpp"
 #include "primitives/common.hpp"
@@ -28,9 +29,11 @@ namespace kagome::network {
   SyncProtocolObserverImpl::SyncProtocolObserverImpl(
       std::shared_ptr<blockchain::BlockTree> block_tree,
       std::shared_ptr<blockchain::BlockHeaderRepository> blocks_headers,
+      std::shared_ptr<IBeefy> beefy,
       std::shared_ptr<PeerManager> peer_manager)
       : block_tree_{std::move(block_tree)},
         blocks_headers_{std::move(blocks_headers)},
+        beefy_{std::move(beefy)},
         peer_manager_{std::move(peer_manager)},
         log_(log::createLogger("SyncProtocolObserver", "network")) {
     BOOST_ASSERT(block_tree_);
@@ -187,7 +190,21 @@ namespace kagome::network {
           new_block.justification = std::move(justification_res.value());
         }
         if (request.multiple_justifications) {
-          // TODO(turuslan): #1651, beefy_justification
+          std::optional<primitives::BlockNumber> number;
+          if (new_block.header) {
+            number = new_block.header->number;
+          } else if (auto r = blocks_headers_->getNumberByHash(hash)) {
+            number = r.value();
+          }
+          if (number) {
+            if (auto r = beefy_->getJustification(*number)) {
+              if (auto &opt = r.value()) {
+                new_block.beefy_justification = primitives::Justification{
+                    common::Buffer{scale::encode(*opt).value()},
+                };
+              }
+            }
+          }
         }
       }
     }

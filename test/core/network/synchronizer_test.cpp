@@ -96,6 +96,7 @@ class SynchronizerTest
                                                     module_factory,
                                                     runtime_properties_cache,
                                                     chain_sub_engine,
+                                                    nullptr,
                                                     grandpa_environment);
   }
 

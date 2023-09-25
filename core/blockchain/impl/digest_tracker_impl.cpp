@@ -80,10 +80,10 @@ namespace kagome::blockchain {
 
       return grandpa_digest_observer_->onDigest(context, digest);
 
+    } else if (message.consensus_engine_id == primitives::kBeefyEngineId) {
+      return outcome::success();
     } else if (message.consensus_engine_id
-                   == primitives::kUnsupportedEngineId_BEEF
-               or message.consensus_engine_id
-                      == primitives::kUnsupportedEngineId_POL1) {
+               == primitives::kUnsupportedEngineId_POL1) {
       SL_TRACE(logger_,
                "Unsupported consensus engine id in block {}: {}",
                context.block_info,

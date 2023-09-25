@@ -17,6 +17,8 @@ namespace kagome::network {
       LazySPtr<SyncProtocol> sync_protocol,
       LazySPtr<StateProtocol> state_protocol,
       LazySPtr<WarpProtocol> warp_protocol,
+      LazySPtr<BeefyProtocol> beefy_protocol,
+      LazySPtr<BeefyJustificationProtocol> beefy_justifications_protocol,
       LazySPtr<LightProtocol> light_protocol,
       LazySPtr<PropagateTransactionsProtocol> propagate_transactions_protocol,
       LazySPtr<ValidationProtocol> validation_protocol,
@@ -37,6 +39,9 @@ namespace kagome::network {
         sync_protocol_(std::move(sync_protocol)),
         state_protocol_(std::move(state_protocol)),
         warp_protocol_{std::move(warp_protocol)},
+        beefy_protocol_{std::move(beefy_protocol)},
+        beefy_justifications_protocol_{
+            std::move(beefy_justifications_protocol)},
         light_protocol_{std::move(light_protocol)},
         propagate_transactions_protocol_(
             std::move(propagate_transactions_protocol)),
@@ -76,6 +81,8 @@ namespace kagome::network {
     app_state_manager_->takeControl(*sync_protocol_.get());
     app_state_manager_->takeControl(*state_protocol_.get());
     app_state_manager_->takeControl(*warp_protocol_.get());
+    app_state_manager_->takeControl(*beefy_protocol_.get());
+    app_state_manager_->takeControl(*beefy_justifications_protocol_.get());
     app_state_manager_->takeControl(*light_protocol_.get());
 
     app_state_manager_->takeControl(*propagate_transactions_protocol_.get());

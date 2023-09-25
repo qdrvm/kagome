@@ -70,6 +70,7 @@ namespace kagome::crypto {
       store_->generateSr25519Keypair(KEY_TYPE_AUDI, *dev).value();
       store_->generateSr25519Keypair(KEY_TYPE_ASGN, *dev).value();
       store_->generateSr25519Keypair(KEY_TYPE_PARA, *dev).value();
+      store_->generateSr25519Keypair(KEY_TYPE_BEEF, *dev).value();
     }
   }
 

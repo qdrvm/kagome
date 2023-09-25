@@ -31,7 +31,7 @@ namespace kagome::primitives {
   inline const auto kUnsupportedEngineId_POL1 =
       ConsensusEngineId::fromString("POL1").value();
 
-  inline const auto kUnsupportedEngineId_BEEF =
+  inline const auto kBeefyEngineId =
       ConsensusEngineId::fromString("BEEF").value();
 
   struct Other : public common::Buffer {};
@@ -87,7 +87,7 @@ namespace kagome::primitives {
       } else if (engine_id == primitives::kUnsupportedEngineId_POL1) {
         OUTCOME_TRY(payload, scale::decode<UnsupportedDigest_POL1>(data));
         return DecodedConsensusMessage{engine_id, std::move(payload)};
-      } else if (engine_id == primitives::kUnsupportedEngineId_BEEF) {
+      } else if (engine_id == primitives::kBeefyEngineId) {
         OUTCOME_TRY(payload, scale::decode<UnsupportedDigest_BEEF>(data));
         return DecodedConsensusMessage{engine_id, std::move(payload)};
       }
@@ -103,7 +103,7 @@ namespace kagome::primitives {
     template <typename T>
     bool isBabeDigestOf() const {
       return consensus_engine_id == primitives::kBabeEngineId
-             && boost::get<T>(&asBabeDigest()) != nullptr;
+          && boost::get<T>(&asBabeDigest()) != nullptr;
     }
 
     const GrandpaDigest &asGrandpaDigest() const {
@@ -114,7 +114,7 @@ namespace kagome::primitives {
     template <typename T>
     bool isGrandpaDigestOf() const {
       return consensus_engine_id == primitives::kGrandpaEngineId
-             && boost::get<T>(&asGrandpaDigest()) != nullptr;
+          && boost::get<T>(&asGrandpaDigest()) != nullptr;
     }
 
     ConsensusEngineId consensus_engine_id;

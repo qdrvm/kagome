@@ -47,6 +47,7 @@ namespace kagome::storage::trie {
 }  // namespace kagome::storage::trie
 
 namespace kagome::network {
+  class IBeefy;
 
   class SynchronizerImpl
       : public Synchronizer,
@@ -101,6 +102,7 @@ namespace kagome::network {
         std::shared_ptr<runtime::RuntimePropertiesCache>
             runtime_properties_cache,
         primitives::events::ChainSubscriptionEnginePtr chain_sub_engine,
+        std::shared_ptr<IBeefy> beefy,
         std::shared_ptr<consensus::grandpa::Environment> grandpa_environment);
 
     /** @see AppStateManager::takeControl */
@@ -222,6 +224,7 @@ namespace kagome::network {
     std::shared_ptr<crypto::Hasher> hasher_;
     std::shared_ptr<runtime::ModuleFactory> module_factory_;
     std::shared_ptr<runtime::RuntimePropertiesCache> runtime_properties_cache_;
+    std::shared_ptr<IBeefy> beefy_;
     std::shared_ptr<consensus::grandpa::Environment> grandpa_environment_;
     primitives::events::ChainSubscriptionEnginePtr chain_sub_engine_;
 

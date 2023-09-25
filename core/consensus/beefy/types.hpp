@@ -25,6 +25,15 @@ namespace kagome::consensus::beefy {
 
     std::vector<crypto::EcdsaPublicKey> validators;
     primitives::AuthoritySetId id;
+
+    std::optional<primitives::AuthorityIndex> find(
+        const crypto::EcdsaPublicKey &key) const {
+      auto it = std::find(validators.begin(), validators.end(), key);
+      if (it == validators.end()) {
+        return std::nullopt;
+      }
+      return it - validators.begin();
+    }
   };
 
   using ConsensusDigest =
@@ -55,8 +64,8 @@ namespace kagome::consensus::beefy {
     Commitment commitment;
     std::vector<std::optional<crypto::EcdsaSignature>> signatures;
   };
-  scale::ScaleEncoderStream &operator<<(scale::ScaleEncoderStream &s,
-                                        const SignedCommitment &v) {
+  inline scale::ScaleEncoderStream &operator<<(scale::ScaleEncoderStream &s,
+                                               const SignedCommitment &v) {
     s << v.commitment;
     size_t count = 0;
     common::Buffer bits;
@@ -80,8 +89,8 @@ namespace kagome::consensus::beefy {
     }
     return s;
   }
-  scale::ScaleDecoderStream &operator>>(scale::ScaleDecoderStream &s,
-                                        SignedCommitment &v) {
+  inline scale::ScaleDecoderStream &operator>>(scale::ScaleDecoderStream &s,
+                                               SignedCommitment &v) {
     s >> v.commitment;
     common::Buffer bits;
     s >> bits;
@@ -111,4 +120,6 @@ namespace kagome::consensus::beefy {
   }
 
   using BeefyJustification = boost::variant<Unused<0>, SignedCommitment>;
+
+  using BeefyGossipMessage = boost::variant<VoteMessage, BeefyJustification>;
 }  // namespace kagome::consensus::beefy

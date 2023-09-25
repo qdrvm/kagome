@@ -12,6 +12,7 @@
 #include "consensus/babe/has_babe_consensus_digest.hpp"
 #include "consensus/grandpa/environment.hpp"
 #include "consensus/grandpa/has_authority_set_change.hpp"
+#include "network/beefy/i_beefy.hpp"
 #include "network/helpers/peer_id_formatter.hpp"
 #include "network/types/block_attributes.hpp"
 #include "primitives/common.hpp"
@@ -88,6 +89,7 @@ namespace kagome::network {
       std::shared_ptr<runtime::ModuleFactory> module_factory,
       std::shared_ptr<runtime::RuntimePropertiesCache> runtime_properties_cache,
       primitives::events::ChainSubscriptionEnginePtr chain_sub_engine,
+      std::shared_ptr<IBeefy> beefy,
       std::shared_ptr<consensus::grandpa::Environment> grandpa_environment)
       : app_state_manager_(std::move(app_state_manager)),
         block_tree_(std::move(block_tree)),
@@ -101,6 +103,7 @@ namespace kagome::network {
         hasher_(std::move(hasher)),
         module_factory_(std::move(module_factory)),
         runtime_properties_cache_{std::move(runtime_properties_cache)},
+        beefy_{std::move(beefy)},
         grandpa_environment_{std::move(grandpa_environment)},
         chain_sub_engine_(std::move(chain_sub_engine)) {
     BOOST_ASSERT(app_state_manager_);
@@ -858,12 +861,13 @@ namespace kagome::network {
 
     scheduleRecentRequestRemoval(peer_id, request_fingerprint);
 
+    using Result = outcome::result<BlocksResponse>;
     auto response_handler = [wp = weak_from_this(),
                              peer_id,
                              target_block,
                              limit,
                              handler = std::move(handler)](
-                                auto &&response_res) mutable {
+                                Result response_res) mutable {
       auto self = wp.lock();
       if (not self) {
         return;
@@ -930,6 +934,10 @@ namespace kagome::network {
             self->justifications_.emplace(last_justified_block,
                                           *block.justification);
           }
+        }
+        if (block.beefy_justification) {
+          std::ignore = self->beefy_->onJustification(
+              block.hash, std::move(*block.beefy_justification));
         }
       }
 
@@ -1259,6 +1267,11 @@ namespace kagome::network {
                   }
                 });
           }
+        }
+
+        if (block_data.beefy_justification) {
+          std::ignore = beefy_->onJustification(
+              block_data.hash, std::move(*block_data.beefy_justification));
         }
       }
     }
