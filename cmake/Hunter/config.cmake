@@ -67,8 +67,8 @@ hunter_config(
 
 hunter_config(
     wavm
-    URL  https://github.com/qdrvm/WAVM/archive/235c935866e3ba7264612c4d0a0c1cc0be33abba.tar.gz
-    SHA1 a49a7d471ddc5d21934d89b710da764dd5d2bf08
+    URL  https://github.com/qdrvm/WAVM/archive/5afb4e81f4976ee36b9847acaaf46c967ef479fe.tar.gz
+    SHA1 f5abc08c97e10e6683ef3d1d3bf64b0dccf7a5e6
     CMAKE_ARGS
       WAVM_ENABLE_FUZZ_TARGETS=OFF
       WAVM_ENABLE_STATIC_LINKING=ON
