@@ -5,6 +5,7 @@
 
 #include "consensus/babe/impl/block_executor_impl.hpp"
 
+#include "application/app_configuration.hpp"
 #include "blockchain/block_tree.hpp"
 #include "blockchain/block_tree_error.hpp"
 #include "blockchain/digest_tracker.hpp"
@@ -22,6 +23,7 @@
 #include "storage/changes_trie/impl/storage_changes_tracker_impl.hpp"
 #include "transaction_pool/transaction_pool.hpp"
 #include "transaction_pool/transaction_pool_error.hpp"
+#include "utils/thread_pool.hpp"
 
 namespace kagome::consensus::babe {
   metrics::HistogramTimer metric_block_execution_time{
@@ -31,7 +33,9 @@ namespace kagome::consensus::babe {
   };
 
   BlockExecutorImpl::BlockExecutorImpl(
+      const application::AppConfiguration &app_config,
       std::shared_ptr<blockchain::BlockTree> block_tree,
+      const ThreadPool &thread_pool,
       std::shared_ptr<runtime::Core> core,
       std::shared_ptr<transaction_pool::TransactionPool> tx_pool,
       std::shared_ptr<crypto::Hasher> hasher,
@@ -39,7 +43,9 @@ namespace kagome::consensus::babe {
       primitives::events::StorageSubscriptionEnginePtr storage_sub_engine,
       primitives::events::ChainSubscriptionEnginePtr chain_sub_engine,
       std::unique_ptr<BlockAppenderBase> appender)
-      : block_tree_{std::move(block_tree)},
+      : app_config_{app_config},
+        block_tree_{std::move(block_tree)},
+        io_context_{thread_pool.io_context()},
         core_{std::move(core)},
         tx_pool_{std::move(tx_pool)},
         hasher_{std::move(hasher)},
@@ -79,7 +85,7 @@ namespace kagome::consensus::babe {
     }
 
     // get current time to measure performance if block execution
-    auto start_time = std::chrono::high_resolution_clock::now();
+    auto start_time = std::chrono::steady_clock::now();
 
     bool block_was_applied_earlier = false;
 
@@ -101,15 +107,13 @@ namespace kagome::consensus::babe {
       return;
     }
 
-    std::optional<ConsistencyGuard> consistency_guard{};
-    if (auto res =
-            appender_->observeDigestsAndValidateHeader(block, block_context);
-        res.has_value()) {
-      consistency_guard.emplace(std::move(res.value()));
-    } else {
-      callback(res.as_failure());
+    auto consistency_guard_res =
+        appender_->observeDigestsAndValidateHeader(block, block_context);
+    if (not consistency_guard_res) {
+      callback(consistency_guard_res.as_failure());
       return;
     }
+    auto &consistency_guard = consistency_guard_res.value();
 
     // Calculate best block before new one will be applied
     auto last_finalized_block = block_tree_->getLastFinalized();
@@ -118,7 +122,26 @@ namespace kagome::consensus::babe {
     BOOST_ASSERT(previous_best_block_res.has_value());
     const auto &previous_best_block = previous_best_block_res.value();
 
-    if (not block_was_applied_earlier) {
+    if (block_was_applied_earlier) {
+      applyBlockExecuted(std::move(block),
+                         justification,
+                         std::move(callback),
+                         block_info,
+                         start_time,
+                         consistency_guard,
+                         previous_best_block);
+      return;
+    }
+    auto execute = [this,
+                    self{shared_from_this()},
+                    block{std::move(block)},
+                    justification,
+                    callback{std::move(callback)},
+                    block_info,
+                    start_time,
+                    consistency_guard{std::make_shared<ConsistencyGuard>(
+                        std::move(consistency_guard))},
+                    previous_best_block]() mutable {
       auto timer = metric_block_execution_time.manual();
 
       auto parent =
@@ -166,14 +189,31 @@ namespace kagome::consensus::babe {
 
       changes_tracker->onBlockAdded(
           block_info.hash, storage_sub_engine_, chain_subscription_engine_);
-    }
 
+      applyBlockExecuted(std::move(block),
+                         justification,
+                         std::move(callback),
+                         block_info,
+                         start_time,
+                         *consistency_guard,
+                         previous_best_block);
+    };
+    io_context_->post(std::move(execute));
+  }
+
+  void BlockExecutorImpl::applyBlockExecuted(
+      primitives::Block &&block,
+      const std::optional<primitives::Justification> &justification,
+      ApplyJustificationCb &&callback,
+      const primitives::BlockInfo &block_info,
+      clock::SteadyClock::TimePoint start_time,
+      ConsistencyGuard &consistency_guard,
+      const primitives::BlockInfo &previous_best_block) {
     /// TODO(iceseer): in a case we change the authority set, we can get an
     /// error with the following behavior: the finalisation will commit the
     /// authority change and the step of the next block processing will be
     /// failed because of VRF error
-    BOOST_ASSERT(consistency_guard);
-    consistency_guard->commit();
+    consistency_guard.commit();
 
     appender_->applyJustifications(
         block_info,
@@ -236,7 +276,7 @@ namespace kagome::consensus::babe {
             lag_msg = " (lag <1 min.)";
           }
 
-          auto now = std::chrono::high_resolution_clock::now();
+          auto now = std::chrono::steady_clock::now();
 
           self->logger_->info(
               "Imported block {} within {} ms.{}",

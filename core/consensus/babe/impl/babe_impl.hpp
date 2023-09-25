@@ -20,6 +20,14 @@
 #include "primitives/inherent_data.hpp"
 #include "telemetry/service.hpp"
 
+namespace boost::asio {
+  class io_context;
+}  // namespace boost::asio
+
+namespace kagome {
+  class ThreadPool;
+}  // namespace kagome
+
 namespace kagome::application {
   class AppStateManager;
 }  // namespace kagome::application
@@ -73,7 +81,11 @@ namespace kagome::consensus::babe {
 
 namespace kagome::storage::trie {
   class TrieStorage;
-}
+}  // namespace kagome::storage::trie
+
+namespace kagome::storage::changes_trie {
+  class StorageChangesTrackerImpl;
+}  // namespace kagome::storage::changes_trie
 
 namespace kagome::consensus::babe {
 
@@ -100,6 +112,7 @@ namespace kagome::consensus::babe {
         std::shared_ptr<application::AppStateManager> app_state_manager,
         std::shared_ptr<BabeLottery> lottery,
         std::shared_ptr<BabeConfigRepository> babe_config_repo,
+        const ThreadPool &thread_pool,
         std::shared_ptr<authorship::Proposer> proposer,
         std::shared_ptr<blockchain::BlockTree> block_tree,
         std::shared_ptr<network::BlockAnnounceTransmitter>
@@ -186,6 +199,19 @@ namespace kagome::consensus::babe {
         clock::SystemClock::TimePoint slot_timestamp,
         std::optional<std::reference_wrapper<const crypto::VRFOutput>> output,
         primitives::AuthorityIndex authority_index);
+    /**
+     * `processSlotLeadership` coroutine piece
+     *   processSlotLeadership() {
+     *     await propose()
+     *     // processSlotLeadershipProposed()
+     *   }
+     */
+    void processSlotLeadershipProposed(
+        uint64_t now,
+        clock::SteadyClock::TimePoint proposal_start,
+        std::shared_ptr<storage::changes_trie::StorageChangesTrackerImpl>
+            &&changes_tracker,
+        primitives::Block &&block);
 
     void changeLotteryEpoch(
         const EpochDescriptor &epoch,
@@ -205,6 +231,7 @@ namespace kagome::consensus::babe {
     std::shared_ptr<application::AppStateManager> app_state_manager_;
     std::shared_ptr<BabeLottery> lottery_;
     std::shared_ptr<BabeConfigRepository> babe_config_repo_;
+    std::shared_ptr<boost::asio::io_context> io_context_;
     std::shared_ptr<authorship::Proposer> proposer_;
     std::shared_ptr<blockchain::BlockTree> block_tree_;
     std::shared_ptr<network::BlockAnnounceTransmitter>
