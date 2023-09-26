@@ -192,10 +192,10 @@ namespace kagome::network {
               auto &&result) mutable {
             if (auto self = wptr.lock()) {
               if (!result) {
-                SL_WARN(self->base_.logger(),
-                        "Handshake with {} failed with error {}",
-                        stream->remotePeerId().value(),
-                        result.error().message());
+                SL_VERBOSE(self->base_.logger(),
+                           "Handshake with {} failed with error {}",
+                           stream->remotePeerId().value(),
+                           result.error().message());
                 self->base_.closeStream(wptr, stream);
                 std::forward<F>(func)(nullptr);
                 return;

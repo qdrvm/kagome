@@ -8,6 +8,7 @@
 
 #include <unordered_set>
 
+#include "log/logger.hpp"
 #include "network/types/state_request.hpp"
 #include "network/types/state_response.hpp"
 #include "primitives/block_header.hpp"
@@ -61,6 +62,9 @@ namespace kagome::network {
     bool done_ = false;
     std::vector<Level> levels_;
     std::unordered_set<common::Hash256> known_;
+
+    size_t stat_count_ = 0, stat_size_ = 0;
+    log::Logger log_;
   };
 }  // namespace kagome::network
 

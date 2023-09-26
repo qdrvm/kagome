@@ -16,7 +16,10 @@ namespace kagome::network {
       std::shared_ptr<storage::trie::TrieStorageBackend> db,
       const primitives::BlockInfo &block_info,
       const primitives::BlockHeader &block)
-      : db_{std::move(db)}, block_info_{block_info}, block_{block} {
+      : db_{std::move(db)},
+        block_info_{block_info},
+        block_{block},
+        log_{log::createLogger("StateSync")} {
     done_ = isKnown(block.state_root);
     if (not done_) {
       auto &level = levels_.emplace_back();
@@ -53,6 +56,17 @@ namespace kagome::network {
     storage::trie::PolkadotCodec codec;
     BOOST_ASSERT(not complete());
     OUTCOME_TRY(nodes, storage::trie::compactDecode(res.proof));
+    auto diff_count = nodes.size(), diff_size = res.proof.size();
+    if (diff_count != 0) {
+      stat_count_ += diff_count;
+      stat_size_ += diff_size;
+      SL_INFO(log_,
+              "received {} nodes {}mb, total {} nodes {}mb",
+              diff_count,
+              diff_size >> 20,
+              stat_count_,
+              stat_size_ >> 20);
+    }
     while (not levels_.empty()) {
       auto &level = levels_.back();
       auto push = [&](decltype(nodes)::iterator it) -> outcome::result<void> {
