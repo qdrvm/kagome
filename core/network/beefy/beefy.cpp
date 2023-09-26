@@ -14,6 +14,7 @@
 #include "runtime/runtime_api/beefy.hpp"
 #include "storage/spaced_storage.hpp"
 #include "utils/block_number_key.hpp"
+#include "utils/thread_pool.hpp"
 
 // TODO(turuslan): #1651, report equivocation
 
@@ -23,12 +24,15 @@ namespace kagome::network {
                std::shared_ptr<runtime::BeefyApi> beefy_api,
                std::shared_ptr<crypto::EcdsaProvider> ecdsa,
                std::shared_ptr<storage::SpacedStorage> db,
+               std::shared_ptr<ThreadPool> thread_pool,
                std::shared_ptr<primitives::events::ChainSubscriptionEngine>
                    chain_sub_engine)
       : block_tree_{std::move(block_tree)},
         beefy_api_{std::move(beefy_api)},
         ecdsa_{std::move(ecdsa)},
         db_{db->getSpace(storage::Space::kBeefyJustification)},
+        strand_inner_{thread_pool->io_context()},
+        strand_{*strand_inner_},
         log_{log::createLogger("Beefy")} {
     app_state_manager.atLaunch([=]() mutable {
       start(std::move(chain_sub_engine));
@@ -46,7 +50,16 @@ namespace kagome::network {
     return outcome::success(std::nullopt);
   }
 
-  outcome::result<void> Beefy::onJustification(
+  void Beefy::onJustification(const primitives::BlockHash &block_hash,
+                              primitives::Justification raw) {
+    strand_.post([weak = weak_from_this(), block_hash, raw = std::move(raw)] {
+      if (auto self = weak.lock()) {
+        std::ignore = self->onJustificationOutcome(block_hash, std::move(raw));
+      }
+    });
+  }
+
+  outcome::result<void> Beefy::onJustificationOutcome(
       const primitives::BlockHash &block_hash, primitives::Justification raw) {
     if (not beefy_genesis_) {
       return outcome::success();
@@ -63,6 +76,14 @@ namespace kagome::network {
   }
 
   void Beefy::onMessage(consensus::beefy::BeefyGossipMessage message) {
+    if (not strand_.running_in_this_thread()) {
+      return strand_.post(
+          [weak = weak_from_this(), message = std::move(message)] {
+            if (auto self = weak.lock()) {
+              self->onMessage(std::move(message));
+            }
+          });
+    }
     if (not beefy_genesis_) {
       return;
     }
@@ -124,11 +145,19 @@ namespace kagome::network {
                            primitives::events::ChainEventType,
                            const primitives::events::ChainEventParams &) {
       if (auto self = weak.lock()) {
-        std::ignore = self->update();
+        self->strand_.post([weak] {
+          if (auto self = weak.lock()) {
+            std::ignore = self->update();
+          }
+        });
       }
     };
     chain_sub_->setCallback(std::move(on_finalize));
-    std::ignore = update();
+    strand_.post([weak = weak_from_this()] {
+      if (auto self = weak.lock()) {
+        std::ignore = self->update();
+      }
+    });
   }
 
   bool Beefy::hasJustification(primitives::BlockNumber block) const {

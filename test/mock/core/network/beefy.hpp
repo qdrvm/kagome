@@ -17,7 +17,7 @@ namespace kagome::network {
         (primitives::BlockNumber),
         (const, override));
 
-    MOCK_METHOD(outcome::result<void>,
+    MOCK_METHOD(void,
                 onJustification,
                 (const primitives::BlockHash &, primitives::Justification),
                 (override));

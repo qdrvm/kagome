@@ -936,8 +936,8 @@ namespace kagome::network {
           }
         }
         if (block.beefy_justification) {
-          std::ignore = self->beefy_->onJustification(
-              block.hash, std::move(*block.beefy_justification));
+          self->beefy_->onJustification(block.hash,
+                                        std::move(*block.beefy_justification));
         }
       }
 
@@ -1270,8 +1270,8 @@ namespace kagome::network {
         }
 
         if (block_data.beefy_justification) {
-          std::ignore = beefy_->onJustification(
-              block_data.hash, std::move(*block_data.beefy_justification));
+          beefy_->onJustification(block_data.hash,
+                                  std::move(*block_data.beefy_justification));
         }
       }
     }

@@ -16,8 +16,7 @@ namespace kagome::network {
     virtual outcome::result<std::optional<consensus::beefy::BeefyJustification>>
     getJustification(primitives::BlockNumber block) const = 0;
 
-    virtual outcome::result<void> onJustification(
-        const primitives::BlockHash &block_hash,
-        primitives::Justification raw) = 0;
+    virtual void onJustification(const primitives::BlockHash &block_hash,
+                                 primitives::Justification raw) = 0;
   };
 }  // namespace kagome::network

@@ -5,6 +5,7 @@
 
 #pragma once
 
+#include <boost/asio/io_context_strand.hpp>
 #include <map>
 
 #include "consensus/beefy/types.hpp"
@@ -13,6 +14,10 @@
 #include "primitives/event_types.hpp"
 #include "primitives/justification.hpp"
 #include "storage/buffer_map_types.hpp"
+
+namespace kagome {
+  class ThreadPool;
+}  // namespace kagome
 
 namespace kagome::application {
   class AppStateManager;
@@ -42,15 +47,15 @@ namespace kagome::network {
           std::shared_ptr<runtime::BeefyApi> beefy_api,
           std::shared_ptr<crypto::EcdsaProvider> ecdsa,
           std::shared_ptr<storage::SpacedStorage> db,
+          std::shared_ptr<ThreadPool> thread_pool,
           std::shared_ptr<primitives::events::ChainSubscriptionEngine>
               chain_sub_engine);
 
     outcome::result<std::optional<consensus::beefy::BeefyJustification>>
     getJustification(primitives::BlockNumber block) const override;
 
-    outcome::result<void> onJustification(
-        const primitives::BlockHash &block_hash,
-        primitives::Justification raw) override;
+    void onJustification(const primitives::BlockHash &block_hash,
+                         primitives::Justification raw) override;
 
     void onMessage(consensus::beefy::BeefyGossipMessage message);
 
@@ -67,6 +72,8 @@ namespace kagome::network {
         std::pair<primitives::BlockNumber, consensus::beefy::ValidatorSet>>;
     outcome::result<FindValidatorsResult> findValidators(
         primitives::BlockNumber max, primitives::BlockNumber min) const;
+    outcome::result<void> onJustificationOutcome(
+        const primitives::BlockHash &block_hash, primitives::Justification raw);
     outcome::result<void> onJustification(
         consensus::beefy::SignedCommitment justification);
     outcome::result<void> apply(
@@ -77,6 +84,8 @@ namespace kagome::network {
     std::shared_ptr<runtime::BeefyApi> beefy_api_;
     std::shared_ptr<crypto::EcdsaProvider> ecdsa_;
     std::shared_ptr<storage::BufferStorage> db_;
+    std::shared_ptr<boost::asio::io_context> strand_inner_;
+    boost::asio::io_context::strand strand_;
     std::shared_ptr<primitives::events::ChainEventSubscriber> chain_sub_;
 
     std::optional<primitives::BlockNumber> beefy_genesis_;
