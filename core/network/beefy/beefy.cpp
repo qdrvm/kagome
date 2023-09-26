@@ -205,6 +205,7 @@ namespace kagome::network {
         return outcome::success();
       }
     }
+    auto &first = found ? found->first : session->first;
     auto &validators = found ? found->second : session->second.validators;
     if (justification.commitment.validator_set_id != validators.id) {
       return outcome::success();
@@ -217,6 +218,9 @@ namespace kagome::network {
                                            std::move(justification),
                                        })
                              .value()));
+    if (beefy_finalized_ != first) {
+      OUTCOME_TRY(db_->remove(BlockNumberKey::encode(beefy_finalized_)));
+    }
     if (block_number <= beefy_finalized_) {
       return outcome::success();
     }
