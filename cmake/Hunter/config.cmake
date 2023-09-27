@@ -33,12 +33,6 @@ hunter_config(
 )
 
 hunter_config(
-    binaryen
-    URL https://github.com/qdrvm/binaryen/archive/0744f64a584cae5b9255b1c2f0a4e0b5e06d7038.zip
-    SHA1 f953c5f38a0417e494901e15ab6f5d8267388d18
-)
-
-hunter_config(
     soralog
     VERSION 0.2.1
     KEEP_PACKAGE_SOURCES
@@ -58,27 +52,15 @@ hunter_config(
 
 hunter_config(
     LLVM
-    URL  https://github.com/qdrvm/kagome-llvm/archive/refs/tags/v13.0.1.tar.gz
-    SHA1 a36890190449798e6bbec1e6061544d7016859d8
-    CONFIGURATION_TYPES
-      Release
+    VERSION 12.0.1-p1
     CMAKE_ARGS
-      LLVM_ENABLE_PROJECTS=clang;clang-tools-extra;compiler-rt
-      LLVM_ENABLE_ZLIB=OFF
-      LLVM_INCLUDE_EXAMPLES=OFF
-      LLVM_INCLUDE_TESTS=OFF
-      LLVM_INCLUDE_DOCS=OFF
-      LLVM_PARALLEL_LINK_JOBS=1
+    LLVM_ENABLE_PROJECTS=ir
+    KEEP_PACKAGE_SOURCES
 )
 
-hunter_config(
-    wavm
-    URL  https://github.com/qdrvm/WAVM/archive/5afb4e81f4976ee36b9847acaaf46c967ef479fe.tar.gz
-    SHA1 f5abc08c97e10e6683ef3d1d3bf64b0dccf7a5e6
-    CMAKE_ARGS
-      WAVM_ENABLE_FUZZ_TARGETS=OFF
-      WAVM_ENABLE_STATIC_LINKING=ON
-      WAVM_BUILD_EXAMPLES=OFF
-      WAVM_BUILD_TESTS=OFF
-      WAVM_DISABLE_UNIX_SIGNALS=ON
-)
+# Uncomment for Apple clang 15
+#hunter_config(
+#        binaryen
+#        URL https://github.com/qdrvm/binaryen/archive/0744f64a584cae5b9255b1c2f0a4e0b5e06d7038.zip
+#        SHA1 f953c5f38a0417e494901e15ab6f5d8267388d18
+#)
