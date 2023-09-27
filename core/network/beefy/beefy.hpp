@@ -62,6 +62,8 @@ namespace kagome::network {
    private:
     struct Session {
       consensus::beefy::ValidatorSet validators;
+      std::map<primitives::BlockNumber, consensus::beefy::SignedCommitment>
+          rounds;
     };
     using Sessions = std::map<primitives::BlockNumber, Session>;
 

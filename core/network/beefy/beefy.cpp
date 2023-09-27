@@ -102,7 +102,7 @@ namespace kagome::network {
       if (block_number < *beefy_genesis_) {
         return;
       }
-      if (block_number < beefy_finalized_) {
+      if (block_number <= beefy_finalized_) {
         return;
       }
       if (block_number >= next_digest_) {
@@ -112,7 +112,7 @@ namespace kagome::network {
       if (next_session == sessions_.begin()) {
         return;
       }
-      auto session = std::prev(next_session)->second;
+      auto &session = std::prev(next_session)->second;
       if (vote.commitment.validator_set_id != session.validators.id) {
         return;
       }
@@ -120,10 +120,32 @@ namespace kagome::network {
       if (not index) {
         return;
       }
+      auto total = session.validators.validators.size();
+      auto round = session.rounds.find(block_number);
+      if (round == session.rounds.end()) {
+        round = session.rounds
+                    .emplace(
+                        block_number,
+                        consensus::beefy::SignedCommitment{vote.commitment, {}})
+                    .first;
+        round->second.signatures.resize(total);
+      }
+      if (round->second.signatures[*index]) {
+        return;
+      }
       if (not verify(*ecdsa_, vote)) {
         return;
       }
-      // TODO(turuslan): #1651, collect votes
+      round->second.signatures[*index] = vote.signature;
+      size_t count = 0;
+      for (auto &sig : round->second.signatures) {
+        if (sig) {
+          ++count;
+        }
+      }
+      if (count >= consensus::beefy::threshold(total)) {
+        std::ignore = apply(session.rounds.extract(round).mapped());
+      }
     }
   }
 
@@ -230,9 +252,6 @@ namespace kagome::network {
         return outcome::success();
       }
       session = std::prev(next_session);
-      if (session == sessions_.end()) {
-        return outcome::success();
-      }
     }
     auto &first = found ? found->first : session->first;
     auto &validators = found ? found->second : session->second.validators;
@@ -254,8 +273,13 @@ namespace kagome::network {
       return outcome::success();
     }
     sessions_.erase(sessions_.begin(), session);
+    if (session != sessions_.end()) {
+      session->second.rounds.erase(
+          session->second.rounds.begin(),
+          session->second.rounds.upper_bound(block_number));
+    }
     if (found) {
-      sessions_.emplace(found->first, Session{std::move(validators)});
+      sessions_.emplace(found->first, Session{std::move(validators), {}});
     }
     SL_VERBOSE(log_, "finalized {}", block_number);
     beefy_finalized_ = block_number;
@@ -288,7 +312,7 @@ namespace kagome::network {
           findValidators(next_digest_,
                          sessions_.empty() ? *beefy_genesis_ : next_digest_));
       if (found) {
-        sessions_.emplace(found->first, Session{std::move(found->second)});
+        sessions_.emplace(found->first, Session{std::move(found->second), {}});
       }
       ++next_digest_;
     }

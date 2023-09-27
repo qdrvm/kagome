@@ -22,7 +22,7 @@ namespace kagome::network {
       : public RequestResponseProtocol<primitives::BlockNumber,
                                        consensus::beefy::BeefyJustification,
                                        ScaleMessageReadWriter> {
-    static constexpr auto kName = "BeefyJustification";
+    static constexpr auto kName = "BeefyJustificationProtocol";
 
    public:
     BeefyJustificationProtocol(libp2p::Host &host,
@@ -41,7 +41,7 @@ namespace kagome::network {
   class BeefyProtocol final
       : public ProtocolBase,
         public std::enable_shared_from_this<BeefyProtocol> {
-    static constexpr auto kName = "Beefy";
+    static constexpr auto kName = "BeefyProtocol";
 
    public:
     BeefyProtocol(libp2p::Host &host,
