@@ -38,10 +38,31 @@ namespace cxx20 {
          : !exhaust2 ? std::strong_ordering::less
                      : std::strong_ordering::equal;
   }
+
+#if !defined(__cpp_lib_three_way_comparison)
+  // primarily fix for AppleClang < 15
+
+  // clang-format off
+  // https://github.com/llvm/llvm-project/blob/main/libcxx/include/__compare/compare_three_way.h
+  struct _LIBCPP_TEMPLATE_VIS compare_three_way
+  {
+    template<class _T1, class _T2>
+    constexpr _LIBCPP_HIDE_FROM_ABI
+    auto operator()(_T1&& __t, _T2&& __u) const
+    noexcept(noexcept(_VSTD::forward<_T1>(__t) <=> _VSTD::forward<_T2>(__u)))
+    { return          _VSTD::forward<_T1>(__t) <=> _VSTD::forward<_T2>(__u); }
+
+    using is_transparent = void;
+  };
+  // clang-format on
+#else
+  using compare_three_way = std::compare_three_way;
+#endif
+
   template <class I1, class I2>
   constexpr auto lexicographical_compare_three_way(I1 f1, I1 l1, I2 f2, I2 l2) {
     return ::cxx20::lexicographical_compare_three_way(
-        f1, l1, f2, l2, std::compare_three_way{});
+        f1, l1, f2, l2, compare_three_way{});
   }
 #else
   using std::lexicographical_compare_three_way;

@@ -2,11 +2,20 @@
 # non-default version or arguments of a dependency, or when a project not
 # registered in soramitsu-hunter should be added.
 #
-# hunter_config( package-name VERSION 0.0.0-package-version CMAKE_ARGS
-# "CMAKE_VARIABLE=value" )
+# hunter_config(
+#     package-name
+#     VERSION 0.0.0-package-version
+#     CMAKE_ARGS
+#      CMAKE_VARIABLE=value
+# )
 #
-# hunter_config( package-name URL https://repo/archive.zip SHA1
-# 1234567890abcdef1234567890abcdef12345678 CMAKE_ARGS "CMAKE_VARIABLE=value" )
+# hunter_config(
+#     package-name
+#     URL https://repo/archive.zip
+#     SHA1 1234567890abcdef1234567890abcdef12345678
+#     CMAKE_ARGS
+#       CMAKE_VARIABLE=value
+# )
 
 hunter_config(
     backward-cpp
@@ -48,14 +57,28 @@ hunter_config(
 )
 
 hunter_config(
-    wavm
-    VERSION 1.0.12
+    LLVM
+    URL  https://github.com/qdrvm/kagome-llvm/archive/refs/tags/v13.0.1.tar.gz
+    SHA1 a36890190449798e6bbec1e6061544d7016859d8
+    CONFIGURATION_TYPES
+      Release
     CMAKE_ARGS
-      TESTING=OFF
+      LLVM_ENABLE_PROJECTS=clang;clang-tools-extra;compiler-rt
+      LLVM_ENABLE_ZLIB=OFF
+      LLVM_INCLUDE_EXAMPLES=OFF
+      LLVM_INCLUDE_TESTS=OFF
+      LLVM_INCLUDE_DOCS=OFF
+      LLVM_PARALLEL_LINK_JOBS=1
+)
+
+hunter_config(
+    wavm
+    URL  https://github.com/qdrvm/WAVM/archive/5afb4e81f4976ee36b9847acaaf46c967ef479fe.tar.gz
+    SHA1 f5abc08c97e10e6683ef3d1d3bf64b0dccf7a5e6
+    CMAKE_ARGS
       WAVM_ENABLE_FUZZ_TARGETS=OFF
       WAVM_ENABLE_STATIC_LINKING=ON
       WAVM_BUILD_EXAMPLES=OFF
       WAVM_BUILD_TESTS=OFF
       WAVM_DISABLE_UNIX_SIGNALS=ON
-    KEEP_PACKAGE_SOURCES
 )
