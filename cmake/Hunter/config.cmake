@@ -50,16 +50,6 @@ hunter_config(
     CMAKE_ARGS WITH_GFLAGS=OFF
 )
 
-hunter_config(
-    LLVM
-    URL https://github.com/qdrvm/kagome-llvm/archive/refs/tags/v12.0.1-p3.zip
-    SHA1 b8f464b883e332c6e3ee2a06e0ba37c342d4af7e
-    CMAKE_ARGS
-    LLVM_ENABLE_PROJECTS=ir
-    CMAKE_CXX_STANDARD=20
-    KEEP_PACKAGE_SOURCES
-)
-
 # Fix for Apple clang (or clang from brew) of versions 15 and higher
 if(APPLE AND (CMAKE_CXX_COMPILER_ID STREQUAL "AppleClang" OR CMAKE_CXX_COMPILER_ID STREQUAL "Clang") AND CMAKE_CXX_COMPILER_VERSION GREATER_EQUAL "15.0.0")
     hunter_config(

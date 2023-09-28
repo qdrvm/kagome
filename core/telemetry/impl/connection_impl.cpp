@@ -291,10 +291,10 @@ namespace kagome::telemetry {
     is_connected_ = false;
     if (secure_) {
       auto &ws = *boost::relaxed_get<WsSslStreamPtr>(ws_);
-      ws.async_close(boost::beast::websocket::close_code::normal, [](boost::beast::error_code) {});
+      ws.async_close(boost::beast::websocket::close_code::normal, [](auto) {});
     } else {
       auto &ws = *boost::relaxed_get<WsTcpStreamPtr>(ws_);
-      ws.async_close(boost::beast::websocket::close_code::normal, [](boost::beast::error_code) {});
+      ws.async_close(boost::beast::websocket::close_code::normal, [](auto) {});
     }
   }
 
