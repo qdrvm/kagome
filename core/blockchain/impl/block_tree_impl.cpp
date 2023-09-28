@@ -667,43 +667,45 @@ namespace kagome::blockchain {
 
   outcome::result<void> BlockTreeImpl::markAsRevertedBlocks(
       const std::vector<primitives::BlockHash> &block_hashes) {
-    return block_tree_data_.exclusiveAccess([&](auto &p)
-                                                -> outcome::result<void> {
-      bool need_to_refresh_best = false;
-      auto best = bestBlockNoLock(p);
-      for (const auto &block_hash : block_hashes) {
-        auto tree_node = p.tree_->getRoot().findByHash(block_hash);
-        if (tree_node == nullptr) {
-          SL_WARN(log_, "Block {} doesn't exists in block tree", block_hash);
-          continue;
-        }
-
-        if (not tree_node->reverted) {
-          std::queue<std::shared_ptr<TreeNode>> to_revert{std::move(tree_node)};
-          while (not to_revert.empty()) {
-            auto &reverting_tree_node = to_revert.front();
-
-            reverting_tree_node->reverted = true;
-
-            if (reverting_tree_node->getBlockInfo() == best) {
-              need_to_refresh_best = true;
+    return block_tree_data_.exclusiveAccess(
+        [&](auto &p) -> outcome::result<void> {
+          bool need_to_refresh_best = false;
+          auto best = bestBlockNoLock(p);
+          for (const auto &block_hash : block_hashes) {
+            auto tree_node = p.tree_->getRoot().findByHash(block_hash);
+            if (tree_node == nullptr) {
+              SL_WARN(
+                  log_, "Block {} doesn't exists in block tree", block_hash);
+              continue;
             }
 
-            for (auto &child : reverting_tree_node->children) {
-              if (not child->reverted) {
-                to_revert.push(child);
+            if (not tree_node->reverted) {
+              std::queue<std::shared_ptr<TreeNode>> to_revert;
+              to_revert.push(std::move(tree_node));
+              while (not to_revert.empty()) {
+                auto &reverting_tree_node = to_revert.front();
+
+                reverting_tree_node->reverted = true;
+
+                if (reverting_tree_node->getBlockInfo() == best) {
+                  need_to_refresh_best = true;
+                }
+
+                for (auto &child : reverting_tree_node->children) {
+                  if (not child->reverted) {
+                    to_revert.push(child);
+                  }
+                }
+
+                to_revert.pop();
               }
             }
-
-            to_revert.pop();
           }
-        }
-      }
-      if (need_to_refresh_best) {
-        p.tree_->forceRefreshBest();
-      }
-      return outcome::success();
-    });
+          if (need_to_refresh_best) {
+            p.tree_->forceRefreshBest();
+          }
+          return outcome::success();
+        });
   }
 
   outcome::result<void> BlockTreeImpl::addExistingBlockNoLock(
@@ -1313,7 +1315,8 @@ namespace kagome::blockchain {
             }
 
             if (metadata.getWeight(best) < metadata.getWeight(tree_node)
-                and hasDirectChainNoLock(p, target, tree_node)) {
+                and hasDirectChainNoLock(
+                    p, target_hash, tree_node->block_hash)) {
               best = tree_node;
             }
           }
