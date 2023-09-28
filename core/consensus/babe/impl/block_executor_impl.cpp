@@ -114,7 +114,6 @@ namespace kagome::consensus::babe {
     auto &consistency_guard = consistency_guard_res.value();
 
     // Calculate best block before new one will be applied
-    auto last_finalized_block = block_tree_->getLastFinalized();
     auto previous_best_block = block_tree_->bestBlock();
 
     if (block_was_applied_earlier) {

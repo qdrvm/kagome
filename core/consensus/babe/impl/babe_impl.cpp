@@ -463,8 +463,6 @@ namespace kagome::consensus::babe {
       return;
     }
 
-    const auto &last_finalized_block = block_tree_->getLastFinalized();
-
     auto current_best_block = block_tree_->bestBlock();
 
     // Skip obsoleted announce
