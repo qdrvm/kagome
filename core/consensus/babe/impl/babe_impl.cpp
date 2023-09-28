@@ -428,12 +428,7 @@ namespace kagome::consensus::babe {
       return;
     }
 
-    const auto &last_finalized_block = block_tree_->getLastFinalized();
-
-    auto current_best_block_res =
-        block_tree_->getBestContaining(last_finalized_block.hash);
-    BOOST_ASSERT(current_best_block_res.has_value());
-    const auto &current_best_block = current_best_block_res.value();
+    auto current_best_block = block_tree_->bestBlock();
 
     if (current_best_block == handshake.best_block) {
       if (current_state_ == Babe::State::HEADERS_LOADING) {
@@ -449,7 +444,7 @@ namespace kagome::consensus::babe {
     }
 
     // Remote peer is lagged
-    if (handshake.best_block.number <= last_finalized_block.number) {
+    if (handshake.best_block.number <= block_tree_->getLastFinalized().number) {
       return;
     }
 
@@ -470,10 +465,7 @@ namespace kagome::consensus::babe {
 
     const auto &last_finalized_block = block_tree_->getLastFinalized();
 
-    auto current_best_block_res =
-        block_tree_->getBestContaining(last_finalized_block.hash);
-    BOOST_ASSERT(current_best_block_res.has_value());
-    const auto &current_best_block = current_best_block_res.value();
+    auto current_best_block = block_tree_->bestBlock();
 
     // Skip obsoleted announce
     if (announce.header.number < current_best_block.number) {
@@ -1155,11 +1147,7 @@ namespace kagome::consensus::babe {
         hasher_->blake2b_256(scale::encode(block.header).value());
     const primitives::BlockInfo block_info(block.header.number, block_hash);
 
-    auto last_finalized_block = block_tree_->getLastFinalized();
-    auto previous_best_block_res =
-        block_tree_->getBestContaining(last_finalized_block.hash);
-    BOOST_ASSERT(previous_best_block_res.has_value());
-    const auto &previous_best_block = previous_best_block_res.value();
+    auto previous_best_block = block_tree_->bestBlock();
 
     // add block to the block tree
     if (auto add_res = block_tree_->addBlock(block); not add_res) {
@@ -1211,11 +1199,7 @@ namespace kagome::consensus::babe {
         current_epoch_.epoch_number,
         now);
 
-    last_finalized_block = block_tree_->getLastFinalized();
-    auto current_best_block_res =
-        block_tree_->getBestContaining(last_finalized_block.hash);
-    BOOST_ASSERT(current_best_block_res.has_value());
-    const auto &current_best_block = current_best_block_res.value();
+    auto current_best_block = block_tree_->bestBlock();
 
     // Create new offchain worker for block if it is best only
     if (current_best_block.number > previous_best_block.number) {

@@ -57,16 +57,7 @@ namespace kagome::network {
     Roles roles = app_config_.roles();
 
     /// Best block info
-    BlockInfo best_block;
-    const auto &last_finalized = block_tree_->getLastFinalized().hash;
-    if (auto best_res = block_tree_->getBestContaining(last_finalized);
-        best_res.has_value()) {
-      best_block = best_res.value();
-    } else {
-      base_.logger()->error("Could not get best block info: {}",
-                            best_res.error());
-      return ProtocolError::CAN_NOT_CREATE_HANDSHAKE;
-    }
+    auto best_block = block_tree_->bestBlock();
 
     auto &genesis_hash = block_tree_->getGenesisBlockHash();
 
