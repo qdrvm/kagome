@@ -77,7 +77,6 @@ namespace kagome::network {
       const application::AppConfiguration &app_config,
       std::shared_ptr<application::AppStateManager> app_state_manager,
       std::shared_ptr<blockchain::BlockTree> block_tree,
-      std::shared_ptr<blockchain::BlockStorage> block_storage,
       std::shared_ptr<consensus::babe::BlockHeaderAppender> block_appender,
       std::shared_ptr<consensus::babe::BlockExecutor> block_executor,
       std::shared_ptr<storage::trie::TrieSerializer> serializer,
@@ -92,7 +91,6 @@ namespace kagome::network {
       std::shared_ptr<consensus::grandpa::Environment> grandpa_environment)
       : app_state_manager_(std::move(app_state_manager)),
         block_tree_(std::move(block_tree)),
-        block_storage_{std::move(block_storage)},
         block_appender_(std::move(block_appender)),
         block_executor_(std::move(block_executor)),
         serializer_(std::move(serializer)),

@@ -3,8 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_NETWORK_GRANDPAROTOCOL
-#define KAGOME_NETWORK_GRANDPAROTOCOL
+#pragma once
 
 #include "network/protocol_base.hpp"
 
@@ -15,7 +14,6 @@
 #include <libp2p/connection/stream.hpp>
 #include <libp2p/host/host.hpp>
 
-#include "application/app_configuration.hpp"
 #include "consensus/grandpa/grandpa_observer.hpp"
 #include "containers/objects_cache.hpp"
 #include "log/logger.hpp"
@@ -47,7 +45,7 @@ namespace kagome::network {
         libp2p::Host &host,
         std::shared_ptr<crypto::Hasher> hasher,
         std::shared_ptr<boost::asio::io_context> io_context,
-        const application::AppConfiguration &app_config,
+        Roles roles,
         std::shared_ptr<consensus::grandpa::GrandpaObserver> grandpa_observer,
         const OwnPeerInfo &own_info,
         std::shared_ptr<StreamEngine> stream_engine,
@@ -78,21 +76,8 @@ namespace kagome::network {
 
    private:
     inline static const auto kGrandpaProtocolName = "GrandpaProtocol"s;
-    enum class Direction { INCOMING, OUTGOING };
-    void readHandshake(std::shared_ptr<Stream> stream,
-                       Direction direction,
-                       std::function<void(outcome::result<void>)> &&cb);
 
-    void writeHandshake(std::shared_ptr<Stream> stream,
-                        Direction direction,
-                        std::function<void(outcome::result<void>)> &&cb);
-
-    void read(std::shared_ptr<Stream> stream);
-
-    void write(
-        std::shared_ptr<Stream> stream,
-        const int &msg,
-        std::function<void(outcome::result<std::shared_ptr<Stream>>)> &&cb);
+    void onMessage(const PeerId &peer_id, GrandpaMessage message);
 
     common::Hash256 getHash(const GrandpaMessage &message) const;
     bool addKnown(const PeerId &peer, const common::Hash256 &hash);
@@ -109,7 +94,7 @@ namespace kagome::network {
     ProtocolBaseImpl base_;
     std::shared_ptr<crypto::Hasher> hasher_;
     std::shared_ptr<boost::asio::io_context> io_context_;
-    const application::AppConfiguration &app_config_;
+    Roles roles_;
     std::shared_ptr<consensus::grandpa::GrandpaObserver> grandpa_observer_;
     const OwnPeerInfo &own_info_;
     std::shared_ptr<StreamEngine> stream_engine_;
@@ -128,5 +113,3 @@ namespace kagome::network {
   };
 
 }  // namespace kagome::network
-
-#endif  // KAGOME_NETWORK_GRANDPAROTOCOL

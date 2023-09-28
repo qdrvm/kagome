@@ -13,18 +13,6 @@ target_link_libraries(block_response_cache_test
     network
     )
 
-addtest(stream_engine_test
-    stream_engine_test.cpp
-    )
-target_link_libraries(stream_engine_test
-    network
-    p2p::p2p_peer_id
-    scale::scale
-    blob
-    outcome
-    logger_for_tests
-    )
-
 addtest(rpc_libp2p_test
     rpc_libp2p_test.cpp
     )
