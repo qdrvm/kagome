@@ -52,15 +52,19 @@ hunter_config(
 
 hunter_config(
     LLVM
-    VERSION 12.0.1-p1
+    URL https://github.com/qdrvm/kagome-llvm/archive/refs/tags/v12.0.1-p3.zip
+    SHA1 b8f464b883e332c6e3ee2a06e0ba37c342d4af7e
     CMAKE_ARGS
     LLVM_ENABLE_PROJECTS=ir
     KEEP_PACKAGE_SOURCES
 )
 
-# Uncomment for Apple clang 15
-#hunter_config(
-#        binaryen
-#        URL https://github.com/qdrvm/binaryen/archive/0744f64a584cae5b9255b1c2f0a4e0b5e06d7038.zip
-#        SHA1 f953c5f38a0417e494901e15ab6f5d8267388d18
-#)
+# Fix for Apple clang 15 (builds on earlier versions too)
+if(APPLE)
+    message("Hello inside!")
+    hunter_config(
+        binaryen
+        URL https://github.com/qdrvm/binaryen/archive/0744f64a584cae5b9255b1c2f0a4e0b5e06d7038.zip
+        SHA1 f953c5f38a0417e494901e15ab6f5d8267388d18
+    )
+endif()
