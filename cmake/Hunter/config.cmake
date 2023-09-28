@@ -52,11 +52,10 @@ hunter_config(
 
 hunter_config(
     LLVM
-    URL https://github.com/qdrvm/kagome-llvm/archive/refs/tags/v12.0.1-p3.zip
-    SHA1 b8f464b883e332c6e3ee2a06e0ba37c342d4af7e
+    URL  https://github.com/qdrvm/kagome-llvm/archive/refs/tags/v12.0.1-p4.tar.gz
+    SHA1 3c4c5700710fc0e33d3548fce6041ff85f06b960
     CMAKE_ARGS
     LLVM_ENABLE_PROJECTS=ir
-    CMAKE_CXX_STANDARD=20
     KEEP_PACKAGE_SOURCES
 )
 
