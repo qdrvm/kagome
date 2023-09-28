@@ -51,28 +51,15 @@ hunter_config(
 )
 
 hunter_config(
-    LLVM
-    URL  https://github.com/qdrvm/kagome-llvm/archive/refs/tags/v13.0.1.tar.gz
-    SHA1 a36890190449798e6bbec1e6061544d7016859d8
-    CONFIGURATION_TYPES
-      Release
-    CMAKE_ARGS
-      LLVM_ENABLE_PROJECTS=clang;clang-tools-extra;compiler-rt
-      LLVM_ENABLE_ZLIB=OFF
-      LLVM_INCLUDE_EXAMPLES=OFF
-      LLVM_INCLUDE_TESTS=OFF
-      LLVM_INCLUDE_DOCS=OFF
-      LLVM_PARALLEL_LINK_JOBS=1
+    wavm
+    VERSION 1.0.13
+    KEEP_PACKAGE_SOURCES
 )
 
 hunter_config(
-    wavm
-    URL  https://github.com/qdrvm/WAVM/archive/5afb4e81f4976ee36b9847acaaf46c967ef479fe.tar.gz
-    SHA1 f5abc08c97e10e6683ef3d1d3bf64b0dccf7a5e6
+    LLVM
+    VERSION 12.0.1-p4
     CMAKE_ARGS
-      WAVM_ENABLE_FUZZ_TARGETS=OFF
-      WAVM_ENABLE_STATIC_LINKING=ON
-      WAVM_BUILD_EXAMPLES=OFF
-      WAVM_BUILD_TESTS=OFF
-      WAVM_DISABLE_UNIX_SIGNALS=ON
+      LLVM_ENABLE_PROJECTS=ir
+    KEEP_PACKAGE_SOURCES
 )
