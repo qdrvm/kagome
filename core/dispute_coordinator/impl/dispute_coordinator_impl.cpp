@@ -1528,7 +1528,7 @@ namespace kagome::dispute {
                candidate_hash);
       if (blocks_including.size() > 0) {
         std::vector<primitives::BlockHash> to_revert;
-        blocks_including.reserve(blocks_including.size());
+        to_revert.reserve(blocks_including.size());
         std::transform(blocks_including.begin(),
                        blocks_including.end(),
                        std::back_inserter(to_revert),
