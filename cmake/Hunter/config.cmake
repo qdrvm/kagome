@@ -59,8 +59,8 @@ hunter_config(
     KEEP_PACKAGE_SOURCES
 )
 
-# Fix for Apple clang 15 (builds on earlier versions too)
-if(APPLE)
+# Fix for Apple clang (or clang from brew) of versions 15 and higher
+if(APPLE AND (CMAKE_CXX_COMPILER_ID STREQUAL "AppleClang" OR CMAKE_CXX_COMPILER_ID STREQUAL "AppleClang") AND CMAKE_CXX_COMPILER_VERSION GREATER_EQUAL "15.0.0")
     message("Hello inside!")
     hunter_config(
         binaryen
