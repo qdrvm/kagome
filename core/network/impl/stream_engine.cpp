@@ -8,32 +8,25 @@
 
 namespace kagome::network {
 
-  outcome::result<void> StreamEngine::add(
-      std::shared_ptr<Stream> stream,
-      const std::shared_ptr<ProtocolBase> &protocol,
-      Direction direction) {
+  void StreamEngine::add(std::shared_ptr<Stream> stream,
+                         const std::shared_ptr<ProtocolBase> &protocol,
+                         Direction direction) {
     BOOST_ASSERT(protocol != nullptr);
     BOOST_ASSERT(stream != nullptr);
 
-    OUTCOME_TRY(peer_id, stream->remotePeerId());
+    auto peer_id = stream->remotePeerId().value();
     auto dir = static_cast<uint8_t>(direction);
     const bool is_incoming =
         (dir & static_cast<uint8_t>(Direction::INCOMING)) != 0;
     const bool is_outgoing =
         (dir & static_cast<uint8_t>(Direction::OUTGOING)) != 0;
 
-    SL_TRACE(
-        logger_,
-        "Add stream for peer.(peer={}, protocol={})",
-        [&]() -> std::optional<kagome::network::StreamEngine::PeerId> {
-          if (auto r = stream->remotePeerId(); r.has_value()) {
-            return r.value();
-          }
-          return std::nullopt;
-        }(),
-        protocol->protocolName());
+    SL_TRACE(logger_,
+             "Add stream for peer.(peer={}, protocol={})",
+             peer_id,
+             protocol->protocolName());
 
-    return streams_.exclusiveAccess([&](auto &streams) {
+    streams_.exclusiveAccess([&](PeerMap &streams) {
       bool existing = false;
       forPeerProtocol(peer_id, streams, protocol, [&](auto type, auto &descr) {
         existing = true;
@@ -61,7 +54,6 @@ namespace kagome::network {
                  protocol->protocolName(),
                  peer_id);
       }
-      return outcome::success();
     });
   }
 
@@ -107,20 +99,16 @@ namespace kagome::network {
     streams_.exclusiveAccess([&](auto &streams) {
       if (auto it = streams.find(peer_id); it != streams.end()) {
         auto &protocols = it->second;
-        for (auto protocol_it = protocols.begin();
-             protocol_it != protocols.end();
-             ++protocol_it) {
-          if (protocol_it->first == protocol) {
-            auto &descr = protocol_it->second;
-            if (descr.incoming.stream) {
-              descr.incoming.stream->reset();
-            }
-            if (descr.outgoing.stream) {
-              descr.outgoing.stream->reset();
-            }
-            protocols.erase(protocol_it);
-            break;
+        auto protocol_it = protocols.find(protocol);
+        if (protocol_it != protocols.end()) {
+          auto &descr = protocol_it->second;
+          if (descr.incoming.stream) {
+            descr.incoming.stream->reset();
           }
+          if (descr.outgoing.stream) {
+            descr.outgoing.stream->reset();
+          }
+          protocols.erase(protocol_it);
         }
         if (protocols.empty()) {
           streams.erase(it);
@@ -148,46 +136,6 @@ namespace kagome::network {
             return descr.dropReserved();
           });
     });
-  }
-
-  bool StreamEngine::isAlive(
-      const PeerId &peer_id,
-      const std::shared_ptr<ProtocolBase> &protocol) const {
-    BOOST_ASSERT(protocol);
-    bool alive = false;
-    streams_.sharedAccess([&](const auto &streams) {
-      forPeerProtocol(
-          peer_id, streams, protocol, [&](auto, ProtocolDescr const &descr) {
-            alive = descr.hasActiveOutgoing() || descr.hasActiveIncoming()
-                 || descr.isOutgoingReserved();
-          });
-    });
-    return alive;
-  }
-
-  size_t StreamEngine::outgoingStreamsNumber(
-      const std::shared_ptr<ProtocolBase> &protocol) {
-    size_t candidates_num{0};
-    streams_.sharedAccess([&](const auto &streams) {
-      candidates_num = std::count_if(
-          streams.begin(), streams.end(), [&protocol](const auto &entry) {
-            auto &[peer_id, protocol_map] = entry;
-            return protocol_map.find(protocol) != protocol_map.end()
-                && protocol_map.at(protocol).hasActiveOutgoing();
-          });
-    });
-    return candidates_num;
-  }
-
-  outcome::result<PeerInfo> StreamEngine::from(
-      std::shared_ptr<Stream> &stream) const {
-    BOOST_ASSERT(stream);
-    auto peer_id_res = stream->remotePeerId();
-    if (!peer_id_res.has_value()) {
-      logger_->error("Can't get peer_id: {}", peer_id_res.error());
-      return peer_id_res.as_failure();
-    }
-    return from(std::move(peer_id_res.value()));
   }
 
   void StreamEngine::uploadStream(std::shared_ptr<Stream> &dst,

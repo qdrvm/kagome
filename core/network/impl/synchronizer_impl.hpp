@@ -3,8 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_NETWORK_SYNCHRONIZERIMPL
-#define KAGOME_NETWORK_SYNCHRONIZERIMPL
+#pragma once
 
 #include "network/synchronizer.hpp"
 
@@ -90,7 +89,6 @@ namespace kagome::network {
         const application::AppConfiguration &app_config,
         std::shared_ptr<application::AppStateManager> app_state_manager,
         std::shared_ptr<blockchain::BlockTree> block_tree,
-        std::shared_ptr<blockchain::BlockStorage> block_storage,
         std::shared_ptr<consensus::babe::BlockHeaderAppender> block_appender,
         std::shared_ptr<consensus::babe::BlockExecutor> block_executor,
         std::shared_ptr<storage::trie::TrieSerializer> serializer,
@@ -214,7 +212,6 @@ namespace kagome::network {
 
     std::shared_ptr<application::AppStateManager> app_state_manager_;
     std::shared_ptr<blockchain::BlockTree> block_tree_;
-    std::shared_ptr<blockchain::BlockStorage> block_storage_;
     std::shared_ptr<consensus::babe::BlockHeaderAppender> block_appender_;
     std::shared_ptr<consensus::babe::BlockExecutor> block_executor_;
     std::shared_ptr<storage::trie::TrieSerializer> serializer_;
@@ -295,5 +292,3 @@ namespace kagome::network {
 }  // namespace kagome::network
 
 OUTCOME_HPP_DECLARE_ERROR(kagome::network, SynchronizerImpl::Error)
-
-#endif  //  KAGOME_NETWORK_SYNCHRONIZERIMPL
