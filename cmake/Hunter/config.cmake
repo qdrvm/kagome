@@ -63,3 +63,11 @@ hunter_config(
       LLVM_ENABLE_PROJECTS=ir
     KEEP_PACKAGE_SOURCES
 )
+# Fix for Apple clang (or clang from brew) of versions 15 and higher
+if(APPLE AND (CMAKE_CXX_COMPILER_ID STREQUAL "AppleClang" OR CMAKE_CXX_COMPILER_ID STREQUAL "Clang") AND CMAKE_CXX_COMPILER_VERSION GREATER_EQUAL "15.0.0")
+    hunter_config(
+        binaryen
+        URL https://github.com/qdrvm/binaryen/archive/0744f64a584cae5b9255b1c2f0a4e0b5e06d7038.zip
+        SHA1 f953c5f38a0417e494901e15ab6f5d8267388d18
+    )
+endif()
