@@ -3,6 +3,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+#define BOOST_ASIO_DISABLE_CONCEPTS
+
 #include "telemetry/impl/connection_impl.hpp"
 
 #include <openssl/tls1.h>
@@ -289,10 +291,10 @@ namespace kagome::telemetry {
     is_connected_ = false;
     if (secure_) {
       auto &ws = *boost::relaxed_get<WsSslStreamPtr>(ws_);
-      ws.async_close(boost::beast::websocket::close_code::normal, [](auto) {});
+      ws.async_close(boost::beast::websocket::close_code::normal, [](boost::beast::error_code) {});
     } else {
       auto &ws = *boost::relaxed_get<WsTcpStreamPtr>(ws_);
-      ws.async_close(boost::beast::websocket::close_code::normal, [](auto) {});
+      ws.async_close(boost::beast::websocket::close_code::normal, [](boost::beast::error_code) {});
     }
   }
 
