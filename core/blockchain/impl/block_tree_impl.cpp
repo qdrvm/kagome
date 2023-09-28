@@ -1285,12 +1285,12 @@ namespace kagome::blockchain {
               return BlockTreeError::BLOCK_ON_DEAD_END;
             }
 
-            target = root.findByHash(root.block_hash);
+            return bestBlockNoLock(p);
           }
 
           auto metadata = p.tree_->getMetadata();
 
-          std::multiset<std::shared_ptr<TreeNode>> candidates{};
+          std::set<std::shared_ptr<TreeNode>> candidates;
           for (auto &leaf : metadata.leaves) {
             if (auto node = target->findByHash(leaf)) {
               candidates.emplace(std::move(node));
@@ -1310,7 +1310,8 @@ namespace kagome::blockchain {
               continue;
             }
 
-            if (metadata.getWeight(best) < metadata.getWeight(tree_node)) {
+            if (metadata.getWeight(best) < metadata.getWeight(tree_node)
+                and hasDirectChainNoLock(p, target, tree_node)) {
               best = tree_node;
             }
           }

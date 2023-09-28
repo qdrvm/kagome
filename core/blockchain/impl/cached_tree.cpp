@@ -194,7 +194,7 @@ namespace kagome::blockchain {
 
   void TreeMeta::forceRefreshBest() {
     auto root = last_finalized.lock();
-    std::multiset<std::shared_ptr<TreeNode>> candidates{};
+    std::set<std::shared_ptr<TreeNode>> candidates;
     for (auto &leaf : leaves) {
       if (auto node = root->findByHash(leaf)) {
         candidates.emplace(std::move(node));
