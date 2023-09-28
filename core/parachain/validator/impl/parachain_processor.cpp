@@ -1126,15 +1126,8 @@ namespace kagome::parachain {
             }
 
             auto stream = stream_result.value();
-            if (auto add_result = stream_engine->addOutgoing(
-                    std::move(stream_result.value()), protocol);
-                !add_result) {
-              self->logger_->error("Unable to store stream {} with {}: {}",
-                                   protocol->protocolName(),
-                                   peer_id,
-                                   add_result.error().message());
-              return;
-            }
+            stream_engine->addOutgoing(std::move(stream_result.value()),
+                                       protocol);
 
             std::forward<F>(callback)(std::move(stream));
           });

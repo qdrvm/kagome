@@ -3,8 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_NETWORK_PROPAGATETRANSACTIONSPROTOCOL
-#define KAGOME_NETWORK_PROPAGATETRANSACTIONSPROTOCOL
+#pragma once
 
 #include "network/protocol_base.hpp"
 
@@ -13,7 +12,6 @@
 #include <libp2p/connection/stream.hpp>
 #include <libp2p/host/host.hpp>
 
-#include "application/app_configuration.hpp"
 #include "application/chain_spec.hpp"
 #include "consensus/babe/babe.hpp"
 #include "containers/objects_cache.hpp"
@@ -49,7 +47,7 @@ namespace kagome::network {
 
     PropagateTransactionsProtocol(
         libp2p::Host &host,
-        const application::AppConfiguration &app_config,
+        Roles roles,
         const application::ChainSpec &chain_spec,
         const blockchain::GenesisBlockHash &genesis_hash,
         std::shared_ptr<consensus::babe::Babe> babe,
@@ -73,21 +71,10 @@ namespace kagome::network {
     void propagateTransactions(gsl::span<const primitives::Transaction> txs);
 
    private:
-    enum class Direction { INCOMING, OUTGOING };
-    void readHandshake(std::shared_ptr<Stream> stream,
-                       Direction direction,
-                       std::function<void(outcome::result<void>)> &&cb);
-
-    void writeHandshake(std::shared_ptr<Stream> stream,
-                        Direction direction,
-                        std::function<void(outcome::result<void>)> &&cb);
-
-    void readPropagatedExtrinsics(std::shared_ptr<Stream> stream);
-
-    const static inline auto kPropagateTransactionsProtocolName =
+    inline static const auto kPropagateTransactionsProtocolName =
         "PropagateTransactionsProtocol"s;
     ProtocolBaseImpl base_;
-    const application::AppConfiguration &app_config_;
+    Roles roles_;
     std::shared_ptr<consensus::babe::Babe> babe_;
     std::shared_ptr<ExtrinsicObserver> extrinsic_observer_;
     std::shared_ptr<StreamEngine> stream_engine_;
@@ -102,5 +89,3 @@ namespace kagome::network {
   };
 
 }  // namespace kagome::network
-
-#endif  // KAGOME_NETWORK_PROPAGATETRANSACTIONSPROTOCOL
