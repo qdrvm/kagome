@@ -192,7 +192,7 @@ namespace kagome::consensus::babe {
       changes_tracker->onBlockAdded(
           block_info.hash, storage_sub_engine_, chain_subscription_engine_);
 
-      auto proposed = [self,
+      auto executed = [self,
                        block{std::move(block)},
                        justification{std::move(justification)},
                        callback{std::move(callback)},
@@ -208,7 +208,7 @@ namespace kagome::consensus::babe {
                                  *consistency_guard,
                                  previous_best_block);
       };
-      main_thread_->post(std::move(proposed));
+      main_thread_->post(std::move(executed));
     };
     io_context_->post(std::move(execute));
   }
