@@ -190,8 +190,8 @@ namespace kagome::blockchain {
   void TreeMeta::forceRefreshBest() {
     auto root = last_finalized.lock();
     struct Cmp {
-      bool operator()(const std::shared_ptr<TreeNode> &lhs,
-                      const std::shared_ptr<TreeNode> &rhs) {
+      bool operator()(const std::shared_ptr<const TreeNode> &lhs,
+                      const std::shared_ptr<const TreeNode> &rhs) const {
         BOOST_ASSERT(lhs and rhs);
         return lhs->depth < rhs->depth
             or (lhs->depth == rhs->depth and lhs->block_hash < rhs->block_hash);
