@@ -1,10 +1,9 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC All Rights Reserved.
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_RUNTIME_HOSTAPIIMPL
-#define KAGOME_RUNTIME_HOSTAPIIMPL
+#pragma once
 
 #include "host_api/host_api.hpp"
 
@@ -374,5 +373,3 @@ namespace kagome::host_api {
     OffchainExtension offchain_ext_;
   };
 }  // namespace kagome::host_api
-
-#endif  // KAGOME_RUNTIME_HOSTAPIIMPL

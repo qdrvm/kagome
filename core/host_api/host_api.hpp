@@ -1,10 +1,9 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC All Rights Reserved.
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_HOST_API_HPP
-#define KAGOME_HOST_API_HPP
+#pragma once
 
 #include <cstdint>
 #include <functional>
@@ -742,5 +741,3 @@ namespace kagome::host_api {
         runtime::WasmSpan child_storage_key, runtime::WasmSpan limit) = 0;
   };
 }  // namespace kagome::host_api
-
-#endif  // KAGOME_HOST_API_HPP

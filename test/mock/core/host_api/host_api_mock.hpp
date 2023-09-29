@@ -1,10 +1,9 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC All Rights Reserved.
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_TEST_CORE_RUNTIME_MOCK_HOST_API_HPP_
-#define KAGOME_TEST_CORE_RUNTIME_MOCK_HOST_API_HPP_
+#pragma once
 
 #include "host_api/host_api.hpp"
 
@@ -494,5 +493,3 @@ namespace kagome::host_api {
   };
 
 }  // namespace kagome::host_api
-
-#endif  // KAGOME_TEST_CORE_RUNTIME_MOCK_EXTENSION_HPP_

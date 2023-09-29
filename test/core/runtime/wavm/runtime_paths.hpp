@@ -1,13 +1,11 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC All Rights Reserved.
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_RUNTIME_PATHS_HPP
-#define KAGOME_RUNTIME_PATHS_HPP
+#pragma once
 
-constexpr std::string_view kBasePath =
-    "./kusama-para-code/";
+constexpr std::string_view kBasePath = "./parachain_runtimes/";
 
 constexpr std::string_view kRococoParachains[] = {
     "01165a749e9bb0c9cdceec7745cdf2693fee68bce0a4de583488c4af5643bbdd.wasm",
@@ -328,7 +326,8 @@ constexpr std::string_view kPolkadotParachains[] = {
 constexpr std::string_view kKusamaParachains[] = {
     "007e2375e1b550f213032134cba005e1acf448797deb897c0cec4dad85ce66ac.wasm",
     "009d8183767c977528013b16f77a1bd665f9b922a6287cc44519880a09e49158.wasm",
-//    "03170a2e7597b7b7e3d84c05391d139a62b157e78786d8c082f29dcf4c111314.wasm", // zero size
+    //    "03170a2e7597b7b7e3d84c05391d139a62b157e78786d8c082f29dcf4c111314.wasm",
+    //    // zero size
     "03c90fee7320ef7e675711161fad225831f59f58a2b9563c8ece3c919989f430.wasm",
     "09d3331b2a35d695db4c656297ad5af35935c2eabf13b272bb384452abf00945.wasm",
     "0a97751c1a7b85d427f002ef5c96cfb351c909432d97cdb53cab1c1e8537ddee.wasm",
@@ -391,7 +390,8 @@ constexpr std::string_view kKusamaParachains[] = {
     "aa6550e73187a7797001c56609c704d0e8a73cdc02ca9f60646162804b85f05a.wasm",
     "aaf8b111859be1b3d33934ee9bc8a6fdc2bd674f5236099d42bf469cae8e9dde.wasm",
     "ad18f49809977d92440bd2c8c6e33eefa462a1f17bfd81ff1a4fc22745fd8d12.wasm",
-//    "ae85d245a3d00bfde01f59f3c4fe0b4bfae1cb37e9cf91929eadcea4985711de.wasm", // zero size
+    //    "ae85d245a3d00bfde01f59f3c4fe0b4bfae1cb37e9cf91929eadcea4985711de.wasm",
+    //    // zero size
     "b19f77e93d7dd1cf5818e50f2df34cae0d49f2ba5e025d0bde2b837c285428b6.wasm",
     "ba54b48e2dd20a55969da85fb6923882ff5cbd04cbdc7c66d0c9782dc3b795f5.wasm",
     "bbce7e6a94de42d6e978293f04d9c94fa205a6bfc6e9fcf77ac1f7ec241d69f6.wasm",
@@ -411,5 +411,3 @@ constexpr std::string_view kKusamaParachains[] = {
     "ef115d61db247aab97924ff316b9abc95d831c8b53313556ab1490e4dfbdfaf2.wasm",
     "f7a564ae14804ecf6be5c224b81549fcd1c8990a333bd3f58b58f79376f6dcaf.wasm",
 };
-
-#endif  // KAGOME_RUNTIME_PATHS_HPP

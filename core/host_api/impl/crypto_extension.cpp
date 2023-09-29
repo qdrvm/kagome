@@ -1,5 +1,5 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC All Rights Reserved.
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -718,11 +718,10 @@ namespace kagome::host_api {
       BOOST_UNREACHABLE_RETURN(kVerifyFail)
     }
     auto &&pubkey = key_res.value();
-
-    crypto::EcdsaPrehashedMessage digest;
-    auto message =
-        getMemory().loadN(msg, crypto::EcdsaPrehashedMessage::size());
-    std::copy(message.begin(), message.end(), digest.begin());
+    auto digest =
+        crypto::EcdsaPrehashedMessage::fromSpan(
+            getMemory().loadN(msg, crypto::EcdsaPrehashedMessage::size()))
+            .value();
 
     auto verify_res =
         ecdsa_provider_->verifyPrehashed(digest, signature, pubkey);
