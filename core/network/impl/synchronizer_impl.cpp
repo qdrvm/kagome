@@ -1097,7 +1097,7 @@ namespace kagome::network {
     }
 
     if (auto it = known_blocks_.find(hash); it != known_blocks_.end()) {
-      const auto &block_data = it->second.data;
+      auto &block_data = it->second.data;
       BOOST_ASSERT(block_data.header.has_value());
       const BlockInfo block_info(block_data.header->number, block_data.hash);
 
@@ -1145,10 +1145,8 @@ namespace kagome::network {
         if (sync_method_ == application::AppConfiguration::SyncMethod::Full) {
           // Regular syncing
           primitives::Block block{
-              // .header = std::move(block_data.header.value()),
-              // .body = std::move(block_data.body.value()),
-              .header = block_data.header.value(),
-              .body = block_data.body.value(),
+              .header = std::move(block_data.header.value()),
+              .body = std::move(block_data.body.value()),
           };
           block_executor_->applyBlock(
               std::move(block), block_data.justification, std::move(callback));
@@ -1157,8 +1155,7 @@ namespace kagome::network {
           // Fast syncing
           if (not state_sync_) {
             // Headers loading
-            // block_appender_->appendHeader(std::move(block_data.header.value()),
-            block_appender_->appendHeader(block_data.header.value(),
+            block_appender_->appendHeader(std::move(block_data.header.value()),
                                           block_data.justification,
                                           std::move(callback));
 

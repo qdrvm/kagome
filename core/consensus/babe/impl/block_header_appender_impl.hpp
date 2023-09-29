@@ -35,7 +35,7 @@ namespace kagome::consensus::babe {
                             std::unique_ptr<BlockAppenderBase> appender);
 
     void appendHeader(
-        const primitives::BlockHeader &block_header,
+        primitives::BlockHeader &&block_header,
         const std::optional<primitives::Justification> &justification,
         ApplyJustificationCb &&callback) override;
 

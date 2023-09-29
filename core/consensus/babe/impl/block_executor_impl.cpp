@@ -192,8 +192,7 @@ namespace kagome::consensus::babe {
                          *consistency_guard,
                          previous_best_block);
     };
-    // io_context_->post(std::move(execute));
-    execute();
+    io_context_->post(std::move(execute));
   }
 
   void BlockExecutorImpl::applyBlockExecuted(

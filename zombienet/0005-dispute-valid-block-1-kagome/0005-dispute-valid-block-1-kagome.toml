@@ -11,7 +11,7 @@ default_command = "polkadot"
 
   [[relaychain.nodes]]
   name = "bob"
-  command = "kagome --wasm-execution Compiled --unsafe-cached-wavm-runtime -ldispute=trace -lgrandpa=debug -lparachain=debug"
+  command = "kagome"
   prometheus_prefix = "kagome"
   extra_args = [ "-lparachain=debug" ]
 
@@ -22,7 +22,7 @@ default_command = "polkadot"
   [[relaychain.nodes]]
   name = "dave"
   validator = true
-  command = "malus suggest-garbage-candidate"
+  command = "malus dispute-ancestor"
   extra_args = ["-lparachain=debug"]
 
 
