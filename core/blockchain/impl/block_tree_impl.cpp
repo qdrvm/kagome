@@ -668,7 +668,7 @@ namespace kagome::blockchain {
   outcome::result<void> BlockTreeImpl::markAsRevertedBlocks(
       const std::vector<primitives::BlockHash> &block_hashes) {
     return block_tree_data_.exclusiveAccess(
-        [&](auto &p) -> outcome::result<void> {
+        [&](BlockTreeData &p) -> outcome::result<void> {
           bool need_to_refresh_best = false;
           auto best = bestBlockNoLock(p);
           for (const auto &block_hash : block_hashes) {
