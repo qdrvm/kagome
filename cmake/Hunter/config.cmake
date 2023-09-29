@@ -50,22 +50,10 @@ hunter_config(
     CMAKE_ARGS WITH_GFLAGS=OFF
 )
 
-#hunter_config(
-#    wavm
-#    VERSION 1.0.13
-#    KEEP_PACKAGE_SOURCES
-#)
-
 hunter_config(
     wavm
-    URL  https://github.com/qdrvm/WAVM/archive/975f205cefbeaf17807fe9c14c7d5c6fcd7e64e5.tar.gz
-    SHA1 9a09c066c1ab5cdf5ebe776877cfa688e7220873
-    CMAKE_ARGS
-      WAVM_ENABLE_FUZZ_TARGETS=OFF
-      WAVM_ENABLE_STATIC_LINKING=ON
-      WAVM_BUILD_EXAMPLES=OFF
-      WAVM_BUILD_TESTS=OFF
-      WAVM_DISABLE_UNIX_SIGNALS=ON
+    VERSION 1.0.14
+    KEEP_PACKAGE_SOURCES
 )
 
 hunter_config(
