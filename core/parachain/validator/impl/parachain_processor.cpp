@@ -272,8 +272,10 @@ namespace kagome::parachain {
     auto msg = std::make_shared<
         network::WireMessage<network::ValidatorProtocolMessage>>(
         network::ViewUpdate{.view = view});
-    pm_->getStreamEngine()->send(
-        peer_id, router_->getValidationProtocol(), msg);
+    pm_->getStreamEngine()->broadcast(
+        router_->getValidationProtocol(),
+        msg,
+        [&](const libp2p::peer::PeerId &p) { return peer_id != p; });
   }
 
   void ParachainProcessorImpl::broadcastView(const network::View &view) const {
