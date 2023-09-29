@@ -265,7 +265,7 @@ namespace kagome::runtime::binaryen {
 
   wasm::Literal RuntimeExternalInterface::callImport(
       wasm::Function *import, wasm::LiteralList &arguments) {
-    SL_TRACE(logger_, "Call import {}", import->base);
+    SL_TRACE(logger_, "Call import {}", import->base.str);
     if (import->module == env) {
       auto it = imports_.find(
           import->base.c_str(), imports_.hash_function(), imports_.key_eq());

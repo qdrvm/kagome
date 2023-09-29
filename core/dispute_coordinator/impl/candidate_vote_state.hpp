@@ -20,8 +20,6 @@ namespace kagome::dispute {
                                      CandidateEnvironment &env,
                                      Timestamp now);
 
-    CandidateVoteState() = default;
-
     /// Votes already existing for the candidate + receipt.
     CandidateVotes votes;
 

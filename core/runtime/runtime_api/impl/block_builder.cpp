@@ -37,7 +37,7 @@ namespace kagome::runtime {
       OUTCOME_TRY(ctx.module_instance->getEnvironment()
                       .storage_provider->commitTransaction());
     }
-    return std::move(result);
+    return result;
   }
 
   outcome::result<primitives::BlockHeader> BlockBuilderImpl::finalize_block(
@@ -65,7 +65,7 @@ namespace kagome::runtime {
         result,
         executor_->decodedCallWithCtx<std::vector<primitives::Extrinsic>>(
             ctx, "BlockBuilder_inherent_extrinsics", data));
-    return std::move(result);
+    return result;
   }
 
   outcome::result<primitives::CheckInherentsResult>

@@ -3,18 +3,17 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include <boost/program_options.hpp>
 #include <libp2p/log/configurator.hpp>
 
 #include "application/impl/app_configuration_impl.hpp"
 #include "blockchain/block_storage.hpp"
 #include "blockchain/impl/block_header_repository_impl.hpp"
 #include "blockchain/impl/block_tree_impl.hpp"
-#include "blockchain/impl/storage_util.hpp"
 #include "consensus/grandpa/impl/authority_manager_impl.hpp"
 #include "crypto/hasher/hasher_impl.hpp"
 #include "injector/application_injector.hpp"
 #include "log/configurator.hpp"
+#include "log/formatters/variant.hpp"
 #include "runtime/runtime_api/impl/grandpa_api.hpp"
 #include "storage/trie/trie_storage.hpp"
 
@@ -79,8 +78,9 @@ class Command {
 
   template <typename... Ts>
   [[noreturn]] void throwError(const char *fmt, Ts &&...ts) const {
-    throw CommandExecutionError{name,
-                                fmt::format(fmt, std::forward<Ts>(ts)...)};
+    throw CommandExecutionError(
+        name,
+        ::fmt::vformat(fmt, fmt::make_format_args(std::forward<Ts>(ts)...)));
   }
 
   template <typename T>

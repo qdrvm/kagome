@@ -7,7 +7,6 @@
 
 #include "blockchain/genesis_block_hash.hpp"
 #include "network/common.hpp"
-#include "network/helpers/peer_id_formatter.hpp"
 #include "network/helpers/scale_message_read_writer.hpp"
 #include "network/impl/protocols/protocol_error.hpp"
 #include "network/notifications/connect_and_handshake.hpp"

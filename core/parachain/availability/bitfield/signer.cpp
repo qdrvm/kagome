@@ -72,7 +72,7 @@ namespace kagome::parachain {
                  "chunk={})",
                  relay_parent,
                  signer.validatorIndex(),
-                 bitfield.bits.back());
+                 bitfield.bits.back() ? 1 : 0);
       } else {
         SL_TRACE(logger_,
                  "Signing bitfields.(relay_parent={}, validator index={}, NOT "

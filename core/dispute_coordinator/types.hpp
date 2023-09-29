@@ -150,7 +150,7 @@ namespace kagome::dispute {
     /// Session for above index.
     SessionInfo &session;
     /// Validator indices controlled by this node.
-    std::unordered_set<ValidatorIndex> controlled_indices;
+    std::unordered_set<ValidatorIndex> controlled_indices{};
   };
 
   /// The status of an activated leaf.
@@ -193,7 +193,7 @@ namespace kagome::dispute {
     std::optional<ActivatedLeaf> activated;
 
     /// Relay chain block hashes no longer of interest.
-    std::vector<primitives::BlockHash> deactivated;
+    std::vector<primitives::BlockHash> deactivated{};
   };
 
   /// Implicit validity attestation by issuing.
@@ -297,7 +297,7 @@ namespace kagome::dispute {
   /// Ready for import.
   struct PreparedImport {
     CandidateReceipt candidate_receipt;
-    std::vector<Indexed<SignedDisputeStatement>> statements;
+    std::vector<Indexed<SignedDisputeStatement>> statements{};
     /// Information about original requesters.
     std::vector<std::tuple<libp2p::peer::PeerId,
                            std::function<void(outcome::result<void>)>>>

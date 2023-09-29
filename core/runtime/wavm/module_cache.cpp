@@ -9,6 +9,7 @@
 #include <vector>
 
 #include "crypto/hasher.hpp"
+#include "log/formatters/filepath.hpp"
 #include "utils/read_file.hpp"
 
 namespace kagome::runtime::wavm {

@@ -5,6 +5,7 @@
 
 #include "runtime/wavm/memory_impl.hpp"
 
+#include "log/trace_macros.hpp"
 #include "runtime/common/memory_allocator.hpp"
 
 namespace kagome::runtime::wavm {
@@ -78,7 +79,7 @@ namespace kagome::runtime::wavm {
     for (auto i = addr; i < addr + n; i++) {
       res.push_back(load<uint8_t>(i));
     }
-    SL_TRACE_FUNC_CALL(logger_, res, this, addr, n);
+    SL_TRACE_FUNC_CALL(logger_, res, static_cast<const void *>(this), addr, n);
     return res;
   }
 

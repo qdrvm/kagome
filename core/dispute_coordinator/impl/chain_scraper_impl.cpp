@@ -90,7 +90,7 @@ namespace kagome::dispute {
 
     last_observed_blocks_.put(activated.hash, Empty{});
 
-    return std::move(scraped_updates);
+    return scraped_updates;
   }
 
   outcome::result<void> ChainScraperImpl::process_finalized_block(
