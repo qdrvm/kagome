@@ -91,6 +91,15 @@ namespace kagome::runtime::wavm {
   }
 
   WAVM_DEFINE_INTRINSIC_FUNCTION(WAVM::I32,
+                                 ext_crypto_ed25519_batch_verify_version_1,
+                                 WAVM::I32 sig_data,
+                                 WAVM::I64 msg,
+                                 WAVM::I32 pubkey_data) {
+    return peekHostApi()->ext_crypto_ed25519_batch_verify_version_1(
+        sig_data, msg, pubkey_data);
+  }
+
+  WAVM_DEFINE_INTRINSIC_FUNCTION(WAVM::I32,
                                  ext_crypto_finish_batch_verify_version_1) {
     return peekHostApi()->ext_crypto_finish_batch_verify_version_1();
   }
@@ -170,6 +179,15 @@ namespace kagome::runtime::wavm {
   }
 
   WAVM_DEFINE_INTRINSIC_FUNCTION(WAVM::I32,
+                                 ext_crypto_sr25519_batch_verify_version_1,
+                                 WAVM::I32 sig_data,
+                                 WAVM::I64 msg,
+                                 WAVM::I32 pubkey_data) {
+    return peekHostApi()->ext_crypto_sr25519_batch_verify_version_1(
+        sig_data, msg, pubkey_data);
+  }
+
+  WAVM_DEFINE_INTRINSIC_FUNCTION(WAVM::I32,
                                  ext_crypto_ecdsa_generate_version_1,
                                  WAVM::I32 key_type,
                                  WAVM::I64 seed) {
@@ -210,9 +228,18 @@ namespace kagome::runtime::wavm {
   }
 
   WAVM_DEFINE_INTRINSIC_FUNCTION(WAVM::I32,
-                                 ext_crypto_ecdsa_verify_prehashed_version_1,
+                                 ext_crypto_ecdsa_verify_version_2,
                                  WAVM::I32 sig_data,
                                  WAVM::I64 msg,
+                                 WAVM::I32 pubkey_data) {
+    return peekHostApi()->ext_crypto_ecdsa_verify_version_2(
+        sig_data, msg, pubkey_data);
+  }
+
+  WAVM_DEFINE_INTRINSIC_FUNCTION(WAVM::I32,
+                                 ext_crypto_ecdsa_verify_prehashed_version_1,
+                                 WAVM::I32 sig_data,
+                                 WAVM::I32 msg,
                                  WAVM::I32 pubkey_data) {
     return peekHostApi()->ext_crypto_ecdsa_verify_prehashed_version_1(
         sig_data, msg, pubkey_data);
@@ -692,6 +719,59 @@ namespace kagome::runtime::wavm {
                                       ext_sandbox_memory_teardown_version_1,
                                       WAVM::I32)
 
+  WAVM_DEFINE_INTRINSIC_FUNCTION_STUB(void,
+                                      ext_evm_ext_call_list_new_version_2)
+
+  WAVM_DEFINE_INTRINSIC_FUNCTION_STUB(void,
+                                      ext_evm_ext_evm_event_version_1,
+                                      WAVM::I64)
+
+  WAVM_DEFINE_INTRINSIC_FUNCTION_STUB(void,
+                                      ext_evm_ext_gasometer_event_version_1,
+                                      WAVM::I64)
+
+  WAVM_DEFINE_INTRINSIC_FUNCTION_STUB(void,
+                                      ext_evm_ext_runtime_event_version_1,
+                                      WAVM::I64)
+
+  WAVM_DEFINE_INTRINSIC_FUNCTION_STUB(WAVM::I64,
+                                      ext_evm_ext_step_event_filter_version_1)
+
+  WAVM_DEFINE_INTRINSIC_FUNCTION_STUB(void,
+                                      ext_transaction_index_index_version_1,
+                                      WAVM::I32,
+                                      WAVM::I32,
+                                      WAVM::I32)
+
+  WAVM_DEFINE_INTRINSIC_FUNCTION_STUB(void,
+                                      ext_benchmarking_add_to_whitelist_version_1,
+                                      WAVM::I64)
+
+  WAVM_DEFINE_INTRINSIC_FUNCTION_STUB(void,
+                                      ext_benchmarking_commit_db_version_1)
+
+  WAVM_DEFINE_INTRINSIC_FUNCTION_STUB(void,
+                                      ext_benchmarking_reset_read_write_count_version_1)
+
+  WAVM_DEFINE_INTRINSIC_FUNCTION_STUB(void,
+                                      ext_benchmarking_set_whitelist_version_1,
+                                      WAVM::I64)
+
+  WAVM_DEFINE_INTRINSIC_FUNCTION_STUB(void,
+                                      ext_benchmarking_wipe_db_version_1)
+
+  WAVM_DEFINE_INTRINSIC_FUNCTION_STUB(WAVM::I32,
+                                      ext_benchmarking_current_time_version_1)
+
+  WAVM_DEFINE_INTRINSIC_FUNCTION_STUB(WAVM::I64,
+                                      ext_benchmarking_get_read_and_written_keys_version_1)
+
+  WAVM_DEFINE_INTRINSIC_FUNCTION_STUB(WAVM::I64,
+                                      ext_benchmarking_proof_size_version_1)
+
+  WAVM_DEFINE_INTRINSIC_FUNCTION_STUB(WAVM::I64,
+                                      ext_benchmarking_read_write_count_version_1)
+
   WAVM_DEFINE_INTRINSIC_FUNCTION(WAVM::I32,
                                  ext_trie_blake2_256_root_version_1,
                                  WAVM::I64 values_data) {
@@ -734,16 +814,19 @@ namespace kagome::runtime::wavm {
     REGISTER_HOST_INTRINSIC(I32, ext_allocator_malloc_version_1, I32)
     REGISTER_HOST_INTRINSIC(I32, ext_crypto_ed25519_generate_version_1, I32, I64)
     REGISTER_HOST_INTRINSIC(I32, ext_crypto_ed25519_verify_version_1, I32, I64, I32)
+    REGISTER_HOST_INTRINSIC(I32, ext_crypto_ed25519_batch_verify_version_1, I32, I64, I32)
     REGISTER_HOST_INTRINSIC(I32, ext_crypto_finish_batch_verify_version_1)
     REGISTER_HOST_INTRINSIC(I32, ext_crypto_sr25519_generate_version_1, I32, I64)
     REGISTER_HOST_INTRINSIC(I32, ext_crypto_sr25519_verify_version_1, I32, I64, I32)
     REGISTER_HOST_INTRINSIC(I32, ext_crypto_sr25519_verify_version_2, I32, I64, I32)
+    REGISTER_HOST_INTRINSIC(I32, ext_crypto_sr25519_batch_verify_version_1, I32, I64, I32)
     REGISTER_HOST_INTRINSIC(I64, ext_crypto_ecdsa_public_keys_version_1, I32)
     REGISTER_HOST_INTRINSIC(I64, ext_crypto_ecdsa_sign_version_1, I32, I32, I64)
     REGISTER_HOST_INTRINSIC(I64, ext_crypto_ecdsa_sign_prehashed_version_1, I32, I32, I64)
     REGISTER_HOST_INTRINSIC(I32, ext_crypto_ecdsa_generate_version_1, I32, I64)
     REGISTER_HOST_INTRINSIC(I32, ext_crypto_ecdsa_verify_version_1, I32, I64, I32)
-    REGISTER_HOST_INTRINSIC(I32, ext_crypto_ecdsa_verify_prehashed_version_1, I32, I64, I32)
+    REGISTER_HOST_INTRINSIC(I32, ext_crypto_ecdsa_verify_version_2 , I32, I64, I32)
+    REGISTER_HOST_INTRINSIC(I32, ext_crypto_ecdsa_verify_prehashed_version_1, I32, I32, I32)
     REGISTER_HOST_INTRINSIC(I32, ext_default_child_storage_exists_version_1, I64, I64)
     REGISTER_HOST_INTRINSIC(I32, ext_hashing_blake2_128_version_1, I64)
     REGISTER_HOST_INTRINSIC(I32, ext_hashing_blake2_256_version_1, I64)
@@ -804,6 +887,23 @@ namespace kagome::runtime::wavm {
     REGISTER_HOST_INTRINSIC(   , ext_offchain_set_authorized_nodes_version_1, I64, I32)
     REGISTER_HOST_INTRINSIC(   , ext_offchain_index_set_version_1, I64, I64)
     REGISTER_HOST_INTRINSIC(   , ext_offchain_index_clear_version_1, I64)
+
+    REGISTER_HOST_INTRINSIC(   , ext_evm_ext_call_list_new_version_2)
+    REGISTER_HOST_INTRINSIC(   , ext_evm_ext_evm_event_version_1, I64)
+    REGISTER_HOST_INTRINSIC(   , ext_evm_ext_gasometer_event_version_1, I64)
+    REGISTER_HOST_INTRINSIC(   , ext_evm_ext_runtime_event_version_1, I64)
+    REGISTER_HOST_INTRINSIC(I64, ext_evm_ext_step_event_filter_version_1)
+    REGISTER_HOST_INTRINSIC(   , ext_transaction_index_index_version_1, I32, I32, I32)
+
+    REGISTER_HOST_INTRINSIC(   , ext_benchmarking_add_to_whitelist_version_1, I64)
+    REGISTER_HOST_INTRINSIC(   , ext_benchmarking_commit_db_version_1)
+    REGISTER_HOST_INTRINSIC(I32, ext_benchmarking_current_time_version_1)
+    REGISTER_HOST_INTRINSIC(I64, ext_benchmarking_get_read_and_written_keys_version_1)
+    REGISTER_HOST_INTRINSIC(I64, ext_benchmarking_proof_size_version_1)
+    REGISTER_HOST_INTRINSIC(I64, ext_benchmarking_read_write_count_version_1)
+    REGISTER_HOST_INTRINSIC(   , ext_benchmarking_reset_read_write_count_version_1)
+    REGISTER_HOST_INTRINSIC(   , ext_benchmarking_set_whitelist_version_1, I64)
+    REGISTER_HOST_INTRINSIC(   , ext_benchmarking_wipe_db_version_1)
 
     // clang-format on
   }

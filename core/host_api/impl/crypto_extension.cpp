@@ -1,5 +1,5 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC All Rights Reserved.
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -284,6 +284,17 @@ namespace kagome::host_api {
     return res;
   }
 
+  runtime::WasmSize CryptoExtension::ext_crypto_ed25519_batch_verify_version_1(
+      runtime::WasmPointer sig,
+      runtime::WasmSpan msg_span,
+      runtime::WasmPointer pubkey_data) {
+    SL_TRACE_FUNC_CALL(
+        logger_,
+        "Deprecated API method ext_crypto_ed25519_batch_verify_version_1 being "
+        "called. Passing call to ext_crypto_ed25519_verify_version_1");
+    return ext_crypto_ed25519_verify_version_1(sig, msg_span, pubkey_data);
+  }
+
   runtime::WasmSpan CryptoExtension::ext_crypto_sr25519_public_keys_version_1(
       runtime::WasmSize key_type) {
     using ResultType = std::vector<crypto::Sr25519PublicKey>;
@@ -408,6 +419,17 @@ namespace kagome::host_api {
 
     SL_TRACE_FUNC_CALL(logger_, res, signature, msg, pubkey_buffer);
     return res;
+  }
+
+  int32_t CryptoExtension::ext_crypto_sr25519_batch_verify_version_1(
+      runtime::WasmPointer sig,
+      runtime::WasmSpan msg_span,
+      runtime::WasmPointer pubkey_data) {
+    SL_TRACE_FUNC_CALL(
+        logger_,
+        "Deprecated API method ext_crypto_sr25519_batch_verify_version_1 being "
+        "called. Passing call to ext_crypto_sr25519_verify_version_1");
+    return ext_crypto_sr25519_verify_version_1(sig, msg_span, pubkey_data);
   }
 
   int32_t CryptoExtension::ext_crypto_sr25519_verify_version_2(
@@ -671,12 +693,19 @@ namespace kagome::host_api {
     return res;
   }
 
-  int32_t CryptoExtension::ext_crypto_ecdsa_verify_prehashed_version_1(
+  int32_t CryptoExtension::ext_crypto_ecdsa_verify_version_2(
       runtime::WasmPointer sig,
       runtime::WasmSpan msg_span,
       runtime::WasmPointer pubkey_data) const {
-    auto [msg_data, msg_len] = runtime::PtrSize(msg_span);
-    auto msg = getMemory().loadN(msg_data, msg_len);
+    SL_TRACE_FUNC_CALL(logger_,
+                       "delegated to ext_crypto_ecdsa_verify_version_1");
+    return ext_crypto_ecdsa_verify_version_1(sig, msg_span, pubkey_data);
+  }
+
+  int32_t CryptoExtension::ext_crypto_ecdsa_verify_prehashed_version_1(
+      runtime::WasmPointer sig,
+      runtime::WasmPointer msg,
+      runtime::WasmPointer pubkey_data) const {
     auto signature =
         crypto::EcdsaSignature::fromSpan(
             getMemory().loadN(sig, ecdsa_constants::SIGNATURE_SIZE))
@@ -689,9 +718,10 @@ namespace kagome::host_api {
       BOOST_UNREACHABLE_RETURN(kVerifyFail)
     }
     auto &&pubkey = key_res.value();
-
-    crypto::EcdsaPrehashedMessage digest;
-    std::copy(msg.begin(), msg.end(), digest.begin());
+    auto digest =
+        crypto::EcdsaPrehashedMessage::fromSpan(
+            getMemory().loadN(msg, crypto::EcdsaPrehashedMessage::size()))
+            .value();
 
     auto verify_res =
         ecdsa_provider_->verifyPrehashed(digest, signature, pubkey);
