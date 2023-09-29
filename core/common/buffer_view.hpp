@@ -9,7 +9,7 @@
 
 #include "common/bytestr.hpp"
 #include "common/hexutil.hpp"
-#include "cxx20/lexicographical_compare_three_way.hpp"
+#include "common/lexicographical_compare_three_way.hpp"
 #include "macro/endianness_utils.hpp"
 
 namespace kagome::common {

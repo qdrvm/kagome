@@ -12,7 +12,7 @@
 #include <type_traits>
 #include <vector>
 
-#include "cxx20/lexicographical_compare_three_way.hpp"
+#include "common/lexicographical_compare_three_way.hpp"
 
 namespace kagome::common {
 
