@@ -43,6 +43,7 @@ namespace kagome::consensus::beefy {
                      MmrRootHash>;
 
   using PayloadId = common::Blob<2>;
+  constexpr PayloadId kMmr{{'m', 'h'}};
 
   struct Commitment {
     SCALE_TIE(3);

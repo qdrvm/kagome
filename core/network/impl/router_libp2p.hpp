@@ -96,6 +96,8 @@ namespace kagome::network {
 
     std::shared_ptr<libp2p::protocol::Ping> getPingProtocol() const override;
 
+    std::shared_ptr<BeefyProtocol> getBeefyProtocol() const override;
+
    private:
     /**
      * Appends /p2p/<peerid> part to ip4 and ip6 addresses which then passed to

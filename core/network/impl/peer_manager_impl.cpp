@@ -11,6 +11,7 @@
 
 #include <libp2p/protocol/kademlia/impl/peer_routing_table.hpp>
 
+#include "network/beefy/protocol.hpp"
 #include "outcome/outcome.hpp"
 #include "scale/libp2p_types.hpp"
 #include "storage/predefined_keys.hpp"
@@ -796,6 +797,11 @@ namespace kagome::network {
             self->tryOpenGrandpaProtocol(peer_info, peer_state.value().get());
             self->tryOpenValidationProtocol(peer_info,
                                             peer_state.value().get());
+            openOutgoing(self->stream_engine_,
+                         self->router_->getBeefyProtocol(),
+                         peer_info,
+                         [](outcome::result<
+                             std::shared_ptr<libp2p::connection::Stream>>) {});
           }
         });
 

@@ -31,4 +31,27 @@ namespace kagome {
     }
     return std::nullopt;
   }
+
+  inline std::optional<consensus::beefy::MmrRootHash> beefyMmrDigest(
+      const primitives::BlockHeader &block) {
+    for (auto &digest : block.digest) {
+      auto consensus = boost::get<primitives::Consensus>(&digest);
+      if (not consensus) {
+        continue;
+      }
+      if (consensus->consensus_engine_id != primitives::kBeefyEngineId) {
+        continue;
+      }
+      auto decoded_res =
+          scale::decode<consensus::beefy::ConsensusDigest>(consensus->data);
+      if (not decoded_res) {
+        continue;
+      }
+      auto &decoded = decoded_res.value();
+      if (auto item = boost::get<consensus::beefy::MmrRootHash>(&decoded)) {
+        return *item;
+      }
+    }
+    return std::nullopt;
+  }
 }  // namespace kagome

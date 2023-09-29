@@ -22,6 +22,8 @@
 #include "network/protocols/sync_protocol.hpp"
 
 namespace kagome::network {
+  class BeefyProtocol;
+
   /**
    * Router, which reads and delivers different network messages to the
    * observers, responsible for their processing
@@ -51,6 +53,7 @@ namespace kagome::network {
     virtual std::shared_ptr<GrandpaProtocol> getGrandpaProtocol() const = 0;
     virtual std::shared_ptr<SendDisputeProtocol> getSendDisputeProtocol()
         const = 0;
+    virtual std::shared_ptr<BeefyProtocol> getBeefyProtocol() const = 0;
     virtual std::shared_ptr<libp2p::protocol::Ping> getPingProtocol() const = 0;
   };
 }  // namespace kagome::network

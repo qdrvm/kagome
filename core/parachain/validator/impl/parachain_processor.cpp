@@ -382,7 +382,7 @@ namespace kagome::parachain {
     auto rps_result = initNewBackingTask(relay_parent);
     if (rps_result.has_value()) {
       storeStateByRelayParent(relay_parent, std::move(rps_result.value()));
-    } else {
+    } else if (rps_result.error() != Error::KEY_NOT_PRESENT) {
       logger_->error(
           "Relay parent state was not created. (relay parent={}, error={})",
           relay_parent,

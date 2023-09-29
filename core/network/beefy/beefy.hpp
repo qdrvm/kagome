@@ -9,6 +9,7 @@
 #include <map>
 
 #include "consensus/beefy/types.hpp"
+#include "injector/lazy.hpp"
 #include "log/logger.hpp"
 #include "network/beefy/i_beefy.hpp"
 #include "primitives/event_types.hpp"
@@ -21,6 +22,7 @@ namespace kagome {
 
 namespace kagome::application {
   class AppStateManager;
+  class ChainSpec;
 }  // namespace kagome::application
 
 namespace kagome::blockchain {
@@ -29,6 +31,7 @@ namespace kagome::blockchain {
 
 namespace kagome::crypto {
   class EcdsaProvider;
+  class SessionKeys;
 }  // namespace kagome::crypto
 
 namespace kagome::runtime {
@@ -40,14 +43,20 @@ namespace kagome::storage {
 }  // namespace kagome::storage
 
 namespace kagome::network {
+  class BeefyProtocol;
+
   class Beefy : public IBeefy, public std::enable_shared_from_this<Beefy> {
    public:
     Beefy(application::AppStateManager &app_state_manager,
+          const application::ChainSpec &chain_spec,
           std::shared_ptr<blockchain::BlockTree> block_tree,
           std::shared_ptr<runtime::BeefyApi> beefy_api,
           std::shared_ptr<crypto::EcdsaProvider> ecdsa,
           std::shared_ptr<storage::SpacedStorage> db,
           std::shared_ptr<ThreadPool> thread_pool,
+          std::shared_ptr<boost::asio::io_context> main_thread,
+          std::shared_ptr<crypto::SessionKeys> session_keys,
+          LazySPtr<BeefyProtocol> beefy_protocol,
           std::shared_ptr<primitives::events::ChainSubscriptionEngine>
               chain_sub_engine);
 
@@ -78,9 +87,11 @@ namespace kagome::network {
         const primitives::BlockHash &block_hash, primitives::Justification raw);
     outcome::result<void> onJustification(
         consensus::beefy::SignedCommitment justification);
+    void onVote(consensus::beefy::VoteMessage vote, bool broadcast);
     outcome::result<void> apply(
-        consensus::beefy::SignedCommitment justification);
+        consensus::beefy::SignedCommitment justification, bool broadcast);
     outcome::result<void> update();
+    outcome::result<void> vote();
 
     std::shared_ptr<blockchain::BlockTree> block_tree_;
     std::shared_ptr<runtime::BeefyApi> beefy_api_;
@@ -88,11 +99,16 @@ namespace kagome::network {
     std::shared_ptr<storage::BufferStorage> db_;
     std::shared_ptr<boost::asio::io_context> strand_inner_;
     boost::asio::io_context::strand strand_;
+    std::shared_ptr<boost::asio::io_context> main_thread_;
+    std::shared_ptr<crypto::SessionKeys> session_keys_;
+    LazySPtr<BeefyProtocol> beefy_protocol_;
+    primitives::BlockNumber min_delta_;
     std::shared_ptr<primitives::events::ChainEventSubscriber> chain_sub_;
 
     std::optional<primitives::BlockNumber> beefy_genesis_;
     primitives::BlockNumber beefy_finalized_ = 0;
     primitives::BlockNumber next_digest_ = 0;
+    primitives::BlockNumber last_voted_ = 0;
     Sessions sessions_;
     std::map<primitives::BlockNumber, consensus::beefy::SignedCommitment>
         pending_justifications_;
