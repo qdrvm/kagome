@@ -8,7 +8,6 @@
 #include "network/adapters/protobuf_state_request.hpp"
 #include "network/adapters/protobuf_state_response.hpp"
 #include "network/common.hpp"
-#include "network/helpers/peer_id_formatter.hpp"
 #include "network/helpers/protobuf_message_read_writer.hpp"
 #include "network/impl/protocols/protocol_error.hpp"
 

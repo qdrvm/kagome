@@ -25,6 +25,7 @@
 #include "mock/core/runtime/core_mock.hpp"
 #include "mock/core/runtime/offchain_worker_api_mock.hpp"
 #include "mock/core/transaction_pool/transaction_pool_mock.hpp"
+#include "runtime/runtime_context.hpp"
 #include "testutil/asio_wait.hpp"
 #include "testutil/lazy.hpp"
 #include "testutil/literals.hpp"
@@ -33,7 +34,6 @@
 #include "utils/thread_pool.hpp"
 
 using kagome::ThreadPool;
-using kagome::application::AppConfigurationMock;
 using kagome::blockchain::BlockTree;
 using kagome::blockchain::BlockTreeError;
 using kagome::blockchain::BlockTreeMock;
@@ -238,13 +238,11 @@ TEST_F(BlockExecutorTest, JustificationFollowDigests) {
   EXPECT_CALL(*block_tree_, getBlockHeader("parent_hash"_hash256))
       .WillRepeatedly(testing::Return(kagome::primitives::BlockHeader{
           40, "grandparent_hash"_hash256, {}, {}, {}}));
-  EXPECT_CALL(*block_tree_, getLastFinalized())
-      .WillOnce(testing::Return(BlockInfo{40, "grandparent_hash"_hash256}))
+  EXPECT_CALL(*block_tree_, bestBlock())
+      // previous best
+      .WillOnce(testing::Return(BlockInfo{41, "parent_hash"_hash256}))
+      // current best
       .WillOnce(testing::Return(BlockInfo{42, "some_hash"_hash256}));
-  EXPECT_CALL(*block_tree_,
-              getBestContaining("grandparent_hash"_hash256,
-                                std::optional<BlockNumber>{}))
-      .WillOnce(testing::Return(BlockInfo{41, "parent_hash"_hash256}));
   EXPECT_CALL(*core_, execute_block_ref(_, _))
       .WillOnce(testing::Return(outcome::success()));
   EXPECT_CALL(*block_tree_, addBlock(_))
@@ -260,10 +258,6 @@ TEST_F(BlockExecutorTest, JustificationFollowDigests) {
         onDigest(BlockContext{.block_info = {42, "some_hash"_hash256}}, _))
         .WillOnce(testing::Return(outcome::success()));
   }
-  EXPECT_CALL(
-      *block_tree_,
-      getBestContaining("some_hash"_hash256, std::optional<BlockNumber>{}))
-      .WillOnce(testing::Return(BlockInfo{42, "some_hash"_hash256}));
   EXPECT_CALL(*offchain_worker_api_, offchain_worker(_, _))
       .WillOnce(testing::Return(outcome::success()));
 
@@ -277,7 +271,7 @@ TEST_F(BlockExecutorTest, JustificationFollowDigests) {
   block_executor_->applyBlock(
       Block{block_data.header.value(), block_data.body.value()},
       justification,
-      [](auto &&result) { EXPECT_OUTCOME_TRUE_1(result); });
+      [](auto &&result) { ASSERT_OUTCOME_SUCCESS_TRY(result); });
 
   testutil::wait(*thread_pool_.io_context());
 }

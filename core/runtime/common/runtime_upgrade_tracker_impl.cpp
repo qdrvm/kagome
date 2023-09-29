@@ -9,6 +9,7 @@
 #include "blockchain/block_storage.hpp"
 #include "blockchain/block_tree.hpp"
 #include "log/profiling_logger.hpp"
+#include "log/trace_macros.hpp"
 #include "runtime/common/storage_code_provider.hpp"
 #include "storage/predefined_keys.hpp"
 
@@ -134,7 +135,7 @@ namespace kagome::runtime {
         std::upper_bound(runtime_upgrades_.begin(),
                          runtime_upgrades_.end(),
                          block_number,
-                         [](auto block_number, auto const &upgrade_data) {
+                         [](auto block_number, const auto &upgrade_data) {
                            return block_number < upgrade_data.block.number;
                          });
     KAGOME_PROFILE_END(blocks_with_runtime_upgrade_search)
@@ -235,7 +236,7 @@ namespace kagome::runtime {
                                        [&](const RuntimeUpgradeData &rud) {
                                          return rud.block == block_info;
                                        })
-                          == runtime_upgrades_.end();
+                       == runtime_upgrades_.end();
 
     if (is_new_upgrade) {
       runtime_upgrades_.emplace_back(block_info, std::move(header.state_root));

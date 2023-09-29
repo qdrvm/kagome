@@ -12,7 +12,6 @@
 #include <libp2p/connection/stream.hpp>
 #include <libp2p/host/host.hpp>
 
-#include "application/app_configuration.hpp"
 #include "application/chain_spec.hpp"
 #include "containers/objects_cache.hpp"
 #include "log/logger.hpp"
@@ -21,6 +20,7 @@
 #include "network/impl/protocols/protocol_base_impl.hpp"
 #include "network/impl/stream_engine.hpp"
 #include "network/types/propagate_transactions.hpp"
+#include "network/types/roles.hpp"
 #include "primitives/event_types.hpp"
 #include "subscription/extrinsic_event_key_repository.hpp"
 #include "subscription/subscriber.hpp"
@@ -51,7 +51,7 @@ namespace kagome::network {
 
     PropagateTransactionsProtocol(
         libp2p::Host &host,
-        const application::AppConfiguration &app_config,
+        Roles roles,
         const application::ChainSpec &chain_spec,
         const blockchain::GenesisBlockHash &genesis_hash,
         std::shared_ptr<consensus::Timeline> timeline,
@@ -75,21 +75,10 @@ namespace kagome::network {
     void propagateTransactions(gsl::span<const primitives::Transaction> txs);
 
    private:
-    enum class Direction { INCOMING, OUTGOING };
-    void readHandshake(std::shared_ptr<Stream> stream,
-                       Direction direction,
-                       std::function<void(outcome::result<void>)> &&cb);
-
-    void writeHandshake(std::shared_ptr<Stream> stream,
-                        Direction direction,
-                        std::function<void(outcome::result<void>)> &&cb);
-
-    void readPropagatedExtrinsics(std::shared_ptr<Stream> stream);
-
     inline static const auto kPropagateTransactionsProtocolName =
         "PropagateTransactionsProtocol"s;
     ProtocolBaseImpl base_;
-    const application::AppConfiguration &app_config_;
+    Roles roles_;
     std::shared_ptr<consensus::Timeline> timeline_;
     std::shared_ptr<ExtrinsicObserver> extrinsic_observer_;
     std::shared_ptr<StreamEngine> stream_engine_;

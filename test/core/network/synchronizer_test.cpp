@@ -11,7 +11,6 @@
 
 #include "mock/core/application/app_configuration_mock.hpp"
 #include "mock/core/application/app_state_manager_mock.hpp"
-#include "mock/core/blockchain/block_storage_mock.hpp"
 #include "mock/core/blockchain/block_tree_mock.hpp"
 #include "mock/core/consensus/grandpa/environment_mock.hpp"
 #include "mock/core/consensus/timeline/block_appender_mock.hpp"
@@ -88,7 +87,6 @@ class SynchronizerTest
         std::make_shared<network::SynchronizerImpl>(app_config,
                                                     app_state_manager,
                                                     block_tree,
-                                                    block_storage,
                                                     block_appender,
                                                     block_executor,
                                                     serializer,
@@ -108,8 +106,6 @@ class SynchronizerTest
       std::make_shared<application::AppStateManagerMock>();
   std::shared_ptr<blockchain::BlockTreeMock> block_tree =
       std::make_shared<blockchain::BlockTreeMock>();
-  std::shared_ptr<blockchain::BlockStorageMock> block_storage =
-      std::make_shared<blockchain::BlockStorageMock>();
   std::shared_ptr<BlockHeaderAppenderMock> block_appender =
       std::make_shared<BlockHeaderAppenderMock>();
   std::shared_ptr<BlockExecutorMock> block_executor =
@@ -252,7 +248,7 @@ SynchronizerTest::generateChains(BlockNumber finalized,
           .WillRepeatedly(testing::Return(b));
     }
     if (i == local_best) {
-      EXPECT_CALL(*block_tree, getBestContaining(_, _))
+      EXPECT_CALL(*block_tree, getBestContaining(_))
           .WillRepeatedly(testing::Return(b));
     }
   }

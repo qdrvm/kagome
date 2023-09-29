@@ -17,6 +17,7 @@ namespace kagome::consensus {
     SingleValidator,
   };
 
+  /// Consensus responsible for choice slot leaders, block production, etc.
   class ProductionConsensus {
    public:
     ProductionConsensus() = default;

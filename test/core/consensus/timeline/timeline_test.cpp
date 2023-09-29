@@ -131,7 +131,7 @@ class TimelineTest : public testing::Test {
             })));
 
     block_tree = std::make_shared<BlockTreeMock>();
-    ON_CALL(*block_tree, bestLeaf()).WillByDefault(Return(best_block));
+    ON_CALL(*block_tree, bestBlock()).WillByDefault(Return(best_block));
     ON_CALL(*block_tree, getLastFinalized()).WillByDefault(Return(best_block));
     ON_CALL(*block_tree, getBlockHeader(best_block.hash))
         .WillByDefault(Return(best_block_header));
@@ -234,7 +234,6 @@ class TimelineTest : public testing::Test {
 TEST_F(TimelineTest, NonValidator) {
   EXPECT_CALL(clock, now());
   EXPECT_CALL(*slots_util, slotFinishTime(_)).Times(testing::AnyNumber());
-  EXPECT_CALL(*block_tree, bestLeaf()).WillRepeatedly(Return(best_block));
   EXPECT_CALL(*production_consensus, getValidatorStatus(_, _))
       .WillRepeatedly(Return(ValidatorStatus::NonValidator));
   EXPECT_CALL(*production_consensus, processSlot(_, best_block)).Times(0);
@@ -318,8 +317,6 @@ TEST_F(TimelineTest, Validator) {
 
     // when: call start
     // then:
-    //  - get best block to init
-    EXPECT_CALL(*block_tree, bestLeaf()).WillRepeatedly(Return(best_block));
     //  - get validator status to know if needed to participate in block
     //    production
     EXPECT_CALL(*production_consensus, getValidatorStatus(_, _))
@@ -346,9 +343,6 @@ TEST_F(TimelineTest, Validator) {
 
     // when: receive remote peer data enough to become synchronized
     // then:
-    //  - check if caught up after loading blocks (our best for this case)
-    EXPECT_CALL(*block_tree, getBestContaining(_, _))
-        .WillOnce(Return(best_block));
     //  - check by slot if caught up after loading blocks
     EXPECT_CALL(*production_consensus, getSlot(best_block_header))
         .WillRepeatedly(Return(0));

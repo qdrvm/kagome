@@ -241,7 +241,7 @@ namespace kagome::api {
                                      .impl_version = 0x202,
                                      .apis = {}};
 
-    EXPECT_CALL(*block_tree_, bestLeaf())
+    EXPECT_CALL(*block_tree_, bestBlock())
         .WillOnce(Return(primitives::BlockInfo{42, "block42"_hash256}));
     EXPECT_CALL(*runtime_core_, version("block42"_hash256))
         .WillOnce(testing::Return(test_version));

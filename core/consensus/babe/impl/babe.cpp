@@ -473,11 +473,7 @@ namespace kagome::consensus::babe {
     const primitives::BlockInfo block_info(block.header.number,
                                            block.header.hash(*hasher_));
 
-    auto last_finalized_block = block_tree_->getLastFinalized();
-    auto previous_best_block_res =
-        block_tree_->getBestContaining(last_finalized_block.hash, std::nullopt);
-    BOOST_ASSERT(previous_best_block_res.has_value());
-    const auto &previous_best_block = previous_best_block_res.value();
+    auto previous_best_block = block_tree_->bestBlock();
 
     // add block to the block tree
     if (auto add_res = block_tree_->addBlock(block); not add_res) {
@@ -517,8 +513,8 @@ namespace kagome::consensus::babe {
     // finally, broadcast the sealed block
     announce_transmitter_->blockAnnounce(network::BlockAnnounce{
         block.header,
-        block_info == block_tree_->bestLeaf() ? network::BlockState::Best
-                                              : network::BlockState::Normal,
+        block_info == block_tree_->bestBlock() ? network::BlockState::Best
+                                               : network::BlockState::Normal,
         common::Buffer{},
     });
     SL_DEBUG(
@@ -529,11 +525,7 @@ namespace kagome::consensus::babe {
         ctx.epoch,
         now);
 
-    last_finalized_block = block_tree_->getLastFinalized();
-    auto current_best_block_res =
-        block_tree_->getBestContaining(last_finalized_block.hash, std::nullopt);
-    BOOST_ASSERT(current_best_block_res.has_value());
-    const auto &current_best_block = current_best_block_res.value();
+    auto current_best_block = block_tree_->bestBlock();
 
     // Create new offchain worker for block if it is best only
     if (current_best_block.number > previous_best_block.number) {

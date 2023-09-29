@@ -12,7 +12,6 @@
 #include "consensus/babe/has_babe_consensus_digest.hpp"
 #include "consensus/grandpa/environment.hpp"
 #include "consensus/grandpa/has_authority_set_change.hpp"
-#include "network/helpers/peer_id_formatter.hpp"
 #include "network/types/block_attributes.hpp"
 #include "primitives/common.hpp"
 #include "storage/predefined_keys.hpp"
@@ -77,7 +76,6 @@ namespace kagome::network {
       const application::AppConfiguration &app_config,
       std::shared_ptr<application::AppStateManager> app_state_manager,
       std::shared_ptr<blockchain::BlockTree> block_tree,
-      std::shared_ptr<blockchain::BlockStorage> block_storage,
       std::shared_ptr<consensus::BlockHeaderAppender> block_appender,
       std::shared_ptr<consensus::BlockExecutor> block_executor,
       std::shared_ptr<storage::trie::TrieSerializer> serializer,
@@ -92,7 +90,6 @@ namespace kagome::network {
       std::shared_ptr<consensus::grandpa::Environment> grandpa_environment)
       : app_state_manager_(std::move(app_state_manager)),
         block_tree_(std::move(block_tree)),
-        block_storage_{std::move(block_storage)},
         block_appender_(std::move(block_appender)),
         block_executor_(std::move(block_executor)),
         serializer_(std::move(serializer)),
@@ -155,10 +152,7 @@ namespace kagome::network {
     }
 
     // Check if block has arrived too early
-    auto best_block_res =
-        block_tree_->getBestContaining(last_finalized_block.hash, std::nullopt);
-    BOOST_ASSERT(best_block_res.has_value());
-    const auto &best_block = best_block_res.value();
+    auto best_block = block_tree_->bestBlock();
     if (best_block.number + kMaxDistanceToBlockForSubscription
         < block_info.number) {
       scheduler_->schedule([handler = std::move(handler)] {
@@ -225,10 +219,7 @@ namespace kagome::network {
 
     const auto &last_finalized_block = block_tree_->getLastFinalized();
 
-    auto best_block_res =
-        block_tree_->getBestContaining(last_finalized_block.hash, std::nullopt);
-    BOOST_ASSERT(best_block_res.has_value());
-    const auto &best_block = best_block_res.value();
+    auto best_block = block_tree_->bestBlock();
 
     // Provided block is equal our best one. Nothing needs to do.
     if (block_info == best_block) {

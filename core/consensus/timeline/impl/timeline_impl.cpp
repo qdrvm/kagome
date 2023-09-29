@@ -14,7 +14,6 @@
 #include "consensus/timeline/impl/block_production_error.hpp"
 #include "consensus/timeline/slots_util.hpp"
 #include "network/block_announce_transmitter.hpp"
-#include "network/helpers/peer_id_formatter.hpp"
 #include "network/synchronizer.hpp"
 #include "network/warp/protocol.hpp"
 #include "network/warp/sync.hpp"
@@ -333,12 +332,7 @@ namespace kagome::consensus {
       return;
     }
 
-    const auto &last_finalized_block = block_tree_->getLastFinalized();
-
-    auto current_best_block_res =
-        block_tree_->getBestContaining(last_finalized_block.hash, std::nullopt);
-    BOOST_ASSERT(current_best_block_res.has_value());
-    const auto &current_best_block = current_best_block_res.value();
+    auto current_best_block = block_tree_->bestBlock();
 
     if (current_best_block == handshake.best_block) {
       if (current_state_ == SyncState::HEADERS_LOADING) {
@@ -354,6 +348,7 @@ namespace kagome::consensus {
     }
 
     // Remote peer is lagged
+    const auto &last_finalized_block = block_tree_->getLastFinalized();
     if (handshake.best_block.number <= last_finalized_block.number) {
       return;
     }
@@ -373,12 +368,7 @@ namespace kagome::consensus {
       return;
     }
 
-    const auto &last_finalized_block = block_tree_->getLastFinalized();
-
-    auto current_best_block_res =
-        block_tree_->getBestContaining(last_finalized_block.hash, std::nullopt);
-    BOOST_ASSERT(current_best_block_res.has_value());
-    const auto &current_best_block = current_best_block_res.value();
+    auto current_best_block = block_tree_->bestBlock();
 
     // Skip obsoleted announce
     if (announce.header.number < current_best_block.number) {
@@ -429,7 +419,7 @@ namespace kagome::consensus {
             // Synced
             if (self->current_state_ == SyncState::SYNCHRONIZED) {
               // Set actual block status
-              announce.state = block == self->block_tree_->bestLeaf()
+              announce.state = block == self->block_tree_->bestBlock()
                                  ? network::BlockState::Best
                                  : network::BlockState::Normal;
               // Propagate announce
@@ -442,7 +432,7 @@ namespace kagome::consensus {
   };
 
   bool TimelineImpl::updateSlot(TimePoint now) {
-    best_block_ = block_tree_->bestLeaf();
+    best_block_ = block_tree_->bestBlock();
 
     auto prev_slot = current_slot_;
     current_slot_ = slots_util_->timeToSlot(now);
@@ -595,7 +585,7 @@ namespace kagome::consensus {
         primitives::events::SyncStateEventType::kSyncState, current_state_);
 
     auto best_block =
-        block_tree_->getBlockHeader(block_tree_->bestLeaf().hash).value();
+        block_tree_->getBlockHeader(block_tree_->bestBlock().hash).value();
     if (trie_storage_->getEphemeralBatchAt(best_block.state_root)) {
       current_state_ = SyncState::CATCHING_UP;
       return;
@@ -607,7 +597,7 @@ namespace kagome::consensus {
         SL_INFO(log_,
                 "Stateless fast sync is finished on block {}; "
                 "Application is stopping",
-                block_tree_->bestLeaf());
+                block_tree_->bestBlock());
         log_->flush();
         app_state_manager_->shutdown();
       }
@@ -643,7 +633,8 @@ namespace kagome::consensus {
 
         const auto &header = header_res.value();
 
-        // Block below last finalized must not being. Don't touch just in case
+        // Block before last finalized must not be a leave.
+        // Don't touch it just in case
         if (header.number < block_at_state.number) {
           continue;
         }
@@ -701,7 +692,7 @@ namespace kagome::consensus {
         primitives::events::SyncStateEventType::kSyncState, current_state_);
 
     if (not active_) {
-      best_block_ = block_tree_->bestLeaf();
+      best_block_ = block_tree_->bestBlock();
       SL_DEBUG(log_, "Node is synchronized on block {}", best_block_);
       runEpoch();
     }

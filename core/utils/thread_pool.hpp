@@ -3,8 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_UTILS_THREAD_POOL_HPP
-#define KAGOME_UTILS_THREAD_POOL_HPP
+#pragma once
 
 #include <atomic>
 #include <boost/asio/executor_work_guard.hpp>
@@ -161,5 +160,3 @@ namespace kagome {
       });                                                                    \
     }                                                                        \
   } while (false)
-
-#endif  // KAGOME_UTILS_THREAD_POOL_HPP

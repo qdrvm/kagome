@@ -9,12 +9,8 @@
 
 #include "blockchain/block_tree_error.hpp"
 #include "blockchain/impl/cached_tree.hpp"
-#include "blockchain/impl/storage_util.hpp"
-#include "common/blob.hpp"
-#include "consensus/babe/types/babe_block_header.hpp"
 #include "consensus/babe/types/seal.hpp"
 #include "crypto/hasher/hasher_impl.hpp"
-#include "mock/core/api/service/author/author_api_mock.hpp"
 #include "mock/core/application/app_state_manager_mock.hpp"
 #include "mock/core/blockchain/block_header_repository_mock.hpp"
 #include "mock/core/blockchain/block_storage_mock.hpp"
@@ -25,27 +21,40 @@
 #include "mock/core/storage/trie_pruner/trie_pruner_mock.hpp"
 #include "mock/core/transaction_pool/transaction_pool_mock.hpp"
 #include "network/impl/extrinsic_observer_impl.hpp"
-#include "primitives/block_id.hpp"
-#include "primitives/justification.hpp"
-#include "runtime/runtime_context.hpp"
 #include "scale/scale.hpp"
 #include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
-#include "testutil/outcome/dummy_error.hpp"
 #include "testutil/prepare_loggers.hpp"
 
 using namespace kagome;
-using namespace storage;
-using namespace common;
-using namespace clock;
-using namespace consensus;
-using namespace babe;
-using namespace primitives;
-using namespace blockchain;
-using namespace transaction_pool;
-using namespace testutil;
-
-using namespace std::chrono_literals;
+using application::AppStateManagerMock;
+using blockchain::BlockHeaderRepositoryMock;
+using blockchain::BlockStorageMock;
+using blockchain::BlockTreeError;
+using blockchain::BlockTreeImpl;
+using blockchain::JustificationStoragePolicyMock;
+using blockchain::TreeNode;
+using common::Buffer;
+using consensus::SlotNumber;
+using consensus::babe::BabeBlockHeader;
+using consensus::babe::SlotType;
+using crypto::HasherImpl;
+using network::ExtrinsicObserverImpl;
+using primitives::Block;
+using primitives::BlockBody;
+using primitives::BlockHash;
+using primitives::BlockHeader;
+using primitives::BlockId;
+using primitives::BlockInfo;
+using primitives::BlockNumber;
+using primitives::Consensus;
+using primitives::Digest;
+using primitives::Justification;
+using primitives::PreRuntime;
+using storage::trie_pruner::TriePrunerMock;
+using transaction_pool::TransactionPoolMock;
+using BabeSeal = consensus::babe::Seal;
+using Seal = primitives::Seal;
 
 using testing::_;
 using testing::Invoke;
@@ -76,7 +85,7 @@ struct BlockTreeTest : public testing::Test {
     EXPECT_CALL(*storage_, setBlockTreeLeaves(_))
         .WillRepeatedly(Return(outcome::success()));
 
-    for (kagome::primitives::BlockNumber i = 1; i < 100; ++i) {
+    for (BlockNumber i = 1; i < 100; ++i) {
       EXPECT_CALL(*storage_, getBlockHash(i))
           .WillRepeatedly(Return(kFirstBlockInfo.hash));
     }
@@ -110,7 +119,7 @@ struct BlockTreeTest : public testing::Test {
             Invoke([&](const BlockNumber &n) -> outcome::result<BlockHash> {
               auto it = num_to_hash_.find(n);
               if (it == num_to_hash_.end()) {
-                return blockchain::BlockTreeError::HEADER_NOT_FOUND;
+                return BlockTreeError::HEADER_NOT_FOUND;
               }
               return it->second;
             }));
@@ -207,11 +216,13 @@ struct BlockTreeTest : public testing::Test {
   std::tuple<BlockHash, BlockHeader> addHeaderToRepositoryAndGet(
       const BlockHash &parent,
       BlockNumber number,
-      storage::trie::RootHash state = {}) {
+      storage::trie::RootHash state,
+      SlotType slot_type) {
     BlockHeader header;
     header.parent_hash = parent;
     header.number = number;
     header.state_root = state;
+    header.digest = make_digest(number, slot_type);
 
     auto hash = addBlock(Block{header, {}});
 
@@ -224,20 +235,24 @@ struct BlockTreeTest : public testing::Test {
     return {hash, header};
   }
 
-  BlockHash addHeaderToRepository(const BlockHash &parent,
-                                  BlockNumber number,
-                                  storage::trie::RootHash state = {}) {
-    return std::get<0>(addHeaderToRepositoryAndGet(parent, number, state));
+  BlockHash addHeaderToRepository(const BlockHash &parent, BlockNumber number) {
+    return std::get<0>(addHeaderToRepositoryAndGet(
+        parent, number, {}, SlotType::SecondaryPlain));
   }
 
-  const BlockInfo kGenesisBlockInfo{
-      0ul, BlockHash::fromString("66dj4kdn4odnfkslfn3k4jdnbmeod555").value()};
+  BlockHash addHeaderToRepository(const BlockHash &parent,
+                                  BlockNumber number,
+                                  SlotType slot_type) {
+    return std::get<0>(
+        addHeaderToRepositoryAndGet(parent, number, {}, slot_type));
+  }
 
-  const BlockInfo kFirstBlockInfo{
-      1ul, BlockHash::fromString("first_block_____________________").value()};
-
-  const BlockInfo kFinalizedBlockInfo{
-      42ul, BlockHash::fromString("andj4kdn4odnfkslfn3k4jdnbmeodkv4").value()};
+  BlockHash addHeaderToRepository(const BlockHash &parent,
+                                  BlockNumber number,
+                                  storage::trie::RootHash state) {
+    return std::get<0>(addHeaderToRepositoryAndGet(
+        parent, number, state, SlotType::SecondaryPlain));
+  }
 
   std::shared_ptr<BlockHeaderRepositoryMock> header_repo_ =
       std::make_shared<BlockHeaderRepositoryMock>();
@@ -245,55 +260,80 @@ struct BlockTreeTest : public testing::Test {
   std::shared_ptr<BlockStorageMock> storage_ =
       std::make_shared<BlockStorageMock>();
 
-  std::shared_ptr<transaction_pool::TransactionPoolMock> pool_ =
-      std::make_shared<transaction_pool::TransactionPoolMock>();
+  std::shared_ptr<TransactionPoolMock> pool_ =
+      std::make_shared<TransactionPoolMock>();
 
-  std::shared_ptr<network::ExtrinsicObserver> extrinsic_observer_ =
-      std::make_shared<network::ExtrinsicObserverImpl>(pool_);
+  std::shared_ptr<ExtrinsicObserverImpl> extrinsic_observer_ =
+      std::make_shared<ExtrinsicObserverImpl>(pool_);
 
-  std::shared_ptr<crypto::Hasher> hasher_ =
-      std::make_shared<crypto::HasherImpl>();
+  std::shared_ptr<HasherImpl> hasher_ = std::make_shared<HasherImpl>();
 
   std::shared_ptr<JustificationStoragePolicyMock>
       justification_storage_policy_ =
           std::make_shared<StrictMock<JustificationStoragePolicyMock>>();
 
-  std::shared_ptr<storage::trie_pruner::TriePrunerMock> state_pruner_ =
-      std::make_shared<storage::trie_pruner::TriePrunerMock>();
+  std::shared_ptr<TriePrunerMock> state_pruner_ =
+      std::make_shared<TriePrunerMock>();
 
-  std::shared_ptr<application::AppStateManagerMock> app_state_manager_ =
-      std::make_shared<application::AppStateManagerMock>();
+  std::shared_ptr<AppStateManagerMock> app_state_manager_ =
+      std::make_shared<AppStateManagerMock>();
 
   std::shared_ptr<BlockTreeImpl> block_tree_;
 
   const BlockId kLastFinalizedBlockId = kFinalizedBlockInfo.hash;
 
-  static Digest make_digest(SlotNumber slot) {
+  static Digest make_digest(SlotNumber slot,
+                            SlotType slot_type = SlotType::SecondaryPlain) {
     Digest digest;
 
     BabeBlockHeader babe_header{
-        .slot_assignment_type = SlotType::SecondaryPlain,
+        .slot_assignment_type = slot_type,
         .authority_index = 0,
         .slot_number = slot,
     };
-    common::Buffer encoded_header{scale::encode(babe_header).value()};
+    Buffer encoded_header{scale::encode(babe_header).value()};
     digest.emplace_back(
         primitives::PreRuntime{{primitives::kBabeEngineId, encoded_header}});
 
-    kagome::consensus::babe::Seal seal{};
-    common::Buffer encoded_seal{scale::encode(seal).value()};
-    digest.emplace_back(
-        primitives::Seal{{primitives::kBabeEngineId, encoded_seal}});
+    BabeSeal seal{};
+    Buffer encoded_seal{scale::encode(seal).value()};
+    digest.emplace_back(Seal{{primitives::kBabeEngineId, encoded_seal}});
 
     return digest;
   };
 
-  BlockHeader first_block_header_ = makeBlockHeader(1, {}, make_digest(1));
+  const BlockInfo kGenesisBlockInfo{
+      0ul, BlockHash::fromString("genesis_block___________________").value()};
 
-  BlockHeader finalized_block_header_ =
-      makeBlockHeader(kFinalizedBlockInfo.number, {}, make_digest(42));
+  BlockHeader first_block_header_{
+      1,                       // number
+      kGenesisBlockInfo.hash,  // parent
+      {},                      // state root
+      {},                      // extrinsics root
+      make_digest(1)           // digests
+  };
+
+  const BlockInfo kFirstBlockInfo{
+      1ul, BlockHash::fromString("first_block_____________________").value()};
+
+  const BlockNumber kFinalizedBlockNumber = 42;
+
+  BlockHeader finalized_block_header_{
+      kFinalizedBlockNumber,  // number
+      // parent
+      BlockHash::fromString("parent_of_finalized_____________").value(),
+      {},                                 // state root
+      {},                                 // extrinsics root
+      make_digest(kFinalizedBlockNumber)  // digests
+  };
 
   BlockBody finalized_block_body_{{Buffer{0x22, 0x44}}, {Buffer{0x55, 0x66}}};
+
+  const BlockInfo kFinalizedBlockInfo{
+      finalized_block_header_.number, [&] {
+        return hasher_->blake2b_256(
+            scale::encode(finalized_block_header_).value());
+      }()};
 
   std::map<BlockNumber, BlockHash> num_to_hash_;
 
@@ -341,7 +381,7 @@ TEST_F(BlockTreeTest, GetBody) {
  */
 TEST_F(BlockTreeTest, AddBlock) {
   // GIVEN
-  auto &&[deepest_block_number, deepest_block_hash] = block_tree_->bestLeaf();
+  auto &&[deepest_block_number, deepest_block_hash] = block_tree_->bestBlock();
   ASSERT_EQ(deepest_block_hash, kFinalizedBlockInfo.hash);
 
   auto leaves = block_tree_->getLeaves();
@@ -360,7 +400,7 @@ TEST_F(BlockTreeTest, AddBlock) {
   auto hash = addBlock(new_block);
 
   // THEN
-  auto new_deepest_block = block_tree_->bestLeaf();
+  auto new_deepest_block = block_tree_->bestBlock();
   ASSERT_EQ(new_deepest_block.hash, hash);
 
   leaves = block_tree_->getLeaves();
@@ -491,7 +531,7 @@ TEST_F(BlockTreeTest, FinalizeWithPruning) {
   // THEN
   ASSERT_EQ(block_tree_->getLastFinalized().hash, B1_hash);
   ASSERT_EQ(block_tree_->getLeaves().size(), 1);
-  ASSERT_EQ(block_tree_->bestLeaf().hash, C1_hash);
+  ASSERT_EQ(block_tree_->bestBlock().hash, C1_hash);
 }
 
 /**
@@ -556,7 +596,7 @@ TEST_F(BlockTreeTest, FinalizeWithPruningDeepestLeaf) {
   // THEN
   ASSERT_EQ(block_tree_->getLastFinalized().hash, B_hash);
   ASSERT_EQ(block_tree_->getLeaves().size(), 1);
-  ASSERT_EQ(block_tree_->bestLeaf().hash, B_hash);
+  ASSERT_EQ(block_tree_->bestBlock().hash, B_hash);
 }
 
 std::shared_ptr<TreeNode> makeFullTree(size_t depth, size_t branching_factor) {
@@ -632,7 +672,7 @@ TEST_F(BlockTreeTest, TreeNode_applyToChain_invalidNode) {
   auto tree = makeFullTree(3, 2);
 
   // p.foo() should not be called
-  testing::StrictMock<NodeProcessor> p;
+  StrictMock<NodeProcessor> p;
 
   ASSERT_OUTCOME_SOME_ERROR(
       tree->applyToChain({42, "213232"_hash256}, [&p](auto &node) {
@@ -736,17 +776,30 @@ TEST_F(BlockTreeTest, GetChainByBlockDescending) {
  * @then BLOCK_NOT_FOUND error is returned
  */
 TEST_F(BlockTreeTest, GetBestChain_BlockNotFound) {
-  BlockHash target_hash({1, 1, 1});
-  BlockHeader target_header;
-  target_header.number = 1337;
-  EXPECT_CALL(*header_repo_, getBlockHeader(target_hash))
-      .WillRepeatedly(Return(target_header));
-  EXPECT_CALL(*header_repo_, getHashByNumber(target_header.number))
-      .WillRepeatedly(Return(target_hash));
+  BlockInfo target(1337, "TargetBlock#1337"_hash256);
+  EXPECT_CALL(*header_repo_, getNumberByHash(target.hash))
+      .WillRepeatedly(Return(BlockTreeError::EXISTING_BLOCK_NOT_FOUND));
 
-  EXPECT_OUTCOME_FALSE(
-      best_info, block_tree_->getBestContaining(target_hash, std::nullopt));
-  ASSERT_EQ(best_info, BlockTreeError::EXISTING_BLOCK_NOT_FOUND);
+  ASSERT_OUTCOME_ERROR(block_tree_->getBestContaining(target.hash),
+                       BlockTreeError::EXISTING_BLOCK_NOT_FOUND);
+}
+
+/**
+ * @given a block tree with one block in it
+ * @when trying to obtain the best chain that contais a block, which is
+ * present in the storage, but is not connected to the base block in the tree
+ * @then BLOCK_NOT_FOUND error is returned
+ */
+TEST_F(BlockTreeTest, GetBestChain_DiscardedBlock) {
+  BlockInfo target = kFirstBlockInfo;
+  BlockInfo other(kFirstBlockInfo.number, "OtherBlock#1"_hash256);
+  EXPECT_CALL(*header_repo_, getNumberByHash(target.hash))
+      .WillRepeatedly(Return(target.number));
+  EXPECT_CALL(*header_repo_, getHashByNumber(target.number))
+      .WillRepeatedly(Return(other.hash));
+
+  ASSERT_OUTCOME_ERROR(block_tree_->getBestContaining(target.hash),
+                       BlockTreeError::BLOCK_ON_DEAD_END);
 }
 
 /**
@@ -757,8 +810,8 @@ TEST_F(BlockTreeTest, GetBestChain_BlockNotFound) {
 TEST_F(BlockTreeTest, GetBestChain_ShortChain) {
   auto target_hash = addHeaderToRepository(kFinalizedBlockInfo.hash, 1337);
 
-  ASSERT_OUTCOME_SUCCESS(
-      best_info, block_tree_->getBestContaining(target_hash, std::nullopt));
+  ASSERT_OUTCOME_SUCCESS(best_info,
+                         block_tree_->getBestContaining(target_hash));
   ASSERT_EQ(best_info.hash, target_hash);
 }
 
@@ -781,11 +834,11 @@ TEST_F(BlockTreeTest, GetBestChain_TwoChains) {
   auto T_hash = addHeaderToRepository(kFinalizedBlockInfo.hash, 43);
   auto A_hash = addHeaderToRepository(T_hash, 44);
   auto B_hash = addHeaderToRepository(A_hash, 45);
+  auto C1_hash = addHeaderToRepository(B_hash, 46);
   auto C2_hash = addHeaderToRepository(B_hash, 46);
   auto D2_hash = addHeaderToRepository(C2_hash, 47);
 
-  ASSERT_OUTCOME_SUCCESS(best_info,
-                         block_tree_->getBestContaining(T_hash, std::nullopt));
+  ASSERT_OUTCOME_SUCCESS(best_info, block_tree_->getBestContaining(T_hash));
   ASSERT_EQ(best_info.hash, D2_hash);
 }
 
@@ -799,7 +852,7 @@ TEST_F(BlockTreeTest, GetBestChain_TwoChains) {
 TEST_F(BlockTreeTest, Reorganize) {
   // GIVEN
   auto A_hash = addHeaderToRepository(kFinalizedBlockInfo.hash, 43);
-  auto [B_hash, B_header] = addHeaderToRepositoryAndGet(A_hash, 44);
+  auto B_hash = addHeaderToRepository(A_hash, 44);
 
   //   42   43  44  45   46   47
   //
@@ -815,7 +868,7 @@ TEST_F(BlockTreeTest, Reorganize) {
   //   LF - A - B - C1 - D1 - E1
 
   // THEN.2
-  ASSERT_TRUE(block_tree_->bestLeaf() == BlockInfo(47, E1_hash));
+  ASSERT_TRUE(block_tree_->bestBlock() == BlockInfo(47, E1_hash));
 
   // WHEN.2
   auto C2_hash = addHeaderToRepository(B_hash, 45, "2"_hash256);
@@ -829,7 +882,7 @@ TEST_F(BlockTreeTest, Reorganize) {
   //   LF - A - B - C1 - D1 - E1
 
   // THEN.2
-  ASSERT_TRUE(block_tree_->bestLeaf() == BlockInfo(47, E1_hash));
+  ASSERT_TRUE(block_tree_->bestBlock() == BlockInfo(47, E1_hash));
 
   // WHEN.3
   EXPECT_CALL(*storage_, putJustification(_, _))
@@ -851,27 +904,13 @@ TEST_F(BlockTreeTest, Reorganize) {
   //   LF - A - B - C2 - D2 - E2
 
   // THEN.3
-  ASSERT_TRUE(block_tree_->bestLeaf() == BlockInfo(47, E2_hash));
-}
-
-/**
- * @given a non-empty block tree
- * @when trying to obtain the best chain with a block, which number is past
- the
- * specified limit
- * @then TARGET_IS_PAST_MAX error is returned
- */
-TEST_F(BlockTreeTest, GetBestChain_TargetPastMax) {
-  auto target_hash = addHeaderToRepository(kFinalizedBlockInfo.hash, 1337);
-
-  EXPECT_OUTCOME_FALSE(err, block_tree_->getBestContaining(target_hash, 42));
-  ASSERT_EQ(err, BlockTreeError::TARGET_IS_PAST_MAX);
+  ASSERT_TRUE(block_tree_->bestBlock() == BlockInfo(47, E2_hash));
 }
 
 TEST_F(BlockTreeTest, CleanupObsoleteJustificationOnFinalized) {
-  auto [b43, h43] = addHeaderToRepositoryAndGet(kFinalizedBlockInfo.hash, 43);
-  auto [b55, h55] = addHeaderToRepositoryAndGet(b43, 55);
-  auto [b56, h56] = addHeaderToRepositoryAndGet(b55, 56);
+  auto b43 = addHeaderToRepository(kFinalizedBlockInfo.hash, 43);
+  auto b55 = addHeaderToRepository(b43, 55);
+  auto b56 = addHeaderToRepository(b55, 56);
   EXPECT_CALL(*storage_, getBlockBody(b56))
       .WillOnce(Return(primitives::BlockBody{}));
 
@@ -891,9 +930,9 @@ TEST_F(BlockTreeTest, CleanupObsoleteJustificationOnFinalized) {
 }
 
 TEST_F(BlockTreeTest, KeepLastFinalizedJustificationIfItShouldBeStored) {
-  auto [b43, h43] = addHeaderToRepositoryAndGet(kFinalizedBlockInfo.hash, 43);
-  auto [b55, h55] = addHeaderToRepositoryAndGet(b43, 55);
-  auto [b56, h56] = addHeaderToRepositoryAndGet(b55, 56);
+  auto b43 = addHeaderToRepository(kFinalizedBlockInfo.hash, 43);
+  auto b55 = addHeaderToRepository(b43, 55);
+  auto b56 = addHeaderToRepository(b55, 56);
   EXPECT_CALL(*storage_, getBlockBody(b56))
       .WillOnce(Return(primitives::BlockBody{}));
 
@@ -907,4 +946,110 @@ TEST_F(BlockTreeTest, KeepLastFinalizedJustificationIfItShouldBeStored) {
   EXPECT_CALL(*storage_, putJustification(new_justification, b56))
       .WillOnce(Return(outcome::success()));
   EXPECT_OUTCOME_TRUE_1(block_tree_->finalize(b56, new_justification));
+}
+
+/**
+ * @given a block tree with two branches-chains
+ * @when trying to obtain the best chain containing the root of the split on
+ two
+ * chains
+ * @then the longest chain with is returned
+ */
+TEST_F(BlockTreeTest, GetBestBlock) {
+  auto T_hash = addHeaderToRepository(kFinalizedBlockInfo.hash, 43);
+  auto A_hash = addHeaderToRepository(T_hash, 44);
+  auto B_hash = addHeaderToRepository(A_hash, 45);
+
+  auto C1_hash = addHeaderToRepository(B_hash, 46);
+
+  auto C2_hash = addHeaderToRepository(B_hash, 46);
+  auto D2_hash = addHeaderToRepository(C2_hash, 47);
+
+  auto C3_hash = addHeaderToRepository(B_hash, 46);
+  auto D3_hash = addHeaderToRepository(C3_hash, 47);
+  auto E3_hash = addHeaderToRepository(D3_hash, 48);
+  auto F3_hash = addHeaderToRepository(E3_hash, 49);
+
+  //  42   43  44  45  46   47   48   49   50
+  //
+  //                   C1
+  //                 /
+  //  LF - T - A - B - C2 - D2
+  //                 \
+  //                   C3 - D3 - E3 - F3
+
+  {
+    ASSERT_OUTCOME_SUCCESS(best_info, block_tree_->getBestContaining(T_hash));
+    ASSERT_EQ(best_info.hash, F3_hash);
+  }
+
+  // ---------------------------------------------------------------------------
+
+  auto E2_hash = addHeaderToRepository(D2_hash, 48, SlotType::Primary);
+
+  //  42   43  44  45  46   47   48   49   50
+  //
+  //                   C1
+  //                 /
+  //  LF - T - A - B - C2 - D2 - E2*
+  //                 \
+  //                   C3 - D3 - E3 - F3
+
+  {
+    ASSERT_OUTCOME_SUCCESS(best_info, block_tree_->getBestContaining(T_hash));
+    ASSERT_EQ(best_info.hash, E2_hash);
+  }
+
+  // ---------------------------------------------------------------------------
+
+  auto D1_hash = addHeaderToRepository(C1_hash, 47, SlotType::Primary);
+  ASSERT_OUTCOME_SUCCESS_TRY(block_tree_->markAsParachainDataBlock(D1_hash));
+
+  //  42   43  44  45  46   47   48   49   50
+  //
+  //                   C1 - D1**
+  //                 /
+  //  LF - T - A - B - C2 - D2 - E2*
+  //                 \
+  //                   C3 - D3 - E3 - F3
+
+  {
+    ASSERT_OUTCOME_SUCCESS(best_info, block_tree_->getBestContaining(T_hash));
+    ASSERT_EQ(best_info.hash, D1_hash);
+  }
+
+  // ---------------------------------------------------------------------------
+
+  auto G3_hash = addHeaderToRepository(F3_hash, 50, SlotType::Primary);
+  ASSERT_OUTCOME_SUCCESS_TRY(block_tree_->markAsParachainDataBlock(G3_hash));
+
+  //  42   43  44  45  46   47   48   49   50
+  //
+  //                   C1 - D1**
+  //                 /
+  //  LF - T - A - B - C2 - D2 - E2*
+  //                 \
+  //                   C3 - D3 - E3 - F3 - G3***
+
+  {
+    ASSERT_OUTCOME_SUCCESS(best_info, block_tree_->getBestContaining(T_hash));
+    ASSERT_EQ(best_info.hash, G3_hash);
+  }
+
+  // ---------------------------------------------------------------------------
+
+  ASSERT_OUTCOME_SUCCESS_TRY(block_tree_->markAsRevertedBlocks({E3_hash}));
+
+  //  42   43  44  45  46   47   48   49   50
+  //
+  //                   C1 - D1**
+  //                 /
+  //  LF - T - A - B - C2 - D2 - E2*
+  //                 \
+  //                   C3 - D3 - E3 - F3 - G3***
+
+  {
+    ASSERT_OUTCOME_SUCCESS(best_info, block_tree_->getBestContaining(T_hash));
+    ASSERT_EQ(best_info.hash, D1_hash);
+  }
 }

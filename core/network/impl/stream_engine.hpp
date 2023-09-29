@@ -3,8 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_STREAM_ENGINE_HPP
-#define KAGOME_STREAM_ENGINE_HPP
+#pragma once
 
 #include <deque>
 #include <numeric>
@@ -22,7 +21,6 @@
 #include "libp2p/peer/peer_info.hpp"
 #include "libp2p/peer/protocol.hpp"
 #include "log/logger.hpp"
-#include "network/helpers/peer_id_formatter.hpp"
 #include "network/helpers/scale_message_read_writer.hpp"
 #include "network/protocol_base.hpp"
 #include "network/reputation_repository.hpp"
@@ -31,29 +29,6 @@
 #include "utils/safe_object.hpp"
 
 namespace kagome::network {
-
-  template <typename Rng = std::mt19937>
-  struct RandomGossipStrategy {
-    RandomGossipStrategy(const size_t candidates_num,
-                         const size_t lucky_peers_num)
-        : candidates_num_{candidates_num} {
-      auto lucky_rate = lucky_peers_num > 0
-                          ? static_cast<double>(lucky_peers_num)
-                                / std::max(candidates_num_, lucky_peers_num)
-                          : 1.;
-      threshold_ = gen_.max() * lucky_rate;
-    }
-    bool operator()(const PeerId &) {
-      auto res = candidates_num_ > 0 && gen_() <= threshold_;
-      return res;
-    }
-
-   private:
-    Rng gen_;
-    size_t candidates_num_;
-    typename Rng::result_type threshold_;
-  };
-
   /**
    * Is the manager class to manipulate streams. It supports next structure
    * Peer
@@ -92,37 +67,29 @@ namespace kagome::network {
         : reputation_repository_(std::move(reputation_repository)),
           logger_{log::createLogger("StreamEngine", "network")} {}
 
-    template <typename... Args>
-    static StreamEnginePtr create(Args &&...args) {
-      return std::make_shared<StreamEngine>(std::forward<Args>(args)...);
+    void add(std::shared_ptr<Stream> stream,
+             const std::shared_ptr<ProtocolBase> &protocol,
+             Direction direction);
+
+    void addIncoming(std::shared_ptr<Stream> stream,
+                     const std::shared_ptr<ProtocolBase> &protocol) {
+      add(std::move(stream), protocol, Direction::INCOMING);
     }
 
-    outcome::result<void> add(std::shared_ptr<Stream> stream,
-                              const std::shared_ptr<ProtocolBase> &protocol,
-                              Direction direction);
-
-    outcome::result<void> addIncoming(
-        std::shared_ptr<Stream> stream,
-        const std::shared_ptr<ProtocolBase> &protocol) {
-      return add(std::move(stream), protocol, Direction::INCOMING);
-    }
-
-    outcome::result<void> addOutgoing(
-        std::shared_ptr<Stream> stream,
-        const std::shared_ptr<ProtocolBase> &protocol) {
+    void addOutgoing(std::shared_ptr<Stream> stream,
+                     const std::shared_ptr<ProtocolBase> &protocol) {
       if (auto res = stream->remotePeerId(); res.has_value()) {
         SL_TRACE(logger_,
                  "Add outgoing protocol.(protocol={}, peer_id={})",
                  protocol->protocolName(),
                  res.value());
       }
-      return add(std::move(stream), protocol, Direction::OUTGOING);
+      add(std::move(stream), protocol, Direction::OUTGOING);
     }
 
-    outcome::result<void> addBidirectional(
-        std::shared_ptr<Stream> stream,
-        const std::shared_ptr<ProtocolBase> &protocol) {
-      return add(std::move(stream), protocol, Direction::BIDIRECTIONAL);
+    void addBidirectional(std::shared_ptr<Stream> stream,
+                          const std::shared_ptr<ProtocolBase> &protocol) {
+      add(std::move(stream), protocol, Direction::BIDIRECTIONAL);
     }
 
     void reserveStreams(const PeerId &peer_id,
@@ -138,9 +105,6 @@ namespace kagome::network {
 
     void dropReserveOutgoing(const PeerId &peer_id,
                              const std::shared_ptr<ProtocolBase> &protocol);
-
-    bool isAlive(const PeerId &peer_id,
-                 const std::shared_ptr<ProtocolBase> &protocol) const;
 
     template <typename T>
     void send(const PeerId &peer_id,
@@ -169,9 +133,7 @@ namespace kagome::network {
     void broadcast(
         const std::shared_ptr<ProtocolBase> &protocol,
         const std::shared_ptr<T> &msg,
-        const std::function<bool(const PeerId &peer_id)> &predicate,
-        const std::function<void(libp2p::connection::Stream &)> on_send =
-            [](auto &) {}) {
+        const std::function<bool(const PeerId &peer_id)> &predicate) {
       BOOST_ASSERT(msg != nullptr);
       BOOST_ASSERT(protocol != nullptr);
 
@@ -189,7 +151,6 @@ namespace kagome::network {
                   protocol->protocolName(),
                   peer_id);
               send(peer_id, protocol, descr.outgoing.stream, msg);
-              on_send(*descr.outgoing.stream);
             } else {
               SL_TRACE(
                   logger_,
@@ -197,20 +158,17 @@ namespace kagome::network {
                   "peer={})",
                   protocol->protocolName(),
                   peer_id);
-              descr.deferred_messages.push_back([weak_self = weak_from_this(),
-                                                 msg,
-                                                 peer_id,
-                                                 protocol,
-                                                 on_send](auto stream) {
-                if (auto self = weak_self.lock()) {
-                  SL_TRACE(self->logger_,
-                           "Send deffered messages.(protocol={}, peer={})",
-                           protocol->protocolName(),
-                           peer_id);
-                  self->send(peer_id, protocol, stream, msg);
-                  on_send(*stream);
-                }
-              });
+              descr.deferred_messages.push_back(
+                  [weak_self = weak_from_this(), msg, peer_id, protocol](
+                      auto stream) {
+                    if (auto self = weak_self.lock()) {
+                      SL_TRACE(self->logger_,
+                               "Send deffered messages.(protocol={}, peer={})",
+                               protocol->protocolName(),
+                               peer_id);
+                      self->send(peer_id, protocol, stream, msg);
+                    }
+                  });
               openOutgoingStream(peer_id, protocol, descr);
             }
           });
@@ -225,30 +183,6 @@ namespace kagome::network {
           [](const PeerId &) { return true; };
       broadcast(protocol, msg, any);
     }
-
-    size_t outgoingStreamsNumber(const std::shared_ptr<ProtocolBase> &protocol);
-
-    template <typename F>
-    size_t count(F &&filter) const {
-      return streams_.sharedAccess([&](const auto &streams) {
-        size_t result = 0;
-        for (auto const &stream : streams) {
-          if (filter(stream.first)) {
-            result += stream.second.size();
-          }
-        }
-
-        return result;
-      });
-    }
-
-    template <typename TPeerId,
-              typename = std::enable_if<std::is_same_v<PeerId, TPeerId>>>
-    PeerInfo from(TPeerId &&peer_id) const {
-      return PeerInfo{.id = std::forward<TPeerId>(peer_id), .addresses = {}};
-    }
-
-    outcome::result<PeerInfo> from(std::shared_ptr<Stream> &stream) const;
 
     template <typename F>
     void forEachPeer(F &&f) {
@@ -348,8 +282,8 @@ namespace kagome::network {
     };
 
     using ProtocolMap =
-        std::map<std::shared_ptr<ProtocolBase>, struct ProtocolDescr>;
-    using PeerMap = std::map<PeerId, ProtocolMap>;
+        std::unordered_map<std::shared_ptr<ProtocolBase>, struct ProtocolDescr>;
+    using PeerMap = std::unordered_map<PeerId, ProtocolMap>;
 
     void uploadStream(std::shared_ptr<Stream> &dst,
                       const std::shared_ptr<Stream> &src,
@@ -407,8 +341,6 @@ namespace kagome::network {
       }
     }
 
-    [[maybe_unused]] void dump(std::string_view msg);
-
     void openOutgoingStream(const PeerId &peer_id,
                             const std::shared_ptr<ProtocolBase> &protocol,
                             ProtocolDescr &descr);
@@ -438,5 +370,3 @@ namespace kagome::network {
   };
 
 }  // namespace kagome::network
-
-#endif  // KAGOME_STREAM_ENGINE_HPP

@@ -3,8 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_COLLATOR_DECLARE_HPP
-#define KAGOME_COLLATOR_DECLARE_HPP
+#pragma once
 
 #include <boost/variant.hpp>
 #include <scale/bitvec.hpp>
@@ -564,13 +563,11 @@ struct fmt::formatter<kagome::network::SignedBitfield> {
       buf[ix] = bits[ix] ? '1' : '0';
     }
 
-    return format_to(ctx.out(),
-                     "sig={}, validator={}, bits=[0b{}{}]",
-                     val.signature,
-                     val.payload.ix,
-                     buf,
-                     ix == bits.size() ? "" : "…");
+    return fmt::format_to(ctx.out(),
+                          "sig={}, validator={}, bits=[0b{}{}]",
+                          val.signature,
+                          val.payload.ix,
+                          buf,
+                          ix == bits.size() ? "" : "…");
   }
 };
-
-#endif  // KAGOME_COLLATOR_DECLARE_HPP

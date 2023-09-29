@@ -20,7 +20,7 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::network, WarpSyncCache::Error, e) {
     case E::NOT_IN_CHAIN:
       return "Requested block is not in chain";
   }
-  return fmt::format("WarpSyncCache::Error({})", e);
+  return "unknown error (invalid WarpSyncCache::Error";
 }
 
 namespace kagome::network {
@@ -56,7 +56,7 @@ namespace kagome::network {
             db->getSpace(storage::Space::kDefault),
         },
         log_{log::createLogger("WarpSyncCache", "warp_sync_protocol")} {
-    app_state_manager.atLaunch([=]() mutable {
+    app_state_manager.atLaunch([=, this]() mutable {
       auto r = start(std::move(chain_sub_engine));
       if (not r) {
         SL_WARN(log_, "start error {}", r.error());

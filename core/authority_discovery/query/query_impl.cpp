@@ -21,7 +21,7 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::authority_discovery, QueryImpl::Error, e) {
     case E::INVALID_SIGNATURE:
       return "Invalid signature";
   }
-  return fmt::format("authority_discovery::QueryImpl::Error({})", e);
+  return "unknown error (authority_discovery::QueryImpl::Error)";
 }
 
 namespace kagome::authority_discovery {
@@ -96,7 +96,7 @@ namespace kagome::authority_discovery {
     std::unique_lock lock{mutex_};
     OUTCOME_TRY(
         authorities,
-        authority_discovery_api_->authorities(block_tree_->bestLeaf().hash));
+        authority_discovery_api_->authorities(block_tree_->bestBlock().hash));
     OUTCOME_TRY(local_keys,
                 crypto_store_->getSr25519PublicKeys(
                     crypto::KnownKeyTypeId::KEY_TYPE_AUDI));
@@ -143,10 +143,10 @@ namespace kagome::authority_discovery {
       queue_.pop_back();
 
       common::Buffer hash{crypto::sha256(authority)};
-      scheduler_->schedule([=, wp = weak_from_this()] {
+      scheduler_->schedule([=, this, wp = weak_from_this()] {
         if (auto self = wp.lock()) {
           std::ignore = kademlia_->getValue(
-              hash, [=](outcome::result<std::vector<uint8_t>> res) {
+              hash, [=, this](outcome::result<std::vector<uint8_t>> res) {
                 std::unique_lock lock{mutex_};
                 --active_;
                 pop();

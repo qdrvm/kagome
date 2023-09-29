@@ -83,7 +83,7 @@ class SystemApiTest : public ::testing::Test {
 TEST_F(SystemApiTest, GetNonceNoPendingTxs) {
   constexpr auto kInitialNonce = 42;
 
-  EXPECT_CALL(*block_tree_mock_, bestLeaf())
+  EXPECT_CALL(*block_tree_mock_, bestBlock())
       .WillOnce(Return(kagome::primitives::BlockInfo{1, "block1"_hash256}));
   EXPECT_CALL(*account_nonce_api_mock_,
               account_nonce("block1"_hash256, kAccountId))
@@ -107,7 +107,7 @@ TEST_F(SystemApiTest, GetNonceNoPendingTxs) {
 TEST_F(SystemApiTest, GetNonceWithPendingTxs) {
   constexpr auto kInitialNonce = 42;
 
-  EXPECT_CALL(*block_tree_mock_, bestLeaf())
+  EXPECT_CALL(*block_tree_mock_, bestBlock())
       .WillOnce(Return(kagome::primitives::BlockInfo{1, "block1"_hash256}));
   EXPECT_CALL(*account_nonce_api_mock_,
               account_nonce("block1"_hash256, kAccountId))

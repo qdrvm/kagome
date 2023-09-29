@@ -112,11 +112,7 @@ namespace kagome::consensus {
     auto &consistency_guard = consistency_guard_res.value();
 
     // Calculate best block before new one will be applied
-    auto last_finalized_block = block_tree_->getLastFinalized();
-    auto previous_best_block_res =
-        block_tree_->getBestContaining(last_finalized_block.hash, std::nullopt);
-    BOOST_ASSERT(previous_best_block_res.has_value());
-    const auto &previous_best_block = previous_best_block_res.value();
+    auto previous_best_block = block_tree_->bestBlock();
 
     if (block_was_applied_earlier) {
       applyBlockExecuted(std::move(block),
@@ -285,10 +281,7 @@ namespace kagome::consensus {
           auto const last_finalized_block =
               self->block_tree_->getLastFinalized();
           self->telemetry_->notifyBlockFinalized(last_finalized_block);
-          auto current_best_block_res = self->block_tree_->getBestContaining(
-              last_finalized_block.hash, std::nullopt);
-          BOOST_ASSERT(current_best_block_res.has_value());
-          const auto &current_best_block = current_best_block_res.value();
+          auto current_best_block = self->block_tree_->bestBlock();
           self->telemetry_->notifyBlockImported(
               current_best_block, telemetry::BlockOrigin::kNetworkInitialSync);
 

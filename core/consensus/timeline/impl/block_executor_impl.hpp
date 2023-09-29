@@ -17,15 +17,11 @@
 
 namespace boost::asio {
   class io_context;
-}  // namespace boost::asio
+}
 
 namespace kagome {
   class ThreadPool;
-}  // namespace kagome
-
-namespace kagome::application {
-  class AppConfiguration;
-}  // namespace kagome::application
+}
 
 namespace kagome::runtime {
   class OffchainWorkerApi;
@@ -34,7 +30,7 @@ namespace kagome::runtime {
 
 namespace kagome::blockchain {
   class BlockTree;
-}  // namespace kagome::blockchain
+}
 
 namespace kagome::crypto {
   class Hasher;

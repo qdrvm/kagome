@@ -359,15 +359,7 @@ TEST_F(BabeTest, SlotLeader) {
   EXPECT_CALL(*sr25519_provider, sign(*our_keypair, _))
       .WillOnce(Return(outcome::success(Sr25519Signature{})));
 
-  EXPECT_CALL(*block_tree, getBestContaining(best_block_info.hash, _))
-      .WillOnce(Return(best_block_info))
-      .WillOnce(Return(
-          BlockInfo(new_block.header.number, new_block.header.hash(*hasher))));
-
   EXPECT_CALL(*block_tree, addBlock(_)).WillOnce(Return(outcome::success()));
-
-  //  EXPECT_CALL(*block_announce_transmitter_, blockAnnounce(_))
-  //      .WillOnce(CheckBlockHeader(created_block_.header));
 
   ASSERT_OUTCOME_SUCCESS_TRY(babe->processSlot(slot, best_block_info));
 }

@@ -64,7 +64,9 @@ namespace kagome::crypto {
     auto res = ed25519_sign(
         sig.data(), keypair_bytes.data(), message.data(), message.size_bytes());
     if (res != ED25519_RESULT_OK) {
-      logger_->error("Error during ed25519 sign; error code: {}", res);
+      SL_ERROR(logger_,
+               "Error during ed25519 sign; error code: {}",
+               static_cast<size_t>(res));
       return Error::SIGN_FAILED;
     }
     return sig;
@@ -83,7 +85,9 @@ namespace kagome::crypto {
     if (res == ED25519_RESULT_VERIFICATION_FAILED) {
       return false;
     }
-    logger_->error("Error verifying a signature; error code: {}", res);
+    SL_ERROR(logger_,
+             "Error verifying a signature; error code: {}",
+             static_cast<size_t>(res));
     return Error::VERIFICATION_FAILED;
   }
 }  // namespace kagome::crypto

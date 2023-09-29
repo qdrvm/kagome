@@ -3,8 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_BLOCK_TREE_HPP
-#define KAGOME_BLOCK_TREE_HPP
+#pragma once
 
 #include <cstdint>
 #include <optional>
@@ -125,7 +124,7 @@ namespace kagome::blockchain {
      * @param block_hashes is vector of reverted block hashes
      */
     virtual outcome::result<void> markAsRevertedBlocks(
-        const std::vector<primitives::BlockInfo> &blocks) = 0;
+        const std::vector<primitives::BlockHash> &block_hashes) = 0;
 
     /**
      * Add a new block to the tree
@@ -211,10 +210,10 @@ namespace kagome::blockchain {
      * Get a best leaf of the tree
      * @return best leaf
      *
-     * @note best leaf is also a result of "SelectBestChain": if we are the
-     * leader, we connect a block, which we constructed, to that best leaf
+     * @note best block is also a result of "SelectBestChain": if we are the
+     * leader, we connect a block, which we constructed, to that best block
      */
-    virtual primitives::BlockInfo bestLeaf() const = 0;
+    virtual primitives::BlockInfo bestBlock() const = 0;
 
     /**
      * @brief Get the most recent block of the best (longest) chain among
@@ -225,8 +224,7 @@ namespace kagome::blockchain {
      * the target one) may possess
      */
     virtual outcome::result<primitives::BlockInfo> getBestContaining(
-        const primitives::BlockHash &target_hash,
-        const std::optional<primitives::BlockNumber> &max_number) const = 0;
+        const primitives::BlockHash &target_hash) const = 0;
 
     /**
      * Get all leaves of our tree
@@ -260,5 +258,3 @@ namespace kagome::blockchain {
   };
 
 }  // namespace kagome::blockchain
-
-#endif  // KAGOME_BLOCK_TREE_HPP

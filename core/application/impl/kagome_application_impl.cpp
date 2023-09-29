@@ -65,8 +65,9 @@ namespace kagome::application {
                                 == AppConfiguration::StorageBackend::RocksDB
                              ? "RocksDB"
                              : "Unknown";
-    logger_->info(
-        "Chain path is {}, storage backend is {}", chain_path, storage_backend);
+    logger_->info("Chain path is {}, storage backend is {}",
+                  chain_path.native(),
+                  storage_backend);
     auto res = util::init_directory(chain_path);
     if (not res) {
       logger_->critical("Error initializing chain directory {}: {}",

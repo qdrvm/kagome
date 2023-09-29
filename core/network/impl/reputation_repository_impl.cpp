@@ -7,8 +7,6 @@
 
 #include <boost/assert.hpp>
 
-#include "network/helpers/peer_id_formatter.hpp"
-
 using namespace std::chrono_literals;
 
 namespace kagome::network {
