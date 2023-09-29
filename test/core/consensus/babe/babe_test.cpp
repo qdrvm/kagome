@@ -182,6 +182,7 @@ class BabeTest : public testing::Test {
         lottery_,
         babe_config_repo_,
         thread_pool_,
+        thread_pool_.io_context(),
         proposer_,
         block_tree_,
         block_announce_transmitter_,

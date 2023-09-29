@@ -113,6 +113,7 @@ namespace kagome::consensus::babe {
         std::shared_ptr<BabeLottery> lottery,
         std::shared_ptr<BabeConfigRepository> babe_config_repo,
         const ThreadPool &thread_pool,
+        std::shared_ptr<boost::asio::io_context> main_thread,
         std::shared_ptr<authorship::Proposer> proposer,
         std::shared_ptr<blockchain::BlockTree> block_tree,
         std::shared_ptr<network::BlockAnnounceTransmitter>
@@ -232,6 +233,7 @@ namespace kagome::consensus::babe {
     std::shared_ptr<BabeLottery> lottery_;
     std::shared_ptr<BabeConfigRepository> babe_config_repo_;
     std::shared_ptr<boost::asio::io_context> io_context_;
+    std::shared_ptr<boost::asio::io_context> main_thread_;
     std::shared_ptr<authorship::Proposer> proposer_;
     std::shared_ptr<blockchain::BlockTree> block_tree_;
     std::shared_ptr<network::BlockAnnounceTransmitter>

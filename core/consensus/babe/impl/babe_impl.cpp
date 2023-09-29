@@ -71,6 +71,7 @@ namespace kagome::consensus::babe {
       std::shared_ptr<BabeLottery> lottery,
       std::shared_ptr<BabeConfigRepository> babe_config_repo,
       const ThreadPool &thread_pool,
+      std::shared_ptr<boost::asio::io_context> main_thread,
       std::shared_ptr<authorship::Proposer> proposer,
       std::shared_ptr<blockchain::BlockTree> block_tree,
       std::shared_ptr<network::BlockAnnounceTransmitter>
@@ -103,6 +104,7 @@ namespace kagome::consensus::babe {
         lottery_{std::move(lottery)},
         babe_config_repo_{std::move(babe_config_repo)},
         io_context_{thread_pool.io_context()},
+        main_thread_{std::move(main_thread)},
         proposer_{std::move(proposer)},
         block_tree_{std::move(block_tree)},
         block_announce_transmitter_{std::move(block_announce_transmitter)},
@@ -1079,10 +1081,11 @@ namespace kagome::consensus::babe {
     const auto &babe_pre_digest = babe_pre_digest_res.value();
 
     auto propose = [this,
+                    self{shared_from_this()},
                     inherent_data{std::move(inherent_data)},
                     now,
                     proposal_start,
-                    babe_pre_digest{std::move(babe_pre_digest)}] {
+                    babe_pre_digest{std::move(babe_pre_digest)}]() mutable {
       auto changes_tracker =
           std::make_shared<storage::changes_trie::StorageChangesTrackerImpl>();
 
@@ -1097,11 +1100,15 @@ namespace kagome::consensus::babe {
         SL_ERROR(log_, "Cannot propose a block: {}", res.error());
         return;
       }
-
-      processSlotLeadershipProposed(now,
-                                    proposal_start,
-                                    std::move(changes_tracker),
-                                    std::move(res.value()));
+      auto proposed = [self,
+                       now,
+                       proposal_start,
+                       changes_tracker{std::move(changes_tracker)},
+                       res{std::move(res.value())}]() mutable {
+        self->processSlotLeadershipProposed(
+            now, proposal_start, std::move(changes_tracker), std::move(res));
+      };
+      main_thread_->post(std::move(proposed));
     };
     io_context_->post(std::move(propose));
   }

@@ -25,8 +25,8 @@
 #include "mock/core/runtime/core_mock.hpp"
 #include "mock/core/runtime/offchain_worker_api_mock.hpp"
 #include "mock/core/transaction_pool/transaction_pool_mock.hpp"
-#include "testutil/asio_wait.hpp"
 #include "runtime/runtime_context.hpp"
+#include "testutil/asio_wait.hpp"
 #include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
 #include "testutil/prepare_loggers.hpp"
@@ -156,16 +156,18 @@ class BlockExecutorTest : public testing::Test {
                                                         babe_util_,
                                                         hasher_);
 
-    block_executor_ = std::make_shared<BlockExecutorImpl>(app_config_,
-                                                          block_tree_,
-                                                          thread_pool_,
-                                                          core_,
-                                                          tx_pool_,
-                                                          hasher_,
-                                                          offchain_worker_api_,
-                                                          storage_sub_engine_,
-                                                          chain_sub_engine_,
-                                                          std::move(appender));
+    block_executor_ =
+        std::make_shared<BlockExecutorImpl>(app_config_,
+                                            block_tree_,
+                                            thread_pool_,
+                                            thread_pool_.io_context(),
+                                            core_,
+                                            tx_pool_,
+                                            hasher_,
+                                            offchain_worker_api_,
+                                            storage_sub_engine_,
+                                            chain_sub_engine_,
+                                            std::move(appender));
   }
 
  protected:
