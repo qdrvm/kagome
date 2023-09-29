@@ -122,7 +122,7 @@ namespace kagome::runtime {
 
 namespace kagome::runtime::binaryen {
 
-  const static wasm::Name env = "env";
+  static const wasm::Name env = "env";
   /**
    * @note: some implementation details were taken from
    * https://github.com/WebAssembly/binaryen/blob/master/src/shell-interface.h
@@ -153,16 +153,19 @@ namespace kagome::runtime::binaryen {
     REGISTER_HOST_API_FUNC(ext_crypto_ed25519_generate_version_1);
     REGISTER_HOST_API_FUNC(ext_crypto_ed25519_sign_version_1);
     REGISTER_HOST_API_FUNC(ext_crypto_ed25519_verify_version_1);
+    REGISTER_HOST_API_FUNC(ext_crypto_ed25519_batch_verify_version_1);
     REGISTER_HOST_API_FUNC(ext_crypto_sr25519_public_keys_version_1);
     REGISTER_HOST_API_FUNC(ext_crypto_sr25519_generate_version_1);
     REGISTER_HOST_API_FUNC(ext_crypto_sr25519_sign_version_1);
     REGISTER_HOST_API_FUNC(ext_crypto_sr25519_verify_version_1);
     REGISTER_HOST_API_FUNC(ext_crypto_sr25519_verify_version_2);
+    REGISTER_HOST_API_FUNC(ext_crypto_sr25519_batch_verify_version_1);
     REGISTER_HOST_API_FUNC(ext_crypto_ecdsa_public_keys_version_1);
     REGISTER_HOST_API_FUNC(ext_crypto_ecdsa_sign_version_1);
     REGISTER_HOST_API_FUNC(ext_crypto_ecdsa_sign_prehashed_version_1);
     REGISTER_HOST_API_FUNC(ext_crypto_ecdsa_generate_version_1);
     REGISTER_HOST_API_FUNC(ext_crypto_ecdsa_verify_version_1);
+    REGISTER_HOST_API_FUNC(ext_crypto_ecdsa_verify_version_2);
     REGISTER_HOST_API_FUNC(ext_crypto_ecdsa_verify_prehashed_version_1);
     /**
      *  secp256k1 recovery algorithms version_1 and version_2
