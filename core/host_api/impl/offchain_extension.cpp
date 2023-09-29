@@ -8,6 +8,7 @@
 #include <stdexcept>
 #include <thread>
 
+#include "log/trace_macros.hpp"
 #include "offchain/offchain_worker.hpp"
 #include "offchain/offchain_worker_pool.hpp"
 #include "runtime/memory.hpp"

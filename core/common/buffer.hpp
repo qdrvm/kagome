@@ -217,34 +217,6 @@ namespace kagome::common {
       }
       return false;
     }
-
-    using Base::operator==;
-
-    bool operator==(const BufferView &other) const noexcept {
-      return std::equal(
-          Base::cbegin(), Base::cend(), other.cbegin(), other.cend());
-    }
-
-    template <size_t N>
-    bool operator==(
-        const std::array<typename Base::value_type, N> &other) const noexcept {
-      return std::equal(
-          Base::cbegin(), Base::cend(), other.cbegin(), other.cend());
-    }
-
-    using Base::operator<;
-
-    bool operator<(const BufferView &other) const noexcept {
-      return std::lexicographical_compare(
-          Base::cbegin(), Base::cend(), other.cbegin(), other.cend());
-    }
-
-    template <size_t N>
-    bool operator<(
-        const std::array<typename Base::value_type, N> &other) const noexcept {
-      return std::lexicographical_compare(
-          Base::cbegin(), Base::cend(), other.cbegin(), other.cend());
-    }
   };
 
   template <size_t MaxSize>

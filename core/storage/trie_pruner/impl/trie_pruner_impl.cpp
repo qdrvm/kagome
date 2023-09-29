@@ -14,6 +14,7 @@
 #include "blockchain/block_storage.hpp"
 #include "blockchain/block_tree.hpp"
 #include "crypto/hasher/hasher_impl.hpp"
+#include "log/formatters/optional.hpp"
 #include "storage/database_error.hpp"
 #include "storage/predefined_keys.hpp"
 #include "storage/spaced_storage.hpp"

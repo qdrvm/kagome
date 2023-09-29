@@ -63,7 +63,7 @@ namespace kagome::storage::trie {
       auto &opaque_child = parent.children.at(idx);
       OUTCOME_TRY(child, retrieve_node_(opaque_child));
       mut_parent.children.at(idx) = child;
-      return std::move(child);
+      return child;
     }
 
     [[nodiscard]] outcome::result<std::shared_ptr<TrieNode>> getChild(
@@ -602,7 +602,7 @@ namespace kagome::storage::trie {
   outcome::result<PolkadotTrie::ConstNodePtr> PolkadotTrieImpl::retrieveChild(
       const BranchNode &parent, uint8_t idx) const {
     OUTCOME_TRY(node, nodes_->getChild(parent, idx));
-    return std::move(node);
+    return node;
   }
 
   outcome::result<PolkadotTrie::NodePtr> PolkadotTrieImpl::retrieveChild(

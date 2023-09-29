@@ -70,7 +70,7 @@ namespace kagome::crypto {
                       info.first);
       }
     }
-    return std::move(info);
+    return info;
   }
 
   KeyFileStorage::Path KeyFileStorage::composeKeyPath(

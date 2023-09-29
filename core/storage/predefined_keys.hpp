@@ -3,8 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_CORE_STORAGE_PREDEFINED_KEYS_HPP
-#define KAGOME_CORE_STORAGE_PREDEFINED_KEYS_HPP
+#pragma once
 
 #include "common/buffer.hpp"
 
@@ -72,5 +71,3 @@ namespace kagome::storage {
       "cleaned-votes-watermark"_buf;
 
 }  // namespace kagome::storage
-
-#endif  // KAGOME_CORE_STORAGE_PREDEFINED_KEYS_HPP
