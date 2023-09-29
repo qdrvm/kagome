@@ -55,8 +55,6 @@ jobs:
   #           run: ./housekeeping/make_build.sh -DCLEAR_OBJS=ON -DCMAKE_TOOLCHAIN_FILE=cmake/toolchain/gcc-12_cxx20.cmake -DASAN=ON
   #         - name: "Linux: clang-15 TSAN"
   #           run: ./housekeeping/make_build.sh -DCLEAR_OBJS=ON -DCMAKE_TOOLCHAIN_FILE=cmake/toolchain/clang-15_cxx20.cmake -DTSAN=ON
-  #         - name: "Linux: clang-11 UBSAN"
-  #           run: ./housekeeping/make_build.sh -DCLEAR_OBJS=ON -DCMAKE_TOOLCHAIN_FILE=cmake/toolchain/clang-11_cxx20.cmake -DUBSAN=ON
   #         - name: "Linux: clang-15 External Project"
   #           run: ./housekeeping/make_external_build.sh -DCLEAR_OBJS=ON -DCMAKE_TOOLCHAIN_FILE=../../cmake/toolchain/clang-15_cxx20.cmake
   #         - name: "Linux: clang-15 UBSAN"
@@ -97,8 +95,6 @@ jobs:
             run: ./housekeeping/make_build.sh -DCLEAR_OBJS=ON -DCMAKE_TOOLCHAIN_FILE=cmake/toolchain/gcc-12_cxx20.cmake -DASAN=ON
           - name: "Linux: clang-15 TSAN"
             run: ./housekeeping/make_build.sh -DCLEAR_OBJS=ON -DCMAKE_TOOLCHAIN_FILE=cmake/toolchain/clang-15_cxx20.cmake -DTSAN=ON
-          - name: "Linux: clang-15 UBSAN"
-            run: ./housekeeping/make_build.sh -DCLEAR_OBJS=ON -DCMAKE_TOOLCHAIN_FILE=cmake/toolchain/clang-15_cxx20.cmake -DUBSAN=ON
           - name: "Linux: clang-15 External Project"
             run: ./housekeeping/make_external_build.sh -DCLEAR_OBJS=ON -DCMAKE_TOOLCHAIN_FILE=../../cmake/toolchain/clang-15_cxx20.cmake
           - name: "Linux: clang-15 UBSAN"
