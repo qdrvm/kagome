@@ -233,7 +233,7 @@ namespace kagome::parachain {
             /// clear caches
             BOOST_ASSERT(
                 self->this_context_->get_executor().running_in_this_thread());
-            auto const &relay_parent =
+            auto const relay_parent =
                 primitives::calculateBlockHash(event.new_head, *self->hasher_)
                     .value();
 

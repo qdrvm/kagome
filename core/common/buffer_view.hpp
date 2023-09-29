@@ -35,14 +35,6 @@ namespace kagome::common {
     std::string_view toStringView() const {
       return byte2str(*this);
     }
-
-    template <typename OtherT>
-      requires std::is_same_v<typename OtherT::const_iterator::value_type,
-                              typename Span::const_iterator::value_type>
-    auto operator<=>(const OtherT &other) const noexcept {
-      return cxx20::lexicographical_compare_three_way(
-          Span::cbegin(), Span::cend(), other.cbegin(), other.cend());
-    }
   };
 
   template <typename L, typename R>
@@ -61,7 +53,7 @@ namespace kagome::common {
         and std::is_same_v<typename L::const_iterator::value_type,
                            typename R::const_iterator::value_type>
   auto operator==(const L &lhs, const R &rhs) noexcept {
-    return lhs <=> rhs == std::strong_ordering::equal;
+    return (lhs <=> rhs) == std::strong_ordering::equal;
   }
 
   inline std::ostream &operator<<(std::ostream &os, BufferView view) {

@@ -204,7 +204,14 @@ namespace kagome::runtime::wavm {
     using WAVM::IR::DataSegment;
     using WAVM::IR::MemoryType;
     using WAVM::IR::Value;
+#if defined(__GNUC__) and not defined(__clang__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdangling-reference"
+#endif
     auto &ir = getModuleIR(module_->module_);
+#if defined(__GNUC__) and not defined(__clang__)
+#pragma GCC diagnostic pop
+#endif
 
     for (Uptr segmentIndex = 0; segmentIndex < ir.dataSegments.size();
          ++segmentIndex) {

@@ -143,10 +143,10 @@ namespace kagome::authority_discovery {
       queue_.pop_back();
 
       common::Buffer hash{crypto::sha256(authority)};
-      scheduler_->schedule([=, wp = weak_from_this()] {
+      scheduler_->schedule([=, this, wp = weak_from_this()] {
         if (auto self = wp.lock()) {
           std::ignore = kademlia_->getValue(
-              hash, [=](outcome::result<std::vector<uint8_t>> res) {
+              hash, [=, this](outcome::result<std::vector<uint8_t>> res) {
                 std::unique_lock lock{mutex_};
                 --active_;
                 pop();

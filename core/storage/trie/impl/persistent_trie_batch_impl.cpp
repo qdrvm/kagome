@@ -47,7 +47,7 @@ namespace kagome::storage::trie {
     OUTCOME_TRY(state_pruner_->addNewState(*trie_, version));
     OUTCOME_TRY(root, serializer_->storeTrie(*trie_, version));
     SL_TRACE_FUNC_CALL(logger_, root);
-    return std::move(root);
+    return root;
   }
 
   outcome::result<std::tuple<bool, uint32_t>>
