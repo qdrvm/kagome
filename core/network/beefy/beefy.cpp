@@ -135,6 +135,9 @@ namespace kagome::network {
     if (not index) {
       return;
     }
+    if (not verify(*ecdsa_, vote)) {
+      return;
+    }
     auto total = session.validators.validators.size();
     auto round = session.rounds.find(block_number);
     if (round == session.rounds.end()) {
@@ -146,9 +149,6 @@ namespace kagome::network {
       round->second.signatures.resize(total);
     }
     if (round->second.signatures[*index]) {
-      return;
-    }
-    if (not verify(*ecdsa_, vote)) {
       return;
     }
     round->second.signatures[*index] = vote.signature;
