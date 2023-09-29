@@ -33,8 +33,8 @@ using kagome::primitives::BlockHash;
 using kagome::primitives::BlockHeader;
 using kagome::primitives::BlockInfo;
 using kagome::runtime::CoreMock;
-using kagome::runtime::MetadataMock;
 using kagome::runtime::ExecutorMock;
+using kagome::runtime::MetadataMock;
 using kagome::storage::trie::TrieBatchMock;
 using kagome::storage::trie::TrieStorageMock;
 using testing::_;
@@ -67,8 +67,7 @@ namespace kagome::api {
     std::shared_ptr<MetadataMock> metadata_ = std::make_shared<MetadataMock>();
     std::shared_ptr<ApiServiceMock> api_service_ =
         std::make_shared<ApiServiceMock>();
-    std::shared_ptr<ExecutorMock> executor_ =
-        std::make_shared<ExecutorMock>();
+    std::shared_ptr<ExecutorMock> executor_ = std::make_shared<ExecutorMock>();
 
     std::unique_ptr<api::StateApiImpl> api_{};
   };
@@ -231,7 +230,7 @@ namespace kagome::api {
                                      .impl_version = 0x202,
                                      .apis = {}};
 
-    EXPECT_CALL(*block_tree_, bestLeaf())
+    EXPECT_CALL(*block_tree_, bestBlock())
         .WillOnce(Return(primitives::BlockInfo{42, "block42"_hash256}));
     EXPECT_CALL(*runtime_core_, version("block42"_hash256))
         .WillOnce(testing::Return(test_version));
