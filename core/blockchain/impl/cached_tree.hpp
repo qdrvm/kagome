@@ -82,14 +82,7 @@ namespace kagome::blockchain {
 
     bool operator==(const TreeNode &other) const;
     bool operator!=(const TreeNode &other) const;
-    bool operator<(const TreeNode &other) const;
   };
-
-  inline bool operator<(const std::shared_ptr<TreeNode> &lhs,
-                        const std::shared_ptr<TreeNode> &rhs) {
-    BOOST_ASSERT(lhs and rhs);
-    return *lhs < *rhs;
-  }
 
   /**
    * Useful information about the tree & blocks it contains to make some of

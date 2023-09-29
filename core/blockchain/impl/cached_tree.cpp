@@ -129,11 +129,6 @@ namespace kagome::blockchain {
     return !(*this == other);
   }
 
-  bool TreeNode::operator<(const TreeNode &other) const {
-    return depth < other.depth
-        or (depth == other.depth and block_hash < other.block_hash);
-  }
-
   TreeMeta::TreeMeta(const std::shared_ptr<TreeNode> &subtree_root_node)
       : best_block{subtree_root_node}, last_finalized{subtree_root_node} {
     std::function<void(std::shared_ptr<TreeNode>)> handle =
@@ -194,7 +189,16 @@ namespace kagome::blockchain {
 
   void TreeMeta::forceRefreshBest() {
     auto root = last_finalized.lock();
-    std::set<std::shared_ptr<TreeNode>> candidates;
+    struct Cmp {
+      bool operator()(const std::shared_ptr<TreeNode> &lhs,
+                      const std::shared_ptr<TreeNode> &rhs) {
+        BOOST_ASSERT(lhs and rhs);
+        return lhs->depth < rhs->depth
+            or (lhs->depth == rhs->depth and lhs->block_hash < rhs->block_hash);
+      }
+    };
+
+    std::set<std::shared_ptr<TreeNode>, Cmp> candidates;
     for (auto &leaf : leaves) {
       if (auto node = root->findByHash(leaf)) {
         candidates.emplace(std::move(node));
