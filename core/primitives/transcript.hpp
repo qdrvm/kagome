@@ -12,7 +12,8 @@ namespace kagome::primitives {
 
   template <typename T>
   inline void decompose(const T &value, uint8_t (&dst)[sizeof(value)]) {
-    static_assert(std::is_pod_v<T>, "T must be pod!");
+    static_assert(std::is_standard_layout_v<T> and std::is_trivial_v<T>,
+                  "T must be pod!");
     static_assert(!std::is_reference_v<T>, "T must not be a reference!");
 
     for (size_t i = 0; i < sizeof(value); ++i) {

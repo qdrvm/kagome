@@ -78,21 +78,24 @@ namespace kagome::primitives {
   struct DecodedConsensusMessage {
     static outcome::result<DecodedConsensusMessage> create(
         ConsensusEngineId engine_id, const common::Buffer &data) {
+      DecodedConsensusMessage msg;
+      msg.consensus_engine_id = engine_id;
       if (engine_id == primitives::kBabeEngineId) {
         OUTCOME_TRY(payload, scale::decode<BabeDigest>(data));
-        return DecodedConsensusMessage{engine_id, std::move(payload)};
+        msg.digest = std::move(payload);
       } else if (engine_id == primitives::kGrandpaEngineId) {
         OUTCOME_TRY(payload, scale::decode<GrandpaDigest>(data));
-        return DecodedConsensusMessage{engine_id, std::move(payload)};
+        msg.digest = std::move(payload);
       } else if (engine_id == primitives::kUnsupportedEngineId_POL1) {
         OUTCOME_TRY(payload, scale::decode<UnsupportedDigest_POL1>(data));
-        return DecodedConsensusMessage{engine_id, std::move(payload)};
+        msg.digest = std::move(payload);
       } else if (engine_id == primitives::kBeefyEngineId) {
         OUTCOME_TRY(payload, scale::decode<UnsupportedDigest_BEEF>(data));
-        return DecodedConsensusMessage{engine_id, std::move(payload)};
+        msg.digest = std::move(payload);
+      } else {
+        BOOST_ASSERT_MSG(false, "Invalid consensus engine id");
       }
-      BOOST_ASSERT_MSG(false, "Invalid consensus engine id");
-      BOOST_UNREACHABLE_RETURN({})
+      return msg;
     }
 
     const BabeDigest &asBabeDigest() const {

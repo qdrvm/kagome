@@ -56,7 +56,7 @@ namespace kagome::metrics {
     }
 
     logger_->info("Listening for new connections on {}:{}",
-                  config_.endpoint.address(),
+                  config_.endpoint.address().to_string(),
                   acceptor_->local_endpoint().port());
     acceptOnce();
 

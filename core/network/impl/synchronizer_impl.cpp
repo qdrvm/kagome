@@ -13,7 +13,6 @@
 #include "consensus/grandpa/environment.hpp"
 #include "consensus/grandpa/has_authority_set_change.hpp"
 #include "network/beefy/i_beefy.hpp"
-#include "network/helpers/peer_id_formatter.hpp"
 #include "network/types/block_attributes.hpp"
 #include "primitives/common.hpp"
 #include "storage/predefined_keys.hpp"

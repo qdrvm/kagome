@@ -3,13 +3,13 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_COMMON_BUFFERVIEW
-#define KAGOME_COMMON_BUFFERVIEW
+#pragma once
 
 #include <gsl/span>
 
 #include "common/bytestr.hpp"
 #include "common/hexutil.hpp"
+#include "common/lexicographical_compare_three_way.hpp"
 #include "macro/endianness_utils.hpp"
 
 namespace kagome::common {
@@ -35,31 +35,26 @@ namespace kagome::common {
     std::string_view toStringView() const {
       return byte2str(*this);
     }
-
-    bool operator==(const Span &other) const noexcept {
-      return std::equal(
-          Span::cbegin(), Span::cend(), other.cbegin(), other.cend());
-    }
-
-    template <size_t N>
-    bool operator==(
-        const std::array<typename Span::value_type, N> &other) const noexcept {
-      return std::equal(
-          Span::cbegin(), Span::cend(), other.cbegin(), other.cend());
-    }
-
-    bool operator<(const BufferView &other) const noexcept {
-      return std::lexicographical_compare(
-          cbegin(), cend(), other.cbegin(), other.cend());
-    }
-
-    template <size_t N>
-    bool operator<(
-        const std::array<typename Span::value_type, N> &other) const noexcept {
-      return std::lexicographical_compare(
-          Span::cbegin(), Span::cend(), other.cbegin(), other.cend());
-    }
   };
+
+  template <typename L, typename R>
+    requires(std::is_base_of_v<BufferView, L>
+             or std::is_base_of_v<BufferView, R>)
+        and std::is_same_v<typename L::const_iterator::value_type,
+                           typename R::const_iterator::value_type>
+  auto operator<=>(const L &lhs, const R &rhs) noexcept {
+    return cxx20::lexicographical_compare_three_way(
+        std::cbegin(lhs), std::cend(lhs), std::cbegin(rhs), std::cend(rhs));
+  }
+
+  template <typename L, typename R>
+    requires(std::is_base_of_v<BufferView, L>
+             or std::is_base_of_v<BufferView, R>)
+        and std::is_same_v<typename L::const_iterator::value_type,
+                           typename R::const_iterator::value_type>
+  auto operator==(const L &lhs, const R &rhs) noexcept {
+    return (lhs <=> rhs) == std::strong_ordering::equal;
+  }
 
   inline std::ostream &operator<<(std::ostream &os, BufferView view) {
     return os << view.toHex();
@@ -97,11 +92,12 @@ struct fmt::formatter<kagome::common::BufferView> {
     // ctx.out() is an output iterator to write to.
 
     if (view.empty()) {
-      return format_to(ctx.out(), "<empty>");
+      static constexpr string_view message("<empty>");
+      return std::copy(std::begin(message), std::end(message), ctx.out());
     }
 
     if (presentation == 's' && view.size() > 5) {
-      return format_to(
+      return fmt::format_to(
           ctx.out(),
           "0x{:04x}…{:04x}",
           // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
@@ -111,8 +107,6 @@ struct fmt::formatter<kagome::common::BufferView> {
                                                       - sizeof(uint16_t))));
     }
 
-    return format_to(ctx.out(), "0x{}", view.toHex());
+    return fmt::format_to(ctx.out(), "0x{}", view.toHex());
   }
 };
-
-#endif  // KAGOME_COMMON_BUFFERVIEW
