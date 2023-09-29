@@ -30,7 +30,7 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::consensus::babe,
     case E::PREVIOUS_NOT_FOUND:
       return "previous babe config not found";
   }
-  return fmt::format("BabeConfigRepositoryImpl::Error({})", e);
+  return "unknown error (invalid BabeConfigRepositoryImpl::Error)";
 }
 
 namespace kagome::consensus::babe {

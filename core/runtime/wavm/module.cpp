@@ -78,7 +78,14 @@ namespace kagome::runtime::wavm {
 
   outcome::result<std::shared_ptr<ModuleInstance>> ModuleImpl::instantiate()
       const {
+#if defined(__GNUC__) and not defined(__clang__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdangling-reference"
+#endif
     const auto &ir_module = WAVM::Runtime::getModuleIR(module_);
+#if defined(__GNUC__) and not defined(__clang__)
+#pragma GCC diagnostic pop
+#endif
     bool imports_memory =
         std::find_if(ir_module.imports.cbegin(),
                      ir_module.imports.cend(),
@@ -117,8 +124,14 @@ namespace kagome::runtime::wavm {
 
   WAVM::Runtime::ImportBindings ModuleImpl::link(
       IntrinsicResolver &resolver) const {
+#if defined(__GNUC__) and not defined(__clang__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdangling-reference"
+#endif
     const WAVM::IR::Module &ir_module = WAVM::Runtime::getModuleIR(module_);
-
+#if defined(__GNUC__) and not defined(__clang__)
+#pragma GCC diagnostic pop
+#endif
     auto link_result = WAVM::Runtime::linkModule(ir_module, resolver);
     if (!link_result.success) {
       logger_->error("Failed to link module:");

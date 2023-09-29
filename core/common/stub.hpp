@@ -3,8 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_STUB
-#define KAGOME_STUB
+#pragma once
 
 #include "common/empty.hpp"
 #include "common/tagged.hpp"
@@ -39,5 +38,3 @@ namespace kagome {
   }
 
 }  // namespace kagome
-
-#endif  // KAGOME_STUB

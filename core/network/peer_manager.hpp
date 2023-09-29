@@ -34,7 +34,7 @@ namespace kagome::network {
     RelayHash relay_parent;
     network::ParachainId para_id;
     libp2p::peer::PeerId peer_id;
-    std::optional<Hash> commitments_hash;
+    std::optional<Hash> commitments_hash{};
   };
 
   struct CollationEvent {

@@ -3,8 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_NETWORK_PARACHAINPROTOCOL
-#define KAGOME_NETWORK_PARACHAINPROTOCOL
+#pragma once
 
 #include "network/protocol_base.hpp"
 
@@ -20,7 +19,6 @@
 #include "log/logger.hpp"
 #include "network/collation_observer.hpp"
 #include "network/common.hpp"
-#include "network/helpers/peer_id_formatter.hpp"
 #include "network/helpers/scale_message_read_writer.hpp"
 #include "network/impl/protocols/protocol_base_impl.hpp"
 #include "network/impl/protocols/protocol_error.hpp"
@@ -164,5 +162,3 @@ namespace kagome::network {
   };
 
 }  // namespace kagome::network
-
-#endif  // KAGOME_NETWORK_PARACHAINPROTOCOL

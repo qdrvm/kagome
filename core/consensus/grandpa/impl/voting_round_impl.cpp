@@ -1470,7 +1470,7 @@ namespace kagome::consensus::grandpa {
         votes.begin(),
         votes.end(),
         std::vector<SignedPrevote>(),
-        [this, &estimate](auto &prevotes, const auto &voting_variant) {
+        [this, &estimate](auto &&prevotes, const auto &voting_variant) {
           visit_in_place(
               voting_variant,
               [this, &prevotes, &estimate](
@@ -1490,7 +1490,7 @@ namespace kagome::consensus::grandpa {
                 prevotes.push_back(static_cast<const SignedPrevote &>(
                     equivocatory_voting_message.second));
               });
-          return prevotes;
+          return std::move(prevotes);
         });
     return result;
   }
@@ -1505,7 +1505,7 @@ namespace kagome::consensus::grandpa {
         votes.begin(),
         votes.end(),
         std::move(result),
-        [this, &weight](auto &precommits, const auto &voting_variant) {
+        [this, &weight](auto &&precommits, const auto &voting_variant) {
           if (weight < threshold_) {
             visit_in_place(
                 voting_variant,
@@ -1525,7 +1525,7 @@ namespace kagome::consensus::grandpa {
                 },
                 [](const auto &) {});
           }
-          return precommits;
+          return std::move(precommits);
         });
 
     // Then collect valid precommits (until threshold is reached)
@@ -1533,7 +1533,7 @@ namespace kagome::consensus::grandpa {
         votes.begin(),
         votes.end(),
         std::move(result),
-        [this, &weight, &estimate](auto &precommits,
+        [this, &weight, &estimate](auto &&precommits,
                                    const auto &voting_variant) {
           if (weight < threshold_) {
             visit_in_place(
@@ -1554,7 +1554,7 @@ namespace kagome::consensus::grandpa {
                 },
                 [](const auto &) {});
           }
-          return precommits;
+          return std::move(precommits);
         });
 
     return result;

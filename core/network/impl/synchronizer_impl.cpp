@@ -12,7 +12,6 @@
 #include "consensus/babe/has_babe_consensus_digest.hpp"
 #include "consensus/grandpa/environment.hpp"
 #include "consensus/grandpa/has_authority_set_change.hpp"
-#include "network/helpers/peer_id_formatter.hpp"
 #include "network/types/block_attributes.hpp"
 #include "primitives/common.hpp"
 #include "storage/predefined_keys.hpp"

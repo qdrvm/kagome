@@ -3,8 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_BLOCKCHAIN_GENESISBLOCKHASH
-#define KAGOME_BLOCKCHAIN_GENESISBLOCKHASH
+#pragma once
 
 #include "blockchain/block_tree.hpp"
 
@@ -19,4 +18,6 @@ namespace kagome::blockchain {
 
 }  // namespace kagome::blockchain
 
-#endif  // KAGOME_BLOCKCHAIN_GENESISBLOCKHASH
+template <>
+struct fmt::formatter<kagome::blockchain::GenesisBlockHash>
+    : fmt::formatter<kagome::common::BufferView> {};
