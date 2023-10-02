@@ -22,9 +22,6 @@ namespace kagome::storage::trie {
 
   class TrieStorageImpl : public TrieStorage {
    public:
-    using EncodedNode = common::BufferView;
-    using OnNodeLoaded = std::function<void(EncodedNode)>;
-
     static outcome::result<std::unique_ptr<TrieStorageImpl>> createEmpty(
         const std::shared_ptr<PolkadotTrieFactory> &trie_factory,
         std::shared_ptr<Codec> codec,

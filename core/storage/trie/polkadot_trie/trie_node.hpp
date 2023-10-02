@@ -88,7 +88,7 @@ namespace kagome::storage::trie {
       if (size == common::Hash256::size()) {
         return MerkleValue{common::Hash256::fromSpan(merkle_value).value(),
                            size};
-      } else if (size < common::Hash256::size() && size > 0) {
+      } else if (size < common::Hash256::size()) {
         common::Hash256 hash;
         std::copy_n(merkle_value.begin(), size, hash.begin());
         return MerkleValue{hash, size};
@@ -112,6 +112,10 @@ namespace kagome::storage::trie {
 
     common::BufferView asBuffer() const {
       return common::BufferView{value.begin(), value.begin() + size};
+    }
+
+    bool empty() const {
+      return size == 0;
     }
 
    private:
@@ -172,14 +176,13 @@ namespace kagome::storage::trie {
         : key_nibbles_{std::move(key_nibbles)}, value_{std::move(value)} {}
 
     enum class Type {
-      Special,                    // -
-      Leaf,                       // 01
-      BranchEmptyValue,           // 10
-      BranchWithValue,            // 11
-      LeafContainingHashes,       // 001
-      BranchContainingHashes,     // 0001
-      Empty,                      // 0000 0000
-      ReservedForCompactEncoding  // 0001 0000
+      Special,                 // -
+      Leaf,                    // 01
+      BranchEmptyValue,        // 10
+      BranchWithValue,         // 11
+      LeafContainingHashes,    // 001
+      BranchContainingHashes,  // 0001
+      Empty,                   // 0000 0000
     };
 
     virtual bool isBranch() const noexcept = 0;

@@ -89,11 +89,9 @@ namespace kagome::storage::trie {
     // while there is a node in a trie with the given key, it contains no value,
     // thus cannot be pointed at by the cursor
     if (not current.getValue()) {
-      state_ = InvalidState{Error::KEY_NOT_FOUND};
-      return false;
+      OUTCOME_TRY(next());
     }
-
-    return true;
+    return isValid();
   }
 
   outcome::result<bool> PolkadotTrieCursorImpl::seekLast() {
