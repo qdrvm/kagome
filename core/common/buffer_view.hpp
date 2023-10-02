@@ -20,13 +20,15 @@ namespace kagome::common {
 namespace kagome::common {
 
   class BufferView : public gsl::span<const uint8_t> {
-    using Span = gsl::span<const uint8_t>;
-
    public:
-    using Span::Span;
-    using Span::operator=;
+    using span::span;
 
-    BufferView(const Span &other) noexcept : Span(other) {}
+    BufferView(const span &other) noexcept : span(other) {}
+
+    template <typename T>
+    decltype(auto) operator=(T &&t) {
+      return span::operator=(std::forward<T>(t));
+    }
 
     std::string toHex() const {
       return hex_lower(*this);
