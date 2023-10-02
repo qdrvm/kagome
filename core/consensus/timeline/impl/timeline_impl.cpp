@@ -246,9 +246,7 @@ namespace kagome::consensus {
               and self->current_state_ != SyncState::STATE_LOADING) {
             const auto &header =
                 boost::get<primitives::events::HeadsEventParams>(event).get();
-            auto hash = header.hash(*self->hasher_);
-
-            auto version_res = self->core_api_->version(hash);
+            auto version_res = self->core_api_->version(header.hash());
             if (version_res.has_value()) {
               auto &version = version_res.value();
               if (not self->actual_runtime_version_.has_value()
@@ -379,10 +377,7 @@ namespace kagome::consensus {
     if (current_state_ == SyncState::SYNCHRONIZED
         or current_state_ == SyncState::HEADERS_LOADED) {
       if (announce.header.number > current_best_block.number + 1) {
-        auto block_hash = announce.header.hash(*hasher_);
-        const primitives::BlockInfo announced_block(announce.header.number,
-                                                    block_hash);
-        startCatchUp(peer_id, announced_block);
+        startCatchUp(peer_id, announce.header.blockInfo());
         return;
       }
     }

@@ -544,8 +544,8 @@ namespace kagome::network {
 
     auto &state = peer_states_[peer_id];
     state.time = clock_->now();
-    state.best_block = {announce.header.number, hash};
-    state.known_blocks.add(hash);
+    state.best_block = announce.header.blockInfo();
+    state.known_blocks.add(state.best_block.hash);
   }
 
   void PeerManagerImpl::updatePeerState(

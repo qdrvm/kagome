@@ -50,9 +50,8 @@ namespace kagome::consensus {
 
   primitives::BlockContext BlockAppenderBase::makeBlockContext(
       const primitives::BlockHeader &header) const {
-    auto block_hash = hasher_->blake2b_256(scale::encode(header).value());
     return primitives::BlockContext{
-        .block_info = {header.number, block_hash},
+        .block_info = header.blockInfo(),
         .header = header,
     };
   }

@@ -1222,37 +1222,33 @@ namespace kagome::parachain {
     if (!parachain_processor_->canProcessParachains()) {
       return;
     }
-    if (auto result =
-            primitives::calculateBlockHash(updated.new_head, *hasher_)) {
-      if (!storedDistribBlockEntries().get(result.value())) {
-        [[maybe_unused]] auto &_ = pending_known_[result.value()];
-      }
 
-      handle_new_head(result.value(),
-                      updated,
-                      [wself{weak_from_this()},
-                       head{result.value()}](auto &&possible_candidate) {
-                        if (auto self = wself.lock()) {
-                          if (possible_candidate.has_error()) {
-                            SL_ERROR(
-                                self->logger_,
-                                "Internal error while retrieve block imported "
-                                "candidates: {}",
-                                possible_candidate.error().message());
-                            return;
-                          }
+    const auto &relay_parent = updated.new_head.hash();
 
-                          BOOST_ASSERT(self->internal_context_->io_context()
-                                           ->get_executor()
-                                           .running_in_this_thread());
-                          self->scheduleTranche(
-                              head, std::move(possible_candidate.value()));
-                        }
-                      });
-    } else {
-      logger_->error("Block header hashing failed: {}",
-                     result.error().message());
+    if (!storedDistribBlockEntries().get(relay_parent)) {
+      [[maybe_unused]] auto &_ = pending_known_[relay_parent];
     }
+
+    handle_new_head(
+        relay_parent,
+        updated,
+        [wself{weak_from_this()},
+         head{relay_parent}](auto &&possible_candidate) {
+          if (auto self = wself.lock()) {
+            if (possible_candidate.has_error()) {
+              SL_ERROR(self->logger_,
+                       "Internal error while retrieve block imported "
+                       "candidates: {}",
+                       possible_candidate.error().message());
+              return;
+            }
+
+            BOOST_ASSERT(self->internal_context_->io_context()
+                             ->get_executor()
+                             .running_in_this_thread());
+            self->scheduleTranche(head, std::move(possible_candidate.value()));
+          }
+        });
   }
 
   void ApprovalDistribution::launch_approval(

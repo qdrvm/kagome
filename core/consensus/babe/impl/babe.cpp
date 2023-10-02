@@ -299,9 +299,12 @@ namespace kagome::consensus::babe {
       const Context &ctx, const primitives::Block &block) const {
     BOOST_ASSERT(ctx.keypair != nullptr);
 
-    const auto &pre_seal_hash = block.header.hash(*hasher_);
+    // Calculate and save hash, 'cause it's new produced block
+    primitives::calculateBlockHash(
+        const_cast<primitives::BlockHeader &>(block.header), *hasher_);
 
-    auto signature_res = sr25519_provider_->sign(*ctx.keypair, pre_seal_hash);
+    auto signature_res =
+        sr25519_provider_->sign(*ctx.keypair, block.header.hash());
     if (signature_res.has_value()) {
       Seal seal{.signature = signature_res.value()};
       auto encoded_seal = common::Buffer(scale::encode(seal).value());
@@ -470,8 +473,7 @@ namespace kagome::consensus::babe {
       return BabeError::WAS_NOT_BUILD_ON_TIME;
     }
 
-    const primitives::BlockInfo block_info(block.header.number,
-                                           block.header.hash(*hasher_));
+    const auto block_info = block.header.blockInfo();
 
     auto previous_best_block = block_tree_->bestBlock();
 

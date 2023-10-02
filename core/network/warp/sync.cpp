@@ -62,10 +62,12 @@ namespace kagome::network {
     }
     for (size_t i = 0; i < res.proofs.size(); ++i) {
       auto &fragment = res.proofs[i];
-      primitives::BlockInfo block_info{
-          hasher_->blake2b_256(scale::encode(fragment.header).value()),
-          fragment.header.number,
-      };
+
+      // Calculate and save hash, 'cause it's just received response
+      primitives::calculateBlockHash(
+          const_cast<primitives::BlockHeader &>(fragment.header), *hasher_);
+
+      primitives::BlockInfo block_info = fragment.header.blockInfo();
       if (fragment.justification.block_info != block_info) {
         return;
       }

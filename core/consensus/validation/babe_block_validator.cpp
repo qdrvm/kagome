@@ -77,17 +77,12 @@ namespace kagome::consensus {
         // SL_WARN unwraps to a lambda which cannot capture a local binding,
         // thus this copy
         auto slot_type = babe_header.slotType();
-        SL_WARN(
-            log_,
-            "Block {} produced in {} slot, but current "
-            "configuration allows only {}",
-            [&] {
-              auto encoded = scale::encode(header).value();
-              auto hash = hasher_->blake2b_256(encoded);
-              return primitives::BlockInfo(header.number, hash);
-            }(),
-            to_string(slot_type),
-            to_string(babe_config.allowed_slots));
+        SL_WARN(log_,
+                "Block {} produced in {} slot, but current "
+                "configuration allows only {}",
+                header.blockInfo(),
+                to_string(slot_type),
+                to_string(babe_config.allowed_slots));
         return ValidationError::SECONDARY_SLOT_ASSIGNMENTS_DISABLED;
       }
     }
@@ -125,11 +120,11 @@ namespace kagome::consensus {
 
     auto unsealed_header_encoded = scale::encode(unsealed_header).value();
 
-    auto block_hash = hasher_->blake2b_256(unsealed_header_encoded);
+    auto signed_hash = hasher_->blake2b_256(unsealed_header_encoded);
 
     // secondly, use verify function to check the signature
     auto res =
-        sr25519_provider_->verify(seal.signature, block_hash, public_key);
+        sr25519_provider_->verify(seal.signature, signed_hash, public_key);
     return res && res.value();
   }
 

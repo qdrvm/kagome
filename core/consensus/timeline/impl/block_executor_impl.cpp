@@ -217,9 +217,11 @@ namespace kagome::consensus {
 
           // remove block's extrinsics from tx pool
           for (const auto &extrinsic : block.body) {
-            auto hash = self->hasher_->blake2b_256(extrinsic.data);
-            SL_DEBUG(self->logger_, "Contains extrinsic with hash: {}", hash);
-            auto res = self->tx_pool_->removeOne(hash);
+            auto extrinsic_hash = self->hasher_->blake2b_256(extrinsic.data);
+            SL_DEBUG(self->logger_,
+                     "Contains extrinsic with hash: {}",
+                     extrinsic_hash);
+            auto res = self->tx_pool_->removeOne(extrinsic_hash);
             if (res.has_error()
                 && res
                        != outcome::failure(

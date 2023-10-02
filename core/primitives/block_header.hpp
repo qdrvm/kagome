@@ -27,7 +27,7 @@ namespace kagome::primitives {
     storage::trie::RootHash state_root{};  ///< Merkle tree root of state
     common::Hash256 extrinsics_root{};     ///< Hash of included extrinsics
     Digest digest{};                       ///< Chain-specific auxiliary data
-    mutable std::optional<BlockHash> hash_{};  ///< Its block hash if calculated
+    std::optional<BlockHash> hash_opt{};   ///< Block hash if calculated
 
     bool operator==(const BlockHeader &rhs) const {
       return std::tie(parent_hash, number, state_root, extrinsics_root, digest)
@@ -49,23 +49,14 @@ namespace kagome::primitives {
       return std::nullopt;
     }
 
-    const BlockHash &hash(const crypto::Hasher &hasher) const {
-      if (not hash_.has_value()) {
-        hash_.emplace(hasher.blake2b_256(scale::encode(*this).value()));
-      }
-      return hash_.value();
-    }
-
     const BlockHash &hash() const {
-      BOOST_ASSERT_MSG(hash_.has_value(),
+      BOOST_ASSERT_MSG(hash_opt.has_value(),
                        "Hash must be calculated and saved before that");
-      return hash_.value();
+      return hash_opt.value();
     }
 
-    const BlockHash &block() const {
-      BOOST_ASSERT_MSG(hash_.has_value(),
-                       "Hash must be calculated and saved before that");
-      return hash_.value();
+    BlockInfo blockInfo() const {
+      return {number, hash()};
     }
   };
 
@@ -139,7 +130,6 @@ namespace kagome::primitives {
     return s;
   }
 
-  outcome::result<BlockHash> calculateBlockHash(const BlockHeader &header,
-                                                const crypto::Hasher &hasher);
+  void calculateBlockHash(BlockHeader &header, const crypto::Hasher &hasher);
 
 }  // namespace kagome::primitives

@@ -570,9 +570,9 @@ namespace kagome::blockchain {
                                   block.header);
           SL_DEBUG(log_, "Adding block {}", block_hash);
           for (const auto &ext : block.body) {
-            auto hash = p.hasher_->blake2b_256(ext.data);
-            SL_DEBUG(log_, "Adding extrinsic with hash {}", hash);
-            if (auto key = p.extrinsic_event_key_repo_->get(hash)) {
+            auto extrinsic_hash = p.hasher_->blake2b_256(ext.data);
+            SL_DEBUG(log_, "Adding extrinsic with hash {}", extrinsic_hash);
+            if (auto key = p.extrinsic_event_key_repo_->get(extrinsic_hash)) {
               main_thread_.execute(
                   [wself{weak_from_this()}, key{key.value()}, block_hash]() {
                     if (auto self = wself.lock()) {
@@ -599,6 +599,7 @@ namespace kagome::blockchain {
   void BlockTreeImpl::notifyChainEventsEngine(
       primitives::events::ChainEventType event,
       const primitives::BlockHeader &header) {
+    BOOST_ASSERT(header.hash_opt.has_value());
     main_thread_.execute([wself{weak_from_this()}, event, header]() mutable {
       if (auto self = wself.lock()) {
         self->chain_events_engine_->notify(std::move(event), std::move(header));
@@ -856,7 +857,7 @@ namespace kagome::blockchain {
         SL_DEBUG(log_, "Finalizing block {}", block);
 
         OUTCOME_TRY(header_opt, p.storage_->getBlockHeader(node->block_hash));
-        if (!header_opt.has_value()) {
+        if (not header_opt.has_value()) {
           return BlockTreeError::HEADER_NOT_FOUND;
         }
         auto &header = header_opt.value();
@@ -885,8 +886,8 @@ namespace kagome::blockchain {
         OUTCOME_TRY(body, p.storage_->getBlockBody(node->block_hash));
         if (body.has_value()) {
           for (auto &ext : body.value()) {
-            if (auto key = p.extrinsic_event_key_repo_->get(
-                    p.hasher_->blake2b_256(ext.data))) {
+            auto extrinsic_hash = p.hasher_->blake2b_256(ext.data);
+            if (auto key = p.extrinsic_event_key_repo_->get(extrinsic_hash)) {
               main_thread_.execute([wself{weak_from_this()},
                                     key{key.value()},
                                     block_hash]() {
@@ -1422,8 +1423,8 @@ namespace kagome::blockchain {
       if (block_body_opt.has_value()) {
         extrinsics.reserve(extrinsics.size() + block_body_opt.value().size());
         for (auto &ext : block_body_opt.value()) {
-          if (auto key = p.extrinsic_event_key_repo_->get(
-                  p.hasher_->blake2b_256(ext.data))) {
+          auto extrinsic_hash = p.hasher_->blake2b_256(ext.data);
+          if (auto key = p.extrinsic_event_key_repo_->get(extrinsic_hash)) {
             main_thread_.execute([wself{weak_from_this()},
                                   key{key.value()},
                                   block_hash{node->block_hash}]() {

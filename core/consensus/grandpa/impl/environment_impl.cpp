@@ -154,7 +154,8 @@ namespace kagome::consensus::grandpa {
         receipt.commitments_hash = hasher_->blake2b_256(
             scale::encode(candidate.candidate.commitments).value());
 
-        auto candidate_hash = hasher_->blake2b_256(scale::encode().value());
+        auto candidate_hash =
+            hasher_->blake2b_256(scale::encode(receipt).value());
 
         candidates.push_back(candidate_hash);
       }

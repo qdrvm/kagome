@@ -233,9 +233,6 @@ namespace kagome::parachain {
             /// clear caches
             BOOST_ASSERT(
                 self->this_context_->get_executor().running_in_this_thread());
-            auto const relay_parent =
-                primitives::calculateBlockHash(event.new_head, *self->hasher_)
-                    .value();
 
             self->our_current_state_.active_leaves.exclusiveAccess(
                 [&](auto &active_leaves) {
@@ -249,16 +246,16 @@ namespace kagome::parachain {
                         [&](auto &container) { container.erase(lost); });
                     active_leaves.erase(lost);
                   }
-                  active_leaves.insert(relay_parent);
+                  active_leaves.insert(event.new_head.hash());
                 });
             if (auto r = self->canProcessParachains(); r.has_error()) {
               return;
             }
 
-            self->createBackingTask(relay_parent);
+            self->createBackingTask(event.new_head.hash());
             SL_TRACE(self->logger_,
                      "Update my view.(new head={}, finalized={}, leaves={})",
-                     relay_parent,
+                     event.new_head.hash(),
                      event.view.finalized_number_,
                      event.view.heads_.size());
             self->broadcastView(event.view);
