@@ -60,13 +60,13 @@ namespace kagome::common {
       SL_WARN(log(), "requested limit is lower than system allowed limit");
       setFdLimit(r);
     } else if (!setFdLimit(r)) {
-      std::upper_bound(boost::counting_iterator{current},
-                       boost::counting_iterator{rlim_t{limit}},
-                       nullptr,
-                       [&](std::nullptr_t, rlim_t current) {
-                         r.rlim_cur = current;
-                         return !setFdLimit(r);
-                       });
+      std::ignore = std::upper_bound(boost::counting_iterator{current},
+                                     boost::counting_iterator{rlim_t{limit}},
+                                     nullptr,
+                                     [&](std::nullptr_t, rlim_t current) {
+                                       r.rlim_cur = current;
+                                       return !setFdLimit(r);
+                                     });
     }
     if (!getFdLimit(r)) {
       return;
