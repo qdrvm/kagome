@@ -23,9 +23,8 @@ namespace kagome::consensus::grandpa {
           continue;
         }
         auto hash = hasher.blake2b_256(scale::encode(block).value());
-        parents.emplace(
-            primitives::BlockInfo{block.number, hash},
-            primitives::BlockInfo{block.number - 1, block.parent_hash});
+        parents.emplace(primitives::BlockInfo{block.number, hash},
+                        *block.parentInfo());
       }
     }
 

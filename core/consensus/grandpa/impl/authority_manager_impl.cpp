@@ -961,7 +961,7 @@ namespace kagome::consensus::grandpa {
           if (not block.has_value()) {
             if (context.header.has_value()) {
               const auto &header = context.header.value().get();
-              block.emplace(header.number - 1, header.parent_hash);
+              block.emplace(*header.parentInfo());
             } else {
               block.emplace(context.block_info);
             }

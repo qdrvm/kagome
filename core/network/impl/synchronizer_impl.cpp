@@ -152,10 +152,7 @@ namespace kagome::network {
     }
 
     // Check if block has arrived too early
-    auto best_block_res =
-        block_tree_->getBestContaining(last_finalized_block.hash, std::nullopt);
-    BOOST_ASSERT(best_block_res.has_value());
-    const auto &best_block = best_block_res.value();
+    auto best_block = block_tree_->bestBlock();
     if (best_block.number + kMaxDistanceToBlockForSubscription
         < block_info.number) {
       scheduler_->schedule([handler = std::move(handler)] {
@@ -222,10 +219,7 @@ namespace kagome::network {
 
     const auto &last_finalized_block = block_tree_->getLastFinalized();
 
-    auto best_block_res =
-        block_tree_->getBestContaining(last_finalized_block.hash, std::nullopt);
-    BOOST_ASSERT(best_block_res.has_value());
-    const auto &best_block = best_block_res.value();
+    auto best_block = block_tree_->bestBlock();
 
     // Provided block is equal our best one. Nothing needs to do.
     if (block_info == best_block) {

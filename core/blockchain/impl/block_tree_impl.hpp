@@ -3,8 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_BLOCK_TREE_IMPL_HPP
-#define KAGOME_BLOCK_TREE_IMPL_HPP
+#pragma once
 
 #include "blockchain/block_tree.hpp"
 
@@ -104,7 +103,7 @@ namespace kagome::blockchain {
         const primitives::BlockHash &block_hash) override;
 
     outcome::result<void> markAsRevertedBlocks(
-        const std::vector<primitives::BlockInfo> &blocks) override;
+        const std::vector<primitives::BlockHash> &block_hashes) override;
 
     outcome::result<void> addBlockBody(
         const primitives::BlockHash &block_hash,
@@ -129,12 +128,10 @@ namespace kagome::blockchain {
 
     bool isFinalized(const primitives::BlockInfo &block) const override;
 
-    primitives::BlockInfo bestLeaf() const override;
+    primitives::BlockInfo bestBlock() const override;
 
     outcome::result<primitives::BlockInfo> getBestContaining(
-        const primitives::BlockHash &target_hash,
-        const std::optional<primitives::BlockNumber> &max_number)
-        const override;
+        const primitives::BlockHash &target_hash) const override;
 
     std::vector<primitives::BlockHash> getLeaves() const override;
 
@@ -182,21 +179,6 @@ namespace kagome::blockchain {
         std::shared_ptr<storage::trie_pruner::TriePruner> state_pruner,
         std::shared_ptr<::boost::asio::io_context> io_context);
 
-    /**
-     * Walks the chain backwards starting from \param start until the current
-     * block number is less or equal than \param limit
-     */
-    outcome::result<primitives::BlockHash> walkBackUntilLessNoLock(
-        const BlockTreeData &p,
-        const primitives::BlockHash &start,
-        const primitives::BlockNumber &limit) const;
-
-    /**
-     * @returns the tree leaves sorted by their depth
-     */
-    std::vector<primitives::BlockHash> getLeavesSortedNoLock(
-        const BlockTreeData &p) const;
-
     outcome::result<void> pruneNoLock(
         BlockTreeData &p, const std::shared_ptr<TreeNode> &lastFinalizedNode);
 
@@ -209,7 +191,7 @@ namespace kagome::blockchain {
     outcome::result<void> reorganizeNoLock(BlockTreeData &p);
 
     primitives::BlockInfo getLastFinalizedNoLock(const BlockTreeData &p) const;
-    primitives::BlockInfo bestLeafNoLock(const BlockTreeData &p) const;
+    primitives::BlockInfo bestBlockNoLock(const BlockTreeData &p) const;
 
     bool hasDirectChainNoLock(const BlockTreeData &p,
                               const primitives::BlockHash &ancestor,
@@ -281,5 +263,3 @@ namespace kagome::blockchain {
     telemetry::Telemetry telemetry_ = telemetry::createTelemetryService();
   };
 }  // namespace kagome::blockchain
-
-#endif  // KAGOME_BLOCK_TREE_IMPL_HPP

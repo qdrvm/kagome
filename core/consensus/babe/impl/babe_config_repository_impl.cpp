@@ -125,7 +125,7 @@ namespace kagome::consensus::babe {
     slot_duration_ = genesis->slot_duration;
     epoch_length_ = genesis->epoch_length;
 
-    auto best = block_tree_->bestLeaf();
+    auto best = block_tree_->bestBlock();
     auto best_header = block_tree_->getBlockHeader(best.hash).value();
     if (auto res = config(best, true); not res and not config_warp_sync_) {
       SL_ERROR(logger_, "get config at best {} error: {}", best, res.error());
