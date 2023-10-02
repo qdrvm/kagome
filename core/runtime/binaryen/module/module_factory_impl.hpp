@@ -32,7 +32,9 @@ namespace kagome::runtime::binaryen {
 
   class InstanceEnvironmentFactory;
 
-  class ModuleFactoryImpl final : public ModuleFactory {
+  class ModuleFactoryImpl final
+      : public ModuleFactory,
+        public std::enable_shared_from_this<ModuleFactoryImpl> {
    public:
     ModuleFactoryImpl(std::shared_ptr<InstanceEnvironmentFactory> env_factory,
                       std::shared_ptr<storage::trie::TrieStorage> storage,

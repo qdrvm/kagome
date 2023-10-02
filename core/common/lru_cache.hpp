@@ -19,49 +19,45 @@
 
 namespace kagome {
 
-  namespace {
+  template <template <bool> class Lockable, bool IsLockable>
+  struct LockGuard {
+    inline LockGuard(const Lockable<IsLockable> &) {}
+  };
 
-    template <template <bool> class Lockable, bool IsLockable>
-    struct LockGuard {
-      inline LockGuard(const Lockable<IsLockable> &) {}
-    };
+  template <template <bool> class Lockable>
+  struct LockGuard<Lockable, true> {
+    LockGuard(const Lockable<true> &protected_object)
+        : protected_object_(protected_object) {
+      protected_object_.lock();
+    }
+    ~LockGuard() {
+      protected_object_.unlock();
+    }
 
-    template <template <bool> class Lockable>
-    struct LockGuard<Lockable, true> {
-      LockGuard(const Lockable<true> &protected_object)
-          : protected_object_(protected_object) {
-        protected_object_.lock();
-      }
-      ~LockGuard() {
-        protected_object_.unlock();
-      }
+   private:
+    const Lockable<true> &protected_object_;
+  };
 
-     private:
-      const Lockable<true> &protected_object_;
-    };
+  template <bool IsLockable>
+  class Lockable {
+   protected:
+    friend struct LockGuard<Lockable, IsLockable>;
+    void lock() const noexcept {}
+    void unlock() const noexcept {}
+  };
 
-    template <bool IsLockable>
-    class Lockable {
-     protected:
-      friend struct LockGuard<Lockable, IsLockable>;
-      inline void lock() const noexcept {}
-      inline void unlock() const noexcept {}
-    };
-
-    template <>
-    class Lockable<true> {
-     protected:
-      friend struct LockGuard<Lockable, true>;
-      inline void lock() const noexcept {
-        mutex_.lock();
-      }
-      inline void unlock() const noexcept {
-        mutex_.unlock();
-      }
-      mutable std::mutex mutex_;
-    };
-
-  }  // namespace
+  template <>
+  class Lockable<true> {
+   protected:
+    friend struct LockGuard<Lockable, true>;
+    void lock() const noexcept {
+      mutex_.lock();
+    }
+    void unlock() const noexcept {
+      mutex_.unlock();
+    }
+    mutable std::mutex mutex_;
+  };
 
   /**
    * LRU cache designed for small amounts of data (as its get() is O(N))

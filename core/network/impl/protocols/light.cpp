@@ -19,8 +19,7 @@ namespace kagome::network {
       std::shared_ptr<blockchain::BlockHeaderRepository> repository,
       std::shared_ptr<storage::trie::TrieStorage> storage,
       std::shared_ptr<runtime::ModuleRepository> module_repo,
-      std::shared_ptr<runtime::Executor> executor,
-      std::shared_ptr<runtime::RuntimeContextFactory> ctx_factory)
+      std::shared_ptr<runtime::Executor> executor)
       : RequestResponseProtocolType{
           kName,
           host,
@@ -30,8 +29,7 @@ namespace kagome::network {
       repository_{std::move(repository)},
       storage_{std::move(storage)},
       module_repo_{std::move(module_repo)},
-      executor_{std::move(executor)},
-      ctx_factory_(std::move(ctx_factory)) {}
+      executor_{std::move(executor)} {}
 
   std::optional<outcome::result<LightProtocol::ResponseType>>
   LightProtocol::onRxRequest(RequestType req, std::shared_ptr<Stream>) {
@@ -47,10 +45,11 @@ namespace kagome::network {
                                               header.state_root));
       OUTCOME_TRY(
           ctx,
-          ctx_factory_->fromBatch(
+          executor_->ctx().fromBatch(
               instance,
               std::shared_ptr<storage::trie::TrieBatch>{std::move(batch)}));
-      OUTCOME_TRY(executor_->callWithCtx(ctx, call->method, call->args));
+      OUTCOME_TRY(ctx.module_instance->callExportFunction(
+          ctx, call->method, call->args));
     } else {
       auto &read = boost::get<LightProtocolRequest::Read>(req.op);
       runtime::TrieStorageProviderImpl provider{storage_, nullptr};

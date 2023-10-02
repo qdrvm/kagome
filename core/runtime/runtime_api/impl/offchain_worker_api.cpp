@@ -18,8 +18,9 @@ namespace kagome::runtime {
       Executor &executor,
       const primitives::BlockHash &block,
       const primitives::BlockHeader &header) {
-    return executor.callAt<void>(
-        block, "OffchainWorkerApi_offchain_worker", header);
+    OUTCOME_TRY(ctx, executor.ctx().ephemeralAt(block));
+    return executor.call<void>(
+        ctx, "OffchainWorkerApi_offchain_worker", header);
   }
 
   OffchainWorkerApiImpl::OffchainWorkerApiImpl(

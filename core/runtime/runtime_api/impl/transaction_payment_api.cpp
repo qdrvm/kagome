@@ -49,15 +49,16 @@ namespace kagome::runtime {
       return Error::TRANSACTION_PAYMENT_API_NOT_FOUND;
     }
     auto api_version = res->second;
+    OUTCOME_TRY(ctx, executor_->ctx().ephemeralAt(block));
     if (api_version < 2) {
       return executor_
-          ->callAt<primitives::RuntimeDispatchInfo<primitives::OldWeight>>(
-              block, "TransactionPaymentApi_query_info", ext.data, len);
+          ->call<primitives::RuntimeDispatchInfo<primitives::OldWeight>>(
+              ctx, "TransactionPaymentApi_query_info", ext.data, len);
     }
     OUTCOME_TRY(
         result,
-        executor_->callAt<primitives::RuntimeDispatchInfo<primitives::Weight>>(
-            block, "TransactionPaymentApi_query_info", ext.data, len));
+        executor_->call<primitives::RuntimeDispatchInfo<primitives::Weight>>(
+            ctx, "TransactionPaymentApi_query_info", ext.data, len));
     primitives::RuntimeDispatchInfo<primitives::OldWeight> old_format_result;
     old_format_result.dispatch_class = result.dispatch_class;
     old_format_result.partial_fee = result.partial_fee;

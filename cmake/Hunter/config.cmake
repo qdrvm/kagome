@@ -42,6 +42,18 @@ hunter_config(
 )
 
 hunter_config(
+    WasmEdge
+    VERSION 0.13.3
+    KEEP_PACKAGE_SOURCES
+)
+
+if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+  set(WAVM_CXX_FLAGS -Wno-redundant-move;-Wno-dangling-reference;-Wno-error=extra;)
+else()
+  set(WAVM_CXX_FLAGS -Wno-redundant-move)
+endif()
+
+hunter_config(
     wavm
     VERSION 1.0.12
     CMAKE_ARGS
@@ -51,5 +63,6 @@ hunter_config(
       WAVM_BUILD_EXAMPLES=OFF
       WAVM_BUILD_TESTS=OFF
       WAVM_DISABLE_UNIX_SIGNALS=ON
+      WAVM_CXX_FLAGS=${WAVM_CXX_FLAGS}
     KEEP_PACKAGE_SOURCES
 )

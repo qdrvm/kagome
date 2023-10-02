@@ -79,22 +79,22 @@ namespace kagome::host_api {
     /**
      * @brief Returns current timestamp
      * @code{.wasm}
-     * (func $ext_offchain_timestamp_version_1 (result u64))
+     * (func $ext_offchain_timestamp_version_1 (result i64))
      * @endcode
-     * @return an u64 integer indicating the current UNIX timestamp
+     * @return an i64 integer indicating the current UNIX timestamp
      * (milliseconds)
      */
-    runtime::WasmU64 ext_offchain_timestamp_version_1();
+    runtime::WasmI64 ext_offchain_timestamp_version_1();
 
     /**
      * @brief Pause the execution until `deadline` is reached
      * @code{.wasm}
-     * (func $ext_offchain_sleep_until_version_1 (param $deadline u64))
+     * (func $ext_offchain_sleep_until_version_1 (param $deadline i64))
      * @endcode
-     * @param deadline an u64 integer indicating the current UNIX timestamp
+     * @param deadline an i64 integer indicating the current UNIX timestamp
      * (milliseconds)
      */
-    void ext_offchain_sleep_until_version_1(runtime::WasmU64 deadline);
+    void ext_offchain_sleep_until_version_1(runtime::WasmI64 deadline);
 
     /**
      * @brief Generates a random seed. This is a truly random non deterministic

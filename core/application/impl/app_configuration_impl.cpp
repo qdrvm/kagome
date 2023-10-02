@@ -5,6 +5,7 @@
 
 #include "application/impl/app_configuration_impl.hpp"
 
+#include <charconv>
 #include <limits>
 #include <regex>
 #include <string>
@@ -15,7 +16,6 @@
 #include <boost/program_options.hpp>
 #include <boost/uuid/uuid_generators.hpp>
 #include <boost/uuid/uuid_io.hpp>
-#include <charconv>
 #include <libp2p/layer/websocket/wss_adaptor.hpp>
 
 #include "api/transport/tuner.hpp"
@@ -152,6 +152,19 @@ namespace {
     }
     return std::nullopt;
   }
+
+  std::array<std::string_view, 3> execution_methods{
+      "Interpreted", "Compiled-Wavm", "Compiled-WasmEdge"};
+
+  std::string execution_methods_str = []() {
+    std::stringstream ss;
+    ss << "[";
+    for (auto &method : execution_methods) {
+      ss << method << ", ";
+    }
+    ss << "]";
+    return ss.str();
+  }();
 
   std::optional<kagome::application::AppConfiguration::RuntimeExecutionMethod>
   str_to_runtime_exec_method(std::string_view str) {
@@ -838,7 +851,7 @@ namespace kagome::application {
         ("sync", po::value<std::string>()->default_value(def_full_sync),
           "choose the desired sync method (Full, Fast). Full is used by default.")
         ("wasm-execution", po::value<std::string>()->default_value(def_wasm_execution),
-          "choose the desired wasm execution method (Compiled, Interpreted)")
+          fmt::format("choose the desired wasm execution method ({})", execution_methods_str).c_str())
         ("unsafe-cached-wavm-runtime", "use WAVM runtime cache")
         ("purge-wavm-cache", "purge WAVM runtime cache")
         ("parachain-runtime-instance-cache-size",
@@ -1367,8 +1380,10 @@ namespace kagome::application {
           if (not runtime_exec_method_opt) {
             exec_method_value_error = true;
             SL_ERROR(logger_,
-                     "Invalid runtime execution method specified: '{}'",
-                     val);
+                     "Invalid runtime execution method specified: '{}'. "
+                     "Available methods are: {}",
+                     val,
+                     execution_methods_str);
           } else {
             runtime_exec_method_ = runtime_exec_method_opt.value();
           }
@@ -1395,8 +1410,8 @@ namespace kagome::application {
       }
     }
 
-    if (auto arg =
-            find_argument<uint32_t>(vm, "parachain-runtime-instance-cache-size");
+    if (auto arg = find_argument<uint32_t>(
+            vm, "parachain-runtime-instance-cache-size");
         arg.has_value()) {
       parachain_runtime_instance_cache_size_ = *arg;
     }

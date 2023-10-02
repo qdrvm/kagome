@@ -29,7 +29,7 @@ namespace kagome::runtime {
       }
     });
     OUTCOME_TRY(result,
-                executor_->decodedCallWithCtx<primitives::ApplyExtrinsicResult>(
+                executor_->call<primitives::ApplyExtrinsicResult>(
                     ctx, "BlockBuilder_apply_extrinsic", extrinsic));
     if (auto ok = boost::get<primitives::DispatchOutcome>(&result);
         ok and boost::get<primitives::DispatchSuccess>(ok)) {
@@ -37,12 +37,12 @@ namespace kagome::runtime {
       OUTCOME_TRY(ctx.module_instance->getEnvironment()
                       .storage_provider->commitTransaction());
     }
-    return std::move(result);
+    return result;
   }
 
   outcome::result<primitives::BlockHeader> BlockBuilderImpl::finalize_block(
       RuntimeContext &ctx) {
-    return executor_->decodedCallWithCtx<primitives::BlockHeader>(
+    return executor_->call<primitives::BlockHeader>(
         ctx, "BlockBuilder_finalize_block");
   }
 
@@ -61,24 +61,24 @@ namespace kagome::runtime {
       std::ignore = ctx.module_instance->getEnvironment()
                         .storage_provider->rollbackTransaction();
     });
-    OUTCOME_TRY(
-        result,
-        executor_->decodedCallWithCtx<std::vector<primitives::Extrinsic>>(
-            ctx, "BlockBuilder_inherent_extrinsics", data));
-    return std::move(result);
+    OUTCOME_TRY(result,
+                executor_->call<std::vector<primitives::Extrinsic>>(
+                    ctx, "BlockBuilder_inherent_extrinsics", data));
+    return result;
   }
 
   outcome::result<primitives::CheckInherentsResult>
   BlockBuilderImpl::check_inherents(const primitives::Block &block,
                                     const primitives::InherentData &data) {
-    return executor_->callAt<primitives::CheckInherentsResult>(
-        block.header.parent_hash, "BlockBuilder_check_inherents", block, data);
+    OUTCOME_TRY(ctx, executor_->ctx().ephemeralAt(block.header.parent_hash));
+    return executor_->call<primitives::CheckInherentsResult>(
+        ctx, "BlockBuilder_check_inherents", block, data);
   }
 
   outcome::result<common::Hash256> BlockBuilderImpl::random_seed(
       const primitives::BlockHash &block) {
-    return executor_->callAt<common::Hash256>(block,
-                                              "BlockBuilder_random_seed");
+    OUTCOME_TRY(ctx, executor_->ctx().ephemeralAt(block));
+    return executor_->call<common::Hash256>(ctx, "BlockBuilder_random_seed");
   }
 
 }  // namespace kagome::runtime

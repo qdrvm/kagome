@@ -25,6 +25,8 @@ namespace kagome::runtime {
     BOOST_ASSERT(this->module_instance);
   }
 
+  RuntimeContext::~RuntimeContext() {}
+
   RuntimeContextFactoryImpl::RuntimeContextFactoryImpl(
       std::shared_ptr<ModuleRepository> module_repo,
       std::shared_ptr<const blockchain::BlockHeaderRepository> header_repo)
@@ -51,7 +53,7 @@ namespace kagome::runtime {
   outcome::result<RuntimeContext> RuntimeContextFactoryImpl::fromBatch(
       std::shared_ptr<ModuleInstance> instance,
       std::shared_ptr<storage::trie::TrieBatch> batch,
-      ContextParams params) {
+      ContextParams params) const {
     runtime::RuntimeContext ctx{
         instance,
     };
@@ -65,7 +67,7 @@ namespace kagome::runtime {
       const storage::trie::RootHash &state,
       std::optional<std::shared_ptr<storage::changes_trie::ChangesTracker>>
           changes_tracker_opt,
-      ContextParams params) {
+      ContextParams params) const {
     runtime::RuntimeContext ctx{
         instance,
     };
@@ -78,7 +80,7 @@ namespace kagome::runtime {
   outcome::result<RuntimeContext> RuntimeContextFactoryImpl::ephemeral(
       std::shared_ptr<ModuleInstance> instance,
       const storage::trie::RootHash &state,
-      ContextParams params) {
+      ContextParams params) const {
     runtime::RuntimeContext ctx{
         instance,
     };
@@ -89,7 +91,7 @@ namespace kagome::runtime {
   }
 
   outcome::result<RuntimeContext> RuntimeContextFactoryImpl::ephemeralAtGenesis(
-      ContextParams params) {
+      ContextParams params) const {
     OUTCOME_TRY(genesis_hash, header_repo_->getHashByNumber(0));
     OUTCOME_TRY(genesis_header, header_repo_->getBlockHeader(genesis_hash));
     OUTCOME_TRY(instance,
@@ -104,7 +106,7 @@ namespace kagome::runtime {
   outcome::result<RuntimeContext> RuntimeContextFactoryImpl::persistentAt(
       const primitives::BlockHash &block_hash,
       TrieChangesTrackerOpt changes_tracker,
-      ContextParams params) {
+      ContextParams params) const {
     OUTCOME_TRY(header, header_repo_->getBlockHeader(block_hash));
     OUTCOME_TRY(instance,
                 module_repo_->getInstanceAt({block_hash, header.number},
@@ -117,7 +119,7 @@ namespace kagome::runtime {
   }
 
   outcome::result<RuntimeContext> RuntimeContextFactoryImpl::ephemeralAt(
-      const primitives::BlockHash &block_hash, ContextParams params) {
+      const primitives::BlockHash &block_hash, ContextParams params) const {
     OUTCOME_TRY(header, header_repo_->getBlockHeader(block_hash));
     OUTCOME_TRY(instance,
                 module_repo_->getInstanceAt({block_hash, header.number},
@@ -131,7 +133,7 @@ namespace kagome::runtime {
   outcome::result<RuntimeContext> RuntimeContextFactoryImpl::ephemeralAt(
       const primitives::BlockHash &block_hash,
       const storage::trie::RootHash &state_hash,
-      ContextParams params) {
+      ContextParams params) const {
     OUTCOME_TRY(header, header_repo_->getBlockHeader(block_hash));
     OUTCOME_TRY(instance,
                 module_repo_->getInstanceAt({block_hash, header.number},

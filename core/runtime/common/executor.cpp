@@ -24,22 +24,11 @@
 
 namespace kagome::runtime {
 
-  Executor::Executor(std::shared_ptr<RuntimeContextFactory> ctx_factory,
-                     std::shared_ptr<RuntimePropertiesCache> cache)
-      : ctx_factory_{ctx_factory}, cache_{cache} {}
-
-  outcome::result<common::Buffer> Executor::callWithCtx(
-      RuntimeContext &ctx, std::string_view name, BufferView encoded_args) {
-    KAGOME_PROFILE_START(call_execution)
-    OUTCOME_TRY(result,
-                ctx.module_instance->callExportFunction(name, encoded_args));
-    auto memory = ctx.module_instance->getEnvironment()
-                      .memory_provider->getCurrentMemory();
-    BOOST_ASSERT(memory.has_value());
-    OUTCOME_TRY(ctx.module_instance->resetEnvironment());
-    return memory->get().loadN(result.ptr, result.size);
-  }
+  Executor::Executor(
+      std::shared_ptr<RuntimeContextFactory> ctx_factory,
+      std::optional<std::shared_ptr<RuntimePropertiesCache>> cache)
+      : cache_{cache}, ctx_factory_{ctx_factory} {}
 
 }  // namespace kagome::runtime
 
-#endif  // KAGOME_CORE_RUNTIME_COMMON_EXECUTOR_HPP
+#endif  // KAGOME_CORE_RUNTIME_COMMON_EXECUTOR_IMPL_HPP

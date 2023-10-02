@@ -69,6 +69,8 @@ if("${CMAKE_CXX_COMPILER_ID}" MATCHES "^(AppleClang|Clang|GNU)$")
   # cmake-format: off
 
   # enable those flags
+  add_flag(-fdiagnostics-show-template-tree)
+
   add_flag(-Wall)
   add_flag(-Wextra)
   add_flag(-Woverloaded-virtual)     # warn if you overload (not override) a virtual function

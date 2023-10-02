@@ -17,7 +17,7 @@ namespace kagome::runtime {
    * back to the ModuleInstancePool upon destruction of
    * BorrowedInstance.
    */
-  class BorrowedInstance : public ModuleInstance {
+  class BorrowedInstance final : public ModuleInstance {
    public:
     BorrowedInstance(std::weak_ptr<RuntimeInstancesPool> pool,
                      const RuntimeInstancesPool::RootHash &state,
@@ -39,9 +39,11 @@ namespace kagome::runtime {
       return instance_->getModule();
     }
 
-    outcome::result<PtrSize> callExportFunction(
-        std::string_view name, common::BufferView encoded_args) const override {
-      return instance_->callExportFunction(name, encoded_args);
+    outcome::result<common::Buffer> callExportFunction(
+        RuntimeContext &ctx,
+        std::string_view name,
+        common::BufferView encoded_args) const override {
+      return instance_->callExportFunction(ctx, name, encoded_args);
     }
 
     outcome::result<std::optional<WasmValue>> getGlobal(

@@ -66,16 +66,22 @@ namespace kagome::runtime {
 
     MemoryAllocator(MemoryHandle memory, const struct MemoryConfig &config);
 
-    WasmPointer allocate(const WasmSize size);
+    WasmPointer allocate(const uint32_t size);
     std::optional<WasmSize> deallocate(WasmPointer ptr);
 
     template <typename T>
     bool checkAddress(WasmPointer addr) noexcept {
-      return offset_ > addr and offset_ - addr >= sizeof(T);
+      BOOST_ASSERT(addr > 0);
+      return offset_ > static_cast<uint32_t>(addr)
+         and offset_ - static_cast<uint32_t>(addr) >= sizeof(T);
     }
 
-    bool checkAddress(WasmPointer addr, size_t size) noexcept {
-      return offset_ > addr and offset_ - addr >= size;
+    bool checkAddress(WasmPointer addr, WasmSize size) noexcept {
+      BOOST_ASSERT(addr > 0);
+      BOOST_ASSERT(size > 0);
+      return offset_ > static_cast<uint32_t>(addr)
+         and offset_ - static_cast<uint32_t>(addr)
+                 >= static_cast<uint32_t>(size);
     }
 
     /*
@@ -125,8 +131,8 @@ namespace kagome::runtime {
     std::unordered_map<WasmSize, std::deque<WasmPointer>> available_;
 
     // Offset on the tail of the last allocated MemoryImpl chunk
-    size_t offset_;
-    WasmSize max_memory_pages_num_;
+    uint32_t offset_;
+    uint32_t max_memory_pages_num_;
 
     log::Logger logger_;
   };

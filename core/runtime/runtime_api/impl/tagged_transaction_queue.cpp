@@ -24,9 +24,10 @@ namespace kagome::runtime {
       primitives::TransactionSource source, const primitives::Extrinsic &ext) {
     auto block = block_tree_.get()->bestLeaf();
     SL_TRACE(logger_, "Validate transaction called at block {}", block);
+    OUTCOME_TRY(ctx, executor_->ctx().ephemeralAt(block.hash));
     OUTCOME_TRY(result,
-                executor_->callAt<primitives::TransactionValidity>(
-                    block.hash,
+                executor_->call<primitives::TransactionValidity>(
+                    ctx,
                     "TaggedTransactionQueue_validate_transaction",
                     source,
                     ext,

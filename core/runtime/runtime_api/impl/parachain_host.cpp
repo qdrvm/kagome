@@ -18,62 +18,84 @@ namespace kagome::runtime {
 
   outcome::result<DutyRoster> ParachainHostImpl::duty_roster(
       const primitives::BlockHash &block) {
-    return executor_->callAt<DutyRoster>(block, "ParachainHost_duty_roster");
+    OUTCOME_TRY(ctx, executor_->ctx().ephemeralAt(block));
+    return executor_->call<DutyRoster>(ctx, "ParachainHost_duty_roster");
   }
 
   outcome::result<std::vector<ParachainId>>
   ParachainHostImpl::active_parachains(const primitives::BlockHash &block) {
-    OUTCOME_TRY(ref, active_parachains_.get_else(block, [&] {
-      return executor_->callAt<std::vector<ParachainId>>(
-          block, "ParachainHost_active_parachains");
-    }));
+    OUTCOME_TRY(ref,
+                active_parachains_.get_else(
+                    block, [&]() -> outcome::result<std::vector<ParachainId>> {
+                      OUTCOME_TRY(ctx, executor_->ctx().ephemeralAt(block));
+                      return executor_->call<std::vector<ParachainId>>(
+                          ctx, "ParachainHost_active_parachains");
+                    }));
     return *ref;
   }
 
   outcome::result<std::optional<common::Buffer>>
   ParachainHostImpl::parachain_head(const primitives::BlockHash &block,
                                     ParachainId id) {
-    OUTCOME_TRY(ref, parachain_head_.get_else(block, [&] {
-      return executor_->callAt<std::optional<Buffer>>(
-          block, "ParachainHost_parachain_head", id);
-    }));
+    OUTCOME_TRY(
+        ref,
+        parachain_head_.get_else(
+            block, [&]() -> outcome::result<std::optional<common::Buffer>> {
+              OUTCOME_TRY(ctx, executor_->ctx().ephemeralAt(block));
+              return executor_->call<std::optional<Buffer>>(
+                  ctx, "ParachainHost_parachain_head", id);
+            }));
     return *ref;
   }
 
   outcome::result<std::optional<common::Buffer>>
   ParachainHostImpl::parachain_code(const primitives::BlockHash &block,
                                     ParachainId id) {
-    OUTCOME_TRY(ref, parachain_code_.get_else(std::tie(block, id), [&] {
-      return executor_->callAt<std::optional<common::Buffer>>(
-          block, "ParachainHost_parachain_code", id);
-    }));
+    OUTCOME_TRY(ref,
+                parachain_code_.get_else(
+                    std::tie(block, id),
+                    [&]() -> outcome::result<std::optional<common::Buffer>> {
+                      OUTCOME_TRY(ctx, executor_->ctx().ephemeralAt(block));
+                      return executor_->call<std::optional<common::Buffer>>(
+                          ctx, "ParachainHost_parachain_code", id);
+                    }));
     return *ref;
   }
 
   outcome::result<std::vector<ValidatorId>> ParachainHostImpl::validators(
       const primitives::BlockHash &block) {
-    OUTCOME_TRY(ref, validators_.get_else(block, [&] {
-      return executor_->callAt<std::vector<ValidatorId>>(
-          block, "ParachainHost_validators");
-    }));
+    OUTCOME_TRY(ref,
+                validators_.get_else(
+                    block, [&]() -> outcome::result<std::vector<ValidatorId>> {
+                      OUTCOME_TRY(ctx, executor_->ctx().ephemeralAt(block));
+                      return executor_->call<std::vector<ValidatorId>>(
+                          ctx, "ParachainHost_validators");
+                    }));
     return *ref;
   }
 
   outcome::result<ValidatorGroupsAndDescriptor>
   ParachainHostImpl::validator_groups(const primitives::BlockHash &block) {
-    OUTCOME_TRY(ref, validator_groups_.get_else(block, [&] {
-      return executor_->callAt<ValidatorGroupsAndDescriptor>(
-          block, "ParachainHost_validator_groups");
-    }));
+    OUTCOME_TRY(
+        ref,
+        validator_groups_.get_else(
+            block, [&]() -> outcome::result<ValidatorGroupsAndDescriptor> {
+              OUTCOME_TRY(ctx, executor_->ctx().ephemeralAt(block));
+              return executor_->call<ValidatorGroupsAndDescriptor>(
+                  ctx, "ParachainHost_validator_groups");
+            }));
     return *ref;
   }
 
   outcome::result<std::vector<CoreState>> ParachainHostImpl::availability_cores(
       const primitives::BlockHash &block) {
-    OUTCOME_TRY(ref, availability_cores_.get_else(block, [&] {
-      return executor_->callAt<std::vector<CoreState>>(
-          block, "ParachainHost_availability_cores");
-    }));
+    OUTCOME_TRY(ref,
+                availability_cores_.get_else(
+                    block, [&]() -> outcome::result<std::vector<CoreState>> {
+                      OUTCOME_TRY(ctx, executor_->ctx().ephemeralAt(block));
+                      return executor_->call<std::vector<CoreState>>(
+                          ctx, "ParachainHost_availability_cores");
+                    }));
     return *ref;
   }
 
@@ -82,24 +104,29 @@ namespace kagome::runtime {
       const primitives::BlockHash &block,
       ParachainId id,
       OccupiedCoreAssumption assumption) {
-    return executor_->callAt<std::optional<PersistedValidationData>>(
-        block, "ParachainHost_persisted_validation_data", id, assumption);
+    OUTCOME_TRY(ctx, executor_->ctx().ephemeralAt(block));
+    return executor_->call<std::optional<PersistedValidationData>>(
+        ctx, "ParachainHost_persisted_validation_data", id, assumption);
   }
 
   outcome::result<bool> ParachainHostImpl::check_validation_outputs(
       const primitives::BlockHash &block,
       ParachainId id,
       CandidateCommitments outputs) {
-    return executor_->callAt<bool>(
-        block, "ParachainHost_check_validation_outputs", id, outputs);
+    OUTCOME_TRY(ctx, executor_->ctx().ephemeralAt(block));
+    return executor_->call<bool>(
+        ctx, "ParachainHost_check_validation_outputs", id, outputs);
   }
 
   outcome::result<SessionIndex> ParachainHostImpl::session_index_for_child(
       const primitives::BlockHash &block) {
-    OUTCOME_TRY(ref, session_index_for_child_.get_else(block, [&] {
-      return executor_->callAt<SessionIndex>(
-          block, "ParachainHost_session_index_for_child");
-    }));
+    OUTCOME_TRY(ref,
+                session_index_for_child_.get_else(
+                    block, [&]() -> outcome::result<SessionIndex> {
+                      OUTCOME_TRY(ctx, executor_->ctx().ephemeralAt(block));
+                      return executor_->call<SessionIndex>(
+                          ctx, "ParachainHost_session_index_for_child");
+                    }));
     return *ref;
   }
 
@@ -107,18 +134,22 @@ namespace kagome::runtime {
   ParachainHostImpl::validation_code(const primitives::BlockHash &block,
                                      ParachainId id,
                                      OccupiedCoreAssumption assumption) {
-    return executor_->callAt<std::optional<ValidationCode>>(
-        block, "ParachainHost_validation_code", id, assumption);
+    OUTCOME_TRY(ctx, executor_->ctx().ephemeralAt(block));
+    return executor_->call<std::optional<ValidationCode>>(
+        ctx, "ParachainHost_validation_code", id, assumption);
   }
 
   outcome::result<std::optional<ValidationCode>>
   ParachainHostImpl::validation_code_by_hash(const primitives::BlockHash &block,
                                              ValidationCodeHash hash) {
     OUTCOME_TRY(ref,
-                validation_code_by_hash_.get_else(std::tie(block, hash), [&] {
-                  return executor_->callAt<std::optional<ValidationCode>>(
-                      block, "ParachainHost_validation_code_by_hash", hash);
-                }));
+                validation_code_by_hash_.get_else(
+                    std::tie(block, hash),
+                    [&]() -> outcome::result<std::optional<ValidationCode>> {
+                      OUTCOME_TRY(ctx, executor_->ctx().ephemeralAt(block));
+                      return executor_->call<std::optional<ValidationCode>>(
+                          ctx, "ParachainHost_validation_code_by_hash", hash);
+                    }));
     return *ref;
   }
 
@@ -126,38 +157,55 @@ namespace kagome::runtime {
   ParachainHostImpl::candidate_pending_availability(
       const primitives::BlockHash &block, ParachainId id) {
     OUTCOME_TRY(
-        ref, candidate_pending_availability_.get_else(std::tie(block, id), [&] {
-          return executor_->callAt<std::optional<CommittedCandidateReceipt>>(
-              block, "ParachainHost_candidate_pending_availability", id);
-        }));
+        ref,
+        candidate_pending_availability_.get_else(
+            std::tie(block, id),
+            [&]() -> outcome::result<std::optional<CommittedCandidateReceipt>> {
+              OUTCOME_TRY(ctx, executor_->ctx().ephemeralAt(block));
+              return executor_->call<std::optional<CommittedCandidateReceipt>>(
+                  ctx, "ParachainHost_candidate_pending_availability", id);
+            }));
     return *ref;
   }
 
   outcome::result<std::vector<CandidateEvent>>
   ParachainHostImpl::candidate_events(const primitives::BlockHash &block) {
-    OUTCOME_TRY(ref, candidate_events_.get_else(block, [&] {
-      return executor_->callAt<std::vector<CandidateEvent>>(
-          block, "ParachainHost_candidate_events");
-    }));
+    OUTCOME_TRY(
+        ref,
+        candidate_events_.get_else(
+            block, [&]() -> outcome::result<std::vector<CandidateEvent>> {
+              OUTCOME_TRY(ctx, executor_->ctx().ephemeralAt(block));
+              return executor_->call<std::vector<CandidateEvent>>(
+                  ctx, "ParachainHost_candidate_events");
+            }));
     return *ref;
   }
 
   outcome::result<std::optional<SessionInfo>> ParachainHostImpl::session_info(
       const primitives::BlockHash &block, SessionIndex index) {
-    OUTCOME_TRY(ref, session_info_.get_else(std::tie(block, index), [&] {
-      return executor_->callAt<std::optional<SessionInfo>>(
-          block, "ParachainHost_session_info", index);
-    }));
+    OUTCOME_TRY(ref,
+                session_info_.get_else(
+                    std::tie(block, index),
+                    [&]() -> outcome::result<std::optional<SessionInfo>> {
+                      OUTCOME_TRY(ctx, executor_->ctx().ephemeralAt(block));
+                      return executor_->call<std::optional<SessionInfo>>(
+                          ctx, "ParachainHost_session_info", index);
+                    }));
     return *ref;
   }
 
   outcome::result<std::vector<InboundDownwardMessage>>
   ParachainHostImpl::dmq_contents(const primitives::BlockHash &block,
                                   ParachainId id) {
-    OUTCOME_TRY(ref, dmq_contents_.get_else(std::tie(block, id), [&] {
-      return executor_->callAt<std::vector<InboundDownwardMessage>>(
-          block, "ParachainHost_dmq_contents", id);
-    }));
+    OUTCOME_TRY(
+        ref,
+        dmq_contents_.get_else(
+            std::tie(block, id),
+            [&]() -> outcome::result<std::vector<InboundDownwardMessage>> {
+              OUTCOME_TRY(ctx, executor_->ctx().ephemeralAt(block));
+              return executor_->call<std::vector<InboundDownwardMessage>>(
+                  ctx, "ParachainHost_dmq_contents", id);
+            }));
     return *ref;
   }
 
@@ -165,11 +213,16 @@ namespace kagome::runtime {
   ParachainHostImpl::inbound_hrmp_channels_contents(
       const primitives::BlockHash &block, ParachainId id) {
     OUTCOME_TRY(
-        ref, inbound_hrmp_channels_contents_.get_else(std::tie(block, id), [&] {
-          return executor_
-              ->callAt<std::map<ParachainId, std::vector<InboundHrmpMessage>>>(
-                  block, "ParachainHost_inbound_hrmp_channels_contents", id);
-        }));
+        ref,
+        inbound_hrmp_channels_contents_.get_else(
+            std::tie(block, id),
+            [&]() -> outcome::result<
+                      std::map<ParachainId, std::vector<InboundHrmpMessage>>> {
+              OUTCOME_TRY(ctx, executor_->ctx().ephemeralAt(block));
+              return executor_->call<
+                  std::map<ParachainId, std::vector<InboundHrmpMessage>>>(
+                  ctx, "ParachainHost_inbound_hrmp_channels_contents", id);
+            }));
     return *ref;
   }
 
@@ -224,41 +277,43 @@ namespace kagome::runtime {
   outcome::result<std::optional<std::vector<ExecutorParam>>>
   ParachainHostImpl::session_executor_params(const primitives::BlockHash &block,
                                              SessionIndex idx) {
-    return executor_
-        ->callAt<std::optional<std::vector<ExecutorParam>>>(
-            block, "ParachainHost_session_executor_params", idx);
+    OUTCOME_TRY(ctx, executor_->ctx().ephemeralAt(block));
+    return executor_->call<std::optional<std::vector<ExecutorParam>>>(
+        ctx, "ParachainHost_session_executor_params", idx);
   }
 
   outcome::result<std::optional<dispute::ScrapedOnChainVotes>>
   ParachainHostImpl::on_chain_votes(const primitives::BlockHash &block) {
-    return executor_->callAt<std::optional<dispute::ScrapedOnChainVotes>>(
-        block, "ParachainHost_on_chain_votes");
+    OUTCOME_TRY(ctx, executor_->ctx().ephemeralAt(block));
+    return executor_->call<std::optional<dispute::ScrapedOnChainVotes>>(
+        ctx, "ParachainHost_on_chain_votes");
   }
 
   outcome::result<std::vector<std::tuple<dispute::SessionIndex,
                                          dispute::CandidateHash,
                                          dispute::DisputeState>>>
   ParachainHostImpl::disputes(const primitives::BlockHash &block) {
-    return executor_->callAt<std::vector<std::tuple<dispute::SessionIndex,
-                                                    dispute::CandidateHash,
-                                                    dispute::DisputeState>>>(
-        block, "ParachainHost_disputes");  // TODO ensure if it works
+    OUTCOME_TRY(ctx, executor_->ctx().ephemeralAt(block));
+    return executor_->call<std::vector<std::tuple<dispute::SessionIndex,
+                                                  dispute::CandidateHash,
+                                                  dispute::DisputeState>>>(
+        ctx, "ParachainHost_disputes");  // TODO ensure if it works
   }
 
   outcome::result<std::vector<ValidationCodeHash>>
   ParachainHostImpl::pvfs_require_precheck(const primitives::BlockHash &block) {
-    return executor_->callAt<std::vector<ValidationCodeHash>>(
-        block, "ParachainHost_pvfs_require_precheck");
+    OUTCOME_TRY(ctx, executor_->ctx().ephemeralAt(block));
+    return executor_->call<std::vector<ValidationCodeHash>>(
+        ctx, "ParachainHost_pvfs_require_precheck");
   }
 
   outcome::result<void> ParachainHostImpl::submit_pvf_check_statement(
       const primitives::BlockHash &block,
       const parachain::PvfCheckStatement &statement,
       const parachain::Signature &signature) {
-    return executor_->callAt<void>(block,
-                                   "ParachainHost_submit_pvf_check_statement",
-                                   statement,
-                                   signature);
+    OUTCOME_TRY(ctx, executor_->ctx().ephemeralAt(block));
+    return executor_->call<void>(
+        ctx, "ParachainHost_submit_pvf_check_statement", statement, signature);
   }
 
 }  // namespace kagome::runtime

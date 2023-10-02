@@ -20,7 +20,7 @@ namespace kagome::runtime {
       : memory_{std::move(memory)},
         offset_{roundUpAlign(config.heap_base)},
         max_memory_pages_num_{config.limits.max_memory_pages_num.value_or(
-            std::numeric_limits<WasmSize>::max())},
+            std::numeric_limits<uint32_t>::max())},
         logger_{log::createLogger("Allocator", "runtime")} {
     // Heap base (and offset in according) must be non-zero to prohibit
     // allocating memory at 0 in the future, as returning 0 from allocate method
@@ -31,7 +31,7 @@ namespace kagome::runtime {
     BOOST_ASSERT(memory_.resize);
   }
 
-  WasmPointer MemoryAllocator::allocate(const WasmSize size) {
+  WasmPointer MemoryAllocator::allocate(const uint32_t size) {
     if (size == 0) {
       return 0;
     }

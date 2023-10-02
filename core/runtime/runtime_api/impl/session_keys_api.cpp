@@ -17,17 +17,19 @@ namespace kagome::runtime {
   outcome::result<common::Buffer> SessionKeysApiImpl::generate_session_keys(
       const primitives::BlockHash &block_hash,
       std::optional<common::Buffer> seed) {
-    return executor_->callAt<common::Buffer, std::optional<common::Buffer>>(
-        block_hash, "SessionKeys_generate_session_keys", std::move(seed));
+    OUTCOME_TRY(ctx, executor_->ctx().ephemeralAt(block_hash));
+    return executor_->call<common::Buffer, std::optional<common::Buffer>>(
+        ctx, "SessionKeys_generate_session_keys", std::move(seed));
   }
 
   outcome::result<std::vector<std::pair<crypto::KeyTypeId, common::Buffer>>>
   SessionKeysApiImpl::decode_session_keys(
       const primitives::BlockHash &block_hash,
       common::BufferView encoded) const {
+    OUTCOME_TRY(ctx, executor_->ctx().ephemeralAt(block_hash));
     return executor_
-        ->callAt<std::vector<std::pair<crypto::KeyTypeId, common::Buffer>>>(
-            block_hash, "SessionKeys_decode_session_keys", encoded);
+        ->call<std::vector<std::pair<crypto::KeyTypeId, common::Buffer>>>(
+            ctx, "SessionKeys_decode_session_keys", encoded);
   }
 
 }  // namespace kagome::runtime

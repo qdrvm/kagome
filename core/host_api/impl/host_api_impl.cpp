@@ -327,7 +327,7 @@ namespace kagome::host_api {
     return misc_ext_.ext_misc_print_hex_version_1(data);
   }
 
-  void HostApiImpl::ext_misc_print_num_version_1(uint64_t value) const {
+  void HostApiImpl::ext_misc_print_num_version_1(int64_t value) const {
     return misc_ext_.ext_misc_print_num_version_1(value);
   }
 
@@ -375,12 +375,12 @@ namespace kagome::host_api {
     return offchain_ext_.ext_offchain_network_state_version_1();
   }
 
-  runtime::WasmU64 HostApiImpl::ext_offchain_timestamp_version_1() {
+  runtime::WasmI64 HostApiImpl::ext_offchain_timestamp_version_1() {
     return offchain_ext_.ext_offchain_timestamp_version_1();
   }
 
   void HostApiImpl::ext_offchain_sleep_until_version_1(
-      runtime::WasmU64 deadline) {
+      runtime::WasmI64 deadline) {
     return offchain_ext_.ext_offchain_sleep_until_version_1(deadline);
   }
 
@@ -534,7 +534,7 @@ namespace kagome::host_api {
         child_storage_key, key, value_out, offset);
   }
 
-  uint32_t HostApiImpl::ext_default_child_storage_exists_version_1(
+  int32_t HostApiImpl::ext_default_child_storage_exists_version_1(
       runtime::WasmSpan child_storage_key, runtime::WasmSpan key) const {
     return child_storage_ext_.ext_default_child_storage_exists_version_1(
         child_storage_key, key);

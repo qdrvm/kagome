@@ -467,7 +467,7 @@ namespace kagome::host_api {
      * Print a number
      * @param value - number to be printed
      */
-    virtual void ext_misc_print_num_version_1(uint64_t value) const = 0;
+    virtual void ext_misc_print_num_version_1(int64_t value) const = 0;
 
     /**
      * Print a UTF-8-encoded string
@@ -491,12 +491,12 @@ namespace kagome::host_api {
     ext_offchain_network_state_version_1() = 0;
 
     /// @copydoc OffchainExtension::ext_offchain_timestamp_version_1
-    [[nodiscard]] virtual runtime::WasmU64
+    [[nodiscard]] virtual runtime::WasmI64
     ext_offchain_timestamp_version_1() = 0;
 
     /// @copydoc OffchainExtension::ext_offchain_sleep_until_version_1
     virtual void ext_offchain_sleep_until_version_1(
-        runtime::WasmU64 deadline) = 0;
+        runtime::WasmI64 deadline) = 0;
 
     /// @copydoc OffchainExtension::ext_offchain_random_seed_version_1
     [[nodiscard]] virtual runtime::WasmPointer
@@ -696,7 +696,7 @@ namespace kagome::host_api {
      * @return a boolean equal to true if the key does exist, false if
      * otherwise.
      */
-    virtual uint32_t ext_default_child_storage_exists_version_1(
+    virtual int32_t ext_default_child_storage_exists_version_1(
         runtime::WasmSpan child_storage_key, runtime::WasmSpan key) const = 0;
 
     /**

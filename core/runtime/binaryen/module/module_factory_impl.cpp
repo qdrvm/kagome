@@ -30,8 +30,10 @@ namespace kagome::runtime::binaryen {
       gsl::span<const uint8_t> code) const {
     std::vector<uint8_t> code_vec{code.begin(), code.end()};
     OUTCOME_TRY(module,
-                ModuleImpl::createFromCode(
-                    code_vec, env_factory_, hasher_->sha2_256(code)));
+                ModuleImpl::createFromCode(code_vec,
+                                           env_factory_,
+                                           shared_from_this(),
+                                           hasher_->sha2_256(code)));
     return module;
   }
 

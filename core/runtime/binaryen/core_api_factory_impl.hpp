@@ -26,26 +26,18 @@ namespace kagome::runtime {
 
 namespace kagome::runtime::binaryen {
 
-  class InstanceEnvironmentFactory;
-  class BinaryenMemoryFactory;
-
   class CoreApiFactoryImpl final
       : public runtime::CoreApiFactory,
         public std::enable_shared_from_this<CoreApiFactoryImpl> {
    public:
-    CoreApiFactoryImpl(
-        std::shared_ptr<const InstanceEnvironmentFactory> instance_env_factory,
-        std::shared_ptr<const blockchain::BlockHeaderRepository> header_repo,
-        std::shared_ptr<runtime::RuntimePropertiesCache> cache);
+    CoreApiFactoryImpl(std::shared_ptr<const ModuleFactory> module_factory);
 
-    std::unique_ptr<Core> make(
+    outcome::result<std::unique_ptr<RestrictedCore>> make(
         std::shared_ptr<const crypto::Hasher> hasher,
         const std::vector<uint8_t> &runtime_code) const override;
 
    private:
-    std::shared_ptr<const InstanceEnvironmentFactory> instance_env_factory_;
-    std::shared_ptr<const blockchain::BlockHeaderRepository> header_repo_;
-    std::shared_ptr<runtime::RuntimePropertiesCache> cache_;
+    std::shared_ptr<const ModuleFactory> module_factory_;
   };
 
 }  // namespace kagome::runtime::binaryen

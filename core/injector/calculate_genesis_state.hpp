@@ -18,7 +18,7 @@ namespace kagome::injector {
 
   outcome::result<primitives::Version> callCoreVersion(
       runtime::Executor &executor, runtime::RuntimeContext &ctx) {
-    return executor.decodedCallWithCtx<primitives::Version>(ctx, "Core_version");
+    return executor.call<primitives::Version>(ctx, "Core_version");
   }
 
   inline outcome::result<storage::trie::RootHash> calculate_genesis_state(

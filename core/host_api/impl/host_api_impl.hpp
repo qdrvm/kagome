@@ -225,7 +225,7 @@ namespace kagome::host_api {
 
     void ext_misc_print_hex_version_1(runtime::WasmSpan data) const override;
 
-    void ext_misc_print_num_version_1(uint64_t value) const override;
+    void ext_misc_print_num_version_1(int64_t value) const override;
 
     void ext_misc_print_utf8_version_1(runtime::WasmSpan data) const override;
 
@@ -238,9 +238,9 @@ namespace kagome::host_api {
 
     runtime::WasmSpan ext_offchain_network_state_version_1() override;
 
-    runtime::WasmU64 ext_offchain_timestamp_version_1() override;
+    runtime::WasmI64 ext_offchain_timestamp_version_1() override;
 
-    void ext_offchain_sleep_until_version_1(runtime::WasmU64 deadline) override;
+    void ext_offchain_sleep_until_version_1(runtime::WasmI64 deadline) override;
 
     runtime::WasmPointer ext_offchain_random_seed_version_1() override;
 
@@ -334,7 +334,7 @@ namespace kagome::host_api {
         runtime::WasmSpan value_out,
         runtime::WasmOffset offset) const override;
 
-    virtual uint32_t ext_default_child_storage_exists_version_1(
+    virtual int32_t ext_default_child_storage_exists_version_1(
         runtime::WasmSpan child_storage_key,
         runtime::WasmSpan key) const override;
 

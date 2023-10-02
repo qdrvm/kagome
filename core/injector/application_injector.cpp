@@ -419,7 +419,10 @@ namespace {
 
   template <typename... Ts>
   auto makeWasmEdgeInjector(Ts &&...args) {
-    return di::make_injector(std::forward<decltype(args)>(args)...);
+    return di::make_injector(
+        // di::bind<runtime::ModuleFactory>.template
+        // to<runtime::wasm_edge::ModuleFactoryImpl>(),
+        std::forward<decltype(args)>(args)...);
   }
 
   template <typename CommonType,
@@ -500,12 +503,21 @@ namespace {
               // runtime::wavm::CoreApiFactoryImpl,
               runtime::wasm_edge::CoreApiFactoryImpl>(injector, method);
         }),
-        bind_by_lambda<runtime::ModuleFactory>([method](const auto &injector) {
-          return choose_runtime_implementation<
-              runtime::ModuleFactory,
-              runtime::binaryen::ModuleFactoryImpl,
-              // runtime::wavm::ModuleFactoryImpl,
-              runtime::wasm_edge::ModuleFactoryImpl>(injector, method);
+        bind_by_lambda<runtime::ModuleFactory>(
+            [method](const auto &injector) -> sptr<runtime::ModuleFactory> {
+              return choose_runtime_implementation<
+                  runtime::ModuleFactory,
+                  runtime::binaryen::ModuleFactoryImpl,
+                  // runtime::wavm::ModuleFactoryImpl,
+                  runtime::wasm_edge::ModuleFactoryImpl>(injector, method);
+            }),
+        bind_by_lambda<runtime::Executor>([](const auto &injector)
+                                              -> sptr<runtime::Executor> {
+          auto ctx_factory =
+              injector.template create<sptr<runtime::RuntimeContextFactory>>();
+          auto cache =
+              injector.template create<sptr<runtime::RuntimePropertiesCache>>();
+          return std::make_shared<runtime::Executor>(ctx_factory, cache);
         }),
         di::bind<runtime::TaggedTransactionQueue>.template to<runtime::TaggedTransactionQueueImpl>(),
         di::bind<runtime::ParachainHost>.template to<runtime::ParachainHostImpl>(),
@@ -669,22 +681,24 @@ namespace {
               return get_rocks_db(config, chain_spec);
             }),
             bind_by_lambda<blockchain::BlockStorage>([](const auto &injector) {
-              auto root =
+              auto module_factory = injector.template create<sptr<runtime::ModuleFactory>>();
+              auto root_res =
                   injector::calculate_genesis_state(
                       injector
                           .template create<const application::ChainSpec &>(),
-                      injector
-                          .template create<const runtime::ModuleFactory &>(),
+                      *module_factory,
                       injector
                           .template create<storage::trie::TrieSerializer &>(),
                       injector.template create<
-                          sptr<runtime::RuntimePropertiesCache>>())
-                      .value();
+                          sptr<runtime::RuntimePropertiesCache>>());
+              if (!root_res) {
+                throw std::runtime_error{fmt::format("Failed to calculate genesis state: {}", root_res.error())};
+              }
               const auto &hasher =
                   injector.template create<sptr<crypto::Hasher>>();
               const auto &storage =
                   injector.template create<sptr<storage::SpacedStorage>>();
-              return blockchain::BlockStorageImpl::create(root, storage, hasher)
+              return blockchain::BlockStorageImpl::create(root_res.value(), storage, hasher)
                   .value();
             }),
             di::bind<blockchain::JustificationStoragePolicy>.template to<blockchain::JustificationStoragePolicyImpl>(),

@@ -15,29 +15,23 @@ namespace kagome::runtime::binaryen {
   InstanceEnvironmentFactory::InstanceEnvironmentFactory(
       std::shared_ptr<storage::trie::TrieStorage> storage,
       std::shared_ptr<storage::trie::TrieSerializer> serializer,
-      std::shared_ptr<host_api::HostApiFactory> host_api_factory,
-      std::shared_ptr<blockchain::BlockHeaderRepository> block_header_repo,
-      std::shared_ptr<runtime::RuntimePropertiesCache> cache)
+      std::shared_ptr<host_api::HostApiFactory> host_api_factory)
       : storage_{std::move(storage)},
         serializer_{std::move(serializer)},
-        host_api_factory_{std::move(host_api_factory)},
-        block_header_repo_{std::move(block_header_repo)},
-        cache_(std::move(cache)) {
+        host_api_factory_{std::move(host_api_factory)} {
     BOOST_ASSERT(storage_);
     BOOST_ASSERT(serializer_);
     BOOST_ASSERT(host_api_factory_);
-    BOOST_ASSERT(block_header_repo_);
-    BOOST_ASSERT(cache_);
   }
 
-  BinaryenInstanceEnvironment InstanceEnvironmentFactory::make() const {
+  BinaryenInstanceEnvironment InstanceEnvironmentFactory::make(
+      std::shared_ptr<const ModuleFactory> module_factory) const {
     auto memory_factory = std::make_shared<BinaryenMemoryFactory>();
     auto new_memory_provider =
         std::make_shared<BinaryenMemoryProvider>(memory_factory);
     auto new_storage_provider =
         std::make_shared<TrieStorageProviderImpl>(storage_, serializer_);
-    auto core_factory = std::make_shared<CoreApiFactoryImpl>(
-        shared_from_this(), block_header_repo_, cache_);
+    auto core_factory = std::make_shared<CoreApiFactoryImpl>(module_factory);
     auto host_api = std::shared_ptr<host_api::HostApi>(host_api_factory_->make(
         core_factory, new_memory_provider, new_storage_provider));
     auto rei = std::make_shared<RuntimeExternalInterface>(host_api);

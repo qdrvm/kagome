@@ -13,6 +13,7 @@
 #include "common/int_serialization.hpp"
 #include "runtime/binaryen/binaryen_memory_provider.hpp"
 #include "runtime/binaryen/instance_environment_factory.hpp"
+#include "runtime/binaryen/module/module_factory_impl.hpp"
 #include "runtime/binaryen/module/module_instance_impl.hpp"
 #include "runtime/binaryen/runtime_external_interface.hpp"
 #include "storage/trie/polkadot_trie/trie_error.hpp"
@@ -34,18 +35,22 @@ namespace kagome::runtime::binaryen {
 
   ModuleImpl::ModuleImpl(
       std::unique_ptr<wasm::Module> &&module,
+      std::shared_ptr<const ModuleFactory> module_factory,
       std::shared_ptr<const InstanceEnvironmentFactory> env_factory,
       const common::Hash256 &code_hash)
-      : env_factory_{std::move(env_factory)},
+      : module_factory_{std::move(module_factory)},
+        env_factory_{std::move(env_factory)},
         module_{std::move(module)},
         code_hash_(code_hash) {
     BOOST_ASSERT(module_ != nullptr);
     BOOST_ASSERT(env_factory_ != nullptr);
+    BOOST_ASSERT(module_factory_ != nullptr);
   }
 
   outcome::result<std::shared_ptr<ModuleImpl>> ModuleImpl::createFromCode(
       const std::vector<uint8_t> &code,
       std::shared_ptr<const InstanceEnvironmentFactory> env_factory,
+      std::shared_ptr<const ModuleFactory> module_factory,
       const common::Hash256 &code_hash) {
     auto log = log::createLogger("wasm_module", "binaryen");
     // that nolint suppresses false positive in a library function
@@ -74,12 +79,12 @@ namespace kagome::runtime::binaryen {
     module->memory.initial = kDefaultHeappages;
 
     return std::make_shared<ModuleImpl>(
-        std::move(module), std::move(env_factory), code_hash);
+        std::move(module), module_factory, env_factory, code_hash);
   }
 
   outcome::result<std::shared_ptr<ModuleInstance>> ModuleImpl::instantiate()
       const {
-    auto env = env_factory_->make();
+    auto env = env_factory_->make(module_factory_);
     return std::make_shared<ModuleInstanceImpl>(
         std::move(env.env), shared_from_this(), env.rei, code_hash_);
   }

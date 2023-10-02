@@ -16,9 +16,13 @@ namespace kagome::runtime {
 
   outcome::result<Metadata::OpaqueMetadata> MetadataImpl::metadata(
       const primitives::BlockHash &block_hash) {
-    OUTCOME_TRY(ref, metadata_.get_else(block_hash, [&] {
-      return executor_->callAt<OpaqueMetadata>(block_hash, "Metadata_metadata");
-    }));
+    OUTCOME_TRY(
+        ref,
+        metadata_.get_else(
+            block_hash, [&] -> outcome::result<Metadata::OpaqueMetadata> {
+              OUTCOME_TRY(ctx, executor_->ctx().ephemeralAt(block_hash));
+              return executor_->call<OpaqueMetadata>(ctx, "Metadata_metadata");
+            }));
     return *ref;
   }
 

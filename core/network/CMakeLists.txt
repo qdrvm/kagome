@@ -51,5 +51,6 @@ target_link_libraries(network
     blob
     node_api_proto
     p2p::p2p_loopback_stream
+    trie_storage_provider
     )
 kagome_clear_objects(network)
