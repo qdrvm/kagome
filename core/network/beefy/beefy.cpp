@@ -299,11 +299,10 @@ namespace kagome::network {
       SL_VERBOSE(log_, "wrong justification for block {}", block_number);
       return outcome::success();
     }
+    consensus::beefy::BeefyJustification justification_v1{
+        std::move(justification)};
     OUTCOME_TRY(db_->put(BlockNumberKey::encode(block_number),
-                         scale::encode(consensus::beefy::BeefyJustification{
-                                           std::move(justification),
-                                       })
-                             .value()));
+                         scale::encode(justification_v1).value()));
     if (beefy_finalized_ != first) {
       OUTCOME_TRY(db_->remove(BlockNumberKey::encode(beefy_finalized_)));
     }
@@ -328,8 +327,7 @@ namespace kagome::network {
       main_thread_->post(
           [protocol{beefy_protocol_.get()},
            message{std::make_shared<consensus::beefy::BeefyGossipMessage>(
-               consensus::beefy::BeefyJustification{
-                   std::move(justification)})}] {
+               std::move(justification_v1))}] {
             protocol->broadcast(std::move(message));
           });
     }
