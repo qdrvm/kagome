@@ -829,7 +829,7 @@ TEST_F(TriePrunerTest, FastSyncScenario) {
     EXPECT_CALL(*serializer_mock, retrieveTrie(headers[n].state_root, _))
         .WillOnce(Return(tries[n]));
     if (auto trie_res =
-            serializer.retrieveTrie(headers[n].state_root, [](auto) {});
+            serializer.retrieveTrie(headers[n].state_root, [](auto, auto) {});
         trie_res.has_value()) {
       auto &trie = trie_res.value();
       auto cursor = trie->cursor();

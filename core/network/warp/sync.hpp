@@ -6,6 +6,7 @@
 #ifndef KAGOME_NETWORK_WARP_SYNC_HPP
 #define KAGOME_NETWORK_WARP_SYNC_HPP
 
+#include "log/logger.hpp"
 #include "network/warp/types.hpp"
 #include "storage/buffer_map_types.hpp"
 
@@ -95,6 +96,8 @@ namespace kagome::network {
     std::shared_ptr<blockchain::BlockTree> block_tree_;
     std::shared_ptr<storage::BufferStorage> db_;
     bool done_ = false;
+
+    log::Logger log_;
   };
 }  // namespace kagome::network
 

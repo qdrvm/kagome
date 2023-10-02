@@ -23,7 +23,8 @@ namespace kagome::storage::trie {
   class TrieStorage {
    public:
     using EncodedNode = common::BufferView;
-    using OnNodeLoaded = std::function<void(EncodedNode)>;
+    using OnNodeLoaded =
+        std::function<void(const common::Hash256 &, EncodedNode)>;
 
     virtual ~TrieStorage() = default;
 
