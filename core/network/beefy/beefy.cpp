@@ -125,12 +125,14 @@ namespace kagome::network {
   void Beefy::onVote(consensus::beefy::VoteMessage vote, bool broadcast) {
     auto block_number = vote.commitment.block_number;
     if (block_number < *beefy_genesis_) {
+      SL_VERBOSE(log_, "vote for block {} before genesis", block_number);
       return;
     }
     if (block_number <= beefy_finalized_) {
       return;
     }
     if (block_number >= next_digest_) {
+      SL_VERBOSE(log_, "ignoring vote for unindexed block {}", block_number);
       return;
     }
     auto next_session = sessions_.upper_bound(block_number);
@@ -139,13 +141,16 @@ namespace kagome::network {
     }
     auto &session = std::prev(next_session)->second;
     if (vote.commitment.validator_set_id != session.validators.id) {
+      SL_VERBOSE(log_, "wrong validator set id for block {}", block_number);
       return;
     }
     auto index = session.validators.find(vote.id);
     if (not index) {
+      SL_VERBOSE(log_, "unknown validator for block {}", block_number);
       return;
     }
     if (not verify(*ecdsa_, vote)) {
+      SL_VERBOSE(log_, "wrong vote for block {}", block_number);
       return;
     }
     auto total = session.validators.validators.size();
@@ -279,6 +284,7 @@ namespace kagome::network {
       }
       auto next_session = sessions_.upper_bound(block_number);
       if (next_session == sessions_.begin()) {
+        SL_TRACE(log_, "no session for block {}", block_number);
         return outcome::success();
       }
       session = std::prev(next_session);
@@ -286,9 +292,11 @@ namespace kagome::network {
     auto &first = found ? found->first : session->first;
     auto &validators = found ? found->second : session->second.validators;
     if (justification.commitment.validator_set_id != validators.id) {
+      SL_VERBOSE(log_, "wrong validator set id for block {}", block_number);
       return outcome::success();
     }
     if (not verify(*ecdsa_, justification, validators)) {
+      SL_VERBOSE(log_, "wrong justification for block {}", block_number);
       return outcome::success();
     }
     OUTCOME_TRY(db_->put(BlockNumberKey::encode(block_number),
@@ -334,6 +342,7 @@ namespace kagome::network {
       BOOST_OUTCOME_TRY(beefy_genesis_,
                         beefy_api_->genesis(grandpa_finalized.hash));
       if (not beefy_genesis_) {
+        SL_TRACE(log_, "no beefy pallet yet");
         return outcome::success();
       }
       next_digest_ = std::max(beefy_finalized_, *beefy_genesis_);
@@ -365,6 +374,7 @@ namespace kagome::network {
   outcome::result<void> Beefy::vote() {
     auto next_session = sessions_.upper_bound(beefy_finalized_ + 1);
     if (next_session == sessions_.begin()) {
+      SL_VERBOSE(log_, "can't vote: no sessions");
       return outcome::success();
     }
     auto session = std::prev(next_session);
@@ -389,15 +399,20 @@ namespace kagome::network {
     auto key =
         session_keys_->getBeefKeyPair(session->second.validators.validators);
     if (not key) {
+      SL_TRACE(log_,
+               "can't vote: not validator of set {}",
+               session->second.validators.id);
       return outcome::success();
     }
     OUTCOME_TRY(block_hash, block_tree_->getBlockHash(target));
     if (not block_hash) {
+      SL_VERBOSE(log_, "can't vote: no block {}", target);
       return outcome::success();
     }
     OUTCOME_TRY(header, block_tree_->getBlockHeader(*block_hash));
     auto mmr = beefyMmrDigest(header);
     if (not mmr) {
+      SL_VERBOSE(log_, "can't vote: no mmr digest in block {}", target);
       return outcome::success();
     }
     consensus::beefy::VoteMessage vote;
