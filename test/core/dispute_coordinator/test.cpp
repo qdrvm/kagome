@@ -8,14 +8,3 @@
 #include <gtest/gtest.h>
 
 using namespace kagome::dispute;
-
-TEST(X, X) {
-  DisputeStatement statement{ValidDisputeStatement{BackingSeconded{}}};
-
-  CandidateHash hash{};
-  hash[31] = '\xaa';
-
-  auto data = getSignablePayload(statement, hash, 255);
-
-  (void)data;
-}

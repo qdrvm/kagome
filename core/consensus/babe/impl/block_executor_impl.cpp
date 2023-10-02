@@ -33,9 +33,9 @@ namespace kagome::consensus::babe {
   };
 
   BlockExecutorImpl::BlockExecutorImpl(
-      const application::AppConfiguration &app_config,
       std::shared_ptr<blockchain::BlockTree> block_tree,
       const ThreadPool &thread_pool,
+      std::shared_ptr<boost::asio::io_context> main_thread,
       std::shared_ptr<runtime::Core> core,
       std::shared_ptr<transaction_pool::TransactionPool> tx_pool,
       std::shared_ptr<crypto::Hasher> hasher,
@@ -43,9 +43,9 @@ namespace kagome::consensus::babe {
       primitives::events::StorageSubscriptionEnginePtr storage_sub_engine,
       primitives::events::ChainSubscriptionEnginePtr chain_sub_engine,
       std::unique_ptr<BlockAppenderBase> appender)
-      : app_config_{app_config},
-        block_tree_{std::move(block_tree)},
+      : block_tree_{std::move(block_tree)},
         io_context_{thread_pool.io_context()},
+        main_thread_{std::move(main_thread)},
         core_{std::move(core)},
         tx_pool_{std::move(tx_pool)},
         hasher_{std::move(hasher)},
@@ -116,11 +116,7 @@ namespace kagome::consensus::babe {
     auto &consistency_guard = consistency_guard_res.value();
 
     // Calculate best block before new one will be applied
-    auto last_finalized_block = block_tree_->getLastFinalized();
-    auto previous_best_block_res =
-        block_tree_->getBestContaining(last_finalized_block.hash, std::nullopt);
-    BOOST_ASSERT(previous_best_block_res.has_value());
-    const auto &previous_best_block = previous_best_block_res.value();
+    auto previous_best_block = block_tree_->bestBlock();
 
     if (block_was_applied_earlier) {
       applyBlockExecuted(std::move(block),
@@ -190,13 +186,23 @@ namespace kagome::consensus::babe {
       changes_tracker->onBlockAdded(
           block_info.hash, storage_sub_engine_, chain_subscription_engine_);
 
-      applyBlockExecuted(std::move(block),
-                         justification,
-                         std::move(callback),
-                         block_info,
-                         start_time,
-                         *consistency_guard,
-                         previous_best_block);
+      auto executed = [self,
+                       block{std::move(block)},
+                       justification{std::move(justification)},
+                       callback{std::move(callback)},
+                       block_info,
+                       start_time,
+                       consistency_guard{std::move(consistency_guard)},
+                       previous_best_block]() mutable {
+        self->applyBlockExecuted(std::move(block),
+                                 justification,
+                                 std::move(callback),
+                                 block_info,
+                                 start_time,
+                                 *consistency_guard,
+                                 previous_best_block);
+      };
+      main_thread_->post(std::move(executed));
     };
     io_context_->post(std::move(execute));
   }
@@ -289,10 +295,7 @@ namespace kagome::consensus::babe {
           auto const last_finalized_block =
               self->block_tree_->getLastFinalized();
           self->telemetry_->notifyBlockFinalized(last_finalized_block);
-          auto current_best_block_res = self->block_tree_->getBestContaining(
-              last_finalized_block.hash, std::nullopt);
-          BOOST_ASSERT(current_best_block_res.has_value());
-          const auto &current_best_block = current_best_block_res.value();
+          auto current_best_block = self->block_tree_->bestBlock();
           self->telemetry_->notifyBlockImported(
               current_best_block, telemetry::BlockOrigin::kNetworkInitialSync);
 

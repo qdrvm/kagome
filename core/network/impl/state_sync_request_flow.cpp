@@ -6,118 +6,145 @@
 #include <boost/algorithm/string/predicate.hpp>
 
 #include "network/impl/state_sync_request_flow.hpp"
-#include "runtime/common/uncompress_code_if_needed.hpp"
-#include "runtime/module.hpp"
-#include "runtime/module_factory.hpp"
-#include "runtime/runtime_api/impl/core.hpp"
-#include "runtime/runtime_context.hpp"
 #include "storage/predefined_keys.hpp"
-#include "storage/trie/serialization/trie_serializer.hpp"
-#include "storage/trie_pruner/trie_pruner.hpp"
-
-OUTCOME_CPP_DEFINE_CATEGORY(kagome::network, StateSyncRequestFlow::Error, e) {
-  using E = decltype(e);
-  switch (e) {
-    case E::EMPTY_RESPONSE:
-      return "State sync empty response";
-    case E::HASH_MISMATCH:
-      return "State sync hash mismatch";
-  }
-  abort();
-}
+#include "storage/trie/compact_decode.hpp"
+#include "storage/trie/serialization/polkadot_codec.hpp"
+#include "storage/trie/trie_storage_backend.hpp"
 
 namespace kagome::network {
   StateSyncRequestFlow::StateSyncRequestFlow(
-      std::shared_ptr<storage::trie_pruner::TriePruner> state_pruner,
+      std::shared_ptr<storage::trie::TrieStorageBackend> db,
       const primitives::BlockInfo &block_info,
       const primitives::BlockHeader &block)
-      : state_pruner_{state_pruner}, block_info_{block_info}, block_{block} {
-    BOOST_ASSERT(state_pruner_ != nullptr);
-    roots_.insert({std::nullopt, Root{}});
+      : db_{std::move(db)},
+        block_info_{block_info},
+        block_{block},
+        log_{log::createLogger("StateSync")} {
+    done_ = isKnown(block.state_root);
+    if (not done_) {
+      auto &level = levels_.emplace_back();
+      level.child = {};
+      level.branch_hash = block.state_root;
+    }
   }
 
   bool StateSyncRequestFlow::complete() const {
-    return complete_roots_.size() == roots_.size();
+    return done_;
   }
 
   StateRequest StateSyncRequestFlow::nextRequest() const {
     BOOST_ASSERT(not complete());
-    return StateRequest{block_info_.hash, last_key_, true};
+    StateRequest req{block_info_.hash, {}, false};
+    for (auto &level : levels_) {
+      storage::trie::KeyNibbles nibbles;
+      for (auto &item : level.stack) {
+        nibbles.put(item.node->getKeyNibbles());
+        if (item.branch) {
+          nibbles.putUint8(*item.branch);
+        }
+      }
+      if (nibbles.size() % 2 != 0) {
+        nibbles.putUint8(0);
+      }
+      req.start.emplace_back(nibbles.toByteBuffer());
+    }
+    return req;
   }
 
   outcome::result<void> StateSyncRequestFlow::onResponse(
       const StateResponse &res) {
+    storage::trie::PolkadotCodec codec;
     BOOST_ASSERT(not complete());
-    auto empty = true;
-    for (auto &entry : res.entries) {
-      if (not entry.entries.empty() or entry.complete) {
-        empty = false;
+    OUTCOME_TRY(nodes, storage::trie::compactDecode(res.proof));
+    auto diff_count = nodes.size(), diff_size = res.proof.size();
+    if (diff_count != 0) {
+      stat_count_ += diff_count;
+      stat_size_ += diff_size;
+      SL_INFO(log_,
+              "received {} nodes {}mb, total {} nodes {}mb",
+              diff_count,
+              diff_size >> 20,
+              stat_count_,
+              stat_size_ >> 20);
+    }
+    while (not levels_.empty()) {
+      auto &level = levels_.back();
+      auto push = [&](decltype(nodes)::iterator it) -> outcome::result<void> {
+        auto &node = it->second.second;
+        auto &raw = it->second.first;
+        if (not node) {
+          // when trie node is contained in other node value
+          BOOST_OUTCOME_TRY(node, codec.decodeNode(raw));
+        }
+        level.push(
+            {node, std::nullopt, level.child, {it->first, std::move(raw)}});
+        nodes.erase(it);
+        return outcome::success();
+      };
+      if (level.stack.empty()) {
+        auto it = nodes.find(*level.branch_hash);
+        if (it == nodes.end()) {
+          return outcome::success();
+        }
+        OUTCOME_TRY(push(it));
       }
-    }
-    if (empty) {
-      return Error::EMPTY_RESPONSE;
-    }
-    if (last_key_.size() == 2 && res.entries[0].entries.empty()) {
-      last_key_.pop_back();
-    } else {
-      last_key_.resize(0);
-    }
-    for (auto &entry : res.entries) {
-      if (not entry.complete) {
-        if (not entry.entries.empty()) {
-          last_key_.emplace_back(entry.entries.back().key);
+      auto pop_level = true;
+      while (not level.stack.empty()) {
+        auto child = level.value_child;
+        if (child and not isKnown(*child)) {
+          auto &level = levels_.emplace_back();
+          level.branch_hash = child;
+          pop_level = false;
+          break;
+        }
+        if (level.value_hash and not isKnown(*level.value_hash)) {
+          auto it = nodes.find(*level.value_hash);
+          if (it == nodes.end()) {
+            return outcome::success();
+          }
+          OUTCOME_TRY(db_->put(it->first, std::move(it->second.first)));
+          known_.emplace(it->first);
+        }
+        for (level.branchInit(); not level.branch_end; level.branchNext()) {
+          if (not level.branch_hash or isKnown(*level.branch_hash)) {
+            continue;
+          }
+          auto it = nodes.find(*level.branch_hash);
+          if (it == nodes.end()) {
+            return outcome::success();
+          }
+          OUTCOME_TRY(push(it));
+          break;
+        }
+        if (level.branch_end) {
+          auto &t = level.stack.back().t;
+          OUTCOME_TRY(db_->put(t.hash, std::move(t.encoded)));
+          known_.emplace(t.hash);
+          level.pop();
+          if (not level.stack.empty()) {
+            level.branchNext();
+          }
         }
       }
-      const auto is_top = not entry.state_root;
-      if (complete_roots_.count(entry.state_root)) {
-        continue;
-      }
-      auto &root = roots_[entry.state_root];
-      for (auto &[key, value] : entry.entries) {
-        if (is_top && boost::starts_with(key, storage::kChildStoragePrefix)) {
-          OUTCOME_TRY(hash, RootHash::fromSpan(value));
-          roots_[hash].children.emplace_back(key);
-        } else {
-          root.trie->put(key, common::BufferView{value}).value();
-        }
-      }
-      if (entry.complete) {
-        complete_roots_.emplace(entry.state_root);
+      if (pop_level) {
+        levels_.pop_back();
       }
     }
+    done_ = true;
     return outcome::success();
   }
 
-  outcome::result<void> StateSyncRequestFlow::commit(
-      const runtime::ModuleFactory &module_factory,
-      const std::shared_ptr<runtime::RuntimePropertiesCache>
-          &runtime_properties_cache,
-      storage::trie::TrieSerializer &trie_serializer) {
-    BOOST_ASSERT(complete());
-    auto &top = roots_[std::nullopt];
-    OUTCOME_TRY(code, top.trie->get(storage::kRuntimeCodeKey));
-    OUTCOME_TRY(runtime_version,
-                runtime::callCoreVersion(
-                    module_factory, code, runtime_properties_cache));
-    auto version = storage::trie::StateVersion{runtime_version.state_version};
-    for (auto &[expected, root] : roots_) {
-      if (not expected) {
-        continue;
-      }
-      OUTCOME_TRY(actual, trie_serializer.storeTrie(*root.trie, version));
-      OUTCOME_TRY(state_pruner_->addNewState(*root.trie, version));
-      if (actual != expected) {
-        return Error::HASH_MISMATCH;
-      }
-      for (auto &child : root.children) {
-        top.trie->put(child, common::BufferView{actual}).value();
-      }
+  bool StateSyncRequestFlow::isKnown(const common::Hash256 &hash) {
+    if (hash == storage::trie::kEmptyRootHash) {
+      return true;
     }
-    OUTCOME_TRY(actual, trie_serializer.storeTrie(*top.trie, version));
-    OUTCOME_TRY(state_pruner_->addNewState(*top.trie, version));
-    if (actual != block_.state_root) {
-      return Error::HASH_MISMATCH;
+    if (known_.find(hash) != known_.end()) {
+      return true;
     }
-    return outcome::success();
+    if (auto r = db_->contains(hash); r and r.value()) {
+      known_.emplace(hash);
+      return true;
+    }
+    return false;
   }
 }  // namespace kagome::network

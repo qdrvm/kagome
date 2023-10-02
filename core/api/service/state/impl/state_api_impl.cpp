@@ -15,6 +15,7 @@
 #include "common/hexutil.hpp"
 #include "common/monadic_utils.hpp"
 #include "runtime/executor.hpp"
+#include "storage/trie/on_read.hpp"
 
 OUTCOME_CPP_DEFINE_CATEGORY(kagome::api, StateApiImpl::Error, e) {
   using E = kagome::api::StateApiImpl::Error;
@@ -64,7 +65,7 @@ namespace kagome::api {
       common::Buffer data,
       const std::optional<primitives::BlockHash> &opt_at) const {
     auto at =
-        opt_at.has_value() ? opt_at.value() : block_tree_->bestLeaf().hash;
+        opt_at.has_value() ? opt_at.value() : block_tree_->bestBlock().hash;
     return executor_->callAt(at, method, data);
   }
 
@@ -134,7 +135,7 @@ namespace kagome::api {
     // TODO(Harrm): Optimize once changes trie is enabled (and a warning/assert
     // for now that will fire once it is, just not to forget)
     auto to =
-        opt_to.has_value() ? opt_to.value() : block_tree_->bestLeaf().hash;
+        opt_to.has_value() ? opt_to.value() : block_tree_->bestBlock().hash;
     if (keys.size() > static_cast<ssize_t>(kMaxKeySetSize)) {
       return Error::MAX_KEY_SET_SIZE_EXCEEDED;
     }
@@ -184,7 +185,7 @@ namespace kagome::api {
       gsl::span<const common::Buffer> keys,
       std::optional<primitives::BlockHash> opt_at) const {
     auto at =
-        opt_at.has_value() ? opt_at.value() : block_tree_->bestLeaf().hash;
+        opt_at.has_value() ? opt_at.value() : block_tree_->bestBlock().hash;
     return queryStorage(keys, at, at);
   }
 
@@ -192,16 +193,15 @@ namespace kagome::api {
       gsl::span<const common::Buffer> keys,
       std::optional<primitives::BlockHash> opt_at) const {
     auto at =
-        opt_at.has_value() ? opt_at.value() : block_tree_->bestLeaf().hash;
-    std::unordered_set<common::Buffer> proof;
-    auto prove = [&](common::BufferView raw) { proof.emplace(raw); };
+        opt_at.has_value() ? opt_at.value() : block_tree_->bestBlock().hash;
+    storage::trie::OnRead db;
     OUTCOME_TRY(header, header_repo_->getBlockHeader(at));
-    OUTCOME_TRY(trie,
-                storage_->getProofReaderBatchAt(header.state_root, prove));
+    OUTCOME_TRY(
+        trie, storage_->getProofReaderBatchAt(header.state_root, db.onRead()));
     for (auto &key : keys) {
       OUTCOME_TRY(trie->tryGet(key));
     }
-    return ReadProof{at, {proof.begin(), proof.end()}};
+    return ReadProof{at, db.vec()};
   }
 
   outcome::result<primitives::Version> StateApiImpl::getRuntimeVersion(
@@ -209,7 +209,7 @@ namespace kagome::api {
     if (at) {
       return runtime_core_->version(at.value());
     }
-    return runtime_core_->version(block_tree_->bestLeaf().hash);
+    return runtime_core_->version(block_tree_->bestBlock().hash);
   }
 
   outcome::result<uint32_t> StateApiImpl::subscribeStorage(
@@ -253,7 +253,7 @@ namespace kagome::api {
   }
 
   outcome::result<std::string> StateApiImpl::getMetadata() {
-    OUTCOME_TRY(data, metadata_->metadata(block_tree_->bestLeaf().hash));
+    OUTCOME_TRY(data, metadata_->metadata(block_tree_->bestBlock().hash));
     return common::hex_lower_0x(data);
   }
 

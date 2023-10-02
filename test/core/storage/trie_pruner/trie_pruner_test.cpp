@@ -626,11 +626,11 @@ TEST_F(TriePrunerTest, RestoreStateFromGenesis) {
 
   ON_CALL(*block_tree, getChildren(_))
       .WillByDefault(Return(std::vector<kagome::primitives::BlockHash>{}));
-  
-  ON_CALL(*block_tree, bestLeaf())
+
+  ON_CALL(*block_tree, bestBlock())
       .WillByDefault(Return(BlockInfo{6, hash_from_header(headers.at(6))}));
 
-  ON_CALL(*block_tree, bestLeaf())
+  ON_CALL(*block_tree, bestBlock())
       .WillByDefault(Return(BlockInfo{6, hash_from_header(headers.at(6))}));
 
   auto mock_block = [&](unsigned int number) {
@@ -821,7 +821,7 @@ TEST_F(TriePrunerTest, FastSyncScenario) {
         .WillRepeatedly(Return(DatabaseError::NOT_FOUND));
   }
 
-  EXPECT_CALL(*block_tree, bestLeaf()).WillOnce(Return(BlockInfo{1, {}}));
+  EXPECT_CALL(*block_tree, bestBlock()).WillOnce(Return(BlockInfo{1, {}}));
   ASSERT_OUTCOME_SUCCESS_TRY(pruner->recoverState(*block_tree));
 
   for (BlockNumber n = 80; n < LAST_BLOCK_NUMBER; n++) {
@@ -834,7 +834,7 @@ TEST_F(TriePrunerTest, FastSyncScenario) {
     EXPECT_CALL(*serializer_mock, retrieveTrie(headers[n].state_root, _))
         .WillOnce(Return(tries[n]));
     if (auto trie_res =
-            serializer.retrieveTrie(headers[n].state_root, [](auto) {});
+            serializer.retrieveTrie(headers[n].state_root, [](auto, auto) {});
         trie_res.has_value()) {
       auto &trie = trie_res.value();
       auto cursor = trie->cursor();

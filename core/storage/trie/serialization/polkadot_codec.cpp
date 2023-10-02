@@ -173,10 +173,6 @@ namespace kagome::storage::trie {
         head = 0b00000000;
         partial_length_mask = 0;
         break;
-      case TrieNode::Type::ReservedForCompactEncoding:
-        head = 0b00010000;
-        partial_length_mask = 0;
-        break;
       default:
         return Error::UNKNOWN_NODE_TYPE;
     }
@@ -320,9 +316,6 @@ namespace kagome::storage::trie {
       case TrieNode::Type::Empty:
         return Error::UNKNOWN_NODE_TYPE;
 
-      case TrieNode::Type::ReservedForCompactEncoding:
-        return Error::UNKNOWN_NODE_TYPE;
-
       default:
         return Error::UNKNOWN_NODE_TYPE;
     }
@@ -352,12 +345,8 @@ namespace kagome::storage::trie {
       type = TrieNode::Type::LeafContainingHashes;
       partial_key_length_mask = 0b000'11111;
     } else if (first & 0b0001'0000) {
-      if (first & 0b0000'1111) {
-        type = TrieNode::Type::BranchContainingHashes;
-        partial_key_length_mask = 0b0000'1111;
-      } else {
-        type = TrieNode::Type::ReservedForCompactEncoding;
-      }
+      type = TrieNode::Type::BranchContainingHashes;
+      partial_key_length_mask = 0b0000'1111;
     } else if (first == 0) {
       type = TrieNode::Type::Empty;
     } else {

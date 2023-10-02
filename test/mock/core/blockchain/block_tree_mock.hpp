@@ -3,8 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_BLOCK_TREE_MOCK_HPP
-#define KAGOME_BLOCK_TREE_MOCK_HPP
+#pragma once
 
 #include "blockchain/block_tree.hpp"
 
@@ -70,7 +69,7 @@ namespace kagome::blockchain {
 
     MOCK_METHOD(outcome::result<void>,
                 markAsRevertedBlocks,
-                (const std::vector<primitives::BlockInfo> &),
+                (const std::vector<primitives::BlockHash> &),
                 (override));
 
     MOCK_METHOD(outcome::result<void>,
@@ -111,11 +110,10 @@ namespace kagome::blockchain {
 
     MOCK_METHOD(outcome::result<primitives::BlockInfo>,
                 getBestContaining,
-                (const primitives::BlockHash &,
-                 const std::optional<primitives::BlockNumber> &),
+                (const primitives::BlockHash &),
                 (const, override));
 
-    MOCK_METHOD(primitives::BlockInfo, bestLeaf, (), (const, override));
+    MOCK_METHOD(primitives::BlockInfo, bestBlock, (), (const, override));
 
     MOCK_METHOD(std::vector<primitives::BlockHash>,
                 getLeaves,
@@ -134,5 +132,3 @@ namespace kagome::blockchain {
     MOCK_METHOD(void, notifyBestAndFinalized, (), (override));
   };
 }  // namespace kagome::blockchain
-
-#endif  // KAGOME_BLOCK_TREE_MOCK_HPP
