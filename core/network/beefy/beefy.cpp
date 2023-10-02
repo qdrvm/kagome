@@ -300,7 +300,7 @@ namespace kagome::network {
     if (found) {
       sessions_.emplace(first, Session{std::move(validators), {}});
     }
-    SL_VERBOSE(log_, "finalized {}", block_number);
+    SL_INFO(log_, "finalized {}", block_number);
     beefy_finalized_ = block_number;
     next_digest_ = std::max(next_digest_, block_number + 1);
     if (broadcast) {
