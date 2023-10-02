@@ -59,11 +59,13 @@ groups:
                   - name: block_validator
                   - name: babe_config_repo
               - name: grandpa
+                level: trace
                 children:
                   - name: voting_round
           - name: parachain
           - name: dispute
           - name: runtime
+            level: trace
             children:
               - name: runtime_api
               - name: host_api
@@ -78,6 +80,7 @@ groups:
                   - name: runtime_cache
               - name: binaryen
               - name: wavm
+              - name: wasmedge
           - name: metrics
           - name: telemetry
           - name: network

@@ -478,7 +478,7 @@ namespace {
   template <typename... Ts>
   auto makeRuntimeInjector(
       application::AppConfiguration::RuntimeExecutionMethod method,
-      Ts &&...args) {
+      Ts &&... args) {
     return di::make_injector(
         bind_by_lambda<runtime::RuntimeUpgradeTrackerImpl>(
             [](const auto &injector) {

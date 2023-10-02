@@ -75,9 +75,9 @@ find_package(libsecp256k1 CONFIG REQUIRED)
 hunter_add_package(scale)
 find_package(scale CONFIG REQUIRED)
 
-hunter_add_package(wavm)
-find_package(LLVM CONFIG REQUIRED)
-find_package(WAVM CONFIG REQUIRED)
+# hunter_add_package(wavm)
+# find_package(LLVM CONFIG REQUIRED)
+# find_package(WAVM CONFIG REQUIRED)
 
 hunter_add_package(WasmEdge)
 find_library(WASM_EDGE_LIBRARY NAMES wasmedge REQUIRED PATHS "${WASMEDGE_ROOT}")
