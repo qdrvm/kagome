@@ -150,21 +150,12 @@ namespace kagome::consensus {
       auto changes_tracker =
           std::make_shared<storage::changes_trie::StorageChangesTrackerImpl>();
 
-      if (auto res = core_->execute_block_ref(
-              primitives::BlockReflection{
-                  .header =
-                      primitives::BlockHeaderReflection{
-                          .parent_hash = block.header.parent_hash,
-                          .number = block.header.number,
-                          .state_root = block.header.state_root,
-                          .extrinsics_root = block.header.extrinsics_root,
-                          .digest = gsl::span<const primitives::DigestItem>(
-                              block.header.digest.data(),
-                              block.header.digest.size() - 1ull),
-                      },
-                  .body = block.body,
-              },
-              changes_tracker);
+      primitives::BlockReflection block_ref{
+          .header = primitives::UnsealedBlockHeaderReflection(block.header),
+          .body = block.body,
+      };
+
+      if (auto res = core_->execute_block_ref(block_ref, changes_tracker);
           res.has_error()) {
         callback(res.as_failure());
         return;

@@ -3,8 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_PRIMITIVES_BLOCK_HEADER_HPP
-#define KAGOME_PRIMITIVES_BLOCK_HEADER_HPP
+#pragma once
 
 #include <type_traits>
 #include <vector>
@@ -23,23 +22,12 @@ namespace kagome::primitives {
    * @struct BlockHeader represents header of a block
    */
   struct BlockHeader {
-    BlockHeader() = default;
-    BlockHeader(BlockNumber number,
-                BlockHash parent,
-                storage::trie::RootHash state_root,
-                common::Hash256 extrinsics_root,
-                Digest digest)
-        : parent_hash(std::move(parent)),
-          number(number),
-          state_root(std::move(state_root)),
-          extrinsics_root(std::move(extrinsics_root)),
-          digest(std::move(digest)) {}
-
-    BlockHash parent_hash{};  ///< 32-byte Blake2s hash of parent header
-    BlockNumber number = 0u;  ///< index of the block in the chain
-    storage::trie::RootHash state_root{};  ///< root of the Merkle tree
-    common::Hash256 extrinsics_root{};     ///< field for validation integrity
-    Digest digest{};                       ///< chain-specific auxiliary data
+    BlockNumber number{};                  ///< Block number (height)
+    BlockHash parent_hash{};               ///< Parent block hash
+    storage::trie::RootHash state_root{};  ///< Merkle tree root of state
+    common::Hash256 extrinsics_root{};     ///< Hash of included extrinsics
+    Digest digest{};                       ///< Chain-specific auxiliary data
+    mutable std::optional<BlockHash> hash_{};  ///< Its block hash if calculated
 
     bool operator==(const BlockHeader &rhs) const {
       return std::tie(parent_hash, number, state_root, extrinsics_root, digest)
@@ -68,8 +56,17 @@ namespace kagome::primitives {
       return hash_.value();
     }
 
-   private:
-    mutable std::optional<BlockHash> hash_{};
+    const BlockHash &hash() const {
+      BOOST_ASSERT_MSG(hash_.has_value(),
+                       "Hash must be calculated and saved before that");
+      return hash_.value();
+    }
+
+    const BlockHash &block() const {
+      BOOST_ASSERT_MSG(hash_.has_value(),
+                       "Hash must be calculated and saved before that");
+      return hash_.value();
+    }
   };
 
   struct BlockHeaderReflection {
@@ -78,6 +75,25 @@ namespace kagome::primitives {
     const storage::trie::RootHash &state_root;
     const common::Hash256 &extrinsics_root;
     gsl::span<const DigestItem> digest;
+
+    BlockHeaderReflection(const BlockHeader &origin)
+        : parent_hash(origin.parent_hash),
+          number(origin.number),
+          state_root(origin.state_root),
+          extrinsics_root(origin.extrinsics_root),
+          digest(origin.digest) {}
+  };
+
+  // Reflection of block header without Seal, which is the last digest
+  struct UnsealedBlockHeaderReflection : public BlockHeaderReflection {
+    explicit UnsealedBlockHeaderReflection(const BlockHeaderReflection &origin)
+        : BlockHeaderReflection(origin) {
+      BOOST_ASSERT_MSG(number == 0 or not digest.empty(),
+                       "Non-genesis block must have at least Seal digest");
+      digest = digest.subspan(0, digest.size() - 1);
+    }
+    explicit UnsealedBlockHeaderReflection(const BlockHeader &origin)
+        : UnsealedBlockHeaderReflection(BlockHeaderReflection(origin)) {}
   };
 
   struct GenesisBlockHeader {
@@ -127,5 +143,3 @@ namespace kagome::primitives {
                                                 const crypto::Hasher &hasher);
 
 }  // namespace kagome::primitives
-
-#endif  // KAGOME_PRIMITIVES_BLOCK_HEADER_HPP

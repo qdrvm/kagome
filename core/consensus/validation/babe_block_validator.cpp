@@ -121,10 +121,7 @@ namespace kagome::consensus {
       const babe::BabeBlockHeader &babe_header,
       const babe::Seal &seal,
       const primitives::BabeSessionKey &public_key) const {
-    // firstly, take hash of the block's header without Seal, which is the last
-    // digest
-    auto unsealed_header = header;
-    unsealed_header.digest.pop_back();
+    primitives::UnsealedBlockHeaderReflection unsealed_header(header);
 
     auto unsealed_header_encoded = scale::encode(unsealed_header).value();
 

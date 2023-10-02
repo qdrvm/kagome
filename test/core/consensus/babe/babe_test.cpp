@@ -246,7 +246,8 @@ class BabeTest : public testing::Test {
       {},                          // parent
       "state_root#0"_hash256,      // state_root
       "extrinsic_root#0"_hash256,  // extrinsic_root
-      make_digest(10000)           // digest
+      make_digest(10000),          // digest
+      genesis_block_info.hash      // hash
   };
 
   const BlockInfo best_block_info{100, "block#100"_hash256};
@@ -256,7 +257,8 @@ class BabeTest : public testing::Test {
       "block#99"_hash256,            // parent
       "state_root#100"_hash256,      // state_root
       "extrinsic_root#100"_hash256,  // extrinsic_root
-      make_digest(best_block_slot)   // digest
+      make_digest(best_block_slot),  // digest
+      best_block_info.hash           // hash
   };
 
   const BlockInfo new_block_info{best_block_info.number + 1,
@@ -278,7 +280,8 @@ class BabeTest : public testing::Test {
                      }))
               .value();
         }(),
-        make_digest(new_block_slot)  // digest
+        make_digest(new_block_slot),  // digest
+        new_block_info.hash           // hash
     };
     return block;
   }();

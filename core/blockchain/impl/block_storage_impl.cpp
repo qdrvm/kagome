@@ -281,11 +281,6 @@ namespace kagome::blockchain {
     // insert provided block's parts into the database
     OUTCOME_TRY(block_hash, putBlockHeader(block.header));
 
-    primitives::BlockData block_data;
-    block_data.hash = block_hash;
-    block_data.header = block.header;
-    block_data.body = block.body;
-
     OUTCOME_TRY(encoded_header, scale::encode(block.header));
     OUTCOME_TRY(putToSpace(
         *storage_, Space::kHeader, block_hash, std::move(encoded_header)));
@@ -308,11 +303,11 @@ namespace kagome::blockchain {
 
     // Block header
     OUTCOME_TRY(header_opt, getBlockHeader(block_hash));
-    block_data.header = std::move(header_opt);
-
-    if (not block_data.header.has_value()) {
+    if (not header_opt.has_value()) {
       return std::nullopt;
     }
+    auto &header = header_opt.value();
+    block_data.header = std::move(header);
 
     // Block body
     OUTCOME_TRY(body_opt, getBlockBody(block_hash));

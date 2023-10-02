@@ -359,14 +359,14 @@ TEST_F(TriePrunerTest, BasicScenario) {
   }));
   EXPECT_CALL(*serializer_mock, retrieveTrie("root1"_hash256, _))
       .WillOnce(testing::Return(trie));
-  ASSERT_OUTCOME_SUCCESS_TRY(
-      pruner->pruneFinalized(BlockHeader{1, {}, "root1"_hash256, {}, {}}));
+  ASSERT_OUTCOME_SUCCESS_TRY(pruner->pruneFinalized(
+      BlockHeader{.number = 1, .state_root = "root1"_hash256}));
   ASSERT_EQ(pruner->getTrackedNodesNum(), 3);
 
   EXPECT_CALL(*serializer_mock, retrieveTrie("root2"_hash256, _))
       .WillOnce(testing::Return(trie_1));
-  ASSERT_OUTCOME_SUCCESS_TRY(
-      pruner->pruneFinalized(BlockHeader{2, {}, "root2"_hash256, {}, {}}));
+  ASSERT_OUTCOME_SUCCESS_TRY(pruner->pruneFinalized(
+      BlockHeader{.number = 2, .state_root = "root2"_hash256}));
   ASSERT_EQ(pruner->getTrackedNodesNum(), 0);
 }
 
@@ -565,8 +565,8 @@ TEST_F(TriePrunerTest, RandomTree) {
 
       const auto &root = roots[i - 16];
 
-      ASSERT_OUTCOME_SUCCESS_TRY(
-          pruner->pruneFinalized(BlockHeader{i - 16, {}, root, {}, {}}));
+      ASSERT_OUTCOME_SUCCESS_TRY(pruner->pruneFinalized(
+          BlockHeader{.number = i - 16, .state_root = root}));
     }
   }
   for (unsigned i = STATES_NUM - 16; i < STATES_NUM; i++) {
@@ -583,7 +583,7 @@ TEST_F(TriePrunerTest, RandomTree) {
 
     auto &root = roots[i];
     ASSERT_OUTCOME_SUCCESS_TRY(
-        pruner->pruneFinalized(BlockHeader{i, {}, root, {}, {}}));
+        pruner->pruneFinalized(BlockHeader{.number = i, .state_root = root}));
   }
   for (auto &[hash, node] : node_storage) {
     std::cout << hash << "\n";
@@ -605,11 +605,11 @@ TEST_F(TriePrunerTest, RestoreStateFromGenesis) {
                          ? hash_from_header(headers.at(n - 1))
                          : "genesis"_hash256;
     headers[n] = BlockHeader{
-        n,                                               // number
-        parent_hash,                                     // parent_hash
-        hash_from_str("root_hash" + std::to_string(n)),  // state_root
-        {},
-        {}};
+        .number = n,                 // number
+        .parent_hash = parent_hash,  // parent_hash
+        .state_root =
+            hash_from_str("root_hash" + std::to_string(n))  // state_root
+    };
     hash_to_number[hash_from_header(headers.at(n))] = n;
   }
 
@@ -620,7 +620,7 @@ TEST_F(TriePrunerTest, RestoreStateFromGenesis) {
 
   ON_CALL(*block_tree, getBlockHeader(_)).WillByDefault(Invoke([&](auto &hash) {
     if (hash == "genesis"_hash256) {
-      return BlockHeader{0, {}, "genesis_root"_hash256, {}, {}};
+      return BlockHeader{.state_root = "genesis_root"_hash256};
     }
     return headers.at(hash_to_number.at(hash));
   }));
