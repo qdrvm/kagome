@@ -12,6 +12,7 @@
 #include "consensus/beefy/digest.hpp"
 #include "consensus/beefy/sig.hpp"
 #include "crypto/crypto_store/session_keys.hpp"
+#include "metrics/histogram_timer.hpp"
 #include "network/beefy/protocol.hpp"
 #include "runtime/common/runtime_transaction_error.hpp"
 #include "runtime/runtime_api/beefy.hpp"
@@ -22,6 +23,15 @@
 // TODO(turuslan): #1651, report equivocation
 
 namespace kagome::network {
+  metrics::GaugeHelper metric_validator_set_id{
+      "substrate_beefy_validator_set_id",
+      "Current BEEFY active validator set id.",
+  };
+  metrics::GaugeHelper metric_finalized{
+      "substrate_beefy_best_block",
+      "Best block finalized by BEEFY",
+  };
+
   Beefy::Beefy(application::AppStateManager &app_state_manager,
                const application::ChainSpec &chain_spec,
                std::shared_ptr<blockchain::BlockTree> block_tree,
@@ -174,6 +184,7 @@ namespace kagome::network {
     std::ignore = cursor->seekLast();
     if (cursor->isValid()) {
       beefy_finalized_ = BlockNumberKey::decode(*cursor->key()).value();
+      metric_finalized->set(beefy_finalized_);
     }
     SL_INFO(log_, "last finalized {}", beefy_finalized_);
     chain_sub_ = std::make_shared<primitives::events::ChainEventSubscriber>(
@@ -299,9 +310,11 @@ namespace kagome::network {
     }
     if (found) {
       sessions_.emplace(first, Session{std::move(validators), {}});
+      metricValidatorSetId();
     }
     SL_INFO(log_, "finalized {}", block_number);
     beefy_finalized_ = block_number;
+    metric_finalized->set(beefy_finalized_);
     next_digest_ = std::max(next_digest_, block_number + 1);
     if (broadcast) {
       main_thread_->post(
@@ -341,6 +354,7 @@ namespace kagome::network {
                          sessions_.empty() ? *beefy_genesis_ : next_digest_));
       if (found) {
         sessions_.emplace(found->first, Session{std::move(found->second), {}});
+        metricValidatorSetId();
       }
       ++next_digest_;
     }
@@ -400,5 +414,12 @@ namespace kagome::network {
     onVote(std::move(vote), true);
     last_voted_ = target;
     return outcome::success();
+  }
+
+  void Beefy::metricValidatorSetId() {
+    if (not sessions_.empty()) {
+      metric_validator_set_id->set(
+          std::prev(sessions_.end())->second.validators.id);
+    }
   }
 }  // namespace kagome::network
