@@ -24,11 +24,11 @@
 
 namespace kagome::network {
   metrics::GaugeHelper metric_validator_set_id{
-      "substrate_beefy_validator_set_id",
+      "kagome_beefy_validator_set_id",
       "Current BEEFY active validator set id.",
   };
   metrics::GaugeHelper metric_finalized{
-      "substrate_beefy_best_block",
+      "kagome_beefy_best_block",
       "Best block finalized by BEEFY",
   };
 
