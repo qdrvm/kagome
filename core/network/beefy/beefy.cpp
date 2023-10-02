@@ -113,7 +113,7 @@ namespace kagome::network {
       auto &justification =
           boost::get<consensus::beefy::SignedCommitment>(*justification_v1);
       if (justification.commitment.block_number
-          > block_tree_->bestLeaf().number) {
+          > block_tree_->bestBlock().number) {
         return;
       }
       std::ignore = onJustification(std::move(justification));
