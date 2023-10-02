@@ -46,7 +46,7 @@ namespace kagome::network {
                                     host,
                                     make_protocols(kFetchChunkProtocol,
                                                    genesis_hash,
-                                                   "polkadot"),
+                                                   kProtocolPrefixPolkadot),
                                     log::createLogger(kFetchChunkProtocolName,
                                                       "req_chunk_protocol")},
           pp_{std::move(pp)} {

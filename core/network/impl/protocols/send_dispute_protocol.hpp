@@ -49,7 +49,7 @@ namespace kagome::network {
                                     host,
                                     make_protocols(kSendDisputeProtocol,
                                                    genesis_hash,
-                                                   "polkadot"),
+                                                   kProtocolPrefixPolkadot),
                                     log::createLogger(kSendDisputeProtocolName,
                                                       "dispute_protocol")},
           dispute_request_observer_{std::move(dispute_request_observer)} {
