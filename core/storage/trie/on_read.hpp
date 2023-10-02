@@ -13,7 +13,14 @@
 #include "common/buffer.hpp"
 
 namespace kagome::storage::trie {
+  /**
+   * Records db reads required to prove operations on trie.
+   */
   struct OnRead {
+    /**
+     * Make callback.
+     * Not `operator()` to avoid copy.
+     */
     auto onRead() {
       return [this](const common::Hash256 &hash, common::BufferView raw) {
         if (db.emplace(hash, raw).second) {
@@ -22,6 +29,10 @@ namespace kagome::storage::trie {
       };
     }
 
+    /**
+     * Return nodes, not compact encoding.
+     * Used by state rpc and light client protocol.
+     */
     auto vec() {
       std::vector<common::Buffer> vec;
       for (auto &p : db) {
