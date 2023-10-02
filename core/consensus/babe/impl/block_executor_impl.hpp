@@ -18,15 +18,11 @@
 
 namespace boost::asio {
   class io_context;
-}  // namespace boost::asio
+}
 
 namespace kagome {
   class ThreadPool;
-}  // namespace kagome
-
-namespace kagome::application {
-  class AppConfiguration;
-}  // namespace kagome::application
+}
 
 namespace kagome::runtime {
   class OffchainWorkerApi;
@@ -35,7 +31,7 @@ namespace kagome::runtime {
 
 namespace kagome::blockchain {
   class BlockTree;
-}  // namespace kagome::blockchain
+}
 
 namespace kagome::crypto {
   class Hasher;
@@ -55,7 +51,6 @@ namespace kagome::consensus::babe {
         public std::enable_shared_from_this<BlockExecutorImpl> {
    public:
     BlockExecutorImpl(
-        const application::AppConfiguration &app_config,
         std::shared_ptr<blockchain::BlockTree> block_tree,
         const ThreadPool &thread_pool,
         std::shared_ptr<boost::asio::io_context> main_thread,
@@ -84,7 +79,6 @@ namespace kagome::consensus::babe {
         ConsistencyGuard &consistency_guard,
         const primitives::BlockInfo &previous_best_block);
 
-    const application::AppConfiguration &app_config_;
     std::shared_ptr<blockchain::BlockTree> block_tree_;
     std::shared_ptr<boost::asio::io_context> io_context_;
     std::shared_ptr<boost::asio::io_context> main_thread_;

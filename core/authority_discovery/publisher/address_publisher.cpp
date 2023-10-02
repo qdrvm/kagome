@@ -94,7 +94,7 @@ namespace kagome::authority_discovery {
 
     OUTCOME_TRY(
         authorities,
-        authority_discovery_api_->authorities(block_tree_->bestLeaf().hash));
+        authority_discovery_api_->authorities(block_tree_->bestBlock().hash));
 
     auto audi_key = keys_->getAudiKeyPair(authorities);
     if (not audi_key) {

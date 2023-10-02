@@ -339,12 +339,12 @@ TEST_F(BabeTest, Success) {
 
   // processSlotLeadership
   // we are not leader of the first slot, but leader of the second
-  EXPECT_CALL(*block_tree_, bestLeaf()).WillRepeatedly(Return(best_leaf));
+  EXPECT_CALL(*block_tree_, bestBlock()).WillRepeatedly(Return(best_leaf));
 
   // call for check condition of offchain worker run
   EXPECT_CALL(*block_tree_, getLastFinalized())
       .WillRepeatedly(Return(best_leaf));
-  EXPECT_CALL(*block_tree_, getBestContaining(_, _))
+  EXPECT_CALL(*block_tree_, getBestContaining(_))
       .WillOnce(Return(best_leaf))
       .WillOnce(
           Return(BlockInfo(created_block_.header.number, created_block_hash_)));
@@ -379,7 +379,7 @@ TEST_F(BabeTest, NotAuthority) {
   EXPECT_CALL(*clock_, now());
   EXPECT_CALL(*babe_util_, slotFinishTime(_)).Times(testing::AnyNumber());
 
-  EXPECT_CALL(*block_tree_, bestLeaf()).WillRepeatedly(Return(best_leaf));
+  EXPECT_CALL(*block_tree_, bestBlock()).WillRepeatedly(Return(best_leaf));
 
   babe_config_->authorities.clear();
   EXPECT_CALL(*timer_, expiresAt(_));

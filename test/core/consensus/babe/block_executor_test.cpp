@@ -12,7 +12,6 @@
 #include "consensus/babe/impl/block_appender_base.hpp"
 #include "consensus/babe/impl/threshold_util.hpp"
 #include "consensus/babe/types/seal.hpp"
-#include "mock/core/application/app_configuration_mock.hpp"
 #include "mock/core/blockchain/block_tree_mock.hpp"
 #include "mock/core/blockchain/digest_tracker_mock.hpp"
 #include "mock/core/consensus/babe/babe_config_repository_mock.hpp"
@@ -33,7 +32,6 @@
 #include "utils/thread_pool.hpp"
 
 using kagome::ThreadPool;
-using kagome::application::AppConfigurationMock;
 using kagome::blockchain::BlockTree;
 using kagome::blockchain::BlockTreeError;
 using kagome::blockchain::BlockTreeMock;
@@ -156,22 +154,19 @@ class BlockExecutorTest : public testing::Test {
                                                         babe_util_,
                                                         hasher_);
 
-    block_executor_ =
-        std::make_shared<BlockExecutorImpl>(app_config_,
-                                            block_tree_,
-                                            thread_pool_,
-                                            thread_pool_.io_context(),
-                                            core_,
-                                            tx_pool_,
-                                            hasher_,
-                                            offchain_worker_api_,
-                                            storage_sub_engine_,
-                                            chain_sub_engine_,
-                                            std::move(appender));
+    block_executor_ = std::make_shared<BlockExecutorImpl>(block_tree_,
+                                                          thread_pool_,
+                                                          thread_pool_.io_context(),
+                                                          core_,
+                                                          tx_pool_,
+                                                          hasher_,
+                                                          offchain_worker_api_,
+                                                          storage_sub_engine_,
+                                                          chain_sub_engine_,
+                                                          std::move(appender));
   }
 
  protected:
-  AppConfigurationMock app_config_;
   std::shared_ptr<BlockTreeMock> block_tree_;
   ThreadPool thread_pool_{"test", 1};
   std::shared_ptr<CoreMock> core_;
@@ -244,9 +239,7 @@ TEST_F(BlockExecutorTest, JustificationFollowDigests) {
   EXPECT_CALL(*block_tree_, getLastFinalized())
       .WillOnce(testing::Return(BlockInfo{40, "grandparent_hash"_hash256}))
       .WillOnce(testing::Return(BlockInfo{42, "some_hash"_hash256}));
-  EXPECT_CALL(*block_tree_,
-              getBestContaining("grandparent_hash"_hash256,
-                                std::optional<BlockNumber>{}))
+  EXPECT_CALL(*block_tree_, getBestContaining("grandparent_hash"_hash256))
       .WillOnce(testing::Return(BlockInfo{41, "parent_hash"_hash256}));
   EXPECT_CALL(*core_, execute_block_ref(_, _))
       .WillOnce(testing::Return(outcome::success()));
@@ -263,9 +256,7 @@ TEST_F(BlockExecutorTest, JustificationFollowDigests) {
         onDigest(BlockContext{.block_info = {42, "some_hash"_hash256}}, _))
         .WillOnce(testing::Return(outcome::success()));
   }
-  EXPECT_CALL(
-      *block_tree_,
-      getBestContaining("some_hash"_hash256, std::optional<BlockNumber>{}))
+  EXPECT_CALL(*block_tree_, getBestContaining("some_hash"_hash256))
       .WillOnce(testing::Return(BlockInfo{42, "some_hash"_hash256}));
   EXPECT_CALL(*offchain_worker_api_, offchain_worker(_, _))
       .WillOnce(testing::Return(outcome::success()));

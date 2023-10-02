@@ -53,7 +53,7 @@ namespace kagome::parachain {
       cb(std::move(*data));
       return;
     }
-    auto block = block_tree_->bestLeaf();
+    auto block = block_tree_->bestBlock();
     auto _session = parachain_api_->session_info(block.hash, session_index);
     if (not _session) {
       lock.unlock();

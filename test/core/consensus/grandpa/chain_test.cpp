@@ -209,7 +209,7 @@ TEST_F(ChainTest, HasAncestryOfItself) {
  */
 TEST_F(ChainTest, BestChainContaining) {
   auto h = mockTree();
-  EXPECT_CALL(*tree, getBestContaining(_, _))
+  EXPECT_CALL(*tree, getBestContaining(_))
       .WillOnce(Return(BlockInfo{42, h[3]}));
   EXPECT_CALL(*tree, getLastFinalized()).WillOnce(Return(BlockInfo{42, h[3]}));
   std::vector<BlockHash> best_chain{h[3]};

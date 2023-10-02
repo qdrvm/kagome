@@ -8,6 +8,7 @@
 #include <queue>
 
 #include <iostream>
+#include <set>
 
 OUTCOME_CPP_DEFINE_CATEGORY(kagome::blockchain, TreeNode::Error, e) {
   using E = kagome::blockchain::TreeNode::Error;
@@ -20,6 +21,16 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::blockchain, TreeNode::Error, e) {
 
 namespace kagome::blockchain {
   TreeNode::TreeNode(const primitives::BlockHash &hash,
+                     primitives::BlockNumber depth)
+      : block_hash{hash},
+        depth{depth},
+        parent{},
+        finalized{true},
+        babe_primary{false},
+        contains_approved_para_block{false},
+        reverted{false} {}
+
+  TreeNode::TreeNode(const primitives::BlockHash &hash,
                      primitives::BlockNumber depth,
                      const std::shared_ptr<TreeNode> &parent,
                      bool finalized,
@@ -29,7 +40,8 @@ namespace kagome::blockchain {
         parent{parent},
         finalized{finalized},
         babe_primary{babe_primary},
-        contains_approved_para_block{false} {}
+        contains_approved_para_block{false},
+        reverted{parent ? parent->reverted : false} {}
 
   outcome::result<void> TreeNode::applyToChain(
       const primitives::BlockInfo &chain_end,
@@ -118,7 +130,7 @@ namespace kagome::blockchain {
   }
 
   TreeMeta::TreeMeta(const std::shared_ptr<TreeNode> &subtree_root_node)
-      : best_leaf{subtree_root_node}, last_finalized{subtree_root_node} {
+      : best_block{subtree_root_node}, last_finalized{subtree_root_node} {
     std::function<void(std::shared_ptr<TreeNode>)> handle =
         [&](std::shared_ptr<TreeNode> node) {
           // avoid deep recursion
@@ -162,13 +174,56 @@ namespace kagome::blockchain {
   }
 
   bool TreeMeta::chooseBest(std::shared_ptr<TreeNode> node) {
-    auto best = best_leaf.lock();
+    if (node->reverted) {
+      return false;
+    }
+    auto best = best_block.lock();
     BOOST_ASSERT(best);
+    BOOST_ASSERT(not best->reverted);
     if (getWeight(node) > getWeight(best)) {
-      best_leaf = node;
+      best_block = node;
       return true;
     }
     return false;
+  }
+
+  void TreeMeta::forceRefreshBest() {
+    auto root = last_finalized.lock();
+    struct Cmp {
+      bool operator()(const std::shared_ptr<const TreeNode> &lhs,
+                      const std::shared_ptr<const TreeNode> &rhs) const {
+        BOOST_ASSERT(lhs and rhs);
+        return lhs->depth < rhs->depth
+            or (lhs->depth == rhs->depth and lhs->block_hash < rhs->block_hash);
+      }
+    };
+
+    std::set<std::shared_ptr<TreeNode>, Cmp> candidates;
+    for (auto &leaf : leaves) {
+      if (auto node = root->findByHash(leaf)) {
+        candidates.emplace(std::move(node));
+      }
+    }
+
+    auto best = std::move(root);
+    while (not candidates.empty()) {
+      auto node = candidates.extract((++candidates.rbegin()).base());
+      BOOST_ASSERT(not node.empty());
+
+      auto &tree_node = node.value();
+      if (tree_node->reverted) {
+        if (auto parent = tree_node->parent.lock()) {
+          candidates.emplace(std::move(parent));
+        }
+        continue;
+      }
+
+      if (getWeight(best) < getWeight(tree_node)) {
+        best = tree_node;
+      }
+    }
+
+    best_block = best;
   }
 
   void CachedTree::updateTreeRoot(std::shared_ptr<TreeNode> new_trie_root) {
@@ -214,6 +269,10 @@ namespace kagome::blockchain {
     metadata_->chooseBest(new_node);
   }
 
+  void CachedTree::forceRefreshBest() {
+    metadata_->forceRefreshBest();
+  }
+
   void CachedTree::removeFromMeta(const std::shared_ptr<TreeNode> &node) {
     auto parent = node->parent.lock();
     if (parent == nullptr) {
@@ -231,10 +290,10 @@ namespace kagome::blockchain {
       metadata_->leaves.insert(parent->block_hash);
     }
 
-    auto best = metadata_->best_leaf.lock();
+    auto best = metadata_->best_block.lock();
     BOOST_ASSERT(best);
     if (node == best) {
-      metadata_->best_leaf = parent;
+      metadata_->best_block = parent;
       for (auto it = metadata_->leaves.begin();
            it != metadata_->leaves.end();) {
         const auto &hash = *it++;
