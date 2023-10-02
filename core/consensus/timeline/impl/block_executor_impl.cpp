@@ -33,6 +33,7 @@ namespace kagome::consensus {
   BlockExecutorImpl::BlockExecutorImpl(
       std::shared_ptr<blockchain::BlockTree> block_tree,
       const ThreadPool &thread_pool,
+      std::shared_ptr<boost::asio::io_context> main_thread,
       std::shared_ptr<runtime::Core> core,
       std::shared_ptr<transaction_pool::TransactionPool> tx_pool,
       std::shared_ptr<crypto::Hasher> hasher,
@@ -42,6 +43,7 @@ namespace kagome::consensus {
       std::unique_ptr<BlockAppenderBase> appender)
       : block_tree_{std::move(block_tree)},
         io_context_{thread_pool.io_context()},
+        main_thread_{std::move(main_thread)},
         core_{std::move(core)},
         tx_pool_{std::move(tx_pool)},
         hasher_{std::move(hasher)},
@@ -173,13 +175,23 @@ namespace kagome::consensus {
       changes_tracker->onBlockAdded(
           block_info.hash, storage_sub_engine_, chain_subscription_engine_);
 
-      applyBlockExecuted(std::move(block),
-                         justification,
-                         std::move(callback),
-                         block_info,
-                         start_time,
-                         *consistency_guard,
-                         previous_best_block);
+      auto executed = [self,
+                       block{std::move(block)},
+                       justification{std::move(justification)},
+                       callback{std::move(callback)},
+                       block_info,
+                       start_time,
+                       consistency_guard{std::move(consistency_guard)},
+                       previous_best_block]() mutable {
+        self->applyBlockExecuted(std::move(block),
+                                 justification,
+                                 std::move(callback),
+                                 block_info,
+                                 start_time,
+                                 *consistency_guard,
+                                 previous_best_block);
+      };
+      main_thread_->post(std::move(executed));
     };
     io_context_->post(std::move(execute));
   }
