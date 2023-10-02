@@ -64,55 +64,6 @@ namespace kagome::dispute {
                                           InvalidDisputeStatement  // 1
                                           >;
 
-  inline common::Buffer getSignablePayload(const DisputeStatement &statement,
-                                           CandidateHash candidate_hash,
-                                           SessionIndex session) {
-    auto res = visit_in_place(
-        statement,
-        [&](const ValidDisputeStatement &kind) {
-          return visit_in_place(
-              kind,
-              [&](const Explicit &) {
-                std::array<uint8_t, 4> magic{'D', 'I', 'S', 'P'};
-                bool validity = true;
-                return scale::encode(
-                    std::tie(magic, validity, candidate_hash, session));
-              },
-              [&](const BackingSeconded &inclusion_parent) {
-                std::array<uint8_t, 4> magic{'B', 'K', 'N', 'G'};
-                uint8_t discriminant = 1;  // Seconded
-                return scale::encode(std::tie(magic,
-                                              discriminant,
-                                              candidate_hash,
-                                              session,
-                                              inclusion_parent));
-              },
-              [&](const BackingValid &inclusion_parent) {
-                std::array<uint8_t, 4> magic{'B', 'K', 'N', 'G'};
-                uint8_t discriminant = 2;  // Valid
-                return scale::encode(std::tie(magic,
-                                              discriminant,
-                                              candidate_hash,
-                                              session,
-                                              inclusion_parent));
-              },
-              [&](const ApprovalChecking &statement) {
-                std::array<uint8_t, 4> magic{'A', 'P', 'P', 'R'};
-                return scale::encode(std::tie(magic, candidate_hash, session));
-              });
-        },
-        [&](const InvalidDisputeStatement &kind) {
-          return visit_in_place(kind, [&](const Explicit &) {
-            std::array<uint8_t, 4> magic{'D', 'I', 'S', 'P'};
-            bool validity = false;
-            return scale::encode(
-                std::tie(magic, validity, candidate_hash, session));
-          });
-        });
-    BOOST_ASSERT_MSG(res.has_value(), "Successful scale encoding expected");
-    return common::Buffer(std::move(res.value()));
-  }
-
   /// Tracked votes on candidates, for the purposes of dispute resolution.
   struct CandidateVotes {
     SCALE_TIE(3);
@@ -199,7 +150,7 @@ namespace kagome::dispute {
     /// Session for above index.
     SessionInfo &session;
     /// Validator indices controlled by this node.
-    std::unordered_set<ValidatorIndex> controlled_indices;
+    std::unordered_set<ValidatorIndex> controlled_indices{};
   };
 
   /// The status of an activated leaf.
@@ -242,7 +193,7 @@ namespace kagome::dispute {
     std::optional<ActivatedLeaf> activated;
 
     /// Relay chain block hashes no longer of interest.
-    std::vector<primitives::BlockHash> deactivated;
+    std::vector<primitives::BlockHash> deactivated{};
   };
 
   /// Implicit validity attestation by issuing.
@@ -346,7 +297,7 @@ namespace kagome::dispute {
   /// Ready for import.
   struct PreparedImport {
     CandidateReceipt candidate_receipt;
-    std::vector<Indexed<SignedDisputeStatement>> statements;
+    std::vector<Indexed<SignedDisputeStatement>> statements{};
     /// Information about original requesters.
     std::vector<std::tuple<libp2p::peer::PeerId,
                            std::function<void(outcome::result<void>)>>>

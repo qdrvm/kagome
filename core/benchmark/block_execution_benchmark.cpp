@@ -10,8 +10,8 @@
 
 #include "blockchain/block_tree.hpp"
 #include "primitives/runtime_dispatch_info.hpp"
-#include "runtime/runtime_api/core.hpp"
 #include "runtime/module_repository.hpp"
+#include "runtime/runtime_api/core.hpp"
 #include "storage/trie/trie_storage.hpp"
 
 OUTCOME_CPP_DEFINE_CATEGORY(kagome::benchmark,

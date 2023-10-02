@@ -44,7 +44,7 @@ namespace kagome::storage::trie {
         [this, on_node_loaded](const std::shared_ptr<OpaqueTrieNode> &parent)
         -> outcome::result<PolkadotTrie::NodePtr> {
       OUTCOME_TRY(node, retrieveNode(parent, on_node_loaded));
-      return std::move(node);
+      return node;
     };
     PolkadotTrie::ValueRetrieveFunction v =
         [this, on_node_loaded](const common::Hash256 &hash)
@@ -101,7 +101,7 @@ namespace kagome::storage::trie {
       const OnNodeLoaded &on_node_loaded) const {
     if (auto p = std::dynamic_pointer_cast<DummyNode>(node); p != nullptr) {
       OUTCOME_TRY(n, retrieveNode(p->db_key, on_node_loaded));
-      return std::move(n);
+      return n;
     }
     return std::dynamic_pointer_cast<TrieNode>(node);
   }

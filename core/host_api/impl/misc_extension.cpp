@@ -5,6 +5,7 @@
 
 #include "host_api/impl/misc_extension.hpp"
 
+#include "log/trace_macros.hpp"
 #include "primitives/version.hpp"
 #include "runtime/common/uncompress_code_if_needed.hpp"
 #include "runtime/core_api_factory.hpp"

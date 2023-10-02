@@ -198,7 +198,7 @@ namespace kagome::parachain {
       std::unordered_set<primitives::BlockHash> issued_statements;
       std::unordered_set<network::PeerId> peers_advertised;
       std::unordered_map<primitives::BlockHash, AttestingData> fallbacks;
-      std::unordered_set<CandidateHash> backed_hashes;
+      std::unordered_set<CandidateHash> backed_hashes{};
     };
 
     /*

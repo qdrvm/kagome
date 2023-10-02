@@ -47,7 +47,9 @@ target_link_libraries(trie_storage_provider
     )
 kagome_install(trie_storage_provider)
 
-add_library(runtime_upgrade_tracker runtime_upgrade_tracker_impl.cpp)
+add_library(runtime_upgrade_tracker
+    runtime_upgrade_tracker_impl.cpp
+    )
 target_link_libraries(runtime_upgrade_tracker
     blockchain
     logger
@@ -57,10 +59,16 @@ kagome_install(runtime_upgrade_tracker)
 add_library(module_repository
     module_repository_impl.cpp
     runtime_instances_pool.cpp)
-target_link_libraries(module_repository outcome)
+target_link_libraries(module_repository
+    outcome
+    )
 kagome_install(module_repository)
 
-add_library(executor executor.cpp runtime_context.cpp module_instance.cpp)
+add_library(executor
+    executor.cpp
+    runtime_context.cpp
+    module_instance.cpp
+    )
 target_link_libraries(executor
     logger
     uncompress_if_needed
@@ -69,7 +77,9 @@ target_link_libraries(executor
     )
 kagome_install(executor)
 
-add_library(memory_allocator memory_allocator.cpp)
+add_library(memory_allocator
+    memory_allocator.cpp
+    )
 target_link_libraries(memory_allocator
     Boost::boost
     outcome

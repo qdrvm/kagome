@@ -52,7 +52,7 @@ namespace kagome::storage::trie {
    private:
     bool wasClearedByPrefix(const BufferView &key) const;
 
-    std::map<Buffer, std::optional<Buffer>, std::less<>> cache_;
+    std::map<Buffer, std::optional<Buffer>> cache_;
     std::deque<Buffer> cleared_prefixes_;
     std::weak_ptr<TrieBatch> parent_;
 
