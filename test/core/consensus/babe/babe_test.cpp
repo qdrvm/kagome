@@ -341,14 +341,6 @@ TEST_F(BabeTest, Success) {
   // we are not leader of the first slot, but leader of the second
   EXPECT_CALL(*block_tree_, bestBlock()).WillRepeatedly(Return(best_leaf));
 
-  // call for check condition of offchain worker run
-  EXPECT_CALL(*block_tree_, getLastFinalized())
-      .WillRepeatedly(Return(best_leaf));
-  EXPECT_CALL(*block_tree_, getBestContaining(_))
-      .WillOnce(Return(best_leaf))
-      .WillOnce(
-          Return(BlockInfo(created_block_.header.number, created_block_hash_)));
-
   EXPECT_CALL(*block_tree_, getBlockHeader(best_block_hash_))
       .WillRepeatedly(Return(outcome::success(best_block_header_)));
   EXPECT_CALL(*block_tree_, getBlockHeader(created_block_hash_))
