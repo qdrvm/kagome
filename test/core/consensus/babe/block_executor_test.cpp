@@ -156,6 +156,7 @@ class BlockExecutorTest : public testing::Test {
 
     block_executor_ = std::make_shared<BlockExecutorImpl>(block_tree_,
                                                           thread_pool_,
+                                                          thread_pool_.io_context(),
                                                           core_,
                                                           tx_pool_,
                                                           hasher_,
