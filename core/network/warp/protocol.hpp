@@ -20,7 +20,7 @@ namespace kagome::network {
    public:
     WarpProtocol(libp2p::Host &host,
                    const application::ChainSpec &chain_spec,
-                   const primitives::GenesisBlockHeader &genesis,
+                   const blockchain::GenesisBlockHash &genesis,
                    std::shared_ptr<WarpSyncCache> cache)
           : RequestResponseProtocolType{
               kName,

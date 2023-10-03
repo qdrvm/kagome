@@ -8,6 +8,7 @@
 
 #include "common/blob.hpp"
 #include "crypto/crypto_store/key_type.hpp"
+#include "crypto/ecdsa_types.hpp"
 #include "network/types/roles.hpp"
 #include "primitives/authority.hpp"
 #include "primitives/authority_discovery_id.hpp"
@@ -65,6 +66,12 @@ namespace kagome::crypto {
      */
     virtual std::shared_ptr<Sr25519Keypair> getAudiKeyPair(
         const std::vector<primitives::AuthorityDiscoveryId> &authorities) = 0;
+
+    /**
+     * @return current BEEF session key pair
+     */
+    virtual KeypairWithIndexOpt<EcdsaKeypair> getBeefKeyPair(
+        const std::vector<EcdsaPublicKey> &authorities) = 0;
   };
 
   class SessionKeysImpl : public SessionKeys {
@@ -72,6 +79,7 @@ namespace kagome::crypto {
     KeypairWithIndexOpt<Ed25519Keypair> gran_key_pair_;
     KeypairWithIndexOpt<Sr25519Keypair> para_key_pair_;
     KeypairWithIndexOpt<Sr25519Keypair> audi_key_pair_;
+    KeypairWithIndexOpt<EcdsaKeypair> beef_key_pair_;
     network::Roles roles_;
     std::shared_ptr<CryptoStore> store_;
 
@@ -107,6 +115,9 @@ namespace kagome::crypto {
     std::shared_ptr<Sr25519Keypair> getAudiKeyPair(
         const std::vector<primitives::AuthorityDiscoveryId> &authorities)
         override;
+
+    KeypairWithIndexOpt<EcdsaKeypair> getBeefKeyPair(
+        const std::vector<EcdsaPublicKey> &authorities) override;
   };
 
 }  // namespace kagome::crypto

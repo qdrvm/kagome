@@ -94,6 +94,7 @@ class SynchronizerTest
                                                     scheduler,
                                                     hasher,
                                                     chain_sub_engine,
+                                                    nullptr,
                                                     grandpa_environment);
   }
 

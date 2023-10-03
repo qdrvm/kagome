@@ -21,6 +21,7 @@ namespace kagome::storage {
     kJustification,
     kTrieNode,
     kDisputeData,
+    kBeefyJustification,
 
     kTotal
   };

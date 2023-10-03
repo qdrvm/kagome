@@ -21,6 +21,20 @@ namespace kagome::metrics {
     return buckets;
   }
 
+  struct GaugeHelper {
+    GaugeHelper(const std::string &name, const std::string &help) {
+      registry_->registerGaugeFamily(name, help);
+      metric_ = registry_->registerGaugeMetric(name);
+    }
+
+    auto *operator->() {
+      return metric_;
+    }
+
+    metrics::RegistryPtr registry_ = metrics::createRegistry();
+    metrics::Gauge *metric_;
+  };
+
   struct HistogramHelper {
     HistogramHelper(const std::string &name,
                     const std::string &help,

@@ -9,7 +9,7 @@
 #include <libp2p/peer/stream_protocols.hpp>
 
 #include "application/chain_spec.hpp"
-#include "primitives/common.hpp"
+#include "blockchain/genesis_block_hash.hpp"
 
 namespace kagome::network {
   /// Current protocol version.
@@ -36,33 +36,38 @@ namespace kagome::network {
   const libp2p::peer::ProtocolName kFetchStatementProtocol{
       "/{}/req_statement/1"};
   const libp2p::peer::ProtocolName kSendDisputeProtocol{"/{}/send_dispute/1"};
+  const libp2p::peer::ProtocolName kBeefyProtocol{"/{}/beefy/2"};
+  const libp2p::peer::ProtocolName kBeefyJustificationProtocol{
+      "/{}/beefy/justifications/1"};
+
+  struct ProtocolPrefix {
+    std::string_view prefix;
+  };
+  constexpr ProtocolPrefix kProtocolPrefixParitytech{"paritytech"};
+  constexpr ProtocolPrefix kProtocolPrefixPolkadot{"polkadot"};
 
   template <typename... Args>
   libp2p::StreamProtocols make_protocols(std::string_view format,
                                          const Args &...args) {
-    libp2p::StreamProtocols protocols;
-    auto instantiate = [&](const auto &arg) {
-      if constexpr (std::is_same_v<std::decay_t<decltype(arg)>,
-                                   std::decay_t<primitives::BlockHash>>) {
+    struct Visitor {
+      std::string_view format;
+      libp2p::StreamProtocols protocols;
+
+      void visit(const blockchain::GenesisBlockHash &arg) {
         auto x = hex_lower(arg);
         protocols.emplace_back(fmt::vformat(format, fmt::make_format_args(x)));
-      } else if constexpr (std::is_same_v<
-                               std::decay_t<decltype(arg)>,
-                               std::decay_t<primitives::GenesisBlockHeader>>) {
-        auto x = hex_lower(arg.hash);
-        protocols.emplace_back(fmt::vformat(format, fmt::make_format_args(x)));
-      } else if constexpr (std::is_same_v<
-                               std::decay_t<decltype(arg)>,
-                               std::decay_t<application::ChainSpec>>) {
+      }
+      void visit(const application::ChainSpec &arg) {
         protocols.emplace_back(
             fmt::vformat(format, fmt::make_format_args(arg.protocolId())));
-      } else {
-        protocols.emplace_back(
-            fmt::vformat(format, fmt::make_format_args(arg)));
       }
-    };
-    (instantiate(args), ...);
-    return protocols;
+      void visit(const ProtocolPrefix &arg) {
+        protocols.emplace_back(
+            fmt::vformat(format, fmt::make_format_args(arg.prefix)));
+      }
+    } visitor{format, {}};
+    (visitor.visit(args), ...);
+    return visitor.protocols;
   }
 
 }  // namespace kagome::network

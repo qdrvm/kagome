@@ -14,10 +14,10 @@ namespace kagome::runtime {
     BOOST_ASSERT(executor_);
   }
 
-  outcome::result<std::optional<consensus::beefy::ValidatorSet>>
-  BeefyApiImpl::validatorSet(const primitives::BlockHash &block) {
-    auto r = executor_->callAt<consensus::beefy::ValidatorSet>(
-        block, "BeefyApi_validator_set");
+  outcome::result<std::optional<primitives::BlockNumber>> BeefyApiImpl::genesis(
+      const primitives::BlockHash &block) {
+    auto r = executor_->callAt<std::optional<primitives::BlockNumber>>(
+        block, "BeefyApi_beefy_genesis");
     if (r) {
       return std::move(r.value());
     }
@@ -25,5 +25,11 @@ namespace kagome::runtime {
       return std::nullopt;
     }
     return r.error();
+  }
+
+  outcome::result<std::optional<consensus::beefy::ValidatorSet>>
+  BeefyApiImpl::validatorSet(const primitives::BlockHash &block) {
+    return executor_->callAt<std::optional<consensus::beefy::ValidatorSet>>(
+        block, "BeefyApi_validator_set");
   }
 }  // namespace kagome::runtime

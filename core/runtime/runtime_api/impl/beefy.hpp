@@ -14,6 +14,8 @@ namespace kagome::runtime {
    public:
     BeefyApiImpl(std::shared_ptr<Executor> executor);
 
+    outcome::result<std::optional<primitives::BlockNumber>> genesis(
+        const primitives::BlockHash &block) override;
     outcome::result<std::optional<consensus::beefy::ValidatorSet>> validatorSet(
         const primitives::BlockHash &block) override;
 

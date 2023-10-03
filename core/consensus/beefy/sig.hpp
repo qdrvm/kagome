@@ -27,9 +27,8 @@ namespace kagome::consensus::beefy {
   }
 
   inline bool verify(const crypto::EcdsaProvider &ecdsa,
-                     const BeefyJustification &justification_v1,
+                     const SignedCommitment &justification,
                      const ValidatorSet &validators) {
-    auto &justification = boost::get<SignedCommitment>(justification_v1);
     if (justification.commitment.validator_set_id != validators.id) {
       return false;
     }
@@ -49,5 +48,12 @@ namespace kagome::consensus::beefy {
       }
     }
     return valid >= threshold(total);
+  }
+
+  inline bool verify(const crypto::EcdsaProvider &ecdsa,
+                     const BeefyJustification &justification_v1,
+                     const ValidatorSet &validators) {
+    return verify(
+        ecdsa, boost::get<SignedCommitment>(justification_v1), validators);
   }
 }  // namespace kagome::consensus::beefy

@@ -7,6 +7,7 @@ add_library(application_injector
     application_injector.cpp
     )
 target_link_libraries(application_injector
+    beefy_api
     Boost::Boost.DI
     runtime_wavm
     account_nonce_api

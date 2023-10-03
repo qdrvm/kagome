@@ -21,6 +21,7 @@ namespace kagome::crypto {
         KEY_TYPE_ASGN,
         KEY_TYPE_AUDI,
         KEY_TYPE_ACCO,
+        KEY_TYPE_BEEF,
     };
 
     return supported_types.count(k) > 0;

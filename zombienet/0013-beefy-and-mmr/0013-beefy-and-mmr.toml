@@ -1,0 +1,17 @@
+[settings]
+timeout = 1000
+
+[relaychain]
+chain = "rococo-local"
+default_command = "polkadot"
+
+[[relaychain.node_groups]]
+name = "validator"
+count = 3
+command = "kagome"
+prometheus_prefix = "kagome"
+args = ["--enable-offchain-indexing=true", "--wasm-execution", "Compiled", "--unsafe-cached-wavm-runtime"]
+
+[[relaychain.nodes]]
+name = "validator-unstable"
+args = ["--log=beefy=debug", "--enable-offchain-indexing=true"]

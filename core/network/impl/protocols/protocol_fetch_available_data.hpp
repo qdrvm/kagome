@@ -35,7 +35,7 @@ namespace kagome::network {
                                     host,
                                     make_protocols(kFetchAvailableDataProtocol,
                                                    genesis_hash,
-                                                   "polkadot"),
+                                                   kProtocolPrefixPolkadot),
                                     log::createLogger(
                                         kName, "req_available_data_protocol")},
           av_store_{std::move(av_store)} {}
@@ -73,7 +73,7 @@ namespace kagome::network {
                                     host,
                                     make_protocols(kFetchStatementProtocol,
                                                    genesis_hash,
-                                                   "polkadot"),
+                                                   kProtocolPrefixPolkadot),
                                     log::createLogger(
                                         kName, "req_statement_protocol")},
           backing_store_{std::move(backing_store)} {}

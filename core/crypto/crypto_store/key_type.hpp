@@ -34,6 +34,7 @@ namespace kagome::crypto {
     KEY_TYPE_AUDI = 0x69647561u, // Account discovery [sr25519, ed25519, secp256k1]
     KEY_TYPE_ASGN = 0x6e677361u, // ASGN
     KEY_TYPE_PARA = 0x61726170u, // PARA
+    KEY_TYPE_BEEF = 0x66656562u, // Beefy, secp256k1
     // clang-format on
   };
 

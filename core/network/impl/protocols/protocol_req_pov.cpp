@@ -28,7 +28,7 @@ namespace kagome::network {
                                     host,
                                     make_protocols(kReqPovProtocol,
                                                    genesis_hash,
-                                                   "polkadot"),
+                                                   kProtocolPrefixPolkadot),
                                     log::createLogger(kReqPovProtocolName,
                                                       "req_pov_protocol")},
           observer_{std::move(observer)} {}
