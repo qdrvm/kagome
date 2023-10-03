@@ -65,6 +65,8 @@ namespace kagome::telemetry {
 
     void notifyBlockFinalized(const primitives::BlockInfo &info) override;
 
+    void pushBlockStats() override;
+
     void setGenesisBlockHash(const primitives::BlockHash &hash) override;
 
     void notifyWasSynchronized() override;

@@ -544,6 +544,7 @@ namespace kagome::consensus::babe {
         block_info.hash, storage_sub_engine_, chain_sub_engine_);
 
     telemetry_->notifyBlockImported(block_info, telemetry::BlockOrigin::kOwn);
+    telemetry_->pushBlockStats();
 
     // observe digest of block
     // (must be done strictly after block will be added)

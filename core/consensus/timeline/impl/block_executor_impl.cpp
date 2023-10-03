@@ -289,6 +289,7 @@ namespace kagome::consensus {
           auto current_best_block = self->block_tree_->bestBlock();
           self->telemetry_->notifyBlockImported(
               current_best_block, telemetry::BlockOrigin::kNetworkInitialSync);
+          self->telemetry_->pushBlockStats();
 
           // Create new offchain worker for block if it is best only
           if (current_best_block.number > previous_best_block_number) {

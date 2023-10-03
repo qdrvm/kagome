@@ -28,6 +28,11 @@ namespace kagome::telemetry {
                 (const primitives::BlockInfo &),
                 (override));
 
+    MOCK_METHOD(void,
+                pushBlockStats,
+                (),
+                (override));
+
     MOCK_METHOD(void, notifyWasSynchronized, (), (override));
 
     MOCK_METHOD(bool, isEnabled, (), (const override));

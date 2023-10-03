@@ -30,6 +30,11 @@ namespace kagome::telemetry {
           service_->notifyBlockFinalized(info);
         }
       }
+      void pushBlockStats() override {
+        if (service_) {
+          service_->pushBlockStats();
+        }
+      }
       void notifyWasSynchronized() override {
         if (service_) {
           service_->notifyWasSynchronized();
