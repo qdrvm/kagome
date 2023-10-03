@@ -306,6 +306,7 @@ namespace kagome::consensus::babe {
     BOOST_ASSERT(ctx.keypair != nullptr);
 
     // Calculate and save hash, 'cause it's new produced block
+    // Note: it is temporary hash significant for signing
     primitives::calculateBlockHash(
         const_cast<primitives::BlockHeader &>(block.header), *hasher_);
 
@@ -504,6 +505,9 @@ namespace kagome::consensus::babe {
 
     // add seal digest item
     block.header.digest.emplace_back(seal_res.value());
+
+    // Calculate and save hash, 'cause seal digest was added
+    primitives::calculateBlockHash(block.header, *hasher_);
 
     if (clock_.now() > slots_util_.get()->slotFinishTime(
             ctx.slot + kMaxBlockSlotsOvertime)) {

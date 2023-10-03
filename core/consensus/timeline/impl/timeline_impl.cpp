@@ -549,17 +549,20 @@ namespace kagome::consensus {
       BOOST_ASSERT_MSG(header_opt.has_value(), "Just added block; deq");
       const auto &header = header_opt.value();
 
-      auto consensus = consensus_selector_->getProductionConsensus(block);
+      [[likely]] if (header.number != 0) {
+        auto consensus = consensus_selector_->getProductionConsensus(block);
 
-      auto slot_res = consensus->getSlot(header);
-      if (not slot_res.has_value()) {
-        return;
-      }
-      if (slots_util_->timeToSlot(clock_.now()) > slot_res.value() + 1) {
-        current_state_ = SyncState::WAIT_REMOTE_STATUS;
-        state_sub_engine_->notify(
-            primitives::events::SyncStateEventType::kSyncState, current_state_);
-        return;
+        auto slot_res = consensus->getSlot(header);
+        if (not slot_res.has_value()) {
+          return;
+        }
+        if (slots_util_->timeToSlot(clock_.now()) > slot_res.value() + 1) {
+          current_state_ = SyncState::WAIT_REMOTE_STATUS;
+          state_sub_engine_->notify(
+              primitives::events::SyncStateEventType::kSyncState,
+              current_state_);
+          return;
+        }
       }
     }
 
