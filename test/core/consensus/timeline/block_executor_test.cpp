@@ -12,7 +12,6 @@
 #include "consensus/babe/impl/threshold_util.hpp"
 #include "consensus/babe/types/seal.hpp"
 #include "consensus/timeline/impl/block_appender_base.hpp"
-#include "mock/core/application/app_configuration_mock.hpp"
 #include "mock/core/blockchain/block_tree_mock.hpp"
 #include "mock/core/blockchain/digest_tracker_mock.hpp"
 #include "mock/core/consensus/babe/babe_config_repository_mock.hpp"
@@ -25,7 +24,6 @@
 #include "mock/core/runtime/core_mock.hpp"
 #include "mock/core/runtime/offchain_worker_api_mock.hpp"
 #include "mock/core/transaction_pool/transaction_pool_mock.hpp"
-#include "runtime/runtime_context.hpp"
 #include "testutil/asio_wait.hpp"
 #include "testutil/lazy.hpp"
 #include "testutil/literals.hpp"
@@ -197,11 +195,14 @@ class BlockExecutorTest : public testing::Test {
 TEST_F(BlockExecutorTest, JustificationFollowDigests) {
   AuthorityList authorities{Authority{{"auth0"_hash256}, 1},
                             Authority{{"auth1"_hash256}, 1}};
+  kagome::primitives::BlockHash parent_hash = "parent_hash"_hash256;
+  kagome::primitives::BlockHash some_hash = "some_hash"_hash256;
+
   kagome::primitives::BlockHeader header{
-      42,                     // number
-      "parent_hash"_hash256,  // parent
-      {},                     // state root
-      {},                     // extrinsics root
+      42,           // number
+      parent_hash,  // parent
+      {},           // state root
+      {},           // extrinsics root
       kagome::primitives::Digest{
           kagome::primitives::PreRuntime{{
               kagome::primitives::kBabeEngineId,
@@ -214,19 +215,20 @@ TEST_F(BlockExecutorTest, JustificationFollowDigests) {
           kagome::primitives::Seal{{
               kagome::primitives::kBabeEngineId,
               Buffer{scale::encode(kagome::consensus::babe::Seal{}).value()},
-          }}}};
+          }}},
+      some_hash  // hash
+  };
+
   kagome::primitives::Justification justification{.data =
                                                       "justification_data"_buf};
   kagome::primitives::BlockData block_data{
-      .hash = "some_block"_hash256,
+      .hash = header.hash(),
       .header = header,
       .body = kagome::primitives::BlockBody{},
       .justification = justification};
-  EXPECT_CALL(*block_tree_, getBlockBody("some_hash"_hash256))
+  EXPECT_CALL(*block_tree_, getBlockBody(some_hash))
       .WillOnce(
           testing::Return(kagome::blockchain::BlockTreeError::BODY_NOT_FOUND));
-  EXPECT_CALL(*hasher_, blake2b_256(_))
-      .WillOnce(testing::Return("some_hash"_hash256));
 
   babe_config_->leadership_rate.second = 42;
   EXPECT_CALL(*block_validator_,
@@ -237,27 +239,26 @@ TEST_F(BlockExecutorTest, JustificationFollowDigests) {
                                  babe_config_->leadership_rate, authorities, 0),
                              testing::Ref(*babe_config_)))
       .WillOnce(testing::Return(outcome::success()));
-  EXPECT_CALL(*block_tree_, getBlockHeader("parent_hash"_hash256))
+  EXPECT_CALL(*block_tree_, getBlockHeader(parent_hash))
       .WillRepeatedly(testing::Return(kagome::primitives::BlockHeader{
           40, "grandparent_hash"_hash256, {}, {}, {}}));
   EXPECT_CALL(*block_tree_, bestBlock())
       // previous best
-      .WillOnce(testing::Return(BlockInfo{41, "parent_hash"_hash256}))
+      .WillOnce(testing::Return(BlockInfo{41, parent_hash}))
       // current best
-      .WillOnce(testing::Return(BlockInfo{42, "some_hash"_hash256}));
+      .WillOnce(testing::Return(BlockInfo{42, some_hash}));
   EXPECT_CALL(*core_, execute_block_ref(_, _))
       .WillOnce(testing::Return(outcome::success()));
   EXPECT_CALL(*block_tree_, addBlock(_))
       .WillOnce(testing::Return(outcome::success()));
 
-  BlockInfo block_info{42, "some_hash"_hash256};
+  BlockInfo block_info{42, some_hash};
 
   {
     testing::InSequence s;
 
-    EXPECT_CALL(
-        *digest_tracker_,
-        onDigest(BlockContext{.block_info = {42, "some_hash"_hash256}}, _))
+    EXPECT_CALL(*digest_tracker_,
+                onDigest(BlockContext{.block_info = {42, some_hash}}, _))
         .WillOnce(testing::Return(outcome::success()));
   }
   EXPECT_CALL(*offchain_worker_api_, offchain_worker(_, _))

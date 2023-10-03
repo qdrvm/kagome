@@ -16,8 +16,6 @@
 #include "mock/core/blockchain/block_storage_mock.hpp"
 #include "mock/core/blockchain/justification_storage_policy.hpp"
 #include "mock/core/consensus/babe/babe_config_repository_mock.hpp"
-#include "mock/core/consensus/timeline/slots_util_mock.hpp"
-#include "mock/core/runtime/core_mock.hpp"
 #include "mock/core/storage/trie_pruner/trie_pruner_mock.hpp"
 #include "mock/core/transaction_pool/transaction_pool_mock.hpp"
 #include "network/impl/extrinsic_observer_impl.hpp"
@@ -39,6 +37,7 @@ using consensus::SlotNumber;
 using consensus::babe::BabeBlockHeader;
 using consensus::babe::SlotType;
 using crypto::HasherImpl;
+using kagome::primitives::calculateBlockHash;
 using network::ExtrinsicObserverImpl;
 using primitives::Block;
 using primitives::BlockBody;
@@ -188,6 +187,7 @@ struct BlockTreeTest : public testing::Test {
     auto encoded_block = scale::encode(block).value();
     auto hash = hasher_->blake2b_256(encoded_block);
     primitives::BlockInfo block_info(block.header.number, hash);
+    const_cast<BlockHeader &>(block.header).hash_opt.emplace(hash);
 
     EXPECT_CALL(*storage_, putBlock(block))
         .WillRepeatedly(Invoke([&](const auto &block) {
@@ -223,6 +223,7 @@ struct BlockTreeTest : public testing::Test {
     header.number = number;
     header.state_root = state;
     header.digest = make_digest(number, slot_type);
+    calculateBlockHash(header, *hasher_);
 
     auto hash = addBlock(Block{header, {}});
 
@@ -310,30 +311,27 @@ struct BlockTreeTest : public testing::Test {
       kGenesisBlockInfo.hash,  // parent
       {},                      // state root
       {},                      // extrinsics root
-      make_digest(1)           // digests
+      make_digest(1),          // digests
+      kGenesisBlockInfo.hash   // hash
   };
 
   const BlockInfo kFirstBlockInfo{
       1ul, BlockHash::fromString("first_block_____________________").value()};
 
-  const BlockNumber kFinalizedBlockNumber = 42;
+  const BlockInfo kFinalizedBlockInfo{
+      42ull, BlockHash::fromString("finalized_block_________________").value()};
 
   BlockHeader finalized_block_header_{
-      kFinalizedBlockNumber,  // number
+      kFinalizedBlockInfo.number,  // number
       // parent
       BlockHash::fromString("parent_of_finalized_____________").value(),
-      {},                                 // state root
-      {},                                 // extrinsics root
-      make_digest(kFinalizedBlockNumber)  // digests
+      {},                                       // state root
+      {},                                       // extrinsics root
+      make_digest(kFinalizedBlockInfo.number),  // digests
+      kFinalizedBlockInfo.hash                  // hash
   };
 
   BlockBody finalized_block_body_{{Buffer{0x22, 0x44}}, {Buffer{0x55, 0x66}}};
-
-  const BlockInfo kFinalizedBlockInfo{
-      finalized_block_header_.number, [&] {
-        return hasher_->blake2b_256(
-            scale::encode(finalized_block_header_).value());
-      }()};
 
   std::map<BlockNumber, BlockHash> num_to_hash_;
 
@@ -353,7 +351,9 @@ struct BlockTreeTest : public testing::Test {
   BlockHeader makeBlockHeader(BlockNumber number,
                               BlockHash parent,
                               Digest digest) {
-    return BlockHeader{number, std::move(parent), {}, {}, std::move(digest)};
+    BlockHeader header{number, std::move(parent), {}, {}, std::move(digest)};
+    calculateBlockHash(header, *hasher_);
+    return header;
   }
 };
 

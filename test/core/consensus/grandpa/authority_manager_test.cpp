@@ -153,7 +153,8 @@ class AuthorityManagerTest : public testing::Test {
     EXPECT_CALL(*block_tree, hasDirectChain(_, _)).Times(testing::AnyNumber());
 
     EXPECT_CALL(*block_tree, getBlockHeader("GEN"_hash256))
-        .WillRepeatedly(Return(primitives::BlockHeader{}));
+        .WillRepeatedly(
+            Return(primitives::BlockHeader{.hash_opt = "GEN"_hash256}));
   }
 
   const primitives::BlockInfo genesis_block{0, "GEN"_hash256};
@@ -214,7 +215,8 @@ class AuthorityManagerTest : public testing::Test {
         {},            // parent
         block.hash,    // state root. it's fake just for blocks differentiation
         {},            // extrinsics root
-        {}             // digest
+        {},            // digest
+        block.hash     // hash
     };
     static std::map<primitives::BlockHash, common::Buffer> encoded_headers;
     auto encoded_header =

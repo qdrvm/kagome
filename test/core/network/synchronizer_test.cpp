@@ -20,6 +20,7 @@
 #include "mock/core/network/router_mock.hpp"
 #include "mock/core/storage/persistent_map_mock.hpp"
 #include "mock/core/storage/spaced_storage_mock.hpp"
+#include "mock/core/storage/trie/trie_storage_backend_mock.hpp"
 #include "mock/core/storage/trie/trie_storage_mock.hpp"
 #include "mock/core/storage/trie_pruner/trie_pruner_mock.hpp"
 #include "network/impl/synchronizer_impl.hpp"
@@ -86,7 +87,7 @@ class SynchronizerTest
                                                     block_tree,
                                                     block_appender,
                                                     block_executor,
-                                                    nullptr,
+                                                    trie_db,
                                                     storage,
                                                     state_pruner,
                                                     router,
@@ -105,6 +106,8 @@ class SynchronizerTest
       std::make_shared<BlockHeaderAppenderMock>();
   std::shared_ptr<BlockExecutorMock> block_executor =
       std::make_shared<BlockExecutorMock>();
+  std::shared_ptr<trie::TrieStorageBackendMock> trie_db =
+      std::make_shared<trie::TrieStorageBackendMock>();
   std::shared_ptr<trie::TrieStorageMock> storage =
       std::make_shared<trie::TrieStorageMock>();
   std::shared_ptr<network::SyncProtocolMock> sync_protocol =
