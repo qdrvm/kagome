@@ -53,6 +53,7 @@ namespace kagome::application {
     kagome::telemetry::setTelemetryService(injector_->injectTelemetryService());
 
     injector_->injectAddressPublisher();
+    injector_->injectTimeline();
 
     logger_->info("Start as node version '{}' named as '{}' with PID {}",
                   app_config_->nodeVersion(),

@@ -41,10 +41,9 @@ namespace kagome::parachain {
             primitives::events::ChainEventType,
             const primitives::events::ChainEventParams &event) {
           if (auto self = weak.lock()) {
-            auto r = self->onBlock(self->hasher_->blake2b_256(
-                scale::encode(
-                    boost::get<primitives::events::HeadsEventParams>(event))
-                    .value()));
+            const auto &header =
+                boost::get<primitives::events::HeadsEventParams>(event).get();
+            auto r = self->onBlock(header.hash());
             if (r.has_error()) {
               SL_DEBUG(self->logger_, "onBlock error {}", r.error());
             }

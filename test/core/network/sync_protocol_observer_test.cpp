@@ -61,9 +61,11 @@ class SynchronizerTest : public testing::Test {
   std::shared_ptr<BeefyMock> beefy_ = std::make_shared<BeefyMock>();
 
   const Hash256 block2_hash_ = "2"_hash256;
-  const Block block3_{{block2_hash_, 3}, {{{0x31, 0x32}}, {{0x33, 0x34}}}};
+  const Block block3_{{3, block2_hash_, {}, {}, {}},
+                      {{{0x31, 0x32}}, {{0x33, 0x34}}}};
   const Hash256 block3_hash_ = "3"_hash256;
-  const Block block4_{{block3_hash_, 4}, {{{0x41, 0x42}}, {{0x43, 0x44}}}};
+  const Block block4_{{4, block3_hash_, {}, {}, {}},
+                      {{{0x41, 0x42}}, {{0x43, 0x44}}}};
   const Hash256 block4_hash_ = "4"_hash256;
 };
 

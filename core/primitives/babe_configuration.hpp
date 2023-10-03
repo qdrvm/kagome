@@ -9,16 +9,16 @@
 #include <fmt/core.h>
 
 #include "common/blob.hpp"
-#include "consensus/babe/common.hpp"
+#include "consensus/timeline/types.hpp"
 #include "crypto/sr25519_types.hpp"
 #include "primitives/authority.hpp"
 
 namespace kagome::primitives {
 
-  using BabeSlotNumber = uint64_t;
-  using BabeClock = clock::SystemClock;
-  using BabeDuration = BabeClock::Duration;
-  using Randomness = common::Blob<crypto::constants::sr25519::vrf::OUTPUT_SIZE>;
+  using consensus::Clock;
+  using consensus::Duration;
+  using consensus::Randomness;
+  using consensus::SlotNumber;
 
   enum class AllowedSlots : uint8_t {
     PrimaryOnly,
@@ -44,9 +44,9 @@ namespace kagome::primitives {
     /// the value provided by this type at genesis will be used.
     ///
     /// Dynamic slot duration may be supported in the future.
-    BabeDuration slot_duration{};  // must be permanent
+    Duration slot_duration{};  // must be permanent
 
-    BabeSlotNumber epoch_length{};  // must be permanent
+    SlotNumber epoch_length{};  // must be permanent
 
     /// A constant value that is used in the threshold calculation formula.
     /// Expressed as a rational where the first member of the tuple is the
@@ -110,9 +110,9 @@ namespace kagome::primitives {
   struct Epoch {
     SCALE_TIE(7);
 
-    consensus::babe::EpochNumber epoch_index;
-    consensus::babe::BabeSlotNumber start_slot;
-    consensus::babe::EpochLength duration;
+    consensus::EpochNumber epoch_index;
+    consensus::SlotNumber start_slot;
+    consensus::EpochLength duration;
     AuthorityList authorities;
     Randomness randomness;
     std::pair<uint64_t, uint64_t> leadership_rate;

@@ -13,6 +13,7 @@
 #include <boost/asio/ip/tcp.hpp>
 #include <libp2p/multi/multiaddress.hpp>
 
+#include "application/sync_method.hpp"
 #include "crypto/ed25519_types.hpp"
 #include "filesystem/common.hpp"
 #include "log/logger.hpp"
@@ -209,7 +210,6 @@ namespace kagome::application {
     virtual const std::vector<telemetry::TelemetryEndpoint>
         &telemetryEndpoints() const = 0;
 
-    enum class SyncMethod { Full, Fast, FastWithoutState, Warp, Auto };
     /**
      * @return enum constant of the chosen sync method
      */

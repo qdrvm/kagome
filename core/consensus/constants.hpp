@@ -3,13 +3,10 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_CONSENSUS_CONSTANTS_
-#define KAGOME_CONSENSUS_CONSTANTS_
+#pragma once
 
 namespace kagome::consensus {
 
   constexpr size_t kMaxValidatorsNumber = 2048;
 
 }
-
-#endif  //  KAGOME_CONSENSUS_CONSTANTS_

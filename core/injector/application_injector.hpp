@@ -3,8 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_CORE_INJECTOR_APPLICATION_INJECTOR_HPP
-#define KAGOME_CORE_INJECTOR_APPLICATION_INJECTOR_HPP
+#pragma once
 
 #include <memory>
 
@@ -69,6 +68,10 @@ namespace kagome {
     class ApiService;
   }
 
+  namespace consensus {
+    class Timeline;
+  }
+
   namespace consensus::babe {
     class Babe;
   }
@@ -112,7 +115,7 @@ namespace kagome::injector {
     std::shared_ptr<network::PeerManager> injectPeerManager();
     std::shared_ptr<api::ApiService> injectRpcApiService();
     std::shared_ptr<clock::SystemClock> injectSystemClock();
-    std::shared_ptr<consensus::babe::Babe> injectBabe();
+    std::shared_ptr<consensus::Timeline> injectTimeline();
     std::shared_ptr<network::SyncProtocolObserver> injectSyncObserver();
     std::shared_ptr<network::StateProtocolObserver> injectStateObserver();
     std::shared_ptr<parachain::ParachainObserver> injectParachainObserver();
@@ -144,5 +147,3 @@ namespace kagome::injector {
   };
 
 }  // namespace kagome::injector
-
-#endif  // KAGOME_CORE_INJECTOR_APPLICATION_INJECTOR_HPP

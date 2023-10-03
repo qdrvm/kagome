@@ -9,7 +9,7 @@
 #include <optional>
 #include <vector>
 
-#include "consensus/babe/types/epoch_digest.hpp"
+#include "consensus/timeline/types.hpp"
 #include "outcome/outcome.hpp"
 #include "primitives/block.hpp"
 #include "primitives/block_id.hpp"

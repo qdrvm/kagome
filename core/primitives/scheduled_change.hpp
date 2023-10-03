@@ -6,7 +6,7 @@
 #ifndef KAGOME_CORE_PRIMITIVES_SCHEDULED_CHANGE
 #define KAGOME_CORE_PRIMITIVES_SCHEDULED_CHANGE
 
-#include "consensus/babe/types/epoch_digest.hpp"
+#include "consensus/timeline/types.hpp"
 #include "primitives/authority.hpp"
 #include "primitives/babe_configuration.hpp"
 #include "primitives/common.hpp"
@@ -30,7 +30,7 @@ namespace kagome::primitives {
         : authorities(std::move(authorities)), subchain_length(delay) {}
   };
 
-  struct NextEpochData final : public consensus::babe::EpochDigest {
+  struct NextEpochData final : public consensus::EpochDigest {
     using EpochDigest::EpochDigest;
   };
 

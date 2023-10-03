@@ -3,8 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_CONSENSUS_GRANDPA_GRANDPACONTEXT
-#define KAGOME_CONSENSUS_GRANDPA_GRANDPACONTEXT
+#pragma once
 
 #include "consensus/grandpa/structs.hpp"
 #include "network/types/grandpa_message.hpp"
@@ -37,5 +36,3 @@ namespace kagome::consensus::grandpa {
   };
 
 }  // namespace kagome::consensus::grandpa
-
-#endif  // KAGOME_CONSENSUS_GRANDPA_GRANDPACONTEXT

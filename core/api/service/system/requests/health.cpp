@@ -26,9 +26,8 @@ namespace kagome::api::system::request {
     jsonrpc::Value::Struct data;
 
     // isSyncing - Whether the node is syncing.
-    data["isSyncing"] =
-        makeValue(api_->getBabe()->getCurrentState()
-                  != consensus::babe::Babe::State::SYNCHRONIZED);
+    data["isSyncing"] = makeValue(api_->getTimeline()->getCurrentState()
+                                  != consensus::SyncState::SYNCHRONIZED);
 
     // peers - Number of connected peers
     data["peers"] = makeValue(

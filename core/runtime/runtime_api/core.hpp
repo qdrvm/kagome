@@ -11,11 +11,10 @@
 #include "primitives/block.hpp"
 #include "primitives/common.hpp"
 #include "primitives/version.hpp"
+#include "runtime/runtime_context.hpp"
 #include "storage/changes_trie/changes_tracker.hpp"
 
 namespace kagome::runtime {
-  class RuntimeContext;
-
   /**
    * Core represents mandatory part of runtime api
    */

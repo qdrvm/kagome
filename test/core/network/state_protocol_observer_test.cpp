@@ -66,11 +66,12 @@ BlockHeader makeBlockHeader(RootHash hash) {
   uint32_t num = 1;
   std::string str_num = std::to_string(num);
   return kagome::primitives::BlockHeader{
-      makeHash("block_genesis_hash"),
-      num,
-      hash,
-      makeHash("block_" + str_num + "_ext_root"),
-      {}};
+      num,                                         // number
+      makeHash("block_genesis_hash"),              // parent
+      hash,                                        // state root
+      makeHash("block_" + str_num + "_ext_root"),  // extrinsics root
+      {},                                          // digest
+  };
 }
 
 class StateProtocolObserverTest : public testing::Test {

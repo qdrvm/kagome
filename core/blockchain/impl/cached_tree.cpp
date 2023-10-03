@@ -153,8 +153,7 @@ namespace kagome::blockchain {
     handle(subtree_root_node);
   }
 
-  TreeMeta::Weight TreeMeta::getWeight(
-      std::shared_ptr<TreeNode> node) const {
+  TreeMeta::Weight TreeMeta::getWeight(std::shared_ptr<TreeNode> node) const {
     auto finalized = last_finalized.lock();
     BOOST_ASSERT(finalized);
     Weight weight{WeightInfo(0ull), node->depth};

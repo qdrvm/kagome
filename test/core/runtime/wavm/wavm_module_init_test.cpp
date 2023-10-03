@@ -44,7 +44,6 @@
 
 #include "core/runtime/wavm/runtime_paths.hpp"
 
-
 class WavmModuleInitTest : public ::testing::TestWithParam<std::string_view> {
  public:
   static void SetUpTestCase() {
@@ -189,7 +188,6 @@ TEST_P(WavmModuleInitTest, DISABLED_SingleModule) {
           cv.impl_name,
           cv.impl_version);
 }
-
 
 INSTANTIATE_TEST_SUITE_P(SingleModule,
                          WavmModuleInitTest,
