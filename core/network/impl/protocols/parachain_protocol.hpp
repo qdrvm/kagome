@@ -60,7 +60,7 @@ namespace kagome::network {
                       log::Logger logger)
         : base_(kParachainProtocolName,
                 host,
-                make_protocols(protocol, genesis_hash, "polkadot"),
+                make_protocols(protocol, genesis_hash, kProtocolPrefixPolkadot),
                 std::move(logger)),
           observer_(std::move(observer)),
           roles_{roles},

@@ -58,7 +58,7 @@ namespace kagome::network {
             vec.emplace_back(primitives::kGrandpaEngineId, gran->data);
           }
           if (auto &beef = src_block.beefy_justification) {
-            vec.emplace_back(primitives::kUnsupportedEngineId_BEEF, beef->data);
+            vec.emplace_back(primitives::kBeefyEngineId, beef->data);
           }
           dst_block->set_justifications(
               common::Buffer{scale::encode(vec).value()}.toString());
@@ -124,7 +124,7 @@ namespace kagome::network {
             if (engine == primitives::kGrandpaEngineId) {
               justification = primitives::Justification{std::move(raw)};
             }
-            if (engine == primitives::kUnsupportedEngineId_BEEF) {
+            if (engine == primitives::kBeefyEngineId) {
               beefy_justification = primitives::Justification{std::move(raw)};
             }
           }

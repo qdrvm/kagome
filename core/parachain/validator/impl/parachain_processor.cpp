@@ -136,7 +136,7 @@ namespace kagome::parachain {
         [log{logger_}, wptr_self{weak_from_this()}](
             const primitives::BlockHash &relay_parent,
             const network::SignedBitfield &bitfield) {
-          log->info("Distribute bitfield on {}", relay_parent);
+          SL_VERBOSE(log, "Distribute bitfield on {}", relay_parent);
           if (auto self = wptr_self.lock()) {
             auto msg = std::make_shared<
                 network::WireMessage<network::ValidatorProtocolMessage>>(
@@ -346,12 +346,12 @@ namespace kagome::parachain {
       }
     }
 
-    logger_->info(
-        "Inited new backing task.(assignment={}, our index={}, relay "
-        "parent={})",
-        assignment,
-        validator->validatorIndex(),
-        relay_parent);
+    SL_VERBOSE(logger_,
+               "Inited new backing task.(assignment={}, our index={}, relay "
+               "parent={})",
+               assignment,
+               validator->validatorIndex(),
+               relay_parent);
 
     return RelayParentState{
         .assignment = assignment,
@@ -377,7 +377,7 @@ namespace kagome::parachain {
     auto rps_result = initNewBackingTask(relay_parent);
     if (rps_result.has_value()) {
       storeStateByRelayParent(relay_parent, std::move(rps_result.value()));
-    } else {
+    } else if (rps_result.error() != Error::KEY_NOT_PRESENT) {
       logger_->error(
           "Relay parent state was not created. (relay parent={}, error={})",
           relay_parent,

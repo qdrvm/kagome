@@ -31,7 +31,7 @@ namespace kagome::primitives {
   inline const auto kUnsupportedEngineId_POL1 =
       ConsensusEngineId::fromString("POL1").value();
 
-  inline const auto kUnsupportedEngineId_BEEF =
+  inline const auto kBeefyEngineId =
       ConsensusEngineId::fromString("BEEF").value();
 
   struct Other : public common::Buffer {};
@@ -89,7 +89,7 @@ namespace kagome::primitives {
       } else if (engine_id == primitives::kUnsupportedEngineId_POL1) {
         OUTCOME_TRY(payload, scale::decode<UnsupportedDigest_POL1>(data));
         msg.digest = std::move(payload);
-      } else if (engine_id == primitives::kUnsupportedEngineId_BEEF) {
+      } else if (engine_id == primitives::kBeefyEngineId) {
         OUTCOME_TRY(payload, scale::decode<UnsupportedDigest_BEEF>(data));
         msg.digest = std::move(payload);
       } else {

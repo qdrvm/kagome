@@ -39,18 +39,6 @@ namespace kagome::runtime {
     return math::roundUp<kAlignment>(t);
   }
 
-  inline bool isPowerOf2(size_t x) {
-    return ((x > 0ull) && ((x & (x - 1ull)) == 0));
-  }
-
-  inline size_t nextHighPowerOf2(size_t k) {
-    if (isPowerOf2(k)) {
-      return k;
-    }
-    const auto p = k == 0ull ? 0ull : 64ull - __builtin_clzll(k);
-    return (1ull << p);
-  }
-
   /**
    * Implementation of allocator for the runtime memory
    * Combination of monotonic and free-list allocator

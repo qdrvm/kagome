@@ -35,6 +35,17 @@ namespace kagome::math {
     return res;
   }
 
+  inline bool isPowerOf2(size_t x) {
+    return ((x > 0ull) && ((x & (x - 1ull)) == 0));
+  }
+
+  inline size_t nextHighPowerOf2(size_t k) {
+    if (isPowerOf2(k)) {
+      return k;
+    }
+    const auto p = k == 0ull ? 0ull : 64ull - __builtin_clzll(k);
+    return (1ull << p);
+  }
 }  // namespace kagome::math
 
 #endif  // KAGOME_MATH_HPP

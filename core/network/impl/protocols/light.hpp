@@ -14,9 +14,9 @@ namespace kagome::application {
   class ChainSpec;
 }  // namespace kagome::application
 
-namespace kagome::primitives {
-  struct GenesisBlockHeader;
-}  // namespace kagome::primitives
+namespace kagome::blockchain {
+  class GenesisBlockHash;
+}  // namespace kagome::blockchain
 
 namespace kagome::runtime {
   class ModuleRepository;
@@ -45,7 +45,7 @@ namespace kagome::network {
    public:
     LightProtocol(libp2p::Host &host,
                   const application::ChainSpec &chain_spec,
-                  const primitives::GenesisBlockHeader &genesis,
+                  const blockchain::GenesisBlockHash &genesis,
                   std::shared_ptr<blockchain::BlockHeaderRepository> repository,
                   std::shared_ptr<storage::trie::TrieStorage> storage,
                   std::shared_ptr<runtime::ModuleRepository> module_repo,

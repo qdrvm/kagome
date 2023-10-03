@@ -20,6 +20,7 @@ namespace kagome::storage {
         "justification",
         "trie_node",
         "dispute_data",
+        "beefy_justification",
     };
     static_assert(kNames.size() == Space::kTotal - 1);
 

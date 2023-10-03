@@ -70,6 +70,7 @@ namespace kagome::crypto {
       store_->generateSr25519Keypair(KEY_TYPE_AUDI, *dev).value();
       store_->generateSr25519Keypair(KEY_TYPE_ASGN, *dev).value();
       store_->generateSr25519Keypair(KEY_TYPE_PARA, *dev).value();
+      store_->generateEcdsaKeypair(KEY_TYPE_BEEF, *dev).value();
     }
   }
 
@@ -123,4 +124,12 @@ namespace kagome::crypto {
     return nullptr;
   }
 
+  SessionKeys::KeypairWithIndexOpt<EcdsaKeypair>
+  SessionKeysImpl::getBeefKeyPair(
+      const std::vector<EcdsaPublicKey> &authorities) {
+    return find<EcdsaKeypair,
+                &CryptoStore::getEcdsaPublicKeys,
+                &CryptoStore::findEcdsaKeypair>(
+        beef_key_pair_, KEY_TYPE_BEEF, authorities, std::equal_to{});
+  }
 }  // namespace kagome::crypto
