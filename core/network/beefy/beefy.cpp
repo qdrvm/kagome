@@ -303,8 +303,16 @@ namespace kagome::network {
         std::move(justification)};
     OUTCOME_TRY(db_->put(BlockNumberKey::encode(block_number),
                          scale::encode(justification_v1).value()));
-    if (beefy_finalized_ != first) {
-      OUTCOME_TRY(db_->remove(BlockNumberKey::encode(beefy_finalized_)));
+    if (beefy_finalized_ > *beefy_genesis_
+        and sessions_.count(beefy_finalized_) == 0) {
+      OUTCOME_TRY(last_hash, block_tree_->getBlockHash(beefy_finalized_));
+      if (last_hash) {
+        if (auto r = block_tree_->getBlockHeader(*last_hash)) {
+          if (not beefyValidatorsDigest(r.value())) {
+            OUTCOME_TRY(db_->remove(BlockNumberKey::encode(beefy_finalized_)));
+          }
+        }
+      }
     }
     if (block_number <= beefy_finalized_) {
       return outcome::success();
