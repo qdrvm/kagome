@@ -319,6 +319,10 @@ namespace kagome::telemetry {
     }
   }
 
+  void TelemetryServiceImpl::pushBlockStats() {
+    frequentNotificationsRoutine();
+  }
+
   std::string TelemetryServiceImpl::blockNotification(
       const primitives::BlockInfo &info, std::optional<BlockOrigin> origin) {
     std::string event_name =

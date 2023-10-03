@@ -904,6 +904,7 @@ namespace kagome::blockchain {
 
         log_->info("Finalized block {}", block);
         telemetry_->notifyBlockFinalized(block);
+        telemetry_->pushBlockStats();
         metric_finalized_block_height_->set(node->depth);
 
       } else if (node->block_hash == last_finalized_block_info.hash) {
@@ -1589,6 +1590,7 @@ namespace kagome::blockchain {
     metric_known_chain_leaves_->set(leaves_size);
     metric_best_block_height_->set(block_info.number);
     telemetry_->notifyBlockFinalized(block_info);
+    telemetry_->pushBlockStats();
     metric_finalized_block_height_->set(block_info.number);
   }
 

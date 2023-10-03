@@ -77,6 +77,11 @@ namespace kagome::telemetry {
     virtual void notifyBlockFinalized(const primitives::BlockInfo &info) = 0;
 
     /**
+     * Send imported+finalized blocks info immediately and reset periodic timer
+     */
+    virtual void pushBlockStats() = 0;
+
+    /**
      * Telemetry service status
      * @return true - when application configured to broadcast telemetry
      */
