@@ -13,6 +13,22 @@
 
 namespace kagome::runtime {
 
+  outcome::result<primitives::Version> callCoreVersion(
+      const ModuleFactory &module_factory,
+      common::BufferView code,
+      const std::shared_ptr<RuntimePropertiesCache> &runtime_properties_cache) {
+    OUTCOME_TRY(ctx,
+                runtime::RuntimeContextFactory::fromCode(module_factory, code));
+    return runtime_properties_cache->getVersion(
+        ctx.module_instance->getCodeHash(),
+        [&ctx]() -> outcome::result<primitives::Version> {
+          OUTCOME_TRY(
+              raw_res,
+              ctx.module_instance->callExportFunction(ctx, "Core_version", {}));
+          return ModuleInstance::decodedCall<primitives::Version>(raw_res);
+        });
+  }
+
   RestrictedCoreImpl::RestrictedCoreImpl(RuntimeContext ctx)
       : ctx_{std::move(ctx)} {}
 
@@ -24,31 +40,23 @@ namespace kagome::runtime {
 
   CoreImpl::CoreImpl(
       std::shared_ptr<Executor> executor,
-      std::shared_ptr<const blockchain::BlockHeaderRepository> header_repo)
+      std::shared_ptr<const blockchain::BlockHeaderRepository> header_repo,
+      std::shared_ptr<RuntimeUpgradeTracker> runtime_upgrade_tracker)
       : executor_{std::move(executor)},
-        header_repo_{std::move(header_repo)} {
+        header_repo_{std::move(header_repo)},
+        runtime_upgrade_tracker_{std::move(runtime_upgrade_tracker)} {
     BOOST_ASSERT(executor_ != nullptr);
     BOOST_ASSERT(header_repo_ != nullptr);
-  }
-
-  outcome::result<primitives::Version> CoreImpl::version(
-      std::shared_ptr<ModuleInstance> instance) {
-    OUTCOME_TRY(genesis_hash, header_repo_->getHashByNumber(0));
-    OUTCOME_TRY(genesis_header, header_repo_->getBlockHeader(genesis_hash));
-    OUTCOME_TRY(
-        ctx, executor_->ctx().ephemeral(instance, genesis_header.state_root));
-    return executor_->call<primitives::Version>(ctx, "Core_version");
+    BOOST_ASSERT(runtime_upgrade_tracker_ != nullptr);
   }
 
   outcome::result<primitives::Version> CoreImpl::version(
       const primitives::BlockHash &block) {
-    OUTCOME_TRY(
-        ptr,
-        version_.get_else(block, [&]() -> outcome::result<primitives::Version> {
-          OUTCOME_TRY(ctx, executor_->ctx().ephemeralAt(block));
-          return executor_->call<primitives::Version>(ctx, "Core_version");
-        }));
-    return *ptr;
+    return version_.call(*header_repo_,
+                         *runtime_upgrade_tracker_,
+                         *executor_,
+                         block,
+                         "Core_version");
   }
 
   outcome::result<void> CoreImpl::execute_block_ref(

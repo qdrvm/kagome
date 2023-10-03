@@ -201,7 +201,8 @@ namespace kagome::storage::trie_pruner {
     return outcome::success();
   }
 
-  outcome::result<void> TriePrunerImpl::prune(BufferBatch &batch,
+  outcome::result<void> TriePrunerImpl::prune(BufferBatch &node_batch,
+                                              BufferBatch &value_batch,
                                               const trie::RootHash &root_hash) {
     auto trie_res = serializer_->retrieveTrie(root_hash, nullptr);
     if (trie_res.has_error()
@@ -390,7 +391,7 @@ namespace kagome::storage::trie_pruner {
       queued_nodes.pop_back();
       auto &ref_count = ref_count_[hash];
       if (ref_count == 0 && !thorough_pruning_) {
-        OUTCOME_TRY(hash_is_in_storage, trie_storage_->contains(hash));
+        OUTCOME_TRY(hash_is_in_storage, node_storage_->contains(hash));
         if (hash_is_in_storage) {
           // the node is present in storage but pruner has not indexed it
           // because pruner has been initialized on a newer state

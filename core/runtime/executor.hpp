@@ -39,8 +39,6 @@ namespace kagome::runtime {
       if constexpr (std::is_same_v<Res, primitives::Version>) {
         [[likely]] if (name == "Core_version") {
           return cache->getVersion(code_hash, call);
-        if (likely(name == "Core_version")) {
-          return cache->getVersion(code_hash, call);
         }
       }
       if constexpr (std::is_same_v<Res, primitives::OpaqueMetadata>) {

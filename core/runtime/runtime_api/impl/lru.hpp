@@ -25,29 +25,31 @@ namespace kagome::runtime {
     outcome::result<std::shared_ptr<V>> call(Executor &executor,
                                              const primitives::BlockHash &block,
                                              std::string_view name) {
-      if (DISABLE_RUNTIME_LRU) {
-        return executor.callAt<std::shared_ptr<V>>(block, name);
+      if constexpr (DISABLE_RUNTIME_LRU) {
+        OUTCOME_TRY(ctx, executor.ctx().ephemeralAt(block));
+        return executor.call<std::shared_ptr<V>>(ctx, name);
       }
       if (auto r =
-              lru_.exclusiveAccess([&](typename decltype(lru_)::Type &lru_) {
-                return lru_.get(block);
+              lru_.exclusiveAccess([&](typename decltype(lru_)::Type &lru) {
+                return lru.get(block);
               })) {
         return *r;
       }
-      OUTCOME_TRY(raw, executor.callAt(block, name, {}));
-      OUTCOME_TRY(r, Executor::decodeResult<V>(raw));
-      return lru_.exclusiveAccess([&](typename decltype(lru_)::Type &lru_) {
-        return lru_.put(block, std::move(r), raw);
+      OUTCOME_TRY(ctx, executor.ctx().ephemeralAt(block));
+      OUTCOME_TRY(raw, ctx.module_instance->callExportFunction(ctx, name, {}));
+      OUTCOME_TRY(r, ModuleInstance::decodedCall<V>(raw));
+      return lru_.exclusiveAccess([&](typename decltype(lru_)::Type &lru) {
+        return lru.put(block, std::move(r), raw);
       });
     }
 
     void erase(const std::vector<primitives::BlockHash> &blocks) {
-      if (DISABLE_RUNTIME_LRU) {
+      if constexpr (DISABLE_RUNTIME_LRU) {
         return;
       }
-      lru_.exclusiveAccess([&](typename decltype(lru_)::Type &lru_) {
+      lru_.exclusiveAccess([&](typename decltype(lru_)::Type &lru) {
         for (auto &block : blocks) {
-          lru_.erase(block);
+          lru.erase(block);
         }
       });
     }
@@ -73,30 +75,34 @@ namespace kagome::runtime {
                                              const primitives::BlockHash &block,
                                              std::string_view name,
                                              const Arg &arg) {
-      if (DISABLE_RUNTIME_LRU) {
-        return executor.callAt<std::shared_ptr<V>>(block, name, arg);
+      if constexpr (DISABLE_RUNTIME_LRU) {
+        OUTCOME_TRY(ctx, executor.ctx().ephemeralAt(block));
+        return executor.call<std::shared_ptr<V>>(ctx, name, arg);
       }
       Key key{{block, arg}};
       if (auto r =
-              lru_.exclusiveAccess([&](typename decltype(lru_)::Type &lru_) {
-                return lru_.get(key);
+              lru_.exclusiveAccess([&](typename decltype(lru_)::Type &lru) {
+                return lru.get(key);
               })) {
         return *r;
       }
-      OUTCOME_TRY(raw_arg, Executor::encodeArgs(arg));
-      OUTCOME_TRY(raw, executor.callAt(block, name, raw_arg));
-      OUTCOME_TRY(r, Executor::decodeResult<V>(raw));
-      return lru_.exclusiveAccess([&](typename decltype(lru_)::Type &lru_) {
-        return lru_.put(key, std::move(r), raw);
+      OUTCOME_TRY(ctx, executor.ctx().ephemeralAt(block));
+
+      OUTCOME_TRY(raw_arg, ModuleInstance::encodeArgs(arg));
+      OUTCOME_TRY(raw,
+                  ctx.module_instance->callExportFunction(ctx, name, raw_arg));
+      OUTCOME_TRY(r, ModuleInstance::decodedCall<V>(raw));
+      return lru_.exclusiveAccess([&](typename decltype(lru_)::Type &lru) {
+        return lru.put(key, std::move(r), raw);
       });
     }
 
     void erase(const std::vector<primitives::BlockHash> &blocks) {
-      if (DISABLE_RUNTIME_LRU) {
+      if constexpr (DISABLE_RUNTIME_LRU) {
         return;
       }
-      lru_.exclusiveAccess([&](typename decltype(lru_)::Type &lru_) {
-        lru_.erase_if([&](const Key &key, const std::shared_ptr<V> &) {
+      lru_.exclusiveAccess([&](typename decltype(lru_)::Type &lru) {
+        lru.erase_if([&](const Key &key, const std::shared_ptr<V> &) {
           return std::find_if(blocks.begin(),
                               blocks.end(),
                               [&](const primitives::BlockHash &block) {
@@ -125,23 +131,25 @@ namespace kagome::runtime {
         Executor &executor,
         const primitives::BlockHash &block_hash,
         std::string_view name) {
-      if (DISABLE_RUNTIME_LRU) {
-        return executor.callAt<V>(block_hash, name);
+      if constexpr (DISABLE_RUNTIME_LRU) {
+        OUTCOME_TRY(ctx, executor.ctx().ephemeralAt(block_hash));
+        return executor.call<V>(ctx, name);
       }
       OUTCOME_TRY(block_number,
                   block_header_repository.getNumberByHash(block_hash));
       OUTCOME_TRY(hash,
                   upgrades.getLastCodeUpdateState({block_number, block_hash}));
       if (auto r =
-              lru_.exclusiveAccess([&](typename decltype(lru_)::Type &lru_) {
-                auto v = lru_.get(hash);
+              lru_.exclusiveAccess([&](typename decltype(lru_)::Type &lru) {
+                auto v = lru.get(hash);
                 return v ? std::make_optional(v->get()) : std::nullopt;
               })) {
         return *r;
       }
-      OUTCOME_TRY(r, executor.callAt<V>(block_hash, name));
-      return lru_.exclusiveAccess([&](typename decltype(lru_)::Type &lru_) {
-        return lru_.put(hash, std::move(r));
+      OUTCOME_TRY(ctx, executor.ctx().ephemeralAt(block_hash));
+      OUTCOME_TRY(r, executor.call<V>(ctx, name));
+      return lru_.exclusiveAccess([&](typename decltype(lru_)::Type &lru) {
+        return lru.put(hash, std::move(r));
       });
     }
 

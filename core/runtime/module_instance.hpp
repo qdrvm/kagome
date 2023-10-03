@@ -40,7 +40,7 @@ namespace kagome::runtime {
     };
 
     template <typename... Args>
-    outcome::result<common::Buffer> encodeArgs(const Args &...args) {
+    static outcome::result<common::Buffer> encodeArgs(const Args &...args) {
       common::Buffer encoded_args{};
       if constexpr (sizeof...(args) > 0) {
         OUTCOME_TRY(res, scale::encode(args...));

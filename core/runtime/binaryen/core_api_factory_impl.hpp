@@ -22,6 +22,7 @@ namespace kagome::runtime {
   class Memory;
   class RuntimeEnvironmentFactory;
   class RuntimePropertiesCache;
+  class ModuleFactory;
 }  // namespace kagome::runtime
 
 namespace kagome::runtime::binaryen {
