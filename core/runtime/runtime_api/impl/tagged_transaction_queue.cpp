@@ -22,7 +22,7 @@ namespace kagome::runtime {
   outcome::result<TaggedTransactionQueue::TransactionValidityAt>
   TaggedTransactionQueueImpl::validate_transaction(
       primitives::TransactionSource source, const primitives::Extrinsic &ext) {
-    auto block = block_tree_.get()->bestLeaf();
+    auto block = block_tree_.get()->bestBlock();
     SL_TRACE(logger_, "Validate transaction called at block {}", block);
     OUTCOME_TRY(ctx, executor_->ctx().ephemeralAt(block.hash));
     OUTCOME_TRY(result,

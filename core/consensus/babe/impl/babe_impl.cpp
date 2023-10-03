@@ -28,7 +28,6 @@
 #include "dispute_coordinator/types.hpp"
 #include "metrics/histogram_timer.hpp"
 #include "network/block_announce_transmitter.hpp"
-#include "network/helpers/peer_id_formatter.hpp"
 #include "network/synchronizer.hpp"
 #include "network/types/collator_messages.hpp"
 #include "network/warp/protocol.hpp"
@@ -39,6 +38,7 @@
 #include "storage/changes_trie/impl/storage_changes_tracker_impl.hpp"
 #include "storage/trie/serialization/ordered_trie_hash.hpp"
 #include "storage/trie/trie_storage.hpp"
+#include "utils/thread_pool.hpp"
 
 namespace {
   constexpr const char *kIsMajorSyncing = "kagome_sub_libp2p_is_major_syncing";
@@ -69,6 +69,8 @@ namespace kagome::consensus::babe {
       std::shared_ptr<application::AppStateManager> app_state_manager,
       std::shared_ptr<BabeLottery> lottery,
       std::shared_ptr<BabeConfigRepository> babe_config_repo,
+      const ThreadPool &thread_pool,
+      std::shared_ptr<boost::asio::io_context> main_thread,
       std::shared_ptr<authorship::Proposer> proposer,
       std::shared_ptr<blockchain::BlockTree> block_tree,
       std::shared_ptr<network::BlockAnnounceTransmitter>
@@ -100,6 +102,8 @@ namespace kagome::consensus::babe {
         app_state_manager_(app_state_manager),
         lottery_{std::move(lottery)},
         babe_config_repo_{std::move(babe_config_repo)},
+        io_context_{thread_pool.io_context()},
+        main_thread_{std::move(main_thread)},
         proposer_{std::move(proposer)},
         block_tree_{std::move(block_tree)},
         block_announce_transmitter_{std::move(block_announce_transmitter)},
@@ -388,7 +392,7 @@ namespace kagome::consensus::babe {
   }
 
   bool BabeImpl::updateSlot(BabeTimePoint now) {
-    best_block_ = block_tree_->bestLeaf();
+    best_block_ = block_tree_->bestBlock();
     current_slot_ = babe_util_->timeToSlot(now);
     auto epoch_res =
         babe_util_->slotToEpochDescriptor(best_block_, current_slot_);
@@ -425,12 +429,7 @@ namespace kagome::consensus::babe {
       return;
     }
 
-    const auto &last_finalized_block = block_tree_->getLastFinalized();
-
-    auto current_best_block_res =
-        block_tree_->getBestContaining(last_finalized_block.hash, std::nullopt);
-    BOOST_ASSERT(current_best_block_res.has_value());
-    const auto &current_best_block = current_best_block_res.value();
+    auto current_best_block = block_tree_->bestBlock();
 
     if (current_best_block == handshake.best_block) {
       if (current_state_ == Babe::State::HEADERS_LOADING) {
@@ -446,7 +445,7 @@ namespace kagome::consensus::babe {
     }
 
     // Remote peer is lagged
-    if (handshake.best_block.number <= last_finalized_block.number) {
+    if (handshake.best_block.number <= block_tree_->getLastFinalized().number) {
       return;
     }
 
@@ -465,12 +464,7 @@ namespace kagome::consensus::babe {
       return;
     }
 
-    const auto &last_finalized_block = block_tree_->getLastFinalized();
-
-    auto current_best_block_res =
-        block_tree_->getBestContaining(last_finalized_block.hash, std::nullopt);
-    BOOST_ASSERT(current_best_block_res.has_value());
-    const auto &current_best_block = current_best_block_res.value();
+    auto current_best_block = block_tree_->bestBlock();
 
     // Skip obsoleted announce
     if (announce.header.number < current_best_block.number) {
@@ -522,7 +516,7 @@ namespace kagome::consensus::babe {
             // Synced
             if (self->current_state_ == Babe::State::SYNCHRONIZED) {
               // Set actual block status
-              announce.state = block == self->block_tree_->bestLeaf()
+              announce.state = block == self->block_tree_->bestBlock()
                                  ? network::BlockState::Best
                                  : network::BlockState::Normal;
               // Propagate announce
@@ -634,7 +628,7 @@ namespace kagome::consensus::babe {
         primitives::events::BabeStateEventType::kSyncState, current_state_);
 
     auto best_block =
-        block_tree_->getBlockHeader(block_tree_->bestLeaf().hash).value();
+        block_tree_->getBlockHeader(block_tree_->bestBlock().hash).value();
     if (trie_storage_->getEphemeralBatchAt(best_block.state_root)) {
       current_state_ = Babe::State::CATCHING_UP;
       return;
@@ -646,7 +640,7 @@ namespace kagome::consensus::babe {
         SL_INFO(log_,
                 "Stateless fast sync is finished on block {}; "
                 "Application is stopping",
-                block_tree_->bestLeaf());
+                block_tree_->bestBlock());
         log_->flush();
         app_state_manager_->shutdown();
       }
@@ -761,7 +755,7 @@ namespace kagome::consensus::babe {
         primitives::events::BabeStateEventType::kSyncState, current_state_);
 
     if (not active_) {
-      best_block_ = block_tree_->bestLeaf();
+      best_block_ = block_tree_->bestBlock();
       SL_DEBUG(log_, "Babe is synchronized on block {}", best_block_);
       runEpoch();
     }
@@ -825,8 +819,8 @@ namespace kagome::consensus::babe {
         metric_is_relaychain_validator_->set(false);
         if (app_config_validator_) {
           SL_VERBOSE(log_,
-                   "Authority not known, skipping slot processing. "
-                   "Probably authority list has changed.");
+                     "Authority not known, skipping slot processing. "
+                     "Probably authority list has changed.");
         }
       } else {
         metric_is_relaychain_validator_->set(true);
@@ -1065,7 +1059,7 @@ namespace kagome::consensus::babe {
       return;
     }
 
-    auto timer = metric_block_proposal_time.manual();
+    auto proposal_start = std::chrono::steady_clock::now();
     // calculate babe_pre_digest
     auto babe_pre_digest_res =
         babePreDigest(slot_type, output, authority_index);
@@ -1075,26 +1069,48 @@ namespace kagome::consensus::babe {
     }
     const auto &babe_pre_digest = babe_pre_digest_res.value();
 
-    auto changes_tracker =
-        std::make_shared<storage::changes_trie::StorageChangesTrackerImpl>();
+    auto propose = [this,
+                    self{shared_from_this()},
+                    inherent_data{std::move(inherent_data)},
+                    now,
+                    proposal_start,
+                    babe_pre_digest{std::move(babe_pre_digest)}]() mutable {
+      auto changes_tracker =
+          std::make_shared<storage::changes_trie::StorageChangesTrackerImpl>();
 
-    // create new block
-    auto pre_seal_block_res =
-        proposer_->propose(best_block_,
-                           babe_util_->slotFinishTime(current_slot_)
-                               - babe_config_repo_->slotDuration() / 3,
-                           inherent_data,
-                           {babe_pre_digest},
-                           changes_tracker);
-    if (!pre_seal_block_res) {
-      SL_ERROR(log_, "Cannot propose a block: {}", pre_seal_block_res.error());
-      return;
-    }
+      // create new block
+      auto res = proposer_->propose(best_block_,
+                                    babe_util_->slotFinishTime(current_slot_)
+                                        - babe_config_repo_->slotDuration() / 3,
+                                    inherent_data,
+                                    {babe_pre_digest},
+                                    changes_tracker);
+      if (not res) {
+        SL_ERROR(log_, "Cannot propose a block: {}", res.error());
+        return;
+      }
+      auto proposed = [self,
+                       now,
+                       proposal_start,
+                       changes_tracker{std::move(changes_tracker)},
+                       res{std::move(res.value())}]() mutable {
+        self->processSlotLeadershipProposed(
+            now, proposal_start, std::move(changes_tracker), std::move(res));
+      };
+      main_thread_->post(std::move(proposed));
+    };
+    io_context_->post(std::move(propose));
+  }
 
-    auto duration_ms = timer().count();
+  void BabeImpl::processSlotLeadershipProposed(
+      uint64_t now,
+      clock::SteadyClock::TimePoint proposal_start,
+      std::shared_ptr<storage::changes_trie::StorageChangesTrackerImpl>
+          &&changes_tracker,
+      primitives::Block &&block) {
+    auto duration_ms =
+        metric_block_proposal_time.observe(proposal_start).count();
     SL_DEBUG(log_, "Block has been built in {} ms", duration_ms);
-
-    auto block = pre_seal_block_res.value();
 
     // Ensure block's extrinsics root matches extrinsics in block's body
     BOOST_ASSERT_MSG(
@@ -1135,11 +1151,7 @@ namespace kagome::consensus::babe {
         hasher_->blake2b_256(scale::encode(block.header).value());
     const primitives::BlockInfo block_info(block.header.number, block_hash);
 
-    auto last_finalized_block = block_tree_->getLastFinalized();
-    auto previous_best_block_res =
-        block_tree_->getBestContaining(last_finalized_block.hash, std::nullopt);
-    BOOST_ASSERT(previous_best_block_res.has_value());
-    const auto &previous_best_block = previous_best_block_res.value();
+    auto previous_best_block = block_tree_->bestBlock();
 
     // add block to the block tree
     if (auto add_res = block_tree_->addBlock(block); not add_res) {
@@ -1179,8 +1191,8 @@ namespace kagome::consensus::babe {
     // finally, broadcast the sealed block
     block_announce_transmitter_->blockAnnounce(network::BlockAnnounce{
         block.header,
-        block_info == block_tree_->bestLeaf() ? network::BlockState::Best
-                                              : network::BlockState::Normal,
+        block_info == block_tree_->bestBlock() ? network::BlockState::Best
+                                               : network::BlockState::Normal,
         common::Buffer{},
     });
     SL_DEBUG(
@@ -1191,11 +1203,7 @@ namespace kagome::consensus::babe {
         current_epoch_.epoch_number,
         now);
 
-    last_finalized_block = block_tree_->getLastFinalized();
-    auto current_best_block_res =
-        block_tree_->getBestContaining(last_finalized_block.hash, std::nullopt);
-    BOOST_ASSERT(current_best_block_res.has_value());
-    const auto &current_best_block = current_best_block_res.value();
+    auto current_best_block = block_tree_->bestBlock();
 
     // Create new offchain worker for block if it is best only
     if (current_best_block.number > previous_best_block.number) {

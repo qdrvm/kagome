@@ -100,8 +100,7 @@ namespace kagome::consensus::grandpa {
       std::optional<VoterSetId> voter_set_id) const {
     SL_DEBUG(logger_, "Finding best chain containing block {}", base_hash);
 
-    OUTCOME_TRY(best_block,
-                block_tree_->getBestContaining(base_hash, std::nullopt));
+    OUTCOME_TRY(best_block, block_tree_->getBestContaining(base_hash));
 
     // Must finalize block with scheduled/forced change digest first
     auto finalized = block_tree_->getLastFinalized();
@@ -196,21 +195,21 @@ namespace kagome::consensus::grandpa {
       if (HasAuthoritySetChange{header}) {
         best_block = block;
       }
-      block = {header.number - 1, header.parent_hash};
+      block = *header.parentInfo();
     }
 
     // Select best block with actual set_id
     if (voter_set_id.has_value()) {
-      while (true) {
+      while (best_block.number > finalized.number) {
         OUTCOME_TRY(header,
                     header_repository_->getBlockHeader(best_block.hash));
-        BlockInfo parent_block{header.number - 1, header.parent_hash};
+        auto parent_block = *header.parentInfo();
 
         auto voter_set = authority_manager_->authorities(
             parent_block, IsBlockFinalized{true});
 
         if (voter_set.has_value()
-            && voter_set.value()->id == voter_set_id.value()) {
+            and voter_set.value()->id <= voter_set_id.value()) {
           // found
           break;
         }

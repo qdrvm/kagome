@@ -37,14 +37,14 @@ namespace kagome::network {
                                                      true> {
    public:
     CollationProtocol(libp2p::Host &host,
-                      const application::AppConfiguration &app_config,
+                      Roles roles,
                       const application::ChainSpec &chain_spec,
                       const blockchain::GenesisBlockHash &genesis_hash,
                       std::shared_ptr<ObserverType> observer,
                       std::shared_ptr<network::PeerView> peer_view)
         : ParachainProtocol(
             host,
-            app_config,
+            roles,
             chain_spec,
             genesis_hash,
             std::move(observer),
@@ -58,14 +58,14 @@ namespace kagome::network {
                                                       false> {
    public:
     ValidationProtocol(libp2p::Host &host,
-                       const application::AppConfiguration &app_config,
+                       Roles roles,
                        const application::ChainSpec &chain_spec,
                        const blockchain::GenesisBlockHash &genesis_hash,
                        std::shared_ptr<ObserverType> observer,
                        std::shared_ptr<network::PeerView> peer_view)
         : ParachainProtocol(
             host,
-            app_config,
+            roles,
             chain_spec,
             genesis_hash,
             std::move(observer),

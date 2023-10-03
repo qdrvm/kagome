@@ -27,7 +27,6 @@ namespace kagome::runtime::binaryen {
       UNEXPECTED_EXIT = 1,
       EXECUTION_ERROR,
       CAN_NOT_OBTAIN_GLOBAL,
-      NO_EXPORT_FUNCTION
     };
 
     ModuleInstanceImpl(InstanceEnvironment &&env,

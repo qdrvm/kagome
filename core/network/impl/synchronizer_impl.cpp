@@ -12,7 +12,6 @@
 #include "consensus/babe/has_babe_consensus_digest.hpp"
 #include "consensus/grandpa/environment.hpp"
 #include "consensus/grandpa/has_authority_set_change.hpp"
-#include "network/helpers/peer_id_formatter.hpp"
 #include "network/types/block_attributes.hpp"
 #include "primitives/common.hpp"
 #include "storage/predefined_keys.hpp"
@@ -77,7 +76,6 @@ namespace kagome::network {
       const application::AppConfiguration &app_config,
       std::shared_ptr<application::AppStateManager> app_state_manager,
       std::shared_ptr<blockchain::BlockTree> block_tree,
-      std::shared_ptr<blockchain::BlockStorage> block_storage,
       std::shared_ptr<consensus::babe::BlockHeaderAppender> block_appender,
       std::shared_ptr<consensus::babe::BlockExecutor> block_executor,
       std::shared_ptr<storage::trie::TrieSerializer> serializer,
@@ -87,12 +85,11 @@ namespace kagome::network {
       std::shared_ptr<libp2p::basic::Scheduler> scheduler,
       std::shared_ptr<crypto::Hasher> hasher,
       std::shared_ptr<runtime::ModuleFactory> module_factory,
-      std::shared_ptr<runtime::Core> core_api,
+      std::shared_ptr<runtime::RuntimePropertiesCache> runtime_properties_cache,
       primitives::events::ChainSubscriptionEnginePtr chain_sub_engine,
       std::shared_ptr<consensus::grandpa::Environment> grandpa_environment)
       : app_state_manager_(std::move(app_state_manager)),
         block_tree_(std::move(block_tree)),
-        block_storage_{std::move(block_storage)},
         block_appender_(std::move(block_appender)),
         block_executor_(std::move(block_executor)),
         serializer_(std::move(serializer)),
@@ -102,7 +99,7 @@ namespace kagome::network {
         scheduler_(std::move(scheduler)),
         hasher_(std::move(hasher)),
         module_factory_(std::move(module_factory)),
-        core_api_(std::move(core_api)),
+        runtime_properties_cache_{std::move(runtime_properties_cache)},
         grandpa_environment_{std::move(grandpa_environment)},
         chain_sub_engine_(std::move(chain_sub_engine)) {
     BOOST_ASSERT(app_state_manager_);
@@ -115,7 +112,7 @@ namespace kagome::network {
     BOOST_ASSERT(scheduler_);
     BOOST_ASSERT(hasher_);
     BOOST_ASSERT(module_factory_);
-    BOOST_ASSERT(core_api_);
+    BOOST_ASSERT(runtime_properties_cache_);
     BOOST_ASSERT(grandpa_environment_);
     BOOST_ASSERT(chain_sub_engine_);
 
@@ -155,10 +152,7 @@ namespace kagome::network {
     }
 
     // Check if block has arrived too early
-    auto best_block_res =
-        block_tree_->getBestContaining(last_finalized_block.hash, std::nullopt);
-    BOOST_ASSERT(best_block_res.has_value());
-    const auto &best_block = best_block_res.value();
+    auto best_block = block_tree_->bestBlock();
     if (best_block.number + kMaxDistanceToBlockForSubscription
         < block_info.number) {
       scheduler_->schedule([handler = std::move(handler)] {
@@ -225,10 +219,7 @@ namespace kagome::network {
 
     const auto &last_finalized_block = block_tree_->getLastFinalized();
 
-    auto best_block_res =
-        block_tree_->getBestContaining(last_finalized_block.hash, std::nullopt);
-    BOOST_ASSERT(best_block_res.has_value());
-    const auto &best_block = best_block_res.value();
+    auto best_block = block_tree_->bestBlock();
 
     // Provided block is equal our best one. Nothing needs to do.
     if (block_info == best_block) {
@@ -1048,8 +1039,8 @@ namespace kagome::network {
       syncState();
       return outcome::success();
     }
-    OUTCOME_TRY(
-        state_sync_flow_->commit(*module_factory_, *core_api_, *serializer_));
+    OUTCOME_TRY(state_sync_flow_->commit(
+        *module_factory_, runtime_properties_cache_, *serializer_));
     auto block = state_sync_flow_->blockInfo();
     state_sync_flow_.reset();
     SL_INFO(log_, "State syncing block {} has finished.", block);
@@ -1083,9 +1074,11 @@ namespace kagome::network {
       return;
     }
     SL_TRACE(log_, "Begin applying");
-    auto cleanup = gsl::finally([this] {
-      SL_TRACE(log_, "End applying");
-      applying_in_progress_ = false;
+    auto cleanup = gsl::finally([weak = weak_from_this()] {
+      if (auto self = weak.lock()) {
+        SL_TRACE(self->log_, "End applying");
+        self->applying_in_progress_ = false;
+      }
     });
 
     primitives::BlockHash hash;
@@ -1135,8 +1128,12 @@ namespace kagome::network {
 
       } else {
         auto callback =
-            [wself{weak_from_this()}, hash, handler{std::move(handler)}](
+            [wself{weak_from_this()},
+             hash,
+             handler{std::move(handler)},
+             cleanup = std::make_shared<decltype(cleanup)>(std::move(cleanup))](
                 auto &&block_addition_result) mutable {
+              cleanup.reset();
               if (auto self = wself.lock()) {
                 self->processBlockAdditionResult(
                     std::move(block_addition_result), hash, std::move(handler));

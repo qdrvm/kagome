@@ -91,16 +91,8 @@ namespace kagome::common {
       return l.view() == Span{r};
     }
     template <typename T, typename = AsSpan<T>>
-    friend bool operator!=(const BufferOrView &l, const T &r) {
-      return l.view() != Span{r};
-    }
-    template <typename T, typename = AsSpan<T>>
     friend bool operator==(const T &l, const BufferOrView &r) {
       return Span{l} == r.view();
-    }
-    template <typename T, typename = AsSpan<T>>
-    friend bool operator!=(const T &l, const BufferOrView &r) {
-      return Span{l} != r.view();
     }
   };
 }  // namespace kagome::common

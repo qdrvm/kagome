@@ -18,6 +18,7 @@ namespace kagome::network {
    */
   struct BlocksResponse {
     common::SLVector<primitives::BlockData, kMaxBlocksInResponse> blocks{};
+    bool multiple_justifications = false;
   };
 
 }  // namespace kagome::network

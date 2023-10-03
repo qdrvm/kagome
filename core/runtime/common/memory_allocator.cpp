@@ -5,6 +5,8 @@
 
 #include "runtime/common/memory_allocator.hpp"
 
+#include "log/formatters/ref_and_ptr.hpp"
+#include "log/trace_macros.hpp"
 #include "runtime/memory.hpp"
 
 namespace kagome::runtime {
@@ -50,7 +52,7 @@ namespace kagome::runtime {
           .allocation_sz = roundUpAlign(size),
       }
           .serialize(ptr, memory_);
-      SL_TRACE_FUNC_CALL(logger_, ptr, this, size);
+      SL_TRACE_FUNC_CALL(logger_, ptr, static_cast<const void *>(this), size);
       return ptr + AllocationHeaderSz;
     }
 

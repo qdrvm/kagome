@@ -30,6 +30,7 @@ namespace kagome::network {
     /// maximum number of blocks to return; an implementation defined maximum is
     /// used when unspecified
     std::optional<uint32_t> max{};
+    bool multiple_justifications = true;
 
     /// includes HEADER, BODY and JUSTIFICATION
     static constexpr BlockAttributes kBasicAttributes =

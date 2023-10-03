@@ -25,10 +25,13 @@
 #include "mock/core/runtime/offchain_worker_api_mock.hpp"
 #include "mock/core/transaction_pool/transaction_pool_mock.hpp"
 #include "runtime/runtime_context.hpp"
+#include "testutil/asio_wait.hpp"
 #include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
 #include "testutil/prepare_loggers.hpp"
+#include "utils/thread_pool.hpp"
 
+using kagome::ThreadPool;
 using kagome::blockchain::BlockTree;
 using kagome::blockchain::BlockTreeError;
 using kagome::blockchain::BlockTreeMock;
@@ -152,6 +155,8 @@ class BlockExecutorTest : public testing::Test {
                                                         hasher_);
 
     block_executor_ = std::make_shared<BlockExecutorImpl>(block_tree_,
+                                                          thread_pool_,
+                                                          thread_pool_.io_context(),
                                                           core_,
                                                           tx_pool_,
                                                           hasher_,
@@ -163,6 +168,7 @@ class BlockExecutorTest : public testing::Test {
 
  protected:
   std::shared_ptr<BlockTreeMock> block_tree_;
+  ThreadPool thread_pool_{"test", 1};
   std::shared_ptr<CoreMock> core_;
   std::shared_ptr<BabeConfiguration> babe_config_;
   std::shared_ptr<BabeConfigRepositoryMock> babe_config_repo_;
@@ -230,13 +236,11 @@ TEST_F(BlockExecutorTest, JustificationFollowDigests) {
   EXPECT_CALL(*block_tree_, getBlockHeader("parent_hash"_hash256))
       .WillRepeatedly(testing::Return(kagome::primitives::BlockHeader{
           .parent_hash = "grandparent_hash"_hash256, .number = 40}));
-  EXPECT_CALL(*block_tree_, getLastFinalized())
-      .WillOnce(testing::Return(BlockInfo{40, "grandparent_hash"_hash256}))
+  EXPECT_CALL(*block_tree_, bestBlock())
+      // previous best
+      .WillOnce(testing::Return(BlockInfo{41, "parent_hash"_hash256}))
+      // current best
       .WillOnce(testing::Return(BlockInfo{42, "some_hash"_hash256}));
-  EXPECT_CALL(*block_tree_,
-              getBestContaining("grandparent_hash"_hash256,
-                                std::optional<BlockNumber>{}))
-      .WillOnce(testing::Return(BlockInfo{41, "parent_hash"_hash256}));
   EXPECT_CALL(*core_, execute_block_ref(_, _))
       .WillOnce(testing::Return(outcome::success()));
   EXPECT_CALL(*block_tree_, addBlock(_))
@@ -252,10 +256,6 @@ TEST_F(BlockExecutorTest, JustificationFollowDigests) {
         onDigest(BlockContext{.block_info = {42, "some_hash"_hash256}}, _))
         .WillOnce(testing::Return(outcome::success()));
   }
-  EXPECT_CALL(
-      *block_tree_,
-      getBestContaining("some_hash"_hash256, std::optional<BlockNumber>{}))
-      .WillOnce(testing::Return(BlockInfo{42, "some_hash"_hash256}));
   EXPECT_CALL(*offchain_worker_api_, offchain_worker(_, _))
       .WillOnce(testing::Return(outcome::success()));
 
@@ -269,5 +269,7 @@ TEST_F(BlockExecutorTest, JustificationFollowDigests) {
   block_executor_->applyBlock(
       Block{block_data.header.value(), block_data.body.value()},
       justification,
-      [](auto &&result) { EXPECT_OUTCOME_TRUE_1(result); });
+      [](auto &&result) { ASSERT_OUTCOME_SUCCESS_TRY(result); });
+
+  testutil::wait(*thread_pool_.io_context());
 }

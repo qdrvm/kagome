@@ -19,7 +19,7 @@ namespace kagome::primitives {
    * to get certain information about the block
    */
   struct BlockData {
-    SCALE_TIE(6);
+    SCALE_TIE(7);
 
     primitives::BlockHash hash;
     std::optional<primitives::BlockHeader> header{};
@@ -27,6 +27,7 @@ namespace kagome::primitives {
     std::optional<common::Buffer> receipt{};
     std::optional<common::Buffer> message_queue{};
     std::optional<primitives::Justification> justification{};
+    std::optional<primitives::Justification> beefy_justification{};
   };
 
   struct BlockDataFlags {

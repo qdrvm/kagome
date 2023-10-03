@@ -35,7 +35,7 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::parachain, PvfError, e) {
     case PvfError::OUTPUTS:
       return "ValidationResult is invalid";
   }
-  return fmt::format("PvfError({})", e);
+  return "unknown error (kagome::parachain::PvfError)";
 }
 
 namespace kagome::parachain {

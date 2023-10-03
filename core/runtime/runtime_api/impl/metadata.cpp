@@ -9,21 +9,23 @@
 
 namespace kagome::runtime {
 
-  MetadataImpl::MetadataImpl(std::shared_ptr<Executor> executor)
-      : executor_{std::move(executor)} {
+  MetadataImpl::MetadataImpl(
+      std::shared_ptr<Executor> executor,
+      std::shared_ptr<const blockchain::BlockHeaderRepository> header_repo,
+      std::shared_ptr<RuntimeUpgradeTracker> runtime_upgrade_tracker)
+      : executor_{std::move(executor)},
+        header_repo_{std::move(header_repo)},
+        runtime_upgrade_tracker_{std::move(runtime_upgrade_tracker)} {
     BOOST_ASSERT(executor_);
   }
 
   outcome::result<Metadata::OpaqueMetadata> MetadataImpl::metadata(
       const primitives::BlockHash &block_hash) {
-    OUTCOME_TRY(
-        ref,
-        metadata_.get_else(
-            block_hash, [&] -> outcome::result<Metadata::OpaqueMetadata> {
-              OUTCOME_TRY(ctx, executor_->ctx().ephemeralAt(block_hash));
-              return executor_->call<OpaqueMetadata>(ctx, "Metadata_metadata");
-            }));
-    return *ref;
+    return metadata_.call(*header_repo_,
+                          *runtime_upgrade_tracker_,
+                          *executor_,
+                          block_hash,
+                          "Metadata_metadata");
   }
 
 }  // namespace kagome::runtime

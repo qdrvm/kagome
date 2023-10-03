@@ -54,7 +54,7 @@ TEST_F(PaymentApiTest, QueryInfo) {
   BlockInfo best_leaf{10, deepest_hash};
   RuntimeDispatchInfo<OldWeight> expected_result;
 
-  EXPECT_CALL(*block_tree_, bestLeaf()).WillOnce(Return(best_leaf));
+  EXPECT_CALL(*block_tree_, bestBlock()).WillOnce(Return(best_leaf));
   EXPECT_CALL(*transaction_payment_api_,
               query_info(deepest_hash, extrinsic, len))
       .WillOnce(Return(expected_result));

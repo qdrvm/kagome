@@ -14,6 +14,7 @@
 #include "blockchain/block_storage.hpp"
 #include "blockchain/block_tree.hpp"
 #include "crypto/hasher/hasher_impl.hpp"
+#include "log/formatters/optional.hpp"
 #include "storage/database_error.hpp"
 #include "storage/predefined_keys.hpp"
 #include "storage/spaced_storage.hpp"
@@ -200,8 +201,7 @@ namespace kagome::storage::trie_pruner {
     return outcome::success();
   }
 
-  outcome::result<void> TriePrunerImpl::prune(BufferBatch &node_batch,
-                                              BufferBatch &value_batch,
+  outcome::result<void> TriePrunerImpl::prune(BufferBatch &batch,
                                               const trie::RootHash &root_hash) {
     auto trie_res = serializer_->retrieveTrie(root_hash, nullptr);
     if (trie_res.has_error()
@@ -258,7 +258,13 @@ namespace kagome::storage::trie_pruner {
       }
 
       auto &ref_count = ref_count_it->second;
-      BOOST_ASSERT(ref_count != 0);
+      if (ref_count == 0) {
+        SL_WARN(logger_,
+                "Pruner encountered an unindexed node {} while pruning, this "
+                "indicates a bug",
+                hash);
+        continue;
+      }
       ref_count--;
       SL_TRACE(logger_,
                "Prune - {} - Node {}, ref count {}",
@@ -266,7 +272,8 @@ namespace kagome::storage::trie_pruner {
                hash,
                ref_count);
 
-      if (ref_count == 0) {
+      if (immortal_nodes_.find(hash) == immortal_nodes_.end()
+          && ref_count == 0) {
         nodes_removed++;
         ref_count_.erase(ref_count_it);
         OUTCOME_TRY(node_batch.remove(hash));
@@ -383,14 +390,16 @@ namespace kagome::storage::trie_pruner {
       queued_nodes.pop_back();
       auto &ref_count = ref_count_[hash];
       if (ref_count == 0 && !thorough_pruning_) {
-        OUTCOME_TRY(hash_is_in_storage, node_storage_->contains(hash));
+        OUTCOME_TRY(hash_is_in_storage, trie_storage_->contains(hash));
         if (hash_is_in_storage) {
           // the node is present in storage but pruner has not indexed it
           // because pruner has been initialized on a newer state
-          SL_TRACE(logger_,
-                   "Node {} is already in storage, increase ref count",
-                   hash.toHex());
+          SL_TRACE(
+              logger_,
+              "Node {} is unindexed, but already in storage, make it immortal",
+              hash.toHex());
           ref_count++;
+          immortal_nodes_.emplace(hash);
         }
       }
       ref_count++;
@@ -454,7 +463,7 @@ namespace kagome::storage::trie_pruner {
         log::createLogger("PrunerStateRecovery", "storage");
     auto last_pruned_block = getLastPrunedBlock();
     if (!last_pruned_block.has_value()) {
-      if (block_tree.bestLeaf().number != 0) {
+      if (block_tree.bestBlock().number != 0) {
         SL_WARN(logger,
                 "Running pruner on a non-empty non-pruned storage may lead to "
                 "skipping some stored states.");

@@ -100,8 +100,6 @@ namespace kagome::crypto {
     Sr25519SecretKey secret_key;
     Sr25519PublicKey public_key;
 
-    Sr25519Keypair() = default;
-
     bool operator==(const Sr25519Keypair &other) const;
     bool operator!=(const Sr25519Keypair &other) const;
   };

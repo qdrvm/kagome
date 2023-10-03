@@ -13,6 +13,7 @@
 
 #include "runtime/binaryen/memory_impl.hpp"
 #include "runtime/binaryen/module/module_impl.hpp"
+#include "runtime/common/runtime_transaction_error.hpp"
 #include "runtime/memory_provider.hpp"
 
 #include <binaryen/wasm-interpreter.h>
@@ -70,8 +71,6 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::runtime::binaryen,
       return "An error occurred during an export call execution";
     case ModuleInstanceImpl::Error::CAN_NOT_OBTAIN_GLOBAL:
       return "Failed to obtain a global value";
-    case ModuleInstanceImpl::Error::NO_EXPORT_FUNCTION:
-      return "No export function";
   }
   return "Unknown ModuleInstance error";
 }
@@ -114,7 +113,7 @@ namespace kagome::runtime::binaryen {
             module_instance_->wasm.getExportOrNull(wasm::Name{name.data()});
         nullptr == res) {
       SL_DEBUG(logger_, "The requested function {} not found", name);
-      return Error::NO_EXPORT_FUNCTION;
+      return RuntimeTransactionError::EXPORT_FUNCTION_NOT_FOUND;
     }
 
     try {

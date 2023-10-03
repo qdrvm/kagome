@@ -8,8 +8,8 @@
 #include <boost/assert.hpp>
 
 #include "application/app_configuration.hpp"
+#include "log/formatters/variant.hpp"
 #include "network/common.hpp"
-#include "network/helpers/peer_id_formatter.hpp"
 #include "primitives/common.hpp"
 
 OUTCOME_CPP_DEFINE_CATEGORY(kagome::network,
@@ -47,6 +47,7 @@ namespace kagome::network {
     }
 
     BlocksResponse response;
+    response.multiple_justifications = request.multiple_justifications;
 
     // firstly, check if we have both "from" & "to" blocks (if set)
     auto from_hash_res = blocks_headers_->getHashById(request.from);
@@ -184,6 +185,9 @@ namespace kagome::network {
         auto justification_res = block_tree_->getBlockJustification(hash);
         if (justification_res) {
           new_block.justification = std::move(justification_res.value());
+        }
+        if (request.multiple_justifications) {
+          // TODO(turuslan): #1651, beefy_justification
         }
       }
     }

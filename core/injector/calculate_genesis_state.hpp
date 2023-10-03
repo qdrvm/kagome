@@ -7,7 +7,6 @@
 #define KAGOME_CORE_INJECTOR_GET_GENESIS_STATE_HPP
 
 #include "application/chain_spec.hpp"
-#include "runtime/executor.hpp"
 #include "runtime/runtime_api/impl/core.hpp"
 #include "storage/predefined_keys.hpp"
 #include "storage/trie/polkadot_trie/polkadot_trie_impl.hpp"
@@ -15,11 +14,6 @@
 #include "storage/trie_pruner/trie_pruner.hpp"
 
 namespace kagome::injector {
-
-  outcome::result<primitives::Version> callCoreVersion(
-      runtime::Executor &executor, runtime::RuntimeContext &ctx) {
-    return executor.call<primitives::Version>(ctx, "Core_version");
-  }
 
   inline outcome::result<storage::trie::RootHash> calculate_genesis_state(
       const application::ChainSpec &chain_spec,
@@ -36,12 +30,8 @@ namespace kagome::injector {
     auto top_trie = trie_from(chain_spec.getGenesisTopSection());
     OUTCOME_TRY(code, top_trie->get(storage::kRuntimeCodeKey));
 
-    runtime::Executor executor{nullptr, runtime_cache};
-    OUTCOME_TRY(ctx,
-                runtime::RuntimeContextFactory::fromCode(module_factory, code));
-    OUTCOME_TRY(
-        runtime_version,
-        callCoreVersion(executor, ctx));
+    OUTCOME_TRY(runtime_version,
+                runtime::callCoreVersion(module_factory, code, runtime_cache));
     auto version = storage::trie::StateVersion{runtime_version.state_version};
     std::vector<std::shared_ptr<storage::trie::PolkadotTrie>> child_tries;
     for (auto &[child, kv] : chain_spec.getGenesisChildrenDefaultSection()) {

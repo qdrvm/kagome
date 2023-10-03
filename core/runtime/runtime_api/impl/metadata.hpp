@@ -8,8 +8,7 @@
 
 #include "runtime/runtime_api/metadata.hpp"
 
-#include "blockchain/block_header_repository.hpp"
-#include "common/lru_cache.hpp"
+#include "runtime/runtime_api/impl/lru.hpp"
 
 namespace kagome::runtime {
 
@@ -17,15 +16,20 @@ namespace kagome::runtime {
 
   class MetadataImpl final : public Metadata {
    public:
-    MetadataImpl(std::shared_ptr<Executor> executor);
+    MetadataImpl(
+        std::shared_ptr<Executor> executor,
+        std::shared_ptr<const blockchain::BlockHeaderRepository> header_repo,
+        std::shared_ptr<RuntimeUpgradeTracker> runtime_upgrade_tracker);
 
     outcome::result<OpaqueMetadata> metadata(
         const primitives::BlockHash &block_hash) override;
 
    private:
     std::shared_ptr<Executor> executor_;
+    std::shared_ptr<const blockchain::BlockHeaderRepository> header_repo_;
+    std::shared_ptr<RuntimeUpgradeTracker> runtime_upgrade_tracker_;
 
-    LruCache<primitives::BlockHash, OpaqueMetadata> metadata_{10};
+    RuntimeApiLruCode<OpaqueMetadata> metadata_{10};
   };
 
 }  // namespace kagome::runtime

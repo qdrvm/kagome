@@ -42,18 +42,18 @@ namespace kagome {
   class Lockable {
    protected:
     friend struct LockGuard<Lockable, IsLockable>;
-    void lock() const noexcept {}
-    void unlock() const noexcept {}
+    inline void lock() const noexcept {}
+    inline void unlock() const noexcept {}
   };
 
   template <>
   class Lockable<true> {
    protected:
     friend struct LockGuard<Lockable, true>;
-    void lock() const noexcept {
+    inline void lock() const noexcept {
       mutex_.lock();
     }
-    void unlock() const noexcept {
+    inline void unlock() const noexcept {
       mutex_.unlock();
     }
     mutable std::mutex mutex_;

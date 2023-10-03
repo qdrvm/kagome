@@ -13,11 +13,6 @@ namespace kagome::runtime {
 
   class ParachainHostMock : public ParachainHost {
    public:
-    MOCK_METHOD(outcome::result<DutyRoster>,
-                duty_roster,
-                (const primitives::BlockHash &),
-                (override));
-
     MOCK_METHOD(outcome::result<std::vector<ParachainId>>,
                 active_parachains,
                 (const primitives::BlockHash &),

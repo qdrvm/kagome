@@ -14,12 +14,12 @@ namespace kagome::api::state::request {
   };
 
   outcome::result<void> Call::init(const jsonrpc::Request::Parameters &params) {
-    if (params.size() > 3 or params.size() < 2) {
+    if (params.size() < 2 or params.size() > 3) {
       throw jsonrpc::InvalidParametersFault("Incorrect number of params");
     }
     auto &param0 = params[0];
 
-    if (param0.IsString() and not param0.IsNil()) {
+    if (param0.IsString()) {
       method_ = param0.AsString();
     } else {
       throw jsonrpc::InvalidParametersFault(
@@ -27,7 +27,7 @@ namespace kagome::api::state::request {
     }
 
     auto &param1 = params[1];
-    if (param1.IsString() and not param1.IsNil()) {
+    if (param1.IsString()) {
       auto encoded_args = common::unhexWith0x(param1.AsString());
       if (encoded_args.has_value()) {
         data_ = common::Buffer(encoded_args.value());
@@ -45,15 +45,17 @@ namespace kagome::api::state::request {
     }
 
     auto &param2 = params[2];
-    // process at param
-    if (not param2.IsString()) {
-      throw jsonrpc::InvalidParametersFault(
-          "Parameter '[at]' must be a hex string representation of an encoded "
-          "optional byte sequence");
+    if (!param2.IsNil()) {
+      // process at param
+      if (not param2.IsString()) {
+        throw jsonrpc::InvalidParametersFault(
+            "Parameter '[at]' must be a hex string representation of an "
+            "encoded optional byte sequence");
+      }
+      OUTCOME_TRY(at_span, common::unhexWith0x(param2.AsString()));
+      OUTCOME_TRY(at, primitives::BlockHash::fromSpan(at_span));
+      at_ = at;
     }
-    OUTCOME_TRY(at_span, common::unhexWith0x(param2.AsString()));
-    OUTCOME_TRY(at, primitives::BlockHash::fromSpan(at_span));
-    at_ = at;
 
     return outcome::success();
   }

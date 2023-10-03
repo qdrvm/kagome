@@ -8,11 +8,7 @@
 
 #include "runtime/runtime_api/core.hpp"
 
-#include "common/lru_cache.hpp"
-
-namespace kagome::blockchain {
-  class BlockHeaderRepository;
-}
+#include "runtime/runtime_api/impl/lru.hpp"
 
 namespace kagome::runtime {
 
@@ -57,7 +53,7 @@ namespace kagome::runtime {
     std::shared_ptr<Executor> executor_;
     std::shared_ptr<const blockchain::BlockHeaderRepository> header_repo_;
 
-    LruCache<primitives::BlockHash, primitives::Version> version_{10};
+    RuntimeApiLruCode<primitives::Version> version_{10};
   };
 
 }  // namespace kagome::runtime

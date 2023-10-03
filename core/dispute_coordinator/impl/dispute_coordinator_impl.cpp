@@ -23,7 +23,6 @@
 #include "dispute_coordinator/participation/impl/participation_impl.hpp"
 #include "dispute_coordinator/provisioner/impl/prioritized_selection.hpp"
 #include "dispute_coordinator/provisioner/impl/random_selection.hpp"
-#include "network/helpers/peer_id_formatter.hpp"
 #include "network/router.hpp"
 #include "network/types/dispute_messages.hpp"
 #include "parachain/approval/approval_distribution.hpp"
@@ -47,6 +46,57 @@ namespace kagome::dispute {
 
     constexpr auto disputesFinalityLagMetricName =
         "kagome_parachain_disputes_finality_lag";
+
+    inline common::Buffer getSignablePayload(
+        const DisputeStatement &statement,
+        const CandidateHash &candidate_hash,
+        SessionIndex session) {
+      auto res = visit_in_place(
+          statement,
+          [&](const ValidDisputeStatement &kind) {
+            return visit_in_place(
+                kind,
+                [&](const Explicit &) {
+                  std::array<uint8_t, 4> magic{'D', 'I', 'S', 'P'};
+                  bool validity = true;
+                  return scale::encode(
+                      std::tie(magic, validity, candidate_hash, session));
+                },
+                [&](const BackingSeconded &inclusion_parent) {
+                  std::array<uint8_t, 4> magic{'B', 'K', 'N', 'G'};
+                  uint8_t discriminant = 1;  // Seconded
+                  return scale::encode(std::tie(magic,
+                                                discriminant,
+                                                candidate_hash,
+                                                session,
+                                                inclusion_parent));
+                },
+                [&](const BackingValid &inclusion_parent) {
+                  std::array<uint8_t, 4> magic{'B', 'K', 'N', 'G'};
+                  uint8_t discriminant = 2;  // Valid
+                  return scale::encode(std::tie(magic,
+                                                discriminant,
+                                                candidate_hash,
+                                                session,
+                                                inclusion_parent));
+                },
+                [&](const ApprovalChecking &) {
+                  std::array<uint8_t, 4> magic{'A', 'P', 'P', 'R'};
+                  return scale::encode(
+                      std::tie(magic, candidate_hash, session));
+                });
+          },
+          [&](const InvalidDisputeStatement &kind) {
+            return visit_in_place(kind, [&](const Explicit &) {
+              std::array<uint8_t, 4> magic{'D', 'I', 'S', 'P'};
+              bool validity = false;
+              return scale::encode(
+                  std::tie(magic, validity, candidate_hash, session));
+            });
+          });
+      BOOST_ASSERT_MSG(res.has_value(), "Successful scale encoding expected");
+      return common::Buffer(std::move(res.value()));
+    }
 
   }  // namespace
 
@@ -642,22 +692,23 @@ namespace kagome::dispute {
 
     // https://github.com/paritytech/polkadot/blob/40974fb99c86f5c341105b7db53c7aa0df707d66/node/core/dispute-coordinator/src/initialized.rs#L461
     for (auto &dispute_statement_set : disputes) {
-      auto &candidate_hash = dispute_statement_set.candidate_hash;
-      auto &session_ = dispute_statement_set.session;
+      auto &dispute_candidate = dispute_statement_set.candidate_hash;
+      auto &dispute_session = dispute_statement_set.session;
       auto &dispute_statements = dispute_statement_set.statements;
       SL_TRACE(log_, "Importing dispute votes from chain for candidate");
 
       std::vector<Indexed<SignedDisputeStatement>> statements;
-      for (const auto &[dispute_statement,
+      for (const auto &[_dispute_statement,
                         _validator_index,
                         _validator_signature] : dispute_statements) {
+        const auto &dispute_statement = _dispute_statement;
         const auto &validator_index = _validator_index;
         const auto &validator_signature = _validator_signature;
-        OUTCOME_TRY(visit_in_place(
+        auto res = visit_in_place(
             dispute_statement,
             [&](const auto &statement_kind) -> outcome::result<void> {
               auto session_info_opt =
-                  rolling_session_window_->session_info(session_);
+                  rolling_session_window_->session_info(dispute_session);
               if (not session_info_opt.has_value()) {
                 SL_WARN(log_,
                         "Could not retrieve session info from rolling session "
@@ -677,11 +728,9 @@ namespace kagome::dispute {
               ValidatorId validator_public =
                   session_info.validators[validator_index];
 
-              DisputeStatement statement{statement_kind};
-
               [[maybe_unused]] auto check_sig = [&] {
-                auto payload =
-                    getSignablePayload(statement, candidate_hash, session);
+                auto payload = getSignablePayload(
+                    dispute_statement, dispute_candidate, dispute_session);
 
                 auto validation_res = sr25519_crypto_provider_->verify(
                     validator_signature, payload, validator_public);
@@ -700,22 +749,23 @@ namespace kagome::dispute {
 
               Indexed<SignedDisputeStatement> signed_dispute_statement{
                   {
-                      statement,
-                      candidate_hash,
+                      dispute_statement,
+                      dispute_candidate,
                       validator_public,
                       validator_signature,
-                      session,
+                      dispute_session,
                   },
                   validator_index};
 
               statements.emplace_back(std::move(signed_dispute_statement));
               return outcome::success();
-            }));
+            });
+        OUTCOME_TRY(res);
       }
 
-      OUTCOME_TRY(
-          import_result,
-          handle_import_statements(candidate_hash, session, statements));
+      OUTCOME_TRY(import_result,
+                  handle_import_statements(
+                      dispute_candidate, dispute_session, statements));
 
       if (import_result) {
         SL_TRACE(log_, "Imported statement of dispute from on-chain");
@@ -888,13 +938,7 @@ namespace kagome::dispute {
     }
     auto &active_disputes = active_disputes_res.value();
 
-    SL_INFO(log_, "DEBUG: active_disputes.empty={}", active_disputes.empty());
-
     /// Handle new active disputes response.
-
-    SL_INFO(
-        log_, "DEBUG: sending_disputes_.empty={}", sending_disputes_.empty());
-
     // https://github.com/paritytech/polkadot/blob/40974fb99c86f5c341105b7db53c7aa0df707d66/node/network/dispute-distribution/src/sender/mod.rs#L261
     std::unordered_set<CandidateHash> candidates;
     std::for_each(active_disputes.begin(),
@@ -906,14 +950,8 @@ namespace kagome::dispute {
     // Cleanup obsolete senders
     sending_disputes_.remove_if([&](const auto &x) {
       const auto &candidate_hash = std::get<0>(x);
-      SL_INFO(log_,
-              "DEBUG: sending_disputes_.remove_if candidate={}",
-              candidate_hash);
       return candidates.find(candidate_hash) == candidates.end();
     });
-
-    SL_INFO(
-        log_, "DEBUG: sending_disputes_.empty={}", sending_disputes_.empty());
 
     // Iterates in order of insertion:
     // https://github.com/paritytech/polkadot/blob/40974fb99c86f5c341105b7db53c7aa0df707d66/node/network/dispute-distribution/src/sender/mod.rs#L267
@@ -1005,9 +1043,6 @@ namespace kagome::dispute {
             ? boost::relaxed_get<CandidateReceipt>(candidate_receipt)
                   .hash(*hasher_)
             : boost::relaxed_get<CandidateHash>(candidate_receipt);
-
-    SL_TRACE(
-        log_, "DEBUG:  handle_import_statements, candidate {}", candidate_hash);
 
     auto env_opt = makeCandidateEnvironment(
         *session_keys_, *rolling_session_window_, session);
@@ -1452,9 +1487,20 @@ namespace kagome::dispute {
     if (is_freshly_concluded_against) {
       auto blocks_including =
           scraper_->get_blocks_including_candidate(candidate_hash);
+      SL_TRACE(log_,
+               "{} blocks include candidate={} concluded against",
+               blocks_including.size(),
+               candidate_hash);
       if (blocks_including.size() > 0) {
-        std::ignore =
-            block_tree_->markAsRevertedBlocks(std::move(blocks_including));
+        std::vector<primitives::BlockHash> to_revert;
+        to_revert.reserve(blocks_including.size());
+        std::transform(blocks_including.begin(),
+                       blocks_including.end(),
+                       std::back_inserter(to_revert),
+                       [](auto &block_info) { return block_info.hash; });
+        std::ignore = block_tree_->markAsRevertedBlocks(std::move(to_revert));
+        SL_DEBUG(
+            log_, "Would be reverted up to {} blocks", blocks_including.size());
       } else {
         SL_DEBUG(log_,
                  "Could not find an including block for candidate against "
@@ -2409,9 +2455,6 @@ namespace kagome::dispute {
     BOOST_ASSERT_MSG(protocol,
                      "Router did not provide `send dispute` protocol");
 
-    SL_INFO(log_,
-            "DEBUG: sending_disputes_.emplace_back candidate={}",
-            candidate_hash);
     auto &[_, sending_dispute] = sending_disputes_.emplace_back(
         candidate_hash,
         std::make_unique<SendingDispute>(

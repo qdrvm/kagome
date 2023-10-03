@@ -16,16 +16,9 @@ namespace kagome::runtime {
 
   outcome::result<std::vector<primitives::AuthorityDiscoveryId>>
   AuthorityDiscoveryApiImpl::authorities(const primitives::BlockHash &block) {
-    OUTCOME_TRY(ref,
-                cache_.get_else(
-                    block,
-                    [&]() -> outcome::result<
-                              std::vector<primitives::AuthorityDiscoveryId>> {
-                      OUTCOME_TRY(ctx, executor_->ctx().ephemeralAt(block));
-                      return executor_
-                          ->call<std::vector<primitives::AuthorityDiscoveryId>>(
-                              ctx, "AuthorityDiscoveryApi_authorities");
-                    }));
+    OUTCOME_TRY(
+        ref,
+        cache_.call(*executor_, block, "AuthorityDiscoveryApi_authorities"));
     return *ref;
   }
 }  // namespace kagome::runtime

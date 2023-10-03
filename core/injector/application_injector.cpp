@@ -271,13 +271,13 @@ namespace {
   sptr<libp2p::protocol::kademlia::Config> get_kademlia_config(
       const application::ChainSpec &chain_spec,
       std::chrono::seconds random_wak_interval) {
-    auto kagome_config = std::make_shared<libp2p::protocol::kademlia::Config>(
-        libp2p::protocol::kademlia::Config{
-            .protocolId = "/" + chain_spec.protocolId() + "/kad",
-            .maxBucketSize = 1000,
-            .randomWalk = {.interval = random_wak_interval}});
+    libp2p::protocol::kademlia::Config kademlia_config;
+    kademlia_config.protocolId = "/" + chain_spec.protocolId() + "/kad",
+    kademlia_config.maxBucketSize = 1000,
+    kademlia_config.randomWalk = {.interval = random_wak_interval};
 
-    return kagome_config;
+    return std::make_shared<libp2p::protocol::kademlia::Config>(
+        std::move(kademlia_config));
   }
 
   template <typename Injector>

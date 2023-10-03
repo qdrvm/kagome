@@ -55,6 +55,27 @@ namespace kagome {
       return put2(k, std::move(v)).first->second->v;
     }
 
+    void erase(const K &k) {
+      auto it = map_.find(k);
+      if (it == map_.end()) {
+        return;
+      }
+      lru_extract(*it->second);
+      map_.erase(it);
+    }
+
+    template <typename F>
+    void erase_if(const F &f) {
+      for (auto it = map_.begin(); it != map_.end();) {
+        if (f(it->first, it->second->v)) {
+          ++it;
+        } else {
+          lru_extract(*it->second);
+          it = map_.erase(it);
+        }
+      }
+    }
+
    private:
     static auto empty(const It &it) {
       return it == It{};
