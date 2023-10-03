@@ -83,5 +83,6 @@ target_link_libraries(application_injector
     fd_limit
     recovery_mode
     dispute_coordinator
+    timeline
     )
 kagome_clear_objects(application_injector)

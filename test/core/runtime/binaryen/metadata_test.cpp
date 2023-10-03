@@ -56,10 +56,10 @@ class MetadataTest : public BinaryenRuntimeTest {
 TEST_F(MetadataTest, DISABLED_metadata) {
   BlockInfo info{42, "block_hash"_hash256};
   EXPECT_CALL(*header_repo_, getBlockHeader(info.hash))
-      .WillRepeatedly(Return(BlockHeader{.number = info.number}));
-  EXPECT_CALL(*header_repo_, getNumberByHash(info.hash))
-      .WillOnce(Return(info.number));
-  EXPECT_CALL(*runtime_upgrade_tracker_, getLastCodeUpdateState(info))
-      .WillOnce(Return(info.hash));
+      .WillRepeatedly(Return(BlockHeader{info.number, {}, {}, {}, {}}));
+  // EXPECT_CALL(*header_repo_, getNumberByHash(info.hash))
+  //     .WillOnce(Return(info.number));
+  // EXPECT_CALL(*runtime_upgrade_tracker_, getLastCodeUpdateState(info))
+  //     .WillOnce(Return(info.hash));
   ASSERT_TRUE(api_->metadata(info.hash));
 }

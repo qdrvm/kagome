@@ -3,8 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_CONSENSUS_GRANDPA_AUTHORITYMANAGERMOCK
-#define KAGOME_CONSENSUS_GRANDPA_AUTHORITYMANAGERMOCK
+#pragma once
 
 #include "consensus/grandpa/authority_manager.hpp"
 
@@ -26,5 +25,3 @@ namespace kagome::consensus::grandpa {
                 (override));
   };
 }  // namespace kagome::consensus::grandpa
-
-#endif  // KAGOME_CONSENSUS_GRANDPA_AUTHORITYMANAGERMOCK

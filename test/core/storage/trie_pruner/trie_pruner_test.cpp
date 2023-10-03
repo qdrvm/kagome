@@ -28,7 +28,6 @@
 #include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
 #include "testutil/prepare_loggers.hpp"
-#include "testutil/storage/polkadot_trie_printer.hpp"
 
 using namespace kagome::storage;
 using namespace kagome::storage::trie_pruner;
@@ -52,9 +51,10 @@ auto hash_from_str(std::string_view str) {
   return hash;
 }
 
-auto hash_from_header(const BlockHeader &header) {
+auto hash_from_header(BlockHeader &header) {
   static crypto::HasherImpl hasher;
-  return hasher.blake2b_256(scale::encode(header).value());
+  primitives::calculateBlockHash(header, hasher);
+  return header.hash();
 }
 
 class PolkadotTrieMock final : public trie::PolkadotTrie {
@@ -359,14 +359,16 @@ TEST_F(TriePrunerTest, BasicScenario) {
   }));
   EXPECT_CALL(*serializer_mock, retrieveTrie("root1"_hash256, _))
       .WillOnce(testing::Return(trie));
-  ASSERT_OUTCOME_SUCCESS_TRY(pruner->pruneFinalized(
-      BlockHeader{.number = 1, .state_root = "root1"_hash256}));
+  BlockHeader header1{.number = 1, .state_root = "root1"_hash256};
+  primitives::calculateBlockHash(header1, *hasher);
+  ASSERT_OUTCOME_SUCCESS_TRY(pruner->pruneFinalized(header1));
   ASSERT_EQ(pruner->getTrackedNodesNum(), 3);
 
   EXPECT_CALL(*serializer_mock, retrieveTrie("root2"_hash256, _))
       .WillOnce(testing::Return(trie_1));
-  ASSERT_OUTCOME_SUCCESS_TRY(pruner->pruneFinalized(
-      BlockHeader{.number = 2, .state_root = "root2"_hash256}));
+  BlockHeader header2{.number = 2, .state_root = "root2"_hash256};
+  primitives::calculateBlockHash(header2, *hasher);
+  ASSERT_OUTCOME_SUCCESS_TRY(pruner->pruneFinalized(header2));
   ASSERT_EQ(pruner->getTrackedNodesNum(), 0);
 }
 
@@ -563,10 +565,11 @@ TEST_F(TriePrunerTest, RandomTree) {
             return batch;
           }));
 
-      auto &root = roots[i - 16];
+      const auto &root = roots[i - 16];
 
-      ASSERT_OUTCOME_SUCCESS_TRY(pruner->pruneFinalized(
-          BlockHeader{.number = i - 16, .state_root = root}));
+      BlockHeader header{.number = i - 16, .state_root = root};
+      primitives::calculateBlockHash(header, *hasher);
+      ASSERT_OUTCOME_SUCCESS_TRY(pruner->pruneFinalized(header));
     }
   }
   for (unsigned i = STATES_NUM - 16; i < STATES_NUM; i++) {
@@ -582,8 +585,9 @@ TEST_F(TriePrunerTest, RandomTree) {
     }));
 
     auto &root = roots[i];
-    ASSERT_OUTCOME_SUCCESS_TRY(
-        pruner->pruneFinalized(BlockHeader{.number = i, .state_root = root}));
+    BlockHeader header{.number = i, .state_root = root};
+    primitives::calculateBlockHash(header, *hasher);
+    ASSERT_OUTCOME_SUCCESS_TRY(pruner->pruneFinalized(header));
   }
   for (auto &[hash, node] : node_storage) {
     std::cout << hash << "\n";
@@ -605,10 +609,12 @@ TEST_F(TriePrunerTest, RestoreStateFromGenesis) {
                          ? hash_from_header(headers.at(n - 1))
                          : "genesis"_hash256;
     headers[n] = BlockHeader{
-        .parent_hash = parent_hash,
-        .number = n,
-        .state_root = hash_from_str("root_hash" + std::to_string(n)),
+        .number = n,                 // number
+        .parent_hash = parent_hash,  // parent_hash
+        .state_root =
+            hash_from_str("root_hash" + std::to_string(n))  // state_root
     };
+    primitives::calculateBlockHash(headers[n], *hasher);
     hash_to_number[hash_from_header(headers.at(n))] = n;
   }
 
@@ -619,7 +625,7 @@ TEST_F(TriePrunerTest, RestoreStateFromGenesis) {
 
   ON_CALL(*block_tree, getBlockHeader(_)).WillByDefault(Invoke([&](auto &hash) {
     if (hash == "genesis"_hash256) {
-      return BlockHeader{.number = 0, .state_root = "genesis_root"_hash256};
+      return BlockHeader{.state_root = "genesis_root"_hash256};
     }
     return headers.at(hash_to_number.at(hash));
   }));
@@ -752,11 +758,8 @@ TEST_F(TriePrunerTest, FastSyncScenario) {
   ASSERT_OUTCOME_SUCCESS_TRY(
       serializer_mock->storeTrie(*genesis_trie, trie::StateVersion::V0));
 
-  BlockHeader genesis_header{
-      .parent_hash = ""_hash256,
-      .number = 0,
-      .state_root = genesis_state_root,
-  };
+  BlockHeader genesis_header{.number = 0, .state_root = genesis_state_root};
+
   ON_CALL(*block_tree, getBlockHeader(hash_from_header(genesis_header)))
       .WillByDefault(Return(genesis_header));
 
@@ -784,11 +787,8 @@ TEST_F(TriePrunerTest, FastSyncScenario) {
         codec->encodeNode(*block_trie->getRoot(), trie::StateVersion::V0)
             .value());
 
-    BlockHeader block_header{
-        .parent_hash = hashes[n - 1],
-        .number = n,
-        .state_root = block_state_root,
-    };
+    BlockHeader block_header{n, hashes[n - 1], block_state_root, {}, {}};
+
     auto hash = hash_from_header(block_header);
     headers.push_back(block_header);
     hashes.push_back(hash);

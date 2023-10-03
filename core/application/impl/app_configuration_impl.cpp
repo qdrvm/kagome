@@ -82,8 +82,7 @@ namespace {
     roles.flags.full = 1;
     return roles;
   }();
-  const auto def_sync_method =
-      kagome::application::AppConfiguration::SyncMethod::Full;
+  const auto def_sync_method = kagome::application::SyncMethod::Full;
   const auto def_runtime_exec_method =
       kagome::application::AppConfiguration::RuntimeExecutionMethod::Interpret;
   const auto def_use_wavm_cache_ = false;
@@ -121,9 +120,9 @@ namespace {
     return name;
   }
 
-  std::optional<kagome::application::AppConfiguration::SyncMethod>
-  str_to_sync_method(std::string_view str) {
-    using SM = kagome::application::AppConfiguration::SyncMethod;
+  std::optional<kagome::application::SyncMethod> str_to_sync_method(
+      std::string_view str) {
+    using SM = kagome::application::SyncMethod;
     if (str == "Full") {
       return SM::Full;
     }

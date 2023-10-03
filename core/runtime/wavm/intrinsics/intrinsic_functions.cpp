@@ -719,8 +719,7 @@ namespace kagome::runtime::wavm {
                                       ext_sandbox_memory_teardown_version_1,
                                       WAVM::I32)
 
-  WAVM_DEFINE_INTRINSIC_FUNCTION_STUB(void,
-                                      ext_evm_ext_call_list_new_version_2)
+  WAVM_DEFINE_INTRINSIC_FUNCTION_STUB(void, ext_evm_ext_call_list_new_version_2)
 
   WAVM_DEFINE_INTRINSIC_FUNCTION_STUB(void,
                                       ext_evm_ext_evm_event_version_1,
@@ -743,34 +742,32 @@ namespace kagome::runtime::wavm {
                                       WAVM::I32,
                                       WAVM::I32)
 
-  WAVM_DEFINE_INTRINSIC_FUNCTION_STUB(void,
-                                      ext_benchmarking_add_to_whitelist_version_1,
-                                      WAVM::I64)
+  WAVM_DEFINE_INTRINSIC_FUNCTION_STUB(
+      void, ext_benchmarking_add_to_whitelist_version_1, WAVM::I64)
 
   WAVM_DEFINE_INTRINSIC_FUNCTION_STUB(void,
                                       ext_benchmarking_commit_db_version_1)
 
-  WAVM_DEFINE_INTRINSIC_FUNCTION_STUB(void,
-                                      ext_benchmarking_reset_read_write_count_version_1)
+  WAVM_DEFINE_INTRINSIC_FUNCTION_STUB(
+      void, ext_benchmarking_reset_read_write_count_version_1)
 
   WAVM_DEFINE_INTRINSIC_FUNCTION_STUB(void,
                                       ext_benchmarking_set_whitelist_version_1,
                                       WAVM::I64)
 
-  WAVM_DEFINE_INTRINSIC_FUNCTION_STUB(void,
-                                      ext_benchmarking_wipe_db_version_1)
+  WAVM_DEFINE_INTRINSIC_FUNCTION_STUB(void, ext_benchmarking_wipe_db_version_1)
 
   WAVM_DEFINE_INTRINSIC_FUNCTION_STUB(WAVM::I32,
                                       ext_benchmarking_current_time_version_1)
 
-  WAVM_DEFINE_INTRINSIC_FUNCTION_STUB(WAVM::I64,
-                                      ext_benchmarking_get_read_and_written_keys_version_1)
+  WAVM_DEFINE_INTRINSIC_FUNCTION_STUB(
+      WAVM::I64, ext_benchmarking_get_read_and_written_keys_version_1)
 
   WAVM_DEFINE_INTRINSIC_FUNCTION_STUB(WAVM::I64,
                                       ext_benchmarking_proof_size_version_1)
 
-  WAVM_DEFINE_INTRINSIC_FUNCTION_STUB(WAVM::I64,
-                                      ext_benchmarking_read_write_count_version_1)
+  WAVM_DEFINE_INTRINSIC_FUNCTION_STUB(
+      WAVM::I64, ext_benchmarking_read_write_count_version_1)
 
   WAVM_DEFINE_INTRINSIC_FUNCTION(WAVM::I32,
                                  ext_trie_blake2_256_root_version_1,

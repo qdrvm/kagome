@@ -3,8 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_API_SYSTEMAPIIMPL
-#define KAGOME_API_SYSTEMAPIIMPL
+#pragma once
 
 #include "api/service/system/system_api.hpp"
 
@@ -26,7 +25,7 @@ namespace kagome::api {
    public:
     SystemApiImpl(
         std::shared_ptr<application::ChainSpec> config,
-        std::shared_ptr<consensus::babe::Babe> babe,
+        std::shared_ptr<consensus::Timeline> timeline,
         std::shared_ptr<network::PeerManager> peer_manager,
         std::shared_ptr<runtime::AccountNonceApi> account_nonce_api,
         std::shared_ptr<transaction_pool::TransactionPool> transaction_pool,
@@ -35,7 +34,7 @@ namespace kagome::api {
 
     std::shared_ptr<application::ChainSpec> getConfig() const override;
 
-    std::shared_ptr<consensus::babe::Babe> getBabe() const override;
+    std::shared_ptr<consensus::Timeline> getTimeline() const override;
 
     std::shared_ptr<network::PeerManager> getPeerManager() const override;
 
@@ -53,7 +52,7 @@ namespace kagome::api {
         primitives::AccountNonce current_nonce) const;
 
     std::shared_ptr<application::ChainSpec> config_;
-    std::shared_ptr<consensus::babe::Babe> babe_;
+    std::shared_ptr<consensus::Timeline> timeline_;
     std::shared_ptr<network::PeerManager> peer_manager_;
     std::shared_ptr<runtime::AccountNonceApi> account_nonce_api_;
     std::shared_ptr<transaction_pool::TransactionPool> transaction_pool_;
@@ -62,5 +61,3 @@ namespace kagome::api {
   };
 
 }  // namespace kagome::api
-
-#endif  // KAGOME_API_SYSTEMAPIIMPL

@@ -51,6 +51,7 @@ groups:
               - name: ecdsa
           - name: consensus
             children:
+              - name: timeline
               - name: babe
                 children:
                   - name: babe_lottery

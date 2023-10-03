@@ -3,8 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_CORE_CONSENSUS_GRANDPA_ROUND_OBSERVER_HPP
-#define KAGOME_CORE_CONSENSUS_GRANDPA_ROUND_OBSERVER_HPP
+#pragma once
 
 #include "consensus/grandpa/grandpa_context.hpp"
 
@@ -51,5 +50,3 @@ namespace kagome::consensus::grandpa {
   };
 
 }  // namespace kagome::consensus::grandpa
-
-#endif  // KAGOME_CORE_CONSENSUS_GRANDPA_ROUND_OBSERVER_HPP

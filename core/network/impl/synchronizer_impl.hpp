@@ -14,8 +14,8 @@
 #include <libp2p/basic/scheduler.hpp>
 
 #include "application/app_state_manager.hpp"
-#include "consensus/babe/block_executor.hpp"
-#include "consensus/babe/block_header_appender.hpp"
+#include "consensus/timeline/block_executor.hpp"
+#include "consensus/timeline/block_header_appender.hpp"
 #include "metrics/metrics.hpp"
 #include "network/impl/state_sync_request_flow.hpp"
 #include "network/router.hpp"
@@ -31,10 +31,10 @@ namespace kagome::storage::trie_pruner {
   class TriePruner;
 }
 
-namespace kagome::consensus::babe {
+namespace kagome::consensus {
   class BlockHeaderAppender;
   class BlockExecutor;
-}  // namespace kagome::consensus::babe
+}  // namespace kagome::consensus
 
 namespace kagome::consensus::grandpa {
   class Environment;
@@ -89,8 +89,8 @@ namespace kagome::network {
         const application::AppConfiguration &app_config,
         std::shared_ptr<application::AppStateManager> app_state_manager,
         std::shared_ptr<blockchain::BlockTree> block_tree,
-        std::shared_ptr<consensus::babe::BlockHeaderAppender> block_appender,
-        std::shared_ptr<consensus::babe::BlockExecutor> block_executor,
+        std::shared_ptr<consensus::BlockHeaderAppender> block_appender,
+        std::shared_ptr<consensus::BlockExecutor> block_executor,
         std::shared_ptr<storage::trie::TrieStorageBackend> trie_db,
         std::shared_ptr<storage::trie::TrieStorage> storage,
         std::shared_ptr<storage::trie_pruner::TriePruner> trie_pruner,
@@ -209,8 +209,8 @@ namespace kagome::network {
 
     std::shared_ptr<application::AppStateManager> app_state_manager_;
     std::shared_ptr<blockchain::BlockTree> block_tree_;
-    std::shared_ptr<consensus::babe::BlockHeaderAppender> block_appender_;
-    std::shared_ptr<consensus::babe::BlockExecutor> block_executor_;
+    std::shared_ptr<consensus::BlockHeaderAppender> block_appender_;
+    std::shared_ptr<consensus::BlockExecutor> block_executor_;
     std::shared_ptr<storage::trie::TrieStorageBackend> trie_db_;
     std::shared_ptr<storage::trie::TrieStorage> storage_;
     std::shared_ptr<storage::trie_pruner::TriePruner> trie_pruner_;
@@ -220,13 +220,12 @@ namespace kagome::network {
     std::shared_ptr<consensus::grandpa::Environment> grandpa_environment_;
     primitives::events::ChainSubscriptionEnginePtr chain_sub_engine_;
 
-    application::AppConfiguration::SyncMethod sync_method_;
+    application::SyncMethod sync_method_;
 
     // Metrics
     metrics::RegistryPtr metrics_registry_ = metrics::createRegistry();
     metrics::Gauge *metric_import_queue_length_;
 
-    std::array<char, 100> buf_{};  // TODO(kamilsa): Help variable for #1732
     log::Logger log_ = log::createLogger("Synchronizer", "synchronizer");
     telemetry::Telemetry telemetry_ = telemetry::createTelemetryService();
 

@@ -3,8 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_CONSENSUS_BABE_IS_PRIMARY_HPP
-#define KAGOME_CONSENSUS_BABE_IS_PRIMARY_HPP
+#pragma once
 
 #include "consensus/babe/types/babe_block_header.hpp"
 #include "primitives/block_header.hpp"
@@ -31,5 +30,3 @@ namespace kagome::consensus::babe {
     return false;
   }
 }  // namespace kagome::consensus::babe
-
-#endif  // KAGOME_CONSENSUS_BABE_IS_PRIMARY_HPP

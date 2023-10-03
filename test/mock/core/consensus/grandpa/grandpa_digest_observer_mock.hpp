@@ -3,8 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_grandpa_digest_observer_MOCK
-#define KAGOME_grandpa_digest_observer_MOCK
+#pragma once
 
 #include "consensus/grandpa/grandpa_digest_observer.hpp"
 
@@ -21,5 +20,3 @@ namespace kagome::consensus::grandpa {
     MOCK_METHOD(void, cancel, (const primitives::BlockInfo &), (override));
   };
 }  // namespace kagome::consensus::grandpa
-
-#endif  // KAGOME_grandpa_digest_observer_MOCK

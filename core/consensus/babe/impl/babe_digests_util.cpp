@@ -15,21 +15,52 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::consensus::babe, DigestError, e) {
              "header and seal digests";
     case E::NO_TRAILING_SEAL_DIGEST:
       return "the block must contain a seal digest as the last digest";
+    case E::GENESIS_BLOCK_CAN_NOT_HAVE_DIGESTS:
+      return "genesis block can not have digests";
   }
-  return "unknown error";
+  return "unknown error (kagome::consensus::babe::DigestError)";
 }
 
 namespace kagome::consensus::babe {
-  outcome::result<BabeSlotNumber> getBabeSlot(
+  outcome::result<SlotNumber> getBabeSlot(
       const primitives::BlockHeader &header) {
-    OUTCOME_TRY(digests, getBabeDigests(header));
-    return digests.second.slot_number;
+    OUTCOME_TRY(babe_block_header, getBabeBlockHeader(header));
+    return babe_block_header.slot_number;
   }
 
-  outcome::result<std::pair<Seal, BabeBlockHeader>> getBabeDigests(
+  outcome::result<BabeBlockHeader> getBabeBlockHeader(
       const primitives::BlockHeader &block_header) {
-    // valid BABE block has at least two digests: BabeHeader and a seal
-    if (block_header.digest.size() < 2) {
+    [[unlikely]] if (block_header.number == 0) {
+      return DigestError::GENESIS_BLOCK_CAN_NOT_HAVE_DIGESTS;
+    }
+
+    if (block_header.digest.empty()) {
+      return DigestError::REQUIRED_DIGESTS_NOT_FOUND;
+    }
+    const auto &digests = block_header.digest;
+
+    for (const auto &digest :
+         gsl::make_span(digests).subspan(0, digests.size() - 1)) {
+      auto pre_runtime_opt = getFromVariant<primitives::PreRuntime>(digest);
+      if (pre_runtime_opt.has_value()) {
+        auto babe_block_header_res =
+            scale::decode<BabeBlockHeader>(pre_runtime_opt->get().data);
+        if (babe_block_header_res.has_value()) {
+          // found the BabeBlockHeader digest; return
+          return babe_block_header_res.value();
+        }
+      }
+    }
+
+    return DigestError::REQUIRED_DIGESTS_NOT_FOUND;
+  }
+
+  outcome::result<Seal> getSeal(const primitives::BlockHeader &block_header) {
+    [[unlikely]] if (block_header.number == 0) {
+      return DigestError::GENESIS_BLOCK_CAN_NOT_HAVE_DIGESTS;
+    }
+
+    if (block_header.digest.empty()) {
       return DigestError::REQUIRED_DIGESTS_NOT_FOUND;
     }
     const auto &digests = block_header.digest;
@@ -40,21 +71,9 @@ namespace kagome::consensus::babe {
       return DigestError::NO_TRAILING_SEAL_DIGEST;
     }
 
-    OUTCOME_TRY(babe_seal_res, scale::decode<Seal>(seal_opt->get().data));
+    OUTCOME_TRY(seal_digest, scale::decode<Seal>(seal_opt->get().data));
 
-    for (const auto &digest :
-         gsl::make_span(digests).subspan(0, digests.size() - 1)) {
-      if (auto pre_runtime_opt = getFromVariant<primitives::PreRuntime>(digest);
-          pre_runtime_opt.has_value()) {
-        if (auto header =
-                scale::decode<BabeBlockHeader>(pre_runtime_opt->get().data);
-            header) {
-          // found the BabeBlockHeader digest; return
-          return {babe_seal_res, header.value()};
-        }
-      }
-    }
-
-    return DigestError::REQUIRED_DIGESTS_NOT_FOUND;
+    return seal_digest;
   }
+
 }  // namespace kagome::consensus::babe

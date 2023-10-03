@@ -13,6 +13,7 @@
 #include "mock/core/storage/spaced_storage_mock.hpp"
 #include "scale/scale.hpp"
 #include "storage/database_error.hpp"
+#include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
 #include "testutil/prepare_loggers.hpp"
 
@@ -163,18 +164,18 @@ TEST_F(BlockStorageTest, CreateWithStorageError) {
 TEST_F(BlockStorageTest, PutBlock) {
   auto block_storage = createWithGenesis();
 
-  EXPECT_CALL(*hasher, blake2b_256(_)).WillOnce(Return(regular_block_hash));
-
   Block block;
   block.header.number = 1;
   block.header.parent_hash = genesis_block_hash;
+  block.header.hash_opt = regular_block_hash;
 
   ASSERT_OUTCOME_SUCCESS_TRY(block_storage->putBlock(block));
 }
 
 /**
  * @given a block storage and a block that is not in storage yet
- * @when putting a block in the storage and underlying storage throws an error
+ * @when putting a block in the storage and underlying storage throws an
+ * error
  * @then block is not put and error is returned
  */
 TEST_F(BlockStorageTest, PutWithStorageError) {
@@ -183,11 +184,7 @@ TEST_F(BlockStorageTest, PutWithStorageError) {
   Block block;
   block.header.number = 666;
   block.header.parent_hash = genesis_block_hash;
-
-  Buffer encoded_header{scale::encode(block.header).value()};
-
-  EXPECT_CALL(*hasher, blake2b_256(encoded_header.view()))
-      .WillOnce(Return(regular_block_hash));
+  block.header.hash_opt = regular_block_hash;
 
   Buffer key{regular_block_hash};
 

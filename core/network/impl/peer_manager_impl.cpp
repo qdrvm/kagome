@@ -540,12 +540,10 @@ namespace kagome::network {
 
   void PeerManagerImpl::updatePeerState(const PeerId &peer_id,
                                         const BlockAnnounce &announce) {
-    auto hash = hasher_->blake2b_256(scale::encode(announce.header).value());
-
     auto &state = peer_states_[peer_id];
     state.time = clock_->now();
-    state.best_block = {announce.header.number, hash};
-    state.known_blocks.add(hash);
+    state.best_block = announce.header.blockInfo();
+    state.known_blocks.add(state.best_block.hash);
   }
 
   void PeerManagerImpl::updatePeerState(

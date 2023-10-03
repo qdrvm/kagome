@@ -3,12 +3,11 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_BABE_LOTTERY_HPP
-#define KAGOME_BABE_LOTTERY_HPP
+#pragma once
 
 #include <optional>
 
-#include "consensus/babe/types/epoch_descriptor.hpp"
+#include "consensus/timeline/types.hpp"
 #include "crypto/sr25519_types.hpp"
 #include "primitives/babe_configuration.hpp"
 
@@ -33,12 +32,12 @@ namespace kagome::consensus::babe {
 
     /**
      * Set new epoch and corresponding randomness, threshold and keypair values
-     * @param epoch is an information about epoch where we calculate leadership
+     * @param epoch is an number of epoch where we calculate leadership
      * @param randomness is an epoch random byte sequence
      * @param threshold is a maximum value that is considered valid by vrf
      * @param keypair is a current babe sign pair
      */
-    virtual void changeEpoch(const EpochDescriptor &epoch,
+    virtual void changeEpoch(EpochNumber epoch,
                              const Randomness &randomness,
                              const Threshold &threshold,
                              const crypto::Sr25519Keypair &keypair) = 0;
@@ -46,7 +45,7 @@ namespace kagome::consensus::babe {
     /**
      * Return lottery current epoch
      */
-    virtual EpochDescriptor getEpoch() const = 0;
+    virtual EpochNumber getEpoch() const = 0;
 
     /**
      * Compute leadership for the slot
@@ -55,7 +54,7 @@ namespace kagome::consensus::babe {
      * for that slot, value contains VRF value and proof
      */
     virtual std::optional<crypto::VRFOutput> getSlotLeadership(
-        primitives::BabeSlotNumber slot) const = 0;
+        SlotNumber slot) const = 0;
 
     /**
      * Computes VRF proof for the slot regardless threshold.
@@ -63,8 +62,7 @@ namespace kagome::consensus::babe {
      * @param slot is a slot number
      * @return VRF output and proof
      */
-    virtual crypto::VRFOutput slotVrfSignature(
-        primitives::BabeSlotNumber slot) const = 0;
+    virtual crypto::VRFOutput slotVrfSignature(SlotNumber slot) const = 0;
 
     /**
      * Compute the expected author for secondary slot
@@ -75,10 +73,8 @@ namespace kagome::consensus::babe {
      * empty
      */
     virtual std::optional<primitives::AuthorityIndex> secondarySlotAuthor(
-        primitives::BabeSlotNumber slot,
+        SlotNumber slot,
         primitives::AuthorityListSize authorities_count,
         const Randomness &randomness) const = 0;
   };
 }  // namespace kagome::consensus::babe
-
-#endif  // KAGOME_BABE_LOTTERY_HPP

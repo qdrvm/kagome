@@ -32,8 +32,8 @@ struct BlockAnnounceTest : public ::testing::Test {
     auto h3 = createHash256({4, 4, 4});
 
     block_header = BlockHeader{
-        h1,                     // parent_hash
         2u,                     // block number
+        h1,                     // parent_hash
         h2,                     // state_root
         h3,                     // extrinsic root
         Digest{{PreRuntime{}}}  // digest list

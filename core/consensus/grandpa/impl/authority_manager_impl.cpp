@@ -86,8 +86,6 @@ namespace kagome::consensus::grandpa {
             if (auto self = wp.lock()) {
               const auto &header =
                   boost::get<primitives::events::HeadsEventParams>(event).get();
-              auto hash =
-                  self->hasher_->blake2b_256(scale::encode(header).value());
 
               std::unique_lock lock{self->mutex_};
 
@@ -97,7 +95,7 @@ namespace kagome::consensus::grandpa {
                         "Can not save state at finalization: {}",
                         save_res.error());
               }
-              self->prune({header.number, hash});
+              self->prune(header.blockInfo());
             }
           }
         });

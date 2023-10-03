@@ -8,9 +8,8 @@
 #include <memory>
 #include <unordered_set>
 
-#include "consensus/babe/common.hpp"
-#include "consensus/babe/types/epoch_digest.hpp"
 #include "consensus/grandpa/common.hpp"
+#include "consensus/timeline/types.hpp"
 #include "primitives/block_id.hpp"
 #include "primitives/justification.hpp"
 

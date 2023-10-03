@@ -152,15 +152,15 @@ namespace kagome::parachain {
             babe_status_observable_, false);
     babe_status_observer_->subscribe(
         babe_status_observer_->generateSubscriptionSetId(),
-        primitives::events::BabeStateEventType::kSyncState);
+        primitives::events::SyncStateEventType::kSyncState);
     babe_status_observer_->setCallback(
         [wself{weak_from_this()}, was_synchronized = false](
             auto /*set_id*/,
             bool &synchronized,
             auto /*event_type*/,
-            const primitives::events::BabeStateEventParams &event) mutable {
+            const primitives::events::SyncStateEventParams &event) mutable {
           if (auto self = wself.lock()) {
-            if (event == consensus::babe::Babe::State::SYNCHRONIZED) {
+            if (event == consensus::SyncState::SYNCHRONIZED) {
               if (not was_synchronized) {
                 self->bitfield_signer_->start(
                     self->peer_view_->intoChainEventsEngine());
@@ -233,9 +233,6 @@ namespace kagome::parachain {
             /// clear caches
             BOOST_ASSERT(
                 self->this_context_->get_executor().running_in_this_thread());
-            auto const relay_parent =
-                primitives::calculateBlockHash(event.new_head, *self->hasher_)
-                    .value();
 
             self->our_current_state_.active_leaves.exclusiveAccess(
                 [&](auto &active_leaves) {
@@ -249,16 +246,16 @@ namespace kagome::parachain {
                         [&](auto &container) { container.erase(lost); });
                     active_leaves.erase(lost);
                   }
-                  active_leaves.insert(relay_parent);
+                  active_leaves.insert(event.new_head.hash());
                 });
             if (auto r = self->canProcessParachains(); r.has_error()) {
               return;
             }
 
-            self->createBackingTask(relay_parent);
+            self->createBackingTask(event.new_head.hash());
             SL_TRACE(self->logger_,
                      "Update my view.(new head={}, finalized={}, leaves={})",
-                     relay_parent,
+                     event.new_head.hash(),
                      event.view.finalized_number_,
                      event.view.heads_.size());
             self->broadcastView(event.view);

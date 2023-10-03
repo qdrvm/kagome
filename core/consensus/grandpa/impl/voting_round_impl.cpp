@@ -752,10 +752,8 @@ namespace kagome::consensus::grandpa {
 
   outcome::result<void> VotingRoundImpl::validatePrecommitJustification(
       const GrandpaJustification &justification) const {
-    AncestryVerifier ancestry_verifier{
-        justification.votes_ancestries,
-        *hasher_,
-    };
+    AncestryVerifier ancestry_verifier(justification.votes_ancestries,
+                                       *hasher_);
     auto has_ancestry = [&](const BlockInfo &ancestor,
                             const BlockInfo &descendant) {
       return ancestry_verifier.hasAncestry(ancestor, descendant)

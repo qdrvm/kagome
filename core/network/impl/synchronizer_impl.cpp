@@ -54,8 +54,8 @@ namespace {
       "kagome_import_queue_blocks_submitted";
 
   kagome::network::BlockAttributes attributesForSync(
-      kagome::application::AppConfiguration::SyncMethod method) {
-    using SM = kagome::application::AppConfiguration::SyncMethod;
+      kagome::application::SyncMethod method) {
+    using SM = kagome::application::SyncMethod;
     switch (method) {
       case SM::Full:
         return kagome::network::BlocksRequest::kBasicAttributes;
@@ -77,8 +77,8 @@ namespace kagome::network {
       const application::AppConfiguration &app_config,
       std::shared_ptr<application::AppStateManager> app_state_manager,
       std::shared_ptr<blockchain::BlockTree> block_tree,
-      std::shared_ptr<consensus::babe::BlockHeaderAppender> block_appender,
-      std::shared_ptr<consensus::babe::BlockExecutor> block_executor,
+      std::shared_ptr<consensus::BlockHeaderAppender> block_appender,
+      std::shared_ptr<consensus::BlockExecutor> block_executor,
       std::shared_ptr<storage::trie::TrieStorageBackend> trie_db,
       std::shared_ptr<storage::trie::TrieStorage> storage,
       std::shared_ptr<storage::trie_pruner::TriePruner> trie_pruner,
@@ -102,6 +102,7 @@ namespace kagome::network {
     BOOST_ASSERT(app_state_manager_);
     BOOST_ASSERT(block_tree_);
     BOOST_ASSERT(block_executor_);
+    BOOST_ASSERT(trie_db_);
     BOOST_ASSERT(storage_);
     BOOST_ASSERT(trie_pruner_);
     BOOST_ASSERT(router_);
@@ -295,11 +296,10 @@ namespace kagome::network {
       const primitives::BlockHeader &header,
       const libp2p::peer::PeerId &peer_id,
       Synchronizer::SyncResultHandler &&handler) {
-    auto block_hash = hasher_->blake2b_256(scale::encode(header).value());
-    const primitives::BlockInfo block_info(header.number, block_hash);
+    const auto &block_info = header.blockInfo();
 
     // Block was applied before
-    if (block_tree_->getBlockHeader(block_hash).has_value()) {
+    if (block_tree_->getBlockHeader(block_info.hash).has_value()) {
       return false;
     }
 
@@ -320,7 +320,7 @@ namespace kagome::network {
     // If number of provided block header is the same of watched, add handler
     // for this block
     if (watched_blocks_number_ == header.number) {
-      watched_blocks_.emplace(block_hash, std::move(handler));
+      watched_blocks_.emplace(block_info.hash, std::move(handler));
     }
 
     // If parent of provided block is in chain, start to load it immediately
@@ -736,10 +736,11 @@ namespace kagome::network {
           return;
         }
 
+        // Calculate and save hash, 'cause it's new received block
+        primitives::calculateBlockHash(header, *self->hasher_);
+
         // Check if hash is valid
-        auto calculated_hash =
-            self->hasher_->blake2b_256(scale::encode(header).value());
-        if (block.hash != calculated_hash) {
+        if (block.hash != header.hash()) {
           SL_ERROR(self->log_,
                    "Can't complete blocks loading from {} starting from "
                    "block {}: "
@@ -752,7 +753,7 @@ namespace kagome::network {
           return;
         }
 
-        last_loaded_block = {header.number, block.hash};
+        last_loaded_block = header.blockInfo();
 
         parent_hash = block.hash;
 
@@ -1042,18 +1043,13 @@ namespace kagome::network {
     state_sync_.reset();
 
     // State syncing has completed; Switch to the full syncing
-    sync_method_ = application::AppConfiguration::SyncMethod::Full;
+    sync_method_ = application::SyncMethod::Full;
     lock.unlock();
     cb(block);
     return outcome::success();
   }
 
   void SynchronizerImpl::applyNextBlock() {
-    if (*reinterpret_cast<size_t *>(buf_.data()) != 0ull) {
-      throw "Non-zero buf in SynchronizerImpl::applyNextBlock";
-    }
-    // TODO(kamilsa): Help variable for #1732 (Logger crash in Synchronizer)
-    volatile auto this_remove_me_when_crash_is_fixed = this;
     if (generations_.empty()) {
       SL_TRACE(log_, "No block for applying");
       return;
@@ -1132,7 +1128,7 @@ namespace kagome::network {
               }
             };
 
-        if (sync_method_ == application::AppConfiguration::SyncMethod::Full) {
+        if (sync_method_ == application::SyncMethod::Full) {
           // Regular syncing
           primitives::Block block{
               .header = std::move(block_data.header.value()),
@@ -1251,10 +1247,9 @@ namespace kagome::network {
   void SynchronizerImpl::postApplyBlock(const primitives::BlockHash &hash) {
     ancestry_.erase(hash);
 
-    auto minPreloadedBlockAmount =
-        sync_method_ == application::AppConfiguration::SyncMethod::Full
-            ? kMinPreloadedBlockAmount
-            : kMinPreloadedBlockAmountForFastSyncing;
+    auto minPreloadedBlockAmount = sync_method_ == application::SyncMethod::Full
+                                     ? kMinPreloadedBlockAmount
+                                     : kMinPreloadedBlockAmountForFastSyncing;
 
     if (known_blocks_.size() < minPreloadedBlockAmount) {
       SL_TRACE(log_,
@@ -1452,7 +1447,7 @@ namespace kagome::network {
           }
         };
 
-        if (sync_method_ == application::AppConfiguration::SyncMethod::Full) {
+        if (sync_method_ == application::SyncMethod::Full) {
           auto lower = generations_.begin()->first;
           auto upper = generations_.rbegin()->first + 1;
           auto hint = generations_.rbegin()->first;

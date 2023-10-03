@@ -68,9 +68,7 @@ namespace kagome::parachain {
                  header{boost::get<primitives::events::HeadsEventParams>(event)
                             .get()}] {
                   if (auto self = weak.lock()) {
-                    auto block_hash = self->hasher_->blake2b_256(
-                        scale::encode(header).value());
-                    auto r = self->onBlock(block_hash, header);
+                    auto r = self->onBlock(header.hash(), header);
                     if (r.has_error()) {
                       SL_DEBUG(self->logger_, "onBlock error {}", r.error());
                     }

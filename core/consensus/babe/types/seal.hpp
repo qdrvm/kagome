@@ -3,8 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_SEAL_HPP
-#define KAGOME_SEAL_HPP
+#pragma once
 
 #include "crypto/sr25519_types.hpp"
 #include "scale/tie.hpp"
@@ -20,5 +19,3 @@ namespace kagome::consensus::babe {
     crypto::Sr25519Signature signature;
   };
 }  // namespace kagome::consensus::babe
-
-#endif  // KAGOME_SEAL_HPP

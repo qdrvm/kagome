@@ -79,12 +79,12 @@ namespace kagome::transaction_pool {
         },
         [&](primitives::ValidTransaction &&v)
             -> outcome::result<primitives::Transaction> {
-          common::Hash256 hash = hasher_->blake2b_256(extrinsic.data);
+          common::Hash256 extrinsic_hash = hasher_->blake2b_256(extrinsic.data);
           size_t length = extrinsic.data.size();
 
           return primitives::Transaction{extrinsic,
                                          length,
-                                         hash,
+                                         extrinsic_hash,
                                          v.priority,
                                          res.first.number + v.longevity,
                                          std::move(v.required_tags),

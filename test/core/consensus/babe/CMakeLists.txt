@@ -16,27 +16,17 @@ target_link_libraries(babe_test
     logger_for_tests
     )
 
-addtest(babe_config_repository_test
-    babe_config_repository_test.cpp
-    )
-target_link_libraries(babe_config_repository_test
+addtest(babe_lottery_test
+    babe_lottery_test.cpp
+)
+target_link_libraries(babe_lottery_test
     consensus
-    clock
-    storage
     logger_for_tests
-    )
+)
 
 addtest(threshold_util_test
     threshold_util_test.cpp
     )
 target_link_libraries(threshold_util_test
     consensus
-    )
-
-addtest(block_executor_test
-    block_executor_test.cpp
-    )
-target_link_libraries(block_executor_test
-    consensus
-    log_configurator
     )

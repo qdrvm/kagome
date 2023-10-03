@@ -74,9 +74,14 @@ struct ChainApiTest : public ::testing::Test {
   BlockData data{
       .hash =
           "4fee9b1803132954978652e4d73d4ec5b0dffae3832449cd5e4e4081d539aa22"_hash256,
-      .header = BlockHeader{.parent_hash = hash1,
-                            .state_root = hash2,
-                            .extrinsics_root = hash3},
+      .header =
+          BlockHeader{
+              42,
+              hash1,  // parent_hash
+              hash2,  // state_root
+              hash3,  //.extrinsics_root
+              {}      // digest
+          },
       .body =
           BlockBody{Extrinsic{.data = Buffer::fromHex("0011eedd33").value()},
                     Extrinsic{.data = Buffer::fromHex("55ff35").value()}}};

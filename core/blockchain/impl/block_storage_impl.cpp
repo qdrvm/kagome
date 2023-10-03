@@ -42,13 +42,17 @@ namespace kagome::blockchain {
       genesis_block.header.state_root = state_root;
       // the rest of the fields have default value
 
+      // Calculate and save hash, 'cause it's just received announce
+      primitives::calculateBlockHash(genesis_block.header, *hasher);
+
       OUTCOME_TRY(genesis_block_hash, block_storage->putBlock(genesis_block));
       OUTCOME_TRY(block_storage->assignNumberToHash({0, genesis_block_hash}));
 
       OUTCOME_TRY(block_storage->setBlockTreeLeaves({genesis_block_hash}));
 
-      block_storage->logger_->info(
-          "Genesis block {}, state {}", genesis_block_hash, state_root);
+      block_storage->logger_->info("Genesis block {}, state {}",
+                                   genesis_block.header.hash(),
+                                   state_root);
     } else {
       auto res = block_storage->hasBlockHeader(hash_opt.value());
       if (res.has_error()) {
@@ -194,7 +198,7 @@ namespace kagome::blockchain {
   outcome::result<primitives::BlockHash> BlockStorageImpl::putBlockHeader(
       const primitives::BlockHeader &header) {
     OUTCOME_TRY(encoded_header, scale::encode(header));
-    auto block_hash = hasher_->blake2b_256(encoded_header);
+    const auto &block_hash = header.hash();
     OUTCOME_TRY(putToSpace(
         *storage_, Space::kHeader, block_hash, std::move(encoded_header)));
     return block_hash;
@@ -209,6 +213,7 @@ namespace kagome::blockchain {
       OUTCOME_TRY(
           header,
           scale::decode<primitives::BlockHeader>(encoded_header_opt.value()));
+      header.hash_opt.emplace(block_hash);
       return header;
     }
     return std::nullopt;
@@ -281,11 +286,6 @@ namespace kagome::blockchain {
     // insert provided block's parts into the database
     OUTCOME_TRY(block_hash, putBlockHeader(block.header));
 
-    primitives::BlockData block_data;
-    block_data.hash = block_hash;
-    block_data.header = block.header;
-    block_data.body = block.body;
-
     OUTCOME_TRY(encoded_header, scale::encode(block.header));
     OUTCOME_TRY(putToSpace(
         *storage_, Space::kHeader, block_hash, std::move(encoded_header)));
@@ -308,11 +308,11 @@ namespace kagome::blockchain {
 
     // Block header
     OUTCOME_TRY(header_opt, getBlockHeader(block_hash));
-    block_data.header = std::move(header_opt);
-
-    if (not block_data.header.has_value()) {
+    if (not header_opt.has_value()) {
       return std::nullopt;
     }
+    auto &header = header_opt.value();
+    block_data.header = std::move(header);
 
     // Block body
     OUTCOME_TRY(body_opt, getBlockBody(block_hash));
