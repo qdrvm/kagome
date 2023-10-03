@@ -34,6 +34,7 @@
 #include "storage/changes_trie/impl/storage_changes_tracker_impl.hpp"
 #include "storage/trie/serialization/ordered_trie_hash.hpp"
 #include "telemetry/service.hpp"
+#include "utils/thread_pool.hpp"
 
 namespace {
   inline const auto kTimestampId =
@@ -77,7 +78,9 @@ namespace kagome::consensus::babe {
       primitives::events::StorageSubscriptionEnginePtr storage_sub_engine,
       primitives::events::ChainSubscriptionEnginePtr chain_sub_engine,
       std::shared_ptr<network::BlockAnnounceTransmitter> announce_transmitter,
-      std::shared_ptr<runtime::OffchainWorkerApi> offchain_worker_api)
+      std::shared_ptr<runtime::OffchainWorkerApi> offchain_worker_api,
+      const ThreadPool &thread_pool,
+      std::shared_ptr<boost::asio::io_context> main_thread)
       : log_(log::createLogger("Babe", "babe")),
         clock_(clock),
         block_tree_(std::move(block_tree)),
@@ -96,6 +99,8 @@ namespace kagome::consensus::babe {
         chain_sub_engine_(std::move(chain_sub_engine)),
         announce_transmitter_(std::move(announce_transmitter)),
         offchain_worker_api_(std::move(offchain_worker_api)),
+        main_thread_(std::move(main_thread)),
+        io_context_{thread_pool.io_context()},
         is_validator_by_config_(app_config.roles().flags.authority != 0),
         telemetry_{telemetry::createTelemetryService()} {
     BOOST_ASSERT(block_tree_);
@@ -113,6 +118,7 @@ namespace kagome::consensus::babe {
     BOOST_ASSERT(chain_sub_engine_);
     BOOST_ASSERT(announce_transmitter_);
     BOOST_ASSERT(offchain_worker_api_);
+    BOOST_ASSERT(main_thread_);
 
     // Register metrics
     metrics_registry_->registerGaugeFamily(
@@ -318,7 +324,7 @@ namespace kagome::consensus::babe {
   outcome::result<void> Babe::processSlotLeadership(
       const Context &ctx,
       SlotType slot_type,
-      clock::SystemClock::TimePoint slot_timestamp,
+      TimePoint slot_timestamp,
       std::optional<std::reference_wrapper<const crypto::VRFOutput>> output,
       primitives::AuthorityIndex authority_index) {
     auto parent_header_res = block_tree_->getBlockHeader(ctx.parent.hash);
@@ -407,7 +413,7 @@ namespace kagome::consensus::babe {
       return BabeError::CAN_NOT_PREPARE_BLOCK;
     }
 
-    auto timer = metric_block_proposal_time.manual();
+    auto proposal_start = std::chrono::steady_clock::now();
     // calculate babe_pre_digest
     auto babe_pre_digest_res =
         babePreDigest(ctx, slot_type, output, authority_index);
@@ -417,26 +423,63 @@ namespace kagome::consensus::babe {
     }
     const auto &babe_pre_digest = babe_pre_digest_res.value();
 
-    auto changes_tracker =
-        std::make_shared<storage::changes_trie::StorageChangesTrackerImpl>();
+    auto propose = [this,
+                    self{shared_from_this()},
+                    inherent_data{std::move(inherent_data)},
+                    now,
+                    proposal_start,
+                    babe_pre_digest{std::move(babe_pre_digest)},
+                    ctx]() mutable {
+      auto changes_tracker =
+          std::make_shared<storage::changes_trie::StorageChangesTrackerImpl>();
 
-    // create new block
-    auto pre_seal_block_res =
-        proposer_->propose(ctx.parent,
-                           slots_util_.get()->slotFinishTime(ctx.slot)
-                               - babe_config_repo_->slotDuration() / 3,
-                           inherent_data,
-                           {babe_pre_digest},
-                           changes_tracker);
-    if (!pre_seal_block_res) {
-      SL_ERROR(log_, "Cannot propose a block: {}", pre_seal_block_res.error());
-      return BabeError::CAN_NOT_PROPOSE_BLOCK;
-    }
+      // create new block
+      auto res = proposer_->propose(ctx.parent,
+                                    slots_util_.get()->slotFinishTime(ctx.slot)
+                                        - babe_config_repo_->slotDuration() / 3,
+                                    inherent_data,
+                                    {babe_pre_digest},
+                                    changes_tracker);
+      if (not res) {
+        SL_ERROR(log_, "Cannot propose a block: {}", res.error());
+        return;
+      }
+      auto &unsealed_block = res.value();
+      auto proposed = [self,
+                       now,
+                       proposal_start,
+                       changes_tracker{std::move(changes_tracker)},
+                       unsealed_block{std::move(unsealed_block)},
+                       ctx]() mutable {
+        auto res =
+            self->processSlotLeadershipProposed(ctx,
+                                                now,
+                                                proposal_start,
+                                                std::move(changes_tracker),
+                                                std::move(unsealed_block));
+        if (res.has_error()) {
+          SL_ERROR(self->log_, "Cannot propose a block: {}", res.error());
+          return;
+        }
+      };
+      main_thread_->post(std::move(proposed));
+    };
 
-    auto duration_ms = timer().count();
+    io_context_->post(std::move(propose));
+
+    return outcome::success();
+  }
+
+  outcome::result<void> Babe::processSlotLeadershipProposed(
+      const Context &ctx,
+      uint64_t now,
+      clock::SteadyClock::TimePoint proposal_start,
+      std::shared_ptr<storage::changes_trie::StorageChangesTrackerImpl>
+          &&changes_tracker,
+      primitives::Block &&block) {
+    auto duration_ms =
+        metric_block_proposal_time.observe(proposal_start).count();
     SL_DEBUG(log_, "Block has been built in {} ms", duration_ms);
-
-    auto block = pre_seal_block_res.value();
 
     // Ensure block's extrinsics root matches extrinsics in block's body
     BOOST_ASSERT_MSG(

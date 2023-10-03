@@ -30,12 +30,15 @@
 #include "primitives/babe_configuration.hpp"
 #include "primitives/event_types.hpp"
 #include "storage/trie/serialization/ordered_trie_hash.hpp"
+#include "testutil/asio_wait.hpp"
 #include "testutil/lazy.hpp"
 #include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
 #include "testutil/prepare_loggers.hpp"
 #include "testutil/sr25519_utils.hpp"
+#include "utils/thread_pool.hpp"
 
+using kagome::ThreadPool;
 using kagome::application::AppConfigurationMock;
 using kagome::authorship::ProposerMock;
 using kagome::blockchain::BlockTreeMock;
@@ -209,7 +212,9 @@ class BabeTest : public testing::Test {
                                   storage_sub_engine,
                                   chain_sub_engine,
                                   announce_transmitter,
-                                  offchain_worker_api);
+                                  offchain_worker_api,
+                                  thread_pool_,
+                                  thread_pool_.io_context());
   }
 
   AppConfigurationMock app_config;
@@ -230,6 +235,7 @@ class BabeTest : public testing::Test {
   std::shared_ptr<ChainSubscriptionEngine> chain_sub_engine;
   std::shared_ptr<BlockAnnounceTransmitterMock> announce_transmitter;
   std::shared_ptr<OffchainWorkerApiMock> offchain_worker_api;
+  ThreadPool thread_pool_{"test", 1};
 
   Duration slot_duration = 3s;
   EpochLength epoch_length = 20;
@@ -365,4 +371,6 @@ TEST_F(BabeTest, SlotLeader) {
   EXPECT_CALL(*block_tree, addBlock(_)).WillOnce(Return(outcome::success()));
 
   ASSERT_OUTCOME_SUCCESS_TRY(babe->processSlot(slot, best_block_info));
+
+  testutil::wait(*thread_pool_.io_context());
 }

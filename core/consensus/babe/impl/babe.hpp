@@ -16,6 +16,14 @@
 #include "primitives/inherent_data.hpp"
 #include "telemetry/service.hpp"
 
+namespace boost::asio {
+  class io_context;
+}
+
+namespace kagome {
+  class ThreadPool;
+}
+
 namespace kagome::application {
   class AppConfiguration;
 }
@@ -61,6 +69,10 @@ namespace kagome::runtime {
   class OffchainWorkerApi;
 }
 
+namespace kagome::storage::changes_trie {
+  class StorageChangesTrackerImpl;
+}
+
 namespace kagome::consensus::babe {
 
   /// BABE protocol, used for block production in the Polkadot consensus.
@@ -93,7 +105,9 @@ namespace kagome::consensus::babe {
         primitives::events::StorageSubscriptionEnginePtr storage_sub_engine,
         primitives::events::ChainSubscriptionEnginePtr chain_sub_engine,
         std::shared_ptr<network::BlockAnnounceTransmitter> announce_transmitter,
-        std::shared_ptr<runtime::OffchainWorkerApi> offchain_worker_api);
+        std::shared_ptr<runtime::OffchainWorkerApi> offchain_worker_api,
+        const ThreadPool &thread_pool,
+        std::shared_ptr<boost::asio::io_context> main_thread);
 
     ValidatorStatus getValidatorStatus(const primitives::BlockInfo &parent_info,
                                        EpochNumber epoch_number) const override;
@@ -119,9 +133,24 @@ namespace kagome::consensus::babe {
     outcome::result<void> processSlotLeadership(
         const Context &ctx,
         SlotType slot_type,
-        clock::SystemClock::TimePoint slot_timestamp,
+        TimePoint slot_timestamp,
         std::optional<std::reference_wrapper<const crypto::VRFOutput>> output,
         primitives::AuthorityIndex authority_index);
+
+    /**
+     * `processSlotLeadership` coroutine piece
+     *   processSlotLeadership() {
+     *     await propose()
+     *     // processSlotLeadershipProposed()
+     *   }
+     */
+    outcome::result<void> processSlotLeadershipProposed(
+        const Context &ctx,
+        uint64_t now,
+        clock::SteadyClock::TimePoint proposal_start,
+        std::shared_ptr<storage::changes_trie::StorageChangesTrackerImpl>
+            &&changes_tracker,
+        primitives::Block &&block);
 
     void changeLotteryEpoch(
         const Context &ctx,
@@ -147,6 +176,8 @@ namespace kagome::consensus::babe {
     primitives::events::ChainSubscriptionEnginePtr chain_sub_engine_;
     std::shared_ptr<network::BlockAnnounceTransmitter> announce_transmitter_;
     std::shared_ptr<runtime::OffchainWorkerApi> offchain_worker_api_;
+    std::shared_ptr<boost::asio::io_context> main_thread_;
+    std::shared_ptr<boost::asio::io_context> io_context_;
 
     const bool is_validator_by_config_;
 
