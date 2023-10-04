@@ -4,6 +4,7 @@
 #
 
 add_library(api
+    service/beefy/rpc.cpp
     service/impl/api_service_impl.cpp
     service/chain/impl/chain_api_impl.cpp
     service/chain/requests/get_block_hash.cpp
@@ -15,6 +16,7 @@ add_library(api
     service/child_state/requests/get_keys.cpp
     service/child_state/requests/get_keys_paged.cpp
     service/child_state/requests/get_storage.cpp
+    service/mmr/rpc.cpp
     service/rpc/impl/rpc_api_impl.cpp
     service/rpc/requests/methods.cpp
     service/rpc/rpc_jrpc_processor.cpp

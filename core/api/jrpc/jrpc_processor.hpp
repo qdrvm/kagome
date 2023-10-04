@@ -7,8 +7,11 @@
 #define KAGOME_CORE_API_JRPC_JRPC_PROCESSOR_HPP
 
 #include <boost/noncopyable.hpp>
+#include <memory>
 
 namespace kagome::api {
+  class JRpcServer;
+
   /**
    * @class JRpcProcessor is base class for JSON RPC processors
    */

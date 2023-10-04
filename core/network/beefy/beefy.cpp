@@ -61,6 +61,10 @@ namespace kagome::network {
     });
   }
 
+  primitives::BlockNumber Beefy::finalized() const {
+    return beefy_finalized_;
+  }
+
   outcome::result<std::optional<consensus::beefy::BeefyJustification>>
   Beefy::getJustification(primitives::BlockNumber block) const {
     OUTCOME_TRY(raw, db_->tryGet(BlockNumberKey::encode(block)));

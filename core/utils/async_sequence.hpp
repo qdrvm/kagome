@@ -43,8 +43,7 @@ namespace kagome {
   template <typename F>
   auto mapAsyncOutcome(F &&f) {
     return [f{std::forward<F>(f)}](auto &&next, auto &&a) mutable {
-      auto r = outcome::Into<std::decay_t<decltype(a)>>::into(
-          std::forward<decltype(a)>(a));
+      auto r = outcome::into(std::forward<decltype(a)>(a));
       if (r.has_value()) {
         f(std::forward<decltype(next)>(next), std::move(r.value()));
       } else {

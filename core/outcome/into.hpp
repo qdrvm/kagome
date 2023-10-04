@@ -22,6 +22,9 @@ namespace outcome {
       return std::move(r);
     }
   };
+  auto into(auto &&r) {
+    return Into<std::decay_t<decltype(r)>>::into(std::forward<decltype(r)>(r));
+  }
 }  // namespace outcome
 
 #endif  // KAGOME_OUTCOME_INTO_HPP

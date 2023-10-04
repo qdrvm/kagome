@@ -9,6 +9,7 @@ add_library(application_injector
 target_link_libraries(application_injector
     beefy_api
     Boost::Boost.DI
+    mmr_api
     runtime_wavm
     account_nonce_api
     address_publisher
