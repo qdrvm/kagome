@@ -36,6 +36,8 @@
 #include "telemetry/service.hpp"
 #include "utils/thread_pool.hpp"
 
+#include "wasm-thread-flag.hpp"
+
 namespace {
   inline const auto kTimestampId =
       kagome::primitives::InherentIdentifier::fromString("timstap0").value();
@@ -463,10 +465,18 @@ namespace kagome::consensus::babe {
           return;
         }
       };
-      main_thread_->post(std::move(proposed));
+      if (wasmThreadFlag()) {
+        main_thread_->post(std::move(proposed));
+      } else {
+        proposed();
+      }
     };
 
-    io_context_->post(std::move(propose));
+    if (wasmThreadFlag()) {
+      io_context_->post(std::move(propose));
+    } else {
+      propose();
+    }
 
     return outcome::success();
   }

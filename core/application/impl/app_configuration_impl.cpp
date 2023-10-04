@@ -32,6 +32,8 @@
 #include "log/formatters/optional.hpp"
 #include "utils/read_file.hpp"
 
+#include "wasm-thread-flag.hpp"
+
 namespace {
   namespace fs = kagome::filesystem;
   using kagome::application::AppConfiguration;
@@ -865,6 +867,8 @@ namespace kagome::application {
                       name)
               .c_str());
     }
+
+    development_desc.add_options()("wasm-thread", po::value(&wasmThreadFlag()));
 
     po::variables_map vm;
     // first-run parse to read only general options and to lookup for "help"

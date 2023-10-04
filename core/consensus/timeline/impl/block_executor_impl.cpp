@@ -22,6 +22,8 @@
 #include "transaction_pool/transaction_pool_error.hpp"
 #include "utils/thread_pool.hpp"
 
+#include "wasm-thread-flag.hpp"
+
 namespace kagome::consensus {
 
   metrics::HistogramTimer metric_block_execution_time{
@@ -191,9 +193,17 @@ namespace kagome::consensus {
                                  *consistency_guard,
                                  previous_best_block);
       };
-      main_thread_->post(std::move(executed));
+      if (wasmThreadFlag()) {
+        main_thread_->post(std::move(executed));
+      } else {
+        executed();
+      }
     };
-    io_context_->post(std::move(execute));
+    if (wasmThreadFlag()) {
+      io_context_->post(std::move(execute));
+    } else {
+      execute();
+    }
   }
 
   void BlockExecutorImpl::applyBlockExecuted(
