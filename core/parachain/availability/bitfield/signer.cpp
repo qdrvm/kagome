@@ -103,7 +103,7 @@ namespace kagome::parachain {
         parachain_api_->session_info(relay_parent, signer->getSessionIndex()));
     candidates.reserve(cores.size());
     for (auto &core : cores) {
-      if (auto occupied = boost::get<runtime::OccupiedCore>(&core)) {
+      if (auto occupied = std::get_if<runtime::OccupiedCore>(&core)) {
         candidates.emplace_back(occupied->candidate_hash);
         fetch_->fetch(signer->validatorIndex(), *occupied, *session);
       } else {

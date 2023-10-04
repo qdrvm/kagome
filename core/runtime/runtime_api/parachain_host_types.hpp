@@ -121,11 +121,13 @@ namespace kagome::runtime {
     }
   };
 
+  using FreeCore = Empty;
+
   using ValidatorGroupsAndDescriptor =
       std::tuple<std::vector<ValidatorGroup>, GroupDescriptor>;
-  using CoreState = boost::variant<OccupiedCore,   // 0
-                                   ScheduledCore,  // 1
-                                   Unused<2>>;     // 2
+  using CoreState = std::variant<OccupiedCore,   // 0
+                                 ScheduledCore,  // 1
+                                 FreeCore>;      // 2
   enum class OccupiedCoreAssumption : uint8_t {
     Included,  // 0
     TimedOut,  // 1

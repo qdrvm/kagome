@@ -58,7 +58,7 @@ namespace kagome::parachain {
         bool skip = false;
         for (size_t ix = 0; ix < cores.size(); ++ix) {
           auto &core = cores[ix];
-          if (is_type<runtime::OccupiedCore>(core)) {
+          if (std::holds_alternative<runtime::OccupiedCore>(core)) {
             continue;
           }
 

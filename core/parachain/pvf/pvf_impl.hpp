@@ -8,7 +8,6 @@
 
 #include "parachain/pvf/pvf.hpp"
 
-#include "blockchain/block_header_repository.hpp"
 #include "crypto/sr25519_provider.hpp"
 #include "log/logger.hpp"
 #include "runtime/runtime_api/parachain_host.hpp"
@@ -16,6 +15,11 @@
 
 namespace kagome::application {
   class AppConfiguration;
+  class AppStateManager;
+}
+
+namespace kagome::blockchain {
+  class BlockTree;
 }
 
 namespace kagome::runtime {
@@ -62,13 +66,16 @@ namespace kagome::parachain {
             std::shared_ptr<runtime::ModuleFactory> module_factory,
             std::shared_ptr<runtime::RuntimePropertiesCache>
                 runtime_properties_cache,
-            std::shared_ptr<blockchain::BlockHeaderRepository>
-                block_header_repository,
+            std::shared_ptr<blockchain::BlockTree>
+                block_tree,
             std::shared_ptr<crypto::Sr25519Provider> sr25519_provider,
             std::shared_ptr<runtime::ParachainHost> parachain_api,
             std::shared_ptr<runtime::Executor> executor,
             std::shared_ptr<runtime::RuntimeContextFactory> ctx_factory,
-            std::shared_ptr<application::AppConfiguration> config);
+            std::shared_ptr<application::AppConfiguration> config,
+            std::shared_ptr<application::AppStateManager> app_state_manager);
+
+    bool prepare();
 
     outcome::result<Result> pvfSync(const CandidateReceipt &receipt,
                                     const ParachainBlock &pov) const override;
@@ -94,7 +101,7 @@ namespace kagome::parachain {
 
     std::shared_ptr<crypto::Hasher> hasher_;
     std::shared_ptr<runtime::RuntimePropertiesCache> runtime_properties_cache_;
-    std::shared_ptr<blockchain::BlockHeaderRepository> block_header_repository_;
+    std::shared_ptr<blockchain::BlockTree> block_tree_;
     std::shared_ptr<crypto::Sr25519Provider> sr25519_provider_;
     std::shared_ptr<runtime::ParachainHost> parachain_api_;
     std::shared_ptr<runtime::Executor> executor_;

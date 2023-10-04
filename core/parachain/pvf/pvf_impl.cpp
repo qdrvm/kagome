@@ -6,6 +6,9 @@
 #include "parachain/pvf/pvf_impl.hpp"
 
 #include "application/app_configuration.hpp"
+#include "application/app_state_manager.hpp"
+#include "blockchain/block_tree.hpp"
+#include "common/visitor.hpp"
 #include "metrics/histogram_timer.hpp"
 #include "runtime/common/runtime_instances_pool.hpp"
 #include "runtime/common/uncompress_code_if_needed.hpp"
@@ -110,23 +113,85 @@ namespace kagome::parachain {
       std::shared_ptr<crypto::Hasher> hasher,
       std::shared_ptr<runtime::ModuleFactory> module_factory,
       std::shared_ptr<runtime::RuntimePropertiesCache> runtime_properties_cache,
-      std::shared_ptr<blockchain::BlockHeaderRepository>
-          block_header_repository,
+      std::shared_ptr<blockchain::BlockTree> block_tree,
       std::shared_ptr<crypto::Sr25519Provider> sr25519_provider,
       std::shared_ptr<runtime::ParachainHost> parachain_api,
       std::shared_ptr<runtime::Executor> executor,
       std::shared_ptr<runtime::RuntimeContextFactory> ctx_factory,
-      std::shared_ptr<application::AppConfiguration> config)
+      std::shared_ptr<application::AppConfiguration> config,
+      std::shared_ptr<application::AppStateManager> state_manager)
       : hasher_{std::move(hasher)},
         runtime_properties_cache_{std::move(runtime_properties_cache)},
-        block_header_repository_{std::move(block_header_repository)},
+        block_tree_{std::move(block_tree)},
         sr25519_provider_{std::move(sr25519_provider)},
         parachain_api_{std::move(parachain_api)},
         executor_{std::move(executor)},
         ctx_factory_{std::move(ctx_factory)},
-        log_{log::createLogger("Pvf")},
+        log_{log::createLogger("PVF Executor", "parachain")},
         runtime_cache_{std::make_shared<runtime::RuntimeInstancesPool>(
-            module_factory, config->parachainRuntimeInstanceCacheSize())} {}
+            module_factory, config->parachainRuntimeInstanceCacheSize())} {
+    state_manager->takeControl(*this);
+  }
+
+  bool PvfImpl::prepare() {
+    auto prepare = [this]() -> outcome::result<void> {
+      auto last_finalized = block_tree_->getLastFinalized();
+      SL_DEBUG(log_,
+               "Warming up PVF executor runtime instance cache at block {}",
+               last_finalized);
+      OUTCOME_TRY(cores,
+                  parachain_api_->availability_cores(last_finalized.hash));
+      for (auto &core : cores) {
+        // empty core
+        if (std::holds_alternative<runtime::EmptyCore>(core)) {
+          continue;
+        }
+
+        OUTCOME_TRY(para_id,
+                    visit_in_place(
+                        core,
+                        [this](runtime::OccupiedCore const &core) {
+                          SL_TRACE(log_, "Occupied availability core");
+                          return core.candidate_descriptor.para_id;
+                        },
+                        [this](runtime::ScheduledCore const &core) {
+                          SL_TRACE(log_, "Scheduled availability core");
+                          return core.para_id;
+                        },
+                        [](runtime::EmptyCore) -> outcome::result<ParachainId> {
+                          BOOST_UNREACHABLE_RETURN({})
+                        }));
+        // TODO: Is the assumption correct?
+        OUTCOME_TRY(code_opt,
+                    parachain_api_->validation_code(
+                        last_finalized.hash,
+                        para_id,
+                        runtime::OccupiedCoreAssumption::Included));
+        // TODO: Under what circumstances can this happen?
+        if (!code_opt) {
+          SL_DEBUG(log_,
+                   "No validation code found for parachain {} with 'included' "
+                   "occupied assumption",
+                   para_id);
+          continue;
+        }
+        auto &code = *code_opt;
+        auto hash = hasher_->blake2b_256(code);
+        OUTCOME_TRY(runtime_cache_->instantiate(hash, code));
+        SL_DEBUG(
+            log_,
+            "Instantiated runtime instance with code hash {} for parachain {}",
+            hash,
+            para_id);
+      }
+      return outcome::success();
+    };
+    if (auto res = prepare(); !res) {
+      SL_ERROR(log_, "Failed to initialize PVF executor: {}", res.error());
+      return false;
+    }
+    return true;
+  }
 
   outcome::result<Pvf::Result> PvfImpl::pvfValidate(
       const PersistedValidationData &data,
