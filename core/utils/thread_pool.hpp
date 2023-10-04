@@ -22,6 +22,10 @@ namespace kagome {
     enum struct State : uint32_t { kStopped = 0, kStarted };
 
    public:
+    struct Locked {
+      virtual ~Locked() = default;
+    };
+
     ThreadHandler(ThreadHandler &&) = delete;
     ThreadHandler(const ThreadHandler &) = delete;
 
@@ -30,6 +34,12 @@ namespace kagome {
 
     explicit ThreadHandler(std::shared_ptr<boost::asio::io_context> io_context)
         : execution_state_{State::kStopped}, ioc_{std::move(io_context)} {}
+    ThreadHandler(std::shared_ptr<boost::asio::io_context> io_context,
+                  std::shared_ptr<Locked> locked)
+        : execution_state_{State::kStopped},
+          ioc_{std::move(io_context)},
+          locked_{std::move(locked)} {}
+
     ~ThreadHandler() = default;
 
     void start() {
@@ -60,20 +70,15 @@ namespace kagome {
    private:
     std::atomic<State> execution_state_;
     std::shared_ptr<boost::asio::io_context> ioc_;
+    std::shared_ptr<Locked> locked_;
   };
 
   /**
    * Creates `io_context` and runs it on `thread_count` threads.
    */
-  class ThreadPool final {
+  class ThreadPool final : public std::enable_shared_from_this<ThreadPool>,
+                           public ThreadHandler::Locked {
     enum struct State : uint32_t { kStopped = 0, kStarted };
-
-   public:
-    ThreadPool(ThreadPool &&) = delete;
-    ThreadPool(const ThreadPool &) = delete;
-
-    ThreadPool &operator=(ThreadPool &&) = delete;
-    ThreadPool &operator=(const ThreadPool &) = delete;
 
     [[deprecated("Please, use ctor for pool with named threads")]]  //
     explicit ThreadPool(size_t thread_count)
@@ -121,6 +126,20 @@ namespace kagome {
       }
     }
 
+   public:
+    ThreadPool(ThreadPool &&) = delete;
+    ThreadPool(const ThreadPool &) = delete;
+
+    ThreadPool &operator=(ThreadPool &&) = delete;
+    ThreadPool &operator=(const ThreadPool &) = delete;
+
+    template <typename... Args>
+    static std::shared_ptr<ThreadPool> create(Args &&...args) {
+      return std::shared_ptr<ThreadPool>(
+          new ThreadPool(std::forward<Args>(args)...));
+      // return {new ThreadPool(std::forward<Args>(args)...)};
+    }
+
     ~ThreadPool() {
       ioc_->stop();
       for (auto &thread : threads_) {
@@ -134,7 +153,7 @@ namespace kagome {
 
     std::shared_ptr<ThreadHandler> handler() {
       BOOST_ASSERT(ioc_);
-      return std::make_shared<ThreadHandler>(ioc_);
+      return std::make_shared<ThreadHandler>(ioc_, shared_from_this());
     }
 
    private:

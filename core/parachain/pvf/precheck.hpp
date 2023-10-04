@@ -62,7 +62,7 @@ namespace kagome::parachain {
     std::shared_ptr<offchain::OffchainWorkerPool> offchain_worker_pool_;
     std::shared_ptr<primitives::events::ChainEventSubscriber> chain_sub_;
     std::unordered_set<ValidationCodeHash> seen_;
-    ThreadPool thread_{"PvfPrecheck", 1};
+    std::shared_ptr<ThreadPool> thread_{ThreadPool::create("PvfPrecheck", 1)};
     log::Logger logger_ = log::createLogger("PvfPrecheck", "parachain");
   };
 }  // namespace kagome::parachain

@@ -37,11 +37,11 @@ namespace kagome::parachain {
   }
 
   void ParachainObserverImpl::onIncomingMessage(
-      libp2p::peer::PeerId const &peer_id,
-      network::CollationProtocolMessage &&collation_message) {
+      const libp2p::peer::PeerId &peer_id,
+      network::VersionedCollatorProtocolMessage &&msg) {
     visit_in_place(
-        std::move(collation_message),
-        [&](network::CollationMessage &&collation_msg) {
+        std::move(msg),
+        [&](kagome::network::CollationMessage &&collation_msg) {
           visit_in_place(
               std::move(collation_msg),
               [&](network::CollatorDeclaration &&collation_decl) {
@@ -51,29 +51,56 @@ namespace kagome::parachain {
                           std::move(collation_decl.signature));
               },
               [&](network::CollatorAdvertisement &&collation_adv) {
-                onAdvertise(peer_id, std::move(collation_adv.relay_parent));
+                onAdvertise(peer_id,
+                            std::move(collation_adv.relay_parent),
+                            std::nullopt);
               },
               [&](auto &&) {
-                SL_WARN(logger_, "Unexpected collation message from.");
+                SL_WARN(logger_, "Unexpected V1 collation message from.");
+              });
+        },
+        [&](kagome::network::vstaging::CollatorProtocolMessage
+                &&collation_msg) {
+          visit_in_place(
+              std::move(collation_msg),
+              [&](kagome::network::vstaging::CollatorProtocolMessageDeclare
+                      &&collation_decl) {
+                onDeclare(peer_id,
+                          std::move(collation_decl.collator_id),
+                          std::move(collation_decl.para_id),
+                          std::move(collation_decl.signature));
+              },
+              [&](kagome::network::vstaging::
+                      CollatorProtocolMessageAdvertiseCollation
+                          &&collation_adv) {
+                onAdvertise(
+                    peer_id,
+                    std::move(collation_adv.relay_parent),
+                    std::make_pair(
+                        std::move(collation_adv.candidate_hash),
+                        std::move(collation_adv.parent_head_data_hash)));
+              },
+              [&](auto &&) {
+                SL_WARN(logger_, "Unexpected VStaging collation message from.");
               });
         },
         [&](auto &&) {
-          SL_WARN(logger_, "Unexpected collation message from.");
+          SL_WARN(logger_, "Unexpected versioned collation message from.");
         });
   }
 
   void ParachainObserverImpl::onIncomingCollationStream(
-      libp2p::peer::PeerId const &peer_id) {
+      const libp2p::peer::PeerId &peer_id) {
     processor_->onIncomingCollationStream(peer_id);
   }
 
   void ParachainObserverImpl::onIncomingValidationStream(
-      libp2p::peer::PeerId const &peer_id) {
+      const libp2p::peer::PeerId &peer_id) {
     processor_->onIncomingValidationStream(peer_id);
   }
 
   void ParachainObserverImpl::onIncomingMessage(
-      libp2p::peer::PeerId const &peer_id,
+      const libp2p::peer::PeerId &peer_id,
       network::ValidatorProtocolMessage &&message) {
     processor_->onValidationProtocolMsg(peer_id, message);
     approval_distribution_->onValidationProtocolMsg(peer_id, message);
@@ -91,9 +118,18 @@ namespace kagome::parachain {
     return network::ProtocolError::PROTOCOL_NOT_IMPLEMENTED;
   }
 
-  void ParachainObserverImpl::onAdvertise(libp2p::peer::PeerId const &peer_id,
-                                          primitives::BlockHash relay_parent) {
-    auto const peer_state = pm_->getPeerState(peer_id);
+  outcome::result<network::vstaging::CollationFetchingResponse>
+  ParachainObserverImpl::OnCollationRequest(
+      network::vstaging::CollationFetchingRequest request) {
+    /// Need to decrease rank of the peer and return error.
+    return network::ProtocolError::PROTOCOL_NOT_IMPLEMENTED;
+  }
+
+  void ParachainObserverImpl::onAdvertise(
+      const libp2p::peer::PeerId &peer_id,
+      primitives::BlockHash relay_parent,
+      std::optional<std::pair<CandidateHash, Hash>> &&prospective_candidate) {
+    const auto peer_state = pm_->getPeerState(peer_id);
     if (!peer_state) {
       logger_->warn("Received collation advertisement from unknown peer {}",
                     peer_id);
@@ -107,30 +143,21 @@ namespace kagome::parachain {
       return;
     }
 
-    if (auto check_res = processor_->advCanBeProcessed(relay_parent, peer_id);
-        !check_res) {
-      logger_->warn("Insert advertisement from {} failed: {}",
-                    peer_id,
-                    check_res.error().message());
-      return;
-    }
-
-    logger_->info(
-        "Got advertisement from: {}, relay parent: {}", peer_id, relay_parent);
-    processor_->requestCollations(network::CollationEvent{
-        .collator_id = result.value().first,
-        .pending_collation =
-            network::PendingCollation{.relay_parent = relay_parent,
-                                      .para_id = result.value().second,
-                                      .peer_id = peer_id},
-    });
+    processor_->handleAdvertisement(
+        network::CollationEvent{
+            .collator_id = result.value().first,
+            .pending_collation = {.relay_parent = relay_parent,
+                                  .para_id = result.value().second,
+                                  .peer_id = peer_id},
+        },
+        std::move(prospective_candidate));
   }
 
-  void ParachainObserverImpl::onDeclare(libp2p::peer::PeerId const &peer_id,
+  void ParachainObserverImpl::onDeclare(const libp2p::peer::PeerId &peer_id,
                                         network::CollatorPublicKey pubkey,
                                         network::ParachainId para_id,
                                         network::Signature signature) {
-    auto const peer_state = pm_->getPeerState(peer_id);
+    const auto peer_state = pm_->getPeerState(peer_id);
     if (!peer_state) {
       logger_->warn("Received collation declaration from unknown peer {}:{}",
                     peer_id,

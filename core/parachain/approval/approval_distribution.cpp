@@ -481,8 +481,7 @@ namespace kagome::parachain {
       std::shared_ptr<parachain::Recovery> recovery,
       std::shared_ptr<boost::asio::io_context> this_context,
       LazySPtr<dispute::DisputeCoordinator> dispute_coordinator)
-      : int_pool_{std::make_shared<ThreadPool>("approval", 1ull)},
-        internal_context_{int_pool_->handler()},
+      : internal_context_{ThreadPool::create("approval", 1ull)->handler()},
         thread_pool_{std::move(thread_pool)},
         thread_pool_context_{thread_pool_->handler()},
         parachain_host_(std::move(parachain_host)),

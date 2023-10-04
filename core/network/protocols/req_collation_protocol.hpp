@@ -13,7 +13,7 @@
 #include "application/chain_spec.hpp"
 #include "log/logger.hpp"
 #include "network/req_collation_observer.hpp"
-#include "network/types/collator_messages.hpp"
+#include "network/types/collator_messages_vstaging.hpp"
 
 namespace kagome::network {
 
@@ -23,6 +23,13 @@ namespace kagome::network {
         const PeerId &peer_id,
         CollationFetchingRequest request,
         std::function<void(outcome::result<CollationFetchingResponse>)>
+            &&response_handler) = 0;
+
+    virtual void request(
+        const PeerId &peer_id,
+        vstaging::CollationFetchingRequest request,
+        std::function<
+            void(outcome::result<vstaging::CollationFetchingResponse>)>
             &&response_handler) = 0;
   };
 

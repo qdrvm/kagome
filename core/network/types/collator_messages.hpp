@@ -72,6 +72,13 @@ namespace kagome::network {
     ChunkProof proof;
   };
 
+  enum UpgradeRestriction {
+    /// There is an upgrade restriction and there are no details about its
+    /// specifics nor how long
+    /// it could last.
+    Present = 0,
+  };
+
   /**
    * PoV
    */

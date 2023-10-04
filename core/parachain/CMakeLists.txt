@@ -19,6 +19,7 @@ add_library(validator_parachain
     approval/approval_distribution.cpp
     approval/approval.cpp
     backing/store_impl.cpp
+    validator/impl/fragment_tree.cpp
     )
 
 target_link_libraries(validator_parachain

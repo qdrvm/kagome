@@ -129,7 +129,7 @@ namespace kagome::runtime {
   enum class OccupiedCoreAssumption : uint8_t {
     Included,  // 0
     TimedOut,  // 1
-    Unused     // 2
+    Free       // 2
   };
   struct PersistedValidationData {
     SCALE_TIE(4);

@@ -322,7 +322,6 @@ namespace kagome::dispute {
     /// Delay timer for establishing the rate limit.
     std::optional<clock::BasicWaitableTimer> rate_limit_timer_;
 
-    std::shared_ptr<ThreadPool> int_pool_;
     std::shared_ptr<ThreadHandler> internal_context_;
 
     std::unique_ptr<RuntimeInfo> runtime_info_;

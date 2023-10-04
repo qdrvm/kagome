@@ -263,8 +263,10 @@ namespace kagome::network {
       const network::CollatorPublicKey &collator_id,
       network::ParachainId para_id) {
     if (auto it = peer_states_.find(peer_id); it != peer_states_.end()) {
-      it->second.collator_state =
-          CollatorState{.parachain_id = para_id, .collator_id = collator_id};
+      it->second.collator_state = CollatingPeerState{
+          .para_id = para_id,
+          .collator_id = collator_id,
+      };
       it->second.time = clock_->now();
     }
 
@@ -288,7 +290,7 @@ namespace kagome::network {
       return Error::UNDECLARED_COLLATOR;
     }
     return std::make_pair(peer_state.collator_state.value().collator_id,
-                          peer_state.collator_state.value().parachain_id);
+                          peer_state.collator_state.value().para_id);
   }
 
   void PeerManagerImpl::align() {

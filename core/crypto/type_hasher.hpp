@@ -15,7 +15,7 @@ namespace kagome::crypto {
 
   template <typename H, typename... T>
   inline void hashTypes(H &hasher, gsl::span<uint8_t> out, T &&...t) {
-    kagome::scale::encode(
+    kagome::scale_v2::encode(
         [&](const uint8_t *const val, size_t count) {
           hasher.update({val, (ssize_t)count});
         },
@@ -68,6 +68,9 @@ namespace kagome::crypto {
     T type_;
     mutable std::optional<HashType> opt_hash_{};
   };
+
+  template <typename T>
+  using Hashed256 = Hashed<T, 32>;
 
 }  // namespace kagome::crypto
 

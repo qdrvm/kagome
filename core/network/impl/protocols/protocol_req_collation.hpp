@@ -19,7 +19,7 @@
 #include "network/impl/stream_engine.hpp"
 #include "network/peer_manager.hpp"
 #include "network/protocols/req_collation_protocol.hpp"
-#include "network/types/collator_messages.hpp"
+#include "network/types/collator_messages_vstaging.hpp"
 #include "network/types/roles.hpp"
 #include "utils/non_copyable.hpp"
 
@@ -29,6 +29,7 @@ namespace kagome::blockchain {
 
 namespace kagome::network {
 
+  template <typename RequestT, typename ResponseT>
   struct ReqCollationProtocolImpl;
 
   class ReqCollationProtocol final : public IReqCollationProtocol,
@@ -39,7 +40,7 @@ namespace kagome::network {
     ~ReqCollationProtocol() override = default;
 
     ReqCollationProtocol(libp2p::Host &host,
-                         application::ChainSpec const &chain_spec,
+                         const application::ChainSpec &chain_spec,
                          const blockchain::GenesisBlockHash &genesis_hash,
                          std::shared_ptr<ReqCollationObserver> observer);
 
@@ -58,8 +59,20 @@ namespace kagome::network {
                  std::function<void(outcome::result<CollationFetchingResponse>)>
                      &&response_handler) override;
 
+    void request(const PeerId &peer_id,
+                 vstaging::CollationFetchingRequest request,
+                 std::function<
+                     void(outcome::result<vstaging::CollationFetchingResponse>)>
+                     &&response_handler) override;
+
    private:
-    std::shared_ptr<ReqCollationProtocolImpl> impl_;
+    std::shared_ptr<ReqCollationProtocolImpl<CollationFetchingRequest,
+                                             CollationFetchingResponse>>
+        v1_impl_;
+    std::shared_ptr<
+        ReqCollationProtocolImpl<vstaging::CollationFetchingRequest,
+                                 vstaging::CollationFetchingResponse>>
+        vstaging_impl_;
   };
 
 }  // namespace kagome::network

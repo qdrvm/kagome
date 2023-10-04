@@ -678,7 +678,6 @@ namespace kagome::parachain {
     }
 
     ApprovingContextMap approving_context_map_;
-    std::shared_ptr<ThreadPool> int_pool_;
     std::shared_ptr<ThreadHandler> internal_context_;
 
     std::shared_ptr<ThreadPool> thread_pool_;

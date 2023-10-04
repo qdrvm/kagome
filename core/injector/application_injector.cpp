@@ -332,10 +332,10 @@ namespace {
   sptr<ThreadPool> get_thread_pool(const Injector &injector) {
     const auto cores = std::thread::hardware_concurrency();
     if (cores == 0ul) {
-      return std::make_shared<ThreadPool>("worker", 5ull);
+      return ThreadPool::create("worker", 5ull);
     }
 
-    return std::make_shared<ThreadPool>("worker", cores);
+    return ThreadPool::create("worker", cores);
   }
 
   template <typename... Ts>

@@ -25,21 +25,28 @@ namespace kagome::network {
   constexpr size_t kPeerStateMaxKnownBlocks = 1024;
   constexpr size_t kPeerStateMaxKnownGrandpaMessages = 8192;
 
-  struct CollatorState {
-    network::ParachainId parachain_id;
+  struct CollatingPeerState {
+    network::ParachainId para_id;
     network::CollatorPublicKey collator_id;
+    std::unordered_map<Hash, std::unordered_set<CandidateHash>> advertisements;
+    std::chrono::system_clock::time_point last_active;
   };
 
-  struct PendingCollation {
-    RelayHash relay_parent;
-    network::ParachainId para_id;
-    libp2p::peer::PeerId peer_id;
-    std::optional<Hash> commitments_hash;
+  enum CollationVersion {
+    /// The first version.
+    V1 = 1,
+    /// The staging version.
+    VStaging = 2,
   };
 
   struct CollationEvent {
     CollatorId collator_id;
-    PendingCollation pending_collation;
+    struct {
+      RelayHash relay_parent;
+      network::ParachainId para_id;
+      libp2p::peer::PeerId peer_id;
+      std::optional<Hash> commitments_hash;
+    } pending_collation;
   };
 
   using OurView = network::View;
@@ -51,12 +58,31 @@ namespace kagome::network {
     std::optional<RoundNumber> round_number = std::nullopt;
     std::optional<VoterSetId> set_id = std::nullopt;
     BlockNumber last_finalized = 0;
-    std::optional<CollatorState> collator_state = std::nullopt;
+    std::optional<CollatingPeerState> collator_state = std::nullopt;
     std::optional<View> view;
+    CollationVersion version;
     LruSet<primitives::BlockHash> known_blocks{kPeerStateMaxKnownBlocks};
     LruSet<common::Hash256> known_grandpa_messages{
         kPeerStateMaxKnownGrandpaMessages,
     };
+
+    bool hasAdvertised(
+        const RelayHash &relay_parent,
+        const std::optional<CandidateHash> &maybe_candidate_hash) const {
+      if (!collator_state) {
+        return false;
+      }
+
+      const auto &collating_state = *collator_state;
+      if (maybe_candidate_hash) {
+        if (auto it = collating_state.advertisements.find(relay_parent);
+            it != collating_state.advertisements.end()) {
+          return it->second.count(*maybe_candidate_hash) != 0ull;
+        }
+        return false;
+      }
+      return collating_state.advertisements.count(relay_parent) != 0ull;
+    }
   };
 
   struct StreamEngine;

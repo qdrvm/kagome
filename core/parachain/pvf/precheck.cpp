@@ -63,7 +63,7 @@ namespace kagome::parachain {
             primitives::events::ChainEventType,
             const primitives::events::ChainEventParams &event) {
           if (auto self = weak.lock()) {
-            self->thread_.io_context()->post(
+            self->thread_->io_context()->post(
                 [weak,
                  header{boost::get<primitives::events::HeadsEventParams>(event)
                             .get()}] {

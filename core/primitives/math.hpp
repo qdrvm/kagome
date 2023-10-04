@@ -35,6 +35,18 @@ namespace kagome::math {
     return res;
   }
 
+  template <typename T, typename E>
+  inline outcome::result<void> checked_sub(T &x, T y, E e) {
+    static_assert(std::numeric_limits<T>::is_integer
+                      && !std::numeric_limits<T>::is_signed,
+                  "Value must be integer and unsigned!");
+    if (x >= y) {
+      x -= y;
+      return outcome::success();
+    }
+    return e;
+  }
+
   template <typename T,
             std::enable_if_t<std::is_integral_v<std::decay_t<T>>, bool> = true>
   constexpr auto toLE(const T &value) {

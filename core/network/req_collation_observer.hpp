@@ -9,7 +9,7 @@
 #include <libp2p/peer/peer_id.hpp>
 
 #include "consensus/grandpa/common.hpp"
-#include "network/types/collator_messages.hpp"
+#include "network/types/collator_messages_vstaging.hpp"
 #include "primitives/common.hpp"
 
 namespace kagome::network {
@@ -26,6 +26,8 @@ namespace kagome::network {
      */
     virtual outcome::result<CollationFetchingResponse> OnCollationRequest(
         CollationFetchingRequest request) = 0;
+    virtual outcome::result<vstaging::CollationFetchingResponse>
+    OnCollationRequest(vstaging::CollationFetchingRequest request) = 0;
   };
 }  // namespace kagome::network
 

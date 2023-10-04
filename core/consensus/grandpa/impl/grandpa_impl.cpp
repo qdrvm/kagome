@@ -92,8 +92,8 @@ namespace kagome::consensus::grandpa {
         block_tree_(std::move(block_tree)),
         reputation_repository_(std::move(reputation_repository)),
         babe_status_observable_(std::move(babe_status_observable)),
-        execution_thread_pool_{std::make_shared<ThreadPool>("grandpa", 1ull)},
-        internal_thread_context_{execution_thread_pool_->handler()},
+        internal_thread_context_{
+            ThreadPool::create("grandpa", 1ull)->handler()},
         main_thread_context_{std::move(main_thread_context)},
         scheduler_{std::make_shared<libp2p::basic::SchedulerImpl>(
             std::make_shared<libp2p::basic::AsioSchedulerBackend>(

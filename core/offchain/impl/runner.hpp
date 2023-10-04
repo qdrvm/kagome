@@ -25,7 +25,7 @@ namespace kagome::offchain {
         : threads_{threads},
           free_threads_{threads},
           max_tasks_{max_tasks},
-          thread_pool_{"ocw", threads_} {}
+          thread_pool_{ThreadPool::create("ocw", threads_)} {}
 
     void run(Task &&task) {
       std::unique_lock lock{mutex_};
@@ -38,7 +38,7 @@ namespace kagome::offchain {
       }
       --free_threads_;
       lock.unlock();
-      thread_pool_.io_context()->post(
+      thread_pool_->io_context()->post(
           [weak{weak_from_this()}, task{std::move(task)}] {
             if (auto self = weak.lock()) {
               auto release = gsl::finally([&] {
@@ -70,7 +70,7 @@ namespace kagome::offchain {
     size_t free_threads_;
     const size_t max_tasks_;
     std::deque<Task> tasks_;
-    ThreadPool thread_pool_;
+    std::shared_ptr<ThreadPool> thread_pool_;
   };
 }  // namespace kagome::offchain
 

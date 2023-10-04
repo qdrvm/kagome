@@ -17,7 +17,7 @@
 
 #include "utils/struct_to_tuple.hpp"
 
-namespace kagome::scale {
+namespace kagome::scale_v2 {
 
   template <typename F>
   constexpr void putByte(const F &func, const uint8_t *const val, size_t count);
@@ -429,6 +429,6 @@ namespace kagome::scale {
     }
   }
 
-}  // namespace kagome::scale
+}  // namespace kagome::scale_v2
 
 #endif  // KAGOME_SCALE_ENCODER_PRIMITIVES_HPP

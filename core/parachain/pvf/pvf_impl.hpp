@@ -71,7 +71,7 @@ namespace kagome::parachain {
             std::shared_ptr<application::AppConfiguration> config);
 
     outcome::result<Result> pvfSync(const CandidateReceipt &receipt,
-                                    const ParachainBlock &pov) const override;
+                                    const ParachainBlock &pov, const ProspectiveParachainsModeOpt &relay_parent_mode) const override;
     outcome::result<Result> pvfValidate(
         const PersistedValidationData &data,
         const ParachainBlock &pov,
@@ -83,7 +83,7 @@ namespace kagome::parachain {
     using ParachainRuntime = network::ParachainRuntime;
 
     outcome::result<std::pair<PersistedValidationData, ParachainRuntime>>
-    findData(const CandidateDescriptor &descriptor) const;
+    findData(const CandidateDescriptor &descriptor, const ProspectiveParachainsModeOpt &relay_parent_mode) const;
     outcome::result<ValidationResult> callWasm(
         const CandidateReceipt &receipt,
         const common::Hash256 &code_hash,

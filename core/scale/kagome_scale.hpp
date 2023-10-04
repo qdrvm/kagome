@@ -17,7 +17,7 @@
 #include "scale/encode_append.hpp"
 #include "scale/libp2p_types.hpp"
 
-namespace kagome::scale {
+namespace kagome::scale_v2 {
   using CompactInteger = ::scale::CompactInteger;
   using BitVec = ::scale::BitVec;
   using ScaleDecoderStream = ::scale::ScaleDecoderStream;
@@ -69,11 +69,11 @@ namespace kagome::scale {
   constexpr void encode(const F &func,
                         const consensus::babe::BabeBlockHeader &bh);
 
-}  // namespace kagome::scale
+}  // namespace kagome::scale_v2
 
 #include "scale/encoder/primitives.hpp"
 
-namespace kagome::scale {
+namespace kagome::scale_v2 {
 
   template <typename F>
   constexpr void encode(const F &func, const primitives::BlockHeader &bh) {
@@ -150,6 +150,6 @@ namespace kagome::scale {
     encode(func, c.value);
   }
 
-}  // namespace kagome::scale
+}  // namespace kagome::scale_v2
 
 #endif  // KAGOME_KAGOME_SCALE_HPP

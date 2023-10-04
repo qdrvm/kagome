@@ -93,8 +93,7 @@ namespace kagome::dispute {
         router_(std::move(router)),
         peer_view_(std::move(peer_view)),
         babe_status_observable_(std::move(babe_status_observable)),
-        int_pool_{std::make_shared<ThreadPool>(1ull)},
-        internal_context_{int_pool_->handler()},
+        internal_context_{ThreadPool::create("dispute pool", 1ull)->handler()},
         runtime_info_(std::make_unique<RuntimeInfo>(api_, session_keys_)),
         batches_(std::make_unique<Batches>(steady_clock_, hasher_)) {
     BOOST_ASSERT(app_state_manager_ != nullptr);
