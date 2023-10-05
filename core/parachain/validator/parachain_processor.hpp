@@ -221,7 +221,7 @@ namespace kagome::parachain {
     outcome::result<Pvf::Result> validateCandidate(
         const network::CandidateReceipt &candidate,
         const network::ParachainBlock &pov,
-        const primitives::BlockHash &relay_parent);
+        runtime::PersistedValidationData &&pvd);
 
     outcome::result<std::vector<network::ErasureChunk>> validateErasureCoding(
         const runtime::AvailableData &validating_data, size_t n_validators);

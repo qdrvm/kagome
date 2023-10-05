@@ -1408,8 +1408,8 @@ namespace kagome::parachain {
   ParachainProcessorImpl::validateCandidate(
       const network::CandidateReceipt &candidate,
       const network::ParachainBlock &pov,
-      const primitives::BlockHash &relay_parent) {
-    return pvf_->pvfSync(candidate, pov);
+      runtime::PersistedValidationData &&pvd) {
+    return pvf_->pvfSync(candidate, pov, std::move(pvd));
   }
 
   outcome::result<std::vector<network::ErasureChunk>>
@@ -1507,7 +1507,7 @@ namespace kagome::parachain {
       return;
     }
 
-    auto validation_result = validateCandidate(candidate, pov, relay_parent);
+    auto validation_result = validateCandidate(candidate, pov, std::move(pvd));
     if (!validation_result) {
       logger_->warn(
           "Candidate {} on relay_parent {}, para_id {} validation failed with "

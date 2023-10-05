@@ -129,7 +129,7 @@ namespace kagome::parachain {
             module_factory, config->parachainRuntimeInstanceCacheSize())} {}
 
   outcome::result<Pvf::Result> PvfImpl::pvfValidate(
-      const PersistedValidationData &data,
+      PersistedValidationData &&data,
       const ParachainBlock &pov,
       const CandidateReceipt &receipt,
       const ParachainRuntime &code_zstd) const {
@@ -171,34 +171,22 @@ namespace kagome::parachain {
   }
 
   outcome::result<Pvf::Result> PvfImpl::pvfSync(
-      const CandidateReceipt &receipt, const ParachainBlock &pov, const ProspectiveParachainsModeOpt &relay_parent_mode) const {
+      const CandidateReceipt &receipt, const ParachainBlock &pov, runtime::PersistedValidationData &&pvd) const {
     SL_DEBUG(log_,
              "pvfSync relay_parent={} para_id={}",
              receipt.descriptor.relay_parent,
              receipt.descriptor.para_id);
-    OUTCOME_TRY(data_code, findData(receipt.descriptor, relay_parent_mode));
-    auto &[data, code] = data_code;
-    return pvfValidate(data, pov, receipt, code);
+    OUTCOME_TRY(code, findData(receipt.descriptor, pvd));
+    return pvfValidate(std::move(pvd), pov, receipt, code);
   }
 
-  outcome::result<std::pair<PersistedValidationData, ParachainRuntime>>
-  PvfImpl::findData(const CandidateDescriptor &descriptor, const ProspectiveParachainsModeOpt &relay_parent_mode) const {
+  outcome::result<ParachainRuntime>
+  PvfImpl::findData(const CandidateDescriptor &descriptor, const runtime::PersistedValidationData &pvd) const {
     for (auto assumption : {
              runtime::OccupiedCoreAssumption::Included,
              runtime::OccupiedCoreAssumption::TimedOut,
          }) {
-      OUTCOME_TRY(data,
-                  parachain_api_->persisted_validation_data(
-                      descriptor.relay_parent, descriptor.para_id, assumption));
-      if (!data) {
-        SL_VERBOSE(log_,
-                   "findData relay_parent={} para_id={}: not found "
-                   "(persisted_validation_data)",
-                   descriptor.relay_parent,
-                   descriptor.para_id);
-        return PvfError::NO_PERSISTED_DATA;
-      }
-      auto data_hash = hasher_->blake2b_256(scale::encode(*data).value());
+      auto data_hash = hasher_->blake2b_256(scale::encode(pvd).value());
       if (descriptor.persisted_data_hash != data_hash) {
         continue;
       }
@@ -213,7 +201,7 @@ namespace kagome::parachain {
             descriptor.para_id);
         return PvfError::NO_PERSISTED_DATA;
       }
-      return std::make_pair(*data, *code);
+      return *code;
     }
     SL_VERBOSE(log_,
                "findData relay_parent={} para_id={}: not found",

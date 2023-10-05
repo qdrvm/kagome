@@ -24,10 +24,10 @@ namespace kagome::parachain {
     /// Execute pvf synchronously
     virtual outcome::result<Result> pvfSync(
         const CandidateReceipt &receipt,
-        const ParachainBlock &pov, const ProspectiveParachainsModeOpt &relay_parent_mode) const = 0;
+        const ParachainBlock &pov, runtime::PersistedValidationData &&pvd) const = 0;
 
     virtual outcome::result<Result> pvfValidate(
-        const PersistedValidationData &data,
+        PersistedValidationData &&data,
         const ParachainBlock &pov,
         const CandidateReceipt &receipt,
         const ParachainRuntime &code) const = 0;
