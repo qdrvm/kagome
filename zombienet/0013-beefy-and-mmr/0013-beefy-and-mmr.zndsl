@@ -26,6 +26,13 @@ validator: reports kagome_beefy_validator_set_id is at least 2 within 130 second
 # since we verified we're at least in the 3rd session, verify BEEFY finalized mandatory #21.
 validator: reports kagome_beefy_best_block is at least 21 within 130 seconds
 
+# Custom JS to test BEEFY RPCs.
+validator-0: js-script ./0013-beefy-finalized-heads.js with "validator-0,validator-1,validator-2" return is 1 within 5 seconds
+
+# Custom JS to test MMR RPCs.
+validator: js-script ./0013-mmr-leaves.js with "21" return is 1 within 5 seconds
+validator: js-script ./0013-mmr-generate-and-verify-proof.js with "validator-0,validator-1,validator-2" return is 1 within 5 seconds
+
 # Resume validator-unstable and verify it imports all BEEFY justification and catches up.
 validator-unstable: resume
 validator-unstable: reports substrate_beefy_validator_set_id is at least 2 within 30 seconds

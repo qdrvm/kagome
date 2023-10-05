@@ -60,6 +60,8 @@ namespace kagome::network {
           std::shared_ptr<primitives::events::ChainSubscriptionEngine>
               chain_sub_engine);
 
+    primitives::BlockNumber finalized() const;
+
     outcome::result<std::optional<consensus::beefy::BeefyJustification>>
     getJustification(primitives::BlockNumber block) const override;
 
