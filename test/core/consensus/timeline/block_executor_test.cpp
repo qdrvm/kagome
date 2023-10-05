@@ -168,7 +168,6 @@ class BlockExecutorTest : public testing::Test {
 
  protected:
   std::shared_ptr<BlockTreeMock> block_tree_;
-  ThreadPool thread_pool_{"test", 1};
   std::shared_ptr<CoreMock> core_;
   std::shared_ptr<BabeConfiguration> babe_config_;
   std::shared_ptr<BabeConfigRepositoryMock> babe_config_repo_;
@@ -182,6 +181,7 @@ class BlockExecutorTest : public testing::Test {
   kagome::primitives::events::StorageSubscriptionEnginePtr storage_sub_engine_;
   kagome::primitives::events::ChainSubscriptionEnginePtr chain_sub_engine_;
   std::shared_ptr<ConsistencyKeeperMock> consistency_keeper_;
+  ThreadPool thread_pool_{"test", 1};
 
   std::shared_ptr<BlockExecutorImpl> block_executor_;
 };
