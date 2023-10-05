@@ -21,6 +21,7 @@
 
 #include "api/service/author/author_jrpc_processor.hpp"
 #include "api/service/author/impl/author_api_impl.hpp"
+#include "api/service/beefy/rpc.hpp"
 #include "api/service/chain/chain_jrpc_processor.hpp"
 #include "api/service/chain/impl/chain_api_impl.hpp"
 #include "api/service/child_state/child_state_jrpc_processor.hpp"
@@ -28,6 +29,7 @@
 #include "api/service/impl/api_service_impl.hpp"
 #include "api/service/internal/impl/internal_api_impl.hpp"
 #include "api/service/internal/internal_jrpc_processor.hpp"
+#include "api/service/mmr/rpc.hpp"
 #include "api/service/payment/impl/payment_api_impl.hpp"
 #include "api/service/payment/payment_jrpc_processor.hpp"
 #include "api/service/rpc/impl/rpc_api_impl.hpp"
@@ -149,6 +151,7 @@
 #include "runtime/runtime_api/impl/core.hpp"
 #include "runtime/runtime_api/impl/grandpa_api.hpp"
 #include "runtime/runtime_api/impl/metadata.hpp"
+#include "runtime/runtime_api/impl/mmr.hpp"
 #include "runtime/runtime_api/impl/offchain_worker_api.hpp"
 #include "runtime/runtime_api/impl/parachain_host.hpp"
 #include "runtime/runtime_api/impl/session_keys_api.hpp"
@@ -503,6 +506,7 @@ namespace {
         di::bind<offchain::OffchainPersistentStorage>.template to<offchain::OffchainPersistentStorageImpl>(),
         di::bind<offchain::OffchainLocalStorage>.template to<offchain::OffchainLocalStorageImpl>(),
         di::bind<runtime::Metadata>.template to<runtime::MetadataImpl>(),
+        di::bind<runtime::MmrApi>.template to<runtime::MmrApiImpl>(),
         di::bind<runtime::GrandpaApi>.template to<runtime::GrandpaApiImpl>(),
         di::bind<runtime::BeefyApi>.template to<runtime::BeefyApiImpl>(),
         di::bind<runtime::Core>.template to<runtime::CoreImpl>(),
@@ -608,6 +612,8 @@ namespace {
                 .template to<api::WsListenerImpl>(),
             di::bind<api::JRpcProcessor *[]>()  // NOLINT
                 .template to<api::child_state::ChildStateJrpcProcessor,
+                             api::BeefyRpc,
+                             api::MmrRpc,
                              api::state::StateJrpcProcessor,
                              api::author::AuthorJRpcProcessor,
                              api::chain::ChainJrpcProcessor,

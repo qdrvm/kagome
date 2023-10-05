@@ -57,6 +57,13 @@ target_link_libraries(metadata_api
     )
 kagome_install(metadata_api)
 
+add_library(mmr_api
+    mmr.cpp
+    )
+target_link_libraries(mmr_api
+    executor
+    )
+
 add_library(parachain_host_api
     parachain_host.cpp
     parachain_host_types_serde.cpp
