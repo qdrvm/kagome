@@ -23,6 +23,11 @@ namespace kagome::crypto {
                 (const primitives::AuthorityList &),
                 (override));
 
+    MOCK_METHOD(KeypairWithIndexOpt<Sr25519Keypair>,
+                getSassafrasKeyPair,
+                (const primitives::AuthorityList &),
+                (override));
+
     MOCK_METHOD(std::shared_ptr<Ed25519Keypair>,
                 getGranKeyPair,
                 (const primitives::AuthoritySet &),

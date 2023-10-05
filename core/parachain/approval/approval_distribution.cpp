@@ -641,7 +641,7 @@ namespace kagome::parachain {
     for (size_t ix = 0; ix < config.assignment_keys.size(); ++ix) {
       const auto &pk = config.assignment_keys[ix];
       if (auto res = keystore->findSr25519Keypair(
-              crypto::KEY_TYPE_ASGN,
+              crypto::KeyType::KEY_TYPE_ASGN,
               crypto::Sr25519PublicKey::fromSpan(pk).value());
           res.has_value()) {
         return std::make_pair((ValidatorIndex)ix, std::move(res.value()));
@@ -2316,7 +2316,7 @@ namespace kagome::parachain {
       SessionIndex session_index,
       const CandidateHash &candidate_hash) {
     auto key_pair =
-        keystore_->findSr25519Keypair(crypto::KEY_TYPE_PARA, pubkey);
+        keystore_->findSr25519Keypair(crypto::KeyType::KEY_TYPE_PARA, pubkey);
     if (key_pair.has_error()) {
       logger_->warn("No key pair in store for {}", pubkey);
       return std::nullopt;

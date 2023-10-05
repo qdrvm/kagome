@@ -47,18 +47,18 @@ struct AssignmentsTest : public test::BaseFS_Test {
                                    size_t random) {
     for (const auto &acc : accounts) {
       [[maybe_unused]] auto _ =
-          cs->generateSr25519Keypair(KnownKeyTypeId::KEY_TYPE_ASGN,
+          cs->generateSr25519Keypair(KeyType::KEY_TYPE_ASGN,
                                      std::string_view{acc})
               .value();
     }
     for (size_t ix = 0ull; ix < random; ++ix) {
       auto seed = std::to_string(ix);
       [[maybe_unused]] auto _ =
-          cs->generateSr25519Keypair(KnownKeyTypeId::KEY_TYPE_ASGN,
+          cs->generateSr25519Keypair(KeyType::KEY_TYPE_ASGN,
                                      std::string_view{seed})
               .value();
     }
-    return cs->getSr25519PublicKeys(KnownKeyTypeId::KEY_TYPE_ASGN).value();
+    return cs->getSr25519PublicKeys(KeyType::KEY_TYPE_ASGN).value();
   }
 
   auto create_crypto_store() {

@@ -83,7 +83,7 @@ namespace kagome::api {
         const primitives::Extrinsic &extrinsic) override;
 
     outcome::result<void> insertKey(
-        crypto::KeyTypeId key_type,
+        crypto::KeyTypeId key_type_id,
         const gsl::span<const uint8_t> &seed,
         const gsl::span<const uint8_t> &public_key) override;
 

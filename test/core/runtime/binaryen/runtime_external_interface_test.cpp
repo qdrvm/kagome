@@ -29,7 +29,7 @@ using ::testing::Invoke;
 using ::testing::Return;
 
 using kagome::blockchain::BlockHeaderRepositoryMock;
-using kagome::crypto::KEY_TYPE_BABE;
+using kagome::crypto::KeyType;
 using kagome::host_api::HostApi;
 using kagome::host_api::HostApiFactoryMock;
 using kagome::host_api::HostApiMock;
@@ -328,7 +328,7 @@ TEST_F(REITest, ext_logging_max_level_version_1_Test) {
 }
 
 TEST_F(REITest, ext_ed25519_public_keys_v1_Test) {
-  WasmSize key_type = KEY_TYPE_BABE;
+  WasmSize key_type = KeyType::BABE;
   WasmSpan res = PtrSize(1, 2).combine();
 
   EXPECT_CALL(*host_api_, ext_crypto_ed25519_public_keys_version_1(key_type))
@@ -348,7 +348,7 @@ TEST_F(REITest, ext_ed25519_public_keys_v1_Test) {
 }
 
 TEST_F(REITest, ext_ed25519_generate_v1_Test) {
-  WasmSize key_type = KEY_TYPE_BABE;
+  WasmSize key_type = KeyType::BABE;
   WasmSpan seed = PtrSize(1, 2).combine();
 
   WasmPointer res = 4;
@@ -371,7 +371,7 @@ TEST_F(REITest, ext_ed25519_generate_v1_Test) {
 }
 
 TEST_F(REITest, ext_ed25519_sign_v1_Test) {
-  WasmSize key_type = KEY_TYPE_BABE;
+  WasmSize key_type = KeyType::BABE;
   WasmPointer key = 1;
   WasmSpan msg = PtrSize(33, 2).combine();
   WasmSpan res = PtrSize(35, 25).combine();
@@ -423,7 +423,7 @@ TEST_F(REITest, ext_ed25519_verify_v1_Test) {
 }
 
 TEST_F(REITest, ext_sr25519_public_keys_v1_Test) {
-  WasmSize key_type = KEY_TYPE_BABE;
+  WasmSize key_type = KeyType::BABE;
 
   WasmSpan res = PtrSize(1, 2).combine();
 
@@ -444,7 +444,7 @@ TEST_F(REITest, ext_sr25519_public_keys_v1_Test) {
 }
 
 TEST_F(REITest, ext_sr25519_generate_v1_Test) {
-  WasmSize key_type = KEY_TYPE_BABE;
+  WasmSize key_type = KeyType::BABE;
   WasmSpan seed = PtrSize(1, 2).combine();
 
   WasmPointer res = 4;
@@ -467,7 +467,7 @@ TEST_F(REITest, ext_sr25519_generate_v1_Test) {
 }
 
 TEST_F(REITest, ext_sr25519_sign_v1_Test) {
-  WasmSize key_type = KEY_TYPE_BABE;
+  WasmSize key_type = KeyType::BABE;
   WasmPointer key = 1;
   WasmSpan msg = PtrSize(33, 2).combine();
   WasmSpan res = PtrSize(35, 25).combine();
@@ -750,7 +750,7 @@ TEST_F(REITest, ext_storage_set_version_1_Test) {
 }
 
 TEST_F(REITest, ext_storage_get_version_1_Test) {
-  WasmSize key_type = KEY_TYPE_BABE;
+  WasmSize key_type = KeyType::BABE;
   WasmSpan res = PtrSize(1, 2).combine();
 
   EXPECT_CALL(*host_api_, ext_storage_get_version_1(key_type))
@@ -840,7 +840,7 @@ TEST_F(REITest, ext_storage_clear_prefix_version_1_Test) {
 }
 
 TEST_F(REITest, ext_storage_changes_root_version_1_Test) {
-  WasmSize key_type = KEY_TYPE_BABE;
+  WasmSize key_type = KeyType::BABE;
   WasmSpan res = 2;
 
   EXPECT_CALL(*host_api_, ext_storage_changes_root_version_1(key_type))

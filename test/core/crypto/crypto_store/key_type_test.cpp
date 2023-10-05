@@ -9,25 +9,18 @@
 
 #include "crypto/crypto_store/key_type.hpp"
 
-using kagome::crypto::KEY_TYPE_ACCO;
-using kagome::crypto::KEY_TYPE_ASGN;
-using kagome::crypto::KEY_TYPE_AUDI;
-using kagome::crypto::KEY_TYPE_BABE;
-using kagome::crypto::KEY_TYPE_GRAN;
-using kagome::crypto::KEY_TYPE_IMON;
-using kagome::crypto::KEY_TYPE_PARA;
-
 using kagome::crypto::decodeKeyTypeIdFromStr;
 using kagome::crypto::encodeKeyTypeIdToStr;
+using kagome::crypto::KeyType;
 using kagome::crypto::KeyTypeId;
 
 namespace {
-  std::tuple<KeyTypeId, std::string_view, bool> good(KeyTypeId id,
+  std::tuple<KeyTypeId, std::string_view, bool> good(KeyType id,
                                                      std::string_view v) {
     return {id, v, true};
   }
 
-  std::tuple<KeyTypeId, std::string_view, bool> bad(KeyTypeId id,
+  std::tuple<KeyTypeId, std::string_view, bool> bad(KeyType id,
                                                     std::string_view v) {
     return {id, v, false};
   }
@@ -59,14 +52,26 @@ TEST_P(KeyTypeTest, EncodeSuccess) {
   }
 }
 
+TEST_P(KeyTypeTest, CheckIfKnown) {
+  auto [repr, key_type_str, should_succeed] = GetParam();
+  auto is_supported = KeyType::is_supported(repr);
+
+  if (should_succeed) {
+    ASSERT_TRUE(is_supported);
+  } else {
+    ASSERT_FALSE(is_supported);
+  }
+}
+
 INSTANTIATE_TEST_SUITE_P(KeyTypeTestCases,
                          KeyTypeTest,
-                         ::testing::Values(good(KEY_TYPE_BABE, "babe"),
-                                           good(KEY_TYPE_GRAN, "gran"),
-                                           good(KEY_TYPE_ACCO, "acco"),
-                                           good(KEY_TYPE_IMON, "imon"),
-                                           good(KEY_TYPE_AUDI, "audi"),
-                                           good(KEY_TYPE_ASGN, "asgn"),
-                                           good(KEY_TYPE_PARA, "para"),
-                                           bad(KEY_TYPE_BABE - 5, "babe"),
-                                           bad(KEY_TYPE_BABE + 1000, "babe")));
+                         ::testing::Values(good(KeyType::BABE, "babe"),
+                                           good(KeyType::GRANDPA, "gran"),
+                                           good(KeyType::ACCOUNT, "acco"),
+                                           good(KeyType::IM_ONLINE, "imon"),
+                                           good(KeyType::AUTHORITY_DISCOVERY,
+                                                "audi"),
+                                           good(KeyType::KEY_TYPE_ASGN, "asgn"),
+                                           good(KeyType::KEY_TYPE_PARA, "para"),
+                                           bad((KeyType)0, "babe"),
+                                           bad((KeyType)666, "babe")));

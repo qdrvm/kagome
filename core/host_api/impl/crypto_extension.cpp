@@ -37,7 +37,7 @@ namespace {
 
   void checkIfKeyIsSupported(kagome::crypto::KeyTypeId key_type,
                              kagome::log::Logger log) {
-    if (not kagome::crypto::isSupportedKeyType(key_type)) {
+    if (not kagome::crypto::KeyType::is_supported(key_type)) {
       const auto *p = reinterpret_cast<const char *>(&key_type);
       std::string key_type_str(p, p + sizeof(key_type));
 

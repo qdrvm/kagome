@@ -45,6 +45,7 @@ using namespace kagome::runtime;
 using kagome::application::AppConfigurationMock;
 using kagome::blockchain::BlockTree;
 using kagome::blockchain::BlockTreeMock;
+using kagome::crypto::KeyType;
 using kagome::network::TransactionsTransmitterMock;
 using kagome::primitives::BlockId;
 using kagome::primitives::BlockInfo;
@@ -142,7 +143,7 @@ struct AuthorApiTest : public ::testing::Test {
     key_store = KeyFileStorage::createAt("test_chain_43/keystore").value();
     key_pair = generateSr25519Keypair();
     ASSERT_OUTCOME_SUCCESS_TRY(key_store->saveKeyPair(
-        KEY_TYPE_BABE,
+        KeyType::BABE,
         gsl::make_span(key_pair.public_key.data(), 32),
         gsl::make_span(std::array<uint8_t, 1>({1}).begin(), 1)));
     role.flags.authority = 1;
@@ -220,10 +221,10 @@ TEST_F(AuthorApiTest, InsertKeyUnsupported) {
 TEST_F(AuthorApiTest, InsertKeyBabe) {
   Sr25519Seed seed;
   Sr25519PublicKey public_key;
-  EXPECT_CALL(*store, generateSr25519Keypair(KEY_TYPE_BABE, seed))
+  EXPECT_CALL(*store, generateSr25519Keypair(KeyType::BABE, seed))
       .WillOnce(Return(Sr25519Keypair{{}, public_key}));
   EXPECT_OUTCOME_SUCCESS(
-      res, author_api->insertKey(KEY_TYPE_BABE, seed, public_key));
+      res, author_api->insertKey(KeyType::BABE, seed, public_key));
 }
 
 /**
@@ -234,10 +235,12 @@ TEST_F(AuthorApiTest, InsertKeyBabe) {
 TEST_F(AuthorApiTest, InsertKeyAudi) {
   Sr25519Seed seed;
   Sr25519PublicKey public_key;
-  EXPECT_CALL(*store, generateSr25519Keypair(KEY_TYPE_AUDI, seed))
+  EXPECT_CALL(*store,
+              generateSr25519Keypair(KeyType::AUTHORITY_DISCOVERY, seed))
       .WillOnce(Return(Sr25519Keypair{{}, public_key}));
   EXPECT_OUTCOME_SUCCESS(
-      res, author_api->insertKey(KEY_TYPE_AUDI, seed, public_key));
+      res,
+      author_api->insertKey(KeyType::AUTHORITY_DISCOVERY, seed, public_key));
 }
 
 /**
@@ -248,10 +251,10 @@ TEST_F(AuthorApiTest, InsertKeyAudi) {
 TEST_F(AuthorApiTest, InsertKeyGran) {
   Ed25519Seed seed;
   Ed25519PublicKey public_key;
-  EXPECT_CALL(*store, generateEd25519Keypair(KEY_TYPE_GRAN, seed))
+  EXPECT_CALL(*store, generateEd25519Keypair(KeyType::GRANDPA, seed))
       .WillOnce(Return(Ed25519Keypair{{}, public_key}));
   EXPECT_OUTCOME_SUCCESS(
-      res, author_api->insertKey(KEY_TYPE_GRAN, seed, public_key));
+      res, author_api->insertKey(KeyType::GRANDPA, seed, public_key));
 }
 
 /**
@@ -324,22 +327,22 @@ TEST_F(AuthorApiTest, HasSessionKeysSuccess6Keys) {
   outcome::result<Ed25519Keypair> edOk = Ed25519Keypair{};
   outcome::result<Sr25519Keypair> srOk = Sr25519Keypair{};
   InSequence s;
-  EXPECT_CALL(*store, findEd25519Keypair(KEY_TYPE_GRAN, _))
+  EXPECT_CALL(*store, findEd25519Keypair(KeyType::GRANDPA, _))
       .Times(1)
       .WillOnce(Return(edOk));
-  EXPECT_CALL(*store, findSr25519Keypair(KEY_TYPE_BABE, _))
+  EXPECT_CALL(*store, findSr25519Keypair(KeyType::BABE, _))
       .Times(1)
       .WillOnce(Return(srOk));
-  EXPECT_CALL(*store, findSr25519Keypair(KEY_TYPE_IMON, _))
+  EXPECT_CALL(*store, findSr25519Keypair(KeyType::IM_ONLINE, _))
       .Times(1)
       .WillOnce(Return(srOk));
-  EXPECT_CALL(*store, findSr25519Keypair(KEY_TYPE_PARA, _))
+  EXPECT_CALL(*store, findSr25519Keypair(KeyType::KEY_TYPE_PARA, _))
       .Times(1)
       .WillOnce(Return(srOk));
-  EXPECT_CALL(*store, findSr25519Keypair(KEY_TYPE_ASGN, _))
+  EXPECT_CALL(*store, findSr25519Keypair(KeyType::KEY_TYPE_ASGN, _))
       .Times(1)
       .WillOnce(Return(srOk));
-  EXPECT_CALL(*store, findSr25519Keypair(KEY_TYPE_AUDI, _))
+  EXPECT_CALL(*store, findSr25519Keypair(KeyType::AUTHORITY_DISCOVERY, _))
       .Times(1)
       .WillOnce(Return(srOk));
   EXPECT_OUTCOME_SUCCESS(
@@ -357,7 +360,7 @@ TEST_F(AuthorApiTest, HasSessionKeysSuccess1Keys) {
   Buffer keys;
   keys.resize(32);
   outcome::result<Ed25519Keypair> edOk = Ed25519Keypair{};
-  EXPECT_CALL(*store, findEd25519Keypair(KEY_TYPE_GRAN, _))
+  EXPECT_CALL(*store, findEd25519Keypair(KeyType::GRANDPA, _))
       .Times(1)
       .WillOnce(Return(edOk));
   EXPECT_OUTCOME_SUCCESS(
@@ -395,7 +398,7 @@ TEST_F(AuthorApiTest, HasKeySuccess) {
   EXPECT_OUTCOME_SUCCESS(
       res,
       author_api->hasKey(gsl::make_span(key_pair.public_key.data(), 32),
-                         KEY_TYPE_BABE));
+                         KeyType::BABE));
   EXPECT_EQ(res.value(), true);
 }
 
@@ -405,7 +408,7 @@ TEST_F(AuthorApiTest, HasKeySuccess) {
  * @then call succeeds, false result
  */
 TEST_F(AuthorApiTest, HasKeyFail) {
-  EXPECT_OUTCOME_SUCCESS(res, author_api->hasKey({}, KEY_TYPE_BABE));
+  EXPECT_OUTCOME_SUCCESS(res, author_api->hasKey({}, KeyType::BABE));
   EXPECT_EQ(res.value(), false);
 }
 

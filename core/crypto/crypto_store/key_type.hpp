@@ -16,26 +16,80 @@ namespace kagome::crypto {
     UNSUPPORTED_KEY_TYPE_ID,
   };
 
-  /**
-   * @brief Key type identifier
-   */
+  /// Key type identifier
   using KeyTypeId = uint32_t;
 
   /**
-   * Types are 32bit integers, which represent encoded 4-char strings
+   * Makes 32bit integer KeyTypeId which represent encoded 4-char strings
    * Little-endian byte order is used
    */
-  enum KnownKeyTypeId : KeyTypeId {
-    // clang-format off
-    KEY_TYPE_BABE = 0x65626162u, // BABE, sr25519
-    KEY_TYPE_GRAN = 0x6e617267u, // GRANDPA, ed25519
-    KEY_TYPE_ACCO = 0x6f636361u, // Account control [sr25519, ed25519, secp256k1]
-    KEY_TYPE_IMON = 0x6e6f6d69u, // I'm Online, sr25519
-    KEY_TYPE_AUDI = 0x69647561u, // Account discovery [sr25519, ed25519, secp256k1]
-    KEY_TYPE_ASGN = 0x6e677361u, // ASGN
-    KEY_TYPE_PARA = 0x61726170u, // PARA
-    KEY_TYPE_BEEF = 0x66656562u, // Beefy, secp256k1
-    // clang-format on
+  constexpr KeyTypeId operator""_key(const char *s, std::size_t size) {
+    return (static_cast<KeyTypeId>(s[0]) << (CHAR_BIT * 0))
+         | (static_cast<KeyTypeId>(s[1]) << (CHAR_BIT * 1))
+         | (static_cast<KeyTypeId>(s[2]) << (CHAR_BIT * 2))
+         | (static_cast<KeyTypeId>(s[3]) << (CHAR_BIT * 3));
+  }
+
+  class KeyType {
+   public:
+    /// Key type for Babe module, built-in.
+    static constexpr KeyTypeId BABE = "babe"_key;
+    /// Key type for Sassafras module, built-in.
+    static constexpr KeyTypeId SASSAFRAS = "sass"_key;
+    /// Key type for Grandpa module, built-in.
+    static constexpr KeyTypeId GRANDPA = "gran"_key;
+    /// Key type for controlling an account in a Substrate runtime, built-in.
+    static constexpr KeyTypeId ACCOUNT = "acco"_key;
+    /// Key type for Aura module, built-in.
+    static constexpr KeyTypeId AURA = "aura"_key;
+    /// Key type for BEEFY module.
+    static constexpr KeyTypeId BEEFY = "beef"_key;
+    /// Key type for ImOnline module, built-in.
+    static constexpr KeyTypeId IM_ONLINE = "imon"_key;
+    /// Key type for AuthorityDiscovery module, built-in.
+    static constexpr KeyTypeId AUTHORITY_DISCOVERY = "audi"_key;
+    /// Key type for staking, built-in.
+    static constexpr KeyTypeId STAKING = "stak"_key;
+    /// A key type for signing statements
+    static constexpr KeyTypeId STATEMENT = "stmt"_key;
+    /// A key type ID useful for tests.
+    static constexpr KeyTypeId DUMMY = "dumy"_key;
+
+    static constexpr KeyTypeId KEY_TYPE_ASGN = "asgn"_key;
+    static constexpr KeyTypeId KEY_TYPE_PARA = "para"_key;
+
+    constexpr KeyType(KeyTypeId id) : id_(id){};
+
+    constexpr operator KeyTypeId() const {
+      return id_;
+    }
+
+    static constexpr bool is_supported(KeyTypeId id) {
+      switch (id) {
+        case BABE:
+        case SASSAFRAS:
+        case GRANDPA:
+        case ACCOUNT:
+        case AURA:
+        case BEEFY:
+        case IM_ONLINE:
+        case AUTHORITY_DISCOVERY:
+        case STAKING:
+        case STATEMENT:
+        case DUMMY:
+        case KEY_TYPE_ASGN:
+        case KEY_TYPE_PARA:
+          return true;
+      }
+      return false;
+    }
+
+    inline constexpr bool is_supported() const {
+      return is_supported(id_);
+    }
+
+   private:
+    KeyTypeId id_;
   };
 
   /**
@@ -43,25 +97,18 @@ namespace kagome::crypto {
    * @param key_type_id KeyTypeId
    * @return string representation of KeyTypeId
    */
-  std::string encodeKeyTypeIdToStr(KeyTypeId key_type_id);
+  std::string encodeKeyTypeIdToStr(KeyType key_type);
 
   /**
    * @brief restores KeyTypeId from its string representation
    * @param param string representation of key type
    * @return KeyTypeId
    */
-  KeyTypeId decodeKeyTypeIdFromStr(std::string_view str);
+  KeyType decodeKeyTypeIdFromStr(std::string_view str);
 
-  /**
-   * @brief checks whether key type value is supported
-   * @param k key type value
-   * @return true if supported, false otherwise
-   */
-  bool isSupportedKeyType(KeyTypeId k);
+  std::string encodeKeyFileName(KeyType type, common::BufferView key);
 
-  std::string encodeKeyFileName(KeyTypeId type, common::BufferView key);
-
-  outcome::result<std::pair<KeyTypeId, common::Buffer>> decodeKeyFileName(
+  outcome::result<std::pair<KeyType, common::Buffer>> decodeKeyFileName(
       std::string_view name);
 }  // namespace kagome::crypto
 

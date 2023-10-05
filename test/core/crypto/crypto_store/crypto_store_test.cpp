@@ -41,8 +41,8 @@ using kagome::crypto::Ed25519PublicKey;
 using kagome::crypto::Ed25519Seed;
 using kagome::crypto::Ed25519Suite;
 using kagome::crypto::HasherImpl;
+using kagome::crypto::KeyType;
 using kagome::crypto::KeyTypeId;
-using kagome::crypto::KnownKeyTypeId;
 using kagome::crypto::Pbkdf2Provider;
 using kagome::crypto::Pbkdf2ProviderImpl;
 using kagome::crypto::Sr25519Keypair;
@@ -91,7 +91,7 @@ struct CryptoStoreTest : public test::BaseFS_Test {
                         Blob<32>::fromHex("a4681403ba5b6a3f3bd0b0604ce439a78244"
                                           "c7d43b127ec35cd8325602dd47fd"));
     seed = s;
-    key_type = KnownKeyTypeId::KEY_TYPE_BABE;
+    key_type = KeyType::BABE;
 
     EXPECT_OUTCOME_TRUE(
         ed_publ,
@@ -264,25 +264,20 @@ TEST_F(CryptoStoreTest, generateSr25519KeypairStoreSuccess) {
  * @then collection of all ed25519 public keys of provided type is returned
  */
 TEST_F(CryptoStoreTest, getEd25519PublicKeysSuccess) {
-  EXPECT_OUTCOME_TRUE(pair1,
-                      crypto_store->generateEd25519KeypairOnDisk(
-                          KnownKeyTypeId::KEY_TYPE_BABE));
-  EXPECT_OUTCOME_TRUE(pair2,
-                      crypto_store->generateEd25519KeypairOnDisk(
-                          KnownKeyTypeId::KEY_TYPE_BABE));
-  EXPECT_OUTCOME_SUCCESS(pair4,
-                         crypto_store->generateSr25519KeypairOnDisk(
-                             KnownKeyTypeId::KEY_TYPE_BABE));
-  EXPECT_OUTCOME_SUCCESS(pair5,
-                         crypto_store->generateSr25519KeypairOnDisk(
-                             KnownKeyTypeId::KEY_TYPE_ACCO));
+  EXPECT_OUTCOME_TRUE(
+      pair1, crypto_store->generateEd25519KeypairOnDisk(KeyType::BABE));
+  EXPECT_OUTCOME_TRUE(
+      pair2, crypto_store->generateEd25519KeypairOnDisk(KeyType::BABE));
+  EXPECT_OUTCOME_SUCCESS(
+      pair4, crypto_store->generateSr25519KeypairOnDisk(KeyType::BABE));
+  EXPECT_OUTCOME_SUCCESS(
+      pair5, crypto_store->generateSr25519KeypairOnDisk(KeyType::ACCOUNT));
 
   std::set<Ed25519PublicKey> ed_babe_keys_set = {pair1.public_key,
                                                  pair2.public_key};
   std::vector<Ed25519PublicKey> ed_babe_keys(ed_babe_keys_set.begin(),
                                              ed_babe_keys_set.end());
-  auto keys =
-      crypto_store->getEd25519PublicKeys(KnownKeyTypeId::KEY_TYPE_BABE).value();
+  auto keys = crypto_store->getEd25519PublicKeys(KeyType::BABE).value();
   ASSERT_THAT(keys, testing::UnorderedElementsAreArray(ed_babe_keys));
 }
 
@@ -292,26 +287,21 @@ TEST_F(CryptoStoreTest, getEd25519PublicKeysSuccess) {
  * @then collection of all sr25519 public keys of provided type is returned
  */
 TEST_F(CryptoStoreTest, getSr25519PublicKeysSuccess) {
-  EXPECT_OUTCOME_TRUE(pair1,
-                      crypto_store->generateSr25519KeypairOnDisk(
-                          KnownKeyTypeId::KEY_TYPE_BABE));
-  EXPECT_OUTCOME_TRUE(pair2,
-                      crypto_store->generateSr25519KeypairOnDisk(
-                          KnownKeyTypeId::KEY_TYPE_BABE));
-  EXPECT_OUTCOME_SUCCESS(pair4,
-                         crypto_store->generateEd25519KeypairOnDisk(
-                             KnownKeyTypeId::KEY_TYPE_BABE));
-  EXPECT_OUTCOME_SUCCESS(pair5,
-                         crypto_store->generateEd25519KeypairOnDisk(
-                             KnownKeyTypeId::KEY_TYPE_ACCO));
+  EXPECT_OUTCOME_TRUE(
+      pair1, crypto_store->generateSr25519KeypairOnDisk(KeyType::BABE));
+  EXPECT_OUTCOME_TRUE(
+      pair2, crypto_store->generateSr25519KeypairOnDisk(KeyType::BABE));
+  EXPECT_OUTCOME_SUCCESS(
+      pair4, crypto_store->generateEd25519KeypairOnDisk(KeyType::BABE));
+  EXPECT_OUTCOME_SUCCESS(
+      pair5, crypto_store->generateEd25519KeypairOnDisk(KeyType::ACCOUNT));
 
   std::set<Sr25519PublicKey> sr_babe_keys_set = {pair1.public_key,
                                                  pair2.public_key};
   std::vector<Sr25519PublicKey> sr_babe_keys(sr_babe_keys_set.begin(),
                                              sr_babe_keys_set.end());
 
-  auto keys =
-      crypto_store->getSr25519PublicKeys(KnownKeyTypeId::KEY_TYPE_BABE).value();
+  auto keys = crypto_store->getSr25519PublicKeys(KeyType::BABE).value();
   ASSERT_THAT(keys, testing::UnorderedElementsAreArray(sr_babe_keys));
 }
 
@@ -330,7 +320,7 @@ TEST(CryptoStoreCompatibilityTest, DISABLED_SubkeyCompat) {
   auto bip39_provider =
       std::make_shared<Bip39ProviderImpl>(std::move(pbkdf2_provider), hasher);
   auto keystore_path = kagome::filesystem::path(__FILE__).parent_path()
-                       / "subkey_keys" / "keystore";
+                     / "subkey_keys" / "keystore";
   auto crypto_store = std::make_shared<CryptoStoreImpl>(
       std::make_shared<EcdsaSuite>(std::move(ecdsa_provider)),
       std::make_shared<Ed25519Suite>(std::move(ed25519_provider)),
@@ -338,7 +328,6 @@ TEST(CryptoStoreCompatibilityTest, DISABLED_SubkeyCompat) {
       bip39_provider,
       csprng,
       kagome::crypto::KeyFileStorage::createAt(keystore_path).value());
-  EXPECT_OUTCOME_TRUE(
-      keys, crypto_store->getEd25519PublicKeys(KnownKeyTypeId::KEY_TYPE_BABE));
+  EXPECT_OUTCOME_TRUE(keys, crypto_store->getEd25519PublicKeys(KeyType::BABE));
   ASSERT_EQ(keys.size(), 1);
 }
