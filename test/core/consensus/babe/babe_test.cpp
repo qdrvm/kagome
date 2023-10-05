@@ -162,14 +162,14 @@ class BabeTest : public testing::Test {
     lottery = std::make_shared<BabeLotteryMock>();
 
     hasher = std::make_shared<HasherMock>();
-    auto d1 = gsl::make_span(scale::encode(genesis_block_header).value());
-    ON_CALL(*hasher, blake2b_256(d1))
+    static const auto d1 = scale::encode(genesis_block_header).value();
+    ON_CALL(*hasher, blake2b_256(gsl::span<const uint8_t>(d1)))
         .WillByDefault(Return(genesis_block_info.hash));
-    auto d2 = gsl::make_span(scale::encode(best_block_header).value());
-    ON_CALL(*hasher, blake2b_256(d2))
+    static const auto d2 = scale::encode(best_block_header).value();
+    ON_CALL(*hasher, blake2b_256(gsl::span<const uint8_t>(d2)))
         .WillByDefault(Return(best_block_info.hash));
-    auto d3 = gsl::make_span(scale::encode(new_block_header).value());
-    ON_CALL(*hasher, blake2b_256(d3))
+    static const auto d3 = scale::encode(new_block_header).value();
+    ON_CALL(*hasher, blake2b_256(gsl::span<const uint8_t>(d3)))
         .WillByDefault(Return(new_block_info.hash));
 
     sr25519_provider = std::make_shared<Sr25519ProviderMock>();
