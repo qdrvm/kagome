@@ -1877,8 +1877,7 @@ namespace kagome::dispute {
 
     [[maybe_unused]] auto &valid_import = res.value();
 
-    main_thread_context_->io_context()->post(
-        [cb(std::move(cb))] { cb(outcome::success()); });
+    return cb(outcome::success());
   }
 
   void DisputeCoordinatorImpl::getRecentDisputes(
@@ -1912,10 +1911,7 @@ namespace kagome::dispute {
           return {std::get<0>(p.first), std::get<1>(p.first), p.second};
         });
 
-    main_thread_context_->io_context()->post(
-        [cb(std::move(cb)), output(std::move(output))] {
-          cb(std::move(output));
-        });
+    cb(std::move(output));
   }
 
   void DisputeCoordinatorImpl::getActiveDisputes(
@@ -1924,21 +1920,14 @@ namespace kagome::dispute {
 
     // Return error if session information is missing.
     if (error_.has_value()) {
-      main_thread_context_->io_context()->post([cb(std::move(cb))] {
-        cb(SessionObtainingError::SessionsUnavailable);
-      });
-      return;
+      return cb(SessionObtainingError::SessionsUnavailable);
     }
 
     SL_TRACE(log_, "DisputeCoordinatorMessage::ActiveDisputes");
 
     auto recent_disputes_res = storage_->load_recent_disputes();
     if (recent_disputes_res.has_error()) {
-      main_thread_context_->io_context()->post(
-          [cb(std::move(cb)), failure(recent_disputes_res.as_failure())] {
-            cb(failure);
-          });
-      return;
+      return cb(recent_disputes_res.as_failure());
     }
     auto recent_disputes =
         recent_disputes_res.value().value_or(RecentDisputes{});
@@ -1973,10 +1962,7 @@ namespace kagome::dispute {
       }
     }
 
-    main_thread_context_->io_context()->post(
-        [cb(std::move(cb)), output(std::move(output))] {
-          cb(std::move(output));
-        });
+    cb(std::move(output));
   }
 
   void DisputeCoordinatorImpl::queryCandidateVotes(
@@ -1985,10 +1971,7 @@ namespace kagome::dispute {
 
     // Return error if session information is missing.
     if (error_.has_value()) {
-      main_thread_context_->io_context()->post([cb(std::move(cb))] {
-        cb(SessionObtainingError::SessionsUnavailable);
-      });
-      return;
+      return cb(SessionObtainingError::SessionsUnavailable);
     }
 
     SL_TRACE(log_, "DisputeCoordinatorMessage::QueryCandidateVotes");
@@ -1998,10 +1981,7 @@ namespace kagome::dispute {
     for (auto &[session, candidate_hash] : query) {
       auto state_res = storage_->load_candidate_votes(session, candidate_hash);
       if (state_res.has_error()) {
-        main_thread_context_->io_context()->post(
-            [cb(std::move(cb)), failure(state_res.as_failure())] {
-              cb(failure);
-            });
+        cb(state_res.as_failure());
         return;
       }
       auto &state_opt = state_res.value();
@@ -2013,10 +1993,7 @@ namespace kagome::dispute {
       }
     }
 
-    main_thread_context_->io_context()->post(
-        [cb(std::move(cb)), output(std::move(output))] {
-          cb(std::move(output));
-        });
+    cb(std::move(output));
   }
 
   void DisputeCoordinatorImpl::issueLocalStatement(
@@ -2054,10 +2031,7 @@ namespace kagome::dispute {
 
     // Return error if session information is missing.
     if (error_.has_value()) {
-      main_thread_context_->io_context()->post([cb(std::move(cb))] {
-        cb(SessionObtainingError::SessionsUnavailable);
-      });
-      return;
+      return cb(SessionObtainingError::SessionsUnavailable);
     }
 
     SL_TRACE(log_, "DisputeCoordinatorMessage::DetermineUndisputedChain");
@@ -2066,9 +2040,7 @@ namespace kagome::dispute {
         determine_undisputed_chain(base.number, base.hash, block_descriptions);
 
     if (res.has_error()) {
-      main_thread_context_->io_context()->post(
-          [cb(std::move(cb)), failure(res.as_failure())] { cb(failure); });
-      return;
+      return cb(res.as_failure());
     }
     auto &undisputed_chain = res.value();
 
@@ -2088,8 +2060,7 @@ namespace kagome::dispute {
       metric_disputes_finality_lag_->set(0);
     }
 
-    main_thread_context_->io_context()->post(
-        [cb(std::move(cb)), undisputed_chain] { cb(undisputed_chain); });
+    cb(std::move(undisputed_chain));
   }
 
   // https://github.com/paritytech/polkadot/blob/40974fb99c86f5c341105b7db53c7aa0df707d66/node/core/dispute-coordinator/src/initialized.rs#L1272
