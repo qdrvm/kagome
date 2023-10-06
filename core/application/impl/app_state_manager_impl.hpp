@@ -1,5 +1,6 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -25,7 +26,7 @@ namespace kagome::application {
 
     ~AppStateManagerImpl() override;
 
-    AppStateManagerImpl &operator=(AppStateManagerImpl const &) = delete;
+    AppStateManagerImpl &operator=(const AppStateManagerImpl &) = delete;
     AppStateManagerImpl &operator=(AppStateManagerImpl &&) noexcept = delete;
 
     void atInject(OnInject &&cb) override;

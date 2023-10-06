@@ -1,5 +1,6 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -42,15 +43,16 @@ namespace kagome::network {
       /// We need to align bits to 7-bit bound
       if (0 == (kMSBBit & data_sz)) {
         data_sz <<= size_t(1ull);
-        while ((data_sz & kSignificantBitsMaskMSB) == 0 && data_sz != 0)
+        while ((data_sz & kSignificantBitsMaskMSB) == 0 && data_sz != 0) {
           data_sz <<= size_t(7ull);
+        }
       }
 
       auto sz_start = --loaded;
       do {
         assert(std::distance(out.begin(), loaded) >= 1);
         *loaded-- = ((data_sz & kSignificantBitsMaskMSB) >> 57ull)
-                    | kContinuationBitMask;
+                  | kContinuationBitMask;
       } while ((data_sz <<= size_t(7ull)) != 0);
 
       *sz_start &= uint8_t(kSignificantBitsMask);
@@ -61,14 +63,16 @@ namespace kagome::network {
         T & /*out*/,
         const std::vector<uint8_t> &src,
         std::vector<uint8_t>::const_iterator from) {
-      if (from == src.end()) return AdaptersError::EMPTY_DATA;
+      if (from == src.end()) {
+        return AdaptersError::EMPTY_DATA;
+      }
 
       uint64_t sz = 0;
       const auto loaded = std::distance(src.begin(), from);
 
-      auto const *const beg = from.base();
-      auto const *const end = &src[std::min(loaded + kPayloadSize, src.size())];
-      auto const *ptr = beg;
+      const auto *const beg = from.base();
+      const auto *const end = &src[std::min(loaded + kPayloadSize, src.size())];
+      const auto *ptr = beg;
       size_t counter = 0;
 
       do {
@@ -77,8 +81,9 @@ namespace kagome::network {
       } while (uint8_t(0) != (*ptr++ & uint8_t(kContinuationBitMask))  // NOLINT
                && ptr != end);
 
-      if (sz != src.size() - (loaded + counter))
+      if (sz != src.size() - (loaded + counter)) {
         return AdaptersError::DATA_SIZE_CORRUPTED;
+      }
 
       std::advance(from, counter);
       return from;

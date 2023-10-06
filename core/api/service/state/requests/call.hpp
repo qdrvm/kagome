@@ -1,5 +1,6 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -22,8 +23,8 @@ namespace kagome::api::state::request {
    */
   class Call final {
    public:
-    Call(Call const &) = delete;
-    Call &operator=(Call const &) = delete;
+    Call(const Call &) = delete;
+    Call &operator=(const Call &) = delete;
 
     Call(Call &&) = default;
     Call &operator=(Call &&) = default;

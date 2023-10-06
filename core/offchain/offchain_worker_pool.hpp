@@ -1,3 +1,9 @@
+/**
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
 #ifndef KAGOME_OFFCHAIN_WORKER_POOL_HPP
 #define KAGOME_OFFCHAIN_WORKER_POOL_HPP
 

@@ -1,5 +1,6 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -61,8 +62,7 @@ namespace kagome::primitives {
      * A non-empty list signifies that some other transactions which provide
      * given tags are required to be included before that one.
      */
-    std::vector<Transaction::Tag>
-    required_tags;
+    std::vector<Transaction::Tag> required_tags;
 
     /**
      * @brief Provided tags

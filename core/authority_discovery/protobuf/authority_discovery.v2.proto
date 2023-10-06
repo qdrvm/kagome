@@ -1,10 +1,16 @@
+/**
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
 syntax = "proto3";
 
 package authority_discovery.v2;
 
 // First we need to serialize the addresses in order to be able to sign them.
 message AuthorityRecord {
-	// Possibly multiple `MultiAddress`es through which the node can be 
+	// Possibly multiple `MultiAddress`es through which the node can be
 	repeated bytes addresses = 1;
 }
 

@@ -1,5 +1,6 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -115,7 +116,7 @@ namespace kagome::host_api {
     std::shared_ptr<const runtime::MemoryProvider> memory_provider_;
     log::Logger logger_;
 
-    constexpr static auto kDefaultLoggerTag =
+    static constexpr auto kDefaultLoggerTag =
         "WASM Runtime [ChildStorageExtension]";
 
     template <typename R, typename F, typename... Args>

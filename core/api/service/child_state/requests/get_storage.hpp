@@ -1,5 +1,6 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -19,8 +20,8 @@ namespace kagome::api::child_state::request {
 
   class GetStorage final {
    public:
-    GetStorage(GetStorage const &) = delete;
-    GetStorage &operator=(GetStorage const &) = delete;
+    GetStorage(const GetStorage &) = delete;
+    GetStorage &operator=(const GetStorage &) = delete;
 
     GetStorage(GetStorage &&) = default;
     GetStorage &operator=(GetStorage &&) = default;

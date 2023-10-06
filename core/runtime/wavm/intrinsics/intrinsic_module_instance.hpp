@@ -1,5 +1,6 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -41,7 +42,7 @@ namespace kagome::runtime::wavm {
 
     WAVM::Runtime::Memory *getExportedMemory() const;
     WAVM::Runtime::Function *getExportedFunction(
-        const std::string &name, WAVM::IR::FunctionType const &type) const;
+        const std::string &name, WAVM const ::IR::FunctionType &type) const;
 
    private:
     WAVM::Runtime::GCPointer<WAVM::Runtime::Instance> module_instance_;

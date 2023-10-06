@@ -1,5 +1,6 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -29,15 +30,15 @@ namespace kagome::parachain {
         const CandidateHash &candidate_hash) const override;
     std::vector<ErasureChunk> getChunks(
         const CandidateHash &candidate_hash) const override;
-    void storeData(network::RelayHash const &relay_parent,
-                   CandidateHash const &candidate_hash,
+    void storeData(const network::RelayHash &relay_parent,
+                   const CandidateHash &candidate_hash,
                    std::vector<ErasureChunk> &&chunks,
-                   ParachainBlock const &pov,
-                   PersistedValidationData const &data) override;
-    void putChunk(network::RelayHash const &relay_parent,
+                   const ParachainBlock &pov,
+                   const PersistedValidationData &data) override;
+    void putChunk(const network::RelayHash &relay_parent,
                   const CandidateHash &candidate_hash,
                   ErasureChunk &&chunk) override;
-    void remove(network::RelayHash const &relay_parent) override;
+    void remove(const network::RelayHash &relay_parent) override;
 
    private:
     struct PerCandidate {

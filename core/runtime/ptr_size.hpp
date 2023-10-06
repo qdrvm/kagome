@@ -1,5 +1,6 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -30,7 +31,7 @@ namespace kagome::runtime {
      */
     constexpr WasmSpan combine() const {
       return static_cast<WasmSpan>(ptr)
-             | (static_cast<WasmSpan>(size) << 32ull);
+           | (static_cast<WasmSpan>(size) << 32ull);
     }
 
     bool operator==(const PtrSize &rhs) const {

@@ -1,5 +1,6 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -8,8 +9,8 @@
 
 #include <unordered_set>
 
-#include "filesystem/common.hpp"
 #include <boost/variant.hpp>
+#include "filesystem/common.hpp"
 
 #include "common/blob.hpp"
 #include "crypto/bip39/bip39_provider.hpp"

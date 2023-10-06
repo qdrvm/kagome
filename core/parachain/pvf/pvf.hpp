@@ -1,5 +1,6 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -23,8 +24,7 @@ namespace kagome::parachain {
 
     /// Execute pvf synchronously
     virtual outcome::result<Result> pvfSync(
-        const CandidateReceipt &receipt,
-        const ParachainBlock &pov) const = 0;
+        const CandidateReceipt &receipt, const ParachainBlock &pov) const = 0;
 
     virtual outcome::result<Result> pvfValidate(
         const PersistedValidationData &data,

@@ -1,5 +1,6 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -17,7 +18,7 @@ namespace kagome::parachain {
     MOCK_METHOD(
         std::optional<ImportResult>,
         put,
-        ((std::unordered_map<ParachainId, std::vector<ValidatorIndex>> const &),
+        ((const std::unordered_map<ParachainId, std::vector<ValidatorIndex>> &),
          Statement),
         (override));
 
@@ -35,12 +36,12 @@ namespace kagome::parachain {
 
     MOCK_METHOD(std::optional<network::CommittedCandidateReceipt>,
                 get_candidate,
-                (network::CandidateHash const &),
+                (const network::CandidateHash &),
                 (const, override));
 
-    MOCK_METHOD(std::optional<std::reference_wrapper<StatementInfo const>>,
+    MOCK_METHOD(std::optional<std::reference_wrapper<const StatementInfo>>,
                 get_validity_votes,
-                (network::CandidateHash const &),
+                (const network::CandidateHash &),
                 (const, override));
   };
 

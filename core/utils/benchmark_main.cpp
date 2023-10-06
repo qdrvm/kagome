@@ -1,13 +1,14 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
 #include "application/impl/app_configuration_impl.hpp"
 #include "benchmark/block_execution_benchmark.hpp"
+#include "common/visitor.hpp"
 #include "injector/application_injector.hpp"
 #include "runtime/runtime_api/impl/core.hpp"
-#include "common/visitor.hpp"
 
 namespace kagome {
 

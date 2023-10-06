@@ -1,5 +1,6 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -19,7 +20,7 @@ namespace kagome::runtime::binaryen {
     MOCK_METHOD(std::unique_ptr<MemoryImpl>,
                 make,
                 (RuntimeExternalInterface::InternalMemory * memory,
-                 const MemoryConfig& config),
+                 const MemoryConfig &config),
                 (const, override));
   };
 

@@ -1,4 +1,9 @@
 #!/bin/bash -xe
+#
+# Copyright Quadrivium LLC
+# All Rights Reserved
+# SPDX-License-Identifier: Apache-2.0
+#
 
 if [ "$CI" != "true" ] || [ "$GITHUB_ACTIONS" != "true" ]; then
   echo "CI=true GITHUB_ACTIONS=true are required"

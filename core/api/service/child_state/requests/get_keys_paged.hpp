@@ -1,5 +1,6 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -21,8 +22,8 @@ namespace kagome::api::child_state::request {
    */
   class GetKeysPaged final {
    public:
-    GetKeysPaged(GetKeysPaged const &) = delete;
-    GetKeysPaged &operator=(GetKeysPaged const &) = delete;
+    GetKeysPaged(const GetKeysPaged &) = delete;
+    GetKeysPaged &operator=(const GetKeysPaged &) = delete;
 
     GetKeysPaged(GetKeysPaged &&) = default;
     GetKeysPaged &operator=(GetKeysPaged &&) = default;

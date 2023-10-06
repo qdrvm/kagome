@@ -1,5 +1,6 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -47,7 +48,7 @@ namespace kagome::crypto {
     /**
      * Session keys are short-living keys used by the node
      */
-    std::optional<Keypair> const &getSessionKey() const noexcept {
+    const std::optional<Keypair> &getSessionKey() const noexcept {
       return session_key_;
     }
 

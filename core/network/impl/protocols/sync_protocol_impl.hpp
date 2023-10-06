@@ -1,5 +1,6 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -147,7 +148,7 @@ namespace kagome::network {
                           &&response_handler);
 
    private:
-    const static inline auto kSyncProtocolName = "SyncProtocol"s;
+    inline static const auto kSyncProtocolName = "SyncProtocol"s;
     ProtocolBaseImpl base_;
     std::shared_ptr<SyncProtocolObserver> sync_observer_;
     std::shared_ptr<ReputationRepository> reputation_repository_;

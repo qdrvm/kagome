@@ -1,5 +1,6 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -52,7 +53,9 @@ namespace kagome::network {
                                            BufferContainer &out,
                                            size_t reserved = 0ull) {
       const auto need_to_reserve = SelfType::need_to_reserve(t);
-      if (need_to_reserve > out.size()) out.resize(need_to_reserve);
+      if (need_to_reserve > out.size()) {
+        out.resize(need_to_reserve);
+      }
 
       const size_t r = AdapterType::size(t) + reserved;
       auto loaded = AncestorType::write(t, out, r);
@@ -68,8 +71,9 @@ namespace kagome::network {
         T &out,
         const BufferContainer &src,
         BufferContainer::const_iterator from) {
-      if (from == src.end())
+      if (from == src.end()) {
         return outcome::failure(std::errc::invalid_argument);
+      }
 
       OUTCOME_TRY(it, AdapterType::read(out, src, from));
       return AncestorType::read(out, src, it);
@@ -98,7 +102,9 @@ namespace kagome::network {
                                            BufferContainer &out,
                                            size_t reserved = 0) {
       const auto need_to_reserve = SelfType::need_to_reserve(t);
-      if (need_to_reserve > out.size()) out.resize(need_to_reserve);
+      if (need_to_reserve > out.size()) {
+        out.resize(need_to_reserve);
+      }
 
       BOOST_ASSERT(std::distance(out.begin(), out.end()) >= 0);
       BOOST_ASSERT(static_cast<size_t>(std::distance(out.begin(), out.end()))
@@ -111,8 +117,9 @@ namespace kagome::network {
         T &out,
         const BufferContainer &src,
         BufferContainer::const_iterator from) {
-      if (from == src.end())
+      if (from == src.end()) {
         return outcome::failure(std::errc::invalid_argument);
+      }
 
       return AdapterType::read(out, src, from);
     }

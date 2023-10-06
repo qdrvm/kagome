@@ -1,5 +1,6 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -35,7 +36,7 @@ namespace kagome::runtime {
 
     MOCK_METHOD(outcome::result<common::Hash256>,
                 random_seed,
-                (storage::trie::RootHash const &storage_hash),
+                (const storage::trie::RootHash &storage_hash),
                 (override));
   };
 

@@ -1,3 +1,9 @@
+/**
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
 #ifndef KAGOME_STORAGE_CHANGES_TRIE_CHANGES_TRACKER
 #define KAGOME_STORAGE_CHANGES_TRIE_CHANGES_TRACKER
 

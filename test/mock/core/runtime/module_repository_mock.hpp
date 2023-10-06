@@ -1,5 +1,6 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -19,7 +20,7 @@ namespace kagome::runtime {
     MOCK_METHOD(outcome::result<std::shared_ptr<ModuleInstance>>,
                 getInstanceAt,
                 (const primitives::BlockInfo &block,
-                 const storage::trie::RootHash& state_root),
+                 const storage::trie::RootHash &state_root),
                 (override));
   };
 

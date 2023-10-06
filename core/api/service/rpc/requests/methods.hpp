@@ -1,5 +1,6 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -24,8 +25,8 @@ namespace kagome::api::rpc::request {
    */
   class Methods final {
    public:
-    Methods(Methods const &) = delete;
-    Methods &operator=(Methods const &) = delete;
+    Methods(const Methods &) = delete;
+    Methods &operator=(const Methods &) = delete;
 
     Methods(Methods &&) = default;
     Methods &operator=(Methods &&) = default;

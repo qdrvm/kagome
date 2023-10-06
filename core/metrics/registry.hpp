@@ -1,3 +1,9 @@
+/**
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
 #ifndef KAGOME_CORE_METRICS_REGISTRY_HPP
 #define KAGOME_CORE_METRICS_REGISTRY_HPP
 

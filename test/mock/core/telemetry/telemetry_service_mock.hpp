@@ -1,5 +1,6 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -28,10 +29,7 @@ namespace kagome::telemetry {
                 (const primitives::BlockInfo &),
                 (override));
 
-    MOCK_METHOD(void,
-                pushBlockStats,
-                (),
-                (override));
+    MOCK_METHOD(void, pushBlockStats, (), (override));
 
     MOCK_METHOD(void, notifyWasSynchronized, (), (override));
 

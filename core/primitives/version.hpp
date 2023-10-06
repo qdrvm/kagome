@@ -1,5 +1,6 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -84,11 +85,11 @@ namespace kagome::primitives {
 
     bool operator==(const Version &rhs) const {
       return spec_name == rhs.spec_name and impl_name == rhs.impl_name
-             and authoring_version == rhs.authoring_version
-             and impl_version == rhs.impl_version and apis == rhs.apis
-             and spec_version == rhs.spec_version
-             and transaction_version == rhs.transaction_version
-             and state_version == rhs.state_version;
+         and authoring_version == rhs.authoring_version
+         and impl_version == rhs.impl_version and apis == rhs.apis
+         and spec_version == rhs.spec_version
+         and transaction_version == rhs.transaction_version
+         and state_version == rhs.state_version;
     }
 
     bool operator!=(const Version &rhs) const {

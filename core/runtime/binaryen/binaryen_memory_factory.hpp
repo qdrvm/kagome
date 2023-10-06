@@ -1,5 +1,6 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -17,7 +18,7 @@ namespace kagome::runtime::binaryen {
 
     virtual std::unique_ptr<MemoryImpl> make(
         RuntimeExternalInterface::InternalMemory *memory,
-        const MemoryConfig& config) const;
+        const MemoryConfig &config) const;
   };
 
 }  // namespace kagome::runtime::binaryen

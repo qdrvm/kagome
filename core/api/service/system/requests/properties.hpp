@@ -1,5 +1,6 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -24,8 +25,8 @@ namespace kagome::api::system::request {
    */
   class Properties final {
    public:
-    Properties(Properties const &) = delete;
-    Properties &operator=(Properties const &) = delete;
+    Properties(const Properties &) = delete;
+    Properties &operator=(const Properties &) = delete;
 
     Properties(Properties &&) = default;
     Properties &operator=(Properties &&) = default;

@@ -1,5 +1,6 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -330,7 +331,7 @@ TEST(CryptoStoreCompatibilityTest, DISABLED_SubkeyCompat) {
   auto bip39_provider =
       std::make_shared<Bip39ProviderImpl>(std::move(pbkdf2_provider), hasher);
   auto keystore_path = kagome::filesystem::path(__FILE__).parent_path()
-                       / "subkey_keys" / "keystore";
+                     / "subkey_keys" / "keystore";
   auto crypto_store = std::make_shared<CryptoStoreImpl>(
       std::make_shared<EcdsaSuite>(std::move(ecdsa_provider)),
       std::make_shared<Ed25519Suite>(std::move(ed25519_provider)),

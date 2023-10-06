@@ -1,5 +1,6 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -8,8 +9,8 @@
 
 #include <optional>
 
-#include "runtime/memory.hpp"
 #include "runtime/common/memory_allocator.hpp"
+#include "runtime/memory.hpp"
 
 namespace kagome::runtime {
 
@@ -23,7 +24,7 @@ namespace kagome::runtime {
     getCurrentMemory() const = 0;
 
     [[nodiscard]] virtual outcome::result<void> resetMemory(
-        const MemoryConfig&) = 0;
+        const MemoryConfig &) = 0;
   };
 
 }  // namespace kagome::runtime

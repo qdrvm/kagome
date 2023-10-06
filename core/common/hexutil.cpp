@@ -1,5 +1,6 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -88,7 +89,7 @@ namespace kagome::common {
 
   outcome::result<std::vector<uint8_t>> unhexWith0x(
       std::string_view hex_with_prefix) {
-    const static std::string leading_chrs = "0x";
+    static const std::string leading_chrs = "0x";
 
     if (hex_with_prefix.substr(0, leading_chrs.size()) != leading_chrs) {
       return UnhexError::MISSING_0X_PREFIX;

@@ -1,5 +1,6 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -35,7 +36,7 @@ namespace kagome::network {
     ~ReqPovProtocol() override = default;
 
     ReqPovProtocol(libp2p::Host &host,
-                   application::ChainSpec const &chain_spec,
+                   const application::ChainSpec &chain_spec,
                    const blockchain::GenesisBlockHash &genesis_hash,
                    std::shared_ptr<ReqPovObserver> observer);
 

@@ -1,5 +1,6 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -111,7 +112,9 @@ namespace kagome::storage::trie {
                                                      const TrieNode &child);
 
       [[nodiscard]] bool leaveChild() {
-        if (isAtRoot()) return false;
+        if (isAtRoot()) {
+          return false;
+        }
         current_ = &path_.back().parent;
         path_.pop_back();
         return true;
@@ -127,7 +130,7 @@ namespace kagome::storage::trie {
         return *current_;
       }
 
-      std::vector<TriePathEntry> const &getPath() const {
+      const std::vector<TriePathEntry> &getPath() const {
         return path_;
       }
 

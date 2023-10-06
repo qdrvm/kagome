@@ -1,5 +1,6 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -21,8 +22,8 @@ namespace kagome::api::child_state::request {
    */
   class GetKeys final {
    public:
-    GetKeys(GetKeys const &) = delete;
-    GetKeys &operator=(GetKeys const &) = delete;
+    GetKeys(const GetKeys &) = delete;
+    GetKeys &operator=(const GetKeys &) = delete;
 
     GetKeys(GetKeys &&) = default;
     GetKeys &operator=(GetKeys &&) = default;

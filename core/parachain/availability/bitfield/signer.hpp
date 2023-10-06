@@ -1,5 +1,6 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -22,7 +23,7 @@ namespace kagome::parachain {
   class BitfieldSigner : public std::enable_shared_from_this<BitfieldSigner> {
    public:
     using BroadcastCallback = std::function<void(
-        primitives::BlockHash const &, network::SignedBitfield const &)>;
+        const primitives::BlockHash &, const network::SignedBitfield &)>;
     using Candidates = std::vector<std::optional<network::CandidateHash>>;
 
     BitfieldSigner(std::shared_ptr<crypto::Hasher> hasher,

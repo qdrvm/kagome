@@ -1,5 +1,6 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -11,7 +12,7 @@
 namespace kagome {
 
   template <typename T>
-  std::weak_ptr<T> weak_from_shared(std::shared_ptr<T> const &val) {
+  std::weak_ptr<T> weak_from_shared(const std::shared_ptr<T> &val) {
     return {val};
   }
 

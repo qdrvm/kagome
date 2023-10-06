@@ -1,5 +1,6 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -28,7 +29,7 @@ namespace kagome::runtime::binaryen {
         const override;
 
     [[nodiscard]] outcome::result<void> resetMemory(
-        const MemoryConfig& config) override;
+        const MemoryConfig &config) override;
 
     void setExternalInterface(std::weak_ptr<RuntimeExternalInterface> rei);
 

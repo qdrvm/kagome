@@ -1,5 +1,6 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -17,8 +18,7 @@ namespace kagome::runtime {
     explicit BlockBuilderImpl(std::shared_ptr<Executor> executor);
 
     outcome::result<primitives::ApplyExtrinsicResult> apply_extrinsic(
-        RuntimeContext &ctx,
-        const primitives::Extrinsic &extrinsic) override;
+        RuntimeContext &ctx, const primitives::Extrinsic &extrinsic) override;
 
     outcome::result<primitives::BlockHeader> finalize_block(
         RuntimeContext &ctx) override;

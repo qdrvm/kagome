@@ -1,6 +1,8 @@
-//
-// Created by iceseer on 11/7/22.
-//
+/**
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
+ * SPDX-License-Identifier: Apache-2.0
+ */
 
 #ifndef KAGOME_APPROVAL_STORE_HPP
 #define KAGOME_APPROVAL_STORE_HPP

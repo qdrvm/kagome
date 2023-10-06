@@ -1,5 +1,6 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -20,7 +21,7 @@ namespace kagome::runtime::wavm {
 
     std::optional<std::reference_wrapper<runtime::Memory>> getCurrentMemory()
         const override;
-    outcome::result<void> resetMemory(const MemoryConfig&) override;
+    outcome::result<void> resetMemory(const MemoryConfig &) override;
 
    private:
     // it contains the memory itself

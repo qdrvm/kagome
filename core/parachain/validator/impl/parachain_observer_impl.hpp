@@ -1,5 +1,6 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -38,17 +39,17 @@ namespace kagome::parachain {
 
     /// collation protocol observer
     void onIncomingMessage(
-        libp2p::peer::PeerId const &peer_id,
+        const libp2p::peer::PeerId &peer_id,
         network::CollationProtocolMessage &&collation_message) override;
     void onIncomingCollationStream(
-        libp2p::peer::PeerId const &peer_id) override;
+        const libp2p::peer::PeerId &peer_id) override;
 
     /// validation protocol observer
     void onIncomingMessage(
-        libp2p::peer::PeerId const &peer_id,
+        const libp2p::peer::PeerId &peer_id,
         network::ValidatorProtocolMessage &&validation_message) override;
     void onIncomingValidationStream(
-        libp2p::peer::PeerId const &peer_id) override;
+        const libp2p::peer::PeerId &peer_id) override;
 
     /// fetch collation protocol observer
     outcome::result<network::CollationFetchingResponse> OnCollationRequest(
@@ -59,10 +60,10 @@ namespace kagome::parachain {
         network::RequestPov request) override;
 
    private:
-    void onAdvertise(libp2p::peer::PeerId const &peer_id,
+    void onAdvertise(const libp2p::peer::PeerId &peer_id,
                      primitives::BlockHash relay_parent);
 
-    void onDeclare(libp2p::peer::PeerId const &peer_id,
+    void onDeclare(const libp2p::peer::PeerId &peer_id,
                    network::CollatorPublicKey pubkey,
                    network::ParachainId para_id,
                    network::Signature signature);

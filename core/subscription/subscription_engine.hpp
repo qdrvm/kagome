@@ -1,5 +1,6 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -78,15 +79,18 @@ namespace kagome::subscription {
       auto it = subscribers_map_.find(key);
       if (subscribers_map_.end() != it) {
         it->second.erase(it_remove);
-        if (it->second.empty()) subscribers_map_.erase(it);
+        if (it->second.empty()) {
+          subscribers_map_.erase(it);
+        }
       }
     }
 
    public:
     size_t size(const EventKeyType &key) const {
       std::shared_lock lock(subscribers_map_cs_);
-      if (auto it = subscribers_map_.find(key); it != subscribers_map_.end())
+      if (auto it = subscribers_map_.find(key); it != subscribers_map_.end()) {
         return it->second.size();
+      }
 
       return 0ull;
     }
@@ -94,14 +98,18 @@ namespace kagome::subscription {
     size_t size() const {
       std::shared_lock lock(subscribers_map_cs_);
       size_t count = 0ull;
-      for (auto &it : subscribers_map_) count += it.second.size();
+      for (auto &it : subscribers_map_) {
+        count += it.second.size();
+      }
       return count;
     }
 
     void notify(const EventKeyType &key, const EventParams &...args) {
       std::shared_lock lock(subscribers_map_cs_);
       auto it = subscribers_map_.find(key);
-      if (subscribers_map_.end() == it) return;
+      if (subscribers_map_.end() == it) {
+        return;
+      }
 
       auto &subscribers_container = it->second;
       for (auto it_sub = subscribers_container.begin();
