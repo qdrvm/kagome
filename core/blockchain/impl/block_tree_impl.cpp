@@ -1135,7 +1135,9 @@ namespace kagome::blockchain {
           auto count = to - from + 1;
           OUTCOME_TRY(chain,
                       getDescendingChainToBlockNoLock(p, descendant, count));
-          BOOST_ASSERT(chain.size() == count);
+          if (chain.size() != count) {
+            return BlockTreeError::EXISTING_BLOCK_NOT_FOUND;
+          }
           if (chain.back() != ancestor) {
             return BlockTreeError::BLOCK_ON_DEAD_END;
           }
