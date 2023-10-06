@@ -4,8 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_TRIE_PRUNER_IMPL_HPP
-#define KAGOME_TRIE_PRUNER_IMPL_HPP
+#pragma once
 
 #include "storage/trie_pruner/trie_pruner.hpp"
 
@@ -152,5 +151,3 @@ namespace kagome::storage::trie_pruner {
 }  // namespace kagome::storage::trie_pruner
 
 OUTCOME_HPP_DECLARE_ERROR(kagome::storage::trie_pruner, TriePrunerImpl::Error);
-
-#endif  // KAGOME_TRIE_PRUNER_IMPL_HPP

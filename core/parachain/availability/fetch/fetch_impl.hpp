@@ -4,8 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_PARACHAIN_AVAILABILITY_FETCH_FETCH_IMPL_HPP
-#define KAGOME_PARACHAIN_AVAILABILITY_FETCH_FETCH_IMPL_HPP
+#pragma once
 
 #include "parachain/availability/fetch/fetch.hpp"
 
@@ -48,5 +47,3 @@ namespace kagome::parachain {
     std::unordered_map<CandidateHash, Active> active_;
   };
 }  // namespace kagome::parachain
-
-#endif  // KAGOME_PARACHAIN_AVAILABILITY_FETCH_FETCH_IMPL_HPP

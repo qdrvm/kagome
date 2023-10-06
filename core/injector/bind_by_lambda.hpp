@@ -4,8 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_CORE_INJECTOR_BIND_BY_LAMBDA_HPP
-#define KAGOME_CORE_INJECTOR_BIND_BY_LAMBDA_HPP
+#pragma once
 
 #include <boost/di/extension/scopes/shared.hpp>
 
@@ -68,5 +67,3 @@ namespace kagome::injector {
     return boost::di::core::dependency<BindByLambda, T, F>{f};
   }
 }  // namespace kagome::injector
-
-#endif  // KAGOME_CORE_INJECTOR_BIND_BY_LAMBDA_HPP

@@ -4,8 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_CORE_RUNTIME_WAVM_IMPL_MODULE_INSTANCE_HPP
-#define KAGOME_CORE_RUNTIME_WAVM_IMPL_MODULE_INSTANCE_HPP
+#pragma once
 
 #include "runtime/module_instance.hpp"
 
@@ -74,5 +73,3 @@ namespace kagome::runtime::wavm {
 }  // namespace kagome::runtime::wavm
 
 OUTCOME_HPP_DECLARE_ERROR(kagome::runtime::wavm, ModuleInstanceImpl::Error)
-
-#endif  // KAGOME_CORE_RUNTIME_WAVM_IMPL_MODULE_INSTANCE_HPP

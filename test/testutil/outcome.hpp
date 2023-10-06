@@ -4,8 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_GTEST_OUTCOME_UTIL_HPP
-#define KAGOME_GTEST_OUTCOME_UTIL_HPP
+#pragma once
 
 #include <gtest/gtest.h>
 #include "common/visitor.hpp"
@@ -202,5 +201,3 @@
         << "  Actual:   Success\n"                                             \
         << "Expected:   Error '" << make_error_code(_error_).message() << "'"; \
   }
-
-#endif  // KAGOME_GTEST_OUTCOME_UTIL_HPP

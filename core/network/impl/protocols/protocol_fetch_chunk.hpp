@@ -4,8 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_PROTOCOL_FETCH_CHUNK_HPP
-#define KAGOME_PROTOCOL_FETCH_CHUNK_HPP
+#pragma once
 
 #include "network/protocol_base.hpp"
 
@@ -88,5 +87,3 @@ namespace kagome::network {
   };
 
 }  // namespace kagome::network
-
-#endif  // KAGOME_PROTOCOL_FETCH_CHUNK_HPP

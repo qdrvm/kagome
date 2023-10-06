@@ -4,8 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_STORAGE_TRIE_ON_READ_HPP
-#define KAGOME_STORAGE_TRIE_ON_READ_HPP
+#pragma once
 
 #include <memory>
 #include <unordered_map>
@@ -47,5 +46,3 @@ namespace kagome::storage::trie {
     size_t size = 0;
   };
 }  // namespace kagome::storage::trie
-
-#endif  // KAGOME_STORAGE_TRIE_ON_READ_HPP

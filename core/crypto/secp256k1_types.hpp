@@ -4,8 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_CRYPTO_SECP256K1_TYPES_HPP
-#define KAGOME_CRYPTO_SECP256K1_TYPES_HPP
+#pragma once
 
 #include "common/blob.hpp"
 
@@ -50,5 +49,3 @@ namespace kagome::crypto::secp256k1 {
    */
   using MessageHash = common::Hash256;
 }  // namespace kagome::crypto::secp256k1
-
-#endif  // KAGOME_CRYPTO_SECP256K1_TYPES_HPP

@@ -4,8 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_CORE_RUNTIME_STORAGE_WASM_PROVIDER_HPP
-#define KAGOME_CORE_RUNTIME_STORAGE_WASM_PROVIDER_HPP
+#pragma once
 
 #include "runtime/runtime_code_provider.hpp"
 
@@ -49,5 +48,3 @@ namespace kagome::runtime {
   };
 
 }  // namespace kagome::runtime
-
-#endif  // KAGOME_CORE_RUNTIME_STORAGE_WASM_PROVIDER_HPP

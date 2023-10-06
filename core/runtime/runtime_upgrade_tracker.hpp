@@ -4,8 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_CORE_RUNTIME_RUNTIME_UPGRADE_TRACKER_HPP
-#define KAGOME_CORE_RUNTIME_RUNTIME_UPGRADE_TRACKER_HPP
+#pragma once
 
 #include "outcome/outcome.hpp"
 #include "primitives/common.hpp"
@@ -37,5 +36,3 @@ namespace kagome::runtime {
 }  // namespace kagome::runtime
 
 OUTCOME_HPP_DECLARE_ERROR(kagome::runtime, RuntimeUpgradeTrackerError)
-
-#endif  // KAGOME_CORE_RUNTIME_RUNTIME_UPGRADE_TRACKER_HPP

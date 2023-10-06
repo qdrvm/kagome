@@ -4,8 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_NETWORK_PEERMANAGER
-#define KAGOME_NETWORK_PEERMANAGER
+#pragma once
 
 #include <optional>
 #include <unordered_set>
@@ -169,5 +168,3 @@ namespace kagome::network {
                             std::function<void(const PeerId &)> func) const = 0;
   };
 }  // namespace kagome::network
-
-#endif  // KAGOME_NETWORK_PEERMANAGER

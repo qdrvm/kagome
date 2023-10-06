@@ -4,8 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_RUNTIME_IMPL_BLOCK_BUILDER_HPP
-#define KAGOME_RUNTIME_IMPL_BLOCK_BUILDER_HPP
+#pragma once
 
 #include "runtime/runtime_api/block_builder.hpp"
 
@@ -37,5 +36,3 @@ namespace kagome::runtime {
     std::shared_ptr<Executor> executor_;
   };
 }  // namespace kagome::runtime
-
-#endif  // KAGOME_RUNTIME_BLOCK_BUILDER_HPP

@@ -4,8 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_ROUTER_HPP
-#define KAGOME_ROUTER_HPP
+#pragma once
 
 #include <libp2p/connection/stream.hpp>
 #include <libp2p/protocol/ping.hpp>
@@ -58,5 +57,3 @@ namespace kagome::network {
     virtual std::shared_ptr<libp2p::protocol::Ping> getPingProtocol() const = 0;
   };
 }  // namespace kagome::network
-
-#endif  // KAGOME_ROUTER_HPP

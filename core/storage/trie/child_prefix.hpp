@@ -4,8 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_STORAGE_TRIE_CHILD_PREFIX_HPP
-#define KAGOME_STORAGE_TRIE_CHILD_PREFIX_HPP
+#pragma once
 
 #include "common/buffer_view.hpp"
 
@@ -30,5 +29,3 @@ namespace kagome::storage::trie {
     uint8_t state_ = 0;
   };
 }  // namespace kagome::storage::trie
-
-#endif  // KAGOME_STORAGE_TRIE_CHILD_PREFIX_HPP

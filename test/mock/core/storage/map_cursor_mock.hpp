@@ -4,8 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_TEST_MOCK_CORE_STORAGE_MAP_CURSOR_MOCK
-#define KAGOME_TEST_MOCK_CORE_STORAGE_MAP_CURSOR_MOCK
+#pragma once
 
 #include "storage/face/map_cursor.hpp"
 
@@ -33,5 +32,3 @@ namespace kagome::storage::face {
   };
 
 }  // namespace kagome::storage::face
-
-#endif  // KAGOME_TEST_MOCK_CORE_STORAGE_MAP_CURSOR_MOCK

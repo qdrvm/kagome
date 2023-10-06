@@ -4,8 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_CORE_CRYPTO_SR25519_SR25519_PROVIDER_IMPL_HPP
-#define KAGOME_CORE_CRYPTO_SR25519_SR25519_PROVIDER_IMPL_HPP
+#pragma once
 
 #include "crypto/sr25519_provider.hpp"
 
@@ -32,5 +31,3 @@ namespace kagome::crypto {
   };
 
 }  // namespace kagome::crypto
-
-#endif  // KAGOME_CORE_CRYPTO_SR25519_SR25519_PROVIDER_IMPL_HPP

@@ -4,8 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_CUSTOM_JSON_WRITER_HPP
-#define KAGOME_CUSTOM_JSON_WRITER_HPP
+#pragma once
 
 #include <jsonrpc-lean/json.h>
 #include <jsonrpc-lean/jsonformatteddata.h>
@@ -204,5 +203,3 @@ namespace kagome::api {
   };
 
 }  // namespace kagome::api
-
-#endif  // KAGOME_CUSTOM_JSON_WRITER_HPP

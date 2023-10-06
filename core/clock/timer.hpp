@@ -4,8 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_TIMER_HPP
-#define KAGOME_TIMER_HPP
+#pragma once
 
 #include <functional>
 #include <system_error>
@@ -45,5 +44,3 @@ namespace kagome::clock {
         const std::function<void(const boost::system::error_code &)> &h) = 0;
   };
 }  // namespace kagome::clock
-
-#endif  // KAGOME_TIMER_HPP

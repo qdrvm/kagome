@@ -4,8 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_STATE_API_IMPL_HPP
-#define KAGOME_STATE_API_IMPL_HPP
+#pragma once
 
 #include "api/service/state/state_api.hpp"
 
@@ -104,5 +103,3 @@ namespace kagome::api {
 }  // namespace kagome::api
 
 OUTCOME_HPP_DECLARE_ERROR(kagome::api, StateApiImpl::Error);
-
-#endif  // KAGOME_STATE_API_IMPL_HPP

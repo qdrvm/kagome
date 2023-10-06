@@ -4,8 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_COMMON_BUFFER_OR_VIEW_HPP
-#define KAGOME_COMMON_BUFFER_OR_VIEW_HPP
+#pragma once
 
 #include <boost/variant/get.hpp>
 #include <boost/variant/variant.hpp>
@@ -101,5 +100,3 @@ namespace kagome::common {
 template <>
 struct fmt::formatter<kagome::common::BufferOrView>
     : fmt::formatter<kagome::common::BufferView> {};
-
-#endif  // KAGOME_COMMON_BUFFER_OR_VIEW_HPP

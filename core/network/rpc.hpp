@@ -4,8 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_RPC_HPP
-#define KAGOME_RPC_HPP
+#pragma once
 
 #include <functional>
 #include <memory>
@@ -191,5 +190,3 @@ namespace kagome::network {
     }
   };
 }  // namespace kagome::network
-
-#endif  // KAGOME_RPC_HPP

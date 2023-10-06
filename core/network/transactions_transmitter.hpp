@@ -4,8 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_NETWORK_TRANSACTIONSTRANSMITTER
-#define KAGOME_NETWORK_TRANSACTIONSTRANSMITTER
+#pragma once
 
 #include "network/types/block_announce.hpp"
 
@@ -27,5 +26,3 @@ namespace kagome::network {
         gsl::span<const primitives::Transaction> txs) = 0;
   };
 }  // namespace kagome::network
-
-#endif  // KAGOME_NETWORK_TRANSACTIONSTRANSMITTER

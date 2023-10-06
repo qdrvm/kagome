@@ -4,8 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_CORE_RUNTIME_PTR_SIZE_HPP
-#define KAGOME_CORE_RUNTIME_PTR_SIZE_HPP
+#pragma once
 
 #include "runtime/types.hpp"
 
@@ -43,5 +42,3 @@ namespace kagome::runtime {
   };
 
 }  // namespace kagome::runtime
-
-#endif  // KAGOME_CORE_RUNTIME_PTR_SIZE_HPP

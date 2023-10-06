@@ -4,8 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_TELEMETRY_CONNECTION_HPP
-#define KAGOME_TELEMETRY_CONNECTION_HPP
+#pragma once
 
 #include <functional>
 #include <memory>
@@ -76,5 +75,3 @@ namespace kagome::telemetry {
   };
 
 }  // namespace kagome::telemetry
-
-#endif  // KAGOME_TELEMETRY_CONNECTION_HPP

@@ -4,8 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_DISPUTE_ROLLINGSESSIONWINDOWIMPL
-#define KAGOME_DISPUTE_ROLLINGSESSIONWINDOWIMPL
+#pragma once
 
 #include "dispute_coordinator/rolling_session_window.hpp"
 
@@ -83,5 +82,3 @@ namespace kagome::dispute {
   };
 
 }  // namespace kagome::dispute
-
-#endif  // KAGOME_DISPUTE_ROLLINGSESSIONWINDOWIMPL

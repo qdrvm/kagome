@@ -4,8 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_PARACHAIN_AVAILABILITY_STORE_STORE_HPP
-#define KAGOME_PARACHAIN_AVAILABILITY_STORE_STORE_HPP
+#pragma once
 
 #include <optional>
 
@@ -58,5 +57,3 @@ namespace kagome::parachain {
     virtual void remove(const network::RelayHash &relay_parent) = 0;
   };
 }  // namespace kagome::parachain
-
-#endif  // KAGOME_PARACHAIN_AVAILABILITY_STORE_STORE_HPP

@@ -4,8 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_NETWORK_REPUTATIONCHANGE
-#define KAGOME_NETWORK_REPUTATIONCHANGE
+#pragma once
 
 #include <chrono>
 
@@ -103,5 +102,3 @@ namespace kagome::network {
   }  // namespace reputation
 
 }  // namespace kagome::network
-
-#endif  // KAGOME_NETWORK_REPUTATIONCHANGE

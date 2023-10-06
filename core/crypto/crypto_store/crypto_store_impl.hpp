@@ -4,8 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_CRYPTO_STORE_IMPL_HPP
-#define KAGOME_CRYPTO_STORE_IMPL_HPP
+#pragma once
 
 #include <unordered_set>
 
@@ -200,5 +199,3 @@ namespace kagome::crypto {
 }  // namespace kagome::crypto
 
 OUTCOME_HPP_DECLARE_ERROR(kagome::crypto, CryptoStoreError);
-
-#endif  // KAGOME_CRYPTO_STORE_IMPL_HPP

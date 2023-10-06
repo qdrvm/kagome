@@ -4,8 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_ROCKSDB_BATCH_HPP
-#define KAGOME_ROCKSDB_BATCH_HPP
+#pragma once
 
 #include <rocksdb/write_batch.h>
 #include "storage/rocksdb/rocksdb.hpp"
@@ -32,5 +31,3 @@ namespace kagome::storage {
     rocksdb::WriteBatch batch_;
   };
 }  // namespace kagome::storage
-
-#endif  // KAGOME_ROCKSDB_BATCH_HPP

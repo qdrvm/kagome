@@ -4,8 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_STORAGE_IN_MEMORY_IN_MEMORY_STORAGE_HPP
-#define KAGOME_STORAGE_IN_MEMORY_IN_MEMORY_STORAGE_HPP
+#pragma once
 
 #include <memory>
 
@@ -54,5 +53,3 @@ namespace kagome::storage {
   };
 
 }  // namespace kagome::storage
-
-#endif  // KAGOME_STORAGE_IN_MEMORY_IN_MEMORY_STORAGE_HPP

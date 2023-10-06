@@ -4,8 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_NETWORK_REPUTATIONREPOSITORYMOCK
-#define KAGOME_NETWORK_REPUTATIONREPOSITORYMOCK
+#pragma once
 
 #include <gmock/gmock.h>
 
@@ -29,5 +28,3 @@ namespace kagome::network {
   };
 
 }  // namespace kagome::network
-
-#endif  // KAGOME_NETWORK_REPUTATIONREPOSITORYMOCK

@@ -4,8 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_CORE_RUNTIME_WAVM_IMPL_INTRINSIC_MODULE_HPP
-#define KAGOME_CORE_RUNTIME_WAVM_IMPL_INTRINSIC_MODULE_HPP
+#pragma once
 
 #include "runtime/wavm/intrinsics/intrinsic_module_instance.hpp"
 
@@ -73,5 +72,3 @@ namespace kagome::runtime::wavm {
   };
 
 }  // namespace kagome::runtime::wavm
-
-#endif  // KAGOME_CORE_RUNTIME_WAVM_IMPL_INTRINSIC_MODULE_HPP

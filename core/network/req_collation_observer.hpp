@@ -4,8 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_REQ_COLLATION_OBSERVER_HPP
-#define KAGOME_REQ_COLLATION_OBSERVER_HPP
+#pragma once
 
 #include <libp2p/peer/peer_id.hpp>
 
@@ -29,5 +28,3 @@ namespace kagome::network {
         CollationFetchingRequest request) = 0;
   };
 }  // namespace kagome::network
-
-#endif  // KAGOME_REQ_COLLATION_OBSERVER_HPP

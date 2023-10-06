@@ -4,8 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_TEST_MOCK_CORE_CRYPTO_ED25519_PROVIDER_MOCK_HPP
-#define KAGOME_TEST_MOCK_CORE_CRYPTO_ED25519_PROVIDER_MOCK_HPP
+#pragma once
 
 #include "crypto/ed25519_provider.hpp"
 
@@ -31,5 +30,3 @@ namespace kagome::crypto {
                 (const, override));
   };
 }  // namespace kagome::crypto
-
-#endif  // KAGOME_TEST_MOCK_CORE_CRYPTO_ED25519_PROVIDER_MOCK_HPP

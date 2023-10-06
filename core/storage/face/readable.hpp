@@ -4,8 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_READABLE_HPP
-#define KAGOME_READABLE_HPP
+#pragma once
 
 #include <outcome/outcome.hpp>
 
@@ -50,5 +49,3 @@ namespace kagome::storage::face {
         const View<K> &key) const = 0;
   };
 }  // namespace kagome::storage::face
-
-#endif  // KAGOME_READABLE_HPP

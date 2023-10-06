@@ -4,8 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_PARACHAIN_CANDIDATE_VIEW_HPP
-#define KAGOME_PARACHAIN_CANDIDATE_VIEW_HPP
+#pragma once
 
 #include <memory>
 #include <vector>
@@ -94,5 +93,3 @@ namespace kagome::parachain {
   };
 
 }  // namespace kagome::parachain
-
-#endif  // KAGOME_PARACHAIN_CANDIDATE_VIEW_HPP

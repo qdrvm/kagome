@@ -4,8 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_CORE_API_TRANSPORT_ERROR_HPP
-#define KAGOME_CORE_API_TRANSPORT_ERROR_HPP
+#pragma once
 
 #include "outcome/outcome.hpp"
 
@@ -21,5 +20,3 @@ namespace kagome::api {
 }
 
 OUTCOME_HPP_DECLARE_ERROR(kagome::api, ApiTransportError)
-
-#endif  // KAGOME_CORE_API_TRANSPORT_ERROR_HPP

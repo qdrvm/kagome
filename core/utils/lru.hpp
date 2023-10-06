@@ -4,8 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_UTILS_LRU_HPP
-#define KAGOME_UTILS_LRU_HPP
+#pragma once
 
 #include <boost/assert.hpp>
 #include <unordered_map>
@@ -167,5 +166,3 @@ namespace kagome {
     Lru<K, V> lru_;
   };
 }  // namespace kagome
-
-#endif  // KAGOME_UTILS_LRU_HPP

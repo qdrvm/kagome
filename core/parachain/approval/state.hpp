@@ -4,8 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_PARACHAIN_STATE_HPP
-#define KAGOME_PARACHAIN_STATE_HPP
+#pragma once
 
 #include <optional>
 
@@ -239,5 +238,3 @@ namespace kagome::parachain::approval {
   };
 
 }  // namespace kagome::parachain::approval
-
-#endif  // KAGOME_PARACHAIN_STATE_HPP

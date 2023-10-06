@@ -4,8 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_CORE_RUNTIME_WAVM_INSTANCE_ENVIRONMENT_FACTORY_HPP
-#define KAGOME_CORE_RUNTIME_WAVM_INSTANCE_ENVIRONMENT_FACTORY_HPP
+#pragma once
 
 #include "runtime/instance_environment.hpp"
 
@@ -71,5 +70,3 @@ namespace kagome::runtime::wavm {
   };
 
 }  // namespace kagome::runtime::wavm
-
-#endif  // KAGOME_CORE_RUNTIME_WAVM_INSTANCE_ENVIRONMENT_FACTORY_HPP

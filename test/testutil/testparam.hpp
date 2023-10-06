@@ -4,8 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_TEST_TESTUTIL_TESTPARAM_HPP
-#define KAGOME_TEST_TESTUTIL_TESTPARAM_HPP
+#pragma once
 
 #include <cstdint>
 #include <vector>
@@ -25,5 +24,3 @@ namespace testutil {
     return {buffer, should_fail, std::forward<T>(value)};
   };
 }  // namespace testutil
-
-#endif  // KAGOME_TEST_TESTUTIL_TESTPARAM_HPP

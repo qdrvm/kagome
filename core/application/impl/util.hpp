@@ -4,8 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_APPLICATION_UTIL_HPP
-#define KAGOME_APPLICATION_UTIL_HPP
+#pragma once
 
 #include "filesystem/common.hpp"
 #include "outcome/outcome.hpp"
@@ -22,5 +21,3 @@ namespace kagome::application::util {
 }  // namespace kagome::application::util
 
 OUTCOME_HPP_DECLARE_ERROR(kagome::application::util, Error);
-
-#endif  // KAGOME_UTIL_HPP

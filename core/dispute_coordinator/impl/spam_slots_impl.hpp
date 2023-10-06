@@ -4,8 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_DISPUTE_SPAMSLOTSIMPL
-#define KAGOME_DISPUTE_SPAMSLOTSIMPL
+#pragma once
 
 #include "dispute_coordinator/spam_slots.hpp"
 
@@ -59,5 +58,3 @@ namespace kagome::dispute {
   };
 
 }  // namespace kagome::dispute
-
-#endif  // KAGOME_DISPUTE_SPAMSLOTSIMPL

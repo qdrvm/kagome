@@ -4,8 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_CORE_METRICS_REGISTRY_HPP
-#define KAGOME_CORE_METRICS_REGISTRY_HPP
+#pragma once
 
 #include <chrono>
 #include <map>
@@ -113,5 +112,3 @@ namespace kagome::metrics {
   };
 
 }  // namespace kagome::metrics
-
-#endif  // KAGOME_CORE_METRICS_REGISTRY_HPP

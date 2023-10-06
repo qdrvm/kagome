@@ -4,8 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_NETWORK_REPUTATIONREPOSITORYIMPL
-#define KAGOME_NETWORK_REPUTATIONREPOSITORYIMPL
+#pragma once
 
 #include "network/reputation_repository.hpp"
 
@@ -45,5 +44,3 @@ namespace kagome::network {
   };
 
 }  // namespace kagome::network
-
-#endif  // KAGOME_NETWORK_REPUTATIONREPOSITORYIMPL

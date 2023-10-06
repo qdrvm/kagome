@@ -4,8 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_OFFCHAIN_OFFCHAINPERSISTENTSTORAGE
-#define KAGOME_OFFCHAIN_OFFCHAINPERSISTENTSTORAGE
+#pragma once
 
 #include "offchain/offchain_storage.hpp"
 
@@ -24,5 +23,3 @@ namespace kagome::offchain {
   class OffchainPersistentStorage : public OffchainStorage {};
 
 }  // namespace kagome::offchain
-
-#endif  // KAGOME_OFFCHAIN_OFFCHAINPERSISTENTSTORAGE

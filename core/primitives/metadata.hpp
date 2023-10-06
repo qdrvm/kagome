@@ -4,8 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_CORE_PRIMITIVES_OPAQUE_METADATA_HPP
-#define KAGOME_CORE_PRIMITIVES_OPAQUE_METADATA_HPP
+#pragma once
 
 #include <cstdint>
 #include <vector>
@@ -18,5 +17,3 @@ namespace kagome::primitives {
   using OpaqueMetadata = std::vector<uint8_t>;
 
 }  // namespace kagome::primitives
-
-#endif  // KAGOME_CORE_PRIMITIVES_OPAQUE_METADATA_HPP

@@ -4,8 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_CORE_PRIMITIVES_BLOCK_DATA_HPP
-#define KAGOME_CORE_PRIMITIVES_BLOCK_DATA_HPP
+#pragma once
 
 #include <optional>
 
@@ -73,5 +72,3 @@ namespace kagome::primitives {
   };
 
 }  // namespace kagome::primitives
-
-#endif  // KAGOME_CORE_PRIMITIVES_BLOCK_DATA_HPP

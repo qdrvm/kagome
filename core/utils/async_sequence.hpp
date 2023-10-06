@@ -4,8 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_UTILS_ASYNC_SEQUENCE_HPP
-#define KAGOME_UTILS_ASYNC_SEQUENCE_HPP
+#pragma once
 
 #include <type_traits>
 
@@ -93,5 +92,3 @@ namespace kagome {
     sequence(std::forward<Fs>(fs)..., [](auto &&) {});
   }
 }  // namespace kagome
-
-#endif  // KAGOME_UTILS_ASYNC_SEQUENCE_HPP

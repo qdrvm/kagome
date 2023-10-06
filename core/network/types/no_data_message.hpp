@@ -4,8 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_CORE_NETWORK_TYPES_NO_DATA_HPP
-#define KAGOME_CORE_NETWORK_TYPES_NO_DATA_HPP
+#pragma once
 
 #include "primitives/common.hpp"
 
@@ -27,5 +26,3 @@ namespace kagome::network {
     return true;
   }
 }  // namespace kagome::network
-
-#endif  // KAGOME_CORE_NETWORK_TYPES_NO_DATA_HPP

@@ -4,8 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_FILESYSTEM_COMMON_HPP
-#define KAGOME_FILESYSTEM_COMMON_HPP
+#pragma once
 
 #include <filesystem>
 
@@ -14,5 +13,3 @@ namespace kagome::filesystem {
 
   path unique_path(const path &model = "%%%%-%%%%-%%%%-%%%%");
 }  // namespace kagome::filesystem
-
-#endif  // KAGOME_FILESYSTEM_COMMON_HPP

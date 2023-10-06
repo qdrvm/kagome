@@ -4,8 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_CORE_METRICS_IMPL_PROMETHEUS_METRICS_IMPL_HPP
-#define KAGOME_CORE_METRICS_IMPL_PROMETHEUS_METRICS_IMPL_HPP
+#pragma once
 
 #include "metrics/metrics.hpp"
 
@@ -66,5 +65,3 @@ namespace kagome::metrics {
     void observe(const double value) override;
   };
 }  // namespace kagome::metrics
-
-#endif  // KAGOME_CORE_METRICS_IMPL_PROMETHEUS_METRICS_IMPL_HPP

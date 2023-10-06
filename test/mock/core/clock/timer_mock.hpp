@@ -4,8 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_TIMER_MOCK_HPP
-#define KAGOME_TIMER_MOCK_HPP
+#pragma once
 
 #include <gmock/gmock.h>
 #include "clock/timer.hpp"
@@ -30,5 +29,3 @@ namespace testutil {
         (const std::function<void(const boost::system::error_code &)> &h));
   };
 }  // namespace testutil
-
-#endif  // KAGOME_TIMER_MOCK_HPP

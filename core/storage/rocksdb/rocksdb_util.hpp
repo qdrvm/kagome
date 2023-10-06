@@ -4,8 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_ROCKSDB_UTIL_HPP
-#define KAGOME_ROCKSDB_UTIL_HPP
+#pragma once
 
 #include <rocksdb/status.h>
 #include "common/buffer.hpp"
@@ -58,5 +57,3 @@ namespace kagome::storage {
     return common::Buffer{ptr, ptr + s.size()};
   }
 }  // namespace kagome::storage
-
-#endif  // KAGOME_ROCKSDB_UTIL_HPP

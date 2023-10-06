@@ -4,8 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_MATH_HPP
-#define KAGOME_MATH_HPP
+#pragma once
 
 #include <common/blob.hpp>
 #include <type_traits>
@@ -48,5 +47,3 @@ namespace kagome::math {
     return (1ull << p);
   }
 }  // namespace kagome::math
-
-#endif  // KAGOME_MATH_HPP

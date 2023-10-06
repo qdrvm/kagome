@@ -4,8 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_API_JRPC_SERVER_IMPL_HPP
-#define KAGOME_API_JRPC_SERVER_IMPL_HPP
+#pragma once
 
 #include <jsonrpc-lean/server.h>
 
@@ -60,5 +59,3 @@ namespace kagome::api {
 }  // namespace kagome::api
 
 OUTCOME_HPP_DECLARE_ERROR(kagome::api, JRpcServerImpl::Error);
-
-#endif  // KAGOME_API_JRPC_SERVER_IMPL_HPP

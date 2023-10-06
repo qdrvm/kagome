@@ -4,8 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_ROCKSDB_HPP
-#define KAGOME_ROCKSDB_HPP
+#pragma once
 
 #include "storage/buffer_map_types.hpp"
 
@@ -127,5 +126,3 @@ namespace kagome::storage {
     log::Logger logger_;
   };
 }  // namespace kagome::storage
-
-#endif  // KAGOME_ROCKSDB_HPP

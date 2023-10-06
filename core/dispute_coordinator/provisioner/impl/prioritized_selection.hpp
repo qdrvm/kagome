@@ -4,8 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_DISPUTE_PRIORITIZEDSELECTION
-#define KAGOME_DISPUTE_PRIORITIZEDSELECTION
+#pragma once
 
 #include "dispute_coordinator/types.hpp"
 #include "log/logger.hpp"
@@ -163,5 +162,3 @@ namespace kagome::dispute {
   };
 
 }  // namespace kagome::dispute
-
-#endif  // KAGOME_DISPUTE_PRIORITIZEDSELECTION

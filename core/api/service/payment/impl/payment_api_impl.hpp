@@ -4,8 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_PAYMENT_API_IMPL_HPP
-#define KAGOME_PAYMENT_API_IMPL_HPP
+#pragma once
 
 #include "api/service/payment/payment_api.hpp"
 
@@ -36,5 +35,3 @@ namespace kagome::api {
   };
 
 }  // namespace kagome::api
-
-#endif  // KAGOME_PAYMENT_API_IMPL_HPP

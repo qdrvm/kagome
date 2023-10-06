@@ -4,8 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_NETWORK_SYNCPROTOCOLIMPL
-#define KAGOME_NETWORK_SYNCPROTOCOLIMPL
+#pragma once
 
 #include "network/protocols/sync_protocol.hpp"
 
@@ -156,5 +155,3 @@ namespace kagome::network {
   };
 
 }  // namespace kagome::network
-
-#endif  // KAGOME_NETWORK_SYNCPROTOCOLIMPL

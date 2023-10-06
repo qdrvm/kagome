@@ -4,8 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_CHAIN_JRPC_PROCESSOR_HPP
-#define KAGOME_CHAIN_JRPC_PROCESSOR_HPP
+#pragma once
 
 #include "api/jrpc/jrpc_processor.hpp"
 #include "api/jrpc/jrpc_server_impl.hpp"
@@ -26,5 +25,3 @@ namespace kagome::api::chain {
     std::shared_ptr<JRpcServer> server_;
   };
 }  // namespace kagome::api::chain
-
-#endif  // KAGOME_CHAIN_JRPC_PROCESSOR_HPP

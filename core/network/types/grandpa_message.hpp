@@ -4,8 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_NETWORK_GRANDPAMESSAGE
-#define KAGOME_NETWORK_GRANDPAMESSAGE
+#pragma once
 
 #include <boost/variant.hpp>
 
@@ -94,5 +93,3 @@ namespace kagome::network {
                      CatchUpResponse>;        // 4
 
 }  // namespace kagome::network
-
-#endif  // KAGOME_NETWORK_GRANDPAMESSAGE

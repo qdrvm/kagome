@@ -4,8 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_API_SYSTEM_REQUEST_VERSION
-#define KAGOME_API_SYSTEM_REQUEST_VERSION
+#pragma once
 
 #include <jsonrpc-lean/request.h>
 
@@ -41,5 +40,3 @@ namespace kagome::api::system::request {
   };
 
 }  // namespace kagome::api::system::request
-
-#endif  // KAGOME_API_SYSTEM_REQUEST_VERSION

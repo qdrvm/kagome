@@ -4,8 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_CORE_RUNTIME_WAVM_IMPL_WAVM_INTERNAL_MEMORY_PROVIDER_HPP
-#define KAGOME_CORE_RUNTIME_WAVM_IMPL_WAVM_INTERNAL_MEMORY_PROVIDER_HPP
+#pragma once
 
 #include "runtime/memory_provider.hpp"
 
@@ -30,5 +29,3 @@ namespace kagome::runtime::wavm {
   };
 
 }  // namespace kagome::runtime::wavm
-
-#endif  // KAGOME_CORE_RUNTIME_WAVM_IMPL_WAVM_MEMORY_PROVIDER_HPP

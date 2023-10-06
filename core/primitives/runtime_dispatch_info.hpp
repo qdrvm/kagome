@@ -4,8 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_RUNTIME_DISPATCH_INFO_HPP
-#define KAGOME_RUNTIME_DISPATCH_INFO_HPP
+#pragma once
 
 #include <scale/scale.hpp>
 #include "common/unused.hpp"
@@ -92,5 +91,3 @@ namespace kagome::primitives {
   };
 
 }  // namespace kagome::primitives
-
-#endif  // KAGOME_RUNTIME_DISPATCH_INFO_HPP

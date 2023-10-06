@@ -4,8 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_TEST_TESTUTIL_LITERALS_HPP_
-#define KAGOME_TEST_TESTUTIL_LITERALS_HPP_
+#pragma once
 
 #include <libp2p/multi/multiaddress.hpp>
 #include <libp2p/multi/multihash.hpp>
@@ -54,5 +53,3 @@ inline libp2p::peer::PeerId operator""_peerid(const char *c, size_t s) {
 
   return PeerId::fromPublicKey(pb_key).value();
 }
-
-#endif  // KAGOME_TEST_TESTUTIL_LITERALS_HPP_

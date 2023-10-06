@@ -4,8 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_CORE_CRYPTO_ED25519_TYPES_HPP
-#define KAGOME_CORE_CRYPTO_ED25519_TYPES_HPP
+#pragma once
 
 extern "C" {
 #include <schnorrkel/schnorrkel.h>
@@ -66,5 +65,3 @@ namespace kagome::crypto {
     Ed25519Seed seed;
   };
 }  // namespace kagome::crypto
-
-#endif  // KAGOME_CORE_CRYPTO_ED25519_TYPES_HPP

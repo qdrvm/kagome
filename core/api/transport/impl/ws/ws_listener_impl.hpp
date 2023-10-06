@@ -4,8 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_CORE_API_TRANSPORT_IMPL_WS_LISTENER_IMPL_HPP
-#define KAGOME_CORE_API_TRANSPORT_IMPL_WS_LISTENER_IMPL_HPP
+#pragma once
 
 #include "api/transport/listener.hpp"
 
@@ -73,5 +72,3 @@ namespace kagome::api {
   };
 
 }  // namespace kagome::api
-
-#endif  // KAGOME_CORE_API_TRANSPORT_IMPL_WS_LISTENER_IMPL_HPP

@@ -4,8 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_STATE_JRPC_PROCESSOR_HPP
-#define KAGOME_STATE_JRPC_PROCESSOR_HPP
+#pragma once
 
 #include "api/jrpc/jrpc_processor.hpp"
 
@@ -28,4 +27,3 @@ namespace kagome::api::state {
   };
 
 }  // namespace kagome::api::state
-#endif  // KAGOME_STATE_JRPC_PROCESSOR_HPP

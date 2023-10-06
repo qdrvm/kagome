@@ -4,8 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_BLOCK_STORAGE_MOCK_HPP
-#define KAGOME_BLOCK_STORAGE_MOCK_HPP
+#pragma once
 
 #include <gmock/gmock.h>
 #include "blockchain/block_storage.hpp"
@@ -111,5 +110,3 @@ namespace kagome::blockchain {
   };
 
 }  // namespace kagome::blockchain
-
-#endif  // KAGOME_BLOCK_STORAGE_MOCK_HPP

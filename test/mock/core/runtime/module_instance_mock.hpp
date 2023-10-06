@@ -4,8 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_TEST_MOCK_CORE_RUNTIME_MODULE_INSTANCE_MOCK_HPP
-#define KAGOME_TEST_MOCK_CORE_RUNTIME_MODULE_INSTANCE_MOCK_HPP
+#pragma once
 
 #include "runtime/module_instance.hpp"
 
@@ -50,5 +49,3 @@ namespace kagome::runtime {
                 (override));
   };
 }  // namespace kagome::runtime
-
-#endif  // KAGOME_TEST_MOCK_CORE_RUNTIME_MODULE_INSTANCE_MOCK_HPP

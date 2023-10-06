@@ -4,8 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_API_SERVICE_STATE_API
-#define KAGOME_API_SERVICE_STATE_API
+#pragma once
 
 #include <optional>
 #include <vector>
@@ -85,5 +84,3 @@ namespace kagome::api {
   };
 
 }  // namespace kagome::api
-
-#endif  // KAGOME_API_SERVICE_STATE_API

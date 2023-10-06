@@ -4,8 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_CORE_RUNTIME_BINARYEN_MODULE_WASM_MODULE_INSTANCE_IMPL
-#define KAGOME_CORE_RUNTIME_BINARYEN_MODULE_WASM_MODULE_INSTANCE_IMPL
+#pragma once
 
 #include "runtime/module_instance.hpp"
 
@@ -68,5 +67,3 @@ namespace kagome::runtime::binaryen {
 }  // namespace kagome::runtime::binaryen
 
 OUTCOME_HPP_DECLARE_ERROR(kagome::runtime::binaryen, ModuleInstanceImpl::Error);
-
-#endif  // KAGOME_CORE_RUNTIME_BINARYEN_MODULE_WASM_MODULE_INSTANCE_IMPL

@@ -4,8 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_OFFCHAIN_HTTPREQUEST
-#define KAGOME_OFFCHAIN_HTTPREQUEST
+#pragma once
 
 #include <boost/asio/io_context.hpp>
 #include <boost/asio/ip/tcp.hpp>
@@ -92,5 +91,3 @@ namespace kagome::offchain {
   };
 
 }  // namespace kagome::offchain
-
-#endif  // KAGOME_OFFCHAIN_HTTPREQUEST

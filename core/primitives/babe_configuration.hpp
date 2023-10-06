@@ -4,8 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_CORE_PRIMITIVES_BABE_CONFIGURATION_HPP
-#define KAGOME_CORE_PRIMITIVES_BABE_CONFIGURATION_HPP
+#pragma once
 
 #include <fmt/core.h>
 
@@ -120,5 +119,3 @@ namespace kagome::primitives {
     AllowedSlots allowed_slots;
   };
 }  // namespace kagome::primitives
-
-#endif  // KAGOME_CORE_PRIMITIVES_BABE_CONFIGURATION_HPP

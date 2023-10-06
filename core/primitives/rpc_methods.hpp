@@ -4,8 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_CORE_PRIMITIVES_RPC_METHODS_HPP
-#define KAGOME_CORE_PRIMITIVES_RPC_METHODS_HPP
+#pragma once
 
 #include <string>
 #include <vector>
@@ -34,5 +33,3 @@ namespace kagome::primitives {
     Methods methods;
   };
 }  // namespace kagome::primitives
-
-#endif  // KAGOME_CORE_PRIMITIVES_RPC_METHODS_HPP

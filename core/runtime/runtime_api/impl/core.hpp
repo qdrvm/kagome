@@ -4,8 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_RUNTIME_IMPL_CORE_HPP
-#define KAGOME_RUNTIME_IMPL_CORE_HPP
+#pragma once
 
 #include "runtime/runtime_api/core.hpp"
 
@@ -56,5 +55,3 @@ namespace kagome::runtime {
   };
 
 }  // namespace kagome::runtime
-
-#endif  // KAGOME_RUNTIME_IMPL_CORE_HPP

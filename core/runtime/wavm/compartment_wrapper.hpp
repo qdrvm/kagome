@@ -4,8 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_CORE_RUNTIME_WAVM_IMPL_COMPARTMENT_WRAPPER_HPP
-#define KAGOME_CORE_RUNTIME_WAVM_IMPL_COMPARTMENT_WRAPPER_HPP
+#pragma once
 
 #include <memory>
 #include <string>
@@ -34,5 +33,3 @@ namespace kagome::runtime::wavm {
   };
 
 }  // namespace kagome::runtime::wavm
-
-#endif  // KAGOME_CORE_RUNTIME_WAVM_IMPL_COMPARTMENT_WRAPPER_HPP

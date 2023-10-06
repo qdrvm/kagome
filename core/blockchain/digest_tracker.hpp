@@ -4,8 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_BLOCKCHAIN_DIGESTSTRACKER
-#define KAGOME_BLOCKCHAIN_DIGESTSTRACKER
+#pragma once
 
 #include "outcome/outcome.hpp"
 #include "primitives/block_data.hpp"
@@ -36,5 +35,3 @@ namespace kagome::blockchain {
   };
 
 }  // namespace kagome::blockchain
-
-#endif  // KAGOME_BLOCKCHAIN_DIGESTSTRACKER

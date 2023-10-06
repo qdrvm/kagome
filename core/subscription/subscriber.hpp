@@ -4,8 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_SUBSCRIPTION_SUBSCRIBER_HPP
-#define KAGOME_SUBSCRIPTION_SUBSCRIBER_HPP
+#pragma once
 
 #include <atomic>
 #include <functional>
@@ -169,5 +168,3 @@ namespace kagome::subscription {
   };
 
 }  // namespace kagome::subscription
-
-#endif  // KAGOME_SUBSCRIPTION_SUBSCRIBER_HPP

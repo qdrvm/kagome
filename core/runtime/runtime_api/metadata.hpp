@@ -4,8 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_CORE_RUNTIME_METADATA_HPP
-#define KAGOME_CORE_RUNTIME_METADATA_HPP
+#pragma once
 
 #include <optional>
 #include <outcome/outcome.hpp>
@@ -30,5 +29,3 @@ namespace kagome::runtime {
   };
 
 }  // namespace kagome::runtime
-
-#endif  // KAGOME_CORE_RUNTIME_METADATA_HPP

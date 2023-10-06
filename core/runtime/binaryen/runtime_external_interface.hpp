@@ -4,8 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_CORE_RUNTIME_BINARYEN_RUNTIME_EXTERNAL_INTERFACE_HPP
-#define KAGOME_CORE_RUNTIME_BINARYEN_RUNTIME_EXTERNAL_INTERFACE_HPP
+#pragma once
 
 #include <binaryen/shell-interface.h>
 
@@ -204,5 +203,3 @@ namespace kagome::runtime::binaryen {
   };
 
 }  // namespace kagome::runtime::binaryen
-
-#endif  // KAGOME_CORE_RUNTIME_BINARYEN_RUNTIME_EXTERNAL_INTERFACE_HPP

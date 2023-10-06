@@ -4,8 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_RUNTIME_SESSIONKEYSAPI
-#define KAGOME_RUNTIME_SESSIONKEYSAPI
+#pragma once
 
 #include <optional>
 
@@ -43,5 +42,3 @@ namespace kagome::runtime {
   };
 
 }  // namespace kagome::runtime
-
-#endif  // KAGOME_RUNTIME_SESSIONKEYSAPI

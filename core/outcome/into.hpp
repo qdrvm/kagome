@@ -4,8 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_OUTCOME_INTO_HPP
-#define KAGOME_OUTCOME_INTO_HPP
+#pragma once
 
 #include "outcome/outcome.hpp"
 
@@ -27,5 +26,3 @@ namespace outcome {
     return Into<std::decay_t<decltype(r)>>::into(std::forward<decltype(r)>(r));
   }
 }  // namespace outcome
-
-#endif  // KAGOME_OUTCOME_INTO_HPP

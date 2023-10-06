@@ -4,8 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_TEST_CORE_STATE_API_MOCK_HPP
-#define KAGOME_TEST_CORE_STATE_API_MOCK_HPP
+#pragma once
 
 #include <gmock/gmock.h>
 
@@ -102,5 +101,3 @@ namespace kagome::api {
                 (override));
   };
 }  // namespace kagome::api
-
-#endif  // KAGOME_TEST_CORE_STATE_API_MOCK_HPP

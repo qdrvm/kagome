@@ -4,8 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_TEST_MOCK_CORE_TRANSACTION_POOL_TRANSACTION_POOL_MOCK_HPP
-#define KAGOME_TEST_MOCK_CORE_TRANSACTION_POOL_TRANSACTION_POOL_MOCK_HPP
+#pragma once
 
 #include "transaction_pool/transaction_pool.hpp"
 
@@ -64,5 +63,3 @@ namespace kagome::transaction_pool {
   };
 
 }  // namespace kagome::transaction_pool
-
-#endif  // KAGOME_TEST_MOCK_CORE_TRANSACTION_POOL_TRANSACTION_POOL_MOCK_HPP

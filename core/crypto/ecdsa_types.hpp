@@ -4,8 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_CORE_CRYPTO_ECDSA_TYPES_HPP
-#define KAGOME_CORE_CRYPTO_ECDSA_TYPES_HPP
+#pragma once
 
 #include "crypto/secp256k1_types.hpp"
 
@@ -49,5 +48,3 @@ namespace kagome::crypto {
     EcdsaSeed seed;
   };
 }  // namespace kagome::crypto
-
-#endif  // KAGOME_CORE_CRYPTO_ECDSA_TYPES_HPP

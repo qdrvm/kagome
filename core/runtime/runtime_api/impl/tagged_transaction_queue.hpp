@@ -4,8 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_RUNTIME_IMPL_TAGGED_TRANSACTION_QUEUE_HPP
-#define KAGOME_RUNTIME_IMPL_TAGGED_TRANSACTION_QUEUE_HPP
+#pragma once
 
 #include "runtime/runtime_api/tagged_transaction_queue.hpp"
 
@@ -36,5 +35,3 @@ namespace kagome::runtime {
   };
 
 }  // namespace kagome::runtime
-
-#endif  // KAGOME_TAGGED_TRANSACTION_QUEUE_HPP

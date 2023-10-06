@@ -4,8 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_OFFCHAINWORKERAPIMOCK
-#define KAGOME_OFFCHAINWORKERAPIMOCK
+#pragma once
 
 #include "runtime/runtime_api/offchain_worker_api.hpp"
 
@@ -21,5 +20,3 @@ namespace kagome::runtime {
   };
 
 }  // namespace kagome::runtime
-
-#endif  // KAGOME_OFFCHAINWORKERAPIMOCK

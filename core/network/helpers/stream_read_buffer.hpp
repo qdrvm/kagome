@@ -4,8 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_NETWORK_HELPERS_STREAM_READ_BUFFER_HPP
-#define KAGOME_NETWORK_HELPERS_STREAM_READ_BUFFER_HPP
+#pragma once
 
 #include "network/helpers/stream_proxy_base.hpp"
 
@@ -140,5 +139,3 @@ namespace kagome::network {
     }
   }
 }  // namespace kagome::network
-
-#endif  // KAGOME_NETWORK_HELPERS_STREAM_READ_BUFFER_HPP

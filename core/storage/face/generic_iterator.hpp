@@ -4,8 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_GENERIC_ITERATOR_HPP
-#define KAGOME_GENERIC_ITERATOR_HPP
+#pragma once
 
 #include <memory>
 
@@ -48,5 +47,3 @@ namespace kagome::face {
   };
 
 }  // namespace kagome::face
-
-#endif  // KAGOME_GENERIC_ITERATOR_HPP

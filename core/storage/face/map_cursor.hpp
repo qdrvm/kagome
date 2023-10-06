@@ -4,8 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_STORAGE_MAP_CURSOR_HPP
-#define KAGOME_STORAGE_MAP_CURSOR_HPP
+#pragma once
 
 #include <optional>
 
@@ -95,5 +94,3 @@ namespace kagome::storage::face {
   };
 
 }  // namespace kagome::storage::face
-
-#endif  // KAGOME_STORAGE_MAP_CURSOR_HPP

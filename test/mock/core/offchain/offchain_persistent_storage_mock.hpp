@@ -4,8 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_OFFCHAIN_PERSISTENT_STORAGE_MOCK_HPP
-#define KAGOME_OFFCHAIN_PERSISTENT_STORAGE_MOCK_HPP
+#pragma once
 
 #include <gmock/gmock.h>
 
@@ -39,5 +38,3 @@ namespace kagome::offchain {
   };
 
 }  // namespace kagome::offchain
-
-#endif /* KAGOME_OFFCHAIN_PERSISTENT_STORAGE_MOCK_HPP */

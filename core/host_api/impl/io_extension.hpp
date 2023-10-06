@@ -4,8 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_IO_EXTENSION_HPP
-#define KAGOME_IO_EXTENSION_HPP
+#pragma once
 
 #include <cstdint>
 
@@ -43,5 +42,3 @@ namespace kagome::host_api {
     log::Logger logger_;
   };
 }  // namespace kagome::host_api
-
-#endif  // KAGOME_IO_EXTENSION_HPP

@@ -4,8 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_CORE_COMMON_DYNAMIC_VARIANT_HPP
-#define KAGOME_CORE_COMMON_DYNAMIC_VARIANT_HPP
+#pragma once
 
 #include <functional>
 #include <type_traits>
@@ -97,5 +96,3 @@ namespace kagome::common {
   };
 
 }  // namespace kagome::common
-
-#endif  // KAGOME_CORE_COMMON_DYNAMIC_VARIANT_HPP

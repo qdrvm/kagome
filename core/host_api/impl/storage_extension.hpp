@@ -4,8 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_HOST_API_STORAGE_EXTENSION_HPP
-#define KAGOME_HOST_API_STORAGE_EXTENSION_HPP
+#pragma once
 
 #include <cstdint>
 
@@ -177,5 +176,3 @@ namespace kagome::host_api {
   };
 
 }  // namespace kagome::host_api
-
-#endif  // KAGOME_HOST_API_STORAGE_EXTENSION_HPP

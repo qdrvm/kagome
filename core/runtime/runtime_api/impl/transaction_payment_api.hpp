@@ -4,8 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_RUNTIME_IMPL_TRANSACTION_PAYMENT_API_HPP
-#define KAGOME_RUNTIME_IMPL_TRANSACTION_PAYMENT_API_HPP
+#pragma once
 
 #include "primitives/version.hpp"
 #include "runtime/runtime_api/core.hpp"
@@ -40,5 +39,3 @@ namespace kagome::runtime {
 }  // namespace kagome::runtime
 
 OUTCOME_HPP_DECLARE_ERROR(kagome::runtime, TransactionPaymentApiImpl::Error);
-
-#endif  // KAGOME_TRANSACTION_PAYMENT_API_HPP

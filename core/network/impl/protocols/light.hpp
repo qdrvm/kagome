@@ -4,8 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_NETWORK_IMPL_PROTOCOLS_LIGHT_HPP
-#define KAGOME_NETWORK_IMPL_PROTOCOLS_LIGHT_HPP
+#pragma once
 
 #include "network/adapters/light.hpp"
 #include "network/helpers/protobuf_message_read_writer.hpp"
@@ -66,5 +65,3 @@ namespace kagome::network {
     std::shared_ptr<runtime::RuntimeContextFactory> ctx_factory_;
   };
 }  // namespace kagome::network
-
-#endif  // KAGOME_NETWORK_IMPL_PROTOCOLS_LIGHT_HPP

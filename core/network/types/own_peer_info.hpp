@@ -4,8 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_CORE_NETWORK_TYPES_OWNPEERINFO
-#define KAGOME_CORE_NETWORK_TYPES_OWNPEERINFO
+#pragma once
 
 #include <gsl/span>
 #include <libp2p/crypto/key_marshaller.hpp>
@@ -53,5 +52,3 @@ namespace kagome::network {
   };
 
 }  // namespace kagome::network
-
-#endif  // KAGOME_CORE_NETWORK_TYPES_OWNPEERINFO

@@ -4,8 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_SAFE_OBJECT_HPP
-#define KAGOME_SAFE_OBJECT_HPP
+#pragma once
 
 #include <chrono>
 #include <condition_variable>
@@ -112,5 +111,3 @@ class WaitForSingleObject final {
     wait_cv_.notify_one();
   }
 };
-
-#endif  // KAGOME_SAFE_OBJECT_HPP

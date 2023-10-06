@@ -4,8 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_CORE_API_SERVICE_CHILD_STATE_REQUESTS_GET_KEYS_HPP
-#define KAGOME_CORE_API_SERVICE_CHILD_STATE_REQUESTS_GET_KEYS_HPP
+#pragma once
 
 #include <optional>
 
@@ -46,5 +45,3 @@ namespace kagome::api::child_state::request {
   };
 
 }  // namespace kagome::api::child_state::request
-
-#endif  // KAGOME_CORE_API_SERVICE_CHILD_STATE_REQUESTS_GET_KEYS_HPP

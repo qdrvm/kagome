@@ -4,8 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_CORE_RUNTIME_UNCOMPRESS_IF_NEEDED_HPP
-#define KAGOME_CORE_RUNTIME_UNCOMPRESS_IF_NEEDED_HPP
+#pragma once
 
 #include "common/buffer.hpp"
 
@@ -17,5 +16,3 @@ namespace kagome::runtime {
 }  // namespace kagome::runtime
 
 OUTCOME_HPP_DECLARE_ERROR(kagome::runtime, UncompressError);
-
-#endif  // KAGOME_CORE_RUNTIME_UNCOMPRESS_IF_NEEDED_HPP

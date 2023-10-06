@@ -4,8 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_RUNTIME_SYSTEM_MOCK
-#define KAGOME_RUNTIME_SYSTEM_MOCK
+#pragma once
 
 #include "runtime/runtime_api/account_nonce_api.hpp"
 
@@ -23,5 +22,3 @@ namespace kagome::runtime {
   };
 
 }  // namespace kagome::runtime
-
-#endif  // KAGOME_RUNTIME_SYSTEM_MOCK

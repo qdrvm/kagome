@@ -4,8 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_CORE_RUNTIME_WAVM_MODULE_CACHE_HPP
-#define KAGOME_CORE_RUNTIME_WAVM_MODULE_CACHE_HPP
+#pragma once
 
 #include "application/app_configuration.hpp"
 
@@ -41,5 +40,3 @@ namespace kagome::runtime::wavm {
   };
 
 }  // namespace kagome::runtime::wavm
-
-#endif  // KAGOME_CORE_RUNTIME_WAVM_MODULE_CACHE_HPP

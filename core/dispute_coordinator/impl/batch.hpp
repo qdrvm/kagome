@@ -4,8 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_DISPUTE_BATCH
-#define KAGOME_DISPUTE_BATCH
+#pragma once
 
 #include <libp2p/peer/peer_id.hpp>
 
@@ -118,5 +117,3 @@ namespace kagome::dispute {
   };
 
 }  // namespace kagome::dispute
-
-#endif  // KAGOME_DISPUTE_BATCH

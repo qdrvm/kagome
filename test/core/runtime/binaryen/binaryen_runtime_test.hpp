@@ -4,8 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_RUNTIME_TEST_HPP
-#define KAGOME_RUNTIME_TEST_HPP
+#pragma once
 
 #include "core/runtime/runtime_test_base.hpp"
 
@@ -41,5 +40,3 @@ class BinaryenRuntimeTest : public RuntimeTestBase {
     return module_factory;
   }
 };
-
-#endif  // KAGOME_RUNTIME_TEST_HPP

@@ -4,8 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_API_AUTHOR_REQUEST_PENDINGEXTRINSICS
-#define KAGOME_API_AUTHOR_REQUEST_PENDINGEXTRINSICS
+#pragma once
 
 #include "api/service/base_request.hpp"
 #include "primitives/extrinsic.hpp"
@@ -34,5 +33,3 @@ namespace kagome::api::author::request {
   };
 
 }  // namespace kagome::api::author::request
-
-#endif  // KAGOME_API_AUTHOR_REQUEST_PENDINGEXTRINSICS

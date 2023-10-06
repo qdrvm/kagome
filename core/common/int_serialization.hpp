@@ -4,8 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_CORE_CRYPTO_MP_UTILS_HPP
-#define KAGOME_CORE_CRYPTO_MP_UTILS_HPP
+#pragma once
 
 #include <boost/multiprecision/cpp_int.hpp>
 #include <gsl/span>
@@ -34,5 +33,3 @@ namespace kagome::common {
   uint256_t be_bytes_to_uint256(gsl::span<const uint8_t, 32> bytes);
 
 }  // namespace kagome::common
-
-#endif  // KAGOME_CORE_CRYPTO_MP_UTILS_HPP

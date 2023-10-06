@@ -4,8 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_CRYPTO_SESSION_KEYS_HPP
-#define KAGOME_CRYPTO_SESSION_KEYS_HPP
+#pragma once
 
 #include "common/blob.hpp"
 #include "crypto/crypto_store/key_type.hpp"
@@ -122,5 +121,3 @@ namespace kagome::crypto {
   };
 
 }  // namespace kagome::crypto
-
-#endif  // KAGOME_CRYPTO_SESSION_KEYS_HPP

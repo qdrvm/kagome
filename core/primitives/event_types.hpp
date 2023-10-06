@@ -4,8 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_CORE_PRIMITIVES_EVENT_TYPES_HPP
-#define KAGOME_CORE_PRIMITIVES_EVENT_TYPES_HPP
+#pragma once
 
 #include <cstdint>
 #include <memory>
@@ -263,5 +262,3 @@ namespace kagome::primitives::events {
   using ExtrinsicEventSubscriberPtr = std::shared_ptr<ExtrinsicEventSubscriber>;
 
 }  // namespace kagome::primitives::events
-
-#endif  // KAGOME_CORE_PRIMITIVES_EVENT_TYPES_HPP

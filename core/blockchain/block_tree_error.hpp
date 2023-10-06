@@ -4,8 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_BLOCK_TREE_ERROR_HPP
-#define KAGOME_BLOCK_TREE_ERROR_HPP
+#pragma once
 
 #include <outcome/outcome.hpp>
 
@@ -41,5 +40,3 @@ namespace kagome::blockchain {
 }  // namespace kagome::blockchain
 
 OUTCOME_HPP_DECLARE_ERROR(kagome::blockchain, BlockTreeError)
-
-#endif  // KAGOME_BLOCK_TREE_ERROR_HPP

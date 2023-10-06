@@ -4,8 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_CORE_AUTHORSHIP_BLOCK_BUILDER_HPP
-#define KAGOME_CORE_AUTHORSHIP_BLOCK_BUILDER_HPP
+#pragma once
 
 #include "primitives/block.hpp"
 #include "primitives/extrinsic.hpp"
@@ -44,5 +43,3 @@ namespace kagome::authorship {
   };
 
 }  // namespace kagome::authorship
-
-#endif  // KAGOME_CORE_AUTHORSHIP_BLOCK_BUILDER_HPP

@@ -4,8 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_UTILS_JSON_UNQUOTE_HPP
-#define KAGOME_UTILS_JSON_UNQUOTE_HPP
+#pragma once
 
 #include <cstddef>
 #include <optional>
@@ -41,5 +40,3 @@ namespace kagome {
     return std::nullopt;
   }
 }  // namespace kagome
-
-#endif  // KAGOME_UTILS_JSON_UNQUOTE_HPP

@@ -4,8 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_CORE_API_SERVICE_STATE_REQUESTS_CALL_HPP
-#define KAGOME_CORE_API_SERVICE_STATE_REQUESTS_CALL_HPP
+#pragma once
 
 #include <jsonrpc-lean/request.h>
 
@@ -44,5 +43,3 @@ namespace kagome::api::state::request {
   };
 
 }  // namespace kagome::api::state::request
-
-#endif  // KAGOME_CORE_API_SERVICE_STATE_REQUESTS_CALL_HPP

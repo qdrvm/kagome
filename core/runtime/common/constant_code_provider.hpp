@@ -4,8 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_CORE_RUNTIME_COMMON_CONST_WASM_PROVIDER
-#define KAGOME_CORE_RUNTIME_COMMON_CONST_WASM_PROVIDER
+#pragma once
 
 #include "runtime/runtime_code_provider.hpp"
 
@@ -26,5 +25,3 @@ namespace kagome::runtime {
   };
 
 }  // namespace kagome::runtime
-
-#endif  // KAGOME_CORE_RUNTIME_COMMON_CONST_WASM_PROVIDER

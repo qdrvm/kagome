@@ -4,8 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_WRITE_BATCH_HPP
-#define KAGOME_WRITE_BATCH_HPP
+#pragma once
 
 #include "storage/face/writeable.hpp"
 
@@ -31,5 +30,3 @@ namespace kagome::storage::face {
   };
 
 }  // namespace kagome::storage::face
-
-#endif  // KAGOME_WRITE_BATCH_HPP

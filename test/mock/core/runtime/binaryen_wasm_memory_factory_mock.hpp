@@ -4,8 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_BINARYEN_WASM_MEMORY_FACTORY_MOCK_HPP
-#define KAGOME_BINARYEN_WASM_MEMORY_FACTORY_MOCK_HPP
+#pragma once
 
 #include "runtime/binaryen/binaryen_memory_factory.hpp"
 
@@ -25,5 +24,3 @@ namespace kagome::runtime::binaryen {
   };
 
 }  // namespace kagome::runtime::binaryen
-
-#endif  // KAGOME_BINARYEN_WASM_MEMORY_FACTORY_MOCK_HPP

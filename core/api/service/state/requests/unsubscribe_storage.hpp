@@ -4,8 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_API_REQUEST_UNSUBSCRIBE_STORAGE
-#define KAGOME_API_REQUEST_UNSUBSCRIBE_STORAGE
+#pragma once
 
 #include <jsonrpc-lean/request.h>
 
@@ -39,5 +38,3 @@ namespace kagome::api::state::request {
   };
 
 }  // namespace kagome::api::state::request
-
-#endif  // KAGOME_API_REQUEST_UNSUBSCRIBE_STORAGE

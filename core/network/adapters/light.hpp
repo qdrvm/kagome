@@ -4,8 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_NETWORK_ADAPTERS_LIGHT_HPP
-#define KAGOME_NETWORK_ADAPTERS_LIGHT_HPP
+#pragma once
 
 #include "common/bytestr.hpp"
 #include "network/adapters/protobuf.hpp"
@@ -160,5 +159,3 @@ namespace kagome::network {
   };
 
 }  // namespace kagome::network
-
-#endif  // KAGOME_NETWORK_ADAPTERS_LIGHT_HPP

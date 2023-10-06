@@ -4,8 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_NETWORK_STATEPROTOCOLIMPL
-#define KAGOME_NETWORK_STATEPROTOCOLIMPL
+#pragma once
 
 #include "network/protocols/state_protocol.hpp"
 
@@ -79,5 +78,3 @@ namespace kagome::network {
   };
 
 }  // namespace kagome::network
-
-#endif  // KAGOME_NETWORK_STATEPROTOCOLIMPL

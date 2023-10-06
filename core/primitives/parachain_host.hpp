@@ -4,8 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_CORE_PRIMITIVES_PARACHAIN_HOST_HPP
-#define KAGOME_CORE_PRIMITIVES_PARACHAIN_HOST_HPP
+#pragma once
 
 #include <cstdint>
 #include <vector>
@@ -50,5 +49,3 @@ namespace kagome::primitives::parachain {
    */
   using DutyRoster = std::vector<Chain>;
 }  // namespace kagome::primitives::parachain
-
-#endif  // KAGOME_CORE_PRIMITIVES_PARACHAIN_HOST_HPP

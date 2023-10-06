@@ -6,8 +6,7 @@
 
 #include "dispute_coordinator/chain_scraper.hpp"
 
-#ifndef KAGOME_DISPUTE_SCRAPEDCANDIDATES
-#define KAGOME_DISPUTE_SCRAPEDCANDIDATES
+#pragma once
 
 namespace kagome::dispute {
 
@@ -39,5 +38,3 @@ namespace kagome::dispute {
   };
 
 }  // namespace kagome::dispute
-
-#endif  // KAGOME_DISPUTE_SCRAPEDCANDIDATES

@@ -4,8 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_STATE_PROTOCOL_OBSERVER_HPP
-#define KAGOME_STATE_PROTOCOL_OBSERVER_HPP
+#pragma once
 
 #include <outcome/outcome.hpp>
 #include "network/types/state_request.hpp"
@@ -28,5 +27,3 @@ namespace kagome::network {
         const StateRequest &request) const = 0;
   };
 }  // namespace kagome::network
-
-#endif  // KAGOME_STATE_PROTOCOL_OBSERVER_HPP

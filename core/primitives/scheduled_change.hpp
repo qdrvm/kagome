@@ -4,8 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_CORE_PRIMITIVES_SCHEDULED_CHANGE
-#define KAGOME_CORE_PRIMITIVES_SCHEDULED_CHANGE
+#pragma once
 
 #include "consensus/timeline/types.hpp"
 #include "primitives/authority.hpp"
@@ -75,5 +74,3 @@ namespace kagome::primitives {
   };
 
 }  // namespace kagome::primitives
-
-#endif  // KAGOME_CORE_PRIMITIVES_SCHEDULED_CHANGE

@@ -4,8 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_TEST_MOCK_CORE_RUNTIME_WASM_PROVIDER_MOCK
-#define KAGOME_TEST_MOCK_CORE_RUNTIME_WASM_PROVIDER_MOCK
+#pragma once
 
 #include "runtime/runtime_code_provider.hpp"
 
@@ -19,5 +18,3 @@ namespace kagome::runtime {
   };
 
 }  // namespace kagome::runtime
-
-#endif  // KAGOME_TEST_MOCK_CORE_RUNTIME_WASM_PROVIDER_MOCK

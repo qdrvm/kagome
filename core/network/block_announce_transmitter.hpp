@@ -4,8 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_NETWORK_BLOCKANNOUNCETRANSMITTER
-#define KAGOME_NETWORK_BLOCKANNOUNCETRANSMITTER
+#pragma once
 
 #include "network/types/block_announce.hpp"
 
@@ -24,5 +23,3 @@ namespace kagome::network {
     virtual void blockAnnounce(network::BlockAnnounce &&announce) = 0;
   };
 }  // namespace kagome::network
-
-#endif  // KAGOME_NETWORK_BLOCKANNOUNCETRANSMITTER

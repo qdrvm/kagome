@@ -4,8 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_SR25519_UTILS_HPP
-#define KAGOME_SR25519_UTILS_HPP
+#pragma once
 
 #include "crypto/sr25519_types.hpp"
 
@@ -29,5 +28,3 @@ kagome::crypto::Sr25519Keypair generateSr25519Keypair() {
             keypair.public_key.begin());
   return keypair;
 }
-
-#endif  // KAGOME_SR25519_UTILS_HPP

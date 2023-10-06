@@ -4,8 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_APPLICATION_PRINTCHAININFOMODE
-#define KAGOME_APPLICATION_PRINTCHAININFOMODE
+#pragma once
 
 #include "application/mode.hpp"
 
@@ -38,5 +37,3 @@ namespace kagome::application::mode {
     std::shared_ptr<blockchain::BlockTree> block_tree_;
   };
 }  // namespace kagome::application::mode
-
-#endif  // KAGOME_APPLICATION_PRINTCHAININFOMODE

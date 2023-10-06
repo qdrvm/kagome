@@ -4,8 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_STORAGE_TRIE_RAW_CURSOR_HPP
-#define KAGOME_STORAGE_TRIE_RAW_CURSOR_HPP
+#pragma once
 
 #include "storage/trie/child_prefix.hpp"
 #include "storage/trie/polkadot_trie/trie_node.hpp"
@@ -115,5 +114,3 @@ namespace kagome::storage::trie {
     std::optional<common::Hash256> value_child;
   };
 }  // namespace kagome::storage::trie
-
-#endif  // KAGOME_STORAGE_TRIE_RAW_CURSOR_HPP

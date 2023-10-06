@@ -4,8 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_API_RPC_RPCJRPCPROCESSOR
-#define KAGOME_API_RPC_RPCJRPCPROCESSOR
+#pragma once
 
 #include "api/jrpc/jrpc_processor.hpp"
 
@@ -28,4 +27,3 @@ namespace kagome::api::rpc {
   };
 
 }  // namespace kagome::api::rpc
-#endif  // KAGOME_API_RPC_RPCJRPCPROCESSOR

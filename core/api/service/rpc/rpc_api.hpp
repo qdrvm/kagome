@@ -4,8 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_API_RPCAPI
-#define KAGOME_API_RPCAPI
+#pragma once
 
 #include "api/service/api_service.hpp"
 #include "outcome/outcome.hpp"
@@ -20,5 +19,3 @@ namespace kagome::api {
   };
 
 }  // namespace kagome::api
-
-#endif  // KAGOME_API_RPCAPI

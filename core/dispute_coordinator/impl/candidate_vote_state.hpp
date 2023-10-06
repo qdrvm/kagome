@@ -4,8 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_DISPUTE_CANDIDATEVOTESTATE
-#define KAGOME_DISPUTE_CANDIDATEVOTESTATE
+#pragma once
 
 #include "dispute_coordinator/types.hpp"
 
@@ -32,5 +31,3 @@ namespace kagome::dispute {
   };
 
 }  // namespace kagome::dispute
-
-#endif  // KAGOME_DISPUTE_CANDIDATEVOTESTATE

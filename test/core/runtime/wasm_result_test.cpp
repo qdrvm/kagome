@@ -4,9 +4,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_TEST_CORE_RUNTIME_WASM_RESULT_TEST_CPP
-#define KAGOME_TEST_CORE_RUNTIME_WASM_RESULT_TEST_CPP
-
 #include "runtime/ptr_size.hpp"
 
 #include <cstdint>
@@ -47,5 +44,3 @@ INSTANTIATE_TEST_SUITE_P(WasmResultTestCases,
                                            TestCase{4294967296, {0, 1}},
                                            TestCase{9223372036854775807ll,
                                                     {4294967295, 2147483647}}));
-
-#endif  // KAGOME_TEST_CORE_RUNTIME_WASM_RESULT_TEST_CPP

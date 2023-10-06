@@ -5,8 +5,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_GMOCK_ACTIONS_HPP
-#define KAGOME_GMOCK_ACTIONS_HPP
+#pragma once
 
 #include <gmock/gmock.h>
 #include <boost/system/error_code.hpp>
@@ -74,5 +73,3 @@ ACTION_P(UpgradeToSecureOutbound, do_upgrade) {
 ACTION_P(UpgradeToMuxed, do_upgrade) {
   arg1(do_upgrade(arg0));
 }
-
-#endif  // KAGOME_GMOCK_ACTIONS_HPP

@@ -4,8 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_REQ_POV_OBSERVER_HPP
-#define KAGOME_REQ_POV_OBSERVER_HPP
+#pragma once
 
 #include "primitives/common.hpp"
 
@@ -23,5 +22,3 @@ namespace kagome::network {
     virtual outcome::result<ResponsePov> OnPovRequest(RequestPov request) = 0;
   };
 }  // namespace kagome::network
-
-#endif  // KAGOME_REQ_POV_OBSERVER_HPP

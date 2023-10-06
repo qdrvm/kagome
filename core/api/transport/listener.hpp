@@ -4,8 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_CORE_API_TRANSPORT_LISTENER_HPP
-#define KAGOME_CORE_API_TRANSPORT_LISTENER_HPP
+#pragma once
 
 #include <boost/asio/ip/tcp.hpp>
 #include <memory>
@@ -59,5 +58,3 @@ namespace kagome::api {
     virtual void acceptOnce() = 0;
   };
 }  // namespace kagome::api
-
-#endif  // KAGOME_CORE_API_TRANSPORT_LISTENER_IMPL_HPP

@@ -4,8 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_DISPUTE_DISPUTECOORDINATORMOCK
-#define KAGOME_DISPUTE_DISPUTECOORDINATORMOCK
+#pragma once
 
 #include "dispute_coordinator/dispute_coordinator.hpp"
 
@@ -54,5 +53,3 @@ namespace kagome::dispute {
                 (override));
   };
 }  // namespace kagome::dispute
-
-#endif  // KAGOME_DISPUTE_DISPUTECOORDINATORMOCK

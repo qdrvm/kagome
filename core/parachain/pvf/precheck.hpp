@@ -4,8 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_PARACHAIN_PVF_PRECHECK_HPP
-#define KAGOME_PARACHAIN_PVF_PRECHECK_HPP
+#pragma once
 
 #include <unordered_set>
 
@@ -67,5 +66,3 @@ namespace kagome::parachain {
     log::Logger logger_ = log::createLogger("PvfPrecheck", "parachain");
   };
 }  // namespace kagome::parachain
-
-#endif  // KAGOME_PARACHAIN_PVF_PRECHECK_HPP

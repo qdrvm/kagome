@@ -4,8 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_CORE_STORAGE_TRIE_BUFFER_STREAM
-#define KAGOME_CORE_STORAGE_TRIE_BUFFER_STREAM
+#pragma once
 
 #include <gsl/span>
 
@@ -41,5 +40,3 @@ namespace kagome::storage::trie {
     gsl::span<const uint8_t> data_;
   };
 }  // namespace kagome::storage::trie
-
-#endif  // KAGOME_CORE_STORAGE_TRIE_BUFFER_STREAM

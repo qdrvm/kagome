@@ -4,8 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_TEST_CORE_API_CLIENT_HTTP_CLIENT_HPP
-#define KAGOME_TEST_CORE_API_CLIENT_HTTP_CLIENT_HPP
+#pragma once
 
 #include <boost/asio.hpp>
 #include <boost/beast.hpp>
@@ -84,5 +83,3 @@ namespace test {
 }  // namespace test
 
 OUTCOME_HPP_DECLARE_ERROR(test, HttpClientError)
-
-#endif  // KAGOME_TEST_CORE_API_CLIENT_HTTP_CLIENT_HPP

@@ -4,8 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_OFFCHAIN_WORKER_POOL_HPP
-#define KAGOME_OFFCHAIN_WORKER_POOL_HPP
+#pragma once
 
 #include "offchain/offchain_worker.hpp"
 
@@ -22,5 +21,3 @@ namespace kagome::offchain {
     virtual bool removeWorker() = 0;
   };
 }  // namespace kagome::offchain
-
-#endif /* KAGOME_OFFCHAIN_WORKER_POOL_HPP */

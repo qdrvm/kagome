@@ -4,8 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_CHAIN_SPEC_HPP
-#define KAGOME_CHAIN_SPEC_HPP
+#pragma once
 
 #include <libp2p/peer/peer_info.hpp>
 #include <set>
@@ -99,5 +98,3 @@ namespace kagome::application {
   };
 
 }  // namespace kagome::application
-
-#endif  // KAGOME_CHAIN_SPEC_HPP

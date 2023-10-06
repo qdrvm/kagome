@@ -4,8 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_PROPOSER_MOCK_HPP
-#define KAGOME_PROPOSER_MOCK_HPP
+#pragma once
 
 #include "authorship/proposer.hpp"
 
@@ -24,5 +23,3 @@ namespace kagome::authorship {
                 (override));
   };
 }  // namespace kagome::authorship
-
-#endif  // KAGOME_PROPOSER_MOCK_HPP

@@ -4,8 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_CONTAINERS_OBJECTS_CACHE_HPP
-#define KAGOME_CONTAINERS_OBJECTS_CACHE_HPP
+#pragma once
 
 #include <memory>
 #include <mutex>
@@ -198,5 +197,3 @@ namespace tools::containers {
 #endif  // KAGOME_INSERT_RAW_CACHE
 
 }  // namespace tools::containers
-
-#endif  // KAGOME_CONTAINERS_OBJECTS_CACHE_HPP

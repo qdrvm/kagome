@@ -4,8 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_STORAGE_POLKADOT_TRIE_SERIALIZER
-#define KAGOME_STORAGE_POLKADOT_TRIE_SERIALIZER
+#pragma once
 
 #include "outcome/outcome.hpp"
 #include "storage/trie/polkadot_trie/polkadot_trie.hpp"
@@ -70,5 +69,3 @@ namespace kagome::storage::trie {
   };
 
 }  // namespace kagome::storage::trie
-
-#endif  // KAGOME_STORAGE_POLKADOT_TRIE_SERIALIZER

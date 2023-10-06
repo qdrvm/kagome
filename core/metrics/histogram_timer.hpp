@@ -4,8 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_METRICS_HISTOGRAM_TIMER_HPP
-#define KAGOME_METRICS_HISTOGRAM_TIMER_HPP
+#pragma once
 
 #include <gsl/gsl_util>
 
@@ -74,5 +73,3 @@ namespace kagome::metrics {
     }
   };
 }  // namespace kagome::metrics
-
-#endif  // KAGOME_METRICS_HISTOGRAM_TIMER_HPP

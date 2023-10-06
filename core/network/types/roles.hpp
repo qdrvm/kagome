@@ -4,8 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_CORE_NETWORK_TYPES_ROLES_HPP
-#define KAGOME_CORE_NETWORK_TYPES_ROLES_HPP
+#pragma once
 
 #include "scale/tie.hpp"
 
@@ -51,5 +50,3 @@ namespace kagome::network {
     return to_string(r.value);
   }
 }  // namespace kagome::network
-
-#endif  // KAGOME_CORE_NETWORK_TYPES_ROLES_HPP

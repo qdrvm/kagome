@@ -4,8 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_NETWORK_PEERMANAGERMOCK
-#define KAGOME_NETWORK_PEERMANAGERMOCK
+#pragma once
 
 #include "network/peer_manager.hpp"
 
@@ -76,5 +75,3 @@ namespace kagome::network {
   };
 
 }  // namespace kagome::network
-
-#endif  // KAGOME_NETWORK_PEERMANAGERMOCK

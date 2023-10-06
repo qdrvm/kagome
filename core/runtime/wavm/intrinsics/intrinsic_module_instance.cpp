@@ -32,7 +32,7 @@ namespace kagome::runtime::wavm {
   }
 
   WAVM::Runtime::Function *IntrinsicModuleInstance::getExportedFunction(
-      const std::string &name, WAVM const ::IR::FunctionType &type) const {
+      const std::string &name, const WAVM::IR::FunctionType &type) const {
     // discard 'intrinsic' calling convention
     WAVM::IR::FunctionType wasm_type{type.results(), type.params()};
     return getTypedInstanceExport(module_instance_, name.data(), wasm_type);

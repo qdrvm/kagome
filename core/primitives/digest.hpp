@@ -4,8 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_CORE_PRIMITIVES_DIGEST
-#define KAGOME_CORE_PRIMITIVES_DIGEST
+#pragma once
 
 #include <boost/variant.hpp>
 
@@ -198,5 +197,3 @@ namespace kagome::primitives {
   using Digest = common::SLVector<DigestItem, kMaxItemsInDigest>;
 
 }  // namespace kagome::primitives
-
-#endif  // KAGOME_CORE_PRIMITIVES_DIGEST

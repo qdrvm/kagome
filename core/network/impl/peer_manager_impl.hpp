@@ -4,8 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_NETWORK_PEERMANAGERIMPL
-#define KAGOME_NETWORK_PEERMANAGERIMPL
+#pragma once
 
 #include "network/peer_manager.hpp"
 
@@ -215,5 +214,3 @@ namespace kagome::network {
 }  // namespace kagome::network
 
 OUTCOME_HPP_DECLARE_ERROR(kagome::network, PeerManagerImpl::Error)
-
-#endif  // KAGOME_NETWORK_PEERMANAGERIMPL

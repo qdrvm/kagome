@@ -4,8 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_AUTHORITY_DISCOVERY_QUERY_QUERY_IMPL_HPP
-#define KAGOME_AUTHORITY_DISCOVERY_QUERY_QUERY_IMPL_HPP
+#pragma once
 
 #include "authority_discovery/query/query.hpp"
 
@@ -88,5 +87,3 @@ namespace kagome::authority_discovery {
 }  // namespace kagome::authority_discovery
 
 OUTCOME_HPP_DECLARE_ERROR(kagome::authority_discovery, QueryImpl::Error)
-
-#endif  // KAGOME_AUTHORITY_DISCOVERY_QUERY_QUERY_IMPL_HPP

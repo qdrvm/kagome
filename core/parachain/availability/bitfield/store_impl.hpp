@@ -4,8 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_PARACHAIN_AVAILABILITY_BITFIELD_STORE_IMPL_HPP
-#define KAGOME_PARACHAIN_AVAILABILITY_BITFIELD_STORE_IMPL_HPP
+#pragma once
 
 #include "log/logger.hpp"
 #include "parachain/availability/bitfield/store.hpp"
@@ -31,5 +30,3 @@ namespace kagome::parachain {
     log::Logger logger_ = log::createLogger("BitfieldStore", "parachain");
   };
 }  // namespace kagome::parachain
-
-#endif  // KAGOME_PARACHAIN_AVAILABILITY_BITFIELD_STORE_IMPL_HPP

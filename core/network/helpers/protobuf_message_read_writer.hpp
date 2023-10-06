@@ -4,8 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_PROTOBUF_MESSAGE_READ_WRITER_HPP
-#define KAGOME_PROTOBUF_MESSAGE_READ_WRITER_HPP
+#pragma once
 
 #include <functional>
 #include <memory>
@@ -97,5 +96,3 @@ namespace kagome::network {
   };
 
 }  // namespace kagome::network
-
-#endif  // KAGOME_PROTOBUF_MESSAGE_READ_WRITER_HPP

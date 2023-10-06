@@ -4,8 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_COMMON_LITERALS
-#define KAGOME_COMMON_LITERALS
+#pragma once
 
 namespace kagome::common::literals {
 
@@ -34,5 +33,3 @@ namespace kagome::common::literals {
   }
 
 }  // namespace kagome::common::literals
-
-#endif  // KAGOME_COMMON_LITERALS

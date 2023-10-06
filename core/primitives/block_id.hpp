@@ -4,8 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_CORE_PRIMITIVES_BLOCK_ID_HPP
-#define KAGOME_CORE_PRIMITIVES_BLOCK_ID_HPP
+#pragma once
 
 #include <boost/variant.hpp>
 
@@ -18,5 +17,3 @@ namespace kagome::primitives {
   /// Block id is the variant over BlockHash and BlockNumber
   using BlockId = boost::variant<BlockHash, BlockNumber>;
 }  // namespace kagome::primitives
-
-#endif  // KAGOME_CORE_PRIMITIVES_BLOCK_ID_HPP

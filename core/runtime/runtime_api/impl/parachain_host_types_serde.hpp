@@ -4,8 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_CORE_RUNTIME_IMPL_PARACHAIN_HOST_SERDE_HPP
-#define KAGOME_CORE_RUNTIME_IMPL_PARACHAIN_HOST_SERDE_HPP
+#pragma once
 
 #include "runtime/runtime_api/parachain_host_types.hpp"
 #include "scale/scale.hpp"
@@ -37,5 +36,3 @@ namespace kagome::runtime {
   ::scale::ScaleDecoderStream &operator>>(::scale::ScaleDecoderStream &s,
                                           SessionInfo &val);
 }  // namespace kagome::runtime
-
-#endif  // KAGOME_CORE_RUNTIME_IMPL_PARACHAIN_HOST_SERDE_HPP

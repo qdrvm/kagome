@@ -4,8 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_INHERENT_DATA_HPP
-#define KAGOME_INHERENT_DATA_HPP
+#pragma once
 
 #include <map>
 #include <vector>
@@ -131,5 +130,3 @@ namespace kagome::primitives {
     return s;
   }
 }  // namespace kagome::primitives
-
-#endif  // KAGOME_INHERENT_DATA_HPP

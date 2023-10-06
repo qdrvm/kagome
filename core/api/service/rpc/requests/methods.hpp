@@ -4,8 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_API_RPC_REQUEST_METHODS
-#define KAGOME_API_RPC_REQUEST_METHODS
+#pragma once
 
 #include <jsonrpc-lean/request.h>
 #include <boost/assert.hpp>
@@ -45,5 +44,3 @@ namespace kagome::api::rpc::request {
   };
 
 }  // namespace kagome::api::rpc::request
-
-#endif  // KAGOME_API_RPC_REQUEST_METHODS

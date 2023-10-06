@@ -4,8 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_TEST_MOCK_CORE_RUNTIME_WASM_MEMORY_MOCK
-#define KAGOME_TEST_MOCK_CORE_RUNTIME_WASM_MEMORY_MOCK
+#pragma once
 
 #include "runtime/memory.hpp"
 
@@ -80,5 +79,3 @@ namespace kagome::runtime {
   };
 
 }  // namespace kagome::runtime
-
-#endif  // KAGOME_TEST_MOCK_CORE_RUNTIME_WASM_MEMORY_MOCK

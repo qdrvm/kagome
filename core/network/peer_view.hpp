@@ -3,8 +3,7 @@
  * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
-#ifndef KAGOME_PEER_VIEW
-#define KAGOME_PEER_VIEW
+#pragma once
 
 #include <memory>
 #include <unordered_map>
@@ -86,5 +85,3 @@ namespace kagome::network {
   };
 
 }  // namespace kagome::network
-
-#endif  // KAGOME_PEER_VIEW

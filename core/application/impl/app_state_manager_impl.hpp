@@ -4,8 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_APP_STATE_MANAGER
-#define KAGOME_APP_STATE_MANAGER
+#pragma once
 
 #include "application/app_state_manager.hpp"
 
@@ -71,5 +70,3 @@ namespace kagome::application {
   };
 
 }  // namespace kagome::application
-
-#endif  // KAGOME_APP_STATE_MANAGER

@@ -4,8 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_CORE_PRIMITIVES_APPLY_RESULT_HPP
-#define KAGOME_CORE_PRIMITIVES_APPLY_RESULT_HPP
+#pragma once
 
 #include <boost/variant.hpp>
 
@@ -89,5 +88,3 @@ namespace kagome::primitives {
       boost::variant<DispatchOutcome, TransactionValidityError>;
 
 }  // namespace kagome::primitives
-
-#endif  // KAGOME_CORE_PRIMITIVES_APPLY_RESULT_HPP

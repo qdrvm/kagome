@@ -4,8 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_BLOCKCHAIN_INDEXER_HPP
-#define KAGOME_BLOCKCHAIN_INDEXER_HPP
+#pragma once
 
 #include "blockchain/block_tree.hpp"
 #include "storage/buffer_map_types.hpp"
@@ -259,5 +258,3 @@ namespace kagome::blockchain {
     std::map<primitives::BlockInfo, Indexed<T>> map_;
   };
 }  // namespace kagome::blockchain
-
-#endif  // KAGOME_BLOCKCHAIN_INDEXER_HPP

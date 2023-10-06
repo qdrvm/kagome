@@ -4,8 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_NETWORK_REQCOLLATIONPROTOCOL
-#define KAGOME_NETWORK_REQCOLLATIONPROTOCOL
+#pragma once
 
 #include "network/protocol_base.hpp"
 
@@ -64,5 +63,3 @@ namespace kagome::network {
   };
 
 }  // namespace kagome::network
-
-#endif  // KAGOME_NETWORK_REQCOLLATIONPROTOCOL

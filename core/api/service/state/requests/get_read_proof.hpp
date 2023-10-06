@@ -4,8 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_API_SERVICE_STATE_REQUESTS_GET_READ_PROOF_HPP
-#define KAGOME_API_SERVICE_STATE_REQUESTS_GET_READ_PROOF_HPP
+#pragma once
 
 #include "api/service/base_request.hpp"
 
@@ -61,5 +60,3 @@ namespace kagome::api::state::request {
     std::shared_ptr<StateApi> api_;
   };
 }  // namespace kagome::api::state::request
-
-#endif  // KAGOME_API_SERVICE_STATE_REQUESTS_GET_READ_PROOF_HPP

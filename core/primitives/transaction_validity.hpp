@@ -4,8 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_CORE_PRIMITIVES_TRANSACTION_VALIDITY_HPP
-#define KAGOME_CORE_PRIMITIVES_TRANSACTION_VALIDITY_HPP
+#pragma once
 
 #include <cstdint>
 #include <vector>
@@ -203,5 +202,3 @@ namespace kagome::primitives {
 
 OUTCOME_HPP_DECLARE_ERROR(kagome::primitives, InvalidTransaction)
 OUTCOME_HPP_DECLARE_ERROR(kagome::primitives, UnknownTransaction)
-
-#endif  // KAGOME_CORE_PRIMITIVES_TRANSACTION_VALIDITY_HPP

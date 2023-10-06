@@ -4,8 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_RUNTIME_MODULEFACTORYMOCK
-#define KAGOME_RUNTIME_MODULEFACTORYMOCK
+#pragma once
 
 #include "runtime/module_factory.hpp"
 
@@ -23,5 +22,3 @@ namespace kagome::runtime {
                 (const, override));
   };
 }  // namespace kagome::runtime
-
-#endif  // KAGOME_RUNTIME_MODULEFACTORYMOCK

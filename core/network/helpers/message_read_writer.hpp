@@ -4,8 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_MESSAGE_READ_WRITER_HPP
-#define KAGOME_MESSAGE_READ_WRITER_HPP
+#pragma once
 
 #include <boost/assert.hpp>
 #include <boost/system/error_code.hpp>
@@ -131,5 +130,3 @@ namespace kagome::network {
   };
 
 }  // namespace kagome::network
-
-#endif  // KAGOME_SCALE_MESSAGE_READ_WRITER_HPP

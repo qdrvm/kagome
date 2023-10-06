@@ -4,8 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_NETWORK_GRANDPATRANSMITTERIMPL
-#define KAGOME_NETWORK_GRANDPATRANSMITTERIMPL
+#pragma once
 
 #include "network/grandpa_transmitter.hpp"
 
@@ -39,5 +38,3 @@ namespace kagome::network {
   };
 
 }  // namespace kagome::network
-
-#endif  // KAGOME_NETWORK_GRANDPATRANSMITTERIMPL

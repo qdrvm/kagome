@@ -4,8 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_POOL_MODERATOR_IMPL_HPP
-#define KAGOME_POOL_MODERATOR_IMPL_HPP
+#pragma once
 
 #include "transaction_pool/pool_moderator.hpp"
 
@@ -68,5 +67,3 @@ namespace kagome::transaction_pool {
   };
 
 }  // namespace kagome::transaction_pool
-
-#endif  // KAGOME_POOL_MODERATOR_IMPL_HPP

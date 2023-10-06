@@ -4,8 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_BLOCKCHAIN_DIGESTSTRACKERMOCK
-#define KAGOME_BLOCKCHAIN_DIGESTSTRACKERMOCK
+#pragma once
 
 #include "blockchain/digest_tracker.hpp"
 
@@ -23,5 +22,3 @@ namespace kagome::blockchain {
     MOCK_METHOD(void, cancel, (const primitives::BlockInfo &), (override));
   };
 }  // namespace kagome::blockchain
-
-#endif  // KAGOME_BLOCKCHAIN_DIGESTSTRACKERMOCK

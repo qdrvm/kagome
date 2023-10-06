@@ -4,8 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_NETWORK_HELPERS_STREAM_PROXY_BASE_HPP
-#define KAGOME_NETWORK_HELPERS_STREAM_PROXY_BASE_HPP
+#pragma once
 
 #include <libp2p/connection/stream.hpp>
 
@@ -82,5 +81,3 @@ namespace libp2p::connection {
     }
   };
 }  // namespace libp2p::connection
-
-#endif  // KAGOME_NETWORK_HELPERS_STREAM_PROXY_BASE_HPP

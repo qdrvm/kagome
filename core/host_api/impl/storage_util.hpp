@@ -4,8 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_STORAGE_UTIL_HPP
-#define KAGOME_STORAGE_UTIL_HPP
+#pragma once
 
 #include "runtime/types.hpp"
 #include "storage/trie/types.hpp"
@@ -19,4 +18,3 @@ namespace kagome::host_api::detail {
       kagome::runtime::WasmI32 state_version_int);
 
 }  // namespace kagome::host_api::detail
-#endif  // KAGOME_STORAGE_UTIL_HPP

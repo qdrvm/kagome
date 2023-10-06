@@ -4,8 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_CORE_INJECTOR_GET_GENESIS_STATE_HPP
-#define KAGOME_CORE_INJECTOR_GET_GENESIS_STATE_HPP
+#pragma once
 
 #include "application/chain_spec.hpp"
 #include "runtime/runtime_api/impl/core.hpp"
@@ -50,5 +49,3 @@ namespace kagome::injector {
     return trie_hash;
   }
 }  // namespace kagome::injector
-
-#endif  // KAGOME_CORE_INJECTOR_GET_GENESIS_STATE_HPP

@@ -4,8 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_TRANSACTION_HPP
-#define KAGOME_TRANSACTION_HPP
+#pragma once
 
 #include "common/blob.hpp"
 #include "primitives/extrinsic.hpp"
@@ -68,5 +67,3 @@ namespace kagome::primitives {
   }
 
 }  // namespace kagome::primitives
-
-#endif  // KAGOME_TRANSACTION_HPP

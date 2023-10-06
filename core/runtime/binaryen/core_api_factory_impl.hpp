@@ -4,8 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_CORE_RUNTIME_BINARYEN_CORE_API_FACTORY_IMPL_HPP
-#define KAGOME_CORE_RUNTIME_BINARYEN_CORE_API_FACTORY_IMPL_HPP
+#pragma once
 
 #include "runtime/core_api_factory.hpp"
 #include "runtime/runtime_api/core.hpp"
@@ -50,5 +49,3 @@ namespace kagome::runtime::binaryen {
   };
 
 }  // namespace kagome::runtime::binaryen
-
-#endif  // KAGOME_CORE_RUNTIME_BINARYEN_CORE_API_FACTORY_IMPL_HPP

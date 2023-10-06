@@ -4,8 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_NETWORK_SYNCHRONIZER
-#define KAGOME_NETWORK_SYNCHRONIZER
+#pragma once
 
 #include <libp2p/peer/peer_id.hpp>
 
@@ -58,5 +57,3 @@ namespace kagome::network {
   };
 
 }  // namespace kagome::network
-
-#endif  // KAGOME_NETWORK_SYNCHRONIZER

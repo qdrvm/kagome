@@ -4,8 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_BIP39_TYPES_HPP
-#define KAGOME_BIP39_TYPES_HPP
+#pragma once
 
 #include "common/blob.hpp"
 #include "common/buffer.hpp"
@@ -33,5 +32,3 @@ namespace kagome::crypto::bip39 {
     }
   };
 }  // namespace kagome::crypto::bip39
-
-#endif  // KAGOME_BIP39_TYPES_HPP

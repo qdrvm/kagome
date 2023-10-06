@@ -4,8 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_DISPUTE_STORAGEIMPL
-#define KAGOME_DISPUTE_STORAGEIMPL
+#pragma once
 
 #include "dispute_coordinator/storage.hpp"
 
@@ -53,5 +52,3 @@ namespace kagome::dispute {
         candidate_votes_{};
   };
 }  // namespace kagome::dispute
-
-#endif  // KAGOME_DISPUTE_STORAGEIMPL

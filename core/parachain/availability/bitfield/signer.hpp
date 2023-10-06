@@ -4,8 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_PARACHAIN_AVAILABILITY_BITFIELD_SIGNER_HPP
-#define KAGOME_PARACHAIN_AVAILABILITY_BITFIELD_SIGNER_HPP
+#pragma once
 
 #include <libp2p/basic/scheduler.hpp>
 
@@ -61,5 +60,3 @@ namespace kagome::parachain {
     log::Logger logger_ = log::createLogger("BitfieldSigner", "parachain");
   };
 }  // namespace kagome::parachain
-
-#endif  // KAGOME_PARACHAIN_AVAILABILITY_BITFIELD_SIGNER_HPP

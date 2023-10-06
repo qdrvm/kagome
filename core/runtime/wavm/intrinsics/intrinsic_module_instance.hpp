@@ -4,8 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_CORE_RUNTIME_WAVM_IMPL_INTRINSIC_MODULE_INSTANCE_HPP
-#define KAGOME_CORE_RUNTIME_WAVM_IMPL_INTRINSIC_MODULE_INSTANCE_HPP
+#pragma once
 
 #include <memory>
 
@@ -42,7 +41,7 @@ namespace kagome::runtime::wavm {
 
     WAVM::Runtime::Memory *getExportedMemory() const;
     WAVM::Runtime::Function *getExportedFunction(
-        const std::string &name, WAVM const ::IR::FunctionType &type) const;
+        const std::string &name, const WAVM::IR::FunctionType &type) const;
 
    private:
     WAVM::Runtime::GCPointer<WAVM::Runtime::Instance> module_instance_;
@@ -51,5 +50,3 @@ namespace kagome::runtime::wavm {
   };
 
 }  // namespace kagome::runtime::wavm
-
-#endif  // KAGOME_CORE_RUNTIME_WAVM_IMPL_INTRINSIC_MODULE_INSTANCE_HPP

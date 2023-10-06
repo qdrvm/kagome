@@ -4,8 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_CORE_RUNTIME_PARACHAIN_HOST_TYPES_HPP
-#define KAGOME_CORE_RUNTIME_PARACHAIN_HOST_TYPES_HPP
+#pragma once
 
 #include <scale/bitvec.hpp>
 
@@ -372,4 +371,3 @@ namespace kagome::runtime {
                                        Unused<7>>;  // WasmExtBulkMemory
 
 }  // namespace kagome::runtime
-#endif  // KAGOME_CORE_RUNTIME_PARACHAIN_HOST_TYPES_HPP

@@ -4,8 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_CORE_LOG_PROFILING_LOGGER_HPP
-#define KAGOME_CORE_LOG_PROFILING_LOGGER_HPP
+#pragma once
 
 #include "log/logger.hpp"
 
@@ -75,5 +74,3 @@ namespace kagome::log {
 #define KAGOME_PROFILE_END_L(logger, scope)
 
 #endif
-
-#endif  // KAGOME_CORE_LOG_PROFILING_LOGGER_HPP

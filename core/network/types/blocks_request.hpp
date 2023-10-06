@@ -4,8 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_BLOCKS_REQUEST_HPP
-#define KAGOME_BLOCKS_REQUEST_HPP
+#pragma once
 
 #include <cstdint>
 
@@ -72,5 +71,3 @@ inline kagome::network::BlocksRequest::Fingerprint
 kagome::network::BlocksRequest::fingerprint() const {
   return std::hash<BlocksRequest>()(*this);
 }
-
-#endif  // KAGOME_BLOCKS_REQUEST_HPP

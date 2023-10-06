@@ -3,8 +3,7 @@
  * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
-#ifndef KAGOME_CRYPTO_BIP39_ENGLISH_DICTIONARY_HPP
-#define KAGOME_CRYPTO_BIP39_ENGLISH_DICTIONARY_HPP
+#pragma once
 
 #include <array>
 #include <string_view>
@@ -356,5 +355,3 @@ namespace kagome::crypto::bip39::english {
       "yellow",   "you",      "young",    "youth",    "zebra",    "zero",
       "zone",     "zoo"};
 }  // namespace kagome::crypto::bip39::english
-
-#endif  // KAGOME_CRYPTO_BIP39_ENGLISH_DICTIONARY_HPP

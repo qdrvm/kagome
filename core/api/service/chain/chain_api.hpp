@@ -4,8 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_API_CHAIN_API_HPP
-#define KAGOME_API_CHAIN_API_HPP
+#pragma once
 
 #include <boost/variant.hpp>
 
@@ -109,5 +108,3 @@ namespace kagome::api {
   };
 
 }  // namespace kagome::api
-
-#endif  // KAGOME_API_CHAIN_API_HPP

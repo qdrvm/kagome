@@ -4,8 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_APPROVAL_HPP
-#define KAGOME_APPROVAL_HPP
+#pragma once
 
 #include "common/visitor.hpp"
 #include "consensus/timeline/types.hpp"
@@ -159,5 +158,3 @@ namespace kagome::parachain::approval {
 }  // namespace kagome::parachain::approval
 
 OUTCOME_HPP_DECLARE_ERROR(kagome::parachain::approval, UnsafeVRFOutput::Error);
-
-#endif  // KAGOME_APPROVAL_HPP

@@ -4,8 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_REQ_POV_PROTOCOL_HPP
-#define KAGOME_REQ_POV_PROTOCOL_HPP
+#pragma once
 
 #include "network/protocol_base.hpp"
 
@@ -25,5 +24,3 @@ namespace kagome::network {
   };
 
 }  // namespace kagome::network
-
-#endif  // KAGOME_REQ_POV_PROTOCOL_HPP

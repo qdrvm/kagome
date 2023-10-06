@@ -4,8 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_TRANSACTION_POOL_IMPL_HPP
-#define KAGOME_TRANSACTION_POOL_IMPL_HPP
+#pragma once
 
 #include <deque>
 #include <libp2p/common/byteutil.hpp>
@@ -167,5 +166,3 @@ namespace kagome::transaction_pool {
   };
 
 }  // namespace kagome::transaction_pool
-
-#endif  // KAGOME_TRANSACTION_POOL_IMPL_HPP

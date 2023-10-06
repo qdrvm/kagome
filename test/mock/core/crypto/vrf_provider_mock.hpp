@@ -4,8 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_VRF_PROVIDER_MOCK_HPP
-#define KAGOME_VRF_PROVIDER_MOCK_HPP
+#pragma once
 
 #include <gmock/gmock.h>
 
@@ -51,5 +50,3 @@ namespace kagome::crypto {
                 (const, override));
   };
 }  // namespace kagome::crypto
-
-#endif  // KAGOME_VRF_PROVIDER_MOCK_HPP

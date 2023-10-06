@@ -4,8 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_CRYPTO_KEY_TYPE_HPP
-#define KAGOME_CRYPTO_KEY_TYPE_HPP
+#pragma once
 
 #include "common/buffer.hpp"
 #include "outcome/outcome.hpp"
@@ -67,5 +66,3 @@ namespace kagome::crypto {
 }  // namespace kagome::crypto
 
 OUTCOME_HPP_DECLARE_ERROR(kagome::crypto, KeyTypeError);
-
-#endif  // KAGOME_CRYPTO_KEY_TYPE_HPP

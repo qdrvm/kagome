@@ -4,8 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_CORE_API_RPC_THREAD_POOL_HPP
-#define KAGOME_CORE_API_RPC_THREAD_POOL_HPP
+#pragma once
 
 #include <boost/asio/io_service.hpp>
 #include <boost/asio/signal_set.hpp>
@@ -54,5 +53,3 @@ namespace kagome::api {
   };
 
 }  // namespace kagome::api
-
-#endif  // KAGOME_CORE_API_RPC_THREAD_POOL_HPP

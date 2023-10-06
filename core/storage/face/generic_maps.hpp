@@ -4,8 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_GENERIC_MAPS_HPP
-#define KAGOME_GENERIC_MAPS_HPP
+#pragma once
 
 #include "storage/face/batch_writeable.hpp"
 #include "storage/face/iterable.hpp"
@@ -33,5 +32,3 @@ namespace kagome::storage::face {
   };
 
 }  // namespace kagome::storage::face
-
-#endif  // KAGOME_GENERIC_MAPS_HPP

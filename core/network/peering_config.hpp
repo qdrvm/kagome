@@ -4,8 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_NETWORK_PEERING_CONFIG
-#define KAGOME_NETWORK_PEERING_CONFIG
+#pragma once
 
 #include <chrono>
 
@@ -29,5 +28,3 @@ namespace kagome::network {
   };
 
 }  // namespace kagome::network
-
-#endif  // KAGOME_NETWORK_PEERING_CONFIG

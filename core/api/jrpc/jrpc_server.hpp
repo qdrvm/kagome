@@ -4,8 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_API_JRPC_SERVER_HPP
-#define KAGOME_API_JRPC_SERVER_HPP
+#pragma once
 
 #include <functional>
 
@@ -80,5 +79,3 @@ namespace kagome::api {
   };
 
 }  // namespace kagome::api
-
-#endif  // KAGOME_API_JRPC_SERVER_HPP

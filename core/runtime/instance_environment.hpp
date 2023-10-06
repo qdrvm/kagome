@@ -4,8 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_CORE_RUNTIME_INSTANCE_ENVIRONMENT_HPP
-#define KAGOME_CORE_RUNTIME_INSTANCE_ENVIRONMENT_HPP
+#pragma once
 
 #include <functional>
 #include <memory>
@@ -54,5 +53,3 @@ namespace kagome::runtime {
   };
 
 }  // namespace kagome::runtime
-
-#endif  // KAGOME_CORE_RUNTIME_INSTANCE_ENVIRONMENT_HPP

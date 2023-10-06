@@ -4,8 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_CRYPTO_BIP39_DICTIONARIES_HPP
-#define KAGOME_CRYPTO_BIP39_DICTIONARIES_HPP
+#pragma once
 
 #include "crypto/bip39/entropy_accumulator.hpp"
 #include "outcome/outcome.hpp"
@@ -42,5 +41,3 @@ namespace kagome::crypto::bip39 {
 }  // namespace kagome::crypto::bip39
 
 OUTCOME_HPP_DECLARE_ERROR(kagome::crypto::bip39, DictionaryError);
-
-#endif  // KAGOME_CRYPTO_BIP39_DICTIONARIES_HPP

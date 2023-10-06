@@ -4,8 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_CORE_AUTHORSHIP_IMPL_BLOCK_BUILDER_ERROR_HPP
-#define KAGOME_CORE_AUTHORSHIP_IMPL_BLOCK_BUILDER_ERROR_HPP
+#pragma once
 
 #include "outcome/outcome.hpp"
 
@@ -20,5 +19,3 @@ namespace kagome::authorship {
 }
 
 OUTCOME_HPP_DECLARE_ERROR(kagome::authorship, BlockBuilderError)
-
-#endif  // KAGOME_CORE_AUTHORSHIP_IMPL_BLOCK_BUILDER_ERROR_HPP

@@ -4,8 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_CORE_CRYPTO_HASHER_HASHER_IMPL_HPP_
-#define KAGOME_CORE_CRYPTO_HASHER_HASHER_IMPL_HPP_
+#pragma once
 
 #include "crypto/hasher.hpp"
 
@@ -37,5 +36,3 @@ namespace kagome::crypto {
   };
 
 }  // namespace kagome::crypto
-
-#endif  // KAGOME_CORE_CRYPTO_HASHER_HASHER_IMPL_HPP_

@@ -4,8 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_SYNC_PROTOCOL_OBSERVER_IMPL
-#define KAGOME_SYNC_PROTOCOL_OBSERVER_IMPL
+#pragma once
 
 #include "network/sync_protocol_observer.hpp"
 
@@ -63,5 +62,3 @@ namespace kagome::network {
 }  // namespace kagome::network
 
 OUTCOME_HPP_DECLARE_ERROR(kagome::network, SyncProtocolObserverImpl::Error);
-
-#endif  // KAGOME_SYNC_PROTOCOL_OBSERVER_IMPL

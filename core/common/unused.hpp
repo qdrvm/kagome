@@ -4,8 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_UNUSED
-#define KAGOME_UNUSED
+#pragma once
 
 #include "common/empty.hpp"
 #include "common/tagged.hpp"
@@ -51,5 +50,3 @@ namespace kagome {
   }
 
 }  // namespace kagome
-
-#endif  // KAGOME_UNUSED

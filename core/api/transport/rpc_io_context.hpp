@@ -4,8 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_CORE_API_RPC_IO_CONTEXT_HPP
-#define KAGOME_CORE_API_RPC_IO_CONTEXT_HPP
+#pragma once
 
 #include <boost/asio/io_context.hpp>
 
@@ -17,5 +16,3 @@ namespace kagome::api {
   };
 
 }  // namespace kagome::api
-
-#endif  // KAGOME_CORE_API_RPC_IO_CONTEXT_HPP

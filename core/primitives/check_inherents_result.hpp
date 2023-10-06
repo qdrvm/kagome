@@ -4,8 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_CORE_PRIMITIVES_CHECK_INHERENTS_RESULT_HPP
-#define KAGOME_CORE_PRIMITIVES_CHECK_INHERENTS_RESULT_HPP
+#pragma once
 
 #include "primitives/inherent_data.hpp"
 
@@ -24,5 +23,3 @@ namespace kagome::primitives {
     primitives::InherentData errors;
   };
 }  // namespace kagome::primitives
-
-#endif  // KAGOME_CORE_PRIMITIVES_CHECK_INHERENTS_RESULT_HPP

@@ -4,8 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_ADAPTERS_PROTOBUF_STATE_REQUEST
-#define KAGOME_ADAPTERS_PROTOBUF_STATE_REQUEST
+#pragma once
 
 #include "network/adapters/protobuf.hpp"
 
@@ -71,5 +70,3 @@ namespace kagome::network {
   };
 
 }  // namespace kagome::network
-
-#endif  // KAGOME_ADAPTERS_PROTOBUF_STATE_REQUEST

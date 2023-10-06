@@ -4,8 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_MONADIC_UTILS_H
-#define KAGOME_MONADIC_UTILS_H
+#pragma once
 
 #include <optional>
 #include <type_traits>
@@ -106,5 +105,3 @@ namespace kagome::common {
   }
 
 }  // namespace kagome::common
-
-#endif  // KAGOME_MONADIC_UTILS_H

@@ -4,8 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_OFFCHAIN_TYPES
-#define KAGOME_OFFCHAIN_TYPES
+#pragma once
 
 #include <boost/optional.hpp>
 #include <boost/variant.hpp>
@@ -129,5 +128,3 @@ namespace kagome::offchain {
   }
 
 }  // namespace kagome::offchain
-
-#endif  // KAGOME_OFFCHAIN_TYPES

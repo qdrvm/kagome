@@ -4,8 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_OFFCHAIN_OFFCHAINWORKERFACTORYIMPL
-#define KAGOME_OFFCHAIN_OFFCHAINWORKERFACTORYIMPL
+#pragma once
 
 #include "offchain/offchain_worker_factory.hpp"
 
@@ -61,5 +60,3 @@ namespace kagome::offchain {
   };
 
 }  // namespace kagome::offchain
-
-#endif  // KAGOME_OFFCHAIN_OFFCHAINWORKERFACTORYIMPL

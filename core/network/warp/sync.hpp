@@ -4,8 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_NETWORK_WARP_SYNC_HPP
-#define KAGOME_NETWORK_WARP_SYNC_HPP
+#pragma once
 
 #include "log/logger.hpp"
 #include "network/warp/types.hpp"
@@ -101,5 +100,3 @@ namespace kagome::network {
     log::Logger log_;
   };
 }  // namespace kagome::network
-
-#endif  // KAGOME_NETWORK_WARP_SYNC_HPP

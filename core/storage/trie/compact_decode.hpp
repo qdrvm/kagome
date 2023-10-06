@@ -4,8 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_STORAGE_TRIE_COMPACT_DECODE_HPP
-#define KAGOME_STORAGE_TRIE_COMPACT_DECODE_HPP
+#pragma once
 
 #include <unordered_map>
 
@@ -27,5 +26,3 @@ namespace kagome::storage::trie {
 }  // namespace kagome::storage::trie
 
 OUTCOME_HPP_DECLARE_ERROR(kagome::storage::trie, CompactDecodeError)
-
-#endif  // KAGOME_STORAGE_TRIE_COMPACT_DECODE_HPP

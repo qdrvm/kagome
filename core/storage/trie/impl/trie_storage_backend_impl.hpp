@@ -4,8 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_STORAGE_TRIE_IMPL_TRIE_STORAGE_BACKEND
-#define KAGOME_STORAGE_TRIE_IMPL_TRIE_STORAGE_BACKEND
+#pragma once
 
 #include "common/buffer.hpp"
 #include "outcome/outcome.hpp"
@@ -37,5 +36,3 @@ namespace kagome::storage::trie {
   };
 
 }  // namespace kagome::storage::trie
-
-#endif  // KAGOME_STORAGE_TRIE_IMPL_TRIE_STORAGE_BACKEND

@@ -4,8 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_PARACHAIN_PARACHAINSINHERENTDATA
-#define KAGOME_PARACHAIN_PARACHAINSINHERENTDATA
+#pragma once
 
 #include "dispute_coordinator/types.hpp"
 #include "network/types/collator_messages.hpp"
@@ -36,5 +35,3 @@ namespace kagome::parachain {
   };
 
 }  // namespace kagome::parachain
-
-#endif  // KAGOME_PARACHAIN_PARACHAINSINHERENTDATA

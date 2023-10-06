@@ -4,8 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_TEST_TESTUTIL_LAZY_HPP_
-#define KAGOME_TEST_TESTUTIL_LAZY_HPP_
+#pragma once
 
 #include <memory>
 
@@ -29,5 +28,3 @@ namespace testutil {
   }
 
 }  // namespace testutil
-
-#endif  // KAGOME_TEST_TESTUTIL_LAZY_HPP_

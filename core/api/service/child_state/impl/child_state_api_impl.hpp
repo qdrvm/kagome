@@ -4,8 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_CHILD_STATE_API_IMPL_HPP
-#define KAGOME_CHILD_STATE_API_IMPL_HPP
+#pragma once
 
 #include "api/service/child_state/child_state_api.hpp"
 
@@ -69,5 +68,3 @@ namespace kagome::api {
   };
 
 }  // namespace kagome::api
-
-#endif  // KAGOME_CHILD_STATE_API_IMPL_HPP

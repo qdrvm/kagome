@@ -4,8 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_TRIEPRUNER_HPP
-#define KAGOME_TRIEPRUNER_HPP
+#pragma once
 
 #include <vector>
 
@@ -91,5 +90,3 @@ namespace kagome::storage::trie_pruner {
   };
 
 }  // namespace kagome::storage::trie_pruner
-
-#endif  // KAGOME_TRIEPRUNER_HPP

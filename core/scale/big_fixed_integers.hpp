@@ -4,8 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_BIG_FIXED_INTEGERS_HPP
-#define KAGOME_BIG_FIXED_INTEGERS_HPP
+#pragma once
 
 #include <type_traits>
 
@@ -145,5 +144,3 @@ namespace scale {
 #undef SPECIALIZE_INTEGER_TRAITS
 
 }  // namespace scale
-
-#endif  // KAGOME_BIG_FIXED_INTEGERS_HPP

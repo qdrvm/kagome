@@ -4,8 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_ADAPTERS_ERRORS
-#define KAGOME_ADAPTERS_ERRORS
+#pragma once
 
 #include <outcome/outcome.hpp>
 
@@ -24,5 +23,3 @@ namespace kagome::network {
 }  // namespace kagome::network
 
 OUTCOME_HPP_DECLARE_ERROR(kagome::network, AdaptersError)
-
-#endif  // KAGOME_ADAPTERS_ERRORS

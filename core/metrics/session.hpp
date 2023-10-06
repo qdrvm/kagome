@@ -4,8 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_CORE_METRICS_SESSION_HPP
-#define KAGOME_CORE_METRICS_SESSION_HPP
+#pragma once
 
 #include <boost/asio/io_context.hpp>
 #include <boost/asio/ip/tcp.hpp>
@@ -71,5 +70,3 @@ namespace kagome::metrics {
   };
 
 }  // namespace kagome::metrics
-
-#endif  // KAGOME_CORE_METRICS_SESSION_HPP

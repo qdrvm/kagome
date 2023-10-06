@@ -4,8 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_CORE_HASHER_HASHER_HPP_
-#define KAGOME_CORE_HASHER_HASHER_HPP_
+#pragma once
 
 #include "common/blob.hpp"
 #include "common/buffer.hpp"
@@ -92,5 +91,3 @@ namespace kagome::crypto {
     virtual Hash256 sha2_256(gsl::span<const uint8_t> buffer) const = 0;
   };
 }  // namespace kagome::crypto
-
-#endif  // KAGOME_CORE_HASHER_HASHER_HPP_

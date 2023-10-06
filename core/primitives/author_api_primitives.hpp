@@ -4,8 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_CORE_PRIMITIVES_EXTRINSIC_API_PRIMITIVES_HPP
-#define KAGOME_CORE_PRIMITIVES_EXTRINSIC_API_PRIMITIVES_HPP
+#pragma once
 
 #include <memory>
 
@@ -36,5 +35,3 @@ namespace kagome::primitives {
   using ExtrinsicKey = std::vector<uint8_t>;
 
 }  // namespace kagome::primitives
-
-#endif  // KAGOME_CORE_PRIMITIVES_EXTRINSIC_API_PRIMITIVES_HPP

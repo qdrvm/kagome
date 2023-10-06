@@ -4,8 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_CODEC_MOCK_HPP
-#define KAGOME_CODEC_MOCK_HPP
+#pragma once
 
 #include <gmock/gmock.h>
 
@@ -46,4 +45,3 @@ namespace kagome::storage::trie {
                 (const, override));
   };
 }  // namespace kagome::storage::trie
-#endif  // KAGOME_CODEC_MOCK_HPP

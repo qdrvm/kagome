@@ -4,8 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_PARACHAIN_PARACHAINOBSERVER
-#define KAGOME_PARACHAIN_PARACHAINOBSERVER
+#pragma once
 
 #include "network/collation_observer.hpp"
 #include "network/req_collation_observer.hpp"
@@ -20,5 +19,3 @@ namespace kagome::parachain {
                             public network::ReqPovObserver {};
 
 }  // namespace kagome::parachain
-
-#endif  // KAGOME_PARACHAIN_PARACHAINOBSERVER

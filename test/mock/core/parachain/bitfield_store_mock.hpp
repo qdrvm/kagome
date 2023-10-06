@@ -4,8 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_BITFIELD_STORE_MOCK_HPP
-#define KAGOME_BITFIELD_STORE_MOCK_HPP
+#pragma once
 
 #include <gmock/gmock.h>
 
@@ -29,5 +28,3 @@ namespace kagome::parachain {
   };
 
 }  // namespace kagome::parachain
-
-#endif /* KAGOME_BITFIELD_STORE_MOCK_HPP */

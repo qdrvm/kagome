@@ -4,8 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_DISPUTE_TYPES_HPP
-#define KAGOME_DISPUTE_TYPES_HPP
+#pragma once
 
 #include <unordered_set>
 
@@ -306,5 +305,3 @@ namespace kagome::dispute {
   };
 
 }  // namespace kagome::dispute
-
-#endif  // KAGOME_DISPUTE_TYPES_HPP

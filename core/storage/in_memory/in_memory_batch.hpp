@@ -4,8 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_IN_MEMORY_BATCH_HPP
-#define KAGOME_IN_MEMORY_BATCH_HPP
+#pragma once
 
 #include "common/buffer.hpp"
 #include "storage/in_memory/in_memory_storage.hpp"
@@ -45,5 +44,3 @@ namespace kagome::storage {
     InMemoryStorage &db;
   };
 }  // namespace kagome::storage
-
-#endif  // KAGOME_IN_MEMORY_BATCH_HPP

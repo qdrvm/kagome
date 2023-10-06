@@ -4,8 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_NETWORK_ROUTERMOCK
-#define KAGOME_NETWORK_ROUTERMOCK
+#pragma once
 
 #include "network/router.hpp"
 
@@ -95,5 +94,3 @@ namespace kagome::network {
                 (const, override));
   };
 }  // namespace kagome::network
-
-#endif  // KAGOME_NETWORK_ROUTERMOCK

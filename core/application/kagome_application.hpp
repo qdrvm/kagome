@@ -4,8 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_CORE_APPLICATION_KAGOME_APPLICATION_HPP
-#define KAGOME_CORE_APPLICATION_KAGOME_APPLICATION_HPP
+#pragma once
 
 namespace kagome::application {
 
@@ -26,5 +25,3 @@ namespace kagome::application {
     virtual void run() = 0;
   };
 }  // namespace kagome::application
-
-#endif  // KAGOME_CORE_APPLICATION_KAGOME_APPLICATION_HPP

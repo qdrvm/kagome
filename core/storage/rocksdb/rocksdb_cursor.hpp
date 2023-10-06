@@ -4,8 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_ROCKSDB_CURSOR_HPP
-#define KAGOME_ROCKSDB_CURSOR_HPP
+#pragma once
 
 #include <rocksdb/iterator.h>
 #include "storage/rocksdb/rocksdb.hpp"
@@ -39,5 +38,3 @@ namespace kagome::storage {
   };
 
 }  // namespace kagome::storage
-
-#endif  // KAGOME_ROCKSDB_CURSOR_HPP

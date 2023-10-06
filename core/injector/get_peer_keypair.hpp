@@ -4,8 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_CORE_INJECTOR_GET_PEER_KEYPAIR_HPP
-#define KAGOME_CORE_INJECTOR_GET_PEER_KEYPAIR_HPP
+#pragma once
 
 #include <fstream>
 
@@ -87,5 +86,3 @@ namespace kagome::injector {
     return key_pair;
   }
 }  // namespace kagome::injector
-
-#endif  // KAGOME_CORE_INJECTOR_GET_PEER_KEYPAIR_HPP

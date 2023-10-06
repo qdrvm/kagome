@@ -4,8 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_TAGGED
-#define KAGOME_TAGGED
+#pragma once
 
 #include <type_traits>
 #include <utility>
@@ -86,5 +85,3 @@ namespace kagome {
   }
 
 }  // namespace kagome
-
-#endif  // KAGOME_TAGGED

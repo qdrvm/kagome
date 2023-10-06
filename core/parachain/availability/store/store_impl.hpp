@@ -4,8 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_PARACHAIN_AVAILABILITY_STORE_STORE_IMPL_HPP
-#define KAGOME_PARACHAIN_AVAILABILITY_STORE_STORE_IMPL_HPP
+#pragma once
 
 #include "parachain/availability/store/store.hpp"
 
@@ -56,5 +55,3 @@ namespace kagome::parachain {
     SafeObject<State> state_{};
   };
 }  // namespace kagome::parachain
-
-#endif  // KAGOME_PARACHAIN_AVAILABILITY_STORE_STORE_IMPL_HPP

@@ -4,8 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_BIP39_PROVIDER_IMPL_HPP
-#define KAGOME_BIP39_PROVIDER_IMPL_HPP
+#pragma once
 
 #include "crypto/bip39/bip39_provider.hpp"
 #include "crypto/bip39/dictionary.hpp"
@@ -39,5 +38,3 @@ namespace kagome::crypto {
     log::Logger logger_;
   };
 }  // namespace kagome::crypto
-
-#endif  // KAGOME_BIP39_PROVIDER_IMPL_HPP

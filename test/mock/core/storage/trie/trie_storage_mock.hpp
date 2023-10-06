@@ -4,8 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_TEST_MOCK_CORE_STORAGE_TRIE_TRIE_STORAGE_MOCK
-#define KAGOME_TEST_MOCK_CORE_STORAGE_TRIE_TRIE_STORAGE_MOCK
+#pragma once
 
 #include <gmock/gmock.h>
 
@@ -32,5 +31,3 @@ namespace kagome::storage::trie {
   };
 
 }  // namespace kagome::storage::trie
-
-#endif  // KAGOME_TEST_MOCK_CORE_STORAGE_TRIE_TRIE_DB_MOCK_HPP

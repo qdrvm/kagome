@@ -4,8 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_CRYPTO_SUITES_HPP
-#define KAGOME_CRYPTO_SUITES_HPP
+#pragma once
 
 #include "crypto/ecdsa_provider.hpp"
 #include "crypto/ed25519_provider.hpp"
@@ -205,5 +204,3 @@ namespace kagome::crypto {
   };
 
 }  // namespace kagome::crypto
-
-#endif  // KAGOME_CRYPTO_SUITES_HPP

@@ -4,8 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_CORE_METRICS_IMPL_PROMETHEUS_REGISTRY_IMPL_HPP
-#define KAGOME_CORE_METRICS_IMPL_PROMETHEUS_REGISTRY_IMPL_HPP
+#pragma once
 
 #include <forward_list>
 #include <functional>
@@ -165,5 +164,3 @@ namespace kagome::metrics {
   };
 
 }  // namespace kagome::metrics
-
-#endif  // KAGOME_CORE_METRICS_IMPL_PROMETHEUS_REGISTRY_IMPL_HPP

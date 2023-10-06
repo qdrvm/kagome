@@ -4,8 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_TELEMETRY_SERVICE_MOCK_HPP
-#define KAGOME_TELEMETRY_SERVICE_MOCK_HPP
+#pragma once
 
 #include <gmock/gmock.h>
 
@@ -36,5 +35,3 @@ namespace kagome::telemetry {
     MOCK_METHOD(bool, isEnabled, (), (const override));
   };
 }  // namespace kagome::telemetry
-
-#endif  // KAGOME_TELEMETRY_SERVICE_MOCK_HPP

@@ -4,8 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_APPLICATION_DISPATCHER
-#define KAGOME_APPLICATION_DISPATCHER
+#pragma once
 
 #include "log/logger.hpp"
 
@@ -120,5 +119,3 @@ namespace kagome::application {
         : std::runtime_error("Wrong workflow at " + std::move(message)) {}
   };
 }  // namespace kagome::application
-
-#endif  // KAGOME_APPLICATION_DISPATCHER

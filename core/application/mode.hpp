@@ -4,8 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_APPLICATION_MODE
-#define KAGOME_APPLICATION_MODE
+#pragma once
 
 namespace kagome::application {
 
@@ -19,5 +18,3 @@ namespace kagome::application {
   };
 
 }  // namespace kagome::application
-
-#endif  // KAGOME_APPLICATION_MODE

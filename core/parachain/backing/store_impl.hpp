@@ -4,8 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_PARACHAIN_BACKING_STORE_IMPL_HPP
-#define KAGOME_PARACHAIN_BACKING_STORE_IMPL_HPP
+#pragma once
 
 #include "parachain/backing/store.hpp"
 
@@ -52,5 +51,3 @@ namespace kagome::parachain {
         backed_candidates_;
   };
 }  // namespace kagome::parachain
-
-#endif  // KAGOME_PARACHAIN_BACKING_STORE_IMPL_HPP

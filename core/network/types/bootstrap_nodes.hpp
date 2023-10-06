@@ -4,8 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_NETWORK_BOOTSTRAPNODES
-#define KAGOME_NETWORK_BOOTSTRAPNODES
+#pragma once
 
 #include <libp2p/peer/peer_info.hpp>
 
@@ -52,5 +51,3 @@ namespace kagome::network {
   };
 
 }  // namespace kagome::network
-
-#endif  // KAGOME_NETWORK_BOOTSTRAPNODES

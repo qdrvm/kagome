@@ -4,8 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_SPIN_LOCK_HPP
-#define KAGOME_SPIN_LOCK_HPP
+#pragma once
 
 #include <atomic>
 
@@ -56,5 +55,3 @@ namespace kagome::common {
   };
 
 }  // namespace kagome::common
-
-#endif  // KAGOME_SPIN_LOCK_HPP

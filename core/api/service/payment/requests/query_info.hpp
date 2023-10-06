@@ -4,8 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_QUERY_INFO_HPP
-#define KAGOME_QUERY_INFO_HPP
+#pragma once
 
 #include <jsonrpc-lean/request.h>
 
@@ -49,5 +48,3 @@ namespace kagome::api::payment::request {
   };
 
 }  // namespace kagome::api::payment::request
-
-#endif  // KAGOME_QUERY_INFO_HPP

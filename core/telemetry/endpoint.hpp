@@ -4,8 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_TELEMETRY_ENDPOINT_HPP
-#define KAGOME_TELEMETRY_ENDPOINT_HPP
+#pragma once
 
 #include "common/uri.hpp"
 
@@ -42,5 +41,3 @@ namespace kagome::telemetry {
     uint8_t verbosity_level_;
   };
 }  // namespace kagome::telemetry
-
-#endif  // KAGOME_TELEMETRY_ENDPOINT_HPP

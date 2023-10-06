@@ -4,8 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_NETWORK_PROTOCOLERROR
-#define KAGOME_NETWORK_PROTOCOLERROR
+#pragma once
 
 #include "outcome/outcome.hpp"
 
@@ -24,5 +23,3 @@ namespace kagome::network {
 }
 
 OUTCOME_HPP_DECLARE_ERROR(kagome::network, ProtocolError);
-
-#endif  // KAGOME_NETWORK_PROTOCOLERROR

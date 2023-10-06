@@ -4,8 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_MOCK_PARACHAIN_APPROVAL_APPROVED_ANCESTOR_HPP
-#define KAGOME_MOCK_PARACHAIN_APPROVAL_APPROVED_ANCESTOR_HPP
+#pragma once
 
 #include "parachain/approval/approved_ancestor.hpp"
 
@@ -17,5 +16,3 @@ namespace kagome::parachain {
                 (const, override));
   };
 }  // namespace kagome::parachain
-
-#endif  // KAGOME_MOCK_PARACHAIN_APPROVAL_APPROVED_ANCESTOR_HPP

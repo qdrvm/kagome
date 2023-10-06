@@ -4,8 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_NETWORK_STATE_SYNC_REQUEST_FLOW_HPP
-#define KAGOME_NETWORK_STATE_SYNC_REQUEST_FLOW_HPP
+#pragma once
 
 #include <unordered_set>
 
@@ -68,5 +67,3 @@ namespace kagome::network {
     log::Logger log_;
   };
 }  // namespace kagome::network
-
-#endif  //  KAGOME_NETWORK_STATE_SYNC_REQUEST_FLOW_HPP

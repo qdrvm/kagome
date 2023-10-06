@@ -4,8 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_PRIMITIVES_EXTRINSIC_HPP
-#define KAGOME_PRIMITIVES_EXTRINSIC_HPP
+#pragma once
 
 #include <optional>
 
@@ -28,5 +27,3 @@ namespace kagome::primitives {
     common::Buffer data;  ///< extrinsic content as byte array
   };
 }  // namespace kagome::primitives
-
-#endif  // KAGOME_PRIMITIVES_EXTRINSIC_HPP

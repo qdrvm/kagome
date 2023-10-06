@@ -4,8 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_CORE_RUNTIME_COMMON_RUNTIME_TRANSACTION_ERROR_HPP
-#define KAGOME_CORE_RUNTIME_COMMON_RUNTIME_TRANSACTION_ERROR_HPP
+#pragma once
 
 #include <outcome/outcome.hpp>
 
@@ -22,5 +21,3 @@ namespace kagome::runtime {
 }  // namespace kagome::runtime
 
 OUTCOME_HPP_DECLARE_ERROR(kagome::runtime, RuntimeTransactionError);
-
-#endif  // KAGOME_CORE_RUNTIME_COMMON_RUNTIME_TRANSACTION_ERROR_HPP

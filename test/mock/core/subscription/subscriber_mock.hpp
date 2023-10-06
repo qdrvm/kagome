@@ -4,8 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_TEST_MOCK_SUBSCRIBER_MOCK_HPP
-#define KAGOME_TEST_MOCK_SUBSCRIBER_MOCK_HPP
+#pragma once
 
 namespace kagome::subscription {
 
@@ -15,5 +14,3 @@ namespace kagome::subscription {
   };
 
 }  // namespace kagome::subscription
-
-#endif  // KAGOME_TEST_MOCK_SUBSCRIBER_MOCK_HPP

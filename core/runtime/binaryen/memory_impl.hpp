@@ -4,8 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_RUNTIME_BINARYEN_WASM_MEMORY_IMPL_HPP
-#define KAGOME_RUNTIME_BINARYEN_WASM_MEMORY_IMPL_HPP
+#pragma once
 
 #include <binaryen/shell-interface.h>
 
@@ -105,5 +104,3 @@ namespace kagome::runtime::binaryen {
     log::Logger logger_;
   };
 }  // namespace kagome::runtime::binaryen
-
-#endif  // KAGOME_RUNTIME_BINARYEN_WASM_MEMORY_IMPL_HPP

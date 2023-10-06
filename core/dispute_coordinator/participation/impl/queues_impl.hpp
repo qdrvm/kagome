@@ -4,8 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_DISPUTE_QUEUESIMPL
-#define KAGOME_DISPUTE_QUEUESIMPL
+#pragma once
 
 #include "dispute_coordinator/participation/queues.hpp"
 
@@ -128,5 +127,3 @@ namespace kagome::dispute {
 }  // namespace kagome::dispute
 
 OUTCOME_HPP_DECLARE_ERROR(kagome::dispute, QueueError);
-
-#endif

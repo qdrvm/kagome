@@ -4,8 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_TEST_CORE_CLOCK_CLOCK_MOCK_HPP
-#define KAGOME_TEST_CORE_CLOCK_CLOCK_MOCK_HPP
+#pragma once
 
 #include "clock/clock.hpp"
 
@@ -28,5 +27,3 @@ namespace kagome::clock {
   };
 
 }  // namespace kagome::clock
-
-#endif  // KAGOME_TEST_CORE_CLOCK_CLOCK_MOCK_HPP

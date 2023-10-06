@@ -4,8 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_CORE_PRIMITIVES_VERSION_HPP
-#define KAGOME_CORE_PRIMITIVES_VERSION_HPP
+#pragma once
 
 #include <array>
 #include <optional>
@@ -152,5 +151,3 @@ namespace kagome::primitives {
     return s;
   }
 }  // namespace kagome::primitives
-
-#endif  // KAGOME_CORE_PRIMITIVES_VERSION_HPP

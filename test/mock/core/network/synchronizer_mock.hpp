@@ -4,8 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_NETWORK_SYNCHRONIZERMOCK
-#define KAGOME_NETWORK_SYNCHRONIZERMOCK
+#pragma once
 
 #include "network/synchronizer.hpp"
 
@@ -70,5 +69,3 @@ namespace kagome::network {
   };
 
 }  // namespace kagome::network
-
-#endif  // KAGOME_NETWORK_SYNCHRONIZERMOCK

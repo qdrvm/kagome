@@ -4,8 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_OFFCHAIN_OFFCHAINWORKERFACTORYMOCK
-#define KAGOME_OFFCHAIN_OFFCHAINWORKERFACTORYMOCK
+#pragma once
 
 #include <gmock/gmock.h>
 
@@ -22,5 +21,3 @@ namespace kagome::offchain {
   };
 
 }  // namespace kagome::offchain
-
-#endif  // KAGOME_OFFCHAIN_OFFCHAINWORKERFACTORYMOCK

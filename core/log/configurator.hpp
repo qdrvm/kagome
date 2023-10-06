@@ -4,8 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_LOG_CONFIGURATOR
-#define KAGOME_LOG_CONFIGURATOR
+#pragma once
 
 #include <soralog/impl/configurator_from_yaml.hpp>
 
@@ -27,5 +26,3 @@ namespace kagome::log {
   };
 
 }  // namespace kagome::log
-
-#endif  // KAGOME_LOG_CONFIGURATOR

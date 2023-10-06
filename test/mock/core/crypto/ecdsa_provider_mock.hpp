@@ -4,8 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_TEST_MOCK_CORE_CRYPTO_ECDSA_PROVIDER_MOCK_HPP
-#define KAGOME_TEST_MOCK_CORE_CRYPTO_ECDSA_PROVIDER_MOCK_HPP
+#pragma once
 
 #include "crypto/ecdsa_provider.hpp"
 
@@ -38,5 +37,3 @@ namespace kagome::crypto {
   };
 
 }  // namespace kagome::crypto
-
-#endif  // KAGOME_TEST_MOCK_CORE_CRYPTO_ECDSA_PROVIDER_MOCK_HPP

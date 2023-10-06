@@ -4,8 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_ADAPTERS_UVAR
-#define KAGOME_ADAPTERS_UVAR
+#pragma once
 
 #include <boost/system/error_code.hpp>
 #include <functional>
@@ -91,5 +90,3 @@ namespace kagome::network {
   };
 
 }  // namespace kagome::network
-
-#endif  // KAGOME_ADAPTERS_UVAR
