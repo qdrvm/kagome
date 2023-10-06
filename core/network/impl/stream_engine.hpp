@@ -300,7 +300,7 @@ namespace kagome::network {
       auto read_writer = std::make_shared<ScaleMessageReadWriter>(stream);
       read_writer->write(
           *msg,
-          [wp(weak_from_this()), peer_id, protocol, stream](auto &&res) {
+          [wp(weak_from_this()), peer_id, protocol, msg, stream](auto &&res) {
             if (auto self = wp.lock()) {
               if (res.has_value()) {
                 SL_TRACE(self->logger_,
