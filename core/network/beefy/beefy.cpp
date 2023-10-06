@@ -41,7 +41,7 @@ namespace kagome::network {
                std::shared_ptr<storage::SpacedStorage> db,
                std::shared_ptr<ThreadPool> thread_pool,
                std::shared_ptr<boost::asio::io_context> main_thread,
-               std::shared_ptr<consensus::Timeline> timeline,
+               LazySPtr<consensus::Timeline> timeline,
                std::shared_ptr<crypto::SessionKeys> session_keys,
                LazySPtr<BeefyProtocol> beefy_protocol,
                std::shared_ptr<primitives::events::ChainSubscriptionEngine>
@@ -385,7 +385,7 @@ namespace kagome::network {
   }
 
   outcome::result<void> Beefy::vote() {
-    if (not timeline_->wasSynchronized()) {
+    if (not timeline_.get()->wasSynchronized()) {
       return outcome::success();
     }
     auto next_session = sessions_.upper_bound(beefy_finalized_ + 1);

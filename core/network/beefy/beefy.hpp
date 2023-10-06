@@ -59,7 +59,7 @@ namespace kagome::network {
           std::shared_ptr<storage::SpacedStorage> db,
           std::shared_ptr<ThreadPool> thread_pool,
           std::shared_ptr<boost::asio::io_context> main_thread,
-          std::shared_ptr<consensus::Timeline> timeline,
+          LazySPtr<consensus::Timeline> timeline,
           std::shared_ptr<crypto::SessionKeys> session_keys,
           LazySPtr<BeefyProtocol> beefy_protocol,
           std::shared_ptr<primitives::events::ChainSubscriptionEngine>
@@ -108,7 +108,7 @@ namespace kagome::network {
     std::shared_ptr<boost::asio::io_context> strand_inner_;
     boost::asio::io_context::strand strand_;
     std::shared_ptr<boost::asio::io_context> main_thread_;
-    std::shared_ptr<consensus::Timeline> timeline_;
+    LazySPtr<consensus::Timeline> timeline_;
     std::shared_ptr<crypto::SessionKeys> session_keys_;
     LazySPtr<BeefyProtocol> beefy_protocol_;
     primitives::BlockNumber min_delta_;
