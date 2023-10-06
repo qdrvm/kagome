@@ -6,7 +6,7 @@
 #include "consensus/babe/impl/babe.hpp"
 
 #include <boost/range/adaptor/transformed.hpp>
-#include <future>
+#include <latch>
 
 #include "application/app_configuration.hpp"
 #include "authorship/proposer.hpp"
@@ -391,20 +391,13 @@ namespace kagome::consensus::babe {
       parachain_inherent_data.parent_header = std::move(parent_header);
 
       {  // Fill disputes
-        auto promise_res = std::promise<dispute::MultiDisputeStatementSet>();
-        auto res_future = promise_res.get_future();
-
+        std::latch latch(1);
         dispute_coordinator_->getDisputeForInherentData(
-            ctx.parent,
-            [promise_res =
-                 std::ref(promise_res)](dispute::MultiDisputeStatementSet res) {
-              promise_res.get().set_value(std::move(res));
+            ctx.parent, [&](auto res) {
+              parachain_inherent_data.disputes = std::move(res);
+              latch.count_down();
             });
-
-        if (res_future.valid()) {
-          auto res = res_future.get();
-          parachain_inherent_data.disputes = std::move(res);
-        }
+        latch.wait();
       }
     }
 

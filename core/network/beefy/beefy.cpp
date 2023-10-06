@@ -58,7 +58,7 @@ namespace kagome::network {
         beefy_protocol_{std::move(beefy_protocol)},
         min_delta_{chain_spec.isWococo() ? 4u : 8u},
         log_{log::createLogger("Beefy")} {
-    app_state_manager.atLaunch([=]() mutable {
+    app_state_manager.atLaunch([=, this]() mutable {
       start(std::move(chain_sub_engine));
       return true;
     });
