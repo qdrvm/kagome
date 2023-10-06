@@ -10,6 +10,7 @@
 #include "blockchain/block_tree.hpp"
 #include "clock/impl/clock_impl.hpp"
 #include "consensus/consensus_selector.hpp"
+#include "consensus/grandpa/justification_observer.hpp"
 #include "consensus/timeline/consistency_keeper.hpp"
 #include "consensus/timeline/impl/block_production_error.hpp"
 #include "consensus/timeline/slots_util.hpp"
@@ -663,7 +664,7 @@ namespace kagome::consensus {
               return;
             }
 
-            // self->justification_observer_->reload();
+            self->justification_observer_->reload();
             self->block_tree_->notifyBestAndFinalized();
 
             SL_INFO(self->log_,
