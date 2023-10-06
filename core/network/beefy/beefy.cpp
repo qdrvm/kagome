@@ -11,6 +11,7 @@
 #include "blockchain/block_tree_error.hpp"
 #include "consensus/beefy/digest.hpp"
 #include "consensus/beefy/sig.hpp"
+#include "consensus/timeline/timeline.hpp"
 #include "crypto/crypto_store/session_keys.hpp"
 #include "metrics/histogram_timer.hpp"
 #include "network/beefy/protocol.hpp"
@@ -40,6 +41,7 @@ namespace kagome::network {
                std::shared_ptr<storage::SpacedStorage> db,
                std::shared_ptr<ThreadPool> thread_pool,
                std::shared_ptr<boost::asio::io_context> main_thread,
+               LazySPtr<consensus::Timeline> timeline,
                std::shared_ptr<crypto::SessionKeys> session_keys,
                LazySPtr<BeefyProtocol> beefy_protocol,
                std::shared_ptr<primitives::events::ChainSubscriptionEngine>
@@ -51,6 +53,7 @@ namespace kagome::network {
         strand_inner_{thread_pool->io_context()},
         strand_{*strand_inner_},
         main_thread_{std::move(main_thread)},
+        timeline_{std::move(timeline)},
         session_keys_{std::move(session_keys)},
         beefy_protocol_{std::move(beefy_protocol)},
         min_delta_{chain_spec.isWococo() ? 4u : 8u},
@@ -382,6 +385,9 @@ namespace kagome::network {
   }
 
   outcome::result<void> Beefy::vote() {
+    if (not timeline_.get()->wasSynchronized()) {
+      return outcome::success();
+    }
     auto next_session = sessions_.upper_bound(beefy_finalized_ + 1);
     if (next_session == sessions_.begin()) {
       SL_VERBOSE(log_, "can't vote: no sessions");
