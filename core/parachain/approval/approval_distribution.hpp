@@ -357,7 +357,7 @@ namespace kagome::parachain {
 
     template <typename T>
     struct DeferedSender final {
-      using ContainerT = std::unordered_map<libp2p::peer::PeerId, std::vector<T>>;
+      using ContainerT = std::unordered_map<libp2p::peer::PeerId, std::deque<T>>;
       ContainerT messages;
       std::function<void(ContainerT &&)> f;
 
@@ -649,7 +649,7 @@ namespace kagome::parachain {
     void scheduleTranche(const primitives::BlockHash &head,
                          BlockImportedCandidates &&candidate);
 
-    void runDistributeAssignment(std::unordered_map<libp2p::peer::PeerId, std::vector<network::Assignment>> &&messages);
+    void runDistributeAssignment(std::unordered_map<libp2p::peer::PeerId, std::deque<network::Assignment>> &&messages);
 
     void send_assignments_batched(std::deque<network::Assignment> &&assignments,
                                   const libp2p::peer::PeerId &peer_id);
@@ -658,7 +658,7 @@ namespace kagome::parachain {
         std::deque<network::IndirectSignedApprovalVote> &&approvals,
         const libp2p::peer::PeerId &peer_id);
 
-    void runDistributeApproval(std::unordered_map<libp2p::peer::PeerId, std::vector<network::IndirectSignedApprovalVote>> &&messages);
+    void runDistributeApproval(std::unordered_map<libp2p::peer::PeerId, std::deque<network::IndirectSignedApprovalVote>> &&messages);
 
     void runScheduleWakeup(const primitives::BlockHash &block_hash,
                            primitives::BlockNumber block_number,

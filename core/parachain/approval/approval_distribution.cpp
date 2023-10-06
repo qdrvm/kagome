@@ -2126,27 +2126,14 @@ namespace kagome::parachain {
     }
   }
 
-  void ApprovalDistribution::runDistributeAssignment(std::unordered_map<libp2p::peer::PeerId, std::vector<network::Assignment>> &&messages) {
+  void ApprovalDistribution::runDistributeAssignment(std::unordered_map<libp2p::peer::PeerId, std::deque<network::Assignment>> &&messages) {
     REINVOKE(this_context_,
              runDistributeAssignment,
              std::move(messages));
 
     SL_TRACE(logger_, "Distributing assignments to peers. (peers count={})", messages.size());
-
-    auto se = pm_->getStreamEngine();
-    BOOST_ASSERT(se);
-
-    std::shared_ptr<network::WireMessage<network::ValidatorProtocolMessage>> pack = std::make_shared<
-            network::WireMessage<network::ValidatorProtocolMessage>>(
-            network::ApprovalDistributionMessage{network::Assignments{
-                .assignments = {},}});
-    auto &vp = if_type<network::ValidatorProtocolMessage>(*pack);
-    auto &adm = if_type<network::ApprovalDistributionMessage>(vp->get());
-    auto &a = if_type<network::Assignments>(adm->get());
-
     for (auto &&[peer, msg_pack] : messages) {
-      a->get().assignments = std::move(msg_pack);
-      se->send(peer, router_->getValidationProtocol(), pack);
+      send_assignments_batched(std::move(msg_pack), peer);
     }
   }
 
@@ -2160,6 +2147,19 @@ namespace kagome::parachain {
 
     auto se = pm_->getStreamEngine();
     BOOST_ASSERT(se);  // kMaxAssignmentBatchSize
+
+    /** TODO(iceseer): optimize
+        std::shared_ptr<network::WireMessage<network::ValidatorProtocolMessage>> pack = std::make_shared<
+                network::WireMessage<network::ValidatorProtocolMessage>>(
+                network::ApprovalDistributionMessage{network::Assignments{
+                    .assignments = {},}});
+        auto &vp = if_type<network::ValidatorProtocolMessage>(*pack);
+        auto &adm = if_type<network::ApprovalDistributionMessage>(vp->get());
+        auto &a = if_type<network::Assignments>(adm->get());
+        a->get().assignments = std::move(msg_pack);
+        se->send(peer, router_->getValidationProtocol(), pack);
+     * 
+    */
 
     while (!assignments.empty()) {
       auto begin = assignments.begin();
@@ -2187,6 +2187,24 @@ namespace kagome::parachain {
     auto se = pm_->getStreamEngine();
     BOOST_ASSERT(se);  // kMaxApprovalBatchSize
 
+    /** TODO(iceseer): optimize
+        std::shared_ptr<network::WireMessage<network::ValidatorProtocolMessage>> pack = std::make_shared<
+                network::WireMessage<network::ValidatorProtocolMessage>>(
+                network::ApprovalDistributionMessage{network::Approvals{
+                    .approvals = {},
+                }});
+        auto &vp = if_type<network::ValidatorProtocolMessage>(*pack);
+        auto &adm = if_type<network::ApprovalDistributionMessage>(vp->get());
+        auto &a = if_type<network::Approvals>(adm->get());
+
+        loop {
+        a->get().approvals = std::move(msg_pack);
+        se->send(peer, router_->getValidationProtocol(), pack);
+        }
+     * 
+     * 
+    */
+
     while (!approvals.empty()) {
       auto begin = approvals.begin();
       auto end = (approvals.size() > kMaxApprovalBatchSize)
@@ -2205,28 +2223,14 @@ namespace kagome::parachain {
     }
   }
 
-  void ApprovalDistribution::runDistributeApproval(std::unordered_map<libp2p::peer::PeerId, std::vector<network::IndirectSignedApprovalVote>> &&messages) {
+  void ApprovalDistribution::runDistributeApproval(std::unordered_map<libp2p::peer::PeerId, std::deque<network::IndirectSignedApprovalVote>> &&messages) {
     REINVOKE(this_context_, runDistributeApproval, std::move(messages));
 
     SL_TRACE(logger_,
         "Sending an approval messages to peers. (num peers={})",
         messages.size());
-
-    auto se = pm_->getStreamEngine();
-    BOOST_ASSERT(se);
-
-    std::shared_ptr<network::WireMessage<network::ValidatorProtocolMessage>> pack = std::make_shared<
-            network::WireMessage<network::ValidatorProtocolMessage>>(
-            network::ApprovalDistributionMessage{network::Approvals{
-                .approvals = {},
-            }});
-    auto &vp = if_type<network::ValidatorProtocolMessage>(*pack);
-    auto &adm = if_type<network::ApprovalDistributionMessage>(vp->get());
-    auto &a = if_type<network::Approvals>(adm->get());
-
     for (auto &&[peer, msg_pack] : messages) {
-      a->get().approvals = std::move(msg_pack);
-      se->send(peer, router_->getValidationProtocol(), pack);
+      send_approvals_batched(std::move(msg_pack), peer);
     }
   }
 
