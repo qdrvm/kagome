@@ -29,12 +29,12 @@ namespace kagome::crypto {
   // nevertheless they are hardcoded in polkadot
   // https://github.com/paritytech/polkadot/blob/634520cd3cf4b2b850db807daaaa32e480099981/node/service/src/chain_spec.rs#L230
   constexpr KeyType polkadot_key_order[6] = {
-      KeyType::GRANDPA,
-      KeyType::BABE,
-      KeyType::IM_ONLINE,
-      KeyType::KEY_TYPE_PARA,
-      KeyType::KEY_TYPE_ASGN,
-      KeyType::AUTHORITY_DISCOVERY,
+      KeyTypes::GRANDPA,
+      KeyTypes::BABE,
+      KeyTypes::IM_ONLINE,
+      KeyTypes::KEY_TYPE_PARA,
+      KeyTypes::KEY_TYPE_ASGN,
+      KeyTypes::AUTHORITY_DISCOVERY,
   };
 
   class SessionKeys {
@@ -93,10 +93,10 @@ namespace kagome::crypto {
 
     template <typename T>
     using FnListPublic = outcome::result<std::vector<decltype(T::public_key)>> (
-        CryptoStore::*)(KeyTypeId) const;
+        CryptoStore::*)(KeyType) const;
     template <typename T>
     using FnGetPrivate = outcome::result<T> (CryptoStore::*)(
-        KeyTypeId, const decltype(T::public_key) &) const;
+        KeyType, const decltype(T::public_key) &) const;
     template <typename T,
               FnListPublic<T> list_public,
               FnGetPrivate<T> get_private,

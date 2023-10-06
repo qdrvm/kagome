@@ -47,10 +47,10 @@ struct SessionKeysTest : public ::testing::Test {
 TEST_F(SessionKeysTest, SessionKeys) {
   outcome::result<Ed25519Keys> ed_keys_empty = Ed25519Keys{};
   outcome::result<Sr25519Keys> sr_keys_empty = Sr25519Keys{};
-  EXPECT_CALL(*store, getSr25519PublicKeys(KeyType::BABE))
+  EXPECT_CALL(*store, getSr25519PublicKeys(KeyType(KeyTypes::BABE)))
       .Times(1)
       .WillOnce(Return(sr_keys_empty));
-  EXPECT_CALL(*store, getEd25519PublicKeys(KeyType::GRANDPA))
+  EXPECT_CALL(*store, getEd25519PublicKeys(KeyType(KeyTypes::GRANDPA)))
       .Times(1)
       .WillOnce(Return(ed_keys_empty));
   ASSERT_FALSE(session_keys->getBabeKeyPair({}));
@@ -69,10 +69,10 @@ TEST_F(SessionKeysTest, SessionKeys) {
   outcome::result<Ed25519Keys> ed_keys = Ed25519Keys{ed_key};
   outcome::result<Sr25519Keys> sr_keys = Sr25519Keys{sr_key};
 
-  EXPECT_CALL(*store, getSr25519PublicKeys(KeyType::BABE))
+  EXPECT_CALL(*store, getSr25519PublicKeys(KeyType(KeyTypes::BABE)))
       .Times(1)
       .WillOnce(Return(sr_keys));
-  EXPECT_CALL(*store, getEd25519PublicKeys(KeyType::GRANDPA))
+  EXPECT_CALL(*store, getEd25519PublicKeys(KeyType(KeyTypes::GRANDPA)))
       .Times(1)
       .WillOnce(Return(ed_keys));
 
@@ -90,10 +90,10 @@ TEST_F(SessionKeysTest, SessionKeys) {
   outcome::result<Ed25519Keypair> ed_pair = Ed25519Keypair{ed_priv, ed_key};
   outcome::result<Sr25519Keypair> sr_pair = Sr25519Keypair{sr_priv, sr_key};
 
-  EXPECT_CALL(*store, findSr25519Keypair(KeyType::BABE, _))
+  EXPECT_CALL(*store, findSr25519Keypair(KeyType(KeyTypes::BABE), _))
       .Times(1)
       .WillOnce(Return(sr_pair));
-  EXPECT_CALL(*store, findEd25519Keypair(KeyType::GRANDPA, _))
+  EXPECT_CALL(*store, findEd25519Keypair(KeyType(KeyTypes::GRANDPA), _))
       .Times(1)
       .WillOnce(Return(ed_pair));
   ASSERT_TRUE(session_keys->getBabeKeyPair({{{sr_key}, {}}}));

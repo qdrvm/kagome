@@ -18,7 +18,7 @@ namespace kagome::runtime {
                 (const primitives::BlockHash &, std::optional<common::Buffer>),
                 (override));
 
-    using TypedKey = std::pair<crypto::KeyTypeId, common::Buffer>;
+    using TypedKey = std::pair<crypto::KeyType, common::Buffer>;
 
     MOCK_METHOD(outcome::result<std::vector<TypedKey>>,
                 decode_session_keys,

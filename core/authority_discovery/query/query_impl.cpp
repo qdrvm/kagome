@@ -99,7 +99,7 @@ namespace kagome::authority_discovery {
         authority_discovery_api_->authorities(block_tree_->bestBlock().hash));
     OUTCOME_TRY(local_keys,
                 crypto_store_->getSr25519PublicKeys(
-                    crypto::KeyType::AUTHORITY_DISCOVERY));
+                    crypto::KeyTypes::AUTHORITY_DISCOVERY));
     authorities.erase(
         std::remove_if(authorities.begin(),
                        authorities.end(),

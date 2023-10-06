@@ -12,31 +12,34 @@
 
 namespace kagome::crypto {
 
-  std::string encodeKeyTypeIdToStr(KeyType key_type) {
-    const auto *p = reinterpret_cast<const char *>(&key_type);
-    return {p, p + sizeof(KeyTypeId)};
+  bool KeyType::is_supported() const {
+    return KeyTypes::is_supported(*this);
   }
 
-  KeyType decodeKeyTypeIdFromStr(std::string_view str) {
-    KeyTypeId res = 0;
+  std::string encodeKeyTypeToStr(const KeyType &key_type) {
+    const auto *p = reinterpret_cast<const char *>(&key_type);
+    return {p, p + sizeof(uint32_t)};
+  }
 
-    if (str.size() == sizeof(KeyTypeId)) {
-      // string's data is aligned as KeyTypeId
+  KeyType decodeKeyTypeFromStr(std::string_view str) {
+    uint32_t res = 0;
+
+    if (str.size() == sizeof(uint32_t)) {
+      // string's data is aligned as KeyType
       if (reinterpret_cast<uintptr_t>(str.data())
-              % std::alignment_of_v<KeyTypeId>
+              % std::alignment_of_v<uint32_t>
           == 0) {
-        res = *reinterpret_cast<const KeyTypeId *>(str.data());
+        res = *reinterpret_cast<const uint32_t *>(str.data());
       } else {
-        memcpy(&res, str.data(), sizeof(KeyTypeId));
+        memcpy(&res, str.data(), sizeof(uint32_t));
       }
     }
 
     return res;
   }
 
-  std::string encodeKeyFileName(KeyType type, common::BufferView key) {
-    return common::hex_lower(str2byte(encodeKeyTypeIdToStr(type)))
-         + key.toHex();
+  std::string encodeKeyFileName(const KeyType &type, common::BufferView key) {
+    return common::hex_lower(str2byte(encodeKeyTypeToStr(type))) + key.toHex();
   }
 
   outcome::result<std::pair<KeyType, common::Buffer>> decodeKeyFileName(
@@ -49,7 +52,7 @@ namespace kagome::crypto {
     }
     OUTCOME_TRY(type_raw, common::Blob<4>::fromHex(type_str));
     OUTCOME_TRY(key, common::Buffer::fromHex(key_str));
-    return std::make_pair(decodeKeyTypeIdFromStr(byte2str(type_raw)),
+    return std::make_pair(decodeKeyTypeFromStr(byte2str(type_raw)),
                           std::move(key));
   }
 }  // namespace kagome::crypto

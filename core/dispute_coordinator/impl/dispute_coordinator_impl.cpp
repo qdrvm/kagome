@@ -38,7 +38,7 @@ namespace kagome::dispute {
     constexpr auto disputesTotalMetricName =
         "kagome_parachain_candidate_disputes_total";
 
-    constexpr auto disputeVotesMetricName =  //
+    constexpr auto disputeVotesMetricName =
         "kagome_parachain_candidate_dispute_votes";
 
     constexpr auto disputeConcludedMetricName =

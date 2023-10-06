@@ -24,7 +24,7 @@ namespace kagome::api::author::request {
     outcome::result<Return> execute() override {
       OUTCOME_TRY(public_key, common::unhexWith0x(getParam<0>()));
       return api_->hasKey(gsl::span(public_key.data(), public_key.size()),
-                          crypto::decodeKeyTypeIdFromStr(getParam<1>()));
+                          crypto::decodeKeyTypeFromStr(getParam<1>()));
     }
 
    private:

@@ -64,14 +64,14 @@ namespace kagome::crypto {
                                    const application::AppConfiguration &config)
       : roles_(config.roles()), store_(store) {
     if (auto dev = config.devMnemonicPhrase()) {
-      store_->generateEd25519Keypair(KeyType::GRANDPA, *dev).value();
-      store_->generateSr25519Keypair(KeyType::BABE, *dev).value();
-      store_->generateSr25519Keypair(KeyType::IM_ONLINE, *dev).value();
-      store_->generateSr25519Keypair(KeyType::AUTHORITY_DISCOVERY, *dev)
+      store_->generateEd25519Keypair(KeyTypes::GRANDPA, *dev).value();
+      store_->generateSr25519Keypair(KeyTypes::BABE, *dev).value();
+      store_->generateSr25519Keypair(KeyTypes::IM_ONLINE, *dev).value();
+      store_->generateSr25519Keypair(KeyTypes::AUTHORITY_DISCOVERY, *dev)
           .value();
-      store_->generateSr25519Keypair(KeyType::KEY_TYPE_ASGN, *dev).value();
-      store_->generateSr25519Keypair(KeyType::KEY_TYPE_PARA, *dev).value();
-      store_->generateEcdsaKeypair(KeyType::BEEFY, *dev).value();
+      store_->generateSr25519Keypair(KeyTypes::KEY_TYPE_ASGN, *dev).value();
+      store_->generateSr25519Keypair(KeyTypes::KEY_TYPE_PARA, *dev).value();
+      store_->generateEcdsaKeypair(KeyTypes::BEEFY, *dev).value();
     }
   }
 
@@ -82,7 +82,7 @@ namespace kagome::crypto {
                 &CryptoStore::getSr25519PublicKeys,
                 &CryptoStore::findSr25519Keypair>(
         babe_key_pair_,
-        KeyType::BABE,
+        KeyTypes::BABE,
         authorities,
         [](const Sr25519PublicKey &l, const primitives::Authority &r) {
           return l == r.id.id;
@@ -96,7 +96,7 @@ namespace kagome::crypto {
                 &CryptoStore::getSr25519PublicKeys,
                 &CryptoStore::findSr25519Keypair>(
         babe_key_pair_,
-        KeyType::SASSAFRAS,
+        KeyTypes::SASSAFRAS,
         authorities,
         [](const Sr25519PublicKey &l, const primitives::Authority &r) {
           return l == r.id.id;
@@ -109,7 +109,7 @@ namespace kagome::crypto {
                         &CryptoStore::getEd25519PublicKeys,
                         &CryptoStore::findEd25519Keypair>(
             gran_key_pair_,
-            KeyType::GRANDPA,
+            KeyTypes::GRANDPA,
             authorities.authorities,
             [](const Ed25519PublicKey &l, const primitives::Authority &r) {
               return l == r.id.id;
@@ -125,18 +125,18 @@ namespace kagome::crypto {
     return find<Sr25519Keypair,
                 &CryptoStore::getSr25519PublicKeys,
                 &CryptoStore::findSr25519Keypair>(
-        para_key_pair_, KeyType::KEY_TYPE_PARA, authorities, std::equal_to{});
+        para_key_pair_, KeyTypes::KEY_TYPE_PARA, authorities, std::equal_to{});
   }
 
   std::shared_ptr<Sr25519Keypair> SessionKeysImpl::getAudiKeyPair(
       const std::vector<primitives::AuthorityDiscoveryId> &authorities) {
-    if (auto res =
-            find<Sr25519Keypair,
-                 &CryptoStore::getSr25519PublicKeys,
-                 &CryptoStore::findSr25519Keypair>(audi_key_pair_,
-                                                   KeyType::AUTHORITY_DISCOVERY,
-                                                   authorities,
-                                                   std::equal_to{})) {
+    if (auto res = find<Sr25519Keypair,
+                        &CryptoStore::getSr25519PublicKeys,
+                        &CryptoStore::findSr25519Keypair>(
+            audi_key_pair_,
+            KeyTypes::AUTHORITY_DISCOVERY,
+            authorities,
+            std::equal_to{})) {
       return std::move(res->first);
     }
     return nullptr;
@@ -148,6 +148,6 @@ namespace kagome::crypto {
     return find<EcdsaKeypair,
                 &CryptoStore::getEcdsaPublicKeys,
                 &CryptoStore::findEcdsaKeypair>(
-        beef_key_pair_, KeyType::BEEFY, authorities, std::equal_to{});
+        beef_key_pair_, KeyTypes::BEEFY, authorities, std::equal_to{});
   }
 }  // namespace kagome::crypto

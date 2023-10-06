@@ -23,7 +23,7 @@ namespace kagome::api {
 
     MOCK_METHOD(outcome::result<void>,
                 insertKey,
-                (crypto::KeyTypeId,
+                (crypto::KeyType,
                  const gsl::span<const uint8_t> &,
                  const gsl::span<const uint8_t> &),
                 (override));
@@ -37,8 +37,7 @@ namespace kagome::api {
 
     MOCK_METHOD(outcome::result<bool>,
                 hasKey,
-                (const gsl::span<const uint8_t> &public_key,
-                 crypto::KeyTypeId key_type),
+                (const gsl::span<const uint8_t> &, crypto::KeyType),
                 (override));
 
     MOCK_METHOD(outcome::result<SubscriptionId>,

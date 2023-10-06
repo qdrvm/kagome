@@ -51,7 +51,7 @@ namespace kagome::api {
      * @param public_key The public key in binary
      */
     virtual outcome::result<void> insertKey(
-        crypto::KeyTypeId key_type,
+        crypto::KeyType key_type,
         const gsl::span<const uint8_t> &seed,
         const gsl::span<const uint8_t> &public_key) = 0;
 
@@ -80,7 +80,7 @@ namespace kagome::api {
      */
     virtual outcome::result<bool> hasKey(
         const gsl::span<const uint8_t> &public_key,
-        crypto::KeyTypeId key_type) = 0;
+        crypto::KeyType key_type) = 0;
 
     /**
      * @return collection of pending extrinsics

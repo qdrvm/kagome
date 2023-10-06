@@ -25,7 +25,7 @@ namespace kagome::api::author::request {
     outcome::result<Return> execute() override {
       OUTCOME_TRY(seed, common::unhexWith0x(getParam<1>()));
       OUTCOME_TRY(public_key, common::unhexWith0x(getParam<2>()));
-      return api_->insertKey(crypto::decodeKeyTypeIdFromStr(getParam<0>()),
+      return api_->insertKey(crypto::decodeKeyTypeFromStr(getParam<0>()),
                              gsl::span(seed.data(), seed.size()),
                              gsl::span(public_key.data(), public_key.size()));
     }

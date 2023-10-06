@@ -26,9 +26,9 @@
 
 namespace kagome::api {
   const std::vector<crypto::KeyType> kKeyTypes{
-      crypto::KeyType::BABE,
-      crypto::KeyType::GRANDPA,
-      crypto::KeyType::AUTHORITY_DISCOVERY,
+      crypto::KeyTypes::BABE,
+      crypto::KeyTypes::GRANDPA,
+      crypto::KeyTypes::AUTHORITY_DISCOVERY,
   };
 
   AuthorApiImpl::AuthorApiImpl(sptr<runtime::SessionKeysApi> key_api,
@@ -61,22 +61,22 @@ namespace kagome::api {
   }
 
   outcome::result<void> AuthorApiImpl::insertKey(
-      crypto::KeyTypeId key_type_id,
+      crypto::KeyType key_type_id,
       const gsl::span<const uint8_t> &seed,
       const gsl::span<const uint8_t> &public_key) {
     if (std::find(kKeyTypes.begin(), kKeyTypes.end(), key_type_id)
         == kKeyTypes.end()) {
       std::string types;
       for (auto &type : kKeyTypes) {
-        types.append(crypto::encodeKeyTypeIdToStr(type));
+        types.append(crypto::encodeKeyTypeToStr(type));
         types.push_back(' ');
       }
       types.pop_back();
       SL_INFO(logger_, "Unsupported key type, only [{}] are accepted", types);
       return outcome::failure(crypto::CryptoStoreError::UNSUPPORTED_KEY_TYPE);
     };
-    if (crypto::KeyType::BABE == key_type_id
-        or crypto::KeyType::AUTHORITY_DISCOVERY == key_type_id) {
+    if (crypto::KeyTypes::BABE == key_type_id
+        or crypto::KeyTypes::AUTHORITY_DISCOVERY == key_type_id) {
       OUTCOME_TRY(seed_typed, crypto::Sr25519Seed::fromSpan(seed));
       OUTCOME_TRY(public_key_typed,
                   crypto::Sr25519PublicKey::fromSpan(public_key));
@@ -86,13 +86,13 @@ namespace kagome::api {
         return outcome::failure(crypto::CryptoStoreError::WRONG_PUBLIC_KEY);
       }
     }
-    if (crypto::KeyType::GRANDPA == key_type_id) {
+    if (crypto::KeyTypes::GRANDPA == key_type_id) {
       OUTCOME_TRY(seed_typed, crypto::Ed25519Seed::fromSpan(seed));
       OUTCOME_TRY(public_key_typed,
                   crypto::Ed25519PublicKey::fromSpan(public_key));
-      OUTCOME_TRY(
-          keypair,
-          store_->generateEd25519Keypair(crypto::KeyType::GRANDPA, seed_typed));
+      OUTCOME_TRY(keypair,
+                  store_->generateEd25519Keypair(crypto::KeyTypes::GRANDPA,
+                                                 seed_typed));
       if (public_key_typed != keypair.public_key) {
         return outcome::failure(crypto::CryptoStoreError::WRONG_PUBLIC_KEY);
       }
@@ -124,7 +124,7 @@ namespace kagome::api {
     }
     stream >> key;
     if (store_->findEd25519Keypair(
-            crypto::KeyType::GRANDPA,
+            crypto::KeyTypes::GRANDPA,
             crypto::Ed25519PublicKey(common::Blob<32>(key)))) {
       unsigned count = 1;
       while (stream.currentIndex() < keys.size()) {
@@ -141,7 +141,7 @@ namespace kagome::api {
   }
 
   outcome::result<bool> AuthorApiImpl::hasKey(
-      const gsl::span<const uint8_t> &public_key, crypto::KeyTypeId key_type) {
+      const gsl::span<const uint8_t> &public_key, crypto::KeyType key_type) {
     auto res = key_store_->searchForPhrase(key_type, public_key);
     if (not res) {
       return res.error();

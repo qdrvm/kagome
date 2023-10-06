@@ -30,7 +30,7 @@ namespace kagome::crypto {
     using Keypair = typename CryptoSuite::Keypair;
     using Seed = typename CryptoSuite::Seed;
 
-    explicit KeyCache(KeyTypeId type, std::shared_ptr<CryptoSuite> suite)
+    explicit KeyCache(KeyType type, std::shared_ptr<CryptoSuite> suite)
         : type_{type}, suite_{std::move(suite)} {
       BOOST_ASSERT(suite_ != nullptr);
     }
@@ -47,7 +47,7 @@ namespace kagome::crypto {
     /**
      * Session keys are short-living keys used by the node
      */
-    std::optional<Keypair> const &getSessionKey() const noexcept {
+    const std::optional<Keypair> &getSessionKey() const noexcept {
       return session_key_;
     }
 
@@ -68,7 +68,7 @@ namespace kagome::crypto {
     }
 
    private:
-    KeyTypeId type_;
+    KeyType type_;
     std::optional<Keypair> session_key_;
     std::unordered_map<PublicKey, PrivateKey> cache_;
     std::shared_ptr<CryptoSuite> suite_;
