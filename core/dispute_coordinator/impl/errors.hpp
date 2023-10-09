@@ -1,10 +1,10 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_DISPUTE_ERRORS_HPP
-#define KAGOME_DISPUTE_ERRORS_HPP
+#pragma once
 
 #include "outcome/outcome.hpp"
 
@@ -95,5 +95,3 @@ OUTCOME_HPP_DECLARE_ERROR(kagome::dispute, DisputeMessageCreationError);
 OUTCOME_HPP_DECLARE_ERROR(kagome::dispute, DisputeMessageConstructingError);
 OUTCOME_HPP_DECLARE_ERROR(kagome::dispute, DisputeProcessingError);
 OUTCOME_HPP_DECLARE_ERROR(kagome::dispute, BatchError);
-
-#endif  // KAGOME_DISPUTE_ERRORS_HPP

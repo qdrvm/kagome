@@ -1,10 +1,10 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_CORE_API_SERVICE_SYSTEM_REQUESTS_CHAIN_TYPE_HPP
-#define KAGOME_CORE_API_SERVICE_SYSTEM_REQUESTS_CHAIN_TYPE_HPP
+#pragma once
 
 #include <jsonrpc-lean/request.h>
 
@@ -39,5 +39,3 @@ namespace kagome::api::system::request {
   };
 
 }  // namespace kagome::api::system::request
-
-#endif  // KAGOME_CORE_API_SERVICE_SYSTEM_REQUESTS_CHAIN_TYPE_HPP

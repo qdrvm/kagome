@@ -1,4 +1,9 @@
 #!/bin/bash -xe
+#
+# Copyright Quadrivium LLC
+# All Rights Reserved
+# SPDX-License-Identifier: Apache-2.0
+#
 
 buildDir=${BUILD_DIR:-${1:?BUILD_DIR variable or script arg is not defined}}
 token=${CODECOV_TOKEN:-${2:?CODECOV_TOKEN variable or script arg is not defined}}

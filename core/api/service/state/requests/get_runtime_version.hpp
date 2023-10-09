@@ -1,10 +1,10 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_API_REQUEST_GET_VERSION
-#define KAGOME_API_REQUEST_GET_VERSION
+#pragma once
 
 #include <jsonrpc-lean/request.h>
 
@@ -26,7 +26,7 @@ namespace kagome::api::state::request {
     explicit GetRuntimeVersion(std::shared_ptr<StateApi> api);
     ~GetRuntimeVersion() = default;
 
-    outcome::result<void> init(jsonrpc::Request::Parameters const &params);
+    outcome::result<void> init(const jsonrpc::Request::Parameters &params);
     outcome::result<primitives::Version> execute();
 
    private:
@@ -35,5 +35,3 @@ namespace kagome::api::state::request {
   };
 
 }  // namespace kagome::api::state::request
-
-#endif  // KAGOME_API_REQUEST_GET_VERSION

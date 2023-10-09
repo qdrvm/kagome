@@ -1,10 +1,10 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_MEMORY_HPP
-#define KAGOME_MEMORY_HPP
+#pragma once
 
 #include <array>
 
@@ -116,5 +116,3 @@ namespace kagome::runtime {
     virtual WasmSpan storeBuffer(gsl::span<const uint8_t> value) = 0;
   };
 }  // namespace kagome::runtime
-
-#endif  // KAGOME_MEMORY_HPP

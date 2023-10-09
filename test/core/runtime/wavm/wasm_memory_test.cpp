@@ -1,5 +1,6 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -51,7 +52,6 @@ class WavmMemoryHeapTest : public ::testing::Test {
 
     memory_ = std::make_unique<MemoryImpl>(instance_->getExportedMemory(),
                                            MemoryConfig{kDefaultHeapBase, {}});
-
   }
 
   static const uint32_t memory_size_ = kInitialMemorySize;

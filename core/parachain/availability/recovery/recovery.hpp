@@ -1,10 +1,10 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_PARACHAIN_AVAILABILITY_RECOVERY_RECOVERY_HPP
-#define KAGOME_PARACHAIN_AVAILABILITY_RECOVERY_RECOVERY_HPP
+#pragma once
 
 #include "runtime/runtime_api/parachain_host_types.hpp"
 
@@ -29,5 +29,3 @@ namespace kagome::parachain {
                          Cb cb) = 0;
   };
 }  // namespace kagome::parachain
-
-#endif  // KAGOME_PARACHAIN_AVAILABILITY_RECOVERY_RECOVERY_HPP

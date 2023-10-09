@@ -1,10 +1,10 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_CORE_API_SERVICE_CHILD_STATE_REQUESTS_GET_KEYS_HPP
-#define KAGOME_CORE_API_SERVICE_CHILD_STATE_REQUESTS_GET_KEYS_HPP
+#pragma once
 
 #include <optional>
 
@@ -21,8 +21,8 @@ namespace kagome::api::child_state::request {
    */
   class GetKeys final {
    public:
-    GetKeys(GetKeys const &) = delete;
-    GetKeys &operator=(GetKeys const &) = delete;
+    GetKeys(const GetKeys &) = delete;
+    GetKeys &operator=(const GetKeys &) = delete;
 
     GetKeys(GetKeys &&) = default;
     GetKeys &operator=(GetKeys &&) = default;
@@ -45,5 +45,3 @@ namespace kagome::api::child_state::request {
   };
 
 }  // namespace kagome::api::child_state::request
-
-#endif  // KAGOME_CORE_API_SERVICE_CHILD_STATE_REQUESTS_GET_KEYS_HPP

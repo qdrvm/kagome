@@ -1,10 +1,10 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_SUBSCRIPTION_SUBSCRIBER_HPP
-#define KAGOME_SUBSCRIPTION_SUBSCRIBER_HPP
+#pragma once
 
 #include <atomic>
 #include <functional>
@@ -71,8 +71,11 @@ namespace kagome::subscription {
 
     ~Subscriber() {
       // Unsubscribe all
-      for (auto &[_, subscriptions] : subscriptions_sets_)
-        for (auto &[key, it] : subscriptions) engine_->unsubscribe(key, it);
+      for (auto &[_, subscriptions] : subscriptions_sets_) {
+        for (auto &[key, it] : subscriptions) {
+          engine_->unsubscribe(key, it);
+        }
+      }
     }
 
     Subscriber(const Subscriber &) = delete;
@@ -96,8 +99,9 @@ namespace kagome::subscription {
 
       /// Here we check first local subscriptions because of strong connection
       /// with SubscriptionEngine.
-      if (inserted)
+      if (inserted) {
         it->second = engine_->subscribe(id, key, this->weak_from_this());
+      }
     }
 
     /**
@@ -129,7 +133,9 @@ namespace kagome::subscription {
       if (auto set_it = subscriptions_sets_.find(id);
           set_it != subscriptions_sets_.end()) {
         auto &subscriptions = set_it->second;
-        for (auto &[key, it] : subscriptions) engine_->unsubscribe(key, it);
+        for (auto &[key, it] : subscriptions) {
+          engine_->unsubscribe(key, it);
+        }
 
         subscriptions_sets_.erase(set_it);
         return true;
@@ -139,8 +145,11 @@ namespace kagome::subscription {
 
     void unsubscribe() {
       std::lock_guard<std::mutex> lock(subscriptions_cs_);
-      for (auto &[_, subscriptions] : subscriptions_sets_)
-        for (auto &[key, it] : subscriptions) engine_->unsubscribe(key, it);
+      for (auto &[_, subscriptions] : subscriptions_sets_) {
+        for (auto &[key, it] : subscriptions) {
+          engine_->unsubscribe(key, it);
+        }
+      }
 
       subscriptions_sets_.clear();
     }
@@ -148,8 +157,9 @@ namespace kagome::subscription {
     void on_notify(SubscriptionSetId set_id,
                    const EventType &key,
                    const Arguments &...args) {
-      if (nullptr != on_notify_callback_)
+      if (nullptr != on_notify_callback_) {
         on_notify_callback_(set_id, object_, key, args...);
+      }
     }
 
     ReceiverType &get() {
@@ -158,5 +168,3 @@ namespace kagome::subscription {
   };
 
 }  // namespace kagome::subscription
-
-#endif  // KAGOME_SUBSCRIPTION_SUBSCRIBER_HPP

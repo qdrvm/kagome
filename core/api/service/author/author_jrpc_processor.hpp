@@ -1,10 +1,10 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_CORE_SERVICE_EXTRINSICS_SUBMISSION_SERVICE_HPP
-#define KAGOME_CORE_SERVICE_EXTRINSICS_SUBMISSION_SERVICE_HPP
+#pragma once
 
 #include "api/jrpc/jrpc_processor.hpp"
 #include "api/jrpc/jrpc_server_impl.hpp"
@@ -28,5 +28,3 @@ namespace kagome::api::author {
   };
 
 }  // namespace kagome::api::author
-
-#endif  // KAGOME_CORE_SERVICE_EXTRINSICS_SUBMISSION_SERVICE_HPP

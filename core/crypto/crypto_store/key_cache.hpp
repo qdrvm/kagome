@@ -1,10 +1,10 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_KEY_CACHE_HPP
-#define KAGOME_KEY_CACHE_HPP
+#pragma once
 
 #include <memory>
 #include <unordered_map>
@@ -47,7 +47,7 @@ namespace kagome::crypto {
     /**
      * Session keys are short-living keys used by the node
      */
-    std::optional<Keypair> const &getSessionKey() const noexcept {
+    const std::optional<Keypair> &getSessionKey() const noexcept {
       return session_key_;
     }
 
@@ -74,5 +74,3 @@ namespace kagome::crypto {
     std::shared_ptr<CryptoSuite> suite_;
   };
 }  // namespace kagome::crypto
-
-#endif  // KAGOME_KEY_CACHE_HPP

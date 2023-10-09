@@ -1,15 +1,15 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_CRYPTO_STORE_IMPL_HPP
-#define KAGOME_CRYPTO_STORE_IMPL_HPP
+#pragma once
 
 #include <unordered_set>
 
-#include "filesystem/common.hpp"
 #include <boost/variant.hpp>
+#include "filesystem/common.hpp"
 
 #include "common/blob.hpp"
 #include "crypto/bip39/bip39_provider.hpp"
@@ -199,5 +199,3 @@ namespace kagome::crypto {
 }  // namespace kagome::crypto
 
 OUTCOME_HPP_DECLARE_ERROR(kagome::crypto, CryptoStoreError);
-
-#endif  // KAGOME_CRYPTO_STORE_IMPL_HPP

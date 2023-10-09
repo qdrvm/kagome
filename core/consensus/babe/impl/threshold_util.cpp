@@ -1,5 +1,6 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -17,7 +18,7 @@ namespace kagome::consensus::babe {
 
     using boost::adaptors::transformed;
     double theta = double(authorities[authority_index].weight)
-                   / boost::accumulate(
+                 / boost::accumulate(
                        authorities | transformed([](const auto &authority) {
                          return authority.weight;
                        }),

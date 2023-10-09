@@ -1,3 +1,9 @@
+[//]: # (
+Copyright Quadrivium LLC
+All Rights Reserved
+SPDX-License-Identifier: Apache-2.0
+)
+
 # Tooling 
 
 In Kagome we use certain set of tools to assure code quality. Here is a list, and guide how to use them.

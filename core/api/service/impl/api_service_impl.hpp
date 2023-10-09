@@ -1,10 +1,10 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_API_SERVICE_IMPL_HPP
-#define KAGOME_API_SERVICE_IMPL_HPP
+#pragma once
 
 #include "api/service/api_service.hpp"
 
@@ -246,5 +246,3 @@ namespace kagome::api {
         extrinsic_event_key_repo_;
   };
 }  // namespace kagome::api
-
-#endif  // KAGOME_API_SERVICE_IMPL_HPP

@@ -1,10 +1,10 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_NETWORK_STATEPROTOCOLIMPL
-#define KAGOME_NETWORK_STATEPROTOCOLIMPL
+#pragma once
 
 #include "network/protocols/state_protocol.hpp"
 
@@ -72,11 +72,9 @@ namespace kagome::network {
         std::function<void(outcome::result<StateResponse>)> &&response_handler);
 
    private:
-    const static inline auto kStateProtocolName = "StateProtocol"s;
+    inline static const auto kStateProtocolName = "StateProtocol"s;
     ProtocolBaseImpl base_;
     std::shared_ptr<StateProtocolObserver> state_observer_;
   };
 
 }  // namespace kagome::network
-
-#endif  // KAGOME_NETWORK_STATEPROTOCOLIMPL

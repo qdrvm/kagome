@@ -1,5 +1,6 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -10,7 +11,8 @@ namespace kagome::api::state::request {
   outcome::result<void> UnsubscribeStorage::init(
       const jsonrpc::Request::Parameters &params) {
     if (params.size() != 1) {
-      throw jsonrpc::InvalidParametersFault("unsubscribeStorage takes one parameter");
+      throw jsonrpc::InvalidParametersFault(
+          "unsubscribeStorage takes one parameter");
     }
 
     auto &id = params[0];
