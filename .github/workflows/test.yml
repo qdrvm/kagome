@@ -14,7 +14,6 @@ env:
   GITHUB_HUNTER_TOKEN: ${{ secrets.HUNTER_TOKEN }}
   # Change all container: values to this variable once this feature is available
   # https://github.community/t/how-to-set-and-access-a-workflow-variable/17335/6
-  INDOCKER_IMAGE: qdrvm/kagome-dev@sha256:14d5aa92c971073e82ba9bbac9b615701e99c71f64e58bdd45e5b3dbc09944bd
   CACHE_VERSION: v07
   CACHE_PATHS: |
     ~/Library/Caches/pip
