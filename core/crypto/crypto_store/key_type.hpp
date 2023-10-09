@@ -38,9 +38,7 @@ namespace kagome::crypto {
 
     bool is_supported() const;
 
-    inline constexpr auto operator<=>(const KeyType &other) const {
-      return id_ <=> other.id_;
-    }
+    constexpr auto operator<=>(const KeyType &other) const = default;
 
     friend inline ::scale::ScaleEncoderStream &operator<<(
         ::scale::ScaleEncoderStream &s, const KeyType &v) {
