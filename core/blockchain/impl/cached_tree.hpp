@@ -55,27 +55,6 @@ namespace kagome::blockchain {
           std::as_const(*this).findByHash(hash));
     }
 
-    /**
-     * Exit token for applyToChain method.
-     * Simply a value denoting whether applyToChain should stop.
-     */
-    enum class ExitToken { EXIT, CONTINUE };
-
-    /**
-     * Applies \arg op for each node starting from this and ending with \arg
-     * chain_end. If op returns success(EXIT), stops.
-     * @note if \arg op returns an error, execution will stop immediately and
-     * the rest of nodes will not be processed
-     * @note inefficient in case chain_end is not in chain with the current
-     * node. Will traverse the whole subtree trying to find it.
-     * @return error if chain doesn't exist or op() returns an error on a
-     * call, success otherwise
-     */
-    outcome::result<void> applyToChain(
-        const primitives::BlockInfo &chain_end,
-        const std::function<outcome::result<ExitToken>(const TreeNode &node)>
-            &op) const;
-
     primitives::BlockInfo getBlockInfo() const {
       return {depth, block_hash};
     }

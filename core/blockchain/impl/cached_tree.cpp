@@ -44,60 +44,6 @@ namespace kagome::blockchain {
         contains_approved_para_block{false},
         reverted{parent->reverted} {}
 
-  outcome::result<void> TreeNode::applyToChain(
-      const primitives::BlockInfo &chain_end,
-      const std::function<outcome::result<ExitToken>(const TreeNode &node)> &op)
-      const {
-    using ChildIdx = size_t;
-    std::map<primitives::BlockHash, ChildIdx> fork_choice;
-
-    const auto *current_node = findByHash(chain_end.hash).get();
-    if (current_node == nullptr) {
-      return Error::NO_CHAIN_BETWEEN_BLOCKS;
-    }
-
-    // mostly to catch typos in tests, but who knows
-    BOOST_ASSERT(current_node->depth == chain_end.number);
-    // now we must memorize where to go on forks in order to traverse
-    // from this to chain_end
-    while (current_node->depth > this->depth) {
-      auto curren_parent = current_node->parent.lock();
-      BOOST_ASSERT(curren_parent != nullptr);
-      // if there's a fork at the parent, memorize which branch to take
-      if (curren_parent->children.size() > 1) {
-        const auto child_idx = std::find_if(curren_parent->children.begin(),
-                                            curren_parent->children.end(),
-                                            [current_node](auto &sptr) {
-                                              return sptr.get() == current_node;
-                                            })
-                             - curren_parent->children.begin();
-        fork_choice[curren_parent->block_hash] = child_idx;
-      }
-      current_node = curren_parent.get();
-    }
-    if (current_node->block_hash != this->block_hash) {
-      return Error::NO_CHAIN_BETWEEN_BLOCKS;
-    }
-
-    current_node = this;
-    do {
-      OUTCOME_TRY(exit_token, op(*current_node));
-      if (exit_token == ExitToken::EXIT) {
-        return outcome::success();
-      }
-      if (current_node->children.size() == 1) {
-        current_node = current_node->children.front().get();
-      } else if (current_node->children.size() > 1) {
-        auto child_idx = fork_choice[current_node->block_hash];
-        current_node = current_node->children[child_idx].get();
-      } else {
-        break;
-      }
-    } while (current_node->depth <= chain_end.number);
-
-    return outcome::success();
-  }
-
   std::shared_ptr<const TreeNode> TreeNode::findByHash(
       const primitives::BlockHash &hash) const {
     // standard BFS
