@@ -270,10 +270,7 @@ namespace kagome::blockchain {
 
     // Prepare and create block tree basing last finalized block
     auto tree = std::make_shared<TreeNode>(last_finalized_block_info.hash,
-                                           last_finalized_block_info.number,
-                                           nullptr,
-                                           true,
-                                           false);
+                                           last_finalized_block_info.number);
     SL_DEBUG(log, "Last finalized block {}", tree->getBlockInfo());
     auto meta = std::make_shared<TreeMeta>(tree);
 
@@ -1585,8 +1582,7 @@ namespace kagome::blockchain {
   }
 
   void BlockTreeImpl::warp(const primitives::BlockInfo &block_info) {
-    auto node = std::make_shared<TreeNode>(
-        block_info.hash, block_info.number, nullptr, true, false);
+    auto node = std::make_shared<TreeNode>(block_info.hash, block_info.number);
     auto meta = std::make_shared<TreeMeta>(node);
     const auto leaves_size =
         block_tree_data_.exclusiveAccess([&](BlockTreeData &p) {

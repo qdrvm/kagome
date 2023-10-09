@@ -42,7 +42,7 @@ namespace kagome::blockchain {
         finalized{finalized},
         babe_primary{babe_primary},
         contains_approved_para_block{false},
-        reverted{parent ? parent->reverted : false} {}
+        reverted{parent->reverted} {}
 
   outcome::result<void> TreeNode::applyToChain(
       const primitives::BlockInfo &chain_end,
