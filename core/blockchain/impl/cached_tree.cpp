@@ -238,4 +238,9 @@ namespace kagome::blockchain {
     auto &leaves_ = metadata_->leaves;  // TODO: refactor
     return leaves_.size();
   }
+
+  std::vector<primitives::BlockHash> CachedTree::leafHashes() const {
+    auto &leaves_ = metadata_->leaves;  // TODO: refactor
+    return {leaves_.begin(), leaves_.end()};
+  }
 }  // namespace kagome::blockchain

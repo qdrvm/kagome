@@ -97,6 +97,7 @@ namespace kagome::blockchain {
     const std::shared_ptr<TreeNode> &finalized() const;
     const std::shared_ptr<TreeNode> &best() const;
     size_t leafCount() const;
+    std::vector<primitives::BlockHash> leafHashes() const;
 
     /**
      * Remove nodes in block tree from current tree_ to {\arg new_trie_root}.

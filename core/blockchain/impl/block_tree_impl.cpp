@@ -515,9 +515,7 @@ namespace kagome::blockchain {
 
           OUTCOME_TRY(reorganizeNoLock(p));
 
-          OUTCOME_TRY(p.storage_->setBlockTreeLeaves(
-              {p.tree_->getMetadata().leaves.begin(),
-               p.tree_->getMetadata().leaves.end()}));
+          OUTCOME_TRY(p.storage_->setBlockTreeLeaves(p.tree_->leafHashes()));
 
           metric_known_chain_leaves_->set(p.tree_->leafCount());
           metric_best_block_height_->set(p.tree_->best()->depth);
@@ -553,9 +551,7 @@ namespace kagome::blockchain {
 
           OUTCOME_TRY(reorganizeNoLock(p));
 
-          OUTCOME_TRY(p.storage_->setBlockTreeLeaves(
-              {p.tree_->getMetadata().leaves.begin(),
-               p.tree_->getMetadata().leaves.end()}));
+          OUTCOME_TRY(p.storage_->setBlockTreeLeaves(p.tree_->leafHashes()));
 
           notifyChainEventsEngine(primitives::events::ChainEventType::kNewHeads,
                                   block.header);
@@ -633,9 +629,7 @@ namespace kagome::blockchain {
           // Remove from storage
           OUTCOME_TRY(p.storage_->removeBlock(node->block_hash));
 
-          OUTCOME_TRY(p.storage_->setBlockTreeLeaves(
-              {p.tree_->getMetadata().leaves.begin(),
-               p.tree_->getMetadata().leaves.end()}));
+          OUTCOME_TRY(p.storage_->setBlockTreeLeaves(p.tree_->leafHashes()));
 
           return outcome::success();
         });
@@ -792,9 +786,7 @@ namespace kagome::blockchain {
 
     OUTCOME_TRY(reorganizeNoLock(p));
 
-    OUTCOME_TRY(
-        p.storage_->setBlockTreeLeaves({p.tree_->getMetadata().leaves.begin(),
-                                        p.tree_->getMetadata().leaves.end()}));
+    OUTCOME_TRY(p.storage_->setBlockTreeLeaves(p.tree_->leafHashes()));
 
     metric_known_chain_leaves_->set(p.tree_->leafCount());
     metric_best_block_height_->set(p.tree_->best()->depth);
@@ -858,9 +850,7 @@ namespace kagome::blockchain {
 
         OUTCOME_TRY(reorganizeNoLock(p));
 
-        OUTCOME_TRY(p.storage_->setBlockTreeLeaves(
-            {p.tree_->getMetadata().leaves.begin(),
-             p.tree_->getMetadata().leaves.end()}));
+        OUTCOME_TRY(p.storage_->setBlockTreeLeaves(p.tree_->leafHashes()));
 
         notifyChainEventsEngine(
             primitives::events::ChainEventType::kFinalizedHeads, header);
@@ -1312,13 +1302,7 @@ namespace kagome::blockchain {
 
   std::vector<primitives::BlockHash> BlockTreeImpl::getLeavesNoLock(
       const BlockTreeData &p) const {
-    std::vector<primitives::BlockHash> result;
-    result.reserve(p.tree_->leafCount());
-    std::transform(p.tree_->getMetadata().leaves.begin(),
-                   p.tree_->getMetadata().leaves.end(),
-                   std::back_inserter(result),
-                   [](const auto &hash) { return hash; });
-    return result;
+    return p.tree_->leafHashes();
   }
 
   std::vector<primitives::BlockHash> BlockTreeImpl::getLeaves() const {
