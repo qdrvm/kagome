@@ -86,39 +86,13 @@ namespace kagome::blockchain {
     return descend(from, to, [](const std::shared_ptr<TreeNode>) {});
   }
 
-  TreeMeta::TreeMeta(const std::shared_ptr<TreeNode> &subtree_root_node)
-      : best_block{subtree_root_node}, last_finalized{subtree_root_node} {
-    std::function<void(std::shared_ptr<TreeNode>)> handle =
-        [&](std::shared_ptr<TreeNode> node) {
-          // avoid deep recursion
-          while (node->children.size() == 1) {
-            node = node->children.front();
-          }
-
-          // is a leaf
-          if (node->children.empty()) {
-            leaves.emplace(node->block_hash);
-            chooseBest(node);
-          } else {
-            // follow descendants recursively
-            for (const auto &child : node->children) {
-              handle(child);
-            }
-          }
-        };
-
-    handle(subtree_root_node);
-  }
-
-  bool TreeMeta::chooseBest(std::shared_ptr<TreeNode> node) {
+  bool CachedTree::chooseBest(std::shared_ptr<TreeNode> node) {
     if (node->reverted) {
       return false;
     }
-    auto best = best_block.lock();
-    BOOST_ASSERT(best);
-    BOOST_ASSERT(not best->reverted);
-    if (node->weight() > best->weight()) {
-      best_block = node;
+    BOOST_ASSERT(not best_->reverted);
+    if (node->weight() > best_->weight()) {
+      best_ = node;
       return true;
     }
     return false;
@@ -133,17 +107,15 @@ namespace kagome::blockchain {
     }
   };
 
-  void TreeMeta::forceRefreshBest() {
-    auto root = last_finalized.lock();
-
+  void CachedTree::forceRefreshBest() {
     std::set<std::shared_ptr<TreeNode>, Cmp> candidates;
-    for (auto &leaf : leaves) {
-      if (auto node = root->findByHash(leaf)) {
+    for (auto &leaf : leaves_) {
+      if (auto node = root_->findByHash(leaf)) {
         candidates.emplace(std::move(node));
       }
     }
 
-    auto best = std::move(root);
+    best_ = root_;
     while (not candidates.empty()) {
       auto node = candidates.extract(candidates.begin());
       BOOST_ASSERT(not node.empty());
@@ -156,12 +128,10 @@ namespace kagome::blockchain {
         continue;
       }
 
-      if (best->weight() < tree_node->weight()) {
-        best = tree_node;
+      if (best_->weight() < tree_node->weight()) {
+        best_ = tree_node;
       }
     }
-
-    best_block = best;
   }
 
   void CachedTree::updateTreeRoot(std::shared_ptr<TreeNode> new_trie_root) {
@@ -179,7 +149,6 @@ namespace kagome::blockchain {
       prev_node = prev_node->parent.lock();
     }
 
-    metadata_ = std::make_shared<TreeMeta>(root_);
     root_->parent.reset();
   }
 
@@ -193,22 +162,13 @@ namespace kagome::blockchain {
     return *root_;
   }
 
-  const TreeMeta &CachedTree::getMetadata() const {
-    BOOST_ASSERT(metadata_ != nullptr);
-    return *metadata_;
-  }
-
   void CachedTree::updateMeta(const std::shared_ptr<TreeNode> &new_node) {
     auto parent = new_node->parent.lock();
     parent->children.push_back(new_node);
 
-    metadata_->leaves.insert(new_node->block_hash);
-    metadata_->leaves.erase(parent->block_hash);
-    metadata_->chooseBest(new_node);
-  }
-
-  void CachedTree::forceRefreshBest() {
-    metadata_->forceRefreshBest();
+    leaves_.insert(new_node->block_hash);
+    leaves_.erase(parent->block_hash);
+    chooseBest(new_node);
   }
 
   void CachedTree::removeFromMeta(const std::shared_ptr<TreeNode> &node) {
@@ -223,56 +183,53 @@ namespace kagome::blockchain {
       parent->children.erase(it);
     }
 
-    metadata_->leaves.erase(node->block_hash);
+    leaves_.erase(node->block_hash);
     if (parent->children.empty()) {
-      metadata_->leaves.insert(parent->block_hash);
+      leaves_.insert(parent->block_hash);
     }
 
-    auto best = metadata_->best_block.lock();
-    BOOST_ASSERT(best);
-    if (node == best) {
-      metadata_->best_block = parent;
-      for (auto it = metadata_->leaves.begin();
-           it != metadata_->leaves.end();) {
+    if (node == best_) {
+      best_ = parent;
+      for (auto it = leaves_.begin(); it != leaves_.end();) {
         const auto &hash = *it++;
         const auto leaf_node = root_->findByHash(hash);
         if (leaf_node == nullptr) {
           // Already removed with removed subtree
-          metadata_->leaves.erase(hash);
-        } else if (metadata_->chooseBest(leaf_node)) {
+          leaves_.erase(hash);
+        } else if (chooseBest(leaf_node)) {
           break;
         }
       }
     }
   }
 
+  CachedTree::CachedTree(const primitives::BlockInfo &root)
+      : root_{std::make_shared<TreeNode>(root)},
+        best_{root_},
+        leaves_{root.hash} {}
+
   const std::shared_ptr<TreeNode> &CachedTree::finalized() const {
     return root_;
   }
 
   const std::shared_ptr<TreeNode> &CachedTree::best() const {
-    (decltype(best_) &)best_ = metadata_->best_block.lock();  // TODO: refactor
     return best_;
   }
 
   size_t CachedTree::leafCount() const {
-    auto &leaves_ = metadata_->leaves;  // TODO: refactor
     return leaves_.size();
   }
 
   std::vector<primitives::BlockHash> CachedTree::leafHashes() const {
-    auto &leaves_ = metadata_->leaves;  // TODO: refactor
     return {leaves_.begin(), leaves_.end()};
   }
 
   bool CachedTree::isLeaf(const primitives::BlockHash &hash) const {
-    auto &leaves_ = metadata_->leaves;  // TODO: refactor
     return leaves_.find(hash) != leaves_.end();
   }
 
   primitives::BlockInfo CachedTree::bestWith(
       const std::shared_ptr<TreeNode> &required) const {
-    auto &leaves_ = metadata_->leaves;  // TODO: refactor
     std::set<std::shared_ptr<TreeNode>, Cmp> candidates;
     for (auto &leaf : leaves_) {
       if (auto node = required->findByHash(leaf)) {

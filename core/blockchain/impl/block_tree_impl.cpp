@@ -269,22 +269,20 @@ namespace kagome::blockchain {
     }
 
     // Prepare and create block tree basing last finalized block
-    auto tree = std::make_shared<TreeNode>(last_finalized_block_info);
-    SL_DEBUG(log, "Last finalized block {}", tree->getBlockInfo());
-    auto meta = std::make_shared<TreeMeta>(tree);
+    SL_DEBUG(log, "Last finalized block {}", last_finalized_block_info);
 
-    std::shared_ptr<BlockTreeImpl> block_tree(
-        new BlockTreeImpl(std::move(header_repo),
-                          std::move(storage),
-                          std::make_unique<CachedTree>(tree, meta),
-                          std::move(extrinsic_observer),
-                          std::move(hasher),
-                          std::move(chain_events_engine),
-                          std::move(extrinsic_events_engine),
-                          std::move(extrinsic_event_key_repo),
-                          std::move(justification_storage_policy),
-                          state_pruner,
-                          std::move(io_context)));
+    std::shared_ptr<BlockTreeImpl> block_tree(new BlockTreeImpl(
+        std::move(header_repo),
+        std::move(storage),
+        std::make_unique<CachedTree>(last_finalized_block_info),
+        std::move(extrinsic_observer),
+        std::move(hasher),
+        std::move(chain_events_engine),
+        std::move(extrinsic_events_engine),
+        std::move(extrinsic_event_key_repo),
+        std::move(justification_storage_policy),
+        state_pruner,
+        std::move(io_context)));
 
     // Add non-finalized block to the block tree
     for (auto &e : collected) {
@@ -1501,9 +1499,7 @@ namespace kagome::blockchain {
 
   void BlockTreeImpl::warp(const primitives::BlockInfo &block_info) {
     block_tree_data_.exclusiveAccess([&](BlockTreeData &p) {
-      auto node = std::make_shared<TreeNode>(block_info);
-      auto meta = std::make_shared<TreeMeta>(node);
-      p.tree_ = std::make_unique<CachedTree>(std::move(node), std::move(meta));
+      p.tree_ = std::make_unique<CachedTree>(block_info);
       metric_known_chain_leaves_->set(1);
       metric_best_block_height_->set(block_info.number);
       telemetry_->notifyBlockFinalized(block_info);
@@ -1536,10 +1532,7 @@ namespace kagome::blockchain {
               nodes.emplace_back(std::move(node));
             }
           }
-          auto node = std::make_shared<TreeNode>(finalized);
-          auto meta = std::make_shared<TreeMeta>(node);
-          p.tree_ =
-              std::make_unique<CachedTree>(std::move(node), std::move(meta));
+          p.tree_ = std::make_unique<CachedTree>(finalized);
           OUTCOME_TRY(p.storage_->setBlockTreeLeaves({finalized.hash}));
           for (auto i = max; i > finalized.number; --i) {
             OUTCOME_TRY(p.storage_->deassignNumberToHash(i));

@@ -64,38 +64,11 @@ namespace kagome::blockchain {
                   const std::shared_ptr<TreeNode> &to);
 
   /**
-   * Useful information about the tree & blocks it contains to make some of
-   * the operations faster
-   */
-  struct TreeMeta {
-    explicit TreeMeta(const std::shared_ptr<TreeNode> &subtree_root_node);
-
-    /**
-     * Compare node weight with best and replace if heavier.
-     * @return true if heavier and replaced.
-     */
-    bool chooseBest(std::shared_ptr<TreeNode> node);
-
-    /// Force find and update actual best block
-    void forceRefreshBest();
-
-    std::unordered_set<primitives::BlockHash> leaves;
-    std::weak_ptr<TreeNode> best_block;
-
-    std::weak_ptr<TreeNode> last_finalized;
-  };
-
-  /**
    * Non-finalized part of block tree
    */
   class CachedTree {
    public:
-    explicit CachedTree(std::shared_ptr<TreeNode> root,
-                        std::shared_ptr<TreeMeta> metadata)
-        : root_{std::move(root)}, metadata_{std::move(metadata)} {
-      BOOST_ASSERT(root_ != nullptr);
-      BOOST_ASSERT(metadata_ != nullptr);
-    }
+    explicit CachedTree(const primitives::BlockInfo &root);
 
     const std::shared_ptr<TreeNode> &finalized() const;
     const std::shared_ptr<TreeNode> &best() const;
@@ -115,6 +88,7 @@ namespace kagome::blockchain {
 
     void updateMeta(const std::shared_ptr<TreeNode> &new_node);
 
+    /// Force find and update actual best block
     void forceRefreshBest();
 
     /**
@@ -128,11 +102,15 @@ namespace kagome::blockchain {
     const TreeNode &getRoot() const;
     TreeNode &getRoot();
 
-    const TreeMeta &getMetadata() const;
-
    private:
+    /**
+     * Compare node weight with best and replace if heavier.
+     * @return true if heavier and replaced.
+     */
+    bool chooseBest(std::shared_ptr<TreeNode> node);
+
     std::shared_ptr<TreeNode> root_;
     std::shared_ptr<TreeNode> best_;
-    std::shared_ptr<TreeMeta> metadata_;
+    std::unordered_set<primitives::BlockHash> leaves_;
   };
 }  // namespace kagome::blockchain
