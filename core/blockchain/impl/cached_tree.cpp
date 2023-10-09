@@ -269,4 +269,33 @@ namespace kagome::blockchain {
     auto &leaves_ = metadata_->leaves;  // TODO: refactor
     return leaves_.find(hash) != leaves_.end();
   }
+
+  primitives::BlockInfo CachedTree::bestWith(
+      const std::shared_ptr<TreeNode> &required) const {
+    auto &leaves_ = metadata_->leaves;  // TODO: refactor
+    std::set<std::shared_ptr<TreeNode>, Cmp> candidates;
+    for (auto &leaf : leaves_) {
+      if (auto node = required->findByHash(leaf)) {
+        candidates.emplace(std::move(node));
+      }
+    }
+    auto best = required;
+    while (not candidates.empty()) {
+      auto _node = candidates.extract(candidates.begin());
+      auto &node = _node.value();
+      if (node->depth <= required->depth) {
+        continue;
+      }
+      if (node->reverted) {
+        auto parent = node->parent.lock();
+        BOOST_ASSERT(parent);
+        candidates.emplace(std::move(parent));
+        continue;
+      }
+      if (node->weight() > best->weight() and canDescend(node, required)) {
+        best = node;
+      }
+    }
+    return best->getBlockInfo();
+  }
 }  // namespace kagome::blockchain

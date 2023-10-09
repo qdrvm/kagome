@@ -1247,6 +1247,9 @@ namespace kagome::blockchain {
       const primitives::BlockHash &target_hash) const {
     return block_tree_data_.sharedAccess(
         [&](const BlockTreeData &p) -> outcome::result<primitives::BlockInfo> {
+          if (getLastFinalizedNoLock(p).hash == target_hash) {
+            return bestBlockNoLock(p);
+          }
           auto &root = p.tree_->getRoot();
 
           auto target = root.findByHash(target_hash);
@@ -1267,37 +1270,7 @@ namespace kagome::blockchain {
             return bestBlockNoLock(p);
           }
 
-          auto metadata = p.tree_->getMetadata();
-
-          // TODO(turuslan): comparator
-          std::set<std::shared_ptr<TreeNode>> candidates;
-          for (auto &leaf : metadata.leaves) {
-            if (auto node = target->findByHash(leaf)) {
-              candidates.emplace(std::move(node));
-            }
-          }
-
-          auto best = target;
-          while (not candidates.empty()) {
-            auto node = candidates.extract((++candidates.rbegin()).base());
-            BOOST_ASSERT(not node.empty());
-
-            auto &tree_node = node.value();
-            if (tree_node->reverted) {
-              if (auto parent = tree_node->parent.lock()) {
-                candidates.emplace(std::move(parent));
-              }
-              continue;
-            }
-
-            if (best->weight() < tree_node->weight()
-                and hasDirectChainNoLock(
-                    p, target_hash, tree_node->block_hash)) {
-              best = tree_node;
-            }
-          }
-
-          return best->getBlockInfo();
+          return p.tree_->bestWith(target);
         });
   }
 

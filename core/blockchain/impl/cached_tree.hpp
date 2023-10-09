@@ -102,6 +102,8 @@ namespace kagome::blockchain {
     size_t leafCount() const;
     std::vector<primitives::BlockHash> leafHashes() const;
     bool isLeaf(const primitives::BlockHash &hash) const;
+    primitives::BlockInfo bestWith(
+        const std::shared_ptr<TreeNode> &required) const;
 
     /**
      * Remove nodes in block tree from current tree_ to {\arg new_trie_root}.
