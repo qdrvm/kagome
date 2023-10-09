@@ -65,13 +65,17 @@ namespace kagome::crypto {
                                    const application::AppConfiguration &config)
       : roles_(config.roles()), store_(store) {
     if (auto dev = config.devMnemonicPhrase()) {
+      // Ed25519
       store_->generateEd25519Keypair(KeyTypes::GRANDPA, *dev).value();
-      store_->generateSr25519Keypair(KeyTypes::BABE, *dev).value();
-      store_->generateSr25519Keypair(KeyTypes::IM_ONLINE, *dev).value();
-      store_->generateSr25519Keypair(KeyTypes::AUTHORITY_DISCOVERY, *dev)
-          .value();
-      store_->generateSr25519Keypair(KeyTypes::ASSIGNMENT, *dev).value();
-      store_->generateSr25519Keypair(KeyTypes::PARACHAIN, *dev).value();
+      // Sr25519
+      for (auto key_type : {KeyTypes::BABE,
+                            KeyTypes::IM_ONLINE,
+                            KeyTypes::AUTHORITY_DISCOVERY,
+                            KeyTypes::ASSIGNMENT,
+                            KeyTypes::PARACHAIN}) {
+        store_->generateSr25519Keypair(key_type, *dev).value();
+      }
+      // Ecdsa
       store_->generateEcdsaKeypair(KeyTypes::BEEFY, *dev).value();
     }
   }
