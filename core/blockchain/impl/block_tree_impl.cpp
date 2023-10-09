@@ -453,7 +453,7 @@ namespace kagome::blockchain {
 
       metric_finalized_block_height_ = metrics_registry_->registerGaugeMetric(
           blockHeightMetricName, {{"status", "finalized"}});
-      metric_finalized_block_height_->set(p.tree_->finalized()->depth);
+      metric_finalized_block_height_->set(getLastFinalizedNoLock(p).number);
 
       metrics_registry_->registerGaugeFamily(
           knownChainLeavesMetricName,
