@@ -32,8 +32,8 @@ namespace kagome::crypto {
       KeyTypes::GRANDPA,
       KeyTypes::BABE,
       KeyTypes::IM_ONLINE,
-      KeyTypes::KEY_TYPE_PARA,
-      KeyTypes::KEY_TYPE_ASGN,
+      KeyTypes::PARACHAIN,
+      KeyTypes::ASSIGNMENT,
       KeyTypes::AUTHORITY_DISCOVERY,
   };
 

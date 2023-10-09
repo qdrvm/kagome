@@ -70,8 +70,8 @@ namespace kagome::crypto {
       store_->generateSr25519Keypair(KeyTypes::IM_ONLINE, *dev).value();
       store_->generateSr25519Keypair(KeyTypes::AUTHORITY_DISCOVERY, *dev)
           .value();
-      store_->generateSr25519Keypair(KeyTypes::KEY_TYPE_ASGN, *dev).value();
-      store_->generateSr25519Keypair(KeyTypes::KEY_TYPE_PARA, *dev).value();
+      store_->generateSr25519Keypair(KeyTypes::ASSIGNMENT, *dev).value();
+      store_->generateSr25519Keypair(KeyTypes::PARACHAIN, *dev).value();
       store_->generateEcdsaKeypair(KeyTypes::BEEFY, *dev).value();
     }
   }
@@ -126,7 +126,7 @@ namespace kagome::crypto {
     return find<Sr25519Keypair,
                 &CryptoStore::getSr25519PublicKeys,
                 &CryptoStore::findSr25519Keypair>(
-        para_key_pair_, KeyTypes::KEY_TYPE_PARA, authorities, std::equal_to{});
+        para_key_pair_, KeyTypes::PARACHAIN, authorities, std::equal_to{});
   }
 
   std::shared_ptr<Sr25519Keypair> SessionKeysImpl::getAudiKeyPair(

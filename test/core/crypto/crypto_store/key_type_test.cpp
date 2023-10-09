@@ -64,15 +64,15 @@ TEST_P(KeyTypeTest, CheckIfKnown) {
   }
 }
 
-INSTANTIATE_TEST_SUITE_P(
-    KeyTypeTestCases,
-    KeyTypeTest,
-    ::testing::Values(good(KeyTypes::BABE, "babe"),
-                      good(KeyTypes::GRANDPA, "gran"),
-                      good(KeyTypes::ACCOUNT, "acco"),
-                      good(KeyTypes::IM_ONLINE, "imon"),
-                      good(KeyTypes::AUTHORITY_DISCOVERY, "audi"),
-                      good(KeyTypes::KEY_TYPE_ASGN, "asgn"),
-                      good(KeyTypes::KEY_TYPE_PARA, "para"),
-                      bad((KeyType)0, "babe"),
-                      bad((KeyType)666, "babe")));
+INSTANTIATE_TEST_SUITE_P(KeyTypeTestCases,
+                         KeyTypeTest,
+                         ::testing::Values(good(KeyTypes::BABE, "babe"),
+                                           good(KeyTypes::GRANDPA, "gran"),
+                                           good(KeyTypes::ACCOUNT, "acco"),
+                                           good(KeyTypes::IM_ONLINE, "imon"),
+                                           good(KeyTypes::AUTHORITY_DISCOVERY,
+                                                "audi"),
+                                           good(KeyTypes::ASSIGNMENT, "asgn"),
+                                           good(KeyTypes::PARACHAIN, "para"),
+                                           bad((KeyType)0, "babe"),
+                                           bad((KeyType)666, "babe")));

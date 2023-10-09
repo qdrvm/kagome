@@ -75,11 +75,12 @@ namespace kagome::crypto {
     static constexpr KeyType STAKING = "stak"_key;
     /// A key type for signing statements
     static constexpr KeyType STATEMENT = "stmt"_key;
+    /// The key type ID for parachain assignment key.
+    static constexpr KeyType ASSIGNMENT = "asgn"_key;
+    /// The key type ID for a parachain validator key.
+    static constexpr KeyType PARACHAIN = "para"_key;
     /// A key type ID useful for tests.
     static constexpr KeyType DUMMY = "dumy"_key;
-
-    static constexpr KeyType KEY_TYPE_ASGN = "asgn"_key;
-    static constexpr KeyType KEY_TYPE_PARA = "para"_key;
 
     KeyTypes() = delete;
 
@@ -95,9 +96,9 @@ namespace kagome::crypto {
         case KeyTypes::AUTHORITY_DISCOVERY:
         case KeyTypes::STAKING:
         case KeyTypes::STATEMENT:
+        case KeyTypes::ASSIGNMENT:
+        case KeyTypes::PARACHAIN:
         case KeyTypes::DUMMY:
-        case KeyTypes::KEY_TYPE_ASGN:
-        case KeyTypes::KEY_TYPE_PARA:
           return true;
       }
       return false;

@@ -337,10 +337,10 @@ TEST_F(AuthorApiTest, HasSessionKeysSuccess6Keys) {
   EXPECT_CALL(*store, findSr25519Keypair(KeyTypes::IM_ONLINE, _))
       .Times(1)
       .WillOnce(Return(srOk));
-  EXPECT_CALL(*store, findSr25519Keypair(KeyTypes::KEY_TYPE_PARA, _))
+  EXPECT_CALL(*store, findSr25519Keypair(KeyTypes::PARACHAIN, _))
       .Times(1)
       .WillOnce(Return(srOk));
-  EXPECT_CALL(*store, findSr25519Keypair(KeyTypes::KEY_TYPE_ASGN, _))
+  EXPECT_CALL(*store, findSr25519Keypair(KeyTypes::ASSIGNMENT, _))
       .Times(1)
       .WillOnce(Return(srOk));
   EXPECT_CALL(*store, findSr25519Keypair(KeyTypes::AUTHORITY_DISCOVERY, _))
