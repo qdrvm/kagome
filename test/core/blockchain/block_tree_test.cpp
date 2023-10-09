@@ -343,6 +343,9 @@ struct BlockTreeTest : public testing::Test {
     auto it = std::find_if(num_to_hash_.begin(),
                            num_to_hash_.end(),
                            [&](const auto &it) { return it.second == hash; });
+    if (it == num_to_hash_.end()) {
+      return;
+    }
     num_to_hash_.erase(it);
   }
   void delNumToHash(BlockNumber number) {
@@ -608,8 +611,7 @@ std::shared_ptr<TreeNode> makeFullTree(size_t depth, size_t branching_factor) {
                                          auto &make_subtree) {
     primitives::BlockHash hash{};
     std::copy_n(name.begin(), name.size(), hash.begin());
-    auto node =
-        std::make_shared<TreeNode>(hash, current_depth, parent, false, false);
+    auto node = std::make_shared<TreeNode>(hash, current_depth, parent, false);
     if (current_depth + 1 == max_depth) {
       return node;
     }
@@ -927,34 +929,15 @@ TEST_F(BlockTreeTest, GetBestBlock) {
 
   // ---------------------------------------------------------------------------
 
-  auto D1_hash = addHeaderToRepository(C1_hash, 47, SlotType::Primary);
-  ASSERT_OUTCOME_SUCCESS_TRY(block_tree_->markAsParachainDataBlock(D1_hash));
-
-  //  42   43  44  45  46   47   48   49   50
-  //
-  //                   C1 - D1**
-  //                 /
-  //  LF - T - A - B - C2 - D2 - E2*
-  //                 \
-  //                   C3 - D3 - E3 - F3
-
-  {
-    ASSERT_OUTCOME_SUCCESS(best_info, block_tree_->getBestContaining(T_hash));
-    ASSERT_EQ(best_info.hash, D1_hash);
-  }
-
-  // ---------------------------------------------------------------------------
-
   auto G3_hash = addHeaderToRepository(F3_hash, 50, SlotType::Primary);
-  ASSERT_OUTCOME_SUCCESS_TRY(block_tree_->markAsParachainDataBlock(G3_hash));
 
   //  42   43  44  45  46   47   48   49   50
   //
-  //                   C1 - D1**
+  //                   C1
   //                 /
   //  LF - T - A - B - C2 - D2 - E2*
   //                 \
-  //                   C3 - D3 - E3 - F3 - G3***
+  //                   C3 - D3 - E3 - F3 - G3**
 
   {
     ASSERT_OUTCOME_SUCCESS(best_info, block_tree_->getBestContaining(T_hash));
@@ -967,14 +950,14 @@ TEST_F(BlockTreeTest, GetBestBlock) {
 
   //  42   43  44  45  46   47   48   49   50
   //
-  //                   C1 - D1**
+  //                   C1
   //                 /
   //  LF - T - A - B - C2 - D2 - E2*
   //                 \
-  //                   C3 - D3 - E3 - F3 - G3***
+  //                   C3 - D3 - E3 - F3 - G3**
 
   {
     ASSERT_OUTCOME_SUCCESS(best_info, block_tree_->getBestContaining(T_hash));
-    ASSERT_EQ(best_info.hash, D1_hash);
+    ASSERT_EQ(best_info.hash, E2_hash);
   }
 }
