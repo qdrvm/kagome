@@ -224,4 +224,8 @@ namespace kagome::blockchain {
       }
     }
   }
+
+  const std::shared_ptr<TreeNode> &CachedTree::finalized() const {
+    return root_;
+  }
 }  // namespace kagome::blockchain

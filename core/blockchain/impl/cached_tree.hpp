@@ -93,6 +93,9 @@ namespace kagome::blockchain {
       BOOST_ASSERT(root_ != nullptr);
       BOOST_ASSERT(metadata_ != nullptr);
     }
+
+    const std::shared_ptr<TreeNode> &finalized() const;
+
     /**
      * Remove nodes in block tree from current tree_ to {\arg new_trie_root}.
      * Needed to avoid cascade shared_ptr destructor calls which break

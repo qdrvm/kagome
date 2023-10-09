@@ -454,8 +454,7 @@ namespace kagome::blockchain {
 
       metric_finalized_block_height_ = metrics_registry_->registerGaugeMetric(
           blockHeightMetricName, {{"status", "finalized"}});
-      metric_finalized_block_height_->set(
-          p.tree_->getMetadata().last_finalized.lock()->depth);
+      metric_finalized_block_height_->set(p.tree_->finalized()->depth);
 
       metrics_registry_->registerGaugeFamily(
           knownChainLeavesMetricName,
@@ -1359,9 +1358,7 @@ namespace kagome::blockchain {
 
   primitives::BlockInfo BlockTreeImpl::getLastFinalizedNoLock(
       const BlockTreeData &p) const {
-    const auto &last = p.tree_->getMetadata().last_finalized.lock();
-    BOOST_ASSERT(last != nullptr);
-    return last->getBlockInfo();
+    return p.tree_->finalized()->getBlockInfo();
   }
 
   primitives::BlockInfo BlockTreeImpl::getLastFinalized() const {
