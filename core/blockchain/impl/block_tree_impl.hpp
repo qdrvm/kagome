@@ -144,6 +144,8 @@ namespace kagome::blockchain {
 
     void notifyBestAndFinalized() override;
 
+    void removeUnfinalized() override;
+
    private:
     struct BlockTreeData {
       std::shared_ptr<BlockHeaderRepository> header_repo_;

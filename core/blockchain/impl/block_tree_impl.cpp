@@ -1605,4 +1605,37 @@ namespace kagome::blockchain {
     chain_events_engine_->notify(
         primitives::events::ChainEventType::kFinalizedHeads, finalized_header);
   }
+
+  void BlockTreeImpl::removeUnfinalized() {
+    auto r = block_tree_data_.exclusiveAccess(
+        [&](BlockTreeData &p) -> outcome::result<void> {
+          auto finalized = p.tree_->getRoot().getBlockInfo();
+          auto nodes = std::move(p.tree_->getRoot().children);
+          primitives::BlockNumber max = 0;
+          for (size_t i = 0; i < nodes.size(); ++i) {
+            auto children = std::move(nodes[i]->children);
+            for (auto &node : children) {
+              max = std::max(max, node->depth);
+              nodes.emplace_back(std::move(node));
+            }
+          }
+          auto node =
+              std::make_shared<TreeNode>(finalized.hash, finalized.number);
+          auto meta = std::make_shared<TreeMeta>(node);
+          p.tree_ =
+              std::make_unique<CachedTree>(std::move(node), std::move(meta));
+          OUTCOME_TRY(p.storage_->setBlockTreeLeaves({finalized.hash}));
+          for (auto i = max; i > finalized.number; --i) {
+            OUTCOME_TRY(p.storage_->deassignNumberToHash(i));
+          }
+          std::reverse(nodes.begin(), nodes.end());
+          for (auto &node : nodes) {
+            OUTCOME_TRY(p.storage_->removeBlock(node->block_hash));
+          }
+          return outcome::success();
+        });
+    if (not r) {
+      SL_ERROR(log_, "removeUnfinalized error: {}", r.error());
+    }
+  }
 }  // namespace kagome::blockchain

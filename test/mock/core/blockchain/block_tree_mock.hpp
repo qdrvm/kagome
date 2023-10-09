@@ -131,5 +131,7 @@ namespace kagome::blockchain {
     MOCK_METHOD(void, warp, (const primitives::BlockInfo &), (override));
 
     MOCK_METHOD(void, notifyBestAndFinalized, (), (override));
+
+    MOCK_METHOD(void, removeUnfinalized, (), (override));
   };
 }  // namespace kagome::blockchain

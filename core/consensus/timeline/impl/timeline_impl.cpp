@@ -611,40 +611,7 @@ namespace kagome::consensus {
              "Rolling back non-finalized blocks. Last known finalized is {}",
              block_at_state);
 
-    // Next do-while-loop serves for removal non finalized blocks
-    bool affected;
-    do {
-      affected = false;
-
-      auto block_tree_leaves = block_tree_->getLeaves();
-
-      for (const auto &hash : block_tree_leaves) {
-        if (hash == block_at_state.hash) {
-          continue;
-        }
-
-        auto header_res = block_tree_->getBlockHeader(hash);
-        if (header_res.has_error()) {
-          SL_CRITICAL(log_,
-                      "Can't get header of one of removing leave_block: {}",
-                      header_res.error());
-          continue;
-        }
-
-        const auto &header = header_res.value();
-
-        // Block before last finalized must not be a leave.
-        // Don't touch it just in case
-        if (header.number < block_at_state.number) {
-          continue;
-        }
-
-        std::ignore = consistency_keeper_->start(
-            primitives::BlockInfo(header.number, hash));
-
-        affected = true;
-      }
-    } while (affected);
+    block_tree_->removeUnfinalized();
 
     SL_TRACE(log_,
              "Trying to sync state on block {} from {}",
