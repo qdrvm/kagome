@@ -228,4 +228,9 @@ namespace kagome::blockchain {
   const std::shared_ptr<TreeNode> &CachedTree::finalized() const {
     return root_;
   }
+
+  const std::shared_ptr<TreeNode> &CachedTree::best() const {
+    (decltype(best_) &)best_ = metadata_->best_block.lock();  // TODO: refactor
+    return best_;
+  }
 }  // namespace kagome::blockchain

@@ -95,6 +95,7 @@ namespace kagome::blockchain {
     }
 
     const std::shared_ptr<TreeNode> &finalized() const;
+    const std::shared_ptr<TreeNode> &best() const;
 
     /**
      * Remove nodes in block tree from current tree_ to {\arg new_trie_root}.
@@ -123,6 +124,7 @@ namespace kagome::blockchain {
 
    private:
     std::shared_ptr<TreeNode> root_;
+    std::shared_ptr<TreeNode> best_;
     std::shared_ptr<TreeMeta> metadata_;
   };
 }  // namespace kagome::blockchain
