@@ -598,7 +598,8 @@ namespace kagome::blockchain {
     return block_tree_data_.exclusiveAccess(
         [&](BlockTreeData &p) -> outcome::result<void> {
           // Check if block is leaf
-          if (p.tree_->isLeaf(block_hash)) {
+          if (block_hash == getLastFinalizedNoLock(p).hash
+              or p.tree_->isLeaf(block_hash)) {
             return BlockTreeError::BLOCK_IS_NOT_LEAF;
           }
 
@@ -606,25 +607,9 @@ namespace kagome::blockchain {
           BOOST_ASSERT_MSG(node != nullptr,
                            "As checked before, block exists as one of leaves");
 
-          if (not node->parent.expired()) {
-            // Remove from block tree, ...
-            p.tree_->removeFromMeta(node);
+          p.tree_->removeFromMeta(node);
 
-            OUTCOME_TRY(reorganizeNoLock(p));
-
-          } else {
-            // ... or repair tree by parent of root
-            OUTCOME_TRY(hash_opt, p.storage_->getBlockHash(node->depth - 1));
-            BOOST_ASSERT_MSG(hash_opt.has_value(),
-                             "Non genesis block must have parent");
-
-            primitives::BlockInfo block{node->depth - 1, hash_opt.value()};
-
-            auto tree = std::make_shared<TreeNode>(block);
-            auto meta = std::make_shared<TreeMeta>(tree);
-            p.tree_ =
-                std::make_unique<CachedTree>(std::move(tree), std::move(meta));
-          }
+          OUTCOME_TRY(reorganizeNoLock(p));
 
           // Remove from storage
           OUTCOME_TRY(p.storage_->removeBlock(node->block_hash));
