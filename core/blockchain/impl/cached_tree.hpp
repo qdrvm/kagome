@@ -22,8 +22,6 @@ namespace kagome::blockchain {
    */
   class TreeNode : public std::enable_shared_from_this<TreeNode> {
    public:
-    enum class Error { NO_CHAIN_BETWEEN_BLOCKS = 1 };
-
     TreeNode(const primitives::BlockHash &hash, primitives::BlockNumber depth);
 
     TreeNode(const primitives::BlockHash &hash,
@@ -150,5 +148,3 @@ namespace kagome::blockchain {
     std::shared_ptr<TreeMeta> metadata_;
   };
 }  // namespace kagome::blockchain
-
-OUTCOME_HPP_DECLARE_ERROR(kagome::blockchain, TreeNode::Error);

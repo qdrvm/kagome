@@ -11,15 +11,6 @@
 #include <iostream>
 #include <set>
 
-OUTCOME_CPP_DEFINE_CATEGORY(kagome::blockchain, TreeNode::Error, e) {
-  using E = kagome::blockchain::TreeNode::Error;
-  switch (e) {
-    case E::NO_CHAIN_BETWEEN_BLOCKS:
-      return "no chain exists between given blocks";
-  }
-  return "unknown error";
-}
-
 namespace kagome::blockchain {
   TreeNode::TreeNode(const primitives::BlockHash &hash,
                      primitives::BlockNumber depth)
