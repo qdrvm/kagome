@@ -461,7 +461,7 @@ namespace kagome::blockchain {
 
       metric_known_chain_leaves_ =
           metrics_registry_->registerGaugeMetric(knownChainLeavesMetricName);
-      metric_known_chain_leaves_->set(p.tree_->getMetadata().leaves.size());
+      metric_known_chain_leaves_->set(p.tree_->leafCount());
 
       telemetry_->setGenesisBlockHash(getGenesisBlockHash());
     });
@@ -519,7 +519,7 @@ namespace kagome::blockchain {
               {p.tree_->getMetadata().leaves.begin(),
                p.tree_->getMetadata().leaves.end()}));
 
-          metric_known_chain_leaves_->set(p.tree_->getMetadata().leaves.size());
+          metric_known_chain_leaves_->set(p.tree_->leafCount());
           metric_best_block_height_->set(p.tree_->best()->depth);
 
           notifyChainEventsEngine(primitives::events::ChainEventType::kNewHeads,
@@ -576,7 +576,7 @@ namespace kagome::blockchain {
             }
           }
 
-          metric_known_chain_leaves_->set(p.tree_->getMetadata().leaves.size());
+          metric_known_chain_leaves_->set(p.tree_->leafCount());
           metric_best_block_height_->set(p.tree_->best()->depth);
 
           SL_VERBOSE(log_,
@@ -796,7 +796,7 @@ namespace kagome::blockchain {
         p.storage_->setBlockTreeLeaves({p.tree_->getMetadata().leaves.begin(),
                                         p.tree_->getMetadata().leaves.end()}));
 
-    metric_known_chain_leaves_->set(p.tree_->getMetadata().leaves.size());
+    metric_known_chain_leaves_->set(p.tree_->leafCount());
     metric_best_block_height_->set(p.tree_->best()->depth);
 
     SL_VERBOSE(log_,
@@ -1313,7 +1313,7 @@ namespace kagome::blockchain {
   std::vector<primitives::BlockHash> BlockTreeImpl::getLeavesNoLock(
       const BlockTreeData &p) const {
     std::vector<primitives::BlockHash> result;
-    result.reserve(p.tree_->getMetadata().leaves.size());
+    result.reserve(p.tree_->leafCount());
     std::transform(p.tree_->getMetadata().leaves.begin(),
                    p.tree_->getMetadata().leaves.end(),
                    std::back_inserter(result),

@@ -233,4 +233,9 @@ namespace kagome::blockchain {
     (decltype(best_) &)best_ = metadata_->best_block.lock();  // TODO: refactor
     return best_;
   }
+
+  size_t CachedTree::leafCount() const {
+    auto &leaves_ = metadata_->leaves;  // TODO: refactor
+    return leaves_.size();
+  }
 }  // namespace kagome::blockchain
