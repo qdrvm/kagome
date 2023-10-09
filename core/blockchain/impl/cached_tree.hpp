@@ -29,14 +29,11 @@ namespace kagome::blockchain {
     TreeNode(const primitives::BlockHash &hash,
              primitives::BlockNumber depth,
              const std::shared_ptr<TreeNode> &parent,
-             bool finalized,
              bool babe_primary);
 
     primitives::BlockHash block_hash;
     primitives::BlockNumber depth;
     std::weak_ptr<TreeNode> parent;
-    bool finalized;
-    bool has_justification = false;
     bool babe_primary;
     bool contains_approved_para_block;
     bool reverted;

@@ -26,7 +26,6 @@ namespace kagome::blockchain {
       : block_hash{hash},
         depth{depth},
         parent{},
-        finalized{true},
         babe_primary{false},
         contains_approved_para_block{false},
         reverted{false} {}
@@ -34,12 +33,10 @@ namespace kagome::blockchain {
   TreeNode::TreeNode(const primitives::BlockHash &hash,
                      primitives::BlockNumber depth,
                      const std::shared_ptr<TreeNode> &parent,
-                     bool finalized,
                      bool babe_primary)
       : block_hash{hash},
         depth{depth},
         parent{parent},
-        finalized{finalized},
         babe_primary{babe_primary},
         contains_approved_para_block{false},
         reverted{parent->reverted} {}

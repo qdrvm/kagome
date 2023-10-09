@@ -512,7 +512,7 @@ namespace kagome::blockchain {
 
           // update local meta with the new block
           auto new_node = std::make_shared<TreeNode>(
-              block_hash, header.number, parent, false, isPrimary(header));
+              block_hash, header.number, parent, isPrimary(header));
 
           p.tree_->updateMeta(new_node);
 
@@ -550,11 +550,8 @@ namespace kagome::blockchain {
           OUTCOME_TRY(block_hash, p.storage_->putBlock(block));
 
           // Update local meta with the block
-          auto new_node = std::make_shared<TreeNode>(block_hash,
-                                                     block.header.number,
-                                                     parent,
-                                                     false,
-                                                     isPrimary(block.header));
+          auto new_node = std::make_shared<TreeNode>(
+              block_hash, block.header.number, parent, isPrimary(block.header));
 
           p.tree_->updateMeta(new_node);
 
@@ -793,11 +790,8 @@ namespace kagome::blockchain {
     }
 
     // Update local meta with the block
-    auto new_node = std::make_shared<TreeNode>(block_hash,
-                                               block_header.number,
-                                               parent,
-                                               false,
-                                               isPrimary(block_header));
+    auto new_node = std::make_shared<TreeNode>(
+        block_hash, block_header.number, parent, isPrimary(block_header));
 
     p.tree_->updateMeta(new_node);
 
@@ -863,10 +857,6 @@ namespace kagome::blockchain {
         OUTCOME_TRY(p.storage_->putJustification(justification, block_hash));
         justification_stored = true;
 
-        // update our local meta
-        node->finalized = true;
-        node->has_justification = true;
-
         OUTCOME_TRY(pruneNoLock(p, node));
         OUTCOME_TRY(pruneTrie(p, node->getBlockInfo().number));
 
@@ -910,10 +900,6 @@ namespace kagome::blockchain {
         return outcome::success();
       } else if (hasDirectChainNoLock(
                      p, block_hash, last_finalized_block_info.hash)) {
-        if (node->has_justification) {
-          // block already has justification (in memory), fine
-          return outcome::success();
-        }
         OUTCOME_TRY(justification_opt,
                     p.storage_->getJustification(block_hash));
         if (justification_opt.has_value()) {
@@ -1390,8 +1376,7 @@ namespace kagome::blockchain {
 
     auto following_node = lastFinalizedNode;
 
-    for (auto current_node = following_node->parent.lock();
-         current_node && !current_node->finalized;
+    for (auto current_node = following_node->parent.lock(); current_node;
          current_node = current_node->parent.lock()) {
       // DFS-on-deque
       to_remove.emplace_back();  // Waterbreak
