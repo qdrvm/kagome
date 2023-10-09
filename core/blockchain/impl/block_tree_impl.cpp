@@ -1037,7 +1037,7 @@ namespace kagome::blockchain {
     // Try to retrieve from cached tree
     if (auto node = p.tree_->getRoot().findByHash(hash)) {
       while (maximum > chain.size()) {
-        auto parent = node->parent.lock();
+        auto parent = node->parent();
         if (not parent) {
           hash = node->block_hash;
           break;
@@ -1296,8 +1296,8 @@ namespace kagome::blockchain {
 
     auto following_node = lastFinalizedNode;
 
-    for (auto current_node = following_node->parent.lock(); current_node;
-         current_node = current_node->parent.lock()) {
+    for (auto current_node = following_node->parent(); current_node;
+         current_node = current_node->parent()) {
       // DFS-on-deque
       to_remove.emplace_back();  // Waterbreak
       std::copy_if(current_node->children.begin(),

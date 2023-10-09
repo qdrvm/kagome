@@ -7,9 +7,9 @@
 #include "blockchain/impl/cached_tree.hpp"
 
 #include <queue>
-
-#include <iostream>
 #include <set>
+
+#include "utils/wptr.hpp"
 
 namespace kagome::blockchain {
   TreeNode::TreeNode(const primitives::BlockInfo &info)
@@ -24,11 +24,15 @@ namespace kagome::blockchain {
                      bool babe_primary)
       : block_hash{info.hash},
         depth{info.number},
-        parent{parent},
+        weak_parent{parent},
         babe_primary_weight{parent->babe_primary_weight
                             + (babe_primary ? 1 : 0)},
         contains_approved_para_block{false},
         reverted{parent->reverted} {}
+
+  std::shared_ptr<TreeNode> TreeNode::parent() const {
+    return wptrLock(weak_parent);
+  }
 
   BlockWeight TreeNode::weight() const {
     return {babe_primary_weight, depth};
@@ -53,13 +57,7 @@ namespace kagome::blockchain {
   }
 
   bool TreeNode::operator==(const TreeNode &other) const {
-    const auto &other_parent = other.parent;
-    auto parents_equal = (parent.expired() && other_parent.expired())
-                      || (!parent.expired() && !other_parent.expired()
-                          && parent.lock() == other_parent.lock());
-
-    return parents_equal && block_hash == other.block_hash
-        && depth == other.depth;
+    return block_hash == other.block_hash && depth == other.depth;
   }
 
   bool TreeNode::operator!=(const TreeNode &other) const {
@@ -75,8 +73,7 @@ namespace kagome::blockchain {
         return false;
       }
       f(from);
-      from = from->parent.lock();
-      BOOST_ASSERT(from);
+      from = wptrMustLock(from->weak_parent);
     }
     return true;
   }
@@ -122,7 +119,7 @@ namespace kagome::blockchain {
 
       auto &tree_node = node.value();
       if (tree_node->reverted) {
-        if (auto parent = tree_node->parent.lock()) {
+        if (auto parent = tree_node->parent()) {
           candidates.emplace(std::move(parent));
         }
         continue;
@@ -136,7 +133,7 @@ namespace kagome::blockchain {
 
   void CachedTree::updateTreeRoot(std::shared_ptr<TreeNode> new_trie_root) {
     auto prev_root = root_;
-    auto prev_node = new_trie_root->parent.lock();
+    auto prev_node = new_trie_root->parent();
 
     // now node won't be deleted while cleaning children
     root_ = std::move(new_trie_root);
@@ -146,10 +143,10 @@ namespace kagome::blockchain {
     // recursive calls of shared pointer destructors break the stack
     while (prev_node && prev_node != prev_root) {
       prev_node->children.clear();
-      prev_node = prev_node->parent.lock();
+      prev_node = prev_node->parent();
     }
 
-    root_->parent.reset();
+    root_->weak_parent.reset();
   }
 
   const TreeNode &CachedTree::getRoot() const {
@@ -163,7 +160,7 @@ namespace kagome::blockchain {
   }
 
   void CachedTree::updateMeta(const std::shared_ptr<TreeNode> &new_node) {
-    auto parent = new_node->parent.lock();
+    auto parent = wptrMustLock(new_node->weak_parent);
     parent->children.push_back(new_node);
 
     leaves_.insert(new_node->block_hash);
@@ -172,7 +169,7 @@ namespace kagome::blockchain {
   }
 
   void CachedTree::removeFromMeta(const std::shared_ptr<TreeNode> &node) {
-    auto parent = node->parent.lock();
+    auto parent = node->parent();
     if (parent == nullptr) {
       // Already removed with removed subtree
       return;
@@ -244,9 +241,9 @@ namespace kagome::blockchain {
         continue;
       }
       if (node->reverted) {
-        auto parent = node->parent.lock();
-        BOOST_ASSERT(parent);
-        candidates.emplace(std::move(parent));
+        if (auto parent = node->parent()) {
+          candidates.emplace(std::move(parent));
+        }
         continue;
       }
       if (node->weight() > best->weight() and canDescend(node, required)) {

@@ -31,13 +31,14 @@ namespace kagome::blockchain {
 
     primitives::BlockHash block_hash;
     primitives::BlockNumber depth;
-    std::weak_ptr<TreeNode> parent;
+    std::weak_ptr<TreeNode> weak_parent;
     uint32_t babe_primary_weight;
     bool contains_approved_para_block;
     bool reverted;
 
     std::vector<std::shared_ptr<TreeNode>> children{};
 
+    std::shared_ptr<TreeNode> parent() const;
     BlockWeight weight() const;
 
     /**
