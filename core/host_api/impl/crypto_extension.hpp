@@ -94,19 +94,19 @@ namespace kagome::host_api {
      * @see HostApi::ext_crypto_ed25519_public_keys
      */
     runtime::WasmSpan ext_crypto_ed25519_public_keys_version_1(
-        runtime::WasmSize key_type);
+        runtime::WasmPointer key_type);
 
     /**
      *@see HostApi::ext_crypto_ed25519_generate
      */
     runtime::WasmPointer ext_crypto_ed25519_generate_version_1(
-        runtime::WasmSize key_type, runtime::WasmSpan seed);
+        runtime::WasmPointer key_type, runtime::WasmSpan seed);
 
     /**
      * @see HostApi::ext_crypto_ed25519_sign
      */
     runtime::WasmSpan ext_crypto_ed25519_sign_version_1(
-        runtime::WasmSize key_type,
+        runtime::WasmPointer key_type,
         runtime::WasmPointer key,
         runtime::WasmSpan msg);
 
@@ -134,19 +134,19 @@ namespace kagome::host_api {
      * @see HostApi::ext_crypto_sr25519_public_keys
      */
     runtime::WasmSpan ext_crypto_sr25519_public_keys_version_1(
-        runtime::WasmSize key_type);
+        runtime::WasmPointer key_type);
 
     /**
      *@see HostApi::ext_crypto_sr25519_generate
      */
     runtime::WasmPointer ext_crypto_sr25519_generate_version_1(
-        runtime::WasmSize key_type, runtime::WasmSpan seed);
+        runtime::WasmPointer key_type, runtime::WasmSpan seed);
 
     /**
      * @see HostApi::ext_crypto_sr25519_sign
      */
     runtime::WasmSpan ext_crypto_sr25519_sign_version_1(
-        runtime::WasmSize key_type,
+        runtime::WasmPointer key_type,
         runtime::WasmPointer key,
         runtime::WasmSpan msg);
 
@@ -191,13 +191,13 @@ namespace kagome::host_api {
      * @see HostApi::ext_crypto_ecdsa_public_keys_version_1
      */
     runtime::WasmSpan ext_crypto_ecdsa_public_keys_version_1(
-        runtime::WasmSize key_type);
+        runtime::WasmPointer key_type);
 
     /**
      * @see HostApi::ext_crypto_ecdsa_sign_version_1
      */
     runtime::WasmSpan ext_crypto_ecdsa_sign_version_1(
-        runtime::WasmSize key_type,
+        runtime::WasmPointer key_type,
         runtime::WasmPointer key,
         runtime::WasmSpan msg);
 
@@ -205,7 +205,7 @@ namespace kagome::host_api {
      * @see HostApi::ext_crypto_ecdsa_sign_prehashed_version_1
      */
     runtime::WasmSpan ext_crypto_ecdsa_sign_prehashed_version_1(
-        runtime::WasmSize key_type,
+        runtime::WasmPointer key_type,
         runtime::WasmPointer key,
         runtime::WasmSpan msg);
 
@@ -213,7 +213,7 @@ namespace kagome::host_api {
      * @see HostApi::ext_crypto_ecdsa_generate
      */
     runtime::WasmPointer ext_crypto_ecdsa_generate_version_1(
-        runtime::WasmSize key_type_id, runtime::WasmSpan seed) const;
+        runtime::WasmPointer key_type, runtime::WasmSpan seed) const;
 
     /**
      * @see HostApi::ext_crypto_ecdsa_verify

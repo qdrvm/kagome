@@ -50,49 +50,49 @@ namespace kagome::crypto {
                     std::shared_ptr<KeyFileStorage> key_fs);
 
     outcome::result<EcdsaKeypair> generateEcdsaKeypair(
-        KeyTypeId key_type, std::string_view mnemonic_phrase) override;
+        KeyType key_type, std::string_view mnemonic_phrase) override;
 
     outcome::result<Ed25519Keypair> generateEd25519Keypair(
-        KeyTypeId key_type, std::string_view mnemonic_phrase) override;
+        KeyType key_type, std::string_view mnemonic_phrase) override;
 
     outcome::result<Sr25519Keypair> generateSr25519Keypair(
-        KeyTypeId key_type, std::string_view mnemonic_phrase) override;
+        KeyType key_type, std::string_view mnemonic_phrase) override;
 
     outcome::result<EcdsaKeypair> generateEcdsaKeypair(
-        KeyTypeId key_type, const EcdsaSeed &seed) override;
+        KeyType key_type, const EcdsaSeed &seed) override;
 
     outcome::result<Ed25519Keypair> generateEd25519Keypair(
-        KeyTypeId key_type, const Ed25519Seed &seed) override;
+        KeyType key_type, const Ed25519Seed &seed) override;
 
     outcome::result<Sr25519Keypair> generateSr25519Keypair(
-        KeyTypeId key_type, const Sr25519Seed &seed) override;
+        KeyType key_type, const Sr25519Seed &seed) override;
 
     outcome::result<EcdsaKeypair> generateEcdsaKeypairOnDisk(
-        KeyTypeId key_type) override;
+        KeyType key_type) override;
 
     outcome::result<Ed25519Keypair> generateEd25519KeypairOnDisk(
-        KeyTypeId key_type) override;
+        KeyType key_type) override;
 
     outcome::result<Sr25519Keypair> generateSr25519KeypairOnDisk(
-        KeyTypeId key_type) override;
+        KeyType key_type) override;
 
     outcome::result<EcdsaKeypair> findEcdsaKeypair(
-        KeyTypeId key_type, const EcdsaPublicKey &pk) const override;
+        KeyType key_type, const EcdsaPublicKey &pk) const override;
 
     outcome::result<Ed25519Keypair> findEd25519Keypair(
-        KeyTypeId key_type, const Ed25519PublicKey &pk) const override;
+        KeyType key_type, const Ed25519PublicKey &pk) const override;
 
     outcome::result<Sr25519Keypair> findSr25519Keypair(
-        KeyTypeId key_type, const Sr25519PublicKey &pk) const override;
+        KeyType key_type, const Sr25519PublicKey &pk) const override;
 
     outcome::result<EcdsaKeys> getEcdsaPublicKeys(
-        KeyTypeId key_type) const override;
+        KeyType key_type) const override;
 
     outcome::result<Ed25519Keys> getEd25519PublicKeys(
-        KeyTypeId key_type) const override;
+        KeyType key_type) const override;
 
     outcome::result<Sr25519Keys> getSr25519PublicKeys(
-        KeyTypeId key_type) const override;
+        KeyType key_type) const override;
 
     outcome::result<libp2p::crypto::KeyPair> loadLibp2pKeypair(
         const Path &key_path) const override;
@@ -100,7 +100,7 @@ namespace kagome::crypto {
    private:
     template <typename CryptoSuite>
     outcome::result<std::vector<typename CryptoSuite::PublicKey>> getPublicKeys(
-        KeyTypeId key_type,
+        KeyType key_type,
         const KeyCache<CryptoSuite> &cache,
         const CryptoSuite &suite) const {
       auto cached_keys = cache.getPublicKeys();
@@ -159,9 +159,9 @@ namespace kagome::crypto {
 
     template <typename CryptoSuite>
     outcome::result<typename CryptoSuite::Keypair> generateKeypairOnDisk(
-        KeyTypeId key_type,
+        KeyType key_type,
         const std::shared_ptr<CryptoSuite> &suite,
-        std::unordered_map<KeyTypeId, KeyCache<CryptoSuite>> &caches) {
+        std::unordered_map<KeyType, KeyCache<CryptoSuite>> &caches) {
       typename CryptoSuite::Seed seed;
       csprng_->fillRandomly(seed);
       OUTCOME_TRY(kp, suite->generateKeypair(seed, {}));
@@ -173,8 +173,8 @@ namespace kagome::crypto {
     template <typename Suite>
     KeyCache<Suite> &getCache(
         std::shared_ptr<Suite> suite,
-        std::unordered_map<KeyTypeId, KeyCache<Suite>> &caches,
-        KeyTypeId type) const {
+        std::unordered_map<KeyType, KeyCache<Suite>> &caches,
+        KeyType type) const {
       auto it = caches.find(type);
       if (it == caches.end()) {
         auto &&[new_it, success] = caches.insert({type, KeyCache{type, suite}});
@@ -184,9 +184,9 @@ namespace kagome::crypto {
       return it->second;
     }
 
-    mutable std::unordered_map<KeyTypeId, KeyCache<EcdsaSuite>> ecdsa_caches_;
-    mutable std::unordered_map<KeyTypeId, KeyCache<Ed25519Suite>> ed_caches_;
-    mutable std::unordered_map<KeyTypeId, KeyCache<Sr25519Suite>> sr_caches_;
+    mutable std::unordered_map<KeyType, KeyCache<EcdsaSuite>> ecdsa_caches_;
+    mutable std::unordered_map<KeyType, KeyCache<Ed25519Suite>> ed_caches_;
+    mutable std::unordered_map<KeyType, KeyCache<Sr25519Suite>> sr_caches_;
     std::shared_ptr<KeyFileStorage> file_storage_;
     std::shared_ptr<EcdsaSuite> ecdsa_suite_;
     std::shared_ptr<Ed25519Suite> ed_suite_;
