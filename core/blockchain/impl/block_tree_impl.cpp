@@ -449,7 +449,7 @@ namespace kagome::blockchain {
 
       metric_best_block_height_ = metrics_registry_->registerGaugeMetric(
           blockHeightMetricName, {{"status", "best"}});
-      metric_best_block_height_->set(p.tree_->best()->depth);
+      metric_best_block_height_->set(bestBlockNoLock(p).number);
 
       metric_finalized_block_height_ = metrics_registry_->registerGaugeMetric(
           blockHeightMetricName, {{"status", "finalized"}});
@@ -518,7 +518,7 @@ namespace kagome::blockchain {
           OUTCOME_TRY(p.storage_->setBlockTreeLeaves(p.tree_->leafHashes()));
 
           metric_known_chain_leaves_->set(p.tree_->leafCount());
-          metric_best_block_height_->set(p.tree_->best()->depth);
+          metric_best_block_height_->set(bestBlockNoLock(p).number);
 
           notifyChainEventsEngine(primitives::events::ChainEventType::kNewHeads,
                                   header);
@@ -573,7 +573,7 @@ namespace kagome::blockchain {
           }
 
           metric_known_chain_leaves_->set(p.tree_->leafCount());
-          metric_best_block_height_->set(p.tree_->best()->depth);
+          metric_best_block_height_->set(bestBlockNoLock(p).number);
 
           SL_VERBOSE(log_,
                      "Block {} has been added into block tree",
@@ -789,7 +789,7 @@ namespace kagome::blockchain {
     OUTCOME_TRY(p.storage_->setBlockTreeLeaves(p.tree_->leafHashes()));
 
     metric_known_chain_leaves_->set(p.tree_->leafCount());
-    metric_best_block_height_->set(p.tree_->best()->depth);
+    metric_best_block_height_->set(bestBlockNoLock(p).number);
 
     SL_VERBOSE(log_,
                "Block {} has been restored in block tree from storage",
