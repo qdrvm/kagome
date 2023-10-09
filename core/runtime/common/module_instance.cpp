@@ -1,13 +1,14 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
 #include "runtime/module_instance.hpp"
 
+#include "common/int_serialization.hpp"
 #include "runtime/memory_provider.hpp"
 #include "runtime/trie_storage_provider.hpp"
-#include "common/int_serialization.hpp"
 
 OUTCOME_CPP_DEFINE_CATEGORY(kagome::runtime, ModuleInstance::Error, e) {
   using E = kagome::runtime::ModuleInstance::Error;

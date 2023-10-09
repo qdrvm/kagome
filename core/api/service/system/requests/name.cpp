@@ -1,5 +1,6 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -24,7 +25,7 @@ namespace kagome::api::system::request {
     // In Polkadot it is just hardcoded string of client's implementation name:
     // https://github.com/paritytech/polkadot/blob/c68aee352b84321b6a5691d38e20550577d60a45/cli/src/command.rs#L34
     // So I assume we can safely use our client's name ehre
-    return "Soramitsu Kagome";
+    return "Quadrivium Kagome";
   }
 
 }  // namespace kagome::api::system::request

@@ -1,10 +1,10 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_ORDERED_TRIE_HASH_HPP
-#define KAGOME_ORDERED_TRIE_HASH_HPP
+#pragma once
 
 #include "common/buffer.hpp"
 #include "crypto/hasher.hpp"
@@ -53,5 +53,3 @@ namespace kagome::storage::trie {
   }
 
 }  // namespace kagome::storage::trie
-
-#endif  // KAGOME_ORDERED_TRIE_HASH_HPP

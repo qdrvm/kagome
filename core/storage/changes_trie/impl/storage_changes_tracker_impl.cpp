@@ -1,3 +1,9 @@
+/**
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
 #include "storage/changes_trie/impl/storage_changes_tracker_impl.hpp"
 
 #include "storage/predefined_keys.hpp"

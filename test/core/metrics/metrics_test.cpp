@@ -1,3 +1,9 @@
+/**
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
 #include "metrics/metrics.hpp"
 #include <gtest/gtest.h>
 #include <cmath>
@@ -433,7 +439,9 @@ TEST_F(SummaryTest, QuantileValues) {
 
   auto summary =
       createSummary("summary6", {{0.5, 0.05}, {0.9, 0.01}, {0.99, 0.001}});
-  for (int i = 1; i <= SAMPLES; ++i) summary->observe(i);
+  for (int i = 1; i <= SAMPLES; ++i) {
+    summary->observe(i);
+  }
 
   auto s = getMetric(summary).summary;
   ASSERT_EQ(s.quantile.size(), 3U);
@@ -459,10 +467,11 @@ TEST_F(SummaryTest, MaxAge) {
     auto s = getMetric(summary).summary;
     ASSERT_EQ(s.quantile.size(), 1U);
 
-    if (std::isnan(ref))
+    if (std::isnan(ref)) {
       EXPECT_TRUE(std::isnan(s.quantile.at(0).value));
-    else
+    } else {
       EXPECT_DOUBLE_EQ(s.quantile.at(0).value, ref);
+    }
   };
 
   test_value(8.0);

@@ -1,10 +1,10 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_CORE_RUNTIME_WAVM_INTRINSIC_RESOLVER_HPP
-#define KAGOME_CORE_RUNTIME_WAVM_INTRINSIC_RESOLVER_HPP
+#pragma once
 
 #include <WAVM/Runtime/Linker.h>
 
@@ -30,5 +30,3 @@ namespace kagome::runtime::wavm {
     virtual ~IntrinsicResolver() = default;
   };
 }  // namespace kagome::runtime::wavm
-
-#endif  // KAGOME_CORE_RUNTIME_WAVM_INTRINSIC_RESOLVER_HPP

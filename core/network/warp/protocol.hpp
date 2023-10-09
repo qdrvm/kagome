@@ -1,10 +1,10 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_NETWORK_WARP_PROTOCOL_HPP
-#define KAGOME_NETWORK_WARP_PROTOCOL_HPP
+#pragma once
 
 #include "network/common.hpp"
 #include "network/helpers/scale_message_read_writer.hpp"
@@ -41,5 +41,3 @@ namespace kagome::network {
     std::shared_ptr<WarpSyncCache> cache_;
   };
 }  // namespace kagome::network
-
-#endif  // KAGOME_NETWORK_WARP_PROTOCOL_HPP

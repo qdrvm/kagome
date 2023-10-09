@@ -1,5 +1,10 @@
-#ifndef KAGOME_STORAGE_CHANGES_TRIE_CHANGES_TRACKER
-#define KAGOME_STORAGE_CHANGES_TRIE_CHANGES_TRACKER
+/**
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+#pragma once
 
 #include "common/buffer.hpp"
 
@@ -36,5 +41,3 @@ namespace kagome {
   using TrieChangesTrackerOpt =
       std::optional<std::shared_ptr<storage::changes_trie::ChangesTracker>>;
 }  // namespace kagome
-
-#endif  // KAGOME_STORAGE_CHANGES_TRIE_CHANGES_TRACKER

@@ -1,10 +1,10 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_ITERABLE_HPP
-#define KAGOME_ITERABLE_HPP
+#pragma once
 
 #include <memory>
 
@@ -31,5 +31,3 @@ namespace kagome::storage::face {
   };
 
 }  // namespace kagome::storage::face
-
-#endif  // KAGOME_ITERABLE_HPP

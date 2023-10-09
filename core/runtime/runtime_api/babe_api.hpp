@@ -1,10 +1,10 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_CORE_RUNTIME_BABE_API_HPP
-#define KAGOME_CORE_RUNTIME_BABE_API_HPP
+#pragma once
 
 #include <outcome/outcome.hpp>
 
@@ -34,5 +34,3 @@ namespace kagome::runtime {
   };
 
 }  // namespace kagome::runtime
-
-#endif  // KAGOME_CORE_RUNTIME_BABE_API_HPP

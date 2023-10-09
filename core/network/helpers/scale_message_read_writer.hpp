@@ -1,10 +1,10 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_SCALE_MESSAGE_READ_WRITER_HPP
-#define KAGOME_SCALE_MESSAGE_READ_WRITER_HPP
+#pragma once
 
 #include <functional>
 #include <memory>
@@ -88,5 +88,3 @@ namespace kagome::network {
     std::shared_ptr<libp2p::basic::MessageReadWriter> read_writer_;
   };
 }  // namespace kagome::network
-
-#endif  // KAGOME_SCALE_MESSAGE_READ_WRITER_HPP

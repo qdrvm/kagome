@@ -1,10 +1,10 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_RUNTIME_TYPES_HPP
-#define KAGOME_RUNTIME_TYPES_HPP
+#pragma once
 
 #include <cstdint>
 #include <optional>
@@ -72,5 +72,3 @@ namespace kagome::runtime {
     return {minor_part, major_part};
   }
 }  // namespace kagome::runtime
-
-#endif  // KAGOME_RUNTIME_TYPES_HPP

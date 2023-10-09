@@ -1,10 +1,10 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_TEST_TESTUTIL_RUNTIME_basic_code_provider_HPP
-#define KAGOME_TEST_TESTUTIL_RUNTIME_basic_code_provider_HPP
+#pragma once
 
 #include "runtime/runtime_code_provider.hpp"
 
@@ -26,5 +26,3 @@ namespace kagome::runtime {
   };
 
 }  // namespace kagome::runtime
-
-#endif  // KAGOME_TEST_TESTUTIL_RUNTIME_basic_code_provider_HPP

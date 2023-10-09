@@ -1,10 +1,10 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_TEST_CORE_API_SERVICE_AUTHOR_AUTHOR_API_MOCK_HPP
-#define KAGOME_TEST_CORE_API_SERVICE_AUTHOR_AUTHOR_API_MOCK_HPP
+#pragma once
 
 #include <gmock/gmock.h>
 
@@ -23,7 +23,7 @@ namespace kagome::api {
 
     MOCK_METHOD(outcome::result<void>,
                 insertKey,
-                (crypto::KeyTypeId,
+                (crypto::KeyType,
                  const gsl::span<const uint8_t> &,
                  const gsl::span<const uint8_t> &),
                 (override));
@@ -37,8 +37,7 @@ namespace kagome::api {
 
     MOCK_METHOD(outcome::result<bool>,
                 hasKey,
-                (const gsl::span<const uint8_t> &public_key,
-                 crypto::KeyTypeId key_type),
+                (const gsl::span<const uint8_t> &, crypto::KeyType),
                 (override));
 
     MOCK_METHOD(outcome::result<SubscriptionId>,
@@ -63,5 +62,3 @@ namespace kagome::api {
   };
 
 }  // namespace kagome::api
-
-#endif  // KAGOME_TEST_CORE_API_SERVICE_AUTHOR_AUTHOR_API_MOCK_HPP

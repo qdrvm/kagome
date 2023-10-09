@@ -1,10 +1,10 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_CORE_RUNTIME_COMMON_MEMORY_ALLOCATOR_HPP
-#define KAGOME_CORE_RUNTIME_COMMON_MEMORY_ALLOCATOR_HPP
+#pragma once
 
 #include <deque>
 #include <map>
@@ -120,5 +120,3 @@ namespace kagome::runtime {
   };
 
 }  // namespace kagome::runtime
-
-#endif  // KAGOME_CORE_RUNTIME_COMMON_MEMORY_ALLOCATOR_HPP

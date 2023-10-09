@@ -1,10 +1,10 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_SYNC_PROTOCOL_OBSERVER_HPP
-#define KAGOME_SYNC_PROTOCOL_OBSERVER_HPP
+#pragma once
 
 #include <outcome/outcome.hpp>
 #include "network/types/blocks_request.hpp"
@@ -31,5 +31,3 @@ namespace kagome::network {
         const BlocksRequest &request, const libp2p::peer::PeerId &) const = 0;
   };
 }  // namespace kagome::network
-
-#endif  // KAGOME_SYNC_PROTOCOL_OBSERVER_HPP

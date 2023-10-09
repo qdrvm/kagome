@@ -1,5 +1,10 @@
-#ifndef KAGOME_STORAGE_CHANGES_TRIE_STORAGE_CHANGES_TRACKER_IMPL
-#define KAGOME_STORAGE_CHANGES_TRIE_STORAGE_CHANGES_TRACKER_IMPL
+/**
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+#pragma once
 
 #include "storage/changes_trie/changes_tracker.hpp"
 
@@ -33,5 +38,3 @@ namespace kagome::storage::changes_trie {
   };
 
 }  // namespace kagome::storage::changes_trie
-
-#endif  // KAGOME_STORAGE_CHANGES_TRIE_STORAGE_CHANGES_TRACKER_IMPL

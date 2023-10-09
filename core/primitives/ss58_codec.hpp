@@ -1,10 +1,10 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_SS58_CODEC_HPP
-#define KAGOME_SS58_CODEC_HPP
+#pragma once
 
 #include <gsl/span>
 
@@ -35,5 +35,3 @@ namespace kagome::primitives {
 }  // namespace kagome::primitives
 
 OUTCOME_HPP_DECLARE_ERROR(kagome::primitives, Ss58Error);
-
-#endif  // KAGOME_SS58_CODEC_HPP

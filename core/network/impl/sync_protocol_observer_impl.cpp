@@ -1,5 +1,6 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -8,8 +9,8 @@
 #include <boost/assert.hpp>
 
 #include "application/app_configuration.hpp"
-#include "network/beefy/i_beefy.hpp"
 #include "log/formatters/variant.hpp"
+#include "network/beefy/i_beefy.hpp"
 #include "network/common.hpp"
 #include "primitives/common.hpp"
 

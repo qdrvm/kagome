@@ -1,10 +1,10 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_UTILS_READ_FILE_HPP
-#define KAGOME_UTILS_READ_FILE_HPP
+#pragma once
 
 #include <fstream>
 
@@ -29,5 +29,3 @@ namespace kagome {
     return true;
   }
 }  // namespace kagome
-
-#endif  // KAGOME_UTILS_READ_FILE_HPP

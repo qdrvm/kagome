@@ -1,3 +1,9 @@
+[//]: # (
+Copyright Quadrivium LLC
+All Rights Reserved
+SPDX-License-Identifier: Apache-2.0
+)
+
 # Parachain Runtimes Test
 
 The test is implemented at `wavm_module_init_test` target.

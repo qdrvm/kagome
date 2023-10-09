@@ -1,10 +1,10 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_NETWORK_TRANSACTIONSTRANSMITTERMOCK
-#define KAGOME_NETWORK_TRANSACTIONSTRANSMITTERMOCK
+#pragma once
 
 #include "network/transactions_transmitter.hpp"
 
@@ -21,5 +21,3 @@ namespace kagome::network {
   };
 
 }  // namespace kagome::network
-
-#endif  // KAGOME_NETWORK_TRANSACTIONSTRANSMITTERMOCK
