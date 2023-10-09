@@ -1582,20 +1582,17 @@ namespace kagome::blockchain {
   }
 
   void BlockTreeImpl::warp(const primitives::BlockInfo &block_info) {
-    auto node = std::make_shared<TreeNode>(block_info.hash, block_info.number);
-    auto meta = std::make_shared<TreeMeta>(node);
-    const auto leaves_size =
-        block_tree_data_.exclusiveAccess([&](BlockTreeData &p) {
-          p.tree_ =
-              std::make_unique<CachedTree>(std::move(node), std::move(meta));
-          return p.tree_->getMetadata().leaves.size();
-        });
-
-    metric_known_chain_leaves_->set(leaves_size);
-    metric_best_block_height_->set(block_info.number);
-    telemetry_->notifyBlockFinalized(block_info);
-    telemetry_->pushBlockStats();
-    metric_finalized_block_height_->set(block_info.number);
+    block_tree_data_.exclusiveAccess([&](BlockTreeData &p) {
+      auto node =
+          std::make_shared<TreeNode>(block_info.hash, block_info.number);
+      auto meta = std::make_shared<TreeMeta>(node);
+      p.tree_ = std::make_unique<CachedTree>(std::move(node), std::move(meta));
+      metric_known_chain_leaves_->set(1);
+      metric_best_block_height_->set(block_info.number);
+      telemetry_->notifyBlockFinalized(block_info);
+      telemetry_->pushBlockStats();
+      metric_finalized_block_height_->set(block_info.number);
+    });
   }
 
   void BlockTreeImpl::notifyBestAndFinalized() {
