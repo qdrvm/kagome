@@ -60,6 +60,9 @@ namespace kagome::blockchain {
     bool operator!=(const TreeNode &other) const;
   };
 
+  bool canDescend(std::shared_ptr<TreeNode> from,
+                  const std::shared_ptr<TreeNode> &to);
+
   /**
    * Useful information about the tree & blocks it contains to make some of
    * the operations faster

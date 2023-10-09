@@ -66,6 +66,26 @@ namespace kagome::blockchain {
     return !(*this == other);
   }
 
+  template <typename F>
+  bool descend(std::shared_ptr<TreeNode> from,
+               const std::shared_ptr<TreeNode> &to,
+               const F &f) {
+    while (from != to) {
+      if (from->depth <= to->depth) {
+        return false;
+      }
+      f(from);
+      from = from->parent.lock();
+      BOOST_ASSERT(from);
+    }
+    return true;
+  }
+
+  bool canDescend(std::shared_ptr<TreeNode> from,
+                  const std::shared_ptr<TreeNode> &to) {
+    return descend(from, to, [](const std::shared_ptr<TreeNode>) {});
+  }
+
   TreeMeta::TreeMeta(const std::shared_ptr<TreeNode> &subtree_root_node)
       : best_block{subtree_root_node}, last_finalized{subtree_root_node} {
     std::function<void(std::shared_ptr<TreeNode>)> handle =
