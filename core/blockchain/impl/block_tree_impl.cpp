@@ -269,8 +269,7 @@ namespace kagome::blockchain {
     }
 
     // Prepare and create block tree basing last finalized block
-    auto tree = std::make_shared<TreeNode>(last_finalized_block_info.hash,
-                                           last_finalized_block_info.number);
+    auto tree = std::make_shared<TreeNode>(last_finalized_block_info);
     SL_DEBUG(log, "Last finalized block {}", tree->getBlockInfo());
     auto meta = std::make_shared<TreeMeta>(tree);
 
@@ -512,7 +511,7 @@ namespace kagome::blockchain {
 
           // update local meta with the new block
           auto new_node = std::make_shared<TreeNode>(
-              block_hash, header.number, parent, isPrimary(header));
+              header.blockInfo(), parent, isPrimary(header));
 
           p.tree_->updateMeta(new_node);
 
@@ -551,7 +550,7 @@ namespace kagome::blockchain {
 
           // Update local meta with the block
           auto new_node = std::make_shared<TreeNode>(
-              block_hash, block.header.number, parent, isPrimary(block.header));
+              block.header.blockInfo(), parent, isPrimary(block.header));
 
           p.tree_->updateMeta(new_node);
 
@@ -629,7 +628,7 @@ namespace kagome::blockchain {
 
             primitives::BlockInfo block{node->depth - 1, hash_opt.value()};
 
-            auto tree = std::make_shared<TreeNode>(block.hash, block.number);
+            auto tree = std::make_shared<TreeNode>(block);
             auto meta = std::make_shared<TreeMeta>(tree);
             p.tree_ =
                 std::make_unique<CachedTree>(std::move(tree), std::move(meta));
@@ -791,7 +790,7 @@ namespace kagome::blockchain {
 
     // Update local meta with the block
     auto new_node = std::make_shared<TreeNode>(
-        block_hash, block_header.number, parent, isPrimary(block_header));
+        block_header.blockInfo(), parent, isPrimary(block_header));
 
     p.tree_->updateMeta(new_node);
 
@@ -1568,8 +1567,7 @@ namespace kagome::blockchain {
 
   void BlockTreeImpl::warp(const primitives::BlockInfo &block_info) {
     block_tree_data_.exclusiveAccess([&](BlockTreeData &p) {
-      auto node =
-          std::make_shared<TreeNode>(block_info.hash, block_info.number);
+      auto node = std::make_shared<TreeNode>(block_info);
       auto meta = std::make_shared<TreeMeta>(node);
       p.tree_ = std::make_unique<CachedTree>(std::move(node), std::move(meta));
       metric_known_chain_leaves_->set(1);
@@ -1604,8 +1602,7 @@ namespace kagome::blockchain {
               nodes.emplace_back(std::move(node));
             }
           }
-          auto node =
-              std::make_shared<TreeNode>(finalized.hash, finalized.number);
+          auto node = std::make_shared<TreeNode>(finalized);
           auto meta = std::make_shared<TreeMeta>(node);
           p.tree_ =
               std::make_unique<CachedTree>(std::move(node), std::move(meta));

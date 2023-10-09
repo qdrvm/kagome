@@ -12,21 +12,18 @@
 #include <set>
 
 namespace kagome::blockchain {
-  TreeNode::TreeNode(const primitives::BlockHash &hash,
-                     primitives::BlockNumber depth)
-      : block_hash{hash},
-        depth{depth},
-        parent{},
+  TreeNode::TreeNode(const primitives::BlockInfo &info)
+      : block_hash{info.hash},
+        depth{info.number},
         babe_primary_weight{0},
         contains_approved_para_block{false},
         reverted{false} {}
 
-  TreeNode::TreeNode(const primitives::BlockHash &hash,
-                     primitives::BlockNumber depth,
+  TreeNode::TreeNode(const primitives::BlockInfo &info,
                      const std::shared_ptr<TreeNode> &parent,
                      bool babe_primary)
-      : block_hash{hash},
-        depth{depth},
+      : block_hash{info.hash},
+        depth{info.number},
         parent{parent},
         babe_primary_weight{parent->babe_primary_weight
                             + (babe_primary ? 1 : 0)},

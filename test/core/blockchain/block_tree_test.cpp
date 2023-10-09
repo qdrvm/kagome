@@ -611,7 +611,8 @@ std::shared_ptr<TreeNode> makeFullTree(size_t depth, size_t branching_factor) {
                                          auto &make_subtree) {
     primitives::BlockHash hash{};
     std::copy_n(name.begin(), name.size(), hash.begin());
-    auto node = std::make_shared<TreeNode>(hash, current_depth, parent, false);
+    auto node = std::make_shared<TreeNode>(
+        primitives::BlockInfo{hash, current_depth}, parent, false);
     if (current_depth + 1 == max_depth) {
       return node;
     }

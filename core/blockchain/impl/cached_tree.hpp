@@ -24,10 +24,8 @@ namespace kagome::blockchain {
    */
   class TreeNode : public std::enable_shared_from_this<TreeNode> {
    public:
-    TreeNode(const primitives::BlockHash &hash, primitives::BlockNumber depth);
-
-    TreeNode(const primitives::BlockHash &hash,
-             primitives::BlockNumber depth,
+    TreeNode(const primitives::BlockInfo &info);
+    TreeNode(const primitives::BlockInfo &info,
              const std::shared_ptr<TreeNode> &parent,
              bool babe_primary);
 
