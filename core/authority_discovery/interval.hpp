@@ -1,10 +1,10 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_AUTHORITY_DISCOVERY_INTERVAL_HPP
-#define KAGOME_AUTHORITY_DISCOVERY_INTERVAL_HPP
+#pragma once
 
 #include <libp2p/basic/scheduler.hpp>
 
@@ -47,5 +47,3 @@ namespace kagome::authority_discovery {
     libp2p::basic::Scheduler::Handle handle_;
   };
 }  // namespace kagome::authority_discovery
-
-#endif  // KAGOME_AUTHORITY_DISCOVERY_INTERVAL_HPP

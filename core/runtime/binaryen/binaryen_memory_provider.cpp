@@ -1,5 +1,6 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -30,12 +31,12 @@ namespace kagome::runtime::binaryen {
   std::optional<std::reference_wrapper<runtime::Memory>>
   BinaryenMemoryProvider::getCurrentMemory() const {
     return memory_ == nullptr
-               ? std::nullopt
-               : std::optional<std::reference_wrapper<Memory>>{*memory_};
+             ? std::nullopt
+             : std::optional<std::reference_wrapper<Memory>>{*memory_};
   }
 
   outcome::result<void> BinaryenMemoryProvider::resetMemory(
-      const MemoryConfig& config) {
+      const MemoryConfig &config) {
     auto rei = external_interface_.lock();
     BOOST_ASSERT(rei != nullptr);
     if (rei) {

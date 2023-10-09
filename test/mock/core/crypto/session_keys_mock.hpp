@@ -1,10 +1,10 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_CRYPTO_SESSIONKEYSMOCK
-#define KAGOME_CRYPTO_SESSIONKEYSMOCK
+#pragma once
 
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
@@ -49,5 +49,3 @@ namespace kagome::crypto {
                 (override));
   };
 }  // namespace kagome::crypto
-
-#endif  // KAGOME_CRYPTO_SESSIONKEYSMOCK

@@ -1,3 +1,9 @@
+#
+# Copyright Quadrivium LLC
+# All Rights Reserved
+# SPDX-License-Identifier: Apache-2.0
+#
+
 add_library(binaryen_runtime_test INTERFACE)
 target_link_libraries(binaryen_runtime_test INTERFACE
     filesystem

@@ -1,10 +1,10 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_ENDIANNESS_UTILS_HPP
-#define KAGOME_ENDIANNESS_UTILS_HPP
+#pragma once
 
 #ifdef _MSC_VER
 #define LE_BE_SWAP32 _byteswap_ulong
@@ -34,5 +34,3 @@
 #define le64toh(x) OSSwapLittleToHostInt64(x)
 
 #endif  // __APPLE__
-
-#endif  // KAGOME_ENDIANNESS_UTILS_HPP

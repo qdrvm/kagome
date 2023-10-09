@@ -1,10 +1,10 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_FILESYSTEM_DIRECTORIES_HPP
-#define KAGOME_FILESYSTEM_DIRECTORIES_HPP
+#pragma once
 
 #include "filesystem/common.hpp"
 
@@ -20,5 +20,3 @@ namespace kagome::filesystem {
   }
 
 }  // namespace kagome::filesystem
-
-#endif  // KAGOME_FILESYSTEM_DIRECTORIES_HPP

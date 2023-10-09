@@ -1,5 +1,6 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -74,12 +75,15 @@ void keccakf(uint64_t s[25]) {
 
   for (round = 0; round < KECCAK_ROUNDS; round++) {
     /* Theta */
-    for (i = 0; i < 5; i++)
+    for (i = 0; i < 5; i++) {
       bc[i] = s[i] ^ s[i + 5] ^ s[i + 10] ^ s[i + 15] ^ s[i + 20];
+    }
 
     for (i = 0; i < 5; i++) {
       t = bc[(i + 4) % 5] ^ SHA3_ROTL64(bc[(i + 1) % 5], 1);
-      for (j = 0; j < 25; j += 5) s[j + i] ^= t;
+      for (j = 0; j < 25; j += 5) {
+        s[j + i] ^= t;
+      }
     }
 
     /* Rho Pi */
@@ -93,8 +97,12 @@ void keccakf(uint64_t s[25]) {
 
     /* Chi */
     for (j = 0; j < 25; j += 5) {
-      for (i = 0; i < 5; i++) bc[i] = s[j + i];
-      for (i = 0; i < 5; i++) s[j + i] ^= (~bc[(i + 1) % 5]) & bc[(i + 2) % 5];
+      for (i = 0; i < 5; i++) {
+        bc[i] = s[j + i];
+      }
+      for (i = 0; i < 5; i++) {
+        s[j + i] ^= (~bc[(i + 1) % 5]) & bc[(i + 2) % 5];
+      }
     }
 
     /* Iota */
@@ -113,8 +121,9 @@ void keccakf(uint64_t s[25]) {
 /* For Init or Reset call these: */
 sha3_return_t sha3_Init(void *priv, unsigned bitSize) {
   sha3_context *ctx = (sha3_context *)priv;
-  if (bitSize != 256 && bitSize != 384 && bitSize != 512)
+  if (bitSize != 256 && bitSize != 384 && bitSize != 512) {
     return SHA3_RETURN_BAD_PARAMS;
+  }
   memset(ctx, 0, sizeof(*ctx));
   ctx->capacityWords = 2 * bitSize / (8 * sizeof(uint64_t));
   return SHA3_RETURN_OK;
@@ -139,7 +148,7 @@ enum SHA3_FLAGS sha3_SetFlags(void *priv, enum SHA3_FLAGS flags) {
   return flags;
 }
 
-void sha3_Update(void *priv, void const *bufIn, size_t len) {
+void sha3_Update(void *priv, const void *bufIn, size_t len) {
   sha3_context *ctx = (sha3_context *)priv;
 
   /* 0...7 -- how much is needed to have a word */
@@ -162,8 +171,9 @@ void sha3_Update(void *priv, void const *bufIn, size_t len) {
                (unsigned)len,
                (unsigned)old_tail);
     /* endian-independent code follows: */
-    while (len--)
+    while (len--) {
       ctx->saved |= (uint64_t)(*(buf++)) << ((ctx->byteIndex++) * 8);
+    }
     SHA3_ASSERT(ctx->byteIndex < 8);
     return;
   }
@@ -172,8 +182,9 @@ void sha3_Update(void *priv, void const *bufIn, size_t len) {
     SHA3_TRACE("completing one word with %d bytes", (unsigned)old_tail);
     /* endian-independent code follows: */
     len -= old_tail;
-    while (old_tail--)
+    while (old_tail--) {
       ctx->saved |= (uint64_t)(*(buf++)) << ((ctx->byteIndex++) * 8);
+    }
 
     /* now ready to add saved to the sponge */
     ctx->s[ctx->wordIndex] ^= ctx->saved;
@@ -229,7 +240,7 @@ void sha3_Update(void *priv, void const *bufIn, size_t len) {
  * The padding block is 0x01 || 0x00* || 0x80. First 0x01 and last 0x80
  * bytes are always present, but they can be the same byte.
  */
-void const *sha3_Finalize(void *priv) {
+const void *sha3_Finalize(void *priv) {
   sha3_context *ctx = (sha3_context *)priv;
 
   SHA3_TRACE("called with %d bytes in the buffer", ctx->byteIndex);
@@ -293,14 +304,18 @@ sha3_return_t sha3_HashBuffer(unsigned bitSize,
   sha3_context c;
 
   err = sha3_Init(&c, bitSize);
-  if (err != SHA3_RETURN_OK) return err;
+  if (err != SHA3_RETURN_OK) {
+    return err;
+  }
   if (sha3_SetFlags(&c, flags) != flags) {
     return SHA3_RETURN_BAD_PARAMS;
   }
   sha3_Update(&c, in, inBytes);
   const void *h = sha3_Finalize(&c);
 
-  if (outBytes > bitSize / 8) outBytes = bitSize / 8;
+  if (outBytes > bitSize / 8) {
+    outBytes = bitSize / 8;
+  }
   memcpy(out, h, outBytes);
   return SHA3_RETURN_OK;
 }

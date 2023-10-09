@@ -1,4 +1,9 @@
 #!/bin/bash -ex
+#
+# Copyright Quadrivium LLC
+# All Rights Reserved
+# SPDX-License-Identifier: Apache-2.0
+#
 
 if [[ "${CI}" ]]; then # CI
   git config --global --add safe.directory /__w/kagome/kagome

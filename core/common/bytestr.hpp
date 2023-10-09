@@ -1,10 +1,10 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_COMMON_BYTESTR_HPP
-#define KAGOME_COMMON_BYTESTR_HPP
+#pragma once
 
 #include <libp2p/common/bytestr.hpp>
 #include <libp2p/common/span_size.hpp>
@@ -25,5 +25,3 @@ namespace kagome {
     return {s.begin(), s.end()};
   }
 }  // namespace kagome
-
-#endif  // KAGOME_COMMON_BYTESTR_HPP

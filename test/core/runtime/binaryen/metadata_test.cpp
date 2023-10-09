@@ -1,5 +1,6 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -52,7 +53,7 @@ class MetadataTest : public BinaryenRuntimeTest {
  * @when metadata() is invoked
  * @then successful result is returned
  */
- //TODO(kamilsa): Fix lru cache#1775. Enable this test back when it is fixed
+// TODO(kamilsa): Fix lru cache#1775. Enable this test back when it is fixed
 TEST_F(MetadataTest, DISABLED_metadata) {
   BlockInfo info{42, "block_hash"_hash256};
   EXPECT_CALL(*header_repo_, getBlockHeader(info.hash))

@@ -1,10 +1,10 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_CRYPTO_KEY_FILE_STORAGE_HPP
-#define KAGOME_CRYPTO_KEY_FILE_STORAGE_HPP
+#pragma once
 
 #include <vector>
 
@@ -93,5 +93,3 @@ namespace kagome::crypto {
 }  // namespace kagome::crypto
 
 OUTCOME_HPP_DECLARE_ERROR(kagome::crypto, KeyFileStorage::Error);
-
-#endif  // KAGOME_CRYPTO_KEY_FILE_STORAGE_HPP

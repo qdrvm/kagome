@@ -1,10 +1,10 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_CORE_API_SERVICE_AUTHOR_IMPL_AUTHOR_API_IMPL_HPP
-#define KAGOME_CORE_API_SERVICE_AUTHOR_IMPL_AUTHOR_API_IMPL_HPP
+#pragma once
 
 /**
  * ExtrinsicSubmissionApi based on auth api implemented in substrate here
@@ -119,5 +119,3 @@ namespace kagome::api {
     log::Logger logger_;
   };
 }  // namespace kagome::api
-
-#endif  // KAGOME_CORE_API_SERVICE_AUTHOR_IMPL_AUTHOR_API_IMPL_HPP

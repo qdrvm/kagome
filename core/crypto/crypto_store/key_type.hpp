@@ -1,10 +1,10 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_CRYPTO_KEY_TYPE_HPP
-#define KAGOME_CRYPTO_KEY_TYPE_HPP
+#pragma once
 
 #include "common/buffer.hpp"
 #include "outcome/outcome.hpp"
@@ -173,5 +173,3 @@ struct fmt::formatter<kagome::crypto::KeyType> {
 };
 
 OUTCOME_HPP_DECLARE_ERROR(kagome::crypto, KeyTypeError);
-
-#endif  // KAGOME_CRYPTO_KEY_TYPE_HPP

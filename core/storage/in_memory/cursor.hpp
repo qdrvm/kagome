@@ -1,10 +1,10 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_STORAGE_IN_MEMORY_CURSOR_HPP
-#define KAGOME_STORAGE_IN_MEMORY_CURSOR_HPP
+#pragma once
 
 #include "common/buffer.hpp"
 #include "storage/in_memory/in_memory_storage.hpp"
@@ -70,5 +70,3 @@ namespace kagome::storage {
     std::optional<std::pair<Buffer, Buffer>> kv;
   };
 }  // namespace kagome::storage
-
-#endif  // KAGOME_STORAGE_IN_MEMORY_CURSOR_HPP

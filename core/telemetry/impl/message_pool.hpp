@@ -1,10 +1,10 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_MESSAGE_POOL_HPP
-#define KAGOME_MESSAGE_POOL_HPP
+#pragma once
 
 #include <cstddef>
 #include <cstdint>
@@ -110,5 +110,3 @@ namespace kagome::telemetry {
   };
 
 }  // namespace kagome::telemetry
-
-#endif  // KAGOME_MESSAGE_POOL_HPP

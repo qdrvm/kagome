@@ -1,10 +1,10 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_API_STATE_REQUEST_SUBSCRIBERUNTIMEVERSION
-#define KAGOME_API_STATE_REQUEST_SUBSCRIBERUNTIMEVERSION
+#pragma once
 
 #include "api/service/base_request.hpp"
 
@@ -27,5 +27,3 @@ namespace kagome::api::state::request {
   };
 
 }  // namespace kagome::api::state::request
-
-#endif  // KAGOME_API_STATE_REQUEST_SUBSCRIBERUNTIMEVERSION

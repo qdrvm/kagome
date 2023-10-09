@@ -1,10 +1,10 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_CORE_RUNTIME_BINARYEN_BINARYEN_MEMORY_PROVIDER_HPP
-#define KAGOME_CORE_RUNTIME_BINARYEN_BINARYEN_MEMORY_PROVIDER_HPP
+#pragma once
 
 #include "runtime/binaryen/binaryen_memory_factory.hpp"
 #include "runtime/binaryen/binaryen_memory_provider.hpp"
@@ -28,7 +28,7 @@ namespace kagome::runtime::binaryen {
         const override;
 
     [[nodiscard]] outcome::result<void> resetMemory(
-        const MemoryConfig& config) override;
+        const MemoryConfig &config) override;
 
     void setExternalInterface(std::weak_ptr<RuntimeExternalInterface> rei);
 
@@ -42,5 +42,3 @@ namespace kagome::runtime::binaryen {
 
 OUTCOME_HPP_DECLARE_ERROR(kagome::runtime::binaryen,
                           BinaryenMemoryProvider::Error);
-
-#endif  // KAGOME_CORE_RUNTIME_BINARYEN_BINARYEN_MEMORY_PROVIDER_HPP

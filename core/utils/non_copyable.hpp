@@ -1,9 +1,15 @@
+/**
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
 #pragma once
 
 class NonCopyable {
  public:
-  NonCopyable(NonCopyable const &) = delete;
-  NonCopyable &operator=(NonCopyable const &) = delete;
+  NonCopyable(const NonCopyable &) = delete;
+  NonCopyable &operator=(const NonCopyable &) = delete;
 
  protected:
   NonCopyable() = default;

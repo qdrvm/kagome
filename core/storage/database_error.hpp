@@ -1,10 +1,10 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_CORE_STORAGE_DATABASE_ERROR_DATABASE_ERROR_HPP
-#define KAGOME_CORE_STORAGE_DATABASE_ERROR_DATABASE_ERROR_HPP
+#pragma once
 
 #include <outcome/outcome.hpp>
 
@@ -28,5 +28,3 @@ namespace kagome::storage {
 }  // namespace kagome::storage
 
 OUTCOME_HPP_DECLARE_ERROR(kagome::storage, DatabaseError);
-
-#endif  // KAGOME_CORE_STORAGE_DATABASE_ERROR_DATABASE_ERROR_HPP

@@ -1,5 +1,6 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -242,7 +243,7 @@ int main() {
 
   [[maybe_unused]] auto ctx_factory =
       std::make_shared<kagome::runtime::RuntimeContextFactoryImpl>(module_repo,
-                                                               header_repo);
+                                                                   header_repo);
   [[maybe_unused]] auto executor =
       kagome::runtime::Executor(ctx_factory, cache);
 

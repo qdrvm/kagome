@@ -1,10 +1,10 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_JUSTIFICATION_STORAGE_POLICY_HPP
-#define KAGOME_JUSTIFICATION_STORAGE_POLICY_HPP
+#pragma once
 
 #include "injector/lazy.hpp"
 #include "outcome/outcome.hpp"
@@ -36,5 +36,3 @@ namespace kagome::blockchain {
   };
 
 }  // namespace kagome::blockchain
-
-#endif  // KAGOME_JUSTIFICATION_STORAGE_POLICY_HPP

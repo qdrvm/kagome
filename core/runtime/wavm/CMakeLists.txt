@@ -1,3 +1,8 @@
+#
+# Copyright Quadrivium LLC
+# All Rights Reserved
+# SPDX-License-Identifier: Apache-2.0
+#
 
 add_library(compartment_wrapper compartment_wrapper.cpp)
 target_link_libraries(compartment_wrapper

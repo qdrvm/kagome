@@ -1,10 +1,10 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_COMMON_BUFFER
-#define KAGOME_COMMON_BUFFER
+#pragma once
 
 #include <string_view>
 #include <vector>
@@ -256,5 +256,3 @@ struct std::hash<kagome::common::SLBuffer<N>> {
 template <>
 struct fmt::formatter<kagome::common::Buffer>
     : fmt::formatter<kagome::common::BufferView> {};
-
-#endif  // KAGOME_COMMON_BUFFER

@@ -1,10 +1,10 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_CORE_RUNTIME_BINARYEN_INSTANCE_ENVIRONMENT_FACTORY_HPP
-#define KAGOME_CORE_RUNTIME_BINARYEN_INSTANCE_ENVIRONMENT_FACTORY_HPP
+#pragma once
 
 #include "runtime/instance_environment.hpp"
 
@@ -55,5 +55,3 @@ namespace kagome::runtime::binaryen {
   };
 
 }  // namespace kagome::runtime::binaryen
-
-#endif  // KAGOME_CORE_RUNTIME_BINARYEN_INSTANCE_ENVIRONMENT_FACTORY_HPP

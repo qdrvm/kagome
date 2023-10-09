@@ -1,10 +1,10 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_TEST_MOCK_CORE_STORAGE_TRIE_SERIALIZATION_TRIE_SERIALIZER_MOCK
-#define KAGOME_TEST_MOCK_CORE_STORAGE_TRIE_SERIALIZATION_TRIE_SERIALIZER_MOCK
+#pragma once
 
 #include <gmock/gmock.h>
 
@@ -45,5 +45,3 @@ namespace kagome::storage::trie {
   };
 
 }  // namespace kagome::storage::trie
-
-#endif  // KAGOME_TEST_MOCK_CORE_STORAGE_TRIE_SERIALIZATION_TRIE_SERIALIZER_MOCK

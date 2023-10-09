@@ -1,10 +1,10 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_CODE_SUBSTITUTES_HPP
-#define KAGOME_CODE_SUBSTITUTES_HPP
+#pragma once
 
 #include <initializer_list>
 #include <unordered_set>
@@ -40,5 +40,3 @@ namespace kagome::primitives {
   };
 
 }  // namespace kagome::primitives
-
-#endif  // KAGOME_CODE_SUBSTITUTES_HPP
