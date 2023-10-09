@@ -104,16 +104,17 @@ namespace kagome::blockchain {
     return false;
   }
 
+  struct Cmp {
+    bool operator()(const std::shared_ptr<const TreeNode> &lhs,
+                    const std::shared_ptr<const TreeNode> &rhs) const {
+      BOOST_ASSERT(lhs and rhs);
+      return std::tie(lhs->depth, lhs->block_hash)
+           > std::tie(rhs->depth, rhs->block_hash);
+    }
+  };
+
   void TreeMeta::forceRefreshBest() {
     auto root = last_finalized.lock();
-    struct Cmp {
-      bool operator()(const std::shared_ptr<const TreeNode> &lhs,
-                      const std::shared_ptr<const TreeNode> &rhs) const {
-        BOOST_ASSERT(lhs and rhs);
-        return lhs->depth < rhs->depth
-            or (lhs->depth == rhs->depth and lhs->block_hash < rhs->block_hash);
-      }
-    };
 
     std::set<std::shared_ptr<TreeNode>, Cmp> candidates;
     for (auto &leaf : leaves) {
@@ -124,7 +125,7 @@ namespace kagome::blockchain {
 
     auto best = std::move(root);
     while (not candidates.empty()) {
-      auto node = candidates.extract((++candidates.rbegin()).base());
+      auto node = candidates.extract(candidates.begin());
       BOOST_ASSERT(not node.empty());
 
       auto &tree_node = node.value();
