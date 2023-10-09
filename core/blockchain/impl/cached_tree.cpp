@@ -243,4 +243,9 @@ namespace kagome::blockchain {
     auto &leaves_ = metadata_->leaves;  // TODO: refactor
     return {leaves_.begin(), leaves_.end()};
   }
+
+  bool CachedTree::isLeaf(const primitives::BlockHash &hash) const {
+    auto &leaves_ = metadata_->leaves;  // TODO: refactor
+    return leaves_.find(hash) != leaves_.end();
+  }
 }  // namespace kagome::blockchain

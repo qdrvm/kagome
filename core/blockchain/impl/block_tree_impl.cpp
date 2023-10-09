@@ -598,7 +598,7 @@ namespace kagome::blockchain {
     return block_tree_data_.exclusiveAccess(
         [&](BlockTreeData &p) -> outcome::result<void> {
           // Check if block is leaf
-          if (p.tree_->getMetadata().leaves.count(block_hash) == 0) {
+          if (p.tree_->isLeaf(block_hash)) {
             return BlockTreeError::BLOCK_IS_NOT_LEAF;
           }
 
@@ -1269,6 +1269,7 @@ namespace kagome::blockchain {
 
           auto metadata = p.tree_->getMetadata();
 
+          // TODO(turuslan): comparator
           std::set<std::shared_ptr<TreeNode>> candidates;
           for (auto &leaf : metadata.leaves) {
             if (auto node = target->findByHash(leaf)) {
