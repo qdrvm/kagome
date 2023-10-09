@@ -17,7 +17,7 @@ namespace kagome::blockchain {
       : block_hash{hash},
         depth{depth},
         parent{},
-        babe_primary{false},
+        babe_primary_weight{0},
         contains_approved_para_block{false},
         reverted{false} {}
 
@@ -28,9 +28,14 @@ namespace kagome::blockchain {
       : block_hash{hash},
         depth{depth},
         parent{parent},
-        babe_primary{babe_primary},
+        babe_primary_weight{parent->babe_primary_weight
+                            + (babe_primary ? 1 : 0)},
         contains_approved_para_block{false},
         reverted{parent->reverted} {}
+
+  BlockWeight TreeNode::weight() const {
+    return {babe_primary_weight, depth};
+  }
 
   std::shared_ptr<const TreeNode> TreeNode::findByHash(
       const primitives::BlockHash &hash) const {
@@ -88,25 +93,6 @@ namespace kagome::blockchain {
     handle(subtree_root_node);
   }
 
-  TreeMeta::Weight TreeMeta::getWeight(std::shared_ptr<TreeNode> node) const {
-    auto finalized = last_finalized.lock();
-    BOOST_ASSERT(finalized);
-    Weight weight{WeightInfo(0ull), node->depth};
-    while (node != finalized) {
-      BOOST_ASSERT(node->depth > finalized->depth);
-      if (node->babe_primary) {
-        ++weight.first.data.babe_primary;
-      }
-      if (node->contains_approved_para_block) {
-        ++weight.first.data.parachain_payload;
-      }
-      auto parent = node->parent.lock();
-      BOOST_ASSERT(parent);
-      node = std::move(parent);
-    }
-    return weight;
-  }
-
   bool TreeMeta::chooseBest(std::shared_ptr<TreeNode> node) {
     if (node->reverted) {
       return false;
@@ -114,7 +100,7 @@ namespace kagome::blockchain {
     auto best = best_block.lock();
     BOOST_ASSERT(best);
     BOOST_ASSERT(not best->reverted);
-    if (getWeight(node) > getWeight(best)) {
+    if (node->weight() > best->weight()) {
       best_block = node;
       return true;
     }
@@ -152,7 +138,7 @@ namespace kagome::blockchain {
         continue;
       }
 
-      if (getWeight(best) < getWeight(tree_node)) {
+      if (best->weight() < tree_node->weight()) {
         best = tree_node;
       }
     }

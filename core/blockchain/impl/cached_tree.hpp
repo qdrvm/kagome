@@ -15,6 +15,8 @@
 #include "primitives/justification.hpp"
 
 namespace kagome::blockchain {
+  using BlockWeight = std::pair<uint32_t, primitives::BlockNumber>;
+
   /**
    * In-memory light representation of the tree, used for efficiency and usage
    * convenience - we would only ask the database for some info, when directly
@@ -32,11 +34,13 @@ namespace kagome::blockchain {
     primitives::BlockHash block_hash;
     primitives::BlockNumber depth;
     std::weak_ptr<TreeNode> parent;
-    bool babe_primary;
+    uint32_t babe_primary_weight;
     bool contains_approved_para_block;
     bool reverted;
 
     std::vector<std::shared_ptr<TreeNode>> children{};
+
+    BlockWeight weight() const;
 
     /**
      * Get a node of the tree, containing block with the specified hash, if it
@@ -63,34 +67,7 @@ namespace kagome::blockchain {
    * the operations faster
    */
   struct TreeMeta {
-    union WeightInfo {
-      BOOST_STATIC_ASSERT(
-#if __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__
-          false
-#else   //__BYTE_ORDER__
-          true
-#endif  //__BYTE_ORDER__
-      );
-
-      struct {
-        uint64_t parachain_payload : 48;
-        uint64_t babe_primary : 16;
-      } data;
-      uint64_t value;
-
-      WeightInfo(uint64_t v) : value(v) {}
-      bool operator==(const WeightInfo &r) const {
-        return value == r.value;
-      }
-      bool operator<(const WeightInfo &r) const {
-        return value < r.value;
-      }
-    };
-    using Weight = std::pair<WeightInfo, primitives::BlockNumber>;
-
     explicit TreeMeta(const std::shared_ptr<TreeNode> &subtree_root_node);
-
-    Weight getWeight(std::shared_ptr<TreeNode> node) const;
 
     /**
      * Compare node weight with best and replace if heavier.

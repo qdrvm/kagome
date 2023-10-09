@@ -1307,7 +1307,7 @@ namespace kagome::blockchain {
               continue;
             }
 
-            if (metadata.getWeight(best) < metadata.getWeight(tree_node)
+            if (best->weight() < tree_node->weight()
                 and hasDirectChainNoLock(
                     p, target_hash, tree_node->block_hash)) {
               best = tree_node;
