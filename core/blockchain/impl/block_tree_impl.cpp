@@ -1145,18 +1145,7 @@ namespace kagome::blockchain {
     // if both nodes are in our light tree, we can use this representation
     // only
     if (ancestor_node_ptr && descendant_node_ptr) {
-      auto current_node = descendant_node_ptr;
-      while (current_node != ancestor_node_ptr) {
-        if (current_node->depth <= ancestor_node_ptr->depth) {
-          return false;
-        }
-        if (auto parent = current_node->parent; !parent.expired()) {
-          current_node = parent.lock();
-        } else {
-          return false;
-        }
-      }
-      return true;
+      return canDescend(descendant_node_ptr, ancestor_node_ptr);
     }
 
     // else, we need to use a database
