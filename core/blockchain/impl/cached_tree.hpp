@@ -81,6 +81,7 @@ namespace kagome::blockchain {
     primitives::BlockInfo bestWith(
         const std::shared_ptr<TreeNode> &required) const;
     std::shared_ptr<TreeNode> find(const primitives::BlockHash &hash) const;
+    std::optional<Reorg> add(const std::shared_ptr<TreeNode> &new_node);
     /**
      * Can't remove finalized root.
      */
@@ -97,8 +98,6 @@ namespace kagome::blockchain {
      * @return new tree root
      */
     void updateTreeRoot(std::shared_ptr<TreeNode> new_trie_root);
-
-    void updateMeta(const std::shared_ptr<TreeNode> &new_node);
 
     /// Force find and update actual best block
     void forceRefreshBest();

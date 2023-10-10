@@ -140,15 +140,6 @@ namespace kagome::blockchain {
     root_->weak_parent.reset();
   }
 
-  void CachedTree::updateMeta(const std::shared_ptr<TreeNode> &new_node) {
-    auto parent = wptrMustLock(new_node->weak_parent);
-    parent->children.push_back(new_node);
-
-    leaves_.insert(new_node->info.hash);
-    leaves_.erase(parent->info.hash);
-    chooseBest(new_node);
-  }
-
   void CachedTree::removeFromMeta(const std::shared_ptr<TreeNode> &node) {
     auto parent = node->parent();
     if (parent == nullptr) {
@@ -249,6 +240,27 @@ namespace kagome::blockchain {
       queue.pop();
     }
     return nullptr;
+  }
+
+  std::optional<Reorg> CachedTree::add(
+      const std::shared_ptr<TreeNode> &new_node) {
+    if (find(new_node->info.hash)) {
+      return std::nullopt;
+    }
+    BOOST_ASSERT(new_node->children.empty());
+    auto parent = wptrMustLock(new_node->weak_parent);
+    auto child_it =
+        std::find(parent->children.begin(), parent->children.end(), new_node);
+    BOOST_ASSERT(child_it == parent->children.end());
+    parent->children.emplace_back(new_node);
+    leaves_.erase(parent->info.hash);
+    leaves_.emplace(new_node->info.hash);
+    if (not new_node->reverted and new_node->weight() > best_->weight()) {
+      auto old_best = best_;
+      best_ = new_node;
+      return reorg(old_best, best_);
+    }
+    return std::nullopt;
   }
 
   ReorgAndPrune CachedTree::removeLeaf(const primitives::BlockHash &hash) {

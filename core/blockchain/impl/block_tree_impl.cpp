@@ -503,26 +503,20 @@ namespace kagome::blockchain {
           if (!parent) {
             return BlockTreeError::NO_PARENT;
           }
-          OUTCOME_TRY(block_hash, p.storage_->putBlockHeader(header));
+          OUTCOME_TRY(p.storage_->putBlockHeader(header));
 
           // update local meta with the new block
           auto new_node = std::make_shared<TreeNode>(
               header.blockInfo(), parent, isPrimary(header));
 
-          p.tree_->updateMeta(new_node);
-
-          OUTCOME_TRY(reorganizeNoLock(p));
-
-          OUTCOME_TRY(p.storage_->setBlockTreeLeaves(p.tree_->leafHashes()));
-
-          metric_known_chain_leaves_->set(p.tree_->leafCount());
-          metric_best_block_height_->set(bestBlockNoLock(p).number);
+          auto reorg = p.tree_->add(new_node);
+          OUTCOME_TRY(reorgAndPrune(p, {std::move(reorg), {}}));
 
           notifyChainEventsEngine(primitives::events::ChainEventType::kNewHeads,
                                   header);
           SL_VERBOSE(log_,
                      "Block {} has been added into block tree",
-                     primitives::BlockInfo(header.number, block_hash));
+                     header.blockInfo());
 
           return outcome::success();
         });
@@ -545,11 +539,8 @@ namespace kagome::blockchain {
           auto new_node = std::make_shared<TreeNode>(
               block.header.blockInfo(), parent, isPrimary(block.header));
 
-          p.tree_->updateMeta(new_node);
-
-          OUTCOME_TRY(reorganizeNoLock(p));
-
-          OUTCOME_TRY(p.storage_->setBlockTreeLeaves(p.tree_->leafHashes()));
+          auto reorg = p.tree_->add(new_node);
+          OUTCOME_TRY(reorgAndPrune(p, {std::move(reorg), {}}));
 
           notifyChainEventsEngine(primitives::events::ChainEventType::kNewHeads,
                                   block.header);
@@ -570,12 +561,9 @@ namespace kagome::blockchain {
             }
           }
 
-          metric_known_chain_leaves_->set(p.tree_->leafCount());
-          metric_best_block_height_->set(bestBlockNoLock(p).number);
-
           SL_VERBOSE(log_,
                      "Block {} has been added into block tree",
-                     primitives::BlockInfo(block.header.number, block_hash));
+                     block.header.blockInfo());
           return outcome::success();
         });
   }
@@ -753,18 +741,12 @@ namespace kagome::blockchain {
     auto new_node = std::make_shared<TreeNode>(
         block_header.blockInfo(), parent, isPrimary(block_header));
 
-    p.tree_->updateMeta(new_node);
-
-    OUTCOME_TRY(reorganizeNoLock(p));
-
-    OUTCOME_TRY(p.storage_->setBlockTreeLeaves(p.tree_->leafHashes()));
-
-    metric_known_chain_leaves_->set(p.tree_->leafCount());
-    metric_best_block_height_->set(bestBlockNoLock(p).number);
+    auto reorg = p.tree_->add(new_node);
+    OUTCOME_TRY(reorgAndPrune(p, {std::move(reorg), {}}));
 
     SL_VERBOSE(log_,
                "Block {} has been restored in block tree from storage",
-               primitives::BlockInfo(block_header.number, block_hash));
+               block_header.blockInfo());
 
     return outcome::success();
   }
