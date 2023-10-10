@@ -790,14 +790,14 @@ namespace kagome::blockchain {
 
         OUTCOME_TRY(p.storage_->putJustification(justification, block_hash));
 
-        OUTCOME_TRY(pruneNoLock(p, node));
+        std::vector<primitives::BlockHash> retired_hashes;
+        for (auto parent = node->parent(); parent; parent = parent->parent()) {
+          retired_hashes.emplace_back(parent->info.hash);
+        }
+
+        auto changes = p.tree_->finalize(node);
+        OUTCOME_TRY(reorgAndPrune(p, changes));
         OUTCOME_TRY(pruneTrie(p, node->info.number));
-
-        p.tree_->updateTreeRoot(node);
-
-        OUTCOME_TRY(reorganizeNoLock(p));
-
-        OUTCOME_TRY(p.storage_->setBlockTreeLeaves(p.tree_->leafHashes()));
 
         notifyChainEventsEngine(
             primitives::events::ChainEventType::kFinalizedHeads, header);
@@ -820,6 +820,16 @@ namespace kagome::blockchain {
             }
           }
         }
+
+        main_thread_.execute([weak{weak_from_this()},
+                              retired_hashes{std::move(retired_hashes)}] {
+          if (auto self = weak.lock()) {
+            self->chain_events_engine_->notify(
+                primitives::events::ChainEventType::
+                    kDeactivateAfterFinalization,
+                retired_hashes);
+          }
+        });
 
         log_->info("Finalized block {}", node->info);
         telemetry_->notifyBlockFinalized(node->info);
@@ -1267,49 +1277,15 @@ namespace kagome::blockchain {
     for (auto &block : changes.prune) {
       OUTCOME_TRY(p.storage_->removeBlock(block.hash));
     }
-    // TODO(turuslan): #1679, move code from pruneNoLock
-    return outcome::success();
-  }
-
-  outcome::result<void> BlockTreeImpl::pruneNoLock(
-      BlockTreeData &p, const std::shared_ptr<TreeNode> &lastFinalizedNode) {
-    std::deque<std::shared_ptr<TreeNode>> to_remove;
-
-    auto following_node = lastFinalizedNode;
-
-    for (auto current_node = following_node->parent(); current_node;
-         current_node = current_node->parent()) {
-      // DFS-on-deque
-      to_remove.emplace_back();  // Waterbreak
-      std::copy_if(current_node->children.begin(),
-                   current_node->children.end(),
-                   std::back_inserter(to_remove),
-                   [&](const auto &child) { return child != following_node; });
-      auto last = to_remove.back();
-      while (last != nullptr) {
-        to_remove.pop_back();
-        std::copy(last->children.begin(),
-                  last->children.end(),
-                  std::back_inserter(to_remove));
-        to_remove.emplace_front(std::move(last));
-        last = to_remove.back();
-      }
-      to_remove.pop_back();  // Remove waterbreak
-
-      // remove (in memory) all child, except main chain block
-      current_node->children = {following_node};
-      following_node = current_node;
-    }
 
     std::vector<primitives::Extrinsic> extrinsics;
     std::vector<primitives::BlockHash> retired_hashes;
 
     // remove from storage
-    retired_hashes.reserve(to_remove.size());
-    for (const auto &node : to_remove) {
-      OUTCOME_TRY(block_header_opt,
-                  p.storage_->getBlockHeader(node->info.hash));
-      OUTCOME_TRY(block_body_opt, p.storage_->getBlockBody(node->info.hash));
+    retired_hashes.reserve(changes.prune.size());
+    for (const auto &block : changes.prune) {
+      OUTCOME_TRY(block_header_opt, p.storage_->getBlockHeader(block.hash));
+      OUTCOME_TRY(block_body_opt, p.storage_->getBlockBody(block.hash));
       if (block_body_opt.has_value()) {
         extrinsics.reserve(extrinsics.size() + block_body_opt.value().size());
         for (auto &ext : block_body_opt.value()) {
@@ -1317,7 +1293,7 @@ namespace kagome::blockchain {
           if (auto key = p.extrinsic_event_key_repo_->get(extrinsic_hash)) {
             main_thread_.execute([wself{weak_from_this()},
                                   key{key.value()},
-                                  block_hash{node->info.hash}]() {
+                                  block_hash{block.hash}]() {
               if (auto self = wself.lock()) {
                 self->extrinsic_events_engine_->notify(
                     key,
@@ -1331,20 +1307,8 @@ namespace kagome::blockchain {
         BOOST_ASSERT(block_header_opt.has_value());
         OUTCOME_TRY(p.state_pruner_->pruneDiscarded(block_header_opt.value()));
       }
-
-      retired_hashes.emplace_back(node->info.hash);
-      p.tree_->removeFromMeta(node);
-      OUTCOME_TRY(p.storage_->removeBlock(node->info.hash));
-    }
-
-    auto last_finalized_block_info = getLastFinalizedNoLock(p);
-    for (primitives::BlockNumber n = last_finalized_block_info.number;
-         n < lastFinalizedNode->info.number;
-         ++n) {
-      if (auto result = p.storage_->getBlockHash(n);
-          result.has_value() && result.value()) {
-        retired_hashes.emplace_back(std::move(*result.value()));
-      }
+      retired_hashes.emplace_back(block.hash);
+      OUTCOME_TRY(p.storage_->removeBlock(block.hash));
     }
 
     // trying to return extrinsics back to transaction pool
@@ -1404,64 +1368,6 @@ namespace kagome::blockchain {
       OUTCOME_TRY(header, getBlockHeader(hash));
       OUTCOME_TRY(block_tree_data.state_pruner_->pruneFinalized(header));
       hash = std::move(next_hash);
-    }
-
-    return outcome::success();
-  }
-
-  outcome::result<void> BlockTreeImpl::reorganizeNoLock(BlockTreeData &p) {
-    auto block = BlockTreeImpl::bestBlockNoLock(p);
-
-    // Remove assigning of obsolete best upper blocks chain
-    auto prev_max_best_block_number = block.number;
-    for (;;) {
-      auto hash_res =
-          p.header_repo_->getHashByNumber(prev_max_best_block_number + 1);
-      if (hash_res.has_error()) {
-        if (hash_res == outcome::failure(BlockTreeError::HEADER_NOT_FOUND)) {
-          break;
-        }
-        return hash_res.as_failure();
-      }
-      ++prev_max_best_block_number;
-    }
-    for (auto number = prev_max_best_block_number; number > block.number;
-         --number) {
-      OUTCOME_TRY(p.storage_->deassignNumberToHash(number));
-    }
-
-    auto hash_res = p.header_repo_->getHashByNumber(block.number);
-    if (hash_res.has_error()) {
-      if (hash_res != outcome::failure(BlockTreeError::HEADER_NOT_FOUND)) {
-        return hash_res.as_failure();
-      }
-    } else if (block.hash == hash_res.value()) {
-      return outcome::success();
-    }
-
-    // Rewrite earlier blocks sequence
-    size_t count = 0;
-    for (;;) {
-      OUTCOME_TRY(p.storage_->assignNumberToHash(block));
-      if (block.number == 0) {
-        break;
-      }
-      OUTCOME_TRY(header, getBlockHeaderNoLock(p, block.hash));
-      auto parent_hash_res = p.header_repo_->getHashByNumber(block.number - 1);
-      if (parent_hash_res.has_error()) {
-        if (parent_hash_res
-            != outcome::failure(BlockTreeError::HEADER_NOT_FOUND)) {
-          return parent_hash_res.as_failure();
-        }
-      } else if (header.parent_hash == parent_hash_res.value()) {
-        break;
-      }
-      ++count;
-      block = {block.number - 1, header.parent_hash};
-    }
-
-    if (count > 1) {
-      SL_DEBUG(log_, "Best chain reorganized for {} blocks deep", count);
     }
 
     return outcome::success();

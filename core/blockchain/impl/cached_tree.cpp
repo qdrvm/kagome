@@ -122,56 +122,6 @@ namespace kagome::blockchain {
     }
   }
 
-  void CachedTree::updateTreeRoot(std::shared_ptr<TreeNode> new_trie_root) {
-    auto prev_root = root_;
-    auto prev_node = new_trie_root->parent();
-
-    // now node won't be deleted while cleaning children
-    root_ = std::move(new_trie_root);
-
-    // cleanup children from child to parent, because otherwise
-    // when they are cleaned up when their parent shared ptr is deleted,
-    // recursive calls of shared pointer destructors break the stack
-    while (prev_node && prev_node != prev_root) {
-      prev_node->children.clear();
-      prev_node = prev_node->parent();
-    }
-
-    root_->weak_parent.reset();
-  }
-
-  void CachedTree::removeFromMeta(const std::shared_ptr<TreeNode> &node) {
-    auto parent = node->parent();
-    if (parent == nullptr) {
-      // Already removed with removed subtree
-      return;
-    }
-
-    auto it = std::find(parent->children.begin(), parent->children.end(), node);
-    if (it != parent->children.end()) {
-      parent->children.erase(it);
-    }
-
-    leaves_.erase(node->info.hash);
-    if (parent->children.empty()) {
-      leaves_.insert(parent->info.hash);
-    }
-
-    if (node == best_) {
-      best_ = parent;
-      for (auto it = leaves_.begin(); it != leaves_.end();) {
-        const auto &hash = *it++;
-        const auto leaf_node = find(hash);
-        if (leaf_node == nullptr) {
-          // Already removed with removed subtree
-          leaves_.erase(hash);
-        } else if (chooseBest(leaf_node)) {
-          break;
-        }
-      }
-    }
-  }
-
   CachedTree::CachedTree(const primitives::BlockInfo &root)
       : root_{std::make_shared<TreeNode>(root)},
         best_{root_},
@@ -261,6 +211,59 @@ namespace kagome::blockchain {
       return reorg(old_best, best_);
     }
     return std::nullopt;
+  }
+
+  ReorgAndPrune CachedTree::finalize(
+      const std::shared_ptr<TreeNode> &new_finalized) {
+    BOOST_ASSERT(new_finalized->info.number >= root_->info.number);
+    if (new_finalized == root_) {
+      return {};
+    }
+    BOOST_ASSERT(new_finalized->parent());
+    ReorgAndPrune changes;
+    if (not canDescend(best_, new_finalized)) {
+      changes.reorg = reorg(best_, new_finalized);
+    }
+    std::deque<std::shared_ptr<TreeNode>> queue;
+    for (auto finalized_child = new_finalized,
+              parent = finalized_child->parent();
+         parent;
+         finalized_child = parent, parent = parent->parent()) {
+      for (auto &child : parent->children) {
+        if (child == finalized_child) {
+          continue;
+        }
+        queue.emplace_back(child);
+      }
+      parent->children.clear();
+    }
+    while (not queue.empty()) {
+      auto parent = std::move(queue.front());
+      queue.pop_front();
+      changes.prune.emplace_back(parent->info);
+      for (auto &child : parent->children) {
+        queue.emplace_back(child);
+      }
+      if (parent->children.empty()) {
+        leaves_.erase(parent->info.hash);
+      }
+      parent->children.clear();
+    }
+    std::reverse(changes.prune.begin(), changes.prune.end());
+    root_ = new_finalized;
+    root_->weak_parent.reset();
+    if (changes.reorg) {
+      forceRefreshBest();
+      size_t offset = changes.reorg->apply.size();
+      auto ok = descend(
+          best_, new_finalized, [&](const std::shared_ptr<TreeNode> node) {
+            changes.reorg->apply.emplace_back(node->info);
+          });
+      BOOST_ASSERT(ok);
+      std::reverse(changes.reorg->apply.begin() + offset,
+                   changes.reorg->apply.end());
+    }
+    return changes;
   }
 
   ReorgAndPrune CachedTree::removeLeaf(const primitives::BlockHash &hash) {
