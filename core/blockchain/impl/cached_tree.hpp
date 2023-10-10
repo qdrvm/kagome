@@ -70,6 +70,7 @@ namespace kagome::blockchain {
     bool isLeaf(const primitives::BlockHash &hash) const;
     primitives::BlockInfo bestWith(
         const std::shared_ptr<TreeNode> &required) const;
+    std::shared_ptr<TreeNode> find(const primitives::BlockHash &hash) const;
 
     /**
      * Remove nodes in block tree from current tree_ to {\arg new_trie_root}.

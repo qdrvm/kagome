@@ -96,7 +96,7 @@ namespace kagome::blockchain {
   void CachedTree::forceRefreshBest() {
     std::set<std::shared_ptr<TreeNode>, Cmp> candidates;
     for (auto &leaf : leaves_) {
-      if (auto node = root_->findByHash(leaf)) {
+      if (auto node = find(leaf)) {
         candidates.emplace(std::move(node));
       }
     }
@@ -178,7 +178,7 @@ namespace kagome::blockchain {
       best_ = parent;
       for (auto it = leaves_.begin(); it != leaves_.end();) {
         const auto &hash = *it++;
-        const auto leaf_node = root_->findByHash(hash);
+        const auto leaf_node = find(hash);
         if (leaf_node == nullptr) {
           // Already removed with removed subtree
           leaves_.erase(hash);
@@ -218,7 +218,7 @@ namespace kagome::blockchain {
       const std::shared_ptr<TreeNode> &required) const {
     std::set<std::shared_ptr<TreeNode>, Cmp> candidates;
     for (auto &leaf : leaves_) {
-      if (auto node = required->findByHash(leaf)) {
+      if (auto node = find(leaf)) {
         candidates.emplace(std::move(node));
       }
     }
@@ -240,5 +240,10 @@ namespace kagome::blockchain {
       }
     }
     return best->info;
+  }
+
+  std::shared_ptr<TreeNode> CachedTree::find(
+      const primitives::BlockHash &hash) const {
+    return root_->findByHash(hash);
   }
 }  // namespace kagome::blockchain

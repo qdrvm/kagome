@@ -499,7 +499,7 @@ namespace kagome::blockchain {
       const primitives::BlockHeader &header) {
     return block_tree_data_.exclusiveAccess(
         [&](BlockTreeData &p) -> outcome::result<void> {
-          auto parent = p.tree_->getRoot().findByHash(header.parent_hash);
+          auto parent = p.tree_->find(header.parent_hash);
           if (!parent) {
             return BlockTreeError::NO_PARENT;
           }
@@ -533,7 +533,7 @@ namespace kagome::blockchain {
     return block_tree_data_.exclusiveAccess(
         [&](BlockTreeData &p) -> outcome::result<void> {
           // Check if we know parent of this block; if not, we cannot insert it
-          auto parent = p.tree_->getRoot().findByHash(block.header.parent_hash);
+          auto parent = p.tree_->find(block.header.parent_hash);
           if (!parent) {
             return BlockTreeError::NO_PARENT;
           }
@@ -601,7 +601,7 @@ namespace kagome::blockchain {
             return BlockTreeError::BLOCK_IS_NOT_LEAF;
           }
 
-          auto node = p.tree_->getRoot().findByHash(block_hash);
+          auto node = p.tree_->find(block_hash);
           BOOST_ASSERT_MSG(node != nullptr,
                            "As checked before, block exists as one of leaves");
 
@@ -624,7 +624,7 @@ namespace kagome::blockchain {
         [&](BlockTreeData &p) -> outcome::result<void> {
           SL_TRACE(log_, "Trying to adjust weight for block {}", block_hash);
 
-          auto node = p.tree_->getRoot().findByHash(block_hash);
+          auto node = p.tree_->find(block_hash);
           if (node == nullptr) {
             SL_WARN(log_, "Block {} doesn't exists in block tree", block_hash);
             return BlockTreeError::BLOCK_NOT_EXISTS;
@@ -642,7 +642,7 @@ namespace kagome::blockchain {
           bool need_to_refresh_best = false;
           auto best = bestBlockNoLock(p);
           for (const auto &block_hash : block_hashes) {
-            auto tree_node = p.tree_->getRoot().findByHash(block_hash);
+            auto tree_node = p.tree_->find(block_hash);
             if (tree_node == nullptr) {
               SL_WARN(
                   log_, "Block {} doesn't exists in block tree", block_hash);
@@ -686,7 +686,7 @@ namespace kagome::blockchain {
              "Trying to add block {} into block tree",
              primitives::BlockInfo(block_header.number, block_hash));
 
-    auto node = p.tree_->getRoot().findByHash(block_hash);
+    auto node = p.tree_->find(block_hash);
     // Check if tree doesn't have this block; if not, we skip that
     if (node != nullptr) {
       SL_TRACE(log_,
@@ -695,7 +695,7 @@ namespace kagome::blockchain {
       return BlockTreeError::BLOCK_EXISTS;
     }
 
-    auto parent = p.tree_->getRoot().findByHash(block_header.parent_hash);
+    auto parent = p.tree_->find(block_header.parent_hash);
 
     // Check if we know parent of this block; if not, we cannot insert it
     if (parent == nullptr) {
@@ -729,7 +729,7 @@ namespace kagome::blockchain {
 
         to_add.emplace(hash, std::move(header));
 
-        if (p.tree_->getRoot().findByHash(header.parent_hash) != nullptr) {
+        if (p.tree_->find(header.parent_hash) != nullptr) {
           SL_TRACE(log_,
                    "Block {} parent of {} has found in block tree",
                    primitives::BlockInfo(*header.parentInfo()),
@@ -752,7 +752,7 @@ namespace kagome::blockchain {
         to_add.pop();
       }
 
-      parent = p.tree_->getRoot().findByHash(block_header.parent_hash);
+      parent = p.tree_->find(block_header.parent_hash);
       BOOST_ASSERT_MSG(parent != nullptr,
                        "Parent must be restored at this moment");
 
@@ -804,7 +804,7 @@ namespace kagome::blockchain {
       const primitives::Justification &justification) {
     return block_tree_data_.exclusiveAccess([&](BlockTreeData &p)
                                                 -> outcome::result<void> {
-      const auto node = p.tree_->getRoot().findByHash(block_hash);
+      const auto node = p.tree_->find(block_hash);
       if (!node) {
         return BlockTreeError::NON_FINALIZED_BLOCK_NOT_FOUND;
       }
@@ -1035,7 +1035,7 @@ namespace kagome::blockchain {
     auto hash = to_block;
 
     // Try to retrieve from cached tree
-    if (auto node = p.tree_->getRoot().findByHash(hash)) {
+    if (auto node = p.tree_->find(hash)) {
       while (maximum > chain.size()) {
         auto parent = node->parent();
         if (not parent) {
@@ -1104,8 +1104,8 @@ namespace kagome::blockchain {
       const BlockTreeData &p,
       const primitives::BlockHash &ancestor,
       const primitives::BlockHash &descendant) const {
-    auto ancestor_node_ptr = p.tree_->getRoot().findByHash(ancestor);
-    auto descendant_node_ptr = p.tree_->getRoot().findByHash(descendant);
+    auto ancestor_node_ptr = p.tree_->find(ancestor);
+    auto descendant_node_ptr = p.tree_->find(descendant);
 
     /*
      * check that ancestor is above descendant
@@ -1222,9 +1222,8 @@ namespace kagome::blockchain {
           if (getLastFinalizedNoLock(p).hash == target_hash) {
             return bestBlockNoLock(p);
           }
-          auto &root = p.tree_->getRoot();
 
-          auto target = root.findByHash(target_hash);
+          auto target = p.tree_->find(target_hash);
 
           // If target has not found in block tree (in memory),
           // it means block finalized or discarded
@@ -1260,7 +1259,7 @@ namespace kagome::blockchain {
       const primitives::BlockHash &block) const {
     return block_tree_data_.sharedAccess([&](const BlockTreeData &p)
                                              -> BlockTreeImpl::BlockHashVecRes {
-      if (auto node = p.tree_->getRoot().findByHash(block); node != nullptr) {
+      if (auto node = p.tree_->find(block); node != nullptr) {
         std::vector<primitives::BlockHash> result;
         result.reserve(node->children.size());
         for (const auto &child : node->children) {
