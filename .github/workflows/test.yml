@@ -299,7 +299,7 @@ jobs:
           VERSION: ${{ github.ref }}
           BUILD_TYPE: "${{ matrix.options.build-type }}"
         run: ./housekeeping/docker/kagome/build_and_push.sh
-  
+
   Push-self-hosted-PR:
     if: ${{ contains( github.event.pull_request.labels.*.name, 'Non-master push') }}
     strategy:
