@@ -1289,7 +1289,7 @@ namespace kagome::parachain {
             self->logger_->warn(
                 "Parachain data recovery failed.(error={}, session index={}, "
                 "candidate hash={}, relay block hash={})",
-                opt_result->error().message(),
+                opt_result->error(),
                 session_index,
                 candidate_hash,
                 relay_block_hash);
