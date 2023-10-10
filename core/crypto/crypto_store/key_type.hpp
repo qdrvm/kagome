@@ -18,7 +18,7 @@ namespace kagome::crypto {
   };
 
   /**
-   * Makes 32bit integer uin which represent encoded 4-char strings
+   * Makes 32bit integer which represent encoded 4-char strings
    * Little-endian byte order is used
    */
   constexpr uint32_t operator""_key(const char *s, std::size_t size) {

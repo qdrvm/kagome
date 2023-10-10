@@ -20,6 +20,7 @@
 #include "parachain/approval/approval.hpp"
 #include "parachain/approval/approval_distribution.hpp"
 #include "parachain/approval/state.hpp"
+#include "parachain/availability/erasure_coding_error.hpp"
 #include "primitives/authority.hpp"
 #include "primitives/math.hpp"
 #include "runtime/runtime_api/parachain_host_types.hpp"
@@ -1286,15 +1287,19 @@ namespace kagome::parachain {
           }
 
           if (opt_result->has_error()) {
+            auto &error = opt_result->error();
             self->logger_->warn(
                 "Parachain data recovery failed.(error={}, session index={}, "
                 "candidate hash={}, relay block hash={})",
-                opt_result->error().message(),
+                error,
                 session_index,
                 candidate_hash,
                 relay_block_hash);
-            self->dispute_coordinator_.get()->issueLocalStatement(
-                session_index, candidate_hash, candidate_receipt, false);
+            if (error
+                != toErasureCodingError(::ec_cpp::Error::kNeedMoreShards)) {
+              self->dispute_coordinator_.get()->issueLocalStatement(
+                  session_index, candidate_hash, candidate_receipt, false);
+            }
             return;
           }
           auto &available_data = opt_result->value();
