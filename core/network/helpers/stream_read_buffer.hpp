@@ -119,14 +119,96 @@ namespace libp2p::connection {
 }  // namespace libp2p::connection
 
 namespace kagome::network {
+  struct StreamWrapper final : libp2p::connection::Stream {
+    std::shared_ptr<libp2p::connection::StreamReadBuffer> stream_;
+    log::Logger logger_ = log::createLogger("Stream", "network");
+
+    StreamWrapper(std::shared_ptr<libp2p::connection::StreamReadBuffer> stream) : stream_{std::move(stream)} {
+
+    }
+
+    bool isClosedForRead() const {
+      return stream_->isClosedForRead();
+    }
+
+    bool isClosedForWrite() const {
+      return stream_->isClosedForWrite();
+    }
+
+    bool isClosed() const {
+      return stream_->isClosed();
+    }
+
+    void close(VoidResultHandlerFunc cb) {
+      SL_INFO(logger_, "`close` call");
+      stream_->close(std::move(cb));
+    }
+
+    void reset() {
+      SL_INFO(logger_, "`reset` call");
+      stream_->reset();
+    }
+
+    void adjustWindowSize(uint32_t new_size,
+                                  VoidResultHandlerFunc cb) {
+      stream_->adjustWindowSize(new_size, std::move(cb));
+    }
+
+    outcome::result<bool> isInitiator() const {
+      return stream_->isInitiator();
+    }
+
+    outcome::result<libp2p::peer::PeerId> remotePeerId() const {
+      return stream_->remotePeerId();
+    }
+
+    outcome::result<libp2p::multi::Multiaddress> localMultiaddr() const {
+      return stream_->localMultiaddr();
+    }
+
+    outcome::result<libp2p::multi::Multiaddress> remoteMultiaddr() const {
+      return stream_->remoteMultiaddr();
+    }
+
+    void read(gsl::span<uint8_t> out, size_t bytes,
+                      ReadCallbackFunc cb) {
+      stream_->read(out, bytes, std::move(cb));
+    }
+
+    void readSome(gsl::span<uint8_t> out, size_t bytes,
+                          ReadCallbackFunc cb) {
+      stream_->readSome(out, bytes, std::move(cb));
+    }
+
+    void deferReadCallback(outcome::result<size_t> res,
+                                   ReadCallbackFunc cb) {
+      stream_->deferReadCallback(std::move(res), std::move(cb));
+    }
+
+    void write(gsl::span<const uint8_t> in, size_t bytes,
+                       WriteCallbackFunc cb) {
+      stream_->write(in, bytes, std::move(cb));
+    }
+
+    void writeSome(gsl::span<const uint8_t> in, size_t bytes,
+                           WriteCallbackFunc cb) {
+      stream_->writeSome(in, bytes, std::move(cb));
+    }
+
+    void deferWriteCallback(std::error_code ec, WriteCallbackFunc cb) {
+      stream_->deferWriteCallback(ec, std::move(cb));
+    }
+
+  };
+
   /**
    * Wrap stream from `setProtocolHandler`.
    * Makes reading from stream buffered.
    */
   inline void streamReadBuffer(libp2p::StreamAndProtocol &result) {
     constexpr size_t kBuffer{1 << 16};
-    result.stream = std::make_shared<libp2p::connection::StreamReadBuffer>(
-        std::move(result.stream), kBuffer);
+    result.stream = std::make_shared<StreamWrapper>(std::make_shared<libp2p::connection::StreamReadBuffer>(
+        std::move(result.stream), kBuffer));
   }
 
   /**
