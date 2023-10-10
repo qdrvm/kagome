@@ -120,16 +120,6 @@ namespace kagome::blockchain {
     root_->weak_parent.reset();
   }
 
-  const TreeNode &CachedTree::getRoot() const {
-    BOOST_ASSERT(root_ != nullptr);
-    return *root_;
-  }
-
-  TreeNode &CachedTree::getRoot() {
-    BOOST_ASSERT(root_ != nullptr);
-    return *root_;
-  }
-
   void CachedTree::updateMeta(const std::shared_ptr<TreeNode> &new_node) {
     auto parent = wptrMustLock(new_node->weak_parent);
     parent->children.push_back(new_node);

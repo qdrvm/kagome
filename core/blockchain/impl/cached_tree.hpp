@@ -81,9 +81,6 @@ namespace kagome::blockchain {
      */
     void removeFromMeta(const std::shared_ptr<TreeNode> &node);
 
-    const TreeNode &getRoot() const;
-    TreeNode &getRoot();
-
    private:
     /**
      * Compare node weight with best and replace if heavier.

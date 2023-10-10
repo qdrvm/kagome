@@ -1402,7 +1402,7 @@ namespace kagome::blockchain {
 
     BOOST_ASSERT(!last_pruned.has_value()
                  || last_pruned.value().number
-                        <= block_tree_data.tree_->getRoot().info.number);
+                        <= block_tree_data.tree_->finalized()->info.number);
     auto next_pruned_number = last_pruned ? last_pruned->number + 1 : 0;
 
     OUTCOME_TRY(hash_opt, getBlockHash(next_pruned_number));
@@ -1510,8 +1510,8 @@ namespace kagome::blockchain {
   void BlockTreeImpl::removeUnfinalized() {
     auto r = block_tree_data_.exclusiveAccess(
         [&](BlockTreeData &p) -> outcome::result<void> {
-          auto finalized = p.tree_->getRoot().info;
-          auto nodes = std::move(p.tree_->getRoot().children);
+          auto finalized = p.tree_->finalized()->info;
+          auto nodes = std::move(p.tree_->finalized()->children);
           primitives::BlockNumber max = 0;
           for (size_t i = 0; i < nodes.size(); ++i) {
             auto children = std::move(nodes[i]->children);
