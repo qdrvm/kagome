@@ -54,14 +54,6 @@ namespace kagome::blockchain {
     return nullptr;
   }
 
-  bool TreeNode::operator==(const TreeNode &other) const {
-    return info == other.info;
-  }
-
-  bool TreeNode::operator!=(const TreeNode &other) const {
-    return !(*this == other);
-  }
-
   template <typename F>
   bool descend(std::shared_ptr<TreeNode> from,
                const std::shared_ptr<TreeNode> &to,

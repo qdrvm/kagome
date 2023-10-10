@@ -51,9 +51,6 @@ namespace kagome::blockchain {
       return std::const_pointer_cast<TreeNode>(
           std::as_const(*this).findByHash(hash));
     }
-
-    bool operator==(const TreeNode &other) const;
-    bool operator!=(const TreeNode &other) const;
   };
 
   bool canDescend(std::shared_ptr<TreeNode> from,
