@@ -22,7 +22,7 @@ namespace kagome::blockchain {
    * convenience - we would only ask the database for some info, when directly
    * requested
    */
-  class TreeNode : public std::enable_shared_from_this<TreeNode> {
+  class TreeNode {
    public:
     TreeNode(const primitives::BlockInfo &info);
     TreeNode(const primitives::BlockInfo &info,
@@ -39,18 +39,6 @@ namespace kagome::blockchain {
 
     std::shared_ptr<TreeNode> parent() const;
     BlockWeight weight() const;
-
-    /**
-     * Get a node of the tree, containing block with the specified hash, if it
-     * can be found
-     */
-    std::shared_ptr<const TreeNode> findByHash(
-        const primitives::BlockHash &hash) const;
-
-    std::shared_ptr<TreeNode> findByHash(const primitives::BlockHash &hash) {
-      return std::const_pointer_cast<TreeNode>(
-          std::as_const(*this).findByHash(hash));
-    }
   };
 
   bool canDescend(std::shared_ptr<TreeNode> from,

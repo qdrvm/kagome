@@ -36,24 +36,6 @@ namespace kagome::blockchain {
     return {babe_primary_weight, info.number};
   }
 
-  std::shared_ptr<const TreeNode> TreeNode::findByHash(
-      const primitives::BlockHash &hash) const {
-    // standard BFS
-    std::queue<std::shared_ptr<const TreeNode>> nodes_to_scan;
-    nodes_to_scan.push(shared_from_this());
-    while (!nodes_to_scan.empty()) {
-      const auto &node = nodes_to_scan.front();
-      if (node->info.hash == hash) {
-        return node;
-      }
-      for (const auto &child : node->children) {
-        nodes_to_scan.push(child);
-      }
-      nodes_to_scan.pop();
-    }
-    return nullptr;
-  }
-
   template <typename F>
   bool descend(std::shared_ptr<TreeNode> from,
                const std::shared_ptr<TreeNode> &to,
@@ -244,6 +226,18 @@ namespace kagome::blockchain {
 
   std::shared_ptr<TreeNode> CachedTree::find(
       const primitives::BlockHash &hash) const {
-    return root_->findByHash(hash);
+    std::queue<std::shared_ptr<TreeNode>> queue;
+    queue.push(root_);
+    while (not queue.empty()) {
+      auto &node = queue.front();
+      if (node->info.hash == hash) {
+        return node;
+      }
+      for (auto &child : node->children) {
+        queue.push(child);
+      }
+      queue.pop();
+    }
+    return nullptr;
   }
 }  // namespace kagome::blockchain
