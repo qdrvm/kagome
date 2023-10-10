@@ -809,12 +809,7 @@ namespace kagome::blockchain {
         return outcome::success();
       }
       const auto node = p.tree_->find(block_hash);
-      if (!node) {
-        return BlockTreeError::NON_FINALIZED_BLOCK_NOT_FOUND;
-      }
-      auto justification_stored = false;
-
-      if (node->info.number > last_finalized_block_info.number) {
+      if (node) {
         SL_DEBUG(log_, "Finalizing block {}", node->info);
 
         OUTCOME_TRY(header_opt, p.storage_->getBlockHeader(block_hash));
@@ -824,7 +819,6 @@ namespace kagome::blockchain {
         auto &header = header_opt.value();
 
         OUTCOME_TRY(p.storage_->putJustification(justification, block_hash));
-        justification_stored = true;
 
         OUTCOME_TRY(pruneNoLock(p, node));
         OUTCOME_TRY(pruneTrie(p, node->info.number));
@@ -861,31 +855,13 @@ namespace kagome::blockchain {
         telemetry_->notifyBlockFinalized(node->info);
         telemetry_->pushBlockStats();
         metric_finalized_block_height_->set(node->info.number);
-      } else if (hasDirectChainNoLock(
-                     p, block_hash, last_finalized_block_info.hash)) {
-        OUTCOME_TRY(justification_opt,
-                    p.storage_->getJustification(block_hash));
-        if (justification_opt.has_value()) {
-          // block already has justification (in DB), fine
-          return outcome::success();
-        }
-      }
 
-      KAGOME_PROFILE_START(justification_store)
-
-      if (not justification_stored) {
-        OUTCOME_TRY(p.storage_->putJustification(justification, block_hash));
-      }
-      SL_DEBUG(log_, "Store justification for finalized block {}", node->info);
-
-      if (last_finalized_block_info.number < node->info.number) {
         // we store justification for last finalized block only as long as it is
         // last finalized (if it doesn't meet other justification storage rules,
         // e.g. its number a multiple of 512)
-        OUTCOME_TRY(last_finalized_header_opt,
-                    p.storage_->getBlockHeader(last_finalized_block_info.hash));
-        // SAFETY: header for the last finalized block must be present
-        auto &last_finalized_header = last_finalized_header_opt.value();
+        OUTCOME_TRY(
+            last_finalized_header,
+            p.header_repo_->getBlockHeader(last_finalized_block_info.hash));
         OUTCOME_TRY(
             shouldStoreLastFinalized,
             p.justification_storage_policy_->shouldStoreFor(
@@ -902,10 +878,28 @@ namespace kagome::blockchain {
                 last_finalized_block_info.hash));
           }
         }
+      } else {
+        OUTCOME_TRY(header, p.header_repo_->getBlockHeader(block_hash));
+        if (header.number >= last_finalized_block_info.number) {
+          return BlockTreeError::NON_FINALIZED_BLOCK_NOT_FOUND;
+        }
+        OUTCOME_TRY(canon_hash, p.header_repo_->getHashByNumber(header.number));
+        if (block_hash != canon_hash) {
+          return BlockTreeError::BLOCK_ON_DEAD_END;
+        }
+        if (not p.justification_storage_policy_
+                    ->shouldStoreFor(header, last_finalized_block_info.number)
+                    .value()) {
+          return outcome::success();
+        }
+        OUTCOME_TRY(justification_opt,
+                    p.storage_->getJustification(block_hash));
+        if (justification_opt.has_value()) {
+          // block already has justification (in DB), fine
+          return outcome::success();
+        }
+        OUTCOME_TRY(p.storage_->putJustification(justification, block_hash));
       }
-
-      KAGOME_PROFILE_END(justification_store)
-
       return outcome::success();
     });
   }
