@@ -98,9 +98,9 @@ namespace kagome::blockchain {
   void CachedTree::forceRefreshBest() {
     std::set<std::shared_ptr<TreeNode>, Cmp> candidates;
     for (auto &leaf : leaves_) {
-      if (auto node = find(leaf)) {
-        candidates.emplace(std::move(node));
-      }
+      auto node = find(leaf);
+      BOOST_ASSERT(node);
+      candidates.emplace(std::move(node));
     }
 
     best_ = root_;
@@ -152,9 +152,9 @@ namespace kagome::blockchain {
       const std::shared_ptr<TreeNode> &required) const {
     std::set<std::shared_ptr<TreeNode>, Cmp> candidates;
     for (auto &leaf : leaves_) {
-      if (auto node = find(leaf)) {
-        candidates.emplace(std::move(node));
-      }
+      auto node = find(leaf);
+      BOOST_ASSERT(node);
+      candidates.emplace(std::move(node));
     }
     auto best = required;
     while (not candidates.empty()) {
