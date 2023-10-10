@@ -804,20 +804,20 @@ namespace kagome::blockchain {
       const primitives::Justification &justification) {
     return block_tree_data_.exclusiveAccess([&](BlockTreeData &p)
                                                 -> outcome::result<void> {
+      auto last_finalized_block_info = getLastFinalizedNoLock(p);
+      if (block_hash == last_finalized_block_info.hash) {
+        return outcome::success();
+      }
       const auto node = p.tree_->find(block_hash);
       if (!node) {
         return BlockTreeError::NON_FINALIZED_BLOCK_NOT_FOUND;
       }
-      const auto block = node->info;
-
-      auto last_finalized_block_info = getLastFinalizedNoLock(p);
-
       auto justification_stored = false;
 
       if (node->info.number > last_finalized_block_info.number) {
-        SL_DEBUG(log_, "Finalizing block {}", block);
+        SL_DEBUG(log_, "Finalizing block {}", node->info);
 
-        OUTCOME_TRY(header_opt, p.storage_->getBlockHeader(node->info.hash));
+        OUTCOME_TRY(header_opt, p.storage_->getBlockHeader(block_hash));
         if (not header_opt.has_value()) {
           return BlockTreeError::HEADER_NOT_FOUND;
         }
@@ -838,7 +838,7 @@ namespace kagome::blockchain {
         notifyChainEventsEngine(
             primitives::events::ChainEventType::kFinalizedHeads, header);
 
-        OUTCOME_TRY(body, p.storage_->getBlockBody(node->info.hash));
+        OUTCOME_TRY(body, p.storage_->getBlockBody(block_hash));
         if (body.has_value()) {
           for (auto &ext : body.value()) {
             auto extrinsic_hash = p.hasher_->blake2b_256(ext.data);
@@ -857,14 +857,10 @@ namespace kagome::blockchain {
           }
         }
 
-        log_->info("Finalized block {}", block);
-        telemetry_->notifyBlockFinalized(block);
+        log_->info("Finalized block {}", node->info);
+        telemetry_->notifyBlockFinalized(node->info);
         telemetry_->pushBlockStats();
         metric_finalized_block_height_->set(node->info.number);
-
-      } else if (node->info.hash == last_finalized_block_info.hash) {
-        // block is current last finalized, fine
-        return outcome::success();
       } else if (hasDirectChainNoLock(
                      p, block_hash, last_finalized_block_info.hash)) {
         OUTCOME_TRY(justification_opt,
@@ -880,7 +876,7 @@ namespace kagome::blockchain {
       if (not justification_stored) {
         OUTCOME_TRY(p.storage_->putJustification(justification, block_hash));
       }
-      SL_DEBUG(log_, "Store justification for finalized block {}", block);
+      SL_DEBUG(log_, "Store justification for finalized block {}", node->info);
 
       if (last_finalized_block_info.number < node->info.number) {
         // we store justification for last finalized block only as long as it is
