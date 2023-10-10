@@ -1072,8 +1072,14 @@ namespace kagome::blockchain {
       const BlockTreeData &p,
       const primitives::BlockHash &ancestor,
       const primitives::BlockHash &descendant) const {
+    if (ancestor == descendant) {
+      return true;
+    }
     auto ancestor_node_ptr = p.tree_->find(ancestor);
     auto descendant_node_ptr = p.tree_->find(descendant);
+    if (ancestor_node_ptr and descendant_node_ptr) {
+      return canDescend(descendant_node_ptr, ancestor_node_ptr);
+    }
 
     /*
      * check that ancestor is above descendant
@@ -1110,35 +1116,15 @@ namespace kagome::blockchain {
       return false;
     }
 
-    // if both nodes are in our light tree, we can use this representation
-    // only
-    if (ancestor_node_ptr && descendant_node_ptr) {
-      return canDescend(descendant_node_ptr, ancestor_node_ptr);
-    }
-
-    // else, we need to use a database
-
     // Try to use optimal way, if ancestor and descendant in the finalized
     // chain
-    if (descendant_depth <= getLastFinalizedNoLock(p).number) {
-      auto res = p.header_repo_->getHashByNumber(descendant_depth);
-      BOOST_ASSERT_MSG(res.has_value(),
-                       "Any finalized block must be accessible by number");
-      // Check if descendant in finalised chain
-      if (res.value() == descendant) {
-        res = p.header_repo_->getHashByNumber(ancestor_depth);
-        BOOST_ASSERT_MSG(res.has_value(),
-                         "Any finalized block must be accessible by number");
-        if (res.value() == ancestor) {
-          // Ancestor and descendant in the finalized chain,
-          // therefore they have direct chain between each other
-          return true;
-        } else {
-          // Ancestor in the finalized chain, but descendant is not,
-          // therefore they can not have direct chain between each other
-          return false;
-        }
-      }
+    auto finalized = [&](const primitives::BlockHash &hash,
+                         primitives::BlockNumber number) {
+      return number <= getLastFinalizedNoLock(p).number
+         and p.header_repo_->getHashByNumber(number) == outcome::success(hash);
+    };
+    if (descendant_node_ptr or finalized(descendant, descendant_depth)) {
+      return finalized(ancestor, ancestor_depth);
     }
 
     auto current_hash = descendant;
