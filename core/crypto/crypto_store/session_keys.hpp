@@ -28,12 +28,14 @@ namespace kagome::crypto {
   // otherwise it could be read from chainspec palletSession/keys
   // nevertheless they are hardcoded in polkadot
   // https://github.com/paritytech/polkadot/blob/634520cd3cf4b2b850db807daaaa32e480099981/node/service/src/chain_spec.rs#L230
-  constexpr KnownKeyTypeId polkadot_key_order[6]{KEY_TYPE_GRAN,
-                                                 KEY_TYPE_BABE,
-                                                 KEY_TYPE_IMON,
-                                                 KEY_TYPE_PARA,
-                                                 KEY_TYPE_ASGN,
-                                                 KEY_TYPE_AUDI};
+  constexpr KeyType polkadot_key_order[6] = {
+      KeyTypes::GRANDPA,
+      KeyTypes::BABE,
+      KeyTypes::IM_ONLINE,
+      KeyTypes::PARACHAIN,
+      KeyTypes::ASSIGNMENT,
+      KeyTypes::AUTHORITY_DISCOVERY,
+  };
 
   class SessionKeys {
    public:
@@ -47,6 +49,12 @@ namespace kagome::crypto {
      * @return current BABE session key pair
      */
     virtual KeypairWithIndexOpt<Sr25519Keypair> getBabeKeyPair(
+        const primitives::AuthorityList &authorities) = 0;
+
+    /**
+     * @return current SASSAFRAS session key pair
+     */
+    virtual KeypairWithIndexOpt<Sr25519Keypair> getSassafrasKeyPair(
         const primitives::AuthorityList &authorities) = 0;
 
     /**
@@ -85,17 +93,17 @@ namespace kagome::crypto {
 
     template <typename T>
     using FnListPublic = outcome::result<std::vector<decltype(T::public_key)>> (
-        CryptoStore::*)(KeyTypeId) const;
+        CryptoStore::*)(KeyType) const;
     template <typename T>
     using FnGetPrivate = outcome::result<T> (CryptoStore::*)(
-        KeyTypeId, const decltype(T::public_key) &) const;
+        KeyType, const decltype(T::public_key) &) const;
     template <typename T,
               FnListPublic<T> list_public,
               FnGetPrivate<T> get_private,
               typename A,
               typename Eq>
     KeypairWithIndexOpt<T> find(KeypairWithIndexOpt<T> &cache,
-                                KeyTypeId type,
+                                KeyType type,
                                 const std::vector<A> &authorities,
                                 const Eq &eq);
 
@@ -104,6 +112,9 @@ namespace kagome::crypto {
                     const application::AppConfiguration &config);
 
     KeypairWithIndexOpt<Sr25519Keypair> getBabeKeyPair(
+        const primitives::AuthorityList &authorities) override;
+
+    KeypairWithIndexOpt<Sr25519Keypair> getSassafrasKeyPair(
         const primitives::AuthorityList &authorities) override;
 
     std::shared_ptr<Ed25519Keypair> getGranKeyPair(

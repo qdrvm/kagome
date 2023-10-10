@@ -33,11 +33,11 @@ namespace kagome::authorship {
     BOOST_ASSERT(parent_number == parent.number);
 
     auto number = parent.number + 1;
-    primitives::BlockHeader header;
-    header.number = number;
-    header.parent_hash = parent.hash;
-    header.digest = std::move(inherent_digest);
-
+    primitives::BlockHeader header{
+        .number = number,
+        .parent_hash = parent.hash,
+        .digest = std::move(inherent_digest),
+    };
     if (auto res =
             r_core_->initialize_block(header, std::move(changes_tracker));
         not res) {

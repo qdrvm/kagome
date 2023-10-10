@@ -10,37 +10,30 @@
 
 #include "crypto/crypto_store/key_type.hpp"
 
-using kagome::crypto::KEY_TYPE_ACCO;
-using kagome::crypto::KEY_TYPE_ASGN;
-using kagome::crypto::KEY_TYPE_AUDI;
-using kagome::crypto::KEY_TYPE_BABE;
-using kagome::crypto::KEY_TYPE_GRAN;
-using kagome::crypto::KEY_TYPE_IMON;
-using kagome::crypto::KEY_TYPE_PARA;
-
-using kagome::crypto::decodeKeyTypeIdFromStr;
-using kagome::crypto::encodeKeyTypeIdToStr;
-using kagome::crypto::KeyTypeId;
+using kagome::crypto::decodeKeyTypeFromStr;
+using kagome::crypto::encodeKeyTypeToStr;
+using kagome::crypto::KeyType;
+using kagome::crypto::KeyTypes;
 
 namespace {
-  std::tuple<KeyTypeId, std::string_view, bool> good(KeyTypeId id,
-                                                     std::string_view v) {
+  std::tuple<KeyType, std::string_view, bool> good(KeyType id,
+                                                   std::string_view v) {
     return {id, v, true};
   }
 
-  std::tuple<KeyTypeId, std::string_view, bool> bad(KeyTypeId id,
-                                                    std::string_view v) {
+  std::tuple<KeyType, std::string_view, bool> bad(KeyType id,
+                                                  std::string_view v) {
     return {id, v, false};
   }
 
 }  // namespace
 
 struct KeyTypeTest : public ::testing::TestWithParam<
-                         std::tuple<KeyTypeId, std::string_view, bool>> {};
+                         std::tuple<KeyType, std::string_view, bool>> {};
 
 TEST_P(KeyTypeTest, DecodeSuccess) {
   auto [key_type, repr, should_succeed] = GetParam();
-  auto &&key_type_str = encodeKeyTypeIdToStr(key_type);
+  auto &&key_type_str = encodeKeyTypeToStr(key_type);
 
   if (should_succeed) {
     ASSERT_EQ(key_type_str, repr);
@@ -51,7 +44,7 @@ TEST_P(KeyTypeTest, DecodeSuccess) {
 
 TEST_P(KeyTypeTest, EncodeSuccess) {
   auto [repr, key_type_str, should_succeed] = GetParam();
-  auto key_type = decodeKeyTypeIdFromStr(std::string(key_type_str));
+  auto key_type = decodeKeyTypeFromStr(std::string(key_type_str));
 
   if (should_succeed) {
     ASSERT_EQ(key_type, repr);
@@ -60,14 +53,26 @@ TEST_P(KeyTypeTest, EncodeSuccess) {
   }
 }
 
+TEST_P(KeyTypeTest, CheckIfKnown) {
+  auto [repr, key_type_str, should_succeed] = GetParam();
+  auto is_supported = KeyTypes::is_supported(repr);
+
+  if (should_succeed) {
+    ASSERT_TRUE(is_supported);
+  } else {
+    ASSERT_FALSE(is_supported);
+  }
+}
+
 INSTANTIATE_TEST_SUITE_P(KeyTypeTestCases,
                          KeyTypeTest,
-                         ::testing::Values(good(KEY_TYPE_BABE, "babe"),
-                                           good(KEY_TYPE_GRAN, "gran"),
-                                           good(KEY_TYPE_ACCO, "acco"),
-                                           good(KEY_TYPE_IMON, "imon"),
-                                           good(KEY_TYPE_AUDI, "audi"),
-                                           good(KEY_TYPE_ASGN, "asgn"),
-                                           good(KEY_TYPE_PARA, "para"),
-                                           bad(KEY_TYPE_BABE - 5, "babe"),
-                                           bad(KEY_TYPE_BABE + 1000, "babe")));
+                         ::testing::Values(good(KeyTypes::BABE, "babe"),
+                                           good(KeyTypes::GRANDPA, "gran"),
+                                           good(KeyTypes::ACCOUNT, "acco"),
+                                           good(KeyTypes::IM_ONLINE, "imon"),
+                                           good(KeyTypes::AUTHORITY_DISCOVERY,
+                                                "audi"),
+                                           good(KeyTypes::ASSIGNMENT, "asgn"),
+                                           good(KeyTypes::PARACHAIN, "para"),
+                                           bad((KeyType)0, "babe"),
+                                           bad((KeyType)666, "babe")));

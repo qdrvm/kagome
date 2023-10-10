@@ -83,7 +83,7 @@ namespace kagome::api {
         const primitives::Extrinsic &extrinsic) override;
 
     outcome::result<void> insertKey(
-        crypto::KeyTypeId key_type,
+        crypto::KeyType key_type,
         const gsl::span<const uint8_t> &seed,
         const gsl::span<const uint8_t> &public_key) override;
 
@@ -93,7 +93,7 @@ namespace kagome::api {
         const gsl::span<const uint8_t> &keys) override;
 
     outcome::result<bool> hasKey(const gsl::span<const uint8_t> &public_key,
-                                 crypto::KeyTypeId key_type) override;
+                                 crypto::KeyType key_type) override;
 
     outcome::result<std::vector<primitives::Extrinsic>> pendingExtrinsics()
         override;
