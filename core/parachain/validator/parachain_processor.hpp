@@ -195,6 +195,19 @@ namespace kagome::parachain {
           validity_votes;
     };
 
+    struct StatementWithPVDSeconded {
+      network::CommittedCandidateReceipt committed_receipt;
+      runtime::PersistedValidationData pvd;
+    };
+
+    struct StatementWithPVDValid {
+      CandidateHash candidate_hash;
+    };
+
+    using StatementWithPVD = boost::variant<
+      StatementWithPVDSeconded, StatementWithPVDValid
+    >; 
+
     struct RelayParentState {
       ProspectiveParachainsModeOpt prospective_parachains_mode;
       std::optional<network::ParachainId> assignment;
