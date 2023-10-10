@@ -37,7 +37,7 @@ namespace kagome::storage::trie_pruner {
 }
 
 namespace kagome::blockchain {
-
+  struct ReorgAndPrune;
   class TreeNode;
   class CachedTree;
 
@@ -144,6 +144,8 @@ namespace kagome::blockchain {
 
     void notifyBestAndFinalized() override;
 
+    void removeUnfinalized() override;
+
    private:
     struct BlockTreeData {
       std::shared_ptr<BlockHeaderRepository> header_repo_;
@@ -178,6 +180,9 @@ namespace kagome::blockchain {
             justification_storage_policy,
         std::shared_ptr<storage::trie_pruner::TriePruner> state_pruner,
         std::shared_ptr<::boost::asio::io_context> io_context);
+
+    outcome::result<void> reorgAndPrune(BlockTreeData &p,
+                                        const ReorgAndPrune &changes);
 
     outcome::result<void> pruneNoLock(
         BlockTreeData &p, const std::shared_ptr<TreeNode> &lastFinalizedNode);

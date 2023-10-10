@@ -343,6 +343,9 @@ struct BlockTreeTest : public testing::Test {
     auto it = std::find_if(num_to_hash_.begin(),
                            num_to_hash_.end(),
                            [&](const auto &it) { return it.second == hash; });
+    if (it == num_to_hash_.end()) {
+      return;
+    }
     num_to_hash_.erase(it);
   }
   void delNumToHash(BlockNumber number) {
@@ -608,8 +611,8 @@ std::shared_ptr<TreeNode> makeFullTree(size_t depth, size_t branching_factor) {
                                          auto &make_subtree) {
     primitives::BlockHash hash{};
     std::copy_n(name.begin(), name.size(), hash.begin());
-    auto node =
-        std::make_shared<TreeNode>(hash, current_depth, parent, false, false);
+    auto node = std::make_shared<TreeNode>(
+        primitives::BlockInfo{hash, current_depth}, parent, false);
     if (current_depth + 1 == max_depth) {
       return node;
     }
@@ -630,82 +633,6 @@ std::shared_ptr<TreeNode> makeFullTree(size_t depth, size_t branching_factor) {
 struct NodeProcessor {
   MOCK_METHOD(void, foo, (const TreeNode &), (const));
 };
-
-/**
- * Call applyToChain targeting the rightmost leaf in the tree
- * (so that the whole tree is traversed on its lookup)
- */
-TEST_F(BlockTreeTest, TreeNode_applyToChain_lastLeaf) {
-  auto tree = makeFullTree(3, 2);
-
-  NodeProcessor p;
-  EXPECT_CALL(p, foo(*tree));
-  EXPECT_CALL(p, foo(*tree->children[1]));
-  EXPECT_CALL(p, foo(*tree->children[1]->children[1]));
-
-  ASSERT_OUTCOME_SUCCESS_TRY(tree->applyToChain(
-      {2, tree->children[1]->children[1]->block_hash}, [&p](auto &node) {
-        p.foo(node);
-        return TreeNode::ExitToken::CONTINUE;
-      }));
-}
-
-/**
- * Call applyToChain targeting the tree root
- */
-TEST_F(BlockTreeTest, TreeNode_applyToChain_root) {
-  auto tree = makeFullTree(3, 2);
-
-  NodeProcessor p;
-  EXPECT_CALL(p, foo(*tree));
-
-  ASSERT_OUTCOME_SUCCESS_TRY(
-      tree->applyToChain({0, tree->block_hash}, [&p](auto &node) {
-        p.foo(node);
-        return TreeNode::ExitToken::CONTINUE;
-      }));
-}
-
-/**
- * Call apply to chain targeting a node not present in the tree
- */
-TEST_F(BlockTreeTest, TreeNode_applyToChain_invalidNode) {
-  auto tree = makeFullTree(3, 2);
-
-  // p.foo() should not be called
-  StrictMock<NodeProcessor> p;
-
-  ASSERT_OUTCOME_SOME_ERROR(
-      tree->applyToChain({42, "213232"_hash256}, [&p](auto &node) {
-        p.foo(node);
-        return outcome::success(TreeNode::ExitToken::CONTINUE);
-      }));
-}
-
-/**
- * Call apply to chain with a functor that return ExitToken::EXIT on the second
- * processed node
- */
-TEST_F(BlockTreeTest, TreeNode_applyToChain_exitTokenWorks) {
-  auto tree = makeFullTree(3, 2);
-
-  NodeProcessor p;
-  EXPECT_CALL(p, foo(*tree));
-  EXPECT_CALL(p, foo(*tree->children[1]));
-  // shouldn't be called because of exit token
-  // EXPECT_CALL(p, foo(*tree->children[1]->children[1]));
-
-  size_t counter = 0;
-  ASSERT_OUTCOME_SUCCESS_TRY(
-      tree->applyToChain({2, tree->children[1]->children[1]->block_hash},
-                         [&p, &counter](auto &node) {
-                           p.foo(node);
-                           if (counter++ == 1) {
-                             return TreeNode::ExitToken::EXIT;
-                           }
-                           return TreeNode::ExitToken::CONTINUE;
-                         }));
-}
 
 /**
  * @given block tree with at least three blocks inside
@@ -1003,34 +930,15 @@ TEST_F(BlockTreeTest, GetBestBlock) {
 
   // ---------------------------------------------------------------------------
 
-  auto D1_hash = addHeaderToRepository(C1_hash, 47, SlotType::Primary);
-  ASSERT_OUTCOME_SUCCESS_TRY(block_tree_->markAsParachainDataBlock(D1_hash));
-
-  //  42   43  44  45  46   47   48   49   50
-  //
-  //                   C1 - D1**
-  //                 /
-  //  LF - T - A - B - C2 - D2 - E2*
-  //                 \
-  //                   C3 - D3 - E3 - F3
-
-  {
-    ASSERT_OUTCOME_SUCCESS(best_info, block_tree_->getBestContaining(T_hash));
-    ASSERT_EQ(best_info.hash, D1_hash);
-  }
-
-  // ---------------------------------------------------------------------------
-
   auto G3_hash = addHeaderToRepository(F3_hash, 50, SlotType::Primary);
-  ASSERT_OUTCOME_SUCCESS_TRY(block_tree_->markAsParachainDataBlock(G3_hash));
 
   //  42   43  44  45  46   47   48   49   50
   //
-  //                   C1 - D1**
+  //                   C1
   //                 /
   //  LF - T - A - B - C2 - D2 - E2*
   //                 \
-  //                   C3 - D3 - E3 - F3 - G3***
+  //                   C3 - D3 - E3 - F3 - G3**
 
   {
     ASSERT_OUTCOME_SUCCESS(best_info, block_tree_->getBestContaining(T_hash));
@@ -1043,14 +951,14 @@ TEST_F(BlockTreeTest, GetBestBlock) {
 
   //  42   43  44  45  46   47   48   49   50
   //
-  //                   C1 - D1**
+  //                   C1
   //                 /
   //  LF - T - A - B - C2 - D2 - E2*
   //                 \
-  //                   C3 - D3 - E3 - F3 - G3***
+  //                   C3 - D3 - E3 - F3 - G3**
 
   {
     ASSERT_OUTCOME_SUCCESS(best_info, block_tree_->getBestContaining(T_hash));
-    ASSERT_EQ(best_info.hash, D1_hash);
+    ASSERT_EQ(best_info.hash, E2_hash);
   }
 }

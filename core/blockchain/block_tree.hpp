@@ -256,6 +256,11 @@ namespace kagome::blockchain {
      * Notify best and finalized block to subscriptions.
      */
     virtual void notifyBestAndFinalized() = 0;
+
+    /**
+     * Used when switching from fast-sync to full-sync.
+     */
+    virtual void removeUnfinalized() = 0;
   };
 
 }  // namespace kagome::blockchain
