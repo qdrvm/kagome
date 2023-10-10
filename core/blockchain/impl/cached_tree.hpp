@@ -73,8 +73,8 @@ namespace kagome::blockchain {
    public:
     explicit CachedTree(const primitives::BlockInfo &root);
 
-    const std::shared_ptr<TreeNode> &finalized() const;
-    const std::shared_ptr<TreeNode> &best() const;
+    primitives::BlockInfo finalized() const;
+    primitives::BlockInfo best() const;
     size_t leafCount() const;
     std::vector<primitives::BlockHash> leafHashes() const;
     bool isLeaf(const primitives::BlockHash &hash) const;

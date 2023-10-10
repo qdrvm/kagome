@@ -981,9 +981,7 @@ namespace kagome::blockchain {
         return std::vector{block};
       }
 
-      auto best_block = p.tree_->best();
-      BOOST_ASSERT(best_block != nullptr);
-      auto current_depth = best_block->info.number;
+      auto current_depth = bestBlockNoLock(p).number;
 
       if (start_block_number >= current_depth) {
         return std::vector{block};
@@ -1197,7 +1195,7 @@ namespace kagome::blockchain {
 
   primitives::BlockInfo BlockTreeImpl::bestBlockNoLock(
       const BlockTreeData &p) const {
-    return p.tree_->best()->info;
+    return p.tree_->best();
   }
 
   primitives::BlockInfo BlockTreeImpl::bestBlock() const {
@@ -1271,7 +1269,7 @@ namespace kagome::blockchain {
 
   primitives::BlockInfo BlockTreeImpl::getLastFinalizedNoLock(
       const BlockTreeData &p) const {
-    return p.tree_->finalized()->info;
+    return p.tree_->finalized();
   }
 
   primitives::BlockInfo BlockTreeImpl::getLastFinalized() const {
@@ -1416,7 +1414,7 @@ namespace kagome::blockchain {
 
     BOOST_ASSERT(!last_pruned.has_value()
                  || last_pruned.value().number
-                        <= block_tree_data.tree_->finalized()->info.number);
+                        <= getLastFinalizedNoLock(block_tree_data).number);
     auto next_pruned_number = last_pruned ? last_pruned->number + 1 : 0;
 
     OUTCOME_TRY(hash_opt, getBlockHash(next_pruned_number));

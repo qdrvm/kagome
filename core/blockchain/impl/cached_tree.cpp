@@ -186,12 +186,12 @@ namespace kagome::blockchain {
         best_{root_},
         leaves_{root.hash} {}
 
-  const std::shared_ptr<TreeNode> &CachedTree::finalized() const {
-    return root_;
+  primitives::BlockInfo CachedTree::finalized() const {
+    return root_->info;
   }
 
-  const std::shared_ptr<TreeNode> &CachedTree::best() const {
-    return best_;
+  primitives::BlockInfo CachedTree::best() const {
+    return best_->info;
   }
 
   size_t CachedTree::leafCount() const {
