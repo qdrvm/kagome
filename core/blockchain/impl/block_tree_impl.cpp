@@ -610,7 +610,7 @@ namespace kagome::blockchain {
           OUTCOME_TRY(reorganizeNoLock(p));
 
           // Remove from storage
-          OUTCOME_TRY(p.storage_->removeBlock(node->block_hash));
+          OUTCOME_TRY(p.storage_->removeBlock(node->info.hash));
 
           OUTCOME_TRY(p.storage_->setBlockTreeLeaves(p.tree_->leafHashes()));
 
@@ -657,7 +657,7 @@ namespace kagome::blockchain {
 
                 reverting_tree_node->reverted = true;
 
-                if (reverting_tree_node->getBlockInfo() == best) {
+                if (reverting_tree_node->info == best) {
                   need_to_refresh_best = true;
                 }
 
@@ -808,16 +808,16 @@ namespace kagome::blockchain {
       if (!node) {
         return BlockTreeError::NON_FINALIZED_BLOCK_NOT_FOUND;
       }
-      const auto block = node->getBlockInfo();
+      const auto block = node->info;
 
       auto last_finalized_block_info = getLastFinalizedNoLock(p);
 
       auto justification_stored = false;
 
-      if (node->depth > last_finalized_block_info.number) {
+      if (node->info.number > last_finalized_block_info.number) {
         SL_DEBUG(log_, "Finalizing block {}", block);
 
-        OUTCOME_TRY(header_opt, p.storage_->getBlockHeader(node->block_hash));
+        OUTCOME_TRY(header_opt, p.storage_->getBlockHeader(node->info.hash));
         if (not header_opt.has_value()) {
           return BlockTreeError::HEADER_NOT_FOUND;
         }
@@ -827,7 +827,7 @@ namespace kagome::blockchain {
         justification_stored = true;
 
         OUTCOME_TRY(pruneNoLock(p, node));
-        OUTCOME_TRY(pruneTrie(p, node->getBlockInfo().number));
+        OUTCOME_TRY(pruneTrie(p, node->info.number));
 
         p.tree_->updateTreeRoot(node);
 
@@ -838,7 +838,7 @@ namespace kagome::blockchain {
         notifyChainEventsEngine(
             primitives::events::ChainEventType::kFinalizedHeads, header);
 
-        OUTCOME_TRY(body, p.storage_->getBlockBody(node->block_hash));
+        OUTCOME_TRY(body, p.storage_->getBlockBody(node->info.hash));
         if (body.has_value()) {
           for (auto &ext : body.value()) {
             auto extrinsic_hash = p.hasher_->blake2b_256(ext.data);
@@ -860,9 +860,9 @@ namespace kagome::blockchain {
         log_->info("Finalized block {}", block);
         telemetry_->notifyBlockFinalized(block);
         telemetry_->pushBlockStats();
-        metric_finalized_block_height_->set(node->depth);
+        metric_finalized_block_height_->set(node->info.number);
 
-      } else if (node->block_hash == last_finalized_block_info.hash) {
+      } else if (node->info.hash == last_finalized_block_info.hash) {
         // block is current last finalized, fine
         return outcome::success();
       } else if (hasDirectChainNoLock(
@@ -882,7 +882,7 @@ namespace kagome::blockchain {
       }
       SL_DEBUG(log_, "Store justification for finalized block {}", block);
 
-      if (last_finalized_block_info.number < node->depth) {
+      if (last_finalized_block_info.number < node->info.number) {
         // we store justification for last finalized block only as long as it is
         // last finalized (if it doesn't meet other justification storage rules,
         // e.g. its number a multiple of 512)
@@ -993,7 +993,7 @@ namespace kagome::blockchain {
 
       auto best_block = p.tree_->best();
       BOOST_ASSERT(best_block != nullptr);
-      auto current_depth = best_block->depth;
+      auto current_depth = best_block->info.number;
 
       if (start_block_number >= current_depth) {
         return std::vector{block};
@@ -1039,10 +1039,10 @@ namespace kagome::blockchain {
       while (maximum > chain.size()) {
         auto parent = node->parent();
         if (not parent) {
-          hash = node->block_hash;
+          hash = node->info.hash;
           break;
         }
-        chain.emplace_back(node->block_hash);
+        chain.emplace_back(node->info.hash);
         node = parent;
       }
     }
@@ -1117,7 +1117,7 @@ namespace kagome::blockchain {
     primitives::BlockNumber ancestor_depth = 0u;
     primitives::BlockNumber descendant_depth = 0u;
     if (ancestor_node_ptr) {
-      ancestor_depth = ancestor_node_ptr->depth;
+      ancestor_depth = ancestor_node_ptr->info.number;
     } else {
       auto number_res = p.header_repo_->getNumberByHash(ancestor);
       if (!number_res) {
@@ -1126,7 +1126,7 @@ namespace kagome::blockchain {
       ancestor_depth = number_res.value();
     }
     if (descendant_node_ptr) {
-      descendant_depth = descendant_node_ptr->depth;
+      descendant_depth = descendant_node_ptr->info.number;
     } else {
       auto number_res = p.header_repo_->getNumberByHash(descendant);
       if (!number_res) {
@@ -1207,7 +1207,7 @@ namespace kagome::blockchain {
 
   primitives::BlockInfo BlockTreeImpl::bestBlockNoLock(
       const BlockTreeData &p) const {
-    return p.tree_->best()->getBlockInfo();
+    return p.tree_->best()->info;
   }
 
   primitives::BlockInfo BlockTreeImpl::bestBlock() const {
@@ -1264,7 +1264,7 @@ namespace kagome::blockchain {
         std::vector<primitives::BlockHash> result;
         result.reserve(node->children.size());
         for (const auto &child : node->children) {
-          result.push_back(child->block_hash);
+          result.push_back(child->info.hash);
         }
         return result;
       }
@@ -1282,7 +1282,7 @@ namespace kagome::blockchain {
 
   primitives::BlockInfo BlockTreeImpl::getLastFinalizedNoLock(
       const BlockTreeData &p) const {
-    return p.tree_->finalized()->getBlockInfo();
+    return p.tree_->finalized()->info;
   }
 
   primitives::BlockInfo BlockTreeImpl::getLastFinalized() const {
@@ -1327,8 +1327,8 @@ namespace kagome::blockchain {
     retired_hashes.reserve(to_remove.size());
     for (const auto &node : to_remove) {
       OUTCOME_TRY(block_header_opt,
-                  p.storage_->getBlockHeader(node->block_hash));
-      OUTCOME_TRY(block_body_opt, p.storage_->getBlockBody(node->block_hash));
+                  p.storage_->getBlockHeader(node->info.hash));
+      OUTCOME_TRY(block_body_opt, p.storage_->getBlockBody(node->info.hash));
       if (block_body_opt.has_value()) {
         extrinsics.reserve(extrinsics.size() + block_body_opt.value().size());
         for (auto &ext : block_body_opt.value()) {
@@ -1336,7 +1336,7 @@ namespace kagome::blockchain {
           if (auto key = p.extrinsic_event_key_repo_->get(extrinsic_hash)) {
             main_thread_.execute([wself{weak_from_this()},
                                   key{key.value()},
-                                  block_hash{node->block_hash}]() {
+                                  block_hash{node->info.hash}]() {
               if (auto self = wself.lock()) {
                 self->extrinsic_events_engine_->notify(
                     key,
@@ -1351,14 +1351,14 @@ namespace kagome::blockchain {
         OUTCOME_TRY(p.state_pruner_->pruneDiscarded(block_header_opt.value()));
       }
 
-      retired_hashes.emplace_back(node->block_hash);
+      retired_hashes.emplace_back(node->info.hash);
       p.tree_->removeFromMeta(node);
-      OUTCOME_TRY(p.storage_->removeBlock(node->block_hash));
+      OUTCOME_TRY(p.storage_->removeBlock(node->info.hash));
     }
 
     auto last_finalized_block_info = getLastFinalizedNoLock(p);
     for (primitives::BlockNumber n = last_finalized_block_info.number;
-         n < lastFinalizedNode->getBlockInfo().number;
+         n < lastFinalizedNode->info.number;
          ++n) {
       if (auto result = p.storage_->getBlockHash(n);
           result.has_value() && result.value()) {
@@ -1403,7 +1403,7 @@ namespace kagome::blockchain {
 
     BOOST_ASSERT(!last_pruned.has_value()
                  || last_pruned.value().number
-                        <= block_tree_data.tree_->getRoot().depth);
+                        <= block_tree_data.tree_->getRoot().info.number);
     auto next_pruned_number = last_pruned ? last_pruned->number + 1 : 0;
 
     OUTCOME_TRY(hash_opt, getBlockHash(next_pruned_number));
@@ -1511,13 +1511,13 @@ namespace kagome::blockchain {
   void BlockTreeImpl::removeUnfinalized() {
     auto r = block_tree_data_.exclusiveAccess(
         [&](BlockTreeData &p) -> outcome::result<void> {
-          auto finalized = p.tree_->getRoot().getBlockInfo();
+          auto finalized = p.tree_->getRoot().info;
           auto nodes = std::move(p.tree_->getRoot().children);
           primitives::BlockNumber max = 0;
           for (size_t i = 0; i < nodes.size(); ++i) {
             auto children = std::move(nodes[i]->children);
             for (auto &node : children) {
-              max = std::max(max, node->depth);
+              max = std::max(max, node->info.number);
               nodes.emplace_back(std::move(node));
             }
           }
@@ -1528,7 +1528,7 @@ namespace kagome::blockchain {
           }
           std::reverse(nodes.begin(), nodes.end());
           for (auto &node : nodes) {
-            OUTCOME_TRY(p.storage_->removeBlock(node->block_hash));
+            OUTCOME_TRY(p.storage_->removeBlock(node->info.hash));
           }
           return outcome::success();
         });

@@ -29,8 +29,7 @@ namespace kagome::blockchain {
              const std::shared_ptr<TreeNode> &parent,
              bool babe_primary);
 
-    primitives::BlockHash block_hash;
-    primitives::BlockNumber depth;
+    primitives::BlockInfo info;
     std::weak_ptr<TreeNode> weak_parent;
     uint32_t babe_primary_weight;
     bool contains_approved_para_block;
@@ -51,10 +50,6 @@ namespace kagome::blockchain {
     std::shared_ptr<TreeNode> findByHash(const primitives::BlockHash &hash) {
       return std::const_pointer_cast<TreeNode>(
           std::as_const(*this).findByHash(hash));
-    }
-
-    primitives::BlockInfo getBlockInfo() const {
-      return {depth, block_hash};
     }
 
     bool operator==(const TreeNode &other) const;

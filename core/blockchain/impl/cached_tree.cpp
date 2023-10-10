@@ -13,8 +13,7 @@
 
 namespace kagome::blockchain {
   TreeNode::TreeNode(const primitives::BlockInfo &info)
-      : block_hash{info.hash},
-        depth{info.number},
+      : info{info},
         babe_primary_weight{0},
         contains_approved_para_block{false},
         reverted{false} {}
@@ -22,8 +21,7 @@ namespace kagome::blockchain {
   TreeNode::TreeNode(const primitives::BlockInfo &info,
                      const std::shared_ptr<TreeNode> &parent,
                      bool babe_primary)
-      : block_hash{info.hash},
-        depth{info.number},
+      : info{info},
         weak_parent{parent},
         babe_primary_weight{parent->babe_primary_weight
                             + (babe_primary ? 1 : 0)},
@@ -35,7 +33,7 @@ namespace kagome::blockchain {
   }
 
   BlockWeight TreeNode::weight() const {
-    return {babe_primary_weight, depth};
+    return {babe_primary_weight, info.number};
   }
 
   std::shared_ptr<const TreeNode> TreeNode::findByHash(
@@ -45,7 +43,7 @@ namespace kagome::blockchain {
     nodes_to_scan.push(shared_from_this());
     while (!nodes_to_scan.empty()) {
       const auto &node = nodes_to_scan.front();
-      if (node->block_hash == hash) {
+      if (node->info.hash == hash) {
         return node;
       }
       for (const auto &child : node->children) {
@@ -57,7 +55,7 @@ namespace kagome::blockchain {
   }
 
   bool TreeNode::operator==(const TreeNode &other) const {
-    return block_hash == other.block_hash && depth == other.depth;
+    return info == other.info;
   }
 
   bool TreeNode::operator!=(const TreeNode &other) const {
@@ -69,7 +67,7 @@ namespace kagome::blockchain {
                const std::shared_ptr<TreeNode> &to,
                const F &f) {
     while (from != to) {
-      if (from->depth <= to->depth) {
+      if (from->info.number <= to->info.number) {
         return false;
       }
       f(from);
@@ -99,8 +97,7 @@ namespace kagome::blockchain {
     bool operator()(const std::shared_ptr<const TreeNode> &lhs,
                     const std::shared_ptr<const TreeNode> &rhs) const {
       BOOST_ASSERT(lhs and rhs);
-      return std::tie(lhs->depth, lhs->block_hash)
-           > std::tie(rhs->depth, rhs->block_hash);
+      return lhs->info > rhs->info;
     }
   };
 
@@ -163,8 +160,8 @@ namespace kagome::blockchain {
     auto parent = wptrMustLock(new_node->weak_parent);
     parent->children.push_back(new_node);
 
-    leaves_.insert(new_node->block_hash);
-    leaves_.erase(parent->block_hash);
+    leaves_.insert(new_node->info.hash);
+    leaves_.erase(parent->info.hash);
     chooseBest(new_node);
   }
 
@@ -180,9 +177,9 @@ namespace kagome::blockchain {
       parent->children.erase(it);
     }
 
-    leaves_.erase(node->block_hash);
+    leaves_.erase(node->info.hash);
     if (parent->children.empty()) {
-      leaves_.insert(parent->block_hash);
+      leaves_.insert(parent->info.hash);
     }
 
     if (node == best_) {
@@ -237,7 +234,7 @@ namespace kagome::blockchain {
     while (not candidates.empty()) {
       auto _node = candidates.extract(candidates.begin());
       auto &node = _node.value();
-      if (node->depth <= required->depth) {
+      if (node->info.number <= required->info.number) {
         continue;
       }
       if (node->reverted) {
@@ -250,6 +247,6 @@ namespace kagome::blockchain {
         best = node;
       }
     }
-    return best->getBlockInfo();
+    return best->info;
   }
 }  // namespace kagome::blockchain
