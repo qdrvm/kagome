@@ -1287,19 +1287,15 @@ namespace kagome::parachain {
           }
 
           if (opt_result->has_error()) {
-            auto &error = opt_result->error();
             self->logger_->warn(
                 "Parachain data recovery failed.(error={}, session index={}, "
                 "candidate hash={}, relay block hash={})",
-                error,
+                opt_result->error(),
                 session_index,
                 candidate_hash,
                 relay_block_hash);
-            if (error
-                != toErasureCodingError(::ec_cpp::Error::kNeedMoreShards)) {
-              self->dispute_coordinator_.get()->issueLocalStatement(
-                  session_index, candidate_hash, candidate_receipt, false);
-            }
+            self->dispute_coordinator_.get()->issueLocalStatement(
+                session_index, candidate_hash, candidate_receipt, false);
             return;
           }
           auto &available_data = opt_result->value();
