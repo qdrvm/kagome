@@ -251,6 +251,31 @@ namespace kagome::blockchain {
     return nullptr;
   }
 
+  ReorgAndPrune CachedTree::removeLeaf(const primitives::BlockHash &hash) {
+    ReorgAndPrune changes;
+    auto node = find(hash);
+    BOOST_ASSERT(node);
+    auto leaf_it = leaves_.find(hash);
+    BOOST_ASSERT(leaf_it != leaves_.end());
+    BOOST_ASSERT(node->children.empty());
+    auto parent = wptrMustLock(node->weak_parent);
+    auto child_it =
+        std::find(parent->children.begin(), parent->children.end(), node);
+    BOOST_ASSERT(child_it != parent->children.end());
+    changes.prune.emplace_back(node->info);
+    parent->children.erase(child_it);
+    if (parent->children.empty()) {
+      leaves_.emplace(parent->info.hash);
+    }
+    leaves_.erase(leaf_it);
+    if (node == best_) {
+      auto old_best = node;
+      forceRefreshBest();
+      changes.reorg = reorg(old_best, best_);
+    }
+    return changes;
+  }
+
   ReorgAndPrune CachedTree::removeUnfinalized() {
     ReorgAndPrune changes;
     if (best_ != root_) {

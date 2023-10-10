@@ -82,6 +82,10 @@ namespace kagome::blockchain {
         const std::shared_ptr<TreeNode> &required) const;
     std::shared_ptr<TreeNode> find(const primitives::BlockHash &hash) const;
     /**
+     * Can't remove finalized root.
+     */
+    ReorgAndPrune removeLeaf(const primitives::BlockHash &hash);
+    /**
      * Used when switching from fast-sync to full-sync.
      */
     ReorgAndPrune removeUnfinalized();

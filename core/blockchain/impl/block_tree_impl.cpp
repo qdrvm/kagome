@@ -600,20 +600,8 @@ namespace kagome::blockchain {
               or p.tree_->isLeaf(block_hash)) {
             return BlockTreeError::BLOCK_IS_NOT_LEAF;
           }
-
-          auto node = p.tree_->find(block_hash);
-          BOOST_ASSERT_MSG(node != nullptr,
-                           "As checked before, block exists as one of leaves");
-
-          p.tree_->removeFromMeta(node);
-
-          OUTCOME_TRY(reorganizeNoLock(p));
-
-          // Remove from storage
-          OUTCOME_TRY(p.storage_->removeBlock(node->info.hash));
-
-          OUTCOME_TRY(p.storage_->setBlockTreeLeaves(p.tree_->leafHashes()));
-
+          auto changes = p.tree_->removeLeaf(block_hash);
+          OUTCOME_TRY(reorgAndPrune(p, changes));
           return outcome::success();
         });
   }
