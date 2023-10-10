@@ -7,6 +7,7 @@
 #pragma once
 
 #include <memory>
+#include <unordered_map>
 #include <unordered_set>
 
 #include "consensus/grandpa/common.hpp"
@@ -104,6 +105,7 @@ namespace kagome::blockchain {
 
     std::shared_ptr<TreeNode> root_;
     std::shared_ptr<TreeNode> best_;
+    std::unordered_map<primitives::BlockHash, std::shared_ptr<TreeNode>> nodes_;
     std::unordered_set<primitives::BlockHash> leaves_;
   };
 }  // namespace kagome::blockchain

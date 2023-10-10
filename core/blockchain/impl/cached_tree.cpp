@@ -125,6 +125,7 @@ namespace kagome::blockchain {
   CachedTree::CachedTree(const primitives::BlockInfo &root)
       : root_{std::make_shared<TreeNode>(root)},
         best_{root_},
+        nodes_{{root.hash, root_}},
         leaves_{root.hash} {}
 
   primitives::BlockInfo CachedTree::finalized() const {
@@ -177,24 +178,15 @@ namespace kagome::blockchain {
 
   std::shared_ptr<TreeNode> CachedTree::find(
       const primitives::BlockHash &hash) const {
-    std::queue<std::shared_ptr<TreeNode>> queue;
-    queue.push(root_);
-    while (not queue.empty()) {
-      auto &node = queue.front();
-      if (node->info.hash == hash) {
-        return node;
-      }
-      for (auto &child : node->children) {
-        queue.push(child);
-      }
-      queue.pop();
+    if (auto it = nodes_.find(hash); it != nodes_.end()) {
+      return it->second;
     }
     return nullptr;
   }
 
   std::optional<Reorg> CachedTree::add(
       const std::shared_ptr<TreeNode> &new_node) {
-    if (find(new_node->info.hash)) {
+    if (nodes_.find(new_node->info.hash) != nodes_.end()) {
       return std::nullopt;
     }
     BOOST_ASSERT(new_node->children.empty());
@@ -203,6 +195,7 @@ namespace kagome::blockchain {
         std::find(parent->children.begin(), parent->children.end(), new_node);
     BOOST_ASSERT(child_it == parent->children.end());
     parent->children.emplace_back(new_node);
+    nodes_.emplace(new_node->info.hash, new_node);
     leaves_.erase(parent->info.hash);
     leaves_.emplace(new_node->info.hash);
     if (not new_node->reverted and new_node->weight() > best_->weight()) {
@@ -236,6 +229,7 @@ namespace kagome::blockchain {
         queue.emplace_back(child);
       }
       parent->children.clear();
+      nodes_.erase(parent->info.hash);
     }
     while (not queue.empty()) {
       auto parent = std::move(queue.front());
@@ -248,6 +242,7 @@ namespace kagome::blockchain {
         leaves_.erase(parent->info.hash);
       }
       parent->children.clear();
+      nodes_.erase(parent->info.hash);
     }
     std::reverse(changes.prune.begin(), changes.prune.end());
     root_ = new_finalized;
@@ -268,7 +263,9 @@ namespace kagome::blockchain {
 
   ReorgAndPrune CachedTree::removeLeaf(const primitives::BlockHash &hash) {
     ReorgAndPrune changes;
-    auto node = find(hash);
+    auto node_it = nodes_.find(hash);
+    BOOST_ASSERT(node_it != nodes_.end());
+    auto &node = node_it->second;
     BOOST_ASSERT(node);
     auto leaf_it = leaves_.find(hash);
     BOOST_ASSERT(leaf_it != leaves_.end());
@@ -288,6 +285,7 @@ namespace kagome::blockchain {
       forceRefreshBest();
       changes.reorg = reorg(old_best, best_);
     }
+    nodes_.erase(node_it);
     return changes;
   }
 
