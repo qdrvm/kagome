@@ -20,7 +20,6 @@
 #include "parachain/approval/approval.hpp"
 #include "parachain/approval/approval_distribution.hpp"
 #include "parachain/approval/state.hpp"
-#include "parachain/availability/erasure_coding_error.hpp"
 #include "primitives/authority.hpp"
 #include "primitives/math.hpp"
 #include "runtime/runtime_api/parachain_host_types.hpp"
