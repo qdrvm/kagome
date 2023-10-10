@@ -12,6 +12,10 @@
 #include "utils/wptr.hpp"
 
 namespace kagome::blockchain {
+  bool Reorg::empty() const {
+    return revert.empty() and apply.empty();
+  }
+
   TreeNode::TreeNode(const primitives::BlockInfo &info)
       : info{info},
         babe_primary_weight{0},
@@ -34,6 +38,22 @@ namespace kagome::blockchain {
 
   BlockWeight TreeNode::weight() const {
     return {babe_primary_weight, info.number};
+  }
+
+  Reorg reorg(std::shared_ptr<TreeNode> from, std::shared_ptr<TreeNode> to) {
+    Reorg reorg;
+    while (from != to) {
+      if (from->info.number > to->info.number) {
+        reorg.revert.emplace_back(from->info);
+        from = wptrMustLock(from->weak_parent);
+      } else {
+        reorg.apply.emplace_back(to->info);
+        to = wptrMustLock(to->weak_parent);
+      }
+    }
+    reorg.common = to->info;
+    std::reverse(reorg.apply.begin(), reorg.apply.end());
+    return reorg;
   }
 
   template <typename F>
@@ -229,5 +249,25 @@ namespace kagome::blockchain {
       queue.pop();
     }
     return nullptr;
+  }
+
+  ReorgAndPrune CachedTree::removeUnfinalized() {
+    ReorgAndPrune changes;
+    if (best_ != root_) {
+      changes.reorg = reorg(best_, root_);
+    }
+    std::deque<std::shared_ptr<TreeNode>> queue{root_};
+    while (not queue.empty()) {
+      auto parent = std::move(queue.front());
+      queue.pop_front();
+      for (auto &child : parent->children) {
+        changes.prune.emplace_back(child->info);
+        queue.emplace_back(child);
+      }
+      parent->children.clear();
+    }
+    std::reverse(changes.prune.begin(), changes.prune.end());
+    *this = CachedTree{root_->info};
+    return changes;
   }
 }  // namespace kagome::blockchain

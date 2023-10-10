@@ -1279,6 +1279,30 @@ namespace kagome::blockchain {
         [&](const BlockTreeData &p) { return getLastFinalizedNoLock(p); });
   }
 
+  outcome::result<void> BlockTreeImpl::reorgAndPrune(
+      BlockTreeData &p, const ReorgAndPrune &changes) {
+    OUTCOME_TRY(p.storage_->setBlockTreeLeaves(p.tree_->leafHashes()));
+    metric_known_chain_leaves_->set(p.tree_->leafCount());
+    if (changes.reorg) {
+      for (auto &block : changes.reorg->revert) {
+        OUTCOME_TRY(p.storage_->deassignNumberToHash(block.number));
+      }
+      for (auto &block : changes.reorg->apply) {
+        OUTCOME_TRY(p.storage_->assignNumberToHash(block));
+      }
+      if (not changes.reorg->apply.empty()) {
+        metric_best_block_height_->set(changes.reorg->apply.back().number);
+      } else {
+        metric_best_block_height_->set(changes.reorg->common.number);
+      }
+    }
+    for (auto &block : changes.prune) {
+      OUTCOME_TRY(p.storage_->removeBlock(block.hash));
+    }
+    // TODO(turuslan): #1679, move code from pruneNoLock
+    return outcome::success();
+  }
+
   outcome::result<void> BlockTreeImpl::pruneNoLock(
       BlockTreeData &p, const std::shared_ptr<TreeNode> &lastFinalizedNode) {
     std::deque<std::shared_ptr<TreeNode>> to_remove;
@@ -1498,31 +1522,11 @@ namespace kagome::blockchain {
   }
 
   void BlockTreeImpl::removeUnfinalized() {
-    auto r = block_tree_data_.exclusiveAccess(
-        [&](BlockTreeData &p) -> outcome::result<void> {
-          auto finalized = p.tree_->finalized()->info;
-          auto nodes = std::move(p.tree_->finalized()->children);
-          primitives::BlockNumber max = 0;
-          for (size_t i = 0; i < nodes.size(); ++i) {
-            auto children = std::move(nodes[i]->children);
-            for (auto &node : children) {
-              max = std::max(max, node->info.number);
-              nodes.emplace_back(std::move(node));
-            }
-          }
-          p.tree_ = std::make_unique<CachedTree>(finalized);
-          OUTCOME_TRY(p.storage_->setBlockTreeLeaves({finalized.hash}));
-          for (auto i = max; i > finalized.number; --i) {
-            OUTCOME_TRY(p.storage_->deassignNumberToHash(i));
-          }
-          std::reverse(nodes.begin(), nodes.end());
-          for (auto &node : nodes) {
-            OUTCOME_TRY(p.storage_->removeBlock(node->info.hash));
-          }
-          return outcome::success();
-        });
-    if (not r) {
-      SL_ERROR(log_, "removeUnfinalized error: {}", r.error());
-    }
+    block_tree_data_.exclusiveAccess([&](BlockTreeData &p) {
+      auto changes = p.tree_->removeUnfinalized();
+      if (auto r = reorgAndPrune(p, changes); r.has_error()) {
+        SL_WARN(log_, "removeUnfinalized error: {}", r.error());
+      }
+    });
   }
 }  // namespace kagome::blockchain

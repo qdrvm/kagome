@@ -18,6 +18,26 @@ namespace kagome::blockchain {
   using BlockWeight = std::pair<uint32_t, primitives::BlockNumber>;
 
   /**
+   * Used to update hashes of best chain by number.
+   */
+  struct Reorg {
+    primitives::BlockInfo common;
+    std::vector<primitives::BlockInfo> revert;
+    std::vector<primitives::BlockInfo> apply;
+
+    bool empty() const;
+  };
+
+  /**
+   * Used to enqueue blocks for removal.
+   * Children are removed before parent.
+   */
+  struct ReorgAndPrune {
+    std::optional<Reorg> reorg;
+    std::vector<primitives::BlockInfo> prune;
+  };
+
+  /**
    * In-memory light representation of the tree, used for efficiency and usage
    * convenience - we would only ask the database for some info, when directly
    * requested
@@ -41,6 +61,8 @@ namespace kagome::blockchain {
     BlockWeight weight() const;
   };
 
+  Reorg reorg(std::shared_ptr<TreeNode> from, std::shared_ptr<TreeNode> to);
+
   bool canDescend(std::shared_ptr<TreeNode> from,
                   const std::shared_ptr<TreeNode> &to);
 
@@ -59,6 +81,10 @@ namespace kagome::blockchain {
     primitives::BlockInfo bestWith(
         const std::shared_ptr<TreeNode> &required) const;
     std::shared_ptr<TreeNode> find(const primitives::BlockHash &hash) const;
+    /**
+     * Used when switching from fast-sync to full-sync.
+     */
+    ReorgAndPrune removeUnfinalized();
 
     /**
      * Remove nodes in block tree from current tree_ to {\arg new_trie_root}.
