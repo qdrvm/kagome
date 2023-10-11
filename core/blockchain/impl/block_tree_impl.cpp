@@ -596,8 +596,10 @@ namespace kagome::blockchain {
     return block_tree_data_.exclusiveAccess(
         [&](BlockTreeData &p) -> outcome::result<void> {
           // Check if block is leaf
-          if (block_hash == getLastFinalizedNoLock(p).hash
-              or not p.tree_->isLeaf(block_hash)) {
+          if (block_hash == getLastFinalizedNoLock(p).hash) {
+            return BlockTreeError::BLOCK_IS_FINALIZED;
+          }
+          if (not p.tree_->isLeaf(block_hash)) {
             return BlockTreeError::BLOCK_IS_NOT_LEAF;
           }
 

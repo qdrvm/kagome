@@ -35,6 +35,7 @@ namespace kagome::blockchain {
     SOME_BLOCK_IN_CHAIN_NOT_FOUND,
     // block is not a leaf
     BLOCK_IS_NOT_LEAF,
+    BLOCK_IS_FINALIZED,
     BLOCK_NOT_EXISTS
   };
 }  // namespace kagome::blockchain
