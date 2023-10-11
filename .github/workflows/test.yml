@@ -284,8 +284,7 @@ jobs:
           path: ${{ env.CACHE_PATHS }}
           key: ${{ github.job }}-${{ env.CACHE_VERSION }}
       - run: git config --global --add safe.directory /__w/kagome/kagome
-      -   with:
-        ref: ${{ github.event.pull_request.head.sha }}run: git fetch --prune --unshallow
+      - run: git fetch --prune --unshallow
       - name: build
         env:
           BUILD_TYPE: "${{ matrix.options.build-type }}"
