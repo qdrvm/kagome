@@ -118,7 +118,7 @@ jobs:
           df -m || true
           du -hd1 /__w /github || true
 
-  Linux-self-hosted-branches:
+  Linux-self-hosted-PR:
     if: ${{ contains( github.event.pull_request.labels.*.name, 'Non-master self-hosted') }}
     strategy:
       fail-fast: false
@@ -130,6 +130,8 @@ jobs:
             run: ./housekeeping/make_build.sh -DCLEAR_OBJS=ON -DCMAKE_TOOLCHAIN_FILE=cmake/toolchain/clang-15_cxx20.cmake -DTSAN=ON
           - name: "Self-hosted: Linux: clang-15 UBSAN"
             run: ./housekeeping/make_build.sh -DCLEAR_OBJS=ON -DCMAKE_TOOLCHAIN_FILE=cmake/toolchain/clang-15_cxx20.cmake -DUBSAN=ON
+          - name: "Self-hosted: Linux: clang-15 External Project"
+            run: ./housekeeping/make_external_build.sh -DCLEAR_OBJS=ON -DCMAKE_TOOLCHAIN_FILE=../../cmake/toolchain/clang-15_cxx20.cmake
 
     name: "${{ matrix.options.name }}"
     runs-on: [ self-hosted ]
@@ -239,7 +241,7 @@ jobs:
         run: ./housekeeping/docker/kagome-dev/make.sh
 
   Minideb-self-hosted:
-    if: ${{ github.ref == 'refs/heads/master' || startsWith( github.ref, 'refs/tags/' ) }}
+    if: ${{ github.ref == 'refs/heads/master' || startsWith( github.ref, 'refs/tags/' || contains( github.event.pull_request.labels.*.name, 'Non-master self-hosted')) }}
     strategy:
       fail-fast: false
       matrix:
