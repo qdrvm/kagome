@@ -122,9 +122,15 @@ namespace kagome::network {
   struct StreamWrapper final : libp2p::connection::Stream {
     std::shared_ptr<libp2p::connection::StreamReadBuffer> stream_;
     log::Logger logger_ = log::createLogger("Stream", "network");
+    const std::thread::id this_id_{std::this_thread::get_id()};
+
+    void check() const {
+      if (this_id_ != std::this_thread::get_id()) {
+        __builtin_trap();
+      }
+    }
 
     StreamWrapper(std::shared_ptr<libp2p::connection::StreamReadBuffer> stream) : stream_{std::move(stream)} {
-
     }
 
     bool isClosedForRead() const {
@@ -141,11 +147,13 @@ namespace kagome::network {
 
     void close(VoidResultHandlerFunc cb) {
       SL_INFO(logger_, "`close` call");
+      check();
       stream_->close(std::move(cb));
     }
 
     void reset() {
       SL_INFO(logger_, "`reset` call");
+      check();
       stream_->reset();
     }
 
@@ -172,11 +180,13 @@ namespace kagome::network {
 
     void read(gsl::span<uint8_t> out, size_t bytes,
                       ReadCallbackFunc cb) {
+      check();
       stream_->read(out, bytes, std::move(cb));
     }
 
     void readSome(gsl::span<uint8_t> out, size_t bytes,
                           ReadCallbackFunc cb) {
+      check();
       stream_->readSome(out, bytes, std::move(cb));
     }
 
@@ -187,11 +197,13 @@ namespace kagome::network {
 
     void write(gsl::span<const uint8_t> in, size_t bytes,
                        WriteCallbackFunc cb) {
+      check();
       stream_->write(in, bytes, std::move(cb));
     }
 
     void writeSome(gsl::span<const uint8_t> in, size_t bytes,
                            WriteCallbackFunc cb) {
+      check();
       stream_->writeSome(in, bytes, std::move(cb));
     }
 
