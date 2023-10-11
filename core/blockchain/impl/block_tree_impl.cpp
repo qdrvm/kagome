@@ -585,7 +585,7 @@ namespace kagome::blockchain {
         [&](BlockTreeData &p) -> outcome::result<void> {
           // Check if block is leaf
           if (block_hash == getLastFinalizedNoLock(p).hash
-              or p.tree_->isLeaf(block_hash)) {
+              or not p.tree_->isLeaf(block_hash)) {
             return BlockTreeError::BLOCK_IS_NOT_LEAF;
           }
           auto changes = p.tree_->removeLeaf(block_hash);
