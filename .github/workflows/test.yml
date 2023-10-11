@@ -239,7 +239,7 @@ jobs:
         run: ./housekeeping/docker/kagome-dev/make.sh
 
   Minideb-self-hosted:
-    if: ${{ github.ref == 'refs/heads/master' || startsWith( github.ref, 'refs/tags/' ) }}
+    #if: ${{ github.ref == 'refs/heads/master' || startsWith( github.ref, 'refs/tags/' ) }}
     strategy:
       fail-fast: false
       matrix:
