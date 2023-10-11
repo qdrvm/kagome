@@ -13,7 +13,7 @@
 
 #include "common/buffer.hpp"
 #include "log/logger.hpp"
-#include "runtime/common/runtime_transaction_error.hpp"
+#include "runtime/common/runtime_execution_error.hpp"
 #include "storage/trie/serialization/trie_serializer.hpp"
 #include "storage/trie/trie_storage.hpp"
 

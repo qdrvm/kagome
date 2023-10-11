@@ -1096,12 +1096,12 @@ namespace kagome::blockchain {
       auto header_res = p.header_repo_->getBlockHeader(hash);
       if (header_res.has_error()) {
         if (chain.empty()) {
-          log_->error("cannot retrieve block with hash {}: {}",
+          log_->error("Cannot retrieve block with hash {}: {}",
                       hash,
                       header_res.error());
-          return BlockTreeError::HEADER_NOT_FOUND;
+          return header_res.error();
         }
-        break;
+        return header_res.error();
       }
       const auto &header = header_res.value();
       chain.emplace_back(hash);

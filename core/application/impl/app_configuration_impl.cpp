@@ -843,6 +843,10 @@ namespace kagome::application {
         ("parachain-runtime-instance-cache-size",
           po::value<uint32_t>()->default_value(def_parachain_runtime_instance_cache_size),
           "Number of parachain runtime instances to keep cached")
+        ("no-precompile-parachain-modules", po::bool_switch(), "Don't precompile parachain runtime modules at node startup")
+        ("parachain-precompilation-thread-num",
+         po::value<uint32_t>()->default_value(parachain_precompilation_thread_num_),
+         "Number of threads that precompile parachain runtime modules at node startup")
         ;
     po::options_description benchmark_desc("Benchmark options");
     benchmark_desc.add_options()
@@ -1398,6 +1402,16 @@ namespace kagome::application {
             vm, "parachain-runtime-instance-cache-size");
         arg.has_value()) {
       parachain_runtime_instance_cache_size_ = *arg;
+    }
+
+    if (find_argument(vm, "no-precompile-parachain-modules")) {
+      should_precompile_parachain_modules_ = false;
+    }
+
+    if (auto arg =
+            find_argument<uint32_t>(vm, "parachain-precompilation-thread-num");
+        arg.has_value()) {
+      parachain_precompilation_thread_num_ = *arg;
     }
 
     bool offchain_worker_value_error = false;

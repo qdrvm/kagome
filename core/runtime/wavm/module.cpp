@@ -34,8 +34,8 @@ namespace kagome::runtime::wavm {
     featureSpec.extendedNameSection = true;
     log::Logger logger = log::createLogger("WAVM Module", "wavm");
     logger->info(
-        "Compiling WebAssembly module for Runtime (going to take a few dozens "
-        "of seconds)");
+        "Compiling WebAssembly module with code hash {} for Runtime (going to take a few dozens "
+        "of seconds)", code_hash);
     if (!WAVM::Runtime::loadBinaryModule(
             code.data(), code.size(), module, featureSpec, &loadError)) {
       logger->critical("Error loading WAVM binary module: {}",

@@ -12,7 +12,7 @@
 
 #include "runtime/binaryen/memory_impl.hpp"
 #include "runtime/binaryen/module/module_impl.hpp"
-#include "runtime/common/runtime_transaction_error.hpp"
+#include "runtime/common/runtime_execution_error.hpp"
 #include "runtime/memory_provider.hpp"
 
 #include <binaryen/wasm-interpreter.h>
@@ -109,7 +109,7 @@ namespace kagome::runtime::binaryen {
             module_instance_->wasm.getExportOrNull(wasm::Name{name.data()});
         nullptr == res) {
       SL_DEBUG(logger_, "The requested function {} not found", name);
-      return RuntimeTransactionError::EXPORT_FUNCTION_NOT_FOUND;
+      return RuntimeExecutionError::EXPORT_FUNCTION_NOT_FOUND;
     }
 
     try {

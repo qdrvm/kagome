@@ -5,7 +5,7 @@
 
 #include "runtime/runtime_api/impl/beefy.hpp"
 
-#include "runtime/common/runtime_transaction_error.hpp"
+#include "runtime/common/runtime_execution_error.hpp"
 #include "runtime/executor.hpp"
 
 namespace kagome::runtime {
@@ -21,7 +21,7 @@ namespace kagome::runtime {
     if (r) {
       return std::move(r.value());
     }
-    if (r.error() == RuntimeTransactionError::EXPORT_FUNCTION_NOT_FOUND) {
+    if (r.error() == RuntimeExecutionError::EXPORT_FUNCTION_NOT_FOUND) {
       return std::nullopt;
     }
     return r.error();

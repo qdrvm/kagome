@@ -13,6 +13,7 @@ add_library(validator_parachain
     backing/store_impl.cpp
     pvf/precheck.cpp
     pvf/pvf_impl.cpp
+    pvf/module_precompiler.cpp
     validator/impl/parachain_observer_impl.cpp
     validator/impl/parachain_processor.cpp
     validator/signer.cpp

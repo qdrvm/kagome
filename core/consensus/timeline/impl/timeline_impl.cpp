@@ -765,8 +765,10 @@ namespace kagome::consensus {
       }
     }
 
+    static auto block_production_error_code =
+        make_error_code(BlockProductionError{});
     static const auto &block_production_error_category =
-        make_error_code(BlockProductionError{}).category();
+        block_production_error_code.category();
 
     /// Try to run block production here
     auto consensus = consensus_selector_->getProductionConsensus(best_block_);

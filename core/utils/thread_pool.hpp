@@ -32,11 +32,11 @@ namespace kagome {
     ~ThreadHandler() = default;
 
     void start() {
-      execution_state_.store(State::kStarted, std::memory_order_release);
+      execution_state_.store(State::kStarted);
     }
 
     void stop() {
-      execution_state_.store(State::kStopped, std::memory_order_release);
+      execution_state_.store(State::kStopped);
     }
 
     template <typename F>

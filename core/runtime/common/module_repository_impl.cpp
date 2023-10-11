@@ -67,8 +67,9 @@ namespace kagome::runtime {
       }
     }
 
-    // Try acquire instance (instantiate if needed)
-    OUTCOME_TRY(runtime_instance, runtime_instances_pool_->tryAcquire(state));
+    // Try to acquire an instance (instantiate if needed)
+    OUTCOME_TRY(runtime_instance,
+                runtime_instances_pool_->instantiateFromState(state));
     KAGOME_PROFILE_END(module_retrieval)
 
     return runtime_instance;

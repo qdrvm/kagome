@@ -332,7 +332,7 @@ namespace kagome::parachain {
          core_index < static_cast<CoreIndex>(cores.size());
          ++core_index) {
       if (const auto *scheduled =
-              boost::get<const network::ScheduledCore>(&cores[core_index])) {
+              std::get_if<network::ScheduledCore>(&cores[core_index])) {
         const auto group_index =
             group_rotation_info.groupForCore(core_index, n_cores);
         if (group_index < validator_groups.size()) {

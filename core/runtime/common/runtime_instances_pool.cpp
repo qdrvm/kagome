@@ -20,14 +20,12 @@ namespace kagome::runtime {
   class BorrowedInstance : public ModuleInstance {
    public:
     BorrowedInstance(std::weak_ptr<RuntimeInstancesPool> pool,
-                     const RuntimeInstancesPool::RootHash &state,
+                     const common::Hash256 &hash,
                      std::shared_ptr<ModuleInstance> instance)
-        : pool_{std::move(pool)},
-          state_{state},
-          instance_{std::move(instance)} {}
+        : pool_{std::move(pool)}, hash_{hash}, instance_{std::move(instance)} {}
     ~BorrowedInstance() {
       if (auto pool = pool_.lock()) {
-        pool->release(state_, std::move(instance_));
+        pool->release(hash_, std::move(instance_));
       }
     }
 
@@ -63,41 +61,79 @@ namespace kagome::runtime {
 
    private:
     std::weak_ptr<RuntimeInstancesPool> pool_;
-    RuntimeInstancesPool::RootHash state_;
+    common::Hash256 hash_;  // either trie hash or code hash
     std::shared_ptr<ModuleInstance> instance_;
   };
-
-  RuntimeInstancesPool::RuntimeInstancesPool() : pools_{MODULES_CACHE_SIZE} {}
 
   RuntimeInstancesPool::RuntimeInstancesPool(
       std::shared_ptr<ModuleFactory> module_factory, size_t capacity)
       : module_factory_{std::move(module_factory)}, pools_{capacity} {}
 
   outcome::result<std::shared_ptr<ModuleInstance>>
-  RuntimeInstancesPool::instantiate(const RootHash &code_hash,
-                                    common::BufferView code_zstd) {
-    std::unique_lock lock{mt_};
+  RuntimeInstancesPool::instantiateFromCode(const CodeHash &code_hash,
+                                            common::BufferView code_zstd) {
+    std::unique_lock lock{pools_mtx_};
     auto entry = pools_.get(code_hash);
     if (not entry) {
       lock.unlock();
-      common::Buffer code;
-      OUTCOME_TRY(uncompressCodeIfNeeded(code_zstd, code));
-      OUTCOME_TRY(module, module_factory_->make(code));
+
+      OUTCOME_TRY(new_entry, tryCompileModule(code_hash, code_zstd));
+      entry = new_entry;
       lock.lock();
-      entry = pools_.get(code_hash);
-      if (not entry) {
-        entry = pools_.put(code_hash, {std::move(module), {}});
-      }
     }
     OUTCOME_TRY(instance, entry->get().instantiate(lock));
     return std::make_shared<BorrowedInstance>(
         weak_from_this(), code_hash, std::move(instance));
   }
 
+  outcome::result<std::reference_wrapper<RuntimeInstancesPool::InstancePool>>
+  RuntimeInstancesPool::tryCompileModule(const CodeHash &code_hash,
+                                         common::BufferView code_zstd) {
+    std::unique_lock queue_lock{wait_queue_mtx_};
+    if (auto it = wait_queue_.find(code_hash); it != wait_queue_.end()) {
+      it->second.waiting_threads_num++;
+      queue_lock.unlock();
+
+      // wait until compilation finishes
+      std::shared_lock entry_lock{it->second.mutex};
+      BOOST_ASSERT(it->second.compilation_done);
+
+      // if this is the last waiting thread, delete the entry
+      if (it->second.waiting_threads_num.fetch_sub(1) == 1) {
+        entry_lock.unlock();
+        queue_lock.lock();
+        wait_queue_.erase(it);
+      }
+      std::shared_lock pools_lock{pools_mtx_};
+      auto opt_pool = pools_.get(code_hash);
+      BOOST_ASSERT(opt_pool);
+      return *opt_pool;
+
+    } else {
+      auto [new_it, emplaced] =
+          wait_queue_.emplace(std::piecewise_construct,
+                              std::forward_as_tuple(code_hash),
+                              std::tuple<>{});
+      BOOST_ASSERT(emplaced);
+      std::unique_lock l{new_it->second.mutex};
+      queue_lock.unlock();
+
+      common::Buffer code;
+      OUTCOME_TRY(uncompressCodeIfNeeded(code_zstd, code));
+      OUTCOME_TRY(module, module_factory_->make(code));
+
+      new_it->second.compilation_done = true;
+
+      std::unique_lock pools_lock{pools_mtx_};
+      return pools_.put(code_hash, {std::move(module), {}});
+      // unlock and let waiting threads proceed
+    }
+  }
+
   outcome::result<std::shared_ptr<ModuleInstance>>
-  RuntimeInstancesPool::tryAcquire(
-      const RuntimeInstancesPool::RootHash &state) {
-    std::unique_lock lock{mt_};
+  RuntimeInstancesPool::instantiateFromState(
+      const RuntimeInstancesPool::TrieHash &state) {
+    std::unique_lock lock{pools_mtx_};
     auto entry = pools_.get(state);
     BOOST_ASSERT(entry);
     OUTCOME_TRY(instance, entry->get().instantiate(lock));
@@ -106,9 +142,9 @@ namespace kagome::runtime {
   }
 
   void RuntimeInstancesPool::release(
-      const RuntimeInstancesPool::RootHash &state,
+      const RuntimeInstancesPool::TrieHash &state,
       std::shared_ptr<ModuleInstance> &&instance) {
-    std::lock_guard guard{mt_};
+    std::lock_guard guard{pools_mtx_};
     auto entry = pools_.get(state);
     if (not entry) {
       entry = pools_.put(state, {instance->getModule(), {}});
@@ -117,8 +153,8 @@ namespace kagome::runtime {
   }
 
   std::optional<std::shared_ptr<const Module>> RuntimeInstancesPool::getModule(
-      const RuntimeInstancesPool::RootHash &state) {
-    std::lock_guard guard{mt_};
+      const RuntimeInstancesPool::TrieHash &state) {
+    std::lock_guard guard{pools_mtx_};
     if (auto entry = pools_.get(state)) {
       return entry->get().module;
     }
@@ -126,16 +162,17 @@ namespace kagome::runtime {
   }
 
   void RuntimeInstancesPool::putModule(
-      const RuntimeInstancesPool::RootHash &state,
+      const RuntimeInstancesPool::TrieHash &state,
       std::shared_ptr<Module> module) {
-    std::lock_guard guard{mt_};
+    std::lock_guard guard{pools_mtx_};
     if (not pools_.get(state)) {
       pools_.put(state, {std::move(module), {}});
     }
   }
 
   outcome::result<std::shared_ptr<ModuleInstance>>
-  RuntimeInstancesPool::Entry::instantiate(std::unique_lock<std::mutex> &lock) {
+  RuntimeInstancesPool::InstancePool::instantiate(
+      std::unique_lock<std::shared_mutex> &lock) {
     if (instances.empty()) {
       auto copy = module;
       lock.unlock();

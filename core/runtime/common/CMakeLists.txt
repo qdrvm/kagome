@@ -30,7 +30,7 @@ target_link_libraries(uncompress_if_needed
 kagome_install(uncompress_if_needed)
 
 add_library(runtime_transaction_error
-    runtime_transaction_error.cpp
+    runtime_execution_error.cpp
     )
 target_link_libraries(runtime_transaction_error
     outcome

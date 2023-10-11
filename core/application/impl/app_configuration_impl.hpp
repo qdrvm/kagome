@@ -18,6 +18,7 @@ namespace rapidjson {
 #include <array>
 #include <cstdio>
 #include <memory>
+#include <thread>
 
 #include "log/logger.hpp"
 
@@ -168,6 +169,13 @@ namespace kagome::application {
     }
     uint32_t parachainRuntimeInstanceCacheSize() const override {
       return parachain_runtime_instance_cache_size_;
+    }
+    uint32_t parachainPrecompilationThreadNum() const override {
+      return parachain_precompilation_thread_num_;
+    }
+
+    bool shouldPrecompileParachainModules() const {
+      return should_precompile_parachain_modules_;
     }
 
     OffchainWorkerMode offchainWorkerMode() const override {
@@ -358,6 +366,9 @@ namespace kagome::application {
     std::optional<BenchmarkConfigSection> benchmark_config_;
     AllowUnsafeRpc allow_unsafe_rpc_ = AllowUnsafeRpc::kAuto;
     uint32_t parachain_runtime_instance_cache_size_ = 100;
+    uint32_t parachain_precompilation_thread_num_ =
+        std::thread::hardware_concurrency() / 2;
+    bool should_precompile_parachain_modules_{true};
   };
 
 }  // namespace kagome::application

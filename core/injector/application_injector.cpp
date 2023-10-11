@@ -7,7 +7,7 @@
 
 #define BOOST_DI_CFG_DIAGNOSTICS_LEVEL 2
 #define BOOST_DI_CFG_CTOR_LIMIT_SIZE \
-  32  // TODO(Harrm): check how it influences on compilation time
+  24  // TODO(Harrm): check how it influences on compilation time
 
 #include <rocksdb/filter_policy.h>
 #include <rocksdb/table.h>
@@ -125,6 +125,7 @@
 #include "parachain/availability/recovery/recovery_impl.hpp"
 #include "parachain/availability/store/store_impl.hpp"
 #include "parachain/backing/store_impl.hpp"
+#include "parachain/pvf/module_precompiler.hpp"
 #include "parachain/pvf/pvf_impl.hpp"
 #include "parachain/validator/impl/parachain_observer_impl.hpp"
 #include "parachain/validator/parachain_processor.hpp"
@@ -456,7 +457,10 @@ namespace {
         makeWavmInjector(method),
         makeBinaryenInjector(method),
         bind_by_lambda<runtime::RuntimeInstancesPool>([](const auto &injector) {
-          return std::make_shared<runtime::RuntimeInstancesPool>();
+          auto module_factory =
+              injector.template create<sptr<runtime::ModuleFactory>>();
+          return std::make_shared<runtime::RuntimeInstancesPool>(
+              module_factory);
         }),
         di::bind<runtime::ModuleRepository>.template to<runtime::ModuleRepositoryImpl>(),
         bind_by_lambda<runtime::CoreApiFactory>([method](const auto &injector) {
@@ -547,6 +551,12 @@ namespace {
     libp2p::protocol::PingConfig ping_config{};
     host_api::OffchainExtensionConfig offchain_ext_config{
         config->isOffchainIndexingEnabled()};
+    parachain::PvfImpl::Config pvf_config{
+        .precompile_modules = config->shouldPrecompileParachainModules(),
+        .runtime_instance_cache_size =
+            config->parachainRuntimeInstanceCacheSize(),
+        .precompile_threads_num = config->parachainPrecompilationThreadNum(),
+    };
 
     // clang-format off
     return di::
@@ -558,6 +568,7 @@ namespace {
             useConfig(tp_pool_limits),
             useConfig(ping_config),
             useConfig(offchain_ext_config),
+            useConfig(pvf_config),
 
             // inherit host injector
             libp2p::injector::makeHostInjector(

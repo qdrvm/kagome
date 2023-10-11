@@ -12,7 +12,7 @@
 #include "host_api/impl/storage_util.hpp"
 #include "log/formatters/optional.hpp"
 #include "log/trace_macros.hpp"
-#include "runtime/common/runtime_transaction_error.hpp"
+#include "runtime/common/runtime_execution_error.hpp"
 #include "runtime/memory_provider.hpp"
 #include "runtime/ptr_size.hpp"
 #include "runtime/trie_storage_provider.hpp"
@@ -41,7 +41,7 @@ namespace kagome::host_api {
       if (auto res = storage_provider_->rollbackTransaction();
           res.has_error()) {
         if (res.error()
-            != runtime::RuntimeTransactionError::NO_TRANSACTIONS_WERE_STARTED) {
+            != runtime::RuntimeExecutionError::NO_TRANSACTIONS_WERE_STARTED) {
           logger_->error(res.error());
         }
         break;

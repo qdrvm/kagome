@@ -10,7 +10,7 @@
 
 #include "host_api/host_api.hpp"
 #include "log/profiling_logger.hpp"
-#include "runtime/common/runtime_transaction_error.hpp"
+#include "runtime/common/runtime_execution_error.hpp"
 #include "runtime/memory_provider.hpp"
 #include "runtime/module_repository.hpp"
 #include "runtime/trie_storage_provider.hpp"
@@ -116,7 +116,7 @@ namespace kagome::runtime::wavm {
           WAVM::Runtime::getInstanceExport(instance_, name.data()));
       if (!function) {
         SL_DEBUG(logger_, "The requested function {} not found", name);
-        return RuntimeTransactionError::EXPORT_FUNCTION_NOT_FOUND;
+        return RuntimeExecutionError::EXPORT_FUNCTION_NOT_FOUND;
       }
       const WAVM::IR::FunctionType functionType =
           WAVM::Runtime::getFunctionType(function);
