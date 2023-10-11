@@ -42,8 +42,6 @@ RUN curl -fsSL https://download.docker.com/linux/debian/gpg | gpg --dearmor -o /
         docker-ce-cli \
         containerd.io \
         build-essential \
-        gcc-11 \
-        g++-11 \
         gcc-12 \
         g++-12 \
         clang-11 \
@@ -109,8 +107,8 @@ RUN set -e; \
 ENV LLVM_ROOT=/usr/lib/llvm-11
 ENV LLVM_DIR=/usr/lib/llvm-11/lib/cmake/llvm/
 ENV PATH=${LLVM_ROOT}/bin:${LLVM_ROOT}/share/clang:${PATH}
-ENV CC=gcc-11
-ENV CXX=g++-11
+ENV CC=gcc-12
+ENV CXX=g++-12
 
 # set default compilers and tools
 
@@ -142,10 +140,6 @@ RUN update-alternatives --install /usr/bin/python       python       /venv/bin/p
     update-alternatives --install /usr/bin/clang        clang        /usr/lib/llvm-15/bin/clang-15  50 && \
     update-alternatives --install /usr/bin/clang++      clang++      /usr/bin/clang++-15            50 && \
 
-    update-alternatives --install /usr/bin/gcc          gcc          /usr/bin/gcc-11                90 && \
-    update-alternatives --install /usr/bin/g++          g++          /usr/bin/g++-11                90 && \
-    update-alternatives --install /usr/bin/gcov         gcov         /usr/bin/gcov-11               90 && \
-
-    update-alternatives --install /usr/bin/gcc          gcc          /usr/bin/gcc-12                80 && \
-    update-alternatives --install /usr/bin/g++          g++          /usr/bin/g++-12                80 && \
-    update-alternatives --install /usr/bin/gcov         gcov         /usr/bin/gcov-12               80
+    update-alternatives --install /usr/bin/gcc          gcc          /usr/bin/gcc-12                90 && \
+    update-alternatives --install /usr/bin/g++          g++          /usr/bin/g++-12                90 && \
+    update-alternatives --install /usr/bin/gcov         gcov         /usr/bin/gcov-12               90
