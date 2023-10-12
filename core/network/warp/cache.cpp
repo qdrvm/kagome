@@ -48,17 +48,17 @@ namespace kagome::network {
       std::shared_ptr<blockchain::BlockTree> block_tree,
       std::shared_ptr<blockchain::BlockHeaderRepository> block_repository,
       std::shared_ptr<storage::SpacedStorage> db,
-      std::shared_ptr<primitives::events::ChainSubscriptionEngine>
-          chain_sub_engine)
+      primitives::events::ChainSubscriptionEnginePtr chain_sub_engine)
       : block_tree_{std::move(block_tree)},
         block_repository_{std::move(block_repository)},
         db_prefix_{
             storage::kWarpSyncCacheBlocksPrefix,
             db->getSpace(storage::Space::kDefault),
         },
+        chain_sub_{chain_sub_engine},
         log_{log::createLogger("WarpSyncCache", "warp_sync_protocol")} {
-    app_state_manager.atLaunch([=, this]() mutable {
-      auto r = start(std::move(chain_sub_engine));
+    app_state_manager.atLaunch([this]() mutable {
+      auto r = start();
       if (not r) {
         SL_WARN(log_, "start error {}", r.error());
         // TODO(turuslan): #1536 warp sync forced change
@@ -152,9 +152,7 @@ namespace kagome::network {
     return outcome::success();
   }
 
-  outcome::result<void> WarpSyncCache::start(
-      std::shared_ptr<primitives::events::ChainSubscriptionEngine>
-          chain_sub_engine) {
+  outcome::result<void> WarpSyncCache::start() {
     auto cursor = db_prefix_.cursor();
     OUTCOME_TRY(cursor->seekLast());
     while (cursor->isValid()) {
@@ -174,26 +172,15 @@ namespace kagome::network {
     started_.store(true);
     OUTCOME_TRY(cacheMore(block_tree_->getLastFinalized().number));
 
-    chain_sub_ = std::make_shared<primitives::events::ChainEventSubscriber>(
-        chain_sub_engine);
-    chain_sub_->subscribe(chain_sub_->generateSubscriptionSetId(),
-                          primitives::events::ChainEventType::kFinalizedHeads);
-    auto on_finalize = [weak = weak_from_this()](
-                           subscription::SubscriptionSetId,
-                           auto &&,
-                           primitives::events::ChainEventType,
-                           const primitives::events::ChainEventParams &event) {
-      auto self = weak.lock();
-      if (not self) {
-        return;
-      }
-      auto r = self->cacheMore(
-          boost::get<primitives::events::HeadsEventParams>(event).get().number);
-      if (not r) {
-        SL_WARN(self->log_, "cacheMore error {}", r.error());
-      }
-    };
-    chain_sub_->setCallback(std::move(on_finalize));
+    chain_sub_.onFinalize(
+        [weak{weak_from_this()}](const primitives::BlockHeader &block) {
+          if (auto self = weak.lock()) {
+            auto r = self->cacheMore(block.number);
+            if (not r) {
+              SL_WARN(self->log_, "cacheMore error {}", r.error());
+            }
+          }
+        });
 
     return outcome::success();
   }

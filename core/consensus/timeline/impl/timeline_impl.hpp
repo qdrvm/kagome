@@ -143,6 +143,7 @@ namespace kagome::consensus {
     std::shared_ptr<ConsistencyKeeper> consistency_keeper_;
     std::shared_ptr<libp2p::basic::Scheduler> scheduler_;
     primitives::events::ChainSubscriptionEnginePtr chain_sub_engine_;
+    primitives::events::ChainSub chain_sub_;
     primitives::events::BabeStateSubscriptionEnginePtr state_sub_engine_;
     std::shared_ptr<runtime::Core> core_api_;
 
@@ -158,8 +159,6 @@ namespace kagome::consensus {
     bool warp_sync_busy_{false};
 
     std::atomic_bool active_{false};
-
-    std::shared_ptr<primitives::events::ChainEventSubscriber> chain_sub_{};
 
     std::optional<primitives::Version> actual_runtime_version_;
 

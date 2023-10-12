@@ -47,11 +47,7 @@ namespace kagome::consensus::grandpa {
         persistent_storage_{
             persistent_storage->getSpace(storage::Space::kDefault)},
         header_repo_{std::move(header_repo)},
-        chain_sub_([&] {
-          BOOST_ASSERT(chain_events_engine != nullptr);
-          return std::make_shared<primitives::events::ChainEventSubscriber>(
-              chain_events_engine);
-        }()),
+        chain_sub_{chain_events_engine},
         logger_{log::createLogger("AuthorityManager", "authority")} {
     BOOST_ASSERT(block_tree_ != nullptr);
     BOOST_ASSERT(grandpa_api_ != nullptr);
@@ -75,29 +71,18 @@ namespace kagome::consensus::grandpa {
     }
     lock.unlock();
 
-    chain_sub_->subscribe(chain_sub_->generateSubscriptionSetId(),
-                          primitives::events::ChainEventType::kFinalizedHeads);
-    chain_sub_->setCallback(
-        [wp = weak_from_this()](
-            subscription::SubscriptionSetId,
-            auto &&,
-            primitives::events::ChainEventType type,
-            const primitives::events::ChainEventParams &event) {
-          if (type == primitives::events::ChainEventType::kFinalizedHeads) {
-            if (auto self = wp.lock()) {
-              const auto &header =
-                  boost::get<primitives::events::HeadsEventParams>(event).get();
+    chain_sub_.onFinalize(
+        [weak{weak_from_this()}](const primitives::BlockHeader &block) {
+          if (auto self = weak.lock()) {
+            std::unique_lock lock{self->mutex_};
 
-              std::unique_lock lock{self->mutex_};
-
-              auto save_res = self->save();
-              if (save_res.has_error()) {
-                SL_WARN(self->logger_,
-                        "Can not save state at finalization: {}",
-                        save_res.error());
-              }
-              self->prune(header.blockInfo());
+            auto save_res = self->save();
+            if (save_res.has_error()) {
+              SL_WARN(self->logger_,
+                      "Can not save state at finalization: {}",
+                      save_res.error());
             }
+            self->prune(block.blockInfo());
           }
         });
 

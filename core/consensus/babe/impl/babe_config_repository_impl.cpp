@@ -73,11 +73,7 @@ namespace kagome::consensus::babe {
         babe_api_(std::move(babe_api)),
         hasher_(std::move(hasher)),
         trie_storage_(std::move(trie_storage)),
-        chain_sub_([&] {
-          BOOST_ASSERT(chain_events_engine != nullptr);
-          return std::make_shared<primitives::events::ChainEventSubscriber>(
-              chain_events_engine);
-        }()),
+        chain_sub_{chain_events_engine},
         slots_util_(std::move(slots_util)),
         logger_(log::createLogger("BabeConfigRepo", "babe_config_repo")) {
     BOOST_ASSERT(persistent_storage_ != nullptr);
@@ -139,21 +135,12 @@ namespace kagome::consensus::babe {
       return false;
     }
 
-    chain_sub_->subscribe(chain_sub_->generateSubscriptionSetId(),
-                          primitives::events::ChainEventType::kFinalizedHeads);
-    chain_sub_->setCallback(
-        [wp = weak_from_this()](
-            subscription::SubscriptionSetId,
-            auto &&,
-            primitives::events::ChainEventType type,
-            const primitives::events::ChainEventParams &event) {
-          if (type == primitives::events::ChainEventType::kFinalizedHeads) {
-            if (auto self = wp.lock()) {
-              std::unique_lock lock{self->indexer_mutex_};
-              self->indexer_.finalize();
-            }
-          }
-        });
+    chain_sub_.onFinalize([weak{weak_from_this()}]() {
+      if (auto self = weak.lock()) {
+        std::unique_lock lock{self->indexer_mutex_};
+        self->indexer_.finalize();
+      }
+    });
 
     return true;
   }

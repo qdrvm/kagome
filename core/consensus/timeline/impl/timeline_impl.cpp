@@ -70,6 +70,7 @@ namespace kagome::consensus {
         consistency_keeper_(std::move(consistency_keeper)),
         scheduler_(std::move(scheduler)),
         chain_sub_engine_(std::move(chain_sub_engine)),
+        chain_sub_{chain_sub_engine_},
         state_sub_engine_(std::move(state_sub_engine)),
         core_api_(std::move(core_api)),
         sync_method_(app_config.syncMethod()),
@@ -231,34 +232,20 @@ namespace kagome::consensus {
         break;
     }
 
-    chain_sub_ = std::make_shared<primitives::events::ChainEventSubscriber>(
-        chain_sub_engine_);
-
-    chain_sub_->subscribe(chain_sub_->generateSubscriptionSetId(),
-                          primitives::events::ChainEventType::kFinalizedHeads);
-    chain_sub_->setCallback([wp = weak_from_this()](
-                                subscription::SubscriptionSetId,
-                                auto &&,
-                                primitives::events::ChainEventType type,
-                                const primitives::events::ChainEventParams
-                                    &event) {
-      if (type == primitives::events::ChainEventType::kFinalizedHeads) {
-        if (auto self = wp.lock()) {
-          if (self->current_state_ != SyncState::HEADERS_LOADING
-              and self->current_state_ != SyncState::STATE_LOADING) {
-            const auto &header =
-                boost::get<primitives::events::HeadsEventParams>(event).get();
-            auto version_res = self->core_api_->version(header.hash());
-            if (version_res.has_value()) {
-              auto &version = version_res.value();
-              if (not self->actual_runtime_version_.has_value()
-                  or self->actual_runtime_version_ != version) {
-                self->actual_runtime_version_ = version;
-                self->chain_sub_engine_->notify(
-                    primitives::events::ChainEventType::
-                        kFinalizedRuntimeVersion,
-                    version);
-              }
+    chain_sub_.onFinalize([weak{weak_from_this()}](
+                              const primitives::BlockHeader &block) {
+      if (auto self = weak.lock()) {
+        if (self->current_state_ != SyncState::HEADERS_LOADING
+            and self->current_state_ != SyncState::STATE_LOADING) {
+          auto version_res = self->core_api_->version(block.hash());
+          if (version_res.has_value()) {
+            auto &version = version_res.value();
+            if (not self->actual_runtime_version_.has_value()
+                or self->actual_runtime_version_ != version) {
+              self->actual_runtime_version_ = version;
+              self->chain_sub_engine_->notify(
+                  primitives::events::ChainEventType::kFinalizedRuntimeVersion,
+                  version);
             }
           }
         }

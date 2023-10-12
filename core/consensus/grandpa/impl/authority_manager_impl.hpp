@@ -215,7 +215,7 @@ namespace kagome::consensus::grandpa {
     std::shared_ptr<crypto::Hasher> hasher_;
     std::shared_ptr<storage::BufferStorage> persistent_storage_;
     std::shared_ptr<blockchain::BlockHeaderRepository> header_repo_;
-    std::shared_ptr<primitives::events::ChainEventSubscriber> chain_sub_;
+    primitives::events::ChainSub chain_sub_;
 
     std::shared_ptr<ScheduleNode> root_;
     primitives::BlockNumber last_saved_state_block_ = 0;
