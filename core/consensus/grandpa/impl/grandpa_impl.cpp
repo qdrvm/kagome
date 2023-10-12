@@ -425,10 +425,15 @@ namespace kagome::consensus::grandpa {
     }
   }
 
-  void GrandpaImpl::onNeighborMessage(const libp2p::peer::PeerId &peer_id,
-                                      network::GrandpaNeighborMessage &&msg) {
-    REINVOKE(
-        *internal_thread_context_, onNeighborMessage, peer_id, std::move(msg));
+  void GrandpaImpl::onNeighborMessage(
+      const libp2p::peer::PeerId &peer_id,
+      std::optional<network::PeerStateCompact> &&info,
+      network::GrandpaNeighborMessage &&msg) {
+    REINVOKE(*internal_thread_context_,
+             onNeighborMessage,
+             peer_id,
+             std::move(info),
+             std::move(msg));
 
     BOOST_ASSERT(internal_thread_context_->isInCurrentThread());
     SL_DEBUG(logger_,
@@ -439,13 +444,13 @@ namespace kagome::consensus::grandpa {
              msg.last_finalized,
              peer_id);
 
-    auto info = peer_manager_->getPeerState(peer_id);
     std::optional<VoterSetId> info_set;
     std::optional<RoundNumber> info_round;
     // copy values before `updatePeerState`
+
     if (info) {
-      info_set = info->get().set_id;
-      info_round = info->get().round_number;
+      info_set = info->set_id;
+      info_round = info->round_number;
     }
 
     bool reputation_changed = false;
@@ -532,7 +537,7 @@ namespace kagome::consensus::grandpa {
       return;
     }
 
-    if (info->get().last_finalized > block_tree_->getLastFinalized().number) {
+    if (info && info->last_finalized > block_tree_->getLastFinalized().number) {
       //  Trying to substitute with justifications' request only
       main_thread_context_.execute([wself{weak_from_this()},
                                     peer_id,
@@ -568,14 +573,18 @@ namespace kagome::consensus::grandpa {
     }
   }
 
-  void GrandpaImpl::onCatchUpRequest(const libp2p::peer::PeerId &peer_id,
-                                     network::CatchUpRequest &&msg) {
-    REINVOKE(
-        *internal_thread_context_, onCatchUpRequest, peer_id, std::move(msg));
+  void GrandpaImpl::onCatchUpRequest(
+      const libp2p::peer::PeerId &peer_id,
+      std::optional<network::PeerStateCompact> &&info_opt,
+      network::CatchUpRequest &&msg) {
+    REINVOKE(*internal_thread_context_,
+             onCatchUpRequest,
+             peer_id,
+             std::move(info_opt),
+             std::move(msg));
 
-    auto info_opt = peer_manager_->getPeerState(peer_id);
-    if (not info_opt.has_value() or not info_opt->get().set_id.has_value()
-        or not info_opt->get().round_number.has_value()) {
+    if (not info_opt.has_value() or not info_opt->set_id.has_value()
+        or not info_opt->round_number.has_value()) {
       SL_DEBUG(logger_,
                "Catch-up request to round #{} received from {} was rejected: "
                "we are not have our view about remote peer",
@@ -585,7 +594,7 @@ namespace kagome::consensus::grandpa {
           peer_id, network::reputation::cost::OUT_OF_SCOPE_MESSAGE);
       return;
     }
-    const auto &info = info_opt->get();
+    const auto &info = *info_opt;
 
     // Check if request is corresponding our view about remote peer by set id
     if (msg.voter_set_id != info.set_id.value()) {
@@ -942,16 +951,17 @@ namespace kagome::consensus::grandpa {
   void GrandpaImpl::onVoteMessage(
       std::optional<std::shared_ptr<GrandpaContext>> &&existed_context,
       const libp2p::peer::PeerId &peer_id,
+      std::optional<network::PeerStateCompact> &&info,
       const VoteMessage &msg) {
     REINVOKE(*internal_thread_context_,
              onVoteMessage,
              std::move(existed_context),
              peer_id,
+             std::move(info),
              msg);
 
-    auto info = peer_manager_->getPeerState(peer_id);
-    if (not info.has_value() or not info->get().set_id.has_value()
-        or not info->get().round_number.has_value()) {
+    if (not info.has_value() or not info->set_id.has_value()
+        or not info->round_number.has_value()) {
       SL_DEBUG(
           logger_,
           "{} signed by {} with set_id={} in round={} has received from {} "
@@ -1510,7 +1520,11 @@ namespace kagome::consensus::grandpa {
           if (grandpa_context->vote.has_value()) {
             auto const &peer_id = grandpa_context->peer_id.value();
             auto const &vote = grandpa_context->vote.value();
-            self->onVoteMessage(std::move(grandpa_context), peer_id, vote);
+            auto info = self->peer_manager_->getPeerState(peer_id);
+            self->onVoteMessage(std::move(grandpa_context),
+                                peer_id,
+                                compactFromRefToOwn(info),
+                                vote);
           } else if (grandpa_context->catch_up_response.has_value()) {
             auto const &peer_id = grandpa_context->peer_id.value();
             auto const &catch_up_response =
