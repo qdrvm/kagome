@@ -65,7 +65,6 @@ groups:
           - name: parachain
           - name: dispute
           - name: runtime
-            level: trace
             children:
               - name: runtime_api
               - name: host_api

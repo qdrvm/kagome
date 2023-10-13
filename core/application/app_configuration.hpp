@@ -216,8 +216,7 @@ namespace kagome::application {
     virtual SyncMethod syncMethod() const = 0;
 
     enum class RuntimeExecutionMethod {
-      CompileWavm,
-      CompileWasmEdge,
+      Compile,
       Interpret
     };
 

@@ -1,23 +1,7 @@
 
-add_library(compartment_wrapper compartment_wrapper.cpp)
-target_link_libraries(compartment_wrapper
-    WAVM::libWAVM)
-kagome_install(compartment_wrapper)
-
-llvm_map_components_to_libnames(LLVM_LIBS
-	  core
-    )
-
-add_library(wavm_memory memory_impl.cpp)
-target_link_libraries(wavm_memory
-    ${LLVM_LIBS}
-    WAVM::libWAVM
-    memory_allocator
-    )
-kagome_install(wavm_memory)
-
 add_library(runtime_wavm
     core_api_factory_impl.cpp
+		compartment_wrapper.cpp
     intrinsics/intrinsic_functions.cpp
     intrinsics/intrinsic_module.cpp
     intrinsics/intrinsic_module_instance.cpp
@@ -28,15 +12,16 @@ add_library(runtime_wavm
     module_params.cpp
     module_factory_impl.cpp
     module_instance.cpp
+		memory_impl.cpp
     wavm_external_memory_provider.cpp
     wavm_internal_memory_provider.cpp
     )
 target_link_libraries(runtime_wavm
-    wavm_memory
-    constant_code_provider
+		${LLVM_LIBS}
+		WAVM::libWAVM
+		constant_code_provider
     executor
 		Boost::boost
-    compartment_wrapper
     trie_storage_provider
     )
 kagome_install(runtime_wavm)

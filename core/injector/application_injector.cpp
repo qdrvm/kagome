@@ -148,18 +148,29 @@
 #include "runtime/runtime_api/impl/session_keys_api.hpp"
 #include "runtime/runtime_api/impl/tagged_transaction_queue.hpp"
 #include "runtime/runtime_api/impl/transaction_payment_api.hpp"
+
+#if KAGOME_WASM_COMPILER_WASM_EDGE == 1
+
 #include "runtime/wasm_edge/core_api_factory_impl.hpp"
 #include "runtime/wasm_edge/module_factory_impl.hpp"
-// #include "runtime/wavm/compartment_wrapper.hpp"
-// #include "runtime/wavm/core_api_factory_impl.hpp"
-// #include "runtime/wavm/instance_environment_factory.hpp"
-// #include "runtime/wavm/intrinsics/intrinsic_functions.hpp"
-// #include "runtime/wavm/intrinsics/intrinsic_module.hpp"
-// #include "runtime/wavm/intrinsics/intrinsic_module_instance.hpp"
-// #include "runtime/wavm/intrinsics/intrinsic_resolver_impl.hpp"
-// #include "runtime/wavm/module.hpp"
-// #include "runtime/wavm/module_cache.hpp"
-// #include "runtime/wavm/module_factory_impl.hpp"
+
+#endif
+
+#if KAGOME_WASM_COMPILER_WAVM == 1
+
+#include "runtime/wavm/compartment_wrapper.hpp"
+#include "runtime/wavm/core_api_factory_impl.hpp"
+#include "runtime/wavm/instance_environment_factory.hpp"
+#include "runtime/wavm/intrinsics/intrinsic_functions.hpp"
+#include "runtime/wavm/intrinsics/intrinsic_module.hpp"
+#include "runtime/wavm/intrinsics/intrinsic_module_instance.hpp"
+#include "runtime/wavm/intrinsics/intrinsic_resolver_impl.hpp"
+#include "runtime/wavm/module.hpp"
+#include "runtime/wavm/module_cache.hpp"
+#include "runtime/wavm/module_factory_impl.hpp"
+
+#endif
+
 #include "storage/changes_trie/impl/storage_changes_tracker_impl.hpp"
 #include "storage/rocksdb/rocksdb.hpp"
 #include "storage/spaces.hpp"
@@ -341,63 +352,59 @@ namespace {
     return std::make_shared<ThreadPool>("worker", cores);
   }
 
-  //  template <typename... Ts>
-  //  auto makeWavmInjector(Ts &&...args) {
-  //    return di::make_injector(
-  //        bind_by_lambda<runtime::wavm::CompartmentWrapper>([](const auto
-  //                                                                 &injector)
-  //                                                                 {
-  //          return
-  //          std::make_shared<kagome::runtime::wavm::CompartmentWrapper>(
-  //              "Runtime Compartment");
-  //        }),
-  //        bind_by_lambda<runtime::wavm::IntrinsicModule>(
-  //            [](const auto &injector) {
-  //              auto compartment = injector.template create<
-  //                  sptr<runtime::wavm::CompartmentWrapper>>();
-  //              runtime::wavm::ModuleParams module_params{};
-  //              auto module =
-  //              std::make_unique<runtime::wavm::IntrinsicModule>(
-  //                  compartment, module_params.intrinsicMemoryType);
-  //              runtime::wavm::registerHostApiMethods(*module);
-  //              return module;
-  //            }),
-  //        bind_by_lambda<runtime::wavm::IntrinsicModuleInstance>(
-  //            [](const auto &injector) {
-  //              auto module =
-  //                  injector
-  //                      .template
-  //                      create<sptr<runtime::wavm::IntrinsicModule>>();
-  //              return module->instantiate();
-  //            }),
-  //        bind_by_lambda<runtime::wavm::ModuleFactoryImpl>([](const auto
-  //                                                                &injector) {
-  //          std::optional<std::shared_ptr<runtime::wavm::ModuleCache>>
-  //              module_cache_opt;
-  //          auto &app_config =
-  //              injector.template create<const application::AppConfiguration
-  //              &>();
-  //          if (app_config.useWavmCache()) {
-  //            module_cache_opt = std::make_shared<runtime::wavm::ModuleCache>(
-  //                injector.template create<sptr<crypto::Hasher>>(),
-  //                app_config.runtimeCacheDirPath());
-  //          }
-  //          return std::make_shared<runtime::wavm::ModuleFactoryImpl>(
-  //              injector
-  //                  .template
-  //                  create<sptr<runtime::wavm::CompartmentWrapper>>(),
-  //              injector.template create<sptr<runtime::wavm::ModuleParams>>(),
-  //              injector.template create<
-  //                  sptr<runtime::wavm::InstanceEnvironmentFactory>>(),
-  //              injector.template
-  //              create<sptr<runtime::wavm::IntrinsicModule>>(),
-  //              module_cache_opt,
-  //              injector.template create<sptr<crypto::Hasher>>());
-  //        }),
-  //        di::bind<runtime::wavm::IntrinsicResolver>.template
-  //        to<runtime::wavm::IntrinsicResolverImpl>(),
-  //        std::forward<decltype(args)>(args)...);
-  //  }
+  template <typename... Ts>
+  auto makeWavmInjector(Ts &&...args) {
+    return di::make_injector(
+#if KAGOME_WASM_COMPILER_WAVM == 1
+        bind_by_lambda<runtime::wavm::CompartmentWrapper>([](const auto
+                                                                 &injector) {
+          return std::make_shared<kagome::runtime::wavm::CompartmentWrapper>(
+              "Runtime Compartment");
+        }),
+        bind_by_lambda<runtime::wavm::IntrinsicModule>(
+            [](const auto &injector) {
+              auto compartment = injector.template create<
+                  sptr<runtime::wavm::CompartmentWrapper>>();
+              runtime::wavm::ModuleParams module_params{};
+              auto module = std::make_unique<runtime::wavm::IntrinsicModule>(
+                  compartment, module_params.intrinsicMemoryType);
+              runtime::wavm::registerHostApiMethods(*module);
+              return module;
+            }),
+        bind_by_lambda<runtime::wavm::IntrinsicModuleInstance>(
+            [](const auto &injector) {
+              auto module =
+                  injector
+                      .template create<sptr<runtime::wavm::IntrinsicModule>>();
+              return module->instantiate();
+            }),
+        bind_by_lambda<runtime::wavm::ModuleFactoryImpl>([](const auto
+                                                                &injector) {
+          std::optional<std::shared_ptr<runtime::wavm::ModuleCache>>
+              module_cache_opt;
+          auto &app_config =
+              injector.template create<const application::AppConfiguration &>();
+          if (app_config.useWavmCache()) {
+            module_cache_opt = std::make_shared<runtime::wavm::ModuleCache>(
+                injector.template create<sptr<crypto::Hasher>>(),
+                app_config.runtimeCacheDirPath());
+          }
+          return std::make_shared<runtime::wavm::ModuleFactoryImpl>(
+              injector
+                  .template create<sptr<runtime::wavm::CompartmentWrapper>>(),
+              injector.template create<sptr<runtime::wavm::ModuleParams>>(),
+              injector.template create<sptr<host_api::HostApiFactory>>(),
+              injector.template create<sptr<storage::trie::TrieStorage>>(),
+              injector.template create<sptr<storage::trie::TrieSerializer>>(),
+              injector.template create<sptr<runtime::wavm::IntrinsicModule>>(),
+              injector.template create<sptr<runtime::SingleModuleCache>>(),
+              module_cache_opt,
+              injector.template create<sptr<crypto::Hasher>>());
+        }),
+        di::bind<runtime::wavm::IntrinsicResolver>.template to<runtime::wavm::IntrinsicResolverImpl>(),
+#endif
+        std::forward<decltype(args)>(args)...);
+  }
 
   template <typename... Ts>
   auto makeBinaryenInjector(Ts &&...args) {
@@ -420,15 +427,16 @@ namespace {
   template <typename... Ts>
   auto makeWasmEdgeInjector(Ts &&...args) {
     return di::make_injector(
-        // di::bind<runtime::ModuleFactory>.template
-        // to<runtime::wasm_edge::ModuleFactoryImpl>(),
+#if KAGOME_WASM_COMPILER_WASM_EDGE == 1
+        di::bind<runtime::CoreApiFactory>.template to<runtime::wasm_edge::CoreApiFactoryImpl>(),
+        di::bind<runtime::ModuleFactory>.template to<runtime::wasm_edge::ModuleFactoryImpl>(),
+#endif
         std::forward<decltype(args)>(args)...);
   }
 
   template <typename CommonType,
-            typename BinaryenType,
-            // typename WavmType,
-            typename WasmEdgeType,
+            typename InterpretedType,
+            typename CompiledType,
             typename Injector>
   auto choose_runtime_implementation(
       const Injector &injector,
@@ -438,14 +446,10 @@ namespace {
     switch (method) {
       case RuntimeExecutionMethod::Interpret:
         return std::static_pointer_cast<CommonType>(
-            injector.template create<sptr<BinaryenType>>());
-      case RuntimeExecutionMethod::CompileWavm:
-        return std::shared_ptr<CommonType>(nullptr);
-        //        return std::static_pointer_cast<CommonType>(
-        //            injector.template create<sptr<WavmType>>());
-      case RuntimeExecutionMethod::CompileWasmEdge:
+            injector.template create<sptr<InterpretedType>>());
+      case RuntimeExecutionMethod::Compile:
         return std::static_pointer_cast<CommonType>(
-            injector.template create<sptr<WasmEdgeType>>());
+            injector.template create<sptr<CompiledType>>());
     }
     throw std::runtime_error("Unknown runtime execution method");
   }
@@ -475,10 +479,22 @@ namespace {
         std::move(res.value()));
   }
 
+#if KAGOME_WASM_COMPILER_WAVM == 1
+
+  using CoreApiFactory = runtime::wavm::CoreApiFactoryImpl;
+  using ModuleFactory = runtime::wavm::ModuleFactoryImpl;
+
+#elif KAGOME_WASM_COMPILER_WASM_EDGE == 1
+
+  using CoreApiFactory = runtime::wasm_edge::CoreApiFactoryImpl;
+  using ModuleFactory = runtime::wasm_edge::ModuleFactoryImpl;
+
+#endif
+
   template <typename... Ts>
   auto makeRuntimeInjector(
       application::AppConfiguration::RuntimeExecutionMethod method,
-      Ts &&... args) {
+      Ts &&...args) {
     return di::make_injector(
         bind_by_lambda<runtime::RuntimeUpgradeTrackerImpl>(
             [](const auto &injector) {
@@ -489,9 +505,8 @@ namespace {
               return injector
                   .template create<sptr<runtime::RuntimeUpgradeTrackerImpl>>();
             }),
-        // makeWavmInjector(),
         makeBinaryenInjector(),
-        makeWasmEdgeInjector(),
+        makeWavmInjector(),
         bind_by_lambda<runtime::RuntimeInstancesPool>([](const auto &injector) {
           return std::make_shared<runtime::RuntimeInstancesPool>();
         }),
@@ -500,16 +515,14 @@ namespace {
           return choose_runtime_implementation<
               runtime::CoreApiFactory,
               runtime::binaryen::CoreApiFactoryImpl,
-              // runtime::wavm::CoreApiFactoryImpl,
-              runtime::wasm_edge::CoreApiFactoryImpl>(injector, method);
+              CoreApiFactory>(injector, method);
         }),
         bind_by_lambda<runtime::ModuleFactory>(
             [method](const auto &injector) -> sptr<runtime::ModuleFactory> {
               return choose_runtime_implementation<
                   runtime::ModuleFactory,
                   runtime::binaryen::ModuleFactoryImpl,
-                  // runtime::wavm::ModuleFactoryImpl,
-                  runtime::wasm_edge::ModuleFactoryImpl>(injector, method);
+                  ModuleFactory>(injector, method);
             }),
         bind_by_lambda<runtime::Executor>([](const auto &injector)
                                               -> sptr<runtime::Executor> {
@@ -576,8 +589,7 @@ namespace {
         config->isOffchainIndexingEnabled()};
 
     // clang-format off
-    return di::
-        make_injector(
+    return di::make_injector(
             // bind configs
             useConfig(rpc_thread_pool_config),
             useConfig(ws_config),

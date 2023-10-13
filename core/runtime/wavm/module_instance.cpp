@@ -103,13 +103,15 @@ namespace kagome::runtime::wavm {
     return module_;
   }
 
-  outcome::result<PtrSize> ModuleInstanceImpl::callExportFunction(
-      std::string_view name, common::BufferView encoded_args) const {
+  outcome::result<common::Buffer> ModuleInstanceImpl::callExportFunction(
+      kagome::runtime::RuntimeContext &ctx,
+      std::string_view name,
+      common::BufferView encoded_args) const {
     auto memory = env_.memory_provider->getCurrentMemory().value();
 
     PtrSize args_span{memory.get().storeBuffer(encoded_args)};
 
-    auto res = [this, name, args_span]() -> outcome::result<PtrSize> {
+    auto res = [this, name, args_span, &memory]() -> outcome::result<common::Buffer> {
       WAVM::Runtime::GCPointer<WAVM::Runtime::Context> context =
           WAVM::Runtime::createContext(compartment_->getCompartment());
       WAVM::Runtime::Function *function = WAVM::Runtime::asFunctionNullable(
@@ -159,7 +161,9 @@ namespace kagome::runtime::wavm {
                                             untaggedInvokeArgs.data(),
                                             resultsDestination);
             });
-        return PtrSize{untaggedInvokeResults[0].u64};
+        auto [res_ptr, res_size] = PtrSize{untaggedInvokeResults[0].i64};
+        return memory.get().loadN(res_ptr, res_size);
+
       } catch (WAVM::Runtime::Exception *e) {
         const auto desc = WAVM::Runtime::describeException(e);
         logger_->error(desc);

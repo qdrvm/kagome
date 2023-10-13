@@ -37,6 +37,7 @@ add_library(offchain_worker
     )
 target_link_libraries(offchain_worker
     http_request
+    offchain_local_storage
     )
 kagome_install(offchain_worker)
 

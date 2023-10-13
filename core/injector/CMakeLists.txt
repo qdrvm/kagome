@@ -8,81 +8,80 @@ add_library(application_injector
     )
 target_link_libraries(application_injector
     Boost::Boost.DI
-    # runtime_wavm
     account_nonce_api
     address_publisher
     api
     app_config
     app_state_manager
-    authority_discovery_api
     application_modes
     assets
-    storage
+    assets
+    authority_discovery_api
     babe_api
-    kagome_benchmarks
     binaryen_executor_factory
+    binaryen_module_factory
     binaryen_runtime_external_interface
     binaryen_wasm_memory
     binaryen_wasm_memory_factory
     binaryen_wasm_module
-    module_repository
-    binaryen_module_factory
     bip39_provider
+    block_builder
     block_builder_api
-    consensus
     blockchain
-    clock
     chain_spec
+    clock
+    consensus
     core_api
     crypto_store
+    dispute_coordinator
     ecdsa_provider
     ed25519_provider
+    executor
+    executor
+    fd_limit
     filesystem
-    transaction_pool
+    grandpa_api
     host_api_factory
+    kagome_benchmarks
     key_file_storage
     log_configurator
     metadata_api
     metrics
     metrics_watcher
+    module_repository
+    network
+    offchain_local_storage
+    offchain_persistent_storage
+    offchain_worker_api
+    offchain_worker_factory
+    offchain_worker_pool
     outcome
     p2p::p2p
     p2p::p2p_identify
     p2p::p2p_kademlia
+    p2p::p2p_loopback_stream
     p2p::p2p_ping
     parachain_host_api
     pbkdf2_provider
-    block_builder
-    runtime_upgrade_tracker
-    runtime_wasm_edge
-    executor
+    recovery_mode
     runtime_properties_cache
-    executor
+    runtime_upgrade_tracker
     secp256k1_provider
+    session_keys_api
     soralog::fallback_configurator
     soralog::soralog
     sr25519_provider
-    network
+    storage
     storage_code_provider
-    telemetry
     tagged_transaction_queue_api
+    telemetry
     transaction_payment_api
     transaction_pool
+    transaction_pool
     trie_storage_provider
+    validator_parachain
     vrf_provider
     waitable_timer
-    assets
-    grandpa_api
-    p2p::p2p_loopback_stream
-    offchain_worker_factory
-    offchain_worker_pool
-    offchain_worker_api
-    offchain_persistent_storage
-    offchain_local_storage
-    session_keys_api
-    validator_parachain
-    fd_limit
-    recovery_mode
-    dispute_coordinator
+    wasm_compiler
     )
 kagome_clear_objects(application_injector)

@@ -48,6 +48,12 @@ if(NOT($ENV{CI}) OR NOT($ENV{GITHUB_ACTIONS}))
 endif()
 option(EXTERNAL_PROJECT "Build external project" ${_EXTERNAL_PROJECT_DEFAULT})
 
+set(WASM_COMPILER WAVM CACHE STRING "WebAssembly compiler built into Kagome: one of [WAVM, WasmEdge]")
+
+if (NOT ${WASM_COMPILER} MATCHES "^(WAVM|WasmEdge)$")
+  fatal_error("WASM_COMPILER is set to ${WASM_COMPILER} but should be one of [WAVM, WasmEdge]")
+endif()
+
 # sanitizers will be enabled only for Kagome, and will be disabled for dependencies
 option(ASAN         "Enable address sanitizer"                    OFF)
 option(LSAN         "Enable leak sanitizer"                       OFF)
@@ -116,9 +122,9 @@ if("${CMAKE_CXX_COMPILER_ID}" MATCHES "^(AppleClang|Clang|GNU)$")
     # cmake-format: on
   endif()
 elseif("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
-  # using Visual Studio C++
-  # TODO(warchant): add flags
   # https://github.com/lefticus/cppbestpractices/blob/master/02-Use_the_Tools_Available.md#msvc
+
+  fatal_error("MSVC is not supported")
 endif()
 
 print("C flags: ${CMAKE_C_FLAGS}")

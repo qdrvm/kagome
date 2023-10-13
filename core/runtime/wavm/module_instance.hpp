@@ -50,8 +50,10 @@ namespace kagome::runtime::wavm {
 
     std::shared_ptr<const Module> getModule() const override;
 
-    outcome::result<PtrSize> callExportFunction(
-        std::string_view name, common::BufferView encoded_args) const override;
+    outcome::result<common::Buffer> callExportFunction(
+        kagome::runtime::RuntimeContext &,
+        std::string_view name,
+        common::BufferView encoded_args) const override;
 
     outcome::result<std::optional<WasmValue>> getGlobal(
         std::string_view name) const override;

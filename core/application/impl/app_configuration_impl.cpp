@@ -156,8 +156,8 @@ namespace {
     return std::nullopt;
   }
 
-  std::array<std::string_view, 3> execution_methods{
-      "Interpreted", "Compiled-Wavm", "Compiled-WasmEdge"};
+  std::array<std::string_view, 2> execution_methods{
+      "Interpreted", "Compiled"};
 
   std::string execution_methods_str = []() {
     std::stringstream ss;
@@ -175,11 +175,8 @@ namespace {
     if (str == "Interpreted") {
       return REM::Interpret;
     }
-    if (str == "Compiled-Wavm") {
-      return REM::CompileWavm;
-    }
-    if (str == "Compiled-WasmEdge") {
-      return REM::CompileWasmEdge;
+    if (str == "Compiled") {
+      return REM::Compile;
     }
     return std::nullopt;
   }
