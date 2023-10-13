@@ -21,6 +21,7 @@ namespace kagome::consensus::grandpa {
     MOCK_METHOD(void,
                 onNeighborMessage,
                 (const libp2p::peer::PeerId &peer_id,
+                 std::optional<network::PeerStateCompact> &&,
                  network::GrandpaNeighborMessage &&msg),
                 (override));
 
@@ -28,6 +29,7 @@ namespace kagome::consensus::grandpa {
                 onVoteMessage,
                 (std::optional<std::shared_ptr<GrandpaContext>> &&,
                  const PeerId &peer_id,
+                 std::optional<network::PeerStateCompact> &&,
                  const VoteMessage &),
                 (override));
 
@@ -56,7 +58,9 @@ namespace kagome::consensus::grandpa {
 
     MOCK_METHOD(void,
                 onCatchUpRequest,
-                (const PeerId &peer_id, CatchUpRequest &&),
+                (const PeerId &peer_id,
+                 std::optional<network::PeerStateCompact> &&,
+                 CatchUpRequest &&),
                 (override));
 
     MOCK_METHOD(void,
