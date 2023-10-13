@@ -112,6 +112,7 @@ namespace kagome::blockchain {
       : block_tree_data_{std::move(data)} {}
 
   outcome::result<std::shared_ptr<BlockTreeImpl>> BlockTreeImpl::create(
+      const application::AppConfiguration &app_config,
       std::shared_ptr<BlockHeaderRepository> header_repo,
       std::shared_ptr<BlockStorage> storage,
       std::shared_ptr<network::ExtrinsicObserver> extrinsic_observer,
@@ -271,18 +272,19 @@ namespace kagome::blockchain {
     // Prepare and create block tree basing last finalized block
     SL_DEBUG(log, "Last finalized block {}", last_finalized_block_info);
 
-    std::shared_ptr<BlockTreeImpl> block_tree(new BlockTreeImpl(
-        std::move(header_repo),
-        std::move(storage),
-        std::make_unique<CachedTree>(last_finalized_block_info),
-        std::move(extrinsic_observer),
-        std::move(hasher),
-        std::move(chain_events_engine),
-        std::move(extrinsic_events_engine),
-        std::move(extrinsic_event_key_repo),
-        std::move(justification_storage_policy),
-        state_pruner,
-        std::move(io_context)));
+    std::shared_ptr<BlockTreeImpl> block_tree(
+        new BlockTreeImpl(app_config,
+                          std::move(header_repo),
+                          std::move(storage),
+                          last_finalized_block_info,
+                          std::move(extrinsic_observer),
+                          std::move(hasher),
+                          std::move(chain_events_engine),
+                          std::move(extrinsic_events_engine),
+                          std::move(extrinsic_event_key_repo),
+                          std::move(justification_storage_policy),
+                          state_pruner,
+                          std::move(io_context)));
 
     // Add non-finalized block to the block tree
     for (auto &e : collected) {
@@ -404,9 +406,10 @@ namespace kagome::blockchain {
   }
 
   BlockTreeImpl::BlockTreeImpl(
+      const application::AppConfiguration &app_config,
       std::shared_ptr<BlockHeaderRepository> header_repo,
       std::shared_ptr<BlockStorage> storage,
-      std::unique_ptr<CachedTree> cached_tree,
+      const primitives::BlockInfo &finalized,
       std::shared_ptr<network::ExtrinsicObserver> extrinsic_observer,
       std::shared_ptr<crypto::Hasher> hasher,
       primitives::events::ChainSubscriptionEnginePtr chain_events_engine,
@@ -422,12 +425,13 @@ namespace kagome::blockchain {
           .header_repo_ = std::move(header_repo),
           .storage_ = std::move(storage),
           .state_pruner_ = std::move(state_pruner),
-          .tree_ = std::move(cached_tree),
+          .tree_ = std::make_unique<CachedTree>(finalized),
           .extrinsic_observer_ = std::move(extrinsic_observer),
           .hasher_ = std::move(hasher),
           .extrinsic_event_key_repo_ = std::move(extrinsic_event_key_repo),
           .justification_storage_policy_ =
               std::move(justification_storage_policy),
+          .blocks_pruning_ = {app_config.blocksPruning(), finalized.number},
       }},
         main_thread_{std::move(io_context)} {
     block_tree_data_.sharedAccess([&](const BlockTreeData &p) {
@@ -462,6 +466,12 @@ namespace kagome::blockchain {
       metric_known_chain_leaves_->set(p.tree_->leafCount());
 
       telemetry_->setGenesisBlockHash(getGenesisBlockHash());
+
+      if (p.blocks_pruning_.config_) {
+        SL_INFO(log_,
+                "BlocksPruning: enabled with \"--blocks-pruning {}\"",
+                *p.blocks_pruning_.config_);
+      }
     });
 
     chain_events_engine_ = std::move(chain_events_engine);
@@ -879,6 +889,19 @@ namespace kagome::blockchain {
             OUTCOME_TRY(p.storage_->removeJustification(
                 last_finalized_block_info.hash));
           }
+        }
+
+        for (auto end = p.blocks_pruning_.limitFor(node->info.number);
+             p.blocks_pruning_.next_ < end;
+             ++p.blocks_pruning_.next_) {
+          OUTCOME_TRY(hash, p.storage_->getBlockHash(p.blocks_pruning_.next_));
+          if (not hash) {
+            continue;
+          }
+          SL_TRACE(log_,
+                   "BlocksPruning: remove body for block {}",
+                   p.blocks_pruning_.next_);
+          OUTCOME_TRY(p.storage_->removeBlockBody(*hash));
         }
       } else {
         OUTCOME_TRY(header, p.header_repo_->getBlockHeader(block_hash));
@@ -1528,5 +1551,14 @@ namespace kagome::blockchain {
         SL_WARN(log_, "removeUnfinalized error: {}", r.error());
       }
     });
+  }
+
+  BlockTreeImpl::BlocksPruning::BlocksPruning(std::optional<uint32_t> config,
+                                              primitives::BlockNumber finalized)
+      : config_{config}, next_{limitFor(finalized)} {}
+
+  primitives::BlockNumber BlockTreeImpl::BlocksPruning::limitFor(
+      primitives::BlockNumber finalized) const {
+    return config_ and finalized > *config_ ? finalized - *config_ : 0;
   }
 }  // namespace kagome::blockchain
