@@ -65,6 +65,14 @@ namespace kagome::transaction_pool {
   TransactionPoolImpl::constructTransaction(
       primitives::TransactionSource source,
       primitives::Extrinsic extrinsic) const {
+    return constructTransaction(
+        source, extrinsic, hasher_->blake2b_256(extrinsic.data));
+  }
+
+  outcome::result<Transaction> TransactionPoolImpl::constructTransaction(
+      primitives::TransactionSource source,
+      primitives::Extrinsic extrinsic,
+      const Transaction::Hash &extrinsic_hash) const {
     OUTCOME_TRY(res, ttq_->validate_transaction(source, extrinsic));
 
     return visit_in_place(
@@ -80,7 +88,6 @@ namespace kagome::transaction_pool {
         },
         [&](primitives::ValidTransaction &&v)
             -> outcome::result<primitives::Transaction> {
-          common::Hash256 extrinsic_hash = hasher_->blake2b_256(extrinsic.data);
           size_t length = extrinsic.data.size();
 
           return primitives::Transaction{extrinsic,
@@ -94,26 +101,26 @@ namespace kagome::transaction_pool {
         });
   }
 
-  bool TransactionPoolImpl::imported(const Transaction &tx) const {
+  bool TransactionPoolImpl::imported(const Transaction::Hash &tx_hash) const {
     return pool_state_.sharedAccess([&](const auto &pool_state) {
-      return pool_state.pending_txs_.find(tx.hash)
+      return pool_state.pending_txs_.find(tx_hash)
               != pool_state.pending_txs_.end()
-          || pool_state.ready_txs_.find(tx.hash) != pool_state.ready_txs_.end();
+          || pool_state.ready_txs_.find(tx_hash) != pool_state.ready_txs_.end();
     });
   }
 
   outcome::result<Transaction::Hash> TransactionPoolImpl::submitExtrinsic(
       primitives::TransactionSource source, primitives::Extrinsic extrinsic) {
-    OUTCOME_TRY(tx, constructTransaction(source, extrinsic));
-    if (imported(tx)) {
+    auto hash = hasher_->blake2b_256(extrinsic.data);
+    if (imported(hash)) {
       return TransactionPoolError::TX_ALREADY_IMPORTED;
     }
+    OUTCOME_TRY(tx, constructTransaction(source, extrinsic, hash));
 
     if (tx.should_propagate) {
       tx_transmitter_->propagateTransactions(gsl::make_span(std::vector{tx}));
     }
 
-    const auto hash = tx.hash;
     OUTCOME_TRY(
         submitOneInternal(std::make_shared<Transaction>(std::move(tx))));
 
@@ -121,7 +128,7 @@ namespace kagome::transaction_pool {
   }
 
   outcome::result<void> TransactionPoolImpl::submitOne(Transaction &&tx) {
-    if (imported(tx)) {
+    if (imported(tx.hash)) {
       return TransactionPoolError::TX_ALREADY_IMPORTED;
     }
     return submitOneInternal(std::make_shared<Transaction>(std::move(tx)));
