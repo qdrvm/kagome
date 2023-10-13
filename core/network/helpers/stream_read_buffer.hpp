@@ -1,12 +1,15 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_NETWORK_HELPERS_STREAM_READ_BUFFER_HPP
-#define KAGOME_NETWORK_HELPERS_STREAM_READ_BUFFER_HPP
+#pragma once
 
 #include "network/helpers/stream_proxy_base.hpp"
+
+#include <libp2p/basic/read_return_size.hpp>
+#include <libp2p/common/ambigous_size.hpp>
 
 namespace libp2p::connection {
   /**
@@ -33,41 +36,9 @@ namespace libp2p::connection {
       return end - begin;
     }
 
-    /**
-     * Async loop iteration.
-     * Reads `out.size()` remaining bytes of `total` bytes.
-     */
-    void readFull(gsl::span<uint8_t> out, size_t total, ReadCallbackFunc cb) {
-      // read some bytes
-      readSome(
-          out,
-          out.size(),
-          [weak{weak_from_this()}, out, total, cb{std::move(cb)}](
-              outcome::result<size_t> bytes_num_res) mutable {
-            if (auto self{weak.lock()}) {
-              if (bytes_num_res.has_error()) {
-                return self->deferReadCallback(bytes_num_res.error(),
-                                               std::move(cb));
-              }
-              const auto &bytes_num = bytes_num_res.value();
-              BOOST_ASSERT(bytes_num != 0);
-              const auto bytes_num_ptrdiff{gsl::narrow<ptrdiff_t>(bytes_num)};
-              BOOST_ASSERT(bytes_num_ptrdiff <= out.size());
-              if (bytes_num_ptrdiff == out.size()) {
-                // successfully read last bytes
-                return self->deferReadCallback(total, std::move(cb));
-              }
-              // read remaining bytes
-              self->readFull(
-                  out.subspan(bytes_num_ptrdiff), total, std::move(cb));
-            }
-          });
-    }
-
     void read(gsl::span<uint8_t> out, size_t n, ReadCallbackFunc cb) override {
-      BOOST_ASSERT(out.size() >= gsl::narrow<ptrdiff_t>(n));
-      out = out.first(n);
-      readFull(out, n, std::move(cb));
+      libp2p::ambigousSize(out, n);
+      libp2p::readReturnSize(shared_from_this(), out, std::move(cb));
     }
 
     /**
@@ -87,8 +58,7 @@ namespace libp2p::connection {
     void readSome(gsl::span<uint8_t> out,
                   size_t n,
                   ReadCallbackFunc cb) override {
-      BOOST_ASSERT(out.size() >= gsl::narrow<ptrdiff_t>(n));
-      out = out.first(n);
+      libp2p::ambigousSize(out, n);
       if (out.empty()) {
         return deferReadCallback(out.size(), std::move(cb));
       }
@@ -229,5 +199,3 @@ namespace kagome::network {
     }
   }
 }  // namespace kagome::network
-
-#endif  // KAGOME_NETWORK_HELPERS_STREAM_READ_BUFFER_HPP

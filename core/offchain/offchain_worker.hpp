@@ -1,10 +1,10 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_OFFCHAIN_WORKER_HPP
-#define KAGOME_OFFCHAIN_WORKER_HPP
+#pragma once
 
 #include <boost/optional.hpp>
 #include <libp2p/multi/multiaddress.hpp>
@@ -93,5 +93,3 @@ namespace kagome::offchain {
   };
 
 }  // namespace kagome::offchain
-
-#endif /* KAGOME_OFFCHAIN_WORKER_HPP */

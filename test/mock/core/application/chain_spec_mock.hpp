@@ -1,10 +1,10 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_APPLICATION_CHAINSPECMOCK
-#define KAGOME_APPLICATION_CHAINSPECMOCK
+#pragma once
 
 #include "application/chain_spec.hpp"
 
@@ -79,5 +79,3 @@ namespace kagome::application {
   };
 
 }  // namespace kagome::application
-
-#endif  // KAGOME_APPLICATION_CHAINSPECMOCK

@@ -1,5 +1,6 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -72,7 +73,7 @@ TEST(BinaryenTest, InvokeCppFunctionFromWebAssembly) {
                 )
               )
               )#")
-             % env_name % fun_name % expected_argument;
+           % env_name % fun_name % expected_argument;
 
   std::string expression = fmt.str();
 

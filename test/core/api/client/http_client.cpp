@@ -1,5 +1,6 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -45,7 +46,7 @@ namespace test {
     // send request
     HttpRequest<StringBody> req(HttpMethods::post, "/", 11);
     auto host = endpoint_.address().to_string() + ":"
-                + std::to_string(endpoint_.port());
+              + std::to_string(endpoint_.port());
     req.set(HttpField::host, host);
     req.set(HttpField::user_agent, kUserAgent);
     req.set(HttpField::content_type, "text/html");

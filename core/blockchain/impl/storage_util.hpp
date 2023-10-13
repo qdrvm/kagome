@@ -1,10 +1,10 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_CORE_BLOCKCHAIN_IMPL_PERSISTENT_MAP_UTIL_HPP
-#define KAGOME_CORE_BLOCKCHAIN_IMPL_PERSISTENT_MAP_UTIL_HPP
+#pragma once
 
 #include "common/buffer.hpp"
 #include "primitives/block_header.hpp"
@@ -101,5 +101,3 @@ namespace kagome::blockchain {
       const primitives::BlockHash &block_hash);
 
 }  // namespace kagome::blockchain
-
-#endif  // KAGOME_CORE_BLOCKCHAIN_IMPL_PERSISTENT_MAP_UTIL_HPP

@@ -1,10 +1,10 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_STATE_PROTOCOL_OBSERVER_IMPL
-#define KAGOME_STATE_PROTOCOL_OBSERVER_IMPL
+#pragma once
 
 #include "blockchain/block_header_repository.hpp"
 #include "network/state_protocol_observer.hpp"
@@ -60,5 +60,3 @@ namespace kagome::network {
 }  // namespace kagome::network
 
 OUTCOME_HPP_DECLARE_ERROR(kagome::network, StateProtocolObserverImpl::Error);
-
-#endif  // KAGOME_STATE_PROTOCOL_OBSERVER_IMPL

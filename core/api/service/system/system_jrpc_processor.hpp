@@ -1,10 +1,10 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_API_SYSTEM_SYSTEMJRPCPROCESSOR
-#define KAGOME_API_SYSTEM_SYSTEMJRPCPROCESSOR
+#pragma once
 
 #include "api/jrpc/jrpc_processor.hpp"
 
@@ -27,4 +27,3 @@ namespace kagome::api::system {
   };
 
 }  // namespace kagome::api::system
-#endif  // KAGOME_API_SYSTEM_SYSTEMJRPCPROCESSOR

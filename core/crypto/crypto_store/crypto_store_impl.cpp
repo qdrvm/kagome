@@ -1,5 +1,6 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -58,7 +59,7 @@ namespace kagome::crypto {
   }
 
   outcome::result<EcdsaKeypair> CryptoStoreImpl::generateEcdsaKeypair(
-      KeyTypeId key_type, std::string_view mnemonic_phrase) {
+      KeyType key_type, std::string_view mnemonic_phrase) {
     OUTCOME_TRY(kp, generateKeypair(mnemonic_phrase, *ecdsa_suite_));
     getCache(ecdsa_suite_, ecdsa_caches_, key_type)
         .insert(kp.public_key, kp.secret_key);
@@ -66,7 +67,7 @@ namespace kagome::crypto {
   }
 
   outcome::result<Ed25519Keypair> CryptoStoreImpl::generateEd25519Keypair(
-      KeyTypeId key_type, std::string_view mnemonic_phrase) {
+      KeyType key_type, std::string_view mnemonic_phrase) {
     OUTCOME_TRY(kp, generateKeypair(mnemonic_phrase, *ed_suite_));
     getCache(ed_suite_, ed_caches_, key_type)
         .insert(kp.public_key, kp.secret_key);
@@ -74,7 +75,7 @@ namespace kagome::crypto {
   }
 
   outcome::result<Sr25519Keypair> CryptoStoreImpl::generateSr25519Keypair(
-      KeyTypeId key_type, std::string_view mnemonic_phrase) {
+      KeyType key_type, std::string_view mnemonic_phrase) {
     OUTCOME_TRY(kp, generateKeypair(mnemonic_phrase, *sr_suite_));
     getCache(sr_suite_, sr_caches_, key_type)
         .insert(kp.public_key, kp.secret_key);
@@ -82,7 +83,7 @@ namespace kagome::crypto {
   }
 
   outcome::result<EcdsaKeypair> CryptoStoreImpl::generateEcdsaKeypair(
-      KeyTypeId key_type, const EcdsaSeed &seed) {
+      KeyType key_type, const EcdsaSeed &seed) {
     OUTCOME_TRY(kp, ecdsa_suite_->generateKeypair(seed, {}));
     getCache(ecdsa_suite_, ecdsa_caches_, key_type)
         .insert(kp.public_key, kp.secret_key);
@@ -90,7 +91,7 @@ namespace kagome::crypto {
   }
 
   outcome::result<Ed25519Keypair> CryptoStoreImpl::generateEd25519Keypair(
-      KeyTypeId key_type, const Ed25519Seed &seed) {
+      KeyType key_type, const Ed25519Seed &seed) {
     OUTCOME_TRY(kp, ed_suite_->generateKeypair(seed, {}));
     getCache(ed_suite_, ed_caches_, key_type)
         .insert(kp.public_key, kp.secret_key);
@@ -98,7 +99,7 @@ namespace kagome::crypto {
   }
 
   outcome::result<Sr25519Keypair> CryptoStoreImpl::generateSr25519Keypair(
-      KeyTypeId key_type, const Sr25519Seed &seed) {
+      KeyType key_type, const Sr25519Seed &seed) {
     OUTCOME_TRY(kp, sr_suite_->generateKeypair(seed, {}));
     getCache(sr_suite_, sr_caches_, key_type)
         .insert(kp.public_key, kp.secret_key);
@@ -106,22 +107,22 @@ namespace kagome::crypto {
   }
 
   outcome::result<EcdsaKeypair> CryptoStoreImpl::generateEcdsaKeypairOnDisk(
-      KeyTypeId key_type) {
+      KeyType key_type) {
     return generateKeypairOnDisk(key_type, ecdsa_suite_, ecdsa_caches_);
   }
 
   outcome::result<Ed25519Keypair> CryptoStoreImpl::generateEd25519KeypairOnDisk(
-      KeyTypeId key_type) {
+      KeyType key_type) {
     return generateKeypairOnDisk(key_type, ed_suite_, ed_caches_);
   }
 
   outcome::result<Sr25519Keypair> CryptoStoreImpl::generateSr25519KeypairOnDisk(
-      KeyTypeId key_type) {
+      KeyType key_type) {
     return generateKeypairOnDisk(key_type, sr_suite_, sr_caches_);
   }
 
   outcome::result<EcdsaKeypair> CryptoStoreImpl::findEcdsaKeypair(
-      KeyTypeId key_type, const EcdsaPublicKey &pk) const {
+      KeyType key_type, const EcdsaPublicKey &pk) const {
     auto kp_opt =
         getCache(ecdsa_suite_, ecdsa_caches_, key_type).searchKeypair(pk);
     if (kp_opt) {
@@ -137,7 +138,7 @@ namespace kagome::crypto {
   }
 
   outcome::result<Ed25519Keypair> CryptoStoreImpl::findEd25519Keypair(
-      KeyTypeId key_type, const Ed25519PublicKey &pk) const {
+      KeyType key_type, const Ed25519PublicKey &pk) const {
     auto kp_opt = getCache(ed_suite_, ed_caches_, key_type).searchKeypair(pk);
     if (kp_opt) {
       return kp_opt.value();
@@ -152,7 +153,7 @@ namespace kagome::crypto {
   }
 
   outcome::result<Sr25519Keypair> CryptoStoreImpl::findSr25519Keypair(
-      KeyTypeId key_type, const Sr25519PublicKey &pk) const {
+      KeyType key_type, const Sr25519PublicKey &pk) const {
     auto kp_opt = getCache(sr_suite_, sr_caches_, key_type).searchKeypair(pk);
     if (kp_opt) {
       return kp_opt.value();
@@ -167,20 +168,20 @@ namespace kagome::crypto {
   }
 
   outcome::result<CryptoStoreImpl::EcdsaKeys>
-  CryptoStoreImpl::getEcdsaPublicKeys(KeyTypeId key_type) const {
+  CryptoStoreImpl::getEcdsaPublicKeys(KeyType key_type) const {
     return getPublicKeys(key_type,
                          getCache(ecdsa_suite_, ecdsa_caches_, key_type),
                          *ecdsa_suite_);
   }
 
   outcome::result<CryptoStoreImpl::Ed25519Keys>
-  CryptoStoreImpl::getEd25519PublicKeys(KeyTypeId key_type) const {
+  CryptoStoreImpl::getEd25519PublicKeys(KeyType key_type) const {
     return getPublicKeys(
         key_type, getCache(ed_suite_, ed_caches_, key_type), *ed_suite_);
   }
 
   outcome::result<CryptoStoreImpl::Sr25519Keys>
-  CryptoStoreImpl::getSr25519PublicKeys(KeyTypeId key_type) const {
+  CryptoStoreImpl::getSr25519PublicKeys(KeyType key_type) const {
     return getPublicKeys(
         key_type, getCache(sr_suite_, sr_caches_, key_type), *sr_suite_);
   }

@@ -1,10 +1,10 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_BLOCK_TREE_ERROR_HPP
-#define KAGOME_BLOCK_TREE_ERROR_HPP
+#pragma once
 
 #include <outcome/outcome.hpp>
 
@@ -35,10 +35,9 @@ namespace kagome::blockchain {
     SOME_BLOCK_IN_CHAIN_NOT_FOUND,
     // block is not a leaf
     BLOCK_IS_NOT_LEAF,
+    BLOCK_IS_FINALIZED,
     BLOCK_NOT_EXISTS
   };
 }  // namespace kagome::blockchain
 
 OUTCOME_HPP_DECLARE_ERROR(kagome::blockchain, BlockTreeError)
-
-#endif  // KAGOME_BLOCK_TREE_ERROR_HPP

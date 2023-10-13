@@ -1,10 +1,10 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_BLOCKCHAIN_BLOCKSTORAGEERROR
-#define KAGOME_BLOCKCHAIN_BLOCKSTORAGEERROR
+#pragma once
 
 #include "outcome/outcome.hpp"
 
@@ -22,5 +22,3 @@ namespace kagome::blockchain {
 }
 
 OUTCOME_HPP_DECLARE_ERROR(kagome::blockchain, BlockStorageError);
-
-#endif  // KAGOME_BLOCKCHAIN_BLOCKSTORAGEERROR

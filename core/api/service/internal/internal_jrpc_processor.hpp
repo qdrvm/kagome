@@ -1,10 +1,10 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_API_INTERNAL_INTERNALJRPCPROCESSOR
-#define KAGOME_API_INTERNAL_INTERNALJRPCPROCESSOR
+#pragma once
 
 #include "api/jrpc/jrpc_processor.hpp"
 #include "api/jrpc/jrpc_server_impl.hpp"
@@ -25,5 +25,3 @@ namespace kagome::api::internal {
     std::shared_ptr<JRpcServer> server_;
   };
 }  // namespace kagome::api::internal
-
-#endif  // KAGOME_API_INTERNAL_INTERNALJRPCPROCESSOR

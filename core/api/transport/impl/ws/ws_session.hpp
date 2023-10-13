@@ -1,10 +1,10 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_CORE_API_TRANSPORT_IMPL_WS_SESSION_HPP
-#define KAGOME_CORE_API_TRANSPORT_IMPL_WS_SESSION_HPP
+#pragma once
 
 #include <chrono>
 #include <cstdlib>
@@ -198,5 +198,3 @@ namespace kagome::api {
   };
 
 }  // namespace kagome::api
-
-#endif  // KAGOME_CORE_API_TRANSPORT_BEAST_HTTP_SESSION_HPP

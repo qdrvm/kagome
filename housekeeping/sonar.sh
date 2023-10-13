@@ -1,4 +1,9 @@
 #!/bin/bash -xe
+#
+# Copyright Quadrivium LLC
+# All Rights Reserved
+# SPDX-License-Identifier: Apache-2.0
+#
 
 BUILD_DIR="${BUILD_DIR:?BUILD_DIR variable is not defined}"
 GITHUB_REPOSITORY="${GITHUB_REPOSITORY:?GITHUB_REPOSITORY variable is not defined}"

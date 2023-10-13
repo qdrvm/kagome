@@ -1,10 +1,10 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_STROBE_HPP
-#define KAGOME_STROBE_HPP
+#pragma once
 
 #include <array>
 #include <cstdint>
@@ -236,5 +236,3 @@ namespace kagome::primitives {
   };
 
 }  // namespace kagome::primitives
-
-#endif  // KAGOME_STROBE_HPP

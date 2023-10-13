@@ -1,3 +1,9 @@
+#
+# Copyright Quadrivium LLC
+# All Rights Reserved
+# SPDX-License-Identifier: Apache-2.0
+#
+
 add_library(wavm_runtime_test INTERFACE)
 target_link_libraries(wavm_runtime_test INTERFACE
     key_file_storage

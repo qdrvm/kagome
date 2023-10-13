@@ -1,10 +1,10 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_TEST_CORE_RUNTIME_RUNTIME_TEST_BASE_HPP
-#define KAGOME_TEST_CORE_RUNTIME_RUNTIME_TEST_BASE_HPP
+#pragma once
 
 #include <gtest/gtest.h>
 
@@ -251,5 +251,3 @@ class RuntimeTestBase : public ::testing::Test {
   std::shared_ptr<crypto::Hasher> hasher_;
   std::shared_ptr<host_api::HostApiFactory> host_api_factory_;
 };
-
-#endif  // KAGOME_TEST_CORE_RUNTIME_RUNTIME_TEST_BASE_HPP

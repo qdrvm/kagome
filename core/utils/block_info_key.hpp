@@ -1,10 +1,10 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_UTILS_BLOCK_INFO_KEY_HPP
-#define KAGOME_UTILS_BLOCK_INFO_KEY_HPP
+#pragma once
 
 #include <boost/endian/conversion.hpp>
 #include <libp2p/common/span_size.hpp>
@@ -36,5 +36,3 @@ namespace kagome {
     }
   };
 }  // namespace kagome
-
-#endif  // KAGOME_UTILS_BLOCK_INFO_KEY_HPP

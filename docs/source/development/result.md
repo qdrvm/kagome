@@ -1,3 +1,9 @@
+[//]: # (
+Copyright Quadrivium LLC
+All Rights Reserved
+SPDX-License-Identifier: Apache-2.0
+)
+
 # Guide for `outcome::result<T>`
 
 Use `outcome::result<T>` from `<outcome/outcome.hpp>` to represent either value of type `T` or `std::error_code`.

@@ -1,10 +1,10 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_API_INTERNAL_REQUEST_SETLOGLEVEL
-#define KAGOME_API_INTERNAL_REQUEST_SETLOGLEVEL
+#pragma once
 
 #include "api/service/base_request.hpp"
 
@@ -31,5 +31,3 @@ namespace kagome::api::internal::request {
   };
 
 }  // namespace kagome::api::internal::request
-
-#endif  // KAGOME_API_INTERNAL_REQUEST_SETLOGLEVEL
