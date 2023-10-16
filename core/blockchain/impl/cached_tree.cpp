@@ -191,9 +191,9 @@ namespace kagome::blockchain {
     }
     BOOST_ASSERT(new_node->children.empty());
     auto parent = wptrMustLock(new_node->weak_parent);
-    auto child_it =
-        std::find(parent->children.begin(), parent->children.end(), new_node);
-    BOOST_ASSERT(child_it == parent->children.end());
+    BOOST_ASSERT(
+        std::find(parent->children.begin(), parent->children.end(), new_node)
+        == parent->children.end());
     parent->children.emplace_back(new_node);
     nodes_.emplace(new_node->info.hash, new_node);
     leaves_.erase(parent->info.hash);
@@ -250,7 +250,7 @@ namespace kagome::blockchain {
     if (changes.reorg) {
       forceRefreshBest();
       size_t offset = changes.reorg->apply.size();
-      auto ok = descend(
+      [[maybe_unused]] auto ok = descend(
           best_, new_finalized, [&](const std::shared_ptr<TreeNode> node) {
             changes.reorg->apply.emplace_back(node->info);
           });
