@@ -57,3 +57,6 @@ target_link_libraries(runtime_upgrade_tracker_test
     log_configurator
     scale::scale
     )
+
+addtest(instance_pool_test instance_pool_test.cpp)
+target_link_libraries(instance_pool_test module_repository blob)

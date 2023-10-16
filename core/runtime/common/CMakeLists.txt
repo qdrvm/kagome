@@ -61,6 +61,9 @@ add_library(module_repository
     runtime_instances_pool.cpp)
 target_link_libraries(module_repository
     outcome
+    uncompress_if_needed
+    blob
+    executor
     )
 kagome_install(module_repository)
 
