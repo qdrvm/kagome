@@ -1037,7 +1037,7 @@ namespace kagome::consensus::grandpa {
 
     // If a peer is at round r, is extremely impolite to send messages about r+1
     // or later. "future-round" messages can be dropped and ignored.
-    if (msg.round_number >= current_round_->roundNumber() + 1) {
+    if (msg.round_number > current_round_->roundNumber() + 1) {
       SL_WARN(logger_,
               "{} signed by {} with set_id={} in round={} has received from {} "
               "and rejected as extremely impolite (our round is {})",
