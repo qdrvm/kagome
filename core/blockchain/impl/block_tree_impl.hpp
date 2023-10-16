@@ -184,16 +184,11 @@ namespace kagome::blockchain {
     outcome::result<void> reorgAndPrune(BlockTreeData &p,
                                         const ReorgAndPrune &changes);
 
-    outcome::result<void> pruneNoLock(
-        BlockTreeData &p, const std::shared_ptr<TreeNode> &lastFinalizedNode);
-
     outcome::result<primitives::BlockHeader> getBlockHeaderNoLock(
         const BlockTreeData &p, const primitives::BlockHash &block_hash) const;
 
     outcome::result<void> pruneTrie(const BlockTreeData &block_tree_data,
                                     primitives::BlockNumber new_finalized);
-
-    outcome::result<void> reorganizeNoLock(BlockTreeData &p);
 
     primitives::BlockInfo getLastFinalizedNoLock(const BlockTreeData &p) const;
     primitives::BlockInfo bestBlockNoLock(const BlockTreeData &p) const;
