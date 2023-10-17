@@ -7,6 +7,7 @@
 #pragma once
 
 #include <memory>
+#include <unordered_map>
 #include <unordered_set>
 
 #include "consensus/grandpa/common.hpp"
@@ -81,31 +82,19 @@ namespace kagome::blockchain {
     primitives::BlockInfo bestWith(
         const std::shared_ptr<TreeNode> &required) const;
     std::shared_ptr<TreeNode> find(const primitives::BlockHash &hash) const;
+    std::optional<Reorg> add(const std::shared_ptr<TreeNode> &new_node);
+    ReorgAndPrune finalize(const std::shared_ptr<TreeNode> &new_finalized);
+    /**
+     * Can't remove finalized root.
+     */
+    ReorgAndPrune removeLeaf(const primitives::BlockHash &hash);
     /**
      * Used when switching from fast-sync to full-sync.
      */
     ReorgAndPrune removeUnfinalized();
 
-    /**
-     * Remove nodes in block tree from current tree_ to {\arg new_trie_root}.
-     * Needed to avoid cascade shared_ptr destructor calls which break
-     * the stack.
-     * @return new tree root
-     */
-    void updateTreeRoot(std::shared_ptr<TreeNode> new_trie_root);
-
-    void updateMeta(const std::shared_ptr<TreeNode> &new_node);
-
     /// Force find and update actual best block
     void forceRefreshBest();
-
-    /**
-     * @brief
-     * A reversal of updateMeta - it's called upon block tree branch prunung to
-     * remove pruned block from leaves list, update deepest node wptr etc.
-     * @param node Removed node
-     */
-    void removeFromMeta(const std::shared_ptr<TreeNode> &node);
 
    private:
     /**
@@ -116,6 +105,7 @@ namespace kagome::blockchain {
 
     std::shared_ptr<TreeNode> root_;
     std::shared_ptr<TreeNode> best_;
+    std::unordered_map<primitives::BlockHash, std::shared_ptr<TreeNode>> nodes_;
     std::unordered_set<primitives::BlockHash> leaves_;
   };
 }  // namespace kagome::blockchain
