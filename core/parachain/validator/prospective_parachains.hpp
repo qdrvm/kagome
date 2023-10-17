@@ -35,9 +35,15 @@ namespace kagome::parachain {
     };
 
     View view;
+    std::shared_ptr<crypto::Hasher> hasher_;
     log::Logger logger = log::createLogger("ProspectiveParachains", "parachain");
 
    public:
+    ProspectiveParachains(std::shared_ptr<crypto::Hasher> hasher)
+    : hasher_{std::move(hasher)} {
+
+    }
+
     std::optional<runtime::PersistedValidationData>
     answerProspectiveValidationDataRequest(
         const RelayHash &candidate_relay_parent,
@@ -48,7 +54,7 @@ namespace kagome::parachain {
         fragment::CandidateStorage &storage = it->second;
         std::optional<HeadData> head_data =
             utils::fromRefToOwn(storage.headDataByHash(parent_head_data_hash));
-        std::optional<RelayChainBlockInfo> relay_parent_info{};
+        std::optional<fragment::RelayChainBlockInfo> relay_parent_info{};
         std::optional<size_t> max_pov_size{};
 
         for (const auto &[_, x] : view.active_leaves) {
@@ -59,7 +65,7 @@ namespace kagome::parachain {
           const fragment::FragmentTree &fragment_tree = it->second;
 
           if (head_data && relay_parent_info && max_pov_size) {
-            break
+            break;
           }
           if (!relay_parent_info) {
             relay_parent_info = utils::fromRefToOwn(
@@ -157,10 +163,26 @@ namespace kagome::parachain {
       return response;
     }
 
+    fragment::FragmentTreeMembership fragmentTreeMembership(
+      const std::unordered_map<Hash, RelayBlockViewData> &active_leaves,
+      ParachainId para,
+      const CandidateHash &candidate) const {
+      fragment::FragmentTreeMembership membership{};
+      for (const auto &[relay_parent, view_data] : active_leaves) {
+        if (auto it = view_data.fragment_trees.find(para); it != view_data.fragment_trees.end()) {
+          const auto &tree = it->second;
+          if (auto depths = tree.candidate(candidate)) {
+            membership.emplace_back(relay_parent, *depths);
+          }
+        }
+      }
+      return membership;
+    }
+
     fragment::FragmentTreeMembership introduceCandidate(
 		ParachainId para,
 		const network::CommittedCandidateReceipt &candidate,
-		const runtime::PersistedValidationData &pvd,
+		const crypto::Hashed<runtime::PersistedValidationData, 32> &pvd,
     const CandidateHash &candidate_hash
     ) {
       auto it_storage = view.candidate_storage.find(para);
@@ -170,7 +192,32 @@ namespace kagome::parachain {
       }
 
       auto &storage = it_storage->second;
-       
+      if (auto res = storage.addCandidate(candidate_hash, candidate, pvd, hasher_); res.has_error()) {
+        if (res.error() == fragment::CandidateStorage::Error::CANDIDATE_ALREADY_KNOWN) {
+          return fragmentTreeMembership(view.active_leaves, para, candidate_hash);
+        }
+        if (res.error() == fragment::CandidateStorage::Error::PERSISTED_VALIDATION_DATA_MISMATCH) {
+          SL_WARN(logger, "Received seconded candidate had mismatching validation data. (parachain id={}, candidate hash={})", para, candidate_hash);
+          return {};
+        }
+      }
+
+      fragment::FragmentTreeMembership membership{};
+      for (const auto &[relay_parent, leaf_data] : view.active_leaves) {
+        if (auto it = leaf_data.fragment_trees.find(para); it != leaf_data.fragment_trees.end()) {
+          auto &tree = it->second;
+          tree.addAndPopulate(candidate_hash, storage);
+          if (auto depths = tree.candidate(candidate_hash)) {
+            membership.emplace_back(relay_parent, *depths);
+          }
+        }
+      }
+
+      if (membership.empty()) {
+        storage.removeCandidate(candidate_hash);
+      }
+
+      return membership;
     }
 
   };

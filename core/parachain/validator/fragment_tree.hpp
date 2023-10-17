@@ -75,6 +75,11 @@ namespace kagome::parachain::fragment {
   };
 
   struct CandidateStorage {
+    enum class Error {
+      CANDIDATE_ALREADY_KNOWN,
+      PERSISTED_VALIDATION_DATA_MISMATCH,
+    };
+
     // Index from head data hash to candidate hashes with that head data as a
     // parent.
     HashMap<Hash, HashSet<CandidateHash>> by_parent_head;
@@ -84,6 +89,12 @@ namespace kagome::parachain::fragment {
 
     // Index from candidate hash to fragment node.
     HashMap<CandidateHash, CandidateEntry> by_candidate_hash;
+
+    outcome::result<void> addCandidate(
+      const CandidateHash &candidate_hash,
+      const network::CommittedCandidateReceipt &candidate,
+      const crypto::Hashed<runtime::PersistedValidationData, 32> &persisted_validation_data,
+      const std::shared_ptr<crypto::Hasher> &hasher);
 
     Option<std::reference_wrapper<const CandidateEntry>> get(
         const CandidateHash &candidate_hash) const {
@@ -379,6 +390,19 @@ namespace kagome::parachain::fragment {
 
     log::Logger logger = log::createLogger("parachain", "fragment_tree");
 
+    Option<Vec<size_t>> candidate(const CandidateHash &hash) const {
+        if (auto it = candidates.find(hash); it != candidates.end()) {
+          Vec<size_t> res;
+          for (size_t ix = 0; ix < it->second.bits.size(); ++ix) {
+            if (it->second.bits[ix]) {
+              res.emplace_back(ix);
+            }
+          }
+          return res;
+        }
+        return std::nullopt;
+    }
+
     static FragmentTree populate(const Scope &scope,
                                  const CandidateStorage &storage) {
       auto logger = log::createLogger("parachain", "fragment_tree");
@@ -544,6 +568,30 @@ namespace kagome::parachain::fragment {
 
         last_sweep_start = sweep_start;
       } while (true);
+    }
+
+    void addAndPopulate(const CandidateHash &hash, const CandidateStorage &storage) {
+      auto opt_candidate_entry = storage.get(hash);
+      if (!opt_candidate_entry) {
+        return;
+      }
+
+      const auto &candidate_entry = opt_candidate_entry->get();
+      const auto &candidate_parent = candidate_entry.candidate.persisted_validation_data.parent_head;
+
+      Vec<NodePointer> bases{};
+      if (scope.base_constraints.required_parent == candidate_parent) {
+        bases.emplace_back(NodePointerRoot{});
+      }
+
+      for (size_t ix = 0ull; ix < nodes.size(); ++ix) {
+        const auto &n = nodes[ix];
+        if (n.cumulative_modifications.required_parent && n.cumulative_modifications.required_parent.value() == candidate_parent) {
+          bases.emplace_back(ix);
+        }
+      }
+
+      populateFromBases(storage, bases);
     }
 
     void insertNode(FragmentNode &&node) {
@@ -756,5 +804,6 @@ namespace kagome::parachain::fragment {
 }  // namespace kagome::parachain::fragment
 
 OUTCOME_HPP_DECLARE_ERROR(kagome::parachain::fragment, Constraints::Error);
+OUTCOME_HPP_DECLARE_ERROR(kagome::parachain::fragment, CandidateStorage::Error);
 
 #endif  // KAGOME_PARACHAIN_FRAGMENT_TREE

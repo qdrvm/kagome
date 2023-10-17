@@ -30,7 +30,54 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::parachain::fragment,
   return "Unknown error";
 }
 
+OUTCOME_CPP_DEFINE_CATEGORY(kagome::parachain::fragment,
+                            CandidateStorage::Error,
+                            e) {
+  using E = kagome::parachain::fragment::CandidateStorage::Error;
+  switch (e) {
+    case E::CANDIDATE_ALREADY_KNOWN:
+      return "Candidate already known";
+      case E::PERSISTED_VALIDATION_DATA_MISMATCH:
+      return "Persisted validation data mismatch";
+  }
+  return "Unknown error";
+}
+
 namespace kagome::parachain::fragment {
+
+outcome::result<void> CandidateStorage::addCandidate(
+  const CandidateHash &candidate_hash,
+      const network::CommittedCandidateReceipt &candidate,
+      const crypto::Hashed<runtime::PersistedValidationData, 32> &persisted_validation_data,
+      const std::shared_ptr<crypto::Hasher> &hasher) {
+        if (by_candidate_hash.contains(candidate_hash)) {
+          return Error::CANDIDATE_ALREADY_KNOWN;
+        }
+
+        if (persisted_validation_data.getHash() != candidate.descriptor.persisted_validation_data_hash) {
+          return Error::PERSISTED_VALIDATION_DATA_MISMATCH;
+        }
+
+        const auto parent_head_hash = hasher.blake2b_256(persisted_validation_data.get().parent_head);
+        const auto output_head_hash = hasher.blake2b_256(candidate.commitments.para_head);
+
+        by_parent_head[parent_head_hash].insert(candidate_hash);
+        by_output_head[output_head_hash].insert(candidate_hash);
+
+    		by_candidate_hash.insert({candidate_hash, CandidateEntry {
+          .candidate_hash = candidate_hash,
+          .relay_parent = candidate.descriptor.relay_parent,
+          .state = CandidateState::Introduced,
+          .candidate = ProspectiveCandidate {
+            .commitments = candidate.commitments,
+            .collator = candidate.descriptor.collator,
+            .collator_signature = candidate.descriptor.signature,
+            .persisted_validation_data = persisted_validation_data.get(),
+            .pov_hash = candidate.descriptor.pov_hash,
+            .validation_code_hash = candidate.descriptor.validation_code_hash
+          }}});
+        return outcome::success();
+      }
 
   outcome::result<Constraints> Constraints::applyModifications(
       const ConstraintModifications &modifications) const {
