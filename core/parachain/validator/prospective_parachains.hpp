@@ -35,6 +35,7 @@ namespace kagome::parachain {
     };
 
     View view;
+    log::Logger logger = log::createLogger("ProspectiveParachains", "parachain");
 
    public:
     std::optional<runtime::PersistedValidationData>
@@ -155,6 +156,23 @@ namespace kagome::parachain {
       }
       return response;
     }
+
+    fragment::FragmentTreeMembership introduceCandidate(
+		ParachainId para,
+		const network::CommittedCandidateReceipt &candidate,
+		const runtime::PersistedValidationData &pvd,
+    const CandidateHash &candidate_hash
+    ) {
+      auto it_storage = view.candidate_storage.find(para);
+      if (it_storage == view.candidate_storage.end()) {
+        SL_WARN(logger, "Received seconded candidate for inactive para. (parachain id={}, candidate hash={})", para, candidate_hash);
+        return {};
+      }
+
+      auto &storage = it_storage->second;
+       
+    }
+
   };
 
 }  // namespace kagome::parachain

@@ -763,9 +763,10 @@ namespace kagome::parachain {
   void ParachainProcessorImpl::handleStatement(
       const libp2p::peer::PeerId &peer_id,
       const primitives::BlockHash &relay_parent,
-      const network::SignedStatement &statement) {
+      const SignedFullStatementWithPVD &statement) {
     BOOST_ASSERT(
         this_context_->io_context()->get_executor().running_in_this_thread());
+
     auto opt_parachain_state = tryGetStateByRelayParent(relay_parent);
     if (!opt_parachain_state) {
       logger_->trace(
@@ -991,11 +992,30 @@ namespace kagome::parachain {
   std::optional<ParachainProcessorImpl::ImportStatementSummary>
   ParachainProcessorImpl::importStatement(
       const network::RelayHash &relay_parent,
-      const network::SignedStatement &statement,
-      ParachainProcessorImpl::RelayParentState &relayParentState) {
+      const SignedFullStatementWithPVD &statement,
+      ParachainProcessorImpl::RelayParentState &rp_state) {
+    const CandidateHash candidate_hash = candidateHashFrom(parachain::getPayload(statement));
+    if (auto seconded= if_type<const StatementWithPVDSeconded>(parachain::getPayload(statement)); seconded && !our_current_state_.per_candidate.contains(candidate_hash)) {
+      if (rp_state.prospective_parachains_mode) {
+        /// prospective_parachains_
+        /// ProspectiveParachainsMessage::IntroduceCandidate
+        /// handle response
+        /// ProspectiveParachainsMessage::CandidateSeconded
+      }
+			our_current_state_.per_candidate.insert(
+				{candidate_hash,
+				PerCandidateState {
+					.persisted_validation_data = seconded->get().pvd,
+					.seconded_locally = false,
+					.para_id = seconded->get().committed_receipt.descriptor.para_id,
+					.relay_parent = seconded->get().committed_receipt.descriptor.relay_parent,
+				}}
+			);
+    }
+
     auto import_result = importStatementToTable(
         relayParentState,
-        candidateHashFrom(parachain::getPayload(statement)),
+        candidate_hash,
         statement);
 
     if (import_result) {

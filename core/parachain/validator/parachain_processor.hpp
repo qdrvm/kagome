@@ -123,9 +123,6 @@ namespace kagome::parachain {
     void processIncomingPeerMessage(
         const libp2p::peer::PeerId &peer_id,
         network::VersionedCollatorProtocolMessage &&msg);
-    void handleStatement(const libp2p::peer::PeerId &peer_id,
-                         const primitives::BlockHash &relay_parent,
-                         const network::SignedStatement &statement);
     void onIncomingCollator(const libp2p::peer::PeerId &peer_id,
                             network::CollatorPublicKey pubkey,
                             network::ParachainId para_id);
@@ -208,6 +205,8 @@ namespace kagome::parachain {
       StatementWithPVDSeconded, StatementWithPVDValid
     >; 
 
+    using SignedFullStatementWithPVD = IndexedAndSigned<StatementWithPVD>;
+
     struct RelayParentState {
       ProspectiveParachainsModeOpt prospective_parachains_mode;
       std::optional<network::ParachainId> assignment;
@@ -223,6 +222,13 @@ namespace kagome::parachain {
       std::unordered_set<network::PeerId> peers_advertised;
       std::unordered_map<primitives::BlockHash, AttestingData> fallbacks;
       std::unordered_set<CandidateHash> backed_hashes;
+    };
+
+    struct PerCandidateState {
+      runtime::PersistedValidationData persisted_validation_data;
+      bool seconded_locally;
+      ParachainId para_id;
+      Hash relay_parent;
     };
 
     /*
@@ -251,6 +257,9 @@ namespace kagome::parachain {
     void makeAvailable(const libp2p::peer::PeerId &peer_id,
                        const primitives::BlockHash &candidate_hash,
                        ValidateAndSecondResult &&result);
+    void handleStatement(const libp2p::peer::PeerId &peer_id,
+                         const primitives::BlockHash &relay_parent,
+                         const SignedFullStatementWithPVD &statement);
 
     outcome::result<std::pair<CollatorId, ParachainId>> insertAdvertisement(
         network::PeerState &peer_data,
@@ -318,7 +327,7 @@ namespace kagome::parachain {
         RelayParentState &parachain_state);
     std::optional<ImportStatementSummary> importStatement(
         const network::RelayHash &relay_parent,
-        const network::SignedStatement &statement,
+        const SignedFullStatementWithPVD &statement,
         ParachainProcessorImpl::RelayParentState &relayParentState);
 
     const network::CandidateDescriptor &candidateDescriptorFrom(
@@ -363,20 +372,16 @@ namespace kagome::parachain {
     }
 
     primitives::BlockHash candidateHashFrom(
-        const network::Statement &statement) {
+        const StatementWithPVD &statement) {
       return visit_in_place(
-          statement.candidate_state,
-          [&](const network::CommittedCandidateReceipt &data) {
+          statement,
+          [&](const StatementWithPVDSeconded &val) {
             return hasher_->blake2b_256(
-                scale::encode(candidateFromCommittedCandidateReceipt(data))
+                scale::encode(candidateFromCommittedCandidateReceipt(val.committed_receipt))
                     .value());
           },
-          [&](const primitives::BlockHash &candidate_hash) {
-            return candidate_hash;
-          },
-          [](const auto &) {
-            BOOST_ASSERT(!"Not used!");
-            return primitives::BlockHash{};
+          [&](const StatementWithPVDValid &val) {
+            return val.candidate_hash;
           });
     }
 
@@ -481,6 +486,7 @@ namespace kagome::parachain {
           seconded_statements;
       ImplicitView implicit_view;
       std::unordered_map<Hash, ActiveLeafState> per_leaf;
+      std::unordered_map<CandidateHash, PerCandidateState> per_candidate;
       /// Added as independent member to prevent extra locks for
       /// `state_by_relay_parent` which is used in internal thread only
       std::unordered_map<Hash, ProspectiveParachainsModeOpt> active_leaves;
