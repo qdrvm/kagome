@@ -538,7 +538,7 @@ namespace kagome::consensus::grandpa {
       return;
     }
 
-    if (info && info->last_finalized > block_tree_->getLastFinalized().number) {
+    if (msg.last_finalized > block_tree_->getLastFinalized().number) {
       //  Trying to substitute with justifications' request only
       main_thread_context_.execute([wself{weak_from_this()},
                                     peer_id,
