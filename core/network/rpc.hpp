@@ -102,7 +102,6 @@ namespace kagome::network {
                       Request request,
                       std::function<void(outcome::result<Response>)> cb) {
       auto log = log::createLogger("rpc_writter", "network");
-      SL_INFO(log, "`newStream` call.");
       host.newStream(
           peer_info.id,
           {protocol},
@@ -166,7 +165,6 @@ namespace kagome::network {
                       Request request,
                       std::function<void(outcome::result<void>)> cb) {
       auto log = log::createLogger("rpc_writter", "network");
-      SL_INFO(log, "`newStream` call.");
       host.newStream(peer_info.id,
                      {protocol},
                      [request = std::move(request),

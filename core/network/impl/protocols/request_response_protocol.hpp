@@ -114,7 +114,6 @@ namespace kagome::network {
                protocolName(),
                peer_info.id);
 
-      SL_INFO(base_.logger(), "`newStream` call.");
       base_.host().newStream(
           peer_info,
           base_.protocolIds(),

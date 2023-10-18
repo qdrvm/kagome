@@ -114,13 +114,11 @@ namespace kagome::network {
     }
 
     void close(VoidResultHandlerFunc cb) {
-      SL_TRACE(logger_, "`close` call");
       check();
       stream_->close(std::move(cb));
     }
 
     void reset() {
-      SL_TRACE(logger_, "`reset` call");
       check();
       stream_->reset();
     }
