@@ -59,11 +59,9 @@ namespace kagome::consensus::grandpa {
 
   namespace {
     Clock::Duration getGossipDuration(const application::ChainSpec &chain) {
-      // https://github.com/paritytech/polkadot/pull/5448
-      auto slow = chain.isVersi() || chain.isWococo() || chain.isRococo()
-               || chain.isKusama();
       return std::chrono::duration_cast<Clock::Duration>(
-          std::chrono::milliseconds{slow ? 2000 : 1000});
+          // https://github.com/paritytech/polkadot-sdk/blob/3dece31/polkadot/node/service/src/lib.rs#L1218
+          std::chrono::milliseconds(1000));
     }
   }  // namespace
 
