@@ -1000,18 +1000,22 @@ namespace kagome::parachain {
             parachain::getPayload(statement));
         seconded
         && !our_current_state_.per_candidate.contains(candidate_hash)) {
+      auto &candidate = seconded->get().committed_receipt;
       if (rp_state.prospective_parachains_mode) {
-        prospective_parachains_->introduceCandidate(
-            seconded->get().committed_receipt.descriptor.para_id,
-            seconded->get().committed_receipt,
-            crypto::Hashed<const runtime::PersistedValidationData &, 32>{
-                seconded->get().pvd},
-            candidate_hash);
+        fragment::FragmentTreeMembership membership =
+            prospective_parachains_->introduceCandidate(
+                candidate.descriptor.para_id,
+                candidate,
+                crypto::Hashed<const runtime::PersistedValidationData &, 32>{
+                    seconded->get().pvd},
+                candidate_hash);
+        if (membership.empty()) {
+          SL_TRACE(logger_, "`membership` is empty.");
+          return std::nullopt;
+        }
 
-        /// prospective_parachains_
-        /// ProspectiveParachainsMessage::IntroduceCandidate
-        /// handle response
-        /// ProspectiveParachainsMessage::CandidateSeconded
+        prospective_parachains_->candidateSeconded(candidate.descriptor.para_id,
+                                                   candidate_hash);
       }
       our_current_state_.per_candidate.insert(
           {candidate_hash,
@@ -1024,8 +1028,13 @@ namespace kagome::parachain {
            }});
     }
 
+    visit_in_place(parachain::getPayload(statement),
+    )
+    network::SignedStatement stmnt {
+
+    };
     auto import_result =
-        importStatementToTable(relayParentState, candidate_hash, statement);
+        importStatementToTable(rp_state, candidate_hash, stmnt);
 
     if (import_result) {
       SL_TRACE(logger_,
@@ -1035,12 +1044,12 @@ namespace kagome::parachain {
                import_result->imported.validity_votes);
 
       if (auto attested = attested_candidate(import_result->imported.candidate,
-                                             relayParentState.table_context)) {
-        if (relayParentState.backed_hashes
+                                             rp_state.table_context)) {
+        if (rp_state.backed_hashes
                 .insert(candidateHash(*hasher_, attested->candidate))
                 .second) {
           if (auto backed = table_attested_to_backed(
-                  std::move(*attested), relayParentState.table_context)) {
+                  std::move(*attested), rp_state.table_context)) {
             SL_INFO(
                 logger_,
                 "Candidate backed.(candidate={}, para id={}, relay_parent={})",
@@ -1054,7 +1063,7 @@ namespace kagome::parachain {
     }
 
     if (import_result && import_result->attested) {
-      notifyBackedCandidate(statement);
+      notifyBackedCandidate(stmnt);
     }
     return import_result;
   }

@@ -179,6 +179,32 @@ namespace kagome::parachain {
       return membership;
     }
 
+    void candidateSeconded(ParachainId para,
+                           const CandidateHash &candidate_hash) {
+      auto it = view.candidate_storage.find(para);
+      if (it == view.candidate_storage.end()) {
+        SL_WARN(logger,
+                "Received instruction to second unknown candidate. (para "
+                "id={}, candidate hash={})",
+                para,
+                candidate_hash);
+        return;
+      }
+
+      auto &storage = it->second;
+      if (!storage.contains(candidate_hash)) {
+        SL_WARN(logger,
+                "Received instruction to second unknown candidate in storage. "
+                "(para "
+                "id={}, candidate hash={})",
+                para,
+                candidate_hash);
+        return;
+      }
+
+      storage.markSeconded(candidate_hash);
+    }
+
     fragment::FragmentTreeMembership introduceCandidate(
         ParachainId para,
         const network::CommittedCandidateReceipt &candidate,
@@ -216,7 +242,7 @@ namespace kagome::parachain {
       }
 
       fragment::FragmentTreeMembership membership{};
-      for (const auto &[relay_parent, leaf_data] : view.active_leaves) {
+      for (auto &[relay_parent, leaf_data] : view.active_leaves) {
         if (auto it = leaf_data.fragment_trees.find(para);
             it != leaf_data.fragment_trees.end()) {
           auto &tree = it->second;
@@ -228,7 +254,7 @@ namespace kagome::parachain {
       }
 
       if (membership.empty()) {
-        storage.removeCandidate(candidate_hash);
+        storage.removeCandidate(candidate_hash, hasher_);
       }
 
       return membership;

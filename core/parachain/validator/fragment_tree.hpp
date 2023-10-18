@@ -106,6 +106,10 @@ namespace kagome::parachain::fragment {
       return std::nullopt;
     }
 
+    bool contains(const CandidateHash &candidate_hash) const {
+      return by_candidate_hash.contains(candidate_hash);
+    }
+
     template <typename F>
     void iterParaChildren(const Hash &parent_head_hash, F &&func) const {
       if (auto it = by_parent_head.find(parent_head_hash);
