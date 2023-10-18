@@ -997,6 +997,12 @@ namespace kagome::parachain {
     const CandidateHash candidate_hash = candidateHashFrom(parachain::getPayload(statement));
     if (auto seconded= if_type<const StatementWithPVDSeconded>(parachain::getPayload(statement)); seconded && !our_current_state_.per_candidate.contains(candidate_hash)) {
       if (rp_state.prospective_parachains_mode) {
+
+        prospective_parachains_->introduceCandidate(
+          seconded->get().committed_receipt.descriptor.para_id, seconded->get().committed_receipt, crypto::Hashed<const runtime::PersistedValidationData&, 32>{seconded->get().pvd},
+          candidate_hash
+        );
+
         /// prospective_parachains_
         /// ProspectiveParachainsMessage::IntroduceCandidate
         /// handle response

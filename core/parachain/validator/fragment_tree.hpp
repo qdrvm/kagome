@@ -138,6 +138,34 @@ namespace kagome::parachain::fragment {
       }
       return std::nullopt;
     }
+
+    void removeCandidate(const CandidateHash &candidate_hash, const std::shared_ptr<crypto::Hasher> &hasher) {
+      if (auto it = by_candidate_hash.find(candidate_hash); it != by_candidate_hash.end()) {
+        const auto parent_head_hash = hasher.blake2b_256(it->second.candidate.persisted_validation_data.parent_head);
+        if (auto it_bph = by_parent_head.find(parent_head_hash); it_bph != by_parent_head.end()) {
+          it_bph->second.erase(candidate_hash);
+          if (it_bph->second.empty()) {
+            by_parent_head.erase(it_bph);
+          }
+        }
+        by_candidate_hash.erase(it);
+      }
+    }
+
+    void markSeconded(const CandidateHash &candidate_hash) {
+      if (auto it = by_candidate_hash.find(candidate_hash); it != by_candidate_hash.end()) {
+        if (it->second.state != CandidateState::Backed) {
+          it->second.state = CandidateState::Seconded;
+        }
+      }
+    }
+
+    void markBacked(const CandidateHash &candidate_hash) {
+      if (auto it = by_candidate_hash.find(candidate_hash); it != by_candidate_hash.end()) {
+        it->second.state = CandidateState::Backed;
+      }
+    }
+
   };
 
   using NodePointerRoot = network::Empty;
