@@ -304,6 +304,7 @@ namespace kagome::network {
   struct Statement {
     SCALE_TIE(1);
     Statement() = default;
+    Statement(CandidateState &&c) : candidate_state{std::move(c)} {}
     CandidateState candidate_state{Unused<0>{}};
   };
   using SignedStatement = IndexedAndSigned<Statement>;

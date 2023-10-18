@@ -1028,10 +1028,17 @@ namespace kagome::parachain {
            }});
     }
 
-    visit_in_place(parachain::getPayload(statement),
-    )
-    network::SignedStatement stmnt {
-
+    network::SignedStatement stmnt{
+        .signature = statement.signature,
+        .payload = {.ix = statement.payload.ix,
+                    .payload = visit_in_place(
+                        parachain::getPayload(statement),
+                        [&](const StatementWithPVDSeconded &val) {
+                          return network::CandidateState{val.committed_receipt};
+                        },
+                        [&](const StatementWithPVDValid &val) {
+                          return network::CandidateState{val.candidate_hash};
+                        })},
     };
     auto import_result =
         importStatementToTable(rp_state, candidate_hash, stmnt);
@@ -1048,8 +1055,8 @@ namespace kagome::parachain {
         if (rp_state.backed_hashes
                 .insert(candidateHash(*hasher_, attested->candidate))
                 .second) {
-          if (auto backed = table_attested_to_backed(
-                  std::move(*attested), rp_state.table_context)) {
+          if (auto backed = table_attested_to_backed(std::move(*attested),
+                                                     rp_state.table_context)) {
             SL_INFO(
                 logger_,
                 "Candidate backed.(candidate={}, para id={}, relay_parent={})",
