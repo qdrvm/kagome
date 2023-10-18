@@ -57,11 +57,8 @@ namespace kagome::network::vstaging {
     CandidateHash hash;
   };
 
-  using CompactStatement = boost::variant<
-    Empty,
-    SecondedCandidateHash,
-    ValidCandidateHash
-  >;
+  using CompactStatement =
+      boost::variant<Empty, SecondedCandidateHash, ValidCandidateHash>;
 
   struct StatementDistributionMessageStatement {
     RelayHash relay_parent;
@@ -71,40 +68,40 @@ namespace kagome::network::vstaging {
   using v1StatementDistributionMessage = network::StatementDistributionMessage;
 
   struct StatementFilter {
-		/// Seconded statements. '1' is known or undesired.
-		scale::BitVec seconded_in_group;
-		/// Valid statements. '1' is known or undesired.
-		scale::BitVec validated_in_group;
-	};
+    /// Seconded statements. '1' is known or undesired.
+    scale::BitVec seconded_in_group;
+    /// Valid statements. '1' is known or undesired.
+    scale::BitVec validated_in_group;
+  };
 
   struct BackedCandidateManifest {
-		RelayHash relay_parent;
-		CandidateHash candidate_hash;
-		GroupIndex group_index;
-		ParachainId para_id;
-		Hash parent_head_data_hash;
-		/// A statement filter which indicates which validators in the
-		/// para's group at the relay-parent have validated this candidate
-		/// and issued statements about it, to the advertiser's knowledge.
-		///
-		/// This MUST have exactly the minimum amount of bytes
-		/// necessary to represent the number of validators in the assigned
-		/// backing group as-of the relay-parent.
-		StatementFilter statement_knowledge;
-	};
+    RelayHash relay_parent;
+    CandidateHash candidate_hash;
+    GroupIndex group_index;
+    ParachainId para_id;
+    Hash parent_head_data_hash;
+    /// A statement filter which indicates which validators in the
+    /// para's group at the relay-parent have validated this candidate
+    /// and issued statements about it, to the advertiser's knowledge.
+    ///
+    /// This MUST have exactly the minimum amount of bytes
+    /// necessary to represent the number of validators in the assigned
+    /// backing group as-of the relay-parent.
+    StatementFilter statement_knowledge;
+  };
 
- 	struct BackedCandidateAcknowledgement {
-		CandidateHash candidate_hash;
-		StatementFilter statement_knowledge;
-	};
+  struct BackedCandidateAcknowledgement {
+    CandidateHash candidate_hash;
+    StatementFilter statement_knowledge;
+  };
 
   struct StatementDistributionMessage {
     uint8_t index;
     union {
-      StatementDistributionMessageStatement statement; // 0
-      BackedCandidateManifest manifest;// 1
-      BackedCandidateAcknowledgement acknowledgement; //2
-      v1StatementDistributionMessage v1_compartibility; // 255
+      StatementDistributionMessageStatement statement;   // 0
+      BackedCandidateManifest manifest;                  // 1
+      BackedCandidateAcknowledgement acknowledgement;    // 2
+      v1StatementDistributionMessage v1_compartibility;  // 255
     } data;
   };
 

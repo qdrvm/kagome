@@ -171,7 +171,9 @@ namespace kagome::parachain {
   }
 
   outcome::result<Pvf::Result> PvfImpl::pvfSync(
-      const CandidateReceipt &receipt, const ParachainBlock &pov, runtime::PersistedValidationData &&pvd) const {
+      const CandidateReceipt &receipt,
+      const ParachainBlock &pov,
+      runtime::PersistedValidationData &&pvd) const {
     SL_DEBUG(log_,
              "pvfSync relay_parent={} para_id={}",
              receipt.descriptor.relay_parent,
@@ -180,8 +182,9 @@ namespace kagome::parachain {
     return pvfValidate(std::move(pvd), pov, receipt, code);
   }
 
-  outcome::result<ParachainRuntime>
-  PvfImpl::findData(const CandidateDescriptor &descriptor, const runtime::PersistedValidationData &pvd) const {
+  outcome::result<ParachainRuntime> PvfImpl::findData(
+      const CandidateDescriptor &descriptor,
+      const runtime::PersistedValidationData &pvd) const {
     for (auto assumption : {
              runtime::OccupiedCoreAssumption::Included,
              runtime::OccupiedCoreAssumption::TimedOut,

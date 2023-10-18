@@ -994,35 +994,38 @@ namespace kagome::parachain {
       const network::RelayHash &relay_parent,
       const SignedFullStatementWithPVD &statement,
       ParachainProcessorImpl::RelayParentState &rp_state) {
-    const CandidateHash candidate_hash = candidateHashFrom(parachain::getPayload(statement));
-    if (auto seconded= if_type<const StatementWithPVDSeconded>(parachain::getPayload(statement)); seconded && !our_current_state_.per_candidate.contains(candidate_hash)) {
+    const CandidateHash candidate_hash =
+        candidateHashFrom(parachain::getPayload(statement));
+    if (auto seconded = if_type<const StatementWithPVDSeconded>(
+            parachain::getPayload(statement));
+        seconded
+        && !our_current_state_.per_candidate.contains(candidate_hash)) {
       if (rp_state.prospective_parachains_mode) {
-
         prospective_parachains_->introduceCandidate(
-          seconded->get().committed_receipt.descriptor.para_id, seconded->get().committed_receipt, crypto::Hashed<const runtime::PersistedValidationData&, 32>{seconded->get().pvd},
-          candidate_hash
-        );
+            seconded->get().committed_receipt.descriptor.para_id,
+            seconded->get().committed_receipt,
+            crypto::Hashed<const runtime::PersistedValidationData &, 32>{
+                seconded->get().pvd},
+            candidate_hash);
 
         /// prospective_parachains_
         /// ProspectiveParachainsMessage::IntroduceCandidate
         /// handle response
         /// ProspectiveParachainsMessage::CandidateSeconded
       }
-			our_current_state_.per_candidate.insert(
-				{candidate_hash,
-				PerCandidateState {
-					.persisted_validation_data = seconded->get().pvd,
-					.seconded_locally = false,
-					.para_id = seconded->get().committed_receipt.descriptor.para_id,
-					.relay_parent = seconded->get().committed_receipt.descriptor.relay_parent,
-				}}
-			);
+      our_current_state_.per_candidate.insert(
+          {candidate_hash,
+           PerCandidateState{
+               .persisted_validation_data = seconded->get().pvd,
+               .seconded_locally = false,
+               .para_id = seconded->get().committed_receipt.descriptor.para_id,
+               .relay_parent =
+                   seconded->get().committed_receipt.descriptor.relay_parent,
+           }});
     }
 
-    auto import_result = importStatementToTable(
-        relayParentState,
-        candidate_hash,
-        statement);
+    auto import_result =
+        importStatementToTable(relayParentState, candidate_hash, statement);
 
     if (import_result) {
       SL_TRACE(logger_,

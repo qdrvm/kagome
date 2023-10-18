@@ -36,13 +36,12 @@ namespace kagome::parachain {
 
     View view;
     std::shared_ptr<crypto::Hasher> hasher_;
-    log::Logger logger = log::createLogger("ProspectiveParachains", "parachain");
+    log::Logger logger =
+        log::createLogger("ProspectiveParachains", "parachain");
 
    public:
     ProspectiveParachains(std::shared_ptr<crypto::Hasher> hasher)
-    : hasher_{std::move(hasher)} {
-
-    }
+        : hasher_{std::move(hasher)} {}
 
     std::optional<runtime::PersistedValidationData>
     answerProspectiveValidationDataRequest(
@@ -164,12 +163,13 @@ namespace kagome::parachain {
     }
 
     fragment::FragmentTreeMembership fragmentTreeMembership(
-      const std::unordered_map<Hash, RelayBlockViewData> &active_leaves,
-      ParachainId para,
-      const CandidateHash &candidate) const {
+        const std::unordered_map<Hash, RelayBlockViewData> &active_leaves,
+        ParachainId para,
+        const CandidateHash &candidate) const {
       fragment::FragmentTreeMembership membership{};
       for (const auto &[relay_parent, view_data] : active_leaves) {
-        if (auto it = view_data.fragment_trees.find(para); it != view_data.fragment_trees.end()) {
+        if (auto it = view_data.fragment_trees.find(para);
+            it != view_data.fragment_trees.end()) {
           const auto &tree = it->second;
           if (auto depths = tree.candidate(candidate)) {
             membership.emplace_back(relay_parent, *depths);
@@ -180,31 +180,45 @@ namespace kagome::parachain {
     }
 
     fragment::FragmentTreeMembership introduceCandidate(
-		ParachainId para,
-		const network::CommittedCandidateReceipt &candidate,
-		const crypto::Hashed<runtime::PersistedValidationData, 32> &pvd,
-    const CandidateHash &candidate_hash
-    ) {
+        ParachainId para,
+        const network::CommittedCandidateReceipt &candidate,
+        const crypto::Hashed<runtime::PersistedValidationData, 32> &pvd,
+        const CandidateHash &candidate_hash) {
       auto it_storage = view.candidate_storage.find(para);
       if (it_storage == view.candidate_storage.end()) {
-        SL_WARN(logger, "Received seconded candidate for inactive para. (parachain id={}, candidate hash={})", para, candidate_hash);
+        SL_WARN(logger,
+                "Received seconded candidate for inactive para. (parachain "
+                "id={}, candidate hash={})",
+                para,
+                candidate_hash);
         return {};
       }
 
       auto &storage = it_storage->second;
-      if (auto res = storage.addCandidate(candidate_hash, candidate, pvd, hasher_); res.has_error()) {
-        if (res.error() == fragment::CandidateStorage::Error::CANDIDATE_ALREADY_KNOWN) {
-          return fragmentTreeMembership(view.active_leaves, para, candidate_hash);
+      if (auto res =
+              storage.addCandidate(candidate_hash, candidate, pvd, hasher_);
+          res.has_error()) {
+        if (res.error()
+            == fragment::CandidateStorage::Error::CANDIDATE_ALREADY_KNOWN) {
+          return fragmentTreeMembership(
+              view.active_leaves, para, candidate_hash);
         }
-        if (res.error() == fragment::CandidateStorage::Error::PERSISTED_VALIDATION_DATA_MISMATCH) {
-          SL_WARN(logger, "Received seconded candidate had mismatching validation data. (parachain id={}, candidate hash={})", para, candidate_hash);
+        if (res.error()
+            == fragment::CandidateStorage::Error::
+                PERSISTED_VALIDATION_DATA_MISMATCH) {
+          SL_WARN(logger,
+                  "Received seconded candidate had mismatching validation "
+                  "data. (parachain id={}, candidate hash={})",
+                  para,
+                  candidate_hash);
           return {};
         }
       }
 
       fragment::FragmentTreeMembership membership{};
       for (const auto &[relay_parent, leaf_data] : view.active_leaves) {
-        if (auto it = leaf_data.fragment_trees.find(para); it != leaf_data.fragment_trees.end()) {
+        if (auto it = leaf_data.fragment_trees.find(para);
+            it != leaf_data.fragment_trees.end()) {
           auto &tree = it->second;
           tree.addAndPopulate(candidate_hash, storage);
           if (auto depths = tree.candidate(candidate_hash)) {
@@ -219,7 +233,6 @@ namespace kagome::parachain {
 
       return membership;
     }
-
   };
 
 }  // namespace kagome::parachain

@@ -91,10 +91,11 @@ namespace kagome::parachain::fragment {
     HashMap<CandidateHash, CandidateEntry> by_candidate_hash;
 
     outcome::result<void> addCandidate(
-      const CandidateHash &candidate_hash,
-      const network::CommittedCandidateReceipt &candidate,
-      const crypto::Hashed<runtime::PersistedValidationData, 32> &persisted_validation_data,
-      const std::shared_ptr<crypto::Hasher> &hasher);
+        const CandidateHash &candidate_hash,
+        const network::CommittedCandidateReceipt &candidate,
+        const crypto::Hashed<runtime::PersistedValidationData, 32>
+            &persisted_validation_data,
+        const std::shared_ptr<crypto::Hasher> &hasher);
 
     Option<std::reference_wrapper<const CandidateEntry>> get(
         const CandidateHash &candidate_hash) const {
@@ -139,10 +140,14 @@ namespace kagome::parachain::fragment {
       return std::nullopt;
     }
 
-    void removeCandidate(const CandidateHash &candidate_hash, const std::shared_ptr<crypto::Hasher> &hasher) {
-      if (auto it = by_candidate_hash.find(candidate_hash); it != by_candidate_hash.end()) {
-        const auto parent_head_hash = hasher.blake2b_256(it->second.candidate.persisted_validation_data.parent_head);
-        if (auto it_bph = by_parent_head.find(parent_head_hash); it_bph != by_parent_head.end()) {
+    void removeCandidate(const CandidateHash &candidate_hash,
+                         const std::shared_ptr<crypto::Hasher> &hasher) {
+      if (auto it = by_candidate_hash.find(candidate_hash);
+          it != by_candidate_hash.end()) {
+        const auto parent_head_hash = hasher.blake2b_256(
+            it->second.candidate.persisted_validation_data.parent_head);
+        if (auto it_bph = by_parent_head.find(parent_head_hash);
+            it_bph != by_parent_head.end()) {
           it_bph->second.erase(candidate_hash);
           if (it_bph->second.empty()) {
             by_parent_head.erase(it_bph);
@@ -153,7 +158,8 @@ namespace kagome::parachain::fragment {
     }
 
     void markSeconded(const CandidateHash &candidate_hash) {
-      if (auto it = by_candidate_hash.find(candidate_hash); it != by_candidate_hash.end()) {
+      if (auto it = by_candidate_hash.find(candidate_hash);
+          it != by_candidate_hash.end()) {
         if (it->second.state != CandidateState::Backed) {
           it->second.state = CandidateState::Seconded;
         }
@@ -161,11 +167,11 @@ namespace kagome::parachain::fragment {
     }
 
     void markBacked(const CandidateHash &candidate_hash) {
-      if (auto it = by_candidate_hash.find(candidate_hash); it != by_candidate_hash.end()) {
+      if (auto it = by_candidate_hash.find(candidate_hash);
+          it != by_candidate_hash.end()) {
         it->second.state = CandidateState::Backed;
       }
     }
-
   };
 
   using NodePointerRoot = network::Empty;
@@ -419,16 +425,16 @@ namespace kagome::parachain::fragment {
     log::Logger logger = log::createLogger("parachain", "fragment_tree");
 
     Option<Vec<size_t>> candidate(const CandidateHash &hash) const {
-        if (auto it = candidates.find(hash); it != candidates.end()) {
-          Vec<size_t> res;
-          for (size_t ix = 0; ix < it->second.bits.size(); ++ix) {
-            if (it->second.bits[ix]) {
-              res.emplace_back(ix);
-            }
+      if (auto it = candidates.find(hash); it != candidates.end()) {
+        Vec<size_t> res;
+        for (size_t ix = 0; ix < it->second.bits.size(); ++ix) {
+          if (it->second.bits[ix]) {
+            res.emplace_back(ix);
           }
-          return res;
         }
-        return std::nullopt;
+        return res;
+      }
+      return std::nullopt;
     }
 
     static FragmentTree populate(const Scope &scope,
@@ -598,14 +604,16 @@ namespace kagome::parachain::fragment {
       } while (true);
     }
 
-    void addAndPopulate(const CandidateHash &hash, const CandidateStorage &storage) {
+    void addAndPopulate(const CandidateHash &hash,
+                        const CandidateStorage &storage) {
       auto opt_candidate_entry = storage.get(hash);
       if (!opt_candidate_entry) {
         return;
       }
 
       const auto &candidate_entry = opt_candidate_entry->get();
-      const auto &candidate_parent = candidate_entry.candidate.persisted_validation_data.parent_head;
+      const auto &candidate_parent =
+          candidate_entry.candidate.persisted_validation_data.parent_head;
 
       Vec<NodePointer> bases{};
       if (scope.base_constraints.required_parent == candidate_parent) {
@@ -614,7 +622,9 @@ namespace kagome::parachain::fragment {
 
       for (size_t ix = 0ull; ix < nodes.size(); ++ix) {
         const auto &n = nodes[ix];
-        if (n.cumulative_modifications.required_parent && n.cumulative_modifications.required_parent.value() == candidate_parent) {
+        if (n.cumulative_modifications.required_parent
+            && n.cumulative_modifications.required_parent.value()
+                   == candidate_parent) {
           bases.emplace_back(ix);
         }
       }

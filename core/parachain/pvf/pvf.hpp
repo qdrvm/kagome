@@ -24,7 +24,8 @@ namespace kagome::parachain {
     /// Execute pvf synchronously
     virtual outcome::result<Result> pvfSync(
         const CandidateReceipt &receipt,
-        const ParachainBlock &pov, runtime::PersistedValidationData &&pvd) const = 0;
+        const ParachainBlock &pov,
+        runtime::PersistedValidationData &&pvd) const = 0;
 
     virtual outcome::result<Result> pvfValidate(
         PersistedValidationData &&data,

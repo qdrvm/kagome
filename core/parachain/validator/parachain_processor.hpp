@@ -201,9 +201,8 @@ namespace kagome::parachain {
       CandidateHash candidate_hash;
     };
 
-    using StatementWithPVD = boost::variant<
-      StatementWithPVDSeconded, StatementWithPVDValid
-    >; 
+    using StatementWithPVD =
+        boost::variant<StatementWithPVDSeconded, StatementWithPVDValid>;
 
     using SignedFullStatementWithPVD = IndexedAndSigned<StatementWithPVD>;
 
@@ -371,18 +370,16 @@ namespace kagome::parachain {
       return receipt;
     }
 
-    primitives::BlockHash candidateHashFrom(
-        const StatementWithPVD &statement) {
+    primitives::BlockHash candidateHashFrom(const StatementWithPVD &statement) {
       return visit_in_place(
           statement,
           [&](const StatementWithPVDSeconded &val) {
             return hasher_->blake2b_256(
-                scale::encode(candidateFromCommittedCandidateReceipt(val.committed_receipt))
+                scale::encode(candidateFromCommittedCandidateReceipt(
+                                  val.committed_receipt))
                     .value());
           },
-          [&](const StatementWithPVDValid &val) {
-            return val.candidate_hash;
-          });
+          [&](const StatementWithPVDValid &val) { return val.candidate_hash; });
     }
 
     /*
