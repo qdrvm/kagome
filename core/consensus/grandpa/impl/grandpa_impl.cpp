@@ -12,7 +12,6 @@
 #include <libp2p/basic/scheduler/scheduler_impl.hpp>
 
 #include "application/app_state_manager.hpp"
-#include "application/chain_spec.hpp"
 #include "blockchain/block_tree.hpp"
 #include "common/tagged.hpp"
 #include "consensus/grandpa/authority_manager.hpp"
@@ -57,15 +56,8 @@ namespace kagome::consensus::grandpa {
     return genesis == westend_genesis && block == past_round;
   }
 
-  namespace {
-    Clock::Duration getGossipDuration(const application::ChainSpec &chain) {
-      // https://github.com/paritytech/polkadot/pull/5448
-      auto slow = chain.isVersi() || chain.isWococo() || chain.isRococo()
-               || chain.isKusama();
-      return std::chrono::duration_cast<Clock::Duration>(
-          std::chrono::milliseconds{slow ? 2000 : 1000});
-    }
-  }  // namespace
+  // https://github.com/paritytech/polkadot/pull/6217
+  constexpr std::chrono::milliseconds kGossipDuration{1000};
 
   GrandpaImpl::GrandpaImpl(
       std::shared_ptr<application::AppStateManager> app_state_manager,
@@ -73,7 +65,6 @@ namespace kagome::consensus::grandpa {
       std::shared_ptr<Environment> environment,
       std::shared_ptr<crypto::Ed25519Provider> crypto_provider,
       std::shared_ptr<crypto::SessionKeys> session_keys,
-      const application::ChainSpec &chain_spec,
       std::shared_ptr<AuthorityManager> authority_manager,
       std::shared_ptr<network::Synchronizer> synchronizer,
       std::shared_ptr<network::PeerManager> peer_manager,
@@ -81,7 +72,7 @@ namespace kagome::consensus::grandpa {
       std::shared_ptr<network::ReputationRepository> reputation_repository,
       primitives::events::BabeStateSubscriptionEnginePtr babe_status_observable,
       std::shared_ptr<boost::asio::io_context> main_thread_context)
-      : round_time_factor_{getGossipDuration(chain_spec)},
+      : round_time_factor_{kGossipDuration},
         hasher_{std::move(hasher)},
         environment_{std::move(environment)},
         crypto_provider_{std::move(crypto_provider)},
