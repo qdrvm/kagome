@@ -45,7 +45,7 @@ namespace kagome::telemetry {
 
   class TelemetryServiceImpl
       : public TelemetryService,
-        public std::enable_shared_from_this<TelemetryService> {
+        public std::enable_shared_from_this<TelemetryServiceImpl> {
    public:
     TelemetryServiceImpl(
         std::shared_ptr<application::AppStateManager> app_state_manager,
