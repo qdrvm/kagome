@@ -176,6 +176,12 @@ namespace kagome::parachain::fragment {
         it->second.state = CandidateState::Backed;
       }
     }
+
+    bool isBacked(const CandidateHash &candidate_hash) const {
+      return by_candidate_hash.count(candidate_hash) > 0
+          && by_candidate_hash.at(candidate_hash).state
+                 == CandidateState::Backed;
+    }
   };
 
   using NodePointerRoot = network::Empty;

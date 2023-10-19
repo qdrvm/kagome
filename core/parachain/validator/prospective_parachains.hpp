@@ -205,6 +205,36 @@ namespace kagome::parachain {
       storage.markSeconded(candidate_hash);
     }
 
+    void candidateBacked(ParachainId para,
+                         const CandidateHash &candidate_hash) {
+      auto storage = view.candidate_storage.find(para);
+      if (storage == view.candidate_storage.end()) {
+        SL_WARN(logger,
+                "Received instruction to back unknown candidate. (para_id={}, "
+                "candidate_hash={})",
+                para,
+                candidate_hash);
+        return;
+      }
+      if (!storage->second.contains(candidate_hash)) {
+        SL_WARN(logger,
+                "Received instruction to back unknown candidate. (para_id={}, "
+                "candidate_hash={})",
+                para,
+                candidate_hash);
+        return;
+      }
+      if (storage->second.isBacked(candidate_hash)) {
+        SL_DEBUG(logger,
+                 "Received redundant instruction to mark candidate as backed. "
+                 "(para_id={}, candidate_hash={})",
+                 para,
+                 candidate_hash);
+        return;
+      }
+      storage->second.markBacked(candidate_hash);
+    }
+
     fragment::FragmentTreeMembership introduceCandidate(
         ParachainId para,
         const network::CommittedCandidateReceipt &candidate,

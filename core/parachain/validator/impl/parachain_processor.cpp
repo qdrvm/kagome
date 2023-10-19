@@ -1063,7 +1063,18 @@ namespace kagome::parachain {
                 import_result->imported.candidate,
                 import_result->imported.group_id,
                 relay_parent);
-            backing_store_->add(relay_parent, std::move(*backed));
+            if (rp_state.prospective_parachains_mode) {
+              prospective_parachains_->candidateBacked(para_id, candidate_hash);
+              ctx
+                  .send_message(CollatorProtocolMessage::Backed{
+                      para_id, backed->candidate.descriptor.para_head})
+                  .await;
+              ctx.send_message(
+                     StatementDistributionMessage::Backed(candidate_hash))
+                  .await;
+            } else {
+              backing_store_->add(relay_parent, std::move(*backed));
+            }
           }
         }
       }
