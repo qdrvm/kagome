@@ -10,6 +10,8 @@
 #include <optional>
 #include <utility>
 
+#include "outcome/outcome.hpp"
+
 namespace kagome::runtime {
   /**
    * @brief type of wasm log levels
@@ -71,6 +73,13 @@ namespace kagome::runtime {
 
     return {minor_part, major_part};
   }
+
+  enum class Error {
+    COMPILATION_FAILED = 1,
+  };
+
 }  // namespace kagome::runtime
+
+OUTCOME_HPP_DECLARE_ERROR(kagome::runtime, Error);
 
 #endif  // KAGOME_RUNTIME_TYPES_HPP

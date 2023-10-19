@@ -45,6 +45,20 @@ namespace kagome::parachain {
     std::atomic_int total_code_size{};
   };
 
+  std::optional<ParachainId> get_para_id(runtime::CoreState core) {
+    return visit_in_place(
+        core,
+        [](const runtime::OccupiedCore &core) mutable
+        -> std::optional<ParachainId> {
+          return core.candidate_descriptor.para_id;
+        },
+        [](const runtime::ScheduledCore &core) mutable
+        -> std::optional<ParachainId> { return core.para_id; },
+        [](runtime::FreeCore) -> std::optional<ParachainId> {
+          return std::nullopt;
+        });
+  }
+
   outcome::result<void> ModulePrecompiler::precompileModulesAt(
       const primitives::BlockHash &last_finalized) {
     auto cores_res = parachain_api_->availability_cores(last_finalized);
@@ -68,7 +82,7 @@ namespace kagome::parachain {
     auto start = std::chrono::steady_clock::now();
 
     std::mutex cores_queue_mutex;
-    std::vector<std::future<outcome::result<void>>> futures;
+    std::vector<std::thread> threads;
     for (size_t i = 0; i < config_.precompile_threads_num; i++) {
       auto compilation_worker =
           [self = shared_from_this(),
@@ -86,16 +100,25 @@ namespace kagome::parachain {
             core = cores.back();
             cores.pop_back();
           }
-          OUTCOME_TRY(self->precompileModulesForCore(
-              stats, last_finalized, ParachainCore{core}));
+          auto res = self->precompileModulesForCore(
+              stats, last_finalized, ParachainCore{core});
+          if (!res) {
+            using namespace std::string_literals;
+            auto id = get_para_id(core);
+            SL_ERROR(self->log_,
+                     "Failed to precompile parachain module for {} parachain "
+                     "core: {}",
+                     id ? std::to_string(*id) : "empty"s,
+                     res.error());
+          }
         }
         return outcome::success();
       };
-      futures.emplace_back(std::async(std::launch::async, compilation_worker));
+      threads.emplace_back(compilation_worker);
     }
 
-    for (auto &f : futures) {
-      auto res = f.get();
+    for (auto &t : threads) {
+      t.join();
     }
 
     auto end = std::chrono::steady_clock::now();
@@ -120,23 +143,18 @@ namespace kagome::parachain {
       const primitives::BlockHash &last_finalized,
       const ParachainCore &_core) {
     auto &core = _core.state;
-    // empty core
     if (std::holds_alternative<runtime::FreeCore>(core)) {
       return outcome::success();
+
+    } else if (std::holds_alternative<runtime::OccupiedCore>(core)) {
+      SL_TRACE(log_, "Precompile for occupied availability core");
+      stats.occupied_precompiled_count++;
+    } else if (std::holds_alternative<runtime::ScheduledCore>(core)) {
+      SL_TRACE(log_, "Precompile for scheduled availability core");
+      stats.scheduled_precompiled_count++;
     }
-    auto para_id = visit_in_place(
-        core,
-        [this, &stats](const runtime::OccupiedCore &core) mutable {
-          SL_TRACE(log_, "Precompile for occupied availability core");
-          stats.occupied_precompiled_count++;
-          return core.candidate_descriptor.para_id;
-        },
-        [this, &stats](const runtime::ScheduledCore &core) mutable {
-          SL_TRACE(log_, "Precompile for scheduled availability core");
-          stats.scheduled_precompiled_count++;
-          return core.para_id;
-        },
-        [](runtime::FreeCore) -> ParachainId { BOOST_UNREACHABLE_RETURN({}) });
+    // since we eliminated empty core option earlier
+    auto para_id = get_para_id(core).value();
     OUTCOME_TRY(code_opt,
                 parachain_api_->validation_code(
                     last_finalized,

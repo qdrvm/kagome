@@ -49,14 +49,17 @@ namespace kagome::runtime::wavm {
         const primitives::BlockInfo &,
         const storage::trie::RootHash &) override {
       if (instance_ == nullptr) {
-        auto module = ModuleImpl::compileFrom(compartment_,
-                                              *module_params_,
-                                              intrinsic_module_,
-                                              instance_env_factory_,
-                                              code_,
-                                              code_hash_);
-        OUTCOME_TRY(inst, module->instantiate());
-        last_compiled_module_->set(std::move(module));
+        auto module_res = ModuleImpl::compileFrom(compartment_,
+                                                  *module_params_,
+                                                  intrinsic_module_,
+                                                  instance_env_factory_,
+                                                  code_,
+                                                  code_hash_);
+        if (!module_res) {
+          return make_error_code(module_res.error());
+        }
+        auto inst = module_res.value()->instantiate();
+        last_compiled_module_->set(std::move(module_res.value()));
         instance_ = std::move(inst);
       }
       return instance_;

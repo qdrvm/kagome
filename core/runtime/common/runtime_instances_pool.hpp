@@ -14,10 +14,10 @@
 #include <stack>
 #include <unordered_set>
 
+#include "runtime/module_factory.hpp"
 #include "utils/lru.hpp"
 
 namespace kagome::runtime {
-  class ModuleFactory;
 
   /**
    * @brief Pool of runtime instances - per state. Encapsulates modules cache.
@@ -36,8 +36,9 @@ namespace kagome::runtime {
     RuntimeInstancesPool(std::shared_ptr<ModuleFactory> module_factory,
                          size_t capacity = DEFAULT_MODULES_CACHE_SIZE);
 
-    outcome::result<std::shared_ptr<ModuleInstance>> instantiateFromCode(
-        const CodeHash &code_hash, common::BufferView code_zstd);
+    outcome::result<std::shared_ptr<ModuleInstance>, CompilationError>
+    instantiateFromCode(const CodeHash &code_hash,
+                        common::BufferView code_zstd);
 
     /**
      * @brief Instantiate new or reuse existing ModuleInstance for the provided
@@ -83,12 +84,12 @@ namespace kagome::runtime {
       std::shared_ptr<const Module> module;
       std::vector<std::shared_ptr<ModuleInstance>> instances;
 
-      outcome::result<std::shared_ptr<ModuleInstance>> instantiate(
+      std::shared_ptr<ModuleInstance> instantiate(
           std::unique_lock<std::shared_mutex> &lock);
     };
 
-    outcome::result<std::reference_wrapper<InstancePool>> tryCompileModule(
-        const CodeHash &code_hash, common::BufferView code_zstd);
+    outcome::result<std::reference_wrapper<InstancePool>, CompilationError>
+    tryCompileModule(const CodeHash &code_hash, common::BufferView code_zstd);
 
     std::shared_ptr<ModuleFactory> module_factory_;
 

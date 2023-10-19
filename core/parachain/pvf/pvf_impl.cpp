@@ -144,13 +144,16 @@ namespace kagome::parachain {
 
   bool PvfImpl::prepare() {
     if (config_.precompile_modules) {
-      auto res = precompiler_->precompileModulesAt(
-          block_tree_->getLastFinalized().hash);
-      if (!res) {
-        SL_ERROR(
-            log_, "Parachain module precompilation failed: {}", res.error());
-        return false;
-      }
+      std::thread t{[self = shared_from_this()]() {
+        auto res = self->precompiler_->precompileModulesAt(
+            self->block_tree_->getLastFinalized().hash);
+        if (!res) {
+          SL_ERROR(self->log_,
+                   "Parachain module precompilation failed: {}",
+                   res.error());
+        }
+      }};
+      t.detach();
     }
     return true;
   }

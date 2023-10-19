@@ -36,8 +36,11 @@ namespace kagome::runtime {
       ContextParams params) {
     common::Buffer code;
     OUTCOME_TRY(runtime::uncompressCodeIfNeeded(code_zstd, code));
-    OUTCOME_TRY(runtime_module, module_factory.make(code));
-    OUTCOME_TRY(instance, runtime_module->instantiate());
+    auto runtime_module_res = module_factory.make(code);
+    if (!runtime_module_res) {
+      return Error::COMPILATION_FAILED;
+    }
+    auto instance = runtime_module_res.value()->instantiate();
     runtime::RuntimeContext ctx{
         instance,
     };

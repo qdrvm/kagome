@@ -62,7 +62,7 @@ namespace kagome::parachain {
     BlockNumber hrmp_watermark;
   };
 
-  class PvfImpl : public Pvf {
+  class PvfImpl : public Pvf, public std::enable_shared_from_this<PvfImpl> {
    public:
     struct Config {
       bool precompile_modules;

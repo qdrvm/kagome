@@ -69,24 +69,26 @@ namespace kagome::runtime {
       std::shared_ptr<ModuleFactory> module_factory, size_t capacity)
       : module_factory_{std::move(module_factory)}, pools_{capacity} {}
 
-  outcome::result<std::shared_ptr<ModuleInstance>>
+  outcome::result<std::shared_ptr<ModuleInstance>, CompilationError>
   RuntimeInstancesPool::instantiateFromCode(const CodeHash &code_hash,
                                             common::BufferView code_zstd) {
     std::unique_lock lock{pools_mtx_};
     auto entry = pools_.get(code_hash);
-    if (not entry) {
+    bool found = entry.has_value();
+    if (not found) {
       lock.unlock();
 
       OUTCOME_TRY(new_entry, tryCompileModule(code_hash, code_zstd));
       entry = new_entry;
       lock.lock();
     }
-    OUTCOME_TRY(instance, entry->get().instantiate(lock));
+    auto instance = entry->get().instantiate(lock);
     return std::make_shared<BorrowedInstance>(
         weak_from_this(), code_hash, std::move(instance));
   }
 
-  outcome::result<std::reference_wrapper<RuntimeInstancesPool::InstancePool>>
+  outcome::result<std::reference_wrapper<RuntimeInstancesPool::InstancePool>,
+                  CompilationError>
   RuntimeInstancesPool::tryCompileModule(const CodeHash &code_hash,
                                          common::BufferView code_zstd) {
     std::unique_lock queue_lock{wait_queue_mtx_};
@@ -107,6 +109,7 @@ namespace kagome::runtime {
       std::shared_lock pools_lock{pools_mtx_};
       auto opt_pool = pools_.get(code_hash);
       BOOST_ASSERT(opt_pool);
+      BOOST_ASSERT(opt_pool->get().module);
       return *opt_pool;
 
     } else {
@@ -119,7 +122,9 @@ namespace kagome::runtime {
       queue_lock.unlock();
 
       common::Buffer code;
-      OUTCOME_TRY(uncompressCodeIfNeeded(code_zstd, code));
+      if (!uncompressCodeIfNeeded(code_zstd, code)) {
+        return CompilationError{"Failed to uncompress code"};
+      }
       OUTCOME_TRY(module, module_factory_->make(code));
 
       new_it->second.compilation_done = true;
@@ -136,7 +141,7 @@ namespace kagome::runtime {
     std::unique_lock lock{pools_mtx_};
     auto entry = pools_.get(state);
     BOOST_ASSERT(entry);
-    OUTCOME_TRY(instance, entry->get().instantiate(lock));
+    auto instance = entry->get().instantiate(lock);
     return std::make_shared<BorrowedInstance>(
         weak_from_this(), state, std::move(instance));
   }
@@ -170,7 +175,7 @@ namespace kagome::runtime {
     }
   }
 
-  outcome::result<std::shared_ptr<ModuleInstance>>
+  std::shared_ptr<ModuleInstance>
   RuntimeInstancesPool::InstancePool::instantiate(
       std::unique_lock<std::shared_mutex> &lock) {
     if (instances.empty()) {

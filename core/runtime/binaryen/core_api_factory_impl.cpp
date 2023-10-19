@@ -33,10 +33,10 @@ namespace kagome::runtime::binaryen {
         const primitives::BlockInfo &,
         const storage::trie::RootHash &) override {
       if (instance_ == nullptr) {
-        OUTCOME_TRY(
-            module,
-            ModuleImpl::createFromCode(code_, env_factory_, code_hash_));
-        OUTCOME_TRY(inst, module->instantiate());
+        auto module_res =
+            ModuleImpl::createFromCode(code_, env_factory_, code_hash_);
+        if (!module_res) return make_error_code(module_res.error());
+        auto inst = module_res.value()->instantiate();
         instance_ = std::move(inst);
       }
       return instance_;

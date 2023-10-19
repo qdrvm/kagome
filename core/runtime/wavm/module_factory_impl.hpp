@@ -35,7 +35,7 @@ namespace kagome::runtime::wavm {
         std::optional<std::shared_ptr<ModuleCache>> module_cache,
         std::shared_ptr<crypto::Hasher> hasher);
 
-    outcome::result<std::shared_ptr<Module>> make(
+    outcome::result<std::shared_ptr<Module>, CompilationError> make(
         gsl::span<const uint8_t> code) const override;
 
    private:

@@ -10,6 +10,7 @@
 
 #include "common/buffer.hpp"
 #include "runtime/binaryen/module/module_instance_impl.hpp"
+#include "runtime/module_factory.hpp"
 #include "runtime/trie_storage_provider.hpp"
 
 namespace wasm {
@@ -43,13 +44,13 @@ namespace kagome::runtime::binaryen {
 
     ~ModuleImpl() override = default;
 
-    static outcome::result<std::shared_ptr<ModuleImpl>> createFromCode(
+    static outcome::result<std::shared_ptr<ModuleImpl>, CompilationError>
+    createFromCode(
         const std::vector<uint8_t> &code,
         std::shared_ptr<const InstanceEnvironmentFactory> env_factory_,
         const common::Hash256 &code_hash);
 
-    outcome::result<std::shared_ptr<ModuleInstance>> instantiate()
-        const override;
+    std::shared_ptr<ModuleInstance> instantiate() const override;
 
     ModuleImpl(std::unique_ptr<wasm::Module> &&module,
                std::shared_ptr<const InstanceEnvironmentFactory> env_factory,

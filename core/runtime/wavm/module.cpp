@@ -20,7 +20,8 @@
 
 namespace kagome::runtime::wavm {
 
-  std::shared_ptr<ModuleImpl> ModuleImpl::compileFrom(
+  outcome::result<std::shared_ptr<ModuleImpl>, CompilationError>
+  ModuleImpl::compileFrom(
       std::shared_ptr<CompartmentWrapper> compartment,
       ModuleParams &module_params,
       std::shared_ptr<IntrinsicModule> intrinsic_module,
@@ -34,13 +35,13 @@ namespace kagome::runtime::wavm {
     featureSpec.extendedNameSection = true;
     log::Logger logger = log::createLogger("WAVM Module", "wavm");
     logger->info(
-        "Compiling WebAssembly module with code hash {} for Runtime (going to take a few dozens "
-        "of seconds)", code_hash);
+        "Compiling WebAssembly module with code hash {} (going to "
+        "take a few dozens of seconds)",
+        code_hash);
     if (!WAVM::Runtime::loadBinaryModule(
             code.data(), code.size(), module, featureSpec, &loadError)) {
-      logger->critical("Error loading WAVM binary module: {}",
-                       loadError.message);
-      return nullptr;
+      logger->warn("Error loading WAVM binary module: {}", loadError.message);
+      return CompilationError{std::move(loadError.message)};
     }
 
     auto &imports = WAVM::Runtime::getModuleIR(module).memories.imports;
@@ -76,8 +77,7 @@ namespace kagome::runtime::wavm {
     BOOST_ASSERT(module_);
   }
 
-  outcome::result<std::shared_ptr<ModuleInstance>> ModuleImpl::instantiate()
-      const {
+  std::shared_ptr<ModuleInstance> ModuleImpl::instantiate() const {
 #if defined(__GNUC__) and not defined(__clang__)
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wdangling-reference"

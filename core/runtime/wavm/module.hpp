@@ -12,6 +12,7 @@
 
 #include "common/blob.hpp"
 #include "log/logger.hpp"
+#include "runtime/module_factory.hpp"
 
 namespace WAVM::Runtime {
   struct Compartment;
@@ -31,15 +32,15 @@ namespace kagome::runtime::wavm {
   class ModuleImpl final : public runtime::Module,
                            public std::enable_shared_from_this<ModuleImpl> {
    public:
-    static std::shared_ptr<ModuleImpl> compileFrom(
-        std::shared_ptr<CompartmentWrapper> compartment,
-        ModuleParams &module_params,
-        std::shared_ptr<IntrinsicModule> intrinsic_module,
-        std::shared_ptr<const InstanceEnvironmentFactory> env_factory,
-        gsl::span<const uint8_t> code,
-        const common::Hash256 &code_hash);
+    static outcome::result<std::shared_ptr<ModuleImpl>, CompilationError>
+    compileFrom(std::shared_ptr<CompartmentWrapper> compartment,
+                ModuleParams &module_params,
+                std::shared_ptr<IntrinsicModule> intrinsic_module,
+                std::shared_ptr<const InstanceEnvironmentFactory> env_factory,
+                gsl::span<const uint8_t> code,
+                const common::Hash256 &code_hash);
 
-    outcome::result<std::shared_ptr<ModuleInstance>> instantiate()
+    std::shared_ptr<ModuleInstance> instantiate()
         const override;
 
     ModuleImpl(std::shared_ptr<CompartmentWrapper> compartment,
