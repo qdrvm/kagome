@@ -1057,6 +1057,7 @@ namespace kagome::parachain {
                 .second) {
           if (auto backed = table_attested_to_backed(std::move(*attested),
                                                      rp_state.table_context)) {
+            const auto para_id = backed->candidate.descriptor.para_id;
             SL_INFO(
                 logger_,
                 "Candidate backed.(candidate={}, para id={}, relay_parent={})",
@@ -1065,13 +1066,14 @@ namespace kagome::parachain {
                 relay_parent);
             if (rp_state.prospective_parachains_mode) {
               prospective_parachains_->candidateBacked(para_id, candidate_hash);
-              ctx
-                  .send_message(CollatorProtocolMessage::Backed{
-                      para_id, backed->candidate.descriptor.para_head})
-                  .await;
-              ctx.send_message(
-                     StatementDistributionMessage::Backed(candidate_hash))
-                  .await;
+              unblockAdvertisements(
+                  rp_state,
+                  para_id,
+                  backed->candidate.descriptor.para_head_hash);
+
+              /// ctx.send_message(CollatorProtocolMessage::Backed{para_id,
+              /// backed->candidate.descriptor.para_head}).await;
+              // ctx.send_message(StatementDistributionMessage::Backed(candidate_hash)).await;
             } else {
               backing_store_->add(relay_parent, std::move(*backed));
             }
@@ -1084,6 +1086,68 @@ namespace kagome::parachain {
       notifyBackedCandidate(stmnt);
     }
     return import_result;
+  }
+
+  void ParachainProcessorImpl::unblockAdvertisements(
+      ParachainProcessorImpl::RelayParentState &rp_state,
+      ParachainId para_id,
+      const Hash &para_head) {
+    std::optional<std::vector<BlockedAdvertisement>> unblocked{};
+    auto it = our_current_state_.blocked_advertisements.find(para_id);
+    if (it != our_current_state_.blocked_advertisements.end()) {
+      auto i = it->second.find(para_head);
+      if (i != it->second.end()) {
+        unblocked = std::move(i->second);
+        it->second.erase(i);
+      }
+    }
+
+    if (unblocked) {
+      requestUnblockedCollations(
+          rp_state, para_id, para_head, std::move(*unblocked));
+    }
+  }
+
+  void ParachainProcessorImpl::requestUnblockedCollations(
+      ParachainProcessorImpl::RelayParentState &rp_state,
+      ParachainId para_id,
+      const Hash &para_head,
+      std::vector<BlockedAdvertisement> &&blocked_vec) {
+    for (auto blocked = blocked_vec.begin(); blocked != blocked_vec.end();) {
+      const auto is_seconding_allowed =
+          canSecond(rp_state,
+                    para_id,
+                    blocked->candidate_relay_parent,
+                    blocked->candidate_hash,
+                    para_head);
+      if (is_seconding_allowed) {
+        auto result =
+            enqueueCollation(rp_state,
+                             blocked->candidate_relay_parent,
+                             para_id,
+                             blocked->peer_id,
+                             blocked->collator_id,
+                             std::make_optional(std::make_pair(
+                                 blocked->candidate_hash, para_head)));
+        if (result.has_error()) {
+          SL_DEBUG(logger_,
+                   "Enqueue collation failed.(candidate={}, para id={}, "
+                   "relay_parent={}, para_head={}, peer_id={})",
+                   blocked->candidate_hash,
+                   para_id,
+                   blocked->candidate_relay_parent,
+                   para_head,
+                   blocked->peer_id);
+        }
+        blocked = blocked_vec.erase(blocked);
+      } else {
+        ++blocked;
+      }
+    }
+    if (!blocked_vec.empty()) {
+      our_current_state_.blocked_advertisements[para_id][para_head] =
+          std::move(blocked_vec);
+    }
   }
 
   template <ParachainProcessorImpl::StatementType kStatementType>

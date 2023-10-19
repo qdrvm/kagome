@@ -451,6 +451,15 @@ namespace kagome::parachain {
                     const std::shared_ptr<network::ProtocolBase> &protocol);
 
     bool isValidatingNode() const;
+    void unblockAdvertisements(
+        ParachainProcessorImpl::RelayParentState &rp_state,
+        ParachainId para_id,
+        const Hash &para_head);
+    void requestUnblockedCollations(
+        ParachainProcessorImpl::RelayParentState &rp_state,
+        ParachainId para_id,
+        const Hash &para_head,
+        std::vector<BlockedAdvertisement> &&unblocked);
 
     bool canSecond(ParachainProcessorImpl::RelayParentState &per_relay_parent,
                    ParachainId candidate_para_id,
