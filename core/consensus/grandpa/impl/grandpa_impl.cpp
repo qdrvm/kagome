@@ -941,6 +941,12 @@ namespace kagome::consensus::grandpa {
              peer_id,
              msg);
 
+    // Skip message processing if same vote was already observed
+    if (votes_cache_.contains(msg)) {
+      return;
+    }
+    votes_cache_.put(msg);
+
     auto info = peer_manager_->getPeerState(peer_id);
     if (not info.has_value() or not info->get().set_id.has_value()
         or not info->get().round_number.has_value()) {

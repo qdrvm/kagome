@@ -13,6 +13,7 @@
 #include <boost/asio/io_context.hpp>
 #include <libp2p/basic/scheduler.hpp>
 
+#include "consensus/grandpa/impl/votes_cache.hpp"
 #include "log/logger.hpp"
 #include "metrics/metrics.hpp"
 #include "primitives/event_types.hpp"
@@ -295,6 +296,8 @@ namespace kagome::consensus::grandpa {
      */
     void loadMissingBlocks(GrandpaContext &&grandpa_context);
 
+    const size_t kVotesCacheSize = 5;
+
     const Clock::Duration round_time_factor_;
 
     std::shared_ptr<crypto::Hasher> hasher_;
@@ -305,6 +308,7 @@ namespace kagome::consensus::grandpa {
     std::shared_ptr<network::Synchronizer> synchronizer_;
     std::shared_ptr<network::PeerManager> peer_manager_;
     std::shared_ptr<blockchain::BlockTree> block_tree_;
+    VotesCache votes_cache_{kVotesCacheSize};
     std::shared_ptr<network::ReputationRepository> reputation_repository_;
     primitives::events::BabeStateSubscriptionEnginePtr babe_status_observable_;
     primitives::events::BabeStateEventSubscriberPtr babe_status_observer_;
