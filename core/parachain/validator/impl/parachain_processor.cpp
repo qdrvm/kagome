@@ -639,6 +639,7 @@ namespace kagome::parachain {
   void ParachainProcessorImpl::kickOffValidationWork(
       const RelayHash &relay_parent,
       AttestingData &attesting_data,
+      const PersistedValidationData &persisted_validation_data,
       RelayParentState &parachain_state) {
     const auto candidate_hash{attesting_data.candidate.hash(*hasher_)};
 
@@ -796,8 +797,8 @@ namespace kagome::parachain {
                peer_id);
       std::optional<std::reference_wrapper<AttestingData>> attesting_ref =
           visit_in_place(
-              parachain::getPayload(statement).candidate_state,
-              [&](const network::CommittedCandidateReceipt &seconded)
+              parachain::getPayload(statement),
+              [&](const StatementWithPVDSeconded &val)
                   -> std::optional<std::reference_wrapper<AttestingData>> {
                 auto const &candidate_hash = result->imported.candidate;
                 auto opt_candidate =
@@ -810,7 +811,7 @@ namespace kagome::parachain {
                 AttestingData attesting{
                     .candidate =
                         candidateFromCommittedCandidateReceipt(*opt_candidate),
-                    .pov_hash = seconded.descriptor.pov_hash,
+                    .pov_hash = val.committed_receipt.descriptor.pov_hash,
                     .from_validator = statement.payload.ix,
                     .backing = {}};
 
@@ -818,9 +819,9 @@ namespace kagome::parachain {
                     std::make_pair(candidate_hash, std::move(attesting)));
                 return it->second;
               },
-              [&](const primitives::BlockHash &candidate_hash)
+              [&](const StatementWithPVDValid &val)
                   -> std::optional<std::reference_wrapper<AttestingData>> {
-                auto it = fallbacks.find(candidate_hash);
+                auto it = fallbacks.find(val.candidate_hash);
                 if (it == fallbacks.end()) {
                   return std::nullopt;
                 }
@@ -828,7 +829,7 @@ namespace kagome::parachain {
                     || *parachain_state.our_index == statement.payload.ix) {
                   return std::nullopt;
                 }
-                if (awaiting_validation.count(candidate_hash) > 0) {
+                if (awaiting_validation.contains(val.candidate_hash)) {
                   it->second.backing.push(statement.payload.ix);
                   return std::nullopt;
                 }
@@ -867,10 +868,11 @@ namespace kagome::parachain {
   }
 
   void ParachainProcessorImpl::notifyBackedCandidate(
-      const network::SignedStatement &statement) {
-    logger_->error(
-        "Not implemented. Should notify somebody that backed candidate "
-        "appeared.");
+      const CandidateHash &candidate_hash) {
+    /// TODO(iceseer): send manifest
+    /// TODO(iceseer): send ack backed messages to peers
+    /// TODO(iceseer): send compact statements
+    /// TODO(iceseer): statement-distribution update state(prospective_backed_notification_fragment_tree_updates)
   }
 
   std::optional<ParachainProcessorImpl::AttestedCandidate>
@@ -1070,20 +1072,13 @@ namespace kagome::parachain {
                   rp_state,
                   para_id,
                   backed->candidate.descriptor.para_head_hash);
-
-              /// ctx.send_message(CollatorProtocolMessage::Backed{para_id,
-              /// backed->candidate.descriptor.para_head}).await;
-              // ctx.send_message(StatementDistributionMessage::Backed(candidate_hash)).await;
+              notifyBackedCandidate(candidate_hash);
             } else {
               backing_store_->add(relay_parent, std::move(*backed));
             }
           }
         }
       }
-    }
-
-    if (import_result && import_result->attested) {
-      notifyBackedCandidate(stmnt);
     }
     return import_result;
   }

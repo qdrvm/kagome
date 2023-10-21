@@ -311,6 +311,7 @@ namespace kagome::parachain {
 
     void kickOffValidationWork(const RelayHash &relay_parent,
                                AttestingData &attesting_data,
+                               const PersistedValidationData &persisted_validation_data,
                                RelayParentState &parachain_state);
     std::optional<runtime::SessionInfo> retrieveSessionInfo(
         const RelayHash &relay_parent);
@@ -393,7 +394,7 @@ namespace kagome::parachain {
       BOOST_ASSERT(context);
       boost::asio::post(*context, std::forward<F>(func));
     }
-    void notifyBackedCandidate(const network::SignedStatement &statement);
+    void notifyBackedCandidate(const CandidateHash &candidate_hash);
     void notifyAvailableData(std::vector<network::ErasureChunk> &&chunk_list,
                              const primitives::BlockHash &relay_parent,
                              const network::CandidateHash &candidate_hash,
