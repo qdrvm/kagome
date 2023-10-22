@@ -311,7 +311,7 @@ namespace kagome::parachain {
 
     void kickOffValidationWork(const RelayHash &relay_parent,
                                AttestingData &attesting_data,
-                               const PersistedValidationData &persisted_validation_data,
+                               const runtime::PersistedValidationData &persisted_validation_data,
                                RelayParentState &parachain_state);
     std::optional<runtime::SessionInfo> retrieveSessionInfo(
         const RelayHash &relay_parent);

@@ -639,7 +639,7 @@ namespace kagome::parachain {
   void ParachainProcessorImpl::kickOffValidationWork(
       const RelayHash &relay_parent,
       AttestingData &attesting_data,
-      const PersistedValidationData &persisted_validation_data,
+      const runtime::PersistedValidationData &persisted_validation_data,
       RelayParentState &parachain_state) {
     const auto candidate_hash{attesting_data.candidate.hash(*hasher_)};
 
@@ -677,7 +677,7 @@ namespace kagome::parachain {
       requestPoV(
           *peer,
           candidate_hash,
-          [candidate{attesting_data.candidate},
+          [candidate{attesting_data.candidate}, persisted_validation_data,
            candidate_hash,
            wself{weak_from_this()},
            relay_parent,
@@ -715,6 +715,7 @@ namespace kagome::parachain {
               self->validateAsync<ValidationTaskType::kAttest>(
                   std::move(candidate),
                   std::move(*p),
+                  std::move(persisted_validation_data),
                   peer_id,
                   relay_parent,
                   parachain_state->get().table_context.validators.size());
@@ -791,6 +792,7 @@ namespace kagome::parachain {
         return;
       }
 
+      auto const &candidate_hash = result->imported.candidate;
       SL_TRACE(logger_,
                "Registered incoming statement.(relay_parent={}, peer={}).",
                relay_parent,
@@ -800,7 +802,6 @@ namespace kagome::parachain {
               parachain::getPayload(statement),
               [&](const StatementWithPVDSeconded &val)
                   -> std::optional<std::reference_wrapper<AttestingData>> {
-                auto const &candidate_hash = result->imported.candidate;
                 auto opt_candidate =
                     backing_store_->get_candidate(candidate_hash);
                 if (!opt_candidate) {
@@ -843,8 +844,11 @@ namespace kagome::parachain {
               });
 
       if (attesting_ref) {
-        kickOffValidationWork(
-            relay_parent, attesting_ref->get(), parachain_state);
+        auto it = our_current_state_.per_candidate.find(candidate_hash);
+        if (it != our_current_state_.per_candidate.end()) {
+          kickOffValidationWork(
+              relay_parent, attesting_ref->get(), it->second.persisted_validation_data, parachain_state);
+        }
       }
     }
   }
