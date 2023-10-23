@@ -321,7 +321,8 @@ namespace kagome::telemetry {
   }
 
   void TelemetryServiceImpl::pushBlockStats() {
-    frequentNotificationsRoutine();
+    io_context_->post(
+        [self{shared_from_this()}] { self->frequentNotificationsRoutine(); });
   }
 
   std::string TelemetryServiceImpl::blockNotification(

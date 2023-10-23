@@ -21,7 +21,6 @@
 
 namespace kagome::application {
   class AppStateManager;
-  class ChainSpec;
 }  // namespace kagome::application
 
 namespace kagome::blockchain {
@@ -95,7 +94,6 @@ namespace kagome::consensus::grandpa {
         std::shared_ptr<Environment> environment,
         std::shared_ptr<crypto::Ed25519Provider> crypto_provider,
         std::shared_ptr<crypto::SessionKeys> session_keys,
-        const application::ChainSpec &chain_spec,
         std::shared_ptr<AuthorityManager> authority_manager,
         std::shared_ptr<network::Synchronizer> synchronizer,
         std::shared_ptr<network::PeerManager> peer_manager,
