@@ -140,6 +140,7 @@ namespace kagome::consensus::grandpa {
      * @param msg received grandpa neighbour message
      */
     void onNeighborMessage(const libp2p::peer::PeerId &peer_id,
+                           std::optional<network::PeerStateCompact> &&info_opt,
                            network::GrandpaNeighborMessage &&msg) override;
 
     // Catch-up methods
@@ -155,6 +156,7 @@ namespace kagome::consensus::grandpa {
      * @param msg network message containing catch up request
      */
     void onCatchUpRequest(const libp2p::peer::PeerId &peer_id,
+                          std::optional<network::PeerStateCompact> &&info,
                           network::CatchUpRequest &&msg) override;
 
     /**
@@ -190,6 +192,7 @@ namespace kagome::consensus::grandpa {
     void onVoteMessage(
         std::optional<std::shared_ptr<GrandpaContext>> &&existed_context,
         const libp2p::peer::PeerId &peer_id,
+        std::optional<network::PeerStateCompact> &&info_opt,
         const network::VoteMessage &msg) override;
 
     /**
