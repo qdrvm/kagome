@@ -1745,7 +1745,10 @@ namespace kagome::parachain {
     if (!attesting.backing.empty()) {
       attesting.from_validator = attesting.backing.front();
       attesting.backing.pop();
-      kickOffValidationWork(relay_parent, attesting, *parachain_state);
+        auto it = our_current_state_.per_candidate.find(candidate_hash);
+        if (it != our_current_state_.per_candidate.end()) {
+        kickOffValidationWork(relay_parent, attesting, it->second.persisted_validation_data, *parachain_state);
+        }
     }
   }
 

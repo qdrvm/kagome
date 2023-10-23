@@ -97,6 +97,54 @@ namespace kagome::parachain {
       return std::nullopt;
     }
 
+template <typename Context>
+JfyiErrorResult<void> handle_active_leaves_update(Context& ctx, View& view, ActiveLeavesUpdate update, Metrics& metrics) {
+    // 1. clean up inactive leaves
+    // 2. determine all scheduled para at new block
+    // 3. construct new fragment tree for each para for each new leaf
+    // 4. prune candidate storage.
+    for (const auto& deactivated : update.deactivated) {
+        view.active_leaves.remove(deactivated);
+    }
+    std::unordered_map<Hash, ProspectiveParachainsMode> temp_header_cache;
+    for (const auto& activated : update.activated) {
+        const auto& hash = activated.hash;
+        const auto mode = prospective_parachains_mode(ctx.sender(), hash).await.map_err(JfyiError::Runtime);
+        if (mode) {
+            const auto& enabled_mode = std::get<ProspectiveParachainsMode::Enabled>(*mode);
+            const auto& max_candidate_depth = enabled_mode.max_candidate_depth;
+            const auto& allowed_ancestry_len = enabled_mode.allowed_ancestry_len;
+        } else {
+            gum::trace!(
+                target: LOG_TARGET,
+                block_hash = hash,
+                "Skipping leaf activation since async backing is disabled"
+            );
+            // Not a part of any allowed ancestry.
+            return Ok();
+        }
+        std::unordered_set<Hash> pending_availability;
+        const auto& scheduled_paras = fetch_upcoming_paras(ctx, hash, pending_availability).await;
+        if (!scheduled_paras) {
+            return scheduled_paras.error();
+        }
+        RelayChainBlockInfo block_info;
+        const auto& block_info_result = fetch_block_info(ctx, temp_header_cache, hash).await;
+        if (!block_info_result) {
+            gum::warn!(
+                target: LOG_TARGET,
+                block_hash = hash,
+                "Failed to get block info for newly activated leaf block."
+            );
+            // `update.activated` is an option, but we can use this
+            // to exit the 'loop' and skip this block without skipping the rest.
+            continue;
+        }
+        block_info = block_info_result.value();
+    }
+    return Ok();
+}
+
     /// @brief calculates hypothetical candidate and fragment tree membership
     /// @param candidates Candidates, in arbitrary order, which should be
     /// checked for possible membership in fragment trees.
