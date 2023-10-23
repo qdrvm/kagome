@@ -1152,7 +1152,7 @@ namespace kagome::parachain {
             if (!self->storedDistribBlockEntries().get(it->first)) {
               ++it;
             } else {
-              self->logger_->trace(
+              SL_TRACE(logger_,
                   "Processing pending assignment/approvals.(count={})",
                   it->second.size());
               for (auto i = it->second.begin(); i != it->second.end(); ++i) {
@@ -2396,6 +2396,8 @@ namespace kagome::parachain {
     const auto validator_index = indirect_cert.validator;
 
     {
+      /// Defered send ~dctor() should be called before `launch_approval`
+      /// That's the reason for brakets
       DeferedSender<network::Assignment> assignment_defered_sender{
           [wself{weak_from_this()}](auto &&msgs) {
             if (auto self = wself.lock()) {
