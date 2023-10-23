@@ -1,10 +1,10 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_SHA256_HPP
-#define KAGOME_SHA256_HPP
+#pragma once
 
 #include <string_view>
 
@@ -26,5 +26,3 @@ namespace kagome::crypto {
    */
   common::Hash256 sha256(gsl::span<const uint8_t> input);
 }  // namespace kagome::crypto
-
-#endif  // KAGOME_SHA256_HPP

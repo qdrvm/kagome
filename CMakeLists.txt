@@ -1,3 +1,9 @@
+#
+# Copyright Quadrivium LLC
+# All Rights Reserved
+# SPDX-License-Identifier: Apache-2.0
+#
+
 cmake_minimum_required(VERSION 3.12)
 
 find_program(CCACHE_FOUND ccache)
@@ -13,7 +19,10 @@ set(CMAKE_TOOLCHAIN_FILE
 include("cmake/Hunter/init.cmake")
 
 add_compile_options(-gdwarf-4)
-project(kagome C CXX)
+project(kagome
+    VERSION 0.9.2
+    LANGUAGES C CXX
+)
 
 include(cmake/print.cmake)
 print("C flags: ${CMAKE_C_FLAGS}")

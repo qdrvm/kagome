@@ -1,10 +1,10 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_VOTE_TRACKER_IMPL_HPP
-#define KAGOME_VOTE_TRACKER_IMPL_HPP
+#pragma once
 
 #include "consensus/grandpa/vote_tracker.hpp"
 
@@ -26,5 +26,3 @@ namespace kagome::consensus::grandpa {
   };
 
 }  // namespace kagome::consensus::grandpa
-
-#endif  // KAGOME_VOTE_TRACKER_IMPL_HPP

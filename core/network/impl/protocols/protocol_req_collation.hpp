@@ -1,10 +1,10 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_NETWORK_REQCOLLATIONPROTOCOL
-#define KAGOME_NETWORK_REQCOLLATIONPROTOCOL
+#pragma once
 
 #include "network/protocol_base.hpp"
 
@@ -39,7 +39,7 @@ namespace kagome::network {
     ~ReqCollationProtocol() override = default;
 
     ReqCollationProtocol(libp2p::Host &host,
-                         application::ChainSpec const &chain_spec,
+                         const application::ChainSpec &chain_spec,
                          const blockchain::GenesisBlockHash &genesis_hash,
                          std::shared_ptr<ReqCollationObserver> observer);
 
@@ -63,5 +63,3 @@ namespace kagome::network {
   };
 
 }  // namespace kagome::network
-
-#endif  // KAGOME_NETWORK_REQCOLLATIONPROTOCOL

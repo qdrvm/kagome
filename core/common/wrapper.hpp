@@ -1,10 +1,10 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_CORE_COMMON_WRAPPER_HPP
-#define KAGOME_CORE_COMMON_WRAPPER_HPP
+#pragma once
 
 #include <memory>
 #include <type_traits>
@@ -59,5 +59,3 @@ struct std::hash<kagome::common::Wrapper<T, Tag>> {
     return std::hash<T>()(w.unwrap());
   }
 };
-
-#endif  // KAGOME_CORE_COMMON_WRAPPER_HPP

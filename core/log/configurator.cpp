@@ -1,5 +1,6 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -51,6 +52,7 @@ groups:
               - name: ecdsa
           - name: consensus
             children:
+              - name: timeline
               - name: babe
                 children:
                   - name: babe_lottery

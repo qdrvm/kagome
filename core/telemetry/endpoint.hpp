@@ -1,10 +1,10 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_TELEMETRY_ENDPOINT_HPP
-#define KAGOME_TELEMETRY_ENDPOINT_HPP
+#pragma once
 
 #include "common/uri.hpp"
 
@@ -29,7 +29,7 @@ namespace kagome::telemetry {
 
     bool operator==(const TelemetryEndpoint &other) const {
       return uri_.to_string() == other.uri_.to_string()
-             and verbosity_level_ == other.verbosity_level_;
+         and verbosity_level_ == other.verbosity_level_;
     }
 
     bool operator!=(const TelemetryEndpoint &other) const {
@@ -41,5 +41,3 @@ namespace kagome::telemetry {
     uint8_t verbosity_level_;
   };
 }  // namespace kagome::telemetry
-
-#endif  // KAGOME_TELEMETRY_ENDPOINT_HPP

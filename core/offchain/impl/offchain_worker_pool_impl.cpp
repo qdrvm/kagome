@@ -1,5 +1,6 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -23,11 +24,12 @@ namespace kagome::offchain {
   std::optional<std::shared_ptr<OffchainWorker>>
   OffchainWorkerPoolImpl::getWorker() const {
     return offchain_workers_.sharedAccess(
-        [](auto const &offchain_workers)
+        [](const auto &offchain_workers)
             -> std::optional<std::shared_ptr<OffchainWorker>> {
           if (auto it = offchain_workers.find(getThreadNumber());
-              it != offchain_workers.end())
+              it != offchain_workers.end()) {
             return it->second;
+          }
           return std::nullopt;
         });
   }

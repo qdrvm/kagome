@@ -1,5 +1,6 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -11,7 +12,6 @@
 #include <libp2p/basic/scheduler/scheduler_impl.hpp>
 
 #include "application/app_state_manager.hpp"
-#include "application/chain_spec.hpp"
 #include "blockchain/block_tree.hpp"
 #include "common/tagged.hpp"
 #include "consensus/grandpa/authority_manager.hpp"
@@ -56,15 +56,8 @@ namespace kagome::consensus::grandpa {
     return genesis == westend_genesis && block == past_round;
   }
 
-  namespace {
-    Clock::Duration getGossipDuration(const application::ChainSpec &chain) {
-      // https://github.com/paritytech/polkadot/pull/5448
-      auto slow = chain.isVersi() || chain.isWococo() || chain.isRococo()
-               || chain.isKusama();
-      return std::chrono::duration_cast<Clock::Duration>(
-          std::chrono::milliseconds{slow ? 2000 : 1000});
-    }
-  }  // namespace
+  // https://github.com/paritytech/polkadot/pull/6217
+  constexpr std::chrono::milliseconds kGossipDuration{1000};
 
   GrandpaImpl::GrandpaImpl(
       std::shared_ptr<application::AppStateManager> app_state_manager,
@@ -72,7 +65,6 @@ namespace kagome::consensus::grandpa {
       std::shared_ptr<Environment> environment,
       std::shared_ptr<crypto::Ed25519Provider> crypto_provider,
       std::shared_ptr<crypto::SessionKeys> session_keys,
-      const application::ChainSpec &chain_spec,
       std::shared_ptr<AuthorityManager> authority_manager,
       std::shared_ptr<network::Synchronizer> synchronizer,
       std::shared_ptr<network::PeerManager> peer_manager,
@@ -80,7 +72,7 @@ namespace kagome::consensus::grandpa {
       std::shared_ptr<network::ReputationRepository> reputation_repository,
       primitives::events::BabeStateSubscriptionEnginePtr babe_status_observable,
       std::shared_ptr<boost::asio::io_context> main_thread_context)
-      : round_time_factor_{getGossipDuration(chain_spec)},
+      : round_time_factor_{kGossipDuration},
         hasher_{std::move(hasher)},
         environment_{std::move(environment)},
         crypto_provider_{std::move(crypto_provider)},
@@ -129,15 +121,15 @@ namespace kagome::consensus::grandpa {
             babe_status_observable_, false);
     babe_status_observer_->subscribe(
         babe_status_observer_->generateSubscriptionSetId(),
-        primitives::events::BabeStateEventType::kSyncState);
+        primitives::events::SyncStateEventType::kSyncState);
     babe_status_observer_->setCallback(
         [wself{weak_from_this()}](
             auto /*set_id*/,
             bool &synchronized,
             auto /*event_type*/,
-            const primitives::events::BabeStateEventParams &event) {
+            const primitives::events::SyncStateEventParams &event) {
           if (auto self = wself.lock()) {
-            if (event == babe::Babe::State::SYNCHRONIZED) {
+            if (event == SyncState::SYNCHRONIZED) {
               self->synchronized_once_.store(true);
             }
           }
@@ -1036,7 +1028,7 @@ namespace kagome::consensus::grandpa {
 
     // If a peer is at round r, is extremely impolite to send messages about r+1
     // or later. "future-round" messages can be dropped and ignored.
-    if (msg.round_number >= current_round_->roundNumber() + 1) {
+    if (msg.round_number > current_round_->roundNumber() + 1) {
       SL_WARN(logger_,
               "{} signed by {} with set_id={} in round={} has received from {} "
               "and rejected as extremely impolite (our round is {})",

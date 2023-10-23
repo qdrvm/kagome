@@ -1,10 +1,10 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_CONSENSUS_GRANDPA_AUTHORITYMANAGERERROR
-#define KAGOME_CONSENSUS_GRANDPA_AUTHORITYMANAGERERROR
+#pragma once
 
 #include "outcome/outcome.hpp"
 
@@ -21,5 +21,3 @@ namespace kagome::consensus::grandpa {
 }
 
 OUTCOME_HPP_DECLARE_ERROR(kagome::consensus::grandpa, AuthorityManagerError)
-
-#endif  // KAGOME_CONSENSUS_GRANDPA_AUTHORITYMANAGERERROR

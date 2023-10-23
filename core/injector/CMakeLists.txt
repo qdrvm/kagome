@@ -1,5 +1,6 @@
 #
-# Copyright Soramitsu Co., Ltd. All Rights Reserved.
+# Copyright Quadrivium LLC
+# All Rights Reserved
 # SPDX-License-Identifier: Apache-2.0
 #
 
@@ -8,6 +9,7 @@ add_library(application_injector
     )
 target_link_libraries(application_injector
     Boost::Boost.DI
+    runtime_wavm
     account_nonce_api
     address_publisher
     api
@@ -18,6 +20,7 @@ target_link_libraries(application_injector
     assets
     authority_discovery_api
     babe_api
+    beefy_api
     binaryen_executor_factory
     binaryen_module_factory
     binaryen_runtime_external_interface
@@ -48,6 +51,7 @@ target_link_libraries(application_injector
     metadata_api
     metrics
     metrics_watcher
+    mmr_api
     module_repository
     network
     offchain_local_storage
@@ -75,6 +79,7 @@ target_link_libraries(application_injector
     storage_code_provider
     tagged_transaction_queue_api
     telemetry
+    timeline
     transaction_payment_api
     transaction_pool
     transaction_pool
@@ -82,6 +87,18 @@ target_link_libraries(application_injector
     validator_parachain
     vrf_provider
     waitable_timer
-    wasm_compiler
+    assets
+    grandpa_api
+    p2p::p2p_loopback_stream
+    offchain_worker_factory
+    offchain_worker_pool
+    offchain_worker_api
+    offchain_persistent_storage
+    offchain_local_storage
+    session_keys_api
+    validator_parachain
+    fd_limit
+    recovery_mode
+    dispute_coordinator
     )
 kagome_clear_objects(application_injector)

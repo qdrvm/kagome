@@ -1,10 +1,10 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_BIP39_PROVIDER_HPP
-#define KAGOME_BIP39_PROVIDER_HPP
+#pragma once
 
 #include "common/buffer.hpp"
 #include "crypto/bip39/bip39_types.hpp"
@@ -39,5 +39,3 @@ namespace kagome::crypto {
   };
 
 }  // namespace kagome::crypto
-
-#endif  // KAGOME_BIP39_PROVIDER_HPP

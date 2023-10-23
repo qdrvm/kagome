@@ -1,5 +1,6 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -13,7 +14,6 @@
 #include <libp2p/host/host.hpp>
 
 #include "application/chain_spec.hpp"
-#include "consensus/babe/babe.hpp"
 #include "containers/objects_cache.hpp"
 #include "log/logger.hpp"
 #include "metrics/metrics.hpp"
@@ -21,6 +21,7 @@
 #include "network/impl/protocols/protocol_base_impl.hpp"
 #include "network/impl/stream_engine.hpp"
 #include "network/types/propagate_transactions.hpp"
+#include "network/types/roles.hpp"
 #include "primitives/event_types.hpp"
 #include "subscription/extrinsic_event_key_repository.hpp"
 #include "subscription/subscriber.hpp"
@@ -29,6 +30,10 @@
 
 namespace kagome::blockchain {
   class GenesisBlockHash;
+}
+
+namespace kagome::consensus {
+  class Timeline;
 }
 
 namespace kagome::network {
@@ -50,7 +55,7 @@ namespace kagome::network {
         Roles roles,
         const application::ChainSpec &chain_spec,
         const blockchain::GenesisBlockHash &genesis_hash,
-        std::shared_ptr<consensus::babe::Babe> babe,
+        std::shared_ptr<consensus::Timeline> timeline,
         std::shared_ptr<ExtrinsicObserver> extrinsic_observer,
         std::shared_ptr<StreamEngine> stream_engine,
         std::shared_ptr<primitives::events::ExtrinsicSubscriptionEngine>
@@ -75,7 +80,7 @@ namespace kagome::network {
         "PropagateTransactionsProtocol"s;
     ProtocolBaseImpl base_;
     Roles roles_;
-    std::shared_ptr<consensus::babe::Babe> babe_;
+    std::shared_ptr<consensus::Timeline> timeline_;
     std::shared_ptr<ExtrinsicObserver> extrinsic_observer_;
     std::shared_ptr<StreamEngine> stream_engine_;
     std::shared_ptr<primitives::events::ExtrinsicSubscriptionEngine>

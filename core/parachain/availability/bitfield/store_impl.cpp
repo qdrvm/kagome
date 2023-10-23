@@ -1,5 +1,6 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -43,7 +44,7 @@ namespace kagome::parachain {
     auto &cores = c.value();
 
     std::map<ValidatorIndex, SignedBitfield> selected;
-    for (auto const &bf : it->second) {
+    for (const auto &bf : it->second) {
       if (bf.payload.payload.bits.size() != cores.size()) {
         logger_->warn(
             "dropping bitfield due to length mismatch.(relay parent={})",

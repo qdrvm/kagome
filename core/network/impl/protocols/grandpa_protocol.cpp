@@ -1,5 +1,6 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -35,7 +36,8 @@ namespace kagome::network {
       std::shared_ptr<libp2p::basic::Scheduler> scheduler)
       : base_(kGrandpaProtocolName,
               host,
-              make_protocols(kGrandpaProtocol, genesis_hash, "paritytech"),
+              make_protocols(
+                  kGrandpaProtocol, genesis_hash, kProtocolPrefixParitytech),
               log::createLogger(kGrandpaProtocolName, "grandpa_protocol")),
         hasher_{std::move(hasher)},
         io_context_(std::move(io_context)),

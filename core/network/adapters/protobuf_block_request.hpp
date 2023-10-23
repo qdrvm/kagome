@@ -1,10 +1,10 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_ADAPTERS_PROTOBUF_BLOCK_REQUEST
-#define KAGOME_ADAPTERS_PROTOBUF_BLOCK_REQUEST
+#pragma once
 
 #include "network/adapters/protobuf.hpp"
 
@@ -99,5 +99,3 @@ namespace kagome::network {
   };
 
 }  // namespace kagome::network
-
-#endif  // KAGOME_ADAPTERS_PROTOBUF_BLOCK_REQUEST

@@ -1,5 +1,6 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -15,6 +16,7 @@
 #include "common/hexutil.hpp"
 #include "common/monadic_utils.hpp"
 #include "runtime/executor.hpp"
+#include "storage/trie/on_read.hpp"
 
 OUTCOME_CPP_DEFINE_CATEGORY(kagome::api, StateApiImpl::Error, e) {
   using E = kagome::api::StateApiImpl::Error;
@@ -194,15 +196,14 @@ namespace kagome::api {
       std::optional<primitives::BlockHash> opt_at) const {
     auto at =
         opt_at.has_value() ? opt_at.value() : block_tree_->bestBlock().hash;
-    std::unordered_set<common::Buffer> proof;
-    auto prove = [&](common::BufferView raw) { proof.emplace(raw); };
+    storage::trie::OnRead db;
     OUTCOME_TRY(header, header_repo_->getBlockHeader(at));
-    OUTCOME_TRY(trie,
-                storage_->getProofReaderBatchAt(header.state_root, prove));
+    OUTCOME_TRY(
+        trie, storage_->getProofReaderBatchAt(header.state_root, db.onRead()));
     for (auto &key : keys) {
       OUTCOME_TRY(trie->tryGet(key));
     }
-    return ReadProof{at, {proof.begin(), proof.end()}};
+    return ReadProof{at, db.vec()};
   }
 
   outcome::result<primitives::Version> StateApiImpl::getRuntimeVersion(

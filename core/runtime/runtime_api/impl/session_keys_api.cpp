@@ -1,5 +1,6 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -22,13 +23,13 @@ namespace kagome::runtime {
         ctx, "SessionKeys_generate_session_keys", std::move(seed));
   }
 
-  outcome::result<std::vector<std::pair<crypto::KeyTypeId, common::Buffer>>>
+  outcome::result<std::vector<std::pair<crypto::KeyType, common::Buffer>>>
   SessionKeysApiImpl::decode_session_keys(
       const primitives::BlockHash &block_hash,
       common::BufferView encoded) const {
     OUTCOME_TRY(ctx, executor_->ctx().ephemeralAt(block_hash));
     return executor_
-        ->call<std::vector<std::pair<crypto::KeyTypeId, common::Buffer>>>(
+        ->call<std::vector<std::pair<crypto::KeyType, common::Buffer>>>(
             ctx, "SessionKeys_decode_session_keys", encoded);
   }
 

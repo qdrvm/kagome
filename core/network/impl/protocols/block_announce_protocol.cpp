@@ -1,5 +1,6 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -86,10 +87,16 @@ namespace kagome::network {
     };
     auto on_message = [peer_id](std::shared_ptr<BlockAnnounceProtocol> self,
                                 BlockAnnounce block_announce) {
+      // Calculate and save hash, 'cause it's just received announce
+      primitives::calculateBlockHash(
+          const_cast<primitives::BlockHeader &>(block_announce.header),
+          *self->hasher_);
+
       SL_VERBOSE(self->base_.logger(),
-                 "Announce of block #{} is received from {}",
-                 block_announce.header.number,
+                 "Announce of block {} is received from {}",
+                 block_announce.header.blockInfo(),
                  peer_id);
+
       self->observer_->onBlockAnnounce(peer_id, block_announce);
       self->peer_manager_->updatePeerState(peer_id, block_announce);
       return true;
@@ -134,11 +141,10 @@ namespace kagome::network {
   }
 
   void BlockAnnounceProtocol::blockAnnounce(BlockAnnounce &&announce) {
-    auto hash = hasher_->blake2b_256(scale::encode(announce.header).value());
-
     auto shared_msg =
         KAGOME_EXTRACT_SHARED_CACHE(BlockAnnounceProtocol, BlockAnnounce);
     (*shared_msg) = std::move(announce);
+    const auto &hash = shared_msg->header.hash();
 
     SL_DEBUG(
         base_.logger(), "Send announce of block #{}", announce.header.number);

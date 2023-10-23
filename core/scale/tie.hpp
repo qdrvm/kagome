@@ -1,10 +1,10 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_SCALE_TIE_HPP
-#define KAGOME_SCALE_TIE_HPP
+#pragma once
 
 #include <tuple>
 
@@ -131,5 +131,3 @@ namespace scale {
     return s;
   }
 }  // namespace scale
-
-#endif  // KAGOME_SCALE_TIE_HPP

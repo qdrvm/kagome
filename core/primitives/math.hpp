@@ -1,10 +1,10 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_MATH_HPP
-#define KAGOME_MATH_HPP
+#pragma once
 
 #include <common/blob.hpp>
 #include <type_traits>
@@ -35,6 +35,15 @@ namespace kagome::math {
     return res;
   }
 
-}  // namespace kagome::math
+  inline bool isPowerOf2(size_t x) {
+    return ((x > 0ull) && ((x & (x - 1ull)) == 0));
+  }
 
-#endif  // KAGOME_MATH_HPP
+  inline size_t nextHighPowerOf2(size_t k) {
+    if (isPowerOf2(k)) {
+      return k;
+    }
+    const auto p = k == 0ull ? 0ull : 64ull - __builtin_clzll(k);
+    return (1ull << p);
+  }
+}  // namespace kagome::math

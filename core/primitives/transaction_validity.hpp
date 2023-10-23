@@ -1,10 +1,10 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_CORE_PRIMITIVES_TRANSACTION_VALIDITY_HPP
-#define KAGOME_CORE_PRIMITIVES_TRANSACTION_VALIDITY_HPP
+#pragma once
 
 #include <cstdint>
 #include <vector>
@@ -61,8 +61,7 @@ namespace kagome::primitives {
      * A non-empty list signifies that some other transactions which provide
      * given tags are required to be included before that one.
      */
-    std::vector<Transaction::Tag>
-    required_tags;
+    std::vector<Transaction::Tag> required_tags;
 
     /**
      * @brief Provided tags
@@ -203,5 +202,3 @@ namespace kagome::primitives {
 
 OUTCOME_HPP_DECLARE_ERROR(kagome::primitives, InvalidTransaction)
 OUTCOME_HPP_DECLARE_ERROR(kagome::primitives, UnknownTransaction)
-
-#endif  // KAGOME_CORE_PRIMITIVES_TRANSACTION_VALIDITY_HPP

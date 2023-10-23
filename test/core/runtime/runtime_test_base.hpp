@@ -1,10 +1,10 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_TEST_CORE_RUNTIME_RUNTIME_TEST_BASE_HPP
-#define KAGOME_TEST_CORE_RUNTIME_RUNTIME_TEST_BASE_HPP
+#pragma once
 
 #include <gtest/gtest.h>
 
@@ -112,11 +112,12 @@ class RuntimeTestBase : public ::testing::Test {
         .WillByDefault(testing::Return("genesis_hash"_hash256));
     EXPECT_CALL(*header_repo_, getBlockHeader("genesis_hash"_hash256))
         .WillRepeatedly(testing::Return(primitives::BlockHeader{
-            .parent_hash = {},
-            .number = 0,
-            .state_root = "genesis state root"_hash256,
-            .extrinsics_root = "genesis ext root"_hash256,
-            .digest = {}}));
+            0,                             // number
+            {},                            // parent_hash
+            "genesis state root"_hash256,  // state_root
+            "genesis ext root"_hash256,    // extrinsics_root
+            {},                            // digest
+        }));
   }
 
   virtual std::shared_ptr<runtime::ModuleFactory> createModuleFactory() = 0;
@@ -221,7 +222,7 @@ class RuntimeTestBase : public ::testing::Test {
         .WillByDefault(testing::Return(number));
 
     BlockHeader header{
-        parent_hash, number, state_root, extrinsics_root, digest};
+        number, parent_hash, state_root, extrinsics_root, digest};
     EXPECT_CALL(*header_repo_, getBlockHeader(hash))
         .WillRepeatedly(testing::Return(header));
     return header;
@@ -250,5 +251,3 @@ class RuntimeTestBase : public ::testing::Test {
   std::shared_ptr<crypto::Hasher> hasher_;
   std::shared_ptr<host_api::HostApiFactory> host_api_factory_;
 };
-
-#endif  // KAGOME_TEST_CORE_RUNTIME_RUNTIME_TEST_BASE_HPP

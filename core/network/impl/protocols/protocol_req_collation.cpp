@@ -1,5 +1,6 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -29,7 +30,7 @@ namespace kagome::network {
                                     host,
                                     make_protocols(kReqCollationProtocol,
                                                    genesis_hash,
-                                                   "polkadot"),
+                                                   kProtocolPrefixPolkadot),
                                     log::createLogger(
                                         kReqCollationProtocolName,
                                         "req_collation_protocol")},

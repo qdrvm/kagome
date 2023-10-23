@@ -1,5 +1,6 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -10,8 +11,8 @@
 #include "babe_digests_util.hpp"
 #include "blockchain/block_header_repository.hpp"
 #include "blockchain/block_tree.hpp"
-#include "common/visitor.hpp"
-#include "consensus/babe/babe_error.hpp"
+#include "consensus/babe/impl/babe_error.hpp"
+#include "consensus/timeline/slots_util.hpp"
 #include "crypto/hasher.hpp"
 #include "primitives/block_header.hpp"
 #include "runtime/runtime_api/babe_api.hpp"
@@ -55,11 +56,12 @@ namespace kagome::consensus::babe {
       std::shared_ptr<runtime::BabeApi> babe_api,
       std::shared_ptr<crypto::Hasher> hasher,
       std::shared_ptr<storage::trie::TrieStorage> trie_storage,
-      primitives::events::ChainSubscriptionEnginePtr chain_events_engine)
+      primitives::events::ChainSubscriptionEnginePtr chain_events_engine,
+      LazySPtr<SlotsUtil> slots_util)
       : persistent_storage_(
           persistent_storage->getSpace(storage::Space::kDefault)),
         config_warp_sync_{app_config.syncMethod()
-                          == application::AppConfiguration::SyncMethod::Warp},
+                          == application::SyncMethod::Warp},
         block_tree_(std::move(block_tree)),
         indexer_{
             std::make_shared<storage::MapPrefix>(
@@ -76,6 +78,7 @@ namespace kagome::consensus::babe {
           return std::make_shared<primitives::events::ChainEventSubscriber>(
               chain_events_engine);
         }()),
+        slots_util_(std::move(slots_util)),
         logger_(log::createLogger("BabeConfigRepo", "babe_config_repo")) {
     BOOST_ASSERT(persistent_storage_ != nullptr);
     BOOST_ASSERT(block_tree_ != nullptr);
@@ -87,14 +90,14 @@ namespace kagome::consensus::babe {
       logger_->error("Indexer::init error: {}", r.error());
     }
 
-    app_state_manager.atPrepare([this] { return prepare(); });
+    app_state_manager.takeControl(*this);
   }
 
   bool BabeConfigRepositoryImpl::prepare() {
     if (auto res = persistent_storage_->tryGet(
             storage::kBabeConfigRepositoryImplGenesisSlot)) {
       if (auto &genesis_slot_raw = res.value()) {
-        if (auto res = scale::decode<BabeSlotNumber>(*genesis_slot_raw)) {
+        if (auto res = scale::decode<SlotNumber>(*genesis_slot_raw)) {
           first_block_slot_number_ = res.value();
         } else {
           SL_ERROR(logger_, "genesis slot decode error: {}", res.error());
@@ -162,15 +165,16 @@ namespace kagome::consensus::babe {
     if (parent_info.number != 0) {
       OUTCOME_TRY(parent_header, block_tree_->getBlockHeader(parent_info.hash));
       OUTCOME_TRY(parent_slot, getBabeSlot(parent_header));
-      OUTCOME_TRY(parent_epoch, slotToEpoch(parent_info, parent_slot));
+      OUTCOME_TRY(parent_epoch,
+                  slots_util_.get()->slotToEpoch(parent_info, parent_slot));
       epoch_changed = epoch_number != parent_epoch;
     }
     std::unique_lock lock{indexer_mutex_};
     return config(parent_info, epoch_changed);
   }
 
-  BabeDuration BabeConfigRepositoryImpl::slotDuration() const {
-    BOOST_ASSERT_MSG(slot_duration_ != BabeDuration::zero(),
+  Duration BabeConfigRepositoryImpl::slotDuration() const {
+    BOOST_ASSERT_MSG(slot_duration_ != Duration::zero(),
                      "Slot duration is not initialized");
     return slot_duration_;
   }
@@ -180,24 +184,7 @@ namespace kagome::consensus::babe {
     return epoch_length_;
   }
 
-  BabeSlotNumber BabeConfigRepositoryImpl::timeToSlot(
-      BabeTimePoint time) const {
-    return static_cast<BabeSlotNumber>(time.time_since_epoch()
-                                       / slotDuration());
-  }
-
-  BabeTimePoint BabeConfigRepositoryImpl::slotStartTime(
-      BabeSlotNumber slot) const {
-    return BabeTimePoint{} + slot * slotDuration();
-  }
-
-  BabeTimePoint BabeConfigRepositoryImpl::slotFinishTime(
-      BabeSlotNumber slot) const {
-    return slotStartTime(slot + 1);
-  }
-
-  outcome::result<BabeSlotNumber>
-  BabeConfigRepositoryImpl::getFirstBlockSlotNumber(
+  outcome::result<SlotNumber> BabeConfigRepositoryImpl::getFirstBlockSlotNumber(
       const primitives::BlockInfo &parent_info) const {
     auto slot1 = first_block_slot_number_;
     if (not slot1) {
@@ -236,20 +223,6 @@ namespace kagome::consensus::babe {
       }
     }
     return slot1.value();
-  }
-
-  outcome::result<EpochDescriptor>
-  BabeConfigRepositoryImpl::slotToEpochDescriptor(
-      const primitives::BlockInfo &parent_info, BabeSlotNumber slot) const {
-    if (parent_info.number == 0) {
-      return EpochDescriptor{0, slot};
-    }
-    OUTCOME_TRY(slot1, getFirstBlockSlotNumber(parent_info));
-    if (slot < slot1) {
-      return BabeError::SLOT_BEFORE_GENESIS;
-    }
-    auto slots = slot - slot1;
-    return EpochDescriptor{slots / epochLength(), slots % epochLength()};
   }
 
   void BabeConfigRepositoryImpl::warp(std::unique_lock<std::mutex> &lock,

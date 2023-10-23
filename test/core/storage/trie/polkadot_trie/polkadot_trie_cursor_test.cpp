@@ -1,5 +1,6 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -342,7 +343,7 @@ TEST_F(PolkadotTrieCursorTest, SeekBranchNoValue) {
   auto cursor = trie->trieCursor();
 
   EXPECT_OUTCOME_TRUE_1(cursor->seek("01"_hex2buf))
-  ASSERT_FALSE(cursor->isValid());
+  ASSERT_EQ(cursor->key(), "0102"_hex2buf);
 }
 
 TEST_F(PolkadotTrieCursorTest, SeekFirstEmptyTrie) {

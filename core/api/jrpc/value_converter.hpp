@@ -1,10 +1,10 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_CORE_API_EXTRINSIC_RESPONSE_VALUE_CONVERTER_HPP
-#define KAGOME_CORE_API_EXTRINSIC_RESPONSE_VALUE_CONVERTER_HPP
+#pragma once
 
 #include <vector>
 
@@ -20,6 +20,7 @@
 #include "primitives/digest.hpp"
 #include "primitives/event_types.hpp"
 #include "primitives/extrinsic.hpp"
+#include "primitives/mmr.hpp"
 #include "primitives/rpc_methods.hpp"
 #include "primitives/runtime_dispatch_info.hpp"
 #include "primitives/version.hpp"
@@ -115,7 +116,9 @@ namespace kagome::api {
 
   template <typename T>
   inline jsonrpc::Value makeValue(const std::optional<T> &val) {
-    if (!val) return {};
+    if (!val) {
+      return {};
+    }
     return makeValue(*val);
   }
 
@@ -325,6 +328,11 @@ namespace kagome::api {
     return common::hex_lower_0x(scale::encode(v.data).value());
   }
 
+  inline jsonrpc::Value makeValue(const primitives::MmrLeavesProof &v) {
+    return jStruct{
+        {"blockHash", makeValue(v.block_hash)},
+        {"leaves", makeValue(v.leaves)},
+        {"proof", makeValue(v.proof)},
+    };
+  }
 }  // namespace kagome::api
-
-#endif  // KAGOME_CORE_API_EXTRINSIC_RESPONSE_VALUE_CONVERTER_HPP

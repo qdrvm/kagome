@@ -1,5 +1,6 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -18,21 +19,21 @@ namespace kagome::api {
 
   SystemApiImpl::SystemApiImpl(
       std::shared_ptr<application::ChainSpec> config,
-      std::shared_ptr<consensus::babe::Babe> babe,
+      std::shared_ptr<consensus::Timeline> timeline,
       std::shared_ptr<network::PeerManager> peer_manager,
       std::shared_ptr<runtime::AccountNonceApi> account_nonce_api,
       std::shared_ptr<transaction_pool::TransactionPool> transaction_pool,
       std::shared_ptr<const blockchain::BlockTree> block_tree,
       std::shared_ptr<crypto::Hasher> hasher)
       : config_(std::move(config)),
-        babe_(std::move(babe)),
+        timeline_(std::move(timeline)),
         peer_manager_(std::move(peer_manager)),
         account_nonce_api_(std::move(account_nonce_api)),
         transaction_pool_(std::move(transaction_pool)),
         block_tree_(std::move(block_tree)),
         hasher_{std::move(hasher)} {
     BOOST_ASSERT(config_ != nullptr);
-    BOOST_ASSERT(babe_ != nullptr);
+    BOOST_ASSERT(timeline_ != nullptr);
     BOOST_ASSERT(peer_manager_ != nullptr);
     BOOST_ASSERT(account_nonce_api_ != nullptr);
     BOOST_ASSERT(transaction_pool_ != nullptr);
@@ -44,8 +45,8 @@ namespace kagome::api {
     return config_;
   }
 
-  std::shared_ptr<consensus::babe::Babe> SystemApiImpl::getBabe() const {
-    return babe_;
+  std::shared_ptr<consensus::Timeline> SystemApiImpl::getTimeline() const {
+    return timeline_;
   }
 
   std::shared_ptr<network::PeerManager> SystemApiImpl::getPeerManager() const {

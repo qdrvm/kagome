@@ -1,10 +1,10 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_CONSENSUS_GRANDPA_ANCESTRY_VERIFIER_HPP
-#define KAGOME_CONSENSUS_GRANDPA_ANCESTRY_VERIFIER_HPP
+#pragma once
 
 #include <unordered_map>
 
@@ -22,9 +22,13 @@ namespace kagome::consensus::grandpa {
         if (block.number == 0) {
           continue;
         }
-        auto hash = hasher.blake2b_256(scale::encode(block).value());
-        parents.emplace(primitives::BlockInfo{block.number, hash},
-                        *block.parentInfo());
+        // Calculate and save hash, 'cause data
+        // has likely just received from network
+        if (not block.hash_opt.has_value()) {
+          primitives::calculateBlockHash(
+              const_cast<primitives::BlockHeader &>(block), hasher);
+        }
+        parents.emplace(block.blockInfo(), *block.parentInfo());
       }
     }
 
@@ -47,5 +51,3 @@ namespace kagome::consensus::grandpa {
     std::unordered_map<primitives::BlockInfo, primitives::BlockInfo> parents;
   };
 }  // namespace kagome::consensus::grandpa
-
-#endif  // KAGOME_CONSENSUS_GRANDPA_ANCESTRY_VERIFIER_HPP

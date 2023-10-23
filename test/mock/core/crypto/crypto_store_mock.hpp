@@ -1,10 +1,10 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_CRYPTO_STORE_MOCK_HPP
-#define KAGOME_CRYPTO_STORE_MOCK_HPP
+#pragma once
 
 #include "crypto/crypto_store.hpp"
 
@@ -17,77 +17,77 @@ namespace kagome::crypto {
 
     MOCK_METHOD(outcome::result<EcdsaKeypair>,
                 generateEcdsaKeypair,
-                (KeyTypeId, std::string_view),
+                (KeyType, std::string_view),
                 (override));
 
     MOCK_METHOD(outcome::result<EcdsaKeypair>,
                 generateEcdsaKeypair,
-                (KeyTypeId, const EcdsaSeed &),
+                (KeyType, const EcdsaSeed &),
                 (override));
 
     MOCK_METHOD(outcome::result<EcdsaKeypair>,
                 generateEcdsaKeypairOnDisk,
-                (KeyTypeId),
+                (KeyType),
                 (override));
 
     MOCK_METHOD(outcome::result<EcdsaKeypair>,
                 findEcdsaKeypair,
-                (KeyTypeId, const EcdsaPublicKey &),
+                (KeyType, const EcdsaPublicKey &),
                 (const, override));
 
     MOCK_METHOD(outcome::result<EcdsaKeys>,
                 getEcdsaPublicKeys,
-                (KeyTypeId),
+                (KeyType),
                 (const, override));
 
     MOCK_METHOD(outcome::result<Ed25519Keypair>,
                 generateEd25519Keypair,
-                (KeyTypeId, std::string_view),
+                (KeyType, std::string_view),
                 (override));
 
     MOCK_METHOD(outcome::result<Sr25519Keypair>,
                 generateSr25519Keypair,
-                (KeyTypeId, std::string_view),
+                (KeyType, std::string_view),
                 (override));
 
     MOCK_METHOD(outcome::result<Ed25519Keypair>,
                 generateEd25519Keypair,
-                (KeyTypeId, const Ed25519Seed &),
+                (KeyType, const Ed25519Seed &),
                 (override));
 
     MOCK_METHOD(outcome::result<Sr25519Keypair>,
                 generateSr25519Keypair,
-                (KeyTypeId, const Sr25519Seed &),
+                (KeyType, const Sr25519Seed &),
                 (override));
 
     MOCK_METHOD(outcome::result<Ed25519Keypair>,
                 generateEd25519KeypairOnDisk,
-                (KeyTypeId),
+                (KeyType),
                 (override));
 
     MOCK_METHOD(outcome::result<Sr25519Keypair>,
                 generateSr25519KeypairOnDisk,
-                (KeyTypeId),
+                (KeyType),
                 (override));
 
     MOCK_METHOD(outcome::result<Ed25519Keypair>,
                 findEd25519Keypair,
-                (KeyTypeId, const Ed25519PublicKey &),
+                (KeyType, const Ed25519PublicKey &),
                 (const, override));
 
     MOCK_METHOD(outcome::result<Sr25519Keypair>,
                 findSr25519Keypair,
-                (KeyTypeId, const Sr25519PublicKey &),
+                (KeyType, const Sr25519PublicKey &),
                 (const, override));
 
     MOCK_METHOD(outcome::result<Ed25519Keys>,
                 getEd25519PublicKeys,
-                (KeyTypeId),
+                (KeyType),
                 (const, override));
 
     MOCK_METHOD(outcome::result<Sr25519Keys>,
                 getSr25519PublicKeys,
-                (KeyTypeId),
+                (KeyType),
                 (const, override));
 
     MOCK_METHOD(outcome::result<libp2p::crypto::KeyPair>,
@@ -96,5 +96,3 @@ namespace kagome::crypto {
                 (const, override));
   };
 }  // namespace kagome::crypto
-
-#endif  // KAGOME_CRYPTO_STORE_MOCK_HPP

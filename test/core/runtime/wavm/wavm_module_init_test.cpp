@@ -1,5 +1,6 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -43,7 +44,6 @@
 #include "testutil/runtime/common/basic_code_provider.hpp"
 
 #include "core/runtime/wavm/runtime_paths.hpp"
-
 
 class WavmModuleInitTest : public ::testing::TestWithParam<std::string_view> {
  public:
@@ -189,7 +189,6 @@ TEST_P(WavmModuleInitTest, DISABLED_SingleModule) {
           cv.impl_name,
           cv.impl_version);
 }
-
 
 INSTANTIATE_TEST_SUITE_P(SingleModule,
                          WavmModuleInitTest,

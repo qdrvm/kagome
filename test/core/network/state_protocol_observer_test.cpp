@@ -1,5 +1,6 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -74,11 +75,12 @@ BlockHeader makeBlockHeader(RootHash hash) {
   uint32_t num = 1;
   std::string str_num = std::to_string(num);
   return kagome::primitives::BlockHeader{
-      makeHash("block_genesis_hash"),
-      num,
-      hash,
-      makeHash("block_" + str_num + "_ext_root"),
-      {}};
+      num,                                         // number
+      makeHash("block_genesis_hash"),              // parent
+      hash,                                        // state root
+      makeHash("block_" + str_num + "_ext_root"),  // extrinsics root
+      {},                                          // digest
+  };
 }
 
 class StateProtocolObserverTest : public testing::Test {
@@ -141,7 +143,7 @@ TEST_F(StateProtocolObserverTest, Simple) {
   StateRequest request{
       .hash = "1"_hash256,
       .start = {},
-      .no_proof = false,
+      .no_proof = true,
   };
 
   EXPECT_OUTCOME_TRUE(response,

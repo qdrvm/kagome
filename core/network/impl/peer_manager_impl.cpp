@@ -1,5 +1,6 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -11,6 +12,7 @@
 
 #include <libp2p/protocol/kademlia/impl/peer_routing_table.hpp>
 
+#include "network/beefy/protocol.hpp"
 #include "outcome/outcome.hpp"
 #include "scale/libp2p_types.hpp"
 #include "storage/predefined_keys.hpp"
@@ -540,12 +542,10 @@ namespace kagome::network {
 
   void PeerManagerImpl::updatePeerState(const PeerId &peer_id,
                                         const BlockAnnounce &announce) {
-    auto hash = hasher_->blake2b_256(scale::encode(announce.header).value());
-
     auto &state = peer_states_[peer_id];
     state.time = clock_->now();
-    state.best_block = {announce.header.number, hash};
-    state.known_blocks.add(hash);
+    state.best_block = announce.header.blockInfo();
+    state.known_blocks.add(state.best_block.hash);
   }
 
   void PeerManagerImpl::updatePeerState(
@@ -796,6 +796,11 @@ namespace kagome::network {
             self->tryOpenGrandpaProtocol(peer_info, peer_state.value().get());
             self->tryOpenValidationProtocol(peer_info,
                                             peer_state.value().get());
+            openOutgoing(self->stream_engine_,
+                         self->router_->getBeefyProtocol(),
+                         peer_info,
+                         [](outcome::result<
+                             std::shared_ptr<libp2p::connection::Stream>>) {});
           }
         });
 

@@ -1,10 +1,10 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_TEST_TESTUTIL_PRIMITIVES_MP_UTILS_HPP
-#define KAGOME_TEST_TESTUTIL_PRIMITIVES_MP_UTILS_HPP
+#pragma once
 
 #include "common/blob.hpp"
 
@@ -17,5 +17,3 @@ namespace testutil {
   kagome::common::Hash256 createHash256(std::initializer_list<uint8_t> bytes);
 
 }  // namespace testutil
-
-#endif  // KAGOME_TEST_TESTUTIL_PRIMITIVES_MP_UTILS_HPP

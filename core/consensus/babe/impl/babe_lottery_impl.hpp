@@ -1,10 +1,10 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_BABE_LOTTERY_IMPL_HPP
-#define KAGOME_BABE_LOTTERY_IMPL_HPP
+#pragma once
 
 #include "consensus/babe/babe_lottery.hpp"
 
@@ -31,21 +31,20 @@ namespace kagome::consensus::babe {
                     std::shared_ptr<BabeConfigRepository> babe_config_repo,
                     std::shared_ptr<crypto::Hasher> hasher);
 
-    void changeEpoch(const EpochDescriptor &epoch,
+    void changeEpoch(EpochNumber epoch,
                      const Randomness &randomness,
                      const Threshold &threshold,
                      const crypto::Sr25519Keypair &keypair) override;
 
-    EpochDescriptor getEpoch() const override;
+    EpochNumber getEpoch() const override;
 
     std::optional<crypto::VRFOutput> getSlotLeadership(
-        primitives::BabeSlotNumber i) const override;
+        SlotNumber i) const override;
 
-    crypto::VRFOutput slotVrfSignature(
-        primitives::BabeSlotNumber slot) const override;
+    crypto::VRFOutput slotVrfSignature(SlotNumber slot) const override;
 
     std::optional<primitives::AuthorityIndex> secondarySlotAuthor(
-        primitives::BabeSlotNumber slot,
+        SlotNumber slot,
         primitives::AuthorityListSize authorities_count,
         const Randomness &randomness) const override;
 
@@ -55,11 +54,9 @@ namespace kagome::consensus::babe {
 
     log::Logger logger_;
 
-    EpochDescriptor epoch_;
+    EpochNumber epoch_;
     Randomness randomness_;
     Threshold threshold_;
     crypto::Sr25519Keypair keypair_;
   };
 }  // namespace kagome::consensus::babe
-
-#endif  // KAGOME_BABE_LOTTERY_IMPL_HPP

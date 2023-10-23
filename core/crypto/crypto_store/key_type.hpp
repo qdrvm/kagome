@@ -1,13 +1,14 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_CRYPTO_KEY_TYPE_HPP
-#define KAGOME_CRYPTO_KEY_TYPE_HPP
+#pragma once
 
 #include "common/buffer.hpp"
 #include "outcome/outcome.hpp"
+#include "scale/scale.hpp"
 
 namespace kagome::crypto {
 
@@ -17,53 +18,157 @@ namespace kagome::crypto {
   };
 
   /**
-   * @brief Key type identifier
-   */
-  using KeyTypeId = uint32_t;
-
-  /**
-   * Types are 32bit integers, which represent encoded 4-char strings
+   * Makes 32bit integer which represent encoded 4-char strings
    * Little-endian byte order is used
    */
-  enum KnownKeyTypeId : KeyTypeId {
-    // clang-format off
-    KEY_TYPE_BABE = 0x65626162u, // BABE, sr25519
-    KEY_TYPE_GRAN = 0x6e617267u, // GRANDPA, ed25519
-    KEY_TYPE_ACCO = 0x6f636361u, // Account control [sr25519, ed25519, secp256k1]
-    KEY_TYPE_IMON = 0x6e6f6d69u, // I'm Online, sr25519
-    KEY_TYPE_AUDI = 0x69647561u, // Account discovery [sr25519, ed25519, secp256k1]
-    KEY_TYPE_ASGN = 0x6e677361u, // ASGN
-    KEY_TYPE_PARA = 0x61726170u, // PARA
-    // clang-format on
+  constexpr uint32_t operator""_key(const char *s, std::size_t size) {
+    return (static_cast<uint32_t>(s[0]) << (CHAR_BIT * 0))
+         | (static_cast<uint32_t>(s[1]) << (CHAR_BIT * 1))
+         | (static_cast<uint32_t>(s[2]) << (CHAR_BIT * 2))
+         | (static_cast<uint32_t>(s[3]) << (CHAR_BIT * 3));
+  }
+
+  struct KeyType {
+    KeyType() = default;
+    constexpr KeyType(uint32_t id) : id_(id){};
+
+    constexpr operator uint32_t() const {
+      return id_;
+    }
+
+    bool is_supported() const;
+
+    constexpr auto operator<=>(const KeyType &other) const = default;
+
+    friend inline ::scale::ScaleEncoderStream &operator<<(
+        ::scale::ScaleEncoderStream &s, const KeyType &v) {
+      return s << v.id_;
+    }
+
+    friend inline ::scale::ScaleDecoderStream &operator>>(
+        ::scale::ScaleDecoderStream &s, KeyType &v) {
+      return s >> v.id_;
+    }
+
+   private:
+    uint32_t id_{0};
+  };
+
+  struct KeyTypes {
+    /// Key type for Babe module, built-in.
+    static constexpr KeyType BABE = "babe"_key;
+    /// Key type for Sassafras module, built-in.
+    static constexpr KeyType SASSAFRAS = "sass"_key;
+    /// Key type for Grandpa module, built-in.
+    static constexpr KeyType GRANDPA = "gran"_key;
+    /// Key type for controlling an account in a Substrate runtime, built-in.
+    static constexpr KeyType ACCOUNT = "acco"_key;
+    /// Key type for Aura module, built-in.
+    static constexpr KeyType AURA = "aura"_key;
+    /// Key type for BEEFY module.
+    static constexpr KeyType BEEFY = "beef"_key;
+    /// Key type for ImOnline module, built-in.
+    static constexpr KeyType IM_ONLINE = "imon"_key;
+    /// Key type for AuthorityDiscovery module, built-in.
+    static constexpr KeyType AUTHORITY_DISCOVERY = "audi"_key;
+    /// Key type for staking, built-in.
+    static constexpr KeyType STAKING = "stak"_key;
+    /// A key type for signing statements
+    static constexpr KeyType STATEMENT = "stmt"_key;
+    /// The key type ID for parachain assignment key.
+    static constexpr KeyType ASSIGNMENT = "asgn"_key;
+    /// The key type ID for a parachain validator key.
+    static constexpr KeyType PARACHAIN = "para"_key;
+    /// A key type ID useful for tests.
+    static constexpr KeyType DUMMY = "dumy"_key;
+
+    KeyTypes() = delete;
+
+    static constexpr bool is_supported(const KeyType &key_type) {
+      switch (key_type) {
+        case KeyTypes::BABE:
+        case KeyTypes::SASSAFRAS:
+        case KeyTypes::GRANDPA:
+        case KeyTypes::ACCOUNT:
+        case KeyTypes::AURA:
+        case KeyTypes::BEEFY:
+        case KeyTypes::IM_ONLINE:
+        case KeyTypes::AUTHORITY_DISCOVERY:
+        case KeyTypes::STAKING:
+        case KeyTypes::STATEMENT:
+        case KeyTypes::ASSIGNMENT:
+        case KeyTypes::PARACHAIN:
+        case KeyTypes::DUMMY:
+          return true;
+      }
+      return false;
+    }
   };
 
   /**
-   * @brief makes string representation of KeyTypeId
-   * @param key_type_id KeyTypeId
-   * @return string representation of KeyTypeId
+   * @brief makes string representation of KeyType
+   * @param key_type KeyType
+   * @return string representation of KeyType
    */
-  std::string encodeKeyTypeIdToStr(KeyTypeId key_type_id);
+  std::string encodeKeyTypeToStr(const KeyType &key_type);
 
   /**
-   * @brief restores KeyTypeId from its string representation
+   * @brief restores KeyType from its string representation
    * @param param string representation of key type
-   * @return KeyTypeId
+   * @return KeyType
    */
-  KeyTypeId decodeKeyTypeIdFromStr(std::string_view str);
+  KeyType decodeKeyTypeFromStr(std::string_view str);
 
-  /**
-   * @brief checks whether key type value is supported
-   * @param k key type value
-   * @return true if supported, false otherwise
-   */
-  bool isSupportedKeyType(KeyTypeId k);
+  std::string encodeKeyFileName(const KeyType &type, common::BufferView key);
 
-  std::string encodeKeyFileName(KeyTypeId type, common::BufferView key);
-
-  outcome::result<std::pair<KeyTypeId, common::Buffer>> decodeKeyFileName(
+  outcome::result<std::pair<KeyType, common::Buffer>> decodeKeyFileName(
       std::string_view name);
 }  // namespace kagome::crypto
 
-OUTCOME_HPP_DECLARE_ERROR(kagome::crypto, KeyTypeError);
+template <>
+struct std::hash<kagome::crypto::KeyType> {
+  std::size_t operator()(const kagome::crypto::KeyType &key_type) const {
+    return std::hash<uint32_t>()(key_type);
+  }
+};
 
-#endif  // KAGOME_CRYPTO_KEY_TYPE_HPP
+template <>
+struct fmt::formatter<kagome::crypto::KeyType> {
+  // Parses format specifications. Must be empty
+  constexpr auto parse(format_parse_context &ctx) -> decltype(ctx.begin()) {
+    // Parse the presentation format and store it in the formatter:
+    auto it = ctx.begin(), end = ctx.end();
+
+    // Check if reached the end of the range:
+    if (it != end && *it != '}') {
+      throw format_error("invalid format");
+    }
+
+    // Return an iterator past the end of the parsed range:
+    return it;
+  }
+
+  // Formats the optional value
+  template <typename FormatContext>
+  auto format(const kagome::crypto::KeyType &key_type, FormatContext &ctx) const
+      -> decltype(ctx.out()) {
+    auto u32_rep = (uint32_t)key_type;
+    auto is_printable =
+        std::isprint(static_cast<char>(u32_rep >> (CHAR_BIT * 0)))
+        && std::isprint(static_cast<char>(u32_rep >> (CHAR_BIT * 1)))
+        && std::isprint(static_cast<char>(u32_rep >> (CHAR_BIT * 2)))
+        && std::isprint(static_cast<char>(u32_rep >> (CHAR_BIT * 3)));
+
+    if (is_printable) {
+      std::string_view ascii(
+          reinterpret_cast<const char *>(&u32_rep),  // NOLINT
+          sizeof(u32_rep));
+      return fmt::format_to(
+          ctx.out(), "<hex: {:08x}, ascii: '{}'>", u32_rep, ascii);
+    }
+
+    return fmt::format_to(ctx.out(), "<hex: {:08x}>", u32_rep);
+  }
+};
+
+OUTCOME_HPP_DECLARE_ERROR(kagome::crypto, KeyTypeError);

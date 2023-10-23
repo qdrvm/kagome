@@ -1,3 +1,9 @@
+[//]: # (
+Copyright Quadrivium LLC
+All Rights Reserved
+SPDX-License-Identifier: Apache-2.0
+)
+
 ## Start private Kagome network
 
 In this tutorial we will learn how to start a blockchain network with a validator and block producing nodes

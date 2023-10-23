@@ -1,5 +1,6 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -356,8 +357,6 @@ namespace kagome::network {
     View view;
     primitives::BlockHeader new_head;
     std::vector<primitives::BlockHash> lost;
-    //
-    mutable std::optional<primitives::BlockHash> new_head_hash;
   };
 
   using LargeStatement = parachain::IndexedAndSigned<StatementMetadata>;

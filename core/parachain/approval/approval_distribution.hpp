@@ -1,5 +1,6 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -17,9 +18,9 @@
 #include <clock/timer.hpp>
 
 #include "blockchain/block_tree.hpp"
-#include "consensus/babe/babe_util.hpp"
-#include "consensus/babe/common.hpp"
 #include "consensus/babe/types/babe_block_header.hpp"
+#include "consensus/timeline/slots_util.hpp"
+#include "consensus/timeline/types.hpp"
 #include "crypto/crypto_store/key_file_storage.hpp"
 #include "crypto/crypto_store/session_keys.hpp"
 #include "dispute_coordinator/dispute_coordinator.hpp"
@@ -263,7 +264,7 @@ namespace kagome::parachain {
         std::shared_ptr<application::AppStateManager> app_state_manager,
         std::shared_ptr<ThreadPool> thread_pool,
         std::shared_ptr<runtime::ParachainHost> parachain_host,
-        std::shared_ptr<consensus::babe::BabeUtil> babe_util,
+        LazySPtr<consensus::SlotsUtil> slots_util,
         std::shared_ptr<crypto::CryptoStore> keystore,
         std::shared_ptr<crypto::Hasher> hasher,
         std::shared_ptr<network::PeerView> peer_view,
@@ -318,7 +319,7 @@ namespace kagome::parachain {
       AssignmentsList assignments;
       size_t n_validators;
       RelayVRFStory relay_vrf_story;
-      consensus::babe::BabeSlotNumber slot;
+      consensus::SlotNumber slot;
       std::optional<primitives::BlockNumber> force_approve;
     };
 
@@ -326,7 +327,7 @@ namespace kagome::parachain {
       primitives::BlockHeader block_header;
       std::optional<CandidateIncludedList> included_candidates;
       std::optional<consensus::babe::BabeBlockHeader> babe_block_header;
-      std::optional<consensus::babe::EpochNumber> babe_epoch;
+      std::optional<consensus::EpochNumber> babe_epoch;
       std::optional<primitives::Randomness> randomness;
       std::optional<primitives::AuthorityList> authorities;
 
@@ -387,7 +388,7 @@ namespace kagome::parachain {
       primitives::BlockHash parent_hash;
       primitives::BlockNumber block_number;
       SessionIndex session;
-      consensus::babe::BabeSlotNumber slot;
+      consensus::SlotNumber slot;
       RelayVRFStory relay_vrf_story;
       // The candidates included as-of this block and the index of the core they
       // are leaving. Sorted ascending by core index.
@@ -487,7 +488,7 @@ namespace kagome::parachain {
     using NewHeadDataContext =
         std::tuple<ApprovalDistribution::CandidateIncludedList,
                    std::pair<SessionIndex, runtime::SessionInfo>,
-                   std::tuple<consensus::babe::EpochNumber,
+                   std::tuple<consensus::EpochNumber,
                               consensus::babe::BabeBlockHeader,
                               primitives::AuthorityList,
                               primitives::Randomness>>;
@@ -525,7 +526,7 @@ namespace kagome::parachain {
 
     outcome::result<ApprovalDistribution::CandidateIncludedList>
     request_included_candidates(const primitives::BlockHash &block_hash);
-    outcome::result<std::tuple<consensus::babe::EpochNumber,
+    outcome::result<std::tuple<consensus::EpochNumber,
                                consensus::babe::BabeBlockHeader,
                                primitives::AuthorityList,
                                primitives::Randomness>>
@@ -679,7 +680,7 @@ namespace kagome::parachain {
     std::shared_ptr<ThreadHandler> thread_pool_context_;
 
     std::shared_ptr<runtime::ParachainHost> parachain_host_;
-    std::shared_ptr<consensus::babe::BabeUtil> babe_util_;
+    LazySPtr<consensus::SlotsUtil> slots_util_;
     std::shared_ptr<crypto::CryptoStore> keystore_;
     std::shared_ptr<crypto::Hasher> hasher_;
     const ApprovalVotingSubsystem config_;

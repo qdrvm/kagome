@@ -1,10 +1,10 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_CORE_CONSENSUS_GRANDPA_COMMON_HPP
-#define KAGOME_CORE_CONSENSUS_GRANDPA_COMMON_HPP
+#pragma once
 
 #include <unordered_map>
 
@@ -31,5 +31,3 @@ namespace kagome::consensus::grandpa {
   using TimePoint = Clock::TimePoint;
 
 }  // namespace kagome::consensus::grandpa
-
-#endif  // KAGOME_CORE_CONSENSUS_GRANDPA_COMMON_HPP

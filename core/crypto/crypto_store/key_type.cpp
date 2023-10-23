@@ -1,5 +1,6 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -12,49 +13,37 @@
 
 namespace kagome::crypto {
 
-  bool isSupportedKeyType(KeyTypeId k) {
-    static const std::unordered_set<KeyTypeId> supported_types = {
-        KEY_TYPE_GRAN,
-        KEY_TYPE_BABE,
-        KEY_TYPE_IMON,
-        KEY_TYPE_PARA,
-        KEY_TYPE_ASGN,
-        KEY_TYPE_AUDI,
-        KEY_TYPE_ACCO,
-    };
-
-    return supported_types.count(k) > 0;
+  bool KeyType::is_supported() const {
+    return KeyTypes::is_supported(*this);
   }
 
-  std::string encodeKeyTypeIdToStr(KeyTypeId key_type_id) {
-    const auto *p = reinterpret_cast<const char *>(&key_type_id);
-    std::string res(p, p + sizeof(KeyTypeId));
-    return res;
+  std::string encodeKeyTypeToStr(const KeyType &key_type) {
+    const auto *p = reinterpret_cast<const char *>(&key_type);
+    return {p, p + sizeof(uint32_t)};
   }
 
-  KeyTypeId decodeKeyTypeIdFromStr(std::string_view str) {
-    kagome::crypto::KeyTypeId res = 0;
+  KeyType decodeKeyTypeFromStr(std::string_view str) {
+    uint32_t res = 0;
 
-    if (str.size() == sizeof(KeyTypeId)) {
-      // string's data is aligned as KeyTypeId
+    if (str.size() == sizeof(uint32_t)) {
+      // string's data is aligned as KeyType
       if (reinterpret_cast<uintptr_t>(str.data())
-              % std::alignment_of_v<KeyTypeId>
+              % std::alignment_of_v<uint32_t>
           == 0) {
-        res = *reinterpret_cast<const kagome::crypto::KeyTypeId *>(str.data());
+        res = *reinterpret_cast<const uint32_t *>(str.data());
       } else {
-        memcpy(&res, str.data(), sizeof(KeyTypeId));
+        memcpy(&res, str.data(), sizeof(uint32_t));
       }
     }
 
     return res;
   }
 
-  std::string encodeKeyFileName(KeyTypeId type, common::BufferView key) {
-    return common::hex_lower(str2byte(encodeKeyTypeIdToStr(type)))
-         + key.toHex();
+  std::string encodeKeyFileName(const KeyType &type, common::BufferView key) {
+    return common::hex_lower(str2byte(encodeKeyTypeToStr(type))) + key.toHex();
   }
 
-  outcome::result<std::pair<KeyTypeId, common::Buffer>> decodeKeyFileName(
+  outcome::result<std::pair<KeyType, common::Buffer>> decodeKeyFileName(
       std::string_view name) {
     std::string_view type_str = name;
     std::string_view key_str;
@@ -64,7 +53,7 @@ namespace kagome::crypto {
     }
     OUTCOME_TRY(type_raw, common::Blob<4>::fromHex(type_str));
     OUTCOME_TRY(key, common::Buffer::fromHex(key_str));
-    return std::make_pair(decodeKeyTypeIdFromStr(byte2str(type_raw)),
+    return std::make_pair(decodeKeyTypeFromStr(byte2str(type_raw)),
                           std::move(key));
   }
 }  // namespace kagome::crypto

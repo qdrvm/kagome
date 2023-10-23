@@ -1,14 +1,10 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_CORE_RUNTIME_COMMON_EXECUTOR_IMPL_HPP
-#define KAGOME_CORE_RUNTIME_COMMON_EXECUTOR_IMPL_HPP
-
 #include "runtime/executor.hpp"
-
-#include <optional>
 
 #include "blockchain/block_header_repository.hpp"
 #include "common/buffer.hpp"
@@ -30,5 +26,3 @@ namespace kagome::runtime {
       : cache_{cache}, ctx_factory_{ctx_factory} {}
 
 }  // namespace kagome::runtime
-
-#endif  // KAGOME_CORE_RUNTIME_COMMON_EXECUTOR_IMPL_HPP

@@ -1,15 +1,15 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_KNOWLEDGE_HPP
-#define KAGOME_KNOWLEDGE_HPP
+#pragma once
 
 #include <tuple>
 
 #include "common/visitor.hpp"
-#include "consensus/babe/common.hpp"
+#include "consensus/timeline/types.hpp"
 #include "consensus/validation/prepare_transcript.hpp"
 #include "outcome/outcome.hpp"
 #include "parachain/approval/state.hpp"
@@ -76,5 +76,3 @@ namespace kagome::parachain::approval {
   };
 
 }  // namespace kagome::parachain::approval
-
-#endif  // KAGOME_KNOWLEDGE_HPP

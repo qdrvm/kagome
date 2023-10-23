@@ -1,3 +1,8 @@
+#
+# Copyright Quadrivium LLC
+# All Rights Reserved
+# SPDX-License-Identifier: Apache-2.0
+#
 
 add_library(runtime_wavm
     core_api_factory_impl.cpp

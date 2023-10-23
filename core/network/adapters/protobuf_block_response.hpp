@@ -1,10 +1,10 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_ADAPTERS_PROTOBUF_BLOCK_RESPONSE
-#define KAGOME_ADAPTERS_PROTOBUF_BLOCK_RESPONSE
+#pragma once
 
 #include "network/adapters/protobuf.hpp"
 
@@ -58,7 +58,7 @@ namespace kagome::network {
             vec.emplace_back(primitives::kGrandpaEngineId, gran->data);
           }
           if (auto &beef = src_block.beefy_justification) {
-            vec.emplace_back(primitives::kUnsupportedEngineId_BEEF, beef->data);
+            vec.emplace_back(primitives::kBeefyEngineId, beef->data);
           }
           dst_block->set_justifications(
               common::Buffer{scale::encode(vec).value()}.toString());
@@ -124,7 +124,7 @@ namespace kagome::network {
             if (engine == primitives::kGrandpaEngineId) {
               justification = primitives::Justification{std::move(raw)};
             }
-            if (engine == primitives::kUnsupportedEngineId_BEEF) {
+            if (engine == primitives::kBeefyEngineId) {
               beefy_justification = primitives::Justification{std::move(raw)};
             }
           }
@@ -172,5 +172,3 @@ namespace kagome::network {
   };
 
 }  // namespace kagome::network
-
-#endif  // KAGOME_ADAPTERS_PROTOBUF_BLOCK_RESPONSE

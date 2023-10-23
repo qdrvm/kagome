@@ -1,5 +1,6 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -67,9 +68,8 @@ static constexpr kagome::network::Tick kTickTooFarInFuture =
 namespace {
 
   /// assumes `slot_duration_millis` evenly divided by tick duration.
-  kagome::network::Tick slotNumberToTick(
-      uint64_t slot_duration_millis,
-      kagome::consensus::babe::BabeSlotNumber slot) {
+  kagome::network::Tick slotNumberToTick(uint64_t slot_duration_millis,
+                                         kagome::consensus::SlotNumber slot) {
     const auto ticks_per_slot = slot_duration_millis / kTickDurationMs;
     return slot * ticks_per_slot;
   }
@@ -85,8 +85,7 @@ namespace {
   }
 
   kagome::parachain::approval::DelayTranche trancheNow(
-      uint64_t slot_duration_millis,
-      kagome::consensus::babe::BabeSlotNumber base_slot) {
+      uint64_t slot_duration_millis, kagome::consensus::SlotNumber base_slot) {
     return static_cast<kagome::parachain::approval::DelayTranche>(
         kagome::math::sat_sub_unsigned(
             tickNow(), slotNumberToTick(slot_duration_millis, base_slot)));
@@ -469,7 +468,7 @@ namespace kagome::parachain {
       std::shared_ptr<application::AppStateManager> app_state_manager,
       std::shared_ptr<ThreadPool> thread_pool,
       std::shared_ptr<runtime::ParachainHost> parachain_host,
-      std::shared_ptr<consensus::babe::BabeUtil> babe_util,
+      LazySPtr<consensus::SlotsUtil> slots_util,
       std::shared_ptr<crypto::CryptoStore> keystore,
       std::shared_ptr<crypto::Hasher> hasher,
       std::shared_ptr<network::PeerView> peer_view,
@@ -487,7 +486,7 @@ namespace kagome::parachain {
         thread_pool_{std::move(thread_pool)},
         thread_pool_context_{thread_pool_->handler()},
         parachain_host_(std::move(parachain_host)),
-        babe_util_(std::move(babe_util)),
+        slots_util_(std::move(slots_util)),
         keystore_(std::move(keystore)),
         hasher_(std::move(hasher)),
         config_(ApprovalVotingSubsystem{.slot_duration_millis = 6'000}),
@@ -504,7 +503,6 @@ namespace kagome::parachain {
         dispute_coordinator_{std::move(dispute_coordinator)} {
     BOOST_ASSERT(thread_pool_);
     BOOST_ASSERT(parachain_host_);
-    BOOST_ASSERT(babe_util_);
     BOOST_ASSERT(keystore_);
     BOOST_ASSERT(peer_view_);
     BOOST_ASSERT(hasher_);
@@ -644,7 +642,7 @@ namespace kagome::parachain {
     for (size_t ix = 0; ix < config.assignment_keys.size(); ++ix) {
       const auto &pk = config.assignment_keys[ix];
       if (auto res = keystore->findSr25519Keypair(
-              crypto::KEY_TYPE_ASGN,
+              crypto::KeyTypes::ASSIGNMENT,
               crypto::Sr25519PublicKey::fromSpan(pk).value());
           res.has_value()) {
         return std::make_pair((ValidatorIndex)ix, std::move(res.value()));
@@ -889,22 +887,22 @@ namespace kagome::parachain {
     return std::make_pair(session_index, std::move(*session_info));
   }
 
-  outcome::result<std::tuple<consensus::babe::EpochNumber,
+  outcome::result<std::tuple<consensus::EpochNumber,
                              consensus::babe::BabeBlockHeader,
                              primitives::AuthorityList,
                              primitives::Randomness>>
   ApprovalDistribution::request_babe_epoch_and_block_header(
       const primitives::BlockHeader &block_header,
       const primitives::BlockHash &block_hash) {
-    OUTCOME_TRY(babe_digests, consensus::babe::getBabeDigests(block_header));
+    OUTCOME_TRY(babe_header, consensus::babe::getBabeBlockHeader(block_header));
     OUTCOME_TRY(epoch,
-                babe_util_->slotToEpoch(*block_header.parentInfo(),
-                                        babe_digests.second.slot_number));
+                slots_util_.get()->slotToEpoch(*block_header.parentInfo(),
+                                               babe_header.slot_number));
     OUTCOME_TRY(babe_config,
                 babe_config_repo_->config(*block_header.parentInfo(), epoch));
 
     return std::make_tuple(epoch,
-                           std::move(babe_digests.second),
+                           std::move(babe_header),
                            std::move(babe_config->authorities),
                            std::move(babe_config->randomness));
   }
@@ -1225,37 +1223,33 @@ namespace kagome::parachain {
     if (!parachain_processor_->canProcessParachains()) {
       return;
     }
-    if (auto result =
-            primitives::calculateBlockHash(updated.new_head, *hasher_)) {
-      if (!storedDistribBlockEntries().get(result.value())) {
-        [[maybe_unused]] auto &_ = pending_known_[result.value()];
-      }
 
-      handle_new_head(result.value(),
-                      updated,
-                      [wself{weak_from_this()},
-                       head{result.value()}](auto &&possible_candidate) {
-                        if (auto self = wself.lock()) {
-                          if (possible_candidate.has_error()) {
-                            SL_ERROR(
-                                self->logger_,
-                                "Internal error while retrieve block imported "
-                                "candidates: {}",
-                                possible_candidate.error().message());
-                            return;
-                          }
+    const auto &relay_parent = updated.new_head.hash();
 
-                          BOOST_ASSERT(self->internal_context_->io_context()
-                                           ->get_executor()
-                                           .running_in_this_thread());
-                          self->scheduleTranche(
-                              head, std::move(possible_candidate.value()));
-                        }
-                      });
-    } else {
-      logger_->error("Block header hashing failed: {}",
-                     result.error().message());
+    if (!storedDistribBlockEntries().get(relay_parent)) {
+      [[maybe_unused]] auto &_ = pending_known_[relay_parent];
     }
+
+    handle_new_head(
+        relay_parent,
+        updated,
+        [wself{weak_from_this()},
+         head{relay_parent}](auto &&possible_candidate) {
+          if (auto self = wself.lock()) {
+            if (possible_candidate.has_error()) {
+              SL_ERROR(self->logger_,
+                       "Internal error while retrieve block imported "
+                       "candidates: {}",
+                       possible_candidate.error().message());
+              return;
+            }
+
+            BOOST_ASSERT(self->internal_context_->io_context()
+                             ->get_executor()
+                             .running_in_this_thread());
+            self->scheduleTranche(head, std::move(possible_candidate.value()));
+          }
+        });
   }
 
   void ApprovalDistribution::launch_approval(
@@ -1295,7 +1289,7 @@ namespace kagome::parachain {
             self->logger_->warn(
                 "Parachain data recovery failed.(error={}, session index={}, "
                 "candidate hash={}, relay block hash={})",
-                opt_result->error().message(),
+                opt_result->error(),
                 session_index,
                 candidate_hash,
                 relay_block_hash);
@@ -2323,7 +2317,7 @@ namespace kagome::parachain {
       SessionIndex session_index,
       const CandidateHash &candidate_hash) {
     auto key_pair =
-        keystore_->findSr25519Keypair(crypto::KEY_TYPE_PARA, pubkey);
+        keystore_->findSr25519Keypair(crypto::KeyTypes::PARACHAIN, pubkey);
     if (key_pair.has_error()) {
       logger_->warn("No key pair in store for {}", pubkey);
       return std::nullopt;

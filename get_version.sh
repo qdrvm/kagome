@@ -1,4 +1,9 @@
 #!/bin/sh -eu
+#
+# Copyright Quadrivium LLC
+# All Rights Reserved
+# SPDX-License-Identifier: Apache-2.0
+#
 
 realpath() {
   if [ -d "$1" ]; then

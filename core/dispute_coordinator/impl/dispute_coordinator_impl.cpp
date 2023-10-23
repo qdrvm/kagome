@@ -1,5 +1,6 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -38,7 +39,7 @@ namespace kagome::dispute {
     constexpr auto disputesTotalMetricName =
         "kagome_parachain_candidate_disputes_total";
 
-    constexpr auto disputeVotesMetricName =  //
+    constexpr auto disputeVotesMetricName =
         "kagome_parachain_candidate_dispute_votes";
 
     constexpr auto disputeConcludedMetricName =
@@ -210,26 +211,15 @@ namespace kagome::dispute {
         peer_view_->getMyViewObservable(), false);
     my_view_sub_->subscribe(my_view_sub_->generateSubscriptionSetId(),
                             network::PeerView::EventType::kViewUpdated);
-    my_view_sub_->setCallback([wptr{weak_from_this()}](
-                                  auto /*set_id*/,
-                                  auto && /*internal_obj*/,
-                                  auto /*event_type*/,
-                                  const network::ExView &event) {
-      if (auto self = wptr.lock()) {
-        if (not event.new_head_hash.has_value()) {
-          auto hash_res =
-              primitives::calculateBlockHash(event.new_head, *self->hasher_);
-          if (hash_res.has_error()) {
-            self->log_->error("Block header hashing failed: {}",
-                              hash_res.error());
-            return;
+    my_view_sub_->setCallback(
+        [wptr{weak_from_this()}](auto /*set_id*/,
+                                 auto && /*internal_obj*/,
+                                 auto /*event_type*/,
+                                 const network::ExView &event) {
+          if (auto self = wptr.lock()) {
+            self->on_active_leaves_update(event);
           }
-          event.new_head_hash.emplace(std::move(hash_res.value()));
-        }
-
-        self->on_active_leaves_update(event);
-      }
-    });
+        });
 
     // subscribe to finalization
     chain_sub_ = std::make_shared<primitives::events::ChainEventSubscriber>(
@@ -248,10 +238,7 @@ namespace kagome::dispute {
           if (auto self = wp.lock()) {
             const auto &header =
                 boost::get<primitives::events::HeadsEventParams>(event).get();
-            auto hash =
-                self->hasher_->blake2b_256(scale::encode(header).value());
-
-            self->on_finalized_block({header.number, hash});
+            self->on_finalized_block(header.blockInfo());
           }
         });
 
@@ -261,15 +248,15 @@ namespace kagome::dispute {
             babe_status_observable_, false);
     babe_status_sub_->subscribe(
         babe_status_sub_->generateSubscriptionSetId(),
-        primitives::events::BabeStateEventType::kSyncState);
+        primitives::events::SyncStateEventType::kSyncState);
     babe_status_sub_->setCallback(
         [wself{weak_from_this()}](
             auto /*set_id*/,
             bool &synchronized,
             auto /*event_type*/,
-            const primitives::events::BabeStateEventParams &event) {
+            const primitives::events::SyncStateEventParams &event) {
           if (auto self = wself.lock()) {
-            if (event == consensus::babe::Babe::State::SYNCHRONIZED) {
+            if (event == consensus::SyncState::SYNCHRONIZED) {
               self->was_synchronized_ = true;
             }
           }
@@ -293,7 +280,7 @@ namespace kagome::dispute {
     scraper_ = std::make_unique<ChainScraperImpl>(api_, block_tree_, hasher_);
 
     auto rsw_res = RollingSessionWindowImpl::create(
-        storage_, block_tree_, api_, updated.new_head_hash.value(), log_);
+        storage_, block_tree_, api_, updated.new_head.hash(), log_);
     if (rsw_res.has_error()) {
       SL_ERROR(
           log_, "Can't create rolling session window: {}", rsw_res.error());
@@ -301,7 +288,7 @@ namespace kagome::dispute {
     }
     rolling_session_window_ = std::move(rsw_res.value());
 
-    auto first_leaf = ActivatedLeaf{.hash = updated.new_head_hash.value(),
+    auto first_leaf = ActivatedLeaf{.hash = updated.new_head.hash(),
                                     .number = updated.new_head.number,
                                     .status = LeafStatus::Fresh};
 
@@ -557,11 +544,10 @@ namespace kagome::dispute {
       return startup(updated);
     }
 
-    ActiveLeavesUpdate update{
-        .activated = {{.hash = updated.new_head_hash.value(),
-                       .number = updated.new_head.number,
-                       .status = LeafStatus::Fresh}},
-        .deactivated = updated.lost};
+    ActiveLeavesUpdate update{.activated = {{.hash = updated.new_head.hash(),
+                                             .number = updated.new_head.number,
+                                             .status = LeafStatus::Fresh}},
+                              .deactivated = updated.lost};
 
     auto res = process_active_leaves_update(update);
     if (res.has_error()) {

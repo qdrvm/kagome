@@ -1,5 +1,6 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -35,7 +36,8 @@ namespace kagome::network {
         authority_manager_{std::move(authority_manager)},
         babe_config_repository_{std::move(babe_config_repository)},
         block_tree_{std::move(block_tree)},
-        db_{db.getSpace(storage::Space::kDefault)} {
+        db_{db.getSpace(storage::Space::kDefault)},
+        log_{log::createLogger("WarpSync")} {
     app_state_manager.atLaunch([this] {
       start();
       return true;
@@ -60,12 +62,20 @@ namespace kagome::network {
     if (res.proofs.empty()) {
       return;
     }
+    std::optional<primitives::BlockNumber> min, max;
+    auto log = gsl::finally([&] {
+      if (min) {
+        SL_INFO(log_, "finalized {}..{}", *min, *max);
+      }
+    });
     for (size_t i = 0; i < res.proofs.size(); ++i) {
       auto &fragment = res.proofs[i];
-      primitives::BlockInfo block_info{
-          hasher_->blake2b_256(scale::encode(fragment.header).value()),
-          fragment.header.number,
-      };
+
+      // Calculate and save hash, 'cause it's just received response
+      primitives::calculateBlockHash(
+          const_cast<primitives::BlockHeader &>(fragment.header), *hasher_);
+
+      primitives::BlockInfo block_info = fragment.header.blockInfo();
       if (fragment.justification.block_info != block_info) {
         return;
       }
@@ -96,6 +106,10 @@ namespace kagome::network {
       };
       db_->put(storage::kWarpSyncOp, scale::encode(op).value()).value();
       applyInner(op);
+      if (not min) {
+        min = block_info.number;
+      }
+      max = block_info.number;
     }
     if (not res.is_finished) {
       done_ = false;

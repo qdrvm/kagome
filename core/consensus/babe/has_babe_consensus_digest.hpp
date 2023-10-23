@@ -1,10 +1,10 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_CONSENSUS_BABE_HAS_BABE_CONSENSUS_DIGEST_HPP
-#define KAGOME_CONSENSUS_BABE_HAS_BABE_CONSENSUS_DIGEST_HPP
+#pragma once
 
 #include "primitives/block_header.hpp"
 
@@ -56,5 +56,3 @@ namespace kagome::consensus::babe {
     std::optional<primitives::NextConfigDataV1> config;
   };
 }  // namespace kagome::consensus::babe
-
-#endif  // KAGOME_CONSENSUS_BABE_HAS_BABE_CONSENSUS_DIGEST_HPP

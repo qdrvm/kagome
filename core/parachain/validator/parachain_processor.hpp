@@ -1,10 +1,10 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_PARACHAIN_PROCESSOR_HPP
-#define KAGOME_PARACHAIN_PROCESSOR_HPP
+#pragma once
 
 #include <memory>
 #include <queue>
@@ -457,5 +457,3 @@ namespace kagome::parachain {
 }  // namespace kagome::parachain
 
 OUTCOME_HPP_DECLARE_ERROR(kagome::parachain, ParachainProcessorImpl::Error);
-
-#endif  // KAGOME_PARACHAIN_PROCESSOR_HPP

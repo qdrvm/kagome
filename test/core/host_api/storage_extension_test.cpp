@@ -1,5 +1,6 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -37,10 +38,10 @@ using kagome::runtime::WasmOffset;
 using kagome::runtime::WasmPointer;
 using kagome::runtime::WasmSize;
 using kagome::runtime::WasmSpan;
-using kagome::storage::trie::TrieBatchMock;
 using kagome::storage::trie::PolkadotCodec;
 using kagome::storage::trie::PolkadotTrieCursorMock;
 using kagome::storage::trie::RootHash;
+using kagome::storage::trie::TrieBatchMock;
 
 using ::testing::_;
 using ::testing::Invoke;
@@ -74,7 +75,7 @@ class StorageExtensionTest : public ::testing::Test {
   std::shared_ptr<StorageExtension> storage_extension_;
   PolkadotCodec codec_;
 
-  constexpr static uint32_t kU32Max = std::numeric_limits<uint32_t>::max();
+  static constexpr uint32_t kU32Max = std::numeric_limits<uint32_t>::max();
 };
 
 /// For the tests where it is needed to check a valid behaviour no matter if

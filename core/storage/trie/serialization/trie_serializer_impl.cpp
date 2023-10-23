@@ -1,5 +1,6 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -114,13 +115,12 @@ namespace kagome::storage::trie {
     if (db_key.asHash() == getEmptyRootHash()) {
       return nullptr;
     }
-    Buffer enc;
-    if (db_key.isHash()) {
-      OUTCOME_TRY(db, node_backend_->get(db_key.asBuffer()));
+    BufferOrView enc;
+    if (auto hash = db_key.asHash()) {
+      OUTCOME_TRY(db, node_backend_->get(*hash));
       if (on_node_loaded) {
-        on_node_loaded(db);
+        on_node_loaded(*hash, enc);
       }
-      enc = db.intoBuffer();
     } else {
       // `isMerkleHash(db_key) == false` means `db_key` is value itself
       enc = db_key.asBuffer();
@@ -137,7 +137,7 @@ namespace kagome::storage::trie {
     return common::map_optional(std::move(value),
                                 [&](common::BufferOrView &&value) {
                                   if (on_node_loaded) {
-                                    on_node_loaded(value);
+                                    on_node_loaded(hash, value);
                                   }
                                   return value.intoBuffer();
                                 });

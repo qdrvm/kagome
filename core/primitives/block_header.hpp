@@ -1,10 +1,10 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_PRIMITIVES_BLOCK_HEADER_HPP
-#define KAGOME_PRIMITIVES_BLOCK_HEADER_HPP
+#pragma once
 
 #include <type_traits>
 #include <vector>
@@ -23,11 +23,12 @@ namespace kagome::primitives {
    * @struct BlockHeader represents header of a block
    */
   struct BlockHeader {
-    BlockHash parent_hash{};  ///< 32-byte Blake2s hash of parent header
-    BlockNumber number = 0u;  ///< index of the block in the chain
-    storage::trie::RootHash state_root{};  ///< root of the Merkle tree
-    common::Hash256 extrinsics_root{};     ///< field for validation integrity
-    Digest digest{};                       ///< chain-specific auxiliary data
+    BlockNumber number{};                  ///< Block number (height)
+    BlockHash parent_hash{};               ///< Parent block hash
+    storage::trie::RootHash state_root{};  ///< Merkle tree root of state
+    common::Hash256 extrinsics_root{};     ///< Hash of included extrinsics
+    Digest digest{};                       ///< Chain-specific auxiliary data
+    std::optional<BlockHash> hash_opt{};   ///< Block hash if calculated
 
     bool operator==(const BlockHeader &rhs) const {
       return std::tie(parent_hash, number, state_root, extrinsics_root, digest)
@@ -48,6 +49,16 @@ namespace kagome::primitives {
       }
       return std::nullopt;
     }
+
+    const BlockHash &hash() const {
+      BOOST_ASSERT_MSG(hash_opt.has_value(),
+                       "Hash must be calculated and saved before that");
+      return hash_opt.value();
+    }
+
+    BlockInfo blockInfo() const {
+      return {number, hash()};
+    }
   };
 
   struct BlockHeaderReflection {
@@ -56,6 +67,25 @@ namespace kagome::primitives {
     const storage::trie::RootHash &state_root;
     const common::Hash256 &extrinsics_root;
     gsl::span<const DigestItem> digest;
+
+    BlockHeaderReflection(const BlockHeader &origin)
+        : parent_hash(origin.parent_hash),
+          number(origin.number),
+          state_root(origin.state_root),
+          extrinsics_root(origin.extrinsics_root),
+          digest(origin.digest) {}
+  };
+
+  // Reflection of block header without Seal, which is the last digest
+  struct UnsealedBlockHeaderReflection : public BlockHeaderReflection {
+    explicit UnsealedBlockHeaderReflection(const BlockHeaderReflection &origin)
+        : BlockHeaderReflection(origin) {
+      BOOST_ASSERT_MSG(number == 0 or not digest.empty(),
+                       "Non-genesis block must have at least Seal digest");
+      digest = digest.subspan(0, digest.size() - 1);
+    }
+    explicit UnsealedBlockHeaderReflection(const BlockHeader &origin)
+        : UnsealedBlockHeaderReflection(BlockHeaderReflection(origin)) {}
   };
 
   struct GenesisBlockHeader {
@@ -101,9 +131,6 @@ namespace kagome::primitives {
     return s;
   }
 
-  outcome::result<BlockHash> calculateBlockHash(const BlockHeader &header,
-                                                const crypto::Hasher &hasher);
+  void calculateBlockHash(BlockHeader &header, const crypto::Hasher &hasher);
 
 }  // namespace kagome::primitives
-
-#endif  // KAGOME_PRIMITIVES_BLOCK_HEADER_HPP

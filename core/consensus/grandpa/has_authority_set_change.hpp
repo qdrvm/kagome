@@ -1,10 +1,10 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_CONSENSUS_GRANDPA_HAS_AUTHORITY_SET_CHANGE_HPP
-#define KAGOME_CONSENSUS_GRANDPA_HAS_AUTHORITY_SET_CHANGE_HPP
+#pragma once
 
 #include "primitives/block_header.hpp"
 
@@ -44,5 +44,3 @@ namespace kagome::consensus::grandpa {
     std::optional<primitives::ForcedChange> forced;
   };
 }  // namespace kagome::consensus::grandpa
-
-#endif  // KAGOME_CONSENSUS_GRANDPA_HAS_AUTHORITY_SET_CHANGE_HPP

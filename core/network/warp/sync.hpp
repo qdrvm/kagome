@@ -1,11 +1,12 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_NETWORK_WARP_SYNC_HPP
-#define KAGOME_NETWORK_WARP_SYNC_HPP
+#pragma once
 
+#include "log/logger.hpp"
 #include "network/warp/types.hpp"
 #include "storage/buffer_map_types.hpp"
 
@@ -23,7 +24,7 @@ namespace kagome::consensus::babe {
 }  // namespace kagome::consensus::babe
 
 namespace kagome::consensus::grandpa {
-  struct JustificationObserver;
+  class JustificationObserver;
   class AuthorityManager;
 }  // namespace kagome::consensus::grandpa
 
@@ -95,7 +96,7 @@ namespace kagome::network {
     std::shared_ptr<blockchain::BlockTree> block_tree_;
     std::shared_ptr<storage::BufferStorage> db_;
     bool done_ = false;
+
+    log::Logger log_;
   };
 }  // namespace kagome::network
-
-#endif  // KAGOME_NETWORK_WARP_SYNC_HPP

@@ -1,10 +1,10 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_APP_CONFIGURATION_HPP
-#define KAGOME_APP_CONFIGURATION_HPP
+#pragma once
 
 #include <memory>
 #include <optional>
@@ -13,6 +13,7 @@
 #include <boost/asio/ip/tcp.hpp>
 #include <libp2p/multi/multiaddress.hpp>
 
+#include "application/sync_method.hpp"
 #include "crypto/ed25519_types.hpp"
 #include "filesystem/common.hpp"
 #include "log/logger.hpp"
@@ -209,7 +210,6 @@ namespace kagome::application {
     virtual const std::vector<telemetry::TelemetryEndpoint>
         &telemetryEndpoints() const = 0;
 
-    enum class SyncMethod { Full, Fast, FastWithoutState, Warp, Auto };
     /**
      * @return enum constant of the chosen sync method
      */
@@ -285,5 +285,3 @@ namespace kagome::application {
   };
 
 }  // namespace kagome::application
-
-#endif  // KAGOME_APP_CONFIGURATION_HPP

@@ -1,10 +1,10 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_METRICS_HISTOGRAM_TIMER_HPP
-#define KAGOME_METRICS_HISTOGRAM_TIMER_HPP
+#pragma once
 
 #include <gsl/gsl_util>
 
@@ -20,6 +20,20 @@ namespace kagome::metrics {
     }
     return buckets;
   }
+
+  struct GaugeHelper {
+    GaugeHelper(const std::string &name, const std::string &help) {
+      registry_->registerGaugeFamily(name, help);
+      metric_ = registry_->registerGaugeMetric(name);
+    }
+
+    auto *operator->() {
+      return metric_;
+    }
+
+    metrics::RegistryPtr registry_ = metrics::createRegistry();
+    metrics::Gauge *metric_;
+  };
 
   struct HistogramHelper {
     HistogramHelper(const std::string &name,
@@ -59,5 +73,3 @@ namespace kagome::metrics {
     }
   };
 }  // namespace kagome::metrics
-
-#endif  // KAGOME_METRICS_HISTOGRAM_TIMER_HPP

@@ -1,10 +1,10 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_NETWORK_IMPL_ROUTER_LIBP2P_HPP
-#define KAGOME_NETWORK_IMPL_ROUTER_LIBP2P_HPP
+#pragma once
 
 #include "network/router.hpp"
 
@@ -15,6 +15,7 @@
 #include "libp2p/host/host.hpp"
 #include "libp2p/multi/multiaddress.hpp"
 #include "libp2p/protocol/ping.hpp"
+#include "network/beefy/protocol.hpp"
 #include "network/impl/protocols/light.hpp"
 #include "network/sync_protocol_observer.hpp"
 #include "network/types/bootstrap_nodes.hpp"
@@ -44,6 +45,8 @@ namespace kagome::network {
         LazySPtr<SyncProtocol> sync_protocol,
         LazySPtr<StateProtocol> state_protocol,
         LazySPtr<WarpProtocol> warp_protocol,
+        LazySPtr<BeefyProtocol> beefy_protocol,
+        LazySPtr<BeefyJustificationProtocol> beefy_justifications_protocol,
         LazySPtr<LightProtocol> light_protocol,
         LazySPtr<PropagateTransactionsProtocol> propagate_transactions_protocol,
         LazySPtr<ValidationProtocol> validation_protocol,
@@ -93,6 +96,8 @@ namespace kagome::network {
 
     std::shared_ptr<libp2p::protocol::Ping> getPingProtocol() const override;
 
+    std::shared_ptr<BeefyProtocol> getBeefyProtocol() const override;
+
    private:
     /**
      * Appends /p2p/<peerid> part to ip4 and ip6 addresses which then passed to
@@ -115,6 +120,8 @@ namespace kagome::network {
     LazySPtr<SyncProtocol> sync_protocol_;
     LazySPtr<StateProtocol> state_protocol_;
     LazySPtr<WarpProtocol> warp_protocol_;
+    LazySPtr<BeefyProtocol> beefy_protocol_;
+    LazySPtr<BeefyJustificationProtocol> beefy_justifications_protocol_;
     LazySPtr<LightProtocol> light_protocol_;
 
     LazySPtr<PropagateTransactionsProtocol> propagate_transactions_protocol_;
@@ -135,5 +142,3 @@ namespace kagome::network {
   };
 
 }  // namespace kagome::network
-
-#endif  // KAGOME_NETWORK_IMPL_ROUTER_LIBP2P_HPP

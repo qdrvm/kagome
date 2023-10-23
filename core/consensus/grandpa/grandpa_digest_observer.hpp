@@ -1,10 +1,10 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_CONSENSUS_GRANDPA_GRANDPADIGESTOBSERVER
-#define KAGOME_CONSENSUS_GRANDPA_GRANDPADIGESTOBSERVER
+#pragma once
 
 #include "outcome/outcome.hpp"
 #include "primitives/block_data.hpp"
@@ -41,5 +41,3 @@ namespace kagome::consensus::grandpa {
   };
 
 }  // namespace kagome::consensus::grandpa
-
-#endif  // KAGOME_CONSENSUS_GRANDPA_GRANDPADIGESTOBSERVER

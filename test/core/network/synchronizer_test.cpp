@@ -1,5 +1,6 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -12,17 +13,17 @@
 #include "mock/core/application/app_configuration_mock.hpp"
 #include "mock/core/application/app_state_manager_mock.hpp"
 #include "mock/core/blockchain/block_tree_mock.hpp"
-#include "mock/core/consensus/babe/block_appender_mock.hpp"
-#include "mock/core/consensus/babe/block_executor_mock.hpp"
 #include "mock/core/consensus/grandpa/environment_mock.hpp"
+#include "mock/core/consensus/timeline/block_appender_mock.hpp"
+#include "mock/core/consensus/timeline/block_executor_mock.hpp"
 #include "mock/core/crypto/hasher_mock.hpp"
 #include "mock/core/network/protocols/sync_protocol_mock.hpp"
 #include "mock/core/network/router_mock.hpp"
 #include "mock/core/runtime/module_factory_mock.hpp"
 #include "mock/core/runtime/runtime_properties_cache_mock.hpp"
-#include "mock/core/storage/generic_storage_mock.hpp"
+#include "mock/core/storage/persistent_map_mock.hpp"
 #include "mock/core/storage/spaced_storage_mock.hpp"
-#include "mock/core/storage/trie/serialization/trie_serializer_mock.hpp"
+#include "mock/core/storage/trie/trie_storage_backend_mock.hpp"
 #include "mock/core/storage/trie/trie_storage_mock.hpp"
 #include "mock/core/storage/trie_pruner/trie_pruner_mock.hpp"
 #include "network/impl/synchronizer_impl.hpp"
@@ -32,6 +33,8 @@
 
 using namespace kagome;
 using namespace clock;
+using consensus::BlockExecutorMock;
+using consensus::BlockHeaderAppenderMock;
 using namespace consensus::babe;
 using namespace consensus::grandpa;
 using namespace storage;
@@ -76,7 +79,7 @@ class SynchronizerTest
     EXPECT_CALL(*scheduler, scheduleImplMockCall(_, _, _)).Times(AnyNumber());
 
     EXPECT_CALL(app_config, syncMethod())
-        .WillOnce(Return(application::AppConfiguration::SyncMethod::Full));
+        .WillOnce(Return(application::SyncMethod::Full));
 
     auto state_pruner =
         std::make_shared<kagome::storage::trie_pruner::TriePrunerMock>();
@@ -87,15 +90,14 @@ class SynchronizerTest
                                                     block_tree,
                                                     block_appender,
                                                     block_executor,
-                                                    serializer,
+                                                    trie_db,
                                                     storage,
                                                     state_pruner,
                                                     router,
                                                     scheduler,
                                                     hasher,
-                                                    module_factory,
-                                                    runtime_properties_cache,
                                                     chain_sub_engine,
+                                                    nullptr,
                                                     grandpa_environment);
   }
 
@@ -108,10 +110,10 @@ class SynchronizerTest
       std::make_shared<BlockHeaderAppenderMock>();
   std::shared_ptr<BlockExecutorMock> block_executor =
       std::make_shared<BlockExecutorMock>();
+  std::shared_ptr<trie::TrieStorageBackendMock> trie_db =
+      std::make_shared<trie::TrieStorageBackendMock>();
   std::shared_ptr<trie::TrieStorageMock> storage =
       std::make_shared<trie::TrieStorageMock>();
-  std::shared_ptr<trie::TrieSerializerMock> serializer =
-      std::make_shared<trie::TrieSerializerMock>();
   std::shared_ptr<network::SyncProtocolMock> sync_protocol =
       std::make_shared<network::SyncProtocolMock>();
   std::shared_ptr<network::RouterMock> router =
@@ -120,11 +122,6 @@ class SynchronizerTest
       std::make_shared<libp2p::basic::SchedulerMock>();
   std::shared_ptr<crypto::HasherMock> hasher =
       std::make_shared<crypto::HasherMock>();
-  std::shared_ptr<runtime::ModuleFactoryMock> module_factory =
-      std::make_shared<runtime::ModuleFactoryMock>();
-  std::shared_ptr<runtime::RuntimePropertiesCacheMock>
-      runtime_properties_cache =
-          std::make_shared<runtime::RuntimePropertiesCacheMock>();
   primitives::events::ChainSubscriptionEnginePtr chain_sub_engine =
       std::make_shared<primitives::events::ChainSubscriptionEngine>();
   std::shared_ptr<BufferStorageMock> buffer_storage =
@@ -152,7 +149,7 @@ ACTION_P(blockTree_getBlockHeader, local_blocks) {
     if (local_blocks[block_number].hash == hash) {
       const auto &block_info = local_blocks[block_number];
       std::cout << "Result: " << block_info.hash.data() << std::endl;
-      return BlockHeader{.number = block_info.number};
+      return BlockHeader{block_info.number, {}, {}, {}, {}};
     }
   }
   std::cout << "Result: not found" << std::endl;
@@ -192,8 +189,8 @@ ACTION_P(syncProtocol_request, remote_blocks) {
   network::BlocksResponse response;
 
   if (bi.has_value()) {
-    response.blocks.emplace_back(BlockData{
-        .hash = bi->hash, .header = BlockHeader{.number = bi->number}});
+    response.blocks.emplace_back(
+        BlockData{.hash = bi->hash, .header = {{bi->number, {}, {}, {}, {}}}});
   }
 
   handler(response);

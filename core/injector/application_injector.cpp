@@ -1,5 +1,6 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -21,6 +22,7 @@
 
 #include "api/service/author/author_jrpc_processor.hpp"
 #include "api/service/author/impl/author_api_impl.hpp"
+#include "api/service/beefy/rpc.hpp"
 #include "api/service/chain/chain_jrpc_processor.hpp"
 #include "api/service/chain/impl/chain_api_impl.hpp"
 #include "api/service/child_state/child_state_jrpc_processor.hpp"
@@ -28,6 +30,7 @@
 #include "api/service/impl/api_service_impl.hpp"
 #include "api/service/internal/impl/internal_api_impl.hpp"
 #include "api/service/internal/internal_jrpc_processor.hpp"
+#include "api/service/mmr/rpc.hpp"
 #include "api/service/payment/impl/payment_api_impl.hpp"
 #include "api/service/payment/payment_jrpc_processor.hpp"
 #include "api/service/rpc/impl/rpc_api_impl.hpp"
@@ -59,16 +62,21 @@
 #include "clock/impl/clock_impl.hpp"
 #include "common/fd_limit.hpp"
 #include "common/outcome_throw.hpp"
+#include "consensus/babe/impl/babe.hpp"
 #include "consensus/babe/impl/babe_config_repository_impl.hpp"
-#include "consensus/babe/impl/babe_impl.hpp"
 #include "consensus/babe/impl/babe_lottery_impl.hpp"
-#include "consensus/babe/impl/block_appender_base.hpp"
-#include "consensus/babe/impl/block_executor_impl.hpp"
-#include "consensus/babe/impl/block_header_appender_impl.hpp"
-#include "consensus/babe/impl/consistency_keeper_impl.hpp"
+#include "consensus/finality_consensus.hpp"
 #include "consensus/grandpa/impl/authority_manager_impl.hpp"
 #include "consensus/grandpa/impl/environment_impl.hpp"
 #include "consensus/grandpa/impl/grandpa_impl.hpp"
+#include "consensus/production_consensus.hpp"
+#include "consensus/timeline/impl/block_appender_base.hpp"
+#include "consensus/timeline/impl/block_executor_impl.hpp"
+#include "consensus/timeline/impl/block_header_appender_impl.hpp"
+#include "consensus/timeline/impl/consensus_selector_impl.hpp"
+#include "consensus/timeline/impl/consistency_keeper_impl.hpp"
+#include "consensus/timeline/impl/slots_util_impl.hpp"
+#include "consensus/timeline/impl/timeline_impl.hpp"
 #include "consensus/validation/babe_block_validator.hpp"
 #include "crypto/bip39/impl/bip39_provider_impl.hpp"
 #include "crypto/crypto_store/crypto_store_impl.hpp"
@@ -94,6 +102,7 @@
 #include "metrics/impl/metrics_watcher.hpp"
 #include "metrics/impl/prometheus/handler_impl.hpp"
 #include "metrics/metrics.hpp"
+#include "network/beefy/beefy.hpp"
 #include "network/impl/block_announce_transmitter_impl.hpp"
 #include "network/impl/extrinsic_observer_impl.hpp"
 #include "network/impl/grandpa_transmitter_impl.hpp"
@@ -139,10 +148,12 @@
 #include "runtime/runtime_api/impl/account_nonce_api.hpp"
 #include "runtime/runtime_api/impl/authority_discovery_api.hpp"
 #include "runtime/runtime_api/impl/babe_api.hpp"
+#include "runtime/runtime_api/impl/beefy.hpp"
 #include "runtime/runtime_api/impl/block_builder.hpp"
 #include "runtime/runtime_api/impl/core.hpp"
 #include "runtime/runtime_api/impl/grandpa_api.hpp"
 #include "runtime/runtime_api/impl/metadata.hpp"
+#include "runtime/runtime_api/impl/mmr.hpp"
 #include "runtime/runtime_api/impl/offchain_worker_api.hpp"
 #include "runtime/runtime_api/impl/parachain_host.hpp"
 #include "runtime/runtime_api/impl/session_keys_api.hpp"
@@ -541,7 +552,9 @@ namespace {
         di::bind<offchain::OffchainPersistentStorage>.template to<offchain::OffchainPersistentStorageImpl>(),
         di::bind<offchain::OffchainLocalStorage>.template to<offchain::OffchainLocalStorageImpl>(),
         di::bind<runtime::Metadata>.template to<runtime::MetadataImpl>(),
+        di::bind<runtime::MmrApi>.template to<runtime::MmrApiImpl>(),
         di::bind<runtime::GrandpaApi>.template to<runtime::GrandpaApiImpl>(),
+        di::bind<runtime::BeefyApi>.template to<runtime::BeefyApiImpl>(),
         di::bind<runtime::Core>.template to<runtime::CoreImpl>(),
         di::bind<runtime::BabeApi>.template to<runtime::BabeApiImpl>(),
         di::bind<runtime::SessionKeysApi>.template to<runtime::SessionKeysApiImpl>(),
@@ -644,6 +657,8 @@ namespace {
                 .template to<api::WsListenerImpl>(),
             di::bind<api::JRpcProcessor *[]>()  // NOLINT
                 .template to<api::child_state::ChildStateJrpcProcessor,
+                             api::BeefyRpc,
+                             api::MmrRpc,
                              api::state::StateJrpcProcessor,
                              api::author::AuthorJRpcProcessor,
                              api::chain::ChainJrpcProcessor,
@@ -723,7 +738,7 @@ namespace {
             di::bind<network::Synchronizer>.template to<network::SynchronizerImpl>(),
             di::bind<consensus::grandpa::Environment>.template to<consensus::grandpa::EnvironmentImpl>(),
             di::bind<parachain::IApprovedAncestor>.template to<parachain::ApprovalDistribution>(),
-            di::bind<consensus::babe::BlockValidator>.template to<consensus::babe::BabeBlockValidator>(),
+            di::bind<consensus::BlockValidator>.template to<consensus::BabeBlockValidator>(),
             di::bind<crypto::EcdsaProvider>.template to<crypto::EcdsaProviderImpl>(),
             di::bind<crypto::Ed25519Provider>.template to<crypto::Ed25519ProviderImpl>(),
             di::bind<crypto::Hasher>.template to<crypto::HasherImpl>(),
@@ -825,15 +840,14 @@ namespace {
             di::bind<consensus::grandpa::AuthorityManager>.template to<consensus::grandpa::AuthorityManagerImpl>(),
             di::bind<network::PeerManager>.template to<network::PeerManagerImpl>(),
             di::bind<network::Router>.template to<network::RouterLibp2p>(),
-            di::bind<consensus::babe::BlockHeaderAppender>.template to<consensus::babe::BlockHeaderAppenderImpl>(),
-            di::bind<consensus::babe::BlockExecutor>.template to<consensus::babe::BlockExecutorImpl>(),
+            di::bind<consensus::BlockHeaderAppender>.template to<consensus::BlockHeaderAppenderImpl>(),
+            di::bind<consensus::BlockExecutor>.template to<consensus::BlockExecutorImpl>(),
             di::bind<consensus::grandpa::Grandpa>.template to<consensus::grandpa::GrandpaImpl>(),
             di::bind<consensus::grandpa::JustificationObserver>.template to<consensus::grandpa::GrandpaImpl>(),
             di::bind<consensus::grandpa::RoundObserver>.template to<consensus::grandpa::GrandpaImpl>(),
             di::bind<consensus::grandpa::CatchUpObserver>.template to<consensus::grandpa::GrandpaImpl>(),
             di::bind<consensus::grandpa::NeighborObserver>.template to<consensus::grandpa::GrandpaImpl>(),
             di::bind<consensus::grandpa::GrandpaObserver>.template to<consensus::grandpa::GrandpaImpl>(),
-            di::bind<consensus::babe::BabeUtil>.template to<consensus::babe::BabeConfigRepositoryImpl>(),
             di::bind<network::BlockAnnounceTransmitter>.template to<network::BlockAnnounceTransmitterImpl>(),
             di::bind<network::GrandpaTransmitter>.template to<network::GrandpaTransmitterImpl>(),
             di::bind<network::TransactionsTransmitter>.template to<network::TransactionsTransmitterImpl>(),
@@ -842,7 +856,7 @@ namespace {
                   return get_genesis_block_header(injector);
                 }),
             di::bind<telemetry::TelemetryService>.template to<telemetry::TelemetryServiceImpl>(),
-            di::bind<consensus::babe::ConsistencyKeeper>.template to<consensus::babe::ConsistencyKeeperImpl>(),
+            di::bind<consensus::ConsistencyKeeper>.template to<consensus::ConsistencyKeeperImpl>(),
             di::bind<api::InternalApi>.template to<api::InternalApiImpl>(),
             di::bind<consensus::babe::BabeConfigRepository>.template to<consensus::babe::BabeConfigRepositoryImpl>(),
             di::bind<blockchain::DigestTracker>.template to<blockchain::DigestTrackerImpl>(),
@@ -850,11 +864,24 @@ namespace {
             di::bind<crypto::SessionKeys>.template to<crypto::SessionKeysImpl>(),
             di::bind<network::SyncProtocol>.template to<network::SyncProtocolImpl>(),
             di::bind<network::StateProtocol>.template to<network::StateProtocolImpl>(),
-            di::bind<consensus::babe::Babe>.template to<consensus::babe::BabeImpl>(),
+            di::bind<network::IBeefy>.template to<network::Beefy>(),
             di::bind<consensus::babe::BabeLottery>.template to<consensus::babe::BabeLotteryImpl>(),
-            di::bind<network::BlockAnnounceObserver>.template to<consensus::babe::BabeImpl>(),
+            di::bind<network::BlockAnnounceObserver>.template to<consensus::TimelineImpl>(),
             di::bind<dispute::DisputeCoordinator>.template to<dispute::DisputeCoordinatorImpl>(),
             di::bind<dispute::Storage>.template to<dispute::StorageImpl>(),
+
+            di::bind<consensus::ProductionConsensus *[]>()  // NOLINT
+                .template to<consensus::babe::Babe
+                             //,consensus::aura::Aura
+                             //,consensus::sassafras::Sassafras
+                            >(),
+            di::bind<consensus::FinalityConsensus *[]>()  // NOLINT
+                .template to<
+                             consensus::grandpa::Grandpa
+                            >(),
+            di::bind<consensus::ConsensusSelector>.template to<consensus::ConsensusSelectorImpl>(),
+            di::bind<consensus::SlotsUtil>.template to<consensus::SlotsUtilImpl>(),
+            di::bind<consensus::Timeline>.template to<consensus::TimelineImpl>(),
 
             // user-defined overrides...
             std::forward<decltype(args)>(args)...);
@@ -976,8 +1003,10 @@ namespace kagome::injector {
     return pimpl_->injector_.create<sptr<dispute::DisputeCoordinator>>();
   }
 
-  std::shared_ptr<consensus::babe::Babe> KagomeNodeInjector::injectBabe() {
-    return pimpl_->injector_.template create<sptr<consensus::babe::Babe>>();
+  std::shared_ptr<consensus::Timeline> KagomeNodeInjector::injectTimeline() {
+    pimpl_->injector_.template create<sptr<consensus::ConsensusSelector>>();
+    pimpl_->injector_.template create<sptr<consensus::SlotsUtil>>();
+    return pimpl_->injector_.template create<sptr<consensus::Timeline>>();
   }
 
   std::shared_ptr<consensus::grandpa::Grandpa>

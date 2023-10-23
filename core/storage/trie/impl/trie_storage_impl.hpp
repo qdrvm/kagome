@@ -1,10 +1,10 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_STORAGE_TRIE_IMPL_TRIE_STORAGE_IMPL
-#define KAGOME_STORAGE_TRIE_IMPL_TRIE_STORAGE_IMPL
+#pragma once
 
 #include "storage/trie/trie_storage.hpp"
 
@@ -22,9 +22,6 @@ namespace kagome::storage::trie {
 
   class TrieStorageImpl : public TrieStorage {
    public:
-    using EncodedNode = common::BufferView;
-    using OnNodeLoaded = std::function<void(EncodedNode)>;
-
     static outcome::result<std::unique_ptr<TrieStorageImpl>> createEmpty(
         const std::shared_ptr<PolkadotTrieFactory> &trie_factory,
         std::shared_ptr<Codec> codec,
@@ -65,5 +62,3 @@ namespace kagome::storage::trie {
   };
 
 }  // namespace kagome::storage::trie
-
-#endif  // KAGOME_STORAGE_TRIE_IMPL_TRIE_STORAGE_IMPL

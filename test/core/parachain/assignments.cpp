@@ -1,5 +1,6 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -47,18 +48,18 @@ struct AssignmentsTest : public test::BaseFS_Test {
                                    size_t random) {
     for (const auto &acc : accounts) {
       [[maybe_unused]] auto _ =
-          cs->generateSr25519Keypair(KnownKeyTypeId::KEY_TYPE_ASGN,
+          cs->generateSr25519Keypair(KeyTypes::ASSIGNMENT,
                                      std::string_view{acc})
               .value();
     }
     for (size_t ix = 0ull; ix < random; ++ix) {
       auto seed = std::to_string(ix);
       [[maybe_unused]] auto _ =
-          cs->generateSr25519Keypair(KnownKeyTypeId::KEY_TYPE_ASGN,
+          cs->generateSr25519Keypair(KeyTypes::ASSIGNMENT,
                                      std::string_view{seed})
               .value();
     }
-    return cs->getSr25519PublicKeys(KnownKeyTypeId::KEY_TYPE_ASGN).value();
+    return cs->getSr25519PublicKeys(KeyTypes::ASSIGNMENT).value();
   }
 
   auto create_crypto_store() {

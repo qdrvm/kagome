@@ -1,5 +1,6 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -52,9 +53,7 @@ namespace kagome::offchain {
     BOOST_ASSERT(executor_);
     BOOST_ASSERT(ocw_pool_);
 
-    auto hash = hasher_->blake2b_256(scale::encode(header_).value());
-    const_cast<primitives::BlockInfo &>(block_) =
-        primitives::BlockInfo(header_.number, hash);
+    const_cast<primitives::BlockInfo &>(block_) = header_.blockInfo();
 
     local_storage_ =
         std::make_shared<OffchainLocalStorageImpl>(std::move(storage));

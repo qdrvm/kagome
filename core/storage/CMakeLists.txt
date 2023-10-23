@@ -1,5 +1,8 @@
-# Copyright Soramitsu Co., Ltd. All Rights Reserved.
+#
+# Copyright Quadrivium LLC
+# All Rights Reserved
 # SPDX-License-Identifier: Apache-2.0
+#
 
 add_library(storage
     map_prefix/prefix.cpp
@@ -10,6 +13,9 @@ add_library(storage
     database_error.cpp
     changes_trie/impl/storage_changes_tracker_impl.cpp
     in_memory/in_memory_storage.cpp
+    trie/child_prefix.cpp
+    trie/compact_decode.cpp
+    trie/compact_encode.cpp
     trie/impl/trie_batch_base.cpp
     trie/impl/ephemeral_trie_batch_impl.cpp
     trie/impl/trie_storage_impl.cpp

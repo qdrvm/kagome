@@ -1,10 +1,10 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_HEXUTIL_HPP
-#define KAGOME_HEXUTIL_HPP
+#pragma once
 
 #include <string_view>
 #include <vector>
@@ -114,5 +114,3 @@ namespace kagome::common {
 }  // namespace kagome::common
 
 OUTCOME_HPP_DECLARE_ERROR(kagome::common, UnhexError);
-
-#endif  // KAGOME_HEXUTIL_HPP

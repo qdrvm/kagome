@@ -1,10 +1,10 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_CHAIN_SUBSCRIBE_NEW_HEADS_HPP
-#define KAGOME_CHAIN_SUBSCRIBE_NEW_HEADS_HPP
+#pragma once
 
 #include "api/service/base_request.hpp"
 
@@ -27,5 +27,3 @@ namespace kagome::api::chain::request {
   };
 
 }  // namespace kagome::api::chain::request
-
-#endif  // KAGOME_CHAIN_SUBSCRIBE_NEW_HEADS_HPP

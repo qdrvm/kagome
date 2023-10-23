@@ -1,18 +1,18 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_CONSENSUS_BABE_BABECONFIGREPOSITORYIMPL
-#define KAGOME_CONSENSUS_BABE_BABECONFIGREPOSITORYIMPL
+#pragma once
 
 #include "consensus/babe/babe_config_repository.hpp"
-#include "consensus/babe/babe_util.hpp"
 
 #include <mutex>
 
 #include "blockchain/indexer.hpp"
 #include "consensus/babe/has_babe_consensus_digest.hpp"
+#include "injector/lazy.hpp"
 #include "log/logger.hpp"
 #include "primitives/block_data.hpp"
 #include "primitives/event_types.hpp"
@@ -23,21 +23,30 @@ namespace kagome::application {
   class AppStateManager;
   class AppConfiguration;
 }  // namespace kagome::application
+
 namespace kagome::blockchain {
   class BlockTree;
   class BlockHeaderRepository;
 }  // namespace kagome::blockchain
+
+namespace kagome::consensus {
+  class SlotsUtil;
+}
+
 namespace kagome::crypto {
   class Hasher;
 }
+
 namespace kagome::runtime {
   class BabeApi;
 }
+
 namespace kagome::storage::trie {
   class TrieStorage;
 }  // namespace kagome::storage::trie
 
 namespace kagome::consensus::babe {
+
   struct BabeIndexedValue {
     SCALE_TIE_ONLY(config, state, next_state_warp);
 
@@ -64,7 +73,6 @@ namespace kagome::consensus::babe {
 
   class BabeConfigRepositoryImpl final
       : public BabeConfigRepository,
-        public BabeUtil,
         public std::enable_shared_from_this<BabeConfigRepositoryImpl> {
    public:
     enum class Error {
@@ -81,13 +89,14 @@ namespace kagome::consensus::babe {
         std::shared_ptr<runtime::BabeApi> babe_api,
         std::shared_ptr<crypto::Hasher> hasher,
         std::shared_ptr<storage::trie::TrieStorage> trie_storage,
-        primitives::events::ChainSubscriptionEnginePtr chain_events_engine);
+        primitives::events::ChainSubscriptionEnginePtr chain_events_engine,
+        LazySPtr<SlotsUtil> slots_util);
 
     bool prepare();
 
     // BabeConfigRepository
 
-    BabeDuration slotDuration() const override;
+    Duration slotDuration() const override;
 
     EpochLength epochLength() const override;
 
@@ -95,21 +104,10 @@ namespace kagome::consensus::babe {
     config(const primitives::BlockInfo &parent_info,
            EpochNumber epoch_number) const override;
 
-    // BabeUtil
-
-    BabeSlotNumber timeToSlot(BabeTimePoint time) const override;
-
-    BabeTimePoint slotStartTime(BabeSlotNumber slot) const override;
-    BabeTimePoint slotFinishTime(BabeSlotNumber slot) const override;
-
-    outcome::result<EpochDescriptor> slotToEpochDescriptor(
-        const primitives::BlockInfo &parent_info,
-        BabeSlotNumber slot) const override;
-
     void warp(const primitives::BlockInfo &block) override;
 
    private:
-    outcome::result<BabeSlotNumber> getFirstBlockSlotNumber(
+    outcome::result<SlotNumber> getFirstBlockSlotNumber(
         const primitives::BlockInfo &parent_info) const;
 
     outcome::result<std::shared_ptr<const primitives::BabeConfiguration>>
@@ -139,11 +137,12 @@ namespace kagome::consensus::babe {
     std::shared_ptr<crypto::Hasher> hasher_;
     std::shared_ptr<storage::trie::TrieStorage> trie_storage_;
     std::shared_ptr<primitives::events::ChainEventSubscriber> chain_sub_;
+    LazySPtr<SlotsUtil> slots_util_;
 
-    BabeDuration slot_duration_{};
+    Duration slot_duration_{};
     EpochLength epoch_length_{};
 
-    mutable std::optional<BabeSlotNumber> first_block_slot_number_;
+    mutable std::optional<SlotNumber> first_block_slot_number_;
 
     log::Logger logger_;
   };
@@ -152,5 +151,3 @@ namespace kagome::consensus::babe {
 
 OUTCOME_HPP_DECLARE_ERROR(kagome::consensus::babe,
                           BabeConfigRepositoryImpl::Error)
-
-#endif  // KAGOME_CONSENSUS_BABE_BABECONFIGREPOSITORYIMPL

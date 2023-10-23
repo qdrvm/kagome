@@ -1,5 +1,6 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -182,10 +183,7 @@ namespace kagome::storage::trie_pruner {
     OUTCOME_TRY(node_batch->commit());
     OUTCOME_TRY(value_batch->commit());
 
-    OUTCOME_TRY(block_enc, scale::encode(block));
-    auto block_hash = hasher_->blake2b_256(block_enc);
-
-    last_pruned_block_ = primitives::BlockInfo{block_hash, block.number};
+    last_pruned_block_ = block.blockInfo();
     OUTCOME_TRY(savePersistentState());
     return outcome::success();
   }
@@ -510,16 +508,15 @@ namespace kagome::storage::trie_pruner {
       const blockchain::BlockTree &block_tree) {
     KAGOME_PROFILE_START_L(logger_, restore_state);
     SL_DEBUG(logger_,
-             "Restore state - last pruned block #{}",
-             last_pruned_block.number);
+             "Restore state - last pruned block {}",
+             last_pruned_block.blockInfo());
 
     ref_count_.clear();
-    OUTCOME_TRY(last_pruned_enc, scale::encode(last_pruned_block));
-    auto last_pruned_hash = hasher_->blake2b_256(last_pruned_enc);
 
     std::queue<primitives::BlockHash> block_queue;
 
-    OUTCOME_TRY(last_pruned_children, block_tree.getChildren(last_pruned_hash));
+    OUTCOME_TRY(last_pruned_children,
+                block_tree.getChildren(last_pruned_block.hash()));
     if (!last_pruned_children.empty()) {
       auto &base_block_hash = last_pruned_children.at(0);
       OUTCOME_TRY(base_block, block_tree.getBlockHeader(base_block_hash));
@@ -564,7 +561,7 @@ namespace kagome::storage::trie_pruner {
         block_queue.push(child);
       }
     }
-    last_pruned_block_ = {last_pruned_hash, last_pruned_block.number};
+    last_pruned_block_ = last_pruned_block.blockInfo();
     OUTCOME_TRY(savePersistentState());
     return outcome::success();
   }
