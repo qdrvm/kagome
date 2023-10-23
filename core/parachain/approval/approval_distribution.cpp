@@ -1152,9 +1152,9 @@ namespace kagome::parachain {
             if (!self->storedDistribBlockEntries().get(it->first)) {
               ++it;
             } else {
-              SL_TRACE(logger_,
-                  "Processing pending assignment/approvals.(count={})",
-                  it->second.size());
+              SL_TRACE(self->logger_,
+                       "Processing pending assignment/approvals.(count={})",
+                       it->second.size());
               for (auto i = it->second.begin(); i != it->second.end(); ++i) {
                 visit_in_place(
                     i->second,
