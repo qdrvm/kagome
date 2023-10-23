@@ -5,14 +5,12 @@
 #
 
 add_library(grandpa
-    impl/schedule_node.cpp
     impl/authority_manager_impl.cpp
     impl/vote_tracker_impl.cpp
     impl/vote_crypto_provider_impl.cpp
     impl/grandpa_impl.cpp
     impl/voting_round_impl.cpp
     impl/environment_impl.cpp
-    grandpa_digest_observer_error.cpp
     authority_manager_error.cpp
     vote_graph/vote_graph_error.cpp
     vote_graph/vote_graph_impl.cpp

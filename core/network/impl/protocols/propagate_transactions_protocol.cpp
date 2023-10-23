@@ -28,6 +28,7 @@ namespace kagome::network {
       Roles roles,
       const application::ChainSpec &chain_spec,
       const blockchain::GenesisBlockHash &genesis_hash,
+      std::shared_ptr<boost::asio::io_context> main_thread,
       std::shared_ptr<consensus::Timeline> timeline,
       std::shared_ptr<ExtrinsicObserver> extrinsic_observer,
       std::shared_ptr<StreamEngine> stream_engine,
@@ -42,6 +43,7 @@ namespace kagome::network {
               log::createLogger(kPropagateTransactionsProtocolName,
                                 "propagate_transactions_protocol")),
         roles_{roles},
+        main_thread_{std::move(main_thread)},
         timeline_(std::move(timeline)),
         extrinsic_observer_(std::move(extrinsic_observer)),
         stream_engine_(std::move(stream_engine)),
@@ -132,6 +134,12 @@ namespace kagome::network {
 
   void PropagateTransactionsProtocol::propagateTransactions(
       gsl::span<const primitives::Transaction> txs) {
+    if (not main_thread_->get_executor().running_in_this_thread()) {
+      return main_thread_->post(
+          [self{shared_from_this()}, txs{std::vector(txs.begin(), txs.end())}] {
+            self->propagateTransactions(txs);
+          });
+    }
     SL_DEBUG(
         base_.logger(), "Propagate transactions : {} extrinsics", txs.size());
 
