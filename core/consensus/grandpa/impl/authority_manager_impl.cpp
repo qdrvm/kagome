@@ -149,6 +149,9 @@ namespace kagome::consensus::grandpa {
     if (not r) {
       return AuthorityManagerError::NOT_FOUND;
     }
+    if (r->second.value->state) {
+      return *r->second.value->state;
+    }
     if (next or r->first != block) {
       OUTCOME_TRY(load(r->first, r->second));
       return *r->second.value->next;
@@ -173,10 +176,10 @@ namespace kagome::consensus::grandpa {
       const primitives::BlockInfo &block,
       blockchain::Indexed<GrandpaIndexedValue> &item) const {
     if (not item.value->next) {
-      if (block.number == 0) {
-        BOOST_ASSERT(item.value->genesis);
-        item.value->next = item.value->genesis;
+      if (item.value->state) {
+        item.value->next = item.value->state;
       } else {
+        BOOST_ASSERT(block.number != 0);
         OUTCOME_TRY(header, block_tree_->getBlockHeader(block.hash));
         item.value->next =
             applyDigests(block, item.value->next_set_id, {header});
@@ -208,6 +211,11 @@ namespace kagome::consensus::grandpa {
                                   const primitives::AuthoritySet &authorities) {
     std::unique_lock lock{mutex_};
     GrandpaIndexedValue value{authorities.id + 1, std::nullopt, std::nullopt};
+    HasAuthoritySetChange digests{header};
+    if (not digests.scheduled) {
+      auto state = std::make_shared<primitives::AuthoritySet>(authorities);
+      value = {authorities.id, state, state};
+    }
     indexer_.put(block, {value, std::nullopt}, true);
   }
 }  // namespace kagome::consensus::grandpa

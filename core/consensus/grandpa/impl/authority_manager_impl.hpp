@@ -37,16 +37,17 @@ namespace kagome::consensus::grandpa {
   // TODO(turuslan): #1536, grandpa voting during forced change
 
   struct GrandpaIndexedValue {
-    SCALE_TIE_ONLY(next_set_id, genesis);
+    SCALE_TIE_ONLY(next_set_id, state);
 
     /**
      * Set id is missing from grandpa digests.
      */
     primitives::AuthoritySetId next_set_id;
     /**
-     * Genesis authorities read from runtime.
+     * Current authorities read from runtime.
+     * Used at genesis and after warp sync.
      */
-    std::optional<std::shared_ptr<const primitives::AuthoritySet>> genesis;
+    std::optional<std::shared_ptr<const primitives::AuthoritySet>> state;
     /**
      * Next authorities lazily computed from `set_id` and digest.
      */
