@@ -8,6 +8,7 @@ addtest(babe_test
     babe_test.cpp
     )
 target_link_libraries(babe_test
+    primitives
     consensus
     network
     clock
