@@ -268,6 +268,7 @@ namespace kagome::parachain::fragment {
   };
 
   struct Constraints {
+    SCALE_TIE(14);
     enum class Error {
       DISALLOWED_HRMP_WATERMARK,
       NO_SUCH_HRMP_CHANNEL,
@@ -311,6 +312,16 @@ namespace kagome::parachain::fragment {
 
     outcome::result<Constraints> applyModifications(
         const ConstraintModifications &modifications) const;
+  };
+
+  struct BackingState {
+    SCALE_TIE(2);
+    /// The state-machine constraints of the parachain.
+    Constraints constraints;
+    /// The candidates pending availability. These should be ordered, i.e. they should form
+    /// a sub-chain, where the first candidate builds on top of the required parent of the
+    /// constraints and each subsequent builds on top of the previous head-data.
+    std::vector<network::vstaging::CandidatePendingAvailability> pending_availability;
   };
 
   struct Fragment {

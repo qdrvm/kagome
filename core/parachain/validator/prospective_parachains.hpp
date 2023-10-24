@@ -12,7 +12,7 @@
 #include <unordered_map>
 #include <unordered_set>
 
-#include "network/types/collator_messages.hpp"
+#include "network/types/collator_messages_vstaging.hpp"
 #include "parachain/types.hpp"
 #include "parachain/validator/collations.hpp"
 #include "parachain/validator/fragment_tree.hpp"
@@ -34,14 +34,26 @@ namespace kagome::parachain {
           candidate_storage;
     };
 
+    struct ImportablePendingAvailability {
+      network::CommittedCandidateReceipt candidate;
+      runtime::PersistedValidationData persisted_validation_data;
+      fragment::PendingAvailability compact;
+    };
+
     View view;
     std::shared_ptr<crypto::Hasher> hasher_;
+    std::shared_ptr<runtime::ParachainHost> parachain_host_;
+    std::shared_ptr<blockchain::BlockTree> block_tree_;
     log::Logger logger =
         log::createLogger("ProspectiveParachains", "parachain");
 
    public:
-    ProspectiveParachains(std::shared_ptr<crypto::Hasher> hasher)
-        : hasher_{std::move(hasher)} {}
+    ProspectiveParachains(std::shared_ptr<crypto::Hasher> hasher, std::shared_ptr<runtime::ParachainHost> parachain_host, std::shared_ptr<blockchain::BlockTree> block_tree)
+        : hasher_{std::move(hasher)}, parachain_host_{std::move(parachain_host)}, block_tree_{std::move(block_tree)} {
+          BOOST_ASSERT(hasher_);
+          BOOST_ASSERT(parachain_host_);
+          BOOST_ASSERT(block_tree_);
+        }
 
     std::optional<runtime::PersistedValidationData>
     answerProspectiveValidationDataRequest(
@@ -97,51 +109,170 @@ namespace kagome::parachain {
       return std::nullopt;
     }
 
-template <typename Context>
-JfyiErrorResult<void> handle_active_leaves_update(Context& ctx, View& view, ActiveLeavesUpdate update, Metrics& metrics) {
-    // 1. clean up inactive leaves
-    // 2. determine all scheduled para at new block
-    // 3. construct new fragment tree for each para for each new leaf
-    // 4. prune candidate storage.
-    for (const auto& deactivated : update.deactivated) {
+    std::optional<ProspectiveParachainsMode> prospectiveParachainsMode(const RelayHash &relay_parent) {
+      /// request runtime for prospective parachains mode
+      /// TODO(iceseer): do
+      return std::nullopt;
+    }
+
+outcome::result<std::optional<std::pair<fragment::Constraints, std::vector<CandidatePendingAvailability>>>> fetchBackingState(const RelayHash &relay_parent, ParachainId para_id) {
+      /// TODO(iceseer): do
+
+//	let (tx, rx) = oneshot::channel();
+//	ctx.send_message(RuntimeApiMessage::Request(
+//		relay_parent,
+//		RuntimeApiRequest::StagingParaBackingState(para_id, tx),
+//	))
+//	.await;
+//
+//	Ok(rx
+//		.await
+//		.map_err(JfyiError::RuntimeApiRequestCanceled)??
+//		.map(|s| (From::from(s.constraints), s.pending_availability)))
+
+      return std::nullopt;
+}
+
+    outcome::result<std::optional<RelayChainBlockInfo>> fetchBlockInfo(const RelayHash &relay_hash) {
+      auto res_header = block_tree_->getBlockHeader(relay_hash);
+      if (res_header.has_error()) {
+        if (res_header.error() == BlockTreeError::HEADER_NOT_FOUND) {
+          return outcome::success(std::nullopt);
+        }
+        return res_header.error();
+      }
+
+      return RelayChainBlockInfo {
+        .hash = relay_hash,
+        .number = res_header.value().number,
+        .storage_root = res_header.value().state_root,
+      };
+    }
+
+outcome::result<std::unordered_set<ParachainId>> fetchUpcomingParas(const RelayHash &relay_parent, std::unordered_set<CandidateHash> &pending_availability) {
+  OUTCOME_TRY(cores, parachain_host_->availability_cores(relay_parent));
+
+  std::unordered_set<ParachainId> upcoming;
+  for (const auto &core : cores) {
+    visit_in_place(core, [&](const runtime::OccupiedCore &occupied) {
+      pending_availability.insert(occupied.candidate_hash);
+				if (occupied.next_up_on_available) {
+					upcoming.insert(occupied.next_up_on_available->para_id);
+				}
+				if (occupied.next_up_on_time_out) {
+					upcoming.insert(occupied.next_up_on_time_out->para_id);
+				}
+    }, [&](const runtime::ScheduledCore &scheduled) {
+      upcoming.insert(scheduled.para_id);
+    }, [](const auto &) {});
+  }
+  return upcoming;
+}
+
+outcome::result<std::vector<RelayChainBlockInfo>> fetchAncestry(const RelayHash &relay_hash, size_t ancestors) {
+  std::vector<RelayChainBlockInfo> block_info;
+	if (ancestors == 0) {
+		return block_info;
+	}
+
+  OUTCOME_TRY(hashes, block_tree_->getDescendingChainToBlock(relay_hash, ancestors));
+  OUTCOME_TRY(required_session, parachain_host_->session_index_for_child(relay_hash));
+  
+  block_info.reserve(hashes.size());
+  for (const auto &hash : hashes) {
+    OUTCOME_TRY(info, fetchBlockInfo(hash));
+    if (!info) {
+      SL_WARN(logger, "Failed to fetch info for hash returned from ancestry. (relay_hash={})", hash);
+      break;
+    }
+    OUTCOME_TRY(session, parachain_host_->session_index_for_child(hash));
+		if (session == required_session) {
+			block_info.emplace_back(*info);
+		} else {
+			break;
+		}
+  }
+  return block_info;
+}
+
+outcome::result<std::vector<ImportablePendingAvailability>> preprocessCandidatesPendingAvailability(const HeadData &required_parent, const std::vector<network::vstaging::CandidatePendingAvailability> &pending_availability) {
+    std::reference_wrapper<const HeadData> required_parent_copy = required_parent;
+    std::vector<ImportablePendingAvailability> importable;
+    const size_t expected_count = pending_availability.size();
+
+    for (size_t i = 0; i < pending_availability.size(); i++) {
+        const auto &pending = pending_availability[i];
+        OUTCOME_TRY(relay_parent, fetchBlockInfo(pending.descriptor.relay_parent));
+        if (!relay_parent) {
+          SL_DEBUG(logger, "Had to stop processing pending candidates early due to missing info. (candidate hash={}, parachain id={}, index={}, expected count={})", 
+            pending.candidate_hash, pending.descriptor.para_id, i, expected_count);
+            break;
+        }
+
+        const fragment::RelayChainBlockInfo &b = *relay_parent;
+        const auto &next_required_parent = pending.commitments.head_data;
+        importable.push_back(ImportablePendingAvailability {
+            network::CommittedCandidateReceipt {
+                pending.descriptor,
+                pending.commitments,
+            },
+            runtime::PersistedValidationData {
+                required_parent_copy.get(),
+                b.number,
+                b.storage_root,
+                pending.max_pov_size,
+            },
+            fragment::PendingAvailability {
+                pending.candidate_hash,
+                b,
+            }
+        });
+        required_parent_copy = next_required_parent;
+    }
+    return importable;
+}
+
+outcome::result<void> onActiveLeavesUpdate(const network::ExView &update) {
+    /// TODO(iceseer): do
+    /// call from parachain_processor onActiveLeavesUpdate
+
+    for (const auto& deactivated : update.lost) {
         view.active_leaves.remove(deactivated);
     }
     std::unordered_map<Hash, ProspectiveParachainsMode> temp_header_cache;
-    for (const auto& activated : update.activated) {
-        const auto& hash = activated.hash;
-        const auto mode = prospective_parachains_mode(ctx.sender(), hash).await.map_err(JfyiError::Runtime);
-        if (mode) {
-            const auto& enabled_mode = std::get<ProspectiveParachainsMode::Enabled>(*mode);
-            const auto& max_candidate_depth = enabled_mode.max_candidate_depth;
-            const auto& allowed_ancestry_len = enabled_mode.allowed_ancestry_len;
-        } else {
-            gum::trace!(
-                target: LOG_TARGET,
-                block_hash = hash,
-                "Skipping leaf activation since async backing is disabled"
-            );
-            // Not a part of any allowed ancestry.
-            return Ok();
-        }
-        std::unordered_set<Hash> pending_availability;
-        const auto& scheduled_paras = fetch_upcoming_paras(ctx, hash, pending_availability).await;
-        if (!scheduled_paras) {
-            return scheduled_paras.error();
-        }
-        RelayChainBlockInfo block_info;
-        const auto& block_info_result = fetch_block_info(ctx, temp_header_cache, hash).await;
-        if (!block_info_result) {
-            gum::warn!(
-                target: LOG_TARGET,
-                block_hash = hash,
-                "Failed to get block info for newly activated leaf block."
-            );
-            // `update.activated` is an option, but we can use this
-            // to exit the 'loop' and skip this block without skipping the rest.
-            continue;
-        }
-        block_info = block_info_result.value();
+    const auto& activated = update.new_head;
+    const auto& hash = primitives::calculateBlockHash(update.new_head, *hasher_).value();
+    const auto mode = prospectiveParachainsMode(hash);
+    if (!mode) {
+      SL_TRACE(logger, "Skipping leaf activation since async backing is disabled. (block_hash={})", hash);
+        return;
     }
+    std::unordered_set<Hash> pending_availability{};
+    OUTCOME_TRY(scheduled_paras, fetchUpcomingParas(hash, pending_availability));
+
+    fragment::RelayChainBlockInfo block_info {
+      .hash = hash,
+      .number = activated.number,
+      .storage_root: activated.state_root,
+    };
+
+    OUTCOME_TRY(ancestry, fetchAncestry(hash, mode->allowed_ancestry_len));
+    std::unordered_map<ParachainId, fragment::FragmentTree> fragment_trees;
+    for (ParachainId para : scheduled_paras) {
+      auto &candidate_storage = view.candidate_storage[para];
+      OUTCOME_TRY(backing_state, fetchBackingState(hash, para));
+      if (!backing_state) {
+        SL_TRACE(logger, "Failed to get inclusion backing state. (para={}, relay parent={})", para, hash);
+        continue;
+      }
+      const auto &[constraints, pending_availability] = *backing_state;
+      OUTCOME_TRY(pending_availability, preprocessCandidatesPendingAvailability(constraints.required_parent, pending_availability));
+
+      std::vector<fragment::PendingAvailability> compact_pending;
+      compact_pending.reserve(pending_availability.size());
+
+    }
+
     return Ok();
 }
 

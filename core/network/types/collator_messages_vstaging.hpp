@@ -117,6 +117,20 @@ namespace kagome::network::vstaging {
 
   using CollationFetchingResponse = network::CollationFetchingResponse;
 
+  struct CandidatePendingAvailability {
+    SCALE_TIE(5);
+    /// The hash of the candidate.
+    CandidateHash candidate_hash;
+    /// The candidate's descriptor.
+    CandidateDescriptor descriptor;
+    /// The commitments of the candidate.
+    CandidateCommitments commitments;
+    /// The candidate's relay parent's number.
+    BlockNumber relay_parent_number;
+    /// The maximum Proof-of-Validity size allowed, in bytes.
+    uint32_t max_pov_size;
+  };
+
 }  // namespace kagome::network::vstaging
 
 namespace kagome::network {
