@@ -24,7 +24,7 @@ namespace kagome::consensus::grandpa {
     }
   }
 
-  bool VotesCache::contains(VoteMessage msg) {
+  bool VotesCache::contains(const VoteMessage &msg) {
     if (auto opt_set = lru_cache_.get(msg.round_number); opt_set) {
       auto type = msg.vote.message.type().hash_code();
       return opt_set.value()->contains(

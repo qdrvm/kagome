@@ -17,9 +17,7 @@ namespace kagome::consensus::grandpa {
     Id id;
     primitives::BlockHash block_hash;
 
-    bool operator==(const VotesCacheItem &rhs) const {
-      return type == rhs.type && id == rhs.id && block_hash == rhs.block_hash;
-    }
+    bool operator==(const VotesCacheItem &rhs) const = default;
   };
 }  // namespace kagome::consensus::grandpa
 
@@ -27,9 +25,12 @@ template <>
 struct std::hash<kagome::consensus::grandpa::VotesCacheItem> {
   std::size_t operator()(
       const kagome::consensus::grandpa::VotesCacheItem &item) const {
-    return std::hash<size_t>()(item.type)
-         ^ std::hash<kagome::consensus::grandpa::Id>()(item.id)
-         ^ std::hash<kagome::primitives::BlockHash>()(item.block_hash);
+    size_t result = std::hash<size_t>()(item.type);
+    boost::hash_combine(result,
+                        std::hash<kagome::consensus::grandpa::Id>()(item.id));
+    boost::hash_combine(
+        result, std::hash<kagome::primitives::BlockHash>()(item.block_hash));
+    return result;
   }
 };
 
@@ -49,7 +50,7 @@ namespace kagome::consensus::grandpa {
 
     void put(const VoteMessage &msg);
 
-    bool contains(VoteMessage msg);
+    bool contains(const VoteMessage &msg);
 
    private:
     LruCache<RoundNumber, std::unordered_set<VotesCacheItem>> lru_cache_;
