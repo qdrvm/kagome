@@ -28,6 +28,9 @@ namespace kagome::primitives {
   inline const auto kBabeEngineId =
       ConsensusEngineId::fromString("BABE").value();
 
+  inline const auto kSassafrasEngineId =
+      ConsensusEngineId::fromString("SASS").value();
+
   inline const auto kGrandpaEngineId =
       ConsensusEngineId::fromString("FRNK").value();
 
@@ -65,6 +68,13 @@ namespace kagome::primitives {
                    consensus::babe::OnDisabled,       // 2: AuthIndex
                    consensus::babe::NextConfigData>;  // 3: c, S2nd
 
+  /// https://github.com/paritytech/polkadot-sdk/blob/f1f793718a2410872c3d61a86594a4c2bb9bea69/substrate/primitives/consensus/sassafras/src/digests.rs#L65
+  using SassafrasDigest =
+      /// Note: order of types in variant matters
+      std::variant<Unused<0>,
+                   NextEpochData,  // 1: (Auth C; R)
+                   OnDisabled>;    // 2: Auth ID
+
   /// https://github.com/paritytech/substrate/blob/polkadot-v0.9.8/primitives/finality-grandpa/src/lib.rs#L92
   using GrandpaDigest =
       /// Note: order of types in variant matters
@@ -85,6 +95,9 @@ namespace kagome::primitives {
       msg.consensus_engine_id = engine_id;
       if (engine_id == primitives::kBabeEngineId) {
         OUTCOME_TRY(payload, scale::decode<BabeDigest>(data));
+        msg.digest = std::move(payload);
+      } else if (engine_id == primitives::kSassafrasEngineId) {
+        OUTCOME_TRY(payload, scale::decode<SassafrasDigest>(data));
         msg.digest = std::move(payload);
       } else if (engine_id == primitives::kGrandpaEngineId) {
         OUTCOME_TRY(payload, scale::decode<GrandpaDigest>(data));
@@ -108,6 +121,7 @@ namespace kagome::primitives {
 
     ConsensusEngineId consensus_engine_id;
     std::variant<BabeDigest,
+                 SassafrasDigest,
                  GrandpaDigest,
                  UnsupportedDigest_POL1,
                  UnsupportedDigest_BEEF>

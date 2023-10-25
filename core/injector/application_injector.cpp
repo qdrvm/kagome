@@ -79,6 +79,9 @@
 #include "consensus/grandpa/impl/grandpa_thread_pool.hpp"
 #include "consensus/grandpa/impl/verified_justification_queue.hpp"
 #include "consensus/production_consensus.hpp"
+#include "consensus/sassafras/impl/sassafras.hpp"
+#include "consensus/sassafras/impl/sassafras_config_repository_impl.hpp"
+#include "consensus/sassafras/impl/sassafras_lottery_impl.hpp"
 #include "consensus/timeline/impl/block_appender_base.hpp"
 #include "consensus/timeline/impl/block_executor_impl.hpp"
 #include "consensus/timeline/impl/block_header_appender_impl.hpp"
@@ -185,6 +188,7 @@
 #include "runtime/runtime_api/impl/mmr.hpp"
 #include "runtime/runtime_api/impl/offchain_worker_api.hpp"
 #include "runtime/runtime_api/impl/parachain_host.hpp"
+#include "runtime/runtime_api/impl/sassafras_api.hpp"
 #include "runtime/runtime_api/impl/session_keys_api.hpp"
 #include "runtime/runtime_api/impl/tagged_transaction_queue.hpp"
 #include "runtime/runtime_api/impl/transaction_payment_api.hpp"
@@ -535,6 +539,7 @@ namespace {
         di::bind<runtime::BeefyApi>.template to<runtime::BeefyApiImpl>(),
         di::bind<runtime::Core>.template to<runtime::CoreImpl>(),
         di::bind<runtime::BabeApi>.template to<runtime::BabeApiImpl>(),
+        di::bind<runtime::SassafrasApi>.template to<runtime::SassafrasApiImpl>(),
         di::bind<runtime::SessionKeysApi>.template to<runtime::SessionKeysApiImpl>(),
         di::bind<runtime::BlockBuilder>.template to<runtime::BlockBuilderImpl>(),
         di::bind<runtime::TransactionPaymentApi>.template to<runtime::TransactionPaymentApiImpl>(),
@@ -852,6 +857,7 @@ namespace {
             di::bind<telemetry::TelemetryService>.template to<telemetry::TelemetryServiceImpl>(),
             di::bind<api::InternalApi>.template to<api::InternalApiImpl>(),
             di::bind<consensus::babe::BabeConfigRepository>.template to<consensus::babe::BabeConfigRepositoryImpl>(),
+            di::bind<consensus::sassafras::SassafrasConfigRepository>.template to<consensus::sassafras::SassafrasConfigRepositoryImpl>(),
             di::bind<authority_discovery::Query>.template to<authority_discovery::QueryImpl>(),
             di::bind<crypto::SessionKeys>.template to<crypto::SessionKeysImpl>(),
             di::bind<network::SyncProtocol>.template to<network::SyncProtocolImpl>(),
@@ -860,6 +866,7 @@ namespace {
             di::bind<consensus::beefy::FetchJustification>.template to<network::BeefyJustificationProtocol>(),
             di::bind<network::Beefy>.template to<network::BeefyImpl>(),
             di::bind<consensus::babe::BabeLottery>.template to<consensus::babe::BabeLotteryImpl>(),
+            di::bind<consensus::sassafras::SassafrasLottery>.template to<consensus::sassafras::SassafrasLotteryImpl>(),
             di::bind<network::BlockAnnounceObserver>.template to<consensus::TimelineImpl>(),
             di::bind<dispute::DisputeCoordinator>.template to<dispute::DisputeCoordinatorImpl>(),
             di::bind<dispute::Storage>.template to<dispute::StorageImpl>(),
@@ -867,7 +874,7 @@ namespace {
             di::bind<consensus::ProductionConsensus *[]>()  // NOLINT
                 .template to<consensus::babe::Babe
                              //,consensus::aura::Aura
-                             //,consensus::sassafras::Sassafras
+                             ,consensus::sassafras::Sassafras
                             >(),
             di::bind<consensus::FinalityConsensus *[]>()  // NOLINT
                 .template to<

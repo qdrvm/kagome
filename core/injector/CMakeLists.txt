@@ -67,6 +67,8 @@ target_link_libraries(application_injector
     recovery_mode
     runtime_properties_cache
     runtime_upgrade_tracker
+    sassafras
+    sassafras_api
     secp256k1_provider
     session_keys_api
     soralog::fallback_configurator

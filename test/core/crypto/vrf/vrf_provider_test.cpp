@@ -55,7 +55,7 @@ class VRFProviderTest : public testing::Test {
       106, 191, 217, 251, 246, 144, 111, 2};
 
   inline void prepare_transcript(Transcript &t) {
-    t.initialize({'I', 'D', 'D', 'Q', 'D'});
+    t.initialize("IDDQD"_bytes);
   }
 };
 

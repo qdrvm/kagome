@@ -43,8 +43,14 @@ namespace kagome::storage {
 
   inline const common::Buffer kFirstBlockSlot = ":kagome:first_block_slot"_buf;
 
+  inline const common::Buffer kSassafrasConfigRepositoryImplGenesisSlot =
+      ":kagome:SassafrasConfigRepositoryImpl:genesis_slot"_buf;
+
   inline const common::Buffer kBabeConfigRepositoryImplIndexerPrefix =
       ":kagome:BabeConfigRepositoryImpl:Indexer:"_buf;
+
+  inline const common::Buffer kSassafrasConfigRepositoryImplIndexerPrefix =
+      ":kagome:SassafrasConfigRepositoryImpl:Indexer:"_buf;
 
   inline const common::Buffer kAuthorityManagerImplIndexerPrefix =
       ":kagome:AuthorityManagerImpl:Indexer:"_buf;

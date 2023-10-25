@@ -15,6 +15,7 @@ kagome_install(consensus_common)
 
 add_subdirectory(timeline)
 add_subdirectory(babe)
+add_subdirectory(sassafras)
 add_subdirectory(grandpa)
 add_subdirectory(beefy)
 
@@ -22,6 +23,7 @@ add_library(consensus INTERFACE)
 target_link_libraries(consensus INTERFACE
     timeline
     babe
+    sassafras
     grandpa
     beefy
 )
