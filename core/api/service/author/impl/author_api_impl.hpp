@@ -84,15 +84,15 @@ namespace kagome::api {
 
     outcome::result<void> insertKey(
         crypto::KeyType key_type,
-        const gsl::span<const uint8_t> &seed,
-        const gsl::span<const uint8_t> &public_key) override;
+        const std::span<const uint8_t> &seed,
+        const std::span<const uint8_t> &public_key) override;
 
     outcome::result<common::Buffer> rotateKeys() override;
 
     outcome::result<bool> hasSessionKeys(
-        const gsl::span<const uint8_t> &keys) override;
+        const std::span<const uint8_t> &keys) override;
 
-    outcome::result<bool> hasKey(const gsl::span<const uint8_t> &public_key,
+    outcome::result<bool> hasKey(const std::span<const uint8_t> &public_key,
                                  crypto::KeyType key_type) override;
 
     outcome::result<std::vector<primitives::Extrinsic>> pendingExtrinsics()

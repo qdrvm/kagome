@@ -62,7 +62,7 @@ namespace kagome::api {
   }
 
   outcome::result<std::vector<BlockHash>> ChainApiImpl::getBlockHash(
-      gsl::span<const ValueType> values) const {
+      std::span<const ValueType> values) const {
     std::vector<BlockHash> results;
     results.reserve(values.size());
 

@@ -6,12 +6,24 @@
 
 #pragma once
 
-#include <gsl/span>
+#include <span>
 
 #include "common/bytestr.hpp"
 #include "common/hexutil.hpp"
 #include "common/lexicographical_compare_three_way.hpp"
 #include "macro/endianness_utils.hpp"
+
+#include <ranges>
+#include <span>
+
+template <class T>
+concept RangeOfBytes =
+    std::ranges::sized_range<T> and std::ranges::contiguous_range<T>
+    and std::is_same_v<std::ranges::range_value_t<T>, uint8_t>;
+
+inline auto operator""_bytes(const char *s, std::size_t size) {
+  return std::span<const uint8_t>(reinterpret_cast<const uint8_t *>(s), size);
+}
 
 namespace kagome::common {
   template <size_t MaxSize>
@@ -20,7 +32,7 @@ namespace kagome::common {
 
 namespace kagome::common {
 
-  class BufferView : public gsl::span<const uint8_t> {
+  class BufferView : public std::span<const uint8_t> {
    public:
     using span::span;
 
@@ -38,26 +50,28 @@ namespace kagome::common {
     std::string_view toStringView() const {
       return byte2str(*this);
     }
+
+    template <typename Prefix>
+    bool startsWith(const Prefix &prefix) const {
+      if (this->size() >= prefix.size()) {
+        auto this_view = subspan(0, prefix.size());
+        return std::equal(this_view.begin(),
+                          this_view.end(),
+                          std::cbegin(prefix),
+                          std::cend(prefix));
+      }
+      return false;
+    }
+
+    auto operator<=>(const BufferView &other) const noexcept {
+      return cxx20::lexicographical_compare_three_way(
+          span::begin(), span::end(), other.begin(), other.end());
+    }
+
+    auto operator==(const BufferView &other) const noexcept {
+      return (*this <=> other) == std::strong_ordering::equal;
+    }
   };
-
-  template <typename L, typename R>
-    requires(std::is_base_of_v<BufferView, L>
-             or std::is_base_of_v<BufferView, R>)
-        and std::is_same_v<typename L::const_iterator::value_type,
-                           typename R::const_iterator::value_type>
-  auto operator<=>(const L &lhs, const R &rhs) noexcept {
-    return cxx20::lexicographical_compare_three_way(
-        std::cbegin(lhs), std::cend(lhs), std::cbegin(rhs), std::cend(rhs));
-  }
-
-  template <typename L, typename R>
-    requires(std::is_base_of_v<BufferView, L>
-             or std::is_base_of_v<BufferView, R>)
-        and std::is_same_v<typename L::const_iterator::value_type,
-                           typename R::const_iterator::value_type>
-  auto operator==(const L &lhs, const R &rhs) noexcept {
-    return (lhs <=> rhs) == std::strong_ordering::equal;
-  }
 
   inline std::ostream &operator<<(std::ostream &os, BufferView view) {
     return os << view.toHex();

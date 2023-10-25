@@ -31,7 +31,7 @@ using kagome::primitives::events::ChainSubscriptionEngine;
 using kagome::runtime::GrandpaApi;
 using kagome::storage::trie::TrieStorage;
 
-using ArgumentList = gsl::span<const char *>;
+using ArgumentList = std::span<const char *>;
 
 class CommandExecutionError : public std::runtime_error {
  public:
@@ -66,7 +66,7 @@ class Command {
   }
 
  protected:
-  void assertArgumentCount(const ArgumentList &args, int min, int max) {
+  void assertArgumentCount(const ArgumentList &args, size_t min, size_t max) {
     if (args.size() < min or args.size() > max) {
       throw CommandExecutionError{
           name,
@@ -512,7 +512,7 @@ class SearchChainCommand : public Command {
 };
 
 int storage_explorer_main(int argc, const char **argv) {
-  ArgumentList args{argv, argc};
+  ArgumentList args(argv, argc);
 
   CommandParser parser;
   parser.addCommand(std::make_unique<PrintHelpCommand>(parser));
@@ -524,7 +524,7 @@ int storage_explorer_main(int argc, const char **argv) {
       std::make_shared<kagome::application::AppConfigurationImpl>(logger);
 
   int kagome_args_start = -1;
-  for (int i = 1; i < args.size(); i++) {
+  for (size_t i = 1; i < args.size(); i++) {
     if (strcmp(args[i], "--") == 0) {
       kagome_args_start = i;
     }

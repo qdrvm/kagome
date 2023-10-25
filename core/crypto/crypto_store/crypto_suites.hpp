@@ -27,7 +27,7 @@ namespace kagome::crypto {
     using Keypair = KeypairT;
     using KeypairAndSeed = KeypairAndSeedT;
     using Seed = SeedT;
-    using Junctions = gsl::span<const bip39::RawJunction>;
+    using Junctions = std::span<const bip39::RawJunction>;
 
     virtual ~CryptoSuite() = default;
 
@@ -65,13 +65,13 @@ namespace kagome::crypto {
      * Create a public key from its bytes
      */
     virtual outcome::result<PublicKey> toPublicKey(
-        gsl::span<const uint8_t> bytes) const noexcept = 0;
+        std::span<const uint8_t> bytes) const noexcept = 0;
 
     /**
      * Create a seed from its bytes
      */
     virtual outcome::result<Seed> toSeed(
-        gsl::span<const uint8_t> bytes) const noexcept = 0;
+        std::span<const uint8_t> bytes) const noexcept = 0;
   };
 
   class EcdsaSuite : public CryptoSuite<EcdsaPublicKey,
@@ -103,13 +103,13 @@ namespace kagome::crypto {
     }
 
     outcome::result<PublicKey> toPublicKey(
-        gsl::span<const uint8_t> bytes) const noexcept override {
+        std::span<const uint8_t> bytes) const noexcept override {
       OUTCOME_TRY(blob, EcdsaPublicKey::fromSpan(bytes));
       return EcdsaPublicKey{blob};
     }
 
     outcome::result<Seed> toSeed(
-        gsl::span<const uint8_t> bytes) const noexcept override {
+        std::span<const uint8_t> bytes) const noexcept override {
       return EcdsaSeed::fromSpan(bytes);
     }
 
@@ -146,13 +146,13 @@ namespace kagome::crypto {
     }
 
     outcome::result<PublicKey> toPublicKey(
-        gsl::span<const uint8_t> bytes) const noexcept override {
+        std::span<const uint8_t> bytes) const noexcept override {
       OUTCOME_TRY(blob, Ed25519PublicKey::fromSpan(bytes));
       return Ed25519PublicKey{blob};
     }
 
     outcome::result<Seed> toSeed(
-        gsl::span<const uint8_t> bytes) const noexcept override {
+        std::span<const uint8_t> bytes) const noexcept override {
       return Ed25519Seed::fromSpan(bytes);
     }
 
@@ -189,13 +189,13 @@ namespace kagome::crypto {
     }
 
     outcome::result<PublicKey> toPublicKey(
-        gsl::span<const uint8_t> bytes) const noexcept override {
+        std::span<const uint8_t> bytes) const noexcept override {
       OUTCOME_TRY(blob, Sr25519PublicKey::fromSpan(bytes));
       return Sr25519PublicKey{std::move(blob)};
     }
 
     outcome::result<Seed> toSeed(
-        gsl::span<const uint8_t> bytes) const noexcept override {
+        std::span<const uint8_t> bytes) const noexcept override {
       return Sr25519Seed::fromSpan(bytes);
     }
 

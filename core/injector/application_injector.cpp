@@ -280,7 +280,7 @@ namespace {
       const application::ChainSpec &chain_spec,
       std::chrono::seconds random_wak_interval) {
     libp2p::protocol::kademlia::Config kademlia_config;
-    kademlia_config.protocolId = "/" + chain_spec.protocolId() + "/kad",
+    kademlia_config.protocols = {"/" + chain_spec.protocolId() + "/kad"},
     kademlia_config.maxBucketSize = 1000,
     kademlia_config.randomWalk = {.interval = random_wak_interval};
 

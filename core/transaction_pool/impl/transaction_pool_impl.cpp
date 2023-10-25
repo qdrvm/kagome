@@ -118,7 +118,8 @@ namespace kagome::transaction_pool {
     OUTCOME_TRY(tx, constructTransaction(source, extrinsic, hash));
 
     if (tx.should_propagate) {
-      tx_transmitter_->propagateTransactions(gsl::make_span(std::vector{tx}));
+      std::vector txs{tx};
+      tx_transmitter_->propagateTransactions(txs);
     }
 
     OUTCOME_TRY(

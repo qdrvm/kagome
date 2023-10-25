@@ -18,20 +18,20 @@ namespace kagome::crypto {
 
     MOCK_METHOD(outcome::result<Sr25519Signature>,
                 sign,
-                (const Sr25519Keypair &, gsl::span<const uint8_t>),
+                (const Sr25519Keypair &, std::span<const uint8_t>),
                 (const, override));
 
     MOCK_METHOD(outcome::result<bool>,
                 verify,
                 (const Sr25519Signature &,
-                 gsl::span<const uint8_t>,
+                 std::span<const uint8_t>,
                  const Sr25519PublicKey &),
                 (const, override));
 
     MOCK_METHOD(outcome::result<bool>,
                 verify_deprecated,
                 (const Sr25519Signature &,
-                 gsl::span<const uint8_t>,
+                 std::span<const uint8_t>,
                  const Sr25519PublicKey &),
                 (const, override));
   };

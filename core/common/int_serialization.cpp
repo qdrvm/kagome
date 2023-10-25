@@ -30,20 +30,16 @@ namespace kagome::common {
     }
 
     template <size_t size, typename uint>
-    inline uint le_bytes_to_uint(gsl::span<const uint8_t, size> bytes) {
-      if (bytes.empty()) {
-        return uint(0);
-      }
+    inline uint le_bytes_to_uint(std::span<const uint8_t> bytes) {
+      BOOST_ASSERT(bytes.size() >= size);
       uint result;
       import_bits(result, bytes.begin(), bytes.end(), 8, false);
       return result;
     }
 
     template <size_t size, typename uint>
-    inline uint be_bytes_to_uint(gsl::span<const uint8_t, size> bytes) {
-      if (bytes.empty()) {
-        return uint(0);
-      }
+    inline uint be_bytes_to_uint(std::span<const uint8_t> bytes) {
+      BOOST_ASSERT(bytes.size() >= size);
       uint result;
       import_bits(result, bytes.rbegin(), bytes.rend(), 8, false);
       return result;
@@ -56,7 +52,8 @@ namespace kagome::common {
     return result;
   }
 
-  uint64_t le_bytes_to_uint64(gsl::span<const uint8_t, 8> bytes) {
+  uint64_t le_bytes_to_uint64(std::span<const uint8_t> bytes) {
+    BOOST_ASSERT(bytes.size() >= 8);
     uint64_t number;
     memcpy(&number, bytes.data(), 8);
     return le64toh(number);
@@ -68,7 +65,8 @@ namespace kagome::common {
     return result;
   }
 
-  uint64_t be_bytes_to_uint64(gsl::span<const uint8_t, 8> bytes) {
+  uint64_t be_bytes_to_uint64(std::span<const uint8_t> bytes) {
+    BOOST_ASSERT(bytes.size() >= 8);
     uint64_t number;
     memcpy(&number, bytes.data(), 8);
     return be64toh(number);
@@ -80,7 +78,8 @@ namespace kagome::common {
   }
 
   boost::multiprecision::uint128_t le_bytes_to_uint128(
-      gsl::span<const uint8_t, 16> bytes) {
+      std::span<const uint8_t> bytes) {
+    BOOST_ASSERT(bytes.size() >= 16);
     return le_bytes_to_uint<16, boost::multiprecision::uint128_t>(bytes);
   }
 
@@ -90,7 +89,8 @@ namespace kagome::common {
   }
 
   boost::multiprecision::uint128_t be_bytes_to_uint128(
-      gsl::span<const uint8_t, 16> bytes) {
+      std::span<const uint8_t> bytes) {
+    BOOST_ASSERT(bytes.size() >= 16);
     return be_bytes_to_uint<16, boost::multiprecision::uint128_t>(bytes);
   }
 
@@ -100,7 +100,8 @@ namespace kagome::common {
   }
 
   boost::multiprecision::uint256_t le_bytes_to_uint256(
-      gsl::span<const uint8_t, 32> bytes) {
+      std::span<const uint8_t> bytes) {
+    BOOST_ASSERT(bytes.size() >= 32);
     return le_bytes_to_uint<32, boost::multiprecision::uint256_t>(bytes);
   }
 
@@ -110,7 +111,8 @@ namespace kagome::common {
   }
 
   boost::multiprecision::uint256_t be_bytes_to_uint256(
-      gsl::span<const uint8_t, 32> bytes) {
+      std::span<const uint8_t> bytes) {
+    BOOST_ASSERT(bytes.size() >= 32);
     return be_bytes_to_uint<32, boost::multiprecision::uint256_t>(bytes);
   }
 

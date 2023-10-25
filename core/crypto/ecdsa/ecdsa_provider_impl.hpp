@@ -31,7 +31,7 @@ namespace kagome::crypto {
         const EcdsaSeed &seed, Junctions junctions) const override;
 
     outcome::result<EcdsaSignature> sign(
-        gsl::span<const uint8_t> message,
+        std::span<const uint8_t> message,
         const EcdsaPrivateKey &key) const override;
 
     outcome::result<EcdsaSignature> signPrehashed(
@@ -39,7 +39,7 @@ namespace kagome::crypto {
         const EcdsaPrivateKey &key) const override;
 
     outcome::result<bool> verify(
-        gsl::span<const uint8_t> message,
+        std::span<const uint8_t> message,
         const EcdsaSignature &signature,
         const EcdsaPublicKey &publicKey) const override;
 

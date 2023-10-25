@@ -39,7 +39,7 @@ namespace kagome::api {
         std::string_view value) const override;
 
     outcome::result<std::vector<BlockHash>> getBlockHash(
-        gsl::span<const ValueType> values) const override;
+        std::span<const ValueType> values) const override;
 
     outcome::result<primitives::BlockHeader> getHeader(
         std::string_view hash) override {

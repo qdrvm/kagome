@@ -63,8 +63,8 @@ namespace kagome::api {
 
   outcome::result<void> AuthorApiImpl::insertKey(
       crypto::KeyType key_type_id,
-      const gsl::span<const uint8_t> &seed,
-      const gsl::span<const uint8_t> &public_key) {
+      const std::span<const uint8_t> &seed,
+      const std::span<const uint8_t> &public_key) {
     if (std::find(kKeyTypes.begin(), kKeyTypes.end(), key_type_id)
         == kKeyTypes.end()) {
       std::string types;
@@ -113,7 +113,7 @@ namespace kagome::api {
   // it could be extended by reading config from chainspec palletSession/keys
   // value
   outcome::result<bool> AuthorApiImpl::hasSessionKeys(
-      const gsl::span<const uint8_t> &keys) {
+      const std::span<const uint8_t> &keys) {
     scale::ScaleDecoderStream stream(keys);
     std::array<uint8_t, 32> key;
     if (keys.size() < 32 || keys.size() > 32 * 6 || (keys.size() % 32) != 0) {
@@ -128,7 +128,8 @@ namespace kagome::api {
             crypto::KeyTypes::GRANDPA,
             crypto::Ed25519PublicKey(common::Blob<32>(key)))) {
       unsigned count = 1;
-      while (stream.currentIndex() < keys.size()) {
+      while (stream.currentIndex()
+             < static_cast<scale::ScaleDecoderStream::SizeType>(keys.size())) {
         stream >> key;
         if (not store_->findSr25519Keypair(
                 crypto::polkadot_key_order[count++],
@@ -142,7 +143,7 @@ namespace kagome::api {
   }
 
   outcome::result<bool> AuthorApiImpl::hasKey(
-      const gsl::span<const uint8_t> &public_key, crypto::KeyType key_type) {
+      const std::span<const uint8_t> &public_key, crypto::KeyType key_type) {
     auto res = key_store_->searchForPhrase(key_type, public_key);
     if (not res) {
       return res.error();

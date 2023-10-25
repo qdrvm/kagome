@@ -8,7 +8,7 @@
 
 #include <string_view>
 
-#include <gsl/span>
+#include <span>
 #include "common/blob.hpp"
 
 namespace kagome::crypto {
@@ -24,5 +24,5 @@ namespace kagome::crypto {
    * @param input to be hashed
    * @return hashed bytes
    */
-  common::Hash256 sha256(gsl::span<const uint8_t> input);
+  common::Hash256 sha256(std::span<const uint8_t> input);
 }  // namespace kagome::crypto

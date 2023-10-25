@@ -66,7 +66,7 @@ namespace kagome::primitives {
     const BlockNumber &number;
     const storage::trie::RootHash &state_root;
     const common::Hash256 &extrinsics_root;
-    gsl::span<const DigestItem> digest;
+    std::span<const DigestItem> digest;
 
     BlockHeaderReflection(const BlockHeader &origin)
         : parent_hash(origin.parent_hash),

@@ -52,8 +52,8 @@ namespace kagome::api {
      */
     virtual outcome::result<void> insertKey(
         crypto::KeyType key_type,
-        const gsl::span<const uint8_t> &seed,
-        const gsl::span<const uint8_t> &public_key) = 0;
+        const std::span<const uint8_t> &seed,
+        const std::span<const uint8_t> &public_key) = 0;
 
     /**
      * @brief Generate new session keys and
@@ -70,7 +70,7 @@ namespace kagome::api {
      * otherwise
      */
     virtual outcome::result<bool> hasSessionKeys(
-        const gsl::span<const uint8_t> &keys) = 0;
+        const std::span<const uint8_t> &keys) = 0;
 
     /**
      * @brief checks if the keystore has private keys for the given public
@@ -79,7 +79,7 @@ namespace kagome::api {
      * @param key_type The key type
      */
     virtual outcome::result<bool> hasKey(
-        const gsl::span<const uint8_t> &public_key,
+        const std::span<const uint8_t> &public_key,
         crypto::KeyType key_type) = 0;
 
     /**

@@ -157,7 +157,7 @@ namespace kagome::network {
       if (const auto &buffer = std::forward<F>(f)(); !buffer.empty()) {
         OUTCOME_TRY(
             decoded,
-            scale::decode<T>(gsl::span<const uint8_t>(
+            scale::decode<T>(std::span<const uint8_t>(
                 reinterpret_cast<const uint8_t *>(buffer.data()),  // NOLINT
                 buffer.size())));
         return decoded;

@@ -6,7 +6,7 @@
 
 #pragma once
 
-#include <gsl/span>
+#include <span>
 #include "common/buffer.hpp"
 #include "outcome/outcome.hpp"
 
@@ -30,8 +30,8 @@ namespace kagome::crypto {
      * @return derived key
      */
     virtual outcome::result<common::Buffer> deriveKey(
-        gsl::span<const uint8_t> data,
-        gsl::span<const uint8_t> salt,
+        std::span<const uint8_t> data,
+        std::span<const uint8_t> salt,
         size_t iterations,
         size_t key_length) const = 0;
   };

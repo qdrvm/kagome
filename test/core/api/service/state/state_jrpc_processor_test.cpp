@@ -27,7 +27,19 @@ using kagome::api::state::StateJrpcProcessor;
 using kagome::common::Buffer;
 using kagome::common::BufferView;
 using kagome::primitives::BlockHash;
+
 using testing::_;
+using testing::Invoke;
+using testing::Return;
+using testing::Truly;
+
+auto operator==(const std::span<const Buffer> lhs,
+                const std::span<const Buffer> rhs) noexcept {
+  return std::equal(
+      lhs.begin(), lhs.end(), rhs.begin(), [](const auto &le, const auto &re) {
+        return std::equal(le.begin(), le.end(), re.begin());
+      });
+}
 
 class StateJrpcProcessorTest : public testing::Test {
  public:
@@ -58,78 +70,78 @@ class StateJrpcProcessorTest : public testing::Test {
   void registerHandlers() {
     call_contexts_.clear();
     EXPECT_CALL(*server, registerHandler("state_call", _, _))
-        .WillOnce(testing::Invoke([&](auto &name, auto &&f, bool) {
+        .WillOnce(Invoke([&](auto &name, auto &&f, bool) {
           call_contexts_.emplace(std::make_pair(CallType::kCallType_Call,
                                                 CallContext{.handler = f}));
         }));
     EXPECT_CALL(*server, registerHandler("state_getRuntimeVersion", _, _))
-        .WillOnce(testing::Invoke([&](auto &name, auto &&f, bool) {
+        .WillOnce(Invoke([&](auto &name, auto &&f, bool) {
           call_contexts_.emplace(
               std::make_pair(CallType::kCallType_GetRuntimeVersion,
                              CallContext{.handler = f}));
         }));
     EXPECT_CALL(*server, registerHandler("chain_getRuntimeVersion", _, _))
-        .WillOnce(testing::Invoke([&](auto &name, auto &&f, bool) {
+        .WillOnce(Invoke([&](auto &name, auto &&f, bool) {
           call_contexts_.emplace(
               std::make_pair(CallType::kCallType_SubscribeRuntimeVersion,
                              CallContext{.handler = f}));
         }));
     EXPECT_CALL(*server, registerHandler("state_subscribeRuntimeVersion", _, _))
-        .WillOnce(testing::Invoke([&](auto &name, auto &&f, bool) {
+        .WillOnce(Invoke([&](auto &name, auto &&f, bool) {
           call_contexts_.emplace(
               std::make_pair(CallType::kCallType_SubscribeRuntimeVersion,
                              CallContext{.handler = f}));
         }));
     EXPECT_CALL(*server,
                 registerHandler("state_unsubscribeRuntimeVersion", _, _))
-        .WillOnce(testing::Invoke([&](auto &name, auto &&f, bool) {
+        .WillOnce(Invoke([&](auto &name, auto &&f, bool) {
           call_contexts_.emplace(
               std::make_pair(CallType::kCallType_UnsubscribeRuntimeVersion,
                              CallContext{.handler = f}));
         }));
     EXPECT_CALL(*server, registerHandler("state_getKeysPaged", _, _))
-        .WillOnce(testing::Invoke([&](auto &name, auto &&f, bool) {
+        .WillOnce(Invoke([&](auto &name, auto &&f, bool) {
           call_contexts_.emplace(std::make_pair(
               CallType::kCallType_GetKeysPaged, CallContext{.handler = f}));
         }));
     EXPECT_CALL(*server, registerHandler("state_getStorage", _, _))
-        .WillOnce(testing::Invoke([&](auto &name, auto &&f, bool) {
+        .WillOnce(Invoke([&](auto &name, auto &&f, bool) {
           call_contexts_.emplace(std::make_pair(CallType::kCallType_GetStorage,
                                                 CallContext{.handler = f}));
         }));
     EXPECT_CALL(*server, registerHandler("state_getStorageAt", _, _))
-        .WillOnce(testing::Invoke([&](auto &name, auto &&f, bool) {
+        .WillOnce(Invoke([&](auto &name, auto &&f, bool) {
           call_contexts_.emplace(std::make_pair(CallType::kCallType_GetStorage,
                                                 CallContext{.handler = f}));
         }));
     EXPECT_CALL(*server, registerHandler("state_queryStorage", _, _))
-        .WillOnce(testing::Invoke([&](auto &name, auto &&f, bool) {
+        .WillOnce(Invoke([&](auto &name, auto &&f, bool) {
           call_contexts_.emplace(std::make_pair(
               CallType::kCallType_QueryStorage, CallContext{.handler = f}));
         }));
     EXPECT_CALL(*server, registerHandler("state_queryStorageAt", _, _))
-        .WillOnce(testing::Invoke([&](auto &name, auto &&f, bool) {
+        .WillOnce(Invoke([&](auto &name, auto &&f, bool) {
           call_contexts_.emplace(std::make_pair(
               CallType::kCallType_QueryStorageAt, CallContext{.handler = f}));
         }));
     EXPECT_CALL(*server, registerHandler("state_getReadProof", _, _))
-        .WillOnce(testing::Invoke([&](auto &name, auto &&f, bool) {
+        .WillOnce(Invoke([&](auto &name, auto &&f, bool) {
           call_contexts_.emplace(std::make_pair(
               CallType::kCallType_GetReadProof, CallContext{.handler = f}));
         }));
     EXPECT_CALL(*server, registerHandler("state_subscribeStorage", _, _))
-        .WillOnce(testing::Invoke([&](auto &name, auto &&f, bool) {
+        .WillOnce(Invoke([&](auto &name, auto &&f, bool) {
           call_contexts_.emplace(std::make_pair(
               CallType::kCallType_StorageSubscribe, CallContext{.handler = f}));
         }));
     EXPECT_CALL(*server, registerHandler("state_unsubscribeStorage", _, _))
-        .WillOnce(testing::Invoke([&](auto &name, auto &&f, bool) {
+        .WillOnce(Invoke([&](auto &name, auto &&f, bool) {
           call_contexts_.emplace(
               std::make_pair(CallType::kCallType_StorageUnsubscribe,
                              CallContext{.handler = f}));
         }));
     EXPECT_CALL(*server, registerHandler("state_getMetadata", _, _))
-        .WillOnce(testing::Invoke([&](auto &name, auto &&f, bool) {
+        .WillOnce(Invoke([&](auto &name, auto &&f, bool) {
           call_contexts_.emplace(std::make_pair(CallType::kCallType_GetMetadata,
                                                 CallContext{.handler = f}));
         }));
@@ -155,7 +167,7 @@ TEST_F(StateJrpcProcessorTest, ProcessRequest) {
   auto expected_result = "ABCDEF"_hex2buf;
   auto key = "01234567"_hex2buf;
   EXPECT_CALL(*state_api, getStorage(key.view()))
-      .WillOnce(testing::Return(expected_result));
+      .WillOnce(Return(expected_result));
 
   registerHandlers();
 
@@ -175,7 +187,7 @@ TEST_F(StateJrpcProcessorTest, ProcessAnotherRequest) {
 
   auto key = "01234567"_hex2buf;
   EXPECT_CALL(*state_api, getStorageAt(key.view(), "010203"_hash256))
-      .WillOnce(testing::Return(expected_result));
+      .WillOnce(Return(expected_result));
 
   registerHandlers();
 
@@ -199,11 +211,12 @@ TEST_F(StateJrpcProcessorTest, ProcessQueryStorage) {
   BlockHash from{"from"_hash256};
   std::vector<StateApi::StorageChangeSet> res{StateApi::StorageChangeSet{
       from, {StateApi::StorageChangeSet::Change{"key1"_buf, "42"_buf}}}};
-  EXPECT_CALL(
-      *state_api,
-      queryStorage(
-          gsl::span<const Buffer>(keys), from, std::optional<BlockHash>{}))
-      .WillOnce(testing::Return(outcome::success(res)));
+  auto if_keys = Truly([&](const auto &x) {
+    return std::equal(x.begin(), x.end(), keys.begin());
+  });
+  EXPECT_CALL(*state_api,
+              queryStorage(if_keys, from, std::optional<BlockHash>{}))
+      .WillOnce(Return(outcome::success(res)));
 
   registerHandlers();
 
@@ -242,10 +255,11 @@ TEST_F(StateJrpcProcessorTest, ProcessQueryStorageAt) {
   BlockHash at{"at"_hash256};
   std::vector<StateApi::StorageChangeSet> res{StateApi::StorageChangeSet{
       at, {StateApi::StorageChangeSet::Change{"key1"_buf, "42"_buf}}}};
-  EXPECT_CALL(
-      *state_api,
-      queryStorageAt(gsl::span<const Buffer>(keys), std::make_optional(at)))
-      .WillOnce(testing::Return(outcome::success(res)));
+
+  auto if_keys = Truly(
+      [&](auto x) { return std::equal(x.begin(), x.end(), keys.begin()); });
+  EXPECT_CALL(*state_api, queryStorageAt(if_keys, std::make_optional(at)))
+      .WillOnce(Return(outcome::success(res)));
 
   registerHandlers();
 
@@ -306,7 +320,7 @@ TEST_F(StateJrpcProcessorTest, ProcessGetVersionRequest) {
 
   std::optional<kagome::primitives::BlockHash> hash = std::nullopt;
   EXPECT_CALL(*state_api, getRuntimeVersion(hash))
-      .WillOnce(testing::Return(test_version));
+      .WillOnce(Return(test_version));
 
   registerHandlers();
 
@@ -333,8 +347,7 @@ TEST_F(StateJrpcProcessorTest, ProcessSubscribeStorage) {
   keys.emplace_back(kagome::common::unhexWith0x("0x1011").value());
   keys.emplace_back(kagome::common::unhexWith0x("0x2002").value());
 
-  EXPECT_CALL(*state_api, subscribeStorage(keys))
-      .WillOnce(testing::Return(val));
+  EXPECT_CALL(*state_api, subscribeStorage(keys)).WillOnce(Return(val));
 
   registerHandlers();
 
@@ -359,7 +372,7 @@ TEST_F(StateJrpcProcessorTest, ProcessUnsubscribeStorage) {
   EXPECT_CALL(*state_api,
               unsubscribeStorage(std::vector<uint32_t>{
                   static_cast<uint32_t>(subscription_id)}))
-      .WillOnce(testing::Return(true));
+      .WillOnce(Return(true));
 
   registerHandlers();
 

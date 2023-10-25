@@ -131,7 +131,7 @@ namespace kagome::network {
   }
 
   void PropagateTransactionsProtocol::propagateTransactions(
-      gsl::span<const primitives::Transaction> txs) {
+      std::span<const primitives::Transaction> txs) {
     SL_DEBUG(
         base_.logger(), "Propagate transactions : {} extrinsics", txs.size());
 

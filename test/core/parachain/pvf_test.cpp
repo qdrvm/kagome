@@ -95,7 +95,7 @@ class PvfTest : public testing::Test {
   }
 
   outcome::result<std::shared_ptr<runtime::Module>> make_module_mock(
-      gsl::span<const uint8_t> code, const Hash256 &code_hash) {
+      std::span<const uint8_t> code, const Hash256 &code_hash) {
     auto module = std::make_shared<runtime::ModuleMock>();
     auto instance = std::make_shared<runtime::ModuleInstanceMock>();
     ON_CALL(*module, instantiate()).WillByDefault(Return(instance));

@@ -33,7 +33,7 @@ namespace kagome::crypto {
   }
 
   outcome::result<Sr25519Signature> Sr25519ProviderImpl::sign(
-      const Sr25519Keypair &keypair, gsl::span<const uint8_t> message) const {
+      const Sr25519Keypair &keypair, std::span<const uint8_t> message) const {
     Sr25519Signature signature{};
 
     try {
@@ -51,7 +51,7 @@ namespace kagome::crypto {
 
   outcome::result<bool> Sr25519ProviderImpl::verify_deprecated(
       const Sr25519Signature &signature,
-      gsl::span<const uint8_t> message,
+      std::span<const uint8_t> message,
       const Sr25519PublicKey &public_key) const {
     bool result = false;
     try {
@@ -65,7 +65,7 @@ namespace kagome::crypto {
 
   outcome::result<bool> Sr25519ProviderImpl::verify(
       const Sr25519Signature &signature,
-      gsl::span<const uint8_t> message,
+      std::span<const uint8_t> message,
       const Sr25519PublicKey &public_key) const {
     bool result = false;
     try {

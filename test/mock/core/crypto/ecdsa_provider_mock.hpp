@@ -25,12 +25,12 @@ namespace kagome::crypto {
 
     MOCK_METHOD(outcome::result<EcdsaSignature>,
                 sign,
-                (gsl::span<const uint8_t>, const EcdsaPrivateKey &),
+                (std::span<const uint8_t>, const EcdsaPrivateKey &),
                 (const, override));
 
     MOCK_METHOD(outcome::result<bool>,
                 verify,
-                (gsl::span<const uint8_t>,
+                (std::span<const uint8_t>,
                  const EcdsaSignature &,
                  const EcdsaPublicKey &),
                 (const, override));

@@ -6,13 +6,14 @@
 
 #pragma once
 
-#include <boost/endian/conversion.hpp>
-#include <libp2p/common/span_size.hpp>
 #include <optional>
+
+#include <boost/endian/conversion.hpp>
 
 #include "primitives/common.hpp"
 
 namespace kagome {
+
   struct BlockNumberKey {
     using Key = common::Blob<sizeof(primitives::BlockNumber)>;
 
@@ -24,10 +25,11 @@ namespace kagome {
 
     static std::optional<primitives::BlockNumber> decode(
         common::BufferView key) {
-      if (libp2p::spanSize(key) != Key::size()) {
+      if (key.size() != Key::size()) {
         return std::nullopt;
       }
       return boost::endian::load_big_u32(key.data());
     }
   };
+
 }  // namespace kagome

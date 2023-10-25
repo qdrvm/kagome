@@ -28,7 +28,7 @@ namespace kagome::crypto::bip39 {
     template <typename T>
     outcome::result<T> as() const {
       return T::fromSpan(
-          gsl::make_span(seed).first(std::min(seed.size(), T::size())));
+          std::span(seed).first(std::min(seed.size(), T::size())));
     }
   };
 }  // namespace kagome::crypto::bip39

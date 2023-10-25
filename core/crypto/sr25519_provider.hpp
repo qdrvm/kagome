@@ -23,7 +23,7 @@ namespace kagome::crypto {
 
   class Sr25519Provider {
    public:
-    using Junctions = gsl::span<const bip39::RawJunction>;
+    using Junctions = std::span<const bip39::RawJunction>;
 
     virtual ~Sr25519Provider() = default;
 
@@ -43,7 +43,7 @@ namespace kagome::crypto {
      */
     virtual outcome::result<Sr25519Signature> sign(
         const Sr25519Keypair &keypair,
-        gsl::span<const uint8_t> message) const = 0;
+        std::span<const uint8_t> message) const = 0;
 
     /**
      * Verifies that \param message was derived using \param public_key on
@@ -51,12 +51,12 @@ namespace kagome::crypto {
      */
     virtual outcome::result<bool> verify(
         const Sr25519Signature &signature,
-        gsl::span<const uint8_t> message,
+        std::span<const uint8_t> message,
         const Sr25519PublicKey &public_key) const = 0;
 
     virtual outcome::result<bool> verify_deprecated(
         const Sr25519Signature &signature,
-        gsl::span<const uint8_t> message,
+        std::span<const uint8_t> message,
         const Sr25519PublicKey &public_key) const = 0;
   };
 }  // namespace kagome::crypto

@@ -11,7 +11,7 @@
 
 #include <fmt/format.h>
 #include <boost/assert.hpp>
-#include <gsl/span>
+#include <span>
 
 #include "crypto/crypto_store.hpp"
 #include "crypto/crypto_store/key_type.hpp"
@@ -493,7 +493,7 @@ namespace kagome::host_api {
     // returned key shouldn't include the 0x04 prefix
     // specification says, that it should have 64 bytes, not 65 as with prefix
     // On success it contains the 64-byte recovered public key or an error type
-    auto truncated_span = gsl::span<uint8_t>(public_key.value()).subspan(1, 64);
+    auto truncated_span = std::span<uint8_t>(public_key.value()).subspan(1, 64);
     auto truncated_public_key =
         secp256k1::PublicKey::fromSpan(truncated_span).value();
     SL_TRACE_FUNC_CALL(logger_, truncated_public_key, sig_buffer, msg_buffer);

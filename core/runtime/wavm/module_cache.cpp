@@ -27,7 +27,7 @@ namespace kagome::runtime::wavm {
       WAVM::Uptr numWASMBytes,
       std::function<std::vector<WAVM::U8>()> &&compileThunk) {
     auto runtime_hash =
-        hasher_->twox_64(gsl::span(wasmBytes, numWASMBytes)).toHex();
+        hasher_->twox_64(std::span(wasmBytes, numWASMBytes)).toHex();
     auto filepath = cache_dir_ / runtime_hash;
     if (!exists(filepath) and !exists(cache_dir_)
         and !fs::createDirectoryRecursive(cache_dir_)) {

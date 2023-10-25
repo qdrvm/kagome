@@ -409,8 +409,7 @@ namespace kagome::storage::trie {
 
       // if we are not replacing previous leaf, then add it as a
       // child to the new branch
-      if (static_cast<std::ptrdiff_t>(parent->getKeyNibbles().size())
-          > key_nibbles.size()) {
+      if (parent->getKeyNibbles().size() > key_nibbles.size()) {
         parent->setKeyNibbles(parent->getKeyNibbles().subbuffer(length + 1));
         br->children.at(parentKey[length]) = parent;
       }
@@ -518,7 +517,7 @@ namespace kagome::storage::trie {
       if (current->getKeyNibbles() == nibbles or nibbles.empty()) {
         return current;
       }
-      if (nibbles.size() < static_cast<long>(current->getKeyNibbles().size())) {
+      if (nibbles.size() < current->getKeyNibbles().size()) {
         return nullptr;
       }
       auto parent_as_branch =
@@ -548,12 +547,11 @@ namespace kagome::storage::trie {
       }
       auto common_length = getCommonPrefixLength(parent->getKeyNibbles(), path);
       auto common_nibbles =
-          gsl::make_span(parent->getKeyNibbles().data(), common_length);
+          std::span(parent->getKeyNibbles().data(), common_length);
       // path is even less than the parent key (path is the prefix of the
       // parent key)
       if (path == common_nibbles
-          and path.size()
-                  < static_cast<ssize_t>(parent->getKeyNibbles().size())) {
+          and path.size() < parent->getKeyNibbles().size()) {
         return outcome::success();
       }
       auto parent_as_branch =

@@ -36,7 +36,7 @@ namespace libp2p::connection {
       return end - begin;
     }
 
-    void read(gsl::span<uint8_t> out, size_t n, ReadCallbackFunc cb) override {
+    void read(std::span<uint8_t> out, size_t n, ReadCallbackFunc cb) override {
       libp2p::ambigousSize(out, n);
       libp2p::readReturnSize(shared_from_this(), out, std::move(cb));
     }
@@ -44,7 +44,7 @@ namespace libp2p::connection {
     /**
      * Read from buffer.
      */
-    size_t readFromBuffer(gsl::span<uint8_t> out) {
+    size_t readFromBuffer(std::span<uint8_t> out) {
       // can't read more bytes than available
       auto n = std::min(gsl::narrow<size_t>(out.size()), size());
       BOOST_ASSERT(n != 0);
@@ -55,7 +55,7 @@ namespace libp2p::connection {
       return n;
     }
 
-    void readSome(gsl::span<uint8_t> out,
+    void readSome(std::span<uint8_t> out,
                   size_t n,
                   ReadCallbackFunc cb) override {
       libp2p::ambigousSize(out, n);

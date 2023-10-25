@@ -25,13 +25,12 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::primitives, Ss58Error, e) {
 
 namespace kagome::primitives {
 
-  static common::Buffer calculateChecksum(gsl::span<uint8_t> ss58_address,
+  static common::Buffer calculateChecksum(std::span<uint8_t> ss58_address,
                                           const crypto::Hasher &hasher) {
     constexpr auto PREFIX = "SS58PRE";
     auto preimage = common::Buffer{}.put(PREFIX).put(ss58_address);
     auto checksum = hasher.blake2b_512(preimage);
-    return common::Buffer{
-        gsl::make_span(checksum).subspan(0, kSs58ChecksumLength)};
+    return common::Buffer{std::span(checksum).subspan(0, kSs58ChecksumLength)};
   }
 
   outcome::result<AccountId> decodeSs58(std::string_view account_address,
@@ -41,14 +40,15 @@ namespace kagome::primitives {
     OUTCOME_TRY(ss58_account_id,
                 libp2p::multi::detail::decodeBase58(account_address));
 
-    auto ss58_no_checksum = gsl::make_span(
+    auto ss58_no_checksum = std::span(
         ss58_account_id.data(), ss58_account_id.size() - kSs58ChecksumLength);
-    auto checksum = gsl::make_span<const uint8_t>(
+    auto checksum = std::span<const uint8_t>(
         ss58_account_id.data() + ss58_no_checksum.size(), kSs58ChecksumLength);
 
     auto calculated_checksum = calculateChecksum(ss58_no_checksum, hasher);
 
-    if (gsl::span<const uint8_t>(calculated_checksum) != checksum) {
+    if (common::BufferView(calculated_checksum)
+        != common::BufferView(checksum)) {
       return Ss58Error::INVALID_CHECKSUM;
     }
 

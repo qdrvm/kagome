@@ -28,7 +28,7 @@ namespace kagome::runtime::binaryen {
   }
 
   outcome::result<std::shared_ptr<Module>> ModuleFactoryImpl::make(
-      gsl::span<const uint8_t> code) const {
+      common::BufferView code) const {
     std::vector<uint8_t> code_vec{code.begin(), code.end()};
     OUTCOME_TRY(module,
                 ModuleImpl::createFromCode(

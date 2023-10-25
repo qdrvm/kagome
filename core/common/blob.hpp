@@ -59,7 +59,7 @@
       }                                                                        \
                                                                                \
       static ::outcome::result<class_name> fromSpan(                           \
-          const gsl::span<const uint8_t> &span) {                              \
+          const std::span<const uint8_t> &span) {                              \
         OUTCOME_TRY(blob, Base::fromSpan(span));                               \
         return class_name{std::move(blob)};                                    \
       }                                                                        \
@@ -203,7 +203,7 @@ namespace kagome::common {
      * @return
      */
     static outcome::result<Blob<size_>> fromSpan(
-        const gsl::span<const uint8_t> &span) {
+        const std::span<const uint8_t> &span) {
       if (span.size() != size_) {
         return BlobError::INCORRECT_LENGTH;
       }

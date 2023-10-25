@@ -93,7 +93,7 @@ namespace kagome::crypto::bip39 {
       }
     }
 
-    if (boost::starts_with(seed, "0x")) {
+    if (seed.substr(0, 2) == "0x") {
       OUTCOME_TRY(bytes, common::unhexWith0x(seed));
       mnemonic.seed = common::Buffer{std::move(bytes)};
     } else {

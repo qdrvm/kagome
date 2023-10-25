@@ -51,7 +51,7 @@ namespace kagome::storage {
 
   bool MapPrefix::Cursor::isValid() const {
     if (cursor->isValid()) {
-      return boost::starts_with(*cursor->key(), map.prefix);
+      return cursor->key()->startsWith(map.prefix);
     }
     return false;
   }

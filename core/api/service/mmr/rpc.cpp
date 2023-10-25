@@ -119,11 +119,12 @@ namespace kagome::api {
             [](std::shared_ptr<MmrRpc> self,
                primitives::MmrLeavesProof proof_raw) -> outcome::result<bool> {
               auto &at = proof_raw.block_hash;
+              OUTCOME_TRY(leaves,
+                          scale::decode<primitives::MmrLeaves>(
+                              proof_raw.leaves.view()));
               OUTCOME_TRY(
-                  leaves,
-                  scale::decode<primitives::MmrLeaves>(proof_raw.leaves));
-              OUTCOME_TRY(proof,
-                          scale::decode<primitives::MmrProof>(proof_raw.proof));
+                  proof,
+                  scale::decode<primitives::MmrProof>(proof_raw.proof.view()));
               auto offchain = self->withOffchain(at);
               OUTCOME_TRY(r,
                           self->mmr_api_.get()->verifyProof(at, leaves, proof));
@@ -139,11 +140,12 @@ namespace kagome::api {
                primitives::BlockHash mmr_root,
                primitives::MmrLeavesProof proof_raw) -> outcome::result<bool> {
               auto &at = proof_raw.block_hash;
+              OUTCOME_TRY(leaves,
+                          scale::decode<primitives::MmrLeaves>(
+                              proof_raw.leaves.view()));
               OUTCOME_TRY(
-                  leaves,
-                  scale::decode<primitives::MmrLeaves>(proof_raw.leaves));
-              OUTCOME_TRY(proof,
-                          scale::decode<primitives::MmrProof>(proof_raw.proof));
+                  proof,
+                  scale::decode<primitives::MmrProof>(proof_raw.proof.view()));
               OUTCOME_TRY(r,
                           self->mmr_api_.get()->verifyProofStateless(
                               at, mmr_root, leaves, proof));

@@ -44,10 +44,10 @@ namespace kagome::storage {
     return rocksdb::Slice{ptr, n};
   }
 
-  inline gsl::span<const uint8_t> make_span(const rocksdb::Slice &s) {
+  inline std::span<const uint8_t> make_span(const rocksdb::Slice &s) {
     // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
     const auto *ptr = reinterpret_cast<const uint8_t *>(s.data());
-    return gsl::make_span(ptr, s.size());
+    return std::span(ptr, s.size());
   }
 
   inline common::Buffer make_buffer(const rocksdb::Slice &s) {

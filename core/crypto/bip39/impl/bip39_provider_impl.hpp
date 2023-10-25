@@ -25,7 +25,7 @@ namespace kagome::crypto {
         const std::vector<std::string> &word_list) const override;
 
     outcome::result<bip39::Bip39Seed> makeSeed(
-        gsl::span<const uint8_t> entropy,
+        std::span<const uint8_t> entropy,
         std::string_view password) const override;
 
     outcome::result<bip39::Bip39SeedAndJunctions> generateSeed(

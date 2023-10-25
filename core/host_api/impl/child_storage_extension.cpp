@@ -126,6 +126,7 @@ namespace kagome::host_api {
                                   key_buffer.toHex(),
                                   result.error());
                  }
+
                  // okay to throw, we want to end this runtime call with error
                  return memory.storeBuffer(
                      scale::encode(

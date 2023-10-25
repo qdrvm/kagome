@@ -19,12 +19,12 @@ namespace libp2p::connection {
     explicit StreamProxyBase(std::shared_ptr<Stream> stream)
         : stream{std::move(stream)} {}
 
-    void read(gsl::span<uint8_t> out,
+    void read(std::span<uint8_t> out,
               size_t bytes,
               ReadCallbackFunc cb) override {
       stream->read(out, bytes, std::move(cb));
     }
-    void readSome(gsl::span<uint8_t> out,
+    void readSome(std::span<uint8_t> out,
                   size_t bytes,
                   ReadCallbackFunc cb) override {
       stream->readSome(out, bytes, std::move(cb));
@@ -34,12 +34,12 @@ namespace libp2p::connection {
       stream->deferReadCallback(res, std::move(cb));
     }
 
-    void write(gsl::span<const uint8_t> in,
+    void write(std::span<const uint8_t> in,
                size_t bytes,
                WriteCallbackFunc cb) override {
       stream->write(in, bytes, std::move(cb));
     }
-    void writeSome(gsl::span<const uint8_t> in,
+    void writeSome(std::span<const uint8_t> in,
                    size_t bytes,
                    WriteCallbackFunc cb) override {
       stream->writeSome(in, bytes, std::move(cb));

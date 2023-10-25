@@ -41,11 +41,11 @@ namespace kagome::consensus::babe {
     const auto &digests = block_header.digest;
 
     for (const auto &digest :
-         gsl::make_span(digests).subspan(0, digests.size() - 1)) {
+         std::span(digests).subspan(0, digests.size() - 1)) {
       auto pre_runtime_opt = getFromVariant<primitives::PreRuntime>(digest);
       if (pre_runtime_opt.has_value()) {
         auto babe_block_header_res =
-            scale::decode<BabeBlockHeader>(pre_runtime_opt->get().data);
+            scale::decode<BabeBlockHeader>(pre_runtime_opt->get().data.view());
         if (babe_block_header_res.has_value()) {
           // found the BabeBlockHeader digest; return
           return babe_block_header_res.value();
@@ -72,7 +72,7 @@ namespace kagome::consensus::babe {
       return DigestError::NO_TRAILING_SEAL_DIGEST;
     }
 
-    OUTCOME_TRY(seal_digest, scale::decode<Seal>(seal_opt->get().data));
+    OUTCOME_TRY(seal_digest, scale::decode<Seal>(seal_opt->get().data.view()));
 
     return seal_digest;
   }

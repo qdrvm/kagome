@@ -17,7 +17,7 @@ namespace kagome::network::notifications {
   template <typename OnHandhake>
   void handshakeRaw(std::shared_ptr<Stream> stream,
                     std::shared_ptr<MessageReadWriterUvarint> frame_stream,
-                    gsl::span<const uint8_t> handshake,
+                    std::span<const uint8_t> handshake,
                     OnHandhake on_handshake) {
     auto cb = [stream = std::move(stream),
                frame_stream,

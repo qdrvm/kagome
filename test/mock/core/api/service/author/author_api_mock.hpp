@@ -24,20 +24,20 @@ namespace kagome::api {
     MOCK_METHOD(outcome::result<void>,
                 insertKey,
                 (crypto::KeyType,
-                 const gsl::span<const uint8_t> &,
-                 const gsl::span<const uint8_t> &),
+                 const std::span<const uint8_t> &,
+                 const std::span<const uint8_t> &),
                 (override));
 
     MOCK_METHOD(outcome::result<common::Buffer>, rotateKeys, (), (override));
 
     MOCK_METHOD(outcome::result<bool>,
                 hasSessionKeys,
-                (const gsl::span<const uint8_t> &),
+                (const std::span<const uint8_t> &),
                 (override));
 
     MOCK_METHOD(outcome::result<bool>,
                 hasKey,
-                (const gsl::span<const uint8_t> &, crypto::KeyType),
+                (const std::span<const uint8_t> &, crypto::KeyType),
                 (override));
 
     MOCK_METHOD(outcome::result<SubscriptionId>,

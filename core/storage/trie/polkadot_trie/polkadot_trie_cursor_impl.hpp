@@ -68,7 +68,7 @@ namespace kagome::storage::trie {
 
    private:
     outcome::result<void> seekLowerBoundInternal(
-        const TrieNode &current, gsl::span<const uint8_t> left_nibbles);
+        const TrieNode &current, std::span<const uint8_t> left_nibbles);
     outcome::result<bool> nextNodeWithValueInOuterTree();
     outcome::result<void> nextNodeWithValueInSubTree(
         const TrieNode &subtree_root);

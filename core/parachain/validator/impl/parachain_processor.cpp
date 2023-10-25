@@ -7,7 +7,7 @@
 #include "parachain/validator/parachain_processor.hpp"
 
 #include <array>
-#include <gsl/span>
+#include <span>
 #include <unordered_map>
 
 #include "crypto/hasher.hpp"

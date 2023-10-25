@@ -229,7 +229,7 @@ TEST_F(OffchainExtensionTest, RandomSeed) {
 
   EXPECT_CALL(*offchain_worker_, timestamp()).WillOnce(Return(result));
   {
-    auto matcher = [&](const gsl::span<const uint8_t> &data) {
+    auto matcher = [&](const std::span<const uint8_t> &data) {
       auto actual_result = scale::decode<Timestamp>(data).value();
       return actual_result == result;
     };
@@ -333,7 +333,7 @@ TEST_P(TernaryParametrizedTest, LocalStorageGet) {
       .WillOnce(Return(result));
 
   {
-    auto matcher = [&](const gsl::span<const uint8_t> &data) {
+    auto matcher = [&](const std::span<const uint8_t> &data) {
       auto actual_result = scale::decode<std::optional<Buffer>>(data).value();
       return actual_result == result_opt;
     };
@@ -384,7 +384,7 @@ TEST_P(HttpMethodsParametrizedTest, HttpRequestStart) {
       .WillOnce(Return(result));
 
   {
-    auto matcher = [&](const gsl::span<const uint8_t> &data) {
+    auto matcher = [&](const std::span<const uint8_t> &data) {
       auto actual_result =
           scale::decode<Result<RequestId, Failure>>(data).value();
       return actual_result.isSuccess();
@@ -435,7 +435,7 @@ TEST_F(OffchainExtensionTest, HttpRequestAddHeader) {
       .WillOnce(Return(result));
 
   {
-    auto matcher = [&](const gsl::span<const uint8_t> &data) {
+    auto matcher = [&](const std::span<const uint8_t> &data) {
       auto actual_result =
           scale::decode<Result<Success, Failure>>(data).value();
       return actual_result.isSuccess();
@@ -476,13 +476,12 @@ TEST_F(OffchainExtensionTest, HttpRequestWriteBody) {
   EXPECT_CALL(*memory_, loadN(chunk_pointer, chunk_size))
       .WillOnce(Return(chunk));
   EXPECT_CALL(*memory_, loadN(deadline_pointer, deadline_size))
-      .WillOnce(
-          Return(Buffer{gsl::make_span(scale::encode(deadline_opt).value())}));
+      .WillOnce(Return(Buffer{scale::encode(deadline_opt).value()}));
   EXPECT_CALL(*offchain_worker_, httpRequestWriteBody(id, chunk, deadline_opt))
       .WillOnce(Return(result));
 
   {
-    auto matcher = [&](const gsl::span<const uint8_t> &data) {
+    auto matcher = [&](const std::span<const uint8_t> &data) {
       auto actual_result =
           scale::decode<Result<Success, HttpError>>(data).value();
       return actual_result.isSuccess();
@@ -520,15 +519,14 @@ TEST_F(OffchainExtensionTest, HttpResponseWait) {
   WasmSpan return_span = 45;
 
   EXPECT_CALL(*memory_, loadN(ids_pointer, ids_size))
-      .WillOnce(Return(Buffer{gsl::make_span(scale::encode(ids).value())}));
+      .WillOnce(Return(Buffer{scale::encode(ids).value()}));
   EXPECT_CALL(*memory_, loadN(deadline_pointer, deadline_size))
-      .WillOnce(
-          Return(Buffer{gsl::make_span(scale::encode(deadline_opt).value())}));
+      .WillOnce(Return(Buffer{scale::encode(deadline_opt).value()}));
   EXPECT_CALL(*offchain_worker_, httpResponseWait(ids, deadline_opt))
       .WillOnce(Return(result));
 
   {
-    auto matcher = [&](const gsl::span<const uint8_t> &data) {
+    auto matcher = [&](const std::span<const uint8_t> &data) {
       auto actual_result = scale::decode<std::vector<RequestId>>(data).value();
       return std::equal(
           actual_result.begin(), actual_result.end(), result.begin());
@@ -558,7 +556,7 @@ TEST_F(OffchainExtensionTest, HttpResponseHeaders) {
       .WillOnce(Return(headers));
 
   {
-    auto matcher = [&](const gsl::span<const uint8_t> &data) {
+    auto matcher = [&](const std::span<const uint8_t> &data) {
       auto actual_headers =
           scale::decode<std::vector<std::pair<std::string, std::string>>>(data)
               .value();
@@ -591,10 +589,9 @@ TEST_P(HttpResultParametrizedTest, HttpResponseReadBody) {
   auto deadline_opt = std::make_optional(deadline);
   Result<uint32_t, HttpError> response(GetParam());
   WasmSpan result = 44;
-  gsl::span<const unsigned char> dst_buf = gsl::make_span(dst);
+  auto dst_buf = BufferView(dst);
   EXPECT_CALL(*memory_, loadN(deadline_pointer, deadline_size))
-      .WillOnce(
-          Return(Buffer{gsl::make_span(scale::encode(deadline_opt).value())}));
+      .WillOnce(Return(Buffer{scale::encode(deadline_opt).value()}));
   EXPECT_CALL(*offchain_worker_,
               httpResponseReadBody(request_id, dst, deadline_opt))
       .WillOnce(Return(response));
@@ -603,7 +600,7 @@ TEST_P(HttpResultParametrizedTest, HttpResponseReadBody) {
   }
 
   {
-    auto matcher = [&](const gsl::span<const uint8_t> &data) {
+    auto matcher = [&](const std::span<const uint8_t> &data) {
       auto actual_response =
           scale::decode<Result<uint32_t, HttpError>>(data).value();
       return actual_response.isSuccess() == response.isSuccess();
@@ -640,7 +637,7 @@ TEST_F(OffchainExtensionTest, SetAuthNodes) {
   WasmSize nodes_pos_size = 43;
   std::vector<Buffer> nodes{Buffer("asd"_peerid.toVector())};
   EXPECT_CALL(*memory_, loadN(nodes_pos_pointer, nodes_pos_size))
-      .WillOnce(Return(Buffer{gsl::make_span(scale::encode(nodes).value())}));
+      .WillOnce(Return(Buffer{scale::encode(nodes).value()}));
   EXPECT_CALL(*offchain_worker_, setAuthorizedNodes(_, true))
       .WillOnce(Return());
   offchain_extension_->ext_offchain_set_authorized_nodes_version_1(

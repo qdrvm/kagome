@@ -24,7 +24,8 @@ namespace kagome::api::author::request {
     outcome::result<common::Hash256> execute() override {
       auto ext_hex = getParam<0>();
       OUTCOME_TRY(buffer, common::unhexWith0x(ext_hex));
-      OUTCOME_TRY(extrinsic, scale::decode<primitives::Extrinsic>(buffer));
+      OUTCOME_TRY(extrinsic,
+                  scale::decode<primitives::Extrinsic>(std::span(buffer)));
       return api_->submitExtrinsic(primitives::TransactionSource::External,
                                    extrinsic);
     }
