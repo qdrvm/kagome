@@ -6,8 +6,6 @@
 
 #include "common/int_serialization.hpp"
 
-#include <gsl/gsl_util>
-
 #include "macro/endianness_utils.hpp"
 
 namespace kagome::common {

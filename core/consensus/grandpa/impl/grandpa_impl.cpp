@@ -13,6 +13,7 @@
 
 #include "application/app_state_manager.hpp"
 #include "blockchain/block_tree.hpp"
+#include "common/final_action.hpp"
 #include "common/tagged.hpp"
 #include "consensus/grandpa/authority_manager.hpp"
 #include "consensus/grandpa/environment.hpp"
@@ -776,7 +777,7 @@ namespace kagome::consensus::grandpa {
       need_cleanup_when_exiting_scope = true;
     }
 
-    auto cleanup = gsl::finally([&] {
+    common::FinalAction cleanup([&] {
       if (need_cleanup_when_exiting_scope) {
         catchup_request_timer_handle_.cancel();
         pending_catchup_request_.reset();

@@ -46,6 +46,7 @@ using kagome::blockchain::BlockTreeMock;
 using kagome::blockchain::DigestTrackerMock;
 using kagome::clock::SystemClockMock;
 using kagome::common::Buffer;
+using kagome::common::BufferView;
 using kagome::consensus::BlockProductionError;
 using kagome::consensus::EpochLength;
 using kagome::consensus::EpochNumber;

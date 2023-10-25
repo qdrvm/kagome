@@ -6,8 +6,7 @@
 
 #pragma once
 
-#include <gsl/gsl_util>
-
+#include "common/final_action.hpp"
 #include "metrics/metrics.hpp"
 
 namespace kagome::metrics {
@@ -69,7 +68,7 @@ namespace kagome::metrics {
     }
 
     auto timer() {
-      return std::make_optional(gsl::finally(manual()));
+      return std::make_optional(common::MovableFinalAction(manual()));
     }
   };
 }  // namespace kagome::metrics

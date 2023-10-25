@@ -10,6 +10,7 @@
 #include <boost/endian/conversion.hpp>
 
 #include "blockchain/impl/storage_util.hpp"
+#include "common/final_action.hpp"
 #include "consensus/grandpa/has_authority_set_change.hpp"
 #include "storage/predefined_keys.hpp"
 
@@ -135,7 +136,7 @@ namespace kagome::network {
     if (bool old = false; not caching_.compare_exchange_strong(old, true)) {
       return outcome::success();
     }
-    auto unlock = gsl::finally([&] { caching_.store(false); });
+    common::FinalAction unlock([&] { caching_.store(false); });
     for (; cache_next_ <= finalized; ++cache_next_) {
       OUTCOME_TRY(hash, block_repository_->getHashByNumber(cache_next_));
       OUTCOME_TRY(header, block_repository_->getBlockHeader(hash));

@@ -95,7 +95,9 @@ namespace kagome::primitives {
     }
 
     bool operator==(const Transcript &other) const {
-      return other.strobe_.data() == strobe_.data();
+      return std::equal(other.strobe_.data().begin(),
+                        other.strobe_.data().end(),
+                        strobe_.data().begin());
     }
   };
 

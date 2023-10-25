@@ -19,6 +19,7 @@
 #include "blockchain/block_header_repository.hpp"
 #include "blockchain/block_storage.hpp"
 #include "blockchain/block_tree_error.hpp"
+#include "common/final_action.hpp"
 #include "consensus/timeline/types.hpp"
 #include "crypto/hasher.hpp"
 #include "log/logger.hpp"
@@ -227,7 +228,7 @@ namespace kagome::blockchain {
         return block_tree_data_.exclusiveAccess([&f,
                                                  this](BlockTreeData &data) {
           exclusive_owner_ = std::this_thread::get_id();
-          auto reset = gsl::finally([&] { exclusive_owner_ = std::nullopt; });
+          common::FinalAction reset([&] { exclusive_owner_ = std::nullopt; });
           return f(data);
         });
       }

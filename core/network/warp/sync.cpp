@@ -8,6 +8,7 @@
 
 #include "blockchain/block_storage.hpp"
 #include "blockchain/block_tree.hpp"
+#include "common/final_action.hpp"
 #include "consensus/babe/babe_config_repository.hpp"
 #include "consensus/grandpa/authority_manager.hpp"
 #include "consensus/grandpa/has_authority_set_change.hpp"
@@ -63,7 +64,7 @@ namespace kagome::network {
       return;
     }
     std::optional<primitives::BlockNumber> min, max;
-    auto log = gsl::finally([&] {
+    common::FinalAction log([&] {
       if (min) {
         SL_INFO(log_, "finalized {}..{}", *min, *max);
       }

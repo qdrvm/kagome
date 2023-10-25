@@ -46,7 +46,7 @@ namespace libp2p::connection {
      */
     size_t readFromBuffer(std::span<uint8_t> out) {
       // can't read more bytes than available
-      auto n = std::min(gsl::narrow<size_t>(out.size()), size());
+      auto n = std::min(out.size(), size());
       BOOST_ASSERT(n != 0);
       // copy bytes from buffer
       std::copy_n(buffer->begin() + begin, n, out.begin());
@@ -143,12 +143,12 @@ namespace kagome::network {
       return stream_->remoteMultiaddr();
     }
 
-    void read(gsl::span<uint8_t> out, size_t bytes, ReadCallbackFunc cb) {
+    void read(std::span<uint8_t> out, size_t bytes, ReadCallbackFunc cb) {
       check();
       stream_->read(out, bytes, std::move(cb));
     }
 
-    void readSome(gsl::span<uint8_t> out, size_t bytes, ReadCallbackFunc cb) {
+    void readSome(std::span<uint8_t> out, size_t bytes, ReadCallbackFunc cb) {
       check();
       stream_->readSome(out, bytes, std::move(cb));
     }
@@ -157,14 +157,14 @@ namespace kagome::network {
       stream_->deferReadCallback(std::move(res), std::move(cb));
     }
 
-    void write(gsl::span<const uint8_t> in,
+    void write(std::span<const uint8_t> in,
                size_t bytes,
                WriteCallbackFunc cb) {
       check();
       stream_->write(in, bytes, std::move(cb));
     }
 
-    void writeSome(gsl::span<const uint8_t> in,
+    void writeSome(std::span<const uint8_t> in,
                    size_t bytes,
                    WriteCallbackFunc cb) {
       check();
