@@ -32,6 +32,13 @@ target_link_libraries(babe_api
     executor
     )
 
+add_library(sassafras_api
+    sassafras_api.cpp
+    )
+target_link_libraries(sassafras_api
+    executor
+    )
+
 add_library(beefy_api
     beefy.cpp
     )

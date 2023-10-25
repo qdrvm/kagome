@@ -1,0 +1,22 @@
+#
+# Copyright Quadrivium LLC
+# All Rights Reserved
+# SPDX-License-Identifier: Apache-2.0
+#
+
+add_library(sassafras
+    impl/sassafras_digests_util.cpp
+    impl/sassafras.cpp
+    impl/threshold_util.cpp
+    impl/sassafras_lottery_impl.cpp
+    impl/sassafras_config_repository_impl.cpp
+    impl/sassafras_error.cpp
+    impl/sassafras_vrf.cpp
+    impl/bandersnatch.cpp
+)
+target_link_libraries(sassafras
+    logger
+    metrics
+)
+kagome_install(sassafras)
+

@@ -13,6 +13,7 @@
 #include <type_traits>
 
 #include <boost/assert.hpp>
+#include <libp2p/common/types.hpp>
 
 #include "common/buffer_view.hpp"
 #include "crypto/keccak/keccak.h"
@@ -72,14 +73,13 @@ namespace kagome::primitives {
       return kBufferSize / sizeof(T);
     }
 
-    template <size_t kOffset, typename T, size_t N>
-    void load(const T (&data)[N]) {  // NOLINT
-      static_assert(kOffset + N <= count<T>(), "Load overflows!");
-      std::memcpy(as<T, kOffset>(), data, N);
+    template <size_t kOffset>
+    void load(libp2p::BytesIn data) {  // NOLINT
+      BOOST_ASSERT_MSG(kOffset + data.size() <= kBufferSize, "Load overflows!");
+      std::memcpy(as<uint8_t, kOffset>(), data.data(), data.size());
     }
 
-    template <typename T, size_t N>
-    void absorb(const T (&src)[N]) {
+    void absorb(libp2p::BytesIn src) {
       for (const auto i : src) {
         *as<uint8_t>(current_position_++) ^= static_cast<uint8_t>(i);
         if (kStrobeR == current_position_) {
@@ -88,8 +88,7 @@ namespace kagome::primitives {
       }
     }
 
-    template <typename T, size_t N>
-    void overwrite(const T (&src)[N]) {
+    void overwrite(libp2p::BytesIn src) {
       for (const auto i : src) {
         *as<uint8_t>(current_position_++) = static_cast<uint8_t>(i);
         if (kStrobeR == current_position_) {
@@ -98,10 +97,9 @@ namespace kagome::primitives {
       }
     }
 
-    template <typename T, size_t N>
-    void squeeze(T (&src)[N]) {
+    void squeeze(libp2p::BytesOut src) {
       for (auto &i : src) {
-        i = static_cast<T>(*as<uint8_t>(current_position_));
+        i = *as<uint8_t>(current_position_);
         *as<uint8_t>(current_position_++) = 0;
         if (kStrobeR == current_position_) {
           runF();
@@ -117,10 +115,12 @@ namespace kagome::primitives {
         return;
       }
 
-      const auto old_begin = begin_position_;
+      std::array<uint8_t, 2> data{begin_position_, kFlags};
+
       begin_position_ = current_position_ + 1;
       current_state_ = kFlags;
-      absorb({old_begin, kFlags});
+
+      absorb(data);
 
       if constexpr (0 != (kFlags & (kFlag_C | kFlag_K))) {
         if (current_position_ != 0) {
@@ -163,17 +163,17 @@ namespace kagome::primitives {
     Strobe(Strobe &&) = delete;
     Strobe &operator=(Strobe &&) = delete;
 
-    template <typename T, size_t N>
-    void initialize(const T (&label)[N]) {
+    void initialize(libp2p::BytesIn label) {
       constexpr bool kUseRuntimeCalculation = false;
 
       if constexpr (kUseRuntimeCalculation) {
-        std::memset(as<uint8_t>(), 0, count<uint8_t>());
-        load<0ull>((uint8_t[6]){1, kStrobeR + 2, 1, 0, 1, 96});
-        load<6ull>("STROBEv1.0.2");
+        std::memset(as<uint8_t>(), 0, kBufferSize);
+        static const uint8_t x[6] = {1, kStrobeR + 2, 1, 0, 1, 96};
+        load<0ull>(std::span(x));
+        load<6ull>("STROBEv1.0.2"_bytes);
         keccakf(as<uint64_t>());
       } else {
-        load<0ull>((uint8_t[kBufferSize]){
+        static constexpr uint8_t x[kBufferSize] = {
             0x9c, 0x6d, 0x16, 0x8f, 0xf8, 0xfd, 0x55, 0xda, 0x2a, 0xa7, 0x3c,
             0x23, 0x55, 0x65, 0x35, 0x63, 0xdc, 0xc,  0x47, 0x5c, 0x55, 0x15,
             0x26, 0xf6, 0x73, 0x3b, 0xea, 0x22, 0xf1, 0x6c, 0xb5, 0x7c, 0xd3,
@@ -192,7 +192,8 @@ namespace kagome::primitives {
             0x97, 0xb6, 0x99, 0xdd, 0xfb, 0xde, 0xe9, 0x1e, 0xa8, 0x7b, 0xd0,
             0x9b, 0xf8, 0xb0, 0x2d, 0xa7, 0x5a, 0x96, 0xe9, 0x47, 0xf0, 0x7f,
             0x5b, 0x65, 0xbb, 0x4e, 0x6e, 0xfe, 0xfa, 0xa1, 0x6a, 0xbf, 0xd9,
-            0xfb, 0xf6});
+            0xfb, 0xf6};
+        load<0ull>(std::span(x));
       }
 
       current_position_ = 0;
@@ -202,26 +203,26 @@ namespace kagome::primitives {
       metaAd<false>(label);
     }
 
-    template <bool kMore, typename T, size_t N>
-    void ad(const T (&src)[N]) {
+    template <bool kMore>
+    void ad(libp2p::BytesIn src) {
       beginOp<kMore, kFlag_A>();
       absorb(src);
     }
 
-    template <bool kMore, typename T, size_t N>
-    void metaAd(const T (&label)[N]) {
+    template <bool kMore>
+    void metaAd(libp2p::BytesIn label) {
       beginOp<kMore, kFlag_M | kFlag_A>();
       absorb(label);
     }
 
-    template <bool kMore, typename T, size_t N>
-    void prf(T (&data)[N]) {
+    template <bool kMore>
+    void prf(libp2p::BytesOut data) {
       beginOp<kMore, kFlag_I | kFlag_A | kFlag_C>();
       squeeze(data);
     }
 
-    template <bool kMore, typename T, size_t N>
-    void key(const T (&data)[N]) {
+    template <bool kMore>
+    void key(libp2p::BytesIn data) {
       beginOp<kMore, kFlag_A | kFlag_C>();
       overwrite(data);
     }

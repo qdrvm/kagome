@@ -9,6 +9,7 @@
 #include <cstdint>
 
 #include <optional>
+#include <span>
 
 #include "network/types/block_attributes.hpp"
 #include "network/types/block_direction.hpp"
