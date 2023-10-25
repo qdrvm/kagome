@@ -81,11 +81,11 @@ namespace kagome::consensus::grandpa {
   std::optional<std::shared_ptr<const primitives::AuthoritySet>>
   AuthorityManagerImpl::authorities(const primitives::BlockInfo &target_block,
                                     IsBlockFinalized finalized) const {
+    if (auto r = block_tree_->hasBlockHeader(target_block.hash);
+        not r or not r.value()) {
+      return std::nullopt;
+    }
     if (auto r = authoritiesOutcome(target_block, finalized.operator bool())) {
-      fmt::print("authorities({} next={}) = {}\n",
-                 target_block.number,
-                 (bool)finalized,
-                 r.value()->id);
       return std::move(r.value());
     } else {
       SL_WARN(logger_,
@@ -93,7 +93,6 @@ namespace kagome::consensus::grandpa {
               target_block,
               finalized.operator bool(),
               r.error());
-      auto debug = authoritiesOutcome(target_block, finalized.operator bool());
     }
     return std::nullopt;
   }
