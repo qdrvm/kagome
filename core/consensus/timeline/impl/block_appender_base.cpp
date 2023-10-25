@@ -21,12 +21,14 @@ namespace kagome::consensus {
   BlockAppenderBase::BlockAppenderBase(
       std::shared_ptr<blockchain::BlockTree> block_tree,
       std::shared_ptr<babe::BabeConfigRepository> babe_config_repo,
+      const EpochTimings &timings,
       std::shared_ptr<BlockValidator> block_validator,
       std::shared_ptr<grandpa::Environment> grandpa_environment,
       LazySPtr<SlotsUtil> slots_util,
       std::shared_ptr<crypto::Hasher> hasher)
       : block_tree_{std::move(block_tree)},
         babe_config_repo_{std::move(babe_config_repo)},
+        timings_(timings),
         block_validator_{std::move(block_validator)},
         grandpa_environment_{std::move(grandpa_environment)},
         slots_util_{std::move(slots_util)},
@@ -177,7 +179,7 @@ namespace kagome::consensus {
       const primitives::BlockHeader &header) const {
     OUTCOME_TRY(slot_number, babe::getBabeSlot(header));
     auto start_time = slots_util_.get()->slotStartTime(slot_number);
-    auto slot_duration = babe_config_repo_->slotDuration();
+    auto slot_duration = timings_.slot_duration;
     return outcome::success(SlotInfo{start_time, slot_duration});
   }
 

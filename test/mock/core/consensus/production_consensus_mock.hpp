@@ -17,10 +17,6 @@ namespace kagome::consensus {
                 (const primitives::BlockInfo &, EpochNumber),
                 (const, override));
 
-    using Timings = std::tuple<Duration, EpochLength>;
-
-    MOCK_METHOD(Timings, getTimings, (), (const, override));
-
     MOCK_METHOD(outcome::result<SlotNumber>,
                 getSlot,
                 (const primitives::BlockHeader &),

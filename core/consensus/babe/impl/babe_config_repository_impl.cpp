@@ -8,10 +8,12 @@
 
 #include "application/app_configuration.hpp"
 #include "application/app_state_manager.hpp"
+#include "babe.hpp"
 #include "babe_digests_util.hpp"
 #include "blockchain/block_header_repository.hpp"
 #include "blockchain/block_tree.hpp"
 #include "consensus/babe/impl/babe_error.hpp"
+#include "consensus/consensus_selector.hpp"
 #include "consensus/timeline/slots_util.hpp"
 #include "primitives/block_header.hpp"
 #include "runtime/runtime_api/babe_api.hpp"
@@ -50,8 +52,10 @@ namespace kagome::consensus::babe {
       application::AppStateManager &app_state_manager,
       std::shared_ptr<storage::SpacedStorage> persistent_storage,
       const application::AppConfiguration &app_config,
+      EpochTimings &timings,
       std::shared_ptr<blockchain::BlockTree> block_tree,
       std::shared_ptr<blockchain::BlockHeaderRepository> header_repo,
+      LazySPtr<ConsensusSelector> consensus_selector,
       std::shared_ptr<runtime::BabeApi> babe_api,
       std::shared_ptr<storage::trie::TrieStorage> trie_storage,
       primitives::events::ChainSubscriptionEnginePtr chain_events_engine,
@@ -60,6 +64,7 @@ namespace kagome::consensus::babe {
           persistent_storage->getSpace(storage::Space::kDefault)),
         config_warp_sync_{app_config.syncMethod()
                           == application::SyncMethod::Warp},
+        timings_(timings),
         block_tree_(std::move(block_tree)),
         indexer_{
             std::make_shared<storage::MapPrefix>(
@@ -68,6 +73,7 @@ namespace kagome::consensus::babe {
             block_tree_,
         },
         header_repo_(std::move(header_repo)),
+        consensus_selector_(std::move(consensus_selector)),
         babe_api_(std::move(babe_api)),
         trie_storage_(std::move(trie_storage)),
         chain_sub_{chain_events_engine},
@@ -86,15 +92,13 @@ namespace kagome::consensus::babe {
   }
 
   bool BabeConfigRepositoryImpl::prepare() {
-    if (auto res = persistent_storage_->tryGet(
-            storage::kBabeConfigRepositoryImplGenesisSlot)) {
+    if (auto res = persistent_storage_->tryGet(storage::kFirstBlockSlot)) {
       if (auto &genesis_slot_raw = res.value()) {
         if (auto res = scale::decode<SlotNumber>(*genesis_slot_raw)) {
           first_block_slot_number_ = res.value();
         } else {
           SL_ERROR(logger_, "genesis slot decode error: {}", res.error());
-          std::ignore = persistent_storage_->remove(
-              storage::kBabeConfigRepositoryImplGenesisSlot);
+          std::ignore = persistent_storage_->remove(storage::kFirstBlockSlot);
         }
       }
     } else {
@@ -111,24 +115,31 @@ namespace kagome::consensus::babe {
       warp(lock, finalized);
     }
 
-    auto genesis_res = config({block_tree_->getGenesisBlockHash(), 0}, false);
-    if (not genesis_res) {
-      SL_ERROR(logger_, "get config at genesis error: {}", genesis_res.error());
-      return false;
-    }
-    auto &genesis = genesis_res.value();
-    slot_duration_ = genesis->slot_duration;
-    epoch_length_ = genesis->epoch_length;
-
-    auto best = block_tree_->bestBlock();
-    auto best_header = block_tree_->getBlockHeader(best.hash).value();
-    if (auto res = config(best, true); not res and not config_warp_sync_) {
-      SL_ERROR(logger_, "get config at best {} error: {}", best, res.error());
-      if (not trie_storage_->getEphemeralBatchAt(best_header.state_root)) {
-        SL_ERROR(logger_,
-                 "warp sync was not completed, restart with \"--sync Warp\"");
+    if (!timings_) {
+      auto genesis_res = config({block_tree_->getGenesisBlockHash(), 0}, false);
+      if (genesis_res.has_value()) {
+        auto &genesis = genesis_res.value();
+        timings_.init(genesis->slot_duration, genesis->epoch_length);
+        SL_DEBUG(logger_, "Timing was initialized by babe config");
       }
-      return false;
+    }
+
+    [[maybe_unused]] bool active_ = false;
+
+    // TODO Perhaps, should be observed all non-finalized blocks
+    auto best = block_tree_->bestBlock();
+    auto consensus = consensus_selector_.get()->getProductionConsensus(best);
+    if (std::dynamic_pointer_cast<Babe>(consensus)) {
+      active_ = true;
+      if (auto res = config(best, true); not res and not config_warp_sync_) {
+        SL_ERROR(logger_, "get config at best {} error: {}", best, res.error());
+        auto best_header = block_tree_->getBlockHeader(best.hash).value();
+        if (not trie_storage_->getEphemeralBatchAt(best_header.state_root)) {
+          SL_ERROR(logger_,
+                   "warp sync was not completed, restart with \"--sync Warp\"");
+        }
+        return false;
+      }
     }
 
     chain_sub_.onFinalize([weak{weak_from_this()}]() {
@@ -154,17 +165,6 @@ namespace kagome::consensus::babe {
     }
     std::unique_lock lock{indexer_mutex_};
     return config(parent_info, epoch_changed);
-  }
-
-  Duration BabeConfigRepositoryImpl::slotDuration() const {
-    BOOST_ASSERT_MSG(slot_duration_ != Duration::zero(),
-                     "Slot duration is not initialized");
-    return slot_duration_;
-  }
-
-  EpochLength BabeConfigRepositoryImpl::epochLength() const {
-    BOOST_ASSERT_MSG(epoch_length_ != 0, "Epoch length is not initialized");
-    return epoch_length_;
   }
 
   outcome::result<SlotNumber> BabeConfigRepositoryImpl::getFirstBlockSlotNumber(
@@ -200,9 +200,8 @@ namespace kagome::consensus::babe {
       if (finalized.number != 0
           and block_tree_->hasDirectChain(finalized, parent_info)) {
         first_block_slot_number_ = slot1;
-        OUTCOME_TRY(persistent_storage_->put(
-            storage::kBabeConfigRepositoryImplGenesisSlot,
-            scale::encode(*slot1).value()));
+        OUTCOME_TRY(persistent_storage_->put(storage::kFirstBlockSlot,
+                                             scale::encode(*slot1).value()));
       }
     }
     return slot1.value();
@@ -236,15 +235,15 @@ namespace kagome::consensus::babe {
           BabeIndexedValue value{getConfig(*state), state, std::nullopt, state};
           if (info.number != 0) {
             OUTCOME_TRY(next, babe_api_->next_epoch(info.hash));
-            value.next_state_warp =
-                std::make_shared<BabeConfiguration>(BabeConfiguration{
-                    state->slot_duration,
-                    state->epoch_length,
-                    next.leadership_rate,
-                    std::move(next.authorities),
-                    next.randomness,
-                    next.allowed_slots,
-                });
+            BOOST_ASSERT(state->epoch_length == next.duration);
+            std::make_shared<BabeConfiguration>(BabeConfiguration{
+                state->slot_duration,
+                next.duration,
+                next.leadership_rate,
+                std::move(next.authorities),
+                next.randomness,
+                next.allowed_slots,
+            });
             value.next_state = value.next_state_warp;
           }
           indexer_.put(info, {value, std::nullopt}, true);
@@ -303,8 +302,8 @@ namespace kagome::consensus::babe {
       const HasBabeConsensusDigest &digests) const {
     BOOST_ASSERT(digests);
     auto state = std::make_shared<BabeConfiguration>();
-    state->slot_duration = slot_duration_;
-    state->epoch_length = epoch_length_;
+    state->slot_duration = timings_.slot_duration;
+    state->epoch_length = timings_.epoch_length;
     if (digests.config) {
       state->leadership_rate = digests.config->ratio;
       state->allowed_slots = digests.config->second_slot;

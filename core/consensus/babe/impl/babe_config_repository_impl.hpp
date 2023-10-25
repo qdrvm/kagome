@@ -31,7 +31,8 @@ namespace kagome::blockchain {
 
 namespace kagome::consensus {
   class SlotsUtil;
-}
+  class ConsensusSelector;
+}  // namespace kagome::consensus
 
 namespace kagome::runtime {
   class BabeApi;
@@ -78,8 +79,10 @@ namespace kagome::consensus::babe {
         application::AppStateManager &app_state_manager,
         std::shared_ptr<storage::SpacedStorage> persistent_storage,
         const application::AppConfiguration &app_config,
+        EpochTimings &timings,
         std::shared_ptr<blockchain::BlockTree> block_tree,
         std::shared_ptr<blockchain::BlockHeaderRepository> header_repo,
+        LazySPtr<ConsensusSelector> consensus_selector,
         std::shared_ptr<runtime::BabeApi> babe_api,
         std::shared_ptr<storage::trie::TrieStorage> trie_storage,
         primitives::events::ChainSubscriptionEnginePtr chain_events_engine,
@@ -88,11 +91,6 @@ namespace kagome::consensus::babe {
     bool prepare();
 
     // BabeConfigRepository
-
-    Duration slotDuration() const override;
-
-    EpochLength epochLength() const override;
-
     outcome::result<std::shared_ptr<const BabeConfiguration>> config(
         const primitives::BlockInfo &parent_info,
         EpochNumber epoch_number) const override;
@@ -122,17 +120,16 @@ namespace kagome::consensus::babe {
 
     std::shared_ptr<storage::BufferStorage> persistent_storage_;
     bool config_warp_sync_;
+    EpochTimings &timings_;
     std::shared_ptr<blockchain::BlockTree> block_tree_;
     mutable std::mutex indexer_mutex_;
     mutable blockchain::Indexer<BabeIndexedValue> indexer_;
     std::shared_ptr<blockchain::BlockHeaderRepository> header_repo_;
+    LazySPtr<ConsensusSelector> consensus_selector_;
     std::shared_ptr<runtime::BabeApi> babe_api_;
     std::shared_ptr<storage::trie::TrieStorage> trie_storage_;
     primitives::events::ChainSub chain_sub_;
     LazySPtr<SlotsUtil> slots_util_;
-
-    Duration slot_duration_{};
-    EpochLength epoch_length_{};
 
     mutable std::optional<SlotNumber> first_block_slot_number_;
 

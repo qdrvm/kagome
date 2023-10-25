@@ -66,6 +66,7 @@ namespace kagome::consensus::babe {
       std::shared_ptr<blockchain::BlockTree> block_tree,
       LazySPtr<SlotsUtil> slots_util,
       std::shared_ptr<BabeConfigRepository> babe_config_repo,
+      const EpochTimings &timings,
       std::shared_ptr<crypto::SessionKeys> session_keys,
       std::shared_ptr<BabeLottery> lottery,
       std::shared_ptr<crypto::Hasher> hasher,
@@ -85,6 +86,7 @@ namespace kagome::consensus::babe {
         block_tree_(std::move(block_tree)),
         slots_util_(std::move(slots_util)),
         babe_config_repo_(std::move(babe_config_repo)),
+        timings_(timings),
         session_keys_(std::move(session_keys)),
         lottery_(std::move(lottery)),
         hasher_(std::move(hasher)),
@@ -148,11 +150,6 @@ namespace kagome::consensus::babe {
     }
 
     return ValidatorStatus::NonValidator;
-  }
-
-  std::tuple<Duration, EpochLength> Babe::getTimings() const {
-    return {babe_config_repo_->slotDuration(),
-            babe_config_repo_->epochLength()};
   }
 
   outcome::result<SlotNumber> Babe::getSlot(
@@ -425,7 +422,7 @@ namespace kagome::consensus::babe {
       // create new block
       auto res = proposer_->propose(ctx.parent,
                                     slots_util_.get()->slotFinishTime(ctx.slot)
-                                        - babe_config_repo_->slotDuration() / 3,
+                                        - timings_.slot_duration / 3,
                                     inherent_data,
                                     {babe_pre_digest},
                                     changes_tracker);

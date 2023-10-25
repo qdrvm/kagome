@@ -13,6 +13,7 @@
 #include "common/unused.hpp"
 #include "consensus/babe/types/babe_block_header.hpp"
 #include "consensus/babe/types/babe_configuration.hpp"
+#include "consensus/babe/types/epoch_data.hpp"
 #include "consensus/constants.hpp"
 #include "primitives/scheduled_change.hpp"
 #include "scale/scale.hpp"
@@ -58,9 +59,9 @@ namespace kagome::primitives {
   using BabeDigest =
       /// Note: order of types in variant matters
       boost::variant<Unused<0>,
-                     NextEpochData,    // 1: (Auth C; R)
-                     OnDisabled,       // 2: Auth ID
-                     NextConfigData>;  // 3: c, S2nd
+                     consensus::babe::EpochData,  // 1: (Auth C; R)
+                     OnDisabled,                  // 2: Auth ID
+                     NextConfigData>;             // 3: c, S2nd
 
   /// https://github.com/paritytech/substrate/blob/polkadot-v0.9.8/primitives/finality-grandpa/src/lib.rs#L92
   using GrandpaDigest =
@@ -125,7 +126,7 @@ namespace kagome::primitives {
     template <class A>
     Consensus(const A &a) {
       // clang-format off
-      if constexpr (std::is_same_v<A, NextEpochData>
+      if constexpr (std::is_same_v<A, consensus::babe::EpochData>
                  or std::is_same_v<A, NextConfigData>) {
         consensus_engine_id = primitives::kBabeEngineId;
         data = common::Buffer(scale::encode(BabeDigest(a)).value());

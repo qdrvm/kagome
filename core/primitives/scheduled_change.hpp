@@ -30,10 +30,6 @@ namespace kagome::primitives {
         : authorities(std::move(authorities)), subchain_length(delay) {}
   };
 
-  struct NextEpochData final : public consensus::EpochDigest {
-    using EpochDigest::EpochDigest;
-  };
-
   struct NextConfigDataV1 final {
     SCALE_TIE(2);
     std::pair<uint64_t, uint64_t> ratio;

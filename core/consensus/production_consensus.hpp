@@ -33,8 +33,6 @@ namespace kagome::consensus {
         const primitives::BlockInfo &parent_info,
         EpochNumber epoch_number) const = 0;
 
-    virtual std::tuple<Duration, EpochLength> getTimings() const = 0;
-
     virtual outcome::result<SlotNumber> getSlot(
         const primitives::BlockHeader &header) const = 0;
 

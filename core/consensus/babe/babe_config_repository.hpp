@@ -16,13 +16,6 @@ namespace kagome::consensus::babe {
    public:
     virtual ~BabeConfigRepository() = default;
 
-    /// Returns the duration of a slot in milliseconds
-    /// @return the duration of a slot in milliseconds
-    virtual Duration slotDuration() const = 0;
-
-    /// @return the epoch length in slots
-    virtual EpochLength epochLength() const = 0;
-
     /// Returns the actual babe configuration
     /// @return the actual babe configuration
     virtual outcome::result<std::shared_ptr<const BabeConfiguration>> config(

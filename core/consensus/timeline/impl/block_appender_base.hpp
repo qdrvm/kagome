@@ -41,6 +41,7 @@ namespace kagome::consensus {
     BlockAppenderBase(
         std::shared_ptr<blockchain::BlockTree> block_tree,
         std::shared_ptr<babe::BabeConfigRepository> babe_config_repo,
+        const EpochTimings &timings,
         std::shared_ptr<BlockValidator> block_validator,
         std::shared_ptr<grandpa::Environment> grandpa_environment,
         LazySPtr<SlotsUtil> slots_util,
@@ -72,6 +73,7 @@ namespace kagome::consensus {
 
     std::shared_ptr<blockchain::BlockTree> block_tree_;
     std::shared_ptr<babe::BabeConfigRepository> babe_config_repo_;
+    const EpochTimings &timings_;
     std::shared_ptr<BlockValidator> block_validator_;
     std::shared_ptr<grandpa::Environment> grandpa_environment_;
     LazySPtr<SlotsUtil> slots_util_;

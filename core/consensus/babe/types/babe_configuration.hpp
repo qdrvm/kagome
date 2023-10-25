@@ -40,11 +40,13 @@ namespace kagome::consensus::babe {
 
   /// Configuration data used by the BABE consensus engine.
   struct BabeConfiguration {
+    SCALE_TIE(6);
+
     /// The slot duration in milliseconds for BABE. Currently, only
     /// the value provided by this type at genesis will be used.
     ///
     /// Dynamic slot duration may be supported in the future.
-    Duration slot_duration{};  // must be permanent
+    SlotDuration slot_duration{};  // must be permanent
 
     SlotNumber epoch_length{};  // must be permanent
 
@@ -71,42 +73,7 @@ namespace kagome::consensus::babe {
       return allowed_slots == AllowedSlots::PrimaryAndSecondaryPlain
           or allowed_slots == AllowedSlots::PrimaryAndSecondaryVRF;
     }
-
-    bool operator==(const BabeConfiguration &rhs) const {
-      return slot_duration == rhs.slot_duration
-         and epoch_length == rhs.epoch_length
-         and leadership_rate == rhs.leadership_rate
-         and authorities == rhs.authorities and randomness == rhs.randomness
-         and allowed_slots == rhs.allowed_slots;
-    }
-    bool operator!=(const BabeConfiguration &rhs) const {
-      return !operator==(rhs);
-    }
   };
-
-  template <class Stream,
-            typename = std::enable_if_t<Stream::is_encoder_stream>>
-  Stream &operator<<(Stream &s, const BabeConfiguration &config) {
-    size_t slot_duration_u64 =
-        std::chrono::duration_cast<std::chrono::milliseconds>(
-            config.slot_duration)
-            .count();
-    return s << slot_duration_u64 << config.epoch_length
-             << config.leadership_rate << config.authorities
-             << config.randomness << static_cast<uint8_t>(config.allowed_slots);
-  }
-
-  template <class Stream,
-            typename = std::enable_if_t<Stream::is_decoder_stream>>
-  Stream &operator>>(Stream &s, BabeConfiguration &config) {
-    size_t slot_duration_u64{};
-    uint8_t allowed_slots;
-    s >> slot_duration_u64 >> config.epoch_length >> config.leadership_rate
-        >> config.authorities >> config.randomness >> allowed_slots;
-    config.slot_duration = std::chrono::milliseconds(slot_duration_u64);
-    config.allowed_slots = static_cast<AllowedSlots>(allowed_slots);
-    return s;
-  }
 
   struct Epoch {
     SCALE_TIE(7);

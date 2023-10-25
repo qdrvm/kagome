@@ -93,6 +93,7 @@ namespace kagome::consensus::babe {
         std::shared_ptr<blockchain::BlockTree> block_tree,
         LazySPtr<SlotsUtil> slots_util,
         std::shared_ptr<BabeConfigRepository> babe_config_repo,
+        const EpochTimings &timings,
         std::shared_ptr<crypto::SessionKeys> session_keys,
         std::shared_ptr<BabeLottery> lottery,
         std::shared_ptr<crypto::Hasher> hasher,
@@ -110,8 +111,6 @@ namespace kagome::consensus::babe {
 
     ValidatorStatus getValidatorStatus(const primitives::BlockInfo &parent_info,
                                        EpochNumber epoch_number) const override;
-
-    std::tuple<Duration, EpochLength> getTimings() const override;
 
     outcome::result<SlotNumber> getSlot(
         const primitives::BlockHeader &header) const override;
@@ -161,6 +160,7 @@ namespace kagome::consensus::babe {
     std::shared_ptr<blockchain::BlockTree> block_tree_;
     LazySPtr<SlotsUtil> slots_util_;
     std::shared_ptr<BabeConfigRepository> babe_config_repo_;
+    const EpochTimings &timings_;
     std::shared_ptr<crypto::SessionKeys> session_keys_;
     std::shared_ptr<BabeLottery> lottery_;
     std::shared_ptr<crypto::Hasher> hasher_;
