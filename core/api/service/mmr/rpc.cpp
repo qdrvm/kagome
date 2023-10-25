@@ -143,9 +143,8 @@ namespace kagome::api {
               OUTCOME_TRY(
                   leaves,
                   scale::decode<primitives::MmrLeaves>(proof_raw.leaves));
-              OUTCOME_TRY(
-                  proof,
-                  scale::decode<primitives::MmrProof>(proof_raw.proof.view()));
+              OUTCOME_TRY(proof,
+                          scale::decode<primitives::MmrProof>(proof_raw.proof));
               OUTCOME_TRY(r,
                           self->mmr_api_.get()->verifyProofStateless(
                               at, mmr_root, leaves, proof));

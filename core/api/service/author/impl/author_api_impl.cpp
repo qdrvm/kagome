@@ -126,8 +126,7 @@ namespace kagome::api {
             crypto::KeyTypes::GRANDPA,
             crypto::Ed25519PublicKey(common::Blob<32>(key)))) {
       unsigned count = 1;
-      while (stream.currentIndex()
-             < static_cast<scale::ScaleDecoderStream::SizeType>(keys.size())) {
+      while (stream.currentIndex() < keys.size()) {
         stream >> key;
         if (not store_->findSr25519Keypair(
                 crypto::polkadot_key_order[count++],

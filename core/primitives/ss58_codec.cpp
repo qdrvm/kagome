@@ -25,7 +25,7 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::primitives, Ss58Error, e) {
 
 namespace kagome::primitives {
 
-  static common::Buffer calculateChecksum(std::span<uint8_t> ss58_address,
+  static common::Buffer calculateChecksum(common::BufferView ss58_address,
                                           const crypto::Hasher &hasher) {
     constexpr auto PREFIX = "SS58PRE";
     auto preimage = common::Buffer{}.put(PREFIX).put(ss58_address);

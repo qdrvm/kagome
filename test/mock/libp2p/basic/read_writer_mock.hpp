@@ -15,12 +15,12 @@ namespace libp2p::basic {
   struct ReadWriterMock : public ReadWriter {
     MOCK_METHOD(void,
                 read,
-                (std::span<uint8_t>, size_t, Reader::ReadCallbackFunc),
+                (BytesOut, size_t, Reader::ReadCallbackFunc),
                 (override));
 
     MOCK_METHOD(void,
                 readSome,
-                (std::span<uint8_t>, size_t, Reader::ReadCallbackFunc),
+                (BytesOut, size_t, Reader::ReadCallbackFunc),
                 (override));
 
     MOCK_METHOD(void,

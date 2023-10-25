@@ -19,14 +19,10 @@ namespace libp2p::connection {
     explicit StreamProxyBase(std::shared_ptr<Stream> stream)
         : stream{std::move(stream)} {}
 
-    void read(std::span<uint8_t> out,
-              size_t bytes,
-              ReadCallbackFunc cb) override {
+    void read(BytesOut out, size_t bytes, ReadCallbackFunc cb) override {
       stream->read(out, bytes, std::move(cb));
     }
-    void readSome(std::span<uint8_t> out,
-                  size_t bytes,
-                  ReadCallbackFunc cb) override {
+    void readSome(BytesOut out, size_t bytes, ReadCallbackFunc cb) override {
       stream->readSome(out, bytes, std::move(cb));
     }
     void deferReadCallback(outcome::result<size_t> res,

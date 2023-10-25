@@ -102,11 +102,7 @@ namespace kagome::api {
       BOOST_ASSERT(key.has_value());
 
       // make sure our key begins with prefix
-      if (!std::equal(
-              key.value().begin(),
-              key.value().begin() + std::min(key.value().size(), prefix.size()),
-              prefix.begin(),
-              prefix.end())) {
+      if (!key->startsWith(prefix)) {
         break;
       }
       result.push_back(cursor->key().value());
