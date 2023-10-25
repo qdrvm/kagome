@@ -71,15 +71,13 @@ namespace kagome::blockchain {
       const primitives::BlockContext &context,
       const primitives::Consensus &message) {
     if (message.consensus_engine_id == primitives::kBabeEngineId) {
-      OUTCOME_TRY(digest,
-                  scale::decode<primitives::BabeDigest>(message.data.view()));
+      OUTCOME_TRY(digest, scale::decode<primitives::BabeDigest>(message.data));
 
       return outcome::success();
 
     } else if (message.consensus_engine_id == primitives::kGrandpaEngineId) {
-      OUTCOME_TRY(
-          digest,
-          scale::decode<primitives::GrandpaDigest>(message.data.view()));
+      OUTCOME_TRY(digest,
+                  scale::decode<primitives::GrandpaDigest>(message.data));
 
       return grandpa_digest_observer_->onDigest(context, digest);
 

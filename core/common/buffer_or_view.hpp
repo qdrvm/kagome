@@ -28,8 +28,7 @@ namespace kagome::common {
     BufferOrView(const BufferView &view) : variant{view} {}
 
     template <size_t N>
-    BufferOrView(const std::array<uint8_t, N> &array)
-        : variant{std::span(array)} {}
+    BufferOrView(const std::array<uint8_t, N> &array) : variant{array} {}
 
     BufferOrView(const std::vector<uint8_t> &vector) = delete;
     BufferOrView(std::vector<uint8_t> &&vector)

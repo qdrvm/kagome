@@ -45,7 +45,7 @@ namespace kagome::consensus::babe {
       auto pre_runtime_opt = getFromVariant<primitives::PreRuntime>(digest);
       if (pre_runtime_opt.has_value()) {
         auto babe_block_header_res =
-            scale::decode<BabeBlockHeader>(pre_runtime_opt->get().data.view());
+            scale::decode<BabeBlockHeader>(pre_runtime_opt->get().data);
         if (babe_block_header_res.has_value()) {
           // found the BabeBlockHeader digest; return
           return babe_block_header_res.value();
@@ -72,7 +72,7 @@ namespace kagome::consensus::babe {
       return DigestError::NO_TRAILING_SEAL_DIGEST;
     }
 
-    OUTCOME_TRY(seal_digest, scale::decode<Seal>(seal_opt->get().data.view()));
+    OUTCOME_TRY(seal_digest, scale::decode<Seal>(seal_opt->get().data));
 
     return seal_digest;
   }

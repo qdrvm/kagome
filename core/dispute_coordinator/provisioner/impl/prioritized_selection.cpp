@@ -148,7 +148,7 @@ namespace kagome::dispute {
 
     for (size_t i = 0; i < disputes.size();) {
       auto batch_size = std::min(kVotesSelectionBatchSize, disputes.size() - i);
-      auto batch = std::span(&disputes[i], batch_size);
+      auto batch = std::span(disputes).first(batch_size);
       i += batch_size;
 
       // Filter votes which are already onchain

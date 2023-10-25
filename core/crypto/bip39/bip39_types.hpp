@@ -27,8 +27,7 @@ namespace kagome::crypto::bip39 {
 
     template <typename T>
     outcome::result<T> as() const {
-      return T::fromSpan(
-          std::span(seed).first(std::min(seed.size(), T::size())));
+      return T::fromSpan(seed.view(0, std::min(seed.size(), T::size())));
     }
   };
 }  // namespace kagome::crypto::bip39

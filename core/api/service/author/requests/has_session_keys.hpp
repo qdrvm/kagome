@@ -23,7 +23,7 @@ namespace kagome::api::author::request {
 
     outcome::result<Return> execute() override {
       OUTCOME_TRY(keys, common::unhexWith0x(getParam<0>()));
-      return api_->hasSessionKeys(std::span(keys.data(), keys.size()));
+      return api_->hasSessionKeys(keys);
     }
 
    private:

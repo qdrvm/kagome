@@ -10,9 +10,9 @@
 
 namespace kagome::crypto {
   common::Hash256 sha256(std::string_view input) {
-    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
-    const auto *bytes_ptr = reinterpret_cast<const uint8_t *>(input.data());
-    return sha256(std::span(bytes_ptr, input.length()));
+    return sha256(
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
+        {reinterpret_cast<const uint8_t *>(input.data()), input.size()});
   }
 
   common::Hash256 sha256(std::span<const uint8_t> input) {

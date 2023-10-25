@@ -23,7 +23,7 @@ namespace kagome::api::author::request {
 
     outcome::result<Return> execute() override {
       OUTCOME_TRY(public_key, common::unhexWith0x(getParam<0>()));
-      return api_->hasKey(std::span(public_key.data(), public_key.size()),
+      return api_->hasKey(public_key,
                           crypto::decodeKeyTypeFromStr(getParam<1>()));
     }
 

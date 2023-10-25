@@ -24,8 +24,7 @@ namespace kagome::api::author::request {
     outcome::result<primitives::SubscriptionId> execute() override {
       auto ext_hex = getParam<0>();
       OUTCOME_TRY(buffer, common::unhexWith0x(ext_hex));
-      OUTCOME_TRY(extrinsic,
-                  scale::decode<primitives::Extrinsic>(std::span(buffer)));
+      OUTCOME_TRY(extrinsic, scale::decode<primitives::Extrinsic>(buffer));
       return api_->submitAndWatchExtrinsic(extrinsic);
     }
 

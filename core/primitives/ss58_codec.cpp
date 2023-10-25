@@ -30,7 +30,7 @@ namespace kagome::primitives {
     constexpr auto PREFIX = "SS58PRE";
     auto preimage = common::Buffer{}.put(PREFIX).put(ss58_address);
     auto checksum = hasher.blake2b_512(preimage);
-    return common::Buffer{std::span(checksum).subspan(0, kSs58ChecksumLength)};
+    return {std::span(checksum).first<kSs58ChecksumLength>()};
   }
 
   outcome::result<AccountId> decodeSs58(std::string_view account_address,
@@ -40,10 +40,10 @@ namespace kagome::primitives {
     OUTCOME_TRY(ss58_account_id,
                 libp2p::multi::detail::decodeBase58(account_address));
 
-    auto ss58_no_checksum = std::span(
-        ss58_account_id.data(), ss58_account_id.size() - kSs58ChecksumLength);
-    auto checksum = std::span<const uint8_t>(
-        ss58_account_id.data() + ss58_no_checksum.size(), kSs58ChecksumLength);
+    auto ss58_no_checksum =
+        std::span(ss58_account_id)
+            .first(ss58_account_id.size() - kSs58ChecksumLength);
+    auto checksum = std::span(ss58_account_id).last<kSs58ChecksumLength>();
 
     auto calculated_checksum = calculateChecksum(ss58_no_checksum, hasher);
 

@@ -157,7 +157,7 @@ namespace kagome::common {
     }
 
     BufferView view(size_t offset = 0, size_t length = -1) const {
-      return BufferView{std::span(*this).subspan(offset, length)};
+      return std::span(*this).subspan(offset, length);
     }
 
     /**

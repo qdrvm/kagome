@@ -546,8 +546,7 @@ namespace kagome::storage::trie {
         return outcome::success();
       }
       auto common_length = getCommonPrefixLength(parent->getKeyNibbles(), path);
-      auto common_nibbles =
-          std::span(parent->getKeyNibbles().data(), common_length);
+      auto common_nibbles = parent->getKeyNibbles().view(0, common_length);
       // path is even less than the parent key (path is the prefix of the
       // parent key)
       if (path == common_nibbles
