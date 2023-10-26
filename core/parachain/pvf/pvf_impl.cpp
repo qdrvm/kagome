@@ -129,7 +129,7 @@ namespace kagome::parachain {
             module_factory, config->parachainRuntimeInstanceCacheSize())} {}
 
   outcome::result<Pvf::Result> PvfImpl::pvfValidate(
-      PersistedValidationData &&data,
+      const PersistedValidationData &data,
       const ParachainBlock &pov,
       const CandidateReceipt &receipt,
       const ParachainRuntime &code_zstd) const {
@@ -167,19 +167,19 @@ namespace kagome::parachain {
     timer.reset();
 
     OUTCOME_TRY(commitments, fromOutputs(receipt, std::move(result)));
-    return std::make_pair(std::move(commitments), std::move(data));
+    return std::make_pair(std::move(commitments), data);
   }
 
   outcome::result<Pvf::Result> PvfImpl::pvfSync(
       const CandidateReceipt &receipt,
       const ParachainBlock &pov,
-      runtime::PersistedValidationData &&pvd) const {
+      const runtime::PersistedValidationData &pvd) const {
     SL_DEBUG(log_,
              "pvfSync relay_parent={} para_id={}",
              receipt.descriptor.relay_parent,
              receipt.descriptor.para_id);
     OUTCOME_TRY(code, findData(receipt.descriptor, pvd));
-    return pvfValidate(std::move(pvd), pov, receipt, code);
+    return pvfValidate(pvd, pov, receipt, code);
   }
 
   outcome::result<ParachainRuntime> PvfImpl::findData(

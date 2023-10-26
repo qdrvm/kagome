@@ -16,6 +16,7 @@
 
 #include "log/logger.hpp"
 #include "network/types/collator_messages_vstaging.hpp"
+#include "network/types/collator_messages.hpp"
 #include "parachain/types.hpp"
 #include "parachain/validator/collations.hpp"
 #include "primitives/common.hpp"
@@ -93,7 +94,7 @@ namespace kagome::parachain::fragment {
     outcome::result<void> addCandidate(
         const CandidateHash &candidate_hash,
         const network::CommittedCandidateReceipt &candidate,
-        const crypto::Hashed<runtime::PersistedValidationData, 32>
+        const crypto::Hashed<const runtime::PersistedValidationData &, 32>
             &persisted_validation_data,
         const std::shared_ptr<crypto::Hasher> &hasher);
 
@@ -107,7 +108,7 @@ namespace kagome::parachain::fragment {
     }
 
     bool contains(const CandidateHash &candidate_hash) const {
-      return by_candidate_hash.contains(candidate_hash);
+      return by_candidate_hash.find(candidate_hash) != by_candidate_hash.end();
     }
 
     template <typename F>
@@ -133,6 +134,7 @@ namespace kagome::parachain::fragment {
             return get(a_candidate);
           }
         }
+        return std::nullopt;
       };
 
       if (auto e = search(by_output_head)) {
@@ -148,7 +150,7 @@ namespace kagome::parachain::fragment {
                          const std::shared_ptr<crypto::Hasher> &hasher) {
       if (auto it = by_candidate_hash.find(candidate_hash);
           it != by_candidate_hash.end()) {
-        const auto parent_head_hash = hasher.blake2b_256(
+        const auto parent_head_hash = hasher->blake2b_256(
             it->second.candidate.persisted_validation_data.parent_head);
         if (auto it_bph = by_parent_head.find(parent_head_hash);
             it_bph != by_parent_head.end()) {
@@ -385,6 +387,10 @@ namespace kagome::parachain::fragment {
   };
 
   struct Scope {
+    enum class Error {
+      UNEXPECTED_ANCESTOR,
+    };
+
     ParaId para;
     RelayChainBlockInfo relay_parent;
     Map<BlockNumber, RelayChainBlockInfo> ancestors;
@@ -392,6 +398,15 @@ namespace kagome::parachain::fragment {
     Vec<PendingAvailability> pending_availability;
     Constraints base_constraints;
     size_t max_depth;
+
+  static outcome::result<Scope> withAncestors(
+		ParachainId para,
+		const RelayChainBlockInfo &relay_parent,
+		const Constraints &base_constraints,
+		const Vec<PendingAvailability> &pending_availability,
+		size_t max_depth,
+		const Vec<RelayChainBlockInfo> &ancestors
+	);
 
     const RelayChainBlockInfo &earliestRelayParent() const {
       if (!ancestors.empty()) {
@@ -471,7 +486,7 @@ namespace kagome::parachain::fragment {
 
       FragmentTree tree{.scope = scope, .nodes = {}, .candidates = {}};
 
-      tree.populateFromBases(storage, {NodePointerRoot});
+      tree.populateFromBases(storage, {{NodePointerRoot{}}});
       return tree;
     }
 
@@ -570,14 +585,14 @@ namespace kagome::parachain::fragment {
                   min_relay_parent_number = visit_in_place(
                       parent_pointer,
                       [&](const NodePointerStorage &) {
-                        return earliest_rp.number;
+                        return earliest_rp.get().number;
                       },
                       [&](const NodePointerRoot &) {
                         return pending->get().relay_parent.number;
                       });
                 } else {
                   min_relay_parent_number = std::max(
-                      earliest_rp.number, scope.earliestRelayParent().number);
+                      earliest_rp.get().number, scope.earliestRelayParent().number);
                 }
 
                 if (relay_parent.number < min_relay_parent_number) {
@@ -676,7 +691,7 @@ namespace kagome::parachain::fragment {
                   std::find_if(nodes.begin(),
                                nodes.end(),
                                [](const auto &item) {
-                                 return !is_type<NodePointerRoot>(item);
+                                 return !is_type<NodePointerRoot>(item.parent);
                                }),
                   std::move(node));
             }
@@ -863,6 +878,7 @@ namespace kagome::parachain::fragment {
 }  // namespace kagome::parachain::fragment
 
 OUTCOME_HPP_DECLARE_ERROR(kagome::parachain::fragment, Constraints::Error);
+OUTCOME_HPP_DECLARE_ERROR(kagome::parachain::fragment, Scope::Error);
 OUTCOME_HPP_DECLARE_ERROR(kagome::parachain::fragment, CandidateStorage::Error);
 
 #endif  // KAGOME_PARACHAIN_FRAGMENT_TREE

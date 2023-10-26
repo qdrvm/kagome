@@ -17,6 +17,7 @@
 #include "parachain/validator/collations.hpp"
 #include "parachain/validator/fragment_tree.hpp"
 #include "utils/map.hpp"
+#include "blockchain/block_tree_error.hpp"
 
 namespace kagome::parachain {
 
@@ -101,8 +102,8 @@ namespace kagome::parachain {
           return runtime::PersistedValidationData{
             .parent_head = *head_data,
             .relay_parent_number = relay_parent_info->number,
-            .relay_parent_storage_root : relay_parent_info->storage_root,
-            .max_pov_size = *max_pov_size
+            .relay_parent_storage_root = relay_parent_info->storage_root,
+            .max_pov_size = (uint32_t)*max_pov_size,
           };
         }
       }
@@ -115,7 +116,7 @@ namespace kagome::parachain {
       return std::nullopt;
     }
 
-outcome::result<std::optional<std::pair<fragment::Constraints, std::vector<CandidatePendingAvailability>>>> fetchBackingState(const RelayHash &relay_parent, ParachainId para_id) {
+outcome::result<std::optional<std::pair<fragment::Constraints, std::vector<network::vstaging::CandidatePendingAvailability>>>> fetchBackingState(const RelayHash &relay_parent, ParachainId para_id) {
       /// TODO(iceseer): do
 
 //	let (tx, rx) = oneshot::channel();
@@ -133,16 +134,18 @@ outcome::result<std::optional<std::pair<fragment::Constraints, std::vector<Candi
       return std::nullopt;
 }
 
-    outcome::result<std::optional<RelayChainBlockInfo>> fetchBlockInfo(const RelayHash &relay_hash) {
+    outcome::result<std::optional<fragment::RelayChainBlockInfo>> fetchBlockInfo(const RelayHash &relay_hash) {
+      /// TODO(iceseer): do
+      /// cache for block header request and calculations
       auto res_header = block_tree_->getBlockHeader(relay_hash);
       if (res_header.has_error()) {
-        if (res_header.error() == BlockTreeError::HEADER_NOT_FOUND) {
+        if (res_header.error() == blockchain::BlockTreeError::HEADER_NOT_FOUND) {
           return outcome::success(std::nullopt);
         }
         return res_header.error();
       }
 
-      return RelayChainBlockInfo {
+      return fragment::RelayChainBlockInfo {
         .hash = relay_hash,
         .number = res_header.value().number,
         .storage_root = res_header.value().state_root,
@@ -169,8 +172,8 @@ outcome::result<std::unordered_set<ParachainId>> fetchUpcomingParas(const RelayH
   return upcoming;
 }
 
-outcome::result<std::vector<RelayChainBlockInfo>> fetchAncestry(const RelayHash &relay_hash, size_t ancestors) {
-  std::vector<RelayChainBlockInfo> block_info;
+outcome::result<std::vector<fragment::RelayChainBlockInfo>> fetchAncestry(const RelayHash &relay_hash, size_t ancestors) {
+  std::vector<fragment::RelayChainBlockInfo> block_info;
 	if (ancestors == 0) {
 		return block_info;
 	}
@@ -210,7 +213,6 @@ outcome::result<std::vector<ImportablePendingAvailability>> preprocessCandidates
         }
 
         const fragment::RelayChainBlockInfo &b = *relay_parent;
-        const auto &next_required_parent = pending.commitments.head_data;
         importable.push_back(ImportablePendingAvailability {
             network::CommittedCandidateReceipt {
                 pending.descriptor,
@@ -227,7 +229,7 @@ outcome::result<std::vector<ImportablePendingAvailability>> preprocessCandidates
                 b,
             }
         });
-        required_parent_copy = next_required_parent;
+        required_parent_copy = pending.commitments.para_head;
     }
     return importable;
 }
@@ -237,7 +239,7 @@ outcome::result<void> onActiveLeavesUpdate(const network::ExView &update) {
     /// call from parachain_processor onActiveLeavesUpdate
 
     for (const auto& deactivated : update.lost) {
-        view.active_leaves.remove(deactivated);
+        view.active_leaves.erase(deactivated);
     }
     std::unordered_map<Hash, ProspectiveParachainsMode> temp_header_cache;
     const auto& activated = update.new_head;
@@ -245,15 +247,15 @@ outcome::result<void> onActiveLeavesUpdate(const network::ExView &update) {
     const auto mode = prospectiveParachainsMode(hash);
     if (!mode) {
       SL_TRACE(logger, "Skipping leaf activation since async backing is disabled. (block_hash={})", hash);
-        return;
+        return outcome::success();
     }
     std::unordered_set<Hash> pending_availability{};
     OUTCOME_TRY(scheduled_paras, fetchUpcomingParas(hash, pending_availability));
 
-    fragment::RelayChainBlockInfo block_info {
+    const fragment::RelayChainBlockInfo block_info {
       .hash = hash,
       .number = activated.number,
-      .storage_root: activated.state_root,
+      .storage_root= activated.state_root,
     };
 
     OUTCOME_TRY(ancestry, fetchAncestry(hash, mode->allowed_ancestry_len));
@@ -265,15 +267,47 @@ outcome::result<void> onActiveLeavesUpdate(const network::ExView &update) {
         SL_TRACE(logger, "Failed to get inclusion backing state. (para={}, relay parent={})", para, hash);
         continue;
       }
-      const auto &[constraints, pending_availability] = *backing_state;
-      OUTCOME_TRY(pending_availability, preprocessCandidatesPendingAvailability(constraints.required_parent, pending_availability));
+      const auto &[constraints, pe] = *backing_state;
+      OUTCOME_TRY(pending_availability, preprocessCandidatesPendingAvailability(constraints.required_parent, pe));
 
       std::vector<fragment::PendingAvailability> compact_pending;
       compact_pending.reserve(pending_availability.size());
 
+      for (const ImportablePendingAvailability &c : pending_availability) {
+				const auto &candidate_hash = c.compact.candidate_hash;
+        auto res = candidate_storage.addCandidate(candidate_hash, c.candidate, crypto::Hashed<const runtime::PersistedValidationData &, 32>{c.persisted_validation_data}, hasher_);
+				compact_pending.emplace_back(c.compact);
+
+        if (res.has_value() || res.error() == fragment::CandidateStorage::Error::CANDIDATE_ALREADY_KNOWN) {
+          candidate_storage.markBacked(candidate_hash);
+        } else {
+          SL_WARN(logger, "Scraped invalid candidate pending availability. (candidate_hash={}, para={}, error={})",
+          candidate_hash, para, res.error().message());
+        }
+      }
+
+      OUTCOME_TRY(scope, fragment::Scope::withAncestors(
+				para,
+				block_info,
+				constraints,
+				compact_pending,
+				mode->max_candidate_depth,
+				ancestry
+			));
+      fragment_trees.emplace(para, fragment::FragmentTree::populate(scope, candidate_storage));
     }
 
-    return Ok();
+		view.active_leaves.emplace(hash, RelayBlockViewData { 
+      fragment_trees, 
+      pending_availability 
+      });
+
+    if (!update.lost.empty()) {
+      /// TODO(iceseer): do
+      /// prune_view_candidate_storage
+    }
+
+    return outcome::success();
 }
 
     /// @brief calculates hypothetical candidate and fragment tree membership
@@ -417,7 +451,7 @@ outcome::result<void> onActiveLeavesUpdate(const network::ExView &update) {
     fragment::FragmentTreeMembership introduceCandidate(
         ParachainId para,
         const network::CommittedCandidateReceipt &candidate,
-        const crypto::Hashed<runtime::PersistedValidationData, 32> &pvd,
+        const crypto::Hashed<const runtime::PersistedValidationData &, 32> &pvd,
         const CandidateHash &candidate_hash) {
       auto it_storage = view.candidate_storage.find(para);
       if (it_storage == view.candidate_storage.end()) {

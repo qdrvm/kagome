@@ -73,9 +73,9 @@ namespace kagome::parachain {
     outcome::result<Result> pvfSync(
         const CandidateReceipt &receipt,
         const ParachainBlock &pov,
-        runtime::PersistedValidationData &&pvd) const override;
+        const runtime::PersistedValidationData &pvd) const override;
     outcome::result<Result> pvfValidate(
-        PersistedValidationData &&data,
+        const PersistedValidationData &data,
         const ParachainBlock &pov,
         const CandidateReceipt &receipt,
         const ParachainRuntime &code) const override;

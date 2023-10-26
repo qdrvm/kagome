@@ -156,6 +156,7 @@ namespace kagome::parachain {
       Commitments commitments;
       network::CandidateReceipt candidate;
       network::ParachainBlock pov;
+      runtime::PersistedValidationData pvd;
     };
 
     struct AttestingData {
