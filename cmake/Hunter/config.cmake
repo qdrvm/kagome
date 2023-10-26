@@ -38,15 +38,10 @@ hunter_config(
     KEEP_PACKAGE_SOURCES
 )
 
-#hunter_config(
-#    libp2p
-#    VERSION 0.1.16
-#    KEEP_PACKAGE_SOURCES
-#)
 hunter_config(
     libp2p
-    URL  https://github.com/libp2p/cpp-libp2p/archive/b581ee763c893feb84ebeea4f03e8d3667fbbaf4.tar.gz
-    SHA1 6be0e175200e13decfe4395bcda5ff311c6c9e5b
+    VERSION 0.1.17
+    KEEP_PACKAGE_SOURCES
 )
 
 hunter_config(
@@ -71,8 +66,8 @@ hunter_config(
 
 hunter_config(
     scale
-    URL  https://github.com/qdrvm/scale-codec-cpp/archive/2a223956d9cc0c78a95848da2fd1be35b2a4bd2d.tar.gz
-    SHA1 12879475cc5a00f23ad9e660ee8ecbd74b6e16a0
+    VERSION 1.1.0
+    KEEP_PACKAGE_SOURCES
 )
 
 # Fix for Apple clang (or clang from brew) of versions 15 and higher
