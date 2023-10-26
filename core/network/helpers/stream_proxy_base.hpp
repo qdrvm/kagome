@@ -34,14 +34,10 @@ namespace libp2p::connection {
       stream->deferReadCallback(res, std::move(cb));
     }
 
-    void write(std::span<const uint8_t> in,
-               size_t bytes,
-               WriteCallbackFunc cb) override {
+    void write(BytesIn in, size_t bytes, WriteCallbackFunc cb) override {
       stream->write(in, bytes, std::move(cb));
     }
-    void writeSome(std::span<const uint8_t> in,
-                   size_t bytes,
-                   WriteCallbackFunc cb) override {
+    void writeSome(BytesIn in, size_t bytes, WriteCallbackFunc cb) override {
       stream->writeSome(in, bytes, std::move(cb));
     }
     void deferWriteCallback(std::error_code ec, WriteCallbackFunc cb) override {

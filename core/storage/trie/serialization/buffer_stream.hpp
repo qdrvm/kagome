@@ -17,12 +17,10 @@ namespace kagome::storage::trie {
    * future, when one appears
    */
   class BufferStream {
-    using index_type = std::span<const uint8_t>::size_type;
-
    public:
-    explicit BufferStream(std::span<const uint8_t> buf) : data_{buf} {}
+    explicit BufferStream(common::BufferView buf) : data_{buf} {}
 
-    bool hasMore(index_type num_bytes) const {
+    bool hasMore(size_t num_bytes) const {
       return data_.size() >= num_bytes;
     }
 
@@ -31,15 +29,15 @@ namespace kagome::storage::trie {
         throw std::out_of_range("Data is out");
       }
       auto byte = data_[0];
-      data_ = data_.last(data_.size() - 1);
+      data_.dropFirst(1);
       return byte;
     }
 
-    std::span<const uint8_t> leftBytes() const {
+    common::BufferView leftBytes() const {
       return data_;
     }
 
    private:
-    std::span<const uint8_t> data_;
+    common::BufferView data_;
   };
 }  // namespace kagome::storage::trie

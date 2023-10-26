@@ -19,13 +19,13 @@ namespace kagome::crypto {
 
     MOCK_METHOD(outcome::result<Ed25519Signature>,
                 sign,
-                (const Ed25519Keypair &, std::span<const uint8_t>),
+                (const Ed25519Keypair &, common::BufferView),
                 (const, override));
 
     MOCK_METHOD(outcome::result<bool>,
                 verify,
                 (const Ed25519Signature &,
-                 std::span<const uint8_t>,
+                 common::BufferView,
                  const Ed25519PublicKey &),
                 (const, override));
   };

@@ -65,7 +65,7 @@ namespace kagome::crypto {
   }
 
   outcome::result<EcdsaSignature> EcdsaProviderImpl::sign(
-      std::span<const uint8_t> message, const EcdsaPrivateKey &key) const {
+      common::BufferView message, const EcdsaPrivateKey &key) const {
     return signPrehashed(hasher_->blake2b_256(message), key);
   }
 
@@ -93,7 +93,7 @@ namespace kagome::crypto {
   }
 
   outcome::result<bool> EcdsaProviderImpl::verify(
-      std::span<const uint8_t> message,
+      common::BufferView message,
       const EcdsaSignature &signature,
       const EcdsaPublicKey &publicKey) const {
     return verifyPrehashed(hasher_->blake2b_256(message), signature, publicKey);

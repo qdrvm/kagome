@@ -574,7 +574,7 @@ int storage_explorer_main(int argc, const char **argv) {
   parser.addCommand(std::make_unique<SearchChainCommand>(
       block_storage, trie_storage, authority_manager, hasher));
 
-  parser.invoke(args.subspan(0, kagome_args_start));
+  parser.invoke(args.first(kagome_args_start));
 
   return 0;
 }

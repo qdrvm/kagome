@@ -25,12 +25,12 @@ namespace libp2p::basic {
 
     MOCK_METHOD(void,
                 write,
-                (std::span<const uint8_t>, size_t, Writer::WriteCallbackFunc),
+                (BytesIn, size_t, Writer::WriteCallbackFunc),
                 (override));
 
     MOCK_METHOD(void,
                 writeSome,
-                (std::span<const uint8_t>, size_t, Writer::WriteCallbackFunc),
+                (BytesIn, size_t, Writer::WriteCallbackFunc),
                 (override));
 
     MOCK_METHOD(void,

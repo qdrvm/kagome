@@ -12,10 +12,10 @@ namespace kagome::crypto {
 
   // TODO(warchant): PRE-357 refactor to span
 
-  common::Hash64 make_twox64(std::span<const uint8_t> buf);
+  common::Hash64 make_twox64(common::BufferView buf);
 
-  common::Hash128 make_twox128(std::span<const uint8_t> buf);
+  common::Hash128 make_twox128(common::BufferView buf);
 
-  common::Hash256 make_twox256(std::span<const uint8_t> buf);
+  common::Hash256 make_twox256(common::BufferView buf);
 
 }  // namespace kagome::crypto

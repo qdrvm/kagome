@@ -8,7 +8,6 @@
 
 #include <span>
 
-#include "common/bytestr.hpp"
 #include "common/hexutil.hpp"
 #include "common/lexicographical_compare_three_way.hpp"
 #include "macro/endianness_utils.hpp"
@@ -39,8 +38,31 @@ namespace kagome::common {
     BufferView(const span &other) noexcept : span(other) {}
 
     template <typename T>
+      requires std::is_integral_v<std::decay_t<T>> and (sizeof(T) == 1)
+    BufferView(std::span<T> other) noexcept
+        : span(reinterpret_cast<const uint8_t *>(other.data()), other.size()) {}
+
+    template <typename T>
     decltype(auto) operator=(T &&t) {
       return span::operator=(std::forward<T>(t));
+    }
+
+    template <size_t count>
+    void dropFirst() {
+      *this = subspan<count>();
+    }
+
+    void dropFirst(size_t count) {
+      *this = subspan(count);
+    }
+
+    template <size_t count>
+    void dropLast() {
+      *this = first(size() - count);
+    }
+
+    void dropLast(size_t count) {
+      *this = first(size() - count);
     }
 
     std::string toHex() const {
@@ -48,13 +70,14 @@ namespace kagome::common {
     }
 
     std::string_view toStringView() const {
-      return byte2str(*this);
+      // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
+      return {reinterpret_cast<const char *>(data()), size()};
     }
 
     template <typename Prefix>
     bool startsWith(const Prefix &prefix) const {
       if (this->size() >= prefix.size()) {
-        auto this_view = subspan(0, prefix.size());
+        auto this_view = first(prefix.size());
         return std::equal(this_view.begin(),
                           this_view.end(),
                           std::cbegin(prefix),

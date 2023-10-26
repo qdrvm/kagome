@@ -61,7 +61,7 @@ namespace kagome::crypto {
   }
 
   outcome::result<bip39::Bip39Seed> Bip39ProviderImpl::makeSeed(
-      std::span<const uint8_t> entropy, std::string_view password) const {
+      common::BufferView entropy, std::string_view password) const {
     constexpr size_t iterations_count = 2048u;
     constexpr auto default_salt = "mnemonic";
 

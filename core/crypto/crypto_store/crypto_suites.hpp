@@ -65,13 +65,13 @@ namespace kagome::crypto {
      * Create a public key from its bytes
      */
     virtual outcome::result<PublicKey> toPublicKey(
-        std::span<const uint8_t> bytes) const noexcept = 0;
+        common::BufferView bytes) const noexcept = 0;
 
     /**
      * Create a seed from its bytes
      */
     virtual outcome::result<Seed> toSeed(
-        std::span<const uint8_t> bytes) const noexcept = 0;
+        common::BufferView bytes) const noexcept = 0;
   };
 
   class EcdsaSuite : public CryptoSuite<EcdsaPublicKey,
@@ -103,13 +103,13 @@ namespace kagome::crypto {
     }
 
     outcome::result<PublicKey> toPublicKey(
-        std::span<const uint8_t> bytes) const noexcept override {
+        common::BufferView bytes) const noexcept override {
       OUTCOME_TRY(blob, EcdsaPublicKey::fromSpan(bytes));
       return EcdsaPublicKey{blob};
     }
 
     outcome::result<Seed> toSeed(
-        std::span<const uint8_t> bytes) const noexcept override {
+        common::BufferView bytes) const noexcept override {
       return EcdsaSeed::fromSpan(bytes);
     }
 
@@ -146,13 +146,13 @@ namespace kagome::crypto {
     }
 
     outcome::result<PublicKey> toPublicKey(
-        std::span<const uint8_t> bytes) const noexcept override {
+        common::BufferView bytes) const noexcept override {
       OUTCOME_TRY(blob, Ed25519PublicKey::fromSpan(bytes));
       return Ed25519PublicKey{blob};
     }
 
     outcome::result<Seed> toSeed(
-        std::span<const uint8_t> bytes) const noexcept override {
+        common::BufferView bytes) const noexcept override {
       return Ed25519Seed::fromSpan(bytes);
     }
 
@@ -189,13 +189,13 @@ namespace kagome::crypto {
     }
 
     outcome::result<PublicKey> toPublicKey(
-        std::span<const uint8_t> bytes) const noexcept override {
+        common::BufferView bytes) const noexcept override {
       OUTCOME_TRY(blob, Sr25519PublicKey::fromSpan(bytes));
       return Sr25519PublicKey{std::move(blob)};
     }
 
     outcome::result<Seed> toSeed(
-        std::span<const uint8_t> bytes) const noexcept override {
+        common::BufferView bytes) const noexcept override {
       return Sr25519Seed::fromSpan(bytes);
     }
 

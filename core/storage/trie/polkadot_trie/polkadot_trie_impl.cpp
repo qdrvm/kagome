@@ -400,7 +400,7 @@ namespace kagome::storage::trie {
       return node;
     }
 
-    br->setKeyNibbles(KeyNibbles{key_nibbles.subspan(0, length)});
+    br->setKeyNibbles(KeyNibbles{key_nibbles.first(length)});
     auto parentKey = parent->getKeyNibbles();
 
     // value goes at this branch
@@ -455,8 +455,8 @@ namespace kagome::storage::trie {
       parent->children.at(key_nibbles[length]) = node;
       return parent;
     }
-    auto br = std::make_shared<BranchNode>(
-        KeyNibbles{key_nibbles.subspan(0, length)});
+    auto br =
+        std::make_shared<BranchNode>(KeyNibbles{key_nibbles.first(length)});
     auto parentIdx = parent->getKeyNibbles()[length];
     OUTCOME_TRY(
         new_branch,

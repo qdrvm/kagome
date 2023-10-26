@@ -15,7 +15,7 @@ namespace kagome::crypto {
         {reinterpret_cast<const uint8_t *>(input.data()), input.size()});
   }
 
-  common::Hash256 sha256(std::span<const uint8_t> input) {
+  common::Hash256 sha256(common::BufferView input) {
     common::Hash256 out;
     SHA256_CTX ctx;
     SHA256_Init(&ctx);

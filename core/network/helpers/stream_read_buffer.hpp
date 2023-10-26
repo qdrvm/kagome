@@ -157,16 +157,12 @@ namespace kagome::network {
       stream_->deferReadCallback(std::move(res), std::move(cb));
     }
 
-    void write(std::span<const uint8_t> in,
-               size_t bytes,
-               WriteCallbackFunc cb) {
+    void write(libp2p::BytesIn in, size_t bytes, WriteCallbackFunc cb) {
       check();
       stream_->write(in, bytes, std::move(cb));
     }
 
-    void writeSome(std::span<const uint8_t> in,
-                   size_t bytes,
-                   WriteCallbackFunc cb) {
+    void writeSome(libp2p::BytesIn in, size_t bytes, WriteCallbackFunc cb) {
       check();
       stream_->writeSome(in, bytes, std::move(cb));
     }

@@ -82,7 +82,7 @@ namespace kagome::primitives {
         : BlockHeaderReflection(origin) {
       BOOST_ASSERT_MSG(number == 0 or not digest.empty(),
                        "Non-genesis block must have at least Seal digest");
-      digest = digest.subspan(0, digest.size() - 1);
+      digest = digest.first(digest.size() - 1);
     }
     explicit UnsealedBlockHeaderReflection(const BlockHeader &origin)
         : UnsealedBlockHeaderReflection(BlockHeaderReflection(origin)) {}

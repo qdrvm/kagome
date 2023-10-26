@@ -43,7 +43,7 @@ class std::back_insert_iterator<kagome::common::SLBuffer<MaxSize>> {
     return *this;
   }
 
-  back_insert_iterator<Container> &operator=(std::span<const uint8_t> s) {
+  back_insert_iterator<Container> &operator=(kagome::common::BufferView s) {
     buf_.put(s);
     return *this;
   }

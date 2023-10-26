@@ -229,7 +229,7 @@ TEST_F(OffchainExtensionTest, RandomSeed) {
 
   EXPECT_CALL(*offchain_worker_, timestamp()).WillOnce(Return(result));
   {
-    auto matcher = [&](const std::span<const uint8_t> &data) {
+    auto matcher = [&](const BufferView &data) {
       auto actual_result = scale::decode<Timestamp>(data).value();
       return actual_result == result;
     };
@@ -333,7 +333,7 @@ TEST_P(TernaryParametrizedTest, LocalStorageGet) {
       .WillOnce(Return(result));
 
   {
-    auto matcher = [&](const std::span<const uint8_t> &data) {
+    auto matcher = [&](const BufferView &data) {
       auto actual_result = scale::decode<std::optional<Buffer>>(data).value();
       return actual_result == result_opt;
     };
@@ -384,7 +384,7 @@ TEST_P(HttpMethodsParametrizedTest, HttpRequestStart) {
       .WillOnce(Return(result));
 
   {
-    auto matcher = [&](const std::span<const uint8_t> &data) {
+    auto matcher = [&](const BufferView &data) {
       auto actual_result =
           scale::decode<Result<RequestId, Failure>>(data).value();
       return actual_result.isSuccess();
@@ -435,7 +435,7 @@ TEST_F(OffchainExtensionTest, HttpRequestAddHeader) {
       .WillOnce(Return(result));
 
   {
-    auto matcher = [&](const std::span<const uint8_t> &data) {
+    auto matcher = [&](const BufferView &data) {
       auto actual_result =
           scale::decode<Result<Success, Failure>>(data).value();
       return actual_result.isSuccess();
@@ -481,7 +481,7 @@ TEST_F(OffchainExtensionTest, HttpRequestWriteBody) {
       .WillOnce(Return(result));
 
   {
-    auto matcher = [&](const std::span<const uint8_t> &data) {
+    auto matcher = [&](const BufferView &data) {
       auto actual_result =
           scale::decode<Result<Success, HttpError>>(data).value();
       return actual_result.isSuccess();
@@ -526,7 +526,7 @@ TEST_F(OffchainExtensionTest, HttpResponseWait) {
       .WillOnce(Return(result));
 
   {
-    auto matcher = [&](const std::span<const uint8_t> &data) {
+    auto matcher = [&](const BufferView &data) {
       auto actual_result = scale::decode<std::vector<RequestId>>(data).value();
       return std::equal(
           actual_result.begin(), actual_result.end(), result.begin());
@@ -556,7 +556,7 @@ TEST_F(OffchainExtensionTest, HttpResponseHeaders) {
       .WillOnce(Return(headers));
 
   {
-    auto matcher = [&](const std::span<const uint8_t> &data) {
+    auto matcher = [&](const BufferView &data) {
       auto actual_headers =
           scale::decode<std::vector<std::pair<std::string, std::string>>>(data)
               .value();
@@ -600,7 +600,7 @@ TEST_P(HttpResultParametrizedTest, HttpResponseReadBody) {
   }
 
   {
-    auto matcher = [&](const std::span<const uint8_t> &data) {
+    auto matcher = [&](const BufferView &data) {
       auto actual_response =
           scale::decode<Result<uint32_t, HttpError>>(data).value();
       return actual_response.isSuccess() == response.isSuccess();

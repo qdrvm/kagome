@@ -209,7 +209,7 @@ namespace kagome::common {
     template <typename Prefix>
     bool startsWith(const Prefix &prefix) const {
       if (this->size() >= prefix.size()) {
-        auto this_view = view().subspan(0, prefix.size());
+        auto this_view = view().first(prefix.size());
         return std::equal(this_view.begin(),
                           this_view.end(),
                           std::cbegin(prefix),

@@ -31,7 +31,7 @@ namespace kagome::runtime::wavm {
         std::shared_ptr<ModuleParams> module_params,
         std::shared_ptr<IntrinsicModule> intrinsic_module,
         std::shared_ptr<const InstanceEnvironmentFactory> instance_env_factory,
-        std::span<const uint8_t> code,
+        common::BufferView code,
         const common::Hash256 &code_hash,
         std::shared_ptr<SingleModuleCache> last_compiled_module)
         : instance_env_factory_{std::move(instance_env_factory)},
@@ -69,7 +69,7 @@ namespace kagome::runtime::wavm {
     std::shared_ptr<CompartmentWrapper> compartment_;
     std::shared_ptr<ModuleParams> module_params_;
     std::shared_ptr<IntrinsicModule> intrinsic_module_;
-    std::span<const uint8_t> code_;
+    common::BufferView code_;
     const common::Hash256 code_hash_;
     std::shared_ptr<SingleModuleCache> last_compiled_module_;
   };

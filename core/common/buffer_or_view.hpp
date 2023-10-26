@@ -15,7 +15,7 @@
 namespace kagome::common {
   /// Moved owned buffer or readonly view.
   class BufferOrView {
-    using Span = std::span<const uint8_t>;
+    using Span = BufferView;
 
     template <typename T>
     using AsSpan = std::enable_if_t<std::is_convertible_v<T, Span>>;

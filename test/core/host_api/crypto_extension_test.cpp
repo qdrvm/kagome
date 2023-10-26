@@ -796,9 +796,8 @@ TEST_F(CryptoExtensionTest, Sr25519SignSuccess) {
 
   EXPECT_CALL(
       *memory_,
-      storeBuffer(VerifySr25519Signature(sr25519_provider_,
-                                         std::span<const uint8_t>(input),
-                                         sr25519_keypair.public_key)))
+      storeBuffer(VerifySr25519Signature(
+          sr25519_provider_, BufferView(input), sr25519_keypair.public_key)))
       .WillOnce(Return(res));
 
   ASSERT_EQ(

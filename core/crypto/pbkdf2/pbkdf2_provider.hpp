@@ -8,6 +8,7 @@
 
 #include <span>
 #include "common/buffer.hpp"
+#include "common/buffer_view.hpp"
 #include "outcome/outcome.hpp"
 
 namespace kagome::crypto {
@@ -30,8 +31,8 @@ namespace kagome::crypto {
      * @return derived key
      */
     virtual outcome::result<common::Buffer> deriveKey(
-        std::span<const uint8_t> data,
-        std::span<const uint8_t> salt,
+        common::BufferView data,
+        common::BufferView salt,
         size_t iterations,
         size_t key_length) const = 0;
   };

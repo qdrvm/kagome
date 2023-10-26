@@ -42,8 +42,7 @@ namespace kagome::crypto {
      * @return signed message
      */
     virtual outcome::result<Sr25519Signature> sign(
-        const Sr25519Keypair &keypair,
-        std::span<const uint8_t> message) const = 0;
+        const Sr25519Keypair &keypair, common::BufferView message) const = 0;
 
     /**
      * Verifies that \param message was derived using \param public_key on
@@ -51,12 +50,12 @@ namespace kagome::crypto {
      */
     virtual outcome::result<bool> verify(
         const Sr25519Signature &signature,
-        std::span<const uint8_t> message,
+        common::BufferView message,
         const Sr25519PublicKey &public_key) const = 0;
 
     virtual outcome::result<bool> verify_deprecated(
         const Sr25519Signature &signature,
-        std::span<const uint8_t> message,
+        common::BufferView message,
         const Sr25519PublicKey &public_key) const = 0;
   };
 }  // namespace kagome::crypto

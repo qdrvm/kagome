@@ -31,15 +31,14 @@ namespace kagome::crypto {
         const EcdsaSeed &seed, Junctions junctions) const override;
 
     outcome::result<EcdsaSignature> sign(
-        std::span<const uint8_t> message,
-        const EcdsaPrivateKey &key) const override;
+        common::BufferView message, const EcdsaPrivateKey &key) const override;
 
     outcome::result<EcdsaSignature> signPrehashed(
         const EcdsaPrehashedMessage &message,
         const EcdsaPrivateKey &key) const override;
 
     outcome::result<bool> verify(
-        std::span<const uint8_t> message,
+        common::BufferView message,
         const EcdsaSignature &signature,
         const EcdsaPublicKey &publicKey) const override;
 

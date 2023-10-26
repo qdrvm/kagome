@@ -44,7 +44,7 @@ namespace kagome::storage {
     return rocksdb::Slice{ptr, n};
   }
 
-  inline std::span<const uint8_t> make_span(const rocksdb::Slice &s) {
+  inline BufferView make_span(const rocksdb::Slice &s) {
     // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
     return {reinterpret_cast<const uint8_t *>(s.data()), s.size()};
   }

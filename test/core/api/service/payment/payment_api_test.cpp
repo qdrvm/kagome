@@ -17,6 +17,7 @@ using kagome::api::PaymentApi;
 using kagome::api::PaymentApiImpl;
 using kagome::blockchain::BlockTreeMock;
 using kagome::common::Buffer;
+using kagome::common::BufferView;
 using kagome::primitives::BlockInfo;
 using kagome::primitives::Extrinsic;
 using kagome::primitives::OldWeight;
@@ -95,7 +96,7 @@ TEST_F(PaymentApiTest, DecodeRuntimeDispatchInfo) {
 //  partialFee: 15.7681 mDOT (157681946)
 // }
 TEST_F(PaymentApiTest, DecodeRuntimeDispatchInfoWithFee) {
-  std::span<const uint8_t> data{{
+  BufferView data{{
       0x42, 0xae, 0x2b, 0x22, 0x00, 0x00, 0x1a, 0x09, 0x66, 0x09, 0x00,
       0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
   }};

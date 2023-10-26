@@ -173,7 +173,7 @@ namespace kagome::runtime::binaryen {
         throw std::runtime_error("invalid offset when initializing memory");
       }
       callback(offset,
-               std::span<const uint8_t>(
+               common::BufferView(
                    reinterpret_cast<const uint8_t *>(segment.data.data()),
                    segment.data.size()));
     }

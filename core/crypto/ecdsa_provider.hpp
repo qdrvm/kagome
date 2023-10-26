@@ -21,14 +21,14 @@ namespace kagome::crypto {
         const EcdsaSeed &seed, Junctions junctions) const = 0;
 
     virtual outcome::result<EcdsaSignature> sign(
-        std::span<const uint8_t> message, const EcdsaPrivateKey &key) const = 0;
+        common::BufferView message, const EcdsaPrivateKey &key) const = 0;
 
     virtual outcome::result<EcdsaSignature> signPrehashed(
         const EcdsaPrehashedMessage &message,
         const EcdsaPrivateKey &key) const = 0;
 
     virtual outcome::result<bool> verify(
-        std::span<const uint8_t> message,
+        common::BufferView message,
         const EcdsaSignature &signature,
         const EcdsaPublicKey &publicKey) const = 0;
 

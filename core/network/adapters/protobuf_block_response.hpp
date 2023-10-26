@@ -8,6 +8,7 @@
 
 #include "network/adapters/protobuf.hpp"
 
+#include "common/bytestr.hpp"
 #include "network/protobuf/api.v1.pb.h"
 #include "network/types/blocks_response.hpp"
 #include "scale/scale.hpp"
@@ -157,7 +158,7 @@ namespace kagome::network {
       if (const auto &buffer = std::forward<F>(f)(); !buffer.empty()) {
         OUTCOME_TRY(
             decoded,
-            scale::decode<T>(std::span<const uint8_t>(
+            scale::decode<T>(common::BufferView(
                 reinterpret_cast<const uint8_t *>(buffer.data()),  // NOLINT
                 buffer.size())));
         return decoded;
