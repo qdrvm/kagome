@@ -101,6 +101,7 @@ namespace kagome::consensus::grandpa {
         std::shared_ptr<network::ReputationRepository> reputation_repository,
         primitives::events::BabeStateSubscriptionEnginePtr
             babe_status_observable,
+        std::shared_ptr<Watchdog> watchdog,
         std::shared_ptr<boost::asio::io_context> main_thread_context);
 
     /**

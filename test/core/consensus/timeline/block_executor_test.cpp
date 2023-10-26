@@ -33,6 +33,7 @@
 #include "utils/thread_pool.hpp"
 
 using kagome::ThreadPool;
+using kagome::Watchdog;
 using kagome::blockchain::BlockTree;
 using kagome::blockchain::BlockTreeError;
 using kagome::blockchain::BlockTreeMock;
@@ -167,6 +168,10 @@ class BlockExecutorTest : public testing::Test {
                                             std::move(appender));
   }
 
+  void TearDown() override {
+    watchdog_->stop();
+  }
+
  protected:
   std::shared_ptr<BlockTreeMock> block_tree_;
   std::shared_ptr<CoreMock> core_;
@@ -182,7 +187,8 @@ class BlockExecutorTest : public testing::Test {
   kagome::primitives::events::StorageSubscriptionEnginePtr storage_sub_engine_;
   kagome::primitives::events::ChainSubscriptionEnginePtr chain_sub_engine_;
   std::shared_ptr<ConsistencyKeeperMock> consistency_keeper_;
-  ThreadPool thread_pool_{"test", 1};
+  std::shared_ptr<Watchdog> watchdog_ = std::make_shared<Watchdog>();
+  ThreadPool thread_pool_{watchdog_, "test", 1};
 
   std::shared_ptr<BlockExecutorImpl> block_executor_;
 };

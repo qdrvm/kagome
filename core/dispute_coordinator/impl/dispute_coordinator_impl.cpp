@@ -119,6 +119,7 @@ namespace kagome::dispute {
       std::shared_ptr<parachain::Pvf> pvf,
       std::shared_ptr<parachain::ApprovalDistribution> approval_distribution,
       std::shared_ptr<authority_discovery::Query> authority_discovery,
+      std::shared_ptr<Watchdog> watchdog,
       std::shared_ptr<boost::asio::io_context> main_thread_context,
       std::shared_ptr<network::Router> router,
       std::shared_ptr<network::PeerView> peer_view,
@@ -144,7 +145,8 @@ namespace kagome::dispute {
         router_(std::move(router)),
         peer_view_(std::move(peer_view)),
         babe_status_observable_(std::move(babe_status_observable)),
-        int_pool_{std::make_shared<ThreadPool>(1ull)},
+        int_pool_{std::make_shared<ThreadPool>(
+            std::move(watchdog), "DisputeCoordinatorImpl", 1ull)},
         internal_context_{int_pool_->handler()},
         runtime_info_(std::make_unique<RuntimeInfo>(api_, session_keys_)),
         batches_(std::make_unique<Batches>(steady_clock_, hasher_)) {

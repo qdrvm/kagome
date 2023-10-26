@@ -21,11 +21,11 @@ namespace kagome::offchain {
    public:
     using Task = std::function<void()>;
 
-    Runner(size_t threads, size_t max_tasks)
+    Runner(std::shared_ptr<Watchdog> watchdog, size_t threads, size_t max_tasks)
         : threads_{threads},
           free_threads_{threads},
           max_tasks_{max_tasks},
-          thread_pool_{"ocw", threads_} {}
+          thread_pool_{std::move(watchdog), "ocw", threads_} {}
 
     void run(Task &&task) {
       std::unique_lock lock{mutex_};

@@ -40,6 +40,7 @@ namespace kagome::parachain {
       std::shared_ptr<runtime::ParachainHost> parachain_api,
       std::shared_ptr<runtime::ModuleFactory> module_factory,
       std::shared_ptr<runtime::Executor> executor,
+      std::shared_ptr<Watchdog> watchdog,
       std::shared_ptr<offchain::OffchainWorkerFactory> offchain_worker_factory,
       std::shared_ptr<offchain::OffchainWorkerPool> offchain_worker_pool)
       : hasher_{std::move(hasher)},
@@ -48,7 +49,8 @@ namespace kagome::parachain {
         module_factory_{std::move(module_factory)},
         executor_{std::move(executor)},
         offchain_worker_factory_{std::move(offchain_worker_factory)},
-        offchain_worker_pool_{std::move(offchain_worker_pool)} {}
+        offchain_worker_pool_{std::move(offchain_worker_pool)},
+        thread_{std::move(watchdog), "PvfPrecheck", 1} {}
 
   void PvfPrecheck::start(
       std::shared_ptr<primitives::events::ChainSubscriptionEngine>

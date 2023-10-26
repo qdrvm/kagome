@@ -341,12 +341,12 @@ namespace {
 
   template <typename Injector>
   sptr<ThreadPool> get_thread_pool(const Injector &injector) {
-    const auto cores = std::thread::hardware_concurrency();
+    size_t cores = std::thread::hardware_concurrency();
     if (cores == 0ul) {
-      return std::make_shared<ThreadPool>("worker", 5ull);
+      cores = 5;
     }
-
-    return std::make_shared<ThreadPool>("worker", cores);
+    return std::make_shared<ThreadPool>(
+        injector.template create<sptr<Watchdog>>(), "worker", cores);
   }
 
   template <typename... Ts>
@@ -1018,4 +1018,7 @@ namespace kagome::injector {
         .template create<sptr<benchmark::BlockExecutionBenchmark>>();
   }
 
+  std::shared_ptr<Watchdog> KagomeNodeInjector::injectWatchdog() {
+    return pimpl_->injector_.template create<sptr<Watchdog>>();
+  }
 }  // namespace kagome::injector

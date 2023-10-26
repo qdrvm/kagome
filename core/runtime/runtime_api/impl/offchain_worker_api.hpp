@@ -8,6 +8,9 @@
 
 #include "runtime/runtime_api/offchain_worker_api.hpp"
 
+namespace kagome {
+  class Watchdog;
+}  // namespace kagome
 namespace kagome::application {
   class AppConfiguration;
 }
@@ -29,6 +32,7 @@ namespace kagome::runtime {
    public:
     OffchainWorkerApiImpl(
         const application::AppConfiguration &app_config,
+        std::shared_ptr<Watchdog> watchdog,
         std::shared_ptr<offchain::OffchainWorkerFactory> ocw_factory,
         std::shared_ptr<Executor> executor);
 

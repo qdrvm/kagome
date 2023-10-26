@@ -40,6 +40,7 @@
 #include "utils/thread_pool.hpp"
 
 using kagome::ThreadPool;
+using kagome::Watchdog;
 using kagome::application::AppConfigurationMock;
 using kagome::authorship::ProposerMock;
 using kagome::blockchain::BlockTreeMock;
@@ -218,6 +219,10 @@ class BabeTest : public testing::Test {
                                   thread_pool_.io_context());
   }
 
+  void TearDown() override {
+    watchdog_->stop();
+  }
+
   AppConfigurationMock app_config;
   SystemClockMock clock;
   std::shared_ptr<BlockTreeMock> block_tree;
@@ -236,7 +241,8 @@ class BabeTest : public testing::Test {
   std::shared_ptr<ChainSubscriptionEngine> chain_sub_engine;
   std::shared_ptr<BlockAnnounceTransmitterMock> announce_transmitter;
   std::shared_ptr<OffchainWorkerApiMock> offchain_worker_api;
-  ThreadPool thread_pool_{"test", 1};
+  std::shared_ptr<Watchdog> watchdog_ = std::make_shared<Watchdog>();
+  ThreadPool thread_pool_{watchdog_, "test", 1};
 
   Duration slot_duration = 3s;
   EpochLength epoch_length = 20;

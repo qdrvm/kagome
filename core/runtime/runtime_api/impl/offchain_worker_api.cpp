@@ -25,11 +25,13 @@ namespace kagome::runtime {
 
   OffchainWorkerApiImpl::OffchainWorkerApiImpl(
       const application::AppConfiguration &app_config,
+      std::shared_ptr<Watchdog> watchdog,
       std::shared_ptr<offchain::OffchainWorkerFactory> ocw_factory,
       std::shared_ptr<Executor> executor)
       : app_config_(app_config),
         ocw_factory_(std::move(ocw_factory)),
-        runner_{std::make_shared<offchain::Runner>(kMaxThreads, kMaxTasks)},
+        runner_{std::make_shared<offchain::Runner>(
+            std::move(watchdog), kMaxThreads, kMaxTasks)},
         executor_(std::move(executor)) {
     BOOST_ASSERT(ocw_factory_);
     BOOST_ASSERT(executor_);

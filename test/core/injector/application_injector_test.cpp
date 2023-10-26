@@ -137,6 +137,7 @@ class KagomeInjectorTest : public testing::Test {
   }
 
   void TearDown() override {
+    injector_->injectWatchdog()->stop();
     injector_.reset();
   }
 

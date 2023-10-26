@@ -32,6 +32,7 @@
 #include "primitives/authority_discovery_id.hpp"
 
 namespace kagome {
+  class Watchdog;
   class ThreadPool;
   class ThreadHandler;
 }  // namespace kagome
@@ -112,6 +113,7 @@ namespace kagome::dispute {
         std::shared_ptr<parachain::Pvf> pvf,
         std::shared_ptr<parachain::ApprovalDistribution> approval_distribution,
         std::shared_ptr<authority_discovery::Query> authority_discovery,
+        std::shared_ptr<Watchdog> watchdog,
         std::shared_ptr<boost::asio::io_context> main_thread_context,
         std::shared_ptr<network::Router> router,
         std::shared_ptr<network::PeerView> peer_view,

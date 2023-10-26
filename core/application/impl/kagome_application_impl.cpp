@@ -14,6 +14,7 @@
 #include "application/modes/recovery_mode.hpp"
 #include "metrics/metrics.hpp"
 #include "telemetry/service.hpp"
+#include "utils/watchdog.hpp"
 
 namespace kagome::application {
   KagomeApplicationImpl::~KagomeApplicationImpl() {
@@ -47,6 +48,7 @@ namespace kagome::application {
     auto app_state_manager = injector_->injectAppStateManager();
     auto io_context = injector_->injectIoContext();
     auto clock = injector_->injectSystemClock();
+    auto watchdog = injector_->injectWatchdog();
 
     injector_->injectOpenMetricsService();
     injector_->injectRpcApiService();
@@ -77,10 +79,10 @@ namespace kagome::application {
       exit(EXIT_FAILURE);
     }
 
-    app_state_manager->atLaunch([ctx{io_context}, log{logger_}] {
-      std::thread asio_runner([ctx{ctx}, log{log}] {
+    app_state_manager->atLaunch([ctx{io_context}, watchdog] {
+      std::thread asio_runner([ctx{ctx}, watchdog] {
         soralog::util::setThreadName("kagome");  // explicitly for macos
-        ctx->run();
+        watchdog->run(ctx);
       });
       asio_runner.detach();
       return true;

@@ -479,9 +479,11 @@ namespace kagome::parachain {
       std::shared_ptr<blockchain::BlockTree> block_tree,
       std::shared_ptr<parachain::Pvf> pvf,
       std::shared_ptr<parachain::Recovery> recovery,
+      std::shared_ptr<Watchdog> watchdog,
       std::shared_ptr<boost::asio::io_context> this_context,
       LazySPtr<dispute::DisputeCoordinator> dispute_coordinator)
-      : int_pool_{std::make_shared<ThreadPool>("approval", 1ull)},
+      : int_pool_{std::make_shared<ThreadPool>(
+          std::move(watchdog), "approval", 1ull)},
         internal_context_{int_pool_->handler()},
         thread_pool_{std::move(thread_pool)},
         thread_pool_context_{thread_pool_->handler()},
