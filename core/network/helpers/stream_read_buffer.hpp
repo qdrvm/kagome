@@ -36,7 +36,7 @@ namespace libp2p::connection {
       return end - begin;
     }
 
-    void read(BytesOut out, size_t n, ReadCallbackFunc cb) override {
+    void read(libp2p::BytesOut out, size_t n, ReadCallbackFunc cb) override {
       libp2p::ambigousSize(out, n);
       libp2p::readReturnSize(shared_from_this(), out, std::move(cb));
     }
@@ -44,7 +44,7 @@ namespace libp2p::connection {
     /**
      * Read from buffer.
      */
-    size_t readFromBuffer(BytesOut out) {
+    size_t readFromBuffer(libp2p::BytesOut out) {
       // can't read more bytes than available
       auto n = std::min(out.size(), size());
       BOOST_ASSERT(n != 0);
@@ -55,7 +55,9 @@ namespace libp2p::connection {
       return n;
     }
 
-    void readSome(BytesOut out, size_t n, ReadCallbackFunc cb) override {
+    void readSome(libp2p::BytesOut out,
+                  size_t n,
+                  ReadCallbackFunc cb) override {
       libp2p::ambigousSize(out, n);
       if (out.empty()) {
         return deferReadCallback(out.size(), std::move(cb));
@@ -141,12 +143,12 @@ namespace kagome::network {
       return stream_->remoteMultiaddr();
     }
 
-    void read(BytesOut out, size_t bytes, ReadCallbackFunc cb) {
+    void read(libp2p::BytesOut out, size_t bytes, ReadCallbackFunc cb) {
       check();
       stream_->read(out, bytes, std::move(cb));
     }
 
-    void readSome(BytesOut out, size_t bytes, ReadCallbackFunc cb) {
+    void readSome(libp2p::BytesOut out, size_t bytes, ReadCallbackFunc cb) {
       check();
       stream_->readSome(out, bytes, std::move(cb));
     }

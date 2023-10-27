@@ -15,11 +15,6 @@
 #include <ranges>
 #include <span>
 
-template <class T>
-concept RangeOfBytes =
-    std::ranges::sized_range<T> and std::ranges::contiguous_range<T>
-    and std::is_same_v<std::ranges::range_value_t<T>, uint8_t>;
-
 inline auto operator""_bytes(const char *s, std::size_t size) {
   return std::span<const uint8_t>(reinterpret_cast<const uint8_t *>(s), size);
 }

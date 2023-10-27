@@ -15,7 +15,7 @@
 namespace kagome::common {
   /// Moved owned buffer or readonly view.
   class BufferOrView {
-    using Span = BufferView;
+    using Span = std::span<const uint8_t>;
 
     template <typename T>
     using AsSpan = std::enable_if_t<std::is_convertible_v<T, Span>>;
@@ -28,7 +28,8 @@ namespace kagome::common {
     BufferOrView(const BufferView &view) : variant{view} {}
 
     template <size_t N>
-    BufferOrView(const std::array<uint8_t, N> &array) : variant{array} {}
+    BufferOrView(const std::array<uint8_t, N> &array)
+        : variant{BufferView(array)} {}
 
     BufferOrView(const std::vector<uint8_t> &vector) = delete;
     BufferOrView(std::vector<uint8_t> &&vector)
@@ -102,11 +103,11 @@ namespace kagome::common {
 
     template <typename T, typename = AsSpan<T>>
     friend bool operator==(const BufferOrView &l, const T &r) {
-      return std::equal(l.view().begin(), l.view().end(), Span{r}.begin());
+      return l.view() == Span{r};
     }
     template <typename T, typename = AsSpan<T>>
     friend bool operator==(const T &l, const BufferOrView &r) {
-      return std::equal(r.view().begin(), r.view().end(), Span{l}.begin());
+      return Span{l} == r.view();
     }
   };
 }  // namespace kagome::common

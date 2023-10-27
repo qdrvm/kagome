@@ -8,7 +8,6 @@
 
 #include <utility>
 
-#include "common/buffer_back_insert_iterator.hpp"
 #include "macro/unreachable.hpp"
 #include "storage/trie/polkadot_trie/polkadot_trie.hpp"
 #include "storage/trie/polkadot_trie/trie_error.hpp"
