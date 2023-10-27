@@ -86,11 +86,8 @@ namespace kagome::common {
   template <typename Super, typename Prefix>
   bool startsWith(const Super &super, const Prefix &prefix) {
     if (std::size(super) >= std::size(prefix)) {
-      auto beginning = std::span(super).first(std::size(prefix));
-      return std::equal(beginning.begin(),
-                        beginning.end(),
-                        std::begin(prefix),
-                        std::end(prefix));
+      return std::equal(
+          std::begin(prefix), std::end(prefix), std::begin(super));
     }
     return false;
   }
