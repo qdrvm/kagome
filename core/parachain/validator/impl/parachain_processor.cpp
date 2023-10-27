@@ -515,8 +515,11 @@ namespace kagome::parachain {
     }
 
     if (!pvd) {
-      SL_ERROR(logger_, "Persisted validation data not found. (relay parent={}, para={})",
-      pending_collation.relay_parent, pending_collation.para_id);
+      SL_ERROR(
+          logger_,
+          "Persisted validation data not found. (relay parent={}, para={})",
+          pending_collation.relay_parent,
+          pending_collation.para_id);
       return;
     }
 
@@ -598,8 +601,8 @@ namespace kagome::parachain {
             logger_, "Imported statement on {}", statement_msg->relay_parent);
 
         /// TODO(iceseer): do Statement with PVD
-        //handleStatement(
-        //    peer_id, statement_msg->relay_parent, statement_msg->statement);
+        // handleStatement(
+        //     peer_id, statement_msg->relay_parent, statement_msg->statement);
       } else {
         auto &large = boost::get<network::LargeStatement>(*msg);
         SL_ERROR(logger_,
@@ -687,7 +690,8 @@ namespace kagome::parachain {
       requestPoV(
           *peer,
           candidate_hash,
-          [candidate{attesting_data.candidate}, pvd{std::move(pvd)},
+          [candidate{attesting_data.candidate},
+           pvd{std::move(pvd)},
            candidate_hash,
            wself{weak_from_this()},
            relay_parent,
@@ -802,7 +806,7 @@ namespace kagome::parachain {
         return;
       }
 
-      auto const &candidate_hash = result->imported.candidate;
+      const auto &candidate_hash = result->imported.candidate;
       SL_TRACE(logger_,
                "Registered incoming statement.(relay_parent={}, peer={}).",
                relay_parent,
@@ -840,7 +844,8 @@ namespace kagome::parachain {
                     || *parachain_state.our_index == statement.payload.ix) {
                   return std::nullopt;
                 }
-                if (awaiting_validation.find(val.candidate_hash) != awaiting_validation.end()) {
+                if (awaiting_validation.find(val.candidate_hash)
+                    != awaiting_validation.end()) {
                   it->second.backing.push(statement.payload.ix);
                   return std::nullopt;
                 }
@@ -856,8 +861,10 @@ namespace kagome::parachain {
       if (attesting_ref) {
         auto it = our_current_state_.per_candidate.find(candidate_hash);
         if (it != our_current_state_.per_candidate.end()) {
-          kickOffValidationWork(
-              relay_parent, attesting_ref->get(), it->second.persisted_validation_data, parachain_state);
+          kickOffValidationWork(relay_parent,
+                                attesting_ref->get(),
+                                it->second.persisted_validation_data,
+                                parachain_state);
         }
       }
     }
@@ -886,7 +893,8 @@ namespace kagome::parachain {
     /// TODO(iceseer): send manifest
     /// TODO(iceseer): send ack backed messages to peers
     /// TODO(iceseer): send compact statements
-    /// TODO(iceseer): statement-distribution update state(prospective_backed_notification_fragment_tree_updates)
+    /// TODO(iceseer): statement-distribution update
+    /// state(prospective_backed_notification_fragment_tree_updates)
   }
 
   std::optional<ParachainProcessorImpl::AttestedCandidate>
@@ -1015,14 +1023,16 @@ namespace kagome::parachain {
     if (auto seconded = if_type<const StatementWithPVDSeconded>(
             parachain::getPayload(statement));
         seconded
-        && our_current_state_.per_candidate.find(candidate_hash) == our_current_state_.per_candidate.end()) {
+        && our_current_state_.per_candidate.find(candidate_hash)
+               == our_current_state_.per_candidate.end()) {
       auto &candidate = seconded->get().committed_receipt;
       if (rp_state.prospective_parachains_mode) {
         fragment::FragmentTreeMembership membership =
             prospective_parachains_->introduceCandidate(
                 candidate.descriptor.para_id,
                 candidate,
-                crypto::Hashed<const runtime::PersistedValidationData &, 32>{seconded->get().pvd},
+                crypto::Hashed<const runtime::PersistedValidationData &, 32>{
+                    seconded->get().pvd},
                 candidate_hash);
         if (membership.empty()) {
           SL_TRACE(logger_, "`membership` is empty.");
@@ -1044,16 +1054,18 @@ namespace kagome::parachain {
     }
 
     network::SignedStatement stmnt{
-        .payload = {.payload = visit_in_place(
-                        parachain::getPayload(statement),
-                        [&](const StatementWithPVDSeconded &val) {
-                          return network::CandidateState{val.committed_receipt};
-                        },
-                        [&](const StatementWithPVDValid &val) {
-                          return network::CandidateState{val.candidate_hash};
-                        }),
-                        .ix = statement.payload.ix,
-                        },
+        .payload =
+            {
+                .payload = visit_in_place(
+                    parachain::getPayload(statement),
+                    [&](const StatementWithPVDSeconded &val) {
+                      return network::CandidateState{val.committed_receipt};
+                    },
+                    [&](const StatementWithPVDValid &val) {
+                      return network::CandidateState{val.candidate_hash};
+                    }),
+                .ix = statement.payload.ix,
+            },
         .signature = statement.signature,
     };
     auto import_result =
@@ -1183,15 +1195,15 @@ namespace kagome::parachain {
     if constexpr (kStatementType == StatementType::kSeconded) {
       return createAndSignStatementFromPayload(
           network::Statement{
-                  network::CandidateState {network::CommittedCandidateReceipt{
-                      .descriptor = validation_result.candidate.descriptor,
-                      .commitments =
-                          std::move(*validation_result.commitments)}}},
+              network::CandidateState{network::CommittedCandidateReceipt{
+                  .descriptor = validation_result.candidate.descriptor,
+                  .commitments = std::move(*validation_result.commitments)}}},
           *parachain_state->get().our_index,
           parachain_state->get());
     } else if constexpr (kStatementType == StatementType::kValid) {
       return createAndSignStatementFromPayload(
-          network::Statement{network::CandidateState {validation_result.candidate.hash(*hasher_)}},
+          network::Statement{network::CandidateState{
+              validation_result.candidate.hash(*hasher_)}},
           *parachain_state->get().our_index,
           parachain_state->get());
     }
@@ -1464,35 +1476,43 @@ namespace kagome::parachain {
       parachain_state.issued_statements.insert(candidate_hash);
       if (auto statement = createAndSignStatement<StatementType::kSeconded>(
               validation_result)) {
-        
         auto cs = getPayload(*statement).candidate_state;
-        SignedFullStatementWithPVD stm = visit_in_place(cs,
-        [&](const network::CommittedCandidateReceipt &receipt) -> SignedFullStatementWithPVD {
-          return SignedFullStatementWithPVD {
-            .payload = {
-              .payload = StatementWithPVDSeconded {
-                .committed_receipt = receipt,
-                .pvd = validation_result.pvd,
-              },
-              .ix = statement->payload.ix,
+        SignedFullStatementWithPVD stm = visit_in_place(
+            cs,
+            [&](const network::CommittedCandidateReceipt &receipt)
+                -> SignedFullStatementWithPVD {
+              return SignedFullStatementWithPVD{
+                  .payload =
+                      {
+                          .payload =
+                              StatementWithPVDSeconded{
+                                  .committed_receipt = receipt,
+                                  .pvd = validation_result.pvd,
+                              },
+                          .ix = statement->payload.ix,
+                      },
+                  .signature = statement->signature,
+              };
             },
-            .signature = statement->signature,
-          };
-        },
-        [&](const network::CandidateHash &candidateHash) -> SignedFullStatementWithPVD {
-          return SignedFullStatementWithPVD {
-            .payload = {
-              .payload = StatementWithPVDValid {
-                .candidate_hash = candidateHash,
-              },
-              .ix = statement->payload.ix,
+            [&](const network::CandidateHash &candidateHash)
+                -> SignedFullStatementWithPVD {
+              return SignedFullStatementWithPVD{
+                  .payload =
+                      {
+                          .payload =
+                              StatementWithPVDValid{
+                                  .candidate_hash = candidateHash,
+                              },
+                          .ix = statement->payload.ix,
+                      },
+                  .signature = statement->signature,
+              };
             },
-            .signature = statement->signature,
-          };
-        }, [&](const auto &) -> SignedFullStatementWithPVD { return SignedFullStatementWithPVD{}; });
-        
-        importStatement(
-            validation_result.relay_parent, stm, parachain_state);
+            [&](const auto &) -> SignedFullStatementWithPVD {
+              return SignedFullStatementWithPVD{};
+            });
+
+        importStatement(validation_result.relay_parent, stm, parachain_state);
         notifyStatementDistributionSystem(validation_result.relay_parent,
                                           *statement);
         notify(peer_id, validation_result.relay_parent, *statement);
@@ -1750,33 +1770,42 @@ namespace kagome::parachain {
           auto cs = getPayload(*statement).candidate_state;
 
           /// TODO(iceseer): optimize into ref structure
-          SignedFullStatementWithPVD stm = visit_in_place(cs,
-          [&](const network::CommittedCandidateReceipt &receipt) -> SignedFullStatementWithPVD {
-            return SignedFullStatementWithPVD {
-              .payload = {
-                .payload = StatementWithPVDSeconded {
-                  .committed_receipt = receipt,
-                  .pvd = result.pvd,
-                },
-                .ix = statement->payload.ix,
+          SignedFullStatementWithPVD stm = visit_in_place(
+              cs,
+              [&](const network::CommittedCandidateReceipt &receipt)
+                  -> SignedFullStatementWithPVD {
+                return SignedFullStatementWithPVD{
+                    .payload =
+                        {
+                            .payload =
+                                StatementWithPVDSeconded{
+                                    .committed_receipt = receipt,
+                                    .pvd = result.pvd,
+                                },
+                            .ix = statement->payload.ix,
+                        },
+                    .signature = statement->signature,
+                };
               },
-              .signature = statement->signature,
-            };
-          },
-          [&](const network::CandidateHash &candidateHash) -> SignedFullStatementWithPVD {
-            return SignedFullStatementWithPVD {
-              .payload = {
-                .payload = StatementWithPVDValid {
-                  .candidate_hash = candidateHash,
-                },
-                .ix = statement->payload.ix,
+              [&](const network::CandidateHash &candidateHash)
+                  -> SignedFullStatementWithPVD {
+                return SignedFullStatementWithPVD{
+                    .payload =
+                        {
+                            .payload =
+                                StatementWithPVDValid{
+                                    .candidate_hash = candidateHash,
+                                },
+                            .ix = statement->payload.ix,
+                        },
+                    .signature = statement->signature,
+                };
               },
-              .signature = statement->signature,
-            };
-          }, [&](const auto &) -> SignedFullStatementWithPVD { return SignedFullStatementWithPVD{}; });
+              [&](const auto &) -> SignedFullStatementWithPVD {
+                return SignedFullStatementWithPVD{};
+              });
 
-          importStatement(
-              result.relay_parent, stm, parachain_state->get());
+          importStatement(result.relay_parent, stm, parachain_state->get());
           notifyStatementDistributionSystem(result.relay_parent, *statement);
         }
       }
@@ -1810,10 +1839,13 @@ namespace kagome::parachain {
     if (!attesting.backing.empty()) {
       attesting.from_validator = attesting.backing.front();
       attesting.backing.pop();
-        auto it = our_current_state_.per_candidate.find(candidate_hash);
-        if (it != our_current_state_.per_candidate.end()) {
-        kickOffValidationWork(relay_parent, attesting, it->second.persisted_validation_data, *parachain_state);
-        }
+      auto it = our_current_state_.per_candidate.find(candidate_hash);
+      if (it != our_current_state_.per_candidate.end()) {
+        kickOffValidationWork(relay_parent,
+                              attesting,
+                              it->second.persisted_validation_data,
+                              *parachain_state);
+      }
     }
   }
 

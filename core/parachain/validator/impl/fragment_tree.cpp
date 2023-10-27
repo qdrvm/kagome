@@ -43,9 +43,7 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::parachain::fragment,
   return "Unknown error";
 }
 
-OUTCOME_CPP_DEFINE_CATEGORY(kagome::parachain::fragment,
-                            Scope::Error,
-                            e) {
+OUTCOME_CPP_DEFINE_CATEGORY(kagome::parachain::fragment, Scope::Error, e) {
   using E = kagome::parachain::fragment::Scope::Error;
   switch (e) {
     case E::UNEXPECTED_ANCESTOR:
@@ -57,41 +55,40 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::parachain::fragment,
 namespace kagome::parachain::fragment {
 
   outcome::result<Scope> Scope::withAncestors(
-		ParachainId para,
-		const fragment::RelayChainBlockInfo &relay_parent,
-		const Constraints &base_constraints,
-		const Vec<PendingAvailability> &pending_availability,
-		size_t max_depth,
-		const Vec<fragment::RelayChainBlockInfo> &ancestors
-	) {
+      ParachainId para,
+      const fragment::RelayChainBlockInfo &relay_parent,
+      const Constraints &base_constraints,
+      const Vec<PendingAvailability> &pending_availability,
+      size_t max_depth,
+      const Vec<fragment::RelayChainBlockInfo> &ancestors) {
     Map<BlockNumber, fragment::RelayChainBlockInfo> ancestors_map;
     HashMap<Hash, fragment::RelayChainBlockInfo> ancestors_by_hash;
 
-			auto prev = relay_parent.number;
-			for (const auto &ancestor : ancestors) {
-				if (prev == 0) {
-					return Scope::Error::UNEXPECTED_ANCESTOR;
-				} else if (ancestor.number != prev - 1) {
-					return Scope::Error::UNEXPECTED_ANCESTOR;
-				} else if (prev == base_constraints.min_relay_parent_number) {
-					break;
-				} else {
-					prev = ancestor.number;
-					ancestors_by_hash.emplace(ancestor.hash, ancestor);
-					ancestors_map.emplace(ancestor.number, ancestor);
-				}
-			}
+    auto prev = relay_parent.number;
+    for (const auto &ancestor : ancestors) {
+      if (prev == 0) {
+        return Scope::Error::UNEXPECTED_ANCESTOR;
+      } else if (ancestor.number != prev - 1) {
+        return Scope::Error::UNEXPECTED_ANCESTOR;
+      } else if (prev == base_constraints.min_relay_parent_number) {
+        break;
+      } else {
+        prev = ancestor.number;
+        ancestors_by_hash.emplace(ancestor.hash, ancestor);
+        ancestors_map.emplace(ancestor.number, ancestor);
+      }
+    }
 
-		return Scope {
-			para,
-			relay_parent,
-      ancestors_map,
-			ancestors_by_hash,
-			pending_availability,
-			base_constraints,
-			max_depth,
-		};
-	}
+    return Scope{
+        para,
+        relay_parent,
+        ancestors_map,
+        ancestors_by_hash,
+        pending_availability,
+        base_constraints,
+        max_depth,
+    };
+  }
 
   outcome::result<void> CandidateStorage::addCandidate(
       const CandidateHash &candidate_hash,
@@ -121,16 +118,18 @@ namespace kagome::parachain::fragment {
          CandidateEntry{
              .candidate_hash = candidate_hash,
              .relay_parent = candidate.descriptor.relay_parent,
-             .candidate = ProspectiveCandidate{
-                 .commitments = candidate.commitments,
-                 .collator = candidate.descriptor.collator_id,
-                 .collator_signature = candidate.descriptor.signature,
-                 .persisted_validation_data = persisted_validation_data.get(),
-                 .pov_hash = candidate.descriptor.pov_hash,
-                 .validation_code_hash =
-                     candidate.descriptor.validation_code_hash},
+             .candidate =
+                 ProspectiveCandidate{
+                     .commitments = candidate.commitments,
+                     .collator = candidate.descriptor.collator_id,
+                     .collator_signature = candidate.descriptor.signature,
+                     .persisted_validation_data =
+                         persisted_validation_data.get(),
+                     .pov_hash = candidate.descriptor.pov_hash,
+                     .validation_code_hash =
+                         candidate.descriptor.validation_code_hash},
              .state = CandidateState::Introduced,
-                     }});
+         }});
     return outcome::success();
   }
 

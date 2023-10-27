@@ -15,8 +15,8 @@
 #include "outcome/outcome.hpp"
 
 #include "log/logger.hpp"
-#include "network/types/collator_messages_vstaging.hpp"
 #include "network/types/collator_messages.hpp"
+#include "network/types/collator_messages_vstaging.hpp"
 #include "parachain/types.hpp"
 #include "parachain/validator/collations.hpp"
 #include "primitives/common.hpp"
@@ -320,10 +320,12 @@ namespace kagome::parachain::fragment {
     SCALE_TIE(2);
     /// The state-machine constraints of the parachain.
     Constraints constraints;
-    /// The candidates pending availability. These should be ordered, i.e. they should form
-    /// a sub-chain, where the first candidate builds on top of the required parent of the
-    /// constraints and each subsequent builds on top of the previous head-data.
-    std::vector<network::vstaging::CandidatePendingAvailability> pending_availability;
+    /// The candidates pending availability. These should be ordered, i.e. they
+    /// should form a sub-chain, where the first candidate builds on top of the
+    /// required parent of the constraints and each subsequent builds on top of
+    /// the previous head-data.
+    std::vector<network::vstaging::CandidatePendingAvailability>
+        pending_availability;
   };
 
   struct Fragment {
@@ -399,14 +401,13 @@ namespace kagome::parachain::fragment {
     Constraints base_constraints;
     size_t max_depth;
 
-  static outcome::result<Scope> withAncestors(
-		ParachainId para,
-		const RelayChainBlockInfo &relay_parent,
-		const Constraints &base_constraints,
-		const Vec<PendingAvailability> &pending_availability,
-		size_t max_depth,
-		const Vec<RelayChainBlockInfo> &ancestors
-	);
+    static outcome::result<Scope> withAncestors(
+        ParachainId para,
+        const RelayChainBlockInfo &relay_parent,
+        const Constraints &base_constraints,
+        const Vec<PendingAvailability> &pending_availability,
+        size_t max_depth,
+        const Vec<RelayChainBlockInfo> &ancestors);
 
     const RelayChainBlockInfo &earliestRelayParent() const {
       if (!ancestors.empty()) {
@@ -591,8 +592,9 @@ namespace kagome::parachain::fragment {
                         return pending->get().relay_parent.number;
                       });
                 } else {
-                  min_relay_parent_number = std::max(
-                      earliest_rp.get().number, scope.earliestRelayParent().number);
+                  min_relay_parent_number =
+                      std::max(earliest_rp.get().number,
+                               scope.earliestRelayParent().number);
                 }
 
                 if (relay_parent.number < min_relay_parent_number) {

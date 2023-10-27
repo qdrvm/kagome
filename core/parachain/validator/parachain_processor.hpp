@@ -310,10 +310,11 @@ namespace kagome::parachain {
     void onAttestNoPoVComplete(const network::RelayHash &relay_parent,
                                const CandidateHash &candidate_hash);
 
-    void kickOffValidationWork(const RelayHash &relay_parent,
-                               AttestingData &attesting_data,
-                               const runtime::PersistedValidationData &persisted_validation_data,
-                               RelayParentState &parachain_state);
+    void kickOffValidationWork(
+        const RelayHash &relay_parent,
+        AttestingData &attesting_data,
+        const runtime::PersistedValidationData &persisted_validation_data,
+        RelayParentState &parachain_state);
     std::optional<runtime::SessionInfo> retrieveSessionInfo(
         const RelayHash &relay_parent);
     void handleFetchedCollation(PendingCollation &&pending_collation,
