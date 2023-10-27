@@ -79,7 +79,7 @@ namespace kagome::parachain {
   };
 
   struct DontProvideCode : runtime::RuntimeCodeProvider {
-    outcome::result<gsl::span<const uint8_t>> getCodeAt(
+    outcome::result<common::BufferView> getCodeAt(
         const storage::trie::RootHash &) const override {
       abort();
     }

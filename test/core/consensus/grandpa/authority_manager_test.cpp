@@ -223,7 +223,7 @@ class AuthorityManagerTest : public testing::Test {
     auto encoded_header =
         encoded_headers.emplace(block.hash, scale::encode(header).value())
             .first->second;
-    EXPECT_CALL(*hasher, blake2b_256(gsl::span<const uint8_t>(encoded_header)))
+    EXPECT_CALL(*hasher, blake2b_256(common::BufferView(encoded_header)))
         .WillRepeatedly(Return(block.hash));
     chain_events_engine->notify(
         primitives::events::ChainEventType::kFinalizedHeads, header);
@@ -506,7 +506,7 @@ TEST_F(AuthorityManagerTest, OnConsensus_OnPause) {
                                   primitives::Pause(delay)));
 
   primitives::AuthoritySet new_authorities = old_authorities;
-  for (auto &authority : new_authorities) {
+  for (auto &authority : new_authorities.authorities) {
     authority.weight = 0;
   }
 
@@ -538,7 +538,7 @@ TEST_F(AuthorityManagerTest, OnConsensus_OnResume) {
   auto &enabled_authorities = *old_auth_opt.value();
 
   primitives::AuthoritySet disabled_authorities = enabled_authorities;
-  for (auto &authority : disabled_authorities) {
+  for (auto &authority : disabled_authorities.authorities) {
     authority.weight = 0;
   }
 

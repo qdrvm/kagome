@@ -10,7 +10,8 @@
 
 #include "crypto/sha/sha256.hpp"
 
-#define _PB_SPAN(f) [&](gsl::span<const uint8_t> a) { (f)(a.data(), a.size()); }
+#define _PB_SPAN(f) \
+  [&](::kagome::common::BufferView a) { (f)(a.data(), a.size()); }
 #define PB_SPAN_SET(a, b, c) _PB_SPAN((a).set_##b)(c)
 #define PB_SPAN_ADD(a, b, c) _PB_SPAN((a).add_##b)(c)
 

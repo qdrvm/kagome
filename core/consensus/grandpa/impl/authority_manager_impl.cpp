@@ -498,8 +498,8 @@ namespace kagome::consensus::grandpa {
     // Zero-weighted authorities
     auto authorities =
         std::make_shared<primitives::AuthoritySet>(*adjusted_node->authorities);
-    std::for_each(authorities->begin(),
-                  authorities->end(),
+    std::for_each(authorities->authorities.begin(),
+                  authorities->authorities.end(),
                   [](auto &authority) { authority.weight = 0; });
     return authorities;
   }
@@ -552,7 +552,7 @@ namespace kagome::consensus::grandpa {
           new_authorities->id);
 
       size_t index = 0;
-      for (auto &authority : *new_authorities) {
+      for (auto &authority : new_authorities->authorities) {
         SL_TRACE(logger_,
                  "New authority ({}/{}): id={} weight={}",
                  ++index,
@@ -688,13 +688,14 @@ namespace kagome::consensus::grandpa {
                  node->authorities->id);
 
       size_t index = 0;
-      for (auto &authority : *new_authorities) {
-        SL_TRACE(logger_,
-                 "New authority ({}/{}): id={} weight={}",
-                 ++index,
-                 new_authorities->authorities.size(),
-                 authority.id.id,
-                 authority.weight);
+      if (logger_->level() >= log::Level::TRACE) {
+        for (auto &authority : new_authorities->authorities) {
+          logger_->trace("New authority ({}/{}): id={} weight={}",
+                         ++index,
+                         new_authorities->authorities.size(),
+                         authority.id.id,
+                         authority.weight);
+        }
       }
 
       return outcome::success();

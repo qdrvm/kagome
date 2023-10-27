@@ -15,7 +15,7 @@
 namespace kagome::common {
   /// Moved owned buffer or readonly view.
   class BufferOrView {
-    using Span = gsl::span<const uint8_t>;
+    using Span = std::span<const uint8_t>;
 
     template <typename T>
     using AsSpan = std::enable_if_t<std::is_convertible_v<T, Span>>;
@@ -29,7 +29,7 @@ namespace kagome::common {
 
     template <size_t N>
     BufferOrView(const std::array<uint8_t, N> &array)
-        : variant{gsl::make_span(array)} {}
+        : variant{BufferView(array)} {}
 
     BufferOrView(const std::vector<uint8_t> &vector) = delete;
     BufferOrView(std::vector<uint8_t> &&vector)
@@ -62,9 +62,24 @@ namespace kagome::common {
       return view();
     }
 
-    /// Byte size.
+    /// Data ptr for contiguous_range
+    auto data() const {
+      return view().data();
+    }
+
+    /// Size for sized_range
     size_t size() const {
       return view().size();
+    }
+
+    /// Iteratior begin for range
+    auto begin() const {
+      return view().begin();
+    }
+
+    /// Iteratior end for range
+    auto end() const {
+      return view().end();
     }
 
     /// Get mutable buffer reference. Copy once if view.

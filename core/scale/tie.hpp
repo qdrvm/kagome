@@ -6,6 +6,8 @@
 
 #pragma once
 
+#include <scale/scale_decoder_stream.hpp>
+#include <span>
 #include <tuple>
 
 #define SCALE_TIE_EQ                                             \
