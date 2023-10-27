@@ -188,7 +188,7 @@ void child_storage_root_hashes(const std::unique_ptr<TrieBatch> &batch,
   auto res = cursor->seekUpperBound(child_prefix);
   if (res.has_value()) {
     auto key = cursor->key();
-    while (key.has_value() && key->startsWith(child_prefix)) {
+    while (key.has_value() && startsWith(key.value(), child_prefix)) {
       if (auto value_res = batch->tryGet(key.value());
           value_res.has_value() && value_res.value().has_value()) {
         auto &value_opt = value_res.value();

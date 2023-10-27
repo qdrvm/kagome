@@ -1165,7 +1165,7 @@ namespace kagome::application {
       auto replace = [&](std::string_view prefix,
                          std::string_view replacement,
                          std::string_view str) {
-        if (str.substr(0, prefix.size()) == prefix) {
+        if (str.starts_with(prefix)) {
           std::string replaced{replacement};
           replaced += str.substr(prefix.size());
           public_addresses_.emplace_back(

@@ -205,18 +205,6 @@ namespace kagome::common {
     static SLBuffer fromString(const std::string_view &src) {
       return {src.begin(), src.end()};
     }
-
-    template <typename Prefix>
-    bool startsWith(const Prefix &prefix) const {
-      if (this->size() >= prefix.size()) {
-        auto this_view = view().first(prefix.size());
-        return std::equal(this_view.begin(),
-                          this_view.end(),
-                          std::cbegin(prefix),
-                          std::cend(prefix));
-      }
-      return false;
-    }
   };
 
   template <size_t MaxSize>

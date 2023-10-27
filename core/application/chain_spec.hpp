@@ -77,7 +77,7 @@ namespace kagome::application {
         const = 0;
 
     bool idStartsWith(std::string_view prefix) const {
-      return id().rfind(prefix, 0) == 0;
+      return id().starts_with(prefix);
     }
 
     bool isKusama() const {

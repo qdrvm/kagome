@@ -118,7 +118,7 @@ namespace kagome::storage::trie {
   outcome::result<std::tuple<bool, uint32_t>> TopperTrieBatchImpl::clearPrefix(
       const BufferView &prefix, std::optional<uint64_t>) {
     for (auto it = cache_.lower_bound(prefix);
-         it != cache_.end() && it->first.startsWith(prefix);
+         it != cache_.end() && startsWith(it->first, prefix);
          ++it) {
       it->second = std::nullopt;
     }
@@ -158,7 +158,7 @@ namespace kagome::storage::trie {
 
   bool TopperTrieBatchImpl::wasClearedByPrefix(const BufferView &key) const {
     for (const auto &prefix : cleared_prefixes_) {
-      if (key.startsWith(prefix)) {
+      if (startsWith(key, prefix)) {
         return true;
       }
     }

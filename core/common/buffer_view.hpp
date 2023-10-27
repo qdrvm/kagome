@@ -69,18 +69,6 @@ namespace kagome::common {
       return {reinterpret_cast<const char *>(data()), size()};
     }
 
-    template <typename Prefix>
-    bool startsWith(const Prefix &prefix) const {
-      if (this->size() >= prefix.size()) {
-        auto this_view = first(prefix.size());
-        return std::equal(this_view.begin(),
-                          this_view.end(),
-                          std::cbegin(prefix),
-                          std::cend(prefix));
-      }
-      return false;
-    }
-
     auto operator<=>(const BufferView &other) const noexcept {
       return cxx20::lexicographical_compare_three_way(
           span::begin(), span::end(), other.begin(), other.end());
@@ -95,6 +83,17 @@ namespace kagome::common {
     return os << view.toHex();
   }
 
+  template <typename Super, typename Prefix>
+  bool startsWith(const Super &super, const Prefix &prefix) {
+    if (std::size(super) >= std::size(prefix)) {
+      auto beginning = std::span(super).first(std::size(prefix));
+      return std::equal(beginning.begin(),
+                        beginning.end(),
+                        std::begin(prefix),
+                        std::end(prefix));
+    }
+    return false;
+  }
 }  // namespace kagome::common
 
 template <>

@@ -59,7 +59,7 @@ namespace kagome::api {
       BOOST_ASSERT(key.has_value());
 
       // make sure our key begins with prefix
-      if (!key->startsWith(prefix)) {
+      if (not startsWith(key.value(), prefix)) {
         break;
       }
       result.push_back(cursor->key().value());
@@ -106,7 +106,7 @@ namespace kagome::api {
       BOOST_ASSERT(key.has_value());
 
       // make sure our key begins with prefix
-      if (!key->startsWith(prefix)) {
+      if (not startsWith(key.value(), prefix)) {
         break;
       }
       result.push_back(cursor->key().value());
