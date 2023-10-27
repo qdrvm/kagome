@@ -6,10 +6,11 @@
 
 #include "api/service/mmr/rpc.hpp"
 
+#include <libp2p/common/final_action.hpp>
+
 #include "api/jrpc/jrpc_server_impl.hpp"
 #include "api/service/jrpc_fn.hpp"
 #include "blockchain/block_tree.hpp"
-#include "common/final_action.hpp"
 #include "offchain/offchain_worker_factory.hpp"
 #include "offchain/offchain_worker_pool.hpp"
 #include "runtime/runtime_api/mmr.hpp"
@@ -63,7 +64,7 @@ namespace kagome::api {
 
   auto MmrRpc::withOffchain(const primitives::BlockHash &at) {
     // TODO(turuslan): simplify offchain
-    common::MovableFinalAction remove(
+    ::libp2p::common::MovableFinalAction remove(
         [&] { offchain_worker_pool_.get()->removeWorker(); });
     outcome::result<decltype(remove)> result{std::move(remove)};
     if (auto r = block_tree_.get()->getBlockHeader(at)) {

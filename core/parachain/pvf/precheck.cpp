@@ -6,7 +6,8 @@
 
 #include "parachain/pvf/precheck.hpp"
 
-#include "common/final_action.hpp"
+#include <libp2p/common/final_action.hpp>
+
 #include "metrics/histogram_timer.hpp"
 #include "offchain/offchain_worker_factory.hpp"
 #include "offchain/offchain_worker_pool.hpp"
@@ -120,7 +121,7 @@ namespace kagome::parachain {
       OUTCOME_TRY(signature, signer->signRaw(statement.signable()));
       offchain_worker_pool_->addWorker(
           offchain_worker_factory_->make(executor_, header));
-      common::FinalAction remove(
+      ::libp2p::common::FinalAction remove(
           [&] { offchain_worker_pool_->removeWorker(); });
       OUTCOME_TRY(parachain_api_->submit_pvf_check_statement(
           block_hash, statement, signature));

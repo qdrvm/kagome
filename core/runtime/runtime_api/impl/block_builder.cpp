@@ -6,7 +6,8 @@
 
 #include "runtime/runtime_api/impl/block_builder.hpp"
 
-#include "common/final_action.hpp"
+#include <libp2p/common/final_action.hpp>
+
 #include "runtime/executor.hpp"
 #include "runtime/trie_storage_provider.hpp"
 
@@ -24,7 +25,7 @@ namespace kagome::runtime {
     OUTCOME_TRY(ctx.module_instance->getEnvironment()
                     .storage_provider->startTransaction());
     auto should_rollback = true;
-    common::FinalAction rollback([&] {
+    ::libp2p::common::FinalAction rollback([&] {
       if (should_rollback) {
         std::ignore = ctx.module_instance->getEnvironment()
                           .storage_provider->rollbackTransaction();
@@ -59,7 +60,7 @@ namespace kagome::runtime {
     // `env.storage_provider`s `PersistentTrieBatch`.
     OUTCOME_TRY(ctx.module_instance->getEnvironment()
                     .storage_provider->startTransaction());
-    common::FinalAction rollback([&] {
+    ::libp2p::common::FinalAction rollback([&] {
       std::ignore = ctx.module_instance->getEnvironment()
                         .storage_provider->rollbackTransaction();
     });

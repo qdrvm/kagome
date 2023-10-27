@@ -8,9 +8,10 @@
 
 #include <random>
 
+#include <libp2p/common/final_action.hpp>
+
 #include "application/app_configuration.hpp"
 #include "blockchain/block_tree_error.hpp"
-#include "common/final_action.hpp"
 #include "consensus/babe/has_babe_consensus_digest.hpp"
 #include "consensus/grandpa/environment.hpp"
 #include "consensus/grandpa/has_authority_set_change.hpp"
@@ -819,7 +820,7 @@ namespace kagome::network {
     }
 
     busy_peers_.insert(peer_id);
-    common::FinalAction cleanup([this, peer_id] {
+    ::libp2p::common::FinalAction cleanup([this, peer_id] {
       auto peer = busy_peers_.find(peer_id);
       if (peer != busy_peers_.end()) {
         busy_peers_.erase(peer);
@@ -1071,7 +1072,7 @@ namespace kagome::network {
       return;
     }
     SL_TRACE(log_, "Begin applying");
-    common::MovableFinalAction cleanup([weak = weak_from_this()] {
+    ::libp2p::common::MovableFinalAction cleanup([weak = weak_from_this()] {
       if (auto self = weak.lock()) {
         SL_TRACE(self->log_, "End applying");
         self->applying_in_progress_ = false;
@@ -1290,7 +1291,7 @@ namespace kagome::network {
       return;
     }
     SL_TRACE(log_, "Begin justification applying");
-    common::FinalAction cleanup([this] {
+    ::libp2p::common::FinalAction cleanup([this] {
       SL_TRACE(log_, "End justification applying");
       applying_in_progress_ = false;
     });

@@ -9,7 +9,8 @@
 #include <deque>
 #include <mutex>
 
-#include "common/final_action.hpp"
+#include <libp2p/common/final_action.hpp>
+
 #include "utils/thread_pool.hpp"
 
 namespace kagome::offchain {
@@ -41,7 +42,7 @@ namespace kagome::offchain {
       thread_pool_.io_context()->post(
           [weak{weak_from_this()}, task{std::move(task)}] {
             if (auto self = weak.lock()) {
-              common::FinalAction release([&] {
+              ::libp2p::common::FinalAction release([&] {
                 std::unique_lock lock{self->mutex_};
                 ++self->free_threads_;
               });

@@ -10,16 +10,16 @@
 
 #include <functional>
 #include <memory>
+#include <optional>
 #include <queue>
 #include <unordered_set>
 
-#include <optional>
+#include <libp2p/common/final_action.hpp>
 
 #include "application/app_configuration.hpp"
 #include "blockchain/block_header_repository.hpp"
 #include "blockchain/block_storage.hpp"
 #include "blockchain/block_tree_error.hpp"
-#include "common/final_action.hpp"
 #include "consensus/timeline/types.hpp"
 #include "crypto/hasher.hpp"
 #include "log/logger.hpp"
@@ -225,12 +225,13 @@ namespace kagome::blockchain {
             == std::this_thread::get_id()) {
           return f(block_tree_data_.unsafeGet());
         }
-        return block_tree_data_.exclusiveAccess([&f,
-                                                 this](BlockTreeData &data) {
-          exclusive_owner_ = std::this_thread::get_id();
-          common::FinalAction reset([&] { exclusive_owner_ = std::nullopt; });
-          return f(data);
-        });
+        return block_tree_data_.exclusiveAccess(
+            [&f, this](BlockTreeData &data) {
+              exclusive_owner_ = std::this_thread::get_id();
+              ::libp2p::common::FinalAction reset(
+                  [&] { exclusive_owner_ = std::nullopt; });
+              return f(data);
+            });
       }
 
       template <typename F>

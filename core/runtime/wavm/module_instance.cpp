@@ -6,10 +6,11 @@
 
 #include "runtime/wavm/module_instance.hpp"
 
+#include <libp2p/common/final_action.hpp>
+
 #include <WAVM/Runtime/Runtime.h>
 #include <WAVM/RuntimeABI/RuntimeABI.h>
 
-#include "common/final_action.hpp"
 #include "host_api/host_api.hpp"
 #include "log/profiling_logger.hpp"
 #include "runtime/common/runtime_transaction_error.hpp"
@@ -144,7 +145,7 @@ namespace kagome::runtime::wavm {
       std::array<WAVM::IR::UntaggedValue, 1> untaggedInvokeResults;
       pushBorrowedRuntimeInstance(
           std::const_pointer_cast<ModuleInstanceImpl>(shared_from_this()));
-      common::FinalAction pop(&popBorrowedRuntimeInstance);
+      ::libp2p::common::FinalAction pop(&popBorrowedRuntimeInstance);
       try {
         WAVM::Runtime::unwindSignalsAsExceptions(
             [&context,
