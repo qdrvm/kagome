@@ -11,6 +11,7 @@ add_library(grandpa
     impl/vote_crypto_provider_impl.cpp
     impl/grandpa_impl.cpp
     impl/voting_round_impl.cpp
+    impl/votes_cache.cpp
     impl/environment_impl.cpp
     grandpa_digest_observer_error.cpp
     authority_manager_error.cpp
