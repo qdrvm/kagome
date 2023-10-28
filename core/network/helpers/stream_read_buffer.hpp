@@ -36,17 +36,17 @@ namespace libp2p::connection {
       return end - begin;
     }
 
-    void read(gsl::span<uint8_t> out, size_t n, ReadCallbackFunc cb) override {
-      libp2p::ambigousSize(out, n);
-      libp2p::readReturnSize(shared_from_this(), out, std::move(cb));
+    void read(BytesOut out, size_t n, ReadCallbackFunc cb) override {
+      ambigousSize(out, n);
+      readReturnSize(shared_from_this(), out, std::move(cb));
     }
 
     /**
      * Read from buffer.
      */
-    size_t readFromBuffer(gsl::span<uint8_t> out) {
+    size_t readFromBuffer(BytesOut out) {
       // can't read more bytes than available
-      auto n = std::min(gsl::narrow<size_t>(out.size()), size());
+      auto n = std::min(out.size(), size());
       BOOST_ASSERT(n != 0);
       // copy bytes from buffer
       std::copy_n(buffer->begin() + begin, n, out.begin());
@@ -55,10 +55,8 @@ namespace libp2p::connection {
       return n;
     }
 
-    void readSome(gsl::span<uint8_t> out,
-                  size_t n,
-                  ReadCallbackFunc cb) override {
-      libp2p::ambigousSize(out, n);
+    void readSome(BytesOut out, size_t n, ReadCallbackFunc cb) override {
+      ambigousSize(out, n);
       if (out.empty()) {
         return deferReadCallback(out.size(), std::move(cb));
       }
@@ -143,12 +141,12 @@ namespace kagome::network {
       return stream_->remoteMultiaddr();
     }
 
-    void read(gsl::span<uint8_t> out, size_t bytes, ReadCallbackFunc cb) {
+    void read(libp2p::BytesOut out, size_t bytes, ReadCallbackFunc cb) {
       check();
       stream_->read(out, bytes, std::move(cb));
     }
 
-    void readSome(gsl::span<uint8_t> out, size_t bytes, ReadCallbackFunc cb) {
+    void readSome(libp2p::BytesOut out, size_t bytes, ReadCallbackFunc cb) {
       check();
       stream_->readSome(out, bytes, std::move(cb));
     }
@@ -157,16 +155,12 @@ namespace kagome::network {
       stream_->deferReadCallback(std::move(res), std::move(cb));
     }
 
-    void write(gsl::span<const uint8_t> in,
-               size_t bytes,
-               WriteCallbackFunc cb) {
+    void write(libp2p::BytesIn in, size_t bytes, WriteCallbackFunc cb) {
       check();
       stream_->write(in, bytes, std::move(cb));
     }
 
-    void writeSome(gsl::span<const uint8_t> in,
-                   size_t bytes,
-                   WriteCallbackFunc cb) {
+    void writeSome(libp2p::BytesIn in, size_t bytes, WriteCallbackFunc cb) {
       check();
       stream_->writeSome(in, bytes, std::move(cb));
     }

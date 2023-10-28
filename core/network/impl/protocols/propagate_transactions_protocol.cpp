@@ -133,7 +133,7 @@ namespace kagome::network {
   }
 
   void PropagateTransactionsProtocol::propagateTransactions(
-      gsl::span<const primitives::Transaction> txs) {
+      std::span<const primitives::Transaction> txs) {
     if (not main_thread_->get_executor().running_in_this_thread()) {
       return main_thread_->post(
           [self{shared_from_this()}, txs{std::vector(txs.begin(), txs.end())}] {

@@ -9,12 +9,12 @@
 #include <array>
 #include <cstdint>
 #include <cstring>
-#include <gsl/span>
 #include <tuple>
 #include <type_traits>
 
 #include <boost/assert.hpp>
 
+#include "common/buffer_view.hpp"
 #include "crypto/keccak/keccak.h"
 #include "primitives/math.hpp"
 
@@ -226,12 +226,8 @@ namespace kagome::primitives {
       overwrite(data);
     }
 
-    auto data() {
-      return gsl::make_span(as<const uint8_t>(), count<uint8_t>() + 3ull);
-    }
-
     auto data() const {
-      return gsl::make_span(as<const uint8_t>(), count<uint8_t>() + 3ull);
+      return std::span(as<const uint8_t>(), count<uint8_t>() + 3ull);
     }
   };
 

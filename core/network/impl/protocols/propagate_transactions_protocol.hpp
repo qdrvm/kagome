@@ -74,7 +74,7 @@ namespace kagome::network {
         std::function<void(outcome::result<std::shared_ptr<Stream>>)> &&cb)
         override;
 
-    void propagateTransactions(gsl::span<const primitives::Transaction> txs);
+    void propagateTransactions(std::span<const primitives::Transaction> txs);
 
    private:
     inline static const auto kPropagateTransactionsProtocolName =

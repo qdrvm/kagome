@@ -52,7 +52,7 @@ namespace kagome::api {
      * @return array of block hashes for numbers
      */
     virtual outcome::result<std::vector<BlockHash>> getBlockHash(
-        gsl::span<const ValueType> values) const = 0;
+        std::span<const ValueType> values) const = 0;
 
     /**
      * @param hash hex-string of a block to retrieve

@@ -12,7 +12,7 @@
 #include <fmt/format.h>
 #include <boost/container_hash/hash.hpp>
 #include <boost/operators.hpp>
-#include <gsl/span>
+#include <span>
 
 #include "common/buffer_view.hpp"
 #include "common/size_limited_containers.hpp"
@@ -150,14 +150,14 @@ namespace kagome::common {
 
     /**
      * Returns a copy of a part of the buffer
-     * Works alike subspan() of gsl::span
+     * Works alike subspan() of std::span
      */
     SLBuffer subbuffer(size_t offset = 0, size_t length = -1) const {
       return SLBuffer(view(offset, length));
     }
 
     BufferView view(size_t offset = 0, size_t length = -1) const {
-      return BufferView{gsl::make_span(*this).subspan(offset, length)};
+      return std::span(*this).subspan(offset, length);
     }
 
     /**
@@ -204,18 +204,6 @@ namespace kagome::common {
      */
     static SLBuffer fromString(const std::string_view &src) {
       return {src.begin(), src.end()};
-    }
-
-    template <typename Prefix>
-    bool startsWith(const Prefix &prefix) const {
-      if (this->size() >= prefix.size()) {
-        auto this_view = view().subspan(prefix.size());
-        return std::equal(this_view.begin(),
-                          this_view.end(),
-                          std::cbegin(prefix),
-                          std::cend(prefix));
-      }
-      return false;
     }
   };
 

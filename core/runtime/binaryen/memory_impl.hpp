@@ -70,9 +70,9 @@ namespace kagome::runtime::binaryen {
     void store128(WasmPointer addr,
                   const std::array<uint8_t, 16> &value) override;
     void storeBuffer(kagome::runtime::WasmPointer addr,
-                     gsl::span<const uint8_t> value) override;
+                     common::BufferView value) override;
 
-    WasmSpan storeBuffer(gsl::span<const uint8_t> value) override;
+    WasmSpan storeBuffer(common::BufferView value) override;
 
     void resize(WasmSize new_size) override {
       /**

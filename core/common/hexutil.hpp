@@ -9,10 +9,11 @@
 #include <string_view>
 #include <vector>
 
-#include <gsl/span>
 #include "outcome/outcome.hpp"
 
 namespace kagome::common {
+
+  class BufferView;
 
   /**
    * @brief error codes for exceptions that may occur during unhexing
@@ -36,7 +37,7 @@ namespace kagome::common {
    * @param len length of bytes
    * @return hexstring
    */
-  std::string hex_upper(gsl::span<const uint8_t> bytes) noexcept;
+  std::string hex_upper(BufferView bytes) noexcept;
 
   /**
    * @brief Converts bytes to hex representation
@@ -44,21 +45,19 @@ namespace kagome::common {
    * @param len length of bytes
    * @return hexstring
    */
-  std::string hex_lower(gsl::span<const uint8_t> bytes) noexcept;
+  std::string hex_lower(BufferView bytes) noexcept;
 
   /**
    * @brief Converts bytes to hex representation with prefix 0x
    * @param array bytes
    * @return hexstring
    */
-  std::string hex_lower_0x(gsl::span<const uint8_t> bytes) noexcept;
+  std::string hex_lower_0x(BufferView bytes) noexcept;
 
   /**
    * @brief Adapter for ptr+size
    */
-  inline std::string hex_lower_0x(const uint8_t *data, size_t size) noexcept {
-    return hex_lower_0x(gsl::span<const uint8_t>(data, size));
-  }
+  std::string hex_lower_0x(const uint8_t *data, size_t size) noexcept;
 
   /**
    * @brief Converts hex representation to bytes

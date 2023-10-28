@@ -10,6 +10,7 @@
 
 #include <libp2p/basic/scheduler/asio_scheduler_backend.hpp>
 #include <libp2p/basic/scheduler/scheduler_impl.hpp>
+#include <libp2p/common/final_action.hpp>
 
 #include "application/app_state_manager.hpp"
 #include "blockchain/block_tree.hpp"
@@ -774,7 +775,7 @@ namespace kagome::consensus::grandpa {
       need_cleanup_when_exiting_scope = true;
     }
 
-    auto cleanup = gsl::finally([&] {
+    ::libp2p::common::FinalAction cleanup([&] {
       if (need_cleanup_when_exiting_scope) {
         catchup_request_timer_handle_.cancel();
         pending_catchup_request_.reset();
@@ -949,6 +950,12 @@ namespace kagome::consensus::grandpa {
              peer_id,
              std::move(info),
              msg);
+
+    // Skip message processing if same vote was already observed
+    if (votes_cache_.contains(msg)) {
+      return;
+    }
+    votes_cache_.put(msg);
 
     if (not info.has_value() or not info->set_id.has_value()
         or not info->round_number.has_value()) {

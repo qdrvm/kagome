@@ -31,7 +31,7 @@ namespace kagome::runtime {
         std::shared_ptr<const CodeSubstituteBlockIds> code_substitutes,
         std::shared_ptr<application::ChainSpec> chain_spec);
 
-    outcome::result<gsl::span<const uint8_t>> getCodeAt(
+    outcome::result<common::BufferView> getCodeAt(
         const storage::trie::RootHash &state) const override;
 
    private:

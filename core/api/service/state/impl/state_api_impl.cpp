@@ -102,7 +102,7 @@ namespace kagome::api {
       BOOST_ASSERT(key.has_value());
 
       // make sure our key begins with prefix
-      if (!boost::starts_with(key.value(), prefix)) {
+      if (not startsWith(key.value(), prefix)) {
         break;
       }
       result.push_back(cursor->key().value());
@@ -113,13 +113,13 @@ namespace kagome::api {
   }
 
   outcome::result<std::optional<common::Buffer>> StateApiImpl::getStorage(
-      const common::BufferView &key) const {
+      common::BufferView key) const {
     auto last_finalized = block_tree_->getLastFinalized();
     return getStorageAt(key, last_finalized.hash);
   }
 
   outcome::result<std::optional<common::Buffer>> StateApiImpl::getStorageAt(
-      const common::BufferView &key, const primitives::BlockHash &at) const {
+      common::BufferView key, const primitives::BlockHash &at) const {
     OUTCOME_TRY(header, header_repo_->getBlockHeader(at));
     OUTCOME_TRY(trie_reader, storage_->getEphemeralBatchAt(header.state_root));
     auto res = trie_reader->tryGet(key);
@@ -130,7 +130,7 @@ namespace kagome::api {
 
   outcome::result<std::vector<StateApiImpl::StorageChangeSet>>
   StateApiImpl::queryStorage(
-      gsl::span<const common::Buffer> keys,
+      std::span<const common::Buffer> keys,
       const primitives::BlockHash &from,
       std::optional<primitives::BlockHash> opt_to) const {
     // TODO(Harrm): Optimize once changes trie is enabled (and a warning/assert
@@ -153,8 +153,7 @@ namespace kagome::api {
     }
 
     std::vector<StorageChangeSet> changes;
-    std::map<gsl::span<const uint8_t>, std::optional<common::Buffer>>
-        last_values;
+    std::map<common::BufferView, std::optional<common::Buffer>> last_values;
 
     // TODO(Harrm): optimize it to use a lazy generator instead of returning the
     // whole vector with block ids
@@ -183,7 +182,7 @@ namespace kagome::api {
 
   outcome::result<std::vector<StateApiImpl::StorageChangeSet>>
   StateApiImpl::queryStorageAt(
-      gsl::span<const common::Buffer> keys,
+      std::span<const common::Buffer> keys,
       std::optional<primitives::BlockHash> opt_at) const {
     auto at =
         opt_at.has_value() ? opt_at.value() : block_tree_->bestBlock().hash;
@@ -191,7 +190,7 @@ namespace kagome::api {
   }
 
   outcome::result<StateApi::ReadProof> StateApiImpl::getReadProof(
-      gsl::span<const common::Buffer> keys,
+      std::span<const common::Buffer> keys,
       std::optional<primitives::BlockHash> opt_at) const {
     auto at =
         opt_at.has_value() ? opt_at.value() : block_tree_->bestBlock().hash;
