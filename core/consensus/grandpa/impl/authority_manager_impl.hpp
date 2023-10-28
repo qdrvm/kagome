@@ -34,15 +34,16 @@ namespace kagome::consensus::grandpa {
   // 4356716 4357394 12691801 12719004 12734588 12735037 12735379 12735523
   // 12927502 12927596 15533486 15533936]
 
-  // TODO(turuslan): #1536, grandpa voting during forced change
+  // TODO(turuslan): #1857, grandpa voting during forced change
 
   struct GrandpaIndexedValue {
-    SCALE_TIE_ONLY(next_set_id, state);
+    SCALE_TIE_ONLY(next_set_id, forced_target, state);
 
     /**
      * Set id is missing from grandpa digests.
      */
     primitives::AuthoritySetId next_set_id;
+    std::optional<primitives::BlockNumber> forced_target;
     /**
      * Current authorities read from runtime.
      * Used at genesis and after warp sync.

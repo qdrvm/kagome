@@ -71,6 +71,7 @@ namespace kagome::consensus::grandpa {
             if (auto self = wp.lock()) {
               std::unique_lock lock{self->mutex_};
               self->indexer_.finalize();
+              // TODO(turuslan): #1854, rebase ambigous forced changes
             }
           }
         });
@@ -85,6 +86,7 @@ namespace kagome::consensus::grandpa {
         not r or not r.value()) {
       return std::nullopt;
     }
+    std::unique_lock lock{mutex_};
     if (auto r = authoritiesOutcome(target_block, finalized.operator bool())) {
       return std::move(r.value());
     } else {
@@ -100,7 +102,6 @@ namespace kagome::consensus::grandpa {
   outcome::result<std::shared_ptr<const primitives::AuthoritySet>>
   AuthorityManagerImpl::authoritiesOutcome(const primitives::BlockInfo &block,
                                            bool next) const {
-    std::unique_lock lock{mutex_};
     auto descent = indexer_.descend(block);
     outcome::result<void> cb_res = outcome::success();
     auto cb = [&](std::optional<primitives::BlockInfo> prev,
@@ -109,26 +110,72 @@ namespace kagome::consensus::grandpa {
       cb_res = [&]() -> outcome::result<void> {
         BOOST_ASSERT(i_first >= i_last);
         auto info = descent.path_.at(i_first);
+        std::shared_ptr<const primitives::AuthoritySet> prev_state;
         if (info.number == 0) {
           OUTCOME_TRY(list, grandpa_api_->authorities(info.hash));
           auto genesis =
               std::make_shared<primitives::AuthoritySet>(0, std::move(list));
-          GrandpaIndexedValue value{genesis->id, genesis, genesis};
+          GrandpaIndexedValue value{
+              genesis->id,
+              std::nullopt,
+              genesis,
+              genesis,
+          };
           indexer_.put(info, {value, std::nullopt}, true);
           if (i_first == i_last) {
             return outcome::success();
           }
           prev = info;
+          prev_state = genesis;
           --i_first;
         }
-        OUTCOME_TRY(prev_state, loadPrev(prev));
+        if (not prev_state) {
+          BOOST_OUTCOME_TRY(prev_state, loadPrev(prev));
+        }
         while (true) {
           info = descent.path_.at(i_first);
           OUTCOME_TRY(header, block_tree_->getBlockHeader(info.hash));
           HasAuthoritySetChange digests{header};
-          if (digests.scheduled) {
-            auto state = applyDigests(info, prev_state->id + 1, digests);
-            GrandpaIndexedValue value{state->id, std::nullopt, state};
+          if (digests.forced and digests.forced->delay_start >= info.number) {
+            SL_WARN(logger_,
+                    "ForcedChange on {} ignored, targets future block {}",
+                    info,
+                    digests.forced->delay_start);
+            digests.scheduled.reset();
+            digests.forced.reset();
+          }
+          if (digests) {
+            GrandpaIndexedValue value;
+            if (digests.forced) {
+              if (not prev) {
+                return AuthorityManagerError::PREVIOUS_NOT_FOUND;
+              }
+              while (true) {
+                auto r = indexer_.get(*prev);
+                if (not r) {
+                  return AuthorityManagerError::PREVIOUS_NOT_FOUND;
+                }
+                if (not r->value) {
+                  return AuthorityManagerError::PREVIOUS_NOT_FOUND;
+                }
+                if (prev->number <= digests.forced->delay_start
+                    or r->value->forced_target or r->value->state
+                    or block_tree_->getBlockJustification(prev->hash)) {
+                  value.next_set_id = r->value->next_set_id + 1;
+                  value.forced_target =
+                      std::max(digests.forced->delay_start, prev->number);
+                  break;
+                }
+                if (not r->prev) {
+                  return AuthorityManagerError::PREVIOUS_NOT_FOUND;
+                }
+                prev = r->prev;
+              }
+            } else {
+              value.next_set_id = prev_state->id + 1;
+            }
+            auto state = applyDigests(info, value.next_set_id, digests);
+            value.next = state;
             indexer_.put(info, {value, prev}, block_tree_->isFinalized(info));
             prev = info;
             prev_state = state;
@@ -151,7 +198,7 @@ namespace kagome::consensus::grandpa {
     if (r->second.value->state) {
       return *r->second.value->state;
     }
-    if (next or r->first != block) {
+    if (next or r->second.value->forced_target or r->first != block) {
       OUTCOME_TRY(load(r->first, r->second));
       return *r->second.value->next;
     }
@@ -163,12 +210,12 @@ namespace kagome::consensus::grandpa {
       primitives::AuthoritySetId set_id,
       const HasAuthoritySetChange &digests) const {
     BOOST_ASSERT(digests);
-    BOOST_ASSERT(digests.scheduled);
     return std::make_shared<primitives::AuthoritySet>(
         set_id,
         isKusamaHardFork(block_tree_->getGenesisBlockHash(), block)
             ? kusamaHardForksAuthorities()
-            : digests.scheduled->authorities);
+        : digests.forced ? digests.forced->authorities
+                         : digests.scheduled->authorities);
   }
 
   outcome::result<void> AuthorityManagerImpl::load(
@@ -209,11 +256,16 @@ namespace kagome::consensus::grandpa {
                                   const primitives::BlockHeader &header,
                                   const primitives::AuthoritySet &authorities) {
     std::unique_lock lock{mutex_};
-    GrandpaIndexedValue value{authorities.id + 1, std::nullopt, std::nullopt};
+    GrandpaIndexedValue value{
+        authorities.id + 1,
+        std::nullopt,
+        std::nullopt,
+        std::nullopt,
+    };
     HasAuthoritySetChange digests{header};
     if (not digests.scheduled) {
       auto state = std::make_shared<primitives::AuthoritySet>(authorities);
-      value = {authorities.id, state, state};
+      value = {authorities.id, std::nullopt, state, state};
     }
     indexer_.put(block, {value, std::nullopt}, true);
   }
