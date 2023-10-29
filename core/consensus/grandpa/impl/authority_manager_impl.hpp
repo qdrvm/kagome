@@ -30,10 +30,6 @@ namespace kagome::runtime {
 }  // namespace kagome::runtime
 
 namespace kagome::consensus::grandpa {
-  // TODO(turuslan): #1536, westend forced changes [1491033 2318338 2437992
-  // 4356716 4357394 12691801 12719004 12734588 12735037 12735379 12735523
-  // 12927502 12927596 15533486 15533936]
-
   // TODO(turuslan): #1857, grandpa voting during forced change
 
   struct GrandpaIndexedValue {
