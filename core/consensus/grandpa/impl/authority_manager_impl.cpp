@@ -7,9 +7,7 @@
 #include "authority_manager_impl.hpp"
 
 #include "application/app_state_manager.hpp"
-#include "blockchain/block_header_repository.hpp"
 #include "blockchain/block_tree.hpp"
-#include "common/visitor.hpp"
 #include "consensus/grandpa/authority_manager_error.hpp"
 #include "consensus/grandpa/impl/kusama_hard_forks.hpp"
 #include "runtime/runtime_api/grandpa_api.hpp"
@@ -26,13 +24,11 @@ namespace kagome::consensus::grandpa {
       std::shared_ptr<blockchain::BlockTree> block_tree,
       std::shared_ptr<runtime::GrandpaApi> grandpa_api,
       std::shared_ptr<storage::SpacedStorage> persistent_storage,
-      std::shared_ptr<blockchain::BlockHeaderRepository> header_repo,
       primitives::events::ChainSubscriptionEnginePtr chain_events_engine)
       : block_tree_(std::move(block_tree)),
         grandpa_api_(std::move(grandpa_api)),
         persistent_storage_{
             persistent_storage->getSpace(storage::Space::kDefault)},
-        header_repo_{std::move(header_repo)},
         chain_sub_([&] {
           BOOST_ASSERT(chain_events_engine != nullptr);
           return std::make_shared<primitives::events::ChainEventSubscriber>(
@@ -48,7 +44,6 @@ namespace kagome::consensus::grandpa {
     BOOST_ASSERT(block_tree_ != nullptr);
     BOOST_ASSERT(grandpa_api_ != nullptr);
     BOOST_ASSERT(persistent_storage_ != nullptr);
-    BOOST_ASSERT(header_repo_ != nullptr);
 
     if (auto r = indexer_.init(); not r) {
       logger_->error("Indexer::init error: {}", r.error());
@@ -111,7 +106,7 @@ namespace kagome::consensus::grandpa {
         BOOST_ASSERT(i_first >= i_last);
         auto info = descent.path_.at(i_first);
         std::shared_ptr<const primitives::AuthoritySet> prev_state;
-        if (info.number == 0) {
+        [[unlikely]] if (info.number == 0) {
           OUTCOME_TRY(list, grandpa_api_->authorities(info.hash));
           auto genesis =
               std::make_shared<primitives::AuthoritySet>(0, std::move(list));
@@ -152,10 +147,7 @@ namespace kagome::consensus::grandpa {
               }
               while (true) {
                 auto r = indexer_.get(*prev);
-                if (not r) {
-                  return AuthorityManagerError::PREVIOUS_NOT_FOUND;
-                }
-                if (not r->value) {
+                if (not r or not r->value) {
                   return AuthorityManagerError::PREVIOUS_NOT_FOUND;
                 }
                 if (prev->number <= digests.forced->delay_start
@@ -242,10 +234,7 @@ namespace kagome::consensus::grandpa {
       return AuthorityManagerError::PREVIOUS_NOT_FOUND;
     }
     auto r = indexer_.get(*prev);
-    if (not r) {
-      return AuthorityManagerError::PREVIOUS_NOT_FOUND;
-    }
-    if (not r->value) {
+    if (not r or not r->value) {
       return AuthorityManagerError::PREVIOUS_NOT_FOUND;
     }
     OUTCOME_TRY(load(*prev, *r));

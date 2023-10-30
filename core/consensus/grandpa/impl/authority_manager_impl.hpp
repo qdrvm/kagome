@@ -22,7 +22,6 @@ namespace kagome::application {
 
 namespace kagome::blockchain {
   class BlockTree;
-  class BlockHeaderRepository;
 }  // namespace kagome::blockchain
 
 namespace kagome::runtime {
@@ -60,7 +59,6 @@ namespace kagome::consensus::grandpa {
         std::shared_ptr<blockchain::BlockTree> block_tree,
         std::shared_ptr<runtime::GrandpaApi> grandpa_api,
         std::shared_ptr<storage::SpacedStorage> persistent_storage,
-        std::shared_ptr<blockchain::BlockHeaderRepository> header_repo,
         primitives::events::ChainSubscriptionEnginePtr chain_events_engine);
 
     bool prepare();
@@ -93,7 +91,6 @@ namespace kagome::consensus::grandpa {
     std::shared_ptr<blockchain::BlockTree> block_tree_;
     std::shared_ptr<runtime::GrandpaApi> grandpa_api_;
     std::shared_ptr<storage::BufferStorage> persistent_storage_;
-    std::shared_ptr<blockchain::BlockHeaderRepository> header_repo_;
     std::shared_ptr<primitives::events::ChainEventSubscriber> chain_sub_;
 
     mutable blockchain::Indexer<GrandpaIndexedValue> indexer_;
