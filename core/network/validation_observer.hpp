@@ -8,7 +8,7 @@
 
 #include <libp2p/peer/peer_id.hpp>
 
-#include "network/types/collator_messages.hpp"
+#include "network/types/collator_messages_vstaging.hpp"
 #include "primitives/common.hpp"
 
 namespace kagome::network {
@@ -21,12 +21,12 @@ namespace kagome::network {
 
     /// Handle incoming validation stream.
     virtual void onIncomingValidationStream(
-        libp2p::peer::PeerId const &peer_id) = 0;
+        libp2p::peer::PeerId const &peer_id, network::CollationVersion version) = 0;
 
     /// Handle incoming collation message.
     virtual void onIncomingMessage(
         libp2p::peer::PeerId const &peer_id,
-        ValidatorProtocolMessage &&validation_message) = 0;
+        network::VersionedValidatorProtocolMessage &&validation_message) = 0;
   };
 }  // namespace kagome::network
 

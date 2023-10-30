@@ -48,6 +48,7 @@ namespace kagome::network {
         LazySPtr<PropagateTransactionsProtocol> propagate_transactions_protocol,
         LazySPtr<ValidationProtocol> validation_protocol,
         LazySPtr<CollationProtocol> collation_protocol,
+        LazySPtr<CollationProtocolVStaging> collation_protocol_vstaging,
         LazySPtr<ReqCollationProtocol> req_collation_protocol,
         LazySPtr<ReqPovProtocol> req_pov_protocol,
         LazySPtr<FetchChunkProtocol> fetch_chunk_protocol,
@@ -78,6 +79,7 @@ namespace kagome::network {
     getPropagateTransactionsProtocol() const override;
 
     std::shared_ptr<CollationProtocol> getCollationProtocol() const override;
+    std::shared_ptr<CollationProtocolVStaging> getCollationProtocolVStaging() const override;
     std::shared_ptr<ValidationProtocol> getValidationProtocol() const override;
     std::shared_ptr<ReqCollationProtocol> getReqCollationProtocol()
         const override;
@@ -121,6 +123,7 @@ namespace kagome::network {
 
     LazySPtr<ValidationProtocol> validation_protocol_;
     LazySPtr<CollationProtocol> collation_protocol_;
+    LazySPtr<CollationProtocolVStaging> collation_protocol_vstaging_;
     LazySPtr<ReqCollationProtocol> req_collation_protocol_;
     LazySPtr<ReqPovProtocol> req_pov_protocol_;
     LazySPtr<FetchChunkProtocol> fetch_chunk_protocol_;

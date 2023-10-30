@@ -515,19 +515,6 @@ namespace kagome::network {
     std::optional<CollatorId> collator;
   };
 
-  /**
-   * Common WireMessage that represents messages in NetworkBridge.
-   */
-  template <typename T>
-  using WireMessage = boost::variant<
-      Dummy,  /// not used
-      std::enable_if_t<AllowerTypeChecker<T,
-                                          ValidatorProtocolMessage,
-                                          CollationProtocolMessage>::allowed,
-                       T>,  /// protocol message
-      ViewUpdate            /// view update message
-      >;
-
   inline CandidateHash candidateHash(const crypto::Hasher &hasher,
                                      const CommittedCandidateReceipt &receipt) {
     auto commitments_hash =

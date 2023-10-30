@@ -40,6 +40,11 @@ namespace kagome::network {
                 (const, override));
 
     MOCK_METHOD(std::shared_ptr<CollationProtocol>,
+                getCollationProtocolVStaging,
+                (),
+                (const, override));
+
+    MOCK_METHOD(std::shared_ptr<CollationProtocolVStaging>,
                 getCollationProtocol,
                 (),
                 (const, override));

@@ -21,6 +21,7 @@ namespace kagome::network {
       LazySPtr<PropagateTransactionsProtocol> propagate_transactions_protocol,
       LazySPtr<ValidationProtocol> validation_protocol,
       LazySPtr<CollationProtocol> collation_protocol,
+      LazySPtr<CollationProtocolVStaging> collation_protocol_vstaging,
       LazySPtr<ReqCollationProtocol> req_collation_protocol,
       LazySPtr<ReqPovProtocol> req_pov_protocol,
       LazySPtr<FetchChunkProtocol> fetch_chunk_protocol,
@@ -42,6 +43,7 @@ namespace kagome::network {
             std::move(propagate_transactions_protocol)),
         validation_protocol_(std::move(validation_protocol)),
         collation_protocol_(std::move(collation_protocol)),
+        collation_protocol_vstaging_(std::move(collation_protocol_vstaging)),
         req_collation_protocol_(std::move(req_collation_protocol)),
         req_pov_protocol_(std::move(req_pov_protocol)),
         fetch_chunk_protocol_(std::move(fetch_chunk_protocol)),
@@ -184,6 +186,11 @@ namespace kagome::network {
   std::shared_ptr<CollationProtocol> RouterLibp2p::getCollationProtocol()
       const {
     return collation_protocol_.get();
+  }
+
+  std::shared_ptr<CollationProtocolVStaging> RouterLibp2p::getCollationProtocolVStaging()
+      const {
+    return collation_protocol_vstaging_.get();
   }
 
   std::shared_ptr<ValidationProtocol> RouterLibp2p::getValidationProtocol()

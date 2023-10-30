@@ -32,8 +32,11 @@ namespace kagome::network::vstaging {
 
   using CollatorProtocolMessageDeclare = network::CollatorDeclaration;
   using CollatorProtocolMessageCollationSeconded = network::Seconded;
+  using BitfieldDistributionMessage = network::BitfieldDistributionMessage;
+  using ApprovalDistributionMessage = network::ApprovalDistributionMessage;
 
   struct CollatorProtocolMessageAdvertiseCollation {
+    SCALE_TIE(3);
     /// Hash of the relay parent advertised collation is based on.
     RelayHash relay_parent;
     /// Candidate hash.
@@ -50,10 +53,12 @@ namespace kagome::network::vstaging {
                      CollatorProtocolMessageCollationSeconded>;
 
   struct SecondedCandidateHash {
+    SCALE_TIE(1);
     CandidateHash hash;
   };
 
   struct ValidCandidateHash {
+    SCALE_TIE(1);
     CandidateHash hash;
   };
 
@@ -61,6 +66,8 @@ namespace kagome::network::vstaging {
       boost::variant<Empty, SecondedCandidateHash, ValidCandidateHash>;
 
   struct StatementDistributionMessageStatement {
+    SCALE_TIE(2);
+
     RelayHash relay_parent;
     IndexedAndSigned<CompactStatement> compact;
   };
@@ -68,6 +75,7 @@ namespace kagome::network::vstaging {
   using v1StatementDistributionMessage = network::StatementDistributionMessage;
 
   struct StatementFilter {
+    SCALE_TIE(2);
     /// Seconded statements. '1' is known or undesired.
     scale::BitVec seconded_in_group;
     /// Valid statements. '1' is known or undesired.
@@ -75,6 +83,7 @@ namespace kagome::network::vstaging {
   };
 
   struct BackedCandidateManifest {
+    SCALE_TIE(6);
     RelayHash relay_parent;
     CandidateHash candidate_hash;
     GroupIndex group_index;
@@ -91,19 +100,17 @@ namespace kagome::network::vstaging {
   };
 
   struct BackedCandidateAcknowledgement {
+    SCALE_TIE(2);
     CandidateHash candidate_hash;
     StatementFilter statement_knowledge;
   };
 
-  struct StatementDistributionMessage {
-    uint8_t index;
-    union {
-      StatementDistributionMessageStatement statement;   // 0
-      BackedCandidateManifest manifest;                  // 1
-      BackedCandidateAcknowledgement acknowledgement;    // 2
-      v1StatementDistributionMessage v1_compartibility;  // 255
-    } data;
-  };
+  using StatementDistributionMessage = boost::variant<
+      StatementDistributionMessageStatement,   // 0
+      BackedCandidateManifest,                  // 1
+      BackedCandidateAcknowledgement    // 2
+      //v1StatementDistributionMessage  // 255
+  >;
 
   struct CollationFetchingRequest {
     SCALE_TIE(3);
@@ -116,6 +123,14 @@ namespace kagome::network::vstaging {
   };
 
   using CollationFetchingResponse = network::CollationFetchingResponse;
+
+  using ValidatorProtocolMessage = boost::variant<
+      Dummy,                         /// NU
+      BitfieldDistributionMessage,   /// bitfield distribution message
+      Dummy,                         /// NU
+      StatementDistributionMessage,  /// statement distribution message
+      ApprovalDistributionMessage    /// approval distribution message
+      >;
 
   struct CandidatePendingAvailability {
     SCALE_TIE(5);
@@ -135,12 +150,38 @@ namespace kagome::network::vstaging {
 
 namespace kagome::network {
 
+  enum CollationVersion {
+    /// The first version.
+    V1 = 1,
+    /// The staging version.
+    VStaging = 2,
+  };
+
+  /**
+   * Common WireMessage that represents messages in NetworkBridge.
+   */
+  template <typename T>
+  using WireMessage = boost::variant<
+      Dummy,  /// not used
+      std::enable_if_t<AllowerTypeChecker<T,
+                                          ValidatorProtocolMessage,
+                                          CollationProtocolMessage,
+                                          vstaging::ValidatorProtocolMessage,
+                                          vstaging::CollatorProtocolMessage
+                                          >::allowed,
+                       T>,  /// protocol message
+      ViewUpdate            /// view update message
+      >;
+
   template <typename V1, typename VStaging>
   using Versioned = boost::variant<V1, VStaging>;
 
   using VersionedCollatorProtocolMessage =
       Versioned<kagome::network::CollationMessage,
                 kagome::network::vstaging::CollatorProtocolMessage>;
+  using VersionedValidatorProtocolMessage =
+      Versioned<kagome::network::ValidatorProtocolMessage,
+                kagome::network::vstaging::ValidatorProtocolMessage>;
   using VersionedStatementDistributionMessage =
       Versioned<kagome::network::StatementDistributionMessage,
                 kagome::network::vstaging::StatementDistributionMessage>;

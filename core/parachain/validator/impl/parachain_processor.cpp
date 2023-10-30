@@ -565,53 +565,53 @@ namespace kagome::parachain {
     return std::move(res_data.value());
   }
 
-  void ParachainProcessorImpl::processIncomingPeerMessage(
-      const libp2p::peer::PeerId &peer_id,
-      network::VersionedCollatorProtocolMessage &&msg) {
-    REINVOKE(
-        *this_context_, processIncomingPeerMessage, peer_id, std::move(msg));
-  }
-
   void ParachainProcessorImpl::onValidationProtocolMsg(
       const libp2p::peer::PeerId &peer_id,
-      const network::ValidatorProtocolMessage &message) {
-    if (auto m{boost::get<network::BitfieldDistributionMessage>(&message)}) {
-      auto bd{boost::get<network::BitfieldDistribution>(m)};
-      BOOST_ASSERT_MSG(
-          bd, "BitfieldDistribution is not present. Check message format.");
+      const network::VersionedValidatorProtocolMessage &message) {
+    REINVOKE(
+        *this_context_, onValidationProtocolMsg, peer_id, message);
 
-      SL_TRACE(logger_,
-               "Imported bitfield {} {}",
-               bd->data.payload.ix,
-               bd->relay_parent);
-      bitfield_store_->putBitfield(bd->relay_parent, bd->data);
-      return;
-    }
+    if (std::optional<std::reference_wrapper<const network::BitfieldDistributionMessage>> m = 
+      visit_in_place(message, 
+        [](const auto &val) {
+          return if_type<const network::BitfieldDistributionMessage>(val);
+        })) {
+          auto bd{boost::get<const network::BitfieldDistribution>(&m->get())};
+          BOOST_ASSERT_MSG(
+              bd, "BitfieldDistribution is not present. Check message format.");
 
-    if (auto msg{boost::get<network::StatementDistributionMessage>(&message)}) {
-      if (auto statement_msg{boost::get<network::Seconded>(msg)}) {
-        if (auto r = canProcessParachains(); r.has_error()) {
+          SL_TRACE(logger_,
+                  "Imported bitfield {} {}",
+                  bd->data.payload.ix,
+                  bd->relay_parent);
+          bitfield_store_->putBitfield(bd->relay_parent, bd->data);
           return;
         }
-        if (auto r = isParachainValidator(statement_msg->relay_parent);
-            r.has_error() || !r.value()) {
-          return;
-        }
-        SL_TRACE(
-            logger_, "Imported statement on {}", statement_msg->relay_parent);
 
-        /// TODO(iceseer): do Statement with PVD
-        // handleStatement(
-        //     peer_id, statement_msg->relay_parent, statement_msg->statement);
-      } else {
-        auto &large = boost::get<network::LargeStatement>(*msg);
-        SL_ERROR(logger_,
-                 "Ignoring LargeStatement about {} from {}",
-                 large.payload.payload.candidate_hash,
-                 peer_id);
-      }
-      return;
-    }
+//    if (auto msg{boost::get<network::StatementDistributionMessage>(&message)}) {
+//      if (auto statement_msg{boost::get<network::Seconded>(msg)}) {
+//        if (auto r = canProcessParachains(); r.has_error()) {
+//          return;
+//        }
+//        if (auto r = isParachainValidator(statement_msg->relay_parent);
+//            r.has_error() || !r.value()) {
+//          return;
+//        }
+//        SL_TRACE(
+//            logger_, "Imported statement on {}", statement_msg->relay_parent);
+//
+//        /// TODO(iceseer): do Statement with PVD
+//        // handleStatement(
+//        //     peer_id, statement_msg->relay_parent, statement_msg->statement);
+//      } else {
+//        auto &large = boost::get<network::LargeStatement>(*msg);
+//        SL_ERROR(logger_,
+//                 "Ignoring LargeStatement about {} from {}",
+//                 large.payload.payload.candidate_hash,
+//                 peer_id);
+//      }
+//      return;
+//    }
   }
 
   template <typename F>
@@ -1321,7 +1321,20 @@ namespace kagome::parachain {
   }
 
   void ParachainProcessorImpl::onIncomingCollationStream(
-      const libp2p::peer::PeerId &peer_id) {
+      const libp2p::peer::PeerId &peer_id, network::CollationVersion version) {
+    REINVOKE(*this_context_,
+             onIncomingCollationStream,
+             peer_id,
+             version);
+
+    const auto peer_state = pm_->getPeerState(peer_id);
+    if (!peer_state) {
+      logger_->warn("Received incoming collation stream from unknown peer {}",
+                    peer_id);
+      return;
+    }
+
+    peer_state->get().version = version;
     if (tryOpenOutgoingCollatingStream(
             peer_id, [wptr{weak_from_this()}, peer_id](auto &&stream) {
               if (auto self = wptr.lock()) {
@@ -1334,7 +1347,20 @@ namespace kagome::parachain {
   }
 
   void ParachainProcessorImpl::onIncomingValidationStream(
-      const libp2p::peer::PeerId &peer_id) {
+      const libp2p::peer::PeerId &peer_id, network::CollationVersion version) {
+    REINVOKE(*this_context_,
+             onIncomingValidationStream,
+             peer_id,
+             version);
+
+    const auto peer_state = pm_->getPeerState(peer_id);
+    if (!peer_state) {
+      logger_->warn("Received incoming collation stream from unknown peer {}",
+                    peer_id);
+      return;
+    }
+
+    peer_state->get().version = version;
     if (tryOpenOutgoingValidationStream(
             peer_id, [wptr{weak_from_this()}, peer_id](auto &&stream) {
               if (auto self = wptr.lock()) {

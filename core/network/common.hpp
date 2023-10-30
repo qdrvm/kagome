@@ -29,6 +29,8 @@ namespace kagome::network {
   const libp2p::peer::ProtocolName kLightProtocol = "/{}/light/2";
   const libp2p::peer::ProtocolName kCollationProtocol{"/{}/collation/1"};
   const libp2p::peer::ProtocolName kValidationProtocol{"/{}/validation/1"};
+  const libp2p::peer::ProtocolName kCollationProtocolVStaging{"/{}/collation/2"};
+  const libp2p::peer::ProtocolName kValidationProtocolVStaging{"/{}/validation/2"};
   const libp2p::peer::ProtocolName kReqCollationProtocol{"/{}/req_collation/1"};
   const libp2p::peer::ProtocolName kReqPovProtocol{"/{}/req_pov/1"};
   const libp2p::peer::ProtocolName kFetchChunkProtocol{"/{}/req_chunk/1"};

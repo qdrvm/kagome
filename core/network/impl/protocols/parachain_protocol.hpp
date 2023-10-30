@@ -183,6 +183,13 @@ namespace kagome::network {
       }
     }
 
+    CollationVersion protocolToVersion() const {
+      if (protocol_.find("/collation/2") != std::string::npos || protocol_.find("/validation/2") != std::string::npos) {
+        return CollationVersion::VStaging;
+      }
+      return CollationVersion::V1;
+    }
+
     template <bool DirectionIncoming, typename F>
     void doCollatorHandshake(
         const std::shared_ptr<kagome::network::Stream> &stream, F &&func) {
@@ -202,10 +209,10 @@ namespace kagome::network {
               }
               if constexpr (kCollation == true) {
                 self->observer_->onIncomingCollationStream(
-                    stream->remotePeerId().value());
+                    stream->remotePeerId().value(), self->protocolToVersion());
               } else {
                 self->observer_->onIncomingValidationStream(
-                    stream->remotePeerId().value());
+                    stream->remotePeerId().value(), self->protocolToVersion());
               }
             }
             std::forward<F>(func)(stream);
@@ -260,8 +267,13 @@ namespace kagome::network {
                              "Received Collation/Validation message from {}",
                              stream->remotePeerId().value().toBase58());
 
-                  self->observer_->onIncomingMessage(
-                      stream->remotePeerId().value(), std::move(p));
+                  if constexpr (kCollation == true) {
+                    self->observer_->onIncomingMessage(
+                        stream->remotePeerId().value(), network::VersionedCollatorProtocolMessage{std::move(p)});
+                  } else {
+                    self->observer_->onIncomingMessage(
+                        stream->remotePeerId().value(), network::VersionedValidatorProtocolMessage{std::move(p)});
+                  }
                 });
             self->readCollationMsg(std::move(stream));
           });

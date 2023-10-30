@@ -14,7 +14,7 @@
 
 #include "network/types/block_announce.hpp"
 #include "network/types/block_announce_handshake.hpp"
-#include "network/types/collator_messages.hpp"
+#include "network/types/collator_messages_vstaging.hpp"
 #include "network/types/grandpa_message.hpp"
 #include "outcome/outcome.hpp"
 #include "primitives/common.hpp"
@@ -30,13 +30,6 @@ namespace kagome::network {
     network::CollatorPublicKey collator_id;
     std::unordered_map<Hash, std::unordered_set<CandidateHash>> advertisements;
     std::chrono::system_clock::time_point last_active;
-  };
-
-  enum CollationVersion {
-    /// The first version.
-    V1 = 1,
-    /// The staging version.
-    VStaging = 2,
   };
 
   struct CollationEvent {

@@ -2035,15 +2035,25 @@ namespace kagome::parachain {
 
   void ApprovalDistribution::onValidationProtocolMsg(
       const libp2p::peer::PeerId &peer_id,
-      const network::ValidatorProtocolMessage &message) {
+      const network::VersionedValidatorProtocolMessage &message) {
     REINVOKE(*internal_context_, onValidationProtocolMsg, peer_id, message);
 
     if (!parachain_processor_->canProcessParachains()) {
       return;
     }
-    if (auto m{boost::get<network::ApprovalDistributionMessage>(&message)}) {
+
+    std::optional<std::reference_wrapper<const network::ApprovalDistributionMessage>> m = 
+    visit_in_place(message, 
+      [](const auto &val) {
+        return if_type<const network::ApprovalDistributionMessage>(val);
+      });
+
+    if (!m) { 
+      return; 
+      }
+
       visit_in_place(
-          *m,
+          m->get(),
           [&](const network::Assignments &assignments) {
             SL_TRACE(logger_,
                      "Received assignments.(peer_id={}, count={})",
@@ -2096,7 +2106,6 @@ namespace kagome::parachain {
             }
           },
           [&](const auto &) { UNREACHABLE; });
-    }
   }
 
   void ApprovalDistribution::runDistributeAssignment(

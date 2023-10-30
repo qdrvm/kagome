@@ -26,7 +26,7 @@
 #include "dispute_coordinator/dispute_coordinator.hpp"
 #include "injector/lazy.hpp"
 #include "network/peer_view.hpp"
-#include "network/types/collator_messages.hpp"
+#include "network/types/collator_messages_vstaging.hpp"
 #include "parachain/approval/approved_ancestor.hpp"
 #include "parachain/approval/knowledge.hpp"
 #include "parachain/approval/store.hpp"
@@ -304,7 +304,7 @@ namespace kagome::parachain {
 
     void onValidationProtocolMsg(
         const libp2p::peer::PeerId &peer_id,
-        const network::ValidatorProtocolMessage &message);
+        const network::VersionedValidatorProtocolMessage &message);
 
     using SignaturesForCandidate =
         std::unordered_map<ValidatorIndex, ValidatorSignature>;

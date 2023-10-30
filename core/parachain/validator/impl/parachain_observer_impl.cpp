@@ -90,18 +90,18 @@ namespace kagome::parachain {
   }
 
   void ParachainObserverImpl::onIncomingCollationStream(
-      const libp2p::peer::PeerId &peer_id) {
-    processor_->onIncomingCollationStream(peer_id);
+      const libp2p::peer::PeerId &peer_id, network::CollationVersion version) {
+    processor_->onIncomingCollationStream(peer_id, version);
   }
 
   void ParachainObserverImpl::onIncomingValidationStream(
-      const libp2p::peer::PeerId &peer_id) {
-    processor_->onIncomingValidationStream(peer_id);
+      const libp2p::peer::PeerId &peer_id, network::CollationVersion version) {
+    processor_->onIncomingValidationStream(peer_id, version);
   }
 
   void ParachainObserverImpl::onIncomingMessage(
       const libp2p::peer::PeerId &peer_id,
-      network::ValidatorProtocolMessage &&message) {
+      network::VersionedValidatorProtocolMessage &&message) {
     processor_->onValidationProtocolMsg(peer_id, message);
     approval_distribution_->onValidationProtocolMsg(peer_id, message);
   }

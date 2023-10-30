@@ -41,14 +41,14 @@ namespace kagome::parachain {
         const libp2p::peer::PeerId &peer_id,
         network::VersionedCollatorProtocolMessage &&msg) override;
     void onIncomingCollationStream(
-        const libp2p::peer::PeerId &peer_id) override;
+        const libp2p::peer::PeerId &peer_id, network::CollationVersion version) override;
 
     /// validation protocol observer
     void onIncomingMessage(
         const libp2p::peer::PeerId &peer_id,
-        network::ValidatorProtocolMessage &&validation_message) override;
+        network::VersionedValidatorProtocolMessage &&validation_message) override;
     void onIncomingValidationStream(
-        const libp2p::peer::PeerId &peer_id) override;
+        const libp2p::peer::PeerId &peer_id, network::CollationVersion version) override;
 
     /// fetch collation protocol observer
     outcome::result<network::CollationFetchingResponse> OnCollationRequest(

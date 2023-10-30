@@ -21,13 +21,14 @@ namespace kagome::network {
 
     /// Handle incoming collation stream.
     virtual void onIncomingCollationStream(
-        const libp2p::peer::PeerId &peer_id) = 0;
+        const libp2p::peer::PeerId &peer_id, network::CollationVersion version) = 0;
 
     /// Handle incoming collation message.
     virtual void onIncomingMessage(
         const libp2p::peer::PeerId &peer_id,
         network::VersionedCollatorProtocolMessage &&msg) = 0;
   };
+
 }  // namespace kagome::network
 
 #endif  // KAGOME_COLLATION_OBSERVER_HPP

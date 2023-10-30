@@ -120,17 +120,14 @@ namespace kagome::parachain {
         std::optional<std::pair<CandidateHash, Hash>> &&prospective_candidate);
     outcome::result<void> canProcessParachains() const;
 
-    void processIncomingPeerMessage(
-        const libp2p::peer::PeerId &peer_id,
-        network::VersionedCollatorProtocolMessage &&msg);
     void onIncomingCollator(const libp2p::peer::PeerId &peer_id,
                             network::CollatorPublicKey pubkey,
                             network::ParachainId para_id);
-    void onIncomingCollationStream(const libp2p::peer::PeerId &peer_id);
-    void onIncomingValidationStream(const libp2p::peer::PeerId &peer_id);
+    void onIncomingCollationStream(const libp2p::peer::PeerId &peer_id, network::CollationVersion version);
+    void onIncomingValidationStream(const libp2p::peer::PeerId &peer_id, network::CollationVersion version);
     void onValidationProtocolMsg(
         const libp2p::peer::PeerId &peer_id,
-        const network::ValidatorProtocolMessage &message);
+        const network::VersionedValidatorProtocolMessage &message);
     outcome::result<network::FetchChunkResponse> OnFetchChunkRequest(
         const network::FetchChunkRequest &request);
 
