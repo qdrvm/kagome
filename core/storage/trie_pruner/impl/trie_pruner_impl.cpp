@@ -12,7 +12,6 @@
 
 #include "application/app_configuration.hpp"
 #include "application/app_state_manager.hpp"
-#include "blockchain/block_storage.hpp"
 #include "blockchain/block_tree.hpp"
 #include "crypto/hasher/hasher_impl.hpp"
 #include "log/formatters/optional.hpp"
@@ -564,4 +563,16 @@ namespace kagome::storage::trie_pruner {
     return outcome::success();
   }
 
+  void TriePrunerImpl::reload(const blockchain::BlockTree &block_tree) {
+    auto header_res =
+        block_tree.getBlockHeader(block_tree.getLastFinalized().hash);
+    if (header_res.has_error()) {
+      SL_ERROR(logger_, "reload(): getBlockHeader(): {}", header_res.error());
+      return;
+    }
+    auto &header = header_res.value();
+    if (auto r = restoreStateAt(header, block_tree); r.has_error()) {
+      SL_ERROR(logger_, "reload(): restoreStateAt(): {}", r.error());
+    }
+  }
 }  // namespace kagome::storage::trie_pruner

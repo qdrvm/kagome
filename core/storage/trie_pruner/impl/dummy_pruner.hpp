@@ -43,6 +43,8 @@ namespace kagome::storage::trie_pruner {
     std::optional<uint32_t> getPruningDepth() const override {
       return std::nullopt;
     }
+
+    void reload(const blockchain::BlockTree &) override {}
   };
 
 }  // namespace kagome::storage::trie_pruner

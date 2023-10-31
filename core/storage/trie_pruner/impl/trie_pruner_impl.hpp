@@ -31,11 +31,6 @@ namespace kagome::crypto {
   class Hasher;
 }
 
-namespace kagome::blockchain {
-  class BlockTree;
-  class BlockStorage;
-}  // namespace kagome::blockchain
-
 namespace kagome::storage {
   class SpacedStorage;
 }
@@ -116,6 +111,8 @@ namespace kagome::storage::trie_pruner {
 
     outcome::result<void> recoverState(
         const blockchain::BlockTree &block_tree) override;
+
+    void reload(const blockchain::BlockTree &block_tree) override;
 
    private:
     outcome::result<void> restoreStateAt(
