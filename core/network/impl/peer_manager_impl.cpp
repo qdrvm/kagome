@@ -296,8 +296,8 @@ namespace kagome::network {
   void PeerManagerImpl::align() {
     SL_TRACE(log_, "Try to align peers number");
 
-    const auto target_count = app_config_.peeringConfig().targetPeerAmount;
-    const auto hard_limit = app_config_.peeringConfig().hardLimit;
+    const auto hard_limit = app_config_.inPeers() + app_config_.inPeersLight()
+                          + app_config_.outPeers();
     const auto peer_ttl = app_config_.peeringConfig().peerTtl;
 
     align_timer_.cancel();
@@ -356,7 +356,7 @@ namespace kagome::network {
     }
 
     // Not enough active peers
-    if (active_peers_.size() < target_count) {
+    if (countPeers(true) < app_config_.outPeers()) {
       if (not queue_to_connect_.empty()) {
         for (;;) {
           auto node = peers_in_queue_.extract(queue_to_connect_.front());
@@ -628,9 +628,7 @@ namespace kagome::network {
                 self->disconnectFromPeer(peer_id);
                 return;
               }
-              PeerType peer_type = connection->isInitiator()
-                                     ? PeerType::PEER_TYPE_OUT
-                                     : PeerType::PEER_TYPE_IN;
+              auto peer_type = connection->isInitiator();
 
               // Add to active peer list
               if (auto [ap_it, added] = self->active_peers_.emplace(
@@ -746,38 +744,20 @@ namespace kagome::network {
       return;
     }
     if (connection->isInitiator()) {
-      auto out_peers_count = std::count_if(
-          active_peers_.begin(), active_peers_.end(), [](const auto &el) {
-            return el.second.peer_type == PeerType::PEER_TYPE_OUT;
-          });
-      if (out_peers_count > app_config_.outPeers()) {
+      if (countPeers(true) >= app_config_.outPeers()) {
         connecting_peers_.erase(peer_id);
         disconnectFromPeer(peer_id);
         return;
       }
     } else {
-      auto in_peers_count = 0u;
-      auto in_light_peers_count = 0u;
       if (peer_states_[peer_id].roles.flags.full == 1) {
-        for (const auto &peer : active_peers_) {
-          if (peer.second.peer_type == PeerType::PEER_TYPE_IN
-              and peer_states_[peer.first].roles.flags.full == 1) {
-            ++in_peers_count;
-          }
-        }
-        if (in_peers_count >= app_config_.inPeers()) {
+        if (countPeers(false) >= app_config_.inPeers()) {
           connecting_peers_.erase(peer_id);
           disconnectFromPeer(peer_id);
           return;
         }
       } else if (peer_states_[peer_id].roles.flags.light == 1) {
-        for (const auto &peer : active_peers_) {
-          if (peer.second.peer_type == PeerType::PEER_TYPE_IN
-              and peer_states_[peer.first].roles.flags.light == 1) {
-            ++in_light_peers_count;
-          }
-        }
-        if (in_light_peers_count >= app_config_.inPeersLight()) {
+        if (countPeers(false, true) >= app_config_.inPeersLight()) {
           connecting_peers_.erase(peer_id);
           disconnectFromPeer(peer_id);
           return;
@@ -902,5 +882,24 @@ namespace kagome::network {
         ++it;
       }
     }
+  }
+
+  size_t PeerManagerImpl::countPeers(bool out, bool light) const {
+    return std::count_if(active_peers_.begin(),
+                         active_peers_.end(),
+                         [&](const decltype(active_peers_)::value_type &x) {
+                           if (x.second.out) {
+                             return out;
+                           }
+                           if (out) {
+                             return false;
+                           }
+                           auto it = peer_states_.find(x.first);
+                           if (it == peer_states_.end()) {
+                             return false;
+                           }
+                           auto &roles = it->second.roles.flags;
+                           return (light ? roles.light : roles.full) == 1;
+                         });
   }
 }  // namespace kagome::network
