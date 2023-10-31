@@ -56,7 +56,6 @@
 #include "blockchain/impl/block_header_repository_impl.hpp"
 #include "blockchain/impl/block_storage_impl.hpp"
 #include "blockchain/impl/block_tree_impl.hpp"
-#include "blockchain/impl/digest_tracker_impl.hpp"
 #include "blockchain/impl/justification_storage_policy.hpp"
 #include "clock/impl/basic_waitable_timer.hpp"
 #include "clock/impl/clock_impl.hpp"
@@ -74,7 +73,6 @@
 #include "consensus/timeline/impl/block_executor_impl.hpp"
 #include "consensus/timeline/impl/block_header_appender_impl.hpp"
 #include "consensus/timeline/impl/consensus_selector_impl.hpp"
-#include "consensus/timeline/impl/consistency_keeper_impl.hpp"
 #include "consensus/timeline/impl/slots_util_impl.hpp"
 #include "consensus/timeline/impl/timeline_impl.hpp"
 #include "consensus/validation/babe_block_validator.hpp"
@@ -778,7 +776,6 @@ namespace {
               return get_chain_spec(config);
             }),
             di::bind<network::ExtrinsicObserver>.template to<network::ExtrinsicObserverImpl>(),
-            di::bind<consensus::grandpa::GrandpaDigestObserver>.template to<consensus::grandpa::AuthorityManagerImpl>(),
             di::bind<consensus::grandpa::AuthorityManager>.template to<consensus::grandpa::AuthorityManagerImpl>(),
             di::bind<network::PeerManager>.template to<network::PeerManagerImpl>(),
             di::bind<network::Router>.template to<network::RouterLibp2p>(),
@@ -798,10 +795,8 @@ namespace {
                   return get_genesis_block_header(injector);
                 }),
             di::bind<telemetry::TelemetryService>.template to<telemetry::TelemetryServiceImpl>(),
-            di::bind<consensus::ConsistencyKeeper>.template to<consensus::ConsistencyKeeperImpl>(),
             di::bind<api::InternalApi>.template to<api::InternalApiImpl>(),
             di::bind<consensus::babe::BabeConfigRepository>.template to<consensus::babe::BabeConfigRepositoryImpl>(),
-            di::bind<blockchain::DigestTracker>.template to<blockchain::DigestTrackerImpl>(),
             di::bind<authority_discovery::Query>.template to<authority_discovery::QueryImpl>(),
             di::bind<crypto::SessionKeys>.template to<crypto::SessionKeysImpl>(),
             di::bind<network::SyncProtocol>.template to<network::SyncProtocolImpl>(),

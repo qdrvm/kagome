@@ -28,7 +28,6 @@ namespace kagome::blockchain {
 namespace kagome::consensus {
   class SlotsUtil;
   class ConsensusSelector;
-  class ConsistencyKeeper;
 }  // namespace kagome::consensus
 
 namespace kagome::consensus::grandpa {
@@ -76,7 +75,6 @@ namespace kagome::consensus {
         LazySPtr<network::WarpProtocol> warp_protocol,
         std::shared_ptr<consensus::grandpa::JustificationObserver>
             justification_observer,
-        std::shared_ptr<ConsistencyKeeper> consistency_keeper,
         std::shared_ptr<libp2p::basic::Scheduler> scheduler,
         primitives::events::ChainSubscriptionEnginePtr chain_sub_engine,
         primitives::events::BabeStateSubscriptionEnginePtr state_sub_engine,
@@ -140,7 +138,6 @@ namespace kagome::consensus {
     LazySPtr<network::WarpProtocol> warp_protocol_;
     std::shared_ptr<consensus::grandpa::JustificationObserver>
         justification_observer_;
-    std::shared_ptr<ConsistencyKeeper> consistency_keeper_;
     std::shared_ptr<libp2p::basic::Scheduler> scheduler_;
     primitives::events::ChainSubscriptionEnginePtr chain_sub_engine_;
     primitives::events::BabeStateSubscriptionEnginePtr state_sub_engine_;

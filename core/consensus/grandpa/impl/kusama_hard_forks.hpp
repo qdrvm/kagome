@@ -6,8 +6,9 @@
 
 #pragma once
 
+#include <unordered_set>
+
 #include "consensus/grandpa/common.hpp"
-#include "consensus/grandpa/impl/schedule_node.hpp"
 #include "crypto/hasher/hasher_impl.hpp"
 #include "primitives/ss58_codec.hpp"
 
@@ -108,18 +109,5 @@ namespace kagome::consensus::grandpa {
         h("9e44116467cc9d7e224e36487bf2cf571698cae16b25f54a7430f1278331fdd8"),
     };
     return blocks.count(block.hash) != 0;
-  }
-
-  inline void fixKusamaHardFork(const primitives::BlockHash &genesis,
-                                ScheduleNode &node) {
-    if (not isKusamaHardFork(genesis, node.block)) {
-      return;
-    }
-    auto action = boost::get<ScheduleNode::ScheduledChange>(&node.action);
-    if (not action) {
-      throw std::logic_error{"fixKusamaHardfork expected ScheduledChange"};
-    }
-    action->new_authorities = std::make_shared<primitives::AuthoritySet>(
-        action->new_authorities->id, kusamaHardForksAuthorities());
   }
 }  // namespace kagome::consensus::grandpa

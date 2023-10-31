@@ -30,8 +30,6 @@
 #include "network/synchronizer.hpp"
 
 namespace {
-  using IsBlockFinalized = kagome::Tagged<bool, struct IsBlockFinalizedTag>;
-
   constexpr auto highestGrandpaRoundMetricName =
       "kagome_finality_grandpa_round";
 
@@ -165,8 +163,8 @@ namespace kagome::consensus::grandpa {
              "Grandpa will be started with round #{}",
              round_state.round_number + 1);
 
-    auto authorities_res = authority_manager_->authorities(
-        round_state.last_finalized_block, IsBlockFinalized{false});
+    auto authorities_res =
+        authority_manager_->authorities(round_state.last_finalized_block, true);
     if (not authorities_res.has_value()) {
       logger_->critical(
           "Can't retrieve authorities for block {}. Stopping grandpa execution",
