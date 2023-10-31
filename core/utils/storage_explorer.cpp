@@ -550,9 +550,6 @@ int storage_explorer_main(int argc, const char **argv) {
   auto persistent_storage = injector.injectStorage();
   auto hasher = std::make_shared<kagome::crypto::HasherImpl>();
 
-  auto header_repo =
-      std::make_shared<kagome::blockchain::BlockHeaderRepositoryImpl>(
-          persistent_storage, hasher);
   auto grandpa_api =
       std::make_shared<kagome::runtime::GrandpaApiImpl>(executor);
 
@@ -563,7 +560,6 @@ int storage_explorer_main(int argc, const char **argv) {
                                              block_tree,
                                              grandpa_api,
                                              persistent_storage,
-                                             header_repo,
                                              chain_events_engine);
 
   parser.addCommand(std::make_unique<InspectBlockCommand>(block_storage));
