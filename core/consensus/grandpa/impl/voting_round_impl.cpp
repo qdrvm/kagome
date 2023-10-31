@@ -1014,6 +1014,12 @@ namespace kagome::consensus::grandpa {
       env_->onVoted(round_number_, voter_set_->id(), prevote);
     }
 
+    if (stage_ == Stage::PRECOMMIT_WAITS_FOR_PREVOTES) {
+      if (updateGrandpaGhost()) {
+        endPrecommitStage();
+      }
+    }
+
     return true;
   }
 
