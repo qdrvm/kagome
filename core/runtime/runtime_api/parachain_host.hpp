@@ -10,6 +10,7 @@
 #include "common/unused.hpp"
 #include "dispute_coordinator/provisioner/impl/prioritized_selection.hpp"
 #include "dispute_coordinator/types.hpp"
+#include "parachain/types.hpp"
 #include "primitives/block_id.hpp"
 #include "primitives/common.hpp"
 #include "primitives/parachain_host.hpp"
@@ -203,6 +204,16 @@ namespace kagome::runtime {
         const primitives::BlockHash &block,
         const parachain::PvfCheckStatement &statement,
         const parachain::Signature &signature) = 0;
+
+    /**
+     * @return the state of parachain backing for a given para.
+     */
+    virtual outcome::result<std::optional<parachain::fragment::BackingState>> staging_para_backing_state(const primitives::BlockHash &block, ParachainId id) = 0;
+
+    /**
+     * @return candidate's acceptance limitations for asynchronous backing for a relay parent.
+     */
+    virtual outcome::result<parachain::fragment::AsyncBackingParams> staging_async_backing_params(const primitives::BlockHash &block) = 0;
   };
 
 }  // namespace kagome::runtime

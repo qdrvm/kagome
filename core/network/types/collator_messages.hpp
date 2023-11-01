@@ -72,13 +72,6 @@ namespace kagome::network {
     ChunkProof proof;
   };
 
-  enum UpgradeRestriction {
-    /// There is an upgrade restriction and there are no details about its
-    /// specifics nor how long
-    /// it could last.
-    Present = 0,
-  };
-
   /**
    * PoV
    */
@@ -92,41 +85,6 @@ namespace kagome::network {
 
   using RequestPov = CandidateHash;
   using ResponsePov = boost::variant<ParachainBlock, Empty>;
-
-  /**
-   * Unique descriptor of a candidate receipt.
-   */
-  struct CandidateDescriptor {
-    SCALE_TIE(9);
-
-    ParachainId para_id;  /// Parachain Id
-    primitives::BlockHash
-        relay_parent;  /// Hash of the relay chain block the candidate is
-    /// executed in the context of
-    CollatorPublicKey collator_id;  /// Collators public key.
-    primitives::BlockHash
-        persisted_data_hash;         /// Hash of the persisted validation data
-    primitives::BlockHash pov_hash;  /// Hash of the PoV block.
-    storage::trie::RootHash
-        erasure_encoding_root;  /// Root of the block’s erasure encoding Merkle
-    /// tree.
-    Signature signature;  /// Collator signature of the concatenated components
-    primitives::BlockHash
-        para_head_hash;  /// Hash of the parachain head data of this candidate.
-    primitives::BlockHash
-        validation_code_hash;  /// Hash of the parachain Runtime.
-
-    common::Buffer signable() const {
-      return common::Buffer{
-          ::scale::encode(relay_parent,
-                          para_id,
-                          persisted_data_hash,
-                          pov_hash,
-                          validation_code_hash)
-              .value(),
-      };
-    }
-  };
 
   /**
    * Contains information about the candidate and a proof of the results of its
@@ -215,48 +173,6 @@ namespace kagome::network {
   using FetchAvailableDataRequest = CandidateHash;
   using FetchAvailableDataResponse =
       boost::variant<runtime::AvailableData, Empty>;
-
-  struct OutboundHorizontal {
-    SCALE_TIE(2);
-
-    ParachainId para_id;       /// Parachain Id is recepient id
-    UpwardMessage upward_msg;  /// upward message for parallel parachain
-  };
-
-  struct InboundDownwardMessage {
-    SCALE_TIE(2);
-    /// The block number at which these messages were put into the downward
-    /// message queue.
-    BlockNumber sent_at;
-    /// The actual downward message to processes.
-    DownwardMessage msg;
-  };
-
-  struct InboundHrmpMessage {
-    SCALE_TIE(2);
-    /// The block number at which this message was sent.
-    /// Specifically, it is the block number at which the candidate that sends
-    /// this message was enacted.
-    BlockNumber sent_at;
-    /// The message payload.
-    common::Buffer data;
-  };
-
-  struct CandidateCommitments {
-    SCALE_TIE(6);
-
-    std::vector<UpwardMessage> upward_msgs;  /// upward messages
-    std::vector<OutboundHorizontal>
-        outbound_hor_msgs;  /// outbound horizontal messages
-    std::optional<ParachainRuntime>
-        opt_para_runtime;          /// new parachain runtime if present
-    HeadData para_head;            /// parachain head data
-    uint32_t downward_msgs_count;  /// number of downward messages that were
-    /// processed by the parachain
-    BlockNumber watermark;  /// watermark which specifies the relay chain block
-    /// number up to which all inbound horizontal messages
-    /// have been processed
-  };
 
   struct CommittedCandidateReceipt {
     SCALE_TIE(2);

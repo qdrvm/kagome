@@ -124,7 +124,7 @@ namespace kagome::parachain {
 
     outcome::result<std::optional<std::pair<
         fragment::Constraints,
-        std::vector<network::vstaging::CandidatePendingAvailability>>>>
+        std::vector<fragment::CandidatePendingAvailability>>>>
     fetchBackingState(const RelayHash &relay_parent, ParachainId para_id) {
       /// TODO(iceseer): do
 
@@ -226,7 +226,7 @@ namespace kagome::parachain {
     outcome::result<std::vector<ImportablePendingAvailability>>
     preprocessCandidatesPendingAvailability(
         const HeadData &required_parent,
-        const std::vector<network::vstaging::CandidatePendingAvailability>
+        const std::vector<fragment::CandidatePendingAvailability>
             &pending_availability) {
       std::reference_wrapper<const HeadData> required_parent_copy =
           required_parent;

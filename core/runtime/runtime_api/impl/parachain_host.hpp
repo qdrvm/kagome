@@ -102,6 +102,10 @@ namespace kagome::runtime {
         const parachain::PvfCheckStatement &statement,
         const parachain::Signature &signature) override;
 
+    outcome::result<std::optional<parachain::fragment::BackingState>> staging_para_backing_state(const primitives::BlockHash &block,ParachainId id) override;
+
+    outcome::result<parachain::fragment::AsyncBackingParams> staging_async_backing_params(const primitives::BlockHash &block) override;
+
    private:
     bool prepare();
     void clearCaches(const std::vector<primitives::BlockHash> &blocks);
