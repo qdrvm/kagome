@@ -6,7 +6,7 @@
 
 #include "crypto/crypto_store/crypto_store_impl.hpp"
 
-#include <gsl/span>
+#include <span>
 
 #include "common/bytestr.hpp"
 #include "common/visitor.hpp"
@@ -128,8 +128,7 @@ namespace kagome::crypto {
     if (kp_opt) {
       return kp_opt.value();
     }
-    OUTCOME_TRY(phrase,
-                file_storage_->searchForPhrase(key_type, gsl::make_span(pk)));
+    OUTCOME_TRY(phrase, file_storage_->searchForPhrase(key_type, pk));
     if (not phrase) {
       return CryptoStoreError::KEY_NOT_FOUND;
     }
@@ -143,8 +142,7 @@ namespace kagome::crypto {
     if (kp_opt) {
       return kp_opt.value();
     }
-    OUTCOME_TRY(phrase,
-                file_storage_->searchForPhrase(key_type, gsl::make_span(pk)));
+    OUTCOME_TRY(phrase, file_storage_->searchForPhrase(key_type, pk));
     if (not phrase) {
       return CryptoStoreError::KEY_NOT_FOUND;
     }
@@ -158,8 +156,7 @@ namespace kagome::crypto {
     if (kp_opt) {
       return kp_opt.value();
     }
-    OUTCOME_TRY(phrase,
-                file_storage_->searchForPhrase(key_type, gsl::make_span(pk)));
+    OUTCOME_TRY(phrase, file_storage_->searchForPhrase(key_type, pk));
     if (not phrase) {
       return CryptoStoreError::KEY_NOT_FOUND;
     }

@@ -72,10 +72,10 @@ namespace kagome::runtime {
 
     MOCK_METHOD(void,
                 storeBuffer,
-                (WasmPointer, gsl::span<const uint8_t>),
+                (WasmPointer, common::BufferView),
                 (override));
 
-    MOCK_METHOD(WasmSpan, storeBuffer, (gsl::span<const uint8_t>), (override));
+    MOCK_METHOD(WasmSpan, storeBuffer, (common::BufferView), (override));
   };
 
 }  // namespace kagome::runtime

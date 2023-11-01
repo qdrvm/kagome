@@ -6,9 +6,9 @@
 
 #pragma once
 
-#include <gsl/gsl_util>
-
 #include "metrics/metrics.hpp"
+
+#include <libp2p/common/final_action.hpp>
 
 namespace kagome::metrics {
   inline std::vector<double> exponentialBuckets(double start,
@@ -69,7 +69,7 @@ namespace kagome::metrics {
     }
 
     auto timer() {
-      return std::make_optional(gsl::finally(manual()));
+      return std::make_optional(::libp2p::common::MovableFinalAction(manual()));
     }
   };
 }  // namespace kagome::metrics

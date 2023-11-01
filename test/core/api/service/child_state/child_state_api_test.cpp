@@ -236,13 +236,14 @@ namespace kagome::api {
           return batch;
         }));
 
-    ASSERT_EQ(expected_keys,
-              api_->getKeysPaged(child_storage_key,
-                                 prefix_opt,
-                                 keys_amount,
-                                 prev_key_opt,
-                                 block_hash_opt)
-                  .value());
+    auto actual_keys = api_->getKeysPaged(child_storage_key,
+                                          prefix_opt,
+                                          keys_amount,
+                                          prev_key_opt,
+                                          block_hash_opt)
+                           .value();
+
+    ASSERT_EQ(expected_keys, actual_keys);
   }
 
   /**

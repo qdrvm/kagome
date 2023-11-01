@@ -7,7 +7,7 @@
 #include "crypto/sr25519/sr25519_provider_impl.hpp"
 
 #include <gtest/gtest.h>
-#include <gsl/span>
+#include <span>
 
 #include "crypto/bip39/impl/bip39_provider_impl.hpp"
 #include "crypto/hasher/hasher_impl.hpp"
@@ -59,7 +59,7 @@ struct Sr25519ProviderTest : public ::testing::Test {
   std::string_view hex_sk;
   std::string_view hex_vk;
 
-  gsl::span<uint8_t> message_span;
+  std::span<uint8_t> message_span;
   std::vector<uint8_t> message;
   std::shared_ptr<CSPRNG> random_generator;
   std::shared_ptr<Sr25519Provider> sr25519_provider;

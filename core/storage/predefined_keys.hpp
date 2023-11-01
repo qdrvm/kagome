@@ -46,11 +46,8 @@ namespace kagome::storage {
   inline const common::Buffer kBabeConfigRepositoryImplIndexerPrefix =
       ":kagome:BabeConfigRepositoryImpl:Indexer:"_buf;
 
-  template <typename Tag>
-  inline common::Buffer kAuthorityManagerStateLookupKey(Tag tag) {
-    return common::Buffer::fromString(
-        fmt::format(":kagome:auth_mngr_state:{}", tag));
-  }
+  inline const common::Buffer kAuthorityManagerImplIndexerPrefix =
+      ":kagome:AuthorityManagerImpl:Indexer:"_buf;
 
   inline const common::Buffer kRecentDisputeLookupKey = "recent_disputes"_buf;
 

@@ -12,7 +12,6 @@
 #include "clock/impl/clock_impl.hpp"
 #include "consensus/consensus_selector.hpp"
 #include "consensus/grandpa/justification_observer.hpp"
-#include "consensus/timeline/consistency_keeper.hpp"
 #include "consensus/timeline/impl/block_production_error.hpp"
 #include "consensus/timeline/slots_util.hpp"
 #include "network/block_announce_transmitter.hpp"
@@ -49,7 +48,6 @@ namespace kagome::consensus {
       LazySPtr<network::WarpProtocol> warp_protocol,
       std::shared_ptr<consensus::grandpa::JustificationObserver>
           justification_observer,
-      std::shared_ptr<ConsistencyKeeper> consistency_keeper,
       std::shared_ptr<libp2p::basic::Scheduler> scheduler,
       primitives::events::ChainSubscriptionEnginePtr chain_sub_engine,
       primitives::events::BabeStateSubscriptionEnginePtr state_sub_engine,
@@ -67,7 +65,6 @@ namespace kagome::consensus {
         warp_sync_(std::move(warp_sync)),
         warp_protocol_(std::move(warp_protocol)),
         justification_observer_(std::move(justification_observer)),
-        consistency_keeper_(std::move(consistency_keeper)),
         scheduler_(std::move(scheduler)),
         chain_sub_engine_(std::move(chain_sub_engine)),
         chain_sub_{chain_sub_engine_},
@@ -85,7 +82,6 @@ namespace kagome::consensus {
     BOOST_ASSERT(block_announce_transmitter_);
     // BOOST_ASSERT(warp_sync_);
     BOOST_ASSERT(justification_observer_);
-    BOOST_ASSERT(consistency_keeper_);
     BOOST_ASSERT(scheduler_);
     BOOST_ASSERT(chain_sub_engine_);
     BOOST_ASSERT(state_sub_engine_);

@@ -6,9 +6,9 @@
 
 #pragma once
 
-#include <gsl/span>
 #include <libp2p/crypto/key_marshaller.hpp>
 #include <libp2p/peer/peer_info.hpp>
+#include <span>
 
 #include "application/app_configuration.hpp"
 #include "crypto/crypto_store.hpp"
