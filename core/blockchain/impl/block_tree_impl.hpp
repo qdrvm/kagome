@@ -150,12 +150,12 @@ namespace kagome::blockchain {
 
    private:
     struct BlocksPruning {
-      BlocksPruning(std::optional<uint32_t> config,
+      BlocksPruning(std::optional<uint32_t> keep,
                     primitives::BlockNumber finalized);
 
-      primitives::BlockNumber limitFor(primitives::BlockNumber finalized) const;
+      primitives::BlockNumber max(primitives::BlockNumber finalized) const;
 
-      std::optional<uint32_t> config_;
+      std::optional<uint32_t> keep_;
       primitives::BlockNumber next_;
     };
 

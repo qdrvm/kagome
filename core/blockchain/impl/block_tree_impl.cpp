@@ -467,10 +467,10 @@ namespace kagome::blockchain {
 
       telemetry_->setGenesisBlockHash(getGenesisBlockHash());
 
-      if (p.blocks_pruning_.config_) {
+      if (p.blocks_pruning_.keep_) {
         SL_INFO(log_,
                 "BlocksPruning: enabled with \"--blocks-pruning {}\"",
-                *p.blocks_pruning_.config_);
+                *p.blocks_pruning_.keep_);
       }
     });
 
@@ -871,7 +871,7 @@ namespace kagome::blockchain {
           }
         }
 
-        for (auto end = p.blocks_pruning_.limitFor(node->info.number);
+        for (auto end = p.blocks_pruning_.max(node->info.number);
              p.blocks_pruning_.next_ < end;
              ++p.blocks_pruning_.next_) {
           OUTCOME_TRY(hash, p.storage_->getBlockHash(p.blocks_pruning_.next_));
@@ -1415,12 +1415,12 @@ namespace kagome::blockchain {
     });
   }
 
-  BlockTreeImpl::BlocksPruning::BlocksPruning(std::optional<uint32_t> config,
+  BlockTreeImpl::BlocksPruning::BlocksPruning(std::optional<uint32_t> keep,
                                               primitives::BlockNumber finalized)
-      : config_{config}, next_{limitFor(finalized)} {}
+      : keep_{keep}, next_{max(finalized)} {}
 
-  primitives::BlockNumber BlockTreeImpl::BlocksPruning::limitFor(
+  primitives::BlockNumber BlockTreeImpl::BlocksPruning::max(
       primitives::BlockNumber finalized) const {
-    return config_ and finalized > *config_ ? finalized - *config_ : 0;
+    return keep_ and finalized > *keep_ ? finalized - *keep_ : 0;
   }
 }  // namespace kagome::blockchain
