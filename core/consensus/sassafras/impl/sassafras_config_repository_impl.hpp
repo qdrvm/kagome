@@ -30,8 +30,9 @@ namespace kagome::blockchain {
 }  // namespace kagome::blockchain
 
 namespace kagome::consensus {
+  class ConsensusSelector;
   class SlotsUtil;
-}
+}  // namespace kagome::consensus
 
 namespace kagome::crypto {
   class Hasher;
@@ -82,8 +83,10 @@ namespace kagome::consensus::sassafras {
         application::AppStateManager &app_state_manager,
         std::shared_ptr<storage::SpacedStorage> persistent_storage,
         const application::AppConfiguration &app_config,
+        EpochTimings &timings,
         std::shared_ptr<blockchain::BlockTree> block_tree,
         std::shared_ptr<blockchain::BlockHeaderRepository> header_repo,
+        LazySPtr<ConsensusSelector> consensus_selector,
         std::shared_ptr<runtime::SassafrasApi> sassafras_api,
         std::shared_ptr<crypto::Hasher> hasher,
         std::shared_ptr<storage::trie::TrieStorage> trie_storage,
@@ -93,10 +96,6 @@ namespace kagome::consensus::sassafras {
     bool prepare();
 
     // SassafrasConfigRepository
-
-    SlotDuration slotDuration() const override;
-
-    EpochLength epochLength() const override;
 
     outcome::result<std::shared_ptr<const Epoch>> config(
         const primitives::BlockInfo &parent_info,
@@ -127,18 +126,17 @@ namespace kagome::consensus::sassafras {
 
     std::shared_ptr<storage::BufferStorage> persistent_storage_;
     bool config_warp_sync_;
+    EpochTimings &timings_;
     std::shared_ptr<blockchain::BlockTree> block_tree_;
     mutable std::mutex indexer_mutex_;
     mutable blockchain::Indexer<SassafrasIndexedValue> indexer_;
     std::shared_ptr<blockchain::BlockHeaderRepository> header_repo_;
+    LazySPtr<ConsensusSelector> consensus_selector_;
     std::shared_ptr<runtime::SassafrasApi> sassafras_api_;
     std::shared_ptr<crypto::Hasher> hasher_;
     std::shared_ptr<storage::trie::TrieStorage> trie_storage_;
     std::shared_ptr<primitives::events::ChainEventSubscriber> chain_sub_;
     LazySPtr<SlotsUtil> slots_util_;
-
-    SlotDuration slot_duration_{};
-    EpochLength epoch_length_{};
 
     mutable std::optional<SlotNumber> first_block_slot_number_;
 

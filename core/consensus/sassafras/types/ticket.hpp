@@ -11,7 +11,7 @@
 #include "consensus/sassafras/types/sassafras_configuration.hpp"
 #include "consensus/sassafras/vrf.hpp"
 #include "consensus/timeline/types.hpp"
-#include "crypto/ed25519_types.hpp"
+#include "crypto/bandersnatch_types.hpp"
 #include "scale/big_fixed_integers.hpp"
 #include "scale/tie.hpp"
 
@@ -19,8 +19,8 @@
 
 namespace kagome::consensus::sassafras {
 
-  using EphemeralPublic = crypto::Ed25519PublicKey;
-  using EphemeralSignature = crypto::Ed25519Signature;
+  using EphemeralPublic = crypto::BandersnatchPublicKey;
+  using EphemeralSignature = crypto::BandersnatchSignature;
 
   /// Ticket identifier.
   ///

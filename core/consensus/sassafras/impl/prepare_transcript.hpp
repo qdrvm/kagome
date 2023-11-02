@@ -6,6 +6,7 @@
 
 #pragma once
 
+#include "consensus/sassafras/types/randomness.hpp"
 #include "consensus/timeline/types.hpp"
 #include "primitives/transcript.hpp"
 

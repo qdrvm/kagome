@@ -12,7 +12,7 @@
 #include "consensus/sassafras/impl/sassafras_vrf.hpp"
 #include "consensus/sassafras/types/ticket.hpp"
 #include "consensus/sassafras/vrf.hpp"
-#include "crypto/ed25519_provider.hpp"
+#include "crypto/bandersnatch_provider.hpp"
 #include "crypto/hasher.hpp"
 #include "crypto/random_generator.hpp"
 #include "crypto/vrf_provider.hpp"
@@ -25,20 +25,20 @@ namespace kagome::consensus::sassafras {
   SassafrasLotteryImpl::SassafrasLotteryImpl(
       std::shared_ptr<blockchain::BlockTree> block_tree,
       std::shared_ptr<crypto::CSPRNG> random_generator,
-      std::shared_ptr<crypto::Ed25519Provider> ed25519_provider,
+      std::shared_ptr<crypto::BandersnatchProvider> bandersnatch_provider,
       std::shared_ptr<crypto::VRFProvider> vrf_provider,
       std::shared_ptr<crypto::Hasher> hasher,
       std::shared_ptr<runtime::SassafrasApi> api)
       : logger_{log::createLogger("SassafrasLottery", "sassafras_lottery")},
         block_tree_{std::move(block_tree)},
         random_generator_{std::move(random_generator)},
-        ed25519_provider_{std::move(ed25519_provider)},
+        bandersnatch_provider_{std::move(bandersnatch_provider)},
         vrf_provider_{std::move(vrf_provider)},
         hasher_{std::move(hasher)},
         api_{std::move(api)} {
     BOOST_ASSERT(block_tree_);
     BOOST_ASSERT(random_generator_);
-    BOOST_ASSERT(ed25519_provider_);
+    BOOST_ASSERT(bandersnatch_provider_);
     BOOST_ASSERT(vrf_provider_);
     BOOST_ASSERT(hasher_);
     BOOST_ASSERT(api_);
@@ -50,7 +50,7 @@ namespace kagome::consensus::sassafras {
       const Randomness &randomness,
       const Threshold &ticket_threshold,
       const Threshold &threshold,
-      const crypto::Sr25519Keypair &keypair) {
+      const crypto::BandersnatchKeypair &keypair) {
     SL_TRACE(logger_,
              "Epoch changed "
              "FROM epoch {} with randomness {} TO epoch {} with randomness {}",
@@ -124,10 +124,10 @@ namespace kagome::consensus::sassafras {
 
       // erased key
 
-      crypto::Ed25519Seed seed;
+      crypto::BandersnatchSeed seed;
       random_generator_->fillRandomly(seed);
-      crypto::Ed25519Keypair erased_keypair =
-          ed25519_provider_->generateKeypair(seed, {}).value();
+      crypto::BandersnatchKeypair erased_keypair =
+          bandersnatch_provider_->generateKeypair(seed, {});
 
       // revealed key
 
@@ -144,10 +144,10 @@ namespace kagome::consensus::sassafras {
           vrf_bytes<32>(revealed_vrf_input, revealed_vrf_output);
 
       auto revealed_seed =
-          crypto::Ed25519Seed::fromSpan(revealed_seed_).value();
+          crypto::BandersnatchSeed::fromSpan(revealed_seed_).value();
 
       auto revealed_keypair =
-          ed25519_provider_->generateKeypair(revealed_seed, {}).value();
+          bandersnatch_provider_->generateKeypair(revealed_seed, {});
 
       // ticket body
 
@@ -292,17 +292,19 @@ namespace kagome::consensus::sassafras {
     primitives::Transcript transcript;
     prepareTranscript(transcript, randomness_, slot, epoch_);
 
-    auto res = vrf_provider_->signTranscript(transcript, keypair_, threshold_);
-
-    SL_TRACE(
-        logger_,
-        "prepareTranscript (leadership): randomness {}, slot {}, epoch {}{}",
-        randomness_,
-        slot,
-        epoch_,
-        res.has_value() ? " - SLOT LEADER" : "");
-
-    return res;
+    // auto res =
+    //     vrf_provider_->signTranscript(transcript, keypair_, threshold_);
+    //
+    // SL_TRACE(
+    //     logger_,
+    //     "prepareTranscript (leadership): randomness {}, slot {}, epoch {}{}",
+    //     randomness_,
+    //     slot,
+    //     epoch_,
+    //     res.has_value() ? " - SLOT LEADER" : "");
+    //
+    // return res;
+    return std::nullopt;
   }
 
   crypto::VRFOutput SassafrasLotteryImpl::slotVrfSignature(
@@ -312,10 +314,12 @@ namespace kagome::consensus::sassafras {
 
     primitives::Transcript transcript;
     prepareTranscript(transcript, randomness_, slot, epoch_);
-    auto res = vrf_provider_->signTranscript(transcript, keypair_);
 
-    BOOST_ASSERT(res);
-    return res.value();
+    // auto res = vrf_provider_->signTranscript(transcript, keypair_);
+    //
+    // BOOST_ASSERT(res);
+    // return res.value();
+    return {};
   }
 
   std::optional<primitives::AuthorityIndex>

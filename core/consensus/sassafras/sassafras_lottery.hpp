@@ -8,8 +8,9 @@
 
 #include <optional>
 
+#include "consensus/sassafras/types/randomness.hpp"
 #include "consensus/timeline/types.hpp"
-#include "crypto/sr25519_types.hpp"
+#include "crypto/bandersnatch_types.hpp"
 
 namespace kagome::consensus::sassafras {
 
@@ -28,7 +29,7 @@ namespace kagome::consensus::sassafras {
                              const Randomness &randomness,
                              const Threshold &ticket_threshold,
                              const Threshold &threshold,
-                             const crypto::Sr25519Keypair &keypair) = 0;
+                             const crypto::BandersnatchKeypair &keypair) = 0;
 
     /**
      * Return lottery current epoch

@@ -6,12 +6,13 @@
 
 #pragma once
 
+#include "consensus/sassafras/types/randomness.hpp"
 #include "consensus/timeline/types.hpp"
 #include "primitives/authority.hpp"
 
 namespace kagome::consensus::sassafras {
 
-  using primitives::AuthorityList;
+  using primitives::AuthorityIds;
 
   /// Tickets threshold redundancy factor
   using RedundancyFactor = uint32_t;
@@ -41,7 +42,7 @@ namespace kagome::consensus::sassafras {
     /// Duration of epoch in slots
     EpochLength epoch_length;
     /// Authorities for the epoch
-    AuthorityList authorities;
+    AuthorityIds authorities;
     /// Randomness for the epoch
     Randomness randomness;
     /// Epoch configuration

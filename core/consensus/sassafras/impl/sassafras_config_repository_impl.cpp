@@ -10,12 +10,14 @@
 #include "application/app_state_manager.hpp"
 #include "blockchain/block_header_repository.hpp"
 #include "blockchain/block_tree.hpp"
+#include "consensus/consensus_selector.hpp"
+#include "consensus/sassafras/impl/sassafras.hpp"
+#include "consensus/sassafras/impl/sassafras_digests_util.hpp"
 #include "consensus/sassafras/impl/sassafras_error.hpp"
 #include "consensus/timeline/slots_util.hpp"
 #include "crypto/hasher.hpp"
 #include "primitives/block_header.hpp"
-// #include "runtime/runtime_api/sassafras_api.hpp"
-#include "sassafras_digests_util.hpp"
+#include "runtime/runtime_api/sassafras_api.hpp"
 #include "scale/scale.hpp"
 #include "storage/map_prefix/prefix.hpp"
 #include "storage/predefined_keys.hpp"
@@ -50,8 +52,10 @@ namespace kagome::consensus::sassafras {
       application::AppStateManager &app_state_manager,
       std::shared_ptr<storage::SpacedStorage> persistent_storage,
       const application::AppConfiguration &app_config,
+      EpochTimings &timings,
       std::shared_ptr<blockchain::BlockTree> block_tree,
       std::shared_ptr<blockchain::BlockHeaderRepository> header_repo,
+      LazySPtr<ConsensusSelector> consensus_selector,
       std::shared_ptr<runtime::SassafrasApi> sassafras_api,
       std::shared_ptr<crypto::Hasher> hasher,
       std::shared_ptr<storage::trie::TrieStorage> trie_storage,
@@ -61,6 +65,7 @@ namespace kagome::consensus::sassafras {
           persistent_storage->getSpace(storage::Space::kDefault)),
         config_warp_sync_{app_config.syncMethod()
                           == application::SyncMethod::Warp},
+        timings_(timings),
         block_tree_(std::move(block_tree)),
         indexer_{
             std::make_shared<storage::MapPrefix>(
@@ -69,6 +74,7 @@ namespace kagome::consensus::sassafras {
             block_tree_,
         },
         header_repo_(std::move(header_repo)),
+        consensus_selector_(std::move(consensus_selector)),
         sassafras_api_(std::move(sassafras_api)),
         hasher_(std::move(hasher)),
         trie_storage_(std::move(trie_storage)),
@@ -94,15 +100,13 @@ namespace kagome::consensus::sassafras {
   }
 
   bool SassafrasConfigRepositoryImpl::prepare() {
-    if (auto res = persistent_storage_->tryGet(
-            storage::kSassafrasConfigRepositoryImplGenesisSlot)) {
+    if (auto res = persistent_storage_->tryGet(storage::kFirstBlockSlot)) {
       if (auto &genesis_slot_raw = res.value()) {
         if (auto res = scale::decode<SlotNumber>(*genesis_slot_raw)) {
           first_block_slot_number_ = res.value();
         } else {
           SL_ERROR(logger_, "genesis slot decode error: {}", res.error());
-          std::ignore = persistent_storage_->remove(
-              storage::kSassafrasConfigRepositoryImplGenesisSlot);
+          std::ignore = persistent_storage_->remove(storage::kFirstBlockSlot);
         }
       }
     } else {
@@ -119,24 +123,31 @@ namespace kagome::consensus::sassafras {
       warp(lock, finalized);
     }
 
-    auto genesis_res = config({block_tree_->getGenesisBlockHash(), 0}, false);
-    if (not genesis_res) {
-      SL_ERROR(logger_, "get config at genesis error: {}", genesis_res.error());
-      return false;
-    }
-    auto &genesis = genesis_res.value();
-    slot_duration_ = genesis->slot_duration;
-    epoch_length_ = genesis->epoch_length;
-
-    auto best = block_tree_->bestBlock();
-    auto best_header = block_tree_->getBlockHeader(best.hash).value();
-    if (auto res = config(best, true); not res and not config_warp_sync_) {
-      SL_ERROR(logger_, "get config at best {} error: {}", best, res.error());
-      if (not trie_storage_->getEphemeralBatchAt(best_header.state_root)) {
-        SL_ERROR(logger_,
-                 "warp sync was not completed, restart with \"--sync Warp\"");
+    if (!timings_) {
+      auto genesis_res = config({block_tree_->getGenesisBlockHash(), 0}, false);
+      if (genesis_res.has_value()) {
+        auto &genesis = genesis_res.value();
+        timings_.init(genesis->slot_duration, genesis->epoch_length);
+        SL_DEBUG(logger_, "Timing was initialized by sassafras config");
       }
-      return false;
+    }
+
+    [[maybe_unused]] bool active_ = false;
+
+    // TODO Perhaps, should be observed all non-finalized blocks
+    auto best = block_tree_->bestBlock();
+    auto consensus = consensus_selector_.get()->getProductionConsensus(best);
+    if (std::dynamic_pointer_cast<Sassafras>(consensus)) {
+      active_ = true;
+      if (auto res = config(best, true); not res and not config_warp_sync_) {
+        SL_ERROR(logger_, "get config at best {} error: {}", best, res.error());
+        auto best_header = block_tree_->getBlockHeader(best.hash).value();
+        if (not trie_storage_->getEphemeralBatchAt(best_header.state_root)) {
+          SL_ERROR(logger_,
+                   "warp sync was not completed, restart with \"--sync Warp\"");
+        }
+        return false;
+      }
     }
 
     chain_sub_->subscribe(chain_sub_->generateSubscriptionSetId(),
@@ -174,16 +185,6 @@ namespace kagome::consensus::sassafras {
     return config(parent_info, epoch_changed);
   }
 
-  SlotDuration SassafrasConfigRepositoryImpl::slotDuration() const {
-    BOOST_ASSERT_MSG(slot_duration_, "Slot duration is not initialized");
-    return slot_duration_;
-  }
-
-  EpochLength SassafrasConfigRepositoryImpl::epochLength() const {
-    BOOST_ASSERT_MSG(epoch_length_ != 0, "Epoch length is not initialized");
-    return epoch_length_;
-  }
-
   outcome::result<SlotNumber>
   SassafrasConfigRepositoryImpl::getFirstBlockSlotNumber(
       const primitives::BlockInfo &parent_info) const {
@@ -218,9 +219,8 @@ namespace kagome::consensus::sassafras {
       if (finalized.number != 0
           and block_tree_->hasDirectChain(finalized, parent_info)) {
         first_block_slot_number_ = slot1;
-        OUTCOME_TRY(persistent_storage_->put(
-            storage::kSassafrasConfigRepositoryImplGenesisSlot,
-            scale::encode(*slot1).value()));
+        OUTCOME_TRY(persistent_storage_->put(storage::kFirstBlockSlot,
+                                             scale::encode(*slot1).value()));
       }
     }
     return slot1.value();
@@ -248,34 +248,33 @@ namespace kagome::consensus::sassafras {
         BOOST_ASSERT(i_first >= i_last);
         auto info = descent.path_.at(i_first);
         std::shared_ptr<const Epoch> prev_state;
-        if (not prev) {
-          return Error::PREVIOUS_NOT_FOUND;  // FIXME
-          // OUTCOME_TRY(_state, sassafras_api_->configuration(info.hash));
-          // auto state =
-          //     std::make_shared<Epoch>(std::move(_state));
-          // SassafrasIndexedValue value{
-          //     getConfig(*state), state, std::nullopt, state};
-          // if (info.number != 0) {
-          //   OUTCOME_TRY(next, sassafras_api_->next_epoch(info.hash));
-          //   value.next_state_warp =
-          //       std::make_shared<Epoch>(
-          //           Epoch{
-          //           state->slot_duration,
-          //           state->epoch_length,
-          //           next.leadership_rate,
-          //           std::move(next.authorities),
-          //           next.randomness,
-          //           next.allowed_slots,
-          //       });
-          //   value.next_state = value.next_state_warp;
-          // }
-          // indexer_.put(info, {value, std::nullopt}, true);
-          // if (i_first == i_last) {
-          //   return outcome::success();
-          // }
-          // prev = info;
-          // prev_state = *value.next_state;
-          // --i_first;
+        if (not prev.has_value()) {
+          auto state_res = sassafras_api_->current_epoch(info.hash);
+          if (state_res.has_error()) {
+            SL_ERROR(
+                logger_, "Can't get current epoch data: {}", state_res.error());
+            return state_res.as_failure();
+          }
+          auto state = std::make_shared<Epoch>(std::move(state_res.value()));
+
+          SassafrasIndexedValue value{
+              getConfig(*state), state, std::nullopt, state};
+
+          if (info.number != 0) {
+            OUTCOME_TRY(next, sassafras_api_->next_epoch(info.hash));
+            BOOST_ASSERT(state->slot_duration == next.slot_duration);
+            BOOST_ASSERT(state->epoch_length == next.epoch_length);
+            value.next_state_warp = std::make_shared<Epoch>(std::move(next));
+            value.next_state = value.next_state_warp;
+          }
+
+          indexer_.put(info, {value, std::nullopt}, true);
+          if (i_first == i_last) {
+            return outcome::success();
+          }
+          prev = info;
+          prev_state = *value.next_state;
+          --i_first;
         }
         while (true) {
           info = descent.path_.at(i_first);
@@ -328,8 +327,8 @@ namespace kagome::consensus::sassafras {
       const HasSassafrasConsensusDigest &digests) const {
     BOOST_ASSERT(digests);
     auto state = std::make_shared<Epoch>();
-    state->slot_duration = slot_duration_;
-    state->epoch_length = epoch_length_;
+    state->slot_duration = timings_.slot_duration;
+    state->epoch_length = timings_.slot_duration;
     if (digests.config) {
       state->config.attempts_number = digests.config->attempts_number;
       state->config.redundancy_factor = digests.config->redundancy_factor;

@@ -8,7 +8,7 @@
 
 #include <span>
 
-#include "crypto/sr25519_types.hpp"
+#include "crypto/bandersnatch_types.hpp"
 #include "primitives/transcript.hpp"
 #include "scale/tie.hpp"
 
@@ -51,9 +51,8 @@ namespace kagome::consensus::sassafras {
     // opaque
   };
 
-  using BandersnatchSecretKey = crypto::Sr25519SecretKey;  // FIXME It's stub
-
-  inline VrfOutput vrf_output(BandersnatchSecretKey secret, VrfInput input) {
+  inline VrfOutput vrf_output(crypto::BandersnatchSecretKey secret,
+                              VrfInput input) {
     return {};  // FIXME It's stub
   }
 
@@ -82,9 +81,9 @@ namespace kagome::consensus::sassafras {
       SEQUENCE_OF<VrfInput> vrf_inputs) {
     Transcript transcript;
     transcript.initialize(transcript_label);
-    for (auto &data : transcript_data) {
-      // transcript.append(data);
-    }
+    //    for (auto &data : transcript_data) {
+    //      // transcript.append(data);
+    //    }
     return VrfSignatureData{transcript, vrf_inputs};
   };
 
@@ -100,7 +99,7 @@ namespace kagome::consensus::sassafras {
     SEQUENCE_OF<VrfOutput> outputs;
   };
 
-  VrfSignature plain_vrf_sign(BandersnatchSecretKey secret,
+  VrfSignature plain_vrf_sign(crypto::BandersnatchSecretKey secret,
                               VrfSignatureData signature_data);
 
   // Ring VRF Signature -----------
@@ -131,7 +130,7 @@ namespace kagome::consensus::sassafras {
     SEQUENCE_OF<VrfOutput> outputs;
   };
 
-  inline RingVrfSignature ring_vrf_sign(BandersnatchSecretKey secret,
+  inline RingVrfSignature ring_vrf_sign(crypto::BandersnatchSecretKey secret,
                                         VrfSignatureData signature_data,
                                         RingProver prover) {
     return {};  // FIXME It's stub
