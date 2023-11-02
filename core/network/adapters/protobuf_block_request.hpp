@@ -1,15 +1,15 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_ADAPTERS_PROTOBUF_BLOCK_REQUEST
-#define KAGOME_ADAPTERS_PROTOBUF_BLOCK_REQUEST
+#pragma once
 
 #include "network/adapters/protobuf.hpp"
 
-#include <gsl/span>
 #include <libp2p/multi/uvarint.hpp>
+#include <span>
 
 #include "common/visitor.hpp"
 #include "macro/endianness_utils.hpp"
@@ -47,6 +47,8 @@ namespace kagome::network {
       if (t.max.has_value()) {
         msg.set_max_blocks(t.max.value());
       }
+
+      msg.set_support_multiple_justifications(t.multiple_justifications);
 
       return appendToVec(msg, out, loaded);
     }
@@ -89,11 +91,11 @@ namespace kagome::network {
         out.max.emplace(msg.max_blocks());
       }
 
+      out.multiple_justifications = msg.support_multiple_justifications();
+
       std::advance(from, msg.ByteSizeLong());
       return from;
     }
   };
 
 }  // namespace kagome::network
-
-#endif  // KAGOME_ADAPTERS_PROTOBUF_BLOCK_REQUEST

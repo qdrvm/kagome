@@ -1,12 +1,12 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_CORE_PRIMITIVES_SCHEDULED_CHANGE
-#define KAGOME_CORE_PRIMITIVES_SCHEDULED_CHANGE
+#pragma once
 
-#include "consensus/babe/types/epoch_digest.hpp"
+#include "consensus/timeline/types.hpp"
 #include "primitives/authority.hpp"
 #include "primitives/babe_configuration.hpp"
 #include "primitives/common.hpp"
@@ -30,7 +30,7 @@ namespace kagome::primitives {
         : authorities(std::move(authorities)), subchain_length(delay) {}
   };
 
-  struct NextEpochData final : public consensus::babe::EpochDigest {
+  struct NextEpochData final : public consensus::EpochDigest {
     using EpochDigest::EpochDigest;
   };
 
@@ -74,5 +74,3 @@ namespace kagome::primitives {
   };
 
 }  // namespace kagome::primitives
-
-#endif  // KAGOME_CORE_PRIMITIVES_SCHEDULED_CHANGE

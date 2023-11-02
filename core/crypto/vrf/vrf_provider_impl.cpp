@@ -1,11 +1,12 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
 #include "crypto/vrf/vrf_provider_impl.hpp"
 
-#include <gsl/span>
+#include <span>
 
 #include "common/int_serialization.hpp"
 

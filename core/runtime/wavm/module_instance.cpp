@@ -1,9 +1,12 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
 #include "runtime/wavm/module_instance.hpp"
+
+#include <libp2p/common/final_action.hpp>
 
 #include <WAVM/Runtime/Runtime.h>
 #include <WAVM/RuntimeABI/RuntimeABI.h>
@@ -142,7 +145,7 @@ namespace kagome::runtime::wavm {
       std::array<WAVM::IR::UntaggedValue, 1> untaggedInvokeResults;
       pushBorrowedRuntimeInstance(
           std::const_pointer_cast<ModuleInstanceImpl>(shared_from_this()));
-      const auto pop = gsl::finally(&popBorrowedRuntimeInstance);
+      ::libp2p::common::FinalAction pop(&popBorrowedRuntimeInstance);
       try {
         WAVM::Runtime::unwindSignalsAsExceptions(
             [&context,
@@ -204,7 +207,14 @@ namespace kagome::runtime::wavm {
     using WAVM::IR::DataSegment;
     using WAVM::IR::MemoryType;
     using WAVM::IR::Value;
+#if defined(__GNUC__) and not defined(__clang__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdangling-reference"
+#endif
     auto &ir = getModuleIR(module_->module_);
+#if defined(__GNUC__) and not defined(__clang__)
+#pragma GCC diagnostic pop
+#endif
 
     for (Uptr segmentIndex = 0; segmentIndex < ir.dataSegments.size();
          ++segmentIndex) {

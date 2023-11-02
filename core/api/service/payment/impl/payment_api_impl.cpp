@@ -1,5 +1,6 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -26,7 +27,7 @@ namespace kagome::api {
     if (at.has_value()) {
       return api_->query_info(at.value(), extrinsic, len);
     }
-    return api_->query_info(block_tree_->bestLeaf().hash, extrinsic, len);
+    return api_->query_info(block_tree_->bestBlock().hash, extrinsic, len);
   }
 
 }  // namespace kagome::api

@@ -1,10 +1,10 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_CONSENSUS_GRANDPA_JUSTIFICATIONOBSERVER
-#define KAGOME_CONSENSUS_GRANDPA_JUSTIFICATIONOBSERVER
+#pragma once
 
 #include <future>
 
@@ -18,7 +18,8 @@ namespace kagome::consensus::grandpa {
    * @class JustificationObserver
    * @brief observes justification assigned to syncing blocks.
    */
-  struct JustificationObserver {
+  class JustificationObserver {
+   public:
     virtual ~JustificationObserver() = default;
     using ApplyJustificationCb = std::function<void(outcome::result<void> &&)>;
 
@@ -47,5 +48,3 @@ namespace kagome::consensus::grandpa {
   };
 
 }  // namespace kagome::consensus::grandpa
-
-#endif  // KAGOME_CONSENSUS_GRANDPA_JUSTIFICATIONOBSERVER

@@ -1,10 +1,10 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_TYPE_TRAITS
-#define KAGOME_TYPE_TRAITS
+#pragma once
 
 namespace kagome {
 
@@ -29,4 +29,3 @@ namespace kagome {
   struct is_smart_ptr<std::shared_ptr<T>> : std::true_type {};
 
 }  // namespace kagome
-#endif  // KAGOME_TYPE_TRAITS

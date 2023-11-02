@@ -1,10 +1,10 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_TELEMETRY_SERVICE_MOCK_HPP
-#define KAGOME_TELEMETRY_SERVICE_MOCK_HPP
+#pragma once
 
 #include <gmock/gmock.h>
 
@@ -28,10 +28,10 @@ namespace kagome::telemetry {
                 (const primitives::BlockInfo &),
                 (override));
 
+    MOCK_METHOD(void, pushBlockStats, (), (override));
+
     MOCK_METHOD(void, notifyWasSynchronized, (), (override));
 
     MOCK_METHOD(bool, isEnabled, (), (const override));
   };
 }  // namespace kagome::telemetry
-
-#endif  // KAGOME_TELEMETRY_SERVICE_MOCK_HPP

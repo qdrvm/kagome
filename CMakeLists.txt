@@ -1,3 +1,9 @@
+#
+# Copyright Quadrivium LLC
+# All Rights Reserved
+# SPDX-License-Identifier: Apache-2.0
+#
+
 cmake_minimum_required(VERSION 3.12)
 
 find_program(CCACHE_FOUND ccache)
@@ -7,13 +13,16 @@ if(CCACHE_FOUND)
 endif(CCACHE_FOUND)
 
 set(CMAKE_TOOLCHAIN_FILE
-    "${CMAKE_SOURCE_DIR}/cmake/toolchain/cxx17.cmake"
+    "${CMAKE_SOURCE_DIR}/cmake/toolchain/cxx20.cmake"
     CACHE FILEPATH "Default toolchain")
 
 include("cmake/Hunter/init.cmake")
 
 add_compile_options(-gdwarf-4)
-project(kagome C CXX)
+project(kagome
+    VERSION 0.9.2
+    LANGUAGES C CXX
+)
 
 include(cmake/print.cmake)
 print("C flags: ${CMAKE_C_FLAGS}")
@@ -28,6 +37,8 @@ if(THREADS_HAVE_PTHREAD_ARG)
 endif()
 
 if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
+  link_libraries(atomic)
+elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
   link_libraries(atomic)
 endif()
 

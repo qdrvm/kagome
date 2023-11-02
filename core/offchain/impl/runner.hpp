@@ -1,14 +1,15 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_OFFCHAIN_IMPL_RUNNER_HPP
-#define KAGOME_OFFCHAIN_IMPL_RUNNER_HPP
+#pragma once
 
 #include <deque>
-#include <gsl/gsl_util>
 #include <mutex>
+
+#include <libp2p/common/final_action.hpp>
 
 #include "utils/thread_pool.hpp"
 
@@ -41,7 +42,7 @@ namespace kagome::offchain {
       thread_pool_.io_context()->post(
           [weak{weak_from_this()}, task{std::move(task)}] {
             if (auto self = weak.lock()) {
-              auto release = gsl::finally([&] {
+              ::libp2p::common::FinalAction release([&] {
                 std::unique_lock lock{self->mutex_};
                 ++self->free_threads_;
               });
@@ -73,5 +74,3 @@ namespace kagome::offchain {
     ThreadPool thread_pool_;
   };
 }  // namespace kagome::offchain
-
-#endif  // KAGOME_OFFCHAIN_IMPL_RUNNER_HPP

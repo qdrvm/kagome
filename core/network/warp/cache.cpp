@@ -1,5 +1,6 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -7,6 +8,7 @@
 
 #include <boost/endian/buffers.hpp>
 #include <boost/endian/conversion.hpp>
+#include <libp2p/common/final_action.hpp>
 
 #include "blockchain/impl/storage_util.hpp"
 #include "consensus/grandpa/has_authority_set_change.hpp"
@@ -20,7 +22,7 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::network, WarpSyncCache::Error, e) {
     case E::NOT_IN_CHAIN:
       return "Requested block is not in chain";
   }
-  return fmt::format("WarpSyncCache::Error({})", e);
+  return "unknown error (invalid WarpSyncCache::Error";
 }
 
 namespace kagome::network {
@@ -56,7 +58,7 @@ namespace kagome::network {
             db->getSpace(storage::Space::kDefault),
         },
         log_{log::createLogger("WarpSyncCache", "warp_sync_protocol")} {
-    app_state_manager.atLaunch([=]() mutable {
+    app_state_manager.atLaunch([=, this]() mutable {
       auto r = start(std::move(chain_sub_engine));
       if (not r) {
         SL_WARN(log_, "start error {}", r.error());
@@ -134,7 +136,7 @@ namespace kagome::network {
     if (bool old = false; not caching_.compare_exchange_strong(old, true)) {
       return outcome::success();
     }
-    auto unlock = gsl::finally([&] { caching_.store(false); });
+    ::libp2p::common::FinalAction unlock([&] { caching_.store(false); });
     for (; cache_next_ <= finalized; ++cache_next_) {
       OUTCOME_TRY(hash, block_repository_->getHashByNumber(cache_next_));
       OUTCOME_TRY(header, block_repository_->getBlockHeader(hash));

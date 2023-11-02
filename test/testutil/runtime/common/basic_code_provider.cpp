@@ -1,5 +1,6 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -14,13 +15,12 @@ namespace kagome::runtime {
     initialize(path);
   }
 
-  outcome::result<gsl::span<const uint8_t>> BasicCodeProvider::getCodeAt(
+  outcome::result<common::BufferView> BasicCodeProvider::getCodeAt(
       const storage::trie::RootHash &at) const {
     return buffer_;
   }
 
   void BasicCodeProvider::initialize(std::string_view path) {
-    common::Buffer buffer;
     if (not readFile(buffer_, std::string{path})) {
       throw std::runtime_error("File with test code " + std::string(path)
                                + " not found");

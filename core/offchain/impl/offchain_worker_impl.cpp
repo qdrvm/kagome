@@ -1,12 +1,15 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
 #include "offchain/impl/offchain_worker_impl.hpp"
 
-#include <libp2p/host/host.hpp>
 #include <thread>
+
+#include <libp2p/common/final_action.hpp>
+#include <libp2p/host/host.hpp>
 
 #include "api/service/author/author_api.hpp"
 #include "application/app_configuration.hpp"
@@ -52,9 +55,7 @@ namespace kagome::offchain {
     BOOST_ASSERT(executor_);
     BOOST_ASSERT(ocw_pool_);
 
-    auto hash = hasher_->blake2b_256(scale::encode(header_).value());
-    const_cast<primitives::BlockInfo &>(block_) =
-        primitives::BlockInfo(header_.number, hash);
+    const_cast<primitives::BlockInfo &>(block_) = header_.blockInfo();
 
     local_storage_ =
         std::make_shared<OffchainLocalStorageImpl>(std::move(storage));
@@ -63,15 +64,15 @@ namespace kagome::offchain {
   outcome::result<void> OffchainWorkerImpl::run() {
     BOOST_ASSERT(not ocw_pool_->getWorker());
 
-    auto at_end =
-        gsl::finally([prev_thread_name = soralog::util::getThreadName()] {
+    ::libp2p::common::FinalAction at_end(
+        [prev_thread_name = soralog::util::getThreadName()] {
           soralog::util::setThreadName(prev_thread_name);
         });
 
     soralog::util::setThreadName("ocw.#" + std::to_string(block_.number));
 
     ocw_pool_->addWorker(shared_from_this());
-    auto remove = gsl::finally([&] { ocw_pool_->removeWorker(); });
+    ::libp2p::common::FinalAction remove([&] { ocw_pool_->removeWorker(); });
 
     SL_TRACE(log_, "Offchain worker is started for block {}", block_);
 

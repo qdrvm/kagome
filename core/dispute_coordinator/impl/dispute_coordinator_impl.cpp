@@ -1,5 +1,6 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -23,7 +24,6 @@
 #include "dispute_coordinator/participation/impl/participation_impl.hpp"
 #include "dispute_coordinator/provisioner/impl/prioritized_selection.hpp"
 #include "dispute_coordinator/provisioner/impl/random_selection.hpp"
-#include "network/helpers/peer_id_formatter.hpp"
 #include "network/router.hpp"
 #include "network/types/dispute_messages.hpp"
 #include "parachain/approval/approval_distribution.hpp"
@@ -39,7 +39,7 @@ namespace kagome::dispute {
     constexpr auto disputesTotalMetricName =
         "kagome_parachain_candidate_disputes_total";
 
-    constexpr auto disputeVotesMetricName =  //
+    constexpr auto disputeVotesMetricName =
         "kagome_parachain_candidate_dispute_votes";
 
     constexpr auto disputeConcludedMetricName =
@@ -47,6 +47,57 @@ namespace kagome::dispute {
 
     constexpr auto disputesFinalityLagMetricName =
         "kagome_parachain_disputes_finality_lag";
+
+    inline common::Buffer getSignablePayload(
+        const DisputeStatement &statement,
+        const CandidateHash &candidate_hash,
+        SessionIndex session) {
+      auto res = visit_in_place(
+          statement,
+          [&](const ValidDisputeStatement &kind) {
+            return visit_in_place(
+                kind,
+                [&](const Explicit &) {
+                  std::array<uint8_t, 4> magic{'D', 'I', 'S', 'P'};
+                  bool validity = true;
+                  return scale::encode(
+                      std::tie(magic, validity, candidate_hash, session));
+                },
+                [&](const BackingSeconded &inclusion_parent) {
+                  std::array<uint8_t, 4> magic{'B', 'K', 'N', 'G'};
+                  uint8_t discriminant = 1;  // Seconded
+                  return scale::encode(std::tie(magic,
+                                                discriminant,
+                                                candidate_hash,
+                                                session,
+                                                inclusion_parent));
+                },
+                [&](const BackingValid &inclusion_parent) {
+                  std::array<uint8_t, 4> magic{'B', 'K', 'N', 'G'};
+                  uint8_t discriminant = 2;  // Valid
+                  return scale::encode(std::tie(magic,
+                                                discriminant,
+                                                candidate_hash,
+                                                session,
+                                                inclusion_parent));
+                },
+                [&](const ApprovalChecking &) {
+                  std::array<uint8_t, 4> magic{'A', 'P', 'P', 'R'};
+                  return scale::encode(
+                      std::tie(magic, candidate_hash, session));
+                });
+          },
+          [&](const InvalidDisputeStatement &kind) {
+            return visit_in_place(kind, [&](const Explicit &) {
+              std::array<uint8_t, 4> magic{'D', 'I', 'S', 'P'};
+              bool validity = false;
+              return scale::encode(
+                  std::tie(magic, validity, candidate_hash, session));
+            });
+          });
+      BOOST_ASSERT_MSG(res.has_value(), "Successful scale encoding expected");
+      return common::Buffer(std::move(res.value()));
+    }
 
   }  // namespace
 
@@ -160,26 +211,15 @@ namespace kagome::dispute {
         peer_view_->getMyViewObservable(), false);
     my_view_sub_->subscribe(my_view_sub_->generateSubscriptionSetId(),
                             network::PeerView::EventType::kViewUpdated);
-    my_view_sub_->setCallback([wptr{weak_from_this()}](
-                                  auto /*set_id*/,
-                                  auto && /*internal_obj*/,
-                                  auto /*event_type*/,
-                                  const network::ExView &event) {
-      if (auto self = wptr.lock()) {
-        if (not event.new_head_hash.has_value()) {
-          auto hash_res =
-              primitives::calculateBlockHash(event.new_head, *self->hasher_);
-          if (hash_res.has_error()) {
-            self->log_->error("Block header hashing failed: {}",
-                              hash_res.error());
-            return;
+    my_view_sub_->setCallback(
+        [wptr{weak_from_this()}](auto /*set_id*/,
+                                 auto && /*internal_obj*/,
+                                 auto /*event_type*/,
+                                 const network::ExView &event) {
+          if (auto self = wptr.lock()) {
+            self->on_active_leaves_update(event);
           }
-          event.new_head_hash.emplace(std::move(hash_res.value()));
-        }
-
-        self->on_active_leaves_update(event);
-      }
-    });
+        });
 
     // subscribe to finalization
     chain_sub_ = std::make_shared<primitives::events::ChainEventSubscriber>(
@@ -198,10 +238,7 @@ namespace kagome::dispute {
           if (auto self = wp.lock()) {
             const auto &header =
                 boost::get<primitives::events::HeadsEventParams>(event).get();
-            auto hash =
-                self->hasher_->blake2b_256(scale::encode(header).value());
-
-            self->on_finalized_block({header.number, hash});
+            self->on_finalized_block(header.blockInfo());
           }
         });
 
@@ -211,15 +248,15 @@ namespace kagome::dispute {
             babe_status_observable_, false);
     babe_status_sub_->subscribe(
         babe_status_sub_->generateSubscriptionSetId(),
-        primitives::events::BabeStateEventType::kSyncState);
+        primitives::events::SyncStateEventType::kSyncState);
     babe_status_sub_->setCallback(
         [wself{weak_from_this()}](
             auto /*set_id*/,
             bool &synchronized,
             auto /*event_type*/,
-            const primitives::events::BabeStateEventParams &event) {
+            const primitives::events::SyncStateEventParams &event) {
           if (auto self = wself.lock()) {
-            if (event == consensus::babe::Babe::State::SYNCHRONIZED) {
+            if (event == consensus::SyncState::SYNCHRONIZED) {
               self->was_synchronized_ = true;
             }
           }
@@ -243,7 +280,7 @@ namespace kagome::dispute {
     scraper_ = std::make_unique<ChainScraperImpl>(api_, block_tree_, hasher_);
 
     auto rsw_res = RollingSessionWindowImpl::create(
-        storage_, block_tree_, api_, updated.new_head_hash.value(), log_);
+        storage_, block_tree_, api_, updated.new_head.hash(), log_);
     if (rsw_res.has_error()) {
       SL_ERROR(
           log_, "Can't create rolling session window: {}", rsw_res.error());
@@ -251,7 +288,7 @@ namespace kagome::dispute {
     }
     rolling_session_window_ = std::move(rsw_res.value());
 
-    auto first_leaf = ActivatedLeaf{.hash = updated.new_head_hash.value(),
+    auto first_leaf = ActivatedLeaf{.hash = updated.new_head.hash(),
                                     .number = updated.new_head.number,
                                     .status = LeafStatus::Fresh};
 
@@ -507,11 +544,10 @@ namespace kagome::dispute {
       return startup(updated);
     }
 
-    ActiveLeavesUpdate update{
-        .activated = {{.hash = updated.new_head_hash.value(),
-                       .number = updated.new_head.number,
-                       .status = LeafStatus::Fresh}},
-        .deactivated = updated.lost};
+    ActiveLeavesUpdate update{.activated = {{.hash = updated.new_head.hash(),
+                                             .number = updated.new_head.number,
+                                             .status = LeafStatus::Fresh}},
+                              .deactivated = updated.lost};
 
     auto res = process_active_leaves_update(update);
     if (res.has_error()) {
@@ -642,22 +678,23 @@ namespace kagome::dispute {
 
     // https://github.com/paritytech/polkadot/blob/40974fb99c86f5c341105b7db53c7aa0df707d66/node/core/dispute-coordinator/src/initialized.rs#L461
     for (auto &dispute_statement_set : disputes) {
-      auto &candidate_hash = dispute_statement_set.candidate_hash;
-      auto &session_ = dispute_statement_set.session;
+      auto &dispute_candidate = dispute_statement_set.candidate_hash;
+      auto &dispute_session = dispute_statement_set.session;
       auto &dispute_statements = dispute_statement_set.statements;
       SL_TRACE(log_, "Importing dispute votes from chain for candidate");
 
       std::vector<Indexed<SignedDisputeStatement>> statements;
-      for (const auto &[dispute_statement,
+      for (const auto &[_dispute_statement,
                         _validator_index,
                         _validator_signature] : dispute_statements) {
+        const auto &dispute_statement = _dispute_statement;
         const auto &validator_index = _validator_index;
         const auto &validator_signature = _validator_signature;
-        OUTCOME_TRY(visit_in_place(
+        auto res = visit_in_place(
             dispute_statement,
             [&](const auto &statement_kind) -> outcome::result<void> {
               auto session_info_opt =
-                  rolling_session_window_->session_info(session_);
+                  rolling_session_window_->session_info(dispute_session);
               if (not session_info_opt.has_value()) {
                 SL_WARN(log_,
                         "Could not retrieve session info from rolling session "
@@ -677,11 +714,9 @@ namespace kagome::dispute {
               ValidatorId validator_public =
                   session_info.validators[validator_index];
 
-              DisputeStatement statement{statement_kind};
-
               [[maybe_unused]] auto check_sig = [&] {
-                auto payload =
-                    getSignablePayload(statement, candidate_hash, session);
+                auto payload = getSignablePayload(
+                    dispute_statement, dispute_candidate, dispute_session);
 
                 auto validation_res = sr25519_crypto_provider_->verify(
                     validator_signature, payload, validator_public);
@@ -700,22 +735,23 @@ namespace kagome::dispute {
 
               Indexed<SignedDisputeStatement> signed_dispute_statement{
                   {
-                      statement,
-                      candidate_hash,
+                      dispute_statement,
+                      dispute_candidate,
                       validator_public,
                       validator_signature,
-                      session,
+                      dispute_session,
                   },
                   validator_index};
 
               statements.emplace_back(std::move(signed_dispute_statement));
               return outcome::success();
-            }));
+            });
+        OUTCOME_TRY(res);
       }
 
-      OUTCOME_TRY(
-          import_result,
-          handle_import_statements(candidate_hash, session, statements));
+      OUTCOME_TRY(import_result,
+                  handle_import_statements(
+                      dispute_candidate, dispute_session, statements));
 
       if (import_result) {
         SL_TRACE(log_, "Imported statement of dispute from on-chain");
@@ -888,13 +924,7 @@ namespace kagome::dispute {
     }
     auto &active_disputes = active_disputes_res.value();
 
-    SL_INFO(log_, "DEBUG: active_disputes.empty={}", active_disputes.empty());
-
     /// Handle new active disputes response.
-
-    SL_INFO(
-        log_, "DEBUG: sending_disputes_.empty={}", sending_disputes_.empty());
-
     // https://github.com/paritytech/polkadot/blob/40974fb99c86f5c341105b7db53c7aa0df707d66/node/network/dispute-distribution/src/sender/mod.rs#L261
     std::unordered_set<CandidateHash> candidates;
     std::for_each(active_disputes.begin(),
@@ -906,14 +936,8 @@ namespace kagome::dispute {
     // Cleanup obsolete senders
     sending_disputes_.remove_if([&](const auto &x) {
       const auto &candidate_hash = std::get<0>(x);
-      SL_INFO(log_,
-              "DEBUG: sending_disputes_.remove_if candidate={}",
-              candidate_hash);
       return candidates.find(candidate_hash) == candidates.end();
     });
-
-    SL_INFO(
-        log_, "DEBUG: sending_disputes_.empty={}", sending_disputes_.empty());
 
     // Iterates in order of insertion:
     // https://github.com/paritytech/polkadot/blob/40974fb99c86f5c341105b7db53c7aa0df707d66/node/network/dispute-distribution/src/sender/mod.rs#L267
@@ -1005,9 +1029,6 @@ namespace kagome::dispute {
             ? boost::relaxed_get<CandidateReceipt>(candidate_receipt)
                   .hash(*hasher_)
             : boost::relaxed_get<CandidateHash>(candidate_receipt);
-
-    SL_TRACE(
-        log_, "DEBUG:  handle_import_statements, candidate {}", candidate_hash);
 
     auto env_opt = makeCandidateEnvironment(
         *session_keys_, *rolling_session_window_, session);
@@ -1452,9 +1473,20 @@ namespace kagome::dispute {
     if (is_freshly_concluded_against) {
       auto blocks_including =
           scraper_->get_blocks_including_candidate(candidate_hash);
+      SL_TRACE(log_,
+               "{} blocks include candidate={} concluded against",
+               blocks_including.size(),
+               candidate_hash);
       if (blocks_including.size() > 0) {
-        std::ignore =
-            block_tree_->markAsRevertedBlocks(std::move(blocks_including));
+        std::vector<primitives::BlockHash> to_revert;
+        to_revert.reserve(blocks_including.size());
+        std::transform(blocks_including.begin(),
+                       blocks_including.end(),
+                       std::back_inserter(to_revert),
+                       [](auto &block_info) { return block_info.hash; });
+        std::ignore = block_tree_->markAsRevertedBlocks(std::move(to_revert));
+        SL_DEBUG(
+            log_, "Would be reverted up to {} blocks", blocks_including.size());
       } else {
         SL_DEBUG(log_,
                  "Could not find an including block for candidate against "
@@ -2409,9 +2441,6 @@ namespace kagome::dispute {
     BOOST_ASSERT_MSG(protocol,
                      "Router did not provide `send dispute` protocol");
 
-    SL_INFO(log_,
-            "DEBUG: sending_disputes_.emplace_back candidate={}",
-            candidate_hash);
     auto &[_, sending_dispute] = sending_disputes_.emplace_back(
         candidate_hash,
         std::make_unique<SendingDispute>(

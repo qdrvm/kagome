@@ -1,5 +1,6 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -18,9 +19,9 @@ namespace kagome::api::state::request {
       throw jsonrpc::InvalidParametersFault("Incorrect number of params");
     }
 
-    auto const no_args = params.empty();
-    auto const have_nil_arg = (!no_args && params[0].IsNil());
-    auto const have_str_arg = (!no_args && params[0].IsString());
+    const auto no_args = params.empty();
+    const auto have_nil_arg = (!no_args && params[0].IsNil());
+    const auto have_str_arg = (!no_args && params[0].IsString());
 
     if (no_args || have_nil_arg) {
       at_ = std::nullopt;

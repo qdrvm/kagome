@@ -1,23 +1,25 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
 #include "host_api/impl/child_storage_extension.hpp"
 
+#include <tuple>
+#include <utility>
+
 #include "common/monadic_utils.hpp"
 #include "common/tagged.hpp"
 #include "host_api/impl/storage_util.hpp"
-#include "runtime/common/runtime_transaction_error.hpp"
+#include "log/formatters/optional.hpp"
+#include "log/trace_macros.hpp"
 #include "runtime/memory_provider.hpp"
 #include "runtime/ptr_size.hpp"
 #include "runtime/trie_storage_provider.hpp"
 #include "scale/encode_append.hpp"
 #include "storage/predefined_keys.hpp"
 #include "storage/trie/polkadot_trie/trie_error.hpp"
-
-#include <tuple>
-#include <utility>
 
 using kagome::common::Buffer;
 using kagome::storage::trie::TrieError;
@@ -124,6 +126,7 @@ namespace kagome::host_api {
                                   key_buffer.toHex(),
                                   result.error());
                  }
+
                  // okay to throw, we want to end this runtime call with error
                  return memory.storeBuffer(
                      scale::encode(
@@ -337,14 +340,14 @@ namespace kagome::host_api {
         common::BufferView data = data_opt.value();
         data = data.subspan(std::min<size_t>(offset, data.size()));
         auto written = std::min<size_t>(data.size(), value_size);
-        memory.storeBuffer(value_ptr, data.subspan(0, written));
+        memory.storeBuffer(value_ptr, data.first(written));
         res = data.size();
 
         SL_TRACE_FUNC_CALL(logger_,
                            data,
                            child_key_buffer,
                            key,
-                           common::Buffer{data.subspan(0, written)});
+                           common::Buffer{data.first(written)});
       } else {
         SL_TRACE_FUNC_CALL(logger_,
                            std::string_view{"none"},

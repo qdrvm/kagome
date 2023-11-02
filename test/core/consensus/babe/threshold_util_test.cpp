@@ -1,5 +1,6 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -30,7 +31,7 @@ TEST(ThresholdTest, OutputAsInGossamer) {
   authorities.push_back(primitives::Authority{.id = {}, .weight = 6});
   authorities.push_back(primitives::Authority{.id = {}, .weight = 10});
 
-  consensus::babe::Threshold expected{"28377230912881121443596276039380107264"};
+  consensus::Threshold expected{"28377230912881121443596276039380107264"};
   auto threshold =
       consensus::babe::calculateThreshold(c, authorities, authority_index);
   ASSERT_EQ(threshold, expected);

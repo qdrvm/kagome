@@ -1,5 +1,6 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -16,11 +17,8 @@ namespace kagome::runtime {
 
   outcome::result<primitives::BabeConfiguration> BabeApiImpl::configuration(
       const primitives::BlockHash &block) {
-    OUTCOME_TRY(ref, cache_.get_else(block, [&] {
-      return executor_->callAt<primitives::BabeConfiguration>(
-          block, "BabeApi_configuration");
-    }));
-    return *ref;
+    return executor_->callAt<primitives::BabeConfiguration>(
+        block, "BabeApi_configuration");
   }
 
   outcome::result<primitives::Epoch> BabeApiImpl::next_epoch(

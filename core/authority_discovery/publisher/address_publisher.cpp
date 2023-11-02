@@ -1,5 +1,6 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -9,7 +10,8 @@
 
 #include "crypto/sha/sha256.hpp"
 
-#define _PB_SPAN(f) [&](gsl::span<const uint8_t> a) { (f)(a.data(), a.size()); }
+#define _PB_SPAN(f) \
+  [&](::kagome::common::BufferView a) { (f)(a.data(), a.size()); }
 #define PB_SPAN_SET(a, b, c) _PB_SPAN((a).set_##b)(c)
 #define PB_SPAN_ADD(a, b, c) _PB_SPAN((a).add_##b)(c)
 
@@ -52,7 +54,7 @@ namespace kagome::authority_discovery {
     BOOST_ASSERT(sr_crypto_provider_ != nullptr);
     BOOST_ASSERT(kademlia_ != nullptr);
     BOOST_ASSERT(scheduler_ != nullptr);
-    app_state_manager->atLaunch([=] { return start(); });
+    app_state_manager->atLaunch([this] { return start(); });
     if (libp2p_key.privateKey.type == libp2p::crypto::Key::Type::Ed25519) {
       libp2p_key_.emplace(crypto::Ed25519Keypair{
           .secret_key =
@@ -94,7 +96,7 @@ namespace kagome::authority_discovery {
 
     OUTCOME_TRY(
         authorities,
-        authority_discovery_api_->authorities(block_tree_->bestLeaf().hash));
+        authority_discovery_api_->authorities(block_tree_->bestBlock().hash));
 
     auto audi_key = keys_->getAudiKeyPair(authorities);
     if (not audi_key) {

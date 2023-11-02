@@ -1,10 +1,10 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_SCALE_MESSAGE_READ_WRITER_HPP
-#define KAGOME_SCALE_MESSAGE_READ_WRITER_HPP
+#pragma once
 
 #include <functional>
 #include <memory>
@@ -37,19 +37,23 @@ namespace kagome::network {
     template <typename MsgType>
     void read(ReadCallback<MsgType> cb) const {
       read_writer_->read(
-          [self{shared_from_this()}, cb = std::move(cb)](auto &&read_res) {
+          [self{shared_from_this()}, cb = std::move(cb)](
+              libp2p::basic::MessageReadWriter::ReadCallback read_res) {
             if (!read_res) {
-              return cb(read_res.error());
+              return cb(outcome::failure(read_res.error()));
             }
 
-            if (read_res.value()) {
-              auto msg_res = scale::decode<MsgType>(*read_res.value());
-              if (!msg_res) {
-                return cb(msg_res.error());
-              }
-              return cb(std::move(msg_res.value()));
+            auto &raw = read_res.value();
+            // TODO(turuslan): `MessageReadWriterUvarint` reuse buffer
+            if (not raw) {
+              static auto empty = std::make_shared<std::vector<uint8_t>>();
+              raw = empty;
             }
-            return cb(MsgType{});
+            auto msg_res = scale::decode<MsgType>(*raw);
+            if (!msg_res) {
+              return cb(outcome::failure(msg_res.error()));
+            }
+            return cb(outcome::success(std::move(msg_res.value())));
           });
     }
 
@@ -84,5 +88,3 @@ namespace kagome::network {
     std::shared_ptr<libp2p::basic::MessageReadWriter> read_writer_;
   };
 }  // namespace kagome::network
-
-#endif  // KAGOME_SCALE_MESSAGE_READ_WRITER_HPP

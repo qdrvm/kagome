@@ -1,9 +1,12 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
 #include "runtime/runtime_api/impl/block_builder.hpp"
+
+#include <libp2p/common/final_action.hpp>
 
 #include "runtime/executor.hpp"
 #include "runtime/trie_storage_provider.hpp"
@@ -22,7 +25,7 @@ namespace kagome::runtime {
     OUTCOME_TRY(ctx.module_instance->getEnvironment()
                     .storage_provider->startTransaction());
     auto should_rollback = true;
-    auto rollback = gsl::finally([&] {
+    ::libp2p::common::FinalAction rollback([&] {
       if (should_rollback) {
         std::ignore = ctx.module_instance->getEnvironment()
                           .storage_provider->rollbackTransaction();
@@ -37,7 +40,7 @@ namespace kagome::runtime {
       OUTCOME_TRY(ctx.module_instance->getEnvironment()
                       .storage_provider->commitTransaction());
     }
-    return std::move(result);
+    return result;
   }
 
   outcome::result<primitives::BlockHeader> BlockBuilderImpl::finalize_block(
@@ -57,7 +60,7 @@ namespace kagome::runtime {
     // `env.storage_provider`s `PersistentTrieBatch`.
     OUTCOME_TRY(ctx.module_instance->getEnvironment()
                     .storage_provider->startTransaction());
-    auto rollback = gsl::finally([&] {
+    ::libp2p::common::FinalAction rollback([&] {
       std::ignore = ctx.module_instance->getEnvironment()
                         .storage_provider->rollbackTransaction();
     });
@@ -65,7 +68,7 @@ namespace kagome::runtime {
         result,
         executor_->decodedCallWithCtx<std::vector<primitives::Extrinsic>>(
             ctx, "BlockBuilder_inherent_extrinsics", data));
-    return std::move(result);
+    return result;
   }
 
   outcome::result<primitives::CheckInherentsResult>

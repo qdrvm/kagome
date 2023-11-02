@@ -1,5 +1,6 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -44,7 +45,7 @@ namespace kagome::storage::trie {
         [this, on_node_loaded](const std::shared_ptr<OpaqueTrieNode> &parent)
         -> outcome::result<PolkadotTrie::NodePtr> {
       OUTCOME_TRY(node, retrieveNode(parent, on_node_loaded));
-      return std::move(node);
+      return node;
     };
     PolkadotTrie::ValueRetrieveFunction v =
         [this, on_node_loaded](const common::Hash256 &hash)
@@ -101,7 +102,7 @@ namespace kagome::storage::trie {
       const OnNodeLoaded &on_node_loaded) const {
     if (auto p = std::dynamic_pointer_cast<DummyNode>(node); p != nullptr) {
       OUTCOME_TRY(n, retrieveNode(p->db_key, on_node_loaded));
-      return std::move(n);
+      return n;
     }
     return std::dynamic_pointer_cast<TrieNode>(node);
   }
@@ -111,13 +112,12 @@ namespace kagome::storage::trie {
     if (db_key.asHash() == getEmptyRootHash()) {
       return nullptr;
     }
-    Buffer enc;
-    if (db_key.isHash()) {
-      OUTCOME_TRY(db, backend_->get(db_key.asBuffer()));
+    BufferOrView enc;
+    if (auto hash = db_key.asHash()) {
+      BOOST_OUTCOME_TRY(enc, backend_->get(*hash));
       if (on_node_loaded) {
-        on_node_loaded(db);
+        on_node_loaded(*hash, enc);
       }
-      enc = db.intoBuffer();
     } else {
       // `isMerkleHash(db_key) == false` means `db_key` is value itself
       enc = db_key.asBuffer();
@@ -134,7 +134,7 @@ namespace kagome::storage::trie {
     return common::map_optional(std::move(value),
                                 [&](common::BufferOrView &&value) {
                                   if (on_node_loaded) {
-                                    on_node_loaded(value);
+                                    on_node_loaded(hash, value);
                                   }
                                   return value.intoBuffer();
                                 });

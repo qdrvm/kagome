@@ -1,10 +1,10 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_NETWORK_PROPAGATETRANSACTIONSPROTOCOL
-#define KAGOME_NETWORK_PROPAGATETRANSACTIONSPROTOCOL
+#pragma once
 
 #include "network/protocol_base.hpp"
 
@@ -13,9 +13,7 @@
 #include <libp2p/connection/stream.hpp>
 #include <libp2p/host/host.hpp>
 
-#include "application/app_configuration.hpp"
 #include "application/chain_spec.hpp"
-#include "consensus/babe/babe.hpp"
 #include "containers/objects_cache.hpp"
 #include "log/logger.hpp"
 #include "metrics/metrics.hpp"
@@ -23,6 +21,7 @@
 #include "network/impl/protocols/protocol_base_impl.hpp"
 #include "network/impl/stream_engine.hpp"
 #include "network/types/propagate_transactions.hpp"
+#include "network/types/roles.hpp"
 #include "primitives/event_types.hpp"
 #include "subscription/extrinsic_event_key_repository.hpp"
 #include "subscription/subscriber.hpp"
@@ -31,6 +30,10 @@
 
 namespace kagome::blockchain {
   class GenesisBlockHash;
+}
+
+namespace kagome::consensus {
+  class Timeline;
 }
 
 namespace kagome::network {
@@ -49,10 +52,11 @@ namespace kagome::network {
 
     PropagateTransactionsProtocol(
         libp2p::Host &host,
-        const application::AppConfiguration &app_config,
+        Roles roles,
         const application::ChainSpec &chain_spec,
         const blockchain::GenesisBlockHash &genesis_hash,
-        std::shared_ptr<consensus::babe::Babe> babe,
+        std::shared_ptr<boost::asio::io_context> main_thread,
+        std::shared_ptr<consensus::Timeline> timeline,
         std::shared_ptr<ExtrinsicObserver> extrinsic_observer,
         std::shared_ptr<StreamEngine> stream_engine,
         std::shared_ptr<primitives::events::ExtrinsicSubscriptionEngine>
@@ -70,25 +74,15 @@ namespace kagome::network {
         std::function<void(outcome::result<std::shared_ptr<Stream>>)> &&cb)
         override;
 
-    void propagateTransactions(gsl::span<const primitives::Transaction> txs);
+    void propagateTransactions(std::span<const primitives::Transaction> txs);
 
    private:
-    enum class Direction { INCOMING, OUTGOING };
-    void readHandshake(std::shared_ptr<Stream> stream,
-                       Direction direction,
-                       std::function<void(outcome::result<void>)> &&cb);
-
-    void writeHandshake(std::shared_ptr<Stream> stream,
-                        Direction direction,
-                        std::function<void(outcome::result<void>)> &&cb);
-
-    void readPropagatedExtrinsics(std::shared_ptr<Stream> stream);
-
-    const static inline auto kPropagateTransactionsProtocolName =
+    inline static const auto kPropagateTransactionsProtocolName =
         "PropagateTransactionsProtocol"s;
     ProtocolBaseImpl base_;
-    const application::AppConfiguration &app_config_;
-    std::shared_ptr<consensus::babe::Babe> babe_;
+    Roles roles_;
+    std::shared_ptr<boost::asio::io_context> main_thread_;
+    std::shared_ptr<consensus::Timeline> timeline_;
     std::shared_ptr<ExtrinsicObserver> extrinsic_observer_;
     std::shared_ptr<StreamEngine> stream_engine_;
     std::shared_ptr<primitives::events::ExtrinsicSubscriptionEngine>
@@ -102,5 +96,3 @@ namespace kagome::network {
   };
 
 }  // namespace kagome::network
-
-#endif  // KAGOME_NETWORK_PROPAGATETRANSACTIONSPROTOCOL

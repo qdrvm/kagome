@@ -1,10 +1,10 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_TRIE_POLKADOT_CODEC_IMPL_HPP
-#define KAGOME_TRIE_POLKADOT_CODEC_IMPL_HPP
+#pragma once
 
 #include <memory>
 #include <optional>
@@ -87,5 +87,3 @@ namespace kagome::storage::trie {
 }  // namespace kagome::storage::trie
 
 OUTCOME_HPP_DECLARE_ERROR(kagome::storage::trie, PolkadotCodec::Error);
-
-#endif  // KAGOME_TRIE_POLKADOT_CODEC_IMPL_HPP

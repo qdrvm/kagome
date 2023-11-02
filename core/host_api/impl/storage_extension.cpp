@@ -1,5 +1,6 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -10,7 +11,8 @@
 #include "clock/impl/clock_impl.hpp"
 #include "common/monadic_utils.hpp"
 #include "host_api/impl/storage_util.hpp"
-#include "log/profiling_logger.hpp"
+#include "log/formatters/optional.hpp"
+#include "log/trace_macros.hpp"
 #include "runtime/common/runtime_transaction_error.hpp"
 #include "runtime/memory_provider.hpp"
 #include "runtime/ptr_size.hpp"
@@ -18,7 +20,6 @@
 #include "scale/encode_append.hpp"
 #include "storage/predefined_keys.hpp"
 #include "storage/trie/impl/topper_trie_batch_impl.hpp"
-#include "storage/trie/polkadot_trie/trie_error.hpp"
 #include "storage/trie/serialization/ordered_trie_hash.hpp"
 
 using kagome::common::Buffer;
@@ -67,11 +68,11 @@ namespace kagome::host_api {
         common::BufferView data = *data_opt;
         data = data.subspan(std::min<size_t>(offset, data.size()));
         auto written = std::min<size_t>(data.size(), value.size);
-        memory.storeBuffer(value.ptr, data.subspan(0, written));
+        memory.storeBuffer(value.ptr, data.first(written));
         res = data.size();
 
         SL_TRACE_FUNC_CALL(
-            logger_, data, key, common::Buffer{data.subspan(0, written)});
+            logger_, data, key, common::Buffer{data.first(written)});
       } else {
         SL_TRACE_FUNC_CALL(
             logger_, std::string_view{"none"}, key, value_out, offset);
@@ -270,8 +271,8 @@ namespace kagome::host_api {
 
     auto val_opt_res = get(key_bytes);
     if (val_opt_res.has_error()) {
-      throw std::runtime_error{fmt::format(
-          "Error fetching value from storage: {}", val_opt_res.error())};
+      throw std::runtime_error(fmt::format(
+          "Error fetching value from storage: {}", val_opt_res.error()));
     }
     auto &val_opt = val_opt_res.value();
     auto &&val = val_opt ? common::Buffer{val_opt.value()} : common::Buffer{};

@@ -1,11 +1,13 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
 #include "consensus/grandpa/impl/environment_impl.hpp"
 
 #include <boost/optional/optional_io.hpp>
+#include <latch>
 #include <utility>
 
 #include "blockchain/block_header_repository.hpp"
@@ -100,8 +102,7 @@ namespace kagome::consensus::grandpa {
       std::optional<VoterSetId> voter_set_id) const {
     SL_DEBUG(logger_, "Finding best chain containing block {}", base_hash);
 
-    OUTCOME_TRY(best_block,
-                block_tree_->getBestContaining(base_hash, std::nullopt));
+    OUTCOME_TRY(best_block, block_tree_->getBestContaining(base_hash));
 
     // Must finalize block with scheduled/forced change digest first
     auto finalized = block_tree_->getLastFinalized();
@@ -155,7 +156,8 @@ namespace kagome::consensus::grandpa {
         receipt.commitments_hash = hasher_->blake2b_256(
             scale::encode(candidate.candidate.commitments).value());
 
-        auto candidate_hash = hasher_->blake2b_256(scale::encode().value());
+        auto candidate_hash =
+            hasher_->blake2b_256(scale::encode(receipt).value());
 
         candidates.push_back(candidate_hash);
       }
@@ -168,18 +170,17 @@ namespace kagome::consensus::grandpa {
       parent_hash = block_hash;
     }
 
-    auto promise_res = std::promise<outcome::result<primitives::BlockInfo>>();
-    auto res_future = promise_res.get_future();
+    outcome::result<primitives::BlockInfo> best_undisputed_block_res{
+        std::errc::state_not_recoverable};
 
+    std::latch latch(1);
     dispute_coordinator_->determineUndisputedChain(
-        finalized,
-        block_descriptions,
-        [promise_res = std::ref(promise_res)](
-            outcome::result<primitives::BlockInfo> res) {
-          promise_res.get().set_value(std::move(res));
+        finalized, block_descriptions, [&](auto res) {
+          best_undisputed_block_res = std::move(res);
+          latch.count_down();
         });
+    latch.wait();
 
-    auto best_undisputed_block_res = res_future.get();
     if (best_undisputed_block_res.has_error()) {
       SL_WARN(logger_,
               "Unable to query undisputed chain: {}",
@@ -196,21 +197,21 @@ namespace kagome::consensus::grandpa {
       if (HasAuthoritySetChange{header}) {
         best_block = block;
       }
-      block = {header.number - 1, header.parent_hash};
+      block = *header.parentInfo();
     }
 
     // Select best block with actual set_id
     if (voter_set_id.has_value()) {
-      while (true) {
+      while (best_block.number > finalized.number) {
         OUTCOME_TRY(header,
                     header_repository_->getBlockHeader(best_block.hash));
-        BlockInfo parent_block{header.number - 1, header.parent_hash};
+        auto parent_block = *header.parentInfo();
 
         auto voter_set = authority_manager_->authorities(
             parent_block, IsBlockFinalized{true});
 
         if (voter_set.has_value()
-            && voter_set.value()->id == voter_set_id.value()) {
+            and voter_set.value()->id <= voter_set_id.value()) {
           // found
           break;
         }

@@ -1,13 +1,13 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_BABE_BLOCK_HEADER_HPP
-#define KAGOME_BABE_BLOCK_HEADER_HPP
+#pragma once
 
-#include "consensus/babe/common.hpp"
 #include "consensus/babe/types/slot.hpp"
+#include "consensus/timeline/types.hpp"
 #include "crypto/sr25519_types.hpp"
 #include "primitives/authority.hpp"
 #include "primitives/common.hpp"
@@ -28,7 +28,7 @@ namespace kagome::consensus::babe {
     primitives::AuthorityIndex authority_index;
 
     /// slot, in which the block was produced
-    BabeSlotNumber slot_number;
+    SlotNumber slot_number;
 
     /// output of VRF function
     crypto::VRFOutput vrf_output{};
@@ -39,7 +39,7 @@ namespace kagome::consensus::babe {
 
     bool needVRFCheck() const {
       return slot_assignment_type == SlotType::Primary
-             or slot_assignment_type == SlotType::SecondaryVRF;
+          or slot_assignment_type == SlotType::SecondaryVRF;
     }
 
     bool needVRFWithThresholdCheck() const {
@@ -48,7 +48,7 @@ namespace kagome::consensus::babe {
 
     bool isProducedInSecondarySlot() const {
       return slot_assignment_type == SlotType::SecondaryPlain
-             or slot_assignment_type == SlotType::SecondaryVRF;
+          or slot_assignment_type == SlotType::SecondaryVRF;
     }
 
     /**
@@ -82,5 +82,3 @@ namespace kagome::consensus::babe {
     }
   };
 }  // namespace kagome::consensus::babe
-
-#endif  // KAGOME_BABE_BLOCK_HEADER_HPP

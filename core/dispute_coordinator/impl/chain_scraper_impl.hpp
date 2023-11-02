@@ -1,16 +1,17 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
 #include "dispute_coordinator/chain_scraper.hpp"
 
-#ifndef KAGOME_DISPUTE_CHAINSCRAPERIMPL
-#define KAGOME_DISPUTE_CHAINSCRAPERIMPL
+#pragma once
 
 #include "blockchain/block_tree.hpp"
 #include "common/lru_cache.hpp"
 #include "dispute_coordinator/types.hpp"
+#include "log/logger.hpp"
 
 namespace kagome::runtime {
   class ParachainHost;
@@ -117,7 +118,6 @@ namespace kagome::dispute {
    public:
     /// Number of hashes to keep in the LRU.
     ///
-    ///
     /// When traversing the ancestry of a block we will stop once we hit a hash
     /// that we find in the `last_observed_blocks` LRU. This means, this value
     /// should the very least be as large as the number of expected forks for
@@ -186,7 +186,9 @@ namespace kagome::dispute {
     ///
     /// Returns freshly included candidate receipts
     outcome::result<std::vector<CandidateReceipt>> process_candidate_events(
-        primitives::BlockNumber block_number, primitives::BlockHash block_hash);
+        const primitives::BlockInfo &block);
+
+    log::Logger log_;
 
     std::shared_ptr<runtime::ParachainHost> parachain_api_;
     std::shared_ptr<blockchain::BlockTree> block_tree_;
@@ -212,5 +214,3 @@ namespace kagome::dispute {
   };
 
 }  // namespace kagome::dispute
-
-#endif  // KAGOME_DISPUTE_CHAINSCRAPPERIMPL

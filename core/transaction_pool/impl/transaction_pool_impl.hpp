@@ -1,10 +1,10 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_TRANSACTION_POOL_IMPL_HPP
-#define KAGOME_TRANSACTION_POOL_IMPL_HPP
+#pragma once
 
 #include <deque>
 #include <libp2p/common/byteutil.hpp>
@@ -126,7 +126,7 @@ namespace kagome::transaction_pool {
       std::unordered_map<Transaction::Hash, ReadyStatus> ready_txs_;
     };
 
-    bool imported(const Transaction &tx) const;
+    bool imported(const Transaction::Hash &tx_hash) const;
     bool is_ready(const PoolState &pool_state,
                   const std::shared_ptr<const Transaction> &tx) const;
     size_t imported_txs_count() const;
@@ -141,6 +141,11 @@ namespace kagome::transaction_pool {
 
     void setReady(PoolState &pool_state,
                   const std::shared_ptr<Transaction> &tx);
+
+    outcome::result<Transaction> constructTransaction(
+        primitives::TransactionSource source,
+        primitives::Extrinsic extrinsic,
+        const Transaction::Hash &extrinsic_hash) const;
 
     std::shared_ptr<blockchain::BlockHeaderRepository> header_repo_;
 
@@ -166,5 +171,3 @@ namespace kagome::transaction_pool {
   };
 
 }  // namespace kagome::transaction_pool
-
-#endif  // KAGOME_TRANSACTION_POOL_IMPL_HPP

@@ -1,10 +1,10 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_NETWORK_IMPL_PROTOCOLS_PROTOCOL_FETCH_AVAILABLE_DATA_HPP
-#define KAGOME_NETWORK_IMPL_PROTOCOLS_PROTOCOL_FETCH_AVAILABLE_DATA_HPP
+#pragma once
 
 #include "blockchain/genesis_block_hash.hpp"
 #include "log/logger.hpp"
@@ -35,7 +35,7 @@ namespace kagome::network {
                                     host,
                                     make_protocols(kFetchAvailableDataProtocol,
                                                    genesis_hash,
-                                                   "polkadot"),
+                                                   kProtocolPrefixPolkadot),
                                     log::createLogger(
                                         kName, "req_available_data_protocol")},
           av_store_{std::move(av_store)} {}
@@ -73,7 +73,7 @@ namespace kagome::network {
                                     host,
                                     make_protocols(kFetchStatementProtocol,
                                                    genesis_hash,
-                                                   "polkadot"),
+                                                   kProtocolPrefixPolkadot),
                                     log::createLogger(
                                         kName, "req_statement_protocol")},
           backing_store_{std::move(backing_store)} {}
@@ -100,5 +100,3 @@ namespace kagome::network {
     std::shared_ptr<parachain::BackingStore> backing_store_;
   };
 }  // namespace kagome::network
-
-#endif  // KAGOME_NETWORK_IMPL_PROTOCOLS_PROTOCOL_FETCH_AVAILABLE_DATA_HPP

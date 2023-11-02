@@ -1,5 +1,6 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -22,7 +23,7 @@ namespace kagome::runtime {
   outcome::result<TaggedTransactionQueue::TransactionValidityAt>
   TaggedTransactionQueueImpl::validate_transaction(
       primitives::TransactionSource source, const primitives::Extrinsic &ext) {
-    auto block = block_tree_.get()->bestLeaf();
+    auto block = block_tree_.get()->bestBlock();
     SL_TRACE(logger_, "Validate transaction called at block {}", block);
     OUTCOME_TRY(result,
                 executor_->callAt<primitives::TransactionValidity>(

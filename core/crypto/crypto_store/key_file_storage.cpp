@@ -1,5 +1,6 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -51,37 +52,24 @@ namespace kagome::crypto {
       : keystore_path_{std::move(keystore_path)},
         logger_{log::createLogger("KeyFileStorage", "crypto_store")} {}
 
-  outcome::result<std::pair<KeyTypeId, Buffer>>
-  KeyFileStorage::parseKeyFileName(std::string_view file_name) const {
+  outcome::result<std::pair<KeyType, Buffer>> KeyFileStorage::parseKeyFileName(
+      std::string_view file_name) const {
     OUTCOME_TRY(info, decodeKeyFileName(file_name));
-    auto key_type_str = file_name.substr(0, 8);
-    if (not isSupportedKeyType(info.first)) {
-      auto ascii_res = common::unhex(key_type_str);
-      if (ascii_res.has_value()) {
-        std::string_view ascii(
-            reinterpret_cast<const char *>(ascii_res.value().data()),  // NOLINT
-            ascii_res.value().size());
-        logger_->warn(
-            "key type <ascii: '{}', hex: {:08x}> is not officially supported",
-            ascii,
-            info.first);
-      } else {
-        logger_->warn("key type <hex: {:08x}> is not officially supported",
-                      info.first);
-      }
+    if (not KeyTypes::is_supported(info.first)) {
+      logger_->warn("key type {} is not officially supported", info.first);
     }
-    return std::move(info);
+    return info;
   }
 
   KeyFileStorage::Path KeyFileStorage::composeKeyPath(
-      KeyTypeId key_type, gsl::span<const uint8_t> public_key) const {
+      KeyType key_type, common::BufferView public_key) const {
     return keystore_path_ / encodeKeyFileName(key_type, public_key);
   }
 
   outcome::result<void> KeyFileStorage::saveKeyPair(
-      KeyTypeId type,
-      gsl::span<const uint8_t> public_key,
-      gsl::span<const uint8_t> seed) const {
+      KeyType type,
+      common::BufferView public_key,
+      common::BufferView seed) const {
     auto &&path = composeKeyPath(type, public_key);
     OUTCOME_TRY(saveKeyHexAtPath(seed, path));
     SL_TRACE(logger_,
@@ -122,8 +110,7 @@ namespace kagome::crypto {
   }
 
   outcome::result<void> KeyFileStorage::saveKeyHexAtPath(
-      gsl::span<const uint8_t> private_key,
-      const KeyFileStorage::Path &path) const {
+      common::BufferView private_key, const KeyFileStorage::Path &path) const {
     std::ofstream file;
     file.open(path.native(), std::ios::out | std::ios::trunc);
     if (!file.is_open()) {
@@ -136,7 +123,7 @@ namespace kagome::crypto {
   }
 
   outcome::result<std::vector<Buffer>> KeyFileStorage::collectPublicKeys(
-      KeyTypeId type) const {
+      KeyType type) const {
     namespace fs = filesystem;
 
     std::error_code ec{};
@@ -166,7 +153,7 @@ namespace kagome::crypto {
   }
 
   outcome::result<std::optional<std::string>> KeyFileStorage::searchForPhrase(
-      KeyTypeId type, gsl::span<const uint8_t> public_key_bytes) const {
+      KeyType type, common::BufferView public_key_bytes) const {
     auto key_path = composeKeyPath(type, public_key_bytes);
     namespace fs = filesystem;
     std::error_code ec{};

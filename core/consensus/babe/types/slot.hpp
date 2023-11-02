@@ -1,10 +1,10 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_SLOT_HPP
-#define KAGOME_SLOT_HPP
+#pragma once
 
 #include <cstdint>
 
@@ -32,5 +32,3 @@ namespace kagome::consensus::babe {
   }
 
 }  // namespace kagome::consensus::babe
-
-#endif  // KAGOME_SLOT_HPP

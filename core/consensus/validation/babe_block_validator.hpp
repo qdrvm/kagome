@@ -1,10 +1,10 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_BABE_BLOCK_VALIDATOR_HPP
-#define KAGOME_BABE_BLOCK_VALIDATOR_HPP
+#pragma once
 
 #include "consensus/validation/block_validator.hpp"
 
@@ -30,7 +30,7 @@ namespace kagome::runtime {
   class TaggedTransactionQueue;
 }
 
-namespace kagome::consensus::babe {
+namespace kagome::consensus {
 
   /**
    * Validation of blocks in BABE system. Based on the algorithm described here:
@@ -81,8 +81,8 @@ namespace kagome::consensus::babe {
      * @return true if signature is valid, false otherwise
      */
     bool verifySignature(const primitives::BlockHeader &header,
-                         const BabeBlockHeader &babe_header,
-                         const Seal &seal,
+                         const babe::BabeBlockHeader &babe_header,
+                         const babe::Seal &seal,
                          const primitives::BabeSessionKey &public_key) const;
 
     /**
@@ -94,7 +94,7 @@ namespace kagome::consensus::babe {
      * @param randomness randomness for that epoch
      * @return true if vrf is valid, false otherwise
      */
-    bool verifyVRF(const BabeBlockHeader &babe_header,
+    bool verifyVRF(const babe::BabeBlockHeader &babe_header,
                    const EpochNumber epoch_number,
                    const primitives::BabeSessionKey &public_key,
                    const Threshold &threshold,
@@ -107,15 +107,13 @@ namespace kagome::consensus::babe {
     std::shared_ptr<crypto::VRFProvider> vrf_provider_;
     std::shared_ptr<crypto::Sr25519Provider> sr25519_provider_;
 
-    mutable std::unordered_map<BabeSlotNumber,
+    mutable std::unordered_map<SlotNumber,
                                std::unordered_set<primitives::AuthorityIndex>>
         blocks_producers_;
 
     log::Logger log_;
   };
-}  // namespace kagome::consensus::babe
+}  // namespace kagome::consensus
 
-OUTCOME_HPP_DECLARE_ERROR(kagome::consensus::babe,
+OUTCOME_HPP_DECLARE_ERROR(kagome::consensus,
                           BabeBlockValidator::ValidationError)
-
-#endif  // KAGOME_BABE_BLOCK_VALIDATOR_HPP

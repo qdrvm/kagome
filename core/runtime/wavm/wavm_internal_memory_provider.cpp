@@ -1,5 +1,6 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -26,7 +27,7 @@ namespace kagome::runtime::wavm {
   }
 
   outcome::result<void> WavmInternalMemoryProvider::resetMemory(
-      const MemoryConfig& config) {
+      const MemoryConfig &config) {
     current_memory_ = std::make_unique<MemoryImpl>(memory_, config);
     return outcome::success();
   }

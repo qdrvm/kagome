@@ -1,11 +1,12 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_CONSENSUS_GRANDPA_GRANDPA
-#define KAGOME_CONSENSUS_GRANDPA_GRANDPA
+#pragma once
 
+#include "consensus/finality_consensus.hpp"
 #include "consensus/grandpa/common.hpp"
 
 #include <memory>
@@ -20,7 +21,7 @@ namespace kagome::consensus::grandpa {
    * Interface for launching new grandpa rounds. See more details in
    * kagome::consensus::grandpa::GrandpaImpl
    */
-  class Grandpa {
+  class Grandpa : public FinalityConsensus {
    public:
     virtual ~Grandpa() = default;
 
@@ -43,5 +44,3 @@ namespace kagome::consensus::grandpa {
   };
 
 }  // namespace kagome::consensus::grandpa
-
-#endif  // KAGOME_CONSENSUS_GRANDPA_GRANDPA

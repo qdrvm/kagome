@@ -1,5 +1,6 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -53,7 +54,7 @@ namespace kagome::parachain {
       cb(std::move(*data));
       return;
     }
-    auto block = block_tree_->bestLeaf();
+    auto block = block_tree_->bestBlock();
     auto _session = parachain_api_->session_info(block.hash, session_index);
     if (not _session) {
       lock.unlock();
@@ -159,10 +160,7 @@ namespace kagome::parachain {
     }
     if (active.chunks.size() + active.chunks_active + active.order.size()
         < active.chunks_required) {
-      return done(
-          lock,
-          it,
-          ErasureCodingError{toCodeError(ec_cpp::Error::kNeedMoreShards)});
+      return done(lock, it, std::nullopt);
     }
     auto max = std::min(kParallelRequests,
                         active.chunks_required - active.chunks.size());

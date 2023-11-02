@@ -1,3 +1,9 @@
+/**
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
 #include <boost/throw_exception.hpp>
 #include <chrono>
 #include <fstream>
@@ -11,7 +17,6 @@
 #undef TRUE
 #undef FALSE
 
-#include <boost/algorithm/string/predicate.hpp>
 #include <boost/di.hpp>
 #include <soralog/impl/configurator_from_yaml.hpp>
 
@@ -183,7 +188,7 @@ void child_storage_root_hashes(const std::unique_ptr<TrieBatch> &batch,
   auto res = cursor->seekUpperBound(child_prefix);
   if (res.has_value()) {
     auto key = cursor->key();
-    while (key.has_value() && boost::starts_with(key.value(), child_prefix)) {
+    while (key.has_value() && startsWith(key.value(), child_prefix)) {
       if (auto value_res = batch->tryGet(key.value());
           value_res.has_value() && value_res.value().has_value()) {
         auto &value_opt = value_res.value();
@@ -332,7 +337,7 @@ int db_editor_main(int argc, const char **argv) {
 
       after_finalized_block_state_root = header.state_root;
 
-      leafs.emplace(header.number - 1, header.parent_hash);
+      leafs.emplace(*header.parentInfo());
       to_remove.insert(std::move(node));
     }
     RootHash target_state =

@@ -1,21 +1,20 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_RUNTIME_CORE_HPP
-#define KAGOME_RUNTIME_CORE_HPP
+#pragma once
 
 #include <optional>
 
 #include "primitives/block.hpp"
 #include "primitives/common.hpp"
 #include "primitives/version.hpp"
+#include "runtime/runtime_context.hpp"
 #include "storage/changes_trie/changes_tracker.hpp"
 
 namespace kagome::runtime {
-  class RuntimeContext;
-
   /**
    * Core represents mandatory part of runtime api
    */
@@ -60,5 +59,3 @@ namespace kagome::runtime {
   };
 
 }  // namespace kagome::runtime
-
-#endif  // KAGOME_RUNTIME_CORE_HPP

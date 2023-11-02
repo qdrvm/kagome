@@ -1,5 +1,6 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 #include "network/adapters/protobuf_block_response.hpp"
@@ -46,15 +47,18 @@ struct ProtobufBlockResponseAdapterTest : public ::testing::Test {
     EXPECT_OUTCOME_TRUE(receipt, Buffer::fromHex("55ffddeeaa"));
     EXPECT_OUTCOME_TRUE(message_queue, Buffer::fromHex("1a2b3c4d5e6f"));
 
-    response.blocks.emplace_back(
-        BlockData{.hash = hash,
-                  .header = BlockHeader{.parent_hash = parent_hash,
-                                        .number = 0u,
-                                        .state_root = root_hash,
-                                        .extrinsics_root = ext_hash},
-                  .body = std::vector{Extrinsic{ext}},
-                  .receipt = receipt,
-                  .message_queue = message_queue});
+    response.blocks.emplace_back(BlockData{.hash = hash,
+                                           .header =
+                                               BlockHeader{
+                                                   0,            // number
+                                                   parent_hash,  // parent
+                                                   root_hash,    // state root
+                                                   ext_hash,  // extrinsice root
+                                                   {}         // digest
+                                               },
+                                           .body = std::vector{Extrinsic{ext}},
+                                           .receipt = receipt,
+                                           .message_queue = message_queue});
   }
 
   BlocksResponse response;

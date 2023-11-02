@@ -1,10 +1,10 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_CORE_PRIMITIVES_COMMON_HPP
-#define KAGOME_CORE_PRIMITIVES_COMMON_HPP
+#pragma once
 
 #include <cstdint>
 
@@ -91,7 +91,7 @@ struct fmt::formatter<kagome::primitives::detail::BlockInfoT<Tag>> {
 
     if (presentation == 's') {
       static_assert(decltype(block_info.hash)::size() > 4);
-      return format_to(
+      return fmt::format_to(
           ctx.out(),
           "#{} (0x{:04x}…{:04x})",
           block_info.number,
@@ -103,9 +103,7 @@ struct fmt::formatter<kagome::primitives::detail::BlockInfoT<Tag>> {
                                                       - sizeof(uint16_t))));
     }
 
-    return format_to(
+    return fmt::format_to(
         ctx.out(), "#{} (0x{})", block_info.number, block_info.hash.toHex());
   }
 };
-
-#endif  // KAGOME_CORE_PRIMITIVES_COMMON_HPP

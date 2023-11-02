@@ -1,10 +1,10 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_CORE_TRANSACTION_POOL_TRANSACTION_POOL_ERROR_HPP
-#define KAGOME_CORE_TRANSACTION_POOL_TRANSACTION_POOL_ERROR_HPP
+#pragma once
 
 #include <outcome/outcome.hpp>
 
@@ -17,5 +17,3 @@ namespace kagome::transaction_pool {
 }
 
 OUTCOME_HPP_DECLARE_ERROR(kagome::transaction_pool, TransactionPoolError);
-
-#endif  // KAGOME_CORE_TRANSACTION_POOL_TRANSACTION_POOL_ERROR_HPP

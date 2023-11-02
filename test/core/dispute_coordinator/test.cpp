@@ -1,5 +1,6 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -8,14 +9,3 @@
 #include <gtest/gtest.h>
 
 using namespace kagome::dispute;
-
-TEST(X, X) {
-  DisputeStatement statement{ValidDisputeStatement{BackingSeconded{}}};
-
-  CandidateHash hash{};
-  hash[31] = '\xaa';
-
-  auto data = getSignablePayload(statement, hash, 255);
-
-  (void)data;
-}

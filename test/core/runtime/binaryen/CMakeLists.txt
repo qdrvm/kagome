@@ -1,3 +1,9 @@
+#
+# Copyright Quadrivium LLC
+# All Rights Reserved
+# SPDX-License-Identifier: Apache-2.0
+#
+
 add_library(binaryen_runtime_test INTERFACE)
 target_link_libraries(binaryen_runtime_test INTERFACE
     filesystem
@@ -60,20 +66,6 @@ target_link_libraries(parachain_test
     network
     )
 
-addtest(grandpa_api_test
-    grandpa_api_test.cpp
-    )
-target_link_libraries(grandpa_api_test
-    binaryen_runtime_test
-    grandpa_api
-    storage
-    basic_code_provider
-    key_file_storage
-    core_api
-    logger_for_tests
-    filesystem
-    )
-
 addtest(metadata_test
     metadata_test.cpp
     )
@@ -104,4 +96,5 @@ target_link_libraries(binaryen_memory_test
     binaryen_wasm_memory
     binaryen_runtime_external_interface
     log_configurator
+    hexutil
     )

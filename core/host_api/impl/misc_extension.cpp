@@ -1,10 +1,12 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
 #include "host_api/impl/misc_extension.hpp"
 
+#include "log/trace_macros.hpp"
 #include "primitives/version.hpp"
 #include "runtime/common/uncompress_code_if_needed.hpp"
 #include "runtime/core_api_factory.hpp"

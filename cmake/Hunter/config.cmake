@@ -2,11 +2,20 @@
 # non-default version or arguments of a dependency, or when a project not
 # registered in soramitsu-hunter should be added.
 #
-# hunter_config( package-name VERSION 0.0.0-package-version CMAKE_ARGS
-# "CMAKE_VARIABLE=value" )
+# hunter_config(
+#     package-name
+#     VERSION 0.0.0-package-version
+#     CMAKE_ARGS
+#      CMAKE_VARIABLE=value
+# )
 #
-# hunter_config( package-name URL https://repo/archive.zip SHA1
-# 1234567890abcdef1234567890abcdef12345678 CMAKE_ARGS "CMAKE_VARIABLE=value" )
+# hunter_config(
+#     package-name
+#     URL https://repo/archive.zip
+#     SHA1 1234567890abcdef1234567890abcdef12345678
+#     CMAKE_ARGS
+#       CMAKE_VARIABLE=value
+# )
 
 hunter_config(
     backward-cpp
@@ -25,13 +34,13 @@ hunter_config(
 
 hunter_config(
     soralog
-    VERSION 0.1.5
+    VERSION 0.2.1
     KEEP_PACKAGE_SOURCES
 )
 
 hunter_config(
     libp2p
-    VERSION 0.1.12
+    VERSION 0.1.17
     KEEP_PACKAGE_SOURCES
 )
 
@@ -43,13 +52,29 @@ hunter_config(
 
 hunter_config(
     wavm
-    VERSION 1.0.12
-    CMAKE_ARGS
-      TESTING=OFF
-      WAVM_ENABLE_FUZZ_TARGETS=OFF
-      WAVM_ENABLE_STATIC_LINKING=ON
-      WAVM_BUILD_EXAMPLES=OFF
-      WAVM_BUILD_TESTS=OFF
-      WAVM_DISABLE_UNIX_SIGNALS=ON
+    VERSION 1.0.14
     KEEP_PACKAGE_SOURCES
 )
+
+hunter_config(
+    LLVM
+    VERSION 12.0.1-p4
+    CMAKE_ARGS
+      LLVM_ENABLE_PROJECTS=ir
+    KEEP_PACKAGE_SOURCES
+)
+
+hunter_config(
+    scale
+    VERSION 1.1.0
+    KEEP_PACKAGE_SOURCES
+)
+
+# Fix for Apple clang (or clang from brew) of versions 15 and higher
+if(APPLE AND (CMAKE_CXX_COMPILER_ID STREQUAL "AppleClang" OR CMAKE_CXX_COMPILER_ID STREQUAL "Clang") AND CMAKE_CXX_COMPILER_VERSION GREATER_EQUAL "15.0.0")
+    hunter_config(
+        binaryen
+        URL https://github.com/qdrvm/binaryen/archive/0744f64a584cae5b9255b1c2f0a4e0b5e06d7038.zip
+        SHA1 f953c5f38a0417e494901e15ab6f5d8267388d18
+    )
+endif()

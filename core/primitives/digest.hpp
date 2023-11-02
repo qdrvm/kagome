@@ -1,10 +1,10 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_CORE_PRIMITIVES_DIGEST
-#define KAGOME_CORE_PRIMITIVES_DIGEST
+#pragma once
 
 #include <boost/variant.hpp>
 
@@ -31,7 +31,7 @@ namespace kagome::primitives {
   inline const auto kUnsupportedEngineId_POL1 =
       ConsensusEngineId::fromString("POL1").value();
 
-  inline const auto kUnsupportedEngineId_BEEF =
+  inline const auto kBeefyEngineId =
       ConsensusEngineId::fromString("BEEF").value();
 
   struct Other : public common::Buffer {};
@@ -78,21 +78,24 @@ namespace kagome::primitives {
   struct DecodedConsensusMessage {
     static outcome::result<DecodedConsensusMessage> create(
         ConsensusEngineId engine_id, const common::Buffer &data) {
+      DecodedConsensusMessage msg;
+      msg.consensus_engine_id = engine_id;
       if (engine_id == primitives::kBabeEngineId) {
         OUTCOME_TRY(payload, scale::decode<BabeDigest>(data));
-        return DecodedConsensusMessage{engine_id, std::move(payload)};
+        msg.digest = std::move(payload);
       } else if (engine_id == primitives::kGrandpaEngineId) {
         OUTCOME_TRY(payload, scale::decode<GrandpaDigest>(data));
-        return DecodedConsensusMessage{engine_id, std::move(payload)};
+        msg.digest = std::move(payload);
       } else if (engine_id == primitives::kUnsupportedEngineId_POL1) {
         OUTCOME_TRY(payload, scale::decode<UnsupportedDigest_POL1>(data));
-        return DecodedConsensusMessage{engine_id, std::move(payload)};
-      } else if (engine_id == primitives::kUnsupportedEngineId_BEEF) {
+        msg.digest = std::move(payload);
+      } else if (engine_id == primitives::kBeefyEngineId) {
         OUTCOME_TRY(payload, scale::decode<UnsupportedDigest_BEEF>(data));
-        return DecodedConsensusMessage{engine_id, std::move(payload)};
+        msg.digest = std::move(payload);
+      } else {
+        BOOST_ASSERT_MSG(false, "Invalid consensus engine id");
       }
-      BOOST_ASSERT_MSG(false, "Invalid consensus engine id");
-      BOOST_UNREACHABLE_RETURN({})
+      return msg;
     }
 
     const BabeDigest &asBabeDigest() const {
@@ -103,7 +106,7 @@ namespace kagome::primitives {
     template <typename T>
     bool isBabeDigestOf() const {
       return consensus_engine_id == primitives::kBabeEngineId
-             && boost::get<T>(&asBabeDigest()) != nullptr;
+          && boost::get<T>(&asBabeDigest()) != nullptr;
     }
 
     const GrandpaDigest &asGrandpaDigest() const {
@@ -114,7 +117,7 @@ namespace kagome::primitives {
     template <typename T>
     bool isGrandpaDigestOf() const {
       return consensus_engine_id == primitives::kGrandpaEngineId
-             && boost::get<T>(&asGrandpaDigest()) != nullptr;
+          && boost::get<T>(&asGrandpaDigest()) != nullptr;
     }
 
     ConsensusEngineId consensus_engine_id;
@@ -194,5 +197,3 @@ namespace kagome::primitives {
   using Digest = common::SLVector<DigestItem, kMaxItemsInDigest>;
 
 }  // namespace kagome::primitives
-
-#endif  // KAGOME_CORE_PRIMITIVES_DIGEST

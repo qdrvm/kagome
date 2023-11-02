@@ -1,10 +1,10 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_CONSENSUS_GRANDPA_AUTHORITYMANAGER
-#define KAGOME_CONSENSUS_GRANDPA_AUTHORITYMANAGER
+#pragma once
 
 #include <boost/optional.hpp>
 
@@ -49,5 +49,3 @@ namespace kagome::consensus::grandpa {
                       const primitives::AuthoritySet &authorities) = 0;
   };
 }  // namespace kagome::consensus::grandpa
-
-#endif  // KAGOME_CONSENSUS_GRANDPA_AUTHORITYMANAGER

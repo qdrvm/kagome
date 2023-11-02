@@ -1,10 +1,10 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_CORE_PRIMITIVES_EVENT_TYPES_HPP
-#define KAGOME_CORE_PRIMITIVES_EVENT_TYPES_HPP
+#pragma once
 
 #include <cstdint>
 #include <memory>
@@ -14,7 +14,7 @@
 #include <libp2p/peer/peer_id.hpp>
 
 #include "common/buffer.hpp"
-#include "consensus/babe/babe.hpp"
+#include "consensus/timeline/sync_state.hpp"
 #include "primitives/block_id.hpp"
 #include "primitives/extrinsic.hpp"
 #include "primitives/version.hpp"
@@ -43,7 +43,7 @@ namespace kagome::primitives::events {
     kDeactivateAfterFinalization = 6,
   };
 
-  enum struct BabeStateEventType : uint32_t { kSyncState = 1 };
+  enum struct SyncStateEventType : uint32_t { kSyncState = 1 };
 
   using HeadsEventParams = ref_t<const primitives::BlockHeader>;
   using RuntimeVersionEventParams = ref_t<const primitives::Version>;
@@ -56,7 +56,7 @@ namespace kagome::primitives::events {
                                           NewRuntimeEventParams,
                                           RemoveAfterFinalizationParams>;
 
-  using BabeStateEventParams = consensus::babe::Babe::State;
+  using SyncStateEventParams = consensus::SyncState;
 
   /**
    * - "future" - Transaction is part of the future queue.
@@ -95,10 +95,10 @@ namespace kagome::primitives::events {
     INVALID
   };
 
-  using Hash256Span = gsl::span<const uint8_t, common::Hash256::size()>;
+  using Hash256Span = std::span<const uint8_t, common::Hash256::size()>;
 
   struct BroadcastEventParams {
-    gsl::span<const libp2p::peer::PeerId> peers;
+    std::span<const libp2p::peer::PeerId> peers;
   };
 
   struct InBlockEventParams {
@@ -149,7 +149,7 @@ namespace kagome::primitives::events {
     }
 
     static ExtrinsicLifecycleEvent Broadcast(
-        SubscribedExtrinsicId id, gsl::span<const libp2p::peer::PeerId> peers) {
+        SubscribedExtrinsicId id, std::span<const libp2p::peer::PeerId> peers) {
       return ExtrinsicLifecycleEvent{
           id,
           ExtrinsicEventType::BROADCAST,
@@ -242,9 +242,9 @@ namespace kagome::primitives::events {
   using ChainEventSubscriberPtr = std::shared_ptr<ChainEventSubscriber>;
 
   using BabeStateSubscriptionEngine = subscription::SubscriptionEngine<
-      primitives::events::BabeStateEventType,
+      primitives::events::SyncStateEventType,
       bool,
-      primitives::events::BabeStateEventParams>;
+      primitives::events::SyncStateEventParams>;
   using BabeStateSubscriptionEnginePtr =
       std::shared_ptr<BabeStateSubscriptionEngine>;
 
@@ -262,5 +262,3 @@ namespace kagome::primitives::events {
   using ExtrinsicEventSubscriberPtr = std::shared_ptr<ExtrinsicEventSubscriber>;
 
 }  // namespace kagome::primitives::events
-
-#endif  // KAGOME_CORE_PRIMITIVES_EVENT_TYPES_HPP

@@ -1,5 +1,6 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -9,9 +10,9 @@
 
 #include <libp2p/basic/scheduler/asio_scheduler_backend.hpp>
 #include <libp2p/basic/scheduler/scheduler_impl.hpp>
+#include <libp2p/common/final_action.hpp>
 
 #include "application/app_state_manager.hpp"
-#include "application/chain_spec.hpp"
 #include "blockchain/block_tree.hpp"
 #include "common/tagged.hpp"
 #include "consensus/grandpa/authority_manager.hpp"
@@ -24,14 +25,11 @@
 #include "consensus/grandpa/vote_graph/vote_graph_impl.hpp"
 #include "consensus/grandpa/voting_round_error.hpp"
 #include "crypto/crypto_store/session_keys.hpp"
-#include "network/helpers/peer_id_formatter.hpp"
 #include "network/peer_manager.hpp"
 #include "network/reputation_repository.hpp"
 #include "network/synchronizer.hpp"
 
 namespace {
-  using IsBlockFinalized = kagome::Tagged<bool, struct IsBlockFinalizedTag>;
-
   constexpr auto highestGrandpaRoundMetricName =
       "kagome_finality_grandpa_round";
 
@@ -57,24 +55,15 @@ namespace kagome::consensus::grandpa {
     return genesis == westend_genesis && block == past_round;
   }
 
-  namespace {
-    Clock::Duration getGossipDuration(const application::ChainSpec &chain) {
-      // https://github.com/paritytech/polkadot/pull/5448
-      auto slow = chain.isVersi() || chain.isWococo() || chain.isRococo()
-               || chain.isKusama();
-      return std::chrono::duration_cast<Clock::Duration>(
-          std::chrono::milliseconds{slow ? 2000 : 1000});
-    }
-  }  // namespace
+  // https://github.com/paritytech/polkadot/pull/6217
+  constexpr std::chrono::milliseconds kGossipDuration{1000};
 
   GrandpaImpl::GrandpaImpl(
       std::shared_ptr<application::AppStateManager> app_state_manager,
       std::shared_ptr<crypto::Hasher> hasher,
       std::shared_ptr<Environment> environment,
       std::shared_ptr<crypto::Ed25519Provider> crypto_provider,
-      std::shared_ptr<runtime::GrandpaApi> grandpa_api,
       std::shared_ptr<crypto::SessionKeys> session_keys,
-      const application::ChainSpec &chain_spec,
       std::shared_ptr<AuthorityManager> authority_manager,
       std::shared_ptr<network::Synchronizer> synchronizer,
       std::shared_ptr<network::PeerManager> peer_manager,
@@ -82,11 +71,10 @@ namespace kagome::consensus::grandpa {
       std::shared_ptr<network::ReputationRepository> reputation_repository,
       primitives::events::BabeStateSubscriptionEnginePtr babe_status_observable,
       std::shared_ptr<boost::asio::io_context> main_thread_context)
-      : round_time_factor_{getGossipDuration(chain_spec)},
+      : round_time_factor_{kGossipDuration},
         hasher_{std::move(hasher)},
         environment_{std::move(environment)},
         crypto_provider_{std::move(crypto_provider)},
-        grandpa_api_{std::move(grandpa_api)},
         session_keys_{std::move(session_keys)},
         authority_manager_(std::move(authority_manager)),
         synchronizer_(std::move(synchronizer)),
@@ -103,7 +91,6 @@ namespace kagome::consensus::grandpa {
             libp2p::basic::Scheduler::Config{})} {
     BOOST_ASSERT(environment_ != nullptr);
     BOOST_ASSERT(crypto_provider_ != nullptr);
-    BOOST_ASSERT(grandpa_api_ != nullptr);
     BOOST_ASSERT(scheduler_ != nullptr);
     BOOST_ASSERT(authority_manager_ != nullptr);
     BOOST_ASSERT(synchronizer_ != nullptr);
@@ -133,15 +120,15 @@ namespace kagome::consensus::grandpa {
             babe_status_observable_, false);
     babe_status_observer_->subscribe(
         babe_status_observer_->generateSubscriptionSetId(),
-        primitives::events::BabeStateEventType::kSyncState);
+        primitives::events::SyncStateEventType::kSyncState);
     babe_status_observer_->setCallback(
         [wself{weak_from_this()}](
             auto /*set_id*/,
             bool &synchronized,
             auto /*event_type*/,
-            const primitives::events::BabeStateEventParams &event) {
+            const primitives::events::SyncStateEventParams &event) {
           if (auto self = wself.lock()) {
-            if (event == babe::Babe::State::SYNCHRONIZED) {
+            if (event == SyncState::SYNCHRONIZED) {
               self->synchronized_once_.store(true);
             }
           }
@@ -176,8 +163,8 @@ namespace kagome::consensus::grandpa {
              "Grandpa will be started with round #{}",
              round_state.round_number + 1);
 
-    auto authorities_res = authority_manager_->authorities(
-        round_state.last_finalized_block, IsBlockFinalized{false});
+    auto authorities_res =
+        authority_manager_->authorities(round_state.last_finalized_block, true);
     if (not authorities_res.has_value()) {
       logger_->critical(
           "Can't retrieve authorities for block {}. Stopping grandpa execution",
@@ -254,7 +241,7 @@ namespace kagome::consensus::grandpa {
     auto vote_crypto_provider = std::make_shared<VoteCryptoProviderImpl>(
         keypair, crypto_provider_, round_state.round_number, config.voters);
 
-    auto new_round = std::make_shared<VotingRoundImpl>(
+    auto new_round = VotingRoundImpl::create(
         shared_from_this(),
         std::move(config),
         hasher_,
@@ -313,7 +300,7 @@ namespace kagome::consensus::grandpa {
     auto vote_crypto_provider = std::make_shared<VoteCryptoProviderImpl>(
         keypair, crypto_provider_, new_round_number, config.voters);
 
-    auto new_round = std::make_shared<VotingRoundImpl>(
+    auto new_round = VotingRoundImpl::create(
         shared_from_this(),
         std::move(config),
         hasher_,
@@ -429,10 +416,15 @@ namespace kagome::consensus::grandpa {
     }
   }
 
-  void GrandpaImpl::onNeighborMessage(const libp2p::peer::PeerId &peer_id,
-                                      network::GrandpaNeighborMessage &&msg) {
-    REINVOKE(
-        *internal_thread_context_, onNeighborMessage, peer_id, std::move(msg));
+  void GrandpaImpl::onNeighborMessage(
+      const libp2p::peer::PeerId &peer_id,
+      std::optional<network::PeerStateCompact> &&info,
+      network::GrandpaNeighborMessage &&msg) {
+    REINVOKE(*internal_thread_context_,
+             onNeighborMessage,
+             peer_id,
+             std::move(info),
+             std::move(msg));
 
     BOOST_ASSERT(internal_thread_context_->isInCurrentThread());
     SL_DEBUG(logger_,
@@ -443,13 +435,13 @@ namespace kagome::consensus::grandpa {
              msg.last_finalized,
              peer_id);
 
-    auto info = peer_manager_->getPeerState(peer_id);
     std::optional<VoterSetId> info_set;
     std::optional<RoundNumber> info_round;
     // copy values before `updatePeerState`
+
     if (info) {
-      info_set = info->get().set_id;
-      info_round = info->get().round_number;
+      info_set = info->set_id;
+      info_round = info->round_number;
     }
 
     bool reputation_changed = false;
@@ -536,7 +528,7 @@ namespace kagome::consensus::grandpa {
       return;
     }
 
-    if (info->get().last_finalized > block_tree_->getLastFinalized().number) {
+    if (msg.last_finalized > block_tree_->getLastFinalized().number) {
       //  Trying to substitute with justifications' request only
       main_thread_context_.execute([wself{weak_from_this()},
                                     peer_id,
@@ -572,14 +564,18 @@ namespace kagome::consensus::grandpa {
     }
   }
 
-  void GrandpaImpl::onCatchUpRequest(const libp2p::peer::PeerId &peer_id,
-                                     network::CatchUpRequest &&msg) {
-    REINVOKE(
-        *internal_thread_context_, onCatchUpRequest, peer_id, std::move(msg));
+  void GrandpaImpl::onCatchUpRequest(
+      const libp2p::peer::PeerId &peer_id,
+      std::optional<network::PeerStateCompact> &&info_opt,
+      network::CatchUpRequest &&msg) {
+    REINVOKE(*internal_thread_context_,
+             onCatchUpRequest,
+             peer_id,
+             std::move(info_opt),
+             std::move(msg));
 
-    auto info_opt = peer_manager_->getPeerState(peer_id);
-    if (not info_opt.has_value() or not info_opt->get().set_id.has_value()
-        or not info_opt->get().round_number.has_value()) {
+    if (not info_opt.has_value() or not info_opt->set_id.has_value()
+        or not info_opt->round_number.has_value()) {
       SL_DEBUG(logger_,
                "Catch-up request to round #{} received from {} was rejected: "
                "we are not have our view about remote peer",
@@ -589,7 +585,7 @@ namespace kagome::consensus::grandpa {
           peer_id, network::reputation::cost::OUT_OF_SCOPE_MESSAGE);
       return;
     }
-    const auto &info = info_opt->get();
+    const auto &info = *info_opt;
 
     // Check if request is corresponding our view about remote peer by set id
     if (msg.voter_set_id != info.set_id.value()) {
@@ -779,7 +775,7 @@ namespace kagome::consensus::grandpa {
       need_cleanup_when_exiting_scope = true;
     }
 
-    auto cleanup = gsl::finally([&] {
+    ::libp2p::common::FinalAction cleanup([&] {
       if (need_cleanup_when_exiting_scope) {
         catchup_request_timer_handle_.cancel();
         pending_catchup_request_.reset();
@@ -946,16 +942,23 @@ namespace kagome::consensus::grandpa {
   void GrandpaImpl::onVoteMessage(
       std::optional<std::shared_ptr<GrandpaContext>> &&existed_context,
       const libp2p::peer::PeerId &peer_id,
+      std::optional<network::PeerStateCompact> &&info,
       const VoteMessage &msg) {
     REINVOKE(*internal_thread_context_,
              onVoteMessage,
              std::move(existed_context),
              peer_id,
+             std::move(info),
              msg);
 
-    auto info = peer_manager_->getPeerState(peer_id);
-    if (not info.has_value() or not info->get().set_id.has_value()
-        or not info->get().round_number.has_value()) {
+    // Skip message processing if same vote was already observed
+    if (votes_cache_.contains(msg)) {
+      return;
+    }
+    votes_cache_.put(msg);
+
+    if (not info.has_value() or not info->set_id.has_value()
+        or not info->round_number.has_value()) {
       SL_DEBUG(
           logger_,
           "{} signed by {} with set_id={} in round={} has received from {} "
@@ -1040,7 +1043,7 @@ namespace kagome::consensus::grandpa {
 
     // If a peer is at round r, is extremely impolite to send messages about r+1
     // or later. "future-round" messages can be dropped and ignored.
-    if (msg.round_number >= current_round_->roundNumber() + 1) {
+    if (msg.round_number > current_round_->roundNumber() + 1) {
       SL_WARN(logger_,
               "{} signed by {} with set_id={} in round={} has received from {} "
               "and rejected as extremely impolite (our round is {})",
@@ -1357,7 +1360,7 @@ namespace kagome::consensus::grandpa {
     auto voters = VoterSet::make(authorities).value();
     MovableRoundState state;
     state.round_number = justification.round_number;
-    VotingRoundImpl round{
+    auto round = VotingRoundImpl::create(
         shared_from_this(),
         GrandpaConfig{voters, justification.round_number, {}, {}},
         hasher_,
@@ -1369,9 +1372,9 @@ namespace kagome::consensus::grandpa {
         std::make_shared<VoteGraphImpl>(
             primitives::BlockInfo{}, voters, environment_),
         scheduler_,
-        state,
-    };
-    promise_res->set_value(round.validatePrecommitJustification(justification));
+        state);
+    promise_res->set_value(
+        round->validatePrecommitJustification(justification));
   }
 
   void GrandpaImpl::applyJustification(
@@ -1514,7 +1517,11 @@ namespace kagome::consensus::grandpa {
           if (grandpa_context->vote.has_value()) {
             auto const &peer_id = grandpa_context->peer_id.value();
             auto const &vote = grandpa_context->vote.value();
-            self->onVoteMessage(std::move(grandpa_context), peer_id, vote);
+            auto info = self->peer_manager_->getPeerState(peer_id);
+            self->onVoteMessage(std::move(grandpa_context),
+                                peer_id,
+                                compactFromRefToOwn(info),
+                                vote);
           } else if (grandpa_context->catch_up_response.has_value()) {
             auto const &peer_id = grandpa_context->peer_id.value();
             auto const &catch_up_response =

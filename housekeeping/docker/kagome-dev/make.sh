@@ -1,4 +1,9 @@
 #!/bin/bash -xe
+#
+# Copyright Quadrivium LLC
+# All Rights Reserved
+# SPDX-License-Identifier: Apache-2.0
+#
 
 BUILD_DIR=build
 
@@ -20,6 +25,9 @@ fi
 
 else # CI
   BUILD_THREADS="${BUILD_THREADS:-$(( $(nproc 2>/dev/null || sysctl -n hw.ncpu) ))}"
+  # Configure CI git security
+  git config --global --add safe.directory /__w/kagome/kagome
+  source /venv/bin/activate
 fi
 
 git submodule update --init

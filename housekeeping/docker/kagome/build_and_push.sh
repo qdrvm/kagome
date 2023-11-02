@@ -1,4 +1,14 @@
 #!/bin/bash -ex
+#
+# Copyright Quadrivium LLC
+# All Rights Reserved
+# SPDX-License-Identifier: Apache-2.0
+#
+
+if [[ "${CI}" ]]; then # CI
+  git config --global --add safe.directory /__w/kagome/kagome
+  source /venv/bin/activate
+fi
 
 KAGOME_ROOT="$(dirname "$0")/../../.."
 
@@ -37,7 +47,7 @@ if [ "$BUILD_TYPE" = "Custom" ]; then
   COMMIT_HASH="$(git rev-parse --short HEAD)"
   TAG="$DOCKER_USERNAME/kagome:$COMMIT_HASH"
 else
-  TAG="soramitsu/kagome:$VERSION"
+  TAG="qdrvm/kagome:$VERSION"
 fi
 
 CTX_DIR="${BUILD_DIR}/docker_context"
@@ -72,7 +82,7 @@ docker push $TAG
 if [ "$BUILD_TYPE" != "Custom" ]; then
 
 HASH_COMMIT="$(git rev-parse --short HEAD)"
-TAG_HASH_COMMIT="soramitsu/kagome:$HASH_COMMIT"
+TAG_HASH_COMMIT="qdrvm/kagome:$HASH_COMMIT"
 
 if [ "$BUILD_TYPE" = "Debug" ]; then
   TAG_HASH_COMMIT="${TAG_HASH_COMMIT}-debug"

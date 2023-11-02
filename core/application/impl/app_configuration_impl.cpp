@@ -1,5 +1,6 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -10,6 +11,7 @@
 #include <string>
 
 #include <rapidjson/document.h>
+#include <rapidjson/error/en.h>
 #include <rapidjson/filereadstream.h>
 #include <boost/algorithm/string.hpp>
 #include <boost/program_options.hpp>
@@ -27,6 +29,8 @@
 #include "common/uri.hpp"
 #include "filesystem/common.hpp"
 #include "filesystem/directories.hpp"
+#include "log/formatters/filepath.hpp"
+#include "log/formatters/optional.hpp"
 #include "utils/read_file.hpp"
 
 namespace {
@@ -57,6 +61,16 @@ namespace {
     return std::nullopt;
   }
 
+  bool find_argument(boost::program_options::variables_map &vm,
+                     const std::string &name) {
+    if (auto it = vm.find(name); it != vm.end()) {
+      if (!it->second.defaulted()) {
+        return true;
+      }
+    }
+    return false;
+  }
+
   const std::string def_rpc_host = "0.0.0.0";
   const std::string def_openmetrics_http_host = "0.0.0.0";
   const uint16_t def_rpc_port = 9944;
@@ -69,8 +83,7 @@ namespace {
     roles.flags.full = 1;
     return roles;
   }();
-  const auto def_sync_method =
-      kagome::application::AppConfiguration::SyncMethod::Full;
+  const auto def_sync_method = kagome::application::SyncMethod::Full;
   const auto def_runtime_exec_method =
       kagome::application::AppConfiguration::RuntimeExecutionMethod::Interpret;
   const auto def_use_wavm_cache_ = false;
@@ -108,9 +121,9 @@ namespace {
     return name;
   }
 
-  std::optional<kagome::application::AppConfiguration::SyncMethod>
-  str_to_sync_method(std::string_view str) {
-    using SM = kagome::application::AppConfiguration::SyncMethod;
+  std::optional<kagome::application::SyncMethod> str_to_sync_method(
+      std::string_view str) {
+    using SM = kagome::application::SyncMethod;
     if (str == "Full") {
       return SM::Full;
     }
@@ -526,7 +539,7 @@ namespace kagome::application {
       SL_ERROR(logger_,
                "Configuration file {} parse failed with error {}",
                filepath,
-               document.GetParseError());
+               GetParseError_En(document.GetParseError()));
       return;
     }
 
@@ -847,8 +860,8 @@ namespace kagome::application {
       development_desc.add_options()(
           flag,
           po::bool_switch(),
-          fmt::format("Shortcut for `--name {} --validator` with session keys "
-                      "for `{}` added to keystore",
+          fmt::format("Shortcut for `--name {} --validator` with session "
+                      "keys for `{}` added to keystore",
                       name,
                       name)
               .c_str());
@@ -1152,7 +1165,7 @@ namespace kagome::application {
       auto replace = [&](std::string_view prefix,
                          std::string_view replacement,
                          std::string_view str) {
-        if (boost::starts_with(str, prefix)) {
+        if (str.starts_with(prefix)) {
           std::string replaced{replacement};
           replaced += str.substr(prefix.size());
           public_addresses_.emplace_back(
@@ -1382,8 +1395,8 @@ namespace kagome::application {
       }
     }
 
-    if (auto arg =
-            find_argument<uint32_t>(vm, "parachain-runtime-instance-cache-size");
+    if (auto arg = find_argument<uint32_t>(
+            vm, "parachain-runtime-instance-cache-size");
         arg.has_value()) {
       parachain_runtime_instance_cache_size_ = *arg;
     }
@@ -1460,19 +1473,19 @@ namespace kagome::application {
         prune_discarded_states_ = true;
       } else {
         uint32_t depth{};
-        auto [_, err] = std::from_chars(&*val.begin(), &*val.end(), depth);
+        auto err = std::from_chars(&*val.begin(), &*val.end(), depth).ec;
         if (err == std::errc{}) {
           state_pruning_depth_ = depth;
         } else {
           SL_ERROR(logger_,
-                   "Failed to parse state-pruning param (which should be "
-                   "either 'archive' or an integer): {}",
-                   err);
+                   "Failed to parse state-pruning param "
+                   "(which should be either 'archive' or an integer): {}",
+                   make_error_code(err));
           return false;
         }
       }
 
-      if (vm.count("enable-thorough-pruning")) {
+      if (find_argument(vm, "enable-thorough-pruning")) {
         enable_thorough_pruning_ = true;
       }
     }

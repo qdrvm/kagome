@@ -1,3 +1,9 @@
+#
+# Copyright Quadrivium LLC
+# All Rights Reserved
+# SPDX-License-Identifier: Apache-2.0
+#
+
 add_library(wavm_runtime_test INTERFACE)
 target_link_libraries(wavm_runtime_test INTERFACE
     key_file_storage
@@ -38,3 +44,19 @@ target_link_libraries(core_integration_test
     filesystem
     logger_for_tests
     )
+
+addtest(wavm_module_init_test
+    wavm_module_init_test.cpp
+)
+target_link_libraries(wavm_module_init_test
+    runtime_wavm
+    basic_code_provider
+    blockchain
+    hasher
+    core_api
+    host_api_factory
+    offchain_persistent_storage
+    offchain_worker_pool
+    runtime_properties_cache
+    logger_for_tests
+)

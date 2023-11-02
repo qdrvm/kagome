@@ -1,10 +1,10 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_BLOB_HPP
-#define KAGOME_BLOB_HPP
+#pragma once
 
 #include <array>
 
@@ -59,7 +59,7 @@
       }                                                                        \
                                                                                \
       static ::outcome::result<class_name> fromSpan(                           \
-          const gsl::span<const uint8_t> &span) {                              \
+          const common::BufferView &span) {                                    \
         OUTCOME_TRY(blob, Base::fromSpan(span));                               \
         return class_name{std::move(blob)};                                    \
       }                                                                        \
@@ -140,7 +140,7 @@ namespace kagome::common {
     /**
      * In compile-time returns size of current blob.
      */
-    constexpr static size_t size() {
+    static constexpr size_t size() {
       return size_;
     }
 
@@ -202,8 +202,7 @@ namespace kagome::common {
      * @param buffer
      * @return
      */
-    static outcome::result<Blob<size_>> fromSpan(
-        const gsl::span<const uint8_t> &span) {
+    static outcome::result<Blob<size_>> fromSpan(const BufferView &span) {
       if (span.size() != size_) {
         return BlobError::INCORRECT_LENGTH;
       }
@@ -271,7 +270,7 @@ struct fmt::formatter<kagome::common::Blob<N>> {
     // ctx.out() is an output iterator to write to.
 
     if (presentation == 's') {
-      return format_to(
+      return fmt::format_to(
           ctx.out(),
           "0x{:04x}…{:04x}",
           // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
@@ -281,10 +280,8 @@ struct fmt::formatter<kagome::common::Blob<N>> {
                                                       - sizeof(uint16_t))));
     }
 
-    return format_to(ctx.out(), "0x{}", blob.toHex());
+    return fmt::format_to(ctx.out(), "0x{}", blob.toHex());
   }
 };
 
 OUTCOME_HPP_DECLARE_ERROR(kagome::common, BlobError);
-
-#endif  // KAGOME_BLOB_HPP

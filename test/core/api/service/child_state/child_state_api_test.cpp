@@ -1,5 +1,6 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -27,6 +28,7 @@ using kagome::common::Buffer;
 using kagome::primitives::BlockHash;
 using kagome::primitives::BlockHeader;
 using kagome::primitives::BlockInfo;
+using kagome::primitives::BlockNumber;
 using kagome::runtime::CoreMock;
 using kagome::runtime::MetadataMock;
 using kagome::storage::trie::PolkadotTrieCursorMock;
@@ -56,6 +58,16 @@ namespace kagome::api {
     std::shared_ptr<MetadataMock> metadata_ = std::make_shared<MetadataMock>();
 
     std::unique_ptr<api::ChildStateApiImpl> api_{};
+
+    BlockHeader makeBlockHeaderOfStateRoot(storage::trie::RootHash state_root) {
+      return BlockHeader{
+          std::numeric_limits<BlockNumber>::max(),  // number
+          {},                                       // parent
+          state_root,                               // state root
+          {},                                       // extrinsics root
+          {}                                        // digest
+      };
+    }
   };
 
   /**
@@ -69,7 +81,7 @@ namespace kagome::api {
         .WillOnce(testing::Return(BlockInfo(42, "D"_hash256)));
 
     EXPECT_CALL(*block_header_repo_, getBlockHeader("D"_hash256))
-        .WillOnce(testing::Return(BlockHeader{.state_root = "CDE"_hash256}));
+        .WillOnce(testing::Return(makeBlockHeaderOfStateRoot("CDE"_hash256)));
     EXPECT_CALL(*storage_, getEphemeralBatchAt("CDE"_hash256))
         .WillOnce(testing::Invoke([](auto &root) {
           auto batch = std::make_unique<TrieBatchMock>();
@@ -96,7 +108,7 @@ namespace kagome::api {
 
   TEST_F(ChildStateApiTest, GetStorageAt) {
     EXPECT_CALL(*block_header_repo_, getBlockHeader("B"_hash256))
-        .WillOnce(testing::Return(BlockHeader{.state_root = "ABC"_hash256}));
+        .WillOnce(testing::Return(makeBlockHeaderOfStateRoot("ABC"_hash256)));
     EXPECT_CALL(*storage_, getEphemeralBatchAt("ABC"_hash256))
         .WillOnce(testing::Invoke([](auto &root) {
           auto batch = std::make_unique<TrieBatchMock>();
@@ -140,7 +152,7 @@ namespace kagome::api {
     EXPECT_CALL(*block_tree_, getLastFinalized())
         .WillOnce(Return(BlockInfo(10, block_hash)));
     EXPECT_CALL(*block_header_repo_, getBlockHeader(block_hash))
-        .WillOnce(Return(BlockHeader{.state_root = "6789"_hash256}));
+        .WillOnce(Return(makeBlockHeaderOfStateRoot("6789"_hash256)));
     EXPECT_CALL(*storage_, getEphemeralBatchAt("6789"_hash256))
         .WillOnce(testing::Invoke([&](auto &root) {
           auto batch = std::make_unique<TrieBatchMock>();
@@ -195,7 +207,7 @@ namespace kagome::api {
     EXPECT_CALL(*block_tree_, getLastFinalized())
         .WillOnce(Return(BlockInfo{10, block_hash}));
     EXPECT_CALL(*block_header_repo_, getBlockHeader(block_hash))
-        .WillOnce(Return(BlockHeader{.state_root = "6789"_hash256}));
+        .WillOnce(Return(makeBlockHeaderOfStateRoot("6789"_hash256)));
     EXPECT_CALL(*storage_, getEphemeralBatchAt("6789"_hash256))
         .WillOnce(testing::Invoke([&](auto &root) {
           auto batch = std::make_unique<TrieBatchMock>();
@@ -224,13 +236,14 @@ namespace kagome::api {
           return batch;
         }));
 
-    ASSERT_EQ(expected_keys,
-              api_->getKeysPaged(child_storage_key,
-                                 prefix_opt,
-                                 keys_amount,
-                                 prev_key_opt,
-                                 block_hash_opt)
-                  .value());
+    auto actual_keys = api_->getKeysPaged(child_storage_key,
+                                          prefix_opt,
+                                          keys_amount,
+                                          prev_key_opt,
+                                          block_hash_opt)
+                           .value();
+
+    ASSERT_EQ(expected_keys, actual_keys);
   }
 
   /**
@@ -246,7 +259,7 @@ namespace kagome::api {
     auto expected_result = "3030"_buf;
 
     EXPECT_CALL(*block_header_repo_, getBlockHeader(block_hash))
-        .WillOnce(Return(BlockHeader{.state_root = "6789"_hash256}));
+        .WillOnce(Return(makeBlockHeaderOfStateRoot("6789"_hash256)));
     auto batch = std::make_unique<TrieBatchMock>();
     EXPECT_CALL(*storage_, getEphemeralBatchAt("6789"_hash256))
         .WillOnce(testing::Invoke([&](auto &root) {

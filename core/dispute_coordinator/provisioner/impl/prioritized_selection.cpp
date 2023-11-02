@@ -1,13 +1,13 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
 #include "dispute_coordinator/provisioner/impl/prioritized_selection.hpp"
 
-#include <future>
+#include <latch>
 #include <tuple>
-#include <type_traits>
 #include <unordered_map>
 
 #include "common/visitor.hpp"
@@ -50,28 +50,16 @@ namespace kagome::dispute {
 
     // Request disputes identified by `CandidateHash` and the `SessionIndex`.
 
-    auto promise_res =
-        std::promise<dispute::DisputeCoordinator::OutputDisputes>();
-    auto res_future = promise_res.get_future();
-
-    dispute_coordinator_->getRecentDisputes(
-        [promise_res = std::ref(promise_res)](
-            outcome::result<dispute::DisputeCoordinator::OutputDisputes> res) {
-          dispute::DisputeCoordinator::OutputDisputes recent_disputes;
-          if (res.has_value()) {
-            recent_disputes = std::move(res.value());
-          }
-          promise_res.get().set_value(std::move(recent_disputes));
-        });
-
     dispute::DisputeCoordinator::OutputDisputes recent_disputes;
-    if (not res_future.valid()) {
-      SL_WARN(log_,
-              "Fetch for approval votes got cancelled, "
-              "only expected during shutdown!");
-    } else {
-      recent_disputes = res_future.get();
-    }
+
+    std::latch latch(1);
+    dispute_coordinator_->getRecentDisputes([&](auto res) {
+      if (res.has_value()) {
+        recent_disputes = std::move(res.value());
+      }
+      latch.count_down();
+    });
+    latch.wait();
 
     SL_TRACE(
         log_,
@@ -160,7 +148,7 @@ namespace kagome::dispute {
 
     for (size_t i = 0; i < disputes.size();) {
       auto batch_size = std::min(kVotesSelectionBatchSize, disputes.size() - i);
-      auto batch = gsl::span(&disputes[i], batch_size);
+      auto batch = std::span(disputes).subspan(i, batch_size);
       i += batch_size;
 
       // Filter votes which are already onchain

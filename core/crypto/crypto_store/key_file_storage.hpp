@@ -1,10 +1,10 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_CRYPTO_KEY_FILE_STORAGE_HPP
-#define KAGOME_CRYPTO_KEY_FILE_STORAGE_HPP
+#pragma once
 
 #include <vector>
 
@@ -48,23 +48,22 @@ namespace kagome::crypto {
     /**
      * Collects all public keys of the given type from the key storage
      */
-    outcome::result<std::vector<Buffer>> collectPublicKeys(
-        KeyTypeId type) const;
+    outcome::result<std::vector<Buffer>> collectPublicKeys(KeyType type) const;
 
     /**
      * Searches for a key file for the corresponding type and public key and
      * returns its content if it's a valid hex blob or mnemonic phrase json.
      */
     outcome::result<std::optional<std::string>> searchForPhrase(
-        KeyTypeId type, gsl::span<const uint8_t> public_key_bytes) const;
+        KeyType type, common::BufferView public_key_bytes) const;
 
     /**
      * Stores the \param seed that generates the \param public_key to the key
      * storage
      */
-    outcome::result<void> saveKeyPair(KeyTypeId type,
-                                      gsl::span<const uint8_t> public_key,
-                                      gsl::span<const uint8_t> seed) const;
+    outcome::result<void> saveKeyPair(KeyType type,
+                                      common::BufferView public_key,
+                                      common::BufferView seed) const;
 
     /**
      * Save key as hex to the specific path.
@@ -73,7 +72,7 @@ namespace kagome::crypto {
      * @param file_path - user-provided path to create the file
      * @return an error if any
      */
-    outcome::result<void> saveKeyHexAtPath(gsl::span<const uint8_t> private_key,
+    outcome::result<void> saveKeyHexAtPath(common::BufferView private_key,
                                            const Path &path) const;
 
    private:
@@ -81,11 +80,10 @@ namespace kagome::crypto {
 
     outcome::result<void> initialize();
 
-    outcome::result<std::pair<KeyTypeId, Buffer>> parseKeyFileName(
+    outcome::result<std::pair<KeyType, Buffer>> parseKeyFileName(
         std::string_view file_name) const;
 
-    Path composeKeyPath(KeyTypeId key_type,
-                        gsl::span<const uint8_t> public_key) const;
+    Path composeKeyPath(KeyType key_type, common::BufferView public_key) const;
 
     Path keystore_path_;
     log::Logger logger_;
@@ -94,5 +92,3 @@ namespace kagome::crypto {
 }  // namespace kagome::crypto
 
 OUTCOME_HPP_DECLARE_ERROR(kagome::crypto, KeyFileStorage::Error);
-
-#endif  // KAGOME_CRYPTO_KEY_FILE_STORAGE_HPP

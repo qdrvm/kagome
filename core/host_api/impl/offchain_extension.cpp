@@ -1,5 +1,6 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -8,6 +9,7 @@
 #include <stdexcept>
 #include <thread>
 
+#include "log/trace_macros.hpp"
 #include "offchain/offchain_worker.hpp"
 #include "offchain/offchain_worker_pool.hpp"
 #include "runtime/memory.hpp"

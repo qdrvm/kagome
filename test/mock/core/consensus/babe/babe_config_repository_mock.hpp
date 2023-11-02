@@ -1,10 +1,10 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_CONSENSUS_BABE_BABECONFIGREPOSITORYMOCK
-#define KAGOME_CONSENSUS_BABE_BABECONFIGREPOSITORYMOCK
+#pragma once
 
 #include "consensus/babe/babe_config_repository.hpp"
 
@@ -14,7 +14,7 @@ namespace kagome::consensus::babe {
 
   class BabeConfigRepositoryMock : public BabeConfigRepository {
    public:
-    MOCK_METHOD(BabeDuration, slotDuration, (), (const, override));
+    MOCK_METHOD(Duration, slotDuration, (), (const, override));
 
     MOCK_METHOD(EpochLength, epochLength, (), (const, override));
 
@@ -28,5 +28,3 @@ namespace kagome::consensus::babe {
   };
 
 }  // namespace kagome::consensus::babe
-
-#endif  // KAGOME_CONSENSUS_BABE_BABECONFIGREPOSITORYMOCK

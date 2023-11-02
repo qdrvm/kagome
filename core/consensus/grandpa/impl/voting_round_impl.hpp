@@ -1,10 +1,10 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_CONSENSUS_GRANDPA_VOTINGROUNDIMPL
-#define KAGOME_CONSENSUS_GRANDPA_VOTINGROUNDIMPL
+#pragma once
 
 #include "consensus/grandpa/voting_round.hpp"
 
@@ -25,7 +25,12 @@ namespace kagome::consensus::grandpa {
 
 namespace kagome::consensus::grandpa {
 
-  class VotingRoundImpl : public VotingRound {
+  class VotingRoundImpl : public VotingRound,
+                          public std::enable_shared_from_this<VotingRoundImpl> {
+   protected:
+    // This ctor is needed only for tests purposes
+    VotingRoundImpl() : round_number_{}, duration_{} {}
+
    private:
     VotingRoundImpl(const std::shared_ptr<Grandpa> &grandpa,
                     const GrandpaConfig &config,
@@ -37,11 +42,6 @@ namespace kagome::consensus::grandpa {
                     std::shared_ptr<VoteGraph> vote_graph,
                     std::shared_ptr<libp2p::basic::Scheduler> scheduler);
 
-   protected:
-    // This ctor is needed only for tests purposes
-    VotingRoundImpl() : round_number_{}, duration_{} {}
-
-   public:
     VotingRoundImpl(
         const std::shared_ptr<Grandpa> &grandpa,
         const GrandpaConfig &config,
@@ -65,6 +65,13 @@ namespace kagome::consensus::grandpa {
         const std::shared_ptr<VoteGraph> &vote_graph,
         const std::shared_ptr<libp2p::basic::Scheduler> &scheduler,
         const std::shared_ptr<VotingRound> &previous_round);
+
+   public:
+    template <typename... Args>
+    static std::shared_ptr<VotingRoundImpl> create(Args &&...args) {
+      return std::shared_ptr<VotingRoundImpl>(
+          new VotingRoundImpl(std::forward<Args>(args)...));
+    }
 
     enum class Stage {
       // Initial stage, round is just created
@@ -361,5 +368,3 @@ namespace kagome::consensus::grandpa {
     bool completable_ = false;
   };
 }  // namespace kagome::consensus::grandpa
-
-#endif  // KAGOME_CONSENSUS_GRANDPA_VOTINGROUNDIMPL

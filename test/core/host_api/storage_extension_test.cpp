@@ -1,5 +1,6 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -37,10 +38,10 @@ using kagome::runtime::WasmOffset;
 using kagome::runtime::WasmPointer;
 using kagome::runtime::WasmSize;
 using kagome::runtime::WasmSpan;
-using kagome::storage::trie::TrieBatchMock;
 using kagome::storage::trie::PolkadotCodec;
 using kagome::storage::trie::PolkadotTrieCursorMock;
 using kagome::storage::trie::RootHash;
+using kagome::storage::trie::TrieBatchMock;
 
 using ::testing::_;
 using ::testing::Invoke;
@@ -74,7 +75,7 @@ class StorageExtensionTest : public ::testing::Test {
   std::shared_ptr<StorageExtension> storage_extension_;
   PolkadotCodec codec_;
 
-  constexpr static uint32_t kU32Max = std::numeric_limits<uint32_t>::max();
+  static constexpr uint32_t kU32Max = std::numeric_limits<uint32_t>::max();
 };
 
 /// For the tests where it is needed to check a valid behaviour no matter if
@@ -312,12 +313,8 @@ TEST_P(OutcomeParameterizedTest, StorageReadTest) {
       .WillOnce(Return(trie_batch_));
   EXPECT_CALL(*trie_batch_, tryGetMock(key_data.view()))
       .WillOnce(Return(value_data));
-  EXPECT_CALL(
-      *memory_,
-      storeBuffer(value.ptr, gsl::span<const uint8_t>(offset_value_data)));
-  EXPECT_CALL(
-      *memory_,
-      storeBuffer(gsl::span<const uint8_t>(encoded_opt_offset_val_size)))
+  EXPECT_CALL(*memory_, storeBuffer(value.ptr, BufferView(offset_value_data)));
+  EXPECT_CALL(*memory_, storeBuffer(BufferView(encoded_opt_offset_val_size)))
       .WillOnce(Return(res_wasm_span));
 
   ASSERT_EQ(res_wasm_span,
@@ -446,13 +443,12 @@ TEST_P(BuffersParametrizedTest, Blake2_256_EnumeratedTrieRoot) {
   auto &[values, hash_array] = GetParam();
   auto values_enc = scale::encode(values).value();
 
-  using testing::_;
   PtrSize values_span{42, static_cast<WasmSize>(values_enc.size())};
 
   EXPECT_CALL(*memory_, loadN(values_span.ptr, values_span.size))
       .WillOnce(Return(Buffer{values_enc}));
   WasmPointer result = 1984;
-  EXPECT_CALL(*memory_, storeBuffer(gsl::span<const uint8_t>(hash_array)))
+  EXPECT_CALL(*memory_, storeBuffer(BufferView(hash_array)))
       .WillOnce(Return(result));
 
   storage_extension_->ext_trie_blake2_256_ordered_root_version_1(
@@ -469,7 +465,6 @@ TEST_P(BuffersParametrizedTest, Blake2_256_EnumeratedTrieRoot) {
 TEST_P(BuffersParametrizedTest, Blake2_256_OrderedTrieRootV1) {
   auto &[values, hash_array] = GetParam();
 
-  using testing::_;
   WasmPointer values_ptr = 1;
   WasmSize values_size = 2;
   WasmSpan values_data = PtrSize(values_ptr, values_size).combine();
@@ -480,7 +475,7 @@ TEST_P(BuffersParametrizedTest, Blake2_256_OrderedTrieRootV1) {
   EXPECT_CALL(*memory_, loadN(values_ptr, values_size))
       .WillOnce(Return(buffer));
 
-  EXPECT_CALL(*memory_, storeBuffer(gsl::span<const uint8_t>(hash_array)))
+  EXPECT_CALL(*memory_, storeBuffer(BufferView(hash_array)))
       .WillOnce(Return(result));
 
   ASSERT_EQ(result,
@@ -523,8 +518,7 @@ TEST_F(StorageExtensionTest, StorageGetV1Test) {
 
   // expect key and value were loaded
   EXPECT_CALL(*memory_, loadN(key_pointer, key_size)).WillOnce(Return(key));
-  EXPECT_CALL(*memory_,
-              storeBuffer(gsl::span<const uint8_t>(encoded_opt_value)))
+  EXPECT_CALL(*memory_, storeBuffer(BufferView(encoded_opt_value)))
       .WillOnce(Return(value_span));
 
   // expect key-value pair was put to db
@@ -609,7 +603,7 @@ TEST_F(StorageExtensionTest, ExtStorageClearPrefixV2Test) {
   WasmPointer result_pointer = 43;
   WasmSize result_size = 43;
   WasmSpan result_span = PtrSize(result_pointer, result_size).combine();
-  EXPECT_CALL(*memory_, storeBuffer(gsl::span<const uint8_t>(enc_result)))
+  EXPECT_CALL(*memory_, storeBuffer(BufferView(enc_result)))
       .WillOnce(Return(result_span));
 
   ASSERT_EQ(result_span,
@@ -630,7 +624,7 @@ TEST_F(StorageExtensionTest, RootTest) {
   WasmSpan root_span = PtrSize(root_pointer, root_size).combine();
   EXPECT_CALL(*storage_provider_, commit(_))
       .WillOnce(Return(outcome::success(root_val)));
-  EXPECT_CALL(*memory_, storeBuffer(gsl::span<const uint8_t>(root_val)))
+  EXPECT_CALL(*memory_, storeBuffer(BufferView(root_val)))
       .WillOnce(Return(root_span));
 
   ASSERT_EQ(root_span, storage_extension_->ext_storage_root_version_1());
@@ -659,7 +653,7 @@ TEST_F(StorageExtensionTest, Blake2_256_TrieRootV1) {
   EXPECT_CALL(*memory_, loadN(values_ptr, values_size))
       .WillOnce(Return(buffer));
 
-  EXPECT_CALL(*memory_, storeBuffer(gsl::span<const uint8_t>(hash_array)))
+  EXPECT_CALL(*memory_, storeBuffer(BufferView(hash_array)))
       .WillOnce(Return(result));
 
   ASSERT_EQ(result,

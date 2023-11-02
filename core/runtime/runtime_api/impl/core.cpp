@@ -1,5 +1,6 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -67,20 +68,12 @@ namespace kagome::runtime {
 
   outcome::result<void> CoreImpl::execute_block(
       const primitives::Block &block, TrieChangesTrackerOpt changes_tracker) {
-    return execute_block_ref(
-        primitives::BlockReflection{
-            .header =
-                primitives::BlockHeaderReflection{
-                    .parent_hash = block.header.parent_hash,
-                    .number = block.header.number,
-                    .state_root = block.header.state_root,
-                    .extrinsics_root = block.header.extrinsics_root,
-                    .digest = gsl::span<const primitives::DigestItem>(
-                        block.header.digest.data(), block.header.digest.size()),
-                },
-            .body = block.body,
-        },
-        std::move(changes_tracker));
+    primitives::BlockHeaderReflection header_ref(block.header);
+    primitives::BlockReflection block_ref{
+        .header = header_ref,
+        .body = block.body,
+    };
+    return execute_block_ref(block_ref, std::move(changes_tracker));
   }
 
   outcome::result<std::unique_ptr<RuntimeContext>> CoreImpl::initialize_block(

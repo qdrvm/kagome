@@ -1,5 +1,6 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -10,12 +11,13 @@
 #include "runtime/common/trie_storage_provider_impl.hpp"
 #include "runtime/executor.hpp"
 #include "runtime/module_repository.hpp"
+#include "storage/trie/on_read.hpp"
 
 namespace kagome::network {
   LightProtocol::LightProtocol(
       libp2p::Host &host,
       const application::ChainSpec &chain_spec,
-      const primitives::GenesisBlockHeader &genesis,
+      const blockchain::GenesisBlockHash &genesis,
       std::shared_ptr<blockchain::BlockHeaderRepository> repository,
       std::shared_ptr<storage::trie::TrieStorage> storage,
       std::shared_ptr<runtime::ModuleRepository> module_repo,
@@ -35,11 +37,11 @@ namespace kagome::network {
 
   std::optional<outcome::result<LightProtocol::ResponseType>>
   LightProtocol::onRxRequest(RequestType req, std::shared_ptr<Stream>) {
-    std::unordered_set<common::Buffer> proof;
-    auto prove = [&](common::BufferView raw) { proof.emplace(raw); };
+    storage::trie::OnRead proof;
     OUTCOME_TRY(header, repository_->getBlockHeader(req.block));
-    OUTCOME_TRY(batch,
-                storage_->getProofReaderBatchAt(header.state_root, prove));
+    OUTCOME_TRY(
+        batch,
+        storage_->getProofReaderBatchAt(header.state_root, proof.onRead()));
     auto call = boost::get<LightProtocolRequest::Call>(&req.op);
     if (call) {
       OUTCOME_TRY(instance,
@@ -65,7 +67,6 @@ namespace kagome::network {
         OUTCOME_TRY(trie.get().tryGet(key));
       }
     }
-    return {
-        LightProtocolResponse{{proof.begin(), proof.end()}, call != nullptr}};
+    return LightProtocolResponse{proof.vec(), call != nullptr};
   }
 }  // namespace kagome::network

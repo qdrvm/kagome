@@ -1,10 +1,10 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_CRYPTO_ECDSA_PROVIDER_IMPL_H
-#define KAGOME_CRYPTO_ECDSA_PROVIDER_IMPL_H
+#pragma once
 
 #include "crypto/ecdsa_provider.hpp"
 
@@ -31,15 +31,14 @@ namespace kagome::crypto {
         const EcdsaSeed &seed, Junctions junctions) const override;
 
     outcome::result<EcdsaSignature> sign(
-        gsl::span<const uint8_t> message,
-        const EcdsaPrivateKey &key) const override;
+        common::BufferView message, const EcdsaPrivateKey &key) const override;
 
     outcome::result<EcdsaSignature> signPrehashed(
         const EcdsaPrehashedMessage &message,
         const EcdsaPrivateKey &key) const override;
 
     outcome::result<bool> verify(
-        gsl::span<const uint8_t> message,
+        common::BufferView message,
         const EcdsaSignature &signature,
         const EcdsaPublicKey &publicKey) const override;
 
@@ -58,5 +57,3 @@ namespace kagome::crypto {
 }  // namespace kagome::crypto
 
 OUTCOME_HPP_DECLARE_ERROR(kagome::crypto, EcdsaProviderImpl::Error);
-
-#endif  // KAGOME_CRYPTO_ECDSA_PROVIDER_IMPL_H

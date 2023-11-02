@@ -1,10 +1,10 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_NETWORK_COLLATIONPROTOCOL
-#define KAGOME_NETWORK_COLLATIONPROTOCOL
+#pragma once
 
 #include "network/protocol_base.hpp"
 
@@ -37,14 +37,14 @@ namespace kagome::network {
                                                      true> {
    public:
     CollationProtocol(libp2p::Host &host,
-                      const application::AppConfiguration &app_config,
+                      Roles roles,
                       const application::ChainSpec &chain_spec,
                       const blockchain::GenesisBlockHash &genesis_hash,
                       std::shared_ptr<ObserverType> observer,
                       std::shared_ptr<network::PeerView> peer_view)
         : ParachainProtocol(
             host,
-            app_config,
+            roles,
             chain_spec,
             genesis_hash,
             std::move(observer),
@@ -58,14 +58,14 @@ namespace kagome::network {
                                                       false> {
    public:
     ValidationProtocol(libp2p::Host &host,
-                       const application::AppConfiguration &app_config,
+                       Roles roles,
                        const application::ChainSpec &chain_spec,
                        const blockchain::GenesisBlockHash &genesis_hash,
                        std::shared_ptr<ObserverType> observer,
                        std::shared_ptr<network::PeerView> peer_view)
         : ParachainProtocol(
             host,
-            app_config,
+            roles,
             chain_spec,
             genesis_hash,
             std::move(observer),
@@ -75,5 +75,3 @@ namespace kagome::network {
   };
 
 }  // namespace kagome::network
-
-#endif  // KAGOME_NETWORK_COLLATIONPROTOCOL

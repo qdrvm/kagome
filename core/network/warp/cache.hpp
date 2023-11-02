@@ -1,10 +1,10 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_NETWORK_WARP_CACHE_HPP
-#define KAGOME_NETWORK_WARP_CACHE_HPP
+#pragma once
 
 #include "application/app_state_manager.hpp"
 #include "blockchain/block_header_repository.hpp"
@@ -58,5 +58,3 @@ namespace kagome::network {
 }  // namespace kagome::network
 
 OUTCOME_HPP_DECLARE_ERROR(kagome::network, WarpSyncCache::Error)
-
-#endif  // KAGOME_NETWORK_WARP_CACHE_HPP

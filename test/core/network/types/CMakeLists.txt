@@ -1,5 +1,6 @@
 #
-# Copyright Soramitsu Co., Ltd. All Rights Reserved.
+# Copyright Quadrivium LLC
+# All Rights Reserved
 # SPDX-License-Identifier: Apache-2.0
 #
 
@@ -22,6 +23,7 @@ target_link_libraries(proto_block_response_test
     blob
     scale::scale
     network
+    trie_storage_provider
     )
 
 addtest(proto_block_request_test
@@ -32,6 +34,7 @@ target_link_libraries(proto_block_request_test
     blob
     network
     p2p::p2p_uvarint
+    trie_storage_provider
     )
 
 addtest(proto_state_response_test
@@ -41,6 +44,7 @@ target_link_libraries(proto_state_response_test
     network
     blob
     node_api_proto
+    trie_storage_provider
     )
 
 addtest(proto_state_request_test
@@ -51,6 +55,7 @@ target_link_libraries(proto_state_request_test
     blob
     network
     p2p::p2p_uvarint
+    trie_storage_provider
     )
 
 addtest(block_announce_test

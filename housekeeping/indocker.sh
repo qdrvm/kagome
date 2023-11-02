@@ -1,5 +1,9 @@
 #!/bin/bash -xe
-
+#
+# Copyright Quadrivium LLC
+# All Rights Reserved
+# SPDX-License-Identifier: Apache-2.0
+#
 
 readonly DIR=$( cd $(dirname $0)/.. ; pwd -P )
 INDOCKER_IMAGE="${INDOCKER_IMAGE:?INDOCKER_IMAGE variable is not defined}"

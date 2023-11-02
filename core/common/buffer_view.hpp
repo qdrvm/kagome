@@ -1,16 +1,23 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_COMMON_BUFFERVIEW
-#define KAGOME_COMMON_BUFFERVIEW
+#pragma once
 
-#include <gsl/span>
+#include <span>
 
-#include "common/bytestr.hpp"
 #include "common/hexutil.hpp"
+#include "common/lexicographical_compare_three_way.hpp"
 #include "macro/endianness_utils.hpp"
+
+#include <ranges>
+#include <span>
+
+inline auto operator""_bytes(const char *s, std::size_t size) {
+  return std::span<const uint8_t>(reinterpret_cast<const uint8_t *>(s), size);
+}
 
 namespace kagome::common {
   template <size_t MaxSize>
@@ -19,45 +26,56 @@ namespace kagome::common {
 
 namespace kagome::common {
 
-  class BufferView : public gsl::span<const uint8_t> {
-    using Span = gsl::span<const uint8_t>;
-
+  class BufferView : public std::span<const uint8_t> {
    public:
-    using Span::Span;
-    using Span::operator=;
+    using span::span;
 
-    BufferView(const Span &other) noexcept : Span(other) {}
+    BufferView(const span &other) noexcept : span(other) {}
+
+    template <typename T>
+      requires std::is_integral_v<std::decay_t<T>> and (sizeof(T) == 1)
+    BufferView(std::span<T> other) noexcept
+        : span(reinterpret_cast<const uint8_t *>(other.data()), other.size()) {}
+
+    template <typename T>
+    decltype(auto) operator=(T &&t) {
+      return span::operator=(std::forward<T>(t));
+    }
+
+    template <size_t count>
+    void dropFirst() {
+      *this = subspan<count>();
+    }
+
+    void dropFirst(size_t count) {
+      *this = subspan(count);
+    }
+
+    template <size_t count>
+    void dropLast() {
+      *this = first(size() - count);
+    }
+
+    void dropLast(size_t count) {
+      *this = first(size() - count);
+    }
 
     std::string toHex() const {
       return hex_lower(*this);
     }
 
     std::string_view toStringView() const {
-      return byte2str(*this);
+      // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
+      return {reinterpret_cast<const char *>(data()), size()};
     }
 
-    bool operator==(const Span &other) const noexcept {
-      return std::equal(
-          Span::cbegin(), Span::cend(), other.cbegin(), other.cend());
+    auto operator<=>(const BufferView &other) const noexcept {
+      return cxx20::lexicographical_compare_three_way(
+          span::begin(), span::end(), other.begin(), other.end());
     }
 
-    template <size_t N>
-    bool operator==(
-        const std::array<typename Span::value_type, N> &other) const noexcept {
-      return std::equal(
-          Span::cbegin(), Span::cend(), other.cbegin(), other.cend());
-    }
-
-    bool operator<(const BufferView &other) const noexcept {
-      return std::lexicographical_compare(
-          cbegin(), cend(), other.cbegin(), other.cend());
-    }
-
-    template <size_t N>
-    bool operator<(
-        const std::array<typename Span::value_type, N> &other) const noexcept {
-      return std::lexicographical_compare(
-          Span::cbegin(), Span::cend(), other.cbegin(), other.cend());
+    auto operator==(const BufferView &other) const noexcept {
+      return (*this <=> other) == std::strong_ordering::equal;
     }
   };
 
@@ -65,6 +83,14 @@ namespace kagome::common {
     return os << view.toHex();
   }
 
+  template <typename Super, typename Prefix>
+  bool startsWith(const Super &super, const Prefix &prefix) {
+    if (std::size(super) >= std::size(prefix)) {
+      return std::equal(
+          std::begin(prefix), std::end(prefix), std::begin(super));
+    }
+    return false;
+  }
 }  // namespace kagome::common
 
 template <>
@@ -97,11 +123,12 @@ struct fmt::formatter<kagome::common::BufferView> {
     // ctx.out() is an output iterator to write to.
 
     if (view.empty()) {
-      return format_to(ctx.out(), "<empty>");
+      static constexpr string_view message("<empty>");
+      return std::copy(std::begin(message), std::end(message), ctx.out());
     }
 
     if (presentation == 's' && view.size() > 5) {
-      return format_to(
+      return fmt::format_to(
           ctx.out(),
           "0x{:04x}…{:04x}",
           // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
@@ -111,8 +138,6 @@ struct fmt::formatter<kagome::common::BufferView> {
                                                       - sizeof(uint16_t))));
     }
 
-    return format_to(ctx.out(), "0x{}", view.toHex());
+    return fmt::format_to(ctx.out(), "0x{}", view.toHex());
   }
 };
-
-#endif  // KAGOME_COMMON_BUFFERVIEW

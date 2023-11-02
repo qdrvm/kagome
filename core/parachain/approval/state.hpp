@@ -1,9 +1,10 @@
-//
-// Created by iceseer on 12/19/22.
-//
+/**
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
+ * SPDX-License-Identifier: Apache-2.0
+ */
 
-#ifndef KAGOME_PARACHAIN_STATE_HPP
-#define KAGOME_PARACHAIN_STATE_HPP
+#pragma once
 
 #include <optional>
 
@@ -67,7 +68,7 @@ namespace kagome::parachain::approval {
 
   /// Whether the candidate is approved and all relevant assignments
   /// have at most the given assignment tick.
-  inline bool is_approved(Check const &self, Tick const max_assignment_tick) {
+  inline bool is_approved(const Check &self, const Tick max_assignment_tick) {
     if (is_type<Unapproved>(self)) {
       return false;
     }
@@ -81,31 +82,31 @@ namespace kagome::parachain::approval {
   }
 
   /// The number of known no-shows in this computation.
-  inline size_t known_no_shows(Check const &self) {
+  inline size_t known_no_shows(const Check &self) {
     if (auto v{boost::get<Approved>(&self)}) {
       return v->first;
     }
     return 0ul;
   }
 
-  inline size_t count_ones(scale::BitVec const &src) {
+  inline size_t count_ones(const scale::BitVec &src) {
     size_t count_ones = 0ull;
-    for (auto const v : src.bits) {
+    for (const auto v : src.bits) {
       count_ones += (v ? 1ull : 0ull);
     }
     return count_ones;
   }
 
-  inline auto min_or_some(std::optional<Tick> const &l,
-                          std::optional<Tick> const &r) {
+  inline auto min_or_some(const std::optional<Tick> &l,
+                          const std::optional<Tick> &r) {
     return (l && r) ? std::min(*l, *r)
          : l        ? *l
          : r        ? *r
                     : std::optional<Tick>{};
   };
 
-  inline auto max_or_some(std::optional<Tick> const &l,
-                          std::optional<Tick> const &r) {
+  inline auto max_or_some(const std::optional<Tick> &l,
+                          const std::optional<Tick> &r) {
     return (l && r) ? std::max(*l, *r)
          : l        ? *l
          : r        ? *r
@@ -168,7 +169,7 @@ namespace kagome::parachain::approval {
                             size_t needed_approvals,
                             size_t n_validators,
                             Tick no_show_duration) {
-      auto const cv = (depth == 0ull) ? 0ull : covering;
+      const auto cv = (depth == 0ull) ? 0ull : covering;
       if (depth != 0 && (assignments + cv + uncovered >= n_validators)) {
         return AllRequiredTranche{};
       }
@@ -182,7 +183,7 @@ namespace kagome::parachain::approval {
         };
       }
 
-      auto const clock_drift = Tick(depth) * no_show_duration;
+      const auto clock_drift = Tick(depth) * no_show_duration;
       if (depth == 0ull) {
         return PendingRequiredTranche{
             .considered = tranche,
@@ -202,18 +203,18 @@ namespace kagome::parachain::approval {
 
     State advance(size_t new_assignments,
                   size_t new_no_shows,
-                  std::optional<Tick> const &next_no_show_,
-                  std::optional<Tick> const &last_assignment_tick_) {
-      auto const new_covered = (depth == 0)
+                  const std::optional<Tick> &next_no_show_,
+                  const std::optional<Tick> &last_assignment_tick_) {
+      const auto new_covered = (depth == 0)
                                  ? new_assignments
                                  : std::min(new_assignments, size_t{1ull});
-      auto const a = assignments + new_assignments;
-      auto const c = math::sat_sub_unsigned(covering, new_covered);
-      auto const cd = (depth == 0) ? 0ull : covered + new_covered;
+      const auto a = assignments + new_assignments;
+      const auto c = math::sat_sub_unsigned(covering, new_covered);
+      const auto cd = (depth == 0) ? 0ull : covered + new_covered;
 
-      auto const ucd = uncovered + new_no_shows;
-      auto const nns = min_or_some(next_no_show, next_no_show_);
-      auto const lat = max_or_some(last_assignment_tick, last_assignment_tick_);
+      const auto ucd = uncovered + new_no_shows;
+      const auto nns = min_or_some(next_no_show, next_no_show_);
+      const auto lat = max_or_some(last_assignment_tick, last_assignment_tick_);
 
       size_t d, cv, ucvd;
       if (c != 0ull) {
@@ -237,5 +238,3 @@ namespace kagome::parachain::approval {
   };
 
 }  // namespace kagome::parachain::approval
-
-#endif  // KAGOME_PARACHAIN_STATE_HPP

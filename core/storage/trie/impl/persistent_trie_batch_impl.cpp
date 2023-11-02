@@ -1,5 +1,6 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -7,6 +8,7 @@
 
 #include <memory>
 
+#include "log/trace_macros.hpp"
 #include "storage/trie/impl/topper_trie_batch_impl.hpp"
 #include "storage/trie/polkadot_trie/polkadot_trie_cursor_impl.hpp"
 #include "storage/trie/polkadot_trie/trie_error.hpp"
@@ -46,7 +48,7 @@ namespace kagome::storage::trie {
     OUTCOME_TRY(state_pruner_->addNewState(*trie_, version));
     OUTCOME_TRY(root, serializer_->storeTrie(*trie_, version));
     SL_TRACE_FUNC_CALL(logger_, root);
-    return std::move(root);
+    return root;
   }
 
   outcome::result<std::tuple<bool, uint32_t>>

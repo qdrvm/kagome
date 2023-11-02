@@ -1,5 +1,6 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -55,7 +56,7 @@ namespace kagome::api::chain::request {
 
   namespace {
     std::string formatBlockHash(const BlockHash &bh) {
-      const static std::string prefix = "0x";
+      static const std::string prefix = "0x";
       auto hex = common::hex_lower(bh);
       return prefix + hex;
     }
@@ -79,7 +80,7 @@ namespace kagome::api::chain::request {
         },
         [this](
             const std::vector<VectorParam> &v) -> outcome::result<ResultType> {
-          OUTCOME_TRY(rr, api_->getBlockHash(gsl::make_span(v)));
+          OUTCOME_TRY(rr, api_->getBlockHash(v));
           std::vector<std::string> results{};
           results.reserve(v.size());
           for (const auto &it : rr) {

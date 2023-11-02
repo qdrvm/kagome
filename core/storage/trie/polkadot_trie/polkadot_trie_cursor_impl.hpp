@@ -1,10 +1,10 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_CORE_STORAGE_TRIE_POLKADOT_TRIE_POLKADOT_TRIE_CURSOR_IMPL
-#define KAGOME_CORE_STORAGE_TRIE_POLKADOT_TRIE_POLKADOT_TRIE_CURSOR_IMPL
+#pragma once
 
 #include "storage/trie/polkadot_trie/polkadot_trie_cursor.hpp"
 
@@ -67,8 +67,8 @@ namespace kagome::storage::trie {
     [[nodiscard]] std::optional<BufferOrView> value() const override;
 
    private:
-    outcome::result<void> seekLowerBoundInternal(
-        const TrieNode &current, gsl::span<const uint8_t> left_nibbles);
+    outcome::result<void> seekLowerBoundInternal(const TrieNode &current,
+                                                 BufferView left_nibbles);
     outcome::result<bool> nextNodeWithValueInOuterTree();
     outcome::result<void> nextNodeWithValueInSubTree(
         const TrieNode &subtree_root);
@@ -111,7 +111,9 @@ namespace kagome::storage::trie {
                                                      const TrieNode &child);
 
       [[nodiscard]] bool leaveChild() {
-        if (isAtRoot()) return false;
+        if (isAtRoot()) {
+          return false;
+        }
         current_ = &path_.back().parent;
         path_.pop_back();
         return true;
@@ -127,7 +129,7 @@ namespace kagome::storage::trie {
         return *current_;
       }
 
-      std::vector<TriePathEntry> const &getPath() const {
+      const std::vector<TriePathEntry> &getPath() const {
         return path_;
       }
 
@@ -179,5 +181,3 @@ namespace kagome::storage::trie {
 }  // namespace kagome::storage::trie
 
 OUTCOME_HPP_DECLARE_ERROR(kagome::storage::trie, PolkadotTrieCursorImpl::Error)
-
-#endif  // KAGOME_CORE_STORAGE_TRIE_POLKADOT_TRIE_POLKADOT_TRIE_CURSOR_IMPL

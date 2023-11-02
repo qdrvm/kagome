@@ -1,3 +1,9 @@
+[//]: # (
+Copyright Quadrivium LLC
+All Rights Reserved
+SPDX-License-Identifier: Apache-2.0
+)
+
 # Terms
 
 1. **definition** - provides a unique description of an entity (type, instance, function) within a program:

@@ -1,5 +1,6 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -37,7 +38,7 @@ namespace kagome::dispute {
     OUTCOME_TRY(session_index, get_session_index_for_child(relay_parent));
     OUTCOME_TRY(session_info,
                 get_session_info_by_index(relay_parent, session_index));
-    return std::move(session_info);
+    return session_info;
   }
 
   outcome::result<ExtendedSessionInfo> RuntimeInfo::get_session_info_by_index(

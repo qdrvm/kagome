@@ -1,10 +1,10 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_ROCKSDB_UTIL_HPP
-#define KAGOME_ROCKSDB_UTIL_HPP
+#pragma once
 
 #include <rocksdb/status.h>
 #include "common/buffer.hpp"
@@ -44,18 +44,15 @@ namespace kagome::storage {
     return rocksdb::Slice{ptr, n};
   }
 
-  inline gsl::span<const uint8_t> make_span(const rocksdb::Slice &s) {
+  inline BufferView make_span(const rocksdb::Slice &s) {
     // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
-    const auto *ptr = reinterpret_cast<const uint8_t *>(s.data());
-    return gsl::make_span(ptr, s.size());
+    return {reinterpret_cast<const uint8_t *>(s.data()), s.size()};
   }
 
   inline common::Buffer make_buffer(const rocksdb::Slice &s) {
     // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
     const auto *ptr = reinterpret_cast<const uint8_t *>(s.data());
     // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic)
-    return common::Buffer{ptr, ptr + s.size()};
+    return {ptr, ptr + s.size()};
   }
 }  // namespace kagome::storage
-
-#endif  // KAGOME_ROCKSDB_UTIL_HPP

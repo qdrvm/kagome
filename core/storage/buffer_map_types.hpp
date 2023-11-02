@@ -1,10 +1,10 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_BUFFER_MAP_TYPES_HPP
-#define KAGOME_BUFFER_MAP_TYPES_HPP
+#pragma once
 
 /**
  * This file contains convenience typedefs for interfaces from face/, as they
@@ -40,5 +40,3 @@ namespace kagome::storage {
 
   using BufferStorageCursor = face::MapCursor<Buffer, Buffer>;
 }  // namespace kagome::storage
-
-#endif  // KAGOME_BUFFER_MAP_TYPES_HPP

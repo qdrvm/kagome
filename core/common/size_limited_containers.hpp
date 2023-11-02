@@ -1,41 +1,35 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_COMMON_SIZELIMITEDCONTAINER
-#define KAGOME_COMMON_SIZELIMITEDCONTAINER
+#pragma once
 
 #include <fmt/format.h>
-#include <gsl/span>
 #include <limits>
+#include <span>
 #include <stdexcept>
 #include <type_traits>
 #include <vector>
 
-#ifdef __has_builtin
-#if __has_builtin(__builtin_expect)
-#define unlikely(x) __builtin_expect((x), 0)
-#endif
-#endif
-#ifndef unlikely
-#define unlikely(x) (x)
-#endif
+#include "common/lexicographical_compare_three_way.hpp"
 
 namespace kagome::common {
 
   class MaxSizeException : public std::length_error {
    public:
-    template <typename... Args>
-    MaxSizeException(Args &&...args)
-        : std::length_error(fmt::format(std::forward<Args>(args)...)) {}
+    template <typename Format, typename... Args>
+    MaxSizeException(const Format &format, Args &&...args)
+        : std::length_error(
+            fmt::vformat(format, fmt::make_format_args(args...))) {}
   };
 
   template <typename BaseContainer, std::size_t MaxSize>
   class SizeLimitedContainer : public BaseContainer {
    protected:
     using Base = BaseContainer;
-    using Span = gsl::span<typename Base::value_type>;
+    using Span = std::span<typename Base::value_type>;
 
     static constexpr bool size_check_is_enabled =
         MaxSize < std::numeric_limits<typename Base::size_type>::max();
@@ -53,7 +47,7 @@ namespace kagome::common {
     explicit SizeLimitedContainer(size_t size)
         : Base([&] {
             if constexpr (size_check_is_enabled) {
-              if (unlikely(size > max_size())) {
+              [[unlikely]] if (size > max_size()) {
                 throw MaxSizeException(
                     "Destination has limited size by {}; requested size is {}",
                     max_size(),
@@ -66,7 +60,7 @@ namespace kagome::common {
     SizeLimitedContainer(size_t size, const typename Base::value_type &value)
         : Base([&] {
             if constexpr (size_check_is_enabled) {
-              if (unlikely(size > max_size())) {
+              [[unlikely]] if (size > max_size()) {
                 throw MaxSizeException(
                     "Destination has limited size by {}; requested size is {}",
                     max_size(),
@@ -79,7 +73,7 @@ namespace kagome::common {
     SizeLimitedContainer(const Base &other)
         : Base([&] {
             if constexpr (size_check_is_enabled) {
-              if (unlikely(other.size() > max_size())) {
+              [[unlikely]] if (other.size() > max_size()) {
                 throw MaxSizeException(
                     "Destination has limited size by {}; Source size is {}",
                     max_size(),
@@ -92,7 +86,7 @@ namespace kagome::common {
     SizeLimitedContainer(Base &&other)
         : Base([&] {
             if constexpr (size_check_is_enabled) {
-              if (unlikely(other.size() > max_size())) {
+              [[unlikely]] if (other.size() > max_size()) {
                 throw MaxSizeException(
                     "Destination has limited size by {}; Source size is {}",
                     max_size(),
@@ -110,7 +104,7 @@ namespace kagome::common {
         : Base([&] {
             if constexpr (size_check_is_enabled) {
               const size_t size = std::distance(begin, end);
-              if (unlikely(size > max_size())) {
+              [[unlikely]] if (size > max_size()) {
                 throw MaxSizeException(
                     "Container has limited size by {}; Source range size is {}",
                     max_size(),
@@ -125,7 +119,7 @@ namespace kagome::common {
 
     SizeLimitedContainer &operator=(const Base &other) {
       if constexpr (size_check_is_enabled) {
-        if (unlikely(other.size() > max_size())) {
+        [[unlikely]] if (other.size() > max_size()) {
           throw MaxSizeException(
               "Destination has limited size by {}; Source size is {}",
               max_size(),
@@ -138,7 +132,7 @@ namespace kagome::common {
 
     SizeLimitedContainer &operator=(Base &&other) {
       if constexpr (size_check_is_enabled) {
-        if (unlikely(other.size() > max_size())) {
+        [[unlikely]] if (other.size() > max_size()) {
           throw MaxSizeException(
               "Destination has limited size by {}; Source size is {}",
               max_size(),
@@ -152,7 +146,7 @@ namespace kagome::common {
     SizeLimitedContainer &operator=(
         std::initializer_list<typename Base::value_type> list) {
       if constexpr (size_check_is_enabled) {
-        if (unlikely(list.size() > max_size())) {
+        [[unlikely]] if (list.size() > max_size()) {
           throw MaxSizeException(
               "Destination has limited size by {}; Source size is {}",
               max_size(),
@@ -167,7 +161,7 @@ namespace kagome::common {
     void assign(typename Base::size_type size,
                 const typename Base::value_type &value) {
       if constexpr (size_check_is_enabled) {
-        if (unlikely(size > max_size())) {
+        [[unlikely]] if (size > max_size()) {
           throw MaxSizeException(
               "Destination has limited size by {}; Requested size is {}",
               max_size(),
@@ -184,7 +178,7 @@ namespace kagome::common {
     void assign(Iter begin, Iter end) {
       if constexpr (size_check_is_enabled) {
         const size_t size = std::distance(begin, end);
-        if (unlikely(size > max_size())) {
+        [[unlikely]] if (size > max_size()) {
           throw MaxSizeException(
               "Container has limited size by {}; Source range size is {}",
               max_size(),
@@ -196,7 +190,7 @@ namespace kagome::common {
 
     void assign(std::initializer_list<typename Base::value_type> list) {
       if constexpr (size_check_is_enabled) {
-        if (unlikely(list.size() > max_size())) {
+        [[unlikely]] if (list.size() > max_size()) {
           throw MaxSizeException(
               "Container has limited size by {}; Source range size is {}",
               max_size(),
@@ -209,7 +203,7 @@ namespace kagome::common {
     template <typename... Args>
     typename Base::reference &emplace_back(Args &&...args) {
       if constexpr (size_check_is_enabled) {
-        if (unlikely(Base::size() >= max_size())) {
+        [[unlikely]] if (Base::size() >= max_size()) {
           throw MaxSizeException(
               "Container has limited size by {}; Size is already {} ",
               max_size(),
@@ -227,7 +221,7 @@ namespace kagome::common {
         typename = std::enable_if_t<isIter or isConstIter>>
     typename Base::iterator emplace(Iter pos, Args &&...args) {
       if constexpr (size_check_is_enabled) {
-        if (unlikely(Base::size() >= max_size())) {
+        [[unlikely]] if (Base::size() >= max_size()) {
           throw MaxSizeException(
               "Container has limited size by {}; Size is already {} ",
               max_size(),
@@ -245,7 +239,7 @@ namespace kagome::common {
     typename Base::iterator insert(Iter pos,
                                    const typename Base::value_type &value) {
       if constexpr (size_check_is_enabled) {
-        if (unlikely(Base::size() >= max_size())) {
+        [[unlikely]] if (Base::size() >= max_size()) {
           throw MaxSizeException(
               "Destination has limited size by {}; Size is already {} ",
               max_size(),
@@ -265,7 +259,7 @@ namespace kagome::common {
                                    const typename Base::value_type &value) {
       if constexpr (size_check_is_enabled) {
         const auto available = max_size() - Base::size();
-        if (unlikely(available < size)) {
+        [[unlikely]] if (available < size) {
           throw MaxSizeException(
               "Destination has limited size by {}; Requested size is {}",
               max_size(),
@@ -288,7 +282,7 @@ namespace kagome::common {
       if constexpr (size_check_is_enabled) {
         const size_t size = std::distance(begin, end);
         const auto available = max_size() - Base::size();
-        if (unlikely(available < size)) {
+        [[unlikely]] if (available < size) {
           throw MaxSizeException(
               "Destination has limited size by {} and current size is {}; "
               "Source range size is {} and would overflow destination",
@@ -309,7 +303,7 @@ namespace kagome::common {
         Iter pos, std::initializer_list<typename Base::value_type> &&list) {
       if constexpr (size_check_is_enabled) {
         const auto available = max_size() - Base::size();
-        if (unlikely(available < list.size())) {
+        [[unlikely]] if (available < list.size()) {
           throw MaxSizeException(
               "Container has limited size by {}; Source range size is {}",
               max_size(),
@@ -322,7 +316,7 @@ namespace kagome::common {
     template <typename V>
     void push_back(V &&value) {
       if constexpr (size_check_is_enabled) {
-        if (unlikely(Base::size() >= max_size())) {
+        [[unlikely]] if (Base::size() >= max_size()) {
           throw MaxSizeException(
               "Container has limited size by {}; Size is already maximum",
               max_size());
@@ -333,7 +327,7 @@ namespace kagome::common {
 
     void reserve(typename Base::size_type size) {
       if constexpr (size_check_is_enabled) {
-        if (unlikely(size > max_size())) {
+        [[unlikely]] if (size > max_size()) {
           throw MaxSizeException(
               "Destination has limited size by {}; Requested size is {}",
               max_size(),
@@ -345,7 +339,7 @@ namespace kagome::common {
 
     void resize(typename Base::size_type size) {
       if constexpr (size_check_is_enabled) {
-        if (unlikely(size > max_size())) {
+        [[unlikely]] if (size > max_size()) {
           throw MaxSizeException(
               "Destination has limited size by {}; Requested size is {}",
               max_size(),
@@ -358,7 +352,7 @@ namespace kagome::common {
     void resize(typename Base::size_type size,
                 const typename Base::value_type &value) {
       if constexpr (size_check_is_enabled) {
-        if (unlikely(size > max_size())) {
+        [[unlikely]] if (size > max_size()) {
           throw MaxSizeException(
               "Destination has limited size by {}; Requested size is {}",
               max_size(),
@@ -368,32 +362,9 @@ namespace kagome::common {
       return Base::resize(size, value);
     }
 
-    bool operator==(const Base &other) const noexcept {
-      return std::equal(
-          Base::cbegin(), Base::cend(), other.cbegin(), other.cend());
-    }
-
-    bool operator==(const Span &other) const noexcept {
-      return std::equal(
-          Base::cbegin(), Base::cend(), other.cbegin(), other.cend());
-    }
-
-    bool operator!=(const Base &other) const noexcept {
-      return not(*this == other);
-    }
-
-    bool operator!=(const Span &other) const noexcept {
-      return not(*this == other);
-    }
-
-    bool operator<(const Base &other) const noexcept {
-      return std::lexicographical_compare(
-          Base::cbegin(), Base::cend(), other.cbegin(), other.cend());
-    }
-
-    bool operator<(const Span &other) const noexcept {
-      return std::lexicographical_compare(
-          Base::cbegin(), Base::cend(), other.cbegin(), other.cend());
+    auto operator<=>(const SizeLimitedContainer &other) const {
+      return cxx20::lexicographical_compare_three_way(
+          Base::begin(), Base::end(), other.begin(), other.end());
     }
   };
 
@@ -402,7 +373,3 @@ namespace kagome::common {
       SizeLimitedContainer<std::vector<ElementType, Args...>, MaxSize>;
 
 }  // namespace kagome::common
-
-#undef unlikely
-
-#endif  // KAGOME_COMMON_SIZELIMITEDCONTAINER

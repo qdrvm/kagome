@@ -1,5 +1,6 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -227,8 +228,13 @@ namespace kagome::consensus::grandpa {
 
     SL_DEBUG(logger_, "Round #{}: Start round", round_number_);
 
-    pending_timer_handle_ =
-        scheduler_->scheduleWithHandle([&] { pending(); }, pending_interval_);
+    pending_timer_handle_ = scheduler_->scheduleWithHandle(
+        [wself{weak_from_this()}] {
+          if (auto self = wself.lock()) {
+            self->pending();
+          }
+        },
+        pending_interval_);
 
     sendNeighborMessage();
 
@@ -281,12 +287,14 @@ namespace kagome::consensus::grandpa {
     }
 
     stage_timer_handle_ = scheduler_->scheduleWithHandle(
-        [&] {
-          if (stage_ == Stage::PREVOTE_RUNS) {
-            SL_DEBUG(logger_,
-                     "Round #{}: Time of prevote stage is out",
-                     round_number_);
-            endPrevoteStage();
+        [wself{weak_from_this()}] {
+          if (auto self = wself.lock()) {
+            if (self->stage_ == Stage::PREVOTE_RUNS) {
+              SL_DEBUG(self->logger_,
+                       "Round #{}: Time of prevote stage is out",
+                       self->round_number_);
+              self->endPrevoteStage();
+            }
           }
         },
         toMilliseconds(duration_ * 2 - (scheduler_->now() - start_time_)));
@@ -346,12 +354,14 @@ namespace kagome::consensus::grandpa {
     }
 
     stage_timer_handle_ = scheduler_->scheduleWithHandle(
-        [&] {
-          if (stage_ == Stage::PRECOMMIT_RUNS) {
-            SL_DEBUG(logger_,
-                     "Round #{}: Time of precommit stage is out",
-                     round_number_);
-            endPrecommitStage();
+        [wself{weak_from_this()}] {
+          if (auto self = wself.lock()) {
+            if (self->stage_ == Stage::PRECOMMIT_RUNS) {
+              SL_DEBUG(self->logger_,
+                       "Round #{}: Time of precommit stage is out",
+                       self->round_number_);
+              self->endPrecommitStage();
+            }
           }
         },
         toMilliseconds(duration_ * 4 - (scheduler_->now() - start_time_)));
@@ -743,10 +753,8 @@ namespace kagome::consensus::grandpa {
 
   outcome::result<void> VotingRoundImpl::validatePrecommitJustification(
       const GrandpaJustification &justification) const {
-    AncestryVerifier ancestry_verifier{
-        justification.votes_ancestries,
-        *hasher_,
-    };
+    AncestryVerifier ancestry_verifier(justification.votes_ancestries,
+                                       *hasher_);
     auto has_ancestry = [&](const BlockInfo &ancestor,
                             const BlockInfo &descendant) {
       return ancestry_verifier.hasAncestry(ancestor, descendant)
@@ -1086,9 +1094,11 @@ namespace kagome::consensus::grandpa {
         need_to_update_estimate = true;
       }
       if (prevote_ghost_) {
-        scheduler_->schedule([&] {
-          if (stage_ == Stage::PRECOMMIT_WAITS_FOR_PREVOTES) {
-            endPrecommitStage();
+        scheduler_->schedule([wself{weak_from_this()}] {
+          if (auto self = wself.lock()) {
+            if (self->stage_ == Stage::PRECOMMIT_WAITS_FOR_PREVOTES) {
+              self->endPrecommitStage();
+            }
           }
         });
       }
@@ -1459,7 +1469,7 @@ namespace kagome::consensus::grandpa {
         votes.begin(),
         votes.end(),
         std::vector<SignedPrevote>(),
-        [this, &estimate](auto &prevotes, const auto &voting_variant) {
+        [this, &estimate](auto &&prevotes, const auto &voting_variant) {
           visit_in_place(
               voting_variant,
               [this, &prevotes, &estimate](
@@ -1479,7 +1489,7 @@ namespace kagome::consensus::grandpa {
                 prevotes.push_back(static_cast<const SignedPrevote &>(
                     equivocatory_voting_message.second));
               });
-          return prevotes;
+          return std::move(prevotes);
         });
     return result;
   }
@@ -1494,7 +1504,7 @@ namespace kagome::consensus::grandpa {
         votes.begin(),
         votes.end(),
         std::move(result),
-        [this, &weight](auto &precommits, const auto &voting_variant) {
+        [this, &weight](auto &&precommits, const auto &voting_variant) {
           if (weight < threshold_) {
             visit_in_place(
                 voting_variant,
@@ -1514,7 +1524,7 @@ namespace kagome::consensus::grandpa {
                 },
                 [](const auto &) {});
           }
-          return precommits;
+          return std::move(precommits);
         });
 
     // Then collect valid precommits (until threshold is reached)
@@ -1522,7 +1532,7 @@ namespace kagome::consensus::grandpa {
         votes.begin(),
         votes.end(),
         std::move(result),
-        [this, &weight, &estimate](auto &precommits,
+        [this, &weight, &estimate](auto &&precommits,
                                    const auto &voting_variant) {
           if (weight < threshold_) {
             visit_in_place(
@@ -1543,7 +1553,7 @@ namespace kagome::consensus::grandpa {
                 },
                 [](const auto &) {});
           }
-          return precommits;
+          return std::move(precommits);
         });
 
     return result;
@@ -1609,7 +1619,12 @@ namespace kagome::consensus::grandpa {
     SL_DEBUG(logger_, "Resend votes of recent rounds");
     resend(shared_from_this());
 
-    pending_timer_handle_ =
-        scheduler_->scheduleWithHandle([&] { pending(); }, pending_interval_);
+    pending_timer_handle_ = scheduler_->scheduleWithHandle(
+        [wself{weak_from_this()}] {
+          if (auto self = wself.lock()) {
+            self->pending();
+          }
+        },
+        pending_interval_);
   }
 }  // namespace kagome::consensus::grandpa

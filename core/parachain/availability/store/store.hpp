@@ -1,10 +1,10 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_PARACHAIN_AVAILABILITY_STORE_STORE_HPP
-#define KAGOME_PARACHAIN_AVAILABILITY_STORE_STORE_HPP
+#pragma once
 
 #include <optional>
 
@@ -44,18 +44,16 @@ namespace kagome::parachain {
     virtual std::vector<ErasureChunk> getChunks(
         const CandidateHash &candidate_hash) const = 0;
     /// Store ErasureChunk
-    virtual void storeData(network::RelayHash const &relay_parent,
-                           CandidateHash const &candidate_hash,
+    virtual void storeData(const network::RelayHash &relay_parent,
+                           const CandidateHash &candidate_hash,
                            std::vector<ErasureChunk> &&chunks,
-                           ParachainBlock const &pov,
-                           PersistedValidationData const &data) = 0;
-    virtual void putChunk(network::RelayHash const &relay_parent,
+                           const ParachainBlock &pov,
+                           const PersistedValidationData &data) = 0;
+    virtual void putChunk(const network::RelayHash &relay_parent,
                           const CandidateHash &candidate_hash,
                           ErasureChunk &&chunk) = 0;
 
     /// Clears all data according to this relay_parent
-    virtual void remove(network::RelayHash const &relay_parent) = 0;
+    virtual void remove(const network::RelayHash &relay_parent) = 0;
   };
 }  // namespace kagome::parachain
-
-#endif  // KAGOME_PARACHAIN_AVAILABILITY_STORE_STORE_HPP

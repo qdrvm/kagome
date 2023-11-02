@@ -1,10 +1,13 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
 #include "runtime/common/memory_allocator.hpp"
 
+#include "log/formatters/ref_and_ptr.hpp"
+#include "log/trace_macros.hpp"
 #include "runtime/memory.hpp"
 
 namespace kagome::runtime {
@@ -37,7 +40,7 @@ namespace kagome::runtime {
     }
 
     const size_t chunk_size =
-        nextHighPowerOf2(roundUpAlign(size) + AllocationHeaderSz);
+        math::nextHighPowerOf2(roundUpAlign(size) + AllocationHeaderSz);
 
     const auto ptr = offset_;
     const auto new_offset = ptr + chunk_size;  // align
@@ -50,7 +53,7 @@ namespace kagome::runtime {
           .allocation_sz = roundUpAlign(size),
       }
           .serialize(ptr, memory_);
-      SL_TRACE_FUNC_CALL(logger_, ptr, this, size);
+      SL_TRACE_FUNC_CALL(logger_, ptr, static_cast<const void *>(this), size);
       return ptr + AllocationHeaderSz;
     }
 
@@ -76,7 +79,7 @@ namespace kagome::runtime {
         .allocation_sz = 0,
     };
     header.deserialize(ptr - AllocationHeaderSz, memory_);
-    BOOST_ASSERT(isPowerOf2(header.chunk_sz));
+    BOOST_ASSERT(math::isPowerOf2(header.chunk_sz));
 
     available_[header.chunk_sz].push_back(ptr - AllocationHeaderSz);
     BOOST_ASSERT(!available_.empty());
@@ -129,7 +132,7 @@ namespace kagome::runtime {
         .allocation_sz = 0,
     };
     header.deserialize(ptr - AllocationHeaderSz, memory_);
-    BOOST_ASSERT(isPowerOf2(header.chunk_sz));
+    BOOST_ASSERT(math::isPowerOf2(header.chunk_sz));
 
     return header.allocation_sz;
   }

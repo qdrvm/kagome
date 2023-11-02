@@ -1,10 +1,10 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_HOST_API_HPP
-#define KAGOME_HOST_API_HPP
+#pragma once
 
 #include <cstdint>
 #include <functional>
@@ -316,6 +316,15 @@ namespace kagome::host_api {
         runtime::WasmPointer pubkey_data) = 0;
 
     /**
+     * @see Extension::ext_ed25519_batch_verify
+     */
+    [[nodiscard]] virtual runtime::WasmSize
+    ext_crypto_ed25519_batch_verify_version_1(
+        runtime::WasmPointer sig_data,
+        runtime::WasmSpan msg,
+        runtime::WasmPointer pubkey_data) = 0;
+
+    /**
      * @see Extension::ext_sr25519_public_keys
      */
     [[nodiscard]] virtual runtime::WasmSpan
@@ -355,6 +364,15 @@ namespace kagome::host_api {
         runtime::WasmPointer pubkey_data) = 0;
 
     [[nodiscard]] virtual int32_t ext_crypto_sr25519_verify_version_2(
+        runtime::WasmPointer sig_data,
+        runtime::WasmSpan msg,
+        runtime::WasmPointer pubkey_data) = 0;
+
+    /**
+     * Left for backwards compatibility with older runtimes and should not be
+     * used anymore.
+     */
+    [[nodiscard]] virtual int32_t ext_crypto_sr25519_batch_verify_version_1(
         runtime::WasmPointer sig_data,
         runtime::WasmSpan msg,
         runtime::WasmPointer pubkey_data) = 0;
@@ -430,6 +448,14 @@ namespace kagome::host_api {
         runtime::WasmPointer pubkey_data) = 0;
 
     /**
+     * @see HostApi::ext_crypto_ecdsa_verify_version_1
+     */
+    [[nodiscard]] virtual int32_t ext_crypto_ecdsa_verify_version_2(
+        runtime::WasmPointer sig_data,
+        runtime::WasmSpan msg,
+        runtime::WasmPointer pubkey_data) = 0;
+
+    /**
      * @brief Verifies an ecdsa signature. Returns true when the verification is
      * either successful or batched. If no batching verification extension is
      * registered, this function will fully verify the signature and return the
@@ -449,7 +475,7 @@ namespace kagome::host_api {
      */
     [[nodiscard]] virtual int32_t ext_crypto_ecdsa_verify_prehashed_version_1(
         runtime::WasmPointer sig_data,
-        runtime::WasmSpan msg,
+        runtime::WasmPointer msg,
         runtime::WasmPointer pubkey_data) = 0;
 
     // ---------------------------- Misc extensions ----------------------------
@@ -716,5 +742,3 @@ namespace kagome::host_api {
         runtime::WasmSpan child_storage_key, runtime::WasmSpan limit) = 0;
   };
 }  // namespace kagome::host_api
-
-#endif  // KAGOME_HOST_API_HPP

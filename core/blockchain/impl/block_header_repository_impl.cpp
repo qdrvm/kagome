@@ -1,5 +1,6 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -48,7 +49,10 @@ namespace kagome::blockchain {
     OUTCOME_TRY(header_opt,
                 getFromSpace(*storage_, Space::kHeader, block_hash));
     if (header_opt.has_value()) {
-      return scale::decode<primitives::BlockHeader>(header_opt.value());
+      OUTCOME_TRY(header,
+                  scale::decode<primitives::BlockHeader>(header_opt.value()));
+      header.hash_opt.emplace(block_hash);
+      return header;
     }
     return BlockTreeError::HEADER_NOT_FOUND;
   }

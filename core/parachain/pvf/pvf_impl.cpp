@@ -1,5 +1,6 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -35,7 +36,7 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::parachain, PvfError, e) {
     case PvfError::OUTPUTS:
       return "ValidationResult is invalid";
   }
-  return fmt::format("PvfError({})", e);
+  return "unknown error (kagome::parachain::PvfError)";
 }
 
 namespace kagome::parachain {
@@ -78,7 +79,7 @@ namespace kagome::parachain {
   };
 
   struct DontProvideCode : runtime::RuntimeCodeProvider {
-    outcome::result<gsl::span<const uint8_t>> getCodeAt(
+    outcome::result<common::BufferView> getCodeAt(
         const storage::trie::RootHash &) const override {
       abort();
     }

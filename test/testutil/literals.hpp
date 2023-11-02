@@ -1,10 +1,10 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_TEST_TESTUTIL_LITERALS_HPP_
-#define KAGOME_TEST_TESTUTIL_LITERALS_HPP_
+#pragma once
 
 #include <libp2p/multi/multiaddress.hpp>
 #include <libp2p/multi/multihash.hpp>
@@ -27,8 +27,9 @@ inline std::vector<uint8_t> operator"" _v(const char *c, size_t s) {
 }
 
 inline std::vector<uint8_t> operator""_unhex(const char *c, size_t s) {
-  if (s > 2 and c[0] == '0' and c[1] == 'x')
+  if (s > 2 and c[0] == '0' and c[1] == 'x') {
     return kagome::common::unhexWith0x(std::string_view(c, s)).value();
+  }
   return kagome::common::unhex(std::string_view(c, s)).value();
 }
 
@@ -52,5 +53,3 @@ inline libp2p::peer::PeerId operator""_peerid(const char *c, size_t s) {
 
   return PeerId::fromPublicKey(pb_key).value();
 }
-
-#endif  // KAGOME_TEST_TESTUTIL_LITERALS_HPP_

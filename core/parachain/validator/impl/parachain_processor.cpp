@@ -1,23 +1,21 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
 #include "parachain/validator/parachain_processor.hpp"
 
 #include <array>
-#include <gsl/span>
 #include <unordered_map>
 
-#include <erasure_coding/erasure_coding.h>
+#include <libp2p/common/final_action.hpp>
 
-#include "crypto/crypto_store/session_keys.hpp"
 #include "crypto/hasher.hpp"
 #include "crypto/sr25519_provider.hpp"
 #include "dispute_coordinator/impl/runtime_info.hpp"
+#include "log/formatters/optional.hpp"
 #include "network/common.hpp"
-#include "network/helpers/peer_id_formatter.hpp"
-#include "network/impl/protocols/protocol_error.hpp"
 #include "network/peer_manager.hpp"
 #include "network/router.hpp"
 #include "parachain/availability/chunks.hpp"
@@ -140,7 +138,7 @@ namespace kagome::parachain {
         [log{logger_}, wptr_self{weak_from_this()}](
             const primitives::BlockHash &relay_parent,
             const network::SignedBitfield &bitfield) {
-          log->info("Distribute bitfield on {}", relay_parent);
+          SL_VERBOSE(log, "Distribute bitfield on {}", relay_parent);
           if (auto self = wptr_self.lock()) {
             auto msg = std::make_shared<
                 network::WireMessage<network::ValidatorProtocolMessage>>(
@@ -156,15 +154,15 @@ namespace kagome::parachain {
             babe_status_observable_, false);
     babe_status_observer_->subscribe(
         babe_status_observer_->generateSubscriptionSetId(),
-        primitives::events::BabeStateEventType::kSyncState);
+        primitives::events::SyncStateEventType::kSyncState);
     babe_status_observer_->setCallback(
         [wself{weak_from_this()}, was_synchronized = false](
             auto /*set_id*/,
             bool &synchronized,
             auto /*event_type*/,
-            const primitives::events::BabeStateEventParams &event) mutable {
+            const primitives::events::SyncStateEventParams &event) mutable {
           if (auto self = wself.lock()) {
-            if (event == consensus::babe::Babe::State::SYNCHRONIZED) {
+            if (event == consensus::SyncState::SYNCHRONIZED) {
               if (not was_synchronized) {
                 self->bitfield_signer_->start(
                     self->peer_view_->intoChainEventsEngine());
@@ -237,9 +235,6 @@ namespace kagome::parachain {
             /// clear caches
             BOOST_ASSERT(
                 self->this_context_->get_executor().running_in_this_thread());
-            auto const &relay_parent =
-                primitives::calculateBlockHash(event.new_head, *self->hasher_)
-                    .value();
 
             self->our_current_state_.active_leaves.exclusiveAccess(
                 [&](auto &active_leaves) {
@@ -253,16 +248,16 @@ namespace kagome::parachain {
                         [&](auto &container) { container.erase(lost); });
                     active_leaves.erase(lost);
                   }
-                  active_leaves.insert(relay_parent);
+                  active_leaves.insert(event.new_head.hash());
                 });
             if (auto r = self->canProcessParachains(); r.has_error()) {
               return;
             }
 
-            self->createBackingTask(relay_parent);
+            self->createBackingTask(event.new_head.hash());
             SL_TRACE(self->logger_,
                      "Update my view.(new head={}, finalized={}, leaves={})",
-                     relay_parent,
+                     event.new_head.hash(),
                      event.view.finalized_number_,
                      event.view.heads_.size());
             self->broadcastView(event.view);
@@ -315,9 +310,10 @@ namespace kagome::parachain {
   ParachainProcessorImpl::initNewBackingTask(
       const primitives::BlockHash &relay_parent) {
     bool is_parachain_validator = false;
-    auto metric_updater = gsl::finally([self{this}, &is_parachain_validator] {
-      self->metric_is_parachain_validator_->set(is_parachain_validator);
-    });
+    ::libp2p::common::FinalAction metric_updater(
+        [self{this}, &is_parachain_validator] {
+          self->metric_is_parachain_validator_->set(is_parachain_validator);
+        });
     OUTCOME_TRY(validators, parachain_host_->validators(relay_parent));
     OUTCOME_TRY(groups, parachain_host_->validator_groups(relay_parent));
     OUTCOME_TRY(cores, parachain_host_->availability_cores(relay_parent));
@@ -353,12 +349,12 @@ namespace kagome::parachain {
       }
     }
 
-    logger_->info(
-        "Inited new backing task.(assignment={}, our index={}, relay "
-        "parent={})",
-        assignment,
-        validator->validatorIndex(),
-        relay_parent);
+    SL_VERBOSE(logger_,
+               "Inited new backing task.(assignment={}, our index={}, relay "
+               "parent={})",
+               assignment,
+               validator->validatorIndex(),
+               relay_parent);
 
     return RelayParentState{
         .assignment = assignment,
@@ -384,7 +380,7 @@ namespace kagome::parachain {
     auto rps_result = initNewBackingTask(relay_parent);
     if (rps_result.has_value()) {
       storeStateByRelayParent(relay_parent, std::move(rps_result.value()));
-    } else {
+    } else if (rps_result.error() != Error::KEY_NOT_PRESENT) {
       logger_->error(
           "Relay parent state was not created. (relay parent={}, error={})",
           relay_parent,
@@ -1126,15 +1122,8 @@ namespace kagome::parachain {
             }
 
             auto stream = stream_result.value();
-            if (auto add_result = stream_engine->addOutgoing(
-                    std::move(stream_result.value()), protocol);
-                !add_result) {
-              self->logger_->error("Unable to store stream {} with {}: {}",
-                                   protocol->protocolName(),
-                                   peer_id,
-                                   add_result.error().message());
-              return;
-            }
+            stream_engine->addOutgoing(std::move(stream_result.value()),
+                                       protocol);
 
             std::forward<F>(callback)(std::move(stream));
           });

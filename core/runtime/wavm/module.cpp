@@ -1,5 +1,6 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -25,7 +26,7 @@ namespace kagome::runtime::wavm {
       ModuleParams &module_params,
       std::shared_ptr<IntrinsicModule> intrinsic_module,
       std::shared_ptr<const InstanceEnvironmentFactory> env_factory,
-      gsl::span<const uint8_t> code,
+      common::BufferView code,
       const common::Hash256 &code_hash) {
     std::shared_ptr<WAVM::Runtime::Module> module = nullptr;
     WAVM::WASM::LoadError loadError;
@@ -78,7 +79,14 @@ namespace kagome::runtime::wavm {
 
   outcome::result<std::shared_ptr<ModuleInstance>> ModuleImpl::instantiate()
       const {
+#if defined(__GNUC__) and not defined(__clang__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdangling-reference"
+#endif
     const auto &ir_module = WAVM::Runtime::getModuleIR(module_);
+#if defined(__GNUC__) and not defined(__clang__)
+#pragma GCC diagnostic pop
+#endif
     bool imports_memory =
         std::find_if(ir_module.imports.cbegin(),
                      ir_module.imports.cend(),
@@ -117,8 +125,14 @@ namespace kagome::runtime::wavm {
 
   WAVM::Runtime::ImportBindings ModuleImpl::link(
       IntrinsicResolver &resolver) const {
+#if defined(__GNUC__) and not defined(__clang__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdangling-reference"
+#endif
     const WAVM::IR::Module &ir_module = WAVM::Runtime::getModuleIR(module_);
-
+#if defined(__GNUC__) and not defined(__clang__)
+#pragma GCC diagnostic pop
+#endif
     auto link_result = WAVM::Runtime::linkModule(ir_module, resolver);
     if (!link_result.success) {
       logger_->error("Failed to link module:");

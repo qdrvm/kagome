@@ -1,10 +1,10 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_CORE_PRIMITIVES_BLOCK_DATA_HPP
-#define KAGOME_CORE_PRIMITIVES_BLOCK_DATA_HPP
+#pragma once
 
 #include <optional>
 
@@ -19,7 +19,7 @@ namespace kagome::primitives {
    * to get certain information about the block
    */
   struct BlockData {
-    SCALE_TIE(6);
+    SCALE_TIE(7);
 
     primitives::BlockHash hash;
     std::optional<primitives::BlockHeader> header{};
@@ -27,6 +27,7 @@ namespace kagome::primitives {
     std::optional<common::Buffer> receipt{};
     std::optional<common::Buffer> message_queue{};
     std::optional<primitives::Justification> justification{};
+    std::optional<primitives::Justification> beefy_justification{};
   };
 
   struct BlockDataFlags {
@@ -45,31 +46,4 @@ namespace kagome::primitives {
     bool message_queue{};
     bool justification{};
   };
-
-  /// Context of processing block, to avoid additional obtaining data from
-  /// storage, or redundant calculation. Contains the same data like BlockData,
-  /// but by reference, not by value.
-  class BlockContext {
-    template <typename T>
-    using OptConstRef = std::optional<std::reference_wrapper<const T>>;
-
-   public:
-    primitives::BlockInfo block_info;
-    OptConstRef<primitives::BlockHeader> header{};
-    OptConstRef<primitives::BlockBody> body{};
-    OptConstRef<common::Buffer> receipt{};
-    OptConstRef<common::Buffer> message_queue{};
-    OptConstRef<primitives::Justification> justification{};
-
-    bool operator<(const BlockContext &other) const noexcept {
-      return block_info < other.block_info;
-    }
-
-    bool operator==(const BlockContext &other) const noexcept {
-      return block_info == other.block_info;
-    }
-  };
-
 }  // namespace kagome::primitives
-
-#endif  // KAGOME_CORE_PRIMITIVES_BLOCK_DATA_HPP

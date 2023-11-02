@@ -1,10 +1,10 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_COLLATOR_DECLARE_HPP
-#define KAGOME_COLLATOR_DECLARE_HPP
+#pragma once
 
 #include <boost/variant.hpp>
 #include <scale/bitvec.hpp>
@@ -296,7 +296,7 @@ namespace kagome::network {
 
   struct Statement {
     SCALE_TIE(1);
-    Statement() = default;
+
     CandidateState candidate_state{Unused<0>{}};
   };
   using SignedStatement = IndexedAndSigned<Statement>;
@@ -357,8 +357,6 @@ namespace kagome::network {
     View view;
     primitives::BlockHeader new_head;
     std::vector<primitives::BlockHash> lost;
-    //
-    mutable std::optional<primitives::BlockHash> new_head_hash;
   };
 
   using LargeStatement = parachain::IndexedAndSigned<StatementMetadata>;
@@ -564,13 +562,11 @@ struct fmt::formatter<kagome::network::SignedBitfield> {
       buf[ix] = bits[ix] ? '1' : '0';
     }
 
-    return format_to(ctx.out(),
-                     "sig={}, validator={}, bits=[0b{}{}]",
-                     val.signature,
-                     val.payload.ix,
-                     buf,
-                     ix == bits.size() ? "" : "…");
+    return fmt::format_to(ctx.out(),
+                          "sig={}, validator={}, bits=[0b{}{}]",
+                          val.signature,
+                          val.payload.ix,
+                          buf,
+                          ix == bits.size() ? "" : "…");
   }
 };
-
-#endif  // KAGOME_COLLATOR_DECLARE_HPP

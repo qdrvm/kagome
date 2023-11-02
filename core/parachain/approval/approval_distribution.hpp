@@ -1,10 +1,10 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_APPROVAL_DISTRIBUTION_HPP
-#define KAGOME_APPROVAL_DISTRIBUTION_HPP
+#pragma once
 
 #include <unordered_set>
 #include <vector>
@@ -18,9 +18,9 @@
 #include <clock/timer.hpp>
 
 #include "blockchain/block_tree.hpp"
-#include "consensus/babe/babe_util.hpp"
-#include "consensus/babe/common.hpp"
 #include "consensus/babe/types/babe_block_header.hpp"
+#include "consensus/timeline/slots_util.hpp"
+#include "consensus/timeline/types.hpp"
 #include "crypto/crypto_store/key_file_storage.hpp"
 #include "crypto/crypto_store/session_keys.hpp"
 #include "dispute_coordinator/dispute_coordinator.hpp"
@@ -32,11 +32,14 @@
 #include "parachain/approval/store.hpp"
 #include "parachain/availability/recovery/recovery.hpp"
 #include "parachain/validator/parachain_processor.hpp"
-#include "runtime/runtime_api/babe_api.hpp"
 #include "runtime/runtime_api/parachain_host.hpp"
 #include "runtime/runtime_api/parachain_host_types.hpp"
 #include "utils/safe_object.hpp"
 #include "utils/thread_pool.hpp"
+
+namespace kagome::consensus::babe {
+  class BabeConfigRepository;
+}  // namespace kagome::consensus::babe
 
 namespace kagome::parachain {
   using DistributeAssignment = network::Assignment;
@@ -257,11 +260,11 @@ namespace kagome::parachain {
     };
 
     ApprovalDistribution(
-        std::shared_ptr<runtime::BabeApi> babe_api,
+        std::shared_ptr<consensus::babe::BabeConfigRepository> babe_config_repo,
         std::shared_ptr<application::AppStateManager> app_state_manager,
         std::shared_ptr<ThreadPool> thread_pool,
         std::shared_ptr<runtime::ParachainHost> parachain_host,
-        std::shared_ptr<consensus::babe::BabeUtil> babe_util,
+        LazySPtr<consensus::SlotsUtil> slots_util,
         std::shared_ptr<crypto::CryptoStore> keystore,
         std::shared_ptr<crypto::Hasher> hasher,
         std::shared_ptr<network::PeerView> peer_view,
@@ -316,7 +319,7 @@ namespace kagome::parachain {
       AssignmentsList assignments;
       size_t n_validators;
       RelayVRFStory relay_vrf_story;
-      consensus::babe::BabeSlotNumber slot;
+      consensus::SlotNumber slot;
       std::optional<primitives::BlockNumber> force_approve;
     };
 
@@ -324,7 +327,7 @@ namespace kagome::parachain {
       primitives::BlockHeader block_header;
       std::optional<CandidateIncludedList> included_candidates;
       std::optional<consensus::babe::BabeBlockHeader> babe_block_header;
-      std::optional<consensus::babe::EpochNumber> babe_epoch;
+      std::optional<consensus::EpochNumber> babe_epoch;
       std::optional<primitives::Randomness> randomness;
       std::optional<primitives::AuthorityList> authorities;
 
@@ -351,6 +354,36 @@ namespace kagome::parachain {
     struct MessageState {
       DistribApprovalState approval_state;
       bool local;
+    };
+
+    template <typename T>
+    struct DeferedSender final {
+      using ContainerT =
+          std::unordered_map<libp2p::peer::PeerId, std::deque<T>>;
+      ContainerT messages;
+      std::function<void(ContainerT &&)> f;
+
+      template <typename F>
+      DeferedSender(F &&f_) : f{std::forward<F>(f_)} {}
+
+      DeferedSender(const DeferedSender &) = delete;
+      DeferedSender &operator=(const DeferedSender &) = delete;
+
+      DeferedSender(DeferedSender &&) = default;
+      DeferedSender &operator=(DeferedSender &&) = default;
+
+      void postponeSend(const std::unordered_set<libp2p::peer::PeerId> &peers,
+                        const T &msg) {
+        for (const auto &peer : peers) {
+          messages[peer].emplace_back(msg);
+        }
+      }
+
+      ~DeferedSender() {
+        if (f && !messages.empty()) {
+          f(std::move(messages));
+        }
+      }
     };
 
     /// Information about candidates in the context of a particular block they
@@ -385,7 +418,7 @@ namespace kagome::parachain {
       primitives::BlockHash parent_hash;
       primitives::BlockNumber block_number;
       SessionIndex session;
-      consensus::babe::BabeSlotNumber slot;
+      consensus::SlotNumber slot;
       RelayVRFStory relay_vrf_story;
       // The candidates included as-of this block and the index of the core they
       // are leaving. Sorted ascending by core index.
@@ -485,7 +518,7 @@ namespace kagome::parachain {
     using NewHeadDataContext =
         std::tuple<ApprovalDistribution::CandidateIncludedList,
                    std::pair<SessionIndex, runtime::SessionInfo>,
-                   std::tuple<consensus::babe::EpochNumber,
+                   std::tuple<consensus::EpochNumber,
                               consensus::babe::BabeBlockHeader,
                               primitives::AuthorityList,
                               primitives::Randomness>>;
@@ -506,10 +539,12 @@ namespace kagome::parachain {
         const network::IndirectSignedApprovalVote &vote);
     void import_and_circulate_assignment(
         const MessageSource &source,
+        DeferedSender<network::Assignment> &defered_sender,
         const approval::IndirectAssignmentCert &assignment,
         CandidateIndex claimed_candidate_index);
     void import_and_circulate_approval(
         const MessageSource &source,
+        DeferedSender<network::IndirectSignedApprovalVote> &defered_sender,
         const network::IndirectSignedApprovalVote &vote);
 
     template <typename Func>
@@ -523,7 +558,7 @@ namespace kagome::parachain {
 
     outcome::result<ApprovalDistribution::CandidateIncludedList>
     request_included_candidates(const primitives::BlockHash &block_hash);
-    outcome::result<std::tuple<consensus::babe::EpochNumber,
+    outcome::result<std::tuple<consensus::EpochNumber,
                                consensus::babe::BabeBlockHeader,
                                primitives::AuthorityList,
                                primitives::Randomness>>
@@ -623,9 +658,8 @@ namespace kagome::parachain {
                          BlockImportedCandidates &&candidate);
 
     void runDistributeAssignment(
-        const approval::IndirectAssignmentCert &indirect_cert,
-        CandidateIndex candidate_index,
-        std::unordered_set<libp2p::peer::PeerId> &&peers);
+        std::unordered_map<libp2p::peer::PeerId,
+                           std::deque<network::Assignment>> &&messages);
 
     void send_assignments_batched(std::deque<network::Assignment> &&assignments,
                                   const libp2p::peer::PeerId &peer_id);
@@ -635,8 +669,9 @@ namespace kagome::parachain {
         const libp2p::peer::PeerId &peer_id);
 
     void runDistributeApproval(
-        const network::IndirectSignedApprovalVote &vote,
-        std::unordered_set<libp2p::peer::PeerId> &&peers);
+        std::unordered_map<libp2p::peer::PeerId,
+                           std::deque<network::IndirectSignedApprovalVote>>
+            &&messages);
 
     void runScheduleWakeup(const primitives::BlockHash &block_hash,
                            primitives::BlockNumber block_number,
@@ -677,7 +712,7 @@ namespace kagome::parachain {
     std::shared_ptr<ThreadHandler> thread_pool_context_;
 
     std::shared_ptr<runtime::ParachainHost> parachain_host_;
-    std::shared_ptr<consensus::babe::BabeUtil> babe_util_;
+    LazySPtr<consensus::SlotsUtil> slots_util_;
     std::shared_ptr<crypto::CryptoStore> keystore_;
     std::shared_ptr<crypto::Hasher> hasher_;
     const ApprovalVotingSubsystem config_;
@@ -696,7 +731,7 @@ namespace kagome::parachain {
     std::shared_ptr<crypto::Sr25519Provider> crypto_provider_;
     std::shared_ptr<network::PeerManager> pm_;
     std::shared_ptr<network::Router> router_;
-    std::shared_ptr<runtime::BabeApi> babe_api_;
+    std::shared_ptr<consensus::babe::BabeConfigRepository> babe_config_repo_;
     std::shared_ptr<blockchain::BlockTree> block_tree_;
     std::shared_ptr<parachain::Pvf> pvf_;
     std::shared_ptr<parachain::Recovery> recovery_;
@@ -732,5 +767,3 @@ namespace kagome::parachain {
 }  // namespace kagome::parachain
 
 OUTCOME_HPP_DECLARE_ERROR(kagome::parachain, ApprovalDistribution::Error);
-
-#endif  // KAGOME_APPROVAL_DISTRIBUTION_HPP

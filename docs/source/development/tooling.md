@@ -1,3 +1,9 @@
+[//]: # (
+Copyright Quadrivium LLC
+All Rights Reserved
+SPDX-License-Identifier: Apache-2.0
+)
+
 # Tooling 
 
 In Kagome we use certain set of tools to assure code quality. Here is a list, and guide how to use them.
@@ -39,12 +45,12 @@ Example:
 ```sh
 mkdir build
 cd build
-cmake .. -DCMAKE_TOOLCHAIN_FILE=../cmake/toolchain/gcc-10_cxx17.cmake
+cmake .. -DCMAKE_TOOLCHAIN_FILE=../cmake/toolchain/gcc-10_cxx20.cmake
 ```
 
-All dependencies will be built with gcc-8 and cxx17 standard.
+All dependencies will be built with gcc-12 and cxx20 standard.
 
-Default toolchain is `cxx17.cmake`. [List of toolchains.](../../cmake/toolchain)
+Default toolchain is `cxx20.cmake`. [List of toolchains.](../../cmake/toolchain)
 
 Also, **sanitizers** can be enabled with use of toolchains, so all dependencies will be built with specified sanitizer.
 

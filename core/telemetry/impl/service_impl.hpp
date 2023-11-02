@@ -1,10 +1,10 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_TELEMETRY_SERVICE_IMPL_HPP
-#define KAGOME_TELEMETRY_SERVICE_IMPL_HPP
+#pragma once
 
 #include "telemetry/service.hpp"
 
@@ -45,7 +45,7 @@ namespace kagome::telemetry {
 
   class TelemetryServiceImpl
       : public TelemetryService,
-        public std::enable_shared_from_this<TelemetryService> {
+        public std::enable_shared_from_this<TelemetryServiceImpl> {
    public:
     TelemetryServiceImpl(
         std::shared_ptr<application::AppStateManager> app_state_manager,
@@ -64,6 +64,8 @@ namespace kagome::telemetry {
                              BlockOrigin origin) override;
 
     void notifyBlockFinalized(const primitives::BlockInfo &info) override;
+
+    void pushBlockStats() override;
 
     void setGenesisBlockHash(const primitives::BlockHash &hash) override;
 
@@ -163,5 +165,3 @@ namespace kagome::telemetry {
   };
 
 }  // namespace kagome::telemetry
-
-#endif  // KAGOME_TELEMETRY_SERVICE_IMPL_HPP

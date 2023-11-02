@@ -1,10 +1,10 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_BASE_ROCKSDB_TEST_HPP
-#define KAGOME_BASE_ROCKSDB_TEST_HPP
+#pragma once
 
 #include "testutil/storage/base_fs_test.hpp"
 
@@ -28,5 +28,3 @@ namespace test {
   };
 
 }  // namespace test
-
-#endif  // KAGOME_BASE_ROCKSDB_TEST_HPP

@@ -1,10 +1,10 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_CORE_RUNTIME_EXECUTOR_HPP
-#define KAGOME_CORE_RUNTIME_EXECUTOR_HPP
+#pragma once
 
 #include "common/buffer.hpp"
 #include "outcome/outcome.hpp"
@@ -12,15 +12,6 @@
 #include "runtime/module_instance.hpp"
 #include "runtime/runtime_context.hpp"
 #include "runtime/runtime_properties_cache.hpp"
-
-#ifdef __has_builtin
-#if __has_builtin(__builtin_expect)
-#define likely(x) __builtin_expect((x), 1)
-#endif
-#endif
-#ifndef likely
-#define likely(x) (x)
-#endif
 
 namespace kagome::runtime {
 
@@ -168,12 +159,12 @@ namespace kagome::runtime {
                                     std::string_view name,
                                     const F &call) {
       if constexpr (std::is_same_v<Res, primitives::Version>) {
-        if (likely(name == "Core_version")) {
+        [[likely]] if (name == "Core_version") {
           return cache_->getVersion(code_hash, call);
         }
       }
       if constexpr (std::is_same_v<Res, primitives::OpaqueMetadata>) {
-        if (likely(name == "Metadata_metadata")) {
+        [[likely]] if (name == "Metadata_metadata") {
           return cache_->getMetadata(code_hash, call);
         }
       }
@@ -185,7 +176,3 @@ namespace kagome::runtime {
   };
 
 }  // namespace kagome::runtime
-
-#undef likely
-
-#endif  // KAGOME_CORE_RUNTIME_RAW_EXECUTOR_HPP

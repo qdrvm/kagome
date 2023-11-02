@@ -1,10 +1,10 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_CORE_RUNTIME_MODULE_INSTANCE_HPP
-#define KAGOME_CORE_RUNTIME_MODULE_INSTANCE_HPP
+#pragma once
 
 #include <string_view>
 
@@ -55,7 +55,7 @@ namespace kagome::runtime {
         std::string_view name) const = 0;
 
     using SegmentOffset = size_t;
-    using SegmentData = gsl::span<const uint8_t>;
+    using SegmentData = std::span<const uint8_t>;
     using DataSegmentProcessor =
         std::function<void(SegmentOffset, SegmentData)>;
     virtual void forDataSegment(const DataSegmentProcessor &callback) const = 0;
@@ -69,5 +69,3 @@ namespace kagome::runtime {
 }  // namespace kagome::runtime
 
 OUTCOME_HPP_DECLARE_ERROR(kagome::runtime, ModuleInstance::Error);
-
-#endif  // KAGOME_CORE_RUNTIME_MODULE_INSTANCE_HPP

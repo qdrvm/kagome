@@ -1,10 +1,10 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_TEST_MOCK_CORE_CONSENSUS_GRANDPA_VOTE_GRAPH_MOCK_HPP
-#define KAGOME_TEST_MOCK_CORE_CONSENSUS_GRANDPA_VOTE_GRAPH_MOCK_HPP
+#pragma once
 
 #include "consensus/grandpa/vote_graph.hpp"
 
@@ -45,5 +45,3 @@ namespace kagome::consensus::grandpa {
   };
 
 }  // namespace kagome::consensus::grandpa
-
-#endif  // KAGOME_TEST_MOCK_CORE_CONSENSUS_GRANDPA_VOTE_GRAPH_MOCK_HPP

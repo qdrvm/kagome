@@ -1,5 +1,6 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -10,8 +11,9 @@
 #include "blockchain/block_tree.hpp"
 #include "blockchain/genesis_block_hash.hpp"
 #include "network/common.hpp"
-#include "network/helpers/peer_id_formatter.hpp"
 #include "network/impl/protocols/protocol_error.hpp"
+#include "network/notifications/connect_and_handshake.hpp"
+#include "network/notifications/handshake_and_read_messages.hpp"
 #include "network/peer_manager.hpp"
 #include "network/types/grandpa_message.hpp"
 #include "network/types/roles.hpp"
@@ -25,7 +27,7 @@ namespace kagome::network {
       libp2p::Host &host,
       std::shared_ptr<crypto::Hasher> hasher,
       std::shared_ptr<boost::asio::io_context> io_context,
-      const application::AppConfiguration &app_config,
+      Roles roles,
       std::shared_ptr<consensus::grandpa::GrandpaObserver> grandpa_observer,
       const OwnPeerInfo &own_info,
       std::shared_ptr<StreamEngine> stream_engine,
@@ -34,11 +36,12 @@ namespace kagome::network {
       std::shared_ptr<libp2p::basic::Scheduler> scheduler)
       : base_(kGrandpaProtocolName,
               host,
-              make_protocols(kGrandpaProtocol, genesis_hash, "paritytech"),
+              make_protocols(
+                  kGrandpaProtocol, genesis_hash, kProtocolPrefixParitytech),
               log::createLogger(kGrandpaProtocolName, "grandpa_protocol")),
         hasher_{std::move(hasher)},
         io_context_(std::move(io_context)),
-        app_config_(app_config),
+        roles_{roles},
         grandpa_observer_(std::move(grandpa_observer)),
         own_info_(own_info),
         stream_engine_(std::move(stream_engine)),
@@ -47,11 +50,21 @@ namespace kagome::network {
 
   bool GrandpaProtocol::start() {
     auto stream = std::make_shared<LoopbackStream>(own_info_, io_context_);
-    auto res = stream_engine_->addBidirectional(stream, shared_from_this());
-    if (not res.has_value()) {
-      return false;
-    }
-    read(std::move(stream));
+    stream_engine_->addBidirectional(stream, shared_from_this());
+    auto on_message = [weak = weak_from_this(),
+                       peer_id = own_info_.id](GrandpaMessage message) {
+      auto self = weak.lock();
+      if (not self) {
+        return false;
+      }
+      self->onMessage(peer_id, std::move(message));
+      return true;
+    };
+    notifications::readMessages<GrandpaMessage>(
+        stream,
+        std::make_shared<libp2p::basic::MessageReadWriterUvarint>(stream),
+        std::move(on_message));
+
     return base_.start(weak_from_this());
   }
 
@@ -65,290 +78,94 @@ namespace kagome::network {
 
   void GrandpaProtocol::onIncomingStream(std::shared_ptr<Stream> stream) {
     BOOST_ASSERT(stream->remotePeerId().has_value());
-
-    readHandshake(
-        stream,
-        Direction::INCOMING,
-        [wp = weak_from_this(), stream](outcome::result<void> res) {
-          auto self = wp.lock();
-          if (not self) {
-            stream->reset();
-            return;
-          }
-
-          auto peer_id = stream->remotePeerId().value();
-
-          if (not res.has_value()) {
-            SL_VERBOSE(self->base_.logger(),
-                       "Handshake failed on incoming {} stream with {}: {}",
-                       self->protocolName(),
-                       peer_id,
-                       res.error());
-            stream->reset();
-            return;
-          }
-
-          res = self->stream_engine_->addIncoming(stream, self);
-          if (not res.has_value()) {
-            SL_VERBOSE(self->base_.logger(),
-                       "Can't register incoming {} stream with {}: {}",
-                       self->protocolName(),
-                       peer_id,
-                       res.error());
-            stream->reset();
-            return;
-          }
-
-          SL_VERBOSE(self->base_.logger(),
-                     "Fully established incoming {} stream with {}",
-                     self->protocolName(),
-                     peer_id);
-        });
+    auto on_handshake = [](std::shared_ptr<GrandpaProtocol> self,
+                           std::shared_ptr<Stream> stream,
+                           Roles) {
+      self->stream_engine_->addIncoming(stream, self);
+      return true;
+    };
+    auto on_message = [peer_id = stream->remotePeerId().value()](
+                          std::shared_ptr<GrandpaProtocol> self,
+                          GrandpaMessage message) {
+      self->onMessage(peer_id, std::move(message));
+      return true;
+    };
+    notifications::handshakeAndReadMessages<GrandpaMessage>(
+        weak_from_this(),
+        std::move(stream),
+        roles_,
+        std::move(on_handshake),
+        std::move(on_message));
   }
 
   void GrandpaProtocol::newOutgoingStream(
       const PeerInfo &peer_info,
       std::function<void(outcome::result<std::shared_ptr<Stream>>)> &&cb) {
-    base_.host().newStream(
-        peer_info.id,
-        base_.protocolIds(),
-        [wp = weak_from_this(), peer_id = peer_info.id, cb = std::move(cb)](
-            auto &&stream_res) mutable {
-          auto self = wp.lock();
-          if (not self) {
-            cb(ProtocolError::GONE);
+    auto on_handshake =
+        [cb = std::move(cb)](
+            std::shared_ptr<GrandpaProtocol> self,
+            outcome::result<notifications::ConnectAndHandshake<Roles>>
+                r) mutable {
+          if (not r) {
+            cb(r.error());
             return;
           }
-
-          if (not stream_res.has_value()) {
-            SL_VERBOSE(self->base_.logger(),
-                       "Can't create outgoing {} stream with {}: {}",
-                       self->protocolName(),
-                       peer_id,
-                       stream_res.error());
-            cb(stream_res.as_failure());
-            return;
-          }
-          auto &stream_and_proto = stream_res.value();
-
-          auto cb2 = [wp,
-                      stream = stream_and_proto.stream,
-                      protocol = stream_and_proto.protocol,
-                      cb = std::move(cb)](outcome::result<void> res) {
-            auto self = wp.lock();
-            if (not self) {
-              cb(ProtocolError::GONE);
-              return;
-            }
-
-            if (not res.has_value()) {
-              SL_VERBOSE(self->base_.logger(),
-                         "Handshake failed on outgoing {} stream with {}: {}",
-                         protocol,
-                         stream->remotePeerId().value(),
-                         res.error());
-              stream->reset();
-              cb(res.as_failure());
-              return;
-            }
-
-            res = self->stream_engine_->addOutgoing(stream, self);
-            if (not res.has_value()) {
-              SL_VERBOSE(self->base_.logger(),
-                         "Can't register outgoing {} stream with {}: {}",
-                         protocol,
-                         stream->remotePeerId().value(),
-                         res.error());
-              stream->reset();
-              cb(res.as_failure());
-              return;
-            }
-
-            SL_VERBOSE(self->base_.logger(),
-                       "Fully established outgoing {} stream with {}",
-                       protocol,
-                       stream->remotePeerId().value());
-
-            // Send neighbor message first
-            SL_DEBUG(self->base_.logger(),
-                     "Send initial neighbor message: grandpa round number {}",
-                     self->last_neighbor_.round_number);
-
-            auto shared_msg =
-                KAGOME_EXTRACT_SHARED_CACHE(GrandpaProtocol, GrandpaMessage);
-            (*shared_msg) = self->last_neighbor_;
-
-            self->stream_engine_->send(
-                stream->remotePeerId().value(), self, std::move(shared_msg));
-
-            cb(std::move(stream));
-          };
-
-          self->writeHandshake(std::move(stream_and_proto.stream),
-                               Direction::OUTGOING,
-                               std::move(cb2));
-        });
+          auto &stream = std::get<0>(r.value());
+          self->stream_engine_->addOutgoing(stream, self);
+          auto shared_msg =
+              KAGOME_EXTRACT_SHARED_CACHE(GrandpaProtocol, GrandpaMessage);
+          (*shared_msg) = self->last_neighbor_;
+          self->stream_engine_->send(
+              stream->remotePeerId().value(), self, std::move(shared_msg));
+          cb(std::move(stream));
+        };
+    notifications::connectAndHandshake(
+        weak_from_this(), base_, peer_info, roles_, std::move(on_handshake));
   }
 
-  void GrandpaProtocol::readHandshake(
-      std::shared_ptr<Stream> stream,
-      Direction direction,
-      std::function<void(outcome::result<void>)> &&cb) {
-    auto read_writer = std::make_shared<ScaleMessageReadWriter>(stream);
-
-    read_writer->read<Roles>(
-        [stream, direction, wp = weak_from_this(), cb = std::move(cb)](
-            auto &&remote_roles_res) mutable {
-          auto self = wp.lock();
-          if (not self) {
-            stream->reset();
-            cb(ProtocolError::GONE);
-            return;
+  void GrandpaProtocol::onMessage(const PeerId &peer_id,
+                                  GrandpaMessage message) {
+    auto hash = getHash(message);
+    visit_in_place(
+        std::move(message),
+        [&](network::GrandpaVote &&vote_message) {
+          SL_VERBOSE(
+              base_.logger(), "VoteMessage has received from {}", peer_id);
+          auto info = peer_manager_->getPeerState(peer_id);
+          grandpa_observer_->onVoteMessage(
+              std::nullopt, peer_id, compactFromRefToOwn(info), vote_message);
+          addKnown(peer_id, hash);
+        },
+        [&](FullCommitMessage &&commit_message) {
+          SL_VERBOSE(
+              base_.logger(), "CommitMessage has received from {}", peer_id);
+          grandpa_observer_->onCommitMessage(
+              std::nullopt, peer_id, commit_message);
+          addKnown(peer_id, hash);
+        },
+        [&](GrandpaNeighborMessage &&neighbor_message) {
+          if (peer_id != own_info_.id) {
+            SL_VERBOSE(base_.logger(),
+                       "NeighborMessage has received from {}",
+                       peer_id);
+            auto info = peer_manager_->getPeerState(peer_id);
+            grandpa_observer_->onNeighborMessage(peer_id,
+                                                 compactFromRefToOwn(info),
+                                                 std::move(neighbor_message));
           }
-
-          if (not remote_roles_res.has_value()) {
-            SL_VERBOSE(self->base_.logger(),
-                       "Can't read handshake from {}: {}",
-                       stream->remotePeerId().value(),
-                       remote_roles_res.error());
-            stream->reset();
-            cb(remote_roles_res.as_failure());
-            return;
-          }
-          [[maybe_unused]] auto &remote_roles = remote_roles_res.value();
-
-          SL_TRACE(self->base_.logger(),
-                   "Handshake has received from {}; roles={}",
-                   stream->remotePeerId().value(),
-                   to_string(remote_roles));
-
-          switch (direction) {
-            case Direction::OUTGOING:
-              cb(outcome::success());
-              break;
-            case Direction::INCOMING:
-              self->writeHandshake(
-                  std::move(stream), Direction::INCOMING, std::move(cb));
-              break;
-          }
-        });
-  }
-
-  void GrandpaProtocol::writeHandshake(
-      std::shared_ptr<Stream> stream,
-      Direction direction,
-      std::function<void(outcome::result<void>)> &&cb) {
-    auto read_writer = std::make_shared<ScaleMessageReadWriter>(stream);
-
-    Roles roles = app_config_.roles();
-
-    read_writer->write(roles,
-                       [stream = std::move(stream),
-                        roles,
-                        direction,
-                        wp = weak_from_this(),
-                        cb = std::move(cb)](auto &&write_res) mutable {
-                         auto self = wp.lock();
-                         if (not self) {
-                           stream->reset();
-                           cb(ProtocolError::GONE);
-                           return;
-                         }
-
-                         if (not write_res.has_value()) {
-                           SL_VERBOSE(self->base_.logger(),
-                                      "Can't send handshake to {}: {}",
-                                      stream->remotePeerId().value(),
-                                      write_res.error());
-                           stream->reset();
-                           cb(write_res.as_failure());
-                           return;
-                         }
-
-                         SL_TRACE(self->base_.logger(),
-                                  "Handshake has sent to {}; roles={}",
-                                  stream->remotePeerId().value(),
-                                  to_string(roles));
-
-                         switch (direction) {
-                           case Direction::OUTGOING:
-                             self->readHandshake(
-                                 std::move(stream), direction, std::move(cb));
-                             break;
-                           case Direction::INCOMING:
-                             cb(outcome::success());
-                             self->read(std::move(stream));
-                             break;
-                         }
-                       });
-  }
-
-  void GrandpaProtocol::read(std::shared_ptr<Stream> stream) {
-    auto read_writer = std::make_shared<ScaleMessageReadWriter>(stream);
-
-    read_writer->read<GrandpaMessage>(
-        [stream = std::move(stream),
-         wp = weak_from_this()](auto &&grandpa_message_res) mutable {
-          auto self = wp.lock();
-          if (not self) {
-            stream->reset();
-            return;
-          }
-
-          if (not grandpa_message_res.has_value()) {
-            SL_VERBOSE(self->base_.logger(),
-                       "Can't read grandpa message from {}: {}",
-                       stream->remotePeerId().value(),
-                       grandpa_message_res.error());
-            stream->reset();
-            return;
-          }
-
-          auto peer_id = stream->remotePeerId().value();
-          auto &message = grandpa_message_res.value();
-          auto hash = self->getHash(message);
-          visit_in_place(
-              std::move(message),
-              [&](network::GrandpaVote &&vote_message) {
-                SL_VERBOSE(self->base_.logger(),
-                           "VoteMessage has received from {}",
-                           peer_id);
-                self->grandpa_observer_->onVoteMessage(
-                    std::nullopt, peer_id, vote_message);
-                self->addKnown(peer_id, hash);
-              },
-              [&](FullCommitMessage &&commit_message) {
-                SL_VERBOSE(self->base_.logger(),
-                           "CommitMessage has received from {}",
-                           peer_id);
-                self->grandpa_observer_->onCommitMessage(
-                    std::nullopt, peer_id, commit_message);
-                self->addKnown(peer_id, hash);
-              },
-              [&](GrandpaNeighborMessage &&neighbor_message) {
-                if (peer_id != self->own_info_.id) {
-                  SL_VERBOSE(self->base_.logger(),
-                             "NeighborMessage has received from {}",
-                             peer_id);
-                  self->grandpa_observer_->onNeighborMessage(
-                      peer_id, std::move(neighbor_message));
-                }
-              },
-              [&](network::CatchUpRequest &&catch_up_request) {
-                SL_VERBOSE(self->base_.logger(),
-                           "CatchUpRequest has received from {}",
-                           peer_id);
-                self->grandpa_observer_->onCatchUpRequest(
-                    peer_id, std::move(catch_up_request));
-              },
-              [&](network::CatchUpResponse &&catch_up_response) {
-                SL_VERBOSE(self->base_.logger(),
-                           "CatchUpResponse has received from {}",
-                           peer_id);
-                self->grandpa_observer_->onCatchUpResponse(
-                    std::nullopt, peer_id, catch_up_response);
-              });
-          self->read(std::move(stream));
+        },
+        [&](network::CatchUpRequest &&catch_up_request) {
+          SL_VERBOSE(
+              base_.logger(), "CatchUpRequest has received from {}", peer_id);
+          auto info = peer_manager_->getPeerState(peer_id);
+          grandpa_observer_->onCatchUpRequest(
+              peer_id, compactFromRefToOwn(info), std::move(catch_up_request));
+        },
+        [&](network::CatchUpResponse &&catch_up_response) {
+          SL_VERBOSE(
+              base_.logger(), "CatchUpResponse has received from {}", peer_id);
+          grandpa_observer_->onCatchUpResponse(
+              std::nullopt, peer_id, catch_up_response);
         });
   }
 
