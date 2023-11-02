@@ -27,7 +27,7 @@ namespace kagome::consensus::sassafras {
 namespace kagome::crypto {
   class Hasher;
   class VRFProvider;
-  class Ed25519Provider;
+  class BandersnatchProvider;
 }  // namespace kagome::crypto
 
 namespace kagome::runtime {
@@ -41,7 +41,7 @@ namespace kagome::consensus::sassafras {
     SassafrasLotteryImpl(
         std::shared_ptr<blockchain::BlockTree> block_tree,
         std::shared_ptr<crypto::CSPRNG> random_generator,
-        std::shared_ptr<crypto::Ed25519Provider> ed25519_provider,
+        std::shared_ptr<crypto::BandersnatchProvider> bandersnatch_provider,
         std::shared_ptr<crypto::VRFProvider> vrf_provider,
         std::shared_ptr<crypto::Hasher> hasher,
         std::shared_ptr<runtime::SassafrasApi> api);
@@ -50,7 +50,7 @@ namespace kagome::consensus::sassafras {
                      const Randomness &randomness,
                      const Threshold &ticket_threshold,
                      const Threshold &threshold,
-                     const crypto::Sr25519Keypair &keypair) override;
+                     const crypto::BandersnatchKeypair &keypair) override;
 
     EpochNumber getEpoch() const override;
 
@@ -71,7 +71,7 @@ namespace kagome::consensus::sassafras {
 
     std::shared_ptr<blockchain::BlockTree> block_tree_;
     std::shared_ptr<crypto::CSPRNG> random_generator_;
-    std::shared_ptr<crypto::Ed25519Provider> ed25519_provider_;
+    std::shared_ptr<crypto::BandersnatchProvider> bandersnatch_provider_;
     std::shared_ptr<crypto::VRFProvider> vrf_provider_;
     std::shared_ptr<crypto::Hasher> hasher_;
     std::shared_ptr<runtime::SassafrasApi> api_;
@@ -82,7 +82,7 @@ namespace kagome::consensus::sassafras {
     Randomness next_randomness_;
     Threshold ticket_threshold_;
     Threshold threshold_;
-    crypto::Sr25519Keypair keypair_;
+    crypto::BandersnatchKeypair keypair_;
 
     struct {
       std::vector<std::tuple<uint32_t, TicketId>> tickets;

@@ -18,6 +18,7 @@ target_link_libraries(application_injector
     assets
     authority_discovery_api
     babe_api
+    bandersnatch_provider
     beefy_api
     binaryen_module_factory
     binaryen_runtime_external_interface

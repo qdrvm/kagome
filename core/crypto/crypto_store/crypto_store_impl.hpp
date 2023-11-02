@@ -85,6 +85,9 @@ namespace kagome::crypto {
     outcome::result<Sr25519Keypair> findSr25519Keypair(
         KeyType key_type, const Sr25519PublicKey &pk) const override;
 
+    outcome::result<BandersnatchKeypair> findBandersnatchKeypair(
+        KeyType key_type, const BandersnatchPublicKey &pk) const override;
+
     outcome::result<EcdsaKeys> getEcdsaPublicKeys(
         KeyType key_type) const override;
 
@@ -92,6 +95,9 @@ namespace kagome::crypto {
         KeyType key_type) const override;
 
     outcome::result<Sr25519Keys> getSr25519PublicKeys(
+        KeyType key_type) const override;
+
+    outcome::result<BandersnatchKeys> getBandersnatchPublicKeys(
         KeyType key_type) const override;
 
     outcome::result<libp2p::crypto::KeyPair> loadLibp2pKeypair(
@@ -187,10 +193,13 @@ namespace kagome::crypto {
     mutable std::unordered_map<KeyType, KeyCache<EcdsaSuite>> ecdsa_caches_;
     mutable std::unordered_map<KeyType, KeyCache<Ed25519Suite>> ed_caches_;
     mutable std::unordered_map<KeyType, KeyCache<Sr25519Suite>> sr_caches_;
+    mutable std::unordered_map<KeyType, KeyCache<BandersnatchSuite>>
+        bandersnatch_caches_;
     std::shared_ptr<KeyFileStorage> file_storage_;
     std::shared_ptr<EcdsaSuite> ecdsa_suite_;
     std::shared_ptr<Ed25519Suite> ed_suite_;
     std::shared_ptr<Sr25519Suite> sr_suite_;
+    std::shared_ptr<BandersnatchSuite> bandersnatch_suite_;
     std::shared_ptr<Bip39Provider> bip39_provider_;
     std::shared_ptr<CSPRNG> csprng_;
     log::Logger logger_;

@@ -11,6 +11,7 @@
 
 #include <libp2p/crypto/key.hpp>
 
+#include "crypto/bandersnatch_types.hpp"
 #include "crypto/bip39/bip39_provider.hpp"
 #include "crypto/crypto_store/key_type.hpp"
 #include "crypto/ecdsa_types.hpp"
@@ -29,9 +30,11 @@ namespace kagome::crypto {
     using EcdsaKeys = std::vector<EcdsaPublicKey>;
     using Ed25519Keys = std::vector<Ed25519PublicKey>;
     using Sr25519Keys = std::vector<Sr25519PublicKey>;
+    using BandersnatchKeys = std::vector<BandersnatchPublicKey>;
     using EcdsaKeypairs = std::vector<EcdsaKeypair>;
     using Ed25519Keypairs = std::vector<Ed25519Keypair>;
     using Sr25519Keypairs = std::vector<Sr25519Keypair>;
+    using BandersnatchKeypairs = std::vector<BandersnatchKeypair>;
 
     /**
      * @brief generates ecdsa keypair and stores it in memory
@@ -139,6 +142,15 @@ namespace kagome::crypto {
         KeyType key_type, const Sr25519PublicKey &pk) const = 0;
 
     /**
+     * @brief searches for key pair
+     * @param key_type key category
+     * @param pk public key to look for
+     * @return found key pair if exists
+     */
+    virtual outcome::result<BandersnatchKeypair> findBandersnatchKeypair(
+        KeyType key_type, const BandersnatchPublicKey &pk) const = 0;
+
+    /**
      * @brief searches for ecdsa keys of specified type
      * @param key_type key type identifier to look for
      * @return vector of found public keys
@@ -160,6 +172,14 @@ namespace kagome::crypto {
      * @return vector of found public keys
      */
     virtual outcome::result<Sr25519Keys> getSr25519PublicKeys(
+        KeyType key_type) const = 0;
+
+    /**
+     * @brief searches for Bandersnatch keys of specified type
+     * @param key_type key type identifier to look for
+     * @return vector of found public keys
+     */
+    virtual outcome::result<BandersnatchKeys> getBandersnatchPublicKeys(
         KeyType key_type) const = 0;
 
     /**

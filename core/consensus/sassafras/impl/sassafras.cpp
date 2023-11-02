@@ -120,11 +120,6 @@ namespace kagome::consensus::sassafras {
     return ValidatorStatus::NonValidator;
   }
 
-  std::tuple<Duration, EpochLength> Sassafras::getTimings() const {
-    return {sassafras_config_repo_->slotDuration(),
-            sassafras_config_repo_->epochLength()};
-  }
-
   outcome::result<SlotNumber> Sassafras::getSlot(
       const primitives::BlockHeader &header) const {
     return sassafras::getSlot(header);
@@ -149,7 +144,7 @@ namespace kagome::consensus::sassafras {
     }
     auto &config = *config_res.value();
 
-    auto keypair = session_keys_->getBabeKeyPair(config.authorities);
+    auto keypair = session_keys_->getSassafrasKeyPair(config.authorities);
     if (not keypair) {
       metric_is_relaychain_validator_->set(false);
       if (is_validator_by_config_) {

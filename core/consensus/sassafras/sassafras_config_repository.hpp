@@ -16,12 +16,6 @@ namespace kagome::consensus::sassafras {
    public:
     virtual ~SassafrasConfigRepository() = default;
 
-    /// @return the duration of a slot
-    virtual SlotDuration slotDuration() const = 0;
-
-    /// @return the epoch length in slots
-    virtual EpochLength epochLength() const = 0;
-
     /// @return the actual sassafras configuration
     virtual outcome::result<std::shared_ptr<const Epoch>> config(
         const primitives::BlockInfo &parent_info,

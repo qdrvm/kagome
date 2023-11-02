@@ -164,6 +164,21 @@ namespace kagome::crypto {
     return sr_suite_->generateKeypair(bip);
   }
 
+  outcome::result<BandersnatchKeypair> CryptoStoreImpl::findBandersnatchKeypair(
+      KeyType key_type, const BandersnatchPublicKey &pk) const {
+    auto kp_opt = getCache(bandersnatch_suite_, bandersnatch_caches_, key_type)
+                      .searchKeypair(pk);
+    if (kp_opt) {
+      return kp_opt.value();
+    }
+    OUTCOME_TRY(phrase, file_storage_->searchForPhrase(key_type, pk));
+    if (not phrase) {
+      return CryptoStoreError::KEY_NOT_FOUND;
+    }
+    OUTCOME_TRY(bip, bip39_provider_->generateSeed(*phrase));
+    return bandersnatch_suite_->generateKeypair(bip);
+  }
+
   outcome::result<CryptoStoreImpl::EcdsaKeys>
   CryptoStoreImpl::getEcdsaPublicKeys(KeyType key_type) const {
     return getPublicKeys(key_type,
@@ -181,6 +196,14 @@ namespace kagome::crypto {
   CryptoStoreImpl::getSr25519PublicKeys(KeyType key_type) const {
     return getPublicKeys(
         key_type, getCache(sr_suite_, sr_caches_, key_type), *sr_suite_);
+  }
+
+  outcome::result<CryptoStoreImpl::BandersnatchKeys>
+  CryptoStoreImpl::getBandersnatchPublicKeys(KeyType key_type) const {
+    return getPublicKeys(
+        key_type,
+        getCache(bandersnatch_suite_, bandersnatch_caches_, key_type),
+        *bandersnatch_suite_);
   }
 
   outcome::result<libp2p::crypto::KeyPair> CryptoStoreImpl::loadLibp2pKeypair(

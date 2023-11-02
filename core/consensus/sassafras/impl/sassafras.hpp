@@ -63,7 +63,7 @@ namespace kagome::consensus::sassafras {
       EpochNumber epoch;
       SlotNumber slot;
       TimePoint slot_timestamp;
-      std::shared_ptr<crypto::Sr25519Keypair> keypair;
+      std::shared_ptr<crypto::BandersnatchKeypair> keypair;
     };
 
     Sassafras(const application::AppConfiguration &app_config,
@@ -79,8 +79,6 @@ namespace kagome::consensus::sassafras {
 
     ValidatorStatus getValidatorStatus(const primitives::BlockInfo &parent_info,
                                        EpochNumber epoch_number) const override;
-
-    std::tuple<Duration, EpochLength> getTimings() const override;
 
     outcome::result<SlotNumber> getSlot(
         const primitives::BlockHeader &header) const override;

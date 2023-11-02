@@ -38,7 +38,7 @@ namespace kagome::consensus::sassafras {
         if (not sassafras) {
           continue;
         }
-        if (auto item = boost::get<primitives::NextEpochData>(sassafras)) {
+        if (auto item = boost::get<EpochData>(sassafras)) {
           epoch = std::move(*item);
           continue;
         }
@@ -53,7 +53,7 @@ namespace kagome::consensus::sassafras {
       return epoch.has_value();
     }
 
-    std::optional<primitives::NextEpochData> epoch;
+    std::optional<EpochData> epoch;
     std::optional<primitives::NextConfigDataV2> config;
   };
 }  // namespace kagome::consensus::sassafras

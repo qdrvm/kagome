@@ -50,7 +50,6 @@ namespace kagome::consensus {
     bool prepare();
 
     Duration slotDuration() const override;
-
     EpochLength epochLength() const override;
 
     SlotNumber timeToSlot(TimePoint time) const override;
