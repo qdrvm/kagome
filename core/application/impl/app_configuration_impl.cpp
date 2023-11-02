@@ -1404,7 +1404,8 @@ namespace kagome::application {
       parachain_runtime_instance_cache_size_ = *arg;
     }
 
-    if (find_argument(vm, "no-precompile-parachain-modules")) {
+    if (!find_argument(vm, "validator")
+        || find_argument(vm, "no-precompile-parachain-modules")) {
       should_precompile_parachain_modules_ = false;
     }
 

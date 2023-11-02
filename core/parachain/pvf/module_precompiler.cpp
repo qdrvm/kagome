@@ -71,8 +71,7 @@ namespace kagome::parachain {
               last_finalized);
       return outcome::success();
     }
-    OUTCOME_TRY(cores_res);
-    auto &cores = cores_res.value();
+    OUTCOME_TRY(cores, cores_res);
     SL_DEBUG(log_,
              "Warming up PVF executor runtime instance cache at block {}",
              last_finalized);
