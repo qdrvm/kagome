@@ -88,7 +88,14 @@ namespace kagome::application {
       return true;
     });
 
-    app_state_manager->atShutdown([ctx{io_context}] { ctx->stop(); });
+    std::thread watchdog_thread(
+        [watchdog] { watchdog->checkLoop(kWatchdogDefaultTimeout); });
+    watchdog_thread.detach();
+
+    app_state_manager->atShutdown([ctx{io_context}, watchdog] {
+      ctx->stop();
+      watchdog->stop();
+    });
 
     {  // Metrics
       auto metrics_registry = metrics::createRegistry();

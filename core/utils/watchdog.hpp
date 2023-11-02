@@ -11,6 +11,9 @@
 #include <unordered_map>
 
 namespace kagome {
+
+  constexpr auto kWatchdogDefaultTimeout = std::chrono::minutes{10};
+
   class Watchdog {
    public:
     using Count = uint32_t;
@@ -28,7 +31,7 @@ namespace kagome {
 
     void checkLoop(Timeout timeout) {
       // or `io_context` with timer
-      while (true) {
+      while (not stopped_) {
         std::this_thread::sleep_for(std::chrono::seconds{1});
         check(timeout);
       }
@@ -52,6 +55,7 @@ namespace kagome {
               std::stringstream s;
               s << it->first;
               fmt::print("ALERT Watchdog: thread id={} timeout\n", s.str());
+              std::abort();
             }
           }
           ++it;
@@ -100,6 +104,6 @@ namespace kagome {
 
     std::mutex mutex_;
     std::unordered_map<std::thread::id, Thread> threads_;
-    bool stopped_ = false;
+    std::atomic_bool stopped_ = false;
   };
 }  // namespace kagome
