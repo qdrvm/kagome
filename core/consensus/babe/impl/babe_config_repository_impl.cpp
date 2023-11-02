@@ -13,7 +13,6 @@
 #include "blockchain/block_tree.hpp"
 #include "consensus/babe/impl/babe_error.hpp"
 #include "consensus/timeline/slots_util.hpp"
-#include "crypto/hasher.hpp"
 #include "primitives/block_header.hpp"
 #include "runtime/runtime_api/babe_api.hpp"
 #include "scale/scale.hpp"
@@ -54,7 +53,6 @@ namespace kagome::consensus::babe {
       std::shared_ptr<blockchain::BlockTree> block_tree,
       std::shared_ptr<blockchain::BlockHeaderRepository> header_repo,
       std::shared_ptr<runtime::BabeApi> babe_api,
-      std::shared_ptr<crypto::Hasher> hasher,
       std::shared_ptr<storage::trie::TrieStorage> trie_storage,
       primitives::events::ChainSubscriptionEnginePtr chain_events_engine,
       LazySPtr<SlotsUtil> slots_util)
@@ -71,7 +69,6 @@ namespace kagome::consensus::babe {
         },
         header_repo_(std::move(header_repo)),
         babe_api_(std::move(babe_api)),
-        hasher_(std::move(hasher)),
         trie_storage_(std::move(trie_storage)),
         chain_sub_([&] {
           BOOST_ASSERT(chain_events_engine != nullptr);
@@ -84,7 +81,6 @@ namespace kagome::consensus::babe {
     BOOST_ASSERT(block_tree_ != nullptr);
     BOOST_ASSERT(header_repo_ != nullptr);
     BOOST_ASSERT(babe_api_ != nullptr);
-    BOOST_ASSERT(hasher_ != nullptr);
 
     if (auto r = indexer_.init(); not r) {
       logger_->error("Indexer::init error: {}", r.error());
@@ -314,10 +310,7 @@ namespace kagome::consensus::babe {
       OUTCOME_TRY(load(r->first, r->second));
       return *r->second.value->next_state;
     }
-    if (not r->second.prev) {
-      return Error::PREVIOUS_NOT_FOUND;
-    }
-    return loadPrev(*r->second.prev);
+    return loadPrev(r->second.prev);
   }
 
   std::shared_ptr<primitives::BabeConfiguration>

@@ -61,10 +61,9 @@ namespace kagome::api {
     return pool_->submitExtrinsic(source, extrinsic);
   }
 
-  outcome::result<void> AuthorApiImpl::insertKey(
-      crypto::KeyType key_type_id,
-      const gsl::span<const uint8_t> &seed,
-      const gsl::span<const uint8_t> &public_key) {
+  outcome::result<void> AuthorApiImpl::insertKey(crypto::KeyType key_type_id,
+                                                 const BufferView &seed,
+                                                 const BufferView &public_key) {
     if (std::find(kKeyTypes.begin(), kKeyTypes.end(), key_type_id)
         == kKeyTypes.end()) {
       std::string types;
@@ -112,8 +111,7 @@ namespace kagome::api {
   // logic here is polkadot specific only!
   // it could be extended by reading config from chainspec palletSession/keys
   // value
-  outcome::result<bool> AuthorApiImpl::hasSessionKeys(
-      const gsl::span<const uint8_t> &keys) {
+  outcome::result<bool> AuthorApiImpl::hasSessionKeys(const BufferView &keys) {
     scale::ScaleDecoderStream stream(keys);
     std::array<uint8_t, 32> key;
     if (keys.size() < 32 || keys.size() > 32 * 6 || (keys.size() % 32) != 0) {
@@ -141,8 +139,8 @@ namespace kagome::api {
     return false;
   }
 
-  outcome::result<bool> AuthorApiImpl::hasKey(
-      const gsl::span<const uint8_t> &public_key, crypto::KeyType key_type) {
+  outcome::result<bool> AuthorApiImpl::hasKey(const BufferView &public_key,
+                                              crypto::KeyType key_type) {
     auto res = key_store_->searchForPhrase(key_type, public_key);
     if (not res) {
       return res.error();

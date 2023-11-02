@@ -8,6 +8,7 @@
 
 #include "network/adapters/protobuf.hpp"
 
+#include "common/bytestr.hpp"
 #include "network/protobuf/api.v1.pb.h"
 #include "network/types/blocks_response.hpp"
 #include "scale/scale.hpp"
@@ -155,11 +156,7 @@ namespace kagome::network {
     template <typename T, typename F>
     static outcome::result<T> extract_value(F &&f) {
       if (const auto &buffer = std::forward<F>(f)(); !buffer.empty()) {
-        OUTCOME_TRY(
-            decoded,
-            scale::decode<T>(gsl::span<const uint8_t>(
-                reinterpret_cast<const uint8_t *>(buffer.data()),  // NOLINT
-                buffer.size())));
+        OUTCOME_TRY(decoded, scale::decode<T>(str2byte(buffer)));
         return decoded;
       }
       return AdaptersError::EMPTY_DATA;

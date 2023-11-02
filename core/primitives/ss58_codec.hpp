@@ -6,7 +6,7 @@
 
 #pragma once
 
-#include <gsl/span>
+#include <span>
 
 #include "outcome/outcome.hpp"
 #include "primitives/account.hpp"

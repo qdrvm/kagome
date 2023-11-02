@@ -39,7 +39,7 @@ namespace kagome::crypto {
         return Error::SOFT_JUNCTION_NOT_SUPPORTED;
       }
       seed = hasher_->blake2b_256(
-          scale::encode("Ed25519HDKD", seed, junction.cc).value());
+          scale::encode("Ed25519HDKD"_bytes, seed, junction.cc).value());
     }
     std::array<uint8_t, ED25519_KEYPAIR_LENGTH> kp_bytes{};
     ed25519_keypair_from_seed(kp_bytes.data(), seed.data());
@@ -53,7 +53,7 @@ namespace kagome::crypto {
   }
 
   outcome::result<Ed25519Signature> Ed25519ProviderImpl::sign(
-      const Ed25519Keypair &keypair, gsl::span<const uint8_t> message) const {
+      const Ed25519Keypair &keypair, common::BufferView message) const {
     Ed25519Signature sig;
     std::array<uint8_t, ED25519_KEYPAIR_LENGTH> keypair_bytes;
     std::copy(keypair.secret_key.begin(),
@@ -74,7 +74,7 @@ namespace kagome::crypto {
   }
   outcome::result<bool> Ed25519ProviderImpl::verify(
       const Ed25519Signature &signature,
-      gsl::span<const uint8_t> message,
+      common::BufferView message,
       const Ed25519PublicKey &public_key) const {
     auto res = ed25519_verify(signature.data(),
                               public_key.data(),

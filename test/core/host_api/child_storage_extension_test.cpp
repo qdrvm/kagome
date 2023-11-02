@@ -27,6 +27,7 @@
 #include "testutil/prepare_loggers.hpp"
 
 using kagome::common::Buffer;
+using kagome::common::BufferView;
 using kagome::host_api::ChildStorageExtension;
 using kagome::runtime::Memory;
 using kagome::runtime::MemoryMock;
@@ -143,13 +144,14 @@ TEST_P(ReadOutcomeParameterizedTest, GetTest) {
         },
         std::runtime_error);
   } else {
-    EXPECT_CALL(*memory_,
-                storeBuffer(gsl::span<const uint8_t>(encoded_opt_value)))
+    EXPECT_CALL(*memory_, storeBuffer(BufferView(encoded_opt_value)))
         .WillOnce(Return(value_span));
 
-    ASSERT_EQ(value_span,
-              child_storage_extension_->ext_default_child_storage_get_version_1(
-                  child_storage_key_span, key_span));
+    auto actual =
+        child_storage_extension_->ext_default_child_storage_get_version_1(
+            child_storage_key_span, key_span);
+
+    ASSERT_EQ(value_span, actual);
   }
 }
 
@@ -197,9 +199,8 @@ TEST_P(ReadOutcomeParameterizedTest, ReadTest) {
         encoded_opt_offset_val_size,
         scale::encode(std::make_optional<uint32_t>(offset_value_data.size())));
     encoded_result = encoded_opt_offset_val_size;
-    EXPECT_CALL(
-        *memory_,
-        storeBuffer(value_pointer, gsl::span<const uint8_t>(offset_value_data)))
+    EXPECT_CALL(*memory_,
+                storeBuffer(value_pointer, BufferView(offset_value_data)))
         .WillOnce(Return());
   }
 
@@ -219,7 +220,7 @@ TEST_P(ReadOutcomeParameterizedTest, ReadTest) {
         std::runtime_error);
   } else {
     WasmSpan res_wasm_span = 1337;
-    EXPECT_CALL(*memory_, storeBuffer(gsl::span<const uint8_t>(encoded_result)))
+    EXPECT_CALL(*memory_, storeBuffer(BufferView(encoded_result)))
         .WillOnce(Return(res_wasm_span));
 
     ASSERT_EQ(
@@ -423,7 +424,7 @@ TEST_F(ChildStorageExtensionTest, RootTest) {
       PtrSize(new_child_root_ptr, new_child_root_size).combine();
   EXPECT_CALL(*trie_child_storage_batch_, commit(_))
       .WillOnce(Return(new_child_root));
-  EXPECT_CALL(*memory_, storeBuffer(gsl::span<const uint8_t>(new_child_root)))
+  EXPECT_CALL(*memory_, storeBuffer(BufferView(new_child_root)))
       .WillOnce(Return(new_child_root_span));
 
   ASSERT_EQ(new_child_root_span,

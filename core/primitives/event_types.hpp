@@ -95,10 +95,10 @@ namespace kagome::primitives::events {
     INVALID
   };
 
-  using Hash256Span = gsl::span<const uint8_t, common::Hash256::size()>;
+  using Hash256Span = std::span<const uint8_t, common::Hash256::size()>;
 
   struct BroadcastEventParams {
-    gsl::span<const libp2p::peer::PeerId> peers;
+    std::span<const libp2p::peer::PeerId> peers;
   };
 
   struct InBlockEventParams {
@@ -149,7 +149,7 @@ namespace kagome::primitives::events {
     }
 
     static ExtrinsicLifecycleEvent Broadcast(
-        SubscribedExtrinsicId id, gsl::span<const libp2p::peer::PeerId> peers) {
+        SubscribedExtrinsicId id, std::span<const libp2p::peer::PeerId> peers) {
       return ExtrinsicLifecycleEvent{
           id,
           ExtrinsicEventType::BROADCAST,

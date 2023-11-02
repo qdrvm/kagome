@@ -39,7 +39,7 @@ namespace kagome::runtime::binaryen {
                       std::shared_ptr<crypto::Hasher> hasher);
 
     outcome::result<std::shared_ptr<Module>> make(
-        gsl::span<const uint8_t> code) const override;
+        common::BufferView code) const override;
 
    private:
     std::shared_ptr<InstanceEnvironmentFactory> env_factory_;

@@ -40,8 +40,7 @@ namespace kagome::consensus::babe {
     }
     const auto &digests = block_header.digest;
 
-    for (const auto &digest :
-         gsl::make_span(digests).subspan(0, digests.size() - 1)) {
+    for (const auto &digest : std::span(digests).first(digests.size() - 1)) {
       auto pre_runtime_opt = getFromVariant<primitives::PreRuntime>(digest);
       if (pre_runtime_opt.has_value()) {
         auto babe_block_header_res =

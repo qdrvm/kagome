@@ -80,7 +80,7 @@ namespace kagome::api::chain::request {
         },
         [this](
             const std::vector<VectorParam> &v) -> outcome::result<ResultType> {
-          OUTCOME_TRY(rr, api_->getBlockHash(gsl::make_span(v)));
+          OUTCOME_TRY(rr, api_->getBlockHash(v));
           std::vector<std::string> results{};
           results.reserve(v.size());
           for (const auto &it : rr) {

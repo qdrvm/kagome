@@ -143,10 +143,10 @@ struct AuthorApiTest : public ::testing::Test {
     store = std::make_shared<CryptoStoreMock>();
     key_store = KeyFileStorage::createAt("test_chain_43/keystore").value();
     key_pair = generateSr25519Keypair();
-    ASSERT_OUTCOME_SUCCESS_TRY(key_store->saveKeyPair(
-        KeyTypes::BABE,
-        gsl::make_span(key_pair.public_key.data(), 32),
-        gsl::make_span(std::array<uint8_t, 1>({1}).begin(), 1)));
+    ASSERT_OUTCOME_SUCCESS_TRY(
+        key_store->saveKeyPair(KeyTypes::BABE,
+                               std::span(key_pair.public_key).first<32>(),
+                               std::array<uint8_t, 1>{1}));
     role.flags.authority = 1;
     EXPECT_CALL(*config, roles()).WillOnce(Return(role));
     keys = std::make_shared<SessionKeysImpl>(store, *config);
@@ -266,9 +266,7 @@ TEST_F(AuthorApiTest, InsertKeyGran) {
  */
 TEST_F(AuthorApiTest, HasSessionKeysEmpty) {
   Buffer keys;
-  EXPECT_OUTCOME_SUCCESS(
-      res,
-      author_api->hasSessionKeys(gsl::make_span(keys.data(), keys.size())));
+  EXPECT_OUTCOME_SUCCESS(res, author_api->hasSessionKeys(keys));
   EXPECT_EQ(res.value(), false);
 }
 
@@ -281,9 +279,7 @@ TEST_F(AuthorApiTest, HasSessionKeysEmpty) {
 TEST_F(AuthorApiTest, HasSessionKeysLessThanOne) {
   Buffer keys;
   keys.resize(31);
-  EXPECT_OUTCOME_SUCCESS(
-      res,
-      author_api->hasSessionKeys(gsl::make_span(keys.data(), keys.size())));
+  EXPECT_OUTCOME_SUCCESS(res, author_api->hasSessionKeys(keys));
   EXPECT_EQ(res.value(), false);
 }
 
@@ -296,9 +292,7 @@ TEST_F(AuthorApiTest, HasSessionKeysLessThanOne) {
 TEST_F(AuthorApiTest, HasSessionKeysOverload) {
   Buffer keys;
   keys.resize(32 * 6 + 1);
-  EXPECT_OUTCOME_SUCCESS(
-      res,
-      author_api->hasSessionKeys(gsl::make_span(keys.data(), keys.size())));
+  EXPECT_OUTCOME_SUCCESS(res, author_api->hasSessionKeys(keys));
   EXPECT_EQ(res.value(), false);
 }
 
@@ -311,9 +305,7 @@ TEST_F(AuthorApiTest, HasSessionKeysOverload) {
 TEST_F(AuthorApiTest, HasSessionKeysNotEqualKeys) {
   Buffer keys;
   keys.resize(32 * 5 + 1);
-  EXPECT_OUTCOME_SUCCESS(
-      res,
-      author_api->hasSessionKeys(gsl::make_span(keys.data(), keys.size())));
+  EXPECT_OUTCOME_SUCCESS(res, author_api->hasSessionKeys(keys));
   EXPECT_EQ(res.value(), false);
 }
 
@@ -346,9 +338,7 @@ TEST_F(AuthorApiTest, HasSessionKeysSuccess6Keys) {
   EXPECT_CALL(*store, findSr25519Keypair(KeyTypes::AUTHORITY_DISCOVERY, _))
       .Times(1)
       .WillOnce(Return(srOk));
-  EXPECT_OUTCOME_SUCCESS(
-      res,
-      author_api->hasSessionKeys(gsl::make_span(keys.data(), keys.size())));
+  EXPECT_OUTCOME_SUCCESS(res, author_api->hasSessionKeys(keys));
   EXPECT_EQ(res.value(), true);
 }
 
@@ -364,9 +354,7 @@ TEST_F(AuthorApiTest, HasSessionKeysSuccess1Keys) {
   EXPECT_CALL(*store, findEd25519Keypair(KeyTypes::GRANDPA, _))
       .Times(1)
       .WillOnce(Return(edOk));
-  EXPECT_OUTCOME_SUCCESS(
-      res,
-      author_api->hasSessionKeys(gsl::make_span(keys.data(), keys.size())));
+  EXPECT_OUTCOME_SUCCESS(res, author_api->hasSessionKeys(keys));
   EXPECT_EQ(res.value(), true);
 }
 
@@ -384,9 +372,7 @@ TEST_F(AuthorApiTest, HasSessionKeysFailureNotFound) {
   EXPECT_CALL(*store, findSr25519Keypair(_, _))
       .Times(1)
       .WillOnce(Return(srErr));
-  EXPECT_OUTCOME_SUCCESS(
-      res,
-      author_api->hasSessionKeys(gsl::make_span(keys.data(), keys.size())));
+  EXPECT_OUTCOME_SUCCESS(res, author_api->hasSessionKeys(keys));
   EXPECT_EQ(res.value(), false);
 }
 
@@ -398,7 +384,7 @@ TEST_F(AuthorApiTest, HasSessionKeysFailureNotFound) {
 TEST_F(AuthorApiTest, HasKeySuccess) {
   EXPECT_OUTCOME_SUCCESS(
       res,
-      author_api->hasKey(gsl::make_span(key_pair.public_key.data(), 32),
+      author_api->hasKey(std::span(key_pair.public_key).first<32>(),
                          KeyTypes::BABE));
   EXPECT_EQ(res.value(), true);
 }

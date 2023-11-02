@@ -17,7 +17,7 @@ namespace kagome::runtime {
    public:
     explicit ConstantCodeProvider(common::Buffer code);
 
-    outcome::result<gsl::span<const uint8_t>> getCodeAt(
+    outcome::result<common::BufferView> getCodeAt(
         const storage::trie::RootHash &at) const override;
 
    private:

@@ -33,10 +33,6 @@ namespace kagome::consensus {
   class SlotsUtil;
 }
 
-namespace kagome::crypto {
-  class Hasher;
-}
-
 namespace kagome::runtime {
   class BabeApi;
 }
@@ -87,7 +83,6 @@ namespace kagome::consensus::babe {
         std::shared_ptr<blockchain::BlockTree> block_tree,
         std::shared_ptr<blockchain::BlockHeaderRepository> header_repo,
         std::shared_ptr<runtime::BabeApi> babe_api,
-        std::shared_ptr<crypto::Hasher> hasher,
         std::shared_ptr<storage::trie::TrieStorage> trie_storage,
         primitives::events::ChainSubscriptionEnginePtr chain_events_engine,
         LazySPtr<SlotsUtil> slots_util);
@@ -134,7 +129,6 @@ namespace kagome::consensus::babe {
     mutable blockchain::Indexer<BabeIndexedValue> indexer_;
     std::shared_ptr<blockchain::BlockHeaderRepository> header_repo_;
     std::shared_ptr<runtime::BabeApi> babe_api_;
-    std::shared_ptr<crypto::Hasher> hasher_;
     std::shared_ptr<storage::trie::TrieStorage> trie_storage_;
     std::shared_ptr<primitives::events::ChainEventSubscriber> chain_sub_;
     LazySPtr<SlotsUtil> slots_util_;
