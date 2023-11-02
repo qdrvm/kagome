@@ -2497,7 +2497,8 @@ namespace kagome::dispute {
 
     auto &apis = version.apis;
 
-    static const common::Hash64 parachain_host_api_hash =
+    // usage in lambda is not detected for some reason causing a warning
+    [[maybe_unused]] static const common::Hash64 parachain_host_api_hash =
         hasher_->blake2b_64(common::Buffer::fromString("ParachainHost"));
 
     auto it = std::find_if(apis.begin(), apis.end(), [](auto &api_version) {

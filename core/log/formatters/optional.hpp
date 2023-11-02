@@ -8,7 +8,7 @@
 
 #include <fmt/core.h>
 #include <optional>
-
+/*
 template <typename T>
 struct fmt::formatter<std::optional<T>> {
   // Parses format specifications. Must be empty
@@ -64,3 +64,4 @@ struct fmt::formatter<std::nullopt_t> {
     return std::copy(std::begin(message), std::end(message), ctx.out());
   }
 };
+*/

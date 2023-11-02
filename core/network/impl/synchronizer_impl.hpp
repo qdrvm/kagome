@@ -93,7 +93,8 @@ namespace kagome::network {
         std::shared_ptr<blockchain::BlockTree> block_tree,
         std::shared_ptr<consensus::BlockHeaderAppender> block_appender,
         std::shared_ptr<consensus::BlockExecutor> block_executor,
-        std::shared_ptr<storage::trie::TrieStorageBackend> trie_db,
+        std::shared_ptr<storage::trie::TrieNodeStorageBackend> trie_node_db,
+        std::shared_ptr<storage::trie::TrieValueStorageBackend> trie_value_db,
         std::shared_ptr<storage::trie::TrieStorage> storage,
         std::shared_ptr<storage::trie_pruner::TriePruner> trie_pruner,
         std::shared_ptr<network::Router> router,
@@ -214,7 +215,8 @@ namespace kagome::network {
     std::shared_ptr<blockchain::BlockTree> block_tree_;
     std::shared_ptr<consensus::BlockHeaderAppender> block_appender_;
     std::shared_ptr<consensus::BlockExecutor> block_executor_;
-    std::shared_ptr<storage::trie::TrieStorageBackend> trie_db_;
+    std::shared_ptr<storage::trie::TrieNodeStorageBackend> trie_node_db_;
+    std::shared_ptr<storage::trie::TrieValueStorageBackend> trie_value_db_;
     std::shared_ptr<storage::trie::TrieStorage> storage_;
     std::shared_ptr<storage::trie_pruner::TriePruner> trie_pruner_;
     std::shared_ptr<network::Router> router_;

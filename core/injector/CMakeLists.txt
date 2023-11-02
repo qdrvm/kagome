@@ -9,13 +9,13 @@ add_library(application_injector
     )
 target_link_libraries(application_injector
     Boost::Boost.DI
-    runtime_wavm
     account_nonce_api
     address_publisher
     api
     app_config
     app_state_manager
     application_modes
+    assets
     assets
     assets
     authority_discovery_api
@@ -37,12 +37,15 @@ target_link_libraries(application_injector
     core_api
     crypto_store
     dispute_coordinator
+    dispute_coordinator
     ecdsa_provider
     ed25519_provider
     executor
     executor
     fd_limit
+    fd_limit
     filesystem
+    grandpa_api
     grandpa_api
     host_api_factory
     kagome_benchmarks
@@ -55,22 +58,30 @@ target_link_libraries(application_injector
     module_repository
     network
     offchain_local_storage
+    offchain_local_storage
+    offchain_persistent_storage
     offchain_persistent_storage
     offchain_worker_api
+    offchain_worker_api
     offchain_worker_factory
+    offchain_worker_factory
+    offchain_worker_pool
     offchain_worker_pool
     outcome
     p2p::p2p
     p2p::p2p_identify
     p2p::p2p_kademlia
     p2p::p2p_loopback_stream
+    p2p::p2p_loopback_stream
     p2p::p2p_ping
     parachain_host_api
     pbkdf2_provider
     recovery_mode
+    recovery_mode
     runtime_properties_cache
     runtime_upgrade_tracker
     secp256k1_provider
+    session_keys_api
     session_keys_api
     soralog::fallback_configurator
     soralog::soralog
@@ -85,20 +96,9 @@ target_link_libraries(application_injector
     transaction_pool
     trie_storage_provider
     validator_parachain
+    validator_parachain
     vrf_provider
     waitable_timer
-    assets
-    grandpa_api
-    p2p::p2p_loopback_stream
-    offchain_worker_factory
-    offchain_worker_pool
-    offchain_worker_api
-    offchain_persistent_storage
-    offchain_local_storage
-    session_keys_api
-    validator_parachain
-    fd_limit
-    recovery_mode
-    dispute_coordinator
+    wasm_compiler
     )
 kagome_clear_objects(application_injector)

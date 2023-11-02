@@ -17,8 +17,9 @@ namespace kagome::runtime {
 
   outcome::result<std::optional<primitives::BlockNumber>> BeefyApiImpl::genesis(
       const primitives::BlockHash &block) {
-    auto r = executor_->callAt<std::optional<primitives::BlockNumber>>(
-        block, "BeefyApi_beefy_genesis");
+    OUTCOME_TRY(ctx, executor_->ctx().ephemeralAt(block));
+    auto r = executor_->call<std::optional<primitives::BlockNumber>>(
+        ctx, "BeefyApi_beefy_genesis");
     if (r) {
       return std::move(r.value());
     }
@@ -30,7 +31,8 @@ namespace kagome::runtime {
 
   outcome::result<std::optional<consensus::beefy::ValidatorSet>>
   BeefyApiImpl::validatorSet(const primitives::BlockHash &block) {
-    return executor_->callAt<std::optional<consensus::beefy::ValidatorSet>>(
-        block, "BeefyApi_validator_set");
+    OUTCOME_TRY(ctx, executor_->ctx().ephemeralAt(block));
+    return executor_->call<std::optional<consensus::beefy::ValidatorSet>>(
+        ctx, "BeefyApi_validator_set");
   }
 }  // namespace kagome::runtime

@@ -5,17 +5,22 @@
 
 #include "module_factory_impl.hpp"
 
+#include <filesystem>
+
 #include <wasmedge/wasmedge.h>
 
 #include "crypto/hasher.hpp"
 #include "host_api/host_api_factory.hpp"
+#include "log/trace_macros.hpp"
 #include "runtime/common/trie_storage_provider_impl.hpp"
 #include "runtime/memory_provider.hpp"
 #include "runtime/module.hpp"
 #include "runtime/module_instance.hpp"
 #include "runtime/runtime_context.hpp"
 #include "runtime/wasm_edge/core_api_factory_impl.hpp"
+#include "runtime/wasm_edge/memory_impl.hpp"
 #include "runtime/wasm_edge/register_host_api.hpp"
+#include "runtime/wasm_edge/wrappers.hpp"
 
 namespace kagome::runtime::wasm_edge {
   enum class Error {
@@ -36,6 +41,12 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::runtime::wasm_edge, Error, e) {
 }
 
 namespace kagome::runtime::wasm_edge {
+
+  // stack of HostApis currently in use by runtime calls
+  // (stack because there are nested runtime calls like Core_version)
+  thread_local std::stack<std::shared_ptr<host_api::HostApi>> current_host_api;
+
+  static const auto kMemoryName = WasmEdge_StringCreateByCString("memory");
 
   class WasmEdgeErrCategory final : public std::error_category {
    public:
@@ -62,100 +73,6 @@ namespace kagome::runtime::wasm_edge {
     return make_error_code(_wasm_edge_res);                               \
   }
 
-  template <typename T, void (*Deleter)(T)>
-  class Wrapper {
-   public:
-    Wrapper() : t{} {}
-
-    Wrapper(T t) : t{std::move(t)} {}
-
-    Wrapper(const Wrapper &) = delete;
-    Wrapper &operator=(const Wrapper &) = delete;
-
-    Wrapper(Wrapper &&other) {
-      if (t) {
-        Deleter(t);
-      }
-      t = other.t;
-      other.t = nullptr;
-    }
-
-    Wrapper &operator=(Wrapper &&other) {
-      if (t) {
-        Deleter(t);
-      }
-      t = other.t;
-      other.t = nullptr;
-      return *this;
-    }
-
-    ~Wrapper() {
-      if constexpr (std::is_pointer_v<T>) {
-        if (t) {
-          Deleter(t);
-        }
-      }
-    }
-
-    T &raw() {
-      return t;
-    }
-
-    const T &raw() const {
-      return t;
-    }
-
-    T *operator->() {
-      return t;
-    }
-
-    const T *operator->() const {
-      return t;
-    }
-
-    const T *operator&() const {
-      return &t;
-    }
-
-    T *operator&() {
-      return &t;
-    }
-
-    bool operator==(std::nullptr_t) const {
-      return t == nullptr;
-    }
-
-    bool operator!=(std::nullptr_t) const {
-      return t != nullptr;
-    }
-
-    T t = nullptr;
-  };
-
-  using ConfigureContext =
-      Wrapper<WasmEdge_ConfigureContext *, WasmEdge_ConfigureDelete>;
-  using LoaderContext =
-      Wrapper<WasmEdge_LoaderContext *, WasmEdge_LoaderDelete>;
-  using StatsContext =
-      Wrapper<WasmEdge_StatisticsContext *, WasmEdge_StatisticsDelete>;
-  using FunctionTypeContext =
-      Wrapper<WasmEdge_FunctionTypeContext *, WasmEdge_FunctionTypeDelete>;
-  using FunctionInstanceContext = Wrapper<WasmEdge_FunctionInstanceContext *,
-                                          WasmEdge_FunctionInstanceDelete>;
-  using ExecutorContext =
-      Wrapper<WasmEdge_ExecutorContext *, WasmEdge_ExecutorDelete>;
-  using StoreContext = Wrapper<WasmEdge_StoreContext *, WasmEdge_StoreDelete>;
-  using VmContext = Wrapper<WasmEdge_VMContext *, WasmEdge_VMDelete>;
-  using ModuleInstanceContext =
-      Wrapper<WasmEdge_ModuleInstanceContext *, WasmEdge_ModuleInstanceDelete>;
-  using String = Wrapper<WasmEdge_String, WasmEdge_StringDelete>;
-  using ASTModuleContext =
-      Wrapper<WasmEdge_ASTModuleContext *, WasmEdge_ASTModuleDelete>;
-  using MemoryInstanceContext =
-      Wrapper<WasmEdge_MemoryInstanceContext *, WasmEdge_MemoryInstanceDelete>;
-  using ValidatorContext =
-      Wrapper<WasmEdge_ValidatorContext *, WasmEdge_ValidatorDelete>;
-
   static outcome::result<WasmValue> convertValue(WasmEdge_Value v) {
     switch (v.Type) {
       case WasmEdge_ValType_I32:
@@ -178,18 +95,22 @@ namespace kagome::runtime::wasm_edge {
 
   class ModuleInstanceImpl : public ModuleInstance {
    public:
-    explicit ModuleInstanceImpl(std::shared_ptr<const Module> module,
-                                std::shared_ptr<ExecutorContext> executor,
-                                ModuleInstanceContext instance_ctx,
-                                InstanceEnvironment env,
-                                const common::Hash256 &code_hash)
+    explicit ModuleInstanceImpl(
+        std::shared_ptr<const Module> module,
+        std::shared_ptr<ExecutorContext> executor,
+        ModuleInstanceContext instance_ctx,
+        std::shared_ptr<ModuleInstanceContext> host_instance,
+        InstanceEnvironment env,
+        const common::Hash256 &code_hash)
         : module_{module},
           instance_{std::move(instance_ctx)},
+          host_instance_{host_instance},
           executor_{executor},
           env_{std::move(env)},
           code_hash_{} {
       BOOST_ASSERT(module_ != nullptr);
       BOOST_ASSERT(instance_ != nullptr);
+      BOOST_ASSERT(host_instance_ != nullptr);
       BOOST_ASSERT(executor_ != nullptr);
     }
 
@@ -205,9 +126,6 @@ namespace kagome::runtime::wasm_edge {
         RuntimeContext &ctx,
         std::string_view name,
         common::BufferView encoded_args) const override {
-      ConfigureContext config_ctx = WasmEdge_ConfigureCreate();
-      StoreContext store_ctx = WasmEdge_StoreCreate();
-
       PtrSize args_ptrsize{};
       if (!encoded_args.empty()) {
         args_ptrsize = PtrSize{ctx.module_instance->getEnvironment()
@@ -223,6 +141,8 @@ namespace kagome::runtime::wasm_edge {
           WasmEdge_StringCreateByBuffer(name.data(), name.size());
       auto func =
           WasmEdge_ModuleInstanceFindFunction(instance_.raw(), wasm_name.raw());
+
+      current_host_api.push(env_.host_api);
       auto res = WasmEdge_ExecutorInvoke(executor_->raw(),
                                          func,
                                          params.data(),
@@ -233,11 +153,15 @@ namespace kagome::runtime::wasm_edge {
         return make_error_code(res);
       }
       auto [ptr, size] = PtrSize{WasmEdge_ValueGetI64(returns[0])};
-      return getEnvironment()
-          .memory_provider->getCurrentMemory()
-          .value()
-          .get()
-          .loadN(ptr, size);
+      auto result = getEnvironment()
+                        .memory_provider->getCurrentMemory()
+                        .value()
+                        .get()
+                        .loadN(ptr, size);
+      BOOST_ASSERT(!current_host_api.empty());
+      BOOST_ASSERT(current_host_api.top() == env_.host_api);
+      current_host_api.pop();
+      return result;
     }
 
     outcome::result<std::optional<WasmValue>> getGlobal(
@@ -253,7 +177,16 @@ namespace kagome::runtime::wasm_edge {
       return v;
     }
 
-    void forDataSegment(const DataSegmentProcessor &callback) const override {}
+    void forDataSegment(const DataSegmentProcessor &callback) const override {
+      uint32_t segments_num =
+          WasmEdge_ModuleInstanceListDataSegments(instance_.raw(), nullptr, 0);
+      std::vector<WasmEdge_DataSegment> segments(segments_num);
+      WasmEdge_ModuleInstanceListDataSegments(
+          instance_.raw(), segments.data(), segments.size());
+      for (auto &segment : segments) {
+        callback(segment.Offset, std::span{segment.Data, segment.Length});
+      }
+    }
 
     const InstanceEnvironment &getEnvironment() const override {
       return env_;
@@ -267,194 +200,10 @@ namespace kagome::runtime::wasm_edge {
    private:
     std::shared_ptr<const Module> module_;
     ModuleInstanceContext instance_;
+    std::shared_ptr<ModuleInstanceContext> host_instance_;
     std::shared_ptr<ExecutorContext> executor_;
     InstanceEnvironment env_;
     const common::Hash256 code_hash_;
-  };
-
-  class MemoryImpl final : public Memory {
-   public:
-    MemoryImpl(WasmEdge_MemoryInstanceContext *mem_instance,
-               const MemoryConfig &config)
-        : mem_instance_{std::move(mem_instance)},
-          allocator_{MemoryAllocator{
-              MemoryAllocator::MemoryHandle{
-                  .resize = [this](size_t new_size) { resize(new_size); },
-                  .getSize = [this]() -> size_t { return size(); },
-                  .storeSz = [this](WasmPointer p,
-                                    uint32_t n) { store32(p, n); },
-                  .loadSz = [this](WasmPointer p) -> uint32_t {
-                    return load32u(p);
-                  }},
-              config}} {
-      BOOST_ASSERT(mem_instance_ != nullptr);
-    }
-    /**
-     * @brief Return the size of the memory
-     */
-    WasmSize size() const override {
-      return WasmEdge_MemoryInstanceGetPageSize(mem_instance_)
-           * kMemoryPageSize;
-    }
-
-    /**
-     * Resizes memory to the given size
-     * @param new_size
-     */
-    void resize(WasmSize new_size) override {
-      if (new_size > size()) {
-        auto old_page_num = WasmEdge_MemoryInstanceGetPageSize(mem_instance_);
-        auto new_page_num = (new_size + kMemoryPageSize - 1) / kMemoryPageSize;
-        auto res = WasmEdge_MemoryInstanceGrowPage(mem_instance_,
-                                                   new_page_num - old_page_num);
-        BOOST_ASSERT(WasmEdge_ResultOK(res));
-      }
-    }
-
-    WasmPointer allocate(WasmSize size) override {
-      return allocator_.allocate(size);
-    }
-
-    std::optional<WasmSize> deallocate(WasmPointer ptr) override {
-      return allocator_.deallocate(ptr);
-    }
-
-    template <typename T>
-    T loadInt(WasmPointer addr) const {
-      T data{};
-      auto res = WasmEdge_MemoryInstanceGetData(
-          mem_instance_, reinterpret_cast<uint8_t *>(&data), addr, sizeof(T));
-      BOOST_ASSERT(WasmEdge_ResultOK(res));
-      return data;
-    }
-
-    int8_t load8s(WasmPointer addr) const override {
-      return loadInt<int8_t>(addr);
-    }
-
-    uint8_t load8u(WasmPointer addr) const override {
-      return loadInt<uint8_t>(addr);
-    }
-
-    int16_t load16s(WasmPointer addr) const override {
-      return loadInt<int16_t>(addr);
-    }
-
-    uint16_t load16u(WasmPointer addr) const override {
-      return loadInt<uint16_t>(addr);
-    }
-
-    int32_t load32s(WasmPointer addr) const override {
-      return loadInt<int32_t>(addr);
-    }
-
-    uint32_t load32u(WasmPointer addr) const override {
-      return loadInt<uint32_t>(addr);
-    }
-
-    int64_t load64s(WasmPointer addr) const override {
-      return loadInt<int64_t>(addr);
-    }
-
-    uint64_t load64u(WasmPointer addr) const override {
-      return loadInt<uint64_t>(addr);
-    }
-
-    std::array<uint8_t, 16> load128(WasmPointer addr) const override {
-      return loadInt<std::array<uint8_t, 16>>(addr);
-    }
-
-    common::BufferView loadN(WasmPointer addr, WasmSize n) const override {
-      auto ptr = WasmEdge_MemoryInstanceGetPointer(mem_instance_, addr, n);
-      BOOST_ASSERT(ptr);
-      return common::BufferView{ptr, n};
-    }
-
-    std::string loadStr(WasmPointer addr, WasmSize n) const override {
-      std::string res(n, ' ');
-      auto span = loadN(addr, n);
-      std::copy_n(span.begin(), n, res.begin());
-      return res;
-    }
-
-    template <typename T>
-    void storeInt(WasmPointer addr, T value) const {
-      auto res = WasmEdge_MemoryInstanceSetData(
-          mem_instance_, reinterpret_cast<uint8_t *>(&value), addr, sizeof(T));
-      BOOST_ASSERT(WasmEdge_ResultOK(res));
-    }
-
-    void store8(WasmPointer addr, int8_t value) override {
-      storeInt<int8_t>(addr, value);
-    }
-
-    void store16(WasmPointer addr, int16_t value) override {
-      storeInt<int16_t>(addr, value);
-    }
-
-    void store32(WasmPointer addr, int32_t value) override {
-      storeInt<int32_t>(addr, value);
-    }
-
-    void store64(WasmPointer addr, int64_t value) override {
-      storeInt<int64_t>(addr, value);
-    }
-
-    void store128(WasmPointer addr,
-                  const std::array<uint8_t, 16> &value) override {
-      storeBuffer(addr, value);
-    }
-
-    void storeBuffer(WasmPointer addr,
-                     gsl::span<const uint8_t> value) override {
-      auto res = WasmEdge_MemoryInstanceSetData(
-          mem_instance_, value.data(), addr, value.size());
-      if (!WasmEdge_ResultOK(res)) {
-        SL_ERROR(logger_, "{}", WasmEdge_ResultGetMessage(res));
-        std::abort();
-      }
-    }
-
-    /**
-     * @brief allocates buffer in memory and copies value into memory
-     * @param value buffer to store
-     * @return full wasm pointer to allocated buffer
-     */
-    WasmSpan storeBuffer(gsl::span<const uint8_t> value) override {
-      auto ptr = allocate(value.size());
-      storeBuffer(ptr, value);
-      return PtrSize{ptr, static_cast<WasmSize>(value.size())}.combine();
-    }
-
-   private:
-    WasmEdge_MemoryInstanceContext *mem_instance_;
-    MemoryAllocator allocator_;
-    log::Logger logger_ = log::createLogger("Memory", "runtime");
-  };
-
-  class MemoryProviderImpl final : public MemoryProvider {
-   public:
-    explicit MemoryProviderImpl(WasmEdge_MemoryInstanceContext *wasmedge_memory)
-        : wasmedge_memory_{wasmedge_memory} {
-      BOOST_ASSERT(wasmedge_memory_);
-    }
-    std::optional<std::reference_wrapper<runtime::Memory>> getCurrentMemory()
-        const override {
-      if (current_memory_) {
-        return std::reference_wrapper<runtime::Memory>(**current_memory_);
-      }
-      return std::nullopt;
-    }
-
-    [[nodiscard]] outcome::result<void> resetMemory(
-        const MemoryConfig &config) override {
-      current_memory_ = std::make_shared<MemoryImpl>(wasmedge_memory_, config);
-      return outcome::success();
-    }
-
-   private:
-    std::optional<std::shared_ptr<MemoryImpl>> current_memory_;
-    WasmEdge_MemoryInstanceContext *wasmedge_memory_;
   };
 
   class InstanceEnvironmentFactory {
@@ -462,26 +211,30 @@ namespace kagome::runtime::wasm_edge {
     InstanceEnvironmentFactory(
         std::shared_ptr<CoreApiFactory> core_factory,
         std::shared_ptr<host_api::HostApiFactory> host_api_factory,
-        std::shared_ptr<TrieStorageProvider> storage_provider)
+        std::shared_ptr<storage::trie::TrieStorage> storage,
+        std::shared_ptr<storage::trie::TrieSerializer> serializer)
         : core_factory_{core_factory},
           host_api_factory_{host_api_factory},
-          storage_provider_{storage_provider} {}
+          storage_{storage},
+          serializer_{serializer} {}
 
-    InstanceEnvironment make(WasmEdge_MemoryInstanceContext *memory) {
-      auto memory_provider = std::make_shared<MemoryProviderImpl>(memory);
+    InstanceEnvironment make(std::shared_ptr<MemoryProvider> memory_provider) {
+      auto storage_provider =
+          std::make_shared<TrieStorageProviderImpl>(storage_, serializer_);
 
       return InstanceEnvironment{
           memory_provider,
-          storage_provider_,
+          storage_provider,
           host_api_factory_->make(
-              core_factory_, memory_provider, storage_provider_),
+              core_factory_, memory_provider, storage_provider),
           {}};
     }
 
    private:
     std::shared_ptr<CoreApiFactory> core_factory_;
     std::shared_ptr<host_api::HostApiFactory> host_api_factory_;
-    std::shared_ptr<TrieStorageProvider> storage_provider_;
+    std::shared_ptr<storage::trie::TrieStorage> storage_;
+    std::shared_ptr<storage::trie::TrieSerializer> serializer_;
   };
 
   class ModuleImpl : public Module,
@@ -490,59 +243,59 @@ namespace kagome::runtime::wasm_edge {
     static std::shared_ptr<ModuleImpl> create(
         ASTModuleContext module,
         std::shared_ptr<ExecutorContext> executor,
-        StoreContext store,
         std::shared_ptr<InstanceEnvironmentFactory> env_factory,
+        // std::shared_ptr<ModuleInstanceContext> host_instance,
+        const WasmEdge_MemoryTypeContext *memory_type,
         const common::Hash256 &code_hash) {
       return std::shared_ptr<ModuleImpl>{new ModuleImpl{std::move(module),
                                                         std::move(executor),
-                                                        std::move(store),
                                                         std::move(env_factory),
+                                                        // host_instance,
+                                                        memory_type,
                                                         code_hash}};
     }
 
     outcome::result<std::shared_ptr<ModuleInstance>> instantiate()
         const override {
-      ModuleInstanceContext instance_ctx;
-
-      auto *host_instance =
-          WasmEdge_ModuleInstanceCreate(WasmEdge_StringCreateByCString("env"));
-
-      uint32_t imports_num = WasmEdge_ASTModuleListImportsLength(module_.raw());
-      std::vector<WasmEdge_ImportTypeContext *> imports;
-      imports.resize(imports_num);
-      WasmEdge_ASTModuleListImports(
-          module_.raw(),
-          const_cast<const WasmEdge_ImportTypeContext **>(imports.data()),
-          imports_num);
-
-      const WasmEdge_MemoryTypeContext *memory_type{};
-      using namespace std::string_view_literals;
-      static const auto memory_name = WasmEdge_StringCreateByCString("memory");
-      for (auto &import : imports) {
-        if (WasmEdge_StringIsEqual(
-                memory_name, WasmEdge_ImportTypeGetExternalName(import))) {
-          memory_type = WasmEdge_ImportTypeGetMemoryType(module_.raw(), import);
-        }
-      }
-      BOOST_ASSERT(memory_type);
-      WasmEdge_MemoryInstanceContext *mem_instance =
-          WasmEdge_MemoryInstanceCreate(memory_type);
-      InstanceEnvironment env = env_factory_->make(mem_instance);
-
-      WasmEdge_ModuleInstanceAddMemory(
-          host_instance, memory_name, mem_instance);
-
-      register_host_api(*env.host_api, host_instance);
-
+      StoreContext store = WasmEdge_StoreCreate();
+      auto host_instance = std::make_shared<ModuleInstanceContext>(
+          WasmEdge_ModuleInstanceCreate(WasmEdge_StringCreateByCString("env")));
+      register_host_api(host_instance->raw());
       WasmEdge_UNWRAP(WasmEdge_ExecutorRegisterImport(
-          executor_->raw(), store_.raw(), host_instance));
+          executor_->raw(), store.raw(), host_instance->raw()));
 
+      std::shared_ptr<MemoryProvider> memory_provider;
+      if (memory_type_) {
+        auto *mem_instance = WasmEdge_MemoryInstanceCreate(memory_type_);
+        WasmEdge_ModuleInstanceAddMemory(
+            host_instance->raw(), kMemoryName, mem_instance);
+
+        mem_instance = WasmEdge_ModuleInstanceFindMemory(host_instance->raw(),
+                                                         kMemoryName);
+        memory_provider =
+            std::make_shared<ExternalMemoryProviderImpl>(mem_instance);
+      } else {
+        memory_provider = std::make_shared<InternalMemoryProviderImpl>();
+      }
+
+      InstanceEnvironment env = env_factory_->make(memory_provider);
+
+      ModuleInstanceContext instance_ctx;
       WasmEdge_UNWRAP(WasmEdge_ExecutorInstantiate(
-          executor_->raw(), &instance_ctx.raw(), store_.raw(), module_.raw()));
+          executor_->raw(), &instance_ctx.raw(), store.raw(), module_.raw()));
+
+      if (!memory_type_) {
+        auto memory_ctx =
+            WasmEdge_ModuleInstanceFindMemory(instance_ctx.raw(), kMemoryName);
+        BOOST_ASSERT(memory_ctx);
+        static_cast<InternalMemoryProviderImpl *>(memory_provider.get())
+            ->setMemory(memory_ctx);
+      }
 
       return std::make_shared<ModuleInstanceImpl>(shared_from_this(),
                                                   executor_,
                                                   std::move(instance_ctx),
+                                                  host_instance,
                                                   std::move(env),
                                                   code_hash_);
     }
@@ -550,25 +303,27 @@ namespace kagome::runtime::wasm_edge {
    private:
     explicit ModuleImpl(ASTModuleContext module,
                         std::shared_ptr<ExecutorContext> executor,
-                        StoreContext store,
                         std::shared_ptr<InstanceEnvironmentFactory> env_factory,
+                        // std::shared_ptr<ModuleInstanceContext> host_instance,
+                        const WasmEdge_MemoryTypeContext *memory_type,
                         common::Hash256 code_hash)
         : env_factory_{std::move(env_factory)},
-
           executor_{std::move(executor)},
+          // host_instance_{host_instance},
+          memory_type_{memory_type},
           module_{std::move(module)},
-          store_{std::move(store)},
-
           code_hash_{code_hash} {
       BOOST_ASSERT(module_ != nullptr);
       BOOST_ASSERT(executor_ != nullptr);
       BOOST_ASSERT(env_factory_ != nullptr);
+      // BOOST_ASSERT(host_instance_ != nullptr);
     }
 
     std::shared_ptr<InstanceEnvironmentFactory> env_factory_;
     std::shared_ptr<ExecutorContext> executor_;
+    // std::shared_ptr<ModuleInstanceContext> host_instance_;
+    const WasmEdge_MemoryTypeContext *memory_type_;
     ASTModuleContext module_;
-    StoreContext store_;
     const common::Hash256 code_hash_;
   };
 
@@ -577,12 +332,15 @@ namespace kagome::runtime::wasm_edge {
       std::shared_ptr<host_api::HostApiFactory> host_api_factory,
       std::shared_ptr<storage::trie::TrieStorage> storage,
       std::shared_ptr<storage::trie::TrieSerializer> serializer,
-      std::shared_ptr<blockchain::BlockHeaderRepository> header_repo)
+      std::shared_ptr<blockchain::BlockHeaderRepository> header_repo,
+      Config config)
       : hasher_{hasher},
         host_api_factory_{host_api_factory},
         storage_{storage},
         serializer_{serializer},
-        header_repo_{header_repo} {
+        header_repo_{header_repo},
+        log_{log::createLogger("ModuleFactory", "runtime")},
+        config_{config} {
     BOOST_ASSERT(hasher_);
     BOOST_ASSERT(host_api_factory_);
     BOOST_ASSERT(storage_);
@@ -592,34 +350,79 @@ namespace kagome::runtime::wasm_edge {
 
   outcome::result<std::shared_ptr<Module>> ModuleFactoryImpl::make(
       gsl::span<const uint8_t> code) const {
+    auto code_hash = hasher_->sha2_256(code);
+
     ConfigureContext configure_ctx = WasmEdge_ConfigureCreate();
     if (configure_ctx == nullptr) {
       // return error
     }
+
     LoaderContext loader_ctx = WasmEdge_LoaderCreate(configure_ctx.raw());
     WasmEdge_ASTModuleContext *module_ctx;
-    WasmEdge_UNWRAP(WasmEdge_LoaderParseFromBuffer(
-        loader_ctx.raw(), &module_ctx, code.data(), code.size()));
+
+    switch (config_.exec) {
+      case ExecType::Compiled: {
+        CompilerContext compiler = WasmEdge_CompilerCreate(configure_ctx.raw());
+        std::string dirname = "/tmp/kagome";
+        std::string filename =
+            fmt::format("{}/wasm_{}", dirname, code_hash.toHex());
+        std::error_code ec;
+        if (!std::filesystem::create_directories(dirname, ec) && ec) {
+          return ec;
+        }
+        SL_INFO(log_, "Start compiling wasm module {}...", code_hash);
+        WasmEdge_UNWRAP(WasmEdge_CompilerCompileFromBuffer(
+            compiler.raw(), code.data(), code.size(), filename.c_str()));
+        SL_INFO(log_, "Compilation finished");
+        WasmEdge_UNWRAP(WasmEdge_LoaderParseFromFile(
+            loader_ctx.raw(), &module_ctx, filename.c_str()));
+        break;
+      }
+      case ExecType::Interpreted: {
+        WasmEdge_UNWRAP(WasmEdge_LoaderParseFromBuffer(
+            loader_ctx.raw(), &module_ctx, code.data(), code.size()));
+        break;
+      }
+      default:
+        BOOST_UNREACHABLE_RETURN({});
+    }
     ASTModuleContext module = module_ctx;
 
     ValidatorContext validator = WasmEdge_ValidatorCreate(configure_ctx.raw());
     WasmEdge_UNWRAP(WasmEdge_ValidatorValidate(validator.raw(), module.raw()));
+
     auto executor = std::make_shared<ExecutorContext>(
         WasmEdge_ExecutorCreate(nullptr, nullptr));
-    StoreContext store = WasmEdge_StoreCreate();
+
+    uint32_t imports_num = WasmEdge_ASTModuleListImportsLength(module.raw());
+    std::vector<WasmEdge_ImportTypeContext *> imports;
+    imports.resize(imports_num);
+    WasmEdge_ASTModuleListImports(
+        module.raw(),
+        const_cast<const WasmEdge_ImportTypeContext **>(imports.data()),
+        imports_num);
+
+    const WasmEdge_MemoryTypeContext *import_memory_type{};
+    using namespace std::string_view_literals;
+    for (auto &import : imports) {
+      if (WasmEdge_StringIsEqual(kMemoryName,
+                                 WasmEdge_ImportTypeGetExternalName(import))) {
+        import_memory_type =
+            WasmEdge_ImportTypeGetMemoryType(module.raw(), import);
+        break;
+      }
+    }
 
     auto core_api = std::make_shared<CoreApiFactoryImpl>(shared_from_this());
-    auto storage_provider =
-        std::make_shared<TrieStorageProviderImpl>(storage_, serializer_);
 
     auto env_factory = std::make_shared<InstanceEnvironmentFactory>(
-        core_api, host_api_factory_, storage_provider);
+        core_api, host_api_factory_, storage_, serializer_);
 
-    auto code_hash = hasher_->sha2_256(code);
     return ModuleImpl::create(std::move(module),
                               std::move(executor),
-                              std::move(store),
                               env_factory,
+                              // host_instance,
+                              import_memory_type,
                               code_hash);
   }
 

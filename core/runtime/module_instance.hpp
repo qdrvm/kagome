@@ -112,7 +112,7 @@ namespace kagome::runtime {
         std::string_view name) const = 0;
 
     using SegmentOffset = size_t;
-    using SegmentData = gsl::span<const uint8_t>;
+    using SegmentData = std::span<const uint8_t>;
     using DataSegmentProcessor =
         std::function<void(SegmentOffset, SegmentData)>;
     virtual void forDataSegment(const DataSegmentProcessor &callback) const = 0;

@@ -9,13 +9,13 @@
 #include <queue>
 
 #include <boost/assert.hpp>
+#include <fmt/std.h>
 
 #include "application/app_configuration.hpp"
 #include "application/app_state_manager.hpp"
 #include "blockchain/block_storage.hpp"
 #include "blockchain/block_tree.hpp"
 #include "crypto/hasher/hasher_impl.hpp"
-#include "log/formatters/optional.hpp"
 #include "storage/database_error.hpp"
 #include "storage/predefined_keys.hpp"
 #include "storage/spaced_storage.hpp"

@@ -81,7 +81,8 @@ namespace kagome::network {
       std::shared_ptr<blockchain::BlockTree> block_tree,
       std::shared_ptr<consensus::BlockHeaderAppender> block_appender,
       std::shared_ptr<consensus::BlockExecutor> block_executor,
-      std::shared_ptr<storage::trie::TrieStorageBackend> trie_db,
+      std::shared_ptr<storage::trie::TrieNodeStorageBackend> trie_node_db,
+      std::shared_ptr<storage::trie::TrieValueStorageBackend> trie_value_db,
       std::shared_ptr<storage::trie::TrieStorage> storage,
       std::shared_ptr<storage::trie_pruner::TriePruner> trie_pruner,
       std::shared_ptr<network::Router> router,
@@ -94,7 +95,8 @@ namespace kagome::network {
         block_tree_(std::move(block_tree)),
         block_appender_(std::move(block_appender)),
         block_executor_(std::move(block_executor)),
-        trie_db_(std::move(trie_db)),
+        trie_node_db_(std::move(trie_node_db)),
+        trie_value_db_(std::move(trie_value_db)),
         storage_(std::move(storage)),
         trie_pruner_(std::move(trie_pruner)),
         router_(std::move(router)),
@@ -106,7 +108,8 @@ namespace kagome::network {
     BOOST_ASSERT(app_state_manager_);
     BOOST_ASSERT(block_tree_);
     BOOST_ASSERT(block_executor_);
-    BOOST_ASSERT(trie_db_);
+    BOOST_ASSERT(trie_node_db_);
+    BOOST_ASSERT(trie_value_db_);
     BOOST_ASSERT(storage_);
     BOOST_ASSERT(trie_pruner_);
     BOOST_ASSERT(router_);
@@ -990,7 +993,7 @@ namespace kagome::network {
       return;
     }
     if (not state_sync_flow_ or state_sync_flow_->blockInfo() != block) {
-      state_sync_flow_.emplace(trie_db_, block, header);
+      state_sync_flow_.emplace(trie_node_db_, trie_value_db_, block, header);
     }
     state_sync_.emplace(StateSync{
         peer_id,

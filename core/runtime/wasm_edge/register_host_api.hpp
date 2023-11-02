@@ -13,6 +13,9 @@
 
 namespace kagome::runtime::wasm_edge {
 
+  extern thread_local std::stack<std::shared_ptr<host_api::HostApi>>
+      current_host_api;
+
   template <typename T>
   WasmEdge_ValType get_wasm_type() = delete;
 
@@ -88,24 +91,25 @@ namespace kagome::runtime::wasm_edge {
 
   template <auto Method>
   WasmEdge_Result host_method_wrapper(
-      void *data,
+      void *,
       const WasmEdge_CallingFrameContext *call_frame_cxt,
       const WasmEdge_Value *params,
       WasmEdge_Value *returns) {
     using Ret = typename HostApiMethodTraits<decltype(Method)>::Ret;
     using Args = typename HostApiMethodTraits<decltype(Method)>::Args;
-    auto *host_api = reinterpret_cast<host_api::HostApi *>(data);
-    //std::cout << "Call Host method " << __PRETTY_FUNCTION__ << "\n";
+    BOOST_ASSERT(!current_host_api.empty());
+    auto &host_api = *current_host_api.top();
+    // std::cout << "Call Host method " << __PRETTY_FUNCTION__ << "\n";
     if constexpr (std::is_void_v<Ret>) {
       call_with_array(
-          [host_api](auto... params) mutable {
+          [&host_api](auto... params) mutable {
             std::invoke(Method, host_api, params.Value...);
           },
           params,
           Args{});
     } else {
       Ret res = call_with_array(
-          [host_api](auto... params) mutable -> Ret {
+          [&host_api](auto... params) mutable -> Ret {
             return std::invoke(Method, host_api, params.Value...);
           },
           params,
@@ -118,7 +122,6 @@ namespace kagome::runtime::wasm_edge {
 
   template <auto Method, typename Ret, typename... Args>
   void register_host_method(WasmEdge_ModuleInstanceContext *module,
-                            host_api::HostApi *host_api,
                             std::string_view name) {
     WasmEdge_ValType types[]{get_wasm_type<Args>()...};
     WasmEdge_ValType ret[1];
@@ -132,7 +135,7 @@ namespace kagome::runtime::wasm_edge {
     auto type = WasmEdge_FunctionTypeCreate(
         types, sizeof...(Args), ret_ptr, ret_ptr == nullptr ? 0 : 1);
     WasmEdge_HostFunc_t cb = &host_method_wrapper<Method>;
-    auto instance = WasmEdge_FunctionInstanceCreate(type, cb, host_api, 0);
+    auto instance = WasmEdge_FunctionInstanceCreate(type, cb, nullptr, 0);
     WasmEdge_FunctionTypeDelete(type);
 
     WasmEdge_ModuleInstanceAddFunction(
@@ -173,18 +176,15 @@ namespace kagome::runtime::wasm_edge {
         module, WasmEdge_StringCreateByCString(name), instance);
   }
 
-#define REGISTER_HOST_METHOD(Ret, name, ...)            \
-  register_host_method<&host_api::HostApi::name,        \
-                       Ret __VA_OPT__(, ) __VA_ARGS__>( \
-      instance, host_api, #name);
+#define REGISTER_HOST_METHOD(Ret, name, ...)     \
+  register_host_method<&host_api::HostApi::name, \
+                       Ret __VA_OPT__(, ) __VA_ARGS__>(instance, #name);
 
 #define STUB_HOST_METHOD(Ret, name, ...) \
   stub_host_method<Ret __VA_OPT__(, ) __VA_ARGS__>(instance, #name);
 
-  void register_host_api(host_api::HostApi &host_api_,
-                         WasmEdge_ModuleInstanceContext *instance) {
+  void register_host_api(WasmEdge_ModuleInstanceContext *instance) {
     BOOST_ASSERT(instance);
-    auto host_api = &host_api_;
     // clang-format off
     REGISTER_HOST_METHOD(void, ext_allocator_free_version_1, WasmPointer)
     REGISTER_HOST_METHOD(void, ext_crypto_start_batch_verify_version_1)

@@ -9,10 +9,11 @@
 #include <tuple>
 #include <utility>
 
+#include <fmt/std.h>
+
 #include "common/monadic_utils.hpp"
 #include "common/tagged.hpp"
 #include "host_api/impl/storage_util.hpp"
-#include "log/formatters/optional.hpp"
 #include "log/trace_macros.hpp"
 #include "runtime/memory_provider.hpp"
 #include "runtime/ptr_size.hpp"

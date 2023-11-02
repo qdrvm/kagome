@@ -11,6 +11,7 @@
 #include <regex>
 #include <string>
 
+#include <fmt/std.h>
 #include <rapidjson/document.h>
 #include <rapidjson/error/en.h>
 #include <rapidjson/filereadstream.h>
@@ -30,7 +31,6 @@
 #include "filesystem/common.hpp"
 #include "filesystem/directories.hpp"
 #include "log/formatters/filepath.hpp"
-#include "log/formatters/optional.hpp"
 #include "utils/read_file.hpp"
 
 namespace {
@@ -156,8 +156,7 @@ namespace {
     return std::nullopt;
   }
 
-  std::array<std::string_view, 2> execution_methods{
-      "Interpreted", "Compiled"};
+  std::array<std::string_view, 2> execution_methods{"Interpreted", "Compiled"};
 
   std::string execution_methods_str = []() {
     std::stringstream ss;
@@ -1454,7 +1453,7 @@ namespace kagome::application {
         return false;
       }
       auto repeat_opt = find_argument<uint16_t>(vm, "repeat");
-      if (!to_opt) {
+      if (!repeat_opt) {
         SL_ERROR(logger_, "Required argument --repeat is not provided");
         return false;
       }

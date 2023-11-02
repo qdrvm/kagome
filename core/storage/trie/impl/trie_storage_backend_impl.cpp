@@ -21,7 +21,7 @@ namespace kagome::storage::trie {
 
   TrieStorageBackendImpl::TrieStorageBackendImpl(
       ValueTag, std::shared_ptr<SpacedStorage> storage)
-      : storage_{storage->getSpace(Space::kTrieValue)} {
+      : storage_{storage->getSpace(Space::kTrieNode)} {
     BOOST_ASSERT(storage_ != nullptr);
   }
 

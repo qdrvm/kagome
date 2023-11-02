@@ -16,24 +16,27 @@ namespace kagome::runtime {
 
   MmrApi::Result<common::Hash256> MmrApiImpl::mmrRoot(
       const primitives::BlockHash &block) {
-    return executor_->callAt<primitives::MmrResult<common::Hash256>>(
-        block, "MmrApi_mmr_root");
+    OUTCOME_TRY(ctx, executor_->ctx().ephemeralAt(block));
+    return executor_->call<primitives::MmrResult<common::Hash256>>(
+        ctx, "MmrApi_mmr_root");
   }
 
   MmrApi::Result<MmrApi::GenerateProof> MmrApiImpl::generateProof(
       const primitives::BlockHash &block,
       std::vector<primitives::BlockNumber> block_numbers,
       std::optional<primitives::BlockNumber> best_known_block_number) {
-    return executor_->callAt<primitives::MmrResult<MmrApi::GenerateProof>>(
-        block, "MmrApi_generate_proof", block_numbers, best_known_block_number);
+    OUTCOME_TRY(ctx, executor_->ctx().ephemeralAt(block));
+    return executor_->call<primitives::MmrResult<MmrApi::GenerateProof>>(
+        ctx, "MmrApi_generate_proof", block_numbers, best_known_block_number);
   }
 
   MmrApi::Result<Empty> MmrApiImpl::verifyProof(
       const primitives::BlockHash &block,
       const primitives::MmrLeaves &leaves,
       const primitives::MmrProof &proof) {
-    return executor_->callAt<primitives::MmrResult<Empty>>(
-        block, "MmrApi_verify_proof", leaves, proof);
+    OUTCOME_TRY(ctx, executor_->ctx().ephemeralAt(block));
+    return executor_->call<primitives::MmrResult<Empty>>(
+        ctx, "MmrApi_verify_proof", leaves, proof);
   }
 
   MmrApi::Result<Empty> MmrApiImpl::verifyProofStateless(
@@ -41,7 +44,8 @@ namespace kagome::runtime {
       const common::Hash256 &mmr_root,
       const primitives::MmrLeaves &leaves,
       const primitives::MmrProof &proof) {
-    return executor_->callAt<primitives::MmrResult<Empty>>(
-        block, "MmrApi_verify_proof_stateless", mmr_root, leaves, proof);
+    OUTCOME_TRY(ctx, executor_->ctx().ephemeralAt(block));
+    return executor_->call<primitives::MmrResult<Empty>>(
+        ctx, "MmrApi_verify_proof_stateless", mmr_root, leaves, proof);
   }
 }  // namespace kagome::runtime

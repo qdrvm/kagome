@@ -61,7 +61,6 @@ groups:
                   - name: block_validator
                   - name: babe_config_repo
               - name: grandpa
-                level: trace
                 children:
                   - name: voting_round
           - name: parachain

@@ -46,21 +46,22 @@ namespace kagome::runtime {
                                               limits}));
     auto &memory = memory_provider->getCurrentMemory()->get();
 
-    static auto heappages_key = ":heappages"_buf;
+    static const auto heappages_key = ":heappages"_buf;
     OUTCOME_TRY(heappages,
                 getEnvironment().storage_provider->getCurrentBatch()->tryGet(
                     heappages_key));
     if (heappages) {
       if (sizeof(uint64_t) != heappages->size()) {
-        log->error(
-            "Unable to read :heappages value. Type size mismatch. "
-            "Required {} bytes, but {} available",
-            sizeof(uint64_t),
-            heappages->size());
+        SL_ERROR(log,
+                 "Unable to read :heappages value. Type size mismatch. "
+                 "Required {} bytes, but {} available",
+                 sizeof(uint64_t),
+                 heappages->size());
       } else {
         uint64_t pages = common::le_bytes_to_uint64(heappages->view());
         memory.resize(pages * kMemoryPageSize);
-        log->trace(
+        SL_TRACE(
+            log,
             "Creating wasm module with non-default :heappages value set to {}",
             pages);
       }

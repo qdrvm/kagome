@@ -5,7 +5,6 @@
  */
 
 #include "network/impl/stream_engine.hpp"
-#include "log/formatters/optional.hpp"
 
 namespace kagome::network {
 

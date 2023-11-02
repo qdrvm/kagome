@@ -52,7 +52,8 @@ hunter_config(
 
 hunter_config(
     WasmEdge
-    VERSION 0.13.3
+    URL https://github.com/harrm/WasmEdge/archive/efd80466cc0fa0d53592121d0e81885b65b32dfe.zip
+    SHA1 70da17ffb93c0b9afe629ce0db14bdc4d70e2877
     KEEP_PACKAGE_SOURCES
 )
 

@@ -5,6 +5,7 @@
 
 #pragma once
 
+#include "log/logger.hpp"
 #include "runtime/module_factory.hpp"
 
 namespace kagome::crypto {
@@ -30,15 +31,27 @@ namespace kagome::storage::trie {
 
 namespace kagome::runtime::wasm_edge {
 
-  class ModuleFactoryImpl : public ModuleFactory,
-                            public std::enable_shared_from_this<ModuleFactoryImpl> {
+  class ModuleFactoryImpl
+      : public ModuleFactory,
+        public std::enable_shared_from_this<ModuleFactoryImpl> {
    public:
+    enum class ExecType {
+      Interpreted,
+      Compiled,
+    };
+    struct Config {
+      Config(): exec{ExecType::Compiled} {}
+
+      ExecType exec;
+    };
+
     explicit ModuleFactoryImpl(
         std::shared_ptr<const crypto::Hasher> hasher,
         std::shared_ptr<host_api::HostApiFactory> host_api_factory,
         std::shared_ptr<storage::trie::TrieStorage> storage,
         std::shared_ptr<storage::trie::TrieSerializer> serializer,
-        std::shared_ptr<blockchain::BlockHeaderRepository> header_repo);
+        std::shared_ptr<blockchain::BlockHeaderRepository> header_repo,
+        Config config);
 
     outcome::result<std::shared_ptr<Module>> make(
         gsl::span<const uint8_t> code) const override;
@@ -49,6 +62,8 @@ namespace kagome::runtime::wasm_edge {
     std::shared_ptr<storage::trie::TrieStorage> storage_;
     std::shared_ptr<storage::trie::TrieSerializer> serializer_;
     std::shared_ptr<blockchain::BlockHeaderRepository> header_repo_;
+    log::Logger log_;
+    Config config_;
   };
 
 }  // namespace kagome::runtime::wasm_edge

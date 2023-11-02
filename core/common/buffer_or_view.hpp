@@ -43,18 +43,18 @@ namespace kagome::common {
 
     /// Is buffer owned.
     bool isOwned() const {
-      if (variant.which() == 2) {
+      if (variant.index() == 2) {
         throw std::logic_error{"Tried to use moved BufferOrView"};
       }
-      return variant.which() == 1;
+      return variant.index() == 1;
     }
 
     /// Get view.
     BufferView view() const {
       if (!isOwned()) {
-        return boost::get<BufferView>(variant);
+        return std::get<BufferView>(variant);
       }
-      return BufferView{boost::get<Buffer>(variant)};
+      return BufferView{std::get<Buffer>(variant)};
     }
 
     /// Get view.
@@ -70,10 +70,10 @@ namespace kagome::common {
     /// Get mutable buffer reference. Copy once if view.
     Buffer &mut() {
       if (!isOwned()) {
-        auto view = boost::get<BufferView>(variant);
+        auto view = std::get<BufferView>(variant);
         variant = Buffer{view};
       }
-      return boost::get<Buffer>(variant);
+      return std::get<Buffer>(variant);
     }
 
     /// Move buffer away. Copy once if view.
@@ -84,7 +84,7 @@ namespace kagome::common {
     }
 
    private:
-    boost::variant<BufferView, Buffer, Moved> variant;
+    std::variant<BufferView, Buffer, Moved> variant;
 
     template <typename T, typename = AsSpan<T>>
     friend bool operator==(const BufferOrView &l, const T &r) {

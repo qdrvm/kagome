@@ -117,7 +117,7 @@ namespace kagome::storage::trie {
     }
     BufferOrView enc;
     if (auto hash = db_key.asHash()) {
-      OUTCOME_TRY(db, node_backend_->get(*hash));
+      BOOST_OUTCOME_TRY(enc, node_backend_->get(*hash));
       if (on_node_loaded) {
         on_node_loaded(*hash, enc);
       }

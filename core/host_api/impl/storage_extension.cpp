@@ -7,11 +7,13 @@
 #include "host_api/impl/storage_extension.hpp"
 
 #include <algorithm>
+#include <thread>
+
+#include <fmt/std.h>
 
 #include "clock/impl/clock_impl.hpp"
 #include "common/monadic_utils.hpp"
 #include "host_api/impl/storage_util.hpp"
-#include "log/formatters/optional.hpp"
 #include "log/trace_macros.hpp"
 #include "runtime/common/runtime_transaction_error.hpp"
 #include "runtime/memory_provider.hpp"
@@ -293,6 +295,7 @@ namespace kagome::host_api {
 
   void StorageExtension::ext_storage_start_transaction_version_1() {
     auto res = storage_provider_->startTransaction();
+    SL_TRACE_VOID_FUNC_CALL(logger_);
     if (res.has_error()) {
       logger_->error("Storage transaction start has failed: {}", res.error());
       throw std::runtime_error(res.error().message());
@@ -315,7 +318,7 @@ namespace kagome::host_api {
     auto res = storage_provider_->rollbackTransaction();
     SL_TRACE_VOID_FUNC_CALL(logger_);
     if (res.has_error()) {
-      logger_->error("Storage transaction commit has failed: {}", res.error());
+      logger_->error("Storage transaction rollback has failed: {}", res.error());
       throw std::runtime_error(res.error().message());
     }
     --transactions_;
