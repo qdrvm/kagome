@@ -42,8 +42,10 @@
 
 namespace kagome::network {
 
+  enum class PeerType { PEER_TYPE_IN = 0, PEER_TYPE_OUT };
+
   struct PeerDescriptor {
-    bool out;
+    PeerType peer_type;
     clock::SteadyClock::TimePoint time_point;
   };
 
@@ -170,7 +172,7 @@ namespace kagome::network {
 
     void clearClosedPingingConnections();
 
-    size_t countPeers(bool out, bool light = false) const;
+    size_t countPeers(PeerType in_out, bool light = false) const;
 
     std::shared_ptr<application::AppStateManager> app_state_manager_;
     libp2p::Host &host_;

@@ -356,7 +356,7 @@ namespace kagome::network {
     }
 
     // Not enough active peers
-    if (countPeers(true) < app_config_.outPeers()) {
+    if (countPeers(PeerType::PEER_TYPE_OUT) < app_config_.outPeers()) {
       if (not queue_to_connect_.empty()) {
         for (;;) {
           auto node = peers_in_queue_.extract(queue_to_connect_.front());
@@ -628,7 +628,9 @@ namespace kagome::network {
                 self->disconnectFromPeer(peer_id);
                 return;
               }
-              auto peer_type = connection->isInitiator();
+              PeerType peer_type = connection->isInitiator()
+                                     ? PeerType::PEER_TYPE_OUT
+                                     : PeerType::PEER_TYPE_IN;
 
               // Add to active peer list
               if (auto [ap_it, added] = self->active_peers_.emplace(
@@ -744,20 +746,21 @@ namespace kagome::network {
       return;
     }
     if (connection->isInitiator()) {
-      if (countPeers(true) >= app_config_.outPeers()) {
+      if (countPeers(PeerType::PEER_TYPE_OUT) >= app_config_.outPeers()) {
         connecting_peers_.erase(peer_id);
         disconnectFromPeer(peer_id);
         return;
       }
     } else {
       if (peer_states_[peer_id].roles.flags.full == 1) {
-        if (countPeers(false) >= app_config_.inPeers()) {
+        if (countPeers(PeerType::PEER_TYPE_IN) >= app_config_.inPeers()) {
           connecting_peers_.erase(peer_id);
           disconnectFromPeer(peer_id);
           return;
         }
       } else if (peer_states_[peer_id].roles.flags.light == 1) {
-        if (countPeers(false, true) >= app_config_.inPeersLight()) {
+        if (countPeers(PeerType::PEER_TYPE_IN, true)
+            >= app_config_.inPeersLight()) {
           connecting_peers_.erase(peer_id);
           disconnectFromPeer(peer_id);
           return;
@@ -884,14 +887,14 @@ namespace kagome::network {
     }
   }
 
-  size_t PeerManagerImpl::countPeers(bool out, bool light) const {
+  size_t PeerManagerImpl::countPeers(PeerType in_out, bool light) const {
     return std::count_if(active_peers_.begin(),
                          active_peers_.end(),
                          [&](const decltype(active_peers_)::value_type &x) {
-                           if (x.second.out) {
-                             return out;
+                           if (x.second.peer_type == PeerType::PEER_TYPE_OUT) {
+                             return in_out == PeerType::PEER_TYPE_OUT;
                            }
-                           if (out) {
+                           if (in_out == PeerType::PEER_TYPE_OUT) {
                              return false;
                            }
                            auto it = peer_states_.find(x.first);
