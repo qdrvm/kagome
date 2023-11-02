@@ -1,5 +1,6 @@
 #
-# Copyright Soramitsu Co., Ltd. All Rights Reserved.
+# Copyright Quadrivium LLC
+# All Rights Reserved
 # SPDX-License-Identifier: Apache-2.0
 #
 
@@ -7,7 +8,9 @@ add_library(application_injector
     application_injector.cpp
     )
 target_link_libraries(application_injector
+    beefy_api
     Boost::Boost.DI
+    mmr_api
     runtime_wavm
     account_nonce_api
     address_publisher

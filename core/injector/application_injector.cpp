@@ -1,5 +1,6 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -21,6 +22,7 @@
 
 #include "api/service/author/author_jrpc_processor.hpp"
 #include "api/service/author/impl/author_api_impl.hpp"
+#include "api/service/beefy/rpc.hpp"
 #include "api/service/chain/chain_jrpc_processor.hpp"
 #include "api/service/chain/impl/chain_api_impl.hpp"
 #include "api/service/child_state/child_state_jrpc_processor.hpp"
@@ -28,6 +30,7 @@
 #include "api/service/impl/api_service_impl.hpp"
 #include "api/service/internal/impl/internal_api_impl.hpp"
 #include "api/service/internal/internal_jrpc_processor.hpp"
+#include "api/service/mmr/rpc.hpp"
 #include "api/service/payment/impl/payment_api_impl.hpp"
 #include "api/service/payment/payment_jrpc_processor.hpp"
 #include "api/service/rpc/impl/rpc_api_impl.hpp"
@@ -53,7 +56,6 @@
 #include "blockchain/impl/block_header_repository_impl.hpp"
 #include "blockchain/impl/block_storage_impl.hpp"
 #include "blockchain/impl/block_tree_impl.hpp"
-#include "blockchain/impl/digest_tracker_impl.hpp"
 #include "blockchain/impl/justification_storage_policy.hpp"
 #include "clock/impl/basic_waitable_timer.hpp"
 #include "clock/impl/clock_impl.hpp"
@@ -71,7 +73,6 @@
 #include "consensus/timeline/impl/block_executor_impl.hpp"
 #include "consensus/timeline/impl/block_header_appender_impl.hpp"
 #include "consensus/timeline/impl/consensus_selector_impl.hpp"
-#include "consensus/timeline/impl/consistency_keeper_impl.hpp"
 #include "consensus/timeline/impl/slots_util_impl.hpp"
 #include "consensus/timeline/impl/timeline_impl.hpp"
 #include "consensus/validation/babe_block_validator.hpp"
@@ -99,6 +100,7 @@
 #include "metrics/impl/metrics_watcher.hpp"
 #include "metrics/impl/prometheus/handler_impl.hpp"
 #include "metrics/metrics.hpp"
+#include "network/beefy/beefy.hpp"
 #include "network/impl/block_announce_transmitter_impl.hpp"
 #include "network/impl/extrinsic_observer_impl.hpp"
 #include "network/impl/grandpa_transmitter_impl.hpp"
@@ -144,10 +146,12 @@
 #include "runtime/runtime_api/impl/account_nonce_api.hpp"
 #include "runtime/runtime_api/impl/authority_discovery_api.hpp"
 #include "runtime/runtime_api/impl/babe_api.hpp"
+#include "runtime/runtime_api/impl/beefy.hpp"
 #include "runtime/runtime_api/impl/block_builder.hpp"
 #include "runtime/runtime_api/impl/core.hpp"
 #include "runtime/runtime_api/impl/grandpa_api.hpp"
 #include "runtime/runtime_api/impl/metadata.hpp"
+#include "runtime/runtime_api/impl/mmr.hpp"
 #include "runtime/runtime_api/impl/offchain_worker_api.hpp"
 #include "runtime/runtime_api/impl/parachain_host.hpp"
 #include "runtime/runtime_api/impl/session_keys_api.hpp"
@@ -275,7 +279,7 @@ namespace {
       const application::ChainSpec &chain_spec,
       std::chrono::seconds random_wak_interval) {
     libp2p::protocol::kademlia::Config kademlia_config;
-    kademlia_config.protocolId = "/" + chain_spec.protocolId() + "/kad",
+    kademlia_config.protocols = {"/" + chain_spec.protocolId() + "/kad"},
     kademlia_config.maxBucketSize = 1000,
     kademlia_config.randomWalk = {.interval = random_wak_interval};
 
@@ -505,7 +509,9 @@ namespace {
         di::bind<offchain::OffchainPersistentStorage>.template to<offchain::OffchainPersistentStorageImpl>(),
         di::bind<offchain::OffchainLocalStorage>.template to<offchain::OffchainLocalStorageImpl>(),
         di::bind<runtime::Metadata>.template to<runtime::MetadataImpl>(),
+        di::bind<runtime::MmrApi>.template to<runtime::MmrApiImpl>(),
         di::bind<runtime::GrandpaApi>.template to<runtime::GrandpaApiImpl>(),
+        di::bind<runtime::BeefyApi>.template to<runtime::BeefyApiImpl>(),
         di::bind<runtime::Core>.template to<runtime::CoreImpl>(),
         di::bind<runtime::BabeApi>.template to<runtime::BabeApiImpl>(),
         di::bind<runtime::SessionKeysApi>.template to<runtime::SessionKeysApiImpl>(),
@@ -616,6 +622,8 @@ namespace {
                 .template to<api::WsListenerImpl>(),
             di::bind<api::JRpcProcessor *[]>()  // NOLINT
                 .template to<api::child_state::ChildStateJrpcProcessor,
+                             api::BeefyRpc,
+                             api::MmrRpc,
                              api::state::StateJrpcProcessor,
                              api::author::AuthorJRpcProcessor,
                              api::chain::ChainJrpcProcessor,
@@ -779,7 +787,6 @@ namespace {
               return get_chain_spec(config);
             }),
             di::bind<network::ExtrinsicObserver>.template to<network::ExtrinsicObserverImpl>(),
-            di::bind<consensus::grandpa::GrandpaDigestObserver>.template to<consensus::grandpa::AuthorityManagerImpl>(),
             di::bind<consensus::grandpa::AuthorityManager>.template to<consensus::grandpa::AuthorityManagerImpl>(),
             di::bind<network::PeerManager>.template to<network::PeerManagerImpl>(),
             di::bind<network::Router>.template to<network::RouterLibp2p>(),
@@ -799,14 +806,13 @@ namespace {
                   return get_genesis_block_header(injector);
                 }),
             di::bind<telemetry::TelemetryService>.template to<telemetry::TelemetryServiceImpl>(),
-            di::bind<consensus::ConsistencyKeeper>.template to<consensus::ConsistencyKeeperImpl>(),
             di::bind<api::InternalApi>.template to<api::InternalApiImpl>(),
             di::bind<consensus::babe::BabeConfigRepository>.template to<consensus::babe::BabeConfigRepositoryImpl>(),
-            di::bind<blockchain::DigestTracker>.template to<blockchain::DigestTrackerImpl>(),
             di::bind<authority_discovery::Query>.template to<authority_discovery::QueryImpl>(),
             di::bind<crypto::SessionKeys>.template to<crypto::SessionKeysImpl>(),
             di::bind<network::SyncProtocol>.template to<network::SyncProtocolImpl>(),
             di::bind<network::StateProtocol>.template to<network::StateProtocolImpl>(),
+            di::bind<network::IBeefy>.template to<network::Beefy>(),
             di::bind<consensus::babe::BabeLottery>.template to<consensus::babe::BabeLotteryImpl>(),
             di::bind<network::BlockAnnounceObserver>.template to<consensus::TimelineImpl>(),
             di::bind<dispute::DisputeCoordinator>.template to<dispute::DisputeCoordinatorImpl>(),

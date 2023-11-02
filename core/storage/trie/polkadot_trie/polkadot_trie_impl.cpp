@@ -1,5 +1,6 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -399,7 +400,7 @@ namespace kagome::storage::trie {
       return node;
     }
 
-    br->setKeyNibbles(KeyNibbles{key_nibbles.subspan(0, length)});
+    br->setKeyNibbles(KeyNibbles{key_nibbles.first(length)});
     auto parentKey = parent->getKeyNibbles();
 
     // value goes at this branch
@@ -408,8 +409,7 @@ namespace kagome::storage::trie {
 
       // if we are not replacing previous leaf, then add it as a
       // child to the new branch
-      if (static_cast<std::ptrdiff_t>(parent->getKeyNibbles().size())
-          > key_nibbles.size()) {
+      if (parent->getKeyNibbles().size() > key_nibbles.size()) {
         parent->setKeyNibbles(parent->getKeyNibbles().subbuffer(length + 1));
         br->children.at(parentKey[length]) = parent;
       }
@@ -455,8 +455,8 @@ namespace kagome::storage::trie {
       parent->children.at(key_nibbles[length]) = node;
       return parent;
     }
-    auto br = std::make_shared<BranchNode>(
-        KeyNibbles{key_nibbles.subspan(0, length)});
+    auto br =
+        std::make_shared<BranchNode>(KeyNibbles{key_nibbles.first(length)});
     auto parentIdx = parent->getKeyNibbles()[length];
     OUTCOME_TRY(
         new_branch,
@@ -517,7 +517,7 @@ namespace kagome::storage::trie {
       if (current->getKeyNibbles() == nibbles or nibbles.empty()) {
         return current;
       }
-      if (nibbles.size() < static_cast<long>(current->getKeyNibbles().size())) {
+      if (nibbles.size() < current->getKeyNibbles().size()) {
         return nullptr;
       }
       auto parent_as_branch =
@@ -546,13 +546,11 @@ namespace kagome::storage::trie {
         return outcome::success();
       }
       auto common_length = getCommonPrefixLength(parent->getKeyNibbles(), path);
-      auto common_nibbles =
-          gsl::make_span(parent->getKeyNibbles().data(), common_length);
+      auto common_nibbles = parent->getKeyNibbles().view(0, common_length);
       // path is even less than the parent key (path is the prefix of the
       // parent key)
       if (path == common_nibbles
-          and path.size()
-                  < static_cast<ssize_t>(parent->getKeyNibbles().size())) {
+          and path.size() < parent->getKeyNibbles().size()) {
         return outcome::success();
       }
       auto parent_as_branch =

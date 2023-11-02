@@ -1,15 +1,16 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_CORE_RUNTIME_BINARYEN_RUNTIME_EXTERNAL_INTERFACE_HPP
-#define KAGOME_CORE_RUNTIME_BINARYEN_RUNTIME_EXTERNAL_INTERFACE_HPP
+#pragma once
 
 #include <binaryen/shell-interface.h>
 
 #include <boost/unordered_map.hpp>
 
+#include "common/buffer_view.hpp"
 #include "log/logger.hpp"
 
 namespace kagome::host_api {
@@ -63,7 +64,7 @@ namespace kagome::runtime::binaryen {
         return memory.size();
       }
       auto getData() const {
-        return gsl::span<const Mem::value_type>(memory);
+        return std::span<const Mem::value_type>(memory);
       }
       template <typename T>
       void set(size_t address, T value) {
@@ -73,11 +74,8 @@ namespace kagome::runtime::binaryen {
           std::memcpy(&memory[address], &value, sizeof(T));
         }
       }
-      template <typename T>
-      void set(size_t address, gsl::span<T> value) {
-        static_assert(std::is_trivially_copyable_v<T>,
-                      "T must be trivially copyable");
-        std::memcpy(&memory[address], value.data(), sizeof(T) * value.size());
+      void set(size_t address, common::BufferView value) {
+        std::memcpy(&memory[address], value.data(), value.size());
       }
       template <typename T>
       T get(size_t address) {
@@ -93,8 +91,8 @@ namespace kagome::runtime::binaryen {
       template <typename T,
                 typename = std::enable_if_t<std::is_standard_layout_v<T>
                                             and std::is_trivial_v<T>>>
-      gsl::span<T> getBuffer(size_t address, size_t n) const {
-        return gsl::span<T>((T *)&memory[address], n);
+      common::BufferView getBuffer(size_t address, size_t n) const {
+        return common::BufferView((T *)&memory[address], n);
         ;
       }
     } memory;
@@ -203,5 +201,3 @@ namespace kagome::runtime::binaryen {
   };
 
 }  // namespace kagome::runtime::binaryen
-
-#endif  // KAGOME_CORE_RUNTIME_BINARYEN_RUNTIME_EXTERNAL_INTERFACE_HPP

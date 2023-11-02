@@ -1,10 +1,10 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_TELEMETRY_SERVICE_HPP
-#define KAGOME_TELEMETRY_SERVICE_HPP
+#pragma once
 
 #include <string>
 
@@ -77,6 +77,11 @@ namespace kagome::telemetry {
     virtual void notifyBlockFinalized(const primitives::BlockInfo &info) = 0;
 
     /**
+     * Send imported+finalized blocks info immediately and reset periodic timer
+     */
+    virtual void pushBlockStats() = 0;
+
+    /**
      * Telemetry service status
      * @return true - when application configured to broadcast telemetry
      */
@@ -92,5 +97,3 @@ namespace kagome::telemetry {
   Telemetry createTelemetryService();
 
 }  // namespace kagome::telemetry
-
-#endif  // KAGOME_TELEMETRY_SERVICE_HPP

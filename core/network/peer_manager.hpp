@@ -1,10 +1,10 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_NETWORK_PEERMANAGER
-#define KAGOME_NETWORK_PEERMANAGER
+#pragma once
 
 #include <optional>
 #include <unordered_set>
@@ -44,6 +44,12 @@ namespace kagome::network {
 
   using OurView = network::View;
 
+  struct PeerStateCompact {
+    std::optional<RoundNumber> round_number;
+    std::optional<VoterSetId> set_id;
+    BlockNumber last_finalized;
+  };
+
   struct PeerState {
     clock::SteadyClock::TimePoint time;
     Roles roles = 0;
@@ -57,7 +63,23 @@ namespace kagome::network {
     LruSet<common::Hash256> known_grandpa_messages{
         kPeerStateMaxKnownGrandpaMessages,
     };
+
+    PeerStateCompact compact() const {
+      return PeerStateCompact{
+          .round_number = round_number,
+          .set_id = set_id,
+          .last_finalized = last_finalized,
+      };
+    }
   };
+
+  inline std::optional<PeerStateCompact> compactFromRefToOwn(
+      const std::optional<std::reference_wrapper<PeerState>> &opt_ref) {
+    if (opt_ref) {
+      return opt_ref->get().compact();
+    }
+    return std::nullopt;
+  }
 
   struct StreamEngine;
 
@@ -168,5 +190,3 @@ namespace kagome::network {
                             std::function<void(const PeerId &)> func) const = 0;
   };
 }  // namespace kagome::network
-
-#endif  // KAGOME_NETWORK_PEERMANAGER

@@ -1,10 +1,10 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_STORAGE_TRIE_SERIALIZER_IMPL
-#define KAGOME_STORAGE_TRIE_SERIALIZER_IMPL
+#pragma once
 
 #include "storage/trie/serialization/trie_serializer.hpp"
 
@@ -69,5 +69,3 @@ namespace kagome::storage::trie {
     std::shared_ptr<TrieStorageBackend> backend_;
   };
 }  // namespace kagome::storage::trie
-
-#endif  // KAGOME_STORAGE_TRIE_SERIALIZER_IMPL

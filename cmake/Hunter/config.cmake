@@ -40,7 +40,7 @@ hunter_config(
 
 hunter_config(
     libp2p
-    VERSION 0.1.15
+    VERSION 0.1.17
     KEEP_PACKAGE_SOURCES
 )
 
@@ -61,6 +61,12 @@ hunter_config(
     VERSION 12.0.1-p4
     CMAKE_ARGS
       LLVM_ENABLE_PROJECTS=ir
+    KEEP_PACKAGE_SOURCES
+)
+
+hunter_config(
+    scale
+    VERSION 1.1.0
     KEEP_PACKAGE_SOURCES
 )
 

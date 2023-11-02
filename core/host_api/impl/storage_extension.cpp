@@ -1,5 +1,6 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -67,11 +68,11 @@ namespace kagome::host_api {
         common::BufferView data = *data_opt;
         data = data.subspan(std::min<size_t>(offset, data.size()));
         auto written = std::min<size_t>(data.size(), value.size);
-        memory.storeBuffer(value.ptr, data.subspan(0, written));
+        memory.storeBuffer(value.ptr, data.first(written));
         res = data.size();
 
         SL_TRACE_FUNC_CALL(
-            logger_, data, key, common::Buffer{data.subspan(0, written)});
+            logger_, data, key, common::Buffer{data.first(written)});
       } else {
         SL_TRACE_FUNC_CALL(
             logger_, std::string_view{"none"}, key, value_out, offset);

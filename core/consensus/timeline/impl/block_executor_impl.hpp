@@ -1,5 +1,6 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -43,7 +44,6 @@ namespace kagome::transaction_pool {
 namespace kagome::consensus {
 
   class BlockAppenderBase;
-  class ConsistencyGuard;
 
   class BlockExecutorImpl
       : public BlockExecutor,
@@ -75,7 +75,6 @@ namespace kagome::consensus {
         ApplyJustificationCb &&callback,
         const primitives::BlockInfo &block_info,
         clock::SteadyClock::TimePoint start_time,
-        ConsistencyGuard &consistency_guard,
         const primitives::BlockInfo &previous_best_block);
 
     std::shared_ptr<blockchain::BlockTree> block_tree_;

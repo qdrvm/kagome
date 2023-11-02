@@ -1,5 +1,6 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -255,6 +256,11 @@ namespace kagome::blockchain {
      * Notify best and finalized block to subscriptions.
      */
     virtual void notifyBestAndFinalized() = 0;
+
+    /**
+     * Used when switching from fast-sync to full-sync.
+     */
+    virtual void removeUnfinalized() = 0;
   };
 
 }  // namespace kagome::blockchain

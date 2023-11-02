@@ -1,17 +1,17 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_MEMORY_HPP
-#define KAGOME_MEMORY_HPP
+#pragma once
 
 #include <array>
 
-#include <gsl/span>
 #include <optional>
 
 #include "common/buffer.hpp"
+#include "common/buffer_view.hpp"
 #include "common/literals.hpp"
 #include "runtime/types.hpp"
 
@@ -105,16 +105,13 @@ namespace kagome::runtime {
     virtual void store64(WasmPointer addr, int64_t value) = 0;
     virtual void store128(WasmPointer addr,
                           const std::array<uint8_t, 16> &value) = 0;
-    virtual void storeBuffer(WasmPointer addr,
-                             gsl::span<const uint8_t> value) = 0;
+    virtual void storeBuffer(WasmPointer addr, common::BufferView value) = 0;
 
     /**
      * @brief allocates buffer in memory and copies value into memory
      * @param value buffer to store
      * @return full wasm pointer to allocated buffer
      */
-    virtual WasmSpan storeBuffer(gsl::span<const uint8_t> value) = 0;
+    virtual WasmSpan storeBuffer(common::BufferView value) = 0;
   };
 }  // namespace kagome::runtime
-
-#endif  // KAGOME_MEMORY_HPP

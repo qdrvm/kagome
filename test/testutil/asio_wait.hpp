@@ -1,26 +1,24 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_TEST_TESTUTIL_ASIO_WAIT_HPP
-#define KAGOME_TEST_TESTUTIL_ASIO_WAIT_HPP
+#pragma once
 
 #include <boost/asio/io_context.hpp>
-#include <future>
+
+#include <barrier>
 
 namespace testutil {
+
   /**
    * Wait for all queued tasks.
    */
   void wait(boost::asio::io_context &io) {
-    std::promise<void> promise;
-    auto future = promise.get_future();
-    io.post([promise{std::make_shared<decltype(promise)>(std::move(promise))}] {
-      promise->set_value();
-    });
-    future.get();
+    std::barrier barrier(2);
+    io.post([&] { barrier.arrive_and_wait(); });
+    barrier.arrive_and_wait();
   }
-}  // namespace testutil
 
-#endif  // KAGOME_TEST_TESTUTIL_ASIO_WAIT_HPP
+}  // namespace testutil

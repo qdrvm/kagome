@@ -1,10 +1,10 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_PROTOBUF_MESSAGE_READ_WRITER_HPP
-#define KAGOME_PROTOBUF_MESSAGE_READ_WRITER_HPP
+#pragma once
 
 #include <functional>
 #include <memory>
@@ -80,7 +80,7 @@ namespace kagome::network {
       std::vector<uint8_t> out;
       auto it = ProtobufRW::write(msg, out);
 
-      gsl::span<uint8_t> data(it.base(),
+      std::span<uint8_t> data(it.base(),
                               out.size() - std::distance(out.begin(), it));
 
       read_writer_->write(data,
@@ -96,5 +96,3 @@ namespace kagome::network {
   };
 
 }  // namespace kagome::network
-
-#endif  // KAGOME_PROTOBUF_MESSAGE_READ_WRITER_HPP

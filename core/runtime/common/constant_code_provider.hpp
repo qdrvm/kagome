@@ -1,10 +1,10 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_CORE_RUNTIME_COMMON_CONST_WASM_PROVIDER
-#define KAGOME_CORE_RUNTIME_COMMON_CONST_WASM_PROVIDER
+#pragma once
 
 #include "runtime/runtime_code_provider.hpp"
 
@@ -17,7 +17,7 @@ namespace kagome::runtime {
    public:
     explicit ConstantCodeProvider(common::Buffer code);
 
-    outcome::result<gsl::span<const uint8_t>> getCodeAt(
+    outcome::result<common::BufferView> getCodeAt(
         const storage::trie::RootHash &at) const override;
 
    private:
@@ -25,5 +25,3 @@ namespace kagome::runtime {
   };
 
 }  // namespace kagome::runtime
-
-#endif  // KAGOME_CORE_RUNTIME_COMMON_CONST_WASM_PROVIDER

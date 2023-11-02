@@ -1,5 +1,6 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -16,7 +17,7 @@ namespace kagome::network {
   LightProtocol::LightProtocol(
       libp2p::Host &host,
       const application::ChainSpec &chain_spec,
-      const primitives::GenesisBlockHeader &genesis,
+      const blockchain::GenesisBlockHash &genesis,
       std::shared_ptr<blockchain::BlockHeaderRepository> repository,
       std::shared_ptr<storage::trie::TrieStorage> storage,
       std::shared_ptr<runtime::ModuleRepository> module_repo,

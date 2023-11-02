@@ -1,5 +1,6 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -60,7 +61,7 @@ namespace kagome::network {
                       log::Logger logger)
         : base_(kParachainProtocolName,
                 host,
-                make_protocols(protocol, genesis_hash, "polkadot"),
+                make_protocols(protocol, genesis_hash, kProtocolPrefixPolkadot),
                 std::move(logger)),
           observer_(std::move(observer)),
           roles_{roles},

@@ -1,3 +1,9 @@
+#
+# Copyright Quadrivium LLC
+# All Rights Reserved
+# SPDX-License-Identifier: Apache-2.0
+#
+
 # Update zombie builder image each Sunday night
 on:
   schedule:
@@ -22,6 +28,6 @@ jobs:
         login-server: https://index.docker.io/v1/
         username: ${{ secrets.DOCKER_USERNAME }}
         password: ${{ secrets.DOCKER_TOKEN }}
-    - name: Push zombie-builder docker image 
+    - name: Push zombie-builder docker image
       working-directory: ./zombienet/docker
       run: make builder_push

@@ -1,10 +1,10 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_TRANSACRIPT_HPP
-#define KAGOME_TRANSACRIPT_HPP
+#pragma once
 
 #include "primitives/strobe.hpp"
 
@@ -95,10 +95,10 @@ namespace kagome::primitives {
     }
 
     bool operator==(const Transcript &other) const {
-      return other.strobe_.data() == strobe_.data();
+      return std::equal(other.strobe_.data().begin(),
+                        other.strobe_.data().end(),
+                        strobe_.data().begin());
     }
   };
 
 }  // namespace kagome::primitives
-
-#endif  // KAGOME_TRANSACRIPT_HPP

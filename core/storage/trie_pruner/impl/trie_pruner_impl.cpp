@@ -1,5 +1,6 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -48,8 +49,8 @@ namespace kagome::storage::trie_pruner {
     auto child_tries = parent.trieCursor();
     OUTCOME_TRY(child_tries->seekLowerBound(storage::kChildStoragePrefix));
     while (child_tries->isValid()
-           && child_tries->key().value().startsWith(
-               storage::kChildStoragePrefix)) {
+           && startsWith(child_tries->key().value(),
+                         storage::kChildStoragePrefix)) {
       auto child_key = child_tries->value().value();
       OUTCOME_TRY(child_hash, trie::RootHash::fromSpan(child_key));
       OUTCOME_TRY(f(child_key.view(), child_hash));

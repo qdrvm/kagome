@@ -1,5 +1,6 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -8,9 +9,7 @@
 #include "application/app_configuration.hpp"
 #include "blockchain/block_tree.hpp"
 #include "blockchain/block_tree_error.hpp"
-#include "blockchain/digest_tracker.hpp"
 #include "consensus/babe/babe_config_repository.hpp"
-#include "consensus/timeline/consistency_keeper.hpp"
 #include "consensus/timeline/impl/block_addition_error.hpp"
 #include "consensus/timeline/impl/block_appender_base.hpp"
 #include "consensus/validation/block_validator.hpp"
@@ -69,8 +68,7 @@ namespace kagome::consensus {
       primitives::Block &&block,
       const std::optional<primitives::Justification> &justification,
       ApplyJustificationCb &&callback) {
-    auto block_context = appender_->makeBlockContext(block.header);
-    auto &block_info = block_context.block_info;
+    auto block_info = block.header.blockInfo();
     if (auto header_res = block_tree_->getBlockHeader(block.header.parent_hash);
         header_res.has_error()
         && header_res.error() == blockchain::BlockTreeError::HEADER_NOT_FOUND) {
@@ -88,13 +86,12 @@ namespace kagome::consensus {
     bool block_was_applied_earlier = false;
 
     // check if block body already exists. If so, do not apply
-    if (auto body_res =
-            block_tree_->getBlockBody(block_context.block_info.hash);
+    if (auto body_res = block_tree_->getBlockBody(block_info.hash);
         body_res.has_value()) {
       SL_DEBUG(logger_, "Skip existing block: {}", block_info);
 
-      if (auto res = block_tree_->addExistingBlock(
-              block_context.block_info.hash, block.header);
+      if (auto res =
+              block_tree_->addExistingBlock(block_info.hash, block.header);
           res.has_error()) {
         callback(res.as_failure());
         return;
@@ -105,13 +102,10 @@ namespace kagome::consensus {
       return;
     }
 
-    auto consistency_guard_res =
-        appender_->observeDigestsAndValidateHeader(block, block_context);
-    if (not consistency_guard_res) {
-      callback(consistency_guard_res.as_failure());
+    if (auto r = appender_->validateHeader(block); r.has_error()) {
+      callback(r.as_failure());
       return;
     }
-    auto &consistency_guard = consistency_guard_res.value();
 
     // Calculate best block before new one will be applied
     auto previous_best_block = block_tree_->bestBlock();
@@ -122,7 +116,6 @@ namespace kagome::consensus {
                          std::move(callback),
                          block_info,
                          start_time,
-                         consistency_guard,
                          previous_best_block);
       return;
     }
@@ -133,8 +126,6 @@ namespace kagome::consensus {
                     callback{std::move(callback)},
                     block_info,
                     start_time,
-                    consistency_guard{std::make_shared<ConsistencyGuard>(
-                        std::move(consistency_guard))},
                     previous_best_block]() mutable {
       auto timer = metric_block_execution_time.manual();
 
@@ -181,14 +172,12 @@ namespace kagome::consensus {
                        callback{std::move(callback)},
                        block_info,
                        start_time,
-                       consistency_guard{std::move(consistency_guard)},
                        previous_best_block]() mutable {
         self->applyBlockExecuted(std::move(block),
                                  justification,
                                  std::move(callback),
                                  block_info,
                                  start_time,
-                                 *consistency_guard,
                                  previous_best_block);
       };
       main_thread_->post(std::move(executed));
@@ -202,13 +191,11 @@ namespace kagome::consensus {
       ApplyJustificationCb &&callback,
       const primitives::BlockInfo &block_info,
       clock::SteadyClock::TimePoint start_time,
-      ConsistencyGuard &consistency_guard,
       const primitives::BlockInfo &previous_best_block) {
     /// TODO(iceseer): in a case we change the authority set, we can get an
     /// error with the following behavior: the finalisation will commit the
     /// authority change and the step of the next block processing will be
     /// failed because of VRF error
-    consistency_guard.commit();
 
     appender_->applyJustifications(
         block_info,
@@ -289,6 +276,7 @@ namespace kagome::consensus {
           auto current_best_block = self->block_tree_->bestBlock();
           self->telemetry_->notifyBlockImported(
               current_best_block, telemetry::BlockOrigin::kNetworkInitialSync);
+          self->telemetry_->pushBlockStats();
 
           // Create new offchain worker for block if it is best only
           if (current_best_block.number > previous_best_block_number) {

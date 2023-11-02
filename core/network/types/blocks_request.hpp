@@ -1,14 +1,13 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_BLOCKS_REQUEST_HPP
-#define KAGOME_BLOCKS_REQUEST_HPP
+#pragma once
 
 #include <cstdint>
 
-#include <gsl/span>
 #include <optional>
 
 #include "network/types/block_attributes.hpp"
@@ -71,5 +70,3 @@ inline kagome::network::BlocksRequest::Fingerprint
 kagome::network::BlocksRequest::fingerprint() const {
   return std::hash<BlocksRequest>()(*this);
 }
-
-#endif  // KAGOME_BLOCKS_REQUEST_HPP

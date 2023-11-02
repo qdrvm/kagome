@@ -1,4 +1,9 @@
 #!/bin/sh
+#
+# Copyright Quadrivium LLC
+# All Rights Reserved
+# SPDX-License-Identifier: Apache-2.0
+#
 
 if git rev-parse --verify HEAD >/dev/null 2>&1; then
   BASE=HEAD

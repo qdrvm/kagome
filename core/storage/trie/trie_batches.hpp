@@ -1,10 +1,10 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_STORAGE_TRIE_IMPL_TRIE_BATCH
-#define KAGOME_STORAGE_TRIE_IMPL_TRIE_BATCH
+#pragma once
 
 #include "storage/buffer_map_types.hpp"
 #include "storage/trie/polkadot_trie/polkadot_trie_cursor.hpp"
@@ -56,5 +56,3 @@ namespace kagome::storage::trie {
   };
 
 }  // namespace kagome::storage::trie
-
-#endif  // KAGOME_STORAGE_TRIE_IMPL_TRIE_BATCH

@@ -1,5 +1,6 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -81,7 +82,7 @@ namespace kagome::network {
       if (my_view_) {
         view.lost.swap(my_view_->lost);
         view.lost.clear();
-        for (auto const &head : my_view_->view.heads_) {
+        for (const auto &head : my_view_->view.heads_) {
           if (!view.view.contains(head)) {
             view.lost.emplace_back(head);
           }

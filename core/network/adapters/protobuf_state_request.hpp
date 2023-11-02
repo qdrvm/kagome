@@ -1,15 +1,15 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_ADAPTERS_PROTOBUF_STATE_REQUEST
-#define KAGOME_ADAPTERS_PROTOBUF_STATE_REQUEST
+#pragma once
 
 #include "network/adapters/protobuf.hpp"
 
-#include <gsl/span>
 #include <libp2p/multi/uvarint.hpp>
+#include <span>
 
 #include "common/visitor.hpp"
 #include "macro/endianness_utils.hpp"
@@ -70,5 +70,3 @@ namespace kagome::network {
   };
 
 }  // namespace kagome::network
-
-#endif  // KAGOME_ADAPTERS_PROTOBUF_STATE_REQUEST

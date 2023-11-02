@@ -1,9 +1,12 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
 #include "network/warp/sync.hpp"
+
+#include <libp2p/common/final_action.hpp>
 
 #include "blockchain/block_storage.hpp"
 #include "blockchain/block_tree.hpp"
@@ -62,7 +65,7 @@ namespace kagome::network {
       return;
     }
     std::optional<primitives::BlockNumber> min, max;
-    auto log = gsl::finally([&] {
+    ::libp2p::common::FinalAction log([&] {
       if (min) {
         SL_INFO(log_, "finalized {}..{}", *min, *max);
       }

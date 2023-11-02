@@ -1,5 +1,6 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -19,7 +20,6 @@
 #include "mock/core/consensus/grandpa/grandpa_mock.hpp"
 #include "mock/core/consensus/production_consensus_mock.hpp"
 #include "mock/core/consensus/timeline/consensus_selector_mock.hpp"
-#include "mock/core/consensus/timeline/consistency_keeper_mock.hpp"
 #include "mock/core/consensus/timeline/slots_util_mock.hpp"
 #include "mock/core/crypto/hasher_mock.hpp"
 #include "mock/core/network/block_announce_transmitter_mock.hpp"
@@ -39,7 +39,6 @@ using kagome::clock::SystemClockMock;
 using kagome::common::Buffer;
 using kagome::consensus::BlockProductionError;
 using kagome::consensus::ConsensusSelectorMock;
-using kagome::consensus::ConsistencyKeeperMock;
 using kagome::consensus::Duration;
 using kagome::consensus::EpochLength;
 using kagome::consensus::EpochNumber;
@@ -154,7 +153,6 @@ class TimelineTest : public testing::Test {
     // warp_sync = std::make_shared<WarpSync>();
     // warp_protocol = std::make_shared<WarpProtocol>();
     justification_observer = std::make_shared<GrandpaMock>();
-    consistency_keeper = std::make_shared<ConsistencyKeeperMock>();
     scheduler = std::make_shared<SchedulerMock>();
     core_api = std::make_shared<CoreMock>();
     chain_sub_engine = std::make_shared<ChainSubscriptionEngine>();
@@ -174,7 +172,6 @@ class TimelineTest : public testing::Test {
         warp_sync,
         testutil::sptr_to_lazy<WarpProtocol>(warp_protocol),
         justification_observer,
-        consistency_keeper,
         scheduler,
         chain_sub_engine,
         state_sub_engine,
@@ -194,7 +191,6 @@ class TimelineTest : public testing::Test {
   std::shared_ptr<WarpSync> warp_sync;
   std::shared_ptr<WarpProtocol> warp_protocol;
   std::shared_ptr<GrandpaMock> justification_observer;
-  std::shared_ptr<ConsistencyKeeperMock> consistency_keeper;
   std::shared_ptr<SchedulerMock> scheduler;
   std::shared_ptr<ChainSubscriptionEngine> chain_sub_engine;
   std::shared_ptr<BabeStateSubscriptionEngine> state_sub_engine;

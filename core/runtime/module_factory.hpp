@@ -1,12 +1,12 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_CORE_RUNTIME_MODULE_FACTORY_HPP
-#define KAGOME_CORE_RUNTIME_MODULE_FACTORY_HPP
+#pragma once
 
-#include <gsl/span>
+#include <span>
 
 #include "outcome/outcome.hpp"
 #include "runtime/instance_environment.hpp"
@@ -37,9 +37,7 @@ namespace kagome::runtime {
     virtual ~ModuleFactory() = default;
 
     virtual outcome::result<std::shared_ptr<Module>, CompilationError> make(
-        gsl::span<const uint8_t> code) const = 0;
+        common::BufferView code) const = 0;
   };
 
 }  // namespace kagome::runtime
-
-#endif  // KAGOME_CORE_RUNTIME_MODULE_FACTORY_HPP

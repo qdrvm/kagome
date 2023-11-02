@@ -1,5 +1,6 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -58,7 +59,7 @@ namespace kagome::api {
       BOOST_ASSERT(key.has_value());
 
       // make sure our key begins with prefix
-      if (!boost::starts_with(key.value(), prefix)) {
+      if (not startsWith(key.value(), prefix)) {
         break;
       }
       result.push_back(cursor->key().value());
@@ -105,7 +106,7 @@ namespace kagome::api {
       BOOST_ASSERT(key.has_value());
 
       // make sure our key begins with prefix
-      if (!boost::starts_with(key.value(), prefix)) {
+      if (not startsWith(key.value(), prefix)) {
         break;
       }
       result.push_back(cursor->key().value());

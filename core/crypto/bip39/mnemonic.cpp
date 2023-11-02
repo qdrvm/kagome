@@ -1,5 +1,6 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -92,7 +93,7 @@ namespace kagome::crypto::bip39 {
       }
     }
 
-    if (boost::starts_with(seed, "0x")) {
+    if (seed.starts_with("0x")) {
       OUTCOME_TRY(bytes, common::unhexWith0x(seed));
       mnemonic.seed = common::Buffer{std::move(bytes)};
     } else {

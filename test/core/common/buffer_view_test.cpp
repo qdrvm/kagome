@@ -1,5 +1,6 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -8,7 +9,7 @@
 #include <gtest/gtest.h>
 
 using namespace kagome::common;
-using Span = gsl::span<const uint8_t>;
+using Span = BufferView;
 
 TEST(BufferView, Constructor_default) {
   BufferView v;

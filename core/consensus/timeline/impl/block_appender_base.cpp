@@ -1,44 +1,37 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
 #include "consensus/timeline/impl/block_appender_base.hpp"
 
 #include "blockchain/block_tree.hpp"
-#include "blockchain/digest_tracker.hpp"
 #include "consensus/babe/babe_config_repository.hpp"
 #include "consensus/babe/impl/babe_digests_util.hpp"
 #include "consensus/babe/impl/babe_error.hpp"
 #include "consensus/babe/impl/threshold_util.hpp"
 #include "consensus/grandpa/environment.hpp"
 #include "consensus/grandpa/voting_round_error.hpp"
-#include "consensus/timeline/consistency_keeper.hpp"
 #include "consensus/timeline/slots_util.hpp"
 #include "consensus/validation/block_validator.hpp"
 
 namespace kagome::consensus {
 
   BlockAppenderBase::BlockAppenderBase(
-      std::shared_ptr<ConsistencyKeeper> consistency_keeper,
       std::shared_ptr<blockchain::BlockTree> block_tree,
-      std::shared_ptr<blockchain::DigestTracker> digest_tracker,
       std::shared_ptr<babe::BabeConfigRepository> babe_config_repo,
       std::shared_ptr<BlockValidator> block_validator,
       std::shared_ptr<grandpa::Environment> grandpa_environment,
       LazySPtr<SlotsUtil> slots_util,
       std::shared_ptr<crypto::Hasher> hasher)
-      : consistency_keeper_{std::move(consistency_keeper)},
-        block_tree_{std::move(block_tree)},
-        digest_tracker_{std::move(digest_tracker)},
+      : block_tree_{std::move(block_tree)},
         babe_config_repo_{std::move(babe_config_repo)},
         block_validator_{std::move(block_validator)},
         grandpa_environment_{std::move(grandpa_environment)},
         slots_util_{std::move(slots_util)},
         hasher_{std::move(hasher)} {
-    BOOST_ASSERT(nullptr != consistency_keeper_);
     BOOST_ASSERT(nullptr != block_tree_);
-    BOOST_ASSERT(nullptr != digest_tracker_);
     BOOST_ASSERT(nullptr != babe_config_repo_);
     BOOST_ASSERT(nullptr != block_validator_);
     BOOST_ASSERT(nullptr != grandpa_environment_);
@@ -46,14 +39,6 @@ namespace kagome::consensus {
 
     postponed_justifications_ = std::make_shared<
         std::map<primitives::BlockInfo, primitives::Justification>>();
-  }
-
-  primitives::BlockContext BlockAppenderBase::makeBlockContext(
-      const primitives::BlockHeader &header) const {
-    return primitives::BlockContext{
-        .block_info = header.blockInfo(),
-        .header = header,
-    };
   }
 
   void BlockAppenderBase::applyJustifications(
@@ -142,9 +127,8 @@ namespace kagome::consensus {
     }
   }
 
-  outcome::result<ConsistencyGuard>
-  BlockAppenderBase::observeDigestsAndValidateHeader(
-      const primitives::Block &block, const primitives::BlockContext &context) {
+  outcome::result<void> BlockAppenderBase::validateHeader(
+      const primitives::Block &block) {
     OUTCOME_TRY(babe_header, babe::getBabeBlockHeader(block.header));
 
     auto slot_number = babe_header.slot_number;
@@ -156,23 +140,11 @@ namespace kagome::consensus {
     SL_VERBOSE(
         logger_,
         "Appending header of block {} ({} in slot {}, epoch {}, authority #{})",
-        context.block_info,
+        block.header.blockInfo(),
         to_string(babe_header.slotType()),
         slot_number,
         epoch_number,
         babe_header.authority_index);
-
-    auto consistency_guard = consistency_keeper_->start(context.block_info);
-
-    auto digest_tracking_res =
-        digest_tracker_->onDigest(context, block.header.digest);
-    if (digest_tracking_res.has_error()) {
-      SL_ERROR(logger_,
-               "Error while tracking digest of block {}: {}",
-               context.block_info,
-               digest_tracking_res.error());
-      return digest_tracking_res.as_failure();
-    }
 
     OUTCOME_TRY(
         babe_config_ptr,
@@ -182,7 +154,7 @@ namespace kagome::consensus {
     SL_TRACE(logger_,
              "Actual epoch digest to apply block {} (slot {}, epoch {}). "
              "Randomness: {}",
-             context.block_info,
+             block.header.blockInfo(),
              slot_number,
              epoch_number,
              babe_config.randomness);
@@ -198,7 +170,7 @@ namespace kagome::consensus {
         threshold,
         babe_config));
 
-    return consistency_guard;
+    return outcome::success();
   }
 
   outcome::result<BlockAppenderBase::SlotInfo> BlockAppenderBase::getSlotInfo(

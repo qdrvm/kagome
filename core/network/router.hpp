@@ -1,10 +1,10 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_ROUTER_HPP
-#define KAGOME_ROUTER_HPP
+#pragma once
 
 #include <libp2p/connection/stream.hpp>
 #include <libp2p/protocol/ping.hpp>
@@ -22,6 +22,8 @@
 #include "network/protocols/sync_protocol.hpp"
 
 namespace kagome::network {
+  class BeefyProtocol;
+
   /**
    * Router, which reads and delivers different network messages to the
    * observers, responsible for their processing
@@ -51,8 +53,7 @@ namespace kagome::network {
     virtual std::shared_ptr<GrandpaProtocol> getGrandpaProtocol() const = 0;
     virtual std::shared_ptr<SendDisputeProtocol> getSendDisputeProtocol()
         const = 0;
+    virtual std::shared_ptr<BeefyProtocol> getBeefyProtocol() const = 0;
     virtual std::shared_ptr<libp2p::protocol::Ping> getPingProtocol() const = 0;
   };
 }  // namespace kagome::network
-
-#endif  // KAGOME_ROUTER_HPP

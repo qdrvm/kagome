@@ -1,5 +1,6 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -10,7 +11,7 @@
 #include "blockchain/block_tree.hpp"
 #include "clock/impl/clock_impl.hpp"
 #include "consensus/consensus_selector.hpp"
-#include "consensus/timeline/consistency_keeper.hpp"
+#include "consensus/grandpa/justification_observer.hpp"
 #include "consensus/timeline/impl/block_production_error.hpp"
 #include "consensus/timeline/slots_util.hpp"
 #include "network/block_announce_transmitter.hpp"
@@ -47,7 +48,6 @@ namespace kagome::consensus {
       LazySPtr<network::WarpProtocol> warp_protocol,
       std::shared_ptr<consensus::grandpa::JustificationObserver>
           justification_observer,
-      std::shared_ptr<ConsistencyKeeper> consistency_keeper,
       std::shared_ptr<libp2p::basic::Scheduler> scheduler,
       primitives::events::ChainSubscriptionEnginePtr chain_sub_engine,
       primitives::events::BabeStateSubscriptionEnginePtr state_sub_engine,
@@ -65,7 +65,6 @@ namespace kagome::consensus {
         warp_sync_(std::move(warp_sync)),
         warp_protocol_(std::move(warp_protocol)),
         justification_observer_(std::move(justification_observer)),
-        consistency_keeper_(std::move(consistency_keeper)),
         scheduler_(std::move(scheduler)),
         chain_sub_engine_(std::move(chain_sub_engine)),
         state_sub_engine_(std::move(state_sub_engine)),
@@ -82,7 +81,6 @@ namespace kagome::consensus {
     BOOST_ASSERT(block_announce_transmitter_);
     // BOOST_ASSERT(warp_sync_);
     BOOST_ASSERT(justification_observer_);
-    BOOST_ASSERT(consistency_keeper_);
     BOOST_ASSERT(scheduler_);
     BOOST_ASSERT(chain_sub_engine_);
     BOOST_ASSERT(state_sub_engine_);
@@ -609,40 +607,7 @@ namespace kagome::consensus {
              "Rolling back non-finalized blocks. Last known finalized is {}",
              block_at_state);
 
-    // Next do-while-loop serves for removal non finalized blocks
-    bool affected;
-    do {
-      affected = false;
-
-      auto block_tree_leaves = block_tree_->getLeaves();
-
-      for (const auto &hash : block_tree_leaves) {
-        if (hash == block_at_state.hash) {
-          continue;
-        }
-
-        auto header_res = block_tree_->getBlockHeader(hash);
-        if (header_res.has_error()) {
-          SL_CRITICAL(log_,
-                      "Can't get header of one of removing leave_block: {}",
-                      header_res.error());
-          continue;
-        }
-
-        const auto &header = header_res.value();
-
-        // Block before last finalized must not be a leave.
-        // Don't touch it just in case
-        if (header.number < block_at_state.number) {
-          continue;
-        }
-
-        std::ignore = consistency_keeper_->start(
-            primitives::BlockInfo(header.number, hash));
-
-        affected = true;
-      }
-    } while (affected);
+    block_tree_->removeUnfinalized();
 
     SL_TRACE(log_,
              "Trying to sync state on block {} from {}",
@@ -663,7 +628,7 @@ namespace kagome::consensus {
               return;
             }
 
-            // self->justification_observer_->reload();
+            self->justification_observer_->reload();
             self->block_tree_->notifyBestAndFinalized();
 
             SL_INFO(self->log_,

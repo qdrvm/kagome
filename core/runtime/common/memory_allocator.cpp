@@ -1,5 +1,6 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -39,7 +40,7 @@ namespace kagome::runtime {
     }
 
     const size_t chunk_size =
-        nextHighPowerOf2(roundUpAlign(size) + AllocationHeaderSz);
+        math::nextHighPowerOf2(roundUpAlign(size) + AllocationHeaderSz);
 
     const auto ptr = offset_;
     const auto new_offset = ptr + chunk_size;  // align
@@ -78,7 +79,7 @@ namespace kagome::runtime {
         .allocation_sz = 0,
     };
     header.deserialize(ptr - AllocationHeaderSz, memory_);
-    BOOST_ASSERT(isPowerOf2(header.chunk_sz));
+    BOOST_ASSERT(math::isPowerOf2(header.chunk_sz));
 
     available_[header.chunk_sz].push_back(ptr - AllocationHeaderSz);
     BOOST_ASSERT(!available_.empty());
@@ -131,7 +132,7 @@ namespace kagome::runtime {
         .allocation_sz = 0,
     };
     header.deserialize(ptr - AllocationHeaderSz, memory_);
-    BOOST_ASSERT(isPowerOf2(header.chunk_sz));
+    BOOST_ASSERT(math::isPowerOf2(header.chunk_sz));
 
     return header.allocation_sz;
   }

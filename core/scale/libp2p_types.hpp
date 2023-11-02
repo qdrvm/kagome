@@ -1,10 +1,10 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_CORE_SCALE_LIBP2P_TYPES_HPP
-#define KAGOME_CORE_SCALE_LIBP2P_TYPES_HPP
+#pragma once
 
 #include <libp2p/peer/peer_info.hpp>
 #include "scale/scale.hpp"
@@ -25,5 +25,3 @@ namespace scale {
                                           libp2p::peer::PeerInfo &peer_info);
 
 }  // namespace scale
-
-#endif  // KAGOME_CORE_SCALE_LIBP2P_TYPES_HPP

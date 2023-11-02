@@ -1,10 +1,10 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_BOX_HPP
-#define KAGOME_BOX_HPP
+#pragma once
 
 #include <iostream>
 #include <type_traits>
@@ -55,5 +55,3 @@ struct Box {
  private:
   std::optional<T> t_;
 };
-
-#endif  // KAGOME_BOX_HPP

@@ -1,10 +1,10 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_CORE_RUNTIME_BINARYEN_MODULE_MODULE_FACTORY_IMPL_HPP
-#define KAGOME_CORE_RUNTIME_BINARYEN_MODULE_MODULE_FACTORY_IMPL_HPP
+#pragma once
 
 #include "runtime/module_factory.hpp"
 
@@ -39,7 +39,7 @@ namespace kagome::runtime::binaryen {
                       std::shared_ptr<crypto::Hasher> hasher);
 
     outcome::result<std::shared_ptr<Module>, CompilationError> make(
-        gsl::span<const uint8_t> code) const override;
+        common::BufferView code) const override;
 
    private:
     std::shared_ptr<InstanceEnvironmentFactory> env_factory_;
@@ -48,5 +48,3 @@ namespace kagome::runtime::binaryen {
   };
 
 }  // namespace kagome::runtime::binaryen
-
-#endif  // KAGOME_CORE_RUNTIME_BINARYEN_MODULE_MODULE_FACTORY_IMPL_HPP

@@ -1,5 +1,6 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -36,7 +37,7 @@ namespace kagome::runtime::wavm {
   }
 
   outcome::result<std::shared_ptr<Module>, CompilationError>
-  ModuleFactoryImpl::make(gsl::span<const uint8_t> code) const {
+  ModuleFactoryImpl::make(common::BufferView code) const {
     OUTCOME_TRY(module,
                 ModuleImpl::compileFrom(compartment_,
                                         *module_params_,

@@ -1,10 +1,10 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_CORE_RUNTIME_COMMON_MEMORY_ALLOCATOR_HPP
-#define KAGOME_CORE_RUNTIME_COMMON_MEMORY_ALLOCATOR_HPP
+#pragma once
 
 #include <deque>
 #include <map>
@@ -37,18 +37,6 @@ namespace kagome::runtime {
   template <typename T>
   static constexpr T roundUpAlign(T t) {
     return math::roundUp<kAlignment>(t);
-  }
-
-  inline bool isPowerOf2(size_t x) {
-    return ((x > 0ull) && ((x & (x - 1ull)) == 0));
-  }
-
-  inline size_t nextHighPowerOf2(size_t k) {
-    if (isPowerOf2(k)) {
-      return k;
-    }
-    const auto p = k == 0ull ? 0ull : 64ull - __builtin_clzll(k);
-    return (1ull << p);
   }
 
   /**
@@ -132,5 +120,3 @@ namespace kagome::runtime {
   };
 
 }  // namespace kagome::runtime
-
-#endif  // KAGOME_CORE_RUNTIME_COMMON_MEMORY_ALLOCATOR_HPP

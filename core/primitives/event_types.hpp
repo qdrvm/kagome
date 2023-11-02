@@ -1,10 +1,10 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_CORE_PRIMITIVES_EVENT_TYPES_HPP
-#define KAGOME_CORE_PRIMITIVES_EVENT_TYPES_HPP
+#pragma once
 
 #include <cstdint>
 #include <memory>
@@ -95,10 +95,10 @@ namespace kagome::primitives::events {
     INVALID
   };
 
-  using Hash256Span = gsl::span<const uint8_t, common::Hash256::size()>;
+  using Hash256Span = std::span<const uint8_t, common::Hash256::size()>;
 
   struct BroadcastEventParams {
-    gsl::span<const libp2p::peer::PeerId> peers;
+    std::span<const libp2p::peer::PeerId> peers;
   };
 
   struct InBlockEventParams {
@@ -149,7 +149,7 @@ namespace kagome::primitives::events {
     }
 
     static ExtrinsicLifecycleEvent Broadcast(
-        SubscribedExtrinsicId id, gsl::span<const libp2p::peer::PeerId> peers) {
+        SubscribedExtrinsicId id, std::span<const libp2p::peer::PeerId> peers) {
       return ExtrinsicLifecycleEvent{
           id,
           ExtrinsicEventType::BROADCAST,
@@ -262,5 +262,3 @@ namespace kagome::primitives::events {
   using ExtrinsicEventSubscriberPtr = std::shared_ptr<ExtrinsicEventSubscriber>;
 
 }  // namespace kagome::primitives::events
-
-#endif  // KAGOME_CORE_PRIMITIVES_EVENT_TYPES_HPP

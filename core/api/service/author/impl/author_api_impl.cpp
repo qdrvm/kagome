@@ -1,5 +1,6 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -25,10 +26,10 @@
 #include "transaction_pool/transaction_pool.hpp"
 
 namespace kagome::api {
-  const std::vector<crypto::KnownKeyTypeId> kKeyTypes{
-      crypto::KEY_TYPE_BABE,
-      crypto::KEY_TYPE_GRAN,
-      crypto::KEY_TYPE_AUDI,
+  const std::vector<crypto::KeyType> kKeyTypes{
+      crypto::KeyTypes::BABE,
+      crypto::KeyTypes::GRANDPA,
+      crypto::KeyTypes::AUTHORITY_DISCOVERY,
   };
 
   AuthorApiImpl::AuthorApiImpl(sptr<runtime::SessionKeysApi> key_api,
@@ -60,44 +61,43 @@ namespace kagome::api {
     return pool_->submitExtrinsic(source, extrinsic);
   }
 
-  outcome::result<void> AuthorApiImpl::insertKey(
-      crypto::KeyTypeId key_type,
-      const gsl::span<const uint8_t> &seed,
-      const gsl::span<const uint8_t> &public_key) {
-    if (std::find(kKeyTypes.begin(), kKeyTypes.end(), key_type)
+  outcome::result<void> AuthorApiImpl::insertKey(crypto::KeyType key_type_id,
+                                                 const BufferView &seed,
+                                                 const BufferView &public_key) {
+    if (std::find(kKeyTypes.begin(), kKeyTypes.end(), key_type_id)
         == kKeyTypes.end()) {
       std::string types;
       for (auto &type : kKeyTypes) {
-        types.append(encodeKeyTypeIdToStr(type));
+        types.append(crypto::encodeKeyTypeToStr(type));
         types.push_back(' ');
       }
       types.pop_back();
       SL_INFO(logger_, "Unsupported key type, only [{}] are accepted", types);
       return outcome::failure(crypto::CryptoStoreError::UNSUPPORTED_KEY_TYPE);
     };
-    if (crypto::KEY_TYPE_BABE == key_type
-        or crypto::KEY_TYPE_AUDI == key_type) {
+    if (crypto::KeyTypes::BABE == key_type_id
+        or crypto::KeyTypes::AUTHORITY_DISCOVERY == key_type_id) {
       OUTCOME_TRY(seed_typed, crypto::Sr25519Seed::fromSpan(seed));
       OUTCOME_TRY(public_key_typed,
                   crypto::Sr25519PublicKey::fromSpan(public_key));
       OUTCOME_TRY(keypair,
-                  store_->generateSr25519Keypair(key_type, seed_typed));
+                  store_->generateSr25519Keypair(key_type_id, seed_typed));
       if (public_key_typed != keypair.public_key) {
         return outcome::failure(crypto::CryptoStoreError::WRONG_PUBLIC_KEY);
       }
     }
-    if (crypto::KEY_TYPE_GRAN == key_type) {
+    if (crypto::KeyTypes::GRANDPA == key_type_id) {
       OUTCOME_TRY(seed_typed, crypto::Ed25519Seed::fromSpan(seed));
       OUTCOME_TRY(public_key_typed,
                   crypto::Ed25519PublicKey::fromSpan(public_key));
-      OUTCOME_TRY(
-          keypair,
-          store_->generateEd25519Keypair(crypto::KEY_TYPE_GRAN, seed_typed));
+      OUTCOME_TRY(keypair,
+                  store_->generateEd25519Keypair(crypto::KeyTypes::GRANDPA,
+                                                 seed_typed));
       if (public_key_typed != keypair.public_key) {
         return outcome::failure(crypto::CryptoStoreError::WRONG_PUBLIC_KEY);
       }
     }
-    auto res = key_store_->saveKeyPair(key_type, public_key, seed);
+    auto res = key_store_->saveKeyPair(key_type_id, public_key, seed);
     return res;
   }
 
@@ -111,8 +111,7 @@ namespace kagome::api {
   // logic here is polkadot specific only!
   // it could be extended by reading config from chainspec palletSession/keys
   // value
-  outcome::result<bool> AuthorApiImpl::hasSessionKeys(
-      const gsl::span<const uint8_t> &keys) {
+  outcome::result<bool> AuthorApiImpl::hasSessionKeys(const BufferView &keys) {
     scale::ScaleDecoderStream stream(keys);
     std::array<uint8_t, 32> key;
     if (keys.size() < 32 || keys.size() > 32 * 6 || (keys.size() % 32) != 0) {
@@ -124,7 +123,7 @@ namespace kagome::api {
     }
     stream >> key;
     if (store_->findEd25519Keypair(
-            crypto::KEY_TYPE_GRAN,
+            crypto::KeyTypes::GRANDPA,
             crypto::Ed25519PublicKey(common::Blob<32>(key)))) {
       unsigned count = 1;
       while (stream.currentIndex() < keys.size()) {
@@ -140,8 +139,8 @@ namespace kagome::api {
     return false;
   }
 
-  outcome::result<bool> AuthorApiImpl::hasKey(
-      const gsl::span<const uint8_t> &public_key, crypto::KeyTypeId key_type) {
+  outcome::result<bool> AuthorApiImpl::hasKey(const BufferView &public_key,
+                                              crypto::KeyType key_type) {
     auto res = key_store_->searchForPhrase(key_type, public_key);
     if (not res) {
       return res.error();

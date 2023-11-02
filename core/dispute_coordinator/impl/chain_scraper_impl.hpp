@@ -1,12 +1,12 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
 #include "dispute_coordinator/chain_scraper.hpp"
 
-#ifndef KAGOME_DISPUTE_CHAINSCRAPERIMPL
-#define KAGOME_DISPUTE_CHAINSCRAPERIMPL
+#pragma once
 
 #include "blockchain/block_tree.hpp"
 #include "common/lru_cache.hpp"
@@ -214,5 +214,3 @@ namespace kagome::dispute {
   };
 
 }  // namespace kagome::dispute
-
-#endif  // KAGOME_DISPUTE_CHAINSCRAPPERIMPL

@@ -1,14 +1,14 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_METRICS_HISTOGRAM_TIMER_HPP
-#define KAGOME_METRICS_HISTOGRAM_TIMER_HPP
-
-#include <gsl/gsl_util>
+#pragma once
 
 #include "metrics/metrics.hpp"
+
+#include <libp2p/common/final_action.hpp>
 
 namespace kagome::metrics {
   inline std::vector<double> exponentialBuckets(double start,
@@ -20,6 +20,20 @@ namespace kagome::metrics {
     }
     return buckets;
   }
+
+  struct GaugeHelper {
+    GaugeHelper(const std::string &name, const std::string &help) {
+      registry_->registerGaugeFamily(name, help);
+      metric_ = registry_->registerGaugeMetric(name);
+    }
+
+    auto *operator->() {
+      return metric_;
+    }
+
+    metrics::RegistryPtr registry_ = metrics::createRegistry();
+    metrics::Gauge *metric_;
+  };
 
   struct HistogramHelper {
     HistogramHelper(const std::string &name,
@@ -55,9 +69,7 @@ namespace kagome::metrics {
     }
 
     auto timer() {
-      return std::make_optional(gsl::finally(manual()));
+      return std::make_optional(::libp2p::common::MovableFinalAction(manual()));
     }
   };
 }  // namespace kagome::metrics
-
-#endif  // KAGOME_METRICS_HISTOGRAM_TIMER_HPP

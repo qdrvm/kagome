@@ -1,10 +1,10 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_CRYPTO_ED25519_PROVIDER_IMPL_H
-#define KAGOME_CRYPTO_ED25519_PROVIDER_IMPL_H
+#pragma once
 
 #include "crypto/ed25519_provider.hpp"
 
@@ -28,11 +28,11 @@ namespace kagome::crypto {
 
     outcome::result<Ed25519Signature> sign(
         const Ed25519Keypair &keypair,
-        gsl::span<const uint8_t> message) const override;
+        common::BufferView message) const override;
 
     outcome::result<bool> verify(
         const Ed25519Signature &signature,
-        gsl::span<const uint8_t> message,
+        common::BufferView message,
         const Ed25519PublicKey &public_key) const override;
 
    private:
@@ -43,5 +43,3 @@ namespace kagome::crypto {
 }  // namespace kagome::crypto
 
 OUTCOME_HPP_DECLARE_ERROR(kagome::crypto, Ed25519ProviderImpl::Error);
-
-#endif  // KAGOME_CRYPTO_ED25519_PROVIDER_IMPL_H

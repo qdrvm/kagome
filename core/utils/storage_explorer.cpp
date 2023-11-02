@@ -1,5 +1,6 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -30,7 +31,7 @@ using kagome::primitives::events::ChainSubscriptionEngine;
 using kagome::runtime::GrandpaApi;
 using kagome::storage::trie::TrieStorage;
 
-using ArgumentList = gsl::span<const char *>;
+using ArgumentList = std::span<const char *>;
 
 class CommandExecutionError : public std::runtime_error {
  public:
@@ -65,7 +66,7 @@ class Command {
   }
 
  protected:
-  void assertArgumentCount(const ArgumentList &args, int min, int max) {
+  void assertArgumentCount(const ArgumentList &args, size_t min, size_t max) {
     if (args.size() < min or args.size() > max) {
       throw CommandExecutionError{
           name,
@@ -511,7 +512,7 @@ class SearchChainCommand : public Command {
 };
 
 int storage_explorer_main(int argc, const char **argv) {
-  ArgumentList args{argv, argc};
+  ArgumentList args(argv, argc);
 
   CommandParser parser;
   parser.addCommand(std::make_unique<PrintHelpCommand>(parser));
@@ -523,7 +524,7 @@ int storage_explorer_main(int argc, const char **argv) {
       std::make_shared<kagome::application::AppConfigurationImpl>(logger);
 
   int kagome_args_start = -1;
-  for (int i = 1; i < args.size(); i++) {
+  for (size_t i = 1; i < args.size(); i++) {
     if (strcmp(args[i], "--") == 0) {
       kagome_args_start = i;
     }
@@ -549,22 +550,16 @@ int storage_explorer_main(int argc, const char **argv) {
   auto persistent_storage = injector.injectStorage();
   auto hasher = std::make_shared<kagome::crypto::HasherImpl>();
 
-  auto header_repo =
-      std::make_shared<kagome::blockchain::BlockHeaderRepositoryImpl>(
-          persistent_storage, hasher);
   auto grandpa_api =
       std::make_shared<kagome::runtime::GrandpaApiImpl>(executor);
 
   auto chain_events_engine = std::make_shared<ChainSubscriptionEngine>();
 
   auto authority_manager =
-      std::make_shared<AuthorityManagerImpl>(AuthorityManagerImpl::Config{},
-                                             app_state_manager,
+      std::make_shared<AuthorityManagerImpl>(app_state_manager,
                                              block_tree,
                                              grandpa_api,
-                                             hasher,
                                              persistent_storage,
-                                             header_repo,
                                              chain_events_engine);
 
   parser.addCommand(std::make_unique<InspectBlockCommand>(block_storage));
@@ -573,7 +568,7 @@ int storage_explorer_main(int argc, const char **argv) {
   parser.addCommand(std::make_unique<SearchChainCommand>(
       block_storage, trie_storage, authority_manager, hasher));
 
-  parser.invoke(args.subspan(0, kagome_args_start));
+  parser.invoke(args.first(kagome_args_start));
 
   return 0;
 }

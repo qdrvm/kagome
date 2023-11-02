@@ -1,10 +1,10 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_CORE_RUNTIME_UNCOMPRESS_IF_NEEDED_HPP
-#define KAGOME_CORE_RUNTIME_UNCOMPRESS_IF_NEEDED_HPP
+#pragma once
 
 #include "common/buffer.hpp"
 
@@ -22,5 +22,3 @@ namespace kagome::runtime {
     return make_error_code(e);
   }
 }
-
-#endif  // KAGOME_CORE_RUNTIME_UNCOMPRESS_IF_NEEDED_HPP

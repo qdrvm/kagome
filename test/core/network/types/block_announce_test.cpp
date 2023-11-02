@@ -1,5 +1,6 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 #include "network/types/block_announce.hpp"
@@ -54,7 +55,7 @@ struct BlockAnnounceTest : public ::testing::Test {
  * @then decoded block announce matches initial one
  */
 TEST_F(BlockAnnounceTest, EncodeSuccess) {
-  EXPECT_OUTCOME_TRUE(buffer, encode(block_announce));
-  EXPECT_OUTCOME_TRUE(ba, decode<BlockAnnounce>(buffer));
+  ASSERT_OUTCOME_SUCCESS(buffer, encode(block_announce));
+  ASSERT_OUTCOME_SUCCESS(ba, decode<BlockAnnounce>(buffer));
   ASSERT_EQ(block_announce, ba);
 }

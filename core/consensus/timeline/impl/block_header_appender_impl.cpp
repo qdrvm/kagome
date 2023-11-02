@@ -1,5 +1,6 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -7,9 +8,7 @@
 
 #include "blockchain/block_tree.hpp"
 #include "blockchain/block_tree_error.hpp"
-#include "blockchain/digest_tracker.hpp"
 #include "consensus/babe/babe_config_repository.hpp"
-#include "consensus/timeline/consistency_keeper.hpp"
 #include "consensus/timeline/impl/block_addition_error.hpp"
 #include "consensus/timeline/impl/block_appender_base.hpp"
 #include "consensus/validation/block_validator.hpp"
@@ -34,8 +33,7 @@ namespace kagome::consensus {
       primitives::BlockHeader &&block_header,
       const std::optional<primitives::Justification> &justification,
       ApplyJustificationCb &&callback) {
-    auto block_context = appender_->makeBlockContext(block_header);
-    auto &block_info = block_context.block_info;
+    auto block_info = block_header.blockInfo();
 
     if (last_appended_.has_value()) {
       if (last_appended_->number > block_info.number) {
@@ -96,18 +94,10 @@ namespace kagome::consensus {
       }
     }
 
-    std::optional<ConsistencyGuard> consistency_guard{};
-    if (auto res =
-            appender_->observeDigestsAndValidateHeader(block, block_context);
-        res.has_value()) {
-      consistency_guard.emplace(std::move(res.value()));
-    } else {
+    if (auto res = appender_->validateHeader(block); res.has_error()) {
       callback(res.as_failure());
       return;
     }
-
-    BOOST_ASSERT(consistency_guard);
-    consistency_guard->commit();
 
     appender_->applyJustifications(
         block_info,

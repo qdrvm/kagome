@@ -1,10 +1,10 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_TEST_MOCK_CORE_CRYPTO_ED25519_PROVIDER_MOCK_HPP
-#define KAGOME_TEST_MOCK_CORE_CRYPTO_ED25519_PROVIDER_MOCK_HPP
+#pragma once
 
 #include "crypto/ed25519_provider.hpp"
 
@@ -19,16 +19,14 @@ namespace kagome::crypto {
 
     MOCK_METHOD(outcome::result<Ed25519Signature>,
                 sign,
-                (const Ed25519Keypair &, gsl::span<const uint8_t>),
+                (const Ed25519Keypair &, common::BufferView),
                 (const, override));
 
     MOCK_METHOD(outcome::result<bool>,
                 verify,
                 (const Ed25519Signature &,
-                 gsl::span<const uint8_t>,
+                 common::BufferView,
                  const Ed25519PublicKey &),
                 (const, override));
   };
 }  // namespace kagome::crypto
-
-#endif  // KAGOME_TEST_MOCK_CORE_CRYPTO_ED25519_PROVIDER_MOCK_HPP

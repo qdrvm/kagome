@@ -1,13 +1,14 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
 #include "runtime/module_instance.hpp"
 
+#include "common/int_serialization.hpp"
 #include "runtime/memory_provider.hpp"
 #include "runtime/trie_storage_provider.hpp"
-#include "common/int_serialization.hpp"
 
 OUTCOME_CPP_DEFINE_CATEGORY(kagome::runtime, ModuleInstance::Error, e) {
   using E = kagome::runtime::ModuleInstance::Error;
@@ -68,7 +69,7 @@ namespace kagome::runtime {
       max_data_segment_end =
           std::max(max_data_segment_end, offset + segment.size());
     });
-    if (gsl::narrow<size_t>(heap_base) < max_data_segment_end) {
+    if (static_cast<size_t>(heap_base) < max_data_segment_end) {
       return ModuleInstance::Error::HEAP_BASE_TOO_LOW;
     }
 

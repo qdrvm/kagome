@@ -1,5 +1,6 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -117,16 +118,14 @@ namespace kagome::runtime::binaryen {
   }
 
   void MemoryImpl::storeBuffer(kagome::runtime::WasmPointer addr,
-                               gsl::span<const uint8_t> value) {
-    BOOST_ASSERT(
-        (allocator_->checkAddress(addr, static_cast<size_t>(value.size()))));
+                               common::BufferView value) {
+    BOOST_ASSERT((allocator_->checkAddress(addr, value.size())));
     memory_->set(addr, std::move(value));
   }
 
-  WasmSpan MemoryImpl::storeBuffer(gsl::span<const uint8_t> value) {
-    const auto size = static_cast<size_t>(value.size());
-    BOOST_ASSERT(std::numeric_limits<WasmSize>::max() > size);
-    auto wasm_pointer = allocate(size);
+  WasmSpan MemoryImpl::storeBuffer(common::BufferView value) {
+    BOOST_ASSERT(std::numeric_limits<WasmSize>::max() > value.size());
+    auto wasm_pointer = allocate(value.size());
     if (wasm_pointer == 0) {
       return 0;
     }

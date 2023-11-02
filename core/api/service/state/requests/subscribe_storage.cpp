@@ -1,5 +1,6 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -10,7 +11,8 @@ namespace kagome::api::state::request {
   outcome::result<void> SubscribeStorage::init(
       const jsonrpc::Request::Parameters &params) {
     if (params.size() != 1) {
-      throw jsonrpc::InvalidParametersFault("subscribeStorage takes one parameter");
+      throw jsonrpc::InvalidParametersFault(
+          "subscribeStorage takes one parameter");
     }
     auto &keys = params[0];
     if (!keys.IsArray()) {
@@ -23,9 +25,10 @@ namespace kagome::api::state::request {
     key_buffers_.reserve(key_str_array.size());
 
     for (auto &key_str : key_str_array) {
-      if (!key_str.IsString())
+      if (!key_str.IsString()) {
         throw jsonrpc::InvalidParametersFault(
             "Parameter 'params' must be a string array of the storage keys");
+      }
 
       OUTCOME_TRY(key, common::unhexWith0x(key_str.AsString()));
       key_buffers_.emplace_back(std::move(key));

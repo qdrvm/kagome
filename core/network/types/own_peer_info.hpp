@@ -1,14 +1,14 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_CORE_NETWORK_TYPES_OWNPEERINFO
-#define KAGOME_CORE_NETWORK_TYPES_OWNPEERINFO
+#pragma once
 
-#include <gsl/span>
 #include <libp2p/crypto/key_marshaller.hpp>
 #include <libp2p/peer/peer_info.hpp>
+#include <span>
 
 #include "application/app_configuration.hpp"
 #include "crypto/crypto_store.hpp"
@@ -52,5 +52,3 @@ namespace kagome::network {
   };
 
 }  // namespace kagome::network
-
-#endif  // KAGOME_CORE_NETWORK_TYPES_OWNPEERINFO

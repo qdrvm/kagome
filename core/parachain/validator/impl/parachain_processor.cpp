@@ -1,13 +1,15 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
 #include "parachain/validator/parachain_processor.hpp"
 
 #include <array>
-#include <gsl/span>
 #include <unordered_map>
+
+#include <libp2p/common/final_action.hpp>
 
 #include "crypto/hasher.hpp"
 #include "crypto/sr25519_provider.hpp"
@@ -136,7 +138,7 @@ namespace kagome::parachain {
         [log{logger_}, wptr_self{weak_from_this()}](
             const primitives::BlockHash &relay_parent,
             const network::SignedBitfield &bitfield) {
-          log->info("Distribute bitfield on {}", relay_parent);
+          SL_VERBOSE(log, "Distribute bitfield on {}", relay_parent);
           if (auto self = wptr_self.lock()) {
             auto msg = std::make_shared<
                 network::WireMessage<network::ValidatorProtocolMessage>>(
@@ -308,9 +310,10 @@ namespace kagome::parachain {
   ParachainProcessorImpl::initNewBackingTask(
       const primitives::BlockHash &relay_parent) {
     bool is_parachain_validator = false;
-    auto metric_updater = gsl::finally([self{this}, &is_parachain_validator] {
-      self->metric_is_parachain_validator_->set(is_parachain_validator);
-    });
+    ::libp2p::common::FinalAction metric_updater(
+        [self{this}, &is_parachain_validator] {
+          self->metric_is_parachain_validator_->set(is_parachain_validator);
+        });
     OUTCOME_TRY(validators, parachain_host_->validators(relay_parent));
     OUTCOME_TRY(groups, parachain_host_->validator_groups(relay_parent));
     OUTCOME_TRY(cores, parachain_host_->availability_cores(relay_parent));
@@ -346,12 +349,12 @@ namespace kagome::parachain {
       }
     }
 
-    logger_->info(
-        "Inited new backing task.(assignment={}, our index={}, relay "
-        "parent={})",
-        assignment,
-        validator->validatorIndex(),
-        relay_parent);
+    SL_VERBOSE(logger_,
+               "Inited new backing task.(assignment={}, our index={}, relay "
+               "parent={})",
+               assignment,
+               validator->validatorIndex(),
+               relay_parent);
 
     return RelayParentState{
         .assignment = assignment,
@@ -377,7 +380,7 @@ namespace kagome::parachain {
     auto rps_result = initNewBackingTask(relay_parent);
     if (rps_result.has_value()) {
       storeStateByRelayParent(relay_parent, std::move(rps_result.value()));
-    } else {
+    } else if (rps_result.error() != Error::KEY_NOT_PRESENT) {
       logger_->error(
           "Relay parent state was not created. (relay parent={}, error={})",
           relay_parent,

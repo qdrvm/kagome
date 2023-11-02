@@ -1,13 +1,14 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_ADAPTERS_PROTOBUF_BLOCK_RESPONSE
-#define KAGOME_ADAPTERS_PROTOBUF_BLOCK_RESPONSE
+#pragma once
 
 #include "network/adapters/protobuf.hpp"
 
+#include "common/bytestr.hpp"
 #include "network/protobuf/api.v1.pb.h"
 #include "network/types/blocks_response.hpp"
 #include "scale/scale.hpp"
@@ -58,7 +59,7 @@ namespace kagome::network {
             vec.emplace_back(primitives::kGrandpaEngineId, gran->data);
           }
           if (auto &beef = src_block.beefy_justification) {
-            vec.emplace_back(primitives::kUnsupportedEngineId_BEEF, beef->data);
+            vec.emplace_back(primitives::kBeefyEngineId, beef->data);
           }
           dst_block->set_justifications(
               common::Buffer{scale::encode(vec).value()}.toString());
@@ -124,7 +125,7 @@ namespace kagome::network {
             if (engine == primitives::kGrandpaEngineId) {
               justification = primitives::Justification{std::move(raw)};
             }
-            if (engine == primitives::kUnsupportedEngineId_BEEF) {
+            if (engine == primitives::kBeefyEngineId) {
               beefy_justification = primitives::Justification{std::move(raw)};
             }
           }
@@ -155,11 +156,7 @@ namespace kagome::network {
     template <typename T, typename F>
     static outcome::result<T> extract_value(F &&f) {
       if (const auto &buffer = std::forward<F>(f)(); !buffer.empty()) {
-        OUTCOME_TRY(
-            decoded,
-            scale::decode<T>(gsl::span<const uint8_t>(
-                reinterpret_cast<const uint8_t *>(buffer.data()),  // NOLINT
-                buffer.size())));
+        OUTCOME_TRY(decoded, scale::decode<T>(str2byte(buffer)));
         return decoded;
       }
       return AdaptersError::EMPTY_DATA;
@@ -172,5 +169,3 @@ namespace kagome::network {
   };
 
 }  // namespace kagome::network
-
-#endif  // KAGOME_ADAPTERS_PROTOBUF_BLOCK_RESPONSE

@@ -1,5 +1,6 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -12,6 +13,7 @@
 #include <boost/asio/io_context.hpp>
 #include <libp2p/basic/scheduler.hpp>
 
+#include "consensus/grandpa/impl/votes_cache.hpp"
 #include "log/logger.hpp"
 #include "metrics/metrics.hpp"
 #include "primitives/event_types.hpp"
@@ -20,7 +22,6 @@
 
 namespace kagome::application {
   class AppStateManager;
-  class ChainSpec;
 }  // namespace kagome::application
 
 namespace kagome::blockchain {
@@ -94,7 +95,6 @@ namespace kagome::consensus::grandpa {
         std::shared_ptr<Environment> environment,
         std::shared_ptr<crypto::Ed25519Provider> crypto_provider,
         std::shared_ptr<crypto::SessionKeys> session_keys,
-        const application::ChainSpec &chain_spec,
         std::shared_ptr<AuthorityManager> authority_manager,
         std::shared_ptr<network::Synchronizer> synchronizer,
         std::shared_ptr<network::PeerManager> peer_manager,
@@ -141,6 +141,7 @@ namespace kagome::consensus::grandpa {
      * @param msg received grandpa neighbour message
      */
     void onNeighborMessage(const libp2p::peer::PeerId &peer_id,
+                           std::optional<network::PeerStateCompact> &&info_opt,
                            network::GrandpaNeighborMessage &&msg) override;
 
     // Catch-up methods
@@ -156,6 +157,7 @@ namespace kagome::consensus::grandpa {
      * @param msg network message containing catch up request
      */
     void onCatchUpRequest(const libp2p::peer::PeerId &peer_id,
+                          std::optional<network::PeerStateCompact> &&info,
                           network::CatchUpRequest &&msg) override;
 
     /**
@@ -191,6 +193,7 @@ namespace kagome::consensus::grandpa {
     void onVoteMessage(
         std::optional<std::shared_ptr<GrandpaContext>> &&existed_context,
         const libp2p::peer::PeerId &peer_id,
+        std::optional<network::PeerStateCompact> &&info_opt,
         const network::VoteMessage &msg) override;
 
     /**
@@ -296,6 +299,8 @@ namespace kagome::consensus::grandpa {
      */
     void loadMissingBlocks(GrandpaContext &&grandpa_context);
 
+    const size_t kVotesCacheSize = 5;
+
     const Clock::Duration round_time_factor_;
 
     std::shared_ptr<crypto::Hasher> hasher_;
@@ -306,6 +311,7 @@ namespace kagome::consensus::grandpa {
     std::shared_ptr<network::Synchronizer> synchronizer_;
     std::shared_ptr<network::PeerManager> peer_manager_;
     std::shared_ptr<blockchain::BlockTree> block_tree_;
+    VotesCache votes_cache_{kVotesCacheSize};
     std::shared_ptr<network::ReputationRepository> reputation_repository_;
     primitives::events::BabeStateSubscriptionEnginePtr babe_status_observable_;
     primitives::events::BabeStateEventSubscriberPtr babe_status_observer_;

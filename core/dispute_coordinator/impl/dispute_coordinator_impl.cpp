@@ -1,5 +1,6 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -38,7 +39,7 @@ namespace kagome::dispute {
     constexpr auto disputesTotalMetricName =
         "kagome_parachain_candidate_disputes_total";
 
-    constexpr auto disputeVotesMetricName =  //
+    constexpr auto disputeVotesMetricName =
         "kagome_parachain_candidate_dispute_votes";
 
     constexpr auto disputeConcludedMetricName =

@@ -1,5 +1,6 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -54,6 +55,7 @@ namespace kagome::network {
         Roles roles,
         const application::ChainSpec &chain_spec,
         const blockchain::GenesisBlockHash &genesis_hash,
+        std::shared_ptr<boost::asio::io_context> main_thread,
         std::shared_ptr<consensus::Timeline> timeline,
         std::shared_ptr<ExtrinsicObserver> extrinsic_observer,
         std::shared_ptr<StreamEngine> stream_engine,
@@ -72,13 +74,14 @@ namespace kagome::network {
         std::function<void(outcome::result<std::shared_ptr<Stream>>)> &&cb)
         override;
 
-    void propagateTransactions(gsl::span<const primitives::Transaction> txs);
+    void propagateTransactions(std::span<const primitives::Transaction> txs);
 
    private:
     inline static const auto kPropagateTransactionsProtocolName =
         "PropagateTransactionsProtocol"s;
     ProtocolBaseImpl base_;
     Roles roles_;
+    std::shared_ptr<boost::asio::io_context> main_thread_;
     std::shared_ptr<consensus::Timeline> timeline_;
     std::shared_ptr<ExtrinsicObserver> extrinsic_observer_;
     std::shared_ptr<StreamEngine> stream_engine_;

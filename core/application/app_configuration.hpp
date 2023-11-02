@@ -1,10 +1,10 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_APP_CONFIGURATION_HPP
-#define KAGOME_APP_CONFIGURATION_HPP
+#pragma once
 
 #include <memory>
 #include <optional>
@@ -283,5 +283,3 @@ namespace kagome::application {
   };
 
 }  // namespace kagome::application
-
-#endif  // KAGOME_APP_CONFIGURATION_HPP

@@ -1,10 +1,10 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_DISPUTE_REQUESTVOTES
-#define KAGOME_DISPUTE_REQUESTVOTES
+#pragma once
 
 #include "dispute_coordinator/types.hpp"
 
@@ -22,5 +22,3 @@ namespace kagome::dispute {
       const std::vector<std::tuple<SessionIndex, CandidateHash>> &disputes);
 
 }  // namespace kagome::dispute
-
-#endif  // KAGOME_DISPUTE_REQUESTVOTES

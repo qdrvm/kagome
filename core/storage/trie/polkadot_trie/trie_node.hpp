@@ -1,5 +1,6 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -39,7 +40,7 @@ namespace kagome::storage::trie {
 
       auto l = key.size() * 2;
       KeyNibbles res(common::Buffer(l, 0));
-      for (ssize_t i = 0; i < key.size(); i++) {
+      for (size_t i = 0; i < key.size(); i++) {
         res[2 * i] = key[i] >> 4u;
         res[2 * i + 1] = key[i] & 0xfu;
       }

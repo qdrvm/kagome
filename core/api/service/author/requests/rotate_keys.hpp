@@ -1,10 +1,10 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_REQUESTS_ROTATE_KEYS_HPP
-#define KAGOME_REQUESTS_ROTATE_KEYS_HPP
+#pragma once
 
 #include <jsonrpc-lean/request.h>
 
@@ -29,5 +29,3 @@ namespace kagome::api::author::request {
   };
 
 }  // namespace kagome::api::author::request
-
-#endif  // KAGOME_REQUESTS_ROTATE_KEYS_HPP

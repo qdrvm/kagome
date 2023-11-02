@@ -1,5 +1,6 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -203,7 +204,7 @@ namespace kagome::benchmark {
     OUTCOME_TRY(batch, storage.getEphemeralBatchAt(state));
 
     OUTCOME_TRY(enc_block_weight, batch->get(BLOCK_WEIGHT_KEY));
-    scale::ScaleDecoderStream stream{enc_block_weight};
+    scale::ScaleDecoderStream stream{enc_block_weight.view()};
     ConsumedWeight block_weight;
     try {
       stream >> block_weight;

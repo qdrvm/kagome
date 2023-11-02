@@ -1,5 +1,6 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -172,7 +173,7 @@ namespace kagome::runtime::binaryen {
         throw std::runtime_error("invalid offset when initializing memory");
       }
       callback(offset,
-               gsl::span<const uint8_t>(
+               common::BufferView(
                    reinterpret_cast<const uint8_t *>(segment.data.data()),
                    segment.data.size()));
     }

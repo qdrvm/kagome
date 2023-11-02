@@ -1,5 +1,6 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -30,7 +31,7 @@ namespace kagome::runtime::wavm {
         std::shared_ptr<ModuleParams> module_params,
         std::shared_ptr<IntrinsicModule> intrinsic_module,
         std::shared_ptr<const InstanceEnvironmentFactory> instance_env_factory,
-        gsl::span<const uint8_t> code,
+        common::BufferView code,
         const common::Hash256 &code_hash,
         std::shared_ptr<SingleModuleCache> last_compiled_module)
         : instance_env_factory_{std::move(instance_env_factory)},
@@ -71,7 +72,7 @@ namespace kagome::runtime::wavm {
     std::shared_ptr<CompartmentWrapper> compartment_;
     std::shared_ptr<ModuleParams> module_params_;
     std::shared_ptr<IntrinsicModule> intrinsic_module_;
-    gsl::span<const uint8_t> code_;
+    common::BufferView code_;
     const common::Hash256 code_hash_;
     std::shared_ptr<SingleModuleCache> last_compiled_module_;
   };
@@ -109,17 +110,13 @@ namespace kagome::runtime::wavm {
     auto code_hash = hasher->sha2_256(runtime_code);
 
     auto ctx_factory = std::make_shared<runtime::RuntimeContextFactoryImpl>(
-        std::make_shared<OneModuleRepository>(
-            compartment_,
-            module_params_,
-            intrinsic_module_,
-            instance_env_factory_,
-            gsl::span<const uint8_t>{
-                runtime_code.data(),
-                static_cast<gsl::span<const uint8_t>::index_type>(
-                    runtime_code.size())},
-            code_hash,
-            last_compiled_module_),
+        std::make_shared<OneModuleRepository>(compartment_,
+                                              module_params_,
+                                              intrinsic_module_,
+                                              instance_env_factory_,
+                                              runtime_code,
+                                              code_hash,
+                                              last_compiled_module_),
         block_header_repo_);
     auto executor = std::make_unique<runtime::Executor>(ctx_factory, cache_);
     return std::make_unique<CoreImpl>(

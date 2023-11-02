@@ -1,11 +1,12 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
 #include <gtest/gtest.h>
 
-#include <gsl/span>
+#include <span>
 
 #include "crypto/bip39/impl/bip39_provider_impl.hpp"
 #include "crypto/ed25519/ed25519_provider_impl.hpp"
@@ -52,7 +53,7 @@ struct Ed25519ProviderTest : public ::testing::Test {
   std::string_view hex_seed;
   std::string_view hex_public_key;
 
-  gsl::span<uint8_t> message_span;
+  std::span<uint8_t> message_span;
   std::vector<uint8_t> message;
   std::shared_ptr<BoostRandomGenerator> csprng =
       std::make_shared<BoostRandomGenerator>();

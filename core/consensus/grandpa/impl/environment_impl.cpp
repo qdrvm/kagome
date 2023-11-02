@@ -1,11 +1,13 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
 #include "consensus/grandpa/impl/environment_impl.hpp"
 
 #include <boost/optional/optional_io.hpp>
+#include <latch>
 #include <utility>
 
 #include "blockchain/block_header_repository.hpp"
@@ -168,18 +170,17 @@ namespace kagome::consensus::grandpa {
       parent_hash = block_hash;
     }
 
-    auto promise_res = std::promise<outcome::result<primitives::BlockInfo>>();
-    auto res_future = promise_res.get_future();
+    outcome::result<primitives::BlockInfo> best_undisputed_block_res{
+        std::errc::state_not_recoverable};
 
+    std::latch latch(1);
     dispute_coordinator_->determineUndisputedChain(
-        finalized,
-        block_descriptions,
-        [promise_res = std::ref(promise_res)](
-            outcome::result<primitives::BlockInfo> res) {
-          promise_res.get().set_value(std::move(res));
+        finalized, block_descriptions, [&](auto res) {
+          best_undisputed_block_res = std::move(res);
+          latch.count_down();
         });
+    latch.wait();
 
-    auto best_undisputed_block_res = res_future.get();
     if (best_undisputed_block_res.has_error()) {
       SL_WARN(logger_,
               "Unable to query undisputed chain: {}",

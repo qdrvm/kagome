@@ -1,5 +1,6 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -14,7 +15,6 @@
 #include "mock/core/application/app_configuration_mock.hpp"
 #include "mock/core/authorship/proposer_mock.hpp"
 #include "mock/core/blockchain/block_tree_mock.hpp"
-#include "mock/core/blockchain/digest_tracker_mock.hpp"
 #include "mock/core/clock/clock_mock.hpp"
 #include "mock/core/consensus/babe/babe_config_repository_mock.hpp"
 #include "mock/core/consensus/babe_lottery_mock.hpp"
@@ -42,9 +42,9 @@ using kagome::ThreadPool;
 using kagome::application::AppConfigurationMock;
 using kagome::authorship::ProposerMock;
 using kagome::blockchain::BlockTreeMock;
-using kagome::blockchain::DigestTrackerMock;
 using kagome::clock::SystemClockMock;
 using kagome::common::Buffer;
+using kagome::common::BufferView;
 using kagome::consensus::BlockProductionError;
 using kagome::consensus::EpochLength;
 using kagome::consensus::EpochNumber;
@@ -162,14 +162,14 @@ class BabeTest : public testing::Test {
     lottery = std::make_shared<BabeLotteryMock>();
 
     hasher = std::make_shared<HasherMock>();
-    auto d1 = gsl::make_span(scale::encode(genesis_block_header).value());
-    ON_CALL(*hasher, blake2b_256(d1))
+    static const auto d1 = scale::encode(genesis_block_header).value();
+    ON_CALL(*hasher, blake2b_256(BufferView(d1)))
         .WillByDefault(Return(genesis_block_info.hash));
-    auto d2 = gsl::make_span(scale::encode(best_block_header).value());
-    ON_CALL(*hasher, blake2b_256(d2))
+    static const auto d2 = scale::encode(best_block_header).value();
+    ON_CALL(*hasher, blake2b_256(BufferView(d2)))
         .WillByDefault(Return(best_block_info.hash));
-    auto d3 = gsl::make_span(scale::encode(new_block_header).value());
-    ON_CALL(*hasher, blake2b_256(d3))
+    static const auto d3 = scale::encode(new_block_header).value();
+    ON_CALL(*hasher, blake2b_256(BufferView(d3)))
         .WillByDefault(Return(new_block_info.hash));
 
     sr25519_provider = std::make_shared<Sr25519ProviderMock>();
@@ -182,10 +182,6 @@ class BabeTest : public testing::Test {
             [](const auto &f) { f(MultiDisputeStatementSet{}); })));
 
     proposer = std::make_shared<ProposerMock>();
-
-    digest_tracker = std::make_shared<DigestTrackerMock>();
-    ON_CALL(*digest_tracker, onDigest(_, _))
-        .WillByDefault(Return(outcome::success()));
 
     storage_sub_engine = std::make_shared<StorageSubscriptionEngine>();
     chain_sub_engine = std::make_shared<ChainSubscriptionEngine>();
@@ -208,7 +204,6 @@ class BabeTest : public testing::Test {
                                   backing_store,
                                   dispute_coordinator,
                                   proposer,
-                                  digest_tracker,
                                   storage_sub_engine,
                                   chain_sub_engine,
                                   announce_transmitter,
@@ -230,7 +225,6 @@ class BabeTest : public testing::Test {
   std::shared_ptr<BackingStoreMock> backing_store;
   std::shared_ptr<DisputeCoordinatorMock> dispute_coordinator;
   std::shared_ptr<ProposerMock> proposer;
-  std::shared_ptr<DigestTrackerMock> digest_tracker;
   std::shared_ptr<StorageSubscriptionEngine> storage_sub_engine;
   std::shared_ptr<ChainSubscriptionEngine> chain_sub_engine;
   std::shared_ptr<BlockAnnounceTransmitterMock> announce_transmitter;

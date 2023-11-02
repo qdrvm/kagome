@@ -1,5 +1,6 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -355,6 +356,36 @@ namespace kagome::parachain {
       bool local;
     };
 
+    template <typename T>
+    struct DeferedSender final {
+      using ContainerT =
+          std::unordered_map<libp2p::peer::PeerId, std::deque<T>>;
+      ContainerT messages;
+      std::function<void(ContainerT &&)> f;
+
+      template <typename F>
+      DeferedSender(F &&f_) : f{std::forward<F>(f_)} {}
+
+      DeferedSender(const DeferedSender &) = delete;
+      DeferedSender &operator=(const DeferedSender &) = delete;
+
+      DeferedSender(DeferedSender &&) = default;
+      DeferedSender &operator=(DeferedSender &&) = default;
+
+      void postponeSend(const std::unordered_set<libp2p::peer::PeerId> &peers,
+                        const T &msg) {
+        for (const auto &peer : peers) {
+          messages[peer].emplace_back(msg);
+        }
+      }
+
+      ~DeferedSender() {
+        if (f && !messages.empty()) {
+          f(std::move(messages));
+        }
+      }
+    };
+
     /// Information about candidates in the context of a particular block they
     /// are included in. In other words, multiple `CandidateEntry`s may exist
     /// for the same candidate, if it is included by multiple blocks - this is
@@ -508,10 +539,12 @@ namespace kagome::parachain {
         const network::IndirectSignedApprovalVote &vote);
     void import_and_circulate_assignment(
         const MessageSource &source,
+        DeferedSender<network::Assignment> &defered_sender,
         const approval::IndirectAssignmentCert &assignment,
         CandidateIndex claimed_candidate_index);
     void import_and_circulate_approval(
         const MessageSource &source,
+        DeferedSender<network::IndirectSignedApprovalVote> &defered_sender,
         const network::IndirectSignedApprovalVote &vote);
 
     template <typename Func>
@@ -625,9 +658,8 @@ namespace kagome::parachain {
                          BlockImportedCandidates &&candidate);
 
     void runDistributeAssignment(
-        const approval::IndirectAssignmentCert &indirect_cert,
-        CandidateIndex candidate_index,
-        std::unordered_set<libp2p::peer::PeerId> &&peers);
+        std::unordered_map<libp2p::peer::PeerId,
+                           std::deque<network::Assignment>> &&messages);
 
     void send_assignments_batched(std::deque<network::Assignment> &&assignments,
                                   const libp2p::peer::PeerId &peer_id);
@@ -637,8 +669,9 @@ namespace kagome::parachain {
         const libp2p::peer::PeerId &peer_id);
 
     void runDistributeApproval(
-        const network::IndirectSignedApprovalVote &vote,
-        std::unordered_set<libp2p::peer::PeerId> &&peers);
+        std::unordered_map<libp2p::peer::PeerId,
+                           std::deque<network::IndirectSignedApprovalVote>>
+            &&messages);
 
     void runScheduleWakeup(const primitives::BlockHash &block_hash,
                            primitives::BlockNumber block_number,

@@ -1,5 +1,6 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -35,7 +36,8 @@ namespace kagome::network {
       std::shared_ptr<libp2p::basic::Scheduler> scheduler)
       : base_(kGrandpaProtocolName,
               host,
-              make_protocols(kGrandpaProtocol, genesis_hash, "paritytech"),
+              make_protocols(
+                  kGrandpaProtocol, genesis_hash, kProtocolPrefixParitytech),
               log::createLogger(kGrandpaProtocolName, "grandpa_protocol")),
         hasher_{std::move(hasher)},
         io_context_(std::move(io_context)),
@@ -129,7 +131,9 @@ namespace kagome::network {
         [&](network::GrandpaVote &&vote_message) {
           SL_VERBOSE(
               base_.logger(), "VoteMessage has received from {}", peer_id);
-          grandpa_observer_->onVoteMessage(std::nullopt, peer_id, vote_message);
+          auto info = peer_manager_->getPeerState(peer_id);
+          grandpa_observer_->onVoteMessage(
+              std::nullopt, peer_id, compactFromRefToOwn(info), vote_message);
           addKnown(peer_id, hash);
         },
         [&](FullCommitMessage &&commit_message) {
@@ -144,15 +148,18 @@ namespace kagome::network {
             SL_VERBOSE(base_.logger(),
                        "NeighborMessage has received from {}",
                        peer_id);
+            auto info = peer_manager_->getPeerState(peer_id);
             grandpa_observer_->onNeighborMessage(peer_id,
+                                                 compactFromRefToOwn(info),
                                                  std::move(neighbor_message));
           }
         },
         [&](network::CatchUpRequest &&catch_up_request) {
           SL_VERBOSE(
               base_.logger(), "CatchUpRequest has received from {}", peer_id);
-          grandpa_observer_->onCatchUpRequest(peer_id,
-                                              std::move(catch_up_request));
+          auto info = peer_manager_->getPeerState(peer_id);
+          grandpa_observer_->onCatchUpRequest(
+              peer_id, compactFromRefToOwn(info), std::move(catch_up_request));
         },
         [&](network::CatchUpResponse &&catch_up_response) {
           SL_VERBOSE(

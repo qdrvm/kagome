@@ -1,5 +1,6 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -58,7 +59,7 @@
       }                                                                        \
                                                                                \
       static ::outcome::result<class_name> fromSpan(                           \
-          const gsl::span<const uint8_t> &span) {                              \
+          const common::BufferView &span) {                                    \
         OUTCOME_TRY(blob, Base::fromSpan(span));                               \
         return class_name{std::move(blob)};                                    \
       }                                                                        \
@@ -201,8 +202,7 @@ namespace kagome::common {
      * @param buffer
      * @return
      */
-    static outcome::result<Blob<size_>> fromSpan(
-        const gsl::span<const uint8_t> &span) {
+    static outcome::result<Blob<size_>> fromSpan(const BufferView &span) {
       if (span.size() != size_) {
         return BlobError::INCORRECT_LENGTH;
       }

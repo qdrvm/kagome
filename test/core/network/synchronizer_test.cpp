@@ -1,5 +1,6 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -94,6 +95,7 @@ class SynchronizerTest
                                                     scheduler,
                                                     hasher,
                                                     chain_sub_engine,
+                                                    nullptr,
                                                     grandpa_environment);
   }
 

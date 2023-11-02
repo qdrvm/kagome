@@ -1,10 +1,10 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_NETWORK_TRANSACTIONSTRANSMITTERMOCK
-#define KAGOME_NETWORK_TRANSACTIONSTRANSMITTERMOCK
+#pragma once
 
 #include "network/transactions_transmitter.hpp"
 
@@ -16,10 +16,8 @@ namespace kagome::network {
    public:
     MOCK_METHOD(void,
                 propagateTransactions,
-                (gsl::span<const primitives::Transaction>),
+                (std::span<const primitives::Transaction>),
                 (override));
   };
 
 }  // namespace kagome::network
-
-#endif  // KAGOME_NETWORK_TRANSACTIONSTRANSMITTERMOCK

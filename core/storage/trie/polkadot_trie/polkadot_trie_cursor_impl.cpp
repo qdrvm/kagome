@@ -1,5 +1,6 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -7,7 +8,6 @@
 
 #include <utility>
 
-#include "common/buffer_back_insert_iterator.hpp"
 #include "macro/unreachable.hpp"
 #include "storage/trie/polkadot_trie/polkadot_trie.hpp"
 #include "storage/trie/polkadot_trie/trie_error.hpp"
@@ -120,7 +120,7 @@ namespace kagome::storage::trie {
   }
 
   outcome::result<void> PolkadotTrieCursorImpl::seekLowerBoundInternal(
-      const TrieNode &current, gsl::span<const uint8_t> sought_nibbles) {
+      const TrieNode &current, BufferView sought_nibbles) {
     BOOST_ASSERT(isValid());
     auto [sought_nibbles_mismatch, current_mismatch] =
         std::mismatch(sought_nibbles.begin(),
