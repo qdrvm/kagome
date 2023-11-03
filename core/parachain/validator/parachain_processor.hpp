@@ -300,6 +300,8 @@ namespace kagome::parachain {
     std::optional<runtime::PersistedValidationData>
     requestPersistedValidationData(const RelayHash &relay_parent,
                                    ParachainId para_id);
+
+    std::optional<runtime::PersistedValidationData> fetchPersistedValidationData(const RelayHash &relay_parent, ParachainId para_id);
     void onValidationComplete(const libp2p::peer::PeerId &peer_id,
                               ValidateAndSecondResult &&result);
     void onAttestComplete(const libp2p::peer::PeerId &peer_id,

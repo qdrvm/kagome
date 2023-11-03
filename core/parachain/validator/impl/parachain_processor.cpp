@@ -548,6 +548,11 @@ namespace kagome::parachain {
         relay_parent, parent_head_data_hash, para_id);
   }
 
+  std::optional<runtime::PersistedValidationData> ParachainProcessorImpl::fetchPersistedValidationData(const RelayHash &relay_parent, ParachainId para_id) {
+          return requestPersistedValidationData(relay_parent, para_id);
+
+  }
+
   std::optional<runtime::PersistedValidationData>
   ParachainProcessorImpl::requestPersistedValidationData(
       const RelayHash &relay_parent, ParachainId para_id) {
@@ -583,6 +588,54 @@ namespace kagome::parachain {
       bitfield_store_->putBitfield(bd->relay_parent, bd->data);
     };
 
+    auto process_legacy_statement = [&](const network::StatementDistributionMessage &msg) {
+      if (auto statement_msg{boost::get<const network::Seconded>(&msg)}) {
+        if (auto r = canProcessParachains(); r.has_error()) {
+          return;
+        }
+        if (auto r = isParachainValidator(statement_msg->relay_parent);
+            r.has_error() || !r.value()) {
+          return;
+        }
+
+        SL_TRACE(
+            logger_, "Imported statement on {}", statement_msg->relay_parent);
+
+        std::optional<StatementWithPVD> stm;
+        if (auto ccr = if_type<const network::CommittedCandidateReceipt>(getPayload(statement_msg->statement).candidate_state)) {
+          std::optional<runtime::PersistedValidationData> pvd = fetchPersistedValidationData(statement_msg->relay_parent, ccr->get().descriptor.para_id);
+          if (!pvd) {
+            SL_TRACE(logger_, "No pvd fetched.");
+            return;
+          }
+          stm = StatementWithPVDSeconded {
+           .committed_receipt =  ccr->get(),
+           .pvd = std::move(*pvd),
+          };
+        } else if (auto h = if_type<const CandidateHash>(getPayload(statement_msg->statement).candidate_state)) {
+          stm = StatementWithPVDValid {
+            .candidate_hash = h->get(),
+          };
+        }
+
+         handleStatement(
+             peer_id, statement_msg->relay_parent, SignedFullStatementWithPVD{
+                    .payload =
+                        {
+                            .payload = std::move(*stm),
+                            .ix = statement_msg->statement.payload.ix,
+                        },
+                    .signature = statement_msg->statement.signature,
+                });
+      } else {
+        const auto large = boost::get<const network::LargeStatement>(&msg);
+        SL_ERROR(logger_,
+                 "Ignoring LargeStatement about {} from {}",
+                 large->payload.payload.candidate_hash,
+                 peer_id);
+      }
+    };
+
     visit_in_place(message,
       [&](const network::ValidatorProtocolMessage &m) {
         visit_in_place(m,
@@ -590,7 +643,7 @@ namespace kagome::parachain {
             process_bitfield_distribution(val);
           },
           [&](const network::StatementDistributionMessage &val) {
-
+            process_legacy_statement(val);
           },
           [&](const auto &) {});
       },
@@ -606,27 +659,6 @@ namespace kagome::parachain {
       });
 
 //    if (auto msg{boost::get<network::StatementDistributionMessage>(&message)}) {
-//      if (auto statement_msg{boost::get<network::Seconded>(msg)}) {
-//        if (auto r = canProcessParachains(); r.has_error()) {
-//          return;
-//        }
-//        if (auto r = isParachainValidator(statement_msg->relay_parent);
-//            r.has_error() || !r.value()) {
-//          return;
-//        }
-//        SL_TRACE(
-//            logger_, "Imported statement on {}", statement_msg->relay_parent);
-//
-//        /// TODO(iceseer): do Statement with PVD
-//        // handleStatement(
-//        //     peer_id, statement_msg->relay_parent, statement_msg->statement);
-//      } else {
-//        auto &large = boost::get<network::LargeStatement>(*msg);
-//        SL_ERROR(logger_,
-//                 "Ignoring LargeStatement about {} from {}",
-//                 large.payload.payload.candidate_hash,
-//                 peer_id);
-//      }
 //      return;
 //    }
   }
