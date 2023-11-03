@@ -571,22 +571,39 @@ namespace kagome::parachain {
     REINVOKE(
         *this_context_, onValidationProtocolMsg, peer_id, message);
 
-    if (std::optional<std::reference_wrapper<const network::BitfieldDistributionMessage>> m = 
-      visit_in_place(message, 
-        [](const auto &val) {
-          return if_type<const network::BitfieldDistributionMessage>(val);
-        })) {
-          auto bd{boost::get<const network::BitfieldDistribution>(&m->get())};
-          BOOST_ASSERT_MSG(
-              bd, "BitfieldDistribution is not present. Check message format.");
+    auto process_bitfield_distribution = [&](const network::BitfieldDistributionMessage &val) {
+      auto bd{boost::get<const network::BitfieldDistribution>(&val)};
+      BOOST_ASSERT_MSG(
+          bd, "BitfieldDistribution is not present. Check message format.");
 
-          SL_TRACE(logger_,
-                  "Imported bitfield {} {}",
-                  bd->data.payload.ix,
-                  bd->relay_parent);
-          bitfield_store_->putBitfield(bd->relay_parent, bd->data);
-          return;
-        }
+      SL_TRACE(logger_,
+              "Imported bitfield {} {}",
+              bd->data.payload.ix,
+              bd->relay_parent);
+      bitfield_store_->putBitfield(bd->relay_parent, bd->data);
+    };
+
+    visit_in_place(message,
+      [&](const network::ValidatorProtocolMessage &m) {
+        visit_in_place(m,
+          [&](const network::BitfieldDistributionMessage &val) {
+            process_bitfield_distribution(val);
+          },
+          [&](const network::StatementDistributionMessage &val) {
+
+          },
+          [&](const auto &) {});
+      },
+      [&](const network::vstaging::ValidatorProtocolMessage &m) {
+        visit_in_place(m,
+          [&](const network::vstaging::BitfieldDistributionMessage &val) {
+            process_bitfield_distribution(val);
+          },
+          [&](const network::vstaging::StatementDistributionMessage &val) {
+
+          },
+          [&](const auto &) {});
+      });
 
 //    if (auto msg{boost::get<network::StatementDistributionMessage>(&message)}) {
 //      if (auto statement_msg{boost::get<network::Seconded>(msg)}) {
