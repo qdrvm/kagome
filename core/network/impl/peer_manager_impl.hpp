@@ -172,6 +172,9 @@ namespace kagome::network {
 
     void clearClosedPingingConnections();
 
+    using IsLight = Tagged<bool, struct IsLightTag>;
+    size_t countPeers(PeerType in_out, IsLight in_light = false) const;
+
     std::shared_ptr<application::AppStateManager> app_state_manager_;
     libp2p::Host &host_;
     std::shared_ptr<libp2p::protocol::Identify> identify_;
