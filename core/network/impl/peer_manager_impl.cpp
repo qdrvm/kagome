@@ -745,26 +745,12 @@ namespace kagome::network {
       connecting_peers_.erase(peer_id);
       return;
     }
-    if (connection->isInitiator()) {
+    auto out = connection->isInitiator();
+    if (out) {
       if (countPeers(PeerType::PEER_TYPE_OUT) >= app_config_.outPeers()) {
         connecting_peers_.erase(peer_id);
         disconnectFromPeer(peer_id);
         return;
-      }
-    } else {
-      if (peer_states_[peer_id].roles.flags.full == 1) {
-        if (countPeers(PeerType::PEER_TYPE_IN) >= app_config_.inPeers()) {
-          connecting_peers_.erase(peer_id);
-          disconnectFromPeer(peer_id);
-          return;
-        }
-      } else if (peer_states_[peer_id].roles.flags.light == 1) {
-        if (countPeers(PeerType::PEER_TYPE_IN, IsLight(true))
-            >= app_config_.inPeersLight()) {
-          connecting_peers_.erase(peer_id);
-          disconnectFromPeer(peer_id);
-          return;
-        }
       }
     }
 
@@ -772,10 +758,29 @@ namespace kagome::network {
     openBlockAnnounceProtocol(
         peer_info,
         connection,
-        [](std::shared_ptr<PeerManagerImpl> &self,
-           const PeerInfo &peer_info,
-           std::optional<std::reference_wrapper<PeerState>> peer_state) {
+        [out](std::shared_ptr<PeerManagerImpl> &self,
+              const PeerInfo &peer_info,
+              std::optional<std::reference_wrapper<PeerState>> peer_state) {
           if (peer_state.has_value()) {
+            auto &state = peer_state->get();
+            if (not out) {
+              if (state.roles.flags.full == 1) {
+                if (self->countPeers(PeerType::PEER_TYPE_IN)
+                    >= self->app_config_.inPeers()) {
+                  self->connecting_peers_.erase(peer_info.id);
+                  self->disconnectFromPeer(peer_info.id);
+                  return;
+                }
+              } else if (state.roles.flags.light == 1) {
+                if (self->countPeers(PeerType::PEER_TYPE_IN, IsLight(true))
+                    >= self->app_config_.inPeersLight()) {
+                  self->connecting_peers_.erase(peer_info.id);
+                  self->disconnectFromPeer(peer_info.id);
+                  return;
+                }
+              }
+            }
+
             self->tryOpenGrandpaProtocol(peer_info, peer_state.value().get());
             self->tryOpenValidationProtocol(peer_info,
                                             peer_state.value().get());
