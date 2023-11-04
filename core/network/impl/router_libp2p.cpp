@@ -188,8 +188,8 @@ namespace kagome::network {
     return collation_protocol_.get();
   }
 
-  std::shared_ptr<CollationProtocolVStaging> RouterLibp2p::getCollationProtocolVStaging()
-      const {
+  std::shared_ptr<CollationProtocolVStaging>
+  RouterLibp2p::getCollationProtocolVStaging() const {
     return collation_protocol_vstaging_.get();
   }
 

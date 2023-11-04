@@ -79,7 +79,8 @@ namespace kagome::network {
     getPropagateTransactionsProtocol() const override;
 
     std::shared_ptr<CollationProtocol> getCollationProtocol() const override;
-    std::shared_ptr<CollationProtocolVStaging> getCollationProtocolVStaging() const override;
+    std::shared_ptr<CollationProtocolVStaging> getCollationProtocolVStaging()
+        const override;
     std::shared_ptr<ValidationProtocol> getValidationProtocol() const override;
     std::shared_ptr<ReqCollationProtocol> getReqCollationProtocol()
         const override;

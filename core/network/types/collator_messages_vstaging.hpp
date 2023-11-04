@@ -99,18 +99,31 @@ namespace kagome::network::vstaging {
     StatementFilter statement_knowledge;
   };
 
+  struct AttestedCandidateRequest {
+    SCALE_TIE(2);
+    CandidateHash candidate_hash;
+    StatementFilter mask;
+  };
+
+  struct AttestedCandidateResponse {
+    SCALE_TIE(3);
+    CommittedCandidateReceipt candidate_receipt;
+    runtime::PersistedValidationData persisted_validation_data;
+    std::vector<IndexedAndSigned<CompactStatement>> statements;
+  };
+
   struct BackedCandidateAcknowledgement {
     SCALE_TIE(2);
     CandidateHash candidate_hash;
     StatementFilter statement_knowledge;
   };
 
-  using StatementDistributionMessage = boost::variant<
-      StatementDistributionMessageStatement,   // 0
-      BackedCandidateManifest,                  // 1
-      BackedCandidateAcknowledgement    // 2
-      //v1StatementDistributionMessage  // 255
-  >;
+  using StatementDistributionMessage =
+      boost::variant<StatementDistributionMessageStatement,  // 0
+                     BackedCandidateManifest,                // 1
+                     BackedCandidateAcknowledgement          // 2
+                     // v1StatementDistributionMessage  // 255
+                     >;
 
   struct CollationFetchingRequest {
     SCALE_TIE(3);
@@ -149,14 +162,14 @@ namespace kagome::network {
   template <typename T>
   using WireMessage = boost::variant<
       Dummy,  /// not used
-      std::enable_if_t<AllowerTypeChecker<T,
-                                          ValidatorProtocolMessage,
-                                          CollationProtocolMessage,
-                                          vstaging::ValidatorProtocolMessage,
-                                          vstaging::CollatorProtocolMessage
-                                          >::allowed,
-                       T>,  /// protocol message
-      ViewUpdate            /// view update message
+      std::enable_if_t<
+          AllowerTypeChecker<T,
+                             ValidatorProtocolMessage,
+                             CollationProtocolMessage,
+                             vstaging::ValidatorProtocolMessage,
+                             vstaging::CollatorProtocolMessage>::allowed,
+          T>,     /// protocol message
+      ViewUpdate  /// view update message
       >;
 
   template <typename V1, typename VStaging>

@@ -95,11 +95,12 @@ namespace kagome::parachain {
 
 namespace kagome::network {
 
-    struct OutboundHorizontal {
+  struct OutboundHorizontal {
     SCALE_TIE(2);
 
-    parachain::ParachainId para_id;       /// Parachain Id is recepient id
-    parachain::UpwardMessage upward_msg;  /// upward message for parallel parachain
+    parachain::ParachainId para_id;  /// Parachain Id is recepient id
+    parachain::UpwardMessage
+        upward_msg;  /// upward message for parallel parachain
   };
 
   struct InboundDownwardMessage {
@@ -128,11 +129,12 @@ namespace kagome::network {
     std::vector<OutboundHorizontal>
         outbound_hor_msgs;  /// outbound horizontal messages
     std::optional<parachain::ParachainRuntime>
-        opt_para_runtime;          /// new parachain runtime if present
-    parachain::HeadData para_head;            /// parachain head data
-    uint32_t downward_msgs_count;  /// number of downward messages that were
+        opt_para_runtime;           /// new parachain runtime if present
+    parachain::HeadData para_head;  /// parachain head data
+    uint32_t downward_msgs_count;   /// number of downward messages that were
     /// processed by the parachain
-    parachain::BlockNumber watermark;  /// watermark which specifies the relay chain block
+    parachain::BlockNumber
+        watermark;  /// watermark which specifies the relay chain block
     /// number up to which all inbound horizontal messages
     /// have been processed
   };
@@ -154,7 +156,8 @@ namespace kagome::network {
     storage::trie::RootHash
         erasure_encoding_root;  /// Root of the block’s erasure encoding Merkle
     /// tree.
-    parachain::Signature signature;  /// Collator signature of the concatenated components
+    parachain::Signature
+        signature;  /// Collator signature of the concatenated components
     primitives::BlockHash
         para_head_hash;  /// Hash of the parachain head data of this candidate.
     primitives::BlockHash
@@ -171,7 +174,7 @@ namespace kagome::network {
       };
     }
   };
-}
+}  // namespace kagome::network
 
 namespace kagome::parachain::fragment {
   enum UpgradeRestriction {
@@ -239,7 +242,8 @@ namespace kagome::parachain::fragment {
     /// The new HRMP watermark
     std::optional<HrmpWatermarkUpdate> hrmp_watermark{};
     /// Outbound HRMP channel modifications.
-    std::unordered_map<ParachainId, OutboundHrmpChannelModification> outbound_hrmp{};
+    std::unordered_map<ParachainId, OutboundHrmpChannelModification>
+        outbound_hrmp{};
     /// The amount of UMP messages sent.
     size_t ump_messages_sent{0ull};
     /// The amount of UMP bytes sent.
@@ -300,7 +304,8 @@ namespace kagome::parachain::fragment {
     /// The limitations of all registered inbound HRMP channels.
     InboundHrmpLimitations hrmp_inbound;
     /// The limitations of all registered outbound HRMP channels.
-    std::unordered_map<ParachainId, OutboundHrmpChannelLimitations> hrmp_channels_out;
+    std::unordered_map<ParachainId, OutboundHrmpChannelLimitations>
+        hrmp_channels_out;
     /// The maximum number of HRMP messages allowed per candidate.
     size_t max_hrmp_num_per_candidate;
     /// The required parent head-data of the parachain.
@@ -311,7 +316,8 @@ namespace kagome::parachain::fragment {
     std::optional<UpgradeRestriction> upgrade_restriction;
     /// The future validation code hash, if any, and at what relay-parent
     /// number the upgrade would be minimally applied.
-    std::optional<std::pair<BlockNumber, ValidationCodeHash>> future_validation_code;
+    std::optional<std::pair<BlockNumber, ValidationCodeHash>>
+        future_validation_code;
 
     outcome::result<Constraints> applyModifications(
         const ConstraintModifications &modifications) const;
@@ -325,25 +331,24 @@ namespace kagome::parachain::fragment {
     /// should form a sub-chain, where the first candidate builds on top of the
     /// required parent of the constraints and each subsequent builds on top of
     /// the previous head-data.
-    std::vector<CandidatePendingAvailability>
-        pending_availability;
+    std::vector<CandidatePendingAvailability> pending_availability;
   };
 
-struct AsyncBackingParams {
-  SCALE_TIE(2);
-	/// The maximum number of para blocks between the para head in a relay parent
-	/// and a new candidate. Restricts nodes from building arbitrary long chains
-	/// and spamming other validators.
-	///
-	/// When async backing is disabled, the only valid value is 0.
-	uint32_t max_candidate_depth;
-	/// How many ancestors of a relay parent are allowed to build candidates on top
-	/// of.
-	///
-	/// When async backing is disabled, the only valid value is 0.
-	uint32_t allowed_ancestry_len;
-};
+  struct AsyncBackingParams {
+    SCALE_TIE(2);
+    /// The maximum number of para blocks between the para head in a relay
+    /// parent and a new candidate. Restricts nodes from building arbitrary long
+    /// chains and spamming other validators.
+    ///
+    /// When async backing is disabled, the only valid value is 0.
+    uint32_t max_candidate_depth;
+    /// How many ancestors of a relay parent are allowed to build candidates on
+    /// top of.
+    ///
+    /// When async backing is disabled, the only valid value is 0.
+    uint32_t allowed_ancestry_len;
+  };
 
-}
+}  // namespace kagome::parachain::fragment
 
 #endif  // KAGOME_PARACHAIN_PRIMITIVES_HPP

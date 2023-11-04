@@ -548,9 +548,10 @@ namespace kagome::parachain {
         relay_parent, parent_head_data_hash, para_id);
   }
 
-  std::optional<runtime::PersistedValidationData> ParachainProcessorImpl::fetchPersistedValidationData(const RelayHash &relay_parent, ParachainId para_id) {
-          return requestPersistedValidationData(relay_parent, para_id);
-
+  std::optional<runtime::PersistedValidationData>
+  ParachainProcessorImpl::fetchPersistedValidationData(
+      const RelayHash &relay_parent, ParachainId para_id) {
+    return requestPersistedValidationData(relay_parent, para_id);
   }
 
   std::optional<runtime::PersistedValidationData>
@@ -570,97 +571,116 @@ namespace kagome::parachain {
     return std::move(res_data.value());
   }
 
+  void ParachainProcessorImpl::process_bitfield_distribution(
+      const network::BitfieldDistributionMessage &val) {
+    BOOST_ASSERT(
+        this_context_->io_context()->get_executor().running_in_this_thread());
+    auto bd{boost::get<const network::BitfieldDistribution>(&val)};
+    BOOST_ASSERT_MSG(
+        bd, "BitfieldDistribution is not present. Check message format.");
+
+    SL_TRACE(logger_,
+             "Imported bitfield {} {}",
+             bd->data.payload.ix,
+             bd->relay_parent);
+    bitfield_store_->putBitfield(bd->relay_parent, bd->data);
+  }
+
+  void ParachainProcessorImpl::process_vstaging_statement(
+      const libp2p::peer::PeerId &peer_id,
+      const network::vstaging::StatementDistributionMessage &msg) {}
+
+  void ParachainProcessorImpl::process_legacy_statement(
+      const libp2p::peer::PeerId &peer_id,
+      const network::StatementDistributionMessage &msg) {
+    BOOST_ASSERT(
+        this_context_->io_context()->get_executor().running_in_this_thread());
+    if (auto statement_msg{boost::get<const network::Seconded>(&msg)}) {
+      if (auto r = canProcessParachains(); r.has_error()) {
+        return;
+      }
+      if (auto r = isParachainValidator(statement_msg->relay_parent);
+          r.has_error() || !r.value()) {
+        return;
+      }
+
+      SL_TRACE(
+          logger_, "Imported statement on {}", statement_msg->relay_parent);
+
+      std::optional<StatementWithPVD> stm;
+      if (auto ccr = if_type<const network::CommittedCandidateReceipt>(
+              getPayload(statement_msg->statement).candidate_state)) {
+        std::optional<runtime::PersistedValidationData> pvd =
+            fetchPersistedValidationData(statement_msg->relay_parent,
+                                         ccr->get().descriptor.para_id);
+        if (!pvd) {
+          SL_TRACE(logger_, "No pvd fetched.");
+          return;
+        }
+        stm = StatementWithPVDSeconded{
+            .committed_receipt = ccr->get(),
+            .pvd = std::move(*pvd),
+        };
+      } else if (auto h = if_type<const CandidateHash>(
+                     getPayload(statement_msg->statement).candidate_state)) {
+        stm = StatementWithPVDValid{
+            .candidate_hash = h->get(),
+        };
+      }
+
+      handleStatement(peer_id,
+                      statement_msg->relay_parent,
+                      SignedFullStatementWithPVD{
+                          .payload =
+                              {
+                                  .payload = std::move(*stm),
+                                  .ix = statement_msg->statement.payload.ix,
+                              },
+                          .signature = statement_msg->statement.signature,
+                      });
+    } else {
+      const auto large = boost::get<const network::LargeStatement>(&msg);
+      SL_ERROR(logger_,
+               "Ignoring LargeStatement about {} from {}",
+               large->payload.payload.candidate_hash,
+               peer_id);
+    }
+  }
+
   void ParachainProcessorImpl::onValidationProtocolMsg(
       const libp2p::peer::PeerId &peer_id,
       const network::VersionedValidatorProtocolMessage &message) {
-    REINVOKE(
-        *this_context_, onValidationProtocolMsg, peer_id, message);
+    REINVOKE(*this_context_, onValidationProtocolMsg, peer_id, message);
 
-    auto process_bitfield_distribution = [&](const network::BitfieldDistributionMessage &val) {
-      auto bd{boost::get<const network::BitfieldDistribution>(&val)};
-      BOOST_ASSERT_MSG(
-          bd, "BitfieldDistribution is not present. Check message format.");
+    visit_in_place(
+        message,
+        [&](const network::ValidatorProtocolMessage &m) {
+          visit_in_place(
+              m,
+              [&](const network::BitfieldDistributionMessage &val) {
+                process_bitfield_distribution(val);
+              },
+              [&](const network::StatementDistributionMessage &val) {
+                process_legacy_statement(peer_id, val);
+              },
+              [&](const auto &) {});
+        },
+        [&](const network::vstaging::ValidatorProtocolMessage &m) {
+          visit_in_place(
+              m,
+              [&](const network::vstaging::BitfieldDistributionMessage &val) {
+                process_bitfield_distribution(val);
+              },
+              [&](const network::vstaging::StatementDistributionMessage &val) {
+                process_vstaging_statement(peer_id, val);
+              },
+              [&](const auto &) {});
+        });
 
-      SL_TRACE(logger_,
-              "Imported bitfield {} {}",
-              bd->data.payload.ix,
-              bd->relay_parent);
-      bitfield_store_->putBitfield(bd->relay_parent, bd->data);
-    };
-
-    auto process_legacy_statement = [&](const network::StatementDistributionMessage &msg) {
-      if (auto statement_msg{boost::get<const network::Seconded>(&msg)}) {
-        if (auto r = canProcessParachains(); r.has_error()) {
-          return;
-        }
-        if (auto r = isParachainValidator(statement_msg->relay_parent);
-            r.has_error() || !r.value()) {
-          return;
-        }
-
-        SL_TRACE(
-            logger_, "Imported statement on {}", statement_msg->relay_parent);
-
-        std::optional<StatementWithPVD> stm;
-        if (auto ccr = if_type<const network::CommittedCandidateReceipt>(getPayload(statement_msg->statement).candidate_state)) {
-          std::optional<runtime::PersistedValidationData> pvd = fetchPersistedValidationData(statement_msg->relay_parent, ccr->get().descriptor.para_id);
-          if (!pvd) {
-            SL_TRACE(logger_, "No pvd fetched.");
-            return;
-          }
-          stm = StatementWithPVDSeconded {
-           .committed_receipt =  ccr->get(),
-           .pvd = std::move(*pvd),
-          };
-        } else if (auto h = if_type<const CandidateHash>(getPayload(statement_msg->statement).candidate_state)) {
-          stm = StatementWithPVDValid {
-            .candidate_hash = h->get(),
-          };
-        }
-
-         handleStatement(
-             peer_id, statement_msg->relay_parent, SignedFullStatementWithPVD{
-                    .payload =
-                        {
-                            .payload = std::move(*stm),
-                            .ix = statement_msg->statement.payload.ix,
-                        },
-                    .signature = statement_msg->statement.signature,
-                });
-      } else {
-        const auto large = boost::get<const network::LargeStatement>(&msg);
-        SL_ERROR(logger_,
-                 "Ignoring LargeStatement about {} from {}",
-                 large->payload.payload.candidate_hash,
-                 peer_id);
-      }
-    };
-
-    visit_in_place(message,
-      [&](const network::ValidatorProtocolMessage &m) {
-        visit_in_place(m,
-          [&](const network::BitfieldDistributionMessage &val) {
-            process_bitfield_distribution(val);
-          },
-          [&](const network::StatementDistributionMessage &val) {
-            process_legacy_statement(val);
-          },
-          [&](const auto &) {});
-      },
-      [&](const network::vstaging::ValidatorProtocolMessage &m) {
-        visit_in_place(m,
-          [&](const network::vstaging::BitfieldDistributionMessage &val) {
-            process_bitfield_distribution(val);
-          },
-          [&](const network::vstaging::StatementDistributionMessage &val) {
-
-          },
-          [&](const auto &) {});
-      });
-
-//    if (auto msg{boost::get<network::StatementDistributionMessage>(&message)}) {
-//      return;
-//    }
+    //    if (auto
+    //    msg{boost::get<network::StatementDistributionMessage>(&message)}) {
+    //      return;
+    //    }
   }
 
   template <typename F>
@@ -1371,10 +1391,7 @@ namespace kagome::parachain {
 
   void ParachainProcessorImpl::onIncomingCollationStream(
       const libp2p::peer::PeerId &peer_id, network::CollationVersion version) {
-    REINVOKE(*this_context_,
-             onIncomingCollationStream,
-             peer_id,
-             version);
+    REINVOKE(*this_context_, onIncomingCollationStream, peer_id, version);
 
     const auto peer_state = pm_->getPeerState(peer_id);
     if (!peer_state) {
@@ -1397,10 +1414,7 @@ namespace kagome::parachain {
 
   void ParachainProcessorImpl::onIncomingValidationStream(
       const libp2p::peer::PeerId &peer_id, network::CollationVersion version) {
-    REINVOKE(*this_context_,
-             onIncomingValidationStream,
-             peer_id,
-             version);
+    REINVOKE(*this_context_, onIncomingValidationStream, peer_id, version);
 
     const auto peer_state = pm_->getPeerState(peer_id);
     if (!peer_state) {

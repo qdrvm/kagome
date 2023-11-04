@@ -21,11 +21,12 @@ namespace kagome::network {
 
     /// Handle incoming validation stream.
     virtual void onIncomingValidationStream(
-        libp2p::peer::PeerId const &peer_id, network::CollationVersion version) = 0;
+        const libp2p::peer::PeerId &peer_id,
+        network::CollationVersion version) = 0;
 
     /// Handle incoming collation message.
     virtual void onIncomingMessage(
-        libp2p::peer::PeerId const &peer_id,
+        const libp2p::peer::PeerId &peer_id,
         network::VersionedValidatorProtocolMessage &&validation_message) = 0;
   };
 }  // namespace kagome::network

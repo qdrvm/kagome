@@ -53,25 +53,26 @@ namespace kagome::network {
             log::createLogger("CollationProtocol", "collation_protocol")){};
   };
 
-  class CollationProtocolVStaging : public ParachainProtocol<CollationObserver,
-                                                     vstaging::CollatorProtocolMessage,
-                                                     true> {
+  class CollationProtocolVStaging
+      : public ParachainProtocol<CollationObserver,
+                                 vstaging::CollatorProtocolMessage,
+                                 true> {
    public:
     CollationProtocolVStaging(libp2p::Host &host,
-                      const application::AppConfiguration &app_config,
-                      const application::ChainSpec &chain_spec,
-                      const blockchain::GenesisBlockHash &genesis_hash,
-                      std::shared_ptr<ObserverType> observer,
-                      std::shared_ptr<network::PeerView> peer_view)
-        : ParachainProtocol(
-            host,
-            app_config,
-            chain_spec,
-            genesis_hash,
-            std::move(observer),
-            kCollationProtocolVStaging,
-            std::move(peer_view),
-            log::createLogger("CollationProtocolVStaging", "collation_protocol")){};
+                              const application::AppConfiguration &app_config,
+                              const application::ChainSpec &chain_spec,
+                              const blockchain::GenesisBlockHash &genesis_hash,
+                              std::shared_ptr<ObserverType> observer,
+                              std::shared_ptr<network::PeerView> peer_view)
+        : ParachainProtocol(host,
+                            app_config,
+                            chain_spec,
+                            genesis_hash,
+                            std::move(observer),
+                            kCollationProtocolVStaging,
+                            std::move(peer_view),
+                            log::createLogger("CollationProtocolVStaging",
+                                              "collation_protocol")){};
   };
 
   class ValidationProtocol : public ParachainProtocol<ValidationObserver,
@@ -95,25 +96,26 @@ namespace kagome::network {
             log::createLogger("ValidationProtocol", "validation_protocol")){};
   };
 
-  class ValidationProtocolVStaging : public ParachainProtocol<ValidationObserver,
-                                                      vstaging::ValidatorProtocolMessage,
-                                                      false> {
+  class ValidationProtocolVStaging
+      : public ParachainProtocol<ValidationObserver,
+                                 vstaging::ValidatorProtocolMessage,
+                                 false> {
    public:
     ValidationProtocolVStaging(libp2p::Host &host,
-                       const application::AppConfiguration &app_config,
-                       const application::ChainSpec &chain_spec,
-                       const blockchain::GenesisBlockHash &genesis_hash,
-                       std::shared_ptr<ObserverType> observer,
-                       std::shared_ptr<network::PeerView> peer_view)
-        : ParachainProtocol(
-            host,
-            app_config,
-            chain_spec,
-            genesis_hash,
-            std::move(observer),
-            kValidationProtocolVStaging,
-            std::move(peer_view),
-            log::createLogger("ValidationProtocolVStaging", "validation_protocol")){};
+                               const application::AppConfiguration &app_config,
+                               const application::ChainSpec &chain_spec,
+                               const blockchain::GenesisBlockHash &genesis_hash,
+                               std::shared_ptr<ObserverType> observer,
+                               std::shared_ptr<network::PeerView> peer_view)
+        : ParachainProtocol(host,
+                            app_config,
+                            chain_spec,
+                            genesis_hash,
+                            std::move(observer),
+                            kValidationProtocolVStaging,
+                            std::move(peer_view),
+                            log::createLogger("ValidationProtocolVStaging",
+                                              "validation_protocol")){};
   };
 
 }  // namespace kagome::network

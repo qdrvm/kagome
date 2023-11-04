@@ -184,7 +184,8 @@ namespace kagome::network {
     }
 
     CollationVersion protocolToVersion() const {
-      if (protocol_.find("/collation/2") != std::string::npos || protocol_.find("/validation/2") != std::string::npos) {
+      if (protocol_.find("/collation/2") != std::string::npos
+          || protocol_.find("/validation/2") != std::string::npos) {
         return CollationVersion::VStaging;
       }
       return CollationVersion::V1;
@@ -269,10 +270,14 @@ namespace kagome::network {
 
                   if constexpr (kCollation == true) {
                     self->observer_->onIncomingMessage(
-                        stream->remotePeerId().value(), network::VersionedCollatorProtocolMessage{std::move(p)});
+                        stream->remotePeerId().value(),
+                        network::VersionedCollatorProtocolMessage{
+                            std::move(p)});
                   } else {
                     self->observer_->onIncomingMessage(
-                        stream->remotePeerId().value(), network::VersionedValidatorProtocolMessage{std::move(p)});
+                        stream->remotePeerId().value(),
+                        network::VersionedValidatorProtocolMessage{
+                            std::move(p)});
                   }
                 });
             self->readCollationMsg(std::move(stream));

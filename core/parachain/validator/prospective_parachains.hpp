@@ -122,9 +122,9 @@ namespace kagome::parachain {
       return std::nullopt;
     }
 
-    outcome::result<std::optional<std::pair<
-        fragment::Constraints,
-        std::vector<fragment::CandidatePendingAvailability>>>>
+    outcome::result<std::optional<
+        std::pair<fragment::Constraints,
+                  std::vector<fragment::CandidatePendingAvailability>>>>
     fetchBackingState(const RelayHash &relay_parent, ParachainId para_id) {
       /// TODO(iceseer): do
 
@@ -139,7 +139,7 @@ namespace kagome::parachain {
       //		.await
       //		.map_err(JfyiError::RuntimeApiRequestCanceled)??
       //		.map(|s| (From::from(s.constraints),
-      //s.pending_availability)))
+      // s.pending_availability)))
 
       return std::nullopt;
     }

@@ -2042,70 +2042,69 @@ namespace kagome::parachain {
       return;
     }
 
-    std::optional<std::reference_wrapper<const network::ApprovalDistributionMessage>> m = 
-    visit_in_place(message, 
-      [](const auto &val) {
-        return if_type<const network::ApprovalDistributionMessage>(val);
-      });
+    std::optional<
+        std::reference_wrapper<const network::ApprovalDistributionMessage>>
+        m = visit_in_place(message, [](const auto &val) {
+          return if_type<const network::ApprovalDistributionMessage>(val);
+        });
 
-    if (!m) { 
-      return; 
-      }
+    if (!m) {
+      return;
+    }
 
-      visit_in_place(
-          m->get(),
-          [&](const network::Assignments &assignments) {
-            SL_TRACE(logger_,
-                     "Received assignments.(peer_id={}, count={})",
-                     peer_id,
-                     assignments.assignments.size());
-            for (auto const &assignment : assignments.assignments) {
-              if (auto it = pending_known_.find(
-                      assignment.indirect_assignment_cert.block_hash);
-                  it != pending_known_.end()) {
-                SL_TRACE(logger_,
-                         "Pending assignment.(block hash={}, claimed index={}, "
-                         "validator={}, peer={})",
-                         assignment.indirect_assignment_cert.block_hash,
-                         assignment.candidate_ix,
-                         assignment.indirect_assignment_cert.validator,
-                         peer_id);
-                it->second.emplace_back(
-                    std::make_pair(peer_id, PendingMessage{assignment}));
-                continue;
-              }
-
-              import_and_circulate_assignment(
-                  peer_id,
-                  assignment.indirect_assignment_cert,
-                  assignment.candidate_ix);
+    visit_in_place(
+        m->get(),
+        [&](const network::Assignments &assignments) {
+          SL_TRACE(logger_,
+                   "Received assignments.(peer_id={}, count={})",
+                   peer_id,
+                   assignments.assignments.size());
+          for (auto const &assignment : assignments.assignments) {
+            if (auto it = pending_known_.find(
+                    assignment.indirect_assignment_cert.block_hash);
+                it != pending_known_.end()) {
+              SL_TRACE(logger_,
+                       "Pending assignment.(block hash={}, claimed index={}, "
+                       "validator={}, peer={})",
+                       assignment.indirect_assignment_cert.block_hash,
+                       assignment.candidate_ix,
+                       assignment.indirect_assignment_cert.validator,
+                       peer_id);
+              it->second.emplace_back(
+                  std::make_pair(peer_id, PendingMessage{assignment}));
+              continue;
             }
-          },
-          [&](const network::Approvals &approvals) {
-            SL_TRACE(logger_,
-                     "Received approvals.(peer_id={}, count={})",
-                     peer_id,
-                     approvals.approvals.size());
-            for (auto const &approval_vote : approvals.approvals) {
-              if (auto it = pending_known_.find(
-                      approval_vote.payload.payload.block_hash);
-                  it != pending_known_.end()) {
-                SL_TRACE(logger_,
-                         "Pending approval.(block hash={}, candidate index={}, "
-                         "validator={}, peer={})",
-                         approval_vote.payload.payload.block_hash,
-                         approval_vote.payload.payload.candidate_index,
-                         approval_vote.payload.ix,
-                         peer_id);
-                it->second.emplace_back(
-                    std::make_pair(peer_id, PendingMessage{approval_vote}));
-                continue;
-              }
 
-              import_and_circulate_approval(peer_id, approval_vote);
+            import_and_circulate_assignment(peer_id,
+                                            assignment.indirect_assignment_cert,
+                                            assignment.candidate_ix);
+          }
+        },
+        [&](const network::Approvals &approvals) {
+          SL_TRACE(logger_,
+                   "Received approvals.(peer_id={}, count={})",
+                   peer_id,
+                   approvals.approvals.size());
+          for (auto const &approval_vote : approvals.approvals) {
+            if (auto it = pending_known_.find(
+                    approval_vote.payload.payload.block_hash);
+                it != pending_known_.end()) {
+              SL_TRACE(logger_,
+                       "Pending approval.(block hash={}, candidate index={}, "
+                       "validator={}, peer={})",
+                       approval_vote.payload.payload.block_hash,
+                       approval_vote.payload.payload.candidate_index,
+                       approval_vote.payload.ix,
+                       peer_id);
+              it->second.emplace_back(
+                  std::make_pair(peer_id, PendingMessage{approval_vote}));
+              continue;
             }
-          },
-          [&](const auto &) { UNREACHABLE; });
+
+            import_and_circulate_approval(peer_id, approval_vote);
+          }
+        },
+        [&](const auto &) { UNREACHABLE; });
   }
 
   void ApprovalDistribution::runDistributeAssignment(

@@ -123,8 +123,10 @@ namespace kagome::parachain {
     void onIncomingCollator(const libp2p::peer::PeerId &peer_id,
                             network::CollatorPublicKey pubkey,
                             network::ParachainId para_id);
-    void onIncomingCollationStream(const libp2p::peer::PeerId &peer_id, network::CollationVersion version);
-    void onIncomingValidationStream(const libp2p::peer::PeerId &peer_id, network::CollationVersion version);
+    void onIncomingCollationStream(const libp2p::peer::PeerId &peer_id,
+                                   network::CollationVersion version);
+    void onIncomingValidationStream(const libp2p::peer::PeerId &peer_id,
+                                    network::CollationVersion version);
     void onValidationProtocolMsg(
         const libp2p::peer::PeerId &peer_id,
         const network::VersionedValidatorProtocolMessage &message);
@@ -257,6 +259,14 @@ namespace kagome::parachain {
     void handleStatement(const libp2p::peer::PeerId &peer_id,
                          const primitives::BlockHash &relay_parent,
                          const SignedFullStatementWithPVD &statement);
+    void process_bitfield_distribution(
+        const network::BitfieldDistributionMessage &val);
+    void process_legacy_statement(
+        const libp2p::peer::PeerId &peer_id,
+        const network::StatementDistributionMessage &msg);
+    void process_vstaging_statement(
+        const libp2p::peer::PeerId &peer_id,
+        const network::vstaging::StatementDistributionMessage &msg);
 
     outcome::result<std::pair<CollatorId, ParachainId>> insertAdvertisement(
         network::PeerState &peer_data,
@@ -301,7 +311,9 @@ namespace kagome::parachain {
     requestPersistedValidationData(const RelayHash &relay_parent,
                                    ParachainId para_id);
 
-    std::optional<runtime::PersistedValidationData> fetchPersistedValidationData(const RelayHash &relay_parent, ParachainId para_id);
+    std::optional<runtime::PersistedValidationData>
+    fetchPersistedValidationData(const RelayHash &relay_parent,
+                                 ParachainId para_id);
     void onValidationComplete(const libp2p::peer::PeerId &peer_id,
                               ValidateAndSecondResult &&result);
     void onAttestComplete(const libp2p::peer::PeerId &peer_id,

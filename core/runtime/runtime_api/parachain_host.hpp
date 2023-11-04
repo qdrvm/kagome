@@ -208,12 +208,16 @@ namespace kagome::runtime {
     /**
      * @return the state of parachain backing for a given para.
      */
-    virtual outcome::result<std::optional<parachain::fragment::BackingState>> staging_para_backing_state(const primitives::BlockHash &block, ParachainId id) = 0;
+    virtual outcome::result<std::optional<parachain::fragment::BackingState>>
+    staging_para_backing_state(const primitives::BlockHash &block,
+                               ParachainId id) = 0;
 
     /**
-     * @return candidate's acceptance limitations for asynchronous backing for a relay parent.
+     * @return candidate's acceptance limitations for asynchronous backing for a
+     * relay parent.
      */
-    virtual outcome::result<parachain::fragment::AsyncBackingParams> staging_async_backing_params(const primitives::BlockHash &block) = 0;
+    virtual outcome::result<parachain::fragment::AsyncBackingParams>
+    staging_async_backing_params(const primitives::BlockHash &block) = 0;
   };
 
 }  // namespace kagome::runtime
