@@ -25,6 +25,7 @@
 #include "primitives/digest.hpp"
 #include "scale/tie.hpp"
 #include "storage/trie/types.hpp"
+#include "runtime/runtime_api/parachain_host_types.hpp"
 
 namespace kagome::network::vstaging {
   using Dummy = network::Dummy;
