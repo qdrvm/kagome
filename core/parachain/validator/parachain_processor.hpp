@@ -43,6 +43,7 @@
 #include "utils/non_copyable.hpp"
 #include "utils/safe_object.hpp"
 #include "utils/thread_pool.hpp"
+#include "parachain/validator/impl/candidates.hpp"
 
 namespace kagome::network {
   class Router;
@@ -132,6 +133,8 @@ namespace kagome::parachain {
         const network::VersionedValidatorProtocolMessage &message);
     outcome::result<network::FetchChunkResponse> OnFetchChunkRequest(
         const network::FetchChunkRequest &request);
+    outcome::result<network::vstaging::AttestedCandidateResponse> OnFetchAttestedCandidateRequest(
+        const network::vstaging::AttestedCandidateRequest &request);
 
     network::ResponsePov getPov(CandidateHash &&candidate_hash);
     auto getAvStore() {
@@ -519,6 +522,11 @@ namespace kagome::parachain {
                          PendingCollationEq>
           collation_requests_cancel_handles;
     } our_current_state_;
+
+    struct {
+
+    } our_distribution_state_;
+
     std::unordered_map<RelayHash, PendingCollation> pending_candidates;
     std::shared_ptr<ThreadHandler> this_context_;
     std::shared_ptr<crypto::Hasher> hasher_;

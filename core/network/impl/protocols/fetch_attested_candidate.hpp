@@ -24,8 +24,8 @@
 namespace kagome::network {
 
   class FetchAttestedCandidateProtocol final
-      : public RequestResponseProtocol<AttestedCandidateRequest,
-                                       AttestedCandidateResponse,
+      : public RequestResponseProtocol<vstaging::AttestedCandidateRequest,
+                                       vstaging::AttestedCandidateResponse,
                                        ScaleMessageReadWriter>,
         NonCopyable,
         NonMovable {
@@ -38,8 +38,8 @@ namespace kagome::network {
                        const blockchain::GenesisBlockHash &genesis_hash,
                        std::shared_ptr<parachain::ParachainProcessorImpl> pp)
         : RequestResponseProtocol<
-            AttestedCandidateRequest,
-            AttestedCandidateResponse,
+            vstaging::AttestedCandidateRequest,
+            vstaging::AttestedCandidateResponse,
             ScaleMessageReadWriter>{kFetchAttestedCandidateProtocolName,
                                     host,
                                     make_protocols(kFetchAttestedCandidateProtocol,

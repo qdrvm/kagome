@@ -807,6 +807,12 @@ namespace kagome::parachain {
     }
   }
 
+  outcome::result<network::vstaging::AttestedCandidateResponse> ParachainProcessorImpl::OnFetchAttestedCandidateRequest(
+        const network::vstaging::AttestedCandidateRequest &request) {
+          /// TODO(iceseer): do
+      return Error::COLLATION_NOT_FOUND;
+  }
+
   outcome::result<network::FetchChunkResponse>
   ParachainProcessorImpl::OnFetchChunkRequest(
       const network::FetchChunkRequest &request) {

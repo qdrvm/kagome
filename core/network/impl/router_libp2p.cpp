@@ -28,7 +28,8 @@ namespace kagome::network {
       LazySPtr<FetchAvailableDataProtocol> fetch_available_data_protocol,
       LazySPtr<StatementFetchingProtocol> statement_fetching_protocol,
       LazySPtr<SendDisputeProtocol> send_dispute_protocol,
-      LazySPtr<libp2p::protocol::Ping> ping_protocol)
+      LazySPtr<libp2p::protocol::Ping> ping_protocol,
+      LazySPtr<FetchAttestedCandidateProtocol> fetch_attested_candidate)
       : app_state_manager_{app_state_manager},
         host_{host},
         app_config_(app_config),
@@ -52,6 +53,7 @@ namespace kagome::network {
         statement_fetching_protocol_(std::move(statement_fetching_protocol)),
         send_dispute_protocol_(std::move(send_dispute_protocol)),
         ping_protocol_{std::move(ping_protocol)},
+        fetch_attested_candidate_{std::move(fetch_attested_candidate)},
         log_{log::createLogger("RouterLibp2p", "network")} {
     BOOST_ASSERT(app_state_manager_ != nullptr);
 
@@ -210,6 +212,10 @@ namespace kagome::network {
   std::shared_ptr<FetchChunkProtocol> RouterLibp2p::getFetchChunkProtocol()
       const {
     return fetch_chunk_protocol_.get();
+  }
+
+  std::shared_ptr<FetchAttestedCandidateProtocol> RouterLibp2p::getFetchAttestedCandidateProtocol() const {
+    return fetch_attested_candidate_.get();
   }
 
   std::shared_ptr<FetchAvailableDataProtocol>

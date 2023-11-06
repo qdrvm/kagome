@@ -63,6 +63,11 @@ namespace kagome::network {
                 (),
                 (const, override));
 
+    MOCK_METHOD(std::shared_ptr<FetchAttestedCandidateProtocol>,
+                getFetchAttestedCandidateProtocol,
+                (),
+                (const, override));
+
     MOCK_METHOD(std::shared_ptr<PropagateTransactionsProtocol>,
                 getPropagateTransactionsProtocol,
                 (),
