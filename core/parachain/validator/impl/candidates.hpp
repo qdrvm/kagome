@@ -72,7 +72,29 @@ namespace kagome::parachain {
     std::unordered_set<UnconfiredImportablePair,
                        InnerHash<UnconfiredImportablePair>>
         unconfirmed_importable_under;
+
+    void add_claims(const libp2p::peer::PeerId &peer,
+                    const CandidateClaims &c) {
+      if (c.parent_hash_and_id) {
+        const auto &pc = *c.parent_hash_and_id;
+        auto &sub_claims = parent_claims[pc.first][pc.second];
+
+        bool found = false;
+        for (size_t p = 0; p < sub_claims.size(); ++p) {
+          if (sub_claims[p].first == c.relay_parent) {
+            sub_claims[p].second += 1;
+            found = true;
+            break;
+          }
+        }
+        if (!found) {
+          sub_claims.emplace_back(c.relay_parent, 1);
+        }
+      }
+      claims.emplace_back(peer, c);
+    }
   };
+
   struct ConfirmedCandidate {
     network::CommittedCandidateReceipt receipt;
     runtime::PersistedValidationData persisted_validation_data;
@@ -80,6 +102,7 @@ namespace kagome::parachain {
     RelayHash parent_hash;
     std::unordered_set<Hash> importable_under;
   };
+
   using CandidateState =
       boost::variant<UnconfirmedCandidate, ConfirmedCandidate>;
 
@@ -98,17 +121,41 @@ namespace kagome::parachain {
                                 &claimed_parent_hash_and_id) {
       const auto &[it, inserted] =
           candidates.emplace(candidate_hash, UnconfirmedCandidate{});
-      visit_in_place(
+      return visit_in_place(
           it->second,
           [&](UnconfirmedCandidate &c) {
-
+            c.add_claims(peer,
+                         CandidateClaims{
+                             .relay_parent = claimed_relay_parent,
+                             .group_index = claimed_group_index,
+                             .parent_hash_and_id = claimed_parent_hash_and_id,
+                         });
+            if (claimed_parent_hash_and_id) {
+              by_parent[claimed_parent_hash_and_id->first]
+                       [claimed_parent_hash_and_id->second]
+                           .insert(candidate_hash);
+            }
+            return true;
           },
           [&](ConfirmedCandidate &c) {
-
+            if (c.receipt.descriptor.relay_parent != claimed_relay_parent) {
+              return false;
+            }
+            if (c.assigned_group != claimed_group_index) {
+              return false;
+            }
+            if (claimed_parent_hash_and_id) {
+              const auto &[claimed_parent_hash, claimed_id] =
+                  *claimed_parent_hash_and_id;
+              if (c.parent_hash != claimed_parent_hash) {
+                return false;
+              }
+              if (c.receipt.descriptor.para_id != claimed_id) {
+                return false;
+              }
+            }
+            return true;
           });
-
-      /// TODO(iceseer): do
-      return false;
     }
   };
 
