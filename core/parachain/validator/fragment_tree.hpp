@@ -637,10 +637,10 @@ namespace kagome::parachain::fragment {
         }
       }
 
-      const auto &crp = relayParent(candidate);
+      const auto crp = relayParent(candidate);
       auto candidate_relay_parent =
           [&]() -> Option<std::reference_wrapper<const RelayChainBlockInfo>> {
-        if (scope.relay_parent.hash == crp) {
+        if (scope.relay_parent.hash == crp.get()) {
           return {{scope.relay_parent}};
         }
         if (auto it = scope.ancestors_by_hash.find(crp);

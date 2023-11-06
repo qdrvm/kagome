@@ -2026,15 +2026,15 @@ namespace kagome::parachain {
     const auto &implicit_view = our_current_state_.implicit_view;
 
     fragment::FragmentTreeMembership membership;
-    const auto &candidate_para = candidatePara(hypothetical_candidate);
-    const auto &candidate_relay_parent = relayParent(hypothetical_candidate);
-    const auto &candidate_hash = candidateHash(hypothetical_candidate);
+    const auto candidate_para = candidatePara(hypothetical_candidate);
+    const auto candidate_relay_parent = relayParent(hypothetical_candidate);
+    const auto candidate_hash = candidateHash(hypothetical_candidate);
 
     auto proc_response = [&](std::vector<size_t> &&depths,
                              const Hash &head,
                              const ActiveLeafState &leaf_state) {
       for (auto depth : depths) {
-        if (auto it = leaf_state.seconded_at_depth.find(candidate_para);
+        if (auto it = leaf_state.seconded_at_depth.find(candidate_para.get());
             it != leaf_state.seconded_at_depth.end()
             && it->second.count(depth) != 0ull) {
           return false;
@@ -2047,10 +2047,10 @@ namespace kagome::parachain {
     for (const auto &[head, leaf_state] : active_leaves) {
       if (leaf_state.prospective_parachains_mode) {
         const auto allowed_parents_for_para =
-            implicit_view.knownAllowedRelayParentsUnder(head, {candidate_para});
+            implicit_view.knownAllowedRelayParentsUnder(head, {candidate_para.get()});
         if (std::find(allowed_parents_for_para.begin(),
                       allowed_parents_for_para.end(),
-                      candidate_relay_parent)
+                      candidate_relay_parent.get())
             == allowed_parents_for_para.end()) {
           continue;
         }
@@ -2062,7 +2062,7 @@ namespace kagome::parachain {
                                                         1},
                  {{head}},
                  backed_in_path_only)) {
-          BOOST_ASSERT(candidateHash(candidate) == candidate_hash);
+          BOOST_ASSERT(candidateHash(candidate).get() == candidate_hash.get());
           for (auto &&[relay_parent, depths] : memberships) {
             BOOST_ASSERT(relay_parent == head);
             r.insert(r.end(), depths.begin(), depths.end());
@@ -2073,8 +2073,8 @@ namespace kagome::parachain {
           return std::nullopt;
         }
       } else {
-        if (head == candidate_relay_parent) {
-          if (auto it = leaf_state.seconded_at_depth.find(candidate_para);
+        if (head == candidate_relay_parent.get()) {
+          if (auto it = leaf_state.seconded_at_depth.find(candidate_para.get());
               it != leaf_state.seconded_at_depth.end()
               && it->second.count(0) != 0ull) {
             return std::nullopt;
