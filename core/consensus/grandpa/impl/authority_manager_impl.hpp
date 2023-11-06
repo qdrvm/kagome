@@ -91,7 +91,7 @@ namespace kagome::consensus::grandpa {
     std::shared_ptr<blockchain::BlockTree> block_tree_;
     std::shared_ptr<runtime::GrandpaApi> grandpa_api_;
     std::shared_ptr<storage::BufferStorage> persistent_storage_;
-    std::shared_ptr<primitives::events::ChainEventSubscriber> chain_sub_;
+    primitives::events::ChainSub chain_sub_;
 
     mutable blockchain::Indexer<GrandpaIndexedValue> indexer_;
 

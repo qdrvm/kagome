@@ -63,8 +63,7 @@ namespace kagome::network {
           LazySPtr<consensus::Timeline> timeline,
           std::shared_ptr<crypto::SessionKeys> session_keys,
           LazySPtr<BeefyProtocol> beefy_protocol,
-          std::shared_ptr<primitives::events::ChainSubscriptionEngine>
-              chain_sub_engine);
+          primitives::events::ChainSubscriptionEnginePtr chain_sub_engine);
 
     primitives::BlockNumber finalized() const;
 
@@ -84,8 +83,7 @@ namespace kagome::network {
     };
     using Sessions = std::map<primitives::BlockNumber, Session>;
 
-    void start(std::shared_ptr<primitives::events::ChainSubscriptionEngine>
-                   chain_sub_engine);
+    void start();
     bool hasJustification(primitives::BlockNumber block) const;
     using FindValidatorsResult = std::optional<
         std::pair<primitives::BlockNumber, consensus::beefy::ValidatorSet>>;
@@ -113,7 +111,7 @@ namespace kagome::network {
     std::shared_ptr<crypto::SessionKeys> session_keys_;
     LazySPtr<BeefyProtocol> beefy_protocol_;
     primitives::BlockNumber min_delta_;
-    std::shared_ptr<primitives::events::ChainEventSubscriber> chain_sub_;
+    primitives::events::ChainSub chain_sub_;
 
     std::optional<primitives::BlockNumber> beefy_genesis_;
     primitives::BlockNumber beefy_finalized_ = 0;

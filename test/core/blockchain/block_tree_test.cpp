@@ -12,6 +12,7 @@
 #include "blockchain/impl/cached_tree.hpp"
 #include "consensus/babe/types/seal.hpp"
 #include "crypto/hasher/hasher_impl.hpp"
+#include "mock/core/application/app_configuration_mock.hpp"
 #include "mock/core/application/app_state_manager_mock.hpp"
 #include "mock/core/blockchain/block_header_repository_mock.hpp"
 #include "mock/core/blockchain/block_storage_mock.hpp"
@@ -26,6 +27,7 @@
 #include "testutil/prepare_loggers.hpp"
 
 using namespace kagome;
+using application::AppConfigurationMock;
 using application::AppStateManagerMock;
 using blockchain::BlockHeaderRepositoryMock;
 using blockchain::BlockStorageMock;
@@ -167,7 +169,8 @@ struct BlockTreeTest : public testing::Test {
         std::make_shared<subscription::ExtrinsicEventKeyRepository>();
 
     block_tree_ =
-        BlockTreeImpl::create(header_repo_,
+        BlockTreeImpl::create(*app_config_,
+                              header_repo_,
                               storage_,
                               extrinsic_observer_,
                               hasher_,
@@ -255,6 +258,9 @@ struct BlockTreeTest : public testing::Test {
     return std::get<0>(addHeaderToRepositoryAndGet(
         parent, number, state, SlotType::SecondaryPlain));
   }
+
+  std::shared_ptr<AppConfigurationMock> app_config_ =
+      std::make_shared<AppConfigurationMock>();
 
   std::shared_ptr<BlockHeaderRepositoryMock> header_repo_ =
       std::make_shared<BlockHeaderRepositoryMock>();
