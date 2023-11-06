@@ -9,7 +9,10 @@
 #include "common/buffer.hpp"
 
 namespace kagome::runtime {
-  enum class UncompressError : uint8_t { ZSTD_ERROR };
+  enum class UncompressError : uint8_t {
+    ZSTD_ERROR,
+    BOMB_SIZE_REACHED,
+  };
 
   outcome::result<void> uncompressCodeIfNeeded(common::BufferView buf,
                                                common::Buffer &res);
