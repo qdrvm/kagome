@@ -36,6 +36,7 @@
 #include "parachain/pvf/pvf.hpp"
 #include "parachain/validator/backing_implicit_view.hpp"
 #include "parachain/validator/collations.hpp"
+#include "parachain/validator/impl/candidates.hpp"
 #include "parachain/validator/prospective_parachains.hpp"
 #include "parachain/validator/signer.hpp"
 #include "primitives/common.hpp"
@@ -43,7 +44,6 @@
 #include "utils/non_copyable.hpp"
 #include "utils/safe_object.hpp"
 #include "utils/thread_pool.hpp"
-#include "parachain/validator/impl/candidates.hpp"
 
 namespace kagome::network {
   class Router;
@@ -133,7 +133,8 @@ namespace kagome::parachain {
         const network::VersionedValidatorProtocolMessage &message);
     outcome::result<network::FetchChunkResponse> OnFetchChunkRequest(
         const network::FetchChunkRequest &request);
-    outcome::result<network::vstaging::AttestedCandidateResponse> OnFetchAttestedCandidateRequest(
+    outcome::result<network::vstaging::AttestedCandidateResponse>
+    OnFetchAttestedCandidateRequest(
         const network::vstaging::AttestedCandidateRequest &request);
 
     network::ResponsePov getPov(CandidateHash &&candidate_hash);
@@ -524,7 +525,6 @@ namespace kagome::parachain {
     } our_current_state_;
 
     struct {
-
     } our_distribution_state_;
 
     std::unordered_map<RelayHash, PendingCollation> pending_candidates;

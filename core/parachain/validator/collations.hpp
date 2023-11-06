@@ -153,13 +153,16 @@ namespace kagome::parachain {
   using HypotheticalCandidate = boost::variant<HypotheticalCandidateComplete,
                                                HypotheticalCandidateIncomplete>;
 
-  inline std::reference_wrapper<const ParachainId> candidatePara(const HypotheticalCandidate &hc) {
+  inline std::reference_wrapper<const ParachainId> candidatePara(
+      const HypotheticalCandidate &hc) {
     return visit_in_place(
         hc,
-        [](const HypotheticalCandidateComplete &val) -> std::reference_wrapper<const ParachainId> {
+        [](const HypotheticalCandidateComplete &val)
+            -> std::reference_wrapper<const ParachainId> {
           return val.receipt.descriptor.para_id;
         },
-        [](const HypotheticalCandidateIncomplete &val) -> std::reference_wrapper<const ParachainId> {
+        [](const HypotheticalCandidateIncomplete &val)
+            -> std::reference_wrapper<const ParachainId> {
           return val.candidate_para;
         });
   }
@@ -177,20 +180,26 @@ namespace kagome::parachain {
         });
   }
 
-  inline std::reference_wrapper<const RelayHash> relayParent(const HypotheticalCandidate &hc) {
+  inline std::reference_wrapper<const RelayHash> relayParent(
+      const HypotheticalCandidate &hc) {
     return visit_in_place(
         hc,
-        [](const HypotheticalCandidateComplete &val) -> std::reference_wrapper<const RelayHash> {
+        [](const HypotheticalCandidateComplete &val)
+            -> std::reference_wrapper<const RelayHash> {
           return val.receipt.descriptor.relay_parent;
         },
-        [](const HypotheticalCandidateIncomplete &val) -> std::reference_wrapper<const RelayHash> {
+        [](const HypotheticalCandidateIncomplete &val)
+            -> std::reference_wrapper<const RelayHash> {
           return val.candidate_relay_parent;
         });
   }
 
-  inline std::reference_wrapper<const CandidateHash> candidateHash(const HypotheticalCandidate &hc) {
-    return visit_in_place(hc,
-                          [](const auto &val) -> std::reference_wrapper<const CandidateHash> { return val.candidate_hash; });
+  inline std::reference_wrapper<const CandidateHash> candidateHash(
+      const HypotheticalCandidate &hc) {
+    return visit_in_place(
+        hc, [](const auto &val) -> std::reference_wrapper<const CandidateHash> {
+          return val.candidate_hash;
+        });
   }
 
 }  // namespace kagome::parachain

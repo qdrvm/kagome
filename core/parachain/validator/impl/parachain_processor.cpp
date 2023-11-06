@@ -807,10 +807,11 @@ namespace kagome::parachain {
     }
   }
 
-  outcome::result<network::vstaging::AttestedCandidateResponse> ParachainProcessorImpl::OnFetchAttestedCandidateRequest(
-        const network::vstaging::AttestedCandidateRequest &request) {
-          /// TODO(iceseer): do
-      return Error::COLLATION_NOT_FOUND;
+  outcome::result<network::vstaging::AttestedCandidateResponse>
+  ParachainProcessorImpl::OnFetchAttestedCandidateRequest(
+      const network::vstaging::AttestedCandidateRequest &request) {
+    /// TODO(iceseer): do
+    return Error::COLLATION_NOT_FOUND;
   }
 
   outcome::result<network::FetchChunkResponse>
@@ -2047,7 +2048,8 @@ namespace kagome::parachain {
     for (const auto &[head, leaf_state] : active_leaves) {
       if (leaf_state.prospective_parachains_mode) {
         const auto allowed_parents_for_para =
-            implicit_view.knownAllowedRelayParentsUnder(head, {candidate_para.get()});
+            implicit_view.knownAllowedRelayParentsUnder(head,
+                                                        {candidate_para.get()});
         if (std::find(allowed_parents_for_para.begin(),
                       allowed_parents_for_para.end(),
                       candidate_relay_parent.get())

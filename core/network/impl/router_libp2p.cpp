@@ -214,7 +214,8 @@ namespace kagome::network {
     return fetch_chunk_protocol_.get();
   }
 
-  std::shared_ptr<FetchAttestedCandidateProtocol> RouterLibp2p::getFetchAttestedCandidateProtocol() const {
+  std::shared_ptr<FetchAttestedCandidateProtocol>
+  RouterLibp2p::getFetchAttestedCandidateProtocol() const {
     return fetch_attested_candidate_.get();
   }
 

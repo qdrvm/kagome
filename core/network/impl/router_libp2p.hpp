@@ -87,7 +87,8 @@ namespace kagome::network {
         const override;
     std::shared_ptr<ReqPovProtocol> getReqPovProtocol() const override;
     std::shared_ptr<FetchChunkProtocol> getFetchChunkProtocol() const override;
-    std::shared_ptr<FetchAttestedCandidateProtocol> getFetchAttestedCandidateProtocol() const override;
+    std::shared_ptr<FetchAttestedCandidateProtocol>
+    getFetchAttestedCandidateProtocol() const override;
     std::shared_ptr<FetchAvailableDataProtocol> getFetchAvailableDataProtocol()
         const override;
     std::shared_ptr<StatementFetchingProtocol> getFetchStatementProtocol()
