@@ -32,6 +32,19 @@ namespace kagome::parachain {
     RelayHash relay_parent;
     GroupIndex group_index;
     std::optional<std::pair<Hash, ParachainId>> parent_hash_and_id;
+
+    bool check(const RelayHash &rp,
+               GroupIndex gi,
+               const Hash &ph,
+               ParachainId pi) const {
+      bool ch = true;
+      if (parent_hash_and_id) {
+        ch =
+            parent_hash_and_id->first == ph && parent_hash_and_id->second == pi;
+      }
+
+      return relay_parent == rp && group_index == gi && ch;
+    }
   };
 
   struct UnconfirmedImportable {
@@ -101,6 +114,14 @@ namespace kagome::parachain {
     GroupIndex assigned_group;
     RelayHash parent_hash;
     std::unordered_set<Hash> importable_under;
+
+    HypotheticalCandidate to_hypothetical(const CandidateHash &candidate_hash) {
+      return HypotheticalCandidateComplete{
+          .candidate_hash = candidate_hash,
+          .receipt = receipt,
+          .persisted_validation_data = persisted_validation_data,
+      };
+    }
   };
 
   using CandidateState =
@@ -156,6 +177,98 @@ namespace kagome::parachain {
             }
             return true;
           });
+    }
+
+    std::optional<PostConfirmation> confirm_candidate(
+        const CandidateHash &candidate_hash,
+        const network::CommittedCandidateReceipt &candidate_receipt,
+        const runtime::PersistedValidationData &persisted_validation_data,
+        GroupIndex assigned_group,
+        const std::shared_ptr<crypto::Hasher> &hasher) {
+      const auto parent_hash =
+          hasher->blake2b_256(persisted_validation_data.parent_head);
+      const auto &relay_parent = candidate_receipt.descriptor.relay_parent;
+      const auto para_id = candidate_receipt.descriptor.para_id;
+
+      std::optional<CandidateState> prev_state;
+      if (auto it = candidates.find(candidate_hash); it != candidates.end()) {
+        prev_state = it->second;
+      }
+
+      ConfirmedCandidate &new_confirmed =
+          [&]() -> std::reference_wrapper<ConfirmedCandidate> {
+        auto [it, _] = candidates.insert_or_assign(
+            candidate_hash,
+            ConfirmedCandidate{
+                .receipt = candidate_receipt,
+                .persisted_validation_data = persisted_validation_data,
+                .assigned_group = assigned_group,
+                .parent_hash = parent_hash,
+                .importable_under = {},
+            });
+        auto n{boost::get<ConfirmedCandidate>(&it->second)};
+        return {*n};
+      }()
+                       .get();
+      by_parent[parent_hash][para_id].insert(candidate_hash);
+
+      if (!prev_state) {
+        return PostConfirmation{
+            .hypothetical = new_confirmed.to_hypothetical(candidate_hash),
+            .reckoning = {},
+        };
+      }
+
+      if (auto ps = if_type<ConfirmedCandidate>(*prev_state)) {
+        return std::nullopt;
+      }
+
+      auto u = if_type<UnconfirmedCandidate>(*prev_state);
+      PostConfirmationReckoning reckoning{};
+
+      for (const UnconfiredImportablePair &d :
+           u->get().unconfirmed_importable_under) {
+        const auto &leaf_hash = d.hash;
+        const auto &x = d.ui;
+
+        if (x.relay_parent == relay_parent && x.parent_hash == parent_hash
+            && x.para_id == para_id) {
+          new_confirmed.importable_under.insert(leaf_hash);
+        }
+      }
+
+      for (const auto &[peer, claims] : u->get().claims) {
+        if (claims.parent_hash_and_id) {
+          const auto &[claimed_parent_hash, claimed_id] =
+              *claims.parent_hash_and_id;
+          if (claimed_parent_hash != parent_hash || claimed_id != para_id) {
+            if (auto it_1 = by_parent.find(claimed_parent_hash);
+                it_1 != by_parent.end()) {
+              if (auto it_2 = it_1->second.find(claimed_id);
+                  it_2 != it_1->second.end()) {
+                it_2->second.erase(candidate_hash);
+                if (it_2->second.empty()) {
+                  it_1->second.erase(it_2);
+                  if (it_1->second.empty()) {
+                    by_parent.erase(it_1);
+                  }
+                }
+              }
+            }
+          }
+        }
+
+        if (claims.check(relay_parent, assigned_group, parent_hash, para_id)) {
+          reckoning.correct.insert(peer);
+        } else {
+          reckoning.incorrect.insert(peer);
+        }
+      }
+
+      return PostConfirmation{
+          .hypothetical = new_confirmed.to_hypothetical(candidate_hash),
+          .reckoning = reckoning,
+      };
     }
   };
 

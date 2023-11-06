@@ -111,22 +111,22 @@ namespace kagome::parachain {
 
   struct HypotheticalCandidateComplete {
     /// The hash of the candidate.
-    CandidateHash &candidate_hash;
+    CandidateHash candidate_hash;
     /// The receipt of the candidate.
-    network::CommittedCandidateReceipt &receipt;
+    network::CommittedCandidateReceipt receipt;
     /// The persisted validation data of the candidate.
-    runtime::PersistedValidationData &persisted_validation_data;
+    runtime::PersistedValidationData persisted_validation_data;
   };
 
   struct HypotheticalCandidateIncomplete {
     /// The claimed hash of the candidate.
-    const CandidateHash &candidate_hash;
+    const CandidateHash candidate_hash;
     /// The claimed para-ID of the candidate.
-    const ParachainId &candidate_para;
+    const ParachainId candidate_para;
     /// The claimed head-data hash of the candidate.
-    const Hash &parent_head_data_hash;
+    const Hash parent_head_data_hash;
     /// The claimed relay parent of the candidate.
-    const Hash &candidate_relay_parent;
+    const Hash candidate_relay_parent;
   };
 
   struct BlockedAdvertisement {
