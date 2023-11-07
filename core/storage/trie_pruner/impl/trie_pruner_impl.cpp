@@ -12,7 +12,6 @@
 
 #include "application/app_configuration.hpp"
 #include "application/app_state_manager.hpp"
-#include "blockchain/block_storage.hpp"
 #include "blockchain/block_tree.hpp"
 #include "crypto/hasher/hasher_impl.hpp"
 #include "log/formatters/optional.hpp"
@@ -84,6 +83,7 @@ namespace kagome::storage::trie_pruner {
   }
 
   bool TriePrunerImpl::prepare() {
+    std::unique_lock lock{mutex_};
     BOOST_ASSERT(storage_->getSpace(kDefault));
     auto encoded_info_res =
         storage_->getSpace(kDefault)->tryGet(TRIE_PRUNER_INFO_KEY);
@@ -174,6 +174,7 @@ namespace kagome::storage::trie_pruner {
 
   outcome::result<void> TriePrunerImpl::pruneFinalized(
       const primitives::BlockHeader &block) {
+    std::unique_lock lock{mutex_};
     auto batch = trie_storage_->batch();
     OUTCOME_TRY(prune(*batch, block.state_root));
     OUTCOME_TRY(batch->commit());
@@ -185,6 +186,7 @@ namespace kagome::storage::trie_pruner {
 
   outcome::result<void> TriePrunerImpl::pruneDiscarded(
       const primitives::BlockHeader &block) {
+    std::unique_lock lock{mutex_};
     // should prune even when pruning depth is none
     auto batch = trie_storage_->batch();
     OUTCOME_TRY(prune(*batch, block.state_root));
@@ -234,8 +236,6 @@ namespace kagome::storage::trie_pruner {
     EncoderCache encoder{*codec_, logger_};
 
     logger_->debug("Prune state root {}", root_hash);
-
-    std::scoped_lock lock{ref_count_mutex_};
 
     // iterate nodes, decrement their ref count and delete if ref count becomes
     // zero
@@ -338,6 +338,7 @@ namespace kagome::storage::trie_pruner {
 
   outcome::result<void> TriePrunerImpl::addNewState(
       const storage::trie::RootHash &state_root, trie::StateVersion version) {
+    std::unique_lock lock{mutex_};
     OUTCOME_TRY(trie, serializer_->retrieveTrie(state_root));
     OUTCOME_TRY(addNewStateWith(*trie, version));
     return outcome::success();
@@ -345,6 +346,7 @@ namespace kagome::storage::trie_pruner {
 
   outcome::result<void> TriePrunerImpl::addNewState(
       const trie::PolkadotTrie &new_trie, trie::StateVersion version) {
+    std::unique_lock lock{mutex_};
     OUTCOME_TRY(addNewStateWith(new_trie, version));
     return outcome::success();
   }
@@ -445,9 +447,10 @@ namespace kagome::storage::trie_pruner {
 
   outcome::result<void> TriePrunerImpl::recoverState(
       const blockchain::BlockTree &block_tree) {
+    std::unique_lock lock{mutex_};
     static log::Logger logger =
         log::createLogger("PrunerStateRecovery", "storage");
-    auto last_pruned_block = getLastPrunedBlock();
+    auto last_pruned_block = last_pruned_block_;
     if (!last_pruned_block.has_value()) {
       if (block_tree.bestBlock().number != 0) {
         SL_WARN(logger,
@@ -470,8 +473,8 @@ namespace kagome::storage::trie_pruner {
         OUTCOME_TRY(
             genesis_header,
             block_tree.getBlockHeader(block_tree.getGenesisBlockHash()));
-        OUTCOME_TRY(
-            addNewState(genesis_header.state_root, trie::StateVersion::V0));
+        OUTCOME_TRY(trie, serializer_->retrieveTrie(genesis_header.state_root));
+        OUTCOME_TRY(addNewStateWith(*trie, trie::StateVersion::V0));
       }
     } else {
       OUTCOME_TRY(base_block_header,
@@ -564,4 +567,22 @@ namespace kagome::storage::trie_pruner {
     return outcome::success();
   }
 
+  void TriePrunerImpl::restoreStateAtFinalized(
+      const blockchain::BlockTree &block_tree) {
+    std::unique_lock lock{mutex_};
+    auto header_res =
+        block_tree.getBlockHeader(block_tree.getLastFinalized().hash);
+    if (header_res.has_error()) {
+      SL_ERROR(logger_,
+               "restoreStateAtFinalized(): getBlockHeader(): {}",
+               header_res.error());
+      return;
+    }
+    auto &header = header_res.value();
+    if (auto r = restoreStateAt(header, block_tree); r.has_error()) {
+      SL_ERROR(logger_,
+               "restoreStateAtFinalized(): restoreStateAt(): {}",
+               r.error());
+    }
+  }
 }  // namespace kagome::storage::trie_pruner

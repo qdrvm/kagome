@@ -21,6 +21,7 @@
 #include "network/warp/types.hpp"
 #include "runtime/runtime_api/core.hpp"
 #include "storage/trie/trie_storage.hpp"
+#include "storage/trie_pruner/trie_pruner.hpp"
 
 #include <libp2p/basic/scheduler.hpp>
 
@@ -40,6 +41,7 @@ namespace kagome::consensus {
       std::shared_ptr<blockchain::BlockTree> block_tree,
       std::shared_ptr<ConsensusSelector> consensus_selector,
       std::shared_ptr<storage::trie::TrieStorage> trie_storage,
+      std::shared_ptr<storage::trie_pruner::TriePruner> trie_pruner,
       std::shared_ptr<network::Synchronizer> synchronizer,
       std::shared_ptr<crypto::Hasher> hasher,
       std::shared_ptr<network::BlockAnnounceTransmitter>
@@ -59,6 +61,7 @@ namespace kagome::consensus {
         block_tree_(std::move(block_tree)),
         consensus_selector_(std::move(consensus_selector)),
         trie_storage_(std::move(trie_storage)),
+        trie_pruner_(std::move(trie_pruner)),
         synchronizer_(std::move(synchronizer)),
         hasher_(std::move(hasher)),
         block_announce_transmitter_(std::move(block_announce_transmitter)),
@@ -616,6 +619,7 @@ namespace kagome::consensus {
             }
 
             self->justification_observer_->reload();
+            self->trie_pruner_->restoreStateAtFinalized(*self->block_tree_);
             self->block_tree_->notifyBestAndFinalized();
 
             SL_INFO(self->log_,

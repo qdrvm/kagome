@@ -45,6 +45,10 @@ namespace kagome::storage::trie {
   class TrieStorage;
 }
 
+namespace kagome::storage::trie_pruner {
+  class TriePruner;
+}  // namespace kagome::storage::trie_pruner
+
 namespace kagome::runtime {
   class Core;
 }
@@ -67,6 +71,7 @@ namespace kagome::consensus {
         std::shared_ptr<blockchain::BlockTree> block_tree,
         std::shared_ptr<ConsensusSelector> consensus_selector,
         std::shared_ptr<storage::trie::TrieStorage> trie_storage,
+        std::shared_ptr<storage::trie_pruner::TriePruner> trie_pruner,
         std::shared_ptr<network::Synchronizer> synchronizer,
         std::shared_ptr<crypto::Hasher> hasher,
         std::shared_ptr<network::BlockAnnounceTransmitter>
@@ -130,6 +135,7 @@ namespace kagome::consensus {
     std::shared_ptr<blockchain::BlockTree> block_tree_;
     std::shared_ptr<ConsensusSelector> consensus_selector_;
     std::shared_ptr<storage::trie::TrieStorage> trie_storage_;
+    std::shared_ptr<storage::trie_pruner::TriePruner> trie_pruner_;
     std::shared_ptr<network::Synchronizer> synchronizer_;
     std::shared_ptr<crypto::Hasher> hasher_;
     std::shared_ptr<network::BlockAnnounceTransmitter>

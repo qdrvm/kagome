@@ -87,6 +87,12 @@ namespace kagome::storage::trie_pruner {
      * which states should be kept.
      */
     virtual std::optional<uint32_t> getPruningDepth() const = 0;
+
+    /**
+     * Reload pruner after warp sync.
+     */
+    virtual void restoreStateAtFinalized(
+        const blockchain::BlockTree &block_tree) = 0;
   };
 
 }  // namespace kagome::storage::trie_pruner
