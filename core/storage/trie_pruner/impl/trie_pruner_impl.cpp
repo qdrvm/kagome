@@ -450,7 +450,7 @@ namespace kagome::storage::trie_pruner {
     std::unique_lock lock{mutex_};
     static log::Logger logger =
         log::createLogger("PrunerStateRecovery", "storage");
-    auto last_pruned_block = getLastPrunedBlock();
+    auto last_pruned_block = last_pruned_block_;
     if (!last_pruned_block.has_value()) {
       if (block_tree.bestBlock().number != 0) {
         SL_WARN(logger,
@@ -473,8 +473,8 @@ namespace kagome::storage::trie_pruner {
         OUTCOME_TRY(
             genesis_header,
             block_tree.getBlockHeader(block_tree.getGenesisBlockHash()));
-        OUTCOME_TRY(
-            addNewState(genesis_header.state_root, trie::StateVersion::V0));
+        OUTCOME_TRY(trie, serializer_->retrieveTrie(genesis_header.state_root));
+        OUTCOME_TRY(addNewStateWith(*trie, trie::StateVersion::V0));
       }
     } else {
       OUTCOME_TRY(base_block_header,
