@@ -112,7 +112,8 @@ namespace kagome::storage::trie_pruner {
     outcome::result<void> recoverState(
         const blockchain::BlockTree &block_tree) override;
 
-    void reload(const blockchain::BlockTree &block_tree) override;
+    void restoreStateAtFinalized(
+        const blockchain::BlockTree &block_tree) override;
 
    private:
     outcome::result<void> restoreStateAt(

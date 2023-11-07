@@ -619,7 +619,7 @@ namespace kagome::consensus {
             }
 
             self->justification_observer_->reload();
-            self->trie_pruner_->reload(*self->block_tree_);
+            self->trie_pruner_->restoreStateAtFinalized(*self->block_tree_);
             self->block_tree_->notifyBestAndFinalized();
 
             SL_INFO(self->log_,

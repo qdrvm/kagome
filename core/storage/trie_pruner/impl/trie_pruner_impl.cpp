@@ -563,16 +563,21 @@ namespace kagome::storage::trie_pruner {
     return outcome::success();
   }
 
-  void TriePrunerImpl::reload(const blockchain::BlockTree &block_tree) {
+  void TriePrunerImpl::restoreStateAtFinalized(
+      const blockchain::BlockTree &block_tree) {
     auto header_res =
         block_tree.getBlockHeader(block_tree.getLastFinalized().hash);
     if (header_res.has_error()) {
-      SL_ERROR(logger_, "reload(): getBlockHeader(): {}", header_res.error());
+      SL_ERROR(logger_,
+               "restoreStateAtFinalized(): getBlockHeader(): {}",
+               header_res.error());
       return;
     }
     auto &header = header_res.value();
     if (auto r = restoreStateAt(header, block_tree); r.has_error()) {
-      SL_ERROR(logger_, "reload(): restoreStateAt(): {}", r.error());
+      SL_ERROR(logger_,
+               "restoreStateAtFinalized(): restoreStateAt(): {}",
+               r.error());
     }
   }
 }  // namespace kagome::storage::trie_pruner

@@ -91,7 +91,8 @@ namespace kagome::storage::trie_pruner {
     /**
      * Reload pruner after warp sync.
      */
-    virtual void reload(const blockchain::BlockTree &block_tree) = 0;
+    virtual void restoreStateAtFinalized(
+        const blockchain::BlockTree &block_tree) = 0;
   };
 
 }  // namespace kagome::storage::trie_pruner

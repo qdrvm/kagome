@@ -50,6 +50,6 @@ namespace kagome::storage::trie_pruner {
       return std::nullopt;
     }
 
-    void reload(const blockchain::BlockTree &) override {}
+    void restoreStateAtFinalized(const blockchain::BlockTree &) override {}
   };
 }  // namespace kagome::storage::trie_pruner
