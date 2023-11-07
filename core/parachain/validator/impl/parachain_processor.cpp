@@ -607,7 +607,19 @@ namespace kagome::parachain {
       const network::vstaging::StatementDistributionMessage &msg) {
     BOOST_ASSERT(
         this_context_->io_context()->get_executor().running_in_this_thread());
+    
+    if (auto stm = if_type<const network::vstaging::StatementDistributionMessageStatement>(msg)) {
+      auto parachain_state =
+          tryGetStateByRelayParent(stm->get().relay_parent);
+      if (!parachain_state) {
+        self->logger_->warn(
+            "After request pov no parachain state on relay_parent {}",
+            relay_parent);
+        return;
+      }
 
+      return
+    }
 
   }
 
