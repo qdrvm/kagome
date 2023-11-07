@@ -44,6 +44,7 @@
 #include "utils/non_copyable.hpp"
 #include "utils/safe_object.hpp"
 #include "utils/thread_pool.hpp"
+#include "parachain/validator/impl/statements_store.hpp"
 
 namespace kagome::network {
   class Router;
@@ -219,6 +220,7 @@ namespace kagome::parachain {
 
       Collations collations;
       TableContext table_context;
+      std::optional<StatementStore> statement_store; 
 
       std::unordered_set<primitives::BlockHash> awaiting_validation;
       std::unordered_set<primitives::BlockHash> issued_statements;
@@ -525,7 +527,7 @@ namespace kagome::parachain {
     } our_current_state_;
 
     struct {
-    } our_distribution_state_;
+    } statement_distribution_state_;
 
     std::unordered_map<RelayHash, PendingCollation> pending_candidates;
     std::shared_ptr<ThreadHandler> this_context_;

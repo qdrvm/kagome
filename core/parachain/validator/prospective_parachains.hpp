@@ -271,9 +271,6 @@ namespace kagome::parachain {
     }
 
     outcome::result<void> onActiveLeavesUpdate(const network::ExView &update) {
-      /// TODO(iceseer): do
-      /// call from parachain_processor onActiveLeavesUpdate
-
       for (const auto &deactivated : update.lost) {
         view.active_leaves.erase(deactivated);
       }

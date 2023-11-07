@@ -363,6 +363,21 @@ namespace kagome::parachain {
       }
     }
 
+    std::optional<StatementStore> statement_store;
+    if (auto mode = prospective_parachains_->prospectiveParachainsMode(relay_parent)) {
+      OUTCOME_TRY(session_index,
+                  parachain_host_->session_index_for_child(relay_parent));
+      OUTCOME_TRY(session_info,
+                  parachain_host_->session_info(relay_parent, session_index));
+      if (session_info) {
+        std::unordered_map<GroupIndex, std::vector<ValidatorIndex>> groups;
+        for (size_t g = 0; g < session_info->validator_groups.size(); ++g) {
+          groups[g] = std::move(session_info->validator_groups[g]);
+        }
+        statement_store.emplace(Groups{std::move(groups)});
+      }
+    }
+
     logger_->info(
         "Inited new backing task.(assignment={}, our index={}, relay "
         "parent={})",
@@ -381,6 +396,7 @@ namespace kagome::parachain {
                 .groups = std::move(out_groups),
                 .validators = std::move(validators),
             },
+        .statement_store = std::move(statement_store),
         .awaiting_validation = {},
         .issued_statements = {},
         .peers_advertised = {},
@@ -588,7 +604,12 @@ namespace kagome::parachain {
 
   void ParachainProcessorImpl::process_vstaging_statement(
       const libp2p::peer::PeerId &peer_id,
-      const network::vstaging::StatementDistributionMessage &msg) {}
+      const network::vstaging::StatementDistributionMessage &msg) {
+    BOOST_ASSERT(
+        this_context_->io_context()->get_executor().running_in_this_thread());
+
+
+  }
 
   void ParachainProcessorImpl::process_legacy_statement(
       const libp2p::peer::PeerId &peer_id,
