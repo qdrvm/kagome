@@ -67,13 +67,9 @@ namespace kagome::api {
     ::libp2p::common::MovableFinalAction remove(
         [&] { offchain_worker_pool_.get()->removeWorker(); });
     outcome::result<decltype(remove)> result{std::move(remove)};
-    if (auto r = block_tree_.get()->getBlockHeader(at)) {
-      offchain_worker_pool_.get()->addWorker(
-          offchain_worker_factory_.get()->make(executor_.get(), r.value()));
-      return result;
-    } else {
-      return decltype(result){r.error()};
-    }
+    offchain_worker_pool_.get()->addWorker(
+        offchain_worker_factory_.get()->make());
+    return result;
   }
 
   void MmrRpc::registerHandlers() {
