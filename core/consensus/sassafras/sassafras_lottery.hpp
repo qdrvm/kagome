@@ -9,6 +9,7 @@
 #include <optional>
 
 #include "consensus/sassafras/types/randomness.hpp"
+#include "consensus/sassafras/types/ticket.hpp"
 #include "consensus/timeline/types.hpp"
 #include "crypto/bandersnatch_types.hpp"
 
@@ -29,7 +30,8 @@ namespace kagome::consensus::sassafras {
                              const Randomness &randomness,
                              const Threshold &ticket_threshold,
                              const Threshold &threshold,
-                             const crypto::BandersnatchKeypair &keypair) = 0;
+                             const crypto::BandersnatchKeypair &keypair,
+                             AttemptsNumber attempts) = 0;
 
     /**
      * Return lottery current epoch
@@ -43,7 +45,9 @@ namespace kagome::consensus::sassafras {
      * for that slot, value contains VRF value and proof
      */
     virtual std::optional<crypto::VRFOutput> getSlotLeadership(
-        const primitives::BlockHash &block, SlotNumber slot) const = 0;
+        const primitives::BlockHash &block,
+        SlotNumber slot,
+        bool allow_fallback) const = 0;
 
     /**
      * Computes VRF proof for the slot regardless threshold.

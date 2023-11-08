@@ -97,6 +97,12 @@ namespace kagome::consensus::sassafras {
     metric_is_relaychain_validator_->set(false);
   }
 
+  bool Sassafras::isGenesisConsensus() const {
+    primitives::BlockInfo genesis_block{0, block_tree_->getGenesisBlockHash()};
+    auto res = sassafras_config_repo_->config(genesis_block, 0);
+    return res.has_value();
+  }
+
   ValidatorStatus Sassafras::getValidatorStatus(
       const primitives::BlockInfo &block, EpochNumber epoch) const {
     auto config = sassafras_config_repo_->config(block, epoch);
@@ -110,6 +116,9 @@ namespace kagome::consensus::sassafras {
     }
 
     const auto &authorities = config.value()->authorities;
+    for (auto a : authorities) {
+      SL_CRITICAL(log_, "Auth: {:l}", a);
+    }
     if (session_keys_->getSassafrasKeyPair(authorities)) {
       if (authorities.size() > 1) {
         return ValidatorStatus::Validator;
@@ -136,7 +145,7 @@ namespace kagome::consensus::sassafras {
     OUTCOME_TRY(epoch_number, slots_util_.get()->slotToEpoch(best_block, slot));
 
     auto config_res = sassafras_config_repo_->config(best_block, epoch_number);
-    [[unlikely]] if (not config_res.has_value()) {
+    [[unlikely]] if (config_res.has_error()) {
       SL_ERROR(log_,
                "Can not get epoch: {}; Skipping slot processing",
                config_res.error());
@@ -171,13 +180,17 @@ namespace kagome::consensus::sassafras {
       changeLotteryEpoch(ctx, epoch_number, authority_index, config);
     }
 
+    auto allow_fallback =
+        ((ctx.slot - config.start_slot) % config.authorities.size())
+        == authority_index;
+
     auto slot_leadership =
-        lottery_->getSlotLeadership(ctx.parent.hash, ctx.slot);
+        lottery_->getSlotLeadership(ctx.parent.hash, ctx.slot, allow_fallback);
 
     if (slot_leadership.has_value()) {
       const auto &vrf_result = slot_leadership.value();
       SL_DEBUG(log_,
-               "Babe author {} is primary slot-leader "
+               "Sassafras author {} is slot-leader by toss "
                "(vrfOutput: {}, proof: {})",
                ctx.keypair->public_key,
                common::Buffer(vrf_result.output),
@@ -529,14 +542,15 @@ namespace kagome::consensus::sassafras {
 
     Threshold threshold;  // FIXME
     //        = calculateThreshold(sassafras_config.leadership_rate,
-    //                                        sassafras_config.authorities,
-    //                                        authority_index);
+    //                             sassafras_config.authorities,
+    //                             authority_index);
 
     lottery_->changeEpoch(epoch,
                           sassafras_config.randomness,
                           ticket_threshold,
                           threshold,
-                          *ctx.keypair);
+                          *ctx.keypair,
+                          sassafras_config.config.attempts_number);
   }
 
 }  // namespace kagome::consensus::sassafras

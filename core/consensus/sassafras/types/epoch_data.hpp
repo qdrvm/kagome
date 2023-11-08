@@ -4,8 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "consensus/sassafras/types/randomness.hpp"
-#include "primitives/authority.hpp"
+#include "consensus/sassafras/types/sassafras_configuration.hpp"
 
 namespace kagome::consensus::sassafras {
 
@@ -14,7 +13,7 @@ namespace kagome::consensus::sassafras {
     SCALE_TIE(2);
 
     /// The authorities actual for corresponding epoch
-    primitives::AuthorityIds authorities;
+    Authorities authorities;
 
     /// The value of randomness to use for the slot-assignment.
     Randomness randomness;

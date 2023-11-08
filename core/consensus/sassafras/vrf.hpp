@@ -117,17 +117,33 @@ namespace kagome::consensus::sassafras {
     // opaque
   };
 
-  using RingSignature = OCTET_STRING;
+  /// Max number of inputs/outputs which can be handled by the VRF signing
+  /// procedures.
+  ///
+  /// The number is quite arbitrary and chosen to fulfill the use cases found so
+  /// far. If required it can be extended in the future.
+  constexpr size_t MAX_VRF_IOS = 3;
 
+  using VrfIosVec = common::SLVector<VrfOutput, MAX_VRF_IOS>;
+
+  using RingSignature = common::Blob<
+      crypto::constants::bandersnatch::RING_SIGNATURE_SERIALIZED_SIZE>;
+
+  /// Ring VRF signature.
   struct RingVrfSignature {
-    SCALE_TIE(3);
+    SCALE_TIE(2);
 
-    // represents the actual signature (opaque).
+    /// VRF (pre)outputs.
+    VrfIosVec outputs;
+
+    /// Ring signature.
     RingSignature signature;
-    // denotes the proof of ring membership.
-    RingProof ring_proof;
-    // sequence of VrfOutput objects corresponding to the VrfInput values.
-    SEQUENCE_OF<VrfOutput> outputs;
+
+    //    // represents the actual signature (opaque).
+    //    // denotes the proof of ring membership.
+    //    RingProof ring_proof;
+    //    // sequence of VrfOutput objects corresponding to the VrfInput values.
+    //    SEQUENCE_OF<VrfOutput> outputs;
   };
 
   inline RingVrfSignature ring_vrf_sign(crypto::BandersnatchSecretKey secret,

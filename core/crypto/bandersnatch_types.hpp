@@ -23,11 +23,24 @@ namespace kagome::crypto {
      * Important constants to deal with bandersnatch
      */
     enum {
-      KEYPAIR_SIZE = 96,    // BANDERSNATCH_KEYPAIR_SIZE,
-      SECRET_SIZE = 64,     // BANDERSNATCH_SECRET_SIZE,
-      PUBLIC_SIZE = 32,     // BANDERSNATCH_PUBLIC_SIZE,
-      SIGNATURE_SIZE = 64,  // BANDERSNATCH_SIGNATURE_SIZE,
-      SEED_SIZE = 32,       // BANDERSNATCH_SEED_SIZE
+      // Max ring domain size.
+      RING_DOMAIN_SIZE = 1024,
+
+      // Short-Weierstrass form serialized sizes.
+      PUBLIC_SIZE = 33,     // BANDERSNATCH_PUBLIC_SIZE,
+      SIGNATURE_SIZE = 65,  // BANDERSNATCH_SIGNATURE_SIZE,
+      RING_SIGNATURE_SERIALIZED_SIZE = 755,
+      PREOUT_SERIALIZED_SIZE = 33,
+
+      // Max size of serialized ring-vrf context params.
+      //
+      // This size is dependent on the ring domain size and the actual value
+      // is equal to the SCALE encoded size of the `KZG` backend.
+      RING_CONTEXT_SERIALIZED_SIZE = 147716,
+
+      KEYPAIR_SIZE = 96,  // BANDERSNATCH_KEYPAIR_SIZE,
+      SECRET_SIZE = 64,   // BANDERSNATCH_SECRET_SIZE,
+      SEED_SIZE = 32,     // BANDERSNATCH_SEED_SIZE
     };
 
     namespace vrf {

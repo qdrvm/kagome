@@ -41,6 +41,7 @@ namespace kagome::crypto {
       std::shared_ptr<EcdsaSuite> ecdsa_suite,
       std::shared_ptr<Ed25519Suite> ed_suite,
       std::shared_ptr<Sr25519Suite> sr_suite,
+      std::shared_ptr<BandersnatchSuite> bandersnatch_suite,
       std::shared_ptr<Bip39Provider> bip39_provider,
       std::shared_ptr<CSPRNG> csprng,
       std::shared_ptr<KeyFileStorage> key_fs)
@@ -48,12 +49,14 @@ namespace kagome::crypto {
         ecdsa_suite_{std::move(ecdsa_suite)},
         ed_suite_{std::move(ed_suite)},
         sr_suite_{std::move(sr_suite)},
+        bandersnatch_suite_{std::move(bandersnatch_suite)},
         bip39_provider_{std::move(bip39_provider)},
         csprng_{std::move(csprng)},
         logger_{log::createLogger("CryptoStore", "crypto_store")} {
     BOOST_ASSERT(ecdsa_suite_ != nullptr);
     BOOST_ASSERT(ed_suite_ != nullptr);
     BOOST_ASSERT(sr_suite_ != nullptr);
+    BOOST_ASSERT(bandersnatch_suite_ != nullptr);
     BOOST_ASSERT(bip39_provider_ != nullptr);
     BOOST_ASSERT(file_storage_ != nullptr);
   }

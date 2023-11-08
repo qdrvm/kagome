@@ -54,6 +54,7 @@ groups:
           - name: consensus
             children:
               - name: timeline
+                level: trace # TODO It's for developing stage
               - name: babe
                 children:
                   - name: babe_lottery
@@ -64,6 +65,11 @@ groups:
               - name: grandpa
                 children:
                   - name: voting_round
+              - name: sassafras
+                level: trace # TODO It's for developing stage
+                children:
+                  - name: sassafras_lottery
+                  - name: sassafras_config_repo
           - name: parachain
             children:
              - name: pvf_executor

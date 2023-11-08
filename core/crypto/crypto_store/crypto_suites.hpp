@@ -220,6 +220,19 @@ namespace kagome::crypto {
     outcome::result<BandersnatchKeypair> generateKeypair(
         const BandersnatchSeed &seed,
         Junctions junctions) const noexcept override {
+      if (std::all_of(seed.begin(), seed.end(), [](auto x) { return !x; })) {
+        return BandersnatchKeypair{
+            .secret_key = BandersnatchSecretKey::fromHex(
+                              "00000000000000000000000000000000"
+                              "00000000000000000000000000000000"
+                              "00000000000000000000000000000000"
+                              "00000000000000000000000000000000")
+                              .value(),
+            .public_key = BandersnatchPublicKey::fromHex(
+                              "9c8af77d3a4e3f6f076853922985b9e6"
+                              "724fc9675329087f47aff1ceaaae772180")
+                              .value()};
+      }
       return bandersnatch_provider_->generateKeypair(seed, junctions);
     }
 

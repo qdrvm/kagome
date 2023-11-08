@@ -45,6 +45,7 @@ namespace kagome::crypto {
     CryptoStoreImpl(std::shared_ptr<EcdsaSuite> ecdsa_suite,
                     std::shared_ptr<Ed25519Suite> ed_suite,
                     std::shared_ptr<Sr25519Suite> sr_suite,
+                    std::shared_ptr<BandersnatchSuite> bandersnatch_suite,
                     std::shared_ptr<Bip39Provider> bip39_provider,
                     std::shared_ptr<CSPRNG> csprng,
                     std::shared_ptr<KeyFileStorage> key_fs);
