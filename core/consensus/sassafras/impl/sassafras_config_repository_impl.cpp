@@ -69,7 +69,7 @@ namespace kagome::consensus::sassafras {
         block_tree_(std::move(block_tree)),
         indexer_{
             std::make_shared<storage::MapPrefix>(
-                storage::kSassafrasConfigRepositoryImplIndexerPrefix,
+                storage::kSassafrasConfigRepositoryIndexerPrefix,
                 persistent_storage_),
             block_tree_,
         },
@@ -113,22 +113,30 @@ namespace kagome::consensus::sassafras {
       SL_ERROR(logger_, "genesis slot db read error: {}", res.error());
       return false;
     }
-    std::unique_lock lock{indexer_mutex_};
-    auto finalized = block_tree_->getLastFinalized();
-    auto finalized_header = block_tree_->getBlockHeader(finalized.hash).value();
 
-    if (finalized.number - indexer_.last_finalized_indexed_.number
-            > kMaxUnindexedBlocksNum
-        and trie_storage_->getEphemeralBatchAt(finalized_header.state_root)) {
-      warp(lock, finalized);
-    }
+    {
+      std::unique_lock lock{indexer_mutex_};
+      auto finalized = block_tree_->getLastFinalized();
+      auto finalized_header =
+          block_tree_->getBlockHeader(finalized.hash).value();
 
-    if (!timings_) {
-      auto genesis_res = config({block_tree_->getGenesisBlockHash(), 0}, false);
-      if (genesis_res.has_value()) {
-        auto &genesis = genesis_res.value();
-        timings_.init(genesis->slot_duration, genesis->epoch_length);
-        SL_DEBUG(logger_, "Timing was initialized by sassafras config");
+      if (finalized.number - indexer_.last_finalized_indexed_.number
+              > kMaxUnindexedBlocksNum
+          and trie_storage_->getEphemeralBatchAt(finalized_header.state_root)) {
+        warp(lock, finalized);
+      }
+
+      if (!timings_) {
+        auto genesis_res =
+            config({block_tree_->getGenesisBlockHash(), 0}, false);
+        if (genesis_res.has_value()) {
+          auto &genesis = genesis_res.value();
+          timings_.init(genesis->slot_duration, genesis->epoch_length);
+          SL_DEBUG(logger_,
+                   "Timing was initialized: slot is {}ms, epoch is {} slots",
+                   timings_.slot_duration.count(),
+                   timings_.epoch_length);
+        }
       }
     }
 

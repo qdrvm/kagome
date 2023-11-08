@@ -49,8 +49,11 @@ namespace kagome::storage {
   inline const common::Buffer kBabeConfigRepositoryImplIndexerPrefix =
       ":kagome:BabeConfigRepositoryImpl:Indexer:"_buf;
 
-  inline const common::Buffer kSassafrasConfigRepositoryImplIndexerPrefix =
-      ":kagome:SassafrasConfigRepositoryImpl:Indexer:"_buf;
+  inline const common::Buffer kSassafrasConfigRepositoryIndexerPrefix =
+      ":kagome:SassafrasConfigRepository:Indexer:"_buf;
+
+  inline const common::Buffer kSassafrasLotteryStateLookupKey =
+      ":kagome:SassafrasLottery:State:"_buf;
 
   inline const common::Buffer kAuthorityManagerImplIndexerPrefix =
       ":kagome:AuthorityManagerImpl:Indexer:"_buf;

@@ -28,8 +28,7 @@ namespace kagome::application {
 
 namespace kagome::blockchain {
   class BlockTree;
-  //  class DigestTracker;
-}  // namespace kagome::blockchain
+}
 
 namespace kagome::consensus {
   class SlotsUtil;
@@ -76,6 +75,8 @@ namespace kagome::consensus::sassafras {
               std::shared_ptr<parachain::BitfieldStore> bitfield_store,
               std::shared_ptr<parachain::BackingStore> backing_store,
               std::shared_ptr<dispute::DisputeCoordinator> dispute_coordinator);
+
+    bool isGenesisConsensus() const override;
 
     ValidatorStatus getValidatorStatus(const primitives::BlockInfo &parent_info,
                                        EpochNumber epoch_number) const override;

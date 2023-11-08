@@ -12,7 +12,7 @@
 
 namespace kagome::consensus::sassafras {
 
-  using primitives::AuthorityIds;
+  using Authorities = std::vector<crypto::BandersnatchPublicKey>;
 
   /// Tickets threshold redundancy factor
   using RedundancyFactor = uint32_t;
@@ -42,7 +42,7 @@ namespace kagome::consensus::sassafras {
     /// Duration of epoch in slots
     EpochLength epoch_length;
     /// Authorities for the epoch
-    AuthorityIds authorities;
+    Authorities authorities;
     /// Randomness for the epoch
     Randomness randomness;
     /// Epoch configuration

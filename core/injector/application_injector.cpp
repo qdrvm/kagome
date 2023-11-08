@@ -872,9 +872,8 @@ namespace {
             di::bind<dispute::Storage>.template to<dispute::StorageImpl>(),
 
             di::bind<consensus::ProductionConsensus *[]>()  // NOLINT
-                .template to<consensus::babe::Babe
-                             //,consensus::aura::Aura
-                             ,consensus::sassafras::Sassafras
+                .template to<consensus::babe::Babe,
+                             consensus::sassafras::Sassafras
                             >(),
             di::bind<consensus::FinalityConsensus *[]>()  // NOLINT
                 .template to<
