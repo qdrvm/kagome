@@ -122,6 +122,13 @@ namespace kagome::parachain {
           .persisted_validation_data = persisted_validation_data,
       };
     }
+
+    bool is_importable(std::optional<std::reference_wrapper<const Hash>> under_active_leaf) const {
+      if (!under_active_leaf) {
+        return !importable_under.empty();
+      }
+      return importable_under.find(under_active_leaf->get()) != importable_under.end();
+    }
   };
 
   using CandidateState =
@@ -141,6 +148,14 @@ namespace kagome::parachain {
       }
       return false;
     }
+
+	bool is_importable(const CandidateHash &candidate_hash) const {
+		auto opt_confirmed = get_confirmed(candidate_hash);
+    if (!opt_confirmed) {
+      return false;
+    }
+    return opt_confirmed->get().is_importable(std::nullopt);
+	}
 
     std::optional<std::reference_wrapper<const ConfirmedCandidate>> get_confirmed(const CandidateHash &candidate_hash) const {
       auto it = candidates.find(candidate_hash);

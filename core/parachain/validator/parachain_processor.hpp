@@ -262,8 +262,7 @@ namespace kagome::parachain {
     void makeAvailable(const libp2p::peer::PeerId &peer_id,
                        const primitives::BlockHash &candidate_hash,
                        ValidateAndSecondResult &&result);
-    void handleStatement(const libp2p::peer::PeerId &peer_id,
-                         const primitives::BlockHash &relay_parent,
+    void handleStatement(const primitives::BlockHash &relay_parent,
                          const SignedFullStatementWithPVD &statement);
     void process_bitfield_distribution(
         const network::BitfieldDistributionMessage &val);
@@ -273,7 +272,11 @@ namespace kagome::parachain {
     void process_vstaging_statement(
         const libp2p::peer::PeerId &peer_id,
         const network::vstaging::StatementDistributionMessage &msg);
-        void send_backing_fresh_statement(ParachainProcessorImpl::RelayParentState& per_relay_parent, const std::vector<ValidatorIndex> &group, const CandidateHash &candidate_hash);
+        void send_backing_fresh_statement(const ConfirmedCandidate &confirmed, 
+          const RelayHash &relay_parent, 
+          ParachainProcessorImpl::RelayParentState& per_relay_parent, 
+          const std::vector<ValidatorIndex> &group, 
+          const CandidateHash &candidate_hash);
 
     outcome::result<std::pair<CollatorId, ParachainId>> insertAdvertisement(
         network::PeerState &peer_data,

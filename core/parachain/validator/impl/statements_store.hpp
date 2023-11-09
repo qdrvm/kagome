@@ -128,28 +128,39 @@ struct StatementStore {
         return 0;
 	}
 
+	void note_known_by_backing(ValidatorIndex validator_index, const network::vstaging::CompactStatement &statement) {
+        auto it = known_statements.find(Fingerprint {
+                .index = validator_index,
+                .statement = statement,
+            });
+        if (it != known_statements.end()) {
+            auto &stored = it->second;
+            stored.known_by_backing = true;
+        }
+	}
+
     template<typename F>
     void fresh_statements_for_backing(const std::vector<ValidatorIndex> &validators, const CandidateHash &candidate_hash, F &&cb) const {
         auto call = [&](const Fingerprint &fingerprint) {
             auto it = known_statements.find(fingerprint);
             if (it != known_statements.end()) {
-                const StoredStatement &s = it->seconded;
+                const StoredStatement &s = it->second;
                 if (!s.known_by_backing) {
                     std::forward<F>(cb)(s.statement);
                 }
             }
-        }
+        };
 
         for (const auto &vi : validators) {
             call(Fingerprint {
                 .index = vi,
-                .statement = SecondedCandidateHash {
+                .statement = network::vstaging::SecondedCandidateHash {
                     .hash = candidate_hash,
                 },
             });
             call(Fingerprint {
                 .index = vi,
-                .statement = ValidCandidateHash {
+                .statement = network::vstaging::ValidCandidateHash {
                     .hash = candidate_hash,
                 },
             });

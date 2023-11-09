@@ -691,7 +691,7 @@ namespace kagome::parachain {
                 return;
               }
               /// TODO(iceseer): do
-              //self->back(candidate_hash, std::move(r));
+              /// `handle_response`
             });
       }
 
@@ -699,7 +699,7 @@ namespace kagome::parachain {
       /// check statement signature
 
       Groups groups{opt_session_info->validator_groups};
-      const auto was_fresh_opt = parachain_state->get().statement_store.insert(groups,
+      const auto was_fresh_opt = parachain_state->get().statement_store->insert(groups,
         stm->get().compact, StatementOrigin::Remote);
       if (!was_fresh_opt) {
           SL_WARN(logger_, "Accepted message from unknown validator. (relay parent={}, validator={})",
@@ -715,7 +715,7 @@ namespace kagome::parachain {
 
       const auto is_importable = candidates_.is_importable(candidate_hash);
       if (is_importable && confirmed) {
-        send_backing_fresh_statement(group);
+        send_backing_fresh_statement(confirmed->get(), stm->get().relay_parent, parachain_state->get(), group, candidate_hash);
       }
 
       /// TODO(iceseer): do
@@ -726,19 +726,44 @@ namespace kagome::parachain {
 
   }
 
-  void ParachainProcessorImpl::send_backing_fresh_statement(ParachainProcessorImpl::RelayParentState& per_relay_parent, const std::vector<ValidatorIndex> &group, const CandidateHash &candidate_hash) {
+  void ParachainProcessorImpl::send_backing_fresh_statement(const ConfirmedCandidate &confirmed, const RelayHash &relay_parent, ParachainProcessorImpl::RelayParentState &per_relay_parent, const std::vector<ValidatorIndex> &group, const CandidateHash &candidate_hash) {
     if (!per_relay_parent.statement_store) {
       return;
     }
 
     std::vector<std::pair<ValidatorIndex, network::vstaging::CompactStatement>> imported;
-    relay_parent_state.statement_store->fresh_statements_for_backing(group_validators, candidate_hash, [&](const IndexedAndSigned<network::vstaging::CompactStatement> &statement) {
+    per_relay_parent.statement_store->fresh_statements_for_backing(group, candidate_hash, [&](const IndexedAndSigned<network::vstaging::CompactStatement> &statement) {
       const auto &v = statement.payload.ix;
       const auto &compact = getPayload(statement);
       imported.emplace_back(v, compact);
 
-      
+      handleStatement(relay_parent,
+                      SignedFullStatementWithPVD{
+                          .payload =
+                              {
+                                  .payload = visit_in_place(compact,
+        [&](const network::vstaging::SecondedCandidateHash&) -> StatementWithPVD {
+          return StatementWithPVDSeconded {
+            .committed_receipt = confirmed.receipt,
+            .pvd = confirmed.persisted_validation_data,
+          };
+        },
+        [](const network::vstaging::ValidCandidateHash &val) -> StatementWithPVD {
+          return StatementWithPVDValid {
+            .candidate_hash = val.hash,
+          };
+        }, [](const auto &) -> StatementWithPVD { 
+          UNREACHABLE;
+          }),
+                                  .ix = statement.payload.ix,
+                              },
+                          .signature = statement.signature,
+                      });
     });
+
+    	for (const auto &[v, s] : imported) {
+    		per_relay_parent.statement_store->note_known_by_backing(v, s);
+	    }
   }
 
   void ParachainProcessorImpl::process_legacy_statement(
@@ -779,8 +804,7 @@ namespace kagome::parachain {
         };
       }
 
-      handleStatement(peer_id,
-                      statement_msg->relay_parent,
+      handleStatement(statement_msg->relay_parent,
                       SignedFullStatementWithPVD{
                           .payload =
                               {
@@ -1004,7 +1028,6 @@ namespace kagome::parachain {
   }
 
   void ParachainProcessorImpl::handleStatement(
-      const libp2p::peer::PeerId &peer_id,
       const primitives::BlockHash &relay_parent,
       const SignedFullStatementWithPVD &statement) {
     BOOST_ASSERT(
@@ -1013,7 +1036,7 @@ namespace kagome::parachain {
     auto opt_parachain_state = tryGetStateByRelayParent(relay_parent);
     if (!opt_parachain_state) {
       logger_->trace(
-          "Handled statement from {}:{} out of view", peer_id, relay_parent);
+          "Handled statement from {} out of view", relay_parent);
       return;
     }
 
@@ -1035,9 +1058,8 @@ namespace kagome::parachain {
 
       const auto &candidate_hash = result->imported.candidate;
       SL_TRACE(logger_,
-               "Registered incoming statement.(relay_parent={}, peer={}).",
-               relay_parent,
-               peer_id);
+               "Registered incoming statement.(relay_parent={}).",
+               relay_parent);
       std::optional<std::reference_wrapper<AttestingData>> attesting_ref =
           visit_in_place(
               parachain::getPayload(statement),
