@@ -198,7 +198,7 @@ namespace kagome::storage::trie_pruner {
                                               const trie::RootHash &root_hash) {
     auto trie_res = serializer_->retrieveTrie(root_hash, nullptr);
     if (trie_res.has_error()
-        && trie_res.error() == storage::DatabaseError::NOT_FOUND) {
+        && trie_res.error().ec(storage::DatabaseError::NOT_FOUND)) {
       SL_TRACE(logger_,
                "Failed to obtain trie from storage, the state {} is probably "
                "already pruned or has never been executed.",
@@ -466,7 +466,7 @@ namespace kagome::storage::trie_pruner {
                    "Failed to restore trie pruner state starting from last "
                    "finalized "
                    "block: {}",
-                   res.error().message());
+                   res.error());
           return res.as_failure();
         }
       } else {
@@ -487,7 +487,7 @@ namespace kagome::storage::trie_pruner {
                 "Failed to restore trie pruner state starting from base "
                 "block {}: {}",
                 last_pruned_block.value(),
-                res.error().message());
+                res.error());
       }
     }
     return outcome::success();
@@ -512,7 +512,7 @@ namespace kagome::storage::trie_pruner {
       OUTCOME_TRY(base_block, block_tree.getBlockHeader(base_block_hash));
       auto base_tree_res = serializer_->retrieveTrie(base_block.state_root);
       if (base_tree_res.has_error()
-          && base_tree_res.error() == storage::DatabaseError::NOT_FOUND) {
+          && base_tree_res.error().ec(storage::DatabaseError::NOT_FOUND)) {
         SL_DEBUG(
             logger_,
             "Failed to restore pruner state, probably node is fast-syncing.");
@@ -537,7 +537,7 @@ namespace kagome::storage::trie_pruner {
                block_hash);
       auto tree_res = serializer_->retrieveTrie(header.state_root);
       if (tree_res.has_error()
-          && tree_res.error() == DatabaseError::NOT_FOUND) {
+          && tree_res.error().ec(DatabaseError::NOT_FOUND)) {
         SL_WARN(logger_,
                 "State for block #{} is not found in the database",
                 header.number);

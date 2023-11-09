@@ -36,10 +36,6 @@ namespace kagome::network {
         BlockAttribute::HEADER | BlockAttribute::BODY
         | BlockAttribute::JUSTIFICATION;
 
-    bool attributeIsSet(const BlockAttribute &attribute) const {
-      return fields & attribute;
-    }
-
     using Fingerprint = size_t;
 
     inline Fingerprint fingerprint() const;

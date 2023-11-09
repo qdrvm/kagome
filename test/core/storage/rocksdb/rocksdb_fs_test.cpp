@@ -33,9 +33,8 @@ TEST_F(RocksDb_Open, OpenNonExistingDB) {
   rocksdb::Options options;
   options.create_if_missing = false;  // intentionally
 
-  auto r = RocksDb::create(getPathString(), options);
-  EXPECT_FALSE(r);
-  EXPECT_EQ(r.error(), DatabaseError::INVALID_ARGUMENT);
+  EXPECT_EC(RocksDb::create(getPathString(), options),
+            DatabaseError::INVALID_ARGUMENT);
 }
 
 /**
@@ -47,7 +46,7 @@ TEST_F(RocksDb_Open, OpenExistingDB) {
   rocksdb::Options options;
   options.create_if_missing = true;  // intentionally
 
-  EXPECT_OUTCOME_TRUE_2(db, RocksDb::create(getPathString(), options));
+  EXPECT_OUTCOME_TRUE(db, RocksDb::create(getPathString(), options));
   EXPECT_TRUE(db) << "db is nullptr";
 
   kagome::filesystem::path p(getPathString());

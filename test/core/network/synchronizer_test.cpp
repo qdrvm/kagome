@@ -151,7 +151,7 @@ ACTION_P(blockTree_getBlockHeader, local_blocks) {
     }
   }
   std::cout << "Result: not found" << std::endl;
-  return boost::system::error_code{};
+  return Q_ERROR(nullptr);
 }
 
 // Imitates response for block request based on generated local blockchain
@@ -291,7 +291,7 @@ TEST_P(SynchronizerTest, findCommonBlock) {
       auto &bi = res.value();
       std::cout << "Success: " << bi.hash.data() << std::endl;
     } else {
-      std::cout << "Fail: " << res.error() << std::endl;
+      fmt::println("Fail: {}", res.error());
     }
     std::cout << std::endl;
     mock(res);

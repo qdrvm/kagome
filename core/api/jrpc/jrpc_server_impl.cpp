@@ -80,7 +80,7 @@ namespace kagome::api {
                           formatted_response->GetSize()));
 
     } catch (const Fault &ex) {
-      cb(outcome::failure(Error::JSON_FORMAT_FAILED));
+      cb(Q_ERROR(Error::JSON_FORMAT_FAILED));
     }
 
     metric_rpc_requests_count_->inc();

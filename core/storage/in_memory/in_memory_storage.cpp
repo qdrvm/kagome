@@ -20,7 +20,7 @@ namespace kagome::storage {
       return BufferView{storage.at(key.toHex())};
     }
 
-    return DatabaseError::NOT_FOUND;
+    return Q_ERROR(DatabaseError::NOT_FOUND);
   }
 
   outcome::result<std::optional<BufferOrView>> InMemoryStorage::tryGet(

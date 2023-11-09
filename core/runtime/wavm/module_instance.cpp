@@ -119,7 +119,7 @@ namespace kagome::runtime::wavm {
           WAVM::Runtime::getInstanceExport(instance_, name.data()));
       if (!function) {
         SL_DEBUG(logger_, "The requested function {} not found", name);
-        return RuntimeTransactionError::EXPORT_FUNCTION_NOT_FOUND;
+        return Q_ERROR(RuntimeTransactionError::EXPORT_FUNCTION_NOT_FOUND);
       }
       const WAVM::IR::FunctionType functionType =
           WAVM::Runtime::getFunctionType(function);
@@ -129,7 +129,7 @@ namespace kagome::runtime::wavm {
             "The provided function argument count should equal to 2, got {} "
             "instead",
             functionType.params().size());
-        return Error::WRONG_ARG_COUNT;
+        return Q_ERROR(Error::WRONG_ARG_COUNT);
       }
       WAVM_ASSERT(function)
 
@@ -167,7 +167,7 @@ namespace kagome::runtime::wavm {
         const auto desc = WAVM::Runtime::describeException(e);
         logger_->error(desc);
         WAVM::Runtime::destroyException(e);
-        return Error::EXECUTION_ERROR;
+        return Q_ERROR(Error::EXECUTION_ERROR);
       }
     }();
     WAVM::Runtime::collectCompartmentGarbage(compartment_->getCompartment());
@@ -197,7 +197,7 @@ namespace kagome::runtime::wavm {
         SL_DEBUG(logger_,
                  "Runtime function returned result of unsupported type: {}",
                  asString(value));
-        return Error::WRONG_RETURN_TYPE;
+        return Q_ERROR(Error::WRONG_RETURN_TYPE);
     }
   }
 

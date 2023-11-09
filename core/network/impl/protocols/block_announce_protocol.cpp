@@ -126,7 +126,7 @@ namespace kagome::network {
         return;
       }
       if (not self->onHandshake(peer_id, std::get<2>(r.value()))) {
-        cb(ProtocolError::GENESIS_NO_MATCH);
+        cb(Q_ERROR(ProtocolError::GENESIS_NO_MATCH));
         return;
       }
       auto &stream = std::get<0>(r.value());

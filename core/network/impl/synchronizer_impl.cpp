@@ -147,8 +147,9 @@ namespace kagome::network {
     auto last_finalized_block = block_tree_->getLastFinalized();
     // Check if block from discarded side-chain
     if (last_finalized_block.number >= block_info.number) {
-      scheduler_->schedule(
-          [handler = std::move(handler)] { handler(Error::DISCARDED_BLOCK); });
+      scheduler_->schedule([handler = std::move(handler)] {
+        handler(Q_ERROR(Error::DISCARDED_BLOCK));
+      });
       return false;
     }
 
@@ -157,7 +158,7 @@ namespace kagome::network {
     if (best_block.number + kMaxDistanceToBlockForSubscription
         < block_info.number) {
       scheduler_->schedule([handler = std::move(handler)] {
-        handler(Error::ARRIVED_TOO_EARLY);
+        handler(Q_ERROR(Error::ARRIVED_TOO_EARLY));
       });
       return false;
     }
@@ -394,7 +395,7 @@ namespace kagome::network {
       std::map<primitives::BlockNumber, primitives::BlockHash> &&observed) {
     // Interrupts process if node is shutting down
     if (node_is_shutting_down_) {
-      handler(Error::SHUTTING_DOWN);
+      handler(Q_ERROR(Error::SHUTTING_DOWN));
       return;
     }
 
@@ -415,7 +416,7 @@ namespace kagome::network {
                  upper - 1,
                  peer_id,
                  r.first->second);
-      handler(Error::DUPLICATE_REQUEST);
+      handler(Q_ERROR(Error::DUPLICATE_REQUEST));
       return;
     }
 
@@ -459,7 +460,7 @@ namespace kagome::network {
                    lower,
                    upper - 1,
                    peer_id);
-        handler(Error::EMPTY_RESPONSE);
+        handler(Q_ERROR(Error::EMPTY_RESPONSE));
         self->recent_requests_.erase(std::tuple(peer_id, request_fingerprint));
         return;
       }
@@ -490,7 +491,7 @@ namespace kagome::network {
           // block must be existed because finding in interval of numbers of
           // blocks that must exist
           SL_WARN(self->log_, "Not found any common block with {}", peer_id);
-          handler(Error::EMPTY_RESPONSE);
+          handler(Q_ERROR(Error::EMPTY_RESPONSE));
           return;
         }
 
@@ -569,7 +570,7 @@ namespace kagome::network {
     // Interrupts process if node is shutting down
     if (node_is_shutting_down_) {
       if (handler) {
-        handler(Error::SHUTTING_DOWN);
+        handler(Q_ERROR(Error::SHUTTING_DOWN));
       }
       return;
     }
@@ -590,7 +591,7 @@ namespace kagome::network {
                from,
                r.first->second);
       if (handler) {
-        handler(Error::DUPLICATE_REQUEST);
+        handler(Q_ERROR(Error::DUPLICATE_REQUEST));
       }
       return;
     }
@@ -631,7 +632,7 @@ namespace kagome::network {
                  peer_id,
                  from);
         if (handler) {
-          handler(Error::EMPTY_RESPONSE);
+          handler(Q_ERROR(Error::EMPTY_RESPONSE));
         }
         return;
       }
@@ -654,7 +655,7 @@ namespace kagome::network {
                    peer_id,
                    from);
           if (handler) {
-            handler(Error::RESPONSE_WITHOUT_BLOCK_HEADER);
+            handler(Q_ERROR(Error::RESPONSE_WITHOUT_BLOCK_HEADER));
           }
           return;
         }
@@ -666,7 +667,7 @@ namespace kagome::network {
                    peer_id,
                    from);
           if (handler) {
-            handler(Error::RESPONSE_WITHOUT_BLOCK_BODY);
+            handler(Q_ERROR(Error::RESPONSE_WITHOUT_BLOCK_BODY));
           }
           return;
         }
@@ -686,7 +687,7 @@ namespace kagome::network {
                        from,
                        BlockInfo(header.number, block.hash));
               if (handler) {
-                handler(Error::DISCARDED_BLOCK);
+                handler(Q_ERROR(Error::DISCARDED_BLOCK));
               }
               return;
             }
@@ -719,7 +720,7 @@ namespace kagome::network {
                      from,
                      BlockInfo(header.number, header.parent_hash));
             if (handler) {
-              handler(Error::DISCARDED_BLOCK);
+              handler(Q_ERROR(Error::DISCARDED_BLOCK));
             }
             return;
           }
@@ -737,7 +738,7 @@ namespace kagome::network {
                    peer_id,
                    from);
           if (handler) {
-            handler(Error::WRONG_ORDER);
+            handler(Q_ERROR(Error::WRONG_ORDER));
           }
           return;
         }
@@ -754,7 +755,7 @@ namespace kagome::network {
                    peer_id,
                    from);
           if (handler) {
-            handler(Error::INVALID_HASH);
+            handler(Q_ERROR(Error::INVALID_HASH));
           }
           return;
         }
@@ -814,7 +815,7 @@ namespace kagome::network {
                                             SyncResultHandler &&handler) {
     if (node_is_shutting_down_) {
       if (handler) {
-        handler(Error::SHUTTING_DOWN);
+        handler(Q_ERROR(Error::SHUTTING_DOWN));
       }
       return;
     }
@@ -845,7 +846,7 @@ namespace kagome::network {
                target_block,
                r.first->second);
       if (handler) {
-        handler(Error::DUPLICATE_REQUEST);
+        handler(Q_ERROR(Error::DUPLICATE_REQUEST));
       }
       return;
     }
@@ -885,7 +886,7 @@ namespace kagome::network {
                  peer_id,
                  target_block);
         if (handler) {
-          handler(Error::EMPTY_RESPONSE);
+          handler(Q_ERROR(Error::EMPTY_RESPONSE));
         }
         return;
       }
@@ -911,7 +912,7 @@ namespace kagome::network {
                    peer_id,
                    target_block);
           if (handler) {
-            handler(Error::RESPONSE_WITHOUT_BLOCK_HEADER);
+            handler(Q_ERROR(Error::RESPONSE_WITHOUT_BLOCK_HEADER));
           }
           return;
         }
@@ -1120,7 +1121,7 @@ namespace kagome::network {
               block_info,
               n ? fmt::format("and {} others have", n) : fmt::format("has"));
           if (handler) {
-            handler(Error::DISCARDED_BLOCK);
+            handler(Q_ERROR(Error::DISCARDED_BLOCK));
           }
         }
 
@@ -1166,7 +1167,7 @@ namespace kagome::network {
                 block_info,
                 n ? fmt::format("and {} others have", n) : fmt::format("has"));
             if (handler) {
-              handler(Error::DISCARDED_BLOCK);
+              handler(Q_ERROR(Error::DISCARDED_BLOCK));
             }
             return;
           }
@@ -1191,8 +1192,8 @@ namespace kagome::network {
       notifySubscribers(block_info, block_addition_result);
 
       if (not block_addition_result.has_value()) {
-        if (block_addition_result
-            != outcome::failure(blockchain::BlockTreeError::BLOCK_EXISTS)) {
+        if (not block_addition_result.error().ec(
+                blockchain::BlockTreeError::BLOCK_EXISTS)) {
           auto n = discardBlock(block_data.hash);
           SL_WARN(log_,
                   "Block {} {} been discarded: {}",
@@ -1200,7 +1201,7 @@ namespace kagome::network {
                   n ? fmt::format("and {} others have", n) : fmt::format("has"),
                   block_addition_result.error());
           if (handler) {
-            handler(Error::DISCARDED_BLOCK);
+            handler(Q_ERROR(Error::DISCARDED_BLOCK));
           }
         } else {
           SL_DEBUG(log_, "Block {} is skipped as existing", block_info);
@@ -1331,7 +1332,7 @@ namespace kagome::network {
 
       if (auto it = known_blocks_.find(hash); it != known_blocks_.end()) {
         auto number = it->second.data.header->number;
-        notifySubscribers({number, hash}, Error::DISCARDED_BLOCK);
+        notifySubscribers({number, hash}, Q_ERROR(Error::DISCARDED_BLOCK));
 
         known_blocks_.erase(it);
         affected++;
@@ -1360,7 +1361,7 @@ namespace kagome::network {
           break;
         }
         const auto &hash = generation_node.mapped();
-        notifySubscribers({number, hash}, Error::DISCARDED_BLOCK);
+        notifySubscribers({number, hash}, Q_ERROR(Error::DISCARDED_BLOCK));
 
         known_blocks_.erase(hash);
         ancestry_.erase(hash);

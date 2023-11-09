@@ -54,7 +54,7 @@ namespace kagome::primitives {
         it->second = common::Buffer(scale::encode(inherent).value());
         return outcome::success();
       }
-      return InherentDataError::IDENTIFIER_ALREADY_EXISTS;
+      return Q_ERROR(InherentDataError::IDENTIFIER_ALREADY_EXISTS);
     }
 
     /** Replace the data for an inherent.
@@ -76,7 +76,7 @@ namespace kagome::primitives {
         auto buf = inherent->second;
         return scale::decode<T>(buf);
       }
-      return InherentDataError::IDENTIFIER_DOES_NOT_EXIST;
+      return Q_ERROR(InherentDataError::IDENTIFIER_DOES_NOT_EXIST);
     }
 
     bool operator==(const InherentData &rhs) const;

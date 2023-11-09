@@ -173,7 +173,7 @@ namespace kagome::authority_discovery {
     ::authority_discovery::v2::SignedAuthorityRecord signed_record;
     if (not signed_record.ParseFromArray(signed_record_pb.data(),
                                          signed_record_pb.size())) {
-      return Error::DECODE_ERROR;
+      return Q_ERROR(Error::DECODE_ERROR);
     }
     libp2p::crypto::ProtobufKey protobuf_key{
         common::Buffer{str2byte(signed_record.peer_signature().public_key())}};
@@ -189,10 +189,10 @@ namespace kagome::authority_discovery {
 
     ::authority_discovery::v2::AuthorityRecord record;
     if (not record.ParseFromString(signed_record.record())) {
-      return Error::DECODE_ERROR;
+      return Q_ERROR(Error::DECODE_ERROR);
     }
     if (record.addresses().empty()) {
-      return Error::NO_ADDRESSES;
+      return Q_ERROR(Error::NO_ADDRESSES);
     }
     libp2p::peer::PeerInfo peer{std::move(peer_id), {}};
     auto peer_id_str = peer.id.toBase58();
@@ -203,7 +203,7 @@ namespace kagome::authority_discovery {
         continue;
       }
       if (id != peer_id_str) {
-        return Error::INCONSISTENT_PEER_ID;
+        return Q_ERROR(Error::INCONSISTENT_PEER_ID);
       }
       peer.addresses.emplace_back(std::move(address));
     }
@@ -212,7 +212,7 @@ namespace kagome::authority_discovery {
                 sr_crypto_provider_->verify(
                     auth_sig, str2byte(signed_record.record()), authority));
     if (not auth_sig_ok) {
-      return Error::INVALID_SIGNATURE;
+      return Q_ERROR(Error::INVALID_SIGNATURE);
     }
 
     OUTCOME_TRY(peer_sig_ok,
@@ -221,7 +221,7 @@ namespace kagome::authority_discovery {
                     str2byte(signed_record.peer_signature().signature()),
                     peer_key));
     if (not peer_sig_ok) {
-      return Error::INVALID_SIGNATURE;
+      return Q_ERROR(Error::INVALID_SIGNATURE);
     }
 
     std::ignore = host_.getPeerRepository().getAddressRepository().addAddresses(

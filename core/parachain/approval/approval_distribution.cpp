@@ -14,6 +14,7 @@
 #include "crypto/crypto_store.hpp"
 #include "crypto/hasher.hpp"
 #include "crypto/sr25519_provider.hpp"
+#include "log/formatters/boost_ec.hpp"
 #include "log/formatters/optional.hpp"
 #include "network/peer_manager.hpp"
 #include "network/router.hpp"
@@ -405,20 +406,20 @@ namespace {
     using AD = parachain::ApprovalDistribution;
 
     if (validator_index >= config.assignment_keys.size()) {
-      return AD::Error::VALIDATOR_INDEX_OUT_OF_BOUNDS;
+      return Q_ERROR(AD::Error::VALIDATOR_INDEX_OUT_OF_BOUNDS);
     }
 
     const auto &validator_public = config.assignment_keys[validator_index];
     //    OUTCOME_TRY(pk, network::ValidatorId::fromSpan(validator_public));
 
     if (claimed_core_index >= config.n_cores) {
-      return AD::Error::CORE_INDEX_OUT_OF_BOUNDS;
+      return Q_ERROR(AD::Error::CORE_INDEX_OUT_OF_BOUNDS);
     }
 
     const auto is_in_backing = isInBackingGroup(
         config.validator_groups, validator_index, backing_group);
     if (is_in_backing) {
-      return AD::Error::IS_IN_BACKING_GROUP;
+      return Q_ERROR(AD::Error::IS_IN_BACKING_GROUP);
     }
 
     const auto &vrf_output = assignment.vrf.output;
@@ -430,7 +431,7 @@ namespace {
             -> outcome::result<kagome::network::DelayTranche> {
           auto const sample = obj.sample;
           if (sample >= config.relay_vrf_modulo_samples) {
-            return AD::Error::SAMPLE_OUT_OF_BOUNDS;
+            return Q_ERROR(AD::Error::SAMPLE_OUT_OF_BOUNDS);
           }
           /// TODO(iceseer): vrf_verify_extra check
           return network::DelayTranche(0ull);
@@ -439,7 +440,7 @@ namespace {
             -> outcome::result<kagome::network::DelayTranche> {
           auto const core_index = obj.core_index;
           if (core_index != claimed_core_index) {
-            return AD::Error::VRF_DELAY_CORE_INDEX_MISMATCH;
+            return Q_ERROR(AD::Error::VRF_DELAY_CORE_INDEX_MISMATCH);
           }
 
           network::DelayTranche tranche;
@@ -453,7 +454,7 @@ namespace {
                   &relay_vrf_story,
                   core_index,
                   &tranche)) {
-            return AD::Error::VRF_VERIFY_AND_GET_TRANCHE;
+            return Q_ERROR(AD::Error::VRF_VERIFY_AND_GET_TRANCHE);
           }
           return tranche;
         });
@@ -714,7 +715,7 @@ namespace kagome::parachain {
     } else {
       SL_ERROR(logger_,
                "Error while retrieve neccessary data.(error={})",
-               res.error().message());
+               res.error());
     }
   }
 
@@ -781,7 +782,7 @@ namespace kagome::parachain {
     if (auto res = unsafe_vrf.compute_randomness(
             relay_vrf, *ac.authorities, *ac.randomness, *ac.babe_epoch);
         res.has_error()) {
-      logger_->warn("Relay VRF return error.(error={})", res.error().message());
+      logger_->warn("Relay VRF return error.(error={})", res.error());
       return;
     }
 
@@ -817,7 +818,7 @@ namespace kagome::parachain {
           "(block_hash={}, session_index={}, error={})",
           block_entry.parent_hash,
           block_entry.session,
-          session_info_res.error().message());
+          session_info_res.error());
       return std::nullopt;
     }
 
@@ -871,7 +872,7 @@ namespace kagome::parachain {
                "No session info for [session_index: {}, block_hash: {}]",
                session_index,
                block_hash);
-      return Error::NO_SESSION_INFO;
+      return Q_ERROR(Error::NO_SESSION_INFO);
     }
 
     SL_TRACE(logger_,
@@ -1011,7 +1012,7 @@ namespace kagome::parachain {
                block_hash,
                parent_hash,
                imported_block.session_index);
-      return Error::NO_SESSION_INFO;
+      return Q_ERROR(Error::NO_SESSION_INFO);
     }
 
     const auto block_tick =
@@ -1217,7 +1218,7 @@ namespace kagome::parachain {
                   if (block_info.has_error()) {
                     SL_WARN(self->logger_,
                             "ImportedBlockInfo request failed: {}",
-                            block_info.error().message());
+                            block_info.error());
                     return;
                   }
 
@@ -1256,7 +1257,7 @@ namespace kagome::parachain {
               SL_ERROR(self->logger_,
                        "Internal error while retrieve block imported "
                        "candidates: {}",
-                       possible_candidate.error().message());
+                       possible_candidate.error());
               return;
             }
 
@@ -1416,7 +1417,7 @@ namespace kagome::parachain {
           "session_index={}, error={})",
           block_entry.parent_hash,
           block_entry.session,
-          session_info_res.error().message());
+          session_info_res.error());
       return AssignmentCheckResult::Bad;
     }
 
@@ -1467,7 +1468,7 @@ namespace kagome::parachain {
     } else {
       logger_->warn(
           "Check assignment certificate failed.(error={}, candidate index={})",
-          res.error().message(),
+          res.error(),
           candidate_index);
       return AssignmentCheckResult::Bad;
     }
@@ -1519,7 +1520,7 @@ namespace kagome::parachain {
           "session_index={}, error={})",
           approval.payload.payload.block_hash,
           block_entry.session,
-          session_info_res.error().message());
+          session_info_res.error());
       return ApprovalCheckResult::Bad;
     }
 
@@ -2278,7 +2279,7 @@ namespace kagome::parachain {
           "(block_hash={}, session_index={}, error={})",
           block_entry.parent_hash,
           block_entry.session,
-          session_info_res.error().message());
+          session_info_res.error());
       return;
     }
 
@@ -2514,7 +2515,7 @@ namespace kagome::parachain {
           "Adjust weight for block with parachain data failed.(block hash={}, "
           "error={})",
           block_hash,
-          result.error().message());
+          result.error());
     }
   }
 
@@ -2683,7 +2684,7 @@ namespace kagome::parachain {
               if (ec) {
                 SL_TRACE(self->logger_,
                          "Tranche operation waiting failed timer: {}",
-                         ec.message());
+                         ec);
                 return;
               }
               self->handleTranche(block_hash, block_number, candidate_hash);
@@ -2722,7 +2723,7 @@ namespace kagome::parachain {
           "(block_hash={}, session_index={}, error={})",
           block_entry.parent_hash,
           block_entry.session,
-          session_info_res.error().message());
+          session_info_res.error());
       return;
     }
 

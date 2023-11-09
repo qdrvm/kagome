@@ -43,7 +43,7 @@ namespace kagome::runtime::binaryen {
       memory_ = memory_factory_->make(rei->getMemory(), config);
       return outcome::success();
     }
-    return Error::OUTDATED_EXTERNAL_INTERFACE;
+    return Q_ERROR(Error::OUTDATED_EXTERNAL_INTERFACE);
   }
 
   void BinaryenMemoryProvider::setExternalInterface(

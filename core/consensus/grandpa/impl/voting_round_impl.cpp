@@ -733,14 +733,14 @@ namespace kagome::consensus::grandpa {
 
         BOOST_ASSERT(finalized_.has_value());
       } else {
-        return VotingRoundError::ROUND_IS_NOT_FINALIZABLE;
+        return Q_ERROR(VotingRoundError::ROUND_IS_NOT_FINALIZABLE);
       }
     }
 
     if (not env_->hasAncestry(justification.block_info.hash,
                               finalized_.value().hash)) {
-      return VotingRoundError::
-          JUSTIFIED_BLOCK_IS_GREATER_THAN_ACTUALLY_FINALIZED;
+      return Q_ERROR(
+          VotingRoundError::JUSTIFIED_BLOCK_IS_GREATER_THAN_ACTUALLY_FINALIZED);
     }
 
     auto finalized = env_->finalize(voter_set_->id(), justification);
@@ -783,7 +783,7 @@ namespace kagome::consensus::grandpa {
             "Round #{}: Precommit signed by {} was rejected: invalid signature",
             round_number_,
             signed_precommit.id);
-        return VotingRoundError::INVALID_SIGNATURE;
+        return Q_ERROR(VotingRoundError::INVALID_SIGNATURE);
       }
 
       // check that every signed precommit corresponds to the vote (i.e.
@@ -833,7 +833,7 @@ namespace kagome::consensus::grandpa {
             "Round #{}: Received third precommit of caught equivocator from {}",
             round_number_,
             signed_precommit.id);
-        return VotingRoundError::REDUNDANT_EQUIVOCATION;
+        return Q_ERROR(VotingRoundError::REDUNDANT_EQUIVOCATION);
       }
     }
 
@@ -844,7 +844,7 @@ namespace kagome::consensus::grandpa {
               round_number_,
               total_weight,
               threshold);
-      return VotingRoundError::NOT_ENOUGH_WEIGHT;
+      return Q_ERROR(VotingRoundError::NOT_ENOUGH_WEIGHT);
     }
 
     return outcome::success();
@@ -975,19 +975,18 @@ namespace kagome::consensus::grandpa {
 
     if (auto result = onSigned<Prevote>(grandpa_context, prevote);
         result.has_failure()) {
-      if (result == outcome::failure(VotingRoundError::DUPLICATED_VOTE)) {
+      if (result.error().ec(VotingRoundError::DUPLICATED_VOTE)) {
         return false;
       }
-      if (result
-          == outcome::failure(VotingRoundError::VOTE_OF_KNOWN_EQUIVOCATOR)) {
+      if (result.error().ec(VotingRoundError::VOTE_OF_KNOWN_EQUIVOCATOR)) {
         return false;
       }
-      if (result == outcome::failure(VotingRoundError::UNKNOWN_VOTER)) {
+      if (result.error().ec(VotingRoundError::UNKNOWN_VOTER)) {
         if (grandpa_context) {
           grandpa_context->unknown_voter_counter++;
         }
       }
-      if (result != outcome::failure(VotingRoundError::EQUIVOCATED_VOTE)) {
+      if (not result.error().ec(VotingRoundError::EQUIVOCATED_VOTE)) {
         logger_->warn("Round #{}: Prevote signed by {} was rejected: {}",
                       round_number_,
                       prevote.id,
@@ -1042,14 +1041,13 @@ namespace kagome::consensus::grandpa {
 
     if (auto result = onSigned<Precommit>(grandpa_context, precommit);
         result.has_failure()) {
-      if (result == outcome::failure(VotingRoundError::DUPLICATED_VOTE)) {
+      if (result.error().ec(VotingRoundError::DUPLICATED_VOTE)) {
         return false;
       }
-      if (result
-          == outcome::failure(VotingRoundError::VOTE_OF_KNOWN_EQUIVOCATOR)) {
+      if (result.error().ec(VotingRoundError::VOTE_OF_KNOWN_EQUIVOCATOR)) {
         return false;
       }
-      if (result != outcome::failure(VotingRoundError::EQUIVOCATED_VOTE)) {
+      if (not result.error().ec(VotingRoundError::EQUIVOCATED_VOTE)) {
         logger_->warn("Round #{}: Precommit signed by {} was rejected: {}",
                       round_number_,
                       precommit.id,
@@ -1157,7 +1155,7 @@ namespace kagome::consensus::grandpa {
     if (!index_and_weight_opt) {
       SL_DEBUG(
           logger_, "Voter {} is not in the current voter set", vote.id.toHex());
-      return VotingRoundError::UNKNOWN_VOTER;
+      return Q_ERROR(VotingRoundError::UNKNOWN_VOTER);
     }
     const auto &[index, weight] = index_and_weight_opt.value();
 
@@ -1181,12 +1179,12 @@ namespace kagome::consensus::grandpa {
 
     // Ignore known equivocators
     if (equivocators[index]) {
-      return VotingRoundError::VOTE_OF_KNOWN_EQUIVOCATOR;
+      return Q_ERROR(VotingRoundError::VOTE_OF_KNOWN_EQUIVOCATOR);
     }
 
     // Ignore zero-weight voter
     if (weight == 0) {
-      return VotingRoundError::ZERO_WEIGHT_VOTER;
+      return Q_ERROR(VotingRoundError::ZERO_WEIGHT_VOTER);
     }
 
     auto push_res = tracker.push(vote, weight);
@@ -1198,9 +1196,7 @@ namespace kagome::consensus::grandpa {
           auto log_lvl = log::Level::WARN;
           // TODO(Harrm): this looks like a kind of a crutch,
           //  think of a better way to pass this information
-          if (result
-              == outcome::failure(
-                  blockchain::BlockTreeError::HEADER_NOT_FOUND)) {
+          if (result.error().ec(blockchain::BlockTreeError::HEADER_NOT_FOUND)) {
             if (grandpa_context) {
               grandpa_context->missing_blocks.emplace(vote.getBlockInfo());
               log_lvl = log::Level::DEBUG;
@@ -1218,12 +1214,12 @@ namespace kagome::consensus::grandpa {
         return outcome::success();
       }
       case VoteTracker::PushResult::DUPLICATED: {
-        return VotingRoundError::DUPLICATED_VOTE;
+        return Q_ERROR(VotingRoundError::DUPLICATED_VOTE);
       }
       case VoteTracker::PushResult::EQUIVOCATED: {
         equivocators[index] = true;
         graph_->remove(type, vote.id);
-        return VotingRoundError::EQUIVOCATED_VOTE;
+        return Q_ERROR(VotingRoundError::EQUIVOCATED_VOTE);
       }
       default:
         BOOST_UNREACHABLE_RETURN({});

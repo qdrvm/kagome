@@ -48,7 +48,7 @@ namespace kagome::dispute {
       OUTCOME_TRY(session_info_opt, api_->session_info(parent, session_index));
 
       if (not session_info_opt.has_value()) {
-        return SessionObtainingError::NoSuchSession;
+        return Q_ERROR(SessionObtainingError::NoSuchSession);
       }
       auto &session_info = session_info_opt.value();
 

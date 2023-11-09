@@ -34,13 +34,11 @@ struct BlockAttributesTest
  */
 TEST_P(BlockAttributesTest, DecodeBlockAttributes) {
   auto [encoded_value, should_fail, value] = GetParam();
+  auto r = decode<BlockAttributes>(encoded_value);
   if (should_fail) {
-    EXPECT_OUTCOME_FALSE(err, decode<BlockAttributes>(encoded_value));
-    ASSERT_EQ(err.value(),
-              static_cast<int>(scale::DecodeError::UNEXPECTED_VALUE));
+    EXPECT_EC(r, scale::DecodeError::UNEXPECTED_VALUE);
   } else {
-    EXPECT_OUTCOME_TRUE(val, decode<BlockAttributes>(encoded_value));
-    ASSERT_EQ(val, value);
+    ASSERT_EQ(r.value(), value);
   }
 }
 

@@ -69,7 +69,7 @@ namespace kagome::network {
             auto self = wptr.lock();
             if (!self) {
               self->base_.closeStream(std::move(wptr), std::move(stream));
-              response_handler(ProtocolError::GONE);
+              response_handler(Q_ERROR(ProtocolError::GONE));
               return;
             }
 
@@ -130,7 +130,7 @@ namespace kagome::network {
 
             auto self = wptr.lock();
             if (not self) {
-              cb(ProtocolError::GONE);
+              cb(Q_ERROR(ProtocolError::GONE));
               self->base_.closeStream(std::move(wptr), std::move(stream));
               return;
             }
@@ -168,7 +168,7 @@ namespace kagome::network {
 
             auto self = wptr.lock();
             if (not self) {
-              cb(ProtocolError::GONE, nullptr);
+              cb(Q_ERROR(ProtocolError::GONE), nullptr);
               self->base_.closeStream(std::move(wptr), std::move(stream));
               return;
             }
@@ -210,7 +210,7 @@ namespace kagome::network {
 
             auto self = wptr.lock();
             if (!self) {
-              cb(ProtocolError::GONE);
+              cb(Q_ERROR(ProtocolError::GONE));
               return;
             }
 
@@ -265,7 +265,7 @@ namespace kagome::network {
 
             auto self = wptr.lock();
             if (!self) {
-              cb(ProtocolError::GONE, nullptr);
+              cb(Q_ERROR(ProtocolError::GONE), nullptr);
               self->base_.closeStream(std::move(wptr), std::move(stream));
               return;
             }

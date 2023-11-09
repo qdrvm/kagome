@@ -9,6 +9,7 @@
 #include "crypto/bip39/entropy_accumulator.hpp"
 #include "outcome/outcome.hpp"
 
+#include <qtils/enum_error_code.hpp>
 #include <unordered_map>
 
 namespace kagome::crypto::bip39 {

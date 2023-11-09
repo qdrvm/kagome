@@ -32,11 +32,11 @@ namespace kagome::consensus::babe {
   outcome::result<BabeBlockHeader> getBabeBlockHeader(
       const primitives::BlockHeader &block_header) {
     [[unlikely]] if (block_header.number == 0) {
-      return DigestError::GENESIS_BLOCK_CAN_NOT_HAVE_DIGESTS;
+      return Q_ERROR(DigestError::GENESIS_BLOCK_CAN_NOT_HAVE_DIGESTS);
     }
 
     if (block_header.digest.empty()) {
-      return DigestError::REQUIRED_DIGESTS_NOT_FOUND;
+      return Q_ERROR(DigestError::REQUIRED_DIGESTS_NOT_FOUND);
     }
     const auto &digests = block_header.digest;
 
@@ -52,23 +52,23 @@ namespace kagome::consensus::babe {
       }
     }
 
-    return DigestError::REQUIRED_DIGESTS_NOT_FOUND;
+    return Q_ERROR(DigestError::REQUIRED_DIGESTS_NOT_FOUND);
   }
 
   outcome::result<Seal> getSeal(const primitives::BlockHeader &block_header) {
     [[unlikely]] if (block_header.number == 0) {
-      return DigestError::GENESIS_BLOCK_CAN_NOT_HAVE_DIGESTS;
+      return Q_ERROR(DigestError::GENESIS_BLOCK_CAN_NOT_HAVE_DIGESTS);
     }
 
     if (block_header.digest.empty()) {
-      return DigestError::REQUIRED_DIGESTS_NOT_FOUND;
+      return Q_ERROR(DigestError::REQUIRED_DIGESTS_NOT_FOUND);
     }
     const auto &digests = block_header.digest;
 
     // last digest of the block must be a seal - signature
     auto seal_opt = getFromVariant<primitives::Seal>(digests.back());
     if (not seal_opt.has_value()) {
-      return DigestError::NO_TRAILING_SEAL_DIGEST;
+      return Q_ERROR(DigestError::NO_TRAILING_SEAL_DIGEST);
     }
 
     OUTCOME_TRY(seal_digest, scale::decode<Seal>(seal_opt->get().data));

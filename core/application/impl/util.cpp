@@ -6,11 +6,9 @@
 
 #include "application/impl/util.hpp"
 
-#define UNWRAP_ERROR_CODE(ec)      \
-  {                                \
-    if (ec) {                      \
-      return outcome::failure(ec); \
-    }                              \
+#define UNWRAP_ERROR_CODE(ec) \
+  if (ec) {                   \
+    return Q_ERROR(ec);       \
   }
 
 OUTCOME_CPP_DEFINE_CATEGORY(kagome::application::util, Error, e) {
@@ -34,12 +32,12 @@ namespace kagome::application::util {
     if (not fs::exists(path, ec)) {
       UNWRAP_ERROR_CODE(ec)
       if (not fs::create_directory(path, ec)) {
-        return Error::FAILED_TO_CREATE_DIR;
+        return Q_ERROR(Error::FAILED_TO_CREATE_DIR);
       }
       UNWRAP_ERROR_CODE(ec)
     } else {
       if (not fs::is_directory(path, ec)) {
-        return Error::NOT_A_DIR;
+        return Q_ERROR(Error::NOT_A_DIR);
       }
       UNWRAP_ERROR_CODE(ec)
     }

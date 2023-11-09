@@ -117,16 +117,14 @@ TEST_F(TransactionPoolTest, CorrectImportToReady) {
 
   // already imported
   {
-    auto outcome = submit(*pool_.get(), {txs[0]});
-    ASSERT_TRUE(outcome.has_error());
-    EXPECT_EQ(outcome.error(), TransactionPoolError::TX_ALREADY_IMPORTED);
+    EXPECT_EC(submit(*pool_.get(), {txs[0]}),
+              TransactionPoolError::TX_ALREADY_IMPORTED);
   }
 
   // pool is full
   {
-    auto outcome = submit(*pool_.get(), {txs[4]});
-    ASSERT_TRUE(outcome.has_error());
-    EXPECT_EQ(outcome.error(), TransactionPoolError::POOL_IS_FULL);
+    EXPECT_EC(submit(*pool_.get(), {txs[4]}),
+              TransactionPoolError::POOL_IS_FULL);
   }
 }
 
@@ -157,8 +155,7 @@ TEST_F(TransactionPoolTest, CorrectRemoveTx) {
 
   // tx does not exist in pool
   {
-    auto outcome = pool_->removeOne("02"_hash256);
-    ASSERT_TRUE(outcome.has_error());
-    EXPECT_EQ(outcome.error(), TransactionPoolError::TX_NOT_FOUND);
+    EXPECT_EC(pool_->removeOne("02"_hash256),
+              TransactionPoolError::TX_NOT_FOUND);
   }
 }

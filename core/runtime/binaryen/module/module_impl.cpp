@@ -52,7 +52,7 @@ namespace kagome::runtime::binaryen {
     // that nolint suppresses false positive in a library function
     // NOLINTNEXTLINE(clang-analyzer-core.NonNullParamChecker)
     if (code.empty()) {
-      return Error::EMPTY_STATE_CODE;
+      return Q_ERROR(Error::EMPTY_STATE_CODE);
     }
 
     auto module = std::make_unique<wasm::Module>();
@@ -68,7 +68,7 @@ namespace kagome::runtime::binaryen {
         std::ostringstream msg;
         e.dump(msg);
         log->error(msg.str());
-        return Error::INVALID_STATE_CODE;
+        return Q_ERROR(Error::INVALID_STATE_CODE);
       }
     }
 

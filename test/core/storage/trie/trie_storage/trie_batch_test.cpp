@@ -200,7 +200,7 @@ TEST_F(TrieBatchTest, ConsistentOnFailure) {
 
   EXPECT_CALL(*db, put(_, _))
       .After(expectation)
-      .WillOnce(Return(PolkadotCodec::Error::UNKNOWN_NODE_TYPE));
+      .WillOnce(Return(Q_ERROR(PolkadotCodec::Error::UNKNOWN_NODE_TYPE)));
 
   auto factory = std::make_shared<PolkadotTrieFactoryImpl>();
   auto codec = std::make_shared<PolkadotCodec>();

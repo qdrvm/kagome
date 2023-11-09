@@ -133,7 +133,7 @@ namespace kagome::storage::trie {
   outcome::result<common::Buffer> PolkadotCodec::encodeHeader(
       const TrieNode &node, StateVersion version) const {
     if (node.getKeyNibbles().size() > 0xffffu) {
-      return Error::TOO_MANY_NIBBLES;
+      return Q_ERROR(Error::TOO_MANY_NIBBLES);
     }
 
     uint8_t head;
@@ -175,7 +175,7 @@ namespace kagome::storage::trie {
         partial_length_mask = 0;
         break;
       default:
-        return Error::UNKNOWN_NODE_TYPE;
+        return Q_ERROR(Error::UNKNOWN_NODE_TYPE);
     }
 
     // set bits of partial key length
@@ -276,7 +276,7 @@ namespace kagome::storage::trie {
     encoding += node.getKeyNibbles().toByteBuffer();
 
     if (!node.getValue()) {
-      return Error::NO_NODE_VALUE;
+      return Q_ERROR(Error::NO_NODE_VALUE);
     }
 
     OUTCOME_TRY(encodeValue(encoding, node, version, child_visitor));
@@ -315,10 +315,10 @@ namespace kagome::storage::trie {
         return decodeBranch(type, partial_key, stream);
 
       case TrieNode::Type::Empty:
-        return Error::UNKNOWN_NODE_TYPE;
+        return Q_ERROR(Error::UNKNOWN_NODE_TYPE);
 
       default:
-        return Error::UNKNOWN_NODE_TYPE;
+        return Q_ERROR(Error::UNKNOWN_NODE_TYPE);
     }
   }
 
@@ -326,7 +326,7 @@ namespace kagome::storage::trie {
   PolkadotCodec::decodeHeader(BufferStream &stream) const {
     TrieNode::Type type;
     if (not stream.hasMore(1)) {
-      return Error::INPUT_TOO_SMALL;
+      return Q_ERROR(Error::INPUT_TOO_SMALL);
     }
     auto first = stream.next();
 
@@ -362,7 +362,7 @@ namespace kagome::storage::trie {
       uint8_t read_length{};
       do {
         if (not stream.hasMore(1)) {
-          return Error::INPUT_TOO_SMALL;
+          return Q_ERROR(Error::INPUT_TOO_SMALL);
         }
         read_length = stream.next();
         pk_length += read_length;
@@ -379,7 +379,7 @@ namespace kagome::storage::trie {
     partial_key.reserve(byte_length);
     while (byte_length-- != 0) {
       if (not stream.hasMore(1)) {
-        return Error::INPUT_TOO_SMALL;
+        return Q_ERROR(Error::INPUT_TOO_SMALL);
       }
       partial_key.putUint8(stream.next());
     }
@@ -399,7 +399,7 @@ namespace kagome::storage::trie {
     constexpr uint8_t kChildrenBitmapSize = 2;
 
     if (not stream.hasMore(kChildrenBitmapSize)) {
-      return Error::INPUT_TOO_SMALL;
+      return Q_ERROR(Error::INPUT_TOO_SMALL);
     }
     auto node = std::make_shared<BranchNode>(partial_key);
 
@@ -409,24 +409,14 @@ namespace kagome::storage::trie {
     scale::ScaleDecoderStream ss(stream.leftBytes());
 
     // decode the branch value if needed
-    common::Buffer value;
     if (type == TrieNode::Type::BranchWithValue) {
-      try {
-        ss >> value;
-      } catch (std::system_error &e) {
-        return outcome::failure(e.code());
-      }
+      OUTCOME_TRY(value, scale::decode<common::Buffer>(ss));
       node->setValue({std::move(value), std::nullopt, false});
     } else if (type == TrieNode::Type::BranchContainingHashes) {
-      common::Hash256 hash;
-      try {
-        ss >> hash;
-      } catch (std::system_error &e) {
-        return outcome::failure(e.code());
-      }
+      OUTCOME_TRY(hash, scale::decode<common::Hash256>(ss));
       node->setValue({std::nullopt, hash, false});
     } else if (type != TrieNode::Type::BranchEmptyValue) {
-      return Error::UNKNOWN_NODE_TYPE;
+      return Q_ERROR(Error::UNKNOWN_NODE_TYPE);
     }
 
     uint8_t i = 0;
@@ -437,12 +427,7 @@ namespace kagome::storage::trie {
         children_bitmap &= ~(1u << i);
         // read the hash of the child and make a dummy node from it for this
         // child in the processed branch
-        common::Buffer child_hash;
-        try {
-          ss >> child_hash;
-        } catch (std::system_error &e) {
-          return outcome::failure(e.code());
-        }
+        OUTCOME_TRY(child_hash, scale::decode<common::Buffer>(ss));
         // SAFETY: database cannot contain invalid merkle values
         node->children.at(i) = std::make_shared<DummyNode>(
             MerkleValue::create(child_hash).value());

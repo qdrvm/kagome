@@ -83,7 +83,7 @@ namespace kagome::transaction_pool {
               // return either invalid or unknown validity error
               [](const auto &validity_error)
                   -> outcome::result<primitives::Transaction> {
-                return validity_error;
+                return Q_ERROR(validity_error);
               });
         },
         [&](primitives::ValidTransaction &&v)
@@ -113,7 +113,7 @@ namespace kagome::transaction_pool {
       primitives::TransactionSource source, primitives::Extrinsic extrinsic) {
     auto hash = hasher_->blake2b_256(extrinsic.data);
     if (imported(hash)) {
-      return TransactionPoolError::TX_ALREADY_IMPORTED;
+      return Q_ERROR(TransactionPoolError::TX_ALREADY_IMPORTED);
     }
     OUTCOME_TRY(tx, constructTransaction(source, extrinsic, hash));
 
@@ -130,7 +130,7 @@ namespace kagome::transaction_pool {
 
   outcome::result<void> TransactionPoolImpl::submitOne(Transaction &&tx) {
     if (imported(tx.hash)) {
-      return TransactionPoolError::TX_ALREADY_IMPORTED;
+      return Q_ERROR(TransactionPoolError::TX_ALREADY_IMPORTED);
     }
     return submitOneInternal(std::make_shared<Transaction>(std::move(tx)));
   }
@@ -148,7 +148,7 @@ namespace kagome::transaction_pool {
         sub_engine_->notify(key.value(),
                             ExtrinsicLifecycleEvent::Dropped(key.value()));
       }
-      return TransactionPoolError::POOL_IS_FULL;
+      return Q_ERROR(TransactionPoolError::POOL_IS_FULL);
     }
 
     SL_DEBUG(logger_,
@@ -303,7 +303,7 @@ namespace kagome::transaction_pool {
               logger_,
               "Extrinsic with hash {} was not found in the pool during remove",
               tx_hash);
-          return TransactionPoolError::TX_NOT_FOUND;
+          return Q_ERROR(TransactionPoolError::TX_NOT_FOUND);
         });
   }
 

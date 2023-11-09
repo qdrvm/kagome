@@ -10,6 +10,7 @@
 #include "outcome/outcome.hpp"
 
 #include <bitset>
+#include <qtils/enum_error_code.hpp>
 #include <vector>
 
 namespace kagome::crypto::bip39 {

@@ -25,7 +25,7 @@ namespace kagome::dispute {
     }
 
     if (batches_.size() >= 1000 /* kMaxBatchSize */) {  // FIXME
-      return BatchError::MaxBatchLimitReached;
+      return Q_ERROR(BatchError::MaxBatchLimitReached);
     }
 
     auto batch =

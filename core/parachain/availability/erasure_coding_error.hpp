@@ -7,7 +7,7 @@
 #pragma once
 
 #include <ec-cpp/errors.hpp>
-#include "outcome/outcome.hpp"
+#include <qtils/enum_error_code.hpp>
 
 namespace kagome {
   /**

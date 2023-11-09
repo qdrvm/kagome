@@ -39,7 +39,7 @@ namespace kagome::crypto {
     auto seed = _seed;
     for (auto &junction : junctions) {
       if (not junction.hard) {
-        return Error::SOFT_JUNCTION_NOT_SUPPORTED;
+        return Q_ERROR(Error::SOFT_JUNCTION_NOT_SUPPORTED);
       }
       seed = hasher_->blake2b_256(
           scale::encode("Secp256k1HDKD"_bytes, seed, junction.cc).value());
@@ -50,7 +50,7 @@ namespace kagome::crypto {
     if (secp256k1_ec_pubkey_create(
             context_.get(), &ffi_pub, keys.secret_key.data())
         == 0) {
-      return Error::DERIVE_FAILED;
+      return Q_ERROR(Error::DERIVE_FAILED);
     }
     size_t size = EcdsaPublicKey::size();
     if (secp256k1_ec_pubkey_serialize(context_.get(),
@@ -59,7 +59,7 @@ namespace kagome::crypto {
                                       &ffi_pub,
                                       SECP256K1_EC_COMPRESSED)
         == 0) {
-      return Error::DERIVE_FAILED;
+      return Q_ERROR(Error::DERIVE_FAILED);
     }
     return keys;
   }
@@ -79,14 +79,14 @@ namespace kagome::crypto {
                                          secp256k1_nonce_function_rfc6979,
                                          nullptr)
         == 0) {
-      return Error::SIGN_FAILED;
+      return Q_ERROR(Error::SIGN_FAILED);
     }
     EcdsaSignature sig{};
     int recid = 0;
     if (secp256k1_ecdsa_recoverable_signature_serialize_compact(
             context_.get(), sig.data(), &recid, &ffi_sig)
         == 0) {
-      return Error::SIGN_FAILED;
+      return Q_ERROR(Error::SIGN_FAILED);
     }
     sig[64] = static_cast<uint8_t>(recid);
     return sig;

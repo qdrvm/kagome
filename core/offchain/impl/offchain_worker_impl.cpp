@@ -202,7 +202,7 @@ namespace kagome::offchain {
     auto &storage = getStorage(storage_type);
     auto result = storage.get(key);
     if (result.has_error()
-        and result != outcome::failure(storage::DatabaseError::NOT_FOUND)) {
+        and not result.error().ec(storage::DatabaseError::NOT_FOUND)) {
       SL_WARN(log_, "Can't get value in storage: {}", result.error());
     }
     return result;

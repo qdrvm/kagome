@@ -478,7 +478,7 @@ TEST_F(TriePrunerTest, RandomTree) {
           Invoke([&node_storage](auto &k) -> outcome::result<BufferOrView> {
             auto it = node_storage.find(k);
             if (it == node_storage.end()) {
-              return DatabaseError::NOT_FOUND;
+              return Q_ERROR(DatabaseError::NOT_FOUND);
             }
             return BufferOrView{it->second.view()};
           }));
@@ -708,7 +708,7 @@ TEST_F(TriePrunerTest, FastSyncScenario) {
       .WillByDefault(Invoke(
           [&](auto &key) -> outcome::result<kagome::common::BufferOrView> {
             if (node_storage.count(key) == 0) {
-              return DatabaseError::NOT_FOUND;
+              return Q_ERROR(DatabaseError::NOT_FOUND);
             }
             return kagome::common::BufferOrView{node_storage.at(key).view()};
           }));
@@ -819,7 +819,7 @@ TEST_F(TriePrunerTest, FastSyncScenario) {
   for (BlockNumber n = 30; n < 80; n++) {
     mock_header_only(n);
     EXPECT_CALL(*serializer_mock, retrieveTrie(headers[n].state_root, _))
-        .WillRepeatedly(Return(DatabaseError::NOT_FOUND));
+        .WillRepeatedly(Return(Q_ERROR(DatabaseError::NOT_FOUND)));
   }
 
   EXPECT_CALL(*block_tree, bestBlock()).WillOnce(Return(BlockInfo{1, {}}));

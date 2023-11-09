@@ -6,6 +6,7 @@
 
 #pragma once
 
+#include <qtils/enum_error_code.hpp>
 #include <string_view>
 #include <vector>
 
@@ -25,6 +26,11 @@ namespace kagome::common {
     MISSING_0X_PREFIX,
     UNKNOWN
   };
+}  // namespace kagome::common
+
+OUTCOME_HPP_DECLARE_ERROR(kagome::common, UnhexError);
+
+namespace kagome::common {
 
   /**
    * @brief Converts an integer to an uppercase hex representation
@@ -93,7 +99,7 @@ namespace kagome::common {
     bytes = std::move(bts);
 
     if (bytes.size() > sizeof(T)) {
-      return UnhexError::VALUE_OUT_OF_RANGE;
+      return Q_ERROR(UnhexError::VALUE_OUT_OF_RANGE);
     }
 
     T result{0u};
@@ -111,5 +117,3 @@ namespace kagome::common {
   }
 
 }  // namespace kagome::common
-
-OUTCOME_HPP_DECLARE_ERROR(kagome::common, UnhexError);

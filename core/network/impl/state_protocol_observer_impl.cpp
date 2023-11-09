@@ -7,7 +7,6 @@
 #include "network/impl/state_protocol_observer_impl.hpp"
 #include <boost/algorithm/string/predicate.hpp>
 #include <boost/bind/storage.hpp>
-#include <libp2p/outcome/outcome.hpp>
 #include <unordered_set>
 
 #include "blockchain/block_header_repository.hpp"
@@ -104,11 +103,11 @@ namespace kagome::network {
   outcome::result<network::StateResponse>
   StateProtocolObserverImpl::onStateRequest(const StateRequest &request) const {
     if (request.start.size() > 2) {
-      return Error::INVALID_CHILD_ROOTHASH;
+      return Q_ERROR(Error::INVALID_CHILD_ROOTHASH);
     }
     if (request.start.size() == 2
         and not startsWith(request.start[0], storage::kChildStoragePrefix)) {
-      return Error::INVALID_CHILD_ROOTHASH;
+      return Q_ERROR(Error::INVALID_CHILD_ROOTHASH);
     }
     OUTCOME_TRY(header, blocks_headers_->getBlockHeader(request.hash));
     if (not request.no_proof) {
@@ -142,7 +141,7 @@ namespace kagome::network {
         response.entries.emplace_back(std::move(entry_res.first));
         size += entry_res.second;
       } else {
-        return Error::NOTFOUND_CHILD_ROOTHASH;
+        return Q_ERROR(Error::NOTFOUND_CHILD_ROOTHASH);
       }
     }
 
@@ -200,11 +199,11 @@ namespace kagome::network {
       auto &cursor = stack.back();
       OUTCOME_TRY(cursor->seek(keys[0]));
       if (cursor->key() != keys[0]) {
-        return Error::NOTFOUND_CHILD_ROOTHASH;
+        return Q_ERROR(Error::NOTFOUND_CHILD_ROOTHASH);
       }
       auto value = cursor->value();
       if (not value) {
-        return Error::VALUE_NOT_FOUND;
+        return Q_ERROR(Error::VALUE_NOT_FOUND);
       }
       OUTCOME_TRY(root, common::Hash256::fromSpan(*value));
       OUTCOME_TRY(batch, get_batch(root));
@@ -218,7 +217,7 @@ namespace kagome::network {
     OUTCOME_TRY(cursor->seek(seek));
     if (cursor->key() == seek) {
       if (not cursor->value()) {
-        return Error::VALUE_NOT_FOUND;
+        return Q_ERROR(Error::VALUE_NOT_FOUND);
       }
       OUTCOME_TRY(cursor->next());
     }
@@ -229,7 +228,7 @@ namespace kagome::network {
       while (cursor->isValid()) {
         auto value = cursor->value();
         if (not value) {
-          return Error::VALUE_NOT_FOUND;
+          return Q_ERROR(Error::VALUE_NOT_FOUND);
         }
         auto key = cursor->key().value();
         if (stack.size() == 1

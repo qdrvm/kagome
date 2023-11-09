@@ -92,7 +92,7 @@ namespace kagome::network {
       }
 
       base().logger()->error("No fetch statement response.");
-      return {{ProtocolError::NO_RESPONSE}};
+      return Q_ERROR(ProtocolError::NO_RESPONSE);
     }
 
     void onTxRequest(const RequestType &) override {}

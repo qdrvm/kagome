@@ -63,7 +63,7 @@ namespace kagome::blockchain {
         block_storage->logger_->critical(
             "Database is not consistent: Genesis block header not found, "
             "but exists num-to-hash record for block #0");
-        return BlockStorageError::HEADER_NOT_FOUND;
+        return Q_ERROR(BlockStorageError::HEADER_NOT_FOUND);
       }
     }
 
@@ -80,7 +80,7 @@ namespace kagome::blockchain {
     OUTCOME_TRY(leaves_opt,
                 default_space->tryGet(storage::kBlockTreeLeavesLookupKey));
     if (not leaves_opt.has_value()) {
-      return BlockStorageError::BLOCK_TREE_LEAVES_NOT_FOUND;
+      return Q_ERROR(BlockStorageError::BLOCK_TREE_LEAVES_NOT_FOUND);
     }
 
     OUTCOME_TRY(
@@ -132,7 +132,7 @@ namespace kagome::blockchain {
       } else {
         SL_ERROR(
             logger_, "Failed to fetch header for block ({})", current_hash);
-        return BlockStorageError::HEADER_NOT_FOUND;
+        return Q_ERROR(BlockStorageError::HEADER_NOT_FOUND);
       }
     }
 

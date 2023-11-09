@@ -87,7 +87,7 @@ namespace kagome::api {
     if (block) {
       return block.value();
     }
-    return Error::BLOCK_NOT_FOUND;
+    return Q_ERROR(Error::BLOCK_NOT_FOUND);
   }
 
   outcome::result<primitives::BlockData> ChainApiImpl::getBlock() {
@@ -96,7 +96,7 @@ namespace kagome::api {
     if (block) {
       return block.value();
     }
-    return Error::BLOCK_NOT_FOUND;
+    return Q_ERROR(Error::BLOCK_NOT_FOUND);
   }
 
   outcome::result<primitives::BlockHash> ChainApiImpl::getFinalizedHead()

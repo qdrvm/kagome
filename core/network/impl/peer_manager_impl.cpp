@@ -287,7 +287,7 @@ namespace kagome::network {
   PeerManagerImpl::retrieveCollatorData(
       PeerState &peer_state, const primitives::BlockHash &relay_parent) {
     if (!peer_state.collator_state) {
-      return Error::UNDECLARED_COLLATOR;
+      return Q_ERROR(Error::UNDECLARED_COLLATOR);
     }
     return std::make_pair(peer_state.collator_state.value().collator_id,
                           peer_state.collator_state.value().parachain_id);
@@ -721,7 +721,7 @@ namespace kagome::network {
                            "Unable to create stream {} with {}: {}",
                            validation_protocol->protocolName(),
                            peer_id,
-                           stream_result.error().message());
+                           stream_result.error());
                        return;
                      }
 

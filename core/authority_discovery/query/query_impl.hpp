@@ -21,6 +21,7 @@
 #include <libp2p/host/host.hpp>
 #include <libp2p/protocol/kademlia/kademlia.hpp>
 #include <mutex>
+#include <qtils/enum_error_code.hpp>
 #include <random>
 
 namespace kagome::authority_discovery {

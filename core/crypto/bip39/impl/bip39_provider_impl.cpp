@@ -53,7 +53,7 @@ namespace kagome::crypto {
     OUTCOME_TRY(calculated_checksum, entropy_accumulator.calculateChecksum());
 
     if (mnemonic_checksum != calculated_checksum) {
-      return bip39::MnemonicError::INVALID_MNEMONIC;
+      return Q_ERROR(bip39::MnemonicError::INVALID_MNEMONIC);
     }
 
     // finally get entropy

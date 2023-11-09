@@ -6,14 +6,9 @@
 
 #pragma once
 
-#include <cstdint>
-#include <vector>
-
 #include <boost/variant.hpp>
-#include <outcome/outcome.hpp>
 
 #include "primitives/transaction.hpp"
-#include "scale/tie.hpp"
 
 namespace kagome::primitives {
 

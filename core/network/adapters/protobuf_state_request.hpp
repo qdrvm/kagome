@@ -49,12 +49,12 @@ namespace kagome::network {
 
       ::api::v1::StateRequest msg;
       if (!msg.ParseFromArray(from.base(), remains)) {
-        return AdaptersError::PARSE_FAILED;
+        return Q_ERROR(AdaptersError::PARSE_FAILED);
       }
 
       auto hash = primitives::BlockHash::fromString(msg.block());
       if (hash.has_error()) {
-        return AdaptersError::CAST_FAILED;
+        return Q_ERROR(AdaptersError::CAST_FAILED);
       }
       out.hash = std::move(hash.value());
 

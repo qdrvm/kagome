@@ -40,16 +40,16 @@ namespace kagome::runtime {
       // @see ZSTD_CONTENTSIZE_UNKNOWN
       auto check_size = ZSTD_getFrameContentSize(zstd.data(), zstd.size());
       if (check_size == ZSTD_CONTENTSIZE_ERROR) {
-        return UncompressError::ZSTD_ERROR;
+        return Q_ERROR(UncompressError::ZSTD_ERROR);
       }
       res.resize(kCodeBlobBombLimit);
       auto size = ZSTD_decompress(
           res.data(), kCodeBlobBombLimit, zstd.data(), zstd.size());
       if (ZSTD_isError(size)) {
         if (ZSTD_getErrorCode(size) == ZSTD_error_dstSize_tooSmall) {
-          return UncompressError::BOMB_SIZE_REACHED;
+          return Q_ERROR(UncompressError::BOMB_SIZE_REACHED);
         }
-        return UncompressError::ZSTD_ERROR;
+        return Q_ERROR(UncompressError::ZSTD_ERROR);
       }
       res.resize(size);
       res.shrink_to_fit();

@@ -86,15 +86,12 @@ namespace kagome::storage::trie {
 
     // encode concatenated vectors
     scale::ScaleEncoderStream s;
-    try {
-      s << scale::CompactInteger{proofs[0].size() + proofs[1].size()};
-      for (auto &proof : proofs) {
-        for (auto &x : proof) {
-          s << x;
-        }
+    auto n = proofs[0].size() + proofs[1].size();
+    OUTCOME_TRY(scale::encode(s, scale::CompactInteger{n}))
+    for (auto &proof : proofs) {
+      for (auto &x : proof) {
+        OUTCOME_TRY(scale::encode(s, x))
       }
-    } catch (std::system_error &e) {
-      return e.code();
     }
     return common::Buffer{s.to_vector()};
   }

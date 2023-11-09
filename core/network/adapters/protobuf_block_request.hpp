@@ -30,7 +30,7 @@ namespace kagome::network {
         std::vector<uint8_t>::iterator loaded) {
       ::api::v1::BlockRequest msg;
 
-      msg.set_fields(htobe32(t.fields));
+      msg.set_fields(htobe32(static_cast<uint8_t>(t.fields)));
 
       kagome::visit_in_place(
           t.from,
@@ -62,10 +62,10 @@ namespace kagome::network {
 
       ::api::v1::BlockRequest msg;
       if (!msg.ParseFromArray(from.base(), remains)) {
-        return AdaptersError::PARSE_FAILED;
+        return Q_ERROR(AdaptersError::PARSE_FAILED);
       }
 
-      out.fields.load(be32toh(msg.fields()));
+      out.fields = toBlockAttributes(be32toh(msg.fields()));
       out.direction = static_cast<decltype(out.direction)>(msg.direction());
 
       switch (msg.from_block_case()) {
@@ -84,7 +84,7 @@ namespace kagome::network {
         } break;
 
         default:
-          return AdaptersError::UNEXPECTED_VARIANT;
+          return Q_ERROR(AdaptersError::UNEXPECTED_VARIANT);
       }
 
       if (msg.max_blocks() > 0) {

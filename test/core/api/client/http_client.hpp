@@ -8,6 +8,8 @@
 
 #include <boost/asio.hpp>
 #include <boost/beast.hpp>
+#include <qtils/enum_error_code.hpp>
+
 #include "outcome/outcome.hpp"
 
 namespace test {

@@ -18,6 +18,8 @@
 #include <boost/asio/ssl/stream.hpp>
 #include <boost/beast/http.hpp>
 
+#include "log/formatters/boost_ec.hpp"
+
 namespace kagome::offchain {
 
   HttpRequest::HttpRequest(RequestId id)

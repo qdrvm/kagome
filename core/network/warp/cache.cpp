@@ -74,12 +74,12 @@ namespace kagome::network {
     OUTCOME_TRY(after_number, block_repository_->getNumberByHash(after_hash));
     auto finalized = block_tree_->getLastFinalized();
     if (after_number > finalized.number) {
-      return Error::NOT_FINALIZED;
+      return Q_ERROR(Error::NOT_FINALIZED);
     }
     OUTCOME_TRY(expected_hash,
                 block_repository_->getHashByNumber(after_number));
     if (after_hash != expected_hash) {
-      return Error::NOT_IN_CHAIN;
+      return Q_ERROR(Error::NOT_IN_CHAIN);
     }
     WarpSyncProof res;
     res.is_finished = true;

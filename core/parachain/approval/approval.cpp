@@ -31,7 +31,7 @@ namespace kagome::parachain::approval {
       const consensus::Randomness &randomness,
       consensus::EpochNumber epoch_index) {
     if (authorities.size() <= authority_index) {
-      return Error::AuthorityOutOfBounds;
+      return Q_ERROR(Error::AuthorityOutOfBounds);
     }
 
     const auto &author = authorities[authority_index].id.id;
@@ -47,7 +47,7 @@ namespace kagome::parachain::approval {
             (Strobe128 *)(transcript.data().data()),  // NOLINT
             (VRFCOutput *)&vrf_output.get().output,
             &vrf_story)) {
-      return Error::ComputeRandomnessFailed;
+      return Q_ERROR(Error::ComputeRandomnessFailed);
     }
 
     return outcome::success();

@@ -89,7 +89,7 @@ namespace kagome::parachain {
       if (merkle.isHash()) {
         auto it = db.find(*merkle.asHash());
         if (it == db.end()) {
-          return ErasureCodingRootError::MISMATCH;
+          return Q_ERROR(ErasureCodingRootError::MISMATCH);
         }
         OUTCOME_TRY(n, codec.decodeNode(it->second));
         return std::dynamic_pointer_cast<storage::trie::TrieNode>(n);
@@ -111,7 +111,7 @@ namespace kagome::parachain {
     OUTCOME_TRY(expected, common::Hash256::fromSpan(_expected));
     auto actual = codec.hash256(chunk.chunk);
     if (actual != expected) {
-      return ErasureCodingRootError::MISMATCH;
+      return Q_ERROR(ErasureCodingRootError::MISMATCH);
     }
     return outcome::success();
   }

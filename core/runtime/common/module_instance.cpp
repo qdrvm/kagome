@@ -33,7 +33,7 @@ namespace kagome::runtime {
     if (not opt_heap_base) {
       log->error(
           "__heap_base global variable is not found in a runtime module");
-      return ModuleInstance::Error::ABSENT_HEAP_BASE;
+      return Q_ERROR(ModuleInstance::Error::ABSENT_HEAP_BASE);
     }
     int32_t heap_base = boost::get<int32_t>(*opt_heap_base);
     BOOST_ASSERT(heap_base > 0);
@@ -70,7 +70,7 @@ namespace kagome::runtime {
           std::max(max_data_segment_end, offset + segment.size());
     });
     if (static_cast<size_t>(heap_base) < max_data_segment_end) {
-      return ModuleInstance::Error::HEAP_BASE_TOO_LOW;
+      return Q_ERROR(ModuleInstance::Error::HEAP_BASE_TOO_LOW);
     }
 
     memory.resize(heap_base);

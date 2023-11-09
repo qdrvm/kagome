@@ -96,7 +96,7 @@ namespace kagome::consensus::grandpa {
                                               const Id &voter) {
     auto inw_res = voter_set_->indexAndWeight(voter);
     if (!inw_res.has_value()) {
-      return VotingRoundError::UNKNOWN_VOTER;
+      return Q_ERROR(VotingRoundError::UNKNOWN_VOTER);
     }
     const auto [index, weight] = inw_res.value();
 
@@ -144,7 +144,7 @@ namespace kagome::consensus::grandpa {
       return outcome::success();
     }
     if (base_.number > block.number) {
-      return VoteGraphError::RECEIVED_BLOCK_LESS_THAN_BASE;
+      return Q_ERROR(VoteGraphError::RECEIVED_BLOCK_LESS_THAN_BASE);
     }
 
     OUTCOME_TRY(ancestry, chain_->getAncestry(base_.hash, block.hash));

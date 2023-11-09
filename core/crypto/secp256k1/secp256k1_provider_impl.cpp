@@ -29,7 +29,7 @@ namespace kagome::crypto {
                                          &outputlen,
                                          &pubkey,
                                          SECP256K1_EC_UNCOMPRESSED)) {
-      return Secp256k1ProviderError::RECOVERY_FAILED;
+      return Q_ERROR(Secp256k1ProviderError::RECOVERY_FAILED);
     }
 
     return pubkey_out;
@@ -49,7 +49,7 @@ namespace kagome::crypto {
                                          &outputlen,
                                          &pubkey,
                                          SECP256K1_EC_COMPRESSED)) {
-      return Secp256k1ProviderError::RECOVERY_FAILED;
+      return Q_ERROR(Secp256k1ProviderError::RECOVERY_FAILED);
     }
 
     return pubkey_out;
@@ -72,7 +72,7 @@ namespace kagome::crypto {
         recovery_id = 1;
         break;
       default:
-        return Secp256k1ProviderError::INVALID_V_VALUE;
+        return Q_ERROR(Secp256k1ProviderError::INVALID_V_VALUE);
     }
     return recovery_id;
   }
@@ -88,13 +88,13 @@ namespace kagome::crypto {
     if (1
         != secp256k1_ecdsa_recoverable_signature_parse_compact(
             context_.get(), &sig_rec, signature.data(), rec_id)) {
-      return Secp256k1ProviderError::INVALID_R_OR_S_VALUE;
+      return Q_ERROR(Secp256k1ProviderError::INVALID_R_OR_S_VALUE);
     }
 
     if (1
         != secp256k1_ecdsa_recover(
             context_.get(), &pubkey, &sig_rec, message_hash.data())) {
-      return Secp256k1ProviderError::INVALID_SIGNATURE;
+      return Q_ERROR(Secp256k1ProviderError::INVALID_SIGNATURE);
     }
 
     return pubkey;

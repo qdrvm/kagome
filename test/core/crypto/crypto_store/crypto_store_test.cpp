@@ -140,9 +140,8 @@ struct CryptoStoreTest : public test::BaseFS_Test {
  * @and generated key pair is stored in memory
  */
 TEST_F(CryptoStoreTest, generateEd25519KeypairMnemonicSuccess) {
-  EXPECT_OUTCOME_FALSE(
-      err, crypto_store->findEd25519Keypair(key_type, ed_pair.public_key));
-  ASSERT_EQ(err, CryptoStoreError::KEY_NOT_FOUND);
+  EXPECT_EC(crypto_store->findEd25519Keypair(key_type, ed_pair.public_key),
+            CryptoStoreError::KEY_NOT_FOUND);
 
   EXPECT_OUTCOME_TRUE(pair,
                       crypto_store->generateEd25519Keypair(key_type, mnemonic));
@@ -183,9 +182,8 @@ TEST_F(CryptoStoreTest, generateSr25519KeypairMnemonicSuccess) {
  * @and generated key pair is stored in memory
  */
 TEST_F(CryptoStoreTest, generateEd25519KeypairSeedSuccess) {
-  EXPECT_OUTCOME_FALSE(
-      err, crypto_store->findEd25519Keypair(key_type, ed_pair.public_key));
-  ASSERT_EQ(err, CryptoStoreError::KEY_NOT_FOUND);
+  EXPECT_EC(crypto_store->findEd25519Keypair(key_type, ed_pair.public_key),
+            CryptoStoreError::KEY_NOT_FOUND);
 
   EXPECT_OUTCOME_TRUE(
       pair, crypto_store->generateEd25519Keypair(key_type, Ed25519Seed{seed}));
@@ -206,9 +204,8 @@ TEST_F(CryptoStoreTest, generateEd25519KeypairSeedSuccess) {
  * @and key generated pair is stored in memory
  */
 TEST_F(CryptoStoreTest, generateSr25519KeypairSeedSuccess) {
-  EXPECT_OUTCOME_FALSE(
-      err, crypto_store->findSr25519Keypair(key_type, sr_pair.public_key));
-  ASSERT_EQ(err, CryptoStoreError::KEY_NOT_FOUND);
+  EXPECT_EC(crypto_store->findSr25519Keypair(key_type, sr_pair.public_key),
+            CryptoStoreError::KEY_NOT_FOUND);
 
   EXPECT_OUTCOME_TRUE(
       pair, crypto_store->generateSr25519Keypair(key_type, Sr25519Seed{seed}));

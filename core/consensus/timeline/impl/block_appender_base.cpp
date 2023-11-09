@@ -92,8 +92,7 @@ namespace kagome::consensus {
                 // One of the reasons for this error is the presence of
                 // preliminary votes for future blocks that have not yet been
                 // applied.
-                if (result
-                    == outcome::failure(
+                if (result.error().ec(
                         grandpa::VotingRoundError::NOT_ENOUGH_WEIGHT)) {
                   pp->emplace(block_info, justification);
                   if (auto logger = wlogger.lock()) {
@@ -101,7 +100,7 @@ namespace kagome::consensus {
                         logger,
                         "Postpone justification received for block {}: {}",
                         block_info,
-                        result);
+                        result.error());
                   }
                 } else {
                   if (auto logger = wlogger.lock()) {

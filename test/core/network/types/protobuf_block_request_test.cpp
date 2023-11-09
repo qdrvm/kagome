@@ -14,6 +14,7 @@ using kagome::network::BlockAttributes;
 using kagome::network::BlocksRequest;
 using kagome::network::Direction;
 using kagome::network::ProtobufMessageAdapter;
+using kagome::network::toBlockAttributes;
 
 using kagome::primitives::BlockHash;
 
@@ -23,7 +24,7 @@ struct ProtobufBlockRequestAdapterTest : public ::testing::Test {
   void SetUp() {
     request.max = 10;
     request.direction = Direction::DESCENDING;
-    request.fields.load(0x19);
+    request.fields = toBlockAttributes(0x19);
 
     EXPECT_OUTCOME_TRUE(
         hash_from,

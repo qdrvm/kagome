@@ -63,7 +63,7 @@ namespace kagome::network {
         const std::vector<uint8_t> &src,
         std::vector<uint8_t>::const_iterator from) {
       if (from == src.end()) {
-        return AdaptersError::EMPTY_DATA;
+        return Q_ERROR(AdaptersError::EMPTY_DATA);
       }
 
       uint64_t sz = 0;
@@ -81,7 +81,7 @@ namespace kagome::network {
                && ptr != end);
 
       if (sz != src.size() - (loaded + counter)) {
-        return AdaptersError::DATA_SIZE_CORRUPTED;
+        return Q_ERROR(AdaptersError::DATA_SIZE_CORRUPTED);
       }
 
       std::advance(from, counter);

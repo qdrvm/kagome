@@ -41,7 +41,7 @@ TEST_F(RocksDb_Integration_Test, Put_Get) {
   ASSERT_OUTCOME_SUCCESS_TRY(db_->put(key_, BufferView{value_}));
   ASSERT_OUTCOME_SUCCESS(contains, db_->contains(key_));
   EXPECT_TRUE(contains);
-  EXPECT_OUTCOME_TRUE_2(val, db_->get(key_));
+  EXPECT_OUTCOME_TRUE(val, db_->get(key_));
   EXPECT_EQ(val, value_);
 }
 
@@ -54,9 +54,7 @@ TEST_F(RocksDb_Integration_Test, Get_NonExistent) {
   ASSERT_OUTCOME_SUCCESS(contains, db_->contains(key_));
   EXPECT_FALSE(contains);
   ASSERT_OUTCOME_SUCCESS_TRY(db_->remove(key_));
-  auto r = db_->get(key_);
-  EXPECT_FALSE(r);
-  EXPECT_EQ(r.error().value(), (int)DatabaseError::NOT_FOUND);
+  EXPECT_EC(db_->get(key_), DatabaseError::NOT_FOUND);
 }
 
 /**

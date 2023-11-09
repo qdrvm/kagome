@@ -278,8 +278,7 @@ TEST_F(ChainApiTest, UnsubscribeNewHeads) {
   auto expected_return = ChainApiImpl::Error::BLOCK_NOT_FOUND;
 
   EXPECT_CALL(*api_service, unsubscribeNewHeads(subscription_id))
-      .WillOnce(Return(expected_return));
+      .WillOnce(Return(Q_ERROR(expected_return)));
 
-  EXPECT_OUTCOME_ERROR(
-      result, api->unsubscribeNewHeads(subscription_id), expected_return);
+  EXPECT_EC(api->unsubscribeNewHeads(subscription_id), expected_return);
 }

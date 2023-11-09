@@ -47,7 +47,7 @@ namespace kagome::runtime {
                        return api_version.first == transaction_payment_api_hash;
                      });
     if (res == runtime_version.apis.end()) {
-      return Error::TRANSACTION_PAYMENT_API_NOT_FOUND;
+      return Q_ERROR(Error::TRANSACTION_PAYMENT_API_NOT_FOUND);
     }
     auto api_version = res->second;
     if (api_version < 2) {

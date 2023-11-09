@@ -431,9 +431,8 @@ namespace kagome::api {
         .WillOnce(Return(42));
     EXPECT_CALL(*block_header_repo_, getNumberByHash(to))
         .WillOnce(Return(42 + StateApiImpl::kMaxBlockRange + 1));
-    EXPECT_OUTCOME_FALSE(
-        error, api_->queryStorage(std::vector({"some_key"_buf}), from, to));
-    ASSERT_EQ(error, StateApiImpl::Error::MAX_BLOCK_RANGE_EXCEEDED);
+    EXPECT_EC(api_->queryStorage(std::vector({"some_key"_buf}), from, to),
+              StateApiImpl::Error::MAX_BLOCK_RANGE_EXCEEDED);
   }
 
   /**
@@ -444,8 +443,8 @@ namespace kagome::api {
   TEST_F(StateApiTest, HitsKeyRangeLimits) {
     std::vector<common::Buffer> keys(StateApiImpl::kMaxKeySetSize + 1);
     primitives::BlockHash from{"from"_hash256}, to{"to"_hash256};
-    EXPECT_OUTCOME_FALSE(error, api_->queryStorage(keys, from, to));
-    ASSERT_EQ(error, StateApiImpl::Error::MAX_KEY_SET_SIZE_EXCEEDED);
+    EXPECT_EC(api_->queryStorage(keys, from, to),
+              StateApiImpl::Error::MAX_KEY_SET_SIZE_EXCEEDED);
   }
 
   /**
@@ -528,11 +527,10 @@ namespace kagome::api {
     auto expected_return = StateApiImpl::Error::MAX_BLOCK_RANGE_EXCEEDED;
 
     EXPECT_CALL(*api_service_, unsubscribeRuntimeVersion(subscription_id))
-        .WillOnce(Return(expected_return));
+        .WillOnce(Return(Q_ERROR(expected_return)));
 
-    EXPECT_OUTCOME_ERROR(result,
-                         api_->unsubscribeRuntimeVersion(subscription_id),
-                         expected_return);
+    EXPECT_EC(api_->unsubscribeRuntimeVersion(subscription_id),
+              expected_return);
   }
 
 }  // namespace kagome::api

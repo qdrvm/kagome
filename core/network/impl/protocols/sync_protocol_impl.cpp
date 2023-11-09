@@ -169,7 +169,7 @@ namespace kagome::network {
           network::streamReadBuffer(stream_res);
           auto self = wp.lock();
           if (not self) {
-            cb(ProtocolError::GONE);
+            cb(Q_ERROR(ProtocolError::GONE));
             return;
           }
 
@@ -229,19 +229,19 @@ namespace kagome::network {
             stream->remotePeerId().value());
 
         logmsg += ", fields=";
-        if (block_request.fields & BlockAttribute::HEADER) {
+        if (has(block_request.fields, BlockAttribute::HEADER)) {
           logmsg += 'H';
         }
-        if (block_request.fields & BlockAttribute::BODY) {
+        if (has(block_request.fields, BlockAttribute::BODY)) {
           logmsg += 'B';
         }
-        if (block_request.fields & BlockAttribute::RECEIPT) {
+        if (has(block_request.fields, BlockAttribute::RECEIPT)) {
           logmsg += 'R';
         }
-        if (block_request.fields & BlockAttribute::MESSAGE_QUEUE) {
+        if (has(block_request.fields, BlockAttribute::MESSAGE_QUEUE)) {
           logmsg += 'M';
         }
-        if (block_request.fields & BlockAttribute::JUSTIFICATION) {
+        if (has(block_request.fields, BlockAttribute::JUSTIFICATION)) {
           logmsg += 'J';
         }
 
@@ -352,7 +352,7 @@ namespace kagome::network {
           auto self = wp.lock();
           if (not self) {
             stream->reset();
-            cb(ProtocolError::GONE);
+            cb(Q_ERROR(ProtocolError::GONE));
             return;
           }
 
@@ -396,7 +396,7 @@ namespace kagome::network {
       auto self = wp.lock();
       if (not self) {
         stream->reset();
-        response_handler(ProtocolError::GONE);
+        response_handler(Q_ERROR(ProtocolError::GONE));
         return;
       }
 
@@ -438,19 +438,19 @@ namespace kagome::network {
     if (base_.logger()->level() >= log::Level::DEBUG) {
       std::string logmsg = "Requesting blocks: fields=";
 
-      if (block_request.fields & BlockAttribute::HEADER) {
+      if (has(block_request.fields, BlockAttribute::HEADER)) {
         logmsg += 'H';
       }
-      if (block_request.fields & BlockAttribute::BODY) {
+      if (has(block_request.fields, BlockAttribute::BODY)) {
         logmsg += "B";
       }
-      if (block_request.fields & BlockAttribute::RECEIPT) {
+      if (has(block_request.fields, BlockAttribute::RECEIPT)) {
         logmsg += "R";
       }
-      if (block_request.fields & BlockAttribute::MESSAGE_QUEUE) {
+      if (has(block_request.fields, BlockAttribute::MESSAGE_QUEUE)) {
         logmsg += "M";
       }
-      if (block_request.fields & BlockAttribute::JUSTIFICATION) {
+      if (has(block_request.fields, BlockAttribute::JUSTIFICATION)) {
         logmsg += "J";
       }
 
@@ -482,7 +482,7 @@ namespace kagome::network {
           auto self = wp.lock();
           if (not self) {
             stream->reset();
-            response_handler(ProtocolError::GONE);
+            response_handler(Q_ERROR(ProtocolError::GONE));
             return;
           }
 
@@ -500,7 +500,7 @@ namespace kagome::network {
                                auto self = wp.lock();
                                if (not self) {
                                  stream->reset();
-                                 response_handler(ProtocolError::GONE);
+                                 response_handler(Q_ERROR(ProtocolError::GONE));
                                  return;
                                }
 

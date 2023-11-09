@@ -45,12 +45,12 @@ namespace kagome::consensus::grandpa {
       total_weight_ += weight;
       return outcome::success();
     }
-    return Error::VOTER_ALREADY_EXISTS;
+    return Q_ERROR(Error::VOTER_ALREADY_EXISTS);
   }
 
   outcome::result<Id> VoterSet::voterId(Index index) const {
     if (index >= list_.size()) {
-      return Error::INDEX_OUTBOUND;
+      return Q_ERROR(Error::INDEX_OUTBOUND);
     }
     auto voter = std::get<0>(list_[index]);
     return voter;
@@ -99,7 +99,7 @@ namespace kagome::consensus::grandpa {
 
   outcome::result<VoterSet::Weight> VoterSet::voterWeight(Index index) const {
     if (index >= list_.size()) {
-      return Error::INDEX_OUTBOUND;
+      return Q_ERROR(Error::INDEX_OUTBOUND);
     }
     auto weight = std::get<1>(list_.at(index));
     return weight;

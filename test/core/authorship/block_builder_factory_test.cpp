@@ -91,7 +91,7 @@ TEST_F(BlockBuilderFactoryTest, CreateSuccessful) {
 TEST_F(BlockBuilderFactoryTest, CreateFailed) {
   // given
   EXPECT_CALL(*core_, initialize_block(expected_header_, _)).WillOnce([] {
-    return boost::system::error_code{};
+    return Q_ERROR(nullptr);
   });
   BlockBuilderFactoryImpl factory(core_, block_builder_api_, header_backend_);
 

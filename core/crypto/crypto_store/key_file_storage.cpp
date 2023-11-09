@@ -84,25 +84,25 @@ namespace kagome::crypto {
     bool does_exist = filesystem::exists(keystore_path_, ec);
     if (ec and ec != std::errc::no_such_file_or_directory) {
       logger_->error("Error initializing key storage: {}", ec);
-      return outcome::failure(ec);
+      return Q_ERROR(ec);
     }
     if (does_exist) {
       // check whether specified path is a directory
       if (not filesystem::is_directory(keystore_path_, ec)) {
-        return Error::KEYS_PATH_IS_NOT_DIRECTORY;
+        return Q_ERROR(Error::KEYS_PATH_IS_NOT_DIRECTORY);
       }
       if (ec) {
         logger_->error("Error scanning key storage: {}", ec);
-        return outcome::failure(ec);
+        return Q_ERROR(ec);
       }
     } else {
       // try create directory
       if (not filesystem::create_directories(keystore_path_, ec)) {
-        return Error::FAILED_CREATE_KEYS_DIRECTORY;
+        return Q_ERROR(Error::FAILED_CREATE_KEYS_DIRECTORY);
       }
       if (ec) {
         logger_->error("Error creating keystore dir: {}", ec);
-        return outcome::failure(ec);
+        return Q_ERROR(ec);
       }
     }
 
@@ -114,7 +114,7 @@ namespace kagome::crypto {
     std::ofstream file;
     file.open(path.native(), std::ios::out | std::ios::trunc);
     if (!file.is_open()) {
-      return Error::FAILED_OPEN_FILE;
+      return Q_ERROR(Error::FAILED_OPEN_FILE);
     }
     auto hex = common::hex_lower_0x(private_key);
     file << hex;
@@ -133,7 +133,7 @@ namespace kagome::crypto {
     fs::directory_iterator it{keystore_path_, ec}, end{};
     if (ec) {
       logger_->error("Error scanning keystore: {}", ec);
-      return Error::FAILED_OPEN_FILE;
+      return Q_ERROR(Error::FAILED_OPEN_FILE);
     }
     for (; it != end; ++it) {
       if (!fs::is_regular_file(*it)) {
@@ -169,7 +169,7 @@ namespace kagome::crypto {
       if (auto str = jsonUnquote(content)) {
         return str;
       }
-      return Error::INVALID_FILE_FORMAT;
+      return Q_ERROR(Error::INVALID_FILE_FORMAT);
     }
     OUTCOME_TRY(common::unhexWith0x(content));
     return content;

@@ -165,7 +165,7 @@ namespace kagome::common {
      */
     static outcome::result<Blob<size_>> fromString(std::string_view data) {
       if (data.size() != size_) {
-        return BlobError::INCORRECT_LENGTH;
+        return Q_ERROR(BlobError::INCORRECT_LENGTH);
       }
 
       Blob<size_> b;
@@ -204,7 +204,7 @@ namespace kagome::common {
      */
     static outcome::result<Blob<size_>> fromSpan(const BufferView &span) {
       if (span.size() != size_) {
-        return BlobError::INCORRECT_LENGTH;
+        return Q_ERROR(BlobError::INCORRECT_LENGTH);
       }
 
       Blob<size_> blob;

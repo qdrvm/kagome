@@ -138,17 +138,17 @@ namespace kagome::api {
     auto to =
         opt_to.has_value() ? opt_to.value() : block_tree_->bestBlock().hash;
     if (keys.size() > static_cast<ssize_t>(kMaxKeySetSize)) {
-      return Error::MAX_KEY_SET_SIZE_EXCEEDED;
+      return Q_ERROR(Error::MAX_KEY_SET_SIZE_EXCEEDED);
     }
 
     if (from != to) {
       OUTCOME_TRY(from_number, header_repo_->getNumberByHash(from));
       OUTCOME_TRY(to_number, header_repo_->getNumberByHash(to));
       if (to_number < from_number) {
-        return Error::END_BLOCK_LOWER_THAN_BEGIN_BLOCK;
+        return Q_ERROR(Error::END_BLOCK_LOWER_THAN_BEGIN_BLOCK);
       }
       if (to_number - from_number > kMaxBlockRange) {
-        return Error::MAX_BLOCK_RANGE_EXCEEDED;
+        return Q_ERROR(Error::MAX_BLOCK_RANGE_EXCEEDED);
       }
     }
 

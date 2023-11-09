@@ -6,7 +6,7 @@
 
 #include "metrics/impl/session_impl.hpp"
 
-#include <boost/system/error_code.hpp>
+#include "log/formatters/boost_ec.hpp"
 
 namespace kagome::metrics {
 

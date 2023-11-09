@@ -690,6 +690,6 @@ INSTANTIATE_TEST_SUITE_P(Instance,
                              /// success case
                              outcome::success(),
                              /// failure with arbitrary error code
-                             outcome::failure(testutil::DummyError::ERROR))
+                             Q_ERROR(testutil::DummyError::ERROR))
                          // empty argument for the macro
 );

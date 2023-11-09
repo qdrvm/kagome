@@ -7,6 +7,7 @@
 #pragma once
 
 #include <jsonrpc-lean/server.h>
+#include <qtils/enum_error_code.hpp>
 
 #include "api/jrpc/jrpc_server.hpp"
 #include "metrics/metrics.hpp"

@@ -88,7 +88,7 @@ namespace kagome::parachain {
   ParachainObserverImpl::OnCollationRequest(
       network::CollationFetchingRequest request) {
     /// Need to decrease rank of the peer and return error.
-    return network::ProtocolError::PROTOCOL_NOT_IMPLEMENTED;
+    return Q_ERROR(network::ProtocolError::PROTOCOL_NOT_IMPLEMENTED);
   }
 
   void ParachainObserverImpl::onAdvertise(const libp2p::peer::PeerId &peer_id,
@@ -111,7 +111,7 @@ namespace kagome::parachain {
         !check_res) {
       logger_->warn("Insert advertisement from {} failed: {}",
                     peer_id,
-                    check_res.error().message());
+                    check_res.error());
       return;
     }
 

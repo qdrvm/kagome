@@ -34,7 +34,7 @@ namespace kagome::dispute {
       SL_DEBUG(log,
                "Call 'session_index_for_child' was failed: {}",
                session_index_res.error());
-      return SessionObtainingError::SessionsUnavailable;
+      return Q_ERROR(SessionObtainingError::SessionsUnavailable);
     }
     const auto &session_index = session_index_res.value();
 
@@ -118,7 +118,7 @@ namespace kagome::dispute {
                                            session_index);
 
       if (sessions_res.has_error()) {
-        return SessionObtainingError::SessionsUnavailable;
+        return Q_ERROR(SessionObtainingError::SessionsUnavailable);
       }
 
       sessions = std::move(sessions_res.value());
@@ -211,7 +211,7 @@ namespace kagome::dispute {
         api_, sessions, block_hash, window_start, session_index);
 
     if (res.has_error()) {
-      return SessionObtainingError::SessionsUnavailable;
+      return Q_ERROR(SessionObtainingError::SessionsUnavailable);
     } else {
       SessionWindowAdvanced update{
           .prev_window_start = old_window_start,
@@ -268,7 +268,7 @@ namespace kagome::dispute {
           sessions.push_back(std::move(session_info));
 
         } else if (not allow_failure) {
-          return SessionObtainingError::Missing;
+          return Q_ERROR(SessionObtainingError::Missing);
 
         } else {
           // Handle `allow_failure` true.
@@ -278,7 +278,7 @@ namespace kagome::dispute {
         }
 
       } else if (not allow_failure) {
-        return SessionObtainingError::RuntimeApiError;
+        return Q_ERROR(SessionObtainingError::RuntimeApiError);
 
       } else {
         // Handle `allow_failure` true.

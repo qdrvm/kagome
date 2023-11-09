@@ -50,7 +50,7 @@ namespace kagome::crypto::bip39 {
 
   outcome::result<Mnemonic> Mnemonic::parse(std::string_view phrase) {
     if (!isValidUtf8(std::string(phrase))) {
-      return bip39::MnemonicError::INVALID_MNEMONIC;
+      return Q_ERROR(bip39::MnemonicError::INVALID_MNEMONIC);
     }
 
     Mnemonic mnemonic;

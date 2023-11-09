@@ -106,7 +106,7 @@ inline auto check(T &&res) {
     if constexpr (is_optional<T>::value) {
       throw std::runtime_error("No value");
     } else {
-      kagome::common::raise(res.error());
+      res.value();
     }
   }
   return std::forward<T>(res);

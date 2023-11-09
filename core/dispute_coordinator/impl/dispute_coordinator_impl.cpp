@@ -24,6 +24,7 @@
 #include "dispute_coordinator/participation/impl/participation_impl.hpp"
 #include "dispute_coordinator/provisioner/impl/prioritized_selection.hpp"
 #include "dispute_coordinator/provisioner/impl/random_selection.hpp"
+#include "log/formatters/boost_ec.hpp"
 #include "network/router.hpp"
 #include "network/types/dispute_messages.hpp"
 #include "parachain/approval/approval_distribution.hpp"
@@ -696,7 +697,7 @@ namespace kagome::dispute {
                          "Missing public key for validator #{} that "
                          "participated in concluded dispute",
                          validator_index);
-                return SignatureValidationError::MissingPublicKey;
+                return Q_ERROR(SignatureValidationError::MissingPublicKey);
               }
 
               ValidatorId validator_public =
@@ -1540,7 +1541,7 @@ namespace kagome::dispute {
     auto get_other_vote =
         [&](auto &some_kind_votes) -> outcome::result<SignedDisputeStatement> {
       if (some_kind_votes.empty()) {
-        return DisputeMessageCreationError::NoOppositeVote;
+        return Q_ERROR(DisputeMessageCreationError::NoOppositeVote);
       }
 
       auto it = some_kind_votes.begin();
@@ -1549,7 +1550,7 @@ namespace kagome::dispute {
       auto &[statement_kind, validator_signature] = it->second;
 
       if (validator_index >= validators.size()) {
-        return DisputeMessageCreationError::InvalidValidatorIndex;
+        return Q_ERROR(DisputeMessageCreationError::InvalidValidatorIndex);
       }
       auto validator_public = validators[validator_index];
 
@@ -1567,7 +1568,7 @@ namespace kagome::dispute {
         return validation_res.as_failure();
       }
       if (not validation_res.value()) {
-        return DisputeMessageCreationError::InvalidStoredStatement;
+        return Q_ERROR(DisputeMessageCreationError::InvalidStoredStatement);
       }
 
       // make other signed statement
@@ -1601,48 +1602,50 @@ namespace kagome::dispute {
     auto candidate_hash = valid_statement.candidate_hash;
     // Check statements concern same candidate:
     if (candidate_hash != invalid_statement.candidate_hash) {
-      return DisputeMessageConstructingError::CandidateHashMismatch;
+      return Q_ERROR(DisputeMessageConstructingError::CandidateHashMismatch);
     }
 
     auto session_index = valid_statement.session_index;
     if (session_index != invalid_statement.session_index) {
-      return DisputeMessageConstructingError::SessionIndexMismatch;
+      return Q_ERROR(DisputeMessageConstructingError::SessionIndexMismatch);
     }
 
     if (valid_index >= session_info.validators.size()) {
-      return DisputeMessageConstructingError::
-          ValidStatementInvalidValidatorIndex;
+      return Q_ERROR(
+          DisputeMessageConstructingError::ValidStatementInvalidValidatorIndex);
     }
     if (invalid_index >= session_info.validators.size()) {
-      return DisputeMessageConstructingError::
-          InvalidStatementInvalidValidatorIndex;
+      return Q_ERROR(DisputeMessageConstructingError::
+                         InvalidStatementInvalidValidatorIndex);
     }
 
     auto &valid_id = session_info.validators[valid_index];
     if (valid_id != valid_statement.validator_public) {
-      return DisputeMessageConstructingError::InvalidValidKey;
+      return Q_ERROR(DisputeMessageConstructingError::InvalidValidKey);
     }
 
     auto &invalid_id = session_info.validators[invalid_index];
     if (invalid_id != invalid_statement.validator_public) {
-      return DisputeMessageConstructingError::InvalidInvalidKey;
+      return Q_ERROR(DisputeMessageConstructingError::InvalidInvalidKey);
     }
 
     if (candidate_receipt.hash(*hasher_) != candidate_hash) {
-      return DisputeMessageConstructingError::InvalidCandidateReceipt;
+      return Q_ERROR(DisputeMessageConstructingError::InvalidCandidateReceipt);
     }
 
     auto valid_kind_opt =
         if_type<ValidDisputeStatement>(valid_statement.dispute_statement);
     if (not valid_kind_opt.has_value()) {
-      return DisputeMessageConstructingError::ValidStatementHasInvalidKind;
+      return Q_ERROR(
+          DisputeMessageConstructingError::ValidStatementHasInvalidKind);
     }
     auto &valid_kind = valid_kind_opt->get();
 
     auto invalid_kind_opt =
         if_type<InvalidDisputeStatement>(invalid_statement.dispute_statement);
     if (not invalid_kind_opt.has_value()) {
-      return DisputeMessageConstructingError::InvalidStatementHasValidKind;
+      return Q_ERROR(
+          DisputeMessageConstructingError::InvalidStatementHasValidKind);
     }
     auto &invalid_kind = invalid_kind_opt->get();
 
@@ -1875,7 +1878,7 @@ namespace kagome::dispute {
 
     // Return error if session information is missing.
     if (error_.has_value()) {
-      return cb(SessionObtainingError::SessionsUnavailable);
+      return cb(Q_ERROR(SessionObtainingError::SessionsUnavailable));
     }
 
     SL_TRACE(log_, "Loading recent disputes from db");
@@ -1909,7 +1912,7 @@ namespace kagome::dispute {
 
     // Return error if session information is missing.
     if (error_.has_value()) {
-      return cb(SessionObtainingError::SessionsUnavailable);
+      return cb(Q_ERROR(SessionObtainingError::SessionsUnavailable));
     }
 
     SL_TRACE(log_, "DisputeCoordinatorMessage::ActiveDisputes");
@@ -1960,7 +1963,7 @@ namespace kagome::dispute {
 
     // Return error if session information is missing.
     if (error_.has_value()) {
-      return cb(SessionObtainingError::SessionsUnavailable);
+      return cb(Q_ERROR(SessionObtainingError::SessionsUnavailable));
     }
 
     SL_TRACE(log_, "DisputeCoordinatorMessage::QueryCandidateVotes");
@@ -2020,7 +2023,7 @@ namespace kagome::dispute {
 
     // Return error if session information is missing.
     if (error_.has_value()) {
-      return cb(SessionObtainingError::SessionsUnavailable);
+      return cb(Q_ERROR(SessionObtainingError::SessionsUnavailable));
     }
 
     SL_TRACE(log_, "DisputeCoordinatorMessage::DetermineUndisputedChain");
@@ -2126,7 +2129,7 @@ namespace kagome::dispute {
     if (not authority_id_opt.has_value()) {
       SL_DEBUG(log_, "Peer {} is not validator - dropping message", peer_id);
       // TODO reputation_changes: vec![COST_NOT_A_VALIDATOR],
-      return sendDisputeResponse(DisputeProcessingError::NotAValidator,
+      return sendDisputeResponse(Q_ERROR(DisputeProcessingError::NotAValidator),
                                  std::move(cb));
     }
     auto &authority_id = authority_id_opt.value();
@@ -2138,8 +2141,8 @@ namespace kagome::dispute {
     if (queue.size() >= kPeerQueueCapacity) {
       SL_DEBUG(log_, "Peer {} hit the rate limit - dropping message", peer_id);
       // TODO reputation_changes: vec![COST_APPARENT_FLOOD],
-      return sendDisputeResponse(DisputeProcessingError::AuthorityFlooding,
-                                 std::move(cb));
+      return sendDisputeResponse(
+          Q_ERROR(DisputeProcessingError::AuthorityFlooding), std::move(cb));
     }
     queue.emplace_back(request, std::move(cb));
 
@@ -2252,7 +2255,7 @@ namespace kagome::dispute {
       const auto &[validator_index, signature, kind] = unchecked_valid_vote;
       if (validator_index >= session_info.validators.size()) {
         // TODO reputation_changes: vec![COST_INVALID_SIGNATURE],
-        return DisputeMessageCreationError::InvalidValidatorIndex;
+        return Q_ERROR(DisputeMessageCreationError::InvalidValidatorIndex);
       }
       auto validator_public = session_info.validators[validator_index];
 
@@ -2266,11 +2269,11 @@ namespace kagome::dispute {
 
       if (validation_res.has_error()) {
         // TODO reputation_changes: vec![COST_INVALID_SIGNATURE],
-        return SignatureValidationError::InvalidSignature;
+        return Q_ERROR(SignatureValidationError::InvalidSignature);
       }
       if (not validation_res.value()) {
         // TODO reputation_changes: vec![COST_INVALID_SIGNATURE],
-        return SignatureValidationError::InvalidSignature;
+        return Q_ERROR(SignatureValidationError::InvalidSignature);
       }
 
       checked_valid_vote = {{
@@ -2288,7 +2291,7 @@ namespace kagome::dispute {
       const auto &[validator_index, signature, kind] = unchecked_invalid_vote;
       if (validator_index >= session_info.validators.size()) {
         // TODO reputation_changes: vec![COST_INVALID_SIGNATURE],
-        return DisputeMessageCreationError::InvalidValidatorIndex;
+        return Q_ERROR(DisputeMessageCreationError::InvalidValidatorIndex);
       }
       auto validator_public = session_info.validators[validator_index];
 
@@ -2302,11 +2305,11 @@ namespace kagome::dispute {
 
       if (validation_res.has_error()) {
         // TODO reputation_changes: vec![COST_INVALID_SIGNATURE],
-        return SignatureValidationError::InvalidSignature;
+        return Q_ERROR(SignatureValidationError::InvalidSignature);
       }
       if (not validation_res.value()) {
         // TODO reputation_changes: vec![COST_INVALID_SIGNATURE],
-        return SignatureValidationError::InvalidSignature;
+        return Q_ERROR(SignatureValidationError::InvalidSignature);
       }
 
       checked_invalid_vote = {{
@@ -2369,7 +2372,7 @@ namespace kagome::dispute {
         // the worst. We don't want to push the pending response to the
         // batch either as that would be unbounded, only limited by the rate
         // limit.
-        (*cb_opt)(BatchError::RedundantMessage);
+        (*cb_opt)(Q_ERROR(BatchError::RedundantMessage));
 
       } else {  // FIXME testing code. must be removed
         auto prepared_import =

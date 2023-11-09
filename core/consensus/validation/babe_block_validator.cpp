@@ -84,7 +84,7 @@ namespace kagome::consensus {
                 header.blockInfo(),
                 to_string(slot_type),
                 to_string(babe_config.allowed_slots));
-        return ValidationError::SECONDARY_SLOT_ASSIGNMENTS_DISABLED;
+        return Q_ERROR(ValidationError::SECONDARY_SLOT_ASSIGNMENTS_DISABLED);
       }
     }
 
@@ -95,7 +95,7 @@ namespace kagome::consensus {
                          babe_header,
                          seal,
                          primitives::BabeSessionKey{authority_id.id})) {
-      return ValidationError::INVALID_SIGNATURE;
+      return Q_ERROR(ValidationError::INVALID_SIGNATURE);
     }
 
     // VRF must prove that the peer is the leader of the slot
@@ -106,7 +106,7 @@ namespace kagome::consensus {
                       threshold,
                       babe_config.randomness,
                       babe_header.needVRFWithThresholdCheck())) {
-      return ValidationError::INVALID_VRF;
+      return Q_ERROR(ValidationError::INVALID_VRF);
     }
 
     return outcome::success();

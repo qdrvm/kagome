@@ -98,9 +98,9 @@ TEST_F(SynchronizerTest, ProcessRequest) {
       .WillOnce(Return(block4_.body));
 
   EXPECT_CALL(*tree_, getBlockJustification(block3_hash_))
-      .WillOnce(Return(::outcome::failure(boost::system::error_code{})));
+      .WillOnce(Return(Q_ERROR(boost::system::error_code{})));
   EXPECT_CALL(*tree_, getBlockJustification(block4_hash_))
-      .WillOnce(Return(::outcome::failure(boost::system::error_code{})));
+      .WillOnce(Return(Q_ERROR(boost::system::error_code{})));
   EXPECT_CALL(*peer_manager_mock_, reserveStatusStreams(peer_info_.id));
 
   EXPECT_CALL(*beefy_, getJustification(_)).WillRepeatedly([] {

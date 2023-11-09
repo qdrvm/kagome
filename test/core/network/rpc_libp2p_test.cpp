@@ -84,7 +84,7 @@ TEST_F(RpcLibp2pTest, ReadWithResponse) {
         finished = true;
         return response_;
       },
-      [](auto &&err) { FAIL() << err.error().message(); });
+      [](auto &&err) { FAIL(); });
 
   ASSERT_TRUE(finished);
 }
@@ -101,7 +101,7 @@ TEST_F(RpcLibp2pTest, ReadWithResponseErroredResponse) {
   ScaleRPC::read<BlocksResponse, BlocksResponse>(
       read_writer_,
       [](auto &&received_request) {
-        return ::outcome::failure(boost::system::error_code{});
+        return Q_ERROR(boost::system::error_code{});
       },
       [&finished](auto &&err) mutable { finished = true; });
 
@@ -167,8 +167,8 @@ TEST_F(RpcLibp2pTest, WriteWithResponseErroredResponse) {
 
   setWriteExpectations(stream_, encoded_request_.asVector());
   EXPECT_CALL(*stream_, read(_, _, _))
-      .WillOnce(testing::InvokeArgument<2>(
-          ::outcome::failure(boost::system::error_code{})));
+      .WillOnce(
+          testing::InvokeArgument<2>(Q_ERROR(boost::system::error_code{})));
 
   auto finished = false;
   ScaleRPC::write<BlocksResponse, BlocksResponse>(

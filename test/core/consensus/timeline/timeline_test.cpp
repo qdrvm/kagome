@@ -375,7 +375,7 @@ TEST_F(TimelineTest, Validator) {
         .WillRepeatedly(Return(0));
     //  - process slot (not slot leader for this case)
     EXPECT_CALL(*production_consensus, processSlot(current_slot, best_block))
-        .WillOnce(Return(BlockProductionError::NO_SLOT_LEADER));
+        .WillOnce(Return(Q_ERROR(BlockProductionError::NO_SLOT_LEADER)));
     //  - start to wait for end of current slot
     EXPECT_CALL(*scheduler, scheduleImplMockCall(_, _, false))
         .WillOnce(WithArg<0>(Invoke([&](auto cb) {

@@ -40,7 +40,7 @@ hunter_config(
 
 hunter_config(
     libp2p
-    VERSION 0.1.17
+    VERSION 0.1.17-qtils
     KEEP_PACKAGE_SOURCES
 )
 
@@ -66,7 +66,7 @@ hunter_config(
 
 hunter_config(
     scale
-    VERSION 1.1.0
+    VERSION 1.1.0-qtils
     KEEP_PACKAGE_SOURCES
 )
 

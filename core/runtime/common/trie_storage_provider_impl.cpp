@@ -157,13 +157,13 @@ namespace kagome::runtime {
   outcome::result<storage::trie::RootHash> TrieStorageProviderImpl::commit(
       StateVersion version) {
     if (!transaction_stack_.empty()) {
-      return Error::UNFINISHED_TRANSACTIONS_LEFT;
+      return Q_ERROR(Error::UNFINISHED_TRANSACTIONS_LEFT);
     }
     if (base_batch_ != nullptr) {
       OUTCOME_TRY(root, base_batch_->commit(version));
       return root;
     }
-    return Error::NO_BATCH;
+    return Q_ERROR(Error::NO_BATCH);
   }
 
   outcome::result<void> TrieStorageProviderImpl::startTransaction() {
@@ -177,7 +177,7 @@ namespace kagome::runtime {
 
   outcome::result<void> TrieStorageProviderImpl::rollbackTransaction() {
     if (transaction_stack_.empty()) {
-      return RuntimeTransactionError::NO_TRANSACTIONS_WERE_STARTED;
+      return Q_ERROR(RuntimeTransactionError::NO_TRANSACTIONS_WERE_STARTED);
     }
 
     SL_TRACE(logger_,
@@ -189,7 +189,7 @@ namespace kagome::runtime {
 
   outcome::result<void> TrieStorageProviderImpl::commitTransaction() {
     if (transaction_stack_.empty()) {
-      return RuntimeTransactionError::NO_TRANSACTIONS_WERE_STARTED;
+      return Q_ERROR(RuntimeTransactionError::NO_TRANSACTIONS_WERE_STARTED);
     }
 
     OUTCOME_TRY(transaction_stack_.back().main_batch->writeBack());

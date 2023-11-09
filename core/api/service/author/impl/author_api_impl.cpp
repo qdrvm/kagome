@@ -73,7 +73,7 @@ namespace kagome::api {
       }
       types.pop_back();
       SL_INFO(logger_, "Unsupported key type, only [{}] are accepted", types);
-      return outcome::failure(crypto::CryptoStoreError::UNSUPPORTED_KEY_TYPE);
+      return Q_ERROR(crypto::CryptoStoreError::UNSUPPORTED_KEY_TYPE);
     };
     if (crypto::KeyTypes::BABE == key_type_id
         or crypto::KeyTypes::AUTHORITY_DISCOVERY == key_type_id) {
@@ -83,7 +83,7 @@ namespace kagome::api {
       OUTCOME_TRY(keypair,
                   store_->generateSr25519Keypair(key_type_id, seed_typed));
       if (public_key_typed != keypair.public_key) {
-        return outcome::failure(crypto::CryptoStoreError::WRONG_PUBLIC_KEY);
+        return Q_ERROR(crypto::CryptoStoreError::WRONG_PUBLIC_KEY);
       }
     }
     if (crypto::KeyTypes::GRANDPA == key_type_id) {
@@ -94,7 +94,7 @@ namespace kagome::api {
                   store_->generateEd25519Keypair(crypto::KeyTypes::GRANDPA,
                                                  seed_typed));
       if (public_key_typed != keypair.public_key) {
-        return outcome::failure(crypto::CryptoStoreError::WRONG_PUBLIC_KEY);
+        return Q_ERROR(crypto::CryptoStoreError::WRONG_PUBLIC_KEY);
       }
     }
     auto res = key_store_->saveKeyPair(key_type_id, public_key, seed);
@@ -162,7 +162,7 @@ namespace kagome::api {
   AuthorApiImpl::removeExtrinsic(
       const std::vector<primitives::ExtrinsicKey> &keys) {
     BOOST_ASSERT_MSG(false, "not implemented");  // NOLINT
-    return outcome::failure(std::errc::not_supported);
+    return Q_ERROR(std::errc::not_supported);
   }
 
   outcome::result<AuthorApi::SubscriptionId>

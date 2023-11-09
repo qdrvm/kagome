@@ -82,13 +82,13 @@ namespace kagome::common {
       return blob;
 
     } catch (const boost::algorithm::not_enough_input &e) {
-      return UnhexError::NOT_ENOUGH_INPUT;
+      return Q_ERROR(UnhexError::NOT_ENOUGH_INPUT);
 
     } catch (const boost::algorithm::non_hex_input &e) {
-      return UnhexError::NON_HEX_INPUT;
+      return Q_ERROR(UnhexError::NON_HEX_INPUT);
 
     } catch (const std::exception &e) {
-      return UnhexError::UNKNOWN;
+      return Q_ERROR(UnhexError::UNKNOWN);
     }
   }
 
@@ -97,7 +97,7 @@ namespace kagome::common {
     static const std::string leading_chrs = "0x";
 
     if (hex_with_prefix.substr(0, leading_chrs.size()) != leading_chrs) {
-      return UnhexError::MISSING_0X_PREFIX;
+      return Q_ERROR(UnhexError::MISSING_0X_PREFIX);
     }
 
     auto without_prefix = hex_with_prefix.substr(leading_chrs.size());

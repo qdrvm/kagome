@@ -10,7 +10,8 @@
 
 #include <boost/asio/dispatch.hpp>
 #include <boost/config.hpp>
-#include <libp2p/outcome/outcome.hpp>
+
+#include "log/formatters/boost_ec.hpp"
 
 namespace boost::beast {
   template <class NextLayer, class DynamicBuffer>

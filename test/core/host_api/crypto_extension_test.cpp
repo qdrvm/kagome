@@ -760,8 +760,8 @@ TEST_F(CryptoExtensionTest, Ed25519SignFailure) {
 
   EXPECT_CALL(*crypto_store_,
               findEd25519Keypair(key_type, ed25519_keypair.public_key))
-      .WillOnce(Return(
-          outcome::failure(kagome::crypto::CryptoStoreError::KEY_NOT_FOUND)));
+      .WillOnce(
+          Return(Q_ERROR(kagome::crypto::CryptoStoreError::KEY_NOT_FOUND)));
 
   EXPECT_CALL(*memory_,
               storeBuffer(BufferView(ed_sr_signature_failure_result_buffer)))
@@ -827,8 +827,8 @@ TEST_F(CryptoExtensionTest, Sr25519SignFailure) {
 
   EXPECT_CALL(*crypto_store_,
               findSr25519Keypair(key_type, sr25519_keypair.public_key))
-      .WillOnce(Return(
-          outcome::failure(kagome::crypto::CryptoStoreError::KEY_NOT_FOUND)));
+      .WillOnce(
+          Return(Q_ERROR(kagome::crypto::CryptoStoreError::KEY_NOT_FOUND)));
 
   EXPECT_CALL(*memory_,
               storeBuffer(BufferView(ed_sr_signature_failure_result_buffer)))

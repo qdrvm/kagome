@@ -84,7 +84,7 @@ namespace kagome::network {
 
       ::api::v1::BlockResponse msg;
       if (!msg.ParseFromArray(from.base(), remains)) {
-        return AdaptersError::PARSE_FAILED;
+        return Q_ERROR(AdaptersError::PARSE_FAILED);
       }
 
       auto &dst_blocks = out.blocks;
@@ -159,7 +159,7 @@ namespace kagome::network {
         OUTCOME_TRY(decoded, scale::decode<T>(str2byte(buffer)));
         return decoded;
       }
-      return AdaptersError::EMPTY_DATA;
+      return Q_ERROR(AdaptersError::EMPTY_DATA);
     }
 
     static std::string vector_to_string(std::vector<uint8_t> &&src) {

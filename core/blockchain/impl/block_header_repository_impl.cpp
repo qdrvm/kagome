@@ -38,7 +38,7 @@ namespace kagome::blockchain {
     auto key_space = storage_->getSpace(Space::kLookupKey);
     auto res = key_space->get(num_to_idx_key);
     if (not res.has_value()) {
-      return BlockTreeError::HEADER_NOT_FOUND;
+      return Q_ERROR(BlockTreeError::HEADER_NOT_FOUND);
     }
     return primitives::BlockHash::fromSpan(res.value());
   }
@@ -54,7 +54,7 @@ namespace kagome::blockchain {
       header.hash_opt.emplace(block_hash);
       return header;
     }
-    return BlockTreeError::HEADER_NOT_FOUND;
+    return Q_ERROR(BlockTreeError::HEADER_NOT_FOUND);
   }
 
   outcome::result<BlockStatus> BlockHeaderRepositoryImpl::getBlockStatus(

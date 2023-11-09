@@ -581,11 +581,11 @@ namespace kagome::application {
                "Address cannot be used to bind to ({}). Only IPv4 and IPv6 "
                "interfaces are supported",
                multiaddress.getStringAddress());
-      return NOT_SUPPORTED;
+      return Q_ERROR(NOT_SUPPORTED);
     }
     auto port = multiaddress.getFirstValueForProtocol(proto::TCP);
     if (not port) {
-      return NOT_SUPPORTED;
+      return Q_ERROR(NOT_SUPPORTED);
     }
     uint16_t port_number = 0;
     try {
@@ -598,7 +598,7 @@ namespace kagome::application {
             wide_port,
             max_port,
             multiaddress.getStringAddress());
-        return BAD_ADDRESS;
+        return Q_ERROR(BAD_ADDRESS);
       }
       port_number = static_cast<uint16_t>(wide_port);
     } catch (...) {
@@ -607,7 +607,7 @@ namespace kagome::application {
                "Passed value {} is not a valid port number within address {}",
                port.value(),
                multiaddress.getStringAddress());
-      return BAD_ADDRESS;
+      return Q_ERROR(BAD_ADDRESS);
     }
     return getEndpointFrom(host.value(), port_number);
   }

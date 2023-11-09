@@ -76,7 +76,7 @@ namespace kagome::network {
 
       ::protobuf_generated::api::v1::light::Request msg;
       if (not msg.ParseFromArray(from.base(), remains)) {
-        return AdaptersError::PARSE_FAILED;
+        return Q_ERROR(AdaptersError::PARSE_FAILED);
       }
 
       auto get_block = [&](auto &pb) {
@@ -143,7 +143,7 @@ namespace kagome::network {
 
       ::protobuf_generated::api::v1::light::Response msg;
       if (not msg.ParseFromArray(from.base(), remains)) {
-        return AdaptersError::PARSE_FAILED;
+        return Q_ERROR(AdaptersError::PARSE_FAILED);
       }
 
       out.call = msg.has_remote_call_response();

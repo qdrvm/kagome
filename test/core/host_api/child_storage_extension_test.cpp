@@ -142,7 +142,7 @@ TEST_P(ReadOutcomeParameterizedTest, GetTest) {
           child_storage_extension_->ext_default_child_storage_get_version_1(
               child_storage_key_span, key_span);
         },
-        std::runtime_error);
+        qtils::Errors);
   } else {
     EXPECT_CALL(*memory_, storeBuffer(BufferView(encoded_opt_value)))
         .WillOnce(Return(value_span));
@@ -217,7 +217,7 @@ TEST_P(ReadOutcomeParameterizedTest, ReadTest) {
           child_storage_extension_->ext_default_child_storage_read_version_1(
               child_storage_key_span, key_span, value_span, offset);
         },
-        std::runtime_error);
+        qtils::Errors);
   } else {
     WasmSpan res_wasm_span = 1337;
     EXPECT_CALL(*memory_, storeBuffer(BufferView(encoded_result)))
@@ -469,7 +469,7 @@ INSTANTIATE_TEST_SUITE_P(Instance,
                              /// success case
                              outcome::success(),
                              /// failure with arbitrary error code
-                             outcome::failure(testutil::DummyError::ERROR))
+                             Q_ERROR(testutil::DummyError::ERROR))
                          // empty argument for the macro
 );
 
@@ -482,7 +482,7 @@ INSTANTIATE_TEST_SUITE_P(
         /// not found
         outcome::success(std::nullopt),
         /// failure with arbitrary error code
-        outcome::failure(testutil::DummyError::ERROR))
+        Q_ERROR(testutil::DummyError::ERROR))
     // empty argument for the macro
 );
 
@@ -494,6 +494,6 @@ INSTANTIATE_TEST_SUITE_P(Instance,
                              /// not found
                              outcome::success(false),
                              /// failure with arbitrary error code
-                             outcome::failure(testutil::DummyError::ERROR))
+                             Q_ERROR(testutil::DummyError::ERROR))
                          // empty argument for the macro
 );

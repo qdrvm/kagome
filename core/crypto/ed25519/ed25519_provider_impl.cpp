@@ -36,7 +36,7 @@ namespace kagome::crypto {
     auto seed = _seed;
     for (auto &junction : junctions) {
       if (not junction.hard) {
-        return Error::SOFT_JUNCTION_NOT_SUPPORTED;
+        return Q_ERROR(Error::SOFT_JUNCTION_NOT_SUPPORTED);
       }
       seed = hasher_->blake2b_256(
           scale::encode("Ed25519HDKD"_bytes, seed, junction.cc).value());
@@ -68,7 +68,7 @@ namespace kagome::crypto {
       SL_ERROR(logger_,
                "Error during ed25519 sign; error code: {}",
                static_cast<size_t>(res));
-      return Error::SIGN_FAILED;
+      return Q_ERROR(Error::SIGN_FAILED);
     }
     return sig;
   }
@@ -89,6 +89,6 @@ namespace kagome::crypto {
     SL_ERROR(logger_,
              "Error verifying a signature; error code: {}",
              static_cast<size_t>(res));
-    return Error::VERIFICATION_FAILED;
+    return Q_ERROR(Error::VERIFICATION_FAILED);
   }
 }  // namespace kagome::crypto

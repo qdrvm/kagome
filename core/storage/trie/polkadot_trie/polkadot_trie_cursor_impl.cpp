@@ -36,7 +36,7 @@ namespace kagome::storage::trie {
                                                   const TrieNode &child) {
     auto *current_as_branch = dynamic_cast<const BranchNode *>(current_);
     if (current_as_branch == nullptr) {
-      return Error::INVALID_NODE_TYPE;
+      return Q_ERROR(Error::INVALID_NODE_TYPE);
     }
     path_.emplace_back(*current_as_branch, index);
     current_ = &child;
@@ -78,7 +78,7 @@ namespace kagome::storage::trie {
     if (res.has_error()) {
       // if the given key is just not present in the trie, return false
       state_ = InvalidState{res.error()};
-      if (res.error() == Error::KEY_NOT_FOUND) {
+      if (res.error().ec(Error::KEY_NOT_FOUND)) {
         return false;
       }
       // on other errors - propagate them
@@ -234,7 +234,7 @@ namespace kagome::storage::trie {
     auto *current = &parent;
     while (not current->getValue()) {
       if (not current->isBranch()) {
-        return Error::INVALID_NODE_TYPE;
+        return Q_ERROR(Error::INVALID_NODE_TYPE);
       }
       SAFE_CALL(child, visitChildWithMinIdx(*current))
       SL_TRACE(log_,
@@ -279,7 +279,7 @@ namespace kagome::storage::trie {
 
   outcome::result<void> PolkadotTrieCursorImpl::next() {
     if (std::holds_alternative<InvalidState>(state_)) {
-      return Error::INVALID_CURSOR_ACCESS;
+      return Q_ERROR(Error::INVALID_CURSOR_ACCESS);
     }
 
     if (trie_->getRoot() == nullptr) {
@@ -377,7 +377,7 @@ namespace kagome::storage::trie {
   auto PolkadotTrieCursorImpl::makeSearchStateAt(const common::BufferView &key)
       -> outcome::result<SearchState> {
     if (trie_->getRoot() == nullptr) {
-      return Error::KEY_NOT_FOUND;
+      return Q_ERROR(Error::KEY_NOT_FOUND);
     }
     SearchState search_state{*trie_->getRoot()};
 
@@ -392,8 +392,8 @@ namespace kagome::storage::trie {
     auto res = trie_->forNodeInPath(
         trie_->getRoot(), KeyNibbles::fromByteBuffer(key), add_visited_child);
     if (res.has_error()) {
-      if (res.error() == TrieError::NO_VALUE) {
-        return Error::KEY_NOT_FOUND;
+      if (res.error().ec(TrieError::NO_VALUE)) {
+        return Q_ERROR(Error::KEY_NOT_FOUND);
       }
       return res.error();
     }

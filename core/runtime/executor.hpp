@@ -131,25 +131,20 @@ namespace kagome::runtime {
       if constexpr (std::is_void_v<Result>) {
         return outcome::success();
       } else {
-        Result t{};
         scale::ScaleDecoderStream s(result);
-        try {
-          s >> t;
-          // Check whether the whole byte buffer was consumed
-          if (s.hasMore(1)) {
-            static auto logger = log::createLogger("Executor", "runtime");
-            SL_ERROR(logger,
-                     "Runtime API call result size exceeds the size of the "
-                     "type to initialize {} (read {}, total size {})",
-                     typeid(Result).name(),
-                     s.currentIndex(),
-                     s.span().size_bytes());
-            return outcome::failure(std::errc::illegal_byte_sequence);
-          }
-          return outcome::success(std::move(t));
-        } catch (std::system_error &e) {
-          return outcome::failure(e.code());
+        OUTCOME_TRY(t, scale::decode<Result>(s));
+        // Check whether the whole byte buffer was consumed
+        if (s.hasMore(1)) {
+          static auto logger = log::createLogger("Executor", "runtime");
+          SL_ERROR(logger,
+                   "Runtime API call result size exceeds the size of the "
+                   "type to initialize {} (read {}, total size {})",
+                   typeid(Result).name(),
+                   s.currentIndex(),
+                   s.span().size_bytes());
+          return Q_ERROR(std::errc::illegal_byte_sequence);
         }
+        return outcome::success(std::move(t));
       }
     }
 

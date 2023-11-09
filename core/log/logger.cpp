@@ -57,7 +57,7 @@ namespace kagome::log {
     } else if (str == "off" or str == "no") {
       return Level::OFF;
     } else {
-      return Error::WRONG_LEVEL;
+      return Q_ERROR(Error::WRONG_LEVEL);
     }
   }
 

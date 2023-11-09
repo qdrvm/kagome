@@ -26,7 +26,7 @@ namespace kagome::crypto::bip39 {
       return loc->second;
     }
 
-    return DictionaryError::ENTRY_NOT_FOUND;
+    return Q_ERROR(DictionaryError::ENTRY_NOT_FOUND);
   }
 
 }  // namespace kagome::crypto::bip39

@@ -55,10 +55,10 @@ namespace kagome::consensus {
       if (auto header_res =
               block_tree_->getBlockHeader(block_header.parent_hash);
           header_res.has_error()
-          && header_res.error()
-                 == blockchain::BlockTreeError::HEADER_NOT_FOUND) {
+          && header_res.error().ec(
+              blockchain::BlockTreeError::HEADER_NOT_FOUND)) {
         logger_->warn("Skipping a block {} with unknown parent", block_info);
-        callback(BlockAdditionError::PARENT_NOT_FOUND);
+        callback(Q_ERROR(BlockAdditionError::PARENT_NOT_FOUND));
         return;
       } else if (header_res.has_error()) {
         callback(header_res.as_failure());
@@ -82,8 +82,8 @@ namespace kagome::consensus {
         callback(res.as_failure());
         return;
       }
-    } else if (header_res.error()
-               != blockchain::BlockTreeError::HEADER_NOT_FOUND) {
+    } else if (not header_res.error().ec(
+                   blockchain::BlockTreeError::HEADER_NOT_FOUND)) {
       callback(header_res.as_failure());
       return;
     } else {
@@ -108,7 +108,7 @@ namespace kagome::consensus {
          callback{std::move(callback)}](auto &&result) mutable {
           auto self = wself.lock();
           if (!self) {
-            callback(BlockAdditionError::NO_INSTANCE);
+            callback(Q_ERROR(BlockAdditionError::NO_INSTANCE));
             return;
           }
           auto const now = std::chrono::high_resolution_clock::now();

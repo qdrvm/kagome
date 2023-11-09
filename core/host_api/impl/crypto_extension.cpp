@@ -436,23 +436,17 @@ namespace kagome::host_api {
   }
 
   namespace {
-    template <typename T>
-    using failure_type =
-        decltype(outcome::result<std::decay_t<T>>(T{}).as_failure());
-
     /**
      * @brief converts outcome::failure_type to Secp256k1VerifyError error code
      * @param failure outcome::result containing error
      * @return error code
      */
-    template <class T>
-    Secp256k1VerifyError convertFailureToError(const failure_type<T> &failure) {
-      const outcome::result<void> res = failure;
-      if (res == outcome::failure(Secp256k1ProviderError::INVALID_V_VALUE)) {
+    inline Secp256k1VerifyError convertFailureToError(
+        const qtils::Errors &errors) {
+      if (errors.ec(Secp256k1ProviderError::INVALID_V_VALUE)) {
         return secp256k1::secp256k1_verify_error::kInvalidV;
       }
-      if (res
-          == outcome::failure(Secp256k1ProviderError::INVALID_R_OR_S_VALUE)) {
+      if (errors.ec(Secp256k1ProviderError::INVALID_R_OR_S_VALUE)) {
         return secp256k1::secp256k1_verify_error::kInvalidRS;
       }
 
@@ -481,8 +475,7 @@ namespace kagome::host_api {
       logger_->error("failed to recover uncompressed secp256k1 public key: {}",
                      public_key.error());
 
-      auto error_code =
-          convertFailureToError<UncompressedPublicKey>(public_key.as_failure());
+      auto error_code = convertFailureToError(public_key.error());
       auto error_result =
           scale::encode(static_cast<ResultType>(error_code)).value();
 
@@ -522,8 +515,7 @@ namespace kagome::host_api {
       logger_->error("failed to recover uncompressed secp256k1 public key: {}",
                      public_key.error());
 
-      auto error_code =
-          convertFailureToError<CompressedPublicKey>(public_key.as_failure());
+      auto error_code = convertFailureToError(public_key.error());
       auto error_result =
           scale::encode(static_cast<ResultType>(error_code)).value();
       return getMemory().storeBuffer(error_result);

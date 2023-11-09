@@ -49,14 +49,14 @@ namespace kagome::primitives {
 
     if (common::BufferView(calculated_checksum)
         != common::BufferView(checksum)) {
-      return Ss58Error::INVALID_CHECKSUM;
+      return Q_ERROR(Ss58Error::INVALID_CHECKSUM);
     }
 
     size_t type_size = (ss58_account_id[0] < 64) ? 1 : 2;
 
     if (ss58_account_id.size() - kSs58ChecksumLength - type_size
         != AccountId::size()) {
-      return Ss58Error::INVALID_LENGTH;
+      return Q_ERROR(Ss58Error::INVALID_LENGTH);
     }
 
     primitives::AccountId account_id;

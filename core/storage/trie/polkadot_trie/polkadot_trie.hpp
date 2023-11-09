@@ -53,7 +53,7 @@ namespace kagome::storage::trie {
 
       inline static outcome::result<std::optional<common::Buffer>>
       defaultValueRetrieve(const common::Hash256 &) {
-        return TrieError::VALUE_RETRIEVE_NOT_PROVIDED;
+        return Q_ERROR(TrieError::VALUE_RETRIEVE_NOT_PROVIDED);
       }
 
       NodeRetrieveFunction retrieve_node;

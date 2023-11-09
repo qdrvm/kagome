@@ -269,7 +269,7 @@ namespace kagome::consensus::grandpa {
       SL_WARN(logger_,
               "Can't retrieve authorities for finalized block {}",
               best_block);
-      return VotingRoundError::VOTER_SET_NOT_FOUND_FOR_BLOCK;
+      return Q_ERROR(VotingRoundError::VOTER_SET_NOT_FOUND_FOR_BLOCK);
     }
 
     auto &authority_set = authorities_opt.value();
@@ -1393,8 +1393,9 @@ namespace kagome::consensus::grandpa {
       // This is justification for already finalized block
       if (current_round_->lastFinalizedBlock().number
           > justification.block_info.number) {
-        callbackCall(std::move(callback),
-                     VotingRoundError::JUSTIFICATION_FOR_BLOCK_IN_PAST);
+        callbackCall(
+            std::move(callback),
+            Q_ERROR(VotingRoundError::JUSTIFICATION_FOR_BLOCK_IN_PAST));
         return;
       }
 
@@ -1402,7 +1403,7 @@ namespace kagome::consensus::grandpa {
           justification.block_info, IsBlockFinalized{false});
       if (!authorities_opt) {
         callbackCall(std::move(callback),
-                     VotingRoundError::NO_KNOWN_AUTHORITIES_FOR_BLOCK);
+                     Q_ERROR(VotingRoundError::NO_KNOWN_AUTHORITIES_FOR_BLOCK));
         return;
       }
       auto &authority_set = authorities_opt.value();
@@ -1439,15 +1440,17 @@ namespace kagome::consensus::grandpa {
         if (authority_set->id < current_round_->voterSetId()) {
           callbackCall(
               std::move(callback),
-              VotingRoundError::JUSTIFICATION_FOR_AUTHORITY_SET_IN_PAST);
+              Q_ERROR(
+                  VotingRoundError::JUSTIFICATION_FOR_AUTHORITY_SET_IN_PAST));
           return;
         }
         if (authority_set->id == current_round_->voterSetId()
             && justification.round_number < current_round_->roundNumber()) {
           if (not isWestendPastRound(block_tree_->getGenesisBlockHash(),
                                      justification.block_info)) {
-            callbackCall(std::move(callback),
-                         VotingRoundError::JUSTIFICATION_FOR_ROUND_IN_PAST);
+            callbackCall(
+                std::move(callback),
+                Q_ERROR(VotingRoundError::JUSTIFICATION_FOR_ROUND_IN_PAST));
             return;
           }
         }

@@ -288,7 +288,7 @@ namespace kagome::consensus::babe {
     auto r = indexer_.search(descent, block, cb);
     OUTCOME_TRY(cb_res);
     if (not r) {
-      return Error::NOT_FOUND;
+      return Q_ERROR(Error::NOT_FOUND);
     }
     if (not next_epoch and r->second.value->state) {
       return *r->second.value->state;
@@ -342,14 +342,14 @@ namespace kagome::consensus::babe {
   BabeConfigRepositoryImpl::loadPrev(
       const std::optional<primitives::BlockInfo> &prev) const {
     if (not prev) {
-      return Error::PREVIOUS_NOT_FOUND;
+      return Q_ERROR(Error::PREVIOUS_NOT_FOUND);
     }
     auto r = indexer_.get(*prev);
     if (not r) {
-      return Error::PREVIOUS_NOT_FOUND;
+      return Q_ERROR(Error::PREVIOUS_NOT_FOUND);
     }
     if (not r->value) {
-      return Error::PREVIOUS_NOT_FOUND;
+      return Q_ERROR(Error::PREVIOUS_NOT_FOUND);
     }
     OUTCOME_TRY(load(*prev, *r));
     return *r->value->next_state;

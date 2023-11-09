@@ -51,7 +51,7 @@ namespace kagome::network {
 
       ::api::v1::StateResponse msg;
       if (!msg.ParseFromArray(from.base(), remains)) {
-        return AdaptersError::PARSE_FAILED;
+        return Q_ERROR(AdaptersError::PARSE_FAILED);
       }
 
       for (const auto &kvEntry : msg.entries()) {

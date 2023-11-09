@@ -109,7 +109,7 @@ namespace kagome::application {
       if (not opt_entry) {
         log_->error("Required '{}' entry not found in the chain spec",
                     entry_name);
-        return Error::MISSING_ENTRY;
+        return Q_ERROR(Error::MISSING_ENTRY);
       }
       return opt_entry.value();
     }

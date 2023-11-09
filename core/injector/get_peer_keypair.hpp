@@ -45,12 +45,8 @@ namespace kagome::injector {
         log->error("Unable to load user provided key from {}. Error: {}",
                    path,
                    key.error());
-        common::raise(key.error());
-      } else {
-        auto key_pair =
-            std::make_shared<libp2p::crypto::KeyPair>(std::move(key.value()));
-        return key_pair;
       }
+      return std::make_shared<libp2p::crypto::KeyPair>(std::move(key.value()));
     }
 
     auto path = app_config.chainPath(chain.id()) / "network/secret_ed25519";

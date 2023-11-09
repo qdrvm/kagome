@@ -266,12 +266,7 @@ namespace {
       const application::AppConfiguration &config,
       sptr<application::ChainSpec> chain_spec) {
     auto path = config.keystorePath(chain_spec->id());
-    auto key_file_storage_res = crypto::KeyFileStorage::createAt(path);
-    if (not key_file_storage_res) {
-      common::raise(key_file_storage_res.error());
-    }
-
-    return std::move(key_file_storage_res.value());
+    return crypto::KeyFileStorage::createAt(path).value();
   }
 
   sptr<libp2p::protocol::kademlia::Config> get_kademlia_config(
@@ -324,9 +319,6 @@ namespace {
         std::move(state_pruner),
         injector.template create<std::shared_ptr<::boost::asio::io_context>>());
 
-    if (not block_tree_res.has_value()) {
-      common::raise(block_tree_res.error());
-    }
     auto &block_tree = block_tree_res.value();
 
     auto runtime_upgrade_tracker =
@@ -436,10 +428,6 @@ namespace {
                                                    std::move(storage),
                                                    std::move(substitutes),
                                                    std::move(block_storage));
-    if (res.has_error()) {
-      throw std::runtime_error("Error creating RuntimeUpgradeTrackerImpl: "
-                               + res.error().message());
-    }
     return std::shared_ptr<runtime::RuntimeUpgradeTrackerImpl>(
         std::move(res.value()));
   }

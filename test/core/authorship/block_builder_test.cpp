@@ -71,7 +71,7 @@ TEST_F(BlockBuilderTest, PushWhenApplyFails) {
   // given
   Extrinsic xt{};
   EXPECT_CALL(*block_builder_api_, apply_extrinsic(_, xt))
-      .WillOnce(Return(outcome::failure(boost::system::error_code{})));
+      .WillOnce(Return(Q_ERROR(boost::system::error_code{})));
   EXPECT_CALL(*block_builder_api_, finalize_block(_))
       .WillOnce(Return(expected_header_));
 

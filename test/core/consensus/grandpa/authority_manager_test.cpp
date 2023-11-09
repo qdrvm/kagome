@@ -96,7 +96,7 @@ class AuthorityManagerTest : public testing::Test {
     // EXPECT_CALL(*block_tree, getBlockJustification(_))
     //     .Times(testing::AnyNumber());
     EXPECT_CALL(*block_tree, getBlockJustification(_))
-        .WillRepeatedly(Return(std::error_code{}));
+        .WillRepeatedly(Return(Q_ERROR(nullptr)));
 
     EXPECT_CALL(*grandpa_api, authorities(mockHash(0)))
         .WillRepeatedly(Return(voters(0).authorities));

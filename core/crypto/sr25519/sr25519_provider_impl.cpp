@@ -43,7 +43,7 @@ namespace kagome::crypto {
                    message.data(),
                    message.size());
     } catch (...) {
-      return Sr25519ProviderError::SIGN_UNKNOWN_ERROR;
+      return Q_ERROR(Sr25519ProviderError::SIGN_UNKNOWN_ERROR);
     }
 
     return signature;
@@ -58,7 +58,7 @@ namespace kagome::crypto {
       result = sr25519_verify_deprecated(
           signature.data(), message.data(), message.size(), public_key.data());
     } catch (...) {
-      return Sr25519ProviderError::SIGN_UNKNOWN_ERROR;
+      return Q_ERROR(Sr25519ProviderError::SIGN_UNKNOWN_ERROR);
     }
     return result;
   }
@@ -72,7 +72,7 @@ namespace kagome::crypto {
       result = sr25519_verify(
           signature.data(), message.data(), message.size(), public_key.data());
     } catch (...) {
-      return Sr25519ProviderError::SIGN_UNKNOWN_ERROR;
+      return Q_ERROR(Sr25519ProviderError::SIGN_UNKNOWN_ERROR);
     }
     return outcome::success(result);
   }

@@ -32,7 +32,7 @@ namespace test {
     // TODO (yuraz): ignore error code, log message
     boost::ignore_unused(ec);
     if (ec) {
-      return HttpClientError::CONNECTION_FAILED;
+      return Q_ERROR(HttpClientError::CONNECTION_FAILED);
     }
     return outcome::success();
   }
@@ -58,7 +58,7 @@ namespace test {
     // Send the HTTP request to the remote host
     boost::beast::http::write(stream_, req, ec);
     if (ec) {
-      return callback(HttpClientError::NETWORK_ERROR);
+      return callback(Q_ERROR(HttpClientError::NETWORK_ERROR));
     }
 
     FlatBuffer buffer{};
@@ -67,11 +67,11 @@ namespace test {
     // receive response
     boost::beast::http::read(stream_, buffer, res, ec);
     if (ec) {
-      return callback(HttpClientError::NETWORK_ERROR);
+      return callback(Q_ERROR(HttpClientError::NETWORK_ERROR));
     }
 
     if (res.result() != HttpStatus::ok) {
-      return callback(HttpClientError::HTTP_ERROR);
+      return callback(Q_ERROR(HttpClientError::HTTP_ERROR));
     }
 
     return callback(res.body());

@@ -164,7 +164,7 @@ TEST_F(ProposerTest, CreateBlockFailsWhenXtNotPushed) {
   EXPECT_CALL(*block_builder_, getInherentExtrinsics(inherent_data_))
       .WillOnce(Return(inherent_xts));
   EXPECT_CALL(*block_builder_, pushExtrinsic(inherent_xts[0]))
-      .WillOnce(Return(outcome::failure(BlockBuilderError::BAD_MANDATORY)));
+      .WillOnce(Return(Q_ERROR(BlockBuilderError::BAD_MANDATORY)));
 
   // when
   auto block_res = proposer_.propose(expected_block_,
@@ -186,7 +186,7 @@ TEST_F(ProposerTest, CreateBlockFailsWhenXtNotPushed) {
 TEST_F(ProposerTest, CreateBlockFailsToGetInhetentExtr) {
   // given
   EXPECT_CALL(*block_builder_, getInherentExtrinsics(inherent_data_))
-      .WillOnce(Return(outcome::failure(boost::system::error_code{})));
+      .WillOnce(Return(Q_ERROR(boost::system::error_code{})));
 
   // when
   auto block_res = proposer_.propose(expected_block_,
@@ -216,9 +216,9 @@ TEST_F(ProposerTest, PushFailed) {
       .WillOnce(Return(inherent_xts));
   EXPECT_CALL(*block_builder_, pushExtrinsic(_))
       .WillOnce(Return(outcome::success()))  // for inherent xt
-      .WillOnce(Return(outcome::failure(
-          boost::system::error_code{})));  // for xt from tx pool, will emit
-                                           // Error: Success though
+      .WillOnce(Return(
+          Q_ERROR(boost::system::error_code{})));  // for xt from tx pool, will
+                                                   // emit Error: Success though
   EXPECT_CALL(*block_builder_, estimateBlockSize()).WillOnce(Return(1));
   EXPECT_CALL(*block_builder_, bake()).WillOnce(Return(expected_block));
 
@@ -274,8 +274,7 @@ TEST_F(ProposerTest, TrxSkippedDueToOverflow) {
                   });
 
   EXPECT_CALL(*transaction_pool_, removeOne(_))
-      .WillRepeatedly(
-          Return(outcome::failure(TransactionPoolError::TX_NOT_FOUND)));
+      .WillRepeatedly(Return(Q_ERROR(TransactionPoolError::TX_NOT_FOUND)));
   EXPECT_CALL(*transaction_pool_, getReadyTransactions())
       .WillOnce(Return(ready_transactions));
   ;
@@ -306,8 +305,7 @@ TEST_F(ProposerTest, TrxSkippedDueToResourceExhausted) {
       .WillOnce(Return(inherent_xts));
   // BlockBuilderApi roports to be full for all trxs
   EXPECT_CALL(*block_builder_, pushExtrinsic(_))
-      .WillRepeatedly(
-          Return(outcome::failure(BlockBuilderError::EXHAUSTS_RESOURCES)));
+      .WillRepeatedly(Return(Q_ERROR(BlockBuilderError::EXHAUSTS_RESOURCES)));
   EXPECT_CALL(*block_builder_, estimateBlockSize()).WillRepeatedly(Return(1));
   EXPECT_CALL(*block_builder_, bake()).WillOnce(Return(expected_block));
 
@@ -325,8 +323,7 @@ TEST_F(ProposerTest, TrxSkippedDueToResourceExhausted) {
                   });
 
   EXPECT_CALL(*transaction_pool_, removeOne(_))
-      .WillRepeatedly(
-          Return(outcome::failure(TransactionPoolError::TX_NOT_FOUND)));
+      .WillRepeatedly(Return(Q_ERROR(TransactionPoolError::TX_NOT_FOUND)));
   EXPECT_CALL(*transaction_pool_, getReadyTransactions())
       .WillOnce(Return(ready_transactions));
   ;

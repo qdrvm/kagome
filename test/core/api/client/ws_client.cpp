@@ -33,12 +33,12 @@ namespace test {
 
     stream_.next_layer().connect(endpoint_, ec);
     if (ec) {
-      return WsClientError::CONNECTION_FAILED;
+      return Q_ERROR(WsClientError::CONNECTION_FAILED);
     }
 
     stream_.handshake(endpoint_.address().to_string(), "/", ec);
     if (ec) {
-      return WsClientError::WEBSOCKET_ERROR;
+      return Q_ERROR(WsClientError::WEBSOCKET_ERROR);
     }
 
     return outcome::success();
@@ -63,12 +63,12 @@ namespace test {
     stream_.write(buffer.data(), ec);
     buffer.consume(message.size());
     if (ec) {
-      return callback(WsClientError::NETWORK_ERROR);
+      return callback(Q_ERROR(WsClientError::NETWORK_ERROR));
     }
 
     stream_.read(buffer, ec);
     if (ec) {
-      return callback(WsClientError::NETWORK_ERROR);
+      return callback(Q_ERROR(WsClientError::NETWORK_ERROR));
     }
 
     return callback(boost::beast::buffers_to_string(buffer.data()));

@@ -40,7 +40,7 @@ namespace kagome::network {
           [self{shared_from_this()}, cb = std::move(cb)](
               libp2p::basic::MessageReadWriter::ReadCallback read_res) {
             if (!read_res) {
-              return cb(outcome::failure(read_res.error()));
+              return cb(std::move(read_res.error()));
             }
 
             auto &raw = read_res.value();
@@ -51,7 +51,7 @@ namespace kagome::network {
             }
             auto msg_res = scale::decode<MsgType>(*raw);
             if (!msg_res) {
-              return cb(outcome::failure(msg_res.error()));
+              return cb(std::move(msg_res.error()));
             }
             return cb(outcome::success(std::move(msg_res.value())));
           });

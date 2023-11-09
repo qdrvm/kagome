@@ -110,7 +110,7 @@ namespace kagome::runtime::binaryen {
             module_instance_->wasm.getExportOrNull(wasm::Name{name.data()});
         nullptr == res) {
       SL_DEBUG(logger_, "The requested function {} not found", name);
-      return RuntimeTransactionError::EXPORT_FUNCTION_NOT_FOUND;
+      return Q_ERROR(RuntimeTransactionError::EXPORT_FUNCTION_NOT_FOUND);
     }
 
     try {
@@ -121,9 +121,9 @@ namespace kagome::runtime::binaryen {
       return PtrSize{res};
 
     } catch (wasm::ExitException &e) {
-      return Error::UNEXPECTED_EXIT;
+      return Q_ERROR(Error::UNEXPECTED_EXIT);
     } catch (wasm::TrapException &e) {
-      return Error::EXECUTION_ERROR;
+      return Q_ERROR(Error::EXECUTION_ERROR);
     }
   }
 
@@ -147,7 +147,7 @@ namespace kagome::runtime::binaryen {
           return std::nullopt;
       }
     } catch (wasm::TrapException &e) {
-      return Error::CAN_NOT_OBTAIN_GLOBAL;
+      return Q_ERROR(Error::CAN_NOT_OBTAIN_GLOBAL);
     }
   }
 

@@ -165,7 +165,7 @@ TEST_F(BlockValidatorTest, Success) {
 
   auto validate_res = validator_.validateHeader(
       valid_block_.header, 0ull, authority.id, threshold_, config_);
-  ASSERT_TRUE(validate_res) << validate_res.error().message();
+  EXPECT_OUTCOME_TRUE_1(validate_res);
 }
 
 /**
@@ -178,11 +178,9 @@ TEST_F(BlockValidatorTest, LessDigestsThanNeeded) {
   authorities_.emplace_back(authority);
 
   // for this test we can just not seal the block - it's the second digest
-  EXPECT_OUTCOME_FALSE(
-      err,
-      validator_.validateHeader(
-          valid_block_.header, 0ull, authority.id, threshold_, config_));
-  ASSERT_EQ(err, consensus::babe::DigestError::REQUIRED_DIGESTS_NOT_FOUND);
+  EXPECT_EC(validator_.validateHeader(
+                valid_block_.header, 0ull, authority.id, threshold_, config_),
+            consensus::babe::DigestError::REQUIRED_DIGESTS_NOT_FOUND);
 }
 
 /**
@@ -209,11 +207,9 @@ TEST_F(BlockValidatorTest, NoBabeHeader) {
   authorities_.emplace_back();
   authorities_.emplace_back(authority);
 
-  EXPECT_OUTCOME_FALSE(
-      err,
-      validator_.validateHeader(
-          valid_block_.header, 0ull, authority.id, threshold_, config_));
-  ASSERT_EQ(err, consensus::babe::DigestError::REQUIRED_DIGESTS_NOT_FOUND);
+  EXPECT_EC(validator_.validateHeader(
+                valid_block_.header, 0ull, authority.id, threshold_, config_),
+            consensus::babe::DigestError::REQUIRED_DIGESTS_NOT_FOUND);
 }
 
 /**
@@ -289,11 +285,9 @@ TEST_F(BlockValidatorTest, SignatureVerificationFail) {
       .data[10]++;
 
   // THEN
-  EXPECT_OUTCOME_FALSE(
-      err,
-      validator_.validateHeader(
-          valid_block_.header, 0ull, authority.id, threshold_, config_));
-  ASSERT_EQ(err, BabeBlockValidator::ValidationError::INVALID_SIGNATURE);
+  EXPECT_EC(validator_.validateHeader(
+                valid_block_.header, 0ull, authority.id, threshold_, config_),
+            BabeBlockValidator::ValidationError::INVALID_SIGNATURE);
 }
 
 /**
@@ -328,11 +322,9 @@ TEST_F(BlockValidatorTest, VRFFail) {
       .WillOnce(Return(VRFVerifyOutput{.is_valid = false, .is_less = true}));
 
   // THEN
-  EXPECT_OUTCOME_FALSE(
-      err,
-      validator_.validateHeader(
-          valid_block_.header, 0ull, authority.id, threshold_, config_));
-  ASSERT_EQ(err, BabeBlockValidator::ValidationError::INVALID_VRF);
+  EXPECT_EC(validator_.validateHeader(
+                valid_block_.header, 0ull, authority.id, threshold_, config_),
+            BabeBlockValidator::ValidationError::INVALID_VRF);
 }
 
 /**
@@ -369,9 +361,7 @@ TEST_F(BlockValidatorTest, ThresholdGreater) {
       .WillOnce(Return(VRFVerifyOutput{.is_valid = true, .is_less = false}));
 
   // THEN
-  EXPECT_OUTCOME_FALSE(
-      err,
-      validator_.validateHeader(
-          valid_block_.header, 0ull, authority.id, threshold_, config_));
-  ASSERT_EQ(err, BabeBlockValidator::ValidationError::INVALID_VRF);
+  EXPECT_EC(validator_.validateHeader(
+                valid_block_.header, 0ull, authority.id, threshold_, config_),
+            BabeBlockValidator::ValidationError::INVALID_VRF);
 }

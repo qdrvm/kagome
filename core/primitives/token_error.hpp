@@ -7,8 +7,7 @@
 #pragma once
 
 #include <cstdint>
-
-#include "outcome/outcome.hpp"
+#include <qtils/enum_error_code.hpp>
 
 namespace kagome::primitives {
 

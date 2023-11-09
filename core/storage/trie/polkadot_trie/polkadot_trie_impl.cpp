@@ -478,7 +478,7 @@ namespace kagome::storage::trie {
     if (opt_value.has_value()) {
       return std::move(*opt_value);
     }
-    return TrieError::NO_VALUE;
+    return Q_ERROR(TrieError::NO_VALUE);
   }
 
   outcome::result<std::optional<BufferOrView>> PolkadotTrieImpl::tryGet(
@@ -537,7 +537,7 @@ namespace kagome::storage::trie {
       const NibblesView &path,
       const BranchVisitor &callback) const {
     if (parent == nullptr) {
-      return TrieError::NO_VALUE;
+      return Q_ERROR(TrieError::NO_VALUE);
     }
 
     if (parent->isBranch()) {
@@ -562,7 +562,7 @@ namespace kagome::storage::trie {
     if (parent->getKeyNibbles() == path) {
       return outcome::success();
     }
-    return TrieError::NO_VALUE;
+    return Q_ERROR(TrieError::NO_VALUE);
   }
 
   std::unique_ptr<PolkadotTrieCursor> PolkadotTrieImpl::trieCursor() const {

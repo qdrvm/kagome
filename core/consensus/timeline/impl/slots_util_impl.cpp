@@ -86,7 +86,7 @@ namespace kagome ::consensus {
     [[unlikely]] if (parent_info.number == 0) { return 0; }
     OUTCOME_TRY(slot1, getFirstBlockSlotNumber(parent_info));
     if (slot < slot1) {
-      return TimelineError::SLOT_BEFORE_GENESIS;
+      return Q_ERROR(TimelineError::SLOT_BEFORE_GENESIS);
     }
     auto slots = slot - slot1;
     return slots / epochLength();

@@ -25,12 +25,12 @@ namespace kagome::crypto::bip39 {
       default:
         break;
     }
-    return Bip39EntropyError::WRONG_WORDS_COUNT;
+    return Q_ERROR(Bip39EntropyError::WRONG_WORDS_COUNT);
   }
 
   outcome::result<std::vector<uint8_t>> EntropyAccumulator::getEntropy() const {
     if (bits_.size() != total_bits_count_) {
-      return Bip39EntropyError::STORAGE_NOT_COMPLETE;
+      return Q_ERROR(Bip39EntropyError::STORAGE_NOT_COMPLETE);
     }
 
     // convert data
@@ -53,7 +53,7 @@ namespace kagome::crypto::bip39 {
 
   outcome::result<uint8_t> EntropyAccumulator::getChecksum() const {
     if (bits_.size() != total_bits_count_) {
-      return Bip39EntropyError::STORAGE_NOT_COMPLETE;
+      return Q_ERROR(Bip39EntropyError::STORAGE_NOT_COMPLETE);
     }
 
     uint8_t checksum = 0u;
@@ -67,7 +67,7 @@ namespace kagome::crypto::bip39 {
 
   outcome::result<void> EntropyAccumulator::append(const EntropyToken &value) {
     if (bits_.size() + value.size() > total_bits_count_) {
-      return Bip39EntropyError::STORAGE_IS_FULL;
+      return Q_ERROR(Bip39EntropyError::STORAGE_IS_FULL);
     }
 
     for (size_t i = 0; i < value.size(); ++i) {

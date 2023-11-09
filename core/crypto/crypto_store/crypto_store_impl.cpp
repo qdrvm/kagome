@@ -130,7 +130,7 @@ namespace kagome::crypto {
     }
     OUTCOME_TRY(phrase, file_storage_->searchForPhrase(key_type, pk));
     if (not phrase) {
-      return CryptoStoreError::KEY_NOT_FOUND;
+      return Q_ERROR(CryptoStoreError::KEY_NOT_FOUND);
     }
     OUTCOME_TRY(bip, bip39_provider_->generateSeed(*phrase));
     return ecdsa_suite_->generateKeypair(bip);
@@ -144,7 +144,7 @@ namespace kagome::crypto {
     }
     OUTCOME_TRY(phrase, file_storage_->searchForPhrase(key_type, pk));
     if (not phrase) {
-      return CryptoStoreError::KEY_NOT_FOUND;
+      return Q_ERROR(CryptoStoreError::KEY_NOT_FOUND);
     }
     OUTCOME_TRY(bip, bip39_provider_->generateSeed(*phrase));
     return ed_suite_->generateKeypair(bip);
@@ -158,7 +158,7 @@ namespace kagome::crypto {
     }
     OUTCOME_TRY(phrase, file_storage_->searchForPhrase(key_type, pk));
     if (not phrase) {
-      return CryptoStoreError::KEY_NOT_FOUND;
+      return Q_ERROR(CryptoStoreError::KEY_NOT_FOUND);
     }
     OUTCOME_TRY(bip, bip39_provider_->generateSeed(*phrase));
     return sr_suite_->generateKeypair(bip);
@@ -187,7 +187,7 @@ namespace kagome::crypto {
       const CryptoStore::Path &key_path) const {
     std::string contents;
     if (not readFile(contents, key_path.string())) {
-      return CryptoStoreError::KEY_NOT_FOUND;
+      return Q_ERROR(CryptoStoreError::KEY_NOT_FOUND);
     }
     BOOST_ASSERT(ED25519_SEED_LENGTH == contents.size()
                  or 2 * ED25519_SEED_LENGTH == contents.size());  // hex
@@ -199,7 +199,7 @@ namespace kagome::crypto {
       OUTCOME_TRY(_seed, Ed25519Seed::fromHex(contents));
       seed = _seed;
     } else {
-      return CryptoStoreError::UNSUPPORTED_CRYPTO_TYPE;
+      return Q_ERROR(CryptoStoreError::UNSUPPORTED_CRYPTO_TYPE);
     }
     OUTCOME_TRY(kp, ed_suite_->generateKeypair(seed, {}));
     return ed25519KeyToLibp2pKeypair(kp);

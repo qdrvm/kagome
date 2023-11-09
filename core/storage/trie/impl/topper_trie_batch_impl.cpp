@@ -46,7 +46,7 @@ namespace kagome::storage::trie {
     if (opt_value) {
       return std::move(*opt_value);
     }
-    return TrieError::NO_VALUE;
+    return Q_ERROR(TrieError::NO_VALUE);
   }
 
   outcome::result<std::optional<BufferOrView>> TopperTrieBatchImpl::tryGet(
@@ -63,7 +63,7 @@ namespace kagome::storage::trie {
     if (auto p = parent_.lock(); p != nullptr) {
       return p->tryGet(key);
     }
-    return Error::PARENT_EXPIRED;
+    return Q_ERROR(Error::PARENT_EXPIRED);
   }
 
   std::unique_ptr<PolkadotTrieCursor> TopperTrieBatchImpl::trieCursor() {
@@ -127,7 +127,7 @@ namespace kagome::storage::trie {
     if (parent_.lock() != nullptr) {
       return outcome::success(std::make_tuple(true, 0ULL));
     }
-    return Error::PARENT_EXPIRED;
+    return Q_ERROR(Error::PARENT_EXPIRED);
   }
 
   outcome::result<void> TopperTrieBatchImpl::writeBack() {
@@ -144,16 +144,16 @@ namespace kagome::storage::trie {
       }
       return outcome::success();
     }
-    return Error::PARENT_EXPIRED;
+    return Q_ERROR(Error::PARENT_EXPIRED);
   }
 
   outcome::result<RootHash> TopperTrieBatchImpl::commit(StateVersion version) {
-    return Error::COMMIT_NOT_SUPPORTED;
+    return Q_ERROR(Error::COMMIT_NOT_SUPPORTED);
   }
 
   outcome::result<std::optional<std::shared_ptr<TrieBatch>>>
   TopperTrieBatchImpl::createChildBatch(common::BufferView path) {
-    return Error::CHILD_BATCH_NOT_SUPPORTED;
+    return Q_ERROR(Error::CHILD_BATCH_NOT_SUPPORTED);
   }
 
   bool TopperTrieBatchImpl::wasClearedByPrefix(const BufferView &key) const {
@@ -186,7 +186,8 @@ namespace kagome::storage::trie {
   }
 
   outcome::result<bool> TopperTrieCursor::seekLast() {
-    return TopperTrieBatchImpl::Error::CURSOR_SEEK_LAST_NOT_IMPLEMENTED;
+    return Q_ERROR(
+        TopperTrieBatchImpl::Error::CURSOR_SEEK_LAST_NOT_IMPLEMENTED);
   }
 
   bool TopperTrieCursor::isValid() const {
@@ -200,7 +201,7 @@ namespace kagome::storage::trie {
   }
 
   outcome::result<void> TopperTrieCursor::prev() {
-    return TopperTrieBatchImpl::Error::CURSOR_PREV_NOT_IMPLEMENTED;
+    return Q_ERROR(TopperTrieBatchImpl::Error::CURSOR_PREV_NOT_IMPLEMENTED);
   }
 
   std::optional<Buffer> TopperTrieCursor::key() const {
@@ -265,7 +266,7 @@ namespace kagome::storage::trie {
 
   outcome::result<void> TopperTrieCursor::step() {
     if (not choice_) {
-      return TopperTrieBatchImpl::Error::CURSOR_NEXT_INVALID;
+      return Q_ERROR(TopperTrieBatchImpl::Error::CURSOR_NEXT_INVALID);
     }
     if (choice_.parent) {
       OUTCOME_TRY(parent_cursor_->next());

@@ -218,7 +218,7 @@ namespace kagome::parachain {
     OUTCOME_TRY(chunks, toChunks(active.validators.size(), data));
     auto root = makeTrieProof(chunks);
     if (root != active.erasure_encoding_root) {
-      return ErasureCodingRootError::MISMATCH;
+      return Q_ERROR(ErasureCodingRootError::MISMATCH);
     }
     return outcome::success();
   }

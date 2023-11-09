@@ -29,7 +29,7 @@ namespace kagome::crypto {
                                 key_length,
                                 out.data());
     if (res != 1) {
-      return Pbkdf2ProviderError::KEY_DERIVATION_FAILED;
+      return Q_ERROR(Pbkdf2ProviderError::KEY_DERIVATION_FAILED);
     }
 
     return out;

@@ -37,7 +37,7 @@ namespace kagome::storage {
       uint32_t memory_budget_mib,
       bool prevent_destruction) {
     if (!filesystem::createDirectoryRecursive(path)) {
-      return DatabaseError::DB_PATH_NOT_CREATED;
+      return Q_ERROR(DatabaseError::DB_PATH_NOT_CREATED);
     }
 
     auto log = log::createLogger("RocksDB", "storage");
@@ -48,12 +48,12 @@ namespace kagome::storage {
       log->error("Can't create directory {} for database: {}",
                  absolute_path.native(),
                  ec);
-      return DatabaseError::IO_ERROR;
+      return Q_ERROR(DatabaseError::IO_ERROR);
     }
     if (not fs::is_directory(absolute_path.native())) {
       log->error("Can't open {} for database: is not a directory",
                  absolute_path.native());
-      return DatabaseError::IO_ERROR;
+      return Q_ERROR(DatabaseError::IO_ERROR);
     }
 
     // calculate state cache size per space
@@ -77,7 +77,7 @@ namespace kagome::storage {
                "Can't open database in {}: {}",
                absolute_path.native(),
                res.ToString());
-      return status_as_error(res);
+      return Q_ERROR(status_as_error(res));
     }
     for (auto &family : existing_families) {
       if (std::find_if(column_family_descriptors.begin(),
@@ -107,7 +107,7 @@ namespace kagome::storage {
              absolute_path.native(),
              status.ToString());
 
-    return status_as_error(status);
+    return Q_ERROR(status_as_error(status));
   }
 
   std::shared_ptr<BufferStorage> RocksDb::getSpace(Space space) {
@@ -230,7 +230,7 @@ namespace kagome::storage {
       return false;
     }
 
-    return status_as_error(status);
+    return Q_ERROR(status_as_error(status));
   }
 
   bool RocksDbSpace::empty() const {
@@ -254,7 +254,7 @@ namespace kagome::storage {
           reinterpret_cast<uint8_t *>(value.data()),                  // NOLINT
           reinterpret_cast<uint8_t *>(value.data()) + value.size());  // NOLINT
     }
-    return status_as_error(status);
+    return Q_ERROR(status_as_error(status));
   }
 
   outcome::result<std::optional<BufferOrView>> RocksDbSpace::tryGet(
@@ -273,7 +273,7 @@ namespace kagome::storage {
       return std::nullopt;
     }
 
-    return status_as_error(status);
+    return Q_ERROR(status_as_error(status));
   }
 
   outcome::result<void> RocksDbSpace::put(const BufferView &key,
@@ -285,7 +285,7 @@ namespace kagome::storage {
       return outcome::success();
     }
 
-    return status_as_error(status);
+    return Q_ERROR(status_as_error(status));
   }
 
   outcome::result<void> RocksDbSpace::remove(const BufferView &key) {
@@ -295,7 +295,7 @@ namespace kagome::storage {
       return outcome::success();
     }
 
-    return status_as_error(status);
+    return Q_ERROR(status_as_error(status));
   }
 
   void RocksDbSpace::compact(const Buffer &first, const Buffer &last) {
@@ -320,7 +320,7 @@ namespace kagome::storage {
   outcome::result<std::shared_ptr<RocksDb>> RocksDbSpace::use() const {
     auto rocks = storage_.lock();
     if (!rocks) {
-      return DatabaseError::STORAGE_GONE;
+      return Q_ERROR(DatabaseError::STORAGE_GONE);
     }
     return rocks;
   }

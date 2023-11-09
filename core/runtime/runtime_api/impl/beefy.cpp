@@ -22,7 +22,7 @@ namespace kagome::runtime {
     if (r) {
       return std::move(r.value());
     }
-    if (r.error() == RuntimeTransactionError::EXPORT_FUNCTION_NOT_FOUND) {
+    if (r.error().ec(RuntimeTransactionError::EXPORT_FUNCTION_NOT_FOUND)) {
       return std::nullopt;
     }
     return r.error();

@@ -10,6 +10,8 @@
 
 #include <openssl/tls1.h>
 
+#include "log/formatters/boost_ec.hpp"
+
 namespace kagome::telemetry {
 
   std::size_t TelemetryConnectionImpl::instance_ = 0;

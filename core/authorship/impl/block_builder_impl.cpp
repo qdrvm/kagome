@@ -59,7 +59,7 @@ namespace kagome::authorship {
                     "block. (DispatchError {})",
                     extrinsic.data.toHex().substr(0, 8),
                     error->which());
-            return BlockBuilderError::EXTRINSIC_APPLICATION_FAILED;
+            return Q_ERROR(BlockBuilderError::EXTRINSIC_APPLICATION_FAILED);
           }
           // https://github.com/paritytech/substrate/blob/943c520aa78fcfaf3509790009ad062e8d4c6990/client/block-builder/src/lib.rs#L204-L237
           extrinsics_.push_back(extrinsic);
@@ -73,9 +73,9 @@ namespace kagome::authorship {
                   const primitives::InvalidTransaction &reason) -> return_type {
                 switch (reason) {
                   case primitives::InvalidTransaction::ExhaustsResources:
-                    return BlockBuilderError::EXHAUSTS_RESOURCES;
+                    return Q_ERROR(BlockBuilderError::EXHAUSTS_RESOURCES);
                   case primitives::InvalidTransaction::BadMandatory:
-                    return BlockBuilderError::BAD_MANDATORY;
+                    return Q_ERROR(BlockBuilderError::BAD_MANDATORY);
                   default:
                     SL_WARN(
                         logger_,
@@ -83,7 +83,8 @@ namespace kagome::authorship {
                         "the block. (InvalidTransaction response, code {})",
                         extrinsic.data.toHex().substr(0, 8),
                         static_cast<uint8_t>(reason));
-                    return BlockBuilderError::EXTRINSIC_APPLICATION_FAILED;
+                    return Q_ERROR(
+                        BlockBuilderError::EXTRINSIC_APPLICATION_FAILED);
                 }
               },
               [this, &extrinsic](
@@ -93,7 +94,7 @@ namespace kagome::authorship {
                         "the block. (UnknownTransaction response, code {})",
                         extrinsic.data.toHex().substr(0, 8),
                         static_cast<uint8_t>(reason));
-                return BlockBuilderError::EXTRINSIC_APPLICATION_FAILED;
+                return Q_ERROR(BlockBuilderError::EXTRINSIC_APPLICATION_FAILED);
               });
         });
   }

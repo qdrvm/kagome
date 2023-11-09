@@ -136,22 +136,22 @@ namespace kagome::parachain {
       const ParachainRuntime &code_zstd) const {
     OUTCOME_TRY(pov_encoded, scale::encode(pov));
     if (pov_encoded.size() > data.max_pov_size) {
-      return PvfError::POV_SIZE;
+      return Q_ERROR(PvfError::POV_SIZE);
     }
     auto pov_hash = hasher_->blake2b_256(pov_encoded);
     if (pov_hash != receipt.descriptor.pov_hash) {
-      return PvfError::POV_HASH;
+      return Q_ERROR(PvfError::POV_HASH);
     }
     auto code_hash = hasher_->blake2b_256(code_zstd);
     if (code_hash != receipt.descriptor.validation_code_hash) {
-      return PvfError::CODE_HASH;
+      return Q_ERROR(PvfError::CODE_HASH);
     }
     OUTCOME_TRY(signature_valid,
                 sr25519_provider_->verify(receipt.descriptor.signature,
                                           receipt.descriptor.signable(),
                                           receipt.descriptor.collator_id));
     if (!signature_valid) {
-      return PvfError::SIGNATURE;
+      return Q_ERROR(PvfError::SIGNATURE);
     }
 
     auto timer = metric_pvf_execution_time.timer();
@@ -197,7 +197,7 @@ namespace kagome::parachain {
                    "(persisted_validation_data)",
                    descriptor.relay_parent,
                    descriptor.para_id);
-        return PvfError::NO_PERSISTED_DATA;
+        return Q_ERROR(PvfError::NO_PERSISTED_DATA);
       }
       auto data_hash = hasher_->blake2b_256(scale::encode(*data).value());
       if (descriptor.persisted_data_hash != data_hash) {
@@ -212,7 +212,7 @@ namespace kagome::parachain {
             "findData relay_parent={} para_id={}: not found (validation_code)",
             descriptor.relay_parent,
             descriptor.para_id);
-        return PvfError::NO_PERSISTED_DATA;
+        return Q_ERROR(PvfError::NO_PERSISTED_DATA);
       }
       return std::make_pair(*data, *code);
     }
@@ -220,7 +220,7 @@ namespace kagome::parachain {
                "findData relay_parent={} para_id={}: not found",
                descriptor.relay_parent,
                descriptor.para_id);
-    return PvfError::NO_PERSISTED_DATA;
+    return Q_ERROR(PvfError::NO_PERSISTED_DATA);
   }
 
   outcome::result<ValidationResult> PvfImpl::callWasm(
@@ -248,7 +248,7 @@ namespace kagome::parachain {
       const CandidateReceipt &receipt, ValidationResult &&result) const {
     auto head_hash = hasher_->blake2b_256(result.head_data);
     if (head_hash != receipt.descriptor.para_head_hash) {
-      return PvfError::HEAD_HASH;
+      return Q_ERROR(PvfError::HEAD_HASH);
     }
     CandidateCommitments commitments{
         .upward_msgs = std::move(result.upward_messages),
@@ -261,7 +261,7 @@ namespace kagome::parachain {
     auto commitments_hash =
         hasher_->blake2b_256(scale::encode(commitments).value());
     if (commitments_hash != receipt.commitments_hash) {
-      return PvfError::COMMITMENTS_HASH;
+      return Q_ERROR(PvfError::COMMITMENTS_HASH);
     }
     OUTCOME_TRY(valid,
                 parachain_api_->check_validation_outputs(
@@ -274,7 +274,7 @@ namespace kagome::parachain {
                  "(check_validation_outputs)",
                  receipt.descriptor.relay_parent,
                  receipt.descriptor.para_id);
-      return PvfError::OUTPUTS;
+      return Q_ERROR(PvfError::OUTPUTS);
     }
     return commitments;
   }

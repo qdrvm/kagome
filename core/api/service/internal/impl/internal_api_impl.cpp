@@ -15,7 +15,7 @@ namespace kagome::api {
     OUTCOME_TRY(level, log::str2lvl(level_str));
 
     if (not log::setLevelOfGroup(group, level)) {
-      return log::Error::WRONG_GROUP;
+      return Q_ERROR(log::Error::WRONG_GROUP);
     }
 
     return outcome::success();

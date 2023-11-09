@@ -721,8 +721,9 @@ namespace kagome::consensus {
       }
     }
 
-    static const auto &block_production_error_category =
-        make_error_code(BlockProductionError{}).category();
+    auto is_block_production_error = [](const qtils::Error &error) {
+      return error.ec<BlockProductionError>();
+    };
 
     /// Try to run block production here
     auto consensus = consensus_selector_->getProductionConsensus(best_block_);
@@ -732,8 +733,7 @@ namespace kagome::consensus {
                "Slot {} in epoch {} has processed",
                current_slot_,
                current_epoch_);
-    } else if (res.as_failure().error().category()
-               == block_production_error_category) {
+    } else if (res.error().find(is_block_production_error)) {
       SL_DEBUG(log_,
                "Processing of slot {} was skipped: {}",
                current_slot_,

@@ -140,7 +140,7 @@ namespace kagome::storage::trie {
 
     // cursor state was invalidated and not restored
     struct InvalidState {
-      std::error_code code;
+      qtils::Errors code;
     };
 
     // cursor was created but no seek was performed

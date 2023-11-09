@@ -191,7 +191,7 @@ TEST_F(AuthorApiTest, SubmitExtrinsicSuccess) {
  */
 TEST_F(AuthorApiTest, SubmitExtrinsicFail) {
   EXPECT_CALL(*transaction_pool, submitExtrinsic(_, _))
-      .WillOnce(Return(outcome::failure(DummyError::ERROR)));
+      .WillOnce(Return(Q_ERROR(DummyError::ERROR)));
   EXPECT_OUTCOME_ERROR(
       res,
       author_api->submitExtrinsic(TransactionSource::External, *extrinsic),
@@ -367,7 +367,8 @@ TEST_F(AuthorApiTest, HasSessionKeysFailureNotFound) {
   Buffer keys;
   keys.resize(32 * 6);
   outcome::result<Ed25519Keypair> edOk = Ed25519Keypair{};
-  outcome::result<Sr25519Keypair> srErr = CryptoStoreError::KEY_NOT_FOUND;
+  outcome::result<Sr25519Keypair> srErr =
+      Q_ERROR(CryptoStoreError::KEY_NOT_FOUND);
   EXPECT_CALL(*store, findEd25519Keypair(_, _)).Times(1).WillOnce(Return(edOk));
   EXPECT_CALL(*store, findSr25519Keypair(_, _))
       .Times(1)

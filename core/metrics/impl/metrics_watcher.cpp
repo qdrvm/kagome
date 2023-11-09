@@ -69,9 +69,9 @@ namespace kagome::metrics {
 
     if (not fs::is_directory(storage_path_, ec)) {
       if (ec) {
-        return ec;
+        return Q_ERROR(ec);
       }
-      return std::errc::invalid_argument;
+      return Q_ERROR(std::errc::invalid_argument);
     }
 
     uintmax_t total_size = 0;

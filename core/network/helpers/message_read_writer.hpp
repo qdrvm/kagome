@@ -71,7 +71,7 @@ namespace kagome::network {
         const BufferContainer &src,
         BufferContainer::const_iterator from) {
       if (from == src.end()) {
-        return outcome::failure(std::errc::invalid_argument);
+        return Q_ERROR(std::errc::invalid_argument);
       }
 
       OUTCOME_TRY(it, AdapterType::read(out, src, from));
@@ -117,7 +117,7 @@ namespace kagome::network {
         const BufferContainer &src,
         BufferContainer::const_iterator from) {
       if (from == src.end()) {
-        return outcome::failure(std::errc::invalid_argument);
+        return Q_ERROR(std::errc::invalid_argument);
       }
 
       return AdapterType::read(out, src, from);

@@ -30,6 +30,7 @@ using kagome::primitives::BlockHash;
 using kagome::primitives::BlockHeader;
 using kagome::primitives::BlockNumber;
 using kagome::storage::BufferStorageMock;
+using kagome::storage::DatabaseError;
 using kagome::storage::Space;
 using kagome::storage::SpacedStorageMock;
 using kagome::storage::trie::RootHash;
@@ -149,12 +150,10 @@ TEST_F(BlockStorageTest, CreateWithExistingGenesis) {
 TEST_F(BlockStorageTest, CreateWithStorageError) {
   // check if storage contained genesis block
   EXPECT_CALL(*(spaces[Space::kLookupKey]), tryGetMock(_))
-      .WillOnce(Return(kagome::storage::DatabaseError::IO_ERROR));
+      .WillOnce(Return(Q_ERROR(DatabaseError::IO_ERROR)));
 
-  EXPECT_OUTCOME_ERROR(
-      res,
-      BlockStorageImpl::create(root_hash, spaced_storage, hasher),
-      kagome::storage::DatabaseError::IO_ERROR);
+  EXPECT_EC(BlockStorageImpl::create(root_hash, spaced_storage, hasher),
+            DatabaseError::IO_ERROR);
 }
 
 /**
@@ -190,10 +189,9 @@ TEST_F(BlockStorageTest, PutWithStorageError) {
   Buffer key{regular_block_hash};
 
   EXPECT_CALL(*(spaces[Space::kBlockBody]), put(key.view(), _))
-      .WillOnce(Return(kagome::storage::DatabaseError::IO_ERROR));
+      .WillOnce(Return(Q_ERROR(DatabaseError::IO_ERROR)));
 
-  ASSERT_OUTCOME_ERROR(block_storage->putBlock(block),
-                       kagome::storage::DatabaseError::IO_ERROR);
+  EXPECT_EC(block_storage->putBlock(block), DatabaseError::IO_ERROR);
 }
 
 /**

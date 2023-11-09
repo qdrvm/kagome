@@ -121,14 +121,14 @@ struct BlockTreeTest : public testing::Test {
             Invoke([&](const BlockNumber &n) -> outcome::result<BlockHash> {
               auto it = num_to_hash_.find(n);
               if (it == num_to_hash_.end()) {
-                return BlockTreeError::HEADER_NOT_FOUND;
+                return Q_ERROR(BlockTreeError::HEADER_NOT_FOUND);
               }
               return it->second;
             }));
 
     EXPECT_CALL(*header_repo_,
                 getBlockHeader({finalized_block_header_.parent_hash}))
-        .WillRepeatedly(Return(BlockTreeError::HEADER_NOT_FOUND));
+        .WillRepeatedly(Return(Q_ERROR(BlockTreeError::HEADER_NOT_FOUND)));
 
     EXPECT_CALL(*header_repo_, getBlockHeader(kFinalizedBlockInfo.hash))
         .WillRepeatedly(Return(finalized_block_header_));
@@ -459,7 +459,7 @@ TEST_F(BlockTreeTest, Finalize) {
   EXPECT_CALL(*storage_, getJustification(kFinalizedBlockInfo.hash))
       .WillRepeatedly(Return(outcome::success(justification)));
   EXPECT_CALL(*storage_, getJustification(hash))
-      .WillRepeatedly(Return(outcome::failure(boost::system::error_code{})));
+      .WillRepeatedly(Return(Q_ERROR(boost::system::error_code{})));
   EXPECT_CALL(*storage_, putJustification(justification, hash))
       .WillRepeatedly(Return(outcome::success()));
   EXPECT_CALL(*storage_, removeJustification(kFinalizedBlockInfo.hash))
@@ -517,7 +517,7 @@ TEST_F(BlockTreeTest, FinalizeWithPruning) {
   Justification justification{{0x45, 0xF4}};
   auto encoded_justification = scale::encode(justification).value();
   EXPECT_CALL(*storage_, getJustification(B1_hash))
-      .WillRepeatedly(Return(outcome::failure(boost::system::error_code{})));
+      .WillRepeatedly(Return(Q_ERROR(boost::system::error_code{})));
   EXPECT_CALL(*storage_, putJustification(justification, B1_hash))
       .WillRepeatedly(Return(outcome::success()));
   EXPECT_CALL(*storage_, getBlockHeader(B1_hash))
@@ -691,7 +691,7 @@ TEST_F(BlockTreeTest, GetChainByBlockDescending) {
       .WillRepeatedly(Return(0));
   EXPECT_CALL(*header_repo_, getNumberByHash(hash2)).WillRepeatedly(Return(2));
   EXPECT_CALL(*header_repo_, getBlockHeader({kFinalizedBlockInfo.hash}))
-      .WillOnce(Return(BlockTreeError::HEADER_NOT_FOUND));
+      .WillOnce(Return(Q_ERROR(BlockTreeError::HEADER_NOT_FOUND)));
 
   std::vector<BlockHash> expected_chain{hash2, hash1};
 
@@ -712,10 +712,11 @@ TEST_F(BlockTreeTest, GetChainByBlockDescending) {
 TEST_F(BlockTreeTest, GetBestChain_BlockNotFound) {
   BlockInfo target(1337, "TargetBlock#1337"_hash256);
   EXPECT_CALL(*header_repo_, getNumberByHash(target.hash))
-      .WillRepeatedly(Return(BlockTreeError::EXISTING_BLOCK_NOT_FOUND));
+      .WillRepeatedly(
+          Return(Q_ERROR(BlockTreeError::EXISTING_BLOCK_NOT_FOUND)));
 
-  ASSERT_OUTCOME_ERROR(block_tree_->getBestContaining(target.hash),
-                       BlockTreeError::EXISTING_BLOCK_NOT_FOUND);
+  EXPECT_EC(block_tree_->getBestContaining(target.hash),
+            BlockTreeError::EXISTING_BLOCK_NOT_FOUND);
 }
 
 /**
@@ -732,8 +733,8 @@ TEST_F(BlockTreeTest, GetBestChain_DiscardedBlock) {
   EXPECT_CALL(*header_repo_, getHashByNumber(target.number))
       .WillRepeatedly(Return(other.hash));
 
-  ASSERT_OUTCOME_ERROR(block_tree_->getBestContaining(target.hash),
-                       BlockTreeError::BLOCK_ON_DEAD_END);
+  EXPECT_EC(block_tree_->getBestContaining(target.hash),
+            BlockTreeError::BLOCK_ON_DEAD_END);
 }
 
 /**

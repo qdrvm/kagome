@@ -201,9 +201,7 @@ namespace kagome::network {
                     });
               });
 
-              if (stream_res
-                  == outcome::failure(
-                      std::make_error_code(std::errc::not_connected))) {
+              if (stream_res.error().ec(std::errc::not_connected)) {
                 self->reputation_repository_->changeForATime(
                     peer_id,
                     reputation::cost::UNEXPECTED_DISCONNECT,

@@ -62,11 +62,11 @@ namespace kagome::authorship {
       SL_DEBUG(logger_, "Adding inherent extrinsic: {}", xt.data);
       auto inserted_res = block_builder->pushExtrinsic(xt);
       if (not inserted_res) {
-        if (BlockBuilderError::EXHAUSTS_RESOURCES == inserted_res.error()) {
+        if (inserted_res.error().ec(BlockBuilderError::EXHAUSTS_RESOURCES)) {
           SL_WARN(logger_,
                   "Dropping non-mandatory inherent extrinsic from overweight "
                   "block.");
-        } else if (BlockBuilderError::BAD_MANDATORY == inserted_res.error()) {
+        } else if (inserted_res.error().ec(BlockBuilderError::BAD_MANDATORY)) {
           SL_ERROR(logger_,
                    "Mandatory inherent extrinsic returned error. Block cannot "
                    "be produced.");
@@ -137,7 +137,7 @@ namespace kagome::authorship {
       SL_DEBUG(logger_, "Adding extrinsic: {}", tx->ext.data);
       auto inserted_res = block_builder->pushExtrinsic(tx->ext);
       if (not inserted_res) {
-        if (BlockBuilderError::EXHAUSTS_RESOURCES == inserted_res.error()) {
+        if (inserted_res.error().ec(BlockBuilderError::EXHAUSTS_RESOURCES)) {
           if (skipped < kMaxSkippedTransactions) {
             ++skipped;
             SL_DEBUG(logger_,

@@ -29,7 +29,7 @@ namespace kagome::storage::trie {
       RawCursor<Empty> cursor;
       auto push = [&]() mutable -> outcome::result<void> {
         if (proof_i >= proof.size()) {
-          return CompactDecodeError::INCOMPLETE_PROOF;
+          return Q_ERROR(CompactDecodeError::INCOMPLETE_PROOF);
         }
         common::BufferView raw{proof[proof_i]};
         ++proof_i;
@@ -37,7 +37,7 @@ namespace kagome::storage::trie {
         if (compact) {
           raw = raw.subspan(1);
           if (proof_i >= proof.size()) {
-            return CompactDecodeError::INCOMPLETE_PROOF;
+            return Q_ERROR(CompactDecodeError::INCOMPLETE_PROOF);
           }
         }
         OUTCOME_TRY(node, codec.decodeNode(raw));

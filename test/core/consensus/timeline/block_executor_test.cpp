@@ -214,8 +214,8 @@ TEST_F(BlockExecutorTest, JustificationFollowDigests) {
       .body = kagome::primitives::BlockBody{},
       .justification = justification};
   EXPECT_CALL(*block_tree_, getBlockBody(some_hash))
-      .WillOnce(
-          testing::Return(kagome::blockchain::BlockTreeError::BODY_NOT_FOUND));
+      .WillOnce(testing::Return(
+          Q_ERROR(kagome::blockchain::BlockTreeError::BODY_NOT_FOUND)));
 
   babe_config_->leadership_rate.second = 42;
   EXPECT_CALL(*block_validator_,

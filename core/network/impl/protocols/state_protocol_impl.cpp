@@ -52,7 +52,7 @@ namespace kagome::network {
             auto &&stream_res) mutable {
           auto self = wp.lock();
           if (not self) {
-            cb(ProtocolError::GONE);
+            cb(Q_ERROR(ProtocolError::GONE));
             return;
           }
 
@@ -172,7 +172,7 @@ namespace kagome::network {
           auto self = wp.lock();
           if (not self) {
             stream->reset();
-            response_handler(ProtocolError::GONE);
+            response_handler(Q_ERROR(ProtocolError::GONE));
             return;
           }
 
@@ -191,7 +191,7 @@ namespace kagome::network {
                 auto self = wp.lock();
                 if (not self) {
                   stream->reset();
-                  response_handler(ProtocolError::GONE);
+                  response_handler(Q_ERROR(ProtocolError::GONE));
                   return;
                 }
 
@@ -257,7 +257,7 @@ namespace kagome::network {
           auto self = wp.lock();
           if (not self) {
             stream->reset();
-            cb(ProtocolError::GONE);
+            cb(Q_ERROR(ProtocolError::GONE));
             return;
           }
 
@@ -301,7 +301,7 @@ namespace kagome::network {
       auto self = wp.lock();
       if (not self) {
         stream->reset();
-        response_handler(ProtocolError::GONE);
+        response_handler(Q_ERROR(ProtocolError::GONE));
         return;
       }
 

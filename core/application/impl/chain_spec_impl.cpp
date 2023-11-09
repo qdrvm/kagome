@@ -60,7 +60,7 @@ namespace kagome::application {
     } catch (pt::json_parser_error &e) {
       log_->error(
           "Parser error: {}, line {}: {}", e.filename(), e.line(), e.message());
-      return Error::PARSER_ERROR;
+      return Q_ERROR(Error::PARSER_ERROR);
     }
 
     OUTCOME_TRY(loadFields(tree));
@@ -195,7 +195,7 @@ namespace kagome::application {
                                  block_id_str.data() + block_id_str.size(),
                                  block_num);
       if (res.ec != std::errc()) {
-        return Error::PARSER_ERROR;
+        return Q_ERROR(Error::PARSER_ERROR);
       }
       block_id = block_num;
     }
@@ -205,7 +205,7 @@ namespace kagome::application {
   outcome::result<common::Buffer> ChainSpecImpl::fetchCodeSubstituteByBlockInfo(
       const primitives::BlockInfo &block_info) const {
     if (!known_code_substitutes_->contains(block_info)) {
-      return Error::MISSING_ENTRY;
+      return Q_ERROR(Error::MISSING_ENTRY);
     }
 
     pt::ptree tree;
@@ -214,7 +214,7 @@ namespace kagome::application {
     } catch (pt::json_parser_error &e) {
       log_->error(
           "Parser error: {}, line {}: {}", e.filename(), e.line(), e.message());
-      return Error::PARSER_ERROR;
+      return Q_ERROR(Error::PARSER_ERROR);
     }
 
     auto code_substitutes_opt = tree.get_child_optional("codeSubstitutes");
@@ -234,7 +234,7 @@ namespace kagome::application {
         }
       }
     }
-    return Error::MISSING_ENTRY;
+    return Q_ERROR(Error::MISSING_ENTRY);
   }
 
   outcome::result<void> ChainSpecImpl::loadGenesis(
@@ -293,7 +293,7 @@ namespace kagome::application {
           OUTCOME_TRY(libp2p::peer::PeerId::fromBase58(peer_id_base58.value()));
           boot_nodes_.emplace_back(std::move(multiaddr));
         } else {
-          return Error::MISSING_PEER_ID;
+          return Q_ERROR(Error::MISSING_PEER_ID);
         }
       } else {
         log_->warn("Unsupported multiaddress '{}'. Ignoring that boot node",

@@ -131,12 +131,12 @@ namespace kagome::consensus::grandpa {
             GrandpaIndexedValue value;
             if (digests.forced) {
               if (not prev) {
-                return AuthorityManagerError::PREVIOUS_NOT_FOUND;
+                return Q_ERROR(AuthorityManagerError::PREVIOUS_NOT_FOUND);
               }
               while (true) {
                 auto r = indexer_.get(*prev);
                 if (not r or not r->value) {
-                  return AuthorityManagerError::PREVIOUS_NOT_FOUND;
+                  return Q_ERROR(AuthorityManagerError::PREVIOUS_NOT_FOUND);
                 }
                 if (prev->number <= digests.forced->delay_start
                     or r->value->forced_target or r->value->state
@@ -147,7 +147,7 @@ namespace kagome::consensus::grandpa {
                   break;
                 }
                 if (not r->prev) {
-                  return AuthorityManagerError::PREVIOUS_NOT_FOUND;
+                  return Q_ERROR(AuthorityManagerError::PREVIOUS_NOT_FOUND);
                 }
                 prev = r->prev;
               }
@@ -173,7 +173,7 @@ namespace kagome::consensus::grandpa {
     auto r = indexer_.search(descent, block, cb);
     OUTCOME_TRY(cb_res);
     if (not r) {
-      return AuthorityManagerError::NOT_FOUND;
+      return Q_ERROR(AuthorityManagerError::NOT_FOUND);
     }
     if (r->second.value->state) {
       return *r->second.value->state;
@@ -219,11 +219,11 @@ namespace kagome::consensus::grandpa {
   AuthorityManagerImpl::loadPrev(
       const std::optional<primitives::BlockInfo> &prev) const {
     if (not prev) {
-      return AuthorityManagerError::PREVIOUS_NOT_FOUND;
+      return Q_ERROR(AuthorityManagerError::PREVIOUS_NOT_FOUND);
     }
     auto r = indexer_.get(*prev);
     if (not r or not r->value) {
-      return AuthorityManagerError::PREVIOUS_NOT_FOUND;
+      return Q_ERROR(AuthorityManagerError::PREVIOUS_NOT_FOUND);
     }
     OUTCOME_TRY(load(*prev, *r));
     return *r->value->next;

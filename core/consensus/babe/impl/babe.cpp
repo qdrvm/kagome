@@ -187,7 +187,7 @@ namespace kagome::consensus::babe {
                    "Authority not known, skipping slot processing. "
                    "Probably authority list has changed.");
       }
-      return BlockProductionError::NO_VALIDATOR;
+      return Q_ERROR(BlockProductionError::NO_VALIDATOR);
     }
 
     Context ctx{.parent = best_block,
@@ -261,7 +261,7 @@ namespace kagome::consensus::babe {
              "Babe author {} is not slot leader in current slot",
              ctx.keypair->public_key);
 
-    return BlockProductionError::NO_SLOT_LEADER;
+    return Q_ERROR(BlockProductionError::NO_SLOT_LEADER);
   }
 
   outcome::result<primitives::PreRuntime> Babe::babePreDigest(
@@ -280,7 +280,7 @@ namespace kagome::consensus::babe {
         SL_ERROR(
             log_,
             "VRF proof is required to build block header but was not passed");
-        return BabeError::MISSING_PROOF;
+        return Q_ERROR(BabeError::MISSING_PROOF);
       }
       babe_header.vrf_output = output.value();
     }
@@ -337,7 +337,7 @@ namespace kagome::consensus::babe {
       SL_INFO(log_,
               "Backing off claiming new slot for block authorship: finality is "
               "lagging.");
-      return BlockProductionError::BACKING_OFF;
+      return Q_ERROR(BlockProductionError::BACKING_OFF);
     }
 
     BOOST_ASSERT(ctx.keypair != nullptr);
@@ -362,13 +362,13 @@ namespace kagome::consensus::babe {
     if (auto res = inherent_data.putData<uint64_t>(kTimestampId, now);
         res.has_error()) {
       SL_ERROR(log_, "cannot put an inherent data: {}", res.error());
-      return BabeError::CAN_NOT_PREPARE_BLOCK;
+      return Q_ERROR(BabeError::CAN_NOT_PREPARE_BLOCK);
     }
 
     if (auto res = inherent_data.putData(kBabeSlotId, ctx.slot);
         res.has_error()) {
       SL_ERROR(log_, "cannot put an inherent data: {}", res.error());
-      return BabeError::CAN_NOT_PREPARE_BLOCK;
+      return Q_ERROR(BabeError::CAN_NOT_PREPARE_BLOCK);
     }
 
     parachain::ParachainInherentData parachain_inherent_data;
@@ -401,7 +401,7 @@ namespace kagome::consensus::babe {
     if (auto res = inherent_data.putData(kParachainId, parachain_inherent_data);
         res.has_error()) {
       SL_ERROR(log_, "cannot put an inherent data: {}", res.error());
-      return BabeError::CAN_NOT_PREPARE_BLOCK;
+      return Q_ERROR(BabeError::CAN_NOT_PREPARE_BLOCK);
     }
 
     auto proposal_start = std::chrono::steady_clock::now();
@@ -410,7 +410,7 @@ namespace kagome::consensus::babe {
         babePreDigest(ctx, slot_type, output, authority_index);
     if (not babe_pre_digest_res) {
       SL_ERROR(log_, "cannot propose a block: {}", babe_pre_digest_res.error());
-      return BabeError::CAN_NOT_PREPARE_BLOCK;
+      return Q_ERROR(BabeError::CAN_NOT_PREPARE_BLOCK);
     }
     const auto &babe_pre_digest = babe_pre_digest_res.value();
 
@@ -490,7 +490,7 @@ namespace kagome::consensus::babe {
     auto seal_res = sealBlock(ctx, block);
     if (!seal_res) {
       SL_ERROR(log_, "Failed to seal the block: {}", seal_res.error());
-      return BabeError::CAN_NOT_SEAL_BLOCK;
+      return Q_ERROR(BabeError::CAN_NOT_SEAL_BLOCK);
     }
 
     // add seal digest item
@@ -507,7 +507,7 @@ namespace kagome::consensus::babe {
               "If you are executing in debug mode, consider to rebuild in "
               "release",
               kMaxBlockSlotsOvertime);
-      return BabeError::WAS_NOT_BUILD_ON_TIME;
+      return Q_ERROR(BabeError::WAS_NOT_BUILD_ON_TIME);
     }
 
     const auto block_info = block.header.blockInfo();
@@ -517,7 +517,7 @@ namespace kagome::consensus::babe {
     // add block to the block tree
     if (auto add_res = block_tree_->addBlock(block); not add_res) {
       SL_ERROR(log_, "Could not add block {}: {}", block_info, add_res.error());
-      return BabeError::CAN_NOT_SAVE_BLOCK;
+      return Q_ERROR(BabeError::CAN_NOT_SAVE_BLOCK);
     }
 
     changes_tracker->onBlockAdded(

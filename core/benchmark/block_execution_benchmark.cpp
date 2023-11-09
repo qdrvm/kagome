@@ -28,41 +28,24 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::benchmark,
   return "Unknown BlockExecutionBenchmark error";
 }
 
-#define STR_SIMPLE(a) #a
-#define STR(a) STR_SIMPLE(a)
-#define CONCAT_SIMPLE(a, b) a##b
-#define CONCAT(a, b) CONCAT_SIMPLE(a, b)
-
-static_assert(STR(CONCAT(2, 3)) == std::string_view("23"));
-
-// mind if you want to move it to global scope, __LINE__ is not very reliable,
-// may use __COUNTER__ instead
-#define OUTCOME_TRY_MSG(var, expr, msg, ...)              \
-  auto CONCAT(_res_, __LINE__) = (expr);                  \
-  do {                                                    \
-    if (CONCAT(_res_, __LINE__).has_error()) {            \
-      SL_ERROR(logger_,                                   \
-               "Failure on {}: {} ({})",                  \
-               #expr,                                     \
-               CONCAT(_res_, __LINE__).error().message(), \
-               fmt::format(msg, __VA_ARGS__));            \
-      return CONCAT(_res_, __LINE__).as_failure();        \
-    }                                                     \
-  } while (false);                                        \
-  auto var = std::move(CONCAT(_res_, __LINE__).value());
-
-#define OUTCOME_TRY_MSG_VOID(expr, msg, ...)              \
-  do {                                                    \
-    auto CONCAT(_res_, __LINE__) = (expr);                \
-    if (CONCAT(_res_, __LINE__).has_error()) {            \
-      SL_ERROR(logger_,                                   \
-               "Failure on {}: {} ({})",                  \
-               #expr,                                     \
-               CONCAT(_res_, __LINE__).error().message(), \
-               fmt::format(msg, __VA_ARGS__));            \
-      return CONCAT(_res_, __LINE__).as_failure();        \
-    }                                                     \
-  } while (false);
+#define _OUTCOME_TRY_CB(expr, ...)      \
+  [&](qtils::Errors errors) {           \
+    SL_ERROR(logger_,                   \
+             "Failure on {}: {} ({})",  \
+             #expr,                     \
+             errors,                    \
+             fmt::format(__VA_ARGS__)); \
+    return errors;                      \
+  }
+#define _OUTCOME_TRY_MSG_void(tmp, expr, ...) \
+  _Q_TRY_void(tmp, (_OUTCOME_TRY_CB(expr, __VA_ARGS__)), expr, Q_ERROR(nullptr))
+#define _OUTCOME_TRY_MSG_out(tmp, out, expr, ...) \
+  _OUTCOME_TRY_MSG_void(tmp, expr, __VA_ARGS__);  \
+  auto out = std::move(tmp).value();
+#define OUTCOME_TRY_MSG(out, expr, ...) \
+  _OUTCOME_TRY_MSG_out(OUTCOME_UNIQUE, out, expr, __VA_ARGS__)
+#define OUTCOME_TRY_MSG_VOID(expr, ...) \
+  _OUTCOME_TRY_MSG_void(OUTCOME_UNIQUE, expr, __VA_ARGS__)
 
 namespace kagome::benchmark {
 
@@ -209,10 +192,12 @@ namespace kagome::benchmark {
     try {
       stream >> block_weight;
     } catch (std::exception &e) {
-      return BlockExecutionBenchmark::Error::BLOCK_WEIGHT_DECODE_FAILED;
+      return Q_ERROR(
+          BlockExecutionBenchmark::Error::BLOCK_WEIGHT_DECODE_FAILED);
     }
     if (stream.hasMore(1)) {
-      return BlockExecutionBenchmark::Error::BLOCK_WEIGHT_DECODE_FAILED;
+      return Q_ERROR(
+          BlockExecutionBenchmark::Error::BLOCK_WEIGHT_DECODE_FAILED);
     }
 
     return std::chrono::nanoseconds{static_cast<long long>(std::floor(
@@ -227,7 +212,7 @@ namespace kagome::benchmark {
                     config.start);
     if (!current_hash) {
       SL_ERROR(logger_, "Start block {} is not found!", config.start);
-      return Error::BLOCK_NOT_FOUND;
+      return Q_ERROR(Error::BLOCK_NOT_FOUND);
     }
 
     primitives::BlockInfo current_block_info = {config.start, *current_hash};
@@ -257,7 +242,7 @@ namespace kagome::benchmark {
         SL_ERROR(logger_,
                  "Next block {} is not found!",
                  current_block_info.number + 1);
-        return Error::BLOCK_NOT_FOUND;
+        return Q_ERROR(Error::BLOCK_NOT_FOUND);
       }
       current_block_info.hash = *next_hash;
     }

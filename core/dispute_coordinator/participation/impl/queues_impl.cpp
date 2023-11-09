@@ -46,8 +46,7 @@ namespace kagome::dispute {
     std::optional<primitives::BlockNumber> block_number_opt{};
     if (block_number_res.has_value()) {
       block_number_opt = block_number_res.value();
-    } else if (block_number_res
-               != outcome::failure(
+    } else if (not block_number_res.error().ec(
                    blockchain::BlockTreeError::HEADER_NOT_FOUND)) {
       return block_number_res.as_failure();
     } else {
@@ -62,7 +61,7 @@ namespace kagome::dispute {
 
     if (priority == ParticipationPriority::Priority) {
       if (priority_.size() >= kPriorityQueueSize) {
-        return QueueError::PriorityFull;
+        return Q_ERROR(QueueError::PriorityFull);
       }
       // Remove any best effort entry:
       best_effort_.erase(comparator);
@@ -76,7 +75,7 @@ namespace kagome::dispute {
       }
 
       if (best_effort_.size() >= kBestEffortQueueSize) {
-        return QueueError::BestEffortFull;
+        return Q_ERROR(QueueError::BestEffortFull);
       }
 
       best_effort_.emplace(comparator, request);
@@ -110,8 +109,7 @@ namespace kagome::dispute {
     std::optional<primitives::BlockNumber> block_number_opt{};
     if (block_number_res.has_value()) {
       block_number_opt = block_number_res.value();
-    } else if (block_number_res
-               != outcome::failure(
+    } else if (not block_number_res.error().ec(
                    blockchain::BlockTreeError::HEADER_NOT_FOUND)) {
       return block_number_res.as_failure();
     } else {
@@ -125,7 +123,7 @@ namespace kagome::dispute {
         .candidate_hash = candidate_hash};
 
     if (priority_.size() >= kPriorityQueueSize) {
-      return QueueError::PriorityFull;
+      return Q_ERROR(QueueError::PriorityFull);
     }
 
     if (auto it = best_effort_.find(comparator); it != best_effort_.end()) {

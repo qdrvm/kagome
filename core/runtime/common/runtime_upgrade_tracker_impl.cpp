@@ -183,7 +183,7 @@ namespace kagome::runtime {
     if (it != runtime_upgrades_.end()) {
       return it->block;
     }
-    return outcome::failure(RuntimeUpgradeTrackerError::NOT_FOUND);
+    return Q_ERROR(RuntimeUpgradeTrackerError::NOT_FOUND);
   }
 
   void RuntimeUpgradeTrackerImpl::subscribeToBlockchainEvents(

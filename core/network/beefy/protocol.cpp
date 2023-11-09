@@ -33,7 +33,7 @@ namespace kagome::network {
     if (opt) {
       return outcome::success(std::move(*opt));
     }
-    return outcome::failure(ProtocolError::NO_RESPONSE);
+    return Q_ERROR(ProtocolError::NO_RESPONSE);
   }
 
   BeefyProtocol::BeefyProtocol(libp2p::Host &host,

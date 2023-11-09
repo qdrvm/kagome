@@ -71,9 +71,10 @@ namespace kagome::consensus {
     auto block_info = block.header.blockInfo();
     if (auto header_res = block_tree_->getBlockHeader(block.header.parent_hash);
         header_res.has_error()
-        && header_res.error() == blockchain::BlockTreeError::HEADER_NOT_FOUND) {
+        && header_res.error().ec(
+            blockchain::BlockTreeError::HEADER_NOT_FOUND)) {
       logger_->warn("Skipping a block {} with unknown parent", block_info);
-      callback(BlockAdditionError::PARENT_NOT_FOUND);
+      callback(Q_ERROR(BlockAdditionError::PARENT_NOT_FOUND));
       return;
     } else if (header_res.has_error()) {
       callback(header_res.as_failure());
@@ -97,7 +98,8 @@ namespace kagome::consensus {
         return;
       }
       block_was_applied_earlier = true;
-    } else if (body_res.error() != blockchain::BlockTreeError::BODY_NOT_FOUND) {
+    } else if (not body_res.error().ec(
+                   blockchain::BlockTreeError::BODY_NOT_FOUND)) {
       callback(body_res.as_failure());
       return;
     }
@@ -222,10 +224,8 @@ namespace kagome::consensus {
                      extrinsic_hash);
             auto res = self->tx_pool_->removeOne(extrinsic_hash);
             if (res.has_error()
-                && res
-                       != outcome::failure(
-                           transaction_pool::TransactionPoolError::
-                               TX_NOT_FOUND)) {
+                && not res.error().ec(
+                    transaction_pool::TransactionPoolError::TX_NOT_FOUND)) {
               callback(res.as_failure());
               return;
             }

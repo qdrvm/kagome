@@ -171,7 +171,7 @@ namespace kagome::consensus::grandpa {
     }
 
     outcome::result<primitives::BlockInfo> best_undisputed_block_res{
-        std::errc::state_not_recoverable};
+        Q_ERROR(std::errc::state_not_recoverable)};
 
     std::latch latch(1);
     dispute_coordinator_->determineUndisputedChain(
@@ -389,7 +389,7 @@ namespace kagome::consensus::grandpa {
     auto &&justification = std::move(res.value());
 
     if (justification.block_info != block_info) {
-      cb(VotingRoundError::JUSTIFICATION_FOR_WRONG_BLOCK);
+      cb(Q_ERROR(VotingRoundError::JUSTIFICATION_FOR_WRONG_BLOCK));
       return;
     }
 

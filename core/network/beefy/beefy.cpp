@@ -224,7 +224,7 @@ namespace kagome::network {
       primitives::BlockNumber max, primitives::BlockNumber min) const {
     OUTCOME_TRY(opt, block_tree_->getBlockHash(max));
     if (not opt) {
-      return blockchain::BlockTreeError::HEADER_NOT_FOUND;
+      return Q_ERROR(blockchain::BlockTreeError::HEADER_NOT_FOUND);
     }
     primitives::BlockInfo info{max, *opt};
     while (true) {
@@ -232,7 +232,8 @@ namespace kagome::network {
         // bug: beefy pallet doesn't produce digest with first validators
         OUTCOME_TRY(validators, beefy_api_->validatorSet(info.hash));
         if (not validators) {
-          return runtime::RuntimeTransactionError::EXPORT_FUNCTION_NOT_FOUND;
+          return Q_ERROR(
+              runtime::RuntimeTransactionError::EXPORT_FUNCTION_NOT_FOUND);
         }
         return std::make_pair(info.number, std::move(*validators));
       }

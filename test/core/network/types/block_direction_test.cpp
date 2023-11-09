@@ -31,13 +31,11 @@ struct DirectionTest : public ::testing::TestWithParam<DirectionTestParam> {};
  */
 TEST_P(DirectionTest, DecodeDirection) {
   auto [encoded_value, should_fail, value] = GetParam();
+  auto r = decode<Direction>(encoded_value);
   if (should_fail) {
-    EXPECT_OUTCOME_FALSE(err, decode<Direction>(encoded_value));
-    ASSERT_EQ(err.value(),
-              static_cast<int>(scale::DecodeError::INVALID_ENUM_VALUE));
+    EXPECT_EC(r, scale::DecodeError::INVALID_ENUM_VALUE);
   } else {
-    EXPECT_OUTCOME_TRUE(val, decode<Direction>(encoded_value));
-    ASSERT_EQ(val, value);
+    ASSERT_EQ(r.value(), value);
   }
 }
 

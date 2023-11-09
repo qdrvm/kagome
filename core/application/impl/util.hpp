@@ -6,6 +6,8 @@
 
 #pragma once
 
+#include <qtils/enum_error_code.hpp>
+
 #include "filesystem/common.hpp"
 #include "outcome/outcome.hpp"
 

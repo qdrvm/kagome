@@ -293,10 +293,10 @@ namespace kagome::parachain {
 
   outcome::result<void> ParachainProcessorImpl::canProcessParachains() const {
     if (!isValidatingNode()) {
-      return Error::NOT_A_VALIDATOR;
+      return Q_ERROR(Error::NOT_A_VALIDATOR);
     }
     if (!babe_status_observer_->get()) {
-      return Error::NOT_SYNCHRONIZED;
+      return Q_ERROR(Error::NOT_SYNCHRONIZED);
     }
     return outcome::success();
   }
@@ -322,7 +322,7 @@ namespace kagome::parachain {
 
     if (!validator) {
       SL_TRACE(logger_, "Not a validator, or no para keys.");
-      return Error::KEY_NOT_PRESENT;
+      return Q_ERROR(Error::KEY_NOT_PRESENT);
     }
     is_parachain_validator = true;
 
@@ -380,11 +380,11 @@ namespace kagome::parachain {
     auto rps_result = initNewBackingTask(relay_parent);
     if (rps_result.has_value()) {
       storeStateByRelayParent(relay_parent, std::move(rps_result.value()));
-    } else if (rps_result.error() != Error::KEY_NOT_PRESENT) {
+    } else if (not rps_result.error().ec(Error::KEY_NOT_PRESENT)) {
       logger_->error(
           "Relay parent state was not created. (relay parent={}, error={})",
           relay_parent,
-          rps_result.error().message());
+          rps_result.error());
     }
   }
 
@@ -616,7 +616,7 @@ namespace kagome::parachain {
               if (!pov_response_result) {
                 self->logger_->warn("Request PoV on relay_parent {} failed {}",
                                     relay_parent,
-                                    pov_response_result.error().message());
+                                    pov_response_result.error());
                 return;
               }
 
@@ -697,13 +697,13 @@ namespace kagome::parachain {
                                                        n_validators);
                     result.has_error()) {
                   self->logger_->warn("Validation task failed.(error={})",
-                                      result.error().message());
+                                      result.error());
                   return result.as_failure();
                 } else {
                   return result;
                 }
               }
-              return Error::NO_INSTANCE;
+              return Q_ERROR(Error::NO_INSTANCE);
             })),
         this_context_->wrap(
             asAsync([wself{weak_from_this()}, peer_id, candidate_hash](
@@ -716,7 +716,7 @@ namespace kagome::parachain {
                   self->logger_->warn(
                       "After validation no parachain state on relay_parent {}",
                       validate_and_second_result.relay_parent);
-                  return Error::OUT_OF_VIEW;
+                  return Q_ERROR(Error::OUT_OF_VIEW);
                 }
 
                 self->logger_->info(
@@ -734,7 +734,7 @@ namespace kagome::parachain {
                 }
                 return outcome::success();
               }
-              return Error::NO_INSTANCE;
+              return Q_ERROR(Error::NO_INSTANCE);
             })));
   }
 
@@ -1083,7 +1083,7 @@ namespace kagome::parachain {
     if (sign_result.has_error()) {
       logger_->error(
           "Unable to sign Commited Candidate Receipt. Failed with error: {}",
-          sign_result.error().message());
+          sign_result.error());
       return std::nullopt;
     }
 
@@ -1283,11 +1283,11 @@ namespace kagome::parachain {
 
     auto rps = our_current_state_.state_by_relay_parent.find(relay_parent);
     if (rps == our_current_state_.state_by_relay_parent.end()) {
-      return Error::OUT_OF_VIEW;
+      return Q_ERROR(Error::OUT_OF_VIEW);
     }
 
     if (rps->second.peers_advertised.count(peer_id) != 0ull) {
-      return Error::DUPLICATE;
+      return Q_ERROR(Error::DUPLICATE);
     }
 
     rps->second.peers_advertised.insert(peer_id);
@@ -1448,7 +1448,7 @@ namespace kagome::parachain {
                relay_parent,
                candidate.descriptor.para_id,
                candidate_hash);
-      return Error::VALIDATION_FAILED;
+      return Q_ERROR(Error::VALIDATION_FAILED);
     }
 
     auto validation_result = validateCandidate(candidate, pov, relay_parent);
@@ -1459,8 +1459,8 @@ namespace kagome::parachain {
           candidate_hash,
           candidate.descriptor.relay_parent,
           candidate.descriptor.para_id,
-          validation_result.error().message());
-      return Error::VALIDATION_FAILED;
+          validation_result.error());
+      return Q_ERROR(Error::VALIDATION_FAILED);
     }
 
     need_to_process = our_current_state_.active_leaves.sharedAccess(
@@ -1476,7 +1476,7 @@ namespace kagome::parachain {
                relay_parent,
                candidate.descriptor.para_id,
                candidate_hash);
-      return Error::VALIDATION_FAILED;
+      return Q_ERROR(Error::VALIDATION_FAILED);
     }
 
     auto &[comms, data] = validation_result.value();
