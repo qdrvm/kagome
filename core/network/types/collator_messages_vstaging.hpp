@@ -65,7 +65,7 @@ namespace kagome::network::vstaging {
 
   using CompactStatement =
       boost::variant<Empty, SecondedCandidateHash, ValidCandidateHash>;
-  const CandidateHash &candidateHash(const CompactStatement &val) {
+  inline const CandidateHash &candidateHash(const CompactStatement &val) {
     auto p = visit_in_place(val,
       [&](const auto &v) -> std::optional<std::reference_wrapper<const CandidateHash>> {
         return {{v.hash}};
@@ -90,10 +90,17 @@ namespace kagome::network::vstaging {
 
   struct StatementFilter {
     SCALE_TIE(2);
+
     /// Seconded statements. '1' is known or undesired.
     scale::BitVec seconded_in_group;
     /// Valid statements. '1' is known or undesired.
     scale::BitVec validated_in_group;
+
+    StatementFilter() = default;
+    StatementFilter(size_t len) {
+        seconded_in_group.bits.assign(len, false);
+        validated_in_group.bits.assign(len, false);
+    }
   };
 
   struct BackedCandidateManifest {

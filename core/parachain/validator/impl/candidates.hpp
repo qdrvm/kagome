@@ -134,6 +134,22 @@ namespace kagome::parachain {
         std::unordered_map<ParachainId, std::unordered_set<CandidateHash>>>
         by_parent;
 
+    bool is_confirmed(const CandidateHash &candidate_hash) const {
+      auto it = candidates.find(candidate_hash);
+      if (it != candidates.end()) {
+        return is_type<const ConfirmedCandidate>(it->second);
+      }
+      return false;
+    }
+
+    std::optional<std::reference_wrapper<const ConfirmedCandidate>> get_confirmed(const CandidateHash &candidate_hash) const {
+      auto it = candidates.find(candidate_hash);
+      if (it != candidates.end()) {
+        return if_type<const ConfirmedCandidate>(it->second);
+      }
+      return std::nullopt;
+    }
+
     bool insert_unconfirmed(const libp2p::peer::PeerId &peer,
                             const CandidateHash &candidate_hash,
                             const Hash &claimed_relay_parent,

@@ -612,15 +612,133 @@ namespace kagome::parachain {
       auto parachain_state =
           tryGetStateByRelayParent(stm->get().relay_parent);
       if (!parachain_state) {
-        self->logger_->warn(
-            "After request pov no parachain state on relay_parent {}",
-            relay_parent);
+        SL_WARN(logger_,
+            "After request pov no parachain state on relay_parent. (relay parent={})",
+            stm->get().relay_parent);
         return;
       }
 
-      return
+      auto opt_session_info = retrieveSessionInfo(stm->get().relay_parent);
+      if (!opt_session_info) {
+        SL_WARN(logger_,
+            "No session info for current parrent. (relay parent={})",
+            stm->get().relay_parent);
+        return;
+      }
+
+      std::optional<GroupIndex> originator_group = [&]() -> std::optional<GroupIndex> {
+        for (GroupIndex g = 0; g < opt_session_info->validator_groups.size(); ++g) {
+          const auto &group = opt_session_info->validator_groups[g];
+          for (const auto &v : group) {
+            if (v == stm->get().compact.payload.ix) {
+              return g;
+            }
+          }
+        }
+        return std::nullopt;
+      }();
+      if (!originator_group) {
+        SL_TRACE(logger_,
+            "No correct validator index in statement. (relay parent={}, validator={})",
+            stm->get().relay_parent, stm->get().compact.payload.ix);
+        return;
+      }
+
+      const auto &candidate_hash = candidateHash(getPayload(stm->get().compact));
+      const bool res = candidates_.insert_unconfirmed(
+        peer_id,
+        candidate_hash,
+        stm->get().relay_parent,
+        *originator_group,
+        std::nullopt
+      );
+      if (!res) {
+        return;
+      }
+
+      const auto confirmed = candidates_.get_confirmed(candidate_hash);
+      const auto is_confirmed = candidates_.is_confirmed(candidate_hash);
+      const auto &group = opt_session_info->validator_groups[*originator_group];
+
+      if (!is_confirmed) {
+        network::vstaging::StatementFilter unwanted_mask{group.size()};
+
+        if (!parachain_state->get().statement_store) {
+          SL_ERROR(logger_, "Statement store is not initialized.");
+          return;
+        }
+        if (!parachain_state->get().prospective_parachains_mode) {
+          SL_ERROR(logger_, "No prospective parachains.");
+          return;
+        }
+
+        const auto seconding_limit = parachain_state->get().prospective_parachains_mode->max_candidate_depth + 1;
+        for (size_t i = 0; i < group.size(); ++i) {
+          const auto &v = group[i];
+          if (parachain_state->get().statement_store->seconded_count(v) >= seconding_limit) {
+            unwanted_mask.seconded_in_group.bits[i] = true;
+          }
+        }
+
+        router_->getFetchAttestedCandidateProtocol()->doRequest(
+            peer_id,
+            network::vstaging::AttestedCandidateRequest {
+              .candidate_hash = candidate_hash,
+              .mask = std::move(unwanted_mask),
+            },
+            [wptr{weak_from_this()}](outcome::result<network::vstaging::AttestedCandidateResponse> r) {
+              if (auto self = wptr.lock()) {
+                return;
+              }
+              /// TODO(iceseer): do
+              //self->back(candidate_hash, std::move(r));
+            });
+      }
+
+      /// TODO(iceseer): do
+      /// check statement signature
+
+      Groups groups{opt_session_info->validator_groups};
+      const auto was_fresh_opt = parachain_state->get().statement_store.insert(groups,
+        stm->get().compact, StatementOrigin::Remote);
+      if (!was_fresh_opt) {
+          SL_WARN(logger_, "Accepted message from unknown validator. (relay parent={}, validator={})",
+            stm->get().relay_parent, stm->get().compact.payload.ix);
+          return;
+        }
+
+      if (!*was_fresh_opt) {
+          SL_TRACE(logger_, "Statement was not fresh. (relay parent={}, validator={})",
+            stm->get().relay_parent, stm->get().compact.payload.ix);
+        return;
+      }
+
+      const auto is_importable = candidates_.is_importable(candidate_hash);
+      if (is_importable && confirmed) {
+        send_backing_fresh_statement(group);
+      }
+
+      /// TODO(iceseer): do
+      /// send compact statement Versioned::VStaging(protocol_vstaging::StatementDistributionMessage::Statement
+
+      return;
     }
 
+  }
+
+  void ParachainProcessorImpl::send_backing_fresh_statement(ParachainProcessorImpl::RelayParentState& per_relay_parent, const std::vector<ValidatorIndex> &group, const CandidateHash &candidate_hash) {
+    if (!per_relay_parent.statement_store) {
+      return;
+    }
+
+    std::vector<std::pair<ValidatorIndex, network::vstaging::CompactStatement>> imported;
+    relay_parent_state.statement_store->fresh_statements_for_backing(group_validators, candidate_hash, [&](const IndexedAndSigned<network::vstaging::CompactStatement> &statement) {
+      const auto &v = statement.payload.ix;
+      const auto &compact = getPayload(statement);
+      imported.emplace_back(v, compact);
+
+      
+    });
   }
 
   void ParachainProcessorImpl::process_legacy_statement(

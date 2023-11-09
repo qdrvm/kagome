@@ -273,6 +273,7 @@ namespace kagome::parachain {
     void process_vstaging_statement(
         const libp2p::peer::PeerId &peer_id,
         const network::vstaging::StatementDistributionMessage &msg);
+        void send_backing_fresh_statement(ParachainProcessorImpl::RelayParentState& per_relay_parent, const std::vector<ValidatorIndex> &group, const CandidateHash &candidate_hash);
 
     outcome::result<std::pair<CollatorId, ParachainId>> insertAdvertisement(
         network::PeerState &peer_data,
@@ -552,6 +553,7 @@ namespace kagome::parachain {
     std::shared_ptr<ThreadHandler> in_pool_thread_handler_;
     std::default_random_engine random_;
     std::shared_ptr<ProspectiveParachains> prospective_parachains_;
+    Candidates candidates_;
 
     metrics::RegistryPtr metrics_registry_ = metrics::createRegistry();
     metrics::Gauge *metric_is_parachain_validator_;

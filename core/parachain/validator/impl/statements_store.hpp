@@ -31,6 +31,16 @@ struct Groups {
             }
         }
     }
+
+    Groups(const std::vector<std::vector<ValidatorIndex>> &grs) {
+      for (GroupIndex g = 0; g < grs.size(); ++g) {
+        const auto &group = grs[g];
+        groups[g] = group;
+        for (const auto &v : group) {
+            by_validator_index[v] = g;
+        }
+      }
+    }
 };
 
 struct ValidatorMeta {
@@ -107,6 +117,42 @@ struct StatementStore {
 						.seconded_count = 0,
 					});
             }
+        }
+    }
+
+	size_t seconded_count(const ValidatorIndex &validator_index) const {
+        auto it = validator_meta.find(validator_index);
+        if (it != validator_meta.end()) {
+            return it->second.seconded_count;
+        }
+        return 0;
+	}
+
+    template<typename F>
+    void fresh_statements_for_backing(const std::vector<ValidatorIndex> &validators, const CandidateHash &candidate_hash, F &&cb) const {
+        auto call = [&](const Fingerprint &fingerprint) {
+            auto it = known_statements.find(fingerprint);
+            if (it != known_statements.end()) {
+                const StoredStatement &s = it->seconded;
+                if (!s.known_by_backing) {
+                    std::forward<F>(cb)(s.statement);
+                }
+            }
+        }
+
+        for (const auto &vi : validators) {
+            call(Fingerprint {
+                .index = vi,
+                .statement = SecondedCandidateHash {
+                    .hash = candidate_hash,
+                },
+            });
+            call(Fingerprint {
+                .index = vi,
+                .statement = ValidCandidateHash {
+                    .hash = candidate_hash,
+                },
+            });
         }
     }
 
