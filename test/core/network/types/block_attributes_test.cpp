@@ -12,12 +12,11 @@
 #include "testutil/testparam.hpp"
 
 using kagome::network::BlockAttribute;
-using kagome::network::BlockAttributes;
 
 using scale::decode;
 using scale::encode;
 
-using BlockAttributesTestParam = testutil::TestParam<BlockAttributes>;
+using BlockAttributesTestParam = testutil::TestParam<BlockAttribute>;
 
 struct BlockAttributesTest
     : public ::testing::TestWithParam<BlockAttributesTestParam> {
@@ -35,18 +34,17 @@ struct BlockAttributesTest
 TEST_P(BlockAttributesTest, DecodeBlockAttributes) {
   auto [encoded_value, should_fail, value] = GetParam();
   if (should_fail) {
-    EXPECT_OUTCOME_FALSE(err, decode<BlockAttributes>(encoded_value));
-    ASSERT_EQ(err.value(),
-              static_cast<int>(scale::DecodeError::UNEXPECTED_VALUE));
+    EXPECT_EC(decode<BlockAttribute>(encoded_value),
+              scale::DecodeError::UNEXPECTED_VALUE);
   } else {
-    EXPECT_OUTCOME_TRUE(val, decode<BlockAttributes>(encoded_value));
+    EXPECT_OUTCOME_TRUE(val, decode<BlockAttribute>(encoded_value));
     ASSERT_EQ(val, value);
   }
 }
 
 using Attr = BlockAttribute;
 
-auto P = testutil::make_param<BlockAttributes>;
+auto P = testutil::make_param<BlockAttribute>;
 
 INSTANTIATE_TEST_SUITE_P(
     BlockAttributesTestCases,
@@ -61,7 +59,7 @@ INSTANTIATE_TEST_SUITE_P(
                         false,
                         {Attr::HEADER | Attr::BODY | Attr::RECEIPT
                          | Attr::MESSAGE_QUEUE | Attr::JUSTIFICATION}),
-                      P({64}, true, BlockAttributes(64)),
-                      P({65}, true, BlockAttributes(65)),
-                      P({128}, true, BlockAttributes(128)),
-                      P({255}, true, BlockAttributes(255))));
+                      P({64}, true, BlockAttribute(64)),
+                      P({65}, true, BlockAttribute(65)),
+                      P({128}, true, BlockAttribute(128)),
+                      P({255}, true, BlockAttribute(255))));

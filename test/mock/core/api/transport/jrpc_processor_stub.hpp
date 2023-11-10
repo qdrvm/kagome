@@ -37,7 +37,7 @@ namespace kagome::api {
             auto &&nonce = parseParams(params);
             auto &&res = api_->echo(nonce);
             if (!res) {
-              throw jsonrpc::Fault(res.error().message());
+              throw jsonrpc::Fault(fmt::to_string(res.error()));
             }
             return jsonrpc::Value(res.value());
           });

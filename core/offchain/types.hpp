@@ -106,9 +106,6 @@ namespace kagome::offchain {
 
     s >> buff;
     auto peer_id_res = libp2p::peer::PeerId::fromBytes(buff);
-    if (peer_id_res.has_error()) {
-      throw std::runtime_error(peer_id_res.error().message());
-    }
     v.peer_id = std::move(peer_id_res.value());
 
     scale::CompactInteger size;
@@ -118,9 +115,6 @@ namespace kagome::offchain {
     for (auto &address : v.address) {
       s >> buff;
       auto ma_res = libp2p::multi::Multiaddress::create(buff);
-      if (ma_res.has_error()) {
-        throw std::runtime_error(ma_res.error().message());
-      }
       address = std::move(ma_res.value());
     }
 

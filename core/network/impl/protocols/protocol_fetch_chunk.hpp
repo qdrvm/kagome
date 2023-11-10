@@ -62,7 +62,7 @@ namespace kagome::network {
       auto res = pp_->OnFetchChunkRequest(std::move(request));
       if (res.has_error()) {
         base().logger()->error("Fetching chunk response failed.(error={})",
-                               res.error().message());
+                               res.error());
       } else {
         visit_in_place(
             res.value(),

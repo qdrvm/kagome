@@ -57,7 +57,7 @@ namespace {
   constexpr const char *kImportQueueLength =
       "kagome_import_queue_blocks_submitted";
 
-  kagome::network::BlockAttributes attributesForSync(
+  kagome::network::BlockAttribute attributesForSync(
       kagome::application::SyncMethod method) {
     using SM = kagome::application::SyncMethod;
     switch (method) {

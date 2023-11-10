@@ -21,7 +21,7 @@ namespace kagome::network {
    */
   struct BlocksRequest {
     /// bits, showing, which parts of BlockData to return
-    BlockAttributes fields{};
+    BlockAttribute fields{};
     /// start from this block
     primitives::BlockId from{};
     /// sequence direction
@@ -32,13 +32,9 @@ namespace kagome::network {
     bool multiple_justifications = true;
 
     /// includes HEADER, BODY and JUSTIFICATION
-    static constexpr BlockAttributes kBasicAttributes =
+    static constexpr BlockAttribute kBasicAttributes =
         BlockAttribute::HEADER | BlockAttribute::BODY
         | BlockAttribute::JUSTIFICATION;
-
-    bool attributeIsSet(const BlockAttribute &attribute) const {
-      return fields & attribute;
-    }
 
     using Fingerprint = size_t;
 
@@ -50,7 +46,7 @@ template <>
 struct std::hash<kagome::network::BlocksRequest> {
   auto operator()(const kagome::network::BlocksRequest &blocks_request) const {
     auto result =
-        std::hash<kagome::network::BlockAttributes>()(blocks_request.fields);
+        std::hash<kagome::network::BlockAttribute>()(blocks_request.fields);
 
     boost::hash_combine(
         result, std::hash<kagome::primitives::BlockId>()(blocks_request.from));

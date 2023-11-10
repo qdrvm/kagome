@@ -25,7 +25,7 @@ namespace kagome::api::details {
       if (r) {
         return std::move(r.value());
       }
-      throw jsonrpc::InvalidParametersFault{r.error().message()};
+      throw jsonrpc::InvalidParametersFault{fmt::to_string(r.error())};
     }
 
     static auto &mapAt(const jsonrpc::Value &j, const std::string &k) {

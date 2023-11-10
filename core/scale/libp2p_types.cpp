@@ -36,9 +36,6 @@ namespace scale {
     std::vector<std::string> addresses;
     s >> peer_id_base58 >> addresses;
     auto peer_id_res = libp2p::peer::PeerId::fromBase58(peer_id_base58);
-    if (not peer_id_res) {
-      throw std::runtime_error(peer_id_res.error().message());
-    }
     peer_info.id = std::move(peer_id_res.value());
     std::vector<libp2p::multi::Multiaddress> multi_addrs;
     multi_addrs.reserve(addresses.size());

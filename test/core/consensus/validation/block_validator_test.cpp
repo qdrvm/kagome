@@ -165,7 +165,7 @@ TEST_F(BlockValidatorTest, Success) {
 
   auto validate_res = validator_.validateHeader(
       valid_block_.header, 0ull, authority.id, threshold_, config_);
-  ASSERT_TRUE(validate_res) << validate_res.error().message();
+  EXPECT_OUTCOME_TRUE_1(validate_res);
 }
 
 /**
