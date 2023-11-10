@@ -50,6 +50,11 @@ namespace kagome::storage::trie_pruner {
                 getPruningDepth,
                 (),
                 (const, override));
+
+    MOCK_METHOD(void,
+                restoreStateAtFinalized,
+                (const blockchain::BlockTree &),
+                (override));
   };
 
 }  // namespace kagome::storage::trie_pruner

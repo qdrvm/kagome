@@ -29,11 +29,7 @@ namespace kagome::consensus::grandpa {
         grandpa_api_(std::move(grandpa_api)),
         persistent_storage_{
             persistent_storage->getSpace(storage::Space::kDefault)},
-        chain_sub_([&] {
-          BOOST_ASSERT(chain_events_engine != nullptr);
-          return std::make_shared<primitives::events::ChainEventSubscriber>(
-              chain_events_engine);
-        }()),
+        chain_sub_{chain_events_engine},
         indexer_{
             std::make_shared<storage::MapPrefix>(
                 storage::kAuthorityManagerImplIndexerPrefix,
@@ -54,20 +50,12 @@ namespace kagome::consensus::grandpa {
   }
 
   bool AuthorityManagerImpl::prepare() {
-    chain_sub_->subscribe(chain_sub_->generateSubscriptionSetId(),
-                          primitives::events::ChainEventType::kFinalizedHeads);
-    chain_sub_->setCallback(
-        [wp = weak_from_this()](
-            subscription::SubscriptionSetId,
-            auto &&,
-            primitives::events::ChainEventType type,
-            const primitives::events::ChainEventParams &event) {
-          if (type == primitives::events::ChainEventType::kFinalizedHeads) {
-            if (auto self = wp.lock()) {
-              std::unique_lock lock{self->mutex_};
-              self->indexer_.finalize();
-              // TODO(turuslan): #1854, rebase ambigous forced changes
-            }
+    chain_sub_.onFinalize(
+        [weak{weak_from_this()}](const primitives::BlockHeader &block) {
+          if (auto self = weak.lock()) {
+            std::unique_lock lock{self->mutex_};
+            self->indexer_.finalize();
+            // TODO(turuslan): #1854, rebase ambigous forced changes
           }
         });
 

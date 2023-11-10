@@ -45,6 +45,10 @@ namespace kagome::storage::trie {
   class TrieStorage;
 }
 
+namespace kagome::storage::trie_pruner {
+  class TriePruner;
+}  // namespace kagome::storage::trie_pruner
+
 namespace kagome::runtime {
   class Core;
 }
@@ -67,6 +71,7 @@ namespace kagome::consensus {
         std::shared_ptr<blockchain::BlockTree> block_tree,
         std::shared_ptr<ConsensusSelector> consensus_selector,
         std::shared_ptr<storage::trie::TrieStorage> trie_storage,
+        std::shared_ptr<storage::trie_pruner::TriePruner> trie_pruner,
         std::shared_ptr<network::Synchronizer> synchronizer,
         std::shared_ptr<crypto::Hasher> hasher,
         std::shared_ptr<network::BlockAnnounceTransmitter>
@@ -130,6 +135,7 @@ namespace kagome::consensus {
     std::shared_ptr<blockchain::BlockTree> block_tree_;
     std::shared_ptr<ConsensusSelector> consensus_selector_;
     std::shared_ptr<storage::trie::TrieStorage> trie_storage_;
+    std::shared_ptr<storage::trie_pruner::TriePruner> trie_pruner_;
     std::shared_ptr<network::Synchronizer> synchronizer_;
     std::shared_ptr<crypto::Hasher> hasher_;
     std::shared_ptr<network::BlockAnnounceTransmitter>
@@ -140,6 +146,7 @@ namespace kagome::consensus {
         justification_observer_;
     std::shared_ptr<libp2p::basic::Scheduler> scheduler_;
     primitives::events::ChainSubscriptionEnginePtr chain_sub_engine_;
+    primitives::events::ChainSub chain_sub_;
     primitives::events::BabeStateSubscriptionEnginePtr state_sub_engine_;
     std::shared_ptr<runtime::Core> core_api_;
 
@@ -155,8 +162,6 @@ namespace kagome::consensus {
     bool warp_sync_busy_{false};
 
     std::atomic_bool active_{false};
-
-    std::shared_ptr<primitives::events::ChainEventSubscriber> chain_sub_{};
 
     std::optional<primitives::Version> actual_runtime_version_;
 

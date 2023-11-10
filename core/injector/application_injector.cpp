@@ -312,6 +312,7 @@ namespace {
         std::shared_ptr<blockchain::JustificationStoragePolicy>>();
 
     auto block_tree_res = blockchain::BlockTreeImpl::create(
+        injector.template create<const application::AppConfiguration &>(),
         std::move(header_repo),
         std::move(storage),
         std::move(extrinsic_observer),

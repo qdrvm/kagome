@@ -130,7 +130,7 @@ namespace kagome::consensus::babe {
     std::shared_ptr<blockchain::BlockHeaderRepository> header_repo_;
     std::shared_ptr<runtime::BabeApi> babe_api_;
     std::shared_ptr<storage::trie::TrieStorage> trie_storage_;
-    std::shared_ptr<primitives::events::ChainEventSubscriber> chain_sub_;
+    primitives::events::ChainSub chain_sub_;
     LazySPtr<SlotsUtil> slots_util_;
 
     Duration slot_duration_{};
