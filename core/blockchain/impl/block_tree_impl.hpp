@@ -10,10 +10,11 @@
 
 #include <functional>
 #include <memory>
+#include <optional>
 #include <queue>
 #include <unordered_set>
 
-#include <optional>
+#include <libp2p/common/final_action.hpp>
 
 #include "application/app_configuration.hpp"
 #include "blockchain/block_header_repository.hpp"
@@ -46,6 +47,7 @@ namespace kagome::blockchain {
    public:
     /// Create an instance of block tree
     static outcome::result<std::shared_ptr<BlockTreeImpl>> create(
+        const application::AppConfiguration &app_config,
         std::shared_ptr<BlockHeaderRepository> header_repo,
         std::shared_ptr<BlockStorage> storage,
         std::shared_ptr<network::ExtrinsicObserver> extrinsic_observer,
@@ -147,6 +149,16 @@ namespace kagome::blockchain {
     void removeUnfinalized() override;
 
    private:
+    struct BlocksPruning {
+      BlocksPruning(std::optional<uint32_t> keep,
+                    primitives::BlockNumber finalized);
+
+      primitives::BlockNumber max(primitives::BlockNumber finalized) const;
+
+      std::optional<uint32_t> keep_;
+      primitives::BlockNumber next_;
+    };
+
     struct BlockTreeData {
       std::shared_ptr<BlockHeaderRepository> header_repo_;
       std::shared_ptr<BlockStorage> storage_;
@@ -159,6 +171,7 @@ namespace kagome::blockchain {
       std::shared_ptr<const class JustificationStoragePolicy>
           justification_storage_policy_;
       std::optional<primitives::BlockHash> genesis_block_hash_;
+      BlocksPruning blocks_pruning_;
     };
 
     /**
@@ -166,9 +179,10 @@ namespace kagome::blockchain {
      * factory method
      */
     BlockTreeImpl(
+        const application::AppConfiguration &app_config,
         std::shared_ptr<BlockHeaderRepository> header_repo,
         std::shared_ptr<BlockStorage> storage,
-        std::unique_ptr<CachedTree> cached_tree,
+        const primitives::BlockInfo &finalized,
         std::shared_ptr<network::ExtrinsicObserver> extrinsic_observer,
         std::shared_ptr<crypto::Hasher> hasher,
         primitives::events::ChainSubscriptionEnginePtr chain_events_engine,
@@ -224,12 +238,13 @@ namespace kagome::blockchain {
             == std::this_thread::get_id()) {
           return f(block_tree_data_.unsafeGet());
         }
-        return block_tree_data_.exclusiveAccess([&f,
-                                                 this](BlockTreeData &data) {
-          exclusive_owner_ = std::this_thread::get_id();
-          auto reset = gsl::finally([&] { exclusive_owner_ = std::nullopt; });
-          return f(data);
-        });
+        return block_tree_data_.exclusiveAccess(
+            [&f, this](BlockTreeData &data) {
+              exclusive_owner_ = std::this_thread::get_id();
+              ::libp2p::common::FinalAction reset(
+                  [&] { exclusive_owner_ = std::nullopt; });
+              return f(data);
+            });
       }
 
       template <typename F>

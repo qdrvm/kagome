@@ -6,6 +6,8 @@
 
 #include "runtime/wavm/module_instance.hpp"
 
+#include <libp2p/common/final_action.hpp>
+
 #include <WAVM/Runtime/Runtime.h>
 #include <WAVM/RuntimeABI/RuntimeABI.h>
 
@@ -143,7 +145,7 @@ namespace kagome::runtime::wavm {
       std::array<WAVM::IR::UntaggedValue, 1> untaggedInvokeResults;
       pushBorrowedRuntimeInstance(
           std::const_pointer_cast<ModuleInstanceImpl>(shared_from_this()));
-      const auto pop = gsl::finally(&popBorrowedRuntimeInstance);
+      ::libp2p::common::FinalAction pop(&popBorrowedRuntimeInstance);
       try {
         WAVM::Runtime::unwindSignalsAsExceptions(
             [&context,

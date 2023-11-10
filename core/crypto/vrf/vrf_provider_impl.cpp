@@ -6,7 +6,7 @@
 
 #include "crypto/vrf/vrf_provider_impl.hpp"
 
-#include <gsl/span>
+#include <span>
 
 #include "common/int_serialization.hpp"
 

@@ -44,10 +44,6 @@ find_package(Protobuf CONFIG REQUIRED)
 hunter_add_package(RapidJSON)
 find_package(RapidJSON CONFIG REQUIRED)
 
-# https://docs.hunter.sh/en/latest/packages/pkg/Microsoft.GSL.html
-hunter_add_package(Microsoft.GSL)
-find_package(Microsoft.GSL CONFIG REQUIRED)
-
 hunter_add_package(erasure_coding_crust)
 find_package(erasure_coding_crust CONFIG REQUIRED)
 

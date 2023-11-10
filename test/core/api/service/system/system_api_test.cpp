@@ -91,7 +91,7 @@ TEST_F(SystemApiTest, GetNonceNoPendingTxs) {
       .WillOnce(Return(kInitialNonce));
   auto hash_preimage = Buffer{}.put("SS58PRE").putUint8(42).put(kAccountId);
   EXPECT_CALL(*hasher_mock_,
-              blake2b_512(gsl::span<const uint8_t>(hash_preimage)))
+              blake2b_512(kagome::common::BufferView(hash_preimage)))
       .WillOnce(Return(kagome::common::Hash512{{'\035', '!'}}));
   EXPECT_CALL(*transaction_pool_mock_, getReadyTransactions());
 
@@ -115,7 +115,7 @@ TEST_F(SystemApiTest, GetNonceWithPendingTxs) {
       .WillOnce(Return(kInitialNonce));
   auto hash_preimage = Buffer{}.put("SS58PRE").putUint8(42).put(kAccountId);
   EXPECT_CALL(*hasher_mock_,
-              blake2b_512(gsl::span<const uint8_t>(hash_preimage)))
+              blake2b_512(kagome::common::BufferView(hash_preimage)))
       .WillOnce(Return(kagome::common::Hash512{{'\035', '!'}}));
 
   constexpr auto kReadyTxNum = 5;

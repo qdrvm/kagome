@@ -14,7 +14,6 @@
 
 namespace kagome::blockchain {
   class BlockTree;
-  class DigestTracker;
 }  // namespace kagome::blockchain
 
 namespace kagome::crypto {
@@ -32,8 +31,6 @@ namespace kagome::consensus::babe {
 namespace kagome::consensus {
 
   class BlockValidator;
-  class ConsistencyKeeper;
-  class ConsistencyGuard;
 
   /**
    * Common logic for adding a new block to the blockchain
@@ -42,26 +39,19 @@ namespace kagome::consensus {
    public:
     using ApplyJustificationCb = grandpa::Environment::ApplyJustificationCb;
     BlockAppenderBase(
-        std::shared_ptr<ConsistencyKeeper> consistency_keeper,
         std::shared_ptr<blockchain::BlockTree> block_tree,
-        std::shared_ptr<blockchain::DigestTracker> digest_tracker,
         std::shared_ptr<babe::BabeConfigRepository> babe_config_repo,
         std::shared_ptr<BlockValidator> block_validator,
         std::shared_ptr<grandpa::Environment> grandpa_environment,
         LazySPtr<SlotsUtil> slots_util,
         std::shared_ptr<crypto::Hasher> hasher);
 
-    primitives::BlockContext makeBlockContext(
-        const primitives::BlockHeader &header) const;
-
     void applyJustifications(
         const primitives::BlockInfo &block_info,
         const std::optional<primitives::Justification> &new_justification,
         ApplyJustificationCb &&callback);
 
-    outcome::result<ConsistencyGuard> observeDigestsAndValidateHeader(
-        const primitives::Block &block,
-        const primitives::BlockContext &context);
+    outcome::result<void> validateHeader(const primitives::Block &block);
 
     struct SlotInfo {
       TimePoint start;
@@ -80,9 +70,7 @@ namespace kagome::consensus {
         std::map<primitives::BlockInfo, primitives::Justification>;
     std::shared_ptr<PostponedJustifications> postponed_justifications_;
 
-    std::shared_ptr<ConsistencyKeeper> consistency_keeper_;
     std::shared_ptr<blockchain::BlockTree> block_tree_;
-    std::shared_ptr<blockchain::DigestTracker> digest_tracker_;
     std::shared_ptr<babe::BabeConfigRepository> babe_config_repo_;
     std::shared_ptr<BlockValidator> block_validator_;
     std::shared_ptr<grandpa::Environment> grandpa_environment_;

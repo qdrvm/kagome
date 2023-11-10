@@ -143,6 +143,7 @@ namespace kagome::dispute {
             std::make_unique<ThreadHandler>(std::move(main_thread_context))),
         router_(std::move(router)),
         peer_view_(std::move(peer_view)),
+        chain_sub_{peer_view_->intoChainEventsEngine()},
         babe_status_observable_(std::move(babe_status_observable)),
         int_pool_{std::make_shared<ThreadPool>(1ull)},
         internal_context_{int_pool_->handler()},
@@ -222,23 +223,10 @@ namespace kagome::dispute {
         });
 
     // subscribe to finalization
-    chain_sub_ = std::make_shared<primitives::events::ChainEventSubscriber>(
-        peer_view_->intoChainEventsEngine());
-    chain_sub_->subscribe(chain_sub_->generateSubscriptionSetId(),
-                          primitives::events::ChainEventType::kFinalizedHeads);
-    chain_sub_->setCallback(
-        [wp = weak_from_this()](
-            auto /*set_id*/,
-            auto && /*internal_obj*/,
-            auto type,
-            const primitives::events::ChainEventParams &event) {
-          if (type != primitives::events::ChainEventType::kFinalizedHeads) {
-            return;
-          }
-          if (auto self = wp.lock()) {
-            const auto &header =
-                boost::get<primitives::events::HeadsEventParams>(event).get();
-            self->on_finalized_block(header.blockInfo());
+    chain_sub_.onFinalize(
+        [weak{weak_from_this()}](const primitives::BlockHeader &block) {
+          if (auto self = weak.lock()) {
+            self->on_finalized_block(block.blockInfo());
           }
         });
 

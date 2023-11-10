@@ -795,6 +795,7 @@ namespace kagome::application {
         ("enable-offchain-indexing", po::value<bool>(), "enable Offchain Indexing API, which allow block import to write to offchain DB)")
         ("recovery", po::value<std::string>(), "recovers block storage to state after provided block presented by number or hash, and stop after that")
         ("state-pruning", po::value<std::string>()->default_value("archive"), "state pruning policy. 'archive', 'prune-discarded', or the number of finalized blocks to keep.")
+        ("blocks-pruning", po::value<uint32_t>(), "If specified, keep block body only for specified number of recent finalized blocks.")
         ("enable-thorough-pruning", po::bool_switch(), "Makes trie node pruner more efficient, but the node starts slowly")
         ;
 
@@ -1165,7 +1166,7 @@ namespace kagome::application {
       auto replace = [&](std::string_view prefix,
                          std::string_view replacement,
                          std::string_view str) {
-        if (boost::starts_with(str, prefix)) {
+        if (str.starts_with(prefix)) {
           std::string replaced{replacement};
           replaced += str.substr(prefix.size());
           public_addresses_.emplace_back(
@@ -1489,6 +1490,8 @@ namespace kagome::application {
         enable_thorough_pruning_ = true;
       }
     }
+
+    blocks_pruning_ = find_argument<uint32_t>(vm, "blocks-pruning");
 
     // if something wrong with config print help message
     if (not validate_config()) {

@@ -8,8 +8,8 @@
 
 #include <boost/system/error_code.hpp>
 #include <functional>
-#include <gsl/span>
 #include <memory>
+#include <span>
 #include <vector>
 
 #include "network/adapters/adapter_errors.hpp"

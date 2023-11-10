@@ -6,12 +6,18 @@
 
 #pragma once
 
-#include <gsl/span>
+#include <span>
 
-#include "common/bytestr.hpp"
 #include "common/hexutil.hpp"
 #include "common/lexicographical_compare_three_way.hpp"
 #include "macro/endianness_utils.hpp"
+
+#include <ranges>
+#include <span>
+
+inline auto operator""_bytes(const char *s, std::size_t size) {
+  return std::span<const uint8_t>(reinterpret_cast<const uint8_t *>(s), size);
+}
 
 namespace kagome::common {
   template <size_t MaxSize>
@@ -20,15 +26,38 @@ namespace kagome::common {
 
 namespace kagome::common {
 
-  class BufferView : public gsl::span<const uint8_t> {
+  class BufferView : public std::span<const uint8_t> {
    public:
     using span::span;
 
     BufferView(const span &other) noexcept : span(other) {}
 
     template <typename T>
+      requires std::is_integral_v<std::decay_t<T>> and (sizeof(T) == 1)
+    BufferView(std::span<T> other) noexcept
+        : span(reinterpret_cast<const uint8_t *>(other.data()), other.size()) {}
+
+    template <typename T>
     decltype(auto) operator=(T &&t) {
       return span::operator=(std::forward<T>(t));
+    }
+
+    template <size_t count>
+    void dropFirst() {
+      *this = subspan<count>();
+    }
+
+    void dropFirst(size_t count) {
+      *this = subspan(count);
+    }
+
+    template <size_t count>
+    void dropLast() {
+      *this = first(size() - count);
+    }
+
+    void dropLast(size_t count) {
+      *this = first(size() - count);
     }
 
     std::string toHex() const {
@@ -36,33 +65,32 @@ namespace kagome::common {
     }
 
     std::string_view toStringView() const {
-      return byte2str(*this);
+      // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
+      return {reinterpret_cast<const char *>(data()), size()};
+    }
+
+    auto operator<=>(const BufferView &other) const noexcept {
+      return cxx20::lexicographical_compare_three_way(
+          span::begin(), span::end(), other.begin(), other.end());
+    }
+
+    auto operator==(const BufferView &other) const noexcept {
+      return (*this <=> other) == std::strong_ordering::equal;
     }
   };
-
-  template <typename L, typename R>
-    requires(std::is_base_of_v<BufferView, L>
-             or std::is_base_of_v<BufferView, R>)
-        and std::is_same_v<typename L::const_iterator::value_type,
-                           typename R::const_iterator::value_type>
-  auto operator<=>(const L &lhs, const R &rhs) noexcept {
-    return cxx20::lexicographical_compare_three_way(
-        std::cbegin(lhs), std::cend(lhs), std::cbegin(rhs), std::cend(rhs));
-  }
-
-  template <typename L, typename R>
-    requires(std::is_base_of_v<BufferView, L>
-             or std::is_base_of_v<BufferView, R>)
-        and std::is_same_v<typename L::const_iterator::value_type,
-                           typename R::const_iterator::value_type>
-  auto operator==(const L &lhs, const R &rhs) noexcept {
-    return (lhs <=> rhs) == std::strong_ordering::equal;
-  }
 
   inline std::ostream &operator<<(std::ostream &os, BufferView view) {
     return os << view.toHex();
   }
 
+  template <typename Super, typename Prefix>
+  bool startsWith(const Super &super, const Prefix &prefix) {
+    if (std::size(super) >= std::size(prefix)) {
+      return std::equal(
+          std::begin(prefix), std::end(prefix), std::begin(super));
+    }
+    return false;
+  }
 }  // namespace kagome::common
 
 template <>

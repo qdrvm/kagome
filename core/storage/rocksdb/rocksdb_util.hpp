@@ -44,16 +44,15 @@ namespace kagome::storage {
     return rocksdb::Slice{ptr, n};
   }
 
-  inline gsl::span<const uint8_t> make_span(const rocksdb::Slice &s) {
+  inline BufferView make_span(const rocksdb::Slice &s) {
     // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
-    const auto *ptr = reinterpret_cast<const uint8_t *>(s.data());
-    return gsl::make_span(ptr, s.size());
+    return {reinterpret_cast<const uint8_t *>(s.data()), s.size()};
   }
 
   inline common::Buffer make_buffer(const rocksdb::Slice &s) {
     // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
     const auto *ptr = reinterpret_cast<const uint8_t *>(s.data());
     // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic)
-    return common::Buffer{ptr, ptr + s.size()};
+    return {ptr, ptr + s.size()};
   }
 }  // namespace kagome::storage

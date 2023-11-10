@@ -64,22 +64,6 @@ namespace kagome::primitives {
 
     AuthoritySetId id{};
     AuthorityList authorities;
-
-    auto begin() {
-      return authorities.begin();
-    }
-
-    auto end() {
-      return authorities.end();
-    }
-
-    auto begin() const {
-      return authorities.cbegin();
-    }
-
-    auto end() const {
-      return authorities.cend();
-    }
   };
 
 }  // namespace kagome::primitives

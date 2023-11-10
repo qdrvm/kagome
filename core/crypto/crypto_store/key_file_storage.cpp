@@ -62,14 +62,14 @@ namespace kagome::crypto {
   }
 
   KeyFileStorage::Path KeyFileStorage::composeKeyPath(
-      KeyType key_type, gsl::span<const uint8_t> public_key) const {
+      KeyType key_type, common::BufferView public_key) const {
     return keystore_path_ / encodeKeyFileName(key_type, public_key);
   }
 
   outcome::result<void> KeyFileStorage::saveKeyPair(
       KeyType type,
-      gsl::span<const uint8_t> public_key,
-      gsl::span<const uint8_t> seed) const {
+      common::BufferView public_key,
+      common::BufferView seed) const {
     auto &&path = composeKeyPath(type, public_key);
     OUTCOME_TRY(saveKeyHexAtPath(seed, path));
     SL_TRACE(logger_,
@@ -110,8 +110,7 @@ namespace kagome::crypto {
   }
 
   outcome::result<void> KeyFileStorage::saveKeyHexAtPath(
-      gsl::span<const uint8_t> private_key,
-      const KeyFileStorage::Path &path) const {
+      common::BufferView private_key, const KeyFileStorage::Path &path) const {
     std::ofstream file;
     file.open(path.native(), std::ios::out | std::ios::trunc);
     if (!file.is_open()) {
@@ -154,7 +153,7 @@ namespace kagome::crypto {
   }
 
   outcome::result<std::optional<std::string>> KeyFileStorage::searchForPhrase(
-      KeyType type, gsl::span<const uint8_t> public_key_bytes) const {
+      KeyType type, common::BufferView public_key_bytes) const {
     auto key_path = composeKeyPath(type, public_key_bytes);
     namespace fs = filesystem;
     std::error_code ec{};

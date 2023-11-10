@@ -67,8 +67,8 @@ namespace kagome::storage::trie {
     [[nodiscard]] std::optional<BufferOrView> value() const override;
 
    private:
-    outcome::result<void> seekLowerBoundInternal(
-        const TrieNode &current, gsl::span<const uint8_t> left_nibbles);
+    outcome::result<void> seekLowerBoundInternal(const TrieNode &current,
+                                                 BufferView left_nibbles);
     outcome::result<bool> nextNodeWithValueInOuterTree();
     outcome::result<void> nextNodeWithValueInSubTree(
         const TrieNode &subtree_root);

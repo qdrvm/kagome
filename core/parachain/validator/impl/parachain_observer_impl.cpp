@@ -6,7 +6,7 @@
 
 #include "parachain/validator/impl/parachain_observer_impl.hpp"
 
-#include <gsl/span>
+#include <span>
 
 #include "crypto/sr25519_provider.hpp"
 #include "network/common.hpp"
@@ -150,7 +150,7 @@ namespace kagome::parachain {
     payload.insert(payload.end(), {'C', 'O', 'L', 'L'});
 
     if (auto result = crypto_provider_->verify(
-            signature, gsl::span<uint8_t>(payload), pubkey);
+            signature, std::span<uint8_t>(payload), pubkey);
         !result) {
       logger_->warn("Received incorrect collation declaration from {}:{}",
                     peer_id,

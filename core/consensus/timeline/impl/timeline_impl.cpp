@@ -12,7 +12,6 @@
 #include "clock/impl/clock_impl.hpp"
 #include "consensus/consensus_selector.hpp"
 #include "consensus/grandpa/justification_observer.hpp"
-#include "consensus/timeline/consistency_keeper.hpp"
 #include "consensus/timeline/impl/block_production_error.hpp"
 #include "consensus/timeline/slots_util.hpp"
 #include "network/block_announce_transmitter.hpp"
@@ -22,6 +21,7 @@
 #include "network/warp/types.hpp"
 #include "runtime/runtime_api/core.hpp"
 #include "storage/trie/trie_storage.hpp"
+#include "storage/trie_pruner/trie_pruner.hpp"
 
 #include <libp2p/basic/scheduler.hpp>
 
@@ -41,6 +41,7 @@ namespace kagome::consensus {
       std::shared_ptr<blockchain::BlockTree> block_tree,
       std::shared_ptr<ConsensusSelector> consensus_selector,
       std::shared_ptr<storage::trie::TrieStorage> trie_storage,
+      std::shared_ptr<storage::trie_pruner::TriePruner> trie_pruner,
       std::shared_ptr<network::Synchronizer> synchronizer,
       std::shared_ptr<crypto::Hasher> hasher,
       std::shared_ptr<network::BlockAnnounceTransmitter>
@@ -49,7 +50,6 @@ namespace kagome::consensus {
       LazySPtr<network::WarpProtocol> warp_protocol,
       std::shared_ptr<consensus::grandpa::JustificationObserver>
           justification_observer,
-      std::shared_ptr<ConsistencyKeeper> consistency_keeper,
       std::shared_ptr<libp2p::basic::Scheduler> scheduler,
       primitives::events::ChainSubscriptionEnginePtr chain_sub_engine,
       primitives::events::BabeStateSubscriptionEnginePtr state_sub_engine,
@@ -61,15 +61,16 @@ namespace kagome::consensus {
         block_tree_(std::move(block_tree)),
         consensus_selector_(std::move(consensus_selector)),
         trie_storage_(std::move(trie_storage)),
+        trie_pruner_(std::move(trie_pruner)),
         synchronizer_(std::move(synchronizer)),
         hasher_(std::move(hasher)),
         block_announce_transmitter_(std::move(block_announce_transmitter)),
         warp_sync_(std::move(warp_sync)),
         warp_protocol_(std::move(warp_protocol)),
         justification_observer_(std::move(justification_observer)),
-        consistency_keeper_(std::move(consistency_keeper)),
         scheduler_(std::move(scheduler)),
         chain_sub_engine_(std::move(chain_sub_engine)),
+        chain_sub_{chain_sub_engine_},
         state_sub_engine_(std::move(state_sub_engine)),
         core_api_(std::move(core_api)),
         sync_method_(app_config.syncMethod()),
@@ -84,7 +85,6 @@ namespace kagome::consensus {
     BOOST_ASSERT(block_announce_transmitter_);
     // BOOST_ASSERT(warp_sync_);
     BOOST_ASSERT(justification_observer_);
-    BOOST_ASSERT(consistency_keeper_);
     BOOST_ASSERT(scheduler_);
     BOOST_ASSERT(chain_sub_engine_);
     BOOST_ASSERT(state_sub_engine_);
@@ -231,34 +231,20 @@ namespace kagome::consensus {
         break;
     }
 
-    chain_sub_ = std::make_shared<primitives::events::ChainEventSubscriber>(
-        chain_sub_engine_);
-
-    chain_sub_->subscribe(chain_sub_->generateSubscriptionSetId(),
-                          primitives::events::ChainEventType::kFinalizedHeads);
-    chain_sub_->setCallback([wp = weak_from_this()](
-                                subscription::SubscriptionSetId,
-                                auto &&,
-                                primitives::events::ChainEventType type,
-                                const primitives::events::ChainEventParams
-                                    &event) {
-      if (type == primitives::events::ChainEventType::kFinalizedHeads) {
-        if (auto self = wp.lock()) {
-          if (self->current_state_ != SyncState::HEADERS_LOADING
-              and self->current_state_ != SyncState::STATE_LOADING) {
-            const auto &header =
-                boost::get<primitives::events::HeadsEventParams>(event).get();
-            auto version_res = self->core_api_->version(header.hash());
-            if (version_res.has_value()) {
-              auto &version = version_res.value();
-              if (not self->actual_runtime_version_.has_value()
-                  or self->actual_runtime_version_ != version) {
-                self->actual_runtime_version_ = version;
-                self->chain_sub_engine_->notify(
-                    primitives::events::ChainEventType::
-                        kFinalizedRuntimeVersion,
-                    version);
-              }
+    chain_sub_.onFinalize([weak{weak_from_this()}](
+                              const primitives::BlockHeader &block) {
+      if (auto self = weak.lock()) {
+        if (self->current_state_ != SyncState::HEADERS_LOADING
+            and self->current_state_ != SyncState::STATE_LOADING) {
+          auto version_res = self->core_api_->version(block.hash());
+          if (version_res.has_value()) {
+            auto &version = version_res.value();
+            if (not self->actual_runtime_version_.has_value()
+                or self->actual_runtime_version_ != version) {
+              self->actual_runtime_version_ = version;
+              self->chain_sub_engine_->notify(
+                  primitives::events::ChainEventType::kFinalizedRuntimeVersion,
+                  version);
             }
           }
         }
@@ -633,6 +619,7 @@ namespace kagome::consensus {
             }
 
             self->justification_observer_->reload();
+            self->trie_pruner_->restoreStateAtFinalized(*self->block_tree_);
             self->block_tree_->notifyBestAndFinalized();
 
             SL_INFO(self->log_,

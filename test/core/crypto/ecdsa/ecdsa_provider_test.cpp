@@ -6,7 +6,7 @@
 
 #include <gtest/gtest.h>
 
-#include <gsl/span>
+#include <span>
 
 #include "crypto/bip39/impl/bip39_provider_impl.hpp"
 #include "crypto/ecdsa/ecdsa_provider_impl.hpp"

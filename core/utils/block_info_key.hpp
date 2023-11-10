@@ -6,9 +6,9 @@
 
 #pragma once
 
-#include <boost/endian/conversion.hpp>
-#include <libp2p/common/span_size.hpp>
 #include <optional>
+
+#include <boost/endian/conversion.hpp>
 
 #include "primitives/common.hpp"
 
@@ -26,7 +26,7 @@ namespace kagome {
     }
 
     static std::optional<primitives::BlockInfo> decode(common::BufferView key) {
-      if (libp2p::spanSize(key) != Key::size()) {
+      if (key.size() != Key::size()) {
         return std::nullopt;
       }
       primitives::BlockInfo info;

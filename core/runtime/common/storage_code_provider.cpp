@@ -31,7 +31,7 @@ namespace kagome::runtime {
     BOOST_ASSERT(runtime_upgrade_tracker_ != nullptr);
   }
 
-  outcome::result<gsl::span<const uint8_t>> StorageCodeProvider::getCodeAt(
+  outcome::result<common::BufferView> StorageCodeProvider::getCodeAt(
       const storage::trie::RootHash &state) const {
     std::unique_lock lock{mutex_};
     if (last_state_root_ != state) {

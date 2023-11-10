@@ -9,7 +9,7 @@
 #include <gtest/gtest.h>
 
 using namespace kagome::common;
-using Span = gsl::span<const uint8_t>;
+using Span = BufferView;
 
 TEST(BufferView, Constructor_default) {
   BufferView v;

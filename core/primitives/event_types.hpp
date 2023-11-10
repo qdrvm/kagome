@@ -95,10 +95,10 @@ namespace kagome::primitives::events {
     INVALID
   };
 
-  using Hash256Span = gsl::span<const uint8_t, common::Hash256::size()>;
+  using Hash256Span = std::span<const uint8_t, common::Hash256::size()>;
 
   struct BroadcastEventParams {
-    gsl::span<const libp2p::peer::PeerId> peers;
+    std::span<const libp2p::peer::PeerId> peers;
   };
 
   struct InBlockEventParams {
@@ -149,7 +149,7 @@ namespace kagome::primitives::events {
     }
 
     static ExtrinsicLifecycleEvent Broadcast(
-        SubscribedExtrinsicId id, gsl::span<const libp2p::peer::PeerId> peers) {
+        SubscribedExtrinsicId id, std::span<const libp2p::peer::PeerId> peers) {
       return ExtrinsicLifecycleEvent{
           id,
           ExtrinsicEventType::BROADCAST,
@@ -261,4 +261,28 @@ namespace kagome::primitives::events {
   using ExtrinsicEventSubscriber = ExtrinsicSubscriptionEngine::SubscriberType;
   using ExtrinsicEventSubscriberPtr = std::shared_ptr<ExtrinsicEventSubscriber>;
 
+  struct ChainSub {
+    ChainSub(ChainSubscriptionEnginePtr engine)
+        : sub{std::make_shared<primitives::events::ChainEventSubscriber>(
+            std::move(engine))} {}
+
+    void onFinalize(auto f) {
+      sub->subscribe(sub->generateSubscriptionSetId(),
+                     ChainEventType::kFinalizedHeads);
+      sub->setCallback(
+          [f{std::move(f)}](subscription::SubscriptionSetId,
+                            ChainSubscriptionEngine::ReceiverType &,
+                            ChainEventType,
+                            const ChainEventParams &args) {
+            auto &block = boost::get<HeadsEventParams>(args);
+            if constexpr (std::is_invocable_v<decltype(f)>) {
+              f();
+            } else {
+              f(block);
+            }
+          });
+    }
+
+    ChainEventSubscriberPtr sub;
+  };
 }  // namespace kagome::primitives::events
