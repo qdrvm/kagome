@@ -31,6 +31,10 @@ namespace kagome::runtime::wasm_edge {
                   }},
               config}} {
       BOOST_ASSERT(mem_instance_ != nullptr);
+      SL_DEBUG(logger_,
+               "Created memory wrapper {} for internal instance {}",
+               fmt::ptr(this),
+               fmt::ptr(mem_instance_));
     }
     /**
      * @brief Return the size of the memory
@@ -51,6 +55,11 @@ namespace kagome::runtime::wasm_edge {
         [[maybe_unused]] auto res = WasmEdge_MemoryInstanceGrowPage(
             mem_instance_, new_page_num - old_page_num);
         BOOST_ASSERT(WasmEdge_ResultOK(res));
+        SL_DEBUG(logger_,
+                 "Grow memory to {} pages ({} bytes) - {}",
+                 new_page_num,
+                 new_size,
+                 WasmEdge_ResultGetMessage(res));
       }
     }
 

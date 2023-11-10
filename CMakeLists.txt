@@ -193,7 +193,8 @@ kagome_install_setup(
   core/storage
   core/subscription
   core/telemetry
-  core/utils)
+  core/utils
+)
 
 include(CMakePackageConfigHelpers)
 

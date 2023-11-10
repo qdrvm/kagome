@@ -18,6 +18,9 @@ namespace kagome::host_api {
       : memory_provider_(std::move(memory_provider)),
         logger_{log::createLogger("MemoryExtension", "memory_extension")} {
     BOOST_ASSERT_MSG(memory_provider_ != nullptr, "memory provider is nullptr");
+    SL_DEBUG(logger_,
+             "Memory extension {} initialized with memory provider {}",
+             fmt::ptr(this), fmt::ptr(memory_provider_));
   }
 
   runtime::WasmPointer MemoryExtension::ext_allocator_malloc_version_1(

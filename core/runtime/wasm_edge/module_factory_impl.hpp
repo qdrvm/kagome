@@ -5,6 +5,8 @@
 
 #pragma once
 
+#include <filesystem>
+
 #include "log/logger.hpp"
 #include "runtime/module_factory.hpp"
 
@@ -40,9 +42,11 @@ namespace kagome::runtime::wasm_edge {
       Compiled,
     };
     struct Config {
-      Config(): exec{ExecType::Compiled} {}
+      Config()
+          : exec{ExecType::Compiled}, compiled_module_dir{"/tmp/kagome/"} {}
 
       ExecType exec;
+      std::filesystem::path compiled_module_dir;
     };
 
     explicit ModuleFactoryImpl(

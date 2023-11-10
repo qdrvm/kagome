@@ -585,7 +585,7 @@ namespace kagome::network {
     if (auto r = recent_requests_.emplace(
             std::make_tuple(peer_id, request_fingerprint), "load blocks");
         not r.second) {
-      SL_ERROR(log_,
+      SL_VERBOSE(log_,
                "Can't load blocks from {} beginning block {}: {}",
                peer_id,
                from,
@@ -611,7 +611,7 @@ namespace kagome::network {
 
       // Any error interrupts loading of blocks
       if (response_res.has_error()) {
-        SL_ERROR(self->log_,
+        SL_VERBOSE(self->log_,
                  "Can't load blocks from {} beginning block {}: {}",
                  peer_id,
                  from,
@@ -626,7 +626,7 @@ namespace kagome::network {
       // No block in response is abnormal situation.
       // At least one starting block should be returned as existing
       if (blocks.empty()) {
-        SL_ERROR(self->log_,
+        SL_VERBOSE(self->log_,
                  "Can't load blocks from {} beginning block {}: "
                  "Response does not have any blocks",
                  peer_id,
@@ -649,7 +649,7 @@ namespace kagome::network {
       for (auto &block : blocks) {
         // Check if header is provided
         if (not block.header.has_value()) {
-          SL_ERROR(self->log_,
+          SL_VERBOSE(self->log_,
                    "Can't load blocks from {} starting from block {}: "
                    "Received block without header",
                    peer_id,
@@ -661,7 +661,7 @@ namespace kagome::network {
         }
         // Check if body is provided
         if (not block.header.has_value()) {
-          SL_ERROR(self->log_,
+          SL_VERBOSE(self->log_,
                    "Can't load blocks from {} starting from block {}: "
                    "Received block without body",
                    peer_id,
@@ -680,7 +680,7 @@ namespace kagome::network {
         if (last_finalized_block.number >= header.number) {
           if (last_finalized_block.number == header.number) {
             if (last_finalized_block.hash != block.hash) {
-              SL_ERROR(self->log_,
+              SL_VERBOSE(self->log_,
                        "Can't load blocks from {} starting from block {}: "
                        "Received discarded block {}",
                        peer_id,

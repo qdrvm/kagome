@@ -197,12 +197,12 @@ namespace {
 
   std::optional<kagome::primitives::BlockId> str_to_recovery_state(
       std::string_view str) {
-    kagome::primitives::BlockNumber bn;
     auto res = kagome::primitives::BlockHash::fromHex(str);
     if (res.has_value()) {
       return {{res.value()}};
     }
 
+    kagome::primitives::BlockNumber bn {};
     auto result = std::from_chars(str.data(), str.data() + str.size(), bn);
     if (result.ec != std::errc::invalid_argument && std::to_string(bn) == str) {
       return {{bn}};

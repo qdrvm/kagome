@@ -4,6 +4,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+#undef NDEBUG
+
 #include "runtime/module_instance.hpp"
 
 #include "common/int_serialization.hpp"
@@ -27,7 +29,6 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::runtime, ModuleInstance::Error, e) {
 
 namespace kagome::runtime {
   using namespace kagome::common::literals;
-
   outcome::result<void> ModuleInstance::resetMemory(
       const MemoryLimits &limits) {
     static auto log = log::createLogger("RuntimeEnvironmentFactory", "runtime");
@@ -47,9 +48,8 @@ namespace kagome::runtime {
     auto &memory = memory_provider->getCurrentMemory()->get();
 
     static const auto heappages_key = ":heappages"_buf;
-    OUTCOME_TRY(heappages,
-                getEnvironment().storage_provider->getCurrentBatch()->tryGet(
-                    heappages_key));
+    auto batch = getEnvironment().storage_provider->getCurrentBatch();
+    OUTCOME_TRY(heappages, batch->tryGet(heappages_key));
     if (heappages) {
       if (sizeof(uint64_t) != heappages->size()) {
         SL_ERROR(log,
@@ -68,14 +68,21 @@ namespace kagome::runtime {
     }
 
     size_t max_data_segment_end = 0;
+    size_t segments_num = 0;
     forDataSegment([&](ModuleInstance::SegmentOffset offset,
                        ModuleInstance::SegmentData segment) {
       max_data_segment_end =
           std::max(max_data_segment_end, offset + segment.size());
+      segments_num++;
+      SL_DEBUG(log,
+               "Data segment {} at offset {}",
+               common::BufferView{segment},
+               offset);
     });
     if (gsl::narrow<size_t>(heap_base) < max_data_segment_end) {
       return ModuleInstance::Error::HEAP_BASE_TOO_LOW;
     }
+    BOOST_ASSERT(segments_num == 3);
 
     memory.resize(heap_base);
 
