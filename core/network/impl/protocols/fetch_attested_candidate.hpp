@@ -33,20 +33,23 @@ namespace kagome::network {
     FetchAttestedCandidateProtocol() = delete;
     ~FetchAttestedCandidateProtocol() override = default;
 
-    FetchAttestedCandidateProtocol(libp2p::Host &host,
-                       const application::ChainSpec &chain_spec,
-                       const blockchain::GenesisBlockHash &genesis_hash,
-                       std::shared_ptr<parachain::ParachainProcessorImpl> pp)
+    FetchAttestedCandidateProtocol(
+        libp2p::Host &host,
+        const application::ChainSpec &chain_spec,
+        const blockchain::GenesisBlockHash &genesis_hash,
+        std::shared_ptr<parachain::ParachainProcessorImpl> pp)
         : RequestResponseProtocol<
             vstaging::AttestedCandidateRequest,
             vstaging::AttestedCandidateResponse,
             ScaleMessageReadWriter>{kFetchAttestedCandidateProtocolName,
                                     host,
-                                    make_protocols(kFetchAttestedCandidateProtocol,
-                                                   genesis_hash,
-                                                   "polkadot"),
-                                    log::createLogger(kFetchAttestedCandidateProtocolName,
-                                                      "req_attested_candidate_protocol")},
+                                    make_protocols(
+                                        kFetchAttestedCandidateProtocol,
+                                        genesis_hash,
+                                        "polkadot"),
+                                    log::createLogger(
+                                        kFetchAttestedCandidateProtocolName,
+                                        "req_attested_candidate_protocol")},
           pp_{std::move(pp)} {
       BOOST_ASSERT(pp_);
     }
@@ -54,12 +57,14 @@ namespace kagome::network {
    private:
     std::optional<outcome::result<ResponseType>> onRxRequest(
         RequestType request, std::shared_ptr<Stream> /*stream*/) override {
-      base().logger()->info("Fetching attested candidate request.(candidate={})",
-                            request.candidate_hash);
+      base().logger()->info(
+          "Fetching attested candidate request.(candidate={})",
+          request.candidate_hash);
       auto res = pp_->OnFetchAttestedCandidateRequest(std::move(request));
       if (res.has_error()) {
-        base().logger()->error("Fetching attested candidate response failed.(error={})",
-                               res.error().message());
+        base().logger()->error(
+            "Fetching attested candidate response failed.(error={})",
+            res.error().message());
       } else {
         base().logger()->trace("Fetching attested candidate response.");
       }
@@ -67,10 +72,12 @@ namespace kagome::network {
     }
 
     void onTxRequest(const RequestType &request) override {
-      base().logger()->debug("Fetching attested candidate. (candidate={})", request.candidate_hash);
+      base().logger()->debug("Fetching attested candidate. (candidate={})",
+                             request.candidate_hash);
     }
 
-    inline static const auto kFetchAttestedCandidateProtocolName = "FetchAttestedCandidateProtocol"s;
+    inline static const auto kFetchAttestedCandidateProtocolName =
+        "FetchAttestedCandidateProtocol"s;
     std::shared_ptr<parachain::ParachainProcessorImpl> pp_;
   };
 

@@ -66,18 +66,21 @@ namespace kagome::network::vstaging {
   using CompactStatement =
       boost::variant<Empty, SecondedCandidateHash, ValidCandidateHash>;
   inline const CandidateHash &candidateHash(const CompactStatement &val) {
-    auto p = visit_in_place(val,
-      [&](const auto &v) -> std::optional<std::reference_wrapper<const CandidateHash>> {
-        return {{v.hash}};
-      },
-      [](const Empty &) -> std::optional<std::reference_wrapper<const CandidateHash>> {
-        return {};
-      });
-      if (p) {
-        return p->get();
-      }
-      UNREACHABLE;
-	}
+    auto p = visit_in_place(
+        val,
+        [&](const auto &v)
+            -> std::optional<std::reference_wrapper<const CandidateHash>> {
+          return {{v.hash}};
+        },
+        [](const Empty &)
+            -> std::optional<std::reference_wrapper<const CandidateHash>> {
+          return {};
+        });
+    if (p) {
+      return p->get();
+    }
+    UNREACHABLE;
+  }
 
   struct StatementDistributionMessageStatement {
     SCALE_TIE(2);
@@ -98,8 +101,8 @@ namespace kagome::network::vstaging {
 
     StatementFilter() = default;
     StatementFilter(size_t len) {
-        seconded_in_group.bits.assign(len, false);
-        validated_in_group.bits.assign(len, false);
+      seconded_in_group.bits.assign(len, false);
+      validated_in_group.bits.assign(len, false);
     }
   };
 

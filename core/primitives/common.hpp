@@ -60,11 +60,11 @@ struct std::hash<kagome::primitives::detail::BlockInfoT<Tag>> {
   }
 };
 
-template<typename T>
+template <typename T>
 struct InnerHash {
-    size_t operator()(const T &p) const noexcept { 
-        return p.inner_hash();
-    }
+  size_t operator()(const T &p) const noexcept {
+    return p.inner_hash();
+  }
 };
 
 template <typename Tag>

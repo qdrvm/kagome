@@ -123,11 +123,13 @@ namespace kagome::parachain {
       };
     }
 
-    bool is_importable(std::optional<std::reference_wrapper<const Hash>> under_active_leaf) const {
+    bool is_importable(std::optional<std::reference_wrapper<const Hash>>
+                           under_active_leaf) const {
       if (!under_active_leaf) {
         return !importable_under.empty();
       }
-      return importable_under.find(under_active_leaf->get()) != importable_under.end();
+      return importable_under.find(under_active_leaf->get())
+          != importable_under.end();
     }
   };
 
@@ -149,15 +151,16 @@ namespace kagome::parachain {
       return false;
     }
 
-	bool is_importable(const CandidateHash &candidate_hash) const {
-		auto opt_confirmed = get_confirmed(candidate_hash);
-    if (!opt_confirmed) {
-      return false;
+    bool is_importable(const CandidateHash &candidate_hash) const {
+      auto opt_confirmed = get_confirmed(candidate_hash);
+      if (!opt_confirmed) {
+        return false;
+      }
+      return opt_confirmed->get().is_importable(std::nullopt);
     }
-    return opt_confirmed->get().is_importable(std::nullopt);
-	}
 
-    std::optional<std::reference_wrapper<const ConfirmedCandidate>> get_confirmed(const CandidateHash &candidate_hash) const {
+    std::optional<std::reference_wrapper<const ConfirmedCandidate>>
+    get_confirmed(const CandidateHash &candidate_hash) const {
       auto it = candidates.find(candidate_hash);
       if (it != candidates.end()) {
         return if_type<const ConfirmedCandidate>(it->second);

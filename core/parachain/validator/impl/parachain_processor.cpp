@@ -364,7 +364,8 @@ namespace kagome::parachain {
     }
 
     std::optional<StatementStore> statement_store;
-    if (auto mode = prospective_parachains_->prospectiveParachainsMode(relay_parent)) {
+    if (auto mode =
+            prospective_parachains_->prospectiveParachainsMode(relay_parent)) {
       OUTCOME_TRY(session_index,
                   parachain_host_->session_index_for_child(relay_parent));
       OUTCOME_TRY(session_info,
@@ -607,27 +608,31 @@ namespace kagome::parachain {
       const network::vstaging::StatementDistributionMessage &msg) {
     BOOST_ASSERT(
         this_context_->io_context()->get_executor().running_in_this_thread());
-    
-    if (auto stm = if_type<const network::vstaging::StatementDistributionMessageStatement>(msg)) {
-      auto parachain_state =
-          tryGetStateByRelayParent(stm->get().relay_parent);
+
+    if (auto stm = if_type<
+            const network::vstaging::StatementDistributionMessageStatement>(
+            msg)) {
+      auto parachain_state = tryGetStateByRelayParent(stm->get().relay_parent);
       if (!parachain_state) {
         SL_WARN(logger_,
-            "After request pov no parachain state on relay_parent. (relay parent={})",
-            stm->get().relay_parent);
+                "After request pov no parachain state on relay_parent. (relay "
+                "parent={})",
+                stm->get().relay_parent);
         return;
       }
 
       auto opt_session_info = retrieveSessionInfo(stm->get().relay_parent);
       if (!opt_session_info) {
         SL_WARN(logger_,
-            "No session info for current parrent. (relay parent={})",
-            stm->get().relay_parent);
+                "No session info for current parrent. (relay parent={})",
+                stm->get().relay_parent);
         return;
       }
 
-      std::optional<GroupIndex> originator_group = [&]() -> std::optional<GroupIndex> {
-        for (GroupIndex g = 0; g < opt_session_info->validator_groups.size(); ++g) {
+      std::optional<GroupIndex> originator_group =
+          [&]() -> std::optional<GroupIndex> {
+        for (GroupIndex g = 0; g < opt_session_info->validator_groups.size();
+             ++g) {
           const auto &group = opt_session_info->validator_groups[g];
           for (const auto &v : group) {
             if (v == stm->get().compact.payload.ix) {
@@ -639,19 +644,20 @@ namespace kagome::parachain {
       }();
       if (!originator_group) {
         SL_TRACE(logger_,
-            "No correct validator index in statement. (relay parent={}, validator={})",
-            stm->get().relay_parent, stm->get().compact.payload.ix);
+                 "No correct validator index in statement. (relay parent={}, "
+                 "validator={})",
+                 stm->get().relay_parent,
+                 stm->get().compact.payload.ix);
         return;
       }
 
-      const auto &candidate_hash = candidateHash(getPayload(stm->get().compact));
-      const bool res = candidates_.insert_unconfirmed(
-        peer_id,
-        candidate_hash,
-        stm->get().relay_parent,
-        *originator_group,
-        std::nullopt
-      );
+      const auto &candidate_hash =
+          candidateHash(getPayload(stm->get().compact));
+      const bool res = candidates_.insert_unconfirmed(peer_id,
+                                                      candidate_hash,
+                                                      stm->get().relay_parent,
+                                                      *originator_group,
+                                                      std::nullopt);
       if (!res) {
         return;
       }
@@ -672,26 +678,36 @@ namespace kagome::parachain {
           return;
         }
 
-        const auto seconding_limit = parachain_state->get().prospective_parachains_mode->max_candidate_depth + 1;
+        const auto seconding_limit =
+            parachain_state->get()
+                .prospective_parachains_mode->max_candidate_depth
+            + 1;
         for (size_t i = 0; i < group.size(); ++i) {
           const auto &v = group[i];
-          if (parachain_state->get().statement_store->seconded_count(v) >= seconding_limit) {
+          if (parachain_state->get().statement_store->seconded_count(v)
+              >= seconding_limit) {
             unwanted_mask.seconded_in_group.bits[i] = true;
           }
         }
 
         router_->getFetchAttestedCandidateProtocol()->doRequest(
             peer_id,
-            network::vstaging::AttestedCandidateRequest {
-              .candidate_hash = candidate_hash,
-              .mask = std::move(unwanted_mask),
+            network::vstaging::AttestedCandidateRequest{
+                .candidate_hash = candidate_hash,
+                .mask = std::move(unwanted_mask),
             },
-            [wptr{weak_from_this()}](outcome::result<network::vstaging::AttestedCandidateResponse> r) {
+            [wptr{weak_from_this()},
+             relay_parent{stm->get().relay_parent},
+             candidate_hash,
+             groups{Groups{opt_session_info->validator_groups}}](
+                outcome::result<network::vstaging::AttestedCandidateResponse>
+                    r) mutable {
               if (auto self = wptr.lock()) {
-                return;
+                self->handleFetchedStatementResponse(std::move(r),
+                                                     std::move(relay_parent),
+                                                     std::move(candidate_hash),
+                                                     std::move(groups));
               }
-              /// TODO(iceseer): do
-              /// `handle_response`
             });
       }
 
@@ -699,71 +715,111 @@ namespace kagome::parachain {
       /// check statement signature
 
       Groups groups{opt_session_info->validator_groups};
-      const auto was_fresh_opt = parachain_state->get().statement_store->insert(groups,
-        stm->get().compact, StatementOrigin::Remote);
+      const auto was_fresh_opt = parachain_state->get().statement_store->insert(
+          groups, stm->get().compact, StatementOrigin::Remote);
       if (!was_fresh_opt) {
-          SL_WARN(logger_, "Accepted message from unknown validator. (relay parent={}, validator={})",
-            stm->get().relay_parent, stm->get().compact.payload.ix);
-          return;
-        }
+        SL_WARN(logger_,
+                "Accepted message from unknown validator. (relay parent={}, "
+                "validator={})",
+                stm->get().relay_parent,
+                stm->get().compact.payload.ix);
+        return;
+      }
 
       if (!*was_fresh_opt) {
-          SL_TRACE(logger_, "Statement was not fresh. (relay parent={}, validator={})",
-            stm->get().relay_parent, stm->get().compact.payload.ix);
+        SL_TRACE(logger_,
+                 "Statement was not fresh. (relay parent={}, validator={})",
+                 stm->get().relay_parent,
+                 stm->get().compact.payload.ix);
         return;
       }
 
       const auto is_importable = candidates_.is_importable(candidate_hash);
       if (is_importable && confirmed) {
-        send_backing_fresh_statement(confirmed->get(), stm->get().relay_parent, parachain_state->get(), group, candidate_hash);
+        send_backing_fresh_statement(confirmed->get(),
+                                     stm->get().relay_parent,
+                                     parachain_state->get(),
+                                     group,
+                                     candidate_hash);
       }
 
-      /// TODO(iceseer): do
-      /// send compact statement Versioned::VStaging(protocol_vstaging::StatementDistributionMessage::Statement
+      /// TODO(iceseer): do relay statemens based on knowledge of other peers
+      /// send compact statement
+      /// Versioned::VStaging(protocol_vstaging::StatementDistributionMessage::Statement
 
       return;
     }
-
   }
 
-  void ParachainProcessorImpl::send_backing_fresh_statement(const ConfirmedCandidate &confirmed, const RelayHash &relay_parent, ParachainProcessorImpl::RelayParentState &per_relay_parent, const std::vector<ValidatorIndex> &group, const CandidateHash &candidate_hash) {
+  void ParachainProcessorImpl::handleFetchedStatementResponse(
+      outcome::result<network::vstaging::AttestedCandidateResponse> &&r,
+      RelayHash &&relay_parent,
+      CandidateHash &&candidate_hash,
+      Group &&group) {
+    REINVOKE(*this_context_,
+             handleFetchedStatementResponse,
+             std::move(r),
+             std::move(relay_parent),
+             std::move(candidate_hash),
+             std::move(group));
+
+    /// TODO(iceseer): do
+    /// `handle_response`
+  }
+
+  void ParachainProcessorImpl::send_backing_fresh_statement(
+      const ConfirmedCandidate &confirmed,
+      const RelayHash &relay_parent,
+      ParachainProcessorImpl::RelayParentState &per_relay_parent,
+      const std::vector<ValidatorIndex> &group,
+      const CandidateHash &candidate_hash) {
     if (!per_relay_parent.statement_store) {
       return;
     }
 
-    std::vector<std::pair<ValidatorIndex, network::vstaging::CompactStatement>> imported;
-    per_relay_parent.statement_store->fresh_statements_for_backing(group, candidate_hash, [&](const IndexedAndSigned<network::vstaging::CompactStatement> &statement) {
-      const auto &v = statement.payload.ix;
-      const auto &compact = getPayload(statement);
-      imported.emplace_back(v, compact);
+    std::vector<std::pair<ValidatorIndex, network::vstaging::CompactStatement>>
+        imported;
+    per_relay_parent.statement_store->fresh_statements_for_backing(
+        group,
+        candidate_hash,
+        [&](const IndexedAndSigned<network::vstaging::CompactStatement>
+                &statement) {
+          const auto &v = statement.payload.ix;
+          const auto &compact = getPayload(statement);
+          imported.emplace_back(v, compact);
 
-      handleStatement(relay_parent,
-                      SignedFullStatementWithPVD{
-                          .payload =
-                              {
-                                  .payload = visit_in_place(compact,
-        [&](const network::vstaging::SecondedCandidateHash&) -> StatementWithPVD {
-          return StatementWithPVDSeconded {
-            .committed_receipt = confirmed.receipt,
-            .pvd = confirmed.persisted_validation_data,
-          };
-        },
-        [](const network::vstaging::ValidCandidateHash &val) -> StatementWithPVD {
-          return StatementWithPVDValid {
-            .candidate_hash = val.hash,
-          };
-        }, [](const auto &) -> StatementWithPVD { 
-          UNREACHABLE;
-          }),
-                                  .ix = statement.payload.ix,
+          handleStatement(
+              relay_parent,
+              SignedFullStatementWithPVD{
+                  .payload =
+                      {
+                          .payload = visit_in_place(
+                              compact,
+                              [&](const network::vstaging::SecondedCandidateHash
+                                      &) -> StatementWithPVD {
+                                return StatementWithPVDSeconded{
+                                    .committed_receipt = confirmed.receipt,
+                                    .pvd = confirmed.persisted_validation_data,
+                                };
                               },
-                          .signature = statement.signature,
-                      });
-    });
+                              [](const network::vstaging::ValidCandidateHash
+                                     &val) -> StatementWithPVD {
+                                return StatementWithPVDValid{
+                                    .candidate_hash = val.hash,
+                                };
+                              },
+                              [](const auto &) -> StatementWithPVD {
+                                UNREACHABLE;
+                              }),
+                          .ix = statement.payload.ix,
+                      },
+                  .signature = statement.signature,
+              });
+        });
 
-    	for (const auto &[v, s] : imported) {
-    		per_relay_parent.statement_store->note_known_by_backing(v, s);
-	    }
+    for (const auto &[v, s] : imported) {
+      per_relay_parent.statement_store->note_known_by_backing(v, s);
+    }
   }
 
   void ParachainProcessorImpl::process_legacy_statement(
@@ -1035,8 +1091,7 @@ namespace kagome::parachain {
 
     auto opt_parachain_state = tryGetStateByRelayParent(relay_parent);
     if (!opt_parachain_state) {
-      logger_->trace(
-          "Handled statement from {} out of view", relay_parent);
+      logger_->trace("Handled statement from {} out of view", relay_parent);
       return;
     }
 

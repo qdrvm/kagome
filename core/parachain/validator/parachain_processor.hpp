@@ -37,6 +37,7 @@
 #include "parachain/validator/backing_implicit_view.hpp"
 #include "parachain/validator/collations.hpp"
 #include "parachain/validator/impl/candidates.hpp"
+#include "parachain/validator/impl/statements_store.hpp"
 #include "parachain/validator/prospective_parachains.hpp"
 #include "parachain/validator/signer.hpp"
 #include "primitives/common.hpp"
@@ -44,7 +45,6 @@
 #include "utils/non_copyable.hpp"
 #include "utils/safe_object.hpp"
 #include "utils/thread_pool.hpp"
-#include "parachain/validator/impl/statements_store.hpp"
 
 namespace kagome::network {
   class Router;
@@ -220,7 +220,7 @@ namespace kagome::parachain {
 
       Collations collations;
       TableContext table_context;
-      std::optional<StatementStore> statement_store; 
+      std::optional<StatementStore> statement_store;
 
       std::unordered_set<primitives::BlockHash> awaiting_validation;
       std::unordered_set<primitives::BlockHash> issued_statements;
@@ -272,11 +272,17 @@ namespace kagome::parachain {
     void process_vstaging_statement(
         const libp2p::peer::PeerId &peer_id,
         const network::vstaging::StatementDistributionMessage &msg);
-        void send_backing_fresh_statement(const ConfirmedCandidate &confirmed, 
-          const RelayHash &relay_parent, 
-          ParachainProcessorImpl::RelayParentState& per_relay_parent, 
-          const std::vector<ValidatorIndex> &group, 
-          const CandidateHash &candidate_hash);
+    void send_backing_fresh_statement(
+        const ConfirmedCandidate &confirmed,
+        const RelayHash &relay_parent,
+        ParachainProcessorImpl::RelayParentState &per_relay_parent,
+        const std::vector<ValidatorIndex> &group,
+        const CandidateHash &candidate_hash);
+    void handleFetchedStatementResponse(
+        outcome::result<network::vstaging::AttestedCandidateResponse> &&r,
+        RelayHash &&relay_parent,
+        CandidateHash &&candidate_hash,
+        Group &&group);
 
     outcome::result<std::pair<CollatorId, ParachainId>> insertAdvertisement(
         network::PeerState &peer_data,
