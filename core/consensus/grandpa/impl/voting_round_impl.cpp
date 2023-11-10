@@ -1014,6 +1014,9 @@ namespace kagome::consensus::grandpa {
       env_->onVoted(round_number_, voter_set_->id(), prevote);
     }
 
+    // precommit if we were still waiting for prevotes and now have enough
+    // prevotes to construct precommit, or previous prevote ghost was updated
+    // https://github.com/paritytech/finality-grandpa/blob/8c45a664c05657f0c71057158d3ba555ba7d20de/src/voter/voting_round.rs#L630
     if (stage_ == Stage::PRECOMMIT_WAITS_FOR_PREVOTES) {
       if (updateGrandpaGhost()) {
         endPrecommitStage();
