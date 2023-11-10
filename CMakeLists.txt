@@ -6,7 +6,9 @@
 
 cmake_minimum_required(VERSION 3.12)
 
-cmake_policy(SET CMP0144 NEW)
+if(${CMAKE_VERSION} GREATER "3.27")
+  cmake_policy(SET CMP0144 NEW)
+endif()
 
 find_program(CCACHE_FOUND ccache)
 if(CCACHE_FOUND)
