@@ -699,14 +699,14 @@ namespace kagome::parachain {
             [wptr{weak_from_this()},
              relay_parent{stm->get().relay_parent},
              candidate_hash,
-             groups{Groups{opt_session_info->validator_groups}}](
+             groups{Groups{opt_session_info->validator_groups}}, group_index{*originator_group}](
                 outcome::result<network::vstaging::AttestedCandidateResponse>
                     r) mutable {
               if (auto self = wptr.lock()) {
                 self->handleFetchedStatementResponse(std::move(r),
                                                      std::move(relay_parent),
                                                      std::move(candidate_hash),
-                                                     std::move(groups));
+                                                     std::move(groups), group_index);
               }
             });
       }
@@ -755,13 +755,18 @@ namespace kagome::parachain {
       outcome::result<network::vstaging::AttestedCandidateResponse> &&r,
       RelayHash &&relay_parent,
       CandidateHash &&candidate_hash,
-      Group &&group) {
+      Groups &&groups, GroupIndex group_index) {
     REINVOKE(*this_context_,
              handleFetchedStatementResponse,
              std::move(r),
              std::move(relay_parent),
              std::move(candidate_hash),
-             std::move(group));
+             std::move(groups), group_index);
+
+    /// TODO(iceseer): do
+    /// validate response
+
+    
 
     /// TODO(iceseer): do
     /// `handle_response`

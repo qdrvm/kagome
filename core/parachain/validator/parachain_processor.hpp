@@ -282,7 +282,7 @@ namespace kagome::parachain {
         outcome::result<network::vstaging::AttestedCandidateResponse> &&r,
         RelayHash &&relay_parent,
         CandidateHash &&candidate_hash,
-        Group &&group);
+        Groups &&groups, GroupIndex group_index);
 
     outcome::result<std::pair<CollatorId, ParachainId>> insertAdvertisement(
         network::PeerState &peer_data,
