@@ -858,7 +858,18 @@ namespace kagome::parachain {
           required_parent_info,
       std::optional<std::reference_wrapper<const HypotheticalCandidate>>
           known_hypotheticals) {
-    candidates_.frontier_hypotheticals(required_parent_info)
+
+    std::vector<HypotheticalCandidate> hypotheticals;
+    if (!known_hypotheticals) {
+      hypotheticals = candidates_.frontier_hypotheticals(required_parent_info);
+    } else {
+      hypotheticals.emplace_back(known_hypotheticals->get());
+    }
+    
+    auto frontier = prospective_parachains_->answerHypotheticalFrontierRequest(hypotheticals, active_leaf_hash, false);
+    1
+
+
   }
 
   void ParachainProcessorImpl::apply_post_confirmation(
