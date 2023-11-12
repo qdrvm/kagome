@@ -279,6 +279,14 @@ namespace kagome::parachain {
         const std::vector<ValidatorIndex> &group,
         const CandidateHash &candidate_hash);
     void apply_post_confirmation(const PostConfirmation &post_confirmation);
+    void new_confirmed_candidate_fragment_tree_updates(
+        const HypotheticalCandidate &candidate);
+    void fragment_tree_update_inner(
+        std::optional<std::reference_wrapper<const Hash>> active_leaf_hash,
+        std::optional<std::pair<std::reference_wrapper<const Hash>,
+                                ParachainId>> required_parent_info,
+        std::optional<std::reference_wrapper<const HypotheticalCandidate>>
+            known_hypotheticals);
     void handleFetchedStatementResponse(
         outcome::result<network::vstaging::AttestedCandidateResponse> &&r,
         const RelayHash &relay_parent,

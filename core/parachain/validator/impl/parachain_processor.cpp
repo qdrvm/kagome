@@ -739,10 +739,10 @@ namespace kagome::parachain {
       const auto is_importable = candidates_.is_importable(candidate_hash);
       if (is_importable && confirmed) {
         send_backing_fresh_statements(confirmed->get(),
-                                     stm->get().relay_parent,
-                                     parachain_state->get(),
-                                     group,
-                                     candidate_hash);
+                                      stm->get().relay_parent,
+                                      parachain_state->get(),
+                                      group,
+                                      candidate_hash);
       }
 
       /// TODO(iceseer): do relay statemens based on knowledge of other peers
@@ -800,14 +800,20 @@ namespace kagome::parachain {
 
     const network::vstaging::AttestedCandidateResponse &response = r.value();
     for (const auto &statement : response.statements) {
-      parachain_state->get().statement_store->insert(groups, statement, StatementOrigin::Remote);
+      parachain_state->get().statement_store->insert(
+          groups, statement, StatementOrigin::Remote);
     }
 
-    auto opt_post_confirmation = 
-    candidates_.confirm_candidate(candidate_hash, response.candidate_receipt, response.persisted_validation_data, group_index, hasher_);
+    auto opt_post_confirmation =
+        candidates_.confirm_candidate(candidate_hash,
+                                      response.candidate_receipt,
+                                      response.persisted_validation_data,
+                                      group_index,
+                                      hasher_);
     if (!opt_post_confirmation) {
       SL_WARN(logger_,
-              "Candidate re-confirmed by request/response: logic error. (relay parent={}, candidate={})",
+              "Candidate re-confirmed by request/response: logic error. (relay "
+              "parent={}, candidate={})",
               relay_parent,
               candidate_hash);
       return;
@@ -826,22 +832,42 @@ namespace kagome::parachain {
     auto it = groups.groups.find(group_index);
     if (it == groups.groups.end()) {
       SL_WARN(logger_,
-              "Group was not found. (relay parent={}, candidate={}, group index={})",
+              "Group was not found. (relay parent={}, candidate={}, group "
+              "index={})",
               relay_parent,
-              candidate_hash, group_index);
+              candidate_hash,
+              group_index);
       return;
     }
 
-    send_backing_fresh_statements(
-      opt_confirmed->get(),
-      relay_parent, parachain_state->get(), it->second,candidate_hash
-    );
+    send_backing_fresh_statements(opt_confirmed->get(),
+                                  relay_parent,
+                                  parachain_state->get(),
+                                  it->second,
+                                  candidate_hash);
   }
 
-  void ParachainProcessorImpl::apply_post_confirmation(const PostConfirmation &post_confirmation) {
+  void ParachainProcessorImpl::new_confirmed_candidate_fragment_tree_updates(
+      const HypotheticalCandidate &candidate) {
+    fragment_tree_update_inner(std::nullopt, std::nullopt, {candidate});
+  }
+
+  void ParachainProcessorImpl::fragment_tree_update_inner(
+      std::optional<std::reference_wrapper<const Hash>> active_leaf_hash,
+      std::optional<std::pair<std::reference_wrapper<const Hash>, ParachainId>>
+          required_parent_info,
+      std::optional<std::reference_wrapper<const HypotheticalCandidate>>
+          known_hypotheticals) {
+    candidates_.frontier_hypotheticals(required_parent_info)
+  }
+
+  void ParachainProcessorImpl::apply_post_confirmation(
+      const PostConfirmation &post_confirmation) {
     /// TODO(iceseer): do
     /// `send_cluster_candidate_statements`
-    /// `new_confirmed_candidate_fragment_tree_updates`
+
+    new_confirmed_candidate_fragment_tree_updates(
+        post_confirmation.hypothetical);
   }
 
   void ParachainProcessorImpl::send_backing_fresh_statements(

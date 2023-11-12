@@ -86,6 +86,43 @@ namespace kagome::parachain {
                        InnerHash<UnconfiredImportablePair>>
         unconfirmed_importable_under;
 
+    void extend_hypotheticals(
+        const CandidateHash &candidate_hash,
+        std::vector<HypotheticalCandidate> &v,
+        const std::optional<std::pair<std::reference_wrapper<const Hash>,
+                                      ParachainId>> &required_parent) const {
+      auto extend_hypotheticals_inner =
+          [&](const Hash &parent_head_hash,
+              ParachainId para_id,
+              const std::vector<std::pair<Hash, size_t>>
+                  &possible_relay_parents) {
+            for (const auto &[relay_parent, _] : possible_relay_parents) {
+              v.emplace_back(HypotheticalCandidateIncomplete{
+                  .candidate_hash = candidate_hash,
+                  .candidate_para = para_id,
+                  .parent_head_data_hash = parent_head_hash,
+                  .candidate_relay_parent = relay_parent,
+              });
+            }
+          };
+
+      if (required_parent) {
+        if (auto h_it = parent_claims.find(required_parent->first.get());
+            h_it != parent_claims.end()) {
+          if (auto p_it = h_it->second.find(required_parent->second);
+              p_it != h_it->second.end()) {
+            extend_hypotheticals_inner(h_it->first, p_it->first, p_it->second);
+          }
+        }
+      } else {
+        for (const auto &[h, m] : parent_claims) {
+          for (const auto &[p, d] : m) {
+            extend_hypotheticals_inner(h, p, d);
+          }
+        }
+      }
+    }
+
     void add_claims(const libp2p::peer::PeerId &peer,
                     const CandidateClaims &c) {
       if (c.parent_hash_and_id) {
@@ -115,7 +152,8 @@ namespace kagome::parachain {
     RelayHash parent_hash;
     std::unordered_set<Hash> importable_under;
 
-    HypotheticalCandidate to_hypothetical(const CandidateHash &candidate_hash) {
+    HypotheticalCandidate to_hypothetical(
+        const CandidateHash &candidate_hash) const {
       return HypotheticalCandidateComplete{
           .candidate_hash = candidate_hash,
           .receipt = receipt,
@@ -142,6 +180,47 @@ namespace kagome::parachain {
         Hash,
         std::unordered_map<ParachainId, std::unordered_set<CandidateHash>>>
         by_parent;
+
+    std::vector<HypotheticalCandidate> frontier_hypotheticals(
+        const std::optional<std::pair<std::reference_wrapper<const Hash>,
+                                      ParachainId>> &parent) const {
+      std::vector<HypotheticalCandidate> v;
+      auto extend_hypotheticals =
+          [&](const CandidateHash &ch,
+              const CandidateState &cs,
+              const std::optional<
+                  std::pair<std::reference_wrapper<const Hash>, ParachainId>>
+                  &maybe_required_parent) {
+            visit_in_place(
+                cs,
+                [&](const UnconfirmedCandidate &u) {
+                  u.extend_hypotheticals(ch, v, maybe_required_parent);
+                },
+                [&](const ConfirmedCandidate &c) {
+                  v.emplace_back(c.to_hypothetical(ch));
+                });
+          };
+
+      if (parent) {
+        if (auto h_it = by_parent.find(parent->first);
+            h_it != by_parent.end()) {
+          if (auto p_it = h_it->second.find(parent->second);
+              p_it != h_it->second.end()) {
+            for (const auto &ch : p_it->second) {
+              if (auto it = candidates.find(ch); it != candidates.end()) {
+                extend_hypotheticals(ch, it->second, parent);
+              }
+            }
+          }
+        }
+      } else {
+        for (const auto &[ch, cs] : candidates) {
+          extend_hypotheticals(ch, cs, std::nullopt);
+        }
+      }
+
+      return v;
+    }
 
     bool is_confirmed(const CandidateHash &candidate_hash) const {
       auto it = candidates.find(candidate_hash);
