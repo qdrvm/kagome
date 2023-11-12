@@ -699,14 +699,16 @@ namespace kagome::parachain {
             [wptr{weak_from_this()},
              relay_parent{stm->get().relay_parent},
              candidate_hash,
-             groups{Groups{opt_session_info->validator_groups}}, group_index{*originator_group}](
+             groups{Groups{opt_session_info->validator_groups}},
+             group_index{*originator_group}](
                 outcome::result<network::vstaging::AttestedCandidateResponse>
                     r) mutable {
               if (auto self = wptr.lock()) {
                 self->handleFetchedStatementResponse(std::move(r),
-                                                     std::move(relay_parent),
-                                                     std::move(candidate_hash),
-                                                     std::move(groups), group_index);
+                                                     relay_parent,
+                                                     candidate_hash,
+                                                     std::move(groups),
+                                                     group_index);
               }
             });
       }
@@ -736,7 +738,7 @@ namespace kagome::parachain {
 
       const auto is_importable = candidates_.is_importable(candidate_hash);
       if (is_importable && confirmed) {
-        send_backing_fresh_statement(confirmed->get(),
+        send_backing_fresh_statements(confirmed->get(),
                                      stm->get().relay_parent,
                                      parachain_state->get(),
                                      group,
@@ -753,26 +755,96 @@ namespace kagome::parachain {
 
   void ParachainProcessorImpl::handleFetchedStatementResponse(
       outcome::result<network::vstaging::AttestedCandidateResponse> &&r,
-      RelayHash &&relay_parent,
-      CandidateHash &&candidate_hash,
-      Groups &&groups, GroupIndex group_index) {
+      const RelayHash &relay_parent,
+      const CandidateHash &candidate_hash,
+      Groups &&groups,
+      GroupIndex group_index) {
     REINVOKE(*this_context_,
              handleFetchedStatementResponse,
              std::move(r),
-             std::move(relay_parent),
-             std::move(candidate_hash),
-             std::move(groups), group_index);
+             relay_parent,
+             candidate_hash,
+             std::move(groups),
+             group_index);
+
+    if (r.has_error()) {
+      SL_TRACE(logger_,
+               "Fetch attested candidate returned an error. (relay parent={}, "
+               "candidate={}, group index={})",
+               relay_parent,
+               candidate_hash,
+               group_index);
+      return;
+    }
 
     /// TODO(iceseer): do
     /// validate response
 
-    
+    auto parachain_state = tryGetStateByRelayParent(relay_parent);
+    if (!parachain_state) {
+      SL_TRACE(
+          logger_,
+          "No relay parent data on fetch attested candidate response. (relay "
+          "parent={})",
+          relay_parent);
+      return;
+    }
 
-    /// TODO(iceseer): do
-    /// `handle_response`
+    if (!parachain_state->get().statement_store) {
+      SL_WARN(logger_,
+              "No statement store. (relay parent={}, candidate={})",
+              relay_parent,
+              candidate_hash);
+      return;
+    }
+
+    const network::vstaging::AttestedCandidateResponse &response = r.value();
+    for (const auto &statement : response.statements) {
+      parachain_state->get().statement_store->insert(groups, statement, StatementOrigin::Remote);
+    }
+
+    auto opt_post_confirmation = 
+    candidates_.confirm_candidate(candidate_hash, response.candidate_receipt, response.persisted_validation_data, group_index, hasher_);
+    if (!opt_post_confirmation) {
+      SL_WARN(logger_,
+              "Candidate re-confirmed by request/response: logic error. (relay parent={}, candidate={})",
+              relay_parent,
+              candidate_hash);
+      return;
+    }
+
+    auto &post_confirmation = *opt_post_confirmation;
+    apply_post_confirmation(post_confirmation);
+
+    auto opt_confirmed = candidates_.get_confirmed(candidate_hash);
+    BOOST_ASSERT(opt_confirmed);
+
+    if (!opt_confirmed->get().is_importable(std::nullopt)) {
+      return;
+    }
+
+    auto it = groups.groups.find(group_index);
+    if (it == groups.groups.end()) {
+      SL_WARN(logger_,
+              "Group was not found. (relay parent={}, candidate={}, group index={})",
+              relay_parent,
+              candidate_hash, group_index);
+      return;
+    }
+
+    send_backing_fresh_statements(
+      opt_confirmed->get(),
+      relay_parent, parachain_state->get(), it->second,candidate_hash
+    );
   }
 
-  void ParachainProcessorImpl::send_backing_fresh_statement(
+  void ParachainProcessorImpl::apply_post_confirmation(const PostConfirmation &post_confirmation) {
+    /// TODO(iceseer): do
+    /// `send_cluster_candidate_statements`
+    /// `new_confirmed_candidate_fragment_tree_updates`
+  }
+
+  void ParachainProcessorImpl::send_backing_fresh_statements(
       const ConfirmedCandidate &confirmed,
       const RelayHash &relay_parent,
       ParachainProcessorImpl::RelayParentState &per_relay_parent,

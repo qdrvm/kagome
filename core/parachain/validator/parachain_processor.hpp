@@ -272,17 +272,19 @@ namespace kagome::parachain {
     void process_vstaging_statement(
         const libp2p::peer::PeerId &peer_id,
         const network::vstaging::StatementDistributionMessage &msg);
-    void send_backing_fresh_statement(
+    void send_backing_fresh_statements(
         const ConfirmedCandidate &confirmed,
         const RelayHash &relay_parent,
         ParachainProcessorImpl::RelayParentState &per_relay_parent,
         const std::vector<ValidatorIndex> &group,
         const CandidateHash &candidate_hash);
+    void apply_post_confirmation(const PostConfirmation &post_confirmation);
     void handleFetchedStatementResponse(
         outcome::result<network::vstaging::AttestedCandidateResponse> &&r,
-        RelayHash &&relay_parent,
-        CandidateHash &&candidate_hash,
-        Groups &&groups, GroupIndex group_index);
+        const RelayHash &relay_parent,
+        const CandidateHash &candidate_hash,
+        Groups &&groups,
+        GroupIndex group_index);
 
     outcome::result<std::pair<CollatorId, ParachainId>> insertAdvertisement(
         network::PeerState &peer_data,
