@@ -96,16 +96,7 @@ namespace kagome::consensus::sassafras {
     outcome::result<primitives::Seal> sealBlock(
         const Context &ctx, const primitives::Block &block) const;
 
-    outcome::result<void> processSlotLeadership(
-        const Context &ctx,
-        TimePoint slot_timestamp,
-        std::optional<std::reference_wrapper<const crypto::VRFOutput>> output,
-        primitives::AuthorityIndex authority_index);
-
-    void changeLotteryEpoch(const Context &ctx,
-                            const EpochNumber &epoch,
-                            primitives::AuthorityIndex authority_index,
-                            const Epoch &sassafras_config) const;
+    outcome::result<void> processSlotLeadership(const Context &ctx);
 
     log::Logger log_;
 
@@ -120,6 +111,7 @@ namespace kagome::consensus::sassafras {
     std::shared_ptr<dispute::DisputeCoordinator> dispute_coordinator_;
 
     const bool is_validator_by_config_;
+    bool is_active_validator_;
 
     // Metrics
     metrics::RegistryPtr metrics_registry_ = metrics::createRegistry();

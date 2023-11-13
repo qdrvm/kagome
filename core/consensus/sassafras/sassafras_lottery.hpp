@@ -25,18 +25,19 @@ namespace kagome::consensus::sassafras {
      * @param randomness is an epoch random byte sequence
      * @param threshold is a maximum value that is considered valid by vrf
      * @param keypair is a current sassafras sign pair
+     * @return true if node validator in epoch, and false otherwise
      */
-    virtual void changeEpoch(EpochNumber epoch,
-                             const Randomness &randomness,
-                             const Threshold &ticket_threshold,
-                             const Threshold &threshold,
-                             const crypto::BandersnatchKeypair &keypair,
-                             AttemptsNumber attempts) = 0;
+    virtual bool changeEpoch(EpochNumber epoch,
+                             const primitives::BlockInfo &best_block) = 0;
 
     /**
      * Return lottery current epoch
      */
     virtual EpochNumber getEpoch() const = 0;
+
+    struct SlotLeadership {
+      std::optional<EphemeralSeed> erased_seed;
+    };
 
     /**
      * Compute leadership for the slot
@@ -44,31 +45,8 @@ namespace kagome::consensus::sassafras {
      * @return none means the peer was not chosen as a leader
      * for that slot, value contains VRF value and proof
      */
-    virtual std::optional<crypto::VRFOutput> getSlotLeadership(
-        const primitives::BlockHash &block,
-        SlotNumber slot,
-        bool allow_fallback) const = 0;
-
-    /**
-     * Computes VRF proof for the slot regardless threshold.
-     * Used when secondary VRF slots are enabled
-     * @param slot is a slot number
-     * @return VRF output and proof
-     */
-    virtual crypto::VRFOutput slotVrfSignature(SlotNumber slot) const = 0;
-
-    /**
-     * Compute the expected author for secondary slot
-     * @param slot - slot to have secondary block produced
-     * @param authorities_count - quantity of authorities in current epoch
-     * @param randomness - current randomness
-     * @return - should always return some authority unless authorities list is
-     * empty
-     */
-    virtual std::optional<primitives::AuthorityIndex> secondarySlotAuthor(
-        SlotNumber slot,
-        primitives::AuthorityListSize authorities_count,
-        const Randomness &randomness) const = 0;
+    virtual std::optional<SlotLeadership> getSlotLeadership(
+        const primitives::BlockHash &block, SlotNumber slot) const = 0;
   };
 
 }  // namespace kagome::consensus::sassafras
