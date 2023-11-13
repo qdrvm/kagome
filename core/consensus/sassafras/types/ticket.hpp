@@ -20,6 +20,7 @@
 
 namespace kagome::consensus::sassafras {
 
+  using EphemeralSeed = crypto::Ed25519Seed;
   using EphemeralPublic = crypto::Ed25519PublicKey;
   using EphemeralSignature = crypto::Ed25519Signature;
 
@@ -61,5 +62,14 @@ namespace kagome::consensus::sassafras {
     /// Signature verified via `TicketBody::erased_public`.
     EphemeralSignature erased_signature;
   };
+
+  struct Ticket {
+    SCALE_TIE(3);
+    TicketId id;
+    TicketEnvelope envelope;
+    EphemeralSeed erased_seed;
+  };
+
+  using Tickets = std::vector<Ticket>;
 
 }  // namespace kagome::consensus::sassafras

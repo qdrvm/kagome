@@ -12,7 +12,11 @@
 
 namespace kagome::consensus::sassafras {
 
-  using Authorities = std::vector<crypto::BandersnatchPublicKey>;
+  using Authority = crypto::BandersnatchPublicKey;
+
+  using Authorities = std::vector<Authority>;
+
+  using AuthorityIndex = uint32_t;
 
   /// Tickets threshold redundancy factor
   using RedundancyFactor = uint32_t;

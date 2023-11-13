@@ -11,10 +11,8 @@
 
 #include "application/app_configuration.hpp"
 #include "blockchain/block_tree.hpp"
-#include "consensus/babe/babe_config_repository.hpp"
 #include "consensus/sassafras/impl/sassafras_digests_util.hpp"
 #include "consensus/sassafras/impl/sassafras_error.hpp"
-#include "consensus/sassafras/impl/threshold_util.hpp"
 #include "consensus/sassafras/sassafras_config_repository.hpp"
 #include "consensus/sassafras/sassafras_lottery.hpp"
 #include "consensus/sassafras/types/seal.hpp"
@@ -144,67 +142,43 @@ namespace kagome::consensus::sassafras {
     }
     OUTCOME_TRY(epoch_number, slots_util_.get()->slotToEpoch(best_block, slot));
 
-    auto config_res = sassafras_config_repo_->config(best_block, epoch_number);
-    [[unlikely]] if (config_res.has_error()) {
-      SL_ERROR(log_,
-               "Can not get epoch: {}; Skipping slot processing",
-               config_res.error());
-      return config_res.as_failure();
-    }
-    auto &config = *config_res.value();
-
-    auto keypair = session_keys_->getSassafrasKeyPair(config.authorities);
-    if (not keypair) {
-      metric_is_relaychain_validator_->set(false);
-      if (is_validator_by_config_) {
-        SL_VERBOSE(log_,
-                   "Authority not known, skipping slot processing. "
-                   "Probably authority list has changed.");
+    // If epoch changed, generate and submit their candidate tickets along with
+    // validity proofs to the blockchain
+    if (lottery_->getEpoch() != epoch_number) {
+      is_active_validator_ = lottery_->changeEpoch(epoch_number, best_block);
+      metric_is_relaychain_validator_->set(is_active_validator_);
+      if (not is_active_validator_) {
+        if (is_validator_by_config_) {
+          SL_VERBOSE(log_,
+                     "Authority not known, skipping slot processing. "
+                     "Probably authority list has changed.");
+        }
       }
+    }
+
+    if (not is_active_validator_) {
       return BlockProductionError::NO_VALIDATOR;
     }
 
     Context ctx{.parent = best_block,
                 .epoch = epoch_number,
                 .slot = slot,
-                .slot_timestamp = slot_timestamp,
-                .keypair = std::move(keypair->first)};
-
-    metric_is_relaychain_validator_->set(true);
-    const auto &authority_index = keypair->second;
-
-    // If epoch changed, generate and submit their candidate tickets along with
-    // validity proofs to the blockchain
-    if (lottery_->getEpoch() != epoch_number) {
-      // TODO Generate and submit tickets here
-      changeLotteryEpoch(ctx, epoch_number, authority_index, config);
-    }
-
-    auto allow_fallback =
-        ((ctx.slot - config.start_slot) % config.authorities.size())
-        == authority_index;
+                .slot_timestamp = slot_timestamp};
 
     auto slot_leadership =
-        lottery_->getSlotLeadership(ctx.parent.hash, ctx.slot, allow_fallback);
+        lottery_->getSlotLeadership(ctx.parent.hash, ctx.slot);
 
     if (slot_leadership.has_value()) {
-      const auto &vrf_result = slot_leadership.value();
-      SL_DEBUG(log_,
-               "Sassafras author {} is slot-leader by toss "
-               "(vrfOutput: {}, proof: {})",
-               ctx.keypair->public_key,
-               common::Buffer(vrf_result.output),
-               common::Buffer(vrf_result.proof));
-
-      return processSlotLeadership(
-          ctx, slot_timestamp, std::cref(vrf_result), authority_index);
+      SL_TRACE(log_, "Node is not slot leader in current slot");
+      return BlockProductionError::NO_SLOT_LEADER;
     }
 
-    SL_TRACE(log_,
-             "Validator {} is not slot leader in current slot",
+    const auto &vrf_result = slot_leadership.value();
+    SL_DEBUG(log_,
+             "Sassafras author {} is slot-leader by toss",
              ctx.keypair->public_key);
 
-    return BlockProductionError::NO_SLOT_LEADER;
+    return processSlotLeadership(ctx);
   }
 
   outcome::result<primitives::PreRuntime> Sassafras::calculatePreDigest(
@@ -238,7 +212,7 @@ namespace kagome::consensus::sassafras {
 
     // clang-format on
     return primitives::PreRuntime{
-        {primitives::kBabeEngineId, encoded_slot_claim}};
+        {primitives::kSassafrasEngineId, encoded_slot_claim}};
   }
 
   outcome::result<primitives::Seal> Sassafras::sealBlock(
@@ -264,10 +238,11 @@ namespace kagome::consensus::sassafras {
   }
 
   outcome::result<void> Sassafras::processSlotLeadership(
-      const Context &ctx,
-      TimePoint slot_timestamp,
-      std::optional<std::reference_wrapper<const crypto::VRFOutput>> output,
-      primitives::AuthorityIndex authority_index) {
+      const Context &ctx
+      //, TimePoint slot_timestamp
+      //      std::optional<std::reference_wrapper<const crypto::VRFOutput>>
+      //      output, primitives::AuthorityIndex authority_index
+  ) {
     auto parent_header_res = block_tree_->getBlockHeader(ctx.parent.hash);
     BOOST_ASSERT_MSG(parent_header_res.has_value(),
                      "The best block is always known");
@@ -295,7 +270,7 @@ namespace kagome::consensus::sassafras {
 
     primitives::InherentData inherent_data;
     auto now = std::chrono::duration_cast<std::chrono::milliseconds>(
-                   slot_timestamp.time_since_epoch())
+                   ctx.slot_timestamp.time_since_epoch())
                    .count();
 
     if (auto res = inherent_data.putData<uint64_t>(kTimestampId, now);
@@ -526,31 +501,5 @@ namespace kagome::consensus::sassafras {
   //
   //    return outcome::success();
   //  }
-
-  void Sassafras::changeLotteryEpoch(const Context &ctx,
-                                     const EpochNumber &epoch,
-                                     primitives::AuthorityIndex authority_index,
-                                     const Epoch &sassafras_config) const {
-    BOOST_ASSERT(ctx.keypair != nullptr);
-
-    Threshold ticket_threshold =
-        ticket_id_threshold(sassafras_config.config.redundancy_factor,
-                            sassafras_config.epoch_length,
-                            sassafras_config.config.attempts_number,
-                            sassafras_config.authorities.size())
-            .number;
-
-    Threshold threshold;  // FIXME
-    //        = calculateThreshold(sassafras_config.leadership_rate,
-    //                             sassafras_config.authorities,
-    //                             authority_index);
-
-    lottery_->changeEpoch(epoch,
-                          sassafras_config.randomness,
-                          ticket_threshold,
-                          threshold,
-                          *ctx.keypair,
-                          sassafras_config.config.attempts_number);
-  }
 
 }  // namespace kagome::consensus::sassafras

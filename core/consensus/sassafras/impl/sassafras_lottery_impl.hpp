@@ -11,14 +11,11 @@
 #include <memory>
 #include <vector>
 
+#include "consensus/sassafras/types/sassafras_configuration.hpp"
 #include "consensus/sassafras/types/ticket.hpp"
 #include "crypto/random_generator.hpp"
 #include "log/logger.hpp"
 #include "storage/buffer_map_types.hpp"
-
-namespace kagome::application {
-  class AppStateManager;
-}
 
 namespace kagome::blockchain {
   class BlockTree;
@@ -38,6 +35,7 @@ namespace kagome::crypto {
   class VRFProvider;
   class BandersnatchProvider;
   class Ed25519Provider;
+  class SessionKeys;
 }  // namespace kagome::crypto
 
 namespace kagome::runtime {
@@ -53,7 +51,6 @@ namespace kagome::consensus::sassafras {
   class SassafrasLotteryImpl : public SassafrasLottery {
    public:
     SassafrasLotteryImpl(
-        application::AppStateManager &app_state_manager,
         std::shared_ptr<blockchain::BlockTree> block_tree,
         std::shared_ptr<crypto::CSPRNG> random_generator,
         std::shared_ptr<crypto::BandersnatchProvider> bandersnatch_provider,
@@ -63,33 +60,30 @@ namespace kagome::consensus::sassafras {
         std::shared_ptr<runtime::SassafrasApi> api,
         std::shared_ptr<offchain::OffchainWorkerFactory> ocw_factory,
         std::shared_ptr<offchain::Runner> ocw_runner,
-        std::shared_ptr<storage::SpacedStorage> storage);
-
-    bool prepare();
-
-    void changeEpoch(EpochNumber epoch,
-                     const Randomness &randomness,
-                     const Threshold &ticket_threshold,
-                     const Threshold &threshold,
-                     const crypto::BandersnatchKeypair &keypair,
-                     AttemptsNumber attempts) override;
+        std::shared_ptr<storage::SpacedStorage> storage,
+        std::shared_ptr<SassafrasConfigRepository> sassafras_config_repo,
+        std::shared_ptr<crypto::SessionKeys> session_keys);
 
     EpochNumber getEpoch() const override;
 
-    std::optional<crypto::VRFOutput> getSlotLeadership(
-        const primitives::BlockHash &block,
-        SlotNumber slot,
-        bool allow_fallback) const override;
+    bool changeEpoch(EpochNumber epoch,
+                     const primitives::BlockInfo &best_block) override;
 
-    crypto::VRFOutput slotVrfSignature(SlotNumber slot) const override;
-
-    std::optional<primitives::AuthorityIndex> secondarySlotAuthor(
-        SlotNumber slot,
-        primitives::AuthorityListSize authorities_count,
-        const Randomness &randomness) const override;
+    std::optional<SlotLeadership> getSlotLeadership(
+        const primitives::BlockHash &block, SlotNumber slot) const override;
 
    private:
-    void generateTickets();
+    void load();
+    void store() const;
+
+    outcome::result<void> setupActualEpoch(
+        EpochNumber epoch, const primitives::BlockInfo &best_block);
+    outcome::result<void> generateTickets(
+        EpochNumber epoch, const primitives::BlockInfo &best_block);
+
+    SlotLeadership primarySlotLeadership(SlotNumber slot,
+                                         const Ticket &ticket) const;
+    SlotLeadership secondarySlotLeadership(SlotNumber slot) const;
 
     log::Logger logger_;
 
@@ -103,23 +97,23 @@ namespace kagome::consensus::sassafras {
     std::shared_ptr<offchain::OffchainWorkerFactory> ocw_factory_;
     std::shared_ptr<offchain::Runner> ocw_runner_;
     std::shared_ptr<storage::BufferStorage> storage_;
+    std::shared_ptr<SassafrasConfigRepository> sassafras_config_repo_;
+    std::shared_ptr<crypto::SessionKeys> session_keys_;
+
+    using KeypairWithIndexOpt =
+        std::optional<std::pair<std::shared_ptr<crypto::BandersnatchKeypair>,
+                                primitives::AuthorityIndex>>;
 
     // Data of actual epoch
     EpochNumber epoch_;
     Randomness randomness_;
-    std::vector<TicketId> ticket_ids_;
-    std::vector<TicketEnvelope> tickets_;
-    crypto::BandersnatchKeypair keypair_;
+    AuthorityIndex auth_number_;
+    // AuthorityIndex auth_index_;
+    KeypairWithIndexOpt keypair_;
+    Tickets tickets_;
 
     // Data of next epoch
-    EpochNumber next_epoch_;
-    Randomness next_randomness_;
-    std::optional<std::vector<TicketId>> next_ticket_ids_;
-    std::optional<std::vector<TicketEnvelope>> next_tickets_;
-
-    Threshold ticket_threshold_;
-    Threshold threshold_;
-    AttemptsNumber attempts_;
+    std::optional<Tickets> next_tickets_;
   };
 
 }  // namespace kagome::consensus::sassafras
