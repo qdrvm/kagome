@@ -13,8 +13,6 @@
 #include <type_traits>
 #include <vector>
 
-#include "common/lexicographical_compare_three_way.hpp"
-
 namespace kagome::common {
 
   class MaxSizeException : public std::length_error {
@@ -360,11 +358,6 @@ namespace kagome::common {
         }
       }
       return Base::resize(size, value);
-    }
-
-    auto operator<=>(const SizeLimitedContainer &other) const {
-      return cxx20::lexicographical_compare_three_way(
-          Base::begin(), Base::end(), other.begin(), other.end());
     }
   };
 

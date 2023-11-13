@@ -9,6 +9,7 @@
 #include <optional>
 
 #include <gtest/gtest.h>
+#include <qtils/unhex.hpp>
 
 #include "mock/core/runtime/memory_mock.hpp"
 #include "mock/core/runtime/memory_provider_mock.hpp"
@@ -19,6 +20,7 @@
 using namespace kagome::host_api;
 using ::testing::Return;
 
+using qtils::operator""_unhex;
 using kagome::common::Buffer;
 using kagome::runtime::Memory;
 using kagome::runtime::MemoryMock;

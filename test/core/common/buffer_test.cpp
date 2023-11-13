@@ -7,10 +7,12 @@
 #include "common/buffer.hpp"
 
 #include <gtest/gtest.h>
+#include <qtils/unhex.hpp>
 #include <testutil/literals.hpp>
 
 using namespace kagome::common;
 using namespace std::string_literals;
+using qtils::operator""_unhex;
 
 /**
  * @given empty buffer

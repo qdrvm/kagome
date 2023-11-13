@@ -6,9 +6,8 @@
 
 #include "crypto/crypto_store/crypto_store_impl.hpp"
 
-#include <span>
+#include <qtils/bytestr.hpp>
 
-#include "common/bytestr.hpp"
 #include "common/visitor.hpp"
 #include "utils/read_file.hpp"
 
@@ -193,7 +192,7 @@ namespace kagome::crypto {
                  or 2 * ED25519_SEED_LENGTH == contents.size());  // hex
     Ed25519Seed seed;
     if (ED25519_SEED_LENGTH == contents.size()) {
-      OUTCOME_TRY(_seed, Ed25519Seed::fromSpan(str2byte(contents)));
+      OUTCOME_TRY(_seed, Ed25519Seed::fromSpan(qtils::str2byte(contents)));
       seed = _seed;
     } else if (2 * ED25519_SEED_LENGTH == contents.size()) {  // hex-encoded
       OUTCOME_TRY(_seed, Ed25519Seed::fromHex(contents));

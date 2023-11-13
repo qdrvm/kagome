@@ -6,7 +6,8 @@
 
 #pragma once
 
-#include "common/bytestr.hpp"
+#include <qtils/bytestr.hpp>
+
 #include "network/adapters/protobuf.hpp"
 #include "network/protobuf/light.v1.pb.h"
 #include "primitives/common.hpp"
@@ -42,6 +43,7 @@ namespace kagome::network {
         std::vector<uint8_t> &out,
         std::vector<uint8_t>::iterator loaded) {
       ::protobuf_generated::api::v1::light::Request msg;
+      using qtils::byte2str;
       if (auto call = boost::get<LightProtocolRequest::Call>(&t.op)) {
         auto &pb = *msg.mutable_remote_call_request();
         pb.set_block(std::string{byte2str(t.block)});
@@ -73,6 +75,7 @@ namespace kagome::network {
         std::vector<uint8_t>::const_iterator from) {
       const auto remains = src.size() - std::distance(src.begin(), from);
       BOOST_ASSERT(remains >= size(out));
+      using qtils::str2byte;
 
       ::protobuf_generated::api::v1::light::Request msg;
       if (not msg.ParseFromArray(from.base(), remains)) {
@@ -130,7 +133,7 @@ namespace kagome::network {
       auto &proof = t.call
                       ? *msg.mutable_remote_call_response()->mutable_proof()
                       : *msg.mutable_remote_read_response()->mutable_proof();
-      proof = byte2str(scale::encode(t.proof).value());
+      proof = qtils::byte2str(scale::encode(t.proof).value());
       return appendToVec(msg, out, loaded);
     }
 
@@ -148,9 +151,9 @@ namespace kagome::network {
 
       out.call = msg.has_remote_call_response();
       OUTCOME_TRY(proof,
-                  scale::decode<std::vector<common::Buffer>>(
-                      str2byte(out.call ? msg.remote_call_response().proof()
-                                        : msg.remote_read_response().proof())));
+                  scale::decode<std::vector<common::Buffer>>(qtils::str2byte(
+                      out.call ? msg.remote_call_response().proof()
+                               : msg.remote_read_response().proof())));
       out.proof = std::move(proof);
 
       std::advance(from, msg.ByteSizeLong());

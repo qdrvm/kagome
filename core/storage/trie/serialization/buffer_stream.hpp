@@ -29,7 +29,7 @@ namespace kagome::storage::trie {
         throw std::out_of_range("Data is out");
       }
       auto byte = data_[0];
-      data_.dropFirst(1);
+      data_ = data_.subspan(1);
       return byte;
     }
 

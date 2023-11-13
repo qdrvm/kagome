@@ -6,6 +6,8 @@
 
 #include "host_api/impl/misc_extension.hpp"
 
+#include <qtils/bytestr.hpp>
+
 #include "log/trace_macros.hpp"
 #include "primitives/version.hpp"
 #include "runtime/common/uncompress_code_if_needed.hpp"
@@ -84,7 +86,7 @@ namespace kagome::host_api {
       runtime::WasmSpan data) const {
     auto [ptr, len] = runtime::splitSpan(data);
     auto buf = memory_provider_->getCurrentMemory()->get().loadN(ptr, len);
-    logger_->info("utf8: {}", buf.toStringView());
+    logger_->info("utf8: {}", qtils::byte2str(buf));
   }
 
 }  // namespace kagome::host_api

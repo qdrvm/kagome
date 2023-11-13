@@ -6,8 +6,8 @@
 
 #include "host_api/impl/offchain_extension.hpp"
 
+#include <qtils/bytestr.hpp>
 #include <stdexcept>
-#include <thread>
 
 #include "log/trace_macros.hpp"
 #include "offchain/offchain_worker.hpp"
@@ -238,44 +238,42 @@ namespace kagome::host_api {
     auto &memory = memory_provider_->getCurrentMemory()->get();
 
     auto [method_ptr, method_size] = runtime::PtrSize(method_pos);
-    auto method_buffer = memory.loadN(method_ptr, method_size);
+    auto method_str = qtils::byte2str(memory.loadN(method_ptr, method_size));
 
     auto [uri_ptr, uri_size] = runtime::PtrSize(uri_pos);
-    auto uri_buffer = memory.loadN(uri_ptr, uri_size);
-    auto uri = uri_buffer.toStringView();
+    auto uri = qtils::byte2str(memory.loadN(uri_ptr, uri_size));
 
     auto [meta_ptr, meta_size] = runtime::PtrSize(meta_pos);
     [[maybe_unused]]  // It is future-reserved field, is not used now
     auto meta_buffer = memory.loadN(meta_ptr, meta_size);
 
     HttpMethod method = HttpMethod::Undefined;
-    if (method_buffer.toStringView() == "Get") {
+    if (method_str == "Get") {
       method = HttpMethod::Get;
-    } else if (method_buffer.toStringView() == "Post") {
+    } else if (method_str == "Post") {
       method = HttpMethod::Post;
     } else {
       SL_TRACE(
           log_,
           "ext_offchain_http_request_start_version_1( {}, {}, {} ) failed: "
           "Reason: unknown method",
-          method_buffer.toStringView(),
+          method_str,
           uri,
-          meta_buffer.toStringView());
+          qtils::byte2str(meta_buffer));
     }
 
     auto result = worker->httpRequestStart(method, uri, meta_buffer);
 
     if (result.isSuccess()) {
-      SL_TRACE_FUNC_CALL(
-          log_, result.value(), method_buffer.toStringView(), uri, meta_buffer);
+      SL_TRACE_FUNC_CALL(log_, result.value(), method_str, uri, meta_buffer);
 
     } else {
       SL_TRACE(log_,
                "ext_offchain_http_request_start_version_1( {}, {}, {} ) failed "
                "during execution",
-               method_buffer.toStringView(),
+               method_str,
                uri,
-               meta_buffer.toStringView());
+               qtils::byte2str(meta_buffer));
     }
 
     return memory.storeBuffer(scale::encode(result).value());
@@ -291,12 +289,10 @@ namespace kagome::host_api {
     auto &memory = memory_provider_->getCurrentMemory()->get();
 
     auto [name_ptr, name_size] = runtime::PtrSize(name_pos);
-    auto name_buffer = memory.loadN(name_ptr, name_size);
-    auto name = name_buffer.toStringView();
+    auto name = qtils::byte2str(memory.loadN(name_ptr, name_size));
 
     auto [value_ptr, value_size] = runtime::PtrSize(value_pos);
-    auto value_buffer = memory.loadN(value_ptr, value_size);
-    auto value = value_buffer.toStringView();
+    auto value = qtils::byte2str(memory.loadN(value_ptr, value_size));
 
     auto result = worker->httpRequestAddHeader(request_id, name, value);
 

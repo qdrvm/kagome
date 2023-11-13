@@ -8,8 +8,10 @@
 
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
+#include <qtils/unhex.hpp>
 #include "testutil/literals.hpp"
 
+using qtils::operator""_unhex;
 using kagome::common::Buffer;
 using namespace kagome::crypto;
 

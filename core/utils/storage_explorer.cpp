@@ -5,6 +5,7 @@
  */
 
 #include <libp2p/log/configurator.hpp>
+#include <qtils/unhex.hpp>
 
 #include "application/impl/app_configuration_impl.hpp"
 #include "blockchain/block_storage.hpp"
@@ -141,7 +142,7 @@ std::optional<kagome::primitives::BlockId> parseBlockId(const char *string) {
   kagome::primitives::BlockId id;
   if (strlen(string) == 2 * kagome::primitives::BlockHash::size()) {
     kagome::primitives::BlockHash id_hash{};
-    if (auto id_bytes = kagome::common::unhex(string); id_bytes) {
+    if (auto id_bytes = qtils::unhex(string)) {
       std::copy_n(id_bytes.value().begin(),
                   kagome::primitives::BlockHash::size(),
                   id_hash.begin());
@@ -271,7 +272,7 @@ class QueryStateCommand : public Command {
     assertArgumentCount(args, 3, 3);
 
     kagome::storage::trie::RootHash state_root{};
-    if (auto id_bytes = kagome::common::unhex(args[1]); id_bytes) {
+    if (auto id_bytes = qtils::unhex(args[1]); id_bytes) {
       std::copy_n(id_bytes.value().begin(),
                   kagome::primitives::BlockHash::size(),
                   state_root.begin());
@@ -283,7 +284,7 @@ class QueryStateCommand : public Command {
       throwError("Failed getting trie batch: {}", batch.error());
     }
     kagome::common::Buffer key{};
-    if (auto key_bytes = kagome::common::unhex(args[2]); key_bytes) {
+    if (auto key_bytes = qtils::unhex(args[2]); key_bytes) {
       key = kagome::common::Buffer{std::move(key_bytes.value())};
     } else {
       throwError("Invalid key!");

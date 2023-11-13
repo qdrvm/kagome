@@ -5,11 +5,13 @@
  */
 
 #include <gtest/gtest.h>
+#include <qtils/unhex.hpp>
 
 #include "common/blob.hpp"
 #include "crypto/hasher/hasher_impl.hpp"
 #include "testutil/literals.hpp"
 
+using qtils::operator""_unhex;
 using kagome::common::Buffer;
 
 /**

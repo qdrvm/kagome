@@ -6,9 +6,10 @@
 
 #include "authority_discovery/query/query_impl.hpp"
 
+#include <qtils/bytestr.hpp>
+
 #include "authority_discovery/protobuf/authority_discovery.v2.pb.h"
 #include "common/buffer_view.hpp"
-#include "common/bytestr.hpp"
 #include "crypto/sha/sha256.hpp"
 
 OUTCOME_CPP_DEFINE_CATEGORY(kagome::authority_discovery, QueryImpl::Error, e) {
@@ -27,6 +28,8 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::authority_discovery, QueryImpl::Error, e) {
 }
 
 namespace kagome::authority_discovery {
+  using qtils::str2byte;
+
   constexpr size_t kMaxActiveRequests = 8;
   constexpr std::chrono::seconds kIntervalInitial{2};
   constexpr std::chrono::minutes kIntervalMax{10};

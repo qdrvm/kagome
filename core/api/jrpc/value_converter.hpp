@@ -153,15 +153,15 @@ namespace kagome::api {
 
   template <size_t N>
   inline jsonrpc::Value makeValue(const common::Blob<N> &val) {
-    return common::hex_lower_0x(val.data(), val.size());
+    return common::hex_lower_0x(val);
   }
 
   inline jsonrpc::Value makeValue(const common::Buffer &val) {
-    return common::hex_lower_0x(val.asVector().data(), val.asVector().size());
+    return common::hex_lower_0x(val);
   }
 
   inline jsonrpc::Value makeValue(common::BufferView val) {
-    return common::hex_lower_0x(val.data(), val.size());
+    return common::hex_lower_0x(val);
   }
 
   inline jsonrpc::Value makeValue(const primitives::DigestItem &val) {

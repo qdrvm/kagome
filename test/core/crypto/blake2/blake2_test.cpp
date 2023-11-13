@@ -5,11 +5,13 @@
  */
 
 #include <gtest/gtest.h>
-#include <stdio.h>
+#include <qtils/unhex.hpp>
 
 #include "crypto/blake2/blake2b.h"
 #include "crypto/blake2/blake2s.h"
 #include "testutil/literals.hpp"
+
+using qtils::operator""_unhex;
 
 // Deterministic sequences (Fibonacci generator).
 

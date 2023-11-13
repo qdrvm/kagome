@@ -6,14 +6,10 @@
 
 #pragma once
 
-#include <span>
+#include <qtils/bytecmp.hpp>
 
 #include "common/hexutil.hpp"
-#include "common/lexicographical_compare_three_way.hpp"
 #include "macro/endianness_utils.hpp"
-
-#include <ranges>
-#include <span>
 
 inline auto operator""_bytes(const char *s, std::size_t size) {
   return std::span<const uint8_t>(reinterpret_cast<const uint8_t *>(s), size);
@@ -42,42 +38,13 @@ namespace kagome::common {
       return span::operator=(std::forward<T>(t));
     }
 
-    template <size_t count>
-    void dropFirst() {
-      *this = subspan<count>();
-    }
-
-    void dropFirst(size_t count) {
-      *this = subspan(count);
-    }
-
-    template <size_t count>
-    void dropLast() {
-      *this = first(size() - count);
-    }
-
-    void dropLast(size_t count) {
-      *this = first(size() - count);
-    }
-
     std::string toHex() const {
       return hex_lower(*this);
     }
-
-    std::string_view toStringView() const {
-      // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
-      return {reinterpret_cast<const char *>(data()), size()};
-    }
-
-    auto operator<=>(const BufferView &other) const noexcept {
-      return cxx20::lexicographical_compare_three_way(
-          span::begin(), span::end(), other.begin(), other.end());
-    }
-
-    auto operator==(const BufferView &other) const noexcept {
-      return (*this <=> other) == std::strong_ordering::equal;
-    }
   };
+
+  using qtils::operator<=>;
+  using qtils::operator==;
 
   inline std::ostream &operator<<(std::ostream &os, BufferView view) {
     return os << view.toHex();

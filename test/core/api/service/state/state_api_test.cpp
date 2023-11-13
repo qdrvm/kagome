@@ -303,9 +303,7 @@ namespace kagome::api {
     jsonrpc::Request::Parameters params;
     params.push_back(jsonrpc::Value::Array{std::string("test_data")});
 
-    EXPECT_OUTCOME_ERROR(result,
-                         subscribe_storage->init(params),
-                         common::UnhexError::MISSING_0X_PREFIX);
+    EXPECT_OUTCOME_FALSE_1(subscribe_storage->init(params));
   }
 
   /**
@@ -321,9 +319,7 @@ namespace kagome::api {
     jsonrpc::Request::Parameters params;
     params.push_back(jsonrpc::Value::Array{std::string("aa1122334455")});
 
-    EXPECT_OUTCOME_ERROR(result,
-                         subscribe_storage->init(params),
-                         common::UnhexError::MISSING_0X_PREFIX);
+    EXPECT_OUTCOME_FALSE_1(subscribe_storage->init(params));
   }
 
   /**
@@ -339,9 +335,7 @@ namespace kagome::api {
     jsonrpc::Request::Parameters params;
     params.push_back(jsonrpc::Value::Array{std::string("0xtest_data")});
 
-    EXPECT_OUTCOME_ERROR(result,
-                         subscribe_storage->init(params),
-                         common::UnhexError::NON_HEX_INPUT);
+    EXPECT_OUTCOME_FALSE_1(subscribe_storage->init(params));
   }
 
   /**

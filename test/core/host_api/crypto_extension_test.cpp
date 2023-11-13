@@ -9,7 +9,7 @@
 #include <algorithm>
 
 #include <gtest/gtest.h>
-#include <span>
+#include <qtils/unhex.hpp>
 
 #include "crypto/crypto_store/crypto_store_impl.hpp"
 #include "crypto/ecdsa/ecdsa_provider_impl.hpp"
@@ -28,6 +28,7 @@
 #include "testutil/prepare_loggers.hpp"
 
 using namespace kagome::host_api;
+using qtils::operator""_unhex;
 using kagome::common::Blob;
 using kagome::common::Buffer;
 using kagome::common::BufferView;

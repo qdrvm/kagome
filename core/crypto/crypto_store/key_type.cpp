@@ -6,10 +6,11 @@
 
 #include "crypto/crypto_store/key_type.hpp"
 
+#include <qtils/bytestr.hpp>
+#include <qtils/hex.hpp>
 #include <unordered_set>
 
 #include "common/blob.hpp"
-#include "common/bytestr.hpp"
 
 namespace kagome::crypto {
 
@@ -40,7 +41,9 @@ namespace kagome::crypto {
   }
 
   std::string encodeKeyFileName(const KeyType &type, common::BufferView key) {
-    return common::hex_lower(str2byte(encodeKeyTypeToStr(type))) + key.toHex();
+    return fmt::format("{:x}{:x}",
+                       qtils::str2byte(encodeKeyTypeToStr(type)),
+                       qtils::BytesIn{key});
   }
 
   outcome::result<std::pair<KeyType, common::Buffer>> decodeKeyFileName(
@@ -53,7 +56,7 @@ namespace kagome::crypto {
     }
     OUTCOME_TRY(type_raw, common::Blob<4>::fromHex(type_str));
     OUTCOME_TRY(key, common::Buffer::fromHex(key_str));
-    return std::make_pair(decodeKeyTypeFromStr(byte2str(type_raw)),
+    return std::make_pair(decodeKeyTypeFromStr(qtils::byte2str(type_raw)),
                           std::move(key));
   }
 }  // namespace kagome::crypto

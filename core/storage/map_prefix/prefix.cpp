@@ -7,7 +7,7 @@
 #include "storage/map_prefix/prefix.hpp"
 
 #include <boost/algorithm/string/predicate.hpp>
-#include <libp2p/common/bytestr.hpp>
+#include <qtils/bytestr.hpp>
 
 namespace kagome::storage {
   inline std::optional<Buffer> afterPrefix(Buffer key) {
@@ -107,7 +107,7 @@ namespace kagome::storage {
 
   MapPrefix::MapPrefix(std::string_view prefix,
                        std::shared_ptr<BufferStorage> map)
-      : MapPrefix{libp2p::bytestr(prefix), std::move(map)} {}
+      : MapPrefix{qtils::str2byte(prefix), std::move(map)} {}
 
   Buffer MapPrefix::_key(BufferView key) const {
     return Buffer{prefix}.put(key);

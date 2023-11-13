@@ -7,9 +7,9 @@
 #pragma once
 
 #include <fstream>
+#include <qtils/bytestr.hpp>
 
 #include "application/app_configuration.hpp"
-#include "common/bytestr.hpp"
 #include "common/outcome_throw.hpp"
 #include "crypto/crypto_store/crypto_store_impl.hpp"
 #include "crypto/ed25519_provider.hpp"
@@ -73,7 +73,7 @@ namespace kagome::injector {
     auto save = app_config.shouldSaveNodeKey();
     if (save) {
       std::ofstream file{path.c_str()};
-      file.write(byte2str(seed).data(), seed.size());
+      file.write(qtils::byte2str(seed).data(), seed.size());
     }
 
     auto key_pair = std::make_shared<libp2p::crypto::KeyPair>(

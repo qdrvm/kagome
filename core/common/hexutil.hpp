@@ -6,6 +6,7 @@
 
 #pragma once
 
+#include <qtils/bytes.hpp>
 #include <qtils/enum_error_code.hpp>
 #include <string_view>
 #include <vector>
@@ -13,9 +14,6 @@
 #include "outcome/outcome.hpp"
 
 namespace kagome::common {
-
-  class BufferView;
-
   /**
    * @brief error codes for exceptions that may occur during unhexing
    */
@@ -31,39 +29,20 @@ namespace kagome::common {
 OUTCOME_HPP_DECLARE_ERROR(kagome::common, UnhexError);
 
 namespace kagome::common {
-
-  /**
-   * @brief Converts an integer to an uppercase hex representation
-   */
-  std::string int_to_hex(uint64_t n, size_t fixed_width = 2) noexcept;
-
-  /**
-   * @brief Converts bytes to uppercase hex representation
-   * @param array bytes
-   * @param len length of bytes
-   * @return hexstring
-   */
-  std::string hex_upper(BufferView bytes) noexcept;
-
   /**
    * @brief Converts bytes to hex representation
    * @param array bytes
    * @param len length of bytes
    * @return hexstring
    */
-  std::string hex_lower(BufferView bytes) noexcept;
+  std::string hex_lower(qtils::BytesIn bytes) noexcept;
 
   /**
    * @brief Converts bytes to hex representation with prefix 0x
    * @param array bytes
    * @return hexstring
    */
-  std::string hex_lower_0x(BufferView bytes) noexcept;
-
-  /**
-   * @brief Adapter for ptr+size
-   */
-  std::string hex_lower_0x(const uint8_t *data, size_t size) noexcept;
+  std::string hex_lower_0x(qtils::BytesIn bytes) noexcept;
 
   /**
    * @brief Converts hex representation to bytes

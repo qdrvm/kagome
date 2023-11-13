@@ -8,7 +8,8 @@
 
 #include "network/adapters/protobuf.hpp"
 
-#include "common/bytestr.hpp"
+#include <qtils/bytestr.hpp>
+
 #include "network/protobuf/api.v1.pb.h"
 #include "network/types/blocks_response.hpp"
 #include "scale/scale.hpp"
@@ -118,9 +119,9 @@ namespace kagome::network {
         if (not src_block_data.justifications().empty()) {
           using Vec = std::vector<
               std::pair<primitives::ConsensusEngineId, common::Buffer>>;
-          OUTCOME_TRY(
-              vec,
-              scale::decode<Vec>(str2byte(src_block_data.justifications())));
+          OUTCOME_TRY(vec,
+                      scale::decode<Vec>(
+                          qtils::str2byte(src_block_data.justifications())));
           for (auto &[engine, raw] : vec) {
             if (engine == primitives::kGrandpaEngineId) {
               justification = primitives::Justification{std::move(raw)};
@@ -156,7 +157,7 @@ namespace kagome::network {
     template <typename T, typename F>
     static outcome::result<T> extract_value(F &&f) {
       if (const auto &buffer = std::forward<F>(f)(); !buffer.empty()) {
-        OUTCOME_TRY(decoded, scale::decode<T>(str2byte(buffer)));
+        OUTCOME_TRY(decoded, scale::decode<T>(qtils::str2byte(buffer)));
         return decoded;
       }
       return Q_ERROR(AdaptersError::EMPTY_DATA);

@@ -7,6 +7,7 @@
 #pragma once
 
 #include <jsonrpc-lean/request.h>
+#include <qtils/unhex.hpp>
 
 #include "primitives/mmr.hpp"
 
@@ -99,21 +100,12 @@ namespace kagome::api::details {
 
     template <size_t N>
     static void loadValue(common::Blob<N> &out, const jsonrpc::Value &j) {
-      auto &s = j.AsString();
-      if (s.starts_with("0x")) {
-        out = unwrap(out.fromHexWithPrefix(s));
-      } else {
-        out = unwrap(out.fromHex(s));
-      }
+      out = unwrap(
+          qtils::unhex<common::Blob<N>>(j.AsString(), qtils::Unhex0x::Yes));
     }
 
     static void loadValue(common::Buffer &out, const jsonrpc::Value &j) {
-      auto &s = j.AsString();
-      if (s.starts_with("0x")) {
-        out = unwrap(common::unhexWith0x(s));
-      } else {
-        out = unwrap(common::unhex(s));
-      }
+      out = unwrap(qtils::unhex(j.AsString(), qtils::Unhex0x::Yes));
     }
 
     static void loadValue(primitives::MmrLeavesProof &out,
