@@ -10,7 +10,7 @@
 
 #include "consensus/babe/types/babe_block_header.hpp"
 #include "consensus/babe/types/seal.hpp"
-#include "consensus/babe/types/slot.hpp"
+#include "consensus/babe/types/slot_type.hpp"
 #include "consensus/timeline/impl/block_production_error.hpp"
 #include "consensus/timeline/impl/timeline_impl.hpp"
 #include "mock/core/application/app_configuration_mock.hpp"

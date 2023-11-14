@@ -53,7 +53,9 @@ namespace scale {
             typename F,
             size_t N = std::remove_reference_t<T>::scale_tie>
   auto as_tie(T &&v, F &&f) {
-    if constexpr (N == 1) {
+    if constexpr (N == 0) {
+      return std::tie();
+    } else if constexpr (N == 1) {
       auto &[v0] = v;
       return std::forward<F>(f)(std::tie(v0));
     } else if constexpr (N == 2) {
@@ -107,7 +109,7 @@ namespace scale {
           v0, v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11, v12, v13, v14));
     } else {
       // generate code for bigger tuples
-      static_assert(N > 15 && "No code for such big tuple");
+      BOOST_STATIC_ASSERT_MSG(N > 15, "No code for such big tuple");
     }
   }
 
@@ -132,4 +134,5 @@ namespace scale {
     });
     return s;
   }
+
 }  // namespace scale

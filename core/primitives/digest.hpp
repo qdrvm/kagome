@@ -12,8 +12,8 @@
 #include "common/tagged.hpp"
 #include "common/unused.hpp"
 #include "consensus/babe/types/babe_block_header.hpp"
+#include "consensus/babe/types/babe_configuration.hpp"
 #include "consensus/constants.hpp"
-#include "primitives/babe_configuration.hpp"
 #include "primitives/scheduled_change.hpp"
 #include "scale/scale.hpp"
 #include "scale/tie.hpp"
@@ -77,7 +77,8 @@ namespace kagome::primitives {
 
   struct DecodedConsensusMessage {
     static outcome::result<DecodedConsensusMessage> create(
-        ConsensusEngineId engine_id, const common::Buffer &data) {
+        ConsensusEngineId engine_id, const common::Buffer &_data) {
+      auto data = std::span(_data);
       DecodedConsensusMessage msg;
       msg.consensus_engine_id = engine_id;
       if (engine_id == primitives::kBabeEngineId) {
@@ -98,26 +99,9 @@ namespace kagome::primitives {
       return msg;
     }
 
-    const BabeDigest &asBabeDigest() const {
-      BOOST_ASSERT(consensus_engine_id == primitives::kBabeEngineId);
-      return boost::relaxed_get<BabeDigest>(digest);
-    }
-
-    template <typename T>
-    bool isBabeDigestOf() const {
-      return consensus_engine_id == primitives::kBabeEngineId
-          && boost::get<T>(&asBabeDigest()) != nullptr;
-    }
-
     const GrandpaDigest &asGrandpaDigest() const {
       BOOST_ASSERT(consensus_engine_id == primitives::kGrandpaEngineId);
       return boost::relaxed_get<GrandpaDigest>(digest);
-    }
-
-    template <typename T>
-    bool isGrandpaDigestOf() const {
-      return consensus_engine_id == primitives::kGrandpaEngineId
-          && boost::get<T>(&asGrandpaDigest()) != nullptr;
     }
 
     ConsensusEngineId consensus_engine_id;

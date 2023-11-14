@@ -123,7 +123,7 @@ class BlockValidatorTest : public testing::Test {
   Threshold threshold_ = 3820948573;
   primitives::AuthorityList authorities_;
 
-  primitives::BabeConfiguration config_{
+  consensus::babe::BabeConfiguration config_{
       .leadership_rate = {3, 4},
       .authorities = {},
       .randomness = Randomness{uint256_to_le_bytes(475995757021)},

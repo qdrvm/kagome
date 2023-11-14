@@ -16,19 +16,19 @@ namespace kagome::consensus::babe {
    public:
     MOCK_METHOD(outcome::result<void>,
                 validateBlock,
-                (const primitives::Block &block,
-                 const primitives::AuthorityId &authority_id,
-                 const Threshold &threshold,
-                 const Randomness &randomness),
+                (const primitives::Block &,
+                 const primitives::AuthorityId &,
+                 const Threshold &,
+                 const Randomness &),
                 (const));
 
     MOCK_METHOD(outcome::result<void>,
                 validateHeader,
-                (const primitives::BlockHeader &header,
-                 const EpochNumber epoch_number,
-                 const primitives::AuthorityId &authority_id,
-                 const Threshold &threshold,
-                 const primitives::BabeConfiguration &config),
+                (const primitives::BlockHeader &,
+                 const EpochNumber,
+                 const primitives::AuthorityId &,
+                 const Threshold &,
+                 const consensus::babe::BabeConfiguration &),
                 (const, override));
   };
 
