@@ -29,6 +29,9 @@ namespace kagome::consensus {
     ProductionConsensus &operator=(ProductionConsensus &&) noexcept = delete;
     ProductionConsensus &operator=(const ProductionConsensus &) = delete;
 
+    /// Return true if this consensus is used at start network
+    virtual bool isGenesisConsensus() const = 0;
+
     virtual ValidatorStatus getValidatorStatus(
         const primitives::BlockInfo &parent_info,
         EpochNumber epoch_number) const = 0;

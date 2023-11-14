@@ -129,6 +129,12 @@ namespace kagome::consensus::babe {
     metric_is_relaychain_validator_->set(false);
   };
 
+  bool Babe::isGenesisConsensus() const {
+    primitives::BlockInfo genesis_block{0, block_tree_->getGenesisBlockHash()};
+    auto res = babe_config_repo_->config(genesis_block, 0);
+    return res.has_value();
+  }
+
   ValidatorStatus Babe::getValidatorStatus(const primitives::BlockInfo &block,
                                            EpochNumber epoch) const {
     auto babe_config = babe_config_repo_->config(block, epoch);

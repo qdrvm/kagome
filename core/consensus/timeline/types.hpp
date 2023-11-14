@@ -98,10 +98,10 @@ namespace kagome::consensus {
     }
 
     void init(SlotDuration _slot_duration, EpochLength _epoch_length) {
-      BOOST_ASSERT_MSG((bool)(*this), "Epoch timings are already initialized");
+      BOOST_ASSERT_MSG(not *this, "Epoch timings are already initialized");
       slot_duration = _slot_duration;
       epoch_length = _epoch_length;
-      BOOST_ASSERT_MSG(!(bool)(*this), "Epoch timings must not be zero");
+      BOOST_ASSERT_MSG(*this, "Epoch timings must not be zero");
     }
   };
 

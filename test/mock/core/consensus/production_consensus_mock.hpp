@@ -12,6 +12,8 @@
 
 namespace kagome::consensus {
   struct ProductionConsensusMock : public ProductionConsensus {
+    MOCK_METHOD(bool, isGenesisConsensus, (), (const, override));
+
     MOCK_METHOD(ValidatorStatus,
                 getValidatorStatus,
                 (const primitives::BlockInfo &, EpochNumber),
@@ -21,6 +23,7 @@ namespace kagome::consensus {
                 getSlot,
                 (const primitives::BlockHeader &),
                 (const, override));
+
     MOCK_METHOD(outcome::result<void>,
                 processSlot,
                 (SlotNumber, const primitives::BlockInfo &),

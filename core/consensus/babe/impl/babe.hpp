@@ -109,6 +109,8 @@ namespace kagome::consensus::babe {
         const ThreadPool &thread_pool,
         std::shared_ptr<boost::asio::io_context> main_thread);
 
+    bool isGenesisConsensus() const override;
+
     ValidatorStatus getValidatorStatus(const primitives::BlockInfo &parent_info,
                                        EpochNumber epoch_number) const override;
 
