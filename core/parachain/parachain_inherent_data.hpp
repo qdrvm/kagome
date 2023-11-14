@@ -28,7 +28,7 @@ namespace kagome::parachain {
     dispute::MultiDisputeStatementSet disputes;
 
     /// The head data is contains information about a parachain block. The head
-    /// data is returned by  executing the parachain Runtime and relay chain
+    /// data is returned by executing the parachain Runtime and relay chain
     /// validators are not concerned with its inner structure and treat it as a
     /// byte arrays.
     primitives::BlockHeader parent_header;

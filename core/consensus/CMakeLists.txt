@@ -6,6 +6,7 @@
 
 add_library(consensus_common
     block_production_error.cpp
+    production_consensus_base.cpp
 )
 target_link_libraries(consensus_common
     logger
