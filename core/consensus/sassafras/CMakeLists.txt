@@ -15,6 +15,7 @@ add_library(sassafras
     impl/bandersnatch.cpp
 )
 target_link_libraries(sassafras
+    consensus_common
     logger
     metrics
 )
