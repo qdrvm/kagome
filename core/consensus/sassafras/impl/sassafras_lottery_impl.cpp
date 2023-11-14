@@ -14,7 +14,7 @@
 #include "consensus/sassafras/sassafras_config_repository.hpp"
 #include "consensus/sassafras/types/ticket.hpp"
 #include "consensus/sassafras/vrf.hpp"
-#include "consensus/timeline/impl/block_production_error.hpp"
+#include "consensus/timeline/impl/slot_leadership_error.hpp"
 #include "crypto/bandersnatch_provider.hpp"
 #include "crypto/crypto_store/session_keys.hpp"
 #include "crypto/ed25519_provider.hpp"
@@ -150,6 +150,7 @@ namespace kagome::consensus::sassafras {
               res.error());
     }
 
+    SL_TRACE(logger_, "Epoch changed to epoch {}", epoch_);
     return keypair_.has_value();
   }
 
@@ -195,7 +196,7 @@ namespace kagome::consensus::sassafras {
       SL_VERBOSE(
           logger_,
           "Authorities are not match any our keys; Skip of ticket generating");
-      return BlockProductionError::NO_VALIDATOR;
+      return SlotLeadershipError::NO_VALIDATOR;
     }
 
     auto attempts_number = config.config.attempts_number;
@@ -332,9 +333,8 @@ namespace kagome::consensus::sassafras {
     return outcome::success();
   }
 
-  std::optional<SassafrasLottery::SlotLeadership>
-  SassafrasLotteryImpl::getSlotLeadership(const primitives::BlockHash &block,
-                                          SlotNumber slot) const {
+  std::optional<SlotLeadership> SassafrasLotteryImpl::getSlotLeadership(
+      const primitives::BlockHash &block, SlotNumber slot) const {
     BOOST_ASSERT_MSG(epoch_ != std::numeric_limits<uint64_t>::max(),
                      "Epoch must be initialized before this point");
     BOOST_ASSERT_MSG(keypair_.has_value(), "Node must be active validator");
@@ -377,7 +377,7 @@ namespace kagome::consensus::sassafras {
     return std::nullopt;
   }
 
-  SassafrasLottery::SlotLeadership SassafrasLotteryImpl::primarySlotLeadership(
+  SlotLeadership SassafrasLotteryImpl::primarySlotLeadership(
       SlotNumber slot, const Ticket &ticket) const {
     const auto &ticket_body = ticket.envelope.body;
 
@@ -437,11 +437,13 @@ namespace kagome::consensus::sassafras {
     // return res;
     //
 
-    return SlotLeadership{};
+    return SlotLeadership{.authority_index = keypair_->second,
+                          .keypair = keypair_->first,
+                          .erased_seed = ticket.erased_seed};
   }
 
-  SassafrasLottery::SlotLeadership
-  SassafrasLotteryImpl::secondarySlotLeadership(SlotNumber slot) const {
+  SlotLeadership SassafrasLotteryImpl::secondarySlotLeadership(
+      SlotNumber slot) const {
     // --- Secondary Claim Method ---
     auto b11 = Buffer().put(randomness_);
     auto b12 = Buffer().putUint64(epoch_);
@@ -466,7 +468,9 @@ namespace kagome::consensus::sassafras {
         td,
         vrfi);
 
-    return SlotLeadership{};
+    return SlotLeadership{.authority_index = keypair_->second,
+                          .keypair = keypair_->first,
+                          .erased_seed = std::nullopt};
   }
 
 }  // namespace kagome::consensus::sassafras

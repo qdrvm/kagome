@@ -89,14 +89,16 @@ namespace kagome::consensus::sassafras {
 
   // Plain VRF Signature -----------
 
-  using PlainSignature = OCTET_STRING;
+  using PlainSignature = common::Buffer;
 
   struct VrfSignature {
     SCALE_TIE(2);
     // represents the actual signature (opaque).
     PlainSignature signature;
     // a sequence of VrfOutputs corresponding to the VrfInputs values.
-    SEQUENCE_OF<VrfOutput> outputs;
+    std::vector<std::vector<uint8_t>>
+        //    SEQUENCE_OF<VrfOutput>
+        outputs;
   };
 
   VrfSignature plain_vrf_sign(crypto::BandersnatchSecretKey secret,

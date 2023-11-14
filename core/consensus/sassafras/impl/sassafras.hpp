@@ -11,19 +11,29 @@
 #include "clock/clock.hpp"
 #include "consensus/sassafras/phase.hpp"
 #include "consensus/sassafras/types/sassafras_configuration.hpp"
+#include "consensus/sassafras/types/slot_leadership.hpp"
 #include "consensus/sassafras/vrf.hpp"
 #include "injector/lazy.hpp"
 #include "log/logger.hpp"
 #include "metrics/metrics.hpp"
 #include "primitives/block.hpp"
+#include "primitives/event_types.hpp"
 #include "telemetry/service.hpp"
 
-namespace kagome::consensus::sassafras {
-  class SassafrasConfigRepository;  // FIXME STAB
+namespace boost::asio {
+  class io_context;
+}
+
+namespace kagome {
+  class ThreadPool;
 }
 
 namespace kagome::application {
   class AppConfiguration;
+}
+
+namespace kagome::authorship {
+  class Proposer;
 }
 
 namespace kagome::blockchain {
@@ -41,7 +51,8 @@ namespace kagome::consensus::sassafras {
 
 namespace kagome::crypto {
   class SessionKeys;
-}
+  class Hasher;
+}  // namespace kagome::crypto
 
 namespace kagome::dispute {
   class DisputeCoordinator;
@@ -51,6 +62,18 @@ namespace kagome::parachain {
   class BitfieldStore;
   class BackingStore;
 }  // namespace kagome::parachain
+
+namespace kagome::network {
+  class BlockAnnounceTransmitter;
+}
+
+namespace kagome::runtime {
+  class OffchainWorkerApi;
+}
+
+namespace kagome::storage::changes_trie {
+  class StorageChangesTrackerImpl;
+}
 
 namespace kagome::consensus::sassafras {
 
@@ -65,16 +88,26 @@ namespace kagome::consensus::sassafras {
       std::shared_ptr<crypto::BandersnatchKeypair> keypair;
     };
 
-    Sassafras(const application::AppConfiguration &app_config,
-              const clock::SystemClock &clock,
-              std::shared_ptr<blockchain::BlockTree> block_tree,
-              LazySPtr<SlotsUtil> slots_util,
-              std::shared_ptr<SassafrasConfigRepository> sassafras_config_repo,
-              std::shared_ptr<crypto::SessionKeys> session_keys,
-              std::shared_ptr<SassafrasLottery> lottery,
-              std::shared_ptr<parachain::BitfieldStore> bitfield_store,
-              std::shared_ptr<parachain::BackingStore> backing_store,
-              std::shared_ptr<dispute::DisputeCoordinator> dispute_coordinator);
+    Sassafras(
+        const application::AppConfiguration &app_config,
+        const clock::SystemClock &clock,
+        std::shared_ptr<blockchain::BlockTree> block_tree,
+        LazySPtr<SlotsUtil> slots_util,
+        std::shared_ptr<SassafrasConfigRepository> config_repo,
+        const EpochTimings &timings,
+        std::shared_ptr<crypto::SessionKeys> session_keys,
+        std::shared_ptr<SassafrasLottery> lottery,
+        std::shared_ptr<crypto::Hasher> hasher,
+        std::shared_ptr<parachain::BitfieldStore> bitfield_store,
+        std::shared_ptr<parachain::BackingStore> backing_store,
+        std::shared_ptr<dispute::DisputeCoordinator> dispute_coordinator,
+        std::shared_ptr<authorship::Proposer> proposer,
+        primitives::events::StorageSubscriptionEnginePtr storage_sub_engine,
+        primitives::events::ChainSubscriptionEnginePtr chain_sub_engine,
+        std::shared_ptr<network::BlockAnnounceTransmitter> announce_transmitter,
+        std::shared_ptr<runtime::OffchainWorkerApi> offchain_worker_api,
+        const ThreadPool &thread_pool,
+        std::shared_ptr<boost::asio::io_context> main_thread);
 
     bool isGenesisConsensus() const override;
 
@@ -88,30 +121,56 @@ namespace kagome::consensus::sassafras {
         SlotNumber slot, const primitives::BlockInfo &best_block) override;
 
    private:
-    outcome::result<primitives::PreRuntime> calculatePreDigest(
-        const Context &ctx,
-        std::optional<std::reference_wrapper<const crypto::VRFOutput>> output,
-        primitives::AuthorityIndex authority_index) const;
+    bool changeEpoch(EpochNumber epoch,
+                     const primitives::BlockInfo &block) const override;
 
-    outcome::result<primitives::Seal> sealBlock(
-        const Context &ctx, const primitives::Block &block) const;
+    bool checkSlotLeadership(const primitives::BlockInfo &block,
+                             SlotNumber slot) override;
 
-    outcome::result<void> processSlotLeadership(const Context &ctx);
+    outcome::result<void> processSlotLeadership();
+
+    outcome::result<primitives::PreRuntime> makePreDigest() const override;
+
+    outcome::result<primitives::Seal> makeSeal(
+        const primitives::Block &block) const override;
+
+    outcome::result<void> processSlotLeadershipProposed(
+        uint64_t now,
+        clock::SteadyClock::TimePoint proposal_start,
+        std::shared_ptr<storage::changes_trie::StorageChangesTrackerImpl>
+            &&changes_tracker,
+        primitives::Block &&block);
 
     log::Logger log_;
 
     const clock::SystemClock &clock_;
     std::shared_ptr<blockchain::BlockTree> block_tree_;
     LazySPtr<SlotsUtil> slots_util_;
-    std::shared_ptr<SassafrasConfigRepository> sassafras_config_repo_;
+    std::shared_ptr<SassafrasConfigRepository> config_repo_;
+    const EpochTimings &timings_;
     std::shared_ptr<crypto::SessionKeys> session_keys_;
     std::shared_ptr<SassafrasLottery> lottery_;
+    std::shared_ptr<crypto::Hasher> hasher_;
     std::shared_ptr<parachain::BitfieldStore> bitfield_store_;
     std::shared_ptr<parachain::BackingStore> backing_store_;
     std::shared_ptr<dispute::DisputeCoordinator> dispute_coordinator_;
+    std::shared_ptr<authorship::Proposer> proposer_;
+    primitives::events::StorageSubscriptionEnginePtr storage_sub_engine_;
+    primitives::events::ChainSubscriptionEnginePtr chain_sub_engine_;
+    std::shared_ptr<network::BlockAnnounceTransmitter> announce_transmitter_;
+    std::shared_ptr<runtime::OffchainWorkerApi> offchain_worker_api_;
+    std::shared_ptr<boost::asio::io_context> main_thread_;
+    std::shared_ptr<boost::asio::io_context> io_context_;
 
     const bool is_validator_by_config_;
     bool is_active_validator_;
+
+    primitives::BlockInfo parent_;
+    TimePoint slot_timestamp_;
+    SlotNumber slot_;
+    EpochNumber epoch_;
+    //    AuthorityIndex authority_index_;
+    SlotLeadership slot_leadership_;
 
     // Metrics
     metrics::RegistryPtr metrics_registry_ = metrics::createRegistry();
