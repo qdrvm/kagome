@@ -85,6 +85,15 @@ namespace kagome::crypto {
     return kp;
   }
 
+  outcome::result<BandersnatchKeypair>
+  CryptoStoreImpl::generateBandersnatchKeypair(
+      KeyType key_type, std::string_view mnemonic_phrase) {
+    OUTCOME_TRY(kp, generateKeypair(mnemonic_phrase, *bandersnatch_suite_));
+    getCache(bandersnatch_suite_, bandersnatch_caches_, key_type)
+        .insert(kp.public_key, kp.secret_key);
+    return kp;
+  }
+
   outcome::result<EcdsaKeypair> CryptoStoreImpl::generateEcdsaKeypair(
       KeyType key_type, const EcdsaSeed &seed) {
     OUTCOME_TRY(kp, ecdsa_suite_->generateKeypair(seed, {}));
@@ -109,6 +118,15 @@ namespace kagome::crypto {
     return kp;
   }
 
+  outcome::result<BandersnatchKeypair>
+  CryptoStoreImpl::generateBandersnatchKeypair(KeyType key_type,
+                                               const BandersnatchSeed &seed) {
+    OUTCOME_TRY(kp, bandersnatch_suite_->generateKeypair(seed, {}));
+    getCache(bandersnatch_suite_, bandersnatch_caches_, key_type)
+        .insert(kp.public_key, kp.secret_key);
+    return kp;
+  }
+
   outcome::result<EcdsaKeypair> CryptoStoreImpl::generateEcdsaKeypairOnDisk(
       KeyType key_type) {
     return generateKeypairOnDisk(key_type, ecdsa_suite_, ecdsa_caches_);
@@ -122,6 +140,12 @@ namespace kagome::crypto {
   outcome::result<Sr25519Keypair> CryptoStoreImpl::generateSr25519KeypairOnDisk(
       KeyType key_type) {
     return generateKeypairOnDisk(key_type, sr_suite_, sr_caches_);
+  }
+
+  outcome::result<BandersnatchKeypair>
+  CryptoStoreImpl::generateBandersnatchKeypairOnDisk(KeyType key_type) {
+    return generateKeypairOnDisk(
+        key_type, bandersnatch_suite_, bandersnatch_caches_);
   }
 
   outcome::result<EcdsaKeypair> CryptoStoreImpl::findEcdsaKeypair(

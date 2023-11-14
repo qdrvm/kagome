@@ -45,6 +45,7 @@
 #include "testutil/runtime/common/basic_code_provider.hpp"
 
 #include "core/runtime/wavm/runtime_paths.hpp"
+#include "crypto/bandersnatch/bandersnatch_provider_impl.hpp"
 
 class WavmModuleInitTest : public ::testing::TestWithParam<std::string_view> {
  public:
@@ -82,6 +83,8 @@ class WavmModuleInitTest : public ::testing::TestWithParam<std::string_view> {
     auto hasher = std::make_shared<kagome::crypto::HasherImpl>();
     auto sr25519_provider =
         std::make_shared<kagome::crypto::Sr25519ProviderImpl>();
+    auto bandersnatch_provider =
+        std::make_shared<kagome::crypto::BandersnatchProviderImpl>();
     auto ecdsa_provider =
         std::make_shared<kagome::crypto::EcdsaProviderImpl>(hasher);
     auto ed25519_provider =
@@ -100,14 +103,23 @@ class WavmModuleInitTest : public ::testing::TestWithParam<std::string_view> {
         std::make_shared<kagome::crypto::Ed25519Suite>(ed25519_provider);
     auto sr_suite =
         std::make_shared<kagome::crypto::Sr25519Suite>(sr25519_provider);
+    auto bandersnatch_suite =
+        std::make_shared<kagome::crypto::BandersnatchSuite>(
+            bandersnatch_provider);
     std::shared_ptr<kagome::crypto::KeyFileStorage> key_fs =
         kagome::crypto::KeyFileStorage::createAt(
             "/tmp/kagome_vawm_tmp_key_storage")
             .value();
     auto csprng =
         std::make_shared<libp2p::crypto::random::BoostRandomGenerator>();
-    auto crypto_store = std::make_shared<kagome::crypto::CryptoStoreImpl>(
-        ecdsa_suite, ed_suite, sr_suite, bip39_provider, csprng, key_fs);
+    auto crypto_store =
+        std::make_shared<kagome::crypto::CryptoStoreImpl>(ecdsa_suite,
+                                                          ed_suite,
+                                                          sr_suite,
+                                                          bandersnatch_suite,
+                                                          bip39_provider,
+                                                          csprng,
+                                                          key_fs);
 
     rocksdb::Options db_options{};
     db_options.create_if_missing = true;

@@ -7,22 +7,27 @@
 #include "bandersnatch_provider_impl.hpp"
 
 namespace kagome ::crypto {
-  //
+
   BandersnatchKeypair BandersnatchProviderImpl::generateKeypair(
       const BandersnatchSeed &seed,
       BandersnatchProvider::Junctions junctions) const {
-    return {};
+    throw std::runtime_error(
+        "Method 'BandersnatchProviderImpl::generateKeypair' is not implemented "
+        "yet");
   }
 
   outcome::result<BandersnatchSignature> BandersnatchProviderImpl::sign(
       const BandersnatchKeypair &keypair, common::BufferView message) const {
-    return {{}};
+    throw std::runtime_error(
+        "Method 'BandersnatchProviderImpl::sign' is not implemented yet");
   }
 
   outcome::result<bool> BandersnatchProviderImpl::verify(
       const BandersnatchSignature &signature,
       common::BufferView message,
       const BandersnatchPublicKey &public_key) const {
-    return false;
+    throw std::runtime_error(
+        "Method 'BandersnatchProviderImpl::verify' is not implemented yet");
   }
+
 }  // namespace kagome::crypto

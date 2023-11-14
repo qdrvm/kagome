@@ -64,6 +64,15 @@ namespace kagome::crypto {
         KeyType key_type, std::string_view mnemonic_phrase) = 0;
 
     /**
+     * @brief generates Bandersnatch keypair and stores it in memory
+     * @param key_type key type identifier
+     * @param mnemonic_phrase mnemonic phrase
+     * @return generated key pair or error
+     */
+    virtual outcome::result<BandersnatchKeypair> generateBandersnatchKeypair(
+        KeyType key_type, std::string_view mnemonic_phrase) = 0;
+
+    /**
      * @brief generates ecdsa keypair and stores it in memory
      * @param key_type key type identifier
      * @param seed seed for generating keys
@@ -91,6 +100,15 @@ namespace kagome::crypto {
         KeyType key_type, const Sr25519Seed &seed) = 0;
 
     /**
+     * @brief generates Bandersnatch keypair and stores it in memory
+     * @param key_type key type identifier
+     * @param seed seed for generating keys
+     * @return generated key
+     */
+    virtual outcome::result<BandersnatchKeypair> generateBandersnatchKeypair(
+        KeyType key_type, const BandersnatchSeed &seed) = 0;
+
+    /**
      * @brief generates ecdsa keypair and stores it on disk
      * @param key_type key type identifier
      * @return generated key pair or error
@@ -113,6 +131,14 @@ namespace kagome::crypto {
      */
     virtual outcome::result<Sr25519Keypair> generateSr25519KeypairOnDisk(
         KeyType key_type) = 0;
+
+    /**
+     * @brief generates Bandersnatch keypair and stores it on disk
+     * @param key_type key type identifier
+     * @return generated key pair or error
+     */
+    virtual outcome::result<BandersnatchKeypair>
+    generateBandersnatchKeypairOnDisk(KeyType key_type) = 0;
 
     /**
      * @brief searches for key pair

@@ -80,6 +80,11 @@ namespace kagome::crypto {
                 (KeyType, const Sr25519PublicKey &),
                 (const, override));
 
+    MOCK_METHOD(outcome::result<BandersnatchKeypair>,
+                findBandersnatchKeypair,
+                (KeyType, const BandersnatchPublicKey &),
+                (const, override));
+
     MOCK_METHOD(outcome::result<Ed25519Keys>,
                 getEd25519PublicKeys,
                 (KeyType),
@@ -87,6 +92,11 @@ namespace kagome::crypto {
 
     MOCK_METHOD(outcome::result<Sr25519Keys>,
                 getSr25519PublicKeys,
+                (KeyType),
+                (const, override));
+
+    MOCK_METHOD(outcome::result<BandersnatchKeys>,
+                getBandersnatchPublicKeys,
                 (KeyType),
                 (const, override));
 

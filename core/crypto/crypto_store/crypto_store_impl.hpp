@@ -59,6 +59,9 @@ namespace kagome::crypto {
     outcome::result<Sr25519Keypair> generateSr25519Keypair(
         KeyType key_type, std::string_view mnemonic_phrase) override;
 
+    outcome::result<BandersnatchKeypair> generateBandersnatchKeypair(
+        KeyType key_type, std::string_view mnemonic_phrase) override;
+
     outcome::result<EcdsaKeypair> generateEcdsaKeypair(
         KeyType key_type, const EcdsaSeed &seed) override;
 
@@ -68,6 +71,9 @@ namespace kagome::crypto {
     outcome::result<Sr25519Keypair> generateSr25519Keypair(
         KeyType key_type, const Sr25519Seed &seed) override;
 
+    outcome::result<BandersnatchKeypair> generateBandersnatchKeypair(
+        KeyType key_type, const BandersnatchSeed &seed) override;
+
     outcome::result<EcdsaKeypair> generateEcdsaKeypairOnDisk(
         KeyType key_type) override;
 
@@ -75,6 +81,9 @@ namespace kagome::crypto {
         KeyType key_type) override;
 
     outcome::result<Sr25519Keypair> generateSr25519KeypairOnDisk(
+        KeyType key_type) override;
+
+    outcome::result<BandersnatchKeypair> generateBandersnatchKeypairOnDisk(
         KeyType key_type) override;
 
     outcome::result<EcdsaKeypair> findEcdsaKeypair(
