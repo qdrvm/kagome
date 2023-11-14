@@ -82,17 +82,15 @@ namespace kagome::api {
         TransactionSource source,
         const primitives::Extrinsic &extrinsic) override;
 
-    outcome::result<void> insertKey(
-        crypto::KeyType key_type,
-        const gsl::span<const uint8_t> &seed,
-        const gsl::span<const uint8_t> &public_key) override;
+    outcome::result<void> insertKey(crypto::KeyType key_type,
+                                    const BufferView &seed,
+                                    const BufferView &public_key) override;
 
     outcome::result<common::Buffer> rotateKeys() override;
 
-    outcome::result<bool> hasSessionKeys(
-        const gsl::span<const uint8_t> &keys) override;
+    outcome::result<bool> hasSessionKeys(const BufferView &keys) override;
 
-    outcome::result<bool> hasKey(const gsl::span<const uint8_t> &public_key,
+    outcome::result<bool> hasKey(const BufferView &public_key,
                                  crypto::KeyType key_type) override;
 
     outcome::result<std::vector<primitives::Extrinsic>> pendingExtrinsics()

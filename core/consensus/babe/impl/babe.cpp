@@ -13,7 +13,6 @@
 #include "authorship/proposer.hpp"
 #include "blockchain/block_tree.hpp"
 #include "blockchain/block_tree_error.hpp"
-#include "blockchain/digest_tracker.hpp"
 #include "consensus/babe/babe_config_repository.hpp"
 #include "consensus/babe/babe_lottery.hpp"
 #include "consensus/babe/impl/babe_digests_util.hpp"
@@ -75,7 +74,6 @@ namespace kagome::consensus::babe {
       std::shared_ptr<parachain::BackingStore> backing_store,
       std::shared_ptr<dispute::DisputeCoordinator> dispute_coordinator,
       std::shared_ptr<authorship::Proposer> proposer,
-      std::shared_ptr<blockchain::DigestTracker> digest_tracker,
       primitives::events::StorageSubscriptionEnginePtr storage_sub_engine,
       primitives::events::ChainSubscriptionEnginePtr chain_sub_engine,
       std::shared_ptr<network::BlockAnnounceTransmitter> announce_transmitter,
@@ -95,7 +93,6 @@ namespace kagome::consensus::babe {
         backing_store_(std::move(backing_store)),
         dispute_coordinator_(std::move(dispute_coordinator)),
         proposer_(std::move(proposer)),
-        digest_tracker_(std::move(digest_tracker)),
         storage_sub_engine_(std::move(storage_sub_engine)),
         chain_sub_engine_(std::move(chain_sub_engine)),
         announce_transmitter_(std::move(announce_transmitter)),
@@ -114,7 +111,6 @@ namespace kagome::consensus::babe {
     BOOST_ASSERT(backing_store_);
     BOOST_ASSERT(dispute_coordinator_);
     BOOST_ASSERT(proposer_);
-    BOOST_ASSERT(digest_tracker_);
     BOOST_ASSERT(chain_sub_engine_);
     BOOST_ASSERT(chain_sub_engine_);
     BOOST_ASSERT(announce_transmitter_);
@@ -521,16 +517,6 @@ namespace kagome::consensus::babe {
     // add block to the block tree
     if (auto add_res = block_tree_->addBlock(block); not add_res) {
       SL_ERROR(log_, "Could not add block {}: {}", block_info, add_res.error());
-      auto removal_res = block_tree_->removeLeaf(block_info.hash);
-      if (removal_res.has_error()
-          and removal_res
-                  != outcome::failure(
-                      blockchain::BlockTreeError::BLOCK_IS_NOT_LEAF)) {
-        SL_WARN(log_,
-                "Rolling back of block {} is failed: {}",
-                block_info,
-                removal_res.error());
-      }
       return BabeError::CAN_NOT_SAVE_BLOCK;
     }
 
@@ -539,20 +525,6 @@ namespace kagome::consensus::babe {
 
     telemetry_->notifyBlockImported(block_info, telemetry::BlockOrigin::kOwn);
     telemetry_->pushBlockStats();
-
-    // observe digest of block
-    // (must be done strictly after block will be added)
-    auto digest_tracking_res = digest_tracker_->onDigest(
-        {.block_info = block_info, .header = block.header},
-        block.header.digest);
-
-    if (digest_tracking_res.has_error()) {
-      SL_WARN(log_,
-              "Error while tracking digest of block {}: {}",
-              block_info,
-              digest_tracking_res.error());
-      return outcome::success();
-    }
 
     // finally, broadcast the sealed block
     announce_transmitter_->blockAnnounce(network::BlockAnnounce{

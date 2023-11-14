@@ -34,10 +34,9 @@ namespace kagome::api {
         const std::optional<primitives::BlockHash> &block_hash_opt) const = 0;
 
     virtual outcome::result<std::optional<common::Buffer>> getStorage(
-        const common::BufferView &key) const = 0;
+        common::BufferView key) const = 0;
     virtual outcome::result<std::optional<common::Buffer>> getStorageAt(
-        const common::BufferView &key,
-        const primitives::BlockHash &at) const = 0;
+        common::BufferView key, const primitives::BlockHash &at) const = 0;
 
     struct StorageChangeSet {
       primitives::BlockHash block;
@@ -54,16 +53,16 @@ namespace kagome::api {
     };
 
     virtual outcome::result<std::vector<StorageChangeSet>> queryStorage(
-        gsl::span<const common::Buffer> keys,
+        std::span<const common::Buffer> keys,
         const primitives::BlockHash &from,
         std::optional<primitives::BlockHash> to) const = 0;
 
     virtual outcome::result<std::vector<StorageChangeSet>> queryStorageAt(
-        gsl::span<const common::Buffer> keys,
+        std::span<const common::Buffer> keys,
         std::optional<primitives::BlockHash> at) const = 0;
 
     virtual outcome::result<ReadProof> getReadProof(
-        gsl::span<const common::Buffer> keys,
+        std::span<const common::Buffer> keys,
         std::optional<primitives::BlockHash> at) const = 0;
 
     virtual outcome::result<uint32_t> subscribeStorage(

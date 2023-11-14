@@ -17,16 +17,16 @@ namespace kagome::crypto {
 
     outcome::result<Sr25519Signature> sign(
         const Sr25519Keypair &keypair,
-        gsl::span<const uint8_t> message) const override;
+        common::BufferView message) const override;
 
     outcome::result<bool> verify_deprecated(
         const Sr25519Signature &signature,
-        gsl::span<const uint8_t> message,
+        common::BufferView message,
         const Sr25519PublicKey &public_key) const override;
 
     outcome::result<bool> verify(
         const Sr25519Signature &signature,
-        gsl::span<const uint8_t> message,
+        common::BufferView message,
         const Sr25519PublicKey &public_key) const override;
   };
 

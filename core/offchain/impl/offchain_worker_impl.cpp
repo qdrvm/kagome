@@ -6,8 +6,10 @@
 
 #include "offchain/impl/offchain_worker_impl.hpp"
 
-#include <libp2p/host/host.hpp>
 #include <thread>
+
+#include <libp2p/common/final_action.hpp>
+#include <libp2p/host/host.hpp>
 
 #include "api/service/author/author_api.hpp"
 #include "application/app_configuration.hpp"
@@ -62,15 +64,15 @@ namespace kagome::offchain {
   outcome::result<void> OffchainWorkerImpl::run() {
     BOOST_ASSERT(not ocw_pool_->getWorker());
 
-    auto at_end =
-        gsl::finally([prev_thread_name = soralog::util::getThreadName()] {
+    ::libp2p::common::FinalAction at_end(
+        [prev_thread_name = soralog::util::getThreadName()] {
           soralog::util::setThreadName(prev_thread_name);
         });
 
     soralog::util::setThreadName("ocw.#" + std::to_string(block_.number));
 
     ocw_pool_->addWorker(shared_from_this());
-    auto remove = gsl::finally([&] { ocw_pool_->removeWorker(); });
+    ::libp2p::common::FinalAction remove([&] { ocw_pool_->removeWorker(); });
 
     SL_TRACE(log_, "Offchain worker is started for block {}", block_);
 

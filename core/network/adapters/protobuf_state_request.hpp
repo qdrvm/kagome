@@ -8,8 +8,8 @@
 
 #include "network/adapters/protobuf.hpp"
 
-#include <gsl/span>
 #include <libp2p/multi/uvarint.hpp>
+#include <span>
 
 #include "common/visitor.hpp"
 #include "macro/endianness_utils.hpp"

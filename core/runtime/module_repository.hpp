@@ -8,7 +8,7 @@
 
 #include <memory>
 
-#include <gsl/span>
+#include <span>
 
 #include "host_api/host_api.hpp"
 #include "outcome/outcome.hpp"

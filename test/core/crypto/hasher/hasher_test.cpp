@@ -29,7 +29,7 @@ class HasherFixture : public testing::Test {
   template <int size>
   static Buffer blob2buffer(const kagome::common::Blob<size> &blob) noexcept {
     Buffer out;
-    out.put({blob.data(), static_cast<long>(blob.size())});
+    out.put(blob);
     return out;
   }
 

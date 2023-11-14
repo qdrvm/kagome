@@ -10,7 +10,7 @@ extern "C" {
 #include <schnorrkel/schnorrkel.h>
 }
 #include <boost/multiprecision/cpp_int.hpp>
-#include <gsl/span>
+#include <span>
 
 #include "common/blob.hpp"
 #include "common/int_serialization.hpp"

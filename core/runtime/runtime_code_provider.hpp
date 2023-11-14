@@ -6,9 +6,10 @@
 
 #pragma once
 
-#include <gsl/span>
 #include <optional>
+#include <span>
 
+#include "common/buffer_view.hpp"
 #include "primitives/block_id.hpp"
 #include "storage/trie/types.hpp"
 
@@ -20,7 +21,7 @@ namespace kagome::runtime {
    public:
     virtual ~RuntimeCodeProvider() = default;
 
-    virtual outcome::result<gsl::span<const uint8_t>> getCodeAt(
+    virtual outcome::result<common::BufferView> getCodeAt(
         const storage::trie::RootHash &state) const = 0;
   };
 

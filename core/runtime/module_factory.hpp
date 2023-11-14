@@ -6,7 +6,7 @@
 
 #pragma once
 
-#include <gsl/span>
+#include <span>
 
 #include "outcome/outcome.hpp"
 #include "runtime/instance_environment.hpp"
@@ -21,7 +21,7 @@ namespace kagome::runtime {
     virtual ~ModuleFactory() = default;
 
     virtual outcome::result<std::shared_ptr<Module>> make(
-        gsl::span<const uint8_t> code) const = 0;
+        common::BufferView code) const = 0;
   };
 
 }  // namespace kagome::runtime

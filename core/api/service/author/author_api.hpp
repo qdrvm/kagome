@@ -8,6 +8,7 @@
 
 #include "common/blob.hpp"
 #include "common/buffer.hpp"
+#include "common/buffer_view.hpp"
 #include "crypto/crypto_store/key_type.hpp"
 #include "primitives/author_api_primitives.hpp"
 #include "primitives/transaction_validity.hpp"
@@ -25,6 +26,7 @@ namespace kagome::api {
    protected:
     using Hash256 = common::Hash256;
     using Buffer = common::Buffer;
+    using BufferView = common::BufferView;
     using Extrinsic = primitives::Extrinsic;
     using SubscriptionId = primitives::SubscriptionId;
     using ExtrinsicKey = primitives::ExtrinsicKey;
@@ -50,10 +52,9 @@ namespace kagome::api {
      * @param seed The seed (suri) in binary
      * @param public_key The public key in binary
      */
-    virtual outcome::result<void> insertKey(
-        crypto::KeyType key_type,
-        const gsl::span<const uint8_t> &seed,
-        const gsl::span<const uint8_t> &public_key) = 0;
+    virtual outcome::result<void> insertKey(crypto::KeyType key_type,
+                                            const BufferView &seed,
+                                            const BufferView &public_key) = 0;
 
     /**
      * @brief Generate new session keys and
@@ -69,8 +70,7 @@ namespace kagome::api {
      * @return returns true if all private keys could be found, false if
      * otherwise
      */
-    virtual outcome::result<bool> hasSessionKeys(
-        const gsl::span<const uint8_t> &keys) = 0;
+    virtual outcome::result<bool> hasSessionKeys(const BufferView &keys) = 0;
 
     /**
      * @brief checks if the keystore has private keys for the given public
@@ -78,9 +78,8 @@ namespace kagome::api {
      * @param public_key The public key in binary
      * @param key_type The key type
      */
-    virtual outcome::result<bool> hasKey(
-        const gsl::span<const uint8_t> &public_key,
-        crypto::KeyType key_type) = 0;
+    virtual outcome::result<bool> hasKey(const BufferView &public_key,
+                                         crypto::KeyType key_type) = 0;
 
     /**
      * @return collection of pending extrinsics

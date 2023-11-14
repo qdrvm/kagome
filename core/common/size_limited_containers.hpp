@@ -7,8 +7,8 @@
 #pragma once
 
 #include <fmt/format.h>
-#include <gsl/span>
 #include <limits>
+#include <span>
 #include <stdexcept>
 #include <type_traits>
 #include <vector>
@@ -29,7 +29,7 @@ namespace kagome::common {
   class SizeLimitedContainer : public BaseContainer {
    protected:
     using Base = BaseContainer;
-    using Span = gsl::span<typename Base::value_type>;
+    using Span = std::span<typename Base::value_type>;
 
     static constexpr bool size_check_is_enabled =
         MaxSize < std::numeric_limits<typename Base::size_type>::max();
@@ -364,7 +364,7 @@ namespace kagome::common {
 
     auto operator<=>(const SizeLimitedContainer &other) const {
       return cxx20::lexicographical_compare_three_way(
-          Base::cbegin(), Base::cend(), other.cbegin(), other.cend());
+          Base::begin(), Base::end(), other.begin(), other.end());
     }
   };
 

@@ -23,6 +23,6 @@ namespace kagome::network {
      * @param txs - list of transaction to be sent
      */
     virtual void propagateTransactions(
-        gsl::span<const primitives::Transaction> txs) = 0;
+        std::span<const primitives::Transaction> txs) = 0;
   };
 }  // namespace kagome::network

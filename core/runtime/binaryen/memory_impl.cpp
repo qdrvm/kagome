@@ -120,17 +120,15 @@ namespace kagome::runtime::binaryen {
   }
 
   void MemoryImpl::storeBuffer(kagome::runtime::WasmPointer addr,
-                               gsl::span<const uint8_t> value) {
-    BOOST_ASSERT(
-        (allocator_->checkAddress(addr, static_cast<size_t>(value.size()))));
+                               common::BufferView value) {
+    BOOST_ASSERT((allocator_->checkAddress(addr, value.size())));
     memory_->set(addr, std::move(value));
     SL_INFO(logger_, "store buffer with size {} at {}", value.size(), addr);
   }
 
-  WasmSpan MemoryImpl::storeBuffer(gsl::span<const uint8_t> value) {
-    const auto size = static_cast<size_t>(value.size());
-    BOOST_ASSERT(std::numeric_limits<WasmSize>::max() > size);
-    auto wasm_pointer = allocate(size);
+  WasmSpan MemoryImpl::storeBuffer(common::BufferView value) {
+    BOOST_ASSERT(std::numeric_limits<WasmSize>::max() > value.size());
+    auto wasm_pointer = allocate(value.size());
     if (wasm_pointer == 0) {
       return 0;
     }

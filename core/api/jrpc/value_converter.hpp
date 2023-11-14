@@ -293,8 +293,8 @@ namespace kagome::api {
           jArray peers;
           peers.resize(params.peers.size());
           std::transform(
-              params.peers.cbegin(),
-              params.peers.cend(),
+              params.peers.begin(),
+              params.peers.end(),
               peers.begin(),
               [](const auto &peer_id) { return makeValue(peer_id.toHex()); });
           return jStruct{std::pair{"broadcast", std::move(peers)}};

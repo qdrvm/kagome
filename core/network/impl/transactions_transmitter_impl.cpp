@@ -15,7 +15,7 @@ namespace kagome::network {
       : router_(std::move(router)) {}
 
   void TransactionsTransmitterImpl::propagateTransactions(
-      gsl::span<const primitives::Transaction> txs) {
+      std::span<const primitives::Transaction> txs) {
     auto protocol = router_->getPropagateTransactionsProtocol();
     BOOST_ASSERT_MSG(protocol,
                      "Router did not provide propagate transactions protocol");

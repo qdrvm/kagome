@@ -8,7 +8,6 @@
 
 #include <cstdint>
 
-#include <gsl/span>
 #include <optional>
 
 #include "network/types/block_attributes.hpp"

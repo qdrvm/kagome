@@ -32,7 +32,7 @@ namespace kagome::crypto {
      * @return seed bytes
      */
     virtual outcome::result<bip39::Bip39Seed> makeSeed(
-        gsl::span<const uint8_t> entropy, std::string_view password) const = 0;
+        common::BufferView entropy, std::string_view password) const = 0;
 
     virtual outcome::result<bip39::Bip39SeedAndJunctions> generateSeed(
         std::string_view mnemonic_phrase) const = 0;

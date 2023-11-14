@@ -13,7 +13,7 @@ namespace kagome::crypto {
 
   class EcdsaProvider {
    public:
-    using Junctions = gsl::span<const bip39::RawJunction>;
+    using Junctions = std::span<const bip39::RawJunction>;
 
     virtual ~EcdsaProvider() = default;
 
@@ -21,14 +21,14 @@ namespace kagome::crypto {
         const EcdsaSeed &seed, Junctions junctions) const = 0;
 
     virtual outcome::result<EcdsaSignature> sign(
-        gsl::span<const uint8_t> message, const EcdsaPrivateKey &key) const = 0;
+        common::BufferView message, const EcdsaPrivateKey &key) const = 0;
 
     virtual outcome::result<EcdsaSignature> signPrehashed(
         const EcdsaPrehashedMessage &message,
         const EcdsaPrivateKey &key) const = 0;
 
     virtual outcome::result<bool> verify(
-        gsl::span<const uint8_t> message,
+        common::BufferView message,
         const EcdsaSignature &signature,
         const EcdsaPublicKey &publicKey) const = 0;
 

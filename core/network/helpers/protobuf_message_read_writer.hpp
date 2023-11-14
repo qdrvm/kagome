@@ -80,7 +80,7 @@ namespace kagome::network {
       std::vector<uint8_t> out;
       auto it = ProtobufRW::write(msg, out);
 
-      gsl::span<uint8_t> data(it.base(),
+      std::span<uint8_t> data(it.base(),
                               out.size() - std::distance(out.begin(), it));
 
       read_writer_->write(data,

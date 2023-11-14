@@ -107,8 +107,7 @@ namespace kagome::network {
       return Error::INVALID_CHILD_ROOTHASH;
     }
     if (request.start.size() == 2
-        and not boost::starts_with(request.start[0],
-                                   storage::kChildStoragePrefix)) {
+        and not startsWith(request.start[0], storage::kChildStoragePrefix)) {
       return Error::INVALID_CHILD_ROOTHASH;
     }
     OUTCOME_TRY(header, blocks_headers_->getBlockHeader(request.hash));
@@ -119,7 +118,7 @@ namespace kagome::network {
     OUTCOME_TRY(batch, storage_->getEphemeralBatchAt(header.state_root));
 
     auto cursor = batch->trieCursor();
-    // if key is not empty continue iteration from place where left
+    // if key is not empty, continue iteration from place where left
     auto res = (request.start.empty() || request.start[0].empty()
                     ? cursor->next()
                     : cursor->seekUpperBound(request.start[0]));
@@ -161,7 +160,7 @@ namespace kagome::network {
         size +=
             entry.entries.back().key.size() + entry.entries.back().value.size();
         // if key is child state storage hash iterate child storage keys
-        if (boost::starts_with(cursor->key().value(), child_prefix)) {
+        if (startsWith(cursor->key().value(), child_prefix)) {
           OUTCOME_TRY(hash,
                       storage::trie::RootHash::fromSpan(*value_res.value()));
           OUTCOME_TRY(entry_res,
@@ -234,7 +233,7 @@ namespace kagome::network {
         }
         auto key = cursor->key().value();
         if (stack.size() == 1
-            and boost::starts_with(key, storage::kChildStoragePrefix)) {
+            and startsWith(key, storage::kChildStoragePrefix)) {
           OUTCOME_TRY(root, common::Hash256::fromSpan(*value));
           if (child_roots.emplace(root).second) {
             OUTCOME_TRY(batch, get_batch(root));

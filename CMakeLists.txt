@@ -38,6 +38,8 @@ endif()
 
 if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
   link_libraries(atomic)
+elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
+  link_libraries(atomic)
 endif()
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)

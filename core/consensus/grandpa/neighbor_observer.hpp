@@ -24,8 +24,10 @@ namespace kagome::consensus::grandpa {
      * Handler of grandpa neighbor messages
      * @param msg neighbor messages
      */
-    virtual void onNeighborMessage(const libp2p::peer::PeerId &peer_id,
-                                   network::GrandpaNeighborMessage &&msg) = 0;
+    virtual void onNeighborMessage(
+        const libp2p::peer::PeerId &peer_id,
+        std::optional<network::PeerStateCompact> &&info_opt,
+        network::GrandpaNeighborMessage &&msg) = 0;
   };
 
 }  // namespace kagome::consensus::grandpa

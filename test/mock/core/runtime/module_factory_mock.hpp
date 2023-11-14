@@ -18,7 +18,7 @@ namespace kagome::runtime {
    public:
     MOCK_METHOD(outcome::result<std::shared_ptr<Module>>,
                 make,
-                (gsl::span<const uint8_t>),
+                (common::BufferView),
                 (const, override));
   };
 }  // namespace kagome::runtime

@@ -14,11 +14,8 @@
 #include "consensus/babe/types/seal.hpp"
 #include "consensus/timeline/impl/block_appender_base.hpp"
 #include "mock/core/blockchain/block_tree_mock.hpp"
-#include "mock/core/blockchain/digest_tracker_mock.hpp"
 #include "mock/core/consensus/babe/babe_config_repository_mock.hpp"
 #include "mock/core/consensus/grandpa/environment_mock.hpp"
-#include "mock/core/consensus/grandpa/grandpa_digest_observer_mock.hpp"
-#include "mock/core/consensus/timeline/consistency_keeper_mock.hpp"
 #include "mock/core/consensus/timeline/slots_util_mock.hpp"
 #include "mock/core/consensus/validation/block_validator_mock.hpp"
 #include "mock/core/crypto/hasher_mock.hpp"
@@ -36,13 +33,10 @@ using kagome::ThreadPool;
 using kagome::blockchain::BlockTree;
 using kagome::blockchain::BlockTreeError;
 using kagome::blockchain::BlockTreeMock;
-using kagome::blockchain::DigestTrackerMock;
 using kagome::common::Buffer;
 using kagome::consensus::BlockAppenderBase;
 using kagome::consensus::BlockExecutorImpl;
 using kagome::consensus::BlockValidator;
-using kagome::consensus::ConsistencyGuard;
-using kagome::consensus::ConsistencyKeeperMock;
 using kagome::consensus::EpochDigest;
 using kagome::consensus::EpochNumber;
 using kagome::consensus::SlotsUtil;
@@ -52,7 +46,6 @@ using kagome::consensus::babe::BabeConfigRepositoryMock;
 using kagome::consensus::babe::BlockValidatorMock;
 using kagome::consensus::grandpa::Environment;
 using kagome::consensus::grandpa::EnvironmentMock;
-using kagome::consensus::grandpa::GrandpaDigestObserverMock;
 using kagome::crypto::Hasher;
 using kagome::crypto::HasherMock;
 using kagome::crypto::VRFThreshold;
@@ -61,7 +54,6 @@ using kagome::primitives::AuthorityId;
 using kagome::primitives::AuthorityList;
 using kagome::primitives::BabeConfiguration;
 using kagome::primitives::Block;
-using kagome::primitives::BlockContext;
 using kagome::primitives::BlockData;
 using kagome::primitives::BlockId;
 using kagome::primitives::BlockInfo;
@@ -132,7 +124,6 @@ class BlockExecutorTest : public testing::Test {
     grandpa_environment_ = std::make_shared<EnvironmentMock>();
     tx_pool_ = std::make_shared<TransactionPoolMock>();
     hasher_ = std::make_shared<HasherMock>();
-    digest_tracker_ = std::make_shared<DigestTrackerMock>();
 
     slots_util_ = std::make_shared<SlotsUtilMock>();
     ON_CALL(*slots_util_, slotToEpoch(_, _)).WillByDefault(Return(1));
@@ -142,12 +133,9 @@ class BlockExecutorTest : public testing::Test {
         kagome::primitives::events::StorageSubscriptionEngine>();
     chain_sub_engine_ =
         std::make_shared<kagome::primitives::events::ChainSubscriptionEngine>();
-    consistency_keeper_ = std::make_shared<ConsistencyKeeperMock>();
 
     auto appender = std::make_unique<BlockAppenderBase>(
-        consistency_keeper_,
         block_tree_,
-        digest_tracker_,
         babe_config_repo_,
         block_validator_,
         grandpa_environment_,
@@ -176,12 +164,10 @@ class BlockExecutorTest : public testing::Test {
   std::shared_ptr<EnvironmentMock> grandpa_environment_;
   std::shared_ptr<TransactionPoolMock> tx_pool_;
   std::shared_ptr<HasherMock> hasher_;
-  std::shared_ptr<DigestTrackerMock> digest_tracker_;
   std::shared_ptr<SlotsUtilMock> slots_util_;
   std::shared_ptr<OffchainWorkerApiMock> offchain_worker_api_;
   kagome::primitives::events::StorageSubscriptionEnginePtr storage_sub_engine_;
   kagome::primitives::events::ChainSubscriptionEnginePtr chain_sub_engine_;
-  std::shared_ptr<ConsistencyKeeperMock> consistency_keeper_;
   ThreadPool thread_pool_{"test", 1};
 
   std::shared_ptr<BlockExecutorImpl> block_executor_;
@@ -255,22 +241,8 @@ TEST_F(BlockExecutorTest, JustificationFollowDigests) {
 
   BlockInfo block_info{42, some_hash};
 
-  {
-    testing::InSequence s;
-
-    EXPECT_CALL(*digest_tracker_,
-                onDigest(BlockContext{.block_info = {42, some_hash}}, _))
-        .WillOnce(testing::Return(outcome::success()));
-  }
   EXPECT_CALL(*offchain_worker_api_, offchain_worker(_, _))
       .WillOnce(testing::Return(outcome::success()));
-
-  EXPECT_CALL(*consistency_keeper_, start(block_info))
-      .WillOnce(testing::Invoke(
-          [&] { return ConsistencyGuard(*consistency_keeper_, block_info); }));
-  EXPECT_CALL(*consistency_keeper_, commit(block_info)).WillOnce(Return());
-  EXPECT_CALL(*consistency_keeper_, rollback(block_info))
-      .WillRepeatedly(Return());
 
   block_executor_->applyBlock(
       Block{block_data.header.value(), block_data.body.value()},

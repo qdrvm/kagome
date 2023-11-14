@@ -11,6 +11,7 @@
 
 #include <fmt/std.h>
 #include <gsl/span>
+#include <libp2p/common/final_action.hpp>
 
 #include "crypto/hasher.hpp"
 #include "crypto/sr25519_provider.hpp"
@@ -310,9 +311,10 @@ namespace kagome::parachain {
   ParachainProcessorImpl::initNewBackingTask(
       const primitives::BlockHash &relay_parent) {
     bool is_parachain_validator = false;
-    auto metric_updater = gsl::finally([self{this}, &is_parachain_validator] {
-      self->metric_is_parachain_validator_->set(is_parachain_validator);
-    });
+    ::libp2p::common::FinalAction metric_updater(
+        [self{this}, &is_parachain_validator] {
+          self->metric_is_parachain_validator_->set(is_parachain_validator);
+        });
     OUTCOME_TRY(validators, parachain_host_->validators(relay_parent));
     OUTCOME_TRY(groups, parachain_host_->validator_groups(relay_parent));
     OUTCOME_TRY(cores, parachain_host_->availability_cores(relay_parent));

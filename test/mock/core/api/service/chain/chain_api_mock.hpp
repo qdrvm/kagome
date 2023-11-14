@@ -33,7 +33,7 @@ namespace kagome::api {
 
     MOCK_METHOD(outcome::result<std::vector<BlockHash>>,
                 getBlockHash,
-                (gsl::span<const ValueType>),
+                (std::span<const ValueType>),
                 (const, override));
 
     MOCK_METHOD(outcome::result<primitives::BlockHeader>,

@@ -40,7 +40,7 @@ hunter_config(
 
 hunter_config(
     libp2p
-    VERSION 0.1.16
+    VERSION 0.1.17
     KEEP_PACKAGE_SOURCES
 )
 
@@ -76,6 +76,12 @@ hunter_config(
     VERSION 1.0.14
     CMAKE_ARGS
       WAVM_CXX_FLAGS=${WAVM_CXX_FLAGS}
+    KEEP_PACKAGE_SOURCES
+)
+
+hunter_config(
+    scale
+    VERSION 1.1.0
     KEEP_PACKAGE_SOURCES
 )
 

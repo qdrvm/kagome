@@ -96,4 +96,5 @@ target_link_libraries(binaryen_memory_test
     binaryen_wasm_memory
     binaryen_runtime_external_interface
     log_configurator
+    hexutil
     )

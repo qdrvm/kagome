@@ -47,7 +47,7 @@ namespace kagome::runtime::wavm {
   }
 
   outcome::result<std::shared_ptr<Module>> ModuleFactoryImpl::make(
-      gsl::span<const uint8_t> code) const {
+      common::BufferView code) const {
     auto env_factory =
         std::make_shared<InstanceEnvironmentFactory>(storage_,
                                                      serializer_,

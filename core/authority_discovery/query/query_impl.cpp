@@ -7,6 +7,7 @@
 #include "authority_discovery/query/query_impl.hpp"
 
 #include "authority_discovery/protobuf/authority_discovery.v2.pb.h"
+#include "common/buffer_view.hpp"
 #include "common/bytestr.hpp"
 #include "crypto/sha/sha256.hpp"
 

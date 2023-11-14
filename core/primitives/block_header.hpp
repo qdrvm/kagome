@@ -66,7 +66,7 @@ namespace kagome::primitives {
     const BlockNumber &number;
     const storage::trie::RootHash &state_root;
     const common::Hash256 &extrinsics_root;
-    gsl::span<const DigestItem> digest;
+    std::span<const DigestItem> digest;
 
     BlockHeaderReflection(const BlockHeader &origin)
         : parent_hash(origin.parent_hash),
@@ -82,7 +82,7 @@ namespace kagome::primitives {
         : BlockHeaderReflection(origin) {
       BOOST_ASSERT_MSG(number == 0 or not digest.empty(),
                        "Non-genesis block must have at least Seal digest");
-      digest = digest.subspan(0, digest.size() - 1);
+      digest = digest.first(digest.size() - 1);
     }
     explicit UnsealedBlockHeaderReflection(const BlockHeader &origin)
         : UnsealedBlockHeaderReflection(BlockHeaderReflection(origin)) {}

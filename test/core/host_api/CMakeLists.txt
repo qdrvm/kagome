@@ -25,6 +25,7 @@ addtest(memory_extension_test
 target_link_libraries(memory_extension_test
     memory_extension
     logger_for_tests
+    hexutil
     )
 
 addtest(misc_extension_test

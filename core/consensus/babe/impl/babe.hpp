@@ -35,7 +35,6 @@ namespace kagome::authorship {
 
 namespace kagome::blockchain {
   class BlockTree;
-  class DigestTracker;
 }  // namespace kagome::blockchain
 
 namespace kagome::consensus {
@@ -102,7 +101,6 @@ namespace kagome::consensus::babe {
         std::shared_ptr<parachain::BackingStore> backing_store,
         std::shared_ptr<dispute::DisputeCoordinator> dispute_coordinator,
         std::shared_ptr<authorship::Proposer> proposer,
-        std::shared_ptr<blockchain::DigestTracker> digest_tracker,
         primitives::events::StorageSubscriptionEnginePtr storage_sub_engine,
         primitives::events::ChainSubscriptionEnginePtr chain_sub_engine,
         std::shared_ptr<network::BlockAnnounceTransmitter> announce_transmitter,
@@ -172,7 +170,6 @@ namespace kagome::consensus::babe {
     std::shared_ptr<parachain::BackingStore> backing_store_;
     std::shared_ptr<dispute::DisputeCoordinator> dispute_coordinator_;
     std::shared_ptr<authorship::Proposer> proposer_;
-    std::shared_ptr<blockchain::DigestTracker> digest_tracker_;
     primitives::events::StorageSubscriptionEnginePtr storage_sub_engine_;
     primitives::events::ChainSubscriptionEnginePtr chain_sub_engine_;
     std::shared_ptr<network::BlockAnnounceTransmitter> announce_transmitter_;

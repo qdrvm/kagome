@@ -9,7 +9,7 @@
 #include <algorithm>
 
 #include <gtest/gtest.h>
-#include <gsl/span>
+#include <span>
 
 #include "crypto/crypto_store/crypto_store_impl.hpp"
 #include "crypto/ecdsa/ecdsa_provider_impl.hpp"
@@ -30,6 +30,7 @@
 using namespace kagome::host_api;
 using kagome::common::Blob;
 using kagome::common::Buffer;
+using kagome::common::BufferView;
 using kagome::crypto::BoostRandomGenerator;
 using kagome::crypto::CryptoStore;
 using kagome::crypto::CryptoStoreImpl;
@@ -129,7 +130,7 @@ class CryptoExtensionTest : public ::testing::Test {
     std::copy_n(seed_tmp.begin(), Blob<32>::size(), seed.begin());
 
     // scale-encoded string
-    std::optional<gsl::span<uint8_t>> optional_seed(seed);
+    std::optional<std::span<uint8_t>> optional_seed(seed);
     seed_buffer.put(scale::encode(optional_seed).value());
     std::optional<std::string> optional_mnemonic(mnemonic);
     mnemonic_buffer.put(scale::encode(optional_mnemonic).value());
@@ -151,10 +152,9 @@ class CryptoExtensionTest : public ::testing::Test {
                                      .value();
     // first byte contains 0x04
     // and needs to be omitted in runtime api return value
-    secp_truncated_public_key =
-        secp256k1::PublicKey::fromSpan(
-            gsl::make_span(secp_public_key_bytes).subspan(1))
-            .value();
+    secp_truncated_public_key = secp256k1::PublicKey::fromSpan(
+                                    std::span(secp_public_key_bytes).subspan(1))
+                                    .value();
     secp_signature =
         secp256k1::RSVSignature::fromSpan(secp_signature_bytes).value();
 
@@ -298,8 +298,7 @@ TEST_F(CryptoExtensionTest, Blake2_128Valid) {
   WasmPointer out_ptr = 42;
 
   EXPECT_CALL(*memory_, loadN(data, size)).WillOnce(Return(input));
-  EXPECT_CALL(*memory_,
-              storeBuffer(gsl::span<const uint8_t>(blake2b_128_result)))
+  EXPECT_CALL(*memory_, storeBuffer(BufferView(blake2b_128_result)))
       .WillOnce(Return(out_ptr));
 
   ASSERT_EQ(out_ptr,
@@ -319,8 +318,7 @@ TEST_F(CryptoExtensionTest, Blake2_256Valid) {
   WasmPointer out_ptr = 42;
 
   EXPECT_CALL(*memory_, loadN(data, size)).WillOnce(Return(input));
-  EXPECT_CALL(*memory_,
-              storeBuffer(gsl::span<const uint8_t>(blake2b_256_result)))
+  EXPECT_CALL(*memory_, storeBuffer(BufferView(blake2b_256_result)))
       .WillOnce(Return(out_ptr));
 
   ASSERT_EQ(crypto_ext_->ext_hashing_blake2_256_version_1(
@@ -339,7 +337,7 @@ TEST_F(CryptoExtensionTest, KeccakValid) {
   WasmPointer out_ptr = 42;
 
   EXPECT_CALL(*memory_, loadN(data, size)).WillOnce(Return(input));
-  EXPECT_CALL(*memory_, storeBuffer(gsl::span<const uint8_t>(keccak_result)))
+  EXPECT_CALL(*memory_, storeBuffer(BufferView(keccak_result)))
       .WillOnce(Return(out_ptr));
 
   ASSERT_EQ(out_ptr,
@@ -422,7 +420,7 @@ TEST_F(CryptoExtensionTest, Ed25519VerifyFailure) {
  * @then verification is successful
  */
 TEST_F(CryptoExtensionTest, Sr25519VerifySuccess) {
-  auto pub_key = gsl::span<uint8_t>(sr25519_keypair.public_key);
+  auto pub_key = std::span<uint8_t>(sr25519_keypair.public_key);
   WasmPointer input_data = 0;
   WasmSize input_size = input.size();
   WasmPointer sig_data_ptr = 42;
@@ -448,7 +446,7 @@ TEST_F(CryptoExtensionTest, Sr25519VerifySuccess) {
  * @then verification fails
  */
 TEST_F(CryptoExtensionTest, Sr25519VerifyFailure) {
-  auto pub_key = gsl::span<uint8_t>(sr25519_keypair.public_key);
+  auto pub_key = std::span<uint8_t>(sr25519_keypair.public_key);
   auto false_signature = Buffer(sr25519_signature);
   ++false_signature[0];
   ++false_signature[1];
@@ -522,7 +520,7 @@ TEST_F(CryptoExtensionTest, Twox128) {
 
   EXPECT_CALL(*memory_, loadN(twox_input_data, twox_input_size))
       .WillOnce(Return(twox_input));
-  EXPECT_CALL(*memory_, storeBuffer(gsl::span<const uint8_t>(twox128_result)))
+  EXPECT_CALL(*memory_, storeBuffer(BufferView(twox128_result)))
       .WillOnce(Return(out_ptr));
 
   ASSERT_EQ(out_ptr,
@@ -542,7 +540,7 @@ TEST_F(CryptoExtensionTest, Twox256) {
 
   EXPECT_CALL(*memory_, loadN(twox_input_data, twox_input_size))
       .WillOnce(Return(twox_input));
-  EXPECT_CALL(*memory_, storeBuffer(gsl::span<const uint8_t>(twox256_result)))
+  EXPECT_CALL(*memory_, storeBuffer(BufferView(twox256_result)))
       .WillOnce(Return(out_ptr));
 
   ASSERT_EQ(out_ptr,
@@ -569,8 +567,7 @@ TEST_F(CryptoExtensionTest, Secp256k1RecoverUncompressedSuccess) {
       .WillOnce(Return(Buffer(msg_input)));
 
   EXPECT_CALL(*memory_,
-              storeBuffer(gsl::span<const uint8_t>(
-                  scale_encoded_secp_truncated_public_key)))
+              storeBuffer(BufferView(scale_encoded_secp_truncated_public_key)))
       .WillOnce(Return(res));
 
   auto ptrsize =
@@ -599,9 +596,7 @@ TEST_F(CryptoExtensionTest, Secp256k1RecoverUncompressedFailure) {
   EXPECT_CALL(*memory_, loadN(msg, msg_input.size()))
       .WillOnce(Return(Buffer(msg_input)));
 
-  EXPECT_CALL(
-      *memory_,
-      storeBuffer(gsl::span<const uint8_t>(secp_invalid_signature_error)))
+  EXPECT_CALL(*memory_, storeBuffer(BufferView(secp_invalid_signature_error)))
       .WillOnce(Return(res));
 
   auto ptrsize =
@@ -628,8 +623,7 @@ TEST_F(CryptoExtensionTest, Secp256k1RecoverCompressed) {
       .WillOnce(Return(Buffer(msg_input)));
 
   EXPECT_CALL(*memory_,
-              storeBuffer(gsl::span<const uint8_t>(
-                  scale_encoded_secp_compressed_public_key)))
+              storeBuffer(BufferView(scale_encoded_secp_compressed_public_key)))
       .WillOnce(Return(res));
 
   auto ptrsize =
@@ -661,9 +655,7 @@ TEST_F(CryptoExtensionTest, Secp256k1RecoverCompressedFailure) {
   EXPECT_CALL(*memory_, loadN(msg, msg_input.size()))
       .WillOnce(Return(Buffer(msg_input)));
 
-  EXPECT_CALL(
-      *memory_,
-      storeBuffer(gsl::span<const uint8_t>(secp_invalid_signature_error)))
+  EXPECT_CALL(*memory_, storeBuffer(BufferView(secp_invalid_signature_error)))
       .WillOnce(Return(res));
 
   auto ptrsize =
@@ -687,8 +679,7 @@ TEST_F(CryptoExtensionTest, Ed25519GetPublicKeysSuccess) {
       .WillOnce(Return(ed_public_keys));
 
   EXPECT_CALL(*memory_, load32u(key_type_ptr)).WillOnce(Return(key_type));
-  EXPECT_CALL(*memory_,
-              storeBuffer(gsl::span<const uint8_t>(ed_public_keys_result)))
+  EXPECT_CALL(*memory_, storeBuffer(BufferView(ed_public_keys_result)))
       .WillOnce(Return(res));
 
   ASSERT_EQ(crypto_ext_->ext_crypto_ed25519_public_keys_version_1(key_type_ptr),
@@ -710,8 +701,7 @@ TEST_F(CryptoExtensionTest, Sr25519GetPublicKeysSuccess) {
       .WillOnce(Return(sr_public_keys));
 
   EXPECT_CALL(*memory_, load32u(key_type_ptr)).WillOnce(Return(key_type));
-  EXPECT_CALL(*memory_,
-              storeBuffer(gsl::span<const uint8_t>(sr_public_keys_result)))
+  EXPECT_CALL(*memory_, storeBuffer(BufferView(sr_public_keys_result)))
       .WillOnce(Return(res));
 
   ASSERT_EQ(crypto_ext_->ext_crypto_sr25519_public_keys_version_1(key_type_ptr),
@@ -741,8 +731,7 @@ TEST_F(CryptoExtensionTest, Ed25519SignSuccess) {
       .WillOnce(Return(ed25519_keypair));
 
   EXPECT_CALL(*memory_, load32u(key_type_ptr)).WillOnce(Return(key_type));
-  EXPECT_CALL(*memory_,
-              storeBuffer(gsl::span<const uint8_t>(ed25519_signature_result)))
+  EXPECT_CALL(*memory_, storeBuffer(BufferView(ed25519_signature_result)))
       .WillOnce(Return(res));
   ASSERT_EQ(
       crypto_ext_->ext_crypto_ed25519_sign_version_1(key_type_ptr, key, msg),
@@ -775,8 +764,7 @@ TEST_F(CryptoExtensionTest, Ed25519SignFailure) {
           outcome::failure(kagome::crypto::CryptoStoreError::KEY_NOT_FOUND)));
 
   EXPECT_CALL(*memory_,
-              storeBuffer(gsl::span<const uint8_t>(
-                  ed_sr_signature_failure_result_buffer)))
+              storeBuffer(BufferView(ed_sr_signature_failure_result_buffer)))
       .WillOnce(Return(res));
   ASSERT_EQ(
       crypto_ext_->ext_crypto_ed25519_sign_version_1(key_type_ptr, key, msg),
@@ -808,9 +796,8 @@ TEST_F(CryptoExtensionTest, Sr25519SignSuccess) {
 
   EXPECT_CALL(
       *memory_,
-      storeBuffer(VerifySr25519Signature(sr25519_provider_,
-                                         gsl::span<const uint8_t>(input),
-                                         sr25519_keypair.public_key)))
+      storeBuffer(VerifySr25519Signature(
+          sr25519_provider_, BufferView(input), sr25519_keypair.public_key)))
       .WillOnce(Return(res));
 
   ASSERT_EQ(
@@ -844,8 +831,7 @@ TEST_F(CryptoExtensionTest, Sr25519SignFailure) {
           outcome::failure(kagome::crypto::CryptoStoreError::KEY_NOT_FOUND)));
 
   EXPECT_CALL(*memory_,
-              storeBuffer(gsl::span<const uint8_t>(
-                  ed_sr_signature_failure_result_buffer)))
+              storeBuffer(BufferView(ed_sr_signature_failure_result_buffer)))
       .WillOnce(Return(res));
   ASSERT_EQ(
       crypto_ext_->ext_crypto_sr25519_sign_version_1(key_type_ptr, key, msg),
@@ -867,8 +853,7 @@ TEST_F(CryptoExtensionTest, Ed25519GenerateByHexSeedSuccess) {
               generateEd25519Keypair(key_type, std::string_view(mnemonic)))
       .WillOnce(Return(ed25519_keypair));
   EXPECT_CALL(*memory_, loadN(3, 4)).WillOnce(Return(mnemonic_buffer));
-  EXPECT_CALL(*memory_,
-              storeBuffer(gsl::span<const uint8_t>(ed_public_key_buffer)))
+  EXPECT_CALL(*memory_, storeBuffer(BufferView(ed_public_key_buffer)))
       .WillOnce(Return(res));
   EXPECT_CALL(*memory_, load32u(key_type_ptr)).WillOnce(Return(key_type));
   ASSERT_EQ(res,
@@ -888,8 +873,7 @@ TEST_F(CryptoExtensionTest, Ed25519GenerateByMnemonicSuccess) {
   auto seed_ptr = PtrSize(3, 4).combine();
 
   EXPECT_CALL(*memory_, loadN(3, 4)).WillOnce(Return(mnemonic_buffer));
-  EXPECT_CALL(*memory_,
-              storeBuffer(gsl::span<const uint8_t>(ed_public_key_buffer)))
+  EXPECT_CALL(*memory_, storeBuffer(BufferView(ed_public_key_buffer)))
       .WillOnce(Return(res));
   EXPECT_CALL(*memory_, load32u(key_type_ptr)).WillOnce(Return(key_type));
   EXPECT_CALL(*crypto_store_,
@@ -912,8 +896,7 @@ TEST_F(CryptoExtensionTest, Sr25519GenerateByHexSeedSuccess) {
   auto seed_ptr = PtrSize(3, 4).combine();
 
   EXPECT_CALL(*memory_, loadN(3, 4)).WillOnce(Return(mnemonic_buffer));
-  EXPECT_CALL(*memory_,
-              storeBuffer(gsl::span<const uint8_t>(sr_public_key_buffer)))
+  EXPECT_CALL(*memory_, storeBuffer(BufferView(sr_public_key_buffer)))
       .WillOnce(Return(res));
   EXPECT_CALL(*memory_, load32u(key_type_ptr)).WillOnce(Return(key_type));
 
@@ -937,8 +920,7 @@ TEST_F(CryptoExtensionTest, Sr25519GenerateByMnemonicSuccess) {
   auto seed_ptr = PtrSize(3, 4).combine();
 
   EXPECT_CALL(*memory_, loadN(3, 4)).WillOnce(Return(mnemonic_buffer));
-  EXPECT_CALL(*memory_,
-              storeBuffer(gsl::span<const uint8_t>(sr_public_key_buffer)))
+  EXPECT_CALL(*memory_, storeBuffer(BufferView(sr_public_key_buffer)))
       .WillOnce(Return(res));
   EXPECT_CALL(*memory_, load32u(key_type_ptr)).WillOnce(Return(key_type));
   EXPECT_CALL(*crypto_store_,
@@ -961,7 +943,7 @@ TEST_F(CryptoExtensionTest, Keccac256Version1_Success) {
   WasmSpan data_span = PtrSize(data, size).combine();
 
   EXPECT_CALL(*memory_, loadN(data, size)).WillOnce(Return(input));
-  EXPECT_CALL(*memory_, storeBuffer(gsl::span<const uint8_t>(keccak_result)))
+  EXPECT_CALL(*memory_, storeBuffer(BufferView(keccak_result)))
       .WillOnce(Return(out_ptr));
 
   ASSERT_EQ(crypto_ext_->ext_hashing_keccak_256_version_1(data_span), out_ptr);
@@ -979,7 +961,7 @@ TEST_F(CryptoExtensionTest, Sha2_256Version1_Success) {
   WasmSpan data_span = PtrSize(data, size).combine();
 
   EXPECT_CALL(*memory_, loadN(data, size)).WillOnce(Return(input));
-  EXPECT_CALL(*memory_, storeBuffer(gsl::span<const uint8_t>(sha2_256_result)))
+  EXPECT_CALL(*memory_, storeBuffer(BufferView(sha2_256_result)))
       .WillOnce(Return(out_ptr));
 
   ASSERT_EQ(crypto_ext_->ext_hashing_sha2_256_version_1(data_span), out_ptr);
@@ -997,8 +979,7 @@ TEST_F(CryptoExtensionTest, Blake2_128Version1_Success) {
   WasmSpan data_span = PtrSize(data, size).combine();
 
   EXPECT_CALL(*memory_, loadN(data, size)).WillOnce(Return(input));
-  EXPECT_CALL(*memory_,
-              storeBuffer(gsl::span<const uint8_t>(blake2b_128_result)))
+  EXPECT_CALL(*memory_, storeBuffer(BufferView(blake2b_128_result)))
       .WillOnce(Return(out_ptr));
 
   ASSERT_EQ(crypto_ext_->ext_hashing_blake2_128_version_1(data_span), out_ptr);
@@ -1016,8 +997,7 @@ TEST_F(CryptoExtensionTest, Blake2_256Version1_Success) {
   WasmSpan data_span = PtrSize(data, size).combine();
 
   EXPECT_CALL(*memory_, loadN(data, size)).WillOnce(Return(input));
-  EXPECT_CALL(*memory_,
-              storeBuffer(gsl::span<const uint8_t>(blake2b_256_result)))
+  EXPECT_CALL(*memory_, storeBuffer(BufferView(blake2b_256_result)))
       .WillOnce(Return(out_ptr));
 
   ASSERT_EQ(crypto_ext_->ext_hashing_blake2_256_version_1(data_span), out_ptr);
@@ -1035,7 +1015,7 @@ TEST_F(CryptoExtensionTest, Twox_256Version1_Success) {
   WasmSpan data_span = PtrSize(data, size).combine();
 
   EXPECT_CALL(*memory_, loadN(data, size)).WillOnce(Return(twox_input));
-  EXPECT_CALL(*memory_, storeBuffer(gsl::span<const uint8_t>(twox256_result)))
+  EXPECT_CALL(*memory_, storeBuffer(BufferView(twox256_result)))
       .WillOnce(Return(out_ptr));
 
   ASSERT_EQ(crypto_ext_->ext_hashing_twox_256_version_1(data_span), out_ptr);
@@ -1053,7 +1033,7 @@ TEST_F(CryptoExtensionTest, Twox_128Version1_Success) {
   WasmSpan data_span = PtrSize(data, size).combine();
 
   EXPECT_CALL(*memory_, loadN(data, size)).WillOnce(Return(twox_input));
-  EXPECT_CALL(*memory_, storeBuffer(gsl::span<const uint8_t>(twox128_result)))
+  EXPECT_CALL(*memory_, storeBuffer(BufferView(twox128_result)))
       .WillOnce(Return(out_ptr));
 
   ASSERT_EQ(crypto_ext_->ext_hashing_twox_128_version_1(data_span), out_ptr);
@@ -1071,7 +1051,7 @@ TEST_F(CryptoExtensionTest, Twox_64Version1_Success) {
   WasmSpan data_span = PtrSize(data, size).combine();
 
   EXPECT_CALL(*memory_, loadN(data, size)).WillOnce(Return(twox_input));
-  EXPECT_CALL(*memory_, storeBuffer(gsl::span<const uint8_t>(twox64_result)))
+  EXPECT_CALL(*memory_, storeBuffer(BufferView(twox64_result)))
       .WillOnce(Return(out_ptr));
 
   ASSERT_EQ(crypto_ext_->ext_hashing_twox_64_version_1(data_span), out_ptr);

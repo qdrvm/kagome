@@ -8,8 +8,8 @@
 
 #include "runtime/memory.hpp"
 
-#include <gsl/span>
 #include <optional>
+#include <span>
 
 #include "common/buffer.hpp"
 #include "common/literals.hpp"
@@ -48,9 +48,9 @@ namespace kagome::runtime::wavm {
     template <typename T,
               typename = std::enable_if_t<std::is_standard_layout_v<T>
                                           and std::is_trivial_v<T>>>
-    gsl::span<T> loadArray(WasmPointer addr, size_t num) const {
+    std::span<T> loadArray(WasmPointer addr, size_t num) const {
       auto res = WAVM::Runtime::memoryArrayPtr<T>(memory_, addr, num);
-      gsl::span<T> buffer(res, num);
+      std::span<T> buffer(res, num);
       SL_TRACE_FUNC_CALL(logger_,
                          common::BufferView(buffer),
                          static_cast<const void *>(this),
@@ -83,7 +83,7 @@ namespace kagome::runtime::wavm {
     }
 
     template <typename T, typename = std::enable_if_t<std::is_integral_v<T>>>
-    void storeArray(WasmPointer addr, gsl::span<T> array) {
+    void storeArray(WasmPointer addr, std::span<T> array) {
       SL_TRACE_VOID_FUNC_CALL(logger_,
                               static_cast<const void *>(this),
                               addr,
@@ -100,9 +100,9 @@ namespace kagome::runtime::wavm {
     void store64(WasmPointer addr, int64_t value) override;
     void store128(WasmPointer addr,
                   const std::array<uint8_t, 16> &value) override;
-    void storeBuffer(WasmPointer addr, gsl::span<const uint8_t> value) override;
+    void storeBuffer(WasmPointer addr, common::BufferView value) override;
 
-    WasmSpan storeBuffer(gsl::span<const uint8_t> value) override;
+    WasmSpan storeBuffer(common::BufferView value) override;
 
     WasmSize size() const override {
       return WAVM::Runtime::getMemoryNumPages(memory_) * kMemoryPageSize;
