@@ -13,7 +13,7 @@
 #include "crypto/sr25519_types.hpp"
 #include "primitives/authority.hpp"
 
-namespace kagome::primitives {
+namespace kagome::consensus::babe {
 
   using consensus::Clock;
   using consensus::Duration;
@@ -58,7 +58,8 @@ namespace kagome::primitives {
     std::pair<uint64_t, uint64_t> leadership_rate;  // changes by NextConfigData
 
     /// The authorities for block production
-    AuthorityList authorities;  // can be changed by NextEpochData & OnDisabled
+    primitives::AuthorityList
+        authorities;  // can be changed by NextEpochData & OnDisabled
 
     /// The randomness for the genesis epoch.
     Randomness randomness;  // can be changed by NextEpochData
@@ -67,8 +68,8 @@ namespace kagome::primitives {
     AllowedSlots allowed_slots{};  // can be changed by NextConfigData
 
     bool isSecondarySlotsAllowed() const {
-      return allowed_slots == primitives::AllowedSlots::PrimaryAndSecondaryPlain
-          or allowed_slots == primitives::AllowedSlots::PrimaryAndSecondaryVRF;
+      return allowed_slots == AllowedSlots::PrimaryAndSecondaryPlain
+          or allowed_slots == AllowedSlots::PrimaryAndSecondaryVRF;
     }
 
     bool operator==(const BabeConfiguration &rhs) const {
@@ -110,12 +111,12 @@ namespace kagome::primitives {
   struct Epoch {
     SCALE_TIE(7);
 
-    consensus::EpochNumber epoch_index;
-    consensus::SlotNumber start_slot;
-    consensus::EpochLength duration;
-    AuthorityList authorities;
+    EpochNumber epoch_index;
+    SlotNumber start_slot;
+    EpochLength duration;
+    primitives::AuthorityList authorities;
     Randomness randomness;
     std::pair<uint64_t, uint64_t> leadership_rate;
     AllowedSlots allowed_slots;
   };
-}  // namespace kagome::primitives
+}  // namespace kagome::consensus::babe

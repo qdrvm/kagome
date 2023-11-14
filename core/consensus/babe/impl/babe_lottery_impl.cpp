@@ -6,7 +6,7 @@
 
 #include "consensus/babe/impl/babe_lottery_impl.hpp"
 
-#include "consensus/validation/prepare_transcript.hpp"
+#include "consensus/babe/impl/prepare_transcript.hpp"
 #include "crypto/hasher.hpp"
 #include "crypto/vrf_provider.hpp"
 

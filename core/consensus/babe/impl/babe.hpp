@@ -120,15 +120,6 @@ namespace kagome::consensus::babe {
         SlotNumber slot, const primitives::BlockInfo &best_block) override;
 
    private:
-    outcome::result<primitives::PreRuntime> babePreDigest(
-        const Context &ctx,
-        SlotType slot_type,
-        std::optional<std::reference_wrapper<const crypto::VRFOutput>> output,
-        primitives::AuthorityIndex authority_index) const;
-
-    outcome::result<primitives::Seal> sealBlock(
-        const Context &ctx, const primitives::Block &block) const;
-
     outcome::result<void> processSlotLeadership(
         const Context &ctx,
         SlotType slot_type,
@@ -143,6 +134,15 @@ namespace kagome::consensus::babe {
      *     // processSlotLeadershipProposed()
      *   }
      */
+    outcome::result<primitives::PreRuntime> babePreDigest(
+        const Context &ctx,
+        SlotType slot_type,
+        std::optional<std::reference_wrapper<const crypto::VRFOutput>> output,
+        primitives::AuthorityIndex authority_index) const;
+
+    outcome::result<primitives::Seal> sealBlock(
+        const Context &ctx, const primitives::Block &block) const;
+
     outcome::result<void> processSlotLeadershipProposed(
         const Context &ctx,
         uint64_t now,
@@ -151,11 +151,10 @@ namespace kagome::consensus::babe {
             &&changes_tracker,
         primitives::Block &&block);
 
-    void changeLotteryEpoch(
-        const Context &ctx,
-        const EpochNumber &epoch,
-        primitives::AuthorityIndex authority_index,
-        const primitives::BabeConfiguration &babe_config) const;
+    void changeLotteryEpoch(const Context &ctx,
+                            const EpochNumber &epoch,
+                            primitives::AuthorityIndex authority_index,
+                            const BabeConfiguration &babe_config) const;
 
     log::Logger log_;
     const clock::SystemClock &clock_;

@@ -24,18 +24,6 @@ namespace kagome::consensus::babe {
     GENESIS_BLOCK_CAN_NOT_HAVE_DIGESTS,
   };
 
-  template <typename T, typename VarT>
-  std::optional<std::reference_wrapper<const std::decay_t<T>>> getFromVariant(
-      VarT &&v) {
-    return visit_in_place(
-        std::forward<VarT>(v),
-        [](const T &expected_val)
-            -> std::optional<std::reference_wrapper<const std::decay_t<T>>> {
-          return expected_val;
-        },
-        [](const auto &) { return std::nullopt; });
-  }
-
   outcome::result<SlotNumber> getBabeSlot(
       const primitives::BlockHeader &header);
 

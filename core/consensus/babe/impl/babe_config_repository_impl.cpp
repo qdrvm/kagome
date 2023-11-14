@@ -42,7 +42,7 @@ namespace kagome::consensus::babe {
   constexpr size_t kMaxUnindexedBlocksNum = 10000;
 
   inline static primitives::NextConfigDataV1 getConfig(
-      const primitives::BabeConfiguration &state) {
+      const BabeConfiguration &state) {
     return {state.leadership_rate, state.allowed_slots};
   }
 
@@ -141,7 +141,7 @@ namespace kagome::consensus::babe {
     return true;
   }
 
-  outcome::result<std::shared_ptr<const primitives::BabeConfiguration>>
+  outcome::result<std::shared_ptr<const BabeConfiguration>>
   BabeConfigRepositoryImpl::config(const primitives::BlockInfo &parent_info,
                                    EpochNumber epoch_number) const {
     auto epoch_changed = true;
@@ -218,7 +218,7 @@ namespace kagome::consensus::babe {
     warp(lock, block);
   }
 
-  outcome::result<std::shared_ptr<const primitives::BabeConfiguration>>
+  outcome::result<std::shared_ptr<const BabeConfiguration>>
   BabeConfigRepositoryImpl::config(const primitives::BlockInfo &block,
                                    bool next_epoch) const {
     auto descent = indexer_.descend(block);
@@ -229,24 +229,22 @@ namespace kagome::consensus::babe {
       cb_res = [&]() -> outcome::result<void> {
         BOOST_ASSERT(i_first >= i_last);
         auto info = descent.path_.at(i_first);
-        std::shared_ptr<const primitives::BabeConfiguration> prev_state;
+        std::shared_ptr<const BabeConfiguration> prev_state;
         if (not prev) {
           OUTCOME_TRY(_state, babe_api_->configuration(info.hash));
-          auto state = std::make_shared<primitives::BabeConfiguration>(
-              std::move(_state));
+          auto state = std::make_shared<BabeConfiguration>(std::move(_state));
           BabeIndexedValue value{getConfig(*state), state, std::nullopt, state};
           if (info.number != 0) {
             OUTCOME_TRY(next, babe_api_->next_epoch(info.hash));
             value.next_state_warp =
-                std::make_shared<primitives::BabeConfiguration>(
-                    primitives::BabeConfiguration{
-                        state->slot_duration,
-                        state->epoch_length,
-                        next.leadership_rate,
-                        std::move(next.authorities),
-                        next.randomness,
-                        next.allowed_slots,
-                    });
+                std::make_shared<BabeConfiguration>(BabeConfiguration{
+                    state->slot_duration,
+                    state->epoch_length,
+                    next.leadership_rate,
+                    std::move(next.authorities),
+                    next.randomness,
+                    next.allowed_slots,
+                });
             value.next_state = value.next_state_warp;
           }
           indexer_.put(info, {value, std::nullopt}, true);
@@ -300,12 +298,11 @@ namespace kagome::consensus::babe {
     return loadPrev(r->second.prev);
   }
 
-  std::shared_ptr<primitives::BabeConfiguration>
-  BabeConfigRepositoryImpl::applyDigests(
+  std::shared_ptr<BabeConfiguration> BabeConfigRepositoryImpl::applyDigests(
       const primitives::NextConfigDataV1 &config,
       const HasBabeConsensusDigest &digests) const {
     BOOST_ASSERT(digests);
-    auto state = std::make_shared<primitives::BabeConfiguration>();
+    auto state = std::make_shared<BabeConfiguration>();
     state->slot_duration = slot_duration_;
     state->epoch_length = epoch_length_;
     if (digests.config) {
@@ -338,7 +335,7 @@ namespace kagome::consensus::babe {
     return outcome::success();
   }
 
-  outcome::result<std::shared_ptr<const primitives::BabeConfiguration>>
+  outcome::result<std::shared_ptr<const BabeConfiguration>>
   BabeConfigRepositoryImpl::loadPrev(
       const std::optional<primitives::BlockInfo> &prev) const {
     if (not prev) {

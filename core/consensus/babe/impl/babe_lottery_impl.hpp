@@ -11,8 +11,8 @@
 #include <memory>
 #include <vector>
 
+#include "consensus/babe/types/babe_configuration.hpp"
 #include "log/logger.hpp"
-#include "primitives/babe_configuration.hpp"
 
 namespace kagome::consensus::babe {
   class BabeConfigRepository;

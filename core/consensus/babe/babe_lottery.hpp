@@ -8,9 +8,9 @@
 
 #include <optional>
 
+#include "consensus/babe/types/babe_configuration.hpp"
 #include "consensus/timeline/types.hpp"
 #include "crypto/sr25519_types.hpp"
-#include "primitives/babe_configuration.hpp"
 
 namespace kagome::consensus::babe {
   /**

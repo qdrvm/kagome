@@ -39,7 +39,7 @@
 namespace {
   inline const auto kTimestampId =
       kagome::primitives::InherentIdentifier::fromString("timstap0").value();
-  inline const auto kBabeSlotId =
+  inline const auto kSlotId =
       kagome::primitives::InherentIdentifier::fromString("babeslot").value();
   inline const auto kParachainId =
       kagome::primitives::InherentIdentifier::fromString("parachn0").value();
@@ -227,8 +227,7 @@ namespace kagome::consensus::babe {
       if (expected_author.has_value()
           and authority_index == expected_author.value()) {
         // VRF secondary slots mode
-        if (babe_config.allowed_slots
-            == primitives::AllowedSlots::PrimaryAndSecondaryVRF) {
+        if (babe_config.allowed_slots == AllowedSlots::PrimaryAndSecondaryVRF) {
           auto vrf = lottery_->slotVrfSignature(ctx.slot);
           SL_DEBUG(log_,
                    "Babe author {} is secondary slot-leader "
@@ -258,7 +257,7 @@ namespace kagome::consensus::babe {
     }
 
     SL_TRACE(log_,
-             "Babe author {} is not slot leader in current slot",
+             "Validator {} is not slot leader in current slot",
              ctx.keypair->public_key);
 
     return BlockProductionError::NO_SLOT_LEADER;
@@ -365,8 +364,7 @@ namespace kagome::consensus::babe {
       return BabeError::CAN_NOT_PREPARE_BLOCK;
     }
 
-    if (auto res = inherent_data.putData(kBabeSlotId, ctx.slot);
-        res.has_error()) {
+    if (auto res = inherent_data.putData(kSlotId, ctx.slot); res.has_error()) {
       SL_ERROR(log_, "cannot put an inherent data: {}", res.error());
       return BabeError::CAN_NOT_PREPARE_BLOCK;
     }
@@ -557,11 +555,10 @@ namespace kagome::consensus::babe {
     return outcome::success();
   }
 
-  void Babe::changeLotteryEpoch(
-      const Context &ctx,
-      const EpochNumber &epoch,
-      primitives::AuthorityIndex authority_index,
-      const primitives::BabeConfiguration &babe_config) const {
+  void Babe::changeLotteryEpoch(const Context &ctx,
+                                const EpochNumber &epoch,
+                                primitives::AuthorityIndex authority_index,
+                                const BabeConfiguration &babe_config) const {
     BOOST_ASSERT(ctx.keypair != nullptr);
 
     auto threshold = calculateThreshold(

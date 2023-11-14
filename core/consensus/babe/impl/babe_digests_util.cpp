@@ -22,6 +22,20 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::consensus::babe, DigestError, e) {
   return "unknown error (kagome::consensus::babe::DigestError)";
 }
 
+namespace {
+  template <typename T, typename VarT>
+  std::optional<std::reference_wrapper<const std::decay_t<T>>> getFromVariant(
+      VarT &&v) {
+    return visit_in_place(
+        std::forward<VarT>(v),
+        [](const T &expected_val)
+            -> std::optional<std::reference_wrapper<const std::decay_t<T>>> {
+          return expected_val;
+        },
+        [](const auto &) { return std::nullopt; });
+  }
+}  // namespace
+
 namespace kagome::consensus::babe {
   outcome::result<SlotNumber> getBabeSlot(
       const primitives::BlockHeader &header) {

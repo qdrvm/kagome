@@ -6,10 +6,9 @@
 
 #include <gtest/gtest.h>
 
-#include "common/buffer.hpp"
 #include "common/int_serialization.hpp"
 #include "consensus/babe/impl/babe_lottery_impl.hpp"
-#include "consensus/validation/prepare_transcript.hpp"
+#include "consensus/babe/impl/prepare_transcript.hpp"
 #include "mock/core/consensus/babe/babe_config_repository_mock.hpp"
 #include "mock/core/crypto/hasher_mock.hpp"
 #include "mock/core/crypto/vrf_provider_mock.hpp"

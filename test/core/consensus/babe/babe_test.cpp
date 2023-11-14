@@ -11,6 +11,7 @@
 #include "consensus/babe/impl/babe.hpp"
 #include "consensus/babe/impl/babe_digests_util.hpp"
 #include "consensus/babe/impl/babe_error.hpp"
+#include "consensus/babe/types/babe_configuration.hpp"
 #include "consensus/timeline/impl/block_production_error.hpp"
 #include "mock/core/application/app_configuration_mock.hpp"
 #include "mock/core/authorship/proposer_mock.hpp"
@@ -27,7 +28,6 @@
 #include "mock/core/parachain/backing_store_mock.hpp"
 #include "mock/core/parachain/bitfield_store_mock.hpp"
 #include "mock/core/runtime/offchain_worker_api_mock.hpp"
-#include "primitives/babe_configuration.hpp"
 #include "primitives/event_types.hpp"
 #include "storage/trie/serialization/ordered_trie_hash.hpp"
 #include "testutil/asio_wait.hpp"
@@ -46,6 +46,7 @@ using kagome::clock::SystemClockMock;
 using kagome::common::Buffer;
 using kagome::common::BufferView;
 using kagome::consensus::BlockProductionError;
+using kagome::consensus::Duration;
 using kagome::consensus::EpochLength;
 using kagome::consensus::EpochNumber;
 using kagome::consensus::SlotNumber;
@@ -55,6 +56,7 @@ using kagome::consensus::ValidatorStatus;
 using kagome::consensus::babe::Babe;
 using kagome::consensus::babe::BabeBlockHeader;
 using kagome::consensus::babe::BabeConfigRepositoryMock;
+using kagome::consensus::babe::BabeConfiguration;
 using kagome::consensus::babe::BabeError;
 using kagome::consensus::babe::BabeLotteryMock;
 using kagome::consensus::babe::DigestError;
@@ -71,13 +73,11 @@ using kagome::network::BlockAnnounceTransmitterMock;
 using kagome::parachain::BackingStoreMock;
 using kagome::parachain::BitfieldStoreMock;
 using kagome::primitives::Authority;
-using kagome::primitives::BabeConfiguration;
 using kagome::primitives::Block;
 using kagome::primitives::BlockHash;
 using kagome::primitives::BlockHeader;
 using kagome::primitives::BlockInfo;
 using kagome::primitives::Digest;
-using kagome::primitives::Duration;
 using kagome::primitives::Extrinsic;
 using kagome::primitives::PreRuntime;
 using kagome::primitives::events::ChainSubscriptionEngine;

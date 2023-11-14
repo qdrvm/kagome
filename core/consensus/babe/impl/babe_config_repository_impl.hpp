@@ -54,17 +54,15 @@ namespace kagome::consensus::babe {
      * Current epoch read from runtime.
      * Used at genesis and after warp sync.
      */
-    std::optional<std::shared_ptr<const primitives::BabeConfiguration>> state;
+    std::optional<std::shared_ptr<const BabeConfiguration>> state;
     /**
      * Next epoch after warp sync, when there is no block with digest.
      */
-    std::optional<std::shared_ptr<const primitives::BabeConfiguration>>
-        next_state_warp;
+    std::optional<std::shared_ptr<const BabeConfiguration>> next_state_warp;
     /**
      * Next epoch lazily computed from `config` and digests.
      */
-    std::optional<std::shared_ptr<const primitives::BabeConfiguration>>
-        next_state;
+    std::optional<std::shared_ptr<const BabeConfiguration>> next_state;
   };
 
   class BabeConfigRepositoryImpl final
@@ -95,9 +93,9 @@ namespace kagome::consensus::babe {
 
     EpochLength epochLength() const override;
 
-    outcome::result<std::shared_ptr<const primitives::BabeConfiguration>>
-    config(const primitives::BlockInfo &parent_info,
-           EpochNumber epoch_number) const override;
+    outcome::result<std::shared_ptr<const BabeConfiguration>> config(
+        const primitives::BlockInfo &parent_info,
+        EpochNumber epoch_number) const override;
 
     void warp(const primitives::BlockInfo &block) override;
 
@@ -105,10 +103,10 @@ namespace kagome::consensus::babe {
     outcome::result<SlotNumber> getFirstBlockSlotNumber(
         const primitives::BlockInfo &parent_info) const;
 
-    outcome::result<std::shared_ptr<const primitives::BabeConfiguration>>
-    config(const primitives::BlockInfo &block, bool next_epoch) const;
+    outcome::result<std::shared_ptr<const BabeConfiguration>> config(
+        const primitives::BlockInfo &block, bool next_epoch) const;
 
-    std::shared_ptr<primitives::BabeConfiguration> applyDigests(
+    std::shared_ptr<BabeConfiguration> applyDigests(
         const primitives::NextConfigDataV1 &config,
         const HasBabeConsensusDigest &digests) const;
 
@@ -116,8 +114,8 @@ namespace kagome::consensus::babe {
         const primitives::BlockInfo &block,
         blockchain::Indexed<BabeIndexedValue> &item) const;
 
-    outcome::result<std::shared_ptr<const primitives::BabeConfiguration>>
-    loadPrev(const std::optional<primitives::BlockInfo> &prev) const;
+    outcome::result<std::shared_ptr<const BabeConfiguration>> loadPrev(
+        const std::optional<primitives::BlockInfo> &prev) const;
 
     void warp(std::unique_lock<std::mutex> &lock,
               const primitives::BlockInfo &block);
