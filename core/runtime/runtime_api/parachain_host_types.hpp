@@ -91,7 +91,7 @@ namespace kagome::runtime {
 
     /// Returns the index of the group needed to validate the core at the given
     /// index, assuming the given number of cores.
-    GroupIndex groupForCore(CoreIndex core_index, size_t cores) {
+    GroupIndex groupForCore(CoreIndex core_index, size_t cores) const {
       if (group_rotation_frequency == 0) {
         return core_index;
       }
