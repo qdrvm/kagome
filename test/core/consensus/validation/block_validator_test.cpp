@@ -20,6 +20,7 @@
 #include "testutil/outcome.hpp"
 #include "testutil/prepare_loggers.hpp"
 #include "testutil/primitives/mp_utils.hpp"
+#include "testutil/scale_test_comparator.hpp"
 
 using namespace kagome;
 using namespace blockchain;
@@ -50,6 +51,8 @@ using testing::ReturnRef;
 
 using testutil::createHash256;
 
+#include "scale/kagome_scale.hpp"
+
 namespace sr25519_constants = kagome::crypto::constants::sr25519;
 
 class BlockValidatorTest : public testing::Test {
@@ -77,7 +80,7 @@ class BlockValidatorTest : public testing::Test {
 
     // seal the block
     Seal seal{sr25519_signature};
-    common::Buffer encoded_seal{scale::encode(seal).value()};
+    common::Buffer encoded_seal{::scale::encode(seal).value()};
     block.header.digest.push_back(
         kagome::primitives::Seal{{kEngineId, encoded_seal}});
 
@@ -109,7 +112,7 @@ class BlockValidatorTest : public testing::Test {
                                authority_index_,
                                slot_number_,
                                {vrf_value_, vrf_proof_}};
-  Buffer encoded_babe_header_{scale::encode(babe_header_).value()};
+  Buffer encoded_babe_header_{::scale::encode(babe_header_).value()};
 
   BlockHeader block_header_{123,           // number
                             parent_hash_,  // parent
@@ -141,7 +144,19 @@ TEST_F(BlockValidatorTest, Success) {
   // get an encoded pre-seal part of the block's header
   auto block_copy = valid_block_;
   block_copy.header.digest.pop_back();
-  auto encoded_block_copy = scale::encode(block_copy.header).value();
+
+  common::Buffer b;
+  b.push_back(10);
+  testutil::scaleEncodeAndCompareWithRef(b);
+
+  using TestDataT = boost::variant<primitives::Other, std::string>;
+  TestDataT d = primitives::Other{std::move(b)};
+  [[maybe_unused]] auto __1 = testutil::scaleEncodeAndCompareWithRef(d);
+  [[maybe_unused]] auto __2 =
+      testutil::scaleEncodeAndCompareWithRef(block_copy.header.digest).value();
+
+  auto encoded_block_copy =
+      testutil::scaleEncodeAndCompareWithRef(block_copy.header).value();
   Hash256 encoded_block_copy_hash{};  // not a real hash, but don't want to
                                       // actually take it
   std::copy(encoded_block_copy.begin(),
@@ -193,7 +208,8 @@ TEST_F(BlockValidatorTest, LessDigestsThanNeeded) {
 TEST_F(BlockValidatorTest, NoBabeHeader) {
   auto block_copy = valid_block_;
   block_copy.header.digest.pop_back();
-  auto encoded_block_copy = scale::encode(block_copy.header).value();
+  auto encoded_block_copy =
+      testutil::scaleEncodeAndCompareWithRef(block_copy.header).value();
   Hash256 encoded_block_copy_hash{};  // not a real hash, but don't want to
                                       // actually take it
   std::copy(encoded_block_copy.begin(),
@@ -226,7 +242,9 @@ TEST_F(BlockValidatorTest, NoAuthority) {
   // GIVEN
   auto block_copy = valid_block_;
   block_copy.header.digest.pop_back();
-  auto encoded_block_copy = scale::encode(block_copy.header).value();
+  auto encoded_block_copy =
+      testutil::scaleEncodeAndCompareWithRef(block_copy.header).value();
+
   Hash256 encoded_block_copy_hash{};
   std::copy(encoded_block_copy.begin(),
             encoded_block_copy.begin() + Hash256::size(),
@@ -265,7 +283,8 @@ TEST_F(BlockValidatorTest, SignatureVerificationFail) {
   // GIVEN
   auto block_copy = valid_block_;
   block_copy.header.digest.pop_back();
-  auto encoded_block_copy = scale::encode(block_copy.header).value();
+  auto encoded_block_copy =
+      testutil::scaleEncodeAndCompareWithRef(block_copy.header).value();
   Hash256 encoded_block_copy_hash{};
   std::copy(encoded_block_copy.begin(),
             encoded_block_copy.begin() + Hash256::size(),
@@ -305,7 +324,8 @@ TEST_F(BlockValidatorTest, VRFFail) {
   // GIVEN
   auto block_copy = valid_block_;
   block_copy.header.digest.pop_back();
-  auto encoded_block_copy = scale::encode(block_copy.header).value();
+  auto encoded_block_copy =
+      testutil::scaleEncodeAndCompareWithRef(block_copy.header).value();
   Hash256 encoded_block_copy_hash{};
   std::copy(encoded_block_copy.begin(),
             encoded_block_copy.begin() + Hash256::size(),
@@ -344,7 +364,8 @@ TEST_F(BlockValidatorTest, ThresholdGreater) {
   // GIVEN
   auto block_copy = valid_block_;
   block_copy.header.digest.pop_back();
-  auto encoded_block_copy = scale::encode(block_copy.header).value();
+  auto encoded_block_copy =
+      testutil::scaleEncodeAndCompareWithRef(block_copy.header).value();
   Hash256 encoded_block_copy_hash{};
   std::copy(encoded_block_copy.begin(),
             encoded_block_copy.begin() + Hash256::size(),
