@@ -7,6 +7,7 @@
 #pragma once
 
 #include "consensus/timeline/types.hpp"
+#include "primitives/block.hpp"
 #include "primitives/block_header.hpp"
 
 namespace kagome::consensus {
@@ -41,6 +42,29 @@ namespace kagome::consensus {
 
     virtual outcome::result<void> processSlot(
         SlotNumber slot, const primitives::BlockInfo &parent) = 0;
+
+   protected:
+    /// Changes epoch
+    /// @param epoch epoch that switch to
+    /// @param block that epoch data based on
+    /// @return true if epoch successfully switched
+    virtual bool changeEpoch(EpochNumber epoch,
+                             const primitives::BlockInfo &block) const = 0;
+
+    /// Check slot leadership
+    /// @param block parent of block for which will produced new one if node is
+    /// slot-leader
+    /// @param slot for which leadership is checked
+    /// @return true if node is leader of provided slot
+    virtual bool checkSlotLeadership(const primitives::BlockInfo &block,
+                                     SlotNumber slot) = 0;
+
+    /// Make PreRuntime digest
+    virtual outcome::result<primitives::PreRuntime> makePreDigest() const = 0;
+
+    /// Make Seal digest
+    virtual outcome::result<primitives::Seal> makeSeal(
+        const primitives::Block &block) const = 0;
   };
 
 }  // namespace kagome::consensus

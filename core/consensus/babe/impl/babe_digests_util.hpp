@@ -24,8 +24,7 @@ namespace kagome::consensus::babe {
     GENESIS_BLOCK_CAN_NOT_HAVE_DIGESTS,
   };
 
-  outcome::result<SlotNumber> getBabeSlot(
-      const primitives::BlockHeader &header);
+  outcome::result<SlotNumber> getSlot(const primitives::BlockHeader &header);
 
   outcome::result<BabeBlockHeader> getBabeBlockHeader(
       const primitives::BlockHeader &block_header);

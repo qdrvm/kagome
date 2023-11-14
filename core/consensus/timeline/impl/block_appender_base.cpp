@@ -9,7 +9,6 @@
 #include "blockchain/block_tree.hpp"
 #include "consensus/babe/babe_config_repository.hpp"
 #include "consensus/babe/impl/babe_digests_util.hpp"
-#include "consensus/babe/impl/babe_error.hpp"
 #include "consensus/babe/impl/threshold_util.hpp"
 #include "consensus/grandpa/environment.hpp"
 #include "consensus/grandpa/voting_round_error.hpp"
@@ -177,7 +176,9 @@ namespace kagome::consensus {
 
   outcome::result<BlockAppenderBase::SlotInfo> BlockAppenderBase::getSlotInfo(
       const primitives::BlockHeader &header) const {
-    OUTCOME_TRY(slot_number, babe::getBabeSlot(header));
+    OUTCOME_TRY(
+        slot_number,
+        babe::getSlot(header));  // TODO(xDimon): Make it consensus agnostic
     auto start_time = slots_util_.get()->slotStartTime(slot_number);
     auto slot_duration = timings_.slot_duration;
     return outcome::success(SlotInfo{start_time, slot_duration});

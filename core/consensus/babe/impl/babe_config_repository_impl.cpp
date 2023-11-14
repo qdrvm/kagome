@@ -12,7 +12,6 @@
 #include "babe_digests_util.hpp"
 #include "blockchain/block_header_repository.hpp"
 #include "blockchain/block_tree.hpp"
-#include "consensus/babe/impl/babe_error.hpp"
 #include "consensus/consensus_selector.hpp"
 #include "consensus/timeline/slots_util.hpp"
 #include "primitives/block_header.hpp"
@@ -166,7 +165,7 @@ namespace kagome::consensus::babe {
     auto epoch_changed = true;
     if (parent_info.number != 0) {
       OUTCOME_TRY(parent_header, block_tree_->getBlockHeader(parent_info.hash));
-      OUTCOME_TRY(parent_slot, getBabeSlot(parent_header));
+      OUTCOME_TRY(parent_slot, getSlot(parent_header));
       OUTCOME_TRY(parent_epoch,
                   slots_util_.get()->slotToEpoch(parent_info, parent_slot));
       epoch_changed = epoch_number != parent_epoch;
@@ -182,12 +181,12 @@ namespace kagome::consensus::babe {
       auto finalized = block_tree_->getLastFinalized();
       OUTCOME_TRY(parent, block_tree_->getBlockHeader(parent_info.hash));
       if (parent.number == 1) {
-        BOOST_OUTCOME_TRY(slot1, getBabeSlot(parent));
+        BOOST_OUTCOME_TRY(slot1, getSlot(parent));
       } else if (finalized.number != 0) {
         OUTCOME_TRY(hash1, block_tree_->getBlockHash(1));
         if (hash1) {
           OUTCOME_TRY(header1, block_tree_->getBlockHeader(*hash1));
-          BOOST_OUTCOME_TRY(slot1, getBabeSlot(header1));
+          BOOST_OUTCOME_TRY(slot1, getSlot(header1));
         }
       }
       if (not slot1 and trie_storage_->getEphemeralBatchAt(parent.state_root)) {
@@ -203,7 +202,7 @@ namespace kagome::consensus::babe {
           BOOST_OUTCOME_TRY(header1,
                             block_tree_->getBlockHeader(header1.parent_hash));
         }
-        BOOST_OUTCOME_TRY(slot1, getBabeSlot(header1));
+        BOOST_OUTCOME_TRY(slot1, getSlot(header1));
       }
       if (finalized.number != 0
           and block_tree_->hasDirectChain(finalized, parent_info)) {

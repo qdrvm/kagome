@@ -11,7 +11,7 @@
 #include "consensus/babe/types/babe_block_header.hpp"
 #include "consensus/babe/types/seal.hpp"
 #include "consensus/babe/types/slot_type.hpp"
-#include "consensus/timeline/impl/block_production_error.hpp"
+#include "consensus/timeline/impl/slot_leadership_error.hpp"
 #include "consensus/timeline/impl/timeline_impl.hpp"
 #include "mock/core/application/app_configuration_mock.hpp"
 #include "mock/core/application/app_state_manager_mock.hpp"
@@ -37,12 +37,12 @@ using kagome::application::AppStateManagerMock;
 using kagome::blockchain::BlockTreeMock;
 using kagome::clock::SystemClockMock;
 using kagome::common::Buffer;
-using kagome::consensus::BlockProductionError;
 using kagome::consensus::ConsensusSelectorMock;
 using kagome::consensus::Duration;
 using kagome::consensus::EpochLength;
 using kagome::consensus::EpochNumber;
 using kagome::consensus::ProductionConsensusMock;
+using kagome::consensus::SlotLeadershipError;
 using kagome::consensus::SlotNumber;
 using kagome::consensus::SlotsUtilMock;
 using kagome::consensus::SyncState;
@@ -375,7 +375,7 @@ TEST_F(TimelineTest, Validator) {
         .WillRepeatedly(Return(0));
     //  - process slot (not slot leader for this case)
     EXPECT_CALL(*production_consensus, processSlot(current_slot, best_block))
-        .WillOnce(Return(BlockProductionError::NO_SLOT_LEADER));
+        .WillOnce(Return(SlotLeadershipError::NO_SLOT_LEADER));
     //  - start to wait for end of current slot
     EXPECT_CALL(*scheduler, scheduleImplMockCall(_, _, false))
         .WillOnce(WithArg<0>(Invoke([&](auto cb) {

@@ -11,9 +11,10 @@
 namespace kagome::consensus {
 
   enum class BlockProductionError {
-    NO_VALIDATOR = 1,
-    NO_SLOT_LEADER,
-    BACKING_OFF,
+    CAN_NOT_PREPARE_BLOCK = 1,
+    CAN_NOT_SEAL_BLOCK,
+    WAS_NOT_BUILD_ON_TIME,
+    CAN_NOT_SAVE_BLOCK,
   };
 
 }  // namespace kagome::consensus

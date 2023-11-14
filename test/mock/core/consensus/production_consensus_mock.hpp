@@ -28,5 +28,25 @@ namespace kagome::consensus {
                 processSlot,
                 (SlotNumber, const primitives::BlockInfo &),
                 (override));
+
+    MOCK_METHOD(bool,
+                changeEpoch,
+                (EpochNumber epoch, const primitives::BlockInfo &block),
+                (const, override));
+
+    MOCK_METHOD(bool,
+                checkSlotLeadership,
+                (const primitives::BlockInfo &block, SlotNumber slot),
+                (override));
+
+    MOCK_METHOD(outcome::result<primitives::PreRuntime>,
+                makePreDigest,
+                (),
+                (const, override));
+
+    MOCK_METHOD(outcome::result<primitives::Seal>,
+                makeSeal,
+                (const primitives::Block &block),
+                (const, override));
   };
 }  // namespace kagome::consensus

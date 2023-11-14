@@ -15,6 +15,30 @@
 
 namespace kagome::consensus::babe {
 
+  struct AuthorityId {
+    SCALE_TIE(1);
+
+    crypto::Sr25519PublicKey id;
+  };
+
+  using AuthorityWeight = uint64_t;
+
+  /// Authority, which participate in block production
+  struct Authority {
+    SCALE_TIE(2);
+
+    AuthorityId id;
+    AuthorityWeight weight{};
+  };
+
+  /// List of authorities
+  using Authorities =
+      common::SLVector<Authority, consensus::kMaxValidatorsNumber>;
+
+  using AuthorityList = Authorities;
+
+  using AuthorityIndex = uint32_t;
+
   using consensus::Clock;
   using consensus::Duration;
   using consensus::Randomness;
@@ -68,11 +92,6 @@ namespace kagome::consensus::babe {
 
     /// Type of allowed slots.
     AllowedSlots allowed_slots{};  // can be changed by NextConfigData
-
-    bool isSecondarySlotsAllowed() const {
-      return allowed_slots == AllowedSlots::PrimaryAndSecondaryPlain
-          or allowed_slots == AllowedSlots::PrimaryAndSecondaryVRF;
-    }
   };
 
   struct Epoch {
