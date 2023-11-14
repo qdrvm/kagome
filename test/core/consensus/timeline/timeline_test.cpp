@@ -41,6 +41,7 @@ using kagome::consensus::ConsensusSelectorMock;
 using kagome::consensus::Duration;
 using kagome::consensus::EpochLength;
 using kagome::consensus::EpochNumber;
+using kagome::consensus::EpochTimings;
 using kagome::consensus::ProductionConsensusMock;
 using kagome::consensus::SlotLeadershipError;
 using kagome::consensus::SlotNumber;
@@ -114,20 +115,23 @@ class TimelineTest : public testing::Test {
   void SetUp() override {
     app_state_manager = std::make_shared<AppStateManagerMock>();
 
-    Duration slot_duration = 6s;
-    EpochLength epoch_length = 200;
+    EpochTimings timings = {
+        .slot_duration = 6s,
+        .epoch_length = 200,
+    };
 
     slots_util = std::make_shared<SlotsUtilMock>();
-    ON_CALL(*slots_util, slotDuration()).WillByDefault(Return(slot_duration));
-    ON_CALL(*slots_util, epochLength()).WillByDefault(Return(epoch_length));
+    ON_CALL(*slots_util, slotDuration())
+        .WillByDefault(Return(timings.slot_duration));
+    ON_CALL(*slots_util, epochLength())
+        .WillByDefault(Return(timings.epoch_length));
     ON_CALL(*slots_util, timeToSlot(_)).WillByDefault(Invoke([&] {
       return current_slot;
     }));
     ON_CALL(*slots_util, slotToEpoch(_, _))
-        .WillByDefault(
-            WithArg<1>(Invoke([epoch_length](auto slot) -> EpochNumber {
-              return slot / epoch_length;
-            })));
+        .WillByDefault(WithArg<1>(Invoke([timings](auto slot) -> EpochNumber {
+          return slot / timings.epoch_length;
+        })));
 
     block_tree = std::make_shared<BlockTreeMock>();
     ON_CALL(*block_tree, bestBlock()).WillByDefault(Return(best_block));
@@ -139,9 +143,6 @@ class TimelineTest : public testing::Test {
     production_consensus = std::make_shared<ProductionConsensusMock>();
     ON_CALL(*consensus_selector, getProductionConsensus(_))
         .WillByDefault(Return(production_consensus));
-    ON_CALL(*production_consensus, getTimings()).WillByDefault(Invoke([&]() {
-      return std::tuple(slot_duration, epoch_length);
-    }));
     ON_CALL(*production_consensus, getSlot(best_block_header))
         .WillByDefault(Return(1));
 
