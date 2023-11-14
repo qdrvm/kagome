@@ -13,12 +13,12 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::consensus::sassafras, SassafrasError, e) {
       return "can not prepare block";
       //    case E::CAN_NOT_PROPOSE_BLOCK:
       //      return "can not propose block";
-      //    case E::CAN_NOT_SEAL_BLOCK:
-      //      return "can not seal block";
-      //    case E::WAS_NOT_BUILD_ON_TIME:
-      //      return "block was not build on time";
-      //    case E::CAN_NOT_SAVE_BLOCK:
-      //      return "can not save block";
+    case E::CAN_NOT_SEAL_BLOCK:
+      return "can not seal block";
+    case E::WAS_NOT_BUILD_ON_TIME:
+      return "block was not build on time";
+    case E::CAN_NOT_SAVE_BLOCK:
+      return "can not save block";
       //    case E::MISSING_PROOF:
       //      return "required VRF proof is missing";
       //    case E::BAD_ORDER_OF_DIGEST_ITEM:

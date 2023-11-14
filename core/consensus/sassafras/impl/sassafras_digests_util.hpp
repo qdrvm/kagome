@@ -10,8 +10,8 @@
 #include <optional>
 
 #include "common/visitor.hpp"
-#include "consensus/sassafras/types/sassafras_block_header.hpp"
 #include "consensus/sassafras/types/seal.hpp"
+#include "consensus/sassafras/types/slot_claim.hpp"
 #include "consensus/timeline/types.hpp"
 #include "outcome/outcome.hpp"
 #include "primitives/block.hpp"
@@ -26,7 +26,7 @@ namespace kagome::consensus::sassafras {
 
   outcome::result<SlotNumber> getSlot(const primitives::BlockHeader &header);
 
-  outcome::result<SassafrasBlockHeader> getSassafrasBlockHeader(
+  outcome::result<SlotClaim> getSlotClaim(
       const primitives::BlockHeader &block_header);
 
   outcome::result<Seal> getSeal(const primitives::BlockHeader &block_header);

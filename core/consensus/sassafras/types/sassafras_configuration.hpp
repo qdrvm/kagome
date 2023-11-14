@@ -14,7 +14,8 @@ namespace kagome::consensus::sassafras {
 
   using Authority = crypto::BandersnatchPublicKey;
 
-  using Authorities = std::vector<Authority>;
+  using Authorities =
+      common::SLVector<Authority, consensus::kMaxValidatorsNumber>;
 
   using AuthorityIndex = uint32_t;
 

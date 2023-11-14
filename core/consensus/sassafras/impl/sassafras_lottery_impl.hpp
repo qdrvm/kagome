@@ -108,7 +108,6 @@ namespace kagome::consensus::sassafras {
     EpochNumber epoch_;
     Randomness randomness_;
     AuthorityIndex auth_number_;
-    // AuthorityIndex auth_index_;
     KeypairWithIndexOpt keypair_;
     Tickets tickets_;
 

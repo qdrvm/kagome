@@ -38,11 +38,11 @@ namespace {
 
 namespace kagome::consensus::sassafras {
   outcome::result<SlotNumber> getSlot(const primitives::BlockHeader &header) {
-    OUTCOME_TRY(babe_block_header, getSassafrasBlockHeader(header));
-    return babe_block_header.slot_number;
+    OUTCOME_TRY(slot_claim, getSlotClaim(header));
+    return slot_claim.slot_number;
   }
 
-  outcome::result<SassafrasBlockHeader> getSassafrasBlockHeader(
+  outcome::result<SlotClaim> getSlotClaim(
       const primitives::BlockHeader &block_header) {
     [[unlikely]] if (block_header.number == 0) {
       return DigestError::GENESIS_BLOCK_CAN_NOT_HAVE_DIGESTS;
@@ -57,11 +57,11 @@ namespace kagome::consensus::sassafras {
          std::span(digests).subspan(0, digests.size() - 1)) {
       auto pre_runtime_opt = getFromVariant<primitives::PreRuntime>(digest);
       if (pre_runtime_opt.has_value()) {
-        auto sassafras_block_header_res =
-            scale::decode<SassafrasBlockHeader>(pre_runtime_opt->get().data);
-        if (sassafras_block_header_res.has_value()) {
-          // found the SassafrasBlockHeader digest; return
-          return sassafras_block_header_res.value();
+        auto slot_claim_res =
+            scale::decode<SlotClaim>(pre_runtime_opt->get().data);
+        if (slot_claim_res.has_value()) {
+          // found the SlotClaim digest; return
+          return slot_claim_res.value();
         }
       }
     }
