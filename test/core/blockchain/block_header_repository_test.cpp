@@ -14,12 +14,10 @@
 #include "blockchain/impl/block_header_repository_impl.hpp"
 #include "blockchain/impl/storage_util.hpp"
 #include "crypto/hasher/hasher_impl.hpp"
-#include "scale/kagome_scale.hpp"
 #include "scale/scale.hpp"
 #include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
 #include "testutil/prepare_loggers.hpp"
-#include "testutil/scale_test_comparator.hpp"
 #include "testutil/storage/base_rocksdb_test.hpp"
 
 using kagome::blockchain::BlockHeaderRepository;
@@ -51,41 +49,7 @@ class BlockHeaderRepository_Test : public test::BaseRocksDB_Test {
   outcome::result<Hash256> storeHeader(BlockNumber num, BlockHeader h) {
     BlockHeader header = std::move(h);
     header.number = num;
-
-    []() {
-      ASSERT_EQ(0, kagome::scale::bitUpperBorder(0));
-      ASSERT_EQ(1, kagome::scale::bitUpperBorder(1));
-      ASSERT_EQ(2, kagome::scale::bitUpperBorder(3));
-      ASSERT_EQ(8, kagome::scale::bitUpperBorder(0xff));
-      ASSERT_EQ(6, kagome::scale::bitUpperBorder(0x3f));
-    }();
-
-    auto cmp = [](::scale::CompactInteger val) {
-      size_t ref = 0;
-      auto v = val;
-      do {
-        ++ref;
-      } while ((v >>= 8) != 0);
-
-      ASSERT_EQ(ref, kagome::scale::countBytes(val));
-    };
-    ::scale::CompactInteger i("1234567890123456789012345678901234567890");
-    i = 1;
-    cmp(i);
-    cmp(::scale::CompactInteger("1234567890123456789012345678901234567890"));
-    cmp(::scale::CompactInteger(0x7fff));
-    cmp(::scale::CompactInteger(0xffff));
-    cmp(::scale::CompactInteger(0x1ffff));
-    cmp(::scale::CompactInteger(std::numeric_limits<uint64_t>::max()));
-    cmp(::scale::CompactInteger(0));
-    cmp(::scale::CompactInteger(1));
-
-    [[maybe_unused]] auto __0 =
-        testutil::scaleEncodeAndCompareWithRef(::scale::CompactInteger(0x3fff));
-
-    [[maybe_unused]] auto __1 = testutil::scaleEncodeAndCompareWithRef(
-        ::scale::CompactInteger(4294967295));
-    OUTCOME_TRY(enc_header, testutil::scaleEncodeAndCompareWithRef(header));
+    OUTCOME_TRY(enc_header, scale::encode(header));
     auto hash = hasher_->blake2b_256(enc_header);
     OUTCOME_TRY(putToSpace(*rocks_, Space::kHeader, hash, Buffer{enc_header}));
 
@@ -129,8 +93,7 @@ TEST_F(BlockHeaderRepository_Test, UnexistingHeader) {
   }
   BlockHeader not_in_storage = getDefaultHeader();
   not_in_storage.number = chosen_number;
-  EXPECT_OUTCOME_TRUE(enc_header,
-                      testutil::scaleEncodeAndCompareWithRef(not_in_storage))
+  EXPECT_OUTCOME_TRUE(enc_header, scale::encode(not_in_storage))
   auto hash = hasher_->blake2b_256(enc_header);
   EXPECT_OUTCOME_FALSE_1(header_repo_->getBlockHeader(hash))
   EXPECT_OUTCOME_FALSE_1(header_repo_->getHashById(chosen_number))
@@ -182,22 +145,6 @@ TEST_P(BlockHeaderRepository_NumberParametrized_Test, GetHeader) {
   auto header_should_be = getDefaultHeader();
   header_should_be.number = GetParam();
   ASSERT_EQ(header_by_hash, header_should_be);
-}
-
-TEST_P(BlockHeaderRepository_NumberParametrized_Test, bitvec) {
-  auto create_bit_vec = [](size_t count) {
-    ::scale::BitVec bv;
-    for (size_t i = 0; i < count; ++i) {
-      bv.bits.push_back((i % 2ull) == 0ull);
-    }
-
-    return bv;
-  };
-
-  for (size_t i = 0ull; i < 200ull; ++i) {
-    [[maybe_unused]] auto __1 =
-        testutil::scaleEncodeAndCompareWithRef(create_bit_vec(i));
-  }
 }
 
 INSTANTIATE_TEST_SUITE_P(Numbers,

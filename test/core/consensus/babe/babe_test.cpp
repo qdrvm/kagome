@@ -29,14 +29,12 @@
 #include "mock/core/runtime/offchain_worker_api_mock.hpp"
 #include "primitives/babe_configuration.hpp"
 #include "primitives/event_types.hpp"
-#include "scale/kagome_scale.hpp"
 #include "storage/trie/serialization/ordered_trie_hash.hpp"
 #include "testutil/asio_wait.hpp"
 #include "testutil/lazy.hpp"
 #include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
 #include "testutil/prepare_loggers.hpp"
-#include "testutil/scale_test_comparator.hpp"
 #include "testutil/sr25519_utils.hpp"
 #include "utils/thread_pool.hpp"
 
@@ -112,13 +110,12 @@ static Digest make_digest(SlotNumber slot) {
       .authority_index = 0,
       .slot_number = slot,
   };
-  Buffer encoded_header{
-      testutil::scaleEncodeAndCompareWithRef(babe_header).value()};
+  Buffer encoded_header{scale::encode(babe_header).value()};
   digest.emplace_back(
       PreRuntime{kagome::primitives::kBabeEngineId, encoded_header});
 
   Seal seal{};
-  Buffer encoded_seal{testutil::scaleEncodeAndCompareWithRef(seal).value()};
+  Buffer encoded_seal{scale::encode(seal).value()};
   digest.emplace_back(
       SealDigest{kagome::primitives::kBabeEngineId, encoded_seal});
 
