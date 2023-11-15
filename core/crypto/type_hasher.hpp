@@ -6,18 +6,18 @@
 #ifndef KAGOME_TYPE_HASHER_HASHER_HPP_
 #define KAGOME_TYPE_HASHER_HASHER_HPP_
 
-#include <gsl/span>
 #include <optional>
+#include <span>
 #include "crypto/hasher/blake2b_stream_hasher.hpp"
 #include "scale/kagome_scale.hpp"
 
 namespace kagome::crypto {
 
   template <typename H, typename... T>
-  inline void hashTypes(H &hasher, gsl::span<uint8_t> out, T &&...t) {
+  inline void hashTypes(H &hasher, std::span<uint8_t> out, T &&...t) {
     kagome::scale::encode(
         [&](const uint8_t *const val, size_t count) {
-          hasher.update({val, (ssize_t)count});
+          hasher.update({val, count});
         },
         std::forward<T>(t)...);
 
@@ -68,6 +68,11 @@ namespace kagome::crypto {
     T type_;
     mutable std::optional<HashType> opt_hash_{};
   };
+
+  template <typename T, typename... Args>
+  inline Hashed<T, 32> create256Blake(Args &&...args) {
+    return Hashed<T, 32>{std::forward<Args>(args)...};
+  }
 
 }  // namespace kagome::crypto
 

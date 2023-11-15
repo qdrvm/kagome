@@ -6,7 +6,7 @@
 #ifndef KAGOME_BLAKE2B_STREAM_HASHER_HASHER_HPP_
 #define KAGOME_BLAKE2B_STREAM_HASHER_HASHER_HPP_
 
-#include <gsl/span>
+#include <span>
 #include "crypto/blake2/blake2b.h"
 
 namespace kagome::crypto {
@@ -19,7 +19,7 @@ namespace kagome::crypto {
       initialized_ = (0 == blake2b_init(&ctx_, Outlen, nullptr, 0ull));
     }
 
-    bool update(gsl::span<const uint8_t> buffer) {
+    bool update(std::span<const uint8_t> buffer) {
       if (!initialized_) {
         return false;
       }
@@ -27,7 +27,7 @@ namespace kagome::crypto {
       return true;
     }
 
-    bool get_final(gsl::span<uint8_t> out) {
+    bool get_final(std::span<uint8_t> out) {
       if (!initialized_) {
         return false;
       }
