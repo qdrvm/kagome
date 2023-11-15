@@ -66,10 +66,9 @@ namespace kagome::api {
     // TODO(turuslan): simplify offchain
     ::libp2p::common::MovableFinalAction remove(
         [&] { offchain_worker_pool_.get()->removeWorker(); });
-    outcome::result<decltype(remove)> result{std::move(remove)};
     offchain_worker_pool_.get()->addWorker(
         offchain_worker_factory_.get()->make());
-    return result;
+    return remove;
   }
 
   void MmrRpc::registerHandlers() {

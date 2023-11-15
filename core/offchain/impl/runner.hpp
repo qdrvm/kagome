@@ -31,11 +31,10 @@ namespace kagome::offchain {
           max_tasks_{max_tasks},
           thread_pool_{"ocw", threads_} {}
 
-    Runner(std::nullptr_t,
-           std::nullptr_t,
-           std::nullptr_t,
-           std::nullptr_t)  // Hack Boost.DI
-        : Runner(kMaxThreads, kMaxTasks) {}
+    struct Inject {
+      explicit Inject() = default;
+    };
+    Runner(Inject, ...) : Runner(kMaxThreads, kMaxTasks) {}
 
     void run(Task &&task) {
       std::unique_lock lock{mutex_};
