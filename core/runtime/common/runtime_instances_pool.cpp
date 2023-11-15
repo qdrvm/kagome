@@ -89,9 +89,8 @@ namespace kagome::runtime {
         weak_from_this(), code_hash, std::move(instance));
   }
 
-  outcome::result<std::shared_ptr<const Module>, CompilationError>
-  RuntimeInstancesPool::tryCompileModule(const CodeHash &code_hash,
-                                         common::BufferView code_zstd) {
+  RuntimeInstancesPool::CompilationResult RuntimeInstancesPool::tryCompileModule(
+      const CodeHash &code_hash, common::BufferView code_zstd) {
     std::unique_lock l{compiling_modules_mtx_};
 
     if (auto iter = compiling_modules_.find(code_hash);
@@ -107,14 +106,14 @@ namespace kagome::runtime {
     l.unlock();
 
     common::Buffer code;
+    CompilationResult res{nullptr};
     if (!uncompressCodeIfNeeded(code_zstd, code)) {
-      promise.set_value(CompilationError{"Failed to uncompress code"});
+      res = CompilationError{"Failed to uncompress code"};
+    } else {
+      res = common::map_result(module_factory_->make(code), [](auto &&module) {
+        return std::shared_ptr<const Module>(module);
+      });
     }
-    auto res = common::map_result(
-        module_factory_->make(code),
-        [](auto &&module) {
-          return std::shared_ptr<const Module>(module);
-        });
     promise.set_value(res);
 
     l.lock();

@@ -95,7 +95,7 @@ namespace kagome::runtime {
     std::shared_mutex pools_mtx_;
     Lru<common::Hash256, InstancePool> pools_;
 
-    std::shared_mutex compiling_modules_mtx_;
+    std::mutex compiling_modules_mtx_;
     std::unordered_map<CodeHash, std::shared_future<CompilationResult>>
         compiling_modules_;
   };

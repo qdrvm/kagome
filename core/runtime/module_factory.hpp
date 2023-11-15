@@ -18,14 +18,12 @@ namespace kagome::runtime {
   class Module;
 
   struct CompilationError : std::runtime_error {
-    CompilationError(std::string message)
-        : std::runtime_error(message.c_str()), msg{std::move(message)} {}
+    CompilationError(const std::string& message)
+        : std::runtime_error(message.c_str()) {}
 
     std::string_view message() const {
-      return msg;
+      return what();
     }
-
-    std::string msg;
   };
 
   inline std::error_code make_error_code(CompilationError) {
