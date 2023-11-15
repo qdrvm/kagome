@@ -331,6 +331,7 @@ namespace kagome::scale {
     for (; ix < size; ++ix) {
       *(mp::limb_type *)&result[1ull + ix * limb_sz] = math::toLE(p[ix]);
     }
+    
     putByte(func, result, bigIntLength + 1ull);
   }
 

@@ -7,6 +7,7 @@
 #define KAGOME_KAGOME_SCALE_HPP
 
 #include <type_traits>
+#include <span>
 #include "common/blob.hpp"
 #include "consensus/babe/types/babe_block_header.hpp"
 #include "consensus/babe/types/seal.hpp"
@@ -27,7 +28,7 @@ namespace kagome::scale {
   using DecodeError = ::scale::DecodeError;
 
   template <typename T>
-  inline auto decode(gsl::span<const uint8_t> data) {
+  inline auto decode(std::span<const uint8_t> data) {
     return ::scale::decode<T>(std::move(data));
   }
 
