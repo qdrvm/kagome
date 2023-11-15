@@ -46,17 +46,14 @@ namespace kagome::offchain {
     OffchainWorkerImpl(
         const application::AppConfiguration &app_config,
         std::shared_ptr<clock::SystemClock> clock,
-        std::shared_ptr<crypto::Hasher> hasher,
         std::shared_ptr<storage::SpacedStorage> storage,
         std::shared_ptr<crypto::CSPRNG> random_generator,
         std::shared_ptr<api::AuthorApi> author_api,
         const network::OwnPeerInfo &current_peer_info,
         std::shared_ptr<OffchainPersistentStorage> persistent_storage,
-        std::shared_ptr<runtime::Executor> executor,
-        const primitives::BlockHeader &header,
         std::shared_ptr<OffchainWorkerPool> ocw_pool);
 
-    outcome::result<void> run() override;
+    void run(std::function<void()> &&func, std::string label) override;
 
     bool isValidator() const override;
 
@@ -118,18 +115,15 @@ namespace kagome::offchain {
 
     const application::AppConfiguration &app_config_;
     std::shared_ptr<clock::SystemClock> clock_;
-    std::shared_ptr<crypto::Hasher> hasher_;
     std::shared_ptr<crypto::CSPRNG> random_generator_;
     std::shared_ptr<api::AuthorApi> author_api_;
     const network::OwnPeerInfo &current_peer_info_;
     std::shared_ptr<offchain::OffchainPersistentStorage> persistent_storage_;
     std::shared_ptr<offchain::OffchainLocalStorage> local_storage_;
-    std::shared_ptr<runtime::Executor> executor_;
-    const primitives::BlockHeader header_;
-    const primitives::BlockInfo block_;
     std::shared_ptr<OffchainWorkerPool> ocw_pool_;
     log::Logger log_;
 
+    static size_t ocw_counter_;
     int16_t request_id_ = 0;
     std::map<RequestId, std::shared_ptr<HttpRequest>> active_http_requests_;
   };
