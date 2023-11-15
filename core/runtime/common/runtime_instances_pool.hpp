@@ -8,10 +8,9 @@
 
 #include "runtime/module_repository.hpp"
 
-#include <condition_variable>
+#include <future>
 #include <mutex>
 #include <shared_mutex>
-#include <stack>
 #include <unordered_set>
 
 #include "runtime/module_factory.hpp"
@@ -25,8 +24,6 @@ namespace kagome::runtime {
    */
   class RuntimeInstancesPool final
       : public std::enable_shared_from_this<RuntimeInstancesPool> {
-    using ModuleInstancePool = std::stack<std::shared_ptr<ModuleInstance>>;
-
     static constexpr size_t DEFAULT_MODULES_CACHE_SIZE = 2;
 
    public:
@@ -88,23 +85,19 @@ namespace kagome::runtime {
           std::unique_lock<std::shared_mutex> &lock);
     };
 
-    outcome::result<std::reference_wrapper<InstancePool>, CompilationError>
-    tryCompileModule(const CodeHash &code_hash, common::BufferView code_zstd);
+    using CompilationResult =
+        outcome::result<std::shared_ptr<const Module>, CompilationError>;
+    CompilationResult tryCompileModule(const CodeHash &code_hash,
+                                       common::BufferView code_zstd);
 
     std::shared_ptr<ModuleFactory> module_factory_;
 
     std::shared_mutex pools_mtx_;
     Lru<common::Hash256, InstancePool> pools_;
 
-    struct WaitEntry {
-      WaitEntry() = default;
-
-      std::shared_mutex mutex;
-      std::atomic_int waiting_threads_num = 0;
-      bool compilation_done = false;
-    };
-    std::shared_mutex wait_queue_mtx_;
-    std::unordered_map<CodeHash, WaitEntry> wait_queue_;
+    std::shared_mutex compiling_modules_mtx_;
+    std::unordered_map<CodeHash, std::shared_future<CompilationResult>>
+        compiling_modules_;
   };
 
 }  // namespace kagome::runtime

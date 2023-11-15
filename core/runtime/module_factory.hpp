@@ -19,9 +19,13 @@ namespace kagome::runtime {
 
   struct CompilationError : std::runtime_error {
     CompilationError(std::string message)
-        : std::runtime_error(message.c_str()), message{std::move(message)} {}
+        : std::runtime_error(message.c_str()), msg{std::move(message)} {}
 
-    std::string message;
+    std::string_view message() const {
+      return msg;
+    }
+
+    std::string msg;
   };
 
   inline std::error_code make_error_code(CompilationError) {

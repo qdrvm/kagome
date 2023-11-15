@@ -6,6 +6,7 @@
 
 #include "runtime/common/runtime_instances_pool.hpp"
 
+#include "common/monadic_utils.hpp"
 #include "runtime/common/uncompress_code_if_needed.hpp"
 #include "runtime/instance_environment.hpp"
 #include "runtime/module.hpp"
@@ -74,66 +75,51 @@ namespace kagome::runtime {
   RuntimeInstancesPool::instantiateFromCode(const CodeHash &code_hash,
                                             common::BufferView code_zstd) {
     std::unique_lock lock{pools_mtx_};
-    auto entry = pools_.get(code_hash);
-    bool found = entry.has_value();
-    if (not found) {
-      lock.unlock();
+    auto pool_opt = pools_.get(code_hash);
 
-      OUTCOME_TRY(new_entry, tryCompileModule(code_hash, code_zstd));
-      entry = new_entry;
+    if (!pool_opt) {
+      lock.unlock();
+      OUTCOME_TRY(module, tryCompileModule(code_hash, code_zstd));
+      BOOST_ASSERT(module != nullptr);
       lock.lock();
+      pool_opt = std::ref(pools_.put(code_hash, InstancePool{module, {}}));
     }
-    auto instance = entry->get().instantiate(lock);
+    auto instance = pool_opt->get().instantiate(lock);
     return std::make_shared<BorrowedInstance>(
         weak_from_this(), code_hash, std::move(instance));
   }
 
-  outcome::result<std::reference_wrapper<RuntimeInstancesPool::InstancePool>,
-                  CompilationError>
+  outcome::result<std::shared_ptr<const Module>, CompilationError>
   RuntimeInstancesPool::tryCompileModule(const CodeHash &code_hash,
                                          common::BufferView code_zstd) {
-    std::unique_lock queue_lock{wait_queue_mtx_};
-    if (auto it = wait_queue_.find(code_hash); it != wait_queue_.end()) {
-      it->second.waiting_threads_num++;
-      queue_lock.unlock();
+    std::unique_lock l{compiling_modules_mtx_};
 
-      // wait until compilation finishes
-      std::shared_lock entry_lock{it->second.mutex};
-      BOOST_ASSERT(it->second.compilation_done);
-
-      // if this is the last waiting thread, delete the entry
-      if (it->second.waiting_threads_num.fetch_sub(1) == 1) {
-        entry_lock.unlock();
-        queue_lock.lock();
-        wait_queue_.erase(it);
-      }
-      std::shared_lock pools_lock{pools_mtx_};
-      auto opt_pool = pools_.get(code_hash);
-      BOOST_ASSERT(opt_pool);
-      BOOST_ASSERT(opt_pool->get().module);
-      return *opt_pool;
-
-    } else {
-      auto [new_it, emplaced] =
-          wait_queue_.emplace(std::piecewise_construct,
-                              std::forward_as_tuple(code_hash),
-                              std::tuple<>{});
-      BOOST_ASSERT(emplaced);
-      std::unique_lock l{new_it->second.mutex};
-      queue_lock.unlock();
-
-      common::Buffer code;
-      if (!uncompressCodeIfNeeded(code_zstd, code)) {
-        return CompilationError{"Failed to uncompress code"};
-      }
-      OUTCOME_TRY(module, module_factory_->make(code));
-
-      new_it->second.compilation_done = true;
-
-      std::unique_lock pools_lock{pools_mtx_};
-      return pools_.put(code_hash, {std::move(module), {}});
-      // unlock and let waiting threads proceed
+    if (auto iter = compiling_modules_.find(code_hash);
+        iter != compiling_modules_.end()) {
+      auto future = iter->second;
+      l.unlock();
+      return future.get();
     }
+    std::promise<CompilationResult> promise;
+    auto [iter, inserted] =
+        compiling_modules_.insert({code_hash, promise.get_future()});
+    BOOST_ASSERT(inserted);
+    l.unlock();
+
+    common::Buffer code;
+    if (!uncompressCodeIfNeeded(code_zstd, code)) {
+      promise.set_value(CompilationError{"Failed to uncompress code"});
+    }
+    auto res = common::map_result(
+        module_factory_->make(code),
+        [](auto &&module) {
+          return std::shared_ptr<const Module>(module);
+        });
+    promise.set_value(res);
+
+    l.lock();
+    compiling_modules_.erase(iter);
+    return res;
   }
 
   outcome::result<std::shared_ptr<ModuleInstance>>
