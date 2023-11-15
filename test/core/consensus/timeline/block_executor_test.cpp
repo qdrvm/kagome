@@ -143,10 +143,12 @@ class BlockExecutorTest : public testing::Test {
         testutil::sptr_to_lazy<SlotsUtil>(slots_util_),
         hasher_);
 
+    thread_pool_ = std::make_shared<ThreadPool>("test", 1);
+
     block_executor_ =
         std::make_shared<BlockExecutorImpl>(block_tree_,
-                                            thread_pool_,
-                                            thread_pool_.io_context(),
+                                            *thread_pool_,
+                                            thread_pool_->io_context(),
                                             core_,
                                             tx_pool_,
                                             hasher_,
@@ -173,7 +175,7 @@ class BlockExecutorTest : public testing::Test {
   std::shared_ptr<OffchainWorkerApiMock> offchain_worker_api_;
   kagome::primitives::events::StorageSubscriptionEnginePtr storage_sub_engine_;
   kagome::primitives::events::ChainSubscriptionEnginePtr chain_sub_engine_;
-  ThreadPool thread_pool_{"test", 1};
+  std::shared_ptr<ThreadPool> thread_pool_;
 
   std::shared_ptr<BlockExecutorImpl> block_executor_;
 };
@@ -254,5 +256,5 @@ TEST_F(BlockExecutorTest, JustificationFollowDigests) {
       justification,
       [](auto &&result) { ASSERT_OUTCOME_SUCCESS_TRY(result); });
 
-  testutil::wait(*thread_pool_.io_context());
+  testutil::wait(*thread_pool_->io_context());
 }

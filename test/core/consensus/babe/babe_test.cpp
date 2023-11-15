@@ -188,6 +188,8 @@ class BabeTest : public testing::Test {
     ON_CALL(*offchain_worker_api, offchain_worker(_, _))
         .WillByDefault(Return(outcome::success()));
 
+    thread_pool_ = std::make_shared<ThreadPool>("test", 1);
+
     babe = std::make_shared<Babe>(app_config,
                                   clock,
                                   block_tree,
@@ -206,8 +208,8 @@ class BabeTest : public testing::Test {
                                   chain_sub_engine,
                                   announce_transmitter,
                                   offchain_worker_api,
-                                  thread_pool_,
-                                  thread_pool_.io_context());
+                                  *thread_pool_,
+                                  thread_pool_->io_context());
   }
 
   AppConfigurationMock app_config;
@@ -228,7 +230,7 @@ class BabeTest : public testing::Test {
   std::shared_ptr<ChainSubscriptionEngine> chain_sub_engine;
   std::shared_ptr<BlockAnnounceTransmitterMock> announce_transmitter;
   std::shared_ptr<OffchainWorkerApiMock> offchain_worker_api;
-  ThreadPool thread_pool_{"test", 1};
+  std::shared_ptr<ThreadPool> thread_pool_;
 
   std::shared_ptr<BabeConfiguration> babe_config;
 
@@ -363,5 +365,5 @@ TEST_F(BabeTest, SlotLeader) {
 
   ASSERT_OUTCOME_SUCCESS_TRY(babe->processSlot(slot, best_block_info));
 
-  testutil::wait(*thread_pool_.io_context());
+  testutil::wait(*thread_pool_->io_context());
 }
