@@ -6,8 +6,8 @@
 #ifndef KAGOME_KAGOME_SCALE_HPP
 #define KAGOME_KAGOME_SCALE_HPP
 
-#include <type_traits>
 #include <span>
+#include <type_traits>
 #include "common/blob.hpp"
 #include "consensus/babe/types/babe_block_header.hpp"
 #include "consensus/babe/types/seal.hpp"
