@@ -86,10 +86,12 @@ namespace kagome::parachain {
                        InnerHash<UnconfiredImportablePair>>
         unconfirmed_importable_under;
 
-    void note_maybe_importable_under(const Hash &active_leaf, UnconfirmedImportable &&unconfirmed_importable) {
+    void note_maybe_importable_under(
+        const Hash &active_leaf,
+        UnconfirmedImportable &&unconfirmed_importable) {
       unconfirmed_importable_under.emplace(UnconfiredImportablePair{
-        .hash = active_leaf,
-        .ui = std::move(unconfirmed_importable),
+          .hash = active_leaf,
+          .ui = std::move(unconfirmed_importable),
       });
     }
 
@@ -166,6 +168,18 @@ namespace kagome::parachain {
           .receipt = receipt,
           .persisted_validation_data = persisted_validation_data,
       };
+    }
+
+    ParachainId para_id() const {
+      return receipt.descriptor.para_id;
+    }
+
+    const Hash &para_head() const {
+      return confirmed.receipt.descriptor.para_head;
+    }
+
+    const RelayHash &relay_parent() const {
+      return receipt.descriptor.relay_parent;
     }
 
     bool is_importable(std::optional<std::reference_wrapper<const Hash>>
@@ -299,26 +313,32 @@ namespace kagome::parachain {
           });
     }
 
-    void note_importable_under(const HypotheticalCandidate &candidate, const Hash &leaf_hash) {
-      visit_in_place(candidate,
-        [&](const HypotheticalCandidateIncomplete &v) {
-          if (auto it = candidates.find(v.candidate_hash); it != candidates.end()) {
-            if (auto c = if_type<UnconfirmedCandidate>(it->second)) {
-              c->get().note_maybe_importable_under(leaf_hash, UnconfirmedImportable{
-                  .relay_parent = v.candidate_relay_parent,
-                  .parent_hash = v.parent_head_data_hash,
-                  .para_id = v.candidate_para,
-                });
+    void note_importable_under(const HypotheticalCandidate &candidate,
+                               const Hash &leaf_hash) {
+      visit_in_place(
+          candidate,
+          [&](const HypotheticalCandidateIncomplete &v) {
+            if (auto it = candidates.find(v.candidate_hash);
+                it != candidates.end()) {
+              if (auto c = if_type<UnconfirmedCandidate>(it->second)) {
+                c->get().note_maybe_importable_under(
+                    leaf_hash,
+                    UnconfirmedImportable{
+                        .relay_parent = v.candidate_relay_parent,
+                        .parent_hash = v.parent_head_data_hash,
+                        .para_id = v.candidate_para,
+                    });
+              }
             }
-          }
-        },
-        [&](const HypotheticalCandidateComplete &v) {
-          if (auto it = candidates.find(v.candidate_hash); it != candidates.end()) {
-            if (auto c = if_type<ConfirmedCandidate>(it->second)) {
-              c->get().importable_under.insert(leaf_hash);
+          },
+          [&](const HypotheticalCandidateComplete &v) {
+            if (auto it = candidates.find(v.candidate_hash);
+                it != candidates.end()) {
+              if (auto c = if_type<ConfirmedCandidate>(it->second)) {
+                c->get().importable_under.insert(leaf_hash);
+              }
             }
-          }
-        });
+          });
     }
 
     std::optional<PostConfirmation> confirm_candidate(

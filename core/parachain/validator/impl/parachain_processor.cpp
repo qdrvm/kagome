@@ -260,6 +260,7 @@ namespace kagome::parachain {
     broadcastView(event.view);
 
     prospective_parachains_->onActiveLeavesUpdate(event);
+    new_leaf_fragment_tree_updates(relay_parent);
   }
 
   void ParachainProcessorImpl::onDeactivateBlocks(
@@ -387,6 +388,7 @@ namespace kagome::parachain {
         relay_parent);
 
     return RelayParentState{
+        .prospective_parachains_mode = mode,
         .assignment = assignment,
         .seconded = {},
         .our_index = validator->validatorIndex(),
@@ -854,77 +856,102 @@ namespace kagome::parachain {
     fragment_tree_update_inner(std::nullopt, std::nullopt, {candidate});
   }
 
+  void ParachainProcessorImpl::new_leaf_fragment_tree_updates(
+      const Hash &leaf_hash) {
+    fragment_tree_update_inner({leaf_hash}, std::nullopt, std::nullopt);
+  }
+
+  void
+  ParachainProcessorImpl::prospective_backed_notification_fragment_tree_updates(
+      ParachainId para_id, const Hash &para_head) {
+    std::pair<std::reference_wrapper<const Hash>, ParachainId> p{{para_head},
+                                                                 para_id};
+    fragment_tree_update_inner(std::nullopt, p, std::nullopt);
+  }
+
   void ParachainProcessorImpl::fragment_tree_update_inner(
       std::optional<std::reference_wrapper<const Hash>> active_leaf_hash,
       std::optional<std::pair<std::reference_wrapper<const Hash>, ParachainId>>
           required_parent_info,
       std::optional<std::reference_wrapper<const HypotheticalCandidate>>
           known_hypotheticals) {
-
     std::vector<HypotheticalCandidate> hypotheticals;
     if (!known_hypotheticals) {
       hypotheticals = candidates_.frontier_hypotheticals(required_parent_info);
     } else {
       hypotheticals.emplace_back(known_hypotheticals->get());
     }
-    
-    auto frontier = prospective_parachains_->answerHypotheticalFrontierRequest(hypotheticals, active_leaf_hash, false);
+
+    auto frontier = prospective_parachains_->answerHypotheticalFrontierRequest(
+        hypotheticals, active_leaf_hash, false);
     for (const auto &[hypo, membership] : frontier) {
       if (membership.empty()) {
         continue;
       }
 
       for (const auto &[leaf_hash, _] : membership) {
-			  candidates_.note_importable_under(hypo, leaf_hash);
-		  }
-      
+        candidates_.note_importable_under(hypo, leaf_hash);
+      }
+
       if (auto c = if_type<const HypotheticalCandidateComplete>(hypo)) {
-        auto confirmed_candidate = candidates_.get_confirmed(c->get().candidate_hash);
-        auto prs = tryGetStateByRelayParent(c->get().receipt.descriptor.relay_parent);
+        auto confirmed_candidate =
+            candidates_.get_confirmed(c->get().candidate_hash);
+        auto prs =
+            tryGetStateByRelayParent(c->get().receipt.descriptor.relay_parent);
 
         if (prs && confirmed_candidate) {
-          const auto group_index = group_for_para(prs->get().availability_cores, prs->get().group_rotation_info, c->get().receipt.descriptor.para_id);
-          auto opt_session_info = retrieveSessionInfo(c->get().receipt.descriptor.relay_parent);
-          if (!opt_session_info || !group_index || *group_index >= opt_session_info->validator_groups.size()) {
+          const auto group_index =
+              group_for_para(prs->get().availability_cores,
+                             prs->get().group_rotation_info,
+                             c->get().receipt.descriptor.para_id);
+          auto opt_session_info =
+              retrieveSessionInfo(c->get().receipt.descriptor.relay_parent);
+          if (!opt_session_info || !group_index
+              || *group_index >= opt_session_info->validator_groups.size()) {
             return;
           }
 
           const auto &group = opt_session_info->validator_groups[*group_index];
           send_backing_fresh_statements(
-            *confirmed_candidate,
-            c->get().receipt.descriptor.relay_parent,
-            prs->get(),
-            group,
-            c->get().candidate_hash
-          );
+              *confirmed_candidate,
+              c->get().receipt.descriptor.relay_parent,
+              prs->get(),
+              group,
+              c->get().candidate_hash);
         }
       }
     }
   }
 
   std::optional<GroupIndex> ParachainProcessorImpl::group_for_para(
-    const std::vector<runtime::CoreState> &availability_cores, 
-    const runtime::GroupDescriptor &group_rotation_info,
-    ParachainId para_id) const {
+      const std::vector<runtime::CoreState> &availability_cores,
+      const runtime::GroupDescriptor &group_rotation_info,
+      ParachainId para_id) const {
+    std::optional<CoreIndex> core_index;
+    for (CoreIndex i = 0; i < availability_cores.size(); ++i) {
+      const auto c = visit_in_place(
+          availability_cores[i],
+          [](const runtime::OccupiedCore &core) -> std::optional<ParachainId> {
+            return core.candidate_descriptor.para_id;
+          },
+          [](const runtime::ScheduledCore &core) -> std::optional<ParachainId> {
+            return core.para_id;
+          },
+          [](const auto &) -> std::optional<ParachainId> {
+            return std::nullopt;
+          });
 
-      std::optional<CoreIndex> core_index;
-      for (CoreIndex i = 0; i < availability_cores.size(); ++i) {
-        const auto c = visit_in_place(availability_cores[i],
-          [](const runtime::OccupiedCore &core) -> std::optional<ParachainId> { return core.candidate_descriptor.para_id; },
-          [](const runtime::ScheduledCore &core) -> std::optional<ParachainId> { return core.para_id; },
-          [](const auto &) -> std::optional<ParachainId> { return std::nullopt; }
-        );
-
-        if (c && *c == para_id) {
-          core_index = i;
-          break;
-        }
+      if (c && *c == para_id) {
+        core_index = i;
+        break;
       }
+    }
 
-      if (!core_index) {
-        return std::nullopt;
-      }
-      return group_rotation_info.groupForCore(*core_index, availability_cores.size());
+    if (!core_index) {
+      return std::nullopt;
+    }
+    return group_rotation_info.groupForCore(*core_index,
+                                            availability_cores.size());
   }
 
   void ParachainProcessorImpl::apply_post_confirmation(
@@ -1363,11 +1390,29 @@ namespace kagome::parachain {
 
   void ParachainProcessorImpl::notifyBackedCandidate(
       const CandidateHash &candidate_hash) {
+    auto confirmed_opt = candidates_.get_confirmed(candidate_hash);
+    if (!confirmed_opt) {
+      SL_TRACE(logger_,
+               "Received backed candidate notification for unknown or "
+               "unconfirmed. (candidate_hash={})",
+               candidate_hash);
+      return;
+    }
+    const auto &confirmed = confirmed_opt->get();
+
+    auto relay_parent_state_opt =
+        tryGetStateByRelayParent(confirmed.relay_parent());
+    if (!relay_parent_state_opt) {
+      return;
+    }
+
     /// TODO(iceseer): send manifest
     /// TODO(iceseer): send ack backed messages to peers
     /// TODO(iceseer): send compact statements
     /// TODO(iceseer): statement-distribution update
-    /// state(prospective_backed_notification_fragment_tree_updates)
+
+    prospective_backed_notification_fragment_tree_updates(
+        confirmed.para_id(), confirmed.para_head());
   }
 
   std::optional<ParachainProcessorImpl::AttestedCandidate>

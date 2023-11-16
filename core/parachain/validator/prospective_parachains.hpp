@@ -117,9 +117,21 @@ namespace kagome::parachain {
 
     std::optional<ProspectiveParachainsMode> prospectiveParachainsMode(
         const RelayHash &relay_parent) {
-      /// request runtime for prospective parachains mode
-      /// TODO(iceseer): do
-      return std::nullopt;
+      auto result = parachain_host_->staging_async_backing_params(relay_parent);
+      if (result.has_error()) {
+        SL_TRACE(logger,
+                 "Prospective parachains are disabled, is not supported by the "
+                 "current Runtime API. (relay parent={}, error={})",
+                 relay_parent,
+                 error);
+        return std::nullopt;
+      }
+
+      const parachain::fragment::AsyncBackingParams &vs = result.value();
+      return ProspectiveParachainsMode {
+        .max_candidate_depth = vs.max_candidate_depth, .allowed_ancestry_len;
+        = vs.allowed_ancestry_len,
+      };
     }
 
     outcome::result<std::optional<
