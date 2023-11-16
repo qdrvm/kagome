@@ -145,7 +145,7 @@ namespace kagome::runtime {
 
   std::optional<std::shared_ptr<const Module>> RuntimeInstancesPool::getModule(
       const RuntimeInstancesPool::TrieHash &state) {
-    std::shared_lock guard{pools_mtx_};
+    std::unique_lock guard{pools_mtx_};
     if (auto entry = pools_.get(state)) {
       return entry->get().module;
     }

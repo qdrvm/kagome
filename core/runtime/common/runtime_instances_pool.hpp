@@ -92,7 +92,7 @@ namespace kagome::runtime {
 
     std::shared_ptr<ModuleFactory> module_factory_;
 
-    std::shared_mutex pools_mtx_;
+    std::mutex pools_mtx_;
     Lru<common::Hash256, InstancePool> pools_;
 
     std::mutex compiling_modules_mtx_;
