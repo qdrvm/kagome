@@ -135,7 +135,7 @@ namespace kagome::runtime {
   void RuntimeInstancesPool::release(
       const RuntimeInstancesPool::TrieHash &state,
       std::shared_ptr<ModuleInstance> &&instance) {
-    std::lock_guard guard{pools_mtx_};
+    std::unique_lock guard{pools_mtx_};
     auto entry = pools_.get(state);
     if (not entry) {
       entry = pools_.put(state, {instance->getModule(), {}});
@@ -145,7 +145,7 @@ namespace kagome::runtime {
 
   std::optional<std::shared_ptr<const Module>> RuntimeInstancesPool::getModule(
       const RuntimeInstancesPool::TrieHash &state) {
-    std::lock_guard guard{pools_mtx_};
+    std::shared_lock guard{pools_mtx_};
     if (auto entry = pools_.get(state)) {
       return entry->get().module;
     }
@@ -155,7 +155,7 @@ namespace kagome::runtime {
   void RuntimeInstancesPool::putModule(
       const RuntimeInstancesPool::TrieHash &state,
       std::shared_ptr<Module> module) {
-    std::lock_guard guard{pools_mtx_};
+    std::unique_lock guard{pools_mtx_};
     if (not pools_.get(state)) {
       pools_.put(state, {std::move(module), {}});
     }
