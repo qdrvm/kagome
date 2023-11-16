@@ -78,8 +78,7 @@ kagome \
     --chain localchain.json \
     --base-path base_path \
     --port 30363 \
-    --rpc-port 9933 \
-    --ws-port 9944
+    --rpc-port 9933
 ```
 
 Let's look at this flags in detail:
