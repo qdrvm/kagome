@@ -123,14 +123,14 @@ namespace kagome::parachain {
                  "Prospective parachains are disabled, is not supported by the "
                  "current Runtime API. (relay parent={}, error={})",
                  relay_parent,
-                 error);
+                 result);
         return std::nullopt;
       }
 
       const parachain::fragment::AsyncBackingParams &vs = result.value();
-      return ProspectiveParachainsMode {
-        .max_candidate_depth = vs.max_candidate_depth, .allowed_ancestry_len;
-        = vs.allowed_ancestry_len,
+      return ProspectiveParachainsMode{
+          .max_candidate_depth = vs.max_candidate_depth,
+          .allowed_ancestry_len = vs.allowed_ancestry_len,
       };
     }
 
@@ -138,22 +138,25 @@ namespace kagome::parachain {
         std::pair<fragment::Constraints,
                   std::vector<fragment::CandidatePendingAvailability>>>>
     fetchBackingState(const RelayHash &relay_parent, ParachainId para_id) {
-      /// TODO(iceseer): do
+      auto result =
+          parachain_host_->staging_para_backing_state(relay_parent, para_id);
+      if (result.has_error()) {
+        SL_TRACE(logger,
+                 "Staging para backing state failed. (relay parent={}, "
+                 "para_id={}, error={})",
+                 relay_parent,
+                 para_id,
+                 result);
+        return result.as_failure();
+      }
 
-      //	let (tx, rx) = oneshot::channel();
-      //	ctx.send_message(RuntimeApiMessage::Request(
-      //		relay_parent,
-      //		RuntimeApiRequest::StagingParaBackingState(para_id, tx),
-      //	))
-      //	.await;
-      //
-      //	Ok(rx
-      //		.await
-      //		.map_err(JfyiError::RuntimeApiRequestCanceled)??
-      //		.map(|s| (From::from(s.constraints),
-      // s.pending_availability)))
+      auto &s = result.value();
+      if (!s) {
+        return std::nullopt;
+      }
 
-      return std::nullopt;
+      return std::make_pair(std::move(s->constraints),
+                            std::move(s->pending_availability));
     }
 
     outcome::result<std::optional<fragment::RelayChainBlockInfo>>

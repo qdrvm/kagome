@@ -387,8 +387,10 @@ namespace kagome::parachain {
         validator->validatorIndex(),
         relay_parent);
 
+    /// TODO(iceseer): do
+    /// .prospective_parachains_mode = mode,
+
     return RelayParentState{
-        .prospective_parachains_mode = mode,
         .assignment = assignment,
         .seconded = {},
         .our_index = validator->validatorIndex(),
