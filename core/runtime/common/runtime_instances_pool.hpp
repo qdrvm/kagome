@@ -82,7 +82,7 @@ namespace kagome::runtime {
       std::vector<std::shared_ptr<ModuleInstance>> instances;
 
       std::shared_ptr<ModuleInstance> instantiate(
-          std::unique_lock<std::shared_mutex> &lock);
+          std::unique_lock<std::mutex> &lock);
     };
 
     using CompilationResult =
@@ -90,12 +90,15 @@ namespace kagome::runtime {
     CompilationResult tryCompileModule(const CodeHash &code_hash,
                                        common::BufferView code_zstd);
 
+    std::optional<std::shared_future<CompilationResult>> getFutureCompiledModule(
+        const CodeHash &code_hash) const;
+
     std::shared_ptr<ModuleFactory> module_factory_;
 
     std::mutex pools_mtx_;
     Lru<common::Hash256, InstancePool> pools_;
 
-    std::mutex compiling_modules_mtx_;
+    mutable std::mutex compiling_modules_mtx_;
     std::unordered_map<CodeHash, std::shared_future<CompilationResult>>
         compiling_modules_;
   };

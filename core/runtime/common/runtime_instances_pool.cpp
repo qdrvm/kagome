@@ -79,26 +79,38 @@ namespace kagome::runtime {
 
     if (!pool_opt) {
       lock.unlock();
-      OUTCOME_TRY(module, tryCompileModule(code_hash, code_zstd));
-      BOOST_ASSERT(module != nullptr);
-      lock.lock();
-      pool_opt = std::ref(pools_.put(code_hash, InstancePool{module, {}}));
+      if (auto future = getFutureCompiledModule(code_hash)) {
+        lock.lock();
+        pool_opt = pools_.get(code_hash);
+      } else {
+        OUTCOME_TRY(module, tryCompileModule(code_hash, code_zstd));
+        BOOST_ASSERT(module != nullptr);
+        lock.lock();
+        pool_opt = std::ref(pools_.put(code_hash, InstancePool{module, {}}));
+      }
     }
     auto instance = pool_opt->get().instantiate(lock);
     return std::make_shared<BorrowedInstance>(
         weak_from_this(), code_hash, std::move(instance));
   }
 
-  RuntimeInstancesPool::CompilationResult RuntimeInstancesPool::tryCompileModule(
-      const CodeHash &code_hash, common::BufferView code_zstd) {
+  std::optional<std::shared_future<RuntimeInstancesPool::CompilationResult>>
+  RuntimeInstancesPool::getFutureCompiledModule(
+      const CodeHash &code_hash) const {
     std::unique_lock l{compiling_modules_mtx_};
-
-    if (auto iter = compiling_modules_.find(code_hash);
-        iter != compiling_modules_.end()) {
-      auto future = iter->second;
-      l.unlock();
-      return future.get();
+    auto iter = compiling_modules_.find(code_hash);
+    if (iter == compiling_modules_.end()) {
+      return std::nullopt;
     }
+    auto future = iter->second;
+    l.unlock();
+    return future;
+  }
+
+  RuntimeInstancesPool::CompilationResult
+  RuntimeInstancesPool::tryCompileModule(const CodeHash &code_hash,
+                                         common::BufferView code_zstd) {
+    std::unique_lock l{compiling_modules_mtx_};
     std::promise<CompilationResult> promise;
     auto [iter, inserted] =
         compiling_modules_.insert({code_hash, promise.get_future()});
@@ -163,7 +175,7 @@ namespace kagome::runtime {
 
   std::shared_ptr<ModuleInstance>
   RuntimeInstancesPool::InstancePool::instantiate(
-      std::unique_lock<std::shared_mutex> &lock) {
+      std::unique_lock<std::mutex> &lock) {
     if (instances.empty()) {
       auto copy = module;
       lock.unlock();
