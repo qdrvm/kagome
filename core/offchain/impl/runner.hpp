@@ -25,7 +25,9 @@ namespace kagome::offchain {
    public:
     using Task = std::function<void()>;
 
-    Runner(std::shared_ptr<Watchdog> watchdog, size_t threads = kMaxThreads, size_t max_tasks = kMaxTasks)
+    Runner(std::shared_ptr<Watchdog> watchdog,
+           size_t threads = kMaxThreads,
+           size_t max_tasks = kMaxTasks)
         : threads_{threads},
           free_threads_{threads},
           max_tasks_{max_tasks},
@@ -34,7 +36,8 @@ namespace kagome::offchain {
     struct Inject {
       explicit Inject() = default;
     };
-    Runner(Inject, ...) : Runner(kMaxThreads, kMaxTasks) {}
+    Runner(Inject, std::shared_ptr<Watchdog> watchdog, ...)
+        : Runner(watchdog, kMaxThreads, kMaxTasks) {}
 
     void run(Task &&task) {
       std::unique_lock lock{mutex_};
