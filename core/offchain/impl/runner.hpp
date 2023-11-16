@@ -14,6 +14,9 @@
 #include "utils/thread_pool.hpp"
 
 namespace kagome::offchain {
+  constexpr size_t kMaxThreads = 3;
+  constexpr size_t kMaxTasks = 1000;
+
   /**
    * Enqueue at most `max_tasks_` to run on number of `threads_`.
    * Old tasks do not run and are removed when queue is full.
@@ -22,11 +25,16 @@ namespace kagome::offchain {
    public:
     using Task = std::function<void()>;
 
-    Runner(std::shared_ptr<Watchdog> watchdog, size_t threads, size_t max_tasks)
+    Runner(std::shared_ptr<Watchdog> watchdog, size_t threads = kMaxThreads, size_t max_tasks = kMaxTasks)
         : threads_{threads},
           free_threads_{threads},
           max_tasks_{max_tasks},
           thread_pool_{std::move(watchdog), "ocw", threads_} {}
+
+    struct Inject {
+      explicit Inject() = default;
+    };
+    Runner(Inject, ...) : Runner(kMaxThreads, kMaxTasks) {}
 
     void run(Task &&task) {
       std::unique_lock lock{mutex_};

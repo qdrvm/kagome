@@ -121,8 +121,7 @@ namespace kagome::parachain {
           signer->validatorIndex(),
       };
       OUTCOME_TRY(signature, signer->signRaw(statement.signable()));
-      offchain_worker_pool_->addWorker(
-          offchain_worker_factory_->make(executor_, header));
+      offchain_worker_pool_->addWorker(offchain_worker_factory_->make());
       ::libp2p::common::FinalAction remove(
           [&] { offchain_worker_pool_->removeWorker(); });
       OUTCOME_TRY(parachain_api_->submit_pvf_check_statement(

@@ -7,33 +7,25 @@
 #include "runtime/runtime_api/impl/offchain_worker_api.hpp"
 
 #include "application/app_configuration.hpp"
+#include "log/logger.hpp"
 #include "offchain/impl/runner.hpp"
 #include "offchain/offchain_worker_factory.hpp"
 #include "runtime/executor.hpp"
 
 namespace kagome::runtime {
-  constexpr size_t kMaxThreads = 3;
-  constexpr size_t kMaxTasks = 1000;
-
-  outcome::result<void> callOffchainWorkerApi(
-      Executor &executor,
-      const primitives::BlockHash &block,
-      const primitives::BlockHeader &header) {
-    return executor.callAt<void>(
-        block, "OffchainWorkerApi_offchain_worker", header);
-  }
 
   OffchainWorkerApiImpl::OffchainWorkerApiImpl(
       const application::AppConfiguration &app_config,
       std::shared_ptr<Watchdog> watchdog,
       std::shared_ptr<offchain::OffchainWorkerFactory> ocw_factory,
+      std::shared_ptr<offchain::Runner> runner,
       std::shared_ptr<Executor> executor)
       : app_config_(app_config),
         ocw_factory_(std::move(ocw_factory)),
-        runner_{std::make_shared<offchain::Runner>(
-            std::move(watchdog), kMaxThreads, kMaxTasks)},
+        runner_(std::move(runner)),
         executor_(std::move(executor)) {
     BOOST_ASSERT(ocw_factory_);
+    BOOST_ASSERT(runner_);
     BOOST_ASSERT(executor_);
   }
 
@@ -55,9 +47,26 @@ namespace kagome::runtime {
       }
     }
 
-    runner_->run([worker = ocw_factory_->make(executor_, header)] {
-      std::ignore = worker->run();
-    });
+    auto label = fmt::format("#{}", block);
+
+    auto func = [block = std::move(block),
+                 header = std::move(header),
+                 executor = executor_] {
+      auto res = executor->callAt<void>(
+          block, "OffchainWorkerApi_offchain_worker", header);
+
+      if (res.has_error()) {
+        auto log = log::createLogger("OffchainWorkerApi", "offchain");
+        SL_ERROR(log,
+                 "Can't execute offchain worker for block {}: {}",
+                 block,
+                 res.error());
+      }
+    };
+
+    runner_->run([worker = ocw_factory_->make(),
+                  label = std::move(label),
+                  func = std::move(func)] { worker->run(func, label); });
 
     return outcome::success();
   }

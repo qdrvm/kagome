@@ -166,6 +166,7 @@ class TimelineTest : public testing::Test {
         block_tree,
         consensus_selector,
         trie_storage,
+        nullptr,
         synchronizer,
         hasher,
         block_announce_transmitter,

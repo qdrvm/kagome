@@ -192,6 +192,8 @@ class BabeTest : public testing::Test {
     ON_CALL(*offchain_worker_api, offchain_worker(_, _))
         .WillByDefault(Return(outcome::success()));
 
+    thread_pool_ = std::make_shared<ThreadPool>("test", 1);
+
     babe = std::make_shared<Babe>(app_config,
                                   clock,
                                   block_tree,
@@ -209,8 +211,8 @@ class BabeTest : public testing::Test {
                                   chain_sub_engine,
                                   announce_transmitter,
                                   offchain_worker_api,
-                                  thread_pool_,
-                                  thread_pool_.io_context());
+                                  *thread_pool_,
+                                  thread_pool_->io_context());
   }
 
   void TearDown() override {
@@ -372,5 +374,5 @@ TEST_F(BabeTest, SlotLeader) {
 
   ASSERT_OUTCOME_SUCCESS_TRY(babe->processSlot(slot, best_block_info));
 
-  testutil::wait(*thread_pool_.io_context());
+  testutil::wait(*thread_pool_->io_context());
 }

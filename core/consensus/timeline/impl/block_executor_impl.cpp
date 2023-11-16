@@ -258,6 +258,11 @@ namespace kagome::consensus {
                 std::chrono::duration_cast<std::chrono::minutes>(lag).count());
           } else if (lag > slot_duration * 2) {
             lag_msg = " (lag <1 min.)";
+          } else {
+            lag_msg = fmt::format(
+                " (lag {} ms.)",
+                std::chrono::duration_cast<std::chrono::milliseconds>(lag)
+                    .count());
           }
 
           auto now = std::chrono::steady_clock::now();

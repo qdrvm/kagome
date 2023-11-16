@@ -31,11 +31,6 @@ namespace kagome::crypto {
   class Hasher;
 }
 
-namespace kagome::blockchain {
-  class BlockTree;
-  class BlockStorage;
-}  // namespace kagome::blockchain
-
 namespace kagome::storage {
   class SpacedStorage;
 }
@@ -91,6 +86,7 @@ namespace kagome::storage::trie_pruner {
         const primitives::BlockHeader &state) override;
 
     std::optional<primitives::BlockInfo> getLastPrunedBlock() const override {
+      std::unique_lock lock{mutex_};
       return last_pruned_block_;
     }
 
@@ -117,6 +113,9 @@ namespace kagome::storage::trie_pruner {
     outcome::result<void> recoverState(
         const blockchain::BlockTree &block_tree) override;
 
+    void restoreStateAtFinalized(
+        const blockchain::BlockTree &block_tree) override;
+
    private:
     outcome::result<void> restoreStateAt(
         const primitives::BlockHeader &last_pruned_block,
@@ -131,7 +130,7 @@ namespace kagome::storage::trie_pruner {
     // store the persistent pruner info to the database
     outcome::result<void> savePersistentState() const;
 
-    std::mutex ref_count_mutex_;
+    mutable std::mutex mutex_;
     std::unordered_map<common::Hash256, size_t> ref_count_;
     std::unordered_map<common::Hash256, size_t> value_ref_count_;
     std::unordered_set<common::Hash256> immortal_nodes_;
