@@ -1,8 +1,12 @@
+/**
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
 #pragma once
 
-#include <fmt/format.h>
 #include <atomic>
-#include <boost/asio/io_context.hpp>
 #include <list>
 #include <memory>
 #include <mutex>
@@ -10,9 +14,40 @@
 #include <thread>
 #include <unordered_map>
 
+#include <fmt/format.h>
+#include <boost/asio/io_context.hpp>
+
+#ifdef __APPLE__
+
+#include <mach/mach.h>
+#include <mach/thread_act.h>
+#include <mach/thread_info.h>
+
+inline uint64_t getPlatformThreadId() {
+  thread_identifier_info_data_t info;
+  mach_msg_type_number_t size = THREAD_IDENTIFIER_INFO_COUNT;
+  auto r = thread_info(
+      mach_thread_self(), THREAD_IDENTIFIER_INFO, (thread_info_t)&info, &size);
+  if (r != KERN_SUCCESS) {
+    throw std::logic_error{"thread_info"};
+  }
+  return info.thread_id;
+}
+
+#else
+
+#include <sys/syscall.h>
+#include <unistd.h>
+
+inline uint64_t getPlatformThreadId() {
+  return syscall(SYS_gettid);
+}
+
+#endif
+
 namespace kagome {
 
-  constexpr auto kWatchdogDefaultTimeout = std::chrono::minutes{10};
+  constexpr auto kWatchdogDefaultTimeout = std::chrono::minutes{15};
 
   class Watchdog {
    public:
@@ -54,7 +89,12 @@ namespace kagome {
             if (lag > timeout) {
               std::stringstream s;
               s << it->first;
-              fmt::print("ALERT Watchdog: thread id={} timeout\n", s.str());
+              fmt::print(
+                  "ALERT Watchdog: thread id={}, platform_id={}, name={} "
+                  "timeout\n",
+                  s.str(),
+                  it->second.platform_id,
+                  it->second.name);
               std::abort();
             }
           }
@@ -67,7 +107,11 @@ namespace kagome {
       std::unique_lock lock{mutex_};
       auto &thread = threads_[std::this_thread::get_id()];
       if (not thread.count) {
-        thread = {Clock::now(), 0, std::make_shared<Atomic>()};
+        thread = {Clock::now(),
+                  0,
+                  std::make_shared<Atomic>(),
+                  getPlatformThreadId(),
+                  soralog::util::getThreadName()};
       }
       return Ping{thread.count};
     }
@@ -76,6 +120,8 @@ namespace kagome {
       auto ping = add();
       while (not stopped_ and not io.unique()) {
 #if 0
+        // this is the desired implementation
+        // cannot be used rn due to the method visibility settings
         // bug(boost): wait_one is private
         boost::system::error_code ec;
         io->impl_.wait_one(TODO, ec);
@@ -100,6 +146,8 @@ namespace kagome {
       Clock::time_point last_time;
       Count last_count = 0;
       std::shared_ptr<Atomic> count;
+      uint64_t platform_id;
+      std::string name;
     };
 
     std::mutex mutex_;
