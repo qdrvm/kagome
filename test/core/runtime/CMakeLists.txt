@@ -45,6 +45,7 @@ target_link_libraries(executor_test
     scale::scale
     logger
     log_configurator
+    module_repository
     )
 
 addtest(runtime_upgrade_tracker_test
