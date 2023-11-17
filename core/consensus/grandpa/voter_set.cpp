@@ -30,9 +30,9 @@ namespace kagome::consensus::grandpa {
     return set;
   }
 
-  outcome::result<void> VoterSet::insert(Id voter, size_t weight) {
+  outcome::result<void> VoterSet::insert(Id voter, VoterSet::Weight weight) {
     // zero authorities break the mapping logic a bit, but since they must not
-    // be queried it should be fine
+    // be queried, it should be fine
     if (voter == Id{}) {
       list_.emplace_back(voter, weight);
       total_weight_ += weight;
