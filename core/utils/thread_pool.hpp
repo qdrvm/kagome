@@ -7,13 +7,14 @@
 #pragma once
 
 #include <atomic>
-#include <boost/asio/executor_work_guard.hpp>
-#include <boost/asio/io_context.hpp>
 #include <memory>
 #include <optional>
 #include <thread>
 
-#include "soralog/util.hpp"
+#include <boost/asio/executor_work_guard.hpp>
+#include <boost/asio/io_context.hpp>
+#include <soralog/util.hpp>
+
 #include "utils/non_copyable.hpp"
 
 namespace kagome {

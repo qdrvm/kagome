@@ -174,7 +174,7 @@ namespace kagome::application {
       return parachain_precompilation_thread_num_;
     }
 
-    bool shouldPrecompileParachainModules() const {
+    bool shouldPrecompileParachainModules() const override {
       return should_precompile_parachain_modules_;
     }
 
