@@ -139,7 +139,7 @@ namespace kagome::parachain::approval {
 
     std::reference_wrapper<crypto::VRFOutput> vrf_output;
     consensus::SlotNumber slot;
-    primitives::AuthorityIndex authority_index;
+    consensus::babe::AuthorityIndex authority_index;
 
     /// Get the slot.
     consensus::SlotNumber getSlot() const {
@@ -149,7 +149,7 @@ namespace kagome::parachain::approval {
     /// Compute the randomness associated with this VRF output.
     outcome::result<void> compute_randomness(
         ::RelayVRFStory &vrf_story,
-        const primitives::AuthorityList &authorities,
+        const consensus::babe::AuthorityList &authorities,
         const consensus::Randomness &randomness,
         consensus::EpochNumber epoch_index);
   };

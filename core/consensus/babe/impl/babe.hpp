@@ -167,9 +167,8 @@ namespace kagome::consensus::babe {
     const bool is_validator_by_config_;
     bool is_active_validator_;
 
-    using KeypairWithIndexOpt =
-        std::optional<std::pair<std::shared_ptr<crypto::Sr25519Keypair>,
-                                primitives::AuthorityIndex>>;
+    using KeypairWithIndexOpt = std::optional<
+        std::pair<std::shared_ptr<crypto::Sr25519Keypair>, AuthorityIndex>>;
 
     primitives::BlockInfo parent_;
     TimePoint slot_timestamp_;

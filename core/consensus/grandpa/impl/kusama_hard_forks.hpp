@@ -9,11 +9,12 @@
 #include <unordered_set>
 
 #include "consensus/grandpa/common.hpp"
+#include "consensus/grandpa/types/authority.hpp"
 #include "crypto/hasher/hasher_impl.hpp"
 #include "primitives/ss58_codec.hpp"
 
 namespace kagome::consensus::grandpa {
-  inline const primitives::AuthorityList &kusamaHardForksAuthorities() {
+  inline const AuthorityList &kusamaHardForksAuthorities() {
     static auto authorities = [] {
       std::vector<std::string_view> ids_str{
           "CwjLJ1zPWK5Ao9WChAFp7rWGEgN3AyXXjTRPrqgm5WwBpoS",
@@ -71,13 +72,18 @@ namespace kagome::consensus::grandpa {
           "GeYRRPkyi23wSF3cJGjq82117fKJZUbWsAGimUnzb5RPbB1",
           "DzCJ4y5oT611dfKQwbBDVbtCfENTdMCjb4KGMU3Mq6nyUMu",
       };
-      primitives::AuthorityList authorities;
+      AuthorityList authorities;
       crypto::HasherImpl hasher;
       for (auto &id_str : ids_str) {
-        authorities.emplace_back(primitives::Authority{
-            {primitives::decodeSs58(id_str, hasher).value()},
-            1,
-        });
+        auto &authority = authorities.emplace_back();
+
+        auto buff_res = primitives::decodeSs58(id_str, hasher);
+        BOOST_ASSERT(buff_res.has_value());
+        auto &buff = buff_res.value();
+        BOOST_ASSERT(buff.size() == authority.id.size());
+        std::copy(buff.begin(), buff.end(), authority.id.begin());
+
+        authority.weight = 1;
       }
       return authorities;
     }();
@@ -86,15 +92,12 @@ namespace kagome::consensus::grandpa {
 
   inline bool isKusamaHardFork(const primitives::BlockHash &genesis,
                                const primitives::BlockInfo &block) {
-    auto h = [](std::string_view s) {
+    static auto h = [](std::string_view s) {
       return primitives::BlockHash::fromHex(s).value();
     };
     static auto kusama_genesis =
         h("b0a8d493285c2df73290dfb7e61f870f17b41801197a149ca93654499ea3dafe");
     if (genesis != kusama_genesis) {
-      return false;
-    }
-    if (block.number < 1492283 || block.number > 1498598) {
       return false;
     }
     static std::unordered_set<primitives::BlockHash> blocks{
@@ -108,6 +111,9 @@ namespace kagome::consensus::grandpa {
         h("1c65eb250cf54b466c64f1a4003d1415a7ee275e49615450c0e0525179857eef"),
         h("9e44116467cc9d7e224e36487bf2cf571698cae16b25f54a7430f1278331fdd8"),
     };
-    return blocks.count(block.hash) != 0;
+    [[unlikely]] if (block.number >= 1492283 && block.number <= 1498598) {
+      return blocks.count(block.hash) != 0;
+    }
+    return false;
   }
 }  // namespace kagome::consensus::grandpa

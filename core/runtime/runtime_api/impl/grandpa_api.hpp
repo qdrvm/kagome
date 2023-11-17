@@ -19,7 +19,7 @@ namespace kagome::runtime {
     outcome::result<AuthorityList> authorities(
         const primitives::BlockHash &block_hash) override;
 
-    outcome::result<primitives::AuthoritySetId> current_set_id(
+    outcome::result<AuthoritySetId> current_set_id(
         const primitives::BlockHash &block) override;
 
    private:

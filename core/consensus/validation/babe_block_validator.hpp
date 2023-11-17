@@ -10,14 +10,12 @@
 
 #include <unordered_set>
 
+#include "consensus/babe/types/authority.hpp"
+#include "consensus/babe/types/seal.hpp"
 #include "log/logger.hpp"
 
 namespace kagome::blockchain {
   class BlockTree;
-}
-
-namespace kagome::consensus::babe {
-  struct Seal;
 }
 
 namespace kagome::crypto {
@@ -30,7 +28,7 @@ namespace kagome::runtime {
   class TaggedTransactionQueue;
 }
 
-namespace kagome::consensus {
+namespace kagome::consensus::babe {
 
   /**
    * Validation of blocks in BABE system. Based on the algorithm described here:
@@ -66,7 +64,7 @@ namespace kagome::consensus {
     outcome::result<void> validateHeader(
         const primitives::BlockHeader &header,
         const EpochNumber epoch_number,
-        const primitives::AuthorityId &authority_id,
+        const babe::AuthorityId &authority_id,
         const Threshold &threshold,
         const babe::BabeConfiguration &babe_config) const override;
 
@@ -81,9 +79,9 @@ namespace kagome::consensus {
      * @return true if signature is valid, false otherwise
      */
     bool verifySignature(const primitives::BlockHeader &header,
-                         const babe::BabeBlockHeader &babe_header,
-                         const babe::Seal &seal,
-                         const primitives::BabeSessionKey &public_key) const;
+                         const BabeBlockHeader &babe_header,
+                         const Seal &seal,
+                         const AuthorityId &public_key) const;
 
     /**
      * Verify that vrf value contained in babe_header is less than threshold and
@@ -94,9 +92,9 @@ namespace kagome::consensus {
      * @param randomness randomness for that epoch
      * @return true if vrf is valid, false otherwise
      */
-    bool verifyVRF(const babe::BabeBlockHeader &babe_header,
+    bool verifyVRF(const BabeBlockHeader &babe_header,
                    const EpochNumber epoch_number,
-                   const primitives::BabeSessionKey &public_key,
+                   const babe::AuthorityId &public_key,
                    const Threshold &threshold,
                    const Randomness &randomness,
                    const bool checkThreshold) const;
@@ -108,12 +106,12 @@ namespace kagome::consensus {
     std::shared_ptr<crypto::Sr25519Provider> sr25519_provider_;
 
     mutable std::unordered_map<SlotNumber,
-                               std::unordered_set<primitives::AuthorityIndex>>
+                               std::unordered_set<babe::AuthorityIndex>>
         blocks_producers_;
 
     log::Logger log_;
   };
-}  // namespace kagome::consensus
+}  // namespace kagome::consensus::babe
 
-OUTCOME_HPP_DECLARE_ERROR(kagome::consensus,
+OUTCOME_HPP_DECLARE_ERROR(kagome::consensus::babe,
                           BabeBlockValidator::ValidationError)

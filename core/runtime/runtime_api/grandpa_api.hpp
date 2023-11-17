@@ -6,7 +6,7 @@
 
 #pragma once
 
-#include "primitives/authority.hpp"
+#include "consensus/grandpa/types//authority.hpp"
 #include "primitives/common.hpp"
 
 namespace kagome::runtime {
@@ -17,7 +17,8 @@ namespace kagome::runtime {
    */
   class GrandpaApi {
    protected:
-    using AuthorityList = primitives::AuthorityList;
+    using AuthorityList = consensus::grandpa::AuthorityList;
+    using AuthoritySetId = consensus::grandpa::AuthoritySetId;
 
    public:
     virtual ~GrandpaApi() = default;
@@ -32,7 +33,7 @@ namespace kagome::runtime {
     /**
      * @return the id of the current voter set at the provided block
      */
-    virtual outcome::result<primitives::AuthoritySetId> current_set_id(
+    virtual outcome::result<AuthoritySetId> current_set_id(
         const primitives::BlockHash &block) = 0;
   };
 

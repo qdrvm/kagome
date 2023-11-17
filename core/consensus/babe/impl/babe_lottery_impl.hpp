@@ -49,9 +49,8 @@ namespace kagome::consensus::babe {
     std::shared_ptr<crypto::VRFProvider> vrf_provider_;
     std::shared_ptr<crypto::Hasher> hasher_;
 
-    using KeypairWithIndexOpt =
-        std::optional<std::pair<std::shared_ptr<crypto::Sr25519Keypair>,
-                                primitives::AuthorityIndex>>;
+    using KeypairWithIndexOpt = std::optional<
+        std::pair<std::shared_ptr<crypto::Sr25519Keypair>, AuthorityIndex>>;
 
     // Data of actual epoch
     EpochNumber epoch_;

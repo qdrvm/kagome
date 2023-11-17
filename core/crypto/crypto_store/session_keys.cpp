@@ -82,43 +82,43 @@ namespace kagome::crypto {
 
   SessionKeys::KeypairWithIndexOpt<Sr25519Keypair>
   SessionKeysImpl::getBabeKeyPair(
-      const primitives::AuthorityList &authorities) {
+      const consensus::babe::AuthorityList &authorities) {
     return find<Sr25519Keypair,
                 &CryptoStore::getSr25519PublicKeys,
                 &CryptoStore::findSr25519Keypair>(
         babe_key_pair_,
         KeyTypes::BABE,
         authorities,
-        [](const Sr25519PublicKey &l, const primitives::Authority &r) {
-          return l == r.id.id;
+        [](const Sr25519PublicKey &l, const consensus::babe::Authority &r) {
+          return l == r.id;
         });
   }
 
-  SessionKeys::KeypairWithIndexOpt<Sr25519Keypair>
-  SessionKeysImpl::getSassafrasKeyPair(
-      const primitives::AuthorityList &authorities) {
-    return find<Sr25519Keypair,
-                &CryptoStore::getSr25519PublicKeys,
-                &CryptoStore::findSr25519Keypair>(
-        babe_key_pair_,
-        KeyTypes::SASSAFRAS,
-        authorities,
-        [](const Sr25519PublicKey &l, const primitives::Authority &r) {
-          return l == r.id.id;
-        });
-  }
+  // SessionKeys::KeypairWithIndexOpt<Sr25519Keypair>
+  // SessionKeysImpl::getSassafrasKeyPair(
+  //     const consensus::sassafras::AuthorityList &authorities) {
+  //   return find<Sr25519Keypair,
+  //               &CryptoStore::getSr25519PublicKeys,
+  //               &CryptoStore::findSr25519Keypair>(
+  //       sassafras_key_pair_,
+  //       KeyTypes::SASSAFRAS,
+  //       authorities,
+  //       [](const Sr25519PublicKey &l,
+  //          const consensus::sassafras::Authority &r) {
+  //         return l == r.id;
+  //       });
+  // }
 
   std::shared_ptr<Ed25519Keypair> SessionKeysImpl::getGranKeyPair(
-      const primitives::AuthoritySet &authorities) {
+      const consensus::grandpa::AuthoritySet &authorities) {
     if (auto res = find<Ed25519Keypair,
                         &CryptoStore::getEd25519PublicKeys,
                         &CryptoStore::findEd25519Keypair>(
             gran_key_pair_,
             KeyTypes::GRANDPA,
             authorities.authorities,
-            [](const Ed25519PublicKey &l, const primitives::Authority &r) {
-              return l == r.id.id;
-            })) {
+            [](const Ed25519PublicKey &l,
+               const consensus::grandpa::Authority &r) { return l == r.id; })) {
       return std::move(res->first);
     }
     return nullptr;

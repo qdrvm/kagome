@@ -5,7 +5,6 @@
  */
 
 #include "consensus/babe/types/randomness.hpp"
-#include "primitives/authority.hpp"
 
 namespace kagome::consensus::babe {
 
@@ -14,7 +13,7 @@ namespace kagome::consensus::babe {
     SCALE_TIE(2);
 
     /// The authorities actual for corresponding epoch
-    primitives::AuthorityList authorities;
+    AuthorityList authorities;
 
     /// The value of randomness to use for the slot-assignment.
     Randomness randomness;

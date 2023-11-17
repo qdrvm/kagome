@@ -23,13 +23,13 @@ TEST(ThresholdTest, OutputAsInGossamer) {
   std::pair<uint64_t, uint64_t> c;
   c.first = 5;
   c.second = 17;
-  primitives::AuthorityIndex authority_index{3};
-  primitives::AuthorityList authorities;
-  authorities.push_back(primitives::Authority{.id = {}, .weight = 3});
-  authorities.push_back(primitives::Authority{.id = {}, .weight = 1});
-  authorities.push_back(primitives::Authority{.id = {}, .weight = 4});
-  authorities.push_back(primitives::Authority{.id = {}, .weight = 6});
-  authorities.push_back(primitives::Authority{.id = {}, .weight = 10});
+  consensus::babe::AuthorityIndex authority_index{3};
+  consensus::babe::AuthorityList authorities;
+  authorities.push_back(consensus::babe::Authority{.id = {}, .weight = 3});
+  authorities.push_back(consensus::babe::Authority{.id = {}, .weight = 1});
+  authorities.push_back(consensus::babe::Authority{.id = {}, .weight = 4});
+  authorities.push_back(consensus::babe::Authority{.id = {}, .weight = 6});
+  authorities.push_back(consensus::babe::Authority{.id = {}, .weight = 10});
 
   consensus::Threshold expected{"28377230912881121443596276039380107264"};
   auto threshold =

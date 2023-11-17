@@ -7,10 +7,12 @@
 #pragma once
 
 #include "common/blob.hpp"
+#include "consensus/babe/types/authority.hpp"
+// #include "consensus/sassafras/types/authority.hpp"
+#include "consensus/grandpa/types/authority.hpp"
 #include "crypto/crypto_store/key_type.hpp"
 #include "crypto/ecdsa_types.hpp"
 #include "network/types/roles.hpp"
-#include "primitives/authority.hpp"
 #include "primitives/authority_discovery_id.hpp"
 
 namespace kagome::application {
@@ -39,9 +41,9 @@ namespace kagome::crypto {
 
   class SessionKeys {
    public:
-    template <typename T>
-    using KeypairWithIndexOpt = std::optional<
-        std::pair<std::shared_ptr<T>, primitives::AuthorityIndex>>;
+    template <typename T, typename AuthorityIndexT = uint32_t>
+    using KeypairWithIndexOpt =
+        std::optional<std::pair<std::shared_ptr<T>, AuthorityIndexT>>;
 
     virtual ~SessionKeys() = default;
 
@@ -49,19 +51,19 @@ namespace kagome::crypto {
      * @return current BABE session key pair
      */
     virtual KeypairWithIndexOpt<Sr25519Keypair> getBabeKeyPair(
-        const primitives::AuthorityList &authorities) = 0;
+        const consensus::babe::AuthorityList &authorities) = 0;
 
-    /**
-     * @return current SASSAFRAS session key pair
-     */
-    virtual KeypairWithIndexOpt<Sr25519Keypair> getSassafrasKeyPair(
-        const primitives::AuthorityList &authorities) = 0;
+    // /**
+    //  * @return current SASSAFRAS session key pair
+    //  */
+    // virtual KeypairWithIndexOpt<BandersnatchKeypair> getSassafrasKeyPair(
+    //     const consensus::sassafras::AuthorityList &authorities) = 0;
 
     /**
      * @return current GRANDPA session key pair
      */
     virtual std::shared_ptr<Ed25519Keypair> getGranKeyPair(
-        const primitives::AuthoritySet &authorities) = 0;
+        const consensus::grandpa::AuthoritySet &authorities) = 0;
 
     /**
      * @return current parachain validator session key pair
@@ -112,13 +114,13 @@ namespace kagome::crypto {
                     const application::AppConfiguration &config);
 
     KeypairWithIndexOpt<Sr25519Keypair> getBabeKeyPair(
-        const primitives::AuthorityList &authorities) override;
+        const consensus::babe::AuthorityList &authorities) override;
 
-    KeypairWithIndexOpt<Sr25519Keypair> getSassafrasKeyPair(
-        const primitives::AuthorityList &authorities) override;
+    // KeypairWithIndexOpt<BandersnatchKeypair> getSassafrasKeyPair(
+    //     const consensus::sassafras::AuthorityList &authorities) override;
 
     std::shared_ptr<Ed25519Keypair> getGranKeyPair(
-        const primitives::AuthoritySet &authorities) override;
+        const consensus::grandpa::AuthoritySet &authorities) override;
 
     KeypairWithIndexOpt<Sr25519Keypair> getParaKeyPair(
         const std::vector<Sr25519PublicKey> &authorities) override;

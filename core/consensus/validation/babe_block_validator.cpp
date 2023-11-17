@@ -11,10 +11,10 @@
 #include "crypto/sr25519_provider.hpp"
 #include "crypto/vrf_provider.hpp"
 
-OUTCOME_CPP_DEFINE_CATEGORY(kagome::consensus,
+OUTCOME_CPP_DEFINE_CATEGORY(kagome::consensus::babe,
                             BabeBlockValidator::ValidationError,
                             e) {
-  using E = kagome::consensus::BabeBlockValidator::ValidationError;
+  using E = kagome::consensus::babe::BabeBlockValidator::ValidationError;
   switch (e) {
     case E::NO_AUTHORITIES:
       return "no authorities are provided for the validation";
@@ -30,8 +30,7 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::consensus,
   return "unknown error";
 }
 
-namespace kagome::consensus {
-  using babe::AllowedSlots;
+namespace kagome::consensus::babe {
   using common::Buffer;
 
   BabeBlockValidator::BabeBlockValidator(
@@ -56,13 +55,13 @@ namespace kagome::consensus {
   outcome::result<void> BabeBlockValidator::validateHeader(
       const primitives::BlockHeader &header,
       const EpochNumber epoch_number,
-      const primitives::AuthorityId &authority_id,
+      const AuthorityId &authority_id,
       const Threshold &threshold,
-      const babe::BabeConfiguration &babe_config) const {
-    SL_DEBUG(log_, "Validated block signed by authority: {}", authority_id.id);
+      const BabeConfiguration &babe_config) const {
+    SL_DEBUG(log_, "Validated block signed by authority: {}", authority_id);
 
     // get BABE-specific digests, which must be inside this block
-    OUTCOME_TRY(babe_header, babe::getBabeBlockHeader(header));
+    OUTCOME_TRY(babe_header, getBabeBlockHeader(header));
 
     // @see
     // https://github.com/paritytech/substrate/blob/polkadot-v0.9.8/client/consensus/babe/src/verification.rs#L111
@@ -70,10 +69,10 @@ namespace kagome::consensus {
     if (babe_header.isProducedInSecondarySlot()) {
       bool plainAndAllowed =
           babe_config.allowed_slots == AllowedSlots::PrimaryAndSecondaryPlain
-          and babe_header.slotType() == babe::SlotType::SecondaryPlain;
+          and babe_header.slotType() == SlotType::SecondaryPlain;
       bool vrfAndAllowed =
           babe_config.allowed_slots == AllowedSlots::PrimaryAndSecondaryVRF
-          and babe_header.slotType() == babe::SlotType::SecondaryVRF;
+          and babe_header.slotType() == SlotType::SecondaryVRF;
       if (not plainAndAllowed and not vrfAndAllowed) {
         // SL_WARN unwraps to a lambda which cannot capture a local binding,
         // thus this copy
@@ -88,13 +87,10 @@ namespace kagome::consensus {
       }
     }
 
-    OUTCOME_TRY(seal, babe::getSeal(header));
+    OUTCOME_TRY(seal, getSeal(header));
 
     // signature in seal of the header must be valid
-    if (!verifySignature(header,
-                         babe_header,
-                         seal,
-                         primitives::BabeSessionKey{authority_id.id})) {
+    if (!verifySignature(header, babe_header, seal, authority_id)) {
       return ValidationError::INVALID_SIGNATURE;
     }
 
@@ -102,7 +98,7 @@ namespace kagome::consensus {
     if (babe_header.needVRFCheck()
         && !verifyVRF(babe_header,
                       epoch_number,
-                      primitives::BabeSessionKey{authority_id.id},
+                      authority_id,
                       threshold,
                       babe_config.randomness,
                       babe_header.needVRFWithThresholdCheck())) {
@@ -114,9 +110,9 @@ namespace kagome::consensus {
 
   bool BabeBlockValidator::verifySignature(
       const primitives::BlockHeader &header,
-      const babe::BabeBlockHeader &babe_header,
-      const babe::Seal &seal,
-      const primitives::BabeSessionKey &public_key) const {
+      const BabeBlockHeader &babe_header,
+      const Seal &seal,
+      const AuthorityId &public_key) const {
     primitives::UnsealedBlockHeaderReflection unsealed_header(header);
 
     auto unsealed_header_encoded = scale::encode(unsealed_header).value();
@@ -129,15 +125,14 @@ namespace kagome::consensus {
     return res && res.value();
   }
 
-  bool BabeBlockValidator::verifyVRF(
-      const babe::BabeBlockHeader &babe_header,
-      const EpochNumber epoch_number,
-      const primitives::BabeSessionKey &public_key,
-      const Threshold &threshold,
-      const Randomness &randomness,
-      const bool checkThreshold) const {
+  bool BabeBlockValidator::verifyVRF(const BabeBlockHeader &babe_header,
+                                     const EpochNumber epoch_number,
+                                     const AuthorityId &public_key,
+                                     const Threshold &threshold,
+                                     const Randomness &randomness,
+                                     const bool checkThreshold) const {
     primitives::Transcript transcript;
-    babe::prepareTranscript(
+    prepareTranscript(
         transcript, randomness, babe_header.slot_number, epoch_number);
     SL_DEBUG(log_,
              "prepareTranscript (verifyVRF): randomness {}, slot {}, epoch {}",
@@ -160,4 +155,4 @@ namespace kagome::consensus {
 
     return true;
   }
-}  // namespace kagome::consensus
+}  // namespace kagome::consensus::babe

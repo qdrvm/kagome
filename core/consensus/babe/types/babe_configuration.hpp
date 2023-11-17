@@ -6,43 +6,11 @@
 
 #pragma once
 
-#include <fmt/core.h>
-
 #include "common/blob.hpp"
+#include "consensus/babe/types/authority.hpp"
 #include "consensus/timeline/types.hpp"
-#include "crypto/sr25519_types.hpp"
-#include "primitives/authority.hpp"
 
 namespace kagome::consensus::babe {
-
-  struct AuthorityId {
-    SCALE_TIE(1);
-
-    crypto::Sr25519PublicKey id;
-  };
-
-  using AuthorityWeight = uint64_t;
-
-  /// Authority, which participate in block production
-  struct Authority {
-    SCALE_TIE(2);
-
-    AuthorityId id;
-    AuthorityWeight weight{};
-  };
-
-  /// List of authorities
-  using Authorities =
-      common::SLVector<Authority, consensus::kMaxValidatorsNumber>;
-
-  using AuthorityList = Authorities;
-
-  using AuthorityIndex = uint32_t;
-
-  using consensus::Clock;
-  using consensus::Duration;
-  using consensus::Randomness;
-  using consensus::SlotNumber;
 
   enum class AllowedSlots : uint8_t {
     PrimaryOnly,
@@ -84,8 +52,7 @@ namespace kagome::consensus::babe {
     std::pair<uint64_t, uint64_t> leadership_rate;  // changes by NextConfigData
 
     /// The authorities for block production
-    primitives::AuthorityList
-        authorities;  // can be changed by NextEpochData & OnDisabled
+    AuthorityList authorities;  // can be changed by NextEpochData & OnDisabled
 
     /// The randomness for the genesis epoch.
     Randomness randomness;  // can be changed by NextEpochData
@@ -100,9 +67,10 @@ namespace kagome::consensus::babe {
     EpochNumber epoch_index;
     SlotNumber start_slot;
     EpochLength duration;
-    primitives::AuthorityList authorities;
+    AuthorityList authorities;
     Randomness randomness;
     std::pair<uint64_t, uint64_t> leadership_rate;
     AllowedSlots allowed_slots;
   };
+
 }  // namespace kagome::consensus::babe

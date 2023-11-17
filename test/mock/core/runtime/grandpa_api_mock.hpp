@@ -19,7 +19,7 @@ namespace kagome::runtime {
                 (const primitives::BlockHash &),
                 (override));
 
-    MOCK_METHOD(outcome::result<primitives::AuthoritySetId>,
+    MOCK_METHOD(outcome::result<consensus::grandpa::AuthoritySetId>,
                 current_set_id,
                 (const primitives::BlockHash &block),
                 (override));

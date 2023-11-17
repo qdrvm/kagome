@@ -29,7 +29,7 @@ namespace kagome::consensus {
     virtual outcome::result<void> validateHeader(
         const primitives::BlockHeader &block_header,
         const EpochNumber epoch_number,
-        const primitives::AuthorityId &authority_id,
+        const babe::AuthorityId &authority_id,
         const Threshold &threshold,
         const babe::BabeConfiguration &config) const = 0;
   };

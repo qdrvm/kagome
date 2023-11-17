@@ -6,6 +6,8 @@
 
 #pragma once
 
+#include <stddef.h>
+
 namespace kagome::consensus {
 
   constexpr size_t kMaxValidatorsNumber = 2048;
