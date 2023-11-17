@@ -32,7 +32,7 @@ namespace kagome::offchain {
    public:
     virtual ~OffchainWorker() = default;
 
-    virtual outcome::result<void> run() = 0;
+    virtual void run(std::function<void()> &&func, std::string label) = 0;
 
     // ------------------------- Off-Chain API methods -------------------------
 
