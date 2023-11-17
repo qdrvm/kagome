@@ -243,14 +243,15 @@ namespace kagome::consensus::babe {
           if (info.number != 0) {
             OUTCOME_TRY(next, babe_api_->next_epoch(info.hash));
             BOOST_ASSERT(state->epoch_length == next.duration);
-            std::make_shared<BabeConfiguration>(BabeConfiguration{
-                state->slot_duration,
-                next.duration,
-                next.leadership_rate,
-                std::move(next.authorities),
-                next.randomness,
-                next.allowed_slots,
-            });
+            value.next_state_warp =
+                std::make_shared<BabeConfiguration>(BabeConfiguration{
+                    state->slot_duration,
+                    next.duration,
+                    next.leadership_rate,
+                    std::move(next.authorities),
+                    next.randomness,
+                    next.allowed_slots,
+                });
             value.next_state = value.next_state_warp;
           }
           indexer_.put(info, {value, std::nullopt}, true);

@@ -78,8 +78,7 @@ namespace kagome::primitives {
 
   struct DecodedConsensusMessage {
     static outcome::result<DecodedConsensusMessage> create(
-        ConsensusEngineId engine_id, const common::Buffer &_data) {
-      auto data = std::span(_data);
+        ConsensusEngineId engine_id, const common::Buffer &data) {
       DecodedConsensusMessage msg;
       msg.consensus_engine_id = engine_id;
       if (engine_id == primitives::kBabeEngineId) {
