@@ -185,17 +185,18 @@ namespace kagome::consensus::babe {
                      "Probably authority list has changed.");
         }
       } else {
-        SL_VERBOSE(log_, "Node is active validator in this epoch");
+        SL_VERBOSE(log_, "Node is active validator in epoch {}", epoch_);
       }
     }
 
     if (not is_active_validator_) {
-      SL_TRACE(log_, "Node is not active validator in epoch");
+      SL_TRACE(log_, "Node is not active validator in epoch {}", epoch_);
       return SlotLeadershipError::NO_VALIDATOR;
     }
 
     if (not checkSlotLeadership(best_block, slot)) {
-      SL_TRACE(log_, "Node is not slot leader in current slot");
+      SL_TRACE(
+          log_, "Node is not slot leader in slot {} epoch {}", slot_, epoch_);
       return SlotLeadershipError::NO_SLOT_LEADER;
     }
 
@@ -205,7 +206,9 @@ namespace kagome::consensus::babe {
     epoch_ = epoch;
 
     SL_DEBUG(log_,
-             "Author {} is leader in current slot",
+             "Node is leader in current slot {} epoch {}; Authority {}",
+             slot_,
+             epoch_,
              slot_leadership_.keypair->public_key);
     return processSlotLeadership();
   }
@@ -344,7 +347,9 @@ namespace kagome::consensus::babe {
 
     auto pre_digest_res = makePreDigest();
     if (pre_digest_res.has_error()) {
-      SL_ERROR(log_, "cannot propose a block: {}", pre_digest_res.error());
+      SL_ERROR(log_,
+               "cannot propose a block due to pre digest generation error: {}",
+               pre_digest_res.error());
       return BlockProductionError::CAN_NOT_PREPARE_BLOCK;
     }
     const auto &pre_digest = pre_digest_res.value();

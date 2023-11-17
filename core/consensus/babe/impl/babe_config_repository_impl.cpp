@@ -129,7 +129,7 @@ namespace kagome::consensus::babe {
 
     [[maybe_unused]] bool active_ = false;
 
-    // TODO Perhaps, should be observed all non-finalized blocks
+    // TODO(xDimon): Perhaps, should be observed by all non-finalized blocks
     auto best = block_tree_->bestBlock();
     auto consensus = consensus_selector_.get()->getProductionConsensus(best);
     if (std::dynamic_pointer_cast<Babe>(consensus)) {
