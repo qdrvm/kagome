@@ -135,16 +135,6 @@ namespace kagome::consensus::babe {
     outcome::result<primitives::Seal> makeSeal(
         const primitives::Block &block) const override;
 
-    outcome::result<void> processSlotLeadership(
-        const Context &ctx,
-        SlotType slot_type,
-        TimePoint slot_timestamp,
-        std::optional<std::reference_wrapper<const crypto::VRFOutput>> output,
-        primitives::AuthorityIndex authority_index);
-
-    outcome::result<primitives::Seal> sealBlock(
-        const Context &ctx, const primitives::Block &block) const;
-
     outcome::result<void> processSlotLeadershipProposed(
         uint64_t now,
         clock::SteadyClock::TimePoint proposal_start,
