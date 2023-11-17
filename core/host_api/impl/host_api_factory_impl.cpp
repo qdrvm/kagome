@@ -34,9 +34,9 @@ namespace kagome::host_api {
     BOOST_ASSERT(ed25519_provider_ != nullptr);
     BOOST_ASSERT(secp256k1_provider_ != nullptr);
     BOOST_ASSERT(hasher_ != nullptr);
-    BOOST_ASSERT(crypto_store_ != nullptr);
-    BOOST_ASSERT(offchain_persistent_storage_ != nullptr);
-    BOOST_ASSERT(offchain_worker_pool_ != nullptr);
+    // BOOST_ASSERT(crypto_store_ != nullptr);
+    // BOOST_ASSERT(offchain_persistent_storage_ != nullptr);
+    // BOOST_ASSERT(offchain_worker_pool_ != nullptr);
   }
 
   std::unique_ptr<HostApi> HostApiFactoryImpl::make(

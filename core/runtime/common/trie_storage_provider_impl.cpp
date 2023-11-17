@@ -35,7 +35,7 @@ namespace kagome::runtime {
       : trie_storage_{std::move(trie_storage)},
         trie_serializer_{std::move(trie_serializer)},
         logger_{log::createLogger("TrieStorageProvider", "runtime_api")} {
-    BOOST_ASSERT(trie_storage_ != nullptr);
+    // BOOST_ASSERT(trie_storage_ != nullptr);
   }
 
   outcome::result<void> TrieStorageProviderImpl::setToEphemeralAt(

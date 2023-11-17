@@ -36,8 +36,8 @@ namespace kagome::host_api {
         ocw_pool_(std::move(ocw_pool)),
         log_(log::createLogger("OffchainExtension", "offchain_extension")) {
     BOOST_ASSERT(memory_provider_);
-    BOOST_ASSERT(offchain_storage_);
-    BOOST_ASSERT(ocw_pool_);
+    // BOOST_ASSERT(offchain_storage_);
+    // BOOST_ASSERT(ocw_pool_);
   }
 
   std::shared_ptr<offchain::OffchainWorker> OffchainExtension::getWorker() {

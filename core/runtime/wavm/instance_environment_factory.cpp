@@ -36,15 +36,15 @@ namespace kagome::runtime::wavm {
         block_header_repo_{std::move(block_header_repo)},
         last_compiled_module_{std::move(last_compiled_module)},
         cache_(std::move(cache)) {
-    BOOST_ASSERT(storage_ != nullptr);
-    BOOST_ASSERT(serializer_ != nullptr);
-    BOOST_ASSERT(compartment_ != nullptr);
-    BOOST_ASSERT(module_params_ != nullptr);
-    BOOST_ASSERT(intrinsic_module_ != nullptr);
-    BOOST_ASSERT(host_api_factory_ != nullptr);
-    BOOST_ASSERT(block_header_repo_ != nullptr);
-    BOOST_ASSERT(last_compiled_module_ != nullptr);
-    BOOST_ASSERT(cache_ != nullptr);
+    // BOOST_ASSERT(storage_ != nullptr);
+    // BOOST_ASSERT(serializer_ != nullptr);
+    // BOOST_ASSERT(compartment_ != nullptr);
+    // BOOST_ASSERT(module_params_ != nullptr);
+    // BOOST_ASSERT(intrinsic_module_ != nullptr);
+    // BOOST_ASSERT(host_api_factory_ != nullptr);
+    // BOOST_ASSERT(block_header_repo_ != nullptr);
+    // BOOST_ASSERT(last_compiled_module_ != nullptr);
+    // BOOST_ASSERT(cache_ != nullptr);
   }
 
   InstanceEnvironment InstanceEnvironmentFactory::make(

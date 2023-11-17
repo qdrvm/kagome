@@ -6,8 +6,12 @@
 
 #include "parachain/pvf/pvf_impl.hpp"
 
+#include <future>
+
 #include "application/app_configuration.hpp"
 #include "metrics/histogram_timer.hpp"
+#include "parachain/pvf/pvf_worker_types.hpp"
+#include "parachain/pvf/run_worker.hpp"
 #include "runtime/common/runtime_instances_pool.hpp"
 #include "runtime/common/uncompress_code_if_needed.hpp"
 #include "runtime/executor.hpp"
@@ -15,6 +19,7 @@
 #include "runtime/module_factory.hpp"
 #include "runtime/module_repository.hpp"
 #include "runtime/runtime_code_provider.hpp"
+#include "utils/argv0.hpp"
 
 OUTCOME_CPP_DEFINE_CATEGORY(kagome::parachain, PvfError, e) {
   using kagome::parachain::PvfError;
@@ -108,6 +113,8 @@ namespace kagome::parachain {
   };
 
   PvfImpl::PvfImpl(
+      std::shared_ptr<boost::asio::io_context> io_context,
+      std::shared_ptr<libp2p::basic::Scheduler> scheduler,
       std::shared_ptr<crypto::Hasher> hasher,
       std::shared_ptr<runtime::ModuleFactory> module_factory,
       std::shared_ptr<runtime::RuntimePropertiesCache> runtime_properties_cache,
@@ -118,7 +125,9 @@ namespace kagome::parachain {
       std::shared_ptr<runtime::Executor> executor,
       std::shared_ptr<runtime::RuntimeContextFactory> ctx_factory,
       std::shared_ptr<application::AppConfiguration> config)
-      : hasher_{std::move(hasher)},
+      : io_context_{std::move(io_context)},
+        scheduler_{std::move(scheduler)},
+        hasher_{std::move(hasher)},
         runtime_properties_cache_{std::move(runtime_properties_cache)},
         block_header_repository_{std::move(block_header_repository)},
         sr25519_provider_{std::move(sr25519_provider)},
@@ -228,8 +237,6 @@ namespace kagome::parachain {
       const common::Hash256 &code_hash,
       const ParachainRuntime &code_zstd,
       const ValidationParams &params) const {
-    OUTCOME_TRY(instance, runtime_cache_->instantiate(code_hash, code_zstd));
-
     runtime::RuntimeContext::ContextParams executor_params{};
     auto &parent_hash = receipt.descriptor.relay_parent;
     OUTCOME_TRY(session_index,
@@ -237,11 +244,29 @@ namespace kagome::parachain {
     OUTCOME_TRY(
         session_params,
         parachain_api_->session_executor_params(parent_hash, session_index));
-    OUTCOME_TRY(ctx,
-                ctx_factory_->ephemeral(
-                    instance, storage::trie::kEmptyRootHash, executor_params));
-    return executor_->decodedCallWithCtx<ValidationResult>(
-        ctx, "validate_block", params);
+
+    std::chrono::seconds kTimeout{2};
+
+    PvfWorkerInput input{
+        RuntimeEngine::kWAVM,  // TODO: config
+        code_zstd,
+        "validate_block",
+        common::Buffer{scale::encode(params).value()},
+        std::filesystem::temp_directory_path()
+            / "kagome/runtimes-cache",  // TODO: config
+    };
+    std::promise<outcome::result<common::Buffer>> promise;
+    auto cb = [&](outcome::result<common::Buffer> r) {
+      promise.set_value(std::move(r));
+    };
+    runWorker(*io_context_,
+              *scheduler_,
+              kTimeout,
+              argv0().value(),
+              common::Buffer{scale::encode(input).value()},
+              cb);
+    OUTCOME_TRY(result, promise.get_future().get());
+    return scale::decode<ValidationResult>(result);
   }
 
   outcome::result<Pvf::CandidateCommitments> PvfImpl::fromOutputs(

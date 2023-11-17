@@ -14,6 +14,14 @@
 #include "runtime/runtime_api/parachain_host.hpp"
 #include "runtime/runtime_properties_cache.hpp"
 
+namespace boost::asio {
+  class io_context;
+}  // namespace boost::asio
+
+namespace libp2p::basic {
+  class Scheduler;
+}  // namespace libp2p::basic
+
 namespace kagome::application {
   class AppConfiguration;
 }
@@ -58,7 +66,9 @@ namespace kagome::parachain {
 
   class PvfImpl : public Pvf {
    public:
-    PvfImpl(std::shared_ptr<crypto::Hasher> hasher,
+    PvfImpl(std::shared_ptr<boost::asio::io_context> io_context,
+            std::shared_ptr<libp2p::basic::Scheduler> scheduler,
+            std::shared_ptr<crypto::Hasher> hasher,
             std::shared_ptr<runtime::ModuleFactory> module_factory,
             std::shared_ptr<runtime::RuntimePropertiesCache>
                 runtime_properties_cache,
@@ -92,6 +102,8 @@ namespace kagome::parachain {
     outcome::result<CandidateCommitments> fromOutputs(
         const CandidateReceipt &receipt, ValidationResult &&result) const;
 
+    std::shared_ptr<boost::asio::io_context> io_context_;
+    std::shared_ptr<libp2p::basic::Scheduler> scheduler_;
     std::shared_ptr<crypto::Hasher> hasher_;
     std::shared_ptr<runtime::RuntimePropertiesCache> runtime_properties_cache_;
     std::shared_ptr<blockchain::BlockHeaderRepository> block_header_repository_;

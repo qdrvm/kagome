@@ -385,18 +385,18 @@ namespace {
       application::AppConfiguration::RuntimeExecutionMethod method,
       Ts &&...args) {
     return di::make_injector(
-        bind_by_lambda<runtime::binaryen::RuntimeExternalInterface>(
-            [](const auto &injector) {
-              auto host_api =
-                  injector.template create<sptr<host_api::HostApi>>();
-              auto rei =
-                  std::make_shared<runtime::binaryen::RuntimeExternalInterface>(
-                      host_api);
-              auto memory_provider = injector.template create<
-                  sptr<runtime::binaryen::BinaryenMemoryProvider>>();
-              memory_provider->setExternalInterface(rei);
-              return rei;
-            }),
+        // bind_by_lambda<runtime::binaryen::RuntimeExternalInterface>(
+        //     [](const auto &injector) {
+        //       auto host_api =
+        //           injector.template create<sptr<host_api::HostApi>>();
+        //       auto rei =
+        //           std::make_shared<runtime::binaryen::RuntimeExternalInterface>(
+        //               host_api);
+        //       auto memory_provider = injector.template create<
+        //           sptr<runtime::binaryen::BinaryenMemoryProvider>>();
+        //       memory_provider->setExternalInterface(rei);
+        //       return rei;
+        //     }),
         std::forward<decltype(args)>(args)...);
   }
 

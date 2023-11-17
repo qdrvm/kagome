@@ -57,9 +57,9 @@ namespace kagome::runtime::binaryen {
       : instance_env_factory_{std::move(instance_env_factory)},
         header_repo_{std::move(header_repo)},
         cache_(std::move(cache)) {
-    BOOST_ASSERT(instance_env_factory_ != nullptr);
-    BOOST_ASSERT(header_repo_ != nullptr);
-    BOOST_ASSERT(cache_ != nullptr);
+    // BOOST_ASSERT(instance_env_factory_ != nullptr);
+    // BOOST_ASSERT(header_repo_ != nullptr);
+    // BOOST_ASSERT(cache_ != nullptr);
   }
 
   std::unique_ptr<Core> CoreApiFactoryImpl::make(

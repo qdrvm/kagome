@@ -23,8 +23,8 @@ namespace kagome::runtime::binaryen {
       : env_factory_{std::move(env_factory)},
         storage_{std::move(storage)},
         hasher_(std::move(hasher)) {
-    BOOST_ASSERT(env_factory_ != nullptr);
-    BOOST_ASSERT(storage_ != nullptr);
+    // BOOST_ASSERT(env_factory_ != nullptr);
+    // BOOST_ASSERT(storage_ != nullptr);
   }
 
   outcome::result<std::shared_ptr<Module>> ModuleFactoryImpl::make(

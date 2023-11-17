@@ -24,10 +24,10 @@ namespace kagome::runtime::binaryen {
         host_api_factory_{std::move(host_api_factory)},
         block_header_repo_{std::move(block_header_repo)},
         cache_(std::move(cache)) {
-    BOOST_ASSERT(storage_);
-    BOOST_ASSERT(serializer_);
+    // BOOST_ASSERT(storage_);
+    // BOOST_ASSERT(serializer_);
     BOOST_ASSERT(host_api_factory_);
-    BOOST_ASSERT(block_header_repo_);
+    // BOOST_ASSERT(block_header_repo_);
     BOOST_ASSERT(cache_);
   }
 

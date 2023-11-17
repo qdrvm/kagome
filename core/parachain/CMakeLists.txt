@@ -29,4 +29,36 @@ target_link_libraries(validator_parachain
     network
     erasure_coding_crust::ec-cpp
     waitable_timer
+    kagome_pvf_worker
+    )
+
+add_library(kagome_pvf_worker
+    pvf/kagome_pvf_worker.cpp
+    )
+target_link_libraries(kagome_pvf_worker
+    fmt::fmt
+    scale::scale
+    soralog::fallback_configurator
+    soralog::soralog
+    logger
+    log_configurator
+
+    binaryen_wasm_memory
+    binaryen_wasm_memory_factory
+    binaryen_runtime_external_interface
+    binaryen_memory_provider
+    binaryen_wasm_module
+    binaryen_executor_factory
+    binaryen_instance_environment_factory
+    binaryen_module_factory
+
+    runtime_wavm
+
+    runtime_properties_cache
+    sr25519_provider
+    ed25519_provider
+    ecdsa_provider
+    secp256k1_provider
+    host_api_factory
+    p2p::p2p_basic_scheduler
     )

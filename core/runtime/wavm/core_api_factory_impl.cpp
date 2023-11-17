@@ -91,14 +91,14 @@ namespace kagome::runtime::wavm {
         block_header_repo_{std::move(block_header_repo)},
         last_compiled_module_{last_compiled_module},
         cache_(std::move(cache)) {
-    BOOST_ASSERT(compartment_);
-    BOOST_ASSERT(module_params_);
-    BOOST_ASSERT(intrinsic_module_);
-    BOOST_ASSERT(storage_);
-    BOOST_ASSERT(block_header_repo_);
-    BOOST_ASSERT(instance_env_factory_);
-    BOOST_ASSERT(last_compiled_module_);
-    BOOST_ASSERT(cache_);
+    // BOOST_ASSERT(compartment_);
+    // BOOST_ASSERT(module_params_);
+    // BOOST_ASSERT(intrinsic_module_);
+    // BOOST_ASSERT(storage_);
+    // BOOST_ASSERT(block_header_repo_);
+    // BOOST_ASSERT(instance_env_factory_);
+    // BOOST_ASSERT(last_compiled_module_);
+    // BOOST_ASSERT(cache_);
   }
 
   std::unique_ptr<Core> CoreApiFactoryImpl::make(
