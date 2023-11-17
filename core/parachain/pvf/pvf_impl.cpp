@@ -260,7 +260,7 @@ namespace kagome::parachain {
       promise.set_value(std::move(r));
     };
     runWorker(*io_context_,
-              *scheduler_,
+              scheduler_,
               kTimeout,
               argv0().value(),
               common::Buffer{scale::encode(input).value()},

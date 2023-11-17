@@ -22,10 +22,9 @@ namespace kagome::parachain {
   // run(scale::encode())
   // run(make_shared<Buffer>(scale::encode()))
 
-  // io_context, scheduler
   template <std::invocable<outcome::result<common::Buffer>> Cb>
   void runWorker(boost::asio::io_context &io_context,
-                 libp2p::basic::Scheduler &scheduler,
+                 std::shared_ptr<libp2p::basic::Scheduler> scheduler,
                  std::chrono::seconds timeout,
                  const std::string &exe,
                  common::Buffer input_,
@@ -62,11 +61,14 @@ namespace kagome::parachain {
       }
     };
 
-    scheduler.schedule([cb]() mutable { cb(std::errc::timed_out); }, timeout);
+    io_context.post([scheduler, timeout, cb] {
+      scheduler->schedule([cb]() mutable { cb(std::errc::timed_out); },
+                          timeout);
+    });
 
     auto input = std::make_shared<common::Buffer>(input_);
-    auto input_len =
-        std::make_shared<common::Buffer>(scale::encode<uint32_t>(input->size()).value());
+    auto input_len = std::make_shared<common::Buffer>(
+        scale::encode<uint32_t>(input->size()).value());
     fmt::println(
         stderr, "DEBUG: async_write {}", common::hex_lower(*input_len));
     boost::asio::async_write(

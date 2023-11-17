@@ -27,10 +27,10 @@
 #include "parachain/pvf/pvf_worker_types.hpp"
 #include "scale/scale.hpp"
 
+#include "parachain/pvf/kagome_pvf_worker.hpp"
 #include "parachain/pvf/run_worker.hpp"
 #include "runtime/binaryen/module/module_factory_impl.hpp"
 #include "runtime/wavm/module_factory_impl.hpp"
-#include "parachain/pvf/kagome_pvf_worker.hpp"
 
 #include "test_wasm.hpp"
 
@@ -55,7 +55,9 @@ namespace kagome::parachain {
     std::vector<uint8_t> packed_message(message_length, 0);
     OUTCOME_TRY(readStdin(packed_message));
     fmt::println(stderr, "DEBUG: decodeInput: read {}: ok", message_length);
-    fmt::println(stderr, "DEBUG:   dump {}", common::hex_lower(libp2p::BytesIn{packed_message}.first(40)));
+    fmt::println(stderr,
+                 "DEBUG:   dump {}",
+                 common::hex_lower(libp2p::BytesIn{packed_message}.first(40)));
     OUTCOME_TRY(pvf_worker_input,
                 scale::decode<PvfWorkerInput>(packed_message));
     return pvf_worker_input;
@@ -119,7 +121,7 @@ namespace kagome::parachain {
     }
     kagome::log::setLoggingSystem(logging_system);
 
-    if (argc <= 1) {
+    if (false && argc <= 1) {
       auto io_context = std::make_shared<boost::asio::io_context>();
       auto scheduler = std::make_shared<libp2p::basic::SchedulerImpl>(
           std::make_shared<libp2p::basic::AsioSchedulerBackend>(io_context),
@@ -127,9 +129,11 @@ namespace kagome::parachain {
       constexpr auto kChildTimeout = std::chrono::seconds(6);
 
       common::Buffer input{scale::encode(test_input).value()};
-    fmt::println(stderr, "DEBUG:   send {}", common::hex_lower(libp2p::BytesIn{input}.first(40)));
+      fmt::println(stderr,
+                   "DEBUG:   send {}",
+                   common::hex_lower(libp2p::BytesIn{input}.first(40)));
       runWorker(*io_context,
-                *scheduler,
+                scheduler,
                 kChildTimeout,
                 argv[0],
                 input,
