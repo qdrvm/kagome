@@ -14,7 +14,7 @@ namespace kagome::offchain {
 
   class OffchainWorkerMock : public OffchainWorker {
    public:
-    MOCK_METHOD(outcome::result<void>, run, (), (override));
+    MOCK_METHOD(void, run, (std::function<void()> &&, std::string), (override));
 
     MOCK_METHOD(bool, isValidator, (), (const, override));
 

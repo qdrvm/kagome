@@ -49,7 +49,7 @@ namespace kagome::network {
               static auto empty = std::make_shared<std::vector<uint8_t>>();
               raw = empty;
             }
-            auto msg_res = scale::decode<MsgType>(*raw);
+            auto msg_res = ::scale::decode<MsgType>(*raw);
             if (!msg_res) {
               return cb(outcome::failure(msg_res.error()));
             }

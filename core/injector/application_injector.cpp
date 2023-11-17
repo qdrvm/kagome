@@ -120,6 +120,7 @@
 #include "offchain/impl/offchain_worker_factory_impl.hpp"
 #include "offchain/impl/offchain_worker_impl.hpp"
 #include "offchain/impl/offchain_worker_pool_impl.hpp"
+#include "offchain/impl/runner.hpp"
 #include "outcome/outcome.hpp"
 #include "parachain/approval/approval_distribution.hpp"
 #include "parachain/availability/bitfield/store_impl.hpp"
@@ -313,6 +314,7 @@ namespace {
         std::shared_ptr<blockchain::JustificationStoragePolicy>>();
 
     auto block_tree_res = blockchain::BlockTreeImpl::create(
+        injector.template create<const application::AppConfiguration &>(),
         std::move(header_repo),
         std::move(storage),
         std::move(extrinsic_observer),

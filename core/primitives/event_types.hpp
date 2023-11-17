@@ -261,4 +261,28 @@ namespace kagome::primitives::events {
   using ExtrinsicEventSubscriber = ExtrinsicSubscriptionEngine::SubscriberType;
   using ExtrinsicEventSubscriberPtr = std::shared_ptr<ExtrinsicEventSubscriber>;
 
+  struct ChainSub {
+    ChainSub(ChainSubscriptionEnginePtr engine)
+        : sub{std::make_shared<primitives::events::ChainEventSubscriber>(
+            std::move(engine))} {}
+
+    void onFinalize(auto f) {
+      sub->subscribe(sub->generateSubscriptionSetId(),
+                     ChainEventType::kFinalizedHeads);
+      sub->setCallback(
+          [f{std::move(f)}](subscription::SubscriptionSetId,
+                            ChainSubscriptionEngine::ReceiverType &,
+                            ChainEventType,
+                            const ChainEventParams &args) {
+            auto &block = boost::get<HeadsEventParams>(args);
+            if constexpr (std::is_invocable_v<decltype(f)>) {
+              f();
+            } else {
+              f(block);
+            }
+          });
+    }
+
+    ChainEventSubscriberPtr sub;
+  };
 }  // namespace kagome::primitives::events

@@ -45,8 +45,7 @@ namespace kagome::network {
                LazySPtr<consensus::Timeline> timeline,
                std::shared_ptr<crypto::SessionKeys> session_keys,
                LazySPtr<BeefyProtocol> beefy_protocol,
-               std::shared_ptr<primitives::events::ChainSubscriptionEngine>
-                   chain_sub_engine)
+               primitives::events::ChainSubscriptionEnginePtr chain_sub_engine)
       : block_tree_{std::move(block_tree)},
         beefy_api_{std::move(beefy_api)},
         ecdsa_{std::move(ecdsa)},
@@ -58,9 +57,10 @@ namespace kagome::network {
         session_keys_{std::move(session_keys)},
         beefy_protocol_{std::move(beefy_protocol)},
         min_delta_{chain_spec.isWococo() ? 4u : 8u},
+        chain_sub_{chain_sub_engine},
         log_{log::createLogger("Beefy")} {
-    app_state_manager.atLaunch([=, this]() mutable {
-      start(std::move(chain_sub_engine));
+    app_state_manager.atLaunch([this]() mutable {
+      start();
       return true;
     });
   }
@@ -191,8 +191,7 @@ namespace kagome::network {
     }
   }
 
-  void Beefy::start(std::shared_ptr<primitives::events::ChainSubscriptionEngine>
-                        chain_sub_engine) {
+  void Beefy::start() {
     auto cursor = db_->cursor();
     std::ignore = cursor->seekLast();
     if (cursor->isValid()) {
@@ -200,15 +199,7 @@ namespace kagome::network {
       metric_finalized->set(beefy_finalized_);
     }
     SL_INFO(log_, "last finalized {}", beefy_finalized_);
-    chain_sub_ = std::make_shared<primitives::events::ChainEventSubscriber>(
-        chain_sub_engine);
-    chain_sub_->subscribe(chain_sub_->generateSubscriptionSetId(),
-                          primitives::events::ChainEventType::kFinalizedHeads);
-    auto on_finalize = [weak = weak_from_this()](
-                           subscription::SubscriptionSetId,
-                           auto &&,
-                           primitives::events::ChainEventType,
-                           const primitives::events::ChainEventParams &) {
+    chain_sub_.onFinalize([weak{weak_from_this()}]() {
       if (auto self = weak.lock()) {
         self->strand_.post([weak] {
           if (auto self = weak.lock()) {
@@ -216,8 +207,7 @@ namespace kagome::network {
           }
         });
       }
-    };
-    chain_sub_->setCallback(std::move(on_finalize));
+    });
     strand_.post([weak = weak_from_this()] {
       if (auto self = weak.lock()) {
         std::ignore = self->update();
