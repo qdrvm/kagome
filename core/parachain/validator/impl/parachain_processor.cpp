@@ -365,10 +365,12 @@ namespace kagome::parachain {
     }
 
     std::optional<StatementStore> statement_store;
-    if (auto mode =
-            prospective_parachains_->prospectiveParachainsMode(relay_parent)) {
-      OUTCOME_TRY(session_index,
-                  parachain_host_->session_index_for_child(relay_parent));
+    auto mode =
+        prospective_parachains_->prospectiveParachainsMode(relay_parent);
+    if (mode) {
+      our_current_state_.implicit_view.activate_leaf(relay_parent);
+          OUTCOME_TRY(session_index,
+                      parachain_host_->session_index_for_child(relay_parent));
       OUTCOME_TRY(session_info,
                   parachain_host_->session_info(relay_parent, session_index));
       if (session_info) {

@@ -175,7 +175,7 @@ namespace kagome::parachain {
     }
 
     const Hash &para_head() const {
-      return confirmed.receipt.descriptor.para_head;
+      return receipt.descriptor.para_head_hash;
     }
 
     const RelayHash &relay_parent() const {
