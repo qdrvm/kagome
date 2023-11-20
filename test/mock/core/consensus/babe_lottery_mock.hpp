@@ -12,29 +12,16 @@
 
 namespace kagome::consensus::babe {
   struct BabeLotteryMock : public BabeLottery {
-    MOCK_METHOD(void,
-                changeEpoch,
-                (EpochNumber,
-                 const Randomness &,
-                 const Threshold &,
-                 const crypto::Sr25519Keypair &),
-                (override));
-
     MOCK_METHOD(EpochNumber, getEpoch, (), (const, override));
 
-    MOCK_METHOD(std::optional<crypto::VRFOutput>,
+    MOCK_METHOD(bool,
+                changeEpoch,
+                (EpochNumber epoch, const primitives::BlockInfo &best_block),
+                (override));
+
+    MOCK_METHOD(std::optional<SlotLeadership>,
                 getSlotLeadership,
-                (SlotNumber),
-                (const, override));
-
-    MOCK_METHOD(crypto::VRFOutput,
-                slotVrfSignature,
-                (SlotNumber),
-                (const, override));
-
-    MOCK_METHOD(std::optional<primitives::AuthorityIndex>,
-                secondarySlotAuthor,
-                (SlotNumber, primitives::AuthorityListSize, const Randomness &),
+                (const primitives::BlockHash &block, SlotNumber slot),
                 (const, override));
   };
 }  // namespace kagome::consensus::babe

@@ -6,13 +6,18 @@
 
 #include "consensus/timeline/impl/consensus_selector_impl.hpp"
 
+#include "blockchain/block_header_repository.hpp"
+
 namespace kagome::consensus {
 
   ConsensusSelectorImpl::ConsensusSelectorImpl(
+      std::shared_ptr<const blockchain::BlockHeaderRepository> header_repo,
       std::vector<std::shared_ptr<ProductionConsensus>> production_consensuses,
       std::vector<std::shared_ptr<FinalityConsensus>> finality_consensuses)
-      : production_consensuses_(std::move(production_consensuses)),
+      : header_repo_(std::move(header_repo)),
+        production_consensuses_(std::move(production_consensuses)),
         finality_consensuses_(std::move(finality_consensuses)) {
+    BOOST_ASSERT(header_repo_ != nullptr);
     BOOST_ASSERT(not production_consensuses_.empty());
     BOOST_ASSERT(std::all_of(
         production_consensuses_.begin(),
@@ -33,13 +38,34 @@ namespace kagome::consensus {
       return consensus_opt.value();
     }
 
+    [[unlikely]] if (parent_block.number == 0) {
+      for (size_t i = 0; i < production_consensuses_.size(); ++i) {
+        const auto &consensus = production_consensuses_[i];
+        if (consensus->isGenesisConsensus()) {
+          return pc_cache_.put(parent_block, consensus);
+        }
+      }
+    }
+
+    auto header_res = header_repo_->getBlockHeader(parent_block.hash);
+    if (header_res.has_error()) {
+      // TODO Log it
+      return {};
+    }
+    const auto &header = header_res.value();
+
     for (size_t i = 0; i < production_consensuses_.size(); ++i) {
       const auto &consensus = production_consensuses_[i];
-      if (i == production_consensuses_.size() - 1) {  // Last one is fallback
+
+      // Try to fit consensus by getting slot
+      if (consensus->getSlot(header)) {
         return pc_cache_.put(parent_block, consensus);
       }
 
-      // TODO: Code for trying to select another consensus
+      // The last one is fallback
+      if (i == production_consensuses_.size() - 1) {
+        return pc_cache_.put(parent_block, consensus);
+      }
     }
     BOOST_UNREACHABLE_RETURN({});
   }

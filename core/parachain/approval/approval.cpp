@@ -8,7 +8,9 @@ extern "C" {
 #include <schnorrkel/schnorrkel.h>
 }
 
+#include "consensus/babe/impl/prepare_transcript.hpp"
 #include "parachain/approval/approval.hpp"
+#include "primitives/transcript.hpp"
 
 OUTCOME_CPP_DEFINE_CATEGORY(kagome::parachain::approval,
                             UnsafeVRFOutput::Error,

@@ -37,12 +37,13 @@ using kagome::common::Buffer;
 using kagome::consensus::BlockAppenderBase;
 using kagome::consensus::BlockExecutorImpl;
 using kagome::consensus::BlockValidator;
-using kagome::consensus::EpochDigest;
 using kagome::consensus::EpochNumber;
+using kagome::consensus::EpochTimings;
 using kagome::consensus::SlotsUtil;
 using kagome::consensus::SlotsUtilMock;
 using kagome::consensus::babe::BabeBlockHeader;
 using kagome::consensus::babe::BabeConfigRepositoryMock;
+using kagome::consensus::babe::BabeConfiguration;
 using kagome::consensus::babe::BlockValidatorMock;
 using kagome::consensus::grandpa::Environment;
 using kagome::consensus::grandpa::EnvironmentMock;
@@ -52,7 +53,6 @@ using kagome::crypto::VRFThreshold;
 using kagome::primitives::Authority;
 using kagome::primitives::AuthorityId;
 using kagome::primitives::AuthorityList;
-using kagome::primitives::BabeConfiguration;
 using kagome::primitives::Block;
 using kagome::primitives::BlockData;
 using kagome::primitives::BlockId;
@@ -137,6 +137,7 @@ class BlockExecutorTest : public testing::Test {
     auto appender = std::make_unique<BlockAppenderBase>(
         block_tree_,
         babe_config_repo_,
+        timings_,
         block_validator_,
         grandpa_environment_,
         testutil::sptr_to_lazy<SlotsUtil>(slots_util_),
@@ -162,6 +163,10 @@ class BlockExecutorTest : public testing::Test {
   std::shared_ptr<CoreMock> core_;
   std::shared_ptr<BabeConfiguration> babe_config_;
   std::shared_ptr<BabeConfigRepositoryMock> babe_config_repo_;
+  EpochTimings timings_{
+      .slot_duration = 60ms,
+      .epoch_length = 2,
+  };
   std::shared_ptr<BlockValidatorMock> block_validator_;
   std::shared_ptr<EnvironmentMock> grandpa_environment_;
   std::shared_ptr<TransactionPoolMock> tx_pool_;
