@@ -22,7 +22,7 @@ In this step, we will launch the first validating node, similar to what we did i
 
 ```shell script
 kagome \
-    --validator \
+    --alice \
     --chain testchain.json \
     --base-path validating1 \
     --port 11122 \
@@ -36,7 +36,7 @@ With the first validating node actively running, we can add the second validatin
 
 ```shell script
 kagome \
-    --validator \
+    --bob \
     --chain testchain.json \
     --base-path validating2 \
     --port 11222 \
