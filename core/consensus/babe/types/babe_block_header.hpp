@@ -6,7 +6,7 @@
 
 #pragma once
 
-#include "consensus/babe/types/slot.hpp"
+#include "consensus/babe/types/slot_type.hpp"
 #include "consensus/timeline/types.hpp"
 #include "crypto/sr25519_types.hpp"
 #include "primitives/authority.hpp"

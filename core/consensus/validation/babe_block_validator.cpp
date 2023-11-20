@@ -7,7 +7,7 @@
 #include "consensus/validation/babe_block_validator.hpp"
 
 #include "consensus/babe/impl/babe_digests_util.hpp"
-#include "consensus/validation/prepare_transcript.hpp"
+#include "consensus/babe/impl/prepare_transcript.hpp"
 #include "crypto/sr25519_provider.hpp"
 #include "crypto/vrf_provider.hpp"
 
@@ -31,8 +31,8 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::consensus,
 }
 
 namespace kagome::consensus {
+  using babe::AllowedSlots;
   using common::Buffer;
-  using primitives::AllowedSlots;
 
   BabeBlockValidator::BabeBlockValidator(
       std::shared_ptr<blockchain::BlockTree> block_tree,
@@ -58,7 +58,7 @@ namespace kagome::consensus {
       const EpochNumber epoch_number,
       const primitives::AuthorityId &authority_id,
       const Threshold &threshold,
-      const primitives::BabeConfiguration &babe_config) const {
+      const babe::BabeConfiguration &babe_config) const {
     SL_DEBUG(log_, "Validated block signed by authority: {}", authority_id.id);
 
     // get BABE-specific digests, which must be inside this block

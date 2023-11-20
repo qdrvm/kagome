@@ -892,7 +892,7 @@ namespace kagome::parachain {
   outcome::result<std::tuple<consensus::EpochNumber,
                              consensus::babe::BabeBlockHeader,
                              primitives::AuthorityList,
-                             primitives::Randomness>>
+                             consensus::Randomness>>
   ApprovalDistribution::request_babe_epoch_and_block_header(
       const primitives::BlockHeader &block_header,
       const primitives::BlockHash &block_hash) {

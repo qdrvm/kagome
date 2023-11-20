@@ -9,12 +9,13 @@
 #include "consensus/production_consensus.hpp"
 
 #include "clock/clock.hpp"
+#include "consensus/babe/types/babe_configuration.hpp"
+#include "consensus/babe/types/slot_leadership.hpp"
 #include "injector/lazy.hpp"
 #include "log/logger.hpp"
 #include "metrics/metrics.hpp"
 #include "primitives/block.hpp"
 #include "primitives/event_types.hpp"
-#include "primitives/inherent_data.hpp"
 #include "telemetry/service.hpp"
 
 namespace boost::asio {
@@ -35,7 +36,7 @@ namespace kagome::authorship {
 
 namespace kagome::blockchain {
   class BlockTree;
-}  // namespace kagome::blockchain
+}
 
 namespace kagome::consensus {
   class SlotsUtil;
@@ -92,7 +93,8 @@ namespace kagome::consensus::babe {
         const clock::SystemClock &clock,
         std::shared_ptr<blockchain::BlockTree> block_tree,
         LazySPtr<SlotsUtil> slots_util,
-        std::shared_ptr<BabeConfigRepository> babe_config_repo,
+        std::shared_ptr<BabeConfigRepository> config_repo,
+        const EpochTimings &timings,
         std::shared_ptr<crypto::SessionKeys> session_keys,
         std::shared_ptr<BabeLottery> lottery,
         std::shared_ptr<crypto::Hasher> hasher,
@@ -108,10 +110,10 @@ namespace kagome::consensus::babe {
         const ThreadPool &thread_pool,
         std::shared_ptr<boost::asio::io_context> main_thread);
 
+    bool isGenesisConsensus() const override;
+
     ValidatorStatus getValidatorStatus(const primitives::BlockInfo &parent_info,
                                        EpochNumber epoch_number) const override;
-
-    std::tuple<Duration, EpochLength> getTimings() const override;
 
     outcome::result<SlotNumber> getSlot(
         const primitives::BlockHeader &header) const override;
@@ -120,48 +122,33 @@ namespace kagome::consensus::babe {
         SlotNumber slot, const primitives::BlockInfo &best_block) override;
 
    private:
-    outcome::result<primitives::PreRuntime> babePreDigest(
-        const Context &ctx,
-        SlotType slot_type,
-        std::optional<std::reference_wrapper<const crypto::VRFOutput>> output,
-        primitives::AuthorityIndex authority_index) const;
+    bool changeEpoch(EpochNumber epoch,
+                     const primitives::BlockInfo &block) const override;
 
-    outcome::result<primitives::Seal> sealBlock(
-        const Context &ctx, const primitives::Block &block) const;
+    bool checkSlotLeadership(const primitives::BlockInfo &block,
+                             SlotNumber slot) override;
 
-    outcome::result<void> processSlotLeadership(
-        const Context &ctx,
-        SlotType slot_type,
-        TimePoint slot_timestamp,
-        std::optional<std::reference_wrapper<const crypto::VRFOutput>> output,
-        primitives::AuthorityIndex authority_index);
+    outcome::result<void> processSlotLeadership();
 
-    /**
-     * `processSlotLeadership` coroutine piece
-     *   processSlotLeadership() {
-     *     await propose()
-     *     // processSlotLeadershipProposed()
-     *   }
-     */
+    outcome::result<primitives::PreRuntime> makePreDigest() const override;
+
+    outcome::result<primitives::Seal> makeSeal(
+        const primitives::Block &block) const override;
+
     outcome::result<void> processSlotLeadershipProposed(
-        const Context &ctx,
         uint64_t now,
         clock::SteadyClock::TimePoint proposal_start,
         std::shared_ptr<storage::changes_trie::StorageChangesTrackerImpl>
             &&changes_tracker,
         primitives::Block &&block);
 
-    void changeLotteryEpoch(
-        const Context &ctx,
-        const EpochNumber &epoch,
-        primitives::AuthorityIndex authority_index,
-        const primitives::BabeConfiguration &babe_config) const;
-
     log::Logger log_;
+
     const clock::SystemClock &clock_;
     std::shared_ptr<blockchain::BlockTree> block_tree_;
     LazySPtr<SlotsUtil> slots_util_;
-    std::shared_ptr<BabeConfigRepository> babe_config_repo_;
+    std::shared_ptr<BabeConfigRepository> config_repo_;
+    const EpochTimings &timings_;
     std::shared_ptr<crypto::SessionKeys> session_keys_;
     std::shared_ptr<BabeLottery> lottery_;
     std::shared_ptr<crypto::Hasher> hasher_;
@@ -178,6 +165,17 @@ namespace kagome::consensus::babe {
     std::shared_ptr<boost::asio::io_context> io_context_;
 
     const bool is_validator_by_config_;
+    bool is_active_validator_;
+
+    using KeypairWithIndexOpt =
+        std::optional<std::pair<std::shared_ptr<crypto::Sr25519Keypair>,
+                                primitives::AuthorityIndex>>;
+
+    primitives::BlockInfo parent_;
+    TimePoint slot_timestamp_;
+    SlotNumber slot_;
+    EpochNumber epoch_;
+    SlotLeadership slot_leadership_;
 
     // Metrics
     metrics::RegistryPtr metrics_registry_ = metrics::createRegistry();

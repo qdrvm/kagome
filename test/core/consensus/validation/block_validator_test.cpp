@@ -123,7 +123,7 @@ class BlockValidatorTest : public testing::Test {
   Threshold threshold_ = 3820948573;
   primitives::AuthorityList authorities_;
 
-  primitives::BabeConfiguration config_{
+  consensus::babe::BabeConfiguration config_{
       .leadership_rate = {3, 4},
       .authorities = {},
       .randomness = Randomness{uint256_to_le_bytes(475995757021)},
@@ -153,7 +153,7 @@ TEST_F(BlockValidatorTest, Success) {
   EXPECT_CALL(*hasher_, blake2b_256(_))
       .WillOnce(Return(encoded_block_copy_hash));
 
-  auto authority = Authority{{pubkey}, 42};
+  auto authority = primitives::Authority{{pubkey}, 42};
   authorities_.emplace_back();
   authorities_.emplace_back(authority);
 
@@ -174,7 +174,7 @@ TEST_F(BlockValidatorTest, Success) {
  * @then validation fails
  */
 TEST_F(BlockValidatorTest, LessDigestsThanNeeded) {
-  auto authority = Authority{{}, 42};
+  auto authority = primitives::Authority{{}, 42};
   authorities_.emplace_back(authority);
 
   // for this test we can just not seal the block - it's the second digest
@@ -205,7 +205,7 @@ TEST_F(BlockValidatorTest, NoBabeHeader) {
 
   auto [seal, pubkey] = sealBlock(valid_block_, encoded_block_copy_hash);
 
-  auto authority = Authority{{pubkey}, 42};
+  auto authority = primitives::Authority{{pubkey}, 42};
   authorities_.emplace_back();
   authorities_.emplace_back(authority);
 
@@ -240,7 +240,7 @@ TEST_F(BlockValidatorTest, NoAuthority) {
 
   // WHEN
   // only one authority even though we want at least two
-  auto authority = Authority{{}, 42};
+  auto authority = primitives::Authority{{}, 42};
 
   EXPECT_CALL(
       *sr25519_provider_,
@@ -280,7 +280,7 @@ TEST_F(BlockValidatorTest, SignatureVerificationFail) {
       .WillOnce(Return(outcome::result<bool>(false)));
 
   authorities_.emplace_back();
-  auto authority = Authority{{pubkey}, 42};
+  auto authority = primitives::Authority{{pubkey}, 42};
   authorities_.emplace_back(authority);
 
   // WHEN
@@ -320,7 +320,7 @@ TEST_F(BlockValidatorTest, VRFFail) {
       .WillOnce(Return(outcome::result<bool>(true)));
 
   authorities_.emplace_back();
-  auto authority = Authority{{pubkey}, 42};
+  auto authority = primitives::Authority{{pubkey}, 42};
   authorities_.emplace_back(authority);
 
   // WHEN
@@ -359,7 +359,7 @@ TEST_F(BlockValidatorTest, ThresholdGreater) {
       .WillOnce(Return(outcome::result<bool>(true)));
 
   authorities_.emplace_back();
-  auto authority = Authority{{pubkey}, 42};
+  auto authority = primitives::Authority{{pubkey}, 42};
   authorities_.emplace_back(authority);
 
   // WHEN

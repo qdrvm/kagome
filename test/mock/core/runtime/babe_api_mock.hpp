@@ -14,12 +14,12 @@ namespace kagome::runtime {
 
   class BabeApiMock : public BabeApi {
    public:
-    MOCK_METHOD(outcome::result<primitives::BabeConfiguration>,
+    MOCK_METHOD(outcome::result<consensus::babe::BabeConfiguration>,
                 configuration,
-                (const primitives::BlockHash &block),
+                (const primitives::BlockHash &),
                 (override));
 
-    MOCK_METHOD(outcome::result<primitives::Epoch>,
+    MOCK_METHOD(outcome::result<consensus::babe::Epoch>,
                 next_epoch,
                 (const primitives::BlockHash &),
                 (override));

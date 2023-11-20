@@ -40,8 +40,7 @@ namespace kagome::storage {
 
   inline const common::Buffer kWarpSyncOp = ":kagome:WarpSync:op"_buf;
 
-  inline const common::Buffer kBabeConfigRepositoryImplGenesisSlot =
-      ":kagome:BabeConfigRepositoryImpl:genesis_slot"_buf;
+  inline const common::Buffer kFirstBlockSlot = ":kagome:first_block_slot"_buf;
 
   inline const common::Buffer kBabeConfigRepositoryImplIndexerPrefix =
       ":kagome:BabeConfigRepositoryImpl:Indexer:"_buf;
