@@ -51,9 +51,7 @@ Once activated, the second node performs several steps before beginning the actu
 3. **Listening:** The node listens for several blocks to determine the timing for slotting.
 4. **Production:** The node begins block production once it has calculated the slot time.
 
-> Please note, because these two nodes are running on the same machine, it's crucial to use different port numbers for the second node to avoid conflicts. 
-
-Note that both nodes have the same hash of block 0: `2b32173d63796278d1cea23fcb255866153f07700226f3d7ba348e25ae7f9d29`
+> Please note, because these two nodes are running on the same machine, it's crucial to use different port numbers for the second node to avoid conflicts.
 
 ### Step 4: Start syncing node
 
