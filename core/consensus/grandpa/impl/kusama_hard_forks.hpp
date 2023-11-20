@@ -75,15 +75,10 @@ namespace kagome::consensus::grandpa {
       AuthorityList authorities;
       crypto::HasherImpl hasher;
       for (auto &id_str : ids_str) {
-        auto &authority = authorities.emplace_back();
-
-        auto buff_res = primitives::decodeSs58(id_str, hasher);
-        BOOST_ASSERT(buff_res.has_value());
-        auto &buff = buff_res.value();
-        BOOST_ASSERT(buff.size() == authority.id.size());
-        std::copy(buff.begin(), buff.end(), authority.id.begin());
-
-        authority.weight = 1;
+        authorities.emplace_back(Authority{
+            AuthorityId{primitives::decodeSs58(id_str, hasher).value()},
+            1,
+        });
       }
       return authorities;
     }();
