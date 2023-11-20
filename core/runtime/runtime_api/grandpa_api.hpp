@@ -6,7 +6,7 @@
 
 #pragma once
 
-#include "consensus/grandpa/types//authority.hpp"
+#include "consensus/grandpa/types/authority.hpp"
 #include "primitives/common.hpp"
 
 namespace kagome::runtime {
