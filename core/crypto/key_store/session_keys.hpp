@@ -8,8 +8,8 @@
 
 #include "common/blob.hpp"
 #include "consensus/babe/types/authority.hpp"
-// #include "consensus/sassafras/types/authority.hpp"
 #include "consensus/grandpa/types/authority.hpp"
+#include "consensus/sassafras/types/authority.hpp"
 #include "crypto/ecdsa_types.hpp"
 #include "crypto/key_store.hpp"
 #include "crypto/key_store/key_type.hpp"
@@ -18,7 +18,7 @@
 
 namespace kagome::application {
   class AppConfiguration;
-}  // namespace kagome::application
+}
 
 namespace kagome::crypto {
 
@@ -54,11 +54,11 @@ namespace kagome::crypto {
     virtual KeypairWithIndexOpt<Sr25519Keypair> getBabeKeyPair(
         const consensus::babe::Authorities &authorities) = 0;
 
-    // /**
-    //  * @return current SASSAFRAS session key pair
-    //  */
-    // virtual KeypairWithIndexOpt<BandersnatchKeypair> getSassafrasKeyPair(
-    //     const consensus::sassafras::Authorities &authorities) = 0;
+    /**
+     * @return current SASSAFRAS session key pair
+     */
+    virtual KeypairWithIndexOpt<BandersnatchKeypair> getSassafrasKeyPair(
+        const consensus::sassafras::Authorities &authorities) = 0;
 
     /**
      * @return current GRANDPA session key pair
@@ -88,6 +88,7 @@ namespace kagome::crypto {
   class SessionKeysImpl : public SessionKeys {
     KeypairWithIndexOpt<Sr25519Keypair> babe_key_pair_;
     KeypairWithIndexOpt<Ed25519Keypair> gran_key_pair_;
+    KeypairWithIndexOpt<BandersnatchKeypair> sass_key_pair_;
     KeypairWithIndexOpt<Sr25519Keypair> para_key_pair_;
     KeypairWithIndexOpt<Sr25519Keypair> audi_key_pair_;
     KeypairWithIndexOpt<EcdsaKeypair> beef_key_pair_;
@@ -117,8 +118,8 @@ namespace kagome::crypto {
     KeypairWithIndexOpt<Sr25519Keypair> getBabeKeyPair(
         const consensus::babe::Authorities &authorities) override;
 
-    // KeypairWithIndexOpt<BandersnatchKeypair> getSassafrasKeyPair(
-    //     const consensus::sassafras::Authorities &authorities) override;
+    KeypairWithIndexOpt<BandersnatchKeypair> getSassafrasKeyPair(
+        const consensus::sassafras::Authorities &authorities) override;
 
     std::shared_ptr<Ed25519Keypair> getGranKeyPair(
         const consensus::grandpa::AuthoritySet &authorities) override;

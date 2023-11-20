@@ -6,18 +6,11 @@
 
 #pragma once
 
+#include "consensus/sassafras/types/authority.hpp"
 #include "consensus/sassafras/types/randomness.hpp"
 #include "consensus/timeline/types.hpp"
-#include "primitives/authority.hpp"
 
 namespace kagome::consensus::sassafras {
-
-  using Authority = crypto::BandersnatchPublicKey;
-
-  using Authorities =
-      common::SLVector<Authority, consensus::kMaxValidatorsNumber>;
-
-  using AuthorityIndex = uint32_t;
 
   /// Tickets threshold redundancy factor
   using RedundancyFactor = uint32_t;

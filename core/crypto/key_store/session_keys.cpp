@@ -76,6 +76,8 @@ namespace kagome::crypto {
       }
       // Ecdsa
       store_->ecdsa().generateKeypair(KeyTypes::BEEFY, *dev).value();
+      // Bandersnatch
+      store_->bandersnatch().generateKeypair(KeyTypes::SASSAFRAS, *dev).value();
     }
   }
 
@@ -92,20 +94,15 @@ namespace kagome::crypto {
         });
   }
 
-  // SessionKeys::KeypairWithIndexOpt<BandersnatchKeypair>
-  // SessionKeysImpl::getSassafrasKeyPair(
-  //     const consensus::sassafras::Authorities &authorities) {
-  //   return find<BandersnatchKeypair,
-  //               &KeyStore::getBandersnatchPublicKeys,
-  //               &KeyStore::findBandersnatchKeypair>(
-  //       sass_key_pair_,
-  //       KeyTypes::SASSAFRAS,
-  //       authorities,
-  //       [](const BandersnatchPublicKey &l,
-  //          const consensus::sassafras::Authority &r) {
-  //         return l == r;
-  //       });
-  // }
+  SessionKeys::KeypairWithIndexOpt<BandersnatchKeypair>
+  SessionKeysImpl::getSassafrasKeyPair(
+      const consensus::sassafras::Authorities &authorities) {
+    return find<BandersnatchProvider>(sass_key_pair_,
+                                      KeyTypes::SASSAFRAS,
+                                      store_->bandersnatch(),
+                                      authorities,
+                                      std::equal_to{});
+  }
 
   std::shared_ptr<Ed25519Keypair> SessionKeysImpl::getGranKeyPair(
       const consensus::grandpa::AuthoritySet &authorities) {

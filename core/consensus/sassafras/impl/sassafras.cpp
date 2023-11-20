@@ -22,7 +22,7 @@
 #include "consensus/timeline/backoff.hpp"
 #include "consensus/timeline/impl/slot_leadership_error.hpp"
 #include "consensus/timeline/slots_util.hpp"
-#include "crypto/crypto_store/session_keys.hpp"
+#include "crypto/key_store/session_keys.hpp"
 #include "dispute_coordinator/dispute_coordinator.hpp"
 #include "metrics/histogram_timer.hpp"
 #include "network/block_announce_transmitter.hpp"

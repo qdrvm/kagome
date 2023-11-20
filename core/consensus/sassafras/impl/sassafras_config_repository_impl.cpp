@@ -14,6 +14,7 @@
 #include "consensus/sassafras/impl/sassafras.hpp"
 #include "consensus/sassafras/impl/sassafras_digests_util.hpp"
 #include "consensus/sassafras/impl/sassafras_error.hpp"
+#include "consensus/sassafras/types/sassafras_configuration.hpp"
 #include "consensus/timeline/slots_util.hpp"
 #include "crypto/hasher.hpp"
 #include "primitives/block_header.hpp"
@@ -44,8 +45,12 @@ namespace kagome::consensus::sassafras {
    */
   constexpr size_t kMaxUnindexedBlocksNum = 10000;
 
-  inline static primitives::NextConfigDataV2 getConfig(const Epoch &state) {
-    return {state.config.attempts_number, state.config.redundancy_factor};
+  inline static NextEpochDescriptor getConfig(const Epoch &state) {
+    return NextEpochDescriptor{
+        .authorities = state.authorities,
+        .randomness = state.randomness,
+        .config = state.config,
+    };
   }
 
   SassafrasConfigRepositoryImpl::SassafrasConfigRepositoryImpl(
@@ -331,21 +336,16 @@ namespace kagome::consensus::sassafras {
   }
 
   std::shared_ptr<Epoch> SassafrasConfigRepositoryImpl::applyDigests(
-      const primitives::NextConfigDataV2 &config,
+      const NextEpochDescriptor &config,
       const HasSassafrasConsensusDigest &digests) const {
     BOOST_ASSERT(digests);
+    const auto &descriptor = digests.descriptor;
     auto state = std::make_shared<Epoch>();
     state->slot_duration = timings_.slot_duration;
     state->epoch_length = timings_.slot_duration;
-    if (digests.config) {
-      state->config.attempts_number = digests.config->attempts_number;
-      state->config.redundancy_factor = digests.config->redundancy_factor;
-    } else {
-      state->config.attempts_number = config.attempts_number;
-      state->config.redundancy_factor = config.redundancy_factor;
-    }
-    state->authorities = digests.epoch->authorities;
-    state->randomness = digests.epoch->randomness;
+    state->authorities = descriptor->authorities;
+    state->randomness = descriptor->randomness;
+    state->config = descriptor->config.value_or(config.config.value());
     return state;
   }
 

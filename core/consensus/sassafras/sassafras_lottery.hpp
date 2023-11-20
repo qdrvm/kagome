@@ -13,6 +13,7 @@
 #include "consensus/sassafras/types/ticket.hpp"
 #include "consensus/timeline/types.hpp"
 #include "crypto/bandersnatch_types.hpp"
+#include "primitives/common.hpp"
 
 namespace kagome::consensus::sassafras {
 

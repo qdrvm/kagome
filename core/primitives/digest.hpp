@@ -17,6 +17,7 @@
 #include "consensus/babe/types/scheduled_change.hpp"
 #include "consensus/constants.hpp"
 #include "consensus/grandpa/types/scheduled_change.hpp"
+#include "consensus/sassafras/types/scheduled_change.hpp"
 #include "scale/scale.hpp"
 #include "scale/std_variant.hpp"
 #include "scale/tie.hpp"
@@ -71,9 +72,10 @@ namespace kagome::primitives {
   /// https://github.com/paritytech/polkadot-sdk/blob/f1f793718a2410872c3d61a86594a4c2bb9bea69/substrate/primitives/consensus/sassafras/src/digests.rs#L65
   using SassafrasDigest =
       /// Note: order of types in variant matters
-      std::variant<Unused<0>,
-                   NextEpochData,  // 1: (Auth C; R)
-                   OnDisabled>;    // 2: Auth ID
+      std::variant<
+          Unused<0>,
+          consensus::sassafras::NextEpochDescriptor,  // 1: (Auth[];Rand;Conf)
+          consensus::sassafras::OnDisabled>;          // 2: AuthIndex
 
   /// https://github.com/paritytech/substrate/blob/polkadot-v0.9.8/primitives/finality-grandpa/src/lib.rs#L92
   using GrandpaDigest =

@@ -102,7 +102,7 @@ namespace kagome::consensus::sassafras {
 
     using KeypairWithIndexOpt =
         std::optional<std::pair<std::shared_ptr<crypto::BandersnatchKeypair>,
-                                primitives::AuthorityIndex>>;
+                                AuthorityIndex>>;
 
     // Data of actual epoch
     EpochNumber epoch_;
