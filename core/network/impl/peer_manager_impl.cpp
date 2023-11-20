@@ -721,7 +721,7 @@ namespace kagome::network {
                            "Unable to create stream {} with {}: {}",
                            validation_protocol->protocolName(),
                            peer_id,
-                           stream_result.error().message());
+                           stream_result.error());
                        return;
                      }
 

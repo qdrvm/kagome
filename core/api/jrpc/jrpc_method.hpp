@@ -34,7 +34,7 @@ namespace kagome::api {
 
       // Init request
       if (auto &&init_result = request.init(params); not init_result) {
-        throw jsonrpc::Fault(init_result.error().message());
+        throw jsonrpc::Fault(fmt::to_string(init_result.error()));
       }
 
       // Execute request
@@ -42,7 +42,7 @@ namespace kagome::api {
 
       // Handle of failure
       if (not result) {
-        throw jsonrpc::Fault(result.error().message());
+        throw jsonrpc::Fault(fmt::to_string(result.error()));
       }
 
       if constexpr (std::is_same_v<decltype(result.value()), void>) {

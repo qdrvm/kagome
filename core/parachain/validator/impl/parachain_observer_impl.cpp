@@ -111,7 +111,7 @@ namespace kagome::parachain {
         !check_res) {
       logger_->warn("Insert advertisement from {} failed: {}",
                     peer_id,
-                    check_res.error().message());
+                    check_res.error());
       return;
     }
 
