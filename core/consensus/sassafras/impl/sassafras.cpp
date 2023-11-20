@@ -492,4 +492,10 @@ namespace kagome::consensus::sassafras {
     return outcome::success();
   }
 
+  outcome::result<void> Sassafras::validateHeader(
+      const primitives::BlockHeader &block_header) const {
+    // FIXME
+    return outcome::success();
+  }
+
 }  // namespace kagome::consensus::sassafras

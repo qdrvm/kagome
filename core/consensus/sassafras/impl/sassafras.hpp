@@ -120,6 +120,9 @@ namespace kagome::consensus::sassafras {
     outcome::result<void> processSlot(
         SlotNumber slot, const primitives::BlockInfo &best_block) override;
 
+    outcome::result<void> validateHeader(
+        const primitives::BlockHeader &block_header) const override;
+
    private:
     bool changeEpoch(EpochNumber epoch,
                      const primitives::BlockInfo &block) const override;

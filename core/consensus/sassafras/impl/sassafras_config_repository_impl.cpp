@@ -137,10 +137,11 @@ namespace kagome::consensus::sassafras {
         if (genesis_res.has_value()) {
           auto &genesis = genesis_res.value();
           timings_.init(genesis->slot_duration, genesis->epoch_length);
-          SL_DEBUG(logger_,
-                   "Timing was initialized: slot is {}ms, epoch is {} slots",
-                   timings_.slot_duration.count(),
-                   timings_.epoch_length);
+          SL_DEBUG(
+              logger_,
+              "Timing was initialized: slot is {:.01f}s, epoch is {} slots",
+              timings_.slot_duration.count() / 1000.,
+              timings_.epoch_length);
         }
       }
     }
