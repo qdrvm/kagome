@@ -241,15 +241,6 @@ namespace kagome::parachain {
     const auto &relay_parent =
         primitives::calculateBlockHash(event.new_head, *hasher_).value();
 
-    for (const auto &lost : event.lost) {
-      SL_TRACE(logger_, "Removed backing task.(relay parent={})", lost);
-
-      our_current_state_.state_by_relay_parent.erase(lost);
-      pending_candidates.erase(lost);
-      our_current_state_.active_leaves.erase(lost);
-    }
-    our_current_state_.active_leaves[relay_parent] = {};
-
     if (auto r = canProcessParachains(); r.has_error()) {
       return;
     }
@@ -266,8 +257,95 @@ namespace kagome::parachain {
     new_leaf_fragment_tree_updates(relay_parent);
 
     for (const auto &lost : event.lost) {
+      SL_TRACE(logger_, "Removed backing task.(relay parent={})", lost);
+
       our_current_state_.per_leaf.erase(lost);
       our_current_state_.implicit_view->deactivate_leaf(lost);
+      our_current_state_.state_by_relay_parent.erase(lost);
+      pending_candidates.erase(lost);
+      our_current_state_.active_leaves.erase(lost);
+    }
+    our_current_state_.active_leaves[relay_parent] = {};
+
+    for (auto it = our_current_state_.per_candidate.begin();
+         it != our_current_state_.per_candidate.end();) {
+      if (our_current_state_.state_by_relay_parent.find(it->second.relay_parent)
+          != our_current_state_.state_by_relay_parent.end()) {
+        ++it;
+      } else {
+        it = our_current_state_.per_candidate.erase(it);
+      }
+    }
+
+    auto it_rp = our_current_state_.state_by_relay_parent.find(relay_parent);
+    if (it_rp == our_current_state_.state_by_relay_parent.end()) {
+      return;
+    }
+
+    std::vector<Hash> fresh_relay_parents;
+    if (!it_rp->second.prospective_parachains_mode) {
+      if (our_current_state_.per_leaf.find(relay_parent)
+          != our_current_state_.per_leaf.end()) {
+        return;
+      }
+
+      our_current_state_.per_leaf.emplace(
+          relay_parent,
+          ActiveLeafState{
+              .prospective_parachains_mode = std::nullopt,
+              .seconded_at_depth = {},
+          });
+      fresh_relay_parents.emplace_back(relay_parent);
+    } else {
+      auto frps =
+          our_current_state_.implicit_view->knownAllowedRelayParentsUnder(
+              relay_parent, std::nullopt);
+
+      std::unordered_map<ParachainId, std::map<size_t, CandidateHash>>
+          seconded_at_depth;
+      for (const auto &[c_hash, cd] : our_current_state_.per_candidate) {
+        if (!cd.seconded_locally) {
+          continue;
+        }
+
+        fragment::FragmentTreeMembership membership =
+            prospective_parachains_->answerTreeMembershipRequest(cd.para_id,
+                                                                 c_hash);
+        for (const auto &[h, depths] : membership) {
+          if (h == relay_parent) {
+            auto &mm = seconded_at_depth[cd.para_id];
+            for (const auto depth : depths) {
+              mm.emplace(depth, c_hash);
+            }
+          }
+        }
+      }
+
+      our_current_state_.per_leaf.emplace(
+          relay_parent,
+          ActiveLeafState{
+              .prospective_parachains_mode =
+                  it_rp->second.prospective_parachains_mode,
+              .seconded_at_depth = std::move(seconded_at_depth),
+          });
+
+      if (frps.empty()) {
+        SL_WARN(logger_,
+                "Implicit view gave no relay-parents. (leaf_hash={})",
+                relay_parent);
+        fresh_relay_parents.emplace_back(relay_parent);
+      } else {
+        fresh_relay_parents.insert(
+            fresh_relay_parents.end(), frps.begin(), frps.end());
+      }
+    }
+
+    for (const auto &maybe_new : fresh_relay_parents) {
+      if (our_current_state_.state_by_relay_parent.find(maybe_new)
+          != our_current_state_.state_by_relay_parent.end()) {
+        continue;
+      }
+      createBackingTask(maybe_new);
     }
   }
 
@@ -397,10 +475,8 @@ namespace kagome::parachain {
         validator->validatorIndex(),
         relay_parent);
 
-    /// TODO(iceseer): do
-    /// .prospective_parachains_mode = mode,
-
     return RelayParentState{
+        .prospective_parachains_mode = mode,
         .assignment = assignment,
         .seconded = {},
         .our_index = validator->validatorIndex(),

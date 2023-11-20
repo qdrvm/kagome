@@ -83,6 +83,11 @@ namespace kagome::parachain {
       return v;
     }
 
+    fragment::FragmentTreeMembership answerTreeMembershipRequest(
+        ParachainId para, const CandidateHash &candidate) {
+      return fragmentTreeMembership(view.active_leaves, para, candidate);
+    }
+
     std::optional<runtime::PersistedValidationData>
     answerProspectiveValidationDataRequest(
         const RelayHash &candidate_relay_parent,
