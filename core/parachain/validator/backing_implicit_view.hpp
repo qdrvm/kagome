@@ -10,7 +10,9 @@
 #include <optional>
 #include <unordered_map>
 #include <vector>
+
 #include "parachain/types.hpp"
+#include "parachain/validator/prospective_parachains.hpp"
 #include "primitives/common.hpp"
 
 namespace kagome::parachain {
@@ -19,6 +21,25 @@ namespace kagome::parachain {
   constexpr BlockNumber MINIMUM_RETAIN_LENGTH = 2ull;
 
   struct ImplicitView {
+    enum Error {
+      ALREADY_KNOWN,
+    };
+
+    gsl::span<const Hash> knownAllowedRelayParentsUnder(
+        const Hash &block_hash,
+        const std::optional<ParachainId> &para_id) const;
+    outcome::result<std::vector<ParachainId>> activate_leaf(
+        const Hash &leaf_hash);
+
+    ImplicitView(std::shared_ptr<ProspectiveParachains> prospective_parachains);
+
+   private:
+    struct FetchSummary {
+      BlockNumber minimum_ancestor_number;
+      BlockNumber leaf_number;
+      std::vector<ParachainId> relevant_paras;
+    };
+
     struct ActiveLeafPruningInfo {
       BlockNumber retain_minimum;
     };
@@ -40,14 +61,14 @@ namespace kagome::parachain {
 
     std::unordered_map<Hash, ActiveLeafPruningInfo> leaves;
     std::unordered_map<Hash, BlockInfo> block_info_storage;
+    std::shared_ptr<ProspectiveParachains> prospective_parachains_;
 
-    gsl::span<const Hash> knownAllowedRelayParentsUnder(
-        const Hash &block_hash,
-        const std::optional<ParachainId> &para_id) const;
-    outcome::result<std::vector<ParachainId>> activate_leaf(
-        const Hash &leaf_hash);
+    outcome::result<FetchSummary>
+    ImplicitView::fetch_fresh_leaf_and_insert_ancestry(const Hash &leaf_hash);
   };
 
 }  // namespace kagome::parachain
+
+OUTCOME_HPP_DECLARE_ERROR(kagome::parachain, ImplicitView::Error)
 
 #endif  // KAGOME_PARACHAIN_BACKING_IMPLICIT_VIEW_HPP
