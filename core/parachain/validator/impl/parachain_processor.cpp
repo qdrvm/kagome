@@ -132,6 +132,9 @@ namespace kagome::parachain {
     BOOST_ASSERT(prospective_parachains_);
     app_state_manager->takeControl(*this);
 
+    our_current_state_.implicit_view.emplace(prospective_parachains_);
+    BOOST_ASSERT(our_current_state_.implicit_view);
+
     metrics_registry_->registerGaugeFamily(
         kIsParachainValidator,
         "Tracks if the validator participates in parachain consensus. "
@@ -261,6 +264,11 @@ namespace kagome::parachain {
 
     prospective_parachains_->onActiveLeavesUpdate(event);
     new_leaf_fragment_tree_updates(relay_parent);
+
+    for (const auto &lost : event.lost) {
+      our_current_state_.per_leaf.erase(lost);
+      our_current_state_.implicit_view->deactivate_leaf(lost);
+    }
   }
 
   void ParachainProcessorImpl::onDeactivateBlocks(
@@ -368,9 +376,9 @@ namespace kagome::parachain {
     auto mode =
         prospective_parachains_->prospectiveParachainsMode(relay_parent);
     if (mode) {
-      our_current_state_.implicit_view.activate_leaf(relay_parent);
-          OUTCOME_TRY(session_index,
-                      parachain_host_->session_index_for_child(relay_parent));
+      our_current_state_.implicit_view->activate_leaf(relay_parent);
+      OUTCOME_TRY(session_index,
+                  parachain_host_->session_index_for_child(relay_parent));
       OUTCOME_TRY(session_info,
                   parachain_host_->session_info(relay_parent, session_index));
       if (session_info) {
@@ -2429,7 +2437,7 @@ namespace kagome::parachain {
 
     if (!isRelayParentInImplicitView(on_relay_parent,
                                      relay_parent_mode,
-                                     our_current_state_.implicit_view,
+                                     *our_current_state_.implicit_view,
                                      our_current_state_.active_leaves,
                                      peer_data.collator_state->para_id)) {
       return Error::OUT_OF_VIEW;
@@ -2470,7 +2478,7 @@ namespace kagome::parachain {
       const HypotheticalCandidate &hypothetical_candidate,
       bool backed_in_path_only) {
     const auto &active_leaves = our_current_state_.per_leaf;
-    const auto &implicit_view = our_current_state_.implicit_view;
+    const auto &implicit_view = *our_current_state_.implicit_view;
 
     fragment::FragmentTreeMembership membership;
     const auto candidate_para = candidatePara(hypothetical_candidate);

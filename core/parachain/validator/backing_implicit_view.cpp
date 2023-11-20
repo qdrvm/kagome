@@ -64,6 +64,32 @@ namespace kagome::parachain {
     return {};
   }
 
+  std::vector<Hash> ImplicitView::deactivate_leaf(const Hash &leaf_hash) {
+    std::vector<Hash> removed;
+    if (leaves.erase(leaf_hash) == 0ull) {
+      return removed;
+    }
+
+    std::optional<uint32_t> minimum;
+    for (const auto &[_, l] : leaves) {
+      minimum =
+          minimum ? std::min(*minimum, l.retain_minimum) : l.retain_minimum;
+    }
+
+    for (auto it = block_info_storage.begin();
+         it != block_info_storage.end();) {
+      const auto &[hash, i] = *it;
+      const bool keep = minimum && i.block_number >= *minimum;
+      if (keep) {
+        ++it;
+      } else {
+        removed.emplace_back(hash);
+        it = block_info_storage.erase(it);
+      }
+    }
+    return removed;
+  }
+
   outcome::result<std::vector<ParachainId>> ImplicitView::activate_leaf(
       const Hash &leaf_hash) {
     if (leaves.find(leaf_hash) != leaves.end()) {
@@ -80,7 +106,7 @@ namespace kagome::parachain {
     return fetched.relevant_paras;
   }
 
-  outcome::result<FetchSummary>
+  outcome::result<ImplicitView::FetchSummary>
   ImplicitView::fetch_fresh_leaf_and_insert_ancestry(const Hash &leaf_hash) {
     std::vector<std::pair<ParachainId, BlockNumber>> min_relay_parents_raw =
         prospective_parachains_->answerMinimumRelayParentsRequest(leaf_hash);

@@ -539,7 +539,7 @@ namespace kagome::parachain {
           libp2p::peer::PeerId,
           std::deque<std::pair<RelayHash, network::SignedStatement>>>
           seconded_statements;
-      ImplicitView implicit_view;
+      std::optional<ImplicitView> implicit_view;
       std::unordered_map<Hash, ActiveLeafState> per_leaf;
       std::unordered_map<CandidateHash, PerCandidateState> per_candidate;
       /// Added as independent member to prevent extra locks for
@@ -554,9 +554,6 @@ namespace kagome::parachain {
                          PendingCollationEq>
           collation_requests_cancel_handles;
     } our_current_state_;
-
-    struct {
-    } statement_distribution_state_;
 
     std::unordered_map<RelayHash, PendingCollation> pending_candidates;
     std::shared_ptr<ThreadHandler> this_context_;

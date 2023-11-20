@@ -12,11 +12,14 @@
 #include <unordered_map>
 #include <unordered_set>
 
+#include "blockchain/block_tree.hpp"
 #include "blockchain/block_tree_error.hpp"
 #include "network/types/collator_messages_vstaging.hpp"
 #include "parachain/types.hpp"
 #include "parachain/validator/collations.hpp"
 #include "parachain/validator/fragment_tree.hpp"
+#include "runtime/runtime_api/parachain_host.hpp"
+#include "runtime/runtime_api/parachain_host_types.hpp"
 #include "utils/map.hpp"
 
 namespace kagome::parachain {
@@ -59,6 +62,25 @@ namespace kagome::parachain {
       BOOST_ASSERT(hasher_);
       BOOST_ASSERT(parachain_host_);
       BOOST_ASSERT(block_tree_);
+    }
+
+    std::shared_ptr<blockchain::BlockTree> getBlockTree() {
+      BOOST_ASSERT(block_tree_);
+      return block_tree_;
+    }
+
+    std::vector<std::pair<ParachainId, BlockNumber>>
+    answerMinimumRelayParentsRequest(const RelayHash &relay_parent) const {
+      std::vector<std::pair<ParachainId, BlockNumber>> v;
+      auto it = view.active_leaves.find(relay_parent);
+      if (it != view.active_leaves.end()) {
+        const RelayBlockViewData &leaf_data = it->second;
+        for (const auto &[para_id, fragment_tree] : leaf_data.fragment_trees) {
+          v.emplace_back(para_id,
+                         fragment_tree.scope.earliestRelayParent().number);
+        }
+      }
+      return v;
     }
 
     std::optional<runtime::PersistedValidationData>

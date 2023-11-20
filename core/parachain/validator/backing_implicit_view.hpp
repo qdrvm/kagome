@@ -25,21 +25,22 @@ namespace kagome::parachain {
       ALREADY_KNOWN,
     };
 
-    gsl::span<const Hash> knownAllowedRelayParentsUnder(
-        const Hash &block_hash,
-        const std::optional<ParachainId> &para_id) const;
-    outcome::result<std::vector<ParachainId>> activate_leaf(
-        const Hash &leaf_hash);
-
-    ImplicitView(std::shared_ptr<ProspectiveParachains> prospective_parachains);
-
-   private:
     struct FetchSummary {
       BlockNumber minimum_ancestor_number;
       BlockNumber leaf_number;
       std::vector<ParachainId> relevant_paras;
     };
 
+    gsl::span<const Hash> knownAllowedRelayParentsUnder(
+        const Hash &block_hash,
+        const std::optional<ParachainId> &para_id) const;
+    outcome::result<std::vector<ParachainId>> activate_leaf(
+        const Hash &leaf_hash);
+    std::vector<Hash> deactivate_leaf(const Hash &leaf_hash);
+
+    ImplicitView(std::shared_ptr<ProspectiveParachains> prospective_parachains);
+
+   private:
     struct ActiveLeafPruningInfo {
       BlockNumber retain_minimum;
     };
@@ -63,8 +64,8 @@ namespace kagome::parachain {
     std::unordered_map<Hash, BlockInfo> block_info_storage;
     std::shared_ptr<ProspectiveParachains> prospective_parachains_;
 
-    outcome::result<FetchSummary>
-    ImplicitView::fetch_fresh_leaf_and_insert_ancestry(const Hash &leaf_hash);
+    outcome::result<FetchSummary> fetch_fresh_leaf_and_insert_ancestry(
+        const Hash &leaf_hash);
   };
 
 }  // namespace kagome::parachain
