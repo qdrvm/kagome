@@ -14,7 +14,7 @@
 #include "primitives/ss58_codec.hpp"
 
 namespace kagome::consensus::grandpa {
-  inline const AuthorityList &kusamaHardForksAuthorities() {
+  inline const Authorities &kusamaHardForksAuthorities() {
     static auto authorities = [] {
       std::vector<std::string_view> ids_str{
           "CwjLJ1zPWK5Ao9WChAFp7rWGEgN3AyXXjTRPrqgm5WwBpoS",
@@ -72,7 +72,7 @@ namespace kagome::consensus::grandpa {
           "GeYRRPkyi23wSF3cJGjq82117fKJZUbWsAGimUnzb5RPbB1",
           "DzCJ4y5oT611dfKQwbBDVbtCfENTdMCjb4KGMU3Mq6nyUMu",
       };
-      AuthorityList authorities;
+      Authorities authorities;
       crypto::HasherImpl hasher;
       for (auto &id_str : ids_str) {
         authorities.emplace_back(Authority{

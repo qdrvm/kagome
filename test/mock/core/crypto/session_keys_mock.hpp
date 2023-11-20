@@ -20,12 +20,12 @@ namespace kagome::crypto {
    public:
     MOCK_METHOD(KeypairWithIndexOpt<Sr25519Keypair>,
                 getBabeKeyPair,
-                (const consensus::babe::AuthorityList &),
+                (const consensus::babe::Authorities &),
                 (override));
 
     // MOCK_METHOD(KeypairWithIndexOpt<BandersnatchKeypair>,
     //             getSassafrasKeyPair,
-    //             (const consensus::sassafras::AuthorityList &),
+    //             (const consensus::sassafras::Authorities &),
     //             (override));
 
     MOCK_METHOD(std::shared_ptr<Ed25519Keypair>,

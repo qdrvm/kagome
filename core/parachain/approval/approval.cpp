@@ -29,7 +29,7 @@ namespace kagome::parachain::approval {
 
   outcome::result<void> UnsafeVRFOutput::compute_randomness(
       ::RelayVRFStory &vrf_story,
-      const consensus::babe::AuthorityList &authorities,
+` const consensus::babe::Authorities &authorities,
       const consensus::Randomness &randomness,
       consensus::EpochNumber epoch_index) {
     if (authorities.size() <= authority_index) {

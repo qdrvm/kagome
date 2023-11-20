@@ -13,7 +13,7 @@ namespace kagome::consensus::babe {
     SCALE_TIE(2);
 
     /// The authorities actual for corresponding epoch
-    AuthorityList authorities;
+    Authorities authorities;
 
     /// The value of randomness to use for the slot-assignment.
     Randomness randomness;

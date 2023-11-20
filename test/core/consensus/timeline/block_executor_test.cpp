@@ -43,14 +43,14 @@ using kagome::consensus::SlotsUtil;
 using kagome::consensus::SlotsUtilMock;
 using BabeAuthority = kagome::consensus::babe::Authority;
 using BabeAuthorityId = kagome::consensus::babe::AuthorityId;
-using BabeAuthorityList = kagome::consensus::babe::AuthorityList;
+using BabeAuthorities = kagome::consensus::babe::Authorities;
 using kagome::consensus::babe::BabeBlockHeader;
 using kagome::consensus::babe::BabeConfigRepositoryMock;
 using kagome::consensus::babe::BabeConfiguration;
 using kagome::consensus::babe::BlockValidatorMock;
 using GrandpaAuthority = kagome::consensus::grandpa::Authority;
 using GrandpaAuthorityId = kagome::consensus::grandpa::AuthorityId;
-using GrandpaAuthorityList = kagome::consensus::grandpa::AuthorityList;
+using GrandpaAuthorities = kagome::consensus::grandpa::Authorities;
 using kagome::consensus::grandpa::Environment;
 using kagome::consensus::grandpa::EnvironmentMock;
 using kagome::consensus::grandpa::ForcedChange;
@@ -207,10 +207,10 @@ class BlockExecutorTest : public testing::Test {
  * is not finalized and execute the wrong logic.
  */
 TEST_F(BlockExecutorTest, JustificationFollowDigests) {
-  BabeAuthorityList babe_authorities{BabeAuthority{"auth0"_babe_auth, 1},
-                                     BabeAuthority{"auth1"_babe_auth, 1}};
-  GrandpaAuthorityList authorities{GrandpaAuthority{"auth0"_gran_auth, 1},
-                                   GrandpaAuthority{"auth1"_gran_auth, 1}};
+  BabeAuthorities babe_authorities{BabeAuthority{"auth0"_babe_auth, 1},
+                                   BabeAuthority{"auth1"_babe_auth, 1}};
+  GrandpaAuthorities authorities{GrandpaAuthority{"auth0"_gran_auth, 1},
+                                 GrandpaAuthority{"auth1"_gran_auth, 1}};
   kagome::primitives::BlockHash parent_hash = "parent_hash"_hash256;
   kagome::primitives::BlockHash some_hash = "some_hash"_hash256;
 

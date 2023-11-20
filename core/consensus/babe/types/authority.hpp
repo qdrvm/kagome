@@ -15,7 +15,6 @@ namespace kagome::consensus::babe {
 
   using AuthorityWeight = uint64_t;
 
-  /// Authority, which participate in block production
   struct Authority {
     SCALE_TIE(2);
 
@@ -23,10 +22,7 @@ namespace kagome::consensus::babe {
     AuthorityWeight weight{};
   };
 
-  /// List of authorities
   using Authorities = common::SLVector<Authority, kMaxValidatorsNumber>;
-
-  using AuthorityList = Authorities;
 
   using AuthorityIndex = uint32_t;
 

@@ -149,7 +149,7 @@ namespace kagome::parachain::approval {
     /// Compute the randomness associated with this VRF output.
     outcome::result<void> compute_randomness(
         ::RelayVRFStory &vrf_story,
-        const consensus::babe::AuthorityList &authorities,
+        const consensus::babe::Authorities &authorities,
         const consensus::Randomness &randomness,
         consensus::EpochNumber epoch_index);
   };

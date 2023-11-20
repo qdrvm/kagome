@@ -14,7 +14,7 @@ namespace kagome::runtime {
 
   class GrandpaApiMock : public GrandpaApi {
    public:
-    MOCK_METHOD(outcome::result<AuthorityList>,
+    MOCK_METHOD(outcome::result<Authorities>,
                 authorities,
                 (const primitives::BlockHash &),
                 (override));

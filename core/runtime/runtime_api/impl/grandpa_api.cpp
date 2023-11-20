@@ -15,10 +15,10 @@ namespace kagome::runtime {
     BOOST_ASSERT(executor_);
   }
 
-  outcome::result<GrandpaApi::AuthorityList> GrandpaApiImpl::authorities(
+  outcome::result<GrandpaApi::Authorities> GrandpaApiImpl::authorities(
       const primitives::BlockHash &block_hash) {
-    return executor_->callAt<AuthorityList>(block_hash,
-                                            "GrandpaApi_grandpa_authorities");
+    return executor_->callAt<Authorities>(block_hash,
+                                          "GrandpaApi_grandpa_authorities");
   }
 
   outcome::result<GrandpaApi::AuthoritySetId> GrandpaApiImpl::current_set_id(

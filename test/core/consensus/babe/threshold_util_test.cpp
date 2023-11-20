@@ -24,7 +24,7 @@ TEST(ThresholdTest, OutputAsInGossamer) {
   c.first = 5;
   c.second = 17;
   consensus::babe::AuthorityIndex authority_index{3};
-  consensus::babe::AuthorityList authorities;
+  consensus::babe::Authorities authorities;
   authorities.push_back(consensus::babe::Authority{.id = {}, .weight = 3});
   authorities.push_back(consensus::babe::Authority{.id = {}, .weight = 1});
   authorities.push_back(consensus::babe::Authority{.id = {}, .weight = 4});

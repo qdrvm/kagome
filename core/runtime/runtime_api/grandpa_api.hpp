@@ -17,7 +17,7 @@ namespace kagome::runtime {
    */
   class GrandpaApi {
    protected:
-    using AuthorityList = consensus::grandpa::AuthorityList;
+    using Authorities = consensus::grandpa::Authorities;
     using AuthoritySetId = consensus::grandpa::AuthoritySetId;
 
    public:
@@ -27,7 +27,7 @@ namespace kagome::runtime {
      * @brief calls Grandpa_authorities runtime api function
      * @return collection of current grandpa authorities with their weights
      */
-    virtual outcome::result<AuthorityList> authorities(
+    virtual outcome::result<Authorities> authorities(
         const primitives::BlockHash &block_hash) = 0;
 
     /**

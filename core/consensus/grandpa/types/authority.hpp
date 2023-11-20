@@ -15,7 +15,6 @@ namespace kagome::consensus::grandpa {
 
   using AuthorityWeight = uint64_t;
 
-  /// Authority, which participate in block production
   struct Authority {
     SCALE_TIE(2);
 
@@ -23,11 +22,8 @@ namespace kagome::consensus::grandpa {
     AuthorityWeight weight{};
   };
 
-  /// List of authorities
   using Authorities =
       common::SLVector<Authority, consensus::kMaxValidatorsNumber>;
-
-  using AuthorityList = Authorities;
 
   using AuthorityIndex = uint32_t;
 
@@ -41,11 +37,11 @@ namespace kagome::consensus::grandpa {
 
     AuthoritySet() = default;
 
-    AuthoritySet(AuthoritySetId id, AuthorityList authorities)
+    AuthoritySet(AuthoritySetId id, Authorities authorities)
         : id{id}, authorities{authorities} {}
 
     AuthoritySetId id{};
-    AuthorityList authorities;
+    Authorities authorities;
   };
 
 }  // namespace kagome::consensus::grandpa

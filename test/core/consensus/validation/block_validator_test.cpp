@@ -32,7 +32,6 @@ using namespace libp2p::crypto::random;
 
 using kagome::consensus::babe::Authority;
 using kagome::consensus::babe::AuthorityIndex;
-using kagome::consensus::babe::AuthorityList;
 using kagome::primitives::Block;
 using kagome::primitives::BlockBody;
 using kagome::primitives::BlockHeader;
@@ -122,7 +121,7 @@ class BlockValidatorTest : public testing::Test {
   Block valid_block_{block_header_, block_body_};
 
   Threshold threshold_ = 3820948573;
-  AuthorityList authorities_;
+  Authorities authorities_;
 
   consensus::babe::BabeConfiguration config_{
       .leadership_rate = {3, 4},

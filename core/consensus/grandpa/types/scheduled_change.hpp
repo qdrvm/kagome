@@ -15,22 +15,22 @@ namespace kagome::consensus::grandpa {
 
   struct ScheduledChange {
     SCALE_TIE(2);
-    AuthorityList authorities{};
+    Authorities authorities{};
     uint32_t subchain_length = 0;
 
     ScheduledChange() = default;
-    ScheduledChange(AuthorityList authorities, uint32_t delay)
+    ScheduledChange(Authorities authorities, uint32_t delay)
         : authorities(std::move(authorities)), subchain_length(delay) {}
   };
 
   struct ForcedChange {
     SCALE_TIE(3);
     primitives::BlockNumber delay_start = 0;
-    AuthorityList authorities{};
+    Authorities authorities{};
     uint32_t subchain_length = 0;
 
     ForcedChange() = default;
-    ForcedChange(AuthorityList authorities,
+    ForcedChange(Authorities authorities,
                  uint32_t delay,
                  primitives::BlockNumber delay_start)
         : delay_start(delay_start),

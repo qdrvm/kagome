@@ -82,7 +82,7 @@ namespace kagome::crypto {
 
   SessionKeys::KeypairWithIndexOpt<Sr25519Keypair>
   SessionKeysImpl::getBabeKeyPair(
-      const consensus::babe::AuthorityList &authorities) {
+      const consensus::babe::Authorities &authorities) {
     return find<Sr25519Keypair,
                 &CryptoStore::getSr25519PublicKeys,
                 &CryptoStore::findSr25519Keypair>(
@@ -94,18 +94,18 @@ namespace kagome::crypto {
         });
   }
 
-  // SessionKeys::KeypairWithIndexOpt<Sr25519Keypair>
+  // SessionKeys::KeypairWithIndexOpt<BandersnatchKeypair>
   // SessionKeysImpl::getSassafrasKeyPair(
-  //     const consensus::sassafras::AuthorityList &authorities) {
-  //   return find<Sr25519Keypair,
-  //               &CryptoStore::getSr25519PublicKeys,
-  //               &CryptoStore::findSr25519Keypair>(
-  //       sassafras_key_pair_,
+  //     const consensus::sassafras::Authorities &authorities) {
+  //   return find<BandersnatchKeypair,
+  //               &CryptoStore::getBandersnatchPublicKeys,
+  //               &CryptoStore::findBandersnatchKeypair>(
+  //       sass_key_pair_,
   //       KeyTypes::SASSAFRAS,
   //       authorities,
-  //       [](const Sr25519PublicKey &l,
+  //       [](const BandersnatchPublicKey &l,
   //          const consensus::sassafras::Authority &r) {
-  //         return l == r.id;
+  //         return l == r;
   //       });
   // }
 

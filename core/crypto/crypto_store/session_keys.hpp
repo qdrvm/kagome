@@ -51,13 +51,13 @@ namespace kagome::crypto {
      * @return current BABE session key pair
      */
     virtual KeypairWithIndexOpt<Sr25519Keypair> getBabeKeyPair(
-        const consensus::babe::AuthorityList &authorities) = 0;
+        const consensus::babe::Authorities &authorities) = 0;
 
     // /**
     //  * @return current SASSAFRAS session key pair
     //  */
     // virtual KeypairWithIndexOpt<BandersnatchKeypair> getSassafrasKeyPair(
-    //     const consensus::sassafras::AuthorityList &authorities) = 0;
+    //     const consensus::sassafras::Authorities &authorities) = 0;
 
     /**
      * @return current GRANDPA session key pair
@@ -114,10 +114,10 @@ namespace kagome::crypto {
                     const application::AppConfiguration &config);
 
     KeypairWithIndexOpt<Sr25519Keypair> getBabeKeyPair(
-        const consensus::babe::AuthorityList &authorities) override;
+        const consensus::babe::Authorities &authorities) override;
 
     // KeypairWithIndexOpt<BandersnatchKeypair> getSassafrasKeyPair(
-    //     const consensus::sassafras::AuthorityList &authorities) override;
+    //     const consensus::sassafras::Authorities &authorities) override;
 
     std::shared_ptr<Ed25519Keypair> getGranKeyPair(
         const consensus::grandpa::AuthoritySet &authorities) override;

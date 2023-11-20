@@ -329,7 +329,7 @@ namespace kagome::parachain {
       std::optional<consensus::babe::BabeBlockHeader> babe_block_header;
       std::optional<consensus::EpochNumber> babe_epoch;
       std::optional<consensus::Randomness> randomness;
-      std::optional<consensus::babe::AuthorityList> authorities;
+      std::optional<consensus::babe::Authorities> authorities;
 
       std::shared_ptr<boost::asio::io_context> complete_callback_context;
       std::function<void(outcome::result<ImportedBlockInfo> &&)>
@@ -520,7 +520,7 @@ namespace kagome::parachain {
                    std::pair<SessionIndex, runtime::SessionInfo>,
                    std::tuple<consensus::EpochNumber,
                               consensus::babe::BabeBlockHeader,
-                              consensus::babe::AuthorityList,
+                              consensus::babe::Authorities,
                               consensus::Randomness>>;
 
     void imported_block_info(const primitives::BlockHash &block_hash,
@@ -560,7 +560,7 @@ namespace kagome::parachain {
     request_included_candidates(const primitives::BlockHash &block_hash);
     outcome::result<std::tuple<consensus::EpochNumber,
                                consensus::babe::BabeBlockHeader,
-                               consensus::babe::AuthorityList,
+                               consensus::babe::Authorities,
                                consensus::Randomness>>
     request_babe_epoch_and_block_header(
         const primitives::BlockHeader &block_header,

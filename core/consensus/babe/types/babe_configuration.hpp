@@ -52,7 +52,7 @@ namespace kagome::consensus::babe {
     std::pair<uint64_t, uint64_t> leadership_rate;  // changes by NextConfigData
 
     /// The authorities for block production
-    AuthorityList authorities;  // can be changed by NextEpochData & OnDisabled
+    Authorities authorities;  // can be changed by NextEpochData & OnDisabled
 
     /// The randomness for the genesis epoch.
     Randomness randomness;  // can be changed by NextEpochData
@@ -67,7 +67,7 @@ namespace kagome::consensus::babe {
     EpochNumber epoch_index;
     SlotNumber start_slot;
     EpochLength duration;
-    AuthorityList authorities;
+    Authorities authorities;
     Randomness randomness;
     std::pair<uint64_t, uint64_t> leadership_rate;
     AllowedSlots allowed_slots;
