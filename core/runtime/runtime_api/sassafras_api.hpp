@@ -8,8 +8,8 @@
 
 #include <outcome/outcome.hpp>
 
-#include "consensus/equivocation_proof.hpp"
 #include "consensus/sassafras/bandersnatch.hpp"
+#include "consensus/sassafras/types/equivocation_proof.hpp"
 #include "consensus/sassafras/types/opaque_key_ownership_proof.hpp"
 #include "consensus/sassafras/types/sassafras_configuration.hpp"
 #include "consensus/sassafras/types/ticket.hpp"
@@ -66,7 +66,7 @@ namespace kagome::runtime {
         std::optional<consensus::sassafras::OpaqueKeyOwnershipProof>>
     generate_key_ownership_proof(
         const primitives::BlockHash &block,
-        const primitives::AuthorityId &authority_id) = 0;
+        const consensus::sassafras::AuthorityId &authority_id) = 0;
 
     /// Submits an unsigned extrinsic to report an equivocation.
     ///
@@ -79,7 +79,7 @@ namespace kagome::runtime {
     /// Only useful in an offchain context.
     virtual outcome::result<bool> submit_report_equivocation_unsigned_extrinsic(
         const primitives::BlockHash &block,
-        const consensus::EquivocationProof &equivocation_proof,
+        const consensus::sassafras::EquivocationProof &equivocation_proof,
         const consensus::sassafras::OpaqueKeyOwnershipProof
             &key_owner_proof) = 0;
   };

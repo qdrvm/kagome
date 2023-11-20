@@ -60,7 +60,7 @@ namespace kagome::runtime {
         std::optional<consensus::sassafras::OpaqueKeyOwnershipProof>>
     generate_key_ownership_proof(
         const primitives::BlockHash &block,
-        const primitives::AuthorityId &authority_id) override;
+        const consensus::sassafras::AuthorityId &authority_id) override;
 
     /// Submits an unsigned extrinsic to report an equivocation.
     ///
@@ -73,7 +73,7 @@ namespace kagome::runtime {
     /// Only useful in an offchain context.
     outcome::result<bool> submit_report_equivocation_unsigned_extrinsic(
         const primitives::BlockHash &block,
-        const consensus::EquivocationProof &equivocation_proof,
+        const consensus::sassafras::EquivocationProof &equivocation_proof,
         const consensus::sassafras::OpaqueKeyOwnershipProof &key_owner_proof)
         override;
 

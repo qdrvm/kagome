@@ -12,11 +12,11 @@
 
 #include "blockchain/indexer.hpp"
 #include "consensus/sassafras/has_sassafras_consensus_digest.hpp"
+#include "consensus/sassafras/types/scheduled_change.hpp"
 #include "injector/lazy.hpp"
 #include "log/logger.hpp"
 #include "primitives/block_data.hpp"
 #include "primitives/event_types.hpp"
-#include "primitives/scheduled_change.hpp"
 #include "storage/spaced_storage.hpp"
 
 namespace kagome::application {
@@ -54,7 +54,7 @@ namespace kagome::consensus::sassafras {
     /**
      * `NextConfigData` is rare digest, so always store recent config.
      */
-    primitives::NextConfigDataV2 config;
+    NextEpochDescriptor config;
     /**
      * Current epoch read from runtime.
      * Used at genesis and after warp sync.
@@ -111,7 +111,7 @@ namespace kagome::consensus::sassafras {
         const primitives::BlockInfo &block, bool next_epoch) const;
 
     std::shared_ptr<Epoch> applyDigests(
-        const primitives::NextConfigDataV2 &config,
+        const NextEpochDescriptor &config,
         const HasSassafrasConsensusDigest &digests) const;
 
     outcome::result<void> load(

@@ -94,20 +94,18 @@ namespace kagome::crypto {
         });
   }
 
-  // SessionKeys::KeypairWithIndexOpt<BandersnatchKeypair>
-  // SessionKeysImpl::getSassafrasKeyPair(
-  //     const consensus::sassafras::Authorities &authorities) {
-  //   return find<BandersnatchKeypair,
-  //               &CryptoStore::getBandersnatchPublicKeys,
-  //               &CryptoStore::findBandersnatchKeypair>(
-  //       sass_key_pair_,
-  //       KeyTypes::SASSAFRAS,
-  //       authorities,
-  //       [](const BandersnatchPublicKey &l,
-  //          const consensus::sassafras::Authority &r) {
-  //         return l == r;
-  //       });
-  // }
+  SessionKeys::KeypairWithIndexOpt<BandersnatchKeypair>
+  SessionKeysImpl::getSassafrasKeyPair(
+      const consensus::sassafras::Authorities &authorities) {
+    return find<BandersnatchKeypair,
+                &CryptoStore::getBandersnatchPublicKeys,
+                &CryptoStore::findBandersnatchKeypair>(
+        sass_key_pair_,
+        KeyTypes::SASSAFRAS,
+        authorities,
+        [](const BandersnatchPublicKey &l,
+           const consensus::sassafras::Authority &r) { return l == r; });
+  }
 
   std::shared_ptr<Ed25519Keypair> SessionKeysImpl::getGranKeyPair(
       const consensus::grandpa::AuthoritySet &authorities) {

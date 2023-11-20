@@ -6,9 +6,9 @@
 
 #pragma once
 
+#include "consensus/sassafras/types/sassafras_configuration.hpp"
 #include "consensus/sassafras/types/ticket.hpp"
 #include "consensus/timeline/types.hpp"
-#include "primitives/authority.hpp"
 
 namespace kagome::consensus::sassafras::vrf {
 

@@ -23,10 +23,10 @@ namespace kagome::crypto {
                 (const consensus::babe::Authorities &),
                 (override));
 
-    // MOCK_METHOD(KeypairWithIndexOpt<BandersnatchKeypair>,
-    //             getSassafrasKeyPair,
-    //             (const consensus::sassafras::Authorities &),
-    //             (override));
+    MOCK_METHOD(KeypairWithIndexOpt<BandersnatchKeypair>,
+                getSassafrasKeyPair,
+                (const consensus::sassafras::Authorities &),
+                (override));
 
     MOCK_METHOD(std::shared_ptr<Ed25519Keypair>,
                 getGranKeyPair,

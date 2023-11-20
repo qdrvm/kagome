@@ -10,64 +10,69 @@
 
 namespace kagome::runtime {
 
-  using namespace consensus;
-  using namespace sassafras;
-  using namespace bandersnatch;
-
   SassafrasApiImpl::SassafrasApiImpl(std::shared_ptr<Executor> executor)
       : executor_{std::move(executor)} {
     BOOST_ASSERT(executor_);
   }
 
-  outcome::result<std::optional<RingContext>> SassafrasApiImpl::ring_context(
-      const primitives::BlockHash &block) {
-    return executor_->callAt<std::optional<RingContext>>(
+  outcome::result<
+      std::optional<consensus::sassafras::bandersnatch::RingContext>>
+  SassafrasApiImpl::ring_context(const primitives::BlockHash &block) {
+    return executor_->callAt<
+        std::optional<consensus::sassafras::bandersnatch::RingContext>>(
         block, "SassafrasApi_ring_context");
   }
 
   outcome::result<bool> SassafrasApiImpl::submit_tickets_unsigned_extrinsic(
       const primitives::BlockHash &block,
-      const std::vector<TicketEnvelope> &tickets) {
+      const std::vector<consensus::sassafras::TicketEnvelope> &tickets) {
     return executor_->callAt<bool>(
         block, "SassafrasApi_submit_tickets_unsigned_extrinsic", tickets);
   }
 
-  outcome::result<std::optional<TicketId>> SassafrasApiImpl::slot_ticket_id(
-      const primitives::BlockHash &block, SlotNumber slot) {
-    return executor_->callAt<std::optional<TicketId>>(
+  outcome::result<std::optional<consensus::sassafras::TicketId>>
+  SassafrasApiImpl::slot_ticket_id(const primitives::BlockHash &block,
+                                   consensus::SlotNumber slot) {
+    return executor_->callAt<std::optional<consensus::sassafras::TicketId>>(
         block, "SassafrasApi_slot_ticket_id", slot);
   }
 
-  outcome::result<std::optional<std::tuple<TicketId, TicketBody>>>
+  outcome::result<std::optional<std::tuple<consensus::sassafras::TicketId,
+                                           consensus::sassafras::TicketBody>>>
   SassafrasApiImpl::slot_ticket(const primitives::BlockHash &block,
                                 consensus::SlotNumber slot) {
-    return executor_->callAt<std::optional<std::tuple<TicketId, TicketBody>>>(
-        block, "SassafrasApi_slot_ticket", slot);
+    return executor_
+        ->callAt<std::optional<std::tuple<consensus::sassafras::TicketId,
+                                          consensus::sassafras::TicketBody>>>(
+            block, "SassafrasApi_slot_ticket", slot);
   }
 
-  outcome::result<Epoch> SassafrasApiImpl::current_epoch(
+  outcome::result<consensus::sassafras::Epoch> SassafrasApiImpl::current_epoch(
       const primitives::BlockHash &block) {
-    return executor_->callAt<Epoch>(block, "SassafrasApi_current_epoch");
+    return executor_->callAt<consensus::sassafras::Epoch>(
+        block, "SassafrasApi_current_epoch");
   }
 
-  outcome::result<Epoch> SassafrasApiImpl::next_epoch(
+  outcome::result<consensus::sassafras::Epoch> SassafrasApiImpl::next_epoch(
       const primitives::BlockHash &block) {
-    return executor_->callAt<Epoch>(block, "SassafrasApi_next_epoch");
+    return executor_->callAt<consensus::sassafras::Epoch>(
+        block, "SassafrasApi_next_epoch");
   }
 
-  outcome::result<std::optional<OpaqueKeyOwnershipProof>>
+  outcome::result<std::optional<consensus::sassafras::OpaqueKeyOwnershipProof>>
   SassafrasApiImpl::generate_key_ownership_proof(
       const primitives::BlockHash &block,
-      const primitives::AuthorityId &authority_id) {
-    return executor_->callAt<std::optional<OpaqueKeyOwnershipProof>>(
-        block, "SassafrasApi_generate_key_ownership_proof", authority_id);
+      const consensus::sassafras::AuthorityId &authority_id) {
+    return executor_
+        ->callAt<std::optional<consensus::sassafras::OpaqueKeyOwnershipProof>>(
+            block, "SassafrasApi_generate_key_ownership_proof", authority_id);
   }
 
   outcome::result<bool>
   SassafrasApiImpl::submit_report_equivocation_unsigned_extrinsic(
       const primitives::BlockHash &block,
-      const EquivocationProof &equivocation_proof,
-      const OpaqueKeyOwnershipProof &key_owner_proof) {
+      const consensus::sassafras::EquivocationProof &equivocation_proof,
+      const consensus::sassafras::OpaqueKeyOwnershipProof &key_owner_proof) {
     return executor_->callAt<bool>(
         block,
         "SassafrasApi_submit_report_equivocation_unsigned_extrinsic",

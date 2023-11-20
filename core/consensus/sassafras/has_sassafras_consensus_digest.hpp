@@ -38,22 +38,17 @@ namespace kagome::consensus::sassafras {
         if (not sassafras) {
           continue;
         }
-        if (auto item = boost::get<EpochData>(sassafras)) {
-          epoch = std::move(*item);
+        if (auto item = boost::get<NextEpochDescriptor>(sassafras)) {
+          descriptor = std::move(*item);
           continue;
         }
-        // if (auto item = boost::get<primitives::NextConfigData>(sassafras)) {
-        //   config = boost::get<primitives::NextConfigDataV2>(*item);
-        //   continue;
-        // }
       }
     }
 
     operator bool() const {
-      return epoch.has_value();
+      return descriptor.has_value();
     }
 
-    std::optional<EpochData> epoch;
-    std::optional<primitives::NextConfigDataV2> config;
+    std::optional<NextEpochDescriptor> descriptor;
   };
 }  // namespace kagome::consensus::sassafras
