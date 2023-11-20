@@ -68,7 +68,7 @@ namespace kagome::consensus {
         const EpochNumber epoch_number,
         const primitives::AuthorityId &authority_id,
         const Threshold &threshold,
-        const primitives::BabeConfiguration &babe_config) const override;
+        const babe::BabeConfiguration &babe_config) const override;
 
    private:
     /**

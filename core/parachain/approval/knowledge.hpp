@@ -10,7 +10,6 @@
 
 #include "common/visitor.hpp"
 #include "consensus/timeline/types.hpp"
-#include "consensus/validation/prepare_transcript.hpp"
 #include "outcome/outcome.hpp"
 #include "parachain/approval/state.hpp"
 #include "parachain/types.hpp"

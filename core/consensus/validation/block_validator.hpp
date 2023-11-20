@@ -6,8 +6,8 @@
 
 #pragma once
 
+#include "consensus/babe/types/babe_configuration.hpp"
 #include "outcome/outcome.hpp"
-#include "primitives/babe_configuration.hpp"
 #include "primitives/block.hpp"
 
 namespace kagome::consensus {
@@ -31,6 +31,6 @@ namespace kagome::consensus {
         const EpochNumber epoch_number,
         const primitives::AuthorityId &authority_id,
         const Threshold &threshold,
-        const primitives::BabeConfiguration &config) const = 0;
+        const babe::BabeConfiguration &config) const = 0;
   };
 }  // namespace kagome::consensus

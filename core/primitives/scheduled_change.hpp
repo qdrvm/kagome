@@ -6,9 +6,9 @@
 
 #pragma once
 
+#include "consensus/babe/types/babe_configuration.hpp"
 #include "consensus/timeline/types.hpp"
 #include "primitives/authority.hpp"
-#include "primitives/babe_configuration.hpp"
 #include "primitives/common.hpp"
 #include "scale/tie.hpp"
 
@@ -30,14 +30,10 @@ namespace kagome::primitives {
         : authorities(std::move(authorities)), subchain_length(delay) {}
   };
 
-  struct NextEpochData final : public consensus::EpochDigest {
-    using EpochDigest::EpochDigest;
-  };
-
   struct NextConfigDataV1 final {
     SCALE_TIE(2);
     std::pair<uint64_t, uint64_t> ratio;
-    AllowedSlots second_slot;
+    consensus::babe::AllowedSlots second_slot;
   };
   using NextConfigData = boost::variant<Unused<0>, NextConfigDataV1>;
 

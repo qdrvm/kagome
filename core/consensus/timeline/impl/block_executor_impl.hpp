@@ -10,8 +10,8 @@
 
 #include <libp2p/peer/peer_id.hpp>
 
+#include "consensus/babe/types/babe_configuration.hpp"
 #include "log/logger.hpp"
-#include "primitives/babe_configuration.hpp"
 #include "primitives/block_header.hpp"
 #include "primitives/event_types.hpp"
 #include "telemetry/service.hpp"

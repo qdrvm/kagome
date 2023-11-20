@@ -10,11 +10,8 @@ add_library(babe
     impl/threshold_util.cpp
     impl/babe_lottery_impl.cpp
     impl/babe_config_repository_impl.cpp
-    impl/babe_error.cpp
-    )
+)
 target_link_libraries(babe
-    logger
-    metrics
-    primitives
-    )
+    consensus_common
+)
 kagome_install(babe)

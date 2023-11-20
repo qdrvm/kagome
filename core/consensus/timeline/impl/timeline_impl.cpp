@@ -12,7 +12,7 @@
 #include "clock/impl/clock_impl.hpp"
 #include "consensus/consensus_selector.hpp"
 #include "consensus/grandpa/justification_observer.hpp"
-#include "consensus/timeline/impl/block_production_error.hpp"
+#include "consensus/timeline/impl/slot_leadership_error.hpp"
 #include "consensus/timeline/slots_util.hpp"
 #include "network/block_announce_transmitter.hpp"
 #include "network/synchronizer.hpp"
@@ -721,10 +721,8 @@ namespace kagome::consensus {
       }
     }
 
-    static auto block_production_error_code =
-        make_error_code(BlockProductionError{});
     static const auto &block_production_error_category =
-        block_production_error_code.category();
+        make_error_code(SlotLeadershipError{}).category();
 
     /// Try to run block production here
     auto consensus = consensus_selector_->getProductionConsensus(best_block_);
