@@ -44,6 +44,7 @@ namespace kagome::consensus {
 
 namespace kagome::consensus::babe {
   class BabeConfigRepository;
+  class BabeBlockValidator;
   class BabeLottery;
 }  // namespace kagome::consensus::babe
 
@@ -99,6 +100,7 @@ namespace kagome::consensus::babe {
         std::shared_ptr<BabeLottery> lottery,
         std::shared_ptr<crypto::Hasher> hasher,
         std::shared_ptr<crypto::Sr25519Provider> sr25519_provider,
+        std::shared_ptr<BabeBlockValidator> validating,
         std::shared_ptr<parachain::BitfieldStore> bitfield_store,
         std::shared_ptr<parachain::BackingStore> backing_store,
         std::shared_ptr<dispute::DisputeCoordinator> dispute_coordinator,
@@ -120,6 +122,9 @@ namespace kagome::consensus::babe {
 
     outcome::result<void> processSlot(
         SlotNumber slot, const primitives::BlockInfo &best_block) override;
+
+    outcome::result<void> validateHeader(
+        const primitives::BlockHeader &block_header) const override;
 
    private:
     bool changeEpoch(EpochNumber epoch,
@@ -153,6 +158,7 @@ namespace kagome::consensus::babe {
     std::shared_ptr<BabeLottery> lottery_;
     std::shared_ptr<crypto::Hasher> hasher_;
     std::shared_ptr<crypto::Sr25519Provider> sr25519_provider_;
+    std::shared_ptr<BabeBlockValidator> validating_;
     std::shared_ptr<parachain::BitfieldStore> bitfield_store_;
     std::shared_ptr<parachain::BackingStore> backing_store_;
     std::shared_ptr<dispute::DisputeCoordinator> dispute_coordinator_;

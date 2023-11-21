@@ -5,6 +5,5 @@
 #
 
 add_subdirectory(timeline)
-add_subdirectory(validation)
 add_subdirectory(babe)
 add_subdirectory(grandpa)

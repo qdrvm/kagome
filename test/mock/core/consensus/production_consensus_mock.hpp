@@ -31,12 +31,12 @@ namespace kagome::consensus {
 
     MOCK_METHOD(bool,
                 changeEpoch,
-                (EpochNumber epoch, const primitives::BlockInfo &block),
+                (EpochNumber, const primitives::BlockInfo &),
                 (const, override));
 
     MOCK_METHOD(bool,
                 checkSlotLeadership,
-                (const primitives::BlockInfo &block, SlotNumber slot),
+                (const primitives::BlockInfo &, SlotNumber),
                 (override));
 
     MOCK_METHOD(outcome::result<primitives::PreRuntime>,
@@ -46,7 +46,12 @@ namespace kagome::consensus {
 
     MOCK_METHOD(outcome::result<primitives::Seal>,
                 makeSeal,
-                (const primitives::Block &block),
+                (const primitives::Block &),
+                (const, override));
+
+    MOCK_METHOD(outcome::result<void>,
+                validateHeader,
+                (const primitives::BlockHeader &),
                 (const, override));
   };
 }  // namespace kagome::consensus

@@ -16,8 +16,9 @@
 #include "mock/core/blockchain/block_tree_mock.hpp"
 #include "mock/core/consensus/babe/babe_config_repository_mock.hpp"
 #include "mock/core/consensus/grandpa/environment_mock.hpp"
+#include "mock/core/consensus/production_consensus_mock.hpp"
+#include "mock/core/consensus/timeline/consensus_selector_mock.hpp"
 #include "mock/core/consensus/timeline/slots_util_mock.hpp"
-#include "mock/core/consensus/validation/block_validator_mock.hpp"
 #include "mock/core/crypto/hasher_mock.hpp"
 #include "mock/core/runtime/core_mock.hpp"
 #include "mock/core/runtime/offchain_worker_api_mock.hpp"
@@ -36,9 +37,11 @@ using kagome::blockchain::BlockTreeMock;
 using kagome::common::Buffer;
 using kagome::consensus::BlockAppenderBase;
 using kagome::consensus::BlockExecutorImpl;
-using kagome::consensus::BlockValidator;
+using kagome::consensus::ConsensusSelector;
+using kagome::consensus::ConsensusSelectorMock;
 using kagome::consensus::EpochNumber;
 using kagome::consensus::EpochTimings;
+using kagome::consensus::ProductionConsensusMock;
 using kagome::consensus::SlotsUtil;
 using kagome::consensus::SlotsUtilMock;
 using BabeAuthority = kagome::consensus::babe::Authority;
@@ -47,7 +50,6 @@ using BabeAuthorities = kagome::consensus::babe::Authorities;
 using kagome::consensus::babe::BabeBlockHeader;
 using kagome::consensus::babe::BabeConfigRepositoryMock;
 using kagome::consensus::babe::BabeConfiguration;
-using kagome::consensus::babe::BlockValidatorMock;
 using GrandpaAuthority = kagome::consensus::grandpa::Authority;
 using GrandpaAuthorityId = kagome::consensus::grandpa::AuthorityId;
 using GrandpaAuthorities = kagome::consensus::grandpa::Authorities;
@@ -140,13 +142,20 @@ class BlockExecutorTest : public testing::Test {
     ON_CALL(*babe_config_repo_, config(_, _))
         .WillByDefault(Return(babe_config_));
 
-    block_validator_ = std::make_shared<BlockValidatorMock>();
     grandpa_environment_ = std::make_shared<EnvironmentMock>();
     tx_pool_ = std::make_shared<TransactionPoolMock>();
     hasher_ = std::make_shared<HasherMock>();
 
     slots_util_ = std::make_shared<SlotsUtilMock>();
     ON_CALL(*slots_util_, slotToEpoch(_, _)).WillByDefault(Return(1));
+
+    production_consensus_ = std::make_shared<ProductionConsensusMock>();
+
+    consensus_selector_ = std::make_shared<ConsensusSelectorMock>();
+    ON_CALL(*consensus_selector_, getProductionConsensusByInfo(_))
+        .WillByDefault(Return(production_consensus_));
+    ON_CALL(*consensus_selector_, getProductionConsensusByHeader(_))
+        .WillByDefault(Return(production_consensus_));
 
     offchain_worker_api_ = std::make_shared<OffchainWorkerApiMock>();
     storage_sub_engine_ = std::make_shared<
@@ -158,10 +167,10 @@ class BlockExecutorTest : public testing::Test {
         block_tree_,
         babe_config_repo_,
         timings_,
-        block_validator_,
         grandpa_environment_,
         testutil::sptr_to_lazy<SlotsUtil>(slots_util_),
-        hasher_);
+        hasher_,
+        testutil::sptr_to_lazy<ConsensusSelector>(consensus_selector_));
 
     thread_pool_ = std::make_shared<ThreadPool>("test", 1);
 
@@ -187,11 +196,12 @@ class BlockExecutorTest : public testing::Test {
       .slot_duration = 60ms,
       .epoch_length = 2,
   };
-  std::shared_ptr<BlockValidatorMock> block_validator_;
   std::shared_ptr<EnvironmentMock> grandpa_environment_;
   std::shared_ptr<TransactionPoolMock> tx_pool_;
   std::shared_ptr<HasherMock> hasher_;
   std::shared_ptr<SlotsUtilMock> slots_util_;
+  std::shared_ptr<ConsensusSelectorMock> consensus_selector_;
+  std::shared_ptr<ProductionConsensusMock> production_consensus_;
   std::shared_ptr<OffchainWorkerApiMock> offchain_worker_api_;
   kagome::primitives::events::StorageSubscriptionEnginePtr storage_sub_engine_;
   kagome::primitives::events::ChainSubscriptionEnginePtr chain_sub_engine_;
@@ -246,14 +256,7 @@ TEST_F(BlockExecutorTest, JustificationFollowDigests) {
           testing::Return(kagome::blockchain::BlockTreeError::BODY_NOT_FOUND));
 
   babe_config_->leadership_rate.second = 42;
-  EXPECT_CALL(
-      *block_validator_,
-      validateHeader(header,
-                     1,
-                     "auth3"_babe_auth,
-                     kagome::consensus::babe::calculateThreshold(
-                         babe_config_->leadership_rate, babe_authorities, 0),
-                     testing::Ref(*babe_config_)))
+  EXPECT_CALL(*production_consensus_, validateHeader(header))
       .WillOnce(testing::Return(outcome::success()));
   EXPECT_CALL(*block_tree_, getBlockHeader(parent_hash))
       .WillRepeatedly(testing::Return(kagome::primitives::BlockHeader{

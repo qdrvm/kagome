@@ -70,6 +70,39 @@ namespace kagome::consensus {
     BOOST_UNREACHABLE_RETURN({});
   }
 
+  std::shared_ptr<ProductionConsensus>
+  ConsensusSelectorImpl::getProductionConsensus(
+      const primitives::BlockHeader &header) const {
+    auto consensus_opt = pc_cache_.get(header.blockInfo());
+    if (consensus_opt.has_value()) {
+      return consensus_opt.value();
+    }
+
+    [[unlikely]] if (header.number == 0) {
+      for (size_t i = 0; i < production_consensuses_.size(); ++i) {
+        const auto &consensus = production_consensuses_[i];
+        if (consensus->isGenesisConsensus()) {
+          return consensus;
+        }
+      }
+    }
+
+    for (size_t i = 0; i < production_consensuses_.size(); ++i) {
+      const auto &consensus = production_consensuses_[i];
+
+      // Try to fit consensus by getting slot
+      if (consensus->getSlot(header)) {
+        return consensus;
+      }
+
+      // The last one is fallback
+      if (i == production_consensuses_.size() - 1) {
+        return consensus;
+      }
+    }
+    BOOST_UNREACHABLE_RETURN({});
+  }
+
   std::shared_ptr<FinalityConsensus>
   ConsensusSelectorImpl::getFinalityConsensus(
       const primitives::BlockInfo &parent_block) const {
@@ -80,8 +113,27 @@ namespace kagome::consensus {
 
     for (size_t i = 0; i < finality_consensuses_.size(); ++i) {
       const auto &consensus = finality_consensuses_[i];
-      if (i == finality_consensuses_.size() - 1) {  // Last one is fallback
+      if (i == finality_consensuses_.size() - 1) {  // The last one is fallback
         return fc_cache_.put(parent_block, consensus);
+      }
+
+      // TODO: Code for trying to select another consensus
+    }
+    BOOST_UNREACHABLE_RETURN({});
+  };
+
+  std::shared_ptr<FinalityConsensus>
+  ConsensusSelectorImpl::getFinalityConsensus(
+      const primitives::BlockHeader &header) const {
+    auto consensus_opt = fc_cache_.get(header.blockInfo());
+    if (consensus_opt.has_value()) {
+      return consensus_opt.value();
+    }
+
+    for (size_t i = 0; i < finality_consensuses_.size(); ++i) {
+      const auto &consensus = finality_consensuses_[i];
+      if (i == finality_consensuses_.size() - 1) {  // The last one is fallback
+        return consensus;
       }
 
       // TODO: Code for trying to select another consensus
