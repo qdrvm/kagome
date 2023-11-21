@@ -1049,7 +1049,7 @@ namespace kagome::blockchain {
                       header_res.error());
           return header_res.error();
         }
-        return header_res.error();
+        break;
       }
       const auto &header = header_res.value();
       chain.emplace_back(hash);
