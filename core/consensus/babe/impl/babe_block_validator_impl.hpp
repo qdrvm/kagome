@@ -6,52 +6,48 @@
 
 #pragma once
 
-#include "consensus/validation/block_validator.hpp"
+#include "consensus/babe/babe_block_validator.hpp"
 
-#include <unordered_set>
-
-#include "consensus/babe/types/authority.hpp"
-#include "consensus/babe/types/seal.hpp"
+#include "clock/clock.hpp"
+#include "consensus/babe/types/babe_configuration.hpp"
+#include "consensus/babe/types/slot_leadership.hpp"
+#include "injector/lazy.hpp"
 #include "log/logger.hpp"
+#include "metrics/metrics.hpp"
+#include "primitives/block.hpp"
+#include "primitives/event_types.hpp"
+#include "telemetry/service.hpp"
 
-namespace kagome::blockchain {
-  class BlockTree;
-}
-
-namespace kagome::crypto {
-  class Sr25519Provider;
-  class VRFProvider;
-  class Sr25519Provider;
-}  // namespace kagome::crypto
-
-namespace kagome::runtime {
-  class TaggedTransactionQueue;
+namespace kagome::consensus {
+  class SlotsUtil;
 }
 
 namespace kagome::consensus::babe {
+  class BabeConfigRepository;
+  struct Seal;
+}  // namespace kagome::consensus::babe
 
-  /**
-   * Validation of blocks in BABE system. Based on the algorithm described here:
-   * https://research.web3.foundation/en/latest/polkadot/BABE/Babe/#2-normal-phase
-   */
-  class BabeBlockValidator : public BlockValidator {
+namespace kagome::crypto {
+  class Hasher;
+  class Sr25519Provider;
+  class VRFProvider;
+}  // namespace kagome::crypto
+
+namespace kagome::consensus::babe {
+
+  class BabeBlockValidatorImpl
+      : public BabeBlockValidator,
+        public std::enable_shared_from_this<BabeBlockValidatorImpl> {
    public:
-    ~BabeBlockValidator() override = default;
-
-    /**
-     * Create an instance of BabeBlockValidator
-     * @param block_tree to be used by this instance
-     * @param tx_queue to validate the extrinsics
-     * @param hasher to take hashes
-     * @param vrf_provider for VRF-specific operations
-     * @param configuration Babe configuration from genesis
-     */
-    BabeBlockValidator(
-        std::shared_ptr<blockchain::BlockTree> block_tree,
-        std::shared_ptr<runtime::TaggedTransactionQueue> tx_queue,
+    BabeBlockValidatorImpl(
+        LazySPtr<SlotsUtil> slots_util,
+        std::shared_ptr<BabeConfigRepository> config_repo,
         std::shared_ptr<crypto::Hasher> hasher,
-        std::shared_ptr<crypto::VRFProvider> vrf_provider,
-        std::shared_ptr<crypto::Sr25519Provider> sr25519_provider);
+        std::shared_ptr<crypto::Sr25519Provider> sr25519_provider,
+        std::shared_ptr<crypto::VRFProvider> vrf_provider);
+
+    outcome::result<void> validateHeader(
+        const primitives::BlockHeader &block_header) const;
 
     enum class ValidationError {
       NO_AUTHORITIES = 1,
@@ -61,25 +57,30 @@ namespace kagome::consensus::babe {
       SECONDARY_SLOT_ASSIGNMENTS_DISABLED
     };
 
+   private:
+    /**
+     * Validate the block header
+     * @param block to be validated
+     * @param authority_id authority that sent this block
+     * @param threshold is vrf threshold for this epoch
+     * @param config is babe config for this epoch
+     * @return nothing or validation error
+     */
     outcome::result<void> validateHeader(
-        const primitives::BlockHeader &header,
+        const primitives::BlockHeader &block_header,
         const EpochNumber epoch_number,
         const babe::AuthorityId &authority_id,
         const Threshold &threshold,
-        const babe::BabeConfiguration &babe_config) const override;
-
-   private:
+        const babe::BabeConfiguration &config) const;
     /**
      * Verify that block is signed by valid signature
      * @param header Header to be checked
-     * @param babe_header BabeBlockHeader corresponding to (fetched from) header
      * @param seal Seal corresponding to (fetched from) header
      * @param public_key public key that corresponds to the authority by
      * authority index
      * @return true if signature is valid, false otherwise
      */
     bool verifySignature(const primitives::BlockHeader &header,
-                         const BabeBlockHeader &babe_header,
                          const Seal &seal,
                          const AuthorityId &public_key) const;
 
@@ -99,19 +100,16 @@ namespace kagome::consensus::babe {
                    const Randomness &randomness,
                    const bool checkThreshold) const;
 
-    std::shared_ptr<blockchain::BlockTree> block_tree_;
-    std::shared_ptr<runtime::TaggedTransactionQueue> tx_queue_;
-    std::shared_ptr<crypto::Hasher> hasher_;
-    std::shared_ptr<crypto::VRFProvider> vrf_provider_;
-    std::shared_ptr<crypto::Sr25519Provider> sr25519_provider_;
-
-    mutable std::unordered_map<SlotNumber,
-                               std::unordered_set<babe::AuthorityIndex>>
-        blocks_producers_;
-
     log::Logger log_;
+
+    LazySPtr<SlotsUtil> slots_util_;
+    std::shared_ptr<BabeConfigRepository> config_repo_;
+    std::shared_ptr<crypto::Hasher> hasher_;
+    std::shared_ptr<crypto::Sr25519Provider> sr25519_provider_;
+    std::shared_ptr<crypto::VRFProvider> vrf_provider_;
   };
+
 }  // namespace kagome::consensus::babe
 
 OUTCOME_HPP_DECLARE_ERROR(kagome::consensus::babe,
-                          BabeBlockValidator::ValidationError)
+                          BabeBlockValidatorImpl::ValidationError)

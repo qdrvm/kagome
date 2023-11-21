@@ -22,15 +22,14 @@ namespace kagome::crypto {
 
 namespace kagome::consensus {
   class SlotsUtil;
-}
+  class ConsensusSelector;
+}  // namespace kagome::consensus
 
 namespace kagome::consensus::babe {
   class BabeConfigRepository;
 }
 
 namespace kagome::consensus {
-
-  class BlockValidator;
 
   /**
    * Common logic for adding a new block to the blockchain
@@ -42,10 +41,10 @@ namespace kagome::consensus {
         std::shared_ptr<blockchain::BlockTree> block_tree,
         std::shared_ptr<babe::BabeConfigRepository> babe_config_repo,
         const EpochTimings &timings,
-        std::shared_ptr<BlockValidator> block_validator,
         std::shared_ptr<grandpa::Environment> grandpa_environment,
         LazySPtr<SlotsUtil> slots_util,
-        std::shared_ptr<crypto::Hasher> hasher);
+        std::shared_ptr<crypto::Hasher> hasher,
+        LazySPtr<ConsensusSelector> consensus_selector);
 
     void applyJustifications(
         const primitives::BlockInfo &block_info,
@@ -74,10 +73,10 @@ namespace kagome::consensus {
     std::shared_ptr<blockchain::BlockTree> block_tree_;
     std::shared_ptr<babe::BabeConfigRepository> babe_config_repo_;
     const EpochTimings &timings_;
-    std::shared_ptr<BlockValidator> block_validator_;
     std::shared_ptr<grandpa::Environment> grandpa_environment_;
     LazySPtr<SlotsUtil> slots_util_;
     std::shared_ptr<crypto::Hasher> hasher_;
+    LazySPtr<ConsensusSelector> consensus_selector_;
   };
 
 }  // namespace kagome::consensus

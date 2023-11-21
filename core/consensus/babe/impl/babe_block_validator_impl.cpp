@@ -4,17 +4,30 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "consensus/validation/babe_block_validator.hpp"
+#include "consensus/babe/impl/babe_block_validator_impl.hpp"
 
+#include <latch>
+
+#include "consensus/babe/babe_config_repository.hpp"
+#include "consensus/babe/babe_lottery.hpp"
 #include "consensus/babe/impl/babe_digests_util.hpp"
-#include "consensus/babe/impl/prepare_transcript.hpp"
+#include "consensus/babe/types/seal.hpp"
+#include "consensus/timeline/impl/slot_leadership_error.hpp"
+#include "consensus/timeline/slots_util.hpp"
 #include "crypto/sr25519_provider.hpp"
 #include "crypto/vrf_provider.hpp"
+#include "metrics/histogram_timer.hpp"
+#include "prepare_transcript.hpp"
+#include "primitives/inherent_data.hpp"
+#include "primitives/transcript.hpp"
+#include "runtime/runtime_api/offchain_worker_api.hpp"
+#include "storage/trie/serialization/ordered_trie_hash.hpp"
+#include "threshold_util.hpp"
 
 OUTCOME_CPP_DEFINE_CATEGORY(kagome::consensus::babe,
-                            BabeBlockValidator::ValidationError,
+                            BabeBlockValidatorImpl::ValidationError,
                             e) {
-  using E = kagome::consensus::babe::BabeBlockValidator::ValidationError;
+  using E = kagome::consensus::babe::BabeBlockValidatorImpl::ValidationError;
   switch (e) {
     case E::NO_AUTHORITIES:
       return "no authorities are provided for the validation";
@@ -31,28 +44,71 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::consensus::babe,
 }
 
 namespace kagome::consensus::babe {
-  using common::Buffer;
 
-  BabeBlockValidator::BabeBlockValidator(
-      std::shared_ptr<blockchain::BlockTree> block_tree,
-      std::shared_ptr<runtime::TaggedTransactionQueue> tx_queue,
+  BabeBlockValidatorImpl::BabeBlockValidatorImpl(
+      LazySPtr<SlotsUtil> slots_util,
+      std::shared_ptr<BabeConfigRepository> config_repo,
       std::shared_ptr<crypto::Hasher> hasher,
-      std::shared_ptr<crypto::VRFProvider> vrf_provider,
-      std::shared_ptr<crypto::Sr25519Provider> sr25519_provider)
-      : block_tree_{std::move(block_tree)},
-        tx_queue_{std::move(tx_queue)},
-        hasher_{std::move(hasher)},
-        vrf_provider_{std::move(vrf_provider)},
-        sr25519_provider_{std::move(sr25519_provider)},
-        log_{log::createLogger("BlockValidator", "block_validator")} {
-    BOOST_ASSERT(block_tree_);
-    BOOST_ASSERT(tx_queue_);
+      std::shared_ptr<crypto::Sr25519Provider> sr25519_provider,
+      std::shared_ptr<crypto::VRFProvider> vrf_provider)
+      : log_(log::createLogger("BabeBlockValidatorImpl", "babe")),
+        slots_util_(std::move(slots_util)),
+        config_repo_(std::move(config_repo)),
+        hasher_(std::move(hasher)),
+        sr25519_provider_(std::move(sr25519_provider)),
+        vrf_provider_(std::move(vrf_provider)) {
+    BOOST_ASSERT(config_repo_);
     BOOST_ASSERT(hasher_);
-    BOOST_ASSERT(vrf_provider_);
     BOOST_ASSERT(sr25519_provider_);
+    BOOST_ASSERT(vrf_provider_);
   }
 
-  outcome::result<void> BabeBlockValidator::validateHeader(
+  outcome::result<void> BabeBlockValidatorImpl::validateHeader(
+      const primitives::BlockHeader &block_header) const {
+    OUTCOME_TRY(babe_header, babe::getBabeBlockHeader(block_header));
+
+    auto slot_number = babe_header.slot_number;
+
+    OUTCOME_TRY(epoch_number,
+                slots_util_.get()->slotToEpoch(*block_header.parentInfo(),
+                                               slot_number));
+
+    SL_VERBOSE(
+        log_,
+        "Appending header of block {} ({} in slot {}, epoch {}, authority #{})",
+        block_header.blockInfo(),
+        to_string(babe_header.slotType()),
+        slot_number,
+        epoch_number,
+        babe_header.authority_index);
+
+    OUTCOME_TRY(config_ptr,
+                config_repo_->config(*block_header.parentInfo(), epoch_number));
+    auto &config = *config_ptr;
+
+    SL_TRACE(log_,
+             "Actual epoch digest to apply block {} (slot {}, epoch {}). "
+             "Randomness: {}",
+             block_header.blockInfo(),
+             slot_number,
+             epoch_number,
+             config.randomness);
+
+    auto threshold = calculateThreshold(config.leadership_rate,
+                                        config.authorities,
+                                        babe_header.authority_index);
+
+    OUTCOME_TRY(
+        validateHeader(block_header,
+                       epoch_number,
+                       config.authorities[babe_header.authority_index].id,
+                       threshold,
+                       config));
+
+    return outcome::success();
+  }
+
+  outcome::result<void> BabeBlockValidatorImpl::validateHeader(
       const primitives::BlockHeader &header,
       const EpochNumber epoch_number,
       const AuthorityId &authority_id,
@@ -90,7 +146,7 @@ namespace kagome::consensus::babe {
     OUTCOME_TRY(seal, getSeal(header));
 
     // signature in seal of the header must be valid
-    if (!verifySignature(header, babe_header, seal, authority_id)) {
+    if (!verifySignature(header, seal, authority_id)) {
       return ValidationError::INVALID_SIGNATURE;
     }
 
@@ -108,9 +164,8 @@ namespace kagome::consensus::babe {
     return outcome::success();
   }
 
-  bool BabeBlockValidator::verifySignature(
+  bool BabeBlockValidatorImpl::verifySignature(
       const primitives::BlockHeader &header,
-      const BabeBlockHeader &babe_header,
       const Seal &seal,
       const AuthorityId &public_key) const {
     primitives::UnsealedBlockHeaderReflection unsealed_header(header);
@@ -125,12 +180,12 @@ namespace kagome::consensus::babe {
     return res && res.value();
   }
 
-  bool BabeBlockValidator::verifyVRF(const BabeBlockHeader &babe_header,
-                                     const EpochNumber epoch_number,
-                                     const AuthorityId &public_key,
-                                     const Threshold &threshold,
-                                     const Randomness &randomness,
-                                     const bool checkThreshold) const {
+  bool BabeBlockValidatorImpl::verifyVRF(const BabeBlockHeader &babe_header,
+                                         const EpochNumber epoch_number,
+                                         const AuthorityId &public_key,
+                                         const Threshold &threshold,
+                                         const Randomness &randomness,
+                                         const bool checkThreshold) const {
     primitives::Transcript transcript;
     prepareTranscript(
         transcript, randomness, babe_header.slot_number, epoch_number);

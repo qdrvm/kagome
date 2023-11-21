@@ -14,9 +14,9 @@ First go to tutorial's folder:
 cd examples/network
 ```
 
-### Execute first validating node
+### Execute first block_validator node
 
-First we execute validating node in the similar way we did it during previous tutorial. This node will produce and finalize blocks.
+First we execute block_validator node in the similar way we did it during previous tutorial. This node will produce and finalize blocks.
 
 To start with let's navigate into the node's folder:
 
@@ -31,9 +31,9 @@ kagome \
     --prometheus-port 11155
 ```
 
-### Execute second validating node (node with authority) 
+### Execute second block_validator node (node with authority) 
 
-Now that validating node is up and running, second node can join the network by bootstrapping from the first node. Command will look very similar.
+Now that block_validator node is up and running, second node can join the network by bootstrapping from the first node. Command will look very similar.
 
 ```shell script
 kagome \
@@ -73,7 +73,7 @@ kagome \
     --prometheus-port 21155
 ```
 
-Note that trie root is the same with validating nodes. When syncing node receives block announcement it first synchronizes missing blocks and then listens to the new blocks and finalization. 
+Note that trie root is the same with block_validator nodes. When syncing node receives block announcement it first synchronizes missing blocks and then listens to the new blocks and finalization. 
 
 ### Send transaction
 

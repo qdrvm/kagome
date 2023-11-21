@@ -17,10 +17,8 @@ add_subdirectory(timeline)
 add_subdirectory(babe)
 add_subdirectory(grandpa)
 
-add_library(consensus
-    validation/babe_block_validator.cpp
-)
-target_link_libraries(consensus
+add_library(consensus INTERFACE)
+target_link_libraries(consensus INTERFACE
     timeline
     babe
     grandpa

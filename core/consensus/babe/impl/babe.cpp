@@ -15,6 +15,7 @@
 #include "blockchain/block_tree.hpp"
 #include "consensus/babe/babe_config_repository.hpp"
 #include "consensus/babe/babe_lottery.hpp"
+#include "consensus/babe/impl/babe_block_validator_impl.hpp"
 #include "consensus/babe/impl/babe_digests_util.hpp"
 #include "consensus/block_production_error.hpp"
 #include "consensus/timeline/backoff.hpp"
@@ -70,6 +71,7 @@ namespace kagome::consensus::babe {
       std::shared_ptr<BabeLottery> lottery,
       std::shared_ptr<crypto::Hasher> hasher,
       std::shared_ptr<crypto::Sr25519Provider> sr25519_provider,
+      std::shared_ptr<BabeBlockValidator> validating,
       std::shared_ptr<parachain::BitfieldStore> bitfield_store,
       std::shared_ptr<parachain::BackingStore> backing_store,
       std::shared_ptr<dispute::DisputeCoordinator> dispute_coordinator,
@@ -90,6 +92,7 @@ namespace kagome::consensus::babe {
         lottery_(std::move(lottery)),
         hasher_(std::move(hasher)),
         sr25519_provider_(std::move(sr25519_provider)),
+        validating_(std::move(validating)),
         bitfield_store_(std::move(bitfield_store)),
         backing_store_(std::move(backing_store)),
         dispute_coordinator_(std::move(dispute_coordinator)),
@@ -108,6 +111,7 @@ namespace kagome::consensus::babe {
     BOOST_ASSERT(lottery_);
     BOOST_ASSERT(hasher_);
     BOOST_ASSERT(sr25519_provider_);
+    BOOST_ASSERT(validating_);
     BOOST_ASSERT(bitfield_store_);
     BOOST_ASSERT(backing_store_);
     BOOST_ASSERT(dispute_coordinator_);
@@ -211,6 +215,11 @@ namespace kagome::consensus::babe {
              epoch_,
              slot_leadership_.keypair->public_key);
     return processSlotLeadership();
+  }
+
+  outcome::result<void> Babe::validateHeader(
+      const primitives::BlockHeader &block_header) const {
+    return validating_->validateHeader(block_header);
   }
 
   bool Babe::changeEpoch(EpochNumber epoch,
