@@ -8,9 +8,9 @@
 
 #include "common/int_serialization.hpp"
 #include "consensus/babe/impl/babe_digests_util.hpp"
+#include "consensus/babe/types/authority.hpp"
 #include "consensus/validation/babe_block_validator.hpp"
 #include "mock/core/blockchain/block_tree_mock.hpp"
-#include "mock/core/consensus/babe/babe_config_repository_mock.hpp"
 #include "mock/core/crypto/hasher_mock.hpp"
 #include "mock/core/crypto/sr25519_provider_mock.hpp"
 #include "mock/core/crypto/vrf_provider_mock.hpp"
@@ -30,8 +30,8 @@ using namespace common;
 using namespace crypto;
 using namespace libp2p::crypto::random;
 
-using kagome::primitives::Authority;
-using kagome::primitives::AuthorityIndex;
+using kagome::consensus::babe::Authority;
+using kagome::consensus::babe::AuthorityIndex;
 using kagome::primitives::Block;
 using kagome::primitives::BlockBody;
 using kagome::primitives::BlockHeader;
@@ -121,7 +121,7 @@ class BlockValidatorTest : public testing::Test {
   Block valid_block_{block_header_, block_body_};
 
   Threshold threshold_ = 3820948573;
-  primitives::AuthorityList authorities_;
+  Authorities authorities_;
 
   consensus::babe::BabeConfiguration config_{
       .leadership_rate = {3, 4},
@@ -153,7 +153,7 @@ TEST_F(BlockValidatorTest, Success) {
   EXPECT_CALL(*hasher_, blake2b_256(_))
       .WillOnce(Return(encoded_block_copy_hash));
 
-  auto authority = primitives::Authority{{pubkey}, 42};
+  auto authority = Authority{{pubkey}, 42};
   authorities_.emplace_back();
   authorities_.emplace_back(authority);
 
@@ -174,7 +174,7 @@ TEST_F(BlockValidatorTest, Success) {
  * @then validation fails
  */
 TEST_F(BlockValidatorTest, LessDigestsThanNeeded) {
-  auto authority = primitives::Authority{{}, 42};
+  auto authority = Authority{{}, 42};
   authorities_.emplace_back(authority);
 
   // for this test we can just not seal the block - it's the second digest
@@ -205,7 +205,7 @@ TEST_F(BlockValidatorTest, NoBabeHeader) {
 
   auto [seal, pubkey] = sealBlock(valid_block_, encoded_block_copy_hash);
 
-  auto authority = primitives::Authority{{pubkey}, 42};
+  auto authority = Authority{{pubkey}, 42};
   authorities_.emplace_back();
   authorities_.emplace_back(authority);
 
@@ -240,12 +240,11 @@ TEST_F(BlockValidatorTest, NoAuthority) {
 
   // WHEN
   // only one authority even though we want at least two
-  auto authority = primitives::Authority{{}, 42};
+  auto authority = Authority{{}, 42};
 
   EXPECT_CALL(
       *sr25519_provider_,
-      verify(
-          seal.signature, _, kagome::crypto::Sr25519PublicKey{authority.id.id}))
+      verify(seal.signature, _, kagome::crypto::Sr25519PublicKey{authority.id}))
       .WillOnce(Return(false));
 
   // THEN
@@ -280,7 +279,7 @@ TEST_F(BlockValidatorTest, SignatureVerificationFail) {
       .WillOnce(Return(outcome::result<bool>(false)));
 
   authorities_.emplace_back();
-  auto authority = primitives::Authority{{pubkey}, 42};
+  auto authority = Authority{{pubkey}, 42};
   authorities_.emplace_back(authority);
 
   // WHEN
@@ -320,7 +319,7 @@ TEST_F(BlockValidatorTest, VRFFail) {
       .WillOnce(Return(outcome::result<bool>(true)));
 
   authorities_.emplace_back();
-  auto authority = primitives::Authority{{pubkey}, 42};
+  auto authority = Authority{{pubkey}, 42};
   authorities_.emplace_back(authority);
 
   // WHEN
@@ -359,7 +358,7 @@ TEST_F(BlockValidatorTest, ThresholdGreater) {
       .WillOnce(Return(outcome::result<bool>(true)));
 
   authorities_.emplace_back();
-  auto authority = primitives::Authority{{pubkey}, 42};
+  auto authority = Authority{{pubkey}, 42};
   authorities_.emplace_back(authority);
 
   // WHEN

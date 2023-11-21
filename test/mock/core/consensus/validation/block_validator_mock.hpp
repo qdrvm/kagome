@@ -17,7 +17,7 @@ namespace kagome::consensus::babe {
     MOCK_METHOD(outcome::result<void>,
                 validateBlock,
                 (const primitives::Block &,
-                 const primitives::AuthorityId &,
+                 const AuthorityId &,
                  const Threshold &,
                  const Randomness &),
                 (const));
@@ -26,9 +26,9 @@ namespace kagome::consensus::babe {
                 validateHeader,
                 (const primitives::BlockHeader &,
                  const EpochNumber,
-                 const primitives::AuthorityId &,
+                 const AuthorityId &,
                  const Threshold &,
-                 const consensus::babe::BabeConfiguration &),
+                 const BabeConfiguration &),
                 (const, override));
   };
 
