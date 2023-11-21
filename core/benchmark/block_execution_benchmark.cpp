@@ -73,6 +73,10 @@ namespace {
     std::chrono::duration<Rep, Period> dur;
   };
 
+  template <typename Rep, typename Period>
+  pretty_duration(std::chrono::duration<Rep, Period>)
+      -> pretty_duration<Rep, Period>;
+
   const char *suffix(unsigned denominator) {
     switch (denominator) {
       case 1:
