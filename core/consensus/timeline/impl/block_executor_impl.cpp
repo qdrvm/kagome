@@ -12,7 +12,6 @@
 #include "consensus/babe/babe_config_repository.hpp"
 #include "consensus/timeline/impl/block_addition_error.hpp"
 #include "consensus/timeline/impl/block_appender_base.hpp"
-#include "consensus/validation/block_validator.hpp"
 #include "metrics/histogram_timer.hpp"
 #include "runtime/runtime_api/core.hpp"
 #include "runtime/runtime_api/offchain_worker_api.hpp"

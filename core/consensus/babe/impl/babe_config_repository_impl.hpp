@@ -10,11 +10,11 @@
 
 #include "blockchain/indexer.hpp"
 #include "consensus/babe/has_babe_consensus_digest.hpp"
+#include "consensus/babe/types/scheduled_change.hpp"
 #include "injector/lazy.hpp"
 #include "log/logger.hpp"
 #include "primitives/block_data.hpp"
 #include "primitives/event_types.hpp"
-#include "primitives/scheduled_change.hpp"
 #include "storage/spaced_storage.hpp"
 #include "utils/safe_object.hpp"
 
@@ -49,7 +49,7 @@ namespace kagome::consensus::babe {
     /**
      * `NextConfigData` is rare digest, so always store recent config.
      */
-    primitives::NextConfigDataV1 config;
+    NextConfigDataV1 config;
     /**
      * Current epoch read from runtime.
      * Used at genesis and after warp sync.
@@ -108,7 +108,7 @@ namespace kagome::consensus::babe {
         bool next_epoch) const;
 
     std::shared_ptr<BabeConfiguration> applyDigests(
-        const primitives::NextConfigDataV1 &config,
+        const NextConfigDataV1 &config,
         const HasBabeConsensusDigest &digests) const;
 
     outcome::result<void> load(

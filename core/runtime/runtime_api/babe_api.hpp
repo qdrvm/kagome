@@ -9,6 +9,7 @@
 #include <outcome/outcome.hpp>
 
 #include "consensus/babe/types/babe_configuration.hpp"
+#include "primitives/common.hpp"
 
 namespace kagome::runtime {
 

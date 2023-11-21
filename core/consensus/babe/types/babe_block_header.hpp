@@ -6,10 +6,9 @@
 
 #pragma once
 
+#include "consensus/babe/types/authority.hpp"
 #include "consensus/babe/types/slot_type.hpp"
 #include "consensus/timeline/types.hpp"
-#include "crypto/sr25519_types.hpp"
-#include "primitives/authority.hpp"
 #include "primitives/common.hpp"
 
 #include <scale/scale.hpp>
@@ -25,7 +24,7 @@ namespace kagome::consensus::babe {
     SlotType slot_assignment_type{};
 
     /// authority index of the producer
-    primitives::AuthorityIndex authority_index;
+    AuthorityIndex authority_index;
 
     /// slot, in which the block was produced
     SlotNumber slot_number;

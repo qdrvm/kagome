@@ -10,7 +10,6 @@
 
 #include "clock/clock.hpp"
 #include "crypto/sr25519_types.hpp"
-#include "primitives/authority.hpp"
 #include "scale/tie.hpp"
 
 namespace kagome::consensus {

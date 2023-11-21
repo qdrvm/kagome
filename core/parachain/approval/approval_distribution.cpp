@@ -20,7 +20,6 @@
 #include "parachain/approval/approval.hpp"
 #include "parachain/approval/approval_distribution.hpp"
 #include "parachain/approval/state.hpp"
-#include "primitives/authority.hpp"
 #include "primitives/math.hpp"
 #include "runtime/runtime_api/parachain_host_types.hpp"
 #include "utils/async_sequence.hpp"
@@ -889,7 +888,7 @@ namespace kagome::parachain {
 
   outcome::result<std::tuple<consensus::EpochNumber,
                              consensus::babe::BabeBlockHeader,
-                             primitives::AuthorityList,
+                             consensus::babe::Authorities,
                              consensus::Randomness>>
   ApprovalDistribution::request_babe_epoch_and_block_header(
       const primitives::BlockHeader &block_header,

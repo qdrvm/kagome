@@ -25,8 +25,14 @@ namespace kagome::consensus {
     virtual std::shared_ptr<ProductionConsensus> getProductionConsensus(
         const primitives::BlockInfo &parent_block) const = 0;
 
+    virtual std::shared_ptr<ProductionConsensus> getProductionConsensus(
+        const primitives::BlockHeader &block_header) const = 0;
+
     virtual std::shared_ptr<FinalityConsensus> getFinalityConsensus(
         const primitives::BlockInfo &parent_block) const = 0;
+
+    virtual std::shared_ptr<FinalityConsensus> getFinalityConsensus(
+        const primitives::BlockHeader &block_header) const = 0;
   };
 
 }  // namespace kagome::consensus

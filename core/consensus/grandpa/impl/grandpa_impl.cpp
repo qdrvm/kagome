@@ -225,7 +225,7 @@ namespace kagome::consensus::grandpa {
   std::shared_ptr<VotingRound> GrandpaImpl::makeInitialRound(
       const MovableRoundState &round_state,
       std::shared_ptr<VoterSet> voters,
-      const primitives::AuthoritySet &authority_set) {
+      const AuthoritySet &authority_set) {
     auto vote_graph = std::make_shared<VoteGraphImpl>(
         round_state.last_finalized_block, voters, environment_);
 
@@ -1349,7 +1349,7 @@ namespace kagome::consensus::grandpa {
 
   void GrandpaImpl::verifyJustification(
       const GrandpaJustification &justification,
-      const primitives::AuthoritySet &authorities,
+      const AuthoritySet &authorities,
       std::shared_ptr<std::promise<outcome::result<void>>> promise_res) {
     REINVOKE(*internal_thread_context_,
              verifyJustification,

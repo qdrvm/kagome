@@ -42,8 +42,7 @@ namespace kagome::consensus::babe {
    */
   constexpr size_t kMaxUnindexedBlocksNum = 10000;
 
-  inline static primitives::NextConfigDataV1 getConfig(
-      const BabeConfiguration &state) {
+  inline static NextConfigDataV1 getConfig(const BabeConfiguration &state) {
     return {state.leadership_rate, state.allowed_slots};
   }
 
@@ -314,7 +313,7 @@ namespace kagome::consensus::babe {
   }
 
   std::shared_ptr<BabeConfiguration> BabeConfigRepositoryImpl::applyDigests(
-      const primitives::NextConfigDataV1 &config,
+      const NextConfigDataV1 &config,
       const HasBabeConsensusDigest &digests) const {
     BOOST_ASSERT(digests);
     auto state = std::make_shared<BabeConfiguration>();
