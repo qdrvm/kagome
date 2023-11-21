@@ -131,7 +131,9 @@ namespace kagome::consensus::babe {
 
     // TODO(xDimon): Perhaps, should be observed by all non-finalized blocks
     auto best = block_tree_->bestBlock();
+    lock.unlock();
     auto consensus = consensus_selector_.get()->getProductionConsensus(best);
+    lock.lock();
     if (std::dynamic_pointer_cast<Babe>(consensus)) {
       active_ = true;
       if (auto res = config(best, true); not res and not config_warp_sync_) {
