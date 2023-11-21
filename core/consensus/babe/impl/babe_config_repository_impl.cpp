@@ -110,9 +110,7 @@ namespace kagome::consensus::babe {
     auto finalized = block_tree_->getLastFinalized();
     auto finalized_header = block_tree_->getBlockHeader(finalized.hash).value();
 
-    // TODO(xDimon): Perhaps, should be observed by all non-finalized blocks
-    auto best = block_tree_->bestBlock();
-    auto best_config_res = SAFE_UNIQUE(indexer_) {
+    SAFE_UNIQUE(indexer_) {
       if (finalized.number - indexer_.last_finalized_indexed_.number
               > kMaxUnindexedBlocksNum
           and trie_storage_->getEphemeralBatchAt(finalized_header.state_root)) {
@@ -131,19 +129,20 @@ namespace kagome::consensus::babe {
                    timings_.epoch_length);
         }
       }
-      return config(indexer_, best, true);
     };
 
     [[maybe_unused]] bool active_ = false;
 
+    // TODO(xDimon): Perhaps, should be observed by all non-finalized blocks
+    auto best = block_tree_->bestBlock();
     auto consensus = consensus_selector_.get()->getProductionConsensus(best);
     if (std::dynamic_pointer_cast<Babe>(consensus)) {
       active_ = true;
-      if (not best_config_res and not config_warp_sync_) {
-        SL_ERROR(logger_,
-                 "get config at best {} error: {}",
-                 best,
-                 best_config_res.error());
+      auto res = SAFE_UNIQUE(indexer_) {
+        return config(indexer_, best, true);
+      };
+      if (not res and not config_warp_sync_) {
+        SL_ERROR(logger_, "get config at best {} error: {}", best, res.error());
         auto best_header = block_tree_->getBlockHeader(best.hash).value();
         if (not trie_storage_->getEphemeralBatchAt(best_header.state_root)) {
           SL_ERROR(logger_,
