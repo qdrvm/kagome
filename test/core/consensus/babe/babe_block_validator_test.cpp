@@ -85,15 +85,6 @@ class BabeBlockValidatorTest : public testing::Test {
     }));
 
     hasher = std::make_shared<HasherMock>();
-    //    static const auto d1 = scale::encode(genesis_block_header).value();
-    //    ON_CALL(*hasher, blake2b_256(BufferView(d1)))
-    //        .WillByDefault(Return(genesis_block_info.hash));
-    //    static const auto d2 = scale::encode(best_block_header).value();
-    //    ON_CALL(*hasher, blake2b_256(BufferView(d2)))
-    //        .WillByDefault(Return(best_block_info.hash));
-    //    static const auto d3 = scale::encode(new_block_header).value();
-    //    ON_CALL(*hasher, blake2b_256(BufferView(d3)))
-    //        .WillByDefault(Return(new_block_info.hash));
 
     sr25519_provider = std::make_shared<Sr25519ProviderMock>();
     vrf_provider = std::make_shared<VRFProviderMock>();
