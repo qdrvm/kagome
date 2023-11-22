@@ -84,8 +84,8 @@ namespace kagome::parachain {
       bool triggered;  /// Whether the assignment has been triggered already.
     };
 
-    using HashedCandidateReceipt =
-        crypto::Hashed<network::CandidateReceipt, 32>;
+    using HashedCandidateReceipt = crypto::
+        Hashed<network::CandidateReceipt, 32, crypto::Blake2b_StreamHasher<32>>;
 
     /// Metadata regarding a specific tranche of assignments for a specific
     /// candidate.
