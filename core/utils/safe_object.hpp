@@ -12,10 +12,12 @@
 #include <shared_mutex>
 #include <type_traits>
 
-#define SAFE_UNIQUE(x) \
-  x ^= [&](typename std::remove_cvref_t<decltype(x)>::Type & x)
-#define SAFE_SHARED(x) \
-  x |= [&](const typename std::remove_cvref_t<decltype(x)>::Type &x)
+#define SAFE_UNIQUE_CAPTURE(x, ...) \
+  x ^= __VA_ARGS__(typename std::remove_cvref_t<decltype(x)>::Type & x)
+#define SAFE_SHARED_CAPTURE(x, ...) \
+  x |= __VA_ARGS__(const typename std::remove_cvref_t<decltype(x)>::Type &x)
+#define SAFE_UNIQUE(x) SAFE_UNIQUE_CAPTURE(x, [&])
+#define SAFE_SHARED(x) SAFE_SHARED_CAPTURE(x, [&])
 
 // clang-format off
 /**
