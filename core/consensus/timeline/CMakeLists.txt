@@ -21,3 +21,4 @@ target_link_libraries(timeline
     network
     )
 kagome_install(timeline)
+kagome_clear_objects(timeline)
