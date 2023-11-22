@@ -7,6 +7,7 @@
 #pragma once
 
 #include <span>
+#include "common/blob.hpp"
 #include "crypto/blake2/blake2b.h"
 
 namespace kagome::crypto {
