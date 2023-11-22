@@ -23,6 +23,7 @@
 #include "consensus/timeline/types.hpp"
 #include "crypto/crypto_store/key_file_storage.hpp"
 #include "crypto/crypto_store/session_keys.hpp"
+#include "crypto/type_hasher.hpp"
 #include "dispute_coordinator/dispute_coordinator.hpp"
 #include "injector/lazy.hpp"
 #include "network/peer_view.hpp"
@@ -82,6 +83,9 @@ namespace kagome::parachain {
       ValidatorIndex validator_index;
       bool triggered;  /// Whether the assignment has been triggered already.
     };
+
+    using HashedCandidateReceipt =
+        crypto::Hashed<network::CandidateReceipt, 32>;
 
     /// Metadata regarding a specific tranche of assignments for a specific
     /// candidate.
@@ -201,19 +205,25 @@ namespace kagome::parachain {
     };
 
     struct CandidateEntry {
-      network::CandidateReceipt candidate;
+      HashedCandidateReceipt candidate;
       SessionIndex session;
       // Assignments are based on blocks, so we need to track assignments
       // separately based on the block we are looking at.
       std::unordered_map<network::Hash, ApprovalEntry> block_assignments;
       scale::BitVec approvals;
 
+      CandidateEntry(const HashedCandidateReceipt &hashed_receipt,
+                     SessionIndex session_index,
+                     size_t approvals_size)
+          : candidate(hashed_receipt), session(session_index) {
+        approvals.bits.insert(approvals.bits.end(), approvals_size, false);
+      }
+
       CandidateEntry(const network::CandidateReceipt &receipt,
                      SessionIndex session_index,
                      size_t approvals_size)
-          : candidate(receipt), session(session_index) {
-        approvals.bits.insert(approvals.bits.end(), approvals_size, false);
-      }
+          : CandidateEntry(
+              HashedCandidateReceipt{receipt}, session_index, approvals_size) {}
 
       std::optional<std::reference_wrapper<ApprovalEntry>> approval_entry(
           const network::RelayHash &relay_hash) {
@@ -254,8 +264,9 @@ namespace kagome::parachain {
           return true;
         };
 
-        return candidate == c.candidate && session == c.session
-            && approvals == c.approvals && block_assignments_eq();
+        return candidate.getHash() == c.candidate.getHash()
+            && session == c.session && approvals == c.approvals
+            && block_assignments_eq();
       }
     };
 
@@ -283,10 +294,7 @@ namespace kagome::parachain {
     bool prepare();
 
     using CandidateIncludedList =
-        std::vector<std::tuple<CandidateHash,
-                               network::CandidateReceipt,
-                               CoreIndex,
-                               GroupIndex>>;
+        std::vector<std::tuple<HashedCandidateReceipt, CoreIndex, GroupIndex>>;
     using AssignmentsList = std::unordered_map<CoreIndex, OurAssignment>;
 
     static AssignmentsList compute_assignments(
@@ -606,9 +614,8 @@ namespace kagome::parachain {
                        const CandidateHash &candidate_hash);
 
     void launch_approval(const RelayHash &relay_block_hash,
-                         const CandidateHash &candidate_hash,
                          SessionIndex session_index,
-                         const network::CandidateReceipt &candidate,
+                         const HashedCandidateReceipt &hashed_receipt,
                          ValidatorIndex validator_index,
                          Hash block_hash,
                          GroupIndex backing_group);
@@ -618,13 +625,12 @@ namespace kagome::parachain {
                         const RelayHash &block_hash);
 
     void runLaunchApproval(
-        const CandidateHash &candidate_hash,
         const approval::IndirectAssignmentCert &indirect_cert,
         DelayTranche assignment_tranche,
         const RelayHash &relay_block_hash,
         CandidateIndex candidate_index,
         SessionIndex session,
-        const network::CandidateReceipt &candidate,
+        const HashedCandidateReceipt &hashed_candidate,
         GroupIndex backing_group);
 
     void runNewBlocks(approval::BlockApprovalMeta &&approval_meta,

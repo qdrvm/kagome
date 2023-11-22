@@ -56,7 +56,9 @@ namespace kagome::consensus {
           *this);
     }
 
-    auto operator<=>(const SlotDuration &) const = default;
+    auto operator<=>(const SlotDuration &r) const {
+      return count() <=> r.count();
+    }
 
     friend ::scale::ScaleEncoderStream &operator<<(
         ::scale::ScaleEncoderStream &s, const SlotDuration &duration) {
