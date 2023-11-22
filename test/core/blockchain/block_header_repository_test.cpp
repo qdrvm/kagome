@@ -19,6 +19,7 @@
 #include "testutil/outcome.hpp"
 #include "testutil/prepare_loggers.hpp"
 #include "testutil/storage/base_rocksdb_test.hpp"
+#include "crypto/type_hasher.hpp"
 
 using kagome::blockchain::BlockHeaderRepository;
 using kagome::blockchain::BlockHeaderRepositoryImpl;
@@ -85,6 +86,9 @@ const std::vector<BlockNumber> ParamValues = {1, 42, 12345, 0, 0xFFFFFFFF};
  * @then result is error
  */
 TEST_F(BlockHeaderRepository_Test, UnexistingHeader) {
+  auto p = kagome::crypto::create256Blake<BlockHeader>(getDefaultHeader());
+  auto q = p.getHash();
+
   auto chosen_number = ParamValues[0];
   for (auto &c : ParamValues) {
     if (c != chosen_number) {
