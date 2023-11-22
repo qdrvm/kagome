@@ -10,7 +10,7 @@ In this comprehensive guide, we'll walk you through the process of setting up an
 
 ### Prerequisites
 
-1. Kagome validating node binary built as described [here](https://kagome.readthedocs.io/en/latest/overview/getting_started.html#build-application).
+1. Kagome block_validator node binary built as described [here](https://kagome.readthedocs.io/en/latest/overview/getting_started.html#build-application).
 2. For your convenience make sure you have this binary included into your path:
 
     ```bash
