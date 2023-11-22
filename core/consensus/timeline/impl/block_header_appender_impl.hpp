@@ -10,13 +10,13 @@
 
 #include <libp2p/peer/peer_id.hpp>
 
+#include "consensus/babe/types/babe_configuration.hpp"
 #include "log/logger.hpp"
-#include "primitives/babe_configuration.hpp"
 #include "primitives/block_header.hpp"
 
 namespace kagome::blockchain {
   class BlockTree;
-}  // namespace kagome::blockchain
+}
 
 namespace kagome::crypto {
   class Hasher;

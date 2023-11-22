@@ -1339,7 +1339,7 @@ namespace kagome::consensus::grandpa {
         precommit_equivocators_.begin(),
         precommit_equivocators_.end(),
         0ul,
-        [this, index = 0ul](size_t sum, auto isEquivocator) mutable {
+        [this, index = 0ul](size_t sum, auto isEquivocator) mutable -> size_t {
           if (not isEquivocator) {
             ++index;
             return sum;

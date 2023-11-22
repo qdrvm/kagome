@@ -9,33 +9,32 @@
 #include "blockchain/block_tree.hpp"
 #include "consensus/babe/babe_config_repository.hpp"
 #include "consensus/babe/impl/babe_digests_util.hpp"
-#include "consensus/babe/impl/babe_error.hpp"
-#include "consensus/babe/impl/threshold_util.hpp"
+#include "consensus/consensus_selector.hpp"
 #include "consensus/grandpa/environment.hpp"
 #include "consensus/grandpa/voting_round_error.hpp"
 #include "consensus/timeline/slots_util.hpp"
-#include "consensus/validation/block_validator.hpp"
 
 namespace kagome::consensus {
 
   BlockAppenderBase::BlockAppenderBase(
       std::shared_ptr<blockchain::BlockTree> block_tree,
       std::shared_ptr<babe::BabeConfigRepository> babe_config_repo,
-      std::shared_ptr<BlockValidator> block_validator,
+      const EpochTimings &timings,
       std::shared_ptr<grandpa::Environment> grandpa_environment,
       LazySPtr<SlotsUtil> slots_util,
-      std::shared_ptr<crypto::Hasher> hasher)
+      std::shared_ptr<crypto::Hasher> hasher,
+      LazySPtr<ConsensusSelector> consensus_selector)
       : block_tree_{std::move(block_tree)},
         babe_config_repo_{std::move(babe_config_repo)},
-        block_validator_{std::move(block_validator)},
+        timings_(timings),
         grandpa_environment_{std::move(grandpa_environment)},
         slots_util_{std::move(slots_util)},
-        hasher_{std::move(hasher)} {
-    BOOST_ASSERT(nullptr != block_tree_);
-    BOOST_ASSERT(nullptr != babe_config_repo_);
-    BOOST_ASSERT(nullptr != block_validator_);
-    BOOST_ASSERT(nullptr != grandpa_environment_);
-    BOOST_ASSERT(nullptr != hasher_);
+        hasher_{std::move(hasher)},
+        consensus_selector_(std::move(consensus_selector)) {
+    BOOST_ASSERT(block_tree_ != nullptr);
+    BOOST_ASSERT(babe_config_repo_ != nullptr);
+    BOOST_ASSERT(grandpa_environment_ != nullptr);
+    BOOST_ASSERT(hasher_ != nullptr);
 
     postponed_justifications_ = std::make_shared<
         std::map<primitives::BlockInfo, primitives::Justification>>();
@@ -129,55 +128,19 @@ namespace kagome::consensus {
 
   outcome::result<void> BlockAppenderBase::validateHeader(
       const primitives::Block &block) {
-    OUTCOME_TRY(babe_header, babe::getBabeBlockHeader(block.header));
-
-    auto slot_number = babe_header.slot_number;
-
-    OUTCOME_TRY(epoch_number,
-                slots_util_.get()->slotToEpoch(*block.header.parentInfo(),
-                                               slot_number));
-
-    SL_VERBOSE(
-        logger_,
-        "Appending header of block {} ({} in slot {}, epoch {}, authority #{})",
-        block.header.blockInfo(),
-        to_string(babe_header.slotType()),
-        slot_number,
-        epoch_number,
-        babe_header.authority_index);
-
-    OUTCOME_TRY(
-        babe_config_ptr,
-        babe_config_repo_->config(*block.header.parentInfo(), epoch_number));
-    auto &babe_config = *babe_config_ptr;
-
-    SL_TRACE(logger_,
-             "Actual epoch digest to apply block {} (slot {}, epoch {}). "
-             "Randomness: {}",
-             block.header.blockInfo(),
-             slot_number,
-             epoch_number,
-             babe_config.randomness);
-
-    auto threshold = babe::calculateThreshold(babe_config.leadership_rate,
-                                              babe_config.authorities,
-                                              babe_header.authority_index);
-
-    OUTCOME_TRY(block_validator_->validateHeader(
-        block.header,
-        epoch_number,
-        babe_config.authorities[babe_header.authority_index].id,
-        threshold,
-        babe_config));
-
-    return outcome::success();
+    auto consensus =
+        consensus_selector_.get()->getProductionConsensus(block.header);
+    BOOST_ASSERT_MSG(consensus, "Must be returned at least fallback consensus");
+    return consensus->validateHeader(block.header);
   }
 
   outcome::result<BlockAppenderBase::SlotInfo> BlockAppenderBase::getSlotInfo(
       const primitives::BlockHeader &header) const {
-    OUTCOME_TRY(slot_number, babe::getBabeSlot(header));
+    OUTCOME_TRY(
+        slot_number,
+        babe::getSlot(header));  // TODO(xDimon): Make it consensus agnostic
     auto start_time = slots_util_.get()->slotStartTime(slot_number);
-    auto slot_duration = babe_config_repo_->slotDuration();
+    auto slot_duration = timings_.slot_duration;
     return outcome::success(SlotInfo{start_time, slot_duration});
   }
 

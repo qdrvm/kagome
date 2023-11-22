@@ -10,6 +10,7 @@
 
 #include "common/outcome_throw.hpp"
 #include "consensus/grandpa/common.hpp"
+#include "consensus/grandpa/types/authority.hpp"
 
 namespace kagome::consensus::grandpa {
 
@@ -20,15 +21,15 @@ namespace kagome::consensus::grandpa {
    public:
     enum class Error { VOTER_ALREADY_EXISTS = 1, INDEX_OUTBOUND };
 
-    using Index = size_t;
-    using Weight = size_t;
+    using Index = AuthorityIndex;
+    using Weight = AuthorityWeight;
 
     VoterSet() = default;  // for scale codec (in decode)
 
     explicit VoterSet(VoterSetId id_of_set);
 
     static outcome::result<std::shared_ptr<VoterSet>> make(
-        const primitives::AuthoritySet &voters);
+        const AuthoritySet &voters);
 
     /**
      * Insert voter \param voter with \param weight

@@ -24,6 +24,7 @@ using blockchain::BlockTreeMock;
 using consensus::ConsensusSelectorMock;
 using consensus::Duration;
 using consensus::EpochLength;
+using consensus::EpochTimings;
 using consensus::ProductionConsensusMock;
 using consensus::SlotNumber;
 using consensus::SlotsUtilImpl;
@@ -58,11 +59,8 @@ class SlotsUtilTest : public testing::Test {
 
     consensus_selector = std::make_shared<ConsensusSelectorMock>();
     production_consensus = std::make_shared<ProductionConsensusMock>();
-    EXPECT_CALL(*consensus_selector, getProductionConsensus(_))
+    EXPECT_CALL(*consensus_selector, getProductionConsensusByInfo(_))
         .WillRepeatedly(Return(production_consensus));
-    EXPECT_CALL(*production_consensus, getTimings())
-        .WillRepeatedly(
-            Invoke([&]() { return std::tuple(slot_duration, epoch_length); }));
 
     trie_storage = std::make_shared<TrieStorageMock>();
     babe_api = std::make_shared<BabeApiMock>();
@@ -70,6 +68,7 @@ class SlotsUtilTest : public testing::Test {
     slots_util_ = std::make_shared<SlotsUtilImpl>(app_state_manager,
                                                   spaced_storage,
                                                   block_tree,
+                                                  timings,
                                                   consensus_selector,
                                                   trie_storage,
                                                   babe_api);
@@ -83,8 +82,7 @@ class SlotsUtilTest : public testing::Test {
   std::shared_ptr<BabeApiMock> babe_api;
   std::shared_ptr<InMemoryStorage> persistent_storage;
   std::shared_ptr<ProductionConsensusMock> production_consensus;
-  Duration slot_duration;
-  EpochLength epoch_length;
+  EpochTimings timings;
 
   std::shared_ptr<SlotsUtilImpl> slots_util_;
 };
@@ -95,13 +93,14 @@ class SlotsUtilTest : public testing::Test {
  * @then compare slot estimations
  */
 TEST_F(SlotsUtilTest, getCurrentSlot) {
-  slot_duration = 12345ms;
-  epoch_length = 321;
+  timings.slot_duration = 12345ms;
+  timings.epoch_length = 321;
 
   slots_util_->prepare();
 
   auto time = std::chrono::system_clock::now();
   auto slot = slots_util_->timeToSlot(time);
-  EXPECT_EQ(static_cast<SlotNumber>(time.time_since_epoch() / slot_duration),
-            slot);
+  EXPECT_EQ(
+      static_cast<SlotNumber>(time.time_since_epoch() / timings.slot_duration),
+      slot);
 }
