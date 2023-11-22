@@ -27,10 +27,7 @@ namespace kagome::scale {
   using PeerInfoSerializable = ::scale::PeerInfoSerializable;
   using DecodeError = ::scale::DecodeError;
 
-  template <typename T>
-  inline auto decode(std::span<const uint8_t> data) {
-    return ::scale::decode<T>(std::move(data));
-  }
+  using ::scale::decode;
 
   template <typename F>
   constexpr void encode(const F &func, const primitives::BlockHeader &bh);

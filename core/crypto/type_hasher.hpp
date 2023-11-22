@@ -1,10 +1,9 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium, Ltd. All Rights Reserved.
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_TYPE_HASHER_HASHER_HPP_
-#define KAGOME_TYPE_HASHER_HASHER_HPP_
+#pragma once
 
 #include <optional>
 #include <span>
@@ -14,7 +13,7 @@
 namespace kagome::crypto {
 
   template <typename H, typename... T>
-  inline void hashTypes(H &hasher, std::span<uint8_t> out, T &&...t) {
+  inline void hashTypes(H &hasher, common::Blob<H::kOutlen> &out, T &&...t) {
     kagome::scale::encode(
         [&](const uint8_t *const val, size_t count) {
           hasher.update({val, count});
@@ -31,6 +30,18 @@ namespace kagome::crypto {
     using Type = std::decay_t<T>;
     using HashType = common::Blob<N>;
 
+    private:
+    template<typename StreamHasherT>
+    const HashType &getHash(StreamHasherT &hasher_) const {
+      if (!opt_hash_ || StreamHasherT::ID != opt_hash_->first) {
+        HashType h;
+        hashTypes(hasher_, h, type_);
+        opt_hash_.emplace(StreamHasherT::ID, std::move(h));
+      }
+      return opt_hash_->second;
+    }
+
+    public:
     template <typename... Args>
     Hashed(Args &&...args) : type_{std::forward<Args>(args)...} {}
 
@@ -53,20 +64,14 @@ namespace kagome::crypto {
       return type_;
     }
 
-    const HashType &getHash() const {
-      if (!opt_hash_) {
-        Blake2b_StreamHasher<N> hasher_{};
-        HashType h;
-
-        hashTypes(hasher_, {h}, type_);
-        opt_hash_ = std::move(h);
-      }
-      return *opt_hash_;
+    const HashType &blake2b() const {
+      Blake2b_StreamHasher<N> hasher_{};
+      return getHash(hasher_);
     }
 
    private:
     T type_;
-    mutable std::optional<HashType> opt_hash_{};
+    mutable std::optional<std::pair<uint32_t, HashType>> opt_hash_{};
   };
 
   template <typename T, typename... Args>
@@ -75,5 +80,3 @@ namespace kagome::crypto {
   }
 
 }  // namespace kagome::crypto
-
-#endif  // KAGOME_TYPE_HASHER_HASHER_HPP_

@@ -1,20 +1,23 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium, Ltd. All Rights Reserved.
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_BLAKE2B_STREAM_HASHER_HASHER_HPP_
-#define KAGOME_BLAKE2B_STREAM_HASHER_HASHER_HPP_
+#pragma once
 
 #include <span>
 #include "crypto/blake2/blake2b.h"
+#include "crypto/murmur2.hpp"
+#include "utils/stringify.hpp"
 
 namespace kagome::crypto {
 
   template <size_t Outlen>
   struct Blake2b_StreamHasher final {
-    static_assert((Outlen & (Outlen - 1)) == 0, "Outlen is pow 2");
+    static constexpr uint32_t ID = CT_MURMUR2(__FILE__ XSTRINGIFY(__LINE__));
+    static constexpr size_t kOutlen = Outlen;
 
+    static_assert((Outlen & (Outlen - 1)) == 0, "Outlen is pow 2");
     Blake2b_StreamHasher() {
       initialized_ = (0 == blake2b_init(&ctx_, Outlen, nullptr, 0ull));
     }
@@ -27,7 +30,7 @@ namespace kagome::crypto {
       return true;
     }
 
-    bool get_final(std::span<uint8_t> out) {
+    bool get_final(common::Blob<kOutlen> &out) {
       if (!initialized_) {
         return false;
       }
@@ -40,5 +43,3 @@ namespace kagome::crypto {
     bool initialized_{false};
   };
 }  // namespace kagome::crypto
-
-#endif  // KAGOME_BLAKE2B_STREAM_HASHER_HASHER_HPP_
