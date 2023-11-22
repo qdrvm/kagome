@@ -9,6 +9,7 @@
 #include <gtest/gtest.h>
 #include <rocksdb/options.h>
 #include <libp2p/crypto/random_generator/boost_generator.hpp>
+
 #include "blockchain/impl/block_header_repository_impl.hpp"  //header_repo
 #include "crypto/bip39/impl/bip39_provider_impl.hpp"         //bip39_provider
 #include "crypto/crypto_store/crypto_store_impl.hpp"         //crypto_store
@@ -31,8 +32,8 @@
 #include "runtime/wavm/intrinsics/intrinsic_module.hpp"   // intrinsic_module
 #include "runtime/wavm/module_factory_impl.hpp"           // module_factory
 #include "runtime/wavm/module_params.hpp"                 //module_params
-#include "storage/in_memory/in_memory_storage.hpp"        // storage
-#include "storage/rocksdb/rocksdb.hpp"                    //database
+#include "storage/in_memory/in_memory_spaced_storage.hpp"   // storage
+#include "storage/rocksdb/rocksdb.hpp"                      //database
 #include "storage/trie/impl/trie_storage_backend_impl.hpp"  // storage_backend
 #include "storage/trie/impl/trie_storage_impl.hpp"          // trie_storage
 #include "storage/trie/polkadot_trie/polkadot_trie_factory_impl.hpp"  // trie_factory
@@ -61,13 +62,16 @@ class WavmModuleInitTest : public ::testing::TestWithParam<std::string_view> {
     auto trie_factory =
         std::make_shared<kagome::storage::trie::PolkadotTrieFactoryImpl>();
     auto codec = std::make_shared<kagome::storage::trie::PolkadotCodec>();
-    auto storage = std::make_shared<kagome::storage::InMemoryStorage>();
-    auto storage_backend =
+    auto storage = std::make_shared<kagome::storage::InMemorySpacedStorage>();
+    auto node_storage_backend =
         std::make_shared<kagome::storage::trie::TrieStorageBackendImpl>(
-            storage);
+            kagome::storage::trie::TrieStorageBackendImpl::NodeTag{}, storage);
+    auto value_storage_backend =
+        std::make_shared<kagome::storage::trie::TrieStorageBackendImpl>(
+            kagome::storage::trie::TrieStorageBackendImpl::ValueTag{}, storage);
     auto serializer =
         std::make_shared<kagome::storage::trie::TrieSerializerImpl>(
-            trie_factory, codec, storage_backend);
+            trie_factory, codec, node_storage_backend, value_storage_backend);
     auto state_pruner =
         std::make_shared<kagome::storage::trie_pruner::DummyPruner>();
     std::shared_ptr<kagome::storage::trie::TrieStorageImpl> trie_storage =
@@ -137,26 +141,25 @@ class WavmModuleInitTest : public ::testing::TestWithParam<std::string_view> {
     auto cache =
         std::make_shared<kagome::runtime::RuntimePropertiesCacheImpl>();
 
-    auto instance_env_factory = std::make_shared<
-        const kagome::runtime::wavm::InstanceEnvironmentFactory>(
-        trie_storage,
-        serializer,
-        compartment,
-        module_params,
-        intrinsic_module,
-        host_api_factory,
-        header_repo,
-        smc,
-        cache);
-
     module_factory_ =
         std::make_shared<kagome::runtime::wavm::ModuleFactoryImpl>(
             compartment,
             module_params,
-            instance_env_factory,
+            host_api_factory,
+            trie_storage,
+            serializer,
             intrinsic_module,
+            smc,
             std::nullopt,
             hasher);
+
+    auto instance_env_factory = std::make_shared<
+        const kagome::runtime::wavm::InstanceEnvironmentFactory>(
+        trie_storage,
+        serializer,
+        host_api_factory,
+        smc,
+        module_factory_);
   }
 
   std::shared_ptr<kagome::runtime::ModuleFactory> module_factory_;
@@ -172,16 +175,13 @@ TEST_P(WavmModuleInitTest, DISABLED_SingleModule) {
   EXPECT_OUTCOME_TRUE(
       runtime_context,
       kagome::runtime::RuntimeContextFactory::fromCode(*module_factory_, code));
-  EXPECT_OUTCOME_TRUE(
-      memory_response,
-      runtime_context.module_instance->callExportFunction("Core_version", {}));
+  EXPECT_OUTCOME_TRUE(response,
+                      runtime_context.module_instance->callExportFunction(
+                          runtime_context, "Core_version", {}));
   auto memory = runtime_context.module_instance->getEnvironment()
                     .memory_provider->getCurrentMemory();
   GTEST_ASSERT_TRUE(memory.has_value());
-  auto scale_resp =
-      memory->get().loadN(memory_response.ptr, memory_response.size);
-  EXPECT_OUTCOME_TRUE(cv,
-                      scale::decode<kagome::primitives::Version>(scale_resp));
+  EXPECT_OUTCOME_TRUE(cv, scale::decode<kagome::primitives::Version>(response));
   SL_INFO(log_,
           "Module initialized - spec {}-{}, impl {}-{}",
           cv.spec_name,

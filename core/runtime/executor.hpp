@@ -18,7 +18,7 @@ namespace kagome::runtime {
   class Executor {
    public:
     Executor(std::shared_ptr<RuntimeContextFactory> ctx_factory,
-             std::optional<std::shared_ptr<RuntimePropertiesCache>> cache);
+             std::optional<std::shared_ptr<RuntimePropertiesCache>> cache = {});
 
     const RuntimeContextFactory &ctx() const {
       return *ctx_factory_;

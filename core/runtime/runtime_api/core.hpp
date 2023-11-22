@@ -12,9 +12,9 @@
 #include "primitives/common.hpp"
 #include "primitives/version.hpp"
 #include "storage/changes_trie/changes_tracker.hpp"
+#include "runtime/runtime_context.hpp"
 
 namespace kagome::runtime {
-  class RuntimeContext;
 
   // interface for calls that are done by the runtime via Host API
   // (typically Runtime API is the contrary -- calls from host to runtime)

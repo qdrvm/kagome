@@ -218,25 +218,25 @@ int main() {
 
   auto smc = std::make_shared<kagome::runtime::SingleModuleCache>();
 
-  auto instance_env_factory =
-      std::make_shared<const kagome::runtime::wavm::InstanceEnvironmentFactory>(
-          trie_storage,
-          serializer,
-          compartment,
-          module_params,
-          intrinsic_module,
-          host_api_factory,
-          header_repo,
-          smc,
-          cache);
   auto module_factory =
       std::make_shared<kagome::runtime::wavm::ModuleFactoryImpl>(
           compartment,
           module_params,
-          instance_env_factory,
+          host_api_factory,
+          trie_storage,
+          serializer,
           intrinsic_module,
+          smc,
           std::nullopt,
           hasher);
+
+  auto instance_env_factory =
+      std::make_shared<const kagome::runtime::wavm::InstanceEnvironmentFactory>(
+          trie_storage,
+          serializer,
+          host_api_factory,
+          smc,
+          module_factory);
   auto runtime_instances_pool =
       std::make_shared<kagome::runtime::RuntimeInstancesPool>();
   auto module_repo = std::make_shared<kagome::runtime::ModuleRepositoryImpl>(

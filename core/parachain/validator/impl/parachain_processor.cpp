@@ -8,9 +8,9 @@
 
 #include <array>
 #include <unordered_map>
+#include <span>
 
 #include <fmt/std.h>
-#include <gsl/span>
 #include <libp2p/common/final_action.hpp>
 
 #include "crypto/hasher.hpp"
