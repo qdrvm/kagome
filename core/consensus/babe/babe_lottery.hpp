@@ -12,6 +12,7 @@
 #include "consensus/babe/types/slot_leadership.hpp"
 #include "consensus/timeline/types.hpp"
 #include "crypto/sr25519_types.hpp"
+#include "primitives/common.hpp"
 
 namespace kagome::consensus::babe {
   /// Interface for acquiring leadership information for the current Babe epoch.

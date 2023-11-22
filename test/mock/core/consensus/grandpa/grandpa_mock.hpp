@@ -45,7 +45,7 @@ namespace kagome::consensus::grandpa {
         void,
         verifyJustification,
         (const GrandpaJustification &,
-         const primitives::AuthoritySet &,
+         const AuthoritySet &,
          std::shared_ptr<std::promise<outcome::result<void>>> promise_res),
         (override));
 

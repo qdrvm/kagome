@@ -53,7 +53,7 @@ namespace kagome::network {
       primitives::BlockInfo block_info;
       primitives::BlockHeader header;
       consensus::grandpa::GrandpaJustification justification;
-      primitives::AuthoritySet authorities;
+      consensus::grandpa::AuthoritySet authorities;
     };
 
     WarpSync(

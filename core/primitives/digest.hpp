@@ -14,8 +14,9 @@
 #include "consensus/babe/types/babe_block_header.hpp"
 #include "consensus/babe/types/babe_configuration.hpp"
 #include "consensus/babe/types/epoch_data.hpp"
+#include "consensus/babe/types/scheduled_change.hpp"
 #include "consensus/constants.hpp"
-#include "primitives/scheduled_change.hpp"
+#include "consensus/grandpa/types/scheduled_change.hpp"
 #include "scale/scale.hpp"
 #include "scale/tie.hpp"
 
@@ -59,19 +60,19 @@ namespace kagome::primitives {
   using BabeDigest =
       /// Note: order of types in variant matters
       boost::variant<Unused<0>,
-                     consensus::babe::EpochData,  // 1: (Auth C; R)
-                     OnDisabled,                  // 2: Auth ID
-                     NextConfigData>;             // 3: c, S2nd
+                     consensus::babe::EpochData,        // 1: (Auth[]; Rand)
+                     consensus::babe::OnDisabled,       // 2: AuthIndex
+                     consensus::babe::NextConfigData>;  // 3: c, S2nd
 
   /// https://github.com/paritytech/substrate/blob/polkadot-v0.9.8/primitives/finality-grandpa/src/lib.rs#L92
   using GrandpaDigest =
       /// Note: order of types in variant matters
       boost::variant<Unused<0>,
-                     ScheduledChange,  // 1: (Auth C; N delay)
-                     ForcedChange,     // 2: (Auth C; N delay)
-                     OnDisabled,       // 3: Auth ID
-                     Pause,            // 4: N delay
-                     Resume>;          // 5: N delay
+                     consensus::grandpa::ScheduledChange,  // 1: (Auth[]; Delay)
+                     consensus::grandpa::ForcedChange,     // 2: (Auth[]; Delay)
+                     consensus::grandpa::OnDisabled,       // 3: AuthIndex
+                     consensus::grandpa::Pause,            // 4: Delay
+                     consensus::grandpa::Resume>;          // 5: Delay
 
   using UnsupportedDigest_POL1 = Tagged<Empty, struct POL1>;
   using UnsupportedDigest_BEEF = Tagged<Empty, struct BEEF>;
@@ -126,14 +127,14 @@ namespace kagome::primitives {
     Consensus(const A &a) {
       // clang-format off
       if constexpr (std::is_same_v<A, consensus::babe::EpochData>
-                 or std::is_same_v<A, NextConfigData>) {
+                 or std::is_same_v<A, consensus::babe::NextConfigData>) {
         consensus_engine_id = primitives::kBabeEngineId;
         data = common::Buffer(scale::encode(BabeDigest(a)).value());
-      } else if constexpr (std::is_same_v<A, ScheduledChange>
-                        or std::is_same_v<A, ForcedChange>
-                        or std::is_same_v<A, OnDisabled>
-                        or std::is_same_v<A, Pause>
-                        or std::is_same_v<A, Resume>) {
+      } else if constexpr (std::is_same_v<A, consensus::grandpa::ScheduledChange>
+                        or std::is_same_v<A, consensus::grandpa::ForcedChange>
+                        or std::is_same_v<A, consensus::grandpa::OnDisabled>
+                        or std::is_same_v<A, consensus::grandpa::Pause>
+                        or std::is_same_v<A, consensus::grandpa::Resume>) {
         consensus_engine_id = primitives::kGrandpaEngineId;
         data = common::Buffer(scale::encode(GrandpaDigest(a)).value());
       } else {

@@ -10,7 +10,6 @@
 
 #include "clock/clock.hpp"
 #include "crypto/sr25519_types.hpp"
-#include "primitives/authority.hpp"
 #include "scale/tie.hpp"
 
 namespace kagome::consensus {
@@ -57,7 +56,9 @@ namespace kagome::consensus {
           *this);
     }
 
-    auto operator<=>(const SlotDuration &) const = default;
+    auto operator<=>(const SlotDuration &r) const {
+      return count() <=> r.count();
+    }
 
     friend ::scale::ScaleEncoderStream &operator<<(
         ::scale::ScaleEncoderStream &s, const SlotDuration &duration) {
