@@ -30,8 +30,8 @@ namespace kagome::crypto {
     using Type = std::decay_t<T>;
     using HashType = common::Blob<N>;
 
-    private:
-    template<typename StreamHasherT>
+   private:
+    template <typename StreamHasherT>
     const HashType &getHash(StreamHasherT &hasher_) const {
       if (!opt_hash_ || StreamHasherT::ID != opt_hash_->first) {
         HashType h;
@@ -41,7 +41,7 @@ namespace kagome::crypto {
       return opt_hash_->second;
     }
 
-    public:
+   public:
     template <typename... Args>
     Hashed(Args &&...args) : type_{std::forward<Args>(args)...} {}
 
