@@ -62,6 +62,7 @@
 #include "common/fd_limit.hpp"
 #include "common/outcome_throw.hpp"
 #include "consensus/babe/impl/babe.hpp"
+#include "consensus/babe/impl/babe_block_validator_impl.hpp"
 #include "consensus/babe/impl/babe_config_repository_impl.hpp"
 #include "consensus/babe/impl/babe_lottery_impl.hpp"
 #include "consensus/finality_consensus.hpp"
@@ -75,7 +76,6 @@
 #include "consensus/timeline/impl/consensus_selector_impl.hpp"
 #include "consensus/timeline/impl/slots_util_impl.hpp"
 #include "consensus/timeline/impl/timeline_impl.hpp"
-#include "consensus/validation/babe_block_validator.hpp"
 #include "crypto/bip39/impl/bip39_provider_impl.hpp"
 #include "crypto/crypto_store/crypto_store_impl.hpp"
 #include "crypto/crypto_store/session_keys.hpp"
@@ -703,7 +703,6 @@ namespace {
             di::bind<network::Synchronizer>.template to<network::SynchronizerImpl>(),
             di::bind<consensus::grandpa::Environment>.template to<consensus::grandpa::EnvironmentImpl>(),
             di::bind<parachain::IApprovedAncestor>.template to<parachain::ApprovalDistribution>(),
-            di::bind<consensus::BlockValidator>.template to<consensus::BabeBlockValidator>(),
             di::bind<crypto::EcdsaProvider>.template to<crypto::EcdsaProviderImpl>(),
             di::bind<crypto::Ed25519Provider>.template to<crypto::Ed25519ProviderImpl>(),
             di::bind<crypto::Hasher>.template to<crypto::HasherImpl>(),
@@ -832,6 +831,7 @@ namespace {
             di::bind<consensus::ConsensusSelector>.template to<consensus::ConsensusSelectorImpl>(),
             di::bind<consensus::SlotsUtil>.template to<consensus::SlotsUtilImpl>(),
             di::bind<consensus::Timeline>.template to<consensus::TimelineImpl>(),
+            di::bind<consensus::babe::BabeBlockValidator>.template to<consensus::babe::BabeBlockValidatorImpl>(),
 
             // user-defined overrides...
             std::forward<decltype(args)>(args)...);

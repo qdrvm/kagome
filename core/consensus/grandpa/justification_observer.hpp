@@ -28,7 +28,7 @@ namespace kagome::consensus::grandpa {
      */
     virtual void verifyJustification(
         const GrandpaJustification &justification,
-        const primitives::AuthoritySet &authorities,
+        const AuthoritySet &authorities,
         std::shared_ptr<std::promise<outcome::result<void>>> promise_res) = 0;
 
     /**

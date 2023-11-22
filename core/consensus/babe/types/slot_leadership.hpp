@@ -16,7 +16,7 @@ namespace kagome::consensus::babe {
   class SlotLeadership {
    public:
     SlotType slot_type;
-    primitives::AuthorityIndex authority_index;
+    AuthorityIndex authority_index;
     std::shared_ptr<crypto::Sr25519Keypair> keypair;
     crypto::VRFOutput vrf_output;
   };

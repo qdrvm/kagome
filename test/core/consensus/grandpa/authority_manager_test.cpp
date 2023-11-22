@@ -18,9 +18,13 @@
 
 using kagome::application::AppStateManagerMock;
 using kagome::blockchain::BlockTreeMock;
+using kagome::consensus::grandpa::AuthorityId;
 using kagome::consensus::grandpa::AuthorityManagerImpl;
-using kagome::primitives::AuthoritySet;
-using kagome::primitives::AuthoritySetId;
+using kagome::consensus::grandpa::AuthoritySet;
+using kagome::consensus::grandpa::AuthoritySetId;
+using kagome::consensus::grandpa::ForcedChange;
+using kagome::consensus::grandpa::IsBlockFinalized;
+using kagome::consensus::grandpa::ScheduledChange;
 using kagome::primitives::BlockHash;
 using kagome::primitives::BlockHeader;
 using kagome::primitives::BlockNumber;
@@ -32,6 +36,11 @@ using testing::_;
 using testing::Return;
 using testing::ReturnRefOfCopy;
 
+AuthorityId mockAuth(uint64_t number) {
+  AuthorityId auth;
+  boost::endian::store_little_u64(auth.data(), number);
+  return auth;
+}
 BlockHash mockHash(uint64_t number) {
   BlockHash hash;
   boost::endian::store_little_u64(hash.data(), number);
@@ -78,15 +87,13 @@ class AuthorityManagerTest : public testing::Test {
             auto list = voters(it->second.first, it->second.second.has_value())
                             .authorities;
             if (it->second.second) {
-              header.digest.emplace_back(
-                  Consensus{kagome::primitives::ForcedChange{
-                      list,
-                      0,
-                      *it->second.second,
-                  }});
+              header.digest.emplace_back(Consensus{ForcedChange{
+                  list,
+                  0,
+                  *it->second.second,
+              }});
             } else {
-              header.digest.emplace_back(
-                  Consensus{kagome::primitives::ScheduledChange{list, 0}});
+              header.digest.emplace_back(Consensus{ScheduledChange{list, 0}});
             }
           }
           header.hash_opt = mockHash(header.number);
@@ -120,14 +127,12 @@ class AuthorityManagerTest : public testing::Test {
 
   AuthoritySet voters(AuthoritySetId id, bool forced = false) {
     auto authority = forced ? 1000000 + id : id;
-    return {id, {{{mockHash(authority)}, authority}}};
+    return {id, {{{mockAuth(authority)}, authority}}};
   }
 
   AuthoritySet query(BlockNumber at, bool next) {
     return *authority_manager
-                ->authorities(
-                    {at, mockHash(at)},
-                    kagome::consensus::grandpa::IsBlockFinalized{next})
+                ->authorities({at, mockHash(at)}, IsBlockFinalized{next})
                 .value();
   }
 

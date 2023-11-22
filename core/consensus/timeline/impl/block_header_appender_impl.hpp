@@ -16,7 +16,7 @@
 
 namespace kagome::blockchain {
   class BlockTree;
-}  // namespace kagome::blockchain
+}
 
 namespace kagome::crypto {
   class Hasher;
