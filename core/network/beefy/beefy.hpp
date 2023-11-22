@@ -98,6 +98,8 @@ namespace kagome::network {
         consensus::beefy::SignedCommitment justification, bool broadcast);
     outcome::result<void> update();
     outcome::result<void> vote();
+    outcome::result<std::optional<consensus::beefy::Commitment>> getCommitment(
+        const Sessions::value_type &session);
     void metricValidatorSetId();
 
     std::shared_ptr<blockchain::BlockTree> block_tree_;

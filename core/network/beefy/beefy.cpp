@@ -147,7 +147,8 @@ namespace kagome::network {
     if (next_session == sessions_.begin()) {
       return;
     }
-    auto &session = std::prev(next_session)->second;
+    auto session_it = std::prev(next_session);
+    auto &session = session_it->second;
     if (vote.commitment.validator_set_id != session.validators.id) {
       SL_VERBOSE(log_, "wrong validator set id for block {}", block_number);
       return;
@@ -163,6 +164,18 @@ namespace kagome::network {
     }
     auto total = session.validators.validators.size();
     auto round = session.rounds.find(block_number);
+    auto commitment_ok = false;
+    if (round != session.rounds.end()) {
+      commitment_ok = vote.commitment == round->second.commitment;
+    } else if (auto r = getCommitment(*session_it); not r or not r.value()) {
+      return;
+    } else {
+      commitment_ok = vote.commitment == *r.value();
+    }
+    if (not commitment_ok) {
+      SL_WARN(log_, "unexpected commitment for block {}", block_number);
+      return;
+    }
     if (round == session.rounds.end()) {
       round =
           session.rounds
@@ -411,31 +424,38 @@ namespace kagome::network {
                session->second.validators.id);
       return outcome::success();
     }
-    OUTCOME_TRY(block_hash, block_tree_->getBlockHash(target));
-    if (not block_hash) {
-      SL_VERBOSE(log_, "can't vote: no block {}", target);
+    OUTCOME_TRY(commitment, getCommitment(*session));
+    if (not commitment) {
+      SL_VERBOSE(log_, "can't vote: no commitment {}", target);
       return outcome::success();
+    }
+    OUTCOME_TRY(sig,
+                ecdsa_->signPrehashed(consensus::beefy::prehash(*commitment),
+                                      key->first->secret_key));
+    onVote({std::move(*commitment), key->first->public_key, sig}, true);
+    last_voted_ = target;
+    return outcome::success();
+  }
+
+  outcome::result<std::optional<consensus::beefy::Commitment>>
+  Beefy::getCommitment(const Sessions::value_type &session) {
+    OUTCOME_TRY(block_hash, block_tree_->getBlockHash(session.first));
+    if (not block_hash) {
+      SL_VERBOSE(log_, "getCommitment: no block {}", session.first);
+      return std::nullopt;
     }
     OUTCOME_TRY(header, block_tree_->getBlockHeader(*block_hash));
     auto mmr = beefyMmrDigest(header);
     if (not mmr) {
-      SL_VERBOSE(log_, "can't vote: no mmr digest in block {}", target);
-      return outcome::success();
+      SL_VERBOSE(
+          log_, "getCommitment: no mmr digest in block {}", session.first);
+      return std::nullopt;
     }
-    consensus::beefy::VoteMessage vote;
-    vote.commitment = {
+    return consensus::beefy::Commitment{
         {{consensus::beefy::kMmr, common::Buffer{*mmr}}},
-        target,
-        session->second.validators.id,
+        session.first,
+        session.second.validators.id,
     };
-    vote.id = key->first->public_key;
-    BOOST_OUTCOME_TRY(
-        vote.signature,
-        ecdsa_->signPrehashed(consensus::beefy::prehash(vote.commitment),
-                              key->first->secret_key));
-    onVote(std::move(vote), true);
-    last_voted_ = target;
-    return outcome::success();
   }
 
   void Beefy::metricValidatorSetId() {
