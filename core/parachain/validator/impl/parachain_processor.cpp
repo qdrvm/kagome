@@ -695,11 +695,148 @@ namespace kagome::parachain {
     bitfield_store_->putBitfield(bd->relay_parent, bd->data);
   }
 
+  ParachainProcessorImpl::ManifestImportSuccessOpt ParachainProcessorImpl::handle_incoming_manifest_common(
+    const libp2p::peer::PeerId &peer_id,
+    const CandidateHash &candidate_hash,
+    const RelayHash &relay_parent,
+    const ManifestSummary &manifest_summary,
+    ParachainId para_id
+  ) {
+    if (!candidates_.insert_unconfirmed(
+      peer,
+      candidate_hash,
+      relay_parent,
+      manifest_summary.claimed_group_index,
+      {{manifest_summary.claimed_parent_hash, para_id}}
+    )) {
+      SL_TRACE(logger_, "Insert unconfirmed candidate failed. (candidate hash={}, relay parent={}, para id={}, claimed parent={})", candidate_hash, relay_parent, para_id, manifest_summary.claimed_parent_hash);
+      return std::nullopt;
+    }
+
+    /// TODO(iceseer): do
+    /// `grid_topology` and `local_validator`
+    return ManifestImportSuccess { 
+      .acknowledge = true, 
+      .sender_index = 0,
+    };
+  }
+
+  network::vstaging::StatementFilter ParachainProcessorImpl::local_knowledge_filter(size_t group_size, GroupIndex group_index, const CandidateHash &candidate_hash, const StatementStore &statement_store) {
+    network::vstaging::StatementFilter f{group_size};
+    statement_store.fill_statement_filter(group_index, candidate_hash, f);
+    return f;
+  }
+
+  std::deque<network::VersionedValidatorProtocolMessage> 
+  ParachainProcessorImpl::acknowledgement_and_statement_messages(
+    StatementStore &statements_store,
+    const std::vector<ValidatorIndex> &group,
+    ValidatorIndex validator_index,
+    network::vstaging::StatementFilter &&local_knowledge,
+    const CandidateHash &candidate_hash,
+    const RelayHash &relay_parent,
+    const runtime::SessionInfo &session_info
+  ) {
+    std::deque<std::pair<std::deque<libp2p::peer::PeerId>, network::VersionedValidatorProtocolMessage>> messages;
+
+    /// TODO(iceseer): do
+    /// Will sent to the whole group. Optimize when `grid_view` will be implemented
+    messages.emplace_back(network::VersionedValidatorProtocolMessage{network::vstaging::ValidatorProtocolMessage {network::vstaging::StatementDistributionMessage {network::vstaging::BackedCandidateAcknowledgement {
+        .candidate_hash = candidate_hash,
+        .statement_knowledge = std::move(local_knowledge),
+      }}}});
+
+    for ()
+  }
+
   void ParachainProcessorImpl::process_vstaging_statement(
       const libp2p::peer::PeerId &peer_id,
       const network::vstaging::StatementDistributionMessage &msg) {
     BOOST_ASSERT(
         this_context_->io_context()->get_executor().running_in_this_thread());
+
+    if (auto manifest = if_type<
+            const network::vstaging::BackedCandidateManifest>(
+            msg)) {
+        auto relay_parent_state = tryGetStateByRelayParent(manifest->get().relay_parent);
+        if (!relay_parent_state) {
+          SL_WARN(logger_,
+                  "After BackedCandidateManifest no parachain state on relay_parent. (relay "
+                  "parent={})",
+                  manifest->get().relay_parent);
+          return;
+        }
+
+        if (!relay_parent_state->get().statement_store) {
+          SL_ERROR(logger_, "Statement store is not initialized. (relay parent={})", manifest->get().relay_parent);
+          return;
+        }
+
+        ManifestImportSuccessOpt x = handle_incoming_manifest_common(
+          peer_id,
+          manifest->get().candidate_hash,
+          manifest->get().relay_parent,
+          ManifestSummary {
+            claimed_parent_hash: manifest->get().parent_head_data_hash,
+            claimed_group_index: manifest->get().group_index,
+            statement_knowledge: manifest->get().statement_knowledge,
+          },
+          manifest->get().para_id
+        );
+        if (!x) {
+          return;
+        }
+
+        auto opt_session_info = retrieveSessionInfo(manifest->get().relay_parent);
+        if (!opt_session_info) {
+          SL_WARN(logger_,
+                  "No session info for current parrent. (relay parent={})",
+                  manifest->get().relay_parent);
+          return;
+        }
+        const auto &group = opt_session_info->validator_groups[manifest->get().group_index];
+
+        if (x.acknowledge) {
+          SL_TRACE(logger_, "Known candidate - acknowledging manifest. (candidate hash={})", manifest->get().candidate_hash);
+          network::vstaging::StatementFilter local_knowledge = local_knowledge_filter(
+            group.size(),
+            manifest->get().group_index,
+            manifest->get().candidate_hash,
+            *relay_parent_state->get().statement_store,
+          );
+          auto messages = acknowledgement_and_statement_messages();
+          for (const auto &msg : messages) {
+            send();
+          }
+        } else if (!candidates_.is_confirmed(manifest->get().candidate_hash)) {
+          /// TODO(iceseer): do
+          /// not used because of `acknowledge` = true. Implement `grid_view` to retrieve real `acknowledge`.
+
+          network::vstaging::StatementFilter unwanted_mask{group.size()};
+          router_->getFetchAttestedCandidateProtocol()->doRequest(
+              peer_id,
+              network::vstaging::AttestedCandidateRequest{
+                  .candidate_hash = manifest->get().candidate_hash,
+                  .mask = std::move(unwanted_mask),
+              },
+              [wptr{weak_from_this()},
+              relay_parent{manifest->get().relay_parent},
+              candidate_hash{manifest->get().candidate_hash},
+              groups{Groups{opt_session_info->validator_groups}},
+              group_index{manifest->get().group_index}](
+                  outcome::result<network::vstaging::AttestedCandidateResponse>
+                      r) mutable {
+                if (auto self = wptr.lock()) {
+                  self->handleFetchedStatementResponse(std::move(r),
+                                                      relay_parent,
+                                                      candidate_hash,
+                                                      std::move(groups),
+                                                      group_index);
+                }
+              });
+        }
+        return;
+    }
 
     if (auto stm = if_type<
             const network::vstaging::StatementDistributionMessageStatement>(

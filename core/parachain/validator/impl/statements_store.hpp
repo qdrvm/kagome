@@ -121,6 +121,16 @@ namespace kagome::parachain {
       }
     }
 
+    void fill_statement_filter(GroupIndex group_index, const CandidateHash &candidate_hash, StatementFilter &statement_filter) const {
+      if (auto it_gs = group_statements.find(group_index); it_gs != group_statements.end()) {
+        if (auto it_ch = it_gs->second.find(candidate_hash); it_ch != it_gs->second.end()) {
+          const GroupStatements &statements = it_ch->second;
+          statement_filter.seconded_in_group = statements.seconded;
+          statement_filter.validated_in_group = statements.valid;
+        }
+      }
+    }
+
     size_t seconded_count(const ValidatorIndex &validator_index) const {
       auto it = validator_meta.find(validator_index);
       if (it != validator_meta.end()) {

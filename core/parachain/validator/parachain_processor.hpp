@@ -238,6 +238,18 @@ namespace kagome::parachain {
       Hash relay_parent;
     };
 
+    struct ManifestSummary {
+      Hash claimed_parent_hash;
+      GroupIndex claimed_group_index;
+      network::vstaging::StatementFilter statement_knowledge;
+    };
+
+    struct ManifestImportSuccess{
+      bool acknowledge;
+      ValidatorIndex sender_index;
+    };
+    using ManifestImportSuccessOpt = std::optional<ManifestImportSuccess>;
+
     /*
      * Validation.
      */
@@ -302,6 +314,14 @@ namespace kagome::parachain {
         const CandidateHash &candidate_hash,
         Groups &&groups,
         GroupIndex group_index);
+    ManifestImportSuccessOpt handle_incoming_manifest_common(
+        const libp2p::peer::PeerId &peer_id,
+        const CandidateHash &candidate_hash,
+        const RelayHash &relay_parent,
+        const ManifestSummary &manifest_summary,
+        ParachainId para_id
+      );
+      network::vstaging::StatementFilter local_knowledge_filter(size_t group_size, GroupIndex group_index, const CandidateHash &candidate_hash, const StatementStore &statement_store);
 
     outcome::result<std::pair<CollatorId, ParachainId>> insertAdvertisement(
         network::PeerState &peer_data,
