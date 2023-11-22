@@ -10,7 +10,7 @@
 
 namespace kagome::crypto {
 
-  class CTHasher {
+  class CompileTimeHasher {
     static constexpr /* h */ uint32_t __init__(uint32_t len) {
       return 0 ^ len;
     }
@@ -85,7 +85,8 @@ namespace kagome::crypto {
 
 }  // namespace kagome::crypto
 
-#ifndef CT_MURMUR2
-#define CT_MURMUR2(x) \
-  ::kagome::crypto::CTHasher::murmur2(x, (sizeof(x) / sizeof(x[0])) - 1)
-#endif  // CT_MURMUR2
+#ifndef CompileTime_MURMUR2
+#define CompileTime_MURMUR2(x)                    \
+  ::kagome::crypto::CompileTimeHasher::murmur2(x, \
+                                               (sizeof(x) / sizeof(x[0])) - 1)
+#endif  // CompileTime_MURMUR2

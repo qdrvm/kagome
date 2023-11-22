@@ -15,7 +15,8 @@ namespace kagome::crypto {
 
   template <size_t Outlen>
   struct Blake2b_StreamHasher final {
-    static constexpr uint32_t ID = CT_MURMUR2(__FILE__ XSTRINGIFY(__LINE__));
+    static constexpr uint32_t ID =
+        CompileTime_MURMUR2(__FILE__ XSTRINGIFY(__LINE__));
     static constexpr size_t kOutlen = Outlen;
 
     static_assert((Outlen & (Outlen - 1)) == 0, "Outlen is pow 2");
