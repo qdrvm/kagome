@@ -81,24 +81,33 @@ namespace kagome::consensus::sassafras {
       SEQUENCE_OF<VrfInput> vrf_inputs) {
     Transcript transcript;
     transcript.initialize(transcript_label);
-    //    for (auto &data : transcript_data) {
-    //      // transcript.append(data);
-    //    }
+    // for (auto &data : transcript_data) {
+    //   // transcript.append(data);
+    // }
     return VrfSignatureData{transcript, vrf_inputs};
   };
 
   // Plain VRF Signature -----------
 
-  using PlainSignature = common::Buffer;
+  using Signature =
+      std::array<uint8_t, crypto::constants::bandersnatch::SIGNATURE_SIZE>;
 
+  /// VRF signature.
+  ///
+  /// Includes both the transcript `signature` and the `outputs` generated from
+  /// the [`VrfSignData::inputs`].
+  ///
+  /// Refer to [`VrfSignData`] for more details.
   struct VrfSignature {
     SCALE_TIE(2);
-    // represents the actual signature (opaque).
-    PlainSignature signature;
-    // a sequence of VrfOutputs corresponding to the VrfInputs values.
+    /// VRF (pre)outputs.
+    // TIP:		pub outputs: VrfIosVec<VrfOutput>,
     std::vector<std::vector<uint8_t>>
         //    SEQUENCE_OF<VrfOutput>
         outputs;
+
+    /// Transcript signature.
+    Signature signature;
   };
 
   VrfSignature plain_vrf_sign(crypto::BandersnatchSecretKey secret,
