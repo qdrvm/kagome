@@ -4,6 +4,11 @@
  */
 
 #include <gtest/gtest.h>
+
+#if defined(BACKWARD_HAS_BACKTRACE)
+#include <backward.hpp>
+#endif
+
 #include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
 
@@ -27,6 +32,10 @@ RuntimeInstancesPool::CodeHash make_code_hash(int i) {
 
 TEST(InstancePoolTest, HeavilyMultithreadedCompilation) {
   using namespace std::chrono_literals;
+
+#if defined(BACKWARD_HAS_BACKTRACE)
+  backward::SignalHandling sh;
+#endif
 
   auto module_instance_mock = std::make_shared<ModuleInstanceMock>();
 
