@@ -239,8 +239,8 @@ namespace kagome::consensus::sassafras {
     SlotClaim slot_claim{
         .authority_index = slot_leadership_.authority_index,
         .slot_number = slot_,
-        .signature = {},     // FIXME
-        .ticket_claim = {},  // FIXME
+        .signature = {},               // FIXME
+        .ticket_claim = std::nullopt,  // FIXME
     };
 
     auto encode_res = scale::encode(slot_claim);
@@ -292,7 +292,10 @@ namespace kagome::consensus::sassafras {
       return SlotLeadershipError::BACKING_OFF;
     }
 
-    SL_INFO(log_, "Node builds block on top of block {}", parent_);
+    SL_INFO(log_,
+            "Node builds block on top of block {} in slot {}",
+            parent_,
+            slot_);
 
     primitives::InherentData inherent_data;
     auto now = std::chrono::duration_cast<std::chrono::milliseconds>(
@@ -349,13 +352,13 @@ namespace kagome::consensus::sassafras {
       SL_ERROR(log_, "cannot propose a block: {}", pre_digest_res.error());
       return BlockProductionError::CAN_NOT_PREPARE_BLOCK;
     }
-    const auto &pre_digest = pre_digest_res.value();
+    auto &pre_digest = pre_digest_res.value();
 
-    auto propose = [self{shared_from_this()},
-                    inherent_data{std::move(inherent_data)},
+    auto propose = [self = shared_from_this(),
+                    inherent_data = std::move(inherent_data),
                     now,
                     proposal_start,
-                    pre_digest{std::move(pre_digest)},
+                    pre_digest = std::move(pre_digest),
                     slot = slot_,
                     parent = parent_]() mutable {
       auto changes_tracker =
