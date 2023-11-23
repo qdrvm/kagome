@@ -152,12 +152,10 @@ TEST_F(AssignmentsTest, assign_to_nonzero_core) {
   si.n_delay_tranches = 40;
 
   kagome::parachain::ApprovalDistribution::CandidateIncludedList leaving_cores =
-      {std::make_tuple(c_a,
-                       kagome::network::CandidateReceipt{},
+      {std::make_tuple(kagome::network::CandidateReceipt{},
                        (kagome::parachain::CoreIndex)0,
                        (kagome::parachain::GroupIndex)0),
-       std::make_tuple(c_b,
-                       kagome::network::CandidateReceipt{},
+       std::make_tuple(kagome::network::CandidateReceipt{},
                        (kagome::parachain::CoreIndex)1,
                        (kagome::parachain::GroupIndex)1)};
   auto assignments =
@@ -230,12 +228,10 @@ TEST_F(AssignmentsTest, assignments_produced_for_non_backing) {
   si.n_delay_tranches = 40;
 
   kagome::parachain::ApprovalDistribution::CandidateIncludedList leaving_cores =
-      {std::make_tuple(c_a,
-                       kagome::network::CandidateReceipt{},
+      {std::make_tuple(kagome::network::CandidateReceipt{},
                        (kagome::parachain::CoreIndex)0,
                        (kagome::parachain::GroupIndex)1),
-       std::make_tuple(c_b,
-                       kagome::network::CandidateReceipt{},
+       std::make_tuple(kagome::network::CandidateReceipt{},
                        (kagome::parachain::CoreIndex)1,
                        (kagome::parachain::GroupIndex)0)};
   auto assignments =
