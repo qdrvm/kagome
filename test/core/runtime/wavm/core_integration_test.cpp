@@ -53,15 +53,6 @@ class CoreTest : public WavmRuntimeTest {
 
 /**
  * @given initialized core api
- * @when version is invoked
- * @then successful result is returned
- */
-TEST_F(CoreTest, DISABLED_VersionTest) {
-  ASSERT_TRUE(core_->version());
-}
-
-/**
- * @given initialized core api
  * @when execute_block is invoked
  * @then successful result is returned
  */

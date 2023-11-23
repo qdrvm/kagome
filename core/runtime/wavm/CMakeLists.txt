@@ -28,5 +28,6 @@ target_link_libraries(runtime_wavm
     executor
 		Boost::boost
     trie_storage_provider
+		memory_allocator
     )
 kagome_install(runtime_wavm)
