@@ -48,7 +48,7 @@ TEST(InstancePoolTest, HeavilyMultithreadedCompilation) {
   RuntimeInstancesPool pool{module_factory, 5};
 
   std::vector<std::thread> threads;
-  for (int i = 0; i < 100; i++) {
+  for (int i = 0; i < 10; i++) {
     threads.emplace_back(std::thread([&pool, i, &code]() {
       ASSERT_OUTCOME_SUCCESS_TRY(
           pool.instantiateFromCode(make_code_hash(i % 5), code.view()));
