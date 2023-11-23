@@ -897,6 +897,7 @@ namespace {
             di::bind<consensus::babe::BabeBlockValidator>.template to<consensus::babe::BabeBlockValidatorImpl>(),
             di::bind<crypto::EllipticCurves>.template to<crypto::EllipticCurvesImpl>(),
             di::bind<crypto::BandersnatchProvider>.template to<crypto::BandersnatchProviderImpl>(),
+            di::bind<crypto::EllipticCurves>.template to<crypto::EllipticCurvesImpl>(),
 
             // user-defined overrides...
             std::forward<decltype(args)>(args)...);
