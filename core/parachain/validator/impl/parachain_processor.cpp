@@ -727,26 +727,40 @@ namespace kagome::parachain {
     return f;
   }
 
+  void ParachainProcessorImpl::send_to_group(
+    const std::vector<ValidatorIndex> &group,
+    const std::deque<network::VersionedValidatorProtocolMessage> &messages
+  ) {
+
+    for (const)
+
+        const auto &authority_id =
+        session_info->discovery_keys[attesting_data.from_validator];
+    if (auto peer = query_audi_->get(authority_id)) {
+
+  }
+
   std::deque<network::VersionedValidatorProtocolMessage> 
   ParachainProcessorImpl::acknowledgement_and_statement_messages(
-    StatementStore &statements_store,
+    StatementStore &statement_store,
     const std::vector<ValidatorIndex> &group,
-    ValidatorIndex validator_index,
-    network::vstaging::StatementFilter &&local_knowledge,
+    const network::vstaging::StatementFilter &local_knowledge,
     const CandidateHash &candidate_hash,
-    const RelayHash &relay_parent,
-    const runtime::SessionInfo &session_info
-  ) {
+    const RelayHash &relay_parent) {
     std::deque<std::pair<std::deque<libp2p::peer::PeerId>, network::VersionedValidatorProtocolMessage>> messages;
-
     /// TODO(iceseer): do
     /// Will sent to the whole group. Optimize when `grid_view` will be implemented
     messages.emplace_back(network::VersionedValidatorProtocolMessage{network::vstaging::ValidatorProtocolMessage {network::vstaging::StatementDistributionMessage {network::vstaging::BackedCandidateAcknowledgement {
         .candidate_hash = candidate_hash,
-        .statement_knowledge = std::move(local_knowledge),
+        .statement_knowledge = local_knowledge,
       }}}});
-
-    for ()
+    statement_store.group_statements(group, candidate_hash, local_knowledge, [&](const IndexedAndSigned<network::vstaging::CompactStatement> &statement) {
+      messages.emplace_back(network::VersionedValidatorProtocolMessage{network::vstaging::ValidatorProtocolMessage {network::vstaging::StatementDistributionMessage {network::vstaging::StatementDistributionMessageStatement {
+        .relay_parent = relay_parent,
+        .compact = statement,
+      }}}});
+    });
+    return messages;
   }
 
   void ParachainProcessorImpl::process_vstaging_statement(
@@ -787,7 +801,7 @@ namespace kagome::parachain {
           return;
         }
 
-        auto opt_session_info = retrieveSessionInfo(manifest->get().relay_parent);
+        std::optional<runtime::SessionInfo> opt_session_info = retrieveSessionInfo(manifest->get().relay_parent);
         if (!opt_session_info) {
           SL_WARN(logger_,
                   "No session info for current parrent. (relay parent={})",
@@ -804,7 +818,9 @@ namespace kagome::parachain {
             manifest->get().candidate_hash,
             *relay_parent_state->get().statement_store,
           );
-          auto messages = acknowledgement_and_statement_messages();
+          auto messages = acknowledgement_and_statement_messages(
+            *relay_parent_state->get().statement_store,
+            group, local_knowledge, manifest->get().candidate_hash, manifest->get().relay_parent);
           for (const auto &msg : messages) {
             send();
           }
@@ -2096,7 +2112,7 @@ namespace kagome::parachain {
                     peer_id);
       return;
     }
-
+1
     peer_state->get().version = version;
     if (tryOpenOutgoingValidationStream(
             peer_id, [wptr{weak_from_this()}, peer_id](auto &&stream) {

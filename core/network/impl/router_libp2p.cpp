@@ -45,6 +45,7 @@ namespace kagome::network {
         validation_protocol_(std::move(validation_protocol)),
         collation_protocol_(std::move(collation_protocol)),
         collation_protocol_vstaging_(std::move(collation_protocol_vstaging)),
+        validation_protocol_vstaging_(std::move(validation_protocol_vstaging)),
         req_collation_protocol_(std::move(req_collation_protocol)),
         req_pov_protocol_(std::move(req_pov_protocol)),
         fetch_chunk_protocol_(std::move(fetch_chunk_protocol)),
@@ -76,22 +77,20 @@ namespace kagome::network {
   bool RouterLibp2p::prepare() {
     app_state_manager_->takeControl(*block_announce_protocol_.get());
     app_state_manager_->takeControl(*grandpa_protocol_.get());
-
     app_state_manager_->takeControl(*sync_protocol_.get());
     app_state_manager_->takeControl(*state_protocol_.get());
     app_state_manager_->takeControl(*warp_protocol_.get());
     app_state_manager_->takeControl(*light_protocol_.get());
-
     app_state_manager_->takeControl(*propagate_transactions_protocol_.get());
-
     app_state_manager_->takeControl(*collation_protocol_.get());
     app_state_manager_->takeControl(*validation_protocol_.get());
+    app_state_manager_->takeControl(*collation_protocol_vstaging_.get());
+    app_state_manager_->takeControl(*validation_protocol_vstaging_.get());
     app_state_manager_->takeControl(*req_collation_protocol_.get());
     app_state_manager_->takeControl(*req_pov_protocol_.get());
     app_state_manager_->takeControl(*fetch_chunk_protocol_.get());
     app_state_manager_->takeControl(*fetch_available_data_protocol_.get());
     app_state_manager_->takeControl(*statement_fetching_protocol_.get());
-
     app_state_manager_->takeControl(*send_dispute_protocol_.get());
 
     host_.setProtocolHandler(
@@ -198,6 +197,11 @@ namespace kagome::network {
   std::shared_ptr<ValidationProtocol> RouterLibp2p::getValidationProtocol()
       const {
     return validation_protocol_.get();
+  }
+
+  std::shared_ptr<ValidationProtocolVStaging> RouterLibp2p::getValidationProtocolVStaging()
+      const {
+    return validation_protocol_vstaging_.get();
   }
 
   std::shared_ptr<ReqCollationProtocol> RouterLibp2p::getReqCollationProtocol()

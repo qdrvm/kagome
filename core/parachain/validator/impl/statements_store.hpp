@@ -185,6 +185,38 @@ namespace kagome::parachain {
       }
     }
 
+    template<typename F>
+    void group_statements(const std::vector<ValidatorIndex> &group_validators, const CandidateHash &candidate_hash, const StatementFilter &filter, F &&cb) const {
+      auto call = [&] (const scale::BitVec &target, network::vstaging::CompactStatement &&stm) {
+        Fingerprint fingerprint{
+          .index = 0,
+          .statement = std::move(stm),
+        };
+        for (size_t i = 0; i < target.bits.size(); ++i) {
+          if (!target.bits[i]) {
+            continue;
+          }
+          if (i >= group_validators.size()) {
+            continue;
+          }
+
+          const ValidatorIndex v = group_validators[i];
+          fingerprint.index = v;
+          auto it = known_statements.find(fingerprint);
+          if (it != known_statements.end()) {
+            cb(it->second.statement);
+          }
+        }
+      };
+
+      call(filter.seconded_in_group, network::vstaging::SecondedCandidateHash {
+            .hash = candidate_hash,
+            });
+      call(filter.validated_in_group, network::vstaging::ValidCandidateHash {
+            .hash = candidate_hash,
+            });
+    }
+
     std::optional<bool> insert(
         const Groups &groups,
         const IndexedAndSigned<network::vstaging::CompactStatement> &statement,
