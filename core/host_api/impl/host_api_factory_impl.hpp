@@ -8,17 +8,17 @@
 
 #include "host_api/host_api_factory.hpp"
 
-#include "crypto/crypto_store.hpp"
-#include "crypto/ecdsa_provider.hpp"
-#include "crypto/ed25519_provider.hpp"
-#include "crypto/hasher.hpp"
-#include "crypto/secp256k1_provider.hpp"
-#include "crypto/sr25519_provider.hpp"
 #include "host_api/impl/offchain_extension.hpp"
 
 namespace kagome::crypto {
+  class Sr25519Provider;
+  class EcdsaProvider;
+  class Ed25519Provider;
+  class Secp256k1Provider;
   class EllipticCurves;
-}
+  class Hasher;
+  class CryptoStore;
+}  // namespace kagome::crypto
 
 namespace kagome::offchain {
   class OffchainPersistentStorage;
