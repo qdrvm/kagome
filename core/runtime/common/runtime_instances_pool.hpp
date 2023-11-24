@@ -87,11 +87,13 @@ namespace kagome::runtime {
 
     using CompilationResult =
         outcome::result<std::shared_ptr<const Module>, CompilationError>;
-    CompilationResult tryCompileModule(const CodeHash &code_hash,
-                                       common::BufferView code_zstd);
+    CompilationResult tryCompileModule(
+        const CodeHash &code_hash,
+        common::BufferView code_zstd,
+        std::shared_future<CompilationResult> future);
 
-    std::optional<std::shared_future<CompilationResult>> getFutureCompiledModule(
-        const CodeHash &code_hash) const;
+    std::optional<std::shared_future<CompilationResult>>
+    getFutureCompiledModule(const CodeHash &code_hash) const;
 
     std::shared_ptr<ModuleFactory> module_factory_;
 

@@ -74,21 +74,35 @@ namespace kagome::runtime {
   outcome::result<std::shared_ptr<ModuleInstance>, CompilationError>
   RuntimeInstancesPool::instantiateFromCode(const CodeHash &code_hash,
                                             common::BufferView code_zstd) {
-    std::unique_lock lock{pools_mtx_};
-    auto pool_opt = pools_.get(code_hash);
-
-    if (!pool_opt) {
-      lock.unlock();
+    std::optional<std::reference_wrapper<InstancePool>> pool_opt{};
+    {
+      std::unique_lock lock{pools_mtx_};
+      pool_opt = pools_.get(code_hash);
+    }
+    while (!pool_opt) {
       if (auto future = getFutureCompiledModule(code_hash)) {
-        lock.lock();
+        OUTCOME_TRY(future->get());
+        std::unique_lock lock{pools_mtx_};
         pool_opt = pools_.get(code_hash);
+        // may be nullopt if some other pool kicked the desired pool from the
+        // cache before we grabbed it
       } else {
-        OUTCOME_TRY(module, tryCompileModule(code_hash, code_zstd));
-        BOOST_ASSERT(module != nullptr);
-        lock.lock();
-        pool_opt = std::ref(pools_.put(code_hash, InstancePool{module, {}}));
+        std::promise<CompilationResult> promise;
+        auto module_res =
+            tryCompileModule(code_hash, code_zstd, promise.get_future());
+        if (module_res) {
+          std::unique_lock lock{pools_mtx_};
+          pool_opt = std::ref(
+              pools_.put(code_hash, InstancePool{module_res.value(), {}}));
+          promise.set_value(module_res);
+        } else {
+          promise.set_value(module_res);
+          return module_res.error();
+        }
       }
     }
+    BOOST_ASSERT(pool_opt);
+    std::unique_lock lock{pools_mtx_};
     auto instance = pool_opt->get().instantiate(lock);
     return std::make_shared<BorrowedInstance>(
         weak_from_this(), code_hash, std::move(instance));
@@ -108,17 +122,17 @@ namespace kagome::runtime {
   }
 
   RuntimeInstancesPool::CompilationResult
-  RuntimeInstancesPool::tryCompileModule(const CodeHash &code_hash,
-                                         common::BufferView code_zstd) {
+  RuntimeInstancesPool::tryCompileModule(
+      const CodeHash &code_hash,
+      common::BufferView code_zstd,
+      std::shared_future<CompilationResult> future) {
     std::unique_lock l{compiling_modules_mtx_};
-    std::promise<CompilationResult> promise;
-    auto [iter, inserted] =
-        compiling_modules_.insert({code_hash, promise.get_future()});
+    auto [iter, inserted] = compiling_modules_.insert({code_hash, future});
     BOOST_ASSERT(inserted);
     l.unlock();
 
     common::Buffer code;
-    CompilationResult res{nullptr};
+    std::optional<CompilationResult> res;
     if (!uncompressCodeIfNeeded(code_zstd, code)) {
       res = CompilationError{"Failed to uncompress code"};
     } else {
@@ -126,11 +140,11 @@ namespace kagome::runtime {
         return std::shared_ptr<const Module>(module);
       });
     }
-    promise.set_value(res);
+    BOOST_ASSERT(res);
 
     l.lock();
     compiling_modules_.erase(iter);
-    return res;
+    return *res;
   }
 
   outcome::result<std::shared_ptr<ModuleInstance>>
