@@ -135,17 +135,17 @@ int main() {
 
   auto generator =
       std::make_shared<libp2p::crypto::random::BoostRandomGenerator>();
-  auto sr25519_provider =
-      std::make_shared<kagome::crypto::Sr25519ProviderImpl>();
   auto ecdsa_provider =
       std::make_shared<kagome::crypto::EcdsaProviderImpl>(hasher);
   auto ed25519_provider =
       std::make_shared<kagome::crypto::Ed25519ProviderImpl>(hasher);
+  auto sr25519_provider =
+      std::make_shared<kagome::crypto::Sr25519ProviderImpl>();
+  auto bandersnatch_provider =
+      std::make_shared<kagome::crypto::BandersnatchProviderImpl>();
   auto secp256k1_provider =
       std::make_shared<kagome::crypto::Secp256k1ProviderImpl>();
   auto pbkdf2_provider = std::make_shared<kagome::crypto::Pbkdf2ProviderImpl>();
-  auto bandersnatch_provider =
-      std::make_shared<kagome::crypto::BandersnatchProviderImpl>();
   auto bip39_provider = std::make_shared<kagome::crypto::Bip39ProviderImpl>(
       pbkdf2_provider, hasher);
 
@@ -158,6 +158,7 @@ int main() {
   auto elliptic_curves = std::make_shared<kagome::crypto::EllipticCurvesImpl>();
   auto bandersnatch_suite = std::make_shared<kagome::crypto::BandersnatchSuite>(
       bandersnatch_provider);
+  auto elliptic_curves = std::make_shared<kagome::crypto::EllipticCurvesImpl>();
   std::shared_ptr<kagome::crypto::KeyFileStorage> key_fs =
       kagome::crypto::KeyFileStorage::createAt("/tmp/kagome_tmp_key_storage")
           .value();
@@ -182,9 +183,10 @@ int main() {
   auto host_api_factory =
       std::make_shared<kagome::host_api::HostApiFactoryImpl>(
           kagome::host_api::OffchainExtensionConfig{},
-          sr25519_provider,
           ecdsa_provider,
           ed25519_provider,
+          sr25519_provider,
+          bandersnatch_provider,
           secp256k1_provider,
           elliptic_curves,
           hasher,

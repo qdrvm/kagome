@@ -25,21 +25,21 @@
 #include "runtime/common/runtime_properties_cache_impl.hpp"
 #include "runtime/executor.hpp"
 #include "runtime/memory_provider.hpp"
-#include "runtime/module.hpp"  // smc
+#include "runtime/module.hpp"
 #include "runtime/runtime_context.hpp"
-#include "runtime/wavm/compartment_wrapper.hpp"           // compartment
-#include "runtime/wavm/instance_environment_factory.hpp"  // instance_env_factory
-#include "runtime/wavm/intrinsics/intrinsic_module.hpp"   // intrinsic_module
-#include "runtime/wavm/module_factory_impl.hpp"           // module_factory
-#include "runtime/wavm/module_params.hpp"                 //module_params
-#include "storage/in_memory/in_memory_spaced_storage.hpp"   // storage
-#include "storage/rocksdb/rocksdb.hpp"                      //database
-#include "storage/trie/impl/trie_storage_backend_impl.hpp"  // storage_backend
-#include "storage/trie/impl/trie_storage_impl.hpp"          // trie_storage
-#include "storage/trie/polkadot_trie/polkadot_trie_factory_impl.hpp"  // trie_factory
-#include "storage/trie/serialization/polkadot_codec.hpp"              //codec
-#include "storage/trie/serialization/trie_serializer_impl.hpp"  // serializer
-#include "storage/trie_pruner/impl/dummy_pruner.hpp"            // trie_pruner
+#include "runtime/wavm/compartment_wrapper.hpp"
+#include "runtime/wavm/instance_environment_factory.hpp"
+#include "runtime/wavm/intrinsics/intrinsic_module.hpp"
+#include "runtime/wavm/module_factory_impl.hpp"
+#include "runtime/wavm/module_params.hpp"
+#include "storage/in_memory/in_memory_storage.hpp"
+#include "storage/rocksdb/rocksdb.hpp"
+#include "storage/trie/impl/trie_storage_backend_impl.hpp"
+#include "storage/trie/impl/trie_storage_impl.hpp"
+#include "storage/trie/polkadot_trie/polkadot_trie_factory_impl.hpp"
+#include "storage/trie/serialization/polkadot_codec.hpp"
+#include "storage/trie/serialization/trie_serializer_impl.hpp"
+#include "storage/trie_pruner/impl/dummy_pruner.hpp"
 #include "testutil/outcome.hpp"
 #include "testutil/prepare_loggers.hpp"
 #include "testutil/runtime/common/basic_code_provider.hpp"
@@ -139,9 +139,10 @@ class WavmModuleInitTest : public ::testing::TestWithParam<std::string_view> {
     auto host_api_factory =
         std::make_shared<kagome::host_api::HostApiFactoryImpl>(
             kagome::host_api::OffchainExtensionConfig{},
-            sr25519_provider,
             ecdsa_provider,
             ed25519_provider,
+            sr25519_provider,
+            bandersnatch_provider,
             secp256k1_provider,
             elliptic_curves,
             hasher,
