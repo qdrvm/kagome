@@ -15,8 +15,10 @@
 namespace kagome::runtime::wavm {
 
   IntrinsicResolverImpl::IntrinsicResolverImpl(
+      std::shared_ptr<CompartmentWrapper> compartment,
       std::shared_ptr<IntrinsicModuleInstance> module_instance)
-      : module_instance_{std::move(module_instance)},
+      : compartment_{std::move(compartment)},
+        module_instance_{std::move(module_instance)},
         logger_{log::createLogger("IntrinsicResolver", "wavm")} {
     BOOST_ASSERT(module_instance_ != nullptr);
   }
@@ -39,7 +41,11 @@ namespace kagome::runtime::wavm {
           exportName, asFunctionType(type));
       if (export_func == nullptr) {
         logger_->warn("Host function not implemented: {}", exportName);
-        return false;
+        return WAVM::Runtime::generateStub(moduleName,
+                                           exportName,
+                                           type,
+                                           outObject,
+                                           compartment_->getCompartment());
       }
       outObject = WAVM::Runtime::asObject(export_func);
       return true;

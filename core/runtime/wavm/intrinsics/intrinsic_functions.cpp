@@ -41,13 +41,6 @@ namespace kagome::runtime::wavm {
   Result cName(WAVM::Runtime::ContextRuntimeData *contextRuntimeData, \
                ##__VA_ARGS__)
 
-#define WAVM_DEFINE_INTRINSIC_FUNCTION_STUB(Result, cName, ...)            \
-  Result cName(WAVM::Runtime::ContextRuntimeData *contextRuntimeData,      \
-               ##__VA_ARGS__) {                                            \
-    logger->warn("Unimplemented Host API function " #cName " was called"); \
-    throw std::runtime_error{#cName " not implemented"};                   \
-  }
-
   WAVM_DEFINE_INTRINSIC_FUNCTION(void,
                                  ext_allocator_free_version_1,
                                  WAVM::I32 address) {
@@ -677,118 +670,11 @@ namespace kagome::runtime::wavm {
     return peekHostApi()->ext_logging_max_level_version_1();
   }
 
-  WAVM_DEFINE_INTRINSIC_FUNCTION_STUB(void,
-                                      ext_sandbox_instance_teardown_version_1,
-                                      WAVM::I32)
-
-  WAVM_DEFINE_INTRINSIC_FUNCTION_STUB(WAVM::I32,
-                                      ext_sandbox_instantiate_version_1,
-                                      WAVM::I32,
-                                      WAVM::I64,
-                                      WAVM::I64,
-                                      WAVM::I32)
-
-  WAVM_DEFINE_INTRINSIC_FUNCTION_STUB(WAVM::I32,
-                                      ext_sandbox_invoke_version_1,
-                                      WAVM::I32,
-                                      WAVM::I64,
-                                      WAVM::I64,
-                                      WAVM::I32,
-                                      WAVM::I32,
-                                      WAVM::I32)
-
-  WAVM_DEFINE_INTRINSIC_FUNCTION_STUB(WAVM::I32,
-                                      ext_sandbox_memory_get_version_1,
-                                      WAVM::I32,
-                                      WAVM::I32,
-                                      WAVM::I32,
-                                      WAVM::I32)
-
-  WAVM_DEFINE_INTRINSIC_FUNCTION_STUB(WAVM::I32,
-                                      ext_sandbox_memory_new_version_1,
-                                      WAVM::I32,
-                                      WAVM::I32)
-
-  WAVM_DEFINE_INTRINSIC_FUNCTION_STUB(WAVM::I32,
-                                      ext_sandbox_memory_set_version_1,
-                                      WAVM::I32,
-                                      WAVM::I32,
-                                      WAVM::I32,
-                                      WAVM::I32)
-
-  WAVM_DEFINE_INTRINSIC_FUNCTION_STUB(void,
-                                      ext_sandbox_memory_teardown_version_1,
-                                      WAVM::I32)
-
-  WAVM_DEFINE_INTRINSIC_FUNCTION_STUB(void, ext_evm_ext_call_list_new_version_2)
-
-  WAVM_DEFINE_INTRINSIC_FUNCTION_STUB(void,
-                                      ext_evm_ext_evm_event_version_1,
-                                      WAVM::I64)
-
-  WAVM_DEFINE_INTRINSIC_FUNCTION_STUB(void,
-                                      ext_evm_ext_gasometer_event_version_1,
-                                      WAVM::I64)
-
-  WAVM_DEFINE_INTRINSIC_FUNCTION_STUB(void,
-                                      ext_evm_ext_runtime_event_version_1,
-                                      WAVM::I64)
-
-  WAVM_DEFINE_INTRINSIC_FUNCTION_STUB(WAVM::I64,
-                                      ext_evm_ext_step_event_filter_version_1)
-
-  WAVM_DEFINE_INTRINSIC_FUNCTION_STUB(void,
-                                      ext_transaction_index_index_version_1,
-                                      WAVM::I32,
-                                      WAVM::I32,
-                                      WAVM::I32)
-
-  WAVM_DEFINE_INTRINSIC_FUNCTION_STUB(void,
-                                      ext_transaction_index_renew_version_1,
-                                      WAVM::I32,
-                                      WAVM::I32)
-
-  WAVM_DEFINE_INTRINSIC_FUNCTION_STUB(
-      void, ext_benchmarking_add_to_whitelist_version_1, WAVM::I64)
-
-  WAVM_DEFINE_INTRINSIC_FUNCTION_STUB(void,
-                                      ext_benchmarking_commit_db_version_1)
-
-  WAVM_DEFINE_INTRINSIC_FUNCTION_STUB(
-      void, ext_benchmarking_reset_read_write_count_version_1)
-
-  WAVM_DEFINE_INTRINSIC_FUNCTION_STUB(void,
-                                      ext_benchmarking_set_whitelist_version_1,
-                                      WAVM::I64)
-
-  WAVM_DEFINE_INTRINSIC_FUNCTION_STUB(void, ext_benchmarking_wipe_db_version_1)
-
-  WAVM_DEFINE_INTRINSIC_FUNCTION_STUB(WAVM::I32,
-                                      ext_benchmarking_current_time_version_1)
-
-  WAVM_DEFINE_INTRINSIC_FUNCTION_STUB(
-      WAVM::I64, ext_benchmarking_get_read_and_written_keys_version_1)
-
-  WAVM_DEFINE_INTRINSIC_FUNCTION_STUB(WAVM::I64,
-                                      ext_benchmarking_proof_size_version_1)
-
-  WAVM_DEFINE_INTRINSIC_FUNCTION_STUB(
-      WAVM::I64, ext_benchmarking_read_write_count_version_1)
-
   WAVM_DEFINE_INTRINSIC_FUNCTION(WAVM::I32,
                                  ext_trie_blake2_256_root_version_1,
                                  WAVM::I64 values_data) {
     return peekHostApi()->ext_trie_blake2_256_root_version_1(values_data);
   }
-
-  WAVM_DEFINE_INTRINSIC_FUNCTION_STUB(
-      WAVM::I32,
-      ext_trie_blake2_256_verify_proof_version_2,
-      WAVM::I32,
-      WAVM::I64,
-      WAVM::I64,
-      WAVM::I64,
-      WAVM::I32)
 
   void registerHostApiMethods(IntrinsicModule &module) {
     if (logger == nullptr) {
@@ -814,8 +700,6 @@ namespace kagome::runtime::wavm {
     REGISTER_HOST_INTRINSIC(, ext_misc_print_hex_version_1, I64)
     REGISTER_HOST_INTRINSIC(, ext_misc_print_num_version_1, I64)
     REGISTER_HOST_INTRINSIC(, ext_misc_print_utf8_version_1, I64)
-    REGISTER_HOST_INTRINSIC(, ext_sandbox_instance_teardown_version_1, I32)
-    REGISTER_HOST_INTRINSIC(, ext_sandbox_memory_teardown_version_1, I32)
     REGISTER_HOST_INTRINSIC(, ext_storage_append_version_1, I64, I64)
     REGISTER_HOST_INTRINSIC(, ext_storage_clear_prefix_version_1, I64)
     REGISTER_HOST_INTRINSIC(, ext_storage_clear_version_1, I64)
@@ -848,16 +732,10 @@ namespace kagome::runtime::wavm {
     REGISTER_HOST_INTRINSIC(I32, ext_hashing_twox_128_version_1, I64)
     REGISTER_HOST_INTRINSIC(I32, ext_hashing_twox_256_version_1, I64)
     REGISTER_HOST_INTRINSIC(I32, ext_logging_max_level_version_1)
-    REGISTER_HOST_INTRINSIC(I32, ext_sandbox_instantiate_version_1, I32, I64, I64, I32)
-    REGISTER_HOST_INTRINSIC(I32, ext_sandbox_invoke_version_1, I32, I64, I64, I32, I32, I32)
-    REGISTER_HOST_INTRINSIC(I32, ext_sandbox_memory_get_version_1, I32, I32, I32, I32)
-    REGISTER_HOST_INTRINSIC(I32, ext_sandbox_memory_new_version_1, I32, I32)
-    REGISTER_HOST_INTRINSIC(I32, ext_sandbox_memory_set_version_1, I32, I32, I32, I32)
     REGISTER_HOST_INTRINSIC(I32, ext_storage_exists_version_1, I64)
     REGISTER_HOST_INTRINSIC(I32, ext_trie_blake2_256_ordered_root_version_1, I64)
     REGISTER_HOST_INTRINSIC(I32, ext_trie_blake2_256_ordered_root_version_2, I64, I32)
     REGISTER_HOST_INTRINSIC(I32, ext_trie_blake2_256_root_version_1, I64)
-    REGISTER_HOST_INTRINSIC(I32, ext_trie_blake2_256_verify_proof_version_2,I32, I64, I64, I64, I32)
     REGISTER_HOST_INTRINSIC(I64, ext_crypto_ed25519_public_keys_version_1, I32)
     REGISTER_HOST_INTRINSIC(I64, ext_crypto_ed25519_sign_version_1, I32, I32, I64)
     REGISTER_HOST_INTRINSIC(I64, ext_crypto_secp256k1_ecdsa_recover_compressed_version_1, I32, I32)
@@ -900,25 +778,6 @@ namespace kagome::runtime::wavm {
     REGISTER_HOST_INTRINSIC(   , ext_offchain_set_authorized_nodes_version_1, I64, I32)
     REGISTER_HOST_INTRINSIC(   , ext_offchain_index_set_version_1, I64, I64)
     REGISTER_HOST_INTRINSIC(   , ext_offchain_index_clear_version_1, I64)
-
-    REGISTER_HOST_INTRINSIC(   , ext_evm_ext_call_list_new_version_2)
-    REGISTER_HOST_INTRINSIC(   , ext_evm_ext_evm_event_version_1, I64)
-    REGISTER_HOST_INTRINSIC(   , ext_evm_ext_gasometer_event_version_1, I64)
-    REGISTER_HOST_INTRINSIC(   , ext_evm_ext_runtime_event_version_1, I64)
-    REGISTER_HOST_INTRINSIC(I64, ext_evm_ext_step_event_filter_version_1)
-    REGISTER_HOST_INTRINSIC(   , ext_transaction_index_index_version_1, I32, I32, I32)
-    REGISTER_HOST_INTRINSIC(   , ext_transaction_index_renew_version_1, I32, I32)
-
-    REGISTER_HOST_INTRINSIC(   , ext_benchmarking_add_to_whitelist_version_1, I64)
-    REGISTER_HOST_INTRINSIC(   , ext_benchmarking_commit_db_version_1)
-    REGISTER_HOST_INTRINSIC(I32, ext_benchmarking_current_time_version_1)
-    REGISTER_HOST_INTRINSIC(I64, ext_benchmarking_get_read_and_written_keys_version_1)
-    REGISTER_HOST_INTRINSIC(I64, ext_benchmarking_proof_size_version_1)
-    REGISTER_HOST_INTRINSIC(I64, ext_benchmarking_read_write_count_version_1)
-    REGISTER_HOST_INTRINSIC(   , ext_benchmarking_reset_read_write_count_version_1)
-    REGISTER_HOST_INTRINSIC(   , ext_benchmarking_set_whitelist_version_1, I64)
-    REGISTER_HOST_INTRINSIC(   , ext_benchmarking_wipe_db_version_1)
-
     // clang-format on
   }
 
