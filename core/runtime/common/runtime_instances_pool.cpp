@@ -80,25 +80,17 @@ namespace kagome::runtime {
       pool_opt = pools_.get(code_hash);
     }
     while (!pool_opt) {
-      if (auto future = getFutureCompiledModule(code_hash)) {
-        OUTCOME_TRY(future->get());
+      std::promise<CompilationResult> promise;
+      auto module_res =
+          tryCompileModule(code_hash, code_zstd, promise.get_future());
+      if (module_res) {
         std::unique_lock lock{pools_mtx_};
-        pool_opt = pools_.get(code_hash);
-        // may be nullopt if some other pool kicked the desired pool from the
-        // cache before we grabbed it
+        pool_opt = std::ref(
+            pools_.put(code_hash, InstancePool{module_res.value(), {}}));
+        promise.set_value(module_res);
       } else {
-        std::promise<CompilationResult> promise;
-        auto module_res =
-            tryCompileModule(code_hash, code_zstd, promise.get_future());
-        if (module_res) {
-          std::unique_lock lock{pools_mtx_};
-          pool_opt = std::ref(
-              pools_.put(code_hash, InstancePool{module_res.value(), {}}));
-          promise.set_value(module_res);
-        } else {
-          promise.set_value(module_res);
-          return module_res.error();
-        }
+        promise.set_value(module_res);
+        return module_res.error();
       }
     }
     BOOST_ASSERT(pool_opt);
@@ -108,19 +100,6 @@ namespace kagome::runtime {
         weak_from_this(), code_hash, std::move(instance));
   }
 
-  std::optional<std::shared_future<RuntimeInstancesPool::CompilationResult>>
-  RuntimeInstancesPool::getFutureCompiledModule(
-      const CodeHash &code_hash) const {
-    std::unique_lock l{compiling_modules_mtx_};
-    auto iter = compiling_modules_.find(code_hash);
-    if (iter == compiling_modules_.end()) {
-      return std::nullopt;
-    }
-    auto future = iter->second;
-    l.unlock();
-    return future;
-  }
-
   RuntimeInstancesPool::CompilationResult
   RuntimeInstancesPool::tryCompileModule(
       const CodeHash &code_hash,
@@ -128,7 +107,11 @@ namespace kagome::runtime {
       std::shared_future<CompilationResult> future) {
     std::unique_lock l{compiling_modules_mtx_};
     auto [iter, inserted] = compiling_modules_.insert({code_hash, future});
-    BOOST_ASSERT(inserted);
+    if (!inserted) {
+      std::shared_future<CompilationResult> future = iter->second;
+      l.unlock();
+      return future.get();
+    }
     l.unlock();
 
     common::Buffer code;
