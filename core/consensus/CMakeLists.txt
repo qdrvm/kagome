@@ -24,4 +24,3 @@ target_link_libraries(consensus INTERFACE
     grandpa
 )
 kagome_install(consensus)
-kagome_clear_objects(consensus)

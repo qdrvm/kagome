@@ -88,7 +88,7 @@ namespace kagome::parachain {
 
     auto signable() {
       constexpr std::array<uint8_t, 4> kMagic{'V', 'C', 'P', 'C'};
-      return scale::encode(std::make_tuple(kMagic, *this)).value();
+      return ::scale::encode(std::make_tuple(kMagic, *this)).value();
     }
   };
 }  // namespace kagome::parachain

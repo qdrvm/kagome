@@ -16,7 +16,7 @@
 #include "crypto/crypto_store/session_keys.hpp"
 #include "metrics/histogram_timer.hpp"
 #include "network/beefy/protocol.hpp"
-#include "runtime/common/runtime_transaction_error.hpp"
+#include "runtime/common/runtime_execution_error.hpp"
 #include "runtime/runtime_api/beefy.hpp"
 #include "storage/spaced_storage.hpp"
 #include "utils/block_number_key.hpp"
@@ -232,7 +232,7 @@ namespace kagome::network {
         // bug: beefy pallet doesn't produce digest with first validators
         OUTCOME_TRY(validators, beefy_api_->validatorSet(info.hash));
         if (not validators) {
-          return runtime::RuntimeTransactionError::EXPORT_FUNCTION_NOT_FOUND;
+          return runtime::RuntimeExecutionError::EXPORT_FUNCTION_NOT_FOUND;
         }
         return std::make_pair(info.number, std::move(*validators));
       }

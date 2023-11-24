@@ -132,7 +132,7 @@ namespace kagome::network {
     const Hash &hash(const crypto::Hasher &hasher) const {
       if (not hash_.has_value()) {
         hash_.emplace(hasher.blake2b_256(
-            scale::encode(std::tie(descriptor, commitments_hash)).value()));
+            ::scale::encode(std::tie(descriptor, commitments_hash)).value()));
       }
       return hash_.value();
     }
@@ -523,7 +523,7 @@ namespace kagome::network {
     auto commitments_hash =
         hasher.blake2b_256(scale::encode(receipt.commitments).value());
     return hasher.blake2b_256(
-        scale::encode(std::tie(receipt.descriptor, commitments_hash)).value());
+        ::scale::encode(std::tie(receipt.descriptor, commitments_hash)).value());
   }
 
   inline CandidateHash candidateHash(const crypto::Hasher &hasher,

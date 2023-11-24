@@ -233,7 +233,7 @@ int main() {
           std::nullopt,
           hasher);
   auto runtime_instances_pool =
-      std::make_shared<kagome::runtime::RuntimeInstancesPool>();
+      std::make_shared<kagome::runtime::RuntimeInstancesPool>(module_factory);
   auto module_repo = std::make_shared<kagome::runtime::ModuleRepositoryImpl>(
       runtime_instances_pool,
       runtime_upgrade_tracker,

@@ -17,5 +17,8 @@ add_library(timeline
     )
 target_link_libraries(timeline
     logger
+    telemetry
+    network
     )
 kagome_install(timeline)
+kagome_clear_objects(timeline)

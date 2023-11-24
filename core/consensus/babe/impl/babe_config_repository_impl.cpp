@@ -234,7 +234,7 @@ namespace kagome::consensus::babe {
   BabeConfigRepositoryImpl::config(Indexer &indexer_,
                                    const primitives::BlockInfo &block,
                                    bool next_epoch) const {
-    auto descent = indexer_.descend(block);
+    auto descent = indexer_.startDescentFrom(block);
     outcome::result<void> cb_res = outcome::success();
     auto cb = [&](std::optional<primitives::BlockInfo> prev,
                   size_t i_first,

@@ -12,3 +12,5 @@ target_link_libraries(scale_libp2p_types
     scale::scale
     p2p::p2p
     )
+
+kagome_install(scale_libp2p_types)
