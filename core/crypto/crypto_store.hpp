@@ -36,6 +36,8 @@ namespace kagome::crypto {
     using Sr25519Keypairs = std::vector<Sr25519Keypair>;
     using BandersnatchKeypairs = std::vector<BandersnatchKeypair>;
 
+    // --------------------------------- ECDSA ---------------------------------
+
     /**
      * @brief generates ecdsa keypair and stores it in memory
      * @param key_type key type identifier
@@ -43,33 +45,6 @@ namespace kagome::crypto {
      * @return generated key pair or error
      */
     virtual outcome::result<EcdsaKeypair> generateEcdsaKeypair(
-        KeyType key_type, std::string_view mnemonic_phrase) = 0;
-
-    /**
-     * @brief generates Ed25519 keypair and stores it in memory
-     * @param key_type key type identifier
-     * @param mnemonic_phrase mnemonic phrase
-     * @return generated key pair or error
-     */
-    virtual outcome::result<Ed25519Keypair> generateEd25519Keypair(
-        KeyType key_type, std::string_view mnemonic_phrase) = 0;
-
-    /**
-     * @brief generates SR25519 keypair and stores it in memory
-     * @param key_type key type identifier
-     * @param mnemonic_phrase mnemonic phrase
-     * @return generated key pair or error
-     */
-    virtual outcome::result<Sr25519Keypair> generateSr25519Keypair(
-        KeyType key_type, std::string_view mnemonic_phrase) = 0;
-
-    /**
-     * @brief generates Bandersnatch keypair and stores it in memory
-     * @param key_type key type identifier
-     * @param mnemonic_phrase mnemonic phrase
-     * @return generated key pair or error
-     */
-    virtual outcome::result<BandersnatchKeypair> generateBandersnatchKeypair(
         KeyType key_type, std::string_view mnemonic_phrase) = 0;
 
     /**
@@ -82,6 +57,42 @@ namespace kagome::crypto {
         KeyType key_type, const EcdsaSeed &seed) = 0;
 
     /**
+     * @brief generates ecdsa keypair and stores it on disk
+     * @param key_type key type identifier
+     * @return generated key pair or error
+     */
+    virtual outcome::result<EcdsaKeypair> generateEcdsaKeypairOnDisk(
+        KeyType key_type) = 0;
+
+    /**
+     * @brief searches for key pair
+     * @param key_type key category
+     * @param pk public key to look for
+     * @return found key pair if exists
+     */
+    virtual outcome::result<EcdsaKeypair> findEcdsaKeypair(
+        KeyType key_type, const EcdsaPublicKey &pk) const = 0;
+
+    /**
+     * @brief searches for ecdsa keys of specified type
+     * @param key_type key type identifier to look for
+     * @return vector of found public keys
+     */
+    virtual outcome::result<EcdsaKeys> getEcdsaPublicKeys(
+        KeyType key_type) const = 0;
+
+    // -------------------------------- ED25519 --------------------------------
+
+    /**
+     * @brief generates Ed25519 keypair and stores it in memory
+     * @param key_type key type identifier
+     * @param mnemonic_phrase mnemonic phrase
+     * @return generated key pair or error
+     */
+    virtual outcome::result<Ed25519Keypair> generateEd25519Keypair(
+        KeyType key_type, std::string_view mnemonic_phrase) = 0;
+
+    /**
      * @brief generates Ed25519 keypair and stores it in memory
      * @param key_type key type identifier
      * @param seed seed for generating keys
@@ -89,6 +100,42 @@ namespace kagome::crypto {
      */
     virtual outcome::result<Ed25519Keypair> generateEd25519Keypair(
         KeyType key_type, const Ed25519Seed &seed) = 0;
+
+    /**
+     * @brief generates Ed25519 keypair and stores it on disk
+     * @param key_type key type identifier
+     * @return generated key pair or error
+     */
+    virtual outcome::result<Ed25519Keypair> generateEd25519KeypairOnDisk(
+        KeyType key_type) = 0;
+
+    /**
+     * @brief searches for key pair
+     * @param key_type key category
+     * @param pk public key to look for
+     * @return found key pair if exists
+     */
+    virtual outcome::result<Ed25519Keypair> findEd25519Keypair(
+        KeyType key_type, const Ed25519PublicKey &pk) const = 0;
+
+    /**
+     * @brief searches for Ed25519 keys of specified type
+     * @param key_type key type identifier to look for
+     * @return vector of found public keys
+     */
+    virtual outcome::result<Ed25519Keys> getEd25519PublicKeys(
+        KeyType key_type) const = 0;
+
+    // -------------------------------- SR25519 --------------------------------
+
+    /**
+     * @brief generates SR25519 keypair and stores it in memory
+     * @param key_type key type identifier
+     * @param mnemonic_phrase mnemonic phrase
+     * @return generated key pair or error
+     */
+    virtual outcome::result<Sr25519Keypair> generateSr25519Keypair(
+        KeyType key_type, std::string_view mnemonic_phrase) = 0;
 
     /**
      * @brief generates SR25519 keypair and stores it in memory
@@ -100,6 +147,42 @@ namespace kagome::crypto {
         KeyType key_type, const Sr25519Seed &seed) = 0;
 
     /**
+     * @brief generates SR25519 keypair and stores it on disk
+     * @param key_type key type identifier
+     * @return generated key pair or error
+     */
+    virtual outcome::result<Sr25519Keypair> generateSr25519KeypairOnDisk(
+        KeyType key_type) = 0;
+
+    /**
+     * @brief searches for key pair
+     * @param key_type key category
+     * @param pk public key to look for
+     * @return found key pair if exists
+     */
+    virtual outcome::result<Sr25519Keypair> findSr25519Keypair(
+        KeyType key_type, const Sr25519PublicKey &pk) const = 0;
+
+    /**
+     * @brief searches for SR25519 keys of specified type
+     * @param key_type key type identifier to look for
+     * @return vector of found public keys
+     */
+    virtual outcome::result<Sr25519Keys> getSr25519PublicKeys(
+        KeyType key_type) const = 0;
+
+    // ------------------------------ Bandersnatch -----------------------------
+
+    /**
+     * @brief generates Bandersnatch keypair and stores it in memory
+     * @param key_type key type identifier
+     * @param mnemonic_phrase mnemonic phrase
+     * @return generated key pair or error
+     */
+    virtual outcome::result<BandersnatchKeypair> generateBandersnatchKeypair(
+        KeyType key_type, std::string_view mnemonic_phrase) = 0;
+
+    /**
      * @brief generates Bandersnatch keypair and stores it in memory
      * @param key_type key type identifier
      * @param seed seed for generating keys
@@ -107,30 +190,6 @@ namespace kagome::crypto {
      */
     virtual outcome::result<BandersnatchKeypair> generateBandersnatchKeypair(
         KeyType key_type, const BandersnatchSeed &seed) = 0;
-
-    /**
-     * @brief generates ecdsa keypair and stores it on disk
-     * @param key_type key type identifier
-     * @return generated key pair or error
-     */
-    virtual outcome::result<EcdsaKeypair> generateEcdsaKeypairOnDisk(
-        KeyType key_type) = 0;
-
-    /**
-     * @brief generates Ed25519 keypair and stores it on disk
-     * @param key_type key type identifier
-     * @return generated key pair or error
-     */
-    virtual outcome::result<Ed25519Keypair> generateEd25519KeypairOnDisk(
-        KeyType key_type) = 0;
-
-    /**
-     * @brief generates SR25519 keypair and stores it on disk
-     * @param key_type key type identifier
-     * @return generated key pair or error
-     */
-    virtual outcome::result<Sr25519Keypair> generateSr25519KeypairOnDisk(
-        KeyType key_type) = 0;
 
     /**
      * @brief generates Bandersnatch keypair and stores it on disk
@@ -146,59 +205,8 @@ namespace kagome::crypto {
      * @param pk public key to look for
      * @return found key pair if exists
      */
-    virtual outcome::result<EcdsaKeypair> findEcdsaKeypair(
-        KeyType key_type, const EcdsaPublicKey &pk) const = 0;
-
-    /**
-     * @brief searches for key pair
-     * @param key_type key category
-     * @param pk public key to look for
-     * @return found key pair if exists
-     */
-    virtual outcome::result<Ed25519Keypair> findEd25519Keypair(
-        KeyType key_type, const Ed25519PublicKey &pk) const = 0;
-
-    /**
-     * @brief searches for key pair
-     * @param key_type key category
-     * @param pk public key to look for
-     * @return found key pair if exists
-     */
-    virtual outcome::result<Sr25519Keypair> findSr25519Keypair(
-        KeyType key_type, const Sr25519PublicKey &pk) const = 0;
-
-    /**
-     * @brief searches for key pair
-     * @param key_type key category
-     * @param pk public key to look for
-     * @return found key pair if exists
-     */
     virtual outcome::result<BandersnatchKeypair> findBandersnatchKeypair(
         KeyType key_type, const BandersnatchPublicKey &pk) const = 0;
-
-    /**
-     * @brief searches for ecdsa keys of specified type
-     * @param key_type key type identifier to look for
-     * @return vector of found public keys
-     */
-    virtual outcome::result<EcdsaKeys> getEcdsaPublicKeys(
-        KeyType key_type) const = 0;
-
-    /**
-     * @brief searches for Ed25519 keys of specified type
-     * @param key_type key type identifier to look for
-     * @return vector of found public keys
-     */
-    virtual outcome::result<Ed25519Keys> getEd25519PublicKeys(
-        KeyType key_type) const = 0;
-
-    /**
-     * @brief searches for SR25519 keys of specified type
-     * @param key_type key type identifier to look for
-     * @return vector of found public keys
-     */
-    virtual outcome::result<Sr25519Keys> getSr25519PublicKeys(
-        KeyType key_type) const = 0;
 
     /**
      * @brief searches for Bandersnatch keys of specified type
@@ -207,6 +215,8 @@ namespace kagome::crypto {
      */
     virtual outcome::result<BandersnatchKeys> getBandersnatchPublicKeys(
         KeyType key_type) const = 0;
+
+    // --------------------------------- LibP2P --------------------------------
 
     /**
      * Acquires the key from user-provided path or generates and saves the
