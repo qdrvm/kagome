@@ -34,4 +34,5 @@ target_link_libraries(timeline_test
     logger_for_tests
     network
     telemetry
+    metrics
 )

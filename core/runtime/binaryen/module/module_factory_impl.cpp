@@ -27,7 +27,7 @@ namespace kagome::runtime::binaryen {
     BOOST_ASSERT(storage_ != nullptr);
   }
 
-  outcome::result<std::shared_ptr<Module>> ModuleFactoryImpl::make(
+  outcome::result<std::shared_ptr<Module>, CompilationError> ModuleFactoryImpl::make(
       common::BufferView code) const {
     std::vector<uint8_t> code_vec{code.begin(), code.end()};
     OUTCOME_TRY(module,

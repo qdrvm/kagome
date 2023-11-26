@@ -9,6 +9,7 @@
 #include "common/blob.hpp"
 #include "runtime/executor.hpp"
 #include "runtime/runtime_api/impl/parachain_host_types_serde.hpp"
+#include "scale/std_variant.hpp"
 
 namespace kagome::runtime {
 

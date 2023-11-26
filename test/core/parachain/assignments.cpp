@@ -125,15 +125,6 @@ TEST_F(AssignmentsTest, assign_to_nonzero_core) {
   auto asgn_keys =
       assignment_keys_plus_random(cs, {"//Alice", "//Bob", "//Charlie"}, 0ull);
 
-  auto c_a =
-      kagome::common::Hash256::fromHexWithPrefix(
-          "0x0000000000000000000000000000000000000000000000000000000000000000")
-          .value();
-  auto c_b =
-      kagome::common::Hash256::fromHexWithPrefix(
-          "0x0101010101010101010101010101010101010101010101010101010101010101")
-          .value();
-
   ::RelayVRFStory vrf_story;
   ::memset(vrf_story.data, 42, sizeof(vrf_story.data));
 
@@ -152,14 +143,16 @@ TEST_F(AssignmentsTest, assign_to_nonzero_core) {
   si.n_delay_tranches = 40;
 
   kagome::parachain::ApprovalDistribution::CandidateIncludedList leaving_cores =
-      {std::make_tuple(c_a,
-                       kagome::network::CandidateReceipt{},
-                       (kagome::parachain::CoreIndex)0,
-                       (kagome::parachain::GroupIndex)0),
-       std::make_tuple(c_b,
-                       kagome::network::CandidateReceipt{},
-                       (kagome::parachain::CoreIndex)1,
-                       (kagome::parachain::GroupIndex)1)};
+      {std::make_tuple(
+           kagome::parachain::ApprovalDistribution::HashedCandidateReceipt{
+               kagome::network::CandidateReceipt{}},
+           (kagome::parachain::CoreIndex)0,
+           (kagome::parachain::GroupIndex)0),
+       std::make_tuple(
+           kagome::parachain::ApprovalDistribution::HashedCandidateReceipt{
+               kagome::network::CandidateReceipt{}},
+           (kagome::parachain::CoreIndex)1,
+           (kagome::parachain::GroupIndex)1)};
   auto assignments =
       kagome::parachain::ApprovalDistribution::compute_assignments(
           cs, si, vrf_story, leaving_cores);
@@ -203,15 +196,6 @@ TEST_F(AssignmentsTest, assignments_produced_for_non_backing) {
   auto asgn_keys =
       assignment_keys_plus_random(cs, {"//Alice", "//Bob", "//Charlie"}, 0ull);
 
-  auto c_a =
-      kagome::common::Hash256::fromHexWithPrefix(
-          "0x0000000000000000000000000000000000000000000000000000000000000000")
-          .value();
-  auto c_b =
-      kagome::common::Hash256::fromHexWithPrefix(
-          "0x0101010101010101010101010101010101010101010101010101010101010101")
-          .value();
-
   ::RelayVRFStory vrf_story;
   ::memset(vrf_story.data, 42, sizeof(vrf_story.data));
 
@@ -230,14 +214,16 @@ TEST_F(AssignmentsTest, assignments_produced_for_non_backing) {
   si.n_delay_tranches = 40;
 
   kagome::parachain::ApprovalDistribution::CandidateIncludedList leaving_cores =
-      {std::make_tuple(c_a,
-                       kagome::network::CandidateReceipt{},
-                       (kagome::parachain::CoreIndex)0,
-                       (kagome::parachain::GroupIndex)1),
-       std::make_tuple(c_b,
-                       kagome::network::CandidateReceipt{},
-                       (kagome::parachain::CoreIndex)1,
-                       (kagome::parachain::GroupIndex)0)};
+      {std::make_tuple(
+           kagome::parachain::ApprovalDistribution::HashedCandidateReceipt{
+               kagome::network::CandidateReceipt{}},
+           (kagome::parachain::CoreIndex)0,
+           (kagome::parachain::GroupIndex)1),
+       std::make_tuple(
+           kagome::parachain::ApprovalDistribution::HashedCandidateReceipt{
+               kagome::network::CandidateReceipt{}},
+           (kagome::parachain::CoreIndex)1,
+           (kagome::parachain::GroupIndex)0)};
   auto assignments =
       kagome::parachain::ApprovalDistribution::compute_assignments(
           cs, si, vrf_story, leaving_cores);

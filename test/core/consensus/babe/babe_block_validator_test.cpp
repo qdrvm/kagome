@@ -238,7 +238,7 @@ TEST_F(BabeBlockValidatorTest, NoBabeHeader) {
   auto [seal, pubkey] = sealBlock(valid_block_, encoded_block_copy_hash);
 
   authorities.emplace_back();
-  authorities.emplace_back(pubkey, 42);
+  authorities.emplace_back(Authority{pubkey, 42});
 
   EXPECT_OUTCOME_FALSE(err,
                        block_validator->validateHeader(valid_block_.header));
@@ -263,7 +263,7 @@ TEST_F(BabeBlockValidatorTest, SignatureVerificationFail) {
   auto [seal, pubkey] = sealBlock(valid_block_, encoded_block_copy_hash);
 
   authorities.emplace_back();
-  authorities.emplace_back(pubkey, 42);
+  authorities.emplace_back(Authority{pubkey, 42});
 
   EXPECT_CALL(*hasher, blake2b_256(_))
       .WillOnce(Return(encoded_block_copy_hash));
@@ -294,7 +294,7 @@ TEST_F(BabeBlockValidatorTest, VRFFail) {
   auto [seal, pubkey] = sealBlock(valid_block_, encoded_block_copy_hash);
 
   authorities.emplace_back();
-  authorities.emplace_back(pubkey, 42);
+  authorities.emplace_back(Authority{pubkey, 42});
 
   EXPECT_CALL(*hasher, blake2b_256(_))
       .WillOnce(Return(encoded_block_copy_hash));

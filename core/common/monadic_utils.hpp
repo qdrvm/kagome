@@ -48,11 +48,12 @@ namespace kagome::common {
    * error.
    */
   template <typename T,
+            typename E,
             typename F,
             typename R = std::invoke_result_t<F, const T &>>
-  outcome::result<R> map_result(const outcome::result<T> &res, const F &f) {
+  outcome::result<R, E> map_result(const outcome::result<T, E> &res, const F &f) {
     if (res.has_value()) {
-      return outcome::result<R>{f(res.value())};
+      return outcome::result<R, E>{f(res.value())};
     }
     return res.as_failure();
   }
@@ -63,7 +64,9 @@ namespace kagome::common {
    * outcome::result contains a value. Otherwise, just returns the contained
    * error.
    */
-  template <typename T, typename F, typename R = std::invoke_result_t<F, T &&>>
+  template <typename T,
+            std::invocable<T &&> F,
+            typename R = std::invoke_result_t<F, T &&>>
   outcome::result<R> map_result(outcome::result<T> &&res, const F &f) {
     if (res.has_value()) {
       return outcome::result<R>{f(std::move(res.value()))};
