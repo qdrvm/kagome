@@ -85,8 +85,7 @@ namespace kagome::consensus::sassafras {
         trie_storage_(std::move(trie_storage)),
         chain_sub_([&] {
           BOOST_ASSERT(chain_events_engine != nullptr);
-          return std::make_shared<primitives::events::ChainEventSubscriber>(
-              chain_events_engine);
+          return chain_events_engine;
         }()),
         slots_util_(std::move(slots_util)),
         logger_(
@@ -97,9 +96,11 @@ namespace kagome::consensus::sassafras {
     BOOST_ASSERT(sassafras_api_ != nullptr);
     BOOST_ASSERT(hasher_ != nullptr);
 
-    if (auto r = indexer_.init(); not r) {
-      logger_->error("Indexer::init error: {}", r.error());
-    }
+    SAFE_UNIQUE(indexer_) {
+      if (auto r = indexer_.init(); not r) {
+        logger_->error("Indexer::init error: {}", r.error());
+      }
+    };
 
     app_state_manager.takeControl(*this);
   }
@@ -119,21 +120,19 @@ namespace kagome::consensus::sassafras {
       return false;
     }
 
-    {
-      std::unique_lock lock{indexer_mutex_};
-      auto finalized = block_tree_->getLastFinalized();
-      auto finalized_header =
-          block_tree_->getBlockHeader(finalized.hash).value();
+    auto finalized = block_tree_->getLastFinalized();
+    auto finalized_header = block_tree_->getBlockHeader(finalized.hash).value();
 
+    SAFE_UNIQUE(indexer_) {
       if (finalized.number - indexer_.last_finalized_indexed_.number
               > kMaxUnindexedBlocksNum
           and trie_storage_->getEphemeralBatchAt(finalized_header.state_root)) {
-        warp(lock, finalized);
+        warp(indexer_, finalized);
       }
 
       if (!timings_) {
         auto genesis_res =
-            config({block_tree_->getGenesisBlockHash(), 0}, false);
+            config(indexer_, {block_tree_->getGenesisBlockHash(), 0}, false);
         if (genesis_res.has_value()) {
           auto &genesis = genesis_res.value();
           timings_.init(genesis->slot_duration, genesis->epoch_length);
@@ -144,16 +143,19 @@ namespace kagome::consensus::sassafras {
               timings_.epoch_length);
         }
       }
-    }
+    };
 
     [[maybe_unused]] bool active_ = false;
 
-    // TODO Perhaps, should be observed all non-finalized blocks
+    // TODO(xDimon): Perhaps, should be observed by all non-finalized blocks
     auto best = block_tree_->bestBlock();
     auto consensus = consensus_selector_.get()->getProductionConsensus(best);
     if (std::dynamic_pointer_cast<Sassafras>(consensus)) {
       active_ = true;
-      if (auto res = config(best, true); not res and not config_warp_sync_) {
+      auto res = SAFE_UNIQUE(indexer_) {
+        return config(indexer_, best, true);
+      };
+      if (not res and not config_warp_sync_) {
         SL_ERROR(logger_, "get config at best {} error: {}", best, res.error());
         auto best_header = block_tree_->getBlockHeader(best.hash).value();
         if (not trie_storage_->getEphemeralBatchAt(best_header.state_root)) {
@@ -164,21 +166,14 @@ namespace kagome::consensus::sassafras {
       }
     }
 
-    chain_sub_->subscribe(chain_sub_->generateSubscriptionSetId(),
-                          primitives::events::ChainEventType::kFinalizedHeads);
-    chain_sub_->setCallback(
-        [wp = weak_from_this()](
-            subscription::SubscriptionSetId,
-            auto &&,
-            primitives::events::ChainEventType type,
-            const primitives::events::ChainEventParams &event) {
-          if (type == primitives::events::ChainEventType::kFinalizedHeads) {
-            if (auto self = wp.lock()) {
-              std::unique_lock lock{self->indexer_mutex_};
-              self->indexer_.finalize();
-            }
-          }
-        });
+    chain_sub_.onFinalize([weak{weak_from_this()}]() {
+      if (auto self = weak.lock()) {
+        auto &indexer_ = self->indexer_;
+        SAFE_UNIQUE(indexer_) {
+          indexer_.finalize();
+        };
+      }
+    });
 
     return true;
   }
@@ -195,8 +190,9 @@ namespace kagome::consensus::sassafras {
                   slots_util_.get()->slotToEpoch(parent_info, parent_slot));
       epoch_changed = epoch_number != parent_epoch;
     }
-    std::unique_lock lock{indexer_mutex_};
-    return config(parent_info, epoch_changed);
+    return SAFE_UNIQUE(indexer_) {
+      return config(indexer_, parent_info, epoch_changed);
+    };
   }
 
   outcome::result<SlotNumber>
@@ -216,11 +212,11 @@ namespace kagome::consensus::sassafras {
         }
       }
       if (not slot1 and trie_storage_->getEphemeralBatchAt(parent.state_root)) {
-        // if (auto epoch_res = sassafras_api_->next_epoch(parent_info.hash);
-        //     epoch_res.has_value()) {
-        //   auto &epoch = epoch_res.value();
-        //   slot1 = epoch.start_slot - epoch.epoch_index * epoch.duration;
-        // }
+        if (auto epoch_res = sassafras_api_->next_epoch(parent_info.hash);
+            epoch_res.has_value()) {
+          auto &epoch = epoch_res.value();
+          slot1 = epoch.start_slot - epoch.epoch_index * epoch.epoch_length;
+        }
       }
       if (not slot1) {
         auto header1 = parent;
@@ -240,20 +236,22 @@ namespace kagome::consensus::sassafras {
     return slot1.value();
   }
 
-  void SassafrasConfigRepositoryImpl::warp(std::unique_lock<std::mutex> &lock,
+  void SassafrasConfigRepositoryImpl::warp(Indexer &indexer_,
                                            const primitives::BlockInfo &block) {
     indexer_.put(block, {}, true);
   }
 
   void SassafrasConfigRepositoryImpl::warp(const primitives::BlockInfo &block) {
-    std::unique_lock lock{indexer_mutex_};
-    warp(lock, block);
+    SAFE_UNIQUE(indexer_) {
+      warp(indexer_, block);
+    };
   }
 
   outcome::result<std::shared_ptr<const Epoch>>
-  SassafrasConfigRepositoryImpl::config(const primitives::BlockInfo &block,
+  SassafrasConfigRepositoryImpl::config(Indexer &indexer_,
+                                        const primitives::BlockInfo &block,
                                         bool next_epoch) const {
-    auto descent = indexer_.descend(block);
+    auto descent = indexer_.startDescentFrom(block);
     outcome::result<void> cb_res = outcome::success();
     auto cb = [&](std::optional<primitives::BlockInfo> prev,
                   size_t i_first,
@@ -295,7 +293,7 @@ namespace kagome::consensus::sassafras {
           OUTCOME_TRY(header, block_tree_->getBlockHeader(info.hash));
           if (HasSassafrasConsensusDigest digests{header}) {
             if (not prev_state) {
-              BOOST_OUTCOME_TRY(prev_state, loadPrev(prev));
+              BOOST_OUTCOME_TRY(prev_state, loadPrev(indexer_, prev));
             }
             auto state = applyDigests(getConfig(*prev_state), digests);
             SassafrasIndexedValue value{
@@ -327,13 +325,10 @@ namespace kagome::consensus::sassafras {
       return *r->second.value->state;
     }
     if (next_epoch) {
-      OUTCOME_TRY(load(r->first, r->second));
+      OUTCOME_TRY(load(indexer_, r->first, r->second));
       return *r->second.value->next_state;
     }
-    if (not r->second.prev) {
-      return Error::PREVIOUS_NOT_FOUND;
-    }
-    return loadPrev(*r->second.prev);
+    return loadPrev(indexer_, r->second.prev);
   }
 
   std::shared_ptr<Epoch> SassafrasConfigRepositoryImpl::applyDigests(
@@ -351,6 +346,7 @@ namespace kagome::consensus::sassafras {
   }
 
   outcome::result<void> SassafrasConfigRepositoryImpl::load(
+      Indexer &indexer_,
       const primitives::BlockInfo &block,
       blockchain::Indexed<SassafrasIndexedValue> &item) const {
     if (not item.value->next_state) {
@@ -370,6 +366,7 @@ namespace kagome::consensus::sassafras {
 
   outcome::result<std::shared_ptr<const Epoch>>
   SassafrasConfigRepositoryImpl::loadPrev(
+      Indexer &indexer_,
       const std::optional<primitives::BlockInfo> &prev) const {
     if (not prev) {
       return Error::PREVIOUS_NOT_FOUND;
@@ -381,7 +378,7 @@ namespace kagome::consensus::sassafras {
     if (not r->value) {
       return Error::PREVIOUS_NOT_FOUND;
     }
-    OUTCOME_TRY(load(*prev, *r));
+    OUTCOME_TRY(load(indexer_, *prev, *r));
     return *r->value->next_state;
   }
 }  // namespace kagome::consensus::sassafras

@@ -43,7 +43,10 @@ namespace kagome::consensus::babe {
   constexpr size_t kMaxUnindexedBlocksNum = 10000;
 
   inline static NextConfigDataV1 getConfig(const BabeConfiguration &state) {
-    return {state.leadership_rate, state.allowed_slots};
+    return {
+        state.leadership_rate,
+        state.allowed_slots,
+    };
   }
 
   BabeConfigRepositoryImpl::BabeConfigRepositoryImpl(
@@ -122,10 +125,11 @@ namespace kagome::consensus::babe {
         if (genesis_res.has_value()) {
           auto &genesis = genesis_res.value();
           timings_.init(genesis->slot_duration, genesis->epoch_length);
-          SL_DEBUG(logger_,
-                   "Timing was initialized: slot is {}ms, epoch is {} slots",
-                   timings_.slot_duration.count(),
-                   timings_.epoch_length);
+          SL_DEBUG(
+              logger_,
+              "Timing was initialized: slot is {:.01f}s, epoch is {} slots",
+              timings_.slot_duration.count() / 1000.,
+              timings_.epoch_length);
         }
       }
     };
@@ -245,7 +249,9 @@ namespace kagome::consensus::babe {
         if (not prev) {
           OUTCOME_TRY(_state, babe_api_->configuration(info.hash));
           auto state = std::make_shared<BabeConfiguration>(std::move(_state));
+
           BabeIndexedValue value{getConfig(*state), state, std::nullopt, state};
+
           if (info.number != 0) {
             OUTCOME_TRY(next, babe_api_->next_epoch(info.hash));
             BOOST_ASSERT(state->epoch_length == next.duration);
@@ -260,6 +266,7 @@ namespace kagome::consensus::babe {
                 });
             value.next_state = value.next_state_warp;
           }
+
           indexer_.put(info, {value, std::nullopt}, true);
           if (i_first == i_last) {
             return outcome::success();

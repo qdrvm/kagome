@@ -8,8 +8,6 @@
 
 #include "consensus/sassafras/sassafras_config_repository.hpp"
 
-#include <mutex>
-
 #include "blockchain/indexer.hpp"
 #include "consensus/sassafras/has_sassafras_consensus_digest.hpp"
 #include "consensus/sassafras/types/scheduled_change.hpp"
@@ -18,6 +16,7 @@
 #include "primitives/block_data.hpp"
 #include "primitives/event_types.hpp"
 #include "storage/spaced_storage.hpp"
+#include "utils/safe_object.hpp"
 
 namespace kagome::application {
   class AppStateManager;
@@ -104,38 +103,42 @@ namespace kagome::consensus::sassafras {
     void warp(const primitives::BlockInfo &block) override;
 
    private:
+    using Indexer = blockchain::Indexer<SassafrasIndexedValue>;
+
     outcome::result<SlotNumber> getFirstBlockSlotNumber(
         const primitives::BlockInfo &parent_info) const;
 
     outcome::result<std::shared_ptr<const Epoch>> config(
-        const primitives::BlockInfo &block, bool next_epoch) const;
+        Indexer &indexer_,
+        const primitives::BlockInfo &block,
+        bool next_epoch) const;
 
     std::shared_ptr<Epoch> applyDigests(
         const NextEpochDescriptor &config,
         const HasSassafrasConsensusDigest &digests) const;
 
     outcome::result<void> load(
+        Indexer &indexer_,
         const primitives::BlockInfo &block,
         blockchain::Indexed<SassafrasIndexedValue> &item) const;
 
     outcome::result<std::shared_ptr<const Epoch>> loadPrev(
+        Indexer &indexer_,
         const std::optional<primitives::BlockInfo> &prev) const;
 
-    void warp(std::unique_lock<std::mutex> &lock,
-              const primitives::BlockInfo &block);
+    void warp(Indexer &indexer_, const primitives::BlockInfo &block);
 
     std::shared_ptr<storage::BufferStorage> persistent_storage_;
     bool config_warp_sync_;
     EpochTimings &timings_;
     std::shared_ptr<blockchain::BlockTree> block_tree_;
-    mutable std::mutex indexer_mutex_;
-    mutable blockchain::Indexer<SassafrasIndexedValue> indexer_;
+    mutable SafeObject<Indexer> indexer_;
     std::shared_ptr<blockchain::BlockHeaderRepository> header_repo_;
     LazySPtr<ConsensusSelector> consensus_selector_;
     std::shared_ptr<runtime::SassafrasApi> sassafras_api_;
     std::shared_ptr<crypto::Hasher> hasher_;
     std::shared_ptr<storage::trie::TrieStorage> trie_storage_;
-    std::shared_ptr<primitives::events::ChainEventSubscriber> chain_sub_;
+    primitives::events::ChainSub chain_sub_;
     LazySPtr<SlotsUtil> slots_util_;
 
     mutable std::optional<SlotNumber> first_block_slot_number_;
