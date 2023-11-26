@@ -29,8 +29,8 @@ namespace kagome::blockchain {
 }  // namespace kagome::blockchain
 
 namespace kagome::consensus {
-  class SlotsUtil;
   class ConsensusSelector;
+  class SlotsUtil;
 }  // namespace kagome::consensus
 
 namespace kagome::runtime {
