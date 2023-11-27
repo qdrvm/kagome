@@ -11,6 +11,8 @@
 OUTCOME_CPP_DEFINE_CATEGORY(kagome::consensus::babe, DigestError, e) {
   using E = kagome::consensus::babe::DigestError;
   switch (e) {
+    case E::WRONG_ENGINE_ID:
+      return "expected digest with engine id 'BABE'";
     case E::REQUIRED_DIGESTS_NOT_FOUND:
       return "the block must contain at least BABE "
              "header and seal digests";
@@ -64,13 +66,20 @@ namespace kagome::consensus::babe {
 
     for (const auto &digest : std::span(digests).first(digests.size() - 1)) {
       auto pre_runtime_opt = getFromVariant<primitives::PreRuntime>(digest);
-      if (pre_runtime_opt.has_value()) {
-        auto babe_block_header_res =
-            scale::decode<BabeBlockHeader>(pre_runtime_opt->get().data);
-        if (babe_block_header_res.has_value()) {
-          // found the BabeBlockHeader digest; return
-          return babe_block_header_res.value();
-        }
+      if (not pre_runtime_opt.has_value()) {
+        continue;
+      }
+
+      const auto &engine_id = pre_runtime_opt->get().consensus_engine_id;
+      if (engine_id != primitives::kBabeEngineId) {
+        continue;
+      }
+
+      const auto &data = pre_runtime_opt->get().data;
+      auto babe_block_header_res = scale::decode<BabeBlockHeader>(data);
+      if (babe_block_header_res.has_value()) {
+        // found the BabeBlockHeader digest; return
+        return babe_block_header_res.value();
       }
     }
 
@@ -87,13 +96,20 @@ namespace kagome::consensus::babe {
     }
     const auto &digests = block_header.digest;
 
-    // last digest of the block must be a seal - signature
+    // the last digest of the block must be a seal - signature
     auto seal_opt = getFromVariant<primitives::Seal>(digests.back());
     if (not seal_opt.has_value()) {
       return DigestError::NO_TRAILING_SEAL_DIGEST;
     }
 
-    OUTCOME_TRY(seal_digest, scale::decode<Seal>(seal_opt->get().data));
+    const auto &engine_id = seal_opt->get().consensus_engine_id;
+    if (engine_id != primitives::kBabeEngineId) {
+      return DigestError::WRONG_ENGINE_ID;
+    }
+
+    const auto &data = seal_opt->get().data;
+
+    OUTCOME_TRY(seal_digest, scale::decode<Seal>(data));
 
     return seal_digest;
   }

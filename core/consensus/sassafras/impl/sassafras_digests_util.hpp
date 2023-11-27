@@ -19,7 +19,8 @@
 namespace kagome::consensus::sassafras {
 
   enum class DigestError {
-    REQUIRED_DIGESTS_NOT_FOUND = 1,
+    WRONG_ENGINE_ID = 1,
+    REQUIRED_DIGESTS_NOT_FOUND,
     NO_TRAILING_SEAL_DIGEST,
     GENESIS_BLOCK_CAN_NOT_HAVE_DIGESTS,
   };
