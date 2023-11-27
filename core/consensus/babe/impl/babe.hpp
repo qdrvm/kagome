@@ -86,7 +86,6 @@ namespace kagome::storage::changes_trie {
 
 namespace kagome::consensus::babe {
 
-  /// BABE protocol, used for block production in the Polkadot consensus.
   class Babe : public ProductionConsensus,
                public std::enable_shared_from_this<Babe> {
    public:
@@ -110,7 +109,7 @@ namespace kagome::consensus::babe {
         std::shared_ptr<BabeLottery> lottery,
         std::shared_ptr<crypto::Hasher> hasher,
         std::shared_ptr<crypto::Sr25519Provider> sr25519_provider,
-        std::shared_ptr<BabeBlockValidator> validating,
+        std::shared_ptr<BabeBlockValidator> validator,
         std::shared_ptr<parachain::BitfieldStore> bitfield_store,
         std::shared_ptr<parachain::BackedCandidatesSource> candidates_source,
         std::shared_ptr<dispute::DisputeCoordinator> dispute_coordinator,
@@ -181,7 +180,7 @@ namespace kagome::consensus::babe {
     std::shared_ptr<BabeLottery> lottery_;
     std::shared_ptr<crypto::Hasher> hasher_;
     std::shared_ptr<crypto::Sr25519Provider> sr25519_provider_;
-    std::shared_ptr<BabeBlockValidator> validating_;
+    std::shared_ptr<BabeBlockValidator> validator_;
     std::shared_ptr<parachain::BitfieldStore> bitfield_store_;
     std::shared_ptr<parachain::BackedCandidatesSource> candidates_source_;
     std::shared_ptr<dispute::DisputeCoordinator> dispute_coordinator_;
@@ -199,8 +198,8 @@ namespace kagome::consensus::babe {
     const bool is_validator_by_config_;
     bool is_active_validator_;
 
-    using KeypairWithIndexOpt = std::optional<
-        std::pair<std::shared_ptr<crypto::Sr25519Keypair>, AuthorityIndex>>;
+    // using KeypairWithIndexOpt = std::optional<
+    //     std::pair<std::shared_ptr<crypto::Sr25519Keypair>, AuthorityIndex>>;
 
     primitives::BlockInfo parent_;
     TimePoint slot_timestamp_;

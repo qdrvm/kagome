@@ -46,10 +46,8 @@ namespace kagome::consensus::sassafras {
 
   // VRF Output ----------------
 
-  struct VrfOutput {
-    SCALE_TIE(0);
-    // opaque
-  };
+  using VrfOutput =
+      common::Blob<crypto::constants::bandersnatch::PREOUT_SERIALIZED_SIZE>;
 
   inline VrfOutput vrf_output(crypto::BandersnatchSecretKey secret,
                               VrfInput input) {
@@ -57,10 +55,24 @@ namespace kagome::consensus::sassafras {
   }
 
   template <size_t N>
-  inline std::array<uint8_t, N> vrf_bytes(VrfInput vrf_input,
-                                          VrfOutput vrf_output) {
+  inline common::Blob<N> vrf_bytes(VrfInput vrf_input, VrfOutput vrf_output) {
     return {};  // FIXME It's stub
   }
+
+  /// Max number of inputs/outputs which can be handled by the VRF signing
+  /// procedures.
+  ///
+  /// The number is quite arbitrary and chosen to fulfill the use cases found so
+  /// far. If required it can be extended in the future.
+  constexpr size_t MAX_VRF_IOS = 3;
+
+  template <typename T>
+  concept VrfInputOrOutput =
+      std::is_same_v<T, VrfInput> or std::is_same_v<T, VrfOutput>;
+
+  template <typename T>
+    requires VrfInputOrOutput<T>
+  using VrfIosVec = common::SLVector<T, MAX_VRF_IOS>;
 
   // VRF Signature Data --------------
 
@@ -90,7 +102,7 @@ namespace kagome::consensus::sassafras {
   // Plain VRF Signature -----------
 
   using Signature =
-      std::array<uint8_t, crypto::constants::bandersnatch::SIGNATURE_SIZE>;
+      common::Blob<crypto::constants::bandersnatch::SIGNATURE_SIZE>;
 
   /// VRF signature.
   ///
@@ -101,13 +113,26 @@ namespace kagome::consensus::sassafras {
   struct VrfSignature {
     SCALE_TIE(2);
     /// VRF (pre)outputs.
-    // TIP:		pub outputs: VrfIosVec<VrfOutput>,
-    std::vector<std::vector<uint8_t>>
-        //    SEQUENCE_OF<VrfOutput>
-        outputs;
+    VrfIosVec<VrfOutput> outputs;
 
     /// Transcript signature.
     Signature signature;
+
+    //    friend scale::ScaleEncoderStream &operator<<(scale::ScaleEncoderStream
+    //    &s,
+    //                                                 const VrfSignature &x) {
+    //      return s          //
+    //          << x.outputs  //
+    //          << x.signature;
+    //    }
+    //
+    //    friend scale::ScaleDecoderStream &operator>>(scale::ScaleDecoderStream
+    //    &s,
+    //                                                 VrfSignature &x) {
+    //      return s          //
+    //          >> x.outputs  //
+    //          >> x.signature;
+    //    }
   };
 
   VrfSignature plain_vrf_sign(crypto::BandersnatchSecretKey secret,
@@ -128,15 +153,6 @@ namespace kagome::consensus::sassafras {
     // opaque
   };
 
-  /// Max number of inputs/outputs which can be handled by the VRF signing
-  /// procedures.
-  ///
-  /// The number is quite arbitrary and chosen to fulfill the use cases found so
-  /// far. If required it can be extended in the future.
-  constexpr size_t MAX_VRF_IOS = 3;
-
-  using VrfIosVec = common::SLVector<VrfOutput, MAX_VRF_IOS>;
-
   using RingSignature = common::Blob<
       crypto::constants::bandersnatch::RING_SIGNATURE_SERIALIZED_SIZE>;
 
@@ -145,7 +161,7 @@ namespace kagome::consensus::sassafras {
     SCALE_TIE(2);
 
     /// VRF (pre)outputs.
-    VrfIosVec outputs;
+    VrfIosVec<VrfOutput> outputs;
 
     /// Ring signature.
     RingSignature signature;

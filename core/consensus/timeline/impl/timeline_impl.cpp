@@ -317,7 +317,7 @@ namespace kagome::consensus {
   void TimelineImpl::onBlockAnnounceHandshake(
       const libp2p::peer::PeerId &peer_id,
       const network::BlockAnnounceHandshake &handshake) {
-    // If state is loading, just to ping of loading
+    // If the state is loading, just to ping of loading
     if (current_state_ == SyncState::STATE_LOADING) {
       startStateSyncing(peer_id);
       return;

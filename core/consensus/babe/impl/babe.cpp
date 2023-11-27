@@ -79,7 +79,7 @@ namespace kagome::consensus::babe {
       std::shared_ptr<BabeLottery> lottery,
       std::shared_ptr<crypto::Hasher> hasher,
       std::shared_ptr<crypto::Sr25519Provider> sr25519_provider,
-      std::shared_ptr<BabeBlockValidator> validating,
+      std::shared_ptr<BabeBlockValidator> validator,
       std::shared_ptr<parachain::BitfieldStore> bitfield_store,
       std::shared_ptr<parachain::BackedCandidatesSource> candidates_source,
       std::shared_ptr<dispute::DisputeCoordinator> dispute_coordinator,
@@ -103,7 +103,7 @@ namespace kagome::consensus::babe {
         lottery_(std::move(lottery)),
         hasher_(std::move(hasher)),
         sr25519_provider_(std::move(sr25519_provider)),
-        validating_(std::move(validating)),
+        validator_(std::move(validator)),
         bitfield_store_(std::move(bitfield_store)),
         candidates_source_(std::move(candidates_source)),
         dispute_coordinator_(std::move(dispute_coordinator)),
@@ -125,7 +125,7 @@ namespace kagome::consensus::babe {
     BOOST_ASSERT(lottery_);
     BOOST_ASSERT(hasher_);
     BOOST_ASSERT(sr25519_provider_);
-    BOOST_ASSERT(validating_);
+    BOOST_ASSERT(validator_);
     BOOST_ASSERT(bitfield_store_);
     BOOST_ASSERT(candidates_source_);
     BOOST_ASSERT(dispute_coordinator_);
@@ -263,7 +263,7 @@ namespace kagome::consensus::babe {
 
   outcome::result<void> Babe::validateHeader(
       const primitives::BlockHeader &block_header) const {
-    return validating_->validateHeader(block_header);
+    return validator_->validateHeader(block_header);
   }
 
   outcome::result<void> Babe::reportEquivocation(
@@ -441,7 +441,10 @@ namespace kagome::consensus::babe {
       return SlotLeadershipError::BACKING_OFF;
     }
 
-    SL_INFO(log_, "Node builds block on top of block {}", parent_);
+    SL_INFO(log_,
+            "Node builds block on top of block {} in slot {}",
+            parent_,
+            slot_);
 
     primitives::InherentData inherent_data;
     auto now = std::chrono::duration_cast<std::chrono::milliseconds>(

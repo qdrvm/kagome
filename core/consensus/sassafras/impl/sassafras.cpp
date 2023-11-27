@@ -6,7 +6,6 @@
 
 #include "consensus/sassafras/impl/sassafras.hpp"
 
-#include <chrono>
 #include <latch>
 
 #include <boost/range/adaptor/transformed.hpp>
@@ -15,6 +14,7 @@
 #include "authorship/proposer.hpp"
 #include "blockchain/block_tree.hpp"
 #include "consensus/block_production_error.hpp"
+#include "consensus/sassafras/impl/sassafras_block_validator_impl.hpp"
 #include "consensus/sassafras/impl/sassafras_digests_util.hpp"
 #include "consensus/sassafras/sassafras_config_repository.hpp"
 #include "consensus/sassafras/sassafras_lottery.hpp"
@@ -22,6 +22,7 @@
 #include "consensus/timeline/backoff.hpp"
 #include "consensus/timeline/impl/slot_leadership_error.hpp"
 #include "consensus/timeline/slots_util.hpp"
+#include "crypto/bandersnatch_provider.hpp"
 #include "crypto/key_store/session_keys.hpp"
 #include "dispute_coordinator/dispute_coordinator.hpp"
 #include "metrics/histogram_timer.hpp"
@@ -29,16 +30,12 @@
 #include "parachain/availability/bitfield/store.hpp"
 #include "parachain/backing/store.hpp"
 #include "parachain/parachain_inherent_data.hpp"
-#include "primitives/digest.hpp"
 #include "primitives/inherent_data.hpp"
 #include "runtime/runtime_api/offchain_worker_api.hpp"
-#include "scale/scale.hpp"
 #include "storage/changes_trie/impl/storage_changes_tracker_impl.hpp"
 #include "storage/trie/serialization/ordered_trie_hash.hpp"
 #include "telemetry/service.hpp"
 #include "utils/thread_pool.hpp"
-
-using namespace std::chrono_literals;
 
 namespace {
   inline const auto kTimestampId =
@@ -74,6 +71,8 @@ namespace kagome::consensus::sassafras {
       std::shared_ptr<crypto::SessionKeys> session_keys,
       std::shared_ptr<SassafrasLottery> lottery,
       std::shared_ptr<crypto::Hasher> hasher,
+      std::shared_ptr<crypto::BandersnatchProvider> bandersnatch_provider,
+      std::shared_ptr<SassafrasBlockValidator> validator,
       std::shared_ptr<parachain::BitfieldStore> bitfield_store,
       std::shared_ptr<parachain::BackingStore> backing_store,
       std::shared_ptr<dispute::DisputeCoordinator> dispute_coordinator,
@@ -93,6 +92,8 @@ namespace kagome::consensus::sassafras {
         session_keys_(std::move(session_keys)),
         lottery_(std::move(lottery)),
         hasher_(std::move(hasher)),
+        bandersnatch_provider_(std::move(bandersnatch_provider)),
+        validator_(std::move(validator)),
         bitfield_store_(std::move(bitfield_store)),
         backing_store_(std::move(backing_store)),
         dispute_coordinator_(std::move(dispute_coordinator)),
@@ -110,6 +111,8 @@ namespace kagome::consensus::sassafras {
     BOOST_ASSERT(session_keys_);
     BOOST_ASSERT(lottery_);
     BOOST_ASSERT(hasher_);
+    BOOST_ASSERT(bandersnatch_provider_);
+    BOOST_ASSERT(validator_);
     BOOST_ASSERT(bitfield_store_);
     BOOST_ASSERT(backing_store_);
     BOOST_ASSERT(dispute_coordinator_);
@@ -167,6 +170,8 @@ namespace kagome::consensus::sassafras {
 
   outcome::result<void> Sassafras::processSlot(
       SlotNumber slot, const primitives::BlockInfo &best_block) {
+    return SlotLeadershipError::NO_SLOT_LEADER;  // FIXME it just for debug
+
     auto slot_timestamp = clock_.now();
 
     if (slot != slots_util_.get()->timeToSlot(slot_timestamp)) {
@@ -187,29 +192,39 @@ namespace kagome::consensus::sassafras {
                      "Probably authority list has changed.");
         }
       } else {
-        SL_VERBOSE(log_, "Node is active validator in this epoch");
+        SL_VERBOSE(log_, "Node is active validator in epoch {}", epoch);
       }
     }
 
     if (not is_active_validator_) {
-      SL_TRACE(log_, "Node is not active validator in epoch");
+      SL_TRACE(log_, "Node is not active validator in epoch {}", epoch);
       return SlotLeadershipError::NO_VALIDATOR;
     }
 
     if (not checkSlotLeadership(best_block, slot)) {
-      SL_TRACE(log_, "Node is not slot leader in current slot");
+      SL_TRACE(
+          log_, "Node is not slot leader in slot {} epoch {}", slot, epoch);
       return SlotLeadershipError::NO_SLOT_LEADER;
     }
 
+    SL_DEBUG(log_,
+             "Node is leader in current slot {} epoch {}; Authority {}",
+             slot,
+             epoch,
+             slot_leadership_.keypair->public_key);
+
+    // Init context
     parent_ = best_block;
     slot_timestamp_ = slot_timestamp;
     slot_ = slot;
     epoch_ = epoch;
 
-    SL_DEBUG(log_,
-             "Author {} is leader in current slot",
-             slot_leadership_.keypair->public_key);
     return processSlotLeadership();
+  }
+
+  outcome::result<void> Sassafras::validateHeader(
+      const primitives::BlockHeader &block_header) const {
+    return validator_->validateHeader(block_header);
   }
 
   bool Sassafras::changeEpoch(EpochNumber epoch,
@@ -349,10 +364,12 @@ namespace kagome::consensus::sassafras {
 
     auto pre_digest_res = makePreDigest();
     if (pre_digest_res.has_error()) {
-      SL_ERROR(log_, "cannot propose a block: {}", pre_digest_res.error());
+      SL_ERROR(log_,
+               "cannot propose a block due to pre digest generation error: {}",
+               pre_digest_res.error());
       return BlockProductionError::CAN_NOT_PREPARE_BLOCK;
     }
-    auto &pre_digest = pre_digest_res.value();
+    const auto &pre_digest = pre_digest_res.value();
 
     auto propose = [self = shared_from_this(),
                     inherent_data = std::move(inherent_data),
@@ -492,12 +509,6 @@ namespace kagome::consensus::sassafras {
       }
     }
 
-    return outcome::success();
-  }
-
-  outcome::result<void> Sassafras::validateHeader(
-      const primitives::BlockHeader &block_header) const {
-    // FIXME
     return outcome::success();
   }
 

@@ -9,6 +9,7 @@ add_library(sassafras
     impl/sassafras.cpp
     impl/threshold_util.cpp
     impl/sassafras_lottery_impl.cpp
+    impl/sassafras_block_validator_impl.cpp
     impl/sassafras_config_repository_impl.cpp
     impl/sassafras_error.cpp
     impl/sassafras_vrf.cpp
@@ -16,8 +17,7 @@ add_library(sassafras
 )
 target_link_libraries(sassafras
     consensus_common
-    logger
-    metrics
 )
 kagome_install(sassafras)
+kagome_clear_objects(sassafras)
 
