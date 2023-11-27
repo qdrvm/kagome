@@ -37,17 +37,17 @@ namespace kagome::consensus::grandpa {
     /**
      * Set id is missing from grandpa digests.
      */
-    primitives::AuthoritySetId next_set_id;
+    AuthoritySetId next_set_id;
     std::optional<primitives::BlockNumber> forced_target;
     /**
      * Current authorities read from runtime.
      * Used at genesis and after warp sync.
      */
-    std::optional<std::shared_ptr<const primitives::AuthoritySet>> state;
+    std::optional<std::shared_ptr<const AuthoritySet>> state;
     /**
      * Next authorities lazily computed from `set_id` and digest.
      */
-    std::optional<std::shared_ptr<const primitives::AuthoritySet>> next;
+    std::optional<std::shared_ptr<const AuthoritySet>> next;
   };
 
   class AuthorityManagerImpl final
@@ -65,25 +65,25 @@ namespace kagome::consensus::grandpa {
 
     // AuthorityManager
 
-    std::optional<std::shared_ptr<const primitives::AuthoritySet>> authorities(
+    std::optional<std::shared_ptr<const AuthoritySet>> authorities(
         const primitives::BlockInfo &target_block,
         IsBlockFinalized finalized) const override;
 
     void warp(const primitives::BlockInfo &block,
               const primitives::BlockHeader &header,
-              const primitives::AuthoritySet &authorities) override;
+              const AuthoritySet &authorities) override;
 
    private:
-    outcome::result<std::shared_ptr<const primitives::AuthoritySet>>
-    authoritiesOutcome(const primitives::BlockInfo &block, bool next) const;
-    std::shared_ptr<primitives::AuthoritySet> applyDigests(
+    outcome::result<std::shared_ptr<const AuthoritySet>> authoritiesOutcome(
+        const primitives::BlockInfo &block, bool next) const;
+    std::shared_ptr<AuthoritySet> applyDigests(
         const primitives::BlockInfo &block,
-        primitives::AuthoritySetId set_id,
+        AuthoritySetId set_id,
         const HasAuthoritySetChange &digests) const;
     outcome::result<void> load(
         const primitives::BlockInfo &block,
         blockchain::Indexed<GrandpaIndexedValue> &item) const;
-    outcome::result<std::shared_ptr<const primitives::AuthoritySet>> loadPrev(
+    outcome::result<std::shared_ptr<const AuthoritySet>> loadPrev(
         const std::optional<primitives::BlockInfo> &prev) const;
 
     mutable std::mutex mutex_;

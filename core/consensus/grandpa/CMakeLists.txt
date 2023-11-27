@@ -19,22 +19,8 @@ add_library(grandpa
     voting_round_error.cpp
     )
 target_link_libraries(grandpa
-#    mp_utils
-#    ed25519_types
-#    Boost::boost
-#    schnorrkel_crust::schnorrkel_crust
-#    transaction_pool_error
-#    hasher
-#    vrf_provider
     logger
-#    scale::scale
-#    primitives
-#    blob
-#    outcome
-#    p2p::p2p_peer_id
-#    storage
     metrics
-#    blockchain
-#    telemetry
     )
 kagome_install(grandpa)
+kagome_clear_objects(grandpa)

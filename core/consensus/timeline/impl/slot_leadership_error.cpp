@@ -4,10 +4,10 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "consensus/timeline/impl/block_production_error.hpp"
+#include "consensus/timeline/impl/slot_leadership_error.hpp"
 
-OUTCOME_CPP_DEFINE_CATEGORY(kagome::consensus, BlockProductionError, e) {
-  using E = kagome::consensus::BlockProductionError;
+OUTCOME_CPP_DEFINE_CATEGORY(kagome::consensus, SlotLeadershipError, e) {
+  using E = kagome::consensus::SlotLeadershipError;
   switch (e) {
     case E::NO_VALIDATOR:
       return "node is not validator in current epoch";
@@ -16,5 +16,5 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::consensus, BlockProductionError, e) {
     case E::BACKING_OFF:
       return "backing off claiming new slot for block authorship";
   }
-  return "unknown error (kagome::consensus::BlockProductionError)";
+  return "unknown error (kagome::consensus::SlotLeadershipError)";
 }

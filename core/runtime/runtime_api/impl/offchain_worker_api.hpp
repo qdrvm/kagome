@@ -20,16 +20,12 @@ namespace kagome::runtime {
 
   class Executor;
 
-  outcome::result<void> callOffchainWorkerApi(
-      Executor &executor,
-      const primitives::BlockHash &block,
-      const primitives::BlockHeader &header);
-
   class OffchainWorkerApiImpl final : public OffchainWorkerApi {
    public:
     OffchainWorkerApiImpl(
         const application::AppConfiguration &app_config,
         std::shared_ptr<offchain::OffchainWorkerFactory> ocw_factory,
+        std::shared_ptr<offchain::Runner> runner,
         std::shared_ptr<Executor> executor);
 
     outcome::result<void> offchain_worker(

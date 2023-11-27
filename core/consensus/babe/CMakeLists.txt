@@ -9,11 +9,11 @@ add_library(babe
     impl/babe.cpp
     impl/threshold_util.cpp
     impl/babe_lottery_impl.cpp
+    impl/babe_block_validator_impl.cpp
     impl/babe_config_repository_impl.cpp
-    impl/babe_error.cpp
-    )
+)
 target_link_libraries(babe
-    logger
-    metrics
-    )
+    consensus_common
+)
 kagome_install(babe)
+kagome_clear_objects(babe)

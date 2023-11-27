@@ -58,3 +58,4 @@ target_link_libraries(network
     p2p::p2p_loopback_stream
     )
 kagome_clear_objects(network)
+kagome_install(network)

@@ -14,8 +14,14 @@ namespace kagome::runtime {
     BOMB_SIZE_REACHED,
   };
 
-  outcome::result<void> uncompressCodeIfNeeded(common::BufferView buf,
-                                               common::Buffer &res);
+  outcome::result<void, UncompressError> uncompressCodeIfNeeded(
+      common::BufferView buf, common::Buffer &res);
 }  // namespace kagome::runtime
 
 OUTCOME_HPP_DECLARE_ERROR(kagome::runtime, UncompressError);
+
+namespace kagome::runtime {
+  inline auto format_as(UncompressError e) {
+    return make_error_code(e);
+  }
+}

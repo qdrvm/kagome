@@ -25,8 +25,7 @@ namespace kagome::runtime {
    public:
     virtual ~Module() = default;
 
-    virtual outcome::result<std::shared_ptr<ModuleInstance>> instantiate()
-        const = 0;
+    virtual std::shared_ptr<ModuleInstance> instantiate() const = 0;
   };
 
   /**

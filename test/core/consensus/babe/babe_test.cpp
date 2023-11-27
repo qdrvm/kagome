@@ -10,24 +10,26 @@
 
 #include "consensus/babe/impl/babe.hpp"
 #include "consensus/babe/impl/babe_digests_util.hpp"
-#include "consensus/babe/impl/babe_error.hpp"
-#include "consensus/timeline/impl/block_production_error.hpp"
+#include "consensus/babe/types/babe_configuration.hpp"
+#include "consensus/block_production_error.hpp"
+#include "consensus/timeline/impl/slot_leadership_error.hpp"
 #include "mock/core/application/app_configuration_mock.hpp"
 #include "mock/core/authorship/proposer_mock.hpp"
 #include "mock/core/blockchain/block_tree_mock.hpp"
 #include "mock/core/clock/clock_mock.hpp"
+#include "mock/core/consensus/babe/babe_block_validator_mock.hpp"
 #include "mock/core/consensus/babe/babe_config_repository_mock.hpp"
-#include "mock/core/consensus/babe_lottery_mock.hpp"
+#include "mock/core/consensus/babe/babe_lottery_mock.hpp"
 #include "mock/core/consensus/timeline/slots_util_mock.hpp"
 #include "mock/core/crypto/hasher_mock.hpp"
 #include "mock/core/crypto/session_keys_mock.hpp"
 #include "mock/core/crypto/sr25519_provider_mock.hpp"
+#include "mock/core/crypto/vrf_provider_mock.hpp"
 #include "mock/core/dispute_coordinator/dispute_coordinator_mock.hpp"
 #include "mock/core/network/block_announce_transmitter_mock.hpp"
 #include "mock/core/parachain/backing_store_mock.hpp"
 #include "mock/core/parachain/bitfield_store_mock.hpp"
 #include "mock/core/runtime/offchain_worker_api_mock.hpp"
-#include "primitives/babe_configuration.hpp"
 #include "primitives/event_types.hpp"
 #include "storage/trie/serialization/ordered_trie_hash.hpp"
 #include "testutil/asio_wait.hpp"
@@ -45,39 +47,56 @@ using kagome::blockchain::BlockTreeMock;
 using kagome::clock::SystemClockMock;
 using kagome::common::Buffer;
 using kagome::common::BufferView;
+using kagome::common::uint256_to_le_bytes;
 using kagome::consensus::BlockProductionError;
+using kagome::consensus::Duration;
 using kagome::consensus::EpochLength;
 using kagome::consensus::EpochNumber;
+using kagome::consensus::EpochTimings;
+using kagome::consensus::SlotLeadershipError;
 using kagome::consensus::SlotNumber;
 using kagome::consensus::SlotsUtil;
 using kagome::consensus::SlotsUtilMock;
+using kagome::consensus::Threshold;
 using kagome::consensus::ValidatorStatus;
+using kagome::consensus::babe::Authorities;
+using kagome::consensus::babe::Authority;
+using kagome::consensus::babe::AuthorityId;
+using kagome::consensus::babe::AuthorityIndex;
 using kagome::consensus::babe::Babe;
 using kagome::consensus::babe::BabeBlockHeader;
+using kagome::consensus::babe::BabeBlockValidator;
+using kagome::consensus::babe::BabeBlockValidatorMock;
 using kagome::consensus::babe::BabeConfigRepositoryMock;
-using kagome::consensus::babe::BabeError;
+using kagome::consensus::babe::BabeConfiguration;
 using kagome::consensus::babe::BabeLotteryMock;
 using kagome::consensus::babe::DigestError;
+using kagome::consensus::babe::Randomness;
+using kagome::consensus::babe::SlotLeadership;
 using kagome::consensus::babe::SlotType;
 using kagome::crypto::HasherMock;
 using kagome::crypto::SessionKeysMock;
 using kagome::crypto::Sr25519Keypair;
 using kagome::crypto::Sr25519ProviderMock;
+using kagome::crypto::Sr25519PublicKey;
 using kagome::crypto::Sr25519Signature;
 using kagome::crypto::VRFOutput;
+using kagome::crypto::VRFPreOutput;
+using kagome::crypto::VRFProof;
+using kagome::crypto::VRFProviderMock;
+using kagome::crypto::VRFVerifyOutput;
 using kagome::dispute::DisputeCoordinatorMock;
 using kagome::dispute::MultiDisputeStatementSet;
 using kagome::network::BlockAnnounceTransmitterMock;
 using kagome::parachain::BackingStoreMock;
 using kagome::parachain::BitfieldStoreMock;
-using kagome::primitives::Authority;
-using kagome::primitives::BabeConfiguration;
 using kagome::primitives::Block;
+using kagome::primitives::BlockBody;
 using kagome::primitives::BlockHash;
 using kagome::primitives::BlockHeader;
 using kagome::primitives::BlockInfo;
+using kagome::primitives::ConsensusEngineId;
 using kagome::primitives::Digest;
-using kagome::primitives::Duration;
 using kagome::primitives::Extrinsic;
 using kagome::primitives::PreRuntime;
 using kagome::primitives::events::ChainSubscriptionEngine;
@@ -136,24 +155,19 @@ class BabeTest : public testing::Test {
     slots_util = std::make_shared<SlotsUtilMock>();
 
     // add initialization logic
-    slot_duration = 60ms;
-    epoch_length = 2;
+    timings = {60ms, 2};
     our_keypair = std::make_shared<Sr25519Keypair>(generateSr25519Keypair());
     other_keypair = std::make_shared<Sr25519Keypair>(generateSr25519Keypair());
     babe_config = std::make_shared<BabeConfiguration>();
-    babe_config->slot_duration = slot_duration;
+    babe_config->slot_duration = timings.slot_duration;
     babe_config->randomness.fill(0);
     babe_config->authorities = {Authority{{our_keypair->public_key}, 1},
                                 Authority{{other_keypair->public_key}, 1}};
     babe_config->leadership_rate = {1, 4};
-    babe_config->epoch_length = epoch_length;
+    babe_config->epoch_length = timings.epoch_length;
 
     babe_config_repo = std::make_shared<BabeConfigRepositoryMock>();
     ON_CALL(*babe_config_repo, config(_, _)).WillByDefault(Return(babe_config));
-    ON_CALL(*babe_config_repo, slotDuration())
-        .WillByDefault(Return(babe_config->slot_duration));
-    ON_CALL(*babe_config_repo, epochLength())
-        .WillByDefault(Return(babe_config->epoch_length));
 
     session_keys = std::make_shared<SessionKeysMock>();
     ON_CALL(*session_keys, getBabeKeyPair(babe_config->authorities))
@@ -173,6 +187,7 @@ class BabeTest : public testing::Test {
         .WillByDefault(Return(new_block_info.hash));
 
     sr25519_provider = std::make_shared<Sr25519ProviderMock>();
+    block_validator = std::make_shared<BabeBlockValidatorMock>();
     bitfield_store = std::make_shared<BitfieldStoreMock>();
     backing_store = std::make_shared<BackingStoreMock>();
 
@@ -191,15 +206,19 @@ class BabeTest : public testing::Test {
     ON_CALL(*offchain_worker_api, offchain_worker(_, _))
         .WillByDefault(Return(outcome::success()));
 
+    thread_pool_ = std::make_shared<ThreadPool>("test", 1);
+
     babe = std::make_shared<Babe>(app_config,
                                   clock,
                                   block_tree,
                                   testutil::sptr_to_lazy<SlotsUtil>(slots_util),
                                   babe_config_repo,
+                                  timings,
                                   session_keys,
                                   lottery,
                                   hasher,
                                   sr25519_provider,
+                                  block_validator,
                                   bitfield_store,
                                   backing_store,
                                   dispute_coordinator,
@@ -208,8 +227,8 @@ class BabeTest : public testing::Test {
                                   chain_sub_engine,
                                   announce_transmitter,
                                   offchain_worker_api,
-                                  thread_pool_,
-                                  thread_pool_.io_context());
+                                  *thread_pool_,
+                                  thread_pool_->io_context());
   }
 
   AppConfigurationMock app_config;
@@ -217,10 +236,12 @@ class BabeTest : public testing::Test {
   std::shared_ptr<BlockTreeMock> block_tree;
   std::shared_ptr<SlotsUtilMock> slots_util;
   std::shared_ptr<BabeConfigRepositoryMock> babe_config_repo;
+  EpochTimings timings;
   std::shared_ptr<SessionKeysMock> session_keys;
   std::shared_ptr<BabeLotteryMock> lottery;
   std::shared_ptr<HasherMock> hasher;
   std::shared_ptr<Sr25519ProviderMock> sr25519_provider;
+  std::shared_ptr<BabeBlockValidatorMock> block_validator;
   std::shared_ptr<BitfieldStoreMock> bitfield_store;
   std::shared_ptr<BackingStoreMock> backing_store;
   std::shared_ptr<DisputeCoordinatorMock> dispute_coordinator;
@@ -229,10 +250,8 @@ class BabeTest : public testing::Test {
   std::shared_ptr<ChainSubscriptionEngine> chain_sub_engine;
   std::shared_ptr<BlockAnnounceTransmitterMock> announce_transmitter;
   std::shared_ptr<OffchainWorkerApiMock> offchain_worker_api;
-  ThreadPool thread_pool_{"test", 1};
+  std::shared_ptr<ThreadPool> thread_pool_;
 
-  Duration slot_duration = 3s;
-  EpochLength epoch_length = 20;
   std::shared_ptr<BabeConfiguration> babe_config;
 
   std::shared_ptr<Sr25519Keypair> our_keypair;
@@ -290,10 +309,6 @@ class BabeTest : public testing::Test {
 };
 
 TEST_F(BabeTest, Setup) {
-  auto [actual_slot_duration, actual_epoch_length] = babe->getTimings();
-  EXPECT_EQ(actual_slot_duration, slot_duration);
-  EXPECT_EQ(actual_epoch_length, epoch_length);
-
   ASSERT_OUTCOME_ERROR(babe->getSlot(genesis_block_header),
                        DigestError::GENESIS_BLOCK_CAN_NOT_HAVE_DIGESTS);
 
@@ -318,7 +333,7 @@ TEST_F(BabeTest, NonValidator) {
       .WillOnce(Return(outcome::success(epoch)));
 
   ASSERT_OUTCOME_ERROR(babe->processSlot(slot, best_block_info),
-                       BlockProductionError::NO_VALIDATOR);
+                       SlotLeadershipError::NO_VALIDATOR);
 }
 
 TEST_F(BabeTest, NoSlotLeader) {
@@ -332,11 +347,13 @@ TEST_F(BabeTest, NoSlotLeader) {
   EXPECT_CALL(*slots_util, slotToEpoch(best_block_info, slot))
       .WillOnce(Return(outcome::success(epoch)));
 
-  EXPECT_CALL(*lottery, getEpoch()).WillOnce(Return(epoch));
-  EXPECT_CALL(*lottery, getSlotLeadership(slot)).WillOnce(Return(std::nullopt));
+  EXPECT_CALL(*lottery, getEpoch()).WillOnce(Return(-1));
+  EXPECT_CALL(*lottery, changeEpoch(0, best_block_info)).WillOnce(Return(true));
+  EXPECT_CALL(*lottery, getSlotLeadership(best_block_info.hash, slot))
+      .WillOnce(Return(std::nullopt));
 
   ASSERT_OUTCOME_ERROR(babe->processSlot(slot, best_block_info),
-                       BlockProductionError::NO_SLOT_LEADER);
+                       SlotLeadershipError::NO_SLOT_LEADER);
 }
 
 TEST_F(BabeTest, SlotLeader) {
@@ -350,8 +367,10 @@ TEST_F(BabeTest, SlotLeader) {
   EXPECT_CALL(*slots_util, slotToEpoch(best_block_info, slot))
       .WillOnce(Return(outcome::success(epoch)));
 
-  EXPECT_CALL(*lottery, getEpoch()).WillOnce(Return(epoch));
-  EXPECT_CALL(*lottery, getSlotLeadership(slot)).WillOnce(Return(VRFOutput{}));
+  EXPECT_CALL(*lottery, getEpoch()).WillOnce(Return(-1));
+  EXPECT_CALL(*lottery, changeEpoch(0, best_block_info)).WillOnce(Return(true));
+  EXPECT_CALL(*lottery, getSlotLeadership(best_block_info.hash, slot))
+      .WillOnce(Return(SlotLeadership{.keypair = our_keypair}));
 
   EXPECT_CALL(*block_tree, getBlockHeader(best_block_info.hash))
       .WillOnce(Return(best_block_header));
@@ -366,5 +385,5 @@ TEST_F(BabeTest, SlotLeader) {
 
   ASSERT_OUTCOME_SUCCESS_TRY(babe->processSlot(slot, best_block_info));
 
-  testutil::wait(*thread_pool_.io_context());
+  testutil::wait(*thread_pool_->io_context());
 }

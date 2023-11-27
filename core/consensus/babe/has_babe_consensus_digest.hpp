@@ -37,12 +37,12 @@ namespace kagome::consensus::babe {
         if (not babe) {
           continue;
         }
-        if (auto item = boost::get<primitives::NextEpochData>(babe)) {
+        if (auto item = boost::get<EpochData>(babe)) {
           epoch = std::move(*item);
           continue;
         }
-        if (auto item = boost::get<primitives::NextConfigData>(babe)) {
-          config = boost::get<primitives::NextConfigDataV1>(*item);
+        if (auto item = boost::get<NextConfigData>(babe)) {
+          config = boost::get<NextConfigDataV1>(*item);
           continue;
         }
       }
@@ -52,7 +52,7 @@ namespace kagome::consensus::babe {
       return epoch.has_value();
     }
 
-    std::optional<primitives::NextEpochData> epoch;
-    std::optional<primitives::NextConfigDataV1> config;
+    std::optional<EpochData> epoch;
+    std::optional<NextConfigDataV1> config;
   };
 }  // namespace kagome::consensus::babe
