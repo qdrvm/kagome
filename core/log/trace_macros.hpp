@@ -16,7 +16,7 @@ namespace kagome::log {
 
   template <typename Ret, typename... Args>
   void trace_function_call(const Logger &logger,
-                           const void* caller,
+                           const void *caller,
                            std::string_view func_name,
                            Ret &&ret,
                            Args &&...args) {
@@ -42,7 +42,7 @@ namespace kagome::log {
 
   template <typename... Args>
   void trace_void_function_call(const Logger &logger,
-                                const void* caller,
+                                const void *caller,
                                 std::string_view func_name,
                                 Args &&...args) {
     if (logger->level() >= Level::TRACE) {
@@ -58,21 +58,27 @@ namespace kagome::log {
     }
   }
 
-  // #ifdef NDEBUG
-  //
-  // #define SL_TRACE_FUNC_CALL(logger, ret, ...)
-  // #define SL_TRACE_VOID_FUNC_CALL(logger, ...)
-  //
-  // #else
+#ifdef NDEBUG
 
-#define SL_TRACE_FUNC_CALL(logger, ret, ...) \
-  ::kagome::log::trace_function_call(        \
-      (logger), reinterpret_cast<const void*>(this), __FUNCTION__, (ret), ##__VA_ARGS__)
+#define SL_TRACE_FUNC_CALL(logger, ret, ...)
+#define SL_TRACE_VOID_FUNC_CALL(logger, ...)
+
+#else
+
+#define SL_TRACE_FUNC_CALL(logger, ret, ...)                               \
+  ::kagome::log::trace_function_call((logger),                             \
+                                     reinterpret_cast<const void *>(this), \
+                                     __FUNCTION__,                         \
+                                     (ret),                                \
+                                     ##__VA_ARGS__)
 
 #define SL_TRACE_VOID_FUNC_CALL(logger, ...) \
   ::kagome::log::trace_void_function_call(   \
-      (logger), reinterpret_cast<const void*>(this), __FUNCTION__, ##__VA_ARGS__)
+      (logger),                              \
+      reinterpret_cast<const void *>(this),  \
+      __FUNCTION__,                          \
+      ##__VA_ARGS__)
 
-  // #endif
+#endif
 
 }  // namespace kagome::log

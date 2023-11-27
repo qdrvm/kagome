@@ -41,21 +41,16 @@ namespace kagome::runtime {
 
     template <typename... Args>
     static outcome::result<common::Buffer> encodeArgs(const Args &...args) {
-      common::Buffer encoded_args{};
       if constexpr (sizeof...(args) > 0) {
-        OUTCOME_TRY(res, scale::encode(args...));
-        encoded_args.put(std::move(res));
+        return scale::encode(args...);
       }
-      return encoded_args;
+      return outcome::success();
     }
 
     template <typename Result>
     static outcome::result<Result> decodedCall(
         outcome::result<common::Buffer> &&result) {
-      if (!result) {
-        return result.as_failure();
-      }
-      auto &value = result.value();
+      OUTCOME_TRY(value, result);
       if constexpr (std::is_void_v<Result>) {
         return outcome::success();
       } else {

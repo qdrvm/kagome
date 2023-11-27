@@ -7,8 +7,8 @@
 #include "runtime/wavm/instance_environment_factory.hpp"
 
 #include "host_api/host_api_factory.hpp"
+#include "runtime/common/core_api_factory_impl.hpp"
 #include "runtime/common/trie_storage_provider_impl.hpp"
-#include "runtime/wavm/core_api_factory_impl.hpp"
 #include "runtime/wavm/intrinsics/intrinsic_functions.hpp"
 #include "runtime/wavm/intrinsics/intrinsic_module_instance.hpp"
 #include "runtime/wavm/module_params.hpp"

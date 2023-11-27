@@ -15,5 +15,6 @@ add_library(babe
 target_link_libraries(babe
     logger
     metrics
+    primitives
     )
 kagome_install(babe)

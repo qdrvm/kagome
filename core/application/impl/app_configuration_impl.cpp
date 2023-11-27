@@ -158,15 +158,8 @@ namespace {
 
   std::array<std::string_view, 2> execution_methods{"Interpreted", "Compiled"};
 
-  std::string execution_methods_str = []() {
-    std::stringstream ss;
-    ss << "[";
-    for (auto &method : execution_methods) {
-      ss << method << ", ";
-    }
-    ss << "]";
-    return ss.str();
-  }();
+  std::string execution_methods_str =
+      fmt::format("[{}]", fmt::join(execution_methods, ", "));
 
   std::optional<kagome::application::AppConfiguration::RuntimeExecutionMethod>
   str_to_runtime_exec_method(std::string_view str) {
@@ -202,7 +195,7 @@ namespace {
       return {{res.value()}};
     }
 
-    kagome::primitives::BlockNumber bn {};
+    kagome::primitives::BlockNumber bn{};
     auto result = std::from_chars(str.data(), str.data() + str.size(), bn);
     if (result.ec != std::errc::invalid_argument && std::to_string(bn) == str) {
       return {{bn}};

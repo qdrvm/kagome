@@ -13,12 +13,12 @@
 #include "crypto/hasher.hpp"
 #include "host_api/host_api_factory.hpp"
 #include "log/trace_macros.hpp"
+#include "runtime/common/core_api_factory_impl.hpp"
 #include "runtime/common/trie_storage_provider_impl.hpp"
 #include "runtime/memory_provider.hpp"
 #include "runtime/module.hpp"
 #include "runtime/module_instance.hpp"
 #include "runtime/runtime_context.hpp"
-#include "runtime/wasm_edge/core_api_factory_impl.hpp"
 #include "runtime/wasm_edge/memory_impl.hpp"
 #include "runtime/wasm_edge/register_host_api.hpp"
 #include "runtime/wasm_edge/wrappers.hpp"
@@ -129,7 +129,7 @@ namespace kagome::runtime::wasm_edge {
         common::BufferView encoded_args) const override {
       PtrSize args_ptrsize{};
       if (!encoded_args.empty()) {
-        args_ptrsize = PtrSize{ctx.module_instance->getEnvironment()
+        args_ptrsize = PtrSize{getEnvironment()
                                    .memory_provider->getCurrentMemory()
                                    .value()
                                    .get()
@@ -142,11 +142,14 @@ namespace kagome::runtime::wasm_edge {
           WasmEdge_StringCreateByBuffer(name.data(), name.size());
       auto func =
           WasmEdge_ModuleInstanceFindFunction(instance_.raw(), wasm_name.raw());
+      if (!func) {
+        return RuntimeTransactionError::EXPORT_FUNCTION_NOT_FOUND;
+      }
 
       current_host_api.push(env_.host_api);
       ::libp2p::common::FinalAction cleanup = []() { current_host_api.pop(); };
 
-      SL_DEBUG(
+      SL_TRACE(
           log_,
           "Invoke env for {}:\n"
           "\tmodule_instance: {}\n"
@@ -173,10 +176,7 @@ namespace kagome::runtime::wasm_edge {
                                          1);
       BOOST_ASSERT(!current_host_api.empty());
       BOOST_ASSERT(current_host_api.top() == env_.host_api);
-      SL_DEBUG(log_, "Invoke {} end", name);
-      if (!WasmEdge_ResultOK(res)) {
-        return make_error_code(res);
-      }
+      WasmEdge_UNWRAP(res);
       auto [ptr, size] = PtrSize{WasmEdge_ValueGetI64(returns[0])};
       auto result = getEnvironment()
                         .memory_provider->getCurrentMemory()
@@ -263,6 +263,21 @@ namespace kagome::runtime::wasm_edge {
   class ModuleImpl : public Module,
                      public std::enable_shared_from_this<ModuleImpl> {
    public:
+    explicit ModuleImpl(ASTModuleContext module,
+                        std::shared_ptr<ExecutorContext> executor,
+                        std::shared_ptr<InstanceEnvironmentFactory> env_factory,
+                        const WasmEdge_MemoryTypeContext *memory_type,
+                        common::Hash256 code_hash)
+        : env_factory_{std::move(env_factory)},
+          executor_{std::move(executor)},
+          memory_type_{memory_type},
+          module_{std::move(module)},
+          code_hash_{code_hash} {
+      BOOST_ASSERT(module_ != nullptr);
+      BOOST_ASSERT(executor_ != nullptr);
+      BOOST_ASSERT(env_factory_ != nullptr);
+    }
+
     outcome::result<std::shared_ptr<ModuleInstance>> instantiate()
         const override {
       StoreContext store = WasmEdge_StoreCreate();
@@ -314,21 +329,6 @@ namespace kagome::runtime::wasm_edge {
     }
 
    private:
-    explicit ModuleImpl(ASTModuleContext module,
-                        std::shared_ptr<ExecutorContext> executor,
-                        std::shared_ptr<InstanceEnvironmentFactory> env_factory,
-                        const WasmEdge_MemoryTypeContext *memory_type,
-                        common::Hash256 code_hash)
-        : env_factory_{std::move(env_factory)},
-          executor_{std::move(executor)},
-          memory_type_{memory_type},
-          module_{std::move(module)},
-          code_hash_{code_hash} {
-      BOOST_ASSERT(module_ != nullptr);
-      BOOST_ASSERT(executor_ != nullptr);
-      BOOST_ASSERT(env_factory_ != nullptr);
-    }
-
     std::shared_ptr<InstanceEnvironmentFactory> env_factory_;
     std::shared_ptr<ExecutorContext> executor_;
     log::Logger log_ = log::createLogger("Module", "runtime");
@@ -360,9 +360,7 @@ namespace kagome::runtime::wasm_edge {
     auto code_hash = hasher_->sha2_256(code);
 
     ConfigureContext configure_ctx = WasmEdge_ConfigureCreate();
-    if (configure_ctx == nullptr) {
-      // return error
-    }
+    BOOST_ASSERT(configure_ctx.raw() != nullptr);  // no known reasons to fail
 
     LoaderContext loader_ctx = WasmEdge_LoaderCreate(configure_ctx.raw());
     WasmEdge_ASTModuleContext *module_ctx;
@@ -427,11 +425,11 @@ namespace kagome::runtime::wasm_edge {
     auto env_factory = std::make_shared<InstanceEnvironmentFactory>(
         core_api, host_api_factory_, storage_, serializer_);
 
-    return std::shared_ptr{new ModuleImpl{std::move(module),
-                                          std::move(executor),
-                                          env_factory,
-                                          import_memory_type,
-                                          code_hash}};
+    return std::shared_ptr<ModuleImpl>{new ModuleImpl{std::move(module),
+                                                      std::move(executor),
+                                                      env_factory,
+                                                      import_memory_type,
+                                                      code_hash}};
   }
 
 }  // namespace kagome::runtime::wasm_edge

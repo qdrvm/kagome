@@ -7,7 +7,8 @@
 #pragma once
 
 #include "runtime/core_api_factory.hpp"
-#include "runtime/runtime_api/core.hpp"
+
+#include <memory>
 
 namespace kagome::storage::trie {
   class TrieStorage;
@@ -18,20 +19,18 @@ namespace kagome::blockchain {
 }
 
 namespace kagome::runtime {
-  class TrieStorageProvider;
-  class Memory;
-  class RuntimeEnvironmentFactory;
-  class RuntimePropertiesCache;
   class ModuleFactory;
+  class SingleModuleCache;
 }  // namespace kagome::runtime
 
-namespace kagome::runtime::binaryen {
+namespace kagome::runtime {
 
   class CoreApiFactoryImpl final
       : public runtime::CoreApiFactory,
         public std::enable_shared_from_this<CoreApiFactoryImpl> {
    public:
-    CoreApiFactoryImpl(std::shared_ptr<const ModuleFactory> module_factory);
+    explicit CoreApiFactoryImpl(std::shared_ptr<const ModuleFactory> module_factory);
+    ~CoreApiFactoryImpl() = default;
 
     outcome::result<std::unique_ptr<RestrictedCore>> make(
         std::shared_ptr<const crypto::Hasher> hasher,
@@ -41,4 +40,4 @@ namespace kagome::runtime::binaryen {
     std::shared_ptr<const ModuleFactory> module_factory_;
   };
 
-}  // namespace kagome::runtime::binaryen
+}  // namespace kagome::runtime

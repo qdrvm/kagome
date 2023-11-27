@@ -13,6 +13,12 @@ namespace kagome::runtime::wasm_edge {
   std::atomic_int executor_count = 0;
   std::atomic_int misc_count = 0;
 
+  /**
+   * RAII wrapper for WasmEdge C API structures.
+   * @tparam T - WasmEdge type
+   * @tparam deleter - function that frees the object
+   * @tparam count - variable that counts instances of this object
+   */
   template <typename T, auto deleter, std::atomic_int &count = misc_count>
     requires std::invocable<decltype(deleter), T>
   class Wrapper {

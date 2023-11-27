@@ -51,22 +51,15 @@ target_link_libraries(binaryen_wasm_module
     )
 kagome_install(binaryen_wasm_module)
 
-add_library(binaryen_executor_factory
-    core_api_factory_impl.cpp
-    )
-target_link_libraries(binaryen_executor_factory
-    constant_code_provider
-    binaryen_memory_provider
-    core_api
-    )
-kagome_install(binaryen_executor_factory)
-
 add_library(binaryen_instance_environment_factory
     instance_environment_factory.cpp
     )
 target_link_libraries(binaryen_instance_environment_factory
-    binaryen_executor_factory
     trie_storage_provider
+    binaryen_wasm_memory_factory
+    core_api_factory
+    binaryen_memory_provider
+    binaryen::binaryen
     )
 kagome_install(binaryen_instance_environment_factory)
 

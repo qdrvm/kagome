@@ -4,8 +4,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#undef NDEBUG
-
 #include "runtime/module_instance.hpp"
 
 #include "common/int_serialization.hpp"

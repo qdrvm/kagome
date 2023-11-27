@@ -31,16 +31,16 @@ namespace kagome::runtime {
         return executor.call<std::shared_ptr<V>>(ctx, name);
       }
       if (auto r =
-              lru_.exclusiveAccess([&](typename decltype(lru_)::Type &lru) {
-                return lru.get(block);
+              lru_.exclusiveAccess([&](typename decltype(lru_)::Type &lru_) {
+                return lru_.get(block);
               })) {
         return *r;
       }
       OUTCOME_TRY(ctx, executor.ctx().ephemeralAt(block));
       OUTCOME_TRY(raw, ctx.module_instance->callExportFunction(ctx, name, {}));
       OUTCOME_TRY(r, ModuleInstance::decodedCall<V>(raw));
-      return lru_.exclusiveAccess([&](typename decltype(lru_)::Type &lru) {
-        return lru.put(block, std::move(r), raw);
+      return lru_.exclusiveAccess([&](typename decltype(lru_)::Type &lru_) {
+        return lru_.put(block, std::move(r), raw);
       });
     }
 
@@ -48,9 +48,9 @@ namespace kagome::runtime {
       if constexpr (DISABLE_RUNTIME_LRU) {
         return;
       }
-      lru_.exclusiveAccess([&](typename decltype(lru_)::Type &lru) {
+      lru_.exclusiveAccess([&](typename decltype(lru_)::Type &lru_) {
         for (auto &block : blocks) {
-          lru.erase(block);
+          lru_.erase(block);
         }
       });
     }
@@ -82,8 +82,8 @@ namespace kagome::runtime {
       }
       Key key{{block, arg}};
       if (auto r =
-              lru_.exclusiveAccess([&](typename decltype(lru_)::Type &lru) {
-                return lru.get(key);
+              lru_.exclusiveAccess([&](typename decltype(lru_)::Type &lru_) {
+                return lru_.get(key);
               })) {
         return *r;
       }
@@ -93,8 +93,8 @@ namespace kagome::runtime {
       OUTCOME_TRY(raw,
                   ctx.module_instance->callExportFunction(ctx, name, raw_arg));
       OUTCOME_TRY(r, ModuleInstance::decodedCall<V>(raw));
-      return lru_.exclusiveAccess([&](typename decltype(lru_)::Type &lru) {
-        return lru.put(key, std::move(r), raw);
+      return lru_.exclusiveAccess([&](typename decltype(lru_)::Type &lru_) {
+        return lru_.put(key, std::move(r), raw);
       });
     }
 
@@ -102,8 +102,8 @@ namespace kagome::runtime {
       if constexpr (DISABLE_RUNTIME_LRU) {
         return;
       }
-      lru_.exclusiveAccess([&](typename decltype(lru_)::Type &lru) {
-        lru.erase_if([&](const Key &key, const std::shared_ptr<V> &) {
+      lru_.exclusiveAccess([&](typename decltype(lru_)::Type &lru_) {
+        lru_.erase_if([&](const Key &key, const std::shared_ptr<V> &) {
           return std::find_if(blocks.begin(),
                               blocks.end(),
                               [&](const primitives::BlockHash &block) {
@@ -141,16 +141,16 @@ namespace kagome::runtime {
       OUTCOME_TRY(hash,
                   upgrades.getLastCodeUpdateState({block_number, block_hash}));
       if (auto r =
-              lru_.exclusiveAccess([&](typename decltype(lru_)::Type &lru) {
-                auto v = lru.get(hash);
+              lru_.exclusiveAccess([&](typename decltype(lru_)::Type &lru_) {
+                auto v = lru_.get(hash);
                 return v ? std::make_optional(v->get()) : std::nullopt;
               })) {
         return *r;
       }
       OUTCOME_TRY(ctx, executor.ctx().ephemeralAt(block_hash));
       OUTCOME_TRY(r, executor.call<V>(ctx, name));
-      return lru_.exclusiveAccess([&](typename decltype(lru_)::Type &lru) {
-        return lru.put(hash, std::move(r));
+      return lru_.exclusiveAccess([&](typename decltype(lru_)::Type &lru_) {
+        return lru_.put(hash, std::move(r));
       });
     }
 

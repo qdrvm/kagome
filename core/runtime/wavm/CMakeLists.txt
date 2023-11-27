@@ -5,7 +5,7 @@
 #
 
 add_library(runtime_wavm
-    core_api_factory_impl.cpp
+    ../common/core_api_factory_impl.cpp
 		compartment_wrapper.cpp
     intrinsics/intrinsic_functions.cpp
     intrinsics/intrinsic_module.cpp

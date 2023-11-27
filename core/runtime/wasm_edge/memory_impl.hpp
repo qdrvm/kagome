@@ -11,8 +11,8 @@
 #include "runtime/common/memory_allocator.hpp"
 #include "runtime/memory.hpp"
 #include "runtime/memory_provider.hpp"
-#include "runtime/types.hpp"
 #include "runtime/ptr_size.hpp"
+#include "runtime/types.hpp"
 
 namespace kagome::runtime::wasm_edge {
 
@@ -94,10 +94,11 @@ namespace kagome::runtime::wasm_edge {
     }
 
     common::BufferView loadN(WasmPointer addr, WasmSize n) const override {
+      BOOST_ASSERT(n > 0);
       auto ptr = WasmEdge_MemoryInstanceGetPointer(mem_instance_, addr, n);
       BOOST_ASSERT(ptr);
       SL_TRACE_FUNC_CALL(logger_, fmt::ptr(ptr), addr, n);
-      return common::BufferView{ptr, n};
+      return common::BufferView{ptr, static_cast<size_t>(n)};
     }
 
     std::string loadStr(WasmPointer addr, WasmSize n) const override {

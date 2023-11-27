@@ -8,8 +8,8 @@
 
 #include <queue>
 
-#include <boost/assert.hpp>
 #include <fmt/std.h>
+#include <boost/assert.hpp>
 
 #include "application/app_configuration.hpp"
 #include "application/app_state_manager.hpp"
@@ -413,8 +413,9 @@ namespace kagome::storage::trie_pruner {
         auto value_hash_opt = encoder.getValueHash(*node, version);
         if (value_hash_opt) {
           auto &value_ref_count = value_ref_count_[*value_hash_opt];
-          if (value_ref_count == 0 && value_storage_->contains(*value_hash_opt)
-              && !thorough_pruning_) {
+          OUTCOME_TRY(contains_value,
+                      value_storage_->contains(*value_hash_opt));
+          if (value_ref_count == 0 && contains_value && !thorough_pruning_) {
             value_ref_count++;
           }
           value_ref_count++;

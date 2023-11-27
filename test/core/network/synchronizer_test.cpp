@@ -21,7 +21,7 @@
 #include "mock/core/network/router_mock.hpp"
 #include "mock/core/runtime/module_factory_mock.hpp"
 #include "mock/core/runtime/runtime_properties_cache_mock.hpp"
-#include "mock/core/storage/persistent_map_mock.hpp"
+#include "mock/core/storage/generic_storage_mock.hpp"
 #include "mock/core/storage/spaced_storage_mock.hpp"
 #include "mock/core/storage/trie/trie_storage_backend_mock.hpp"
 #include "mock/core/storage/trie/trie_storage_mock.hpp"
@@ -90,7 +90,8 @@ class SynchronizerTest
                                                     block_tree,
                                                     block_appender,
                                                     block_executor,
-                                                    trie_db,
+                                                    trie_node_db,
+                                                    trie_value_db,
                                                     storage,
                                                     state_pruner,
                                                     router,
@@ -110,7 +111,9 @@ class SynchronizerTest
       std::make_shared<BlockHeaderAppenderMock>();
   std::shared_ptr<BlockExecutorMock> block_executor =
       std::make_shared<BlockExecutorMock>();
-  std::shared_ptr<trie::TrieStorageBackendMock> trie_db =
+  std::shared_ptr<trie::TrieStorageBackendMock> trie_node_db =
+      std::make_shared<trie::TrieStorageBackendMock>();
+  std::shared_ptr<trie::TrieStorageBackendMock> trie_value_db =
       std::make_shared<trie::TrieStorageBackendMock>();
   std::shared_ptr<trie::TrieStorageMock> storage =
       std::make_shared<trie::TrieStorageMock>();

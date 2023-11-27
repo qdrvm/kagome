@@ -16,12 +16,9 @@ target_link_libraries(application_injector
     app_state_manager
     application_modes
     assets
-    assets
-    assets
     authority_discovery_api
     babe_api
     beefy_api
-    binaryen_executor_factory
     binaryen_module_factory
     binaryen_runtime_external_interface
     binaryen_wasm_memory
@@ -37,15 +34,11 @@ target_link_libraries(application_injector
     core_api
     crypto_store
     dispute_coordinator
-    dispute_coordinator
     ecdsa_provider
     ed25519_provider
     executor
-    executor
-    fd_limit
     fd_limit
     filesystem
-    grandpa_api
     grandpa_api
     host_api_factory
     kagome_benchmarks
@@ -58,30 +51,22 @@ target_link_libraries(application_injector
     module_repository
     network
     offchain_local_storage
-    offchain_local_storage
-    offchain_persistent_storage
     offchain_persistent_storage
     offchain_worker_api
-    offchain_worker_api
     offchain_worker_factory
-    offchain_worker_factory
-    offchain_worker_pool
     offchain_worker_pool
     outcome
     p2p::p2p
     p2p::p2p_identify
     p2p::p2p_kademlia
     p2p::p2p_loopback_stream
-    p2p::p2p_loopback_stream
     p2p::p2p_ping
     parachain_host_api
     pbkdf2_provider
     recovery_mode
-    recovery_mode
     runtime_properties_cache
     runtime_upgrade_tracker
     secp256k1_provider
-    session_keys_api
     session_keys_api
     soralog::fallback_configurator
     soralog::soralog
@@ -93,9 +78,7 @@ target_link_libraries(application_injector
     timeline
     transaction_payment_api
     transaction_pool
-    transaction_pool
     trie_storage_provider
-    validator_parachain
     validator_parachain
     vrf_provider
     waitable_timer

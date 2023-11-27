@@ -131,9 +131,9 @@
 #include "parachain/validator/impl/parachain_observer_impl.hpp"
 #include "parachain/validator/parachain_processor.hpp"
 #include "runtime/binaryen/binaryen_memory_provider.hpp"
-#include "runtime/binaryen/core_api_factory_impl.hpp"
 #include "runtime/binaryen/instance_environment_factory.hpp"
 #include "runtime/binaryen/module/module_factory_impl.hpp"
+#include "runtime/common/core_api_factory_impl.hpp"
 #include "runtime/common/module_repository_impl.hpp"
 #include "runtime/common/runtime_instances_pool.hpp"
 #include "runtime/common/runtime_properties_cache_impl.hpp"
@@ -160,7 +160,6 @@
 
 #if KAGOME_WASM_COMPILER_WASM_EDGE == 1
 
-#include "runtime/wasm_edge/core_api_factory_impl.hpp"
 #include "runtime/wasm_edge/module_factory_impl.hpp"
 
 #endif
@@ -168,7 +167,6 @@
 #if KAGOME_WASM_COMPILER_WAVM == 1
 
 #include "runtime/wavm/compartment_wrapper.hpp"
-#include "runtime/wavm/core_api_factory_impl.hpp"
 #include "runtime/wavm/instance_environment_factory.hpp"
 #include "runtime/wavm/intrinsics/intrinsic_functions.hpp"
 #include "runtime/wavm/intrinsics/intrinsic_module.hpp"
@@ -438,7 +436,6 @@ namespace {
   auto makeWasmEdgeInjector(Ts &&...args) {
     return di::make_injector(
 #if KAGOME_WASM_COMPILER_WASM_EDGE == 1
-        di::bind<runtime::CoreApiFactory>.template to<runtime::wasm_edge::CoreApiFactoryImpl>(),
         di::bind<runtime::ModuleFactory>.template to<runtime::wasm_edge::ModuleFactoryImpl>(),
 #endif
         std::forward<decltype(args)>(args)...);
@@ -491,12 +488,10 @@ namespace {
 
 #if KAGOME_WASM_COMPILER_WAVM == 1
 
-  using CoreApiFactory = runtime::wavm::CoreApiFactoryImpl;
   using ModuleFactory = runtime::wavm::ModuleFactoryImpl;
 
 #elif KAGOME_WASM_COMPILER_WASM_EDGE == 1
 
-  using CoreApiFactory = runtime::wasm_edge::CoreApiFactoryImpl;
   using ModuleFactory = runtime::wasm_edge::ModuleFactoryImpl;
 
 #endif
@@ -521,12 +516,7 @@ namespace {
           return std::make_shared<runtime::RuntimeInstancesPool>();
         }),
         di::bind<runtime::ModuleRepository>.template to<runtime::ModuleRepositoryImpl>(),
-        bind_by_lambda<runtime::CoreApiFactory>([method](const auto &injector) {
-          return choose_runtime_implementation<
-              runtime::CoreApiFactory,
-              runtime::binaryen::CoreApiFactoryImpl,
-              CoreApiFactory>(injector, method);
-        }),
+        di::bind<runtime::CoreApiFactory>.template to<runtime::CoreApiFactoryImpl>(),
         bind_by_lambda<runtime::ModuleFactory>(
             [method](const auto &injector) -> sptr<runtime::ModuleFactory> {
               return choose_runtime_implementation<
