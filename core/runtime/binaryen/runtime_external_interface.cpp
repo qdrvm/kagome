@@ -96,7 +96,6 @@ namespace {
   template <auto mf>
   wasm::Literal callHostApiFunc(kagome::host_api::HostApi *host_api,
                                 const wasm::LiteralList &arguments) {
-    std::cout << "Call Host method " << __PRETTY_FUNCTION__  << "\n";
     return HostApiFunc<decltype(mf), mf>::call(host_api, arguments);
   }
 }  // namespace

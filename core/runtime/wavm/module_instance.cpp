@@ -107,14 +107,16 @@ namespace kagome::runtime::wavm {
   }
 
   outcome::result<common::Buffer> ModuleInstanceImpl::callExportFunction(
-      kagome::runtime::RuntimeContext &ctx,
+      kagome::runtime::RuntimeContext
+          &,  // not used, but has to have been created before the call
       std::string_view name,
       common::BufferView encoded_args) const {
     auto memory = env_.memory_provider->getCurrentMemory().value();
 
     PtrSize args_span{memory.get().storeBuffer(encoded_args)};
 
-    auto res = [this, name, args_span, &memory]() -> outcome::result<common::Buffer> {
+    auto res =
+        [this, name, args_span, &memory]() -> outcome::result<common::Buffer> {
       WAVM::Runtime::GCPointer<WAVM::Runtime::Context> context =
           WAVM::Runtime::createContext(compartment_->getCompartment());
       WAVM::Runtime::Function *function = WAVM::Runtime::asFunctionNullable(

@@ -3,13 +3,12 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#undef NDEBUG
-
 #include "module_factory_impl.hpp"
 
 #include <filesystem>
 
 #include <wasmedge/wasmedge.h>
+#include <libp2p/common/final_action.hpp>
 
 #include "crypto/hasher.hpp"
 #include "host_api/host_api_factory.hpp"
@@ -124,7 +123,7 @@ namespace kagome::runtime::wasm_edge {
       return module_;
     }
 
-    outcome::result<common::Buffer> __attribute__((optimize("O0"))) callExportFunction(
+    outcome::result<common::Buffer> callExportFunction(
         RuntimeContext &ctx,
         std::string_view name,
         common::BufferView encoded_args) const override {
@@ -145,9 +144,7 @@ namespace kagome::runtime::wasm_edge {
           WasmEdge_ModuleInstanceFindFunction(instance_.raw(), wasm_name.raw());
 
       current_host_api.push(env_.host_api);
-      auto cleanup = gsl::finally([]() {
-        current_host_api.pop();
-      });
+      ::libp2p::common::FinalAction cleanup = []() { current_host_api.pop(); };
 
       SL_DEBUG(
           log_,
@@ -165,8 +162,7 @@ namespace kagome::runtime::wasm_edge {
           fmt::ptr(host_instance_),
           fmt::ptr(env_.host_api),
           fmt::ptr(env_.memory_provider),
-          fmt::ptr(
-              &env_.memory_provider->getCurrentMemory().value().get()),
+          fmt::ptr(&env_.memory_provider->getCurrentMemory().value().get()),
           fmt::ptr(env_.storage_provider));
 
       auto res = WasmEdge_ExecutorInvoke(executor_->raw(),
@@ -267,20 +263,6 @@ namespace kagome::runtime::wasm_edge {
   class ModuleImpl : public Module,
                      public std::enable_shared_from_this<ModuleImpl> {
    public:
-    static std::shared_ptr<ModuleImpl> create(
-        ASTModuleContext module,
-        std::shared_ptr<ExecutorContext> executor,
-        std::shared_ptr<InstanceEnvironmentFactory> env_factory,
-        const WasmEdge_MemoryTypeContext *memory_type,
-        const common::Hash256 &code_hash) {
-      return std::shared_ptr<ModuleImpl>{new ModuleImpl{std::move(module),
-                                                        std::move(executor),
-                                                        std::move(env_factory),
-                                                        // host_instance,
-                                                        memory_type,
-                                                        code_hash}};
-    }
-
     outcome::result<std::shared_ptr<ModuleInstance>> instantiate()
         const override {
       StoreContext store = WasmEdge_StoreCreate();
@@ -297,8 +279,7 @@ namespace kagome::runtime::wasm_edge {
         SL_DEBUG(log_,
                  "Create memory instance, min: {}, max: {}",
                  limit.Min,
-                 limit.Max
-        );
+                 limit.Max);
         WasmEdge_ModuleInstanceAddMemory(
             host_instance->raw(), kMemoryName, mem_instance);
 
@@ -361,24 +342,21 @@ namespace kagome::runtime::wasm_edge {
       std::shared_ptr<host_api::HostApiFactory> host_api_factory,
       std::shared_ptr<storage::trie::TrieStorage> storage,
       std::shared_ptr<storage::trie::TrieSerializer> serializer,
-      std::shared_ptr<blockchain::BlockHeaderRepository> header_repo,
       Config config)
       : hasher_{hasher},
         host_api_factory_{host_api_factory},
         storage_{storage},
         serializer_{serializer},
-        header_repo_{header_repo},
         log_{log::createLogger("ModuleFactory", "runtime")},
         config_{config} {
     BOOST_ASSERT(hasher_);
     BOOST_ASSERT(host_api_factory_);
     BOOST_ASSERT(storage_);
     BOOST_ASSERT(serializer_);
-    BOOST_ASSERT(header_repo_);
   }
 
   outcome::result<std::shared_ptr<Module>> ModuleFactoryImpl::make(
-      gsl::span<const uint8_t> code) const {
+      common::BufferView code) const {
     auto code_hash = hasher_->sha2_256(code);
 
     ConfigureContext configure_ctx = WasmEdge_ConfigureCreate();
@@ -449,11 +427,11 @@ namespace kagome::runtime::wasm_edge {
     auto env_factory = std::make_shared<InstanceEnvironmentFactory>(
         core_api, host_api_factory_, storage_, serializer_);
 
-    return ModuleImpl::create(std::move(module),
-                              std::move(executor),
-                              env_factory,
-                              import_memory_type,
-                              code_hash);
+    return std::shared_ptr{new ModuleImpl{std::move(module),
+                                          std::move(executor),
+                                          env_factory,
+                                          import_memory_type,
+                                          code_hash}};
   }
 
 }  // namespace kagome::runtime::wasm_edge

@@ -82,7 +82,6 @@ namespace kagome::runtime {
     if (static_cast<size_t>(heap_base) < max_data_segment_end) {
       return ModuleInstance::Error::HEAP_BASE_TOO_LOW;
     }
-    BOOST_ASSERT(segments_num == 3);
 
     memory.resize(heap_base);
 

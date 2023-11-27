@@ -19,12 +19,10 @@ namespace kagome::runtime::wasm_edge {
    public:
     Wrapper() : t{} {
       count++;
-      std::cout << "Create " << typeid(T).name() << ", total " << count << "\n";
     }
 
     Wrapper(T t) : t{std::move(t)} {
       count++;
-      std::cout << "Create " << typeid(T).name() << ", total " << count << "\n";
     }
 
     Wrapper(const Wrapper &) = delete;
@@ -52,14 +50,10 @@ namespace kagome::runtime::wasm_edge {
         if (t) {
           deleter(t);
           count--;
-          std::cout << "Destroy " << typeid(T).name() << ", total " << count
-                    << "\n";
         }
       } else {
         deleter(t);
         count--;
-        std::cout << "Destroy " << typeid(T).name() << ", total " << count
-                  << "\n";
       }
     }
 
@@ -91,11 +85,7 @@ namespace kagome::runtime::wasm_edge {
       return t == nullptr;
     }
 
-    bool operator!=(std::nullptr_t) const {
-      return t != nullptr;
-    }
-
-    T t = nullptr;
+    T t = {};
   };
 
   using ConfigureContext =

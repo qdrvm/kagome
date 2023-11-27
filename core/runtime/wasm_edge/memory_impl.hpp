@@ -12,30 +12,15 @@
 #include "runtime/memory.hpp"
 #include "runtime/memory_provider.hpp"
 #include "runtime/types.hpp"
+#include "runtime/ptr_size.hpp"
 
 namespace kagome::runtime::wasm_edge {
 
   class MemoryImpl final : public Memory {
    public:
     MemoryImpl(WasmEdge_MemoryInstanceContext *mem_instance,
-               const MemoryConfig &config)
-        : mem_instance_{std::move(mem_instance)},
-          allocator_{MemoryAllocator{
-              MemoryAllocator::MemoryHandle{
-                  .resize = [this](size_t new_size) { resize(new_size); },
-                  .getSize = [this]() -> size_t { return size(); },
-                  .storeSz = [this](WasmPointer p,
-                                    uint32_t n) { store32(p, n); },
-                  .loadSz = [this](WasmPointer p) -> uint32_t {
-                    return load32u(p);
-                  }},
-              config}} {
-      BOOST_ASSERT(mem_instance_ != nullptr);
-      SL_DEBUG(logger_,
-               "Created memory wrapper {} for internal instance {}",
-               fmt::ptr(this),
-               fmt::ptr(mem_instance_));
-    }
+               const MemoryConfig &config);
+
     /**
      * @brief Return the size of the memory
      */
@@ -48,20 +33,7 @@ namespace kagome::runtime::wasm_edge {
      * Resizes memory to the given size
      * @param new_size
      */
-    void resize(WasmSize new_size) override {
-      if (new_size > size()) {
-        auto old_page_num = WasmEdge_MemoryInstanceGetPageSize(mem_instance_);
-        auto new_page_num = (new_size + kMemoryPageSize - 1) / kMemoryPageSize;
-        [[maybe_unused]] auto res = WasmEdge_MemoryInstanceGrowPage(
-            mem_instance_, new_page_num - old_page_num);
-        BOOST_ASSERT(WasmEdge_ResultOK(res));
-        SL_DEBUG(logger_,
-                 "Grow memory to {} pages ({} bytes) - {}",
-                 new_page_num,
-                 new_size,
-                 WasmEdge_ResultGetMessage(res));
-      }
-    }
+    void resize(WasmSize new_size) override;
 
     WasmPointer allocate(WasmSize size) override {
       return allocator_.allocate(size);
@@ -173,8 +145,7 @@ namespace kagome::runtime::wasm_edge {
       storeBuffer(addr, value);
     }
 
-    void storeBuffer(WasmPointer addr,
-                     gsl::span<const uint8_t> value) override {
+    void storeBuffer(WasmPointer addr, common::BufferView value) override {
       auto res = WasmEdge_MemoryInstanceSetData(
           mem_instance_, value.data(), addr, value.size());
       if (!WasmEdge_ResultOK(res)) {
@@ -188,7 +159,7 @@ namespace kagome::runtime::wasm_edge {
      * @param value buffer to store
      * @return full wasm pointer to allocated buffer
      */
-    WasmSpan storeBuffer(gsl::span<const uint8_t> value) override {
+    WasmSpan storeBuffer(common::BufferView value) override {
       auto ptr = allocate(value.size());
       storeBuffer(ptr, value);
       return PtrSize{ptr, static_cast<WasmSize>(value.size())}.combine();
@@ -203,23 +174,13 @@ namespace kagome::runtime::wasm_edge {
   class ExternalMemoryProviderImpl final : public MemoryProvider {
    public:
     explicit ExternalMemoryProviderImpl(
-        WasmEdge_MemoryInstanceContext *wasmedge_memory)
-        : wasmedge_memory_{wasmedge_memory} {
-      BOOST_ASSERT(wasmedge_memory_);
-    }
+        WasmEdge_MemoryInstanceContext *wasmedge_memory);
+
     std::optional<std::reference_wrapper<runtime::Memory>> getCurrentMemory()
-        const override {
-      if (current_memory_) {
-        return std::reference_wrapper<runtime::Memory>(**current_memory_);
-      }
-      return std::nullopt;
-    }
+        const override;
 
     [[nodiscard]] outcome::result<void> resetMemory(
-        const MemoryConfig &config) override {
-      current_memory_ = std::make_shared<MemoryImpl>(wasmedge_memory_, config);
-      return outcome::success();
-    }
+        const MemoryConfig &config) override;
 
    private:
     std::optional<std::shared_ptr<MemoryImpl>> current_memory_;
@@ -231,25 +192,12 @@ namespace kagome::runtime::wasm_edge {
     explicit InternalMemoryProviderImpl() = default;
 
     std::optional<std::reference_wrapper<runtime::Memory>> getCurrentMemory()
-        const override {
-      if (current_memory_) {
-        return std::reference_wrapper<runtime::Memory>(**current_memory_);
-      }
-      return std::nullopt;
-    }
+        const override;
 
     [[nodiscard]] outcome::result<void> resetMemory(
-        const MemoryConfig &config) override {
-      if (wasmedge_memory_) {
-        current_memory_ =
-            std::make_shared<MemoryImpl>(wasmedge_memory_, config);
-      }
-      return outcome::success();
-    }
+        const MemoryConfig &config) override;
 
-    void setMemory(WasmEdge_MemoryInstanceContext *wasmedge_memory) {
-      wasmedge_memory_ = wasmedge_memory;
-    }
+    void setMemory(WasmEdge_MemoryInstanceContext *wasmedge_memory);
 
    private:
     std::optional<std::shared_ptr<MemoryImpl>> current_memory_;
