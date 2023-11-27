@@ -82,6 +82,7 @@ groups:
                   - name: memory_extension
                   - name: io_extension
                   - name: crypto_extension
+                  - name: ecliptic_curves_extension
                   - name: storage_extension
                   - name: child_storage_extension
                   - name: offchain_extension

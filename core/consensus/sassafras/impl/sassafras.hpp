@@ -46,12 +46,14 @@ namespace kagome::consensus {
 
 namespace kagome::consensus::sassafras {
   class SassafrasConfigRepository;
+  class SassafrasBlockValidator;
   class SassafrasLottery;
 }  // namespace kagome::consensus::sassafras
 
 namespace kagome::crypto {
   class SessionKeys;
   class Hasher;
+  class BandersnatchProvider;
 }  // namespace kagome::crypto
 
 namespace kagome::dispute {
@@ -98,6 +100,8 @@ namespace kagome::consensus::sassafras {
         std::shared_ptr<crypto::SessionKeys> session_keys,
         std::shared_ptr<SassafrasLottery> lottery,
         std::shared_ptr<crypto::Hasher> hasher,
+        std::shared_ptr<crypto::BandersnatchProvider> sr25519_provider,
+        std::shared_ptr<SassafrasBlockValidator> validator,
         std::shared_ptr<parachain::BitfieldStore> bitfield_store,
         std::shared_ptr<parachain::BackingStore> backing_store,
         std::shared_ptr<dispute::DisputeCoordinator> dispute_coordinator,
@@ -154,6 +158,8 @@ namespace kagome::consensus::sassafras {
     std::shared_ptr<crypto::SessionKeys> session_keys_;
     std::shared_ptr<SassafrasLottery> lottery_;
     std::shared_ptr<crypto::Hasher> hasher_;
+    std::shared_ptr<crypto::BandersnatchProvider> bandersnatch_provider_;
+    std::shared_ptr<SassafrasBlockValidator> validator_;
     std::shared_ptr<parachain::BitfieldStore> bitfield_store_;
     std::shared_ptr<parachain::BackingStore> backing_store_;
     std::shared_ptr<dispute::DisputeCoordinator> dispute_coordinator_;
@@ -168,11 +174,14 @@ namespace kagome::consensus::sassafras {
     const bool is_validator_by_config_;
     bool is_active_validator_;
 
+    // using KeypairWithIndexOpt =
+    //     std::optional<std::pair<std::shared_ptr<crypto::BandersnatchKeypair>,
+    //                             AuthorityIndex>>;
+
     primitives::BlockInfo parent_;
     TimePoint slot_timestamp_;
     SlotNumber slot_;
     EpochNumber epoch_;
-    //    AuthorityIndex authority_index_;
     SlotLeadership slot_leadership_;
 
     // Metrics
