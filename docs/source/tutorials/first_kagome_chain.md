@@ -34,7 +34,7 @@ In this tutorial, we will:
 
 In this tutorial, we will setup a basic network consisting of a single peer with a predefined genesis.
 
-Firstly, we need to move to the node's directory:
+Firstly, we need to navigate to the node's directory:
 
 ```shell script
 cd examples/first_kagome_chain
@@ -42,8 +42,8 @@ cd examples/first_kagome_chain
 
 `first_kagome_chain` folder contains necessary configuration files for our tutorial:
 
-* `localchain.json` – This is the genesis file for our network. It houses the crucial key-value pairs that need to be inserted before the creation of the genesis block.
-* `base_path` – This directory encompasses the base path of the Kagome project. Inside, you'll find the 'chains' folder, which contains several directories. Each of these directories carries the name of the chain id it stores the data for (`rococo-dev` in this case). The data for each chain is comprised of `db/` (which gets initialized upon node startup) and `keystore/` (which contains the keys used to sign messages sent by our authority). It's important to note that the `keystore/` must exist before the node starts. However, there's an exception for predefined accounts such as Alice, Bob, etc.
+* `localchain.json` – This is the genesis file for our network. It houses the crucial key-value pairs that need to be inserted into the node's state before the creation of the genesis block.
+* `base_path` – This directory encompasses the database of the Kagome project. Inside, you'll find the 'chains' folder, which contains several directories. Each of these directories carries the name of the chain id it stores the data for (`rococo-dev` in this case). The data for each chain is comprised of `db/` (which gets initialized upon node startup) and `keystore/` (which contains the keys used to sign messages sent by our authority). Keys can be added to keystore before the start of the node, or during its execution (via `author_rotateKeys` rpc). However, there's an exception for predefined accounts such as Alice, Bob, etc. When predefined accounts are used, keys are generated when the node starts, and no keys are stored in the `keystore/` folder 
 
 `localchain.json` contains Alice and Bob accounts. Both have 999998900.0 amount of crypto.
 Their keys can be generated using [subkey](https://substrate.dev/docs/en/knowledgebase/integrate/subkey) tool:

@@ -20,6 +20,8 @@ cd examples/network
 
 In this step, we will launch the first validating node, similar to what we did in the previous tutorial. This node will be responsible for producing and finalizing blocks.
 
+> Note that the node will wait to start block production until at least one other node joins the network.
+
 ```shell script
 kagome \
     --alice \
