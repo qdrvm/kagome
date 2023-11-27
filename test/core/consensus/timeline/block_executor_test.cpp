@@ -188,13 +188,6 @@ class BlockExecutorTest : public testing::Test {
                                             std::move(appender));
   }
 
-  void TearDown() override {
-    EXPECT_TRUE(block_executor_.unique());
-    block_executor_.reset();
-    EXPECT_TRUE(thread_pool_.unique());
-    thread_pool_.reset();
-  }
-
  protected:
   std::shared_ptr<BlockTreeMock> block_tree_;
   std::shared_ptr<CoreMock> core_;

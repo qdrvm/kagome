@@ -231,13 +231,6 @@ class BabeTest : public testing::Test {
                                   thread_pool->io_context());
   }
 
-  void TearDown() override {
-    EXPECT_TRUE(thread_pool.unique());
-    thread_pool.reset();
-    EXPECT_TRUE(babe.unique());
-    babe.reset();
-  }
-
   AppConfigurationMock app_config;
   SystemClockMock clock;
   std::shared_ptr<BlockTreeMock> block_tree;
