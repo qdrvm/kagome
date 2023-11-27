@@ -79,6 +79,7 @@
 #include "consensus/grandpa/impl/verified_justification_queue.hpp"
 #include "consensus/production_consensus.hpp"
 #include "consensus/sassafras/impl/sassafras.hpp"
+#include "consensus/sassafras/impl/sassafras_block_validator_impl.hpp"
 #include "consensus/sassafras/impl/sassafras_config_repository_impl.hpp"
 #include "consensus/sassafras/impl/sassafras_lottery_impl.hpp"
 #include "consensus/timeline/impl/block_appender_base.hpp"
@@ -895,7 +896,7 @@ namespace {
             di::bind<consensus::SlotsUtil>.template to<consensus::SlotsUtilImpl>(),
             di::bind<consensus::Timeline>.template to<consensus::TimelineImpl>(),
             di::bind<consensus::babe::BabeBlockValidator>.template to<consensus::babe::BabeBlockValidatorImpl>(),
-            di::bind<crypto::EllipticCurves>.template to<crypto::EllipticCurvesImpl>(),
+            di::bind<consensus::sassafras::SassafrasBlockValidator>.template to<consensus::sassafras::SassafrasBlockValidatorImpl>(),
             di::bind<crypto::BandersnatchProvider>.template to<crypto::BandersnatchProviderImpl>(),
             di::bind<crypto::EllipticCurves>.template to<crypto::EllipticCurvesImpl>(),
 
