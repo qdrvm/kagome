@@ -75,22 +75,26 @@ namespace kagome::runtime {
   RuntimeInstancesPool::instantiateFromCode(const CodeHash &code_hash,
                                             common::BufferView code_zstd) {
     std::optional<std::reference_wrapper<InstancePool>> pool_opt{};
-    {
-      std::unique_lock lock{pools_mtx_};
-      pool_opt = pools_.get(code_hash);
-    }
-    while (!pool_opt) {
+
+    std::unique_lock lock{pools_mtx_};
+    pool_opt = pools_.get(code_hash);
+
+    if (!pool_opt) {
+      lock.unlock();
       auto module_res = tryCompileModule(code_hash, code_zstd);
+      lock.lock();
       if (module_res) {
-        std::unique_lock lock{pools_mtx_};
-        pool_opt = std::ref(
-            pools_.put(code_hash, InstancePool{module_res.value(), {}}));
+        if (auto pool = pools_.get(code_hash)) {
+          pool_opt = std::ref(pool->get());
+        } else {
+          pool_opt = std::ref(
+              pools_.put(code_hash, InstancePool{module_res.value(), {}}));
+        }
       } else {
         return module_res.error();
       }
     }
     BOOST_ASSERT(pool_opt);
-    std::unique_lock lock{pools_mtx_};
     auto instance = pool_opt->get().instantiate(lock);
     return std::make_shared<BorrowedInstance>(
         weak_from_this(), code_hash, std::move(instance));
@@ -112,27 +116,23 @@ namespace kagome::runtime {
     BOOST_ASSERT(is_inserted);
     l.unlock();
 
-    auto res = [&code_zstd, &code_hash, this]() -> CompilationResult {
-      common::Buffer code;
-      std::optional<CompilationResult> res;
-      if (!uncompressCodeIfNeeded(code_zstd, code)) {
-        res = CompilationError{"Failed to uncompress code"};
-      } else {
-        res =
-            common::map_result(module_factory_->make(code), [](auto &&module) {
-              return std::shared_ptr<const Module>(module);
-            });
-      }
-      BOOST_ASSERT(res);
+    common::Buffer code;
+    std::optional<CompilationResult> res;
+    if (!uncompressCodeIfNeeded(code_zstd, code)) {
+      res = CompilationError{"Failed to uncompress code"};
+    } else {
+      res = common::map_result(module_factory_->make(code), [](auto &&module) {
+        return std::shared_ptr<const Module>(module);
+      });
+    }
+    BOOST_ASSERT(res);
 
-      std::unique_lock l{compiling_modules_mtx_};
-      auto iter = compiling_modules_.find(code_hash);
-      BOOST_ASSERT(iter != compiling_modules_.end());
-      compiling_modules_.erase(iter);
-      return *res;
-    }();
-    promise.set_value(res);
-    return res;
+    std::unique_lock ll{compiling_modules_mtx_};
+    iter = compiling_modules_.find(code_hash);
+    BOOST_ASSERT(iter != compiling_modules_.end());
+    compiling_modules_.erase(iter);
+    promise.set_value(*res);
+    return *res;
   }
 
   outcome::result<std::shared_ptr<ModuleInstance>>
