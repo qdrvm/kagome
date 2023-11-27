@@ -87,13 +87,11 @@ Let's examine these flags in detail:
 
 | Flag          | Requirement | Description                              |
 |---------------|-------------|------------------------------------------|
-| `--alice`     | Optional    | Enables validator mode with Alice's keys |
+| `--validator` | Optional    | Enables validator mode                   |
 | `--chain`     | Mandatory   | Specifies the chainspec file path        |
 | `--base-path` | Mandatory   | Specifies the base Kagome directory path |
 | `--port`      | Optional    | Sets the port for p2p interactions       |
 | `--rpc-port`  | Optional    | Sets the port for RPC over HTTP and WS   |
-
-It's important to note that the `--alice` flag is equivalent to the `--validator` flag with Alice's keys added to `base_path/chains/rococo_dev/keystore` directory. This implies that for this tutorial it's possible to initiate our node with an empty keystore since we'll be utilizing Alice's predefined keys. This will not be the case when our node is used as validator in the real network.
 
 You can obtain in-depth information regarding the available flags by executing `kagome --help`.
 

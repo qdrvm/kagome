@@ -32,6 +32,8 @@ kagome \
     --prometheus-port 11155
 ```
 
+It's important to note that the `--alice` flag is equivalent to the `--validator` flag with Alice's keys added to `validating1/chains/rococo_local_testnet/keystore` directory. This implies that for this tutorial it's possible to initiate our node with an empty keystore since we'll be utilizing Alice's predefined keys. This will not be the case when our node is used as validator in the real network.
+
 ## Step 3: Bring the Second Validating Node Online
 
 With the first validating node actively running, we can add the second validating node to the network. This node will bootstrap from the first one. The command to achieve this is very similar to the one we used for the first node.
