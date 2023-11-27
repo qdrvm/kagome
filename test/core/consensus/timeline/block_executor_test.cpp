@@ -28,6 +28,7 @@
 #include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
 #include "testutil/prepare_loggers.hpp"
+#include "utils/safe_object.hpp"
 #include "utils/thread_pool.hpp"
 
 using kagome::ThreadPool;
@@ -187,6 +188,13 @@ class BlockExecutorTest : public testing::Test {
                                             std::move(appender));
   }
 
+  void TearDown() override {
+    EXPECT_TRUE(block_executor_.unique());
+    block_executor_.reset();
+    EXPECT_TRUE(thread_pool_.unique());
+    thread_pool_.reset();
+  }
+
  protected:
   std::shared_ptr<BlockTreeMock> block_tree_;
   std::shared_ptr<CoreMock> core_;
@@ -271,15 +279,19 @@ TEST_F(BlockExecutorTest, JustificationFollowDigests) {
   EXPECT_CALL(*block_tree_, addBlock(_))
       .WillOnce(testing::Return(outcome::success()));
 
-  BlockInfo block_info{42, some_hash};
-
   EXPECT_CALL(*offchain_worker_api_, offchain_worker(_, _))
       .WillOnce(testing::Return(outcome::success()));
 
+  WaitForSingleObject
+      wso;  // callback must be called strictly before waiting of thread pool
   block_executor_->applyBlock(
       Block{block_data.header.value(), block_data.body.value()},
       justification,
-      [](auto &&result) { ASSERT_OUTCOME_SUCCESS_TRY(result); });
+      [&](auto &&result) {
+        ASSERT_OUTCOME_SUCCESS_TRY(result);
+        wso.set();
+      });
+  wso.wait();
 
   testutil::wait(*thread_pool_->io_context());
 }
