@@ -80,6 +80,7 @@
 #include "consensus/grandpa/impl/verified_justification_queue.hpp"
 #include "consensus/production_consensus.hpp"
 #include "consensus/sassafras/impl/sassafras.hpp"
+#include "consensus/sassafras/impl/sassafras_block_validator_impl.hpp"
 #include "consensus/sassafras/impl/sassafras_config_repository_impl.hpp"
 #include "consensus/sassafras/impl/sassafras_lottery_impl.hpp"
 #include "consensus/timeline/impl/block_appender_base.hpp"
@@ -94,7 +95,6 @@
 #include "crypto/ed25519/ed25519_provider_impl.hpp"
 #include "crypto/elliptic_curves/elliptic_curves_impl.hpp"
 #include "crypto/hasher/hasher_impl.hpp"
-#include "crypto/key_store.hpp"
 #include "crypto/key_store/key_store_impl.hpp"
 #include "crypto/key_store/session_keys.hpp"
 #include "crypto/pbkdf2/impl/pbkdf2_provider_impl.hpp"
@@ -883,6 +883,7 @@ namespace {
             di::bind<consensus::SlotsUtil>.template to<consensus::SlotsUtilImpl>(),
             di::bind<consensus::Timeline>.template to<consensus::TimelineImpl>(),
             di::bind<consensus::babe::BabeBlockValidator>.template to<consensus::babe::BabeBlockValidatorImpl>(),
+            di::bind<consensus::sassafras::SassafrasBlockValidator>.template to<consensus::sassafras::SassafrasBlockValidatorImpl>(),
             di::bind<crypto::BandersnatchProvider>.template to<crypto::BandersnatchProviderImpl>(),
             di::bind<crypto::EllipticCurves>.template to<crypto::EllipticCurvesImpl>(),
 

@@ -6,7 +6,7 @@
 
 #pragma once
 
-#include "crypto/sr25519_types.hpp"
+#include "crypto/bandersnatch_types.hpp"
 #include "scale/tie.hpp"
 
 namespace kagome::consensus::sassafras {
@@ -16,7 +16,6 @@ namespace kagome::consensus::sassafras {
   struct Seal {
     SCALE_TIE(1);
 
-    /// Sig_sr25519(Blake2s(block_header))
-    crypto::Sr25519Signature signature;
+    crypto::BandersnatchSignature signature;
   };
 }  // namespace kagome::consensus::sassafras
