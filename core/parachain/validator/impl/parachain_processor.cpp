@@ -68,7 +68,7 @@ namespace kagome::parachain {
       std::shared_ptr<dispute::RuntimeInfo> runtime_info,
       std::shared_ptr<crypto::Sr25519Provider> crypto_provider,
       std::shared_ptr<network::Router> router,
-      std::shared_ptr<boost::asio::io_context> this_context,
+      WeakIoContext this_context,
       std::shared_ptr<crypto::Hasher> hasher,
       std::shared_ptr<network::PeerView> peer_view,
       std::shared_ptr<ThreadPool> thread_pool,
@@ -103,11 +103,10 @@ namespace kagome::parachain {
         app_config_(app_config),
         babe_status_observable_(std::move(babe_status_observable)),
         query_audi_{std::move(query_audi)},
-        thread_handler_{thread_pool_->handler()} {
+        thread_handler_{thread_pool_->io_context()} {
     BOOST_ASSERT(pm_);
     BOOST_ASSERT(peer_view_);
     BOOST_ASSERT(crypto_provider_);
-    BOOST_ASSERT(this_context_);
     BOOST_ASSERT(router_);
     BOOST_ASSERT(hasher_);
     BOOST_ASSERT(thread_pool_);
@@ -233,8 +232,7 @@ namespace kagome::parachain {
                                  const network::ExView &event) {
           if (auto self = wptr.lock()) {
             /// clear caches
-            BOOST_ASSERT(
-                self->this_context_->get_executor().running_in_this_thread());
+            BOOST_ASSERT(runningInThisThread(self->this_context_));
 
             self->our_current_state_.active_leaves.exclusiveAccess(
                 [&](auto &active_leaves) {
@@ -302,7 +300,6 @@ namespace kagome::parachain {
   }
 
   bool ParachainProcessorImpl::start() {
-    thread_handler_->start();
     return true;
   }
 
@@ -376,7 +373,7 @@ namespace kagome::parachain {
 
   void ParachainProcessorImpl::createBackingTask(
       const primitives::BlockHash &relay_parent) {
-    BOOST_ASSERT(this_context_->get_executor().running_in_this_thread());
+    BOOST_ASSERT(runningInThisThread(this_context_));
     auto rps_result = initNewBackingTask(relay_parent);
     if (rps_result.has_value()) {
       storeStateByRelayParent(relay_parent, std::move(rps_result.value()));
@@ -565,7 +562,7 @@ namespace kagome::parachain {
       RelayParentState &parachain_state) {
     const auto candidate_hash{candidateHashFrom(attesting_data.candidate)};
 
-    BOOST_ASSERT(this_context_->get_executor().running_in_this_thread());
+    BOOST_ASSERT(runningInThisThread(this_context_));
     if (!parachain_state.awaiting_validation.insert(candidate_hash).second) {
       return;
     }
@@ -668,7 +665,7 @@ namespace kagome::parachain {
       RelayParentState &parachain_state,
       const primitives::BlockHash &candidate_hash,
       size_t n_validators) {
-    BOOST_ASSERT(this_context_->get_executor().running_in_this_thread());
+    BOOST_ASSERT(runningInThisThread(this_context_));
     parachain_state.awaiting_validation.insert(candidate_hash);
 
     logger_->info(
@@ -679,70 +676,70 @@ namespace kagome::parachain {
         peer_id);
 
     sequenceIgnore(
-        thread_handler_->io_context()->wrap(
-            asAsync([wself{weak_from_this()},
-                     candidate{std::move(candidate)},
-                     pov{std::move(pov)},
-                     peer_id,
-                     relay_parent,
-                     n_validators]() mutable
-                    -> outcome::result<
-                        ParachainProcessorImpl::ValidateAndSecondResult> {
-              if (auto self = wself.lock()) {
-                if (auto result =
-                        self->validateAndMakeAvailable(std::move(candidate),
-                                                       std::move(pov),
-                                                       peer_id,
-                                                       relay_parent,
-                                                       n_validators);
-                    result.has_error()) {
-                  self->logger_->warn("Validation task failed.(error={})",
-                                      result.error().message());
-                  return result.as_failure();
-                } else {
-                  return result;
-                }
-              }
-              return Error::NO_INSTANCE;
-            })),
-        this_context_->wrap(
-            asAsync([wself{weak_from_this()}, peer_id, candidate_hash](
-                        auto &&validate_and_second_result) mutable
-                    -> outcome::result<void> {
-              if (auto self = wself.lock()) {
-                auto parachain_state = self->tryGetStateByRelayParent(
-                    validate_and_second_result.relay_parent);
-                if (!parachain_state) {
-                  self->logger_->warn(
-                      "After validation no parachain state on relay_parent {}",
-                      validate_and_second_result.relay_parent);
-                  return Error::OUT_OF_VIEW;
-                }
+        wrap(thread_handler_,
+             asAsync([wself{weak_from_this()},
+                      candidate{std::move(candidate)},
+                      pov{std::move(pov)},
+                      peer_id,
+                      relay_parent,
+                      n_validators]() mutable
+                     -> outcome::result<
+                         ParachainProcessorImpl::ValidateAndSecondResult> {
+               if (auto self = wself.lock()) {
+                 if (auto result =
+                         self->validateAndMakeAvailable(std::move(candidate),
+                                                        std::move(pov),
+                                                        peer_id,
+                                                        relay_parent,
+                                                        n_validators);
+                     result.has_error()) {
+                   self->logger_->warn("Validation task failed.(error={})",
+                                       result.error().message());
+                   return result.as_failure();
+                 } else {
+                   return result;
+                 }
+               }
+               return Error::NO_INSTANCE;
+             })),
+        wrap(this_context_,
+             asAsync([wself{weak_from_this()}, peer_id, candidate_hash](
+                         auto &&validate_and_second_result) mutable
+                     -> outcome::result<void> {
+               if (auto self = wself.lock()) {
+                 auto parachain_state = self->tryGetStateByRelayParent(
+                     validate_and_second_result.relay_parent);
+                 if (!parachain_state) {
+                   self->logger_->warn(
+                       "After validation no parachain state on relay_parent {}",
+                       validate_and_second_result.relay_parent);
+                   return Error::OUT_OF_VIEW;
+                 }
 
-                self->logger_->info(
-                    "Async validation complete.(relay parent={}, para_id={})",
-                    validate_and_second_result.relay_parent,
-                    validate_and_second_result.candidate.descriptor.para_id);
+                 self->logger_->info(
+                     "Async validation complete.(relay parent={}, para_id={})",
+                     validate_and_second_result.relay_parent,
+                     validate_and_second_result.candidate.descriptor.para_id);
 
-                parachain_state->get().awaiting_validation.erase(
-                    candidate_hash);
-                auto q{std::move(validate_and_second_result)};
-                if constexpr (kMode == ValidationTaskType::kSecond) {
-                  self->onValidationComplete(peer_id, std::move(q));
-                } else {
-                  self->onAttestComplete(peer_id, std::move(q));
-                }
-                return outcome::success();
-              }
-              return Error::NO_INSTANCE;
-            })));
+                 parachain_state->get().awaiting_validation.erase(
+                     candidate_hash);
+                 auto q{std::move(validate_and_second_result)};
+                 if constexpr (kMode == ValidationTaskType::kSecond) {
+                   self->onValidationComplete(peer_id, std::move(q));
+                 } else {
+                   self->onAttestComplete(peer_id, std::move(q));
+                 }
+                 return outcome::success();
+               }
+               return Error::NO_INSTANCE;
+             })));
   }
 
   std::optional<
       std::reference_wrapper<ParachainProcessorImpl::RelayParentState>>
   ParachainProcessorImpl::tryGetStateByRelayParent(
       const primitives::BlockHash &relay_parent) {
-    BOOST_ASSERT(this_context_->get_executor().running_in_this_thread());
+    BOOST_ASSERT(runningInThisThread(this_context_));
     const auto it = our_current_state_.state_by_relay_parent.find(relay_parent);
     if (it != our_current_state_.state_by_relay_parent.end()) {
       return it->second;
@@ -753,7 +750,7 @@ namespace kagome::parachain {
   ParachainProcessorImpl::RelayParentState &
   ParachainProcessorImpl::storeStateByRelayParent(
       const primitives::BlockHash &relay_parent, RelayParentState &&val) {
-    BOOST_ASSERT(this_context_->get_executor().running_in_this_thread());
+    BOOST_ASSERT(runningInThisThread(this_context_));
     const auto &[it, inserted] =
         our_current_state_.state_by_relay_parent.insert(
             {relay_parent, std::move(val)});
@@ -765,7 +762,7 @@ namespace kagome::parachain {
       const libp2p::peer::PeerId &peer_id,
       const primitives::BlockHash &relay_parent,
       const network::SignedStatement &statement) {
-    BOOST_ASSERT(this_context_->get_executor().running_in_this_thread());
+    BOOST_ASSERT(runningInThisThread(this_context_));
     auto opt_parachain_state = tryGetStateByRelayParent(relay_parent);
     if (!opt_parachain_state) {
       logger_->trace(
@@ -1278,7 +1275,7 @@ namespace kagome::parachain {
   outcome::result<void> ParachainProcessorImpl::advCanBeProcessed(
       const primitives::BlockHash &relay_parent,
       const libp2p::peer::PeerId &peer_id) {
-    BOOST_ASSERT(this_context_->get_executor().running_in_this_thread());
+    BOOST_ASSERT(runningInThisThread(this_context_));
     OUTCOME_TRY(canProcessParachains());
 
     auto rps = our_current_state_.state_by_relay_parent.find(relay_parent);

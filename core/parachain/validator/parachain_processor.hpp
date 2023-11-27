@@ -12,11 +12,6 @@
 #include <thread>
 #include <unordered_map>
 
-#include <boost/asio/executor_work_guard.hpp>
-#include <boost/asio/io_context.hpp>
-#include <boost/asio/io_service.hpp>
-#include <boost/asio/post.hpp>
-#include <boost/asio/signal_set.hpp>
 #include <libp2p/peer/peer_id.hpp>
 
 #include "application/app_configuration.hpp"
@@ -87,7 +82,7 @@ namespace kagome::parachain {
         std::shared_ptr<dispute::RuntimeInfo> runtime_info,
         std::shared_ptr<crypto::Sr25519Provider> crypto_provider,
         std::shared_ptr<network::Router> router,
-        std::shared_ptr<boost::asio::io_context> this_context,
+        WeakIoContext this_context,
         std::shared_ptr<crypto::Hasher> hasher,
         std::shared_ptr<network::PeerView> peer_view,
         std::shared_ptr<ThreadPool> thread_pool,
@@ -140,9 +135,6 @@ namespace kagome::parachain {
    private:
     enum struct StatementType { kSeconded = 0, kValid };
     using Commitments = std::shared_ptr<network::CandidateCommitments>;
-    using WorkersContext = boost::asio::io_context;
-    using WorkGuard = boost::asio::executor_work_guard<
-        boost::asio::io_context::executor_type>;
 
     struct ValidateAndSecondResult {
       outcome::result<void> result;
@@ -356,11 +348,6 @@ namespace kagome::parachain {
     void broadcastView(const network::View &view) const;
     void broadcastViewExcept(const libp2p::peer::PeerId &peer_id,
                              const network::View &view) const;
-    template <typename F>
-    void notify_internal(std::shared_ptr<WorkersContext> &context, F &&func) {
-      BOOST_ASSERT(context);
-      boost::asio::post(*context, std::forward<F>(func));
-    }
     void notifyBackedCandidate(const network::SignedStatement &statement);
     void notifyAvailableData(std::vector<network::ErasureChunk> &&chunk_list,
                              const primitives::BlockHash &relay_parent,
@@ -427,7 +414,7 @@ namespace kagome::parachain {
     } our_current_state_;
     SafeObject<std::unordered_map<RelayHash, network::CollationEvent>>
         pending_candidates;
-    std::shared_ptr<WorkersContext> this_context_;
+    WeakIoContext this_context_;
     std::shared_ptr<crypto::Hasher> hasher_;
     std::shared_ptr<network::PeerView> peer_view_;
     network::PeerView::MyViewSubscriberPtr my_view_sub_;
@@ -447,7 +434,7 @@ namespace kagome::parachain {
     std::shared_ptr<authority_discovery::Query> query_audi_;
 
     std::shared_ptr<primitives::events::ChainEventSubscriber> chain_sub_;
-    std::shared_ptr<ThreadHandler> thread_handler_;
+    WeakIoContext thread_handler_;
     std::default_random_engine random_;
 
     metrics::RegistryPtr metrics_registry_ = metrics::createRegistry();

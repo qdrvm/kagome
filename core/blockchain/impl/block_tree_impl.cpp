@@ -125,7 +125,7 @@ namespace kagome::blockchain {
       std::shared_ptr<const class JustificationStoragePolicy>
           justification_storage_policy,
       std::shared_ptr<storage::trie_pruner::TriePruner> state_pruner,
-      std::shared_ptr<::boost::asio::io_context> io_context) {
+      WeakIoContext io_context) {
     BOOST_ASSERT(storage != nullptr);
     BOOST_ASSERT(header_repo != nullptr);
 
@@ -420,7 +420,7 @@ namespace kagome::blockchain {
       std::shared_ptr<const JustificationStoragePolicy>
           justification_storage_policy,
       std::shared_ptr<storage::trie_pruner::TriePruner> state_pruner,
-      std::shared_ptr<::boost::asio::io_context> io_context)
+      WeakIoContext io_context)
       : block_tree_data_{BlockTreeData{
           .header_repo_ = std::move(header_repo),
           .storage_ = std::move(storage),

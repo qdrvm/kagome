@@ -43,7 +43,7 @@ namespace kagome::consensus::grandpa {
       std::shared_ptr<runtime::ParachainHost> parachain_api,
       std::shared_ptr<parachain::BackingStore> backing_store,
       std::shared_ptr<crypto::Hasher> hasher,
-      std::shared_ptr<boost::asio::io_context> main_thread_context)
+      WeakIoContext main_thread_context)
       : block_tree_{std::move(block_tree)},
         header_repository_{std::move(header_repository)},
         authority_manager_{std::move(authority_manager)},

@@ -15,10 +15,7 @@
 #include "primitives/block_header.hpp"
 #include "primitives/event_types.hpp"
 #include "telemetry/service.hpp"
-
-namespace boost::asio {
-  class io_context;
-}
+#include "utils/weak_io_context.hpp"
 
 namespace kagome {
   class ThreadPool;
@@ -52,7 +49,7 @@ namespace kagome::consensus {
     BlockExecutorImpl(
         std::shared_ptr<blockchain::BlockTree> block_tree,
         const ThreadPool &thread_pool,
-        std::shared_ptr<boost::asio::io_context> main_thread,
+        WeakIoContext main_thread,
         std::shared_ptr<runtime::Core> core,
         std::shared_ptr<transaction_pool::TransactionPool> tx_pool,
         std::shared_ptr<crypto::Hasher> hasher,
@@ -78,8 +75,8 @@ namespace kagome::consensus {
         const primitives::BlockInfo &previous_best_block);
 
     std::shared_ptr<blockchain::BlockTree> block_tree_;
-    std::shared_ptr<boost::asio::io_context> io_context_;
-    std::shared_ptr<boost::asio::io_context> main_thread_;
+    WeakIoContext io_context_;
+    WeakIoContext main_thread_;
     std::shared_ptr<runtime::Core> core_;
     std::shared_ptr<transaction_pool::TransactionPool> tx_pool_;
     std::shared_ptr<crypto::Hasher> hasher_;

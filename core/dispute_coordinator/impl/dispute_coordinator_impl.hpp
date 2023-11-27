@@ -9,7 +9,6 @@
 #include "dispute_coordinator/dispute_coordinator.hpp"
 #include "network/dispute_request_observer.hpp"
 
-#include <boost/asio/io_context.hpp>
 #include <list>
 
 #include "clock/impl/basic_waitable_timer.hpp"
@@ -30,6 +29,7 @@
 #include "network/peer_view.hpp"
 #include "parachain/types.hpp"
 #include "primitives/authority_discovery_id.hpp"
+#include "utils/weak_io_context.hpp"
 
 namespace kagome {
   class ThreadPool;
@@ -112,7 +112,7 @@ namespace kagome::dispute {
         std::shared_ptr<parachain::Pvf> pvf,
         std::shared_ptr<parachain::ApprovalDistribution> approval_distribution,
         std::shared_ptr<authority_discovery::Query> authority_discovery,
-        std::shared_ptr<boost::asio::io_context> main_thread_context,
+        WeakIoContext main_thread_context,
         std::shared_ptr<network::Router> router,
         std::shared_ptr<network::PeerView> peer_view,
         primitives::events::BabeStateSubscriptionEnginePtr

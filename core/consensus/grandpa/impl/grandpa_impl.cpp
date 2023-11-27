@@ -70,7 +70,7 @@ namespace kagome::consensus::grandpa {
       std::shared_ptr<blockchain::BlockTree> block_tree,
       std::shared_ptr<network::ReputationRepository> reputation_repository,
       primitives::events::BabeStateSubscriptionEnginePtr babe_status_observable,
-      std::shared_ptr<boost::asio::io_context> main_thread_context)
+      WeakIoContext main_thread_context)
       : round_time_factor_{kGossipDuration},
         hasher_{std::move(hasher)},
         environment_{std::move(environment)},
@@ -87,7 +87,7 @@ namespace kagome::consensus::grandpa {
         main_thread_context_{std::move(main_thread_context)},
         scheduler_{std::make_shared<libp2p::basic::SchedulerImpl>(
             std::make_shared<libp2p::basic::AsioSchedulerBackend>(
-                internal_thread_context_->io_context()),
+                execution_thread_pool_->io_context()),
             libp2p::basic::Scheduler::Config{})} {
     BOOST_ASSERT(environment_ != nullptr);
     BOOST_ASSERT(crypto_provider_ != nullptr);

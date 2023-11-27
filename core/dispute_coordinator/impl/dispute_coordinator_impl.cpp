@@ -119,7 +119,7 @@ namespace kagome::dispute {
       std::shared_ptr<parachain::Pvf> pvf,
       std::shared_ptr<parachain::ApprovalDistribution> approval_distribution,
       std::shared_ptr<authority_discovery::Query> authority_discovery,
-      std::shared_ptr<boost::asio::io_context> main_thread_context,
+      WeakIoContext main_thread_context,
       std::shared_ptr<network::Router> router,
       std::shared_ptr<network::PeerView> peer_view,
       std::shared_ptr<primitives::events::BabeStateSubscriptionEngine>
@@ -2161,7 +2161,7 @@ namespace kagome::dispute {
 
   void DisputeCoordinatorImpl::make_task_for_next_portion() {
     if (not rate_limit_timer_.has_value()) {
-      rate_limit_timer_.emplace(internal_context_->io_context());
+      rate_limit_timer_.emplace(int_pool_->io_context());
 
       rate_limit_timer_->expiresAfter(kReceiveRateLimit);
       rate_limit_timer_->asyncWait([wp = weak_from_this()](auto &&ec) {
@@ -2173,9 +2173,7 @@ namespace kagome::dispute {
                      ec);
             return;
           }
-          BOOST_ASSERT(self->internal_context_->io_context()
-                           ->get_executor()
-                           .running_in_this_thread());
+          BOOST_ASSERT(self->internal_context_->isInCurrentThread());
           self->process_portion_incoming_disputes();
         }
       });

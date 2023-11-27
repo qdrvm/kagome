@@ -31,7 +31,7 @@ namespace kagome::consensus {
   BlockExecutorImpl::BlockExecutorImpl(
       std::shared_ptr<blockchain::BlockTree> block_tree,
       const ThreadPool &thread_pool,
-      std::shared_ptr<boost::asio::io_context> main_thread,
+      WeakIoContext main_thread,
       std::shared_ptr<runtime::Core> core,
       std::shared_ptr<transaction_pool::TransactionPool> tx_pool,
       std::shared_ptr<crypto::Hasher> hasher,
@@ -179,9 +179,9 @@ namespace kagome::consensus {
                                  start_time,
                                  previous_best_block);
       };
-      main_thread_->post(std::move(executed));
+      post(main_thread_, std::move(executed));
     };
-    io_context_->post(std::move(execute));
+    post(io_context_, std::move(execute));
   }
 
   void BlockExecutorImpl::applyBlockExecuted(

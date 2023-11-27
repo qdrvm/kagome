@@ -17,10 +17,7 @@
 #include "primitives/block.hpp"
 #include "primitives/event_types.hpp"
 #include "telemetry/service.hpp"
-
-namespace boost::asio {
-  class io_context;
-}
+#include "utils/weak_io_context.hpp"
 
 namespace kagome {
   class ThreadPool;
@@ -110,7 +107,7 @@ namespace kagome::consensus::babe {
         std::shared_ptr<network::BlockAnnounceTransmitter> announce_transmitter,
         std::shared_ptr<runtime::OffchainWorkerApi> offchain_worker_api,
         const ThreadPool &thread_pool,
-        std::shared_ptr<boost::asio::io_context> main_thread);
+        WeakIoContext main_thread);
 
     bool isGenesisConsensus() const override;
 
@@ -167,8 +164,8 @@ namespace kagome::consensus::babe {
     primitives::events::ChainSubscriptionEnginePtr chain_sub_engine_;
     std::shared_ptr<network::BlockAnnounceTransmitter> announce_transmitter_;
     std::shared_ptr<runtime::OffchainWorkerApi> offchain_worker_api_;
-    std::shared_ptr<boost::asio::io_context> main_thread_;
-    std::shared_ptr<boost::asio::io_context> io_context_;
+    WeakIoContext main_thread_;
+    WeakIoContext io_context_;
 
     const bool is_validator_by_config_;
     bool is_active_validator_;
