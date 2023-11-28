@@ -68,7 +68,7 @@ namespace kagome::parachain {
       std::shared_ptr<dispute::RuntimeInfo> runtime_info,
       std::shared_ptr<crypto::Sr25519Provider> crypto_provider,
       std::shared_ptr<network::Router> router,
-      WeakIoContext this_context,
+      WeakIoContext main_thread,
       std::shared_ptr<crypto::Hasher> hasher,
       std::shared_ptr<network::PeerView> peer_view,
       std::shared_ptr<ThreadPool> thread_pool,
@@ -88,7 +88,7 @@ namespace kagome::parachain {
         runtime_info_(std::move(runtime_info)),
         crypto_provider_(std::move(crypto_provider)),
         router_(std::move(router)),
-        this_context_(std::move(this_context)),
+        main_thread_(std::move(main_thread)),
         hasher_(std::move(hasher)),
         peer_view_(std::move(peer_view)),
         thread_pool_(std::move(thread_pool)),
@@ -232,7 +232,7 @@ namespace kagome::parachain {
                                  const network::ExView &event) {
           if (auto self = wptr.lock()) {
             /// clear caches
-            BOOST_ASSERT(runningInThisThread(self->this_context_));
+            BOOST_ASSERT(runningInThisThread(self->main_thread_));
 
             self->our_current_state_.active_leaves.exclusiveAccess(
                 [&](auto &active_leaves) {
@@ -373,7 +373,7 @@ namespace kagome::parachain {
 
   void ParachainProcessorImpl::createBackingTask(
       const primitives::BlockHash &relay_parent) {
-    BOOST_ASSERT(runningInThisThread(this_context_));
+    BOOST_ASSERT(runningInThisThread(main_thread_));
     auto rps_result = initNewBackingTask(relay_parent);
     if (rps_result.has_value()) {
       storeStateByRelayParent(relay_parent, std::move(rps_result.value()));
@@ -562,7 +562,7 @@ namespace kagome::parachain {
       RelayParentState &parachain_state) {
     const auto candidate_hash{candidateHashFrom(attesting_data.candidate)};
 
-    BOOST_ASSERT(runningInThisThread(this_context_));
+    BOOST_ASSERT(runningInThisThread(main_thread_));
     if (!parachain_state.awaiting_validation.insert(candidate_hash).second) {
       return;
     }
@@ -665,7 +665,7 @@ namespace kagome::parachain {
       RelayParentState &parachain_state,
       const primitives::BlockHash &candidate_hash,
       size_t n_validators) {
-    BOOST_ASSERT(runningInThisThread(this_context_));
+    BOOST_ASSERT(runningInThisThread(main_thread_));
     parachain_state.awaiting_validation.insert(candidate_hash);
 
     logger_->info(
@@ -702,7 +702,7 @@ namespace kagome::parachain {
                }
                return Error::NO_INSTANCE;
              })),
-        wrap(this_context_,
+        wrap(main_thread_,
              asAsync([wself{weak_from_this()}, peer_id, candidate_hash](
                          auto &&validate_and_second_result) mutable
                      -> outcome::result<void> {
@@ -739,7 +739,7 @@ namespace kagome::parachain {
       std::reference_wrapper<ParachainProcessorImpl::RelayParentState>>
   ParachainProcessorImpl::tryGetStateByRelayParent(
       const primitives::BlockHash &relay_parent) {
-    BOOST_ASSERT(runningInThisThread(this_context_));
+    BOOST_ASSERT(runningInThisThread(main_thread_));
     const auto it = our_current_state_.state_by_relay_parent.find(relay_parent);
     if (it != our_current_state_.state_by_relay_parent.end()) {
       return it->second;
@@ -750,7 +750,7 @@ namespace kagome::parachain {
   ParachainProcessorImpl::RelayParentState &
   ParachainProcessorImpl::storeStateByRelayParent(
       const primitives::BlockHash &relay_parent, RelayParentState &&val) {
-    BOOST_ASSERT(runningInThisThread(this_context_));
+    BOOST_ASSERT(runningInThisThread(main_thread_));
     const auto &[it, inserted] =
         our_current_state_.state_by_relay_parent.insert(
             {relay_parent, std::move(val)});
@@ -762,7 +762,7 @@ namespace kagome::parachain {
       const libp2p::peer::PeerId &peer_id,
       const primitives::BlockHash &relay_parent,
       const network::SignedStatement &statement) {
-    BOOST_ASSERT(runningInThisThread(this_context_));
+    BOOST_ASSERT(runningInThisThread(main_thread_));
     auto opt_parachain_state = tryGetStateByRelayParent(relay_parent);
     if (!opt_parachain_state) {
       logger_->trace(
@@ -1275,7 +1275,7 @@ namespace kagome::parachain {
   outcome::result<void> ParachainProcessorImpl::advCanBeProcessed(
       const primitives::BlockHash &relay_parent,
       const libp2p::peer::PeerId &peer_id) {
-    BOOST_ASSERT(runningInThisThread(this_context_));
+    BOOST_ASSERT(runningInThisThread(main_thread_));
     OUTCOME_TRY(canProcessParachains());
 
     auto rps = our_current_state_.state_by_relay_parent.find(relay_parent);

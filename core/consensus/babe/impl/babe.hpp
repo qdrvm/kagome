@@ -165,7 +165,7 @@ namespace kagome::consensus::babe {
     std::shared_ptr<network::BlockAnnounceTransmitter> announce_transmitter_;
     std::shared_ptr<runtime::OffchainWorkerApi> offchain_worker_api_;
     WeakIoContext main_thread_;
-    WeakIoContext io_context_;
+    WeakIoContext wasm_thread_;
 
     const bool is_validator_by_config_;
     bool is_active_validator_;

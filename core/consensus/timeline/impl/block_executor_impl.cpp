@@ -40,7 +40,7 @@ namespace kagome::consensus {
       primitives::events::ChainSubscriptionEnginePtr chain_sub_engine,
       std::unique_ptr<BlockAppenderBase> appender)
       : block_tree_{std::move(block_tree)},
-        io_context_{thread_pool.io_context()},
+        wasm_thread_{thread_pool.io_context()},
         main_thread_{std::move(main_thread)},
         core_{std::move(core)},
         tx_pool_{std::move(tx_pool)},
@@ -181,7 +181,7 @@ namespace kagome::consensus {
       };
       post(main_thread_, std::move(executed));
     };
-    post(io_context_, std::move(execute));
+    post(wasm_thread_, std::move(execute));
   }
 
   void BlockExecutorImpl::applyBlockExecuted(

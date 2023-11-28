@@ -102,7 +102,7 @@ namespace kagome::consensus::babe {
         announce_transmitter_(std::move(announce_transmitter)),
         offchain_worker_api_(std::move(offchain_worker_api)),
         main_thread_(std::move(main_thread)),
-        io_context_{thread_pool.io_context()},
+        wasm_thread_{thread_pool.io_context()},
         is_validator_by_config_(app_config.roles().flags.authority != 0),
         telemetry_{telemetry::createTelemetryService()} {
     BOOST_ASSERT(block_tree_);
@@ -404,7 +404,7 @@ namespace kagome::consensus::babe {
       post(self->main_thread_, std::move(proposed));
     };
 
-    post(io_context_, std::move(propose));
+    post(wasm_thread_, std::move(propose));
 
     return outcome::success();
   }

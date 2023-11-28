@@ -478,7 +478,7 @@ namespace kagome::parachain {
       std::shared_ptr<blockchain::BlockTree> block_tree,
       std::shared_ptr<parachain::Pvf> pvf,
       std::shared_ptr<parachain::Recovery> recovery,
-      WeakIoContext this_context,
+      WeakIoContext main_thread,
       LazySPtr<dispute::DisputeCoordinator> dispute_coordinator)
       : int_pool_{std::make_shared<ThreadPool>("approval", 1ull)},
         internal_context_{int_pool_->handler()},
@@ -498,7 +498,7 @@ namespace kagome::parachain {
         block_tree_(std::move(block_tree)),
         pvf_(std::move(pvf)),
         recovery_(std::move(recovery)),
-        this_context_{std::move(this_context)},
+        main_thread_{std::move(main_thread)},
         dispute_coordinator_{std::move(dispute_coordinator)} {
     BOOST_ASSERT(thread_pool_);
     BOOST_ASSERT(parachain_host_);
@@ -564,7 +564,7 @@ namespace kagome::parachain {
 
     internal_context_->start();
     thread_pool_context_->start();
-    this_context_.start();
+    main_thread_.start();
 
     /// TODO(iceseer): clear `known_by` when peer disconnected
 
@@ -2119,7 +2119,7 @@ namespace kagome::parachain {
   void ApprovalDistribution::runDistributeAssignment(
       std::unordered_map<libp2p::peer::PeerId, std::deque<network::Assignment>>
           &&messages) {
-    REINVOKE(this_context_, runDistributeAssignment, std::move(messages));
+    REINVOKE(main_thread_, runDistributeAssignment, std::move(messages));
 
     SL_TRACE(logger_,
              "Distributing assignments to peers. (peers count={})",
@@ -2132,7 +2132,7 @@ namespace kagome::parachain {
   void ApprovalDistribution::send_assignments_batched(
       std::deque<network::Assignment> &&assignments,
       const libp2p::peer::PeerId &peer_id) {
-    REINVOKE(this_context_,
+    REINVOKE(main_thread_,
              send_assignments_batched,
              std::move(assignments),
              peer_id);
@@ -2175,7 +2175,7 @@ namespace kagome::parachain {
       std::deque<network::IndirectSignedApprovalVote> &&approvals,
       const libp2p::peer::PeerId &peer_id) {
     REINVOKE(
-        this_context_, send_approvals_batched, std::move(approvals), peer_id);
+        main_thread_, send_approvals_batched, std::move(approvals), peer_id);
 
     auto se = pm_->getStreamEngine();
     BOOST_ASSERT(se);  // kMaxApprovalBatchSize
@@ -2221,7 +2221,7 @@ namespace kagome::parachain {
       std::unordered_map<libp2p::peer::PeerId,
                          std::deque<network::IndirectSignedApprovalVote>>
           &&messages) {
-    REINVOKE(this_context_, runDistributeApproval, std::move(messages));
+    REINVOKE(main_thread_, runDistributeApproval, std::move(messages));
 
     SL_TRACE(logger_,
              "Sending an approval messages to peers. (num peers={})",

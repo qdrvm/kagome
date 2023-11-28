@@ -75,7 +75,7 @@ namespace kagome::consensus {
         const primitives::BlockInfo &previous_best_block);
 
     std::shared_ptr<blockchain::BlockTree> block_tree_;
-    WeakIoContext io_context_;
+    WeakIoContext wasm_thread_;
     WeakIoContext main_thread_;
     std::shared_ptr<runtime::Core> core_;
     std::shared_ptr<transaction_pool::TransactionPool> tx_pool_;

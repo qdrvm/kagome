@@ -112,7 +112,7 @@ namespace kagome::dispute {
         std::shared_ptr<parachain::Pvf> pvf,
         std::shared_ptr<parachain::ApprovalDistribution> approval_distribution,
         std::shared_ptr<authority_discovery::Query> authority_discovery,
-        WeakIoContext main_thread_context,
+        WeakIoContext main_thread,
         std::shared_ptr<network::Router> router,
         std::shared_ptr<network::PeerView> peer_view,
         primitives::events::BabeStateSubscriptionEnginePtr
@@ -278,7 +278,7 @@ namespace kagome::dispute {
     std::shared_ptr<parachain::Pvf> pvf_;
     std::shared_ptr<parachain::ApprovalDistribution> approval_distribution_;
     std::shared_ptr<authority_discovery::Query> authority_discovery_;
-    std::unique_ptr<ThreadHandler> main_thread_context_;
+    std::unique_ptr<ThreadHandler> main_thread_;
     std::shared_ptr<network::Router> router_;
     std::shared_ptr<network::PeerView> peer_view_;
     primitives::events::ChainSub chain_sub_;

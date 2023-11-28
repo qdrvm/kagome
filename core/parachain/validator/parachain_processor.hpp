@@ -82,7 +82,7 @@ namespace kagome::parachain {
         std::shared_ptr<dispute::RuntimeInfo> runtime_info,
         std::shared_ptr<crypto::Sr25519Provider> crypto_provider,
         std::shared_ptr<network::Router> router,
-        WeakIoContext this_context,
+        WeakIoContext main_thread,
         std::shared_ptr<crypto::Hasher> hasher,
         std::shared_ptr<network::PeerView> peer_view,
         std::shared_ptr<ThreadPool> thread_pool,
@@ -414,7 +414,7 @@ namespace kagome::parachain {
     } our_current_state_;
     SafeObject<std::unordered_map<RelayHash, network::CollationEvent>>
         pending_candidates;
-    WeakIoContext this_context_;
+    WeakIoContext main_thread_;
     std::shared_ptr<crypto::Hasher> hasher_;
     std::shared_ptr<network::PeerView> peer_view_;
     network::PeerView::MyViewSubscriberPtr my_view_sub_;
