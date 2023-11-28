@@ -170,7 +170,8 @@ namespace kagome::network {
     auto commitment_ok = false;
     if (round != session.rounds.end()) {
       commitment_ok = vote.commitment == round->second.commitment;
-    } else if (auto r = getCommitment(*session_it); not r or not r.value()) {
+    } else if (auto r = getCommitment(session.validators.id, block_number);
+               not r or not r.value()) {
       return;
     } else {
       commitment_ok = vote.commitment == *r.value();
@@ -424,7 +425,8 @@ namespace kagome::network {
                session->second.validators.id);
       return outcome::success();
     }
-    OUTCOME_TRY(commitment, getCommitment(*session));
+    OUTCOME_TRY(commitment,
+                getCommitment(session->second.validators.id, target));
     if (not commitment) {
       SL_VERBOSE(log_, "can't vote: no commitment {}", target);
       return outcome::success();
@@ -438,23 +440,24 @@ namespace kagome::network {
   }
 
   outcome::result<std::optional<consensus::beefy::Commitment>>
-  Beefy::getCommitment(const Sessions::value_type &session) {
-    OUTCOME_TRY(block_hash, block_tree_->getBlockHash(session.first));
+  Beefy::getCommitment(consensus::beefy::AuthoritySetId validator_set_id,
+                       primitives::BlockNumber block_number) {
+    OUTCOME_TRY(block_hash, block_tree_->getBlockHash(block_number));
     if (not block_hash) {
-      SL_VERBOSE(log_, "getCommitment: no block {}", session.first);
+      SL_VERBOSE(log_, "getCommitment: no block {}", block_number);
       return std::nullopt;
     }
     OUTCOME_TRY(header, block_tree_->getBlockHeader(*block_hash));
     auto mmr = beefyMmrDigest(header);
     if (not mmr) {
       SL_VERBOSE(
-          log_, "getCommitment: no mmr digest in block {}", session.first);
+          log_, "getCommitment: no mmr digest in block {}", block_number);
       return std::nullopt;
     }
     return consensus::beefy::Commitment{
         {{consensus::beefy::kMmr, common::Buffer{*mmr}}},
-        session.first,
-        session.second.validators.id,
+        block_number,
+        validator_set_id,
     };
   }
 
