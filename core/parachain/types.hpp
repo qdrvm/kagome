@@ -12,8 +12,8 @@
 #include <type_traits>
 #include <vector>
 
-#include "common/visitor.hpp"
 #include "common/blob.hpp"
+#include "common/visitor.hpp"
 #include "consensus/grandpa/common.hpp"
 #include "crypto/sr25519_types.hpp"
 #include "primitives/block_header.hpp"

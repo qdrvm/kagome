@@ -200,8 +200,8 @@ namespace kagome::network {
     return validation_protocol_.get();
   }
 
-  std::shared_ptr<ValidationProtocolVStaging> RouterLibp2p::getValidationProtocolVStaging()
-      const {
+  std::shared_ptr<ValidationProtocolVStaging>
+  RouterLibp2p::getValidationProtocolVStaging() const {
     return validation_protocol_vstaging_.get();
   }
 

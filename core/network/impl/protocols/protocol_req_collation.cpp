@@ -23,7 +23,8 @@ namespace kagome::network {
                                          std::decay_t<ResponseT>,
                                          ScaleMessageReadWriter>;
 
-    ReqCollationProtocolImpl(libp2p::Host &host, const libp2p::peer::ProtocolName &protoname,
+    ReqCollationProtocolImpl(libp2p::Host &host,
+                             const libp2p::peer::ProtocolName &protoname,
                              const application::ChainSpec &chain_spec,
                              const blockchain::GenesisBlockHash &genesis_hash,
                              std::shared_ptr<ReqCollationObserver> observer)
@@ -65,7 +66,11 @@ namespace kagome::network {
         vstaging_impl_{std::make_shared<
             ReqCollationProtocolImpl<vstaging::CollationFetchingRequest,
                                      vstaging::CollationFetchingResponse>>(
-            host, kReqCollationVStagingProtocol, chain_spec, genesis_hash, observer)} {
+            host,
+            kReqCollationVStagingProtocol,
+            chain_spec,
+            genesis_hash,
+            observer)} {
     BOOST_ASSERT(v1_impl_);
     BOOST_ASSERT(vstaging_impl_);
   }

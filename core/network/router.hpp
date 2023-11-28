@@ -38,8 +38,8 @@ namespace kagome::network {
     getCollationProtocolVStaging() const = 0;
     virtual std::shared_ptr<ValidationProtocol> getValidationProtocol()
         const = 0;
-    virtual std::shared_ptr<ValidationProtocolVStaging> getValidationProtocolVStaging()
-        const = 0;
+    virtual std::shared_ptr<ValidationProtocolVStaging>
+    getValidationProtocolVStaging() const = 0;
     virtual std::shared_ptr<ReqCollationProtocol> getReqCollationProtocol()
         const = 0;
     virtual std::shared_ptr<ReqPovProtocol> getReqPovProtocol() const = 0;

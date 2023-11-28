@@ -84,7 +84,8 @@ namespace kagome::network {
     std::shared_ptr<CollationProtocolVStaging> getCollationProtocolVStaging()
         const override;
     std::shared_ptr<ValidationProtocol> getValidationProtocol() const override;
-    std::shared_ptr<ValidationProtocolVStaging> getValidationProtocolVStaging() const override;
+    std::shared_ptr<ValidationProtocolVStaging> getValidationProtocolVStaging()
+        const override;
     std::shared_ptr<ReqCollationProtocol> getReqCollationProtocol()
         const override;
     std::shared_ptr<ReqPovProtocol> getReqPovProtocol() const override;

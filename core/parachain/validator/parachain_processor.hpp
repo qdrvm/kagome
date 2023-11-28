@@ -244,7 +244,7 @@ namespace kagome::parachain {
       network::vstaging::StatementFilter statement_knowledge;
     };
 
-    struct ManifestImportSuccess{
+    struct ManifestImportSuccess {
       bool acknowledge;
       ValidatorIndex sender_index;
     };
@@ -319,21 +319,23 @@ namespace kagome::parachain {
         const CandidateHash &candidate_hash,
         const RelayHash &relay_parent,
         const ManifestSummary &manifest_summary,
-        ParachainId para_id
-      );
-      network::vstaging::StatementFilter local_knowledge_filter(size_t group_size, GroupIndex group_index, const CandidateHash &candidate_hash, const StatementStore &statement_store);
-      std::deque<network::VersionedValidatorProtocolMessage> 
-  acknowledgement_and_statement_messages(
-    StatementStore &statement_store,
-    const std::vector<ValidatorIndex> &group,
-    const network::vstaging::StatementFilter &local_knowledge,
-    const CandidateHash &candidate_hash,
-    const RelayHash &relay_parent);
-   void send_to_validators_group(
-    const runtime::SessionInfo &session_info,
-    const std::vector<ValidatorIndex> &group,
-    const std::deque<network::VersionedValidatorProtocolMessage> &messages
-  );
+        ParachainId para_id);
+    network::vstaging::StatementFilter local_knowledge_filter(
+        size_t group_size,
+        GroupIndex group_index,
+        const CandidateHash &candidate_hash,
+        const StatementStore &statement_store);
+    std::deque<network::VersionedValidatorProtocolMessage>
+    acknowledgement_and_statement_messages(
+        StatementStore &statement_store,
+        const std::vector<ValidatorIndex> &group,
+        const network::vstaging::StatementFilter &local_knowledge,
+        const CandidateHash &candidate_hash,
+        const RelayHash &relay_parent);
+    void send_to_validators_group(
+        const runtime::SessionInfo &session_info,
+        const std::vector<ValidatorIndex> &group,
+        const std::deque<network::VersionedValidatorProtocolMessage> &messages);
 
     outcome::result<std::pair<CollatorId, ParachainId>> insertAdvertisement(
         network::PeerState &peer_data,
@@ -513,7 +515,8 @@ namespace kagome::parachain {
     bool tryOpenOutgoingCollatingStream(const libp2p::peer::PeerId &peer_id,
                                         F &&callback);
     template <typename F>
-    bool tryOpenOutgoingValidationStream(const libp2p::peer::PeerId &peer_id,network::CollationVersion version,
+    bool tryOpenOutgoingValidationStream(const libp2p::peer::PeerId &peer_id,
+                                         network::CollationVersion version,
                                          F &&callback);
     template <typename F>
     bool tryOpenOutgoingStream(const libp2p::peer::PeerId &peer_id,

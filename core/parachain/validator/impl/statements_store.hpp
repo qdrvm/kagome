@@ -121,9 +121,14 @@ namespace kagome::parachain {
       }
     }
 
-    void fill_statement_filter(GroupIndex group_index, const CandidateHash &candidate_hash, network::vstaging::StatementFilter &statement_filter) const {
-      if (auto it_gs = group_statements.find(group_index); it_gs != group_statements.end()) {
-        if (auto it_ch = it_gs->second.find(candidate_hash); it_ch != it_gs->second.end()) {
+    void fill_statement_filter(
+        GroupIndex group_index,
+        const CandidateHash &candidate_hash,
+        network::vstaging::StatementFilter &statement_filter) const {
+      if (auto it_gs = group_statements.find(group_index);
+          it_gs != group_statements.end()) {
+        if (auto it_ch = it_gs->second.find(candidate_hash);
+            it_ch != it_gs->second.end()) {
           const GroupStatements &statements = it_ch->second;
           statement_filter.seconded_in_group = statements.seconded;
           statement_filter.validated_in_group = statements.valid;
@@ -185,12 +190,16 @@ namespace kagome::parachain {
       }
     }
 
-    template<typename F>
-    void groupStatements(const std::vector<ValidatorIndex> &group_validators, const CandidateHash &candidate_hash, const network::vstaging::StatementFilter &filter, F &&cb) const {
-      auto call = [&] (const scale::BitVec &target, network::vstaging::CompactStatement &&stm) {
+    template <typename F>
+    void groupStatements(const std::vector<ValidatorIndex> &group_validators,
+                         const CandidateHash &candidate_hash,
+                         const network::vstaging::StatementFilter &filter,
+                         F &&cb) const {
+      auto call = [&](const scale::BitVec &target,
+                      network::vstaging::CompactStatement &&stm) {
         Fingerprint fingerprint{
-          .index = 0,
-          .statement = std::move(stm),
+            .index = 0,
+            .statement = std::move(stm),
         };
         for (size_t i = 0; i < target.bits.size(); ++i) {
           if (!target.bits[i]) {
@@ -209,12 +218,14 @@ namespace kagome::parachain {
         }
       };
 
-      call(filter.seconded_in_group, network::vstaging::SecondedCandidateHash {
-            .hash = candidate_hash,
-            });
-      call(filter.validated_in_group, network::vstaging::ValidCandidateHash {
-            .hash = candidate_hash,
-            });
+      call(filter.seconded_in_group,
+           network::vstaging::SecondedCandidateHash{
+               .hash = candidate_hash,
+           });
+      call(filter.validated_in_group,
+           network::vstaging::ValidCandidateHash{
+               .hash = candidate_hash,
+           });
     }
 
     std::optional<bool> insert(
