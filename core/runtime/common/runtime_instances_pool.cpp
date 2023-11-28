@@ -106,6 +106,7 @@ namespace kagome::runtime {
     auto [iter, is_inserted] =
         compiling_modules_.insert({code_hash, promise.get_future()});
     BOOST_ASSERT(is_inserted);
+    BOOST_ASSERT(iter != compiling_modules_.end());
     l.unlock();
 
     common::Buffer code;
@@ -119,9 +120,7 @@ namespace kagome::runtime {
     }
     BOOST_ASSERT(res);
 
-    std::unique_lock ll{compiling_modules_mtx_};
-    iter = compiling_modules_.find(code_hash);
-    BOOST_ASSERT(iter != compiling_modules_.end());
+    l.lock();
     compiling_modules_.erase(iter);
     promise.set_value(*res);
     return *res;
