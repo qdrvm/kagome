@@ -31,7 +31,7 @@ target_link_libraries(uncompress_if_needed
 kagome_install(uncompress_if_needed)
 
 add_library(runtime_transaction_error
-    runtime_transaction_error.cpp
+    runtime_execution_error.cpp
     )
 target_link_libraries(runtime_transaction_error
     outcome
@@ -62,6 +62,9 @@ add_library(module_repository
     runtime_instances_pool.cpp)
 target_link_libraries(module_repository
     outcome
+    uncompress_if_needed
+    blob
+    executor
     )
 kagome_install(module_repository)
 

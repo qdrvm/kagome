@@ -85,7 +85,7 @@ namespace kagome::consensus::grandpa {
   outcome::result<std::shared_ptr<const AuthoritySet>>
   AuthorityManagerImpl::authoritiesOutcome(const primitives::BlockInfo &block,
                                            bool next) const {
-    auto descent = indexer_.descend(block);
+    auto descent = indexer_.startDescentFrom(block);
     outcome::result<void> cb_res = outcome::success();
     auto cb = [&](std::optional<primitives::BlockInfo> prev,
                   size_t i_first,

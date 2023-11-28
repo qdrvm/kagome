@@ -127,6 +127,13 @@ namespace kagome::application {
                 (),
                 (const, override));
 
+    MOCK_METHOD(uint32_t,
+                parachainPrecompilationThreadNum,
+                (),
+                (const, override));
+
+    MOCK_METHOD(bool, shouldPrecompileParachainModules, (), (const, override));
+
     MOCK_METHOD(bool, isOffchainIndexingEnabled, (), (const, override));
 
     MOCK_METHOD(std::optional<Subcommand>, subcommand, (), (const, override));

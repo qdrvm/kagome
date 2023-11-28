@@ -95,7 +95,7 @@ namespace kagome::consensus::babe {
     }
 
     // Index of secondary leader
-    auto auth_index_of_leader = le_bytes_to_uint64(hasher_->blake2b_64(
+    auto auth_index_of_leader = be_bytes_to_uint256(hasher_->blake2b_256(
                                     scale::encode(randomness_, slot).value()))
                               % auth_number_;
 

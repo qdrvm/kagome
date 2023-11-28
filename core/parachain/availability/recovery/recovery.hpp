@@ -6,6 +6,7 @@
 
 #pragma once
 
+#include "crypto/type_hasher.hpp"
 #include "runtime/runtime_api/parachain_host_types.hpp"
 
 namespace kagome::parachain {
@@ -18,12 +19,13 @@ namespace kagome::parachain {
     using AvailableData = runtime::AvailableData;
     using Cb =
         std::function<void(std::optional<outcome::result<AvailableData>>)>;
-    using CandidateReceipt = network::CandidateReceipt;
+    using HashedCandidateReceipt = crypto::
+        Hashed<network::CandidateReceipt, 32, crypto::Blake2b_StreamHasher<32>>;
 
     virtual ~Recovery() = default;
 
     virtual void remove(const CandidateHash &candidate) = 0;
-    virtual void recover(CandidateReceipt receipt,
+    virtual void recover(const HashedCandidateReceipt &hashed_receipt,
                          SessionIndex session_index,
                          std::optional<GroupIndex> backing_group,
                          Cb cb) = 0;

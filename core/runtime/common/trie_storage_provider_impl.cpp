@@ -6,7 +6,7 @@
 
 #include "runtime/common/trie_storage_provider_impl.hpp"
 
-#include "runtime/common/runtime_transaction_error.hpp"
+#include "runtime/common/runtime_execution_error.hpp"
 #include "storage/trie/impl/topper_trie_batch_impl.hpp"
 #include "storage/trie/trie_batches.hpp"
 
@@ -177,7 +177,7 @@ namespace kagome::runtime {
 
   outcome::result<void> TrieStorageProviderImpl::rollbackTransaction() {
     if (transaction_stack_.empty()) {
-      return RuntimeTransactionError::NO_TRANSACTIONS_WERE_STARTED;
+      return RuntimeExecutionError::NO_TRANSACTIONS_WERE_STARTED;
     }
 
     SL_TRACE(logger_,
@@ -189,7 +189,7 @@ namespace kagome::runtime {
 
   outcome::result<void> TrieStorageProviderImpl::commitTransaction() {
     if (transaction_stack_.empty()) {
-      return RuntimeTransactionError::NO_TRANSACTIONS_WERE_STARTED;
+      return RuntimeExecutionError::NO_TRANSACTIONS_WERE_STARTED;
     }
 
     OUTCOME_TRY(transaction_stack_.back().main_batch->writeBack());

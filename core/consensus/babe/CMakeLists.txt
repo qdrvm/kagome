@@ -16,3 +16,4 @@ target_link_libraries(babe
     consensus_common
 )
 kagome_install(babe)
+kagome_clear_objects(babe)
