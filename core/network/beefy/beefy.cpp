@@ -158,12 +158,15 @@ namespace kagome::network {
       SL_VERBOSE(log_, "unknown validator for block {}", block_number);
       return;
     }
+    auto total = session.validators.validators.size();
+    auto round = session.rounds.find(block_number);
+    if (round != session.rounds.end() and round->second.signatures[*index]) {
+      return;
+    }
     if (not verify(*ecdsa_, vote)) {
       SL_VERBOSE(log_, "wrong vote for block {}", block_number);
       return;
     }
-    auto total = session.validators.validators.size();
-    auto round = session.rounds.find(block_number);
     auto commitment_ok = false;
     if (round != session.rounds.end()) {
       commitment_ok = vote.commitment == round->second.commitment;
@@ -183,9 +186,6 @@ namespace kagome::network {
                        consensus::beefy::SignedCommitment{vote.commitment, {}})
               .first;
       round->second.signatures.resize(total);
-    }
-    if (round->second.signatures[*index]) {
-      return;
     }
     round->second.signatures[*index] = vote.signature;
     size_t count = 0;
