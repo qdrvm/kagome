@@ -121,7 +121,7 @@ namespace kagome::parachain {
       }
     }
 
-    void fill_statement_filter(GroupIndex group_index, const CandidateHash &candidate_hash, StatementFilter &statement_filter) const {
+    void fill_statement_filter(GroupIndex group_index, const CandidateHash &candidate_hash, network::vstaging::StatementFilter &statement_filter) const {
       if (auto it_gs = group_statements.find(group_index); it_gs != group_statements.end()) {
         if (auto it_ch = it_gs->second.find(candidate_hash); it_ch != it_gs->second.end()) {
           const GroupStatements &statements = it_ch->second;
@@ -186,7 +186,7 @@ namespace kagome::parachain {
     }
 
     template<typename F>
-    void group_statements(const std::vector<ValidatorIndex> &group_validators, const CandidateHash &candidate_hash, const StatementFilter &filter, F &&cb) const {
+    void groupStatements(const std::vector<ValidatorIndex> &group_validators, const CandidateHash &candidate_hash, const network::vstaging::StatementFilter &filter, F &&cb) const {
       auto call = [&] (const scale::BitVec &target, network::vstaging::CompactStatement &&stm) {
         Fingerprint fingerprint{
           .index = 0,

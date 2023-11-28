@@ -703,7 +703,7 @@ namespace kagome::parachain {
     ParachainId para_id
   ) {
     if (!candidates_.insert_unconfirmed(
-      peer,
+      peer_id,
       candidate_hash,
       relay_parent,
       manifest_summary.claimed_group_index,
@@ -727,17 +727,35 @@ namespace kagome::parachain {
     return f;
   }
 
-  void ParachainProcessorImpl::send_to_group(
+  void ParachainProcessorImpl::send_to_validators_group(
+    const runtime::SessionInfo &session_info,
     const std::vector<ValidatorIndex> &group,
     const std::deque<network::VersionedValidatorProtocolMessage> &messages
   ) {
+    BOOST_ASSERT(
+    this_context_->io_context()->get_executor().running_in_this_thread());
 
-    for (const)
+    auto make_send = [&]<typename Msg>(const Msg &msg, const std::shared_ptr<network::ProtocolBase> &protocol) {
+      for (const ValidatorIndex v : group) {
+        const auto &authority_id = session_info.discovery_keys[v];
+        if (auto peer = query_audi_->get(authority_id)) {
+          pm_->getStreamEngine()->template send(
+              peer->id,
+              protocol,
+              std::make_shared<network::WireMessage<std::decay_t<decltype(msg)>>>(msg));
+        }
+      }
+    };
 
-        const auto &authority_id =
-        session_info->discovery_keys[attesting_data.from_validator];
-    if (auto peer = query_audi_->get(authority_id)) {
-
+    for (const network::VersionedValidatorProtocolMessage &msg : messages) {
+      visit_in_place(msg,
+      [&](const kagome::network::vstaging::ValidatorProtocolMessage &m) {
+        make_send(m, router_->getValidationProtocolVStaging());
+      },
+      [&](const kagome::network::ValidatorProtocolMessage &m) {
+        make_send(m, router_->getValidationProtocol());
+      });
+    }
   }
 
   std::deque<network::VersionedValidatorProtocolMessage> 
@@ -747,14 +765,14 @@ namespace kagome::parachain {
     const network::vstaging::StatementFilter &local_knowledge,
     const CandidateHash &candidate_hash,
     const RelayHash &relay_parent) {
-    std::deque<std::pair<std::deque<libp2p::peer::PeerId>, network::VersionedValidatorProtocolMessage>> messages;
+    std::deque<network::VersionedValidatorProtocolMessage>  messages;
     /// TODO(iceseer): do
     /// Will sent to the whole group. Optimize when `grid_view` will be implemented
     messages.emplace_back(network::VersionedValidatorProtocolMessage{network::vstaging::ValidatorProtocolMessage {network::vstaging::StatementDistributionMessage {network::vstaging::BackedCandidateAcknowledgement {
         .candidate_hash = candidate_hash,
         .statement_knowledge = local_knowledge,
       }}}});
-    statement_store.group_statements(group, candidate_hash, local_knowledge, [&](const IndexedAndSigned<network::vstaging::CompactStatement> &statement) {
+    statement_store.groupStatements(group, candidate_hash, local_knowledge, [&](const IndexedAndSigned<network::vstaging::CompactStatement> &statement) {
       messages.emplace_back(network::VersionedValidatorProtocolMessage{network::vstaging::ValidatorProtocolMessage {network::vstaging::StatementDistributionMessage {network::vstaging::StatementDistributionMessageStatement {
         .relay_parent = relay_parent,
         .compact = statement,
@@ -810,20 +828,18 @@ namespace kagome::parachain {
         }
         const auto &group = opt_session_info->validator_groups[manifest->get().group_index];
 
-        if (x.acknowledge) {
+        if (x->acknowledge) {
           SL_TRACE(logger_, "Known candidate - acknowledging manifest. (candidate hash={})", manifest->get().candidate_hash);
           network::vstaging::StatementFilter local_knowledge = local_knowledge_filter(
             group.size(),
             manifest->get().group_index,
             manifest->get().candidate_hash,
-            *relay_parent_state->get().statement_store,
+            *relay_parent_state->get().statement_store
           );
           auto messages = acknowledgement_and_statement_messages(
             *relay_parent_state->get().statement_store,
             group, local_knowledge, manifest->get().candidate_hash, manifest->get().relay_parent);
-          for (const auto &msg : messages) {
-            send();
-          }
+          send_to_validators_group(*opt_session_info, group, messages);
         } else if (!candidates_.is_confirmed(manifest->get().candidate_hash)) {
           /// TODO(iceseer): do
           /// not used because of `acknowledge` = true. Implement `grid_view` to retrieve real `acknowledge`.
@@ -2049,9 +2065,21 @@ namespace kagome::parachain {
 
   template <typename F>
   bool ParachainProcessorImpl::tryOpenOutgoingValidationStream(
-      const libp2p::peer::PeerId &peer_id, F &&callback) {
-    auto protocol = router_->getValidationProtocol();
-    BOOST_ASSERT(protocol);
+      const libp2p::peer::PeerId &peer_id, network::CollationVersion version, F &&callback) {
+
+      std::shared_ptr<network::ProtocolBase> protocol;
+      switch (version) {
+        case network::CollationVersion::V1: {
+          protocol = router_->getValidationProtocol();
+        }
+        break;
+        case network::CollationVersion::VStaging: {
+          protocol = router_->getValidationProtocolVStaging();
+        }
+        break;
+        default: {UNREACHABLE; } break;
+      }
+      BOOST_ASSERT(protocol);
 
     return tryOpenOutgoingStream(
         peer_id, std::move(protocol), std::forward<F>(callback));
@@ -2108,17 +2136,28 @@ namespace kagome::parachain {
 
     const auto peer_state = pm_->getPeerState(peer_id);
     if (!peer_state) {
-      logger_->warn("Received incoming collation stream from unknown peer {}",
+      logger_->warn("Received incoming validation stream from unknown peer {}",
                     peer_id);
       return;
     }
-1
+
     peer_state->get().version = version;
     if (tryOpenOutgoingValidationStream(
-            peer_id, [wptr{weak_from_this()}, peer_id](auto &&stream) {
+            peer_id, version, [wptr{weak_from_this()}, peer_id, version](auto &&stream) {
               if (auto self = wptr.lock()) {
-                self->sendMyView(
-                    peer_id, stream, self->router_->getValidationProtocol());
+                switch (version) {
+                  case network::CollationVersion::V1: {
+                    self->sendMyView(
+                        peer_id, stream, self->router_->getValidationProtocol());
+                  }
+                  break;
+                  case network::CollationVersion::VStaging: {
+                    self->sendMyView(
+                        peer_id, stream, self->router_->getValidationProtocolVStaging());
+                  }
+                  break;
+                  default: {UNREACHABLE; } break;
+                }
               }
             })) {
       logger_->info("Initiated validation protocol with {}", peer_id);
@@ -3063,26 +3102,40 @@ namespace kagome::parachain {
                                        std::move(result).value());
         };
 
-    network::CollationFetchingRequest fetch_collation_request{
-        .relay_parent = pc.relay_parent, .para_id = pc.para_id};
-    our_current_state_.collation_requests_cancel_handles.insert(std::move(pc));
-
     SL_TRACE(logger_,
              "Requesting collation. (peer id={}, para id={}, relay parent={})",
              pc.peer_id,
              pc.para_id,
              pc.relay_parent);
 
+
+    our_current_state_.collation_requests_cancel_handles.insert(std::move(pc));
     const auto maybe_candidate_hash =
         utils::map(pc.prospective_candidate,
                    [](const auto &pair) { return std::cref(pair.first); });
     per_relay_parent.collations.status = CollationStatus::Fetching;
     per_relay_parent.collations.fetching_from.emplace(id, maybe_candidate_hash);
 
+    if (network::CollationVersion::V1 == version) {
+      network::CollationFetchingRequest fetch_collation_request{
+          .relay_parent = pc.relay_parent, 
+          .para_id = pc.para_id,
+          };
     router_->getReqCollationProtocol()->request(
         peer_id,
         std::move(fetch_collation_request),
         std::move(response_callback));
+    } else if (network::CollationVersion::VStaging == version && maybe_candidate_hash) {
+      network::vstaging::CollationFetchingRequest fetch_collation_request{
+          .relay_parent = pc.relay_parent, 
+          .para_id = pc.para_id,
+          .candidate_hash = maybe_candidate_hash->get(),
+          };
+    router_->getReqCollationProtocol()->request(
+        peer_id,
+        std::move(fetch_collation_request),
+        std::move(response_callback));
+    } else { UNREACHABLE;}
   }
 
 }  // namespace kagome::parachain

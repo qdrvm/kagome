@@ -329,7 +329,8 @@ namespace kagome::parachain {
     const network::vstaging::StatementFilter &local_knowledge,
     const CandidateHash &candidate_hash,
     const RelayHash &relay_parent);
-  void send_to_group(
+   void send_to_validators_group(
+    const runtime::SessionInfo &session_info,
     const std::vector<ValidatorIndex> &group,
     const std::deque<network::VersionedValidatorProtocolMessage> &messages
   );
@@ -512,7 +513,7 @@ namespace kagome::parachain {
     bool tryOpenOutgoingCollatingStream(const libp2p::peer::PeerId &peer_id,
                                         F &&callback);
     template <typename F>
-    bool tryOpenOutgoingValidationStream(const libp2p::peer::PeerId &peer_id,
+    bool tryOpenOutgoingValidationStream(const libp2p::peer::PeerId &peer_id,network::CollationVersion version,
                                          F &&callback);
     template <typename F>
     bool tryOpenOutgoingStream(const libp2p::peer::PeerId &peer_id,
