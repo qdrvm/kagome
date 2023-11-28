@@ -47,6 +47,7 @@ target_link_libraries(executor_test
     scale::scale
     logger
     log_configurator
+    module_repository
     )
 
 addtest(runtime_upgrade_tracker_test
@@ -60,3 +61,6 @@ target_link_libraries(runtime_upgrade_tracker_test
     log_configurator
     scale::scale
     )
+
+addtest(instance_pool_test instance_pool_test.cpp)
+target_link_libraries(instance_pool_test module_repository blob)

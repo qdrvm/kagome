@@ -22,74 +22,55 @@
 
 namespace kagome::offchain {
 
+  size_t OffchainWorkerImpl::ocw_counter_ = 0;
+
   OffchainWorkerImpl::OffchainWorkerImpl(
       const application::AppConfiguration &app_config,
       std::shared_ptr<clock::SystemClock> clock,
-      std::shared_ptr<crypto::Hasher> hasher,
       std::shared_ptr<storage::SpacedStorage> storage,
       std::shared_ptr<crypto::CSPRNG> random_generator,
       std::shared_ptr<api::AuthorApi> author_api,
       const network::OwnPeerInfo &current_peer_info,
       std::shared_ptr<OffchainPersistentStorage> persistent_storage,
-      std::shared_ptr<runtime::Executor> executor,
-      const primitives::BlockHeader &header,
       std::shared_ptr<OffchainWorkerPool> ocw_pool)
       : app_config_(app_config),
         clock_(std::move(clock)),
-        hasher_(std::move(hasher)),
         random_generator_(std::move(random_generator)),
         author_api_(std::move(author_api)),
         current_peer_info_(current_peer_info),
         persistent_storage_(std::move(persistent_storage)),
-        executor_(std::move(executor)),
-        header_(header),
         ocw_pool_(std::move(ocw_pool)),
         log_(log::createLogger(
-            "OffchainWorker#" + std::to_string(header_.number), "offchain")) {
+            "OffchainWorker#" + std::to_string(++ocw_counter_), "offchain")) {
     BOOST_ASSERT(clock_);
-    BOOST_ASSERT(hasher_);
     BOOST_ASSERT(storage);
     BOOST_ASSERT(random_generator_);
     BOOST_ASSERT(author_api_);
     BOOST_ASSERT(persistent_storage_);
-    BOOST_ASSERT(executor_);
     BOOST_ASSERT(ocw_pool_);
-
-    const_cast<primitives::BlockInfo &>(block_) = header_.blockInfo();
 
     local_storage_ =
         std::make_shared<OffchainLocalStorageImpl>(std::move(storage));
   }
 
-  outcome::result<void> OffchainWorkerImpl::run() {
+  void OffchainWorkerImpl::run(std::function<void()> &&func,
+                               std::string label) {
     BOOST_ASSERT(not ocw_pool_->getWorker());
 
     ::libp2p::common::FinalAction at_end(
         [prev_thread_name = soralog::util::getThreadName()] {
           soralog::util::setThreadName(prev_thread_name);
         });
-
-    soralog::util::setThreadName("ocw.#" + std::to_string(block_.number));
+    soralog::util::setThreadName("ocw." + label);
 
     ocw_pool_->addWorker(shared_from_this());
     ::libp2p::common::FinalAction remove([&] { ocw_pool_->removeWorker(); });
 
-    SL_TRACE(log_, "Offchain worker is started for block {}", block_);
+    SL_TRACE(log_, "Offchain worker with label {} is started", label);
 
-    auto res = runtime::callOffchainWorkerApi(*executor_, block_.hash, header_);
+    func();
 
-    if (res.has_error()) {
-      SL_ERROR(log_,
-               "Can't execute offchain worker for block {}: {}",
-               block_,
-               res.error());
-      return res.error();
-    }
-
-    SL_DEBUG(
-        log_, "Offchain worker is successfully executed for block {}", block_);
-
-    return outcome::success();
+    SL_TRACE(log_, "Offchain worker with label {} is finished", label);
   }
 
   bool OffchainWorkerImpl::isValidator() const {
@@ -329,7 +310,6 @@ namespace kagome::offchain {
     //  issue: https://github.com/soramitsu/kagome/issues/998
     throw std::runtime_error(
         "This method of OffchainWorkerImpl is not implemented yet");
-    return;
   }
 
 }  // namespace kagome::offchain

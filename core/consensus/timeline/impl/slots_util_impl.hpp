@@ -42,6 +42,7 @@ namespace kagome::consensus {
     SlotsUtilImpl(application::AppStateManager &app_state_manager,
                   std::shared_ptr<storage::SpacedStorage> persistent_storage,
                   std::shared_ptr<blockchain::BlockTree> block_tree,
+                  const EpochTimings &timings,
                   std::shared_ptr<ConsensusSelector> consensus_selector,
                   std::shared_ptr<storage::trie::TrieStorage> trie_storage,
                   std::shared_ptr<runtime::BabeApi> babe_api);
@@ -68,12 +69,10 @@ namespace kagome::consensus {
     log::Logger log_;
     std::shared_ptr<storage::BufferStorage> persistent_storage_;
     std::shared_ptr<blockchain::BlockTree> block_tree_;
+    const EpochTimings &timings_;
     std::shared_ptr<ConsensusSelector> consensus_selector_;
     std::shared_ptr<storage::trie::TrieStorage> trie_storage_;
     std::shared_ptr<runtime::BabeApi> babe_api_;
-
-    Duration slot_duration_{};
-    EpochLength epoch_length_{};
 
     mutable std::optional<SlotNumber> first_block_slot_number_;
   };

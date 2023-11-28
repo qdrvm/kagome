@@ -7,8 +7,9 @@
 #pragma once
 
 #include "common/unused.hpp"
+#include "consensus/beefy/types/authority.hpp"
 #include "crypto/ecdsa_types.hpp"
-#include "primitives/authority.hpp"
+#include "primitives/common.hpp"
 
 /**
  * Test
@@ -25,9 +26,9 @@ namespace kagome::consensus::beefy {
     SCALE_TIE(2);
 
     std::vector<crypto::EcdsaPublicKey> validators;
-    primitives::AuthoritySetId id;
+    AuthoritySetId id;
 
-    std::optional<primitives::AuthorityIndex> find(
+    std::optional<AuthorityIndex> find(
         const crypto::EcdsaPublicKey &key) const {
       auto it = std::find(validators.begin(), validators.end(), key);
       if (it == validators.end()) {
@@ -37,11 +38,10 @@ namespace kagome::consensus::beefy {
     }
   };
 
-  using ConsensusDigest =
-      boost::variant<Unused<0>,
-                     ValidatorSet,                // AuthoritiesChange
-                     primitives::AuthorityIndex,  // OnDisabled
-                     MmrRootHash>;
+  using ConsensusDigest = boost::variant<Unused<0>,
+                                         ValidatorSet,    // AuthoritiesChange
+                                         AuthorityIndex,  // OnDisabled
+                                         MmrRootHash>;
 
   using PayloadId = common::Blob<2>;
   constexpr PayloadId kMmr{{'m', 'h'}};
@@ -51,7 +51,7 @@ namespace kagome::consensus::beefy {
 
     std::vector<std::pair<PayloadId, common::Buffer>> payload;
     primitives::BlockNumber block_number;
-    primitives::AuthoritySetId validator_set_id;
+    AuthoritySetId validator_set_id;
   };
 
   struct VoteMessage {

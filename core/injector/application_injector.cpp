@@ -8,7 +8,7 @@
 
 #define BOOST_DI_CFG_DIAGNOSTICS_LEVEL 2
 #define BOOST_DI_CFG_CTOR_LIMIT_SIZE \
-  32  // TODO(Harrm): check how it influences on compilation time
+  24  // TODO(Harrm): check how it influences on compilation time
 
 #include <rocksdb/filter_policy.h>
 #include <rocksdb/table.h>
@@ -62,6 +62,7 @@
 #include "common/fd_limit.hpp"
 #include "common/outcome_throw.hpp"
 #include "consensus/babe/impl/babe.hpp"
+#include "consensus/babe/impl/babe_block_validator_impl.hpp"
 #include "consensus/babe/impl/babe_config_repository_impl.hpp"
 #include "consensus/babe/impl/babe_lottery_impl.hpp"
 #include "consensus/finality_consensus.hpp"
@@ -75,7 +76,6 @@
 #include "consensus/timeline/impl/consensus_selector_impl.hpp"
 #include "consensus/timeline/impl/slots_util_impl.hpp"
 #include "consensus/timeline/impl/timeline_impl.hpp"
-#include "consensus/validation/babe_block_validator.hpp"
 #include "crypto/bip39/impl/bip39_provider_impl.hpp"
 #include "crypto/crypto_store/crypto_store_impl.hpp"
 #include "crypto/crypto_store/session_keys.hpp"
@@ -120,6 +120,7 @@
 #include "offchain/impl/offchain_worker_factory_impl.hpp"
 #include "offchain/impl/offchain_worker_impl.hpp"
 #include "offchain/impl/offchain_worker_pool_impl.hpp"
+#include "offchain/impl/runner.hpp"
 #include "outcome/outcome.hpp"
 #include "parachain/approval/approval_distribution.hpp"
 #include "parachain/availability/bitfield/store_impl.hpp"
@@ -127,6 +128,7 @@
 #include "parachain/availability/recovery/recovery_impl.hpp"
 #include "parachain/availability/store/store_impl.hpp"
 #include "parachain/backing/store_impl.hpp"
+#include "parachain/pvf/module_precompiler.hpp"
 #include "parachain/pvf/pvf_impl.hpp"
 #include "parachain/validator/impl/parachain_observer_impl.hpp"
 #include "parachain/validator/parachain_processor.hpp"
@@ -513,7 +515,10 @@ namespace {
         makeBinaryenInjector(),
         makeWavmInjector(),
         bind_by_lambda<runtime::RuntimeInstancesPool>([](const auto &injector) {
-          return std::make_shared<runtime::RuntimeInstancesPool>();
+          auto module_factory =
+              injector.template create<sptr<runtime::ModuleFactory>>();
+          return std::make_shared<runtime::RuntimeInstancesPool>(
+              module_factory);
         }),
         di::bind<runtime::ModuleRepository>.template to<runtime::ModuleRepositoryImpl>(),
         di::bind<runtime::CoreApiFactory>.template to<runtime::CoreApiFactoryImpl>(),
@@ -589,6 +594,12 @@ namespace {
     libp2p::protocol::PingConfig ping_config{};
     host_api::OffchainExtensionConfig offchain_ext_config{
         config->isOffchainIndexingEnabled()};
+    parachain::PvfImpl::Config pvf_config{
+        .precompile_modules = config->shouldPrecompileParachainModules(),
+        .runtime_instance_cache_size =
+            config->parachainRuntimeInstanceCacheSize(),
+        .precompile_threads_num = config->parachainPrecompilationThreadNum(),
+    };
 
     // clang-format off
     return di::make_injector(
@@ -599,6 +610,7 @@ namespace {
             useConfig(tp_pool_limits),
             useConfig(ping_config),
             useConfig(offchain_ext_config),
+            useConfig(pvf_config),
 
             // inherit host injector
             libp2p::injector::makeHostInjector(
@@ -727,7 +739,6 @@ namespace {
             di::bind<network::Synchronizer>.template to<network::SynchronizerImpl>(),
             di::bind<consensus::grandpa::Environment>.template to<consensus::grandpa::EnvironmentImpl>(),
             di::bind<parachain::IApprovedAncestor>.template to<parachain::ApprovalDistribution>(),
-            di::bind<consensus::BlockValidator>.template to<consensus::BabeBlockValidator>(),
             di::bind<crypto::EcdsaProvider>.template to<crypto::EcdsaProviderImpl>(),
             di::bind<crypto::Ed25519Provider>.template to<crypto::Ed25519ProviderImpl>(),
             di::bind<crypto::Hasher>.template to<crypto::HasherImpl>(),
@@ -868,6 +879,7 @@ namespace {
             di::bind<consensus::ConsensusSelector>.template to<consensus::ConsensusSelectorImpl>(),
             di::bind<consensus::SlotsUtil>.template to<consensus::SlotsUtilImpl>(),
             di::bind<consensus::Timeline>.template to<consensus::TimelineImpl>(),
+            di::bind<consensus::babe::BabeBlockValidator>.template to<consensus::babe::BabeBlockValidatorImpl>(),
 
             // user-defined overrides...
             std::forward<decltype(args)>(args)...);

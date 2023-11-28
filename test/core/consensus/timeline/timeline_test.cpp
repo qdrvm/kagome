@@ -10,8 +10,8 @@
 
 #include "consensus/babe/types/babe_block_header.hpp"
 #include "consensus/babe/types/seal.hpp"
-#include "consensus/babe/types/slot.hpp"
-#include "consensus/timeline/impl/block_production_error.hpp"
+#include "consensus/babe/types/slot_type.hpp"
+#include "consensus/timeline/impl/slot_leadership_error.hpp"
 #include "consensus/timeline/impl/timeline_impl.hpp"
 #include "mock/core/application/app_configuration_mock.hpp"
 #include "mock/core/application/app_state_manager_mock.hpp"
@@ -37,12 +37,13 @@ using kagome::application::AppStateManagerMock;
 using kagome::blockchain::BlockTreeMock;
 using kagome::clock::SystemClockMock;
 using kagome::common::Buffer;
-using kagome::consensus::BlockProductionError;
 using kagome::consensus::ConsensusSelectorMock;
 using kagome::consensus::Duration;
 using kagome::consensus::EpochLength;
 using kagome::consensus::EpochNumber;
+using kagome::consensus::EpochTimings;
 using kagome::consensus::ProductionConsensusMock;
+using kagome::consensus::SlotLeadershipError;
 using kagome::consensus::SlotNumber;
 using kagome::consensus::SlotsUtilMock;
 using kagome::consensus::SyncState;
@@ -114,20 +115,23 @@ class TimelineTest : public testing::Test {
   void SetUp() override {
     app_state_manager = std::make_shared<AppStateManagerMock>();
 
-    Duration slot_duration = 6s;
-    EpochLength epoch_length = 200;
+    EpochTimings timings = {
+        .slot_duration = 6s,
+        .epoch_length = 200,
+    };
 
     slots_util = std::make_shared<SlotsUtilMock>();
-    ON_CALL(*slots_util, slotDuration()).WillByDefault(Return(slot_duration));
-    ON_CALL(*slots_util, epochLength()).WillByDefault(Return(epoch_length));
+    ON_CALL(*slots_util, slotDuration())
+        .WillByDefault(Return(timings.slot_duration));
+    ON_CALL(*slots_util, epochLength())
+        .WillByDefault(Return(timings.epoch_length));
     ON_CALL(*slots_util, timeToSlot(_)).WillByDefault(Invoke([&] {
       return current_slot;
     }));
     ON_CALL(*slots_util, slotToEpoch(_, _))
-        .WillByDefault(
-            WithArg<1>(Invoke([epoch_length](auto slot) -> EpochNumber {
-              return slot / epoch_length;
-            })));
+        .WillByDefault(WithArg<1>(Invoke([timings](auto slot) -> EpochNumber {
+          return slot / timings.epoch_length;
+        })));
 
     block_tree = std::make_shared<BlockTreeMock>();
     ON_CALL(*block_tree, bestBlock()).WillByDefault(Return(best_block));
@@ -137,11 +141,8 @@ class TimelineTest : public testing::Test {
 
     consensus_selector = std::make_shared<ConsensusSelectorMock>();
     production_consensus = std::make_shared<ProductionConsensusMock>();
-    ON_CALL(*consensus_selector, getProductionConsensus(_))
+    ON_CALL(*consensus_selector, getProductionConsensusByInfo(_))
         .WillByDefault(Return(production_consensus));
-    ON_CALL(*production_consensus, getTimings()).WillByDefault(Invoke([&]() {
-      return std::tuple(slot_duration, epoch_length);
-    }));
     ON_CALL(*production_consensus, getSlot(best_block_header))
         .WillByDefault(Return(1));
 
@@ -375,7 +376,7 @@ TEST_F(TimelineTest, Validator) {
         .WillRepeatedly(Return(0));
     //  - process slot (not slot leader for this case)
     EXPECT_CALL(*production_consensus, processSlot(current_slot, best_block))
-        .WillOnce(Return(BlockProductionError::NO_SLOT_LEADER));
+        .WillOnce(Return(SlotLeadershipError::NO_SLOT_LEADER));
     //  - start to wait for end of current slot
     EXPECT_CALL(*scheduler, scheduleImplMockCall(_, _, false))
         .WillOnce(WithArg<0>(Invoke([&](auto cb) {

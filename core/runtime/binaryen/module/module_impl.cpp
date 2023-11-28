@@ -48,7 +48,8 @@ namespace kagome::runtime::binaryen {
     BOOST_ASSERT(module_factory_ != nullptr);
   }
 
-  outcome::result<std::shared_ptr<ModuleImpl>> ModuleImpl::createFromCode(
+  outcome::result<std::shared_ptr<ModuleImpl>, CompilationError>
+  ModuleImpl::createFromCode(
       const std::vector<uint8_t> &code,
       std::shared_ptr<const InstanceEnvironmentFactory> env_factory,
       std::shared_ptr<const ModuleFactory> module_factory,
@@ -57,7 +58,8 @@ namespace kagome::runtime::binaryen {
     // that nolint suppresses false positive in a library function
     // NOLINTNEXTLINE(clang-analyzer-core.NonNullParamChecker)
     if (code.empty()) {
-      return Error::EMPTY_STATE_CODE;
+      return CompilationError{
+          "Empty WASM code supplied to binaryen's ModuleImpl::createFromCode"};
     }
 
     auto module = std::make_unique<wasm::Module>();
@@ -72,8 +74,11 @@ namespace kagome::runtime::binaryen {
       } catch (wasm::ParseException &e) {
         std::ostringstream msg;
         e.dump(msg);
-        log->error(msg.str());
-        return Error::INVALID_STATE_CODE;
+        log->warn(msg.str());
+        return CompilationError{
+            fmt::format("Invalid WASM code supplied to binaryen's "
+                        "ModuleImpl::createFromCode: {}",
+                        msg.str())};
       }
     }
 
@@ -83,7 +88,7 @@ namespace kagome::runtime::binaryen {
         std::move(module), module_factory, env_factory, code_hash);
   }
 
-  outcome::result<std::shared_ptr<ModuleInstance>> ModuleImpl::instantiate()
+  std::shared_ptr<ModuleInstance> ModuleImpl::instantiate()
       const {
     auto env = env_factory_->make(module_factory_);
     return std::make_shared<ModuleInstanceImpl>(

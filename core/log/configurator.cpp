@@ -64,6 +64,8 @@ groups:
                 children:
                   - name: voting_round
           - name: parachain
+            children:
+             - name: pvf_executor
           - name: dispute
           - name: runtime
             children:

@@ -21,6 +21,11 @@
 using kagome::blockchain::BlockStorage;
 using kagome::consensus::grandpa::AuthorityManager;
 using kagome::consensus::grandpa::AuthorityManagerImpl;
+using kagome::consensus::grandpa::ForcedChange;
+using kagome::consensus::grandpa::OnDisabled;
+using kagome::consensus::grandpa::Pause;
+using kagome::consensus::grandpa::Resume;
+using kagome::consensus::grandpa::ScheduledChange;
 using kagome::crypto::Hasher;
 using kagome::crypto::HasherImpl;
 using kagome::primitives::BlockHeader;

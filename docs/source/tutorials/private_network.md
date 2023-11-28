@@ -4,64 +4,64 @@ All Rights Reserved
 SPDX-License-Identifier: Apache-2.0
 )
 
-## Start private Kagome network
+# Starting a Blockchain Network: A Step-by-Step Guide
 
-In this tutorial we will learn how to start a blockchain network with a validator and block producing nodes
+In this tutorial, we will guide you through the process of setting up a blockchain network with both validating and syncing nodes.
 
-First go to tutorial's folder:
+## Step 1: Navigate to the Tutorial's Directory
+
+Start by navigating to the directory containing the necessary resources for this tutorial.
 
 ```shell script
 cd examples/network
 ```
 
-### Execute first validating node
+## Step 2: Initialize the First Validating Node
 
-First we execute validating node in the similar way we did it during previous tutorial. This node will produce and finalize blocks.
+In this step, we will launch the first validating node, similar to what we did in the previous tutorial. This node will be responsible for producing and finalizing blocks.
 
-To start with let's navigate into the node's folder:
+> Note that the node will wait to start block production until at least one other node joins the network.
 
 ```shell script
 kagome \
-    --validator \
+    --alice \
     --chain testchain.json \
     --base-path validating1 \
     --port 11122 \
     --rpc-port 11133 \
-    --ws-port 11144 \
     --prometheus-port 11155
 ```
 
-### Execute second validating node (node with authority) 
+It's important to note that the `--alice` flag is equivalent to the `--validator` flag with Alice's keys added to `validating1/chains/rococo_local_testnet/keystore` directory. This implies that for this tutorial it's possible to initiate our node with an empty keystore since we'll be utilizing Alice's predefined keys. This will not be the case when our node is used as validator in the real network.
 
-Now that validating node is up and running, second node can join the network by bootstrapping from the first node. Command will look very similar.
+## Step 3: Bring the Second Validating Node Online
+
+With the first validating node actively running, we can add the second validating node to the network. This node will bootstrap from the first one. The command to achieve this is very similar to the one we used for the first node.
 
 ```shell script
 kagome \
-    --validator \
+    --bob \
     --chain testchain.json \
     --base-path validating2 \
     --port 11222 \
     --rpc-port 11233 \
-    --ws-port 11244 \
     --prometheus-port 11255
 ```
 
-Second node passes several steps before actual block production begins:
+Once activated, the second node performs several steps before beginning the actual block production:
 
-1. Waiting for block announcements to understand which blocks are missing.
-2. Synchronize blocks between the latest synchronized one and the received one
-3. Listen for several blocks, to figure out the slot time
-4. Start block production when slot time is calculated using [median algorithm](https://research.web3.foundation/en/latest/polkadot/BABE/Babe.html#-4.-clock-adjustment--relative-time-algorithm-)
+1. **Block Announcements:** The node waits for block announcements to determine which blocks it's missing.
+2. **Synchronization:** The node synchronizes blocks between the most recent one it has and the one it just received.
+3. **Listening:** The node listens for several blocks to determine the timing for slotting.
+4. **Production:** The node begins block production once it has calculated the slot time.
 
-> Because these two nodes are running on the same machine, second node must be specified with different port numbers 
+> Please note, because these two nodes are running on the same machine, it's crucial to use different port numbers for the second node to avoid conflicts.
 
-Note that both nodes have the same hash of block 0: `2b32173d63796278d1cea23fcb255866153f07700226f3d7ba348e25ae7f9d29`
+### Step 4: Start syncing node
 
-### Execute syncing (without authority) node
+Syncing node cannot participate in block production or block finalization. However, it can connect to the network and import all produced blocks. Besides that, syncing node can also receive extrinsics and broadcast them to the network.In the world of blockchain, a syncing node plays a unique role. While it can't contribute to block production or finalization, it serves as a connector to the network, importing all produced blocks. More than that, a syncing node can receive extrinsics and subsequently broadcast them to the network.
 
-Syncing node cannot participate in either block production or block finalization. However, it can connect to the network and import all produced blocks. Besides that, syncing node can also receive extrinsics and broadcast them to the network.
-
-To start syncing node `kagome` binary is used as follows:
+To initiate a syncing node, you can use the binary `kagome` as outlined in the command below:
 
 ```shell script
 kagome \
@@ -69,20 +69,19 @@ kagome \
     --base-path syncing1 \
     --port 21122 \
     --rpc-port 21133 \
-    --ws-port 21144 \
     --prometheus-port 21155
 ```
 
-Note that trie root is the same with validating nodes. When syncing node receives block announcement it first synchronizes missing blocks and then listens to the new blocks and finalization. 
+Here's what happens when a syncing node receives a block announcement: it first compensates for any missing blocks, synchronizing them as required. Following this, it listens out for new blocks and finalization updates in the network. 
 
-### Send transaction
+## Step 5: Initiate a Transaction
 
-Like in previous tutorial we will send transfer from Alice to Bob to check that transaction was applied on every node.
+Recalling our previous tutorial, we will execute a fund transfer from Alice to Bob. This step is designed to confirm that every node in the network applies the transaction correctly.
 
-We can send transaction on any of the node, as it will be propagated to the block producing nodes and stored in their transaction pools until transactions is included to the block:
+You have the flexibility to send the transaction to any node. As soon as you do so, the transaction will be propagated to the block-producing nodes. From there, it remains stored in their transaction pools until it gets included in a block:
 
 ```shell script
 # from kagome root directory
 cd examples/transfer
-python3 transfer.py localhost:9933 0xe5be9a5092b81bca64be81d212e7f2f9eba183bb7a90954f7b76361f6edb5c0a 5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty 2
+python3 transfer.py localhost:21133 0xe5be9a5092b81bca64be81d212e7f2f9eba183bb7a90954f7b76361f6edb5c0a 5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty 2
 ```

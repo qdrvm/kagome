@@ -49,7 +49,7 @@ namespace kagome::network {
               static auto empty = std::make_shared<std::vector<uint8_t>>();
               raw = empty;
             }
-            auto msg_res = scale::decode<MsgType>(*raw);
+            auto msg_res = ::scale::decode<MsgType>(*raw);
             if (!msg_res) {
               return cb(outcome::failure(msg_res.error()));
             }
@@ -66,7 +66,7 @@ namespace kagome::network {
     template <typename MsgType>
     void write(const MsgType &msg,
                libp2p::basic::Writer::WriteCallbackFunc cb) const {
-      auto encoded_msg_res = scale::encode(msg);
+      auto encoded_msg_res = ::scale::encode(msg);
       if (!encoded_msg_res) {
         return cb(encoded_msg_res.error());
       }

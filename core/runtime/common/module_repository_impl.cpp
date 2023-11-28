@@ -15,6 +15,15 @@
 #include "runtime/runtime_code_provider.hpp"
 #include "runtime/runtime_upgrade_tracker.hpp"
 
+OUTCOME_CPP_DEFINE_CATEGORY(kagome::runtime, Error, e) {
+  using E = kagome::runtime::Error;
+  switch (e) {
+    case E::COMPILATION_FAILED:
+      return "Runtime module compilation failed";
+  }
+  return "Unknown module repository error";
+}
+
 namespace kagome::runtime {
   using kagome::primitives::ThreadNumber;
   using soralog::util::getThreadNumber;
@@ -69,8 +78,9 @@ namespace kagome::runtime {
       }
     }
 
-    // Try acquire instance (instantiate if needed)
-    OUTCOME_TRY(runtime_instance, runtime_instances_pool_->tryAcquire(state));
+    // Try to acquire an instance (instantiate if needed)
+    OUTCOME_TRY(runtime_instance,
+                runtime_instances_pool_->instantiateFromState(state));
     KAGOME_PROFILE_END(module_retrieval)
 
     return runtime_instance;
