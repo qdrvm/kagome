@@ -74,6 +74,12 @@ namespace kagome::runtime::wasm_edge {
     return make_error_code(_wasm_edge_res);                               \
   }
 
+#define WasmEdge_UNWRAP_COMPILE_ERR(expr)                                      \
+  if (auto _wasm_edge_res = (expr); !WasmEdge_ResultOK(_wasm_edge_res)) {      \
+    return CompilationError(                                                   \
+        fmt::format(#expr ": {}", WasmEdge_ResultGetMessage(_wasm_edge_res))); \
+  }
+
   static outcome::result<WasmValue> convertValue(WasmEdge_Value v) {
     switch (v.Type) {
       case WasmEdge_ValType_I32:
@@ -357,8 +363,8 @@ namespace kagome::runtime::wasm_edge {
     BOOST_ASSERT(serializer_);
   }
 
-  outcome::result<std::shared_ptr<Module>> ModuleFactoryImpl::make(
-      common::BufferView code) const {
+  outcome::result<std::shared_ptr<Module>, CompilationError>
+  ModuleFactoryImpl::make(common::BufferView code) const {
     auto code_hash = hasher_->sha2_256(code);
 
     ConfigureContext configure_ctx = WasmEdge_ConfigureCreate();
@@ -377,20 +383,21 @@ namespace kagome::runtime::wasm_edge {
         if (!std::filesystem::create_directories(config_.compiled_module_dir,
                                                  ec)
             && ec) {
-          return ec;
+          return CompilationError{fmt::format(
+              "Failed to create a dir for compiled modules: {}", ec.message())};
         }
         if (!std::filesystem::exists(filename)) {
           SL_INFO(log_, "Start compiling wasm module {}...", code_hash);
-          WasmEdge_UNWRAP(WasmEdge_CompilerCompileFromBuffer(
+          WasmEdge_UNWRAP_COMPILE_ERR(WasmEdge_CompilerCompileFromBuffer(
               compiler.raw(), code.data(), code.size(), filename.c_str()));
           SL_INFO(log_, "Compilation finished, saved at {}", filename);
         }
-        WasmEdge_UNWRAP(WasmEdge_LoaderParseFromFile(
+        WasmEdge_UNWRAP_COMPILE_ERR(WasmEdge_LoaderParseFromFile(
             loader_ctx.raw(), &module_ctx, filename.c_str()));
         break;
       }
       case ExecType::Interpreted: {
-        WasmEdge_UNWRAP(WasmEdge_LoaderParseFromBuffer(
+        WasmEdge_UNWRAP_COMPILE_ERR(WasmEdge_LoaderParseFromBuffer(
             loader_ctx.raw(), &module_ctx, code.data(), code.size()));
         break;
       }
@@ -400,7 +407,8 @@ namespace kagome::runtime::wasm_edge {
     ASTModuleContext module = module_ctx;
 
     ValidatorContext validator = WasmEdge_ValidatorCreate(configure_ctx.raw());
-    WasmEdge_UNWRAP(WasmEdge_ValidatorValidate(validator.raw(), module.raw()));
+    WasmEdge_UNWRAP_COMPILE_ERR(
+        WasmEdge_ValidatorValidate(validator.raw(), module.raw()));
 
     auto executor = std::make_shared<ExecutorContext>(
         WasmEdge_ExecutorCreate(nullptr, nullptr));

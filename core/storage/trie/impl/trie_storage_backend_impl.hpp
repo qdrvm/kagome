@@ -13,14 +13,9 @@
 
 namespace kagome::storage::trie {
 
-  class TrieStorageBackendImpl : public TrieNodeStorageBackend,
-                                 public TrieValueStorageBackend {
+  class TrieStorageBackendImpl : public TrieStorageBackend {
    public:
-    struct NodeTag {};
-    TrieStorageBackendImpl(NodeTag, std::shared_ptr<SpacedStorage> storage);
-
-    struct ValueTag {};
-    TrieStorageBackendImpl(ValueTag, std::shared_ptr<SpacedStorage> storage);
+    TrieStorageBackendImpl(std::shared_ptr<SpacedStorage> storage);
 
     ~TrieStorageBackendImpl() override = default;
 

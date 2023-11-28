@@ -39,17 +39,11 @@ class TrieStorageProviderTest : public ::testing::Test {
     storage_ = std::make_shared<kagome::storage::InMemorySpacedStorage>();
 
     auto node_backend =
-        std::make_shared<kagome::storage::trie::TrieStorageBackendImpl>(
-            kagome::storage::trie::TrieStorageBackendImpl::NodeTag{}, storage_);
-
-    auto value_backend =
-        std::make_shared<kagome::storage::trie::TrieStorageBackendImpl>(
-            kagome::storage::trie::TrieStorageBackendImpl::ValueTag{},
-            storage_);
+        std::make_shared<kagome::storage::trie::TrieStorageBackendImpl>(storage_);
 
     auto serializer =
         std::make_shared<kagome::storage::trie::TrieSerializerImpl>(
-            trie_factory, codec, node_backend, value_backend);
+            trie_factory, codec, node_backend);
 
     auto state_pruner =
         std::make_shared<kagome::storage::trie_pruner::TriePrunerMock>();

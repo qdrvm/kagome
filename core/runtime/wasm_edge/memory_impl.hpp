@@ -94,7 +94,6 @@ namespace kagome::runtime::wasm_edge {
     }
 
     common::BufferView loadN(WasmPointer addr, WasmSize n) const override {
-      BOOST_ASSERT(n > 0);
       auto ptr = WasmEdge_MemoryInstanceGetPointer(mem_instance_, addr, n);
       BOOST_ASSERT(ptr);
       SL_TRACE_FUNC_CALL(logger_, fmt::ptr(ptr), addr, n);

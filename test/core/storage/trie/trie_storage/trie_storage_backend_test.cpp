@@ -35,8 +35,7 @@ class TrieDbBackendTest : public testing::Test {
       std::make_shared<BufferStorageMock>();
   std::shared_ptr<SpacedStorageMock> spaced_storage =
       std::make_shared<SpacedStorageMock>();
-  TrieStorageBackendImpl backend{TrieStorageBackendImpl::NodeTag{},
-                                 spaced_storage};
+  TrieStorageBackendImpl backend{spaced_storage};
 };
 
 /**

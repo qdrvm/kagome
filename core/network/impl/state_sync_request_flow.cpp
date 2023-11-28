@@ -14,12 +14,10 @@
 
 namespace kagome::network {
   StateSyncRequestFlow::StateSyncRequestFlow(
-      std::shared_ptr<storage::trie::TrieNodeStorageBackend> node_db,
-      std::shared_ptr<storage::trie::TrieValueStorageBackend> value_db,
+      std::shared_ptr<storage::trie::TrieStorageBackend> node_db,
       const primitives::BlockInfo &block_info,
       const primitives::BlockHeader &block)
       : node_db_{std::move(node_db)},
-        value_db_{std::move(value_db)},
         block_info_{block_info},
         block_{block},
         log_{log::createLogger("StateSync")} {
@@ -105,7 +103,7 @@ namespace kagome::network {
           if (it == nodes.end()) {
             return outcome::success();
           }
-          OUTCOME_TRY(value_db_->put(it->first, std::move(it->second.first)));
+          OUTCOME_TRY(node_db_->put(it->first, std::move(it->second.first)));
           known_.emplace(it->first);
         }
         for (level.branchInit(); not level.branch_end; level.branchNext()) {
@@ -145,7 +143,7 @@ namespace kagome::network {
       return true;
     }
     if (auto node_res = node_db_->contains(hash),
-        value_res = value_db_->contains(hash);
+        value_res = node_db_->contains(hash);
         (node_res and node_res.value()) or (value_res and value_res.value())) {
       known_.emplace(hash);
       return true;

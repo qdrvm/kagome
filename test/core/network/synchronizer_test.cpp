@@ -91,7 +91,6 @@ class SynchronizerTest
                                                     block_appender,
                                                     block_executor,
                                                     trie_node_db,
-                                                    trie_value_db,
                                                     storage,
                                                     state_pruner,
                                                     router,
@@ -112,8 +111,6 @@ class SynchronizerTest
   std::shared_ptr<BlockExecutorMock> block_executor =
       std::make_shared<BlockExecutorMock>();
   std::shared_ptr<trie::TrieStorageBackendMock> trie_node_db =
-      std::make_shared<trie::TrieStorageBackendMock>();
-  std::shared_ptr<trie::TrieStorageBackendMock> trie_value_db =
       std::make_shared<trie::TrieStorageBackendMock>();
   std::shared_ptr<trie::TrieStorageMock> storage =
       std::make_shared<trie::TrieStorageMock>();

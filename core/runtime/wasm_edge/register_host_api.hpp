@@ -36,6 +36,19 @@ namespace kagome::runtime::wasm_edge {
     return WasmEdge_ValType_F64;
   }
 
+  template <typename T>
+  T get_wasm_value(WasmEdge_Value) = delete;
+
+  template <>
+  int64_t get_wasm_value<int64_t>(WasmEdge_Value v) {
+    return WasmEdge_ValueGetI64(v);
+  }
+
+  template <>
+  int32_t get_wasm_value<int32_t>(WasmEdge_Value v) {
+    return WasmEdge_ValueGetI32(v);
+  }
+
   template <typename Ret, typename... Args>
   using HostApiMethod = Ret (host_api::HostApi::*)(Args...);
 
@@ -57,16 +70,18 @@ namespace kagome::runtime::wasm_edge {
     using Args = std::tuple<Args_...>;
   };
 
-  template <typename F, typename Array, typename... Args, size_t... Idxs>
+  template <typename F, typename... Args, size_t... Idxs>
   decltype(auto) call_with_array(F f,
-                                 const Array &array,
+                                 std::span<const WasmEdge_Value> array,
                                  std::index_sequence<Idxs...>) {
-    return f(array[Idxs]...);
+    return f(get_wasm_value<Args>(array[Idxs])...);
   }
 
-  template <typename F, typename Array, typename... Args>
-  decltype(auto) call_with_array(F f, const Array &array, std::tuple<Args...>) {
-    return call_with_array<F, Array, Args...>(
+  template <typename F, typename... Args>
+  decltype(auto) call_with_array(F f,
+                                 std::span<const WasmEdge_Value> array,
+                                 std::tuple<Args...>) {
+    return call_with_array<F, Args...>(
         f, array, std::make_index_sequence<sizeof...(Args)>());
   }
 
@@ -84,16 +99,16 @@ namespace kagome::runtime::wasm_edge {
     if constexpr (std::is_void_v<Ret>) {
       call_with_array(
           [&host_api](auto... params) mutable {
-            std::invoke(Method, host_api, params.Value...);
+            std::invoke(Method, host_api, params...);
           },
-          params,
+          std::span{params, std::tuple_size_v<Args>},
           Args{});
     } else {
       Ret res = call_with_array(
           [&host_api](auto... params) mutable -> Ret {
-            return std::invoke(Method, host_api, params.Value...);
+            return std::invoke(Method, host_api, params...);
           },
-          params,
+          std::span{params, std::tuple_size_v<Args>},
           Args{});
       returns[0].Value = res;
       returns[0].Type = get_wasm_type<Ret>();

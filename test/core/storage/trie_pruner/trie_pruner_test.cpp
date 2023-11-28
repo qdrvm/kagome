@@ -170,8 +170,6 @@ class TriePrunerTest : public testing::Test {
 
     trie_node_storage_mock.reset(
         new testing::NiceMock<trie::TrieStorageBackendMock>());
-    trie_value_storage_mock.reset(
-        new testing::NiceMock<trie::TrieStorageBackendMock>());
     persistent_storage_mock.reset(
         new testing::NiceMock<kagome::storage::SpacedStorageMock>);
     serializer_mock.reset(new testing::NiceMock<trie::TrieSerializerMock>);
@@ -194,7 +192,6 @@ class TriePrunerTest : public testing::Test {
     pruner.reset(new TriePrunerImpl(
         std::make_shared<kagome::application::AppStateManagerMock>(),
         trie_node_storage_mock,
-        trie_value_storage_mock,
         serializer_mock,
         codec_mock,
         persistent_storage_mock,
@@ -221,7 +218,6 @@ class TriePrunerTest : public testing::Test {
     pruner.reset(new TriePrunerImpl(
         std::make_shared<kagome::application::AppStateManagerMock>(),
         trie_node_storage_mock,
-        trie_value_storage_mock,
         serializer_mock,
         codec_mock,
         persistent_storage_mock,
@@ -267,7 +263,6 @@ class TriePrunerTest : public testing::Test {
   std::unique_ptr<TriePrunerImpl> pruner;
   std::shared_ptr<trie::TrieSerializerMock> serializer_mock;
   std::shared_ptr<trie::TrieStorageBackendMock> trie_node_storage_mock;
-  std::shared_ptr<trie::TrieStorageBackendMock> trie_value_storage_mock;
   std::shared_ptr<testing::NiceMock<SpacedStorageMock>> persistent_storage_mock;
   std::shared_ptr<trie::CodecMock> codec_mock;
   std::shared_ptr<crypto::Hasher> hasher;
@@ -489,7 +484,7 @@ TEST_F(TriePrunerTest, RandomTree) {
           }));
 
   trie::TrieSerializerImpl serializer{
-      trie_factory, codec, trie_node_storage_mock, trie_value_storage_mock};
+      trie_factory, codec, trie_node_storage_mock};
   std::vector<std::pair<Buffer, Buffer>> kv;
   std::mt19937 rand;
   rand.seed(42);
@@ -753,7 +748,7 @@ TEST_F(TriePrunerTest, FastSyncScenario) {
           .value());
 
   trie::TrieSerializerImpl serializer{
-      trie_factory, codec, trie_node_storage_mock, trie_value_storage_mock};
+      trie_factory, codec, trie_node_storage_mock};
 
   ON_CALL(*serializer_mock, retrieveTrie(genesis_state_root, _))
       .WillByDefault(Return(genesis_trie));

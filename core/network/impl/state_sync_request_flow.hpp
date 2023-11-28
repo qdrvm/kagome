@@ -15,8 +15,7 @@
 #include "storage/trie/raw_cursor.hpp"
 
 namespace kagome::storage::trie {
-  class TrieNodeStorageBackend;
-  class TrieValueStorageBackend;
+  class TrieStorageBackend;
 }  // namespace kagome::storage::trie
 
 namespace kagome::network {
@@ -35,8 +34,7 @@ namespace kagome::network {
     using Level = storage::trie::RawCursor<Item>;
 
     StateSyncRequestFlow(
-        std::shared_ptr<storage::trie::TrieNodeStorageBackend> node_db,
-        std::shared_ptr<storage::trie::TrieValueStorageBackend> value_db,
+        std::shared_ptr<storage::trie::TrieStorageBackend> node_db,
         const primitives::BlockInfo &block_info,
         const primitives::BlockHeader &block);
 
@@ -57,8 +55,7 @@ namespace kagome::network {
    private:
     bool isKnown(const common::Hash256 &hash);
 
-    std::shared_ptr<storage::trie::TrieNodeStorageBackend> node_db_;
-    std::shared_ptr<storage::trie::TrieValueStorageBackend> value_db_;
+    std::shared_ptr<storage::trie::TrieStorageBackend> node_db_;
 
     primitives::BlockInfo block_info_;
     primitives::BlockHeader block_;

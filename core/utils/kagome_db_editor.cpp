@@ -46,8 +46,8 @@ using namespace storage::trie;
 using common::BufferOrView;
 using common::BufferView;
 
-struct TrieTracker : TrieNodeStorageBackend, TrieValueStorageBackend {
-  TrieTracker(std::shared_ptr<TrieNodeStorageBackend> inner)
+struct TrieTracker : TrieStorageBackend {
+  TrieTracker(std::shared_ptr<TrieStorageBackend> inner)
       : inner{std::move(inner)} {}
 
   std::unique_ptr<Cursor> cursor() override {
@@ -87,7 +87,7 @@ struct TrieTracker : TrieNodeStorageBackend, TrieValueStorageBackend {
     return keys.count(common::Hash256::fromSpan(key).value());
   }
 
-  std::shared_ptr<TrieNodeStorageBackend> inner;
+  std::shared_ptr<TrieStorageBackend> inner;
   mutable std::set<common::Hash256> keys;
 };
 
@@ -251,23 +251,17 @@ int db_editor_main(int argc, const char **argv) {
       return 0;
     }
 
-    auto trie_node_tracker =
-        std::make_shared<TrieTracker>(std::make_shared<TrieStorageBackendImpl>(
-            TrieStorageBackendImpl::NodeTag{}, storage));
-    auto trie_value_tracker =
-        std::make_shared<TrieTracker>(std::make_shared<TrieStorageBackendImpl>(
-            TrieStorageBackendImpl::ValueTag{}, storage));
+    auto trie_node_tracker = std::make_shared<TrieTracker>(
+        std::make_shared<TrieStorageBackendImpl>(storage));
 
     auto injector = di::make_injector(
         di::bind<TrieSerializer>.template to([](const auto &injector) {
           return std::make_shared<TrieSerializerImpl>(
               injector.template create<sptr<PolkadotTrieFactory>>(),
               injector.template create<sptr<Codec>>(),
-              injector.template create<sptr<TrieNodeStorageBackend>>(),
-              injector.template create<sptr<TrieValueStorageBackend>>());
+              injector.template create<sptr<TrieStorageBackend>>());
         }),
-        di::bind<TrieNodeStorageBackend>.template to(trie_node_tracker),
-        di::bind<TrieValueStorageBackend>.template to(trie_value_tracker),
+        di::bind<TrieStorageBackend>.template to(trie_node_tracker),
         di::bind<storage::trie_pruner::TriePruner>.template to(
             std::shared_ptr<storage::trie_pruner::TriePruner>(nullptr)),
         di::bind<Codec>.template to<PolkadotCodec>(),
@@ -436,7 +430,6 @@ int db_editor_main(int argc, const char **argv) {
         log->trace("{} keys were processed at the db.", ++count);
       };
       track_trie_entries(trie_node_storage, trie_node_tracker);
-      track_trie_entries(trie_value_storage, trie_value_tracker);
 
       {
         TicToc t4("Compaction 1.", log);

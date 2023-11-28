@@ -18,18 +18,9 @@ namespace kagome::storage::trie {
    * Adapter for the trie node storage that allows to hide keyspace separation
    * along with root hash storing logic from the trie db component
    */
-  class TrieNodeStorageBackend : public BufferStorage {
+  class TrieStorageBackend : public BufferStorage {
    public:
-    ~TrieNodeStorageBackend() override = default;
-  };
-
-  /**
-   * Adapter for the trie value storage that allows to hide keyspace separation
-   * along with root hash storing logic from the trie db component
-   */
-  class TrieValueStorageBackend : public BufferStorage {
-   public:
-    ~TrieValueStorageBackend() override = default;
+    ~TrieStorageBackend() override = default;
   };
 
 }  // namespace kagome::storage::trie

@@ -102,13 +102,9 @@ int main() {
       std::make_shared<kagome::storage::trie::PolkadotTrieFactoryImpl>();
   auto codec = std::make_shared<kagome::storage::trie::PolkadotCodec>();
   auto node_storage_backend =
-      std::make_shared<kagome::storage::trie::TrieStorageBackendImpl>(
-          kagome::storage::trie::TrieStorageBackendImpl::NodeTag{}, database);
-  auto value_storage_backend =
-      std::make_shared<kagome::storage::trie::TrieStorageBackendImpl>(
-          kagome::storage::trie::TrieStorageBackendImpl::ValueTag{}, database);
+      std::make_shared<kagome::storage::trie::TrieStorageBackendImpl>(database);
   auto serializer = std::make_shared<kagome::storage::trie::TrieSerializerImpl>(
-      trie_factory, codec, node_storage_backend, value_storage_backend);
+      trie_factory, codec, node_storage_backend);
 
   auto app_state_manager =
       std::make_shared<kagome::application::AppStateManagerImpl>();
@@ -117,7 +113,6 @@ int main() {
       std::make_shared<kagome::storage::trie_pruner::TriePrunerImpl>(
           app_state_manager,
           node_storage_backend,
-          value_storage_backend,
           serializer,
           codec,
           database,
@@ -208,9 +203,9 @@ int main() {
 
   auto smc = std::make_shared<kagome::runtime::SingleModuleCache>();
 
-  auto instance_env_factory = std::make_shared<
-      kagome::runtime::binaryen::InstanceEnvironmentFactory>(
-      trie_storage, serializer, host_api_factory);
+  auto instance_env_factory =
+      std::make_shared<kagome::runtime::binaryen::InstanceEnvironmentFactory>(
+          trie_storage, serializer, host_api_factory);
 
   auto module_factory =
       std::make_shared<kagome::runtime::binaryen::ModuleFactoryImpl>(

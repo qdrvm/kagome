@@ -36,8 +36,7 @@ namespace kagome::storage {
 }
 
 namespace kagome::storage::trie {
-  class TrieNodeStorageBackend;
-  class TrieValueStorageBackend;
+  class TrieStorageBackend;
   class TrieSerializer;
   class Codec;
 }  // namespace kagome::storage::trie
@@ -63,8 +62,7 @@ namespace kagome::storage::trie_pruner {
 
     TriePrunerImpl(
         std::shared_ptr<application::AppStateManager> app_state_manager,
-        std::shared_ptr<storage::trie::TrieNodeStorageBackend> node_storage,
-        std::shared_ptr<storage::trie::TrieValueStorageBackend> value_storage,
+        std::shared_ptr<storage::trie::TrieStorageBackend> node_storage,
         std::shared_ptr<const storage::trie::TrieSerializer> serializer,
         std::shared_ptr<const storage::trie::Codec> codec,
         std::shared_ptr<storage::SpacedStorage> storage,
@@ -124,7 +122,6 @@ namespace kagome::storage::trie_pruner {
         const blockchain::BlockTree &block_tree);
 
     outcome::result<void> prune(BufferBatch &node_batch,
-                                BufferBatch &value_batch,
                                 const storage::trie::RootHash &state);
 
     outcome::result<storage::trie::RootHash> addNewStateWith(
@@ -139,8 +136,7 @@ namespace kagome::storage::trie_pruner {
     std::unordered_set<common::Hash256> immortal_nodes_;
 
     std::optional<primitives::BlockInfo> last_pruned_block_;
-    std::shared_ptr<storage::trie::TrieNodeStorageBackend> node_storage_;
-    std::shared_ptr<storage::trie::TrieValueStorageBackend> value_storage_;
+    std::shared_ptr<storage::trie::TrieStorageBackend> node_storage_;
     std::shared_ptr<const storage::trie::TrieSerializer> serializer_;
     std::shared_ptr<const storage::trie::Codec> codec_;
     std::shared_ptr<storage::SpacedStorage> storage_;

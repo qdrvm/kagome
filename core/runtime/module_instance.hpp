@@ -13,6 +13,7 @@
 
 #include "common/blob.hpp"
 #include "common/buffer.hpp"
+#include "common/monadic_utils.hpp"
 #include "log/logger.hpp"
 #include "outcome/outcome.hpp"
 #include "runtime/instance_environment.hpp"
@@ -42,7 +43,9 @@ namespace kagome::runtime {
     template <typename... Args>
     static outcome::result<common::Buffer> encodeArgs(const Args &...args) {
       if constexpr (sizeof...(args) > 0) {
-        return scale::encode(args...);
+        return common::map_result(scale::encode(args...), [](auto&& vec) {
+          return common::Buffer{vec};
+        });
       }
       return outcome::success();
     }

@@ -57,7 +57,7 @@ namespace kagome::runtime::wasm_edge {
         std::shared_ptr<storage::trie::TrieSerializer> serializer,
         Config config);
 
-    outcome::result<std::shared_ptr<Module>> make(
+    outcome::result<std::shared_ptr<Module>, CompilationError> make(
         common::BufferView code) const override;
 
    private:

@@ -212,11 +212,10 @@ namespace {
 
   using injector::bind_by_lambda;
 
-  template <typename Tag>  // NodeTag or Value Tag
   sptr<storage::trie::TrieStorageBackendImpl> get_trie_storage_backend(
-      Tag tag, sptr<storage::SpacedStorage> spaced_storage) {
-    auto backend = std::make_shared<storage::trie::TrieStorageBackendImpl>(
-        tag, spaced_storage);
+      sptr<storage::SpacedStorage> spaced_storage) {
+    auto backend =
+        std::make_shared<storage::trie::TrieStorageBackendImpl>(spaced_storage);
 
     return backend;
   }
@@ -780,21 +779,11 @@ namespace {
             di::bind<parachain::ParachainObserver>.template to<parachain::ParachainObserverImpl>(),
             bind_by_lambda<ThreadPool>(
                 [](const auto &injector) { return get_thread_pool(injector); }),
-            bind_by_lambda<storage::trie::TrieNodeStorageBackend>(
+            bind_by_lambda<storage::trie::TrieStorageBackend>(
                 [](const auto &injector) {
                   auto storage =
                       injector.template create<sptr<storage::SpacedStorage>>();
                   return get_trie_storage_backend(
-                    storage::trie::TrieStorageBackendImpl::NodeTag{},
-                    storage
-                  );
-                }),
-            bind_by_lambda<storage::trie::TrieValueStorageBackend>(
-                [](const auto &injector) {
-                  auto storage =
-                      injector.template create<sptr<storage::SpacedStorage>>();
-                  return get_trie_storage_backend(
-                    storage::trie::TrieStorageBackendImpl::ValueTag{},
                     storage
                   );
                 }),

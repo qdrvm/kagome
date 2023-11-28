@@ -43,18 +43,12 @@ std::shared_ptr<TrieStorage> makeEmptyInMemoryTrie() {
       std::make_shared<kagome::storage::InMemorySpacedStorage>();
   auto node_backend =
       std::make_shared<kagome::storage::trie::TrieStorageBackendImpl>(
-          kagome::storage::trie::TrieStorageBackendImpl::NodeTag{},
-          spaced_storage);
-
-  auto value_backend =
-      std::make_shared<kagome::storage::trie::TrieStorageBackendImpl>(
-          kagome::storage::trie::TrieStorageBackendImpl::ValueTag{},
           spaced_storage);
 
   auto trie_factory = std::make_shared<PolkadotTrieFactoryImpl>();
   auto codec = std::make_shared<PolkadotCodec>();
   auto serializer = std::make_shared<TrieSerializerImpl>(
-      trie_factory, codec, node_backend, value_backend);
+      trie_factory, codec, node_backend);
   auto state_pruner = std::make_shared<TriePrunerMock>();
   ON_CALL(*state_pruner,
           addNewState(testing::A<const storage::trie::PolkadotTrie &>(), _))

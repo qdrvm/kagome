@@ -60,15 +60,13 @@ namespace kagome::storage::trie_pruner {
 
   TriePrunerImpl::TriePrunerImpl(
       std::shared_ptr<application::AppStateManager> app_state_manager,
-      std::shared_ptr<storage::trie::TrieNodeStorageBackend> node_storage,
-      std::shared_ptr<storage::trie::TrieValueStorageBackend> value_storage,
+      std::shared_ptr<storage::trie::TrieStorageBackend> node_storage,
       std::shared_ptr<const storage::trie::TrieSerializer> serializer,
       std::shared_ptr<const storage::trie::Codec> codec,
       std::shared_ptr<storage::SpacedStorage> storage,
       std::shared_ptr<const crypto::Hasher> hasher,
       std::shared_ptr<const application::AppConfiguration> config)
       : node_storage_{node_storage},
-        value_storage_{value_storage},
         serializer_{serializer},
         codec_{codec},
         storage_{storage},
@@ -76,7 +74,6 @@ namespace kagome::storage::trie_pruner {
         pruning_depth_{config->statePruningDepth()},
         thorough_pruning_{config->enableThoroughPruning()} {
     BOOST_ASSERT(node_storage_ != nullptr);
-    BOOST_ASSERT(value_storage_ != nullptr);
     BOOST_ASSERT(serializer_ != nullptr);
     BOOST_ASSERT(codec_ != nullptr);
     BOOST_ASSERT(storage_ != nullptr);
@@ -179,10 +176,8 @@ namespace kagome::storage::trie_pruner {
       const primitives::BlockHeader &block) {
     std::unique_lock lock{mutex_};
     auto node_batch = node_storage_->batch();
-    auto value_batch = value_storage_->batch();
-    OUTCOME_TRY(prune(*node_batch, *value_batch, block.state_root));
+    OUTCOME_TRY(prune(*node_batch, block.state_root));
     OUTCOME_TRY(node_batch->commit());
-    OUTCOME_TRY(value_batch->commit());
 
     last_pruned_block_ = block.blockInfo();
     OUTCOME_TRY(savePersistentState());
@@ -195,14 +190,13 @@ namespace kagome::storage::trie_pruner {
     // should prune even when pruning depth is none
     auto node_batch = node_storage_->batch();
     auto value_batch = node_storage_->batch();
-    OUTCOME_TRY(prune(*node_batch, *value_batch, block.state_root));
+    OUTCOME_TRY(prune(*node_batch, block.state_root));
     OUTCOME_TRY(node_batch->commit());
     OUTCOME_TRY(value_batch->commit());
     return outcome::success();
   }
 
   outcome::result<void> TriePrunerImpl::prune(BufferBatch &node_batch,
-                                              BufferBatch &value_batch,
                                               const trie::RootHash &root_hash) {
     auto trie_res = serializer_->retrieveTrie(root_hash, nullptr);
     if (trie_res.has_error()
@@ -223,9 +217,9 @@ namespace kagome::storage::trie_pruner {
 
     OUTCOME_TRY(forEachChildTrie(
         *trie,
-        [this, &node_batch, &value_batch](common::BufferView child_key,
+        [this, &node_batch](common::BufferView child_key,
                                           const trie::RootHash &child_hash) {
-          return prune(node_batch, value_batch, child_hash);
+          return prune(node_batch, child_hash);
         }));
 
     size_t nodes_removed = 0;
@@ -286,7 +280,7 @@ namespace kagome::storage::trie_pruner {
             auto &value_ref_count = value_ref_it->second;
             value_ref_count--;
             if (value_ref_count == 0) {
-              OUTCOME_TRY(value_batch.remove(value_hash));
+              OUTCOME_TRY(node_batch.remove(value_hash));
               value_ref_count_.erase(value_ref_it);
               values_removed++;
             }
@@ -414,7 +408,7 @@ namespace kagome::storage::trie_pruner {
         if (value_hash_opt) {
           auto &value_ref_count = value_ref_count_[*value_hash_opt];
           OUTCOME_TRY(contains_value,
-                      value_storage_->contains(*value_hash_opt));
+                      node_storage_->contains(*value_hash_opt));
           if (value_ref_count == 0 && contains_value && !thorough_pruning_) {
             value_ref_count++;
           }

@@ -17,6 +17,15 @@
 #include "runtime/trie_storage_provider.hpp"
 #include "storage/trie/polkadot_trie/trie_error.hpp"
 
+OUTCOME_CPP_DEFINE_CATEGORY(kagome::runtime, Error, e) {
+  using E = kagome::runtime::Error;
+  switch (e) {
+    case E::COMPILATION_FAILED:
+      return "Runtime module compilation failed";
+  }
+  return "Unknown module repository error";
+}
+
 namespace kagome::runtime {
   using namespace kagome::common::literals;
 
@@ -43,7 +52,7 @@ namespace kagome::runtime {
     if (!runtime_module_res) {
       return Error::COMPILATION_FAILED;
     }
-    auto instance = runtime_module_res.value()->instantiate();
+    OUTCOME_TRY(instance, runtime_module_res.value()->instantiate());
     runtime::RuntimeContext ctx{
         instance,
     };
