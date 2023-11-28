@@ -90,9 +90,6 @@ namespace kagome::runtime {
     CompilationResult tryCompileModule(const CodeHash &code_hash,
                                        common::BufferView code_zstd);
 
-    std::optional<std::shared_future<CompilationResult>> getFutureCompiledModule(
-        const CodeHash &code_hash) const;
-
     std::shared_ptr<ModuleFactory> module_factory_;
 
     std::mutex pools_mtx_;
