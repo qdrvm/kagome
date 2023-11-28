@@ -74,24 +74,16 @@ namespace kagome::runtime {
   outcome::result<std::shared_ptr<ModuleInstance>, CompilationError>
   RuntimeInstancesPool::instantiateFromCode(const CodeHash &code_hash,
                                             common::BufferView code_zstd) {
-    std::optional<std::reference_wrapper<InstancePool>> pool_opt{};
-
     std::unique_lock lock{pools_mtx_};
-    pool_opt = pools_.get(code_hash);
+    auto pool_opt = pools_.get(code_hash);
 
     if (!pool_opt) {
       lock.unlock();
-      auto module_res = tryCompileModule(code_hash, code_zstd);
+      OUTCOME_TRY(module, tryCompileModule(code_hash, code_zstd));
       lock.lock();
-      if (module_res) {
-        if (auto pool = pools_.get(code_hash)) {
-          pool_opt = std::ref(pool->get());
-        } else {
-          pool_opt = std::ref(
-              pools_.put(code_hash, InstancePool{module_res.value(), {}}));
-        }
-      } else {
-        return module_res.error();
+      pool_opt = pools_.get(code_hash);
+      if (!pool_opt) {
+        pool_opt = std::ref(pools_.put(code_hash, InstancePool{module, {}}));
       }
     }
     BOOST_ASSERT(pool_opt);
