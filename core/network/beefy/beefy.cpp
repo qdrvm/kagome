@@ -97,6 +97,9 @@ namespace kagome::network {
                 scale::decode<consensus::beefy::BeefyJustification>(raw.data));
     auto &justification =
         boost::get<consensus::beefy::SignedCommitment>(justification_v1);
+    if (justification.commitment.block_number == beefy_finalized_) {
+      return outcome::success();
+    }
     OUTCOME_TRY(header, block_tree_->getBlockHeader(block_hash));
     if (justification.commitment.block_number != header.number) {
       return outcome::success();
@@ -120,6 +123,9 @@ namespace kagome::network {
             boost::get<consensus::beefy::BeefyJustification>(&message)) {
       auto &justification =
           boost::get<consensus::beefy::SignedCommitment>(*justification_v1);
+      if (justification.commitment.block_number == beefy_finalized_) {
+        return;
+      }
       if (justification.commitment.block_number
           > block_tree_->bestBlock().number) {
         return;
