@@ -143,7 +143,7 @@ namespace kagome::runtime::wasm_edge {
       auto func =
           WasmEdge_ModuleInstanceFindFunction(instance_.raw(), wasm_name.raw());
       if (!func) {
-        return RuntimeTransactionError::EXPORT_FUNCTION_NOT_FOUND;
+        return RuntimeExecutionError::EXPORT_FUNCTION_NOT_FOUND;
       }
 
       current_host_api.push(env_.host_api);
@@ -281,11 +281,9 @@ namespace kagome::runtime::wasm_edge {
     outcome::result<std::shared_ptr<ModuleInstance>> instantiate()
         const override {
       StoreContext store = WasmEdge_StoreCreate();
+
       auto host_instance = std::make_shared<ModuleInstanceContext>(
           WasmEdge_ModuleInstanceCreate(WasmEdge_StringCreateByCString("env")));
-      register_host_api(host_instance->raw());
-      WasmEdge_UNWRAP(WasmEdge_ExecutorRegisterImport(
-          executor_->raw(), store.raw(), host_instance->raw()));
 
       std::shared_ptr<MemoryProvider> memory_provider;
       if (memory_type_) {
@@ -307,6 +305,10 @@ namespace kagome::runtime::wasm_edge {
       }
 
       InstanceEnvironment env = env_factory_->make(memory_provider);
+
+      register_host_api(*env.host_api, host_instance->raw());
+      WasmEdge_UNWRAP(WasmEdge_ExecutorRegisterImport(
+          executor_->raw(), store.raw(), host_instance->raw()));
 
       ModuleInstanceContext instance_ctx;
       WasmEdge_UNWRAP(WasmEdge_ExecutorInstantiate(
@@ -377,10 +379,12 @@ namespace kagome::runtime::wasm_edge {
             && ec) {
           return ec;
         }
-        SL_INFO(log_, "Start compiling wasm module {}...", code_hash);
-        WasmEdge_UNWRAP(WasmEdge_CompilerCompileFromBuffer(
-            compiler.raw(), code.data(), code.size(), filename.c_str()));
-        SL_INFO(log_, "Compilation finished, saved at {}", filename);
+        if (!std::filesystem::exists(filename)) {
+          SL_INFO(log_, "Start compiling wasm module {}...", code_hash);
+          WasmEdge_UNWRAP(WasmEdge_CompilerCompileFromBuffer(
+              compiler.raw(), code.data(), code.size(), filename.c_str()));
+          SL_INFO(log_, "Compilation finished, saved at {}", filename);
+        }
         WasmEdge_UNWRAP(WasmEdge_LoaderParseFromFile(
             loader_ctx.raw(), &module_ctx, filename.c_str()));
         break;

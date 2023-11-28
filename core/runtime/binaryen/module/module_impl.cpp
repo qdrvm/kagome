@@ -88,7 +88,7 @@ namespace kagome::runtime::binaryen {
         std::move(module), module_factory, env_factory, code_hash);
   }
 
-  std::shared_ptr<ModuleInstance> ModuleImpl::instantiate()
+  outcome::result<std::shared_ptr<ModuleInstance>> ModuleImpl::instantiate()
       const {
     auto env = env_factory_->make(module_factory_);
     return std::make_shared<ModuleInstanceImpl>(
