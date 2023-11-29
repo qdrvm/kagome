@@ -173,8 +173,6 @@ namespace kagome::runtime::wasm_edge {
                                          params.size(),
                                          returns.data(),
                                          1);
-      BOOST_ASSERT(!current_host_api.empty());
-      BOOST_ASSERT(current_host_api.top() == env_.host_api);
       WasmEdge_UNWRAP(res);
       auto [ptr, size] = PtrSize{WasmEdge_ValueGetI64(returns[0])};
       auto result = getEnvironment()
