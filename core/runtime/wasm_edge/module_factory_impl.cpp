@@ -148,9 +148,6 @@ namespace kagome::runtime::wasm_edge {
         return RuntimeExecutionError::EXPORT_FUNCTION_NOT_FOUND;
       }
 
-      current_host_api.push(env_.host_api);
-      ::libp2p::common::FinalAction cleanup = []() { current_host_api.pop(); };
-
       SL_TRACE(
           log_,
           "Invoke env for {}:\n"
