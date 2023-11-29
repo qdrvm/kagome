@@ -43,10 +43,6 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::runtime::wasm_edge, Error, e) {
 
 namespace kagome::runtime::wasm_edge {
 
-  // stack of HostApis currently in use by runtime calls
-  // (stack because there are nested runtime calls like Core_version)
-  thread_local std::stack<std::shared_ptr<host_api::HostApi>> current_host_api;
-
   static const auto kMemoryName = WasmEdge_StringCreateByCString("memory");
 
   class WasmEdgeErrCategory final : public std::error_category {
