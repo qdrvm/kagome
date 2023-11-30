@@ -99,6 +99,7 @@ More details of KAGOME development can be found within the [supported features](
 
 #### Prerequisites
 
+If you are running Debian Linux system you can run:
 
 ```sh
 git clone https://github.com/qdrvm/kagome
