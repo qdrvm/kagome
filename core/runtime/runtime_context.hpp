@@ -129,7 +129,7 @@ namespace kagome::runtime {
     virtual outcome::result<RuntimeContext> persistentAt(
         const primitives::BlockHash &block_hash,
         std::optional<std::shared_ptr<storage::changes_trie::ChangesTracker>>
-            changes_tracker_opt,
+            changes_tracker_opt = {},
         ContextParams params = {}) const override;
 
     virtual outcome::result<RuntimeContext> ephemeral(
