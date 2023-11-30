@@ -29,13 +29,14 @@ class TrieDbBackendTest : public testing::Test {
   void SetUp() override {
     ON_CALL(*spaced_storage, getSpace(kagome::storage::Space::kTrieNode))
         .WillByDefault(Return(storage));
+    backend = std::make_unique<TrieStorageBackendImpl>(spaced_storage);
   }
 
   std::shared_ptr<BufferStorageMock> storage =
       std::make_shared<BufferStorageMock>();
   std::shared_ptr<SpacedStorageMock> spaced_storage =
       std::make_shared<SpacedStorageMock>();
-  TrieStorageBackendImpl backend{spaced_storage};
+  std::unique_ptr<TrieStorageBackendImpl> backend;
 };
 
 /**
@@ -50,7 +51,7 @@ TEST_F(TrieDbBackendTest, Put) {
       .InternalExpectedAt(
           "_file_name_", 40, "*storage", "put(prefixed, \"123\"_buf)")
       .WillOnce(Return(outcome::success()));
-  EXPECT_OUTCOME_TRUE_1(backend.put("abc"_buf, "123"_buf));
+  EXPECT_OUTCOME_TRUE_1(backend->put("abc"_buf, "123"_buf));
 }
 
 /**
@@ -61,7 +62,7 @@ TEST_F(TrieDbBackendTest, Put) {
 TEST_F(TrieDbBackendTest, Get) {
   auto key = "abc"_buf;
   EXPECT_CALL(*storage, getMock(BufferView{key})).WillOnce(Return("123"_buf));
-  EXPECT_OUTCOME_TRUE_1(backend.get("abc"_buf));
+  EXPECT_OUTCOME_TRUE_1(backend->get("abc"_buf));
 }
 
 /**
@@ -84,7 +85,7 @@ TEST_F(TrieDbBackendTest, Batch) {
   EXPECT_CALL(*storage, batch())
       .WillOnce(Return(testing::ByMove(std::move(batch_mock))));
 
-  auto batch = backend.batch();
+  auto batch = backend->batch();
   EXPECT_OUTCOME_TRUE_1(batch->put("abc"_buf, "123"_buf));
   EXPECT_OUTCOME_TRUE_1(batch->put("def"_buf, "123"_buf));
   EXPECT_OUTCOME_TRUE_1(batch->remove("abc"_buf));
