@@ -5,5 +5,8 @@ RUSTUP_HOME=~/.rustup
 CARGO_HOME=~/.cargo
 PATH="${CARGO_HOME}/bin:${PATH}"
 
-./venv/bin/cmake -H. -Bbuild -DCMAKE_BUILD_TYPE=Release
-./venv/bin/cmake --build build --target kagome -j 6
+current_dir=$(dirname "$0")
+parent_dir=$(dirname "$current_dir")
+
+$parent_dir/venv/bin/cmake -H. -Bbuild -DCMAKE_BUILD_TYPE=Release
+$parent_dir/venv/bin/cmake --build build --target kagome -j 6
