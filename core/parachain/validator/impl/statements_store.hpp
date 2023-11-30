@@ -42,6 +42,15 @@ namespace kagome::parachain {
         }
       }
     }
+
+    std::optional<GroupIndex> byValidatorIndex(
+        ValidatorIndex validator_index) const {
+      auto it = by_validator_index.find(validator_index);
+      if (it != by_validator_index.end()) {
+        return it->second;
+      }
+      return std::nullopt;
+    }
   };
 
   struct ValidatorMeta {

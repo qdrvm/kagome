@@ -738,27 +738,58 @@ namespace kagome::parachain {
   }
 
   void ParachainProcessorImpl::send_to_validators_group(
-      const runtime::SessionInfo &session_info,
-      const std::vector<ValidatorIndex> &group,
+      const RelayHash &relay_parent,
       const std::deque<network::VersionedValidatorProtocolMessage> &messages) {
     BOOST_ASSERT(
         this_context_->io_context()->get_executor().running_in_this_thread());
 
-    auto make_send =
-        [&]<typename Msg>(
-            const Msg &msg,
-            const std::shared_ptr<network::ProtocolBase> &protocol) {
-          for (const ValidatorIndex v : group) {
-            const auto &authority_id = session_info.discovery_keys[v];
-            if (auto peer = query_audi_->get(authority_id)) {
-              pm_->getStreamEngine()->template send(
-                  peer->id,
-                  protocol,
-                  std::make_shared<
-                      network::WireMessage<std::decay_t<decltype(msg)>>>(msg));
-            }
+    auto se = pm_->getStreamEngine();
+    BOOST_ASSERT(se);
+
+    std::unordered_set<network::PeerId> group_set;
+    if (auto r = runtime_info_->get_session_info(relay_parent)) {
+      auto &[session, info] = r.value();
+      if (info.our_group) {
+        for (auto &i : session.validator_groups[*info.our_group]) {
+          if (auto peer = query_audi_->get(session.discovery_keys[i])) {
+            group_set.emplace(peer->id);
           }
-        };
+        }
+      }
+    }
+
+    std::deque<network::PeerId> group, any;
+    auto protocol = router_->getValidationProtocol();
+    se->forEachPeer(protocol, [&](const network::PeerId &peer) {
+      (group_set.count(peer) != 0 ? group : any).emplace_back(peer);
+    });
+    auto lucky = kMinGossipPeers - std::min(group.size(), kMinGossipPeers);
+    if (lucky != 0) {
+      std::shuffle(any.begin(), any.end(), random_);
+      any.erase(any.begin() + std::min(any.size(), lucky), any.end());
+    } else {
+      any.clear();
+    }
+
+    auto make_send = [&]<typename Msg>(
+                         const Msg &msg,
+                         const std::shared_ptr<network::ProtocolBase>
+                             &protocol) {
+      auto se = pm_->getStreamEngine();
+      BOOST_ASSERT(se);
+
+      auto message =
+          std::make_shared<network::WireMessage<std::decay_t<decltype(msg)>>>(
+              msg);
+      logger_->trace("Broadcasting messages.(relay_parent={})", relay_parent);
+
+      for (auto &peer : group) {
+        se->send(peer, protocol, message);
+      }
+      for (auto &peer : any) {
+        se->send(peer, protocol, message);
+      }
+    };
 
     for (const network::VersionedValidatorProtocolMessage &msg : messages) {
       visit_in_place(
@@ -874,7 +905,7 @@ namespace kagome::parachain {
             local_knowledge,
             manifest->get().candidate_hash,
             manifest->get().relay_parent);
-        send_to_validators_group(*opt_session_info, group, messages);
+        send_to_validators_group(manifest->get().relay_parent, messages);
       } else if (!candidates_.is_confirmed(manifest->get().candidate_hash)) {
         /// TODO(iceseer): do
         /// not used because of `acknowledge` = true. Implement `grid_view` to
@@ -1042,12 +1073,24 @@ namespace kagome::parachain {
                                       candidate_hash);
       }
 
-      /// TODO(iceseer): do relay statemens based on knowledge of other peers
-      /// send compact statement
-      /// Versioned::VStaging(protocol_vstaging::StatementDistributionMessage::Statement
-
+      circulate_statement(stm->get().relay_parent, stm->get().compact);
       return;
     }
+  }
+
+  void ParachainProcessorImpl::circulate_statement(
+      const RelayHash &relay_parent,
+      const IndexedAndSigned<network::vstaging::CompactStatement> &statement) {
+    send_to_validators_group(
+        relay_parent,
+        {network::VersionedValidatorProtocolMessage{
+            kagome::network::vstaging::ValidatorProtocolMessage{
+                kagome::network::vstaging::StatementDistributionMessage{
+                    kagome::network::vstaging::
+                        StatementDistributionMessageStatement{
+                            .relay_parent = relay_parent,
+                            .compact = statement,
+                        }}}}});
   }
 
   void ParachainProcessorImpl::handleFetchedStatementResponse(
@@ -2373,68 +2416,130 @@ namespace kagome::parachain {
             });
 
         importStatement(validation_result.relay_parent, stm, parachain_state);
-        notifyStatementDistributionSystem(validation_result.relay_parent,
-                                          *statement);
+        share_local_statement(
+            parachain_state, validation_result.relay_parent, stm);
         notify(peer_id, validation_result.relay_parent, *statement);
       }
     }
   }
 
-  void ParachainProcessorImpl::notifyStatementDistributionSystem(
+  void ParachainProcessorImpl::share_local_statement(
+      RelayParentState &per_relay_parent,
       const primitives::BlockHash &relay_parent,
-      const network::SignedStatement &statement) {
-    auto se = pm_->getStreamEngine();
-    BOOST_ASSERT(se);
+      const SignedFullStatementWithPVD &statement) {
+    const CandidateHash candidate_hash =
+        candidateHashFrom(getPayload(statement));
+    SL_TRACE(logger_,
+             "Sharing statement. (relay parent={}, candidate hash={})",
+             relay_parent,
+             candidate_hash);
 
-    // TODO(turuslan): #1757, LargeStatement
-    auto message = std::make_shared<
-        network::WireMessage<network::ValidatorProtocolMessage>>(
-        network::ValidatorProtocolMessage{
-            network::StatementDistributionMessage{network::Seconded{
-                .relay_parent = relay_parent, .statement = statement}}});
+    BOOST_ASSERT(per_relay_parent.our_index);
+    std::optional<runtime::SessionInfo> opt_session_info =
+        retrieveSessionInfo(relay_parent);
+    if (!opt_session_info) {
+      SL_ERROR(logger_,
+               "Retrieve session info failed. (relay parent={})",
+               relay_parent);
+      return;
+    }
 
-    // Send to all peers in our group.
-    // If our group is smaller than `kMinGossipPeers`
-    // select other peers randomly.
-    std::unordered_set<network::PeerId> group_set;
-    if (auto r = runtime_info_->get_session_info(relay_parent)) {
-      auto &[session, info] = r.value();
-      if (info.our_group) {
-        for (auto &i : session.validator_groups[*info.our_group]) {
-          if (auto peer = query_audi_->get(session.discovery_keys[i])) {
-            group_set.emplace(peer->id);
+    Groups groups{opt_session_info->validator_groups};
+
+    const std::optional<network::ParachainId> &local_assignment =
+        per_relay_parent.assignment;
+    const network::ValidatorIndex local_index = *per_relay_parent.our_index;
+    const auto local_group_opt = groups.byValidatorIndex(local_index);
+    if (!opt_session_info) {
+      SL_ERROR(logger_,
+               "Local validator info is not present. (relay parent={})",
+               relay_parent);
+      return;
+    }
+    const GroupIndex local_group = *local_group_opt;
+
+    std::optional<std::pair<ParachainId, Hash>> expected = visit_in_place(
+        getPayload(statement),
+        [&](const StatementWithPVDSeconded &v)
+            -> std::optional<std::pair<ParachainId, Hash>> {
+          return std::make_pair(v.committed_receipt.descriptor.para_id,
+                                v.committed_receipt.descriptor.relay_parent);
+        },
+        [&](const StatementWithPVDValid &v)
+            -> std::optional<std::pair<ParachainId, Hash>> {
+          if (auto p = candidates_.get_confirmed(v.candidate_hash)) {
+            return std::make_pair(p->get().para_id(), p->get().relay_parent());
           }
-        }
-      }
+          return std::nullopt;
+        });
+    const bool is_seconded =
+        is_type<StatementWithPVDSeconded>(getPayload(statement));
+
+    if (!expected) {
+      SL_ERROR(
+          logger_, "Invalid share statement. (relay parent={})", relay_parent);
+      return;
     }
-    std::deque<network::PeerId> group, any;
-    auto protocol = router_->getValidationProtocol();
-    se->forEachPeer(protocol, [&](const network::PeerId &peer) {
-      (group_set.count(peer) != 0 ? group : any).emplace_back(peer);
-    });
-    auto lucky = kMinGossipPeers - std::min(group.size(), kMinGossipPeers);
-    if (lucky != 0) {
-      std::shuffle(any.begin(), any.end(), random_);
-      any.erase(any.begin() + std::min(any.size(), lucky), any.end());
-    } else {
-      any.clear();
+    const auto &[expected_para, expected_relay_parent] = *expected;
+
+    if (local_index != statement.payload.ix) {
+      SL_ERROR(logger_,
+               "Invalid share statement because of validator index. (relay "
+               "parent={})",
+               relay_parent);
+      return;
     }
 
-    logger_->trace(
-        "Broadcasting StatementDistributionMessage.(relay_parent={}, validator "
-        "index={}, sig={})",
-        relay_parent,
-        statement.payload.ix,
-        statement.signature);
+    BOOST_ASSERT(per_relay_parent.statement_store);
+    BOOST_ASSERT(per_relay_parent.prospective_parachains_mode);
 
-    auto send = [&](const network::PeerId &peer) {
-      se->send(peer, protocol, message);
-    };
-    for (auto &peer : group) {
-      send(peer);
+    const auto seconding_limit =
+        per_relay_parent.prospective_parachains_mode->max_candidate_depth + 1;
+    if (is_seconded
+        && per_relay_parent.statement_store->seconded_count(local_index)
+               == seconding_limit) {
+      SL_WARN(
+          logger_,
+          "Local node has issued too many `Seconded` statements. (limit={})",
+          seconding_limit);
+      return;
     }
-    for (auto &peer : any) {
-      send(peer);
+
+    if (!local_assignment || *local_assignment != expected_para
+        || relay_parent != expected_relay_parent) {
+      SL_ERROR(
+          logger_,
+          "Invalid share statement because local assignment. (relay parent={})",
+          relay_parent);
+      return;
+    }
+
+    IndexedAndSigned<network::vstaging::CompactStatement> compact_statement =
+        signed_to_compact(statement);
+    std::optional<PostConfirmation> post_confirmation;
+    if (auto s =
+            if_type<const StatementWithPVDSeconded>(getPayload(statement))) {
+      post_confirmation =
+          candidates_.confirm_candidate(candidate_hash,
+                                        s->get().committed_receipt,
+                                        s->get().pvd,
+                                        local_group,
+                                        hasher_);
+    }
+
+    if (auto r = per_relay_parent.statement_store->insert(
+            groups, compact_statement, StatementOrigin::Local);
+        !r || !*r) {
+      SL_ERROR(logger_,
+               "Invalid share statement because statement store insertion "
+               "failed. (relay parent={})",
+               relay_parent);
+      return;
+    }
+
+    circulate_statement(relay_parent, compact_statement);
+    if (post_confirmation) {
+      apply_post_confirmation(*post_confirmation);
     }
   }
 
@@ -2666,7 +2771,8 @@ namespace kagome::parachain {
               });
 
           importStatement(result.relay_parent, stm, parachain_state->get());
-          notifyStatementDistributionSystem(result.relay_parent, *statement);
+          share_local_statement(
+              parachain_state->get(), result.relay_parent, stm);
         }
       }
       parachain_state->get().issued_statements.insert(candidate_hash);

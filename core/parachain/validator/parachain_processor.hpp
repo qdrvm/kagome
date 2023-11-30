@@ -210,6 +210,31 @@ namespace kagome::parachain {
         boost::variant<StatementWithPVDSeconded, StatementWithPVDValid>;
 
     using SignedFullStatementWithPVD = IndexedAndSigned<StatementWithPVD>;
+    IndexedAndSigned<network::vstaging::CompactStatement> signed_to_compact(
+        const SignedFullStatementWithPVD &s) const {
+      const Hash h = candidateHashFrom(getPayload(s));
+      return {
+          .payload =
+              {
+                  .payload = visit_in_place(
+                      getPayload(s),
+                      [&](const StatementWithPVDSeconded &)
+                          -> network::vstaging::CompactStatement {
+                        return network::vstaging::SecondedCandidateHash{
+                            .hash = h,
+                        };
+                      },
+                      [&](const StatementWithPVDValid &)
+                          -> network::vstaging::CompactStatement {
+                        return network::vstaging::ValidCandidateHash{
+                            .hash = h,
+                        };
+                      }),
+                  .ix = s.payload.ix,
+              },
+          .signature = s.signature,
+      };
+    }
 
     struct RelayParentState {
       ProspectiveParachainsModeOpt prospective_parachains_mode;
@@ -333,9 +358,11 @@ namespace kagome::parachain {
         const CandidateHash &candidate_hash,
         const RelayHash &relay_parent);
     void send_to_validators_group(
-        const runtime::SessionInfo &session_info,
-        const std::vector<ValidatorIndex> &group,
+        const RelayHash &relay_parent,
         const std::deque<network::VersionedValidatorProtocolMessage> &messages);
+    void circulate_statement(
+        const RelayHash &relay_parent,
+        const IndexedAndSigned<network::vstaging::CompactStatement> &statement);
 
     outcome::result<std::pair<CollatorId, ParachainId>> insertAdvertisement(
         network::PeerState &peer_data,
@@ -445,7 +472,7 @@ namespace kagome::parachain {
     }
 
     network::CandidateReceipt candidateFromCommittedCandidateReceipt(
-        const network::CommittedCandidateReceipt &data) {
+        const network::CommittedCandidateReceipt &data) const {
       network::CandidateReceipt receipt;
       receipt.descriptor = data.descriptor,
       receipt.commitments_hash =
@@ -453,7 +480,8 @@ namespace kagome::parachain {
       return receipt;
     }
 
-    primitives::BlockHash candidateHashFrom(const StatementWithPVD &statement) {
+    primitives::BlockHash candidateHashFrom(
+        const StatementWithPVD &statement) const {
       return visit_in_place(
           statement,
           [&](const StatementWithPVDSeconded &val) {
@@ -482,9 +510,9 @@ namespace kagome::parachain {
                              const network::CandidateHash &candidate_hash,
                              const network::ParachainBlock &pov,
                              const runtime::PersistedValidationData &data);
-    void notifyStatementDistributionSystem(
-        const primitives::BlockHash &relay_parent,
-        const network::SignedStatement &statement);
+    void share_local_statement(RelayParentState &per_relay_parent,
+                               const primitives::BlockHash &relay_parent,
+                               const SignedFullStatementWithPVD &statement);
     void notify(const libp2p::peer::PeerId &peer_id,
                 const primitives::BlockHash &relay_parent,
                 const network::SignedStatement &statement);

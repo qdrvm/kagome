@@ -120,13 +120,13 @@ namespace kagome::parachain {
 
   struct HypotheticalCandidateIncomplete {
     /// The claimed hash of the candidate.
-    const CandidateHash candidate_hash;
+    CandidateHash candidate_hash;
     /// The claimed para-ID of the candidate.
-    const ParachainId candidate_para;
+    ParachainId candidate_para;
     /// The claimed head-data hash of the candidate.
-    const Hash parent_head_data_hash;
+    Hash parent_head_data_hash;
     /// The claimed relay parent of the candidate.
-    const Hash candidate_relay_parent;
+    Hash candidate_relay_parent;
   };
 
   struct BlockedAdvertisement {
