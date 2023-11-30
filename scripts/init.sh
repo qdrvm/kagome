@@ -1,10 +1,13 @@
 #!/bin/bash -xe
 
-apt update
-apt install --no-install-recommends -y build-essential git gcc ca-certificates python-is-python3 python3-pip python3-venv curl
+#apt update
+#apt install --no-install-recommends -y build-essential git gcc ca-certificates python-is-python3 python3-pip python3-venv curl
 
 current_dir=$(dirname "$0")
-cd ..
+parent_dir=$(dirname "$current_dir")
+python3 -m venv "$parent_dir/venv"
+
+echo "Python environment created successfully in $parent_dir/venv"
 
 python -m venv venv
 ./venv/bin/pip install --no-cache-dir cmake==3.25 gitpython requests
