@@ -24,6 +24,7 @@ target_link_libraries(runtime_wavm
 		${LLVM_LIBS}
 		WAVM::libWAVM
 		constant_code_provider
+		core_api_factory
     executor
 		Boost::boost
     trie_storage_provider

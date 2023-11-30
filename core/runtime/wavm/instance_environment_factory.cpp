@@ -21,17 +21,14 @@ namespace kagome::runtime::wavm {
       std::shared_ptr<storage::trie::TrieStorage> storage,
       std::shared_ptr<storage::trie::TrieSerializer> serializer,
       std::shared_ptr<host_api::HostApiFactory> host_api_factory,
-      std::shared_ptr<SingleModuleCache> last_compiled_module,
       std::shared_ptr<const ModuleFactory> module_factory)
       : storage_{std::move(storage)},
         serializer_{std::move(serializer)},
         host_api_factory_{std::move(host_api_factory)},
-        last_compiled_module_{std::move(last_compiled_module)},
         module_factory_{module_factory} {
     BOOST_ASSERT(storage_ != nullptr);
     BOOST_ASSERT(serializer_ != nullptr);
     BOOST_ASSERT(host_api_factory_ != nullptr);
-    BOOST_ASSERT(last_compiled_module_ != nullptr);
     BOOST_ASSERT(module_factory_ != nullptr);
   }
 
@@ -41,8 +38,7 @@ namespace kagome::runtime::wavm {
       std::shared_ptr<IntrinsicModuleInstance> intrinsic_instance) const {
     auto new_storage_provider =
         std::make_shared<TrieStorageProviderImpl>(storage_, serializer_);
-    auto core_factory = std::make_shared<CoreApiFactoryImpl>(
-        module_factory_, last_compiled_module_);
+    auto core_factory = std::make_shared<CoreApiFactoryImpl>(module_factory_);
 
     std::shared_ptr<MemoryProvider> memory_provider;
     switch (memory_origin) {

@@ -65,13 +65,10 @@ class WavmModuleInitTest : public ::testing::TestWithParam<std::string_view> {
     auto storage = std::make_shared<kagome::storage::InMemorySpacedStorage>();
     auto node_storage_backend =
         std::make_shared<kagome::storage::trie::TrieStorageBackendImpl>(
-            kagome::storage::trie::TrieStorageBackendImpl::NodeTag{}, storage);
-    auto value_storage_backend =
-        std::make_shared<kagome::storage::trie::TrieStorageBackendImpl>(
-            kagome::storage::trie::TrieStorageBackendImpl::ValueTag{}, storage);
+            storage);
     auto serializer =
         std::make_shared<kagome::storage::trie::TrieSerializerImpl>(
-            trie_factory, codec, node_storage_backend, value_storage_backend);
+            trie_factory, codec, node_storage_backend);
     auto state_pruner =
         std::make_shared<kagome::storage::trie_pruner::DummyPruner>();
     std::shared_ptr<kagome::storage::trie::TrieStorageImpl> trie_storage =
@@ -155,11 +152,7 @@ class WavmModuleInitTest : public ::testing::TestWithParam<std::string_view> {
 
     auto instance_env_factory = std::make_shared<
         const kagome::runtime::wavm::InstanceEnvironmentFactory>(
-        trie_storage,
-        serializer,
-        host_api_factory,
-        smc,
-        module_factory_);
+        trie_storage, serializer, host_api_factory, module_factory_);
   }
 
   std::shared_ptr<kagome::runtime::ModuleFactory> module_factory_;

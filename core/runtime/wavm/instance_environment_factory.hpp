@@ -40,7 +40,6 @@ namespace kagome::runtime::wavm {
         std::shared_ptr<storage::trie::TrieStorage> storage,
         std::shared_ptr<storage::trie::TrieSerializer> serializer,
         std::shared_ptr<host_api::HostApiFactory> host_api_factory,
-        std::shared_ptr<SingleModuleCache> last_compiled_module,
         std::shared_ptr<const ModuleFactory> module_factory);
 
     enum class MemoryOrigin { EXTERNAL, INTERNAL };
@@ -53,7 +52,6 @@ namespace kagome::runtime::wavm {
     std::shared_ptr<storage::trie::TrieStorage> storage_;
     std::shared_ptr<storage::trie::TrieSerializer> serializer_;
     std::shared_ptr<host_api::HostApiFactory> host_api_factory_;
-    std::shared_ptr<SingleModuleCache> last_compiled_module_;
     std::shared_ptr<const ModuleFactory> module_factory_;
 
   };

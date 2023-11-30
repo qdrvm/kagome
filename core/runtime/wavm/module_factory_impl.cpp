@@ -46,20 +46,18 @@ namespace kagome::runtime::wavm {
     }
   }
 
-  outcome::result<std::shared_ptr<Module>, CompilationError> ModuleFactoryImpl::make(
-      common::BufferView code) const {
-    auto env_factory =
-        std::make_shared<InstanceEnvironmentFactory>(storage_,
-                                                     serializer_,
-                                                     host_api_factory_,
-                                                     last_compiled_module_,
-                                                     shared_from_this());
-    return ModuleImpl::compileFrom(compartment_,
-                                   *module_params_,
-                                   intrinsic_module_,
-                                   env_factory,
-                                   code,
-                                   hasher_->sha2_256(code));
+  outcome::result<std::shared_ptr<Module>, CompilationError>
+  ModuleFactoryImpl::make(common::BufferView code) const {
+    auto env_factory = std::make_shared<InstanceEnvironmentFactory>(
+        storage_, serializer_, host_api_factory_, shared_from_this());
+    OUTCOME_TRY(module,
+                ModuleImpl::compileFrom(compartment_,
+                                        *module_params_,
+                                        intrinsic_module_,
+                                        env_factory,
+                                        code,
+                                        hasher_->sha2_256(code)));
+    return module;
   }
 
 }  // namespace kagome::runtime::wavm
