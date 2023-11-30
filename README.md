@@ -99,14 +99,14 @@ More details of KAGOME development can be found within the [supported features](
 
 #### Prerequisites
 
-For now, please refer to the [Dockerfile](housekeeping/docker/kagome-dev/minideb.Dockerfile) to get a picture of what you need for a local build-environment.
-
 
 ```sh
-git clone https://github.com/soramitsu/kagome
+git clone https://github.com/qdrvm/kagome
 cd kagome
+sudo chmod +x scripts/init.sh scripts/build.sh
 
-make build
+./scripts/init.sh
+./scripts/build.sh
 ```
 
 You will get KAGOME binary in the `build/node/` folder
