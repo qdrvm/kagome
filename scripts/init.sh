@@ -1,7 +1,7 @@
 #!/bin/bash -xe
 
 apt update
-apt install --no-install-recommends -y build-essential git gcc ca-certificates python-is-python3 python3-pip python3-venv curl
+apt install --no-install-recommends -y build-essential git gcc ca-certificates python-is-python3 python3-pip python3-venv curl rustc
 
 current_dir=$(dirname "$0")
 parent_dir=$(dirname "$current_dir")
