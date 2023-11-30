@@ -106,7 +106,7 @@ git clone https://github.com/qdrvm/kagome
 cd kagome
 sudo chmod +x scripts/init.sh scripts/build.sh
 
-./scripts/init.sh
+sudo ./scripts/init.sh
 ./scripts/build.sh
 ```
 

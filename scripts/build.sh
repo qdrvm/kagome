@@ -8,5 +8,6 @@ PATH="${CARGO_HOME}/bin:${PATH}"
 current_dir=$(dirname "$0")
 parent_dir=$(dirname "$current_dir")
 
+source $parent_dir/venv/bin/activate
 $parent_dir/venv/bin/cmake -H. -Bbuild -DCMAKE_BUILD_TYPE=Release
 $parent_dir/venv/bin/cmake --build build --target kagome -j 6
