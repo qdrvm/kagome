@@ -216,7 +216,7 @@ namespace kagome::consensus::grandpa {
      */
     void verifyJustification(
         const GrandpaJustification &justification,
-        const primitives::AuthoritySet &authorities,
+        const AuthoritySet &authorities,
         std::shared_ptr<std::promise<outcome::result<void>>> promise_res)
         override;
 
@@ -284,7 +284,7 @@ namespace kagome::consensus::grandpa {
     std::shared_ptr<VotingRound> makeInitialRound(
         const MovableRoundState &round_state,
         std::shared_ptr<VoterSet> voters,
-        const primitives::AuthoritySet &authority_set);
+        const AuthoritySet &authority_set);
 
     /**
      * Takes given round and creates next one for it

@@ -15,6 +15,7 @@
 #include "blockchain/block_tree.hpp"
 #include "consensus/babe/babe_config_repository.hpp"
 #include "consensus/babe/babe_lottery.hpp"
+#include "consensus/babe/impl/babe_block_validator_impl.hpp"
 #include "consensus/babe/impl/babe_digests_util.hpp"
 #include "consensus/block_production_error.hpp"
 #include "consensus/timeline/backoff.hpp"
@@ -70,6 +71,7 @@ namespace kagome::consensus::babe {
       std::shared_ptr<BabeLottery> lottery,
       std::shared_ptr<crypto::Hasher> hasher,
       std::shared_ptr<crypto::Sr25519Provider> sr25519_provider,
+      std::shared_ptr<BabeBlockValidator> validating,
       std::shared_ptr<parachain::BitfieldStore> bitfield_store,
       std::shared_ptr<parachain::BackingStore> backing_store,
       std::shared_ptr<dispute::DisputeCoordinator> dispute_coordinator,
@@ -90,6 +92,7 @@ namespace kagome::consensus::babe {
         lottery_(std::move(lottery)),
         hasher_(std::move(hasher)),
         sr25519_provider_(std::move(sr25519_provider)),
+        validating_(std::move(validating)),
         bitfield_store_(std::move(bitfield_store)),
         backing_store_(std::move(backing_store)),
         dispute_coordinator_(std::move(dispute_coordinator)),
@@ -108,6 +111,7 @@ namespace kagome::consensus::babe {
     BOOST_ASSERT(lottery_);
     BOOST_ASSERT(hasher_);
     BOOST_ASSERT(sr25519_provider_);
+    BOOST_ASSERT(validating_);
     BOOST_ASSERT(bitfield_store_);
     BOOST_ASSERT(backing_store_);
     BOOST_ASSERT(dispute_coordinator_);
@@ -185,32 +189,39 @@ namespace kagome::consensus::babe {
                      "Probably authority list has changed.");
         }
       } else {
-        SL_VERBOSE(log_, "Node is active validator in epoch {}", epoch_);
+        SL_VERBOSE(log_, "Node is active validator in epoch {}", epoch);
       }
     }
 
     if (not is_active_validator_) {
-      SL_TRACE(log_, "Node is not active validator in epoch {}", epoch_);
+      SL_TRACE(log_, "Node is not active validator in epoch {}", epoch);
       return SlotLeadershipError::NO_VALIDATOR;
     }
 
     if (not checkSlotLeadership(best_block, slot)) {
       SL_TRACE(
-          log_, "Node is not slot leader in slot {} epoch {}", slot_, epoch_);
+          log_, "Node is not slot leader in slot {} epoch {}", slot, epoch);
       return SlotLeadershipError::NO_SLOT_LEADER;
     }
 
+    SL_DEBUG(log_,
+             "Node is leader in current slot {} epoch {}; Authority {}",
+             slot,
+             epoch,
+             slot_leadership_.keypair->public_key);
+
+    // Init context
     parent_ = best_block;
     slot_timestamp_ = slot_timestamp;
     slot_ = slot;
     epoch_ = epoch;
 
-    SL_DEBUG(log_,
-             "Node is leader in current slot {} epoch {}; Authority {}",
-             slot_,
-             epoch_,
-             slot_leadership_.keypair->public_key);
     return processSlotLeadership();
+  }
+
+  outcome::result<void> Babe::validateHeader(
+      const primitives::BlockHeader &block_header) const {
+    return validating_->validateHeader(block_header);
   }
 
   bool Babe::changeEpoch(EpochNumber epoch,

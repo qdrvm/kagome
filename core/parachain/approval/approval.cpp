@@ -29,14 +29,14 @@ namespace kagome::parachain::approval {
 
   outcome::result<void> UnsafeVRFOutput::compute_randomness(
       ::RelayVRFStory &vrf_story,
-      const primitives::AuthorityList &authorities,
+      const consensus::babe::Authorities &authorities,
       const consensus::Randomness &randomness,
       consensus::EpochNumber epoch_index) {
     if (authorities.size() <= authority_index) {
       return Error::AuthorityOutOfBounds;
     }
 
-    const auto &author = authorities[authority_index].id.id;
+    const auto &author = authorities[authority_index].id;
     OUTCOME_TRY(pubkey, parachain::PublicKey::fromSpan(author));
 
     primitives::Transcript transcript;

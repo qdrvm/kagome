@@ -207,8 +207,8 @@ namespace kagome::application {
      * List of telemetry endpoints specified via CLI argument or config file
      * @return a vector of parsed telemetry endpoints
      */
-    virtual const std::vector<telemetry::TelemetryEndpoint> &
-    telemetryEndpoints() const = 0;
+    virtual const std::vector<telemetry::TelemetryEndpoint>
+        &telemetryEndpoints() const = 0;
 
     /**
      * @return enum constant of the chosen sync method
@@ -234,6 +234,8 @@ namespace kagome::application {
     virtual bool purgeWavmCache() const = 0;
 
     virtual uint32_t parachainRuntimeInstanceCacheSize() const = 0;
+    virtual uint32_t parachainPrecompilationThreadNum() const = 0;
+    virtual bool shouldPrecompileParachainModules() const = 0;
 
     enum class OffchainWorkerMode { WhenValidating, Always, Never };
     /**

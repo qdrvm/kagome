@@ -36,14 +36,16 @@ namespace kagome::runtime::wavm {
     }
   }
 
-  outcome::result<std::shared_ptr<Module>> ModuleFactoryImpl::make(
-      common::BufferView code) const {
-    return ModuleImpl::compileFrom(compartment_,
-                                   *module_params_,
-                                   intrinsic_module_,
-                                   env_factory_,
-                                   code,
-                                   hasher_->sha2_256(code));
+  outcome::result<std::shared_ptr<Module>, CompilationError>
+  ModuleFactoryImpl::make(common::BufferView code) const {
+    OUTCOME_TRY(module,
+                ModuleImpl::compileFrom(compartment_,
+                                        *module_params_,
+                                        intrinsic_module_,
+                                        env_factory_,
+                                        code,
+                                        hasher_->sha2_256(code)));
+    return module;
   }
 
 }  // namespace kagome::runtime::wavm

@@ -16,8 +16,9 @@
 #include "mock/core/blockchain/block_tree_mock.hpp"
 #include "mock/core/consensus/babe/babe_config_repository_mock.hpp"
 #include "mock/core/consensus/grandpa/environment_mock.hpp"
+#include "mock/core/consensus/production_consensus_mock.hpp"
+#include "mock/core/consensus/timeline/consensus_selector_mock.hpp"
 #include "mock/core/consensus/timeline/slots_util_mock.hpp"
-#include "mock/core/consensus/validation/block_validator_mock.hpp"
 #include "mock/core/crypto/hasher_mock.hpp"
 #include "mock/core/runtime/core_mock.hpp"
 #include "mock/core/runtime/offchain_worker_api_mock.hpp"
@@ -37,23 +38,32 @@ using kagome::blockchain::BlockTreeMock;
 using kagome::common::Buffer;
 using kagome::consensus::BlockAppenderBase;
 using kagome::consensus::BlockExecutorImpl;
-using kagome::consensus::BlockValidator;
+using kagome::consensus::ConsensusSelector;
+using kagome::consensus::ConsensusSelectorMock;
 using kagome::consensus::EpochNumber;
 using kagome::consensus::EpochTimings;
+using kagome::consensus::ProductionConsensusMock;
 using kagome::consensus::SlotsUtil;
 using kagome::consensus::SlotsUtilMock;
+using BabeAuthority = kagome::consensus::babe::Authority;
+using BabeAuthorityId = kagome::consensus::babe::AuthorityId;
+using BabeAuthorities = kagome::consensus::babe::Authorities;
 using kagome::consensus::babe::BabeBlockHeader;
 using kagome::consensus::babe::BabeConfigRepositoryMock;
 using kagome::consensus::babe::BabeConfiguration;
-using kagome::consensus::babe::BlockValidatorMock;
+using GrandpaAuthority = kagome::consensus::grandpa::Authority;
+using GrandpaAuthorityId = kagome::consensus::grandpa::AuthorityId;
+using GrandpaAuthorities = kagome::consensus::grandpa::Authorities;
 using kagome::consensus::grandpa::Environment;
 using kagome::consensus::grandpa::EnvironmentMock;
+using kagome::consensus::grandpa::ForcedChange;
+using kagome::consensus::grandpa::OnDisabled;
+using kagome::consensus::grandpa::Pause;
+using kagome::consensus::grandpa::Resume;
+using kagome::consensus::grandpa::ScheduledChange;
 using kagome::crypto::Hasher;
 using kagome::crypto::HasherMock;
 using kagome::crypto::VRFThreshold;
-using kagome::primitives::Authority;
-using kagome::primitives::AuthorityId;
-using kagome::primitives::AuthorityList;
 using kagome::primitives::Block;
 using kagome::primitives::BlockData;
 using kagome::primitives::BlockId;
@@ -99,6 +109,18 @@ namespace kagome::primitives {
   }
 }  // namespace kagome::primitives
 
+inline BabeAuthorityId operator"" _babe_auth(const char *c, size_t s) {
+  BabeAuthorityId res;
+  std::copy_n(c, std::min(s, res.size()), res.begin());
+  return res;
+}
+
+inline GrandpaAuthorityId operator"" _gran_auth(const char *c, size_t s) {
+  GrandpaAuthorityId res;
+  std::copy_n(c, std::min(s, res.size()), res.begin());
+  return res;
+}
+
 class BlockExecutorTest : public testing::Test {
  public:
   static void SetUpTestCase() {
@@ -113,21 +135,28 @@ class BlockExecutorTest : public testing::Test {
     babe_config_->slot_duration = 60ms;
     babe_config_->epoch_length = 2;
     babe_config_->leadership_rate = {1, 4};
-    babe_config_->authorities = {Authority{{"auth2"_hash256}, 1},
-                                 Authority{{"auth3"_hash256}, 1}};
+    babe_config_->authorities = {BabeAuthority{"auth2"_babe_auth, 1},
+                                 BabeAuthority{"auth3"_babe_auth, 1}};
     babe_config_->randomness = "randomness"_hash256;
 
     babe_config_repo_ = std::make_shared<BabeConfigRepositoryMock>();
     ON_CALL(*babe_config_repo_, config(_, _))
         .WillByDefault(Return(babe_config_));
 
-    block_validator_ = std::make_shared<BlockValidatorMock>();
     grandpa_environment_ = std::make_shared<EnvironmentMock>();
     tx_pool_ = std::make_shared<TransactionPoolMock>();
     hasher_ = std::make_shared<HasherMock>();
 
     slots_util_ = std::make_shared<SlotsUtilMock>();
     ON_CALL(*slots_util_, slotToEpoch(_, _)).WillByDefault(Return(1));
+
+    production_consensus_ = std::make_shared<ProductionConsensusMock>();
+
+    consensus_selector_ = std::make_shared<ConsensusSelectorMock>();
+    ON_CALL(*consensus_selector_, getProductionConsensusByInfo(_))
+        .WillByDefault(Return(production_consensus_));
+    ON_CALL(*consensus_selector_, getProductionConsensusByHeader(_))
+        .WillByDefault(Return(production_consensus_));
 
     offchain_worker_api_ = std::make_shared<OffchainWorkerApiMock>();
     storage_sub_engine_ = std::make_shared<
@@ -139,10 +168,10 @@ class BlockExecutorTest : public testing::Test {
         block_tree_,
         babe_config_repo_,
         timings_,
-        block_validator_,
         grandpa_environment_,
         testutil::sptr_to_lazy<SlotsUtil>(slots_util_),
-        hasher_);
+        hasher_,
+        testutil::sptr_to_lazy<ConsensusSelector>(consensus_selector_));
 
     thread_pool_ = std::make_shared<ThreadPool>("test", 1);
 
@@ -172,11 +201,12 @@ class BlockExecutorTest : public testing::Test {
       .slot_duration = 60ms,
       .epoch_length = 2,
   };
-  std::shared_ptr<BlockValidatorMock> block_validator_;
   std::shared_ptr<EnvironmentMock> grandpa_environment_;
   std::shared_ptr<TransactionPoolMock> tx_pool_;
   std::shared_ptr<HasherMock> hasher_;
   std::shared_ptr<SlotsUtilMock> slots_util_;
+  std::shared_ptr<ConsensusSelectorMock> consensus_selector_;
+  std::shared_ptr<ProductionConsensusMock> production_consensus_;
   std::shared_ptr<OffchainWorkerApiMock> offchain_worker_api_;
   kagome::primitives::events::StorageSubscriptionEnginePtr storage_sub_engine_;
   kagome::primitives::events::ChainSubscriptionEnginePtr chain_sub_engine_;
@@ -193,8 +223,10 @@ class BlockExecutorTest : public testing::Test {
  * is not finalized and execute the wrong logic.
  */
 TEST_F(BlockExecutorTest, JustificationFollowDigests) {
-  AuthorityList authorities{Authority{{"auth0"_hash256}, 1},
-                            Authority{{"auth1"_hash256}, 1}};
+  BabeAuthorities babe_authorities{BabeAuthority{"auth0"_babe_auth, 1},
+                                   BabeAuthority{"auth1"_babe_auth, 1}};
+  GrandpaAuthorities authorities{GrandpaAuthority{"auth0"_gran_auth, 1},
+                                 GrandpaAuthority{"auth1"_gran_auth, 1}};
   kagome::primitives::BlockHash parent_hash = "parent_hash"_hash256;
   kagome::primitives::BlockHash some_hash = "some_hash"_hash256;
 
@@ -210,8 +242,7 @@ TEST_F(BlockExecutorTest, JustificationFollowDigests) {
                                                    .slot_number = 1})
                          .value()},
           }},
-          kagome::primitives::Consensus{
-              kagome::primitives::ScheduledChange{authorities, 0}},
+          kagome::primitives::Consensus{ScheduledChange{authorities, 0}},
           kagome::primitives::Seal{{
               kagome::primitives::kBabeEngineId,
               Buffer{scale::encode(kagome::consensus::babe::Seal{}).value()},
@@ -231,13 +262,7 @@ TEST_F(BlockExecutorTest, JustificationFollowDigests) {
           testing::Return(kagome::blockchain::BlockTreeError::BODY_NOT_FOUND));
 
   babe_config_->leadership_rate.second = 42;
-  EXPECT_CALL(*block_validator_,
-              validateHeader(header,
-                             1,
-                             AuthorityId{"auth3"_hash256},
-                             kagome::consensus::babe::calculateThreshold(
-                                 babe_config_->leadership_rate, authorities, 0),
-                             testing::Ref(*babe_config_)))
+  EXPECT_CALL(*production_consensus_, validateHeader(header))
       .WillOnce(testing::Return(outcome::success()));
   EXPECT_CALL(*block_tree_, getBlockHeader(parent_hash))
       .WillRepeatedly(testing::Return(kagome::primitives::BlockHeader{

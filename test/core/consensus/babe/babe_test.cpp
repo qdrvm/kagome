@@ -17,12 +17,14 @@
 #include "mock/core/authorship/proposer_mock.hpp"
 #include "mock/core/blockchain/block_tree_mock.hpp"
 #include "mock/core/clock/clock_mock.hpp"
+#include "mock/core/consensus/babe/babe_block_validator_mock.hpp"
 #include "mock/core/consensus/babe/babe_config_repository_mock.hpp"
-#include "mock/core/consensus/babe_lottery_mock.hpp"
+#include "mock/core/consensus/babe/babe_lottery_mock.hpp"
 #include "mock/core/consensus/timeline/slots_util_mock.hpp"
 #include "mock/core/crypto/hasher_mock.hpp"
 #include "mock/core/crypto/session_keys_mock.hpp"
 #include "mock/core/crypto/sr25519_provider_mock.hpp"
+#include "mock/core/crypto/vrf_provider_mock.hpp"
 #include "mock/core/dispute_coordinator/dispute_coordinator_mock.hpp"
 #include "mock/core/network/block_announce_transmitter_mock.hpp"
 #include "mock/core/parachain/backing_store_mock.hpp"
@@ -46,6 +48,7 @@ using kagome::blockchain::BlockTreeMock;
 using kagome::clock::SystemClockMock;
 using kagome::common::Buffer;
 using kagome::common::BufferView;
+using kagome::common::uint256_to_le_bytes;
 using kagome::consensus::BlockProductionError;
 using kagome::consensus::Duration;
 using kagome::consensus::EpochLength;
@@ -55,31 +58,45 @@ using kagome::consensus::SlotLeadershipError;
 using kagome::consensus::SlotNumber;
 using kagome::consensus::SlotsUtil;
 using kagome::consensus::SlotsUtilMock;
+using kagome::consensus::Threshold;
 using kagome::consensus::ValidatorStatus;
+using kagome::consensus::babe::Authorities;
+using kagome::consensus::babe::Authority;
+using kagome::consensus::babe::AuthorityId;
+using kagome::consensus::babe::AuthorityIndex;
 using kagome::consensus::babe::Babe;
 using kagome::consensus::babe::BabeBlockHeader;
+using kagome::consensus::babe::BabeBlockValidator;
+using kagome::consensus::babe::BabeBlockValidatorMock;
 using kagome::consensus::babe::BabeConfigRepositoryMock;
 using kagome::consensus::babe::BabeConfiguration;
 using kagome::consensus::babe::BabeLotteryMock;
 using kagome::consensus::babe::DigestError;
+using kagome::consensus::babe::Randomness;
 using kagome::consensus::babe::SlotLeadership;
 using kagome::consensus::babe::SlotType;
 using kagome::crypto::HasherMock;
 using kagome::crypto::SessionKeysMock;
 using kagome::crypto::Sr25519Keypair;
 using kagome::crypto::Sr25519ProviderMock;
+using kagome::crypto::Sr25519PublicKey;
 using kagome::crypto::Sr25519Signature;
 using kagome::crypto::VRFOutput;
+using kagome::crypto::VRFPreOutput;
+using kagome::crypto::VRFProof;
+using kagome::crypto::VRFProviderMock;
+using kagome::crypto::VRFVerifyOutput;
 using kagome::dispute::DisputeCoordinatorMock;
 using kagome::dispute::MultiDisputeStatementSet;
 using kagome::network::BlockAnnounceTransmitterMock;
 using kagome::parachain::BackingStoreMock;
 using kagome::parachain::BitfieldStoreMock;
-using kagome::primitives::Authority;
 using kagome::primitives::Block;
+using kagome::primitives::BlockBody;
 using kagome::primitives::BlockHash;
 using kagome::primitives::BlockHeader;
 using kagome::primitives::BlockInfo;
+using kagome::primitives::ConsensusEngineId;
 using kagome::primitives::Digest;
 using kagome::primitives::Extrinsic;
 using kagome::primitives::PreRuntime;
@@ -171,6 +188,7 @@ class BabeTest : public testing::Test {
         .WillByDefault(Return(new_block_info.hash));
 
     sr25519_provider = std::make_shared<Sr25519ProviderMock>();
+    block_validator = std::make_shared<BabeBlockValidatorMock>();
     bitfield_store = std::make_shared<BitfieldStoreMock>();
     backing_store = std::make_shared<BackingStoreMock>();
 
@@ -201,6 +219,7 @@ class BabeTest : public testing::Test {
                                   lottery,
                                   hasher,
                                   sr25519_provider,
+                                  block_validator,
                                   bitfield_store,
                                   backing_store,
                                   dispute_coordinator,
@@ -227,6 +246,7 @@ class BabeTest : public testing::Test {
   std::shared_ptr<BabeLotteryMock> lottery;
   std::shared_ptr<HasherMock> hasher;
   std::shared_ptr<Sr25519ProviderMock> sr25519_provider;
+  std::shared_ptr<BabeBlockValidatorMock> block_validator;
   std::shared_ptr<BitfieldStoreMock> bitfield_store;
   std::shared_ptr<BackingStoreMock> backing_store;
   std::shared_ptr<DisputeCoordinatorMock> dispute_coordinator;

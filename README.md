@@ -154,7 +154,7 @@ You will also be able to see your node on https://telemetry.polkadot.io/. If you
 Run `kagome --help` to explore other CLI flags.
 
 
-#### Execute KAGOME validating node in development mode
+#### Execute KAGOME block_validator node in development mode
 
 The easiest way to get started with KAGOME is to run it in development mode, which is a single node network:
 

@@ -43,6 +43,9 @@ namespace kagome::consensus {
     virtual outcome::result<void> processSlot(
         SlotNumber slot, const primitives::BlockInfo &parent) = 0;
 
+    virtual outcome::result<void> validateHeader(
+        const primitives::BlockHeader &block_header) const = 0;
+
    protected:
     /// Changes epoch
     /// @param epoch epoch that switch to

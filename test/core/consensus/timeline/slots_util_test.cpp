@@ -59,7 +59,7 @@ class SlotsUtilTest : public testing::Test {
 
     consensus_selector = std::make_shared<ConsensusSelectorMock>();
     production_consensus = std::make_shared<ProductionConsensusMock>();
-    EXPECT_CALL(*consensus_selector, getProductionConsensus(_))
+    EXPECT_CALL(*consensus_selector, getProductionConsensusByInfo(_))
         .WillRepeatedly(Return(production_consensus));
 
     trie_storage = std::make_shared<TrieStorageMock>();

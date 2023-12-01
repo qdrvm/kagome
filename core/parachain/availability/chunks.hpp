@@ -23,7 +23,7 @@ namespace kagome::parachain {
 
   inline outcome::result<std::vector<network::ErasureChunk>> toChunks(
       size_t validators, const runtime::AvailableData &data) {
-    OUTCOME_TRY(message, scale::encode(data));
+    OUTCOME_TRY(message, ::scale::encode(data));
 
     auto create_result = ec_cpp::create(validators);
     if (ec_cpp::resultHasError(create_result)) {

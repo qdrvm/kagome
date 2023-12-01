@@ -27,8 +27,14 @@ namespace kagome::consensus {
     std::shared_ptr<ProductionConsensus> getProductionConsensus(
         const primitives::BlockInfo &parent_block) const override;
 
+    std::shared_ptr<ProductionConsensus> getProductionConsensus(
+        const primitives::BlockHeader &header) const override;
+
     std::shared_ptr<FinalityConsensus> getFinalityConsensus(
         const primitives::BlockInfo &parent_block) const override;
+
+    std::shared_ptr<FinalityConsensus> getFinalityConsensus(
+        const primitives::BlockHeader &block_header) const override;
 
    private:
     std::shared_ptr<const blockchain::BlockHeaderRepository> header_repo_;

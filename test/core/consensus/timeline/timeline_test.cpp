@@ -141,7 +141,7 @@ class TimelineTest : public testing::Test {
 
     consensus_selector = std::make_shared<ConsensusSelectorMock>();
     production_consensus = std::make_shared<ProductionConsensusMock>();
-    ON_CALL(*consensus_selector, getProductionConsensus(_))
+    ON_CALL(*consensus_selector, getProductionConsensusByInfo(_))
         .WillByDefault(Return(production_consensus));
     ON_CALL(*production_consensus, getSlot(best_block_header))
         .WillByDefault(Return(1));

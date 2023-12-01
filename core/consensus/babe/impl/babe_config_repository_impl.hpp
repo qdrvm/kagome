@@ -8,16 +8,15 @@
 
 #include "consensus/babe/babe_config_repository.hpp"
 
-#include <mutex>
-
 #include "blockchain/indexer.hpp"
 #include "consensus/babe/has_babe_consensus_digest.hpp"
+#include "consensus/babe/types/scheduled_change.hpp"
 #include "injector/lazy.hpp"
 #include "log/logger.hpp"
 #include "primitives/block_data.hpp"
 #include "primitives/event_types.hpp"
-#include "primitives/scheduled_change.hpp"
 #include "storage/spaced_storage.hpp"
+#include "utils/safe_object.hpp"
 
 namespace kagome::application {
   class AppStateManager;
@@ -50,7 +49,7 @@ namespace kagome::consensus::babe {
     /**
      * `NextConfigData` is rare digest, so always store recent config.
      */
-    primitives::NextConfigDataV1 config;
+    NextConfigDataV1 config;
     /**
      * Current epoch read from runtime.
      * Used at genesis and after warp sync.
@@ -98,32 +97,36 @@ namespace kagome::consensus::babe {
     void warp(const primitives::BlockInfo &block) override;
 
    private:
+    using Indexer = blockchain::Indexer<BabeIndexedValue>;
+
     outcome::result<SlotNumber> getFirstBlockSlotNumber(
         const primitives::BlockInfo &parent_info) const;
 
     outcome::result<std::shared_ptr<const BabeConfiguration>> config(
-        const primitives::BlockInfo &block, bool next_epoch) const;
+        Indexer &indexer_,
+        const primitives::BlockInfo &block,
+        bool next_epoch) const;
 
     std::shared_ptr<BabeConfiguration> applyDigests(
-        const primitives::NextConfigDataV1 &config,
+        const NextConfigDataV1 &config,
         const HasBabeConsensusDigest &digests) const;
 
     outcome::result<void> load(
+        Indexer &indexer_,
         const primitives::BlockInfo &block,
         blockchain::Indexed<BabeIndexedValue> &item) const;
 
     outcome::result<std::shared_ptr<const BabeConfiguration>> loadPrev(
+        Indexer &indexer_,
         const std::optional<primitives::BlockInfo> &prev) const;
 
-    void warp(std::unique_lock<std::mutex> &lock,
-              const primitives::BlockInfo &block);
+    void warp(Indexer &indexer_, const primitives::BlockInfo &block);
 
     std::shared_ptr<storage::BufferStorage> persistent_storage_;
     bool config_warp_sync_;
     EpochTimings &timings_;
     std::shared_ptr<blockchain::BlockTree> block_tree_;
-    mutable std::mutex indexer_mutex_;
-    mutable blockchain::Indexer<BabeIndexedValue> indexer_;
+    mutable SafeObject<Indexer> indexer_;
     std::shared_ptr<blockchain::BlockHeaderRepository> header_repo_;
     LazySPtr<ConsensusSelector> consensus_selector_;
     std::shared_ptr<runtime::BabeApi> babe_api_;
