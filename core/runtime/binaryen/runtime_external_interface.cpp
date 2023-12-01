@@ -25,18 +25,13 @@ namespace {
   }
 
   template <>
-  auto literalMemFun<uint64_t>() {
+  auto literalMemFun<int64_t>() {
     return &wasm::Literal::geti64;
-  }
-
-  template <>
-  auto literalMemFun<uint32_t>() {
-    return &wasm::Literal::geti32;
   }
 
   /**
    * @brief a meta-layer that places list of arguments into host api method
-   * invokation using fold expression
+   * invoсation using fold expression
    */
   template <typename T, typename R, auto mf, typename... Args, size_t... I>
   wasm::Literal callInternal(T *host_api,

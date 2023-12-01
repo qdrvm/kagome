@@ -18,9 +18,9 @@ namespace wasm {
   class Module;
 }  // namespace wasm
 
-namespace kagome::storage::trie {
-  class EphemeralTrieBatch;
-}
+namespace kagome::runtime {
+  class ModuleFactory;
+};
 
 namespace kagome::runtime::binaryen {
 
@@ -47,16 +47,19 @@ namespace kagome::runtime::binaryen {
     static outcome::result<std::shared_ptr<ModuleImpl>, CompilationError>
     createFromCode(
         const std::vector<uint8_t> &code,
-        std::shared_ptr<const InstanceEnvironmentFactory> env_factory_,
+        std::shared_ptr<const InstanceEnvironmentFactory> env_factory,
+        std::shared_ptr<const ModuleFactory> module_factory,
         const common::Hash256 &code_hash);
 
-    std::shared_ptr<ModuleInstance> instantiate() const override;
+    outcome::result<std::shared_ptr<ModuleInstance>> instantiate() const override;
 
     ModuleImpl(std::unique_ptr<wasm::Module> &&module,
+               std::shared_ptr<const ModuleFactory> module_factory,
                std::shared_ptr<const InstanceEnvironmentFactory> env_factory,
                const common::Hash256 &code_hash);
 
    private:
+    std::shared_ptr<const ModuleFactory> module_factory_;
     std::shared_ptr<const InstanceEnvironmentFactory> env_factory_;
     std::shared_ptr<wasm::Module> module_;  // shared to module instances
     const common::Hash256 code_hash_;

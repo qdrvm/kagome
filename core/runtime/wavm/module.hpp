@@ -40,7 +40,7 @@ namespace kagome::runtime::wavm {
                 common::BufferView code,
                 const common::Hash256 &code_hash);
 
-    std::shared_ptr<ModuleInstance> instantiate()
+    outcome::result<std::shared_ptr<ModuleInstance>> instantiate()
         const override;
 
     ModuleImpl(std::shared_ptr<CompartmentWrapper> compartment,

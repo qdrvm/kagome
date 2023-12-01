@@ -20,6 +20,7 @@ namespace kagome::storage {
         "block_body",
         "justification",
         "trie_node",
+        "trie_value",
         "dispute_data",
         "beefy_justification",
     };

@@ -78,7 +78,8 @@ namespace kagome::runtime::wavm {
     BOOST_ASSERT(module_);
   }
 
-  std::shared_ptr<ModuleInstance> ModuleImpl::instantiate() const {
+  outcome::result<std::shared_ptr<ModuleInstance>> ModuleImpl::instantiate()
+      const {
 #if defined(__GNUC__) and not defined(__clang__)
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wdangling-reference"
