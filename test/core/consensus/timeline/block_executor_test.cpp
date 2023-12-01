@@ -173,12 +173,10 @@ class BlockExecutorTest : public testing::Test {
         hasher_,
         testutil::sptr_to_lazy<ConsensusSelector>(consensus_selector_));
 
-    thread_pool_ = std::make_shared<ThreadPool>("test", 1);
-
     block_executor_ =
         std::make_shared<BlockExecutorImpl>(block_tree_,
-                                            *thread_pool_,
-                                            thread_pool_->io_context(),
+                                            thread_pool_,
+                                            thread_pool_.io_context(),
                                             core_,
                                             tx_pool_,
                                             hasher_,
@@ -287,5 +285,5 @@ TEST_F(BlockExecutorTest, JustificationFollowDigests) {
       justification,
       [](auto &&result) { ASSERT_OUTCOME_SUCCESS_TRY(result); });
 
-  testutil::wait(*thread_pool_->io_context());
+  testutil::wait(*thread_pool_.io_context());
 }
