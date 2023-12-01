@@ -96,22 +96,29 @@ namespace kagome::runtime::wasm_edge {
     BOOST_ASSERT(current_host_api);
     auto &host_api = *static_cast<host_api::HostApi *>(current_host_api);
 
-    if constexpr (std::is_void_v<Ret>) {
-      call_with_array(
-          [&host_api](auto... params) mutable {
-            std::invoke(Method, host_api, params...);
-          },
-          std::span{params, std::tuple_size_v<Args>},
-          Args{});
-    } else {
-      Ret res = call_with_array(
-          [&host_api](auto... params) mutable -> Ret {
-            return std::invoke(Method, host_api, params...);
-          },
-          std::span{params, std::tuple_size_v<Args>},
-          Args{});
-      returns[0].Value = res;
-      returns[0].Type = get_wasm_type<Ret>();
+    try {
+      if constexpr (std::is_void_v<Ret>) {
+        call_with_array(
+            [&host_api](auto... params) mutable {
+              std::invoke(Method, host_api, params...);
+            },
+            std::span{params, std::tuple_size_v<Args>},
+            Args{});
+      } else {
+        Ret res = call_with_array(
+            [&host_api](auto... params) mutable -> Ret {
+              return std::invoke(Method, host_api, params...);
+            },
+            std::span{params, std::tuple_size_v<Args>},
+            Args{});
+        returns[0].Value = res;
+        returns[0].Type = get_wasm_type<Ret>();
+      }
+
+    } catch (std::runtime_error& e) {
+      auto log = log::createLogger("HostApi", "runtime");
+      SL_ERROR(log, "Host API call failed with error: {}", e.what());
+      return WasmEdge_Result_Terminate;
     }
     return WasmEdge_Result_Success;
   }
