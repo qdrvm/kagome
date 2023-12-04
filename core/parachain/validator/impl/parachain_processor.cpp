@@ -869,9 +869,9 @@ namespace kagome::parachain {
           manifest->get().candidate_hash,
           manifest->get().relay_parent,
           ManifestSummary{
-            claimed_parent_hash : manifest->get().parent_head_data_hash,
-            claimed_group_index : manifest->get().group_index,
-            statement_knowledge : manifest->get().statement_knowledge,
+            .claimed_parent_hash = manifest->get().parent_head_data_hash,
+            .claimed_group_index = manifest->get().group_index,
+            .statement_knowledge = manifest->get().statement_knowledge,
           },
           manifest->get().para_id);
       if (!x) {

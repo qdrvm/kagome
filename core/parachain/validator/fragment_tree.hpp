@@ -214,9 +214,49 @@ namespace kagome::parachain::fragment {
       return relay_parent;
     }
 
-    static Option<Fragment> create() {
+    static Option<Fragment> create(const RelayChainBlockInfo &relay_parent,const Constraints &operating_constraints, const ProspectiveCandidate &candidate) {
+      const network::CandidateCommitments &commitments = candidate.commitments;
+
+        std::unordered_map<ParachainId, OutboundHrmpChannelModification> outbound_hrmp;
+        std::optional<ParachainId> last_recipient;
+        for (size_t i = 0; i < commitments.outbound_hor_msgs.size(); ++i) {
+          const network::OutboundHorizontal &message = commitments.outbound_hor_msgs[i];
+          if (last_recipient) {
+            if (*last_recipient >= message.para_id) {
+              return std::nullopt;
+            }
+          }
+          last_recipient = message.para_id;
+          OutboundHrmpChannelModification &record = outbound_hrmp[message.para_id];
+
+          record.bytes_submitted += message.upward_msg.size();
+          record.messages_submitted += 1;
+        }
+
+      size_t ump_sent_bytes = 0ull;
+      for (const auto &m : commitments.upward_msgs) {
+        ump_sent_bytes += m.size();
+      }
+
+      ConstraintModifications modifications {
+				.required_parent = commitments.para_head,
+				.hrmp_watermark = ((commitments.watermark == relay_parent.number) ? HrmpWatermarkUpdate{HrmpWatermarkUpdateHead{.v = commitments.watermark}} : HrmpWatermarkUpdate{HrmpWatermarkUpdateTrunk{.v = commitments.watermark}}),
+        .outbound_hrmp = outbound_hrmp,
+ 				.ump_messages_sent = commitments.upward_msgs.size(),
+        .ump_bytes_sent = ump_sent_bytes,
+        .dmp_messages_processed = commitments.downward_msgs_count,
+        .code_upgrade_applied = operating_constraints.future_validation_code ? (relay_parent.number >= operating_constraints.future_validation_code->first) : false,
+      };
+
       /// TODO(iceseer): do
-      return std::nullopt;
+      /// make validation `validate_against_constraints()`
+
+      return Fragment { 
+        .relay_parent = relay_parent, 
+        .operating_constraints = operating_constraints, 
+        .candidate = candidate, 
+        .modifications = modifications,
+      };
     }
 
     const ConstraintModifications &constraintModifications() const {
@@ -483,7 +523,7 @@ namespace kagome::parachain::fragment {
                       pending->get().relay_parent.number;
                 }
 
-                Option<Fragment> f = Fragment::create();
+                Option<Fragment> f = Fragment::create(relay_parent, constraints, candidate.candidate);
                 if (!f) {
                   SL_TRACE(logger,
                            "Failed to instantiate fragment. (relay parent={}, "
