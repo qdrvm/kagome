@@ -18,14 +18,24 @@
 #include "primitives/justification.hpp"
 #include "scale/encode_append.hpp"
 #include "scale/libp2p_types.hpp"
+#include "scale/big_fixed_integers.hpp"
 
 namespace kagome::scale {
+  namespace __outcome_detail {
+    template<typename T>
+    using Category = ::scale::__outcome_detail::Category<T>;
+  }
   using CompactInteger = ::scale::CompactInteger;
   using BitVec = ::scale::BitVec;
   using ScaleDecoderStream = ::scale::ScaleDecoderStream;
   using ScaleEncoderStream = ::scale::ScaleEncoderStream;
   using PeerInfoSerializable = ::scale::PeerInfoSerializable;
   using DecodeError = ::scale::DecodeError;
+  template<typename T>
+  using Fixed = ::scale::Fixed<T>;
+  template<typename T>
+  using Compact = ::scale::Compact<T>;
+  using uint128_t = ::scale::uint128_t;
 
   using ::scale::decode;
 

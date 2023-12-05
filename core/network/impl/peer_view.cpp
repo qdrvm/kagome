@@ -48,7 +48,7 @@ namespace kagome::network {
                                 const primitives::events::ChainEventParams
                                     &event) {
       if (auto self = wptr.lock()) {
-        if (auto const value =
+        if (auto value =
                 if_type<const primitives::events::HeadsEventParams>(event)) {
           self->updateMyView(ExView{
               .view =
@@ -57,7 +57,8 @@ namespace kagome::network {
                       .finalized_number_ =
                           self->block_tree_.get()->getLastFinalized().number,
                   },
-              .new_head = (*value).get()});
+              .new_head = value->get().get(),
+              });
         }
       }
     });
@@ -78,7 +79,7 @@ namespace kagome::network {
     BOOST_ASSERT(my_view_update_observable_);
     std::sort(view.view.heads_.begin(), view.view.heads_.end());
     if (!my_view_ || my_view_->view != view.view
-        || my_view_->new_head != view.new_head) {
+        || my_view_->new_head.get() != view.new_head.get()) {
       if (my_view_) {
         view.lost.swap(my_view_->lost);
         view.lost.clear();

@@ -6,7 +6,7 @@
 #ifndef KAGOME_PARACHAIN_BACKING_IMPLICIT_VIEW_HPP
 #define KAGOME_PARACHAIN_BACKING_IMPLICIT_VIEW_HPP
 
-#include <gsl/span>
+#include <span>
 #include <optional>
 #include <unordered_map>
 #include <vector>
@@ -31,7 +31,7 @@ namespace kagome::parachain {
       std::vector<ParachainId> relevant_paras;
     };
 
-    gsl::span<const Hash> knownAllowedRelayParentsUnder(
+    std::span<const Hash> knownAllowedRelayParentsUnder(
         const Hash &block_hash,
         const std::optional<ParachainId> &para_id) const;
     outcome::result<std::vector<ParachainId>> activate_leaf(
@@ -49,7 +49,7 @@ namespace kagome::parachain {
       std::unordered_map<ParachainId, BlockNumber> minimum_relay_parents;
       std::vector<Hash> allowed_relay_parents_contiguous;
 
-      gsl::span<const Hash> allowedRelayParentsFor(
+      std::span<const Hash> allowedRelayParentsFor(
           const std::optional<ParachainId> &para_id,
           const BlockNumber &base_number) const;
     };

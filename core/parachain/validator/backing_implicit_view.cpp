@@ -5,7 +5,7 @@
 
 #include "parachain/validator/backing_implicit_view.hpp"
 
-#include <gsl/span>
+#include <span>
 
 #include "parachain/types.hpp"
 #include "primitives/math.hpp"
@@ -16,7 +16,7 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::parachain, ImplicitView::Error, e) {
     case E::ALREADY_KNOWN:
       return "Already known leaf";
   }
-  return fmt::format("ImplicitView failed. (error={})", e);
+  return "ImplicitView failed.";
 }
 
 namespace kagome::parachain {
@@ -27,7 +27,7 @@ namespace kagome::parachain {
     BOOST_ASSERT(prospective_parachains_);
   }
 
-  gsl::span<const Hash>
+  std::span<const Hash>
   ImplicitView::AllowedRelayParents::allowedRelayParentsFor(
       const std::optional<ParachainId> &para_id,
       const BlockNumber &base_number) const {
@@ -43,7 +43,7 @@ namespace kagome::parachain {
         const size_t slice_len =
             std::min(size_t(diff + 1), allowed_relay_parents_contiguous.size());
         if (slice_len > 0ull) {
-          return gsl::span<const Hash>(&allowed_relay_parents_contiguous[0ull],
+          return std::span<const Hash>(&allowed_relay_parents_contiguous[0ull],
                                        slice_len);
         }
       }
@@ -51,7 +51,7 @@ namespace kagome::parachain {
     return {};
   }
 
-  gsl::span<const Hash> ImplicitView::knownAllowedRelayParentsUnder(
+  std::span<const Hash> ImplicitView::knownAllowedRelayParentsUnder(
       const Hash &block_hash, const std::optional<ParachainId> &para_id) const {
     if (auto it = block_info_storage.find(block_hash);
         it != block_info_storage.end()) {

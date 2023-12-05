@@ -31,7 +31,7 @@ namespace kagome::network {
                              std::shared_ptr<ReqCollationObserver> observer)
         : Base{kReqCollationProtocolName,
                host,
-               make_protocols(protoname, genesis_hash, "polkadot"),
+               make_protocols(protoname, genesis_hash, kProtocolPrefixPolkadot),
                log::createLogger(kReqCollationProtocolName,
                                  "req_collation_protocol")},
           observer_{std::move(observer)} {}

@@ -94,7 +94,7 @@ namespace kagome::parachain::fragment {
     outcome::result<void> addCandidate(
         const CandidateHash &candidate_hash,
         const network::CommittedCandidateReceipt &candidate,
-        const crypto::Hashed<const runtime::PersistedValidationData &, 32>
+        const crypto::Hashed<const runtime::PersistedValidationData &, 32, crypto::Blake2b_StreamHasher<32>>
             &persisted_validation_data,
         const std::shared_ptr<crypto::Hasher> &hasher);
 
@@ -465,14 +465,13 @@ namespace kagome::parachain::fragment {
           if (child_constraints_res.has_error()) {
             SL_TRACE(
                 logger,
-                "Failed to apply modifications. (error={}, new_parent_head={})",
-                child_constraints_res.error().message(),
-                modifications.required_parent);
+                "Failed to apply modifications. (error={})",
+                child_constraints_res.error().message());
             continue;
           }
           const auto &child_constraints = child_constraints_res.value();
           const auto required_head_hash =
-              crypto::Hashed<const HeadData &, 32>{
+              crypto::Hashed<const HeadData &, 32, crypto::Blake2b_StreamHasher<32>>{
                   child_constraints.required_parent}
                   .getHash();
 
@@ -744,9 +743,8 @@ namespace kagome::parachain::fragment {
         if (child_constraints_res.has_error()) {
           SL_TRACE(
               logger,
-              "Failed to apply modifications. (error={}, new_parent_head={})",
-              child_constraints_res.error().message(),
-              modifications.required_parent);
+              "Failed to apply modifications. (error={})",
+              child_constraints_res.error());
           return;
         }
 
@@ -755,7 +753,7 @@ namespace kagome::parachain::fragment {
 
         /// TODO(iceseer): keep hashed object in constraints to avoid recalc
         if (parent_head_hash
-            != crypto::Hashed<const HeadData &, 32>{child_constraints
+            != crypto::Hashed<const HeadData &, 32, crypto::Blake2b_StreamHasher<32>>{child_constraints
                                                         .required_parent}
                    .getHash()) {
           return;

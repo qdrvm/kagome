@@ -267,7 +267,7 @@ namespace kagome::dispute {
     scraper_ = std::make_unique<ChainScraperImpl>(api_, block_tree_, hasher_);
 
     auto rsw_res = RollingSessionWindowImpl::create(
-        storage_, block_tree_, api_, updated.new_head.hash(), log_);
+        storage_, block_tree_, api_, updated.new_head.getHash(), log_);
     if (rsw_res.has_error()) {
       SL_ERROR(
           log_, "Can't create rolling session window: {}", rsw_res.error());
@@ -275,8 +275,8 @@ namespace kagome::dispute {
     }
     rolling_session_window_ = std::move(rsw_res.value());
 
-    auto first_leaf = ActivatedLeaf{.hash = updated.new_head.hash(),
-                                    .number = updated.new_head.number,
+    auto first_leaf = ActivatedLeaf{.hash = updated.new_head.getHash(),
+                                    .number = updated.new_head.get().number,
                                     .status = LeafStatus::Fresh};
 
     // Prune obsolete disputes:
@@ -531,8 +531,8 @@ namespace kagome::dispute {
       return startup(updated);
     }
 
-    ActiveLeavesUpdate update{.activated = {{.hash = updated.new_head.hash(),
-                                             .number = updated.new_head.number,
+    ActiveLeavesUpdate update{.activated = {{.hash = updated.new_head.getHash(),
+                                             .number = updated.new_head.get().number,
                                              .status = LeafStatus::Fresh}},
                               .deactivated = updated.lost};
 

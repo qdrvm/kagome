@@ -237,9 +237,7 @@ namespace kagome::parachain {
   void ParachainProcessorImpl::onViewUpdated(const network::ExView &event) {
     REINVOKE(*this_context_, onViewUpdated, event);
 
-    const auto &relay_parent =
-        primitives::calculateBlockHash(event.new_head, *hasher_).value();
-
+    const auto &relay_parent = event.new_head.getHash();
     if (auto r = canProcessParachains(); r.has_error()) {
       return;
     }
@@ -1985,7 +1983,7 @@ namespace kagome::parachain {
             prospective_parachains_->introduceCandidate(
                 candidate.descriptor.para_id,
                 candidate,
-                crypto::Hashed<const runtime::PersistedValidationData &, 32>{
+                crypto::Hashed<const runtime::PersistedValidationData &, 32, crypto::Blake2b_StreamHasher<32>>{
                     seconded->get().pvd},
                 candidate_hash);
         if (membership.empty()) {
@@ -3023,7 +3021,7 @@ namespace kagome::parachain {
         std::vector<size_t> r;
         for (auto &&[candidate, memberships] :
              prospective_parachains_->answerHypotheticalFrontierRequest(
-                 gsl::span<const HypotheticalCandidate>{&hypothetical_candidate,
+                 std::span<const HypotheticalCandidate>{&hypothetical_candidate,
                                                         1},
                  {{head}},
                  backed_in_path_only)) {

@@ -12,6 +12,7 @@
 #include <type_traits>
 #include <vector>
 
+#include "crypto/type_hasher.hpp"
 #include "common/blob.hpp"
 #include "consensus/grandpa/common.hpp"
 #include "crypto/hasher.hpp"
@@ -279,7 +280,7 @@ namespace kagome::network {
 
   struct ExView {
     View view;
-    primitives::BlockHeader new_head;
+    crypto::Hashed<primitives::BlockHeader, 32, crypto::Blake2b_StreamHasher<32>> new_head;
     std::vector<primitives::BlockHash> lost;
   };
 

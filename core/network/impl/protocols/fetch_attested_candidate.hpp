@@ -46,7 +46,7 @@ namespace kagome::network {
                                     make_protocols(
                                         kFetchAttestedCandidateProtocol,
                                         genesis_hash,
-                                        "polkadot"),
+                                        kProtocolPrefixPolkadot),
                                     log::createLogger(
                                         kFetchAttestedCandidateProtocolName,
                                         "req_attested_candidate_protocol")},

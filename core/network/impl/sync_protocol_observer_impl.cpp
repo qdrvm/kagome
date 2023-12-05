@@ -201,7 +201,7 @@ namespace kagome::network {
             if (auto r = beefy_->getJustification(*number)) {
               if (auto &opt = r.value()) {
                 new_block.beefy_justification = primitives::Justification{
-                    common::Buffer{scale::encode(*opt).value()},
+                    common::Buffer{::scale::encode(*opt).value()},
                 };
               }
             }

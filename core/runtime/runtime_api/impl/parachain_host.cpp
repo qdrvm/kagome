@@ -271,15 +271,17 @@ namespace kagome::runtime {
   outcome::result<std::optional<parachain::fragment::BackingState>>
   ParachainHostImpl::staging_para_backing_state(
       const primitives::BlockHash &block, ParachainId id) {
-    return executor_->callAt<std::optional<parachain::fragment::BackingState>>(
-        block, "ParachainHost_para_backing_state", id);
+    OUTCOME_TRY(ctx, executor_->ctx().ephemeralAt(block));
+    return executor_->call<std::optional<parachain::fragment::BackingState>>(
+        ctx, "ParachainHost_para_backing_state", id);
   }
 
   outcome::result<parachain::fragment::AsyncBackingParams>
   ParachainHostImpl::staging_async_backing_params(
       const primitives::BlockHash &block) {
-    return executor_->callAt<parachain::fragment::AsyncBackingParams>(
-        block, "ParachainHost_async_backing_params");
+    OUTCOME_TRY(ctx, executor_->ctx().ephemeralAt(block));
+    return executor_->call<parachain::fragment::AsyncBackingParams>(
+        ctx, "ParachainHost_async_backing_params");
   }
 
 }  // namespace kagome::runtime

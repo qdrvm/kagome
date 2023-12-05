@@ -171,7 +171,7 @@ namespace kagome::parachain {
     return visit_in_place(
         hc,
         [](const HypotheticalCandidateComplete &val) {
-          return crypto::Hashed<const HeadData &, 32>{
+          return crypto::Hashed<const HeadData &, 32, crypto::Blake2b_StreamHasher<32>>{
               val.persisted_validation_data.parent_head}
               .getHash();
         },

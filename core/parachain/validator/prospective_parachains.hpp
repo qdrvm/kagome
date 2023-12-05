@@ -118,7 +118,7 @@ namespace kagome::parachain {
           if (!head_data) {
             const auto &required_parent =
                 fragment_tree.scope.base_constraints.required_parent;
-            if (crypto::Hashed<const HeadData &, 32>{required_parent}.getHash()
+            if (crypto::Hashed<const HeadData &, 32, crypto::Blake2b_StreamHasher<32>>{required_parent}.getHash()
                 == parent_head_data_hash) {
               head_data = required_parent;
             }
@@ -317,9 +317,8 @@ namespace kagome::parachain {
         view.active_leaves.erase(deactivated);
       }
       std::unordered_map<Hash, ProspectiveParachainsMode> temp_header_cache;
-      const auto &activated = update.new_head;
-      const auto &hash =
-          primitives::calculateBlockHash(update.new_head, *hasher_).value();
+      const auto &activated = update.new_head.get();
+      const auto &hash = update.new_head.getHash();
       const auto mode = prospectiveParachainsMode(hash);
       if (!mode) {
         SL_TRACE(logger,
@@ -364,7 +363,7 @@ namespace kagome::parachain {
           auto res = candidate_storage.addCandidate(
               candidate_hash,
               c.candidate,
-              crypto::Hashed<const runtime::PersistedValidationData &, 32>{
+              crypto::Hashed<const runtime::PersistedValidationData &, 32, crypto::Blake2b_StreamHasher<32>>{
                   c.persisted_validation_data},
               hasher_);
           compact_pending.emplace_back(c.compact);
@@ -416,7 +415,7 @@ namespace kagome::parachain {
     std::vector<
         std::pair<HypotheticalCandidate, fragment::FragmentTreeMembership>>
     answerHypotheticalFrontierRequest(
-        const gsl::span<const HypotheticalCandidate> &candidates,
+        const std::span<const HypotheticalCandidate> &candidates,
         const std::optional<std::reference_wrapper<const Hash>>
             &fragment_tree_relay_parent,
         bool backed_in_path_only) {
@@ -547,7 +546,7 @@ namespace kagome::parachain {
     fragment::FragmentTreeMembership introduceCandidate(
         ParachainId para,
         const network::CommittedCandidateReceipt &candidate,
-        const crypto::Hashed<const runtime::PersistedValidationData &, 32> &pvd,
+        const crypto::Hashed<const runtime::PersistedValidationData &, 32, crypto::Blake2b_StreamHasher<32>> &pvd,
         const CandidateHash &candidate_hash) {
       auto it_storage = view.candidate_storage.find(para);
       if (it_storage == view.candidate_storage.end()) {
