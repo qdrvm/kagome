@@ -838,11 +838,111 @@ namespace kagome::parachain {
     return messages;
   }
 
+  std::deque<network::VersionedValidatorProtocolMessage>
+  ParachainProcessorImpl::post_acknowledgement_statement_messages(
+      const RelayHash &relay_parent,
+      const StatementStore &statement_store,
+      const std::vector<ValidatorIndex> &group,
+      const CandidateHash &candidate_hash) {
+    /// TODO(iceseer): do
+    /// fill data from grid tracker
+    network::vstaging::StatementFilter sending_filter{group.size()};
+
+    std::deque<network::VersionedValidatorProtocolMessage> messages;
+    statement_store.groupStatements(
+        group,
+        candidate_hash,
+        sending_filter,
+        [&](const IndexedAndSigned<network::vstaging::CompactStatement>
+                &statement) {
+          messages.emplace_back(network::VersionedValidatorProtocolMessage{
+              network::vstaging::ValidatorProtocolMessage{
+                  network::vstaging::StatementDistributionMessage{
+                      network::vstaging::StatementDistributionMessageStatement{
+                          .relay_parent = relay_parent,
+                          .compact = statement,
+                      }}}});
+        });
+    return messages;
+  }
+
   void ParachainProcessorImpl::process_vstaging_statement(
       const libp2p::peer::PeerId &peer_id,
       const network::vstaging::StatementDistributionMessage &msg) {
     BOOST_ASSERT(
         this_context_->io_context()->get_executor().running_in_this_thread());
+
+    if (auto inner =
+            if_type<const network::vstaging::BackedCandidateAcknowledgement>(
+                msg)) {
+      const network::vstaging::BackedCandidateAcknowledgement &acknowledgement =
+          inner->get();
+      const auto &candidate_hash = acknowledgement.candidate_hash;
+      SL_TRACE(
+          logger_,
+          "Received incoming acknowledgement. (peer={}, candidate hash={})",
+          peer_id,
+          candidate_hash);
+
+      auto c = candidates_.get_confirmed(candidate_hash);
+      if (!c) {
+        return;
+      }
+      const RelayHash &relay_parent = c->get().relay_parent();
+      const Hash &parent_head_data_hash = c->get().parent_head_data_hash();
+      GroupIndex group_index = c->get().group_index();
+      ParachainId para_id = c->get().para_id();
+
+      auto opt_parachain_state = tryGetStateByRelayParent(relay_parent);
+      if (!opt_parachain_state) {
+        SL_TRACE(
+            logger_, "Handled statement from {} out of view", relay_parent);
+        return;
+      }
+      auto &relay_parent_state = opt_parachain_state->get();
+      BOOST_ASSERT(relay_parent_state.statement_store);
+
+      std::optional<runtime::SessionInfo> opt_session_info =
+          retrieveSessionInfo(relay_parent);
+      if (!opt_session_info) {
+        SL_WARN(logger_,
+                "No session info for current parrent. (relay parent={})",
+                relay_parent);
+        return;
+      }
+      if (group_index >= opt_session_info->validator_groups.size()) {
+        SL_WARN(logger_,
+                "Group index out of bound. (relay parent={}, group={})",
+                relay_parent,
+                group_index);
+        return;
+      }
+      const auto &group = opt_session_info->validator_groups[group_index];
+
+      ManifestImportSuccessOpt x = handle_incoming_manifest_common(
+          peer_id,
+          candidate_hash,
+          relay_parent,
+          ManifestSummary{
+              .claimed_parent_hash = parent_head_data_hash,
+              .claimed_group_index = group_index,
+              .statement_knowledge = acknowledgement.statement_knowledge,
+          },
+          para_id);
+      if (!x) {
+        return;
+      }
+
+      auto messages = post_acknowledgement_statement_messages(
+          relay_parent,
+          *relay_parent_state.statement_store,
+          group,
+          candidate_hash);
+      if (!messages.empty()) {
+        send_to_validators_group(relay_parent, messages);
+      }
+      return;
+    }
 
     if (auto manifest =
             if_type<const network::vstaging::BackedCandidateManifest>(msg)) {
@@ -869,9 +969,9 @@ namespace kagome::parachain {
           manifest->get().candidate_hash,
           manifest->get().relay_parent,
           ManifestSummary{
-            .claimed_parent_hash = manifest->get().parent_head_data_hash,
-            .claimed_group_index = manifest->get().group_index,
-            .statement_knowledge = manifest->get().statement_knowledge,
+              .claimed_parent_hash = manifest->get().parent_head_data_hash,
+              .claimed_group_index = manifest->get().group_index,
+              .statement_knowledge = manifest->get().statement_knowledge,
           },
           manifest->get().para_id);
       if (!x) {

@@ -174,6 +174,14 @@ namespace kagome::parachain {
       return receipt.descriptor.para_id;
     }
 
+    GroupIndex group_index() const {
+      return assigned_group;
+    }
+
+    const RelayHash &parent_head_data_hash() const {
+      return parent_hash;
+    }
+
     const Hash &para_head() const {
       return receipt.descriptor.para_head_hash;
     }

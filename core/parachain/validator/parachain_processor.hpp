@@ -357,6 +357,12 @@ namespace kagome::parachain {
         const network::vstaging::StatementFilter &local_knowledge,
         const CandidateHash &candidate_hash,
         const RelayHash &relay_parent);
+    std::deque<network::VersionedValidatorProtocolMessage>
+    post_acknowledgement_statement_messages(
+        const RelayHash &relay_parent,
+        const StatementStore &statement_store,
+        const std::vector<ValidatorIndex> &group,
+        const CandidateHash &candidate_hash);
     void send_to_validators_group(
         const RelayHash &relay_parent,
         const std::deque<network::VersionedValidatorProtocolMessage> &messages);
