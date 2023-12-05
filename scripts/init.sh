@@ -13,7 +13,6 @@ python3 -m venv "$parent_dir/venv"
 
 echo "Python environment created successfully in $parent_dir/venv"
 
-python3 -m venv venv
 $parent_dir/venv/bin/pip install --no-cache-dir cmake==${CMAKE_VERSION} gitpython requests
 
 curl https://sh.rustup.rs -sSf | sh -s -- -y --default-toolchain ${RUST_VERSION} && \
