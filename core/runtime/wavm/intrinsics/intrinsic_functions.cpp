@@ -291,6 +291,13 @@ namespace kagome::runtime::wavm {
   }
 
   WAVM_DEFINE_INTRINSIC_FUNCTION(void,
+                                 ext_panic_handler_abort_on_panic_version_1,
+                                 WAVM::I64 values_data) {
+    return peekHostApi()->ext_panic_handler_abort_on_panic_version_1(
+        values_data);
+  }
+
+  WAVM_DEFINE_INTRINSIC_FUNCTION(void,
                                  ext_default_child_storage_clear_version_1,
                                  WAVM::I64 child_storage_key,
                                  WAVM::I64 key) {

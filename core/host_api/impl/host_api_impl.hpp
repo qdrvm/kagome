@@ -244,6 +244,11 @@ namespace kagome::host_api {
 
     void ext_misc_print_utf8_version_1(runtime::WasmSpan data) const override;
 
+    // -------------------------- Panic handler --------------------------------
+
+    void ext_panic_handler_abort_on_panic_version_1(
+        runtime::WasmSpan message) const override;
+
     // -------------------------- Offchain extension ---------------------------
 
     runtime::WasmI32 ext_offchain_is_validator_version_1() override;

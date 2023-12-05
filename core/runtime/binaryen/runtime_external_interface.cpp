@@ -221,6 +221,9 @@ namespace kagome::runtime::binaryen {
     REGISTER_HOST_API_FUNC(ext_misc_print_utf8_version_1);
     REGISTER_HOST_API_FUNC(ext_misc_runtime_version_version_1);
 
+    // ------------------------- Panic handler -------------------------------
+    REGISTER_HOST_API_FUNC(ext_panic_handler_abort_on_panic_version_1);
+
     // ------------------------- Offchain extension --------------------------
 
     REGISTER_HOST_API_FUNC(ext_offchain_is_validator_version_1);

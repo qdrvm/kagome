@@ -360,6 +360,11 @@ namespace kagome::host_api {
     return misc_ext_.ext_misc_print_utf8_version_1(data);
   }
 
+  void HostApiImpl::ext_panic_handler_abort_on_panic_version_1(
+      runtime::WasmSpan message) const {
+
+  }
+
   runtime::WasmSpan HostApiImpl::ext_crypto_secp256k1_ecdsa_recover_version_1(
       runtime::WasmPointer sig, runtime::WasmPointer msg) {
     return crypto_ext_.ext_crypto_secp256k1_ecdsa_recover_version_1(sig, msg);
