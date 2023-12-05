@@ -1,10 +1,10 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_CRYPTO_SECP256K1_PROVIDER_IMPL_HPP
-#define KAGOME_CRYPTO_SECP256K1_PROVIDER_IMPL_HPP
+#pragma once
 
 #include <secp256k1.h>
 
@@ -45,5 +45,3 @@ namespace kagome::crypto {
 }  // namespace kagome::crypto
 
 OUTCOME_HPP_DECLARE_ERROR(kagome::crypto, Secp256k1ProviderError);
-
-#endif  // KAGOME_CRYPTO_SECP256K1_PROVIDER_IMPL_HPP

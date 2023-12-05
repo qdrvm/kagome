@@ -1,5 +1,6 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -7,13 +8,14 @@
 
 #include <utility>
 
+#include "storage/spaces.hpp"
 #include "storage/trie/impl/trie_storage_backend_batch.hpp"
 
 namespace kagome::storage::trie {
 
   TrieStorageBackendImpl::TrieStorageBackendImpl(
-      std::shared_ptr<BufferStorage> storage)
-      : storage_{std::move(storage)} {
+      std::shared_ptr<SpacedStorage> storage)
+      : storage_{storage->getSpace(Space::kTrieNode)} {
     BOOST_ASSERT(storage_ != nullptr);
   }
 

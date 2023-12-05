@@ -1,10 +1,10 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_REQUESTS_HAS_KEY_HPP
-#define KAGOME_REQUESTS_HAS_KEY_HPP
+#pragma once
 
 #include <jsonrpc-lean/request.h>
 
@@ -23,8 +23,8 @@ namespace kagome::api::author::request {
 
     outcome::result<Return> execute() override {
       OUTCOME_TRY(public_key, common::unhexWith0x(getParam<0>()));
-      return api_->hasKey(gsl::span(public_key.data(), public_key.size()),
-                          crypto::decodeKeyTypeIdFromStr(getParam<1>()));
+      return api_->hasKey(public_key,
+                          crypto::decodeKeyTypeFromStr(getParam<1>()));
     }
 
    private:
@@ -32,5 +32,3 @@ namespace kagome::api::author::request {
   };
 
 }  // namespace kagome::api::author::request
-
-#endif  // KAGOME_REQUESTS_HAS_KEY_HPP

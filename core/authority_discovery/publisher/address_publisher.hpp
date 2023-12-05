@@ -1,10 +1,10 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_ADDRESS_PUBLISHER_IMPL_HPP
-#define KAGOME_ADDRESS_PUBLISHER_IMPL_HPP
+#pragma once
 
 #include "application/app_state_manager.hpp"
 #include "blockchain/block_tree.hpp"
@@ -66,5 +66,3 @@ namespace kagome::authority_discovery {
     std::optional<libp2p::crypto::ProtobufKey> libp2p_key_pb_;
   };
 }  // namespace kagome::authority_discovery
-
-#endif  // KAGOME_ADDRESS_PUBLISHER_IMPL_HPP

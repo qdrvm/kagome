@@ -1,10 +1,10 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_CORE_CLOCK_IMPL_CLOCK_IMPL_HPP
-#define KAGOME_CORE_CLOCK_IMPL_CLOCK_IMPL_HPP
+#pragma once
 
 #include "clock/clock.hpp"
 
@@ -22,5 +22,3 @@ namespace kagome::clock {
   using SystemClockImpl = ClockImpl<std::chrono::system_clock>;
 
 }  // namespace kagome::clock
-
-#endif  // KAGOME_CORE_CLOCK_IMPL_CLOCK_IMPL_HPP

@@ -1,10 +1,10 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_APP_CONFIGURATION_HPP
-#define KAGOME_APP_CONFIGURATION_HPP
+#pragma once
 
 #include <memory>
 #include <optional>
@@ -13,6 +13,7 @@
 #include <boost/asio/ip/tcp.hpp>
 #include <libp2p/multi/multiaddress.hpp>
 
+#include "application/sync_method.hpp"
 #include "crypto/ed25519_types.hpp"
 #include "filesystem/common.hpp"
 #include "log/logger.hpp"
@@ -209,13 +210,16 @@ namespace kagome::application {
     virtual const std::vector<telemetry::TelemetryEndpoint>
         &telemetryEndpoints() const = 0;
 
-    enum class SyncMethod { Full, Fast, FastWithoutState, Warp, Auto };
     /**
      * @return enum constant of the chosen sync method
      */
     virtual SyncMethod syncMethod() const = 0;
 
-    enum class RuntimeExecutionMethod { Compile, Interpret };
+    enum class RuntimeExecutionMethod {
+      Compile,
+      Interpret,
+    };
+
     /**
      * @return enum constant of the chosen runtime backend
      */
@@ -234,6 +238,8 @@ namespace kagome::application {
     virtual bool purgeWavmCache() const = 0;
 
     virtual uint32_t parachainRuntimeInstanceCacheSize() const = 0;
+    virtual uint32_t parachainPrecompilationThreadNum() const = 0;
+    virtual bool shouldPrecompileParachainModules() const = 0;
 
     enum class OffchainWorkerMode { WhenValidating, Always, Never };
     /**
@@ -260,6 +266,8 @@ namespace kagome::application {
 
     virtual bool enableThoroughPruning() const = 0;
 
+    virtual std::optional<uint32_t> blocksPruning() const = 0;
+
     /**
      * @return database state cache size in MiB
      */
@@ -281,5 +289,3 @@ namespace kagome::application {
   };
 
 }  // namespace kagome::application
-
-#endif  // KAGOME_APP_CONFIGURATION_HPP

@@ -1,10 +1,10 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_RUNTIME_OFFCHAINWORKERAPIIMPL
-#define KAGOME_RUNTIME_OFFCHAINWORKERAPIIMPL
+#pragma once
 
 #include "runtime/runtime_api/offchain_worker_api.hpp"
 
@@ -20,16 +20,12 @@ namespace kagome::runtime {
 
   class Executor;
 
-  outcome::result<void> callOffchainWorkerApi(
-      Executor &executor,
-      const primitives::BlockHash &block,
-      const primitives::BlockHeader &header);
-
   class OffchainWorkerApiImpl final : public OffchainWorkerApi {
    public:
     OffchainWorkerApiImpl(
         const application::AppConfiguration &app_config,
         std::shared_ptr<offchain::OffchainWorkerFactory> ocw_factory,
+        std::shared_ptr<offchain::Runner> runner,
         std::shared_ptr<Executor> executor);
 
     outcome::result<void> offchain_worker(
@@ -44,5 +40,3 @@ namespace kagome::runtime {
   };
 
 }  // namespace kagome::runtime
-
-#endif  // KAGOME_RUNTIME_OFFCHAINWORKERAPIIMPL

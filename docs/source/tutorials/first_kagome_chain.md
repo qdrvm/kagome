@@ -1,10 +1,16 @@
+[//]: # (
+Copyright Quadrivium LLC
+All Rights Reserved
+SPDX-License-Identifier: Apache-2.0
+)
+
 ## Your first Kagome chain
 
-In this tutorial you will learn how to execute Kagome-based Polkadot-host chain which can be used as a cryptocurrency, and interact with it by sending extrinsics and executing queries.
+In this comprehensive guide, we'll walk you through the process of setting up and running a Kagome-based Polkadot-host chain. This chain can function as a cryptocurrency. Additionally, we will demonstrate how to communicate with this chain through actions such as dispatching extrinsics and executing queries.
 
 ### Prerequisites
 
-1. Kagome validating node binary built as described [here](https://kagome.readthedocs.io/en/latest/overview/getting_started.html#build-application).
+1. Kagome block_validator node binary built as described [here](https://kagome.readthedocs.io/en/latest/overview/getting_started.html#build-application).
 2. For your convenience make sure you have this binary included into your path:
 
     ```bash
@@ -18,17 +24,17 @@ In this tutorial you will learn how to execute Kagome-based Polkadot-host chain 
 
 ### Tutorial
 
-During this tutorial we will:
-1. Launch Kagome network using prepared genesis file
-2. Query the balance of Alice account
-3. Send extrinsic that transfers some amount of currency from Alice to Bob
-4. Query again the balance of Alice to make sure balance was updated
+In this tutorial, we will:
+1. Launch the Kagome network using a prepared genesis file.
+2. Query the balance of Alice's account.
+3. Send an extrinsic that transfers a specific amount of currency from Alice to Bob.
+4. Query Alice's balance again to confirm that it has been updated.
 
 #### Launch Kagome network
 
-For this tutorial we will spin up a simple network of a single peer with predefined genesis.
+In this tutorial, we will setup a basic network consisting of a single peer with a predefined genesis.
 
-To start with let's navigate into the node's folder:
+Firstly, we need to navigate to the node's directory:
 
 ```shell script
 cd examples/first_kagome_chain
@@ -36,8 +42,8 @@ cd examples/first_kagome_chain
 
 `first_kagome_chain` folder contains necessary configuration files for our tutorial:
 
-* `localchain.json` – genesis file for our network. It contains necessary key-value pairs that should be inserted before the genesis block
-* `base_path` – Directory, containing kagome base path. It contains several dirs, each one named with the chain id, which data it stores (`dev` in this case). Data for each chain consists of `db/` (will be initialized on node startup) and `keystore/` (keys to sign the messages sent by our authority). The latter has to exist prior to the node start. This behaviour will be improved in the future.
+* `localchain.json` – This is the genesis file for our network. It houses the crucial key-value pairs that need to be inserted into the node's state before the creation of the genesis block.
+* `base_path` – This directory encompasses the database of the Kagome project. Inside, you'll find the 'chains' folder, which contains several directories. Each of these directories carries the name of the chain id it stores the data for (`rococo-dev` in this case). The data for each chain is comprised of `db/` (which gets initialized upon node startup) and `keystore/` (which contains the keys used to sign messages sent by our authority). Keys can be added to keystore before the start of the node, or during its execution (via `author_rotateKeys` rpc). However, there's an exception for predefined accounts such as Alice, Bob, etc. When predefined accounts are used, keys are generated when the node starts, and no keys are stored in the `keystore/` folder 
 
 `localchain.json` contains Alice and Bob accounts. Both have 999998900.0 amount of crypto.
 Their keys can be generated using [subkey](https://substrate.dev/docs/en/knowledgebase/integrate/subkey) tool:
@@ -60,68 +66,68 @@ subkey inspect //Bob
 
 > If you are running this tutorial not for the first time, then make sure you cleaned up your storage as follows (assuming storage files are generated in ldb/ folder):
 > ```
-> rm -rf ldb
+> rm -rf base_path/chains/rococo_dev/db
 > ```
 > ---
 
-For this tutorial you can start a single node network as follows:
+For this tutorial, you can start a single-node network as follows:
 
 ```shell script
 kagome \
-    --validator \
+    --alice \
     --chain localchain.json \
     --base-path base_path \
     --port 30363 \
-    --rpc-port 9933 \
-    --ws-port 9944
+    --rpc-port 9933
 ```
 
 Let's look at this flags in detail:
 
-| Flag              | Description                                       |
-|-------------------|---------------------------------------------------|
-| `--validator` | optional, enables validator mode | 
-| `--chain`       | mandatory, chainspec file path        |
-| `--base-path`       | mandatory, base kagome directory path                 |
-| `--port`      | port for p2p interactions                         |
-| `--rpc-port` | port for RPC over HTTP                            |
-| `--ws-port`   | port for RPC over Websocket protocol              |
+Let's examine these flags in detail:
 
-More flags info available by running `kagome --help`.
+| Flag          | Requirement | Description                              |
+|---------------|-------------|------------------------------------------|
+| `--validator` | Optional    | Enables validator mode                   |
+| `--chain`     | Mandatory   | Specifies the chainspec file path        |
+| `--base-path` | Mandatory   | Specifies the base Kagome directory path |
+| `--port`      | Optional    | Sets the port for p2p interactions       |
+| `--rpc-port`  | Optional    | Sets the port for RPC over HTTP and WS   |
 
-You should see the log messages notifying about produced and finalized the blocks. 
+You can obtain in-depth information regarding the available flags by executing `kagome --help`.
 
-Now chain is running on a single node. To query it we can use localhost's ports 9933 for http- and 9944 for websockets-based RPCs.
+Upon successful setup, you should observe log messages indicating that the blocks have been produced and finalized.
+
+At present, the chain is running on a single node. To make queries to this setup, you can use the localhost's port 9933, which is designed for http- or websockets-based RPCs.
 
 > Kagome blockchain is constantly producing new blocks, even if there were no transactions in the network.
 
 #### Query the balance
 
-Now open second terminal and go to the transfer folder, available from the projects root directory.
+Now, open a second terminal and navigate to the `transfer` folder, which is available from the root directory of the project.
 
 `cd examples/transfer`
 
 This folder contains two python scripts:
 
-1. `balance.py <address> <account_id>` – executes query to kagome, which returns balance of provided account
-    * `<address>` address node's http service
-    * `<account_id>` id of account being queried
-2. `transfer.py <address> <seed> <dest> <amount>` – sends provided extrinsic
-    * `<address>` address node's http service
-    * `<seed>` secret seed of source account
-    * `<dest>` destination account
-    * `<amount>` amount of crypto to be transferred
+1. `balance.py <address> <account_id>` – This script executes a query to Kagome, which returns the balance of the provided account.
+    * `<address>`: The address of the node's HTTP service
+    * `<account_id>`:  The ID of the account to be queried.
+2. `transfer.py <address> <seed> <dest> <amount>` – This script sends the provided extrinsic.
+    * `<address>`: The address of the node's HTTP service.
+    * `<seed>`: The secret seed of the source account.
+    * `<dest>`>: The destination account.
+    * `<amount>`>: The amount of cryptocurrency to be transferred.
 
 
 
-Let's query current balance of Alice's account.
+Let's query the current balance of Alice's account.
 
 ```shell script
 python3 balance.py localhost:9933 5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY
 # Current free balance: 10000.0  
 ```
 
-Let's do the same for the Bob's account.
+Let's do the same for Bob's account.
 ```shell script
 python3 balance.py localhost:9933 5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty
 # Current free balance: 10000.0  

@@ -1,10 +1,10 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_CORE_CRYPTO_ED25519_PROVIDER_HPP
-#define KAGOME_CORE_CRYPTO_ED25519_PROVIDER_HPP
+#pragma once
 
 #include "crypto/bip39/bip39_types.hpp"
 #include "crypto/ed25519_types.hpp"
@@ -13,7 +13,7 @@ namespace kagome::crypto {
 
   class Ed25519Provider {
    public:
-    using Junctions = gsl::span<const bip39::RawJunction>;
+    using Junctions = std::span<const bip39::RawJunction>;
 
     virtual ~Ed25519Provider() = default;
 
@@ -34,8 +34,7 @@ namespace kagome::crypto {
      * @return signed message
      */
     virtual outcome::result<Ed25519Signature> sign(
-        const Ed25519Keypair &keypair,
-        gsl::span<const uint8_t> message) const = 0;
+        const Ed25519Keypair &keypair, common::BufferView message) const = 0;
 
     /**
      * Verifies that \param message was derived using \param public_key on
@@ -43,9 +42,7 @@ namespace kagome::crypto {
      */
     virtual outcome::result<bool> verify(
         const Ed25519Signature &signature,
-        gsl::span<const uint8_t> message,
+        common::BufferView message,
         const Ed25519PublicKey &public_key) const = 0;
   };
 }  // namespace kagome::crypto
-
-#endif  // KAGOME_CORE_CRYPTO_ED25519_PROVIDER_HPP

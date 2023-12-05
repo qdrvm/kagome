@@ -1,3 +1,9 @@
+[//]: # (
+Copyright Quadrivium LLC
+All Rights Reserved
+SPDX-License-Identifier: Apache-2.0
+)
+
 # Consensus
 
 This folder contains implementations for BABE and GRANDPA consensus in Kagome.
@@ -5,4 +11,4 @@ This folder contains implementations for BABE and GRANDPA consensus in Kagome.
 * [authority](authority) – authority manager implementations. Needed to keep track of grandpa authorities updates
 * [babe](babe) - BABE block production algorithm implementation
 * [grandpa](grandpa) – GRANDPA block finalization algorithm implementation
-* [validation](validation) – contains logic for validating incoming blocks
+* [validation](validation) – contains logic for block_validator incoming blocks

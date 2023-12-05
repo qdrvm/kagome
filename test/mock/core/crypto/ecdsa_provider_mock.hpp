@@ -1,10 +1,10 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_TEST_MOCK_CORE_CRYPTO_ECDSA_PROVIDER_MOCK_HPP
-#define KAGOME_TEST_MOCK_CORE_CRYPTO_ECDSA_PROVIDER_MOCK_HPP
+#pragma once
 
 #include "crypto/ecdsa_provider.hpp"
 
@@ -25,17 +25,13 @@ namespace kagome::crypto {
 
     MOCK_METHOD(outcome::result<EcdsaSignature>,
                 sign,
-                (gsl::span<const uint8_t>, const EcdsaPrivateKey &),
+                (BufferView, const EcdsaPrivateKey &),
                 (const, override));
 
     MOCK_METHOD(outcome::result<bool>,
                 verify,
-                (gsl::span<const uint8_t>,
-                 const EcdsaSignature &,
-                 const EcdsaPublicKey &),
+                (BufferView, const EcdsaSignature &, const EcdsaPublicKey &),
                 (const, override));
   };
 
 }  // namespace kagome::crypto
-
-#endif  // KAGOME_TEST_MOCK_CORE_CRYPTO_ECDSA_PROVIDER_MOCK_HPP

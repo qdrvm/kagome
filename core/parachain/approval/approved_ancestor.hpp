@@ -1,10 +1,10 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_PARACHAIN_APPROVAL_APPROVED_ANCESTOR_HPP
-#define KAGOME_PARACHAIN_APPROVAL_APPROVED_ANCESTOR_HPP
+#pragma once
 
 #include "primitives/common.hpp"
 
@@ -24,5 +24,3 @@ namespace kagome::parachain {
         const primitives::BlockInfo &max) const = 0;
   };
 }  // namespace kagome::parachain
-
-#endif  // KAGOME_PARACHAIN_APPROVAL_APPROVED_ANCESTOR_HPP

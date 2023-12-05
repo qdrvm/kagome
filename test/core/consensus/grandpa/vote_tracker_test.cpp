@@ -1,5 +1,6 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -116,7 +117,7 @@ TEST_F(VoteTrackerTest, GetMessages) {
                   v,
                   [&](const SignedMessage &voting_message) {
                     return m.id == voting_message.id
-                           && m.getBlockHash() == voting_message.getBlockHash();
+                        && m.getBlockHash() == voting_message.getBlockHash();
                   },
                   [&](const EquivocatorySignedMessage
                           &equivocatory_voting_message) {
@@ -131,8 +132,8 @@ TEST_F(VoteTrackerTest, GetMessages) {
 
                     return (m.id == first_id
                             && m.getBlockHash() == first_block_hash)
-                           || (m.id == second_id
-                               && m.getBlockHash() == second_block_hash);
+                        || (m.id == second_id
+                            && m.getBlockHash() == second_block_hash);
                   });
             })
         != messages.end());

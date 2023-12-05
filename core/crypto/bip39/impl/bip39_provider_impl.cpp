@@ -1,5 +1,6 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -60,7 +61,7 @@ namespace kagome::crypto {
   }
 
   outcome::result<bip39::Bip39Seed> Bip39ProviderImpl::makeSeed(
-      gsl::span<const uint8_t> entropy, std::string_view password) const {
+      common::BufferView entropy, std::string_view password) const {
     constexpr size_t iterations_count = 2048u;
     constexpr auto default_salt = "mnemonic";
 

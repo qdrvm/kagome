@@ -11,13 +11,14 @@
 #include <optional>
 #include <scale/outcome/outcome_throw.hpp>
 #include <scale/types.hpp>
+#include <span>
 #include <tuple>
 #include <type_traits>
 #include <vector>
 
 #include "utils/struct_to_tuple.hpp"
 
-namespace kagome::scale_v2 {
+namespace kagome::scale {
 
   template <typename F>
   constexpr void putByte(const F &func, const uint8_t *const val, size_t count);
@@ -35,7 +36,10 @@ namespace kagome::scale_v2 {
   constexpr void encode(const FN &func, const std::pair<F, S> &p);
 
   template <typename F, typename T, ssize_t S>
-  constexpr void encode(const F &func, const gsl::span<T, S> &c);
+  constexpr void encode(const F &func, const std::span<T, S> &c);
+
+  template <typename F, typename T>
+  constexpr void encode(const F &func, const std::span<T> &c);
 
   template <typename F, typename T, size_t size>
   constexpr void encode(const F &func, const std::array<T, size> &c);
@@ -133,17 +137,42 @@ namespace kagome::scale_v2 {
     return res;
   }
 
+  inline size_t bitUpperBorder(const ::scale::CompactInteger &x) {
+    namespace mp = boost::multiprecision;
+    const size_t size = x.backend().size();
+    const mp::limb_type *const p = x.backend().limbs();
+
+    auto counter = (size - 1) * sizeof(mp::limb_type) * 8;
+    auto value = p[size - 1];
+
+    if constexpr (sizeof(mp::limb_type) == sizeof(uint64_t)) {
+      counter += sizeof(uint64_t) * 8
+               - (value == 0 ? sizeof(uint64_t) * 8 : __builtin_clzll(value));
+    } else if constexpr (sizeof(mp::limb_type) == sizeof(uint32_t)) {
+      counter += sizeof(uint32_t) * 8
+               - (value == 0 ? sizeof(uint32_t) * 8 : __builtin_clz(value));
+    }
+    return counter;
+  }
+
   inline size_t countBytes(::scale::CompactInteger x) {
+    if (x == 0) {
+      return 1ull;
+    }
     namespace mp = boost::multiprecision;
     const size_t size = x.backend().size();
     const mp::limb_type *const p = x.backend().limbs();
 
     auto counter = (size - 1) * sizeof(mp::limb_type);
     auto value = p[size - 1];
-    do {
-      ++counter;
-      value >>= 8;
-    } while (value);
+
+    static_assert(sizeof(mp::limb_type) >= sizeof(uint32_t),
+                  "Unexpected limb size");
+    if constexpr (sizeof(mp::limb_type) == sizeof(uint64_t)) {
+      counter += 1 + ((sizeof(uint64_t) * 8 - __builtin_clzll(value)) - 1) / 8;
+    } else if constexpr (sizeof(mp::limb_type) == sizeof(uint32_t)) {
+      counter += 1 + ((sizeof(uint32_t) * 8 - __builtin_clz(value)) - 1) / 8;
+    }
     return counter;
   }
 
@@ -189,14 +218,10 @@ namespace kagome::scale_v2 {
             typename I = std::decay_t<T>,
             std::enable_if_t<std::is_unsigned_v<I>, bool> = true>
   constexpr void encodeCompactSmall(const F &func, T val) {
-    constexpr size_t sz = sizeof(I);
-    constexpr uint8_t mask = 3 << 6;
-    const uint8_t msb_byte = (uint8_t)(val >> ((sz - 1ull) * 8ull));
-
-    BOOST_ASSERT_MSG((msb_byte & mask) == 0,
+    BOOST_ASSERT_MSG((val >> (8 * sizeof(I) - 2)) == 0,
                      "Unexpected compact value in encoder");
     val <<= 2;
-    val += (sz / 2ull);
+    val |= (sizeof(I) / 2ull);
 
     encode(func, val);
   }
@@ -215,11 +240,6 @@ namespace kagome::scale_v2 {
 
     if (val < ::scale::compact::EncodingCategoryLimits::kMinBigInteger) {
       encodeCompactSmall(func, static_cast<uint32_t>(val));
-      return;
-    }
-
-    if (val >= (1ul << 63ull)) {
-      encode(func, ::scale::CompactInteger{val});
       return;
     }
 
@@ -275,17 +295,18 @@ namespace kagome::scale_v2 {
       raise(::scale::EncodeError::NEGATIVE_COMPACT_INTEGER);
     }
 
-    if (value < ::scale::compact::EncodingCategoryLimits::kMinUint16) {
+    const size_t bit_border = bitUpperBorder(value);
+    if (bit_border <= 6) {  // kMinUint16
       encodeCompactSmall(func, value.convert_to<uint8_t>());
       return;
     }
 
-    if (value < ::scale::compact::EncodingCategoryLimits::kMinUint32) {
+    if (bit_border <= 14) {  // kMinUint32
       encodeCompactSmall(func, value.convert_to<uint16_t>());
       return;
     }
 
-    if (value < ::scale::compact::EncodingCategoryLimits::kMinBigInteger) {
+    if (bit_border <= 30) {  // kMinBigInteger
       encodeCompactSmall(func, value.convert_to<uint32_t>());
       return;
     }
@@ -297,14 +318,15 @@ namespace kagome::scale_v2 {
       raise(::scale::EncodeError::COMPACT_INTEGER_TOO_BIG);
     }
 
-    uint8_t result[kReserved];
+    namespace mp = boost::multiprecision;
+    constexpr size_t limb_sz = sizeof(mp::limb_type);
+
+    uint8_t result[1 + ((kReserved + limb_sz - 1) / limb_sz) * limb_sz];
     result[0] = (bigIntLength - 4) * 4 + 3;  // header
 
-    namespace mp = boost::multiprecision;
     const size_t size = value.backend().size();
     const mp::limb_type *const p = value.backend().limbs();
 
-    constexpr size_t limb_sz = sizeof(mp::limb_type);
     size_t ix = 0ull;
     for (; ix < size; ++ix) {
       *(mp::limb_type *)&result[1ull + ix * limb_sz] = math::toLE(p[ix]);
@@ -325,8 +347,14 @@ namespace kagome::scale_v2 {
     }
   }
 
+  template <typename F, typename T>
+  constexpr void encode(const F &func, const std::span<T> &c) {
+    encodeCompact(func, c.size());
+    encode(func, c.begin(), c.end());
+  }
+
   template <typename F, typename T, ssize_t S>
-  constexpr void encode(const F &func, const gsl::span<T, S> &c) {
+  constexpr void encode(const F &func, const std::span<T, S> &c) {
     if constexpr (S == -1) {
       encodeCompact(func, c.size());
       encode(func, c.begin(), c.end());
@@ -429,6 +457,6 @@ namespace kagome::scale_v2 {
     }
   }
 
-}  // namespace kagome::scale_v2
+}  // namespace kagome::scale
 
 #endif  // KAGOME_SCALE_ENCODER_PRIMITIVES_HPP

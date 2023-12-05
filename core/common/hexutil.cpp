@@ -1,12 +1,14 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
 #include "common/hexutil.hpp"
 
 #include <boost/algorithm/hex.hpp>
-#include <gsl/span>
+
+#include "common/buffer_view.hpp"
 
 OUTCOME_CPP_DEFINE_CATEGORY(kagome::common, UnhexError, e) {
   using kagome::common::UnhexError;
@@ -43,19 +45,19 @@ namespace kagome::common {
     return str;
   }
 
-  std::string hex_upper(const gsl::span<const uint8_t> bytes) noexcept {
+  std::string hex_upper(BufferView bytes) noexcept {
     std::string res(bytes.size() * 2, '\x00');
     boost::algorithm::hex(bytes.begin(), bytes.end(), res.begin());
     return res;
   }
 
-  std::string hex_lower(const gsl::span<const uint8_t> bytes) noexcept {
+  std::string hex_lower(BufferView bytes) noexcept {
     std::string res(bytes.size() * 2, '\x00');
     boost::algorithm::hex_lower(bytes.begin(), bytes.end(), res.begin());
     return res;
   }
 
-  std::string hex_lower_0x(gsl::span<const uint8_t> bytes) noexcept {
+  std::string hex_lower_0x(BufferView bytes) noexcept {
     constexpr char prefix[] = {'0', 'x'};
     constexpr size_t prefix_len = sizeof(prefix);
 
@@ -65,6 +67,10 @@ namespace kagome::common {
     boost::algorithm::hex_lower(
         bytes.begin(), bytes.end(), res.begin() + prefix_len);
     return res;
+  }
+
+  std::string hex_lower_0x(const uint8_t *data, size_t size) noexcept {
+    return hex_lower_0x(BufferView(data, size));
   }
 
   outcome::result<std::vector<uint8_t>> unhex(std::string_view hex) {
@@ -88,7 +94,7 @@ namespace kagome::common {
 
   outcome::result<std::vector<uint8_t>> unhexWith0x(
       std::string_view hex_with_prefix) {
-    const static std::string leading_chrs = "0x";
+    static const std::string leading_chrs = "0x";
 
     if (hex_with_prefix.substr(0, leading_chrs.size()) != leading_chrs) {
       return UnhexError::MISSING_0X_PREFIX;

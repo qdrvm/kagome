@@ -1,10 +1,10 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_DISPUTE_STORAGE
-#define KAGOME_DISPUTE_STORAGE
+#pragma once
 
 #include "dispute_coordinator/types.hpp"
 #include "network/types/collator_messages.hpp"
@@ -48,5 +48,3 @@ namespace kagome::dispute {
   };
 
 }  // namespace kagome::dispute
-
-#endif  // KAGOME_DISPUTE_STORAGE

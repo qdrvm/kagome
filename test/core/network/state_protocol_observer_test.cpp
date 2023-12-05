@@ -1,5 +1,6 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -11,7 +12,7 @@
 #include "mock/core/blockchain/block_header_repository_mock.hpp"
 #include "mock/core/storage/trie_pruner/trie_pruner_mock.hpp"
 #include "network/types/state_request.hpp"
-#include "storage/in_memory/in_memory_storage.hpp"
+#include "storage/in_memory/in_memory_spaced_storage.hpp"
 #include "storage/trie/impl/trie_storage_backend_impl.hpp"
 #include "storage/trie/impl/trie_storage_impl.hpp"
 #include "storage/trie/polkadot_trie/polkadot_trie_factory_impl.hpp"
@@ -38,14 +39,16 @@ using testing::_;
 using testing::Return;
 
 std::shared_ptr<TrieStorage> makeEmptyInMemoryTrie() {
-  auto backend =
+  auto spaced_storage =
+      std::make_shared<kagome::storage::InMemorySpacedStorage>();
+  auto node_backend =
       std::make_shared<kagome::storage::trie::TrieStorageBackendImpl>(
-          std::make_shared<kagome::storage::InMemoryStorage>());
+          spaced_storage);
 
   auto trie_factory = std::make_shared<PolkadotTrieFactoryImpl>();
   auto codec = std::make_shared<PolkadotCodec>();
-  auto serializer =
-      std::make_shared<TrieSerializerImpl>(trie_factory, codec, backend);
+  auto serializer = std::make_shared<TrieSerializerImpl>(
+      trie_factory, codec, node_backend);
   auto state_pruner = std::make_shared<TriePrunerMock>();
   ON_CALL(*state_pruner,
           addNewState(testing::A<const storage::trie::PolkadotTrie &>(), _))
@@ -66,11 +69,12 @@ BlockHeader makeBlockHeader(RootHash hash) {
   uint32_t num = 1;
   std::string str_num = std::to_string(num);
   return kagome::primitives::BlockHeader{
-      makeHash("block_genesis_hash"),
-      num,
-      hash,
-      makeHash("block_" + str_num + "_ext_root"),
-      {}};
+      num,                                         // number
+      makeHash("block_genesis_hash"),              // parent
+      hash,                                        // state root
+      makeHash("block_" + str_num + "_ext_root"),  // extrinsics root
+      {},                                          // digest
+  };
 }
 
 class StateProtocolObserverTest : public testing::Test {
@@ -133,7 +137,7 @@ TEST_F(StateProtocolObserverTest, Simple) {
   StateRequest request{
       .hash = "1"_hash256,
       .start = {},
-      .no_proof = false,
+      .no_proof = true,
   };
 
   EXPECT_OUTCOME_TRUE(response,

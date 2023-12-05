@@ -1,5 +1,6 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -8,28 +9,32 @@
 #include "parachain/pvf/pvf_impl.hpp"
 
 #include "mock/core/application/app_configuration_mock.hpp"
-#include "mock/core/blockchain/block_header_repository_mock.hpp"
+#include "mock/core/application/app_state_manager_mock.hpp"
+#include "mock/core/blockchain/block_tree_mock.hpp"
 #include "mock/core/crypto/hasher_mock.hpp"
 #include "mock/core/crypto/sr25519_provider_mock.hpp"
 #include "mock/core/host_api/host_api_mock.hpp"
-#include "mock/core/runtime/executor_mock.hpp"
 #include "mock/core/runtime/memory_provider_mock.hpp"
 #include "mock/core/runtime/module_factory_mock.hpp"
 #include "mock/core/runtime/module_instance_mock.hpp"
 #include "mock/core/runtime/module_mock.hpp"
 #include "mock/core/runtime/parachain_host_mock.hpp"
+#include "mock/core/runtime/runtime_context_factory_mock.hpp"
 #include "mock/core/runtime/runtime_properties_cache_mock.hpp"
 #include "mock/core/runtime/trie_storage_provider_mock.hpp"
 #include "parachain/types.hpp"
+#include "runtime/executor.hpp"
 #include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
 #include "testutil/prepare_loggers.hpp"
 
 using kagome::common::Buffer;
+using kagome::common::BufferView;
 using kagome::common::Hash256;
 using kagome::parachain::ParachainRuntime;
 using kagome::parachain::Pvf;
 using kagome::parachain::PvfImpl;
+namespace application = kagome::application;
 namespace crypto = kagome::crypto;
 namespace runtime = kagome::runtime;
 namespace blockchain = kagome::blockchain;
@@ -53,27 +58,18 @@ class PvfTest : public testing::Test {
     module_factory_ = std::make_shared<runtime::ModuleFactoryMock>();
     auto runtime_properties_cache =
         std::make_shared<runtime::RuntimePropertiesCacheMock>();
-    auto block_header_repository =
-        std::make_shared<blockchain::BlockHeaderRepositoryMock>();
+    auto block_tree = std::make_shared<blockchain::BlockTreeMock>();
     auto sr25519_provider = std::make_shared<crypto::Sr25519ProviderMock>();
     auto parachain_api = std::make_shared<runtime::ParachainHostMock>();
-    auto config = std::make_shared<kagome::application::AppConfigurationMock>();
-    ON_CALL(*config, parachainRuntimeInstanceCacheSize())
-        .WillByDefault(Return(2));
 
     ON_CALL(*sr25519_provider, verify(_, _, _)).WillByDefault(Return(true));
-    ON_CALL(*block_header_repository, getHashByNumber(_))
-        .WillByDefault(Return("hash"_hash256));
-    ON_CALL(*block_header_repository, getBlockHeader(_))
+    ON_CALL(*block_tree, getBlockHeader(_))
         .WillByDefault(Return(primitives::BlockHeader{}));
 
     ctx_factory = std::make_shared<runtime::RuntimeContextFactoryMock>();
     auto cache = std::make_shared<runtime::RuntimePropertiesCacheMock>();
 
-    auto executor = std::make_shared<runtime::ExecutorMock>(ctx_factory, cache);
-    kagome::parachain::ValidationResult res;
-    ON_CALL(*executor, callWithCtx(_, "validate_block", _))
-        .WillByDefault(Return(Buffer{scale::encode(res).value()}));
+    auto executor = std::make_shared<runtime::Executor>(ctx_factory, cache);
 
     EXPECT_CALL(*parachain_api, check_validation_outputs(_, _, _))
         .WillRepeatedly(Return(outcome::success(true)));
@@ -82,27 +78,40 @@ class PvfTest : public testing::Test {
     EXPECT_CALL(*parachain_api, session_executor_params(_, _))
         .WillRepeatedly(Return(outcome::success(std::nullopt)));
 
-    pvf_ = std::make_shared<PvfImpl>(hasher_,
-                                     module_factory_,
-                                     runtime_properties_cache,
-                                     block_header_repository,
-                                     sr25519_provider,
-                                     parachain_api,
-                                     executor,
-                                     ctx_factory,
-                                     config);
+    auto app_state_manager =
+        std::make_shared<application::AppStateManagerMock>();
+
+    pvf_ = std::make_shared<PvfImpl>(
+        PvfImpl::Config{
+            .precompile_modules = false,
+            .runtime_instance_cache_size = 2,
+            .precompile_threads_num = 0,
+        },
+        hasher_,
+        module_factory_,
+        runtime_properties_cache,
+        block_tree,
+        sr25519_provider,
+        parachain_api,
+        executor,
+        ctx_factory,
+        app_state_manager);
   }
 
-  outcome::result<std::shared_ptr<runtime::Module>> make_module_mock(
-      gsl::span<const uint8_t> code, const Hash256 &code_hash) {
+  outcome::result<std::shared_ptr<runtime::Module>, runtime::CompilationError>
+  make_module_mock(BufferView code, const Hash256 &code_hash) {
     auto module = std::make_shared<runtime::ModuleMock>();
     auto instance = std::make_shared<runtime::ModuleInstanceMock>();
     ON_CALL(*module, instantiate()).WillByDefault(Return(instance));
+    auto res = scale::encode(kagome::parachain::ValidationResult{}).value();
+    ON_CALL(*instance, callExportFunction(_, "validate_block", _))
+        .WillByDefault(Return(outcome::success(res)));
     ON_CALL(*instance, getCodeHash()).WillByDefault(ReturnRef(code_hash));
     ON_CALL(*ctx_factory, ephemeral(_, _, _))
         .WillByDefault(Invoke([instance]() {
           return runtime::RuntimeContext::create_TEST(instance);
         }));
+
     return module;
   }
 

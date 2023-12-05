@@ -1,10 +1,10 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_TEST_MOCK_CORE_RUNTIME_WAVM_INTRINSIC_RESOLVER_MOCK_HPP
-#define KAGOME_TEST_MOCK_CORE_RUNTIME_WAVM_INTRINSIC_RESOLVER_MOCK_HPP
+#pragma once
 
 #include "runtime/wavm/intrinsic_resolver.hpp"
 
@@ -33,5 +33,3 @@ namespace kagome::runtime::wavm {
                 (const, override));
   };
 }  // namespace kagome::runtime::wavm
-
-#endif  // KAGOME_TEST_MOCK_CORE_RUNTIME_WAVM_INTRINSIC_RESOLVER_MOCK_HPP

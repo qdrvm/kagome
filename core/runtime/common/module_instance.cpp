@@ -1,13 +1,14 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
 #include "runtime/module_instance.hpp"
 
+#include "common/int_serialization.hpp"
 #include "runtime/memory_provider.hpp"
 #include "runtime/trie_storage_provider.hpp"
-#include "common/int_serialization.hpp"
 
 OUTCOME_CPP_DEFINE_CATEGORY(kagome::runtime, ModuleInstance::Error, e) {
   using E = kagome::runtime::ModuleInstance::Error;
@@ -17,13 +18,15 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::runtime, ModuleInstance::Error, e) {
       return "Failed to extract heap base from a module";
     case E::HEAP_BASE_TOO_LOW:
       return "Heap base too low";
+    case E::INVALID_CALL_RESULT:
+      return "The size of the buffer returned by the runtime does not match "
+             "the size of the requested return type";
   }
   return "Unknown ModuleInstance error";
 }
 
 namespace kagome::runtime {
   using namespace kagome::common::literals;
-
   outcome::result<void> ModuleInstance::resetMemory(
       const MemoryLimits &limits) {
     static auto log = log::createLogger("RuntimeEnvironmentFactory", "runtime");
@@ -38,37 +41,43 @@ namespace kagome::runtime {
     BOOST_ASSERT(heap_base > 0);
     auto &memory_provider = getEnvironment().memory_provider;
     OUTCOME_TRY(const_cast<MemoryProvider &>(*memory_provider)
-                    .resetMemory(MemoryConfig{static_cast<WasmSize>(heap_base),
+                    .resetMemory(MemoryConfig{static_cast<uint32_t>(heap_base),
                                               limits}));
     auto &memory = memory_provider->getCurrentMemory()->get();
 
-    static auto heappages_key = ":heappages"_buf;
-    OUTCOME_TRY(heappages,
-                getEnvironment().storage_provider->getCurrentBatch()->tryGet(
-                    heappages_key));
+    static const auto heappages_key = ":heappages"_buf;
+    auto batch = getEnvironment().storage_provider->getCurrentBatch();
+    OUTCOME_TRY(heappages, batch->tryGet(heappages_key));
     if (heappages) {
       if (sizeof(uint64_t) != heappages->size()) {
-        log->error(
-            "Unable to read :heappages value. Type size mismatch. "
-            "Required {} bytes, but {} available",
-            sizeof(uint64_t),
-            heappages->size());
+        SL_ERROR(log,
+                 "Unable to read :heappages value. Type size mismatch. "
+                 "Required {} bytes, but {} available",
+                 sizeof(uint64_t),
+                 heappages->size());
       } else {
         uint64_t pages = common::le_bytes_to_uint64(heappages->view());
         memory.resize(pages * kMemoryPageSize);
-        log->trace(
+        SL_TRACE(
+            log,
             "Creating wasm module with non-default :heappages value set to {}",
             pages);
       }
     }
 
     size_t max_data_segment_end = 0;
+    size_t segments_num = 0;
     forDataSegment([&](ModuleInstance::SegmentOffset offset,
                        ModuleInstance::SegmentData segment) {
       max_data_segment_end =
           std::max(max_data_segment_end, offset + segment.size());
+      segments_num++;
+      SL_DEBUG(log,
+               "Data segment {} at offset {}",
+               common::BufferView{segment},
+               offset);
     });
-    if (gsl::narrow<size_t>(heap_base) < max_data_segment_end) {
+    if (static_cast<size_t>(heap_base) < max_data_segment_end) {
       return ModuleInstance::Error::HEAP_BASE_TOO_LOW;
     }
 

@@ -1,10 +1,10 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_PARACHAIN_BACKING_STORE_IMPL_HPP
-#define KAGOME_PARACHAIN_BACKING_STORE_IMPL_HPP
+#pragma once
 
 #include "parachain/backing/store.hpp"
 
@@ -20,7 +20,7 @@ namespace kagome::parachain {
     BackingStoreImpl(std::shared_ptr<crypto::Hasher> hasher);
 
     std::optional<ImportResult> put(
-        std::unordered_map<ParachainId, std::vector<ValidatorIndex>> const
+        const std::unordered_map<ParachainId, std::vector<ValidatorIndex>>
             &groups,
         Statement statement) override;
     std::vector<BackedCandidate> get(
@@ -29,17 +29,17 @@ namespace kagome::parachain {
              BackedCandidate &&candidate) override;
 
     std::optional<network::CommittedCandidateReceipt> get_candidate(
-        network::CandidateHash const &candidate_hash) const override;
+        const network::CandidateHash &candidate_hash) const override;
 
-    std::optional<std::reference_wrapper<StatementInfo const>>
+    std::optional<std::reference_wrapper<const StatementInfo>>
     get_validity_votes(
-        network::CandidateHash const &candidate_hash) const override;
+        const network::CandidateHash &candidate_hash) const override;
 
     void remove(const BlockHash &relay_parent) override;
 
    private:
     bool is_in_group(
-        std::unordered_map<ParachainId, std::vector<ValidatorIndex>> const
+        const std::unordered_map<ParachainId, std::vector<ValidatorIndex>>
             &groups,
         GroupIndex group,
         ValidatorIndex authority);
@@ -51,5 +51,3 @@ namespace kagome::parachain {
         backed_candidates_;
   };
 }  // namespace kagome::parachain
-
-#endif  // KAGOME_PARACHAIN_BACKING_STORE_IMPL_HPP

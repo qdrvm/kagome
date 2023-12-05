@@ -1,13 +1,15 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
 #pragma once
 
 #include "common/unused.hpp"
+#include "consensus/beefy/types/authority.hpp"
 #include "crypto/ecdsa_types.hpp"
-#include "primitives/authority.hpp"
+#include "primitives/common.hpp"
 
 /**
  * Test
@@ -24,23 +26,32 @@ namespace kagome::consensus::beefy {
     SCALE_TIE(2);
 
     std::vector<crypto::EcdsaPublicKey> validators;
-    primitives::AuthoritySetId id;
+    AuthoritySetId id;
+
+    std::optional<AuthorityIndex> find(
+        const crypto::EcdsaPublicKey &key) const {
+      auto it = std::find(validators.begin(), validators.end(), key);
+      if (it == validators.end()) {
+        return std::nullopt;
+      }
+      return it - validators.begin();
+    }
   };
 
-  using ConsensusDigest =
-      boost::variant<Unused<0>,
-                     ValidatorSet,                // AuthoritiesChange
-                     primitives::AuthorityIndex,  // OnDisabled
-                     MmrRootHash>;
+  using ConsensusDigest = boost::variant<Unused<0>,
+                                         ValidatorSet,    // AuthoritiesChange
+                                         AuthorityIndex,  // OnDisabled
+                                         MmrRootHash>;
 
   using PayloadId = common::Blob<2>;
+  constexpr PayloadId kMmr{{'m', 'h'}};
 
   struct Commitment {
     SCALE_TIE(3);
 
     std::vector<std::pair<PayloadId, common::Buffer>> payload;
     primitives::BlockNumber block_number;
-    primitives::AuthoritySetId validator_set_id;
+    AuthoritySetId validator_set_id;
   };
 
   struct VoteMessage {
@@ -55,8 +66,8 @@ namespace kagome::consensus::beefy {
     Commitment commitment;
     std::vector<std::optional<crypto::EcdsaSignature>> signatures;
   };
-  scale::ScaleEncoderStream &operator<<(scale::ScaleEncoderStream &s,
-                                        const SignedCommitment &v) {
+  inline scale::ScaleEncoderStream &operator<<(scale::ScaleEncoderStream &s,
+                                               const SignedCommitment &v) {
     s << v.commitment;
     size_t count = 0;
     common::Buffer bits;
@@ -80,8 +91,8 @@ namespace kagome::consensus::beefy {
     }
     return s;
   }
-  scale::ScaleDecoderStream &operator>>(scale::ScaleDecoderStream &s,
-                                        SignedCommitment &v) {
+  inline scale::ScaleDecoderStream &operator>>(scale::ScaleDecoderStream &s,
+                                               SignedCommitment &v) {
     s >> v.commitment;
     common::Buffer bits;
     s >> bits;
@@ -111,4 +122,6 @@ namespace kagome::consensus::beefy {
   }
 
   using BeefyJustification = boost::variant<Unused<0>, SignedCommitment>;
+
+  using BeefyGossipMessage = boost::variant<VoteMessage, BeefyJustification>;
 }  // namespace kagome::consensus::beefy

@@ -1,10 +1,10 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_TRIE_PRUNER_IMPL_HPP
-#define KAGOME_TRIE_PRUNER_IMPL_HPP
+#pragma once
 
 #include "storage/trie_pruner/trie_pruner.hpp"
 
@@ -30,11 +30,6 @@ namespace kagome::application {
 namespace kagome::crypto {
   class Hasher;
 }
-
-namespace kagome::blockchain {
-  class BlockTree;
-  class BlockStorage;
-}  // namespace kagome::blockchain
 
 namespace kagome::storage {
   class SpacedStorage;
@@ -67,7 +62,7 @@ namespace kagome::storage::trie_pruner {
 
     TriePrunerImpl(
         std::shared_ptr<application::AppStateManager> app_state_manager,
-        std::shared_ptr<storage::trie::TrieStorageBackend> trie_storage,
+        std::shared_ptr<storage::trie::TrieStorageBackend> node_storage,
         std::shared_ptr<const storage::trie::TrieSerializer> serializer,
         std::shared_ptr<const storage::trie::Codec> codec,
         std::shared_ptr<storage::SpacedStorage> storage,
@@ -91,6 +86,7 @@ namespace kagome::storage::trie_pruner {
         const primitives::BlockHeader &state) override;
 
     std::optional<primitives::BlockInfo> getLastPrunedBlock() const override {
+      std::unique_lock lock{mutex_};
       return last_pruned_block_;
     }
 
@@ -117,12 +113,15 @@ namespace kagome::storage::trie_pruner {
     outcome::result<void> recoverState(
         const blockchain::BlockTree &block_tree) override;
 
+    void restoreStateAtFinalized(
+        const blockchain::BlockTree &block_tree) override;
+
    private:
     outcome::result<void> restoreStateAt(
         const primitives::BlockHeader &last_pruned_block,
         const blockchain::BlockTree &block_tree);
 
-    outcome::result<void> prune(BufferBatch &batch,
+    outcome::result<void> prune(BufferBatch &node_batch,
                                 const storage::trie::RootHash &state);
 
     outcome::result<storage::trie::RootHash> addNewStateWith(
@@ -131,13 +130,13 @@ namespace kagome::storage::trie_pruner {
     // store the persistent pruner info to the database
     outcome::result<void> savePersistentState() const;
 
-    std::mutex ref_count_mutex_;
+    mutable std::mutex mutex_;
     std::unordered_map<common::Hash256, size_t> ref_count_;
     std::unordered_map<common::Hash256, size_t> value_ref_count_;
     std::unordered_set<common::Hash256> immortal_nodes_;
 
     std::optional<primitives::BlockInfo> last_pruned_block_;
-    std::shared_ptr<storage::trie::TrieStorageBackend> trie_storage_;
+    std::shared_ptr<storage::trie::TrieStorageBackend> node_storage_;
     std::shared_ptr<const storage::trie::TrieSerializer> serializer_;
     std::shared_ptr<const storage::trie::Codec> codec_;
     std::shared_ptr<storage::SpacedStorage> storage_;
@@ -151,5 +150,3 @@ namespace kagome::storage::trie_pruner {
 }  // namespace kagome::storage::trie_pruner
 
 OUTCOME_HPP_DECLARE_ERROR(kagome::storage::trie_pruner, TriePrunerImpl::Error);
-
-#endif  // KAGOME_TRIE_PRUNER_IMPL_HPP

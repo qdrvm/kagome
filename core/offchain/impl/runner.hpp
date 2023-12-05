@@ -1,18 +1,22 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_OFFCHAIN_IMPL_RUNNER_HPP
-#define KAGOME_OFFCHAIN_IMPL_RUNNER_HPP
+#pragma once
 
 #include <deque>
-#include <gsl/gsl_util>
 #include <mutex>
+
+#include <libp2p/common/final_action.hpp>
 
 #include "utils/thread_pool.hpp"
 
 namespace kagome::offchain {
+  constexpr size_t kMaxThreads = 3;
+  constexpr size_t kMaxTasks = 1000;
+
   /**
    * Enqueue at most `max_tasks_` to run on number of `threads_`.
    * Old tasks do not run and are removed when queue is full.
@@ -21,11 +25,16 @@ namespace kagome::offchain {
    public:
     using Task = std::function<void()>;
 
-    Runner(size_t threads, size_t max_tasks)
+    Runner(size_t threads = kMaxThreads, size_t max_tasks = kMaxTasks)
         : threads_{threads},
           free_threads_{threads},
           max_tasks_{max_tasks},
           thread_pool_{ThreadPool::create("ocw", threads_)} {}
+
+    struct Inject {
+      explicit Inject() = default;
+    };
+    Runner(Inject, ...) : Runner(kMaxThreads, kMaxTasks) {}
 
     void run(Task &&task) {
       std::unique_lock lock{mutex_};
@@ -41,7 +50,7 @@ namespace kagome::offchain {
       thread_pool_->io_context()->post(
           [weak{weak_from_this()}, task{std::move(task)}] {
             if (auto self = weak.lock()) {
-              auto release = gsl::finally([&] {
+              ::libp2p::common::FinalAction release([&] {
                 std::unique_lock lock{self->mutex_};
                 ++self->free_threads_;
               });
@@ -73,5 +82,3 @@ namespace kagome::offchain {
     std::shared_ptr<ThreadPool> thread_pool_;
   };
 }  // namespace kagome::offchain
-
-#endif  // KAGOME_OFFCHAIN_IMPL_RUNNER_HPP

@@ -1,10 +1,10 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_NETWORK_IMPL_PROTOCOLS_LIGHT_HPP
-#define KAGOME_NETWORK_IMPL_PROTOCOLS_LIGHT_HPP
+#pragma once
 
 #include "network/adapters/light.hpp"
 #include "network/helpers/protobuf_message_read_writer.hpp"
@@ -14,9 +14,9 @@ namespace kagome::application {
   class ChainSpec;
 }  // namespace kagome::application
 
-namespace kagome::primitives {
-  struct GenesisBlockHeader;
-}  // namespace kagome::primitives
+namespace kagome::blockchain {
+  class GenesisBlockHash;
+}  // namespace kagome::blockchain
 
 namespace kagome::runtime {
   class ModuleRepository;
@@ -45,12 +45,11 @@ namespace kagome::network {
    public:
     LightProtocol(libp2p::Host &host,
                   const application::ChainSpec &chain_spec,
-                  const primitives::GenesisBlockHeader &genesis,
+                  const blockchain::GenesisBlockHash &genesis,
                   std::shared_ptr<blockchain::BlockHeaderRepository> repository,
                   std::shared_ptr<storage::trie::TrieStorage> storage,
                   std::shared_ptr<runtime::ModuleRepository> module_repo,
-                  std::shared_ptr<runtime::Executor> executor,
-                  std::shared_ptr<runtime::RuntimeContextFactory> ctx_factory);
+                  std::shared_ptr<runtime::Executor> executor);
 
     std::optional<outcome::result<ResponseType>> onRxRequest(
         RequestType req, std::shared_ptr<Stream>) override;
@@ -62,8 +61,5 @@ namespace kagome::network {
     std::shared_ptr<storage::trie::TrieStorage> storage_;
     std::shared_ptr<runtime::ModuleRepository> module_repo_;
     std::shared_ptr<runtime::Executor> executor_;
-    std::shared_ptr<runtime::RuntimeContextFactory> ctx_factory_;
   };
 }  // namespace kagome::network
-
-#endif  // KAGOME_NETWORK_IMPL_PROTOCOLS_LIGHT_HPP

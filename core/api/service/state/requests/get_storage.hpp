@@ -1,10 +1,10 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_API_REQUEST_GET_STORAGE
-#define KAGOME_API_REQUEST_GET_STORAGE
+#pragma once
 
 #include <jsonrpc-lean/request.h>
 
@@ -19,8 +19,8 @@ namespace kagome::api::state::request {
 
   class GetStorage final {
    public:
-    GetStorage(GetStorage const &) = delete;
-    GetStorage &operator=(GetStorage const &) = delete;
+    GetStorage(const GetStorage &) = delete;
+    GetStorage &operator=(const GetStorage &) = delete;
 
     GetStorage(GetStorage &&) = default;
     GetStorage &operator=(GetStorage &&) = default;
@@ -39,5 +39,3 @@ namespace kagome::api::state::request {
   };
 
 }  // namespace kagome::api::state::request
-
-#endif  // KAGOME_STATE_JRPC_PROCESSOR_HPP

@@ -1,5 +1,6 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -38,7 +39,7 @@ namespace kagome::crypto {
         return Error::SOFT_JUNCTION_NOT_SUPPORTED;
       }
       seed = hasher_->blake2b_256(
-          scale::encode("Ed25519HDKD", seed, junction.cc).value());
+          scale::encode("Ed25519HDKD"_bytes, seed, junction.cc).value());
     }
     std::array<uint8_t, ED25519_KEYPAIR_LENGTH> kp_bytes{};
     ed25519_keypair_from_seed(kp_bytes.data(), seed.data());
@@ -52,7 +53,7 @@ namespace kagome::crypto {
   }
 
   outcome::result<Ed25519Signature> Ed25519ProviderImpl::sign(
-      const Ed25519Keypair &keypair, gsl::span<const uint8_t> message) const {
+      const Ed25519Keypair &keypair, common::BufferView message) const {
     Ed25519Signature sig;
     std::array<uint8_t, ED25519_KEYPAIR_LENGTH> keypair_bytes;
     std::copy(keypair.secret_key.begin(),
@@ -64,14 +65,16 @@ namespace kagome::crypto {
     auto res = ed25519_sign(
         sig.data(), keypair_bytes.data(), message.data(), message.size_bytes());
     if (res != ED25519_RESULT_OK) {
-      logger_->error("Error during ed25519 sign; error code: {}", res);
+      SL_ERROR(logger_,
+               "Error during ed25519 sign; error code: {}",
+               static_cast<size_t>(res));
       return Error::SIGN_FAILED;
     }
     return sig;
   }
   outcome::result<bool> Ed25519ProviderImpl::verify(
       const Ed25519Signature &signature,
-      gsl::span<const uint8_t> message,
+      common::BufferView message,
       const Ed25519PublicKey &public_key) const {
     auto res = ed25519_verify(signature.data(),
                               public_key.data(),
@@ -83,7 +86,9 @@ namespace kagome::crypto {
     if (res == ED25519_RESULT_VERIFICATION_FAILED) {
       return false;
     }
-    logger_->error("Error verifying a signature; error code: {}", res);
+    SL_ERROR(logger_,
+             "Error verifying a signature; error code: {}",
+             static_cast<size_t>(res));
     return Error::VERIFICATION_FAILED;
   }
 }  // namespace kagome::crypto

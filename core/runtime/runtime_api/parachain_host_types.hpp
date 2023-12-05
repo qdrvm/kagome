@@ -1,10 +1,10 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_CORE_RUNTIME_PARACHAIN_HOST_TYPES_HPP
-#define KAGOME_CORE_RUNTIME_PARACHAIN_HOST_TYPES_HPP
+#pragma once
 
 #include <scale/bitvec.hpp>
 
@@ -121,11 +121,13 @@ namespace kagome::runtime {
     }
   };
 
+  using FreeCore = Empty;
+
   using ValidatorGroupsAndDescriptor =
       std::tuple<std::vector<ValidatorGroup>, GroupDescriptor>;
-  using CoreState = boost::variant<OccupiedCore,   // 0
-                                   ScheduledCore,  // 1
-                                   Unused<2>>;     // 2
+  using CoreState = std::variant<OccupiedCore,   // 0
+                                 ScheduledCore,  // 1
+                                 FreeCore>;      // 2
   enum class OccupiedCoreAssumption : uint8_t {
     Included,  // 0
     TimedOut,  // 1
@@ -371,4 +373,3 @@ namespace kagome::runtime {
                                        Unused<7>>;  // WasmExtBulkMemory
 
 }  // namespace kagome::runtime
-#endif  // KAGOME_CORE_RUNTIME_PARACHAIN_HOST_TYPES_HPP

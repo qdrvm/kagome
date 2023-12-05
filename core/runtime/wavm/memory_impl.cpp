@@ -1,10 +1,12 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
 #include "runtime/wavm/memory_impl.hpp"
 
+#include "log/trace_macros.hpp"
 #include "runtime/common/memory_allocator.hpp"
 
 namespace kagome::runtime::wavm {
@@ -78,7 +80,7 @@ namespace kagome::runtime::wavm {
     for (auto i = addr; i < addr + n; i++) {
       res.push_back(load<uint8_t>(i));
     }
-    SL_TRACE_FUNC_CALL(logger_, res, this, addr, n);
+    SL_TRACE_FUNC_CALL(logger_, res, static_cast<const void *>(this), addr, n);
     return res;
   }
 
@@ -99,11 +101,11 @@ namespace kagome::runtime::wavm {
     storeBuffer(addr, value);
   }
   void MemoryImpl::storeBuffer(kagome::runtime::WasmPointer addr,
-                               gsl::span<const uint8_t> value) {
+                               common::BufferView value) {
     storeArray(addr, value);
   }
 
-  WasmSpan MemoryImpl::storeBuffer(gsl::span<const uint8_t> value) {
+  WasmSpan MemoryImpl::storeBuffer(common::BufferView value) {
     auto wasm_pointer = allocate(value.size());
     if (wasm_pointer == 0) {
       return 0;

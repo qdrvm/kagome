@@ -1,9 +1,10 @@
-//
-// Created by iceseer on 11/7/22.
-//
+/**
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
+ * SPDX-License-Identifier: Apache-2.0
+ */
 
-#ifndef KAGOME_APPROVAL_STORE_HPP
-#define KAGOME_APPROVAL_STORE_HPP
+#pragma once
 
 #include "utils/non_copyable.hpp"
 
@@ -90,5 +91,3 @@ namespace kagome::parachain {
     return static_cast<const StoreUnit<T> &>(ref);
   }
 }  // namespace kagome::parachain
-
-#endif  // KAGOME_APPROVAL_STORE_HPP

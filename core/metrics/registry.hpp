@@ -1,5 +1,10 @@
-#ifndef KAGOME_CORE_METRICS_REGISTRY_HPP
-#define KAGOME_CORE_METRICS_REGISTRY_HPP
+/**
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+#pragma once
 
 #include <chrono>
 #include <map>
@@ -107,5 +112,3 @@ namespace kagome::metrics {
   };
 
 }  // namespace kagome::metrics
-
-#endif  // KAGOME_CORE_METRICS_REGISTRY_HPP

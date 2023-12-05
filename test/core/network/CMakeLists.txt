@@ -1,5 +1,6 @@
 #
-# Copyright Soramitsu Co., Ltd. All Rights Reserved.
+# Copyright Quadrivium LLC
+# All Rights Reserved
 # SPDX-License-Identifier: Apache-2.0
 #
 
@@ -11,18 +12,7 @@ addtest(block_response_cache_test
 target_link_libraries(block_response_cache_test
     p2p::p2p_peer_id
     network
-    )
-
-addtest(stream_engine_test
-    stream_engine_test.cpp
-    )
-target_link_libraries(stream_engine_test
-    network
-    p2p::p2p_peer_id
-    scale::scale
-    blob
-    outcome
-    logger_for_tests
+    trie_storage_provider
     )
 
 addtest(rpc_libp2p_test

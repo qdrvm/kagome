@@ -1,10 +1,10 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_RUNTIME_SESSIONKEYSAPI
-#define KAGOME_RUNTIME_SESSIONKEYSAPI
+#pragma once
 
 #include <optional>
 
@@ -36,11 +36,9 @@ namespace kagome::runtime {
      * @return the list of public raw public keys + key type.
      */
     virtual outcome::result<
-        std::vector<std::pair<crypto::KeyTypeId, common::Buffer>>>
+        std::vector<std::pair<crypto::KeyType, common::Buffer>>>
     decode_session_keys(const primitives::BlockHash &block_hash,
                         common::BufferView encoded) const = 0;
   };
 
 }  // namespace kagome::runtime
-
-#endif  // KAGOME_RUNTIME_SESSIONKEYSAPI

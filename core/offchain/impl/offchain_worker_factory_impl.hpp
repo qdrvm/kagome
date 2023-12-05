@@ -1,15 +1,16 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_OFFCHAIN_OFFCHAINWORKERFACTORYIMPL
-#define KAGOME_OFFCHAIN_OFFCHAINWORKERFACTORYIMPL
+#pragma once
 
 #include "offchain/offchain_worker_factory.hpp"
 
 #include <libp2p/host/host.hpp>
 
+#include "clock/clock.hpp"
 #include "crypto/random_generator.hpp"
 #include "network/types/own_peer_info.hpp"
 #include "offchain/offchain_persistent_storage.hpp"
@@ -35,7 +36,6 @@ namespace kagome::offchain {
     OffchainWorkerFactoryImpl(
         const application::AppConfiguration &app_config,
         std::shared_ptr<clock::SystemClock> clock,
-        std::shared_ptr<crypto::Hasher> hasher,
         std::shared_ptr<storage::SpacedStorage> storage,
         std::shared_ptr<crypto::CSPRNG> random_generator,
         std::shared_ptr<api::AuthorApi> author_api,
@@ -43,14 +43,11 @@ namespace kagome::offchain {
         std::shared_ptr<offchain::OffchainPersistentStorage> persistent_storage,
         std::shared_ptr<offchain::OffchainWorkerPool> offchain_worker_pool);
 
-    std::shared_ptr<OffchainWorker> make(
-        std::shared_ptr<runtime::Executor> executor,
-        const primitives::BlockHeader &header) override;
+    std::shared_ptr<OffchainWorker> make() override;
 
    private:
     const application::AppConfiguration &app_config_;
     std::shared_ptr<clock::SystemClock> clock_;
-    std::shared_ptr<crypto::Hasher> hasher_;
     std::shared_ptr<storage::SpacedStorage> storage_;
     std::shared_ptr<crypto::CSPRNG> random_generator_;
     std::shared_ptr<api::AuthorApi> author_api_;
@@ -60,5 +57,3 @@ namespace kagome::offchain {
   };
 
 }  // namespace kagome::offchain
-
-#endif  // KAGOME_OFFCHAIN_OFFCHAINWORKERFACTORYIMPL

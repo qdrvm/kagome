@@ -1,5 +1,6 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -103,7 +104,6 @@ TEST_F(BlockBuilderApiTest, DISABLED_FinalizeBlock) {
   preparePersistentStorageExpects();
   createBlock("block_hash"_hash256, 42);
   auto ctx =
-      ctx_factory_->persistentAt("block_hash"_hash256, std::nullopt)
-          .value();
+      ctx_factory_->persistentAt("block_hash"_hash256, std::nullopt).value();
   EXPECT_OUTCOME_FALSE_1(builder_->finalize_block(ctx));
 }

@@ -1,5 +1,6 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -61,7 +62,7 @@ namespace kagome::api {
   }
 
   outcome::result<std::vector<BlockHash>> ChainApiImpl::getBlockHash(
-      gsl::span<const ValueType> values) const {
+      std::span<const ValueType> values) const {
     std::vector<BlockHash> results;
     results.reserve(values.size());
 

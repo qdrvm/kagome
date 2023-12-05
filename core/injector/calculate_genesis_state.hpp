@@ -1,10 +1,10 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_CORE_INJECTOR_GET_GENESIS_STATE_HPP
-#define KAGOME_CORE_INJECTOR_GET_GENESIS_STATE_HPP
+#pragma once
 
 #include "application/chain_spec.hpp"
 #include "runtime/runtime_api/impl/core.hpp"
@@ -14,6 +14,7 @@
 #include "storage/trie_pruner/trie_pruner.hpp"
 
 namespace kagome::injector {
+
   inline outcome::result<storage::trie::RootHash> calculate_genesis_state(
       const application::ChainSpec &chain_spec,
       const runtime::ModuleFactory &module_factory,
@@ -49,5 +50,3 @@ namespace kagome::injector {
     return trie_hash;
   }
 }  // namespace kagome::injector
-
-#endif  // KAGOME_CORE_INJECTOR_GET_GENESIS_STATE_HPP

@@ -1,5 +1,6 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -28,6 +29,11 @@ namespace kagome::telemetry {
       void notifyBlockFinalized(const primitives::BlockInfo &info) override {
         if (service_) {
           service_->notifyBlockFinalized(info);
+        }
+      }
+      void pushBlockStats() override {
+        if (service_) {
+          service_->pushBlockStats();
         }
       }
       void notifyWasSynchronized() override {

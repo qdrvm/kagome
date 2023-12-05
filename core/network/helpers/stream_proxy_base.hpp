@@ -1,10 +1,10 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_NETWORK_HELPERS_STREAM_PROXY_BASE_HPP
-#define KAGOME_NETWORK_HELPERS_STREAM_PROXY_BASE_HPP
+#pragma once
 
 #include <libp2p/connection/stream.hpp>
 
@@ -19,14 +19,10 @@ namespace libp2p::connection {
     explicit StreamProxyBase(std::shared_ptr<Stream> stream)
         : stream{std::move(stream)} {}
 
-    void read(gsl::span<uint8_t> out,
-              size_t bytes,
-              ReadCallbackFunc cb) override {
+    void read(BytesOut out, size_t bytes, ReadCallbackFunc cb) override {
       stream->read(out, bytes, std::move(cb));
     }
-    void readSome(gsl::span<uint8_t> out,
-                  size_t bytes,
-                  ReadCallbackFunc cb) override {
+    void readSome(BytesOut out, size_t bytes, ReadCallbackFunc cb) override {
       stream->readSome(out, bytes, std::move(cb));
     }
     void deferReadCallback(outcome::result<size_t> res,
@@ -34,14 +30,10 @@ namespace libp2p::connection {
       stream->deferReadCallback(res, std::move(cb));
     }
 
-    void write(gsl::span<const uint8_t> in,
-               size_t bytes,
-               WriteCallbackFunc cb) override {
+    void write(BytesIn in, size_t bytes, WriteCallbackFunc cb) override {
       stream->write(in, bytes, std::move(cb));
     }
-    void writeSome(gsl::span<const uint8_t> in,
-                   size_t bytes,
-                   WriteCallbackFunc cb) override {
+    void writeSome(BytesIn in, size_t bytes, WriteCallbackFunc cb) override {
       stream->writeSome(in, bytes, std::move(cb));
     }
     void deferWriteCallback(std::error_code ec, WriteCallbackFunc cb) override {
@@ -81,5 +73,3 @@ namespace libp2p::connection {
     }
   };
 }  // namespace libp2p::connection
-
-#endif  // KAGOME_NETWORK_HELPERS_STREAM_PROXY_BASE_HPP

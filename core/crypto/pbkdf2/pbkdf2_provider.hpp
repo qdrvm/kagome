@@ -1,13 +1,14 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_CRYPTO_PBKDF2_PROVIDER_HPP
-#define KAGOME_CRYPTO_PBKDF2_PROVIDER_HPP
+#pragma once
 
-#include <gsl/span>
+#include <span>
 #include "common/buffer.hpp"
+#include "common/buffer_view.hpp"
 #include "outcome/outcome.hpp"
 
 namespace kagome::crypto {
@@ -30,13 +31,11 @@ namespace kagome::crypto {
      * @return derived key
      */
     virtual outcome::result<common::Buffer> deriveKey(
-        gsl::span<const uint8_t> data,
-        gsl::span<const uint8_t> salt,
+        common::BufferView data,
+        common::BufferView salt,
         size_t iterations,
         size_t key_length) const = 0;
   };
 }  // namespace kagome::crypto
 
 OUTCOME_HPP_DECLARE_ERROR(kagome::crypto, Pbkdf2ProviderError);
-
-#endif  // KAGOME_CRYPTO_PBKDF2_PROVIDER_HPP

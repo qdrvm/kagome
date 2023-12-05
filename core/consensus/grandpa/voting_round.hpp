@@ -1,10 +1,10 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_CONSENSUS_GRANDPA_VOTINGROUND
-#define KAGOME_CONSENSUS_GRANDPA_VOTINGROUND
+#pragma once
 
 #include "common/tagged.hpp"
 #include "consensus/grandpa/movable_round_state.hpp"
@@ -122,5 +122,3 @@ namespace kagome::consensus::grandpa {
   };
 
 }  // namespace kagome::consensus::grandpa
-
-#endif  // KAGOME_CONSENSUS_GRANDPA_VOTINGROUND

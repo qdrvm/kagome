@@ -1,10 +1,10 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_COLLATION_OBSERVER_HPP
-#define KAGOME_COLLATION_OBSERVER_HPP
+#pragma once
 
 #include <libp2p/peer/peer_id.hpp>
 
@@ -31,5 +31,3 @@ namespace kagome::network {
   };
 
 }  // namespace kagome::network
-
-#endif  // KAGOME_COLLATION_OBSERVER_HPP

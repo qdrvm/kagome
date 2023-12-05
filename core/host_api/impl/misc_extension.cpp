@@ -1,15 +1,19 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
 #include "host_api/impl/misc_extension.hpp"
 
+#include "log/trace_macros.hpp"
 #include "primitives/version.hpp"
 #include "runtime/common/uncompress_code_if_needed.hpp"
 #include "runtime/core_api_factory.hpp"
 #include "runtime/memory_provider.hpp"
-#include "runtime/module_repository.hpp"
+#include "runtime/module.hpp"
+#include "runtime/module_factory.hpp"
+#include "runtime/module_instance.hpp"
 #include "runtime/runtime_api/core.hpp"
 #include "scale/scale.hpp"
 
@@ -47,7 +51,8 @@ namespace kagome::host_api {
       return memory.storeBuffer(kErrorRes);
     }
 
-    auto core_api = core_factory_->make(hasher_, uncompressed_code.asVector());
+    auto core_api =
+        core_factory_->make(hasher_, uncompressed_code.asVector()).value();
     auto version_res = core_api->version();
     SL_TRACE_FUNC_CALL(logger_, version_res.has_value(), data);
 
@@ -74,7 +79,7 @@ namespace kagome::host_api {
     logger_->info("hex: {}", buf.toHex());
   }
 
-  void MiscExtension::ext_misc_print_num_version_1(uint64_t value) const {
+  void MiscExtension::ext_misc_print_num_version_1(int64_t value) const {
     logger_->info("num: {}", value);
   }
 

@@ -1,5 +1,6 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -95,7 +96,7 @@ namespace kagome::parachain {
       const network::CandidateHash &candidate_hash) const {
     if (auto it = statements_.find(candidate_hash); it != statements_.end()) {
       for (auto &[_, validity_vote] : it->second.second) {
-        const auto &statement = visit_in_place(
+        const auto statement = visit_in_place(
             validity_vote,
             [](const auto &val) -> std::reference_wrapper<Statement> {
               return {(Statement &)val};

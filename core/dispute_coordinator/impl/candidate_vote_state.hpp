@@ -1,10 +1,10 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_DISPUTE_CANDIDATEVOTESTATE
-#define KAGOME_DISPUTE_CANDIDATEVOTESTATE
+#pragma once
 
 #include "dispute_coordinator/types.hpp"
 
@@ -20,8 +20,6 @@ namespace kagome::dispute {
                                      CandidateEnvironment &env,
                                      Timestamp now);
 
-    CandidateVoteState() = default;
-
     /// Votes already existing for the candidate + receipt.
     CandidateVotes votes;
 
@@ -33,5 +31,3 @@ namespace kagome::dispute {
   };
 
 }  // namespace kagome::dispute
-
-#endif  // KAGOME_DISPUTE_CANDIDATEVOTESTATE

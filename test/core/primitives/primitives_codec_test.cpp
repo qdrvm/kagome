@@ -1,37 +1,28 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
 #include <gtest/gtest.h>
 
-#include <boost/variant.hpp>
 #include "common/blob.hpp"
-#include "common/buffer.hpp"
-#include "common/visitor.hpp"
-#include "outcome/outcome.hpp"
 #include "primitives/block.hpp"
 #include "primitives/block_id.hpp"
-#include "primitives/common.hpp"
 #include "primitives/digest.hpp"
 #include "primitives/extrinsic.hpp"
 #include "primitives/inherent_data.hpp"
-#include "primitives/parachain_host.hpp"
-#include "primitives/scheduled_change.hpp"
-#include "primitives/session_key.hpp"
 #include "primitives/transaction_validity.hpp"
 #include "primitives/version.hpp"
 #include "scale/scale.hpp"
-#include "scale/scale_error.hpp"
-#include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
 #include "testutil/primitives/mp_utils.hpp"
 
 using kagome::common::Blob;
 using kagome::common::Buffer;
 using kagome::common::Hash256;
+using kagome::consensus::grandpa::AuthorityId;
 using kagome::primitives::ApiId;
-using kagome::primitives::AuthorityId;
 using kagome::primitives::Block;
 using kagome::primitives::BlockHeader;
 using kagome::primitives::BlockId;
@@ -68,11 +59,11 @@ class Primitives : public testing::Test {
  protected:
   using array = std::array<uint8_t, 8u>;
   /// block header and corresponding scale representation
-  BlockHeader block_header_{createHash256({0}),     // parent_hash
-                            2,                      // number: number
+  BlockHeader block_header_{2,                      // number: number
+                            createHash256({0}),     // parent_hash
                             createHash256({1}),     // state_root
                             createHash256({2}),     // extrinsic root
-                            Digest{PreRuntime{}}};  // buffer: digest;
+                            Digest{PreRuntime{}}};  // digest;
   /// Extrinsic instance and corresponding scale representation
   Extrinsic extrinsic_{{1, 2, 3}};
   /// block instance and corresponding scale representation
@@ -97,8 +88,7 @@ class Primitives : public testing::Test {
   /// TransactionValidity variant instance as Valid alternative and
   /// corresponding scale representation
   ValidTransaction valid_transaction_{.priority = 1,
-                                      .required_tags
-                                      = {{0, 1}, {2, 3}},
+                                      .required_tags = {{0, 1}, {2, 3}},
                                       .provided_tags = {{4, 5}, {6, 7, 8}},
                                       .longevity = 2,
                                       .propagate = true};
@@ -219,8 +209,8 @@ TEST_F(Primitives, EncodeTransactionValiditySuccess) {
  */
 TEST_F(Primitives, EncodeDecodeAuthorityIdsSuccess) {
   AuthorityId id1, id2;
-  id1.id.fill(1u);
-  id2.id.fill(2u);
+  id1.fill(1u);
+  id2.fill(2u);
   std::vector<AuthorityId> original{id1, id2};
   EXPECT_OUTCOME_TRUE(res, encode(original))
 

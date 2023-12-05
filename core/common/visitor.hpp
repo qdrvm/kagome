@@ -1,10 +1,10 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_VISITOR_HPP
-#define KAGOME_VISITOR_HPP
+#pragma once
 
 #include <optional>
 #include <type_traits>  // for std::decay
@@ -155,6 +155,4 @@ namespace kagome {
   constexpr decltype(auto) match_in_place(T &&t, Fs &&...fs) {
     return match(std::forward<T>(t), make_visitor(std::forward<Fs>(fs)...));
   }
-}  // namespace kagome
-
-#endif  // KAGOME_VISITOR_HPP
+}  // namespace kagome::common

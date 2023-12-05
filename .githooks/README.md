@@ -1,3 +1,9 @@
+[//]: # (
+Copyright Quadrivium LLC
+All Rights Reserved
+SPDX-License-Identifier: Apache-2.0
+)
+
 # Git Hooks
 
 This folder _might_ contain some git-hooks to execute various checkup in Kagome.

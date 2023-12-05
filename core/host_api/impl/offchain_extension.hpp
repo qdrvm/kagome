@@ -1,10 +1,10 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_OFFCHAIN_EXTENSION_HPP
-#define KAGOME_OFFCHAIN_EXTENSION_HPP
+#pragma once
 
 #include "clock/clock.hpp"
 #include "crypto/random_generator.hpp"
@@ -79,22 +79,22 @@ namespace kagome::host_api {
     /**
      * @brief Returns current timestamp
      * @code{.wasm}
-     * (func $ext_offchain_timestamp_version_1 (result u64))
+     * (func $ext_offchain_timestamp_version_1 (result i64))
      * @endcode
-     * @return an u64 integer indicating the current UNIX timestamp
+     * @return an i64 integer indicating the current UNIX timestamp
      * (milliseconds)
      */
-    runtime::WasmU64 ext_offchain_timestamp_version_1();
+    runtime::WasmI64 ext_offchain_timestamp_version_1();
 
     /**
      * @brief Pause the execution until `deadline` is reached
      * @code{.wasm}
-     * (func $ext_offchain_sleep_until_version_1 (param $deadline u64))
+     * (func $ext_offchain_sleep_until_version_1 (param $deadline i64))
      * @endcode
-     * @param deadline an u64 integer indicating the current UNIX timestamp
+     * @param deadline an i64 integer indicating the current UNIX timestamp
      * (milliseconds)
      */
-    void ext_offchain_sleep_until_version_1(runtime::WasmU64 deadline);
+    void ext_offchain_sleep_until_version_1(runtime::WasmI64 deadline);
 
     /**
      * @brief Generates a random seed. This is a truly random non deterministic
@@ -385,5 +385,3 @@ namespace kagome::host_api {
   };
 
 }  // namespace kagome::host_api
-
-#endif /* KAGOME_OFFCHAIN_EXTENSION_HPP */

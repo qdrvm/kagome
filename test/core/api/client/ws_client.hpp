@@ -1,10 +1,10 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_TEST_CORE_API_CLIENT_WS_CLIENT_HPP
-#define KAGOME_TEST_CORE_API_CLIENT_WS_CLIENT_HPP
+#pragma once
 
 #include <boost/asio.hpp>
 #include <boost/beast.hpp>
@@ -85,5 +85,3 @@ namespace test {
 }  // namespace test
 
 OUTCOME_HPP_DECLARE_ERROR(test, WsClientError)
-
-#endif  // KAGOME_TEST_CORE_API_CLIENT_WS_CLIENT_HPP

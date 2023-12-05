@@ -1,4 +1,9 @@
 #!/usr/bin/env bash
+#
+# Copyright Quadrivium LLC
+# All Rights Reserved
+# SPDX-License-Identifier: Apache-2.0
+#
 
 set -euo pipefail
 

@@ -1,5 +1,6 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -7,11 +8,11 @@
 
 #include <algorithm>
 
-#include "application/app_configuration.hpp"
 #include "blockchain/genesis_block_hash.hpp"
+#include "consensus/timeline/timeline.hpp"
 #include "network/common.hpp"
-#include "network/impl/protocols/protocol_error.hpp"
-#include "network/types/no_data_message.hpp"
+#include "network/notifications/connect_and_handshake.hpp"
+#include "network/notifications/handshake_and_read_messages.hpp"
 
 namespace {
   constexpr const char *kPropagatedTransactions =
@@ -24,10 +25,11 @@ namespace kagome::network {
 
   PropagateTransactionsProtocol::PropagateTransactionsProtocol(
       libp2p::Host &host,
-      const application::AppConfiguration &app_config,
+      Roles roles,
       const application::ChainSpec &chain_spec,
       const blockchain::GenesisBlockHash &genesis_hash,
-      std::shared_ptr<consensus::babe::Babe> babe,
+      std::shared_ptr<boost::asio::io_context> main_thread,
+      std::shared_ptr<consensus::Timeline> timeline,
       std::shared_ptr<ExtrinsicObserver> extrinsic_observer,
       std::shared_ptr<StreamEngine> stream_engine,
       std::shared_ptr<primitives::events::ExtrinsicSubscriptionEngine>
@@ -40,12 +42,14 @@ namespace kagome::network {
                   kPropagateTransactionsProtocol, genesis_hash, chain_spec),
               log::createLogger(kPropagateTransactionsProtocolName,
                                 "propagate_transactions_protocol")),
-        app_config_{app_config},
-        babe_(std::move(babe)),
+        roles_{roles},
+        main_thread_{std::move(main_thread)},
+        timeline_(std::move(timeline)),
         extrinsic_observer_(std::move(extrinsic_observer)),
         stream_engine_(std::move(stream_engine)),
         extrinsic_events_engine_{std::move(extrinsic_events_engine)},
         ext_event_key_repo_{std::move(ext_event_key_repo)} {
+    BOOST_ASSERT(timeline_ != nullptr);
     BOOST_ASSERT(extrinsic_observer_ != nullptr);
     BOOST_ASSERT(stream_engine_ != nullptr);
     BOOST_ASSERT(extrinsic_events_engine_ != nullptr);
@@ -70,237 +74,21 @@ namespace kagome::network {
   void PropagateTransactionsProtocol::onIncomingStream(
       std::shared_ptr<Stream> stream) {
     BOOST_ASSERT(stream->remotePeerId().has_value());
-
-    readHandshake(
-        stream,
-        Direction::INCOMING,
-        [wp = weak_from_this(), stream](outcome::result<void> res) {
-          auto self = wp.lock();
-          if (not self) {
-            stream->reset();
-            return;
-          }
-
-          auto peer_id = stream->remotePeerId().value();
-
-          if (not res.has_value()) {
-            SL_VERBOSE(self->base_.logger(),
-                       "Handshake failed on incoming {} stream with {}: {}",
-                       self->protocolName(),
-                       peer_id,
-                       res.error());
-            stream->reset();
-            return;
-          }
-
-          res = self->stream_engine_->addIncoming(stream, self);
-          if (not res.has_value()) {
-            SL_VERBOSE(self->base_.logger(),
-                       "Can't register incoming {} stream with {}: {}",
-                       self->protocolName(),
-                       peer_id,
-                       res.error());
-            stream->reset();
-            return;
-          }
-
-          SL_VERBOSE(self->base_.logger(),
-                     "Fully established incoming {} stream with {}",
-                     self->protocolName(),
-                     peer_id);
-        });
-  }
-
-  void PropagateTransactionsProtocol::newOutgoingStream(
-      const PeerInfo &peer_info,
-      std::function<void(outcome::result<std::shared_ptr<Stream>>)> &&cb) {
-    base_.host().newStream(
-        peer_info.id,
-        base_.protocolIds(),
-        [wp = weak_from_this(), peer_id = peer_info.id, cb = std::move(cb)](
-            auto &&stream_res) mutable {
-          auto self = wp.lock();
-          if (not self) {
-            cb(ProtocolError::GONE);
-            return;
-          }
-
-          if (not stream_res.has_value()) {
-            SL_VERBOSE(self->base_.logger(),
-                       "Can't create outgoing {} stream with {}: {}",
-                       self->protocolName(),
-                       peer_id,
-                       stream_res.error());
-            cb(stream_res.as_failure());
-            return;
-          }
-          const auto &stream_and_proto = stream_res.value();
-
-          auto cb2 = [wp,
-                      stream = stream_and_proto.stream,
-                      protocol = stream_and_proto.protocol,
-                      cb = std::move(cb)](outcome::result<void> res) {
-            auto self = wp.lock();
-            if (not self) {
-              cb(ProtocolError::GONE);
-              return;
-            }
-
-            if (not res.has_value()) {
-              SL_VERBOSE(self->base_.logger(),
-                         "Handshake failed on outgoing {} stream with {}: {}",
-                         protocol,
-                         stream->remotePeerId().value(),
-                         res.error());
-              stream->reset();
-              cb(res.as_failure());
-              return;
-            }
-
-            res = self->stream_engine_->addOutgoing(stream, self);
-            if (not res.has_value()) {
-              SL_VERBOSE(self->base_.logger(),
-                         "Can't register outgoing {} stream with {}: {}",
-                         protocol,
-                         stream->remotePeerId().value(),
-                         res.error());
-              stream->reset();
-              cb(res.as_failure());
-              return;
-            }
-
-            SL_VERBOSE(self->base_.logger(),
-                       "Fully established outgoing {} stream with {}",
-                       protocol,
-                       stream->remotePeerId().value());
-            cb(std::move(stream));
-          };
-
-          self->writeHandshake(std::move(stream_and_proto.stream),
-                               Direction::OUTGOING,
-                               std::move(cb2));
-        });
-  }
-
-  void PropagateTransactionsProtocol::readHandshake(
-      std::shared_ptr<Stream> stream,
-      Direction direction,
-      std::function<void(outcome::result<void>)> &&cb) {
-    auto read_writer = std::make_shared<ScaleMessageReadWriter>(stream);
-
-    read_writer->read<NoData>(
-        [stream, direction, wp = weak_from_this(), cb = std::move(cb)](
-            auto &&remote_handshake_res) mutable {
-          auto self = wp.lock();
-          if (not self) {
-            stream->reset();
-            cb(ProtocolError::GONE);
-            return;
-          }
-
-          if (not remote_handshake_res.has_value()) {
-            SL_VERBOSE(self->base_.logger(),
-                       "Can't read handshake from {}: {}",
-                       stream->remotePeerId().value(),
-                       remote_handshake_res.error());
-            stream->reset();
-            cb(remote_handshake_res.as_failure());
-            return;
-          }
-
-          SL_TRACE(self->base_.logger(),
-                   "Handshake has received from {}",
-                   stream->remotePeerId().value());
-
-          switch (direction) {
-            case Direction::OUTGOING:
-              cb(outcome::success());
-              break;
-            case Direction::INCOMING:
-              self->writeHandshake(
-                  std::move(stream), Direction::INCOMING, std::move(cb));
-              break;
-          }
-        });
-  }
-
-  void PropagateTransactionsProtocol::writeHandshake(
-      std::shared_ptr<Stream> stream,
-      Direction direction,
-      std::function<void(outcome::result<void>)> &&cb) {
-    auto read_writer = std::make_shared<ScaleMessageReadWriter>(stream);
-
-    read_writer->write(app_config_.roles(),
-                       [stream = std::move(stream),
-                        direction,
-                        wp = weak_from_this(),
-                        cb = std::move(cb)](auto &&write_res) mutable {
-                         auto self = wp.lock();
-                         if (not self) {
-                           stream->reset();
-                           cb(ProtocolError::GONE);
-                           return;
-                         }
-
-                         if (not write_res.has_value()) {
-                           SL_VERBOSE(self->base_.logger(),
-                                      "Can't send handshake to {}: {}",
-                                      stream->remotePeerId().value(),
-                                      write_res.error());
-                           stream->reset();
-                           cb(write_res.as_failure());
-                           return;
-                         }
-
-                         SL_TRACE(self->base_.logger(),
-                                  "Handshake has sent to {}",
-                                  stream->remotePeerId().value());
-
-                         switch (direction) {
-                           case Direction::OUTGOING:
-                             self->readHandshake(std::move(stream),
-                                                 Direction::OUTGOING,
-                                                 std::move(cb));
-                             break;
-                           case Direction::INCOMING:
-                             cb(outcome::success());
-                             self->readPropagatedExtrinsics(std::move(stream));
-                             break;
-                         }
-                       });
-  }
-
-  void PropagateTransactionsProtocol::readPropagatedExtrinsics(
-      std::shared_ptr<Stream> stream) {
-    auto read_writer = std::make_shared<ScaleMessageReadWriter>(stream);
-
-    read_writer->read<PropagatedExtrinsics>([stream = std::move(stream),
-                                             wp = weak_from_this()](
-                                                auto &&message_res) mutable {
-      auto self = wp.lock();
-      if (not self) {
-        stream->reset();
-        return;
-      }
-
-      if (not message_res.has_value()) {
-        SL_VERBOSE(self->base_.logger(),
-                   "Can't read propagated transactions from {}: {}",
-                   stream->remotePeerId().value(),
-                   message_res.error());
-        stream->reset();
-        return;
-      }
-
-      auto peer_id = stream->remotePeerId().value();
-      auto &message = message_res.value();
-
+    auto on_handshake = [](std::shared_ptr<PropagateTransactionsProtocol> self,
+                           std::shared_ptr<Stream> stream,
+                           Roles) {
+      self->stream_engine_->addIncoming(stream, self);
+      return true;
+    };
+    auto on_message = [peer_id = stream->remotePeerId().value()](
+                          std::shared_ptr<PropagateTransactionsProtocol> self,
+                          PropagatedExtrinsics message) {
       SL_VERBOSE(self->base_.logger(),
                  "Received {} propagated transactions from {}",
                  message.extrinsics.size(),
                  peer_id);
 
-      if (self->babe_->wasSynchronized()) {
+      if (self->timeline_->wasSynchronized()) {
         for (auto &ext : message.extrinsics) {
           auto result = self->extrinsic_observer_->onTxMessage(ext);
           if (result) {
@@ -314,13 +102,44 @@ namespace kagome::network {
                  "Skipping extrinsics processing since the node was not in a "
                  "synchronized state yet.");
       }
+      return true;
+    };
+    notifications::handshakeAndReadMessages<PropagatedExtrinsics>(
+        weak_from_this(),
+        std::move(stream),
+        roles_,
+        std::move(on_handshake),
+        std::move(on_message));
+  }
 
-      self->readPropagatedExtrinsics(std::move(stream));
-    });
+  void PropagateTransactionsProtocol::newOutgoingStream(
+      const PeerInfo &peer_info,
+      std::function<void(outcome::result<std::shared_ptr<Stream>>)> &&cb) {
+    auto on_handshake =
+        [cb = std::move(cb)](
+            std::shared_ptr<PropagateTransactionsProtocol> self,
+            outcome::result<notifications::ConnectAndHandshake<Roles>>
+                r) mutable {
+          if (not r) {
+            cb(r.error());
+            return;
+          }
+          auto &stream = std::get<0>(r.value());
+          self->stream_engine_->addOutgoing(stream, self);
+          cb(std::move(stream));
+        };
+    notifications::connectAndHandshake(
+        weak_from_this(), base_, peer_info, roles_, std::move(on_handshake));
   }
 
   void PropagateTransactionsProtocol::propagateTransactions(
-      gsl::span<const primitives::Transaction> txs) {
+      std::span<const primitives::Transaction> txs) {
+    if (not main_thread_->get_executor().running_in_this_thread()) {
+      return main_thread_->post(
+          [self{shared_from_this()}, txs{std::vector(txs.begin(), txs.end())}] {
+            self->propagateTransactions(txs);
+          });
+    }
     SL_DEBUG(
         base_.logger(), "Propagate transactions : {} extrinsics", txs.size());
 

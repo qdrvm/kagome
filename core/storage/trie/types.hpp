@@ -1,10 +1,10 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_STORAGE_TRIE_TYPES_HPP
-#define KAGOME_STORAGE_TRIE_TYPES_HPP
+#pragma once
 
 #include "common/blob.hpp"
 
@@ -20,6 +20,6 @@ namespace kagome::storage::trie {
       0x05, 0x39, 0x1d, 0x13, 0x9a, 0x62, 0xb1, 0x57, 0xe7, 0x87, 0x86,
       0xd8, 0xc0, 0x82, 0xf2, 0x9d, 0xcf, 0x4c, 0x11, 0x13, 0x14,
   }};
-}  // namespace kagome::storage::trie
 
-#endif  // KAGOME_STORAGE_TRIE_TYPES_HPP
+  constexpr uint8_t kEscapeCompactHeader = 1;
+}  // namespace kagome::storage::trie

@@ -1,3 +1,9 @@
+[//]: # (
+Copyright Quadrivium LLC
+All Rights Reserved
+SPDX-License-Identifier: Apache-2.0
+)
+
 # Development guide
 
 We, at Kagome, enforce [**clean architecture**](https://blog.cleancoder.com/uncle-bob/2012/08/13/the-clean-architecture.html) as much as possible.

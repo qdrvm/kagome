@@ -1,9 +1,10 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "offchain_local_storage.hpp"
+#include "offchain/impl/offchain_local_storage.hpp"
 
 #include "storage/database_error.hpp"
 #include "storage/predefined_keys.hpp"

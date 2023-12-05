@@ -1,10 +1,10 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_OFFCHAIN_WORKER_MOCK_HPP
-#define KAGOME_OFFCHAIN_WORKER_MOCK_HPP
+#pragma once
 
 #include <gmock/gmock.h>
 
@@ -14,7 +14,7 @@ namespace kagome::offchain {
 
   class OffchainWorkerMock : public OffchainWorker {
    public:
-    MOCK_METHOD(outcome::result<void>, run, (), (override));
+    MOCK_METHOD(void, run, (std::function<void()> &&, std::string), (override));
 
     MOCK_METHOD(bool, isValidator, (), (const, override));
 
@@ -101,5 +101,3 @@ namespace kagome::offchain {
   };
 
 }  // namespace kagome::offchain
-
-#endif /* KAGOME_OFFCHAIN_WORKER_MOCK_HPP */

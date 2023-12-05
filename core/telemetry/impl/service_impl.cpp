@@ -1,5 +1,6 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -317,6 +318,11 @@ namespace kagome::telemetry {
       std::lock_guard lock(cache_mutex_);
       last_finalized_.block = info;
     }
+  }
+
+  void TelemetryServiceImpl::pushBlockStats() {
+    io_context_->post(
+        [self{shared_from_this()}] { self->frequentNotificationsRoutine(); });
   }
 
   std::string TelemetryServiceImpl::blockNotification(

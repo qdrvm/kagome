@@ -1,11 +1,12 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
 #include "dispute_coordinator/provisioner/impl/random_selection.hpp"
 
-#include <future>
+#include <latch>
 
 #include "dispute_coordinator/dispute_coordinator.hpp"
 #include "dispute_coordinator/provisioner/impl/request_votes.hpp"
@@ -87,34 +88,21 @@ namespace kagome::dispute {
   std::vector<std::tuple<SessionIndex, CandidateHash>>
   RandomSelection::request_confirmed_disputes(
       RandomSelection::RequestType active_or_recent) {
-    auto promise_res =
-        std::promise<dispute::DisputeCoordinator::OutputDisputes>();
-    auto res_future = promise_res.get_future();
+    dispute::DisputeCoordinator::OutputDisputes disputes;
 
-    auto cb =
-        [promise_res = std::ref(promise_res)](
-            outcome::result<dispute::DisputeCoordinator::OutputDisputes> res) {
-          dispute::DisputeCoordinator::OutputDisputes disputes;
-          if (res.has_value()) {
-            disputes = std::move(res.value());
-          }
-          promise_res.get().set_value(std::move(disputes));
-        };
-
+    std::latch latch(1);
+    auto cb = [&](auto res) {
+      if (res.has_value()) {
+        disputes = std::move(res.value());
+      }
+      latch.count_down();
+    };
     if (active_or_recent == RequestType::Recent) {
       dispute_coordinator_->getRecentDisputes(cb);
     } else {
       dispute_coordinator_->getActiveDisputes(cb);
     }
-
-    dispute::DisputeCoordinator::OutputDisputes disputes;
-    if (not res_future.valid()) {
-      SL_WARN(log_,
-              "Unable to gather {} disputes; only expected during shutdown!",
-              active_or_recent == RequestType::Recent ? "recent" : "active");
-    } else {
-      disputes = res_future.get();
-    }
+    latch.wait();
 
     std::vector<std::tuple<SessionIndex, CandidateHash>> result;
 

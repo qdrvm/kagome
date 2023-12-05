@@ -1,5 +1,6 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -10,7 +11,7 @@ namespace kagome::runtime {
   ConstantCodeProvider::ConstantCodeProvider(common::Buffer code)
       : code_{std::move(code)} {}
 
-  outcome::result<gsl::span<const uint8_t>> ConstantCodeProvider::getCodeAt(
+  outcome::result<common::BufferView> ConstantCodeProvider::getCodeAt(
       const storage::trie::RootHash &) const {
     return code_;
   }

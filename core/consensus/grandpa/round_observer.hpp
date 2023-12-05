@@ -1,12 +1,13 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_CORE_CONSENSUS_GRANDPA_ROUND_OBSERVER_HPP
-#define KAGOME_CORE_CONSENSUS_GRANDPA_ROUND_OBSERVER_HPP
+#pragma once
 
 #include "consensus/grandpa/grandpa_context.hpp"
+#include "network/peer_manager.hpp"
 
 namespace libp2p::peer {
   class PeerId;
@@ -37,6 +38,7 @@ namespace kagome::consensus::grandpa {
     virtual void onVoteMessage(
         std::optional<std::shared_ptr<GrandpaContext>> &&existed_context,
         const libp2p::peer::PeerId &peer_id,
+        std::optional<network::PeerStateCompact> &&info_opt,
         const VoteMessage &msg) = 0;
 
     /**
@@ -51,5 +53,3 @@ namespace kagome::consensus::grandpa {
   };
 
 }  // namespace kagome::consensus::grandpa
-
-#endif  // KAGOME_CORE_CONSENSUS_GRANDPA_ROUND_OBSERVER_HPP

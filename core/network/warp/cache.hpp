@@ -1,10 +1,10 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_NETWORK_WARP_CACHE_HPP
-#define KAGOME_NETWORK_WARP_CACHE_HPP
+#pragma once
 
 #include "application/app_state_manager.hpp"
 #include "blockchain/block_header_repository.hpp"
@@ -32,8 +32,7 @@ namespace kagome::network {
         std::shared_ptr<blockchain::BlockTree> block_tree,
         std::shared_ptr<blockchain::BlockHeaderRepository> block_repository,
         std::shared_ptr<storage::SpacedStorage> db,
-        std::shared_ptr<primitives::events::ChainSubscriptionEngine>
-            chain_sub_engine);
+        primitives::events::ChainSubscriptionEnginePtr chain_sub_engine);
 
     outcome::result<WarpSyncProof> getProof(
         const primitives::BlockHash &after_hash) const;
@@ -42,15 +41,13 @@ namespace kagome::network {
 
    private:
     outcome::result<void> cacheMore(primitives::BlockNumber finalized);
-    outcome::result<void> start(
-        std::shared_ptr<primitives::events::ChainSubscriptionEngine>
-            chain_sub_engine);
+    outcome::result<void> start();
 
     std::shared_ptr<blockchain::BlockTree> block_tree_;
     std::shared_ptr<blockchain::BlockHeaderRepository> block_repository_;
     mutable storage::MapPrefix db_prefix_;
+    primitives::events::ChainSub chain_sub_;
     log::Logger log_;
-    std::shared_ptr<primitives::events::ChainEventSubscriber> chain_sub_;
     std::atomic_bool started_ = false;
     std::atomic_bool caching_ = false;
     primitives::BlockNumber cache_next_ = 0;
@@ -58,5 +55,3 @@ namespace kagome::network {
 }  // namespace kagome::network
 
 OUTCOME_HPP_DECLARE_ERROR(kagome::network, WarpSyncCache::Error)
-
-#endif  // KAGOME_NETWORK_WARP_CACHE_HPP

@@ -1,10 +1,10 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_TEST_MOCK_CORE_RUNTIME_BLOCK_BUILDER_API_MOCK_HPP
-#define KAGOME_TEST_MOCK_CORE_RUNTIME_BLOCK_BUILDER_API_MOCK_HPP
+#pragma once
 
 #include <gmock/gmock.h>
 #include "runtime/runtime_api/block_builder.hpp"
@@ -35,10 +35,8 @@ namespace kagome::runtime {
 
     MOCK_METHOD(outcome::result<common::Hash256>,
                 random_seed,
-                (storage::trie::RootHash const &storage_hash),
+                (const storage::trie::RootHash &storage_hash),
                 (override));
   };
 
 }  // namespace kagome::runtime
-
-#endif  // KAGOME_TEST_MOCK_CORE_RUNTIME_BLOCK_BUILDER_API_MOCK_HPP

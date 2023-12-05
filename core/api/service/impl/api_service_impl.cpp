@@ -1,5 +1,6 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -280,7 +281,7 @@ namespace kagome::api {
                   -> outcome::result<ApiServiceImpl::PubsubSubscriptionId> {
                 auto &session = session_context.storage_sub;
                 const auto id = session->generateSubscriptionSetId();
-                const auto &best_block_hash = block_tree_->bestLeaf().hash;
+                const auto &best_block_hash = block_tree_->bestBlock().hash;
                 const auto &header =
                     block_tree_->getBlockHeader(best_block_hash);
                 BOOST_ASSERT(header.has_value());
@@ -379,7 +380,8 @@ namespace kagome::api {
         const auto id = session->generateSubscriptionSetId();
         session->subscribe(id, primitives::events::ChainEventType::kNewHeads);
 
-        auto header = block_tree_->getBlockHeader(block_tree_->bestLeaf().hash);
+        auto header =
+            block_tree_->getBlockHeader(block_tree_->bestBlock().hash);
         if (!header.has_error()) {
           session_context.messages = uploadMessagesListFromCache();
           forJsonData(server_,

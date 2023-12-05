@@ -1,5 +1,6 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -21,6 +22,7 @@
 
 using kagome::blockchain::BlockHeaderRepositoryMock;
 using kagome::common::Buffer;
+using kagome::common::BufferView;
 using kagome::crypto::HasherMock;
 using kagome::host_api::HostApiMock;
 using kagome::host_api::MiscExtension;
@@ -103,7 +105,7 @@ TEST_F(MiscExtensionTest, CoreVersion) {
 
   using namespace std::placeholders;
 
-  EXPECT_CALL(*memory, storeBuffer(gsl::span<const uint8_t>(v1_enc)))
+  EXPECT_CALL(*memory, storeBuffer(BufferView(v1_enc)))
       .WillOnce(Return(res1.combine()));
   kagome::host_api::MiscExtension m{
       42, std::make_shared<HasherMock>(), memory_provider, core_factory};
@@ -117,7 +119,7 @@ TEST_F(MiscExtensionTest, CoreVersion) {
         return core;
       }));
 
-  EXPECT_CALL(*memory, storeBuffer(gsl::span<const uint8_t>(v2_enc)))
+  EXPECT_CALL(*memory, storeBuffer(BufferView(v2_enc)))
       .WillOnce(Return(res2.combine()));
   kagome::host_api::MiscExtension m2(
       34, std::make_shared<HasherMock>(), memory_provider, core_factory);

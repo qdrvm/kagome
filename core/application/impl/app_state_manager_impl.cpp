@@ -1,5 +1,6 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -138,6 +139,7 @@ namespace kagome::application {
       if (state_ == State::Prepare) {
         auto success = cb();
         if (not success) {
+          SL_ERROR(logger_, "Preparation stage failed");
           state_ = State::ShuttingDown;
         }
       }

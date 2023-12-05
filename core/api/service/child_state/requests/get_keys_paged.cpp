@@ -1,5 +1,6 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -73,7 +74,8 @@ namespace kagome::api::child_state::request {
       // process at param
       if (not params[4].IsString()) {
         throw jsonrpc::InvalidParametersFault(
-            "Parameter '[at]' must be a hex string representation of an encoded "
+            "Parameter '[at]' must be a hex string representation of an "
+            "encoded "
             "optional byte sequence");
       }
       OUTCOME_TRY(at_span, common::unhexWith0x(params[4].AsString()));

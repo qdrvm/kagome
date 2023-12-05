@@ -1,10 +1,10 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_CORE_API_SERVICE_STATE_REQUESTS_CALL_HPP
-#define KAGOME_CORE_API_SERVICE_STATE_REQUESTS_CALL_HPP
+#pragma once
 
 #include <jsonrpc-lean/request.h>
 
@@ -22,8 +22,8 @@ namespace kagome::api::state::request {
    */
   class Call final {
    public:
-    Call(Call const &) = delete;
-    Call &operator=(Call const &) = delete;
+    Call(const Call &) = delete;
+    Call &operator=(const Call &) = delete;
 
     Call(Call &&) = default;
     Call &operator=(Call &&) = default;
@@ -43,5 +43,3 @@ namespace kagome::api::state::request {
   };
 
 }  // namespace kagome::api::state::request
-
-#endif  // KAGOME_CORE_API_SERVICE_STATE_REQUESTS_CALL_HPP

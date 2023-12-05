@@ -1,10 +1,10 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_SYNC_PROTOCOL_OBSERVER_IMPL
-#define KAGOME_SYNC_PROTOCOL_OBSERVER_IMPL
+#pragma once
 
 #include "network/sync_protocol_observer.hpp"
 
@@ -19,6 +19,7 @@
 #include "primitives/common.hpp"
 
 namespace kagome::network {
+  class IBeefy;
 
   class SyncProtocolObserverImpl
       : public SyncProtocolObserver,
@@ -29,6 +30,7 @@ namespace kagome::network {
     SyncProtocolObserverImpl(
         std::shared_ptr<blockchain::BlockTree> block_tree,
         std::shared_ptr<blockchain::BlockHeaderRepository> blocks_headers,
+        std::shared_ptr<IBeefy> beefy,
         std::shared_ptr<PeerManager> peer_manager);
 
     ~SyncProtocolObserverImpl() override = default;
@@ -49,6 +51,7 @@ namespace kagome::network {
 
     std::shared_ptr<blockchain::BlockTree> block_tree_;
     std::shared_ptr<blockchain::BlockHeaderRepository> blocks_headers_;
+    std::shared_ptr<IBeefy> beefy_;
 
     mutable std::unordered_set<BlocksRequest::Fingerprint> requested_ids_;
     std::shared_ptr<PeerManager> peer_manager_;
@@ -59,5 +62,3 @@ namespace kagome::network {
 }  // namespace kagome::network
 
 OUTCOME_HPP_DECLARE_ERROR(kagome::network, SyncProtocolObserverImpl::Error);
-
-#endif  // KAGOME_SYNC_PROTOCOL_OBSERVER_IMPL

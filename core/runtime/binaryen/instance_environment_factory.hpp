@@ -1,10 +1,10 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_CORE_RUNTIME_BINARYEN_INSTANCE_ENVIRONMENT_FACTORY_HPP
-#define KAGOME_CORE_RUNTIME_BINARYEN_INSTANCE_ENVIRONMENT_FACTORY_HPP
+#pragma once
 
 #include "runtime/instance_environment.hpp"
 
@@ -17,12 +17,8 @@ namespace kagome::host_api {
   class HostApiFactory;
 }
 
-namespace kagome::blockchain {
-  class BlockHeaderRepository;
-}
-
 namespace kagome::runtime {
-  class RuntimePropertiesCache;
+  class ModuleFactory;
 }
 
 namespace kagome::runtime::binaryen {
@@ -40,20 +36,15 @@ namespace kagome::runtime::binaryen {
     InstanceEnvironmentFactory(
         std::shared_ptr<storage::trie::TrieStorage> storage,
         std::shared_ptr<storage::trie::TrieSerializer> serializer,
-        std::shared_ptr<host_api::HostApiFactory> host_api_factory,
-        std::shared_ptr<blockchain::BlockHeaderRepository> block_header_repo,
-        std::shared_ptr<RuntimePropertiesCache> cache);
+        std::shared_ptr<host_api::HostApiFactory> host_api_factory);
 
-    [[nodiscard]] BinaryenInstanceEnvironment make() const;
+    [[nodiscard]] BinaryenInstanceEnvironment make(
+        std::shared_ptr<const ModuleFactory> module_factory) const;
 
    private:
     std::shared_ptr<storage::trie::TrieStorage> storage_;
     std::shared_ptr<storage::trie::TrieSerializer> serializer_;
     std::shared_ptr<host_api::HostApiFactory> host_api_factory_;
-    std::shared_ptr<blockchain::BlockHeaderRepository> block_header_repo_;
-    std::shared_ptr<RuntimePropertiesCache> cache_;
   };
 
 }  // namespace kagome::runtime::binaryen
-
-#endif  // KAGOME_CORE_RUNTIME_BINARYEN_INSTANCE_ENVIRONMENT_FACTORY_HPP

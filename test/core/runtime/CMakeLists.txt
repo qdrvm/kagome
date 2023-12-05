@@ -1,9 +1,12 @@
 #
-# Copyright Soramitsu Co., Ltd. All Rights Reserved.
+# Copyright Quadrivium LLC
+# All Rights Reserved
 # SPDX-License-Identifier: Apache-2.0
 #
-
+if ("${WASM_COMPILER}" STREQUAL "WAVM")
 add_subdirectory(wavm)
+endif()
+
 add_subdirectory(binaryen)
 
 addtest(wasm_result_test
@@ -44,6 +47,7 @@ target_link_libraries(executor_test
     scale::scale
     logger
     log_configurator
+    module_repository
     )
 
 addtest(runtime_upgrade_tracker_test
@@ -57,3 +61,6 @@ target_link_libraries(runtime_upgrade_tracker_test
     log_configurator
     scale::scale
     )
+
+addtest(instance_pool_test instance_pool_test.cpp)
+target_link_libraries(instance_pool_test module_repository blob)

@@ -1,5 +1,6 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -22,15 +23,15 @@ TEST(ThresholdTest, OutputAsInGossamer) {
   std::pair<uint64_t, uint64_t> c;
   c.first = 5;
   c.second = 17;
-  primitives::AuthorityIndex authority_index{3};
-  primitives::AuthorityList authorities;
-  authorities.push_back(primitives::Authority{.id = {}, .weight = 3});
-  authorities.push_back(primitives::Authority{.id = {}, .weight = 1});
-  authorities.push_back(primitives::Authority{.id = {}, .weight = 4});
-  authorities.push_back(primitives::Authority{.id = {}, .weight = 6});
-  authorities.push_back(primitives::Authority{.id = {}, .weight = 10});
+  consensus::babe::AuthorityIndex authority_index{3};
+  consensus::babe::Authorities authorities;
+  authorities.push_back(consensus::babe::Authority{.id = {}, .weight = 3});
+  authorities.push_back(consensus::babe::Authority{.id = {}, .weight = 1});
+  authorities.push_back(consensus::babe::Authority{.id = {}, .weight = 4});
+  authorities.push_back(consensus::babe::Authority{.id = {}, .weight = 6});
+  authorities.push_back(consensus::babe::Authority{.id = {}, .weight = 10});
 
-  consensus::babe::Threshold expected{"28377230912881121443596276039380107264"};
+  consensus::Threshold expected{"28377230912881121443596276039380107264"};
   auto threshold =
       consensus::babe::calculateThreshold(c, authorities, authority_index);
   ASSERT_EQ(threshold, expected);

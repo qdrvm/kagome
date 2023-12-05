@@ -1,10 +1,10 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_PARACHAIN_PRIMITIVES_HPP
-#define KAGOME_PARACHAIN_PRIMITIVES_HPP
+#pragma once
 
 #include <boost/variant.hpp>
 #include <scale/bitvec.hpp>
@@ -89,7 +89,7 @@ namespace kagome::parachain {
 
     auto signable() {
       constexpr std::array<uint8_t, 4> kMagic{'V', 'C', 'P', 'C'};
-      return scale::encode(std::make_tuple(kMagic, *this)).value();
+      return ::scale::encode(std::make_tuple(kMagic, *this)).value();
     }
   };
 }  // namespace kagome::parachain
@@ -351,5 +351,3 @@ namespace kagome::parachain::fragment {
   };
 
 }  // namespace kagome::parachain::fragment
-
-#endif  // KAGOME_PARACHAIN_PRIMITIVES_HPP

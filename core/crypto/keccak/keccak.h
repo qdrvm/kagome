@@ -1,5 +1,6 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -43,9 +44,9 @@ void sha3_Init512(void *priv);
 
 enum SHA3_FLAGS sha3_SetFlags(void *priv, enum SHA3_FLAGS);
 
-void sha3_Update(void *priv, void const *bufIn, size_t len);
+void sha3_Update(void *priv, const void *bufIn, size_t len);
 
-void const *sha3_Finalize(void *priv);
+const void *sha3_Finalize(void *priv);
 
 /* Single-call hashing */
 sha3_return_t sha3_HashBuffer(

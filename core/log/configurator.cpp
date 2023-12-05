@@ -1,5 +1,6 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -51,6 +52,7 @@ groups:
               - name: ecdsa
           - name: consensus
             children:
+              - name: timeline
               - name: babe
                 children:
                   - name: babe_lottery
@@ -62,8 +64,9 @@ groups:
                 children:
                   - name: voting_round
           - name: parachain
+            children:
+             - name: pvf_executor
           - name: dispute
-            level: trace
           - name: runtime
             children:
               - name: runtime_api
@@ -79,6 +82,7 @@ groups:
                   - name: runtime_cache
               - name: binaryen
               - name: wavm
+              - name: wasmedge
           - name: metrics
           - name: telemetry
           - name: network

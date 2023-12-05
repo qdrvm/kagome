@@ -2,15 +2,15 @@
 # https://docs.hunter.sh/en/latest/packages/
 
 if (TESTING)
-    # https://docs.hunter.sh/en/latest/packages/pkg/GTest.html
-    hunter_add_package(GTest)
-    find_package(GTest CONFIG REQUIRED)
-endif()
+  # https://docs.hunter.sh/en/latest/packages/pkg/GTest.html
+  hunter_add_package(GTest)
+  find_package(GTest CONFIG REQUIRED)
+endif ()
 
 if (BACKWARD)
-    hunter_add_package(backward-cpp)
-    find_package(Backward)
-endif()
+  hunter_add_package(backward-cpp)
+  find_package(Backward)
+endif ()
 
 # https://docs.hunter.sh/en/latest/packages/pkg/Boost.html
 hunter_add_package(Boost COMPONENTS random filesystem program_options date_time)
@@ -44,10 +44,6 @@ find_package(Protobuf CONFIG REQUIRED)
 hunter_add_package(RapidJSON)
 find_package(RapidJSON CONFIG REQUIRED)
 
-# https://docs.hunter.sh/en/latest/packages/pkg/Microsoft.GSL.html
-hunter_add_package(Microsoft.GSL)
-find_package(Microsoft.GSL CONFIG REQUIRED)
-
 hunter_add_package(erasure_coding_crust)
 find_package(erasure_coding_crust CONFIG REQUIRED)
 
@@ -75,9 +71,16 @@ find_package(libsecp256k1 CONFIG REQUIRED)
 hunter_add_package(scale)
 find_package(scale CONFIG REQUIRED)
 
-hunter_add_package(wavm)
-find_package(LLVM CONFIG REQUIRED)
-find_package(WAVM CONFIG REQUIRED)
+if ("${WASM_COMPILER}" STREQUAL "WAVM")
+  hunter_add_package(wavm)
+  find_package(LLVM CONFIG REQUIRED)
+  find_package(WAVM CONFIG REQUIRED)
+endif ()
+
+if ("${WASM_COMPILER}" STREQUAL "WasmEdge")
+  hunter_add_package(WasmEdge)
+  find_library(WASM_EDGE_LIBRARY NAMES wasmedge REQUIRED PATHS "${WASMEDGE_ROOT}")
+endif ()
 
 hunter_add_package(zstd)
 find_package(zstd CONFIG REQUIRED)

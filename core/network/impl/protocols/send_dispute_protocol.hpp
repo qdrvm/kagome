@@ -1,5 +1,6 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -49,7 +50,7 @@ namespace kagome::network {
                                     host,
                                     make_protocols(kSendDisputeProtocol,
                                                    genesis_hash,
-                                                   "polkadot"),
+                                                   kProtocolPrefixPolkadot),
                                     log::createLogger(kSendDisputeProtocolName,
                                                       "dispute_protocol")},
           dispute_request_observer_{std::move(dispute_request_observer)} {

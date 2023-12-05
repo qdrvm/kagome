@@ -1,10 +1,10 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_STORAGE_TRIE_POLKADOT_NODE
-#define KAGOME_STORAGE_TRIE_POLKADOT_NODE
+#pragma once
 
 #include <optional>
 
@@ -21,8 +21,7 @@ namespace kagome::storage::trie {
     using Buffer = common::Buffer;
 
     using Buffer::Buffer;
-    using Buffer::operator==;
-    using Buffer::operator<;
+    using Buffer::operator<=>;
 
     KeyNibbles(common::Buffer b) : Buffer{std::move(b)} {}
 
@@ -41,7 +40,7 @@ namespace kagome::storage::trie {
 
       auto l = key.size() * 2;
       KeyNibbles res(common::Buffer(l, 0));
-      for (ssize_t i = 0; i < key.size(); i++) {
+      for (size_t i = 0; i < key.size(); i++) {
         res[2 * i] = key[i] >> 4u;
         res[2 * i + 1] = key[i] & 0xfu;
       }
@@ -90,7 +89,7 @@ namespace kagome::storage::trie {
       if (size == common::Hash256::size()) {
         return MerkleValue{common::Hash256::fromSpan(merkle_value).value(),
                            size};
-      } else if (size < common::Hash256::size() && size > 0) {
+      } else if (size < common::Hash256::size()) {
         common::Hash256 hash;
         std::copy_n(merkle_value.begin(), size, hash.begin());
         return MerkleValue{hash, size};
@@ -114,6 +113,10 @@ namespace kagome::storage::trie {
 
     common::BufferView asBuffer() const {
       return common::BufferView{value.begin(), value.begin() + size};
+    }
+
+    bool empty() const {
+      return size == 0;
     }
 
    private:
@@ -174,14 +177,13 @@ namespace kagome::storage::trie {
         : key_nibbles_{std::move(key_nibbles)}, value_{std::move(value)} {}
 
     enum class Type {
-      Special,                    // -
-      Leaf,                       // 01
-      BranchEmptyValue,           // 10
-      BranchWithValue,            // 11
-      LeafContainingHashes,       // 001
-      BranchContainingHashes,     // 0001
-      Empty,                      // 0000 0000
-      ReservedForCompactEncoding  // 0001 0000
+      Special,                 // -
+      Leaf,                    // 01
+      BranchEmptyValue,        // 10
+      BranchWithValue,         // 11
+      LeafContainingHashes,    // 001
+      BranchContainingHashes,  // 0001
+      Empty,                   // 0000 0000
     };
 
     virtual bool isBranch() const noexcept = 0;
@@ -289,12 +291,10 @@ struct fmt::formatter<kagome::storage::trie::KeyNibbles> {
   auto format(const kagome::storage::trie::KeyNibbles &p,
               FormatContext &ctx) const -> decltype(ctx.out()) {
     if (p.size() % 2 != 0) {
-      format_to(ctx.out(), "{:x}", p[0]);
+      fmt::format_to(ctx.out(), "{:x}", p[0]);
     }
     for (size_t i = p.size() % 2; i < p.size() - 1; i += 2) {
-      format_to(ctx.out(), "{:02x}", p.toByte(p[i], p[i + 1]));
+      fmt::format_to(ctx.out(), "{:02x}", p.toByte(p[i], p[i + 1]));
     }
   }
 };
-
-#endif  // KAGOME_STORAGE_TRIE_POLKADOT_NODE

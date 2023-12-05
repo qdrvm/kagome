@@ -1,10 +1,10 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_CORE_CONSENSUS_GRANDPA_GRANDPAOBSERVER
-#define KAGOME_CORE_CONSENSUS_GRANDPA_GRANDPAOBSERVER
+#pragma once
 
 #include "consensus/grandpa/catch_up_observer.hpp"
 #include "consensus/grandpa/justification_observer.hpp"
@@ -25,5 +25,3 @@ namespace kagome::consensus::grandpa {
   };
 
 }  // namespace kagome::consensus::grandpa
-
-#endif  // KAGOME_CORE_CONSENSUS_GRANDPA_GRANDPAOBSERVER

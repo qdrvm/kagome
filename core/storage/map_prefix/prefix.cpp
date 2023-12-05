@@ -1,5 +1,6 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -50,7 +51,7 @@ namespace kagome::storage {
 
   bool MapPrefix::Cursor::isValid() const {
     if (cursor->isValid()) {
-      return boost::starts_with(*cursor->key(), map.prefix);
+      return startsWith(cursor->key().value(), map.prefix);
     }
     return false;
   }

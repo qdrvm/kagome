@@ -1,10 +1,10 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_COMMON_URI
-#define KAGOME_COMMON_URI
+#pragma once
 
 #include <optional>
 #include <string>
@@ -34,5 +34,3 @@ namespace kagome::common {
   };
 
 }  // namespace kagome::common
-
-#endif  // KAGOME_COMMON_URI

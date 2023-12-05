@@ -1,5 +1,6 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -17,8 +18,9 @@ namespace kagome::runtime {
   outcome::result<primitives::AccountNonce> AccountNonceApiImpl::account_nonce(
       const primitives::BlockHash &block,
       const primitives::AccountId &account_id) {
-    return executor_->callAt<primitives::AccountNonce>(
-        block, "AccountNonceApi_account_nonce", account_id);
+    OUTCOME_TRY(ctx, executor_->ctx().ephemeralAt(block));
+    return executor_->call<primitives::AccountNonce>(
+        ctx, "AccountNonceApi_account_nonce", account_id);
   };
 
 }  // namespace kagome::runtime

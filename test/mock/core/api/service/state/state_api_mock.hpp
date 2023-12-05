@@ -1,10 +1,10 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_TEST_CORE_STATE_API_MOCK_HPP
-#define KAGOME_TEST_CORE_STATE_API_MOCK_HPP
+#pragma once
 
 #include <gmock/gmock.h>
 
@@ -35,42 +35,41 @@ namespace kagome::api {
 
     MOCK_METHOD(outcome::result<std::optional<common::Buffer>>,
                 getStorage,
-                (const common::BufferView &key),
+                (common::BufferView key),
                 (const, override));
 
     outcome::result<std::optional<common::Buffer>> getStorage(
-        const common::Buffer &key) const {
+        common::Buffer key) const {
       return getStorage(common::BufferView{key});
     }
 
     MOCK_METHOD(outcome::result<std::optional<common::Buffer>>,
                 getStorageAt,
-                (const common::BufferView &key,
-                 const primitives::BlockHash &at),
+                (common::BufferView key, const primitives::BlockHash &at),
                 (const, override));
 
     MOCK_METHOD(outcome::result<std::vector<StorageChangeSet>>,
                 queryStorage,
-                (gsl::span<const common::Buffer> keys,
+                (std::span<const common::Buffer> keys,
                  const primitives::BlockHash &from,
                  std::optional<primitives::BlockHash> to),
                 (const, override));
 
     MOCK_METHOD(outcome::result<std::vector<StorageChangeSet>>,
                 queryStorageAt,
-                (gsl::span<const common::Buffer> keys,
+                (std::span<const common::Buffer> keys,
                  std::optional<primitives::BlockHash> at),
                 (const, override));
 
     MOCK_METHOD(outcome::result<ReadProof>,
                 getReadProof,
-                (gsl::span<const common::Buffer> keys,
+                (std::span<const common::Buffer> keys,
                  std::optional<primitives::BlockHash> at),
                 (const, override));
 
     MOCK_METHOD(outcome::result<uint32_t>,
                 subscribeStorage,
-                (std::vector<common::Buffer> const &keys),
+                (const std::vector<common::Buffer> &keys),
                 (override));
 
     MOCK_METHOD(outcome::result<bool>,
@@ -80,7 +79,7 @@ namespace kagome::api {
 
     MOCK_METHOD(outcome::result<primitives::Version>,
                 getRuntimeVersion,
-                (std::optional<primitives::BlockHash> const &at),
+                (const std::optional<primitives::BlockHash> &at),
                 (const, override));
 
     MOCK_METHOD(outcome::result<uint32_t>,
@@ -101,5 +100,3 @@ namespace kagome::api {
                 (override));
   };
 }  // namespace kagome::api
-
-#endif  // KAGOME_TEST_CORE_STATE_API_MOCK_HPP

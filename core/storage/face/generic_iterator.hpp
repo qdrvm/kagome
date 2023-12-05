@@ -1,10 +1,10 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_GENERIC_ITERATOR_HPP
-#define KAGOME_GENERIC_ITERATOR_HPP
+#pragma once
 
 #include <memory>
 
@@ -26,10 +26,10 @@ namespace kagome::face {
     virtual std::unique_ptr<GenericIterator> clone() const = 0;
 
     virtual value_type *get() = 0;
-    virtual value_type const *get() const = 0;
+    virtual const value_type *get() const = 0;
 
     virtual value_type &operator*() = 0;
-    virtual value_type const &operator*() const = 0;
+    virtual const value_type &operator*() const = 0;
 
     virtual GenericIterator<Container> &operator++() = 0;
 
@@ -47,5 +47,3 @@ namespace kagome::face {
   };
 
 }  // namespace kagome::face
-
-#endif  // KAGOME_GENERIC_ITERATOR_HPP

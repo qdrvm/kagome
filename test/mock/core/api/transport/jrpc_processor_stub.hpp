@@ -1,10 +1,10 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_JRPC_PROCESSOR_STUB_HPP
-#define KAGOME_JRPC_PROCESSOR_STUB_HPP
+#pragma once
 
 #include <boost/noncopyable.hpp>
 #include <mutex>
@@ -62,5 +62,3 @@ namespace kagome::api {
   };
 
 }  // namespace kagome::api
-
-#endif  // KAGOME_JRPC_PROCESSOR_STUB_HPP

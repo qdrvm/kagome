@@ -1,10 +1,10 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_UTILS_ASYNC_SEQUENCE_HPP
-#define KAGOME_UTILS_ASYNC_SEQUENCE_HPP
+#pragma once
 
 #include <type_traits>
 
@@ -43,8 +43,7 @@ namespace kagome {
   template <typename F>
   auto mapAsyncOutcome(F &&f) {
     return [f{std::forward<F>(f)}](auto &&next, auto &&a) mutable {
-      auto r = outcome::Into<std::decay_t<decltype(a)>>::into(
-          std::forward<decltype(a)>(a));
+      auto r = outcome::into(std::forward<decltype(a)>(a));
       if (r.has_value()) {
         f(std::forward<decltype(next)>(next), std::move(r.value()));
       } else {
@@ -93,5 +92,3 @@ namespace kagome {
     sequence(std::forward<Fs>(fs)..., [](auto &&) {});
   }
 }  // namespace kagome
-
-#endif  // KAGOME_UTILS_ASYNC_SEQUENCE_HPP

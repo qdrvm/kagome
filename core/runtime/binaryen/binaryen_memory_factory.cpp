@@ -1,5 +1,6 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -11,7 +12,7 @@ namespace kagome::runtime::binaryen {
 
   std::unique_ptr<MemoryImpl> BinaryenMemoryFactory::make(
       RuntimeExternalInterface::InternalMemory *memory,
-      const MemoryConfig& config) const {
+      const MemoryConfig &config) const {
     return std::make_unique<MemoryImpl>(memory, config);
   }
 

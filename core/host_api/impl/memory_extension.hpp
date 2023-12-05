@@ -1,10 +1,10 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_MEMORY_EXTENSIONS_HPP
-#define KAGOME_MEMORY_EXTENSIONS_HPP
+#pragma once
 
 #include "log/logger.hpp"
 #include "runtime/types.hpp"
@@ -39,5 +39,3 @@ namespace kagome::host_api {
     log::Logger logger_;
   };
 }  // namespace kagome::host_api
-
-#endif  // KAGOME_MEMORY_EXTENSIONS_HPP

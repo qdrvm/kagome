@@ -1,3 +1,8 @@
+#
+# Copyright Quadrivium LLC
+# All Rights Reserved
+# SPDX-License-Identifier: Apache-2.0
+#
 
 add_library(core_api
     core.cpp)
@@ -56,6 +61,13 @@ target_link_libraries(metadata_api
     executor
     )
 kagome_install(metadata_api)
+
+add_library(mmr_api
+    mmr.cpp
+    )
+target_link_libraries(mmr_api
+    executor
+    )
 
 add_library(parachain_host_api
     parachain_host.cpp

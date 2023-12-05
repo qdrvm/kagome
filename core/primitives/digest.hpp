@@ -1,10 +1,10 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_CORE_PRIMITIVES_DIGEST
-#define KAGOME_CORE_PRIMITIVES_DIGEST
+#pragma once
 
 #include <boost/variant.hpp>
 
@@ -12,9 +12,11 @@
 #include "common/tagged.hpp"
 #include "common/unused.hpp"
 #include "consensus/babe/types/babe_block_header.hpp"
+#include "consensus/babe/types/babe_configuration.hpp"
+#include "consensus/babe/types/epoch_data.hpp"
+#include "consensus/babe/types/scheduled_change.hpp"
 #include "consensus/constants.hpp"
-#include "primitives/babe_configuration.hpp"
-#include "primitives/scheduled_change.hpp"
+#include "consensus/grandpa/types/scheduled_change.hpp"
 #include "scale/scale.hpp"
 #include "scale/tie.hpp"
 
@@ -31,7 +33,7 @@ namespace kagome::primitives {
   inline const auto kUnsupportedEngineId_POL1 =
       ConsensusEngineId::fromString("POL1").value();
 
-  inline const auto kUnsupportedEngineId_BEEF =
+  inline const auto kBeefyEngineId =
       ConsensusEngineId::fromString("BEEF").value();
 
   struct Other : public common::Buffer {};
@@ -58,19 +60,19 @@ namespace kagome::primitives {
   using BabeDigest =
       /// Note: order of types in variant matters
       boost::variant<Unused<0>,
-                     NextEpochData,    // 1: (Auth C; R)
-                     OnDisabled,       // 2: Auth ID
-                     NextConfigData>;  // 3: c, S2nd
+                     consensus::babe::EpochData,        // 1: (Auth[]; Rand)
+                     consensus::babe::OnDisabled,       // 2: AuthIndex
+                     consensus::babe::NextConfigData>;  // 3: c, S2nd
 
   /// https://github.com/paritytech/substrate/blob/polkadot-v0.9.8/primitives/finality-grandpa/src/lib.rs#L92
   using GrandpaDigest =
       /// Note: order of types in variant matters
       boost::variant<Unused<0>,
-                     ScheduledChange,  // 1: (Auth C; N delay)
-                     ForcedChange,     // 2: (Auth C; N delay)
-                     OnDisabled,       // 3: Auth ID
-                     Pause,            // 4: N delay
-                     Resume>;          // 5: N delay
+                     consensus::grandpa::ScheduledChange,  // 1: (Auth[]; Delay)
+                     consensus::grandpa::ForcedChange,     // 2: (Auth[]; Delay)
+                     consensus::grandpa::OnDisabled,       // 3: AuthIndex
+                     consensus::grandpa::Pause,            // 4: Delay
+                     consensus::grandpa::Resume>;          // 5: Delay
 
   using UnsupportedDigest_POL1 = Tagged<Empty, struct POL1>;
   using UnsupportedDigest_BEEF = Tagged<Empty, struct BEEF>;
@@ -78,43 +80,29 @@ namespace kagome::primitives {
   struct DecodedConsensusMessage {
     static outcome::result<DecodedConsensusMessage> create(
         ConsensusEngineId engine_id, const common::Buffer &data) {
+      DecodedConsensusMessage msg;
+      msg.consensus_engine_id = engine_id;
       if (engine_id == primitives::kBabeEngineId) {
         OUTCOME_TRY(payload, scale::decode<BabeDigest>(data));
-        return DecodedConsensusMessage{engine_id, std::move(payload)};
+        msg.digest = std::move(payload);
       } else if (engine_id == primitives::kGrandpaEngineId) {
         OUTCOME_TRY(payload, scale::decode<GrandpaDigest>(data));
-        return DecodedConsensusMessage{engine_id, std::move(payload)};
+        msg.digest = std::move(payload);
       } else if (engine_id == primitives::kUnsupportedEngineId_POL1) {
         OUTCOME_TRY(payload, scale::decode<UnsupportedDigest_POL1>(data));
-        return DecodedConsensusMessage{engine_id, std::move(payload)};
-      } else if (engine_id == primitives::kUnsupportedEngineId_BEEF) {
+        msg.digest = std::move(payload);
+      } else if (engine_id == primitives::kBeefyEngineId) {
         OUTCOME_TRY(payload, scale::decode<UnsupportedDigest_BEEF>(data));
-        return DecodedConsensusMessage{engine_id, std::move(payload)};
+        msg.digest = std::move(payload);
+      } else {
+        BOOST_ASSERT_MSG(false, "Invalid consensus engine id");
       }
-      BOOST_ASSERT_MSG(false, "Invalid consensus engine id");
-      BOOST_UNREACHABLE_RETURN({})
-    }
-
-    const BabeDigest &asBabeDigest() const {
-      BOOST_ASSERT(consensus_engine_id == primitives::kBabeEngineId);
-      return boost::relaxed_get<BabeDigest>(digest);
-    }
-
-    template <typename T>
-    bool isBabeDigestOf() const {
-      return consensus_engine_id == primitives::kBabeEngineId
-             && boost::get<T>(&asBabeDigest()) != nullptr;
+      return msg;
     }
 
     const GrandpaDigest &asGrandpaDigest() const {
       BOOST_ASSERT(consensus_engine_id == primitives::kGrandpaEngineId);
       return boost::relaxed_get<GrandpaDigest>(digest);
-    }
-
-    template <typename T>
-    bool isGrandpaDigestOf() const {
-      return consensus_engine_id == primitives::kGrandpaEngineId
-             && boost::get<T>(&asGrandpaDigest()) != nullptr;
     }
 
     ConsensusEngineId consensus_engine_id;
@@ -138,15 +126,15 @@ namespace kagome::primitives {
     template <class A>
     Consensus(const A &a) {
       // clang-format off
-      if constexpr (std::is_same_v<A, NextEpochData>
-                 or std::is_same_v<A, NextConfigData>) {
+      if constexpr (std::is_same_v<A, consensus::babe::EpochData>
+                 or std::is_same_v<A, consensus::babe::NextConfigData>) {
         consensus_engine_id = primitives::kBabeEngineId;
         data = common::Buffer(scale::encode(BabeDigest(a)).value());
-      } else if constexpr (std::is_same_v<A, ScheduledChange>
-                        or std::is_same_v<A, ForcedChange>
-                        or std::is_same_v<A, OnDisabled>
-                        or std::is_same_v<A, Pause>
-                        or std::is_same_v<A, Resume>) {
+      } else if constexpr (std::is_same_v<A, consensus::grandpa::ScheduledChange>
+                        or std::is_same_v<A, consensus::grandpa::ForcedChange>
+                        or std::is_same_v<A, consensus::grandpa::OnDisabled>
+                        or std::is_same_v<A, consensus::grandpa::Pause>
+                        or std::is_same_v<A, consensus::grandpa::Resume>) {
         consensus_engine_id = primitives::kGrandpaEngineId;
         data = common::Buffer(scale::encode(GrandpaDigest(a)).value());
       } else {
@@ -194,5 +182,3 @@ namespace kagome::primitives {
   using Digest = common::SLVector<DigestItem, kMaxItemsInDigest>;
 
 }  // namespace kagome::primitives
-
-#endif  // KAGOME_CORE_PRIMITIVES_DIGEST

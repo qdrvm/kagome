@@ -1,5 +1,6 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -16,7 +17,7 @@ namespace kagome::crypto {
             typename Eq>
   SessionKeys::KeypairWithIndexOpt<T> SessionKeysImpl::find(
       KeypairWithIndexOpt<T> &cache,
-      KeyTypeId type,
+      KeyType type,
       const std::vector<A> &authorities,
       const Eq &eq) {
     if (not roles_.flags.authority) {
@@ -64,40 +65,60 @@ namespace kagome::crypto {
                                    const application::AppConfiguration &config)
       : roles_(config.roles()), store_(store) {
     if (auto dev = config.devMnemonicPhrase()) {
-      store_->generateEd25519Keypair(KEY_TYPE_GRAN, *dev).value();
-      store_->generateSr25519Keypair(KEY_TYPE_BABE, *dev).value();
-      store_->generateSr25519Keypair(KEY_TYPE_IMON, *dev).value();
-      store_->generateSr25519Keypair(KEY_TYPE_AUDI, *dev).value();
-      store_->generateSr25519Keypair(KEY_TYPE_ASGN, *dev).value();
-      store_->generateSr25519Keypair(KEY_TYPE_PARA, *dev).value();
+      // Ed25519
+      store_->generateEd25519Keypair(KeyTypes::GRANDPA, *dev).value();
+      // Sr25519
+      for (auto key_type : {KeyTypes::BABE,
+                            KeyTypes::IM_ONLINE,
+                            KeyTypes::AUTHORITY_DISCOVERY,
+                            KeyTypes::ASSIGNMENT,
+                            KeyTypes::PARACHAIN}) {
+        store_->generateSr25519Keypair(key_type, *dev).value();
+      }
+      // Ecdsa
+      store_->generateEcdsaKeypair(KeyTypes::BEEFY, *dev).value();
     }
   }
 
   SessionKeys::KeypairWithIndexOpt<Sr25519Keypair>
   SessionKeysImpl::getBabeKeyPair(
-      const primitives::AuthorityList &authorities) {
+      const consensus::babe::Authorities &authorities) {
     return find<Sr25519Keypair,
                 &CryptoStore::getSr25519PublicKeys,
                 &CryptoStore::findSr25519Keypair>(
         babe_key_pair_,
-        KEY_TYPE_BABE,
+        KeyTypes::BABE,
         authorities,
-        [](const Sr25519PublicKey &l, const primitives::Authority &r) {
-          return l == r.id.id;
+        [](const Sr25519PublicKey &l, const consensus::babe::Authority &r) {
+          return l == r.id;
         });
   }
 
+  // SessionKeys::KeypairWithIndexOpt<BandersnatchKeypair>
+  // SessionKeysImpl::getSassafrasKeyPair(
+  //     const consensus::sassafras::Authorities &authorities) {
+  //   return find<BandersnatchKeypair,
+  //               &CryptoStore::getBandersnatchPublicKeys,
+  //               &CryptoStore::findBandersnatchKeypair>(
+  //       sass_key_pair_,
+  //       KeyTypes::SASSAFRAS,
+  //       authorities,
+  //       [](const BandersnatchPublicKey &l,
+  //          const consensus::sassafras::Authority &r) {
+  //         return l == r;
+  //       });
+  // }
+
   std::shared_ptr<Ed25519Keypair> SessionKeysImpl::getGranKeyPair(
-      const primitives::AuthoritySet &authorities) {
+      const consensus::grandpa::AuthoritySet &authorities) {
     if (auto res = find<Ed25519Keypair,
                         &CryptoStore::getEd25519PublicKeys,
                         &CryptoStore::findEd25519Keypair>(
             gran_key_pair_,
-            KEY_TYPE_GRAN,
+            KeyTypes::GRANDPA,
             authorities.authorities,
-            [](const Ed25519PublicKey &l, const primitives::Authority &r) {
-              return l == r.id.id;
-            })) {
+            [](const Ed25519PublicKey &l,
+               const consensus::grandpa::Authority &r) { return l == r.id; })) {
       return std::move(res->first);
     }
     return nullptr;
@@ -109,7 +130,7 @@ namespace kagome::crypto {
     return find<Sr25519Keypair,
                 &CryptoStore::getSr25519PublicKeys,
                 &CryptoStore::findSr25519Keypair>(
-        para_key_pair_, KEY_TYPE_PARA, authorities, std::equal_to{});
+        para_key_pair_, KeyTypes::PARACHAIN, authorities, std::equal_to{});
   }
 
   std::shared_ptr<Sr25519Keypair> SessionKeysImpl::getAudiKeyPair(
@@ -117,10 +138,21 @@ namespace kagome::crypto {
     if (auto res = find<Sr25519Keypair,
                         &CryptoStore::getSr25519PublicKeys,
                         &CryptoStore::findSr25519Keypair>(
-            audi_key_pair_, KEY_TYPE_AUDI, authorities, std::equal_to{})) {
+            audi_key_pair_,
+            KeyTypes::AUTHORITY_DISCOVERY,
+            authorities,
+            std::equal_to{})) {
       return std::move(res->first);
     }
     return nullptr;
   }
 
+  SessionKeys::KeypairWithIndexOpt<EcdsaKeypair>
+  SessionKeysImpl::getBeefKeyPair(
+      const std::vector<EcdsaPublicKey> &authorities) {
+    return find<EcdsaKeypair,
+                &CryptoStore::getEcdsaPublicKeys,
+                &CryptoStore::findEcdsaKeypair>(
+        beef_key_pair_, KeyTypes::BEEFY, authorities, std::equal_to{});
+  }
 }  // namespace kagome::crypto

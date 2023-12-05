@@ -1,10 +1,9 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC All Rights Reserved.
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_TEST_CORE_RUNTIME_MOCK_HOST_API_HPP_
-#define KAGOME_TEST_CORE_RUNTIME_MOCK_HOST_API_HPP_
+#pragma once
 
 #include "host_api/host_api.hpp"
 
@@ -51,6 +50,13 @@ namespace kagome::host_api {
                  runtime::WasmPointer pubkey_data),
                 (override));
 
+    MOCK_METHOD(int32_t,
+                ext_crypto_sr25519_batch_verify_version_1,
+                (runtime::WasmPointer sig_data,
+                 runtime::WasmSpan msg,
+                 runtime::WasmPointer pubkey_data),
+                (override));
+
     MOCK_METHOD(runtime::WasmSpan,
                 ext_misc_runtime_version_version_1,
                 (runtime::WasmSpan),
@@ -63,7 +69,7 @@ namespace kagome::host_api {
 
     MOCK_METHOD(void,
                 ext_misc_print_num_version_1,
-                (uint64_t),
+                (int64_t),
                 (const, override));
 
     MOCK_METHOD(void,
@@ -212,6 +218,13 @@ namespace kagome::host_api {
                  runtime::WasmPointer pubkey_data),
                 (override));
 
+    MOCK_METHOD(runtime::WasmSize,
+                ext_crypto_ed25519_batch_verify_version_1,
+                (runtime::WasmPointer sig_data,
+                 runtime::WasmSpan msg,
+                 runtime::WasmPointer pubkey_data),
+                (override));
+
     MOCK_METHOD(runtime::WasmSpan,
                 ext_crypto_sr25519_public_keys_version_1,
                 (runtime::WasmSize key_type),
@@ -288,9 +301,16 @@ namespace kagome::host_api {
                 (override));
 
     MOCK_METHOD(int32_t,
-                ext_crypto_ecdsa_verify_prehashed_version_1,
+                ext_crypto_ecdsa_verify_version_2,
                 (runtime::WasmPointer sig,
                  runtime::WasmSpan msg,
+                 runtime::WasmPointer key),
+                (override));
+
+    MOCK_METHOD(int32_t,
+                ext_crypto_ecdsa_verify_prehashed_version_1,
+                (runtime::WasmPointer sig,
+                 runtime::WasmPointer msg,
                  runtime::WasmPointer key),
                 (override));
 
@@ -323,14 +343,14 @@ namespace kagome::host_api {
                 (),
                 (override));
 
-    MOCK_METHOD(runtime::WasmU64,
+    MOCK_METHOD(runtime::WasmI64,
                 ext_offchain_timestamp_version_1,
                 (),
                 (override));
 
     MOCK_METHOD(void,
                 ext_offchain_sleep_until_version_1,
-                (runtime::WasmU64),
+                (runtime::WasmI64),
                 (override));
 
     MOCK_METHOD(runtime::WasmPointer,
@@ -456,7 +476,7 @@ namespace kagome::host_api {
                  runtime::WasmOffset),
                 (const, override));
 
-    MOCK_METHOD(uint32_t,
+    MOCK_METHOD(int32_t,
                 ext_default_child_storage_exists_version_1,
                 (runtime::WasmSpan, runtime::WasmSpan),
                 (const, override));
@@ -473,5 +493,3 @@ namespace kagome::host_api {
   };
 
 }  // namespace kagome::host_api
-
-#endif  // KAGOME_TEST_CORE_RUNTIME_MOCK_EXTENSION_HPP_

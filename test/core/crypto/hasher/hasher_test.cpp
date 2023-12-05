@@ -1,5 +1,6 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -28,7 +29,7 @@ class HasherFixture : public testing::Test {
   template <int size>
   static Buffer blob2buffer(const kagome::common::Blob<size> &blob) noexcept {
     Buffer out;
-    out.put({blob.data(), static_cast<long>(blob.size())});
+    out.put(blob);
     return out;
   }
 

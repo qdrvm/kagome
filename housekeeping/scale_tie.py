@@ -1,4 +1,9 @@
 #!/usr/bin/env python3
+#
+# Copyright Quadrivium LLC
+# All Rights Reserved
+# SPDX-License-Identifier: Apache-2.0
+#
 
 import sys
 

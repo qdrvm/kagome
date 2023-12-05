@@ -1,10 +1,10 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_CORE_CRYPTO_RANDOM_GENERATOR_BOOST_GENERATOR_HPP
-#define KAGOME_CORE_CRYPTO_RANDOM_GENERATOR_BOOST_GENERATOR_HPP
+#pragma once
 
 #include "libp2p/crypto/random_generator/boost_generator.hpp"
 
@@ -14,5 +14,3 @@ namespace kagome::crypto {
   using CSPRNG = libp2p::crypto::random::CSPRNG;
 
 }  // namespace kagome::crypto
-
-#endif  // KAGOME_CORE_CRYPTO_RANDOM_GENERATOR_BOOST_GENERATOR_HPP

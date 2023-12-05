@@ -1,21 +1,24 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
 #include "application/impl/app_configuration_impl.hpp"
 
+#include <charconv>
 #include <limits>
 #include <regex>
 #include <string>
 
+#include <fmt/std.h>
 #include <rapidjson/document.h>
+#include <rapidjson/error/en.h>
 #include <rapidjson/filereadstream.h>
 #include <boost/algorithm/string.hpp>
 #include <boost/program_options.hpp>
 #include <boost/uuid/uuid_generators.hpp>
 #include <boost/uuid/uuid_io.hpp>
-#include <charconv>
 #include <libp2p/layer/websocket/wss_adaptor.hpp>
 
 #include "api/transport/tuner.hpp"
@@ -27,6 +30,7 @@
 #include "common/uri.hpp"
 #include "filesystem/common.hpp"
 #include "filesystem/directories.hpp"
+#include "log/formatters/filepath.hpp"
 #include "utils/read_file.hpp"
 
 namespace {
@@ -79,8 +83,7 @@ namespace {
     roles.flags.full = 1;
     return roles;
   }();
-  const auto def_sync_method =
-      kagome::application::AppConfiguration::SyncMethod::Full;
+  const auto def_sync_method = kagome::application::SyncMethod::Full;
   const auto def_runtime_exec_method =
       kagome::application::AppConfiguration::RuntimeExecutionMethod::Interpret;
   const auto def_use_wavm_cache_ = false;
@@ -118,9 +121,9 @@ namespace {
     return name;
   }
 
-  std::optional<kagome::application::AppConfiguration::SyncMethod>
-  str_to_sync_method(std::string_view str) {
-    using SM = kagome::application::AppConfiguration::SyncMethod;
+  std::optional<kagome::application::SyncMethod> str_to_sync_method(
+      std::string_view str) {
+    using SM = kagome::application::SyncMethod;
     if (str == "Full") {
       return SM::Full;
     }
@@ -153,6 +156,11 @@ namespace {
     return std::nullopt;
   }
 
+  std::array<std::string_view, 2> execution_methods{"Interpreted", "Compiled"};
+
+  std::string execution_methods_str =
+      fmt::format("[{}]", fmt::join(execution_methods, ", "));
+
   std::optional<kagome::application::AppConfiguration::RuntimeExecutionMethod>
   str_to_runtime_exec_method(std::string_view str) {
     using REM = kagome::application::AppConfiguration::RuntimeExecutionMethod;
@@ -182,12 +190,12 @@ namespace {
 
   std::optional<kagome::primitives::BlockId> str_to_recovery_state(
       std::string_view str) {
-    kagome::primitives::BlockNumber bn;
     auto res = kagome::primitives::BlockHash::fromHex(str);
     if (res.has_value()) {
       return {{res.value()}};
     }
 
+    kagome::primitives::BlockNumber bn{};
     auto result = std::from_chars(str.data(), str.data() + str.size(), bn);
     if (result.ec != std::errc::invalid_argument && std::to_string(bn) == str) {
       return {{bn}};
@@ -536,7 +544,7 @@ namespace kagome::application {
       SL_ERROR(logger_,
                "Configuration file {} parse failed with error {}",
                filepath,
-               document.GetParseError());
+               GetParseError_En(document.GetParseError()));
       return;
     }
 
@@ -792,6 +800,7 @@ namespace kagome::application {
         ("enable-offchain-indexing", po::value<bool>(), "enable Offchain Indexing API, which allow block import to write to offchain DB)")
         ("recovery", po::value<std::string>(), "recovers block storage to state after provided block presented by number or hash, and stop after that")
         ("state-pruning", po::value<std::string>()->default_value("archive"), "state pruning policy. 'archive', 'prune-discarded', or the number of finalized blocks to keep.")
+        ("blocks-pruning", po::value<uint32_t>(), "If specified, keep block body only for specified number of recent finalized blocks.")
         ("enable-thorough-pruning", po::bool_switch(), "Makes trie node pruner more efficient, but the node starts slowly")
         ;
 
@@ -835,12 +844,16 @@ namespace kagome::application {
         ("sync", po::value<std::string>()->default_value(def_full_sync),
           "choose the desired sync method (Full, Fast). Full is used by default.")
         ("wasm-execution", po::value<std::string>()->default_value(def_wasm_execution),
-          "choose the desired wasm execution method (Compiled, Interpreted)")
+          fmt::format("choose the desired wasm execution method ({})", execution_methods_str).c_str())
         ("unsafe-cached-wavm-runtime", "use WAVM runtime cache")
         ("purge-wavm-cache", "purge WAVM runtime cache")
         ("parachain-runtime-instance-cache-size",
           po::value<uint32_t>()->default_value(def_parachain_runtime_instance_cache_size),
           "Number of parachain runtime instances to keep cached")
+        ("no-precompile-parachain-modules", po::bool_switch(), "Don't precompile parachain runtime modules at node startup")
+        ("parachain-precompilation-thread-num",
+         po::value<uint32_t>()->default_value(parachain_precompilation_thread_num_),
+         "Number of threads that precompile parachain runtime modules at node startup")
         ;
     po::options_description benchmark_desc("Benchmark options");
     benchmark_desc.add_options()
@@ -857,8 +870,8 @@ namespace kagome::application {
       development_desc.add_options()(
           flag,
           po::bool_switch(),
-          fmt::format("Shortcut for `--name {} --validator` with session keys "
-                      "for `{}` added to keystore",
+          fmt::format("Shortcut for `--name {} --validator` with session "
+                      "keys for `{}` added to keystore",
                       name,
                       name)
               .c_str());
@@ -1162,7 +1175,7 @@ namespace kagome::application {
       auto replace = [&](std::string_view prefix,
                          std::string_view replacement,
                          std::string_view str) {
-        if (boost::starts_with(str, prefix)) {
+        if (str.starts_with(prefix)) {
           std::string replaced{replacement};
           replaced += str.substr(prefix.size());
           public_addresses_.emplace_back(
@@ -1364,8 +1377,10 @@ namespace kagome::application {
           if (not runtime_exec_method_opt) {
             exec_method_value_error = true;
             SL_ERROR(logger_,
-                     "Invalid runtime execution method specified: '{}'",
-                     val);
+                     "Invalid runtime execution method specified: '{}'. "
+                     "Available methods are: {}",
+                     val,
+                     execution_methods_str);
           } else {
             runtime_exec_method_ = runtime_exec_method_opt.value();
           }
@@ -1392,10 +1407,21 @@ namespace kagome::application {
       }
     }
 
-    if (auto arg =
-            find_argument<uint32_t>(vm, "parachain-runtime-instance-cache-size");
+    if (auto arg = find_argument<uint32_t>(
+            vm, "parachain-runtime-instance-cache-size");
         arg.has_value()) {
       parachain_runtime_instance_cache_size_ = *arg;
+    }
+
+    if (!find_argument(vm, "validator")
+        || find_argument(vm, "no-precompile-parachain-modules")) {
+      should_precompile_parachain_modules_ = false;
+    }
+
+    if (auto arg =
+            find_argument<uint32_t>(vm, "parachain-precompilation-thread-num");
+        arg.has_value()) {
+      parachain_precompilation_thread_num_ = *arg;
     }
 
     bool offchain_worker_value_error = false;
@@ -1436,7 +1462,7 @@ namespace kagome::application {
         return false;
       }
       auto repeat_opt = find_argument<uint16_t>(vm, "repeat");
-      if (!to_opt) {
+      if (!repeat_opt) {
         SL_ERROR(logger_, "Required argument --repeat is not provided");
         return false;
       }
@@ -1470,14 +1496,14 @@ namespace kagome::application {
         prune_discarded_states_ = true;
       } else {
         uint32_t depth{};
-        auto [_, err] = std::from_chars(&*val.begin(), &*val.end(), depth);
+        auto err = std::from_chars(&*val.begin(), &*val.end(), depth).ec;
         if (err == std::errc{}) {
           state_pruning_depth_ = depth;
         } else {
           SL_ERROR(logger_,
-                   "Failed to parse state-pruning param (which should be "
-                   "either 'archive' or an integer): {}",
-                   err);
+                   "Failed to parse state-pruning param "
+                   "(which should be either 'archive' or an integer): {}",
+                   make_error_code(err));
           return false;
         }
       }
@@ -1486,6 +1512,8 @@ namespace kagome::application {
         enable_thorough_pruning_ = true;
       }
     }
+
+    blocks_pruning_ = find_argument<uint32_t>(vm, "blocks-pruning");
 
     // if something wrong with config print help message
     if (not validate_config()) {

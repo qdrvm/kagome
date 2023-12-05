@@ -1,10 +1,10 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_NETWORK_WARP_TYPES_HPP
-#define KAGOME_NETWORK_WARP_TYPES_HPP
+#pragma once
 
 #include "consensus/grandpa/structs.hpp"
 
@@ -23,5 +23,3 @@ namespace kagome::network {
     bool is_finished = false;
   };
 }  // namespace kagome::network
-
-#endif  // KAGOME_NETWORK_WARP_TYPES_HPP

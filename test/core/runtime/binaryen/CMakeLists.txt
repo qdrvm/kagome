@@ -1,3 +1,9 @@
+#
+# Copyright Quadrivium LLC
+# All Rights Reserved
+# SPDX-License-Identifier: Apache-2.0
+#
+
 add_library(binaryen_runtime_test INTERFACE)
 target_link_libraries(binaryen_runtime_test INTERFACE
     filesystem
@@ -13,7 +19,6 @@ target_link_libraries(binaryen_runtime_test INTERFACE
     host_api
     host_api_factory
     core_api
-    binaryen_executor_factory
     binaryen_module_factory
     binaryen_wasm_memory_factory
     module_repository
@@ -30,6 +35,7 @@ target_link_libraries(tagged_transaction_queue_test
     testutil_primitives_generator
     basic_code_provider
     core_api
+    core_api_factory
     logger_for_tests
     filesystem
     )
@@ -54,6 +60,7 @@ target_link_libraries(parachain_test
     parachain_host_api
     basic_code_provider
     core_api
+    core_api_factory
     filesystem
     hasher
     pbkdf2_provider
@@ -69,6 +76,7 @@ target_link_libraries(metadata_test
     basic_code_provider
     storage
     core_api
+    core_api_factory
     logger_for_tests
     )
 
@@ -90,4 +98,5 @@ target_link_libraries(binaryen_memory_test
     binaryen_wasm_memory
     binaryen_runtime_external_interface
     log_configurator
+    hexutil
     )

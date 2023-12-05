@@ -1,13 +1,15 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_CORE_RUNTIME_CORE_API_FACTORY_IMPL_HPP
-#define KAGOME_CORE_RUNTIME_CORE_API_FACTORY_IMPL_HPP
+#pragma once
 
 #include <memory>
 #include <vector>
+
+#include "outcome/outcome.hpp"
 
 namespace kagome::host_api {
   class HostApiFactory;
@@ -19,7 +21,7 @@ namespace kagome::crypto {
 
 namespace kagome::runtime {
 
-  class Core;
+  class RestrictedCore;
 
   /**
    * A factory for Core API, used where an isolated runtime environment
@@ -29,11 +31,9 @@ namespace kagome::runtime {
    public:
     virtual ~CoreApiFactory() = default;
 
-    [[nodiscard]] virtual std::unique_ptr<Core> make(
+    [[nodiscard]] virtual outcome::result<std::unique_ptr<RestrictedCore>> make(
         std::shared_ptr<const crypto::Hasher> hasher,
         const std::vector<uint8_t> &runtime_code) const = 0;
   };
 
 }  // namespace kagome::runtime
-
-#endif  // KAGOME_CORE_RUNTIME_CORE_API_FACTORY_IMPL_HPP

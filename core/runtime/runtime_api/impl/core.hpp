@@ -1,10 +1,10 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_RUNTIME_IMPL_CORE_HPP
-#define KAGOME_RUNTIME_IMPL_CORE_HPP
+#pragma once
 
 #include "runtime/runtime_api/core.hpp"
 
@@ -20,18 +20,25 @@ namespace kagome::runtime {
       common::BufferView code,
       const std::shared_ptr<RuntimePropertiesCache> &runtime_properties_cache);
 
+  class RestrictedCoreImpl final : public RestrictedCore {
+   public:
+    explicit RestrictedCoreImpl(RuntimeContext ctx);
+
+    outcome::result<primitives::Version> version() override;
+
+   private:
+    RuntimeContext ctx_;
+  };
+
   class CoreImpl final : public Core {
    public:
     CoreImpl(
         std::shared_ptr<Executor> executor,
-        std::shared_ptr<RuntimeContextFactory> ctx_factory,
         std::shared_ptr<const blockchain::BlockHeaderRepository> header_repo,
         std::shared_ptr<RuntimeUpgradeTracker> runtime_upgrade_tracker);
 
     outcome::result<primitives::Version> version(
         const primitives::BlockHash &block) override;
-
-    outcome::result<primitives::Version> version() override;
 
     outcome::result<void> execute_block(
         const primitives::Block &block,
@@ -47,7 +54,6 @@ namespace kagome::runtime {
 
    private:
     std::shared_ptr<Executor> executor_;
-    std::shared_ptr<RuntimeContextFactory> ctx_factory_;
     std::shared_ptr<const blockchain::BlockHeaderRepository> header_repo_;
     std::shared_ptr<RuntimeUpgradeTracker> runtime_upgrade_tracker_;
 
@@ -55,5 +61,3 @@ namespace kagome::runtime {
   };
 
 }  // namespace kagome::runtime
-
-#endif  // KAGOME_RUNTIME_IMPL_CORE_HPP

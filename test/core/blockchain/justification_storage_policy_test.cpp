@@ -1,5 +1,6 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -9,7 +10,6 @@
 
 #include "blockchain/impl/justification_storage_policy.hpp"
 #include "mock/core/consensus/grandpa/authority_manager_mock.hpp"
-#include "primitives/common.hpp"
 #include "testutil/lazy.hpp"
 #include "testutil/literals.hpp"
 
@@ -73,8 +73,8 @@ TEST_F(JustificationStoragePolicyTest, ShouldStore512Multiples) {
  */
 TEST_F(JustificationStoragePolicyTest, ShouldStoreOnScheduledChange) {
   auto header = makeBlockHeader(13);
-  header.digest.emplace_back(
-      kagome::primitives::Consensus{kagome::primitives::ScheduledChange{}});
+  header.digest.emplace_back(kagome::primitives::Consensus{
+      kagome::consensus::grandpa::ScheduledChange{}});
   ASSERT_EQ(policy_.shouldStoreFor(header, last_finalized_number).value(),
             true);
 }
@@ -86,8 +86,8 @@ TEST_F(JustificationStoragePolicyTest, ShouldStoreOnScheduledChange) {
  */
 TEST_F(JustificationStoragePolicyTest, ShouldStoreOnForcedChange) {
   auto header = makeBlockHeader(13);
-  header.digest.emplace_back(
-      kagome::primitives::Consensus{kagome::primitives::ForcedChange{}});
+  header.digest.emplace_back(kagome::primitives::Consensus{
+      kagome::consensus::grandpa::ForcedChange{}});
   ASSERT_EQ(policy_.shouldStoreFor(header, last_finalized_number).value(),
             true);
 }
@@ -100,7 +100,7 @@ TEST_F(JustificationStoragePolicyTest, ShouldStoreOnForcedChange) {
 TEST_F(JustificationStoragePolicyTest, ShouldStoreOnDisabledChange) {
   auto header = makeBlockHeader(13);
   header.digest.emplace_back(
-      kagome::primitives::Consensus{kagome::primitives::OnDisabled{}});
+      kagome::primitives::Consensus{kagome::consensus::grandpa::OnDisabled{}});
   ASSERT_EQ(policy_.shouldStoreFor(header, last_finalized_number).value(),
             false);
 }

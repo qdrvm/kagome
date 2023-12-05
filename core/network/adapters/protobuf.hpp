@@ -1,15 +1,15 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_ADAPTERS_PROTOBUF
-#define KAGOME_ADAPTERS_PROTOBUF
+#pragma once
 
 #include <boost/system/error_code.hpp>
 #include <functional>
-#include <gsl/span>
 #include <memory>
+#include <span>
 #include <vector>
 
 #include "network/adapters/adapter_errors.hpp"
@@ -37,5 +37,3 @@ namespace kagome::network {
   }
 
 }  // namespace kagome::network
-
-#endif  // KAGOME_ADAPTERS_PROTOBUF

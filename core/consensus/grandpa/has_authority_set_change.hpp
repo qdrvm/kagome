@@ -1,10 +1,10 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_CONSENSUS_GRANDPA_HAS_AUTHORITY_SET_CHANGE_HPP
-#define KAGOME_CONSENSUS_GRANDPA_HAS_AUTHORITY_SET_CHANGE_HPP
+#pragma once
 
 #include "primitives/block_header.hpp"
 
@@ -25,11 +25,11 @@ namespace kagome::consensus::grandpa {
         if (not grandpa) {
           continue;
         }
-        if (auto change = boost::get<primitives::ScheduledChange>(grandpa)) {
+        if (auto change = boost::get<ScheduledChange>(grandpa)) {
           scheduled = std::move(*change);
           continue;
         }
-        if (auto change = boost::get<primitives::ForcedChange>(grandpa)) {
+        if (auto change = boost::get<ForcedChange>(grandpa)) {
           forced = std::move(*change);
           continue;
         }
@@ -40,9 +40,7 @@ namespace kagome::consensus::grandpa {
       return scheduled || forced;
     }
 
-    std::optional<primitives::ScheduledChange> scheduled;
-    std::optional<primitives::ForcedChange> forced;
+    std::optional<ScheduledChange> scheduled;
+    std::optional<ForcedChange> forced;
   };
 }  // namespace kagome::consensus::grandpa
-
-#endif  // KAGOME_CONSENSUS_GRANDPA_HAS_AUTHORITY_SET_CHANGE_HPP

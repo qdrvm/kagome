@@ -1,10 +1,10 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_CORE_METRICS_METRICS_HPP
-#define KAGOME_CORE_METRICS_METRICS_HPP
+#pragma once
 
 #include <memory>
 #include <vector>
@@ -115,5 +115,3 @@ namespace kagome::metrics {
     virtual void observe(const double value) = 0;
   };
 }  // namespace kagome::metrics
-
-#endif  // KAGOME_CORE_METRICS_METRICS_HPP

@@ -1,10 +1,10 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_RUNTIME_BINARYEN_WASM_MEMORY_IMPL_HPP
-#define KAGOME_RUNTIME_BINARYEN_WASM_MEMORY_IMPL_HPP
+#pragma once
 
 #include <binaryen/shell-interface.h>
 
@@ -70,9 +70,9 @@ namespace kagome::runtime::binaryen {
     void store128(WasmPointer addr,
                   const std::array<uint8_t, 16> &value) override;
     void storeBuffer(kagome::runtime::WasmPointer addr,
-                     gsl::span<const uint8_t> value) override;
+                     common::BufferView value) override;
 
-    WasmSpan storeBuffer(gsl::span<const uint8_t> value) override;
+    WasmSpan storeBuffer(common::BufferView value) override;
 
     void resize(WasmSize new_size) override {
       /**
@@ -93,7 +93,7 @@ namespace kagome::runtime::binaryen {
     }
 
     // for testing purposes
-    const MemoryAllocator& getAllocator() const {
+    const MemoryAllocator &getAllocator() const {
       return *allocator_;
     }
 
@@ -104,5 +104,3 @@ namespace kagome::runtime::binaryen {
     log::Logger logger_;
   };
 }  // namespace kagome::runtime::binaryen
-
-#endif  // KAGOME_RUNTIME_BINARYEN_WASM_MEMORY_IMPL_HPP

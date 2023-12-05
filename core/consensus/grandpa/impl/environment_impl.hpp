@@ -1,10 +1,10 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_CONSENSUS_GRANDPA_ENVIRONMENTIMPL
-#define KAGOME_CONSENSUS_GRANDPA_ENVIRONMENTIMPL
+#pragma once
 
 #include "consensus/grandpa/environment.hpp"
 
@@ -137,5 +137,3 @@ namespace kagome::consensus::grandpa {
   };
 
 }  // namespace kagome::consensus::grandpa
-
-#endif  // KAGOME_CONSENSUS_GRANDPA_ENVIRONMENTIMPL

@@ -1,3 +1,9 @@
+#
+# Copyright Quadrivium LLC
+# All Rights Reserved
+# SPDX-License-Identifier: Apache-2.0
+#
+
 cmake_minimum_required(VERSION 3.12)
 
 find_program(CCACHE_FOUND ccache)
@@ -7,13 +13,16 @@ if(CCACHE_FOUND)
 endif(CCACHE_FOUND)
 
 set(CMAKE_TOOLCHAIN_FILE
-    "${CMAKE_SOURCE_DIR}/cmake/toolchain/cxx17.cmake"
+    "${CMAKE_SOURCE_DIR}/cmake/toolchain/cxx20.cmake"
     CACHE FILEPATH "Default toolchain")
 
 include("cmake/Hunter/init.cmake")
 
 add_compile_options(-gdwarf-4)
-project(kagome C CXX)
+project(kagome
+    VERSION 0.9.2
+    LANGUAGES C CXX
+)
 
 include(cmake/print.cmake)
 print("C flags: ${CMAKE_C_FLAGS}")
@@ -28,6 +37,8 @@ if(THREADS_HAVE_PTHREAD_ARG)
 endif()
 
 if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
+  link_libraries(atomic)
+elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
   link_libraries(atomic)
 endif()
 
@@ -47,6 +58,12 @@ if(NOT($ENV{CI}) OR NOT($ENV{GITHUB_ACTIONS}))
   set(_EXTERNAL_PROJECT_DEFAULT ON)
 endif()
 option(EXTERNAL_PROJECT "Build external project" ${_EXTERNAL_PROJECT_DEFAULT})
+
+set(WASM_COMPILER WAVM CACHE STRING "WebAssembly compiler built into Kagome: one of [WAVM, WasmEdge]")
+
+if (NOT ${WASM_COMPILER} MATCHES "^(WAVM|WasmEdge)$")
+  fatal_error("WASM_COMPILER is set to ${WASM_COMPILER} but should be one of [WAVM, WasmEdge]")
+endif()
 
 # sanitizers will be enabled only for Kagome, and will be disabled for dependencies
 option(ASAN         "Enable address sanitizer"                    OFF)
@@ -69,6 +86,8 @@ if("${CMAKE_CXX_COMPILER_ID}" MATCHES "^(AppleClang|Clang|GNU)$")
   # cmake-format: off
 
   # enable those flags
+  add_flag(-fdiagnostics-show-template-tree)
+
   add_flag(-Wall)
   add_flag(-Wextra)
   add_flag(-Woverloaded-virtual)     # warn if you overload (not override) a virtual function
@@ -97,7 +116,8 @@ if("${CMAKE_CXX_COMPILER_ID}" MATCHES "^(AppleClang|Clang|GNU)$")
     add_flag(-Werror=unused-lambda-capture)  # error if lambda capture is unused
     add_flag(-Werror=return-type)      # warning: control reaches end of non-void function [-Wreturn-type]
     add_flag(-Werror=sign-compare)     # warn the user if they compare a signed and unsigned numbers
-    add_flag(-Werror=reorder)          # field '$1' will be initialized after field '$2'
+    # breaks soralog headers
+    # add_flag(-Werror=reorder)          # field '$1' will be initialized after field '$2'
     add_flag(-Werror=mismatched-tags)  # warning: class '$1' was previously declared as struct
     add_flag(-Werror=switch)  # unhandled values in a switch statement
     # cmake-format: on
@@ -113,9 +133,9 @@ if("${CMAKE_CXX_COMPILER_ID}" MATCHES "^(AppleClang|Clang|GNU)$")
     # cmake-format: on
   endif()
 elseif("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
-  # using Visual Studio C++
-  # TODO(warchant): add flags
   # https://github.com/lefticus/cppbestpractices/blob/master/02-Use_the_Tools_Available.md#msvc
+
+  fatal_error("MSVC is not supported")
 endif()
 
 print("C flags: ${CMAKE_C_FLAGS}")
@@ -175,7 +195,8 @@ kagome_install_setup(
   core/storage
   core/subscription
   core/telemetry
-  core/utils)
+  core/utils
+)
 
 include(CMakePackageConfigHelpers)
 

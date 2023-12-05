@@ -1,19 +1,20 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_UTILS_THREAD_POOL_HPP
-#define KAGOME_UTILS_THREAD_POOL_HPP
+#pragma once
 
 #include <atomic>
-#include <boost/asio/executor_work_guard.hpp>
-#include <boost/asio/io_context.hpp>
 #include <memory>
 #include <optional>
 #include <thread>
 
-#include "soralog/util.hpp"
+#include <boost/asio/executor_work_guard.hpp>
+#include <boost/asio/io_context.hpp>
+#include <soralog/util.hpp>
+
 #include "utils/non_copyable.hpp"
 
 namespace kagome {
@@ -43,11 +44,11 @@ namespace kagome {
     ~ThreadHandler() = default;
 
     void start() {
-      execution_state_.store(State::kStarted, std::memory_order_release);
+      execution_state_.store(State::kStarted);
     }
 
     void stop() {
-      execution_state_.store(State::kStopped, std::memory_order_release);
+      execution_state_.store(State::kStopped);
     }
 
     template <typename F>
@@ -180,5 +181,3 @@ namespace kagome {
       });                                                                    \
     }                                                                        \
   } while (false)
-
-#endif  // KAGOME_UTILS_THREAD_POOL_HPP

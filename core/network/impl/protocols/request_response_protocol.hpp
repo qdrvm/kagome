@@ -1,5 +1,6 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -7,7 +8,6 @@
 
 #include "network/impl/protocols/protocol_base_impl.hpp"
 
-#include "network/helpers/peer_id_formatter.hpp"
 #include "protocol_error.hpp"
 #include "utils/box.hpp"
 

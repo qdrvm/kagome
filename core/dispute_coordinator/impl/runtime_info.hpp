@@ -1,10 +1,10 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_DISPUTE_RUNTIMEINFO
-#define KAGOME_DISPUTE_RUNTIMEINFO
+#pragma once
 
 #include "common/lru_cache.hpp"
 #include "dispute_coordinator/types.hpp"
@@ -106,5 +106,3 @@ namespace kagome::dispute {
   };
 
 }  // namespace kagome::dispute
-
-#endif  // KAGOME_DISPUTE_RUNTIMEINFO

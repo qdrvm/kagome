@@ -1,11 +1,16 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
 #include "outcome/outcome.hpp"
+
+#include <fmt/format.h>
 #include <gtest/gtest.h>
 #include <string>
+
+#include "testutil/outcome/dummy_error.hpp"
 
 using std::string_literals::operator""s;
 
@@ -57,8 +62,9 @@ outcome::result<int> convert(const std::string &str) {
     return ConversionErrc::EMPTY_STRING;
   }
 
-  if (!std::all_of(str.begin(), str.end(), ::isdigit))
+  if (!std::all_of(str.begin(), str.end(), ::isdigit)) {
     return ConversionErrc::ILLEGAL_CHAR;
+  }
 
   if (str.length() > 9) {
     return ConversionErrc::TOO_LONG;
@@ -120,4 +126,59 @@ TEST(Outcome, DivisionError) {
   ASSERT_EQ(err.message(), DIV_0_MSG);  // name of the enum
   using sooper::loong::ns::DivisionErrc;
   ASSERT_EQ(err.category().name(), typeid(DivisionErrc).name());
+}
+
+TEST(Outcome, FormatterStdErrorCore) {
+  auto error = make_error_code(testutil::DummyError::ERROR);
+
+  auto expected = error.message();
+
+  auto actual = fmt::format("{}", error);
+  EXPECT_EQ(actual, expected);
+}
+
+TEST(Outcome, FormatterBoostSystemErrorCode) {
+  boost::system::error_code ec;
+
+  auto expected = ec.message();
+
+  auto actual = fmt::format("{}", ec);
+  EXPECT_EQ(actual, expected);
+}
+
+TEST(Outcome, FormatterVoidSuccess) {
+  auto success = outcome::success();
+
+  auto expected = "<success>";
+
+  auto actual = fmt::format("{}", success);
+  EXPECT_EQ(actual, expected);
+}
+
+TEST(Outcome, FormatterNonVoidSuccess) {
+  std::string data("Yahoo!");
+  auto success = outcome::success(data);
+
+  auto expected = data;
+
+  auto actual = fmt::format("{}", success);
+  EXPECT_EQ(actual, expected);
+}
+
+TEST(Outcome, FormatterResultSuccess) {
+  auto outcome = outcome::result<std::string>("Yahoo!");
+
+  auto expected = outcome.value();
+
+  auto actual = fmt::format("{}", outcome);
+  EXPECT_EQ(actual, expected);
+}
+
+TEST(Outcome, FormatterResultFailure) {
+  auto outcome = outcome::result<std::string>(testutil::DummyError::ERROR);
+
+  auto expected = outcome.error().message();
+
+  auto actual = fmt::format("{}", outcome);
+  EXPECT_EQ(actual, expected);
 }

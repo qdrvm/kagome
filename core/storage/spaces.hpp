@@ -1,10 +1,10 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_SPACES_HPP
-#define KAGOME_SPACES_HPP
+#pragma once
 
 #include <cstdint>
 
@@ -20,10 +20,10 @@ namespace kagome::storage {
     kBlockBody,
     kJustification,
     kTrieNode,
+    kTrieValue,
     kDisputeData,
+    kBeefyJustification,
 
     kTotal
   };
 }
-
-#endif  // KAGOME_SPACES_HPP

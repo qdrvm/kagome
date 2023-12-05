@@ -1,20 +1,20 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_RUNTIME_TEST_HPP
-#define KAGOME_RUNTIME_TEST_HPP
+#pragma once
 
 #include "core/runtime/runtime_test_base.hpp"
 
 #include "mock/core/storage/trie/trie_storage_mock.hpp"
 #include "runtime/binaryen/binaryen_memory_factory.hpp"
 #include "runtime/binaryen/binaryen_memory_provider.hpp"
-#include "runtime/binaryen/core_api_factory_impl.hpp"
 #include "runtime/binaryen/instance_environment_factory.hpp"
 #include "runtime/binaryen/memory_impl.hpp"
 #include "runtime/binaryen/module/module_factory_impl.hpp"
+#include "runtime/common/core_api_factory_impl.hpp"
 
 class BinaryenRuntimeTest : public RuntimeTestBase {
  public:
@@ -28,11 +28,7 @@ class BinaryenRuntimeTest : public RuntimeTestBase {
 
     auto instance_env_factory =
         std::make_shared<kagome::runtime::binaryen::InstanceEnvironmentFactory>(
-            trie_storage_,
-            serializer_,
-            host_api_factory_,
-            header_repo_,
-            cache_);
+            trie_storage_, serializer_, host_api_factory_);
 
     auto module_factory =
         std::make_shared<kagome::runtime::binaryen::ModuleFactoryImpl>(
@@ -40,5 +36,3 @@ class BinaryenRuntimeTest : public RuntimeTestBase {
     return module_factory;
   }
 };
-
-#endif  // KAGOME_RUNTIME_TEST_HPP

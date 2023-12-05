@@ -1,5 +1,6 @@
 #
-# Copyright Soramitsu Co., Ltd. All Rights Reserved.
+# Copyright Quadrivium LLC
+# All Rights Reserved
 # SPDX-License-Identifier: Apache-2.0
 #
 
@@ -24,6 +25,7 @@ addtest(memory_extension_test
 target_link_libraries(memory_extension_test
     memory_extension
     logger_for_tests
+    hexutil
     )
 
 addtest(misc_extension_test

@@ -1,10 +1,10 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_TRIE_DB_BACKEND_HPP
-#define KAGOME_TRIE_DB_BACKEND_HPP
+#pragma once
 
 #include <outcome/outcome.hpp>
 
@@ -15,7 +15,7 @@
 namespace kagome::storage::trie {
 
   /**
-   * Adapter for key-value storages that allows to hide keyspace separation
+   * Adapter for the trie node storage that allows to hide keyspace separation
    * along with root hash storing logic from the trie db component
    */
   class TrieStorageBackend : public BufferStorage {
@@ -24,5 +24,3 @@ namespace kagome::storage::trie {
   };
 
 }  // namespace kagome::storage::trie
-
-#endif  // KAGOME_TRIE_DB_BACKEND_HPP

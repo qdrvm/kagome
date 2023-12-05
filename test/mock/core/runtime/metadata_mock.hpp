@@ -1,10 +1,10 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_RUNTIME_METADATAMOCK
-#define KAGOME_RUNTIME_METADATAMOCK
+#pragma once
 
 #include "runtime/runtime_api/metadata.hpp"
 
@@ -21,5 +21,3 @@ namespace kagome::runtime {
   };
 
 }  // namespace kagome::runtime
-
-#endif  // KAGOME_RUNTIME_METADATAMOCK

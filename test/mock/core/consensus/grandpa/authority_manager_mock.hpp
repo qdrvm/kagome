@@ -1,10 +1,10 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_CONSENSUS_GRANDPA_AUTHORITYMANAGERMOCK
-#define KAGOME_CONSENSUS_GRANDPA_AUTHORITYMANAGERMOCK
+#pragma once
 
 #include "consensus/grandpa/authority_manager.hpp"
 
@@ -13,7 +13,7 @@
 namespace kagome::consensus::grandpa {
 
   struct AuthorityManagerMock : public AuthorityManager {
-    MOCK_METHOD(std::optional<std::shared_ptr<const primitives::AuthoritySet>>,
+    MOCK_METHOD(std::optional<std::shared_ptr<const AuthoritySet>>,
                 authorities,
                 (const primitives::BlockInfo &, IsBlockFinalized),
                 (const, override));
@@ -22,9 +22,7 @@ namespace kagome::consensus::grandpa {
                 warp,
                 (const primitives::BlockInfo &,
                  const primitives::BlockHeader &,
-                 const primitives::AuthoritySet &),
+                 const AuthoritySet &),
                 (override));
   };
 }  // namespace kagome::consensus::grandpa
-
-#endif  // KAGOME_CONSENSUS_GRANDPA_AUTHORITYMANAGERMOCK

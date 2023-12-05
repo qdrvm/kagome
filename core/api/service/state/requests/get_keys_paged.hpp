@@ -1,10 +1,10 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_CORE_API_SERVICE_STATE_REQUESTS_GET_KEYS_PAGED_HPP
-#define KAGOME_CORE_API_SERVICE_STATE_REQUESTS_GET_KEYS_PAGED_HPP
+#pragma once
 
 #include <jsonrpc-lean/request.h>
 
@@ -21,8 +21,8 @@ namespace kagome::api::state::request {
    */
   class GetKeysPaged final {
    public:
-    GetKeysPaged(GetKeysPaged const &) = delete;
-    GetKeysPaged &operator=(GetKeysPaged const &) = delete;
+    GetKeysPaged(const GetKeysPaged &) = delete;
+    GetKeysPaged &operator=(const GetKeysPaged &) = delete;
 
     GetKeysPaged(GetKeysPaged &&) = default;
     GetKeysPaged &operator=(GetKeysPaged &&) = default;
@@ -46,5 +46,3 @@ namespace kagome::api::state::request {
   };
 
 }  // namespace kagome::api::state::request
-
-#endif  // KAGOME_CORE_API_SERVICE_STATE_REQUESTS_GET_KEYS_PAGED_HPP

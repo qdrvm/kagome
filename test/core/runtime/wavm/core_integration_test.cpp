@@ -1,5 +1,6 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -42,22 +43,12 @@ class CoreTest : public WavmRuntimeTest {
   void SetUp() override {
     WavmRuntimeTest::SetUp();
 
-    core_ = std::make_shared<CoreImpl>(
-        executor_, ctx_factory_, header_repo_, nullptr);
+    core_ = std::make_shared<CoreImpl>(executor_, header_repo_, nullptr);
   }
 
  protected:
   std::shared_ptr<CoreImpl> core_;
 };
-
-/**
- * @given initialized core api
- * @when version is invoked
- * @then successful result is returned
- */
-TEST_F(CoreTest, DISABLED_VersionTest) {
-  ASSERT_TRUE(core_->version());
-}
 
 /**
  * @given initialized core api

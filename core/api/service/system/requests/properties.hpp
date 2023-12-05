@@ -1,10 +1,10 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_API_SYSTEM_REQUEST_PROPERTIES
-#define KAGOME_API_SYSTEM_REQUEST_PROPERTIES
+#pragma once
 
 #include <jsonrpc-lean/request.h>
 
@@ -24,8 +24,8 @@ namespace kagome::api::system::request {
    */
   class Properties final {
    public:
-    Properties(Properties const &) = delete;
-    Properties &operator=(Properties const &) = delete;
+    Properties(const Properties &) = delete;
+    Properties &operator=(const Properties &) = delete;
 
     Properties(Properties &&) = default;
     Properties &operator=(Properties &&) = default;
@@ -43,5 +43,3 @@ namespace kagome::api::system::request {
   };
 
 }  // namespace kagome::api::system::request
-
-#endif  // KAGOME_API_SYSTEM_REQUEST_PROPERTIES

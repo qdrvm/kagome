@@ -1,5 +1,6 @@
 #
-# Copyright Soramitsu Co., Ltd. All Rights Reserved.
+# Copyright Quadrivium LLC
+# All Rights Reserved
 # SPDX-License-Identifier: Apache-2.0
 #
 
@@ -19,7 +20,8 @@ target_link_libraries(telemetry
     Boost::date_time
     OpenSSL::SSL
     RapidJSON::rapidjson
-    p2p::p2p_basic_scheduler
+    p2p::p2p_asio_scheduler_backend
     p2p::p2p_multiaddress
+    p2p::p2p_peer_id
     )
 kagome_install(telemetry)

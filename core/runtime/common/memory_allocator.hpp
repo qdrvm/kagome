@@ -1,10 +1,10 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_CORE_RUNTIME_COMMON_MEMORY_ALLOCATOR_HPP
-#define KAGOME_CORE_RUNTIME_COMMON_MEMORY_ALLOCATOR_HPP
+#pragma once
 
 #include <deque>
 #include <map>
@@ -39,18 +39,6 @@ namespace kagome::runtime {
     return math::roundUp<kAlignment>(t);
   }
 
-  inline bool isPowerOf2(size_t x) {
-    return ((x > 0ull) && ((x & (x - 1ull)) == 0));
-  }
-
-  inline size_t nextHighPowerOf2(size_t k) {
-    if (isPowerOf2(k)) {
-      return k;
-    }
-    const auto p = k == 0ull ? 0ull : 64ull - __builtin_clzll(k);
-    return (1ull << p);
-  }
-
   /**
    * Implementation of allocator for the runtime memory
    * Combination of monotonic and free-list allocator
@@ -66,16 +54,22 @@ namespace kagome::runtime {
 
     MemoryAllocator(MemoryHandle memory, const struct MemoryConfig &config);
 
-    WasmPointer allocate(const WasmSize size);
+    WasmPointer allocate(const uint32_t size);
     std::optional<WasmSize> deallocate(WasmPointer ptr);
 
     template <typename T>
     bool checkAddress(WasmPointer addr) noexcept {
-      return offset_ > addr and offset_ - addr >= sizeof(T);
+      BOOST_ASSERT(addr > 0);
+      return offset_ > static_cast<uint32_t>(addr)
+         and offset_ - static_cast<uint32_t>(addr) >= sizeof(T);
     }
 
-    bool checkAddress(WasmPointer addr, size_t size) noexcept {
-      return offset_ > addr and offset_ - addr >= size;
+    bool checkAddress(WasmPointer addr, WasmSize size) noexcept {
+      BOOST_ASSERT(addr > 0);
+      BOOST_ASSERT(size > 0);
+      return offset_ > static_cast<uint32_t>(addr)
+         and offset_ - static_cast<uint32_t>(addr)
+                 >= static_cast<uint32_t>(size);
     }
 
     /*
@@ -85,6 +79,7 @@ namespace kagome::runtime {
     std::optional<WasmSize> getDeallocatedChunkSize(WasmPointer ptr) const;
     std::optional<WasmSize> getAllocatedChunkSize(WasmPointer ptr) const;
     size_t getDeallocatedChunksNum() const;
+    void reset();
 
    private:
     struct AllocationHeader {
@@ -125,12 +120,10 @@ namespace kagome::runtime {
     std::unordered_map<WasmSize, std::deque<WasmPointer>> available_;
 
     // Offset on the tail of the last allocated MemoryImpl chunk
-    size_t offset_;
-    WasmSize max_memory_pages_num_;
+    uint32_t offset_;
+    uint32_t max_memory_pages_num_;
 
     log::Logger logger_;
   };
 
 }  // namespace kagome::runtime
-
-#endif  // KAGOME_CORE_RUNTIME_COMMON_MEMORY_ALLOCATOR_HPP

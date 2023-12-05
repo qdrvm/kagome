@@ -1,10 +1,10 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_NETWORK_PEERING_CONFIG
-#define KAGOME_NETWORK_PEERING_CONFIG
+#pragma once
 
 #include <chrono>
 
@@ -16,17 +16,6 @@ namespace kagome::network {
 
     /// Period of active peers amount aligning
     std::chrono::seconds aligningPeriod = std::chrono::seconds(5);
-
-    /// Target amount of active peers
-    size_t targetPeerAmount = 20;
-
-    /// Max peers count before start to disconnect of inactive ones
-    size_t softLimit = 40;
-
-    /// Max peers before start forced disconnection
-    size_t hardLimit = 60;
   };
 
 }  // namespace kagome::network
-
-#endif  // KAGOME_NETWORK_PEERING_CONFIG

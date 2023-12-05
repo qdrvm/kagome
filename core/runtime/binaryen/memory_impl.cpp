@@ -1,5 +1,6 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -76,6 +77,7 @@ namespace kagome::runtime::binaryen {
   common::BufferView MemoryImpl::loadN(kagome::runtime::WasmPointer addr,
                                        kagome::runtime::WasmSize n) const {
     BOOST_ASSERT(size() > addr and size() - addr >= n);
+    SL_TRACE(logger_, "load buffer with size {} at {}", n, addr);
     return common::BufferView{memory_->getBuffer<const uint8_t>(addr, n)};
   }
 
@@ -87,6 +89,7 @@ namespace kagome::runtime::binaryen {
     for (auto i = addr; i < addr + length; i++) {
       res.push_back(static_cast<char>(memory_->get<uint8_t>(i)));
     }
+    SL_TRACE(logger_, "load buffer with size {} at {}", length, addr);
     return res;
   }
 
@@ -117,16 +120,15 @@ namespace kagome::runtime::binaryen {
   }
 
   void MemoryImpl::storeBuffer(kagome::runtime::WasmPointer addr,
-                               gsl::span<const uint8_t> value) {
-    BOOST_ASSERT(
-        (allocator_->checkAddress(addr, static_cast<size_t>(value.size()))));
+                               common::BufferView value) {
+    BOOST_ASSERT((allocator_->checkAddress(addr, value.size())));
     memory_->set(addr, std::move(value));
+    SL_TRACE(logger_, "store buffer with size {} at {}", value.size(), addr);
   }
 
-  WasmSpan MemoryImpl::storeBuffer(gsl::span<const uint8_t> value) {
-    const auto size = static_cast<size_t>(value.size());
-    BOOST_ASSERT(std::numeric_limits<WasmSize>::max() > size);
-    auto wasm_pointer = allocate(size);
+  WasmSpan MemoryImpl::storeBuffer(common::BufferView value) {
+    BOOST_ASSERT(std::numeric_limits<WasmSize>::max() > value.size());
+    auto wasm_pointer = allocate(value.size());
     if (wasm_pointer == 0) {
       return 0;
     }

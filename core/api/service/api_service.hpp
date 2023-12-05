@@ -1,10 +1,10 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_CORE_API_SERVICE_HPP
-#define KAGOME_CORE_API_SERVICE_HPP
+#pragma once
 
 #include <vector>
 
@@ -62,5 +62,3 @@ namespace kagome::api {
         PubsubSubscriptionId subscription_id) = 0;
   };
 }  // namespace kagome::api
-
-#endif  // KAGOME_CORE_API_SERVICE_HPP

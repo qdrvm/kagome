@@ -1,12 +1,12 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_CORE_STORAGE_TRIE_BUFFER_STREAM
-#define KAGOME_CORE_STORAGE_TRIE_BUFFER_STREAM
+#pragma once
 
-#include <gsl/span>
+#include <span>
 
 #include "common/buffer.hpp"
 
@@ -17,28 +17,27 @@ namespace kagome::storage::trie {
    * future, when one appears
    */
   class BufferStream {
-    using index_type = gsl::span<const uint8_t>::index_type;
-
    public:
-    explicit BufferStream(gsl::span<const uint8_t> buf) : data_{buf} {}
+    explicit BufferStream(common::BufferView buf) : data_{buf} {}
 
-    bool hasMore(index_type num_bytes) const {
+    bool hasMore(size_t num_bytes) const {
       return data_.size() >= num_bytes;
     }
 
     uint8_t next() {
-      auto byte = data_.at(0);
-      data_ = data_.last(data_.size() - 1);
+      if (data_.empty()) {
+        throw std::out_of_range("Data is out");
+      }
+      auto byte = data_[0];
+      data_.dropFirst(1);
       return byte;
     }
 
-    gsl::span<const uint8_t> leftBytes() const {
+    common::BufferView leftBytes() const {
       return data_;
     }
 
    private:
-    gsl::span<const uint8_t> data_;
+    common::BufferView data_;
   };
 }  // namespace kagome::storage::trie
-
-#endif  // KAGOME_CORE_STORAGE_TRIE_BUFFER_STREAM

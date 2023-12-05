@@ -1,36 +1,37 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_TYPE_HASHER_HASHER_HPP_
-#define KAGOME_TYPE_HASHER_HASHER_HPP_
+#pragma once
 
-#include <gsl/span>
 #include <optional>
+#include <span>
 #include "crypto/hasher/blake2b_stream_hasher.hpp"
 #include "scale/kagome_scale.hpp"
 
 namespace kagome::crypto {
 
   template <typename H, typename... T>
-  inline void hashTypes(H &hasher, gsl::span<uint8_t> out, T &&...t) {
-    kagome::scale_v2::encode(
+  inline void hashTypes(H &hasher, common::Blob<H::kOutlen> &out, T &&...t) {
+    kagome::scale::encode(
         [&](const uint8_t *const val, size_t count) {
-          hasher.update({val, (ssize_t)count});
+          hasher.update({val, count});
         },
         std::forward<T>(t)...);
 
     hasher.get_final(out);
   }
 
-  template <typename T, size_t N>
+  template <typename T, size_t N, typename StreamHasherT>
   struct Hashed {
     static_assert(N == 8 || N == 16 || N == 32 || N == 64,
                   "Unexpected hash size");
     using Type = std::decay_t<T>;
     using HashType = common::Blob<N>;
 
+   public:
     template <typename... Args>
     Hashed(Args &&...args) : type_{std::forward<Args>(args)...} {}
 
@@ -55,10 +56,9 @@ namespace kagome::crypto {
 
     const HashType &getHash() const {
       if (!opt_hash_) {
-        Blake2b_StreamHasher<N> hasher_{};
         HashType h;
-
-        hashTypes(hasher_, {h}, type_);
+        StreamHasherT hasher_{};
+        hashTypes(hasher_, h, type_);
         opt_hash_ = std::move(h);
       }
       return *opt_hash_;
@@ -69,9 +69,10 @@ namespace kagome::crypto {
     mutable std::optional<HashType> opt_hash_{};
   };
 
-  template <typename T>
-  using Hashed256 = Hashed<T, 32>;
+  template <typename T, typename... Args>
+  inline Hashed<T, 32, Blake2b_StreamHasher<32>> create256Blake(
+      Args &&...args) {
+    return Hashed<T, 32, Blake2b_StreamHasher<32>>{std::forward<Args>(args)...};
+  }
 
 }  // namespace kagome::crypto
-
-#endif  // KAGOME_TYPE_HASHER_HASHER_HPP_

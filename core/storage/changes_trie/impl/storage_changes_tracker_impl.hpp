@@ -1,5 +1,10 @@
-#ifndef KAGOME_STORAGE_CHANGES_TRIE_STORAGE_CHANGES_TRACKER_IMPL
-#define KAGOME_STORAGE_CHANGES_TRIE_STORAGE_CHANGES_TRACKER_IMPL
+/**
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+#pragma once
 
 #include "storage/changes_trie/changes_tracker.hpp"
 
@@ -24,16 +29,12 @@ namespace kagome::storage::changes_trie {
     void onRemove(const common::BufferView &key) override;
 
    private:
-    std::set<common::Buffer, std::less<>>
-        new_entries_;  // entries that do not yet exist in
-                       // the underlying storage
-    std::map<common::Buffer, std::optional<common::Buffer>, std::less<>>
-        actual_val_;
+    std::set<common::Buffer> new_entries_;  // entries that do not yet exist in
+                                            // the underlying storage
+    std::map<common::Buffer, std::optional<common::Buffer>> actual_val_;
 
     log::Logger logger_ =
         log::createLogger("Storage Changes Tracker", "changes_trie");
   };
 
 }  // namespace kagome::storage::changes_trie
-
-#endif  // KAGOME_STORAGE_CHANGES_TRIE_STORAGE_CHANGES_TRACKER_IMPL

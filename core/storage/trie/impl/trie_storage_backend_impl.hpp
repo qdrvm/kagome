@@ -1,20 +1,21 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_STORAGE_TRIE_IMPL_TRIE_STORAGE_BACKEND
-#define KAGOME_STORAGE_TRIE_IMPL_TRIE_STORAGE_BACKEND
+#pragma once
 
 #include "common/buffer.hpp"
 #include "outcome/outcome.hpp"
+#include "storage/spaced_storage.hpp"
 #include "storage/trie/trie_storage_backend.hpp"
 
 namespace kagome::storage::trie {
 
   class TrieStorageBackendImpl : public TrieStorageBackend {
    public:
-    TrieStorageBackendImpl(std::shared_ptr<BufferStorage> storage);
+    TrieStorageBackendImpl(std::shared_ptr<SpacedStorage> storage);
 
     ~TrieStorageBackendImpl() override = default;
 
@@ -36,5 +37,3 @@ namespace kagome::storage::trie {
   };
 
 }  // namespace kagome::storage::trie
-
-#endif  // KAGOME_STORAGE_TRIE_IMPL_TRIE_STORAGE_BACKEND

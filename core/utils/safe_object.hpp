@@ -1,15 +1,23 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_SAFE_OBJECT_HPP
-#define KAGOME_SAFE_OBJECT_HPP
+#pragma once
 
 #include <chrono>
 #include <condition_variable>
 #include <mutex>
 #include <shared_mutex>
+#include <type_traits>
+
+#define SAFE_UNIQUE_CAPTURE(x, ...) \
+  x ^= __VA_ARGS__(typename std::remove_cvref_t<decltype(x)>::Type & x)
+#define SAFE_SHARED_CAPTURE(x, ...) \
+  x |= __VA_ARGS__(const typename std::remove_cvref_t<decltype(x)>::Type &x)
+#define SAFE_UNIQUE(x) SAFE_UNIQUE_CAPTURE(x, [&])
+#define SAFE_SHARED(x) SAFE_SHARED_CAPTURE(x, [&])
 
 // clang-format off
 /**
@@ -53,6 +61,13 @@ struct SafeObject {
   inline auto sharedAccess(F &&f) const {
     std::shared_lock lock(cs_);
     return std::forward<F>(f)(t_);
+  }
+
+  auto operator^=(auto &&f) {
+    return exclusiveAccess(std::forward<decltype(f)>(f));
+  }
+  auto operator|=(auto &&f) const {
+    return sharedAccess(std::forward<decltype(f)>(f));
   }
 
   T &unsafeGet() {
@@ -111,5 +126,3 @@ class WaitForSingleObject final {
     wait_cv_.notify_one();
   }
 };
-
-#endif  // KAGOME_SAFE_OBJECT_HPP

@@ -1,10 +1,10 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_TEST_CORE_NETWORK_ADAPTER_MOCK_HPP
-#define KAGOME_TEST_CORE_NETWORK_ADAPTER_MOCK_HPP
+#pragma once
 
 #include <gmock/gmock.h>
 
@@ -34,5 +34,3 @@ namespace kagome::network {
   };
 
 }  // namespace kagome::network
-
-#endif  // KAGOME_TEST_CORE_NETWORK_ADAPTER_MOCK_HPP

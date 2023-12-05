@@ -1,5 +1,6 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -8,6 +9,7 @@
 #include <stdexcept>
 #include <thread>
 
+#include "log/trace_macros.hpp"
 #include "offchain/offchain_worker.hpp"
 #include "offchain/offchain_worker_pool.hpp"
 #include "runtime/memory.hpp"
@@ -81,14 +83,14 @@ namespace kagome::host_api {
     return memory.storeBuffer(scale::encode(result).value());
   }
 
-  runtime::WasmU64 OffchainExtension::ext_offchain_timestamp_version_1() {
+  runtime::WasmI64 OffchainExtension::ext_offchain_timestamp_version_1() {
     auto worker = getWorker();
     auto result = worker->timestamp();
     return result;
   }
 
   void OffchainExtension::ext_offchain_sleep_until_version_1(
-      runtime::WasmU64 deadline) {
+      runtime::WasmI64 deadline) {
     auto worker = getWorker();
     worker->sleepUntil(deadline);
   }

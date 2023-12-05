@@ -1,10 +1,10 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_ADAPTERS_ERRORS
-#define KAGOME_ADAPTERS_ERRORS
+#pragma once
 
 #include <outcome/outcome.hpp>
 
@@ -23,5 +23,3 @@ namespace kagome::network {
 }  // namespace kagome::network
 
 OUTCOME_HPP_DECLARE_ERROR(kagome::network, AdaptersError)
-
-#endif  // KAGOME_ADAPTERS_ERRORS

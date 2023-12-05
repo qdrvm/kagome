@@ -1,10 +1,10 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_DISPUTE_DISPUTECOORDINATORIMPL
-#define KAGOME_DISPUTE_DISPUTECOORDINATORIMPL
+#pragma once
 
 #include "dispute_coordinator/dispute_coordinator.hpp"
 #include "network/dispute_request_observer.hpp"
@@ -281,12 +281,12 @@ namespace kagome::dispute {
     std::unique_ptr<ThreadHandler> main_thread_context_;
     std::shared_ptr<network::Router> router_;
     std::shared_ptr<network::PeerView> peer_view_;
+    primitives::events::ChainSub chain_sub_;
     primitives::events::BabeStateSubscriptionEnginePtr babe_status_observable_;
 
     std::shared_ptr<primitives::events::BabeStateEventSubscriber>
         babe_status_sub_;
     std::shared_ptr<network::PeerView::MyViewSubscriber> my_view_sub_;
-    std::shared_ptr<primitives::events::ChainEventSubscriber> chain_sub_;
 
     std::atomic_bool was_synchronized_ = false;
     std::atomic_bool initialized_ = false;
@@ -367,5 +367,3 @@ namespace kagome::dispute {
   };
 
 }  // namespace kagome::dispute
-
-#endif  // KAGOME_DISPUTE_DISPUTECOORDINATORIMPL

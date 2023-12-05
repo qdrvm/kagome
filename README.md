@@ -1,3 +1,9 @@
+[//]: # (
+Copyright Quadrivium LLC
+All Rights Reserved
+SPDX-License-Identifier: Apache-2.0
+)
+
 ![logo](/docs/image_assets/kagome-logo-(new-2020).svg)
 
 [![CodeFactor](https://www.codefactor.io/repository/github/soramitsu/kagome/badge)](https://www.codefactor.io/repository/github/soramitsu/kagome)
@@ -148,7 +154,7 @@ You will also be able to see your node on https://telemetry.polkadot.io/. If you
 Run `kagome --help` to explore other CLI flags.
 
 
-#### Execute KAGOME validating node in development mode
+#### Execute KAGOME block_validator node in development mode
 
 The easiest way to get started with KAGOME is to run it in development mode, which is a single node network:
 

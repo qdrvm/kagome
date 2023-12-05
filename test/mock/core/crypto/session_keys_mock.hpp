@@ -1,10 +1,10 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_CRYPTO_SESSIONKEYSMOCK
-#define KAGOME_CRYPTO_SESSIONKEYSMOCK
+#pragma once
 
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
@@ -20,12 +20,17 @@ namespace kagome::crypto {
    public:
     MOCK_METHOD(KeypairWithIndexOpt<Sr25519Keypair>,
                 getBabeKeyPair,
-                (const primitives::AuthorityList &),
+                (const consensus::babe::Authorities &),
                 (override));
+
+    // MOCK_METHOD(KeypairWithIndexOpt<BandersnatchKeypair>,
+    //             getSassafrasKeyPair,
+    //             (const consensus::sassafras::Authorities &),
+    //             (override));
 
     MOCK_METHOD(std::shared_ptr<Ed25519Keypair>,
                 getGranKeyPair,
-                (const primitives::AuthoritySet &),
+                (const consensus::grandpa::AuthoritySet &),
                 (override));
 
     MOCK_METHOD(KeypairWithIndexOpt<Sr25519Keypair>,
@@ -37,7 +42,10 @@ namespace kagome::crypto {
                 getAudiKeyPair,
                 (const std::vector<primitives::AuthorityDiscoveryId> &),
                 (override));
+
+    MOCK_METHOD(KeypairWithIndexOpt<EcdsaKeypair>,
+                getBeefKeyPair,
+                (const std::vector<EcdsaPublicKey> &),
+                (override));
   };
 }  // namespace kagome::crypto
-
-#endif  // KAGOME_CRYPTO_SESSIONKEYSMOCK

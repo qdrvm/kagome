@@ -1,10 +1,10 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_TEST_CORE_CONSENSUS_GRANDPA_VOTE_GRAPH_FIXTURE_HPP
-#define KAGOME_TEST_CORE_CONSENSUS_GRANDPA_VOTE_GRAPH_FIXTURE_HPP
+#pragma once
 
 #include <gtest/gtest.h>
 
@@ -218,5 +218,3 @@ inline void AssertGraphCorrect(VoteGraphImpl &graph, std::string json) {
 
   EXPECT_TRUE(is_equal) << "entries are incorrect";
 }
-
-#endif  // KAGOME_TEST_CORE_CONSENSUS_GRANDPA_VOTE_GRAPH_FIXTURE_HPP

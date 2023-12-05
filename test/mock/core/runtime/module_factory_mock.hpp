@@ -1,10 +1,10 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_RUNTIME_MODULEFACTORYMOCK
-#define KAGOME_RUNTIME_MODULEFACTORYMOCK
+#pragma once
 
 #include "runtime/module_factory.hpp"
 
@@ -16,11 +16,9 @@ namespace kagome::runtime {
 
   class ModuleFactoryMock final : public ModuleFactory {
    public:
-    MOCK_METHOD(outcome::result<std::shared_ptr<Module>>,
+    MOCK_METHOD((outcome::result<std::shared_ptr<Module>, CompilationError>),
                 make,
-                (gsl::span<const uint8_t>),
+                (common::BufferView),
                 (const, override));
   };
 }  // namespace kagome::runtime
-
-#endif  // KAGOME_RUNTIME_MODULEFACTORYMOCK

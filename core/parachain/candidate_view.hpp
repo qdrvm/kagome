@@ -1,10 +1,10 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_PARACHAIN_CANDIDATE_VIEW_HPP
-#define KAGOME_PARACHAIN_CANDIDATE_VIEW_HPP
+#pragma once
 
 #include <memory>
 #include <vector>
@@ -19,7 +19,7 @@ namespace kagome::parachain {
   struct VcPerPeerTracker {
     static constexpr size_t kTrackerThreshold = 2;
 
-    VcPerPeerTracker(log::Logger const &logger) : logger_(logger) {
+    VcPerPeerTracker(const log::Logger &logger) : logger_(logger) {
       BOOST_ASSERT(logger_);
       local_observed.reserve(kTrackerThreshold);
       remote_observed.reserve(kTrackerThreshold);
@@ -28,7 +28,7 @@ namespace kagome::parachain {
     /// Note that the remote should now be aware that a validator has seconded a
     /// given candidate (by hash) based on a message that we have sent it from
     /// our local pool.
-    void note_local(network::CandidateHash const &h) {
+    void note_local(const network::CandidateHash &h) {
       if (!note_hash(local_observed, h)) {
         logger_->warn(
             "Statement distribution is erroneously attempting to distribute "
@@ -42,21 +42,21 @@ namespace kagome::parachain {
     ///
     /// Returns `true` if the peer was allowed to send us such a message,
     /// `false` otherwise.
-    bool note_remote(network::CandidateHash const &hash) {
+    bool note_remote(const network::CandidateHash &hash) {
       return note_hash(remote_observed, hash);
     }
 
     /// Returns `true` if the peer is allowed to send us such a message, `false`
     /// otherwise.
-    bool is_wanted_candidate(network::CandidateHash const &hash) {
+    bool is_wanted_candidate(const network::CandidateHash &hash) {
       return !contains(remote_observed, hash) && !is_full(remote_observed);
     }
 
    private:
     using CandidateHashPool = std::vector<network::CandidateHash>;
 
-    bool contains(CandidateHashPool &pool, network::CandidateHash const &hash) {
-      for (auto const &h : pool) {
+    bool contains(CandidateHashPool &pool, const network::CandidateHash &hash) {
+      for (const auto &h : pool) {
         if (h == hash) {
           return true;
         }
@@ -69,7 +69,7 @@ namespace kagome::parachain {
     }
 
     bool note_hash(CandidateHashPool &pool,
-                   network::CandidateHash const &hash) {
+                   const network::CandidateHash &hash) {
       std::unique_ptr<CandidateHashPool, void (*)(CandidateHashPool *)> _keeper(
           &pool, [](CandidateHashPool *pool) {
             BOOST_ASSERT(pool != nullptr);
@@ -93,5 +93,3 @@ namespace kagome::parachain {
   };
 
 }  // namespace kagome::parachain
-
-#endif  // KAGOME_PARACHAIN_CANDIDATE_VIEW_HPP

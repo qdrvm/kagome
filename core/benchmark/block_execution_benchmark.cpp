@@ -1,5 +1,6 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -8,10 +9,12 @@
 #include <algorithm>
 #include <numeric>
 
+#include <fmt/chrono.h>
+
 #include "blockchain/block_tree.hpp"
 #include "primitives/runtime_dispatch_info.hpp"
-#include "runtime/runtime_api/core.hpp"
 #include "runtime/module_repository.hpp"
+#include "runtime/runtime_api/core.hpp"
 #include "storage/trie/trie_storage.hpp"
 
 OUTCOME_CPP_DEFINE_CATEGORY(kagome::benchmark,
@@ -62,6 +65,55 @@ static_assert(STR(CONCAT(2, 3)) == std::string_view("23"));
       return CONCAT(_res_, __LINE__).as_failure();        \
     }                                                     \
   } while (false);
+
+namespace {
+
+  template <typename Rep, typename Period>
+  struct pretty_duration {
+    std::chrono::duration<Rep, Period> dur;
+  };
+
+  template <typename Rep, typename Period>
+  pretty_duration(std::chrono::duration<Rep, Period>)
+      -> pretty_duration<Rep, Period>;
+
+  const char *suffix(unsigned denominator) {
+    switch (denominator) {
+      case 1:
+        return "s";
+      case 1000:
+        return "ms";
+      case 1'000'000:
+        return "us";
+      case 1'000'000'000:
+        return "ns";
+      default:
+        return "??";
+    }
+  }
+
+}  // namespace
+
+template <typename Rep, typename Period>
+struct fmt::formatter<pretty_duration<Rep, Period>> {
+  constexpr auto parse(format_parse_context &ctx)
+      -> format_parse_context::iterator {
+    return ctx.end();
+  }
+
+  auto format(const pretty_duration<Rep, Period> &p, format_context &ctx) const
+      -> format_context::iterator {
+    auto denominator = 1;
+    static_assert(Period::num == 1);
+    while (p.dur.count() / denominator > 1000 && denominator < Period::den) {
+      denominator *= 1000;
+    }
+    return fmt::format_to(ctx.out(),
+                          "{:.2f} {}",
+                          static_cast<double>(p.dur.count()) / denominator,
+                          suffix(Period::den / denominator));
+  }
+};
 
 namespace kagome::benchmark {
 
@@ -203,7 +255,7 @@ namespace kagome::benchmark {
     OUTCOME_TRY(batch, storage.getEphemeralBatchAt(state));
 
     OUTCOME_TRY(enc_block_weight, batch->get(BLOCK_WEIGHT_KEY));
-    scale::ScaleDecoderStream stream{enc_block_weight};
+    scale::ScaleDecoderStream stream{enc_block_weight.view()};
     ConsumedWeight block_weight;
     try {
       stream >> block_weight;
@@ -287,28 +339,28 @@ namespace kagome::benchmark {
         SL_VERBOSE(logger_,
                    "Block #{}, {} ns",
                    blocks[block_i].header.number,
-                   duration_ns.count());
+                   duration_ns);
       }
       duration_stat_it++;
     }
     for (auto &stat : duration_stats) {
-      fmt::print("Block #{}, min {} ns, avg {} ns, median {} ns, max {} ns\n",
+      fmt::print("Block #{}, min {}, avg {}, median {}, max {}\n",
                  stat.getBlock().number,
-                 stat.min().count(),
-                 stat.avg().count(),
-                 stat.median().count(),
-                 stat.max().count());
+                 pretty_duration{stat.min()},
+                 pretty_duration{stat.avg()},
+                 pretty_duration{stat.median()},
+                 pretty_duration{stat.max()});
       OUTCOME_TRY(
           block_weight_ns,
           getBlockWeightAsNanoseconds(
               *trie_storage_,
               blocks[stat.getBlock().number - config.start].header.state_root));
       fmt::print(
-          "Block #{}: consumed {} ns out of declared {} ns on average. ({} "
+          "Block #{}: consumed {} out of declared {} on average. ({:.2f} "
           "%)\n",
           stat.getBlock().number,
-          stat.avg().count(),
-          block_weight_ns.count(),
+          pretty_duration{stat.avg()},
+          pretty_duration{block_weight_ns},
           (static_cast<double>(stat.avg().count())
            / static_cast<double>(block_weight_ns.count()))
               * 100.0);

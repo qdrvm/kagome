@@ -1,14 +1,15 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_RUNTIME_RUNTIMEPROPERTIESCACHE
-#define KAGOME_RUNTIME_RUNTIMEPROPERTIESCACHE
+#pragma once
 
 #include "common/blob.hpp"
 #include "outcome/outcome.hpp"
@@ -37,5 +38,3 @@ namespace kagome::runtime {
   };
 
 }  // namespace kagome::runtime
-
-#endif  // KAGOME_RUNTIME_RUNTIMEPROPERTIESCACHE

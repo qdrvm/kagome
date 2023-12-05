@@ -1,26 +1,31 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include <boost/program_options.hpp>
 #include <libp2p/log/configurator.hpp>
 
 #include "application/impl/app_configuration_impl.hpp"
 #include "blockchain/block_storage.hpp"
 #include "blockchain/impl/block_header_repository_impl.hpp"
 #include "blockchain/impl/block_tree_impl.hpp"
-#include "blockchain/impl/storage_util.hpp"
 #include "consensus/grandpa/impl/authority_manager_impl.hpp"
 #include "crypto/hasher/hasher_impl.hpp"
 #include "injector/application_injector.hpp"
 #include "log/configurator.hpp"
+#include "log/formatters/variant.hpp"
 #include "runtime/runtime_api/impl/grandpa_api.hpp"
 #include "storage/trie/trie_storage.hpp"
 
 using kagome::blockchain::BlockStorage;
 using kagome::consensus::grandpa::AuthorityManager;
 using kagome::consensus::grandpa::AuthorityManagerImpl;
+using kagome::consensus::grandpa::ForcedChange;
+using kagome::consensus::grandpa::OnDisabled;
+using kagome::consensus::grandpa::Pause;
+using kagome::consensus::grandpa::Resume;
+using kagome::consensus::grandpa::ScheduledChange;
 using kagome::crypto::Hasher;
 using kagome::crypto::HasherImpl;
 using kagome::primitives::BlockHeader;
@@ -31,7 +36,7 @@ using kagome::primitives::events::ChainSubscriptionEngine;
 using kagome::runtime::GrandpaApi;
 using kagome::storage::trie::TrieStorage;
 
-using ArgumentList = gsl::span<const char *>;
+using ArgumentList = std::span<const char *>;
 
 class CommandExecutionError : public std::runtime_error {
  public:
@@ -66,7 +71,7 @@ class Command {
   }
 
  protected:
-  void assertArgumentCount(const ArgumentList &args, int min, int max) {
+  void assertArgumentCount(const ArgumentList &args, size_t min, size_t max) {
     if (args.size() < min or args.size() > max) {
       throw CommandExecutionError{
           name,
@@ -78,9 +83,10 @@ class Command {
   }
 
   template <typename... Ts>
-  [[noreturn]] void throwError(const char *fmt, Ts &&...ts) const {
-    throw CommandExecutionError{name,
-                                fmt::format(fmt, std::forward<Ts>(ts)...)};
+  [[noreturn]] void throwError(const char *fmt, const Ts &...ts) const {
+    throw CommandExecutionError(
+        name,
+        ::fmt::vformat(fmt, fmt::make_format_args(ts...)));
   }
 
   template <typename T>
@@ -98,8 +104,6 @@ class Command {
 
 class CommandParser {
  public:
-  using CommandFunctor = std::function<void(int, char **)>;
-
   void addCommand(std::unique_ptr<Command> cmd) {
     std::string name{cmd->getName()};
     commands_.insert({name, std::move(cmd)});
@@ -109,6 +113,7 @@ class CommandParser {
     if (args.size() < 2) {
       std::cerr << "Unspecified command!\nAvailable commands are:\n";
       printCommands(std::cerr);
+      return;
     }
     if (auto command = commands_.find(args[1]); command != commands_.cend()) {
       ArgumentList cmd_args{args.subspan(1)};
@@ -510,8 +515,37 @@ class SearchChainCommand : public Command {
   std::shared_ptr<Hasher> hasher;
 };
 
+class ChainInfoCommand final : public Command {
+ public:
+  ChainInfoCommand(std::shared_ptr<kagome::blockchain::BlockTree> block_tree)
+      : Command{"chain-info", "Print general info about the current chain. "},
+        block_tree{block_tree} {
+    BOOST_ASSERT(block_tree);
+  }
+
+  virtual void execute(std::ostream &out, const ArgumentList &args) override {
+    if (args.size() > 1) {
+      throwError("No arguments expected, {} arguments received", args.size());
+    }
+    fmt::print(out, "Last finalized: {}\n", block_tree->getLastFinalized());
+    fmt::print(out, "Best block: {}\n", block_tree->bestBlock());
+    fmt::print(out, "Genesis block: {}\n", block_tree->getGenesisBlockHash());
+    fmt::print(out, "Leaves:\n");
+    for (auto &leaf : block_tree->getLeaves()) {
+      auto header_res = block_tree->getBlockHeader(leaf);
+      if (!header_res) {
+        throwError("Error loading block header: {}", header_res.error());
+      }
+      fmt::print(out, "\t#{} - {}\n", header_res.value().number, leaf);
+    }
+  }
+
+ private:
+  std::shared_ptr<kagome::blockchain::BlockTree> block_tree;
+};
+
 int storage_explorer_main(int argc, const char **argv) {
-  ArgumentList args{argv, argc};
+  ArgumentList args(argv, argc);
 
   CommandParser parser;
   parser.addCommand(std::make_unique<PrintHelpCommand>(parser));
@@ -523,7 +557,7 @@ int storage_explorer_main(int argc, const char **argv) {
       std::make_shared<kagome::application::AppConfigurationImpl>(logger);
 
   int kagome_args_start = -1;
-  for (int i = 1; i < args.size(); i++) {
+  for (size_t i = 1; i < args.size(); i++) {
     if (strcmp(args[i], "--") == 0) {
       kagome_args_start = i;
     }
@@ -549,31 +583,26 @@ int storage_explorer_main(int argc, const char **argv) {
   auto persistent_storage = injector.injectStorage();
   auto hasher = std::make_shared<kagome::crypto::HasherImpl>();
 
-  auto header_repo =
-      std::make_shared<kagome::blockchain::BlockHeaderRepositoryImpl>(
-          persistent_storage, hasher);
   auto grandpa_api =
       std::make_shared<kagome::runtime::GrandpaApiImpl>(executor);
 
   auto chain_events_engine = std::make_shared<ChainSubscriptionEngine>();
 
   auto authority_manager =
-      std::make_shared<AuthorityManagerImpl>(AuthorityManagerImpl::Config{},
-                                             app_state_manager,
+      std::make_shared<AuthorityManagerImpl>(app_state_manager,
                                              block_tree,
                                              grandpa_api,
-                                             hasher,
                                              persistent_storage,
-                                             header_repo,
                                              chain_events_engine);
 
   parser.addCommand(std::make_unique<InspectBlockCommand>(block_storage));
   parser.addCommand(std::make_unique<RemoveBlockCommand>(block_storage));
   parser.addCommand(std::make_unique<QueryStateCommand>(trie_storage));
+  parser.addCommand(std::make_unique<ChainInfoCommand>(block_tree));
   parser.addCommand(std::make_unique<SearchChainCommand>(
       block_storage, trie_storage, authority_manager, hasher));
 
-  parser.invoke(args.subspan(0, kagome_args_start));
+  parser.invoke(args.first(kagome_args_start));
 
   return 0;
 }

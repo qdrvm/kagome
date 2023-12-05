@@ -1,10 +1,10 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_PARACHAIN_PEER_RP_KNOWLEDGE_HPP
-#define KAGOME_PARACHAIN_PEER_RP_KNOWLEDGE_HPP
+#pragma once
 
 #include <unordered_map>
 #include <unordered_set>
@@ -53,5 +53,3 @@ namespace kagome::parachain {
   };
 
 }  // namespace kagome::parachain
-
-#endif  // KAGOME_PARACHAIN_PEER_RP_KNOWLEDGE_HPP

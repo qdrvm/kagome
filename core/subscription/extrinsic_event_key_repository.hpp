@@ -1,10 +1,10 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_EXTRINSIC_EVENT_KEY_REPOSITORY_HPP
-#define KAGOME_EXTRINSIC_EVENT_KEY_REPOSITORY_HPP
+#pragma once
 
 #include <mutex>
 
@@ -53,5 +53,3 @@ namespace kagome::subscription {
   };
 
 }  // namespace kagome::subscription
-
-#endif  // KAGOME_EXTRINSIC_EVENT_KEY_REPOSITORY_HPP

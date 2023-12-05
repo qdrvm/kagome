@@ -1,5 +1,6 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -8,7 +9,7 @@
 namespace kagome::parachain {
   bool AvailabilityStoreImpl::hasChunk(const CandidateHash &candidate_hash,
                                        ValidatorIndex index) const {
-    return state_.sharedAccess([&](auto const &state) {
+    return state_.sharedAccess([&](const auto &state) {
       auto it = state.per_candidate_.find(candidate_hash);
       if (it == state.per_candidate_.end()) {
         return false;
@@ -19,7 +20,7 @@ namespace kagome::parachain {
 
   bool AvailabilityStoreImpl::hasPov(
       const CandidateHash &candidate_hash) const {
-    return state_.sharedAccess([&](auto const &state) {
+    return state_.sharedAccess([&](const auto &state) {
       auto it = state.per_candidate_.find(candidate_hash);
       if (it == state.per_candidate_.end()) {
         return false;
@@ -30,7 +31,7 @@ namespace kagome::parachain {
 
   bool AvailabilityStoreImpl::hasData(
       const CandidateHash &candidate_hash) const {
-    return state_.sharedAccess([&](auto const &state) {
+    return state_.sharedAccess([&](const auto &state) {
       auto it = state.per_candidate_.find(candidate_hash);
       if (it == state.per_candidate_.end()) {
         return false;
@@ -43,7 +44,7 @@ namespace kagome::parachain {
   AvailabilityStoreImpl::getChunk(const CandidateHash &candidate_hash,
                                   ValidatorIndex index) const {
     return state_.sharedAccess(
-        [&](auto const &state)
+        [&](const auto &state)
             -> std::optional<AvailabilityStore::ErasureChunk> {
           auto it = state.per_candidate_.find(candidate_hash);
           if (it == state.per_candidate_.end()) {
@@ -60,7 +61,7 @@ namespace kagome::parachain {
   std::optional<AvailabilityStore::ParachainBlock>
   AvailabilityStoreImpl::getPov(const CandidateHash &candidate_hash) const {
     return state_.sharedAccess(
-        [&](auto const &state)
+        [&](const auto &state)
             -> std::optional<AvailabilityStore::ParachainBlock> {
           auto it = state.per_candidate_.find(candidate_hash);
           if (it == state.per_candidate_.end()) {
@@ -74,7 +75,7 @@ namespace kagome::parachain {
   AvailabilityStoreImpl::getPovAndData(
       const CandidateHash &candidate_hash) const {
     return state_.sharedAccess(
-        [&](auto const &state)
+        [&](const auto &state)
             -> std::optional<AvailabilityStore::AvailableData> {
           auto it = state.per_candidate_.find(candidate_hash);
           if (it == state.per_candidate_.end()) {
@@ -89,7 +90,7 @@ namespace kagome::parachain {
 
   std::vector<AvailabilityStore::ErasureChunk> AvailabilityStoreImpl::getChunks(
       const CandidateHash &candidate_hash) const {
-    return state_.sharedAccess([&](auto const &state) {
+    return state_.sharedAccess([&](const auto &state) {
       std::vector<AvailabilityStore::ErasureChunk> chunks;
       auto it = state.per_candidate_.find(candidate_hash);
       if (it != state.per_candidate_.end()) {
@@ -101,11 +102,11 @@ namespace kagome::parachain {
     });
   }
 
-  void AvailabilityStoreImpl::storeData(network::RelayHash const &relay_parent,
-                                        CandidateHash const &candidate_hash,
+  void AvailabilityStoreImpl::storeData(const network::RelayHash &relay_parent,
+                                        const CandidateHash &candidate_hash,
                                         std::vector<ErasureChunk> &&chunks,
-                                        ParachainBlock const &pov,
-                                        PersistedValidationData const &data) {
+                                        const ParachainBlock &pov,
+                                        const PersistedValidationData &data) {
     state_.exclusiveAccess([&](auto &state) {
       state.candidates_[relay_parent].insert(candidate_hash);
       auto &candidate_data = state.per_candidate_[candidate_hash];
@@ -117,7 +118,7 @@ namespace kagome::parachain {
     });
   }
 
-  void AvailabilityStoreImpl::putChunk(network::RelayHash const &relay_parent,
+  void AvailabilityStoreImpl::putChunk(const network::RelayHash &relay_parent,
                                        const CandidateHash &candidate_hash,
                                        ErasureChunk &&chunk) {
     state_.exclusiveAccess([&](auto &state) {
@@ -127,7 +128,7 @@ namespace kagome::parachain {
     });
   }
 
-  void AvailabilityStoreImpl::remove(network::RelayHash const &relay_parent) {
+  void AvailabilityStoreImpl::remove(const network::RelayHash &relay_parent) {
     state_.exclusiveAccess([&](auto &state) {
       if (auto it = state.candidates_.find(relay_parent);
           it != state.candidates_.end()) {

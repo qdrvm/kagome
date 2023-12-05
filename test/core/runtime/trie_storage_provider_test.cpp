@@ -1,5 +1,6 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -9,8 +10,8 @@
 
 #include "common/buffer.hpp"
 #include "mock/core/storage/trie_pruner/trie_pruner_mock.hpp"
-#include "runtime/common/runtime_transaction_error.hpp"
-#include "storage/in_memory/in_memory_storage.hpp"
+#include "runtime/common/runtime_execution_error.hpp"
+#include "storage/in_memory/in_memory_spaced_storage.hpp"
 #include "storage/trie/impl/trie_storage_backend_impl.hpp"
 #include "storage/trie/impl/trie_storage_impl.hpp"
 #include "storage/trie/polkadot_trie/polkadot_trie_factory_impl.hpp"
@@ -21,7 +22,7 @@
 #include "testutil/prepare_loggers.hpp"
 
 using kagome::common::Buffer;
-using kagome::runtime::RuntimeTransactionError;
+using kagome::runtime::RuntimeExecutionError;
 
 class TrieStorageProviderTest : public ::testing::Test {
  public:
@@ -35,15 +36,14 @@ class TrieStorageProviderTest : public ::testing::Test {
 
     auto codec = std::make_shared<kagome::storage::trie::PolkadotCodec>();
 
-    storage_ = std::make_shared<kagome::storage::InMemoryStorage>();
+    storage_ = std::make_shared<kagome::storage::InMemorySpacedStorage>();
 
-    auto backend =
-        std::make_shared<kagome::storage::trie::TrieStorageBackendImpl>(
-            storage_);
+    auto node_backend =
+        std::make_shared<kagome::storage::trie::TrieStorageBackendImpl>(storage_);
 
     auto serializer =
         std::make_shared<kagome::storage::trie::TrieSerializerImpl>(
-            trie_factory, codec, backend);
+            trie_factory, codec, node_backend);
 
     auto state_pruner =
         std::make_shared<kagome::storage::trie_pruner::TriePrunerMock>();
@@ -61,7 +61,7 @@ class TrieStorageProviderTest : public ::testing::Test {
   }
 
  protected:
-  std::shared_ptr<kagome::storage::BufferStorage> storage_;
+  std::shared_ptr<kagome::storage::SpacedStorage> storage_;
   std::shared_ptr<kagome::runtime::TrieStorageProvider> storage_provider_;
 };
 
@@ -71,10 +71,10 @@ TEST_F(TrieStorageProviderTest, StartTransaction) {
 
 TEST_F(TrieStorageProviderTest, FinishTransactionWithoutStart) {
   ASSERT_OUTCOME_ERROR(storage_provider_->rollbackTransaction(),
-                       RuntimeTransactionError::NO_TRANSACTIONS_WERE_STARTED);
+                       RuntimeExecutionError::NO_TRANSACTIONS_WERE_STARTED);
 
   ASSERT_OUTCOME_ERROR(storage_provider_->commitTransaction(),
-                       RuntimeTransactionError::NO_TRANSACTIONS_WERE_STARTED);
+                       RuntimeExecutionError::NO_TRANSACTIONS_WERE_STARTED);
 }
 
 // Concatenate values gotten by keys: A, B, C, D, E

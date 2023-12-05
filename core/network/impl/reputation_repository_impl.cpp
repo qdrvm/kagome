@@ -1,13 +1,12 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
 #include "network/impl/reputation_repository_impl.hpp"
 
 #include <boost/assert.hpp>
-
-#include "network/helpers/peer_id_formatter.hpp"
 
 using namespace std::chrono_literals;
 

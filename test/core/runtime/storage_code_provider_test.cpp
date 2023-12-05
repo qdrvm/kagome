@@ -1,5 +1,6 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -72,9 +73,7 @@ TEST_F(StorageCodeProviderTest, GetCodeWhenNoStorageUpdates) {
                       wasm_provider->getCodeAt(first_state_root));
 
   // then
-  ASSERT_EQ(obtained_state_code,
-            gsl::span<const uint8_t>(state_code_.data(),
-                                     state_code_.data() + state_code_.size()));
+  ASSERT_TRUE(obtained_state_code == common::BufferView(state_code_));
 }
 
 /**
@@ -121,5 +120,5 @@ TEST_F(StorageCodeProviderTest, DISABLED_GetCodeWhenStorageUpdates) {
                       wasm_provider->getCodeAt(second_state_root));
 
   // then
-  ASSERT_EQ(obtained_state_code, gsl::span<const uint8_t>(state_code_));
+  ASSERT_EQ(obtained_state_code, common::BufferView(state_code_));
 }

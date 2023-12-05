@@ -1,5 +1,6 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -74,7 +75,7 @@ namespace kagome::api {
     SL_TRACE(log_, "Connections limit is set to {}", max_ws_connections_);
     SL_INFO(log_,
             "Listening for new connections on {}:{}",
-            endpoint_.address(),
+            endpoint_.address().to_string(),
             acceptor_->local_endpoint().port());
     acceptOnce();
     return true;

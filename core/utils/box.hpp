@@ -1,10 +1,10 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_BOX_HPP
-#define KAGOME_BOX_HPP
+#pragma once
 
 #include <iostream>
 #include <type_traits>
@@ -18,7 +18,10 @@ struct Box {
   Box(Box &box) : Box{std::move(box)} {}
 
   Box(Box &&box) : t_{std::move(*box.t_)} {
-    if constexpr (!std::is_pod_v<T>) box.t_ = std::nullopt;
+    if constexpr (not std::is_standard_layout_v<T>
+                  or not std::is_trivial_v<T>) {
+      box.t_ = std::nullopt;
+    }
   }
 
   Box &operator=(Box &val) {
@@ -27,7 +30,10 @@ struct Box {
 
   Box &operator=(Box &&box) {
     t_ = std::move(*box.t_);
-    if constexpr (!std::is_pod_v<T>) box.t_ = std::nullopt;
+    if constexpr (not std::is_standard_layout_v<T>
+                  or not std::is_trivial_v<T>) {
+      box.t_ = std::nullopt;
+    }
     return *this;
   }
 
@@ -41,7 +47,7 @@ struct Box {
     return *t_;
   }
 
-  T const &value() const & {
+  const T &value() const & {
     assert(t_);
     return *t_;
   }
@@ -49,5 +55,3 @@ struct Box {
  private:
   std::optional<T> t_;
 };
-
-#endif  // KAGOME_BOX_HPP

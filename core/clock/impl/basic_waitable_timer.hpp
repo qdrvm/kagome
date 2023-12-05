@@ -1,10 +1,10 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_BASIC_WAITABLE_TIMER_HPP
-#define KAGOME_BASIC_WAITABLE_TIMER_HPP
+#pragma once
 
 #include <boost/asio/basic_waitable_timer.hpp>
 #include <boost/asio/io_context.hpp>
@@ -35,5 +35,3 @@ namespace kagome::clock {
     boost::asio::basic_waitable_timer<std::chrono::system_clock> timer_;
   };
 }  // namespace kagome::clock
-
-#endif  // KAGOME_BASIC_WAITABLE_TIMER_HPP

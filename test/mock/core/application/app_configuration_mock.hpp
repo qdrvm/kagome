@@ -1,10 +1,10 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_APPLICATION_APPCONFIGURATIONMOCK
-#define KAGOME_APPLICATION_APPCONFIGURATIONMOCK
+#pragma once
 
 #include "application/app_configuration.hpp"
 
@@ -106,10 +106,7 @@ namespace kagome::application {
                 (),
                 (const, override));
 
-    MOCK_METHOD(AppConfiguration::SyncMethod,
-                syncMethod,
-                (),
-                (const, override));
+    MOCK_METHOD(application::SyncMethod, syncMethod, (), (const, override));
 
     MOCK_METHOD(AppConfiguration::RuntimeExecutionMethod,
                 runtimeExecMethod,
@@ -129,6 +126,13 @@ namespace kagome::application {
                 offchainWorkerMode,
                 (),
                 (const, override));
+
+    MOCK_METHOD(uint32_t,
+                parachainPrecompilationThreadNum,
+                (),
+                (const, override));
+
+    MOCK_METHOD(bool, shouldPrecompileParachainModules, (), (const, override));
 
     MOCK_METHOD(bool, isOffchainIndexingEnabled, (), (const, override));
 
@@ -158,6 +162,8 @@ namespace kagome::application {
 
     MOCK_METHOD(bool, enableThoroughPruning, (), (const, override));
 
+    MOCK_METHOD(std::optional<uint32_t>, blocksPruning, (), (const, override));
+
     MOCK_METHOD(StorageBackend, storageBackend, (), (const, override));
 
     MOCK_METHOD(uint32_t, dbCacheSize, (), (const, override));
@@ -178,5 +184,3 @@ namespace kagome::application {
   };
 
 }  // namespace kagome::application
-
-#endif  // KAGOME_APPLICATION_APPCONFIGURATIONMOCK

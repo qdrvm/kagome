@@ -1,10 +1,10 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_API_ALLOW_UNSAFE_HPP
-#define KAGOME_API_ALLOW_UNSAFE_HPP
+#pragma once
 
 #include <boost/asio/ip/tcp.hpp>
 
@@ -26,5 +26,3 @@ namespace kagome::api {
     Config config;
   };
 }  // namespace kagome::api
-
-#endif  // KAGOME_API_ALLOW_UNSAFE_HPP

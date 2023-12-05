@@ -1,5 +1,6 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -17,8 +18,8 @@ using scale::Fixed;
 using scale::uint128_t;
 
 template <template <typename T> typename Wrapper, typename Number>
-auto encode_compare_decode(Number const &given_number,
-                           Buffer const &desired_encoding) {
+auto encode_compare_decode(const Number &given_number,
+                           const Buffer &desired_encoding) {
   auto fixed_number = Wrapper<Number>{given_number};
   EXPECT_OUTCOME_TRUE(encoded, scale::encode(fixed_number));
   ASSERT_EQ(encoded, desired_encoding);

@@ -1,5 +1,6 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -46,10 +47,6 @@ namespace kagome::application::mode {
                                            header_repo_,
                                            trie_storage_,
                                            block_tree_);
-
-    spaced_storage_->getSpace(storage::Space::kDefault)
-        ->remove(storage::kAuthorityManagerStateLookupKey("last"))
-        .value();
     if (res.has_error()) {
       SL_ERROR(log_, "Recovery mode has failed: {}", res.error());
       log_->flush();

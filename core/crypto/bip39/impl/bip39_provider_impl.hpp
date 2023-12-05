@@ -1,14 +1,14 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_BIP39_PROVIDER_IMPL_HPP
-#define KAGOME_BIP39_PROVIDER_IMPL_HPP
+#pragma once
 
 #include "crypto/bip39/bip39_provider.hpp"
-#include "crypto/bip39/dictionary.hpp"
 
+#include "crypto/bip39/dictionary.hpp"
 #include "crypto/hasher.hpp"
 #include "crypto/pbkdf2/pbkdf2_provider.hpp"
 #include "log/logger.hpp"
@@ -25,8 +25,7 @@ namespace kagome::crypto {
         const std::vector<std::string> &word_list) const override;
 
     outcome::result<bip39::Bip39Seed> makeSeed(
-        gsl::span<const uint8_t> entropy,
-        std::string_view password) const override;
+        common::BufferView entropy, std::string_view password) const override;
 
     outcome::result<bip39::Bip39SeedAndJunctions> generateSeed(
         std::string_view mnemonic_phrase) const override;
@@ -38,5 +37,3 @@ namespace kagome::crypto {
     log::Logger logger_;
   };
 }  // namespace kagome::crypto
-
-#endif  // KAGOME_BIP39_PROVIDER_IMPL_HPP

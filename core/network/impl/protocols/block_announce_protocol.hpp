@@ -1,10 +1,10 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_NETWORK_BLOCKANNOUNCEPROTOCOL
-#define KAGOME_NETWORK_BLOCKANNOUNCEPROTOCOL
+#pragma once
 
 #include "network/protocol_base.hpp"
 
@@ -13,9 +13,7 @@
 #include <libp2p/connection/stream.hpp>
 #include <libp2p/host/host.hpp>
 
-#include "application/app_configuration.hpp"
 #include "application/chain_spec.hpp"
-#include "blockchain/block_storage.hpp"
 #include "blockchain/block_tree.hpp"
 #include "containers/objects_cache.hpp"
 #include "crypto/hasher.hpp"
@@ -46,7 +44,7 @@ namespace kagome::network {
     ~BlockAnnounceProtocol() override = default;
 
     BlockAnnounceProtocol(libp2p::Host &host,
-                          const application::AppConfiguration &app_config,
+                          Roles roles,
                           const application::ChainSpec &chain_spec,
                           const blockchain::GenesisBlockHash &genesis_hash,
                           std::shared_ptr<StreamEngine> stream_engine,
@@ -68,34 +66,14 @@ namespace kagome::network {
     void blockAnnounce(BlockAnnounce &&announce);
 
    private:
-    outcome::result<BlockAnnounceHandshake> createHandshake() const;
-
-    enum class Direction { INCOMING, OUTGOING };
-
-    friend inline std::string_view to_string(Direction direction) {
-      switch (direction) {
-        case Direction::INCOMING:
-          return "incoming";
-        case Direction::OUTGOING:
-          return "outgoing";
-      }
-      return "unknown";
-    }
-
-    void readHandshake(std::shared_ptr<Stream> handshake_res,
-                       Direction direction,
-                       std::function<void(outcome::result<void>)> &&cb);
-
-    void writeHandshake(std::shared_ptr<Stream> stream,
-                        Direction direction,
-                        std::function<void(outcome::result<void>)> &&cb);
-
-    void readAnnounce(std::shared_ptr<Stream> stream);
+    BlockAnnounceHandshake createHandshake() const;
+    bool onHandshake(const PeerId &peer,
+                     const BlockAnnounceHandshake &handshake) const;
 
     inline static const auto kBlockAnnounceProtocolName =
         "BlockAnnounceProtocol"s;
     ProtocolBaseImpl base_;
-    const application::AppConfiguration &app_config_;
+    Roles roles_;
     std::shared_ptr<StreamEngine> stream_engine_;
     std::shared_ptr<blockchain::BlockTree> block_tree_;
     std::shared_ptr<BlockAnnounceObserver> observer_;
@@ -104,5 +82,3 @@ namespace kagome::network {
   };
 
 }  // namespace kagome::network
-
-#endif  // KAGOME_NETWORK_BLOCKANNOUNCEPROTOCOL

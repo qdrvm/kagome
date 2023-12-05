@@ -1,10 +1,10 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_STORAGE_TRIE_SERIALIZER_IMPL
-#define KAGOME_STORAGE_TRIE_SERIALIZER_IMPL
+#pragma once
 
 #include "storage/trie/serialization/trie_serializer.hpp"
 
@@ -24,7 +24,7 @@ namespace kagome::storage::trie {
    public:
     TrieSerializerImpl(std::shared_ptr<PolkadotTrieFactory> factory,
                        std::shared_ptr<Codec> codec,
-                       std::shared_ptr<TrieStorageBackend> backend);
+                       std::shared_ptr<TrieStorageBackend> node_backend);
     ~TrieSerializerImpl() override = default;
 
     RootHash getEmptyRootHash() const override;
@@ -66,8 +66,6 @@ namespace kagome::storage::trie {
 
     std::shared_ptr<PolkadotTrieFactory> trie_factory_;
     std::shared_ptr<Codec> codec_;
-    std::shared_ptr<TrieStorageBackend> backend_;
+    std::shared_ptr<TrieStorageBackend> node_backend_;
   };
 }  // namespace kagome::storage::trie
-
-#endif  // KAGOME_STORAGE_TRIE_SERIALIZER_IMPL

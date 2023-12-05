@@ -1,5 +1,6 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -118,7 +119,7 @@ TEST_F(AddressPublisherTest, Success) {
       .WillOnce(Return(std::vector{audi_key_}));
   EXPECT_CALL(*crypto_store_, findSr25519Keypair(_, _))
       .WillOnce(Return(outcome::success()));
-  EXPECT_CALL(*block_tree_, bestLeaf());
+  EXPECT_CALL(*block_tree_, bestBlock());
   EXPECT_CALL(*authority_discovery_api_, authorities(_))
       .WillOnce(Return(std::vector{audi_key_}));
   EXPECT_CALL(*ed25519_provider_, sign(_, _))

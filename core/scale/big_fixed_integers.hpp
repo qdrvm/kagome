@@ -1,10 +1,10 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_BIG_FIXED_INTEGERS_HPP
-#define KAGOME_BIG_FIXED_INTEGERS_HPP
+#pragma once
 
 #include <type_traits>
 
@@ -42,7 +42,7 @@ namespace scale {
       return number;
     }
 
-    bool operator==(Self const &other) const {
+    bool operator==(const Self &other) const {
       return **this == *other;
     }
 
@@ -61,10 +61,10 @@ namespace scale {
       typename U,
       typename T,
       typename = std::enable_if_t<boost::multiprecision::is_number<T>::value>>
-  U convert_to(T const &t) {
+  U convert_to(const T &t) {
     try {
       return t.template convert_to<U>();
-    } catch (std::runtime_error const &e) {
+    } catch (const std::runtime_error &e) {
       // scale::decode catches std::system_errors
       throw std::system_error{
           make_error_code(std::errc::value_too_large),
@@ -97,7 +97,7 @@ namespace scale {
   template <typename Stream,
             typename N,
             typename = std::enable_if_t<Stream::is_encoder_stream>>
-  Stream &operator<<(Stream &stream, Fixed<N> const &fixed) {
+  Stream &operator<<(Stream &stream, const Fixed<N> &fixed) {
     constexpr size_t bits = Fixed<N>::BYTE_SIZE * 8;
     for (size_t i = 0; i < bits; i += 8) {
       stream << convert_to<uint8_t>((*fixed >> i) & 0xFFu);
@@ -118,7 +118,7 @@ namespace scale {
   template <typename Stream,
             typename N,
             typename = std::enable_if_t<Stream::is_encoder_stream>>
-  Stream &operator<<(Stream &stream, Compact<N> const &compact) {
+  Stream &operator<<(Stream &stream, const Compact<N> &compact) {
     scale::CompactInteger n = *compact;
     stream << n;
     return stream;
@@ -144,5 +144,3 @@ namespace scale {
 #undef SPECIALIZE_INTEGER_TRAITS
 
 }  // namespace scale
-
-#endif  // KAGOME_BIG_FIXED_INTEGERS_HPP

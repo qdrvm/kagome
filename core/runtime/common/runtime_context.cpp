@@ -1,5 +1,6 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -16,6 +17,15 @@
 #include "runtime/trie_storage_provider.hpp"
 #include "storage/trie/polkadot_trie/trie_error.hpp"
 
+OUTCOME_CPP_DEFINE_CATEGORY(kagome::runtime, Error, e) {
+  using E = kagome::runtime::Error;
+  switch (e) {
+    case E::COMPILATION_FAILED:
+      return "Runtime module compilation failed";
+  }
+  return "Unknown module repository error";
+}
+
 namespace kagome::runtime {
   using namespace kagome::common::literals;
 
@@ -24,6 +34,8 @@ namespace kagome::runtime {
       : module_instance{std::move(module_instance)} {
     BOOST_ASSERT(this->module_instance);
   }
+
+  RuntimeContext::~RuntimeContext() {}
 
   RuntimeContextFactoryImpl::RuntimeContextFactoryImpl(
       std::shared_ptr<ModuleRepository> module_repo,
@@ -36,8 +48,11 @@ namespace kagome::runtime {
       ContextParams params) {
     common::Buffer code;
     OUTCOME_TRY(runtime::uncompressCodeIfNeeded(code_zstd, code));
-    OUTCOME_TRY(runtime_module, module_factory.make(code));
-    OUTCOME_TRY(instance, runtime_module->instantiate());
+    auto runtime_module_res = module_factory.make(code);
+    if (!runtime_module_res) {
+      return Error::COMPILATION_FAILED;
+    }
+    OUTCOME_TRY(instance, runtime_module_res.value()->instantiate());
     runtime::RuntimeContext ctx{
         instance,
     };
@@ -51,7 +66,7 @@ namespace kagome::runtime {
   outcome::result<RuntimeContext> RuntimeContextFactoryImpl::fromBatch(
       std::shared_ptr<ModuleInstance> instance,
       std::shared_ptr<storage::trie::TrieBatch> batch,
-      ContextParams params) {
+      ContextParams params) const {
     runtime::RuntimeContext ctx{
         instance,
     };
@@ -65,7 +80,7 @@ namespace kagome::runtime {
       const storage::trie::RootHash &state,
       std::optional<std::shared_ptr<storage::changes_trie::ChangesTracker>>
           changes_tracker_opt,
-      ContextParams params) {
+      ContextParams params) const {
     runtime::RuntimeContext ctx{
         instance,
     };
@@ -78,7 +93,7 @@ namespace kagome::runtime {
   outcome::result<RuntimeContext> RuntimeContextFactoryImpl::ephemeral(
       std::shared_ptr<ModuleInstance> instance,
       const storage::trie::RootHash &state,
-      ContextParams params) {
+      ContextParams params) const {
     runtime::RuntimeContext ctx{
         instance,
     };
@@ -89,7 +104,7 @@ namespace kagome::runtime {
   }
 
   outcome::result<RuntimeContext> RuntimeContextFactoryImpl::ephemeralAtGenesis(
-      ContextParams params) {
+      ContextParams params) const {
     OUTCOME_TRY(genesis_hash, header_repo_->getHashByNumber(0));
     OUTCOME_TRY(genesis_header, header_repo_->getBlockHeader(genesis_hash));
     OUTCOME_TRY(instance,
@@ -104,7 +119,7 @@ namespace kagome::runtime {
   outcome::result<RuntimeContext> RuntimeContextFactoryImpl::persistentAt(
       const primitives::BlockHash &block_hash,
       TrieChangesTrackerOpt changes_tracker,
-      ContextParams params) {
+      ContextParams params) const {
     OUTCOME_TRY(header, header_repo_->getBlockHeader(block_hash));
     OUTCOME_TRY(instance,
                 module_repo_->getInstanceAt({block_hash, header.number},
@@ -117,7 +132,7 @@ namespace kagome::runtime {
   }
 
   outcome::result<RuntimeContext> RuntimeContextFactoryImpl::ephemeralAt(
-      const primitives::BlockHash &block_hash, ContextParams params) {
+      const primitives::BlockHash &block_hash, ContextParams params) const {
     OUTCOME_TRY(header, header_repo_->getBlockHeader(block_hash));
     OUTCOME_TRY(instance,
                 module_repo_->getInstanceAt({block_hash, header.number},
@@ -131,7 +146,7 @@ namespace kagome::runtime {
   outcome::result<RuntimeContext> RuntimeContextFactoryImpl::ephemeralAt(
       const primitives::BlockHash &block_hash,
       const storage::trie::RootHash &state_hash,
-      ContextParams params) {
+      ContextParams params) const {
     OUTCOME_TRY(header, header_repo_->getBlockHeader(block_hash));
     OUTCOME_TRY(instance,
                 module_repo_->getInstanceAt({block_hash, header.number},

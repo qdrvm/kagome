@@ -1,10 +1,10 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_APPLICATION_RECOVERYMODE
-#define KAGOME_APPLICATION_RECOVERYMODE
+#pragma once
 
 #include "application/mode.hpp"
 
@@ -63,5 +63,3 @@ namespace kagome::application::mode {
   };
 
 }  // namespace kagome::application::mode
-
-#endif  // KAGOME_APPLICATION_RECOVERYMODE

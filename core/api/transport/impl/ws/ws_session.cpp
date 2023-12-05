@@ -1,5 +1,6 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -9,6 +10,7 @@
 
 #include <boost/asio/dispatch.hpp>
 #include <boost/config.hpp>
+#include <libp2p/outcome/outcome.hpp>
 
 namespace boost::beast {
   template <class NextLayer, class DynamicBuffer>

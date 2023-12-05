@@ -1,5 +1,6 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -41,7 +42,7 @@ namespace kagome::crypto {
         return Error::SOFT_JUNCTION_NOT_SUPPORTED;
       }
       seed = hasher_->blake2b_256(
-          scale::encode("Secp256k1HDKD", seed, junction.cc).value());
+          scale::encode("Secp256k1HDKD"_bytes, seed, junction.cc).value());
     }
     EcdsaKeypair keys;
     keys.secret_key = seed;
@@ -64,7 +65,7 @@ namespace kagome::crypto {
   }
 
   outcome::result<EcdsaSignature> EcdsaProviderImpl::sign(
-      gsl::span<const uint8_t> message, const EcdsaPrivateKey &key) const {
+      common::BufferView message, const EcdsaPrivateKey &key) const {
     return signPrehashed(hasher_->blake2b_256(message), key);
   }
 
@@ -92,7 +93,7 @@ namespace kagome::crypto {
   }
 
   outcome::result<bool> EcdsaProviderImpl::verify(
-      gsl::span<const uint8_t> message,
+      common::BufferView message,
       const EcdsaSignature &signature,
       const EcdsaPublicKey &publicKey) const {
     return verifyPrehashed(hasher_->blake2b_256(message), signature, publicKey);

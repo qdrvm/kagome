@@ -9,8 +9,8 @@ from recommonmark.transform import AutoStructify
 # -- Project information -----------------------------------------------------
 
 project = 'Kagome'
-copyright = '2020, Soramitsu Co., Ltd.'
-author = 'Soramitsu Co., Ltd.'
+copyright = '2023, Quadrivium LLC'
+author = 'Quadrivium LLC'
 
 # The short X.Y version
 version = ''

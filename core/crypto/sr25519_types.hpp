@@ -1,16 +1,16 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_CORE_CRYPTO_VRF_TYPES
-#define KAGOME_CORE_CRYPTO_VRF_TYPES
+#pragma once
 
 extern "C" {
 #include <schnorrkel/schnorrkel.h>
 }
 #include <boost/multiprecision/cpp_int.hpp>
-#include <gsl/span>
+#include <span>
 
 #include "common/blob.hpp"
 #include "common/int_serialization.hpp"
@@ -100,8 +100,6 @@ namespace kagome::crypto {
     Sr25519SecretKey secret_key;
     Sr25519PublicKey public_key;
 
-    Sr25519Keypair() = default;
-
     bool operator==(const Sr25519Keypair &other) const;
     bool operator!=(const Sr25519Keypair &other) const;
   };
@@ -110,5 +108,3 @@ namespace kagome::crypto {
     Sr25519Seed seed;
   };
 }  // namespace kagome::crypto
-
-#endif  // KAGOME_CORE_CRYPTO_VRF_TYPES

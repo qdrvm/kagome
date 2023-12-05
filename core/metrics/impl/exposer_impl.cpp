@@ -1,5 +1,6 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -56,7 +57,7 @@ namespace kagome::metrics {
     }
 
     logger_->info("Listening for new connections on {}:{}",
-                  config_.endpoint.address(),
+                  config_.endpoint.address().to_string(),
                   acceptor_->local_endpoint().port());
     acceptOnce();
 

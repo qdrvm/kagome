@@ -1,10 +1,10 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_RUNTIME_CORE_HPP
-#define KAGOME_RUNTIME_CORE_HPP
+#pragma once
 
 #include <optional>
 
@@ -12,13 +12,24 @@
 #include "primitives/common.hpp"
 #include "primitives/version.hpp"
 #include "storage/changes_trie/changes_tracker.hpp"
+#include "runtime/runtime_context.hpp"
 
 namespace kagome::runtime {
-  class RuntimeContext;
 
-  /**
-   * Core represents mandatory part of runtime api
-   */
+  // interface for calls that are done by the runtime via Host API
+  // (typically Runtime API is the contrary -- calls from host to runtime)
+  class RestrictedCore {
+   public:
+    virtual ~RestrictedCore() = default;
+
+    /**
+     * @brief Returns the version of the runtime - version for nested calls,
+     * such as in MiscExtension
+     * @return runtime version
+     */
+    virtual outcome::result<primitives::Version> version() = 0;
+  };
+
   class Core {
    public:
     virtual ~Core() = default;
@@ -29,13 +40,6 @@ namespace kagome::runtime {
      */
     virtual outcome::result<primitives::Version> version(
         const primitives::BlockHash &block) = 0;
-
-    /**
-     * @brief Returns the version of the runtime - version for nested calls,
-     * such as in MiscExtension
-     * @return runtime version
-     */
-    virtual outcome::result<primitives::Version> version() = 0;
 
     /**
      * @brief Executes the given block
@@ -60,5 +64,3 @@ namespace kagome::runtime {
   };
 
 }  // namespace kagome::runtime
-
-#endif  // KAGOME_RUNTIME_CORE_HPP

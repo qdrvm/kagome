@@ -1,31 +1,31 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_BLOCK_TREE_IMPL_HPP
-#define KAGOME_BLOCK_TREE_IMPL_HPP
+#pragma once
 
 #include "blockchain/block_tree.hpp"
 
 #include <functional>
 #include <memory>
+#include <optional>
 #include <queue>
 #include <unordered_set>
 
-#include <optional>
+#include <libp2p/common/final_action.hpp>
 
 #include "application/app_configuration.hpp"
 #include "blockchain/block_header_repository.hpp"
 #include "blockchain/block_storage.hpp"
 #include "blockchain/block_tree_error.hpp"
-#include "consensus/babe/common.hpp"
-#include "consensus/babe/types/epoch_digest.hpp"
+#include "consensus/babe/types/babe_configuration.hpp"
+#include "consensus/timeline/types.hpp"
 #include "crypto/hasher.hpp"
 #include "log/logger.hpp"
 #include "metrics/metrics.hpp"
 #include "network/extrinsic_observer.hpp"
-#include "primitives/babe_configuration.hpp"
 #include "primitives/event_types.hpp"
 #include "storage/trie/trie_storage.hpp"
 #include "subscription/extrinsic_event_key_repository.hpp"
@@ -38,7 +38,7 @@ namespace kagome::storage::trie_pruner {
 }
 
 namespace kagome::blockchain {
-
+  struct ReorgAndPrune;
   class TreeNode;
   class CachedTree;
 
@@ -47,6 +47,7 @@ namespace kagome::blockchain {
    public:
     /// Create an instance of block tree
     static outcome::result<std::shared_ptr<BlockTreeImpl>> create(
+        const application::AppConfiguration &app_config,
         std::shared_ptr<BlockHeaderRepository> header_repo,
         std::shared_ptr<BlockStorage> storage,
         std::shared_ptr<network::ExtrinsicObserver> extrinsic_observer,
@@ -104,7 +105,7 @@ namespace kagome::blockchain {
         const primitives::BlockHash &block_hash) override;
 
     outcome::result<void> markAsRevertedBlocks(
-        const std::vector<primitives::BlockInfo> &blocks) override;
+        const std::vector<primitives::BlockHash> &block_hashes) override;
 
     outcome::result<void> addBlockBody(
         const primitives::BlockHash &block_hash,
@@ -129,12 +130,10 @@ namespace kagome::blockchain {
 
     bool isFinalized(const primitives::BlockInfo &block) const override;
 
-    primitives::BlockInfo bestLeaf() const override;
+    primitives::BlockInfo bestBlock() const override;
 
     outcome::result<primitives::BlockInfo> getBestContaining(
-        const primitives::BlockHash &target_hash,
-        const std::optional<primitives::BlockNumber> &max_number)
-        const override;
+        const primitives::BlockHash &target_hash) const override;
 
     std::vector<primitives::BlockHash> getLeaves() const override;
 
@@ -147,7 +146,19 @@ namespace kagome::blockchain {
 
     void notifyBestAndFinalized() override;
 
+    void removeUnfinalized() override;
+
    private:
+    struct BlocksPruning {
+      BlocksPruning(std::optional<uint32_t> keep,
+                    primitives::BlockNumber finalized);
+
+      primitives::BlockNumber max(primitives::BlockNumber finalized) const;
+
+      std::optional<uint32_t> keep_;
+      primitives::BlockNumber next_;
+    };
+
     struct BlockTreeData {
       std::shared_ptr<BlockHeaderRepository> header_repo_;
       std::shared_ptr<BlockStorage> storage_;
@@ -160,8 +171,7 @@ namespace kagome::blockchain {
       std::shared_ptr<const class JustificationStoragePolicy>
           justification_storage_policy_;
       std::optional<primitives::BlockHash> genesis_block_hash_;
-
-      BlockTreeData() = delete;
+      BlocksPruning blocks_pruning_;
     };
 
     /**
@@ -169,9 +179,10 @@ namespace kagome::blockchain {
      * factory method
      */
     BlockTreeImpl(
+        const application::AppConfiguration &app_config,
         std::shared_ptr<BlockHeaderRepository> header_repo,
         std::shared_ptr<BlockStorage> storage,
-        std::unique_ptr<CachedTree> cached_tree,
+        const primitives::BlockInfo &finalized,
         std::shared_ptr<network::ExtrinsicObserver> extrinsic_observer,
         std::shared_ptr<crypto::Hasher> hasher,
         primitives::events::ChainSubscriptionEnginePtr chain_events_engine,
@@ -184,23 +195,8 @@ namespace kagome::blockchain {
         std::shared_ptr<storage::trie_pruner::TriePruner> state_pruner,
         std::shared_ptr<::boost::asio::io_context> io_context);
 
-    /**
-     * Walks the chain backwards starting from \param start until the current
-     * block number is less or equal than \param limit
-     */
-    outcome::result<primitives::BlockHash> walkBackUntilLessNoLock(
-        const BlockTreeData &p,
-        const primitives::BlockHash &start,
-        const primitives::BlockNumber &limit) const;
-
-    /**
-     * @returns the tree leaves sorted by their depth
-     */
-    std::vector<primitives::BlockHash> getLeavesSortedNoLock(
-        const BlockTreeData &p) const;
-
-    outcome::result<void> pruneNoLock(
-        BlockTreeData &p, const std::shared_ptr<TreeNode> &lastFinalizedNode);
+    outcome::result<void> reorgAndPrune(BlockTreeData &p,
+                                        const ReorgAndPrune &changes);
 
     outcome::result<primitives::BlockHeader> getBlockHeaderNoLock(
         const BlockTreeData &p, const primitives::BlockHash &block_hash) const;
@@ -208,10 +204,8 @@ namespace kagome::blockchain {
     outcome::result<void> pruneTrie(const BlockTreeData &block_tree_data,
                                     primitives::BlockNumber new_finalized);
 
-    outcome::result<void> reorganizeNoLock(BlockTreeData &p);
-
     primitives::BlockInfo getLastFinalizedNoLock(const BlockTreeData &p) const;
-    primitives::BlockInfo bestLeafNoLock(const BlockTreeData &p) const;
+    primitives::BlockInfo bestBlockNoLock(const BlockTreeData &p) const;
 
     bool hasDirectChainNoLock(const BlockTreeData &p,
                               const primitives::BlockHash &ancestor,
@@ -244,12 +238,13 @@ namespace kagome::blockchain {
             == std::this_thread::get_id()) {
           return f(block_tree_data_.unsafeGet());
         }
-        return block_tree_data_.exclusiveAccess([&f,
-                                                 this](BlockTreeData &data) {
-          exclusive_owner_ = std::this_thread::get_id();
-          auto reset = gsl::finally([&] { exclusive_owner_ = std::nullopt; });
-          return f(data);
-        });
+        return block_tree_data_.exclusiveAccess(
+            [&f, this](BlockTreeData &data) {
+              exclusive_owner_ = std::this_thread::get_id();
+              ::libp2p::common::FinalAction reset(
+                  [&] { exclusive_owner_ = std::nullopt; });
+              return f(data);
+            });
       }
 
       template <typename F>
@@ -283,5 +278,3 @@ namespace kagome::blockchain {
     telemetry::Telemetry telemetry_ = telemetry::createTelemetryService();
   };
 }  // namespace kagome::blockchain
-
-#endif  // KAGOME_BLOCK_TREE_IMPL_HPP

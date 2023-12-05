@@ -1,5 +1,6 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -48,5 +49,7 @@ namespace kagome::storage::trie_pruner {
     std::optional<uint32_t> getPruningDepth() const override {
       return std::nullopt;
     }
+
+    void restoreStateAtFinalized(const blockchain::BlockTree &) override {}
   };
 }  // namespace kagome::storage::trie_pruner

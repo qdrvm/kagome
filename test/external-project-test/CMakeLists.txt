@@ -1,3 +1,9 @@
+#
+# Copyright Quadrivium LLC
+# All Rights Reserved
+# SPDX-License-Identifier: Apache-2.0
+#
+
 cmake_minimum_required(VERSION 3.12)
 
 find_program(CCACHE_FOUND ccache)
@@ -8,7 +14,7 @@ endif(CCACHE_FOUND)
 
 set(
     CMAKE_TOOLCHAIN_FILE
-    "../../cmake/toolchain/cxx17.cmake"
+    "../../cmake/toolchain/cxx20.cmake"
     CACHE
     FILEPATH
     "Default toolchain"

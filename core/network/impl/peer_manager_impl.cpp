@@ -1,5 +1,6 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -11,6 +12,7 @@
 
 #include <libp2p/protocol/kademlia/impl/peer_routing_table.hpp>
 
+#include "network/beefy/protocol.hpp"
 #include "outcome/outcome.hpp"
 #include "scale/libp2p_types.hpp"
 #include "storage/predefined_keys.hpp"
@@ -296,8 +298,8 @@ namespace kagome::network {
   void PeerManagerImpl::align() {
     SL_TRACE(log_, "Try to align peers number");
 
-    const auto target_count = app_config_.peeringConfig().targetPeerAmount;
-    const auto hard_limit = app_config_.peeringConfig().hardLimit;
+    const auto hard_limit = app_config_.inPeers() + app_config_.inPeersLight()
+                          + app_config_.outPeers();
     const auto peer_ttl = app_config_.peeringConfig().peerTtl;
 
     align_timer_.cancel();
@@ -356,7 +358,7 @@ namespace kagome::network {
     }
 
     // Not enough active peers
-    if (active_peers_.size() < target_count) {
+    if (countPeers(PeerType::PEER_TYPE_OUT) < app_config_.outPeers()) {
       if (not queue_to_connect_.empty()) {
         for (;;) {
           auto node = peers_in_queue_.extract(queue_to_connect_.front());
@@ -542,12 +544,10 @@ namespace kagome::network {
 
   void PeerManagerImpl::updatePeerState(const PeerId &peer_id,
                                         const BlockAnnounce &announce) {
-    auto hash = hasher_->blake2b_256(scale::encode(announce.header).value());
-
     auto &state = peer_states_[peer_id];
     state.time = clock_->now();
-    state.best_block = {announce.header.number, hash};
-    state.known_blocks.add(hash);
+    state.best_block = announce.header.blockInfo();
+    state.known_blocks.add(state.best_block.hash);
   }
 
   void PeerManagerImpl::updatePeerState(
@@ -707,37 +707,29 @@ namespace kagome::network {
 
       log_->trace("Try to open outgoing validation protocol.(peer={})",
                   peer_info.id);
-      openOutgoing(
-          stream_engine_,
-          validation_protocol,
-          peer_info,
-          [validation_protocol, peer_info, wptr{weak_from_this()}](
-              auto &&stream_result) {
-            auto self = wptr.lock();
-            if (not self) {
-              return;
-            }
+      openOutgoing(stream_engine_,
+                   validation_protocol,
+                   peer_info,
+                   [validation_protocol, peer_info, wptr{weak_from_this()}](
+                       outcome::result<std::shared_ptr<Stream>> stream_result) {
+                     auto self = wptr.lock();
+                     if (not self) {
+                       return;
+                     }
 
-            auto &peer_id = peer_info.id;
-            if (!stream_result.has_value()) {
-              self->log_->warn("Unable to create stream {} with {}: {}",
-                               validation_protocol->protocolName(),
-                               peer_id,
-                               stream_result.error().message());
-              return;
-            }
+                     auto &peer_id = peer_info.id;
+                     if (!stream_result.has_value()) {
+                       self->log_->warn(
+                           "Unable to create stream {} with {}: {}",
+                           validation_protocol->protocolName(),
+                           peer_id,
+                           stream_result.error().message());
+                       return;
+                     }
 
-            if (auto res = self->stream_engine_->addOutgoing(
-                    stream_result.value(), validation_protocol);
-                !res) {
-              SL_VERBOSE(self->log_,
-                         "Can't register outgoing {} stream with {}: {}",
-                         validation_protocol->protocolName(),
-                         stream_result.value()->remotePeerId().value(),
-                         res.error().message());
-              stream_result.value()->reset();
-            }
-          });
+                     self->stream_engine_->addOutgoing(stream_result.value(),
+                                                       validation_protocol);
+                   });
     }
   }
 
@@ -755,43 +747,12 @@ namespace kagome::network {
       connecting_peers_.erase(peer_id);
       return;
     }
-    if (connection->isInitiator()) {
-      auto out_peers_count = std::count_if(
-          active_peers_.begin(), active_peers_.end(), [](const auto &el) {
-            return el.second.peer_type == PeerType::PEER_TYPE_OUT;
-          });
-      if (out_peers_count > app_config_.outPeers()) {
+    auto out = connection->isInitiator();
+    if (out) {
+      if (countPeers(PeerType::PEER_TYPE_OUT) >= app_config_.outPeers()) {
         connecting_peers_.erase(peer_id);
         disconnectFromPeer(peer_id);
         return;
-      }
-    } else {
-      auto in_peers_count = 0u;
-      auto in_light_peers_count = 0u;
-      if (peer_states_[peer_id].roles.flags.full == 1) {
-        for (const auto &peer : active_peers_) {
-          if (peer.second.peer_type == PeerType::PEER_TYPE_IN
-              and peer_states_[peer.first].roles.flags.full == 1) {
-            ++in_peers_count;
-          }
-        }
-        if (in_peers_count >= app_config_.inPeers()) {
-          connecting_peers_.erase(peer_id);
-          disconnectFromPeer(peer_id);
-          return;
-        }
-      } else if (peer_states_[peer_id].roles.flags.light == 1) {
-        for (const auto &peer : active_peers_) {
-          if (peer.second.peer_type == PeerType::PEER_TYPE_IN
-              and peer_states_[peer.first].roles.flags.light == 1) {
-            ++in_light_peers_count;
-          }
-        }
-        if (in_light_peers_count >= app_config_.inPeersLight()) {
-          connecting_peers_.erase(peer_id);
-          disconnectFromPeer(peer_id);
-          return;
-        }
       }
     }
 
@@ -799,13 +760,37 @@ namespace kagome::network {
     openBlockAnnounceProtocol(
         peer_info,
         connection,
-        [](std::shared_ptr<PeerManagerImpl> &self,
-           const PeerInfo &peer_info,
-           std::optional<std::reference_wrapper<PeerState>> peer_state) {
+        [out](std::shared_ptr<PeerManagerImpl> &self,
+              const PeerInfo &peer_info,
+              std::optional<std::reference_wrapper<PeerState>> peer_state) {
           if (peer_state.has_value()) {
+            auto &state = peer_state->get();
+            if (not out) {
+              if (state.roles.flags.full == 1) {
+                if (self->countPeers(PeerType::PEER_TYPE_IN)
+                    >= self->app_config_.inPeers()) {
+                  self->connecting_peers_.erase(peer_info.id);
+                  self->disconnectFromPeer(peer_info.id);
+                  return;
+                }
+              } else if (state.roles.flags.light == 1) {
+                if (self->countPeers(PeerType::PEER_TYPE_IN, IsLight(true))
+                    >= self->app_config_.inPeersLight()) {
+                  self->connecting_peers_.erase(peer_info.id);
+                  self->disconnectFromPeer(peer_info.id);
+                  return;
+                }
+              }
+            }
+
             self->tryOpenGrandpaProtocol(peer_info, peer_state.value().get());
             self->tryOpenValidationProtocol(peer_info,
                                             peer_state.value().get());
+            openOutgoing(self->stream_engine_,
+                         self->router_->getBeefyProtocol(),
+                         peer_info,
+                         [](outcome::result<
+                             std::shared_ptr<libp2p::connection::Stream>>) {});
           }
         });
 
@@ -907,5 +892,24 @@ namespace kagome::network {
         ++it;
       }
     }
+  }
+
+  size_t PeerManagerImpl::countPeers(PeerType in_out, IsLight in_light) const {
+    return std::count_if(active_peers_.begin(),
+                         active_peers_.end(),
+                         [&](const decltype(active_peers_)::value_type &x) {
+                           if (x.second.peer_type == PeerType::PEER_TYPE_OUT) {
+                             return in_out == PeerType::PEER_TYPE_OUT;
+                           }
+                           if (in_out == PeerType::PEER_TYPE_OUT) {
+                             return false;
+                           }
+                           auto it = peer_states_.find(x.first);
+                           if (it == peer_states_.end()) {
+                             return false;
+                           }
+                           auto &roles = it->second.roles.flags;
+                           return (in_light ? roles.light : roles.full) == 1;
+                         });
   }
 }  // namespace kagome::network

@@ -6,10 +6,12 @@
 #ifndef KAGOME_KAGOME_SCALE_HPP
 #define KAGOME_KAGOME_SCALE_HPP
 
+#include <span>
 #include <type_traits>
 #include "common/blob.hpp"
 #include "consensus/babe/types/babe_block_header.hpp"
 #include "consensus/babe/types/seal.hpp"
+#include "network/types/blocks_response.hpp"
 #include "network/types/roles.hpp"
 #include "primitives/block_header.hpp"
 #include "primitives/block_id.hpp"
@@ -17,7 +19,7 @@
 #include "scale/encode_append.hpp"
 #include "scale/libp2p_types.hpp"
 
-namespace kagome::scale_v2 {
+namespace kagome::scale {
   using CompactInteger = ::scale::CompactInteger;
   using BitVec = ::scale::BitVec;
   using ScaleDecoderStream = ::scale::ScaleDecoderStream;
@@ -25,13 +27,13 @@ namespace kagome::scale_v2 {
   using PeerInfoSerializable = ::scale::PeerInfoSerializable;
   using DecodeError = ::scale::DecodeError;
 
-  template <typename T>
-  inline auto decode(gsl::span<const uint8_t> data) {
-    return ::scale::decode<T>(std::move(data));
-  }
+  using ::scale::decode;
 
   template <typename F>
   constexpr void encode(const F &func, const primitives::BlockHeader &bh);
+
+  template <typename F>
+  constexpr void encode(const F &func, const network::BlocksResponse &b);
 
   template <typename F, typename ElementType, size_t MaxSize, typename... Args>
   constexpr void encode(
@@ -69,11 +71,11 @@ namespace kagome::scale_v2 {
   constexpr void encode(const F &func,
                         const consensus::babe::BabeBlockHeader &bh);
 
-}  // namespace kagome::scale_v2
+}  // namespace kagome::scale
 
 #include "scale/encoder/primitives.hpp"
 
-namespace kagome::scale_v2 {
+namespace kagome::scale {
 
   template <typename F>
   constexpr void encode(const F &func, const primitives::BlockHeader &bh) {
@@ -82,6 +84,11 @@ namespace kagome::scale_v2 {
     encode(func, bh.state_root);
     encode(func, bh.extrinsics_root);
     encode(func, bh.digest);
+  }
+
+  template <typename F>
+  constexpr void encode(const F &func, const network::BlocksResponse &b) {
+    encode(func, b.blocks);
   }
 
   template <typename F>
@@ -150,6 +157,6 @@ namespace kagome::scale_v2 {
     encode(func, c.value);
   }
 
-}  // namespace kagome::scale_v2
+}  // namespace kagome::scale
 
 #endif  // KAGOME_KAGOME_SCALE_HPP

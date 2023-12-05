@@ -1,10 +1,10 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_RUNTIME_IMPL_BLOCK_BUILDER_HPP
-#define KAGOME_RUNTIME_IMPL_BLOCK_BUILDER_HPP
+#pragma once
 
 #include "runtime/runtime_api/block_builder.hpp"
 
@@ -17,8 +17,7 @@ namespace kagome::runtime {
     explicit BlockBuilderImpl(std::shared_ptr<Executor> executor);
 
     outcome::result<primitives::ApplyExtrinsicResult> apply_extrinsic(
-        RuntimeContext &ctx,
-        const primitives::Extrinsic &extrinsic) override;
+        RuntimeContext &ctx, const primitives::Extrinsic &extrinsic) override;
 
     outcome::result<primitives::BlockHeader> finalize_block(
         RuntimeContext &ctx) override;
@@ -37,5 +36,3 @@ namespace kagome::runtime {
     std::shared_ptr<Executor> executor_;
   };
 }  // namespace kagome::runtime
-
-#endif  // KAGOME_RUNTIME_BLOCK_BUILDER_HPP

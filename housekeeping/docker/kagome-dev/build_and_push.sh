@@ -1,4 +1,9 @@
 #!/bin/bash -ex
+#
+# Copyright Quadrivium LLC
+# All Rights Reserved
+# SPDX-License-Identifier: Apache-2.0
+#
 
 cd "$(dirname "$0")"
 

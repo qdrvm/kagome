@@ -1,10 +1,10 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_RUNTIME_IMPL_ACCOUNTNONCEAPI_HPP
-#define KAGOME_RUNTIME_IMPL_ACCOUNTNONCEAPI_HPP
+#pragma once
 
 #include "runtime/runtime_api/account_nonce_api.hpp"
 
@@ -25,5 +25,3 @@ namespace kagome::runtime {
   };
 
 }  // namespace kagome::runtime
-
-#endif  // KAGOME_ACCOUNTNONCEAPI_HPP

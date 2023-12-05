@@ -1,10 +1,10 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_RUNTIME_HOSTAPIIMPL
-#define KAGOME_RUNTIME_HOSTAPIIMPL
+#pragma once
 
 #include "host_api/host_api.hpp"
 
@@ -143,6 +143,11 @@ namespace kagome::host_api {
         runtime::WasmSpan msg,
         runtime::WasmPointer pubkey_data) override;
 
+    runtime::WasmSize ext_crypto_ed25519_batch_verify_version_1(
+        runtime::WasmPointer sig_data,
+        runtime::WasmSpan msg,
+        runtime::WasmPointer pubkey_data) override;
+
     runtime::WasmSpan ext_crypto_sr25519_public_keys_version_1(
         runtime::WasmSize key_type) override;
 
@@ -162,6 +167,11 @@ namespace kagome::host_api {
     int32_t ext_crypto_sr25519_verify_version_2(runtime::WasmPointer,
                                                 runtime::WasmSpan,
                                                 runtime::WasmPointer) override;
+
+    int32_t ext_crypto_sr25519_batch_verify_version_1(
+        runtime::WasmPointer sig_data,
+        runtime::WasmSpan msg,
+        runtime::WasmPointer pubkey_data) override;
 
     runtime::WasmSpan ext_crypto_ecdsa_public_keys_version_1(
         runtime::WasmSize key_type) override;
@@ -184,9 +194,14 @@ namespace kagome::host_api {
         runtime::WasmSpan msg,
         runtime::WasmPointer key) override;
 
-    int32_t ext_crypto_ecdsa_verify_prehashed_version_1(
+    int32_t ext_crypto_ecdsa_verify_version_2(
         runtime::WasmPointer sig,
         runtime::WasmSpan msg,
+        runtime::WasmPointer key) override;
+
+    int32_t ext_crypto_ecdsa_verify_prehashed_version_1(
+        runtime::WasmPointer sig,
+        runtime::WasmPointer msg,
         runtime::WasmPointer key) override;
 
     // ------------------------- Hashing extension/crypto ---------------
@@ -225,7 +240,7 @@ namespace kagome::host_api {
 
     void ext_misc_print_hex_version_1(runtime::WasmSpan data) const override;
 
-    void ext_misc_print_num_version_1(uint64_t value) const override;
+    void ext_misc_print_num_version_1(int64_t value) const override;
 
     void ext_misc_print_utf8_version_1(runtime::WasmSpan data) const override;
 
@@ -238,9 +253,9 @@ namespace kagome::host_api {
 
     runtime::WasmSpan ext_offchain_network_state_version_1() override;
 
-    runtime::WasmU64 ext_offchain_timestamp_version_1() override;
+    runtime::WasmI64 ext_offchain_timestamp_version_1() override;
 
-    void ext_offchain_sleep_until_version_1(runtime::WasmU64 deadline) override;
+    void ext_offchain_sleep_until_version_1(runtime::WasmI64 deadline) override;
 
     runtime::WasmPointer ext_offchain_random_seed_version_1() override;
 
@@ -334,7 +349,7 @@ namespace kagome::host_api {
         runtime::WasmSpan value_out,
         runtime::WasmOffset offset) const override;
 
-    virtual uint32_t ext_default_child_storage_exists_version_1(
+    virtual int32_t ext_default_child_storage_exists_version_1(
         runtime::WasmSpan child_storage_key,
         runtime::WasmSpan key) const override;
 
@@ -359,5 +374,3 @@ namespace kagome::host_api {
     OffchainExtension offchain_ext_;
   };
 }  // namespace kagome::host_api
-
-#endif  // KAGOME_RUNTIME_HOSTAPIIMPL

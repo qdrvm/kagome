@@ -49,7 +49,7 @@ charlie: reports parachain_candidate_dispute_concluded{validity="invalid"} is 0 
 # Check lag - approval
 alice: reports polkadot_parachain_approval_checking_finality_lag is 0
 bob: reports polkadot_parachain_approval_checking_finality_lag is 0
-charlie: reports polkadot_parachain_approval_checking_finality_lag is 0
+charlie: reports kagome_parachain_approval_checking_finality_lag is 0
 dave: reports polkadot_parachain_approval_checking_finality_lag is 0
 ferdie: reports polkadot_parachain_approval_checking_finality_lag is 0
 eve: reports polkadot_parachain_approval_checking_finality_lag is 0
@@ -59,7 +59,7 @@ two: reports polkadot_parachain_approval_checking_finality_lag is 0
 # Check lag - dispute conclusion
 alice: reports polkadot_parachain_disputes_finality_lag is 0
 bob: reports polkadot_parachain_disputes_finality_lag is 0
-charlie: reports polkadot_parachain_disputes_finality_lag is 0
+charlie: reports kagome_parachain_disputes_finality_lag is 0
 dave: reports polkadot_parachain_disputes_finality_lag is 0
 ferdie: reports polkadot_parachain_disputes_finality_lag is 0
 eve: reports polkadot_parachain_disputes_finality_lag is 0

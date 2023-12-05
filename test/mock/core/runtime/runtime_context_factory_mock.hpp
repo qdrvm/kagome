@@ -1,10 +1,10 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_TEST_MOCK_CORE_RUNTIME_RUNTIME_ENVIRONMENT_FACTORY_MOCK_HPP
-#define KAGOME_TEST_MOCK_CORE_RUNTIME_RUNTIME_ENVIRONMENT_FACTORY_MOCK_HPP
+#pragma once
 
 #include "runtime/runtime_context.hpp"
 
@@ -19,7 +19,7 @@ namespace kagome::runtime {
                 (std::shared_ptr<ModuleInstance> module_instance,
                  std::shared_ptr<storage::trie::TrieBatch> batch,
                  ContextParams params),
-                (override));
+                (const, override));
     MOCK_METHOD(
         outcome::result<RuntimeContext>,
         persistent,
@@ -28,7 +28,7 @@ namespace kagome::runtime {
          std::optional<std::shared_ptr<storage::changes_trie::ChangesTracker>>
              changes_tracker_opt,
          ContextParams params),
-        (override));
+        (const, override));
     MOCK_METHOD(
         outcome::result<RuntimeContext>,
         persistentAt,
@@ -36,29 +36,27 @@ namespace kagome::runtime {
          std::optional<std::shared_ptr<storage::changes_trie::ChangesTracker>>
              changes_tracker_opt,
          ContextParams params),
-        (override));
+        (const, override));
     MOCK_METHOD(outcome::result<RuntimeContext>,
                 ephemeral,
                 (std::shared_ptr<ModuleInstance> module_instance,
                  const storage::trie::RootHash &state,
                  ContextParams params),
-                (override));
+                (const, override));
     MOCK_METHOD(outcome::result<RuntimeContext>,
                 ephemeralAt,
                 (const primitives::BlockHash &block_hash, ContextParams params),
-                (override));
+                (const, override));
     MOCK_METHOD(outcome::result<RuntimeContext>,
                 ephemeralAt,
                 (const primitives::BlockHash &block_hash,
                  const storage::trie::RootHash &state,
                  ContextParams params),
-                (override));
+                (const, override));
     MOCK_METHOD(outcome::result<RuntimeContext>,
                 ephemeralAtGenesis,
                 (ContextParams params),
-                (override));
+                (const, override));
   };
 
 }  // namespace kagome::runtime
-
-#endif  // KAGOME_TEST_MOCK_CORE_RUNTIME_RUNTIME_ENVIRONMENT_FACTORY_MOCK_HPP

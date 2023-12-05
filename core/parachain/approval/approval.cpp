@@ -1,5 +1,6 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -7,7 +8,9 @@ extern "C" {
 #include <schnorrkel/schnorrkel.h>
 }
 
+#include "consensus/babe/impl/prepare_transcript.hpp"
 #include "parachain/approval/approval.hpp"
+#include "primitives/transcript.hpp"
 
 OUTCOME_CPP_DEFINE_CATEGORY(kagome::parachain::approval,
                             UnsafeVRFOutput::Error,
@@ -26,14 +29,14 @@ namespace kagome::parachain::approval {
 
   outcome::result<void> UnsafeVRFOutput::compute_randomness(
       ::RelayVRFStory &vrf_story,
-      const primitives::AuthorityList &authorities,
-      const consensus::babe::Randomness &randomness,
-      consensus::babe::EpochNumber epoch_index) {
+      const consensus::babe::Authorities &authorities,
+      const consensus::Randomness &randomness,
+      consensus::EpochNumber epoch_index) {
     if (authorities.size() <= authority_index) {
       return Error::AuthorityOutOfBounds;
     }
 
-    const auto &author = authorities[authority_index].id.id;
+    const auto &author = authorities[authority_index].id;
     OUTCOME_TRY(pubkey, parachain::PublicKey::fromSpan(author));
 
     primitives::Transcript transcript;

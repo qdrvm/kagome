@@ -1,16 +1,19 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
 #include "runtime/wavm/module_instance.hpp"
+
+#include <libp2p/common/final_action.hpp>
 
 #include <WAVM/Runtime/Runtime.h>
 #include <WAVM/RuntimeABI/RuntimeABI.h>
 
 #include "host_api/host_api.hpp"
 #include "log/profiling_logger.hpp"
-#include "runtime/common/runtime_transaction_error.hpp"
+#include "runtime/common/runtime_execution_error.hpp"
 #include "runtime/memory_provider.hpp"
 #include "runtime/module_repository.hpp"
 #include "runtime/trie_storage_provider.hpp"
@@ -103,20 +106,24 @@ namespace kagome::runtime::wavm {
     return module_;
   }
 
-  outcome::result<PtrSize> ModuleInstanceImpl::callExportFunction(
-      std::string_view name, common::BufferView encoded_args) const {
+  outcome::result<common::Buffer> ModuleInstanceImpl::callExportFunction(
+      kagome::runtime::RuntimeContext
+          &,  // not used, but has to have been created before the call
+      std::string_view name,
+      common::BufferView encoded_args) const {
     auto memory = env_.memory_provider->getCurrentMemory().value();
 
     PtrSize args_span{memory.get().storeBuffer(encoded_args)};
 
-    auto res = [this, name, args_span]() -> outcome::result<PtrSize> {
+    auto res =
+        [this, name, args_span, &memory]() -> outcome::result<common::Buffer> {
       WAVM::Runtime::GCPointer<WAVM::Runtime::Context> context =
           WAVM::Runtime::createContext(compartment_->getCompartment());
       WAVM::Runtime::Function *function = WAVM::Runtime::asFunctionNullable(
           WAVM::Runtime::getInstanceExport(instance_, name.data()));
       if (!function) {
         SL_DEBUG(logger_, "The requested function {} not found", name);
-        return RuntimeTransactionError::EXPORT_FUNCTION_NOT_FOUND;
+        return RuntimeExecutionError::EXPORT_FUNCTION_NOT_FOUND;
       }
       const WAVM::IR::FunctionType functionType =
           WAVM::Runtime::getFunctionType(function);
@@ -142,7 +149,7 @@ namespace kagome::runtime::wavm {
       std::array<WAVM::IR::UntaggedValue, 1> untaggedInvokeResults;
       pushBorrowedRuntimeInstance(
           std::const_pointer_cast<ModuleInstanceImpl>(shared_from_this()));
-      const auto pop = gsl::finally(&popBorrowedRuntimeInstance);
+      ::libp2p::common::FinalAction pop(&popBorrowedRuntimeInstance);
       try {
         WAVM::Runtime::unwindSignalsAsExceptions(
             [&context,
@@ -159,7 +166,9 @@ namespace kagome::runtime::wavm {
                                             untaggedInvokeArgs.data(),
                                             resultsDestination);
             });
-        return PtrSize{untaggedInvokeResults[0].u64};
+        auto [res_ptr, res_size] = PtrSize{untaggedInvokeResults[0].i64};
+        return memory.get().loadN(res_ptr, res_size);
+
       } catch (WAVM::Runtime::Exception *e) {
         const auto desc = WAVM::Runtime::describeException(e);
         logger_->error(desc);
@@ -204,7 +213,14 @@ namespace kagome::runtime::wavm {
     using WAVM::IR::DataSegment;
     using WAVM::IR::MemoryType;
     using WAVM::IR::Value;
+#if defined(__GNUC__) and not defined(__clang__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdangling-reference"
+#endif
     auto &ir = getModuleIR(module_->module_);
+#if defined(__GNUC__) and not defined(__clang__)
+#pragma GCC diagnostic pop
+#endif
 
     for (Uptr segmentIndex = 0; segmentIndex < ir.dataSegments.size();
          ++segmentIndex) {

@@ -1,10 +1,10 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_APP_CONFIGURATION_IMPL_HPP
-#define KAGOME_APP_CONFIGURATION_IMPL_HPP
+#pragma once
 
 #include "application/app_configuration.hpp"
 
@@ -18,6 +18,7 @@ namespace rapidjson {
 #include <array>
 #include <cstdio>
 #include <memory>
+#include <thread>
 
 #include "log/logger.hpp"
 
@@ -169,6 +170,13 @@ namespace kagome::application {
     uint32_t parachainRuntimeInstanceCacheSize() const override {
       return parachain_runtime_instance_cache_size_;
     }
+    uint32_t parachainPrecompilationThreadNum() const override {
+      return parachain_precompilation_thread_num_;
+    }
+
+    bool shouldPrecompileParachainModules() const override {
+      return should_precompile_parachain_modules_;
+    }
 
     OffchainWorkerMode offchainWorkerMode() const override {
       return offchain_worker_mode_;
@@ -196,6 +204,9 @@ namespace kagome::application {
     }
     bool enableThoroughPruning() const override {
       return enable_thorough_pruning_;
+    }
+    std::optional<uint32_t> blocksPruning() const override {
+      return blocks_pruning_;
     }
     std::optional<std::string_view> devMnemonicPhrase() const override {
       if (dev_mnemonic_phrase_) {
@@ -353,15 +364,17 @@ namespace kagome::application {
     std::optional<size_t> state_pruning_depth_;
     bool prune_discarded_states_ = false;
     bool enable_thorough_pruning_ = false;
+    std::optional<uint32_t> blocks_pruning_;
     std::optional<std::string> dev_mnemonic_phrase_;
     std::string node_wss_pem_;
     std::optional<BenchmarkConfigSection> benchmark_config_;
     AllowUnsafeRpc allow_unsafe_rpc_ = AllowUnsafeRpc::kAuto;
     uint32_t parachain_runtime_instance_cache_size_ = 100;
+    uint32_t parachain_precompilation_thread_num_ =
+        std::thread::hardware_concurrency() / 2;
+    bool should_precompile_parachain_modules_{true};
   };
 
 }  // namespace kagome::application
 
 #undef DECLARE_PROPERTY
-
-#endif  // KAGOME_APP_CONFIGURATION_IMPL_HPP

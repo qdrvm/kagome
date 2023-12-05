@@ -1,10 +1,10 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_RUNTIME_RUNTIME_API_IMPL_AUTHORITY_DISCOVERY_API_HPP
-#define KAGOME_RUNTIME_RUNTIME_API_IMPL_AUTHORITY_DISCOVERY_API_HPP
+#pragma once
 
 #include "runtime/runtime_api/authority_discovery_api.hpp"
 #include "runtime/runtime_api/impl/lru.hpp"
@@ -26,5 +26,3 @@ namespace kagome::runtime {
     RuntimeApiLruBlock<Auths> cache_{10};
   };
 }  // namespace kagome::runtime
-
-#endif  // KAGOME_RUNTIME_RUNTIME_API_IMPL_AUTHORITY_DISCOVERY_API_HPP
