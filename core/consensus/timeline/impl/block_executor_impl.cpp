@@ -147,11 +147,12 @@ namespace kagome::consensus {
           .body = block.body,
       };
 
-      if (auto res = core_->execute_block_ref(block_ref, changes_tracker);
-          res.has_error()) {
-        callback(res.as_failure());
-        return;
-      }
+      // FIXME uncomment after debugging
+      // if (auto res = core_->execute_block_ref(block_ref, changes_tracker);
+      //     res.has_error()) {
+      //   callback(res.as_failure());
+      //   return;
+      // }
 
       auto duration_ms = timer().count();
       SL_DEBUG(logger_, "Core_execute_block: {} ms", duration_ms);
