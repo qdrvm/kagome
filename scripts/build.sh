@@ -1,12 +1,10 @@
-#!/bin/bash -xe
-
-RUST_VERSION=nightly-2022-11-20
-RUSTUP_HOME=~/.rustup
-CARGO_HOME=~/.cargo
-PATH="${CARGO_HOME}/bin:${PATH}"
-
-current_dir=$(dirname "$0")
+#!/usr/bin/env bash
+set -ex
+current_dir=$(dirname $(readlink -f "$0"))
 parent_dir=$(dirname "$current_dir")
+cd $parent_dir
+
+set -a; source $current_dir/.env; set +a #include .env vars 
 
 source $parent_dir/venv/bin/activate
 $parent_dir/venv/bin/cmake -H. -Bbuild -DCMAKE_BUILD_TYPE=Release
