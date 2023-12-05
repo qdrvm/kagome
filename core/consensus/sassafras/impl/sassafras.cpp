@@ -170,8 +170,6 @@ namespace kagome::consensus::sassafras {
 
   outcome::result<void> Sassafras::processSlot(
       SlotNumber slot, const primitives::BlockInfo &best_block) {
-    return SlotLeadershipError::NO_SLOT_LEADER;  // FIXME it just for debug
-
     auto slot_timestamp = clock_.now();
 
     if (slot != slots_util_.get()->timeToSlot(slot_timestamp)) {

@@ -101,8 +101,7 @@ namespace kagome::consensus::sassafras {
 
   // Plain VRF Signature -----------
 
-  using Signature =
-      common::Blob<crypto::constants::bandersnatch::SIGNATURE_SIZE>;
+  using Signature = crypto::BandersnatchSignature;
 
   /// VRF signature.
   ///

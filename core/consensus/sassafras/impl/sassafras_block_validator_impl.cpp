@@ -10,16 +10,14 @@
 
 #include "consensus/sassafras/impl/sassafras_digests_util.hpp"
 #include "consensus/sassafras/sassafras_config_repository.hpp"
-#include "consensus/sassafras/sassafras_lottery.hpp"
 #include "consensus/sassafras/types/seal.hpp"
 #include "consensus/timeline/impl/slot_leadership_error.hpp"
 #include "consensus/timeline/slots_util.hpp"
 #include "crypto/bandersnatch_provider.hpp"
+#include "crypto/ed25519_provider.hpp"
 #include "crypto/vrf_provider.hpp"
 #include "metrics/histogram_timer.hpp"
-#include "prepare_transcript.hpp"
 #include "primitives/inherent_data.hpp"
-#include "primitives/transcript.hpp"
 #include "runtime/runtime_api/offchain_worker_api.hpp"
 #include "storage/trie/serialization/ordered_trie_hash.hpp"
 #include "threshold_util.hpp"
@@ -38,8 +36,8 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::consensus::sassafras,
       return "VRF value and output are invalid";
     case E::TWO_BLOCKS_IN_SLOT:
       return "peer tried to distribute several blocks in one slot";
-    case E::SECONDARY_SLOT_ASSIGNMENTS_DISABLED:
-      return "Secondary slot assignments are disabled for the current epoch.";
+    case E::WRONG_AUTHOR_OF_SECONDARY_CLAIM:
+      return "Wrong author of secondary claim of slot";
   }
   return "unknown error";
 }
@@ -51,150 +49,156 @@ namespace kagome::consensus::sassafras {
       std::shared_ptr<SassafrasConfigRepository> config_repo,
       std::shared_ptr<crypto::Hasher> hasher,
       std::shared_ptr<crypto::BandersnatchProvider> bandersnatch_provider,
+      std::shared_ptr<crypto::Ed25519Provider> ed25519_provider,
       std::shared_ptr<crypto::VRFProvider> vrf_provider)
-      : log_(log::createLogger("SassafrasBlockValidatorImpl", "sassafras")),
+      : log_(log::createLogger("SassafrasBlockValidator", "sassafras")),
         slots_util_(std::move(slots_util)),
         config_repo_(std::move(config_repo)),
         hasher_(std::move(hasher)),
         bandersnatch_provider_(std::move(bandersnatch_provider)),
+        ed25519_provider_(std::move(ed25519_provider)),
         vrf_provider_(std::move(vrf_provider)) {
     BOOST_ASSERT(config_repo_);
     BOOST_ASSERT(hasher_);
     BOOST_ASSERT(bandersnatch_provider_);
+    BOOST_ASSERT(ed25519_provider_);
     BOOST_ASSERT(vrf_provider_);
   }
 
   outcome::result<void> SassafrasBlockValidatorImpl::validateHeader(
-      const primitives::BlockHeader &block_header) const {
-    OUTCOME_TRY(slot_claim, sassafras::getSlotClaim(block_header));
+      const primitives::BlockHeader &header) const {
+    SL_TRACE(log_, "Validating header of block {}...", header.blockInfo());
 
-    auto slot_number = slot_claim.slot_number;
+    // get Sassafras-specific digests, which must be inside this block
+    OUTCOME_TRY(slot_claim, getSlotClaim(header));
+    OUTCOME_TRY(seal, getSeal(header));
 
-    OUTCOME_TRY(epoch_number,
-                slots_util_.get()->slotToEpoch(*block_header.parentInfo(),
-                                               slot_number));
+    auto slot = slot_claim.slot_number;
+
+    OUTCOME_TRY(epoch,
+                slots_util_.get()->slotToEpoch(*header.parentInfo(), slot));
+
+    OUTCOME_TRY(config_ptr, config_repo_->config(*header.parentInfo(), epoch));
+    auto &config = *config_ptr;
 
     SL_VERBOSE(log_,
-               "Appending header of block {} ({} claim of slot {}, epoch {}, "
-               "authority #{})",
-               block_header.blockInfo(),
+               "Validating header of block {}: "
+               "{} claim of slot {}, epoch {}, authority #{}",
+               header.blockInfo(),
                slot_claim.ticket_claim ? "primary" : "secondary",
-               slot_number,
-               epoch_number,
+               slot,
+               epoch,
                slot_claim.authority_index);
-
-    OUTCOME_TRY(config_ptr,
-                config_repo_->config(*block_header.parentInfo(), epoch_number));
-    auto &config = *config_ptr;
 
     SL_TRACE(log_,
              "Actual epoch digest to apply block {} (slot {}, epoch {}). "
              "Randomness: {}",
-             block_header.blockInfo(),
-             slot_number,
-             epoch_number,
+             header.blockInfo(),
+             slot,
+             epoch,
              config.randomness);
 
-    //    auto threshold = calculateThreshold(
-    //        config.leadership_rate, config.authorities,
-    //        slot_claim.authority_index);
+    if (slot_claim.ticket_claim.has_value()) {
+      OUTCOME_TRY(verifyPrimaryClaim(slot_claim, config));
+    } else {
+      OUTCOME_TRY(verifySecondaryClaim(slot_claim, config));
+    }
 
-    OUTCOME_TRY(validateHeader(block_header,
-                               epoch_number,
-                               config.authorities[slot_claim.authority_index],
-                               // threshold,
-                               config));
+    // signature in seal of the header must be valid
+    if (!verifySignature(header,
+                         seal.signature,
+                         config.authorities[slot_claim.authority_index])) {
+      return ValidationError::INVALID_SIGNATURE;
+    }
 
     return outcome::success();
   }
 
-  outcome::result<void> SassafrasBlockValidatorImpl::validateHeader(
-      const primitives::BlockHeader &header,
-      const EpochNumber epoch_number,
-      const AuthorityId &authority_id,
-      // const Threshold &threshold,
-      const Epoch &sassafras_config) const {
-    SL_DEBUG(log_, "Validated block signed by authority: {}", authority_id);
-
-    OUTCOME_TRY(seal, getSeal(header));
-
-    // signature in seal of the header must be valid
-    if (!verifySignature(header, seal, authority_id)) {
-      return ValidationError::INVALID_SIGNATURE;
-    }
-
-    // get Sassafras-specific digests, which must be inside this block
-    OUTCOME_TRY(slot_claim, getSlotClaim(header));
-
-    if (slot_claim.ticket_claim.has_value()) {
-      SL_VERBOSE(log_,
-                 "Block {} produced with primary slot claim (with ticket)",
-                 header.blockInfo());
-
-      return verifyPrimaryClaim(slot_claim);
-    }
-
-    SL_VERBOSE(log_,
-               "Block {} produced with secondary slot claim (without ticket)",
-               header.blockInfo());
-
-    return verifySecondaryClaim(slot_claim);
-  }
-
   bool SassafrasBlockValidatorImpl::verifySignature(
       const primitives::BlockHeader &header,
-      const Seal &seal,
-      const AuthorityId &public_key) const {
+      const Signature &signature,
+      const Authority &public_key) const {
     primitives::UnsealedBlockHeaderReflection unsealed_header(header);
 
     auto unsealed_header_encoded = scale::encode(unsealed_header).value();
 
     auto signed_hash = hasher_->blake2b_256(unsealed_header_encoded);
 
+    return true;  // FIXME it's just for debugging. remove me
+
     // secondly, use verify function to check the signature
     auto res =
-        bandersnatch_provider_->verify(seal.signature, signed_hash, public_key);
+        bandersnatch_provider_->verify(signature, signed_hash, public_key);
     return res && res.value();
   }
 
   outcome::result<void> SassafrasBlockValidatorImpl::verifyPrimaryClaim(
-      const SlotClaim &slot_claim) const {
+      const SlotClaim &claim, const Epoch &config) const {
+    TicketBody ticket_body;  // TODO ???
+
+    using Buffer = common::Buffer;
+
+    auto b11 = Buffer().put(config.randomness);
+    auto b12 = Buffer().putUint64(config.epoch_index);
+    auto b13 = Buffer().putUint32(claim.slot_number);
+    std::vector<std::span<uint8_t>> b1{
+        std::span(b11), std::span(b12), std::span(b13)};
+
+    std::string randomness_label = "sassafras-randomness-v1.0";
+    auto randomness_vrf_input = vrf_input_from_items(
+        std::span(reinterpret_cast<uint8_t *>(randomness_label.data()),
+                  randomness_label.size()),
+        b1);
+
+    auto b21 = Buffer().put(config.randomness);
+    auto b22 = Buffer().putUint64(config.epoch_index);
+    auto b23 = Buffer().putUint32(ticket_body.attempt_index);
+    std::vector<std::span<uint8_t>> b2{
+        std::span(b21), std::span(b22), std::span(b23)};
+
+    std::string revealed_label = "sassafras-revealed-v1.0";
+    auto revealed_vrf_input = vrf_input_from_items(
+        std::span(reinterpret_cast<uint8_t *>(revealed_label.data()),
+                  revealed_label.size()),
+        b2);
+
+    //    auto encoded_ticket_body = scale::encode(ticket_body).value();
+    //    std::vector<std::span<uint8_t>> transcript_data{encoded_ticket_body};
+    //    std::vector<VrfInput> vrf_inputs{randomness_vrf_input,
+    //    revealed_vrf_input};
+    //
+    //    std::string claim_label = "sassafras-claim-v1.0";
+    //    auto sign_data = vrf_signature_data(
+    //        std::span(reinterpret_cast<uint8_t *>(claim_label.data()),
+    //                  claim_label.size()),
+    //        transcript_data,
+    //        vrf_inputs);
+
+    const auto &revealed_vrf_output = claim.signature.outputs[1];
+
+    auto revealed_seed = vrf_bytes<32>(revealed_vrf_input, revealed_vrf_output);
+
+    auto revealed_pub =
+        ed25519_provider_
+            ->generateKeypair(crypto::Ed25519Seed{revealed_seed}, {})
+            .value()
+            .public_key;
+
     return outcome::success();  // FIXME
   }
 
   outcome::result<void> SassafrasBlockValidatorImpl::verifySecondaryClaim(
-      const SlotClaim &slot_claim) const {
-    return outcome::success();  // FIXME
-  }
+      const SlotClaim &claim, const Epoch &config) const {
+    auto auth_index_of_leader =
+        le_bytes_to_uint64(hasher_->blake2b_64(
+            scale::encode(config.randomness, claim.slot_number).value()))
+        % config.authorities.size();
 
-  //  bool SassafrasBlockValidatorImpl::verifyVRF(
-  //      const SassafrasBlockHeader &slot_claim,
-  //      const EpochNumber epoch_number,
-  //      const AuthorityId &public_key,
-  //      const Threshold &threshold,
-  //      const Randomness &randomness,
-  //      const bool checkThreshold) const {
-  //    primitives::Transcript transcript;
-  //    prepareTranscript(
-  //        transcript, randomness, slot_claim.slot_number, epoch_number);
-  //    SL_DEBUG(log_,
-  //             "prepareTranscript (verifyVRF): randomness {}, slot {}, epoch
-  //             {}", randomness, slot_claim.slot_number, epoch_number);
-  //
-  //    auto verify_res = vrf_provider_->verifyTranscript(
-  //        transcript, slot_claim.vrf_output, public_key, threshold);
-  //    if (not verify_res.is_valid) {
-  //      log_->error("VRF proof in block is not valid");
-  //      return false;
-  //    }
-  //
-  //    // verify threshold
-  //    if (checkThreshold && not verify_res.is_less) {
-  //      log_->error("VRF value is not less than the threshold");
-  //      return false;
-  //    }
-  //
-  //    return true;
-  //  }
+    if (claim.authority_index != auth_index_of_leader) {
+      return ValidationError::WRONG_AUTHOR_OF_SECONDARY_CLAIM;
+    }
+
+    return outcome::success();
+  }
 
 }  // namespace kagome::consensus::sassafras

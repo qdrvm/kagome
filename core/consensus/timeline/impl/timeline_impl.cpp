@@ -163,7 +163,8 @@ namespace kagome::consensus {
 
     // Calculate lag our best block by slots
     SlotNumber lag_slots = 0;
-    if (auto slot_res = consensus->getSlot(best_block_header)) {
+    if (auto slot_res = consensus->getSlot(best_block_header);
+        slot_res.has_value()) {
       lag_slots = slots_util_->timeToSlot(clock_.now()) - slot_res.value();
     }
 

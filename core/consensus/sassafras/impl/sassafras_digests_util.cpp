@@ -14,10 +14,9 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::consensus::sassafras, DigestError, e) {
     case E::WRONG_ENGINE_ID:
       return "expected digest with engine id 'SASS'";
     case E::REQUIRED_DIGESTS_NOT_FOUND:
-      return "the block must contain at least BABE "
-             "header and seal digests";
+      return "the block must contain at least SlotClaim and Seal digests";
     case E::NO_TRAILING_SEAL_DIGEST:
-      return "the block must contain a seal digest as the last digest";
+      return "the block must contain a Seal digest as the last digest";
     case E::GENESIS_BLOCK_CAN_NOT_HAVE_DIGESTS:
       return "genesis block can not have digests";
   }
@@ -94,7 +93,7 @@ namespace kagome::consensus::sassafras {
     }
 
     const auto &engine_id = seal_opt->get().consensus_engine_id;
-    if (engine_id != primitives::kBabeEngineId) {
+    if (engine_id != primitives::kSassafrasEngineId) {
       return DigestError::WRONG_ENGINE_ID;
     }
 
