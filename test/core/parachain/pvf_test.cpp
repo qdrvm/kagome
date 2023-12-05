@@ -14,15 +14,16 @@
 #include "mock/core/crypto/hasher_mock.hpp"
 #include "mock/core/crypto/sr25519_provider_mock.hpp"
 #include "mock/core/host_api/host_api_mock.hpp"
-#include "mock/core/runtime/executor_mock.hpp"
 #include "mock/core/runtime/memory_provider_mock.hpp"
 #include "mock/core/runtime/module_factory_mock.hpp"
 #include "mock/core/runtime/module_instance_mock.hpp"
 #include "mock/core/runtime/module_mock.hpp"
 #include "mock/core/runtime/parachain_host_mock.hpp"
+#include "mock/core/runtime/runtime_context_factory_mock.hpp"
 #include "mock/core/runtime/runtime_properties_cache_mock.hpp"
 #include "mock/core/runtime/trie_storage_provider_mock.hpp"
 #include "parachain/types.hpp"
+#include "runtime/executor.hpp"
 #include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
 #include "testutil/prepare_loggers.hpp"
@@ -68,10 +69,7 @@ class PvfTest : public testing::Test {
     ctx_factory = std::make_shared<runtime::RuntimeContextFactoryMock>();
     auto cache = std::make_shared<runtime::RuntimePropertiesCacheMock>();
 
-    auto executor = std::make_shared<runtime::ExecutorMock>(ctx_factory, cache);
-    kagome::parachain::ValidationResult res;
-    ON_CALL(*executor, callWithCtx(_, "validate_block", _))
-        .WillByDefault(Return(Buffer{scale::encode(res).value()}));
+    auto executor = std::make_shared<runtime::Executor>(ctx_factory, cache);
 
     EXPECT_CALL(*parachain_api, check_validation_outputs(_, _, _))
         .WillRepeatedly(Return(outcome::success(true)));
@@ -105,11 +103,15 @@ class PvfTest : public testing::Test {
     auto module = std::make_shared<runtime::ModuleMock>();
     auto instance = std::make_shared<runtime::ModuleInstanceMock>();
     ON_CALL(*module, instantiate()).WillByDefault(Return(instance));
+    auto res = scale::encode(kagome::parachain::ValidationResult{}).value();
+    ON_CALL(*instance, callExportFunction(_, "validate_block", _))
+        .WillByDefault(Return(outcome::success(res)));
     ON_CALL(*instance, getCodeHash()).WillByDefault(ReturnRef(code_hash));
     ON_CALL(*ctx_factory, ephemeral(_, _, _))
         .WillByDefault(Invoke([instance]() {
           return runtime::RuntimeContext::create_TEST(instance);
         }));
+
     return module;
   }
 

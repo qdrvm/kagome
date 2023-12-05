@@ -83,7 +83,7 @@ namespace kagome::network {
       std::shared_ptr<blockchain::BlockTree> block_tree,
       std::shared_ptr<consensus::BlockHeaderAppender> block_appender,
       std::shared_ptr<consensus::BlockExecutor> block_executor,
-      std::shared_ptr<storage::trie::TrieStorageBackend> trie_db,
+      std::shared_ptr<storage::trie::TrieStorageBackend> trie_node_db,
       std::shared_ptr<storage::trie::TrieStorage> storage,
       std::shared_ptr<storage::trie_pruner::TriePruner> trie_pruner,
       std::shared_ptr<network::Router> router,
@@ -96,7 +96,7 @@ namespace kagome::network {
         block_tree_(std::move(block_tree)),
         block_appender_(std::move(block_appender)),
         block_executor_(std::move(block_executor)),
-        trie_db_(std::move(trie_db)),
+        trie_node_db_(std::move(trie_node_db)),
         storage_(std::move(storage)),
         trie_pruner_(std::move(trie_pruner)),
         router_(std::move(router)),
@@ -108,7 +108,7 @@ namespace kagome::network {
     BOOST_ASSERT(app_state_manager_);
     BOOST_ASSERT(block_tree_);
     BOOST_ASSERT(block_executor_);
-    BOOST_ASSERT(trie_db_);
+    BOOST_ASSERT(trie_node_db_);
     BOOST_ASSERT(storage_);
     BOOST_ASSERT(trie_pruner_);
     BOOST_ASSERT(router_);
@@ -584,7 +584,7 @@ namespace kagome::network {
     if (auto r = recent_requests_.emplace(
             std::make_tuple(peer_id, request_fingerprint), "load blocks");
         not r.second) {
-      SL_ERROR(log_,
+      SL_VERBOSE(log_,
                "Can't load blocks from {} beginning block {}: {}",
                peer_id,
                from,
@@ -610,7 +610,7 @@ namespace kagome::network {
 
       // Any error interrupts loading of blocks
       if (response_res.has_error()) {
-        SL_ERROR(self->log_,
+        SL_VERBOSE(self->log_,
                  "Can't load blocks from {} beginning block {}: {}",
                  peer_id,
                  from,
@@ -625,7 +625,7 @@ namespace kagome::network {
       // No block in response is abnormal situation.
       // At least one starting block should be returned as existing
       if (blocks.empty()) {
-        SL_ERROR(self->log_,
+        SL_VERBOSE(self->log_,
                  "Can't load blocks from {} beginning block {}: "
                  "Response does not have any blocks",
                  peer_id,
@@ -648,7 +648,7 @@ namespace kagome::network {
       for (auto &block : blocks) {
         // Check if header is provided
         if (not block.header.has_value()) {
-          SL_ERROR(self->log_,
+          SL_VERBOSE(self->log_,
                    "Can't load blocks from {} starting from block {}: "
                    "Received block without header",
                    peer_id,
@@ -660,7 +660,7 @@ namespace kagome::network {
         }
         // Check if body is provided
         if (not block.header.has_value()) {
-          SL_ERROR(self->log_,
+          SL_VERBOSE(self->log_,
                    "Can't load blocks from {} starting from block {}: "
                    "Received block without body",
                    peer_id,
@@ -679,7 +679,7 @@ namespace kagome::network {
         if (last_finalized_block.number >= header.number) {
           if (last_finalized_block.number == header.number) {
             if (last_finalized_block.hash != block.hash) {
-              SL_ERROR(self->log_,
+              SL_VERBOSE(self->log_,
                        "Can't load blocks from {} starting from block {}: "
                        "Received discarded block {}",
                        peer_id,
@@ -992,7 +992,7 @@ namespace kagome::network {
       return;
     }
     if (not state_sync_flow_ or state_sync_flow_->blockInfo() != block) {
-      state_sync_flow_.emplace(trie_db_, block, header);
+      state_sync_flow_.emplace(trie_node_db_, block, header);
     }
     state_sync_.emplace(StateSync{
         peer_id,

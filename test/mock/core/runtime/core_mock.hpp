@@ -12,7 +12,7 @@
 
 namespace kagome::runtime {
 
-  class CoreMock : public Core {
+  class CoreMock : public Core, public RestrictedCore {
    public:
     MOCK_METHOD(outcome::result<primitives::Version>, version, (), (override));
 

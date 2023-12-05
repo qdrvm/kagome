@@ -17,14 +17,16 @@ namespace kagome::runtime {
 
   outcome::result<GrandpaApi::Authorities> GrandpaApiImpl::authorities(
       const primitives::BlockHash &block_hash) {
-    return executor_->callAt<Authorities>(block_hash,
+    OUTCOME_TRY(ctx, executor_->ctx().ephemeralAt(block_hash));
+    return executor_->call<Authorities>(ctx,
                                           "GrandpaApi_grandpa_authorities");
   }
 
   outcome::result<GrandpaApi::AuthoritySetId> GrandpaApiImpl::current_set_id(
       const primitives::BlockHash &block_hash) {
-    return executor_->callAt<AuthoritySetId>(block_hash,
-                                             "GrandpaApi_current_set_id");
+    OUTCOME_TRY(ctx, executor_->ctx().ephemeralAt(block_hash));
+    return executor_->call<AuthoritySetId>(
+        ctx, "GrandpaApi_current_set_id");
   }
 
 }  // namespace kagome::runtime
