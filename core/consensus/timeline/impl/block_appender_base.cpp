@@ -75,12 +75,14 @@ namespace kagome::consensus {
 
   outcome::result<BlockAppenderBase::SlotInfo> BlockAppenderBase::getSlotInfo(
       const primitives::BlockHeader &header) const {
-    OUTCOME_TRY(
-        slot_number,
-        babe::getSlot(header));  // TODO(xDimon): Make it consensus agnostic
-    auto start_time = slots_util_.get()->slotStartTime(slot_number);
-    auto slot_duration = timings_.slot_duration;
-    return outcome::success(SlotInfo{start_time, slot_duration});
+    auto consensus = consensus_selector_.get()->getProductionConsensus(header);
+    BOOST_ASSERT_MSG(consensus, "Must be returned at least fallback consensus");
+    OUTCOME_TRY(slot_number, consensus->getSlot(header));
+    SlotInfo slot_info{
+        .start = slots_util_.get()->slotStartTime(slot_number),
+        .duration = timings_.slot_duration,
+    };
+    return slot_info;
   }
 
 }  // namespace kagome::consensus

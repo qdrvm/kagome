@@ -220,17 +220,36 @@ namespace kagome::crypto {
     outcome::result<BandersnatchKeypair> generateKeypair(
         const BandersnatchSeed &seed,
         Junctions junctions) const noexcept override {
-      if (std::all_of(seed.begin(), seed.end(), [](auto x) { return !x; })) {
+      if (std::all_of(  // FIXME it fake key for Alice
+              seed.begin(),
+              seed.end(),
+              [](auto x) { return x == (uint8_t)'\xAA'; })) {
         return BandersnatchKeypair{
             .secret_key = BandersnatchSecretKey::fromHex(
-                              "00000000000000000000000000000000"
-                              "00000000000000000000000000000000"
-                              "00000000000000000000000000000000"
-                              "00000000000000000000000000000000")
+                              "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+                              "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+                              "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+                              "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA")
                               .value(),
             .public_key = BandersnatchPublicKey::fromHex(
                               "9c8af77d3a4e3f6f076853922985b9e6"
                               "724fc9675329087f47aff1ceaaae772180")
+                              .value()};
+      }
+      if (std::all_of(  // FIXME it fake key for Bob
+              seed.begin(),
+              seed.end(),
+              [](auto x) { return x == (uint8_t)'\xBB'; })) {
+        return BandersnatchKeypair{
+            .secret_key = BandersnatchSecretKey::fromHex(
+                              "BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB"
+                              "BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB"
+                              "BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB"
+                              "BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB")
+                              .value(),
+            .public_key = BandersnatchPublicKey::fromHex(
+                              "1abfbb76dc8374a1a6d93d59a5c81f07"
+                              "c18835f4681a6258aa0f514d363bff4780")
                               .value()};
       }
       return bandersnatch_provider_->generateKeypair(seed, junctions);

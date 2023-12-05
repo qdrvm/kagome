@@ -31,6 +31,7 @@ namespace kagome::consensus::sassafras {
 namespace kagome::crypto {
   class Hasher;
   class BandersnatchProvider;
+  class Ed25519Provider;
   class VRFProvider;
 }  // namespace kagome::crypto
 
@@ -45,6 +46,7 @@ namespace kagome::consensus::sassafras {
         std::shared_ptr<SassafrasConfigRepository> config_repo,
         std::shared_ptr<crypto::Hasher> hasher,
         std::shared_ptr<crypto::BandersnatchProvider> bandersnatch_provider,
+        std::shared_ptr<crypto::Ed25519Provider> ed25519_provider,
         std::shared_ptr<crypto::VRFProvider> vrf_provider);
 
     outcome::result<void> validateHeader(
@@ -55,7 +57,7 @@ namespace kagome::consensus::sassafras {
       INVALID_SIGNATURE,
       INVALID_VRF,
       TWO_BLOCKS_IN_SLOT,
-      SECONDARY_SLOT_ASSIGNMENTS_DISABLED
+      WRONG_AUTHOR_OF_SECONDARY_CLAIM
     };
 
    private:
@@ -83,13 +85,14 @@ namespace kagome::consensus::sassafras {
      * @return true if signature is valid, false otherwise
      */
     bool verifySignature(const primitives::BlockHeader &header,
-                         const Seal &seal,
-                         const AuthorityId &public_key) const;
+                         const Signature &signature,
+                         const Authority &public_key) const;
 
-    outcome::result<void> verifyPrimaryClaim(  //
-        const SlotClaim &slot_claim) const;
-    outcome::result<void> verifySecondaryClaim(
-        const SlotClaim &slot_claim) const;
+    outcome::result<void> verifyPrimaryClaim(const SlotClaim &claim,
+                                             const Epoch &config) const;
+
+    outcome::result<void> verifySecondaryClaim(const SlotClaim &claim,
+                                               const Epoch &config) const;
 
     log::Logger log_;
 
@@ -97,6 +100,7 @@ namespace kagome::consensus::sassafras {
     std::shared_ptr<SassafrasConfigRepository> config_repo_;
     std::shared_ptr<crypto::Hasher> hasher_;
     std::shared_ptr<crypto::BandersnatchProvider> bandersnatch_provider_;
+    std::shared_ptr<crypto::Ed25519Provider> ed25519_provider_;
     std::shared_ptr<crypto::VRFProvider> vrf_provider_;
   };
 
