@@ -219,6 +219,7 @@ namespace kagome::runtime::wasm_edge {
     REGISTER_HOST_METHOD(int32_t, ext_crypto_ecdsa_generate_version_1, int32_t, int64_t)
     REGISTER_HOST_METHOD(int32_t, ext_crypto_ecdsa_verify_version_1, int32_t, int64_t, int32_t)
     REGISTER_HOST_METHOD(int32_t, ext_crypto_ecdsa_verify_prehashed_version_1, int32_t, int32_t, int32_t)
+    REGISTER_HOST_METHOD(int32_t, ext_crypto_ecdsa_verify_version_2, int32_t, int64_t, int32_t)
     REGISTER_HOST_METHOD(int32_t, ext_default_child_storage_exists_version_1, int64_t, int64_t)
     REGISTER_HOST_METHOD(int32_t, ext_hashing_blake2_128_version_1, int64_t)
     REGISTER_HOST_METHOD(int32_t, ext_hashing_blake2_256_version_1, int64_t)
