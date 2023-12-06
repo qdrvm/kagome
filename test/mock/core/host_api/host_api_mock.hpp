@@ -490,6 +490,11 @@ namespace kagome::host_api {
                 ext_default_child_storage_storage_kill_version_3,
                 (runtime::WasmSpan, runtime::WasmSpan),
                 (override));
+
+    MOCK_METHOD(void,
+                ext_panic_handler_abort_on_panic_version_1,
+                (runtime::WasmSpan),
+                (override));
   };
 
 }  // namespace kagome::host_api
