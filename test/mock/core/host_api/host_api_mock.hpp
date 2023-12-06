@@ -77,6 +77,13 @@ namespace kagome::host_api {
                 (runtime::WasmSpan),
                 (const, override));
 
+    // ------------------------ Panic handler ------- ------------------------
+
+    MOCK_METHOD(void,
+                ext_panic_handler_abort_on_panic_version_1,
+                (runtime::WasmSpan),
+                (const, override));
+
     // ------------------------ Storage extensions v1 ------------------------
 
     MOCK_METHOD(void,
