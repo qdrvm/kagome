@@ -28,6 +28,7 @@ namespace kagome::runtime {
   class ModuleFactory;
   class ModuleInstance;
   class ModuleRepository;
+  class Memory;
 
   class RuntimeContext {
    public:
@@ -37,6 +38,8 @@ namespace kagome::runtime {
     RuntimeContext &operator=(const RuntimeContext &) = delete;
 
     RuntimeContext(RuntimeContext &&) = default;
+
+    ~RuntimeContext();
 
     // constructor for tests
     static RuntimeContext create_TEST(
@@ -70,36 +73,37 @@ namespace kagome::runtime {
     virtual outcome::result<RuntimeContext> fromBatch(
         std::shared_ptr<ModuleInstance> module_instance,
         std::shared_ptr<storage::trie::TrieBatch> batch,
-        ContextParams params = {}) = 0;
+        ContextParams params = {}) const = 0;
 
     virtual outcome::result<RuntimeContext> persistent(
         std::shared_ptr<ModuleInstance> module_instance,
         const storage::trie::RootHash &state,
         std::optional<std::shared_ptr<storage::changes_trie::ChangesTracker>>
             changes_tracker_opt,
-        ContextParams params = {}) = 0;
+        ContextParams params = {}) const = 0;
 
     virtual outcome::result<RuntimeContext> persistentAt(
         const primitives::BlockHash &block_hash,
         std::optional<std::shared_ptr<storage::changes_trie::ChangesTracker>>
             changes_tracker_opt,
-        ContextParams params = {}) = 0;
+        ContextParams params = {}) const = 0;
 
     virtual outcome::result<RuntimeContext> ephemeral(
         std::shared_ptr<ModuleInstance> module_instance,
         const storage::trie::RootHash &state,
-        ContextParams params = {}) = 0;
+        ContextParams params = {}) const = 0;
 
     virtual outcome::result<RuntimeContext> ephemeralAt(
-        const primitives::BlockHash &block_hash, ContextParams params = {}) = 0;
+        const primitives::BlockHash &block_hash,
+        ContextParams params = {}) const = 0;
 
     virtual outcome::result<RuntimeContext> ephemeralAt(
         const primitives::BlockHash &block_hash,
         const storage::trie::RootHash &state,
-        ContextParams params = {}) = 0;
+        ContextParams params = {}) const = 0;
 
     virtual outcome::result<RuntimeContext> ephemeralAtGenesis(
-        ContextParams params = {}) = 0;
+        ContextParams params = {}) const = 0;
   };
 
   class RuntimeContextFactoryImpl : public RuntimeContextFactory {
@@ -113,37 +117,37 @@ namespace kagome::runtime {
     virtual outcome::result<RuntimeContext> fromBatch(
         std::shared_ptr<ModuleInstance> module_instance,
         std::shared_ptr<storage::trie::TrieBatch> batch,
-        ContextParams params = {}) override;
+        ContextParams params = {}) const override;
 
     virtual outcome::result<RuntimeContext> persistent(
         std::shared_ptr<ModuleInstance> module_instance,
         const storage::trie::RootHash &state,
         std::optional<std::shared_ptr<storage::changes_trie::ChangesTracker>>
             changes_tracker_opt,
-        ContextParams params = {}) override;
+        ContextParams params = {}) const override;
 
     virtual outcome::result<RuntimeContext> persistentAt(
         const primitives::BlockHash &block_hash,
         std::optional<std::shared_ptr<storage::changes_trie::ChangesTracker>>
-            changes_tracker_opt,
-        ContextParams params = {}) override;
+            changes_tracker_opt = {},
+        ContextParams params = {}) const override;
 
     virtual outcome::result<RuntimeContext> ephemeral(
         std::shared_ptr<ModuleInstance> module_instance,
         const storage::trie::RootHash &state,
-        ContextParams params = {}) override;
+        ContextParams params = {}) const override;
 
     virtual outcome::result<RuntimeContext> ephemeralAt(
         const primitives::BlockHash &block_hash,
-        ContextParams params = {}) override;
+        ContextParams params = {}) const override;
 
     virtual outcome::result<RuntimeContext> ephemeralAt(
         const primitives::BlockHash &block_hash,
         const storage::trie::RootHash &state,
-        ContextParams params = {}) override;
+        ContextParams params = {}) const override;
 
     virtual outcome::result<RuntimeContext> ephemeralAtGenesis(
-        ContextParams params = {}) override;
+        ContextParams params = {}) const override;
 
    private:
     std::shared_ptr<class ModuleRepository> module_repo_;

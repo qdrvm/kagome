@@ -22,5 +22,6 @@ target_link_libraries(telemetry
     RapidJSON::rapidjson
     p2p::p2p_asio_scheduler_backend
     p2p::p2p_multiaddress
+    p2p::p2p_peer_id
     )
 kagome_install(telemetry)

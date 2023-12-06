@@ -21,9 +21,11 @@ namespace kagome::runtime {
                 (),
                 (const, override));
 
-    MOCK_METHOD(outcome::result<PtrSize>,
+    MOCK_METHOD(outcome::result<common::Buffer>,
                 callExportFunction,
-                (std::string_view name, common::BufferView args),
+                (RuntimeContext & ctx,
+                 std::string_view name,
+                 common::BufferView args),
                 (const, override));
 
     MOCK_METHOD(void,
@@ -42,10 +44,5 @@ namespace kagome::runtime {
                 (const, override));
 
     MOCK_METHOD(outcome::result<void>, resetEnvironment, (), (override));
-
-    MOCK_METHOD(outcome::result<void>,
-                resetMemory,
-                (const MemoryLimits &limits),
-                (override));
   };
 }  // namespace kagome::runtime

@@ -20,18 +20,25 @@ namespace kagome::runtime {
       common::BufferView code,
       const std::shared_ptr<RuntimePropertiesCache> &runtime_properties_cache);
 
+  class RestrictedCoreImpl final : public RestrictedCore {
+   public:
+    explicit RestrictedCoreImpl(RuntimeContext ctx);
+
+    outcome::result<primitives::Version> version() override;
+
+   private:
+    RuntimeContext ctx_;
+  };
+
   class CoreImpl final : public Core {
    public:
     CoreImpl(
         std::shared_ptr<Executor> executor,
-        std::shared_ptr<RuntimeContextFactory> ctx_factory,
         std::shared_ptr<const blockchain::BlockHeaderRepository> header_repo,
         std::shared_ptr<RuntimeUpgradeTracker> runtime_upgrade_tracker);
 
     outcome::result<primitives::Version> version(
         const primitives::BlockHash &block) override;
-
-    outcome::result<primitives::Version> version() override;
 
     outcome::result<void> execute_block(
         const primitives::Block &block,
@@ -47,7 +54,6 @@ namespace kagome::runtime {
 
    private:
     std::shared_ptr<Executor> executor_;
-    std::shared_ptr<RuntimeContextFactory> ctx_factory_;
     std::shared_ptr<const blockchain::BlockHeaderRepository> header_repo_;
     std::shared_ptr<RuntimeUpgradeTracker> runtime_upgrade_tracker_;
 

@@ -51,8 +51,11 @@ namespace kagome::runtime {
     auto func = [block = std::move(block),
                  header = std::move(header),
                  executor = executor_] {
-      auto res = executor->callAt<void>(
-          block, "OffchainWorkerApi_offchain_worker", header);
+      auto res = [&]() -> outcome::result<void> {
+        OUTCOME_TRY(ctx, executor->ctx().ephemeralAt(block));
+        return executor->call<void>(
+            ctx, "OffchainWorkerApi_offchain_worker", header);
+      }();
 
       if (res.has_error()) {
         auto log = log::createLogger("OffchainWorkerApi", "offchain");

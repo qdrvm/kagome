@@ -17,7 +17,7 @@ namespace kagome::runtime {
 
   class CoreApiFactoryMock : public CoreApiFactory {
    public:
-    MOCK_METHOD(std::unique_ptr<Core>,
+    MOCK_METHOD(outcome::result<std::unique_ptr<RestrictedCore>>,
                 make,
                 (std::shared_ptr<const crypto::Hasher> hasher,
                  const std::vector<uint8_t> &runtime_code),
