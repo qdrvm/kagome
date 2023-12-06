@@ -577,4 +577,11 @@ namespace kagome::host_api {
         child_storage_key, limit);
   }
 
+  void HostApiImpl::ext_panic_handler_abort_on_panic_version_1(
+      runtime::WasmSpan message) {
+    auto [ptr, addr] = runtime::PtrSize{message};
+    auto msg = memory_provider_->getCurrentMemory()->get().loadStr(ptr, addr);
+    throw std::runtime_error{msg};
+  }
+
 }  // namespace kagome::host_api
