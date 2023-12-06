@@ -821,6 +821,7 @@ namespace kagome::runtime::wavm {
     REGISTER_HOST_INTRINSIC(, ext_misc_print_hex_version_1, I64)
     REGISTER_HOST_INTRINSIC(, ext_misc_print_num_version_1, I64)
     REGISTER_HOST_INTRINSIC(, ext_misc_print_utf8_version_1, I64)
+    REGISTER_HOST_INTRINSIC(, ext_misc_print_utf8_version_1, I64)
     REGISTER_HOST_INTRINSIC(, ext_sandbox_instance_teardown_version_1, I32)
     REGISTER_HOST_INTRINSIC(, ext_sandbox_memory_teardown_version_1, I32)
     REGISTER_HOST_INTRINSIC(, ext_storage_append_version_1, I64, I64)
