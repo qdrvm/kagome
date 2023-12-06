@@ -1,5 +1,5 @@
 HunterGate(
-  URL  https://github.com/qdrvm/hunter/archive/refs/tags/v0.23.257-qdrvm11.tar.gz
-  SHA1 b2a69ae501bdc99006fb86e55930640004468556
+  URL "https://github.com/qdrvm/hunter/archive/heads/feature/wasm-edge.zip"
+  SHA1 "27ee523652a59a8e88b50c9f28daf212d5a33fef"
   LOCAL
 )

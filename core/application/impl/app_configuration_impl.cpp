@@ -6,10 +6,12 @@
 
 #include "application/impl/app_configuration_impl.hpp"
 
+#include <charconv>
 #include <limits>
 #include <regex>
 #include <string>
 
+#include <fmt/std.h>
 #include <rapidjson/document.h>
 #include <rapidjson/error/en.h>
 #include <rapidjson/filereadstream.h>
@@ -17,7 +19,6 @@
 #include <boost/program_options.hpp>
 #include <boost/uuid/uuid_generators.hpp>
 #include <boost/uuid/uuid_io.hpp>
-#include <charconv>
 #include <libp2p/layer/websocket/wss_adaptor.hpp>
 
 #include "api/transport/tuner.hpp"
@@ -30,7 +31,6 @@
 #include "filesystem/common.hpp"
 #include "filesystem/directories.hpp"
 #include "log/formatters/filepath.hpp"
-#include "log/formatters/optional.hpp"
 #include "utils/read_file.hpp"
 
 namespace {
@@ -156,6 +156,11 @@ namespace {
     return std::nullopt;
   }
 
+  std::array<std::string_view, 2> execution_methods{"Interpreted", "Compiled"};
+
+  std::string execution_methods_str =
+      fmt::format("[{}]", fmt::join(execution_methods, ", "));
+
   std::optional<kagome::application::AppConfiguration::RuntimeExecutionMethod>
   str_to_runtime_exec_method(std::string_view str) {
     using REM = kagome::application::AppConfiguration::RuntimeExecutionMethod;
@@ -185,12 +190,12 @@ namespace {
 
   std::optional<kagome::primitives::BlockId> str_to_recovery_state(
       std::string_view str) {
-    kagome::primitives::BlockNumber bn;
     auto res = kagome::primitives::BlockHash::fromHex(str);
     if (res.has_value()) {
       return {{res.value()}};
     }
 
+    kagome::primitives::BlockNumber bn{};
     auto result = std::from_chars(str.data(), str.data() + str.size(), bn);
     if (result.ec != std::errc::invalid_argument && std::to_string(bn) == str) {
       return {{bn}};
@@ -839,7 +844,7 @@ namespace kagome::application {
         ("sync", po::value<std::string>()->default_value(def_full_sync),
           "choose the desired sync method (Full, Fast). Full is used by default.")
         ("wasm-execution", po::value<std::string>()->default_value(def_wasm_execution),
-          "choose the desired wasm execution method (Compiled, Interpreted)")
+          fmt::format("choose the desired wasm execution method ({})", execution_methods_str).c_str())
         ("unsafe-cached-wavm-runtime", "use WAVM runtime cache")
         ("purge-wavm-cache", "purge WAVM runtime cache")
         ("parachain-runtime-instance-cache-size",
@@ -1372,8 +1377,10 @@ namespace kagome::application {
           if (not runtime_exec_method_opt) {
             exec_method_value_error = true;
             SL_ERROR(logger_,
-                     "Invalid runtime execution method specified: '{}'",
-                     val);
+                     "Invalid runtime execution method specified: '{}'. "
+                     "Available methods are: {}",
+                     val,
+                     execution_methods_str);
           } else {
             runtime_exec_method_ = runtime_exec_method_opt.value();
           }
@@ -1455,7 +1462,7 @@ namespace kagome::application {
         return false;
       }
       auto repeat_opt = find_argument<uint16_t>(vm, "repeat");
-      if (!to_opt) {
+      if (!repeat_opt) {
         SL_ERROR(logger_, "Required argument --repeat is not provided");
         return false;
       }

@@ -14,6 +14,7 @@
 #include "storage/trie_pruner/trie_pruner.hpp"
 
 namespace kagome::injector {
+
   inline outcome::result<storage::trie::RootHash> calculate_genesis_state(
       const application::ChainSpec &chain_spec,
       const runtime::ModuleFactory &module_factory,
