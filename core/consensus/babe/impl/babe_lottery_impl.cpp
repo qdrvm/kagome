@@ -50,7 +50,6 @@ namespace kagome::consensus::babe {
 
     keypair_ = session_keys_->getBabeKeyPair(config.authorities);
     if(!keypair_) {
-      SL_ERROR(logger_, "Failed to change BABE epoch: no BABE key found");
       return false;
     }
 
