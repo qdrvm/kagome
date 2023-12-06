@@ -49,6 +49,10 @@ namespace kagome::consensus::babe {
     auto &config = *config_res.value();
 
     keypair_ = session_keys_->getBabeKeyPair(config.authorities);
+    if(!keypair_) {
+      SL_ERROR(logger_, "Failed to change BABE epoch: no BABE key found");
+      return false;
+    }
 
     randomness_ = config.randomness;
 
