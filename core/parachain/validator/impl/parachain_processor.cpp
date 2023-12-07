@@ -8,13 +8,14 @@
 
 #include <array>
 #include <unordered_map>
+#include <span>
 
+#include <fmt/std.h>
 #include <libp2p/common/final_action.hpp>
 
 #include "crypto/hasher.hpp"
 #include "crypto/sr25519_provider.hpp"
 #include "dispute_coordinator/impl/runtime_info.hpp"
-#include "log/formatters/optional.hpp"
 #include "network/common.hpp"
 #include "network/peer_manager.hpp"
 #include "network/router.hpp"

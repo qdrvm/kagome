@@ -57,10 +57,7 @@ TEST(TriePersistencyTest, CreateDestroyCreate) {
         RocksDb::create("/tmp/kagome_rocksdb_persistency_test", options));
 
     auto serializer = std::make_shared<TrieSerializerImpl>(
-        factory,
-        codec,
-        std::make_shared<TrieStorageBackendImpl>(
-            rocks_db->getSpace(Space::kDefault)));
+        factory, codec, std::make_shared<TrieStorageBackendImpl>(rocks_db));
 
     auto state_pruner = std::make_shared<TriePrunerMock>();
     ON_CALL(*state_pruner,
@@ -85,10 +82,7 @@ TEST(TriePersistencyTest, CreateDestroyCreate) {
   EXPECT_OUTCOME_TRUE(new_rocks_db,
                       RocksDb::create("/tmp/kagome_rocksdb_persistency_test"));
   auto serializer = std::make_shared<TrieSerializerImpl>(
-      factory,
-      codec,
-      std::make_shared<TrieStorageBackendImpl>(
-          new_rocks_db->getSpace(Space::kDefault)));
+      factory, codec, std::make_shared<TrieStorageBackendImpl>(new_rocks_db));
   auto state_pruner = std::make_shared<TriePrunerMock>();
   auto storage =
       TrieStorageImpl::createFromStorage(codec, serializer, state_pruner)

@@ -4,8 +4,10 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include <boost/date_time/posix_time/posix_time.hpp>
 #include <optional>
+
+#include <fmt/std.h>
+#include <boost/date_time/posix_time/posix_time.hpp>
 
 #include "clock/impl/basic_waitable_timer.hpp"
 #include "common/visitor.hpp"
@@ -14,7 +16,6 @@
 #include "crypto/crypto_store.hpp"
 #include "crypto/hasher.hpp"
 #include "crypto/sr25519_provider.hpp"
-#include "log/formatters/optional.hpp"
 #include "network/peer_manager.hpp"
 #include "network/router.hpp"
 #include "parachain/approval/approval.hpp"
