@@ -9,8 +9,8 @@
 #include <deque>
 #include <functional>
 #include <libp2p/common/final_action.hpp>
-#include <mutex>
 
+#include "utils/safe_object.hpp"
 #include "utils/weak_io_context_post.hpp"
 
 namespace kagome {
@@ -29,33 +29,39 @@ namespace kagome {
 
    private:
     void work(auto &&f) {
-      std::unique_lock lock{mutex_};
-      if (running_) {
-        queue_.emplace_back(std::move(f));
+      if (SAFE_UNIQUE(state_) {
+            if (state_.running_) {
+              state_.queue_.emplace_back(std::move(f));
+              return true;
+            }
+            state_.running_ = true;
+            return false;
+          }) {
         return;
       }
-      running_ = true;
       libp2p::common::FinalAction BOOST_OUTCOME_TRY_UNIQUE_NAME{[&] {
-        if (not lock.owns_lock()) {
-          lock.lock();
-        }
-        running_ = false;
+        SAFE_UNIQUE(state_) {
+          state_.running_ = false;
+        };
       }};
-      lock.unlock();
       f();
-      lock.lock();
-      while (not queue_.empty()) {
-        auto f = std::move(queue_.front());
-        queue_.pop_front();
-        lock.unlock();
-        f();
-        lock.lock();
+      while (auto f = SAFE_UNIQUE(state_) {
+        std::optional<std::function<void()>> f;
+        if (not state_.queue_.empty()) {
+          f = std::move(state_.queue_.front());
+          state_.queue_.pop_front();
+        }
+        return f;
+      }) {
+        (*f)();
       }
     }
 
     WeakIoContext io_;
-    std::mutex mutex_;
-    bool running_ = false;
-    std::deque<std::function<void()>> queue_;
+    struct State {
+      bool running_ = false;
+      std::deque<std::function<void()>> queue_;
+    };
+    SafeObject<State, std::mutex> state_;
   };
 }  // namespace kagome
