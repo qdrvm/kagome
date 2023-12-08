@@ -59,6 +59,14 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::parachain,
       return "Peer limit reached";
     case E::PROTOCOL_MISMATCH:
       return "Protocol mismatch";
+      case E::NOT_CONFIRMED:
+      return "Candidate not confirmed";
+      case E::NO_STATE:
+      return "No parachain state";
+      case E::NO_SESSION_INFO:
+      return "No session info";
+      case E::OUT_OF_BOUND:
+      return "Index out of bound";
   }
   return "Unknown parachain processor error";
 }
@@ -1671,8 +1679,55 @@ namespace kagome::parachain {
   outcome::result<network::vstaging::AttestedCandidateResponse>
   ParachainProcessorImpl::OnFetchAttestedCandidateRequest(
       const network::vstaging::AttestedCandidateRequest &request) {
-    /// TODO(iceseer): do
-    return Error::COLLATION_NOT_FOUND;
+    auto confirmed = candidates_.get_confirmed(request.candidate_hash);
+    if (!confirmed) {
+      return Error::NOT_CONFIRMED;
+    }
+
+    auto relay_parent_state = tryGetStateByRelayParent(confirmed->get().relay_parent());
+    if (!relay_parent_state) {
+      return Error::NO_STATE;
+    }
+    BOOST_ASSERT(relay_parent_state->get().statement_store);
+    BOOST_ASSERT(relay_parent_state->get().our_index);
+
+    std::optional<runtime::SessionInfo> opt_session_info = retrieveSessionInfo(confirmed->get().relay_parent());
+    if (!opt_session_info) {
+      return Error::NO_SESSION_INFO;
+    }
+    if (confirmed->get().group_index() >= opt_session_info->validator_groups.size()) {
+      SL_ERROR(logger_, "Unexpected array bound for groups. (relay parent={})", confirmed->get().relay_parent());
+      return Error::OUT_OF_BOUND;
+    }
+    const auto &group = opt_session_info->validator_groups[confirmed->get().group_index()];
+
+    auto init_with_not = [](scale::BitVec &dst, const scale::BitVec &src) {
+      dst.bits.reserve(src.bits.size());
+      for (const auto i : src.bits) {
+        dst.bits.emplace_back(!i);
+      }
+    };
+
+    network::vstaging::StatementFilter and_mask;
+    init_with_not(and_mask.seconded_in_group, request.mask.seconded_in_group);
+    init_with_not(and_mask.validated_in_group, request.mask.validated_in_group);
+
+    std::vector<IndexedAndSigned<network::vstaging::CompactStatement>> statements;
+    relay_parent_state->get().statement_store->groupStatements(
+      group,
+      request.candidate_hash,
+      and_mask,
+      [&](const IndexedAndSigned<network::vstaging::CompactStatement>
+                &statement) {
+        statements.emplace_back(statement);
+      }
+    );
+
+    return network::vstaging::AttestedCandidateResponse {
+      .candidate_receipt = confirmed->get().receipt,
+      .persisted_validation_data = confirmed->get().persisted_validation_data,
+      .statements = std::move(statements),
+    };
   }
 
   outcome::result<network::FetchChunkResponse>
@@ -1822,7 +1877,7 @@ namespace kagome::parachain {
     return std::nullopt;
   }
 
-  void ParachainProcessorImpl::notifyBackedCandidate(
+  void ParachainProcessorImpl::statementDistributionBackedCandidate(
       const CandidateHash &candidate_hash) {
     auto confirmed_opt = candidates_.get_confirmed(candidate_hash);
     if (!confirmed_opt) {
@@ -1840,6 +1895,11 @@ namespace kagome::parachain {
       return;
     }
 
+    /// `provide_candidate_to_grid`
+    
+
+
+    /// TODO(iceseer): do
     /// TODO(iceseer): send manifest
     /// TODO(iceseer): send ack backed messages to peers
     /// TODO(iceseer): send compact statements
@@ -2050,7 +2110,7 @@ namespace kagome::parachain {
                   rp_state,
                   para_id,
                   backed->candidate.descriptor.para_head_hash);
-              notifyBackedCandidate(candidate_hash);
+              statementDistributionBackedCandidate(candidate_hash);
             } else {
               backing_store_->add(relay_parent, std::move(*backed));
             }
@@ -2722,8 +2782,8 @@ namespace kagome::parachain {
     TicToc _measure{"Parachain validation", logger_};
     const auto candidate_hash{candidate.hash(*hasher_)};
 
-    /// checks if we still need to execute parachain task
     /// TODO(iceseer): do
+    /// checks if we still need to execute parachain task
     auto need_to_process =
         our_current_state_.active_leaves.count(relay_parent) != 0ull;
 
@@ -2751,6 +2811,7 @@ namespace kagome::parachain {
     }
 
     /// TODO(iceseer): do
+    /// checks if we still need to execute parachain task
     need_to_process =
         our_current_state_.active_leaves.count(relay_parent) != 0ull;
 

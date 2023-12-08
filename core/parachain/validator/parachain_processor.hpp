@@ -77,7 +77,11 @@ namespace kagome::parachain {
       NOT_SYNCHRONIZED,
       UNDECLARED_COLLATOR,
       PEER_LIMIT_REACHED,
-      PROTOCOL_MISMATCH
+      PROTOCOL_MISMATCH,
+      NOT_CONFIRMED,
+      NO_STATE,
+      NO_SESSION_INFO,
+      OUT_OF_BOUND
     };
     static constexpr uint64_t kBackgroundWorkers = 5;
 
@@ -510,7 +514,7 @@ namespace kagome::parachain {
       BOOST_ASSERT(context);
       boost::asio::post(*context, std::forward<F>(func));
     }
-    void notifyBackedCandidate(const CandidateHash &candidate_hash);
+    void statementDistributionBackedCandidate(const CandidateHash &candidate_hash);
     void notifyAvailableData(std::vector<network::ErasureChunk> &&chunk_list,
                              const primitives::BlockHash &relay_parent,
                              const network::CandidateHash &candidate_hash,
