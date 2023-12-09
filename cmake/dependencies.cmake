@@ -79,7 +79,10 @@ endif ()
 
 if ("${WASM_COMPILER}" STREQUAL "WasmEdge")
   hunter_add_package(WasmEdge)
-  find_library(WASM_EDGE_LIBRARY NAMES wasmedge REQUIRED PATHS "${WASMEDGE_ROOT}")
+  find_library(WASM_EDGE_LIBRARY NAMES libwasmedge.a REQUIRED PATHS "${WASMEDGE_ROOT}")
+  add_library(WasmEdge::WasmEdge STATIC IMPORTED)
+  set_property(TARGET WasmEdge::WasmEdge PROPERTY IMPORTED_LOCATION "${WASM_EDGE_LIBRARY}")
+  target_link_libraries(WasmEdge::WasmEdge INTERFACE curses)
 endif ()
 
 hunter_add_package(zstd)
