@@ -13,7 +13,6 @@ add_library(sassafras
     impl/sassafras_config_repository_impl.cpp
     impl/sassafras_error.cpp
     impl/sassafras_vrf.cpp
-    impl/bandersnatch.cpp
 )
 target_link_libraries(sassafras
     consensus_common

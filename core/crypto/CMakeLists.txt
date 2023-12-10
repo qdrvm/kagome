@@ -67,6 +67,7 @@ target_link_libraries(sr25519_provider
 kagome_install(sr25519_provider)
 
 add_library(bandersnatch_provider
+    bandersnatch/bandersnatch.cpp
     bandersnatch/bandersnatch_provider_impl.cpp
 )
 target_link_libraries(bandersnatch_provider

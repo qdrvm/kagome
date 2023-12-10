@@ -12,7 +12,6 @@
 #include "common/buffer.hpp"
 #include "common/int_serialization.hpp"
 #include "common/tagged.hpp"
-#include "consensus/sassafras/impl/bandersnatch.hpp"
 #include "consensus/sassafras/types/sassafras_configuration.hpp"
 #include "consensus/sassafras/types/ticket.hpp"
 #include "consensus/timeline/types.hpp"
