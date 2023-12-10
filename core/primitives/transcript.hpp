@@ -53,11 +53,15 @@ namespace kagome::primitives {
       append_message("dom-sep"_bytes, label);
     }
 
-    void append_message(libp2p::BytesIn label, libp2p::BytesIn msg) {
-      const uint32_t data_len = msg.size();
-      strobe_.metaAd<false>(label);
+    void append(libp2p::BytesIn data) {
+      const uint32_t data_len = data.size();
       strobe_.metaAd<true>(decompose(data_len));
-      strobe_.ad<false>(msg);
+      strobe_.ad<false>(data);
+    }
+
+    void append_message(libp2p::BytesIn label, libp2p::BytesIn msg) {
+      strobe_.metaAd<false>(label);
+      append(msg);
     }
 
     void append_message(libp2p::BytesIn label, const uint64_t value) {
