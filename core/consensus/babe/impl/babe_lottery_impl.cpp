@@ -57,13 +57,17 @@ namespace kagome::consensus::babe {
 
     auth_number_ = config.authorities.size();
 
-    threshold_ = babe::calculateThreshold(
-        config.leadership_rate, config.authorities, keypair_->second);
-
     allowed_slots_ = config.allowed_slots;
 
     SL_TRACE(logger_, "Epoch changed to epoch {}", epoch_);
-    return keypair_.has_value();
+    if (not keypair_.has_value()) {
+      return false;
+    }
+
+    threshold_ = babe::calculateThreshold(
+        config.leadership_rate, config.authorities, keypair_->second);
+
+    return true;
   }
 
   EpochNumber BabeLotteryImpl::getEpoch() const {
