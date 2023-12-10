@@ -210,7 +210,7 @@ namespace kagome::consensus::sassafras {
     next_tickets_.emplace();
     next_tickets_->reserve(attempts_number);
 
-    const auto &secret_key = keypair_->first->secret_key;
+    const auto &secret_key = keypair->first->secret_key;
 
     for (AttemptsNumber attempt = 0; attempt < attempts_number; ++attempt) {
       auto b1 = Buffer().put(randomness);
