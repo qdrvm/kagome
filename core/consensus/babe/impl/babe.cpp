@@ -216,8 +216,7 @@ namespace kagome::consensus::babe {
     }
     OUTCOME_TRY(epoch, slots_util_.get()->slotToEpoch(best_block, slot));
 
-    // If epoch changed, generate and submit their candidate tickets along with
-    // validity proofs to the blockchain
+    // If epoch changed, reinit significant epoch parameters
     if (lottery_->getEpoch() != epoch) {
       is_active_validator_ = changeEpoch(epoch, best_block);
       metric_is_relaychain_validator_->set(is_active_validator_);
