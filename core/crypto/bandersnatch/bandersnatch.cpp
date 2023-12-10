@@ -4,22 +4,21 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "consensus/sassafras/impl/bandersnatch.hpp"
+#include "crypto/bandersnatch/bandersnatch.hpp"
 #include "crypto/hasher.hpp"
 
-namespace kagome::consensus::sassafras::bandersnatch {
+namespace bandersnatch_vrfs {}
 
-  //  VrfSignData::VrfSignData(RangeOfBytes auto transcript_label,
-  //                           std::ranges::range auto transcript_data,
-  //                           std::ranges::range auto inputs_data) {
-  //    //    transcript.initialize(transcript_label);
-  //    //    std::ranges::for_each(transcript_data,
-  //    //                          [&](auto &data) {
-  //    //                          transcript.append_message(data); });
-  //    //
-  //    //    auto inputs_ = inputs_data | std::ranges::views::take(3);
-  //    //    inputs.assign(inputs_.begin(), inputs_.end());
-  //  }
+OUTCOME_CPP_DEFINE_CATEGORY(kagome::crypto::bandersnatch::vrf, Error, e) {
+  using E = decltype(e);
+  switch (e) {
+    case E::INOUT_COUNT_OVERLIMIT:
+      return "Input/Output were over limit";
+  }
+  return "unknown error (kagome::crypto::bandersnatch::vrf::Error)";
+}
+
+namespace kagome::crypto::bandersnatch {
 
   /* clang-format off
 
@@ -49,47 +48,19 @@ pub const CRYPTO_ID: CryptoTypeId = CryptoTypeId(*b"band");
 
 
 */
-  /// Context used to produce a plain signature without any VRF input/output.
-  const common::BufferView SIGNING_CTX("BandersnatchSigningContext"_bytes);
 
-  const size_t SEED_SERIALIZED_SIZE = 32;
-  const size_t PUBLIC_SERIALIZED_SIZE = 33;
-  const size_t SIGNATURE_SERIALIZED_SIZE = 65;
-  const size_t PREOUT_SERIALIZED_SIZE = 33;
+  Public::Public(common::Blob<PUBLIC_SERIALIZED_SIZE> raw)
+      : Blob(std::move(raw)){};
 
-  /// Bandersnatch public key.
-  struct Public : public common::Blob<PUBLIC_SERIALIZED_SIZE> {
-    static const auto LEN = PUBLIC_SERIALIZED_SIZE;
-
-    static Public unchecked_from(common::Blob<PUBLIC_SERIALIZED_SIZE> raw) {
-      return Public{std::move(raw)};
-    };
-
-    static outcome::result<Public> try_from(std::span<uint8_t> data) {
-      OUTCOME_TRY(pub, common::Blob<PUBLIC_SERIALIZED_SIZE>::fromSpan(data));
-      return Public{std::move(pub)};
-    };
-
-    using Pair = Pair;
-
-    std::optional<Public> derive(std::span<DeriveJunction> j) {
-      return std::nullopt;
-    }
+  outcome::result<Public> Public::try_from(BytesIn data) {
+    OUTCOME_TRY(pub, common::Blob<Public::size()>::fromSpan(data));
+    return Public{std::move(pub)};
   };
 
-  /// The raw secret seed, which can be used to reconstruct the secret [`Pair`].
-  struct Seed : common::Blob<SEED_SERIALIZED_SIZE> {};
-
-  struct SecretKey  // : dleq_vrf::SecretKey<E>
-  {
-    Public to_public() const {
-      return {};
-    };
-
-    static SecretKey from_seed(const Seed &seed) {
-      return {};
-    };
-  };
+  std::optional<Public> Public::derive(
+      std::span<const crypto::bip39::RawJunction> junctions) {
+    return std::nullopt;  // FIXME
+  }
 
   /* clang-format off
 
@@ -110,137 +81,137 @@ impl<'de> Deserialize<'de> for Public {
 
 */
 
-  /// Bandersnatch signature.
-  ///
-  /// The signature is created via the [`VrfSecret::vrf_sign`] using
-  /// [`SIGNING_CTX`] as transcript `label`.
-  struct Signature : common::Blob<SIGNATURE_SERIALIZED_SIZE> {
-    static const auto LEN = SIGNATURE_SERIALIZED_SIZE;
+  outcome::result<Pair> Pair::create(BytesIn seed_slice) {
+    OUTCOME_TRY(seed, Seed::fromSpan(seed_slice));
+    return Pair{Seed(std::move(seed))};
+  }
 
-    static Signature unchecked_from(
-        common::Blob<SIGNATURE_SERIALIZED_SIZE> raw) {
-      return Signature{std::move(raw)};
+  Pair::Pair(Seed seed)
+      : secret_(SecretKey::from_seed(seed)), seed_(std::move(seed)) {}
+
+  outcome::result<std::tuple<Pair, std::optional<Seed>>> Pair::derive(
+      const Pair &original, std::span<const crypto::bip39::RawJunction> path) {
+    auto derive_hard = [](auto seed, auto cc) -> Seed {
+      std::shared_ptr<crypto::Hasher> hasher_;
+      return hasher_->blake2b_256(
+          scale::encode("bandersnatch-vrf-HDKD", seed, cc).value());
     };
 
-    static outcome::result<Signature> try_from(std::span<uint8_t> data) {
-      OUTCOME_TRY(pub, common::Blob<SIGNATURE_SERIALIZED_SIZE>::fromSpan(data));
-      return Signature{std::move(pub)};
+    auto seed = original.seed();
+    for (auto &p : path) {
+      // if let DeriveJunction::Hard(cc) = p {
+      //     seed = derive_hard(seed, cc);
+      //   } else {
+      //   return Err(DeriveError::SoftKeyInPath)
+      // }
+    }
+    return {Pair(seed), seed};
+  }
+
+  Public Pair::publicKey() const {
+    common::Blob<PUBLIC_SERIALIZED_SIZE> raw;
+    // secret_.to_public().serialize_compressed(raw); // FIXME must be bind
+    return Public(raw);
+  }
+
+  Signature Pair::sign(BytesIn data) const {
+    std::array<BytesIn, 1> transcript_data{data};
+    auto sign_data =
+        vrf::VrfSignData::create(vrf::SIGNING_CTX, transcript_data, {}).value();
+    return vrf_sign(sign_data).signature;
+  }
+
+  bool Pair::verify(const Signature &signature,
+                    BytesIn data,
+                    const Public &public_key) const {
+    std::array<BytesIn, 1> transcript_data{data};
+    auto sign_data =
+        vrf::VrfSignData::create(vrf::SIGNING_CTX, transcript_data, {}).value();
+    auto vrf_sign = vrf::VrfSignature{.signature = signature, .outputs = {}};
+    return vrf::vrf_verify(sign_data, vrf_sign, public_key);
+  }
+
+  vrf::VrfSignature Pair::vrf_sign(const vrf::VrfSignData &data) const {
+    BOOST_STATIC_ASSERT(vrf::kMaxVrfInputOutputCounts <= 3);
+    switch (data.inputs.size()) {
+      case 0:
+        return vrf_sign_gen<0>(data);
+      case 1:
+        return vrf_sign_gen<1>(data);
+      case 2:
+        return vrf_sign_gen<2>(data);
+      case 3:
+        return vrf_sign_gen<3>(data);
+    }
+    BOOST_UNREACHABLE_RETURN();
+  }
+
+  vrf::VrfOutput Pair::vrf_output(const vrf::VrfInput &input) const {
+    auto output = secret_.vrf_preout(input);
+    return vrf::VrfOutput(output);
+  }
+
+  template <size_t N>
+  vrf::VrfSignature Pair::vrf_sign_gen(const vrf::VrfSignData &data) const {
+    std::vector<vrf::VrfInOut> ios;
+    std::transform(data.inputs.begin(),
+                   data.inputs.end(),
+                   std::back_inserter(ios),
+                   [&](const auto &input) { return secret_.vrf_inout(input); });
+
+    //    auto thin_signature = bandersnatch_vrfs::ThinVrfSignature<N>(
+    //        secret_.sign_thin_vrf(data.transcript, ios));
+
+    vrf::VrfIosVec<vrf::VrfOutput> outputs;
+    //    std::transform(thin_signature.preouts.begin(),
+    //                   thin_signature.preouts.end(),
+    //                   std::back_inserter(outputs),
+    //                   [&](const auto &preout) { return VrfOutput(preout); });
+
+    auto signature = vrf::VrfSignature{
+        .signature = {},
+        .outputs = std::move(outputs),
     };
 
-    using Pair = Pair;
-  };
+    //    thin_signature.proof.serialize_compressed(signature.signature)
+    //        .expect("serialization length is constant and checked by test;
+    //        qed");
 
-  /// Bandersnatch secret key.
-  struct Pair {
-    SecretKey secret_;
-    Seed seed_;
+    return signature;
+  }
 
-    /// Get the key seed.
-    Seed seed() {
-      return seed_;
-    }
+  /// Generate an arbitrary number of bytes from the given `context` and VRF
+  /// `input`.
+  template <size_t N>
+  common::Blob<N> Pair::make_bytes(BytesIn context,
+                                   const vrf::VrfInput &input) {
+    Transcript transcript;
+    transcript.initialize(context);
+    auto inout = secret_.vrf_inout(input);
+    return inout.vrf_output_bytes<N>(transcript);
+  }
 
-    /// Make a new key pair from secret seed material.
-    ///
-    /// The slice must be 32 bytes long or it will return an error.
-    static outcome::result<Pair> from_seed_slice(
-        std::span<uint8_t> seed_slice) {
-      OUTCOME_TRY(seed, Seed::fromSpan(seed_slice));
-      SecretKey secret = SecretKey::from_seed(&seed);
-      return Pair{.secret_ = std::move(secret), .seed_ = std::move(seed)};
-    }
-
-    /// Generate new key pair from the provided `seed`.
-    ///
-    /// @WARNING: THIS WILL ONLY BE SECURE IF THE `seed` IS SECURE. If it can be
-    /// guessed by an attacker then they can also derive your key.
-    Pair from_seed(Seed &seed) {
-      return from_seed_slice(seed).value();
-    }
-
-    /// Derive a child key from a series of given (hard) junctions.
-    ///
-    /// Soft junctions are not supported.
-    outcome::result<std::tuple<Pair, std::optional<Seed>>> derive(
-        std::span<DeriveJunction> path, std::optional<Seed> _seed) {
-      auto derive_hard = [](auto seed, auto cc) -> Seed {
-        std::shared_ptr<crypto::Hasher> hasher_;
-        return hasher_->blake2b_256(
-            scale::encode("bandersnatch-vrf-HDKD", seed, cc).value());
-      };
-
-      auto seed = this->seed();
-      for (auto &p : path) {
-        // if let DeriveJunction::Hard(cc) = p {
-        //     seed = derive_hard(seed, cc);
-        //   } else {
-        //   return Err(DeriveError::SoftKeyInPath)
-        // }
-      }
-      return {Pair::from_seed(seed), seed};
-    }
-
-    Public public_() const {
-      auto public_ = secret_.to_public();
-      Public raw;
-      public_.serialize_compressed(raw.as_mut_slice())
-          .expect("serialization length is constant and checked by test; qed");
-      return Public::unchecked_from(raw);
-    }
-
-    /// Sign a message.
-    ///
-    /// In practice this produce a Schnorr signature of a transcript composed by
-    /// the constant label [`SIGNING_CTX`] and `data` without any additional
-    /// data.
-    ///
-    /// See [`vrf::VrfSignData`] for additional details.
-    Signature sign(std::span<uint8_t> data) {
-      auto data = vrf::VrfSignData::new_unchecked(SIGNING_CTX, data, None);
-      return vrf_sign(&data).signature;
-    }
-
-    bool verify(const Signature &signature,
-                std::span<uint8_t> data,
-                const Public &public_) {
-      auto data = vrf::VrfSignData::new_unchecked(SIGNING_CTX, data, None);
-      auto signature = vrf::VrfSignature{.signature = signature, .outputs = {}};
-      return public_.vrf_verify(&data, &signature);
-    }
-
-    /// Return a vector filled with the seed (32 bytes).
-    common::Buffer to_raw_vec() {
-      return {seed_.begin(), seed_.end()};
-    }
-  };
-
-  /// Bandersnatch VRF types and operations.
   namespace vrf {
-    /// Max number of inputs/outputs which can be handled by the VRF signing
-    /// procedures.
-    ///
-    /// The number is quite arbitrary and chosen to fulfill the use cases found
-    /// so far. If required it can be extended in the future.
-    static const size_t MAX_VRF_IOS = 3;
 
-    /// Bounded vector used for VRF inputs and outputs.
-    ///
-    /// Can contain at most [`MAX_VRF_IOS`] elements.
-    template <typename T>
-    using VrfIosVec = common::SLVector<T, MAX_VRF_IOS>;
+    VrfInput::VrfInput(BytesIn domain, BytesIn data) {
+      Transcript transcript;
+      transcript.initialize("TemporaryDoNotDeploy"_bytes);
+      transcript.append_message("domain"_bytes, domain);
+      transcript.append_message("message"_bytes, data);
+      transcript.challenge_bytes("vrf-input"_bytes, *this);
+    }
 
-    /// VRF input to construct a [`VrfOutput`] instance and embeddable in
-    /// [`VrfSignData`].
-    struct VrfInput : public bandersnatch_vrfs::VrfInput {
-      /// Construct a new VRF input.
-      VrfInput new_(std::span<uint8_t> domain, std::span<uint8_t> data) {
-        auto msg = bandersnatch_vrfs::Message{
-            .domain = domain.as_ref(),
-            .message = data.as_ref(),
-        };
-        return VrfInput(msg.into_vrf_input());
-      }
-    };
+    template <size_t N>
+    common::Blob<N> VrfInOut::vrf_output_bytes(Transcript transcript) const {
+      transcript.append_message("VrfOutput"_bytes, preoutput);
+
+      common::Blob<N> out;
+      transcript.challenge_bytes(""_bytes, out);
+
+      return out;
+    }
+
+    /* clang-format off
 
     /// VRF (pre)output derived from [`VrfInput`] using a [`VrfSecret`].
     ///
@@ -248,8 +219,9 @@ impl<'de> Deserialize<'de> for Public {
     /// random bytes and is often called pre-output to emphasize that this is
     /// not the actual output of the VRF but an object capable of generating the
     /// output.
+
     struct VrfOutput : public bandersnatch_vrfs::VrfPreOut {
-      /* clang-format off
+
       impl Encode for VrfOutput {
         fn encode(&self) -> Vec<u8> {
           let mut bytes = [0; PREOUT_SERIALIZED_SIZE];
@@ -285,265 +257,148 @@ impl<'de> Deserialize<'de> for Public {
           Self::Identity::type_info()
         }
       }
+    };
        */
-    };
 
-    /// Data to be signed via one of the two provided vrf flavors.
-    ///
-    /// The object contains a transcript and a sequence of [`VrfInput`]s ready
-    /// to be signed.
-    ///
-    /// The `transcript` summarizes a set of messages which are defining a
-    /// particular protocol by automating the Fiat-Shamir transform for
-    /// challenge generation. A good explaination of the topic can be found in
-    /// Merlin [docs](https://merlin.cool/)
-    ///
-    /// The `inputs` is a sequence of [`VrfInput`]s which, during the signing
-    /// procedure, are first transformed to [`VrfOutput`]s. Both inputs and
-    /// outputs are then appended to the transcript before signing the
-    /// Fiat-Shamir transform result (the challenge).
-    ///
-    /// In practice, as a user, all these technical details can be easily
-    /// ignored. What is important to remember is:
-    /// - *Transcript* is an object defining the protocol and used to produce
-    /// the signature. This object doesn't influence the `VrfOutput`s values.
-    /// - *Vrf inputs* is some additional data which is used to produce *vrf
-    /// outputs*. This data will contribute to the signature as well.
-    struct VrfSignData {
-      /// Associated protocol transcript.
-      bandersnatch_vrfs::Transcript transcript;
-      /// VRF inputs to be signed.
-      VrfIosVec<VrfInput> inputs;
+    /// Generate an arbitrary number of bytes from the given `context` and VRF
+    /// `input`.
+    template <size_t N>
+    common::Blob<N> VrfOutput::make_bytes(BytesIn context,
+                                          const VrfInput &input) const {
+      Transcript transcript;
+      transcript.initialize(context);
+      auto inout = VrfInOut{
+          .input = input,
+          .preoutput = {*this},
+      };
+      return inout.vrf_output_bytes<N>(transcript);
+    }
 
-      /// Construct a new data to be signed.
-      ///
-      /// Fails if the `inputs` iterator yields more elements than
-      /// [`MAX_VRF_IOS`]
-      ///
-      /// Refer to [`VrfSignData`] for details about transcript and inputs.
-      static outcome::result<VrfSignData> new_(
-          std::span<const uint8_t> transcript_label,
-          std::span<const uint8_t> transcript_data,
-          std::span<VrfInput> inputs) {
-        if (inputs.size() > MAX_VRF_IOS) {
-          return Error{};
-        }
+    VrfSignData::VrfSignData(BytesIn transcript_label,
+                             std::span<BytesIn> transcript_data,
+                             std::span<VrfInput> inputs) {
+      transcript.initialize(transcript_label);
 
-        return VrfSignData::new_unchecked(
-            transcript_label, transcript_data, inputs);
+      for (auto item : transcript_data) {
+        transcript.append(item);
       }
 
-      /// Construct a new data to be signed.
-      ///
-      /// At most the first [`MAX_VRF_IOS`] elements of `inputs` are used.
-      ///
-      /// Refer to [`VrfSignData`] for details about transcript and inputs.
-      static VrfSignData new_unchecked(
-          std::span<const uint8_t> transcript_label,
-          std::span<std::span<const uint8_t>> transcript_data,
-          std::span<VrfInput> inputs) {
-        inputs = inputs.subspan(0, MAX_VRF_IOS);
+      auto x = inputs.subspan(0, kMaxVrfInputOutputCounts);
+      this->inputs.assign(x.begin(), x.end());
+    }
 
-        auto transcript =
-            bandersnatch_vrfs::Transcript::new_labeled(transcript_label);
-
-        for (auto &item : transcript_data) {
-          transcript.append(item);
-        }
-
-        return VrfSignData{
-            .transcript = std::move(transcript),
-            .inputs = {inputs},
-        };
+    outcome::result<VrfSignData> VrfSignData::create(
+        BytesIn transcript_label,
+        std::span<BytesIn> transcript_data,
+        std::span<VrfInput> inputs) {
+      if (inputs.size() > kMaxVrfInputOutputCounts) {
+        return Error::INOUT_COUNT_OVERLIMIT;
       }
 
-      /// Append a message to the transcript.
-      void push_transcript_data(std::span<uint8_t> data) {
-        transcript.append(data);
+      return VrfSignData(transcript_label, transcript_data, inputs);
+    }
+
+    void VrfSignData::push_transcript_data(BytesIn data) {
+      // transcript.append(data); // FIXME
+    }
+
+    outcome::result<void> VrfSignData::push_vrf_input(VrfInput &input) {
+      if (inputs.size() < inputs.max_size()) {
+        inputs.emplace_back(std::move(input));
+        return outcome::success();
       }
+      return Error{};
+    }
 
-      /// Tries to append a [`VrfInput`] to the vrf inputs list.
-      ///
-      /// On failure, input parameter is not changed.
-      outcome::result<void> push_vrf_input(VrfInput &input) {
-        if (inputs.size() < inputs.max_size()) {
-          inputs.emplace_back(std::move(input));
-          return outcome::success();
-        }
-        return Error{};
+    template <size_t N>
+    common::Blob<N> VrfSignData::challenge() const {
+      common::Blob<N> output(0, N);
+      auto transcript_copy = transcript;
+      transcript_copy.challenge_bytes("bandersnatch challenge"_bytes, output);
+      return output;
+    }
+
+    bool vrf_verify(const VrfSignData &data,
+                    const VrfSignature &signature,
+                    const Public &public_key) {
+      if (signature.outputs.size() != data.inputs.size()) {
+        return false;
       }
-
-      /// Get the challenge associated to the `transcript` contained within the
-      /// signing data.
-      ///
-      /// Ignores the vrf inputs and outputs.
-      template <size_t N>
-      common::Blob<N> challenge() const {
-        common::Blob<N> output(0, N);
-        auto transcript = this->transcript;
-        auto reader = transcript.challenge("bandersnatch challenge"_bytes);
-        reader.read_bytes(output);
-        return output;
+      // Workaround to overcome backend signature generic over the number of IOs
+      switch (signature.outputs.size()) {
+        case 0:
+          return vrf_verify_gen<0>(data, signature, public_key);
+        case 1:
+          return vrf_verify_gen<1>(data, signature, public_key);
+        case 2:
+          return vrf_verify_gen<2>(data, signature, public_key);
+        case 3:
+          return vrf_verify_gen<3>(data, signature, public_key);
       }
-    };
+      BOOST_UNREACHABLE_RETURN();
+    }
 
-    /// VRF signature.
-    ///
-    /// Includes both the transcript `signature` and the `outputs` generated
-    /// from the [`VrfSignData::inputs`].
-    ///
-    /// Refer to [`VrfSignData`] for more details.
-    struct VrfSignature {
-      /// Transcript signature.
-      Signature signature;
-      /// VRF (pre)outputs.
-      VrfIosVec<VrfOutput> outputs,
-    };
+    template <size_t N>
+    bool vrf_verify_gen(const VrfSignData &data,
+                        const VrfSignature &signature,
+                        const Public &public_key) {
+      //  auto public_opt =
+      //      bandersnatch_vrfs::PublicKey::deserialize_compressed_unchecked(
+      //          as_slice());
+      //  if (not public_opt.has_value()) {
+      //    return false;
+      //  }
+      //  const auto &public_ = public_opt.value();
 
+      std::array<VrfPreOut, N> preouts;
+      std::transform(signature.outputs.begin(),
+                     signature.outputs.end(),
+                     preouts.begin(),
+                     [](const auto &o) { return VrfPreOut(o); });
+
+      // Deserialize only the proof, the rest has already been deserialized
+      // This is another hack used because backend signature type is generic
+      // over the number of ios.
+
+      // auto sig_opt = bandersnatch_vrfs::ThinVrfSignature<
+      //     0>::deserialize_compressed_unchecked(signature.signature);
+      // if (not sig_opt.has_value()) {
+      //   return false;
+      // }
+      // auto &proof = sig_opt->proof;
+      //
+      // auto signature_ = bandersnatch_vrfs::ThinVrfSignature{
+      //     .proof = std::move(proof),
+      //     .preouts = std::move(preouts),
+      // };
+      //
+      // return public_key
+      //     .verify_thin_vrf(data.transcript, data.inputs, &signature)
+      //     .is_ok();
+
+      return false;  // FIXME
+    }
   }  // namespace vrf
+
+  //
+  //
+  //
+  //
+  //
+  //
+  //
+  //
+  //
+  //
+  //
+  //
+  //
+  //
+  //
+  //
 
   /* clang-format off
 
-
-pub mod vrf {
-  use super::*;
-  use crate::{bounded::BoundedVec, crypto::VrfCrypto, ConstU32};
-  use bandersnatch_vrfs::{
-    CanonicalDeserialize, CanonicalSerialize, IntoVrfInput, Message, PublicKey,
-    ThinVrfSignature, Transcript,
-  };
-
-
-  #[cfg(feature = "full_crypto")]
-  impl VrfCrypto for Pair {
-    type VrfInput = VrfInput;
-    type VrfOutput = VrfOutput;
-    type VrfSignData = VrfSignData;
-    type VrfSignature = VrfSignature;
-  }
-
-  #[cfg(feature = "full_crypto")]
-  impl VrfSecret for Pair {
-    fn vrf_sign(&self, data: &Self::VrfSignData) -> Self::VrfSignature {
-      const _: () = assert!(MAX_VRF_IOS == 3, "`MAX_VRF_IOS` expected to be 3");
-      // Workaround to overcome backend signature generic over the number of IOs.
-      match data.inputs.len() {
-        0 => self.vrf_sign_gen::<0>(data),
-        1 => self.vrf_sign_gen::<1>(data),
-        2 => self.vrf_sign_gen::<2>(data),
-        3 => self.vrf_sign_gen::<3>(data),
-        _ => unreachable!(),
-      }
-    }
-
-    fn vrf_output(&self, input: &Self::VrfInput) -> Self::VrfOutput {
-      let output = self.secret.vrf_preout(&input.0);
-      VrfOutput(output)
-    }
-  }
-
-  impl VrfCrypto for Public {
-    type VrfInput = VrfInput;
-    type VrfOutput = VrfOutput;
-    type VrfSignData = VrfSignData;
-    type VrfSignature = VrfSignature;
-  }
-
-  impl VrfPublic for Public {
-    fn vrf_verify(&self, data: &Self::VrfSignData, signature: &Self::VrfSignature) -> bool {
-      const _: () = assert!(MAX_VRF_IOS == 3, "`MAX_VRF_IOS` expected to be 3");
-      let outputs_len = signature.outputs.len();
-      if outputs_len != data.inputs.len() {
-        return false
-      }
-      // Workaround to overcome backend signature generic over the number of IOs.
-      match outputs_len {
-        0 => self.vrf_verify_gen::<0>(data, signature),
-        1 => self.vrf_verify_gen::<1>(data, signature),
-        2 => self.vrf_verify_gen::<2>(data, signature),
-        3 => self.vrf_verify_gen::<3>(data, signature),
-        _ => unreachable!(),
-      }
-    }
-  }
-
-  #[cfg(feature = "full_crypto")]
-  impl Pair {
-    fn vrf_sign_gen<const N: usize>(&self, data: &VrfSignData) -> VrfSignature {
-      let ios = core::array::from_fn(|i| self.secret.vrf_inout(data.inputs[i].0));
-
-      let thin_signature: ThinVrfSignature<N> =
-        self.secret.sign_thin_vrf(data.transcript.clone(), &ios);
-
-      let outputs: Vec<_> = thin_signature.preouts.into_iter().map(VrfOutput).collect();
-      let outputs = VrfIosVec::truncate_from(outputs);
-
-      let mut signature =
-        VrfSignature { signature: Signature([0; SIGNATURE_SERIALIZED_SIZE]), outputs };
-
-      thin_signature
-        .proof
-        .serialize_compressed(signature.signature.0.as_mut_slice())
-        .expect("serialization length is constant and checked by test; qed");
-
-      signature
-    }
-
-    /// Generate an arbitrary number of bytes from the given `context` and VRF `input`.
-    pub fn make_bytes<const N: usize>(
-      &self,
-      context: &'static [u8],
-      input: &VrfInput,
-    ) -> [u8; N] {
-      let transcript = Transcript::new_labeled(context);
-      let inout = self.secret.vrf_inout(input.0);
-      inout.vrf_output_bytes(transcript)
-    }
-  }
-
-  impl Public {
-    fn vrf_verify_gen<const N: usize>(
-      &self,
-      data: &VrfSignData,
-      signature: &VrfSignature,
-    ) -> bool {
-      let Ok(public) = PublicKey::deserialize_compressed_unchecked(self.as_slice()) else {
-        return false
-      };
-
-      let preouts: [bandersnatch_vrfs::VrfPreOut; N] =
-        core::array::from_fn(|i| signature.outputs[i].0);
-
-      // Deserialize only the proof, the rest has already been deserialized
-      // This is another hack used because backend signature type is generic over
-      // the number of ios.
-      let Ok(proof) = ThinVrfSignature::<0>::deserialize_compressed_unchecked(
-        signature.signature.as_ref(),
-      )
-      .map(|s| s.proof) else {
-        return false
-      };
-      let signature = ThinVrfSignature { proof, preouts };
-
-      let inputs = data.inputs.iter().map(|i| i.0);
-
-      public.verify_thin_vrf(data.transcript.clone(), inputs, &signature).is_ok()
-    }
-  }
-
-  impl VrfOutput {
-    /// Generate an arbitrary number of bytes from the given `context` and VRF `input`.
-    pub fn make_bytes<const N: usize>(
-      &self,
-      context: &'static [u8],
-      input: &VrfInput,
-    ) -> [u8; N] {
-      let transcript = Transcript::new_labeled(context);
-      let inout = bandersnatch_vrfs::VrfInOut { input: input.0, preoutput: self.0 };
-      inout.vrf_output_bytes(transcript)
-    }
-  }
-}
 
 /// Bandersnatch Ring-VRF types and operations.
 pub mod ring_vrf {
@@ -1149,4 +1004,4 @@ mod tests {
 
 */
 
-}  // namespace kagome::consensus::sassafras::bandersnatch
+}  // namespace kagome::crypto::bandersnatch

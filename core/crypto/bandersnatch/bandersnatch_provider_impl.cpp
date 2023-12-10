@@ -5,15 +5,34 @@
  */
 
 #include "bandersnatch_provider_impl.hpp"
+#include "crypto/bandersnatch/bandersnatch.hpp"
 
-namespace kagome ::crypto {
+namespace kagome::crypto {
 
   BandersnatchKeypair BandersnatchProviderImpl::generateKeypair(
       const BandersnatchSeed &seed,
       BandersnatchProvider::Junctions junctions) const {
-    throw std::runtime_error(
-        "Method 'BandersnatchProviderImpl::generateKeypair' is not implemented "
-        "yet");
+    std::array<uint8_t, constants::bandersnatch::KEYPAIR_SIZE> kp{};
+    bandersnatch_keypair_from_seed(kp.data(), seed.data());
+
+    // FIXME
+    // for (auto &junction : junctions) {
+    //   decltype(kp) next;
+    //   (junction.hard ? sr25519_derive_keypair_hard
+    //                  : sr25519_derive_keypair_soft)(
+    //       next.data(), kp.data(), junction.cc.data());
+    //   kp = next;
+    // }
+
+    BandersnatchKeypair keypair;
+    std::copy(kp.begin(),
+              kp.begin() + constants::bandersnatch::SECRET_SIZE,
+              keypair.secret_key.begin());
+    std::copy(kp.begin() + constants::bandersnatch::SECRET_SIZE,
+              kp.begin() + constants::bandersnatch::SECRET_SIZE
+                  + constants::bandersnatch::PUBLIC_SIZE,
+              keypair.public_key.begin());
+    return keypair;
   }
 
   outcome::result<BandersnatchSignature> BandersnatchProviderImpl::sign(

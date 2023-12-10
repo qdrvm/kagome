@@ -6,6 +6,7 @@
 
 #pragma once
 
+#include "crypto/bandersnatch/bandersnatch.hpp"
 #include "crypto/bandersnatch_provider.hpp"
 #include "crypto/bandersnatch_types.hpp"
 

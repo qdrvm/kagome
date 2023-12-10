@@ -7,7 +7,7 @@
 #pragma once
 
 extern "C" {
-#include <schnorrkel/schnorrkel.h>
+#include <bandersnatch_vrf/bandersnatch_vrf.h>
 }
 #include <boost/multiprecision/cpp_int.hpp>
 #include <span>
@@ -114,8 +114,8 @@ namespace kagome::crypto {
     BandersnatchSecretKey secret_key;
     BandersnatchPublicKey public_key;
 
-    bool operator==(const BandersnatchKeypair &other) const;
-    bool operator!=(const BandersnatchKeypair &other) const;
+    bool operator==(const BandersnatchKeypair &other) const = default;
+    bool operator!=(const BandersnatchKeypair &other) const = default;
   };
 
   struct BandersnatchKeypairAndSeed : BandersnatchKeypair {
