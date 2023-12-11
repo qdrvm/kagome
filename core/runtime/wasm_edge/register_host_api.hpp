@@ -71,9 +71,10 @@ namespace kagome::runtime::wasm_edge {
   };
 
   template <typename F, typename... Args, size_t... Idxs>
-  decltype(auto) call_with_array(F f,
-                                 std::span<const WasmEdge_Value> array,
-                                 std::index_sequence<Idxs...>) {
+  decltype(auto) call_with_array(
+      F f,
+      [[maybe_unused]] std::span<const WasmEdge_Value> array,
+      std::index_sequence<Idxs...>) {
     return f(get_wasm_value<Args>(array[Idxs])...);
   }
 
