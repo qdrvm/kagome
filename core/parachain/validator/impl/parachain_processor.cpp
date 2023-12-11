@@ -1953,6 +1953,24 @@ namespace kagome::parachain {
         confirmed.para_id(), confirmed.para_head());
   }
 
+  std::vector<network::BackedCandidate> ParachainProcessorImpl::getBackedCandidates(const RelayHash &relay_parent) {
+    BOOST_ASSERT(
+        this_context_->io_context()->get_executor().running_in_this_thread());
+
+    auto relay_parent_state_opt = tryGetStateByRelayParent(relay_parent);
+    if (!relay_parent_state_opt) {
+      return {};
+    }
+
+    if (relay_parent_state_opt->get().prospective_parachains_mode) {
+      /// TODO(iceseer): do
+      /// request backable candidates from `prospective_parachains`
+      return {};
+    } else {
+      return backing_store_->get(relay_parent);
+    }
+  }
+
   std::optional<ParachainProcessorImpl::AttestedCandidate>
   ParachainProcessorImpl::attested(
       network::CommittedCandidateReceipt &&candidate,

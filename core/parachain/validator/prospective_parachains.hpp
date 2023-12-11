@@ -83,6 +83,49 @@ namespace kagome::parachain {
       return v;
     }
 
+    std::optional<std::pair<CandidateHash, Hash>>
+    answerGetBackableCandidate(const RelayHash &relay_parent, ParachainId para, const std::vector<CandidateHash> &required_path) {
+      auto data_it = view.active_leaves.find(relay_parent);
+      if (data_it == view.active_leaves.end()) {
+        SL_TRACE(logger, "Requested backable candidate for inactive relay-parent. (relay_parent={}, para_id={})",
+          relay_parent, para);
+        return std::nullopt;
+      }
+      const RelayBlockViewData &data = data_it->second;
+
+      auto tree_it = data.fragment_trees.find(para);
+      if (tree_it == data.fragment_trees.end()) {
+        SL_TRACE(logger, "Requested backable candidate for inactive para. (relay_parent={}, para_id={})",
+          relay_parent, para);
+        return std::nullopt;
+      }
+      const fragment::FragmentTree &tree = tree_it->second;
+
+      auto storage_it = view.candidate_storage.find(para);
+      if (storage_it == view.candidate_storage.end()) {
+        SL_WARN(logger, "No candidate storage for active para. (relay_parent={}, para_id={})",
+          relay_parent, para);
+        return std::nullopt;
+      }
+      const fragment::CandidateStorage &storage = storage_it->second;
+
+      auto child_hash = tree.selectChild(required_path, [&](const CandidateHash &candidate) -> bool {
+        return storage.isBacked(candidate);
+      });
+      if (!child_hash) {
+        return std::nullopt;
+      }
+
+      auto candidate_relay_parent = storage.relayParentByCandidateHash(*child_hash);
+      if (!candidate_relay_parent) {
+        SL_ERROR(logger, "Candidate is present in fragment tree but not in candidate's storage! (relay_parent={}, para_id={}, child_hash={})",
+          relay_parent, para, *child_hash);
+        return std::nullopt;
+      }
+
+      return std::make_pair(*child_hash, *candidate_relay_parent);
+    }
+
     fragment::FragmentTreeMembership answerTreeMembershipRequest(
         ParachainId para, const CandidateHash &candidate) {
       return fragmentTreeMembership(view.active_leaves, para, candidate);

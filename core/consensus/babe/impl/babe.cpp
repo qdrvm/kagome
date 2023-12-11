@@ -28,6 +28,7 @@
 #include "network/block_announce_transmitter.hpp"
 #include "parachain/availability/bitfield/store.hpp"
 #include "parachain/backing/store.hpp"
+#include "parachain/validator/parachain_processor.hpp"
 #include "parachain/parachain_inherent_data.hpp"
 #include "primitives/inherent_data.hpp"
 #include "runtime/runtime_api/offchain_worker_api.hpp"
@@ -73,7 +74,7 @@ namespace kagome::consensus::babe {
       std::shared_ptr<crypto::Sr25519Provider> sr25519_provider,
       std::shared_ptr<BabeBlockValidator> validating,
       std::shared_ptr<parachain::BitfieldStore> bitfield_store,
-      std::shared_ptr<parachain::BackingStore> backing_store,
+      std::shared_ptr<parachain::ParachainProcessorImpl> parachain_processor,
       std::shared_ptr<dispute::DisputeCoordinator> dispute_coordinator,
       std::shared_ptr<authorship::Proposer> proposer,
       primitives::events::StorageSubscriptionEnginePtr storage_sub_engine,
@@ -94,7 +95,7 @@ namespace kagome::consensus::babe {
         sr25519_provider_(std::move(sr25519_provider)),
         validating_(std::move(validating)),
         bitfield_store_(std::move(bitfield_store)),
-        backing_store_(std::move(backing_store)),
+        parachain_processor_(std::move(parachain_processor)),
         dispute_coordinator_(std::move(dispute_coordinator)),
         proposer_(std::move(proposer)),
         storage_sub_engine_(std::move(storage_sub_engine)),
@@ -113,7 +114,7 @@ namespace kagome::consensus::babe {
     BOOST_ASSERT(sr25519_provider_);
     BOOST_ASSERT(validating_);
     BOOST_ASSERT(bitfield_store_);
-    BOOST_ASSERT(backing_store_);
+    BOOST_ASSERT(parachain_processor_);
     BOOST_ASSERT(dispute_coordinator_);
     BOOST_ASSERT(proposer_);
     BOOST_ASSERT(chain_sub_engine_);
@@ -329,8 +330,7 @@ namespace kagome::consensus::babe {
       parachain_inherent_data.bitfields =
           bitfield_store_->getBitfields(relay_parent);
 
-      parachain_inherent_data.backed_candidates =
-          backing_store_->get(relay_parent);
+      parachain_inherent_data.backed_candidates = parachain_processor_->getBackedCandidates(relay_parent);
       SL_TRACE(log_,
                "Get backed candidates from store.(count={}, relay_parent={})",
                parachain_inherent_data.backed_candidates.size(),

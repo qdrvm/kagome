@@ -107,6 +107,13 @@ namespace kagome::parachain::fragment {
       return std::nullopt;
     }
 
+    Option<Hash> relayParentByCandidateHash(const CandidateHash &candidate_hash) const {
+      if (auto it = by_candidate_hash.find(candidate_hash); it != by_candidate_hash.end()) {
+        return it->second.relay_parent;
+      }
+      return std::nullopt;
+	  }
+
     bool contains(const CandidateHash &candidate_hash) const {
       return by_candidate_hash.find(candidate_hash) != by_candidate_hash.end();
     }
@@ -383,6 +390,47 @@ namespace kagome::parachain::fragment {
         return res;
       }
       return std::nullopt;
+    }
+
+    template<typename Func>
+    std::optional<CandidateHash> selectChild(const std::vector<CandidateHash> &required_path, Func &&pred) const {
+      NodePointer base_node{NodePointerRoot{}};
+      for (const CandidateHash &required_step : required_path) {
+        if (auto node = nodeCandidateChild(base_node, required_step)) {
+          base_node = *node;
+        } else {
+          return std::nullopt;
+        }
+      }
+
+      return visit_in_place(base_node, 
+        [&](const NodePointerRoot &) -> std::optional<CandidateHash> {
+          for (const FragmentNode &n : nodes) {
+            if (!is_type<NodePointerRoot>(n.parent)) {
+              return std::nullopt;
+            }
+            if (scope.getPendingAvailability(n.candidate_hash)) {
+              return std::nullopt;
+            }
+            if (!pred(n.candidate_hash)) {
+              return std::nullopt;
+            }
+            return n.candidate_hash;
+          }
+          return std::nullopt;
+        },
+        [&](const NodePointerStorage &ptr) -> std::optional<CandidateHash> {
+          for (const auto &[_, h] : nodes[ptr].children) {
+            if (scope.getPendingAvailability(h)) {
+              return std::nullopt;
+            }
+            if (!pred(h)) {
+              return std::nullopt;
+            }
+            return h;
+          }
+          return std::nullopt;
+        });
     }
 
     static FragmentTree populate(const Scope &scope,
