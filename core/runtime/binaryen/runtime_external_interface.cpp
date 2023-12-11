@@ -25,18 +25,13 @@ namespace {
   }
 
   template <>
-  auto literalMemFun<uint64_t>() {
+  auto literalMemFun<int64_t>() {
     return &wasm::Literal::geti64;
-  }
-
-  template <>
-  auto literalMemFun<uint32_t>() {
-    return &wasm::Literal::geti32;
   }
 
   /**
    * @brief a meta-layer that places list of arguments into host api method
-   * invokation using fold expression
+   * invoсation using fold expression
    */
   template <typename T, typename R, auto mf, typename... Args, size_t... I>
   wasm::Literal callInternal(T *host_api,
@@ -248,6 +243,8 @@ namespace kagome::runtime::binaryen {
     REGISTER_HOST_API_FUNC(ext_offchain_set_authorized_nodes_version_1);
     REGISTER_HOST_API_FUNC(ext_offchain_index_set_version_1);
     REGISTER_HOST_API_FUNC(ext_offchain_index_clear_version_1);
+
+    REGISTER_HOST_API_FUNC(ext_panic_handler_abort_on_panic_version_1);
   }
 
   RuntimeExternalInterface::RuntimeExternalInterface(

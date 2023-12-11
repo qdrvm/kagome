@@ -111,11 +111,11 @@ namespace kagome::network {
 
     common::Buffer signable() const {
       return common::Buffer{
-          scale::encode(relay_parent,
-                        para_id,
-                        persisted_data_hash,
-                        pov_hash,
-                        validation_code_hash)
+          ::scale::encode(relay_parent,
+                          para_id,
+                          persisted_data_hash,
+                          pov_hash,
+                          validation_code_hash)
               .value(),
       };
     }
@@ -132,7 +132,7 @@ namespace kagome::network {
     const Hash &hash(const crypto::Hasher &hasher) const {
       if (not hash_.has_value()) {
         hash_.emplace(hasher.blake2b_256(
-            scale::encode(std::tie(descriptor, commitments_hash)).value()));
+            ::scale::encode(std::tie(descriptor, commitments_hash)).value()));
       }
       return hash_.value();
     }
@@ -519,16 +519,11 @@ namespace kagome::network {
       >;
 
   inline CandidateHash candidateHash(const crypto::Hasher &hasher,
-                                     const CandidateReceipt &receipt) {
-    return hasher.blake2b_256(scale::encode(receipt).value());
-  }
-
-  inline CandidateHash candidateHash(const crypto::Hasher &hasher,
                                      const CommittedCandidateReceipt &receipt) {
     auto commitments_hash =
         hasher.blake2b_256(scale::encode(receipt.commitments).value());
     return hasher.blake2b_256(
-        scale::encode(std::tie(receipt.descriptor, commitments_hash)).value());
+        ::scale::encode(std::tie(receipt.descriptor, commitments_hash)).value());
   }
 
   inline CandidateHash candidateHash(const crypto::Hasher &hasher,

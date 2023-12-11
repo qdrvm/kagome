@@ -39,8 +39,8 @@
 #include "primitives/block_header.hpp"
 #include "primitives/block_id.hpp"
 #include "runtime/common/module_repository_impl.hpp"
+#include "runtime/common/runtime_execution_error.hpp"
 #include "runtime/common/runtime_instances_pool.hpp"
-#include "runtime/common/runtime_transaction_error.hpp"
 #include "runtime/common/runtime_upgrade_tracker_impl.hpp"
 #include "runtime/core_api_factory.hpp"
 #include "runtime/executor.hpp"
@@ -156,7 +156,7 @@ class RuntimeTestBase : public ::testing::Test {
             .value();
 
     auto module_repo = std::make_shared<runtime::ModuleRepositoryImpl>(
-        std::make_shared<runtime::RuntimeInstancesPool>(),
+        std::make_shared<runtime::RuntimeInstancesPool>(module_factory),
         upgrade_tracker,
         module_factory,
         std::make_shared<runtime::SingleModuleCache>(),

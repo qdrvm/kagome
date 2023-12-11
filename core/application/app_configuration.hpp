@@ -215,7 +215,11 @@ namespace kagome::application {
      */
     virtual SyncMethod syncMethod() const = 0;
 
-    enum class RuntimeExecutionMethod { Compile, Interpret };
+    enum class RuntimeExecutionMethod {
+      Compile,
+      Interpret,
+    };
+
     /**
      * @return enum constant of the chosen runtime backend
      */
@@ -234,6 +238,8 @@ namespace kagome::application {
     virtual bool purgeWavmCache() const = 0;
 
     virtual uint32_t parachainRuntimeInstanceCacheSize() const = 0;
+    virtual uint32_t parachainPrecompilationThreadNum() const = 0;
+    virtual bool shouldPrecompileParachainModules() const = 0;
 
     enum class OffchainWorkerMode { WhenValidating, Always, Never };
     /**

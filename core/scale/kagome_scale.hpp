@@ -6,18 +6,28 @@
 #ifndef KAGOME_KAGOME_SCALE_HPP
 #define KAGOME_KAGOME_SCALE_HPP
 
+#include <span>
 #include <type_traits>
 #include "common/blob.hpp"
 #include "consensus/babe/types/babe_block_header.hpp"
 #include "consensus/babe/types/seal.hpp"
 #include "network/types/blocks_response.hpp"
+#include "network/types/roles.hpp"
 #include "primitives/block_header.hpp"
 #include "primitives/block_id.hpp"
 #include "primitives/justification.hpp"
 #include "scale/encode_append.hpp"
+#include "scale/libp2p_types.hpp"
 
 namespace kagome::scale {
   using CompactInteger = ::scale::CompactInteger;
+  using BitVec = ::scale::BitVec;
+  using ScaleDecoderStream = ::scale::ScaleDecoderStream;
+  using ScaleEncoderStream = ::scale::ScaleEncoderStream;
+  using PeerInfoSerializable = ::scale::PeerInfoSerializable;
+  using DecodeError = ::scale::DecodeError;
+
+  using ::scale::decode;
 
   template <typename F>
   constexpr void encode(const F &func, const primitives::BlockHeader &bh);
@@ -34,6 +44,9 @@ namespace kagome::scale {
 
   template <typename F, size_t MaxSize>
   constexpr void encode(const F &func, const common::SLBuffer<MaxSize> &c);
+
+  template <typename F>
+  constexpr void encode(const F &func, const network::Roles &c);
 
   template <typename F>
   constexpr void encode(const F &func, const primitives::Other &c);
@@ -137,6 +150,11 @@ namespace kagome::scale {
   template <typename F>
   constexpr void encode(const F &func, const ::scale::EncodeOpaqueValue &c) {
     putByte(func, c.v.data(), c.v.size());
+  }
+
+  template <typename F>
+  constexpr void encode(const F &func, const network::Roles &c) {
+    encode(func, c.value);
   }
 
 }  // namespace kagome::scale

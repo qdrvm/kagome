@@ -8,6 +8,7 @@
 
 #include "telemetry/service.hpp"
 
+#include <atomic>
 #include <chrono>
 #include <memory>
 #include <thread>
@@ -133,7 +134,7 @@ namespace kagome::telemetry {
     const bool enabled_;
 
     // connections thread fields
-    volatile bool shutdown_requested_ = false;
+    std::atomic_bool shutdown_requested_ = false;
     std::shared_ptr<libp2p::basic::Scheduler> scheduler_;
     using WorkGuardT = boost::asio::executor_work_guard<
         boost::asio::io_context::executor_type>;

@@ -44,7 +44,7 @@ jobs:
     - name: install
       run: ./housekeeping/macos/dependency.sh
     - name: build
-      run: ./housekeeping/make_build.sh -DCLEAR_OBJS=ON -DCOVERAGE=OFF -DCMAKE_TOOLCHAIN_FILE=cmake/toolchain/cxx20.cmake
+      run: ./housekeeping/make_build.sh -DCLEAR_OBJS=ON -DCOVERAGE=OFF -DWASM_COMPILER=WasmEdge -DCMAKE_TOOLCHAIN_FILE=cmake/toolchain/cxx20.cmake
       env:
         CI:
 

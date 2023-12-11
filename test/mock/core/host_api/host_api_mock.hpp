@@ -69,7 +69,7 @@ namespace kagome::host_api {
 
     MOCK_METHOD(void,
                 ext_misc_print_num_version_1,
-                (uint64_t),
+                (int64_t),
                 (const, override));
 
     MOCK_METHOD(void,
@@ -343,14 +343,14 @@ namespace kagome::host_api {
                 (),
                 (override));
 
-    MOCK_METHOD(runtime::WasmU64,
+    MOCK_METHOD(runtime::WasmI64,
                 ext_offchain_timestamp_version_1,
                 (),
                 (override));
 
     MOCK_METHOD(void,
                 ext_offchain_sleep_until_version_1,
-                (runtime::WasmU64),
+                (runtime::WasmI64),
                 (override));
 
     MOCK_METHOD(runtime::WasmPointer,
@@ -476,7 +476,7 @@ namespace kagome::host_api {
                  runtime::WasmOffset),
                 (const, override));
 
-    MOCK_METHOD(uint32_t,
+    MOCK_METHOD(int32_t,
                 ext_default_child_storage_exists_version_1,
                 (runtime::WasmSpan, runtime::WasmSpan),
                 (const, override));
@@ -489,6 +489,11 @@ namespace kagome::host_api {
     MOCK_METHOD(runtime::WasmSpan,
                 ext_default_child_storage_storage_kill_version_3,
                 (runtime::WasmSpan, runtime::WasmSpan),
+                (override));
+
+    MOCK_METHOD(void,
+                ext_panic_handler_abort_on_panic_version_1,
+                (runtime::WasmSpan),
                 (override));
   };
 

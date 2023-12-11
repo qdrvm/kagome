@@ -7,6 +7,7 @@
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
+#include "mock/core/storage/spaced_storage_mock.hpp"
 #include "mock/core/storage/trie_pruner/trie_pruner_mock.hpp"
 #include "storage/changes_trie/impl/storage_changes_tracker_impl.hpp"
 #include "storage/in_memory/in_memory_storage.hpp"
@@ -29,6 +30,7 @@ using kagome::common::BufferView;
 using kagome::common::Hash256;
 using kagome::primitives::BlockHash;
 using kagome::storage::Space;
+using kagome::storage::SpacedStorageMock;
 using kagome::storage::trie::StateVersion;
 using kagome::storage::trie_pruner::TriePrunerMock;
 using kagome::subscription::SubscriptionEngine;
@@ -51,7 +53,7 @@ class TrieBatchTest : public test::BaseRocksDB_Test {
     auto serializer = std::make_shared<TrieSerializerImpl>(
         factory,
         codec,
-        std::make_shared<TrieStorageBackendImpl>(std::move(db_)));
+        std::make_shared<TrieStorageBackendImpl>(rocks_));
 
     empty_hash = serializer->getEmptyRootHash();
 
@@ -189,7 +191,7 @@ TEST_F(TrieBatchTest, Replace) {
  * consistency
  */
 TEST_F(TrieBatchTest, ConsistentOnFailure) {
-  auto db = std::make_unique<MockDb>();
+  auto db = std::make_shared<MockDb>();
   /**
    * First time the storage will function correctly, after which it will yield
    * an error
@@ -202,10 +204,16 @@ TEST_F(TrieBatchTest, ConsistentOnFailure) {
       .After(expectation)
       .WillOnce(Return(PolkadotCodec::Error::UNKNOWN_NODE_TYPE));
 
+  auto spaced_db = std::make_shared<SpacedStorageMock>();
+  ON_CALL(*spaced_db, getSpace(Space::kTrieNode)).WillByDefault(Return(db));
+  ON_CALL(*spaced_db, getSpace(Space::kTrieValue)).WillByDefault(Return(db));
+
   auto factory = std::make_shared<PolkadotTrieFactoryImpl>();
   auto codec = std::make_shared<PolkadotCodec>();
   auto serializer = std::make_shared<TrieSerializerImpl>(
-      factory, codec, std::make_shared<TrieStorageBackendImpl>(std::move(db)));
+      factory,
+      codec,
+      std::make_shared<TrieStorageBackendImpl>(spaced_db));
   auto state_pruner = std::make_shared<TriePrunerMock>();
   ON_CALL(
       *state_pruner,

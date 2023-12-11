@@ -8,13 +8,14 @@
 
 #include <array>
 #include <unordered_map>
+#include <span>
 
+#include <fmt/std.h>
 #include <libp2p/common/final_action.hpp>
 
 #include "crypto/hasher.hpp"
 #include "crypto/sr25519_provider.hpp"
 #include "dispute_coordinator/impl/runtime_info.hpp"
-#include "log/formatters/optional.hpp"
 #include "network/common.hpp"
 #include "network/peer_manager.hpp"
 #include "network/router.hpp"
@@ -335,7 +336,7 @@ namespace kagome::parachain {
          core_index < static_cast<CoreIndex>(cores.size());
          ++core_index) {
       if (const auto *scheduled =
-              boost::get<const network::ScheduledCore>(&cores[core_index])) {
+              std::get_if<network::ScheduledCore>(&cores[core_index])) {
         const auto group_index =
             group_rotation_info.groupForCore(core_index, n_cores);
         if (group_index < validator_groups.size()) {

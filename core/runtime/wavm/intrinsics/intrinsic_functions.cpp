@@ -45,7 +45,7 @@ namespace kagome::runtime::wavm {
   Result cName(WAVM::Runtime::ContextRuntimeData *contextRuntimeData,      \
                ##__VA_ARGS__) {                                            \
     logger->warn("Unimplemented Host API function " #cName " was called"); \
-    return Result();                                                       \
+    throw std::runtime_error{#cName " not implemented"};                   \
   }
 
   WAVM_DEFINE_INTRINSIC_FUNCTION(void,
@@ -743,6 +743,11 @@ namespace kagome::runtime::wavm {
                                       WAVM::I32,
                                       WAVM::I32)
 
+  WAVM_DEFINE_INTRINSIC_FUNCTION_STUB(void,
+                                      ext_transaction_index_renew_version_1,
+                                      WAVM::I32,
+                                      WAVM::I32)
+
   WAVM_DEFINE_INTRINSIC_FUNCTION_STUB(
       void, ext_benchmarking_add_to_whitelist_version_1, WAVM::I64)
 
@@ -774,6 +779,21 @@ namespace kagome::runtime::wavm {
                                  ext_trie_blake2_256_root_version_1,
                                  WAVM::I64 values_data) {
     return peekHostApi()->ext_trie_blake2_256_root_version_1(values_data);
+  }
+
+  WAVM_DEFINE_INTRINSIC_FUNCTION_STUB(
+      WAVM::I32,
+      ext_trie_blake2_256_verify_proof_version_2,
+      WAVM::I32,
+      WAVM::I64,
+      WAVM::I64,
+      WAVM::I64,
+      WAVM::I32)
+
+  WAVM_DEFINE_INTRINSIC_FUNCTION(void,
+                                 ext_panic_handler_abort_on_panic_version_1,
+                                 WAVM::I64 message) {
+    return peekHostApi()->ext_panic_handler_abort_on_panic_version_1(message);
   }
 
   void registerHostApiMethods(IntrinsicModule &module) {
@@ -843,6 +863,7 @@ namespace kagome::runtime::wavm {
     REGISTER_HOST_INTRINSIC(I32, ext_trie_blake2_256_ordered_root_version_1, I64)
     REGISTER_HOST_INTRINSIC(I32, ext_trie_blake2_256_ordered_root_version_2, I64, I32)
     REGISTER_HOST_INTRINSIC(I32, ext_trie_blake2_256_root_version_1, I64)
+    REGISTER_HOST_INTRINSIC(I32, ext_trie_blake2_256_verify_proof_version_2,I32, I64, I64, I64, I32)
     REGISTER_HOST_INTRINSIC(I64, ext_crypto_ed25519_public_keys_version_1, I32)
     REGISTER_HOST_INTRINSIC(I64, ext_crypto_ed25519_sign_version_1, I32, I32, I64)
     REGISTER_HOST_INTRINSIC(I64, ext_crypto_secp256k1_ecdsa_recover_compressed_version_1, I32, I32)
@@ -892,6 +913,7 @@ namespace kagome::runtime::wavm {
     REGISTER_HOST_INTRINSIC(   , ext_evm_ext_runtime_event_version_1, I64)
     REGISTER_HOST_INTRINSIC(I64, ext_evm_ext_step_event_filter_version_1)
     REGISTER_HOST_INTRINSIC(   , ext_transaction_index_index_version_1, I32, I32, I32)
+    REGISTER_HOST_INTRINSIC(   , ext_transaction_index_renew_version_1, I32, I32)
 
     REGISTER_HOST_INTRINSIC(   , ext_benchmarking_add_to_whitelist_version_1, I64)
     REGISTER_HOST_INTRINSIC(   , ext_benchmarking_commit_db_version_1)
@@ -902,6 +924,8 @@ namespace kagome::runtime::wavm {
     REGISTER_HOST_INTRINSIC(   , ext_benchmarking_reset_read_write_count_version_1)
     REGISTER_HOST_INTRINSIC(   , ext_benchmarking_set_whitelist_version_1, I64)
     REGISTER_HOST_INTRINSIC(   , ext_benchmarking_wipe_db_version_1)
+
+    REGISTER_HOST_INTRINSIC(   , ext_panic_handler_abort_on_panic_version_1, I64)
 
     // clang-format on
   }

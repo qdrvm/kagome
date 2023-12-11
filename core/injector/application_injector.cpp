@@ -8,7 +8,7 @@
 
 #define BOOST_DI_CFG_DIAGNOSTICS_LEVEL 2
 #define BOOST_DI_CFG_CTOR_LIMIT_SIZE \
-  32  // TODO(Harrm): check how it influences on compilation time
+  24  // TODO(Harrm): check how it influences on compilation time
 
 #include <rocksdb/filter_policy.h>
 #include <rocksdb/table.h>
@@ -128,13 +128,14 @@
 #include "parachain/availability/recovery/recovery_impl.hpp"
 #include "parachain/availability/store/store_impl.hpp"
 #include "parachain/backing/store_impl.hpp"
+#include "parachain/pvf/module_precompiler.hpp"
 #include "parachain/pvf/pvf_impl.hpp"
 #include "parachain/validator/impl/parachain_observer_impl.hpp"
 #include "parachain/validator/parachain_processor.hpp"
 #include "runtime/binaryen/binaryen_memory_provider.hpp"
-#include "runtime/binaryen/core_api_factory_impl.hpp"
 #include "runtime/binaryen/instance_environment_factory.hpp"
 #include "runtime/binaryen/module/module_factory_impl.hpp"
+#include "runtime/common/core_api_factory_impl.hpp"
 #include "runtime/common/module_repository_impl.hpp"
 #include "runtime/common/runtime_instances_pool.hpp"
 #include "runtime/common/runtime_properties_cache_impl.hpp"
@@ -142,6 +143,7 @@
 #include "runtime/common/storage_code_provider.hpp"
 #include "runtime/common/trie_storage_provider_impl.hpp"
 #include "runtime/executor.hpp"
+#include "runtime/module.hpp"
 #include "runtime/module_factory.hpp"
 #include "runtime/runtime_api/impl/account_nonce_api.hpp"
 #include "runtime/runtime_api/impl/authority_discovery_api.hpp"
@@ -157,8 +159,16 @@
 #include "runtime/runtime_api/impl/session_keys_api.hpp"
 #include "runtime/runtime_api/impl/tagged_transaction_queue.hpp"
 #include "runtime/runtime_api/impl/transaction_payment_api.hpp"
+
+#if KAGOME_WASM_COMPILER_WASM_EDGE == 1
+
+#include "runtime/wasm_edge/module_factory_impl.hpp"
+
+#endif
+
+#if KAGOME_WASM_COMPILER_WAVM == 1
+
 #include "runtime/wavm/compartment_wrapper.hpp"
-#include "runtime/wavm/core_api_factory_impl.hpp"
 #include "runtime/wavm/instance_environment_factory.hpp"
 #include "runtime/wavm/intrinsics/intrinsic_functions.hpp"
 #include "runtime/wavm/intrinsics/intrinsic_module.hpp"
@@ -167,6 +177,9 @@
 #include "runtime/wavm/module.hpp"
 #include "runtime/wavm/module_cache.hpp"
 #include "runtime/wavm/module_factory_impl.hpp"
+
+#endif
+
 #include "storage/changes_trie/impl/storage_changes_tracker_impl.hpp"
 #include "storage/rocksdb/rocksdb.hpp"
 #include "storage/spaces.hpp"
@@ -201,9 +214,8 @@ namespace {
 
   sptr<storage::trie::TrieStorageBackendImpl> get_trie_storage_backend(
       sptr<storage::SpacedStorage> spaced_storage) {
-    auto storage = spaced_storage->getSpace(storage::Space::kTrieNode);
     auto backend =
-        std::make_shared<storage::trie::TrieStorageBackendImpl>(storage);
+        std::make_shared<storage::trie::TrieStorageBackendImpl>(spaced_storage);
 
     return backend;
   }
@@ -350,10 +362,9 @@ namespace {
   }
 
   template <typename... Ts>
-  auto makeWavmInjector(
-      application::AppConfiguration::RuntimeExecutionMethod method,
-      Ts &&...args) {
+  auto makeWavmInjector(Ts &&...args) {
     return di::make_injector(
+#if KAGOME_WASM_COMPILER_WAVM == 1
         bind_by_lambda<runtime::wavm::CompartmentWrapper>([](const auto
                                                                  &injector) {
           return std::make_shared<kagome::runtime::wavm::CompartmentWrapper>(
@@ -376,14 +387,36 @@ namespace {
                       .template create<sptr<runtime::wavm::IntrinsicModule>>();
               return module->instantiate();
             }),
+        bind_by_lambda<runtime::wavm::ModuleFactoryImpl>([](const auto
+                                                                &injector) {
+          std::optional<std::shared_ptr<runtime::wavm::ModuleCache>>
+              module_cache_opt;
+          auto &app_config =
+              injector.template create<const application::AppConfiguration &>();
+          if (app_config.useWavmCache()) {
+            module_cache_opt = std::make_shared<runtime::wavm::ModuleCache>(
+                injector.template create<sptr<crypto::Hasher>>(),
+                app_config.runtimeCacheDirPath());
+          }
+          return std::make_shared<runtime::wavm::ModuleFactoryImpl>(
+              injector
+                  .template create<sptr<runtime::wavm::CompartmentWrapper>>(),
+              injector.template create<sptr<runtime::wavm::ModuleParams>>(),
+              injector.template create<sptr<host_api::HostApiFactory>>(),
+              injector.template create<sptr<storage::trie::TrieStorage>>(),
+              injector.template create<sptr<storage::trie::TrieSerializer>>(),
+              injector.template create<sptr<runtime::wavm::IntrinsicModule>>(),
+              injector.template create<sptr<runtime::SingleModuleCache>>(),
+              module_cache_opt,
+              injector.template create<sptr<crypto::Hasher>>());
+        }),
         di::bind<runtime::wavm::IntrinsicResolver>.template to<runtime::wavm::IntrinsicResolverImpl>(),
+#endif
         std::forward<decltype(args)>(args)...);
   }
 
   template <typename... Ts>
-  auto makeBinaryenInjector(
-      application::AppConfiguration::RuntimeExecutionMethod method,
-      Ts &&...args) {
+  auto makeBinaryenInjector(Ts &&...args) {
     return di::make_injector(
         bind_by_lambda<runtime::binaryen::RuntimeExternalInterface>(
             [](const auto &injector) {
@@ -400,9 +433,18 @@ namespace {
         std::forward<decltype(args)>(args)...);
   }
 
+  template <typename... Ts>
+  auto makeWasmEdgeInjector(Ts &&...args) {
+    return di::make_injector(
+#if KAGOME_WASM_COMPILER_WASM_EDGE == 1
+        di::bind<runtime::ModuleFactory>.template to<runtime::wasm_edge::ModuleFactoryImpl>(),
+#endif
+        std::forward<decltype(args)>(args)...);
+  }
+
   template <typename CommonType,
-            typename BinaryenType,
-            typename WavmType,
+            typename InterpretedType,
+            typename CompiledType,
             typename Injector>
   auto choose_runtime_implementation(
       const Injector &injector,
@@ -412,10 +454,10 @@ namespace {
     switch (method) {
       case RuntimeExecutionMethod::Interpret:
         return std::static_pointer_cast<CommonType>(
-            injector.template create<sptr<BinaryenType>>());
+            injector.template create<sptr<InterpretedType>>());
       case RuntimeExecutionMethod::Compile:
         return std::static_pointer_cast<CommonType>(
-            injector.template create<sptr<WavmType>>());
+            injector.template create<sptr<CompiledType>>());
     }
     throw std::runtime_error("Unknown runtime execution method");
   }
@@ -445,6 +487,16 @@ namespace {
         std::move(res.value()));
   }
 
+#if KAGOME_WASM_COMPILER_WAVM == 1
+
+  using ModuleFactory = runtime::wavm::ModuleFactoryImpl;
+
+#elif KAGOME_WASM_COMPILER_WASM_EDGE == 1
+
+  using ModuleFactory = runtime::wasm_edge::ModuleFactoryImpl;
+
+#endif
+
   template <typename... Ts>
   auto makeRuntimeInjector(
       application::AppConfiguration::RuntimeExecutionMethod method,
@@ -459,44 +511,30 @@ namespace {
               return injector
                   .template create<sptr<runtime::RuntimeUpgradeTrackerImpl>>();
             }),
-        makeWavmInjector(method),
-        makeBinaryenInjector(method),
+        makeBinaryenInjector(),
+        makeWavmInjector(),
         bind_by_lambda<runtime::RuntimeInstancesPool>([](const auto &injector) {
-          return std::make_shared<runtime::RuntimeInstancesPool>();
+          auto module_factory =
+              injector.template create<sptr<runtime::ModuleFactory>>();
+          return std::make_shared<runtime::RuntimeInstancesPool>(
+              module_factory);
         }),
         di::bind<runtime::ModuleRepository>.template to<runtime::ModuleRepositoryImpl>(),
-        bind_by_lambda<runtime::CoreApiFactory>([method](const auto &injector) {
-          return choose_runtime_implementation<
-              runtime::CoreApiFactory,
-              runtime::binaryen::CoreApiFactoryImpl,
-              runtime::wavm::CoreApiFactoryImpl>(injector, method);
-        }),
-        bind_by_lambda<runtime::wavm::ModuleFactoryImpl>([](const auto
-                                                                &injector) {
-          std::optional<std::shared_ptr<runtime::wavm::ModuleCache>>
-              module_cache_opt;
-          auto &app_config =
-              injector.template create<const application::AppConfiguration &>();
-          if (app_config.useWavmCache()) {
-            module_cache_opt = std::make_shared<runtime::wavm::ModuleCache>(
-                injector.template create<sptr<crypto::Hasher>>(),
-                app_config.runtimeCacheDirPath());
-          }
-          return std::make_shared<runtime::wavm::ModuleFactoryImpl>(
-              injector
-                  .template create<sptr<runtime::wavm::CompartmentWrapper>>(),
-              injector.template create<sptr<runtime::wavm::ModuleParams>>(),
-              injector.template create<
-                  sptr<runtime::wavm::InstanceEnvironmentFactory>>(),
-              injector.template create<sptr<runtime::wavm::IntrinsicModule>>(),
-              module_cache_opt,
-              injector.template create<sptr<crypto::Hasher>>());
-        }),
-        bind_by_lambda<runtime::ModuleFactory>([method](const auto &injector) {
-          return choose_runtime_implementation<
-              runtime::ModuleFactory,
-              runtime::binaryen::ModuleFactoryImpl,
-              runtime::wavm::ModuleFactoryImpl>(injector, method);
+        di::bind<runtime::CoreApiFactory>.template to<runtime::CoreApiFactoryImpl>(),
+        bind_by_lambda<runtime::ModuleFactory>(
+            [method](const auto &injector) -> sptr<runtime::ModuleFactory> {
+              return choose_runtime_implementation<
+                  runtime::ModuleFactory,
+                  runtime::binaryen::ModuleFactoryImpl,
+                  ModuleFactory>(injector, method);
+            }),
+        bind_by_lambda<runtime::Executor>([](const auto &injector)
+                                              -> sptr<runtime::Executor> {
+          auto ctx_factory =
+              injector.template create<sptr<runtime::RuntimeContextFactory>>();
+          auto cache =
+              injector.template create<sptr<runtime::RuntimePropertiesCache>>();
+          return std::make_shared<runtime::Executor>(ctx_factory, cache);
         }),
         di::bind<runtime::TaggedTransactionQueue>.template to<runtime::TaggedTransactionQueueImpl>(),
         di::bind<runtime::ParachainHost>.template to<runtime::ParachainHostImpl>(),
@@ -555,10 +593,15 @@ namespace {
     libp2p::protocol::PingConfig ping_config{};
     host_api::OffchainExtensionConfig offchain_ext_config{
         config->isOffchainIndexingEnabled()};
+    parachain::PvfImpl::Config pvf_config{
+        .precompile_modules = config->shouldPrecompileParachainModules(),
+        .runtime_instance_cache_size =
+            config->parachainRuntimeInstanceCacheSize(),
+        .precompile_threads_num = config->parachainPrecompilationThreadNum(),
+    };
 
     // clang-format off
-    return di::
-        make_injector(
+    return di::make_injector(
             // bind configs
             useConfig(rpc_thread_pool_config),
             useConfig(ws_config),
@@ -566,6 +609,7 @@ namespace {
             useConfig(tp_pool_limits),
             useConfig(ping_config),
             useConfig(offchain_ext_config),
+            useConfig(pvf_config),
 
             // inherit host injector
             libp2p::injector::makeHostInjector(
@@ -664,22 +708,24 @@ namespace {
               return get_rocks_db(config, chain_spec);
             }),
             bind_by_lambda<blockchain::BlockStorage>([](const auto &injector) {
-              auto root =
+              auto module_factory = injector.template create<sptr<runtime::ModuleFactory>>();
+              auto root_res =
                   injector::calculate_genesis_state(
                       injector
                           .template create<const application::ChainSpec &>(),
-                      injector
-                          .template create<const runtime::ModuleFactory &>(),
+                      *module_factory,
                       injector
                           .template create<storage::trie::TrieSerializer &>(),
                       injector.template create<
-                          sptr<runtime::RuntimePropertiesCache>>())
-                      .value();
+                          sptr<runtime::RuntimePropertiesCache>>());
+              if (!root_res) {
+                throw std::runtime_error{fmt::format("Failed to calculate genesis state: {}", root_res.error())};
+              }
               const auto &hasher =
                   injector.template create<sptr<crypto::Hasher>>();
               const auto &storage =
                   injector.template create<sptr<storage::SpacedStorage>>();
-              return blockchain::BlockStorageImpl::create(root, storage, hasher)
+              return blockchain::BlockStorageImpl::create(root_res.value(), storage, hasher)
                   .value();
             }),
             di::bind<blockchain::JustificationStoragePolicy>.template to<blockchain::JustificationStoragePolicyImpl>(),
@@ -737,7 +783,9 @@ namespace {
                 [](const auto &injector) {
                   auto storage =
                       injector.template create<sptr<storage::SpacedStorage>>();
-                  return get_trie_storage_backend(storage);
+                  return get_trie_storage_backend(
+                    storage
+                  );
                 }),
             bind_by_lambda<storage::trie::TrieStorage>([](const auto
                                                               &injector) {

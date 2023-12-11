@@ -19,7 +19,7 @@ namespace kagome::runtime {
                 (std::shared_ptr<ModuleInstance> module_instance,
                  std::shared_ptr<storage::trie::TrieBatch> batch,
                  ContextParams params),
-                (override));
+                (const, override));
     MOCK_METHOD(
         outcome::result<RuntimeContext>,
         persistent,
@@ -28,7 +28,7 @@ namespace kagome::runtime {
          std::optional<std::shared_ptr<storage::changes_trie::ChangesTracker>>
              changes_tracker_opt,
          ContextParams params),
-        (override));
+        (const, override));
     MOCK_METHOD(
         outcome::result<RuntimeContext>,
         persistentAt,
@@ -36,27 +36,27 @@ namespace kagome::runtime {
          std::optional<std::shared_ptr<storage::changes_trie::ChangesTracker>>
              changes_tracker_opt,
          ContextParams params),
-        (override));
+        (const, override));
     MOCK_METHOD(outcome::result<RuntimeContext>,
                 ephemeral,
                 (std::shared_ptr<ModuleInstance> module_instance,
                  const storage::trie::RootHash &state,
                  ContextParams params),
-                (override));
+                (const, override));
     MOCK_METHOD(outcome::result<RuntimeContext>,
                 ephemeralAt,
                 (const primitives::BlockHash &block_hash, ContextParams params),
-                (override));
+                (const, override));
     MOCK_METHOD(outcome::result<RuntimeContext>,
                 ephemeralAt,
                 (const primitives::BlockHash &block_hash,
                  const storage::trie::RootHash &state,
                  ContextParams params),
-                (override));
+                (const, override));
     MOCK_METHOD(outcome::result<RuntimeContext>,
                 ephemeralAtGenesis,
                 (ContextParams params),
-                (override));
+                (const, override));
   };
 
 }  // namespace kagome::runtime

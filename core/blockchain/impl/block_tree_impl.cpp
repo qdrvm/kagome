@@ -16,7 +16,6 @@
 #include "consensus/babe/impl/babe_digests_util.hpp"
 #include "consensus/babe/is_primary.hpp"
 #include "crypto/blake2/blake2b.h"
-#include "log/formatters/optional.hpp"
 #include "log/profiling_logger.hpp"
 #include "storage/database_error.hpp"
 #include "storage/trie_pruner/trie_pruner.hpp"
@@ -1044,10 +1043,10 @@ namespace kagome::blockchain {
       auto header_res = p.header_repo_->getBlockHeader(hash);
       if (header_res.has_error()) {
         if (chain.empty()) {
-          log_->error("cannot retrieve block with hash {}: {}",
+          log_->error("Cannot retrieve block with hash {}: {}",
                       hash,
                       header_res.error());
-          return BlockTreeError::HEADER_NOT_FOUND;
+          return header_res.error();
         }
         break;
       }

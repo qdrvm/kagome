@@ -64,6 +64,8 @@ groups:
                 children:
                   - name: voting_round
           - name: parachain
+            children:
+             - name: pvf_executor
           - name: dispute
           - name: runtime
             children:
@@ -80,6 +82,7 @@ groups:
                   - name: runtime_cache
               - name: binaryen
               - name: wavm
+              - name: wasmedge
           - name: metrics
           - name: telemetry
           - name: network
