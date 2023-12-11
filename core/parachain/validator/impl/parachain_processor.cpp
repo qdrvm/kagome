@@ -1953,7 +1953,8 @@ namespace kagome::parachain {
         confirmed.para_id(), confirmed.para_head());
   }
 
-  std::vector<network::BackedCandidate> ParachainProcessorImpl::getBackedCandidates(const RelayHash &relay_parent) {
+  std::vector<network::BackedCandidate>
+  ParachainProcessorImpl::getBackedCandidates(const RelayHash &relay_parent) {
     BOOST_ASSERT(
         this_context_->io_context()->get_executor().running_in_this_thread());
 
@@ -1963,9 +1964,61 @@ namespace kagome::parachain {
     }
 
     if (relay_parent_state_opt->get().prospective_parachains_mode) {
-      /// TODO(iceseer): do
-      /// request backable candidates from `prospective_parachains`
-      return {};
+      std::vector<network::BackedCandidate> backed;
+      for (size_t core_idx = 0;
+           core_idx < relay_parent_state_opt->get().availability_cores.size();
+           ++core_idx) {
+        const runtime::CoreState &core =
+            relay_parent_state_opt->get().availability_cores[core_idx];
+        std::optional<std::pair<CandidateHash, Hash>> response = visit_in_place(
+            core,
+            [&](const network::ScheduledCore &scheduled_core)
+                -> std::optional<std::pair<CandidateHash, Hash>> {
+              return prospective_parachains_->answerGetBackableCandidate(
+                  relay_parent, scheduled_core.para_id, {});
+            },
+            [&](const runtime::OccupiedCore &occupied_core)
+                -> std::optional<std::pair<CandidateHash, Hash>> {
+              /// TODO(iceseer): do `bitfields_indicate_availability` check
+              if (occupied_core.next_up_on_available) {
+                return prospective_parachains_->answerGetBackableCandidate(
+                    relay_parent,
+                    occupied_core.next_up_on_available->para_id,
+                    {occupied_core.candidate_hash});
+              }
+              return std::nullopt;
+            },
+            [&](const runtime::FreeCore &)
+                -> std::optional<std::pair<CandidateHash, Hash>> {
+              return std::nullopt;
+            });
+
+        if (!response) {
+          SL_TRACE(logger_,
+                   "No backable candidate returned by prospective parachains. "
+                   "(relay_parent={}, core_idx={})",
+                   relay_parent,
+                   core_idx);
+          continue;
+        }
+
+        const CandidateHash &c_hash = response->first;
+        const RelayHash &r_hash = response->second;
+
+        auto per_relay_state = tryGetStateByRelayParent(r_hash);
+        if (!per_relay_state) {
+          continue;
+        }
+
+        if (auto attested = attested_candidate(
+                c_hash, per_relay_state->get().table_context)) {
+          if (auto b = table_attested_to_backed(
+                  std::move(*attested), per_relay_state->get().table_context)) {
+            backed.emplace_back(std::move(*b));
+          }
+        }
+      }
+      return backed;
     } else {
       return backing_store_->get(relay_parent);
     }

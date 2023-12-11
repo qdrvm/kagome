@@ -142,7 +142,8 @@ namespace kagome::parachain {
     OnFetchAttestedCandidateRequest(
         const network::vstaging::AttestedCandidateRequest &request);
 
-    std::vector<network::BackedCandidate> getBackedCandidates(const RelayHash &relay_parent);
+    std::vector<network::BackedCandidate> getBackedCandidates(
+        const RelayHash &relay_parent);
     network::ResponsePov getPov(CandidateHash &&candidate_hash);
     auto getAvStore() {
       return av_store_;
