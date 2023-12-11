@@ -7,8 +7,8 @@
 #include "parachain/validator/parachain_processor.hpp"
 
 #include <array>
-#include <unordered_map>
 #include <span>
+#include <unordered_map>
 
 #include <fmt/std.h>
 #include <libp2p/common/final_action.hpp>
@@ -59,13 +59,13 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::parachain,
       return "Peer limit reached";
     case E::PROTOCOL_MISMATCH:
       return "Protocol mismatch";
-      case E::NOT_CONFIRMED:
+    case E::NOT_CONFIRMED:
       return "Candidate not confirmed";
-      case E::NO_STATE:
+    case E::NO_STATE:
       return "No parachain state";
-      case E::NO_SESSION_INFO:
+    case E::NO_SESSION_INFO:
       return "No session info";
-      case E::OUT_OF_BOUND:
+    case E::OUT_OF_BOUND:
       return "Index out of bound";
   }
   return "Unknown parachain processor error";
@@ -475,11 +475,11 @@ namespace kagome::parachain {
     }
 
     SL_VERBOSE(logger_,
-        "Inited new backing task.(assignment={}, our index={}, relay "
-        "parent={})",
-        assignment,
-        validator->validatorIndex(),
-        relay_parent);
+               "Inited new backing task.(assignment={}, our index={}, relay "
+               "parent={})",
+               assignment,
+               validator->validatorIndex(),
+               relay_parent);
 
     return RelayParentState{
         .prospective_parachains_mode = mode,
@@ -1684,22 +1684,28 @@ namespace kagome::parachain {
       return Error::NOT_CONFIRMED;
     }
 
-    auto relay_parent_state = tryGetStateByRelayParent(confirmed->get().relay_parent());
+    auto relay_parent_state =
+        tryGetStateByRelayParent(confirmed->get().relay_parent());
     if (!relay_parent_state) {
       return Error::NO_STATE;
     }
     BOOST_ASSERT(relay_parent_state->get().statement_store);
     BOOST_ASSERT(relay_parent_state->get().our_index);
 
-    std::optional<runtime::SessionInfo> opt_session_info = retrieveSessionInfo(confirmed->get().relay_parent());
+    std::optional<runtime::SessionInfo> opt_session_info =
+        retrieveSessionInfo(confirmed->get().relay_parent());
     if (!opt_session_info) {
       return Error::NO_SESSION_INFO;
     }
-    if (confirmed->get().group_index() >= opt_session_info->validator_groups.size()) {
-      SL_ERROR(logger_, "Unexpected array bound for groups. (relay parent={})", confirmed->get().relay_parent());
+    if (confirmed->get().group_index()
+        >= opt_session_info->validator_groups.size()) {
+      SL_ERROR(logger_,
+               "Unexpected array bound for groups. (relay parent={})",
+               confirmed->get().relay_parent());
       return Error::OUT_OF_BOUND;
     }
-    const auto &group = opt_session_info->validator_groups[confirmed->get().group_index()];
+    const auto &group =
+        opt_session_info->validator_groups[confirmed->get().group_index()];
 
     auto init_with_not = [](scale::BitVec &dst, const scale::BitVec &src) {
       dst.bits.reserve(src.bits.size());
@@ -1712,21 +1718,19 @@ namespace kagome::parachain {
     init_with_not(and_mask.seconded_in_group, request.mask.seconded_in_group);
     init_with_not(and_mask.validated_in_group, request.mask.validated_in_group);
 
-    std::vector<IndexedAndSigned<network::vstaging::CompactStatement>> statements;
+    std::vector<IndexedAndSigned<network::vstaging::CompactStatement>>
+        statements;
     relay_parent_state->get().statement_store->groupStatements(
-      group,
-      request.candidate_hash,
-      and_mask,
-      [&](const IndexedAndSigned<network::vstaging::CompactStatement>
-                &statement) {
-        statements.emplace_back(statement);
-      }
-    );
+        group,
+        request.candidate_hash,
+        and_mask,
+        [&](const IndexedAndSigned<network::vstaging::CompactStatement>
+                &statement) { statements.emplace_back(statement); });
 
-    return network::vstaging::AttestedCandidateResponse {
-      .candidate_receipt = confirmed->get().receipt,
-      .persisted_validation_data = confirmed->get().persisted_validation_data,
-      .statements = std::move(statements),
+    return network::vstaging::AttestedCandidateResponse{
+        .candidate_receipt = confirmed->get().receipt,
+        .persisted_validation_data = confirmed->get().persisted_validation_data,
+        .statements = std::move(statements),
     };
   }
 
@@ -1889,21 +1893,61 @@ namespace kagome::parachain {
     }
     const auto &confirmed = confirmed_opt->get();
 
-    auto relay_parent_state_opt =
-        tryGetStateByRelayParent(confirmed.relay_parent());
+    const auto relay_parent = confirmed.relay_parent();
+    auto relay_parent_state_opt = tryGetStateByRelayParent(relay_parent);
     if (!relay_parent_state_opt) {
       return;
     }
+    BOOST_ASSERT(relay_parent_state_opt->get().statement_store);
+
+    std::optional<runtime::SessionInfo> opt_session_info =
+        retrieveSessionInfo(relay_parent);
+    if (!opt_session_info) {
+      return;
+    }
+
+    const auto group_index = confirmed.group_index();
+    if (group_index >= opt_session_info->validator_groups.size()) {
+      return;
+    }
+    const auto group_size =
+        opt_session_info->validator_groups[group_index].size();
 
     /// `provide_candidate_to_grid`
-    
+    network::vstaging::StatementFilter filter =
+        local_knowledge_filter(group_size,
+                               group_index,
+                               candidate_hash,
+                               *relay_parent_state_opt->get().statement_store);
 
+    std::deque<network::VersionedValidatorProtocolMessage> messages = {
+        network::VersionedValidatorProtocolMessage{
+            kagome::network::vstaging::ValidatorProtocolMessage{
+                kagome::network::vstaging::StatementDistributionMessage{
+                    kagome::network::vstaging::BackedCandidateManifest{
+                        .relay_parent = relay_parent,
+                        .candidate_hash = candidate_hash,
+                        .group_index = group_index,
+                        .para_id = confirmed.para_id(),
+                        .parent_head_data_hash =
+                            confirmed.parent_head_data_hash(),
+                        .statement_knowledge = filter}}}},
+        network::VersionedValidatorProtocolMessage{
+            kagome::network::vstaging::ValidatorProtocolMessage{
+                kagome::network::vstaging::StatementDistributionMessage{
+                    kagome::network::vstaging::BackedCandidateAcknowledgement{
+                        .candidate_hash = candidate_hash,
+                        .statement_knowledge = filter}}}}};
 
-    /// TODO(iceseer): do
-    /// TODO(iceseer): send manifest
-    /// TODO(iceseer): send ack backed messages to peers
-    /// TODO(iceseer): send compact statements
-    /// TODO(iceseer): statement-distribution update
+    auto ex = post_acknowledgement_statement_messages(
+        relay_parent,
+        *relay_parent_state_opt->get().statement_store,
+        opt_session_info->validator_groups[group_index],
+        candidate_hash);
+    messages.insert(messages.end(),
+                    std::make_move_iterator(ex.begin()),
+                    std::make_move_iterator(ex.end()));
+    send_to_validators_group(relay_parent, messages);
 
     prospective_backed_notification_fragment_tree_updates(
         confirmed.para_id(), confirmed.para_head());
@@ -2043,7 +2087,9 @@ namespace kagome::parachain {
             prospective_parachains_->introduceCandidate(
                 candidate.descriptor.para_id,
                 candidate,
-                crypto::Hashed<const runtime::PersistedValidationData &, 32, crypto::Blake2b_StreamHasher<32>>{
+                crypto::Hashed<const runtime::PersistedValidationData &,
+                               32,
+                               crypto::Blake2b_StreamHasher<32>>{
                     seconded->get().pvd},
                 candidate_hash);
         if (membership.empty()) {

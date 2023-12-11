@@ -514,7 +514,8 @@ namespace kagome::parachain {
       BOOST_ASSERT(context);
       boost::asio::post(*context, std::forward<F>(func));
     }
-    void statementDistributionBackedCandidate(const CandidateHash &candidate_hash);
+    void statementDistributionBackedCandidate(
+        const CandidateHash &candidate_hash);
     void notifyAvailableData(std::vector<network::ErasureChunk> &&chunk_list,
                              const primitives::BlockHash &relay_parent,
                              const network::CandidateHash &candidate_hash,
