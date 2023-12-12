@@ -132,6 +132,11 @@ class ProspectiveParachainsTest : public testing::Test {
     return std::make_pair(std::move(persisted_validation_data),
                           std::move(candidate));
   }
+
+  bool getNodePointerStorage(const fragment::NodePointer &p, size_t val) {
+    auto pa = kagome::if_type<const fragment::NodePointerStorage>(p);
+    return pa && pa->get() == val;
+  }
 };
 
 /*TEST_F(ProspectiveParachainsTest, sendCandidatesAndCheckIfFound) {
@@ -475,4 +480,49 @@ TEST_F(ProspectiveParachainsTest, Storage_addCandidateChildOfNonRoot) {
   ASSERT_TRUE(kagome::is_type<fragment::NodePointerRoot>(tree.nodes[0].parent));
   auto pa = kagome::if_type<fragment::NodePointerStorage>(tree.nodes[1].parent);
   ASSERT_TRUE(pa && pa->get() == 0);
+}
+
+TEST_F(ProspectiveParachainsTest, Storage_gracefulCycleOf_0) {
+  fragment::CandidateStorage storage{};
+  ParachainId para_id{5};
+  Hash relay_parent_a(hashFromStrData("1"));
+
+  const auto &[pvd_a, candidate_a] =
+      make_committed_candidate(para_id, relay_parent_a, 0, {0x0a}, {0x0a}, 0);
+  const Hash candidate_a_hash = network::candidateHash(*hasher_, candidate_a);
+
+  fragment::Constraints base_constraints(make_constraints(0, {0}, {0x0a}));
+  fragment::RelayChainBlockInfo relay_parent_a_info{
+      .hash = relay_parent_a,
+      .number = pvd_a.get().relay_parent_number,
+      .storage_root = pvd_a.get().relay_parent_storage_root,
+  };
+
+  const size_t max_depth = 4ull;
+  ASSERT_TRUE(
+      storage.addCandidate(candidate_a_hash, candidate_a, pvd_a.get(), hasher_)
+          .has_value());
+  auto scope =
+      fragment::Scope::withAncestors(
+          para_id, relay_parent_a_info, base_constraints, {}, max_depth, {})
+          .value();
+
+  fragment::FragmentTree tree =
+      fragment::FragmentTree::populate(hasher_, scope, storage);
+  std::vector<CandidateHash> candidates = tree.getCandidates();
+
+  ASSERT_EQ(candidates.size(), 1);
+  ASSERT_EQ(tree.nodes.size(), max_depth + 1);
+
+  ASSERT_TRUE(kagome::is_type<fragment::NodePointerRoot>(tree.nodes[0].parent));
+  ASSERT_TRUE(getNodePointerStorage(tree.nodes[1].parent, 0));
+  ASSERT_TRUE(getNodePointerStorage(tree.nodes[2].parent, 1));
+  ASSERT_TRUE(getNodePointerStorage(tree.nodes[3].parent, 2));
+  ASSERT_TRUE(getNodePointerStorage(tree.nodes[4].parent, 3));
+
+  ASSERT_EQ(tree.nodes[0].candidate_hash, candidate_a_hash);
+  ASSERT_EQ(tree.nodes[1].candidate_hash, candidate_a_hash);
+  ASSERT_EQ(tree.nodes[2].candidate_hash, candidate_a_hash);
+  ASSERT_EQ(tree.nodes[3].candidate_hash, candidate_a_hash);
+  ASSERT_EQ(tree.nodes[4].candidate_hash, candidate_a_hash);
 }
