@@ -490,9 +490,6 @@ namespace kagome::storage::trie {
     OUTCOME_TRY(node, getNode(nodes_->getRoot(), nibbles));
     if (node && node->getValue()) {
       OUTCOME_TRY(retrieveValue(const_cast<ValueAndHash &>(node->getValue())));
-      if(!node->getValue().value.has_value()) {
-        return TrieError::BROKEN_VALUE;
-      }
       return BufferView{*node->getValue().value};
     }
     return std::nullopt;
@@ -616,6 +613,9 @@ namespace kagome::storage::trie {
     if (value.hash && !value.value) {
       OUTCOME_TRY(loaded_value, nodes_->retrieve_value_(*value.hash));
       value.value = std::move(loaded_value);
+      if (!value.value) {
+        return TrieError::BROKEN_VALUE;
+      }
     }
     return outcome::success();
   }
