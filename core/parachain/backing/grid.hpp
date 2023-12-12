@@ -17,6 +17,10 @@
 #include "parachain/backing/chacha.hpp"
 
 namespace kagome::parachain::grid {
+  /**
+   * Numbers arranged into rectangular grid.
+   * https://github.com/paritytech/polkadot-sdk/blob/2aaa9af3746b0cf671de9dc98fe2465c7ef59be2/polkadot/node/network/protocol/src/grid_topology.rs#L69-L149
+   */
   struct Grid {
     Grid(size_t count) : count{count}, width(std::sqrt(count)) {}
 
