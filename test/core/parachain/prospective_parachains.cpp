@@ -11,6 +11,7 @@
 #include "testutil/prepare_loggers.hpp"
 
 #include "crypto/hasher/hasher_impl.hpp"
+#include "crypto/type_hasher.hpp"
 #include "parachain/types.hpp"
 #include "parachain/validator/fragment_tree.hpp"
 #include "parachain/validator/prospective_parachains.hpp"
@@ -24,6 +25,7 @@ using namespace kagome::parachain;
 namespace network = kagome::network;
 namespace runtime = kagome::runtime;
 namespace common = kagome::common;
+namespace crypto = kagome::crypto;
 
 struct PerParaData {
   BlockNumber min_relay_parent;
@@ -78,6 +80,58 @@ class ProspectiveParachainsTest : public testing::Test {
         .upgrade_restriction = std::nullopt,
         .future_validation_code = std::nullopt,
     };
+  }
+
+  std::pair<crypto::Hashed<runtime::PersistedValidationData,
+                           32,
+                           crypto::Blake2b_StreamHasher<32>>,
+            network::CommittedCandidateReceipt>
+  make_committed_candidate(ParachainId para_id,
+                           const Hash &relay_parent,
+                           BlockNumber relay_parent_number,
+                           const HeadData &parent_head,
+                           const HeadData &para_head,
+                           BlockNumber hrmp_watermark) {
+    crypto::Hashed<runtime::PersistedValidationData,
+                   32,
+                   crypto::Blake2b_StreamHasher<32>>
+        persisted_validation_data(runtime::PersistedValidationData{
+            .parent_head = parent_head,
+            .relay_parent_number = relay_parent_number,
+            .relay_parent_storage_root = hashFromStrData("69"),
+            .max_pov_size = 1000000,
+        });
+
+    network::CommittedCandidateReceipt candidate{
+        .descriptor =
+            network::CandidateDescriptor{
+                .para_id = para_id,
+                .relay_parent = relay_parent,
+                .collator_id = {},
+                .persisted_data_hash = persisted_validation_data.getHash(),
+                .pov_hash = hashFromStrData("1"),
+                .erasure_encoding_root = hashFromStrData("1"),
+                .signature = {},
+                .para_head_hash =
+                    crypto::Hashed<const HeadData &,
+                                   32,
+                                   crypto::Blake2b_StreamHasher<32>>{para_head}
+                        .getHash(),
+                .validation_code_hash = hashFromStrData("42"),
+            },
+        .commitments =
+            network::CandidateCommitments{
+                .upward_msgs = {},
+                .outbound_hor_msgs = {},
+                .opt_para_runtime = std::nullopt,
+                .para_head = para_head,
+                .downward_msgs_count = 1,
+                .watermark = hrmp_watermark,
+            },
+    };
+
+    return std::make_pair(std::move(persisted_validation_data),
+                          std::move(candidate));
   }
 };
 
@@ -185,4 +239,28 @@ TEST_F(ProspectiveParachainsTest, FragmentTree_scopeOnlyTakesAncestorsUpToMin) {
 
   ASSERT_EQ(scope.ancestors.size(), 2);
   ASSERT_EQ(scope.ancestors_by_hash.size(), 2);
+}
+
+TEST_F(ProspectiveParachainsTest, Storage_AddCandidate) {
+  fragment::CandidateStorage storage{};
+  Hash relay_parent(hashFromStrData("69"));
+
+  const auto &[pvd, candidate] =
+      make_committed_candidate(5, relay_parent, 8, {4, 5, 6}, {1, 2, 3}, 7);
+
+  const Hash candidate_hash = network::candidateHash(*hasher_, candidate);
+  const Hash parent_head_hash = hasher_->blake2b_256(pvd.get().parent_head);
+
+  ASSERT_TRUE(
+      storage.addCandidate(candidate_hash, candidate, pvd.get(), hasher_)
+          .has_value());
+  ASSERT_TRUE(storage.contains(candidate_hash));
+
+  size_t counter = 0ull;
+  storage.iterParaChildren(parent_head_hash, [&](const auto &) { ++counter; });
+  ASSERT_EQ(1, counter);
+
+  auto h = storage.relayParentByCandidateHash(candidate_hash);
+  ASSERT_TRUE(h);
+  ASSERT_EQ(*h, relay_parent);
 }
