@@ -115,7 +115,7 @@ namespace kagome::runtime::wasm_edge {
         returns[0].Type = get_wasm_type<Ret>();
       }
 
-    } catch (std::runtime_error& e) {
+    } catch (std::runtime_error &e) {
       auto log = log::createLogger("HostApi", "runtime");
       SL_ERROR(log, "Host API call failed with error: {}", e.what());
       return WasmEdge_Result_Terminate;
@@ -218,7 +218,8 @@ namespace kagome::runtime::wasm_edge {
     REGISTER_HOST_METHOD(int64_t, ext_crypto_ecdsa_sign_prehashed_version_1, int32_t, int32_t, int64_t)
     REGISTER_HOST_METHOD(int32_t, ext_crypto_ecdsa_generate_version_1, int32_t, int64_t)
     REGISTER_HOST_METHOD(int32_t, ext_crypto_ecdsa_verify_version_1, int32_t, int64_t, int32_t)
-    REGISTER_HOST_METHOD(int32_t, ext_crypto_ecdsa_verify_prehashed_version_1, int32_t, int64_t, int32_t)
+    REGISTER_HOST_METHOD(int32_t, ext_crypto_ecdsa_verify_prehashed_version_1, int32_t, int32_t, int32_t)
+    REGISTER_HOST_METHOD(int32_t, ext_crypto_ecdsa_verify_version_2, int32_t, int64_t, int32_t)
     REGISTER_HOST_METHOD(int32_t, ext_default_child_storage_exists_version_1, int64_t, int64_t)
     REGISTER_HOST_METHOD(int32_t, ext_hashing_blake2_128_version_1, int64_t)
     REGISTER_HOST_METHOD(int32_t, ext_hashing_blake2_256_version_1, int64_t)
@@ -279,6 +280,8 @@ namespace kagome::runtime::wasm_edge {
     REGISTER_HOST_METHOD(void   , ext_offchain_set_authorized_nodes_version_1, int64_t, int32_t)
     REGISTER_HOST_METHOD(void   , ext_offchain_index_set_version_1, int64_t, int64_t)
     REGISTER_HOST_METHOD(void   , ext_offchain_index_clear_version_1, int64_t)
+
+    REGISTER_HOST_METHOD(void, ext_panic_handler_abort_on_panic_version_1, int64_t)
 
     // clang-format on
   }
