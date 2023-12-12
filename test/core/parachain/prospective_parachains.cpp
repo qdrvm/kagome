@@ -526,3 +526,55 @@ TEST_F(ProspectiveParachainsTest, Storage_gracefulCycleOf_0) {
   ASSERT_EQ(tree.nodes[3].candidate_hash, candidate_a_hash);
   ASSERT_EQ(tree.nodes[4].candidate_hash, candidate_a_hash);
 }
+
+TEST_F(ProspectiveParachainsTest, Storage_gracefulCycleOf_1) {
+  fragment::CandidateStorage storage{};
+  ParachainId para_id{5};
+  Hash relay_parent_a(hashFromStrData("1"));
+
+  const auto &[pvd_a, candidate_a] =
+      make_committed_candidate(para_id, relay_parent_a, 0, {0x0a}, {0x0b}, 0);
+  const Hash candidate_a_hash = network::candidateHash(*hasher_, candidate_a);
+
+  const auto &[pvd_b, candidate_b] =
+      make_committed_candidate(para_id, relay_parent_a, 0, {0x0b}, {0x0a}, 0);
+  const Hash candidate_b_hash = network::candidateHash(*hasher_, candidate_b);
+
+  fragment::Constraints base_constraints(make_constraints(0, {0}, {0x0a}));
+  fragment::RelayChainBlockInfo relay_parent_a_info{
+      .hash = relay_parent_a,
+      .number = pvd_a.get().relay_parent_number,
+      .storage_root = pvd_a.get().relay_parent_storage_root,
+  };
+
+  const size_t max_depth = 4ull;
+  ASSERT_TRUE(
+      storage.addCandidate(candidate_a_hash, candidate_a, pvd_a.get(), hasher_)
+          .has_value());
+  ASSERT_TRUE(
+      storage.addCandidate(candidate_b_hash, candidate_b, pvd_b.get(), hasher_)
+          .has_value());
+  auto scope =
+      fragment::Scope::withAncestors(
+          para_id, relay_parent_a_info, base_constraints, {}, max_depth, {})
+          .value();
+
+  fragment::FragmentTree tree =
+      fragment::FragmentTree::populate(hasher_, scope, storage);
+  std::vector<CandidateHash> candidates = tree.getCandidates();
+
+  ASSERT_EQ(candidates.size(), 2);
+  ASSERT_EQ(tree.nodes.size(), max_depth + 1);
+
+  ASSERT_TRUE(kagome::is_type<fragment::NodePointerRoot>(tree.nodes[0].parent));
+  ASSERT_TRUE(getNodePointerStorage(tree.nodes[1].parent, 0));
+  ASSERT_TRUE(getNodePointerStorage(tree.nodes[2].parent, 1));
+  ASSERT_TRUE(getNodePointerStorage(tree.nodes[3].parent, 2));
+  ASSERT_TRUE(getNodePointerStorage(tree.nodes[4].parent, 3));
+
+  ASSERT_EQ(tree.nodes[0].candidate_hash, candidate_a_hash);
+  ASSERT_EQ(tree.nodes[1].candidate_hash, candidate_b_hash);
+  ASSERT_EQ(tree.nodes[2].candidate_hash, candidate_a_hash);
+  ASSERT_EQ(tree.nodes[3].candidate_hash, candidate_b_hash);
+  ASSERT_EQ(tree.nodes[4].candidate_hash, candidate_a_hash);
+}
