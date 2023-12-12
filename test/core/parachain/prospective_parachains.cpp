@@ -722,14 +722,114 @@ TEST_F(ProspectiveParachainsTest,
                               false),
       {0}));
   ASSERT_TRUE(
-      tree.hypotheticalDepths(
-              candidate_a_hash,
-              HypotheticalCandidateComplete{
-                  .candidate_hash = {},
-                  .receipt = candidate_a,
-                  .persisted_validation_data = pvd_a.get(),
-              },
-              storage,
-              false)
+      tree.hypotheticalDepths(candidate_a_hash,
+                              HypotheticalCandidateComplete{
+                                  .candidate_hash = {},
+                                  .receipt = candidate_a,
+                                  .persisted_validation_data = pvd_a.get(),
+                              },
+                              storage,
+                              false)
           .empty());
+}
+
+TEST_F(ProspectiveParachainsTest, Storage_hypotheticalDepthsBackedInPath) {
+  fragment::CandidateStorage storage{};
+  ParachainId para_id{5};
+  Hash relay_parent_a(hashFromStrData("1"));
+
+  const auto &[pvd_a, candidate_a] =
+      make_committed_candidate(para_id, relay_parent_a, 0, {0x0a}, {0x0b}, 0);
+  const Hash candidate_a_hash = network::candidateHash(*hasher_, candidate_a);
+
+  const auto &[pvd_b, candidate_b] =
+      make_committed_candidate(para_id, relay_parent_a, 0, {0x0b}, {0x0c}, 0);
+  const Hash candidate_b_hash = network::candidateHash(*hasher_, candidate_b);
+
+  const auto &[pvd_c, candidate_c] =
+      make_committed_candidate(para_id, relay_parent_a, 0, {0x0b}, {0x0d}, 0);
+  const Hash candidate_c_hash = network::candidateHash(*hasher_, candidate_c);
+
+  fragment::Constraints base_constraints(make_constraints(0, {0}, {0x0a}));
+  fragment::RelayChainBlockInfo relay_parent_a_info{
+      .hash = relay_parent_a,
+      .number = pvd_a.get().relay_parent_number,
+      .storage_root = pvd_a.get().relay_parent_storage_root,
+  };
+
+  const size_t max_depth = 4ull;
+  ASSERT_TRUE(
+      storage.addCandidate(candidate_a_hash, candidate_a, pvd_a.get(), hasher_)
+          .has_value());
+  ASSERT_TRUE(
+      storage.addCandidate(candidate_b_hash, candidate_b, pvd_b.get(), hasher_)
+          .has_value());
+  ASSERT_TRUE(
+      storage.addCandidate(candidate_c_hash, candidate_c, pvd_c.get(), hasher_)
+          .has_value());
+
+  storage.markBacked(candidate_a_hash);
+  storage.markBacked(candidate_b_hash);
+
+  auto scope =
+      fragment::Scope::withAncestors(
+          para_id, relay_parent_a_info, base_constraints, {}, max_depth, {})
+          .value();
+
+  fragment::FragmentTree tree =
+      fragment::FragmentTree::populate(hasher_, scope, storage);
+  std::vector<CandidateHash> candidates = tree.getCandidates();
+
+  ASSERT_EQ(candidates.size(), 3);
+  ASSERT_EQ(tree.nodes.size(), 3);
+
+  Hash candidate_d_hash(hashFromStrData("AA"));
+  ASSERT_TRUE(compareVectors(
+      tree.hypotheticalDepths(candidate_d_hash,
+                              HypotheticalCandidateIncomplete{
+                                  .candidate_hash = {},
+                                  .candidate_para = 0,
+                                  .parent_head_data_hash = hasher_->blake2b_256(
+                                      std::vector<uint8_t>{0x0a}),
+                                  .candidate_relay_parent = relay_parent_a,
+                              },
+                              storage,
+                              true),
+      {0}));
+  ASSERT_TRUE(compareVectors(
+      tree.hypotheticalDepths(candidate_d_hash,
+                              HypotheticalCandidateIncomplete{
+                                  .candidate_hash = {},
+                                  .candidate_para = 0,
+                                  .parent_head_data_hash = hasher_->blake2b_256(
+                                      std::vector<uint8_t>{0x0c}),
+                                  .candidate_relay_parent = relay_parent_a,
+                              },
+                              storage,
+                              true),
+      {2}));
+  ASSERT_TRUE(compareVectors(
+      tree.hypotheticalDepths(candidate_d_hash,
+                              HypotheticalCandidateIncomplete{
+                                  .candidate_hash = {},
+                                  .candidate_para = 0,
+                                  .parent_head_data_hash = hasher_->blake2b_256(
+                                      std::vector<uint8_t>{0x0d}),
+                                  .candidate_relay_parent = relay_parent_a,
+                              },
+                              storage,
+                              true),
+      {}));
+  ASSERT_TRUE(compareVectors(
+      tree.hypotheticalDepths(candidate_d_hash,
+                              HypotheticalCandidateIncomplete{
+                                  .candidate_hash = {},
+                                  .candidate_para = 0,
+                                  .parent_head_data_hash = hasher_->blake2b_256(
+                                      std::vector<uint8_t>{0x0d}),
+                                  .candidate_relay_parent = relay_parent_a,
+                              },
+                              storage,
+                              false),
+      {2}));
 }
