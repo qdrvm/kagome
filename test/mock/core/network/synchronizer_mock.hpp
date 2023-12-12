@@ -26,7 +26,7 @@ namespace kagome::network {
                          SyncResultHandler &&handler,
                          bool subscribe_to_block) override {
       return syncByBlockInfo(block_info, peer_id, handler, subscribe_to_block);
-    };
+    }
 
     MOCK_METHOD(bool,
                 syncByBlockHeader,
@@ -38,20 +38,6 @@ namespace kagome::network {
                            const libp2p::peer::PeerId &peer_id,
                            SyncResultHandler &&handler) override {
       return syncByBlockHeader(block_header, peer_id, handler);
-    };
-
-    MOCK_METHOD(void,
-                syncMissingJustifications,
-                (const libp2p::peer::PeerId &,
-                 primitives::BlockInfo,
-                 std::optional<uint32_t>,
-                 const SyncResultHandler &),
-                ());
-    void syncMissingJustifications(const libp2p::peer::PeerId &peer_id,
-                                   primitives::BlockInfo target_block,
-                                   std::optional<uint32_t> limit,
-                                   SyncResultHandler &&handler) override {
-      return syncMissingJustifications(peer_id, target_block, limit, handler);
     }
 
     MOCK_METHOD(void,

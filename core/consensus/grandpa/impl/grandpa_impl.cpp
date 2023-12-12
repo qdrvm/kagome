@@ -70,7 +70,7 @@ namespace kagome::consensus::grandpa {
       std::shared_ptr<blockchain::BlockTree> block_tree,
       std::shared_ptr<network::ReputationRepository> reputation_repository,
       primitives::events::BabeStateSubscriptionEnginePtr babe_status_observable,
-      std::shared_ptr<boost::asio::io_context> main_thread_context)
+      WeakIoContext main_thread)
       : round_time_factor_{kGossipDuration},
         hasher_{std::move(hasher)},
         environment_{std::move(environment)},
@@ -84,10 +84,10 @@ namespace kagome::consensus::grandpa {
         babe_status_observable_(std::move(babe_status_observable)),
         execution_thread_pool_{std::make_shared<ThreadPool>("grandpa", 1ull)},
         internal_thread_context_{execution_thread_pool_->handler()},
-        main_thread_context_{std::move(main_thread_context)},
+        main_thread_{std::move(main_thread)},
         scheduler_{std::make_shared<libp2p::basic::SchedulerImpl>(
             std::make_shared<libp2p::basic::AsioSchedulerBackend>(
-                internal_thread_context_->io_context()),
+                execution_thread_pool_->io_context()),
             libp2p::basic::Scheduler::Config{})} {
     BOOST_ASSERT(environment_ != nullptr);
     BOOST_ASSERT(crypto_provider_ != nullptr);
@@ -135,7 +135,7 @@ namespace kagome::consensus::grandpa {
         });
 
     internal_thread_context_->start();
-    main_thread_context_.start();
+    main_thread_.start();
     return true;
   }
 
@@ -217,7 +217,7 @@ namespace kagome::consensus::grandpa {
   }
 
   void GrandpaImpl::stop() {
-    main_thread_context_.stop();
+    main_thread_.stop();
     internal_thread_context_->stop();
     fallback_timer_handle_.cancel();
   }
@@ -526,41 +526,6 @@ namespace kagome::consensus::grandpa {
     // Ignore peer whose voter set id lower than our current
     if (msg.voter_set_id < current_round_->voterSetId()) {
       return;
-    }
-
-    if (msg.last_finalized > block_tree_->getLastFinalized().number) {
-      //  Trying to substitute with justifications' request only
-      main_thread_context_.execute([wself{weak_from_this()},
-                                    peer_id,
-                                    last_finalized{
-                                        block_tree_->getLastFinalized()},
-                                    msg{std::move(msg)}]() mutable {
-        if (auto self = wself.lock()) {
-          self->synchronizer_->syncMissingJustifications(
-              peer_id,
-              last_finalized,
-              std::nullopt,
-              [wp{wself}, last_finalized, msg](auto res) {
-                auto self = wp.lock();
-                if (not self) {
-                  return;
-                }
-                if (res.has_error()) {
-                  SL_DEBUG(self->logger_,
-                           "Missing justifications between blocks {} and "
-                           "{} was not loaded: {}",
-                           last_finalized,
-                           msg.last_finalized,
-                           res.error());
-                } else {
-                  SL_DEBUG(self->logger_,
-                           "Loaded justifications for blocks in range {} - {}",
-                           last_finalized,
-                           res.value());
-                }
-              });
-        }
-      });
     }
   }
 
@@ -1341,7 +1306,7 @@ namespace kagome::consensus::grandpa {
 
   void GrandpaImpl::callbackCall(ApplyJustificationCb &&callback,
                                  outcome::result<void> &&result) {
-    main_thread_context_.execute(
+    main_thread_.execute(
         [callback{std::move(callback)}, result{std::move(result)}]() mutable {
           callback(std::move(result));
         });
@@ -1509,8 +1474,7 @@ namespace kagome::consensus::grandpa {
     }
 
     auto grandpa_context = std::make_shared<GrandpaContext>(std::move(gc));
-    main_thread_context_.execute([wself{weak_from_this()},
-                                  grandpa_context]() mutable {
+    main_thread_.execute([wself{weak_from_this()}, grandpa_context]() mutable {
       auto final = [wp{wself}](
                        std::shared_ptr<GrandpaContext> grandpa_context) {
         if (auto self = wp.lock()) {
