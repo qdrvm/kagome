@@ -682,3 +682,54 @@ TEST_F(ProspectiveParachainsTest, Storage_hypotheticalDepthsKnownAndUnknown) {
                               false),
       {1, 3}));
 }
+
+TEST_F(ProspectiveParachainsTest,
+       Storage_hypotheticalDepthsStricterOnComplete) {
+  fragment::CandidateStorage storage{};
+  ParachainId para_id{5};
+  Hash relay_parent_a(hashFromStrData("1"));
+
+  const auto &[pvd_a, candidate_a] = make_committed_candidate(
+      para_id, relay_parent_a, 0, {0x0a}, {0x0b}, 1000);
+  const Hash candidate_a_hash = network::candidateHash(*hasher_, candidate_a);
+
+  fragment::Constraints base_constraints(make_constraints(0, {0}, {0x0a}));
+  fragment::RelayChainBlockInfo relay_parent_a_info{
+      .hash = relay_parent_a,
+      .number = pvd_a.get().relay_parent_number,
+      .storage_root = pvd_a.get().relay_parent_storage_root,
+  };
+
+  const size_t max_depth = 4ull;
+  auto scope =
+      fragment::Scope::withAncestors(
+          para_id, relay_parent_a_info, base_constraints, {}, max_depth, {})
+          .value();
+
+  fragment::FragmentTree tree =
+      fragment::FragmentTree::populate(hasher_, scope, storage);
+
+  ASSERT_TRUE(compareVectors(
+      tree.hypotheticalDepths(candidate_a_hash,
+                              HypotheticalCandidateIncomplete{
+                                  .candidate_hash = {},
+                                  .candidate_para = 0,
+                                  .parent_head_data_hash = hasher_->blake2b_256(
+                                      std::vector<uint8_t>{0x0a}),
+                                  .candidate_relay_parent = relay_parent_a,
+                              },
+                              storage,
+                              false),
+      {0}));
+  ASSERT_TRUE(
+      tree.hypotheticalDepths(
+              candidate_a_hash,
+              HypotheticalCandidateComplete{
+                  .candidate_hash = {},
+                  .receipt = candidate_a,
+                  .persisted_validation_data = pvd_a.get(),
+              },
+              storage,
+              false)
+          .empty());
+}
