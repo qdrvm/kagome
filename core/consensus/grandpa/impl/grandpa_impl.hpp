@@ -102,7 +102,7 @@ namespace kagome::consensus::grandpa {
         std::shared_ptr<network::ReputationRepository> reputation_repository,
         primitives::events::BabeStateSubscriptionEnginePtr
             babe_status_observable,
-        std::shared_ptr<boost::asio::io_context> main_thread_context);
+        WeakIoContext main_thread);
 
     /**
      * Prepares for grandpa round execution: e.g. sets justification observer
@@ -324,7 +324,7 @@ namespace kagome::consensus::grandpa {
 
     std::shared_ptr<ThreadPool> execution_thread_pool_;
     std::shared_ptr<ThreadHandler> internal_thread_context_;
-    ThreadHandler main_thread_context_;
+    ThreadHandler main_thread_;
     std::shared_ptr<libp2p::basic::Scheduler> scheduler_;
 
     std::shared_ptr<VotingRound> current_round_;

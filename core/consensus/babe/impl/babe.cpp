@@ -81,7 +81,7 @@ namespace kagome::consensus::babe {
       std::shared_ptr<network::BlockAnnounceTransmitter> announce_transmitter,
       std::shared_ptr<runtime::OffchainWorkerApi> offchain_worker_api,
       const ThreadPool &thread_pool,
-      std::shared_ptr<boost::asio::io_context> main_thread)
+      WeakIoContext main_thread)
       : log_(log::createLogger("Babe", "babe")),
         clock_(clock),
         block_tree_(std::move(block_tree)),
@@ -102,7 +102,7 @@ namespace kagome::consensus::babe {
         announce_transmitter_(std::move(announce_transmitter)),
         offchain_worker_api_(std::move(offchain_worker_api)),
         main_thread_(std::move(main_thread)),
-        io_context_{thread_pool.io_context()},
+        wasm_thread_{thread_pool.io_context()},
         is_validator_by_config_(app_config.roles().flags.authority != 0),
         telemetry_{telemetry::createTelemetryService()} {
     BOOST_ASSERT(block_tree_);
@@ -120,8 +120,6 @@ namespace kagome::consensus::babe {
     BOOST_ASSERT(chain_sub_engine_);
     BOOST_ASSERT(announce_transmitter_);
     BOOST_ASSERT(offchain_worker_api_);
-    BOOST_ASSERT(main_thread_);
-    BOOST_ASSERT(io_context_);
 
     // Register metrics
     metrics_registry_->registerGaugeFamily(
@@ -403,10 +401,10 @@ namespace kagome::consensus::babe {
           return;
         }
       };
-      self->main_thread_->post(std::move(proposed));
+      post(self->main_thread_, std::move(proposed));
     };
 
-    io_context_->post(std::move(propose));
+    post(wasm_thread_, std::move(propose));
 
     return outcome::success();
   }

@@ -21,6 +21,7 @@
 #include "storage/spaced_storage.hpp"
 #include "utils/block_number_key.hpp"
 #include "utils/thread_pool.hpp"
+#include "utils/weak_io_context_strand.hpp"
 
 // TODO(turuslan): #1651, report equivocation
 
@@ -41,7 +42,7 @@ namespace kagome::network {
                std::shared_ptr<crypto::EcdsaProvider> ecdsa,
                std::shared_ptr<storage::SpacedStorage> db,
                std::shared_ptr<ThreadPool> thread_pool,
-               std::shared_ptr<boost::asio::io_context> main_thread,
+               WeakIoContext main_thread,
                LazySPtr<consensus::Timeline> timeline,
                std::shared_ptr<crypto::SessionKeys> session_keys,
                LazySPtr<BeefyProtocol> beefy_protocol,
@@ -50,8 +51,8 @@ namespace kagome::network {
         beefy_api_{std::move(beefy_api)},
         ecdsa_{std::move(ecdsa)},
         db_{db->getSpace(storage::Space::kBeefyJustification)},
-        strand_inner_{thread_pool->io_context()},
-        strand_{*strand_inner_},
+        strand_{
+            std::make_shared<WeakIoContextStrand>(thread_pool->io_context())},
         main_thread_{std::move(main_thread)},
         timeline_{std::move(timeline)},
         session_keys_{std::move(session_keys)},
@@ -81,7 +82,7 @@ namespace kagome::network {
 
   void Beefy::onJustification(const primitives::BlockHash &block_hash,
                               primitives::Justification raw) {
-    strand_.post([weak = weak_from_this(), block_hash, raw = std::move(raw)] {
+    strand_->post([weak = weak_from_this(), block_hash, raw = std::move(raw)] {
       if (auto self = weak.lock()) {
         std::ignore = self->onJustificationOutcome(block_hash, std::move(raw));
       }
@@ -108,14 +109,14 @@ namespace kagome::network {
   }
 
   void Beefy::onMessage(consensus::beefy::BeefyGossipMessage message) {
-    if (not strand_.running_in_this_thread()) {
-      return strand_.post(
-          [weak = weak_from_this(), message = std::move(message)] {
-            if (auto self = weak.lock()) {
-              self->onMessage(std::move(message));
-            }
-          });
-    }
+    strand_->post([weak = weak_from_this(), message = std::move(message)] {
+      if (auto self = weak.lock()) {
+        self->onMessageStrand(std::move(message));
+      }
+    });
+  }
+
+  void Beefy::onMessageStrand(consensus::beefy::BeefyGossipMessage message) {
     if (not beefy_genesis_) {
       return;
     }
@@ -204,7 +205,8 @@ namespace kagome::network {
     if (count >= consensus::beefy::threshold(total)) {
       std::ignore = apply(session.rounds.extract(round).mapped(), true);
     } else if (broadcast) {
-      main_thread_->post(
+      post(
+          main_thread_,
           [protocol{beefy_protocol_.get()},
            message{std::make_shared<consensus::beefy::BeefyGossipMessage>(
                std::move(vote))}] { protocol->broadcast(std::move(message)); });
@@ -221,14 +223,14 @@ namespace kagome::network {
     SL_INFO(log_, "last finalized {}", beefy_finalized_);
     chain_sub_.onFinalize([weak{weak_from_this()}]() {
       if (auto self = weak.lock()) {
-        self->strand_.post([weak] {
+        self->strand_->post([weak] {
           if (auto self = weak.lock()) {
             std::ignore = self->update();
           }
         });
       }
     });
-    strand_.post([weak = weak_from_this()] {
+    strand_->post([weak = weak_from_this()] {
       if (auto self = weak.lock()) {
         std::ignore = self->update();
       }
@@ -350,12 +352,12 @@ namespace kagome::network {
     metric_finalized->set(beefy_finalized_);
     next_digest_ = std::max(next_digest_, block_number + 1);
     if (broadcast) {
-      main_thread_->post(
-          [protocol{beefy_protocol_.get()},
-           message{std::make_shared<consensus::beefy::BeefyGossipMessage>(
-               std::move(justification_v1))}] {
-            protocol->broadcast(std::move(message));
-          });
+      post(main_thread_,
+           [protocol{beefy_protocol_.get()},
+            message{std::make_shared<consensus::beefy::BeefyGossipMessage>(
+                std::move(justification_v1))}] {
+             protocol->broadcast(std::move(message));
+           });
     }
     return outcome::success();
   }

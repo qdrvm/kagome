@@ -15,7 +15,7 @@
 #include <boost/asio/io_context.hpp>
 #include <soralog/util.hpp>
 
-#include "utils/non_copyable.hpp"
+#include "utils/weak_io_context_post.hpp"
 
 namespace kagome {
 
@@ -29,7 +29,7 @@ namespace kagome {
     ThreadHandler &operator=(ThreadHandler &&) = delete;
     ThreadHandler &operator=(const ThreadHandler &) = delete;
 
-    explicit ThreadHandler(std::shared_ptr<boost::asio::io_context> io_context)
+    explicit ThreadHandler(WeakIoContext io_context)
         : execution_state_{State::kStopped}, ioc_{std::move(io_context)} {}
     ~ThreadHandler() = default;
 
@@ -43,24 +43,18 @@ namespace kagome {
 
     template <typename F>
     void execute(F &&func) {
-      BOOST_ASSERT(ioc_);
       if (State::kStarted == execution_state_.load(std::memory_order_acquire)) {
-        ioc_->post(std::forward<F>(func));
+        post(ioc_, std::forward<F>(func));
       }
     }
 
     bool isInCurrentThread() const {
-      BOOST_ASSERT(ioc_);
-      return ioc_->get_executor().running_in_this_thread();
-    }
-
-    std::shared_ptr<boost::asio::io_context> io_context() const {
-      return ioc_;
+      return runningInThisThread(ioc_);
     }
 
    private:
     std::atomic<State> execution_state_;
-    std::shared_ptr<boost::asio::io_context> ioc_;
+    WeakIoContext ioc_;
   };
 
   /**
