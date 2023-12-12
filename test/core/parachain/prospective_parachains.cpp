@@ -391,3 +391,88 @@ TEST_F(ProspectiveParachainsTest, Storage_childrenOfRootAreContiguous) {
   auto pa = kagome::if_type<fragment::NodePointerStorage>(tree.nodes[2].parent);
   ASSERT_TRUE(pa && pa->get() == 0);
 }
+
+TEST_F(ProspectiveParachainsTest, Storage_addCandidateChildOfRoot) {
+  fragment::CandidateStorage storage{};
+  ParachainId para_id{5};
+  Hash relay_parent_a(hashFromStrData("1"));
+
+  const auto &[pvd_a, candidate_a] =
+      make_committed_candidate(para_id, relay_parent_a, 0, {0x0a}, {0x0b}, 0);
+  const Hash candidate_a_hash = network::candidateHash(*hasher_, candidate_a);
+
+  const auto &[pvd_b, candidate_b] =
+      make_committed_candidate(para_id, relay_parent_a, 0, {0x0a}, {0x0c}, 0);
+  const Hash candidate_b_hash = network::candidateHash(*hasher_, candidate_b);
+
+  fragment::Constraints base_constraints(make_constraints(0, {0}, {0x0a}));
+  fragment::RelayChainBlockInfo relay_parent_a_info{
+      .hash = relay_parent_a,
+      .number = pvd_a.get().relay_parent_number,
+      .storage_root = pvd_a.get().relay_parent_storage_root,
+  };
+
+  ASSERT_TRUE(
+      storage.addCandidate(candidate_a_hash, candidate_a, pvd_a.get(), hasher_)
+          .has_value());
+
+  auto scope = fragment::Scope::withAncestors(
+                   para_id, relay_parent_a_info, base_constraints, {}, 4ull, {})
+                   .value();
+
+  fragment::FragmentTree tree =
+      fragment::FragmentTree::populate(hasher_, scope, storage);
+  ASSERT_TRUE(
+      storage.addCandidate(candidate_b_hash, candidate_b, pvd_b.get(), hasher_)
+          .has_value());
+
+  tree.addAndPopulate(candidate_b_hash, storage);
+  std::vector<CandidateHash> candidates = tree.getCandidates();
+
+  ASSERT_EQ(candidates.size(), 2);
+  ASSERT_TRUE(kagome::is_type<fragment::NodePointerRoot>(tree.nodes[0].parent));
+  ASSERT_TRUE(kagome::is_type<fragment::NodePointerRoot>(tree.nodes[1].parent));
+}
+
+TEST_F(ProspectiveParachainsTest, Storage_addCandidateChildOfNonRoot) {
+  fragment::CandidateStorage storage{};
+  ParachainId para_id{5};
+  Hash relay_parent_a(hashFromStrData("1"));
+
+  const auto &[pvd_a, candidate_a] =
+      make_committed_candidate(para_id, relay_parent_a, 0, {0x0a}, {0x0b}, 0);
+  const Hash candidate_a_hash = network::candidateHash(*hasher_, candidate_a);
+
+  const auto &[pvd_b, candidate_b] =
+      make_committed_candidate(para_id, relay_parent_a, 0, {0x0b}, {0x0c}, 0);
+  const Hash candidate_b_hash = network::candidateHash(*hasher_, candidate_b);
+
+  fragment::Constraints base_constraints(make_constraints(0, {0}, {0x0a}));
+  fragment::RelayChainBlockInfo relay_parent_a_info{
+      .hash = relay_parent_a,
+      .number = pvd_a.get().relay_parent_number,
+      .storage_root = pvd_a.get().relay_parent_storage_root,
+  };
+
+  ASSERT_TRUE(
+      storage.addCandidate(candidate_a_hash, candidate_a, pvd_a.get(), hasher_)
+          .has_value());
+
+  auto scope = fragment::Scope::withAncestors(
+                   para_id, relay_parent_a_info, base_constraints, {}, 4ull, {})
+                   .value();
+
+  fragment::FragmentTree tree =
+      fragment::FragmentTree::populate(hasher_, scope, storage);
+  ASSERT_TRUE(
+      storage.addCandidate(candidate_b_hash, candidate_b, pvd_b.get(), hasher_)
+          .has_value());
+
+  tree.addAndPopulate(candidate_b_hash, storage);
+  std::vector<CandidateHash> candidates = tree.getCandidates();
+
+  ASSERT_EQ(candidates.size(), 2);
+  ASSERT_TRUE(kagome::is_type<fragment::NodePointerRoot>(tree.nodes[0].parent));
+  auto pa = kagome::if_type<fragment::NodePointerStorage>(tree.nodes[1].parent);
+  ASSERT_TRUE(pa && pa->get() == 0);
+}
