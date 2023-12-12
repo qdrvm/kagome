@@ -833,3 +833,91 @@ TEST_F(ProspectiveParachainsTest, Storage_hypotheticalDepthsBackedInPath) {
                               false),
       {2}));
 }
+
+TEST_F(ProspectiveParachainsTest, Storage_pendingAvailabilityInScope) {
+  fragment::CandidateStorage storage{};
+  ParachainId para_id{5};
+  Hash relay_parent_a(hashFromStrData("1"));
+  Hash relay_parent_b(hashFromStrData("2"));
+  Hash relay_parent_c(hashFromStrData("3"));
+
+  const auto &[pvd_a, candidate_a] =
+      make_committed_candidate(para_id, relay_parent_a, 0, {0x0a}, {0x0b}, 0);
+  const Hash candidate_a_hash = network::candidateHash(*hasher_, candidate_a);
+
+  const auto &[pvd_b, candidate_b] =
+      make_committed_candidate(para_id, relay_parent_b, 1, {0x0b}, {0x0c}, 1);
+  const Hash candidate_b_hash = network::candidateHash(*hasher_, candidate_b);
+
+  fragment::Constraints base_constraints(make_constraints(1, {}, {0x0a}));
+  fragment::RelayChainBlockInfo relay_parent_a_info{
+      .hash = relay_parent_a,
+      .number = pvd_a.get().relay_parent_number,
+      .storage_root = pvd_a.get().relay_parent_storage_root,
+  };
+  std::vector<fragment::PendingAvailability> pending_availability = {
+      fragment::PendingAvailability{
+          .candidate_hash = candidate_a_hash,
+          .relay_parent = relay_parent_a_info,
+      }};
+  fragment::RelayChainBlockInfo relay_parent_b_info{
+      .hash = relay_parent_b,
+      .number = pvd_b.get().relay_parent_number,
+      .storage_root = pvd_b.get().relay_parent_storage_root,
+  };
+  fragment::RelayChainBlockInfo relay_parent_c_info{
+      .hash = relay_parent_c,
+      .number = pvd_b.get().relay_parent_number + 1,
+      .storage_root = {},
+  };
+
+  const size_t max_depth = 4ull;
+  ASSERT_TRUE(
+      storage.addCandidate(candidate_a_hash, candidate_a, pvd_a.get(), hasher_)
+          .has_value());
+  ASSERT_TRUE(
+      storage.addCandidate(candidate_b_hash, candidate_b, pvd_b.get(), hasher_)
+          .has_value());
+
+  storage.markBacked(candidate_a_hash);
+  auto scope = fragment::Scope::withAncestors(para_id,
+                                              relay_parent_c_info,
+                                              base_constraints,
+                                              pending_availability,
+                                              max_depth,
+                                              {relay_parent_b_info})
+                   .value();
+
+  fragment::FragmentTree tree =
+      fragment::FragmentTree::populate(hasher_, scope, storage);
+  std::vector<CandidateHash> candidates = tree.getCandidates();
+
+  ASSERT_EQ(candidates.size(), 2);
+  ASSERT_EQ(tree.nodes.size(), 2);
+
+  Hash candidate_d_hash(hashFromStrData("AA"));
+  ASSERT_TRUE(compareVectors(
+      tree.hypotheticalDepths(candidate_d_hash,
+                              HypotheticalCandidateIncomplete{
+                                  .candidate_hash = {},
+                                  .candidate_para = 0,
+                                  .parent_head_data_hash = hasher_->blake2b_256(
+                                      std::vector<uint8_t>{0x0b}),
+                                  .candidate_relay_parent = relay_parent_c,
+                              },
+                              storage,
+                              false),
+      {1}));
+  ASSERT_TRUE(compareVectors(
+      tree.hypotheticalDepths(candidate_d_hash,
+                              HypotheticalCandidateIncomplete{
+                                  .candidate_hash = {},
+                                  .candidate_para = 0,
+                                  .parent_head_data_hash = hasher_->blake2b_256(
+                                      std::vector<uint8_t>{0x0c}),
+                                  .candidate_relay_parent = relay_parent_b,
+                              },
+                              storage,
+                              false),
+      {2}));
+}

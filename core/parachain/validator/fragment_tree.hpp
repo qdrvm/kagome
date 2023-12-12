@@ -485,7 +485,7 @@ namespace kagome::parachain::fragment {
                       -> std::tuple<
                           ConstraintModifications,
                           size_t,
-                          std::reference_wrapper<const RelayChainBlockInfo>> {
+                          RelayChainBlockInfo> {
                     return std::make_tuple(ConstraintModifications{},
                                            size_t{0ull},
                                            scope.earliestRelayParent());
@@ -494,7 +494,7 @@ namespace kagome::parachain::fragment {
                       -> std::tuple<
                           ConstraintModifications,
                           size_t,
-                          std::reference_wrapper<const RelayChainBlockInfo>> {
+                          RelayChainBlockInfo> {
                     const auto &node = nodes[ptr];
                     if (auto opt_rcbi =
                             scope.ancestorByHash(node.relayParent())) {
@@ -550,14 +550,14 @@ namespace kagome::parachain::fragment {
                   min_relay_parent_number = visit_in_place(
                       parent_pointer,
                       [&](const NodePointerStorage &) {
-                        return earliest_rp.get().number;
+                        return earliest_rp.number;
                       },
                       [&](const NodePointerRoot &) {
                         return pending->get().relay_parent.number;
                       });
                 } else {
                   min_relay_parent_number =
-                      std::max(earliest_rp.get().number,
+                      std::max(earliest_rp.number,
                                scope.earliestRelayParent().number);
                 }
 
