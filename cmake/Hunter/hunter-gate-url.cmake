@@ -1,5 +1,5 @@
 HunterGate(
-  URL "https://github.com/qdrvm/hunter/archive/refs/tags/v0.23.257-qdrvm14.tar.gz"
-  SHA1 "1d488224f6a06971a5b4166283bde16d1aa56458"
+  URL "https://github.com/qdrvm/hunter/archive/refs/heads/wasmedge-0.13.3-qdrvm1.zip"
+  SHA1 "f735e6a0e3edd5bc4afbac958894e0f417545896"
   LOCAL
 )
