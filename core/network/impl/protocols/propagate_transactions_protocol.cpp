@@ -13,6 +13,7 @@
 #include "network/common.hpp"
 #include "network/notifications/connect_and_handshake.hpp"
 #include "network/notifications/handshake_and_read_messages.hpp"
+#include "utils/weak_io_context_post.hpp"
 
 namespace {
   constexpr const char *kPropagatedTransactions =
@@ -28,7 +29,7 @@ namespace kagome::network {
       Roles roles,
       const application::ChainSpec &chain_spec,
       const blockchain::GenesisBlockHash &genesis_hash,
-      std::shared_ptr<boost::asio::io_context> main_thread,
+      WeakIoContext main_thread,
       std::shared_ptr<consensus::Timeline> timeline,
       std::shared_ptr<ExtrinsicObserver> extrinsic_observer,
       std::shared_ptr<StreamEngine> stream_engine,
@@ -134,8 +135,9 @@ namespace kagome::network {
 
   void PropagateTransactionsProtocol::propagateTransactions(
       std::span<const primitives::Transaction> txs) {
-    if (not main_thread_->get_executor().running_in_this_thread()) {
-      return main_thread_->post(
+    if (not runningInThisThread(main_thread_)) {
+      return post(
+          main_thread_,
           [self{shared_from_this()}, txs{std::vector(txs.begin(), txs.end())}] {
             self->propagateTransactions(txs);
           });
