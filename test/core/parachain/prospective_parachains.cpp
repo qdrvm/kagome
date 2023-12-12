@@ -125,3 +125,28 @@ TEST_F(ProspectiveParachainsTest,
           .error(),
       fragment::Scope::Error::UNEXPECTED_ANCESTOR);
 }
+
+TEST_F(ProspectiveParachainsTest,
+       FragmentTree_scopeRejectsAncestorFor_0_Block) {
+  ParachainId para_id{5};
+  fragment::RelayChainBlockInfo relay_parent{
+      .hash = hashFromStrData("0"),
+      .number = 0,
+      .storage_root = hashFromStrData("69"),
+  };
+
+  std::vector<fragment::RelayChainBlockInfo> ancestors = {
+      fragment::RelayChainBlockInfo{
+          .hash = hashFromStrData("99"),
+          .number = 99999,
+          .storage_root = hashFromStrData("69"),
+      }};
+
+  const size_t max_depth = 2ull;
+  fragment::Constraints base_constraints(make_constraints(0, {}, {1, 2, 3}));
+  ASSERT_EQ(
+      fragment::Scope::withAncestors(
+          para_id, relay_parent, base_constraints, {}, max_depth, ancestors)
+          .error(),
+      fragment::Scope::Error::UNEXPECTED_ANCESTOR);
+}
