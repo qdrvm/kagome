@@ -189,6 +189,16 @@ namespace kagome::network {
       const libp2p::peer::PeerId &peer_id,
       Synchronizer::SyncResultHandler &&handler,
       bool subscribe_to_block) {
+    auto best_block = block_tree_->bestBlock();
+
+    // Provided block is equal our best one. Nothing needs to do.
+    if (block_info == best_block) {
+      if (handler) {
+        handler(block_info);
+      }
+      return false;
+    }
+
     // Subscribe on demand
     if (subscribe_to_block) {
       subscribeToBlock(block_info, std::move(handler));
@@ -199,18 +209,6 @@ namespace kagome::network {
         it != known_blocks_.end()) {
       auto &block_in_queue = it->second;
       block_in_queue.peers.emplace(peer_id);
-      if (handler) {
-        handler(block_info);
-      }
-      return false;
-    }
-
-    const auto &last_finalized_block = block_tree_->getLastFinalized();
-
-    auto best_block = block_tree_->bestBlock();
-
-    // Provided block is equal our best one. Nothing needs to do.
-    if (block_info == best_block) {
       if (handler) {
         handler(block_info);
       }
@@ -229,6 +227,8 @@ namespace kagome::network {
       return false;
     }
     SL_TRACE(log_, "Peer {} marked as busy", peer_id);
+
+    const auto &last_finalized_block = block_tree_->getLastFinalized();
 
     // First we need to find the best common block to avoid manipulations with
     // blocks what already exists on node.
