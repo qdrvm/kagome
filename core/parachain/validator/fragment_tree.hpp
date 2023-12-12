@@ -12,6 +12,7 @@
 #include <unordered_map>
 #include <unordered_set>
 #include <vector>
+#include <ranges>
 #include "outcome/outcome.hpp"
 
 #include "log/logger.hpp"
@@ -23,6 +24,7 @@
 #include "primitives/math.hpp"
 #include "runtime/runtime_api/parachain_host_types.hpp"
 #include "utils/map.hpp"
+#include "crypto/hasher/hasher_impl.hpp"
 
 namespace kagome::parachain::fragment {
 
@@ -377,6 +379,7 @@ namespace kagome::parachain::fragment {
     // depths where the candidate is stored.
     HashMap<CandidateHash, BitVec> candidates;
 
+    std::shared_ptr<crypto::Hasher> hasher_;
     log::Logger logger = log::createLogger("parachain", "fragment_tree");
 
     Option<Vec<size_t>> candidate(const CandidateHash &hash) const {
@@ -391,6 +394,11 @@ namespace kagome::parachain::fragment {
       }
       return std::nullopt;
     }
+
+    std::vector<CandidateHash> getCandidates() const {
+      auto kv = std::views::keys(candidates);
+      return { kv.begin(), kv.end() };
+	  }
 
     template<typename Func>
     std::optional<CandidateHash> selectChild(const std::vector<CandidateHash> &required_path, Func &&pred) const {
@@ -433,7 +441,7 @@ namespace kagome::parachain::fragment {
         });
     }
 
-    static FragmentTree populate(const Scope &scope,
+    static FragmentTree populate(const std::shared_ptr<crypto::Hasher> &hasher, const Scope &scope,
                                  const CandidateStorage &storage) {
       auto logger = log::createLogger("parachain", "fragment_tree");
       SL_TRACE(logger,
@@ -444,7 +452,7 @@ namespace kagome::parachain::fragment {
                scope.para,
                scope.ancestors.size());
 
-      FragmentTree tree{.scope = scope, .nodes = {}, .candidates = {}};
+      FragmentTree tree{.scope = scope, .nodes = {}, .candidates = {}, .hasher_ = hasher};
 
       tree.populateFromBases(storage, {{NodePointerRoot{}}});
       return tree;
@@ -455,7 +463,7 @@ namespace kagome::parachain::fragment {
       Option<size_t> last_sweep_start{};
       do {
         const auto sweep_start = nodes.size();
-        if (last_sweep_start) {
+        if (last_sweep_start && *last_sweep_start == sweep_start) {
           break;
         }
 
@@ -517,11 +525,9 @@ namespace kagome::parachain::fragment {
                 child_constraints_res.error().message());
             continue;
           }
+
           const auto &child_constraints = child_constraints_res.value();
-          const auto required_head_hash =
-              crypto::Hashed<const HeadData &, 32, crypto::Blake2b_StreamHasher<32>>{
-                  child_constraints.required_parent}
-                  .getHash();
+          const auto required_head_hash = hasher_->blake2b_256(child_constraints.required_parent);
 
           storage.iterParaChildren(
               required_head_hash, [&](const CandidateEntry &candidate) {

@@ -434,7 +434,7 @@ namespace kagome::parachain {
                                                    mode->max_candidate_depth,
                                                    ancestry));
         fragment_trees.emplace(
-            para, fragment::FragmentTree::populate(scope, candidate_storage));
+            para, fragment::FragmentTree::populate(hasher_, scope, candidate_storage));
       }
 
       view.active_leaves.emplace(
