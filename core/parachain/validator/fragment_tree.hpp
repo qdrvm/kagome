@@ -807,9 +807,7 @@ namespace kagome::parachain::fragment {
 
         /// TODO(iceseer): keep hashed object in constraints to avoid recalc
         if (parent_head_hash
-            != crypto::Hashed<const HeadData &, 32, crypto::Blake2b_StreamHasher<32>>{child_constraints
-                                                        .required_parent}
-                   .getHash()) {
+            != hasher_->blake2b_256(child_constraints.required_parent)) {
           return;
         }
 
