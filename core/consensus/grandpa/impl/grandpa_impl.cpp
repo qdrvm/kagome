@@ -527,41 +527,6 @@ namespace kagome::consensus::grandpa {
     if (msg.voter_set_id < current_round_->voterSetId()) {
       return;
     }
-
-    if (msg.last_finalized > block_tree_->getLastFinalized().number) {
-      //  Trying to substitute with justifications' request only
-      main_thread_context_.execute([wself{weak_from_this()},
-                                    peer_id,
-                                    last_finalized{
-                                        block_tree_->getLastFinalized()},
-                                    msg{std::move(msg)}]() mutable {
-        if (auto self = wself.lock()) {
-          self->synchronizer_->syncMissingJustifications(
-              peer_id,
-              last_finalized,
-              std::nullopt,
-              [wp{wself}, last_finalized, msg](auto res) {
-                auto self = wp.lock();
-                if (not self) {
-                  return;
-                }
-                if (res.has_error()) {
-                  SL_DEBUG(self->logger_,
-                           "Missing justifications between blocks {} and "
-                           "{} was not loaded: {}",
-                           last_finalized,
-                           msg.last_finalized,
-                           res.error());
-                } else {
-                  SL_DEBUG(self->logger_,
-                           "Loaded justifications for blocks in range {} - {}",
-                           last_finalized,
-                           res.value());
-                }
-              });
-        }
-      });
-    }
   }
 
   void GrandpaImpl::onCatchUpRequest(
