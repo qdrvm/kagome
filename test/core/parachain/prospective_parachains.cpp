@@ -47,9 +47,8 @@ struct TestState {
 
 class ProspectiveParachainsTest : public testing::Test {
   void SetUp() override {
+    testutil::prepareLoggers();
     hasher_ = std::make_shared<kagome::crypto::HasherImpl>();
-    /// OUTCOME_TRY(enc_header, testutil::scaleEncodeAndCompareWithRef(header));
-    /// auto hash = hasher_->blake2b_256(enc_header);
   }
 
  protected:
@@ -263,4 +262,68 @@ TEST_F(ProspectiveParachainsTest, Storage_AddCandidate) {
   auto h = storage.relayParentByCandidateHash(candidate_hash);
   ASSERT_TRUE(h);
   ASSERT_EQ(*h, relay_parent);
+}
+
+TEST_F(ProspectiveParachainsTest, Storage_PopulateWorksRecursively) {
+  fragment::CandidateStorage storage{};
+  ParachainId para_id{5};
+
+  Hash relay_parent_a(hashFromStrData("1"));
+  Hash relay_parent_b(hashFromStrData("2"));
+
+  const auto &[pvd_a, candidate_a] =
+      make_committed_candidate(para_id, relay_parent_a, 0, {0x0a}, {0x0b}, 0);
+  const Hash candidate_a_hash = network::candidateHash(*hasher_, candidate_a);
+
+  const auto &[pvd_b, candidate_b] =
+      make_committed_candidate(para_id, relay_parent_b, 1, {0x0b}, {0x0c}, 1);
+  const Hash candidate_b_hash = network::candidateHash(*hasher_, candidate_b);
+
+  fragment::Constraints base_constraints(make_constraints(0, {0}, {0x0a}));
+  std::vector<fragment::RelayChainBlockInfo> ancestors = {
+      fragment::RelayChainBlockInfo{
+          .hash = relay_parent_a,
+          .number = pvd_a.get().relay_parent_number,
+          .storage_root = pvd_a.get().relay_parent_storage_root,
+      }};
+
+  fragment::RelayChainBlockInfo relay_parent_b_info{
+      .hash = relay_parent_b,
+      .number = pvd_b.get().relay_parent_number,
+      .storage_root = pvd_b.get().relay_parent_storage_root,
+  };
+
+  ASSERT_TRUE(
+      storage.addCandidate(candidate_a_hash, candidate_a, pvd_a.get(), hasher_)
+          .has_value());
+
+  ASSERT_TRUE(
+      storage.addCandidate(candidate_b_hash, candidate_b, pvd_b.get(), hasher_)
+          .has_value());
+
+  auto scope =
+      fragment::Scope::withAncestors(
+          para_id, relay_parent_b_info, base_constraints, {}, 4ull, ancestors)
+          .value();
+
+  fragment::FragmentTree tree =
+      fragment::FragmentTree::populate(hasher_, scope, storage);
+  std::vector<CandidateHash> candidates = tree.getCandidates();
+
+  ASSERT_EQ(candidates.size(), 2);
+
+  ASSERT_TRUE(std::find(candidates.begin(), candidates.end(), candidate_a_hash)
+              != candidates.end());
+  ASSERT_TRUE(std::find(candidates.begin(), candidates.end(), candidate_b_hash)
+              != candidates.end());
+
+  ASSERT_EQ(tree.nodes.size(), 2);
+  ASSERT_TRUE(kagome::is_type<fragment::NodePointerRoot>(tree.nodes[0].parent));
+  ASSERT_EQ(tree.nodes[0].candidate_hash, candidate_a_hash);
+  ASSERT_EQ(tree.nodes[0].depth, 0);
+
+  auto pa = kagome::if_type<fragment::NodePointerStorage>(tree.nodes[1].parent);
+  ASSERT_TRUE(pa && pa->get() == 0);
+  ASSERT_EQ(tree.nodes[1].candidate_hash, candidate_b_hash);
+  ASSERT_EQ(tree.nodes[1].depth, 1);
 }
