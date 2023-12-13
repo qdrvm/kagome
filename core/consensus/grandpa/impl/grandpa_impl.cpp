@@ -70,6 +70,7 @@ namespace kagome::consensus::grandpa {
       std::shared_ptr<blockchain::BlockTree> block_tree,
       std::shared_ptr<network::ReputationRepository> reputation_repository,
       primitives::events::BabeStateSubscriptionEnginePtr babe_status_observable,
+      std::shared_ptr<Watchdog> watchdog,
       WeakIoContext main_thread)
       : round_time_factor_{kGossipDuration},
         hasher_{std::move(hasher)},
@@ -82,7 +83,8 @@ namespace kagome::consensus::grandpa {
         block_tree_(std::move(block_tree)),
         reputation_repository_(std::move(reputation_repository)),
         babe_status_observable_(std::move(babe_status_observable)),
-        execution_thread_pool_{std::make_shared<ThreadPool>("grandpa", 1ull)},
+        execution_thread_pool_{
+            std::make_shared<ThreadPool>(std::move(watchdog), "grandpa", 1ull)},
         internal_thread_context_{execution_thread_pool_->handler()},
         main_thread_{std::move(main_thread)},
         scheduler_{std::make_shared<libp2p::basic::SchedulerImpl>(
