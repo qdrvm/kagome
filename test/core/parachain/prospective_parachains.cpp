@@ -82,6 +82,65 @@ class ProspectiveParachainsTest : public testing::Test {
     };
   }
 
+  std::pair<network::CommittedCandidateReceipt,
+            runtime::PersistedValidationData>
+  make_candidate(const Hash &relay_parent_hash,
+                 BlockNumber relay_parent_number,
+                 ParachainId para_id,
+                 const HeadData &parent_head,
+                 const HeadData &head_data,
+                 const ValidationCodeHash &validation_code_hash) {
+    runtime::PersistedValidationData pvd{
+        .parent_head = parent_head,
+        .relay_parent_number = relay_parent_number,
+        .relay_parent_storage_root = {},
+        .max_pov_size = 1'000'000,
+    };
+
+    network::CandidateCommitments commitments{
+        .upward_msgs = {},
+        .outbound_hor_msgs = {},
+        .opt_para_runtime = std::nullopt,
+        .para_head = head_data,
+        .downward_msgs_count = 0,
+        .watermark = relay_parent_number,
+    };
+
+    network::CandidateReceipt candidate{};
+    candidate.descriptor = network::CandidateDescriptor{
+        .para_id = 0,
+        .relay_parent = relay_parent_hash,
+        .collator_id = {},
+        .persisted_data_hash = {},
+        .pov_hash = {},
+        .erasure_encoding_root = {},
+        .signature = {},
+        .para_head_hash = {},
+        .validation_code_hash =
+            hasher_->blake2b_256(std::vector<uint8_t>{1, 2, 3}),
+    };
+    candidate.commitments_hash = {};
+
+    candidate.commitments_hash =
+        crypto::Hashed<network::CandidateCommitments,
+                       32,
+                       crypto::Blake2b_StreamHasher<32>>(commitments)
+            .getHash();
+    candidate.descriptor.para_id = para_id;
+    candidate.descriptor.persisted_data_hash =
+        crypto::Hashed<runtime::PersistedValidationData,
+                       32,
+                       crypto::Blake2b_StreamHasher<32>>(pvd)
+            .getHash();
+    candidate.descriptor.validation_code_hash = validation_code_hash;
+    return std::make_pair(
+        network::CommittedCandidateReceipt{
+            .descriptor = candidate.descriptor,
+            .commitments = commitments,
+        },
+        pvd);
+  }
+
   std::pair<crypto::Hashed<runtime::PersistedValidationData,
                            32,
                            crypto::Blake2b_StreamHasher<32>>,
@@ -921,10 +980,59 @@ TEST_F(ProspectiveParachainsTest, Storage_pendingAvailabilityInScope) {
 
 TEST_F(ProspectiveParachainsTest,
        Candidates_insertingUnconfirmedRejectsOnIncompatibleClaims) {
-  //    HeadData
-  //
-  //    		let relay_head_data_a = HeadData(vec![1, 2, 3]);
-  //		let relay_head_data_b = HeadData(vec![4, 5, 6]);
-  //		let relay_hash_a = relay_head_data_a.hash();
-  //		let relay_hash_b = relay_head_data_b.hash();
+  HeadData relay_head_data_a{{1, 2, 3}};
+  HeadData relay_head_data_b{{4, 5, 6}};
+
+  const Hash relay_hash_a = hasher_->blake2b_256(relay_head_data_a);
+  const Hash relay_hash_b = hasher_->blake2b_256(relay_head_data_b);
+
+  ParachainId para_id_a{1};
+  ParachainId para_id_b{2};
+
+  const auto &[candidate_a, pvd_a] = make_candidate(relay_hash_a,
+                                                    1,
+                                                    para_id_a,
+                                                    relay_head_data_a,
+                                                    {1},
+                                                    hashFromStrData("1000"));
+  const Hash candidate_hash_a = network::candidateHash(*hasher_, candidate_a);
+  const libp2p::peer::PeerId peer{"peer1"_peerid};
+
+  GroupIndex group_index_a = 100;
+  GroupIndex group_index_b = 200;
+
+  Candidates candidates;
+  candidates.confirm_candidate(
+      candidate_hash_a, candidate_a, pvd_a, group_index_a, hasher_);
+
+  ASSERT_FALSE(
+      candidates.insert_unconfirmed(peer,
+                                    candidate_hash_a,
+                                    relay_hash_b,
+                                    group_index_a,
+                                    std::make_pair(relay_hash_a, para_id_a)));
+  ASSERT_FALSE(
+      candidates.insert_unconfirmed(peer,
+                                    candidate_hash_a,
+                                    relay_hash_a,
+                                    group_index_b,
+                                    std::make_pair(relay_hash_a, para_id_a)));
+  ASSERT_FALSE(
+      candidates.insert_unconfirmed(peer,
+                                    candidate_hash_a,
+                                    relay_hash_a,
+                                    group_index_a,
+                                    std::make_pair(relay_hash_b, para_id_a)));
+  ASSERT_FALSE(
+      candidates.insert_unconfirmed(peer,
+                                    candidate_hash_a,
+                                    relay_hash_a,
+                                    group_index_a,
+                                    std::make_pair(relay_hash_a, para_id_b)));
+  ASSERT_TRUE(
+      candidates.insert_unconfirmed(peer,
+                                    candidate_hash_a,
+                                    relay_hash_a,
+                                    group_index_a,
+                                    std::make_pair(relay_hash_a, para_id_a)));
 }
