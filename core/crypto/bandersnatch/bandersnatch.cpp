@@ -20,6 +20,32 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::crypto::bandersnatch::vrf, Error, e) {
 
 namespace kagome::crypto::bandersnatch {
 
+  SecretKey::SecretKey(const Seed &seed)  //
+      : bandersnatch_vrfs::SecretKey(seed) {}
+
+  Public SecretKey::to_public() const {
+    auto pk = bandersnatch_vrfs::SecretKey::publicKey();
+    return Public::fromSpan(pk).value();
+  }
+
+  vrf::VrfPreOut SecretKey::vrf_preout(const vrf::VrfInput &input) const {
+    vrf::VrfPreOut vpo;
+    auto po = bandersnatch_vrfs::SecretKey::vrfPreOut(input);
+    BOOST_ASSERT(po.size() == vpo.size());
+    std::copy(po.begin(), po.end(), vpo.begin());
+    return vpo;
+  }
+
+  vrf::VrfInOut SecretKey::vrf_inout(const vrf::VrfInput &input) const {
+    vrf::VrfInOut vio{};
+    auto io = bandersnatch_vrfs::SecretKey::vrfInOut(input);
+    BOOST_ASSERT(io.input.size() == vio.input.size());
+    std::copy(io.input.begin(), io.input.end(), vio.input.begin());
+    BOOST_ASSERT(io.preout.size() == vio.preoutput.size());
+    std::copy(io.preout.begin(), io.preout.end(), vio.preoutput.begin());
+    return vio;
+  }
+
   /* clang-format off
 
 #[cfg(feature = "serde")]
@@ -45,7 +71,6 @@ use sp_std::{vec, vec::Vec};
 
 /// Identifier used to match public keys against bandersnatch-vrf keys.
 pub const CRYPTO_ID: CryptoTypeId = CryptoTypeId(*b"band");
-
 
 */
 
@@ -86,8 +111,7 @@ impl<'de> Deserialize<'de> for Public {
     return Pair{Seed(std::move(seed))};
   }
 
-  Pair::Pair(Seed seed)
-      : secret_(SecretKey::from_seed(seed)), seed_(std::move(seed)) {}
+  Pair::Pair(Seed seed) : secret_(seed), seed_(std::move(seed)) {}
 
   outcome::result<std::tuple<Pair, std::optional<Seed>>> Pair::derive(
       const Pair &original, std::span<const crypto::bip39::RawJunction> path) {
@@ -116,8 +140,9 @@ impl<'de> Deserialize<'de> for Public {
 
   Signature Pair::sign(BytesIn data) const {
     std::array<BytesIn, 1> transcript_data{data};
+    std::array<vrf::VrfInput, 1> i;
     auto sign_data =
-        vrf::VrfSignData::create(vrf::SIGNING_CTX, transcript_data, {}).value();
+        vrf::VrfSignData::create(vrf::SIGNING_CTX, transcript_data, i).value();
     return vrf_sign(sign_data).signature;
   }
 
@@ -283,8 +308,10 @@ impl<'de> Deserialize<'de> for Public {
         transcript.append(item);
       }
 
-      auto x = inputs.subspan(0, kMaxVrfInputOutputCounts);
-      this->inputs.assign(x.begin(), x.end());
+      if (not inputs.empty()) {
+        auto x = inputs.subspan(0, kMaxVrfInputOutputCounts);
+        this->inputs.assign(x.begin(), x.end());
+      }
     }
 
     outcome::result<VrfSignData> VrfSignData::create(
