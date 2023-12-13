@@ -14,6 +14,9 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::storage::trie, TrieError, e) {
     case TrieError::VALUE_RETRIEVE_NOT_PROVIDED:
       return "attempt to retrieve a value by hash with no corresponding "
              "callback provided";
+    case TrieError::BROKEN_VALUE:
+      return "value is absent from the database, although a node pointing to "
+             "this value exists";
   }
   return "unknown";
 }
