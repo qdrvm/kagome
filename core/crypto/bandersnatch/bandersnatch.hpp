@@ -16,6 +16,8 @@
 
 #include <libp2p/common/types.hpp>
 
+#include <bandersnatch_vrfs/bandersnatch_vrfs.hpp>
+
 namespace kagome::crypto::bandersnatch {
 
   using libp2p::Bytes;
@@ -45,17 +47,18 @@ namespace kagome::crypto::bandersnatch {
   }  // namespace vrf
 
   /// The raw secret seed, which can be used to reconstruct the secret [`Pair`].
-  struct Seed : common::Blob<SEED_SERIALIZED_SIZE> {
+  struct Seed : public common::Blob<SEED_SERIALIZED_SIZE> {
+    using common::Blob<SEED_SERIALIZED_SIZE>::Blob;
     //
   };
 
-  struct SecretKey  // : dleq_vrf::SecretKey<E>
-  {
-    static SecretKey from_seed(const Seed &seed);
+  struct SecretKey : private bandersnatch_vrfs::SecretKey {
+    explicit SecretKey(const Seed &seed);
 
     Public to_public() const;
 
     vrf::VrfPreOut vrf_preout(const vrf::VrfInput &input) const;
+
     vrf::VrfInOut vrf_inout(const vrf::VrfInput &input) const;
   };
 
@@ -128,7 +131,7 @@ namespace kagome::crypto::bandersnatch {
   ///
   /// The signature is created via the [`VrfSecret::vrf_sign`] using
   /// [`SIGNING_CTX`] as transcript `label`.
-  struct Signature : common::Blob<SIGNATURE_SERIALIZED_SIZE> {
+  struct Signature : public common::Blob<SIGNATURE_SERIALIZED_SIZE> {
     static const auto LEN = size();
 
     static Signature unchecked_from(
@@ -160,20 +163,22 @@ namespace kagome::crypto::bandersnatch {
 
     /// VRF input to construct a [`VrfOutput`] instance and embeddable in
     /// [`VrfSignData`].
-    struct VrfInput : AffineRepr  // public bandersnatch_vrfs::VrfInput
+    struct VrfInput : public AffineRepr  // public bandersnatch_vrfs::VrfInput
     {
+      VrfInput() = default;
+
       /// Construct a new VRF input.
       VrfInput(BytesIn domain, BytesIn data);
     };
 
-    struct VrfPreOut : AffineRepr  // public bandersnatch_vrfs::VrfInput
+    struct VrfPreOut : public AffineRepr  // public bandersnatch_vrfs::VrfInput
     {};
 
     struct VrfInOut {
       /// VRF input point
-      VrfInput input;
+      VrfInput input{};
       /// VRF pre-output point
-      VrfPreOut preoutput;
+      VrfPreOut preoutput{};
 
       template <size_t N>
       common::Blob<N> vrf_output_bytes(Transcript transcript) const;

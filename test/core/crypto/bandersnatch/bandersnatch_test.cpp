@@ -25,9 +25,16 @@ using vrf::VrfSignData;
 using bandersnatch::BytesIn;
 using bandersnatch::BytesOut;
 
+using kagome::common::Blob;
+
 struct BandersnatchTest : public ::testing::Test {
   static void SetUpTestCase() {
     testutil::prepareLoggers();
+  }
+
+  static kagome::log::Logger log() {
+    static auto logger = kagome::log::createLogger("test");
+    return logger;
   }
 
   //  void SetUp() override {
@@ -60,38 +67,68 @@ struct BandersnatchTest : public ::testing::Test {
   //  std::shared_ptr<Ed25519Provider> ed25519_provider;
 };
 
-TEST_F(BandersnatchTest, max_vrf_ios_bound_respected){
+kagome::log::Logger log_;
 
+TEST_F(BandersnatchTest, createSecret) {
+  bandersnatch::Seed seed;
+  for (auto &e : seed) {
+    e = '\xab';
+  }
+
+  auto secret = bandersnatch::SecretKey(seed);
+
+  [[maybe_unused]] auto public_key = secret.to_public();
+}
+
+TEST_F(BandersnatchTest, generateKeypair) {
+  bandersnatch::Seed seed;
+  for (auto &e : seed) {
+    e = '\xab';
+  }
+
+  auto keypair = bandersnatch::Pair(seed);
+
+  [[maybe_unused]] auto public_key = keypair.publicKey();
+
+  Blob<51> msg;
+  for (auto &m : msg) {
+    m = '\xef';
+  }
+
+  auto sig = keypair.sign(msg);
+
+  SL_INFO(log(), "SIG: {}", (Blob<65> &)sig);
+}
+
+TEST_F(BandersnatchTest, max_vrf_ios_bound_respected) {
+  ;  //
+
+  {
+    // VrfInput each with empty domain and data
+    std::vector<VrfInput> inputs;
+
+    for (auto i = kMaxVrfInputOutputCounts - 1; i > 0; --i) {
+      inputs.emplace_back(BytesIn{}, BytesIn{});
+    }
+
+    //// VrfSignData with empty label, one empty transcript data and inputs
+    // kagome::common::Blob<0> empty_transcript_data;
+    // std::vector<BytesIn> transcript_data = {empty_transcript_data};
+    // VrfSignData sign_data{{}, transcript_data, inputs};
     //
+    // VrfInput available_input{{}, {}};
+    // ASSERT_OUTCOME_SUCCESS_TRY(sign_data.push_vrf_input(available_input));
+    //
+    // VrfInput extra_input{{}, {}};
+    // ASSERT_OUTCOME_SOME_ERROR(sign_data.push_vrf_input(extra_input));
+  }
 
-    {
-
-        // VrfInput each with empty domain and data
-        std::vector<VrfInput> inputs;
-
-for (auto i = kMaxVrfInputOutputCounts - 1; i > 0; --i) {
-  inputs.emplace_back(BytesIn{}, BytesIn{});
-}
-
-//// VrfSignData with empty label, one empty transcript data and inputs
-// kagome::common::Blob<0> empty_transcript_data;
-// std::vector<BytesIn> transcript_data = {empty_transcript_data};
-// VrfSignData sign_data{{}, transcript_data, inputs};
-//
-// VrfInput available_input{{}, {}};
-// ASSERT_OUTCOME_SUCCESS_TRY(sign_data.push_vrf_input(available_input));
-//`
-// VrfInput extra_input{{}, {}};
-// ASSERT_OUTCOME_SOME_ERROR(sign_data.push_vrf_input(extra_input));
-}
-
-//{
-//  std::vector<VrfInput> inputs;
-//  for (auto i = kMaxVrfInputOutputCounts - 1; i > 0; --i) {
-//    inputs.emplace_back(BytesIn{}, BytesIn{});
-//  }
-//  ASSERT_OUTCOME_SOME_ERROR(VrfSignData::cteate(""_bytes, ""_bytes,
-//  inputs));
-//}
-}
-;
+  {
+    std::vector<VrfInput> inputs;
+    for (auto i = kMaxVrfInputOutputCounts - 1; i > 0; --i) {
+      inputs.emplace_back(BytesIn{}, BytesIn{});
+    }
+    // ASSERT_OUTCOME_SOME_ERROR(VrfSignData::cteate(""_bytes, ""_bytes,
+    // inputs));
+  }
+};

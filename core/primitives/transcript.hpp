@@ -55,13 +55,16 @@ namespace kagome::primitives {
 
     void append(libp2p::BytesIn data) {
       const uint32_t data_len = data.size();
-      strobe_.metaAd<true>(decompose(data_len));
+      strobe_.metaAd<false>(decompose(data_len));
       strobe_.ad<false>(data);
     }
 
     void append_message(libp2p::BytesIn label, libp2p::BytesIn msg) {
       strobe_.metaAd<false>(label);
-      append(msg);
+      const uint32_t data_len = msg.size();
+      strobe_.metaAd<false>(label);
+      strobe_.metaAd<true>(decompose(data_len));
+      strobe_.ad<false>(msg);
     }
 
     void append_message(libp2p::BytesIn label, const uint64_t value) {

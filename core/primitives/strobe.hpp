@@ -34,12 +34,12 @@ namespace kagome::primitives {
     using Position = uint8_t;
 
     static constexpr Flags kFlag_NU = 0x00;  // NU = No Use
-    static constexpr Flags kFlag_I = 0x01;
-    static constexpr Flags kFlag_A = 0x02;
-    static constexpr Flags kFlag_C = 0x04;
-    static constexpr Flags kFlag_T = 0x08;
-    static constexpr Flags kFlag_M = 0x10;
-    static constexpr Flags kFlag_K = 0x20;
+    static constexpr Flags kFlag_I = 0x01;   // Inbound
+    static constexpr Flags kFlag_A = 0x02;   // Application
+    static constexpr Flags kFlag_C = 0x04;   // Cipher
+    static constexpr Flags kFlag_T = 0x08;   // Transport
+    static constexpr Flags kFlag_M = 0x10;   // Meta
+    static constexpr Flags kFlag_K = 0x20;   // Key tree
 
     uint8_t raw_data[kBufferSize + kAlignment - 1ull + 3ull];
     uint8_t *const buffer_;

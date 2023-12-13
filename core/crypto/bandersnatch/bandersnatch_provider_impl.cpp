@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "bandersnatch_provider_impl.hpp"
+#include "crypto/bandersnatch/bandersnatch_provider_impl.hpp"
 #include "crypto/bandersnatch/bandersnatch.hpp"
 
 namespace kagome::crypto {
@@ -12,8 +12,7 @@ namespace kagome::crypto {
   BandersnatchKeypair BandersnatchProviderImpl::generateKeypair(
       const BandersnatchSeed &seed,
       BandersnatchProvider::Junctions junctions) const {
-    std::array<uint8_t, constants::bandersnatch::KEYPAIR_SIZE> kp{};
-    bandersnatch_keypair_from_seed(kp.data(), seed.data());
+    bandersnatch_vrfs::SecretKey secret{seed};
 
     // FIXME
     // for (auto &junction : junctions) {
@@ -24,7 +23,12 @@ namespace kagome::crypto {
     //   kp = next;
     // }
 
+    std::array<uint8_t, constants::bandersnatch::KEYPAIR_SIZE> kp{};
+    //    bandersnatch_keypair_from_seed(kp.data(), seed.data());
+
     BandersnatchKeypair keypair;
+    keypair.public_key = common::Blob(secret.publicKey());
+
     std::copy(kp.begin(),
               kp.begin() + constants::bandersnatch::SECRET_SIZE,
               keypair.secret_key.begin());

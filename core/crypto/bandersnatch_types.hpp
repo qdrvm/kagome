@@ -6,9 +6,7 @@
 
 #pragma once
 
-extern "C" {
-#include <bandersnatch_vrf/bandersnatch_vrf.h>
-}
+#include <bandersnatch_vrfs/bandersnatch_vrfs.hpp>
 #include <boost/multiprecision/cpp_int.hpp>
 #include <span>
 
