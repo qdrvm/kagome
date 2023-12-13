@@ -14,6 +14,7 @@
 #include "crypto/type_hasher.hpp"
 #include "parachain/types.hpp"
 #include "parachain/validator/fragment_tree.hpp"
+#include "parachain/validator/impl/candidates.hpp"
 #include "parachain/validator/prospective_parachains.hpp"
 #include "runtime/runtime_api/parachain_host_types.hpp"
 #include "scale/kagome_scale.hpp"
@@ -111,11 +112,7 @@ class ProspectiveParachainsTest : public testing::Test {
                 .pov_hash = hashFromStrData("1"),
                 .erasure_encoding_root = hashFromStrData("1"),
                 .signature = {},
-                .para_head_hash =
-                    crypto::Hashed<const HeadData &,
-                                   32,
-                                   crypto::Blake2b_StreamHasher<32>>{para_head}
-                        .getHash(),
+                .para_head_hash = hasher_->blake2b_256(para_head),
                 .validation_code_hash = hashFromStrData("42"),
             },
         .commitments =
@@ -920,4 +917,14 @@ TEST_F(ProspectiveParachainsTest, Storage_pendingAvailabilityInScope) {
                               storage,
                               false),
       {2}));
+}
+
+TEST_F(ProspectiveParachainsTest,
+       Candidates_insertingUnconfirmedRejectsOnIncompatibleClaims) {
+  //    HeadData
+  //
+  //    		let relay_head_data_a = HeadData(vec![1, 2, 3]);
+  //		let relay_head_data_b = HeadData(vec![4, 5, 6]);
+  //		let relay_hash_a = relay_head_data_a.hash();
+  //		let relay_hash_b = relay_head_data_b.hash();
 }

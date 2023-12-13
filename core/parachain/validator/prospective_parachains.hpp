@@ -161,8 +161,7 @@ namespace kagome::parachain {
           if (!head_data) {
             const auto &required_parent =
                 fragment_tree.scope.base_constraints.required_parent;
-            if (crypto::Hashed<const HeadData &, 32, crypto::Blake2b_StreamHasher<32>>{required_parent}.getHash()
-                == parent_head_data_hash) {
+            if (hasher_->blake2b_256(required_parent) == parent_head_data_hash) {
               head_data = required_parent;
             }
           }
