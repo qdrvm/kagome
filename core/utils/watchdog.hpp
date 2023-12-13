@@ -16,6 +16,7 @@
 
 #include <fmt/format.h>
 #include <boost/asio/io_context.hpp>
+#include <log/logger.hpp>
 
 #ifdef __APPLE__
 
@@ -60,7 +61,7 @@ namespace kagome {
       std::shared_ptr<Atomic> count_;
 
       void operator()() {
-        ++*count_;
+        count_->fetch_add(1);
       }
     };
 
@@ -89,7 +90,8 @@ namespace kagome {
             if (lag > timeout) {
               std::stringstream s;
               s << it->first;
-              fmt::print(
+              SL_CRITICAL(
+                  log_,
                   "ALERT Watchdog: thread id={}, platform_id={}, name={} "
                   "timeout\n",
                   s.str(),
@@ -119,7 +121,8 @@ namespace kagome {
     void run(std::shared_ptr<boost::asio::io_context> io) {
       auto ping = add();
       while (not stopped_ and not io.unique()) {
-#if 0
+#define WAIT_FOR_BETTER_BOOST_IMPLEMENTATION
+#ifndef WAIT_FOR_BETTER_BOOST_IMPLEMENTATION
         // this is the desired implementation
         // cannot be used rn due to the method visibility settings
         // bug(boost): wait_one is private
@@ -153,5 +156,6 @@ namespace kagome {
     std::mutex mutex_;
     std::unordered_map<std::thread::id, Thread> threads_;
     std::atomic_bool stopped_ = false;
+    log::Logger log_ = log::createLogger("Watchdog");
   };
 }  // namespace kagome
