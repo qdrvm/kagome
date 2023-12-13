@@ -111,13 +111,16 @@
 ```
 DIR=kagome/examples/network_x4
 cd $DIR
-kagome --chain testchain4v.json --validator --base-path alice   --name Alice   -p 10001 --rpc-port 11001 --ws-port 12001 --prometheus-port 13001 -lverbose
-kagome --chain testchain4v.json --validator --base-path bob     --name Bob     -p 10002 --rpc-port 11002 --ws-port 12002 --prometheus-port 13002 -lverbose
-kagome --chain testchain4v.json --validator --base-path charlie --name Charlie -p 10003 --rpc-port 11003 --ws-port 12003 --prometheus-port 13003 -lverbose
-kagome --chain testchain4v.json --validator --base-path dave    --name Dave    -p 10004 --rpc-port 11004 --ws-port 12004 --prometheus-port 13004 -lverbose
 
-run --bin substrate -- --chain $DIR/testchain4v.json --base-path=~/.local/share/substrate/alice   --alice   --port=10001 --rpc-port=11001 --ws-port=12001 --prometheus-port=13001 --node-key=95d11fd8fc41db64f8f90fecccc1420af9a3ff8dacef6d6a96c3679177860516
-run --bin substrate -- --chain $DIR/testchain4v.json --base-path=~/.local/share/substrate/bob     --bob     --port=10002 --rpc-port=11002 --ws-port=12002 --prometheus-port=13002 --node-key=a9c7609d2c48c88f5ca3b147fc946ae0664dae7d824a2549379127ef3eadea35
-run --bin substrate -- --chain $DIR/testchain4v.json --base-path=~/.local/share/substrate/charlie --charlie --port=10003 --rpc-port=11003 --ws-port=12003 --prometheus-port=13003 --node-key=f69b297baa6a2a1d2652ee0f72bf07f45fc92c0facc07250679dcc164c53e9a5
-run --bin substrate -- --chain $DIR/testchain4v.json --base-path=~/.local/share/substrate/dave    --dave    --port=10004 --rpc-port=11004 --ws-port=12004 --prometheus-port=13004 --node-key=e0d0ba382d0c82b8e1bffc23e316bb9dac07a63408b83480402aee1499515c72
+# Each of the following commands should be run in a separate terminal window
+kagome --chain testchain4v.json --alice   --base-path alice   -p 10001 --rpc-port 11001 --prometheus-port 13001 --node-key=95d11fd8fc41db64f8f90fecccc1420af9a3ff8dacef6d6a96c3679177860516 
+kagome --chain testchain4v.json --bob     --base-path bob     -p 10002 --rpc-port 11002 --prometheus-port 13002 --node-key=a9c7609d2c48c88f5ca3b147fc946ae0664dae7d824a2549379127ef3eadea35
+kagome --chain testchain4v.json --charlie --base-path charlie -p 10003 --rpc-port 11003 --prometheus-port 13003 --node-key=f69b297baa6a2a1d2652ee0f72bf07f45fc92c0facc07250679dcc164c53e9a5
+kagome --chain testchain4v.json --dave    --base-path dave    -p 10004 --rpc-port 11004 --prometheus-port 13004 --node-key=e0d0ba382d0c82b8e1bffc23e316bb9dac07a63408b83480402aee1499515c72
+
+# Each of the following commands should be run in a separate terminal window
+substrate --chain $DIR/testchain4v.json --base-path=~/.local/share/substrate/alice   --alice   --port=10001 --rpc-port=11001 --ws-port=12001 --prometheus-port=13001 --node-key=95d11fd8fc41db64f8f90fecccc1420af9a3ff8dacef6d6a96c3679177860516
+substrate --chain $DIR/testchain4v.json --base-path=~/.local/share/substrate/bob     --bob     --port=10002 --rpc-port=11002 --ws-port=12002 --prometheus-port=13002 --node-key=a9c7609d2c48c88f5ca3b147fc946ae0664dae7d824a2549379127ef3eadea35
+substrate --chain $DIR/testchain4v.json --base-path=~/.local/share/substrate/charlie --charlie --port=10003 --rpc-port=11003 --ws-port=12003 --prometheus-port=13003 --node-key=f69b297baa6a2a1d2652ee0f72bf07f45fc92c0facc07250679dcc164c53e9a5
+substrate --chain $DIR/testchain4v.json --base-path=~/.local/share/substrate/dave    --dave    --port=10004 --rpc-port=11004 --ws-port=12004 --prometheus-port=13004 --node-key=e0d0ba382d0c82b8e1bffc23e316bb9dac07a63408b83480402aee1499515c72
 ```

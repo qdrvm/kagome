@@ -83,7 +83,7 @@ namespace kagome::network {
       std::shared_ptr<blockchain::BlockTree> block_tree,
       std::shared_ptr<consensus::BlockHeaderAppender> block_appender,
       std::shared_ptr<consensus::BlockExecutor> block_executor,
-      std::shared_ptr<storage::trie::TrieStorageBackend> trie_db,
+      std::shared_ptr<storage::trie::TrieStorageBackend> trie_node_db,
       std::shared_ptr<storage::trie::TrieStorage> storage,
       std::shared_ptr<storage::trie_pruner::TriePruner> trie_pruner,
       std::shared_ptr<network::Router> router,
@@ -96,7 +96,7 @@ namespace kagome::network {
         block_tree_(std::move(block_tree)),
         block_appender_(std::move(block_appender)),
         block_executor_(std::move(block_executor)),
-        trie_db_(std::move(trie_db)),
+        trie_node_db_(std::move(trie_node_db)),
         storage_(std::move(storage)),
         trie_pruner_(std::move(trie_pruner)),
         router_(std::move(router)),
@@ -108,7 +108,7 @@ namespace kagome::network {
     BOOST_ASSERT(app_state_manager_);
     BOOST_ASSERT(block_tree_);
     BOOST_ASSERT(block_executor_);
-    BOOST_ASSERT(trie_db_);
+    BOOST_ASSERT(trie_node_db_);
     BOOST_ASSERT(storage_);
     BOOST_ASSERT(trie_pruner_);
     BOOST_ASSERT(router_);
@@ -189,6 +189,16 @@ namespace kagome::network {
       const libp2p::peer::PeerId &peer_id,
       Synchronizer::SyncResultHandler &&handler,
       bool subscribe_to_block) {
+    auto best_block = block_tree_->bestBlock();
+
+    // Provided block is equal our best one. Nothing needs to do.
+    if (block_info == best_block) {
+      if (handler) {
+        handler(block_info);
+      }
+      return false;
+    }
+
     // Subscribe on demand
     if (subscribe_to_block) {
       subscribeToBlock(block_info, std::move(handler));
@@ -219,16 +229,6 @@ namespace kagome::network {
     SL_TRACE(log_, "Peer {} marked as busy", peer_id);
 
     const auto &last_finalized_block = block_tree_->getLastFinalized();
-
-    auto best_block = block_tree_->bestBlock();
-
-    // Provided block is equal our best one. Nothing needs to do.
-    if (block_info == best_block) {
-      if (handler) {
-        handler(block_info);
-      }
-      return false;
-    }
 
     // First we need to find the best common block to avoid manipulations with
     // blocks what already exists on node.
@@ -353,36 +353,6 @@ namespace kagome::network {
           }
         },
         false);
-  }
-
-  void SynchronizerImpl::syncMissingJustifications(
-      const PeerId &peer_id,
-      primitives::BlockInfo target_block,
-      std::optional<uint32_t> limit,
-      Synchronizer::SyncResultHandler &&handler) {
-    if (busy_peers_.find(peer_id) != busy_peers_.end()) {
-      SL_DEBUG(
-          log_,
-          "Justifications load since block {} was rescheduled, peer {} is busy",
-          target_block,
-          peer_id);
-      scheduler_->schedule([wp = weak_from_this(),
-                            peer_id,
-                            block = std::move(target_block),
-                            limit = std::move(limit),
-                            handler = std::move(handler)]() mutable {
-        auto self = wp.lock();
-        if (not self) {
-          return;
-        }
-        self->syncMissingJustifications(
-            peer_id, std::move(block), std::move(limit), std::move(handler));
-      });
-      return;
-    }
-
-    loadJustifications(
-        peer_id, std::move(target_block), std::move(limit), std::move(handler));
   }
 
   void SynchronizerImpl::findCommonBlock(
@@ -584,11 +554,11 @@ namespace kagome::network {
     if (auto r = recent_requests_.emplace(
             std::make_tuple(peer_id, request_fingerprint), "load blocks");
         not r.second) {
-      SL_ERROR(log_,
-               "Can't load blocks from {} beginning block {}: {}",
-               peer_id,
-               from,
-               r.first->second);
+      SL_VERBOSE(log_,
+                 "Can't load blocks from {} beginning block {}: {}",
+                 peer_id,
+                 from,
+                 r.first->second);
       if (handler) {
         handler(Error::DUPLICATE_REQUEST);
       }
@@ -610,11 +580,11 @@ namespace kagome::network {
 
       // Any error interrupts loading of blocks
       if (response_res.has_error()) {
-        SL_ERROR(self->log_,
-                 "Can't load blocks from {} beginning block {}: {}",
-                 peer_id,
-                 from,
-                 response_res.error());
+        SL_VERBOSE(self->log_,
+                   "Can't load blocks from {} beginning block {}: {}",
+                   peer_id,
+                   from,
+                   response_res.error());
         if (handler) {
           handler(response_res.as_failure());
         }
@@ -625,11 +595,11 @@ namespace kagome::network {
       // No block in response is abnormal situation.
       // At least one starting block should be returned as existing
       if (blocks.empty()) {
-        SL_ERROR(self->log_,
-                 "Can't load blocks from {} beginning block {}: "
-                 "Response does not have any blocks",
-                 peer_id,
-                 from);
+        SL_VERBOSE(self->log_,
+                   "Can't load blocks from {} beginning block {}: "
+                   "Response does not have any blocks",
+                   peer_id,
+                   from);
         if (handler) {
           handler(Error::EMPTY_RESPONSE);
         }
@@ -648,11 +618,11 @@ namespace kagome::network {
       for (auto &block : blocks) {
         // Check if header is provided
         if (not block.header.has_value()) {
-          SL_ERROR(self->log_,
-                   "Can't load blocks from {} starting from block {}: "
-                   "Received block without header",
-                   peer_id,
-                   from);
+          SL_VERBOSE(self->log_,
+                     "Can't load blocks from {} starting from block {}: "
+                     "Received block without header",
+                     peer_id,
+                     from);
           if (handler) {
             handler(Error::RESPONSE_WITHOUT_BLOCK_HEADER);
           }
@@ -660,11 +630,11 @@ namespace kagome::network {
         }
         // Check if body is provided
         if (not block.header.has_value()) {
-          SL_ERROR(self->log_,
-                   "Can't load blocks from {} starting from block {}: "
-                   "Received block without body",
-                   peer_id,
-                   from);
+          SL_VERBOSE(self->log_,
+                     "Can't load blocks from {} starting from block {}: "
+                     "Received block without body",
+                     peer_id,
+                     from);
           if (handler) {
             handler(Error::RESPONSE_WITHOUT_BLOCK_BODY);
           }
@@ -679,12 +649,12 @@ namespace kagome::network {
         if (last_finalized_block.number >= header.number) {
           if (last_finalized_block.number == header.number) {
             if (last_finalized_block.hash != block.hash) {
-              SL_ERROR(self->log_,
-                       "Can't load blocks from {} starting from block {}: "
-                       "Received discarded block {}",
-                       peer_id,
-                       from,
-                       BlockInfo(header.number, block.hash));
+              SL_VERBOSE(self->log_,
+                         "Can't load blocks from {} starting from block {}: "
+                         "Received discarded block {}",
+                         peer_id,
+                         from,
+                         BlockInfo(header.number, block.hash));
               if (handler) {
                 handler(Error::DISCARDED_BLOCK);
               }
@@ -808,167 +778,6 @@ namespace kagome::network {
     protocol->request(peer_id, std::move(request), std::move(response_handler));
   }
 
-  void SynchronizerImpl::loadJustifications(const libp2p::peer::PeerId &peer_id,
-                                            primitives::BlockInfo target_block,
-                                            std::optional<uint32_t> limit,
-                                            SyncResultHandler &&handler) {
-    if (node_is_shutting_down_) {
-      if (handler) {
-        handler(Error::SHUTTING_DOWN);
-      }
-      return;
-    }
-
-    busy_peers_.insert(peer_id);
-    ::libp2p::common::FinalAction cleanup([this, peer_id] {
-      auto peer = busy_peers_.find(peer_id);
-      if (peer != busy_peers_.end()) {
-        busy_peers_.erase(peer);
-      }
-    });
-
-    BlocksRequest request{
-        BlockAttribute::HEADER | BlockAttribute::JUSTIFICATION,
-        target_block.hash,
-        Direction::ASCENDING,
-        limit};
-
-    auto request_fingerprint = request.fingerprint();
-    if (auto r = recent_requests_.emplace(
-            std::make_tuple(peer_id, request_fingerprint),
-            "load justifications");
-        not r.second) {
-      SL_DEBUG(log_,
-               "Can't load justification from {} for block {}: Duplicate '{}' "
-               "request",
-               peer_id,
-               target_block,
-               r.first->second);
-      if (handler) {
-        handler(Error::DUPLICATE_REQUEST);
-      }
-      return;
-    }
-
-    scheduleRecentRequestRemoval(peer_id, request_fingerprint);
-
-    using Result = outcome::result<BlocksResponse>;
-    auto response_handler = [wp = weak_from_this(),
-                             peer_id,
-                             target_block,
-                             limit,
-                             handler = std::move(handler)](
-                                Result response_res) mutable {
-      auto self = wp.lock();
-      if (not self) {
-        return;
-      }
-
-      if (response_res.has_error()) {
-        SL_DEBUG(self->log_,
-                 "Can't load justification from {} for block {}: {}",
-                 peer_id,
-                 target_block,
-                 response_res.error());
-        if (handler) {
-          handler(response_res.as_failure());
-        }
-        return;
-      }
-
-      auto &blocks = response_res.value().blocks;
-
-      if (blocks.empty()) {
-        SL_ERROR(self->log_,
-                 "Can't load block justification from {} for block {}: "
-                 "Response does not have any contents",
-                 peer_id,
-                 target_block);
-        if (handler) {
-          handler(Error::EMPTY_RESPONSE);
-        }
-        return;
-      }
-
-      // Use decreasing limit,
-      // to avoid race between block and justification requests
-      if (limit.has_value()) {
-        if (blocks.size() >= limit.value()) {
-          limit = 0;
-        } else {
-          limit.value() -= (blocks.size() - 1);
-        }
-      }
-
-      bool justification_received = false;
-      BlockInfo last_justified_block;
-      BlockInfo last_observed_block;
-      for (auto &block : blocks) {
-        if (not block.header) {
-          SL_ERROR(self->log_,
-                   "No header was provided from {} for block {} while "
-                   "requesting justifications",
-                   peer_id,
-                   target_block);
-          if (handler) {
-            handler(Error::RESPONSE_WITHOUT_BLOCK_HEADER);
-          }
-          return;
-        }
-        last_observed_block =
-            primitives::BlockInfo{block.header->number, block.hash};
-        if (block.justification) {
-          justification_received = true;
-          last_justified_block = last_observed_block;
-          {
-            std::lock_guard lock(self->justifications_mutex_);
-            self->justifications_.emplace(last_justified_block,
-                                          *block.justification);
-          }
-        }
-        if (block.beefy_justification) {
-          self->beefy_->onJustification(block.hash,
-                                        std::move(*block.beefy_justification));
-        }
-      }
-
-      if (justification_received) {
-        SL_TRACE(self->log_, "Enqueued new justifications: schedule applying");
-        self->scheduler_->schedule([wp] {
-          if (auto self = wp.lock()) {
-            self->applyNextJustification();
-          }
-        });
-      }
-
-      // Continue justifications requesting till limit is non-zero and last
-      // observed block is not target (no block anymore)
-      if ((not limit.has_value() or limit.value() > 0)
-          and last_observed_block != target_block) {
-        SL_TRACE(self->log_, "Request next block pack");
-        self->scheduler_->schedule([wp,
-                                    peer_id,
-                                    target_block = last_observed_block,
-                                    limit,
-                                    handler = std::move(handler)]() mutable {
-          if (auto self = wp.lock()) {
-            self->loadJustifications(
-                peer_id, target_block, limit, std::move(handler));
-          }
-        });
-        return;
-      }
-
-      if (handler) {
-        handler(last_justified_block);
-      }
-    };
-
-    auto protocol = router_->getSyncProtocol();
-    BOOST_ASSERT_MSG(protocol, "Router did not provide sync protocol");
-    protocol->request(peer_id, std::move(request), std::move(response_handler));
-  }
-
   void SynchronizerImpl::syncState(const libp2p::peer::PeerId &peer_id,
                                    const primitives::BlockInfo &block,
                                    SyncResultHandler &&handler) {
@@ -992,7 +801,7 @@ namespace kagome::network {
       return;
     }
     if (not state_sync_flow_ or state_sync_flow_->blockInfo() != block) {
-      state_sync_flow_.emplace(trie_db_, block, header);
+      state_sync_flow_.emplace(trie_node_db_, block, header);
     }
     state_sync_.emplace(StateSync{
         peer_id,
@@ -1184,7 +993,6 @@ namespace kagome::network {
     auto node = known_blocks_.extract(hash);
     if (node) {
       auto &block_data = node.mapped().data;
-      auto &peers = node.mapped().peers;
       BOOST_ASSERT(block_data.header.has_value());
       const BlockInfo block_info(block_data.header->number, block_data.hash);
 
@@ -1213,43 +1021,6 @@ namespace kagome::network {
             block_info, telemetry::BlockOrigin::kNetworkInitialSync);
         if (handler) {
           handler(block_info);
-        }
-
-        // Check if finality lag greater than justification saving interval
-        static const BlockNumber kJustificationInterval = 512;
-        static const BlockNumber kMaxJustificationLag = 5;
-        auto last_finalized = block_tree_->getLastFinalized();
-        if (consensus::grandpa::HasAuthoritySetChange{*block_data.header}
-                .scheduled
-            or (block_info.number - kMaxJustificationLag)
-                       / kJustificationInterval
-                   > last_finalized.number / kJustificationInterval) {
-          //  Trying to substitute with justifications' request only
-          for (const auto &peer_id : peers) {
-            syncMissingJustifications(
-                peer_id,
-                last_finalized,
-                kJustificationInterval * 2,
-                [wp = weak_from_this(), last_finalized, block_info](auto res) {
-                  if (auto self = wp.lock()) {
-                    if (res.has_value()) {
-                      SL_DEBUG(
-                          self->log_,
-                          "Loaded justifications for blocks in range {} - {}",
-                          last_finalized,
-                          res.value());
-                      return;
-                    }
-
-                    SL_DEBUG(self->log_,
-                             "Missing justifications between blocks {} and "
-                             "{} was not loaded: {}",
-                             last_finalized,
-                             block_info.number,
-                             res.error());
-                  }
-                });
-          }
         }
 
         if (block_data.beefy_justification) {
@@ -1281,43 +1052,6 @@ namespace kagome::network {
         self->applyNextBlock();
       }
     });
-  }
-
-  void SynchronizerImpl::applyNextJustification() {
-    // Operate over the same lock as for the whole blocks application
-    bool false_val = false;
-    if (not applying_in_progress_.compare_exchange_strong(false_val, true)) {
-      SL_TRACE(log_, "Applying justification in progress");
-      return;
-    }
-    SL_TRACE(log_, "Begin justification applying");
-    ::libp2p::common::FinalAction cleanup([this] {
-      SL_TRACE(log_, "End justification applying");
-      applying_in_progress_ = false;
-    });
-
-    std::queue<JustificationPair> justifications;
-    {
-      std::lock_guard lock(justifications_mutex_);
-      justifications.swap(justifications_);
-    }
-
-    while (not justifications.empty()) {
-      auto [block_info, justification] = std::move(justifications.front());
-      const auto &block = block_info;  // SL_WARN compilation WA
-      justifications.pop();
-      grandpa_environment_->applyJustification(
-          block_info, justification, [block, log{log_}](auto &&res) mutable {
-            if (res.has_error()) {
-              SL_WARN(log,
-                      "Justification for block {} was not applied: {}",
-                      block,
-                      res.error());
-            } else {
-              SL_TRACE(log, "Applied justification for block {}", block);
-            }
-          });
-    }
   }
 
   size_t SynchronizerImpl::discardBlock(

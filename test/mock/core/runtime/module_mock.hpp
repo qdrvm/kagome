@@ -14,7 +14,7 @@ namespace kagome::runtime {
 
   class ModuleMock : public Module {
    public:
-    MOCK_METHOD(std::shared_ptr<ModuleInstance>,
+    MOCK_METHOD(outcome::result<std::shared_ptr<ModuleInstance>>,
                 instantiate,
                 (),
                 (const));

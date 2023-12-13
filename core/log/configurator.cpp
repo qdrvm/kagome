@@ -82,6 +82,7 @@ groups:
                   - name: runtime_cache
               - name: binaryen
               - name: wavm
+              - name: wasmedge
           - name: metrics
           - name: telemetry
           - name: network

@@ -50,19 +50,46 @@ hunter_config(
     CMAKE_ARGS WITH_GFLAGS=OFF
 )
 
-hunter_config(
-    wavm
-    VERSION 1.0.14
-    KEEP_PACKAGE_SOURCES
-)
+if ("${WASM_COMPILER}" STREQUAL "WasmEdge")
+  hunter_config(
+      LLVM
+      VERSION 16.0.1
+      CMAKE_ARGS LLVM_ENABLE_PROJECTS=compiler-rt
+  )
 
-hunter_config(
-    LLVM
-    VERSION 12.0.1-p4
-    CMAKE_ARGS
+  hunter_config(
+      WasmEdge
+      VERSION 0.13.3
+      CMAKE_ARGS
+        WASMEDGE_BUILD_STATIC_LIB=ON
+        WASMEDGE_BUILD_SHARED_LIB=OFF
+      KEEP_PACKAGE_SOURCES
+  )
+endif ()
+
+if ("${WASM_COMPILER}" STREQUAL "WAVM")
+  hunter_config(
+      LLVM
+      VERSION 12.0.1-p4
+      CMAKE_ARGS
       LLVM_ENABLE_PROJECTS=ir
-    KEEP_PACKAGE_SOURCES
-)
+      KEEP_PACKAGE_SOURCES
+  )
+
+  if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+    set(WAVM_CXX_FLAGS -Wno-redundant-move;-Wno-dangling-reference;-Wno-error=extra;)
+  else ()
+    set(WAVM_CXX_FLAGS -Wno-redundant-move)
+  endif ()
+
+  hunter_config(
+      wavm
+      VERSION 1.0.14
+      CMAKE_ARGS
+      WAVM_CXX_FLAGS=${WAVM_CXX_FLAGS}
+      KEEP_PACKAGE_SOURCES
+  )
+endif ()
 
 hunter_config(
     scale
@@ -71,10 +98,10 @@ hunter_config(
 )
 
 # Fix for Apple clang (or clang from brew) of versions 15 and higher
-if(APPLE AND (CMAKE_CXX_COMPILER_ID STREQUAL "AppleClang" OR CMAKE_CXX_COMPILER_ID STREQUAL "Clang") AND CMAKE_CXX_COMPILER_VERSION GREATER_EQUAL "15.0.0")
-    hunter_config(
-        binaryen
-        URL https://github.com/qdrvm/binaryen/archive/0744f64a584cae5b9255b1c2f0a4e0b5e06d7038.zip
-        SHA1 f953c5f38a0417e494901e15ab6f5d8267388d18
-    )
-endif()
+if (APPLE AND (CMAKE_CXX_COMPILER_ID STREQUAL "AppleClang" OR CMAKE_CXX_COMPILER_ID STREQUAL "Clang") AND CMAKE_CXX_COMPILER_VERSION GREATER_EQUAL "15.0.0")
+  hunter_config(
+      binaryen
+      URL https://github.com/qdrvm/binaryen/archive/0744f64a584cae5b9255b1c2f0a4e0b5e06d7038.zip
+      SHA1 f953c5f38a0417e494901e15ab6f5d8267388d18
+  )
+endif ()

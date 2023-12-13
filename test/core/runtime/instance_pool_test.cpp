@@ -5,9 +5,9 @@
 
 #include <gtest/gtest.h>
 
-#if defined(BACKWARD_HAS_BACKTRACE)
-#include <backward.hpp>
-#endif
+#include <algorithm>
+#include <random>
+#include <ranges>
 
 #include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
@@ -33,10 +33,6 @@ RuntimeInstancesPool::CodeHash make_code_hash(int i) {
 TEST(InstancePoolTest, HeavilyMultithreadedCompilation) {
   using namespace std::chrono_literals;
 
-#if defined(BACKWARD_HAS_BACKTRACE)
-  backward::SignalHandling sh;
-#endif
-
   auto module_instance_mock = std::make_shared<ModuleInstanceMock>();
 
   auto module_mock = std::make_shared<ModuleMock>();
@@ -54,13 +50,16 @@ TEST(InstancePoolTest, HeavilyMultithreadedCompilation) {
         return module_mock;
       }));
 
-  RuntimeInstancesPool pool{module_factory, 5};
+  static constexpr int THREAD_NUM = 100;
+  static constexpr int POOL_SIZE = 10;
+
+  RuntimeInstancesPool pool{module_factory, POOL_SIZE};
 
   std::vector<std::thread> threads;
-  for (int i = 0; i < 10; i++) {
-    threads.emplace_back(std::thread([&pool, i, &code]() {
+  for (int i = 0; i < THREAD_NUM; i++) {
+    threads.emplace_back(std::thread([&pool, &code, i]() {
       ASSERT_OUTCOME_SUCCESS_TRY(
-          pool.instantiateFromCode(make_code_hash(i % 5), code.view()));
+          pool.instantiateFromCode(make_code_hash(i % POOL_SIZE), code));
     }));
   }
 
@@ -69,12 +68,12 @@ TEST(InstancePoolTest, HeavilyMultithreadedCompilation) {
   }
 
   // check that 'make' was only called 5 times
-  ASSERT_EQ(times_make_called.load(), 5);
+  ASSERT_EQ(times_make_called.load(), POOL_SIZE);
 
-  // check that all 10 instances are in cache
-  for (int i = 0; i < 5; i++) {
+  // check that all POOL_SIZE instances are in cache
+  for (int i = 0; i < POOL_SIZE; i++) {
     ASSERT_OUTCOME_SUCCESS_TRY(
         pool.instantiateFromCode(make_code_hash(i), code.view()));
   }
-  ASSERT_EQ(times_make_called.load(), 5);
+  ASSERT_EQ(times_make_called.load(), POOL_SIZE);
 }

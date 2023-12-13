@@ -790,6 +790,12 @@ namespace kagome::runtime::wavm {
       WAVM::I64,
       WAVM::I32)
 
+  WAVM_DEFINE_INTRINSIC_FUNCTION(void,
+                                 ext_panic_handler_abort_on_panic_version_1,
+                                 WAVM::I64 message) {
+    return peekHostApi()->ext_panic_handler_abort_on_panic_version_1(message);
+  }
+
   void registerHostApiMethods(IntrinsicModule &module) {
     if (logger == nullptr) {
       logger = log::createLogger("Host API wrappers", "wavm");
@@ -918,6 +924,8 @@ namespace kagome::runtime::wavm {
     REGISTER_HOST_INTRINSIC(   , ext_benchmarking_reset_read_write_count_version_1)
     REGISTER_HOST_INTRINSIC(   , ext_benchmarking_set_whitelist_version_1, I64)
     REGISTER_HOST_INTRINSIC(   , ext_benchmarking_wipe_db_version_1)
+
+    REGISTER_HOST_INTRINSIC(   , ext_panic_handler_abort_on_panic_version_1, I64)
 
     // clang-format on
   }

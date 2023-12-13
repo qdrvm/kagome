@@ -44,7 +44,7 @@ namespace kagome::host_api {
 
     void ext_misc_print_hex_version_1(runtime::WasmSpan data) const;
 
-    void ext_misc_print_num_version_1(uint64_t value) const;
+    void ext_misc_print_num_version_1(int64_t value) const;
 
     void ext_misc_print_utf8_version_1(runtime::WasmSpan data) const;
 
