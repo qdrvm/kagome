@@ -544,6 +544,16 @@ namespace kagome::network {
       return;
     }
 
+    static std::unordered_set<primitives::BlockHash> cache;
+    static primitives::BlockNumber max = 0;
+    if (cache.contains(from.hash) or from.number < max) {
+      std::cout << "skipped for " << from.number << " " << from.hash.toHex()
+                << std::endl;
+      return;
+    }
+    cache.insert(from.hash);
+    max = from.number;
+
     network::BlocksRequest request{attributesForSync(sync_method_),
                                    from.hash,
                                    network::Direction::ASCENDING,
