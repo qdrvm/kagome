@@ -116,6 +116,8 @@ namespace kagome::parachain {
     network::CommittedCandidateReceipt receipt;
     /// The persisted validation data of the candidate.
     runtime::PersistedValidationData persisted_validation_data;
+
+    bool operator==(const HypotheticalCandidateComplete &r) const = default;
   };
 
   struct HypotheticalCandidateIncomplete {
@@ -127,6 +129,8 @@ namespace kagome::parachain {
     Hash parent_head_data_hash;
     /// The claimed relay parent of the candidate.
     Hash candidate_relay_parent;
+
+    bool operator==(const HypotheticalCandidateIncomplete &r) const = default;
   };
 
   struct BlockedAdvertisement {

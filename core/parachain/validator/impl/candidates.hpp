@@ -21,11 +21,13 @@ namespace kagome::parachain {
   struct PostConfirmationReckoning {
     std::unordered_set<libp2p::peer::PeerId> correct;
     std::unordered_set<libp2p::peer::PeerId> incorrect;
+    bool operator==(const PostConfirmationReckoning &r) const = default;
   };
 
   struct PostConfirmation {
     HypotheticalCandidate hypothetical;
     PostConfirmationReckoning reckoning;
+    bool operator==(const PostConfirmation &r) const = default;
   };
 
   struct CandidateClaims {
