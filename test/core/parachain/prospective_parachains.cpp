@@ -1469,11 +1469,56 @@ TEST_F(ProspectiveParachainsTest, Candidates_testHypotheticalFrontiers) {
       .candidate_relay_parent = relay_hash,
   };
 
-  auto hypotheticals =
-      candidates.frontier_hypotheticals(std::make_pair(relay_hash, 1));
-  ASSERT_EQ(hypotheticals.size(), 1);
-  ASSERT_TRUE(std::find(hypotheticals.begin(),
-                        hypotheticals.end(),
-                        HypotheticalCandidate{hypothetical_a})
-              != hypotheticals.end());
+  {
+    auto hypotheticals =
+        candidates.frontier_hypotheticals(std::make_pair(relay_hash, 1));
+    ASSERT_EQ(hypotheticals.size(), 1);
+    ASSERT_TRUE(std::find(hypotheticals.begin(),
+                          hypotheticals.end(),
+                          HypotheticalCandidate{hypothetical_a})
+                != hypotheticals.end());
+  }
+  {
+    auto hypotheticals = candidates.frontier_hypotheticals(
+        std::make_pair(candidate_head_data_hash_a, 2));
+    ASSERT_EQ(hypotheticals.size(), 0);
+  }
+  {
+    auto hypotheticals = candidates.frontier_hypotheticals(
+        std::make_pair(candidate_head_data_hash_a, 1));
+    ASSERT_EQ(hypotheticals.size(), 2);
+    ASSERT_TRUE(std::find(hypotheticals.begin(),
+                          hypotheticals.end(),
+                          HypotheticalCandidate{hypothetical_b})
+                != hypotheticals.end());
+    ASSERT_TRUE(std::find(hypotheticals.begin(),
+                          hypotheticals.end(),
+                          HypotheticalCandidate{hypothetical_c})
+                != hypotheticals.end());
+  }
+  {
+    auto hypotheticals = candidates.frontier_hypotheticals(
+        std::make_pair(candidate_head_data_hash_d, 1));
+    ASSERT_EQ(hypotheticals.size(), 0);
+  }
+  {
+    auto hypotheticals = candidates.frontier_hypotheticals(std::nullopt);
+    ASSERT_EQ(hypotheticals.size(), 4);
+    ASSERT_TRUE(std::find(hypotheticals.begin(),
+                          hypotheticals.end(),
+                          HypotheticalCandidate{hypothetical_a})
+                != hypotheticals.end());
+    ASSERT_TRUE(std::find(hypotheticals.begin(),
+                          hypotheticals.end(),
+                          HypotheticalCandidate{hypothetical_b})
+                != hypotheticals.end());
+    ASSERT_TRUE(std::find(hypotheticals.begin(),
+                          hypotheticals.end(),
+                          HypotheticalCandidate{hypothetical_c})
+                != hypotheticals.end());
+    ASSERT_TRUE(std::find(hypotheticals.begin(),
+                          hypotheticals.end(),
+                          HypotheticalCandidate{hypothetical_d})
+                != hypotheticals.end());
+  }
 }
