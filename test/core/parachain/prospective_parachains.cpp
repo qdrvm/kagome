@@ -53,6 +53,10 @@ class ProspectiveParachainsTest : public testing::Test {
   }
 
  protected:
+  using CandidatesHashMap = std::unordered_map<
+      Hash,
+      std::unordered_map<ParachainId, std::unordered_set<CandidateHash>>>;
+
   std::shared_ptr<kagome::crypto::Hasher> hasher_;
 
   Hash hashFromStrData(std::span<const char> data) {
@@ -206,6 +210,41 @@ class ProspectiveParachainsTest : public testing::Test {
       }
     }
 
+    return true;
+  }
+
+  bool compareMapsOfCandidates(const CandidatesHashMap &l,
+                               const CandidatesHashMap &r) {
+    if (l.size() != r.size()) {
+      return false;
+    }
+    for (const auto &[kl, vl] : l) {
+      auto i = r.find(kl);
+      if (i == r.end()) {
+        return false;
+      }
+
+      const auto &vr = i->second;
+      if (vl.size() != vr.size()) {
+        return false;
+      }
+      for (const auto &[pid, sl] : vl) {
+        auto ix = vr.find(pid);
+        if (ix == vr.end()) {
+          return false;
+        }
+
+        const auto &sr = ix->second;
+        if (sl.size() != sr.size()) {
+          return false;
+        }
+        for (const auto &ch : sl) {
+          if (sr.find(ch) == sr.end()) {
+            return false;
+          }
+        }
+      }
+    }
     return true;
   }
 };
@@ -1035,4 +1074,143 @@ TEST_F(ProspectiveParachainsTest,
                                     relay_hash_a,
                                     group_index_a,
                                     std::make_pair(relay_hash_a, para_id_a)));
+}
+
+TEST_F(ProspectiveParachainsTest,
+       Candidates_confirmingMaintainsParentHashIndex) {
+  HeadData relay_head_data{{1, 2, 3}};
+  const Hash relay_hash = hasher_->blake2b_256(relay_head_data);
+
+  HeadData candidate_head_data_a{1};
+  HeadData candidate_head_data_b{2};
+  HeadData candidate_head_data_c{3};
+  HeadData candidate_head_data_d{4};
+
+  const Hash candidate_head_data_hash_a =
+      hasher_->blake2b_256(candidate_head_data_a);
+  const Hash candidate_head_data_hash_b =
+      hasher_->blake2b_256(candidate_head_data_b);
+  const Hash candidate_head_data_hash_c =
+      hasher_->blake2b_256(candidate_head_data_c);
+
+  const auto &[candidate_a, pvd_a] = make_candidate(relay_hash,
+                                                    1,
+                                                    1,
+                                                    relay_head_data,
+                                                    candidate_head_data_a,
+                                                    hashFromStrData("1000"));
+  const auto &[candidate_b, pvd_b] = make_candidate(relay_hash,
+                                                    1,
+                                                    1,
+                                                    candidate_head_data_a,
+                                                    candidate_head_data_b,
+                                                    hashFromStrData("2000"));
+  const auto &[candidate_c, pvd_c] = make_candidate(relay_hash,
+                                                    1,
+                                                    1,
+                                                    candidate_head_data_b,
+                                                    candidate_head_data_c,
+                                                    hashFromStrData("3000"));
+  const auto &[candidate_d, pvd_d] = make_candidate(relay_hash,
+                                                    1,
+                                                    1,
+                                                    candidate_head_data_c,
+                                                    candidate_head_data_d,
+                                                    hashFromStrData("4000"));
+
+  const Hash candidate_hash_a = network::candidateHash(*hasher_, candidate_a);
+  const Hash candidate_hash_b = network::candidateHash(*hasher_, candidate_b);
+  const Hash candidate_hash_c = network::candidateHash(*hasher_, candidate_c);
+  const Hash candidate_hash_d = network::candidateHash(*hasher_, candidate_d);
+
+  const libp2p::peer::PeerId peer{"peer1"_peerid};
+  GroupIndex group_index = 100;
+
+  Candidates candidates;
+  ASSERT_TRUE(candidates.insert_unconfirmed(
+      peer, candidate_hash_a, relay_hash, group_index, std::nullopt));
+  ASSERT_TRUE(candidates.by_parent.empty());
+
+  ASSERT_TRUE(candidates.insert_unconfirmed(peer,
+                                            candidate_hash_a,
+                                            relay_hash,
+                                            group_index,
+                                            std::make_pair(relay_hash, 1)));
+  ASSERT_TRUE(compareMapsOfCandidates(
+      candidates.by_parent, {{relay_hash, {{1, {candidate_hash_a}}}}}));
+
+  ASSERT_TRUE(candidates.insert_unconfirmed(peer,
+                                            candidate_hash_b,
+                                            relay_hash,
+                                            group_index,
+                                            std::make_pair(candidate_head_data_hash_a, 1)));
+  ASSERT_TRUE(compareMapsOfCandidates(
+      candidates.by_parent, {
+        {relay_hash, {{1, {candidate_hash_a}}}},
+        {candidate_head_data_hash_a, {{1, {candidate_hash_b}}}}
+        }));
+
+  ASSERT_TRUE(candidates.insert_unconfirmed(peer,
+                                            candidate_hash_c,
+                                            relay_hash,
+                                            group_index,
+                                            std::make_pair(candidate_head_data_hash_a, 1)));
+  ASSERT_TRUE(compareMapsOfCandidates(
+      candidates.by_parent, {
+        {relay_hash, {{1, {candidate_hash_a}}}},
+        {candidate_head_data_hash_a, {{1, {candidate_hash_b, candidate_hash_c}}}}
+        }));
+
+  ASSERT_TRUE(candidates.insert_unconfirmed(peer,
+                                            candidate_hash_d,
+                                            relay_hash,
+                                            group_index,
+                                            std::make_pair(candidate_head_data_hash_a, 1)));
+  ASSERT_TRUE(compareMapsOfCandidates(
+      candidates.by_parent, {
+        {relay_hash, {{1, {candidate_hash_a}}}},
+        {candidate_head_data_hash_a, {{1, {candidate_hash_b, candidate_hash_c, candidate_hash_d}}}}
+        }));
+
+  candidates.confirm_candidate(
+      candidate_hash_a, candidate_a, pvd_a, group_index, hasher_);
+  ASSERT_TRUE(compareMapsOfCandidates(
+      candidates.by_parent, {
+        {relay_hash, {{1, {candidate_hash_a}}}},
+        {candidate_head_data_hash_a, {{1, {candidate_hash_b, candidate_hash_c, candidate_hash_d}}}}
+        }));
+
+  candidates.confirm_candidate(
+      candidate_hash_b, candidate_b, pvd_b, group_index, hasher_);
+  ASSERT_TRUE(compareMapsOfCandidates(
+      candidates.by_parent, {
+        {relay_hash, {{1, {candidate_hash_a}}}},
+        {candidate_head_data_hash_a, {{1, {candidate_hash_b, candidate_hash_c, candidate_hash_d}}}}
+        }));
+
+  candidates.confirm_candidate(
+      candidate_hash_d, candidate_d, pvd_d, group_index, hasher_);
+  ASSERT_TRUE(compareMapsOfCandidates(
+      candidates.by_parent, {
+        {relay_hash, {{1, {candidate_hash_a}}}},
+        {candidate_head_data_hash_a, {{1, {candidate_hash_b, candidate_hash_c}}}},
+        {candidate_head_data_hash_c, {{1, {candidate_hash_d}}}}
+        }));
+
+  const auto &[new_candidate_c, new_pvd_c] = make_candidate(relay_hash,
+                                                    1,
+                                                    2,
+                                                    candidate_head_data_b,
+                                                    candidate_head_data_c,
+                                                    hashFromStrData("3000"));
+  candidates.confirm_candidate(
+      candidate_hash_c, new_candidate_c, new_pvd_c, group_index, hasher_);
+  ASSERT_TRUE(compareMapsOfCandidates(
+      candidates.by_parent, {
+        {relay_hash, {{1, {candidate_hash_a}}}},
+        {candidate_head_data_hash_a, {{1, {candidate_hash_b}}}},
+        {candidate_head_data_hash_b, {{2, {candidate_hash_c}}}},
+        {candidate_head_data_hash_c, {{1, {candidate_hash_d}}}}
+        }));
+
 }
