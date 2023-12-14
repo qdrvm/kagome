@@ -1364,3 +1364,116 @@ TEST_F(ProspectiveParachainsTest, Candidates_testReturnedPostConfirmation) {
     ASSERT_EQ(*post_confirmation, pc);
   }
 }
+
+TEST_F(ProspectiveParachainsTest, Candidates_testHypotheticalFrontiers) {
+  HeadData relay_head_data{{1, 2, 3}};
+  const Hash relay_hash = hasher_->blake2b_256(relay_head_data);
+
+  HeadData candidate_head_data_a{1};
+  HeadData candidate_head_data_b{2};
+  HeadData candidate_head_data_c{3};
+  HeadData candidate_head_data_d{4};
+
+  const Hash candidate_head_data_hash_a =
+      hasher_->blake2b_256(candidate_head_data_a);
+  const Hash candidate_head_data_hash_b =
+      hasher_->blake2b_256(candidate_head_data_b);
+  const Hash candidate_head_data_hash_d =
+      hasher_->blake2b_256(candidate_head_data_d);
+
+  const auto &[candidate_a, pvd_a] = make_candidate(relay_hash,
+                                                    1,
+                                                    1,
+                                                    relay_head_data,
+                                                    candidate_head_data_a,
+                                                    hashFromStrData("1000"));
+  const auto &[candidate_b, _] = make_candidate(relay_hash,
+                                                1,
+                                                1,
+                                                candidate_head_data_a,
+                                                candidate_head_data_b,
+                                                hashFromStrData("2000"));
+  const auto &[candidate_c, __] = make_candidate(relay_hash,
+                                                 1,
+                                                 1,
+                                                 candidate_head_data_a,
+                                                 candidate_head_data_c,
+                                                 hashFromStrData("3000"));
+  const auto &[candidate_d, ___] = make_candidate(relay_hash,
+                                                  1,
+                                                  1,
+                                                  candidate_head_data_b,
+                                                  candidate_head_data_d,
+                                                  hashFromStrData("4000"));
+
+  const Hash candidate_hash_a = network::candidateHash(*hasher_, candidate_a);
+  const Hash candidate_hash_b = network::candidateHash(*hasher_, candidate_b);
+  const Hash candidate_hash_c = network::candidateHash(*hasher_, candidate_c);
+  const Hash candidate_hash_d = network::candidateHash(*hasher_, candidate_d);
+
+  const libp2p::peer::PeerId peer{"peer1"_peerid};
+
+  GroupIndex group_index = 100;
+  Candidates candidates;
+
+  candidates.confirm_candidate(
+      candidate_hash_a, candidate_a, pvd_a, group_index, hasher_);
+
+  ASSERT_TRUE(candidates.insert_unconfirmed(
+      peer,
+      candidate_hash_b,
+      relay_hash,
+      group_index,
+      std::make_pair(candidate_head_data_hash_a, 1)));
+  ASSERT_TRUE(candidates.insert_unconfirmed(
+      peer,
+      candidate_hash_c,
+      relay_hash,
+      group_index,
+      std::make_pair(candidate_head_data_hash_a, 1)));
+  ASSERT_TRUE(candidates.insert_unconfirmed(
+      peer,
+      candidate_hash_d,
+      relay_hash,
+      group_index,
+      std::make_pair(candidate_head_data_hash_b, 1)));
+
+  ASSERT_TRUE(compareMapsOfCandidates(
+      candidates.by_parent,
+      {{relay_hash, {{1, {candidate_hash_a}}}},
+       {candidate_head_data_hash_a,
+        {{1, {candidate_hash_b, candidate_hash_c}}}},
+       {candidate_head_data_hash_b, {{1, {candidate_hash_d}}}}}));
+
+  HypotheticalCandidateComplete hypothetical_a{
+      .candidate_hash = candidate_hash_a,
+      .receipt = candidate_a,
+      .persisted_validation_data = pvd_a,
+  };
+  HypotheticalCandidateIncomplete hypothetical_b{
+      .candidate_hash = candidate_hash_b,
+      .candidate_para = 1,
+      .parent_head_data_hash = candidate_head_data_hash_a,
+      .candidate_relay_parent = relay_hash,
+  };
+  HypotheticalCandidateIncomplete hypothetical_c{
+      .candidate_hash = candidate_hash_c,
+      .candidate_para = 1,
+      .parent_head_data_hash = candidate_head_data_hash_a,
+      .candidate_relay_parent = relay_hash,
+  };
+  HypotheticalCandidateIncomplete hypothetical_d{
+      .candidate_hash = candidate_hash_d,
+      .candidate_para = 1,
+      .parent_head_data_hash = candidate_head_data_hash_b,
+      .candidate_relay_parent = relay_hash,
+  };
+
+  auto hypotheticals =
+      candidates.frontier_hypotheticals(std::make_pair(relay_hash, 1));
+  ASSERT_EQ(hypotheticals.size(), 1);
+  ASSERT_TRUE(std::find(hypotheticals.begin(),
+                        hypotheticals.end(),
+                        HypotheticalCandidate{hypothetical_a})
+              != hypotheticals.end());
+}
