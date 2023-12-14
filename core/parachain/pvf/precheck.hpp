@@ -45,6 +45,7 @@ namespace kagome::parachain {
         std::shared_ptr<runtime::ParachainHost> parachain_api,
         std::shared_ptr<runtime::ModuleFactory> module_factory,
         std::shared_ptr<runtime::Executor> executor,
+        std::shared_ptr<Watchdog> watchdog,
         std::shared_ptr<offchain::OffchainWorkerFactory>
             offchain_worker_factory,
         std::shared_ptr<offchain::OffchainWorkerPool> offchain_worker_pool);
@@ -69,7 +70,7 @@ namespace kagome::parachain {
     std::shared_ptr<primitives::events::ChainEventSubscriber> chain_sub_;
     std::map<SessionIndex, std::unordered_map<ValidationCodeHash, bool>>
         session_code_accept_;
-    ThreadPool thread_{"PvfPrecheck", 1};
+    ThreadPool thread_;
     log::Logger logger_ = log::createLogger("PvfPrecheck", "parachain");
   };
 }  // namespace kagome::parachain

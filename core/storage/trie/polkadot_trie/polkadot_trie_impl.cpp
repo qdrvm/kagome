@@ -613,6 +613,9 @@ namespace kagome::storage::trie {
     if (value.hash && !value.value) {
       OUTCOME_TRY(loaded_value, nodes_->retrieve_value_(*value.hash));
       value.value = std::move(loaded_value);
+      if (!value.value) {
+        return TrieError::BROKEN_VALUE;
+      }
     }
     return outcome::success();
   }

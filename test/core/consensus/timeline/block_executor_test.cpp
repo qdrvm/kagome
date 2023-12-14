@@ -32,6 +32,7 @@
 #include "utils/thread_pool.hpp"
 
 using kagome::ThreadPool;
+using kagome::Watchdog;
 using kagome::blockchain::BlockTree;
 using kagome::blockchain::BlockTreeError;
 using kagome::blockchain::BlockTreeMock;
@@ -173,12 +174,10 @@ class BlockExecutorTest : public testing::Test {
         hasher_,
         testutil::sptr_to_lazy<ConsensusSelector>(consensus_selector_));
 
-    thread_pool_ = std::make_shared<ThreadPool>("test", 1);
-
     block_executor_ =
         std::make_shared<BlockExecutorImpl>(block_tree_,
-                                            *thread_pool_,
-                                            thread_pool_->io_context(),
+                                            thread_pool_,
+                                            thread_pool_.io_context(),
                                             core_,
                                             tx_pool_,
                                             hasher_,
@@ -186,6 +185,10 @@ class BlockExecutorTest : public testing::Test {
                                             storage_sub_engine_,
                                             chain_sub_engine_,
                                             std::move(appender));
+  }
+
+  void TearDown() override {
+    watchdog_->stop();
   }
 
  protected:
@@ -206,7 +209,8 @@ class BlockExecutorTest : public testing::Test {
   std::shared_ptr<OffchainWorkerApiMock> offchain_worker_api_;
   kagome::primitives::events::StorageSubscriptionEnginePtr storage_sub_engine_;
   kagome::primitives::events::ChainSubscriptionEnginePtr chain_sub_engine_;
-  std::shared_ptr<ThreadPool> thread_pool_;
+  std::shared_ptr<Watchdog> watchdog_ = std::make_shared<Watchdog>();
+  ThreadPool thread_pool_{watchdog_, "test", 1};
 
   std::shared_ptr<BlockExecutorImpl> block_executor_;
 };
@@ -286,5 +290,5 @@ TEST_F(BlockExecutorTest, JustificationFollowDigests) {
       });
   wso.wait();
 
-  testutil::wait(*thread_pool_->io_context());
+  testutil::wait(*thread_pool_.io_context());
 }

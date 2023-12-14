@@ -119,7 +119,8 @@ namespace kagome::dispute {
       std::shared_ptr<parachain::Pvf> pvf,
       std::shared_ptr<parachain::ApprovalDistribution> approval_distribution,
       std::shared_ptr<authority_discovery::Query> authority_discovery,
-      std::shared_ptr<boost::asio::io_context> main_thread_context,
+      std::shared_ptr<Watchdog> watchdog,
+      WeakIoContext main_thread,
       std::shared_ptr<network::Router> router,
       std::shared_ptr<network::PeerView> peer_view,
       std::shared_ptr<primitives::events::BabeStateSubscriptionEngine>
@@ -139,13 +140,13 @@ namespace kagome::dispute {
         pvf_(std::move(pvf)),
         approval_distribution_(std::move(approval_distribution)),
         authority_discovery_(std::move(authority_discovery)),
-        main_thread_context_(
-            std::make_unique<ThreadHandler>(std::move(main_thread_context))),
+        main_thread_(std::make_unique<ThreadHandler>(std::move(main_thread))),
         router_(std::move(router)),
         peer_view_(std::move(peer_view)),
         chain_sub_{peer_view_->intoChainEventsEngine()},
         babe_status_observable_(std::move(babe_status_observable)),
-        int_pool_{std::make_shared<ThreadPool>(1ull)},
+        int_pool_{std::make_shared<ThreadPool>(
+            std::move(watchdog), "DisputeCoordinatorImpl", 1ull)},
         internal_context_{int_pool_->handler()},
         runtime_info_(std::make_unique<RuntimeInfo>(api_, session_keys_)),
         batches_(std::make_unique<Batches>(steady_clock_, hasher_)) {
@@ -162,7 +163,7 @@ namespace kagome::dispute {
     BOOST_ASSERT(pvf_ != nullptr);
     BOOST_ASSERT(approval_distribution_ != nullptr);
     BOOST_ASSERT(authority_discovery_ != nullptr);
-    BOOST_ASSERT(main_thread_context_ != nullptr);
+    BOOST_ASSERT(main_thread_ != nullptr);
     BOOST_ASSERT(router_ != nullptr);
     BOOST_ASSERT(peer_view_ != nullptr);
 
@@ -2152,16 +2153,13 @@ namespace kagome::dispute {
 
   void DisputeCoordinatorImpl::sendDisputeResponse(outcome::result<void> res,
                                                    CbOutcome<void> &&cb) {
-    REINVOKE(*main_thread_context_,
-             sendDisputeResponse,
-             std::move(res),
-             std::move(cb));
+    REINVOKE(*main_thread_, sendDisputeResponse, std::move(res), std::move(cb));
     cb(res);
   }
 
   void DisputeCoordinatorImpl::make_task_for_next_portion() {
     if (not rate_limit_timer_.has_value()) {
-      rate_limit_timer_.emplace(internal_context_->io_context());
+      rate_limit_timer_.emplace(int_pool_->io_context());
 
       rate_limit_timer_->expiresAfter(kReceiveRateLimit);
       rate_limit_timer_->asyncWait([wp = weak_from_this()](auto &&ec) {
@@ -2173,9 +2171,7 @@ namespace kagome::dispute {
                      ec);
             return;
           }
-          BOOST_ASSERT(self->internal_context_->io_context()
-                           ->get_executor()
-                           .running_in_this_thread());
+          BOOST_ASSERT(self->internal_context_->isInCurrentThread());
           self->process_portion_incoming_disputes();
         }
       });

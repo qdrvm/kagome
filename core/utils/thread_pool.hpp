@@ -15,7 +15,8 @@
 #include <boost/asio/io_context.hpp>
 #include <soralog/util.hpp>
 
-#include "utils/non_copyable.hpp"
+#include "utils/weak_io_context_post.hpp"
+#include "utils/watchdog.hpp"
 
 namespace kagome {
 
@@ -29,7 +30,7 @@ namespace kagome {
     ThreadHandler &operator=(ThreadHandler &&) = delete;
     ThreadHandler &operator=(const ThreadHandler &) = delete;
 
-    explicit ThreadHandler(std::shared_ptr<boost::asio::io_context> io_context)
+    explicit ThreadHandler(WeakIoContext io_context)
         : execution_state_{State::kStopped}, ioc_{std::move(io_context)} {}
     ~ThreadHandler() = default;
 
@@ -43,24 +44,18 @@ namespace kagome {
 
     template <typename F>
     void execute(F &&func) {
-      BOOST_ASSERT(ioc_);
       if (State::kStarted == execution_state_.load(std::memory_order_acquire)) {
-        ioc_->post(std::forward<F>(func));
+        post(ioc_, std::forward<F>(func));
       }
     }
 
     bool isInCurrentThread() const {
-      BOOST_ASSERT(ioc_);
-      return ioc_->get_executor().running_in_this_thread();
-    }
-
-    std::shared_ptr<boost::asio::io_context> io_context() const {
-      return ioc_;
+      return runningInThisThread(ioc_);
     }
 
    private:
     std::atomic<State> execution_state_;
-    std::shared_ptr<boost::asio::io_context> ioc_;
+    WeakIoContext ioc_;
   };
 
   /**
@@ -76,31 +71,9 @@ namespace kagome {
     ThreadPool &operator=(ThreadPool &&) = delete;
     ThreadPool &operator=(const ThreadPool &) = delete;
 
-    [[deprecated("Please, use ctor for pool with named threads")]]  //
-    explicit ThreadPool(size_t thread_count)
-        : ioc_{std::make_shared<boost::asio::io_context>()},
-          work_guard_{ioc_->get_executor()} {
-      BOOST_ASSERT(ioc_);
-      BOOST_ASSERT(thread_count > 0);
-
-      static size_t pool_count = 0;
-
-      threads_.reserve(thread_count);
-      for (size_t i = 0; i < thread_count; ++i) {
-        threads_.emplace_back(
-            [io{ioc_}, thread_count, pool_n = ++pool_count, thread_n = i + 1] {
-              if (thread_count > 1) {
-                soralog::util::setThreadName(
-                    fmt::format("worker.{}.{}", pool_n, thread_n));
-              } else {
-                soralog::util::setThreadName(fmt::format("worker.{}", pool_n));
-              }
-              io->run();
-            });
-      }
-    }
-
-    ThreadPool(std::string_view pool_tag, size_t thread_count)
+    ThreadPool(std::shared_ptr<Watchdog> watchdog,
+               std::string_view pool_tag,
+               size_t thread_count)
         : ioc_{std::make_shared<boost::asio::io_context>()},
           work_guard_{ioc_->get_executor()} {
       BOOST_ASSERT(ioc_);
@@ -109,6 +82,7 @@ namespace kagome {
       threads_.reserve(thread_count);
       for (size_t i = 0; i < thread_count; ++i) {
         threads_.emplace_back([io{ioc_},
+                               watchdog,
                                pool_tag = std::string(pool_tag),
                                thread_count,
                                n = i + 1] {
@@ -117,7 +91,7 @@ namespace kagome {
           } else {
             soralog::util::setThreadName(pool_tag);
           }
-          io->run();
+          watchdog->run(io);
         });
       }
     }

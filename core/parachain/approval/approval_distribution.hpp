@@ -286,7 +286,8 @@ namespace kagome::parachain {
         std::shared_ptr<blockchain::BlockTree> block_tree,
         std::shared_ptr<parachain::Pvf> pvf,
         std::shared_ptr<parachain::Recovery> recovery,
-        std::shared_ptr<boost::asio::io_context> this_context,
+        std::shared_ptr<Watchdog> watchdog,
+        WeakIoContext main_thread,
         LazySPtr<dispute::DisputeCoordinator> dispute_coordinator);
     ~ApprovalDistribution() = default;
 
@@ -339,7 +340,6 @@ namespace kagome::parachain {
       std::optional<consensus::Randomness> randomness;
       std::optional<consensus::babe::Authorities> authorities;
 
-      std::shared_ptr<boost::asio::io_context> complete_callback_context;
       std::function<void(outcome::result<ImportedBlockInfo> &&)>
           complete_callback;
 
@@ -741,7 +741,7 @@ namespace kagome::parachain {
     std::shared_ptr<blockchain::BlockTree> block_tree_;
     std::shared_ptr<parachain::Pvf> pvf_;
     std::shared_ptr<parachain::Recovery> recovery_;
-    ThreadHandler this_context_;
+    ThreadHandler main_thread_;
     LazySPtr<dispute::DisputeCoordinator> dispute_coordinator_;
 
     std::unordered_map<
