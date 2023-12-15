@@ -12,9 +12,12 @@
 
 #include "crypto/hasher/hasher_impl.hpp"
 #include "crypto/type_hasher.hpp"
+#include "mock/core/blockchain/block_tree_mock.hpp"
+#include "mock/core/runtime/parachain_host_mock.hpp"
 #include "parachain/types.hpp"
 #include "parachain/validator/fragment_tree.hpp"
 #include "parachain/validator/impl/candidates.hpp"
+#include "parachain/validator/parachain_processor.hpp"
 #include "parachain/validator/prospective_parachains.hpp"
 #include "runtime/runtime_api/parachain_host_types.hpp"
 #include "scale/kagome_scale.hpp"
@@ -23,10 +26,13 @@
 
 using namespace kagome::primitives;
 using namespace kagome::parachain;
+
 namespace network = kagome::network;
 namespace runtime = kagome::runtime;
 namespace common = kagome::common;
 namespace crypto = kagome::crypto;
+
+using testing::Return;
 
 struct PerParaData {
   BlockNumber min_relay_parent;
@@ -44,6 +50,11 @@ struct TestState {
                             runtime::ScheduledCore{.para_id = ParachainId{2},
                                                    .collator = std::nullopt}}},
         validation_code_hash{Hash::fromString("42").value()} {}
+};
+
+struct TestLeaf {
+	BlockNumber number;
+	std::vector<std::pair<ParachainId, PerParaData>> para_data;
 };
 
 class ProspectiveParachainsTest : public testing::Test {
@@ -209,16 +220,18 @@ class ProspectiveParachainsTest : public testing::Test {
   }
 };
 
-/*TEST_F(ProspectiveParachainsTest, sendCandidatesAndCheckIfFound) {
-  TestState test_state{};
-  network::ExView{
+TEST_F(ProspectiveParachainsTest, shouldDoNoWorkIfAsyncBackingDisabledForLeaf) {
+  auto parachain_api = std::make_shared<runtime::ParachainHostMock>();
+  auto block_tree = std::make_shared<kagome::blockchain::BlockTreeMock>();
+  auto prospective_parachain = std::make_shared<ProspectiveParachains>(
+      hasher_, parachain_api, block_tree);
+
+  network::ExView update{
       .view = {},
       .new_head =
           BlockHeader{
-              .number = 100,
-              .parent_hash = hasher_->blake2b_256(
-                  testutil::scaleEncodeAndCompareWithRef(BlockNumber{99})
-                      .value()),
+              .number = 1,
+              .parent_hash = {},
               .state_root = {},
               .extrinsics_root = {},
               .digest = {},
@@ -226,7 +239,33 @@ class ProspectiveParachainsTest : public testing::Test {
           },
       .lost = {},
   };
-}*/
+  auto hash = update.new_head.getHash();
+
+  EXPECT_CALL(*parachain_api, staging_async_backing_params(hash))
+      .WillRepeatedly(
+          Return(outcome::failure(ParachainProcessorImpl::Error::NO_STATE)));
+
+  prospective_parachain->onActiveLeavesUpdate(update);
+  ASSERT_TRUE(prospective_parachain->view.active_leaves.empty());
+  ASSERT_TRUE(prospective_parachain->view.candidate_storage.empty());
+}
+
+TEST_F(ProspectiveParachainsTest, sendCandidatesAndCheckIfFound) {
+  TestState test_state{};
+  network::ExView update{
+      .view = {},
+      .new_head =
+          BlockHeader{
+              .number = 100,
+              .parent_hash = {},
+              .state_root = {},
+              .extrinsics_root = {},
+              .digest = {},
+              .hash_opt = {},
+          },
+      .lost = {},
+  };
+}
 
 TEST_F(ProspectiveParachainsTest,
        FragmentTree_scopeRejectsAncestorsThatSkipBlocks) {

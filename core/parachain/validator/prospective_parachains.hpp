@@ -25,6 +25,9 @@
 namespace kagome::parachain {
 
   class ProspectiveParachains {
+#ifdef CFG_TESTING
+   public:
+#endif//CFG_TESTING
     struct RelayBlockViewData {
       // Scheduling info for paras and upcoming paras.
       std::unordered_map<ParachainId, fragment::FragmentTree> fragment_trees;

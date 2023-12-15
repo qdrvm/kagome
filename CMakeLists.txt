@@ -212,6 +212,7 @@ install(FILES ${CMAKE_CURRENT_BINARY_DIR}/kagomeConfig.cmake
 export(PACKAGE kagome)
 
 if(TESTING)
+  add_compile_definitions(CFG_TESTING)
   enable_testing()
   add_subdirectory(test)
 endif()
