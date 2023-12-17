@@ -34,33 +34,53 @@ namespace crypto = kagome::crypto;
 
 using testing::Return;
 
+inline Hash ghashFromStrData(
+    const std::shared_ptr<kagome::crypto::Hasher> &hasher,
+    std::span<const char> data) {
+  return hasher->blake2b_256(data);
+}
+
 struct PerParaData {
   BlockNumber min_relay_parent;
   HeadData head_data;
   std::vector<fragment::CandidatePendingAvailability> pending_availability;
+
+  PerParaData(BlockNumber min_relay_parent_, const HeadData &head_data_)
+      : min_relay_parent{min_relay_parent_}, head_data{head_data_} {}
 };
 
 struct TestState {
   std::vector<runtime::CoreState> availability_cores;
   ValidationCodeHash validation_code_hash;
 
-  TestState()
+  TestState(const std::shared_ptr<kagome::crypto::Hasher> &hasher)
       : availability_cores{{runtime::ScheduledCore{.para_id = ParachainId{1},
                                                    .collator = std::nullopt},
                             runtime::ScheduledCore{.para_id = ParachainId{2},
                                                    .collator = std::nullopt}}},
-        validation_code_hash{Hash::fromString("42").value()} {}
+        validation_code_hash{ghashFromStrData(hasher, "42")} {}
 };
 
 struct TestLeaf {
-	BlockNumber number;
-	std::vector<std::pair<ParachainId, PerParaData>> para_data;
+  BlockNumber number;
+  std::vector<std::pair<ParachainId, PerParaData>> para_data;
 };
 
 class ProspectiveParachainsTest : public testing::Test {
   void SetUp() override {
     testutil::prepareLoggers();
     hasher_ = std::make_shared<kagome::crypto::HasherImpl>();
+
+    parachain_api_ = std::make_shared<runtime::ParachainHostMock>();
+    block_tree_ = std::make_shared<kagome::blockchain::BlockTreeMock>();
+    prospective_parachain_ = std::make_shared<ProspectiveParachains>(
+        hasher_, parachain_api_, block_tree_);
+  }
+
+  void TearDown() override {
+    prospective_parachain_.reset();
+    block_tree_.reset();
+    parachain_api_.reset();
   }
 
  protected:
@@ -69,9 +89,14 @@ class ProspectiveParachainsTest : public testing::Test {
       std::unordered_map<ParachainId, std::unordered_set<CandidateHash>>>;
 
   std::shared_ptr<kagome::crypto::Hasher> hasher_;
+  std::shared_ptr<runtime::ParachainHostMock> parachain_api_;
+  std::shared_ptr<kagome::blockchain::BlockTreeMock> block_tree_;
+  std::shared_ptr<ProspectiveParachains> prospective_parachain_;
+
+  static constexpr uint64_t ALLOWED_ANCESTRY_LEN = 3ull;
 
   Hash hashFromStrData(std::span<const char> data) {
-    return hasher_->blake2b_256(data);
+    return ghashFromStrData(hasher_, data);
   }
 
   fragment::Constraints make_constraints(
@@ -218,20 +243,104 @@ class ProspectiveParachainsTest : public testing::Test {
                                const CandidatesHashMap &r) {
     return l == r;
   }
+
+  Hash get_parent_hash(BlockNumber parent) const {
+    return crypto::Hashed<BlockNumber, 32, crypto::Blake2b_StreamHasher<32>>(parent).getHash();
+  }
+
+  void handle_leaf_activation(
+      const TestLeaf &leaf,
+      const TestState &test_state,
+      const fragment::AsyncBackingParams &async_backing_params) {
+    const auto &[number, para_data] = leaf;
+    BlockHeader header{
+        .number = number,
+        .parent_hash = get_parent_hash(number - 1),
+        .state_root = {},
+        .extrinsics_root = {},
+        .digest = {},
+        .hash_opt = {},
+    };
+
+    network::ExView update{
+        .view = {},
+        .new_head = header,
+        .lost = {},
+    };
+    auto hash = update.new_head.getHash();
+
+    EXPECT_CALL(*parachain_api_, staging_async_backing_params(hash))
+        .WillRepeatedly(Return(outcome::success(async_backing_params)));
+
+    EXPECT_CALL(*parachain_api_, availability_cores(hash))
+        .WillRepeatedly(
+            Return(outcome::success(test_state.availability_cores)));
+
+    EXPECT_CALL(*block_tree_, getBlockHeader(hash))
+        .WillRepeatedly(Return(header));
+
+    BlockNumber min_min = [&]() -> BlockNumber {
+      std::optional<BlockNumber> min_min;
+      for (const auto &[_, data] : leaf.para_data) {
+        min_min = min_min ? std::min(*min_min, data.min_relay_parent)
+                          : data.min_relay_parent;
+      }
+      if (min_min) {
+        return *min_min;
+      }
+      return number;
+    }();
+    const auto ancestry_len = number - min_min;
+    std::vector<Hash> ancestry_hashes;
+    std::deque<BlockNumber> ancestry_numbers;
+    for (BlockNumber x = 0; x < ancestry_len; ++x) {
+      assert(number - x - 1 != 0);
+      ancestry_hashes.emplace_back(get_parent_hash(number - x - 1));
+      ancestry_numbers.push_front(number - x - 1);
+    }
+    ASSERT_EQ(ancestry_hashes.size(), ancestry_numbers.size());
+
+    if (ancestry_len > 0) {
+        EXPECT_CALL(*block_tree_,
+                    getDescendingChainToBlock(hash, ALLOWED_ANCESTRY_LEN))
+            .WillRepeatedly(Return(ancestry_hashes));
+        EXPECT_CALL(*parachain_api_, session_index_for_child(hash))
+            .WillRepeatedly(Return(1));
+    }
+
+    for (size_t i = 0; i < ancestry_hashes.size(); ++i) {
+        const auto &h_ = ancestry_hashes[i];
+        const auto &n_ = ancestry_numbers[i];
+
+        BlockHeader h{
+            .number = n_,
+            .parent_hash = get_parent_hash(n_ - 1),
+            .state_root = {},
+            .extrinsics_root = {},
+            .digest = {},
+            .hash_opt = {},
+        };
+        EXPECT_CALL(*block_tree_, getBlockHeader(h_))
+            .WillRepeatedly(Return(h));
+    }
+
+    prospective_parachain_->onActiveLeavesUpdate(update);
+  }
+
+  void activate_leaf(const TestLeaf &leaf,
+                     const TestState &test_state,
+                     const fragment::AsyncBackingParams &async_backing_params) {
+    handle_leaf_activation(leaf, test_state, async_backing_params);
+  }
 };
 
 TEST_F(ProspectiveParachainsTest, shouldDoNoWorkIfAsyncBackingDisabledForLeaf) {
-  auto parachain_api = std::make_shared<runtime::ParachainHostMock>();
-  auto block_tree = std::make_shared<kagome::blockchain::BlockTreeMock>();
-  auto prospective_parachain = std::make_shared<ProspectiveParachains>(
-      hasher_, parachain_api, block_tree);
-
   network::ExView update{
       .view = {},
       .new_head =
           BlockHeader{
               .number = 1,
-              .parent_hash = {},
+              .parent_hash = get_parent_hash(0),
               .state_root = {},
               .extrinsics_root = {},
               .digest = {},
@@ -241,30 +350,50 @@ TEST_F(ProspectiveParachainsTest, shouldDoNoWorkIfAsyncBackingDisabledForLeaf) {
   };
   auto hash = update.new_head.getHash();
 
-  EXPECT_CALL(*parachain_api, staging_async_backing_params(hash))
+  EXPECT_CALL(*parachain_api_, staging_async_backing_params(hash))
       .WillRepeatedly(
           Return(outcome::failure(ParachainProcessorImpl::Error::NO_STATE)));
 
-  prospective_parachain->onActiveLeavesUpdate(update);
-  ASSERT_TRUE(prospective_parachain->view.active_leaves.empty());
-  ASSERT_TRUE(prospective_parachain->view.candidate_storage.empty());
+  prospective_parachain_->onActiveLeavesUpdate(update);
+  ASSERT_TRUE(prospective_parachain_->view.active_leaves.empty());
+  ASSERT_TRUE(prospective_parachain_->view.candidate_storage.empty());
 }
 
 TEST_F(ProspectiveParachainsTest, sendCandidatesAndCheckIfFound) {
-  TestState test_state{};
-  network::ExView update{
-      .view = {},
-      .new_head =
-          BlockHeader{
-              .number = 100,
-              .parent_hash = {},
-              .state_root = {},
-              .extrinsics_root = {},
-              .digest = {},
-              .hash_opt = {},
+  TestState test_state(hasher_);
+  TestLeaf leaf_a{
+      .number = 100,
+      .para_data =
+          {
+              {1, PerParaData(97, {1, 2, 3})},
+              {2, PerParaData(100, {2, 3, 4})},
           },
-      .lost = {},
   };
+  TestLeaf leaf_b{
+      .number = 101,
+      .para_data =
+          {
+              {1, PerParaData(99, {3, 4, 5})},
+              {2, PerParaData(101, {4, 5, 6})},
+          },
+  };
+  TestLeaf leaf_c{
+      .number = 102,
+      .para_data =
+          {
+              {1, PerParaData(102, {5, 6, 7})},
+              {2, PerParaData(98, {6, 7, 8})},
+          },
+  };
+
+  fragment::AsyncBackingParams async_backing_params{
+      .max_candidate_depth = 4,
+      .allowed_ancestry_len = ALLOWED_ANCESTRY_LEN,
+  };
+
+  activate_leaf(leaf_a, test_state, async_backing_params);
+  activate_leaf(leaf_b, test_state, async_backing_params);
+  activate_leaf(leaf_c, test_state, async_backing_params);
 }
 
 TEST_F(ProspectiveParachainsTest,
