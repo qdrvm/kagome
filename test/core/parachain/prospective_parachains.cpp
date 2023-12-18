@@ -59,11 +59,31 @@ struct TestState {
                             runtime::ScheduledCore{.para_id = ParachainId{2},
                                                    .collator = std::nullopt}}},
         validation_code_hash{ghashFromStrData(hasher, "42")} {}
+
+  ParachainId byIndex(size_t ix) const {
+    assert(ix < availability_cores.size());
+    const runtime::CoreState &cs = availability_cores[ix];
+    if (const runtime::ScheduledCore *ptr =
+            std::get_if<runtime::ScheduledCore>(&cs)) {
+      return ptr->para_id;
+    }
+    UNREACHABLE;
+  }
 };
 
 struct TestLeaf {
   BlockNumber number;
   std::vector<std::pair<ParachainId, PerParaData>> para_data;
+
+  std::reference_wrapper<const PerParaData> paraData(
+      ParachainId para_id) const {
+    for (const auto &[para, per_data] : para_data) {
+      if (para == para_id) {
+        return {per_data};
+      }
+    }
+    UNREACHABLE;
+  }
 };
 
 class ProspectiveParachainsTest : public testing::Test {
@@ -94,6 +114,7 @@ class ProspectiveParachainsTest : public testing::Test {
   std::shared_ptr<ProspectiveParachains> prospective_parachain_;
 
   static constexpr uint64_t ALLOWED_ANCESTRY_LEN = 3ull;
+  static constexpr uint32_t MAX_POV_SIZE = 1000000;
 
   Hash hashFromStrData(std::span<const char> data) {
     return ghashFromStrData(hasher_, data);
@@ -245,7 +266,37 @@ class ProspectiveParachainsTest : public testing::Test {
   }
 
   Hash get_parent_hash(BlockNumber parent) const {
-    return crypto::Hashed<BlockNumber, 32, crypto::Blake2b_StreamHasher<32>>(parent).getHash();
+    auto h = crypto::Hashed<BlockNumber, 32, crypto::Blake2b_StreamHasher<32>>(
+               parent)
+        .getHash();
+    std::cout << "Hash " << h << " is parent for " << parent << std::endl;
+    return h;
+  }
+
+  fragment::Constraints dummy_constraints(
+      BlockNumber min_relay_parent_number,
+      std::vector<BlockNumber> valid_watermarks,
+      const HeadData &required_parent,
+      const ValidationCodeHash &validation_code_hash) {
+    return fragment::Constraints{
+        .min_relay_parent_number = min_relay_parent_number,
+        .max_pov_size = MAX_POV_SIZE,
+        .max_code_size = 1000000,
+        .ump_remaining = 10,
+        .ump_remaining_bytes = 1000,
+        .max_ump_num_per_candidate = 10,
+        .dmp_remaining_messages = {},
+        .hrmp_inbound =
+            fragment::InboundHrmpLimitations{
+                .valid_watermarks = valid_watermarks,
+            },
+        .hrmp_channels_out = {},
+        .max_hrmp_num_per_candidate = 0,
+        .required_parent = required_parent,
+        .validation_code_hash = validation_code_hash,
+        .upgrade_restriction = {},
+        .future_validation_code = {},
+    };
   }
 
   void handle_leaf_activation(
@@ -295,36 +346,80 @@ class ProspectiveParachainsTest : public testing::Test {
     std::deque<BlockNumber> ancestry_numbers;
     for (BlockNumber x = 0; x < ancestry_len; ++x) {
       assert(number - x - 1 != 0);
-      ancestry_hashes.emplace_back(get_parent_hash(number - x - 1));
-      ancestry_numbers.push_front(number - x - 1);
+      ancestry_hashes.emplace_back(get_parent_hash(number - (ancestry_len - x - 1) - 1));
+      ancestry_numbers.push_front(number - (ancestry_len - x - 1) - 1);
     }
     ASSERT_EQ(ancestry_hashes.size(), ancestry_numbers.size());
+    for (size_t i = 0; i < ancestry_hashes.size(); ++i) {
+        std::cout << ancestry_numbers[i] << " -> " << ancestry_hashes[i] << std::endl;
+    }
 
     if (ancestry_len > 0) {
-        EXPECT_CALL(*block_tree_,
-                    getDescendingChainToBlock(hash, ALLOWED_ANCESTRY_LEN))
-            .WillRepeatedly(Return(ancestry_hashes));
-        EXPECT_CALL(*parachain_api_, session_index_for_child(hash))
-            .WillRepeatedly(Return(1));
+      EXPECT_CALL(*block_tree_,
+                  getDescendingChainToBlock(hash, ALLOWED_ANCESTRY_LEN))
+          .WillRepeatedly(Return(ancestry_hashes));
+      EXPECT_CALL(*parachain_api_, session_index_for_child(hash))
+          .WillRepeatedly(Return(1));
     }
 
     for (size_t i = 0; i < ancestry_hashes.size(); ++i) {
-        const auto &h_ = ancestry_hashes[i];
-        const auto &n_ = ancestry_numbers[i];
+      const auto &h_ = ancestry_hashes[i];
+      const auto &n_ = ancestry_numbers[i];
 
+      ASSERT_TRUE(n_ > 0);
+      BlockHeader h{
+          .number = n_,
+          .parent_hash = get_parent_hash(n_ - 1),
+          .state_root = {},
+          .extrinsics_root = {},
+          .digest = {},
+          .hash_opt = {},
+      };
+      EXPECT_CALL(*block_tree_, getBlockHeader(h_)).WillRepeatedly(Return(h));
+      EXPECT_CALL(*parachain_api_, session_index_for_child(h_))
+          .WillRepeatedly(Return(outcome::success(1)));
+    }
+
+    for (size_t i = 0; i < test_state.availability_cores.size(); ++i) {
+      const auto para_id = test_state.byIndex(i);
+      const auto &[min_relay_parent, head_data, pending_availability] =
+          leaf.paraData(para_id).get();
+      fragment::BackingState backing_state{
+          .constraints = dummy_constraints(min_relay_parent,
+                                           {number},
+                                           head_data,
+                                           test_state.validation_code_hash),
+          .pending_availability = pending_availability,
+      };
+      EXPECT_CALL(*parachain_api_, staging_para_backing_state(hash, para_id))
+          .WillRepeatedly(Return(backing_state));
+
+      for (const auto &pending : pending_availability) {
         BlockHeader h{
-            .number = n_,
-            .parent_hash = get_parent_hash(n_ - 1),
+            .number = pending.relay_parent_number,
+            .parent_hash = get_parent_hash(pending.relay_parent_number - 1),
             .state_root = {},
             .extrinsics_root = {},
             .digest = {},
             .hash_opt = {},
         };
-        EXPECT_CALL(*block_tree_, getBlockHeader(h_))
+        EXPECT_CALL(*block_tree_, getBlockHeader(pending.descriptor.relay_parent))
             .WillRepeatedly(Return(h));
+      }
     }
 
     prospective_parachain_->onActiveLeavesUpdate(update);
+    auto resp =
+        prospective_parachain_->answerMinimumRelayParentsRequest(hash);
+    std::sort(resp.begin(), resp.end(), [](const auto &l, const auto &r) {
+      return l.first < r.first || l.second < r.second;
+    });
+
+    std::vector<std::pair<ParachainId, BlockNumber>> mrp_response;
+    for (const auto &[pid, ppd] : para_data) {
+      mrp_response.emplace_back(pid, ppd.min_relay_parent);
+    }
+    ASSERT_EQ(resp, mrp_response);
   }
 
   void activate_leaf(const TestLeaf &leaf,
