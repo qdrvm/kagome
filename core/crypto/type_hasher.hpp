@@ -63,8 +63,9 @@ namespace kagome::crypto {
       }
       return *opt_hash_;
     }
-
+#ifndef CFG_TESTING
    private:
+#endif//CFG_TESTING
     T type_;
     mutable std::optional<HashType> opt_hash_{};
   };

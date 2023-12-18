@@ -73,6 +73,7 @@ struct TestState {
 
 struct TestLeaf {
   BlockNumber number;
+  Hash hash;
   std::vector<std::pair<ParachainId, PerParaData>> para_data;
 
   std::reference_wrapper<const PerParaData> paraData(
@@ -265,11 +266,21 @@ class ProspectiveParachainsTest : public testing::Test {
     return l == r;
   }
 
-  Hash get_parent_hash(BlockNumber parent) const {
-    auto h = crypto::Hashed<BlockNumber, 32, crypto::Blake2b_StreamHasher<32>>(
-               parent)
-        .getHash();
+  Hash get_parent_hash(const Hash &parent) const {
+    Hash h{};
+    *(uint64_t *)&h[0] = *(uint64_t *)&parent[0] + 1ull;
+
+    //    auto h = crypto::Hashed<BlockNumber, 32,
+    //    crypto::Blake2b_StreamHasher<32>>(
+    //               parent)
+    //        .getHash();
     std::cout << "Hash " << h << " is parent for " << parent << std::endl;
+    return h;
+  }
+
+  Hash fromNumber(uint64_t n) const {
+    Hash h{};
+    *(uint64_t *)&h[0] = n;
     return h;
   }
 
@@ -303,10 +314,10 @@ class ProspectiveParachainsTest : public testing::Test {
       const TestLeaf &leaf,
       const TestState &test_state,
       const fragment::AsyncBackingParams &async_backing_params) {
-    const auto &[number, para_data] = leaf;
+    const auto &[number, hash, para_data] = leaf;
     BlockHeader header{
         .number = number,
-        .parent_hash = get_parent_hash(number - 1),
+        .parent_hash = get_parent_hash(hash),
         .state_root = {},
         .extrinsics_root = {},
         .digest = {},
@@ -318,7 +329,7 @@ class ProspectiveParachainsTest : public testing::Test {
         .new_head = header,
         .lost = {},
     };
-    auto hash = update.new_head.getHash();
+    update.new_head.opt_hash_ = hash;
 
     EXPECT_CALL(*parachain_api_, staging_async_backing_params(hash))
         .WillRepeatedly(Return(outcome::success(async_backing_params)));
@@ -344,14 +355,22 @@ class ProspectiveParachainsTest : public testing::Test {
     const auto ancestry_len = number - min_min;
     std::vector<Hash> ancestry_hashes;
     std::deque<BlockNumber> ancestry_numbers;
-    for (BlockNumber x = 0; x < ancestry_len; ++x) {
+
+    Hash d = hash;
+    for (BlockNumber x = 0; x <= ancestry_len; ++x) {
       assert(number - x - 1 != 0);
-      ancestry_hashes.emplace_back(get_parent_hash(number - (ancestry_len - x - 1) - 1));
-      ancestry_numbers.push_front(number - (ancestry_len - x - 1) - 1);
+      if (x == 0) {
+        d = get_parent_hash(d);
+        continue;
+      }
+      ancestry_hashes.emplace_back(d);
+      ancestry_numbers.push_front(number - ancestry_len + x - 1);
+      d = get_parent_hash(d);
     }
     ASSERT_EQ(ancestry_hashes.size(), ancestry_numbers.size());
     for (size_t i = 0; i < ancestry_hashes.size(); ++i) {
-        std::cout << ancestry_numbers[i] << " -> " << ancestry_hashes[i] << std::endl;
+      std::cout << ancestry_numbers[i] << " -> " << ancestry_hashes[i]
+                << std::endl;
     }
 
     if (ancestry_len > 0) {
@@ -369,7 +388,7 @@ class ProspectiveParachainsTest : public testing::Test {
       ASSERT_TRUE(n_ > 0);
       BlockHeader h{
           .number = n_,
-          .parent_hash = get_parent_hash(n_ - 1),
+          .parent_hash = get_parent_hash(h_),
           .state_root = {},
           .extrinsics_root = {},
           .digest = {},
@@ -397,22 +416,22 @@ class ProspectiveParachainsTest : public testing::Test {
       for (const auto &pending : pending_availability) {
         BlockHeader h{
             .number = pending.relay_parent_number,
-            .parent_hash = get_parent_hash(pending.relay_parent_number - 1),
+            .parent_hash = get_parent_hash(pending.descriptor.relay_parent),
             .state_root = {},
             .extrinsics_root = {},
             .digest = {},
             .hash_opt = {},
         };
-        EXPECT_CALL(*block_tree_, getBlockHeader(pending.descriptor.relay_parent))
+        EXPECT_CALL(*block_tree_,
+                    getBlockHeader(pending.descriptor.relay_parent))
             .WillRepeatedly(Return(h));
       }
     }
 
     prospective_parachain_->onActiveLeavesUpdate(update);
-    auto resp =
-        prospective_parachain_->answerMinimumRelayParentsRequest(hash);
+    auto resp = prospective_parachain_->answerMinimumRelayParentsRequest(hash);
     std::sort(resp.begin(), resp.end(), [](const auto &l, const auto &r) {
-      return l.first < r.first || l.second < r.second;
+      return l.first < r.first;
     });
 
     std::vector<std::pair<ParachainId, BlockNumber>> mrp_response;
@@ -435,7 +454,7 @@ TEST_F(ProspectiveParachainsTest, shouldDoNoWorkIfAsyncBackingDisabledForLeaf) {
       .new_head =
           BlockHeader{
               .number = 1,
-              .parent_hash = get_parent_hash(0),
+              .parent_hash = fromNumber(131),
               .state_root = {},
               .extrinsics_root = {},
               .digest = {},
@@ -443,7 +462,7 @@ TEST_F(ProspectiveParachainsTest, shouldDoNoWorkIfAsyncBackingDisabledForLeaf) {
           },
       .lost = {},
   };
-  auto hash = update.new_head.getHash();
+  update.new_head.opt_hash_ = fromNumber(130);
 
   EXPECT_CALL(*parachain_api_, staging_async_backing_params(hash))
       .WillRepeatedly(
@@ -458,6 +477,7 @@ TEST_F(ProspectiveParachainsTest, sendCandidatesAndCheckIfFound) {
   TestState test_state(hasher_);
   TestLeaf leaf_a{
       .number = 100,
+      .hash = fromNumber(130),
       .para_data =
           {
               {1, PerParaData(97, {1, 2, 3})},
@@ -466,6 +486,7 @@ TEST_F(ProspectiveParachainsTest, sendCandidatesAndCheckIfFound) {
   };
   TestLeaf leaf_b{
       .number = 101,
+      .hash = fromNumber(131),
       .para_data =
           {
               {1, PerParaData(99, {3, 4, 5})},
@@ -474,6 +495,7 @@ TEST_F(ProspectiveParachainsTest, sendCandidatesAndCheckIfFound) {
   };
   TestLeaf leaf_c{
       .number = 102,
+      .hash = fromNumber(132),
       .para_data =
           {
               {1, PerParaData(102, {5, 6, 7})},
