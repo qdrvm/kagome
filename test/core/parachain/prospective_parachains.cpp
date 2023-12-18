@@ -462,7 +462,8 @@ TEST_F(ProspectiveParachainsTest, shouldDoNoWorkIfAsyncBackingDisabledForLeaf) {
           },
       .lost = {},
   };
-  update.new_head.opt_hash_ = fromNumber(130);
+  const auto hash = fromNumber(130);
+  update.new_head.opt_hash_ = hash;
 
   EXPECT_CALL(*parachain_api_, staging_async_backing_params(hash))
       .WillRepeatedly(
