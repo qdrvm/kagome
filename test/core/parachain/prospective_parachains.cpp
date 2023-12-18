@@ -446,6 +446,26 @@ class ProspectiveParachainsTest : public testing::Test {
                      const fragment::AsyncBackingParams &async_backing_params) {
     handle_leaf_activation(leaf, test_state, async_backing_params);
   }
+
+  void introduce_candidate(const network::CommittedCandidateReceipt &candidate,
+                           const runtime::PersistedValidationData &pvd) {
+    [[maybe_unused]] const auto _ = prospective_parachain_->introduceCandidate(
+        candidate.descriptor.para_id,
+        candidate,
+        crypto::Hashed<const runtime::PersistedValidationData &,
+                       32,
+                       crypto::Blake2b_StreamHasher<32>>(pvd),
+        network::candidateHash(*hasher_, candidate));
+  }
+
+  auto get_membership(ParachainId para_id,
+                      const CandidateHash &candidate_hash,
+                      const std::vector<std::pair<Hash, std::vector<size_t>>>
+                          &expected_membership_response) {
+    const auto resp = prospective_parachain_->answerTreeMembershipRequest(
+        para_id, candidate_hash);
+    ASSERT_EQ(resp, expected_membership_response);
+  }
 };
 
 TEST_F(ProspectiveParachainsTest, shouldDoNoWorkIfAsyncBackingDisabledForLeaf) {
@@ -512,6 +532,78 @@ TEST_F(ProspectiveParachainsTest, sendCandidatesAndCheckIfFound) {
   activate_leaf(leaf_a, test_state, async_backing_params);
   activate_leaf(leaf_b, test_state, async_backing_params);
   activate_leaf(leaf_c, test_state, async_backing_params);
+
+  const auto &[candidate_a1, pvd_a1] =
+      make_candidate(leaf_a.hash,
+                     leaf_a.number,
+                     1,
+                     {1, 2, 3},
+                     {1},
+                     test_state.validation_code_hash);
+  const Hash candidate_hash_a1 = network::candidateHash(*hasher_, candidate_a1);
+  std::vector<std::pair<Hash, std::vector<size_t>>> response_a1 = {
+      {leaf_a.hash, {0}}};
+
+  const auto &[candidate_a2, pvd_a2] =
+      make_candidate(leaf_a.hash,
+                     leaf_a.number,
+                     2,
+                     {2, 3, 4},
+                     {2},
+                     test_state.validation_code_hash);
+  const Hash candidate_hash_a2 = network::candidateHash(*hasher_, candidate_a2);
+  std::vector<std::pair<Hash, std::vector<size_t>>> response_a2 = {
+      {leaf_a.hash, {0}}};
+
+  const auto &[candidate_b, pvd_b] =
+      make_candidate(leaf_b.hash,
+                     leaf_b.number,
+                     1,
+                     {3, 4, 5},
+                     {3},
+                     test_state.validation_code_hash);
+  const Hash candidate_hash_b = network::candidateHash(*hasher_, candidate_b);
+  std::vector<std::pair<Hash, std::vector<size_t>>> response_b = {
+      {leaf_b.hash, {0}}};
+
+  const auto &[candidate_c, pvd_c] =
+      make_candidate(leaf_c.hash,
+                     leaf_c.number,
+                     2,
+                     {6, 7, 8},
+                     {4},
+                     test_state.validation_code_hash);
+  const Hash candidate_hash_c = network::candidateHash(*hasher_, candidate_c);
+  std::vector<std::pair<Hash, std::vector<size_t>>> response_c = {
+      {leaf_c.hash, {0}}};
+
+  introduce_candidate(candidate_a1, pvd_a1);
+  introduce_candidate(candidate_a2, pvd_a2);
+  introduce_candidate(candidate_b, pvd_b);
+  introduce_candidate(candidate_c, pvd_c);
+
+  get_membership(1, candidate_hash_a1, response_a1);
+  get_membership(2, candidate_hash_a2, response_a2);
+  get_membership(1, candidate_hash_b, response_b);
+  get_membership(2, candidate_hash_c, response_c);
+  get_membership(2, candidate_hash_a1, {});
+  get_membership(1, candidate_hash_a2, {});
+  get_membership(2, candidate_hash_b, {});
+  get_membership(1, candidate_hash_c, {});
+
+  ASSERT_EQ(prospective_parachain_->view.active_leaves.size(), 3);
+  ASSERT_EQ(prospective_parachain_->view.candidate_storage.size(), 2);
+
+  {
+    auto it = prospective_parachain_->view.candidate_storage.find(1);
+    ASSERT_TRUE(it != prospective_parachain_->view.candidate_storage.end());
+    ASSERT_EQ(it->second.len(), std::make_pair(size_t(2), size_t(2)));
+  }
+  {
+    auto it = prospective_parachain_->view.candidate_storage.find(2);
+    ASSERT_TRUE(it != prospective_parachain_->view.candidate_storage.end());
+    ASSERT_EQ(it->second.len(), std::make_pair(size_t(2), size_t(2)));
+  }
 }
 
 TEST_F(ProspectiveParachainsTest,

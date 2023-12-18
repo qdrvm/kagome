@@ -9,12 +9,13 @@
 #include <boost/variant.hpp>
 #include <map>
 #include <optional>
+#include <ranges>
 #include <unordered_map>
 #include <unordered_set>
 #include <vector>
-#include <ranges>
 #include "outcome/outcome.hpp"
 
+#include "crypto/hasher/hasher_impl.hpp"
 #include "log/logger.hpp"
 #include "network/types/collator_messages.hpp"
 #include "network/types/collator_messages_vstaging.hpp"
@@ -24,7 +25,6 @@
 #include "primitives/math.hpp"
 #include "runtime/runtime_api/parachain_host_types.hpp"
 #include "utils/map.hpp"
-#include "crypto/hasher/hasher_impl.hpp"
 
 namespace kagome::parachain::fragment {
 
@@ -96,7 +96,9 @@ namespace kagome::parachain::fragment {
     outcome::result<void> addCandidate(
         const CandidateHash &candidate_hash,
         const network::CommittedCandidateReceipt &candidate,
-        const crypto::Hashed<const runtime::PersistedValidationData &, 32, crypto::Blake2b_StreamHasher<32>>
+        const crypto::Hashed<const runtime::PersistedValidationData &,
+                             32,
+                             crypto::Blake2b_StreamHasher<32>>
             &persisted_validation_data,
         const std::shared_ptr<crypto::Hasher> &hasher);
 
@@ -109,12 +111,14 @@ namespace kagome::parachain::fragment {
       return std::nullopt;
     }
 
-    Option<Hash> relayParentByCandidateHash(const CandidateHash &candidate_hash) const {
-      if (auto it = by_candidate_hash.find(candidate_hash); it != by_candidate_hash.end()) {
+    Option<Hash> relayParentByCandidateHash(
+        const CandidateHash &candidate_hash) const {
+      if (auto it = by_candidate_hash.find(candidate_hash);
+          it != by_candidate_hash.end()) {
         return it->second.relay_parent;
       }
       return std::nullopt;
-	  }
+    }
 
     bool contains(const CandidateHash &candidate_hash) const {
       return by_candidate_hash.find(candidate_hash) != by_candidate_hash.end();
@@ -193,6 +197,10 @@ namespace kagome::parachain::fragment {
           && by_candidate_hash.at(candidate_hash).state
                  == CandidateState::Backed;
     }
+
+    std::pair<size_t, size_t> len() const {
+      return std::make_pair(by_parent_head.size(), by_candidate_hash.size());
+    }
   };
 
   using NodePointerRoot = network::Empty;
@@ -223,48 +231,61 @@ namespace kagome::parachain::fragment {
       return relay_parent;
     }
 
-    static Option<Fragment> create(const RelayChainBlockInfo &relay_parent,const Constraints &operating_constraints, const ProspectiveCandidate &candidate) {
+    static Option<Fragment> create(const RelayChainBlockInfo &relay_parent,
+                                   const Constraints &operating_constraints,
+                                   const ProspectiveCandidate &candidate) {
       const network::CandidateCommitments &commitments = candidate.commitments;
 
-        std::unordered_map<ParachainId, OutboundHrmpChannelModification> outbound_hrmp;
-        std::optional<ParachainId> last_recipient;
-        for (size_t i = 0; i < commitments.outbound_hor_msgs.size(); ++i) {
-          const network::OutboundHorizontal &message = commitments.outbound_hor_msgs[i];
-          if (last_recipient) {
-            if (*last_recipient >= message.para_id) {
-              return std::nullopt;
-            }
+      std::unordered_map<ParachainId, OutboundHrmpChannelModification>
+          outbound_hrmp;
+      std::optional<ParachainId> last_recipient;
+      for (size_t i = 0; i < commitments.outbound_hor_msgs.size(); ++i) {
+        const network::OutboundHorizontal &message =
+            commitments.outbound_hor_msgs[i];
+        if (last_recipient) {
+          if (*last_recipient >= message.para_id) {
+            return std::nullopt;
           }
-          last_recipient = message.para_id;
-          OutboundHrmpChannelModification &record = outbound_hrmp[message.para_id];
-
-          record.bytes_submitted += message.upward_msg.size();
-          record.messages_submitted += 1;
         }
+        last_recipient = message.para_id;
+        OutboundHrmpChannelModification &record =
+            outbound_hrmp[message.para_id];
+
+        record.bytes_submitted += message.upward_msg.size();
+        record.messages_submitted += 1;
+      }
 
       size_t ump_sent_bytes = 0ull;
       for (const auto &m : commitments.upward_msgs) {
         ump_sent_bytes += m.size();
       }
 
-      ConstraintModifications modifications {
-				.required_parent = commitments.para_head,
-				.hrmp_watermark = ((commitments.watermark == relay_parent.number) ? HrmpWatermarkUpdate{HrmpWatermarkUpdateHead{.v = commitments.watermark}} : HrmpWatermarkUpdate{HrmpWatermarkUpdateTrunk{.v = commitments.watermark}}),
-        .outbound_hrmp = outbound_hrmp,
- 				.ump_messages_sent = commitments.upward_msgs.size(),
-        .ump_bytes_sent = ump_sent_bytes,
-        .dmp_messages_processed = commitments.downward_msgs_count,
-        .code_upgrade_applied = operating_constraints.future_validation_code ? (relay_parent.number >= operating_constraints.future_validation_code->first) : false,
+      ConstraintModifications modifications{
+          .required_parent = commitments.para_head,
+          .hrmp_watermark = ((commitments.watermark == relay_parent.number)
+                                 ? HrmpWatermarkUpdate{HrmpWatermarkUpdateHead{
+                                     .v = commitments.watermark}}
+                                 : HrmpWatermarkUpdate{HrmpWatermarkUpdateTrunk{
+                                     .v = commitments.watermark}}),
+          .outbound_hrmp = outbound_hrmp,
+          .ump_messages_sent = commitments.upward_msgs.size(),
+          .ump_bytes_sent = ump_sent_bytes,
+          .dmp_messages_processed = commitments.downward_msgs_count,
+          .code_upgrade_applied =
+              operating_constraints.future_validation_code
+                  ? (relay_parent.number
+                     >= operating_constraints.future_validation_code->first)
+                  : false,
       };
 
       /// TODO(iceseer): do
       /// make validation `validate_against_constraints()`
 
-      return Fragment { 
-        .relay_parent = relay_parent, 
-        .operating_constraints = operating_constraints, 
-        .candidate = candidate, 
-        .modifications = modifications,
+      return Fragment{
+          .relay_parent = relay_parent,
+          .operating_constraints = operating_constraints,
+          .candidate = candidate,
+          .modifications = modifications,
       };
     }
 
@@ -397,11 +418,12 @@ namespace kagome::parachain::fragment {
 
     std::vector<CandidateHash> getCandidates() const {
       auto kv = std::views::keys(candidates);
-      return { kv.begin(), kv.end() };
-	  }
+      return {kv.begin(), kv.end()};
+    }
 
-    template<typename Func>
-    std::optional<CandidateHash> selectChild(const std::vector<CandidateHash> &required_path, Func &&pred) const {
+    template <typename Func>
+    std::optional<CandidateHash> selectChild(
+        const std::vector<CandidateHash> &required_path, Func &&pred) const {
       NodePointer base_node{NodePointerRoot{}};
       for (const CandidateHash &required_step : required_path) {
         if (auto node = nodeCandidateChild(base_node, required_step)) {
@@ -411,37 +433,39 @@ namespace kagome::parachain::fragment {
         }
       }
 
-      return visit_in_place(base_node, 
-        [&](const NodePointerRoot &) -> std::optional<CandidateHash> {
-          for (const FragmentNode &n : nodes) {
-            if (!is_type<NodePointerRoot>(n.parent)) {
-              return std::nullopt;
+      return visit_in_place(
+          base_node,
+          [&](const NodePointerRoot &) -> std::optional<CandidateHash> {
+            for (const FragmentNode &n : nodes) {
+              if (!is_type<NodePointerRoot>(n.parent)) {
+                return std::nullopt;
+              }
+              if (scope.getPendingAvailability(n.candidate_hash)) {
+                return std::nullopt;
+              }
+              if (!pred(n.candidate_hash)) {
+                return std::nullopt;
+              }
+              return n.candidate_hash;
             }
-            if (scope.getPendingAvailability(n.candidate_hash)) {
-              return std::nullopt;
+            return std::nullopt;
+          },
+          [&](const NodePointerStorage &ptr) -> std::optional<CandidateHash> {
+            for (const auto &[_, h] : nodes[ptr].children) {
+              if (scope.getPendingAvailability(h)) {
+                return std::nullopt;
+              }
+              if (!pred(h)) {
+                return std::nullopt;
+              }
+              return h;
             }
-            if (!pred(n.candidate_hash)) {
-              return std::nullopt;
-            }
-            return n.candidate_hash;
-          }
-          return std::nullopt;
-        },
-        [&](const NodePointerStorage &ptr) -> std::optional<CandidateHash> {
-          for (const auto &[_, h] : nodes[ptr].children) {
-            if (scope.getPendingAvailability(h)) {
-              return std::nullopt;
-            }
-            if (!pred(h)) {
-              return std::nullopt;
-            }
-            return h;
-          }
-          return std::nullopt;
-        });
+            return std::nullopt;
+          });
     }
 
-    static FragmentTree populate(const std::shared_ptr<crypto::Hasher> &hasher, const Scope &scope,
+    static FragmentTree populate(const std::shared_ptr<crypto::Hasher> &hasher,
+                                 const Scope &scope,
                                  const CandidateStorage &storage) {
       auto logger = log::createLogger("parachain", "fragment_tree");
       SL_TRACE(logger,
@@ -452,7 +476,8 @@ namespace kagome::parachain::fragment {
                scope.para,
                scope.ancestors.size());
 
-      FragmentTree tree{.scope = scope, .nodes = {}, .candidates = {}, .hasher_ = hasher};
+      FragmentTree tree{
+          .scope = scope, .nodes = {}, .candidates = {}, .hasher_ = hasher};
 
       tree.populateFromBases(storage, {{NodePointerRoot{}}});
       return tree;
@@ -482,19 +507,17 @@ namespace kagome::parachain::fragment {
               visit_in_place(
                   parent_pointer,
                   [&](const NodePointerRoot &)
-                      -> std::tuple<
-                          ConstraintModifications,
-                          size_t,
-                          RelayChainBlockInfo> {
+                      -> std::tuple<ConstraintModifications,
+                                    size_t,
+                                    RelayChainBlockInfo> {
                     return std::make_tuple(ConstraintModifications{},
                                            size_t{0ull},
                                            scope.earliestRelayParent());
                   },
                   [&](const NodePointerStorage &ptr)
-                      -> std::tuple<
-                          ConstraintModifications,
-                          size_t,
-                          RelayChainBlockInfo> {
+                      -> std::tuple<ConstraintModifications,
+                                    size_t,
+                                    RelayChainBlockInfo> {
                     const auto &node = nodes[ptr];
                     if (auto opt_rcbi =
                             scope.ancestorByHash(node.relayParent())) {
@@ -519,15 +542,15 @@ namespace kagome::parachain::fragment {
           auto child_constraints_res =
               scope.base_constraints.applyModifications(modifications);
           if (child_constraints_res.has_error()) {
-            SL_TRACE(
-                logger,
-                "Failed to apply modifications. (error={})",
-                child_constraints_res.error().message());
+            SL_TRACE(logger,
+                     "Failed to apply modifications. (error={})",
+                     child_constraints_res.error().message());
             continue;
           }
 
           const auto &child_constraints = child_constraints_res.value();
-          const auto required_head_hash = hasher_->blake2b_256(child_constraints.required_parent);
+          const auto required_head_hash =
+              hasher_->blake2b_256(child_constraints.required_parent);
 
           storage.iterParaChildren(
               required_head_hash, [&](const CandidateEntry &candidate) {
@@ -556,9 +579,8 @@ namespace kagome::parachain::fragment {
                         return pending->get().relay_parent.number;
                       });
                 } else {
-                  min_relay_parent_number =
-                      std::max(earliest_rp.number,
-                               scope.earliestRelayParent().number);
+                  min_relay_parent_number = std::max(
+                      earliest_rp.number, scope.earliestRelayParent().number);
                 }
 
                 if (relay_parent.number < min_relay_parent_number) {
@@ -576,7 +598,8 @@ namespace kagome::parachain::fragment {
                       pending->get().relay_parent.number;
                 }
 
-                Option<Fragment> f = Fragment::create(relay_parent, constraints, candidate.candidate);
+                Option<Fragment> f = Fragment::create(
+                    relay_parent, constraints, candidate.candidate);
                 if (!f) {
                   SL_TRACE(logger,
                            "Failed to instantiate fragment. (relay parent={}, "
@@ -795,10 +818,9 @@ namespace kagome::parachain::fragment {
         auto child_constraints_res =
             scope.base_constraints.applyModifications(modifications);
         if (child_constraints_res.has_error()) {
-          SL_TRACE(
-              logger,
-              "Failed to apply modifications. (error={})",
-              child_constraints_res.error());
+          SL_TRACE(logger,
+                   "Failed to apply modifications. (error={})",
+                   child_constraints_res.error());
           return;
         }
 
