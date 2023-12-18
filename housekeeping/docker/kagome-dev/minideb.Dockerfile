@@ -2,6 +2,9 @@ FROM bitnami/minideb@sha256:c84aa349081c182fbaa92434eb6f6a0e14e69fc70aa1a5af2c7a
 MAINTAINER Vladimir Shcherba <abrehchs@gmail.com>
 
 SHELL ["/bin/bash", "-c"]
+
+ENV KAGOME_IN_DOCKER=1
+
 # add some required tools
 RUN apt-get update && \
     apt-get install --no-install-recommends -y \
@@ -114,32 +117,32 @@ ENV CXX=g++-12
 
 RUN update-alternatives --install /usr/bin/python       python       /venv/bin/python3              90 && \
     update-alternatives --install /usr/bin/python       python       /usr/bin/python3               80 && \
-    
+    \
     update-alternatives --install /usr/bin/clang-tidy   clang-tidy   /usr/bin/clang-tidy-11         90 && \
     update-alternatives --install /usr/bin/clang-format clang-format /usr/bin/clang-format-11       90 && \
     update-alternatives --install /usr/bin/clang        clang        /usr/lib/llvm-11/bin/clang-11  90 && \
     update-alternatives --install /usr/bin/clang++      clang++      /usr/bin/clang++-11            90 && \
-
+    \
     update-alternatives --install /usr/bin/clang-tidy   clang-tidy   /usr/bin/clang-tidy-12         80 && \
     update-alternatives --install /usr/bin/clang-format clang-format /usr/bin/clang-format-12       80 && \
     update-alternatives --install /usr/bin/clang        clang        /usr/lib/llvm-12/bin/clang-12  80 && \
     update-alternatives --install /usr/bin/clang++      clang++      /usr/bin/clang++-12            80 && \
-
+    \
     update-alternatives --install /usr/bin/clang-tidy   clang-tidy   /usr/bin/clang-tidy-13         70 && \
     update-alternatives --install /usr/bin/clang-format clang-format /usr/bin/clang-format-13       70 && \
     update-alternatives --install /usr/bin/clang        clang        /usr/lib/llvm-13/bin/clang-13  70 && \
     update-alternatives --install /usr/bin/clang++      clang++      /usr/bin/clang++-13            70 && \
-
+    \
     update-alternatives --install /usr/bin/clang-tidy   clang-tidy   /usr/bin/clang-tidy-14         60 && \
     update-alternatives --install /usr/bin/clang-format clang-format /usr/bin/clang-format-14       60 && \
     update-alternatives --install /usr/bin/clang        clang        /usr/lib/llvm-14/bin/clang-14  60 && \
     update-alternatives --install /usr/bin/clang++      clang++      /usr/bin/clang++-14            60 && \
-
+    \
     update-alternatives --install /usr/bin/clang-tidy   clang-tidy   /usr/bin/clang-tidy-15         50 && \
     update-alternatives --install /usr/bin/clang-format clang-format /usr/bin/clang-format-15       50 && \
     update-alternatives --install /usr/bin/clang        clang        /usr/lib/llvm-15/bin/clang-15  50 && \
     update-alternatives --install /usr/bin/clang++      clang++      /usr/bin/clang++-15            50 && \
-
+    \
     update-alternatives --install /usr/bin/gcc          gcc          /usr/bin/gcc-12                90 && \
     update-alternatives --install /usr/bin/g++          g++          /usr/bin/g++-12                90 && \
     update-alternatives --install /usr/bin/gcov         gcov         /usr/bin/gcov-12               90
