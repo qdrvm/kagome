@@ -278,10 +278,16 @@ namespace kagome::network {
     }
   };
 
+  using HashedBlockHeader = crypto::Hashed<primitives::BlockHeader, 32, crypto::Blake2b_StreamHasher<32>>;
   struct ExView {
     View view;
-    crypto::Hashed<primitives::BlockHeader, 32, crypto::Blake2b_StreamHasher<32>> new_head;
+    HashedBlockHeader new_head;
     std::vector<primitives::BlockHash> lost;
+  };
+
+  struct ExViewRef {
+    std::optional<std::reference_wrapper<const HashedBlockHeader>> new_head;
+    const std::vector<primitives::BlockHash> &lost;
   };
 
   using LargeStatement = parachain::IndexedAndSigned<StatementMetadata>;

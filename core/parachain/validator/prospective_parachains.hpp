@@ -357,13 +357,16 @@ namespace kagome::parachain {
       return importable;
     }
 
-    outcome::result<void> onActiveLeavesUpdate(const network::ExView &update) {
+    outcome::result<void> onActiveLeavesUpdate(const network::ExViewRef &update) {
       for (const auto &deactivated : update.lost) {
         view.active_leaves.erase(deactivated);
       }
-      std::unordered_map<Hash, ProspectiveParachainsMode> temp_header_cache;
-      const auto &activated = update.new_head.get();
-      const auto &hash = update.new_head.getHash();
+
+      /// TODO(iceseer): do cache headers
+      [[maybe_unused]] std::unordered_map<Hash, ProspectiveParachainsMode> temp_header_cache;
+      if (update.new_head) {
+      const auto &activated = update.new_head->get().get();
+      const auto &hash = update.new_head->get().getHash();
       const auto mode = prospectiveParachainsMode(hash);
       if (!mode) {
         SL_TRACE(logger,
@@ -441,6 +444,7 @@ namespace kagome::parachain {
 
       view.active_leaves.emplace(
           hash, RelayBlockViewData{fragment_trees, pending_availability});
+      }
 
       if (!update.lost.empty()) {
         /// TODO(iceseer): do
