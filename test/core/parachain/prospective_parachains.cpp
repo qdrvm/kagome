@@ -47,6 +47,14 @@ struct PerParaData {
 
   PerParaData(BlockNumber min_relay_parent_, const HeadData &head_data_)
       : min_relay_parent{min_relay_parent_}, head_data{head_data_} {}
+
+  PerParaData(
+      BlockNumber min_relay_parent_,
+      const HeadData &head_data_,
+      const std::vector<fragment::CandidatePendingAvailability> &pending_)
+      : min_relay_parent{min_relay_parent_},
+        head_data{head_data_},
+        pending_availability{pending_} {}
 };
 
 struct TestState {
@@ -1096,6 +1104,109 @@ TEST_F(ProspectiveParachainsTest, FragmentTree_checkPvdQuery) {
 
   ASSERT_EQ(prospective_parachain_->view.active_leaves.size(), 1);
   ASSERT_EQ(prospective_parachain_->view.candidate_storage.size(), 2);
+}
+
+TEST_F(ProspectiveParachainsTest,
+       FragmentTree_persistsPendingAvailabilityCandidate) {
+  TestState test_state(hasher_);
+  ParachainId para_id{1};
+  for (auto it = test_state.availability_cores.begin();
+       it != test_state.availability_cores.end();) {
+    const runtime::CoreState &cs = *it;
+    auto p = visit_in_place(
+        cs,
+        [](const runtime::OccupiedCore &core) mutable
+        -> std::optional<ParachainId> {
+          return core.candidate_descriptor.para_id;
+        },
+        [](const runtime::ScheduledCore &core) mutable
+        -> std::optional<ParachainId> { return core.para_id; },
+        [](runtime::FreeCore) -> std::optional<ParachainId> {
+          return std::nullopt;
+        });
+
+    if (p && *p == para_id) {
+      ++it;
+    } else {
+      it = test_state.availability_cores.erase(it);
+    }
+  }
+  ASSERT_EQ(test_state.availability_cores.size(), 1);
+
+  const HeadData para_head{1, 2, 3};
+  const auto candidate_relay_parent = fromNumber(5);
+  const uint32_t candidate_relay_parent_number = 97;
+
+  TestLeaf leaf_a{
+      .number = candidate_relay_parent_number + ALLOWED_ANCESTRY_LEN,
+      .hash = fromNumber(2),
+      .para_data =
+          {
+              {para_id, PerParaData(candidate_relay_parent_number, para_head)},
+          },
+  };
+
+  const auto leaf_b_hash = fromNumber(1);
+  const BlockNumber leaf_b_number = leaf_a.number + 1;
+
+  const fragment::AsyncBackingParams async_backing_params{
+      .max_candidate_depth = 4,
+      .allowed_ancestry_len = ALLOWED_ANCESTRY_LEN,
+  };
+  activate_leaf(leaf_a, test_state, async_backing_params);
+
+  const auto &[candidate_a, pvd_a] =
+      make_candidate(candidate_relay_parent,
+                     candidate_relay_parent_number,
+                     para_id,
+                     para_head,
+                     {1},
+                     test_state.validation_code_hash);
+  const Hash candidate_hash_a = network::candidateHash(*hasher_, candidate_a);
+
+  const auto &[candidate_b, pvd_b] =
+      make_candidate(leaf_b_hash,
+                     leaf_b_number,
+                     para_id,
+                     {1},
+                     {2},
+                     test_state.validation_code_hash);
+  const Hash candidate_hash_b = network::candidateHash(*hasher_, candidate_b);
+
+  introduce_candidate(candidate_a, pvd_a);
+  second_candidate(candidate_a);
+  back_candidate(candidate_a, candidate_hash_a);
+
+  fragment::CandidatePendingAvailability candidate_a_pending_av{
+      .candidate_hash = candidate_hash_a,
+      .descriptor = candidate_a.descriptor,
+      .commitments = candidate_a.commitments,
+      .relay_parent_number = candidate_relay_parent_number,
+      .max_pov_size = MAX_POV_SIZE,
+  };
+
+  TestLeaf leaf_b{
+      .number = leaf_b_number,
+      .hash = leaf_b_hash,
+      .para_data =
+          {
+              {1,
+               PerParaData(candidate_relay_parent_number + 1,
+                           para_head,
+                           {candidate_a_pending_av})},
+          },
+  };
+
+  activate_leaf(leaf_b, test_state, async_backing_params);
+
+  introduce_candidate(candidate_b, pvd_b);
+  second_candidate(candidate_b);
+  back_candidate(candidate_b, candidate_hash_b);
+
+  get_backable_candidate(leaf_b,
+                         para_id,
+                         {candidate_hash_a},
+                         std::make_pair(candidate_hash_b, leaf_b_hash));
 }
 
 TEST_F(ProspectiveParachainsTest, FragmentTree_correctlyUpdatesLeaves) {
