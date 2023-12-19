@@ -1000,6 +1000,34 @@ TEST_F(ProspectiveParachainsTest, FragmentTree_checkHypotheticalFrontierQuery) {
       candidate_hash_a, candidate_a, pvd_a, leaf_a.hash, false, {0});
   get_hypothetical_frontier(
       candidate_hash_a, candidate_a, pvd_a, leaf_a.hash, true, {0});
+
+  introduce_candidate(candidate_a, pvd_a);
+
+  get_hypothetical_frontier(
+      candidate_hash_a, candidate_a, pvd_a, leaf_a.hash, false, {0});
+
+  get_hypothetical_frontier(
+      candidate_hash_b, candidate_b, pvd_b, leaf_a.hash, false, {1});
+
+  introduce_candidate(candidate_b, pvd_b);
+
+  get_hypothetical_frontier(
+      candidate_hash_b, candidate_b, pvd_b, leaf_a.hash, false, {1});
+
+  get_hypothetical_frontier(
+      candidate_hash_c, candidate_c, pvd_c, leaf_a.hash, false, {2});
+  get_hypothetical_frontier(
+      candidate_hash_c, candidate_c, pvd_c, leaf_a.hash, true, {});
+
+  introduce_candidate(candidate_c, pvd_c);
+
+  get_hypothetical_frontier(
+      candidate_hash_c, candidate_c, pvd_c, leaf_a.hash, false, {2});
+  get_hypothetical_frontier(
+      candidate_hash_c, candidate_c, pvd_c, leaf_a.hash, true, {});
+
+  ASSERT_EQ(prospective_parachain_->view.active_leaves.size(), 1);
+  ASSERT_EQ(prospective_parachain_->view.candidate_storage.size(), 2);
 }
 
 TEST_F(ProspectiveParachainsTest,
