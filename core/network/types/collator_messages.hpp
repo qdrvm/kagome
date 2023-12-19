@@ -12,11 +12,11 @@
 #include <type_traits>
 #include <vector>
 
-#include "crypto/type_hasher.hpp"
 #include "common/blob.hpp"
 #include "consensus/grandpa/common.hpp"
 #include "crypto/hasher.hpp"
 #include "crypto/sr25519_types.hpp"
+#include "crypto/type_hasher.hpp"
 #include "parachain/approval/approval.hpp"
 #include "parachain/types.hpp"
 #include "primitives/block_header.hpp"
@@ -278,7 +278,8 @@ namespace kagome::network {
     }
   };
 
-  using HashedBlockHeader = crypto::Hashed<primitives::BlockHeader, 32, crypto::Blake2b_StreamHasher<32>>;
+  using HashedBlockHeader = crypto::
+      Hashed<primitives::BlockHeader, 32, crypto::Blake2b_StreamHasher<32>>;
   struct ExView {
     View view;
     HashedBlockHeader new_head;
@@ -441,7 +442,8 @@ namespace kagome::network {
     auto commitments_hash =
         hasher.blake2b_256(scale::encode(receipt.commitments).value());
     return hasher.blake2b_256(
-        ::scale::encode(std::tie(receipt.descriptor, commitments_hash)).value());
+        ::scale::encode(std::tie(receipt.descriptor, commitments_hash))
+            .value());
   }
 
   inline CandidateHash candidateHash(const crypto::Hasher &hasher,

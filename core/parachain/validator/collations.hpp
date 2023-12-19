@@ -171,7 +171,8 @@ namespace kagome::parachain {
         });
   }
 
-  inline Hash parentHeadDataHash(const crypto::Hasher &hasher, const HypotheticalCandidate &hc) {
+  inline Hash parentHeadDataHash(const crypto::Hasher &hasher,
+                                 const HypotheticalCandidate &hc) {
     return visit_in_place(
         hc,
         [&](const HypotheticalCandidateComplete &val) {

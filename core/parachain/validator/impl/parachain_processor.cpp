@@ -258,9 +258,9 @@ namespace kagome::parachain {
              event.view.heads_.size());
     broadcastView(event.view);
 
-    prospective_parachains_->onActiveLeavesUpdate(network::ExViewRef {
-      .new_head = {event.new_head},
-      .lost = event.lost,
+    prospective_parachains_->onActiveLeavesUpdate(network::ExViewRef{
+        .new_head = {event.new_head},
+        .lost = event.lost,
     });
     new_leaf_fragment_tree_updates(relay_parent);
 

@@ -27,7 +27,7 @@ namespace kagome::parachain {
   class ProspectiveParachains {
 #ifdef CFG_TESTING
    public:
-#endif//CFG_TESTING
+#endif  // CFG_TESTING
     struct RelayBlockViewData {
       // Scheduling info for paras and upcoming paras.
       std::unordered_map<ParachainId, fragment::FragmentTree> fragment_trees;
@@ -86,43 +86,60 @@ namespace kagome::parachain {
       return v;
     }
 
-    std::optional<std::pair<CandidateHash, Hash>>
-    answerGetBackableCandidate(const RelayHash &relay_parent, ParachainId para, const std::vector<CandidateHash> &required_path) {
+    std::optional<std::pair<CandidateHash, Hash>> answerGetBackableCandidate(
+        const RelayHash &relay_parent,
+        ParachainId para,
+        const std::vector<CandidateHash> &required_path) {
       auto data_it = view.active_leaves.find(relay_parent);
       if (data_it == view.active_leaves.end()) {
-        SL_TRACE(logger, "Requested backable candidate for inactive relay-parent. (relay_parent={}, para_id={})",
-          relay_parent, para);
+        SL_TRACE(logger,
+                 "Requested backable candidate for inactive relay-parent. "
+                 "(relay_parent={}, para_id={})",
+                 relay_parent,
+                 para);
         return std::nullopt;
       }
       const RelayBlockViewData &data = data_it->second;
 
       auto tree_it = data.fragment_trees.find(para);
       if (tree_it == data.fragment_trees.end()) {
-        SL_TRACE(logger, "Requested backable candidate for inactive para. (relay_parent={}, para_id={})",
-          relay_parent, para);
+        SL_TRACE(logger,
+                 "Requested backable candidate for inactive para. "
+                 "(relay_parent={}, para_id={})",
+                 relay_parent,
+                 para);
         return std::nullopt;
       }
       const fragment::FragmentTree &tree = tree_it->second;
 
       auto storage_it = view.candidate_storage.find(para);
       if (storage_it == view.candidate_storage.end()) {
-        SL_WARN(logger, "No candidate storage for active para. (relay_parent={}, para_id={})",
-          relay_parent, para);
+        SL_WARN(logger,
+                "No candidate storage for active para. (relay_parent={}, "
+                "para_id={})",
+                relay_parent,
+                para);
         return std::nullopt;
       }
       const fragment::CandidateStorage &storage = storage_it->second;
 
-      auto child_hash = tree.selectChild(required_path, [&](const CandidateHash &candidate) -> bool {
-        return storage.isBacked(candidate);
-      });
+      auto child_hash = tree.selectChild(
+          required_path, [&](const CandidateHash &candidate) -> bool {
+            return storage.isBacked(candidate);
+          });
       if (!child_hash) {
         return std::nullopt;
       }
 
-      auto candidate_relay_parent = storage.relayParentByCandidateHash(*child_hash);
+      auto candidate_relay_parent =
+          storage.relayParentByCandidateHash(*child_hash);
       if (!candidate_relay_parent) {
-        SL_ERROR(logger, "Candidate is present in fragment tree but not in candidate's storage! (relay_parent={}, para_id={}, child_hash={})",
-          relay_parent, para, *child_hash);
+        SL_ERROR(logger,
+                 "Candidate is present in fragment tree but not in candidate's "
+                 "storage! (relay_parent={}, para_id={}, child_hash={})",
+                 relay_parent,
+                 para,
+                 *child_hash);
         return std::nullopt;
       }
 
@@ -164,7 +181,8 @@ namespace kagome::parachain {
           if (!head_data) {
             const auto &required_parent =
                 fragment_tree.scope.base_constraints.required_parent;
-            if (hasher_->blake2b_256(required_parent) == parent_head_data_hash) {
+            if (hasher_->blake2b_256(required_parent)
+                == parent_head_data_hash) {
               head_data = required_parent;
             }
           }
@@ -357,93 +375,98 @@ namespace kagome::parachain {
       return importable;
     }
 
-    outcome::result<void> onActiveLeavesUpdate(const network::ExViewRef &update) {
+    outcome::result<void> onActiveLeavesUpdate(
+        const network::ExViewRef &update) {
       for (const auto &deactivated : update.lost) {
         view.active_leaves.erase(deactivated);
       }
 
       /// TODO(iceseer): do cache headers
-      [[maybe_unused]] std::unordered_map<Hash, ProspectiveParachainsMode> temp_header_cache;
+      [[maybe_unused]] std::unordered_map<Hash, ProspectiveParachainsMode>
+          temp_header_cache;
       if (update.new_head) {
-      const auto &activated = update.new_head->get().get();
-      const auto &hash = update.new_head->get().getHash();
-      const auto mode = prospectiveParachainsMode(hash);
-      if (!mode) {
-        SL_TRACE(logger,
-                 "Skipping leaf activation since async backing is disabled. "
-                 "(block_hash={})",
-                 hash);
-        return outcome::success();
-      }
-      std::unordered_set<Hash> pending_availability{};
-      OUTCOME_TRY(scheduled_paras,
-                  fetchUpcomingParas(hash, pending_availability));
-
-      const fragment::RelayChainBlockInfo block_info{
-          .hash = hash,
-          .number = activated.number,
-          .storage_root = activated.state_root,
-      };
-
-      OUTCOME_TRY(ancestry, fetchAncestry(hash, mode->allowed_ancestry_len));
-      std::unordered_map<ParachainId, fragment::FragmentTree> fragment_trees;
-      for (ParachainId para : scheduled_paras) {
-        auto &candidate_storage = view.candidate_storage[para];
-        OUTCOME_TRY(backing_state, fetchBackingState(hash, para));
-        if (!backing_state) {
+        const auto &activated = update.new_head->get().get();
+        const auto &hash = update.new_head->get().getHash();
+        const auto mode = prospectiveParachainsMode(hash);
+        if (!mode) {
           SL_TRACE(logger,
-                   "Failed to get inclusion backing state. (para={}, relay "
-                   "parent={})",
-                   para,
+                   "Skipping leaf activation since async backing is disabled. "
+                   "(block_hash={})",
                    hash);
-          continue;
+          return outcome::success();
         }
-        const auto &[constraints, pe] = *backing_state;
-        OUTCOME_TRY(pending_availability,
-                    preprocessCandidatesPendingAvailability(
-                        constraints.required_parent, pe));
+        std::unordered_set<Hash> pending_availability{};
+        OUTCOME_TRY(scheduled_paras,
+                    fetchUpcomingParas(hash, pending_availability));
 
-        std::vector<fragment::PendingAvailability> compact_pending;
-        compact_pending.reserve(pending_availability.size());
+        const fragment::RelayChainBlockInfo block_info{
+            .hash = hash,
+            .number = activated.number,
+            .storage_root = activated.state_root,
+        };
 
-        for (const ImportablePendingAvailability &c : pending_availability) {
-          const auto &candidate_hash = c.compact.candidate_hash;
-          auto res = candidate_storage.addCandidate(
-              candidate_hash,
-              c.candidate,
-              crypto::Hashed<const runtime::PersistedValidationData &, 32, crypto::Blake2b_StreamHasher<32>>{
-                  c.persisted_validation_data},
-              hasher_);
-          compact_pending.emplace_back(c.compact);
-
-          if (res.has_value()
-              || res.error()
-                     == fragment::CandidateStorage::Error::
-                         CANDIDATE_ALREADY_KNOWN) {
-            candidate_storage.markBacked(candidate_hash);
-          } else {
-            SL_WARN(logger,
-                    "Scraped invalid candidate pending availability. "
-                    "(candidate_hash={}, para={}, error={})",
-                    candidate_hash,
-                    para,
-                    res.error().message());
+        OUTCOME_TRY(ancestry, fetchAncestry(hash, mode->allowed_ancestry_len));
+        std::unordered_map<ParachainId, fragment::FragmentTree> fragment_trees;
+        for (ParachainId para : scheduled_paras) {
+          auto &candidate_storage = view.candidate_storage[para];
+          OUTCOME_TRY(backing_state, fetchBackingState(hash, para));
+          if (!backing_state) {
+            SL_TRACE(logger,
+                     "Failed to get inclusion backing state. (para={}, relay "
+                     "parent={})",
+                     para,
+                     hash);
+            continue;
           }
+          const auto &[constraints, pe] = *backing_state;
+          OUTCOME_TRY(pending_availability,
+                      preprocessCandidatesPendingAvailability(
+                          constraints.required_parent, pe));
+
+          std::vector<fragment::PendingAvailability> compact_pending;
+          compact_pending.reserve(pending_availability.size());
+
+          for (const ImportablePendingAvailability &c : pending_availability) {
+            const auto &candidate_hash = c.compact.candidate_hash;
+            auto res = candidate_storage.addCandidate(
+                candidate_hash,
+                c.candidate,
+                crypto::Hashed<const runtime::PersistedValidationData &,
+                               32,
+                               crypto::Blake2b_StreamHasher<32>>{
+                    c.persisted_validation_data},
+                hasher_);
+            compact_pending.emplace_back(c.compact);
+
+            if (res.has_value()
+                || res.error()
+                       == fragment::CandidateStorage::Error::
+                           CANDIDATE_ALREADY_KNOWN) {
+              candidate_storage.markBacked(candidate_hash);
+            } else {
+              SL_WARN(logger,
+                      "Scraped invalid candidate pending availability. "
+                      "(candidate_hash={}, para={}, error={})",
+                      candidate_hash,
+                      para,
+                      res.error().message());
+            }
+          }
+
+          OUTCOME_TRY(scope,
+                      fragment::Scope::withAncestors(para,
+                                                     block_info,
+                                                     constraints,
+                                                     compact_pending,
+                                                     mode->max_candidate_depth,
+                                                     ancestry));
+          fragment_trees.emplace(para,
+                                 fragment::FragmentTree::populate(
+                                     hasher_, scope, candidate_storage));
         }
 
-        OUTCOME_TRY(scope,
-                    fragment::Scope::withAncestors(para,
-                                                   block_info,
-                                                   constraints,
-                                                   compact_pending,
-                                                   mode->max_candidate_depth,
-                                                   ancestry));
-        fragment_trees.emplace(
-            para, fragment::FragmentTree::populate(hasher_, scope, candidate_storage));
-      }
-
-      view.active_leaves.emplace(
-          hash, RelayBlockViewData{fragment_trees, pending_availability});
+        view.active_leaves.emplace(
+            hash, RelayBlockViewData{fragment_trees, pending_availability});
       }
 
       if (!update.lost.empty()) {
@@ -595,7 +618,9 @@ namespace kagome::parachain {
     fragment::FragmentTreeMembership introduceCandidate(
         ParachainId para,
         const network::CommittedCandidateReceipt &candidate,
-        const crypto::Hashed<const runtime::PersistedValidationData &, 32, crypto::Blake2b_StreamHasher<32>> &pvd,
+        const crypto::Hashed<const runtime::PersistedValidationData &,
+                             32,
+                             crypto::Blake2b_StreamHasher<32>> &pvd,
         const CandidateHash &candidate_hash) {
       auto it_storage = view.candidate_storage.find(para);
       if (it_storage == view.candidate_storage.end()) {

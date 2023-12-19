@@ -133,10 +133,11 @@ namespace kagome::runtime {
                  const parachain::Signature &),
                 (override));
 
-    MOCK_METHOD(outcome::result<std::optional<parachain::fragment::BackingState>>,
-                staging_para_backing_state,
-                (const primitives::BlockHash &, ParachainId),
-                (override));
+    MOCK_METHOD(
+        outcome::result<std::optional<parachain::fragment::BackingState>>,
+        staging_para_backing_state,
+        (const primitives::BlockHash &, ParachainId),
+        (override));
 
     MOCK_METHOD(outcome::result<parachain::fragment::AsyncBackingParams>,
                 staging_async_backing_params,

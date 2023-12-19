@@ -428,9 +428,9 @@ class ProspectiveParachainsTest : public testing::Test {
       }
     }
 
-    prospective_parachain_->onActiveLeavesUpdate(network::ExViewRef {
-      .new_head = {update.new_head},
-      .lost = update.lost,
+    prospective_parachain_->onActiveLeavesUpdate(network::ExViewRef{
+        .new_head = {update.new_head},
+        .lost = update.lost,
     });
     auto resp = prospective_parachain_->answerMinimumRelayParentsRequest(hash);
     std::sort(resp.begin(), resp.end(), [](const auto &l, const auto &r) {
@@ -461,75 +461,64 @@ class ProspectiveParachainsTest : public testing::Test {
         network::candidateHash(*hasher_, candidate));
   }
 
-auto get_backable_candidate(
-	const TestLeaf &leaf,
-	ParachainId para_id,
-	std::vector<CandidateHash> required_path,
-	const std::optional<std::pair<CandidateHash, Hash>> &expected_result
-) {
+  auto get_backable_candidate(
+      const TestLeaf &leaf,
+      ParachainId para_id,
+      std::vector<CandidateHash> required_path,
+      const std::optional<std::pair<CandidateHash, Hash>> &expected_result) {
     auto resp = prospective_parachain_->answerGetBackableCandidate(
-				leaf.hash,
-				para_id,
-				required_path
-    );
-	ASSERT_EQ(resp, expected_result);
-}
+        leaf.hash, para_id, required_path);
+    ASSERT_EQ(resp, expected_result);
+  }
 
-auto get_hypothetical_frontier(
-	const CandidateHash &candidate_hash,
-	const network::CommittedCandidateReceipt &receipt,
-	const runtime::PersistedValidationData &persisted_validation_data,
-	const Hash &fragment_tree_relay_parent,
-	bool backed_in_path_only,
-	const std::vector<size_t> &expected_depths
-) {
-    HypotheticalCandidate hypothetical_candidate{HypotheticalCandidateComplete {
-                                  .candidate_hash = candidate_hash,
-                                  .receipt = receipt,
-                                  .persisted_validation_data = persisted_validation_data,
-                              }};
-auto resp = prospective_parachain_->answerHypotheticalFrontierRequest(
-    std::span<const HypotheticalCandidate>{&hypothetical_candidate, 1},
-    {{fragment_tree_relay_parent}},
-    backed_in_path_only
-);
-std::vector<
-        std::pair<HypotheticalCandidate, fragment::FragmentTreeMembership>> expected_frontier;
-	if (expected_depths.empty()) {
-        fragment::FragmentTreeMembership s{};
-		expected_frontier.emplace_back(hypothetical_candidate, s);
-	} else {
-        fragment::FragmentTreeMembership s{{fragment_tree_relay_parent, expected_depths}};
-        expected_frontier.emplace_back(hypothetical_candidate, s);
-	};
-	ASSERT_EQ(resp.size(), expected_frontier.size());
+  auto get_hypothetical_frontier(
+      const CandidateHash &candidate_hash,
+      const network::CommittedCandidateReceipt &receipt,
+      const runtime::PersistedValidationData &persisted_validation_data,
+      const Hash &fragment_tree_relay_parent,
+      bool backed_in_path_only,
+      const std::vector<size_t> &expected_depths) {
+    HypotheticalCandidate hypothetical_candidate{HypotheticalCandidateComplete{
+        .candidate_hash = candidate_hash,
+        .receipt = receipt,
+        .persisted_validation_data = persisted_validation_data,
+    }};
+    auto resp = prospective_parachain_->answerHypotheticalFrontierRequest(
+        std::span<const HypotheticalCandidate>{&hypothetical_candidate, 1},
+        {{fragment_tree_relay_parent}},
+        backed_in_path_only);
+    std::vector<
+        std::pair<HypotheticalCandidate, fragment::FragmentTreeMembership>>
+        expected_frontier;
+    if (expected_depths.empty()) {
+      fragment::FragmentTreeMembership s{};
+      expected_frontier.emplace_back(hypothetical_candidate, s);
+    } else {
+      fragment::FragmentTreeMembership s{
+          {fragment_tree_relay_parent, expected_depths}};
+      expected_frontier.emplace_back(hypothetical_candidate, s);
+    };
+    ASSERT_EQ(resp.size(), expected_frontier.size());
     for (size_t i = 0; i < resp.size(); ++i) {
-        const auto &[ll, lr] = resp[i];
-        const auto &[rl, rr] = expected_frontier[i];
-        
-        ASSERT_TRUE(ll == rl);
-        ASSERT_EQ(lr, rr);
+      const auto &[ll, lr] = resp[i];
+      const auto &[rl, rr] = expected_frontier[i];
+
+      ASSERT_TRUE(ll == rl);
+      ASSERT_EQ(lr, rr);
     }
-}
+  }
 
-void back_candidate(
-	const network::CommittedCandidateReceipt &candidate,
-	const CandidateHash &candidate_hash
-) {
-    prospective_parachain_->candidateBacked(
-				candidate.descriptor.para_id,
-				candidate_hash
-    );
-}
+  void back_candidate(const network::CommittedCandidateReceipt &candidate,
+                      const CandidateHash &candidate_hash) {
+    prospective_parachain_->candidateBacked(candidate.descriptor.para_id,
+                                            candidate_hash);
+  }
 
-void second_candidate(
-	const network::CommittedCandidateReceipt &candidate
-) {
+  void second_candidate(const network::CommittedCandidateReceipt &candidate) {
     prospective_parachain_->candidateSeconded(
         candidate.descriptor.para_id,
-		network::candidateHash(*hasher_, candidate)
-    );
-}
+        network::candidateHash(*hasher_, candidate));
+  }
 
   auto get_membership(ParachainId para_id,
                       const CandidateHash &candidate_hash,
@@ -540,17 +529,17 @@ void second_candidate(
     ASSERT_EQ(resp, expected_membership_response);
   }
 
-void deactivate_leaf(const Hash &hash) {
-  network::ExView update{
-      .view = {},
-      .new_head = {},
-      .lost = {hash},
-  };
-  prospective_parachain_->onActiveLeavesUpdate(network::ExViewRef {
-      .new_head = {},
-      .lost = update.lost,
+  void deactivate_leaf(const Hash &hash) {
+    network::ExView update{
+        .view = {},
+        .new_head = {},
+        .lost = {hash},
+    };
+    prospective_parachain_->onActiveLeavesUpdate(network::ExViewRef{
+        .new_head = {},
+        .lost = update.lost,
     });
-}
+  }
 };
 
 TEST_F(ProspectiveParachainsTest, shouldDoNoWorkIfAsyncBackingDisabledForLeaf) {
@@ -574,10 +563,10 @@ TEST_F(ProspectiveParachainsTest, shouldDoNoWorkIfAsyncBackingDisabledForLeaf) {
       .WillRepeatedly(
           Return(outcome::failure(ParachainProcessorImpl::Error::NO_STATE)));
 
-  prospective_parachain_->onActiveLeavesUpdate(network::ExViewRef {
+  prospective_parachain_->onActiveLeavesUpdate(network::ExViewRef{
       .new_head = {update.new_head},
       .lost = update.lost,
-    });
+  });
   ASSERT_TRUE(prospective_parachain_->view.active_leaves.empty());
   ASSERT_TRUE(prospective_parachain_->view.candidate_storage.empty());
 }
@@ -779,34 +768,33 @@ TEST_F(ProspectiveParachainsTest,
   introduce_candidate(candidate_b, pvd_b);
   introduce_candidate(candidate_c, pvd_c);
 
-    deactivate_leaf(leaf_a.hash);
+  deactivate_leaf(leaf_a.hash);
 
-		get_membership(1, candidate_hash_a1, {});
-		get_membership(2, candidate_hash_a2, {});
-		get_membership(1, candidate_hash_b, response_b);
-		get_membership(2, candidate_hash_c, response_c);
+  get_membership(1, candidate_hash_a1, {});
+  get_membership(2, candidate_hash_a2, {});
+  get_membership(1, candidate_hash_b, response_b);
+  get_membership(2, candidate_hash_c, response_c);
 
-		deactivate_leaf(leaf_b.hash);
+  deactivate_leaf(leaf_b.hash);
 
-		get_membership(1, candidate_hash_a1, {});
-		get_membership(2, candidate_hash_a2, {});
-		get_membership(1, candidate_hash_b, {});
-		get_membership(2, candidate_hash_c, response_c);
+  get_membership(1, candidate_hash_a1, {});
+  get_membership(2, candidate_hash_a2, {});
+  get_membership(1, candidate_hash_b, {});
+  get_membership(2, candidate_hash_c, response_c);
 
-		deactivate_leaf(leaf_c.hash);
+  deactivate_leaf(leaf_c.hash);
 
-		get_membership(1, candidate_hash_a1, {});
-		get_membership(2, candidate_hash_a2, {});
-		get_membership(1, candidate_hash_b, {});
-		get_membership(2, candidate_hash_c, {});
+  get_membership(1, candidate_hash_a1, {});
+  get_membership(2, candidate_hash_a2, {});
+  get_membership(1, candidate_hash_b, {});
+  get_membership(2, candidate_hash_c, {});
 
-	ASSERT_EQ(prospective_parachain_->view.active_leaves.size(), 0);
-	/// TODO(iceseer): do pruning
-    /// ASSERT_EQ(prospective_parachain_->view.candidate_storage.size(), 0);
+  ASSERT_EQ(prospective_parachain_->view.active_leaves.size(), 0);
+  /// TODO(iceseer): do pruning
+  /// ASSERT_EQ(prospective_parachain_->view.candidate_storage.size(), 0);
 }
 
-TEST_F(ProspectiveParachainsTest,
-       FragmentTree_checkCandidateOnMultipleForks) {
+TEST_F(ProspectiveParachainsTest, FragmentTree_checkCandidateOnMultipleForks) {
   TestState test_state(hasher_);
   TestLeaf leaf_a{
       .number = 100,
@@ -844,7 +832,7 @@ TEST_F(ProspectiveParachainsTest,
   activate_leaf(leaf_a, test_state, async_backing_params);
   activate_leaf(leaf_b, test_state, async_backing_params);
   activate_leaf(leaf_c, test_state, async_backing_params);
-    
+
   const auto &[candidate_a, pvd_a] =
       make_candidate(leaf_a.hash,
                      leaf_a.number,
@@ -878,16 +866,16 @@ TEST_F(ProspectiveParachainsTest,
   std::vector<std::pair<Hash, std::vector<size_t>>> response_c = {
       {leaf_c.hash, {0}}};
 
-		introduce_candidate(candidate_a, pvd_a);
-		introduce_candidate(candidate_b, pvd_b);
-		introduce_candidate(candidate_c, pvd_c);
+  introduce_candidate(candidate_a, pvd_a);
+  introduce_candidate(candidate_b, pvd_b);
+  introduce_candidate(candidate_c, pvd_c);
 
-		get_membership(1, candidate_hash_a, response_a);
-		get_membership(1, candidate_hash_b, response_b);
-		get_membership(1, candidate_hash_c, response_c);
+  get_membership(1, candidate_hash_a, response_a);
+  get_membership(1, candidate_hash_b, response_b);
+  get_membership(1, candidate_hash_c, response_c);
 
-	ASSERT_EQ(prospective_parachain_->view.active_leaves.size(), 3);
-	ASSERT_EQ(prospective_parachain_->view.candidate_storage.size(), 2);
+  ASSERT_EQ(prospective_parachain_->view.active_leaves.size(), 3);
+  ASSERT_EQ(prospective_parachain_->view.candidate_storage.size(), 2);
 
   {
     auto it = prospective_parachain_->view.candidate_storage.find(1);
@@ -901,8 +889,7 @@ TEST_F(ProspectiveParachainsTest,
   }
 }
 
-TEST_F(ProspectiveParachainsTest,
-       FragmentTree_checkBackableQuery) {
+TEST_F(ProspectiveParachainsTest, FragmentTree_checkBackableQuery) {
   TestState test_state(hasher_);
   TestLeaf leaf_a{
       .number = 100,
@@ -930,61 +917,36 @@ TEST_F(ProspectiveParachainsTest,
                      test_state.validation_code_hash);
   const Hash candidate_hash_a = network::candidateHash(*hasher_, candidate_a);
 
-   auto c_p =  make_candidate(leaf_a.hash,
-                     leaf_a.number,
-                     1,
-                     {1},
-                     {2},
-                     test_state.validation_code_hash);
-    c_p.first.descriptor.para_head_hash = fromNumber(1000);
-  const auto &[candidate_b, pvd_b] =c_p;
+  auto c_p = make_candidate(
+      leaf_a.hash, leaf_a.number, 1, {1}, {2}, test_state.validation_code_hash);
+  c_p.first.descriptor.para_head_hash = fromNumber(1000);
+  const auto &[candidate_b, pvd_b] = c_p;
   const Hash candidate_hash_b = network::candidateHash(*hasher_, candidate_b);
 
-		introduce_candidate(candidate_a, pvd_a);
-		introduce_candidate(candidate_b, pvd_b);
+  introduce_candidate(candidate_a, pvd_a);
+  introduce_candidate(candidate_b, pvd_b);
 
-		get_backable_candidate(
-			leaf_a,
-			1,
-			{candidate_hash_a},
-			std::nullopt
-		);
+  get_backable_candidate(leaf_a, 1, {candidate_hash_a}, std::nullopt);
 
-		second_candidate(candidate_a);
-		second_candidate(candidate_b);
+  second_candidate(candidate_a);
+  second_candidate(candidate_b);
 
-		get_backable_candidate(
-			leaf_a,
-			1,
-			{candidate_hash_a},
-			std::nullopt
-		);
+  get_backable_candidate(leaf_a, 1, {candidate_hash_a}, std::nullopt);
 
-		back_candidate(candidate_a, candidate_hash_a);
-		back_candidate(candidate_b, candidate_hash_b);
+  back_candidate(candidate_a, candidate_hash_a);
+  back_candidate(candidate_b, candidate_hash_b);
 
-		get_backable_candidate(
-			leaf_a,
-			1,
-			{},
-			std::make_pair(candidate_hash_a, leaf_a.hash)
-		);
-		get_backable_candidate(
-			leaf_a,
-			1,
-			{candidate_hash_a},
-			std::make_pair(candidate_hash_b, leaf_a.hash)
-		);
+  get_backable_candidate(
+      leaf_a, 1, {}, std::make_pair(candidate_hash_a, leaf_a.hash));
+  get_backable_candidate(leaf_a,
+                         1,
+                         {candidate_hash_a},
+                         std::make_pair(candidate_hash_b, leaf_a.hash));
 
-		get_backable_candidate(
-			leaf_a,
-			1,
-			{candidate_hash_b},
-			std::nullopt
-		);
+  get_backable_candidate(leaf_a, 1, {candidate_hash_b}, std::nullopt);
 
-        	ASSERT_EQ(prospective_parachain_->view.active_leaves.size(), 1);
-	ASSERT_EQ(prospective_parachain_->view.candidate_storage.size(), 2);
+  ASSERT_EQ(prospective_parachain_->view.active_leaves.size(), 1);
+  ASSERT_EQ(prospective_parachain_->view.candidate_storage.size(), 2);
 
   {
     auto it = prospective_parachain_->view.candidate_storage.find(1);
@@ -998,8 +960,7 @@ TEST_F(ProspectiveParachainsTest,
   }
 }
 
-TEST_F(ProspectiveParachainsTest,
-       FragmentTree_checkHypotheticalFrontierQuery) {
+TEST_F(ProspectiveParachainsTest, FragmentTree_checkHypotheticalFrontierQuery) {
   TestState test_state(hasher_);
   TestLeaf leaf_a{
       .number = 100,
@@ -1027,40 +988,18 @@ TEST_F(ProspectiveParachainsTest,
                      test_state.validation_code_hash);
   const Hash candidate_hash_a = network::candidateHash(*hasher_, candidate_a);
 
-   const auto &[candidate_b, pvd_b] =  make_candidate(leaf_a.hash,
-                     leaf_a.number,
-                     1,
-                     {1},
-                     {2},
-                     test_state.validation_code_hash);
+  const auto &[candidate_b, pvd_b] = make_candidate(
+      leaf_a.hash, leaf_a.number, 1, {1}, {2}, test_state.validation_code_hash);
   const Hash candidate_hash_b = network::candidateHash(*hasher_, candidate_b);
-    
-      const auto &[candidate_c, pvd_c] =
-      make_candidate(leaf_a.hash,
-                     leaf_a.number,
-                     1,
-                     {2},
-                     {3},
-                     test_state.validation_code_hash);
+
+  const auto &[candidate_c, pvd_c] = make_candidate(
+      leaf_a.hash, leaf_a.number, 1, {2}, {3}, test_state.validation_code_hash);
   const Hash candidate_hash_c = network::candidateHash(*hasher_, candidate_c);
 
-		get_hypothetical_frontier(
-			candidate_hash_a,
-			candidate_a,
-			pvd_a,
-			leaf_a.hash,
-			false,
-			{0}
-		);
-		get_hypothetical_frontier(
-			candidate_hash_a,
-			candidate_a,
-			pvd_a,
-			leaf_a.hash,
-			true,
-			{0}
-		);
-
+  get_hypothetical_frontier(
+      candidate_hash_a, candidate_a, pvd_a, leaf_a.hash, false, {0});
+  get_hypothetical_frontier(
+      candidate_hash_a, candidate_a, pvd_a, leaf_a.hash, true, {0});
 }
 
 TEST_F(ProspectiveParachainsTest,
@@ -1611,7 +1550,8 @@ TEST_F(ProspectiveParachainsTest,
                               storage,
                               false),
       {0}));
-    const auto tmp = tree.hypotheticalDepths(candidate_a_hash,
+  const auto tmp =
+      tree.hypotheticalDepths(candidate_a_hash,
                               HypotheticalCandidateComplete{
                                   .candidate_hash = {},
                                   .receipt = candidate_a,

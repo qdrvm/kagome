@@ -834,21 +834,21 @@ namespace kagome::parachain::fragment {
         }
 
         if (auto const value =
-                  if_type<const HypotheticalCandidateComplete>(candidate)) {
-            ProspectiveCandidate prospective_candidate{
-            .commitments = value->get().receipt.commitments,
-            .collator = value->get().receipt.descriptor.collator_id,
-            .collator_signature = value->get().receipt.descriptor.signature,
-            .persisted_validation_data = value->get().persisted_validation_data,
-            .pov_hash = value->get().receipt.descriptor.pov_hash,
-            .validation_code_hash =  value->get().receipt.descriptor.validation_code_hash,
+                if_type<const HypotheticalCandidateComplete>(candidate)) {
+          ProspectiveCandidate prospective_candidate{
+              .commitments = value->get().receipt.commitments,
+              .collator = value->get().receipt.descriptor.collator_id,
+              .collator_signature = value->get().receipt.descriptor.signature,
+              .persisted_validation_data =
+                  value->get().persisted_validation_data,
+              .pov_hash = value->get().receipt.descriptor.pov_hash,
+              .validation_code_hash =
+                  value->get().receipt.descriptor.validation_code_hash,
           };
 
-          if (!Fragment::create(
-            candidate_relay_parent->get(),
-            child_constraints,
-            prospective_candidate
-          )) {
+          if (!Fragment::create(candidate_relay_parent->get(),
+                                child_constraints,
+                                prospective_candidate)) {
             return;
           }
         }
