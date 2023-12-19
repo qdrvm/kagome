@@ -825,7 +825,7 @@ namespace kagome::parachain::fragment {
         }
 
         const auto &child_constraints = child_constraints_res.value();
-        const auto parent_head_hash = parentHeadDataHash(candidate);
+        const auto parent_head_hash = parentHeadDataHash(*hasher_, candidate);
 
         /// TODO(iceseer): keep hashed object in constraints to avoid recalc
         if (parent_head_hash

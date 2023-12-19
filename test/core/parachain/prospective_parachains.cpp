@@ -475,6 +475,43 @@ auto get_backable_candidate(
 	ASSERT_EQ(resp, expected_result);
 }
 
+auto get_hypothetical_frontier(
+	const CandidateHash &candidate_hash,
+	const network::CommittedCandidateReceipt &receipt,
+	const runtime::PersistedValidationData &persisted_validation_data,
+	const Hash &fragment_tree_relay_parent,
+	bool backed_in_path_only,
+	const std::vector<size_t> &expected_depths
+) {
+    HypotheticalCandidate hypothetical_candidate{HypotheticalCandidateComplete {
+                                  .candidate_hash = candidate_hash,
+                                  .receipt = receipt,
+                                  .persisted_validation_data = persisted_validation_data,
+                              }};
+auto resp = prospective_parachain_->answerHypotheticalFrontierRequest(
+    std::span<const HypotheticalCandidate>{&hypothetical_candidate, 1},
+    {{fragment_tree_relay_parent}},
+    backed_in_path_only
+);
+std::vector<
+        std::pair<HypotheticalCandidate, fragment::FragmentTreeMembership>> expected_frontier;
+	if (expected_depths.empty()) {
+        fragment::FragmentTreeMembership s{};
+		expected_frontier.emplace_back(hypothetical_candidate, s);
+	} else {
+        fragment::FragmentTreeMembership s{{fragment_tree_relay_parent, expected_depths}};
+        expected_frontier.emplace_back(hypothetical_candidate, s);
+	};
+	ASSERT_EQ(resp.size(), expected_frontier.size());
+    for (size_t i = 0; i < resp.size(); ++i) {
+        const auto &[ll, lr] = resp[i];
+        const auto &[rl, rr] = expected_frontier[i];
+        
+        ASSERT_TRUE(ll == rl);
+        ASSERT_EQ(lr, rr);
+    }
+}
+
 void back_candidate(
 	const network::CommittedCandidateReceipt &candidate,
 	const CandidateHash &candidate_hash
@@ -959,6 +996,71 @@ TEST_F(ProspectiveParachainsTest,
     ASSERT_TRUE(it != prospective_parachain_->view.candidate_storage.end());
     ASSERT_EQ(it->second.len(), std::make_pair(size_t(0), size_t(0)));
   }
+}
+
+TEST_F(ProspectiveParachainsTest,
+       FragmentTree_checkHypotheticalFrontierQuery) {
+  TestState test_state(hasher_);
+  TestLeaf leaf_a{
+      .number = 100,
+      .hash = fromNumber(130),
+      .para_data =
+          {
+              {1, PerParaData(97, {1, 2, 3})},
+              {2, PerParaData(100, {2, 3, 4})},
+          },
+  };
+
+  fragment::AsyncBackingParams async_backing_params{
+      .max_candidate_depth = 4,
+      .allowed_ancestry_len = ALLOWED_ANCESTRY_LEN,
+  };
+
+  activate_leaf(leaf_a, test_state, async_backing_params);
+
+  const auto &[candidate_a, pvd_a] =
+      make_candidate(leaf_a.hash,
+                     leaf_a.number,
+                     1,
+                     {1, 2, 3},
+                     {1},
+                     test_state.validation_code_hash);
+  const Hash candidate_hash_a = network::candidateHash(*hasher_, candidate_a);
+
+   const auto &[candidate_b, pvd_b] =  make_candidate(leaf_a.hash,
+                     leaf_a.number,
+                     1,
+                     {1},
+                     {2},
+                     test_state.validation_code_hash);
+  const Hash candidate_hash_b = network::candidateHash(*hasher_, candidate_b);
+    
+      const auto &[candidate_c, pvd_c] =
+      make_candidate(leaf_a.hash,
+                     leaf_a.number,
+                     1,
+                     {2},
+                     {3},
+                     test_state.validation_code_hash);
+  const Hash candidate_hash_c = network::candidateHash(*hasher_, candidate_c);
+
+		get_hypothetical_frontier(
+			candidate_hash_a,
+			candidate_a,
+			pvd_a,
+			leaf_a.hash,
+			false,
+			{0}
+		);
+		get_hypothetical_frontier(
+			candidate_hash_a,
+			candidate_a,
+			pvd_a,
+			leaf_a.hash,
+			true,
+			{0}
+		);
+
 }
 
 TEST_F(ProspectiveParachainsTest,
@@ -1475,7 +1577,7 @@ TEST_F(ProspectiveParachainsTest,
        Storage_hypotheticalDepthsStricterOnComplete) {
   fragment::CandidateStorage storage{};
   ParachainId para_id{5};
-  Hash relay_parent_a(hashFromStrData("1"));
+  Hash relay_parent_a(fromNumber(1));
 
   const auto &[pvd_a, candidate_a] = make_committed_candidate(
       para_id, relay_parent_a, 0, {0x0a}, {0x0b}, 1000);
@@ -1509,16 +1611,15 @@ TEST_F(ProspectiveParachainsTest,
                               storage,
                               false),
       {0}));
-  ASSERT_TRUE(
-      tree.hypotheticalDepths(candidate_a_hash,
+    const auto tmp = tree.hypotheticalDepths(candidate_a_hash,
                               HypotheticalCandidateComplete{
                                   .candidate_hash = {},
                                   .receipt = candidate_a,
                                   .persisted_validation_data = pvd_a.get(),
                               },
                               storage,
-                              false)
-          .empty());
+                              false);
+  ASSERT_TRUE(tmp.empty());
 }
 
 TEST_F(ProspectiveParachainsTest, Storage_hypotheticalDepthsBackedInPath) {

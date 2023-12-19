@@ -171,13 +171,11 @@ namespace kagome::parachain {
         });
   }
 
-  inline Hash parentHeadDataHash(const HypotheticalCandidate &hc) {
+  inline Hash parentHeadDataHash(const crypto::Hasher &hasher, const HypotheticalCandidate &hc) {
     return visit_in_place(
         hc,
-        [](const HypotheticalCandidateComplete &val) {
-          return crypto::Hashed<const HeadData &, 32, crypto::Blake2b_StreamHasher<32>>{
-              val.persisted_validation_data.parent_head}
-              .getHash();
+        [&](const HypotheticalCandidateComplete &val) {
+          return hasher.blake2b_256(val.persisted_validation_data.parent_head);
         },
         [](const HypotheticalCandidateIncomplete &val) {
           return val.parent_head_data_hash;
