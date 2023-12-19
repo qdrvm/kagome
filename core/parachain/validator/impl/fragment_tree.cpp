@@ -93,7 +93,9 @@ namespace kagome::parachain::fragment {
   outcome::result<void> CandidateStorage::addCandidate(
       const CandidateHash &candidate_hash,
       const network::CommittedCandidateReceipt &candidate,
-      const crypto::Hashed<const runtime::PersistedValidationData &, 32, crypto::Blake2b_StreamHasher<32>>
+      const crypto::Hashed<const runtime::PersistedValidationData &,
+                           32,
+                           crypto::Blake2b_StreamHasher<32>>
           &persisted_validation_data,
       const std::shared_ptr<crypto::Hasher> &hasher) {
     if (by_candidate_hash.find(candidate_hash) != by_candidate_hash.end()) {
@@ -131,6 +133,29 @@ namespace kagome::parachain::fragment {
              .state = CandidateState::Introduced,
          }});
     return outcome::success();
+  }
+
+  bool Constraints::checkModifications(
+      const ConstraintModifications &modifications) const {
+    if (modifications.hrmp_watermark) {
+      if (auto hrmp_watermark = if_type<const HrmpWatermarkUpdateTrunk>(
+              *modifications.hrmp_watermark)) {
+        bool found = false;
+        for (const BlockNumber &w : hrmp_inbound.valid_watermarks) {
+          if (w == hrmp_watermark->get().v) {
+            found = true;
+            break;
+          }
+        }
+        if (!found) {
+          return false;
+        }
+      }
+    }
+
+    /// TODO(iceseer): do
+    /// implement
+    return true;
   }
 
   outcome::result<Constraints> Constraints::applyModifications(

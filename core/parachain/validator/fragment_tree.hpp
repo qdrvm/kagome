@@ -216,6 +216,66 @@ namespace kagome::parachain::fragment {
     Hash storage_root;
   };
 
+  inline bool validate_against_constraints(
+      const Constraints &constraints,
+      const RelayChainBlockInfo &relay_parent,
+      const ProspectiveCandidate &candidate,
+      const ConstraintModifications &modifications) {
+    runtime::PersistedValidationData expected_pvd{
+        .parent_head = constraints.required_parent,
+        .relay_parent_number = relay_parent.number,
+        .relay_parent_storage_root = relay_parent.storage_root,
+        .max_pov_size = uint32_t(constraints.max_pov_size),
+    };
+
+    if (expected_pvd != candidate.persisted_validation_data) {
+      return false;
+    }
+
+    if (constraints.validation_code_hash != candidate.validation_code_hash) {
+      return false;
+    }
+
+    if (relay_parent.number < constraints.min_relay_parent_number) {
+      return false;
+    }
+
+    size_t announced_code_size = 0ull;
+    if (candidate.commitments.opt_para_runtime) {
+      if (constraints.upgrade_restriction
+          && *constraints.upgrade_restriction == UpgradeRestriction::Present) {
+        return false;
+      }
+      announced_code_size = candidate.commitments.opt_para_runtime->size();
+    }
+
+    if (announced_code_size > constraints.max_code_size) {
+      return false;
+    }
+
+    if (modifications.dmp_messages_processed == 0) {
+      if (!constraints.dmp_remaining_messages.empty()
+          && constraints.dmp_remaining_messages[0] <= relay_parent.number) {
+        return false;
+      }
+    }
+
+    if (candidate.commitments.outbound_hor_msgs.size()
+        > constraints.max_hrmp_num_per_candidate) {
+      return false;
+    }
+
+    if (candidate.commitments.upward_msgs.size()
+        > constraints.max_ump_num_per_candidate) {
+      return false;
+    }
+
+    /// TODO(iceseer): do
+    /// add error-codes for each case
+
+    return constraints.checkModifications(modifications);
+  }
+
   struct Fragment {
     /// The new relay-parent.
     RelayChainBlockInfo relay_parent;
@@ -278,8 +338,10 @@ namespace kagome::parachain::fragment {
                   : false,
       };
 
-      /// TODO(iceseer): do
-      /// make validation `validate_against_constraints()`
+      if (!validate_against_constraints(
+              operating_constraints, relay_parent, candidate, modifications)) {
+        return std::nullopt;
+      }
 
       return Fragment{
           .relay_parent = relay_parent,

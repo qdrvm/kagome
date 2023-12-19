@@ -322,6 +322,8 @@ namespace kagome::parachain::fragment {
 
     outcome::result<Constraints> applyModifications(
         const ConstraintModifications &modifications) const;
+
+    bool checkModifications(const ConstraintModifications &modifications) const;
   };
 
   struct BackingState {
