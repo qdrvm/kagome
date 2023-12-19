@@ -13,6 +13,7 @@
 #include "consensus/babe/babe_config_repository.hpp"
 #include "consensus/grandpa/authority_manager.hpp"
 #include "consensus/grandpa/has_authority_set_change.hpp"
+#include "consensus/grandpa/i_verified_justification_queue.hpp"
 #include "consensus/grandpa/justification_observer.hpp"
 #include "network/warp/cache.hpp"
 #include "storage/predefined_keys.hpp"
@@ -28,6 +29,8 @@ namespace kagome::network {
       std::shared_ptr<blockchain::BlockStorage> block_storage,
       std::shared_ptr<network::WarpSyncCache> warp_sync_cache,
       std::shared_ptr<consensus::grandpa::AuthorityManager> authority_manager,
+      std::shared_ptr<consensus::grandpa::IVerifiedJustificationQueue>
+          verified_justification_queue,
       std::shared_ptr<consensus::babe::BabeConfigRepository>
           babe_config_repository,
       std::shared_ptr<blockchain::BlockTree> block_tree)
@@ -36,6 +39,7 @@ namespace kagome::network {
         block_storage_{std::move(block_storage)},
         warp_sync_cache_{std::move(warp_sync_cache)},
         authority_manager_{std::move(authority_manager)},
+        verified_justification_queue_{std::move(verified_justification_queue)},
         babe_config_repository_{std::move(babe_config_repository)},
         block_tree_{std::move(block_tree)},
         db_{db.getSpace(storage::Space::kDefault)},
@@ -88,15 +92,8 @@ namespace kagome::network {
       auto authorities =
           authority_manager_->authorities(block_tree_->getLastFinalized(), true)
               .value();
-
-      auto promise_res =
-          std::make_shared<std::promise<outcome::result<void>>>();
-      auto res_future = promise_res->get_future();
-
-      grandpa_->verifyJustification(
-          fragment.justification, *authorities, promise_res);
-
-      auto result = res_future.get();
+      auto result =
+          grandpa_->verifyJustification(fragment.justification, *authorities);
       if (result.has_error()) {
         return;
       }
@@ -131,6 +128,7 @@ namespace kagome::network {
     authority_manager_->warp(op.block_info, op.header, op.authorities);
     block_tree_->warp(op.block_info);
     babe_config_repository_->warp(op.block_info);
+    verified_justification_queue_->warp();
     db_->remove(storage::kWarpSyncOp).value();
   }
 }  // namespace kagome::network

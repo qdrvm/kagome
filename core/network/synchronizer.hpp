@@ -43,6 +43,9 @@ namespace kagome::network {
                                    const libp2p::peer::PeerId &peer_id,
                                    SyncResultHandler &&handler) = 0;
 
+    virtual bool fetchJustification(const primitives::BlockInfo &block,
+                                    CbResultVoid cb) = 0;
+
     virtual void syncState(const libp2p::peer::PeerId &peer_id,
                            const primitives::BlockInfo &block,
                            SyncResultHandler &&handler) = 0;

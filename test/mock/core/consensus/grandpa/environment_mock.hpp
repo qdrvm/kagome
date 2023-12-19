@@ -44,10 +44,10 @@ namespace kagome::consensus::grandpa {
                  BlockNumber last_finalized),
                 (override));
 
-    void applyJustification(const BlockInfo &block_info,
-                            const primitives::Justification &justification,
-                            Environment::ApplyJustificationCb &&cb) override {
-      cb(outcome::success());
+    outcome::result<void> applyJustification(
+        const BlockInfo &block_info,
+        const primitives::Justification &justification) override {
+      return outcome::success();
     }
 
     MOCK_METHOD(outcome::result<void>,

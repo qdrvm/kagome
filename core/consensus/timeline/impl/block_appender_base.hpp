@@ -36,7 +36,7 @@ namespace kagome::consensus {
    */
   class BlockAppenderBase {
    public:
-    using ApplyJustificationCb = grandpa::Environment::ApplyJustificationCb;
+    using ApplyJustificationCb = std::function<void(outcome::result<void>)>;
     BlockAppenderBase(
         std::shared_ptr<blockchain::BlockTree> block_tree,
         std::shared_ptr<babe::BabeConfigRepository> babe_config_repo,
@@ -63,12 +63,6 @@ namespace kagome::consensus {
 
    private:
     log::Logger logger_ = log::createLogger("BlockAppender", "babe");
-
-    // Justifications stored for future application (because a justification may
-    // contain votes for higher blocks, which we have not received yet)
-    using PostponedJustifications =
-        std::map<primitives::BlockInfo, primitives::Justification>;
-    std::shared_ptr<PostponedJustifications> postponed_justifications_;
 
     std::shared_ptr<blockchain::BlockTree> block_tree_;
     std::shared_ptr<babe::BabeConfigRepository> babe_config_repo_;

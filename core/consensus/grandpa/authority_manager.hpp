@@ -41,6 +41,13 @@ namespace kagome::consensus::grandpa {
         const primitives::BlockInfo &block,
         IsBlockFinalized finalized) const = 0;
 
+    using ScheduledParentResult =
+        outcome::result<std::pair<primitives::BlockInfo, AuthoritySetId>>;
+    virtual ScheduledParentResult scheduledParent(
+        primitives::BlockInfo block) const = 0;
+
+    virtual std::vector<primitives::BlockInfo> possibleScheduled() const = 0;
+
     /**
      * Warp synced to `block` with `authorities`.
      */

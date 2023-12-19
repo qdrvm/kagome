@@ -35,92 +35,27 @@ namespace kagome::consensus {
     BOOST_ASSERT(babe_config_repo_ != nullptr);
     BOOST_ASSERT(grandpa_environment_ != nullptr);
     BOOST_ASSERT(hasher_ != nullptr);
-
-    postponed_justifications_ = std::make_shared<
-        std::map<primitives::BlockInfo, primitives::Justification>>();
   }
 
   void BlockAppenderBase::applyJustifications(
       const primitives::BlockInfo &block_info,
       const std::optional<primitives::Justification> &opt_justification,
       ApplyJustificationCb &&callback) {
-    // try to apply postponed justifications first if any
-    if (not postponed_justifications_->empty()) {
-      for (auto it = postponed_justifications_->begin();
-           it != postponed_justifications_->end();) {
-        const auto &block_justified_for = it->first;
-        const auto &justification = it->second;
-
-        SL_DEBUG(logger_,
-                 "Try to apply postponed justification received for block {}",
-                 block_justified_for);
-        grandpa_environment_->applyJustification(
-            block_justified_for,
-            justification,
-            [block_justified_for,
-             wpp{std::weak_ptr<PostponedJustifications>{
-                 postponed_justifications_}}](auto &&result) mutable {
-              if (auto pp = wpp.lock()) {
-                if (result.has_value()) {
-                  pp->erase(block_justified_for);
-                }
-              }
-            });
-      }
-    }
-
     // apply justification if any (must be done strictly after block is
     // added and its consensus digests are handled)
     if (opt_justification.has_value()) {
       SL_VERBOSE(
           logger_, "Apply justification received for block {}", block_info);
 
-      grandpa_environment_->applyJustification(
-          block_info,
-          opt_justification.value(),
-          [wlogger{log::WLogger{logger_}},
-           callback{std::move(callback)},
-           block_info,
-           justification{opt_justification.value()},
-           wpp{std::weak_ptr<PostponedJustifications>{
-               postponed_justifications_}}](auto &&result) mutable {
-            if (auto pp = wpp.lock()) {
-              if (result.has_error()) {
-                // If the total weight is not enough, this justification is
-                // deferred to try to apply it after the next block is added.
-                // One of the reasons for this error is the presence of
-                // preliminary votes for future blocks that have not yet been
-                // applied.
-                if (result
-                    == outcome::failure(
-                        grandpa::VotingRoundError::NOT_ENOUGH_WEIGHT)) {
-                  pp->emplace(block_info, justification);
-                  if (auto logger = wlogger.lock()) {
-                    SL_VERBOSE(
-                        logger,
-                        "Postpone justification received for block {}: {}",
-                        block_info,
-                        result);
-                  }
-                } else {
-                  if (auto logger = wlogger.lock()) {
-                    SL_ERROR(
-                        logger,
-                        "Error while applying justification of block {}: {}",
-                        block_info,
-                        result.error());
-                  }
-                  callback(result.as_failure());
-                  return;
-                }
-              } else {
-                // safely could be cleared if current justification applied
-                // successfully
-                pp->clear();
-              }
-              callback(outcome::success());
-            }
-          });
+      auto result = grandpa_environment_->applyJustification(
+          block_info, opt_justification.value());
+      if (not result) {
+        SL_ERROR(logger_,
+                 "Error while applying justification of block {}: {}",
+                 block_info,
+                 result.error());
+      }
+      callback(result);
     } else {
       callback(outcome::success());
     }

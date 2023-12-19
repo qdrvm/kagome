@@ -49,6 +49,7 @@ namespace kagome::storage::trie {
 
 namespace kagome::network {
   class IBeefy;
+  class PeerManager;
 
   class SynchronizerImpl
       : public Synchronizer,
@@ -97,6 +98,7 @@ namespace kagome::network {
         std::shared_ptr<storage::trie::TrieStorage> storage,
         std::shared_ptr<storage::trie_pruner::TriePruner> trie_pruner,
         std::shared_ptr<network::Router> router,
+        std::shared_ptr<PeerManager> peer_manager,
         std::shared_ptr<libp2p::basic::Scheduler> scheduler,
         std::shared_ptr<crypto::Hasher> hasher,
         primitives::events::ChainSubscriptionEnginePtr chain_sub_engine,
@@ -123,6 +125,9 @@ namespace kagome::network {
     bool syncByBlockHeader(const primitives::BlockHeader &header,
                            const libp2p::peer::PeerId &peer_id,
                            SyncResultHandler &&handler) override;
+
+    bool fetchJustification(const primitives::BlockInfo &block,
+                            CbResultVoid cb) override;
 
     /// Enqueues loading and applying state on block {@param block}
     /// from peer {@param peer_id}.
@@ -193,6 +198,11 @@ namespace kagome::network {
     outcome::result<void> syncState(std::unique_lock<std::mutex> &lock,
                                     outcome::result<StateResponse> &&_res);
 
+    void fetch(const libp2p::peer::PeerId &peer,
+               BlocksRequest request,
+               const char *reason,
+               std::function<void(outcome::result<BlocksResponse>)> &&cb);
+
     std::shared_ptr<application::AppStateManager> app_state_manager_;
     std::shared_ptr<blockchain::BlockTree> block_tree_;
     std::shared_ptr<consensus::BlockHeaderAppender> block_appender_;
@@ -201,6 +211,7 @@ namespace kagome::network {
     std::shared_ptr<storage::trie::TrieStorage> storage_;
     std::shared_ptr<storage::trie_pruner::TriePruner> trie_pruner_;
     std::shared_ptr<network::Router> router_;
+    std::shared_ptr<PeerManager> peer_manager_;
     std::shared_ptr<libp2p::basic::Scheduler> scheduler_;
     std::shared_ptr<crypto::Hasher> hasher_;
     std::shared_ptr<IBeefy> beefy_;

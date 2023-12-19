@@ -6,8 +6,6 @@
 
 #pragma once
 
-#include <future>
-
 #include "consensus/grandpa/structs.hpp"
 #include "outcome/outcome.hpp"
 #include "primitives/common.hpp"
@@ -21,25 +19,13 @@ namespace kagome::consensus::grandpa {
   class JustificationObserver {
    public:
     virtual ~JustificationObserver() = default;
-    using ApplyJustificationCb = std::function<void(outcome::result<void> &&)>;
 
     /**
      * Validate {@param justification} with {@param authorities}.
      */
-    virtual void verifyJustification(
+    virtual outcome::result<void> verifyJustification(
         const GrandpaJustification &justification,
-        const AuthoritySet &authorities,
-        std::shared_ptr<std::promise<outcome::result<void>>> promise_res) = 0;
-
-    /**
-     * Validate provided {@param justification} for finalization.
-     * If it valid finalize block and save {@param justification} in
-     * storage.
-     * @param justification justification of finalization
-     * @return nothing or on error
-     */
-    virtual void applyJustification(const GrandpaJustification &justification,
-                                    ApplyJustificationCb &&callback) = 0;
+        const AuthoritySet &authorities) = 0;
 
     /**
      * Reload round after warp sync.

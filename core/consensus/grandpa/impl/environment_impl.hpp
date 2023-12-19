@@ -40,6 +40,7 @@ namespace kagome::parachain {
 }
 
 namespace kagome::consensus::grandpa {
+  class IVerifiedJustificationQueue;
 
   class EnvironmentImpl : public Environment,
                           public std::enable_shared_from_this<EnvironmentImpl> {
@@ -51,6 +52,8 @@ namespace kagome::consensus::grandpa {
         std::shared_ptr<network::GrandpaTransmitter> transmitter,
         std::shared_ptr<parachain::IApprovedAncestor> approved_ancestor,
         LazySPtr<JustificationObserver> justification_observer,
+        std::shared_ptr<IVerifiedJustificationQueue>
+            verified_justification_queue,
         std::shared_ptr<dispute::DisputeCoordinator> dispute_coordinator,
         std::shared_ptr<runtime::ParachainHost> parachain_api,
         std::shared_ptr<parachain::BackingStore> backing_store,
@@ -105,9 +108,9 @@ namespace kagome::consensus::grandpa {
                                VoterSetId set_id,
                                BlockNumber last_finalized) override;
 
-    void applyJustification(const BlockInfo &block_info,
-                            const primitives::Justification &justification,
-                            ApplyJustificationCb &&cb) override;
+    outcome::result<void> applyJustification(
+        const BlockInfo &block_info,
+        const primitives::Justification &justification) override;
 
     outcome::result<void> finalize(
         VoterSetId id, const GrandpaJustification &justification) override;
@@ -124,6 +127,7 @@ namespace kagome::consensus::grandpa {
     std::shared_ptr<network::GrandpaTransmitter> transmitter_;
     std::shared_ptr<parachain::IApprovedAncestor> approved_ancestor_;
     LazySPtr<JustificationObserver> justification_observer_;
+    std::shared_ptr<IVerifiedJustificationQueue> verified_justification_queue_;
     std::shared_ptr<dispute::DisputeCoordinator> dispute_coordinator_;
     std::shared_ptr<runtime::ParachainHost> parachain_api_;
     std::shared_ptr<parachain::BackingStore> backing_store_;

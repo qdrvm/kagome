@@ -16,6 +16,7 @@
 #include "consensus/grandpa/environment.hpp"
 #include "consensus/grandpa/has_authority_set_change.hpp"
 #include "network/beefy/i_beefy.hpp"
+#include "network/peer_manager.hpp"
 #include "network/types/block_attributes.hpp"
 #include "primitives/common.hpp"
 #include "storage/predefined_keys.hpp"
@@ -87,6 +88,7 @@ namespace kagome::network {
       std::shared_ptr<storage::trie::TrieStorage> storage,
       std::shared_ptr<storage::trie_pruner::TriePruner> trie_pruner,
       std::shared_ptr<network::Router> router,
+      std::shared_ptr<PeerManager> peer_manager,
       std::shared_ptr<libp2p::basic::Scheduler> scheduler,
       std::shared_ptr<crypto::Hasher> hasher,
       primitives::events::ChainSubscriptionEnginePtr chain_sub_engine,
@@ -100,6 +102,7 @@ namespace kagome::network {
         storage_(std::move(storage)),
         trie_pruner_(std::move(trie_pruner)),
         router_(std::move(router)),
+        peer_manager_(std::move(peer_manager)),
         scheduler_(std::move(scheduler)),
         hasher_(std::move(hasher)),
         beefy_{std::move(beefy)},
@@ -362,43 +365,18 @@ namespace kagome::network {
       primitives::BlockNumber hint,
       SyncResultHandler &&handler,
       std::map<primitives::BlockNumber, primitives::BlockHash> &&observed) {
-    // Interrupts process if node is shutting down
-    if (node_is_shutting_down_) {
-      handler(Error::SHUTTING_DOWN);
-      return;
-    }
-
     network::BlocksRequest request{network::BlockAttribute::HEADER,
                                    hint,
                                    network::Direction::ASCENDING,
                                    1};
-
-    auto request_fingerprint = request.fingerprint();
-
-    if (auto r = recent_requests_.emplace(
-            std::make_tuple(peer_id, request_fingerprint), "find common block");
-        not r.second) {
-      SL_VERBOSE(log_,
-                 "Can't check if block #{} in #{}..#{} is common with {}: {}",
-                 hint,
-                 lower,
-                 upper - 1,
-                 peer_id,
-                 r.first->second);
-      handler(Error::DUPLICATE_REQUEST);
-      return;
-    }
-
-    scheduleRecentRequestRemoval(peer_id, request_fingerprint);
-
     auto response_handler = [wp = weak_from_this(),
                              lower,
                              upper,
                              target = hint,
                              peer_id,
                              handler = std::move(handler),
-                             observed = std::move(observed),
-                             request_fingerprint](auto &&response_res) mutable {
+                             observed = std::move(observed)](
+                                auto &&response_res) mutable {
       auto self = wp.lock();
       if (not self) {
         return;
@@ -430,7 +408,6 @@ namespace kagome::network {
                    upper - 1,
                    peer_id);
         handler(Error::EMPTY_RESPONSE);
-        self->recent_requests_.erase(std::tuple(peer_id, request_fingerprint));
         return;
       }
 
@@ -527,45 +504,19 @@ namespace kagome::network {
              lower,
              upper - 1,
              peer_id);
-
-    auto protocol = router_->getSyncProtocol();
-    BOOST_ASSERT_MSG(protocol, "Router did not provide sync protocol");
-    protocol->request(peer_id, std::move(request), std::move(response_handler));
+    fetch(peer_id,
+          std::move(request),
+          "find common block",
+          std::move(response_handler));
   }
 
   void SynchronizerImpl::loadBlocks(const libp2p::peer::PeerId &peer_id,
                                     primitives::BlockInfo from,
                                     SyncResultHandler &&handler) {
-    // Interrupts process if node is shutting down
-    if (node_is_shutting_down_) {
-      if (handler) {
-        handler(Error::SHUTTING_DOWN);
-      }
-      return;
-    }
-
     network::BlocksRequest request{attributesForSync(sync_method_),
                                    from.hash,
                                    network::Direction::ASCENDING,
                                    std::nullopt};
-
-    auto request_fingerprint = request.fingerprint();
-
-    if (auto r = recent_requests_.emplace(
-            std::make_tuple(peer_id, request_fingerprint), "load blocks");
-        not r.second) {
-      SL_VERBOSE(log_,
-                 "Can't load blocks from {} beginning block {}: {}",
-                 peer_id,
-                 from,
-                 r.first->second);
-      if (handler) {
-        handler(Error::DUPLICATE_REQUEST);
-      }
-      return;
-    }
-
-    scheduleRecentRequestRemoval(peer_id, request_fingerprint);
 
     auto response_handler = [wp = weak_from_this(),
                              from,
@@ -773,9 +724,10 @@ namespace kagome::network {
       }
     };
 
-    auto protocol = router_->getSyncProtocol();
-    BOOST_ASSERT_MSG(protocol, "Router did not provide sync protocol");
-    protocol->request(peer_id, std::move(request), std::move(response_handler));
+    fetch(peer_id,
+          std::move(request),
+          "load blocks",
+          std::move(response_handler));
   }
 
   void SynchronizerImpl::syncState(const libp2p::peer::PeerId &peer_id,
@@ -1254,4 +1206,83 @@ namespace kagome::network {
     asking_blocks_portion_in_progress_ = false;
   }
 
+  void SynchronizerImpl::fetch(
+      const libp2p::peer::PeerId &peer,
+      BlocksRequest request,
+      const char *reason,
+      std::function<void(outcome::result<BlocksResponse>)> &&cb) {
+    if (node_is_shutting_down_) {
+      cb(Error::SHUTTING_DOWN);
+      return;
+    }
+    auto fingerprint = request.fingerprint();
+    if (not recent_requests_.emplace(std::tuple{peer, fingerprint}, reason)
+                .second) {
+      cb(Error::DUPLICATE_REQUEST);
+      return;
+    }
+    scheduleRecentRequestRemoval(peer, fingerprint);
+    router_->getSyncProtocol()->request(
+        peer, std::move(request), std::move(cb));
+  }
+
+  bool SynchronizerImpl::fetchJustification(const primitives::BlockInfo &block,
+                                            CbResultVoid cb) {
+    BlocksRequest request{
+        BlockAttribute::JUSTIFICATION,
+        block.hash,
+        Direction::DESCENDING,
+        1,
+        false,
+    };
+    auto fingerprint = request.fingerprint();
+    std::optional<PeerId> chosen;
+    peer_manager_->forEachPeer([&](const PeerId &peer) {
+      if (chosen) {
+        return;
+      }
+      if (busy_peers_.contains(peer)) {
+        return;
+      }
+      if (recent_requests_.contains({peer, fingerprint})) {
+        return;
+      }
+      auto info = peer_manager_->getPeerState(peer);
+      if (not info) {
+        return;
+      }
+      if (info->get().last_finalized < block.number) {
+        return;
+      }
+      chosen = peer;
+    });
+    if (not chosen) {
+      return false;
+    }
+    busy_peers_.emplace(*chosen);
+    auto cb2 = [weak{weak_from_this()},
+                block,
+                cb{std::move(cb)},
+                peer{*chosen}](outcome::result<BlocksResponse> r) mutable {
+      auto self = weak.lock();
+      if (not self) {
+        return;
+      }
+      self->busy_peers_.erase(peer);
+      if (not r) {
+        return cb(r.error());
+      }
+      auto &blocks = r.value().blocks;
+      if (blocks.size() != 1) {
+        return cb(Error::EMPTY_RESPONSE);
+      }
+      auto &justification = blocks[0].justification;
+      if (not justification) {
+        return cb(Error::EMPTY_RESPONSE);
+      }
+      cb(self->grandpa_environment_->applyJustification(block, *justification));
+    };
+    fetch(*chosen, std::move(request), "justification", std::move(cb2));
+    return true;
+  }
 }  // namespace kagome::network

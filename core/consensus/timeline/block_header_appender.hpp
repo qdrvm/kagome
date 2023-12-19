@@ -17,7 +17,7 @@ namespace kagome::consensus {
    */
   class BlockHeaderAppender {
    public:
-    using ApplyJustificationCb = grandpa::Environment::ApplyJustificationCb;
+    using ApplyJustificationCb = std::function<void(outcome::result<void>)>;
     virtual ~BlockHeaderAppender() = default;
 
     virtual void appendHeader(

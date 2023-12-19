@@ -14,6 +14,7 @@
 #include "blockchain/block_tree.hpp"
 #include "consensus/grandpa/authority_manager.hpp"
 #include "consensus/grandpa/has_authority_set_change.hpp"
+#include "consensus/grandpa/i_verified_justification_queue.hpp"
 #include "consensus/grandpa/justification_observer.hpp"
 #include "consensus/grandpa/movable_round_state.hpp"
 #include "consensus/grandpa/voting_round_error.hpp"
@@ -39,6 +40,7 @@ namespace kagome::consensus::grandpa {
       std::shared_ptr<network::GrandpaTransmitter> transmitter,
       std::shared_ptr<parachain::IApprovedAncestor> approved_ancestor,
       LazySPtr<JustificationObserver> justification_observer,
+      std::shared_ptr<IVerifiedJustificationQueue> verified_justification_queue,
       std::shared_ptr<dispute::DisputeCoordinator> dispute_coordinator,
       std::shared_ptr<runtime::ParachainHost> parachain_api,
       std::shared_ptr<parachain::BackingStore> backing_store,
@@ -50,6 +52,7 @@ namespace kagome::consensus::grandpa {
         transmitter_{std::move(transmitter)},
         approved_ancestor_(std::move(approved_ancestor)),
         justification_observer_(std::move(justification_observer)),
+        verified_justification_queue_(std::move(verified_justification_queue)),
         dispute_coordinator_(std::move(dispute_coordinator)),
         parachain_api_(std::move(parachain_api)),
         backing_store_(std::move(backing_store)),
@@ -366,39 +369,28 @@ namespace kagome::consensus::grandpa {
     transmitter_->sendNeighborMessage(std::move(message));
   }
 
-  void EnvironmentImpl::applyJustification(
+  outcome::result<void> EnvironmentImpl::applyJustification(
       const BlockInfo &block_info,
-      const primitives::Justification &raw_justification,
-      ApplyJustificationCb &&cb) {
-    auto res = scale::decode<GrandpaJustification>(raw_justification.data);
-    if (res.has_error()) {
-      cb(res.as_failure());
-      return;
-    }
-    auto &&justification = std::move(res.value());
-
+      const primitives::Justification &raw_justification) {
+    OUTCOME_TRY(justification,
+                scale::decode<GrandpaJustification>(raw_justification.data));
     if (justification.block_info != block_info) {
-      cb(VotingRoundError::JUSTIFICATION_FOR_WRONG_BLOCK);
-      return;
+      return VotingRoundError::JUSTIFICATION_FOR_WRONG_BLOCK;
     }
-
-    SL_DEBUG(logger_,
-             "Trying to apply justification on round #{} for block {}",
-             justification.round_number,
-             justification.block_info);
-
-    justification_observer_.get()->applyJustification(justification,
-                                                      std::move(cb));
+    auto authorities = authority_manager_->authorities(block_info, false);
+    if (not authorities) {
+      return VotingRoundError::NO_KNOWN_AUTHORITIES_FOR_BLOCK;
+    }
+    OUTCOME_TRY(justification_observer_.get()->verifyJustification(
+        justification, **authorities));
+    verified_justification_queue_->addVerified((**authorities).id,
+                                               justification);
+    return outcome::success();
   }
 
   outcome::result<void> EnvironmentImpl::finalize(
       VoterSetId id, const GrandpaJustification &grandpa_justification) {
-    primitives::Justification justification;
-    OUTCOME_TRY(enc, scale::encode(grandpa_justification));
-    justification.data.put(enc);
-    OUTCOME_TRY(block_tree_->finalize(grandpa_justification.block_info.hash,
-                                      justification));
-
+    verified_justification_queue_->addVerified(id, grandpa_justification);
     return outcome::success();
   }
 
