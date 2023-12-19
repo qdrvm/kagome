@@ -269,12 +269,6 @@ class ProspectiveParachainsTest : public testing::Test {
   Hash get_parent_hash(const Hash &parent) const {
     Hash h{};
     *(uint64_t *)&h[0] = *(uint64_t *)&parent[0] + 1ull;
-
-    //    auto h = crypto::Hashed<BlockNumber, 32,
-    //    crypto::Blake2b_StreamHasher<32>>(
-    //               parent)
-    //        .getHash();
-    std::cout << "Hash " << h << " is parent for " << parent << std::endl;
     return h;
   }
 
@@ -310,26 +304,13 @@ class ProspectiveParachainsTest : public testing::Test {
     };
   }
 
-  void handle_leaf_activation(
+  void handle_leaf_activation_2(
+      const network::ExView &update,
       const TestLeaf &leaf,
       const TestState &test_state,
       const fragment::AsyncBackingParams &async_backing_params) {
     const auto &[number, hash, para_data] = leaf;
-    BlockHeader header{
-        .number = number,
-        .parent_hash = get_parent_hash(hash),
-        .state_root = {},
-        .extrinsics_root = {},
-        .digest = {},
-        .hash_opt = {},
-    };
-
-    network::ExView update{
-        .view = {},
-        .new_head = header,
-        .lost = {},
-    };
-    update.new_head.opt_hash_ = hash;
+    const auto &header = update.new_head.get();
 
     EXPECT_CALL(*parachain_api_, staging_async_backing_params(hash))
         .WillRepeatedly(Return(outcome::success(async_backing_params)));
@@ -368,10 +349,6 @@ class ProspectiveParachainsTest : public testing::Test {
       d = get_parent_hash(d);
     }
     ASSERT_EQ(ancestry_hashes.size(), ancestry_numbers.size());
-    for (size_t i = 0; i < ancestry_hashes.size(); ++i) {
-      std::cout << ancestry_numbers[i] << " -> " << ancestry_hashes[i]
-                << std::endl;
-    }
 
     if (ancestry_len > 0) {
       EXPECT_CALL(*block_tree_,
@@ -442,6 +419,29 @@ class ProspectiveParachainsTest : public testing::Test {
       mrp_response.emplace_back(pid, ppd.min_relay_parent);
     }
     ASSERT_EQ(resp, mrp_response);
+  }
+
+  void handle_leaf_activation(
+      const TestLeaf &leaf,
+      const TestState &test_state,
+      const fragment::AsyncBackingParams &async_backing_params) {
+    const auto &[number, hash, para_data] = leaf;
+    BlockHeader header{
+        .number = number,
+        .parent_hash = get_parent_hash(hash),
+        .state_root = {},
+        .extrinsics_root = {},
+        .digest = {},
+        .hash_opt = {},
+    };
+
+    network::ExView update{
+        .view = {},
+        .new_head = header,
+        .lost = {},
+    };
+    update.new_head.opt_hash_ = hash;
+    handle_leaf_activation_2(update, leaf, test_state, async_backing_params);
   }
 
   void activate_leaf(const TestLeaf &leaf,
@@ -539,6 +539,18 @@ class ProspectiveParachainsTest : public testing::Test {
         .new_head = {},
         .lost = update.lost,
     });
+  }
+
+  auto get_pvd(
+      ParachainId para_id,
+      const Hash &candidate_relay_parent,
+      const HeadData &parent_head_data,
+      const std::optional<runtime::PersistedValidationData> &expected_pvd) {
+    auto resp = prospective_parachain_->answerProspectiveValidationDataRequest(
+        candidate_relay_parent,
+        hasher_->blake2b_256(parent_head_data),
+        para_id);
+    ASSERT_EQ(resp, expected_pvd);
   }
 };
 
@@ -1028,6 +1040,184 @@ TEST_F(ProspectiveParachainsTest, FragmentTree_checkHypotheticalFrontierQuery) {
 
   ASSERT_EQ(prospective_parachain_->view.active_leaves.size(), 1);
   ASSERT_EQ(prospective_parachain_->view.candidate_storage.size(), 2);
+}
+
+TEST_F(ProspectiveParachainsTest, FragmentTree_checkPvdQuery) {
+  TestState test_state(hasher_);
+  TestLeaf leaf_a{
+      .number = 100,
+      .hash = fromNumber(130),
+      .para_data =
+          {
+              {1, PerParaData(97, {1, 2, 3})},
+              {2, PerParaData(100, {2, 3, 4})},
+          },
+  };
+
+  fragment::AsyncBackingParams async_backing_params{
+      .max_candidate_depth = 4,
+      .allowed_ancestry_len = ALLOWED_ANCESTRY_LEN,
+  };
+
+  activate_leaf(leaf_a, test_state, async_backing_params);
+
+  const auto &[candidate_a, pvd_a] =
+      make_candidate(leaf_a.hash,
+                     leaf_a.number,
+                     1,
+                     {1, 2, 3},
+                     {1},
+                     test_state.validation_code_hash);
+
+  const auto &[candidate_b, pvd_b] = make_candidate(
+      leaf_a.hash, leaf_a.number, 1, {1}, {2}, test_state.validation_code_hash);
+
+  const auto &[candidate_c, pvd_c] = make_candidate(
+      leaf_a.hash, leaf_a.number, 1, {2}, {3}, test_state.validation_code_hash);
+
+  get_pvd(1, leaf_a.hash, {1, 2, 3}, pvd_a);
+
+  introduce_candidate(candidate_a, pvd_a);
+  back_candidate(candidate_a, network::candidateHash(*hasher_, candidate_a));
+
+  get_pvd(1, leaf_a.hash, {1, 2, 3}, pvd_a);
+
+  get_pvd(1, leaf_a.hash, {1}, pvd_b);
+
+  introduce_candidate(candidate_b, pvd_b);
+
+  get_pvd(1, leaf_a.hash, {1}, pvd_b);
+
+  get_pvd(1, leaf_a.hash, {2}, pvd_c);
+
+  introduce_candidate(candidate_c, pvd_c);
+
+  get_pvd(1, leaf_a.hash, {2}, pvd_c);
+
+  ASSERT_EQ(prospective_parachain_->view.active_leaves.size(), 1);
+  ASSERT_EQ(prospective_parachain_->view.candidate_storage.size(), 2);
+}
+
+TEST_F(ProspectiveParachainsTest, FragmentTree_correctlyUpdatesLeaves) {
+  TestState test_state(hasher_);
+  TestLeaf leaf_a{
+      .number = 100,
+      .hash = fromNumber(130),
+      .para_data =
+          {
+              {1, PerParaData(97, {1, 2, 3})},
+              {2, PerParaData(100, {2, 3, 4})},
+          },
+  };
+  TestLeaf leaf_b{
+      .number = 101,
+      .hash = fromNumber(131),
+      .para_data =
+          {
+              {1, PerParaData(99, {3, 4, 5})},
+              {2, PerParaData(101, {4, 5, 6})},
+          },
+  };
+  TestLeaf leaf_c{
+      .number = 102,
+      .hash = fromNumber(132),
+      .para_data =
+          {
+              {1, PerParaData(102, {5, 6, 7})},
+              {2, PerParaData(98, {6, 7, 8})},
+          },
+  };
+
+  fragment::AsyncBackingParams async_backing_params{
+      .max_candidate_depth = 4,
+      .allowed_ancestry_len = ALLOWED_ANCESTRY_LEN,
+  };
+
+  activate_leaf(leaf_a, test_state, async_backing_params);
+  activate_leaf(leaf_b, test_state, async_backing_params);
+  activate_leaf(leaf_b, test_state, async_backing_params);
+
+  prospective_parachain_->onActiveLeavesUpdate(network::ExViewRef{
+      .new_head = {},
+      .lost = {},
+  });
+
+  {
+    BlockHeader header{
+        .number = leaf_c.number,
+        .parent_hash = {},
+        .state_root = {},
+        .extrinsics_root = {},
+        .digest = {},
+        .hash_opt = {},
+    };
+    network::ExView update{
+        .view = {},
+        .new_head = header,
+        .lost = {leaf_b.hash},
+    };
+    update.new_head.opt_hash_ = leaf_c.hash;
+
+    handle_leaf_activation_2(update, leaf_c, test_state, async_backing_params);
+    //    prospective_parachain_->onActiveLeavesUpdate(network::ExViewRef{
+    //        .new_head = update.new_head,
+    //        .lost = update.lost,
+    //    });
+  }
+
+  {
+    network::ExView update2{
+        .view = {},
+        .new_head = {},
+        .lost = {leaf_a.hash, leaf_c.hash},
+    };
+    // handle_leaf_activation_2(update2, leaf_c, test_state,
+    // async_backing_params);
+    prospective_parachain_->onActiveLeavesUpdate(network::ExViewRef{
+        .new_head = {},
+        .lost = update2.lost,
+    });
+  }
+
+  {
+    BlockHeader header{
+        .number = leaf_a.number,
+        .parent_hash = {},
+        .state_root = {},
+        .extrinsics_root = {},
+        .digest = {},
+        .hash_opt = {},
+    };
+    network::ExView update{
+        .view = {},
+        .new_head = header,
+        .lost = {leaf_a.hash},
+    };
+    update.new_head.opt_hash_ = leaf_a.hash;
+    handle_leaf_activation_2(update, leaf_a, test_state, async_backing_params);
+    //    prospective_parachain_->onActiveLeavesUpdate(network::ExViewRef{
+    //        .new_head = update.new_head,
+    //        .lost = update.lost,
+    //    });
+  }
+
+  // handle_leaf_activation(leaf_a, test_state, async_backing_params);
+
+  {
+    network::ExView update2{
+        .view = {},
+        .new_head = {},
+        .lost = {leaf_a.hash, leaf_b.hash, leaf_c.hash},
+    };
+    prospective_parachain_->onActiveLeavesUpdate(network::ExViewRef{
+        .new_head = {},
+        .lost = update2.lost,
+    });
+  }
+  ASSERT_EQ(prospective_parachain_->view.active_leaves.size(), 0);
+
+  /// TODO(iceseer): do pruning of candidate storage
+  /// ASSERT_EQ(prospective_parachain_->view.candidate_storage.size(), 0);
 }
 
 TEST_F(ProspectiveParachainsTest,
