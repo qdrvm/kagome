@@ -27,7 +27,7 @@ namespace kagome::crypto {
     //    bandersnatch_keypair_from_seed(kp.data(), seed.data());
 
     BandersnatchKeypair keypair;
-    keypair.public_key = common::Blob(secret.publicKey());
+    secret.publicKey().serialize(keypair.public_key);
 
     std::copy(kp.begin(),
               kp.begin() + constants::bandersnatch::SECRET_SIZE,
@@ -41,6 +41,14 @@ namespace kagome::crypto {
 
   outcome::result<BandersnatchSignature> BandersnatchProviderImpl::sign(
       const BandersnatchKeypair &keypair, common::BufferView message) const {
+    //    auto secret = bandersnatch_vrfs::SecretKey(
+    //        BandersnatchSeed::fromSpan(keypair.secret_key).value());
+    //
+    auto seed = BandersnatchSeed::fromSpan(keypair.secret_key).value();
+    OUTCOME_TRY(pair, bandersnatch::Pair::create(seed));
+
+    //    secret.signThinVrf()
+
     throw std::runtime_error(
         "Method 'BandersnatchProviderImpl::sign' is not implemented yet");
   }

@@ -16,7 +16,7 @@
 
 #include <libp2p/common/types.hpp>
 
-#include <bandersnatch_vrfs/bandersnatch_vrfs.hpp>
+#include "/home/di/Projects/bandersnatch_vrfs-crust/include/bandersnatch_vrfs/bandersnatch_vrfs.hpp"  // #include <bandersnatch_vrfs/bandersnatch_vrfs.hpp>
 
 namespace kagome::crypto::bandersnatch {
 
@@ -24,7 +24,7 @@ namespace kagome::crypto::bandersnatch {
   using libp2p::BytesIn;
   using libp2p::BytesOut;
 
-  using Transcript = primitives::Transcript;  // bandersnatch_vrfs::Transcript
+  using Transcript = bandersnatch_vrfs::Transcript;
 
   const size_t SEED_SERIALIZED_SIZE = 32;
   const size_t PUBLIC_SERIALIZED_SIZE = 33;
@@ -57,15 +57,23 @@ namespace kagome::crypto::bandersnatch {
 
     Public to_public() const;
 
-    vrf::VrfPreOut vrf_preout(const vrf::VrfInput &input) const;
+    bandersnatch_vrfs::VrfPreOut vrf_preout(
+        bandersnatch_vrfs::VrfInput input) const;
 
-    vrf::VrfInOut vrf_inout(const vrf::VrfInput &input) const;
+    bandersnatch_vrfs::VrfInOut vrf_inout(
+        bandersnatch_vrfs::VrfInput input) const;
+
+    template <size_t N>
+    bandersnatch_vrfs::ThinVrfSignature sign_thin_vrf(
+        bandersnatch_vrfs::Transcript transcript,
+        bandersnatch_vrfs::VrfInOut *inouts) const {
+      return bandersnatch_vrfs::SecretKey::signThinVrf(transcript, inouts, N);
+    }
   };
 
   /// Bandersnatch public key.
   struct Public : public common::Blob<PUBLIC_SERIALIZED_SIZE> {
     Public(common::Blob<PUBLIC_SERIALIZED_SIZE> raw);
-
     static outcome::result<Public> try_from(BytesIn data);
 
     std::optional<Public> derive(
@@ -83,7 +91,7 @@ namespace kagome::crypto::bandersnatch {
     /// Make a new key pair from secret seed material.
     ///
     /// The slice must be 32 bytes long or it will return an error.
-    outcome::result<Pair> create(BytesIn seed_slice);
+    static outcome::result<Pair> create(BytesIn seed_slice);
 
     const Seed &seed() const {
       return seed_;
@@ -116,12 +124,14 @@ namespace kagome::crypto::bandersnatch {
     template <size_t N>
     vrf::VrfSignature vrf_sign_gen(const vrf::VrfSignData &data) const;
 
-    vrf::VrfOutput vrf_output(const vrf::VrfInput &input) const;
+    bandersnatch_vrfs::VrfOutput vrf_output(
+        bandersnatch_vrfs::VrfInput input) const;
 
     /// Generate an arbitrary number of bytes from the given `context` and VRF
     /// `input`.
     template <size_t N>
-    common::Blob<N> make_bytes(BytesIn context, const vrf::VrfInput &input);
+    common::Blob<N> make_bytes(BytesIn context,
+                               bandersnatch_vrfs::VrfInput input);
 
     SecretKey secret_;
     Seed seed_;
@@ -214,6 +224,12 @@ namespace kagome::crypto::bandersnatch {
       requires std::is_same_v<T, VrfInput> or std::is_same_v<T, VrfOutput>
     using VrfIosVec = common::SLVector<T, kMaxVrfInputOutputCounts>;
 
+    template <typename T>
+      requires std::is_same_v<T, bandersnatch_vrfs::VrfInput>
+                or std::is_same_v<T, bandersnatch_vrfs::VrfOutput>
+    using bandersnatch_vrfs__VrfIosVec =
+        common::SLVector<T, kMaxVrfInputOutputCounts>;
+
     /// Context used to produce a plain signature without any VRF
     /// input/output.
     const auto SIGNING_CTX = "BandersnatchSigningContext"_bytes;
@@ -241,9 +257,9 @@ namespace kagome::crypto::bandersnatch {
     /// outputs*. This data will contribute to the signature as well.
     struct VrfSignData {
       /// Associated protocol transcript.
-      Transcript transcript;
+      bandersnatch_vrfs::Transcript transcript;
       /// VRF inputs to be signed.
-      VrfIosVec<VrfInput> inputs;
+      bandersnatch_vrfs__VrfIosVec<bandersnatch_vrfs::VrfInput> inputs;
 
       /// Construct a new data to be signed.
       ///
@@ -252,7 +268,7 @@ namespace kagome::crypto::bandersnatch {
       /// Refer to [`VrfSignData`] for details about transcript and inputs.
       VrfSignData(BytesIn transcript_label,
                   std::span<BytesIn> transcript_data,
-                  std::span<VrfInput> inputs);
+                  std::span<bandersnatch_vrfs::VrfInput> inputs);
 
       /// Construct a new data to be signed.
       ///
@@ -263,7 +279,7 @@ namespace kagome::crypto::bandersnatch {
       static outcome::result<VrfSignData> create(
           BytesIn transcript_label,
           std::span<BytesIn> transcript_data,
-          std::span<VrfInput> inputs);
+          std::span<bandersnatch_vrfs::VrfInput> inputs);
 
       /// Append a message to the transcript.
       void push_transcript_data(BytesIn data);
@@ -271,7 +287,7 @@ namespace kagome::crypto::bandersnatch {
       /// Tries to append a [`VrfInput`] to the vrf inputs list.
       ///
       /// On failure, input parameter is not changed.
-      outcome::result<void> push_vrf_input(VrfInput &input);
+      outcome::result<void> push_vrf_input(bandersnatch_vrfs::VrfInput input);
 
       /// Get the challenge associated to the `transcript` contained within
       /// the signing data.
@@ -291,7 +307,8 @@ namespace kagome::crypto::bandersnatch {
       /// Transcript signature.
       Signature signature;
       /// VRF (pre)outputs.
-      VrfIosVec<VrfOutput> outputs;
+      // VrfIosVec<VrfOutput> outputs;
+      std::vector<const bandersnatch_VrfPreOut *> outputs;
     };
 
     bool vrf_verify(const VrfSignData &data,

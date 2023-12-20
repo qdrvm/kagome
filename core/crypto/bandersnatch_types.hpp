@@ -6,9 +6,9 @@
 
 #pragma once
 
-#include <bandersnatch_vrfs/bandersnatch_vrfs.hpp>
 #include <boost/multiprecision/cpp_int.hpp>
 #include <span>
+#include "/home/di/Projects/bandersnatch_vrfs-crust/include/bandersnatch_vrfs/bandersnatch_vrfs.hpp"  // #include <bandersnatch_vrfs/bandersnatch_vrfs.hpp>
 
 #include "common/blob.hpp"
 #include "common/int_serialization.hpp"

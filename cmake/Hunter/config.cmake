@@ -102,8 +102,8 @@ hunter_config(
 hunter_config(
   bandersnatch_vrfs_crust
   URL  https://github.com/qdrvm/bandersnatch-vrfs-crust/archive/refs/heads/draft.tar.gz
-  SHA1 db3c31b014aa89fb8dcc03f8366cee8413eeb58f
-  CMAKE_ARGS CACHE_BREAK=0
+  SHA1 ac52da7bc143f55fe3a57478d6ac79519f3f4cff
+  CMAKE_ARGS CACHE_BREAK=5
   CONFIGURATION_TYPES Debug
   KEEP_PACKAGE_SOURCES
 )

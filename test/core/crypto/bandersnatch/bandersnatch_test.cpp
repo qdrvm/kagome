@@ -13,6 +13,9 @@
 #include "testutil/outcome.hpp"
 #include "testutil/prepare_loggers.hpp"
 
+using kagome::crypto::BandersnatchProvider;
+using kagome::crypto::BandersnatchProviderImpl;
+using kagome::crypto::BandersnatchSeed;
 using kagome::crypto::BoostRandomGenerator;
 namespace bandersnatch = kagome::crypto::bandersnatch;
 namespace vrf = bandersnatch::vrf;
@@ -37,37 +40,66 @@ struct BandersnatchTest : public ::testing::Test {
     return logger;
   }
 
-  //  void SetUp() override {
-  //    ed25519_provider = std::make_shared<Ed25519ProviderImpl>(hasher);
-  //
-  //    std::string_view m = "i am a message";
-  //    message = std::vector<uint8_t>(m.begin(), m.end());
-  //    message_span = message;
-  //
-  //    hex_seed =
-  // "ccb4ec79974db3dae0d4dff7e0963db6b798684356dc517ff5c2e61f3b641569";
-  //    hex_public_key =
-  // "767a2f677a8c704d66e2abbb181d8984adae7ac8ecac9e30709ad496244ab497";
-  //  }
-  //
-  //  auto generate() {
-  //    Ed25519Seed seed;
-  //    csprng->fillRandomly(seed);
-  //    return ed25519_provider->generateKeypair(seed, {}).value();
-  //  }
-  //
+  void SetUp() override {
+    bandersnatch_provider = std::make_shared<BandersnatchProviderImpl>();
+
+    message = "i am a message"_bytes;
+
+    //    hex_seed =
+    // "ccb4ec79974db3dae0d4dff7e0963db6b798684356dc517ff5c2e61f3b641569";
+    //    hex_public_key =
+    // "767a2f677a8c704d66e2abbb181d8984adae7ac8ecac9e30709ad496244ab497";
+  }
+
+  auto generate() {
+    BandersnatchSeed seed;
+    csprng->fillRandomly(seed);
+    return bandersnatch_provider->generateKeypair(seed, {});
+  }
+
   //  std::string_view hex_seed;
   //  std::string_view hex_public_key;
   //
-  //  std::span<uint8_t> message_span;
-  //  std::vector<uint8_t> message;
-  //  std::shared_ptr<BoostRandomGenerator> csprng =
-  //      std::make_shared<BoostRandomGenerator>();
+  std::span<const uint8_t> message;
+
+  std::shared_ptr<BoostRandomGenerator> csprng =
+      std::make_shared<BoostRandomGenerator>();
   //  std::shared_ptr<HasherImpl> hasher = std::make_shared<HasherImpl>();
   //  std::shared_ptr<Ed25519Provider> ed25519_provider;
+  std::shared_ptr<BandersnatchProvider> bandersnatch_provider;
 };
 
 kagome::log::Logger log_;
+
+/**
+ * @given ed25519 provider instance configured with boost random generator
+ * @when generate 2 keypairs, repeat it 10 times
+ * @then each time keys are different
+ */
+TEST_F(BandersnatchTest, GenerateKeysNotEqual) {
+  for (auto i = 0; i < 10; ++i) {
+    auto kp1 = generate();
+    auto kp2 = generate();
+    ASSERT_NE(kp1.public_key, kp2.public_key);
+    ASSERT_NE(kp1.secret_key, kp2.secret_key);
+  }
+}
+
+/**
+ * @given ed25519 provider instance configured with boost random generator
+ * @and a predefined message
+ * @when generate a keypair @and sign message
+ * @and verify signed message with generated public key
+ * @then verification succeeds
+ */
+TEST_F(BandersnatchTest, SignVerifySuccess) {
+  auto kp = generate();
+  ASSERT_OUTCOME_SUCCESS(signature, bandersnatch_provider->sign(kp, message));
+  EXPECT_OUTCOME_SUCCESS(
+      is_valid,
+      bandersnatch_provider->verify(signature, message, kp.public_key));
+  ASSERT_TRUE(is_valid);
+}
 
 TEST_F(BandersnatchTest, createSecret) {
   bandersnatch::Seed seed;
@@ -85,19 +117,24 @@ TEST_F(BandersnatchTest, generateKeypair) {
   for (auto &e : seed) {
     e = '\xab';
   }
+  SL_INFO(log(), "SEED(orig): {:l}", (Blob<32> &)seed);
 
   auto keypair = bandersnatch::Pair(seed);
 
+  [[maybe_unused]] auto seed_ = keypair.seed();
+  SL_INFO(log(), "SEED(keypair): {:l}", (Blob<32> &)seed_);
+
   [[maybe_unused]] auto public_key = keypair.publicKey();
+  SL_INFO(log(), "PUB(keypair): {:l}", (Blob<33> &)public_key);
 
   Blob<51> msg;
   for (auto &m : msg) {
     m = '\xef';
   }
+  SL_INFO(log(), "MSG(orig): {:l}", msg);
 
   auto sig = keypair.sign(msg);
-
-  SL_INFO(log(), "SIG: {}", (Blob<65> &)sig);
+  SL_INFO(log(), "SIG: {:l}", (Blob<65> &)sig);
 }
 
 TEST_F(BandersnatchTest, max_vrf_ios_bound_respected) {

@@ -73,9 +73,9 @@ add_library(bandersnatch_provider
 target_link_libraries(bandersnatch_provider
 #    p2p::p2p_random_generator # generator from libp2p
     bandersnatch_types
-    bandersnatch_vrfs_crust::bandersnatch_vrfs_crust
-   /home/di/.hunter/_Base/1d48822/0ba3be7/606a9bd/Install/lib/libbandersnatch_vrfs_crust.a
-   /home/di/.hunter/_Base/1d48822/0ba3be7/606a9bd/Install/lib/libbandersnatch_vrfs-cpp.a
+    /home/di/Projects/bandersnatch_vrfs-crust/cmake-build-debug-clang-17/bandersnatch_vrfs-cpp/libbandersnatch_vrfs_cpp.a
+    /home/di/Projects/bandersnatch_vrfs-crust/cmake-build-debug-clang-17/debug/libbandersnatch_vrfs_crust.a
+    #    bandersnatch_vrfs_crust::bandersnatch_vrfs_cpp
     )
 kagome_install(bandersnatch_provider)
 
