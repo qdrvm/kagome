@@ -286,6 +286,31 @@ class ProspectiveParachainsTest : public testing::Test {
     return h;
   }
 
+  void filterACByPara(TestState &test_state, ParachainId para_id) {
+    for (auto it = test_state.availability_cores.begin();
+         it != test_state.availability_cores.end();) {
+      const runtime::CoreState &cs = *it;
+      auto p = visit_in_place(
+          cs,
+          [](const runtime::OccupiedCore &core) mutable
+          -> std::optional<ParachainId> {
+            return core.candidate_descriptor.para_id;
+          },
+          [](const runtime::ScheduledCore &core) mutable
+          -> std::optional<ParachainId> { return core.para_id; },
+          [](runtime::FreeCore) -> std::optional<ParachainId> {
+            return std::nullopt;
+          });
+
+      if (p && *p == para_id) {
+        ++it;
+      } else {
+        it = test_state.availability_cores.erase(it);
+      }
+    }
+    ASSERT_EQ(test_state.availability_cores.size(), 1);
+  }
+
   fragment::Constraints dummy_constraints(
       BlockNumber min_relay_parent_number,
       std::vector<BlockNumber> valid_watermarks,
@@ -1110,28 +1135,7 @@ TEST_F(ProspectiveParachainsTest,
        FragmentTree_persistsPendingAvailabilityCandidate) {
   TestState test_state(hasher_);
   ParachainId para_id{1};
-  for (auto it = test_state.availability_cores.begin();
-       it != test_state.availability_cores.end();) {
-    const runtime::CoreState &cs = *it;
-    auto p = visit_in_place(
-        cs,
-        [](const runtime::OccupiedCore &core) mutable
-        -> std::optional<ParachainId> {
-          return core.candidate_descriptor.para_id;
-        },
-        [](const runtime::ScheduledCore &core) mutable
-        -> std::optional<ParachainId> { return core.para_id; },
-        [](runtime::FreeCore) -> std::optional<ParachainId> {
-          return std::nullopt;
-        });
-
-    if (p && *p == para_id) {
-      ++it;
-    } else {
-      it = test_state.availability_cores.erase(it);
-    }
-  }
-  ASSERT_EQ(test_state.availability_cores.size(), 1);
+  filterACByPara(test_state, para_id);
 
   const HeadData para_head{1, 2, 3};
   const auto candidate_relay_parent = fromNumber(5);
@@ -1207,6 +1211,148 @@ TEST_F(ProspectiveParachainsTest,
                          para_id,
                          {candidate_hash_a},
                          std::make_pair(candidate_hash_b, leaf_b_hash));
+}
+
+TEST_F(ProspectiveParachainsTest, FragmentTree_backwardsCompatible) {
+  TestState test_state(hasher_);
+  ParachainId para_id{1};
+  filterACByPara(test_state, para_id);
+
+  const HeadData para_head{1, 2, 3};
+  const auto leaf_b_hash = fromNumber(15);
+  const Hash candidate_relay_parent = get_parent_hash(leaf_b_hash);
+  const BlockNumber candidate_relay_parent_number = 100;
+
+  TestLeaf leaf_a{
+      .number = candidate_relay_parent_number,
+      .hash = candidate_relay_parent,
+      .para_data =
+          {
+              {para_id, PerParaData(candidate_relay_parent_number, para_head)},
+          },
+  };
+
+  activate_leaf(leaf_a,
+                test_state,
+                fragment::AsyncBackingParams{
+                    .max_candidate_depth = 0,
+                    .allowed_ancestry_len = 0,
+                });
+
+  const auto &[candidate_a, pvd_a] =
+      make_candidate(candidate_relay_parent,
+                     candidate_relay_parent_number,
+                     para_id,
+                     para_head,
+                     {1},
+                     test_state.validation_code_hash);
+  const Hash candidate_hash_a = network::candidateHash(*hasher_, candidate_a);
+
+  introduce_candidate(candidate_a, pvd_a);
+  second_candidate(candidate_a);
+  back_candidate(candidate_a, candidate_hash_a);
+
+  get_backable_candidate(
+      leaf_a,
+      para_id,
+      {},
+      std::make_pair(candidate_hash_a, candidate_relay_parent));
+
+  TestLeaf leaf_b{
+      .number = candidate_relay_parent_number + 1,
+      .hash = leaf_b_hash,
+      .para_data =
+          {
+              {para_id,
+               PerParaData(candidate_relay_parent_number + 1, para_head)},
+          },
+  };
+
+  activate_leaf(leaf_b,
+                test_state,
+                fragment::AsyncBackingParams{
+                    .max_candidate_depth = 0,
+                    .allowed_ancestry_len = 0,
+                });
+
+  get_backable_candidate(leaf_b, para_id, {}, std::nullopt);
+}
+
+TEST_F(ProspectiveParachainsTest, FragmentTree_usesAncestryOnlyWithinSession) {
+  std::vector<Hash> ancestry_hashes{
+      fromNumber(4), fromNumber(3), fromNumber(2)};
+  const BlockNumber number = 5;
+  const Hash hash = fromNumber(5);
+  const uint32_t ancestry_len = 3;
+  const uint32_t session = 2;
+
+  const Hash session_change_hash = fromNumber(3);
+
+  BlockHeader header{
+      .number = number,
+      .parent_hash = get_parent_hash(hash),
+      .state_root = {},
+      .extrinsics_root = {},
+      .digest = {},
+      .hash_opt = {},
+  };
+  network::ExView update{
+      .view = {},
+      .new_head = header,
+      .lost = {},
+  };
+  update.new_head.opt_hash_ = hash;
+
+  fragment::AsyncBackingParams async_backing_params{
+      .max_candidate_depth = 0,
+      .allowed_ancestry_len = ancestry_len,
+  };
+
+  std::vector<runtime::CoreState> empty{};
+
+  EXPECT_CALL(*parachain_api_, staging_async_backing_params(hash))
+      .WillRepeatedly(Return(outcome::success(async_backing_params)));
+
+  EXPECT_CALL(*parachain_api_, availability_cores(hash))
+      .WillRepeatedly(Return(outcome::success(empty)));
+
+  EXPECT_CALL(*block_tree_, getBlockHeader(hash))
+      .WillRepeatedly(Return(header));
+
+  EXPECT_CALL(*block_tree_, getDescendingChainToBlock(hash, ancestry_len))
+      .WillRepeatedly(Return(ancestry_hashes));
+
+  EXPECT_CALL(*parachain_api_, session_index_for_child(hash))
+      .WillRepeatedly(Return(session));
+
+  for (size_t i = 0; i < ancestry_hashes.size(); ++i) {
+    const Hash h = ancestry_hashes[i];
+    const BlockNumber n = number - (i + 1);
+
+    BlockHeader r{
+        .number = n,
+        .parent_hash = get_parent_hash(h),
+        .state_root = {},
+        .extrinsics_root = {},
+        .digest = {},
+        .hash_opt = {},
+    };
+    EXPECT_CALL(*block_tree_, getBlockHeader(h)).WillRepeatedly(Return(r));
+
+    if (h == session_change_hash) {
+      EXPECT_CALL(*parachain_api_, session_index_for_child(h))
+          .WillRepeatedly(Return(session - 1));
+      break;
+    } else {
+      EXPECT_CALL(*parachain_api_, session_index_for_child(h))
+          .WillRepeatedly(Return(session));
+    }
+  }
+
+  prospective_parachain_->onActiveLeavesUpdate(network::ExViewRef{
+      .new_head = {update.new_head},
+      .lost = update.lost,
+  });
 }
 
 TEST_F(ProspectiveParachainsTest, FragmentTree_correctlyUpdatesLeaves) {
