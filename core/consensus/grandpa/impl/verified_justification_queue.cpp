@@ -190,6 +190,9 @@ namespace kagome::consensus::grandpa {
       }
       if (not r) {
         self->possibleLoop();
+      } else {
+        SL_INFO(
+            self->log_, "possible justification for block {}", block.number);
       }
     };
     fetching_ = synchronizer_.get()->fetchJustification(block, std::move(cb));
