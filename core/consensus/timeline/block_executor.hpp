@@ -14,7 +14,7 @@ namespace kagome::consensus {
 
   class BlockExecutor {
    public:
-    using ApplyJustificationCb = std::function<void(outcome::result<void>)>;
+    using ApplyJustificationCb = grandpa::Environment::ApplyJustificationCb;
     virtual ~BlockExecutor() = default;
 
     virtual void applyBlock(

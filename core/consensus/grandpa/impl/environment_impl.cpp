@@ -369,23 +369,29 @@ namespace kagome::consensus::grandpa {
     transmitter_->sendNeighborMessage(std::move(message));
   }
 
-  outcome::result<void> EnvironmentImpl::applyJustification(
+  void EnvironmentImpl::applyJustification(
       const BlockInfo &block_info,
-      const primitives::Justification &raw_justification) {
-    OUTCOME_TRY(justification,
-                scale::decode<GrandpaJustification>(raw_justification.data));
+      const primitives::Justification &raw_justification,
+      ApplyJustificationCb &&cb) {
+    auto res = scale::decode<GrandpaJustification>(raw_justification.data);
+    if (res.has_error()) {
+      cb(res.as_failure());
+      return;
+    }
+    auto &&justification = std::move(res.value());
+
     if (justification.block_info != block_info) {
-      return VotingRoundError::JUSTIFICATION_FOR_WRONG_BLOCK;
+      cb(VotingRoundError::JUSTIFICATION_FOR_WRONG_BLOCK);
+      return;
     }
-    auto authorities = authority_manager_->authorities(block_info, false);
-    if (not authorities) {
-      return VotingRoundError::NO_KNOWN_AUTHORITIES_FOR_BLOCK;
-    }
-    OUTCOME_TRY(justification_observer_.get()->verifyJustification(
-        justification, **authorities));
-    verified_justification_queue_->addVerified((**authorities).id,
-                                               justification);
-    return outcome::success();
+
+    SL_DEBUG(logger_,
+             "Trying to apply justification on round #{} for block {}",
+             justification.round_number,
+             justification.block_info);
+
+    justification_observer_.get()->applyJustification(justification,
+                                                      std::move(cb));
   }
 
   outcome::result<void> EnvironmentImpl::finalize(

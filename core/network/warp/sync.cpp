@@ -92,6 +92,7 @@ namespace kagome::network {
       auto authorities =
           authority_manager_->authorities(block_tree_->getLastFinalized(), true)
               .value();
+
       auto result =
           grandpa_->verifyJustification(fragment.justification, *authorities);
       if (result.has_error()) {

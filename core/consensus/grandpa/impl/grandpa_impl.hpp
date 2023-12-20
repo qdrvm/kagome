@@ -218,6 +218,18 @@ namespace kagome::consensus::grandpa {
         const GrandpaJustification &justification,
         const AuthoritySet &authorities) override;
 
+    /**
+     * Selects round that corresponds for justification, checks justification,
+     * finalizes corresponding block and stores justification in storage
+     *
+     * If there is no corresponding round, it will be created
+     * @param justification justification containing precommit votes and
+     * signatures for block info
+     * @return nothing or an error
+     */
+    void applyJustification(const GrandpaJustification &justification,
+                            ApplyJustificationCb &&callback) override;
+
     void reload() override;
 
     // Round processing method
@@ -242,10 +254,6 @@ namespace kagome::consensus::grandpa {
     void updateNextRound(RoundNumber round_number) override;
 
    private:
-    using ApplyJustificationCb = std::function<void(outcome::result<void> &&)>;
-    void applyJustification(const GrandpaJustification &justification,
-                            ApplyJustificationCb &&callback);
-
     void callbackCall(ApplyJustificationCb &&callback,
                       outcome::result<void> &&result);
     /**

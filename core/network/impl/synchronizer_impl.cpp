@@ -1280,7 +1280,8 @@ namespace kagome::network {
       if (not justification) {
         return cb(Error::EMPTY_RESPONSE);
       }
-      cb(self->grandpa_environment_->applyJustification(block, *justification));
+      self->grandpa_environment_->applyJustification(
+          block, *justification, std::move(cb));
     };
     fetch(*chosen, std::move(request), "justification", std::move(cb2));
     return true;

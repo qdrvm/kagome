@@ -30,6 +30,7 @@ namespace kagome::consensus::grandpa {
    */
   class Environment : public virtual Chain {
    public:
+    using ApplyJustificationCb = JustificationObserver::ApplyJustificationCb;
     ~Environment() override = default;
 
     /**
@@ -94,9 +95,10 @@ namespace kagome::consensus::grandpa {
      * @param justification justification of finalization of provided block
      * @return nothing or on error
      */
-    virtual outcome::result<void> applyJustification(
+    virtual void applyJustification(
         const BlockInfo &block_info,
-        const primitives::Justification &justification) = 0;
+        const primitives::Justification &justification,
+        ApplyJustificationCb &&cb) = 0;
 
     /**
      * Triggered when blovk \param block justified by \param justification

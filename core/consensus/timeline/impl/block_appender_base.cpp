@@ -47,15 +47,19 @@ namespace kagome::consensus {
       SL_VERBOSE(
           logger_, "Apply justification received for block {}", block_info);
 
-      auto result = grandpa_environment_->applyJustification(
-          block_info, opt_justification.value());
-      if (not result) {
-        SL_ERROR(logger_,
-                 "Error while applying justification of block {}: {}",
-                 block_info,
-                 result.error());
-      }
-      callback(result);
+      grandpa_environment_->applyJustification(
+          block_info,
+          opt_justification.value(),
+          [logger{logger_}, block_info, callback{std::move(callback)}](
+              outcome::result<void> result) {
+            if (result.has_error()) {
+              SL_ERROR(logger,
+                       "Error while applying justification of block {}: {}",
+                       block_info,
+                       result.error());
+            }
+            callback(std::move(result));
+          });
     } else {
       callback(outcome::success());
     }

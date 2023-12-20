@@ -36,7 +36,7 @@ namespace kagome::consensus {
    */
   class BlockAppenderBase {
    public:
-    using ApplyJustificationCb = std::function<void(outcome::result<void>)>;
+    using ApplyJustificationCb = grandpa::Environment::ApplyJustificationCb;
     BlockAppenderBase(
         std::shared_ptr<blockchain::BlockTree> block_tree,
         std::shared_ptr<babe::BabeConfigRepository> babe_config_repo,
