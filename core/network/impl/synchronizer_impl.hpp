@@ -129,6 +129,9 @@ namespace kagome::network {
     bool fetchJustification(const primitives::BlockInfo &block,
                             CbResultVoid cb) override;
 
+    bool fetchJustificationRange(primitives::BlockNumber min,
+                                 FetchJustificationRangeCb cb) override;
+
     /// Enqueues loading and applying state on block {@param block}
     /// from peer {@param peer_id}.
     /// If finished, {@param handler} be called
@@ -202,6 +205,9 @@ namespace kagome::network {
                BlocksRequest request,
                const char *reason,
                std::function<void(outcome::result<BlocksResponse>)> &&cb);
+
+    std::optional<libp2p::peer::PeerId> chooseJustificationPeer(
+        primitives::BlockNumber block, BlocksRequest::Fingerprint fingerprint);
 
     std::shared_ptr<application::AppStateManager> app_state_manager_;
     std::shared_ptr<blockchain::BlockTree> block_tree_;

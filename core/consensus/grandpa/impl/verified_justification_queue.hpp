@@ -55,8 +55,9 @@ namespace kagome::consensus::grandpa {
         std::optional<AuthoritySetId> set,
         const consensus::grandpa::GrandpaJustification &justification);
     void verifiedLoop();
-    void fetchLoop();
+    void requiredLoop();
     void possibleLoop();
+    void rangeLoop();
 
     WeakIoContext main_thread_;
     std::shared_ptr<blockchain::BlockTree> block_tree_;
@@ -71,6 +72,7 @@ namespace kagome::consensus::grandpa {
     std::optional<SetAndJustification> last_;
     std::set<primitives::BlockInfo> required_;
     std::vector<primitives::BlockInfo> possible_;
+    primitives::BlockNumber range_ = 0;
     bool fetching_ = false;
   };
 }  // namespace kagome::consensus::grandpa

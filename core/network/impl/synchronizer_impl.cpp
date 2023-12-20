@@ -1226,16 +1226,8 @@ namespace kagome::network {
         peer, std::move(request), std::move(cb));
   }
 
-  bool SynchronizerImpl::fetchJustification(const primitives::BlockInfo &block,
-                                            CbResultVoid cb) {
-    BlocksRequest request{
-        BlockAttribute::JUSTIFICATION,
-        block.hash,
-        Direction::DESCENDING,
-        1,
-        false,
-    };
-    auto fingerprint = request.fingerprint();
+  std::optional<libp2p::peer::PeerId> SynchronizerImpl::chooseJustificationPeer(
+      primitives::BlockNumber block, BlocksRequest::Fingerprint fingerprint) {
     std::optional<PeerId> chosen;
     peer_manager_->forEachPeer([&](const PeerId &peer) {
       if (chosen) {
@@ -1251,11 +1243,24 @@ namespace kagome::network {
       if (not info) {
         return;
       }
-      if (info->get().last_finalized < block.number) {
+      if (info->get().last_finalized < block) {
         return;
       }
       chosen = peer;
     });
+    return chosen;
+  }
+
+  bool SynchronizerImpl::fetchJustification(const primitives::BlockInfo &block,
+                                            CbResultVoid cb) {
+    BlocksRequest request{
+        BlockAttribute::JUSTIFICATION,
+        block.hash,
+        Direction::DESCENDING,
+        1,
+        false,
+    };
+    auto chosen = chooseJustificationPeer(block.number, request.fingerprint());
     if (not chosen) {
       return false;
     }
@@ -1284,6 +1289,57 @@ namespace kagome::network {
           block, *justification, std::move(cb));
     };
     fetch(*chosen, std::move(request), "justification", std::move(cb2));
+    return true;
+  }
+
+  bool SynchronizerImpl::fetchJustificationRange(primitives::BlockNumber min,
+                                                 FetchJustificationRangeCb cb) {
+    BlocksRequest request{
+        BlockAttribute::JUSTIFICATION,
+        min,
+        Direction::ASCENDING,
+        std::nullopt,
+        false,
+    };
+    auto chosen = chooseJustificationPeer(min, request.fingerprint());
+    if (not chosen) {
+      return false;
+    }
+    busy_peers_.emplace(*chosen);
+    auto cb2 = [weak{weak_from_this()}, min, cb{std::move(cb)}, peer{*chosen}](
+                   outcome::result<BlocksResponse> r) mutable {
+      auto self = weak.lock();
+      if (not self) {
+        return;
+      }
+      self->busy_peers_.erase(peer);
+      if (not r) {
+        return cb(r.error());
+      }
+      auto &blocks = r.value().blocks;
+      if (blocks.empty()) {
+        return cb(Error::EMPTY_RESPONSE);
+      }
+      auto number = min;
+      for (auto &block : blocks) {
+        if (block.justification) {
+          self->grandpa_environment_->applyJustification(
+              {number, block.hash},
+              *block.justification,
+              [cb{std::move(cb)}](outcome::result<void> r) {
+                if (not r) {
+                  cb(r.error());
+                } else {
+                  cb(std::nullopt);
+                }
+              });
+          return;
+        }
+        ++number;
+      }
+      cb(min + blocks.size());
+    };
+    fetch(*chosen, std::move(request), "justification range", std::move(cb2));
     return true;
   }
 }  // namespace kagome::network

@@ -13,6 +13,9 @@
 #include "utils/weak_io_context_post.hpp"
 
 namespace kagome::consensus::grandpa {
+  /// When to start fetching justification range
+  constexpr size_t kRangeStart = 512 + 20;
+
   VerifiedJustificationQueue::VerifiedJustificationQueue(
       application::AppStateManager &app_state_manager,
       WeakIoContext main_thread,
@@ -62,7 +65,7 @@ namespace kagome::consensus::grandpa {
       }
       finalize(set, justification);
       verifiedLoop();
-      fetchLoop();
+      requiredLoop();
       possibleLoop();
     };
     if (set == expected_) {
@@ -95,7 +98,7 @@ namespace kagome::consensus::grandpa {
       }
       parent = parent_res.value();
     }
-    fetchLoop();
+    requiredLoop();
     if (not digest.scheduled) {
       if (not last_
           or justification.block_info.number
@@ -145,7 +148,7 @@ namespace kagome::consensus::grandpa {
     }
   }
 
-  void VerifiedJustificationQueue::fetchLoop() {
+  void VerifiedJustificationQueue::requiredLoop() {
     if (fetching_ or required_.empty()) {
       return;
     }
@@ -159,7 +162,7 @@ namespace kagome::consensus::grandpa {
       if (r) {
         self->required_.erase(block);
       }
-      self->fetchLoop();
+      self->requiredLoop();
     };
     fetching_ = synchronizer_.get()->fetchJustification(block, std::move(cb));
   }
@@ -175,6 +178,7 @@ namespace kagome::consensus::grandpa {
       possible_ = authority_manager_->possibleScheduled();
     }
     if (possible_.empty()) {
+      rangeLoop();
       return;
     }
     auto block = possible_.back();
@@ -185,9 +189,7 @@ namespace kagome::consensus::grandpa {
         return;
       }
       self->fetching_ = false;
-      if (not self->required_.empty()) {
-        self->fetchLoop();
-      }
+      self->requiredLoop();
       if (not r) {
         self->possibleLoop();
       } else {
@@ -196,6 +198,41 @@ namespace kagome::consensus::grandpa {
       }
     };
     fetching_ = synchronizer_.get()->fetchJustification(block, std::move(cb));
+  }
+
+  void VerifiedJustificationQueue::rangeLoop() {
+    auto finalized = block_tree_->getLastFinalized().number;
+    auto best = block_tree_->bestBlock().number;
+    if (best - finalized < kRangeStart) {
+      return;
+    }
+    range_ = std::max(range_, finalized + 1);
+    if (range_ > best) {
+      range_ = 0;
+      return;
+    }
+    auto cb = [weak{weak_from_this()}](
+                  outcome::result<std::optional<primitives::BlockNumber>> r) {
+      auto self = weak.lock();
+      if (not self) {
+        return;
+      }
+      self->fetching_ = false;
+      if (r) {
+        if (auto &next = r.value()) {
+          self->range_ = *next;
+        } else {
+          SL_INFO(self->log_, "justification for range {}..", self->range_);
+        }
+      }
+      self->requiredLoop();
+      self->possibleLoop();
+    };
+    fetching_ =
+        synchronizer_.get()->fetchJustificationRange(range_, std::move(cb));
+    if (fetching_) {
+      SL_INFO(log_, "fething justification range {}..", range_);
+    }
   }
 
   void VerifiedJustificationQueue::warp() {
