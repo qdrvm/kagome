@@ -5,60 +5,47 @@
  */
 
 #include "crypto/bandersnatch/bandersnatch_provider_impl.hpp"
-#include "crypto/bandersnatch/bandersnatch.hpp"
+// #include "crypto/bandersnatch/bandersnatch.hpp"
 
 namespace kagome::crypto {
 
   BandersnatchKeypair BandersnatchProviderImpl::generateKeypair(
       const BandersnatchSeed &seed,
       BandersnatchProvider::Junctions junctions) const {
-    bandersnatch_vrfs::SecretKey secret{seed};
-
-    // FIXME
-    // for (auto &junction : junctions) {
-    //   decltype(kp) next;
-    //   (junction.hard ? sr25519_derive_keypair_hard
-    //                  : sr25519_derive_keypair_soft)(
-    //       next.data(), kp.data(), junction.cc.data());
-    //   kp = next;
-    // }
-
     std::array<uint8_t, constants::bandersnatch::KEYPAIR_SIZE> kp{};
-    //    bandersnatch_keypair_from_seed(kp.data(), seed.data());
+
+    bandersnatch_keypair_from_seed(seed.data(), kp.data());
 
     BandersnatchKeypair keypair;
-    secret.publicKey().serialize(keypair.public_key);
 
-    std::copy(kp.begin(),
-              kp.begin() + constants::bandersnatch::SECRET_SIZE,
-              keypair.secret_key.begin());
-    std::copy(kp.begin() + constants::bandersnatch::SECRET_SIZE,
-              kp.begin() + constants::bandersnatch::SECRET_SIZE
-                  + constants::bandersnatch::PUBLIC_SIZE,
-              keypair.public_key.begin());
+    std::copy_n(kp.begin(),
+                constants::bandersnatch::SECRET_SIZE,
+                keypair.secret_key.begin());
+    std::copy_n(kp.begin() + constants::bandersnatch::SECRET_SIZE,
+                constants::bandersnatch::PUBLIC_SIZE,
+                keypair.public_key.begin());
+
     return keypair;
   }
 
   outcome::result<BandersnatchSignature> BandersnatchProviderImpl::sign(
       const BandersnatchKeypair &keypair, common::BufferView message) const {
-    //    auto secret = bandersnatch_vrfs::SecretKey(
-    //        BandersnatchSeed::fromSpan(keypair.secret_key).value());
-    //
     auto seed = BandersnatchSeed::fromSpan(keypair.secret_key).value();
-    OUTCOME_TRY(pair, bandersnatch::Pair::create(seed));
 
-    //    secret.signThinVrf()
+    BandersnatchSignature signature;
 
-    throw std::runtime_error(
-        "Method 'BandersnatchProviderImpl::sign' is not implemented yet");
+    bandersnatch_sign(
+        seed.data(), message.data(), message.size(), signature.data());
+
+    return signature;
   }
 
   outcome::result<bool> BandersnatchProviderImpl::verify(
       const BandersnatchSignature &signature,
       common::BufferView message,
       const BandersnatchPublicKey &public_key) const {
-    throw std::runtime_error(
-        "Method 'BandersnatchProviderImpl::verify' is not implemented yet");
+    return bandersnatch_verify(
+        public_key.data(), message.data(), message.size(), signature.data());
   }
 
 }  // namespace kagome::crypto
