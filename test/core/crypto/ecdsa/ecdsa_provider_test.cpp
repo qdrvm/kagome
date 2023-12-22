@@ -77,7 +77,7 @@ TEST_F(EcdsaProviderTest, SignVerifySuccess) {
                       ecdsa_provider_->sign(message, key_pair.secret_key));
   EXPECT_OUTCOME_TRUE(
       verify_res,
-      ecdsa_provider_->verify(message, signature, key_pair.public_key));
+      ecdsa_provider_->verify(message, signature, key_pair.public_key, false));
   ASSERT_EQ(verify_res, true);
 }
 
@@ -95,7 +95,8 @@ TEST_F(EcdsaProviderTest, VerifyWrongKeyFail) {
   auto another_keypair = generate();
   EXPECT_OUTCOME_TRUE(
       ver_res,
-      ecdsa_provider_->verify(message, signature, another_keypair.public_key));
+      ecdsa_provider_->verify(
+          message, signature, another_keypair.public_key, false));
 
   ASSERT_FALSE(ver_res);
 }
@@ -133,5 +134,5 @@ TEST_F(EcdsaProviderTest, Compatible) {
           "3dde91174bd9359027be59a428b8146513df80a2a3c7eda2194f64de04a69ab97b75"
           "3169e94db6ffd50921a2668a48b94ca11e3d32c1ff19cfe88890aa7e8f3c00")
           .value();
-  EXPECT_TRUE(ecdsa_provider_->verify({}, sig, keys.public_key).value());
+  EXPECT_TRUE(ecdsa_provider_->verify({}, sig, keys.public_key, false).value());
 }

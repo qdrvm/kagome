@@ -25,9 +25,9 @@ namespace kagome::crypto {
      * @return uncompressed public key or error
      */
     virtual outcome::result<secp256k1::UncompressedPublicKey>
-    recoverPublickeyUncompressed(
-        const secp256k1::RSVSignature &signature,
-        const secp256k1::MessageHash &message_hash) const = 0;
+    recoverPublickeyUncompressed(const secp256k1::RSVSignature &signature,
+                                 const secp256k1::MessageHash &message_hash,
+                                 bool allow_overflow) const = 0;
 
     /**
      * @brief recover public key in compressed form
@@ -36,9 +36,9 @@ namespace kagome::crypto {
      * @return compressed public key or error
      */
     virtual outcome::result<secp256k1::CompressedPublicKey>
-    recoverPublickeyCompressed(
-        const secp256k1::RSVSignature &signature,
-        const secp256k1::MessageHash &message_hash) const = 0;
+    recoverPublickeyCompressed(const secp256k1::RSVSignature &signature,
+                               const secp256k1::MessageHash &message_hash,
+                               bool allow_overflow) const = 0;
   };
 
 }  // namespace kagome::crypto
