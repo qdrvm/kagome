@@ -29,6 +29,8 @@
 #include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
 #include "testutil/prepare_loggers.hpp"
+#include "network/types/block_announce_handshake.hpp"
+#include "scale/kagome_scale.hpp"
 
 using namespace kagome::storage;
 using namespace kagome::storage::trie_pruner;
@@ -901,6 +903,32 @@ TEST_F(TriePrunerTest, NewScale) {
       data_map);
 
   auto data_1 = scale::encode(data_map).value();
+
+  ASSERT_EQ(data_0.size(), data_1.size());
+  for (size_t ix = 0; ix < data_0.size(); ++ix) {
+    ASSERT_EQ(data_0[ix], data_1[ix]);
+  }
+}
+
+TEST_F(TriePrunerTest, NewScale_2) {
+  kagome::network::Roles r;
+  r.flags.full = true;
+  kagome::network::BlockAnnounceHandshake data {
+    .roles = r,
+    .best_block = kagome::primitives::BlockInfo(primitives::BlockHash::fromString("1111jfn4983u4093jv3894j3f034ojs3").value(), 100),
+    .genesis_hash = kagome::primitives::BlockHash::fromString("c30ojfn4983u4093jv3894j3f034ojs3").value(),
+  };
+
+  std::vector<uint8_t> data_0;
+  kagome::scale::encode(
+      [&](const uint8_t *const val, size_t count) {
+        for (size_t i = 0; i < count; ++i) {
+          data_0.emplace_back(val[i]);
+        }
+      },
+      data.best_block);
+
+  auto data_1 = scale::encode(data.best_block).value();
 
   ASSERT_EQ(data_0.size(), data_1.size());
   for (size_t ix = 0; ix < data_0.size(); ++ix) {

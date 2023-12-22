@@ -71,6 +71,9 @@ namespace kagome::scale {
   constexpr void encode(const F &func, const primitives::PreRuntime &c);
 
   template <typename F>
+  constexpr void encode(const F &func, const primitives::BlockInfo &c);
+
+  template <typename F>
   constexpr void encode(const F &func,
                         const primitives::RuntimeEnvironmentUpdated &c);
 
@@ -151,6 +154,12 @@ namespace kagome::scale {
   template <typename F>
   constexpr void encode(const F &func, const primitives::PreRuntime &c) {
     encode(func, static_cast<const primitives::detail::DigestItemCommon &>(c));
+  }
+
+  template <typename F>
+  constexpr void encode(const F &func, const primitives::BlockInfo &c) {
+    encode(func, c.hash);
+    encode(func, c.number);
   }
 
   template <typename F>
