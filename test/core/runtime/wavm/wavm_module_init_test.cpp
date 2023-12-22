@@ -32,7 +32,7 @@
 #include "runtime/wavm/intrinsics/intrinsic_module.hpp"
 #include "runtime/wavm/module_factory_impl.hpp"
 #include "runtime/wavm/module_params.hpp"
-#include "storage/in_memory/in_memory_storage.hpp"
+#include "storage/in_memory/in_memory_spaced_storage.hpp"
 #include "storage/rocksdb/rocksdb.hpp"
 #include "storage/trie/impl/trie_storage_backend_impl.hpp"
 #include "storage/trie/impl/trie_storage_impl.hpp"
