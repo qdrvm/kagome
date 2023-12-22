@@ -18,54 +18,61 @@ namespace kagome::runtime {
   outcome::result<
       std::optional<consensus::sassafras::bandersnatch::RingContext>>
   SassafrasApiImpl::ring_context(const primitives::BlockHash &block) {
-    return executor_->callAt<
-        std::optional<consensus::sassafras::bandersnatch::RingContext>>(
-        block, "SassafrasApi_ring_context");
+    OUTCOME_TRY(ctx, executor_->ctx().ephemeralAt(block));
+    return executor_
+        ->call<std::optional<consensus::sassafras::bandersnatch::RingContext>>(
+            ctx, "SassafrasApi_ring_context");
   }
 
   outcome::result<bool> SassafrasApiImpl::submit_tickets_unsigned_extrinsic(
       const primitives::BlockHash &block,
       const std::vector<consensus::sassafras::TicketEnvelope> &tickets) {
-    return executor_->callAt<bool>(
-        block, "SassafrasApi_submit_tickets_unsigned_extrinsic", tickets);
+    OUTCOME_TRY(ctx, executor_->ctx().ephemeralAt(block));
+    return executor_->call<bool>(
+        ctx, "SassafrasApi_submit_tickets_unsigned_extrinsic", tickets);
   }
 
   outcome::result<std::optional<consensus::sassafras::TicketId>>
   SassafrasApiImpl::slot_ticket_id(const primitives::BlockHash &block,
                                    consensus::SlotNumber slot) {
-    return executor_->callAt<std::optional<consensus::sassafras::TicketId>>(
-        block, "SassafrasApi_slot_ticket_id", slot);
+    OUTCOME_TRY(ctx, executor_->ctx().ephemeralAt(block));
+    return executor_->call<std::optional<consensus::sassafras::TicketId>>(
+        ctx, "SassafrasApi_slot_ticket_id", slot);
   }
 
   outcome::result<std::optional<std::tuple<consensus::sassafras::TicketId,
                                            consensus::sassafras::TicketBody>>>
   SassafrasApiImpl::slot_ticket(const primitives::BlockHash &block,
                                 consensus::SlotNumber slot) {
+    OUTCOME_TRY(ctx, executor_->ctx().ephemeralAt(block));
     return executor_
-        ->callAt<std::optional<std::tuple<consensus::sassafras::TicketId,
-                                          consensus::sassafras::TicketBody>>>(
-            block, "SassafrasApi_slot_ticket", slot);
+        ->call<std::optional<std::tuple<consensus::sassafras::TicketId,
+                                        consensus::sassafras::TicketBody>>>(
+            ctx, "SassafrasApi_slot_ticket", slot);
   }
 
   outcome::result<consensus::sassafras::Epoch> SassafrasApiImpl::current_epoch(
       const primitives::BlockHash &block) {
-    return executor_->callAt<consensus::sassafras::Epoch>(
-        block, "SassafrasApi_current_epoch");
+    OUTCOME_TRY(ctx, executor_->ctx().ephemeralAt(block));
+    return executor_->call<consensus::sassafras::Epoch>(
+        ctx, "SassafrasApi_current_epoch");
   }
 
   outcome::result<consensus::sassafras::Epoch> SassafrasApiImpl::next_epoch(
       const primitives::BlockHash &block) {
-    return executor_->callAt<consensus::sassafras::Epoch>(
-        block, "SassafrasApi_next_epoch");
+    OUTCOME_TRY(ctx, executor_->ctx().ephemeralAt(block));
+    return executor_->call<consensus::sassafras::Epoch>(
+        ctx, "SassafrasApi_next_epoch");
   }
 
   outcome::result<std::optional<consensus::sassafras::OpaqueKeyOwnershipProof>>
   SassafrasApiImpl::generate_key_ownership_proof(
       const primitives::BlockHash &block,
       const consensus::sassafras::AuthorityId &authority_id) {
+    OUTCOME_TRY(ctx, executor_->ctx().ephemeralAt(block));
     return executor_
-        ->callAt<std::optional<consensus::sassafras::OpaqueKeyOwnershipProof>>(
-            block, "SassafrasApi_generate_key_ownership_proof", authority_id);
+        ->call<std::optional<consensus::sassafras::OpaqueKeyOwnershipProof>>(
+            ctx, "SassafrasApi_generate_key_ownership_proof", authority_id);
   }
 
   outcome::result<bool>
@@ -73,8 +80,9 @@ namespace kagome::runtime {
       const primitives::BlockHash &block,
       const consensus::sassafras::EquivocationProof &equivocation_proof,
       const consensus::sassafras::OpaqueKeyOwnershipProof &key_owner_proof) {
-    return executor_->callAt<bool>(
-        block,
+    OUTCOME_TRY(ctx, executor_->ctx().ephemeralAt(block));
+    return executor_->call<bool>(
+        ctx,
         "SassafrasApi_submit_report_equivocation_unsigned_extrinsic",
         equivocation_proof,
         key_owner_proof);
