@@ -8,6 +8,7 @@
 
 #include <span>
 
+#include "crypto/bandersnatch/vrf.hpp"
 #include "crypto/bandersnatch_types.hpp"
 #include "primitives/transcript.hpp"
 #include "scale/tie.hpp"
@@ -23,41 +24,13 @@ namespace kagome::consensus::sassafras {
 
   using SEQUENCE_OF_OCTET_STRING = SEQUENCE_OF<OCTET_STRING>;
 
-  // VRF Input ----------------
-
-  struct VrfInput {
-    SCALE_TIE(0);
-    // opaque
-  };
-
-  inline VrfInput vrf_input(OCTET_STRING domain, OCTET_STRING buf) {
-    return {};  // FIXME It's stub
-  }
-
-  inline VrfInput vrf_input_from_items(OCTET_STRING domain,
-                                       SEQUENCE_OF_OCTET_STRING data) {
-    common::Buffer buf;
-    for (auto &item : data) {
-      buf.put(item);
-      buf.putUint8(item.size());
-    }
-    return vrf_input(domain, buf);
-  }
-
   // VRF Output ----------------
 
-  using VrfOutput =
-      common::Blob<crypto::constants::bandersnatch::PREOUT_SERIALIZED_SIZE>;
-
-  inline VrfOutput vrf_output(crypto::BandersnatchSecretKey secret,
-                              VrfInput input) {
-    return {};  // FIXME It's stub
-  }
-
-  template <size_t N>
-  inline common::Blob<N> vrf_bytes(VrfInput vrf_input, VrfOutput vrf_output) {
-    return {};  // FIXME It's stub
-  }
+  //  template <size_t N>
+  //  inline common::Blob<N> vrf_bytes(VrfInput vrf_input, VrfOutput vrf_output)
+  //  {
+  //    return {};  // FIXME It's stub
+  //  }
 
   /// Max number of inputs/outputs which can be handled by the VRF signing
   /// procedures.
@@ -68,7 +41,8 @@ namespace kagome::consensus::sassafras {
 
   template <typename T>
   concept VrfInputOrOutput =
-      std::is_same_v<T, VrfInput> or std::is_same_v<T, VrfOutput>;
+      std::is_same_v<T, crypto::bandersnatch::vrf::VrfInput>
+      or std::is_same_v<T, crypto::bandersnatch::vrf::VrfOutput>;
 
   template <typename T>
     requires VrfInputOrOutput<T>
@@ -80,7 +54,7 @@ namespace kagome::consensus::sassafras {
     // represents a ark-transcript object.
     Transcript transcript;
     // sequence of VrfInputs to be signed.
-    SEQUENCE_OF<VrfInput> vrf_input;
+    SEQUENCE_OF<crypto::bandersnatch::vrf::VrfInput> vrf_input;
   };
 
   using TranscriptData = OCTET_STRING;
@@ -90,7 +64,7 @@ namespace kagome::consensus::sassafras {
   inline VrfSignatureData vrf_signature_data(
       OCTET_STRING transcript_label,
       SEQUENCE_OF<TranscriptData> transcript_data,
-      SEQUENCE_OF<VrfInput> vrf_inputs) {
+      SEQUENCE_OF<crypto::bandersnatch::vrf::VrfInput> vrf_inputs) {
     Transcript transcript;
     transcript.initialize(transcript_label);
     // for (auto &data : transcript_data) {
@@ -112,26 +86,24 @@ namespace kagome::consensus::sassafras {
   struct VrfSignature {
     SCALE_TIE(2);
     /// VRF (pre)outputs.
-    VrfIosVec<VrfOutput> outputs;
+    VrfIosVec<crypto::bandersnatch::vrf::VrfOutput> outputs;
 
     /// Transcript signature.
     Signature signature;
 
-    //    friend scale::ScaleEncoderStream &operator<<(scale::ScaleEncoderStream
-    //    &s,
-    //                                                 const VrfSignature &x) {
-    //      return s          //
-    //          << x.outputs  //
-    //          << x.signature;
-    //    }
-    //
-    //    friend scale::ScaleDecoderStream &operator>>(scale::ScaleDecoderStream
-    //    &s,
-    //                                                 VrfSignature &x) {
-    //      return s          //
-    //          >> x.outputs  //
-    //          >> x.signature;
-    //    }
+    friend scale::ScaleEncoderStream &operator<<(scale::ScaleEncoderStream &s,
+                                                 const VrfSignature &x) {
+      return s  //
+                //              << x.outputs  //
+          << x.signature;
+    }
+
+    friend scale::ScaleDecoderStream &operator>>(scale::ScaleDecoderStream &s,
+                                                 VrfSignature &x) {
+      return s  //
+                //              >> x.outputs  //
+          >> x.signature;
+    }
   };
 
   VrfSignature plain_vrf_sign(crypto::BandersnatchSecretKey secret,
@@ -157,10 +129,10 @@ namespace kagome::consensus::sassafras {
 
   /// Ring VRF signature.
   struct RingVrfSignature {
-    SCALE_TIE(2);
+    // SCALE_TIE(2);
 
     /// VRF (pre)outputs.
-    VrfIosVec<VrfOutput> outputs;
+    VrfIosVec<crypto::bandersnatch::vrf::VrfOutput> outputs;
 
     /// Ring signature.
     RingSignature signature;
@@ -170,6 +142,20 @@ namespace kagome::consensus::sassafras {
     //    RingProof ring_proof;
     //    // sequence of VrfOutput objects corresponding to the VrfInput values.
     //    SEQUENCE_OF<VrfOutput> outputs;
+
+    friend scale::ScaleEncoderStream &operator<<(scale::ScaleEncoderStream &s,
+                                                 const RingVrfSignature &x) {
+      return s  //
+                //              << x.outputs  //
+          << x.signature;
+    }
+
+    friend scale::ScaleDecoderStream &operator>>(scale::ScaleDecoderStream &s,
+                                                 RingVrfSignature &x) {
+      return s  //
+                //              >> x.outputs  //
+          >> x.signature;
+    }
   };
 
   inline RingVrfSignature ring_vrf_sign(crypto::BandersnatchSecretKey secret,

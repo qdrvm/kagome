@@ -17,6 +17,12 @@ namespace kagome::common {
   using uint128_t = boost::multiprecision::uint128_t;
   using uint256_t = boost::multiprecision::uint256_t;
 
+  std::array<uint8_t, 4> uint32_to_le_bytes(uint32_t number);
+  uint32_t le_bytes_to_uint32(BufferView bytes);
+
+  std::array<uint8_t, 4> uint32_to_be_bytes(uint32_t number);
+  uint32_t be_bytes_to_uint32(BufferView bytes);
+
   std::array<uint8_t, 8> uint64_to_le_bytes(uint64_t number);
   uint64_t le_bytes_to_uint64(BufferView bytes);
 

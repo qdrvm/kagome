@@ -12,7 +12,7 @@ add_library(sassafras
     impl/sassafras_block_validator_impl.cpp
     impl/sassafras_config_repository_impl.cpp
     impl/sassafras_error.cpp
-#    impl/sassafras_vrf.cpp
+    impl/sassafras_vrf.cpp
 )
 target_link_libraries(sassafras
     consensus_common

@@ -227,8 +227,6 @@ namespace kagome::crypto {
         return BandersnatchKeypair{
             .secret_key = BandersnatchSecretKey::fromHex(
                               "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
-                              "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
-                              "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
                               "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA")
                               .value(),
             .public_key = BandersnatchPublicKey::fromHex(
@@ -242,8 +240,6 @@ namespace kagome::crypto {
               [](auto x) { return x == (uint8_t)'\xBB'; })) {
         return BandersnatchKeypair{
             .secret_key = BandersnatchSecretKey::fromHex(
-                              "BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB"
-                              "BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB"
                               "BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB"
                               "BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB")
                               .value(),

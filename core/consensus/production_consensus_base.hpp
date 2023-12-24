@@ -11,7 +11,6 @@
 #include "clock/clock.hpp"
 #include "consensus/sassafras/phase.hpp"
 #include "consensus/sassafras/types/sassafras_configuration.hpp"
-#include "consensus/sassafras/vrf.hpp"
 #include "injector/lazy.hpp"
 #include "log/logger.hpp"
 #include "metrics/metrics.hpp"

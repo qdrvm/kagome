@@ -27,12 +27,12 @@ kagome_install(sr25519_types)
 
 add_library(bandersnatch_types
     bandersnatch_types.hpp
-    )
+)
 target_link_libraries(bandersnatch_types
     mp_utils
     blob
     schnorrkel_crust::schnorrkel_crust
-    )
+)
 kagome_install(bandersnatch_types)
 
 add_library(ed25519_types
@@ -67,17 +67,28 @@ target_link_libraries(sr25519_provider
 kagome_install(sr25519_provider)
 
 add_library(bandersnatch_provider
-#    bandersnatch/bandersnatch.cpp
+    # bandersnatch/bandersnatch.cpp
     bandersnatch/bandersnatch_provider_impl.cpp
-    )
+)
 target_link_libraries(bandersnatch_provider
-#    p2p::p2p_random_generator # generator from libp2p
+    # p2p::p2p_random_generator # generator from libp2p
     bandersnatch_types
     /home/di/Projects/bandersnatch_vrfs-crust/cmake-build-debug-clang-17/bandersnatch_vrfs-cpp/libbandersnatch_vrfs_cpp.a
     /home/di/Projects/bandersnatch_vrfs-crust/cmake-build-debug-clang-17/debug/libbandersnatch_vrfs_crust.a
-    #    bandersnatch_vrfs_crust::bandersnatch_vrfs_cpp
-    )
+    # bandersnatch_vrfs_crust::bandersnatch_vrfs_cpp
+)
 kagome_install(bandersnatch_provider)
+
+add_library(bandersnatch_vrf
+    bandersnatch/vrf.cpp
+)
+target_link_libraries(bandersnatch_vrf
+    bandersnatch_types
+    /home/di/Projects/bandersnatch_vrfs-crust/cmake-build-debug-clang-17/bandersnatch_vrfs-cpp/libbandersnatch_vrfs_cpp.a
+    /home/di/Projects/bandersnatch_vrfs-crust/cmake-build-debug-clang-17/debug/libbandersnatch_vrfs_crust.a
+    # bandersnatch_vrfs_crust::bandersnatch_vrfs_cpp
+)
+kagome_install(bandersnatch_vrf)
 
 add_library(ecdsa_provider
     ecdsa/ecdsa_provider_impl.cpp
