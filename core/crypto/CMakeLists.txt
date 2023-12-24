@@ -33,6 +33,16 @@ target_link_libraries(sr25519_types
 )
 kagome_install(sr25519_types)
 
+add_library(bandersnatch_types
+    bandersnatch_types.hpp
+)
+target_link_libraries(bandersnatch_types
+    mp_utils
+    blob
+    schnorrkel_crust::schnorrkel_crust
+)
+kagome_install(bandersnatch_types)
+
 add_library(ed25519_types
     ed25519_types.cpp
     ed25519_types.hpp

@@ -13,7 +13,7 @@
 #include "consensus/sassafras/impl/sassafras_vrf.hpp"
 #include "consensus/sassafras/sassafras_config_repository.hpp"
 #include "consensus/sassafras/types/ticket.hpp"
-#include "consensus/sassafras/vrf.hpp"
+// #include "consensus/sassafras/vrf.hpp"
 #include "consensus/timeline/impl/slot_leadership_error.hpp"
 #include "crypto/bandersnatch_provider.hpp"
 #include "crypto/ed25519_provider.hpp"
@@ -213,21 +213,20 @@ namespace kagome::consensus::sassafras {
     const auto &secret_key = keypair->first->secret_key;
 
     for (AttemptsNumber attempt = 0; attempt < attempts_number; ++attempt) {
-      auto b1 = Buffer().put(randomness);
-      auto b2 = Buffer().putUint64(epoch);
-      auto b3 = Buffer().putUint32(attempt);
-      std::vector<std::span<uint8_t>> b{
-          std::span(b1), std::span(b2), std::span(b3)};
+      auto epoch_blob = common::uint64_to_be_bytes(epoch);
+      auto attempt_blob = common::uint32_to_be_bytes(attempt);
+      std::vector<vrf::BytesIn> b{randomness, epoch_blob, attempt_blob};
 
       // --- Ticket Identifier Value ---
 
       auto ticket_id_vrf_input =
           vrf::ticket_id_input(randomness, attempt, epoch);
 
-      auto ticket_id_vrf_output = vrf_output(secret_key, ticket_id_vrf_input);
+      auto ticket_id_vrf_output =
+          vrf::vrf_output(secret_key, ticket_id_vrf_input);
 
       auto ticket_bytes =
-          vrf_bytes<16>(ticket_id_vrf_input, ticket_id_vrf_output);
+          vrf::make_bytes<16>(ticket_id_vrf_input, ticket_id_vrf_output);
 
       auto ticket_id = TicketId(common::le_bytes_to_uint128(ticket_bytes));
 
@@ -249,16 +248,14 @@ namespace kagome::consensus::sassafras {
 
       // revealed key
 
-      std::string revealed_label = "sassafras-revealed-v1.0";
-      auto revealed_vrf_input = vrf_input_from_items(
-          std::span(reinterpret_cast<uint8_t *>(revealed_label.data()),
-                    revealed_label.size()),
-          b);
+      auto revealed_vrf_input =
+          vrf::vrf_input_from_data("sassafras-revealed-v1.0"_bytes, b);
 
-      auto revealed_vrf_output = vrf_output(secret_key, revealed_vrf_input);
+      auto revealed_vrf_output =
+          vrf::vrf_output(secret_key, revealed_vrf_input);
 
       auto revealed_seed_ =
-          vrf_bytes<32>(revealed_vrf_input, revealed_vrf_output);
+          vrf::make_bytes<32>(revealed_vrf_input, revealed_vrf_output);
 
       auto revealed_seed =
           crypto::Ed25519Seed::fromSpan(revealed_seed_).value();
@@ -274,29 +271,26 @@ namespace kagome::consensus::sassafras {
 
       // --- Ring Signature Production ---
 
-      std::string ticket_body_label = "sassafras-ticket-body-v1.0";
       auto encoded_ticket_body = scale::encode(ticket_body).value();
-      std::vector<std::span<uint8_t>> transcript_data{encoded_ticket_body};
-      std::vector<VrfInput> vrf_inputs{ticket_id_vrf_input};
+      std::vector<vrf::BytesIn> transcript_data{encoded_ticket_body};
+      std::vector<vrf::VrfInput> vrf_inputs{ticket_id_vrf_input};
 
-      auto sign_data = vrf_signature_data(
-          std::span(reinterpret_cast<uint8_t *>(ticket_body_label.data()),
-                    ticket_body_label.size()),
-          transcript_data,
-          vrf_inputs);
+      auto sign_data = vrf::vrf_sign_data(
+          "sassafras-ticket-body-v1.0"_bytes, transcript_data, vrf_inputs);
 
-      RingProver ring_prover;  // FIXME
-
-      auto ring_signature = ring_vrf_sign(secret_key, sign_data, ring_prover);
-
-      // --- Ticket envelope ---
-
-      TicketEnvelope ticket_envelope{
-          .body = std::move(ticket_body),
-          .signature = std::move(ring_signature),
-      };
-
-      next_tickets_->emplace_back(ticket_id, ticket_envelope, erased_seed);
+      // RingProver ring_prover;  // FIXME
+      //
+      // auto ring_signature = ring_vrf_sign(secret_key, sign_data,
+      //                                     ring_prover);
+      //
+      // // --- Ticket envelope ---
+      //
+      // TicketEnvelope ticket_envelope{
+      //     .body = std::move(ticket_body),
+      //     .signature = std::move(ring_signature),
+      // };
+      //
+      // next_tickets_->emplace_back(ticket_id, ticket_envelope, erased_seed);
     }
 
     // Save generated tickets
@@ -383,40 +377,27 @@ namespace kagome::consensus::sassafras {
 
     // --- Primary Claim Method ---
 
-    auto b11 = Buffer().put(randomness_);
     auto b12 = Buffer().putUint64(epoch_);
     auto b13 = Buffer().putUint32(slot);
-    std::vector<std::span<uint8_t>> b1{
-        std::span(b11), std::span(b12), std::span(b13)};
+    std::vector<vrf::BytesIn> b1{randomness_, std::span(b12), std::span(b13)};
 
-    std::string randomness_label = "sassafras-randomness-v1.0";
-    auto randomness_vrf_input = vrf_input_from_items(
-        std::span(reinterpret_cast<uint8_t *>(randomness_label.data()),
-                  randomness_label.size()),
-        b1);
+    auto randomness_vrf_input =
+        vrf::vrf_input_from_data("sassafras-randomness-v1.0"_bytes, b1);
 
-    auto b21 = Buffer().put(randomness_);
     auto b22 = Buffer().putUint64(epoch_);
     auto b23 = Buffer().putUint32(ticket_body.attempt_index);
-    std::vector<std::span<uint8_t>> b2{
-        std::span(b21), std::span(b22), std::span(b23)};
+    std::vector<vrf::BytesIn> b2{randomness_, std::span(b22), std::span(b23)};
 
-    std::string revealed_label = "sassafras-revealed-v1.0";
-    auto revealed_vrf_input = vrf_input_from_items(
-        std::span(reinterpret_cast<uint8_t *>(revealed_label.data()),
-                  revealed_label.size()),
-        b2);
+    auto revealed_vrf_input =
+        vrf::vrf_input_from_data("sassafras-revealed-v1.0"_bytes, b2);
 
     auto encoded_ticket_body = scale::encode(ticket_body).value();
-    std::vector<std::span<uint8_t>> transcript_data{encoded_ticket_body};
-    std::vector<VrfInput> vrf_inputs{randomness_vrf_input, revealed_vrf_input};
+    std::vector<vrf::BytesIn> transcript_data{encoded_ticket_body};
+    std::vector<vrf::VrfInput> vrf_inputs{randomness_vrf_input,
+                                          revealed_vrf_input};
 
-    std::string claim_label = "sassafras-claim-v1.0";
-    auto sign_data = vrf_signature_data(
-        std::span(reinterpret_cast<uint8_t *>(claim_label.data()),
-                  claim_label.size()),
-        transcript_data,
-        vrf_inputs);
+    auto sign_data = vrf::vrf_sign_data(
+        "sassafras-claim-v1.0"_bytes, transcript_data, vrf_inputs);
 
     //  --- old ---
 
@@ -445,28 +426,21 @@ namespace kagome::consensus::sassafras {
   SlotLeadership SassafrasLotteryImpl::secondarySlotLeadership(
       SlotNumber slot) const {
     // --- Secondary Claim Method ---
-    auto b11 = Buffer().put(randomness_);
     auto b12 = Buffer().putUint64(epoch_);
     auto b13 = Buffer().putUint32(slot);
-    std::vector<std::span<uint8_t>> b1{
-        std::span(b11), std::span(b12), std::span(b13)};
+    std::vector<vrf::BytesIn> b1{randomness_, std::span(b12), std::span(b13)};
 
     std::string randomness_label = "sassafras-randomness-v1.0";
-    auto randomness_vrf_input = vrf_input_from_items(
+    auto randomness_vrf_input = vrf::vrf_input_from_data(
         std::span(reinterpret_cast<uint8_t *>(randomness_label.data()),
                   randomness_label.size()),
         b1);
 
-    std::vector<std::span<uint8_t>> td{};
-    std::vector<VrfInput> vrfi{randomness_vrf_input};
+    std::vector<vrf::BytesIn> td{};
+    std::vector<vrf::VrfInput> vrfi{randomness_vrf_input};
 
-    std::string claim_label_2 = "sassafras-slot-claim-transcript-v1.0";
-
-    auto sign_data = vrf_signature_data(
-        std::span(reinterpret_cast<uint8_t *>(claim_label_2.data()),
-                  claim_label_2.size()),
-        td,
-        vrfi);
+    auto sign_data = vrf::vrf_sign_data(
+        "sassafras-slot-claim-transcript-v1.0"_bytes, td, vrfi);
 
     return SlotLeadership{.authority_index = keypair_->second,
                           .keypair = keypair_->first,

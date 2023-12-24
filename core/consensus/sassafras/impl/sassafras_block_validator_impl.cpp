@@ -9,6 +9,7 @@
 #include <latch>
 
 #include "consensus/sassafras/impl/sassafras_digests_util.hpp"
+#include "consensus/sassafras/impl/sassafras_vrf.hpp"
 #include "consensus/sassafras/sassafras_config_repository.hpp"
 #include "consensus/sassafras/types/seal.hpp"
 #include "consensus/timeline/impl/slot_leadership_error.hpp"
@@ -136,47 +137,32 @@ namespace kagome::consensus::sassafras {
       const SlotClaim &claim, const Epoch &config) const {
     TicketBody ticket_body;  // TODO ???
 
-    using Buffer = common::Buffer;
+    auto epoch_blob = common::uint64_to_be_bytes(config.epoch_index);
+    auto slot_blob = common::uint32_to_be_bytes(claim.slot_number);
+    auto attempt_blob = common::uint32_to_be_bytes(ticket_body.attempt_index);
 
-    auto b11 = Buffer().put(config.randomness);
-    auto b12 = Buffer().putUint64(config.epoch_index);
-    auto b13 = Buffer().putUint32(claim.slot_number);
-    std::vector<std::span<uint8_t>> b1{
-        std::span(b11), std::span(b12), std::span(b13)};
+    std::vector<vrf::BytesIn> b1{config.randomness, epoch_blob, slot_blob};
 
-    std::string randomness_label = "sassafras-randomness-v1.0";
-    auto randomness_vrf_input = vrf_input_from_items(
-        std::span(reinterpret_cast<uint8_t *>(randomness_label.data()),
-                  randomness_label.size()),
-        b1);
+    auto randomness_vrf_input =
+        vrf::vrf_input_from_data("sassafras-randomness-v1.0"_bytes, b1);
 
-    auto b21 = Buffer().put(config.randomness);
-    auto b22 = Buffer().putUint64(config.epoch_index);
-    auto b23 = Buffer().putUint32(ticket_body.attempt_index);
-    std::vector<std::span<uint8_t>> b2{
-        std::span(b21), std::span(b22), std::span(b23)};
+    std::vector<vrf::BytesIn> b2{config.randomness, epoch_blob, attempt_blob};
 
-    std::string revealed_label = "sassafras-revealed-v1.0";
-    auto revealed_vrf_input = vrf_input_from_items(
-        std::span(reinterpret_cast<uint8_t *>(revealed_label.data()),
-                  revealed_label.size()),
-        b2);
+    auto revealed_vrf_input =
+        vrf::vrf_input_from_data("sassafras-revealed-v1.0"_bytes, b2);
 
-    //    auto encoded_ticket_body = scale::encode(ticket_body).value();
-    //    std::vector<std::span<uint8_t>> transcript_data{encoded_ticket_body};
-    //    std::vector<VrfInput> vrf_inputs{randomness_vrf_input,
-    //    revealed_vrf_input};
-    //
-    //    std::string claim_label = "sassafras-claim-v1.0";
-    //    auto sign_data = vrf_signature_data(
-    //        std::span(reinterpret_cast<uint8_t *>(claim_label.data()),
-    //                  claim_label.size()),
-    //        transcript_data,
-    //        vrf_inputs);
+    auto encoded_ticket_body = scale::encode(ticket_body).value();
+    std::vector<vrf::BytesIn> transcript_data{encoded_ticket_body};
+    std::vector<vrf::VrfInput> vrf_inputs{randomness_vrf_input,
+                                          revealed_vrf_input};
+
+    auto sign_data = vrf::vrf_sign_data(
+        "sassafras-claim-v1.0"_bytes, transcript_data, vrf_inputs);
 
     const auto &revealed_vrf_output = claim.signature.outputs[1];
 
-    auto revealed_seed = vrf_bytes<32>(revealed_vrf_input, revealed_vrf_output);
+    auto revealed_seed =
+        vrf::make_bytes<32>(revealed_vrf_input, revealed_vrf_output);
 
     auto revealed_pub =
         ed25519_provider_

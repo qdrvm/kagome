@@ -54,6 +54,20 @@ namespace kagome::consensus::sassafras {
     TicketBody body;
     /// Ring signature.
     TicketSignature signature;
+
+    friend scale::ScaleEncoderStream &operator<<(scale::ScaleEncoderStream &s,
+                                                 const TicketEnvelope &x) {
+      return s  // << x.outputs
+                // << x.signature
+          ;
+    }
+
+    friend scale::ScaleDecoderStream &operator>>(scale::ScaleDecoderStream &s,
+                                                 TicketEnvelope &x) {
+      return s  // >> x.outputs
+                // >> x.signature
+          ;
+    }
   };
 
   /// Ticket claim information filled by the block author.

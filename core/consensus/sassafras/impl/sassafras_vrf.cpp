@@ -15,10 +15,13 @@
 #include "consensus/sassafras/types/sassafras_configuration.hpp"
 #include "consensus/sassafras/types/ticket.hpp"
 #include "consensus/timeline/types.hpp"
+#include "crypto/bandersnatch/vrf.hpp"
 #include "primitives/transcript.hpp"
 #include "scale/tie.hpp"
 
 namespace kagome::consensus::sassafras::vrf {
+
+  using namespace crypto::bandersnatch::vrf;
 
   void accepts_range(std::ranges::view auto arg);
 
@@ -29,11 +32,6 @@ namespace kagome::consensus::sassafras::vrf {
   //         | std::ranges::views::transform(
   //               [](char c) { return static_cast<uint8_t>(c); });
   //  }
-
-  struct VrfInput {
-    SCALE_TIE(0);
-    // opaque
-  };
 
   using VrfPreOut = Tagged<common::Buffer, struct VrfPreOutTag>;
 
@@ -79,49 +77,35 @@ namespace kagome::consensus::sassafras::vrf {
     }
   };
 
-  VrfInput vrf_input(std::ranges::view auto domain,
-                     std::ranges::view auto data) {
-    return {};  // FIXME It's stub
-  }
-
-  VrfInput vrf_input_from_data(std::ranges::view auto domain,
-                               std::ranges::view auto data) {
-    common::Buffer buff;
-    for (auto &chunk : data) {
-      buff.insert(buff.end(), chunk.begin(), chunk.end());
-      BOOST_ASSERT(chunk.size() <= std::numeric_limits<uint8_t>::max());
-      buff.putUint8(chunk.size());
-    }
-    return vrf_input(domain, std::span(buff));
-  }
-
   /// VRF input to claim slot ownership during block production.
   VrfInput slot_claim_input(const Randomness &randomness,
                             SlotNumber slot,
                             EpochNumber epoch) {
     auto slot_bytes = common::uint64_to_le_bytes(slot);
     auto epoch_bytes = common::uint64_to_le_bytes(epoch);
-    std::vector<std::span<const uint8_t>> data{
-        randomness, slot_bytes, epoch_bytes};
+    std::vector<libp2p::BytesIn> data{randomness, slot_bytes, epoch_bytes};
 
     return vrf_input_from_data("sassafras-claim-v1.0"_bytes, std::span(data));
   }
-
-  using bandersnatch::VrfSignData;
 
   /// Signing-data to claim slot ownership during block production.
   VrfSignData slot_claim_sign_data(const Randomness &randomness,
                                    SlotNumber slot,
                                    EpochNumber epoch) {
-    std::vector<std::span<const uint8_t>> transcript_data;
+    static const auto transcript_label =
+        "sassafras-slot-claim-transcript-v1.0"_bytes;
+
+    static const std::vector<std::span<const uint8_t>> transcript_data;
 
     auto input = slot_claim_input(randomness, slot, epoch);
-    std::vector<VrfInput> input_data{input};
 
-    return VrfSignData{};  // FIXME It's stub
-    //    return VrfSignData("sassafras-slot-claim-transcript-v1.0"_bytes,
-    //                       std::span(transcript_data),
-    //                       std::span(input_data));
+    return bandersnatch_vrf_sign_data(transcript_label.data(),
+                                      transcript_label.size(),
+                                      nullptr,
+                                      nullptr,
+                                      0,
+                                      &input,
+                                      1);
   }
 
   /// VRF input to generate the ticket id.
@@ -151,16 +135,16 @@ namespace kagome::consensus::sassafras::vrf {
 
   /// Data to be signed via ring-vrf.
   VrfSignData ticket_body_sign_data(const TicketBody &ticket_body,
-                                    const VrfInput &ticket_id_input) {
+                                    VrfInput ticket_id_input) {
+    static const auto transcript_label =
+        "sassafras-ticket-body-transcript-v1.0"_bytes;
+
     auto encoded_ticket_body = scale::encode(ticket_body).value();
-    std::vector<std::span<const uint8_t>> transcript_data{encoded_ticket_body};
+    std::vector<libp2p::BytesIn> transcript_data{encoded_ticket_body};
 
-    std::vector<VrfInput> input_data{ticket_id_input};
+    std::vector<VrfInput> inputs{ticket_id_input};
 
-    return VrfSignData{};  // FIXME It's stub
-    //    return VrfSignData("sassafras-ticket-body-transcript-v1.0"_bytes,
-    //                       std::span(transcript_data),
-    //                       std::span(input_data));
+    return vrf_sign_data(transcript_label, transcript_data, inputs);
   }
 
   /// Make ticket-id from the given VRF input and output.

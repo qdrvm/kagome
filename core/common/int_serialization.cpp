@@ -44,6 +44,32 @@ namespace kagome::common {
     }
   }  // namespace
 
+  std::array<uint8_t, 4> uint32_to_le_bytes(uint32_t number) {
+    std::array<uint8_t, 4> result{};
+    *reinterpret_cast<uint32_t *>(result.data()) = htole32(number);
+    return result;
+  }
+
+  uint32_t le_bytes_to_uint32(BufferView bytes) {
+    BOOST_ASSERT(bytes.size() >= 4);
+    uint32_t number;
+    memcpy(&number, bytes.data(), 4);
+    return le32toh(number);
+  }
+
+  std::array<uint8_t, 4> uint32_to_be_bytes(uint32_t number) {
+    std::array<uint8_t, 4> result{};
+    *reinterpret_cast<uint32_t *>(result.data()) = htobe32(number);
+    return result;
+  }
+
+  uint32_t be_bytes_to_uint32(BufferView bytes) {
+    BOOST_ASSERT(bytes.size() >= 4);
+    uint32_t number;
+    memcpy(&number, bytes.data(), 4);
+    return be32toh(number);
+  }
+
   std::array<uint8_t, 8> uint64_to_le_bytes(uint64_t number) {
     std::array<uint8_t, 8> result{};
     *reinterpret_cast<uint64_t *>(result.data()) = htole64(number);
