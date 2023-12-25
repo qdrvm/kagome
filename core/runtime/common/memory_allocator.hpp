@@ -18,10 +18,11 @@
 #include "runtime/types.hpp"
 
 namespace kagome::runtime {
+  class Memory;
 
   // Alignment for pointers, same with substrate:
   // https://github.com/paritytech/substrate/blob/743981a083f244a090b40ccfb5ce902199b55334/primitives/allocator/src/freeing_bump.rs#L56
-  constexpr uint8_t kAlignment = sizeof(size_t);
+  constexpr uint8_t kAlignment = 8;
   constexpr size_t kDefaultHeapBase = [] {
     using namespace kagome::common::literals;
     return 1_MB;  // 1Mb
@@ -45,17 +46,10 @@ namespace kagome::runtime {
    */
   class MemoryAllocator final {
    public:
-    struct MemoryHandle {
-      std::function<void(size_t)> resize;
-      std::function<size_t()> getSize;
-      std::function<void(WasmPointer, uint32_t)> storeSz;
-      std::function<uint32_t(WasmPointer)> loadSz;
-    };
+    MemoryAllocator(Memory &memory, const struct MemoryConfig &config);
 
-    MemoryAllocator(MemoryHandle memory, const struct MemoryConfig &config);
-
-    WasmPointer allocate(const uint32_t size);
-    std::optional<WasmSize> deallocate(WasmPointer ptr);
+    WasmPointer allocate(WasmSize size);
+    void deallocate(WasmPointer ptr);
 
     template <typename T>
     bool checkAddress(WasmPointer addr) noexcept {
@@ -66,7 +60,6 @@ namespace kagome::runtime {
 
     bool checkAddress(WasmPointer addr, WasmSize size) noexcept {
       BOOST_ASSERT(addr > 0);
-      BOOST_ASSERT(size > 0);
       return offset_ > static_cast<uint32_t>(addr)
          and offset_ - static_cast<uint32_t>(addr)
                  >= static_cast<uint32_t>(size);
@@ -74,50 +67,27 @@ namespace kagome::runtime {
 
     /*
       Following methods are needed mostly for testing purposes.
-      getDeallocatedChunkSize is a slow function with O(N) complexity.
     */
-    std::optional<WasmSize> getDeallocatedChunkSize(WasmPointer ptr) const;
     std::optional<WasmSize> getAllocatedChunkSize(WasmPointer ptr) const;
     size_t getDeallocatedChunksNum() const;
-    void reset();
 
    private:
-    struct AllocationHeader {
-      uint32_t chunk_sz;
-      uint32_t allocation_sz;
+    using Header = uint64_t;
 
-      void serialize(WasmPointer ptr, MemoryHandle &mh) const {
-        mh.storeSz(ptr, chunk_sz);
-        mh.storeSz(ptr + sizeof(chunk_sz), allocation_sz);
-      }
-      void deserialize(WasmPointer ptr, const MemoryHandle &mh) {
-        chunk_sz = mh.loadSz(ptr);
-        allocation_sz = mh.loadSz(ptr + sizeof(chunk_sz));
-      }
-    };
-    static constexpr size_t AllocationHeaderSz =
-        roundUpAlign(sizeof(AllocationHeader));
+    static constexpr size_t kOrders = 23;
+    static constexpr size_t kMinAllocate = 8;
+    static constexpr size_t kMaxAllocate = kMinAllocate << (kOrders - 1);
+    static_assert(kMaxAllocate == (32 << 20));
+    static constexpr auto kOccupied = uint64_t{1} << 32;
+    static constexpr uint32_t kNil = UINT32_MAX;
 
-    /**
-     * Resize memory and allocate memory segment of given size
-     * @param allocation_sz memory size to be allocated
-     * @param chunk_sz is the memory size which is next pow of 2 from
-     * alligned(allocation size) + alligned(AllocationHeaderSize)
-     * @return pointer to the allocated memory @or 0 if it is impossible to
-     * allocate this amount of memory
-     */
-    WasmPointer growAlloc(size_t chunk_sz, WasmSize allocation_sz);
-
-    void resize(WasmSize size);
+    uint32_t readOccupied(WasmPointer ptr) const;
+    std::optional<uint32_t> readFree(WasmPointer ptr) const;
 
    private:
-    MemoryHandle memory_;
+    Memory &memory_;
 
-    /**
-     * Contains information about available chunks for allocation. Key is size
-     * and is power of 2.
-     */
-    std::unordered_map<WasmSize, std::deque<WasmPointer>> available_;
+    std::array<std::optional<uint32_t>, kOrders> free_lists_;
 
     // Offset on the tail of the last allocated MemoryImpl chunk
     uint32_t offset_;

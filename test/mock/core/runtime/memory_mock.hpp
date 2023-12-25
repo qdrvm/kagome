@@ -24,7 +24,7 @@ namespace kagome::runtime {
 
     MOCK_METHOD(WasmPointer, allocate, (WasmSize), (override));
 
-    MOCK_METHOD(std::optional<WasmSize>, deallocate, (WasmPointer), (override));
+    MOCK_METHOD(void, deallocate, (WasmPointer), (override));
 
     MOCK_METHOD(int8_t, load8s, (WasmPointer), (const, override));
 

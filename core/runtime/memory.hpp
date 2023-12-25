@@ -29,6 +29,10 @@ namespace kagome::runtime {
     return 64_kB;
   }();
 
+  inline uint64_t sizeToPages(uint64_t size) {
+    return (size + kMemoryPageSize - 1) / kMemoryPageSize;
+  }
+
   /** The underlying memory can be accessed through unaligned pointers which
    * isn't well-behaved in C++. WebAssembly nonetheless expects it to behave
    * properly. Avoid emitting unaligned load/store by checking for alignment
@@ -66,7 +70,7 @@ namespace kagome::runtime {
      * @return size of deallocated memory or none if given address does not
      * point to any allocated pieces of memory
      */
-    virtual std::optional<WasmSize> deallocate(WasmPointer ptr) = 0;
+    virtual void deallocate(WasmPointer ptr) = 0;
 
     /**
      * Load integers from provided address

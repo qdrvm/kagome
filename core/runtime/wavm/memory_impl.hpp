@@ -36,7 +36,7 @@ namespace kagome::runtime::wavm {
     MemoryImpl &operator=(MemoryImpl &&move) = delete;
 
     WasmPointer allocate(WasmSize size) override;
-    std::optional<WasmSize> deallocate(WasmPointer ptr) override;
+    void deallocate(WasmPointer ptr) override;
 
     template <typename T, typename = std::enable_if_t<std::is_integral_v<T>>>
     T load(WasmPointer addr) const {
@@ -113,7 +113,7 @@ namespace kagome::runtime::wavm {
        * We use this condition to avoid deallocated_ pointers fixup
        */
       if (new_size >= size()) {
-        auto new_page_number = (new_size - 1) / kMemoryPageSize + 1;
+        auto new_page_number = sizeToPages(new_size);
         auto page_num_diff =
             new_page_number - WAVM::Runtime::getMemoryNumPages(memory_);
         WAVM::Runtime::growMemory(memory_, page_num_diff);

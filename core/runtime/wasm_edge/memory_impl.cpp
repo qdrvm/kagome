@@ -10,15 +10,7 @@ namespace kagome::runtime::wasm_edge {
   MemoryImpl::MemoryImpl(WasmEdge_MemoryInstanceContext *mem_instance,
                          const MemoryConfig &config)
       : mem_instance_{std::move(mem_instance)},
-        allocator_{MemoryAllocator{
-            MemoryAllocator::MemoryHandle{
-                .resize = [this](size_t new_size) { resize(new_size); },
-                .getSize = [this]() -> size_t { return size(); },
-                .storeSz = [this](WasmPointer p, uint32_t n) { store32(p, n); },
-                .loadSz = [this](WasmPointer p) -> uint32_t {
-                  return load32u(p);
-                }},
-            config}} {
+        allocator_{MemoryAllocator{*this, config}} {
     BOOST_ASSERT(mem_instance_ != nullptr);
     SL_DEBUG(logger_,
              "Created memory wrapper {} for internal instance {}",
@@ -29,7 +21,7 @@ namespace kagome::runtime::wasm_edge {
   void MemoryImpl::resize(WasmSize new_size) {
     if (new_size > size()) {
       auto old_page_num = WasmEdge_MemoryInstanceGetPageSize(mem_instance_);
-      auto new_page_num = (new_size + kMemoryPageSize - 1) / kMemoryPageSize;
+      auto new_page_num = sizeToPages(new_size);
       [[maybe_unused]] auto res = WasmEdge_MemoryInstanceGrowPage(
           mem_instance_, new_page_num - old_page_num);
       BOOST_ASSERT(WasmEdge_ResultOK(res));
