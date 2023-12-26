@@ -152,14 +152,23 @@ namespace kagome::primitives {
   }
 
   /// An unknown transaction validity.
-  enum class UnknownTransaction : uint8_t {
-    /// Could not lookup some information that is required to validate the
-    /// transaction.
-    CannotLookup = 1,
-    /// No validator found for the given unsigned transaction.
-    NoUnsignedValidator,
-    /// Any other custom unknown validity that is not covered by this enum.
-    Custom
+  struct UnknownTransaction {
+    enum Kind : uint8_t {
+      /// Could not lookup some information that is required to validate the
+      /// transaction.
+      CannotLookup = 1,
+      /// No validator found for the given unsigned transaction.
+      NoUnsignedValidator,
+      /// Any other custom unknown validity that is not covered by this enum.
+      Custom
+    };
+
+    bool operator==(Kind kind) const {
+      return this->kind == kind;
+    }
+
+    Kind kind;
+    uint8_t custom_value{};
   };
 
   template <class Stream,
@@ -168,7 +177,11 @@ namespace kagome::primitives {
     // -1 is needed for compatibility with Rust; indices of error codes start
     // from 0 there, while in kagome they must start from 1 because of
     // std::error_code policy
-    return s << static_cast<uint8_t>(v) - 1;
+    s << static_cast<uint8_t>(v.kind) - 1;
+    if (v == UnknownTransaction::Custom) {
+      s << v.custom_value;
+    }
+    return s;
   }
 
   template <class Stream,
@@ -181,10 +194,10 @@ namespace kagome::primitives {
     // start from 0 there, while in kagome they must start from 1 because of
     // std::error_code policy
     value++;
-    if (value > static_cast<uint8_t>(UnknownTransaction::NoUnsignedValidator)) {
-      v = UnknownTransaction::Custom;
-    } else {
-      v = static_cast<UnknownTransaction>(value);
+    v.kind = static_cast<UnknownTransaction::Kind>(value);
+    if (value == UnknownTransaction::Custom) {
+      s >> value;
+      v.custom_value = value;
     }
     return s;
   }
