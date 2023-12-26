@@ -8,9 +8,7 @@
 
 #include <boost/multiprecision/cpp_int.hpp>
 #include <span>
-// #include
-// "/home/di/Projects/bandersnatch_vrfs-crust/include/bandersnatch_vrfs/bandersnatch_vrfs.hpp"
-// // #include <bandersnatch_vrfs/bandersnatch_vrfs.hpp>
+
 #include "/home/di/Projects/bandersnatch_vrfs-crust/bandersnatch_vrfs-cpp/bandersnatch_vrfs_crust.h"  // #include <bandersnatch_vrfs/bandersnatch_vrfs.hpp>
 
 #include "common/blob.hpp"
@@ -27,10 +25,12 @@ namespace kagome::crypto {
       // Max ring domain size.
       RING_DOMAIN_SIZE = 1024,
 
-      // Short-Weierstrass form serialized sizes.
+      SEED_SIZE = BANDERSNATCH_SEED_SIZE,
+      SECRET_SIZE = BANDERSNATCH_SECRET_KEY_SIZE,
       PUBLIC_SIZE = BANDERSNATCH_PUBLIC_KEY_SIZE,
+      KEYPAIR_SIZE = SECRET_SIZE + PUBLIC_SIZE,
       SIGNATURE_SIZE = BANDERSNATCH_SIGNATURE_SIZE,
-      RING_SIGNATURE_SERIALIZED_SIZE = 755,
+      RING_SIGNATURE_SIZE = BANDERSNATCH_RING_SIGNATURE_SIZE,
       PREOUT_SERIALIZED_SIZE = 33,
 
       // Max size of serialized ring-vrf context params.
@@ -39,11 +39,6 @@ namespace kagome::crypto {
       // is equal to the SCALE encoded size of the `KZG` backend.
       RING_CONTEXT_SERIALIZED_SIZE = 147716,
 
-      SECRET_SIZE = BANDERSNATCH_SECRET_KEY_SIZE,
-      SEED_SIZE = BANDERSNATCH_SEED_SIZE,
-
-      KEYPAIR_SIZE =
-          BANDERSNATCH_SECRET_KEY_SIZE + BANDERSNATCH_PUBLIC_KEY_SIZE,
     };
 
     namespace vrf {

@@ -14,6 +14,9 @@
 struct bandersnatch_VrfInput;
 struct bandersnatch_VrfOutput;
 struct bandersnatch_VrfSignData;
+struct bandersnatch_RingProver;
+struct bandersnatch_RingVerifier;
+struct bandersnatch_RingVrfSignature;
 
 namespace kagome::crypto::bandersnatch::vrf {
 
@@ -24,6 +27,10 @@ namespace kagome::crypto::bandersnatch::vrf {
   using VrfInput = ::bandersnatch_VrfInput *;
   using VrfOutput = ::bandersnatch_VrfOutput *;
   using VrfSignData = ::bandersnatch_VrfSignData *;
+  using RingProver = const ::bandersnatch_RingProver *;
+  using RingVrifier = const ::bandersnatch_RingVerifier *;
+  using RingVrfSignature = ::bandersnatch_RingVrfSignature *;
+  using RingSignature = common::Blob<BANDERSNATCH_RING_SIGNATURE_SIZE>;
 
   VrfInput vrf_input(BytesIn domain, BytesIn data);
 
@@ -35,8 +42,16 @@ namespace kagome::crypto::bandersnatch::vrf {
     requires(N == 16 or N == 32)
   common::Blob<N> make_bytes(VrfInput input, VrfOutput output);
 
-  VrfSignData vrf_sign_data(libp2p::BytesIn label,
-                            std::span<libp2p::BytesIn> data,
+  VrfSignData vrf_sign_data(BytesIn label,
+                            std::span<BytesIn> data,
                             std::span<VrfInput> inputs);
+
+  RingVrfSignature ring_vrf_sign(BandersnatchSecretKey secret,
+                                 VrfSignData sign_data,
+                                 RingProver ring_prover);
+
+  RingSignature ring_sign(BandersnatchSecretKey secret,
+                          VrfSignData sign_data,
+                          RingProver ring_prover);
 
 }  // namespace kagome::crypto::bandersnatch::vrf

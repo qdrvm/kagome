@@ -9,7 +9,7 @@
 namespace kagome::crypto::bandersnatch::vrf {
 
   VrfInput vrf_input(BytesIn domain, BytesIn data) {
-    return bandersnatch_vrf_input(
+    return ::bandersnatch_vrf_input(
         domain.data(), domain.size(), data.data(), data.size());
   }
 
@@ -31,14 +31,14 @@ namespace kagome::crypto::bandersnatch::vrf {
   template <>
   common::Blob<16> make_bytes<16>(VrfInput input, VrfOutput output) {
     common::Blob<16> bytes;
-    bandersnatch_make_bytes(input, output, bytes.data(), bytes.size());
+    ::bandersnatch_make_bytes(input, output, bytes.data(), bytes.size());
     return bytes;
   }
 
   template <>
   common::Blob<32> make_bytes<32>(VrfInput input, VrfOutput output) {
     common::Blob<32> bytes;
-    bandersnatch_make_bytes(input, output, bytes.data(), bytes.size());
+    ::bandersnatch_make_bytes(input, output, bytes.data(), bytes.size());
     return bytes;
   }
 
@@ -52,13 +52,30 @@ namespace kagome::crypto::bandersnatch::vrf {
       data_sizes.push_back(d.size());
     }
 
-    return bandersnatch_vrf_sign_data(label.data(),
-                                      label.size(),
-                                      data_ptrs.data(),
-                                      data_sizes.data(),
-                                      data.size(),
-                                      inputs.data(),
-                                      inputs.size());
+    return ::bandersnatch_vrf_sign_data(label.data(),
+                                        label.size(),
+                                        data_ptrs.data(),
+                                        data_sizes.data(),
+                                        data.size(),
+                                        inputs.data(),
+                                        inputs.size());
+  }
+
+  RingVrfSignature ring_vrf_sign(BandersnatchSecretKey secret,
+                                 VrfSignData sign_data,
+                                 RingProver ring_prover) {
+    return ::bandersnatch_ring_vrf_sign(secret.data(), sign_data, ring_prover);
+  }
+
+  RingSignature ring_sign(BandersnatchSecretKey secret,
+                          VrfSignData sign_data,
+                          RingProver ring_prover) {
+    RingSignature sign;
+
+    ::bandersnatch_ring_sign(
+        secret.data(), sign_data, ring_prover, sign.data());
+
+    return sign;
   }
 
 }  // namespace kagome::crypto::bandersnatch::vrf

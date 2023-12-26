@@ -17,6 +17,7 @@ namespace kagome::consensus::sassafras {
    public:
     AuthorityIndex authority_index;
     std::shared_ptr<crypto::BandersnatchKeypair> keypair;
+    crypto::bandersnatch::vrf::VrfSignData sign_data;
     std::optional<EphemeralSeed> erased_seed;
   };
 

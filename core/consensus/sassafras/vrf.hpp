@@ -111,21 +111,17 @@ namespace kagome::consensus::sassafras {
 
   // Ring VRF Signature -----------
 
-  struct RingProof {
-    SCALE_TIE(0);
-    // opaque
-  };
-  struct RingProver {
-    SCALE_TIE(0);
-    // opaque
-  };
-  struct RingVerifier {
-    SCALE_TIE(0);
-    // opaque
-  };
+  //  struct RingProof {
+  //    SCALE_TIE(0);
+  //    // opaque
+  //  };
+  //  struct RingVerifier {
+  //    SCALE_TIE(0);
+  //    // opaque
+  //  };
 
-  using RingSignature = common::Blob<
-      crypto::constants::bandersnatch::RING_SIGNATURE_SERIALIZED_SIZE>;
+  //  using RingSignature = common::Blob<
+  //      crypto::constants::bandersnatch::RING_SIGNATURE_SERIALIZED_SIZE>;
 
   /// Ring VRF signature.
   struct RingVrfSignature {
@@ -135,7 +131,7 @@ namespace kagome::consensus::sassafras {
     VrfIosVec<crypto::bandersnatch::vrf::VrfOutput> outputs;
 
     /// Ring signature.
-    RingSignature signature;
+    crypto::bandersnatch::vrf::RingSignature signature;
 
     //    // represents the actual signature (opaque).
     //    // denotes the proof of ring membership.
@@ -157,13 +153,5 @@ namespace kagome::consensus::sassafras {
           >> x.signature;
     }
   };
-
-  inline RingVrfSignature ring_vrf_sign(crypto::BandersnatchSecretKey secret,
-                                        VrfSignatureData signature_data,
-                                        RingProver prover) {
-    return {};  // FIXME It's stub
-  }
-
-  bool ring_vrf_verify(RingVrfSignature signature, RingVerifier verifier);
 
 }  // namespace kagome::consensus::sassafras
