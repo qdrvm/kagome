@@ -18,9 +18,11 @@ namespace kagome::consensus::grandpa {
    public:
     virtual ~IVerifiedJustificationQueue() = default;
 
+    /// Add verified justification
     virtual void addVerified(AuthoritySetId set,
                              GrandpaJustification justification) = 0;
 
+    /// Warp sync
     virtual void warp() = 0;
   };
 }  // namespace kagome::consensus::grandpa

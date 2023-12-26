@@ -41,11 +41,13 @@ namespace kagome::consensus::grandpa {
         const primitives::BlockInfo &block,
         IsBlockFinalized finalized) const = 0;
 
+    /// Find previous scheduled change with justification
     using ScheduledParentResult =
         outcome::result<std::pair<primitives::BlockInfo, AuthoritySetId>>;
     virtual ScheduledParentResult scheduledParent(
         primitives::BlockInfo block) const = 0;
 
+    /// Find possible scheduled changes with justification
     virtual std::vector<primitives::BlockInfo> possibleScheduled() const = 0;
 
     /**
