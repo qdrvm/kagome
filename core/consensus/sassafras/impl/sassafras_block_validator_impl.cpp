@@ -125,8 +125,6 @@ namespace kagome::consensus::sassafras {
 
     auto signed_hash = hasher_->blake2b_256(unsealed_header_encoded);
 
-    return true;  // FIXME it's just for debugging. remove me
-
     // secondly, use verify function to check the signature
     auto res =
         bandersnatch_provider_->verify(signature, signed_hash, public_key);

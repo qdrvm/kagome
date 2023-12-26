@@ -9,11 +9,11 @@
 #include "application/app_state_manager.hpp"
 #include "blockchain/block_tree.hpp"
 #include "common/int_serialization.hpp"
+#include "consensus/sassafras/bandersnatch.hpp"
 #include "consensus/sassafras/impl/prepare_transcript.hpp"
 #include "consensus/sassafras/impl/sassafras_vrf.hpp"
 #include "consensus/sassafras/sassafras_config_repository.hpp"
 #include "consensus/sassafras/types/ticket.hpp"
-// #include "consensus/sassafras/vrf.hpp"
 #include "consensus/timeline/impl/slot_leadership_error.hpp"
 #include "crypto/bandersnatch_provider.hpp"
 #include "crypto/ed25519_provider.hpp"
@@ -199,6 +199,18 @@ namespace kagome::consensus::sassafras {
       return SlotLeadershipError::NO_VALIDATOR;
     }
 
+    auto ring_context_res = api_->ring_context(best_block.hash);
+    [[unlikely]] if (ring_context_res.has_error()) {
+      SL_ERROR(
+          logger_, "Unable to read ring context: {}", ring_context_res.error());
+      return ring_context_res.as_failure();
+    }
+    if (not ring_context_res.value().has_value()) {
+      SL_ERROR(logger_, "Ring context not initialized yet");
+      return outcome::success();
+    }
+    auto &ring_context = ring_context_res.value().value();
+
     auto attempts_number = config.config.attempts_number;
     const auto &randomness = config.randomness;
 
@@ -211,6 +223,12 @@ namespace kagome::consensus::sassafras {
     next_tickets_->reserve(attempts_number);
 
     const auto &secret_key = keypair->first->secret_key;
+
+    const auto authority_idx = keypair->second;
+
+    SL_TRACE(logger_, "Generating ring prover key...");
+    auto ring_prover = ring_context.prover(config.authorities, authority_idx);
+    SL_TRACE(logger_, "  ...done");
 
     for (AttemptsNumber attempt = 0; attempt < attempts_number; ++attempt) {
       auto epoch_blob = common::uint64_to_be_bytes(epoch);
@@ -278,19 +296,22 @@ namespace kagome::consensus::sassafras {
       auto sign_data = vrf::vrf_sign_data(
           "sassafras-ticket-body-v1.0"_bytes, transcript_data, vrf_inputs);
 
-      // RingProver ring_prover;  // FIXME
-      //
-      // auto ring_signature = ring_vrf_sign(secret_key, sign_data,
-      //                                     ring_prover);
-      //
-      // // --- Ticket envelope ---
-      //
-      // TicketEnvelope ticket_envelope{
-      //     .body = std::move(ticket_body),
-      //     .signature = std::move(ring_signature),
-      // };
-      //
-      // next_tickets_->emplace_back(ticket_id, ticket_envelope, erased_seed);
+      SL_TRACE(logger_,
+               "Forging ring proof for {:l} (attempt: {})",
+               ticket_bytes,
+               attempt);
+      auto &&ring_signature =
+          vrf::ring_sign(secret_key, sign_data, ring_prover);
+      SL_TRACE(logger_, "  ...done");
+
+      // --- Ticket envelope ---
+
+      TicketEnvelope ticket_envelope{.body = std::move(ticket_body),
+                                     .signature = {
+                                         .signature = std::move(ring_signature),
+                                     }};
+
+      next_tickets_->emplace_back(ticket_id, ticket_envelope, erased_seed);
     }
 
     // Save generated tickets
@@ -357,6 +378,7 @@ namespace kagome::consensus::sassafras {
     const auto &ticket_id = ticket_id_opt.value();
 
     // Check if it is our ticket
+
     auto it =
         std::find_if(tickets_.begin(), tickets_.end(), [&](const auto &ticket) {
           return ticket.id == ticket_id;
@@ -373,77 +395,58 @@ namespace kagome::consensus::sassafras {
 
   SlotLeadership SassafrasLotteryImpl::primarySlotLeadership(
       SlotNumber slot, const Ticket &ticket) const {
-    const auto &ticket_body = ticket.envelope.body;
-
     // --- Primary Claim Method ---
 
-    auto b12 = Buffer().putUint64(epoch_);
-    auto b13 = Buffer().putUint32(slot);
-    std::vector<vrf::BytesIn> b1{randomness_, std::span(b12), std::span(b13)};
+    const auto &ticket_body = ticket.envelope.body;
+
+    const auto epoch_blob = common::uint64_to_be_bytes(epoch_);
+    const auto slot_blob = common::uint32_to_be_bytes(slot);
+    const auto attempt_blob =
+        common::uint32_to_be_bytes(ticket_body.attempt_index);
+
+    std::vector<vrf::BytesIn> b1{randomness_, epoch_blob, slot_blob};
 
     auto randomness_vrf_input =
         vrf::vrf_input_from_data("sassafras-randomness-v1.0"_bytes, b1);
 
-    auto b22 = Buffer().putUint64(epoch_);
-    auto b23 = Buffer().putUint32(ticket_body.attempt_index);
-    std::vector<vrf::BytesIn> b2{randomness_, std::span(b22), std::span(b23)};
+    std::vector<vrf::BytesIn> b2{randomness_, epoch_blob, attempt_blob};
 
     auto revealed_vrf_input =
         vrf::vrf_input_from_data("sassafras-revealed-v1.0"_bytes, b2);
 
     auto encoded_ticket_body = scale::encode(ticket_body).value();
     std::vector<vrf::BytesIn> transcript_data{encoded_ticket_body};
-    std::vector<vrf::VrfInput> vrf_inputs{randomness_vrf_input,
-                                          revealed_vrf_input};
+    std::vector<vrf::VrfInput> inputs{randomness_vrf_input, revealed_vrf_input};
 
     auto sign_data = vrf::vrf_sign_data(
-        "sassafras-claim-v1.0"_bytes, transcript_data, vrf_inputs);
-
-    //  --- old ---
-
-    primitives::Transcript transcript;
-    prepareTranscript(transcript, randomness_, slot, epoch_);
-
-    // auto res =
-    //     vrf_provider_->signTranscript(transcript, keypair_, threshold_);
-    //
-    // SL_TRACE(
-    //     logger_,
-    //     "prepareTranscript (leadership): randomness {}, slot {}, epoch {}{}",
-    //     randomness_,
-    //     slot,
-    //     epoch_,
-    //     res.has_value() ? " - SLOT LEADER" : "");
-    //
-    // return res;
-    //
+        "sassafras-claim-v1.0"_bytes, transcript_data, inputs);
 
     return SlotLeadership{.authority_index = keypair_->second,
                           .keypair = keypair_->first,
+                          .sign_data = std::move(sign_data),
                           .erased_seed = ticket.erased_seed};
   }
 
   SlotLeadership SassafrasLotteryImpl::secondarySlotLeadership(
       SlotNumber slot) const {
     // --- Secondary Claim Method ---
-    auto b12 = Buffer().putUint64(epoch_);
-    auto b13 = Buffer().putUint32(slot);
-    std::vector<vrf::BytesIn> b1{randomness_, std::span(b12), std::span(b13)};
 
-    std::string randomness_label = "sassafras-randomness-v1.0";
-    auto randomness_vrf_input = vrf::vrf_input_from_data(
-        std::span(reinterpret_cast<uint8_t *>(randomness_label.data()),
-                  randomness_label.size()),
-        b1);
+    const auto epoch_blob = common::uint64_to_be_bytes(epoch_);
+    const auto slot_blob = common::uint32_to_be_bytes(slot);
 
-    std::vector<vrf::BytesIn> td{};
-    std::vector<vrf::VrfInput> vrfi{randomness_vrf_input};
+    std::vector<vrf::BytesIn> data{randomness_, epoch_blob, slot_blob};
+
+    auto randomness_vrf_input =
+        vrf::vrf_input_from_data("sassafras-randomness-v1.0"_bytes, data);
+
+    std::vector<vrf::VrfInput> inputs{randomness_vrf_input};
 
     auto sign_data = vrf::vrf_sign_data(
-        "sassafras-slot-claim-transcript-v1.0"_bytes, td, vrfi);
+        "sassafras-slot-claim-transcript-v1.0"_bytes, {}, inputs);
 
     return SlotLeadership{.authority_index = keypair_->second,
                           .keypair = keypair_->first,
+                          .sign_data = std::move(sign_data),
                           .erased_seed = std::nullopt};
   }
 
