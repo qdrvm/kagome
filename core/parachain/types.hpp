@@ -210,9 +210,9 @@ namespace kagome::parachain::fragment {
   struct OutboundHrmpChannelLimitations {
     SCALE_TIE(2);
     /// The maximum bytes that can be written to the channel.
-    size_t bytes_remaining;
+    uint32_t bytes_remaining;
     /// The maximum messages that can be written to the channel.
-    size_t messages_remaining;
+    uint32_t messages_remaining;
   };
 
   struct HrmpWatermarkUpdateHead {
@@ -232,9 +232,9 @@ namespace kagome::parachain::fragment {
   struct OutboundHrmpChannelModification {
     SCALE_TIE(2);
     /// The number of bytes submitted to the channel.
-    size_t bytes_submitted;
+    uint32_t bytes_submitted;
     /// The number of messages submitted to the channel.
-    size_t messages_submitted;
+    uint32_t messages_submitted;
   };
 
   struct ConstraintModifications {
@@ -246,11 +246,11 @@ namespace kagome::parachain::fragment {
     std::unordered_map<ParachainId, OutboundHrmpChannelModification>
         outbound_hrmp{};
     /// The amount of UMP messages sent.
-    size_t ump_messages_sent{0ull};
+    uint32_t ump_messages_sent{0ull};
     /// The amount of UMP bytes sent.
-    size_t ump_bytes_sent{0ull};
+    uint32_t ump_bytes_sent{0ull};
     /// The amount of DMP messages processed.
-    size_t dmp_messages_processed{0ull};
+    uint32_t dmp_messages_processed{0ull};
     /// Whether a pending code upgrade has been applied.
     bool code_upgrade_applied{false};
 
@@ -291,15 +291,15 @@ namespace kagome::parachain::fragment {
     /// The minimum relay-parent number accepted under these constraints.
     BlockNumber min_relay_parent_number;
     /// The maximum Proof-of-Validity size allowed, in bytes.
-    size_t max_pov_size;
+    uint32_t max_pov_size;
     /// The maximum new validation code size allowed, in bytes.
-    size_t max_code_size;
+    uint32_t max_code_size;
     /// The amount of UMP messages remaining.
-    size_t ump_remaining;
+    uint32_t ump_remaining;
     /// The amount of UMP bytes remaining.
-    size_t ump_remaining_bytes;
+    uint32_t ump_remaining_bytes;
     /// The maximum number of UMP messages allowed per candidate.
-    size_t max_ump_num_per_candidate;
+    uint32_t max_ump_num_per_candidate;
     /// Remaining DMP queue. Only includes sent-at block numbers.
     std::vector<BlockNumber> dmp_remaining_messages;
     /// The limitations of all registered inbound HRMP channels.
@@ -308,7 +308,7 @@ namespace kagome::parachain::fragment {
     std::unordered_map<ParachainId, OutboundHrmpChannelLimitations>
         hrmp_channels_out;
     /// The maximum number of HRMP messages allowed per candidate.
-    size_t max_hrmp_num_per_candidate;
+    uint32_t max_hrmp_num_per_candidate;
     /// The required parent head-data of the parachain.
     HeadData required_parent;
     /// The expected validation-code-hash of this parachain.

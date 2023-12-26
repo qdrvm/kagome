@@ -315,9 +315,9 @@ namespace kagome::parachain::fragment {
         record.messages_submitted += 1;
       }
 
-      size_t ump_sent_bytes = 0ull;
+      uint32_t ump_sent_bytes = 0ull;
       for (const auto &m : commitments.upward_msgs) {
-        ump_sent_bytes += m.size();
+        ump_sent_bytes += uint32_t(m.size());
       }
 
       ConstraintModifications modifications{
@@ -328,7 +328,7 @@ namespace kagome::parachain::fragment {
                                  : HrmpWatermarkUpdate{HrmpWatermarkUpdateTrunk{
                                      .v = commitments.watermark}}),
           .outbound_hrmp = outbound_hrmp,
-          .ump_messages_sent = commitments.upward_msgs.size(),
+          .ump_messages_sent = uint32_t(commitments.upward_msgs.size()),
           .ump_bytes_sent = ump_sent_bytes,
           .dmp_messages_processed = commitments.downward_msgs_count,
           .code_upgrade_applied =
