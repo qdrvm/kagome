@@ -158,8 +158,8 @@ namespace kagome::scale {
 
   template <typename F>
   constexpr void encode(const F &func, const primitives::BlockInfo &c) {
-    encode(func, c.hash);
     encode(func, c.number);
+    encode(func, c.hash);
   }
 
   template <typename F>

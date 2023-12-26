@@ -405,7 +405,7 @@ namespace kagome::consensus::grandpa {
   outcome::result<void> EnvironmentImpl::finalize(
       VoterSetId id, const GrandpaJustification &grandpa_justification) {
     primitives::Justification justification;
-    OUTCOME_TRY(enc, scale::encode(grandpa_justification));
+    OUTCOME_TRY(enc, ::scale::encode(grandpa_justification));
     justification.data.put(enc);
     OUTCOME_TRY(block_tree_->finalize(grandpa_justification.block_info.hash,
                                       justification));
