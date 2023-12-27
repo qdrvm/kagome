@@ -92,7 +92,7 @@ namespace kagome::authorship {
                         "Extrinsic {} cannot be applied and was not pushed to "
                         "the block. (UnknownTransaction response, code {})",
                         extrinsic.data.toHex().substr(0, 8),
-                        static_cast<uint8_t>(reason));
+                        static_cast<uint8_t>(reason.kind));
                 return BlockBuilderError::EXTRINSIC_APPLICATION_FAILED;
               });
         });
