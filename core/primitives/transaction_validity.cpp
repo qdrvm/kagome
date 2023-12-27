@@ -40,8 +40,8 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::primitives, InvalidTransaction, e) {
   return "Unknown InvalidTransaction error";
 }
 
-OUTCOME_CPP_DEFINE_CATEGORY(kagome::primitives, UnknownTransaction, e) {
-  using E = kagome::primitives::UnknownTransaction;
+OUTCOME_CPP_DEFINE_CATEGORY(kagome::primitives, UnknownTransaction::Kind, e) {
+  using E = kagome::primitives::UnknownTransaction::Kind;
   switch (e) {
     case E::CannotLookup:
       return "Could not lookup some information that is required to validate "

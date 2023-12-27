@@ -214,4 +214,4 @@ namespace kagome::primitives {
 }  // namespace kagome::primitives
 
 OUTCOME_HPP_DECLARE_ERROR(kagome::primitives, InvalidTransaction)
-OUTCOME_HPP_DECLARE_ERROR(kagome::primitives, UnknownTransaction)
+OUTCOME_HPP_DECLARE_ERROR(kagome::primitives, UnknownTransaction::Kind)
