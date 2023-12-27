@@ -151,6 +151,32 @@ namespace kagome::parachain {
     metric_is_parachain_validator_ =
         metrics_registry_->registerGaugeMetric(kIsParachainValidator);
     metric_is_parachain_validator_->set(false);
+
+//    std::vector<uint8_t> s = {
+//        0x01,0x00,0x00,0x9e,0x1c,0xf1,0x33,0xe6,
+//        0xf2,0xc8,0x51,0xdd,0xbb,0xf5,0xaa,0x7a,
+//        0x79,0xfd,0xb8,0x16,0xc6,0x77,0xfc,0x3e,
+//        0x51,0xc6,0x6d,0x2b,0x5c,0xf0,0x2b,0x7e,
+//        0x31,0x33,0x3f,0x64,0x00,0x00,0x00,0xa2,
+//        0x13,0x57,0x7f,0x56,0x1c,0xa1,0x5c,0x30,
+//        0x67,0xad,0x50,0x3e,0x68,0x71,0xcf,0x97,
+//        0xe9,0xea,0x6b,0x87,0xd6,0x95,0xf9,0xa6,
+//        0x2d,0x64,0xbc,0x6c,0xe4,0xec,0x3e,0x8d,
+//        0x28,0xb4,0x46,0x4f,0x5e,0x13,0x39,0xab,
+//        0x45,0xc7,0xf5,0x34,0x1f,0xa9,0x32,0x91,
+//        0xc2,0xec,0xbb,0x8c,0xc8,0x6d,0xa9,0x8f,
+//        0x34,0x66,0x0b,0xd5,0x66,0xe8,0x88 };
+//
+//    auto r = scale::decode<network::WireMessage<network::vstaging::CollatorProtocolMessage>>(s).value();
+//    if (auto r_0 = if_type<network::vstaging::CollatorProtocolMessage>(r)) {
+//      if (auto r_1 = if_type<network::vstaging::CollationMessage>(r_0->get())) {
+//        if (auto r_2 = if_type<network::vstaging::CollatorProtocolMessageDeclare>(r_1->get())) {
+//          const auto &r_3 = r_2->get();
+//          assert(false);
+//        }
+//      }
+//    }
+//    int p = 0; ++p;
   }
 
   bool ParachainProcessorImpl::prepare() {
@@ -250,6 +276,10 @@ namespace kagome::parachain {
       return;
     }
 
+    prospective_parachains_->onActiveLeavesUpdate(network::ExViewRef{
+        .new_head = {event.new_head},
+        .lost = event.lost,
+    });
     createBackingTask(relay_parent);
     SL_TRACE(logger_,
              "Update my view.(new head={}, finalized={}, leaves={})",
@@ -257,11 +287,6 @@ namespace kagome::parachain {
              event.view.finalized_number_,
              event.view.heads_.size());
     broadcastView(event.view);
-
-    prospective_parachains_->onActiveLeavesUpdate(network::ExViewRef{
-        .new_head = {event.new_head},
-        .lost = event.lost,
-    });
     new_leaf_fragment_tree_updates(relay_parent);
 
     for (const auto &lost : event.lost) {
@@ -273,7 +298,7 @@ namespace kagome::parachain {
       pending_candidates.erase(lost);
       our_current_state_.active_leaves.erase(lost);
     }
-    our_current_state_.active_leaves[relay_parent] = {};
+    our_current_state_.active_leaves[relay_parent] = prospective_parachains_->prospectiveParachainsMode(relay_parent);
 
     for (auto it = our_current_state_.per_candidate.begin();
          it != our_current_state_.per_candidate.end();) {

@@ -61,28 +61,32 @@ namespace kagome::parachain {
         },
         [&](kagome::network::vstaging::CollatorProtocolMessage
                 &&collation_msg) {
-          visit_in_place(
-              std::move(collation_msg),
-              [&](kagome::network::vstaging::CollatorProtocolMessageDeclare
-                      &&collation_decl) {
-                onDeclare(peer_id,
-                          std::move(collation_decl.collator_id),
-                          std::move(collation_decl.para_id),
-                          std::move(collation_decl.signature));
-              },
-              [&](kagome::network::vstaging::
-                      CollatorProtocolMessageAdvertiseCollation
-                          &&collation_adv) {
-                onAdvertise(
-                    peer_id,
-                    std::move(collation_adv.relay_parent),
-                    std::make_pair(
-                        std::move(collation_adv.candidate_hash),
-                        std::move(collation_adv.parent_head_data_hash)));
-              },
-              [&](auto &&) {
-                SL_WARN(logger_, "Unexpected VStaging collation message from.");
-              });
+          if (auto m = if_type<network::vstaging::CollationMessage>(collation_msg)) {
+            visit_in_place(
+                std::move(m->get()),
+                [&](kagome::network::vstaging::CollatorProtocolMessageDeclare
+                        &&collation_decl) {
+                  onDeclare(peer_id,
+                            std::move(collation_decl.collator_id),
+                            std::move(collation_decl.para_id),
+                            std::move(collation_decl.signature));
+                },
+                [&](kagome::network::vstaging::
+                        CollatorProtocolMessageAdvertiseCollation
+                            &&collation_adv) {
+                  onAdvertise(
+                      peer_id,
+                      std::move(collation_adv.relay_parent),
+                      std::make_pair(
+                          std::move(collation_adv.candidate_hash),
+                          std::move(collation_adv.parent_head_data_hash)));
+                },
+                [&](auto &&) {
+                  SL_WARN(logger_, "Unexpected VStaging collation message from.");
+                });
+          } else {
+            SL_WARN(logger_, "Unexpected VStaging collation protocol message from.");
+          }
         },
         [&](auto &&) {
           SL_WARN(logger_, "Unexpected versioned collation message from.");
