@@ -46,12 +46,13 @@ namespace kagome::network::vstaging {
     Hash parent_head_data_hash;
   };
 
-  using CollatorProtocolMessage =
-      boost::variant<CollatorProtocolMessageDeclare,
+  using CollationMessage = boost::variant<CollatorProtocolMessageDeclare,
                      CollatorProtocolMessageAdvertiseCollation,
                      Dummy,
                      Dummy,
                      CollatorProtocolMessageCollationSeconded>;
+
+  using CollatorProtocolMessage = boost::variant<CollationMessage>;
 
   struct SecondedCandidateHash {
     SCALE_TIE(1);
