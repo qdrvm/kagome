@@ -184,7 +184,7 @@ TEST_F(Primitives, EncodeTransactionValidityInvalidSuccess) {
  * @then obtained result matches predefined value
  */
 TEST_F(Primitives, EncodeTransactionValidityUnknown) {
-  UnknownTransaction unknown{2};
+  UnknownTransaction unknown{UnknownTransaction::Kind::Custom, 42};
   EXPECT_OUTCOME_TRUE(val, encode(unknown))
   EXPECT_OUTCOME_TRUE(decoded_validity, decode<UnknownTransaction>(val));
   ASSERT_EQ(decoded_validity, unknown);
