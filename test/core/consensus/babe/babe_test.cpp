@@ -405,4 +405,5 @@ TEST_F(BabeTest, SlotLeader) {
   ASSERT_OUTCOME_SUCCESS_TRY(babe->processSlot(slot, best_block_info));
 
   testutil::wait(*thread_pool_.io_context());
+  testutil::wait(*thread_pool_.io_context());
 }
