@@ -167,6 +167,8 @@ namespace kagome::primitives {
       return this->kind == kind;
     }
 
+    bool operator==(const UnknownTransaction&) const = default;
+
     Kind kind;
     uint8_t custom_value{};
   };
@@ -177,7 +179,7 @@ namespace kagome::primitives {
     // -1 is needed for compatibility with Rust; indices of error codes start
     // from 0 there, while in kagome they must start from 1 because of
     // std::error_code policy
-    s << static_cast<uint8_t>(v.kind) - 1;
+    s << static_cast<uint8_t>(v.kind - 1);
     if (v == UnknownTransaction::Custom) {
       s << v.custom_value;
     }
