@@ -20,25 +20,43 @@ namespace kagome::crypto::bandersnatch::vrf {
       BOOST_ASSERT(chunk.size() <= std::numeric_limits<uint8_t>::max());
       buff.putUint8(chunk.size());
     }
-
     return vrf_input(domain, std::span(buff));
   }
 
   VrfOutput vrf_output(BandersnatchSecretKey secret, VrfInput input) {
-    return bandersnatch_vrf_output(secret.data(), input);
+    auto output_ptr = ::bandersnatch_vrf_output(secret.data(), input);
+    VrfOutput output;
+    ::bandersnatch_vrf_output_encode(output_ptr, output.data());
+    return output;
   }
 
   template <>
-  common::Blob<16> make_bytes<16>(VrfInput input, VrfOutput output) {
+  common::Blob<16> make_bytes<16>(BytesIn context,
+                                  VrfInput input,
+                                  VrfOutput output) {
+    auto output_ptr = ::bandersnatch_vrf_output_decode(output.data());
     common::Blob<16> bytes;
-    ::bandersnatch_make_bytes(input, output, bytes.data(), bytes.size());
+    ::bandersnatch_make_bytes(context.data(),
+                              context.size(),
+                              input,
+                              output_ptr,
+                              bytes.data(),
+                              bytes.size());
     return bytes;
   }
 
   template <>
-  common::Blob<32> make_bytes<32>(VrfInput input, VrfOutput output) {
+  common::Blob<32> make_bytes<32>(BytesIn context,
+                                  VrfInput input,
+                                  VrfOutput output) {
+    auto output_ptr = ::bandersnatch_vrf_output_decode(output.data());
     common::Blob<32> bytes;
-    ::bandersnatch_make_bytes(input, output, bytes.data(), bytes.size());
+    ::bandersnatch_make_bytes(context.data(),
+                              context.size(),
+                              input,
+                              output_ptr,
+                              bytes.data(),
+                              bytes.size());
     return bytes;
   }
 
@@ -61,21 +79,56 @@ namespace kagome::crypto::bandersnatch::vrf {
                                         inputs.size());
   }
 
-  RingVrfSignature ring_vrf_sign(BandersnatchSecretKey secret,
-                                 VrfSignData sign_data,
-                                 RingProver ring_prover) {
-    return ::bandersnatch_ring_vrf_sign(secret.data(), sign_data, ring_prover);
+  template <>
+  common::Blob<32> vrf_sign_data_challenge(vrf::VrfSignData sign_data) {
+    common::Blob<32> challenge;
+    ::bandersnatch_sign_data_challenge(
+        sign_data, challenge.data(), challenge.size());
+    return challenge;
   }
 
-  RingSignature ring_sign(BandersnatchSecretKey secret,
-                          VrfSignData sign_data,
-                          RingProver ring_prover) {
-    RingSignature sign;
+  VrfSignature vrf_sign(BandersnatchSecretKey secret_key,
+                        VrfSignData sign_data) {
+    static const size_t maxEncodedSize = 1
+                                       + MAX_VRF_IOS * BANDERSNATCH_PREOUT_SIZE
+                                       + BANDERSNATCH_SIGNATURE_SIZE;
+    common::Blob<maxEncodedSize> buff;
+    ::bandersnatch_vrf_sign(secret_key.data(), sign_data, buff.data());
 
-    ::bandersnatch_ring_sign(
-        secret.data(), sign_data, ring_prover, sign.data());
+    return scale::decode<VrfSignature>(buff).value();
+  }
 
-    return sign;
+  bool vrf_verify(const VrfSignature &signature,
+                  VrfSignData sign_data,
+                  BandersnatchPublicKey public_key) {
+    auto buff = scale::encode(signature).value();
+
+    return ::bandersnatch_vrf_verify(
+        buff.data(), buff.size(), sign_data, public_key.data());
+  }
+
+  RingVrfSignature ring_vrf_sign(BandersnatchSecretKey secret_key,
+                                 VrfSignData sign_data,
+                                 RingProver ring_prover) {
+    auto ring_signature_ptr =
+        ::bandersnatch_ring_vrf_sign(secret_key.data(), sign_data, ring_prover);
+
+    static const size_t maxEncodedSize = 1
+                                       + MAX_VRF_IOS * BANDERSNATCH_PREOUT_SIZE
+                                       + BANDERSNATCH_RING_SIGNATURE_SIZE;
+    common::Blob<maxEncodedSize> buff;
+    ::bandersnatch_ring_vrf_signature_encode(ring_signature_ptr, buff.data());
+
+    return scale::decode<RingVrfSignature>(buff).value();
+  }
+
+  bool ring_vrf_verify(const RingVrfSignature &signature,
+                       VrfSignData sign_data,
+                       BandersnatchPublicKey public_key) {
+    auto buff = scale::encode(signature).value();
+
+    return ::bandersnatch_ring_vrf_verify(
+        buff.data(), buff.size(), sign_data, public_key.data());
   }
 
 }  // namespace kagome::crypto::bandersnatch::vrf

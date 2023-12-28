@@ -117,7 +117,7 @@ namespace kagome::consensus::sassafras {
 
   bool SassafrasBlockValidatorImpl::verifySignature(
       const primitives::BlockHeader &header,
-      const Signature &signature,
+      const crypto::BandersnatchSignature &signature,
       const Authority &public_key) const {
     primitives::UnsealedBlockHeaderReflection unsealed_header(header);
 
@@ -132,47 +132,68 @@ namespace kagome::consensus::sassafras {
   }
 
   outcome::result<void> SassafrasBlockValidatorImpl::verifyPrimaryClaim(
-      const SlotClaim &claim, const Epoch &config) const {
+      const SlotClaim &claim,
+      const Epoch &config,
+      const Authority &public_key) const {
+    BOOST_ASSERT(claim.ticket_claim.has_value());
+    const auto &ticket_claim = claim.ticket_claim.value();
+
+    TicketId ticket_id;      // TODO ???
     TicketBody ticket_body;  // TODO ???
 
-    auto epoch_blob = common::uint64_to_be_bytes(config.epoch_index);
-    auto slot_blob = common::uint32_to_be_bytes(claim.slot_number);
-    auto attempt_blob = common::uint32_to_be_bytes(ticket_body.attempt_index);
+    // Revealed key check
 
-    std::vector<vrf::BytesIn> b1{config.randomness, epoch_blob, slot_blob};
+    auto revealed_key_vrf_input = revealed_key_input(
+        config.randomness, ticket_body.attempt_index, config.epoch_index);
 
-    auto randomness_vrf_input =
-        vrf::vrf_input_from_data("sassafras-randomness-v1.0"_bytes, b1);
+    if (claim.signature.outputs.empty()) {
+      return ValidationError::INVALID_VRF;
+    }
+    auto revealed_key_vrf_output = claim.signature.outputs[1];
 
-    std::vector<vrf::BytesIn> b2{config.randomness, epoch_blob, attempt_blob};
-
-    auto revealed_vrf_input =
-        vrf::vrf_input_from_data("sassafras-revealed-v1.0"_bytes, b2);
+    EphemeralSeed revealed_seed =
+        EphemeralSeed::fromSpan(make_revealed_key_seed(revealed_key_vrf_input,
+                                                       revealed_key_vrf_output))
+            .value();
+    auto revealed_pair =
+        ed25519_provider_->generateKeypair(revealed_seed, {}).value();
+    if (ticket_body.revealed_public != revealed_pair.secret_key) {
+      return ValidationError::INVALID_VRF;
+    }
 
     auto encoded_ticket_body = scale::encode(ticket_body).value();
     std::vector<vrf::BytesIn> transcript_data{encoded_ticket_body};
-    std::vector<vrf::VrfInput> vrf_inputs{randomness_vrf_input,
-                                          revealed_vrf_input};
 
-    auto sign_data = vrf::vrf_sign_data(
-        "sassafras-claim-v1.0"_bytes, transcript_data, vrf_inputs);
+    auto slot_claim_vrf_input = slot_claim_input(
+        config.randomness, claim.slot_number, config.epoch_index);
+    std::vector<vrf::VrfInput> inputs{slot_claim_vrf_input,
+                                      revealed_key_vrf_input};
 
-    const auto &revealed_vrf_output = claim.signature.outputs[1];
+    auto vrf_sign_data =  // consider to call slot_claim_sign_data()
+        vrf::vrf_sign_data("sassafras-slot-claim-transcript-v1.0"_bytes,
+                           transcript_data,
+                           inputs);
 
-    auto revealed_seed =
-        vrf::make_bytes<32>(revealed_vrf_input, revealed_vrf_output);
+    // Optional check, increases some score...
+    auto challenge = vrf::vrf_sign_data_challenge<32>(vrf_sign_data);
 
-    auto revealed_pub =
-        ed25519_provider_
-            ->generateKeypair(crypto::Ed25519Seed{revealed_seed}, {})
-            .value()
-            .public_key;
+    if (not vrf::vrf_verify(ticket_claim.erased_signature,
+                            challenge,
+                            ticket_body.erased_public)) {
+      return ValidationError::INVALID_VRF;
+    }
 
-    return outcome::success();  // FIXME
+    if (not vrf::vrf_verify(claim.signature, vrf_sign_data, public_key)) {
+      return ValidationError::INVALID_VRF;
+    }
+
+    return outcome::success();
   }
 
   outcome::result<void> SassafrasBlockValidatorImpl::verifySecondaryClaim(
-      const SlotClaim &claim, const Epoch &config) const {
+      const SlotClaim &claim,
+      const Epoch &config,
+      const Authority &public_key) const {
     auto auth_index_of_leader =
         le_bytes_to_uint64(hasher_->blake2b_64(
             scale::encode(config.randomness, claim.slot_number).value()))
@@ -180,6 +201,17 @@ namespace kagome::consensus::sassafras {
 
     if (claim.authority_index != auth_index_of_leader) {
       return ValidationError::WRONG_AUTHOR_OF_SECONDARY_CLAIM;
+    }
+
+    std::vector<vrf::VrfInput> inputs{slot_claim_input(
+        config.randomness, claim.slot_number, config.epoch_index)};
+
+    auto vrf_sign_data =  // consider to call slot_claim_sign_data()
+        vrf::vrf_sign_data(
+            "sassafras-slot-claim-transcript-v1.0"_bytes, {}, inputs);
+
+    if (not vrf::vrf_verify(claim.signature, vrf_sign_data, public_key)) {
+      return ValidationError::INVALID_VRF;
     }
 
     return outcome::success();

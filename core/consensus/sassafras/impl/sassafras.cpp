@@ -241,7 +241,7 @@ namespace kagome::consensus::sassafras {
     SL_VERBOSE(
         log_,
         "Obtained {} slot leadership in slot {} epoch {}",
-        slot_leadership_.erased_seed.has_value() ? "primary" : "secondary",
+        slot_leadership_.ticket_claim.has_value() ? "primary" : "secondary",
         slot_,
         epoch_);
 

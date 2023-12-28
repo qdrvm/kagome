@@ -16,16 +16,30 @@ namespace kagome::consensus::sassafras {
   ///
   /// This is mandatory for each block.
   struct SlotClaim {
-    SCALE_TIE(4);
+    //    SCALE_TIE(4);
 
     /// Authority index that claimed the slot.
     AuthorityIndex authority_index;
     /// Corresponding slot number.
     SlotNumber slot_number;
     /// Slot claim VRF signature.
-    VrfSignature signature;
+    crypto::bandersnatch::vrf::VrfSignature signature;
     /// Ticket auxiliary information for claim check.
     std::optional<TicketClaim> ticket_claim;
+
+    friend scale::ScaleEncoderStream &operator<<(scale::ScaleEncoderStream &s,
+                                                 const SlotClaim &x) {
+      return s;
+    }
+
+    friend scale::ScaleDecoderStream &operator>>(scale::ScaleDecoderStream &s,
+                                                 SlotClaim &x) {
+      s >> x.authority_index;
+      s >> x.slot_number;
+      s >> x.signature;
+      s >> x.ticket_claim;
+      return s;
+    }
   };
 
 }  // namespace kagome::consensus::sassafras

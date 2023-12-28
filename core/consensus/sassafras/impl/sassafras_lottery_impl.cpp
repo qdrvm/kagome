@@ -181,6 +181,7 @@ namespace kagome::consensus::sassafras {
       return outcome::success();
     }
 
+    // Config of next epoch
     auto config_res = sassafras_config_repo_->config(best_block, epoch);
     [[unlikely]] if (config_res.has_error()) {
       SL_ERROR(logger_,
@@ -189,8 +190,11 @@ namespace kagome::consensus::sassafras {
                config_res.error());
       return config_res.as_failure();
     }
-    auto &config = *config_res.value();
+    const auto &config = *config_res.value();
+    const auto attempts_number = config.config.attempts_number;
+    const auto &randomness = config.randomness;
 
+    // Our actual keypair for the next epoch
     auto keypair = session_keys_->getSassafrasKeyPair(config.authorities);
     if (not keypair) {
       SL_VERBOSE(
@@ -198,7 +202,10 @@ namespace kagome::consensus::sassafras {
           "Authorities are not match any our keys; Skip of ticket generating");
       return SlotLeadershipError::NO_VALIDATOR;
     }
+    const auto &secret_key = keypair->first->secret_key;
+    const auto authority_idx = keypair->second;
 
+    // Ring context (for making prover)
     auto ring_context_res = api_->ring_context(best_block.hash);
     [[unlikely]] if (ring_context_res.has_error()) {
       SL_ERROR(
@@ -211,9 +218,12 @@ namespace kagome::consensus::sassafras {
     }
     auto &ring_context = ring_context_res.value().value();
 
-    auto attempts_number = config.config.attempts_number;
-    const auto &randomness = config.randomness;
+    // Prover for making ring signature
+    SL_TRACE(logger_, "Generating ring prover key...");
+    auto ring_prover = ring_context.prover(config.authorities, authority_idx);
+    SL_TRACE(logger_, "  ...done");
 
+    // Threshold for filter tickets
     auto ticket_threshold = ticket_id_threshold(config.config.redundancy_factor,
                                                 config.epoch_length,
                                                 config.config.attempts_number,
@@ -222,33 +232,16 @@ namespace kagome::consensus::sassafras {
     next_tickets_.emplace();
     next_tickets_->reserve(attempts_number);
 
-    const auto &secret_key = keypair->first->secret_key;
-
-    const auto authority_idx = keypair->second;
-
-    SL_TRACE(logger_, "Generating ring prover key...");
-    auto ring_prover = ring_context.prover(config.authorities, authority_idx);
-    SL_TRACE(logger_, "  ...done");
-
     for (AttemptsNumber attempt = 0; attempt < attempts_number; ++attempt) {
-      auto epoch_blob = common::uint64_to_be_bytes(epoch);
-      auto attempt_blob = common::uint32_to_be_bytes(attempt);
-      std::vector<vrf::BytesIn> b{randomness, epoch_blob, attempt_blob};
-
       // --- Ticket Identifier Value ---
 
-      auto ticket_id_vrf_input =
-          vrf::ticket_id_input(randomness, attempt, epoch);
-
+      // Make ticket id
+      auto ticket_id_vrf_input = ticket_id_input(randomness, attempt, epoch);
       auto ticket_id_vrf_output =
           vrf::vrf_output(secret_key, ticket_id_vrf_input);
-
       auto ticket_bytes =
-          vrf::make_bytes<16>(ticket_id_vrf_input, ticket_id_vrf_output);
-
+          make_ticket_id(ticket_id_vrf_input, ticket_id_vrf_output);
       auto ticket_id = TicketId(common::le_bytes_to_uint128(ticket_bytes));
-
-      // --- Tickets Threshold ---
 
       // Check ticket id threshold
       if (ticket_id.number > ticket_threshold.number) {
@@ -266,18 +259,13 @@ namespace kagome::consensus::sassafras {
 
       // revealed key
 
-      auto revealed_vrf_input =
-          vrf::vrf_input_from_data("sassafras-revealed-v1.0"_bytes, b);
-
+      auto revealed_vrf_input = revealed_key_input(randomness, attempt, epoch);
       auto revealed_vrf_output =
           vrf::vrf_output(secret_key, revealed_vrf_input);
-
-      auto revealed_seed_ =
-          vrf::make_bytes<32>(revealed_vrf_input, revealed_vrf_output);
-
+      auto revealed_seed_bytes =
+          make_revealed_key_seed(revealed_vrf_input, revealed_vrf_output);
       auto revealed_seed =
-          crypto::Ed25519Seed::fromSpan(revealed_seed_).value();
-
+          crypto::Ed25519Seed::fromSpan(revealed_seed_bytes).value();
       auto revealed_keypair =
           ed25519_provider_->generateKeypair(revealed_seed, {}).value();
 
@@ -289,27 +277,21 @@ namespace kagome::consensus::sassafras {
 
       // --- Ring Signature Production ---
 
-      auto encoded_ticket_body = scale::encode(ticket_body).value();
-      std::vector<vrf::BytesIn> transcript_data{encoded_ticket_body};
-      std::vector<vrf::VrfInput> vrf_inputs{ticket_id_vrf_input};
+      SL_DEBUG(logger_, ">>> Creating ring proof for attempt {}", attempt);
+      auto sign_data = ticket_body_sign_data(ticket_body, ticket_id_vrf_input);
 
-      auto sign_data = vrf::vrf_sign_data(
-          "sassafras-ticket-body-v1.0"_bytes, transcript_data, vrf_inputs);
-
-      SL_TRACE(logger_,
-               "Forging ring proof for {:l} (attempt: {})",
-               ticket_bytes,
-               attempt);
-      auto &&ring_signature =
-          vrf::ring_sign(secret_key, sign_data, ring_prover);
+      auto ring_signature =
+          vrf::ring_vrf_sign(secret_key, sign_data, ring_prover);
       SL_TRACE(logger_, "  ...done");
+
+      BOOST_ASSERT(ticket_id_vrf_output == ring_signature.outputs[0]);
 
       // --- Ticket envelope ---
 
-      TicketEnvelope ticket_envelope{.body = std::move(ticket_body),
-                                     .signature = {
-                                         .signature = std::move(ring_signature),
-                                     }};
+      TicketEnvelope ticket_envelope{
+          .body = std::move(ticket_body),
+          .signature = std::move(ring_signature),
+      };
 
       next_tickets_->emplace_back(ticket_id, ticket_envelope, erased_seed);
     }
@@ -399,55 +381,52 @@ namespace kagome::consensus::sassafras {
 
     const auto &ticket_body = ticket.envelope.body;
 
-    const auto epoch_blob = common::uint64_to_be_bytes(epoch_);
-    const auto slot_blob = common::uint32_to_be_bytes(slot);
-    const auto attempt_blob =
-        common::uint32_to_be_bytes(ticket_body.attempt_index);
-
-    std::vector<vrf::BytesIn> b1{randomness_, epoch_blob, slot_blob};
-
-    auto randomness_vrf_input =
-        vrf::vrf_input_from_data("sassafras-randomness-v1.0"_bytes, b1);
-
-    std::vector<vrf::BytesIn> b2{randomness_, epoch_blob, attempt_blob};
-
-    auto revealed_vrf_input =
-        vrf::vrf_input_from_data("sassafras-revealed-v1.0"_bytes, b2);
-
     auto encoded_ticket_body = scale::encode(ticket_body).value();
     std::vector<vrf::BytesIn> transcript_data{encoded_ticket_body};
-    std::vector<vrf::VrfInput> inputs{randomness_vrf_input, revealed_vrf_input};
 
-    auto sign_data = vrf::vrf_sign_data(
-        "sassafras-claim-v1.0"_bytes, transcript_data, inputs);
+    auto input_1 = slot_claim_input(randomness_, slot, epoch_);
+    auto input_2 =
+        revealed_key_input(randomness_, ticket_body.attempt_index, epoch_);
+    std::vector<vrf::VrfInput> inputs{input_1, input_2};
+
+    auto vrf_sign_data =  // consider to call slot_claim_sign_data()
+        vrf::vrf_sign_data("sassafras-slot-claim-transcript-v1.0"_bytes,
+                           transcript_data,
+                           inputs);
+
+    auto signature = vrf::vrf_sign(keypair_->first->secret_key, vrf_sign_data);
+
+    // Sign some data using the erased key to enforce our ownership
+    auto data = vrf::vrf_sign_data_challenge<32>(vrf_sign_data);
+
+    auto erased_pair =
+        ed25519_provider_->generateKeypair(ticket.erased_seed, {}).value();
+
+    auto erased_signature = ed25519_provider_->sign(erased_pair, data).value();
 
     return SlotLeadership{.authority_index = keypair_->second,
                           .keypair = keypair_->first,
-                          .sign_data = std::move(sign_data),
-                          .erased_seed = ticket.erased_seed};
+                          .signature = std::move(signature),
+                          .ticket_claim = TicketClaim{erased_signature}};
   }
 
   SlotLeadership SassafrasLotteryImpl::secondarySlotLeadership(
       SlotNumber slot) const {
     // --- Secondary Claim Method ---
 
-    const auto epoch_blob = common::uint64_to_be_bytes(epoch_);
-    const auto slot_blob = common::uint32_to_be_bytes(slot);
+    std::vector<vrf::VrfInput> inputs{
+        slot_claim_input(randomness_, slot, epoch_)};
 
-    std::vector<vrf::BytesIn> data{randomness_, epoch_blob, slot_blob};
+    auto vrf_sign_data =  // consider to call slot_claim_sign_data()
+        vrf::vrf_sign_data(
+            "sassafras-slot-claim-transcript-v1.0"_bytes, {}, inputs);
 
-    auto randomness_vrf_input =
-        vrf::vrf_input_from_data("sassafras-randomness-v1.0"_bytes, data);
-
-    std::vector<vrf::VrfInput> inputs{randomness_vrf_input};
-
-    auto sign_data = vrf::vrf_sign_data(
-        "sassafras-slot-claim-transcript-v1.0"_bytes, {}, inputs);
+    auto signature = vrf::vrf_sign(keypair_->first->secret_key, vrf_sign_data);
 
     return SlotLeadership{.authority_index = keypair_->second,
                           .keypair = keypair_->first,
-                          .sign_data = std::move(sign_data),
-                          .erased_seed = std::nullopt};
+                          .signature = std::move(signature),
+                          .ticket_claim = std::nullopt};
   }
 
 }  // namespace kagome::consensus::sassafras
