@@ -85,14 +85,17 @@ namespace kagome::consensus::sassafras {
      * @return true if signature is valid, false otherwise
      */
     bool verifySignature(const primitives::BlockHeader &header,
-                         const Signature &signature,
+                         const crypto::BandersnatchSignature &signature,
                          const Authority &public_key) const;
 
     outcome::result<void> verifyPrimaryClaim(const SlotClaim &claim,
-                                             const Epoch &config) const;
+                                             const Epoch &config,
+                                             const Authority &public_key) const;
 
-    outcome::result<void> verifySecondaryClaim(const SlotClaim &claim,
-                                               const Epoch &config) const;
+    outcome::result<void> verifySecondaryClaim(
+        const SlotClaim &claim,
+        const Epoch &config,
+        const Authority &public_key) const;
 
     log::Logger log_;
 

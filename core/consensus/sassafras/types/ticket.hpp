@@ -8,8 +8,8 @@
 
 #include <boost/multiprecision/cpp_int.hpp>
 
+#include "consensus/sassafras/impl/sassafras_vrf.hpp"
 #include "consensus/sassafras/types/sassafras_configuration.hpp"
-#include "consensus/sassafras/vrf.hpp"
 #include "consensus/timeline/types.hpp"
 #include "crypto/bandersnatch_types.hpp"
 #include "crypto/ed25519_types.hpp"
@@ -45,7 +45,7 @@ namespace kagome::consensus::sassafras {
   };
 
   /// Ticket ring vrf signature.
-  using TicketSignature = RingVrfSignature;
+  using TicketSignature = crypto::bandersnatch::vrf::RingVrfSignature;
 
   /// Ticket envelope used on during submission.
   struct TicketEnvelope {
@@ -57,24 +57,37 @@ namespace kagome::consensus::sassafras {
 
     friend scale::ScaleEncoderStream &operator<<(scale::ScaleEncoderStream &s,
                                                  const TicketEnvelope &x) {
-      return s  // << x.outputs
-                // << x.signature
-          ;
+      s << x.body;
+      s << x.signature;
+      return s;
     }
 
     friend scale::ScaleDecoderStream &operator>>(scale::ScaleDecoderStream &s,
                                                  TicketEnvelope &x) {
-      return s  // >> x.outputs
-                // >> x.signature
-          ;
+      s >> x.body;
+      s >> x.signature;
+      return s;
     }
   };
 
   /// Ticket claim information filled by the block author.
   struct TicketClaim {
-    SCALE_TIE(1);
+    // SCALE_TIE(1);
+
     /// Signature verified via `TicketBody::erased_public`.
     EphemeralSignature erased_signature;
+
+    friend scale::ScaleEncoderStream &operator<<(scale::ScaleEncoderStream &s,
+                                                 const TicketClaim &x) {
+      s << x.erased_signature;
+      return s;
+    }
+
+    friend scale::ScaleDecoderStream &operator>>(scale::ScaleDecoderStream &s,
+                                                 TicketClaim &x) {
+      s >> x.erased_signature;
+      return s;
+    }
   };
 
   struct Ticket {
