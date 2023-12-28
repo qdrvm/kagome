@@ -74,7 +74,10 @@ namespace kagome::network {
       BOOST_ASSERT(stream->remotePeerId().has_value());
       auto on_handshake = [](std::shared_ptr<Self> self,
                              std::shared_ptr<Stream> stream,
-                             Roles) { return true; };
+                             Roles) { 
+                              self->onHandshake(stream->remotePeerId().value());
+                              return true; 
+                              };
       auto on_message = [peer_id = stream->remotePeerId().value()](
                             std::shared_ptr<Self> self,
                             WireMessage<MessageType> message) {
@@ -147,9 +150,10 @@ namespace kagome::network {
    private:
     void onHandshake(const PeerId &peer) {
       if constexpr (kCollation) {
-        observer_->onIncomingCollationStream(peer);
+        /// TODO(iceseer): V1 is not supported because we should know it from stream
+        observer_->onIncomingCollationStream(peer, network::CollationVersion::VStaging);
       } else {
-        observer_->onIncomingValidationStream(peer);
+        observer_->onIncomingValidationStream(peer, network::CollationVersion::VStaging);
       }
     }
 
