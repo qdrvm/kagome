@@ -83,7 +83,7 @@ namespace kagome::transaction_pool {
               // return either invalid or unknown validity error
               [](const primitives::InvalidTransaction &validity_error)
                   -> outcome::result<primitives::Transaction> {
-                return validity_error;
+                return validity_error.kind;
               },
               [](const primitives::UnknownTransaction &validity_error)
                   -> outcome::result<primitives::Transaction> {
