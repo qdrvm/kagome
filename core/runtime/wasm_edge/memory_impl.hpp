@@ -46,9 +46,11 @@ namespace kagome::runtime::wasm_edge {
     template <typename T>
     T loadInt(WasmPointer addr) const {
       T data{};
-      [[maybe_unused]] auto res = WasmEdge_MemoryInstanceGetData(
+      auto res = WasmEdge_MemoryInstanceGetData(
           mem_instance_, reinterpret_cast<uint8_t *>(&data), addr, sizeof(T));
-      BOOST_ASSERT(WasmEdge_ResultOK(res));
+      if (not WasmEdge_ResultOK(res)) {
+        throw std::runtime_error{"WasmEdge_MemoryInstanceGetData"};
+      }
       if constexpr (std::is_integral_v<T>) {
         SL_TRACE_FUNC_CALL(logger_, data, addr);
       } else {
@@ -95,7 +97,9 @@ namespace kagome::runtime::wasm_edge {
 
     common::BufferView loadN(WasmPointer addr, WasmSize n) const override {
       auto ptr = WasmEdge_MemoryInstanceGetPointer(mem_instance_, addr, n);
-      BOOST_ASSERT(ptr);
+      if (ptr == nullptr) {
+        throw std::runtime_error{"WasmEdge_MemoryInstanceGetPointer"};
+      }
       SL_TRACE_FUNC_CALL(logger_, fmt::ptr(ptr), addr, n);
       return common::BufferView{ptr, static_cast<size_t>(n)};
     }
@@ -110,9 +114,11 @@ namespace kagome::runtime::wasm_edge {
 
     template <typename T>
     void storeInt(WasmPointer addr, T value) const {
-      [[maybe_unused]] auto res = WasmEdge_MemoryInstanceSetData(
+      auto res = WasmEdge_MemoryInstanceSetData(
           mem_instance_, reinterpret_cast<uint8_t *>(&value), addr, sizeof(T));
-      BOOST_ASSERT(WasmEdge_ResultOK(res));
+      if (not WasmEdge_ResultOK(res)) {
+        throw std::runtime_error{"WasmEdge_MemoryInstanceSetData"};
+      }
       if constexpr (std::is_integral_v<T>) {
         SL_TRACE_FUNC_CALL(
             logger_, WasmEdge_ResultGetMessage(res), addr, value);
@@ -148,8 +154,8 @@ namespace kagome::runtime::wasm_edge {
     void storeBuffer(WasmPointer addr, common::BufferView value) override {
       auto res = WasmEdge_MemoryInstanceSetData(
           mem_instance_, value.data(), addr, value.size());
-      if (!WasmEdge_ResultOK(res)) {
-        SL_ERROR(logger_, "{}", WasmEdge_ResultGetMessage(res));
+      if (not WasmEdge_ResultOK(res)) {
+        throw std::runtime_error{"WasmEdge_MemoryInstanceSetData"};
       }
       SL_TRACE_FUNC_CALL(logger_, WasmEdge_ResultGetMessage(res), addr);
     }

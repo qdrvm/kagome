@@ -30,9 +30,11 @@ namespace kagome::runtime::wasm_edge {
     if (new_size > size()) {
       auto old_page_num = WasmEdge_MemoryInstanceGetPageSize(mem_instance_);
       auto new_page_num = (new_size + kMemoryPageSize - 1) / kMemoryPageSize;
-      [[maybe_unused]] auto res = WasmEdge_MemoryInstanceGrowPage(
-          mem_instance_, new_page_num - old_page_num);
-      BOOST_ASSERT(WasmEdge_ResultOK(res));
+      auto res = WasmEdge_MemoryInstanceGrowPage(mem_instance_,
+                                                 new_page_num - old_page_num);
+      if (not WasmEdge_ResultOK(res)) {
+        throw std::runtime_error{"WasmEdge_MemoryInstanceGrowPage"};
+      }
       SL_DEBUG(logger_,
                "Grow memory to {} pages ({} bytes) - {}",
                new_page_num,
