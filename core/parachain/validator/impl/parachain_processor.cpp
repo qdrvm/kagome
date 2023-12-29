@@ -642,7 +642,7 @@ namespace kagome::parachain {
     }
 
     pending_collation.commitments_hash =
-        collation_response->get().receipt.commitments_hash;
+        receipt.commitments_hash;
 
     std::optional<runtime::PersistedValidationData> pvd;
     if (relay_parent_mode && pending_collation.prospective_candidate) {
@@ -674,8 +674,8 @@ namespace kagome::parachain {
 
     collations.status = CollationStatus::WaitingOnValidation;
     validateAsync<ValidationTaskType::kSecond>(
-        std::move(collation_response->get().receipt),
-        std::move(collation_response->get().pov),
+        std::move(receipt),
+        std::move(pov),
         std::move(*pvd),
         pending_collation.peer_id,
         pending_collation.relay_parent,
@@ -3169,13 +3169,12 @@ namespace kagome::parachain {
     } else if (candidate_hash) {
       auto &candidates =
           peer_data.collator_state->advertisements[on_relay_parent];
-      auto [it, inserted] = candidates.insert(*candidate_hash);
+      if (candidates.size() > relay_parent_mode->max_candidate_depth) {
+        return Error::PEER_LIMIT_REACHED;
+      }
+      auto [_, inserted] = candidates.insert(*candidate_hash);
       if (!inserted) {
         return Error::DUPLICATE;
-      }
-      if (candidates.size() > relay_parent_mode->max_candidate_depth) {
-        candidates.erase(*candidate_hash);
-        return Error::PEER_LIMIT_REACHED;
       }
     } else {
       return Error::PROTOCOL_MISMATCH;
