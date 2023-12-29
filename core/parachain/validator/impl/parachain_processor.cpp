@@ -2671,6 +2671,28 @@ namespace kagome::parachain {
           peer_id,
           validation_result.relay_parent);
 
+      const auto parent_head_data_hash = hasher_->blake2b_256(validation_result.pvd.parent_head);
+      const auto ph = hasher_->blake2b_256(validation_result.commitments->para_head);
+      if (parent_head_data_hash == ph) {
+        return;
+      }
+
+      HypotheticalCandidateComplete hypothetical_candidate{
+							.candidate_hash = candidate_hash,
+							.receipt = network::CommittedCandidateReceipt {
+                  .descriptor = validation_result.candidate.descriptor,
+                  .commitments = *validation_result.commitments,
+              },
+							.persisted_validation_data = validation_result.pvd,
+						};
+
+      fragment::FragmentTreeMembership fragment_tree_membership;
+      if (auto seconding_allowed = secondingSanityCheck(hypothetical_candidate, false)) {
+        fragment_tree_membership = std::move(*seconding_allowed);
+      } else {
+        return;
+      }
+
       seconded = candidate_hash;
       parachain_state.issued_statements.insert(candidate_hash);
       if (auto statement = createAndSignStatement<StatementType::kSeconded>(
@@ -2715,6 +2737,27 @@ namespace kagome::parachain {
         share_local_statement(
             parachain_state, validation_result.relay_parent, stm);
         notify(peer_id, validation_result.relay_parent, *statement);
+
+        if (auto it = our_current_state_.per_candidate.find(candidate_hash); it != our_current_state_.per_candidate.end()) {
+          it->second.seconded_locally = true;
+        } else {
+          SL_WARN(logger_, "Missing `per_candidate` for seconded candidate. (candidate hash={})", candidate_hash);
+        }
+
+        for (const auto &[leaf, depths] : fragment_tree_membership) {
+          auto it = our_current_state_.per_leaf.find(leaf);
+          if (it == our_current_state_.per_leaf.end()) {
+            SL_WARN(logger_, "Missing `per_leaf` for known active leaf. (leaf={})", leaf);
+            continue;
+          }
+
+          ActiveLeafState &leaf_data = it->second;
+          auto &seconded_at_depth = leaf_data.seconded_at_depth[validation_result.candidate.descriptor.para_id];
+
+          for (const auto &depth : depths) {
+            seconded_at_depth.emplace(depth, candidate_hash);
+          }
+        }
       }
     }
   }
