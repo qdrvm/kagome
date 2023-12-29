@@ -89,22 +89,31 @@ namespace kagome::crypto::bandersnatch::vrf {
 
   VrfSignature vrf_sign(BandersnatchSecretKey secret_key,
                         VrfSignData sign_data) {
+    auto signature_ptr = ::bandersnatch_vrf_sign(secret_key.data(), sign_data);
+
     static const size_t maxEncodedSize = 1
                                        + MAX_VRF_IOS * BANDERSNATCH_PREOUT_SIZE
                                        + BANDERSNATCH_SIGNATURE_SIZE;
     common::Blob<maxEncodedSize> buff;
-    ::bandersnatch_vrf_sign(secret_key.data(), sign_data, buff.data());
+    ::bandersnatch_vrf_signature_encode(signature_ptr, buff.data());
 
     return scale::decode<VrfSignature>(buff).value();
   }
 
   bool vrf_verify(const VrfSignature &signature,
                   VrfSignData sign_data,
-                  BandersnatchPublicKey public_key) {
+                  const BandersnatchPublicKey &public_key) {
     auto buff = scale::encode(signature).value();
 
+    auto signature_ptr =
+        ::bandersnatch_vrf_signature_decode(buff.data(), buff.size());
+
+    if (signature_ptr == nullptr) {
+      return false;
+    }
+
     return ::bandersnatch_vrf_verify(
-        buff.data(), buff.size(), sign_data, public_key.data());
+        signature_ptr, sign_data, public_key.data());
   }
 
   RingVrfSignature ring_vrf_sign(BandersnatchSecretKey secret_key,
@@ -124,11 +133,14 @@ namespace kagome::crypto::bandersnatch::vrf {
 
   bool ring_vrf_verify(const RingVrfSignature &signature,
                        VrfSignData sign_data,
-                       BandersnatchPublicKey public_key) {
+                       RingVerifier ring_verifier) {
     auto buff = scale::encode(signature).value();
 
+    auto signature_ptr =
+        ::bandersnatch_ring_vrf_signature_decode(buff.data(), buff.size());
+
     return ::bandersnatch_ring_vrf_verify(
-        buff.data(), buff.size(), sign_data, public_key.data());
+        signature_ptr, sign_data, ring_verifier);
   }
 
 }  // namespace kagome::crypto::bandersnatch::vrf

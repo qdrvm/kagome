@@ -15,6 +15,7 @@
 struct bandersnatch_VrfInput;
 struct bandersnatch_VrfOutput;
 struct bandersnatch_VrfSignData;
+struct bandersnatch_VrfSignature;
 struct bandersnatch_RingProver;
 struct bandersnatch_RingVerifier;
 struct bandersnatch_RingVrfSignature;
@@ -29,8 +30,7 @@ namespace kagome::crypto::bandersnatch::vrf {
   using VrfOutput = common::Blob<BANDERSNATCH_PREOUT_SIZE>;
   using VrfSignData = ::bandersnatch_VrfSignData *;
   using RingProver = const ::bandersnatch_RingProver *;
-  using RingVrifier = const ::bandersnatch_RingVerifier *;
-  // using RingVrfSignature = ::bandersnatch_RingVrfSignature *;
+  using RingVerifier = const ::bandersnatch_RingVerifier *;
   using RingSignature = common::Blob<BANDERSNATCH_RING_SIGNATURE_SIZE>;
   using Signature = common::Blob<BANDERSNATCH_SIGNATURE_SIZE>;
 
@@ -125,7 +125,7 @@ namespace kagome::crypto::bandersnatch::vrf {
 
   bool vrf_verify(const VrfSignature &signature,
                   VrfSignData sign_data,
-                  BandersnatchPublicKey public_key);
+                  const BandersnatchPublicKey &public_key);
 
   RingVrfSignature ring_vrf_sign(BandersnatchSecretKey secret_key,
                                  VrfSignData sign_data,
@@ -133,6 +133,6 @@ namespace kagome::crypto::bandersnatch::vrf {
 
   bool ring_vrf_verify(const RingVrfSignature &signature,
                        VrfSignData sign_data,
-                       BandersnatchPublicKey public_key);
+                       RingVerifier verifier);
 
 }  // namespace kagome::crypto::bandersnatch::vrf
