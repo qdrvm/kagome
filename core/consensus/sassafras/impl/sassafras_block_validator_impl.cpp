@@ -132,9 +132,7 @@ namespace kagome::consensus::sassafras {
   }
 
   outcome::result<void> SassafrasBlockValidatorImpl::verifyPrimaryClaim(
-      const SlotClaim &claim,
-      const Epoch &config,
-      const Authority &public_key) const {
+      const SlotClaim &claim, const Epoch &config) const {
     BOOST_ASSERT(claim.ticket_claim.has_value());
     const auto &ticket_claim = claim.ticket_claim.value();
 
@@ -177,11 +175,13 @@ namespace kagome::consensus::sassafras {
     // Optional check, increases some score...
     auto challenge = vrf::vrf_sign_data_challenge<32>(vrf_sign_data);
 
-    if (not vrf::vrf_verify(ticket_claim.erased_signature,
-                            challenge,
-                            ticket_body.erased_public)) {
+    if (not ed25519_provider_->verify(ticket_claim.erased_signature,
+                                      challenge,
+                                      ticket_body.erased_public)) {
       return ValidationError::INVALID_VRF;
     }
+
+    const auto &public_key = config.authorities[claim.authority_index];
 
     if (not vrf::vrf_verify(claim.signature, vrf_sign_data, public_key)) {
       return ValidationError::INVALID_VRF;
@@ -191,9 +191,7 @@ namespace kagome::consensus::sassafras {
   }
 
   outcome::result<void> SassafrasBlockValidatorImpl::verifySecondaryClaim(
-      const SlotClaim &claim,
-      const Epoch &config,
-      const Authority &public_key) const {
+      const SlotClaim &claim, const Epoch &config) const {
     auto auth_index_of_leader =
         le_bytes_to_uint64(hasher_->blake2b_64(
             scale::encode(config.randomness, claim.slot_number).value()))
@@ -209,6 +207,8 @@ namespace kagome::consensus::sassafras {
     auto vrf_sign_data =  // consider to call slot_claim_sign_data()
         vrf::vrf_sign_data(
             "sassafras-slot-claim-transcript-v1.0"_bytes, {}, inputs);
+
+    const auto &public_key = config.authorities[claim.authority_index];
 
     if (not vrf::vrf_verify(claim.signature, vrf_sign_data, public_key)) {
       return ValidationError::INVALID_VRF;

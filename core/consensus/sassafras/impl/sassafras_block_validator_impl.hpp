@@ -73,7 +73,6 @@ namespace kagome::consensus::sassafras {
         const primitives::BlockHeader &block_header,
         const EpochNumber epoch_number,
         const sassafras::AuthorityId &authority_id,
-        // const Threshold &threshold,
         const Epoch &config) const;
 
     /**
@@ -89,13 +88,10 @@ namespace kagome::consensus::sassafras {
                          const Authority &public_key) const;
 
     outcome::result<void> verifyPrimaryClaim(const SlotClaim &claim,
-                                             const Epoch &config,
-                                             const Authority &public_key) const;
+                                             const Epoch &config) const;
 
-    outcome::result<void> verifySecondaryClaim(
-        const SlotClaim &claim,
-        const Epoch &config,
-        const Authority &public_key) const;
+    outcome::result<void> verifySecondaryClaim(const SlotClaim &claim,
+                                               const Epoch &config) const;
 
     log::Logger log_;
 
