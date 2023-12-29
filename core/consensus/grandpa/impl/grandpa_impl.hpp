@@ -214,11 +214,9 @@ namespace kagome::consensus::grandpa {
     /**
      * Check justification votes signatures, ancestry and threshold.
      */
-    void verifyJustification(
+    outcome::result<void> verifyJustification(
         const GrandpaJustification &justification,
-        const AuthoritySet &authorities,
-        std::shared_ptr<std::promise<outcome::result<void>>> promise_res)
-        override;
+        const AuthoritySet &authorities) override;
 
     /**
      * Selects round that corresponds for justification, checks justification,
