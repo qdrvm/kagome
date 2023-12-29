@@ -18,6 +18,7 @@
 #include "common/uri.hpp"
 #include "log/logger.hpp"
 #include "offchain/types.hpp"
+#include "utils/asio_ssl_context_client.hpp"
 
 namespace kagome::offchain {
 
@@ -63,7 +64,7 @@ namespace kagome::offchain {
     int16_t id_;
 
     boost::asio::ip::tcp::resolver resolver_;
-    boost::asio::ssl::context ssl_ctx_;
+    std::optional<AsioSslContextClient> ssl_ctx_;
 
     using TcpStream = boost::beast::tcp_stream;
     using SslStream = boost::beast::ssl_stream<TcpStream>;
