@@ -24,6 +24,7 @@ namespace kagome::consensus::babe {
 }  // namespace kagome::consensus::babe
 
 namespace kagome::consensus::grandpa {
+  class IVerifiedJustificationQueue;
   class JustificationObserver;
   class AuthorityManager;
 }  // namespace kagome::consensus::grandpa
@@ -64,6 +65,8 @@ namespace kagome::network {
         std::shared_ptr<blockchain::BlockStorage> block_storage,
         std::shared_ptr<network::WarpSyncCache> warp_sync_cache,
         std::shared_ptr<consensus::grandpa::AuthorityManager> authority_manager,
+        std::shared_ptr<consensus::grandpa::IVerifiedJustificationQueue>
+            verified_justification_queue,
         std::shared_ptr<consensus::babe::BabeConfigRepository>
             babe_config_repository,
         std::shared_ptr<blockchain::BlockTree> block_tree);
@@ -91,6 +94,8 @@ namespace kagome::network {
     std::shared_ptr<blockchain::BlockStorage> block_storage_;
     std::shared_ptr<network::WarpSyncCache> warp_sync_cache_;
     std::shared_ptr<consensus::grandpa::AuthorityManager> authority_manager_;
+    std::shared_ptr<consensus::grandpa::IVerifiedJustificationQueue>
+        verified_justification_queue_;
     std::shared_ptr<consensus::babe::BabeConfigRepository>
         babe_config_repository_;
     std::shared_ptr<blockchain::BlockTree> block_tree_;

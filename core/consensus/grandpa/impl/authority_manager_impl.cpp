@@ -245,4 +245,71 @@ namespace kagome::consensus::grandpa {
     }
     indexer_.put(block, {value, std::nullopt}, true);
   }
+
+  AuthorityManager::ScheduledParentResult AuthorityManagerImpl::scheduledParent(
+      primitives::BlockInfo block) const {
+    std::unique_lock lock{mutex_};
+    OUTCOME_TRY(authoritiesOutcome(block, true));
+    auto skip = true;
+    while (true) {
+      auto r = indexer_.get(block);
+      if (not r) {
+        break;
+      }
+      if (not skip and not r->inherit) {
+        if (not r->value) {
+          break;
+        }
+        if (r->value->state) {
+          break;
+        }
+        if (not r->value->forced_target) {
+          return std::make_pair(block, r->value->next_set_id - 1);
+        }
+      } else {
+        skip = false;
+      }
+      if (not r->prev) {
+        break;
+      }
+      block = *r->prev;
+    }
+    return AuthorityManagerError::NOT_FOUND;
+  }
+
+  std::vector<primitives::BlockInfo> AuthorityManagerImpl::possibleScheduled()
+      const {
+    std::unique_lock lock{mutex_};
+    for (auto &hash : block_tree_->getLeaves()) {
+      if (auto r = block_tree_->getBlockHeader(hash)) {
+        auto &block = r.value();
+        std::ignore = authoritiesOutcome({block.number, hash}, true);
+      }
+    }
+    std::vector<primitives::BlockInfo> possible;
+    auto finalized = block_tree_->getLastFinalized();
+    auto last = finalized;
+    auto r = indexer_.get(last);
+    if (not r) {
+      return possible;
+    }
+    if (r->inherit) {
+      if (not r->prev) {
+        return possible;
+      }
+      last = *r->prev;
+      r = indexer_.get(last);
+      if (not r) {
+        return possible;
+      }
+    }
+    for (auto it = indexer_.map_.upper_bound(finalized);
+         it != indexer_.map_.end();
+         ++it) {
+      if (not it->second.inherit and it->second.prev == last) {
+        possible.emplace_back(it->first);
+      }
+    }
+    return possible;
+  }
 }  // namespace kagome::consensus::grandpa

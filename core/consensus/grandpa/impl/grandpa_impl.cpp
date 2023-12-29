@@ -1314,16 +1314,9 @@ namespace kagome::consensus::grandpa {
         });
   }
 
-  void GrandpaImpl::verifyJustification(
+  outcome::result<void> GrandpaImpl::verifyJustification(
       const GrandpaJustification &justification,
-      const AuthoritySet &authorities,
-      std::shared_ptr<std::promise<outcome::result<void>>> promise_res) {
-    REINVOKE(*internal_thread_context_,
-             verifyJustification,
-             justification,
-             authorities,
-             std::move(promise_res));
-
+      const AuthoritySet &authorities) {
     auto voters = VoterSet::make(authorities).value();
     MovableRoundState state;
     state.round_number = justification.round_number;
@@ -1340,8 +1333,7 @@ namespace kagome::consensus::grandpa {
             primitives::BlockInfo{}, voters, environment_),
         scheduler_,
         state);
-    promise_res->set_value(
-        round->validatePrecommitJustification(justification));
+    return round->validatePrecommitJustification(justification);
   }
 
   void GrandpaImpl::applyJustification(
@@ -1351,7 +1343,33 @@ namespace kagome::consensus::grandpa {
              applyJustification,
              justification,
              std::move(callback));
-    auto round_opt = selectRound(justification.round_number, std::nullopt);
+    auto authorities_opt = authority_manager_->authorities(
+        justification.block_info, IsBlockFinalized{false});
+    if (not authorities_opt) {
+      callbackCall(std::move(callback),
+                   VotingRoundError::NO_KNOWN_AUTHORITIES_FOR_BLOCK);
+      return;
+    }
+    auto &authority_set = authorities_opt.value();
+    auto round_opt = selectRound(justification.round_number, authority_set->id);
+    if (not round_opt
+        and std::pair{authority_set->id, justification.round_number}
+                < std::pair{current_round_->voterSetId(),
+                            current_round_->roundNumber()}) {
+      auto r = verifyJustification(justification, *authority_set);
+      if (r.has_error()) {
+        SL_WARN(logger_,
+                "verify justification block {} set {} round {}: {}",
+                justification.block_info.number,
+                authority_set->id,
+                justification.round_number,
+                r.error());
+      } else {
+        r = environment_->finalize(authority_set->id, justification);
+      }
+      callbackCall(std::move(callback), std::move(r));
+      return;
+    }
     std::shared_ptr<VotingRound> round;
     bool need_to_make_round_current = false;
     if (round_opt.has_value()) {
@@ -1364,15 +1382,6 @@ namespace kagome::consensus::grandpa {
                      VotingRoundError::JUSTIFICATION_FOR_BLOCK_IN_PAST);
         return;
       }
-
-      auto authorities_opt = authority_manager_->authorities(
-          justification.block_info, IsBlockFinalized{false});
-      if (!authorities_opt) {
-        callbackCall(std::move(callback),
-                     VotingRoundError::NO_KNOWN_AUTHORITIES_FOR_BLOCK);
-        return;
-      }
-      auto &authority_set = authorities_opt.value();
 
       auto prev_round_opt =
           selectRound(justification.round_number - 1, authority_set->id);
