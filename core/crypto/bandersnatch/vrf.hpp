@@ -64,15 +64,15 @@ namespace kagome::crypto::bandersnatch::vrf {
 
     friend scale::ScaleEncoderStream &operator<<(scale::ScaleEncoderStream &s,
                                                  const VrfSignature &x) {
-      s << x.outputs;
       s << x.signature;
+      s << x.outputs;
       return s;
     }
 
     friend scale::ScaleDecoderStream &operator>>(scale::ScaleDecoderStream &s,
                                                  VrfSignature &x) {
-      s >> x.outputs;
       s >> x.signature;
+      s >> x.outputs;
       return s;
     }
   };

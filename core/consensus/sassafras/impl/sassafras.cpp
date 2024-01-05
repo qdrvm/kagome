@@ -252,8 +252,8 @@ namespace kagome::consensus::sassafras {
     SlotClaim slot_claim{
         .authority_index = slot_leadership_.authority_index,
         .slot_number = slot_,
-        .signature = {},               // FIXME
-        .ticket_claim = std::nullopt,  // FIXME
+        .signature = slot_leadership_.signature,
+        .ticket_claim = slot_leadership_.ticket_claim,
     };
 
     auto encode_res = scale::encode(slot_claim);
@@ -367,7 +367,7 @@ namespace kagome::consensus::sassafras {
                pre_digest_res.error());
       return BlockProductionError::CAN_NOT_PREPARE_BLOCK;
     }
-    const auto &pre_digest = pre_digest_res.value();
+    auto &pre_digest = pre_digest_res.value();
 
     auto propose = [self = shared_from_this(),
                     inherent_data = std::move(inherent_data),
@@ -385,7 +385,7 @@ namespace kagome::consensus::sassafras {
                                    self->slots_util_.get()->slotFinishTime(slot)
                                        - self->timings_.slot_duration / 3,
                                    inherent_data,
-                                   {pre_digest},
+                                   {std::move(pre_digest)},
                                    changes_tracker);
       if (not res) {
         SL_ERROR(self->log_, "Cannot propose a block: {}", res.error());

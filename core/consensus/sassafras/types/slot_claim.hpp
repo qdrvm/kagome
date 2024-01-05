@@ -29,6 +29,10 @@ namespace kagome::consensus::sassafras {
 
     friend scale::ScaleEncoderStream &operator<<(scale::ScaleEncoderStream &s,
                                                  const SlotClaim &x) {
+      s << x.authority_index;
+      s << x.slot_number;
+      s << x.signature;
+      s << x.ticket_claim;
       return s;
     }
 
