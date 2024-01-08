@@ -91,5 +91,8 @@ target_link_libraries(memory_allocator
 kagome_install(memory_allocator)
 
 add_library(core_api_factory core_api_factory_impl.cpp)
-target_link_libraries(core_api_factory outcome)
+target_link_libraries(core_api_factory
+    core_api
+    outcome
+    )
 kagome_install(core_api_factory)
