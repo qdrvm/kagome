@@ -14,6 +14,7 @@
 #include "blockchain/block_tree.hpp"
 #include "consensus/grandpa/authority_manager.hpp"
 #include "consensus/grandpa/has_authority_set_change.hpp"
+#include "consensus/grandpa/i_verified_justification_queue.hpp"
 #include "consensus/grandpa/justification_observer.hpp"
 #include "consensus/grandpa/movable_round_state.hpp"
 #include "consensus/grandpa/voting_round_error.hpp"
@@ -39,6 +40,7 @@ namespace kagome::consensus::grandpa {
       std::shared_ptr<network::GrandpaTransmitter> transmitter,
       std::shared_ptr<parachain::IApprovedAncestor> approved_ancestor,
       LazySPtr<JustificationObserver> justification_observer,
+      std::shared_ptr<IVerifiedJustificationQueue> verified_justification_queue,
       std::shared_ptr<dispute::DisputeCoordinator> dispute_coordinator,
       std::shared_ptr<runtime::ParachainHost> parachain_api,
       std::shared_ptr<parachain::BackingStore> backing_store,
@@ -50,6 +52,7 @@ namespace kagome::consensus::grandpa {
         transmitter_{std::move(transmitter)},
         approved_ancestor_(std::move(approved_ancestor)),
         justification_observer_(std::move(justification_observer)),
+        verified_justification_queue_(std::move(verified_justification_queue)),
         dispute_coordinator_(std::move(dispute_coordinator)),
         parachain_api_(std::move(parachain_api)),
         backing_store_(std::move(backing_store)),
@@ -393,12 +396,7 @@ namespace kagome::consensus::grandpa {
 
   outcome::result<void> EnvironmentImpl::finalize(
       VoterSetId id, const GrandpaJustification &grandpa_justification) {
-    primitives::Justification justification;
-    OUTCOME_TRY(enc, scale::encode(grandpa_justification));
-    justification.data.put(enc);
-    OUTCOME_TRY(block_tree_->finalize(grandpa_justification.block_info.hash,
-                                      justification));
-
+    verified_justification_queue_->addVerified(id, grandpa_justification);
     return outcome::success();
   }
 

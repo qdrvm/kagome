@@ -69,6 +69,7 @@
 #include "consensus/grandpa/impl/authority_manager_impl.hpp"
 #include "consensus/grandpa/impl/environment_impl.hpp"
 #include "consensus/grandpa/impl/grandpa_impl.hpp"
+#include "consensus/grandpa/impl/verified_justification_queue.hpp"
 #include "consensus/production_consensus.hpp"
 #include "consensus/timeline/impl/block_appender_base.hpp"
 #include "consensus/timeline/impl/block_executor_impl.hpp"
@@ -736,6 +737,7 @@ namespace {
             di::bind<clock::SteadyClock>.template to<clock::SteadyClockImpl>(),
             di::bind<clock::Timer>.template to<clock::BasicWaitableTimer>(),
             di::bind<network::Synchronizer>.template to<network::SynchronizerImpl>(),
+            di::bind<consensus::grandpa::IVerifiedJustificationQueue>.template to<consensus::grandpa::VerifiedJustificationQueue>(),
             di::bind<consensus::grandpa::Environment>.template to<consensus::grandpa::EnvironmentImpl>(),
             di::bind<parachain::IApprovedAncestor>.template to<parachain::ApprovalDistribution>(),
             di::bind<crypto::EcdsaProvider>.template to<crypto::EcdsaProviderImpl>(),

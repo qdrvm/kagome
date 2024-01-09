@@ -266,21 +266,26 @@ namespace kagome::primitives::events {
         : sub{std::make_shared<primitives::events::ChainEventSubscriber>(
             std::move(engine))} {}
 
-    void onFinalize(auto f) {
-      sub->subscribe(sub->generateSubscriptionSetId(),
-                     ChainEventType::kFinalizedHeads);
+    void onBlock(ChainEventType type, auto f) {
+      sub->subscribe(sub->generateSubscriptionSetId(), type);
       sub->setCallback(
           [f{std::move(f)}](subscription::SubscriptionSetId,
                             ChainSubscriptionEngine::ReceiverType &,
                             ChainEventType,
                             const ChainEventParams &args) {
-            auto &block = boost::get<HeadsEventParams>(args);
+            auto &block = boost::get<HeadsEventParams>(args).get();
             if constexpr (std::is_invocable_v<decltype(f)>) {
               f();
             } else {
               f(block);
             }
           });
+    }
+    void onFinalize(auto f) {
+      onBlock(ChainEventType::kFinalizedHeads, std::move(f));
+    }
+    void onHead(auto f) {
+      onBlock(ChainEventType::kNewHeads, std::move(f));
     }
 
     ChainEventSubscriberPtr sub;
