@@ -498,7 +498,7 @@ namespace kagome::parachain {
           statement,
           [&](const StatementWithPVDSeconded &val) {
             return hasher_->blake2b_256(
-                scale::encode(candidateFromCommittedCandidateReceipt(
+                ::scale::encode(candidateFromCommittedCandidateReceipt(
                                   val.committed_receipt))
                     .value());
           },
