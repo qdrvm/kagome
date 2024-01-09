@@ -115,6 +115,7 @@ class ChainTest : public testing::Test {
       grandpa_transmitter,
       approved_ancestor,
       testutil::sptr_to_lazy<JustificationObserver>(grandpa_),
+      nullptr,
       dispute_coordinator,
       parachain_api,
       backing_store,

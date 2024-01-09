@@ -18,6 +18,16 @@ namespace kagome::consensus::grandpa {
                 (const primitives::BlockInfo &, IsBlockFinalized),
                 (const, override));
 
+    MOCK_METHOD(ScheduledParentResult,
+                scheduledParent,
+                (primitives::BlockInfo),
+                (const, override));
+
+    MOCK_METHOD(std::vector<primitives::BlockInfo>,
+                possibleScheduled,
+                (),
+                (const, override));
+
     MOCK_METHOD(void,
                 warp,
                 (const primitives::BlockInfo &,

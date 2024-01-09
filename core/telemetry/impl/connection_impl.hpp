@@ -24,6 +24,7 @@
 #include <libp2p/basic/scheduler.hpp>
 #include "log/logger.hpp"
 #include "telemetry/impl/message_pool.hpp"
+#include "utils/asio_ssl_context_client.hpp"
 
 namespace kagome::telemetry {
 
@@ -135,7 +136,7 @@ namespace kagome::telemetry {
     std::string path_;
     std::string ws_handshake_hostname_;
 
-    boost::asio::ssl::context ssl_ctx_;
+    std::optional<AsioSslContextClient> ssl_ctx_;
     boost::asio::ip::tcp::resolver resolver_;
     boost::variant<WsTcpStreamPtr, WsSslStreamPtr> ws_;
 

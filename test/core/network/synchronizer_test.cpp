@@ -94,6 +94,7 @@ class SynchronizerTest
                                                     storage,
                                                     state_pruner,
                                                     router,
+                                                    nullptr,
                                                     scheduler,
                                                     hasher,
                                                     chain_sub_engine,

@@ -15,8 +15,8 @@
 #include <boost/asio/io_context.hpp>
 #include <soralog/util.hpp>
 
-#include "utils/weak_io_context_post.hpp"
 #include "utils/watchdog.hpp"
+#include "utils/weak_io_context_post.hpp"
 
 namespace kagome {
 
@@ -49,8 +49,16 @@ namespace kagome {
       }
     }
 
+    friend void post(ThreadHandler &self, auto f) {
+      return self.execute(std::move(f));
+    }
+
     bool isInCurrentThread() const {
       return runningInThisThread(ioc_);
+    }
+
+    friend bool runningInThisThread(const ThreadHandler &self) {
+      return self.isInCurrentThread();
     }
 
    private:
@@ -120,19 +128,3 @@ namespace kagome {
     std::vector<std::thread> threads_;
   };
 }  // namespace kagome
-
-#define REINVOKE(ctx, func, ...)                                             \
-  do {                                                                       \
-    if (not(ctx).isInCurrentThread()) {                                      \
-      return (ctx).execute([weak = weak_from_this(),                         \
-                            args = std::make_tuple(__VA_ARGS__)]() mutable { \
-        if (auto self = weak.lock()) {                                       \
-          std::apply(                                                        \
-              [&](auto &&...args) mutable {                                  \
-                self->func(std::forward<decltype(args)>(args)...);           \
-              },                                                             \
-              std::move(args));                                              \
-        }                                                                    \
-      });                                                                    \
-    }                                                                        \
-  } while (false)
