@@ -210,12 +210,9 @@ namespace kagome::primitives {
     // std::error_code policy
     value++;
     v.kind = static_cast<UnknownTransaction::Kind>(value);
-    fmt::print("Decoded UnknownTransaction kind {}", static_cast<int>(v.kind));
 
     if (value == UnknownTransaction::Custom) {
       s >> v.custom_value;
-    } else {
-      fmt::print("No UnknownTransaction value");
     }
 
     return s;
