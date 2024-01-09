@@ -213,9 +213,7 @@ namespace kagome::primitives {
     fmt::print("Decoded UnknownTransaction kind {}", static_cast<int>(v.kind));
 
     if (value == UnknownTransaction::Custom) {
-      s >> value;
-      v.custom_value = value;
-      fmt::print("Decoded UnknownTransaction value {}", v.custom_value);
+      s >> v.custom_value;
     } else {
       fmt::print("No UnknownTransaction value");
     }
