@@ -32,8 +32,11 @@ namespace kagome::crypto {
   class Hasher;
   class BandersnatchProvider;
   class Ed25519Provider;
-  class VRFProvider;
 }  // namespace kagome::crypto
+
+namespace kagome::runtime {
+  class SassafrasApi;
+}
 
 namespace kagome::consensus::sassafras {
 
@@ -47,7 +50,7 @@ namespace kagome::consensus::sassafras {
         std::shared_ptr<crypto::Hasher> hasher,
         std::shared_ptr<crypto::BandersnatchProvider> bandersnatch_provider,
         std::shared_ptr<crypto::Ed25519Provider> ed25519_provider,
-        std::shared_ptr<crypto::VRFProvider> vrf_provider);
+        std::shared_ptr<runtime::SassafrasApi> api);
 
     outcome::result<void> validateHeader(
         const primitives::BlockHeader &block_header) const;
@@ -57,7 +60,9 @@ namespace kagome::consensus::sassafras {
       INVALID_SIGNATURE,
       INVALID_VRF,
       TWO_BLOCKS_IN_SLOT,
-      WRONG_AUTHOR_OF_SECONDARY_CLAIM
+      WRONG_AUTHOR_OF_SECONDARY_CLAIM,
+      TICKET_UNAVAILABLE,
+      WRONG_PRIMARY_CLAIMING,
     };
 
    private:
@@ -87,8 +92,10 @@ namespace kagome::consensus::sassafras {
                          const crypto::BandersnatchSignature &signature,
                          const Authority &public_key) const;
 
-    outcome::result<void> verifyPrimaryClaim(const SlotClaim &claim,
-                                             const Epoch &config) const;
+    outcome::result<void> verifyPrimaryClaim(
+        const SlotClaim &claim,
+        const Epoch &config,
+        const primitives::BlockHeader &header) const;
 
     outcome::result<void> verifySecondaryClaim(const SlotClaim &claim,
                                                const Epoch &config) const;
@@ -100,7 +107,7 @@ namespace kagome::consensus::sassafras {
     std::shared_ptr<crypto::Hasher> hasher_;
     std::shared_ptr<crypto::BandersnatchProvider> bandersnatch_provider_;
     std::shared_ptr<crypto::Ed25519Provider> ed25519_provider_;
-    std::shared_ptr<crypto::VRFProvider> vrf_provider_;
+    std::shared_ptr<runtime::SassafrasApi> api_;
   };
 
 }  // namespace kagome::consensus::sassafras

@@ -26,3 +26,11 @@ add_subdirectory(subscription)
 add_subdirectory(telemetry)
 add_subdirectory(transaction_pool)
 add_subdirectory(dispute_coordinator)
+
+addtest(experiment
+    experiment.cpp
+)
+target_link_libraries(experiment
+    consensus
+    scale::scale
+)

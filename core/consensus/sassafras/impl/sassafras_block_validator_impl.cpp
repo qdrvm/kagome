@@ -16,12 +16,10 @@
 #include "consensus/timeline/slots_util.hpp"
 #include "crypto/bandersnatch_provider.hpp"
 #include "crypto/ed25519_provider.hpp"
-#include "crypto/vrf_provider.hpp"
 #include "metrics/histogram_timer.hpp"
 #include "primitives/inherent_data.hpp"
-#include "runtime/runtime_api/offchain_worker_api.hpp"
+#include "runtime/runtime_api/sassafras_api.hpp"
 #include "storage/trie/serialization/ordered_trie_hash.hpp"
-#include "threshold_util.hpp"
 
 OUTCOME_CPP_DEFINE_CATEGORY(kagome::consensus::sassafras,
                             SassafrasBlockValidatorImpl::ValidationError,
@@ -39,6 +37,10 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::consensus::sassafras,
       return "peer tried to distribute several blocks in one slot";
     case E::WRONG_AUTHOR_OF_SECONDARY_CLAIM:
       return "Wrong author of secondary claim of slot";
+    case E::TICKET_UNAVAILABLE:
+      return "can't obtain ticket for slot";
+    case E::WRONG_PRIMARY_CLAIMING:
+      return "Unexpected primary authoring mechanism";
   }
   return "unknown error";
 }
@@ -51,19 +53,19 @@ namespace kagome::consensus::sassafras {
       std::shared_ptr<crypto::Hasher> hasher,
       std::shared_ptr<crypto::BandersnatchProvider> bandersnatch_provider,
       std::shared_ptr<crypto::Ed25519Provider> ed25519_provider,
-      std::shared_ptr<crypto::VRFProvider> vrf_provider)
+      std::shared_ptr<runtime::SassafrasApi> api)
       : log_(log::createLogger("SassafrasBlockValidator", "sassafras")),
         slots_util_(std::move(slots_util)),
         config_repo_(std::move(config_repo)),
         hasher_(std::move(hasher)),
         bandersnatch_provider_(std::move(bandersnatch_provider)),
         ed25519_provider_(std::move(ed25519_provider)),
-        vrf_provider_(std::move(vrf_provider)) {
+        api_(std::move(api)) {
     BOOST_ASSERT(config_repo_);
     BOOST_ASSERT(hasher_);
     BOOST_ASSERT(bandersnatch_provider_);
     BOOST_ASSERT(ed25519_provider_);
-    BOOST_ASSERT(vrf_provider_);
+    BOOST_ASSERT(api_);
   }
 
   outcome::result<void> SassafrasBlockValidatorImpl::validateHeader(
@@ -99,17 +101,17 @@ namespace kagome::consensus::sassafras {
              epoch,
              config.randomness);
 
-    if (slot_claim.ticket_claim.has_value()) {
-      OUTCOME_TRY(verifyPrimaryClaim(slot_claim, config));
-    } else {
-      OUTCOME_TRY(verifySecondaryClaim(slot_claim, config));
-    }
-
     // signature in seal of the header must be valid
     if (!verifySignature(header,
                          seal.signature,
                          config.authorities[slot_claim.authority_index])) {
       return ValidationError::INVALID_SIGNATURE;
+    }
+
+    if (slot_claim.ticket_claim.has_value()) {
+      OUTCOME_TRY(verifyPrimaryClaim(slot_claim, config, header));
+    } else {
+      OUTCOME_TRY(verifySecondaryClaim(slot_claim, config));
     }
 
     return outcome::success();
@@ -132,12 +134,33 @@ namespace kagome::consensus::sassafras {
   }
 
   outcome::result<void> SassafrasBlockValidatorImpl::verifyPrimaryClaim(
-      const SlotClaim &claim, const Epoch &config) const {
+      const SlotClaim &claim,
+      const Epoch &config,
+      const primitives::BlockHeader &header) const {
     BOOST_ASSERT(claim.ticket_claim.has_value());
     const auto &ticket_claim = claim.ticket_claim.value();
 
-    TicketId ticket_id;      // TODO ???
-    TicketBody ticket_body;  // TODO ???
+    // Get ticket assigned with slot
+    auto ticket_res = api_->slot_ticket(header.parent_hash, claim.slot_number);
+    if (ticket_res.has_error()) {
+      BOOST_ASSERT_MSG(
+          header.number > 0,
+          "Blocks of beginning epoch are produced only by secondary way");
+      SL_WARN(log_,
+              "Can't get ticket for a slot {} on block {}: {}",
+              claim.slot_number,
+              header.parentInfo().value(),
+              ticket_res.error());
+      return ValidationError::TICKET_UNAVAILABLE;
+    }
+    const auto &ticket_opt = ticket_res.value();
+
+    // No ticket expected for ticket claiming
+    if (not ticket_opt.has_value()) {
+      SL_WARN(log_, "Unexpected primary authoring mechanism");
+      return ValidationError::WRONG_PRIMARY_CLAIMING;
+    }
+    const auto &[ticket_id, ticket_body] = ticket_opt.value();
 
     // Revealed key check
 
@@ -207,6 +230,9 @@ namespace kagome::consensus::sassafras {
     auto vrf_sign_data =  // consider to call slot_claim_sign_data()
         vrf::vrf_sign_data(
             "sassafras-slot-claim-transcript-v1.0"_bytes, {}, inputs);
+
+    //    auto vrf_sign_data = slot_claim_sign_data(
+    //        config.randomness, claim.slot_number, config.epoch_index);
 
     const auto &public_key = config.authorities[claim.authority_index];
 
