@@ -18,12 +18,27 @@ namespace kagome {
       // X509_V_ERR_UNABLE_TO_GET_ISSUER_CERT
       // X509_V_ERR_UNABLE_TO_GET_ISSUER_CERT_LOCALLY
       [[maybe_unused]] static bool find_system_certificates = [] {
+        // SSL_CERT_FILE
+        if (getenv(X509_get_default_cert_file_env()) != nullptr) {
+          return true;
+        }
+        // SSL_CERT_DIR
+        if (getenv(X509_get_default_cert_dir_env()) != nullptr) {
+          return true;
+        }
         constexpr auto extra = "/etc/ssl/cert.pem";
-        if (getenv(X509_get_default_cert_file_env()) == nullptr
-            and getenv(X509_get_default_cert_dir_env()) == nullptr
-            and std::string_view{X509_get_default_cert_file()} != extra
+        if (std::string_view{X509_get_default_cert_file()} != extra
             and std::filesystem::exists(extra)) {
           setenv(X509_get_default_cert_file_env(), extra, true);
+          return true;
+        }
+        constexpr auto extra_dir = "/etc/ssl/certs";
+        std::error_code ec;
+        if (std::string_view{X509_get_default_cert_dir()} != extra_dir
+            and std::filesystem::directory_iterator{extra_dir, ec}
+                    != std::filesystem::directory_iterator{}) {
+          setenv(X509_get_default_cert_dir_env(), extra_dir, true);
+          return true;
         }
         return true;
       }();
