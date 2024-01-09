@@ -523,9 +523,13 @@ namespace kagome::parachain {
                              const network::CandidateHash &candidate_hash,
                              const network::ParachainBlock &pov,
                              const runtime::PersistedValidationData &data);
-    void share_local_statement(RelayParentState &per_relay_parent,
-                               const primitives::BlockHash &relay_parent,
-                               const SignedFullStatementWithPVD &statement);
+    void share_local_statement_vstaging(
+        RelayParentState &per_relay_parent,
+        const primitives::BlockHash &relay_parent,
+        const SignedFullStatementWithPVD &statement);
+    void share_local_statement_v1(RelayParentState &per_relay_parent,
+                                  const primitives::BlockHash &relay_parent,
+                                  const SignedFullStatementWithPVD &statement);
     void notify(const libp2p::peer::PeerId &peer_id,
                 const primitives::BlockHash &relay_parent,
                 const network::SignedStatement &statement);
