@@ -41,6 +41,7 @@ target_link_libraries(network
     core_api
     light_api_proto
     p2p::p2p_basic_scheduler
+    p2p::p2p_ping
     runtime_transaction_error
     executor
     scale_libp2p_types
