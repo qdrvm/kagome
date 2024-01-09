@@ -63,6 +63,7 @@ namespace kagome::crypto::bandersnatch::vrf {
   VrfSignData vrf_sign_data(libp2p::BytesIn label,
                             std::span<libp2p::BytesIn> data,
                             std::span<VrfInput> inputs) {
+    BOOST_ASSERT(inputs.size() <= vrf::MAX_VRF_IOS);
     std::vector<const uint8_t *> data_ptrs;
     std::vector<size_t> data_sizes;
     for (auto &d : data) {
@@ -70,13 +71,15 @@ namespace kagome::crypto::bandersnatch::vrf {
       data_sizes.push_back(d.size());
     }
 
-    return ::bandersnatch_vrf_sign_data(label.data(),
-                                        label.size(),
-                                        data_ptrs.data(),
-                                        data_sizes.data(),
-                                        data.size(),
-                                        inputs.data(),
-                                        inputs.size());
+    auto res = ::bandersnatch_vrf_sign_data(label.data(),
+                                            label.size(),
+                                            data_ptrs.data(),
+                                            data_sizes.data(),
+                                            data.size(),
+                                            inputs.data(),
+                                            inputs.size());
+
+    return res;
   }
 
   template <>
@@ -97,7 +100,8 @@ namespace kagome::crypto::bandersnatch::vrf {
     common::Blob<maxEncodedSize> buff;
     ::bandersnatch_vrf_signature_encode(signature_ptr, buff.data());
 
-    return scale::decode<VrfSignature>(buff).value();
+    auto res = scale::decode<VrfSignature>(buff).value();
+    return res;
   }
 
   bool vrf_verify(const VrfSignature &signature,
@@ -112,8 +116,10 @@ namespace kagome::crypto::bandersnatch::vrf {
       return false;
     }
 
-    return ::bandersnatch_vrf_verify(
-        signature_ptr, sign_data, public_key.data());
+    auto res =
+        ::bandersnatch_vrf_verify(signature_ptr, sign_data, public_key.data());
+
+    return res;
   }
 
   RingVrfSignature ring_vrf_sign(BandersnatchSecretKey secret_key,
@@ -128,7 +134,8 @@ namespace kagome::crypto::bandersnatch::vrf {
     common::Blob<maxEncodedSize> buff;
     ::bandersnatch_ring_vrf_signature_encode(ring_signature_ptr, buff.data());
 
-    return scale::decode<RingVrfSignature>(buff).value();
+    auto res = scale::decode<RingVrfSignature>(buff).value();
+    return res;
   }
 
   bool ring_vrf_verify(const RingVrfSignature &signature,
@@ -139,8 +146,9 @@ namespace kagome::crypto::bandersnatch::vrf {
     auto signature_ptr =
         ::bandersnatch_ring_vrf_signature_decode(buff.data(), buff.size());
 
-    return ::bandersnatch_ring_vrf_verify(
-        signature_ptr, sign_data, ring_verifier);
+    auto res =
+        ::bandersnatch_ring_vrf_verify(signature_ptr, sign_data, ring_verifier);
+    return res;
   }
 
 }  // namespace kagome::crypto::bandersnatch::vrf

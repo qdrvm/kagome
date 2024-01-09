@@ -10,6 +10,7 @@ addtest(bandersnatch_test
 target_link_libraries(bandersnatch_test
     bip39_provider
     bandersnatch_provider
+    bandersnatch_vrf
     p2p::p2p_random_generator
     logger_for_tests
     )

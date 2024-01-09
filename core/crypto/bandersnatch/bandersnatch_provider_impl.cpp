@@ -34,7 +34,7 @@ namespace kagome::crypto {
 
     BandersnatchSignature signature;
 
-    bandersnatch_sign(
+    ::bandersnatch_sign(
         seed.data(), message.data(), message.size(), signature.data());
 
     return signature;
@@ -44,8 +44,8 @@ namespace kagome::crypto {
       const BandersnatchSignature &signature,
       common::BufferView message,
       const BandersnatchPublicKey &public_key) const {
-    return bandersnatch_verify(
-        public_key.data(), message.data(), message.size(), signature.data());
+    return ::bandersnatch_verify(
+        signature.data(), message.data(), message.size(), public_key.data());
   }
 
 }  // namespace kagome::crypto

@@ -29,8 +29,8 @@ namespace kagome::consensus::sassafras {
   vrf::VrfInput slot_claim_input(const Randomness &randomness,
                                  SlotNumber slot,
                                  EpochNumber epoch) {
-    const auto slot_blob = common::uint32_to_be_bytes(slot);
-    const auto epoch_blob = common::uint64_to_be_bytes(epoch);
+    const auto slot_blob = common::uint64_to_le_bytes(slot);
+    const auto epoch_blob = common::uint64_to_le_bytes(epoch);
     std::vector<vrf::BytesIn> data{randomness, slot_blob, epoch_blob};
     return vrf::vrf_input_from_data("sassafras-claim-v1.0"_bytes, data);
   }
@@ -49,8 +49,8 @@ namespace kagome::consensus::sassafras {
   vrf::VrfInput ticket_id_input(const Randomness &randomness,
                                 AttemptsNumber attempt,
                                 EpochNumber epoch) {
-    const auto attempt_blob = common::uint32_to_be_bytes(attempt);
-    const auto epoch_blob = common::uint64_to_be_bytes(epoch);
+    const auto attempt_blob = common::uint32_to_le_bytes(attempt);
+    const auto epoch_blob = common::uint64_to_le_bytes(epoch);
     std::vector<vrf::BytesIn> data{randomness, attempt_blob, epoch_blob};
     return vrf::vrf_input_from_data("sassafras-ticket-v1.0"_bytes, data);
   }
@@ -65,8 +65,8 @@ namespace kagome::consensus::sassafras {
   vrf::VrfInput revealed_key_input(const Randomness &randomness,
                                    AttemptsNumber attempt,
                                    EpochNumber epoch) {
-    const auto attempt_blob = common::uint32_to_be_bytes(attempt);
-    const auto epoch_blob = common::uint64_to_be_bytes(epoch);
+    const auto attempt_blob = common::uint32_to_le_bytes(attempt);
+    const auto epoch_blob = common::uint64_to_le_bytes(epoch);
     std::vector<vrf::BytesIn> data{randomness, attempt_blob, epoch_blob};
     return vrf::vrf_input_from_data("sassafras-revealed-v1.0"_bytes, data);
   }

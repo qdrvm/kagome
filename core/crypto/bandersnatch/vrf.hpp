@@ -64,15 +64,15 @@ namespace kagome::crypto::bandersnatch::vrf {
 
     friend scale::ScaleEncoderStream &operator<<(scale::ScaleEncoderStream &s,
                                                  const VrfSignature &x) {
-      s << x.signature;
       s << x.outputs;
+      s << x.signature;
       return s;
     }
 
     friend scale::ScaleDecoderStream &operator>>(scale::ScaleDecoderStream &s,
                                                  VrfSignature &x) {
-      s >> x.signature;
       s >> x.outputs;
+      s >> x.signature;
       return s;
     }
   };
@@ -102,7 +102,7 @@ namespace kagome::crypto::bandersnatch::vrf {
     }
   };
 
-  VrfInput vrf_input(BytesIn domain, BytesIn data);
+  //  VrfInput vrf_input(BytesIn domain, BytesIn data);
 
   VrfInput vrf_input_from_data(BytesIn domain, std::span<BytesIn> data);
 
