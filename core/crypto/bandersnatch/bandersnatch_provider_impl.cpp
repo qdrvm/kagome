@@ -5,7 +5,6 @@
  */
 
 #include "crypto/bandersnatch/bandersnatch_provider_impl.hpp"
-// #include "crypto/bandersnatch/bandersnatch.hpp"
 
 namespace kagome::crypto {
 

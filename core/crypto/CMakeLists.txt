@@ -67,11 +67,9 @@ target_link_libraries(sr25519_provider
 kagome_install(sr25519_provider)
 
 add_library(bandersnatch_provider
-    # bandersnatch/bandersnatch.cpp
     bandersnatch/bandersnatch_provider_impl.cpp
 )
 target_link_libraries(bandersnatch_provider
-    # p2p::p2p_random_generator # generator from libp2p
     bandersnatch_types
     /home/di/Projects/bandersnatch_vrfs-crust/cmake-build-debug-clang-17/bandersnatch_vrfs-cpp/libbandersnatch_vrfs_cpp.a
     /home/di/Projects/bandersnatch_vrfs-crust/cmake-build-debug-clang-17/debug/libbandersnatch_vrfs_crust.a

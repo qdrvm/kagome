@@ -43,8 +43,7 @@ namespace kagome::crypto::bandersnatch::vrf {
 
   template <typename T>
   concept VrfInputOrOutput =
-      std::is_same_v<T, crypto::bandersnatch::vrf::VrfInput>
-      or std::is_same_v<T, crypto::bandersnatch::vrf::VrfOutput>;
+      std::is_same_v<T, VrfInput> or std::is_same_v<T, VrfOutput>;
 
   template <typename T>
     requires VrfInputOrOutput<T>
@@ -54,52 +53,24 @@ namespace kagome::crypto::bandersnatch::vrf {
   ///
   /// Includes both the transcript `signature` and the `outputs` generated from
   struct VrfSignature {
-    // SCALE_TIE(2);
+    SCALE_TIE(2);
 
     /// VRF (pre)outputs.
-    VrfIosVec<crypto::bandersnatch::vrf::VrfOutput> outputs;
+    VrfIosVec<VrfOutput> outputs;
 
     /// Transcript signature.
     Signature signature;
-
-    friend scale::ScaleEncoderStream &operator<<(scale::ScaleEncoderStream &s,
-                                                 const VrfSignature &x) {
-      s << x.outputs;
-      s << x.signature;
-      return s;
-    }
-
-    friend scale::ScaleDecoderStream &operator>>(scale::ScaleDecoderStream &s,
-                                                 VrfSignature &x) {
-      s >> x.outputs;
-      s >> x.signature;
-      return s;
-    }
   };
 
   /// Ring VRF signature.
   struct RingVrfSignature {
-    // SCALE_TIE(2);
+    SCALE_TIE(2);
 
     /// VRF (pre)outputs.
     VrfIosVec<VrfOutput> outputs;
 
     /// Ring signature.
     RingSignature signature;
-
-    friend scale::ScaleEncoderStream &operator<<(scale::ScaleEncoderStream &s,
-                                                 const RingVrfSignature &x) {
-      s << x.outputs;
-      s << x.signature;
-      return s;
-    }
-
-    friend scale::ScaleDecoderStream &operator>>(scale::ScaleDecoderStream &s,
-                                                 RingVrfSignature &x) {
-      s >> x.outputs;
-      s >> x.signature;
-      return s;
-    }
   };
 
   //  VrfInput vrf_input(BytesIn domain, BytesIn data);
