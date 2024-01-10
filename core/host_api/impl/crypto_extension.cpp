@@ -736,10 +736,9 @@ namespace kagome::host_api {
   }
 
   runtime::WasmSize CryptoExtension::batchVerify(runtime::WasmSize ok) {
-    if (not batch_verify_) {
-      throw_with_error(logger_, "batch not started");
+    if (batch_verify_) {
+      *batch_verify_ &= ok;
     }
-    *batch_verify_ &= ok;
     return ok;
   }
 }  // namespace kagome::host_api
