@@ -93,9 +93,12 @@ namespace kagome::network {
         OUTCOME_TRY(hash,
                     primitives::BlockHash::fromString(src_block_data.hash()));
 
-        OUTCOME_TRY(header, extract_value<primitives::BlockHeader>([&]() {
-                      return src_block_data.header();
-                    }));
+        std::optional<primitives::BlockHeader> header;
+        if (not src_block_data.header().empty()) {
+          BOOST_OUTCOME_TRY(header,
+                            extract_value<primitives::BlockHeader>(
+                                [&]() { return src_block_data.header(); }));
+        }
 
         std::optional<primitives::BlockBody> bodies;
         for (const auto &b : src_block_data.body()) {
