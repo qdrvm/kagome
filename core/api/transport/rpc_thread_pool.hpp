@@ -13,6 +13,7 @@
 
 #include "api/transport/rpc_io_context.hpp"
 #include "log/logger.hpp"
+#include "utils/watchdog.hpp"
 
 namespace kagome::api {
 
@@ -29,6 +30,7 @@ namespace kagome::api {
     };
 
     RpcThreadPool(std::shared_ptr<Context> context,
+                  std::shared_ptr<Watchdog> watchdog,
                   const Configuration &configuration);
 
     ~RpcThreadPool() = default;
@@ -45,6 +47,7 @@ namespace kagome::api {
 
    private:
     std::shared_ptr<Context> context_;
+    std::shared_ptr<Watchdog> watchdog_;
     const Configuration config_;
 
     std::vector<std::shared_ptr<std::thread>> threads_;

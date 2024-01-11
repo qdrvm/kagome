@@ -16,6 +16,7 @@ namespace kagome::runtime {
 
   OffchainWorkerApiImpl::OffchainWorkerApiImpl(
       const application::AppConfiguration &app_config,
+      std::shared_ptr<Watchdog> watchdog,
       std::shared_ptr<offchain::OffchainWorkerFactory> ocw_factory,
       std::shared_ptr<offchain::Runner> runner,
       std::shared_ptr<Executor> executor)

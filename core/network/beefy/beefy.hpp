@@ -6,7 +6,6 @@
 
 #pragma once
 
-#include <boost/asio/io_context_strand.hpp>
 #include <map>
 
 #include "consensus/beefy/types.hpp"
@@ -16,9 +15,11 @@
 #include "primitives/event_types.hpp"
 #include "primitives/justification.hpp"
 #include "storage/buffer_map_types.hpp"
+#include "utils/weak_io_context.hpp"
 
 namespace kagome {
   class ThreadPool;
+  class WeakIoContextStrand;
 }  // namespace kagome
 
 namespace kagome::application {
@@ -59,7 +60,7 @@ namespace kagome::network {
           std::shared_ptr<crypto::EcdsaProvider> ecdsa,
           std::shared_ptr<storage::SpacedStorage> db,
           std::shared_ptr<ThreadPool> thread_pool,
-          std::shared_ptr<boost::asio::io_context> main_thread,
+          WeakIoContext main_thread,
           LazySPtr<consensus::Timeline> timeline,
           std::shared_ptr<crypto::SessionKeys> session_keys,
           LazySPtr<BeefyProtocol> beefy_protocol,
@@ -93,20 +94,23 @@ namespace kagome::network {
         const primitives::BlockHash &block_hash, primitives::Justification raw);
     outcome::result<void> onJustification(
         consensus::beefy::SignedCommitment justification);
+    void onMessageStrand(consensus::beefy::BeefyGossipMessage message);
     void onVote(consensus::beefy::VoteMessage vote, bool broadcast);
     outcome::result<void> apply(
         consensus::beefy::SignedCommitment justification, bool broadcast);
     outcome::result<void> update();
     outcome::result<void> vote();
+    outcome::result<std::optional<consensus::beefy::Commitment>> getCommitment(
+        consensus::beefy::AuthoritySetId validator_set_id,
+        primitives::BlockNumber block_number);
     void metricValidatorSetId();
 
     std::shared_ptr<blockchain::BlockTree> block_tree_;
     std::shared_ptr<runtime::BeefyApi> beefy_api_;
     std::shared_ptr<crypto::EcdsaProvider> ecdsa_;
     std::shared_ptr<storage::BufferStorage> db_;
-    std::shared_ptr<boost::asio::io_context> strand_inner_;
-    boost::asio::io_context::strand strand_;
-    std::shared_ptr<boost::asio::io_context> main_thread_;
+    std::shared_ptr<WeakIoContextStrand> strand_;
+    WeakIoContext main_thread_;
     LazySPtr<consensus::Timeline> timeline_;
     std::shared_ptr<crypto::SessionKeys> session_keys_;
     LazySPtr<BeefyProtocol> beefy_protocol_;

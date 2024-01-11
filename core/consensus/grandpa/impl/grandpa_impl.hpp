@@ -102,7 +102,8 @@ namespace kagome::consensus::grandpa {
         std::shared_ptr<network::ReputationRepository> reputation_repository,
         primitives::events::BabeStateSubscriptionEnginePtr
             babe_status_observable,
-        std::shared_ptr<boost::asio::io_context> main_thread_context);
+        std::shared_ptr<Watchdog> watchdog,
+        WeakIoContext main_thread);
 
     /**
      * Prepares for grandpa round execution: e.g. sets justification observer
@@ -213,11 +214,9 @@ namespace kagome::consensus::grandpa {
     /**
      * Check justification votes signatures, ancestry and threshold.
      */
-    void verifyJustification(
+    outcome::result<void> verifyJustification(
         const GrandpaJustification &justification,
-        const AuthoritySet &authorities,
-        std::shared_ptr<std::promise<outcome::result<void>>> promise_res)
-        override;
+        const AuthoritySet &authorities) override;
 
     /**
      * Selects round that corresponds for justification, checks justification,
@@ -323,7 +322,7 @@ namespace kagome::consensus::grandpa {
                 // By default is false
 
     std::shared_ptr<ThreadHandler> internal_thread_context_;
-    ThreadHandler main_thread_context_;
+    ThreadHandler main_thread_;
     std::shared_ptr<libp2p::basic::Scheduler> scheduler_;
 
     std::shared_ptr<VotingRound> current_round_;

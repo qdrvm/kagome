@@ -12,8 +12,11 @@
 namespace kagome::api {
 
   RpcThreadPool::RpcThreadPool(std::shared_ptr<Context> context,
+                               std::shared_ptr<Watchdog> watchdog,
                                const Configuration &configuration)
-      : context_(std::move(context)), config_(configuration) {
+      : context_{std::move(context)},
+        watchdog_{std::move(watchdog)},
+        config_{configuration} {
     BOOST_ASSERT(context_);
   }
 
@@ -22,9 +25,10 @@ namespace kagome::api {
     // Create a pool of threads to run all of the io_contexts.
     for (std::size_t i = 0; i < config_.min_thread_number; ++i) {
       auto thread = std::make_shared<std::thread>([context = context_,
+                                                   watchdog = watchdog_,
                                                    rpc_thread_number = i + 1] {
         soralog::util::setThreadName(fmt::format("rpc.{}", rpc_thread_number));
-        context->run();
+        watchdog->run(context);
       });
       thread->detach();
       threads_.emplace_back(std::move(thread));

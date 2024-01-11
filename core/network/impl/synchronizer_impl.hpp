@@ -49,6 +49,7 @@ namespace kagome::storage::trie {
 
 namespace kagome::network {
   class IBeefy;
+  class PeerManager;
 
   class SynchronizerImpl
       : public Synchronizer,
@@ -97,6 +98,7 @@ namespace kagome::network {
         std::shared_ptr<storage::trie::TrieStorage> storage,
         std::shared_ptr<storage::trie_pruner::TriePruner> trie_pruner,
         std::shared_ptr<network::Router> router,
+        std::shared_ptr<PeerManager> peer_manager,
         std::shared_ptr<libp2p::basic::Scheduler> scheduler,
         std::shared_ptr<crypto::Hasher> hasher,
         primitives::events::ChainSubscriptionEnginePtr chain_sub_engine,
@@ -124,11 +126,11 @@ namespace kagome::network {
                            const libp2p::peer::PeerId &peer_id,
                            SyncResultHandler &&handler) override;
 
-    // See loadJustifications
-    void syncMissingJustifications(const PeerId &peer_id,
-                                   primitives::BlockInfo target_block,
-                                   std::optional<uint32_t> limit,
-                                   SyncResultHandler &&handler) override;
+    bool fetchJustification(const primitives::BlockInfo &block,
+                            CbResultVoid cb) override;
+
+    bool fetchJustificationRange(primitives::BlockNumber min,
+                                 FetchJustificationRangeCb cb) override;
 
     /// Enqueues loading and applying state on block {@param block}
     /// from peer {@param peer_id}.
@@ -159,14 +161,6 @@ namespace kagome::network {
                     primitives::BlockInfo from,
                     SyncResultHandler &&handler);
 
-    /// Loads block justification from {@param peer_id} for {@param
-    /// target_block} or a range of blocks up to {@param upper_bound_block}.
-    /// Calls {@param handler} when operation finishes
-    void loadJustifications(const libp2p::peer::PeerId &peer_id,
-                            primitives::BlockInfo target_block,
-                            std::optional<uint32_t> limit,
-                            SyncResultHandler &&handler);
-
    private:
     void postApplyBlock(const primitives::BlockHash &hash);
     void processBlockAdditionResult(
@@ -189,9 +183,6 @@ namespace kagome::network {
     /// Pops next block from queue and tries to apply that
     void applyNextBlock();
 
-    /// Pops next justification from queue and tries to apply it
-    void applyNextJustification();
-
     /// Removes block {@param block} and all all dependent on it from the queue
     /// @returns number of affected blocks
     size_t discardBlock(const primitives::BlockHash &block);
@@ -210,6 +201,14 @@ namespace kagome::network {
     outcome::result<void> syncState(std::unique_lock<std::mutex> &lock,
                                     outcome::result<StateResponse> &&_res);
 
+    void fetch(const libp2p::peer::PeerId &peer,
+               BlocksRequest request,
+               const char *reason,
+               std::function<void(outcome::result<BlocksResponse>)> &&cb);
+
+    std::optional<libp2p::peer::PeerId> chooseJustificationPeer(
+        primitives::BlockNumber block, BlocksRequest::Fingerprint fingerprint);
+
     std::shared_ptr<application::AppStateManager> app_state_manager_;
     std::shared_ptr<blockchain::BlockTree> block_tree_;
     std::shared_ptr<consensus::BlockHeaderAppender> block_appender_;
@@ -218,6 +217,7 @@ namespace kagome::network {
     std::shared_ptr<storage::trie::TrieStorage> storage_;
     std::shared_ptr<storage::trie_pruner::TriePruner> trie_pruner_;
     std::shared_ptr<network::Router> router_;
+    std::shared_ptr<PeerManager> peer_manager_;
     std::shared_ptr<libp2p::basic::Scheduler> scheduler_;
     std::shared_ptr<crypto::Hasher> hasher_;
     std::shared_ptr<IBeefy> beefy_;
@@ -260,12 +260,6 @@ namespace kagome::network {
     // Links parent->child
     std::unordered_multimap<primitives::BlockHash, primitives::BlockHash>
         ancestry_;
-
-    // Loaded justifications to apply
-    using JustificationPair =
-        std::pair<primitives::BlockInfo, primitives::Justification>;
-    std::queue<JustificationPair> justifications_;
-    std::mutex justifications_mutex_;
 
     // BlockNumber of blocks (aka height) that is potentially best now
     primitives::BlockNumber watched_blocks_number_{};

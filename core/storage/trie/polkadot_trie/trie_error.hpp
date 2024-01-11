@@ -16,6 +16,8 @@ namespace kagome::storage::trie {
     NO_VALUE = 1,                 // no stored value found by the given key
     VALUE_RETRIEVE_NOT_PROVIDED,  // attempt to retrieve a value by hash with no
                                   // corresponding callback provided
+    BROKEN_VALUE,  // value is absent from the database, although a node
+                   // pointing to this value exists
   };
 }  // namespace kagome::storage::trie
 

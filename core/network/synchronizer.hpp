@@ -43,13 +43,15 @@ namespace kagome::network {
                                    const libp2p::peer::PeerId &peer_id,
                                    SyncResultHandler &&handler) = 0;
 
-    /// Tries to request block justifications from {@param peer_id} for {@param
-    /// target_block} or a range of blocks up to {@param limit} count.
-    /// Calls {@param handler} when operation finishes
-    virtual void syncMissingJustifications(const libp2p::peer::PeerId &peer_id,
-                                           primitives::BlockInfo target_block,
-                                           std::optional<uint32_t> limit,
-                                           SyncResultHandler &&handler) = 0;
+    /// Fetch justification
+    virtual bool fetchJustification(const primitives::BlockInfo &block,
+                                    CbResultVoid cb) = 0;
+
+    /// Fetch justification range
+    using FetchJustificationRangeCb = std::function<void(
+        outcome::result<std::optional<primitives::BlockNumber>>)>;
+    virtual bool fetchJustificationRange(primitives::BlockNumber min,
+                                         FetchJustificationRangeCb cb) = 0;
 
     virtual void syncState(const libp2p::peer::PeerId &peer_id,
                            const primitives::BlockInfo &block,

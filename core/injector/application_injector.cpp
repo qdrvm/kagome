@@ -69,6 +69,7 @@
 #include "consensus/grandpa/impl/authority_manager_impl.hpp"
 #include "consensus/grandpa/impl/environment_impl.hpp"
 #include "consensus/grandpa/impl/grandpa_impl.hpp"
+#include "consensus/grandpa/impl/verified_justification_queue.hpp"
 #include "consensus/production_consensus.hpp"
 #include "consensus/timeline/impl/block_appender_base.hpp"
 #include "consensus/timeline/impl/block_executor_impl.hpp"
@@ -353,12 +354,12 @@ namespace {
 
   template <typename Injector>
   sptr<ThreadPool> get_thread_pool(const Injector &injector) {
-    const auto cores = std::thread::hardware_concurrency();
+    size_t cores = std::thread::hardware_concurrency();
     if (cores == 0ul) {
-      return ThreadPool::create("worker", 5ull);
+      cores = 5;
     }
-
-    return ThreadPool::create("worker", cores);
+    return std::make_shared<ThreadPool>(
+        injector.template create<sptr<Watchdog>>(), "worker", cores);
   }
 
   template <typename... Ts>
@@ -736,6 +737,7 @@ namespace {
             di::bind<clock::SteadyClock>.template to<clock::SteadyClockImpl>(),
             di::bind<clock::Timer>.template to<clock::BasicWaitableTimer>(),
             di::bind<network::Synchronizer>.template to<network::SynchronizerImpl>(),
+            di::bind<consensus::grandpa::IVerifiedJustificationQueue>.template to<consensus::grandpa::VerifiedJustificationQueue>(),
             di::bind<consensus::grandpa::Environment>.template to<consensus::grandpa::EnvironmentImpl>(),
             di::bind<parachain::IApprovedAncestor>.template to<parachain::ApprovalDistribution>(),
             di::bind<crypto::EcdsaProvider>.template to<crypto::EcdsaProviderImpl>(),
@@ -1063,4 +1065,7 @@ namespace kagome::injector {
         .template create<sptr<benchmark::BlockExecutionBenchmark>>();
   }
 
+  std::shared_ptr<Watchdog> KagomeNodeInjector::injectWatchdog() {
+    return pimpl_->injector_.template create<sptr<Watchdog>>();
+  }
 }  // namespace kagome::injector

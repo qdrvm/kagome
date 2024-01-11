@@ -6,7 +6,8 @@
 
 #pragma once
 
-#include <unordered_set>
+#include <map>
+#include <unordered_map>
 
 #include "crypto/hasher.hpp"
 #include "log/logger.hpp"
@@ -14,6 +15,10 @@
 #include "primitives/event_types.hpp"
 #include "runtime/runtime_api/parachain_host.hpp"
 #include "utils/thread_pool.hpp"
+
+namespace kagome::blockchain {
+  class BlockTree;
+}  // namespace kagome::blockchain
 
 namespace kagome::offchain {
   class OffchainWorkerFactory;
@@ -35,10 +40,12 @@ namespace kagome::parachain {
 
     PvfPrecheck(
         std::shared_ptr<crypto::Hasher> hasher,
+        std::shared_ptr<blockchain::BlockTree> block_tree,
         std::shared_ptr<ValidatorSignerFactory> signer_factory,
         std::shared_ptr<runtime::ParachainHost> parachain_api,
         std::shared_ptr<runtime::ModuleFactory> module_factory,
         std::shared_ptr<runtime::Executor> executor,
+        std::shared_ptr<Watchdog> watchdog,
         std::shared_ptr<offchain::OffchainWorkerFactory>
             offchain_worker_factory,
         std::shared_ptr<offchain::OffchainWorkerPool> offchain_worker_pool);
@@ -50,10 +57,10 @@ namespace kagome::parachain {
    private:
     using BlockHash = primitives::BlockHash;
 
-    outcome::result<void> onBlock(const BlockHash &block_hash,
-                                  const primitives::BlockHeader &header);
+    outcome::result<void> onBlock();
 
     std::shared_ptr<crypto::Hasher> hasher_;
+    std::shared_ptr<blockchain::BlockTree> block_tree_;
     std::shared_ptr<ValidatorSignerFactory> signer_factory_;
     std::shared_ptr<runtime::ParachainHost> parachain_api_;
     std::shared_ptr<runtime::ModuleFactory> module_factory_;
@@ -61,8 +68,9 @@ namespace kagome::parachain {
     std::shared_ptr<offchain::OffchainWorkerFactory> offchain_worker_factory_;
     std::shared_ptr<offchain::OffchainWorkerPool> offchain_worker_pool_;
     std::shared_ptr<primitives::events::ChainEventSubscriber> chain_sub_;
-    std::unordered_set<ValidationCodeHash> seen_;
-    std::shared_ptr<ThreadPool> thread_{ThreadPool::create("PvfPrecheck", 1)};
+    std::map<SessionIndex, std::unordered_map<ValidationCodeHash, bool>>
+        session_code_accept_;
+    ThreadPool thread_;
     log::Logger logger_ = log::createLogger("PvfPrecheck", "parachain");
   };
 }  // namespace kagome::parachain
