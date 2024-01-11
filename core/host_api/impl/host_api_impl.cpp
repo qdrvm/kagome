@@ -62,6 +62,7 @@ namespace kagome::host_api {
 
   void HostApiImpl::reset() {
     storage_ext_.reset();
+    crypto_ext_.reset();
   }
 
   runtime::WasmSpan HostApiImpl::ext_storage_read_version_1(
@@ -575,6 +576,13 @@ namespace kagome::host_api {
       runtime::WasmSpan child_storage_key, runtime::WasmSpan limit) {
     return child_storage_ext_.ext_default_child_storage_storage_kill_version_3(
         child_storage_key, limit);
+  }
+
+  void HostApiImpl::ext_panic_handler_abort_on_panic_version_1(
+      runtime::WasmSpan message) {
+    auto [ptr, addr] = runtime::PtrSize{message};
+    auto msg = memory_provider_->getCurrentMemory()->get().loadStr(ptr, addr);
+    throw std::runtime_error{msg};
   }
 
 }  // namespace kagome::host_api

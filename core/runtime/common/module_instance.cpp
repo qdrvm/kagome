@@ -72,7 +72,7 @@ namespace kagome::runtime {
       max_data_segment_end =
           std::max(max_data_segment_end, offset + segment.size());
       segments_num++;
-      SL_DEBUG(log,
+      SL_TRACE(log,
                "Data segment {} at offset {}",
                common::BufferView{segment},
                offset);

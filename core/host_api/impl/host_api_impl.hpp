@@ -359,6 +359,9 @@ namespace kagome::host_api {
     virtual runtime::WasmSpan ext_default_child_storage_storage_kill_version_3(
         runtime::WasmSpan child_storage_key, runtime::WasmSpan limit) override;
 
+    virtual void ext_panic_handler_abort_on_panic_version_1(
+        runtime::WasmSpan message) override;
+
    private:
     static constexpr uint64_t DEFAULT_CHAIN_ID = 42;
 

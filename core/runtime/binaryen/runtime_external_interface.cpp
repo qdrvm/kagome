@@ -243,6 +243,8 @@ namespace kagome::runtime::binaryen {
     REGISTER_HOST_API_FUNC(ext_offchain_set_authorized_nodes_version_1);
     REGISTER_HOST_API_FUNC(ext_offchain_index_set_version_1);
     REGISTER_HOST_API_FUNC(ext_offchain_index_clear_version_1);
+
+    REGISTER_HOST_API_FUNC(ext_panic_handler_abort_on_panic_version_1);
   }
 
   RuntimeExternalInterface::RuntimeExternalInterface(

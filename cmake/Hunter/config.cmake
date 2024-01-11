@@ -59,8 +59,10 @@ if ("${WASM_COMPILER}" STREQUAL "WasmEdge")
 
   hunter_config(
       WasmEdge
-      URL https://github.com/harrm/WasmEdge/archive/8a52b27e2592fc9934b6132e80f69ae6d6925997.zip
-      SHA1 fbdd08bd648faffa7d140387eb98b437d0f6d5ea
+      VERSION 0.13.3
+      CMAKE_ARGS
+        WASMEDGE_BUILD_STATIC_LIB=ON
+        WASMEDGE_BUILD_SHARED_LIB=OFF
       KEEP_PACKAGE_SOURCES
   )
 endif ()
