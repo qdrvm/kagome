@@ -62,6 +62,7 @@ namespace kagome::host_api {
 
   void HostApiImpl::reset() {
     storage_ext_.reset();
+    crypto_ext_.reset();
   }
 
   runtime::WasmSpan HostApiImpl::ext_storage_read_version_1(
