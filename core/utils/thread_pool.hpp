@@ -26,6 +26,7 @@ namespace kagome {
    public:
     struct Locked {
       virtual ~Locked() = default;
+      virtual const std::shared_ptr<boost::asio::io_context> &io_context() const = 0;
     };
 
     ThreadHandler(ThreadHandler &&) = delete;
@@ -36,11 +37,10 @@ namespace kagome {
 
     explicit ThreadHandler(WeakIoContext io_context)
         : execution_state_{State::kStopped}, ioc_{std::move(io_context)} {}
-    ThreadHandler(std::shared_ptr<boost::asio::io_context> io_context,
-                  std::shared_ptr<Locked> locked)
+    ThreadHandler(std::shared_ptr<Locked> locked)
         : execution_state_{State::kStopped},
-          ioc_{std::move(io_context)},
-          locked_{std::move(locked)} {}
+          ioc_{locked->io_context()},
+          locked_{locked} {}
 
     ~ThreadHandler() = default;
 
@@ -74,6 +74,7 @@ namespace kagome {
    private:
     std::atomic<State> execution_state_;
     WeakIoContext ioc_;
+    std::shared_ptr<Locked> locked_;
   };
 
   /**
@@ -82,13 +83,6 @@ namespace kagome {
   class ThreadPool final : public std::enable_shared_from_this<ThreadPool>,
                            public ThreadHandler::Locked {
     enum struct State : uint32_t { kStopped = 0, kStarted };
-
-   public:
-    ThreadPool(ThreadPool &&) = delete;
-    ThreadPool(const ThreadPool &) = delete;
-
-    ThreadPool &operator=(ThreadPool &&) = delete;
-    ThreadPool &operator=(const ThreadPool &) = delete;
 
     ThreadPool(std::shared_ptr<Watchdog> watchdog,
                std::string_view pool_tag,
@@ -122,13 +116,6 @@ namespace kagome {
     ThreadPool &operator=(ThreadPool &&) = delete;
     ThreadPool &operator=(const ThreadPool &) = delete;
 
-    template <typename... Args>
-    static std::shared_ptr<ThreadPool> create(Args &&...args) {
-      return std::shared_ptr<ThreadPool>(
-          new ThreadPool(std::forward<Args>(args)...));
-      // return {new ThreadPool(std::forward<Args>(args)...)};
-    }
-
     ~ThreadPool() {
       ioc_->stop();
       for (auto &thread : threads_) {
@@ -136,13 +123,19 @@ namespace kagome {
       }
     }
 
-    const std::shared_ptr<boost::asio::io_context> &io_context() const {
+    /// to prevent creation without `shared_ptr`
+    template <typename... Args>
+    static std::shared_ptr<ThreadPool> create(Args &&...args) {
+      return std::shared_ptr<ThreadPool>(
+          new ThreadPool(std::forward<Args>(args)...));
+    }
+
+    const std::shared_ptr<boost::asio::io_context> &io_context() const override {
       return ioc_;
     }
 
     std::shared_ptr<ThreadHandler> handler() {
-      BOOST_ASSERT(ioc_);
-      return std::make_shared<ThreadHandler>(ioc_, shared_from_this());
+      return std::make_shared<ThreadHandler>(shared_from_this());
     }
 
    private:
