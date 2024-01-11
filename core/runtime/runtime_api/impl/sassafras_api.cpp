@@ -15,12 +15,11 @@ namespace kagome::runtime {
     BOOST_ASSERT(executor_);
   }
 
-  outcome::result<
-      std::optional<consensus::sassafras::bandersnatch::RingContext>>
+  outcome::result<std::optional<crypto::bandersnatch::vrf::RingContext>>
   SassafrasApiImpl::ring_context(const primitives::BlockHash &block) {
     OUTCOME_TRY(ctx, executor_->ctx().ephemeralAt(block));
     return executor_
-        ->call<std::optional<consensus::sassafras::bandersnatch::RingContext>>(
+        ->call<std::optional<crypto::bandersnatch::vrf::RingContext>>(
             ctx, "SassafrasApi_ring_context");
   }
 

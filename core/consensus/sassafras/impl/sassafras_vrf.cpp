@@ -12,12 +12,9 @@
 #include "common/buffer.hpp"
 #include "common/int_serialization.hpp"
 #include "common/tagged.hpp"
-#include "consensus/sassafras/types/sassafras_configuration.hpp"
 #include "consensus/sassafras/types/ticket.hpp"
-#include "consensus/timeline/types.hpp"
 #include "crypto/bandersnatch/vrf.hpp"
 #include "primitives/transcript.hpp"
-#include "scale/tie.hpp"
 
 namespace kagome::consensus::sassafras {
 
@@ -40,7 +37,8 @@ namespace kagome::consensus::sassafras {
                                         SlotNumber slot,
                                         EpochNumber epoch) {
     auto input = slot_claim_input(randomness, slot, epoch);
-    std::vector<vrf::VrfInput> inputs{input};
+    std::vector<vrf::VrfInput> inputs;
+    inputs.emplace_back(std::move(input));
     return vrf::vrf_sign_data(
         "sassafras-slot-claim-transcript-v1.0"_bytes, {}, inputs);
   }
@@ -57,7 +55,8 @@ namespace kagome::consensus::sassafras {
 
   /// VRF output to generate the ticket id.
   vrf::VrfOutput ticket_id_output(
-      const crypto::BandersnatchSecretKey &secret_key, vrf::VrfInput input) {
+      const crypto::BandersnatchSecretKey &secret_key,
+      const vrf::VrfInput &input) {
     return vrf::vrf_output(secret_key, input);
   }
 
@@ -76,12 +75,13 @@ namespace kagome::consensus::sassafras {
                                          vrf::VrfInput ticket_id_input) {
     auto encoded_ticket_body = scale::encode(ticket_body).value();
     std::vector<vrf::BytesIn> transcript_data{encoded_ticket_body};
-    std::vector<vrf::VrfInput> inputs{ticket_id_input};
+    std::vector<vrf::VrfInput> inputs;
+    inputs.emplace_back(std::move(ticket_id_input));
     return vrf::vrf_sign_data(
         "sassafras-ticket-body-transcript-v1.0"_bytes, transcript_data, inputs);
   }
 
-  common::Blob<32> sign_data_challenge(vrf::VrfSignData sign_data) {
+  common::Blob<32> sign_data_challenge(const vrf::VrfSignData &sign_data) {
     auto bytes = vrf::vrf_sign_data_challenge<32>(sign_data);
     return bytes;
   }
@@ -91,7 +91,8 @@ namespace kagome::consensus::sassafras {
   /// Input should have been obtained via [`ticket_id_input`].
   /// Output should have been obtained from the input directly using the vrf
   /// secret key or from the vrf signature outputs.
-  common::Blob<16> make_ticket_id(vrf::VrfInput input, vrf::VrfOutput output) {
+  common::Blob<16> make_ticket_id(const vrf::VrfInput &input,
+                                  const vrf::VrfOutput &output) {
     auto bytes = vrf::make_bytes<16>("ticket-id"_bytes, input, output);
     return bytes;
     // return TicketId(common::le_bytes_to_uint128(bytes));
@@ -102,8 +103,8 @@ namespace kagome::consensus::sassafras {
   /// Input should have been obtained via [`revealed_key_input`].
   /// Output should have been obtained from the input directly using the vrf
   /// secret key or from the vrf signature outputs.
-  common::Blob<32> make_revealed_key_seed(vrf::VrfInput input,
-                                          vrf::VrfOutput output) {
+  common::Blob<32> make_revealed_key_seed(const vrf::VrfInput &input,
+                                          const vrf::VrfOutput &output) {
     auto bytes = vrf::make_bytes<32>("revealed-seed"_bytes, input, output);
     return bytes;
   }
