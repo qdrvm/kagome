@@ -155,7 +155,6 @@ int main() {
       std::make_shared<kagome::crypto::Ed25519Suite>(ed25519_provider);
   auto sr_suite =
       std::make_shared<kagome::crypto::Sr25519Suite>(sr25519_provider);
-  auto elliptic_curves = std::make_shared<kagome::crypto::EllipticCurvesImpl>();
   auto bandersnatch_suite = std::make_shared<kagome::crypto::BandersnatchSuite>(
       bandersnatch_provider);
   auto elliptic_curves = std::make_shared<kagome::crypto::EllipticCurvesImpl>();

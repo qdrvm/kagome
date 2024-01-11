@@ -71,9 +71,7 @@ add_library(bandersnatch_provider
 )
 target_link_libraries(bandersnatch_provider
     bandersnatch_types
-    /home/di/Projects/bandersnatch_vrfs-crust/cmake-build-debug-clang-17/bandersnatch_vrfs-cpp/libbandersnatch_vrfs_cpp.a
-    /home/di/Projects/bandersnatch_vrfs-crust/cmake-build-debug-clang-17/debug/libbandersnatch_vrfs_crust.a
-    # bandersnatch_vrfs_crust::bandersnatch_vrfs_cpp
+    bandersnatch_vrfs_crust::bandersnatch_vrfs_crust
 )
 kagome_install(bandersnatch_provider)
 
@@ -82,9 +80,7 @@ add_library(bandersnatch_vrf
 )
 target_link_libraries(bandersnatch_vrf
     bandersnatch_types
-    /home/di/Projects/bandersnatch_vrfs-crust/cmake-build-debug-clang-17/bandersnatch_vrfs-cpp/libbandersnatch_vrfs_cpp.a
-    /home/di/Projects/bandersnatch_vrfs-crust/cmake-build-debug-clang-17/debug/libbandersnatch_vrfs_crust.a
-    # bandersnatch_vrfs_crust::bandersnatch_vrfs_cpp
+    bandersnatch_vrfs_crust::bandersnatch_vrfs_crust
 )
 kagome_install(bandersnatch_vrf)
 

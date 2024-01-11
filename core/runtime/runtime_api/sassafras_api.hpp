@@ -14,6 +14,7 @@
 #include "consensus/sassafras/types/sassafras_configuration.hpp"
 #include "consensus/sassafras/types/ticket.hpp"
 #include "consensus/timeline/types.hpp"
+#include "crypto/bandersnatch/vrf.hpp"
 
 namespace kagome::runtime {
 
@@ -24,7 +25,7 @@ namespace kagome::runtime {
 
     /// Get ring context to be used for ticket construction and verification.
     virtual outcome::result<
-        std::optional<consensus::sassafras::bandersnatch::RingContext>>
+        std::optional<crypto::bandersnatch::vrf::RingContext>>
     ring_context(const primitives::BlockHash &block) = 0;
 
     /// Submit next epoch validator tickets via an unsigned extrinsic.

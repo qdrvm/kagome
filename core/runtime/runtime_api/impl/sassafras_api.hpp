@@ -17,8 +17,7 @@ namespace kagome::runtime {
     explicit SassafrasApiImpl(std::shared_ptr<Executor> executor);
 
     /// Get ring context to be used for ticket construction and verification.
-    outcome::result<
-        std::optional<consensus::sassafras::bandersnatch::RingContext>>
+    outcome::result<std::optional<crypto::bandersnatch::vrf::RingContext>>
     ring_context(const primitives::BlockHash &block) override;
 
     /// Submit next epoch validator tickets via an unsigned extrinsic.

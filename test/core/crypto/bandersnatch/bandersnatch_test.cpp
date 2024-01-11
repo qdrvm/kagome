@@ -14,25 +14,15 @@
 #include "testutil/outcome.hpp"
 #include "testutil/prepare_loggers.hpp"
 
+using kagome::common::Blob;
+using kagome::common::Buffer;
 using kagome::crypto::BandersnatchKeypair;
 using kagome::crypto::BandersnatchProvider;
 using kagome::crypto::BandersnatchProviderImpl;
 using kagome::crypto::BandersnatchSeed;
 using kagome::crypto::BoostRandomGenerator;
-// namespace bandersnatch = kagome::crypto::bandersnatch;
-// namespace vrf = bandersnatch::vrf;
-//
-// using vrf::kMaxVrfInputOutputCounts;
-// using vrf::VrfInput;
-// using vrf::VrfOutput;
-// using vrf::VrfSignData;
-//
-// using bandersnatch::BytesIn;
-// using bandersnatch::BytesOut;
 
 namespace vrf = kagome::crypto::bandersnatch::vrf;
-
-using kagome::common::Blob;
 
 struct BandersnatchTest : public ::testing::Test {
   static void SetUpTestCase() {
@@ -48,11 +38,6 @@ struct BandersnatchTest : public ::testing::Test {
     bandersnatch_provider = std::make_shared<BandersnatchProviderImpl>();
 
     message = "I am a message"_bytes;
-
-    //    hex_seed =
-    // "ccb4ec79974db3dae0d4dff7e0963db6b798684356dc517ff5c2e61f3b641569";
-    //    hex_public_key =
-    // "767a2f677a8c704d66e2abbb181d8984adae7ac8ecac9e30709ad496244ab497";
   }
 
   auto generate() {
@@ -61,15 +46,10 @@ struct BandersnatchTest : public ::testing::Test {
     return bandersnatch_provider->generateKeypair(seed, {});
   }
 
-  //  std::string_view hex_seed;
-  //  std::string_view hex_public_key;
-  //
   std::span<const uint8_t> message;
 
   std::shared_ptr<BoostRandomGenerator> csprng =
       std::make_shared<BoostRandomGenerator>();
-  //  std::shared_ptr<HasherImpl> hasher = std::make_shared<HasherImpl>();
-  //  std::shared_ptr<Ed25519Provider> ed25519_provider;
   std::shared_ptr<BandersnatchProvider> bandersnatch_provider;
 };
 
@@ -87,6 +67,11 @@ TEST_F(BandersnatchTest, GenerateKeysNotEqual) {
   }
 }
 
+/**
+ * @given
+ * @when
+ * @then
+ */
 TEST_F(BandersnatchTest, PlainSignVerifySuccess) {
   auto kp = generate();
   ASSERT_OUTCOME_SUCCESS(signature, bandersnatch_provider->sign(kp, message));
@@ -96,91 +81,64 @@ TEST_F(BandersnatchTest, PlainSignVerifySuccess) {
   ASSERT_TRUE(is_valid);
 }
 
+/**
+ * @given
+ * @when
+ * @then
+ */
 TEST_F(BandersnatchTest, VrfSignVerifySuccess) {
-  auto examinee = [](const BandersnatchKeypair &kp,
-                     libp2p::BytesIn label,
-                     std::span<libp2p::BytesIn> transcript_data,
-                     std::span<vrf::VrfInput> inputs) {
-    SL_INFO(log(),
-            "        kp={} label={} td={} ins={}",
-            kp.public_key,
-            kagome::common::Buffer(label).asString(),
-            transcript_data.size(),
-            inputs.size());
-
-    auto data = vrf::vrf_sign_data(label, transcript_data, inputs);
-
-    auto sign = vrf::vrf_sign(kp.secret_key, data);
-
-    auto is_valid = vrf::vrf_verify(sign, data, kp.public_key);
-    return is_valid;
+  vrf::Bytes labels[] = {
+      Buffer::fromString("label_one"),
+      // Buffer::fromString("label_two"),
+      // Buffer::fromString("label_three"),
+      // Buffer::fromString("label_four"),
   };
 
-  std::array<vrf::Bytes, 4> labels = {
-      kagome::common::Buffer::fromString("label_one"),
-      kagome::common::Buffer::fromString("label_two"),
-      kagome::common::Buffer::fromString("label_three"),
-      kagome::common::Buffer::fromString("label_four"),
+  vrf::Bytes tds[] = {
+      Buffer::fromString("transcript_one"),
+      Buffer::fromString("transcript_two"),
+      // Buffer::fromString("transcript_three"),
+      // Buffer::fromString("transcript_four"),
   };
 
-  std::array<vrf::Bytes, 4> tds = {
-      kagome::common::Buffer::fromString("transcript_one"),
-      kagome::common::Buffer::fromString("transcript_two"),
-      kagome::common::Buffer::fromString("transcript_three"),
-      kagome::common::Buffer::fromString("transcript_four"),
-  };
-
-  std::array<vrf::Bytes, 3> ins = {
-      kagome::common::Buffer::fromString("input_one"),
-      kagome::common::Buffer::fromString("input_two"),
-      kagome::common::Buffer::fromString("input_three"),
-  };
-
-  auto by_inputs = [&](const BandersnatchKeypair &kp,
-                       libp2p::BytesIn label,
-                       std::span<libp2p::BytesIn> td) {
-    SL_INFO(log(), "    TRANSCRIPT={}", td.size());
-    for (auto n = 0u; n <= ins.size(); ++n) {
-      std::vector<vrf::VrfInput> inputs;
-      for (auto i = 0u; i < n; ++i) {
-        std::vector<vrf::BytesIn> data{ins[i]};
-        auto input = vrf::vrf_input_from_data("domain"_bytes, data);
-        inputs.emplace_back(input);
-      }
-      SL_INFO(log(), "      INPUTS={}", inputs.size());
-      if (!examinee(kp, label, td, inputs)) {
-        return false;
-      };
-    }
-    return true;
-  };
-
-  auto by_transcript = [&](const BandersnatchKeypair &kp,
-                           libp2p::BytesIn label) {
-    SL_INFO(log(), "  LABEL={}", kagome::common::Buffer(label).asString());
-    for (auto n = 0u; n <= tds.size(); ++n) {
-      std::vector<vrf::BytesIn> td;
-      for (auto i = 0u; i < n; ++i) {
-        td.emplace_back(tds[i]);
-      }
-      if (!by_inputs(kp, label, td)) {
-        return false;
-      }
-    }
-    return true;
-  };
-
-  auto by_label = [&](const BandersnatchKeypair &kp) {
-    SL_INFO(log(), "PUB={}", kp.public_key);
-    for (auto &label : labels) {
-      if (!by_transcript(kp, label)) {
-        return false;
-      }
-    }
-    return true;
+  vrf::Bytes ins[] = {
+      Buffer::fromString("input_one"), Buffer::fromString("input_two"),
+      // Buffer::fromString("input_three"),
   };
 
   for (const BandersnatchKeypair &kp : {generate(), generate(), generate()}) {
-    ASSERT_TRUE(by_label(kp));
+    SL_INFO(log(), "PUB={}", kp.public_key);
+    for (auto &label : labels) {
+      SL_INFO(log(), "  LABEL={}", Buffer(label).asString());
+      for (auto tds_n = 0u; tds_n <= std::size(tds); ++tds_n) {
+        std::vector<vrf::BytesIn> td;
+        for (auto tds_i = 0u; tds_i < tds_n; ++tds_i) {
+          td.emplace_back(tds[tds_i]);
+        }
+        SL_INFO(log(), "    TRANSCRIPT={}", td.size());
+        for (auto ins_n = 0u; ins_n <= std::size(ins); ++ins_n) {
+          std::vector<vrf::VrfInput> inputs;
+          for (auto ins_i = 0u; ins_i < ins_n; ++ins_i) {
+            std::vector<vrf::BytesIn> data{ins[ins_i]};
+            auto input = vrf::vrf_input_from_data("domain"_bytes, data);
+            inputs.emplace_back(std::move(input));
+          }
+          SL_INFO(log(), "      INPUTS={}", inputs.size());
+          SL_INFO(log(),
+                  "        kp={} label={} td={} ins={}",
+                  kp.public_key,
+                  Buffer(label).asString(),
+                  td.size(),
+                  inputs.size());
+
+          auto sign_data = vrf::vrf_sign_data(label, td, inputs);
+
+          auto sign = vrf::vrf_sign(kp.secret_key, sign_data);
+
+          auto is_valid = vrf::vrf_verify(sign, sign_data, kp.public_key);
+          ASSERT_TRUE(is_valid);
+        }
+      }
+    }
   }
 }

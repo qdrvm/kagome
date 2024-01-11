@@ -187,8 +187,9 @@ namespace kagome::consensus::sassafras {
 
     auto slot_claim_vrf_input = slot_claim_input(
         config.randomness, claim.slot_number, config.epoch_index);
-    std::vector<vrf::VrfInput> inputs{slot_claim_vrf_input,
-                                      revealed_key_vrf_input};
+    std::vector<vrf::VrfInput> inputs;
+    inputs.emplace_back(std::move(slot_claim_vrf_input));
+    inputs.emplace_back(std::move(revealed_key_vrf_input));
 
     auto vrf_sign_data =  // consider to call slot_claim_sign_data()
         vrf::vrf_sign_data("sassafras-slot-claim-transcript-v1.0"_bytes,
@@ -224,8 +225,10 @@ namespace kagome::consensus::sassafras {
       return ValidationError::WRONG_AUTHOR_OF_SECONDARY_CLAIM;
     }
 
-    std::vector<vrf::VrfInput> inputs{slot_claim_input(
-        config.randomness, claim.slot_number, config.epoch_index)};
+    auto slot_claim_vrf_input = slot_claim_input(
+        config.randomness, claim.slot_number, config.epoch_index);
+    std::vector<vrf::VrfInput> inputs;
+    inputs.emplace_back(std::move(slot_claim_vrf_input));
 
     auto vrf_sign_data =  // consider to call slot_claim_sign_data()
         vrf::vrf_sign_data(

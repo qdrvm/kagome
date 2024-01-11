@@ -10,7 +10,6 @@
 #include "blockchain/block_tree.hpp"
 #include "common/int_serialization.hpp"
 #include "consensus/sassafras/bandersnatch.hpp"
-#include "consensus/sassafras/impl/prepare_transcript.hpp"
 #include "consensus/sassafras/impl/sassafras_vrf.hpp"
 #include "consensus/sassafras/sassafras_config_repository.hpp"
 #include "consensus/sassafras/types/ticket.hpp"
@@ -216,7 +215,7 @@ namespace kagome::consensus::sassafras {
       SL_ERROR(logger_, "Ring context not initialized yet");
       return outcome::success();
     }
-    auto &ring_context = ring_context_res.value().value();
+    const auto &ring_context = ring_context_res.value().value();
 
     // Prover for making ring signature
     SL_TRACE(logger_, "Generating ring prover key...");
@@ -278,7 +277,8 @@ namespace kagome::consensus::sassafras {
       // --- Ring Signature Production ---
 
       SL_DEBUG(logger_, ">>> Creating ring proof for attempt {}", attempt);
-      auto sign_data = ticket_body_sign_data(ticket_body, ticket_id_vrf_input);
+      auto sign_data =
+          ticket_body_sign_data(ticket_body, std::move(ticket_id_vrf_input));
 
       auto ring_signature =
           vrf::ring_vrf_sign(secret_key, sign_data, ring_prover);
@@ -387,7 +387,9 @@ namespace kagome::consensus::sassafras {
     auto input_1 = slot_claim_input(randomness_, slot, epoch_);
     auto input_2 =
         revealed_key_input(randomness_, ticket_body.attempt_index, epoch_);
-    std::vector<vrf::VrfInput> inputs{input_1, input_2};
+    std::vector<vrf::VrfInput> inputs;
+    inputs.emplace_back(std::move(input_1));
+    inputs.emplace_back(std::move(input_2));
 
     auto vrf_sign_data =  // consider to call slot_claim_sign_data()
         vrf::vrf_sign_data("sassafras-slot-claim-transcript-v1.0"_bytes,
@@ -414,8 +416,9 @@ namespace kagome::consensus::sassafras {
       SlotNumber slot) const {
     // --- Secondary Claim Method ---
 
-    std::vector<vrf::VrfInput> inputs{
-        slot_claim_input(randomness_, slot, epoch_)};
+    auto input = slot_claim_input(randomness_, slot, epoch_);
+    std::vector<vrf::VrfInput> inputs;
+    inputs.emplace_back(std::move(input));
 
     auto vrf_sign_data =  // consider to call slot_claim_sign_data()
         vrf::vrf_sign_data(
