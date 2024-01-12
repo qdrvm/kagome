@@ -131,6 +131,11 @@ namespace kagome::primitives {
     };
     Kind kind;
     uint8_t custom_value{};
+
+    bool operator==(const InvalidTransaction &other) const {
+      return kind == other.kind
+          && (kind != Kind::Custom || custom_value == other.custom_value);
+    }
   };
 
   template <class Stream,
