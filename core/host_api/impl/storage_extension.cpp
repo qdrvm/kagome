@@ -13,6 +13,7 @@
 
 #include "clock/impl/clock_impl.hpp"
 #include "common/monadic_utils.hpp"
+#include "crypto/hasher.hpp"
 #include "host_api/impl/storage_util.hpp"
 #include "log/trace_macros.hpp"
 #include "runtime/common/runtime_execution_error.hpp"
@@ -23,18 +24,22 @@
 #include "storage/predefined_keys.hpp"
 #include "storage/trie/impl/topper_trie_batch_impl.hpp"
 #include "storage/trie/serialization/ordered_trie_hash.hpp"
+#include "common/outcome_throw.hpp"
 
 using kagome::common::Buffer;
 
 namespace kagome::host_api {
   StorageExtension::StorageExtension(
       std::shared_ptr<runtime::TrieStorageProvider> storage_provider,
-      std::shared_ptr<const runtime::MemoryProvider> memory_provider)
+      std::shared_ptr<const runtime::MemoryProvider> memory_provider,
+      std::shared_ptr<const crypto::Hasher> hasher)
       : storage_provider_(std::move(storage_provider)),
         memory_provider_(std::move(memory_provider)),
+        hasher_(std::move(hasher)),
         logger_{log::createLogger("StorageExtension", "storage_extension")} {
-    BOOST_ASSERT_MSG(storage_provider_ != nullptr, "storage batch is nullptr");
-    BOOST_ASSERT_MSG(memory_provider_ != nullptr, "memory provider is nullptr");
+    BOOST_ASSERT(storage_provider_ != nullptr);
+    BOOST_ASSERT(memory_provider_ != nullptr);
+    BOOST_ASSERT(hasher_ != nullptr);
   }
 
   void StorageExtension::reset() {
@@ -391,30 +396,44 @@ namespace kagome::host_api {
   runtime::WasmPointer
   StorageExtension::ext_trie_blake2_256_ordered_root_version_2(
       runtime::WasmSpan values_data, runtime::WasmI32 version) {
-    auto [address, size] = runtime::PtrSize(values_data);
     auto &memory = memory_provider_->getCurrentMemory()->get();
-    const auto &buffer = memory.loadN(address, size);
-    const auto &values = scale::decode<ValuesCollection>(buffer);
-    if (!values) {
-      logger_->error("failed to decode values: {}", values.error());
-      throw std::runtime_error(values.error().message());
-    }
-    const auto &collection = values.value();
+    auto [address, size] = runtime::PtrSize(values_data);
+    auto values_res = scale::decode<ValuesCollection>(memory.loadN(address, size));
+    common::raise_on_err(values_res);
 
-    auto state_version = detail::toStateVersion(version);
+    const auto &values = values_res.value();
 
     auto ordered_hash = storage::trie::calculateOrderedTrieHash(
-        state_version, collection.begin(), collection.end());
-    if (!ordered_hash.has_value()) {
-      logger_->error(
-          "ext_blake2_256_enumerated_trie_root resulted with an error: {}",
-          ordered_hash.error());
-      throw std::runtime_error(ordered_hash.error().message());
-    }
+        detail::toStateVersion(version), values.begin(), values.end(), 
+        [this](common::Buffer const& buf) {
+          return hasher_->blake2b_256(buf);
+        });
+    common::raise_on_err(ordered_hash);
+
     SL_TRACE_FUNC_CALL(logger_, ordered_hash.value());
-    auto res = memory.storeBuffer(ordered_hash.value());
-    return runtime::PtrSize(res).ptr;
+    return runtime::PtrSize(memory.storeBuffer(ordered_hash.value())).ptr;
   }
+
+  runtime::WasmPointer StorageExtension::ext_trie_keccak_256_ordered_root_version_2(
+        runtime::WasmSpan values_data, runtime::WasmI32 version) {
+    auto &memory = memory_provider_->getCurrentMemory()->get();
+    auto [address, size] = runtime::PtrSize(values_data);
+    auto values_res = scale::decode<ValuesCollection>(memory.loadN(address, size));
+    common::raise_on_err(values_res);
+
+    const auto &values = values_res.value();
+
+    auto ordered_hash = storage::trie::calculateOrderedTrieHash(
+        detail::toStateVersion(version), values.begin(), values.end(), 
+        [this](common::Buffer const& buf) {
+          return hasher_->keccak_256(buf);
+        });
+    common::raise_on_err(ordered_hash);
+
+    SL_TRACE_FUNC_CALL(logger_, ordered_hash.value());
+    return runtime::PtrSize(memory.storeBuffer(ordered_hash.value())).ptr;
+  }
+
 
   runtime::WasmSpan StorageExtension::clearPrefix(
       common::BufferView prefix, std::optional<uint32_t> limit) {

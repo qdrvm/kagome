@@ -6,6 +6,8 @@
 
 #pragma once
 
+#include <type_traits>
+
 #include "common/buffer.hpp"
 #include "crypto/hasher.hpp"
 #include "scale/scale.hpp"
@@ -15,6 +17,9 @@
 
 namespace kagome::storage::trie {
 
+  template<typename T>
+  concept RootHasher = std::convertible_to<std::invoke_result_t<T, common::Buffer>, RootHash>;
+
   /**
    * Calculates the hash of a Merkle tree containing the items from the provided
    * range [begin; end) as values and compact-encoded indices of those
@@ -22,10 +27,11 @@ namespace kagome::storage::trie {
    * @tparam It an iterator type of a container of common::Buffers
    * @return the Merkle tree root hash of the tree containing provided values
    */
-  template <typename It>
+  template <typename It, RootHasher Hash> 
   outcome::result<RootHash> calculateOrderedTrieHash(StateVersion version,
                                                      const It &begin,
-                                                     const It &end) {
+                                                     const It &end,
+                                                     const Hash& hash) {
     auto trie = storage::trie::PolkadotTrieImpl::createEmpty();
     PolkadotCodec codec;
     // empty root
@@ -42,14 +48,14 @@ namespace kagome::storage::trie {
       it++;
     }
     OUTCOME_TRY(enc, codec.encodeNode(*trie->getRoot(), version, {}));
-    return codec.hash256(enc);
+    return hash(enc);
   }
 
-  template <typename ContainerType>
-  inline outcome::result<RootHash> calculateOrderedTrieHash(
-      StateVersion version, const ContainerType &container) {
+  template <typename ContainerType, RootHasher Hash>
+  outcome::result<RootHash> calculateOrderedTrieHash(
+      StateVersion version, const ContainerType &container, const Hash& hash) {
     return calculateOrderedTrieHash(
-        version, container.begin(), container.end());
+        version, container.begin(), container.end(), hash);
   }
 
 }  // namespace kagome::storage::trie

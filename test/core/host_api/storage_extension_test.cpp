@@ -12,6 +12,7 @@
 #include <gtest/gtest.h>
 #include <scale/scale.hpp>
 
+#include "crypto/hasher/hasher_impl.hpp"
 #include "mock/core/runtime/memory_mock.hpp"
 #include "mock/core/runtime/memory_provider_mock.hpp"
 #include "mock/core/runtime/trie_storage_provider_mock.hpp"
@@ -63,8 +64,10 @@ class StorageExtensionTest : public ::testing::Test {
     EXPECT_CALL(*memory_provider_, getCurrentMemory())
         .WillRepeatedly(
             Return(std::optional<std::reference_wrapper<Memory>>(*memory_)));
-    storage_extension_ =
-        std::make_shared<StorageExtension>(storage_provider_, memory_provider_);
+    storage_extension_ = std::make_shared<StorageExtension>(
+        storage_provider_,
+        memory_provider_,
+        std::make_shared<kagome::crypto::HasherImpl>());
   }
 
  protected:

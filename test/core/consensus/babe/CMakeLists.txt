@@ -16,6 +16,7 @@ target_link_libraries(babe_test
     sr25519_types
     sr25519_provider
     logger_for_tests
+    crypto
     )
 
 addtest(babe_lottery_test
