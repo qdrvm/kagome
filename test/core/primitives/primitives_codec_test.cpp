@@ -172,7 +172,7 @@ TEST_F(Primitives, EncodeBlockIdBlockNumberSuccess) {
  * @then obtained result matches predefined value
  */
 TEST_F(Primitives, EncodeTransactionValidityInvalidSuccess) {
-  InvalidTransaction invalid{1};
+  InvalidTransaction invalid{InvalidTransaction::Call};
   EXPECT_OUTCOME_TRUE(val, encode(invalid))
   EXPECT_OUTCOME_TRUE(decoded_validity, decode<InvalidTransaction>(val));
   ASSERT_EQ(decoded_validity, invalid);
