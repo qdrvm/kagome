@@ -268,9 +268,7 @@ namespace {
 
     // if parent's key is smaller, and it is not a prefix of the prefix, don't
     // change anything
-    if (not std::equal(parent->getKeyNibbles().begin(),
-                       parent->getKeyNibbles().end(),
-                       prefix.begin())) {
+    if (not startsWith(prefix, parent->getKeyNibbles())) {
       return outcome::success();
     }
 
