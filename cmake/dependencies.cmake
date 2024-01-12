@@ -80,6 +80,9 @@ if ("${WASM_COMPILER}" STREQUAL "WAVM")
   find_package(WAVM CONFIG REQUIRED)
 endif ()
 
+hunter_add_package(zstd)
+find_package(zstd CONFIG REQUIRED)
+
 if ("${WASM_COMPILER}" STREQUAL "WasmEdge")
   hunter_add_package(WasmEdge)
   find_library(WASM_EDGE_LIBRARY NAMES libwasmedge.a REQUIRED PATHS "${WASMEDGE_ROOT}")
