@@ -12,4 +12,6 @@ target_link_libraries(ecdsa_provider_test
     ecdsa_provider
     blob
     logger_for_tests
+    p2p::p2p_ecdsa_provider
+    p2p::p2p_random_generator
     )
