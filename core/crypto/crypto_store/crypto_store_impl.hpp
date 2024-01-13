@@ -45,6 +45,7 @@ namespace kagome::crypto {
     CryptoStoreImpl(std::shared_ptr<EcdsaSuite> ecdsa_suite,
                     std::shared_ptr<Ed25519Suite> ed_suite,
                     std::shared_ptr<Sr25519Suite> sr_suite,
+                    std::shared_ptr<BandersnatchSuite> bandersnatch_suite,
                     std::shared_ptr<Bip39Provider> bip39_provider,
                     std::shared_ptr<CSPRNG> csprng,
                     std::shared_ptr<KeyFileStorage> key_fs);
@@ -52,47 +53,70 @@ namespace kagome::crypto {
     outcome::result<EcdsaKeypair> generateEcdsaKeypair(
         KeyType key_type, std::string_view mnemonic_phrase) override;
 
-    outcome::result<Ed25519Keypair> generateEd25519Keypair(
-        KeyType key_type, std::string_view mnemonic_phrase) override;
-
-    outcome::result<Sr25519Keypair> generateSr25519Keypair(
-        KeyType key_type, std::string_view mnemonic_phrase) override;
-
     outcome::result<EcdsaKeypair> generateEcdsaKeypair(
         KeyType key_type, const EcdsaSeed &seed) override;
 
-    outcome::result<Ed25519Keypair> generateEd25519Keypair(
-        KeyType key_type, const Ed25519Seed &seed) override;
-
-    outcome::result<Sr25519Keypair> generateSr25519Keypair(
-        KeyType key_type, const Sr25519Seed &seed) override;
-
     outcome::result<EcdsaKeypair> generateEcdsaKeypairOnDisk(
-        KeyType key_type) override;
-
-    outcome::result<Ed25519Keypair> generateEd25519KeypairOnDisk(
-        KeyType key_type) override;
-
-    outcome::result<Sr25519Keypair> generateSr25519KeypairOnDisk(
         KeyType key_type) override;
 
     outcome::result<EcdsaKeypair> findEcdsaKeypair(
         KeyType key_type, const EcdsaPublicKey &pk) const override;
 
-    outcome::result<Ed25519Keypair> findEd25519Keypair(
-        KeyType key_type, const Ed25519PublicKey &pk) const override;
-
-    outcome::result<Sr25519Keypair> findSr25519Keypair(
-        KeyType key_type, const Sr25519PublicKey &pk) const override;
-
     outcome::result<EcdsaKeys> getEcdsaPublicKeys(
         KeyType key_type) const override;
+
+    // ----
+
+    outcome::result<Ed25519Keypair> generateEd25519Keypair(
+        KeyType key_type, std::string_view mnemonic_phrase) override;
+
+    outcome::result<Ed25519Keypair> generateEd25519Keypair(
+        KeyType key_type, const Ed25519Seed &seed) override;
+
+    outcome::result<Ed25519Keypair> generateEd25519KeypairOnDisk(
+        KeyType key_type) override;
+
+    outcome::result<Ed25519Keypair> findEd25519Keypair(
+        KeyType key_type, const Ed25519PublicKey &pk) const override;
 
     outcome::result<Ed25519Keys> getEd25519PublicKeys(
         KeyType key_type) const override;
 
+    // ----
+
+    outcome::result<Sr25519Keypair> generateSr25519Keypair(
+        KeyType key_type, std::string_view mnemonic_phrase) override;
+
+    outcome::result<Sr25519Keypair> generateSr25519Keypair(
+        KeyType key_type, const Sr25519Seed &seed) override;
+
+    outcome::result<Sr25519Keypair> generateSr25519KeypairOnDisk(
+        KeyType key_type) override;
+
+    outcome::result<Sr25519Keypair> findSr25519Keypair(
+        KeyType key_type, const Sr25519PublicKey &pk) const override;
+
     outcome::result<Sr25519Keys> getSr25519PublicKeys(
         KeyType key_type) const override;
+
+    // ----
+
+    outcome::result<BandersnatchKeypair> generateBandersnatchKeypair(
+        KeyType key_type, std::string_view mnemonic_phrase) override;
+
+    outcome::result<BandersnatchKeypair> generateBandersnatchKeypair(
+        KeyType key_type, const BandersnatchSeed &seed) override;
+
+    outcome::result<BandersnatchKeypair> generateBandersnatchKeypairOnDisk(
+        KeyType key_type) override;
+
+    outcome::result<BandersnatchKeypair> findBandersnatchKeypair(
+        KeyType key_type, const BandersnatchPublicKey &pk) const override;
+
+    outcome::result<BandersnatchKeys> getBandersnatchPublicKeys(
+        KeyType key_type) const override;
+
+    // ----
 
     outcome::result<libp2p::crypto::KeyPair> loadLibp2pKeypair(
         const Path &key_path) const override;
@@ -184,16 +208,21 @@ namespace kagome::crypto {
       return it->second;
     }
 
-    mutable std::unordered_map<KeyType, KeyCache<EcdsaSuite>> ecdsa_caches_;
-    mutable std::unordered_map<KeyType, KeyCache<Ed25519Suite>> ed_caches_;
-    mutable std::unordered_map<KeyType, KeyCache<Sr25519Suite>> sr_caches_;
+    log::Logger logger_;
+
     std::shared_ptr<KeyFileStorage> file_storage_;
     std::shared_ptr<EcdsaSuite> ecdsa_suite_;
     std::shared_ptr<Ed25519Suite> ed_suite_;
     std::shared_ptr<Sr25519Suite> sr_suite_;
+    std::shared_ptr<BandersnatchSuite> bandersnatch_suite_;
     std::shared_ptr<Bip39Provider> bip39_provider_;
     std::shared_ptr<CSPRNG> csprng_;
-    log::Logger logger_;
+
+    mutable std::unordered_map<KeyType, KeyCache<EcdsaSuite>> ecdsa_caches_;
+    mutable std::unordered_map<KeyType, KeyCache<Ed25519Suite>> ed_caches_;
+    mutable std::unordered_map<KeyType, KeyCache<Sr25519Suite>> sr_caches_;
+    mutable std::unordered_map<KeyType, KeyCache<BandersnatchSuite>>
+        bandersnatch_caches_;
   };
 
 }  // namespace kagome::crypto

@@ -98,6 +98,15 @@ hunter_config(
     KEEP_PACKAGE_SOURCES
 )
 
+hunter_config(
+  bandersnatch_vrfs_crust
+  URL  https://github.com/qdrvm/bandersnatch-vrfs-crust/archive/refs/heads/draft2.tar.gz
+  SHA1 4191a68f6b36ab840ad15654d8216e47522abb8b
+  CMAKE_ARGS CACHE_BREAK=5
+  CONFIGURATION_TYPES Debug
+  KEEP_PACKAGE_SOURCES
+)
+
 # Fix for Apple clang (or clang from brew) of versions 15 and higher
 if (APPLE AND (CMAKE_CXX_COMPILER_ID STREQUAL "AppleClang" OR CMAKE_CXX_COMPILER_ID STREQUAL "Clang") AND CMAKE_CXX_COMPILER_VERSION GREATER_EQUAL "15.0.0")
   hunter_config(

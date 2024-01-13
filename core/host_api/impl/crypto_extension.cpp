@@ -13,6 +13,7 @@
 #include <boost/assert.hpp>
 #include <span>
 
+#include "crypto/bandersnatch_provider.hpp"
 #include "crypto/crypto_store.hpp"
 #include "crypto/crypto_store/key_type.hpp"
 #include "crypto/ecdsa_provider.hpp"
@@ -194,7 +195,7 @@ namespace kagome::host_api {
   }
 
   runtime::WasmPointer CryptoExtension::ext_crypto_ed25519_generate_version_1(
-      runtime::WasmPointer key_type_ptr, runtime::WasmSpan seed) {
+      runtime::WasmPointer key_type_ptr, runtime::WasmSpan seed) const {
     crypto::KeyType key_type = getMemory().load32u(key_type_ptr);
     checkIfKeyIsSupported(key_type, logger_);
 
@@ -321,7 +322,7 @@ namespace kagome::host_api {
   }
 
   runtime::WasmPointer CryptoExtension::ext_crypto_sr25519_generate_version_1(
-      runtime::WasmPointer key_type_ptr, runtime::WasmSpan seed) {
+      runtime::WasmPointer key_type_ptr, runtime::WasmSpan seed) const {
     crypto::KeyType key_type = getMemory().load32u(key_type_ptr);
     checkIfKeyIsSupported(key_type, logger_);
 
@@ -774,5 +775,41 @@ namespace kagome::host_api {
       *batch_verify_ &= ok;
     }
     return ok;
+  }
+
+  runtime::WasmPointer
+  CryptoExtension::ext_crypto_bandersnatch_generate_version_1(
+      runtime::WasmPointer key_type_ptr, runtime::WasmSpan seed) const {
+    crypto::KeyType key_type = getMemory().load32u(key_type_ptr);
+    checkIfKeyIsSupported(key_type, logger_);
+
+    auto [seed_ptr, seed_len] = runtime::PtrSize(seed);
+    auto seed_buffer = getMemory().loadN(seed_ptr, seed_len);
+    auto seed_res = scale::decode<std::optional<std::string>>(seed_buffer);
+    if (!seed_res) {
+      throw_with_error(logger_, "failed to decode seed");
+    }
+
+    outcome::result<crypto::BandersnatchKeypair> kp_res{{}};
+    auto bip39_seed = seed_res.value();
+    if (bip39_seed.has_value()) {
+      kp_res = crypto_store_->generateBandersnatchKeypair(key_type,
+                                                          bip39_seed.value());
+    } else {
+      kp_res = crypto_store_->generateBandersnatchKeypairOnDisk(key_type);
+    }
+    if (!kp_res) {
+      throw_with_error(logger_,
+                       "failed to generate bandersnatch key pair: {}",
+                       kp_res.error());
+    }
+    auto &key_pair = kp_res.value();
+
+    SL_TRACE_FUNC_CALL(logger_, key_pair.public_key, key_type, seed_buffer);
+
+    common::Buffer buffer(key_pair.public_key);
+    runtime::WasmSpan ps = getMemory().storeBuffer(buffer);
+
+    return runtime::PtrSize(ps).ptr;
   }
 }  // namespace kagome::host_api

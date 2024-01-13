@@ -9,6 +9,7 @@
 #include <kagome/application/impl/chain_spec_impl.hpp>
 #include <kagome/blockchain/impl/block_header_repository_impl.hpp>
 #include <kagome/blockchain/impl/block_storage_impl.hpp>
+#include <kagome/crypto/bandersnatch/bandersnatch_provider_impl.hpp>
 #include <kagome/crypto/bip39/impl/bip39_provider_impl.hpp>
 #include <kagome/crypto/crypto_store/crypto_store_impl.hpp>
 #include <kagome/crypto/ecdsa/ecdsa_provider_impl.hpp>
@@ -133,12 +134,14 @@ int main() {
 
   auto generator =
       std::make_shared<libp2p::crypto::random::BoostRandomGenerator>();
-  auto sr25519_provider =
-      std::make_shared<kagome::crypto::Sr25519ProviderImpl>();
   auto ecdsa_provider =
       std::make_shared<kagome::crypto::EcdsaProviderImpl>(hasher);
   auto ed25519_provider =
       std::make_shared<kagome::crypto::Ed25519ProviderImpl>(hasher);
+  auto sr25519_provider =
+      std::make_shared<kagome::crypto::Sr25519ProviderImpl>();
+  auto bandersnatch_provider =
+      std::make_shared<kagome::crypto::BandersnatchProviderImpl>();
   auto secp256k1_provider =
       std::make_shared<kagome::crypto::Secp256k1ProviderImpl>();
   auto pbkdf2_provider = std::make_shared<kagome::crypto::Pbkdf2ProviderImpl>();
@@ -151,13 +154,21 @@ int main() {
       std::make_shared<kagome::crypto::Ed25519Suite>(ed25519_provider);
   auto sr_suite =
       std::make_shared<kagome::crypto::Sr25519Suite>(sr25519_provider);
+  auto bandersnatch_suite = std::make_shared<kagome::crypto::BandersnatchSuite>(
+      bandersnatch_provider);
   std::shared_ptr<kagome::crypto::KeyFileStorage> key_fs =
       kagome::crypto::KeyFileStorage::createAt("/tmp/kagome_tmp_key_storage")
           .value();
   auto csprng =
       std::make_shared<libp2p::crypto::random::BoostRandomGenerator>();
-  auto crypto_store = std::make_shared<kagome::crypto::CryptoStoreImpl>(
-      ecdsa_suite, ed_suite, sr_suite, bip39_provider, csprng, key_fs);
+  auto crypto_store =
+      std::make_shared<kagome::crypto::CryptoStoreImpl>(ecdsa_suite,
+                                                        ed_suite,
+                                                        sr_suite,
+                                                        bandersnatch_suite,
+                                                        bip39_provider,
+                                                        csprng,
+                                                        key_fs);
 
   auto offchain_persistent_storage =
       std::make_shared<kagome::offchain::OffchainPersistentStorageImpl>(
@@ -169,9 +180,10 @@ int main() {
   auto host_api_factory =
       std::make_shared<kagome::host_api::HostApiFactoryImpl>(
           kagome::host_api::OffchainExtensionConfig{},
-          sr25519_provider,
           ecdsa_provider,
           ed25519_provider,
+          sr25519_provider,
+          bandersnatch_provider,
           secp256k1_provider,
           hasher,
           crypto_store,

@@ -6,6 +6,7 @@
 
 #pragma once
 
+#include "crypto/bandersnatch_provider.hpp"
 #include "crypto/ecdsa_provider.hpp"
 #include "crypto/ed25519_provider.hpp"
 #include "crypto/random_generator.hpp"
@@ -201,6 +202,51 @@ namespace kagome::crypto {
 
    private:
     std::shared_ptr<Sr25519Provider> sr_provider_;
+  };
+
+  class BandersnatchSuite : public CryptoSuite<BandersnatchPublicKey,
+                                               BandersnatchSecretKey,
+                                               BandersnatchKeypair,
+                                               BandersnatchKeypairAndSeed,
+                                               BandersnatchSeed> {
+   public:
+    explicit BandersnatchSuite(
+        std::shared_ptr<BandersnatchProvider> bandersnatch_provider)
+        : bandersnatch_provider_{std::move(bandersnatch_provider)} {
+      BOOST_ASSERT(bandersnatch_provider_ != nullptr);
+    }
+
+    using CryptoSuite::generateKeypair;
+    outcome::result<BandersnatchKeypair> generateKeypair(
+        const BandersnatchSeed &seed,
+        Junctions junctions) const noexcept override {
+      return bandersnatch_provider_->generateKeypair(seed, junctions);
+    }
+
+    BandersnatchKeypair composeKeypair(
+        PublicKey pub, PrivateKey priv) const noexcept override {
+      return BandersnatchKeypair{.secret_key = std::move(priv),
+                                 .public_key = std::move(pub)};
+    }
+
+    std::pair<PublicKey, PrivateKey> decomposeKeypair(
+        const BandersnatchKeypair &kp) const noexcept override {
+      return {kp.public_key, kp.secret_key};
+    }
+
+    outcome::result<PublicKey> toPublicKey(
+        common::BufferView bytes) const noexcept override {
+      OUTCOME_TRY(blob, BandersnatchPublicKey::fromSpan(bytes));
+      return BandersnatchPublicKey{std::move(blob)};
+    }
+
+    outcome::result<Seed> toSeed(
+        common::BufferView bytes) const noexcept override {
+      return BandersnatchSeed::fromSpan(bytes);
+    }
+
+   private:
+    std::shared_ptr<BandersnatchProvider> bandersnatch_provider_;
   };
 
 }  // namespace kagome::crypto

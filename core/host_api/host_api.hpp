@@ -86,7 +86,7 @@ namespace kagome::host_api {
      * @param prefix memory span containing prefix
      * @param limit of entries to be removed
      */
-    virtual runtime::WasmSpan ext_storage_clear_prefix_version_2(
+    [[nodiscard]] virtual runtime::WasmSpan ext_storage_clear_prefix_version_2(
         runtime::WasmSpan prefix, runtime::WasmSpan limit) = 0;
 
     /**
@@ -214,7 +214,8 @@ namespace kagome::host_api {
     /**
      * Get host max log level
      */
-    virtual runtime::WasmEnum ext_logging_max_level_version_1() = 0;
+    [[nodiscard]] virtual runtime::WasmEnum
+    ext_logging_max_level_version_1() = 0;
 
     // ------------------------ Cryptographic extensions -----------------------
 
@@ -481,6 +482,10 @@ namespace kagome::host_api {
         runtime::WasmPointer msg,
         runtime::WasmPointer pubkey_data) = 0;
 
+    [[nodiscard]] virtual runtime::WasmPointer
+    ext_crypto_bandersnatch_generate_version_1(runtime::WasmSize key_type,
+                                               runtime::WasmSpan seed) = 0;
+
     // ---------------------------- Misc extensions ----------------------------
 
     [[nodiscard]] virtual runtime::WasmSpan ext_misc_runtime_version_version_1(
@@ -582,7 +587,8 @@ namespace kagome::host_api {
                                               runtime::WasmSpan deadline) = 0;
 
     /// @copydoc OffchainExtension::ext_offchain_http_response_headers_version_1
-    virtual runtime::WasmSpan ext_offchain_http_response_headers_version_1(
+    [[nodiscard]] virtual runtime::WasmSpan
+    ext_offchain_http_response_headers_version_1(
         runtime::WasmI32 request_id) = 0;
 
     /// @copydoc
@@ -690,7 +696,8 @@ namespace kagome::host_api {
      * @param prefix a pointer-size indicating the prefix
      * @return pointer to number of records removed
      */
-    virtual runtime::WasmSpan ext_default_child_storage_clear_prefix_version_2(
+    [[nodiscard]] virtual runtime::WasmSpan
+    ext_default_child_storage_clear_prefix_version_2(
         runtime::WasmSpan child_storage_key,
         runtime::WasmSpan prefix,
         runtime::WasmSpan limit) = 0;
@@ -712,7 +719,8 @@ namespace kagome::host_api {
      * number of bytes written into the value_out buffer. Returns None if the
      * entry does not exists.
      */
-    virtual runtime::WasmSpan ext_default_child_storage_read_version_1(
+    [[nodiscard]] virtual runtime::WasmSpan
+    ext_default_child_storage_read_version_1(
         runtime::WasmSpan child_storage_key,
         runtime::WasmSpan key,
         runtime::WasmSpan value_out,
@@ -725,7 +733,7 @@ namespace kagome::host_api {
      * @return a boolean equal to true if the key does exist, false if
      * otherwise.
      */
-    virtual int32_t ext_default_child_storage_exists_version_1(
+    [[nodiscard]] virtual int32_t ext_default_child_storage_exists_version_1(
         runtime::WasmSpan child_storage_key, runtime::WasmSpan key) const = 0;
 
     /**
@@ -741,7 +749,8 @@ namespace kagome::host_api {
      * @param limit is an optional number of records allowed to remove
      * @return pointer to int32 with a number of records removed
      */
-    virtual runtime::WasmSpan ext_default_child_storage_storage_kill_version_3(
+    [[nodiscard]] virtual runtime::WasmSpan
+    ext_default_child_storage_storage_kill_version_3(
         runtime::WasmSpan child_storage_key, runtime::WasmSpan limit) = 0;
 
     virtual void ext_panic_handler_abort_on_panic_version_1(

@@ -252,6 +252,14 @@ namespace kagome::runtime::wavm {
   }
 
   WAVM_DEFINE_INTRINSIC_FUNCTION(WAVM::I32,
+                                 ext_crypto_bandersnatch_generate_version_1,
+                                 WAVM::I32 base,
+                                 WAVM::I64 scalar) {
+    return peekHostApi()->ext_crypto_bandersnatch_generate_version_1(base,
+                                                                     scalar);
+  }
+
+  WAVM_DEFINE_INTRINSIC_FUNCTION(WAVM::I32,
                                  ext_trie_blake2_256_ordered_root_version_1,
                                  WAVM::I64 values_data) {
     return peekHostApi()->ext_trie_blake2_256_ordered_root_version_1(
@@ -894,6 +902,7 @@ namespace kagome::runtime::wavm {
     REGISTER_HOST_INTRINSIC(I64, ext_storage_read_version_1, I64, I64, I32)
     REGISTER_HOST_INTRINSIC(I64, ext_storage_root_version_1)
     REGISTER_HOST_INTRINSIC(I64, ext_storage_root_version_2, I32)
+    REGISTER_HOST_INTRINSIC(I32, ext_crypto_bandersnatch_generate_version_1, I32, I64)
 
     // -------------------------- Offchain extension ---------------------------
     REGISTER_HOST_INTRINSIC(I32, ext_offchain_is_validator_version_1)

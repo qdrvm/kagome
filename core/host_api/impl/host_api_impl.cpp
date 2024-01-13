@@ -312,6 +312,12 @@ namespace kagome::host_api {
         sig, msg, key);
   }
 
+  runtime::WasmPointer HostApiImpl::ext_crypto_bandersnatch_generate_version_1(
+      runtime::WasmSize key_type, runtime::WasmSpan seed) {
+    return crypto_ext_.ext_crypto_bandersnatch_generate_version_1(key_type,
+                                                                  seed);
+  }
+
   // ------------------------- Hashing extension/crypto ---------------
 
   runtime::WasmPointer HostApiImpl::ext_hashing_keccak_256_version_1(

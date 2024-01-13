@@ -20,6 +20,7 @@ namespace kagome::crypto {
   class EcdsaProvider;
   class Ed25519Provider;
   class Secp256k1Provider;
+  class BandersnatchProvider;
   class Hasher;
   class CryptoStore;
 }  // namespace kagome::crypto
@@ -100,7 +101,7 @@ namespace kagome::host_api {
      *@see HostApi::ext_crypto_ed25519_generate
      */
     runtime::WasmPointer ext_crypto_ed25519_generate_version_1(
-        runtime::WasmPointer key_type, runtime::WasmSpan seed);
+        runtime::WasmPointer key_type, runtime::WasmSpan seed) const;
 
     /**
      * @see HostApi::ext_crypto_ed25519_sign
@@ -140,7 +141,7 @@ namespace kagome::host_api {
      *@see HostApi::ext_crypto_sr25519_generate
      */
     runtime::WasmPointer ext_crypto_sr25519_generate_version_1(
-        runtime::WasmPointer key_type, runtime::WasmSpan seed);
+        runtime::WasmPointer key_type, runtime::WasmSpan seed) const;
 
     /**
      * @see HostApi::ext_crypto_sr25519_sign
@@ -241,6 +242,12 @@ namespace kagome::host_api {
         runtime::WasmPointer msg,
         runtime::WasmPointer key) const;
 
+    /**
+     * @see HostApi::ext_crypto_bandersnatch_generate_version_1
+     */
+    runtime::WasmPointer ext_crypto_bandersnatch_generate_version_1(
+        runtime::WasmPointer key_type, runtime::WasmSpan seed) const;
+
    private:
     runtime::Memory &getMemory() const {
       return memory_provider_->getCurrentMemory()->get();
@@ -267,6 +274,7 @@ namespace kagome::host_api {
     std::shared_ptr<const crypto::EcdsaProvider> ecdsa_provider_;
     std::shared_ptr<const crypto::Ed25519Provider> ed25519_provider_;
     std::shared_ptr<const crypto::Secp256k1Provider> secp256k1_provider_;
+    std::shared_ptr<const crypto::BandersnatchProvider> bandersnatch_provider_;
     std::shared_ptr<const crypto::Hasher> hasher_;
     std::shared_ptr<crypto::CryptoStore> crypto_store_;
     log::Logger logger_;

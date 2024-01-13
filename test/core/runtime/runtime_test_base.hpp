@@ -11,6 +11,7 @@
 #include <fstream>
 #include <memory>
 
+#include "crypto/bandersnatch/bandersnatch_provider_impl.hpp"
 #include "crypto/bip39/impl/bip39_provider_impl.hpp"
 #include "crypto/crypto_store/crypto_store_impl.hpp"
 #include "crypto/ecdsa/ecdsa_provider_impl.hpp"
@@ -73,6 +74,8 @@ class RuntimeTestBase : public ::testing::Test {
     auto random_generator = std::make_shared<crypto::BoostRandomGenerator>();
     hasher_ = std::make_shared<crypto::HasherImpl>();
     auto sr25519_provider = std::make_shared<crypto::Sr25519ProviderImpl>();
+    auto bandersnatch_provider =
+        std::make_shared<crypto::BandersnatchProviderImpl>();
     auto ecdsa_provider = std::make_shared<crypto::EcdsaProviderImpl>(hasher_);
     auto ed25519_provider =
         std::make_shared<crypto::Ed25519ProviderImpl>(hasher_);
@@ -86,6 +89,7 @@ class RuntimeTestBase : public ::testing::Test {
         std::make_shared<crypto::EcdsaSuite>(ecdsa_provider),
         std::make_shared<crypto::Ed25519Suite>(ed25519_provider),
         std::make_shared<crypto::Sr25519Suite>(sr25519_provider),
+        std::make_shared<crypto::BandersnatchSuite>(bandersnatch_provider),
         bip39_provider,
         random_generator,
         crypto::KeyFileStorage::createAt(keystore_path).value());
@@ -96,9 +100,10 @@ class RuntimeTestBase : public ::testing::Test {
 
     host_api_factory_ = std::make_shared<host_api::HostApiFactoryImpl>(
         kagome::host_api::OffchainExtensionConfig{},
-        sr25519_provider,
         ecdsa_provider,
         ed25519_provider,
+        sr25519_provider,
+        bandersnatch_provider,
         secp256k1_provider,
         hasher_,
         crypto_store,

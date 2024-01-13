@@ -77,6 +77,7 @@
 #include "consensus/timeline/impl/consensus_selector_impl.hpp"
 #include "consensus/timeline/impl/slots_util_impl.hpp"
 #include "consensus/timeline/impl/timeline_impl.hpp"
+#include "crypto/bandersnatch/bandersnatch_provider_impl.hpp"
 #include "crypto/bip39/impl/bip39_provider_impl.hpp"
 #include "crypto/crypto_store/crypto_store_impl.hpp"
 #include "crypto/crypto_store/session_keys.hpp"
@@ -896,6 +897,7 @@ namespace {
             di::bind<consensus::SlotsUtil>.template to<consensus::SlotsUtilImpl>(),
             di::bind<consensus::Timeline>.template to<consensus::TimelineImpl>(),
             di::bind<consensus::babe::BabeBlockValidator>.template to<consensus::babe::BabeBlockValidatorImpl>(),
+            di::bind<crypto::BandersnatchProvider>.template to<crypto::BandersnatchProviderImpl>(),
 
             // user-defined overrides...
             std::forward<decltype(args)>(args)...);

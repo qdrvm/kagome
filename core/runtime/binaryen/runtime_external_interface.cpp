@@ -180,6 +180,7 @@ namespace kagome::runtime::binaryen {
         ext_crypto_secp256k1_ecdsa_recover_compressed_version_1);
     REGISTER_HOST_API_FUNC(
         ext_crypto_secp256k1_ecdsa_recover_compressed_version_2);
+    REGISTER_HOST_API_FUNC(ext_crypto_bandersnatch_generate_version_1);
 
     // -------------------------- hashing functions --------------------------
 

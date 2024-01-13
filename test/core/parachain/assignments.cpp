@@ -18,12 +18,12 @@
 
 #include <filesystem>
 #include <string_view>
-#include "testutil/outcome.hpp"
 #include "testutil/prepare_loggers.hpp"
 #include "testutil/storage/base_fs_test.hpp"
 
 #include "common/blob.hpp"
 #include "common/visitor.hpp"
+#include "crypto/bandersnatch/bandersnatch_provider_impl.hpp"
 #include "parachain/approval/approval_distribution.hpp"
 
 using kagome::common::Blob;
@@ -68,6 +68,7 @@ struct AssignmentsTest : public test::BaseFS_Test {
     auto ecdsa_provider = std::make_shared<EcdsaProviderImpl>(hasher);
     auto ed25519_provider = std::make_shared<Ed25519ProviderImpl>(hasher);
     auto sr25519_provider = std::make_shared<Sr25519ProviderImpl>();
+    auto bandersnatch_provider = std::make_shared<BandersnatchProviderImpl>();
 
     auto pbkdf2_provider = std::make_shared<Pbkdf2ProviderImpl>();
     auto bip39_provider =
@@ -80,6 +81,7 @@ struct AssignmentsTest : public test::BaseFS_Test {
         std::make_shared<EcdsaSuite>(std::move(ecdsa_provider)),
         std::make_shared<Ed25519Suite>(std::move(ed25519_provider)),
         std::make_shared<Sr25519Suite>(std::move(sr25519_provider)),
+        std::make_shared<BandersnatchSuite>(std::move(bandersnatch_provider)),
         bip39_provider,
         csprng,
         kagome::crypto::KeyFileStorage::createAt(keystore_path).value());
