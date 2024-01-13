@@ -16,6 +16,10 @@
 #include "crypto/sr25519_provider.hpp"
 #include "host_api/impl/offchain_extension.hpp"
 
+namespace kagome::crypto {
+  class EllipticCurves;
+}
+
 namespace kagome::offchain {
   class OffchainPersistentStorage;
   class OffchainWorkerPool;
@@ -33,6 +37,7 @@ namespace kagome::host_api {
         std::shared_ptr<crypto::EcdsaProvider> ecdsa_provider,
         std::shared_ptr<crypto::Ed25519Provider> ed25519_provider,
         std::shared_ptr<crypto::Secp256k1Provider> secp256k1_provider,
+        std::shared_ptr<crypto::EllipticCurves> elliptic_curves,
         std::shared_ptr<crypto::Hasher> hasher,
         std::shared_ptr<crypto::CryptoStore> crypto_store,
         std::shared_ptr<offchain::OffchainPersistentStorage>
@@ -51,6 +56,7 @@ namespace kagome::host_api {
     std::shared_ptr<crypto::EcdsaProvider> ecdsa_provider_;
     std::shared_ptr<crypto::Ed25519Provider> ed25519_provider_;
     std::shared_ptr<crypto::Secp256k1Provider> secp256k1_provider_;
+    std::shared_ptr<crypto::EllipticCurves> elliptic_curves_;
     std::shared_ptr<crypto::Hasher> hasher_;
     std::shared_ptr<crypto::CryptoStore> crypto_store_;
     std::shared_ptr<offchain::OffchainPersistentStorage>

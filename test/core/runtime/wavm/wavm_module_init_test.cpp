@@ -9,20 +9,20 @@
 #include <gtest/gtest.h>
 #include <rocksdb/options.h>
 #include <libp2p/crypto/random_generator/boost_generator.hpp>
-
-#include "blockchain/impl/block_header_repository_impl.hpp"  //header_repo
-#include "crypto/bip39/impl/bip39_provider_impl.hpp"         //bip39_provider
-#include "crypto/crypto_store/crypto_store_impl.hpp"         //crypto_store
-#include "crypto/ecdsa/ecdsa_provider_impl.hpp"              //ecdsa_provider
-#include "crypto/ed25519/ed25519_provider_impl.hpp"          //ed25519_provider
-#include "crypto/hasher/hasher_impl.hpp"                     //hasher
-#include "crypto/pbkdf2/impl/pbkdf2_provider_impl.hpp"       //pbkdf2_provider
-#include "crypto/secp256k1/secp256k1_provider_impl.hpp"  //secp256k1_provider
-#include "crypto/sr25519/sr25519_provider_impl.hpp"      //sr25519_provider
-#include "host_api/impl/host_api_factory_impl.hpp"       // host_api_factory
-#include "offchain/impl/offchain_persistent_storage.hpp"  //offchain_persistent_store
-#include "offchain/impl/offchain_worker_pool_impl.hpp"  //offchain_worker_pool
-#include "runtime/common/runtime_properties_cache_impl.hpp"  // cache
+#include "blockchain/impl/block_header_repository_impl.hpp"
+#include "crypto/bip39/impl/bip39_provider_impl.hpp"
+#include "crypto/crypto_store/crypto_store_impl.hpp"
+#include "crypto/ecdsa/ecdsa_provider_impl.hpp"
+#include "crypto/ed25519/ed25519_provider_impl.hpp"
+#include "crypto/elliptic_curves/elliptic_curves_impl.hpp"
+#include "crypto/hasher/hasher_impl.hpp"
+#include "crypto/pbkdf2/impl/pbkdf2_provider_impl.hpp"
+#include "crypto/secp256k1/secp256k1_provider_impl.hpp"
+#include "crypto/sr25519/sr25519_provider_impl.hpp"
+#include "host_api/impl/host_api_factory_impl.hpp"
+#include "offchain/impl/offchain_persistent_storage.hpp"
+#include "offchain/impl/offchain_worker_pool_impl.hpp"
+#include "runtime/common/runtime_properties_cache_impl.hpp"
 #include "runtime/executor.hpp"
 #include "runtime/memory_provider.hpp"
 #include "runtime/module.hpp"  // smc
@@ -88,6 +88,8 @@ class WavmModuleInitTest : public ::testing::TestWithParam<std::string_view> {
         std::make_shared<kagome::crypto::Ed25519ProviderImpl>(hasher);
     auto secp256k1_provider =
         std::make_shared<kagome::crypto::Secp256k1ProviderImpl>();
+    auto elliptic_curves =
+        std::shared_ptr<kagome::crypto::EllipticCurvesImpl>();
     auto pbkdf2_provider =
         std::make_shared<kagome::crypto::Pbkdf2ProviderImpl>();
     auto bip39_provider = std::make_shared<kagome::crypto::Bip39ProviderImpl>(
@@ -129,6 +131,7 @@ class WavmModuleInitTest : public ::testing::TestWithParam<std::string_view> {
             ecdsa_provider,
             ed25519_provider,
             secp256k1_provider,
+            elliptic_curves,
             hasher,
             crypto_store,
             offchain_persistent_storage,

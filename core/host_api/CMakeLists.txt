@@ -17,5 +17,6 @@ target_link_libraries(host_api
     storage_extension
     child_storage_extension
     offchain_extension
+    elliptic_curves_extension
     )
 kagome_install(host_api)
