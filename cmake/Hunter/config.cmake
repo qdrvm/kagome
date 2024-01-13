@@ -97,6 +97,13 @@ hunter_config(
     KEEP_PACKAGE_SOURCES
 )
 
+hunter_config(
+    arkworks_crust
+    URL  https://github.com/qdrvm/arkworks-crust/archive/843300a0ef85777761a4c1acc0acf158e986c6ca.tar.gz
+    SHA1 ec88913a9d2de264c5ce9f5bbe13d9ec7d135ce3
+    KEEP_PACKAGE_SOURCES
+)
+
 # Fix for Apple clang (or clang from brew) of versions 15 and higher
 if (APPLE AND (CMAKE_CXX_COMPILER_ID STREQUAL "AppleClang" OR CMAKE_CXX_COMPILER_ID STREQUAL "Clang") AND CMAKE_CXX_COMPILER_VERSION GREATER_EQUAL "15.0.0")
   hunter_config(

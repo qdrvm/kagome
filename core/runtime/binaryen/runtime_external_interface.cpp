@@ -244,6 +244,20 @@ namespace kagome::runtime::binaryen {
     REGISTER_HOST_API_FUNC(ext_offchain_index_set_version_1);
     REGISTER_HOST_API_FUNC(ext_offchain_index_clear_version_1);
 
+    // ---------------------------- Elliptic Curves ----------------------------
+
+    REGISTER_HOST_API_FUNC(
+        ext_elliptic_curves_bls12_381_final_exponentiation_version_1);
+    REGISTER_HOST_API_FUNC(ext_elliptic_curves_bls12_381_msm_g1_version_1);
+    REGISTER_HOST_API_FUNC(
+        ext_elliptic_curves_bls12_381_mul_projective_g1_version_1);
+    REGISTER_HOST_API_FUNC(
+        ext_elliptic_curves_bls12_381_mul_projective_g2_version_1);
+    REGISTER_HOST_API_FUNC(
+        ext_elliptic_curves_bls12_381_multi_miller_loop_version_1);
+    REGISTER_HOST_API_FUNC(
+        ext_elliptic_curves_ed_on_bls12_381_bandersnatch_sw_mul_projective_version_1);
+
     REGISTER_HOST_API_FUNC(ext_panic_handler_abort_on_panic_version_1);
   }
 

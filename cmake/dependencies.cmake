@@ -50,6 +50,9 @@ find_package(erasure_coding_crust CONFIG REQUIRED)
 hunter_add_package(schnorrkel_crust)
 find_package(schnorrkel_crust CONFIG REQUIRED)
 
+hunter_add_package(arkworks_crust)
+find_package(arkworks_crust CONFIG REQUIRED)
+
 hunter_add_package(jsonrpc-lean)
 find_package(jsonrpc-lean REQUIRED)
 

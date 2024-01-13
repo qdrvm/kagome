@@ -13,6 +13,7 @@
 #include <kagome/crypto/crypto_store/crypto_store_impl.hpp>
 #include <kagome/crypto/ecdsa/ecdsa_provider_impl.hpp>
 #include <kagome/crypto/ed25519/ed25519_provider_impl.hpp>
+#include <kagome/crypto/elliptic_curves/elliptic_curves_impl.hpp>
 #include <kagome/crypto/hasher/hasher_impl.hpp>
 #include <kagome/crypto/pbkdf2/impl/pbkdf2_provider_impl.hpp>
 #include <kagome/crypto/secp256k1/secp256k1_provider_impl.hpp>
@@ -172,6 +173,7 @@ int main() {
       std::make_shared<kagome::crypto::Ed25519Suite>(ed25519_provider);
   auto sr_suite =
       std::make_shared<kagome::crypto::Sr25519Suite>(sr25519_provider);
+  auto elliptic_curves = std::make_shared<kagome::crypto::EllipticCurvesImpl>();
   std::shared_ptr<kagome::crypto::KeyFileStorage> key_fs =
       kagome::crypto::KeyFileStorage::createAt("/tmp/kagome_tmp_key_storage")
           .value();
@@ -194,6 +196,7 @@ int main() {
           ecdsa_provider,
           ed25519_provider,
           secp256k1_provider,
+          elliptic_curves,
           hasher,
           crypto_store,
           offchain_persistent_storage,

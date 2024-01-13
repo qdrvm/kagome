@@ -86,7 +86,7 @@ namespace kagome::host_api {
      * @param prefix memory span containing prefix
      * @param limit of entries to be removed
      */
-    virtual runtime::WasmSpan ext_storage_clear_prefix_version_2(
+    [[nodiscard]] virtual runtime::WasmSpan ext_storage_clear_prefix_version_2(
         runtime::WasmSpan prefix, runtime::WasmSpan limit) = 0;
 
     /**
@@ -211,7 +211,8 @@ namespace kagome::host_api {
     /**
      * Get host max log level
      */
-    virtual runtime::WasmEnum ext_logging_max_level_version_1() = 0;
+    [[nodiscard]] virtual runtime::WasmEnum
+    ext_logging_max_level_version_1() = 0;
 
     // ------------------------ Cryptographic extensions -----------------------
 
@@ -579,7 +580,8 @@ namespace kagome::host_api {
                                               runtime::WasmSpan deadline) = 0;
 
     /// @copydoc OffchainExtension::ext_offchain_http_response_headers_version_1
-    virtual runtime::WasmSpan ext_offchain_http_response_headers_version_1(
+    [[nodiscard]] virtual runtime::WasmSpan
+    ext_offchain_http_response_headers_version_1(
         runtime::WasmI32 request_id) = 0;
 
     /// @copydoc
@@ -687,7 +689,8 @@ namespace kagome::host_api {
      * @param prefix a pointer-size indicating the prefix
      * @return pointer to number of records removed
      */
-    virtual runtime::WasmSpan ext_default_child_storage_clear_prefix_version_2(
+    [[nodiscard]] virtual runtime::WasmSpan
+    ext_default_child_storage_clear_prefix_version_2(
         runtime::WasmSpan child_storage_key,
         runtime::WasmSpan prefix,
         runtime::WasmSpan limit) = 0;
@@ -709,7 +712,8 @@ namespace kagome::host_api {
      * number of bytes written into the value_out buffer. Returns None if the
      * entry does not exists.
      */
-    virtual runtime::WasmSpan ext_default_child_storage_read_version_1(
+    [[nodiscard]] virtual runtime::WasmSpan
+    ext_default_child_storage_read_version_1(
         runtime::WasmSpan child_storage_key,
         runtime::WasmSpan key,
         runtime::WasmSpan value_out,
@@ -722,7 +726,7 @@ namespace kagome::host_api {
      * @return a boolean equal to true if the key does exist, false if
      * otherwise.
      */
-    virtual int32_t ext_default_child_storage_exists_version_1(
+    [[nodiscard]] virtual int32_t ext_default_child_storage_exists_version_1(
         runtime::WasmSpan child_storage_key, runtime::WasmSpan key) const = 0;
 
     /**
@@ -738,10 +742,87 @@ namespace kagome::host_api {
      * @param limit is an optional number of records allowed to remove
      * @return pointer to int32 with a number of records removed
      */
-    virtual runtime::WasmSpan ext_default_child_storage_storage_kill_version_3(
+    [[nodiscard]] virtual runtime::WasmSpan
+    ext_default_child_storage_storage_kill_version_3(
         runtime::WasmSpan child_storage_key, runtime::WasmSpan limit) = 0;
 
     virtual void ext_panic_handler_abort_on_panic_version_1(
         runtime::WasmSpan message) = 0;
+
+    // ---------------------------- Elliptic Curves ----------------------------
+
+    /**
+     * Pairing multi Miller loop for BLS12-381.
+     * @param a
+     *   ArkScale<Vec<ark_ec::bls12::G1Prepared::<ark_bls12_381::Config>>>
+     * @param b
+     *   ArkScale<Vec<ark_ec::bls12::G1Prepared::<ark_bls12_381::Config>>>
+     * @return ArkScale<MillerLoopOutput<Bls12<ark_bls12_381::Config>>>
+     */
+    [[nodiscard]] virtual runtime::WasmSpan
+    ext_elliptic_curves_bls12_381_multi_miller_loop_version_1(
+        runtime::WasmSpan a, runtime::WasmSpan b) const = 0;
+
+    /**
+     * Pairing final exponentiation for BLS12-381.
+     * @param f ArkScale<MillerLoopOutput<Bls12<ark_bls12_381::Config>>>
+     * @return ArkScale<PairingOutput<Bls12<ark_bls12_381::Config>>>
+     */
+    [[nodiscard]] virtual runtime::WasmSpan
+    ext_elliptic_curves_bls12_381_final_exponentiation_version_1(
+        runtime::WasmSpan f) const = 0;
+
+    /**
+     * Projective multiplication on G1 for BLS12-381.
+     * @param base ArkScaleProjective<ark_bls12_381::G1Projective>
+     * @param scalar ArkScale<&[u64]>
+     * @return ArkScaleProjective<ark_bls12_381::G1Projective>
+     */
+    [[nodiscard]] virtual runtime::WasmSpan
+    ext_elliptic_curves_bls12_381_mul_projective_g1_version_1(
+        runtime::WasmSpan base, runtime::WasmSpan scalar) const = 0;
+
+    /**
+     * Projective multiplication on G2 for BLS12-381.
+     * @param base ArkScaleProjective<ark_bls12_381::G2Projective>
+     * @param scalar ArkScale<&[u64]>
+     * @return ArkScaleProjective<ark_bls12_381::G2Projective>
+     */
+    [[nodiscard]] virtual runtime::WasmSpan
+    ext_elliptic_curves_bls12_381_mul_projective_g2_version_1(
+        runtime::WasmSpan base, runtime::WasmSpan scalar) const = 0;
+
+    /**
+     * Multi scalar multiplication on G1 for BLS12-381.
+     * @param bases ArkScale<&[ark_bls12_381::G1Affine]>
+     * @param scalars ArkScale<&[ark_bls12_381::Fr]>
+     * @return ArkScaleProjective<ark_bls12_381::G1Projective>
+     */
+    [[nodiscard]] virtual runtime::WasmSpan
+    ext_elliptic_curves_bls12_381_msm_g1_version_1(
+        runtime::WasmSpan bases, runtime::WasmSpan scalars) const = 0;
+
+    /**
+     * Multi scalar multiplication on G2 for BLS12-381.
+     * @param bases ArkScale<&[ark_bls12_381::G2Affine]>
+     * @param scalars ArkScale<&[ark_bls12_381::Fr]>
+     * @return ArkScaleProjective<ark_bls12_381::G2Projective>
+     */
+    [[nodiscard]] virtual runtime::WasmSpan
+    ext_elliptic_curves_bls12_381_msm_g2_version_1(
+        runtime::WasmSpan bases, runtime::WasmSpan scalars) const = 0;
+
+    /**
+     * Short Weierstrass projective multiplication for
+     * Ed-on-BLS12-381-Bandersnatch.
+     * @param base
+     *   ArkScaleProjective<ark_ed_on_bls12_381_bandersnatch::SWProjective>
+     * @param scalar ArkScale<&[u64]>
+     * @return
+     *   ArkScaleProjective<ark_ed_on_bls12_381_bandersnatch::SWProjective>
+     */
+    [[nodiscard]] virtual runtime::WasmSpan
+    ext_elliptic_curves_ed_on_bls12_381_bandersnatch_sw_mul_projective_version_1(
+        runtime::WasmSpan base, runtime::WasmSpan scalar) const = 0;
   };
 }  // namespace kagome::host_api

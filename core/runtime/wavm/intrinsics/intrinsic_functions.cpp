@@ -677,6 +677,69 @@ namespace kagome::runtime::wavm {
     return peekHostApi()->ext_logging_max_level_version_1();
   }
 
+  WAVM_DEFINE_INTRINSIC_FUNCTION(
+      WAVM::I64,
+      ext_elliptic_curves_bls12_381_multi_miller_loop_version_1,
+      WAVM::I64 a,
+      WAVM::I64 b) {
+    return peekHostApi()
+        ->ext_elliptic_curves_bls12_381_multi_miller_loop_version_1(a, b);
+  }
+
+  WAVM_DEFINE_INTRINSIC_FUNCTION(
+      WAVM::I64,
+      ext_elliptic_curves_bls12_381_final_exponentiation_version_1,
+      WAVM::I64 f) {
+    return peekHostApi()
+        ->ext_elliptic_curves_bls12_381_final_exponentiation_version_1(f);
+  }
+
+  WAVM_DEFINE_INTRINSIC_FUNCTION(
+      WAVM::I64,
+      ext_elliptic_curves_bls12_381_mul_projective_g1_version_1,
+      WAVM::I64 base,
+      WAVM::I64 scalar) {
+    return peekHostApi()
+        ->ext_elliptic_curves_bls12_381_mul_projective_g1_version_1(base,
+                                                                    scalar);
+  }
+
+  WAVM_DEFINE_INTRINSIC_FUNCTION(
+      WAVM::I64,
+      ext_elliptic_curves_bls12_381_mul_projective_g2_version_1,
+      WAVM::I64 base,
+      WAVM::I64 scalar) {
+    return peekHostApi()
+        ->ext_elliptic_curves_bls12_381_mul_projective_g2_version_1(base,
+                                                                    scalar);
+  }
+
+  WAVM_DEFINE_INTRINSIC_FUNCTION(WAVM::I64,
+                                 ext_elliptic_curves_bls12_381_msm_g1_version_1,
+                                 WAVM::I64 bases,
+                                 WAVM::I64 scalars) {
+    return peekHostApi()->ext_elliptic_curves_bls12_381_msm_g1_version_1(
+        bases, scalars);
+  }
+
+  WAVM_DEFINE_INTRINSIC_FUNCTION(WAVM::I64,
+                                 ext_elliptic_curves_bls12_381_msm_g2_version_1,
+                                 WAVM::I64 bases,
+                                 WAVM::I64 scalars) {
+    return peekHostApi()->ext_elliptic_curves_bls12_381_msm_g2_version_1(
+        bases, scalars);
+  }
+
+  WAVM_DEFINE_INTRINSIC_FUNCTION(
+      WAVM::I64,
+      ext_elliptic_curves_ed_on_bls12_381_bandersnatch_sw_mul_projective_version_1,
+      WAVM::I64 base,
+      WAVM::I64 scalar) {
+    return peekHostApi()
+        ->ext_elliptic_curves_ed_on_bls12_381_bandersnatch_sw_mul_projective_version_1(
+            base, scalar);
+  }
+
   WAVM_DEFINE_INTRINSIC_FUNCTION_STUB(void,
                                       ext_sandbox_instance_teardown_version_1,
                                       WAVM::I32)
@@ -926,6 +989,15 @@ namespace kagome::runtime::wavm {
     REGISTER_HOST_INTRINSIC(   , ext_benchmarking_wipe_db_version_1)
 
     REGISTER_HOST_INTRINSIC(   , ext_panic_handler_abort_on_panic_version_1, I64)
+
+    // ---------------------------- Elliptic Curves ----------------------------
+
+    REGISTER_HOST_INTRINSIC(I64, ext_elliptic_curves_bls12_381_final_exponentiation_version_1, I64)
+    REGISTER_HOST_INTRINSIC(I64, ext_elliptic_curves_bls12_381_msm_g1_version_1, I64, I64)
+    REGISTER_HOST_INTRINSIC(I64, ext_elliptic_curves_bls12_381_mul_projective_g1_version_1, I64, I64)
+    REGISTER_HOST_INTRINSIC(I64, ext_elliptic_curves_bls12_381_mul_projective_g2_version_1, I64, I64)
+    REGISTER_HOST_INTRINSIC(I64, ext_elliptic_curves_bls12_381_multi_miller_loop_version_1, I64, I64)
+    REGISTER_HOST_INTRINSIC(I64, ext_elliptic_curves_ed_on_bls12_381_bandersnatch_sw_mul_projective_version_1, I64, I64)
 
     // clang-format on
   }
