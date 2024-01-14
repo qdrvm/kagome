@@ -216,7 +216,7 @@ namespace kagome::parachain {
   outcome::result<ParachainRuntime> PvfImpl::findData(
       const CandidateDescriptor &descriptor,
       const runtime::PersistedValidationData &pvd) const {
-    auto data_hash = hasher_->blake2b_256(scale::encode(pvd).value());
+    auto data_hash = hasher_->blake2b_256(::scale::encode(pvd).value());
       if (descriptor.persisted_data_hash != data_hash) {
         return PvfError::NO_PERSISTED_DATA;
       }
