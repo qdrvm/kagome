@@ -152,7 +152,9 @@ namespace kagome::parachain {
             .collator_id = result.value().first,
             .pending_collation = {.relay_parent = relay_parent,
                                   .para_id = result.value().second,
-                                  .peer_id = peer_id},
+                                  .peer_id = peer_id,
+                                  .commitments_hash = {},
+                                  },
         },
         std::move(prospective_candidate));
   }

@@ -721,8 +721,8 @@ namespace kagome::consensus {
       }
     }
 
-    static const auto &block_production_error_category =
-        make_error_code(SlotLeadershipError{}).category();
+    static const auto ec = make_error_code(SlotLeadershipError{});
+    static const auto &block_production_error_category = ec.category();
 
     /// Try to run block production here
     auto consensus = consensus_selector_->getProductionConsensus(best_block_);

@@ -102,11 +102,11 @@ namespace kagome::parachain {
       std::shared_ptr<authority_discovery::Query> query_audi,
       std::shared_ptr<ProspectiveParachains> prospective_parachains)
       : pm_(std::move(pm)),
-        this_context_{std::make_shared<ThreadHandler>(main_thread)},
-        main_thread_{main_thread},
         runtime_info_(std::move(runtime_info)),
         crypto_provider_(std::move(crypto_provider)),
         router_(std::move(router)),
+        this_context_{std::make_shared<ThreadHandler>(main_thread)},
+        main_thread_{main_thread},
         hasher_(std::move(hasher)),
         peer_view_(std::move(peer_view)),
         pvf_(std::move(pvf)),
@@ -120,7 +120,7 @@ namespace kagome::parachain {
         app_config_(app_config),
         babe_status_observable_(std::move(babe_status_observable)),
         query_audi_{std::move(query_audi)},
-        thread_handler_{thread_pool_->handler()},
+        thread_handler_{thread_pool->handler()},
         prospective_parachains_{std::move(prospective_parachains)} {
     BOOST_ASSERT(pm_);
     BOOST_ASSERT(peer_view_);
@@ -281,7 +281,7 @@ namespace kagome::parachain {
       return;
     }
 
-    prospective_parachains_->onActiveLeavesUpdate(network::ExViewRef{
+    [[maybe_unused]] const auto _ = prospective_parachains_->onActiveLeavesUpdate(network::ExViewRef{
         .new_head = {event.new_head},
         .lost = event.lost,
     });
@@ -492,7 +492,7 @@ namespace kagome::parachain {
     auto mode =
         prospective_parachains_->prospectiveParachainsMode(relay_parent);
     if (mode) {
-      our_current_state_.implicit_view->activate_leaf(relay_parent);
+      [[maybe_unused]] const auto _ = our_current_state_.implicit_view->activate_leaf(relay_parent);
       OUTCOME_TRY(session_index,
                   parachain_host_->session_index_for_child(relay_parent));
       OUTCOME_TRY(session_info,
@@ -519,6 +519,7 @@ namespace kagome::parachain {
         .seconded = {},
         .our_index = validator->validatorIndex(),
         .required_collator = required_collator,
+        .collations = {},
         .table_context =
             TableContext{
                 .validator = std::move(validator),
@@ -600,7 +601,7 @@ namespace kagome::parachain {
 
     auto &parachain_state = opt_parachain_state->get();
     auto &assignment = parachain_state.assignment;
-    auto &seconded = parachain_state.seconded;
+    //auto &seconded = parachain_state.seconded;
     auto &issued_statements = parachain_state.issued_statements;
 
     if (parachain_state.required_collator
@@ -1621,10 +1622,9 @@ namespace kagome::parachain {
       AttestingData &attesting_data,
       const runtime::PersistedValidationData &persisted_validation_data,
       RelayParentState &parachain_state) {
-    const auto candidate_hash{attesting_data.candidate.hash(*hasher_)};
-    const auto candidate_hash{candidateHashFrom(attesting_data.candidate)};
-
     BOOST_ASSERT(runningInThisThread(main_thread_));
+
+    const auto candidate_hash{attesting_data.candidate.hash(*hasher_)};
     if (!parachain_state.awaiting_validation.insert(candidate_hash).second) {
       return;
     }
@@ -2994,7 +2994,7 @@ namespace kagome::parachain {
       const libp2p::peer::PeerId &peer_id,
       const primitives::BlockHash &relay_parent,
       size_t n_validators) {
-    REINVOKE(*in_pool_thread_handler_,
+    REINVOKE(*thread_handler_,
              validateAsync<kMode>,
              std::move(candidate),
              std::move(pov),
@@ -3529,7 +3529,9 @@ namespace kagome::parachain {
         .relay_parent = relay_parent,
         .para_id = para_id,
         .peer_id = peer_id,
-        .prospective_candidate = std::move(prospective_candidate)};
+        .commitments_hash = {},
+        .prospective_candidate = std::move(prospective_candidate),
+        };
 
     switch (collations.status) {
       case CollationStatus::Fetching:

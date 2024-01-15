@@ -21,6 +21,7 @@
 #include "runtime/runtime_api/parachain_host.hpp"
 #include "runtime/runtime_api/parachain_host_types.hpp"
 #include "utils/map.hpp"
+#include "network/peer_view.hpp"
 
 namespace kagome::parachain {
 

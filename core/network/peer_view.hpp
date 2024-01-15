@@ -19,12 +19,26 @@
 #include "subscription/subscriber.hpp"
 #include "subscription/subscription_engine.hpp"
 #include "utils/non_copyable.hpp"
+#include "crypto/type_hasher.hpp"
 
 namespace kagome::blockchain {
   class BlockTree;
 }
 
 namespace kagome::network {
+
+  using HashedBlockHeader = crypto::
+      Hashed<primitives::BlockHeader, 32, crypto::Blake2b_StreamHasher<32>>;
+  struct ExView {
+    View view;
+    HashedBlockHeader new_head;
+    std::vector<primitives::BlockHash> lost;
+  };
+
+  struct ExViewRef {
+    std::optional<std::reference_wrapper<const HashedBlockHeader>> new_head;
+    const std::vector<primitives::BlockHash> &lost;
+  };
 
   /**
    * Observable class for current heads and finalized block number tracking.

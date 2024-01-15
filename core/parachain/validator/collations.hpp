@@ -88,18 +88,18 @@ namespace kagome::parachain {
 
   struct Collations {
     /// How many collations have been seconded.
-    size_t seconded_count;
+    size_t seconded_count { 0ull };
     /// What is the current status in regards to a collation for this relay
     /// parent?
-    CollationStatus status;
+    CollationStatus status {  CollationStatus::Waiting };
     /// Collation that were advertised to us, but we did not yet fetch.
-    std::deque<std::pair<PendingCollation, CollatorId>> waiting_queue;
+    std::deque<std::pair<PendingCollation, CollatorId>> waiting_queue{};
     /// Collator we're fetching from, optionally which candidate was requested.
     ///
     /// This is the currently last started fetch, which did not exceed
     /// `MAX_UNSHARED_DOWNLOAD_TIME` yet.
     std::optional<std::pair<CollatorId, std::optional<CandidateHash>>>
-        fetching_from;
+        fetching_from{};
 
     bool hasSecondedSpace(
         const ProspectiveParachainsModeOpt &relay_parent_mode) {

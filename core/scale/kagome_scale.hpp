@@ -20,6 +20,7 @@
 #include "scale/encode_append.hpp"
 #include "scale/libp2p_types.hpp"
 #include "scale/big_fixed_integers.hpp"
+#include "runtime/runtime_api/parachain_host_types.hpp"
 
 namespace kagome::scale {
   namespace __outcome_detail {
@@ -64,6 +65,9 @@ namespace kagome::scale {
 
   template <typename F>
   constexpr void encode(const F &func, const primitives::Consensus &c);
+
+  template <typename F>
+  constexpr void encode(const F &func, const runtime::PersistedValidationData &c);
 
   template <typename F>
   constexpr void encode(const F &func, const primitives::Seal &c);
@@ -145,6 +149,14 @@ namespace kagome::scale {
   template <typename F>
   constexpr void encode(const F &func, const primitives::Consensus &c) {
     encode(func, static_cast<const primitives::detail::DigestItemCommon &>(c));
+  }
+
+  template <typename F>
+  constexpr void encode(const F &func, const kagome::runtime::PersistedValidationData &c) {
+    encode(func, c.parent_head);
+    encode(func, c.relay_parent_number);
+    encode(func, c.relay_parent_storage_root);
+    encode(func, c.max_pov_size);
   }
 
   template <typename F>

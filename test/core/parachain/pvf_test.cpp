@@ -27,6 +27,7 @@
 #include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
 #include "testutil/prepare_loggers.hpp"
+#include "utils/struct_to_tuple.hpp"
 
 using kagome::common::Buffer;
 using kagome::common::BufferView;
@@ -129,6 +130,17 @@ Pvf::CandidateReceipt makeReceipt(parachain::ParachainId id,
   receipt.descriptor.para_id = id;
   return receipt;
 }
+
+//TEST_F(PvfTest, InstancesCached_1) {
+//    Pvf::PersistedValidationData pvf_validation_data{
+//        .parent_head = Buffer{},
+//        .relay_parent_number = 42,
+//        .relay_parent_storage_root = "root"_hash256,
+//        .max_pov_size = 100,
+//    };
+//    auto p = kagome::utils::to_tuple_refs(pvf_validation_data);
+//    int q = 0; ++q;
+//}
 
 TEST_F(PvfTest, InstancesCached) {
   Pvf::PersistedValidationData pvf_validation_data{

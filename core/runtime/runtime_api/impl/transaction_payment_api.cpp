@@ -43,7 +43,7 @@ namespace kagome::runtime {
     auto res =
         std::find_if(runtime_version.apis.begin(),
                      runtime_version.apis.end(),
-                     [](auto &api_version) {
+                     [&](auto &api_version) {
                        return api_version.first == transaction_payment_api_hash;
                      });
     if (res == runtime_version.apis.end()) {

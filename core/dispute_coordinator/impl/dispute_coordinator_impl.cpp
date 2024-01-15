@@ -2060,7 +2060,7 @@ namespace kagome::dispute {
     primitives::BlockInfo last(base_number, base_hash);
 
     if (not descriptions.empty()) {
-      last = {last.number + descriptions.size(),
+      last = {last.number + primitives::BlockNumber(descriptions.size()),
               descriptions.back().block_hash};
     }
 

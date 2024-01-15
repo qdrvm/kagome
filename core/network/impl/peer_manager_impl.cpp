@@ -268,6 +268,8 @@ namespace kagome::network {
       it->second.collator_state = CollatingPeerState{
           .para_id = para_id,
           .collator_id = collator_id,
+          .advertisements = {},
+          .last_active = std::chrono::system_clock::now(),
       };
       it->second.time = clock_->now();
     }

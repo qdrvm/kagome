@@ -58,6 +58,7 @@ namespace kagome::network {
                           self->block_tree_.get()->getLastFinalized().number,
                   },
               .new_head = value->get().get(),
+              .lost = {},
               });
         }
       }

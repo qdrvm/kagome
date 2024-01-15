@@ -1198,6 +1198,8 @@ namespace kagome::parachain {
             .included_candidates = std::nullopt,
             .babe_block_header = std::nullopt,
             .babe_epoch = std::nullopt,
+            .randomness = {},
+            .authorities = {},
             .complete_callback =
                 [wself{weak_from_this()},
                  block_hash{head},
@@ -2664,7 +2666,7 @@ namespace kagome::parachain {
              ms_wakeup_after);
 
     auto t =
-        std::make_unique<clock::BasicWaitableTimer>(int_pool_->io_context());
+        std::make_unique<clock::BasicWaitableTimer>(internal_context_->io_context());
     t->expiresAfter(std::chrono::milliseconds(ms_wakeup_after));
     t->asyncWait(
         [wself{weak_from_this()}, block_hash, block_number, candidate_hash](

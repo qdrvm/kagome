@@ -16,7 +16,6 @@
 #include "consensus/grandpa/common.hpp"
 #include "crypto/hasher.hpp"
 #include "crypto/sr25519_types.hpp"
-#include "crypto/type_hasher.hpp"
 #include "parachain/approval/approval.hpp"
 #include "parachain/types.hpp"
 #include "primitives/block_header.hpp"
@@ -276,19 +275,6 @@ namespace kagome::network {
       const auto it = std::lower_bound(heads_.begin(), heads_.end(), hash);
       return it != heads_.end() && *it == hash;
     }
-  };
-
-  using HashedBlockHeader = crypto::
-      Hashed<primitives::BlockHeader, 32, crypto::Blake2b_StreamHasher<32>>;
-  struct ExView {
-    View view;
-    HashedBlockHeader new_head;
-    std::vector<primitives::BlockHash> lost;
-  };
-
-  struct ExViewRef {
-    std::optional<std::reference_wrapper<const HashedBlockHeader>> new_head;
-    const std::vector<primitives::BlockHash> &lost;
   };
 
   using LargeStatement = parachain::IndexedAndSigned<StatementMetadata>;
