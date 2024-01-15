@@ -81,9 +81,13 @@ namespace kagome::transaction_pool {
           return visit_in_place(
               e,
               // return either invalid or unknown validity error
-              [](const auto &validity_error)
+              [](const primitives::InvalidTransaction &validity_error)
                   -> outcome::result<primitives::Transaction> {
-                return validity_error;
+                return validity_error.kind;
+              },
+              [](const primitives::UnknownTransaction &validity_error)
+                  -> outcome::result<primitives::Transaction> {
+                return validity_error.kind;
               });
         },
         [&](primitives::ValidTransaction &&v)

@@ -43,7 +43,7 @@ namespace kagome::runtime {
     template <typename... Args>
     static outcome::result<common::Buffer> encodeArgs(const Args &...args) {
       if constexpr (sizeof...(args) > 0) {
-        return common::map_result(scale::encode(args...), [](auto&& vec) {
+        return common::map_result(scale::encode(args...), [](auto &&vec) {
           return common::Buffer{vec};
         });
       }
@@ -52,6 +52,7 @@ namespace kagome::runtime {
 
     template <typename Result>
     static outcome::result<Result> decodedCall(
+        [[maybe_unused]] std::string_view method_name,
         outcome::result<common::Buffer> &&result) {
       OUTCOME_TRY(value, result);
       if constexpr (std::is_void_v<Result>) {
@@ -64,12 +65,14 @@ namespace kagome::runtime {
           // Check whether the whole byte buffer was consumed
           if (s.hasMore(1)) {
             static auto logger = log::createLogger("Executor", "runtime");
-            SL_ERROR(logger,
-                     "Runtime API call result size exceeds the size of the "
-                     "type to initialize {} (read {}, total size {})",
-                     typeid(Result).name(),
-                     s.currentIndex(),
-                     s.span().size_bytes());
+            SL_ERROR(
+                logger,
+                "Runtime API call '{}' result size exceeds the size of the "
+                "type to initialize {} (read {}, total size {})",
+                method_name,
+                typeid(Result).name(),
+                s.currentIndex(),
+                s.span().size_bytes());
             return outcome::failure(ModuleInstance::Error::INVALID_CALL_RESULT);
           }
           return outcome::success(std::move(t));
@@ -103,7 +106,7 @@ namespace kagome::runtime {
                                                      std::string_view name,
                                                      const Args &...args) {
       OUTCOME_TRY(args_buf, encodeArgs(args...));
-      return decodedCall<Res>(callExportFunction(ctx, name, args_buf));
+      return decodedCall<Res>(name, callExportFunction(ctx, name, args_buf));
     }
 
     virtual outcome::result<std::optional<WasmValue>> getGlobal(

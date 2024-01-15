@@ -27,11 +27,10 @@ namespace kagome::primitives {
   namespace dispatch_error {
     /// Some unclassified error occurred.
     struct Other {
+      SCALE_TIE(1)
       std::string value;
     };
-    // string value is not currently encodes in rust implementation,
-    // thus we use empty coder
-    SCALE_EMPTY_CODER(Other);
+
     /// Failed to lookup some data.
     struct CannotLookup {};
     SCALE_EMPTY_CODER(CannotLookup);
