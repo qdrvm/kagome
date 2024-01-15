@@ -422,7 +422,7 @@ namespace kagome::consensus::babe {
 
     // Ensure block's extrinsics root matches extrinsics in block's body
     BOOST_ASSERT_MSG(
-        ([this, &block]() {
+        ([&block]() {
           using boost::adaptors::transformed;
           const auto &ext_root_res = storage::trie::calculateOrderedTrieHash(
               storage::trie::StateVersion::V0,
