@@ -6,7 +6,7 @@
 
 #include "primitives/transaction_validity.hpp"
 
-OUTCOME_CPP_DEFINE_CATEGORY(kagome::primitives, InvalidTransaction, e) {
+OUTCOME_CPP_DEFINE_CATEGORY(kagome::primitives, InvalidTransaction::Kind, e) {
   using E = kagome::primitives::InvalidTransaction;
   switch (e) {
     case E::Call:
