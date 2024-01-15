@@ -802,7 +802,9 @@ namespace {
                   .value();
             }),
             di::bind<storage::trie::PolkadotTrieFactory>.template to<storage::trie::PolkadotTrieFactoryImpl>(),
-            di::bind<storage::trie::Codec>.template to<storage::trie::PolkadotCodec>(),
+            bind_by_lambda<storage::trie::Codec>([](const auto&) {
+              return std::make_shared<storage::trie::PolkadotCodec>(crypto::blake2b<32>);
+            }),
             di::bind<storage::trie::TrieSerializer>.template to<storage::trie::TrieSerializerImpl>(),
             bind_by_lambda<storage::trie_pruner::TriePruner>(
                 [](const auto &injector)
