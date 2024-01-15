@@ -57,7 +57,7 @@ namespace kagome::parachain {
         executor_{std::move(executor)},
         offchain_worker_factory_{std::move(offchain_worker_factory)},
         offchain_worker_pool_{std::move(offchain_worker_pool)},
-        thread_{std::move(watchdog), "PvfPrecheck", 1} {}
+        thread_{ThreadPool::create(std::move(watchdog), "PvfPrecheck", 1)} {}
 
   void PvfPrecheck::start(
       std::shared_ptr<primitives::events::ChainSubscriptionEngine>
@@ -73,7 +73,7 @@ namespace kagome::parachain {
             primitives::events::ChainEventType,
             const primitives::events::ChainEventParams &event) {
           if (auto self = weak.lock()) {
-            self->thread_.io_context()->post([weak] {
+            self->thread_->io_context()->post([weak] {
               if (auto self = weak.lock()) {
                 auto r = self->onBlock();
                 if (r.has_error()) {

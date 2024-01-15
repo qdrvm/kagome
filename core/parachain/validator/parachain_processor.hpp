@@ -632,6 +632,7 @@ namespace kagome::parachain {
 
     std::unordered_map<RelayHash, PendingCollation> pending_candidates;
     std::shared_ptr<ThreadHandler> this_context_;
+    WeakIoContext main_thread_;
     std::shared_ptr<crypto::Hasher> hasher_;
     std::shared_ptr<network::PeerView> peer_view_;
     network::PeerView::MyViewSubscriberPtr my_view_sub_;
@@ -650,7 +651,7 @@ namespace kagome::parachain {
     std::shared_ptr<authority_discovery::Query> query_audi_;
 
     std::shared_ptr<primitives::events::ChainEventSubscriber> chain_sub_;
-    WeakIoContext thread_handler_;
+    std::shared_ptr<ThreadHandler> thread_handler_;
     std::default_random_engine random_;
     std::shared_ptr<ProspectiveParachains> prospective_parachains_;
     Candidates candidates_;

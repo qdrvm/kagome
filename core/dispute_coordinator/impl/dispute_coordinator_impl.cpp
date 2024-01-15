@@ -145,9 +145,7 @@ namespace kagome::dispute {
         peer_view_(std::move(peer_view)),
         chain_sub_{peer_view_->intoChainEventsEngine()},
         babe_status_observable_(std::move(babe_status_observable)),
-        int_pool_{std::make_shared<ThreadPool>(
-            std::move(watchdog), "DisputeCoordinatorImpl", 1ull)},
-        internal_context_{int_pool_->handler()},
+        internal_context_{ThreadPool::create(std::move(watchdog), "DisputeCoordinatorImpl", 1ull)->handler()},
         runtime_info_(std::make_unique<RuntimeInfo>(api_, session_keys_)),
         batches_(std::make_unique<Batches>(steady_clock_, hasher_)) {
     BOOST_ASSERT(app_state_manager_ != nullptr);
@@ -2159,7 +2157,7 @@ namespace kagome::dispute {
 
   void DisputeCoordinatorImpl::make_task_for_next_portion() {
     if (not rate_limit_timer_.has_value()) {
-      rate_limit_timer_.emplace(int_pool_->io_context());
+      rate_limit_timer_.emplace(internal_context_->io_context());
 
       rate_limit_timer_->expiresAfter(kReceiveRateLimit);
       rate_limit_timer_->asyncWait([wp = weak_from_this()](auto &&ec) {

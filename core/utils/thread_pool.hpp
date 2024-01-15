@@ -71,6 +71,10 @@ namespace kagome {
       return self.isInCurrentThread();
     }
 
+    std::shared_ptr<boost::asio::io_context> io_context() {
+      return ioc_.lock();
+    }
+
    private:
     std::atomic<State> execution_state_;
     WeakIoContext ioc_;

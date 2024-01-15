@@ -482,9 +482,7 @@ namespace kagome::parachain {
       std::shared_ptr<Watchdog> watchdog,
       WeakIoContext main_thread,
       LazySPtr<dispute::DisputeCoordinator> dispute_coordinator)
-      : int_pool_{std::make_shared<ThreadPool>(
-          std::move(watchdog), "approval", 1ull)},
-        internal_context_{int_pool_->handler()},
+      : internal_context_{ThreadPool::create(std::move(watchdog), "approval", 1ull)->handler()},
         thread_pool_{std::move(thread_pool)},
         thread_pool_context_{thread_pool_->handler()},
         parachain_host_(std::move(parachain_host)),

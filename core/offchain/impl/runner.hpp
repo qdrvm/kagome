@@ -31,7 +31,7 @@ namespace kagome::offchain {
         : threads_{threads},
           free_threads_{threads},
           max_tasks_{max_tasks},
-          thread_pool_{std::move(watchdog), "ocw", threads_} {}
+          thread_pool_{ThreadPool::create(std::move(watchdog), "ocw", threads_)} {}
 
     struct Inject {
       explicit Inject() = default;

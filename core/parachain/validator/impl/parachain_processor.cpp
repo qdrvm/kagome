@@ -102,10 +102,11 @@ namespace kagome::parachain {
       std::shared_ptr<authority_discovery::Query> query_audi,
       std::shared_ptr<ProspectiveParachains> prospective_parachains)
       : pm_(std::move(pm)),
+        this_context_{std::make_shared<ThreadHandler>(main_thread)},
+        main_thread_{main_thread},
         runtime_info_(std::move(runtime_info)),
         crypto_provider_(std::move(crypto_provider)),
         router_(std::move(router)),
-        main_thread_(std::move(main_thread)),
         hasher_(std::move(hasher)),
         peer_view_(std::move(peer_view)),
         pvf_(std::move(pvf)),
@@ -119,7 +120,7 @@ namespace kagome::parachain {
         app_config_(app_config),
         babe_status_observable_(std::move(babe_status_observable)),
         query_audi_{std::move(query_audi)},
-        thread_handler_{thread_pool_->io_context()},
+        thread_handler_{thread_pool_->handler()},
         prospective_parachains_{std::move(prospective_parachains)} {
     BOOST_ASSERT(pm_);
     BOOST_ASSERT(peer_view_);
@@ -1621,7 +1622,6 @@ namespace kagome::parachain {
       const runtime::PersistedValidationData &persisted_validation_data,
       RelayParentState &parachain_state) {
     const auto candidate_hash{attesting_data.candidate.hash(*hasher_)};
-
     const auto candidate_hash{candidateHashFrom(attesting_data.candidate)};
 
     BOOST_ASSERT(runningInThisThread(main_thread_));

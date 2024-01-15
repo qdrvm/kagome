@@ -87,7 +87,7 @@ namespace kagome::consensus::grandpa {
         main_thread_{std::move(main_thread)},
         scheduler_{std::make_shared<libp2p::basic::SchedulerImpl>(
             std::make_shared<libp2p::basic::AsioSchedulerBackend>(
-                execution_thread_pool_->io_context()),
+                internal_thread_context_->io_context()),
             libp2p::basic::Scheduler::Config{})} {
     BOOST_ASSERT(environment_ != nullptr);
     BOOST_ASSERT(crypto_provider_ != nullptr);

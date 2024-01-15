@@ -70,7 +70,7 @@ namespace kagome::parachain {
     std::shared_ptr<primitives::events::ChainEventSubscriber> chain_sub_;
     std::map<SessionIndex, std::unordered_map<ValidationCodeHash, bool>>
         session_code_accept_;
-    ThreadPool thread_;
+    std::shared_ptr<ThreadPool> thread_;
     log::Logger logger_ = log::createLogger("PvfPrecheck", "parachain");
   };
 }  // namespace kagome::parachain
