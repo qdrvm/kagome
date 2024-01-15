@@ -21,6 +21,7 @@
 #include "consensus/timeline/backoff.hpp"
 #include "consensus/timeline/impl/slot_leadership_error.hpp"
 #include "consensus/timeline/slots_util.hpp"
+#include "crypto/blake2/blake2b.h"
 #include "crypto/crypto_store/session_keys.hpp"
 #include "crypto/sr25519_provider.hpp"
 #include "dispute_coordinator/dispute_coordinator.hpp"
@@ -427,10 +428,8 @@ namespace kagome::consensus::babe {
               storage::trie::StateVersion::V0,
               block.body | transformed([](const auto &ext) {
                 return common::Buffer{scale::encode(ext).value()};
-              }), 
-              [this](common::BufferView buf) {
-                return hasher_->blake2b_256(buf);
-              });
+              }),
+              crypto::blake2b);
           return ext_root_res.has_value()
              and (ext_root_res.value() == block.header.extrinsics_root);
         }()),

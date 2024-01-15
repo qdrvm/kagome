@@ -305,18 +305,7 @@ class BabeTest : public testing::Test {
                      block.body | transformed([](const auto &ext) {
                        return Buffer{scale::encode(ext).value()};
                      }),
-                     [](const Buffer &buf) {
-                       kagome::common::Hash256 out;
-
-                       BOOST_VERIFY(kagome::crypto::blake2b(out.data(),
-                                                    kagome::common::Hash256::size(),
-                                                    nullptr,
-                                                    0,
-                                                    buf.data(),
-                                                    buf.size())
-                                    == EXIT_SUCCESS);
-                        return out;
-                     })
+                     kagome::crypto::blake2b<32>)
               .value();
         }(),
         make_digest(new_block_slot),  // digest

@@ -13,7 +13,10 @@
 
 #include "clock/impl/clock_impl.hpp"
 #include "common/monadic_utils.hpp"
+#include "common/outcome_throw.hpp"
 #include "crypto/hasher.hpp"
+#include "crypto/blake2/blake2b.h"
+#include "crypto/keccak/keccak.hpp"
 #include "host_api/impl/storage_util.hpp"
 #include "log/trace_macros.hpp"
 #include "runtime/common/runtime_execution_error.hpp"
@@ -24,7 +27,6 @@
 #include "storage/predefined_keys.hpp"
 #include "storage/trie/impl/topper_trie_batch_impl.hpp"
 #include "storage/trie/serialization/ordered_trie_hash.hpp"
-#include "common/outcome_throw.hpp"
 
 using kagome::common::Buffer;
 
@@ -323,7 +325,8 @@ namespace kagome::host_api {
     auto res = storage_provider_->rollbackTransaction();
     SL_TRACE_VOID_FUNC_CALL(logger_);
     if (res.has_error()) {
-      logger_->error("Storage transaction rollback has failed: {}", res.error());
+      logger_->error("Storage transaction rollback has failed: {}",
+                     res.error());
       throw std::runtime_error(res.error().message());
     }
     --transactions_;
@@ -354,7 +357,7 @@ namespace kagome::host_api {
     }
 
     auto &&pv = pairs.value();
-    storage::trie::PolkadotCodec codec;
+    storage::trie::PolkadotCodec codec{crypto::blake2b<32>};
     if (pv.empty()) {
       auto res = memory.storeBuffer(storage::trie::kEmptyRootHash);
       return runtime::PtrSize(res).ptr;
@@ -398,42 +401,44 @@ namespace kagome::host_api {
       runtime::WasmSpan values_data, runtime::WasmI32 version) {
     auto &memory = memory_provider_->getCurrentMemory()->get();
     auto [address, size] = runtime::PtrSize(values_data);
-    auto values_res = scale::decode<ValuesCollection>(memory.loadN(address, size));
+    auto values_res =
+        scale::decode<ValuesCollection>(memory.loadN(address, size));
     common::raise_on_err(values_res);
 
     const auto &values = values_res.value();
 
     auto ordered_hash = storage::trie::calculateOrderedTrieHash(
-        detail::toStateVersion(version), values.begin(), values.end(), 
-        [this](common::Buffer const& buf) {
-          return hasher_->blake2b_256(buf);
-        });
+        detail::toStateVersion(version),
+        values.begin(),
+        values.end(),
+        crypto::blake2b<32>);
     common::raise_on_err(ordered_hash);
 
     SL_TRACE_FUNC_CALL(logger_, ordered_hash.value());
     return runtime::PtrSize(memory.storeBuffer(ordered_hash.value())).ptr;
   }
 
-  runtime::WasmPointer StorageExtension::ext_trie_keccak_256_ordered_root_version_2(
-        runtime::WasmSpan values_data, runtime::WasmI32 version) {
+  runtime::WasmPointer
+  StorageExtension::ext_trie_keccak_256_ordered_root_version_2(
+      runtime::WasmSpan values_data, runtime::WasmI32 version) {
     auto &memory = memory_provider_->getCurrentMemory()->get();
     auto [address, size] = runtime::PtrSize(values_data);
-    auto values_res = scale::decode<ValuesCollection>(memory.loadN(address, size));
+    auto values_res =
+        scale::decode<ValuesCollection>(memory.loadN(address, size));
     common::raise_on_err(values_res);
 
     const auto &values = values_res.value();
 
-    auto ordered_hash = storage::trie::calculateOrderedTrieHash(
-        detail::toStateVersion(version), values.begin(), values.end(), 
-        [this](common::Buffer const& buf) {
-          return hasher_->keccak_256(buf);
-        });
+    auto ordered_hash =
+        storage::trie::calculateOrderedTrieHash(detail::toStateVersion(version),
+                                                values.begin(),
+                                                values.end(),
+                                                crypto::keccak);
     common::raise_on_err(ordered_hash);
 
     SL_TRACE_FUNC_CALL(logger_, ordered_hash.value());
     return runtime::PtrSize(memory.storeBuffer(ordered_hash.value())).ptr;
   }
-
 
   runtime::WasmSpan StorageExtension::clearPrefix(
       common::BufferView prefix, std::optional<uint32_t> limit) {
