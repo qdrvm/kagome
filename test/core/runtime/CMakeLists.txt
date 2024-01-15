@@ -4,8 +4,8 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 if ("${WASM_COMPILER}" STREQUAL "WAVM")
-add_subdirectory(wavm)
-endif()
+  add_subdirectory(wavm)
+endif ()
 
 add_subdirectory(binaryen)
 
