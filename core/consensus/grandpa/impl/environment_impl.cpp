@@ -396,6 +396,22 @@ namespace kagome::consensus::grandpa {
 
   outcome::result<void> EnvironmentImpl::finalize(
       VoterSetId id, const GrandpaJustification &grandpa_justification) {
+    auto voters_res = authority_manager_->authorities(
+        grandpa_justification.block_info, false);
+    if (not voters_res) {
+      return VotingRoundError::NO_KNOWN_AUTHORITIES_FOR_BLOCK;
+    }
+    auto &voters = **voters_res;
+    if (id != voters.id) {
+      SL_ERROR(
+          logger_,
+          "BUG: VotingRoundImpl::doFinalize, block {}, set {} != {}, round {}",
+          id,
+          voters.id,
+          grandpa_justification.round_number,
+          grandpa_justification.block_info.number);
+      return VotingRoundError::JUSTIFICATION_FOR_BLOCK_IN_PAST;
+    }
     verified_justification_queue_->addVerified(id, grandpa_justification);
     return outcome::success();
   }
