@@ -131,7 +131,7 @@ namespace kagome::dispute {
       deliveries_.emplace(authority_id, DeliveryStatus::Pending);
       protocol->doRequest(peer_id,
                           request_,
-                          [wp = weak_from_this(),
+                          [wp{weak_from_this()},
                            authority_id(authority_id)](auto res) mutable {
                             if (auto self = wp.lock()) {
                               if (res.has_value()) {

@@ -834,7 +834,7 @@ namespace kagome::dispute {
         waiting_for_active_disputes_.emplace(
             WaitForActiveDisputesState{sessions_updated});
 
-        internal_context_->execute([wp = weak_from_this()] {
+        internal_context_->execute([wp{weak_from_this()}] {
           // https://github.com/paritytech/polkadot/blob/40974fb99c86f5c341105b7db53c7aa0df707d66/node/network/dispute-distribution/src/sender/mod.rs#L219
           if (auto self = wp.lock()) {
             self->getActiveDisputes([wp](auto active_disputes_res) {
@@ -2160,7 +2160,7 @@ namespace kagome::dispute {
       rate_limit_timer_.emplace(internal_context_->io_context());
 
       rate_limit_timer_->expiresAfter(kReceiveRateLimit);
-      rate_limit_timer_->asyncWait([wp = weak_from_this()](auto &&ec) {
+      rate_limit_timer_->asyncWait([wp{weak_from_this()}](auto &&ec) {
         if (auto self = wp.lock()) {
           if (ec) {
             SL_ERROR(self->log_,

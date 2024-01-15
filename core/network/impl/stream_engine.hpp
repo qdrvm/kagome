@@ -160,7 +160,7 @@ namespace kagome::network {
                   protocol->protocolName(),
                   peer_id);
               descr.deferred_messages.push_back(
-                  [weak_self = weak_from_this(), msg, peer_id, protocol](
+                  [weak_self {weak_from_this()}, msg, peer_id, protocol](
                       auto stream) {
                     if (auto self = weak_self.lock()) {
                       SL_TRACE(self->logger_,
