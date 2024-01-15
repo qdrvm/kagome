@@ -52,7 +52,7 @@ namespace kagome::application {
   // clang-format on
 
   class AppConfigurationImpl final : public AppConfiguration {
-    using FilePtr = std::unique_ptr<std::FILE, decltype(&std::fclose) __nonnull ((1))>;
+    using FilePtr = std::unique_ptr<std::FILE, int (*)(FILE *)>;
 
    public:
     explicit AppConfigurationImpl(log::Logger logger);
