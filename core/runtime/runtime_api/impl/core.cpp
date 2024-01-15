@@ -26,7 +26,8 @@ namespace kagome::runtime {
           OUTCOME_TRY(
               raw_res,
               ctx.module_instance->callExportFunction(ctx, "Core_version", {}));
-          return ModuleInstance::decodedCall<primitives::Version>(raw_res);
+          return ModuleInstance::decodedCall<primitives::Version>(
+              "Core_version", raw_res);
         });
   }
 
