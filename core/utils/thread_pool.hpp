@@ -36,9 +36,9 @@ namespace kagome {
     ThreadHandler &operator=(const ThreadHandler &) = delete;
 
     explicit ThreadHandler(WeakIoContext io_context)
-        : execution_state_{State::kStopped}, ioc_{std::move(io_context)} {}
+        : execution_state_{State::kStarted}, ioc_{std::move(io_context)} {}
     ThreadHandler(std::shared_ptr<Locked> locked)
-        : execution_state_{State::kStopped},
+        : execution_state_{State::kStarted},
           ioc_{locked->io_context()},
           locked_{locked} {}
 
