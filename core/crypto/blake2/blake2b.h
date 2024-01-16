@@ -13,6 +13,9 @@
 #include <cstddef>
 #include <cstdint>
 
+#include "common/buffer.hpp"
+#include "common/blob.hpp"
+
 namespace kagome::crypto {
 
   // state context
@@ -48,6 +51,13 @@ namespace kagome::crypto {
               size_t keylen,  // optional secret key
               const void *in,
               size_t inlen);  // data to be hashed
+
+  template<size_t N>
+  inline common::Blob<N> blake2b(common::BufferView buf) {
+    common::Blob<N> out;
+    BOOST_VERIFY(blake2b(out.data(), N, nullptr, 0, buf.data(), buf.size()) == 0);
+    return out;
+  }   
 
 }  // namespace kagome::crypto
 

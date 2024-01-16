@@ -6,6 +6,8 @@
 
 #pragma once
 
+#include <type_traits>
+
 #include "common/buffer.hpp"
 #include "crypto/hasher.hpp"
 #include "scale/scale.hpp"
@@ -22,12 +24,13 @@ namespace kagome::storage::trie {
    * @tparam It an iterator type of a container of common::Buffers
    * @return the Merkle tree root hash of the tree containing provided values
    */
-  template <typename It>
+  template <typename It> 
   outcome::result<RootHash> calculateOrderedTrieHash(StateVersion version,
                                                      const It &begin,
-                                                     const It &end) {
+                                                     const It &end,
+                                                     const RootHashFunc& hash) {
     auto trie = storage::trie::PolkadotTrieImpl::createEmpty();
-    PolkadotCodec codec;
+    PolkadotCodec codec{hash};
     // empty root
     if (begin == end) {
       return kEmptyRootHash;
@@ -42,14 +45,14 @@ namespace kagome::storage::trie {
       it++;
     }
     OUTCOME_TRY(enc, codec.encodeNode(*trie->getRoot(), version, {}));
-    return codec.hash256(enc);
+    return hash(enc);
   }
 
   template <typename ContainerType>
-  inline outcome::result<RootHash> calculateOrderedTrieHash(
-      StateVersion version, const ContainerType &container) {
+  outcome::result<RootHash> calculateOrderedTrieHash(
+      StateVersion version, const ContainerType &container, const RootHashFunc& hash) {
     return calculateOrderedTrieHash(
-        version, container.begin(), container.end());
+        version, container.begin(), container.end(), hash);
   }
 
 }  // namespace kagome::storage::trie

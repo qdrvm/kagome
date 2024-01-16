@@ -158,13 +158,20 @@ namespace kagome::host_api {
   }
 
   void CryptoExtension::ext_crypto_start_batch_verify_version_1() {
-    // TODO (kamilsa) 05.07.21 https://github.com/soramitsu/kagome/issues/804
+    if (batch_verify_) {
+      throw_with_error(logger_, "batch already started");
+    }
+    batch_verify_ = kVerifySuccess;
   }
 
   runtime::WasmSize
   CryptoExtension::ext_crypto_finish_batch_verify_version_1() {
-    // TODO (kamilsa) 05.07.21 https://github.com/soramitsu/kagome/issues/804
-    return kVerifyBatchSuccess;
+    if (not batch_verify_) {
+      throw_with_error(logger_, "batch not started");
+    }
+    auto ok = *batch_verify_;
+    batch_verify_.reset();
+    return ok;
   }
 
   runtime::WasmSpan CryptoExtension::ext_crypto_ed25519_public_keys_version_1(
@@ -289,7 +296,8 @@ namespace kagome::host_api {
         logger_,
         "Deprecated API method ext_crypto_ed25519_batch_verify_version_1 being "
         "called. Passing call to ext_crypto_ed25519_verify_version_1");
-    return ext_crypto_ed25519_verify_version_1(sig, msg_span, pubkey_data);
+    return batchVerify(
+        ext_crypto_ed25519_verify_version_1(sig, msg_span, pubkey_data));
   }
 
   runtime::WasmSpan CryptoExtension::ext_crypto_sr25519_public_keys_version_1(
@@ -423,7 +431,8 @@ namespace kagome::host_api {
         logger_,
         "Deprecated API method ext_crypto_sr25519_batch_verify_version_1 being "
         "called. Passing call to ext_crypto_sr25519_verify_version_1");
-    return ext_crypto_sr25519_verify_version_1(sig, msg_span, pubkey_data);
+    return batchVerify(
+        ext_crypto_sr25519_verify_version_1(sig, msg_span, pubkey_data));
   }
 
   int32_t CryptoExtension::ext_crypto_sr25519_verify_version_2(
@@ -720,5 +729,16 @@ namespace kagome::host_api {
 
     SL_TRACE_FUNC_CALL(logger_, res, signature, msg, pubkey);
     return res;
+  }
+
+  void CryptoExtension::reset() {
+    batch_verify_.reset();
+  }
+
+  runtime::WasmSize CryptoExtension::batchVerify(runtime::WasmSize ok) {
+    if (batch_verify_) {
+      *batch_verify_ &= ok;
+    }
+    return ok;
   }
 }  // namespace kagome::host_api

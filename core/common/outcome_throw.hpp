@@ -9,6 +9,8 @@
 #include <boost/system/system_error.hpp>
 #include <boost/throw_exception.hpp>
 
+#include "outcome/outcome.hpp"
+
 namespace kagome::common {
   /**
    * @brief throws outcome::result error as boost exception
@@ -29,5 +31,10 @@ namespace kagome::common {
   template <typename T, typename = std::enable_if_t<!std::is_enum_v<T>>>
   void raise(const T &t) {
     boost::throw_exception(std::system_error(t.value(), t.category()));
+  }
+
+  template<typename T, typename E>
+  void raise_on_err(const outcome::result<T, E>& res) {
+    if (res.has_error()) raise(res.error());
   }
 }  // namespace kagome::common

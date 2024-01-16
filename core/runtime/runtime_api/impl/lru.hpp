@@ -38,7 +38,7 @@ namespace kagome::runtime {
       }
       OUTCOME_TRY(ctx, executor.ctx().ephemeralAt(block));
       OUTCOME_TRY(raw, ctx.module_instance->callExportFunction(ctx, name, {}));
-      OUTCOME_TRY(r, ModuleInstance::decodedCall<V>(raw));
+      OUTCOME_TRY(r, ModuleInstance::decodedCall<V>(name, raw));
       return lru_.exclusiveAccess([&](typename decltype(lru_)::Type &lru_) {
         return lru_.put(block, std::move(r), raw);
       });
@@ -92,7 +92,7 @@ namespace kagome::runtime {
       OUTCOME_TRY(raw_arg, ModuleInstance::encodeArgs(arg));
       OUTCOME_TRY(raw,
                   ctx.module_instance->callExportFunction(ctx, name, raw_arg));
-      OUTCOME_TRY(r, ModuleInstance::decodedCall<V>(raw));
+      OUTCOME_TRY(r, ModuleInstance::decodedCall<V>(name, raw));
       return lru_.exclusiveAccess([&](typename decltype(lru_)::Type &lru_) {
         return lru_.put(key, std::move(r), raw);
       });
