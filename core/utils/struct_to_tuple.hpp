@@ -86,7 +86,7 @@ namespace kagome::utils {
 
   struct any_type {
     template <typename T>
-    constexpr operator T() = delete;  // non explicit
+    constexpr operator T();  // non explicit
   };
 
   template <typename T>
