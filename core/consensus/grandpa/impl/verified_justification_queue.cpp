@@ -14,7 +14,7 @@
 
 namespace kagome::consensus::grandpa {
   /// When to start fetching justification range
-  constexpr size_t kRangeStart = 512 + 20;
+  constexpr size_t kRangeStart = 8;
 
   VerifiedJustificationQueue::VerifiedJustificationQueue(
       application::AppStateManager &app_state_manager,
