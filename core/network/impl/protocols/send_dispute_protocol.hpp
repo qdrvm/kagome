@@ -72,7 +72,7 @@ namespace kagome::network {
       dispute_request_observer_->onDisputeRequest(
           peer_id,
           std::move(request),
-          [wp = weak_from_this(),
+          [wp{weak_from_this()},
            base = &SendDisputeProtocol::base,
            write = &SendDisputeProtocol::writeResponse,
            stream = std::move(stream)](outcome::result<void> res) mutable {

@@ -375,7 +375,7 @@ namespace kagome::consensus {
     synchronizer_->syncByBlockHeader(
         announce.header,
         peer_id,
-        [wp = weak_from_this(), announce = announce, peer_id](
+        [wp{weak_from_this()}, announce = announce, peer_id](
             outcome::result<primitives::BlockInfo> block_res) mutable {
           if (auto self = wp.lock()) {
             if (block_res.has_error()) {
@@ -491,7 +491,7 @@ namespace kagome::consensus {
     auto is_ran = synchronizer_->syncByBlockInfo(
         target_block,
         peer_id,
-        [wp = weak_from_this(), block = target_block, peer_id](
+        [wp{weak_from_this()}, block = target_block, peer_id](
             outcome::result<primitives::BlockInfo> res) {
           if (auto self = wp.lock()) {
             if (res.has_error()) {
@@ -607,7 +607,7 @@ namespace kagome::consensus {
     synchronizer_->syncState(
         peer_id,
         block_at_state,
-        [wp = weak_from_this(), block_at_state, peer_id](auto res) mutable {
+        [wp{weak_from_this()}, block_at_state, peer_id](auto res) mutable {
           if (auto self = wp.lock()) {
             if (res.has_error()) {
               SL_WARN(self->log_,
@@ -676,7 +676,7 @@ namespace kagome::consensus {
                remains_ms.count() / 1000.);
 
       scheduler_->schedule(
-          [wp = weak_from_this()] {
+          [wp{weak_from_this()}] {
             if (auto self = wp.lock()) {
               self->runSlot();
             }
@@ -721,8 +721,8 @@ namespace kagome::consensus {
       }
     }
 
-    static const auto &block_production_error_category =
-        make_error_code(SlotLeadershipError{}).category();
+    static const auto ec = make_error_code(SlotLeadershipError{});
+    static const auto &block_production_error_category = ec.category();
 
     /// Try to run block production here
     auto consensus = consensus_selector_->getProductionConsensus(best_block_);
@@ -758,7 +758,7 @@ namespace kagome::consensus {
 
     // everything is OK: wait for the end of the slot
     scheduler_->schedule(
-        [wp = weak_from_this()] {
+        [wp{weak_from_this()}] {
           if (auto self = wp.lock()) {
             self->runSlot();
           }
