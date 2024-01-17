@@ -11,19 +11,11 @@
 #include "consensus/grandpa/chain.hpp"
 #include "consensus/grandpa/vote_graph/vote_graph_error.hpp"
 #include "consensus/grandpa/voting_round_error.hpp"
+#include "utils/retain.hpp"
 
 namespace kagome::consensus::grandpa {
 
   namespace {
-    /// filters vector in-place - effectively removes all elements for which
-    /// func returned false.
-    template <typename Vector, typename Func>
-    inline void filter_if(Vector &&v, Func &&func) {
-      v.erase(std::remove_if(
-                  v.begin(), v.end(), std::not_fn(std::forward<Func>(func))),
-              v.end());
-    }
-
     /// check if collection contains a given item.
     template <typename Collection, typename Item>
     inline bool contains(const Collection &collection, const Item &item) {
@@ -250,8 +242,8 @@ namespace kagome::consensus::grandpa {
                                         new_entry.descendants.end()};
 
       // filter descendants
-      filter_if(prev_ancestor_entry.descendants,
-                [&set](const BlockHash &hash) { return !contains(set, hash); });
+      retain(prev_ancestor_entry.descendants,
+             [&set](const BlockHash &hash) { return !contains(set, hash); });
       prev_ancestor_entry.descendants.push_back(ancestor.hash);
     }
 
@@ -348,7 +340,7 @@ namespace kagome::consensus::grandpa {
       const std::optional<BlockInfo> &force_constrain,
       const VoteGraph::Condition &condition) const {
     auto descendants = active_node.descendants;
-    filter_if(descendants, [&](const BlockHash &hash) {
+    retain(descendants, [&](const BlockHash &hash) {
       if (not force_constrain) {
         return true;
       }
@@ -403,7 +395,7 @@ namespace kagome::consensus::grandpa {
 
       ++best_number;
       descendant_blocks.clear();
-      filter_if(descendants, [&](const BlockHash &hash) {
+      retain(descendants, [&](const BlockHash &hash) {
         return inDirectAncestry(entries_.at(hash), *new_best, best_number);
       });
 

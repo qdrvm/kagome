@@ -15,6 +15,7 @@
 #include "authority_discovery/query/query.hpp"
 #include "blockchain/block_header_repository.hpp"
 #include "common/visitor.hpp"
+#include "consensus/timeline/timeline.hpp"
 #include "dispute_coordinator/chain_scraper.hpp"
 #include "dispute_coordinator/impl/chain_scraper_impl.hpp"
 #include "dispute_coordinator/impl/errors.hpp"
@@ -123,8 +124,7 @@ namespace kagome::dispute {
       WeakIoContext main_thread,
       std::shared_ptr<network::Router> router,
       std::shared_ptr<network::PeerView> peer_view,
-      std::shared_ptr<primitives::events::BabeStateSubscriptionEngine>
-          babe_status_observable)
+      LazySPtr<consensus::Timeline> timeline)
       : app_state_manager_(std::move(app_state_manager)),
         system_clock_(system_clock),
         steady_clock_(steady_clock),
@@ -144,7 +144,7 @@ namespace kagome::dispute {
         router_(std::move(router)),
         peer_view_(std::move(peer_view)),
         chain_sub_{peer_view_->intoChainEventsEngine()},
-        babe_status_observable_(std::move(babe_status_observable)),
+        timeline_(std::move(timeline)),
         int_pool_{std::make_shared<ThreadPool>(
             std::move(watchdog), "DisputeCoordinatorImpl", 1ull)},
         internal_context_{int_pool_->handler()},
@@ -228,26 +228,6 @@ namespace kagome::dispute {
         [weak{weak_from_this()}](const primitives::BlockHeader &block) {
           if (auto self = weak.lock()) {
             self->on_finalized_block(block.blockInfo());
-          }
-        });
-
-    // subscribe to first successful sync
-    babe_status_sub_ =
-        std::make_shared<primitives::events::BabeStateEventSubscriber>(
-            babe_status_observable_, false);
-    babe_status_sub_->subscribe(
-        babe_status_sub_->generateSubscriptionSetId(),
-        primitives::events::SyncStateEventType::kSyncState);
-    babe_status_sub_->setCallback(
-        [wself{weak_from_this()}](
-            auto /*set_id*/,
-            bool &synchronized,
-            auto /*event_type*/,
-            const primitives::events::SyncStateEventParams &event) {
-          if (auto self = wself.lock()) {
-            if (event == consensus::SyncState::SYNCHRONIZED) {
-              self->was_synchronized_ = true;
-            }
           }
         });
 
@@ -523,7 +503,7 @@ namespace kagome::dispute {
 
   void DisputeCoordinatorImpl::on_active_leaves_update(
       const network::ExView &updated) {
-    if (not was_synchronized_) {
+    if (not timeline_.get()->wasSynchronized()) {
       return;
     }
 
