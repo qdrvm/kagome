@@ -27,6 +27,9 @@ else # CI
   BUILD_THREADS="${BUILD_THREADS:-$(( $(nproc 2>/dev/null || sysctl -n hw.ncpu) ))}"
   # Configure CI git security
   git config --global --add safe.directory /__w/kagome/kagome
+fi
+
+if [[ "${KAGOME_IN_DOCKER}" = 1 ]]; then
   source /venv/bin/activate
 fi
 
