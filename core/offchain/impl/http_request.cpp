@@ -116,7 +116,7 @@ namespace kagome::offchain {
       }
     }
 
-    auto resolve_handler = [wp = weak_from_this()](const auto &ec, auto it) {
+    auto resolve_handler = [wp{weak_from_this()}](const auto &ec, auto it) {
       if (auto self = wp.lock()) {
         if (self->status_ != 0) {
           SL_TRACE(
@@ -157,7 +157,7 @@ namespace kagome::offchain {
                            : boost::beast::get_lowest_layer(
                                *boost::relaxed_get<TcpStreamPtr>(stream_));
 
-    auto connect_handler = [wp = weak_from_this()](const auto &ec, auto it) {
+    auto connect_handler = [wp{weak_from_this()}](const auto &ec, auto it) {
       if (auto self = wp.lock()) {
         if (self->status_ != 0) {
           SL_TRACE(
@@ -202,7 +202,7 @@ namespace kagome::offchain {
 
     auto &stream = *boost::relaxed_get<SslStreamPtr>(stream_);
 
-    auto handshake_handler = [wp = weak_from_this()](const auto &ec) {
+    auto handshake_handler = [wp{weak_from_this()}](const auto &ec) {
       if (auto self = wp.lock()) {
         if (self->status_ != 0) {
           SL_TRACE(
@@ -249,8 +249,8 @@ namespace kagome::offchain {
     auto serializer = std::make_shared<boost::beast::http::request_serializer<
         boost::beast::http::string_body>>(request_);
 
-    auto write_handler = [wp = weak_from_this(), serializer](const auto &ec,
-                                                             auto written) {
+    auto write_handler = [wp{weak_from_this()}, serializer](const auto &ec,
+                                                            auto written) {
       if (auto self = wp.lock()) {
         if (self->status_ != 0) {
           SL_TRACE(self->log_,
@@ -290,7 +290,7 @@ namespace kagome::offchain {
 
     SL_TRACE(log_, "Read response");
 
-    auto read_handler = [wp = weak_from_this()](const auto &ec, auto received) {
+    auto read_handler = [wp{weak_from_this()}](const auto &ec, auto received) {
       if (auto self = wp.lock()) {
         if (self->status_ != 0) {
           SL_TRACE(self->log_,
