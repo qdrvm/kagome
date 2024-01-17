@@ -48,7 +48,7 @@ jobs:
       run: ./housekeeping/make_build.sh -DCLEAR_OBJS=ON -DCOVERAGE=OFF -DWASM_COMPILER=WasmEdge -DCMAKE_TOOLCHAIN_FILE=cmake/toolchain/cxx20.cmake
       env:
         CI:
-
+        KAGOME_IN_DOCKER: 0
   Linux:
     if: ${{ !(github.ref == 'refs/heads/master' || startsWith( github.ref, 'refs/tags/' )) }}
     strategy:
