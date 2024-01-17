@@ -61,7 +61,7 @@ namespace kagome::network {
 
     if (value != 0) {
       scheduler_->schedule(
-          [wp = weak_from_this(), peer_id, value, reason = diff.reason] {
+          [wp{weak_from_this()}, peer_id, value, reason = diff.reason] {
             if (auto self = wp.lock()) {
               auto reputation = self->reputation_table_[peer_id] += value;
               SL_DEBUG(self->log_,

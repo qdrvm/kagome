@@ -82,7 +82,7 @@ namespace kagome::network {
 
   void Beefy::onJustification(const primitives::BlockHash &block_hash,
                               primitives::Justification raw) {
-    strand_->post([weak = weak_from_this(), block_hash, raw = std::move(raw)] {
+    strand_->post([weak{weak_from_this()}, block_hash, raw = std::move(raw)] {
       if (auto self = weak.lock()) {
         std::ignore = self->onJustificationOutcome(block_hash, std::move(raw));
       }
@@ -109,7 +109,7 @@ namespace kagome::network {
   }
 
   void Beefy::onMessage(consensus::beefy::BeefyGossipMessage message) {
-    strand_->post([weak = weak_from_this(), message = std::move(message)] {
+    strand_->post([weak{weak_from_this()}, message = std::move(message)] {
       if (auto self = weak.lock()) {
         self->onMessageStrand(std::move(message));
       }
@@ -230,7 +230,7 @@ namespace kagome::network {
         });
       }
     });
-    strand_->post([weak = weak_from_this()] {
+    strand_->post([weak{weak_from_this()}] {
       if (auto self = weak.lock()) {
         std::ignore = self->update();
       }

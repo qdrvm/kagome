@@ -100,7 +100,7 @@ namespace kagome::network {
 
     host_.setProtocolHandler(
         {ping_protocol_.get()->getProtocolId()},
-        [wp = weak_from_this()](auto &&stream_and_proto) {
+        [wp{weak_from_this()}](auto &&stream_and_proto) {
           if (auto self = wp.lock()) {
             auto &stream = stream_and_proto.stream;
             if (auto peer_id = stream->remotePeerId()) {

@@ -1200,6 +1200,8 @@ namespace kagome::parachain {
             .included_candidates = std::nullopt,
             .babe_block_header = std::nullopt,
             .babe_epoch = std::nullopt,
+            .randomness = {},
+            .authorities = {},
             .complete_callback =
                 [wself{weak_from_this()},
                  block_hash{head},

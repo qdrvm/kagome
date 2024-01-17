@@ -196,7 +196,7 @@ namespace kagome::consensus::grandpa {
 
     // Timer to send neighbor message if round does not change long time (1 min)
     fallback_timer_handle_ = scheduler_->scheduleWithHandle(
-        [wp = weak_from_this()] {
+        [wp{weak_from_this()}] {
           auto self = wp.lock();
           if (not self) {
             return;
@@ -505,7 +505,7 @@ namespace kagome::consensus::grandpa {
               peer_id,
               network::CatchUpRequest{msg.round_number - 1, msg.voter_set_id});
           catchup_request_timer_handle_ = scheduler_->scheduleWithHandle(
-              [wp = weak_from_this()] {
+              [wp{weak_from_this()}] {
                 auto self = wp.lock();
                 if (not self) {
                   return;
