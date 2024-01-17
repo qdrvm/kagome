@@ -9,6 +9,7 @@
 #include "blockchain/block_tree.hpp"
 #include "consensus/grandpa/authority_manager.hpp"
 #include "consensus/grandpa/has_authority_set_change.hpp"
+#include "consensus/timeline/timeline.hpp"
 #include "network/synchronizer.hpp"
 #include "utils/weak_io_context_post.hpp"
 
@@ -22,11 +23,13 @@ namespace kagome::consensus::grandpa {
       std::shared_ptr<blockchain::BlockTree> block_tree,
       std::shared_ptr<AuthorityManager> authority_manager,
       LazySPtr<network::Synchronizer> synchronizer,
+      LazySPtr<Timeline> timeline,
       primitives::events::ChainSubscriptionEnginePtr chain_sub_engine)
       : main_thread_{std::move(main_thread)},
         block_tree_{std::move(block_tree)},
         authority_manager_{std::move(authority_manager)},
         synchronizer_{std::move(synchronizer)},
+        timeline_{std::move(timeline)},
         chain_sub_{chain_sub_engine},
         log_{log::createLogger("VerifiedJustificationQueue")} {
     app_state_manager.takeControl(*this);
@@ -201,6 +204,9 @@ namespace kagome::consensus::grandpa {
   }
 
   void VerifiedJustificationQueue::rangeLoop() {
+    if (not timeline_.get()->wasSynchronized()) {
+      return;
+    }
     auto finalized = block_tree_->getLastFinalized().number;
     auto best = block_tree_->bestBlock().number;
     if (best - finalized < kRangeStart) {
