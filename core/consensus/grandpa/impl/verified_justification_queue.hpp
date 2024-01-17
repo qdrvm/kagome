@@ -24,6 +24,10 @@ namespace kagome::blockchain {
   class BlockTree;
 }  // namespace kagome::blockchain
 
+namespace kagome::consensus {
+  class Timeline;
+}  // namespace kagome::consensus
+
 namespace kagome::network {
   class Synchronizer;
 }  // namespace kagome::network
@@ -41,6 +45,7 @@ namespace kagome::consensus::grandpa {
         std::shared_ptr<blockchain::BlockTree> block_tree,
         std::shared_ptr<AuthorityManager> authority_manager,
         LazySPtr<network::Synchronizer> synchronizer,
+        LazySPtr<Timeline> timeline,
         primitives::events::ChainSubscriptionEnginePtr chain_sub_engine);
 
     bool start();
@@ -63,6 +68,7 @@ namespace kagome::consensus::grandpa {
     std::shared_ptr<blockchain::BlockTree> block_tree_;
     std::shared_ptr<AuthorityManager> authority_manager_;
     LazySPtr<network::Synchronizer> synchronizer_;
+    LazySPtr<Timeline> timeline_;
     primitives::events::ChainSub chain_sub_;
     log::Logger log_;
 
