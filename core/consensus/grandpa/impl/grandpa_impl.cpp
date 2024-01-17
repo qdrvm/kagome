@@ -29,7 +29,7 @@
 #include "network/peer_manager.hpp"
 #include "network/reputation_repository.hpp"
 #include "network/synchronizer.hpp"
-#include "utils/retain.hpp"
+#include "utils/retain_if.hpp"
 
 namespace {
   constexpr auto highestGrandpaRoundMetricName =
@@ -1527,7 +1527,7 @@ namespace kagome::consensus::grandpa {
       post(*internal_thread_context_, std::move(f));
       return false;
     };
-    retain(waiting_blocks_, f);
+    retain_if(waiting_blocks_, f);
     pruneWaitingBlocks();
   }
 
@@ -1553,6 +1553,6 @@ namespace kagome::consensus::grandpa {
       }
       return false;
     };
-    retain(waiting_blocks_, f);
+    retain_if(waiting_blocks_, f);
   }
 }  // namespace kagome::consensus::grandpa

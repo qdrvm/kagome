@@ -11,7 +11,7 @@
 
 namespace kagome {
   template <typename T>
-  void retain(std::vector<T> &v, auto &&predicate) {
+  void retain_if(std::vector<T> &v, auto &&predicate) {
     v.erase(std::remove_if(
                 v.begin(), v.end(), [&](T &v) { return not predicate(v); }),
             v.end());

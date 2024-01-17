@@ -16,7 +16,7 @@
 #include <boost/assert.hpp>
 
 #include "outcome/outcome.hpp"
-#include "utils/retain.hpp"
+#include "utils/retain_if.hpp"
 
 namespace kagome {
 
@@ -173,7 +173,7 @@ namespace kagome {
     void erase_if(const std::function<bool(const Key &key, const Value &value)>
                       &predicate) {
       LockGuard lg(*this);
-      retain(cache_, [&](const CacheEntry &item) {
+      retain_if(cache_, [&](const CacheEntry &item) {
         return not predicate(item.key, *item.value);
       });
     }

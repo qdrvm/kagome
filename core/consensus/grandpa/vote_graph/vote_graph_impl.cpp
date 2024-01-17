@@ -11,7 +11,7 @@
 #include "consensus/grandpa/chain.hpp"
 #include "consensus/grandpa/vote_graph/vote_graph_error.hpp"
 #include "consensus/grandpa/voting_round_error.hpp"
-#include "utils/retain.hpp"
+#include "utils/retain_if.hpp"
 
 namespace kagome::consensus::grandpa {
 
@@ -242,8 +242,8 @@ namespace kagome::consensus::grandpa {
                                         new_entry.descendants.end()};
 
       // filter descendants
-      retain(prev_ancestor_entry.descendants,
-             [&set](const BlockHash &hash) { return !contains(set, hash); });
+      retain_if(prev_ancestor_entry.descendants,
+                [&set](const BlockHash &hash) { return !contains(set, hash); });
       prev_ancestor_entry.descendants.push_back(ancestor.hash);
     }
 
@@ -340,7 +340,7 @@ namespace kagome::consensus::grandpa {
       const std::optional<BlockInfo> &force_constrain,
       const VoteGraph::Condition &condition) const {
     auto descendants = active_node.descendants;
-    retain(descendants, [&](const BlockHash &hash) {
+    retain_if(descendants, [&](const BlockHash &hash) {
       if (not force_constrain) {
         return true;
       }
@@ -395,7 +395,7 @@ namespace kagome::consensus::grandpa {
 
       ++best_number;
       descendant_blocks.clear();
-      retain(descendants, [&](const BlockHash &hash) {
+      retain_if(descendants, [&](const BlockHash &hash) {
         return inDirectAncestry(entries_.at(hash), *new_best, best_number);
       });
 

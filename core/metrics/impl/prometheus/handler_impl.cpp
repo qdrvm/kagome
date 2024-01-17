@@ -9,7 +9,7 @@
 #include <prometheus/text_serializer.h>
 #include "log/logger.hpp"
 #include "registry_impl.hpp"
-#include "utils/retain.hpp"
+#include "utils/retain_if.hpp"
 #include "utils/wptr.hpp"
 
 using namespace prometheus;
@@ -84,14 +84,14 @@ namespace kagome::metrics {
   void PrometheusHandler::removeCollectable(
       const std::weak_ptr<Collectable> &collectable) {
     std::lock_guard<std::mutex> lock{collectables_mutex_};
-    retain(collectables_, [&](const std::weak_ptr<Collectable> &candidate) {
+    retain_if(collectables_, [&](const std::weak_ptr<Collectable> &candidate) {
       return not wptrEq(candidate, collectable);
     });
   }
 
   void PrometheusHandler::cleanupStalePointers(
       std::vector<std::weak_ptr<Collectable>> &collectables) {
-    retain(collectables, [](const std::weak_ptr<Collectable> &candidate) {
+    retain_if(collectables, [](const std::weak_ptr<Collectable> &candidate) {
       return not candidate.expired();
     });
   }

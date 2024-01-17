@@ -10,7 +10,7 @@
 #include "common/buffer_view.hpp"
 #include "common/bytestr.hpp"
 #include "crypto/sha/sha256.hpp"
-#include "utils/retain.hpp"
+#include "utils/retain_if.hpp"
 
 OUTCOME_CPP_DEFINE_CATEGORY(kagome::authority_discovery, QueryImpl::Error, e) {
   using E = decltype(e);
@@ -103,7 +103,7 @@ namespace kagome::authority_discovery {
     OUTCOME_TRY(local_keys,
                 crypto_store_->getSr25519PublicKeys(
                     crypto::KeyTypes::AUTHORITY_DISCOVERY));
-    retain(authorities, [&](const primitives::AuthorityDiscoveryId &id) {
+    retain_if(authorities, [&](const primitives::AuthorityDiscoveryId &id) {
       return std::find(local_keys.begin(), local_keys.end(), id)
           != local_keys.end();
     });
