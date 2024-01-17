@@ -198,7 +198,7 @@ namespace kagome::api {
   bool ApiServiceImpl::prepare() {
     for (const auto &listener : listeners_) {
       auto on_new_session =
-          [wp = weak_from_this()](const sptr<Session> &session) mutable {
+          [wp{weak_from_this()}](const sptr<Session> &session) mutable {
             auto self = wp.lock();
             if (!self) {
               return;

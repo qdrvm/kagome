@@ -148,7 +148,7 @@ namespace kagome::network {
     add_peer_handle_ =
         host_.getBus()
             .getChannel<libp2p::event::protocol::kademlia::PeerAddedChannel>()
-            .subscribe([wp = weak_from_this()](const PeerId &peer_id) {
+            .subscribe([wp{weak_from_this()}](const PeerId &peer_id) {
               if (auto self = wp.lock()) {
                 if (auto rating =
                         self->reputation_repository_->reputation(peer_id);
@@ -168,7 +168,7 @@ namespace kagome::network {
     peer_disconnected_handler_ =
         host_.getBus()
             .getChannel<libp2p::event::network::OnPeerDisconnectedChannel>()
-            .subscribe([wp = weak_from_this()](const PeerId &peer_id) {
+            .subscribe([wp{weak_from_this()}](const PeerId &peer_id) {
               if (auto self = wp.lock()) {
                 SL_DEBUG(self->log_,
                          "OnPeerDisconnectedChannel handler from peer {}",
@@ -186,7 +186,7 @@ namespace kagome::network {
               }
             });
 
-    identify_->onIdentifyReceived([wp = weak_from_this()](
+    identify_->onIdentifyReceived([wp{weak_from_this()}](
                                       const PeerId &peer_id) {
       if (auto self = wp.lock()) {
         SL_DEBUG(self->log_, "Identify received from peer {}", peer_id);
@@ -265,8 +265,10 @@ namespace kagome::network {
       const network::CollatorPublicKey &collator_id,
       network::ParachainId para_id) {
     if (auto it = peer_states_.find(peer_id); it != peer_states_.end()) {
-      it->second.collator_state =
-          CollatorState{.parachain_id = para_id, .collator_id = collator_id};
+      it->second.collator_state = CollatorState{
+          .parachain_id = para_id,
+          .collator_id = collator_id,
+      };
       it->second.time = clock_->now();
     }
 
@@ -393,7 +395,7 @@ namespace kagome::network {
     const auto aligning_period = app_config_.peeringConfig().aligningPeriod;
 
     align_timer_ = scheduler_->scheduleWithHandle(
-        [wp = weak_from_this()] {
+        [wp{weak_from_this()}] {
           if (auto self = wp.lock()) {
             self->align();
           }
@@ -430,7 +432,7 @@ namespace kagome::network {
 
     host_.connect(
         peer_info,
-        [wp = weak_from_this(), peer_id](auto res) mutable {
+        [wp{weak_from_this()}, peer_id](auto res) mutable {
           auto self = wp.lock();
           if (not self) {
             return;
@@ -509,7 +511,7 @@ namespace kagome::network {
 
     ping_protocol->startPinging(
         conn,
-        [wp = weak_from_this(), peer_id, conn](
+        [wp{weak_from_this()}, peer_id, conn](
             outcome::result<std::shared_ptr<
                 libp2p::protocol::PingClientSession>> session_res) {
           if (auto self = wp.lock()) {
@@ -606,7 +608,7 @@ namespace kagome::network {
             stream_engine_,
             block_announce_protocol,
             peer_info,
-            [wp = weak_from_this(),
+            [wp{weak_from_this()},
              peer_info,
              protocol = block_announce_protocol,
              connection,
