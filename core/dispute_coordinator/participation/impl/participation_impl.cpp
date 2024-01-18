@@ -65,7 +65,7 @@ namespace kagome::dispute {
       ParticipationRequest request, primitives::BlockHash recent_head) {
     if (running_participations_.emplace(request.candidate_hash).second) {
       // https://github.com/paritytech/polkadot/blob/40974fb99c86f5c341105b7db53c7aa0df707d66/node/core/dispute-coordinator/src/participation/mod.rs#L256
-      internal_context_->execute([wp = weak_from_this(),
+      internal_context_->execute([wp{weak_from_this()},
                                   request{std::move(request)},
                                   recent_head{std::move(recent_head)}]() {
         if (auto self = wp.lock()) {
@@ -164,7 +164,7 @@ namespace kagome::dispute {
         ctx->request.candidate_receipt,
         ctx->request.session,
         std::nullopt,
-        [wp = weak_from_this(), ctx, cb = std::move(cb)](auto res_opt) mutable {
+        [wp{weak_from_this()}, ctx, cb = std::move(cb)](auto res_opt) mutable {
           if (auto self = wp.lock()) {
             if (not res_opt.has_value()) {
               cb(ParticipationOutcome::Unavailable);

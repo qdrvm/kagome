@@ -246,6 +246,7 @@ namespace kagome::runtime::wasm_edge {
     REGISTER_HOST_METHOD(int32_t, ext_storage_exists_version_1, int64_t)
     REGISTER_HOST_METHOD(int32_t, ext_trie_blake2_256_ordered_root_version_1, int64_t)
     REGISTER_HOST_METHOD(int32_t, ext_trie_blake2_256_ordered_root_version_2, int64_t, int32_t)
+    REGISTER_HOST_METHOD(int32_t, ext_trie_keccak_256_ordered_root_version_2, int64_t, int32_t)
     REGISTER_HOST_METHOD(int32_t, ext_trie_blake2_256_root_version_1, int64_t)
     REGISTER_HOST_METHOD(int64_t, ext_crypto_ed25519_public_keys_version_1, int32_t)
     REGISTER_HOST_METHOD(int64_t, ext_crypto_ed25519_sign_version_1, int32_t, int32_t, int64_t)

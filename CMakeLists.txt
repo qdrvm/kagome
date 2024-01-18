@@ -6,6 +6,10 @@
 
 cmake_minimum_required(VERSION 3.12)
 
+if(${CMAKE_VERSION} VERSION_GREATER_EQUAL "3.27")
+  cmake_policy(SET CMP0144 NEW)
+endif()
+
 find_program(CCACHE_FOUND ccache)
 if(CCACHE_FOUND)
   set_property(GLOBAL PROPERTY RULE_LAUNCH_COMPILE ccache)
@@ -59,7 +63,7 @@ if(NOT($ENV{CI}) OR NOT($ENV{GITHUB_ACTIONS}))
 endif()
 option(EXTERNAL_PROJECT "Build external project" ${_EXTERNAL_PROJECT_DEFAULT})
 
-set(WASM_COMPILER WAVM CACHE STRING "WebAssembly compiler built into Kagome: one of [WAVM, WasmEdge]")
+set(WASM_COMPILER WasmEdge CACHE STRING "WebAssembly compiler built into Kagome: one of [WAVM, WasmEdge]")
 
 if (NOT ${WASM_COMPILER} MATCHES "^(WAVM|WasmEdge)$")
   fatal_error("WASM_COMPILER is set to ${WASM_COMPILER} but should be one of [WAVM, WasmEdge]")

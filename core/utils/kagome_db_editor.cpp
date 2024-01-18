@@ -27,6 +27,7 @@
 #include "blockchain/impl/storage_util.hpp"
 #include "common/outcome_throw.hpp"
 #include "crypto/hasher/hasher_impl.hpp"
+#include "crypto/blake2/blake2b.h"
 #include "network/impl/extrinsic_observer_impl.hpp"
 #include "runtime/common/runtime_upgrade_tracker_impl.hpp"
 #include "storage/predefined_keys.hpp"
@@ -264,7 +265,9 @@ int db_editor_main(int argc, const char **argv) {
         di::bind<TrieStorageBackend>.template to(trie_node_tracker),
         di::bind<storage::trie_pruner::TriePruner>.template to(
             std::shared_ptr<storage::trie_pruner::TriePruner>(nullptr)),
-        di::bind<Codec>.template to<PolkadotCodec>(),
+        di::bind<Codec>.template to([](const auto &injector) {
+          return std::make_shared<PolkadotCodec>(kagome::crypto::blake2b<32>);
+        }),
         di::bind<PolkadotTrieFactory>.to(factory),
         di::bind<crypto::Hasher>.template to<crypto::HasherImpl>(),
         di::bind<blockchain::BlockHeaderRepository>.template to<blockchain::BlockHeaderRepositoryImpl>(),

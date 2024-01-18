@@ -17,6 +17,7 @@
 #include "primitives/block_header.hpp"
 #include "primitives/block_id.hpp"
 #include "primitives/justification.hpp"
+#include "scale/big_fixed_integers.hpp"
 #include "scale/encode_append.hpp"
 #include "scale/libp2p_types.hpp"
 
@@ -27,6 +28,7 @@ namespace kagome::scale {
   using ScaleEncoderStream = ::scale::ScaleEncoderStream;
   using PeerInfoSerializable = ::scale::PeerInfoSerializable;
   using DecodeError = ::scale::DecodeError;
+  using uint128_t = ::scale::uint128_t;
 
   using ::scale::decode;
 
@@ -60,6 +62,9 @@ namespace kagome::scale {
 
   template <typename F>
   constexpr void encode(const F &func, const primitives::PreRuntime &c);
+
+  template <typename F>
+  constexpr void encode(const F &func, const primitives::BlockInfo &c);
 
   template <typename F>
   constexpr void encode(const F &func,
@@ -142,6 +147,12 @@ namespace kagome::scale {
   template <typename F>
   constexpr void encode(const F &func, const primitives::PreRuntime &c) {
     encode(func, static_cast<const primitives::detail::DigestItemCommon &>(c));
+  }
+
+  template <typename F>
+  constexpr void encode(const F &func, const primitives::BlockInfo &c) {
+    encode(func, c.number);
+    encode(func, c.hash);
   }
 
   template <typename F>

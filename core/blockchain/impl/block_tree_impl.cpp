@@ -430,6 +430,7 @@ namespace kagome::blockchain {
           .extrinsic_event_key_repo_ = std::move(extrinsic_event_key_repo),
           .justification_storage_policy_ =
               std::move(justification_storage_policy),
+          .genesis_block_hash_ = {},
           .blocks_pruning_ = {app_config.blocksPruning(), finalized.number},
       }},
         main_thread_{std::move(main_thread)} {

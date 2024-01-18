@@ -21,6 +21,7 @@
 #include "consensus/timeline/backoff.hpp"
 #include "consensus/timeline/impl/slot_leadership_error.hpp"
 #include "consensus/timeline/slots_util.hpp"
+#include "crypto/blake2/blake2b.h"
 #include "crypto/crypto_store/session_keys.hpp"
 #include "crypto/sr25519_provider.hpp"
 #include "dispute_coordinator/dispute_coordinator.hpp"
@@ -421,16 +422,17 @@ namespace kagome::consensus::babe {
 
     // Ensure block's extrinsics root matches extrinsics in block's body
     BOOST_ASSERT_MSG(
-        [&block]() {
+        ([&block]() {
           using boost::adaptors::transformed;
           const auto &ext_root_res = storage::trie::calculateOrderedTrieHash(
               storage::trie::StateVersion::V0,
               block.body | transformed([](const auto &ext) {
                 return common::Buffer{scale::encode(ext).value()};
-              }));
+              }),
+              crypto::blake2b);
           return ext_root_res.has_value()
              and (ext_root_res.value() == block.header.extrinsics_root);
-        }(),
+        }()),
         "Extrinsics root does not match extrinsics in the block");
 
     // seal the block
