@@ -27,10 +27,10 @@ namespace kagome::crypto {
         const EcdsaPrehashedMessage &message,
         const EcdsaPrivateKey &key) const = 0;
 
-    virtual outcome::result<bool> verify(
-        common::BufferView message,
-        const EcdsaSignature &signature,
-        const EcdsaPublicKey &publicKey) const = 0;
+    virtual outcome::result<bool> verify(common::BufferView message,
+                                         const EcdsaSignature &signature,
+                                         const EcdsaPublicKey &publicKey,
+                                         bool allow_overflow) const = 0;
 
     virtual outcome::result<bool> verifyPrehashed(
         const EcdsaPrehashedMessage &message,
