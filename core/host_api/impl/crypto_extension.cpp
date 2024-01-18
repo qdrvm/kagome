@@ -439,14 +439,14 @@ namespace kagome::host_api {
       runtime::WasmPointer sig,
       runtime::WasmSpan msg,
       runtime::WasmPointer pub) {
-    return srVerify(true, sig, msg, pub);
+    return srVerify(/* deprecated= */ true, sig, msg, pub);
   }
 
   int32_t CryptoExtension::ext_crypto_sr25519_verify_version_2(
       runtime::WasmPointer sig,
       runtime::WasmSpan msg,
       runtime::WasmPointer pub) {
-    return srVerify(false, sig, msg, pub);
+    return srVerify(/* deprecated= */ false, sig, msg, pub);
   }
 
   namespace {
@@ -518,13 +518,13 @@ namespace kagome::host_api {
   runtime::WasmSpan
   CryptoExtension::ext_crypto_secp256k1_ecdsa_recover_version_1(
       runtime::WasmPointer sig, runtime::WasmPointer msg) {
-    return ecdsaRecover(true, sig, msg);
+    return ecdsaRecover(/* allow_overflow= */ true, sig, msg);
   }
 
   runtime::WasmSpan
   CryptoExtension::ext_crypto_secp256k1_ecdsa_recover_version_2(
       runtime::WasmPointer sig, runtime::WasmPointer msg) {
-    return ecdsaRecover(false, sig, msg);
+    return ecdsaRecover(/* allow_overflow= */ false, sig, msg);
   }
 
   runtime::WasmSpan CryptoExtension::ecdsaRecoverCompressed(
@@ -561,13 +561,13 @@ namespace kagome::host_api {
   runtime::WasmSpan
   CryptoExtension::ext_crypto_secp256k1_ecdsa_recover_compressed_version_1(
       runtime::WasmPointer sig, runtime::WasmPointer msg) {
-    return ecdsaRecoverCompressed(true, sig, msg);
+    return ecdsaRecoverCompressed(/* allow_overflow= */ true, sig, msg);
   }
 
   runtime::WasmSpan
   CryptoExtension::ext_crypto_secp256k1_ecdsa_recover_compressed_version_2(
       runtime::WasmPointer sig, runtime::WasmPointer msg) {
-    return ecdsaRecoverCompressed(false, sig, msg);
+    return ecdsaRecoverCompressed(/* allow_overflow= */ false, sig, msg);
   }
 
   runtime::WasmSpan CryptoExtension::ext_crypto_ecdsa_public_keys_version_1(
@@ -725,14 +725,14 @@ namespace kagome::host_api {
       runtime::WasmPointer sig,
       runtime::WasmSpan msg,
       runtime::WasmPointer pub) const {
-    return ecdsaVerify(true, sig, msg, pub);
+    return ecdsaVerify(/* allow_overflow= */ true, sig, msg, pub);
   }
 
   int32_t CryptoExtension::ext_crypto_ecdsa_verify_version_2(
       runtime::WasmPointer sig,
       runtime::WasmSpan msg,
       runtime::WasmPointer pub) const {
-    return ecdsaVerify(false, sig, msg, pub);
+    return ecdsaVerify(/* allow_overflow= */ false, sig, msg, pub);
   }
 
   int32_t CryptoExtension::ext_crypto_ecdsa_verify_prehashed_version_1(
