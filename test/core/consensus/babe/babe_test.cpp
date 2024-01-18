@@ -13,6 +13,7 @@
 #include "consensus/babe/types/babe_configuration.hpp"
 #include "consensus/block_production_error.hpp"
 #include "consensus/timeline/impl/slot_leadership_error.hpp"
+#include "crypto/blake2/blake2b.h"
 #include "mock/core/application/app_configuration_mock.hpp"
 #include "mock/core/authorship/proposer_mock.hpp"
 #include "mock/core/blockchain/block_tree_mock.hpp"
@@ -303,7 +304,8 @@ class BabeTest : public testing::Test {
                      StateVersion::V0,
                      block.body | transformed([](const auto &ext) {
                        return Buffer{scale::encode(ext).value()};
-                     }))
+                     }),
+                     kagome::crypto::blake2b<32>)
               .value();
         }(),
         make_digest(new_block_slot),  // digest
@@ -404,5 +406,6 @@ TEST_F(BabeTest, SlotLeader) {
 
   ASSERT_OUTCOME_SUCCESS_TRY(babe->processSlot(slot, best_block_info));
 
+  testutil::wait(*thread_pool_.io_context());
   testutil::wait(*thread_pool_.io_context());
 }

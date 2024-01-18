@@ -216,6 +216,7 @@ namespace kagome::runtime::binaryen {
     REGISTER_HOST_API_FUNC(ext_trie_blake2_256_root_version_1);
     REGISTER_HOST_API_FUNC(ext_trie_blake2_256_ordered_root_version_1);
     REGISTER_HOST_API_FUNC(ext_trie_blake2_256_ordered_root_version_2);
+    REGISTER_HOST_API_FUNC(ext_trie_keccak_256_ordered_root_version_2);
     REGISTER_HOST_API_FUNC(ext_misc_print_hex_version_1);
     REGISTER_HOST_API_FUNC(ext_misc_print_num_version_1);
     REGISTER_HOST_API_FUNC(ext_misc_print_utf8_version_1);

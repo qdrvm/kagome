@@ -71,7 +71,7 @@ namespace kagome::authorship {
               tx_error,
               [this, &extrinsic](
                   const primitives::InvalidTransaction &reason) -> return_type {
-                switch (reason) {
+                switch (reason.kind) {
                   case primitives::InvalidTransaction::ExhaustsResources:
                     return BlockBuilderError::EXHAUSTS_RESOURCES;
                   case primitives::InvalidTransaction::BadMandatory:
@@ -82,7 +82,7 @@ namespace kagome::authorship {
                         "Extrinsic {} cannot be applied and was not pushed to "
                         "the block. (InvalidTransaction response, code {})",
                         extrinsic.data.toHex().substr(0, 8),
-                        static_cast<uint8_t>(reason));
+                        static_cast<uint8_t>(reason.kind));
                     return BlockBuilderError::EXTRINSIC_APPLICATION_FAILED;
                 }
               },
@@ -92,7 +92,7 @@ namespace kagome::authorship {
                         "Extrinsic {} cannot be applied and was not pushed to "
                         "the block. (UnknownTransaction response, code {})",
                         extrinsic.data.toHex().substr(0, 8),
-                        static_cast<uint8_t>(reason));
+                        static_cast<uint8_t>(reason.kind));
                 return BlockBuilderError::EXTRINSIC_APPLICATION_FAILED;
               });
         });

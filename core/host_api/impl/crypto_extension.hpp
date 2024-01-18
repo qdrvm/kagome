@@ -30,8 +30,6 @@ namespace kagome::host_api {
    */
   class CryptoExtension {
    public:
-    static constexpr uint32_t kVerifyBatchSuccess = 1;
-    static constexpr uint32_t kVerifyBatchFail = 0;
     static constexpr uint32_t kVerifySuccess = 1;
     static constexpr uint32_t kVerifyFail = 0;
 
@@ -43,6 +41,8 @@ namespace kagome::host_api {
         std::shared_ptr<const crypto::Secp256k1Provider> secp256k1_provider,
         std::shared_ptr<const crypto::Hasher> hasher,
         std::shared_ptr<crypto::CryptoStore> crypto_store);
+
+    void reset();
 
     // -------------------- hashing methods v1 --------------------
 
@@ -260,6 +260,7 @@ namespace kagome::host_api {
     runtime::WasmSpan ecdsaRecoverCompressed(bool allow_overflow,
                                              runtime::WasmPointer sig,
                                              runtime::WasmPointer msg);
+    runtime::WasmSize batchVerify(runtime::WasmSize ok);
 
     std::shared_ptr<const runtime::MemoryProvider> memory_provider_;
     std::shared_ptr<const crypto::Sr25519Provider> sr25519_provider_;
@@ -269,5 +270,6 @@ namespace kagome::host_api {
     std::shared_ptr<const crypto::Hasher> hasher_;
     std::shared_ptr<crypto::CryptoStore> crypto_store_;
     log::Logger logger_;
+    std::optional<runtime::WasmSize> batch_verify_;
   };
 }  // namespace kagome::host_api

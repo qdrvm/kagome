@@ -23,8 +23,7 @@ debug_docker:
 	VERSION=0.0.1 BUILD_DIR=build BUILD_TYPE=Debug ./housekeeping/docker/kagome/build_and_push.sh
 
 custom_docker:
-	VERSION=0.0.1 BUILD_TYPE=Custom BUILD_DIR=build ./housekeeping/docker/kagome/build_and_push.sh
+	VERSION=0.0.1 BUILD_TYPE=Custom ./housekeeping/docker/kagome/build_and_push.sh
 
 clear:
 	rm -rf build
-

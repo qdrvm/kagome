@@ -31,3 +31,20 @@ namespace kagome {
     };
   }
 }  // namespace kagome
+
+#define REINVOKE(ctx, func, ...)                                               \
+  do {                                                                         \
+    if (not runningInThisThread(ctx)) {                                        \
+      return post(ctx,                                                         \
+                  [weak{weak_from_this()},                                     \
+                   args = std::make_tuple(__VA_ARGS__)]() mutable {            \
+                    if (auto self = weak.lock()) {                             \
+                      std::apply(                                              \
+                          [&](auto &&...args) mutable {                        \
+                            self->func(std::forward<decltype(args)>(args)...); \
+                          },                                                   \
+                          std::move(args));                                    \
+                    }                                                          \
+                  });                                                          \
+    }                                                                          \
+  } while (false)
