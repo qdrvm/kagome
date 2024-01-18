@@ -97,8 +97,8 @@ namespace kagome::network {
                  block_announce.header.blockInfo(),
                  peer_id);
 
-      self->observer_->onBlockAnnounce(peer_id, block_announce);
       self->peer_manager_->updatePeerState(peer_id, block_announce);
+      self->observer_->onBlockAnnounce(peer_id, block_announce);
       return true;
     };
     notifications::handshakeAndReadMessages<BlockAnnounce>(
