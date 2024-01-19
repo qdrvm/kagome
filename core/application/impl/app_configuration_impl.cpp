@@ -86,13 +86,8 @@ namespace {
   const auto def_sync_method = kagome::application::SyncMethod::Full;
   const auto def_runtime_exec_method =
       kagome::application::AppConfiguration::RuntimeExecutionMethod::Interpret;
-#if KAGOME_WASM_COMPILER_WASM_EDGE == 1
   const auto def_runtime_interpreter =
-      kagome::application::AppConfiguration::RuntimeInterpreter::WasmEdge;
-#else
-  const auto def_runtime_interpreter =
-      kagome::application::AppConfiguration::RuntimeInterpreter::Binaryen;
-#endif
+      kagome::application::AppConfiguration::RuntimeInterpreter::Off;
   const auto def_use_wavm_cache_ = false;
   const auto def_purge_wavm_cache_ = false;
   const auto def_offchain_worker_mode =
@@ -1426,8 +1421,23 @@ namespace kagome::application {
       return false;
     }
 
+    // default interpreter
+    if (runtime_exec_method_ == RuntimeExecutionMethod::Interpret) {
+#if KAGOME_WASM_COMPILER_WASM_EDGE == 1
+      runtime_interpreter_ = RuntimeInterpreter::WasmEdge;
+#else
+      runtime_interpreter_ = RuntimeInterpreter::Binaryen;
+#endif
+    }
+
     if (auto val = find_argument<std::string>(vm, "wasm-interpreter");
         val.has_value()) {
+      if (runtime_exec_method_ == RuntimeExecutionMethod::Compile) {
+        SL_ERROR(
+            logger_,
+            "--wasm-interpreter defined, but the execution mode is Compile");
+        return false;
+      }
       if (auto interpreter = str_to_runtime_interpreter(*val);
           interpreter.has_value()) {
         runtime_interpreter_ = *interpreter;
@@ -1438,15 +1448,6 @@ namespace kagome::application {
                  interpreters_str);
         return false;
       }
-    }
-
-    if (runtime_interpreter_ == RuntimeInterpreter::WasmEdge) {
-      /// TODO(Harrm): Temporary crutch to check how WasmEdge behaves in
-      /// interpreter mode. Later we should either remove binaryen and wavm
-      /// completely, or rewrite this place more clearly.
-      /// Not that WasmEdge cannot be picked as interpreter if Kagome is
-      /// compiled with WAVM support.
-      runtime_exec_method_ = RuntimeExecutionMethod::Compile;
     }
 
     if (vm.count("unsafe-cached-wavm-runtime") > 0) {

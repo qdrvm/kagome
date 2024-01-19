@@ -226,6 +226,7 @@ namespace kagome::application {
     virtual RuntimeExecutionMethod runtimeExecMethod() const = 0;
 
     enum class RuntimeInterpreter {
+      Off,
       WasmEdge,
       Binaryen,
     };
