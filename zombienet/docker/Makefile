@@ -1,14 +1,17 @@
 builder_last:
-	python version.py https://github.com/paritytech/polkadot.git && \
-	python version.py https://github.com/paritytech/cumulus.git && \
+	python version.py https://github.com/paritytech/polkadot-sdk && \
 	make fetch_and_run
 
 fetch_and_run:
-	export $(shell [ ! -n "polkadot-version.txt" ] || cat polkadot-version.txt | grep -v \
-    --perl-regexp '^('$$(env | sed 's/=.*//'g | tr '\n' '|')')\=') && \
-	export $(shell [ ! -n "cumulus-version.txt" ] || cat cumulus-version.txt | grep -v \
-    --perl-regexp '^('$$(env | sed 's/=.*//'g | tr '\n' '|')')\=') && \
-	DOCKER_BUILDKIT=0 docker build -t qdrvm/zombie-builder:latest -f builder.Dockerfile --build-arg CUMULUS_RELEASE=$$CUMULUS_RELEASE --build-arg POLKADOT_RELEASE=$$POLKADOT_RELEASE --build-arg POLKADOT_RELEASE_GLOBAL=$$POLKADOT_RELEASE .
+	if [ -f polkadot-sdk-short-version.txt ] && [ -f polkadot-sdk-polkadot-version.txt ]; then \
+  		POLKADOT_SDK_RELEASE=$(shell cat polkadot-sdk-polkadot-version.txt); \
+		POLKADOT_RELEASE_GLOBAL=$(shell cat polkadot-sdk-short-version.txt); \
+		DOCKER_BUILDKIT=0 docker build -t qdrvm/zombie-builder:$$POLKADOT_SDK_RELEASE -f builder.Dockerfile \
+		--build-arg POLKADOT_SDK_RELEASE=$$POLKADOT_SDK_RELEASE \
+		--build-arg POLKADOT_RELEASE_GLOBAL=$$POLKADOT_RELEASE_GLOBAL . ; \
+	else \
+		echo "One or more files are missing."; \
+	fi
 
 builder_push:
 	docker push qdrvm/zombie-builder:latest

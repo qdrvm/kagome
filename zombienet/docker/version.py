@@ -11,11 +11,22 @@ def list_all_tags_for_remote_git_repo(repo_url):
   ]
   return tags
 
-def write_file(file:str, text:str):
-  filename = file + "-version.txt"
-  f = open(filename, "w")
-  f.write(file.upper().replace("-", "_") + "_RELEASE=" + text)
-  f.close()
+def write_file(file: str, text: str, version_format="long"):
+  if version_format == "short":
+    filename = file + "-short-version.txt"
+    content = text.replace("polkadot-", "")
+  elif version_format == "polkadot":
+      if "polkadot-" in text:
+          filename = file + "-polkadot-version.txt"
+          content = text
+      else:
+          return
+  else:
+    filename = file + "-version.txt"
+    content = file.upper().replace("-", "_") + "_RELEASE=" + text
+
+  with open(filename, "w") as f:
+    f.write(content)
 
 def get_last_tag(release_tags):
   def version_key(tag):
@@ -41,20 +52,27 @@ def get_version(repo_url):
   print((f"Filtered release tags: {release_tags}"))
   last_tag = get_last_tag(release_tags)
   print (f"Last Tag: {last_tag}")
-  write_file(repo_short_name, last_tag)
+
+  write_file(repo_short_name, last_tag)  # Long format
+  write_file(repo_short_name, last_tag, version_format="short")  # Short format
+  write_file(repo_short_name, last_tag, version_format="polkadot")  # Polkadot format
 
 def help():
   print("""
     This script: 
       - takes a tag list, 
       - parses tags and finds the latest release tag with semantic version (polkadot-v0.0.0)
-      - writes latest tag to file
+      - writes latest tag to files (short, long, with environment variable)
     Usage:
       python version.py https://github.com/paritytech/polkadot.git
     Result:
-      [repo]-version.txt with [REPO]_RELEASE=[version] content
+      [repo]-version.txt with [REPO]_RELEASE=[long-version] content
+      [repo]-polkadot-version.txt with [long-version] content
+      [repo]-short-version.txt with [short-version] content
     Example:
-      polkadot-sdk-version.txt file with POLKADOT_SDK_RELEASE=v0.1.6
+      polkadot-sdk-version.txt file with POLKADOT_SDK_RELEASE=polkadot-v0.1.6
+      polkadot-polkadot-version.txt with polkadot-v0.1.6 content
+      polkadot-short-version.txt with v0.1.6 content
     """)
 
 def main():
