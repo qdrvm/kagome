@@ -513,6 +513,13 @@ namespace kagome::network {
   void SynchronizerImpl::loadBlocks(const libp2p::peer::PeerId &peer_id,
                                     primitives::BlockInfo from,
                                     SyncResultHandler &&handler) {
+    if (not load_blocks_.emplace(from).second) {
+      if (handler) {
+        handler(Error::ALREADY_IN_QUEUE);
+      }
+      return;
+    }
+
     network::BlocksRequest request{attributesForSync(sync_method_),
                                    from.hash,
                                    network::Direction::ASCENDING,
@@ -528,6 +535,7 @@ namespace kagome::network {
       if (not self) {
         return;
       }
+      self->load_blocks_.erase(from);
 
       // Any error interrupts loading of blocks
       if (response_res.has_error()) {

@@ -11,6 +11,7 @@
 #include <atomic>
 #include <mutex>
 #include <queue>
+#include <unordered_set>
 
 #include <libp2p/basic/scheduler.hpp>
 
@@ -273,6 +274,7 @@ namespace kagome::network {
     std::atomic_bool applying_in_progress_ = false;
     std::atomic_bool asking_blocks_portion_in_progress_ = false;
     std::set<libp2p::peer::PeerId> busy_peers_;
+    std::unordered_set<primitives::BlockInfo> load_blocks_;
 
     std::map<std::tuple<libp2p::peer::PeerId, BlocksRequest::Fingerprint>,
              const char *>
