@@ -5,13 +5,13 @@
 #
 
 add_library(runtime_common
-    stack_limiter/stack_limiter.cpp
+    stack_limiter.cpp
     )
 target_link_libraries(runtime_common
     wabt
     blob
     logger
-    uncompress_code_if_needed
+    uncompress_if_needed
     outcome
     )
 
