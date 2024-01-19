@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "stack_limiter.hpp"
+#include "runtime/common/stack_limiter.hpp"
 
 #include "common/visitor.hpp"
 #include "log/logger.hpp"
