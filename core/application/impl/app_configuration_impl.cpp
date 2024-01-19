@@ -168,7 +168,8 @@ namespace {
   std::string execution_methods_str =
       fmt::format("[{}]", fmt::join(execution_methods, ", "));
 
-  std::array<std::string_view, 2> interpreters {
+  std::array<std::string_view, 1 + KAGOME_WASM_COMPILER_WASM_EDGE>
+      interpreters {
 #if KAGOME_WASM_COMPILER_WASM_EDGE == 1
     "WasmEdge",
 #endif
