@@ -228,8 +228,8 @@ namespace kagome::application {
   }
 
   void AppStateManagerImpl::shutdown() {
-    shutdown_requested_ = true;
     std::lock_guard lg(cv_mutex_);
+    shutdown_requested_ = true;
     cv_.notify_one();
   }
 }  // namespace kagome::application
