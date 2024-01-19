@@ -99,3 +99,15 @@ if (APPLE AND (CMAKE_CXX_COMPILER_ID STREQUAL "AppleClang" OR CMAKE_CXX_COMPILER
       SHA1 301f8b1775904179cb552c12be237b4aa076981e
   )
 endif ()
+
+# TODO(Harrm): Figure out the OpenSSL dependency
+hunter_config(
+    wabt
+    URL https://github.com/WebAssembly/wabt/archive/refs/tags/1.0.34.zip
+    SHA1 4d688917b9671c746395b6cab95b1b0198ae6a24
+    CMAKE_ARGS
+      BUILD_TESTS=OFF
+      BUILD_TOOLS=OFF
+      BUILD_LIBWASM=OFF
+      USE_INTERNAL_SHA256=OFF
+)

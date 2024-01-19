@@ -31,4 +31,5 @@ target_link_libraries(validator_parachain
     network
     erasure_coding_crust::ec-cpp
     waitable_timer
+    runtime_common
     )

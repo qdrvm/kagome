@@ -4,13 +4,18 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
-add_library(memory_error
+add_library(runtime_common
+    stack_limiter/stack_limiter.cpp
     memory_error.cpp
     )
-target_link_libraries(memory_error
+target_link_libraries(runtime_common
+    wabt::wabt
+    blob
+    logger
+    uncompress_if_needed
     outcome
     )
-kagome_install(memory_error)
+kagome_install(runtime_common)
 
 add_library(storage_code_provider
     storage_code_provider.cpp

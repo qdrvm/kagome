@@ -21,14 +21,14 @@ add_library(runtime_wavm
     wavm_internal_memory_provider.cpp
     )
 target_link_libraries(runtime_wavm
-    memory_error
+		runtime_common
 		${LLVM_LIBS}
 		WAVM::libWAVM
 		constant_code_provider
 		core_api_factory
-    executor
+        executor
 		Boost::boost
-    trie_storage_provider
+        trie_storage_provider
 		memory_allocator
     )
 kagome_install(runtime_wavm)

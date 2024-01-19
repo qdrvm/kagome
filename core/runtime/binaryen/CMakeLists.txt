@@ -9,7 +9,7 @@ add_library(binaryen_wasm_memory
     )
 target_link_libraries(binaryen_wasm_memory
     logger
-    memory_error
+    runtime_common
     binaryen::binaryen
     memory_allocator
     )
