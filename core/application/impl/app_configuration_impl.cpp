@@ -86,6 +86,13 @@ namespace {
   const auto def_sync_method = kagome::application::SyncMethod::Full;
   const auto def_runtime_exec_method =
       kagome::application::AppConfiguration::RuntimeExecutionMethod::Interpret;
+#if KAGOME_WASM_COMPILER_WASM_EDGE == 1
+  const auto def_runtime_interpreter =
+      kagome::application::AppConfiguration::RuntimeInterpreter::WasmEdge;
+#else
+  const auto def_runtime_interpreter =
+      kagome::application::AppConfiguration::RuntimeInterpreter::Binaryen;
+#endif
   const auto def_use_wavm_cache_ = false;
   const auto def_purge_wavm_cache_ = false;
   const auto def_offchain_worker_mode =
@@ -101,6 +108,11 @@ namespace {
   const uint32_t def_random_walk_interval = 15;
   const auto def_full_sync = "Full";
   const auto def_wasm_execution = "Interpreted";
+#if KAGOME_WASM_COMPILER_WASM_EDGE == 1
+  const auto def_wasm_interpreter = "WasmEdge";
+#else
+  const auto def_wasm_interpreter = "Binaryen";
+#endif
   const uint32_t def_db_cache_size = 1024;
   const uint32_t def_parachain_runtime_instance_cache_size = 100;
 
@@ -161,6 +173,16 @@ namespace {
   std::string execution_methods_str =
       fmt::format("[{}]", fmt::join(execution_methods, ", "));
 
+  std::array<std::string_view, 2> interpreters {
+#if KAGOME_WASM_COMPILER_WASM_EDGE == 1
+    "WasmEdge",
+#endif
+        "Binaryen"
+  };
+
+  std::string interpreters_str =
+      fmt::format("[{}]", fmt::join(interpreters, ", "));
+
   std::optional<kagome::application::AppConfiguration::RuntimeExecutionMethod>
   str_to_runtime_exec_method(std::string_view str) {
     using REM = kagome::application::AppConfiguration::RuntimeExecutionMethod;
@@ -169,6 +191,18 @@ namespace {
     }
     if (str == "Compiled") {
       return REM::Compile;
+    }
+    return std::nullopt;
+  }
+
+  std::optional<kagome::application::AppConfiguration::RuntimeInterpreter>
+  str_to_runtime_interpreter(std::string_view str) {
+    using RI = kagome::application::AppConfiguration::RuntimeInterpreter;
+    if (str == "WasmEdge") {
+      return RI::WasmEdge;
+    }
+    if (str == "Binaryen") {
+      return RI::Binaryen;
     }
     return std::nullopt;
   }
@@ -251,6 +285,7 @@ namespace kagome::application {
         random_walk_interval_(def_random_walk_interval),
         sync_method_{def_sync_method},
         runtime_exec_method_{def_runtime_exec_method},
+        runtime_interpreter_{def_runtime_interpreter},
         use_wavm_cache_(def_use_wavm_cache_),
         purge_wavm_cache_(def_purge_wavm_cache_),
         offchain_worker_mode_{def_offchain_worker_mode},
@@ -845,6 +880,8 @@ namespace kagome::application {
           "choose the desired sync method (Full, Fast). Full is used by default.")
         ("wasm-execution", po::value<std::string>()->default_value(def_wasm_execution),
           fmt::format("choose the desired wasm execution method ({})", execution_methods_str).c_str())
+        ("wasm-interpreter", po::value<std::string>()->default_value(def_wasm_interpreter),
+          fmt::format("choose the desired wasm interpreter ({})", interpreters_str).c_str())
         ("unsafe-cached-wavm-runtime", "use WAVM runtime cache")
         ("purge-wavm-cache", "purge WAVM runtime cache")
         ("parachain-runtime-instance-cache-size",
@@ -1387,6 +1424,29 @@ namespace kagome::application {
         });
     if (exec_method_value_error) {
       return false;
+    }
+
+    if (auto val = find_argument<std::string>(vm, "wasm-interpreter");
+        val.has_value()) {
+      if (auto interpreter = str_to_runtime_interpreter(*val);
+          interpreter.has_value()) {
+        runtime_interpreter_ = *interpreter;
+      } else {
+        SL_ERROR(logger_,
+                 "Invalid wasm interpreter '{}', available options are: {}",
+                 *val,
+                 interpreters_str);
+        return false;
+      }
+    }
+
+    if (runtime_interpreter_ == RuntimeInterpreter::WasmEdge) {
+      /// TODO(Harrm): Temporary crutch to check how WasmEdge behaves in
+      /// interpreter mode. Later we should either remove binaryen and wavm
+      /// completely, or rewrite this place more clearly.
+      /// Not that WasmEdge cannot be picked as interpreter if Kagome is
+      /// compiled with WAVM support.
+      runtime_exec_method_ = RuntimeExecutionMethod::Compile;
     }
 
     if (vm.count("unsafe-cached-wavm-runtime") > 0) {

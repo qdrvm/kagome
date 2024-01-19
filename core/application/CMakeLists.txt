@@ -42,6 +42,7 @@ target_link_libraries(app_config
     assets
     chain_spec
     build_version
+    wasm_compiler
     )
 kagome_install(app_config)
 

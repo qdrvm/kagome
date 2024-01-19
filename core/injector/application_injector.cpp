@@ -600,6 +600,15 @@ namespace {
             config->parachainRuntimeInstanceCacheSize(),
         .precompile_threads_num = config->parachainPrecompilationThreadNum(),
     };
+#if KAGOME_WASM_COMPILER_WASM_EDGE == 1
+    runtime::wasm_edge::ModuleFactoryImpl::Config wasmedge_config{
+        config->runtimeExecMethod()
+                == application::AppConfiguration::RuntimeExecutionMethod::
+                    Compile
+            ? runtime::wasm_edge::ModuleFactoryImpl::ExecType::Compiled
+            : runtime::wasm_edge::ModuleFactoryImpl::ExecType::Interpreted,
+    };
+#endif
 
     // clang-format off
     return di::make_injector(
@@ -611,6 +620,9 @@ namespace {
             useConfig(ping_config),
             useConfig(offchain_ext_config),
             useConfig(pvf_config),
+#if KAGOME_WASM_COMPILER_WASM_EDGE == 1
+            useConfig(wasmedge_config),
+#endif
 
             // inherit host injector
             libp2p::injector::makeHostInjector(

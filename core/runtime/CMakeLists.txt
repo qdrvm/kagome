@@ -27,4 +27,6 @@ else()
   fatal_error("Unknown WASM_COMPILER: ${WASM_COMPILER}")
 endif()
 
+kagome_install(wasm_compiler)
+
 add_subdirectory(runtime_api/impl)
