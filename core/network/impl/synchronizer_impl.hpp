@@ -103,7 +103,8 @@ namespace kagome::network {
         std::shared_ptr<crypto::Hasher> hasher,
         primitives::events::ChainSubscriptionEnginePtr chain_sub_engine,
         std::shared_ptr<IBeefy> beefy,
-        std::shared_ptr<consensus::grandpa::Environment> grandpa_environment);
+        std::shared_ptr<consensus::grandpa::Environment> grandpa_environment,
+        WeakIoContext main_thread);
 
     /** @see AppStateManager::takeControl */
     void stop();
@@ -180,6 +181,10 @@ namespace kagome::network {
     /// Tries to request another portion of block
     void askNextPortionOfBlocks();
 
+    void post_block_addition(outcome::result<void> &&block_addition_result,
+                             Synchronizer::SyncResultHandler &&handler,
+                             const primitives::BlockHash &hash);
+
     /// Pops next block from queue and tries to apply that
     void applyNextBlock();
 
@@ -223,6 +228,7 @@ namespace kagome::network {
     std::shared_ptr<IBeefy> beefy_;
     std::shared_ptr<consensus::grandpa::Environment> grandpa_environment_;
     primitives::events::ChainSubscriptionEnginePtr chain_sub_engine_;
+    ThreadHandler main_thread_;
 
     application::SyncMethod sync_method_;
 
