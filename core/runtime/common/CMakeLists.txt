@@ -4,6 +4,17 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
+add_library(runtime_common
+    stack_limiter/stack_limiter.cpp
+    )
+target_link_libraries(runtime_common
+    wabt
+    blob
+    logger
+    uncompress_code_if_needed
+    outcome
+    )
+
 add_library(storage_code_provider
     storage_code_provider.cpp
     )
