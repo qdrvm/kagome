@@ -37,6 +37,8 @@ namespace kagome::application {
   }
 
   AppStateManagerImpl::~AppStateManagerImpl() {
+    wp_to_myself.reset();
+
     struct sigaction act {};
     memset(&act, 0, sizeof(act));
     act.sa_handler = SIG_DFL;  // NOLINT
