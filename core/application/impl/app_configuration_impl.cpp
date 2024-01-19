@@ -1444,7 +1444,7 @@ namespace kagome::application {
       /// TODO(Harrm): Temporary crutch to check how WasmEdge behaves in
       /// interpreter mode. Later we should either remove binaryen and wavm
       /// completely, or rewrite this place more clearly.
-      /// Not that WasmEdge cannot be picked as interpreter if Kagome is
+      /// Note that WasmEdge cannot be picked as interpreter if Kagome is
       /// compiled with WAVM support.
       runtime_exec_method_ = RuntimeExecutionMethod::Compile;
     }
