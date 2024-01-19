@@ -66,7 +66,6 @@ namespace kagome::runtime {
 
     bool checkAddress(WasmPointer addr, WasmSize size) noexcept {
       BOOST_ASSERT(addr > 0);
-      BOOST_ASSERT(size > 0);
       return offset_ > static_cast<uint32_t>(addr)
          and offset_ - static_cast<uint32_t>(addr)
                  >= static_cast<uint32_t>(size);
