@@ -1,14 +1,19 @@
 builder_last:
 	python version.py https://github.com/paritytech/polkadot-sdk && \
+	python version.py https://github.com/paritytech/zombienet && \
 	make fetch_and_run
 
 fetch_and_run:
-	if [ -f polkadot-sdk-short-version.txt ] && [ -f polkadot-sdk-polkadot-version.txt ]; then \
-  		POLKADOT_SDK_RELEASE=$(shell cat polkadot-sdk-polkadot-version.txt); \
-		POLKADOT_RELEASE_GLOBAL=$(shell cat polkadot-sdk-short-version.txt); \
+	if [ -f polkadot-sdk-versions.txt ]; then \
+		POLKADOT_SDK_RELEASE=$$(grep 'polkadot_format_version:' polkadot-sdk-versions.txt | cut -d ' ' -f 2); \
+		POLKADOT_RELEASE_GLOBAL=$$(grep 'short_version:' polkadot-sdk-versions.txt | cut -d ' ' -f 2); \
+		POLKADOT_RELEASE_GLOBAL_NUMERIC=$$(grep 'numeric_version:' polkadot-sdk-versions.txt | cut -d ' ' -f 2); \
+		ZOMBIENET_RELEASE=$$(grep 'short_version:' zombienet-versions.txt | cut -d ' ' -f 2); \
 		DOCKER_BUILDKIT=0 docker build -t qdrvm/zombie-builder:$$POLKADOT_SDK_RELEASE -f builder.Dockerfile \
+		--build-arg ZOMBIENET_RELEASE=$$ZOMBIENET_RELEASE \
 		--build-arg POLKADOT_SDK_RELEASE=$$POLKADOT_SDK_RELEASE \
-		--build-arg POLKADOT_RELEASE_GLOBAL=$$POLKADOT_RELEASE_GLOBAL . ; \
+		--build-arg POLKADOT_RELEASE_GLOBAL=$$POLKADOT_RELEASE_GLOBAL \
+		--build-arg POLKADOT_RELEASE_GLOBAL_NUMERIC=$$POLKADOT_RELEASE_GLOBAL_NUMERIC . ; \
 	else \
 		echo "One or more files are missing."; \
 	fi

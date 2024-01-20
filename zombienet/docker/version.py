@@ -11,22 +11,18 @@ def list_all_tags_for_remote_git_repo(repo_url):
   ]
   return tags
 
-def write_file(file: str, text: str, version_format="long"):
-  if version_format == "short":
-    filename = file + "-short-version.txt"
-    content = text.replace("polkadot-", "")
-  elif version_format == "polkadot":
-      if "polkadot-" in text:
-          filename = file + "-polkadot-version.txt"
-          content = text
-      else:
-          return
-  else:
-    filename = file + "-version.txt"
-    content = file.upper().replace("-", "_") + "_RELEASE=" + text
+def write_file(file: str, text: str):
+  version_info = {
+    "version": text,
+    "short_version": text.replace("polkadot-", ""),
+    "numeric_version": re.sub(r'^(polkadot-)?v', '', text),
+    "polkadot_format_version": text if "polkadot-" in text else None
+  }
 
+  filename = file + "-versions.txt"
   with open(filename, "w") as f:
-    f.write(content)
+    for key, value in version_info.items():
+      f.write(f"{key}: {value}\n")
 
 def get_last_tag(release_tags):
   def version_key(tag):
@@ -53,9 +49,7 @@ def get_version(repo_url):
   last_tag = get_last_tag(release_tags)
   print (f"Last Tag: {last_tag}")
 
-  write_file(repo_short_name, last_tag)  # Long format
-  write_file(repo_short_name, last_tag, version_format="short")  # Short format
-  write_file(repo_short_name, last_tag, version_format="polkadot")  # Polkadot format
+  write_file(repo_short_name, last_tag)
 
 def help():
   print("""
