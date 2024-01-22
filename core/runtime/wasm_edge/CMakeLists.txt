@@ -6,3 +6,4 @@ target_link_libraries(runtime_wasm_edge
     WasmEdge::WasmEdge
     )
 target_include_directories(runtime_wasm_edge PRIVATE "${WASMEDGE_ROOT}/include")
+kagome_install(runtime_wasm_edge)

@@ -365,6 +365,8 @@ namespace kagome::runtime::wasm_edge {
 
     switch (config_.exec) {
       case ExecType::Compiled: {
+        WasmEdge_ConfigureCompilerSetOptimizationLevel(
+            configure_ctx.raw(), WasmEdge_CompilerOptimizationLevel_O3);
         CompilerContext compiler = WasmEdge_CompilerCreate(configure_ctx.raw());
         std::string filename = fmt::format("{}/wasm_{}",
                                            config_.compiled_module_dir.c_str(),
