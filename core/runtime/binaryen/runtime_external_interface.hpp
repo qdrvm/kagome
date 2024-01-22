@@ -66,22 +66,18 @@ namespace kagome::runtime::binaryen {
       auto getSize() const {
         return memory.size();
       }
-      auto getData() const {
-        return std::span<const Mem::value_type>(memory);
-      }
       template <typename T>
       void set(size_t address, T value) {
+        check(address, sizeof(T));
         if (aligned<T>(&memory[address])) {
           *reinterpret_cast<T *>(&memory[address]) = value;
         } else {
           std::memcpy(&memory[address], &value, sizeof(T));
         }
       }
-      void set(size_t address, common::BufferView value) {
-        std::memcpy(&memory[address], value.data(), value.size());
-      }
       template <typename T>
       T get(size_t address) {
+        check(address, sizeof(T));
         if (aligned<T>(&memory[address])) {
           return *reinterpret_cast<T *>(&memory[address]);
         } else {
@@ -91,10 +87,14 @@ namespace kagome::runtime::binaryen {
         }
       }
 
-      BytesOut view(WasmPointer ptr, WasmSize size) {
+      void check(WasmPointer ptr, WasmSize size) {
         if (not memoryCheck(ptr, size, memory.size())) {
           throw std::out_of_range{"MemoryError"};
         }
+      }
+
+      BytesOut view(WasmPointer ptr, WasmSize size) {
+        check(ptr, size);
         return {reinterpret_cast<uint8_t *>(&memory[ptr]), size};
       }
     } memory;
