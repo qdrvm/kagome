@@ -54,6 +54,8 @@ namespace kagome::application {
     static std::weak_ptr<AppStateManagerImpl> wp_to_myself;
     static void shuttingDownSignalsHandler(int);
 
+    void shutdownRequestWaiting();
+
     log::Logger logger_;
 
     std::atomic<State> state_ = State::Init;

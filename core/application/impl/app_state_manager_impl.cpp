@@ -15,7 +15,9 @@ namespace kagome::application {
 
   void AppStateManagerImpl::shuttingDownSignalsHandler(int signal) {
     if (auto self = wp_to_myself.lock()) {
+      SL_TRACE(self->logger_, "Shutting down requested by signal {}", signal);
       self->shutdown();
+      SL_TRACE(self->logger_, "Shutting down request handled");
     }
   }
 
@@ -223,10 +225,17 @@ namespace kagome::application {
       doLaunch();
     }
 
+    SL_TRACE(logger_, "Start waiting shutdown request...");
+    shutdownRequestWaiting();
+
+    SL_TRACE(logger_, "Start doing shutdown...");
+    doShutdown();
+    SL_TRACE(logger_, "Shutdown is done");
+  }
+
+  void AppStateManagerImpl::shutdownRequestWaiting() {
     std::unique_lock lock(cv_mutex_);
     cv_.wait(lock, [&] { return shutdown_requested_.load(); });
-
-    doShutdown();
   }
 
   void AppStateManagerImpl::shutdown() {
