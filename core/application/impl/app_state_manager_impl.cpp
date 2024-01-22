@@ -11,9 +11,9 @@
 
 namespace kagome::application {
 
-  std::weak_ptr<AppStateManager> AppStateManagerImpl::wp_to_myself;
+  std::weak_ptr<AppStateManagerImpl> AppStateManagerImpl::wp_to_myself;
 
-  void AppStateManagerImpl::shuttingDownSignalsHandler(int) {
+  void AppStateManagerImpl::shuttingDownSignalsHandler(int signal) {
     if (auto self = wp_to_myself.lock()) {
       self->shutdown();
     }

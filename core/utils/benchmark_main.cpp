@@ -13,27 +13,27 @@
 namespace kagome {
 
   int benchmark_main(int argc, const char **argv) {
-    log::Logger config_logger = log::createLogger("Configuration");
+    auto logger = kagome::log::createLogger("Configuration",
+                                            kagome::log::defaultGroupName);
     if (argc == 1) {
-      SL_ERROR(config_logger,
+      SL_ERROR(logger,
                "Usage: kagome benchmark BENCHMARK-TYPE BENCHMARK-OPTIONS\n"
                "Available benchmark types are: block");
       return -1;
     }
 
-    auto config =
-        std::make_shared<application::AppConfigurationImpl>(config_logger);
-    if (!config->initializeFromArgs(argc, argv)) {
-      SL_ERROR(config_logger, "Failed to initialize kagome!");
+    auto app_config = std::make_shared<application::AppConfigurationImpl>();
+    if (!app_config->initializeFromArgs(argc, argv)) {
+      SL_ERROR(logger, "Failed to initialize kagome!");
       return -1;
     }
-    kagome::log::tuneLoggingSystem(config->log());
+    kagome::log::tuneLoggingSystem(app_config->log());
 
-    injector::KagomeNodeInjector injector{config};
+    injector::KagomeNodeInjector injector{app_config};
 
-    auto config_opt = config->getBenchmarkConfig();
+    auto config_opt = app_config->getBenchmarkConfig();
     if (!config_opt) {
-      SL_ERROR(config_logger, "CLI params for benchmark are missing!");
+      SL_ERROR(logger, "CLI params for benchmark are missing!");
       return -1;
     }
     auto &benchmark_config = *config_opt;
@@ -42,23 +42,31 @@ namespace kagome {
 
     auto res = visit_in_place(
         benchmark_config,
-        [&block_benchmark](
-            application::BlockBenchmarkConfig config) -> outcome::result<void> {
+        [&](application::BlockBenchmarkConfig config) -> outcome::result<void> {
           benchmark::BlockExecutionBenchmark::Config config_{
               .start = config.from,
               .end = config.to,
               .times = config.times,
           };
+
+          SL_INFO(logger,
+                  "Kagome started. Version: {} ",
+                  app_config->nodeVersion());
+
           OUTCOME_TRY(block_benchmark->run(config_));
 
           return outcome::success();
         });
 
     if (res.has_error()) {
-      SL_ERROR(
-          config_logger, "Failed to run benchmark: {}", res.error().message());
+      SL_ERROR(logger, "Failed to run benchmark: {}", res.error().message());
+      logger->flush();
+
       return res.error().value();
     }
+
+    SL_INFO(logger, "Kagome benchmark stopped");
+    logger->flush();
 
     return 0;
   }
