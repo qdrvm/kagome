@@ -95,8 +95,7 @@ int main() {
 
   auto code_substitutes = chain_spec->codeSubstitutes();
 
-  auto config = std::make_shared<kagome::application::AppConfigurationImpl>(
-      kagome::log::createLogger("AppConfiguration"));
+  auto config = std::make_shared<kagome::application::AppConfigurationImpl>();
 
   auto trie_factory =
       std::make_shared<kagome::storage::trie::PolkadotTrieFactoryImpl>();
