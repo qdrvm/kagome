@@ -4,21 +4,15 @@
  */
 
 #include "runtime/wasm_edge/memory_impl.hpp"
+#include "runtime/common/memory_error.hpp"
+#include "runtime/memory_check.hpp"
 
 namespace kagome::runtime::wasm_edge {
 
   MemoryImpl::MemoryImpl(WasmEdge_MemoryInstanceContext *mem_instance,
                          const MemoryConfig &config)
       : mem_instance_{std::move(mem_instance)},
-        allocator_{MemoryAllocator{
-            MemoryAllocator::MemoryHandle{
-                .resize = [this](size_t new_size) { resize(new_size); },
-                .getSize = [this]() -> size_t { return size(); },
-                .storeSz = [this](WasmPointer p, uint32_t n) { store32(p, n); },
-                .loadSz = [this](WasmPointer p) -> uint32_t {
-                  return load32u(p);
-                }},
-            config}} {
+        allocator_{MemoryAllocator{*this, config}} {
     BOOST_ASSERT(mem_instance_ != nullptr);
     SL_DEBUG(logger_,
              "Created memory wrapper {} for internal instance {}",
@@ -41,6 +35,18 @@ namespace kagome::runtime::wasm_edge {
                new_size,
                WasmEdge_ResultGetMessage(res));
     }
+  }
+
+  outcome::result<BytesOut> MemoryImpl::view(WasmPointer ptr,
+                                             WasmSize size) const {
+    if (not memoryCheck(ptr, size, this->size())) {
+      return MemoryError::ERROR;
+    }
+    auto raw = WasmEdge_MemoryInstanceGetPointer(mem_instance_, ptr, size);
+    if (raw == nullptr) {
+      throw std::runtime_error{"WasmEdge_MemoryInstanceGetPointer"};
+    }
+    return BytesOut{raw, size};
   }
 
   ExternalMemoryProviderImpl::ExternalMemoryProviderImpl(

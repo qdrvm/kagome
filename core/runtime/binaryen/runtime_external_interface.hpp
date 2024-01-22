@@ -12,6 +12,7 @@
 
 #include "common/buffer_view.hpp"
 #include "log/logger.hpp"
+#include "runtime/memory_check.hpp"
 
 namespace kagome::host_api {
   class HostApiFactory;
@@ -19,6 +20,8 @@ namespace kagome::host_api {
 }  // namespace kagome::host_api
 
 namespace kagome::runtime {
+  using BytesOut = std::span<uint8_t>;
+
   class TrieStorageProvider;
   class Memory;
   class ExecutorFactory;
@@ -88,12 +91,11 @@ namespace kagome::runtime::binaryen {
         }
       }
 
-      template <typename T,
-                typename = std::enable_if_t<std::is_standard_layout_v<T>
-                                            and std::is_trivial_v<T>>>
-      common::BufferView getBuffer(size_t address, size_t n) const {
-        return common::BufferView((T *)&memory[address], n);
-        ;
+      BytesOut view(WasmPointer ptr, WasmSize size) {
+        if (not memoryCheck(ptr, size, memory.size())) {
+          throw std::out_of_range{"MemoryError"};
+        }
+        return {reinterpret_cast<uint8_t *>(&memory[ptr]), size};
       }
     } memory;
 
@@ -113,6 +115,7 @@ namespace kagome::runtime::binaryen {
                             wasm::Type result,
                             wasm::ModuleInstance &instance) override;
 
+    // BUG: binaryen `ExternalInterface` didn't declare virtual destructor
     virtual ~RuntimeExternalInterface() = default;
 
     wasm::Literal callImport(wasm::Function *import,

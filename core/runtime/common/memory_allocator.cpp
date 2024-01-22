@@ -18,9 +18,15 @@ namespace kagome::runtime {
   static_assert(kDefaultHeapBase < kInitialMemorySize,
                 "Heap base must be in memory");
 
-  MemoryAllocator::MemoryAllocator(MemoryHandle memory,
-                                   const MemoryConfig &config)
-      : memory_{std::move(memory)},
+  MemoryAllocator::MemoryAllocator(Memory &memory, const MemoryConfig &config)
+      : memory_{
+          [&](size_t size) { memory.resize(size); },
+          [&] { return memory.size(); },
+          [&](WasmPointer ptr, uint32_t v) {
+            memcpy(memory.view(ptr, sizeof(v)).value().data(), &v, sizeof(v));
+          },
+          [&](WasmPointer ptr) { return memory.load32u(ptr); },
+      },
         offset_{roundUpAlign(config.heap_base)},
         max_memory_pages_num_{config.limits.max_memory_pages_num.value_or(
             std::numeric_limits<uint32_t>::max())},

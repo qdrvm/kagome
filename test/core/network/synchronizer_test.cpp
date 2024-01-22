@@ -99,7 +99,8 @@ class SynchronizerTest
                                                     hasher,
                                                     chain_sub_engine,
                                                     nullptr,
-                                                    grandpa_environment);
+                                                    grandpa_environment,
+                                                    WeakIoContext{});
   }
 
   application::AppConfigurationMock app_config;
