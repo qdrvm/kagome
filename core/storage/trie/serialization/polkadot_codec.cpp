@@ -101,16 +101,7 @@ namespace kagome::storage::trie {
   }
 
   common::Hash256 PolkadotCodec::hash256(const common::BufferView &buf) const {
-    common::Hash256 out;
-
-    BOOST_VERIFY(crypto::blake2b(out.data(),
-                                 common::Hash256::size(),
-                                 nullptr,
-                                 0,
-                                 buf.data(),
-                                 buf.size())
-                 == EXIT_SUCCESS);
-    return out;
+    return hash_func_(buf);
   }
 
   outcome::result<common::Buffer> PolkadotCodec::encodeNode(

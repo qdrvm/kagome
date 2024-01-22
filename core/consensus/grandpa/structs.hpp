@@ -143,12 +143,6 @@ namespace kagome::consensus::grandpa {
     std::vector<primitives::BlockHeader> votes_ancestries{};
   };
 
-  /// A commit message which is an aggregate of precommits.
-  struct Commit {
-    primitives::BlockInfo vote;
-    GrandpaJustification justification;
-  };
-
   // either prevote, precommit or primary propose
   struct VoteMessage {
     SCALE_TIE(3);

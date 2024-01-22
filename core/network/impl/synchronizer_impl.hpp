@@ -49,6 +49,7 @@ namespace kagome::storage::trie {
 
 namespace kagome::network {
   class IBeefy;
+  class PeerManager;
 
   class SynchronizerImpl
       : public Synchronizer,
@@ -97,11 +98,13 @@ namespace kagome::network {
         std::shared_ptr<storage::trie::TrieStorage> storage,
         std::shared_ptr<storage::trie_pruner::TriePruner> trie_pruner,
         std::shared_ptr<network::Router> router,
+        std::shared_ptr<PeerManager> peer_manager,
         std::shared_ptr<libp2p::basic::Scheduler> scheduler,
         std::shared_ptr<crypto::Hasher> hasher,
         primitives::events::ChainSubscriptionEnginePtr chain_sub_engine,
         std::shared_ptr<IBeefy> beefy,
-        std::shared_ptr<consensus::grandpa::Environment> grandpa_environment);
+        std::shared_ptr<consensus::grandpa::Environment> grandpa_environment,
+        WeakIoContext main_thread);
 
     /** @see AppStateManager::takeControl */
     void stop();
@@ -123,6 +126,12 @@ namespace kagome::network {
     bool syncByBlockHeader(const primitives::BlockHeader &header,
                            const libp2p::peer::PeerId &peer_id,
                            SyncResultHandler &&handler) override;
+
+    bool fetchJustification(const primitives::BlockInfo &block,
+                            CbResultVoid cb) override;
+
+    bool fetchJustificationRange(primitives::BlockNumber min,
+                                 FetchJustificationRangeCb cb) override;
 
     /// Enqueues loading and applying state on block {@param block}
     /// from peer {@param peer_id}.
@@ -172,6 +181,10 @@ namespace kagome::network {
     /// Tries to request another portion of block
     void askNextPortionOfBlocks();
 
+    void post_block_addition(outcome::result<void> &&block_addition_result,
+                             Synchronizer::SyncResultHandler &&handler,
+                             const primitives::BlockHash &hash);
+
     /// Pops next block from queue and tries to apply that
     void applyNextBlock();
 
@@ -193,6 +206,14 @@ namespace kagome::network {
     outcome::result<void> syncState(std::unique_lock<std::mutex> &lock,
                                     outcome::result<StateResponse> &&_res);
 
+    void fetch(const libp2p::peer::PeerId &peer,
+               BlocksRequest request,
+               const char *reason,
+               std::function<void(outcome::result<BlocksResponse>)> &&cb);
+
+    std::optional<libp2p::peer::PeerId> chooseJustificationPeer(
+        primitives::BlockNumber block, BlocksRequest::Fingerprint fingerprint);
+
     std::shared_ptr<application::AppStateManager> app_state_manager_;
     std::shared_ptr<blockchain::BlockTree> block_tree_;
     std::shared_ptr<consensus::BlockHeaderAppender> block_appender_;
@@ -201,11 +222,13 @@ namespace kagome::network {
     std::shared_ptr<storage::trie::TrieStorage> storage_;
     std::shared_ptr<storage::trie_pruner::TriePruner> trie_pruner_;
     std::shared_ptr<network::Router> router_;
+    std::shared_ptr<PeerManager> peer_manager_;
     std::shared_ptr<libp2p::basic::Scheduler> scheduler_;
     std::shared_ptr<crypto::Hasher> hasher_;
     std::shared_ptr<IBeefy> beefy_;
     std::shared_ptr<consensus::grandpa::Environment> grandpa_environment_;
     primitives::events::ChainSubscriptionEnginePtr chain_sub_engine_;
+    ThreadHandler main_thread_;
 
     application::SyncMethod sync_method_;
 

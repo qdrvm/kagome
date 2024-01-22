@@ -95,16 +95,27 @@ namespace kagome::crypto {
   outcome::result<bool> EcdsaProviderImpl::verify(
       common::BufferView message,
       const EcdsaSignature &signature,
-      const EcdsaPublicKey &publicKey) const {
-    return verifyPrehashed(hasher_->blake2b_256(message), signature, publicKey);
+      const EcdsaPublicKey &publicKey,
+      bool allow_overflow) const {
+    return verifyPrehashed(
+        hasher_->blake2b_256(message), signature, publicKey, allow_overflow);
   }
 
   outcome::result<bool> EcdsaProviderImpl::verifyPrehashed(
       const EcdsaPrehashedMessage &message,
       const EcdsaSignature &signature,
       const EcdsaPublicKey &publicKey) const {
+    return verifyPrehashed(message, signature, publicKey, false);
+  }
+
+  outcome::result<bool> EcdsaProviderImpl::verifyPrehashed(
+      const EcdsaPrehashedMessage &message,
+      const EcdsaSignature &signature,
+      const EcdsaPublicKey &publicKey,
+      bool allow_overflow) const {
     OUTCOME_TRY(recovered,
-                recovery_.recoverPublickeyCompressed(signature, message));
+                recovery_.recoverPublickeyCompressed(
+                    signature, message, allow_overflow));
     return recovered == publicKey;
   }
 }  // namespace kagome::crypto

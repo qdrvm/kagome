@@ -25,7 +25,6 @@ namespace kagome::telemetry {
         callback_{std::move(callback)},
         message_pool_{std::move(message_pool)},
         scheduler_{std::move(scheduler)},
-        ssl_ctx_{boost::asio::ssl::context::sslv23},
         resolver_{boost::asio::make_strand(*io_context_)} {
     BOOST_ASSERT(io_context_);
     BOOST_ASSERT(message_pool_);
@@ -86,8 +85,11 @@ namespace kagome::telemetry {
     path_ = path.empty() ? "/" : path;
 
     if (secure_) {
+      if (not ssl_ctx_) {
+        ssl_ctx_.emplace(endpoint_.uri().Host);
+      }
       ws_ = std::make_unique<WsSslStream>(
-          boost::asio::make_strand(*io_context_), ssl_ctx_);
+          boost::asio::make_strand(*io_context_), *ssl_ctx_);
     } else {
       ws_ =
           std::make_unique<WsTcpStream>(boost::asio::make_strand(*io_context_));

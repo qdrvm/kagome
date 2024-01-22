@@ -49,7 +49,7 @@ namespace kagome::consensus::babe {
     auto &config = *config_res.value();
 
     keypair_ = session_keys_->getBabeKeyPair(config.authorities);
-    if(!keypair_) {
+    if (!keypair_) {
       return false;
     }
 
@@ -129,6 +129,7 @@ namespace kagome::consensus::babe {
         .slot_type = SlotType::SecondaryPlain,
         .authority_index = keypair_->second,
         .keypair = keypair_->first,
+        .vrf_output = {},
     };
   }
 }  // namespace kagome::consensus::babe

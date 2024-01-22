@@ -84,7 +84,7 @@ namespace kagome::metrics {
                                              std::placeholders::_1,
                                              std::placeholders::_2));
 
-    auto on_accept = [wp = weak_from_this()](boost::system::error_code ec) {
+    auto on_accept = [wp{weak_from_this()}](boost::system::error_code ec) {
       if (auto self = wp.lock()) {
         if (not ec) {
           self->new_session_->start();

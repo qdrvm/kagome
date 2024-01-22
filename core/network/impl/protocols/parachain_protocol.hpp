@@ -74,7 +74,10 @@ namespace kagome::network {
       BOOST_ASSERT(stream->remotePeerId().has_value());
       auto on_handshake = [](std::shared_ptr<Self> self,
                              std::shared_ptr<Stream> stream,
-                             Roles) { return true; };
+                             Roles) {
+        self->onHandshake(stream->remotePeerId().value());
+        return true;
+      };
       auto on_message = [peer_id = stream->remotePeerId().value()](
                             std::shared_ptr<Self> self,
                             WireMessage<MessageType> message) {

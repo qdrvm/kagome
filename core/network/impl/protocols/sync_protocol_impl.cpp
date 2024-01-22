@@ -164,7 +164,7 @@ namespace kagome::network {
     base_.host().newStream(
         peer_info.id,
         base_.protocolIds(),
-        [wp = weak_from_this(), peer_id = peer_info.id, cb = std::move(cb)](
+        [wp{weak_from_this()}, peer_id = peer_info.id, cb = std::move(cb)](
             auto &&stream_res) mutable {
           network::streamReadBuffer(stream_res);
           auto self = wp.lock();
@@ -202,7 +202,7 @@ namespace kagome::network {
              protocolName(),
              stream->remotePeerId().value());
 
-    read_writer->read<BlocksRequest>([stream, wp = weak_from_this()](
+    read_writer->read<BlocksRequest>([stream, wp{weak_from_this()}](
                                          auto &&block_request_res) mutable {
       auto self = wp.lock();
       if (not self) {
@@ -312,7 +312,7 @@ namespace kagome::network {
     read_writer->write(
         block_response,
         [stream = std::move(stream),
-         wp = weak_from_this()](auto &&write_res) mutable {
+         wp{weak_from_this()}](auto &&write_res) mutable {
           auto self = wp.lock();
           if (not self) {
             stream->reset();
@@ -347,7 +347,7 @@ namespace kagome::network {
 
     read_writer->write(
         block_request,
-        [stream, wp = weak_from_this(), cb = std::move(cb)](
+        [stream, wp{weak_from_this()}, cb = std::move(cb)](
             auto &&write_res) mutable {
           auto self = wp.lock();
           if (not self) {
@@ -389,7 +389,7 @@ namespace kagome::network {
              stream->remotePeerId().value());
 
     read_writer->read<BlocksResponse>([stream,
-                                       wp = weak_from_this(),
+                                       wp{weak_from_this()},
                                        response_handler =
                                            std::move(response_handler)](
                                           auto &&block_response_res) mutable {
@@ -470,7 +470,7 @@ namespace kagome::network {
 
     newOutgoingStream(
         {peer_id, addresses_res.value()},
-        [wp = weak_from_this(),
+        [wp{weak_from_this()},
          response_handler = std::move(response_handler),
          block_request = std::move(block_request)](auto &&stream_res) mutable {
           if (not stream_res.has_value()) {
