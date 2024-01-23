@@ -20,6 +20,8 @@ set(CMAKE_TOOLCHAIN_FILE
     "${CMAKE_SOURCE_DIR}/cmake/toolchain/cxx20.cmake"
     CACHE FILEPATH "Default toolchain")
 
+set(HUNTER_CONFIGURATION_TYPES ${CMAKE_BUILD_TYPE})
+
 include("cmake/Hunter/init.cmake")
 
 add_compile_options(-gdwarf-4)
