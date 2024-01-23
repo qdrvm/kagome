@@ -93,7 +93,8 @@ namespace kagome::network {
       std::shared_ptr<crypto::Hasher> hasher,
       primitives::events::ChainSubscriptionEnginePtr chain_sub_engine,
       std::shared_ptr<IBeefy> beefy,
-      std::shared_ptr<consensus::grandpa::Environment> grandpa_environment)
+      std::shared_ptr<consensus::grandpa::Environment> grandpa_environment,
+      WeakIoContext main_thread)
       : app_state_manager_(std::move(app_state_manager)),
         block_tree_(std::move(block_tree)),
         block_appender_(std::move(block_appender)),
@@ -107,7 +108,8 @@ namespace kagome::network {
         hasher_(std::move(hasher)),
         beefy_{std::move(beefy)},
         grandpa_environment_{std::move(grandpa_environment)},
-        chain_sub_engine_(std::move(chain_sub_engine)) {
+        chain_sub_engine_(std::move(chain_sub_engine)),
+        main_thread_{std::move(main_thread)} {
     BOOST_ASSERT(app_state_manager_);
     BOOST_ASSERT(block_tree_);
     BOOST_ASSERT(block_executor_);
@@ -130,6 +132,7 @@ namespace kagome::network {
     metric_import_queue_length_->set(0);
 
     app_state_manager_->takeControl(*this);
+    main_thread_.start();
   }
 
   /** @see AppStateManager::takeControl */
@@ -829,6 +832,21 @@ namespace kagome::network {
     return outcome::success();
   }
 
+  void SynchronizerImpl::post_block_addition(
+      outcome::result<void> &&block_addition_result,
+      Synchronizer::SyncResultHandler &&handler,
+      const primitives::BlockHash &hash) {
+    REINVOKE(main_thread_,
+             post_block_addition,
+             std::move(block_addition_result),
+             std::move(handler),
+             hash);
+
+    processBlockAdditionResult(
+        std::move(block_addition_result), hash, std::move(handler));
+    postApplyBlock(hash);
+  }
+
   void SynchronizerImpl::applyNextBlock() {
     if (generations_.empty()) {
       SL_TRACE(log_, "No block for applying");
@@ -902,9 +920,8 @@ namespace kagome::network {
                 auto &&block_addition_result) mutable {
               cleanup.reset();
               if (auto self = wself.lock()) {
-                self->processBlockAdditionResult(
-                    std::move(block_addition_result), hash, std::move(handler));
-                self->postApplyBlock(hash);
+                self->post_block_addition(
+                    std::move(block_addition_result), std::move(handler), hash);
               }
             };
 
