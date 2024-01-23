@@ -18,6 +18,7 @@
 #include "application/app_state_manager.hpp"
 #include "consensus/timeline/block_executor.hpp"
 #include "consensus/timeline/block_header_appender.hpp"
+#include "injector/lazy.hpp"
 #include "metrics/metrics.hpp"
 #include "network/impl/state_sync_request_flow.hpp"
 #include "network/router.hpp"
@@ -103,6 +104,7 @@ namespace kagome::network {
         std::shared_ptr<libp2p::basic::Scheduler> scheduler,
         std::shared_ptr<crypto::Hasher> hasher,
         primitives::events::ChainSubscriptionEnginePtr chain_sub_engine,
+        LazySPtr<consensus::Timeline> timeline,
         std::shared_ptr<IBeefy> beefy,
         std::shared_ptr<consensus::grandpa::Environment> grandpa_environment,
         WeakIoContext main_thread);
@@ -226,6 +228,7 @@ namespace kagome::network {
     std::shared_ptr<PeerManager> peer_manager_;
     std::shared_ptr<libp2p::basic::Scheduler> scheduler_;
     std::shared_ptr<crypto::Hasher> hasher_;
+    LazySPtr<consensus::Timeline> timeline_;
     std::shared_ptr<IBeefy> beefy_;
     std::shared_ptr<consensus::grandpa::Environment> grandpa_environment_;
     primitives::events::ChainSubscriptionEnginePtr chain_sub_engine_;
@@ -281,6 +284,8 @@ namespace kagome::network {
     std::atomic_bool asking_blocks_portion_in_progress_ = false;
     std::set<libp2p::peer::PeerId> busy_peers_;
     std::unordered_set<primitives::BlockInfo> load_blocks_;
+    std::pair<primitives::BlockNumber, std::chrono::milliseconds>
+        load_blocks_max_{};
 
     std::map<std::tuple<libp2p::peer::PeerId, BlocksRequest::Fingerprint>,
              const char *>

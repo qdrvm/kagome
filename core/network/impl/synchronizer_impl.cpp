@@ -15,6 +15,7 @@
 #include "consensus/babe/has_babe_consensus_digest.hpp"
 #include "consensus/grandpa/environment.hpp"
 #include "consensus/grandpa/has_authority_set_change.hpp"
+#include "consensus/timeline/timeline.hpp"
 #include "network/beefy/i_beefy.hpp"
 #include "network/peer_manager.hpp"
 #include "network/types/block_attributes.hpp"
@@ -57,6 +58,7 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::network, SynchronizerImpl::Error, e) {
 namespace {
   constexpr const char *kImportQueueLength =
       "kagome_import_queue_blocks_submitted";
+  constexpr auto kLoadBlocksMaxExpire = std::chrono::seconds{5};
 
   kagome::network::BlockAttributes attributesForSync(
       kagome::application::SyncMethod method) {
@@ -92,6 +94,7 @@ namespace kagome::network {
       std::shared_ptr<libp2p::basic::Scheduler> scheduler,
       std::shared_ptr<crypto::Hasher> hasher,
       primitives::events::ChainSubscriptionEnginePtr chain_sub_engine,
+      LazySPtr<consensus::Timeline> timeline,
       std::shared_ptr<IBeefy> beefy,
       std::shared_ptr<consensus::grandpa::Environment> grandpa_environment,
       WeakIoContext main_thread)
@@ -106,6 +109,7 @@ namespace kagome::network {
         peer_manager_(std::move(peer_manager)),
         scheduler_(std::move(scheduler)),
         hasher_(std::move(hasher)),
+        timeline_{std::move(timeline)},
         beefy_{std::move(beefy)},
         grandpa_environment_{std::move(grandpa_environment)},
         chain_sub_engine_(std::move(chain_sub_engine)),
@@ -516,17 +520,35 @@ namespace kagome::network {
   void SynchronizerImpl::loadBlocks(const libp2p::peer::PeerId &peer_id,
                                     primitives::BlockInfo from,
                                     SyncResultHandler &&handler) {
-    if (not load_blocks_.emplace(from).second) {
+    network::BlocksRequest request{attributesForSync(sync_method_),
+                                   from.hash,
+                                   network::Direction::ASCENDING,
+                                   std::nullopt};
+
+    if (recent_requests_.contains({peer_id, request.fingerprint()})) {
+      if (handler) {
+        handler(Error::DUPLICATE_REQUEST);
+      }
+      return;
+    }
+
+    auto now = scheduler_->now();
+    if (from.number < load_blocks_max_.first
+        and now - load_blocks_max_.second < kLoadBlocksMaxExpire
+        and not timeline_.get()->wasSynchronized()) {
       if (handler) {
         handler(Error::ALREADY_IN_QUEUE);
       }
       return;
     }
 
-    network::BlocksRequest request{attributesForSync(sync_method_),
-                                   from.hash,
-                                   network::Direction::ASCENDING,
-                                   std::nullopt};
+    if (not load_blocks_.emplace(from).second) {
+      if (handler) {
+        handler(Error::ALREADY_IN_QUEUE);
+      }
+      return;
+    }
+    load_blocks_max_ = {from.number, now};
 
     auto response_handler = [wp{weak_from_this()},
                              from,
