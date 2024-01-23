@@ -197,7 +197,7 @@ class InspectBlockCommand : public Command {
     if (hash_opt_res.has_error()) {
       throwError("Internal error: {}}", hash_opt_res.error());
     }
-    if (hash_opt_res.value().has_value()) {
+    if (!hash_opt_res.value().has_value()) {
       throwError("Block header not found for '{}'", args[1]);
     }
     const auto &hash = hash_opt_res.value().value();

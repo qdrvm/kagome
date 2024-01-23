@@ -15,16 +15,16 @@ fi
 
 if [[ -z "${CI}" ]]; then
 
-if [ "$BUILD_TYPE" = "Release" ]; then
-  BUILD_THREADS=1
-elif [ "$BUILD_TYPE" = "RelWithDebInfo" ]; then
-  BUILD_THREADS=2
-else
-  BUILD_THREADS="${BUILD_THREADS:-$(( $(nproc 2>/dev/null || sysctl -n hw.ncpu) / 2 + 1 ))}"
-fi
+  if [ "$BUILD_TYPE" = "Release" ]; then
+    BUILD_THREADS=1
+  elif [ "$BUILD_TYPE" = "RelWithDebInfo" ]; then
+    BUILD_THREADS=2
+  else
+    BUILD_THREADS="${BUILD_THREADS:-$(($(nproc 2>/dev/null || sysctl -n hw.ncpu) / 2 + 1))}"
+  fi
 
 else # CI
-  BUILD_THREADS="${BUILD_THREADS:-$(( $(nproc 2>/dev/null || sysctl -n hw.ncpu) ))}"
+  BUILD_THREADS="${BUILD_THREADS:-$(($(nproc 2>/dev/null || sysctl -n hw.ncpu)))}"
   # Configure CI git security
   git config --global --add safe.directory /__w/kagome/kagome
 fi
@@ -37,5 +37,5 @@ git submodule update --init
 
 cd "$(dirname $0)/../../.."
 
-cmake . -B"${BUILD_DIR}" -G 'Unix Makefiles' -DCMAKE_BUILD_TYPE="${BUILD_TYPE}" -DBACKWARD=OFF
+cmake . -B"${BUILD_DIR}" -G 'Unix Makefiles' -DCMAKE_BUILD_TYPE="${BUILD_TYPE}" -DHUNTER_CONFIGURATION_TYPES="${BUILD_TYPE}" -DBACKWARD=OFF
 cmake --build "${BUILD_DIR}" --target kagome -- -j${BUILD_THREADS}
