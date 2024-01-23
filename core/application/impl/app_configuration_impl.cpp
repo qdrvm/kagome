@@ -258,8 +258,9 @@ namespace {
 
 namespace kagome::application {
 
-  AppConfigurationImpl::AppConfigurationImpl(log::Logger logger)
-      : logger_(std::move(logger)),
+  AppConfigurationImpl::AppConfigurationImpl()
+      : logger_(kagome::log::createLogger("Configuration",
+                                          kagome::log::defaultGroupName)),
         roles_(def_roles),
         save_node_key_(false),
         is_telemetry_enabled_(true),
@@ -288,9 +289,7 @@ namespace kagome::application {
         enable_offchain_indexing_{def_enable_offchain_indexing},
         recovery_state_{def_block_to_recover},
         db_cache_size_{def_db_cache_size},
-        state_pruning_depth_{} {
-    SL_INFO(logger_, "Kagome started. Version: {} ", buildVersion());
-  }
+        state_pruning_depth_{} {}
 
   fs::path AppConfigurationImpl::chainSpecPath() const {
     return chain_spec_path_.native();
