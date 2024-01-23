@@ -85,8 +85,7 @@ class Command {
   template <typename... Ts>
   [[noreturn]] void throwError(const char *fmt, const Ts &...ts) const {
     throw CommandExecutionError(
-        name,
-        ::fmt::vformat(fmt, fmt::make_format_args(ts...)));
+        name, ::fmt::vformat(fmt, fmt::make_format_args(ts...)));
   }
 
   template <typename T>
@@ -552,9 +551,10 @@ int storage_explorer_main(int argc, const char **argv) {
 
   kagome::log::setLevelOfGroup("*", kagome::log::Level::WARN);
 
-  auto logger = kagome::log::createLogger("AppConfiguration", "main");
+  auto logger =
+      kagome::log::createLogger("Configuration", kagome::log::defaultGroupName);
   auto configuration =
-      std::make_shared<kagome::application::AppConfigurationImpl>(logger);
+      std::make_shared<kagome::application::AppConfigurationImpl>();
 
   int kagome_args_start = -1;
   for (size_t i = 1; i < args.size(); i++) {
@@ -573,6 +573,10 @@ int storage_explorer_main(int argc, const char **argv) {
     std::cerr << "Failed to initialize kagome!\n";
     return -1;
   }
+
+  SL_INFO(logger,
+          "Kagome storage explorer started. Version: {} ",
+          configuration->nodeVersion());
 
   kagome::injector::KagomeNodeInjector injector{configuration};
   auto block_storage = injector.injectBlockStorage();
@@ -603,6 +607,9 @@ int storage_explorer_main(int argc, const char **argv) {
       block_storage, trie_storage, authority_manager, hasher));
 
   parser.invoke(args.first(kagome_args_start));
+
+  SL_INFO(logger, "Kagome storage explorer stopped");
+  logger->flush();
 
   return 0;
 }

@@ -309,9 +309,10 @@ TEST_F(AppStateManagerTest, Run_CallSequence) {
 
   app_state_manager->atLaunch([] {
     std::thread terminator([] { raise(SIGQUIT); });
-    terminator.detach();
+    terminator.join();
     return true;
   });
 
-  EXPECT_NO_THROW(app_state_manager->run());
+  std::thread main([&] { EXPECT_NO_THROW(app_state_manager->run()); });
+  main.join();
 }
