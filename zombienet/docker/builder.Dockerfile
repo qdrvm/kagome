@@ -48,17 +48,19 @@ COPY --from=zombie-builder-polkadot-sdk-bin /home/nonroot/polkadot-sdk/target/te
 COPY --from=zombie-builder-polkadot-sdk-bin /home/nonroot/polkadot-sdk/target/testnet/undying-collator /home/nonroot/bin
 COPY --from=polkadot /usr/bin/polkadot /home/nonroot/bin
 COPY --from=polkadot-parachain /usr/local/bin/polkadot-parachain /home/nonroot/bin
+COPY polkadot-sdk-versions.txt /home/nonroot/polkadot-sdk-versions.txt
+COPY zombienet-versions.txt /home/nonroot/zombienet-versions.txt
 ENV PATH=/home/nonroot/bin:$PATH
 
 RUN apt-get update && \
-    apt-get install -y --no-install-recommends software-properties-common curl gpg gpg-agent wget && \
+    apt-get install -y --no-install-recommends software-properties-common curl gpg gpg-agent wget nano && \
     curl -fsSL https://download.docker.com/linux/debian/gpg | gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg && \
     echo \
       "deb http://deb.debian.org/debian/ experimental main" | tee -a /etc/apt/sources.list.d/docker.list > /dev/null && \
     wget -O - https://apt.llvm.org/llvm-snapshot.gpg.key | apt-key add - && \  
     add-apt-repository -y "deb http://deb.debian.org/debian/ testing main" && \
     apt-get update && \
-    apt-get install --no-install-recommends -y libstdc++6 libc6 libnsl2 nano && \
+    apt-get install --no-install-recommends -y libstdc++6 libc6 libnsl2 && \
     rm -rf /var/lib/apt/lists/*
 
 ARG ZOMBIENET_RELEASE
