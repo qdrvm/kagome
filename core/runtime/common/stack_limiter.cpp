@@ -386,7 +386,8 @@ namespace kagome::runtime {
         case ExprType::BrTable: {
           auto *br = dynamic_cast<const wabt::BrTableExpr *>(&expr);
           assert(br->default_target.is_index());
-          OUTCOME_TRY(default_frame, stack.get_frame(br->default_target.index()));
+          OUTCOME_TRY(default_frame,
+                      stack.get_frame(br->default_target.index()));
           uint32_t target_arity = default_frame.get().branch_value_num;
           for (auto &v : br->targets) {
             assert(v.is_index());
@@ -764,7 +765,7 @@ namespace kagome::runtime {
   }
 
   outcome::result<common::Buffer, StackLimiterError> instrumentWithStackLimiter(
-      common::BufferView uncompressed_wasm) {
+      common::BufferView uncompressed_wasm, const size_t stack_limit) {
     auto logger = log::createLogger("StackLimiter", "runtime");
     KAGOME_PROFILE_START_L(logger, read_ir);
     wabt::Errors errors;
@@ -810,8 +811,6 @@ namespace kagome::runtime {
         &static_cast<wabt::GlobalModuleField &>(module.fields.back()).global);
     wabt::Index stack_height_index = module.globals.size() - 1;
     wabt::Var stack_height_var{stack_height_index, wabt::Location{}};
-
-    const uint32_t stack_limit = 256;
 
     KAGOME_PROFILE_START_L(logger, instrument_wasm);
     for (size_t i = 0; i < module.funcs.size(); i++) {

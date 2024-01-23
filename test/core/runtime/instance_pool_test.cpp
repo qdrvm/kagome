@@ -58,8 +58,8 @@ TEST(InstancePoolTest, HeavilyMultithreadedCompilation) {
   std::vector<std::thread> threads;
   for (int i = 0; i < THREAD_NUM; i++) {
     threads.emplace_back(std::thread([&pool, &code, i]() {
-      ASSERT_OUTCOME_SUCCESS_TRY(
-          pool.instantiateFromCode(make_code_hash(i % POOL_SIZE), code));
+      ASSERT_OUTCOME_SUCCESS_TRY(pool.instantiateFromCode(
+          make_code_hash(i % POOL_SIZE), code, RuntimeInstancesPool::Config{}));
     }));
   }
 
@@ -72,8 +72,8 @@ TEST(InstancePoolTest, HeavilyMultithreadedCompilation) {
 
   // check that all POOL_SIZE instances are in cache
   for (int i = 0; i < POOL_SIZE; i++) {
-    ASSERT_OUTCOME_SUCCESS_TRY(
-        pool.instantiateFromCode(make_code_hash(i), code.view()));
+    ASSERT_OUTCOME_SUCCESS_TRY(pool.instantiateFromCode(
+        make_code_hash(i), code.view(), RuntimeInstancesPool::Config{}));
   }
   ASSERT_EQ(times_make_called.load(), POOL_SIZE);
 }

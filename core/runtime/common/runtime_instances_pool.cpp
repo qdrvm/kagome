@@ -7,6 +7,7 @@
 #include "runtime/common/runtime_instances_pool.hpp"
 
 #include "common/monadic_utils.hpp"
+#include "runtime/common/stack_limiter.hpp"
 #include "runtime/common/uncompress_code_if_needed.hpp"
 #include "runtime/instance_environment.hpp"
 #include "runtime/module.hpp"
@@ -75,13 +76,14 @@ namespace kagome::runtime {
 
   outcome::result<std::shared_ptr<ModuleInstance>>
   RuntimeInstancesPool::instantiateFromCode(const CodeHash &code_hash,
-                                            common::BufferView code_zstd) {
+                                            common::BufferView code_zstd,
+                                            const Config &config) {
     std::unique_lock lock{pools_mtx_};
     auto pool_opt = pools_.get(code_hash);
 
     if (!pool_opt) {
       lock.unlock();
-      OUTCOME_TRY(module, tryCompileModule(code_hash, code_zstd));
+      OUTCOME_TRY(module, tryCompileModule(code_hash, code_zstd, config));
       lock.lock();
       pool_opt = pools_.get(code_hash);
       if (!pool_opt) {
@@ -96,7 +98,8 @@ namespace kagome::runtime {
 
   RuntimeInstancesPool::CompilationResult
   RuntimeInstancesPool::tryCompileModule(const CodeHash &code_hash,
-                                         common::BufferView code_zstd) {
+                                         common::BufferView code_zstd,
+                                         const Config &config) {
     std::unique_lock l{compiling_modules_mtx_};
     if (auto iter = compiling_modules_.find(code_hash);
         iter != compiling_modules_.end()) {
@@ -116,9 +119,16 @@ namespace kagome::runtime {
     if (!uncompressCodeIfNeeded(code_zstd, code)) {
       res = CompilationError{"Failed to uncompress code"};
     } else {
-      res = common::map_result(module_factory_->make(code), [](auto &&module) {
-        return std::shared_ptr<const Module>(module);
-      });
+      auto r = instrumentWithStackLimiter(code, config.max_stack_depth);
+      if (!r) {
+        res = CompilationError{
+            fmt::format("Failed to inject stack limiter: {}", r.error().msg)};
+      } else {
+        res = common::map_result(module_factory_->make(r.value()),
+                                 [](auto &&module) {
+                                   return std::shared_ptr<const Module>(module);
+                                 });
+      }
     }
     BOOST_ASSERT(res);
 
@@ -130,7 +140,7 @@ namespace kagome::runtime {
 
   outcome::result<std::shared_ptr<ModuleInstance>>
   RuntimeInstancesPool::instantiateFromState(
-      const RuntimeInstancesPool::TrieHash &state) {
+      const RuntimeInstancesPool::TrieHash &state, const Config &config) {
     std::unique_lock lock{pools_mtx_};
     auto entry = pools_.get(state);
     BOOST_ASSERT(entry);

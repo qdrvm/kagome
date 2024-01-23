@@ -259,7 +259,10 @@ namespace kagome::parachain {
       const ParachainRuntime &code_zstd,
       const ValidationParams &params) const {
     OUTCOME_TRY(instance,
-                runtime_cache_->instantiateFromCode(code_hash, code_zstd));
+                runtime_cache_->instantiateFromCode(
+                    code_hash,
+                    code_zstd,
+                    runtime::RuntimeInstancesPool::Config{max_stack_depth}));
 
     runtime::RuntimeContext::ContextParams executor_params{};
     auto &parent_hash = receipt.descriptor.relay_parent;
@@ -271,8 +274,7 @@ namespace kagome::parachain {
     OUTCOME_TRY(ctx,
                 ctx_factory_->ephemeral(
                     instance, storage::trie::kEmptyRootHash, executor_params));
-    return executor_->call<ValidationResult>(
-        ctx, "validate_block", params);
+    return executor_->call<ValidationResult>(ctx, "validate_block", params);
   }
 
   outcome::result<Pvf::CandidateCommitments> PvfImpl::fromOutputs(
