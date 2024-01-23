@@ -128,8 +128,7 @@ class AppConfigurationTest : public testing::Test {
     spawn_file(chain_path.native(), "");
     ASSERT_TRUE(filesystem::create_directory(base_path));
 
-    auto logger = kagome::log::createLogger("AppConfigTest", "testing");
-    app_config_ = std::make_shared<AppConfigurationImpl>(logger);
+    app_config_ = std::make_shared<AppConfigurationImpl>();
   }
 
   void TearDown() override {
