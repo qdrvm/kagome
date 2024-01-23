@@ -26,16 +26,24 @@ namespace kagome::runtime {
       : public std::enable_shared_from_this<RuntimeInstancesPool> {
     static constexpr size_t DEFAULT_MODULES_CACHE_SIZE = 2;
 
+    // https://github.com/paritytech/polkadot-sdk/blob/e16ef0861f576dd260487d78b57949b18795ed77/polkadot/primitives/src/v6/executor_params.rs#L32
+    static constexpr size_t DEFAULT_STACK_MAX = 65536;
+
    public:
     using TrieHash = storage::trie::RootHash;
     using CodeHash = storage::trie::RootHash;
 
+    struct Config {
+      size_t max_stack_depth = DEFAULT_STACK_MAX;
+    };
+
     RuntimeInstancesPool(std::shared_ptr<ModuleFactory> module_factory,
                          size_t capacity = DEFAULT_MODULES_CACHE_SIZE);
 
-    outcome::result<std::shared_ptr<ModuleInstance>>
-    instantiateFromCode(const CodeHash &code_hash,
-                        common::BufferView code_zstd);
+    outcome::result<std::shared_ptr<ModuleInstance>> instantiateFromCode(
+        const CodeHash &code_hash,
+        common::BufferView code_zstd,
+        const Config &config);
 
     /**
      * @brief Instantiate new or reuse existing ModuleInstance for the provided
@@ -47,7 +55,7 @@ namespace kagome::runtime {
      * otherwise.
      */
     outcome::result<std::shared_ptr<ModuleInstance>> instantiateFromState(
-        const TrieHash &state);
+        const TrieHash &state, const Config &config);
     /**
      * @brief Releases the module instance (returns it to the pool)
      *
@@ -88,7 +96,8 @@ namespace kagome::runtime {
     using CompilationResult =
         outcome::result<std::shared_ptr<const Module>, CompilationError>;
     CompilationResult tryCompileModule(const CodeHash &code_hash,
-                                       common::BufferView code_zstd);
+                                       common::BufferView code_zstd,
+                                       const Config &config);
 
     std::shared_ptr<ModuleFactory> module_factory_;
 

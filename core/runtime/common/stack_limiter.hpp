@@ -17,7 +17,12 @@ namespace kagome::runtime {
     std::string msg;
   };
 
+  inline boost::exception_ptr make_exception_ptr(const StackLimiterError &e) {
+    return std::make_exception_ptr(std::runtime_error{e.msg});
+  }
+
   [[nodiscard]] outcome::result<common::Buffer, StackLimiterError>
-  instrumentWithStackLimiter(common::BufferView uncompressed_wasm);
+  instrumentWithStackLimiter(common::BufferView uncompressed_wasm,
+                             size_t stack_limit);
 
 }  // namespace kagome::runtime
