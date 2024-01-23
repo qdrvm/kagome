@@ -464,6 +464,7 @@ namespace {
           return std::static_pointer_cast<CommonType>(
               injector.template create<sptr<CompiledType>>());
         }
+        BOOST_ASSERT(!"RuntimeInterpreter unset although WasmExecutionMethod is Interpret. AppConfiguration must not allow this.");
       case RuntimeExecutionMethod::Compile:
         return std::static_pointer_cast<CommonType>(
             injector.template create<sptr<CompiledType>>());
