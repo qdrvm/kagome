@@ -47,26 +47,35 @@ def get_version(repo_url):
   release_tags = select_release_tags(all_tags)
   print((f"Filtered release tags: {release_tags}"))
   last_tag = get_last_tag(release_tags)
-  print (f"Last Tag: {last_tag}")
+  print (f"Latest release: {last_tag}")
 
   write_file(repo_short_name, last_tag)
 
 def help():
   print("""
     This script: 
-      - takes a tag list, 
-      - parses tags and finds the latest release tag with semantic version (polkadot-v0.0.0)
-      - writes latest tag to files (short, long, with environment variable)
+      - retrieves tags from a remote Git repository,
+      - filters and sorts these tags to identify the latest release tag based on semantic versioning (e.g., polkadot-v0.0.0),
+      - writes detailed version information to a file.
+    
     Usage:
-      python version.py https://github.com/paritytech/polkadot.git
+      python version.py <repository_url>
+      - <repository_url>: URL of the Git repository to process (e.g., https://github.com/paritytech/polkadot.git).
+    
     Result:
-      [repo]-version.txt with [REPO]_RELEASE=[long-version] content
-      [repo]-polkadot-version.txt with [long-version] content
-      [repo]-short-version.txt with [short-version] content
+      The script generates a file named [repo_short_name]-versions.txt containing key-value pairs of version information:
+        - 'version': the latest version tag (e.g., polkadot-v0.1.6),
+        - 'short_version': the short version string (e.g., v0.1.6),
+        - 'numeric_version': the numeric part of the version (e.g., 0.1.6),
+        - 'polkadot_format_version': the complete version tag if it includes 'polkadot-' prefix, otherwise 'None'.
+    
     Example:
-      polkadot-sdk-version.txt file with POLKADOT_SDK_RELEASE=polkadot-v0.1.6
-      polkadot-polkadot-version.txt with polkadot-v0.1.6 content
-      polkadot-short-version.txt with v0.1.6 content
+      For a repository URL https://github.com/paritytech/polkadot.git,
+      the script will generate a file named 'polkadot-versions.txt' with content like:
+        version: polkadot-v0.1.6
+        short_version: v0.1.6
+        numeric_version: 0.1.6
+        polkadot_format_version: polkadot-v0.1.6
     """)
 
 def main():

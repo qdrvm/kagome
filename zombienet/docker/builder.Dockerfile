@@ -1,9 +1,7 @@
-# Polkadot docker image to fetch
 ARG POLKADOT_RELEASE_GLOBAL
 ARG POLKADOT_RELEASE_GLOBAL_NUMERIC
 ARG ZOMBIENET_RELEASE
 
-# Base image with all dependencies
 FROM node:18-bullseye-slim as zombie-builder
 USER root
 
@@ -23,13 +21,11 @@ RUN groupadd --gid 10001 nonroot && \
              --uid 10000 nonroot
 WORKDIR /home/nonroot/
 
-# Image with repository
 FROM zombie-builder AS zombie-builder-polkadot-sdk
 ARG POLKADOT_SDK_RELEASE
 WORKDIR /home/nonroot/
 RUN git clone --depth 1 --branch $POLKADOT_SDK_RELEASE https://github.com/paritytech/polkadot-sdk.git
 
-# Image with test-parachain-adder-collator binary
 FROM zombie-builder-polkadot-sdk AS zombie-builder-polkadot-sdk-bin
 WORKDIR /home/nonroot/polkadot-sdk/
 RUN cargo update -p test-parachain-adder-collator \
@@ -39,11 +35,7 @@ RUN cargo build --profile testnet -p test-parachain-adder-collator \
     -p polkadot-test-malus \
     -p test-parachain-undying-collator
 RUN find /home/nonroot/polkadot-sdk/target/ -maxdepth 2 -print
-# RUN time cargo build --release -p polkadot-parachain-bin
-# RUN time cargo build --release --bin polkadot
-# test-parachain
 
-# Image with polkadot
 FROM docker.io/parity/polkadot:$POLKADOT_RELEASE_GLOBAL AS polkadot
 
 FROM docker.io/parity/polkadot-parachain:$POLKADOT_RELEASE_GLOBAL_NUMERIC AS polkadot-parachain
