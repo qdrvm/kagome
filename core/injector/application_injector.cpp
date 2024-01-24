@@ -457,14 +457,14 @@ namespace {
         application::AppConfiguration::RuntimeInterpreter;
     switch (method) {
       case RuntimeExecutionMethod::Interpret:
-        if (interpreter == RuntimeInterpreter::Binaryen) {
-          return std::static_pointer_cast<CommonType>(
-              injector.template create<sptr<InterpretedType>>());
-        } else if (interpreter == RuntimeInterpreter::WasmEdge) {
-          return std::static_pointer_cast<CommonType>(
-              injector.template create<sptr<CompiledType>>());
+        switch (interpreter) {
+          case RuntimeInterpreter::Binaryen:
+            return std::static_pointer_cast<CommonType>(
+                injector.template create<sptr<InterpretedType>>());
+          case RuntimeInterpreter::WasmEdge:
+            return std::static_pointer_cast<CommonType>(
+                injector.template create<sptr<CompiledType>>());
         }
-        BOOST_ASSERT(!"RuntimeInterpreter unset although WasmExecutionMethod is Interpret. AppConfiguration must not allow this.");
       case RuntimeExecutionMethod::Compile:
         return std::static_pointer_cast<CommonType>(
             injector.template create<sptr<CompiledType>>());
