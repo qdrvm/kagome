@@ -20,6 +20,10 @@ set(CMAKE_TOOLCHAIN_FILE
     "${CMAKE_SOURCE_DIR}/cmake/toolchain/cxx20.cmake"
     CACHE FILEPATH "Default toolchain")
 
+if (NOT DEFINED CMAKE_BUILD_TYPE)
+  set(CMAKE_BUILD_TYPE "Release")
+endif()
+
 set(HUNTER_CONFIGURATION_TYPES ${CMAKE_BUILD_TYPE})
 
 include("cmake/Hunter/init.cmake")

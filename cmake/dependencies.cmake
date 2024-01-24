@@ -85,7 +85,7 @@ find_package(zstd CONFIG REQUIRED)
 
 if ("${WASM_COMPILER}" STREQUAL "WasmEdge")
   hunter_add_package(WasmEdge)
-  if (${CMAKE_BUILD_TYPE} STREQUAL Debug)
+  if ("${CMAKE_BUILD_TYPE}" STREQUAL "Debug")
     find_library(WASM_EDGE_LIBRARY NAMES libwasmedged.a REQUIRED PATHS "${WASMEDGE_ROOT}")
   else()
     find_library(WASM_EDGE_LIBRARY NAMES libwasmedge.a REQUIRED PATHS "${WASMEDGE_ROOT}")
