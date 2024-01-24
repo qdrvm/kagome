@@ -768,7 +768,10 @@ TEST_F(BlockTreeTest, GetBestChain_TwoChains) {
   auto T_hash = addHeaderToRepository(kFinalizedBlockInfo.hash, 43);
   auto A_hash = addHeaderToRepository(T_hash, 44);
   auto B_hash = addHeaderToRepository(A_hash, 45);
+
+  [[maybe_unused]]  //
   auto C1_hash = addHeaderToRepository(B_hash, 46);
+
   auto C2_hash = addHeaderToRepository(B_hash, 46);
   auto D2_hash = addHeaderToRepository(C2_hash, 47);
 
@@ -811,7 +814,7 @@ TEST_F(BlockTreeTest, Reorganize) {
 
   //   42   43  44  45   46   47
   //
-  //                C2 - D2 - E2
+  //               _C2 - D2 - E2
   //              /
   //   LF - A - B - C1 - D1 - E1
 
@@ -894,6 +897,7 @@ TEST_F(BlockTreeTest, GetBestBlock) {
   auto A_hash = addHeaderToRepository(T_hash, 44);
   auto B_hash = addHeaderToRepository(A_hash, 45);
 
+  [[maybe_unused]]  //
   auto C1_hash = addHeaderToRepository(B_hash, 46);
 
   auto C2_hash = addHeaderToRepository(B_hash, 46);
@@ -906,10 +910,10 @@ TEST_F(BlockTreeTest, GetBestBlock) {
 
   //  42   43  44  45  46   47   48   49   50
   //
-  //                   C1
+  //                  _C1
   //                 /
   //  LF - T - A - B - C2 - D2
-  //                 \
+  //                 \_
   //                   C3 - D3 - E3 - F3
 
   {
@@ -923,10 +927,10 @@ TEST_F(BlockTreeTest, GetBestBlock) {
 
   //  42   43  44  45  46   47   48   49   50
   //
-  //                   C1
+  //                  _C1
   //                 /
   //  LF - T - A - B - C2 - D2 - E2*
-  //                 \
+  //                 \_
   //                   C3 - D3 - E3 - F3
 
   {
@@ -940,10 +944,10 @@ TEST_F(BlockTreeTest, GetBestBlock) {
 
   //  42   43  44  45  46   47   48   49   50
   //
-  //                   C1
+  //                  _C1
   //                 /
   //  LF - T - A - B - C2 - D2 - E2*
-  //                 \
+  //                 \_
   //                   C3 - D3 - E3 - F3 - G3**
 
   {
@@ -957,10 +961,10 @@ TEST_F(BlockTreeTest, GetBestBlock) {
 
   //  42   43  44  45  46   47   48   49   50
   //
-  //                   C1
+  //                  _C1
   //                 /
   //  LF - T - A - B - C2 - D2 - E2*
-  //                 \
+  //                 \_
   //                   C3 - D3 - E3 - F3 - G3**
 
   {

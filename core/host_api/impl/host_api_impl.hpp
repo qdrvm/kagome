@@ -103,6 +103,9 @@ namespace kagome::host_api {
     runtime::WasmPointer ext_trie_blake2_256_ordered_root_version_2(
         runtime::WasmSpan values_data, runtime::WasmI32 state_version) override;
 
+    runtime::WasmPointer ext_trie_keccak_256_ordered_root_version_2(
+        runtime::WasmSpan values_data, runtime::WasmI32 state_version) override;
+    
     // ------------------------Memory extensions v1-------------------------
     runtime::WasmPointer ext_allocator_malloc_version_1(
         runtime::WasmSize size) override;
@@ -240,7 +243,7 @@ namespace kagome::host_api {
 
     void ext_misc_print_hex_version_1(runtime::WasmSpan data) const override;
 
-    void ext_misc_print_num_version_1(uint64_t value) const override;
+    void ext_misc_print_num_version_1(int64_t value) const override;
 
     void ext_misc_print_utf8_version_1(runtime::WasmSpan data) const override;
 
@@ -253,9 +256,9 @@ namespace kagome::host_api {
 
     runtime::WasmSpan ext_offchain_network_state_version_1() override;
 
-    runtime::WasmU64 ext_offchain_timestamp_version_1() override;
+    runtime::WasmI64 ext_offchain_timestamp_version_1() override;
 
-    void ext_offchain_sleep_until_version_1(runtime::WasmU64 deadline) override;
+    void ext_offchain_sleep_until_version_1(runtime::WasmI64 deadline) override;
 
     runtime::WasmPointer ext_offchain_random_seed_version_1() override;
 
@@ -349,7 +352,7 @@ namespace kagome::host_api {
         runtime::WasmSpan value_out,
         runtime::WasmOffset offset) const override;
 
-    virtual uint32_t ext_default_child_storage_exists_version_1(
+    virtual int32_t ext_default_child_storage_exists_version_1(
         runtime::WasmSpan child_storage_key,
         runtime::WasmSpan key) const override;
 
@@ -358,6 +361,9 @@ namespace kagome::host_api {
 
     virtual runtime::WasmSpan ext_default_child_storage_storage_kill_version_3(
         runtime::WasmSpan child_storage_key, runtime::WasmSpan limit) override;
+
+    virtual void ext_panic_handler_abort_on_panic_version_1(
+        runtime::WasmSpan message) override;
 
    private:
     static constexpr uint64_t DEFAULT_CHAIN_ID = 42;

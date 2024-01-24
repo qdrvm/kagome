@@ -99,14 +99,15 @@ More details of KAGOME development can be found within the [supported features](
 
 #### Prerequisites
 
-For now, please refer to the [Dockerfile](housekeeping/docker/kagome-dev/minideb.Dockerfile) to get a picture of what you need for a local build-environment.
-
+If you are using a Debian Linux system, the following command allows you to build KAGOME:
 
 ```sh
-git clone https://github.com/soramitsu/kagome
+git clone https://github.com/qdrvm/kagome
 cd kagome
+sudo chmod +x scripts/init.sh scripts/build.sh
 
-make build
+sudo ./scripts/init.sh
+./scripts/build.sh
 ```
 
 You will get KAGOME binary in the `build/node/` folder
@@ -154,7 +155,7 @@ You will also be able to see your node on https://telemetry.polkadot.io/. If you
 Run `kagome --help` to explore other CLI flags.
 
 
-#### Execute KAGOME validating node in development mode
+#### Execute KAGOME block_validator node in development mode
 
 The easiest way to get started with KAGOME is to run it in development mode, which is a single node network:
 

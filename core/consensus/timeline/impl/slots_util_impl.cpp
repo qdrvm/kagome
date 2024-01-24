@@ -21,6 +21,7 @@ namespace kagome ::consensus {
       application::AppStateManager &app_state_manager,
       std::shared_ptr<storage::SpacedStorage> persistent_storage,
       std::shared_ptr<blockchain::BlockTree> block_tree,
+      const EpochTimings &timings,
       std::shared_ptr<ConsensusSelector> consensus_selector,
       std::shared_ptr<storage::trie::TrieStorage> trie_storage,
       std::shared_ptr<runtime::BabeApi> babe_api)
@@ -28,6 +29,7 @@ namespace kagome ::consensus {
         persistent_storage_(
             persistent_storage->getSpace(storage::Space::kDefault)),
         block_tree_(std::move(block_tree)),
+        timings_(timings),
         consensus_selector_(std::move(consensus_selector)),
         trie_storage_(std::move(trie_storage)),
         babe_api_(std::move(babe_api)) {
@@ -40,12 +42,7 @@ namespace kagome ::consensus {
   }
 
   bool SlotsUtilImpl::prepare() {
-    auto finalized = block_tree_->getLastFinalized();
-    auto consensus = consensus_selector_->getProductionConsensus(finalized);
-    std::tie(slot_duration_, epoch_length_) = consensus->getTimings();
-
-    if (auto slot1_res = persistent_storage_->tryGet(
-            storage::kBabeConfigRepositoryImplGenesisSlot);
+    if (auto slot1_res = persistent_storage_->tryGet(storage::kFirstBlockSlot);
         slot1_res.has_value()) {
       if (auto &slot1_opt = slot1_res.value(); slot1_opt.has_value()) {
         if (auto decode_res = scale::decode<SlotNumber>(slot1_opt.value());
@@ -59,22 +56,22 @@ namespace kagome ::consensus {
   }
 
   Duration SlotsUtilImpl::slotDuration() const {
-    BOOST_ASSERT_MSG(slot_duration_ != Duration::zero(),
-                     "Slot duration is not initialized");
-    return slot_duration_;
+    BOOST_ASSERT_MSG(timings_, "Epoch timings are not initialized");
+    return timings_.slot_duration;
   }
 
   EpochLength SlotsUtilImpl::epochLength() const {
-    BOOST_ASSERT_MSG(epoch_length_ != 0, "Epoch length is not initialized");
-    return epoch_length_;
+    BOOST_ASSERT_MSG(timings_, "Epoch timings are not initialized");
+    return timings_.epoch_length;
   }
 
   SlotNumber SlotsUtilImpl::timeToSlot(TimePoint time) const {
-    return static_cast<SlotNumber>(time.time_since_epoch() / slotDuration());
+    return static_cast<SlotNumber>(time.time_since_epoch()
+                                   / timings_.slot_duration);
   }
 
   TimePoint SlotsUtilImpl::slotStartTime(SlotNumber slot) const {
-    return TimePoint{} + slot * slotDuration();
+    return TimePoint{} + slot * timings_.slot_duration;
   }
 
   TimePoint SlotsUtilImpl::slotFinishTime(SlotNumber slot) const {
@@ -89,7 +86,7 @@ namespace kagome ::consensus {
       return TimelineError::SLOT_BEFORE_GENESIS;
     }
     auto slots = slot - slot1;
-    return slots / epochLength();
+    return slots / timings_.epoch_length;
   }
 
   outcome::result<SlotNumber> SlotsUtilImpl::getFirstBlockSlotNumber(
@@ -151,9 +148,8 @@ namespace kagome ::consensus {
     if (finalized.number != 0
         and block_tree_->hasDirectChain(finalized, parent_info)) {
       first_block_slot_number_ = slot1;
-      OUTCOME_TRY(persistent_storage_->put(
-          storage::kBabeConfigRepositoryImplGenesisSlot,
-          scale::encode(*slot1).value()));
+      OUTCOME_TRY(persistent_storage_->put(storage::kFirstBlockSlot,
+                                           scale::encode(*slot1).value()));
     }
 
     return slot1.value();

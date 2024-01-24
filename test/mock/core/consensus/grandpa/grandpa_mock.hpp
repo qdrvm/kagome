@@ -41,13 +41,10 @@ namespace kagome::consensus::grandpa {
                  const network::FullCommitMessage &),
                 (override));
 
-    MOCK_METHOD(
-        void,
-        verifyJustification,
-        (const GrandpaJustification &,
-         const primitives::AuthoritySet &,
-         std::shared_ptr<std::promise<outcome::result<void>>> promise_res),
-        (override));
+    MOCK_METHOD(outcome::result<void>,
+                verifyJustification,
+                (const GrandpaJustification &, const AuthoritySet &),
+                (override));
 
     MOCK_METHOD(void,
                 applyJustification,

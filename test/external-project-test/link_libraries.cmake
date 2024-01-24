@@ -8,7 +8,13 @@ function(external_project_link_libraries target prefix)
     set(targets
         app_config
         executor
-        runtime_wavm
+        binaryen_module_factory
+        binaryen_runtime_external_interface
+        binaryen_wasm_memory
+        binaryen_wasm_memory_factory
+        binaryen_wasm_module
+        binaryen_memory_provider
+        core_api_factory
         core_api
         storage
         trie_storage_provider

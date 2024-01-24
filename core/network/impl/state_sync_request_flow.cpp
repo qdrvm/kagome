@@ -6,6 +6,7 @@
 
 #include <boost/algorithm/string/predicate.hpp>
 
+#include "crypto/blake2/blake2b.h"
 #include "network/impl/state_sync_request_flow.hpp"
 #include "storage/predefined_keys.hpp"
 #include "storage/trie/compact_decode.hpp"
@@ -14,10 +15,10 @@
 
 namespace kagome::network {
   StateSyncRequestFlow::StateSyncRequestFlow(
-      std::shared_ptr<storage::trie::TrieStorageBackend> db,
+      std::shared_ptr<storage::trie::TrieStorageBackend> node_db,
       const primitives::BlockInfo &block_info,
       const primitives::BlockHeader &block)
-      : db_{std::move(db)},
+      : node_db_{std::move(node_db)},
         block_info_{block_info},
         block_{block},
         log_{log::createLogger("StateSync")} {
@@ -103,7 +104,7 @@ namespace kagome::network {
           if (it == nodes.end()) {
             return outcome::success();
           }
-          OUTCOME_TRY(db_->put(it->first, std::move(it->second.first)));
+          OUTCOME_TRY(node_db_->put(it->first, std::move(it->second.first)));
           known_.emplace(it->first);
         }
         for (level.branchInit(); not level.branch_end; level.branchNext()) {
@@ -119,7 +120,7 @@ namespace kagome::network {
         }
         if (level.branch_end) {
           auto &t = level.stack.back().t;
-          OUTCOME_TRY(db_->put(t.hash, std::move(t.encoded)));
+          OUTCOME_TRY(node_db_->put(t.hash, std::move(t.encoded)));
           known_.emplace(t.hash);
           level.pop();
           if (not level.stack.empty()) {
@@ -142,7 +143,9 @@ namespace kagome::network {
     if (known_.find(hash) != known_.end()) {
       return true;
     }
-    if (auto r = db_->contains(hash); r and r.value()) {
+    if (auto node_res = node_db_->contains(hash),
+        value_res = node_db_->contains(hash);
+        (node_res and node_res.value()) or (value_res and value_res.value())) {
       known_.emplace(hash);
       return true;
     }

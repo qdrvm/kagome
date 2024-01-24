@@ -185,6 +185,9 @@ namespace kagome::host_api {
     ext_trie_blake2_256_ordered_root_version_2(
         runtime::WasmSpan values_data, runtime::WasmI32 state_version) = 0;
 
+    [[nodiscard]] virtual runtime::WasmPointer ext_trie_keccak_256_ordered_root_version_2(
+        runtime::WasmSpan values_data, runtime::WasmI32 state_version) = 0;
+    
     // ------------------------- Memory extensions v1 --------------------------
     /**
      * @see Extension::ext_malloc
@@ -493,7 +496,7 @@ namespace kagome::host_api {
      * Print a number
      * @param value - number to be printed
      */
-    virtual void ext_misc_print_num_version_1(uint64_t value) const = 0;
+    virtual void ext_misc_print_num_version_1(int64_t value) const = 0;
 
     /**
      * Print a UTF-8-encoded string
@@ -517,12 +520,12 @@ namespace kagome::host_api {
     ext_offchain_network_state_version_1() = 0;
 
     /// @copydoc OffchainExtension::ext_offchain_timestamp_version_1
-    [[nodiscard]] virtual runtime::WasmU64
+    [[nodiscard]] virtual runtime::WasmI64
     ext_offchain_timestamp_version_1() = 0;
 
     /// @copydoc OffchainExtension::ext_offchain_sleep_until_version_1
     virtual void ext_offchain_sleep_until_version_1(
-        runtime::WasmU64 deadline) = 0;
+        runtime::WasmI64 deadline) = 0;
 
     /// @copydoc OffchainExtension::ext_offchain_random_seed_version_1
     [[nodiscard]] virtual runtime::WasmPointer
@@ -722,7 +725,7 @@ namespace kagome::host_api {
      * @return a boolean equal to true if the key does exist, false if
      * otherwise.
      */
-    virtual uint32_t ext_default_child_storage_exists_version_1(
+    virtual int32_t ext_default_child_storage_exists_version_1(
         runtime::WasmSpan child_storage_key, runtime::WasmSpan key) const = 0;
 
     /**
@@ -740,5 +743,8 @@ namespace kagome::host_api {
      */
     virtual runtime::WasmSpan ext_default_child_storage_storage_kill_version_3(
         runtime::WasmSpan child_storage_key, runtime::WasmSpan limit) = 0;
+
+    virtual void ext_panic_handler_abort_on_panic_version_1(
+        runtime::WasmSpan message) = 0;
   };
 }  // namespace kagome::host_api

@@ -13,16 +13,26 @@
 namespace kagome::consensus::grandpa {
 
   struct AuthorityManagerMock : public AuthorityManager {
-    MOCK_METHOD(std::optional<std::shared_ptr<const primitives::AuthoritySet>>,
+    MOCK_METHOD(std::optional<std::shared_ptr<const AuthoritySet>>,
                 authorities,
                 (const primitives::BlockInfo &, IsBlockFinalized),
+                (const, override));
+
+    MOCK_METHOD(ScheduledParentResult,
+                scheduledParent,
+                (primitives::BlockInfo),
+                (const, override));
+
+    MOCK_METHOD(std::vector<primitives::BlockInfo>,
+                possibleScheduled,
+                (),
                 (const, override));
 
     MOCK_METHOD(void,
                 warp,
                 (const primitives::BlockInfo &,
                  const primitives::BlockHeader &,
-                 const primitives::AuthoritySet &),
+                 const AuthoritySet &),
                 (override));
   };
 }  // namespace kagome::consensus::grandpa

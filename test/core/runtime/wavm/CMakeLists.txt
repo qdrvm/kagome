@@ -18,6 +18,7 @@ target_link_libraries(wavm_runtime_test INTERFACE
     host_api
     host_api_factory
     core_api
+    core_api_factory
     runtime_wavm
     module_repository
     runtime_upgrade_tracker
@@ -28,7 +29,6 @@ addtest(wavm_memory_test
     wasm_memory_test.cpp
     )
 target_link_libraries(wavm_memory_test
-    wavm_memory
     logger_for_tests
     runtime_wavm
     )
@@ -59,4 +59,5 @@ target_link_libraries(wavm_module_init_test
     offchain_worker_pool
     runtime_properties_cache
     logger_for_tests
+    module_repository
 )

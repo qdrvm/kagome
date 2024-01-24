@@ -6,33 +6,23 @@
 
 #include <gtest/gtest.h>
 
-#include <boost/variant.hpp>
 #include "common/blob.hpp"
-#include "common/buffer.hpp"
-#include "common/visitor.hpp"
-#include "outcome/outcome.hpp"
 #include "primitives/block.hpp"
 #include "primitives/block_id.hpp"
-#include "primitives/common.hpp"
 #include "primitives/digest.hpp"
 #include "primitives/extrinsic.hpp"
 #include "primitives/inherent_data.hpp"
-#include "primitives/parachain_host.hpp"
-#include "primitives/scheduled_change.hpp"
-#include "primitives/session_key.hpp"
 #include "primitives/transaction_validity.hpp"
 #include "primitives/version.hpp"
 #include "scale/scale.hpp"
-#include "scale/scale_error.hpp"
-#include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
 #include "testutil/primitives/mp_utils.hpp"
 
 using kagome::common::Blob;
 using kagome::common::Buffer;
 using kagome::common::Hash256;
+using kagome::consensus::grandpa::AuthorityId;
 using kagome::primitives::ApiId;
-using kagome::primitives::AuthorityId;
 using kagome::primitives::Block;
 using kagome::primitives::BlockHeader;
 using kagome::primitives::BlockId;
@@ -182,7 +172,7 @@ TEST_F(Primitives, EncodeBlockIdBlockNumberSuccess) {
  * @then obtained result matches predefined value
  */
 TEST_F(Primitives, EncodeTransactionValidityInvalidSuccess) {
-  InvalidTransaction invalid{1};
+  InvalidTransaction invalid{InvalidTransaction::Call};
   EXPECT_OUTCOME_TRUE(val, encode(invalid))
   EXPECT_OUTCOME_TRUE(decoded_validity, decode<InvalidTransaction>(val));
   ASSERT_EQ(decoded_validity, invalid);
@@ -194,7 +184,7 @@ TEST_F(Primitives, EncodeTransactionValidityInvalidSuccess) {
  * @then obtained result matches predefined value
  */
 TEST_F(Primitives, EncodeTransactionValidityUnknown) {
-  UnknownTransaction unknown{2};
+  UnknownTransaction unknown{UnknownTransaction::Kind::Custom, 42};
   EXPECT_OUTCOME_TRUE(val, encode(unknown))
   EXPECT_OUTCOME_TRUE(decoded_validity, decode<UnknownTransaction>(val));
   ASSERT_EQ(decoded_validity, unknown);
@@ -219,8 +209,8 @@ TEST_F(Primitives, EncodeTransactionValiditySuccess) {
  */
 TEST_F(Primitives, EncodeDecodeAuthorityIdsSuccess) {
   AuthorityId id1, id2;
-  id1.id.fill(1u);
-  id2.id.fill(2u);
+  id1.fill(1u);
+  id2.fill(2u);
   std::vector<AuthorityId> original{id1, id2};
   EXPECT_OUTCOME_TRUE(res, encode(original))
 

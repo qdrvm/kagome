@@ -4,8 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef CORE_KECCAK_H
-#define CORE_KECCAK_H
+#pragma once
 
 #if defined(__cplusplus)
 extern "C" {
@@ -59,6 +58,4 @@ sha3_return_t sha3_HashBuffer(
 
 #if defined(__cplusplus)
 }
-#endif
-
 #endif

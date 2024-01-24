@@ -15,14 +15,16 @@ namespace kagome::runtime {
     BOOST_ASSERT(executor_);
   }
 
-  outcome::result<primitives::BabeConfiguration> BabeApiImpl::configuration(
+  outcome::result<consensus::babe::BabeConfiguration> BabeApiImpl::configuration(
       const primitives::BlockHash &block) {
-    return executor_->callAt<primitives::BabeConfiguration>(
-        block, "BabeApi_configuration");
+    OUTCOME_TRY(ctx, executor_->ctx().ephemeralAt(block));
+    return executor_->call<consensus::babe::BabeConfiguration>(
+        ctx, "BabeApi_configuration");
   }
 
-  outcome::result<primitives::Epoch> BabeApiImpl::next_epoch(
+  outcome::result<consensus::babe::Epoch> BabeApiImpl::next_epoch(
       const primitives::BlockHash &block) {
-    return executor_->callAt<primitives::Epoch>(block, "BabeApi_next_epoch");
+    OUTCOME_TRY(ctx, executor_->ctx().ephemeralAt(block));
+    return executor_->call<consensus::babe::Epoch>(ctx, "BabeApi_next_epoch");
   }
 }  // namespace kagome::runtime

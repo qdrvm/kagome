@@ -66,7 +66,7 @@ namespace kagome::network {
     template <typename MsgType>
     void write(const MsgType &msg,
                libp2p::basic::Writer::WriteCallbackFunc cb) const {
-      auto encoded_msg_res = scale::encode(msg);
+      auto encoded_msg_res = ::scale::encode(msg);
       if (!encoded_msg_res) {
         return cb(encoded_msg_res.error());
       }

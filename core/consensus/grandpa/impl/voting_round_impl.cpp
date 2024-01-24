@@ -1145,7 +1145,7 @@ namespace kagome::consensus::grandpa {
 
     if (can_start_next_round) {
       scheduler_->schedule(
-          [grandpa_wp = std::move(grandpa_), round_wp = weak_from_this()] {
+          [grandpa_wp = std::move(grandpa_), round_wp{weak_from_this()}] {
             if (auto grandpa = grandpa_wp.lock()) {
               if (auto round = round_wp.lock()) {
                 grandpa->tryExecuteNextRound(round);
@@ -1339,7 +1339,7 @@ namespace kagome::consensus::grandpa {
         precommit_equivocators_.begin(),
         precommit_equivocators_.end(),
         0ul,
-        [this, index = 0ul](size_t sum, auto isEquivocator) mutable {
+        [this, index = 0ul](size_t sum, auto isEquivocator) mutable -> size_t {
           if (not isEquivocator) {
             ++index;
             return sum;

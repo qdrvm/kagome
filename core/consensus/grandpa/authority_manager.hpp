@@ -9,7 +9,7 @@
 #include <boost/optional.hpp>
 
 #include "common/tagged.hpp"
-#include "primitives/authority.hpp"
+#include "consensus/grandpa/types/authority.hpp"
 #include "primitives/block_data.hpp"
 #include "primitives/block_header.hpp"
 
@@ -37,15 +37,24 @@ namespace kagome::consensus::grandpa {
      * finalized
      * @return outcome authority set
      */
-    virtual std::optional<std::shared_ptr<const primitives::AuthoritySet>>
-    authorities(const primitives::BlockInfo &block,
-                IsBlockFinalized finalized) const = 0;
+    virtual std::optional<std::shared_ptr<const AuthoritySet>> authorities(
+        const primitives::BlockInfo &block,
+        IsBlockFinalized finalized) const = 0;
+
+    /// Find previous scheduled change with justification
+    using ScheduledParentResult =
+        outcome::result<std::pair<primitives::BlockInfo, AuthoritySetId>>;
+    virtual ScheduledParentResult scheduledParent(
+        primitives::BlockInfo block) const = 0;
+
+    /// Find possible scheduled changes with justification
+    virtual std::vector<primitives::BlockInfo> possibleScheduled() const = 0;
 
     /**
      * Warp synced to `block` with `authorities`.
      */
     virtual void warp(const primitives::BlockInfo &block,
                       const primitives::BlockHeader &header,
-                      const primitives::AuthoritySet &authorities) = 0;
+                      const AuthoritySet &authorities) = 0;
   };
 }  // namespace kagome::consensus::grandpa

@@ -20,12 +20,12 @@
 #include "blockchain/block_header_repository.hpp"
 #include "blockchain/block_storage.hpp"
 #include "blockchain/block_tree_error.hpp"
+#include "consensus/babe/types/babe_configuration.hpp"
 #include "consensus/timeline/types.hpp"
 #include "crypto/hasher.hpp"
 #include "log/logger.hpp"
 #include "metrics/metrics.hpp"
 #include "network/extrinsic_observer.hpp"
-#include "primitives/babe_configuration.hpp"
 #include "primitives/event_types.hpp"
 #include "storage/trie/trie_storage.hpp"
 #include "subscription/extrinsic_event_key_repository.hpp"
@@ -60,7 +60,7 @@ namespace kagome::blockchain {
         std::shared_ptr<const class JustificationStoragePolicy>
             justification_storage_policy,
         std::shared_ptr<storage::trie_pruner::TriePruner> state_pruner,
-        std::shared_ptr<::boost::asio::io_context> io_context);
+        WeakIoContext main_thread);
 
     /// Recover block tree state at provided block
     static outcome::result<void> recover(
@@ -193,7 +193,7 @@ namespace kagome::blockchain {
         std::shared_ptr<const class JustificationStoragePolicy>
             justification_storage_policy,
         std::shared_ptr<storage::trie_pruner::TriePruner> state_pruner,
-        std::shared_ptr<::boost::asio::io_context> io_context);
+        WeakIoContext main_thread);
 
     outcome::result<void> reorgAndPrune(BlockTreeData &p,
                                         const ReorgAndPrune &changes);

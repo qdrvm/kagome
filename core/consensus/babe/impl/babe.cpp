@@ -6,21 +6,22 @@
 
 #include "consensus/babe/impl/babe.hpp"
 
-#include <boost/range/adaptor/transformed.hpp>
 #include <latch>
+
+#include <boost/range/adaptor/transformed.hpp>
 
 #include "application/app_configuration.hpp"
 #include "authorship/proposer.hpp"
 #include "blockchain/block_tree.hpp"
-#include "blockchain/block_tree_error.hpp"
 #include "consensus/babe/babe_config_repository.hpp"
 #include "consensus/babe/babe_lottery.hpp"
+#include "consensus/babe/impl/babe_block_validator_impl.hpp"
 #include "consensus/babe/impl/babe_digests_util.hpp"
-#include "consensus/babe/impl/babe_error.hpp"
-#include "consensus/babe/impl/threshold_util.hpp"
+#include "consensus/block_production_error.hpp"
 #include "consensus/timeline/backoff.hpp"
-#include "consensus/timeline/impl/block_production_error.hpp"
+#include "consensus/timeline/impl/slot_leadership_error.hpp"
 #include "consensus/timeline/slots_util.hpp"
+#include "crypto/blake2/blake2b.h"
 #include "crypto/crypto_store/session_keys.hpp"
 #include "crypto/sr25519_provider.hpp"
 #include "dispute_coordinator/dispute_coordinator.hpp"
@@ -39,7 +40,7 @@
 namespace {
   inline const auto kTimestampId =
       kagome::primitives::InherentIdentifier::fromString("timstap0").value();
-  inline const auto kBabeSlotId =
+  inline const auto kSlotId =
       kagome::primitives::InherentIdentifier::fromString("babeslot").value();
   inline const auto kParachainId =
       kagome::primitives::InherentIdentifier::fromString("parachn0").value();
@@ -65,11 +66,13 @@ namespace kagome::consensus::babe {
       const clock::SystemClock &clock,
       std::shared_ptr<blockchain::BlockTree> block_tree,
       LazySPtr<SlotsUtil> slots_util,
-      std::shared_ptr<BabeConfigRepository> babe_config_repo,
+      std::shared_ptr<BabeConfigRepository> config_repo,
+      const EpochTimings &timings,
       std::shared_ptr<crypto::SessionKeys> session_keys,
       std::shared_ptr<BabeLottery> lottery,
       std::shared_ptr<crypto::Hasher> hasher,
       std::shared_ptr<crypto::Sr25519Provider> sr25519_provider,
+      std::shared_ptr<BabeBlockValidator> validating,
       std::shared_ptr<parachain::BitfieldStore> bitfield_store,
       std::shared_ptr<parachain::BackingStore> backing_store,
       std::shared_ptr<dispute::DisputeCoordinator> dispute_coordinator,
@@ -79,16 +82,18 @@ namespace kagome::consensus::babe {
       std::shared_ptr<network::BlockAnnounceTransmitter> announce_transmitter,
       std::shared_ptr<runtime::OffchainWorkerApi> offchain_worker_api,
       const ThreadPool &thread_pool,
-      std::shared_ptr<boost::asio::io_context> main_thread)
+      WeakIoContext main_thread)
       : log_(log::createLogger("Babe", "babe")),
         clock_(clock),
         block_tree_(std::move(block_tree)),
         slots_util_(std::move(slots_util)),
-        babe_config_repo_(std::move(babe_config_repo)),
+        config_repo_(std::move(config_repo)),
+        timings_(timings),
         session_keys_(std::move(session_keys)),
         lottery_(std::move(lottery)),
         hasher_(std::move(hasher)),
         sr25519_provider_(std::move(sr25519_provider)),
+        validating_(std::move(validating)),
         bitfield_store_(std::move(bitfield_store)),
         backing_store_(std::move(backing_store)),
         dispute_coordinator_(std::move(dispute_coordinator)),
@@ -98,15 +103,16 @@ namespace kagome::consensus::babe {
         announce_transmitter_(std::move(announce_transmitter)),
         offchain_worker_api_(std::move(offchain_worker_api)),
         main_thread_(std::move(main_thread)),
-        io_context_{thread_pool.io_context()},
+        wasm_thread_{thread_pool.io_context()},
         is_validator_by_config_(app_config.roles().flags.authority != 0),
         telemetry_{telemetry::createTelemetryService()} {
     BOOST_ASSERT(block_tree_);
-    BOOST_ASSERT(babe_config_repo_);
+    BOOST_ASSERT(config_repo_);
     BOOST_ASSERT(session_keys_);
     BOOST_ASSERT(lottery_);
     BOOST_ASSERT(hasher_);
     BOOST_ASSERT(sr25519_provider_);
+    BOOST_ASSERT(validating_);
     BOOST_ASSERT(bitfield_store_);
     BOOST_ASSERT(backing_store_);
     BOOST_ASSERT(dispute_coordinator_);
@@ -115,7 +121,6 @@ namespace kagome::consensus::babe {
     BOOST_ASSERT(chain_sub_engine_);
     BOOST_ASSERT(announce_transmitter_);
     BOOST_ASSERT(offchain_worker_api_);
-    BOOST_ASSERT(main_thread_);
 
     // Register metrics
     metrics_registry_->registerGaugeFamily(
@@ -125,12 +130,18 @@ namespace kagome::consensus::babe {
     metric_is_relaychain_validator_ =
         metrics_registry_->registerGaugeMetric(kIsRelayChainValidator);
     metric_is_relaychain_validator_->set(false);
-  };
+  }
+
+  bool Babe::isGenesisConsensus() const {
+    primitives::BlockInfo genesis_block{0, block_tree_->getGenesisBlockHash()};
+    auto res = config_repo_->config(genesis_block, 0);
+    return res.has_value();
+  }
 
   ValidatorStatus Babe::getValidatorStatus(const primitives::BlockInfo &block,
                                            EpochNumber epoch) const {
-    auto babe_config = babe_config_repo_->config(block, epoch);
-    if (not babe_config) {
+    auto config = config_repo_->config(block, epoch);
+    if (not config) {
       SL_CRITICAL(
           log_,
           "Can't obtain digest of epoch {} from block tree for block {}",
@@ -139,7 +150,7 @@ namespace kagome::consensus::babe {
       return ValidatorStatus::NonValidator;
     }
 
-    const auto &authorities = babe_config.value()->authorities;
+    const auto &authorities = config.value()->authorities;
     if (session_keys_->getBabeKeyPair(authorities)) {
       if (authorities.size() > 1) {
         return ValidatorStatus::Validator;
@@ -150,14 +161,9 @@ namespace kagome::consensus::babe {
     return ValidatorStatus::NonValidator;
   }
 
-  std::tuple<Duration, EpochLength> Babe::getTimings() const {
-    return {babe_config_repo_->slotDuration(),
-            babe_config_repo_->epochLength()};
-  }
-
   outcome::result<SlotNumber> Babe::getSlot(
       const primitives::BlockHeader &header) const {
-    return getBabeSlot(header);
+    return babe::getSlot(header);
   }
 
   outcome::result<void> Babe::processSlot(
@@ -168,147 +174,109 @@ namespace kagome::consensus::babe {
       SL_DEBUG(log_, "Slot processing skipped: chance has missed");
       return outcome::success();
     }
-    OUTCOME_TRY(epoch_number, slots_util_.get()->slotToEpoch(best_block, slot));
+    OUTCOME_TRY(epoch, slots_util_.get()->slotToEpoch(best_block, slot));
 
-    auto babe_config_res = babe_config_repo_->config(best_block, epoch_number);
-    [[unlikely]] if (not babe_config_res.has_value()) {
-      SL_ERROR(log_,
-               "Can not get epoch: {}; Skipping slot processing",
-               babe_config_res.error());
-      return babe_config_res.as_failure();
-    }
-    auto &babe_config = *babe_config_res.value();
-
-    auto keypair = session_keys_->getBabeKeyPair(babe_config.authorities);
-    if (not keypair) {
-      metric_is_relaychain_validator_->set(false);
-      if (is_validator_by_config_) {
-        SL_VERBOSE(log_,
-                   "Authority not known, skipping slot processing. "
-                   "Probably authority list has changed.");
-      }
-      return BlockProductionError::NO_VALIDATOR;
-    }
-
-    Context ctx{.parent = best_block,
-                .epoch = epoch_number,
-                .slot = slot,
-                .slot_timestamp = slot_timestamp,
-                .keypair = std::move(keypair->first)};
-
-    metric_is_relaychain_validator_->set(true);
-    const auto &authority_index = keypair->second;
-    if (lottery_->getEpoch() != epoch_number) {
-      changeLotteryEpoch(ctx, epoch_number, authority_index, babe_config);
-    }
-
-    auto slot_leadership = lottery_->getSlotLeadership(ctx.slot);
-
-    if (slot_leadership.has_value()) {
-      const auto &vrf_result = slot_leadership.value();
-      SL_DEBUG(log_,
-               "Babe author {} is primary slot-leader "
-               "(vrfOutput: {}, proof: {})",
-               ctx.keypair->public_key,
-               common::Buffer(vrf_result.output),
-               common::Buffer(vrf_result.proof));
-
-      return processSlotLeadership(ctx,
-                                   SlotType::Primary,
-                                   slot_timestamp,
-                                   std::cref(vrf_result),
-                                   authority_index);
-    }
-
-    if (babe_config.isSecondarySlotsAllowed()) {
-      auto expected_author = lottery_->secondarySlotAuthor(
-          ctx.slot, babe_config.authorities.size(), babe_config.randomness);
-
-      if (expected_author.has_value()
-          and authority_index == expected_author.value()) {
-        // VRF secondary slots mode
-        if (babe_config.allowed_slots
-            == primitives::AllowedSlots::PrimaryAndSecondaryVRF) {
-          auto vrf = lottery_->slotVrfSignature(ctx.slot);
-          SL_DEBUG(log_,
-                   "Babe author {} is secondary slot-leader "
-                   "(vrfOutput: {}, proof: {})",
-                   ctx.keypair->public_key,
-                   common::Buffer(vrf.output),
-                   common::Buffer(vrf.proof));
-
-          return processSlotLeadership(ctx,
-                                       SlotType::SecondaryVRF,
-                                       slot_timestamp,
-                                       std::cref(vrf),
-                                       authority_index);
+    // If epoch changed, generate and submit their candidate tickets along with
+    // validity proofs to the blockchain
+    if (lottery_->getEpoch() != epoch) {
+      is_active_validator_ = changeEpoch(epoch, best_block);
+      metric_is_relaychain_validator_->set(is_active_validator_);
+      if (not is_active_validator_) {
+        if (is_validator_by_config_) {
+          SL_VERBOSE(log_,
+                     "Authority not known, skipping slot processing. "
+                     "Probably authority list has changed.");
         }
-
-        // plain secondary slots mode
-        SL_DEBUG(log_,
-                 "Babe author {} is block producer in secondary plain slot",
-                 ctx.keypair->public_key);
-
-        return processSlotLeadership(ctx,
-                                     SlotType::SecondaryPlain,
-                                     slot_timestamp,
-                                     std::nullopt,
-                                     authority_index);
+      } else {
+        SL_VERBOSE(log_, "Node is active validator in epoch {}", epoch);
       }
     }
 
-    SL_TRACE(log_,
-             "Babe author {} is not slot leader in current slot",
-             ctx.keypair->public_key);
+    if (not is_active_validator_) {
+      SL_TRACE(log_, "Node is not active validator in epoch {}", epoch);
+      return SlotLeadershipError::NO_VALIDATOR;
+    }
 
-    return BlockProductionError::NO_SLOT_LEADER;
+    if (not checkSlotLeadership(best_block, slot)) {
+      SL_TRACE(
+          log_, "Node is not slot leader in slot {} epoch {}", slot, epoch);
+      return SlotLeadershipError::NO_SLOT_LEADER;
+    }
+
+    SL_DEBUG(log_,
+             "Node is leader in current slot {} epoch {}; Authority {}",
+             slot,
+             epoch,
+             slot_leadership_.keypair->public_key);
+
+    // Init context
+    parent_ = best_block;
+    slot_timestamp_ = slot_timestamp;
+    slot_ = slot;
+    epoch_ = epoch;
+
+    return processSlotLeadership();
   }
 
-  outcome::result<primitives::PreRuntime> Babe::babePreDigest(
-      const Context &ctx,
-      SlotType slot_type,
-      std::optional<std::reference_wrapper<const crypto::VRFOutput>> output,
-      primitives::AuthorityIndex authority_index) const {
+  outcome::result<void> Babe::validateHeader(
+      const primitives::BlockHeader &block_header) const {
+    return validating_->validateHeader(block_header);
+  }
+
+  bool Babe::changeEpoch(EpochNumber epoch,
+                         const primitives::BlockInfo &block) const {
+    return lottery_->changeEpoch(epoch, block);
+  }
+
+  bool Babe::checkSlotLeadership(const primitives::BlockInfo &block,
+                                 SlotNumber slot) {
+    auto slot_leadership_opt = lottery_->getSlotLeadership(block.hash, slot);
+    if (not slot_leadership_opt.has_value()) {
+      return false;
+    }
+    slot_leadership_ = std::move(slot_leadership_opt.value());
+
+    // clang-format off
+    SL_VERBOSE(log_, "Obtained {} slot leadership in slot {} epoch {}",
+      slot_leadership_.slot_type == SlotType::Primary        ? "primary"
+    : slot_leadership_.slot_type == SlotType::SecondaryVRF   ? "secondary-vrf"
+    : slot_leadership_.slot_type == SlotType::SecondaryPlain ? "secondary-plain"
+    :                                                          "unknown",
+      slot_, epoch_);
+    // clang-format on
+
+    return true;
+  }
+
+  outcome::result<primitives::PreRuntime> Babe::makePreDigest() const {
     BabeBlockHeader babe_header{
-        .slot_assignment_type = slot_type,
-        .authority_index = authority_index,
-        .slot_number = ctx.slot,
-    };
+        .slot_assignment_type = slot_leadership_.slot_type,
+        .authority_index = slot_leadership_.authority_index,
+        .slot_number = slot_,
+        .vrf_output = slot_leadership_.vrf_output};
 
-    if (babe_header.needVRFCheck()) {
-      if (not output.has_value()) {
-        SL_ERROR(
-            log_,
-            "VRF proof is required to build block header but was not passed");
-        return BabeError::MISSING_PROOF;
-      }
-      babe_header.vrf_output = output.value();
+    auto encode_res = scale::encode(babe_header);
+    if (encode_res.has_error()) {
+      SL_ERROR(log_, "cannot encode BabeBlockHeader: {}", encode_res.error());
+      return encode_res.error();
     }
 
-    auto encoded_header_res = scale::encode(babe_header);
-    if (!encoded_header_res) {
-      SL_ERROR(log_,
-               "cannot encode BabeBlockHeader: {}",
-               encoded_header_res.error());
-      return encoded_header_res.error();
-    }
-    common::Buffer encoded_header{
-        encoded_header_res.value()};  // TODO optimize by avoiding of copying
+    // TODO optimize by avoiding of copying
+    common::Buffer pre_runtime_data{std::move(encode_res.value())};
 
-    return primitives::PreRuntime{{primitives::kBabeEngineId, encoded_header}};
+    return primitives::PreRuntime{
+        {primitives::kBabeEngineId, pre_runtime_data}};
   }
 
-  outcome::result<primitives::Seal> Babe::sealBlock(
-      const Context &ctx, const primitives::Block &block) const {
-    BOOST_ASSERT(ctx.keypair != nullptr);
-
+  outcome::result<primitives::Seal> Babe::makeSeal(
+      const primitives::Block &block) const {
     // Calculate and save hash, 'cause it's new produced block
     // Note: it is temporary hash significant for signing
     primitives::calculateBlockHash(
         const_cast<primitives::BlockHeader &>(block.header), *hasher_);
 
     auto signature_res =
-        sr25519_provider_->sign(*ctx.keypair, block.header.hash());
+        sr25519_provider_->sign(*slot_leadership_.keypair, block.header.hash());
     if (signature_res.has_value()) {
       Seal seal{.signature = signature_res.value()};
       auto encoded_seal = common::Buffer(scale::encode(seal).value());
@@ -319,13 +287,8 @@ namespace kagome::consensus::babe {
     return signature_res.as_failure();
   }
 
-  outcome::result<void> Babe::processSlotLeadership(
-      const Context &ctx,
-      SlotType slot_type,
-      TimePoint slot_timestamp,
-      std::optional<std::reference_wrapper<const crypto::VRFOutput>> output,
-      primitives::AuthorityIndex authority_index) {
-    auto parent_header_res = block_tree_->getBlockHeader(ctx.parent.hash);
+  outcome::result<void> Babe::processSlotLeadership() {
+    auto parent_header_res = block_tree_->getBlockHeader(parent_.hash);
     BOOST_ASSERT_MSG(parent_header_res.has_value(),
                      "The best block is always known");
     auto &parent_header = parent_header_res.value();
@@ -333,48 +296,35 @@ namespace kagome::consensus::babe {
     if (backoff(*this,
                 parent_header,
                 block_tree_->getLastFinalized().number,
-                ctx.slot)) {
+                slot_)) {
       SL_INFO(log_,
-              "Backing off claiming new slot for block authorship: finality is "
-              "lagging.");
-      return BlockProductionError::BACKING_OFF;
+              "Backing off claiming new slot for block authorship: "
+              "finality is lagging.");
+      return SlotLeadershipError::BACKING_OFF;
     }
 
-    BOOST_ASSERT(ctx.keypair != nullptr);
-
-    // build a block to be announced
-    SL_VERBOSE(log_,
-               "Obtained {} slot leadership in slot {} epoch {}",
-               slot_type == SlotType::Primary          ? "primary"
-               : slot_type == SlotType::SecondaryVRF   ? "secondary-vrf"
-               : slot_type == SlotType::SecondaryPlain ? "secondary-plain"
-                                                       : "unknown",
-               ctx.slot,
-               ctx.epoch);
-
-    SL_INFO(log_, "Babe builds block on top of block {}", ctx.parent);
+    SL_INFO(log_, "Node builds block on top of block {}", parent_);
 
     primitives::InherentData inherent_data;
     auto now = std::chrono::duration_cast<std::chrono::milliseconds>(
-                   slot_timestamp.time_since_epoch())
+                   slot_timestamp_.time_since_epoch())
                    .count();
 
     if (auto res = inherent_data.putData<uint64_t>(kTimestampId, now);
         res.has_error()) {
       SL_ERROR(log_, "cannot put an inherent data: {}", res.error());
-      return BabeError::CAN_NOT_PREPARE_BLOCK;
+      return BlockProductionError::CAN_NOT_PREPARE_BLOCK;
     }
 
-    if (auto res = inherent_data.putData(kBabeSlotId, ctx.slot);
-        res.has_error()) {
+    if (auto res = inherent_data.putData(kSlotId, slot_); res.has_error()) {
       SL_ERROR(log_, "cannot put an inherent data: {}", res.error());
-      return BabeError::CAN_NOT_PREPARE_BLOCK;
+      return BlockProductionError::CAN_NOT_PREPARE_BLOCK;
     }
 
     parachain::ParachainInherentData parachain_inherent_data;
 
     {
-      auto &relay_parent = ctx.parent.hash;
+      auto &relay_parent = parent_.hash;
       parachain_inherent_data.bitfields =
           bitfield_store_->getBitfields(relay_parent);
 
@@ -389,11 +339,10 @@ namespace kagome::consensus::babe {
 
       {  // Fill disputes
         std::latch latch(1);
-        dispute_coordinator_->getDisputeForInherentData(
-            ctx.parent, [&](auto res) {
-              parachain_inherent_data.disputes = std::move(res);
-              latch.count_down();
-            });
+        dispute_coordinator_->getDisputeForInherentData(parent_, [&](auto res) {
+          parachain_inherent_data.disputes = std::move(res);
+          latch.count_down();
+        });
         latch.wait();
       }
     }
@@ -401,38 +350,40 @@ namespace kagome::consensus::babe {
     if (auto res = inherent_data.putData(kParachainId, parachain_inherent_data);
         res.has_error()) {
       SL_ERROR(log_, "cannot put an inherent data: {}", res.error());
-      return BabeError::CAN_NOT_PREPARE_BLOCK;
+      return BlockProductionError::CAN_NOT_PREPARE_BLOCK;
     }
 
     auto proposal_start = std::chrono::steady_clock::now();
-    // calculate babe_pre_digest
-    auto babe_pre_digest_res =
-        babePreDigest(ctx, slot_type, output, authority_index);
-    if (not babe_pre_digest_res) {
-      SL_ERROR(log_, "cannot propose a block: {}", babe_pre_digest_res.error());
-      return BabeError::CAN_NOT_PREPARE_BLOCK;
-    }
-    const auto &babe_pre_digest = babe_pre_digest_res.value();
 
-    auto propose = [this,
-                    self{shared_from_this()},
+    auto pre_digest_res = makePreDigest();
+    if (pre_digest_res.has_error()) {
+      SL_ERROR(log_,
+               "cannot propose a block due to pre digest generation error: {}",
+               pre_digest_res.error());
+      return BlockProductionError::CAN_NOT_PREPARE_BLOCK;
+    }
+    const auto &pre_digest = pre_digest_res.value();
+
+    auto propose = [self{shared_from_this()},
                     inherent_data{std::move(inherent_data)},
                     now,
                     proposal_start,
-                    babe_pre_digest{std::move(babe_pre_digest)},
-                    ctx]() mutable {
+                    pre_digest{std::move(pre_digest)},
+                    slot = slot_,
+                    parent = parent_]() mutable {
       auto changes_tracker =
           std::make_shared<storage::changes_trie::StorageChangesTrackerImpl>();
 
       // create new block
-      auto res = proposer_->propose(ctx.parent,
-                                    slots_util_.get()->slotFinishTime(ctx.slot)
-                                        - babe_config_repo_->slotDuration() / 3,
-                                    inherent_data,
-                                    {babe_pre_digest},
-                                    changes_tracker);
+      auto res =
+          self->proposer_->propose(parent,
+                                   self->slots_util_.get()->slotFinishTime(slot)
+                                       - self->timings_.slot_duration / 3,
+                                   inherent_data,
+                                   {pre_digest},
+                                   changes_tracker);
       if (not res) {
-        SL_ERROR(log_, "Cannot propose a block: {}", res.error());
+        SL_ERROR(self->log_, "Cannot propose a block: {}", res.error());
         return;
       }
       auto &unsealed_block = res.value();
@@ -440,11 +391,9 @@ namespace kagome::consensus::babe {
                        now,
                        proposal_start,
                        changes_tracker{std::move(changes_tracker)},
-                       unsealed_block{std::move(unsealed_block)},
-                       ctx]() mutable {
+                       unsealed_block{std::move(unsealed_block)}]() mutable {
         auto res =
-            self->processSlotLeadershipProposed(ctx,
-                                                now,
+            self->processSlotLeadershipProposed(now,
                                                 proposal_start,
                                                 std::move(changes_tracker),
                                                 std::move(unsealed_block));
@@ -453,16 +402,15 @@ namespace kagome::consensus::babe {
           return;
         }
       };
-      main_thread_->post(std::move(proposed));
+      post(self->main_thread_, std::move(proposed));
     };
 
-    io_context_->post(std::move(propose));
+    post(wasm_thread_, std::move(propose));
 
     return outcome::success();
   }
 
   outcome::result<void> Babe::processSlotLeadershipProposed(
-      const Context &ctx,
       uint64_t now,
       clock::SteadyClock::TimePoint proposal_start,
       std::shared_ptr<storage::changes_trie::StorageChangesTrackerImpl>
@@ -474,23 +422,24 @@ namespace kagome::consensus::babe {
 
     // Ensure block's extrinsics root matches extrinsics in block's body
     BOOST_ASSERT_MSG(
-        [&block]() {
+        ([&block]() {
           using boost::adaptors::transformed;
           const auto &ext_root_res = storage::trie::calculateOrderedTrieHash(
               storage::trie::StateVersion::V0,
               block.body | transformed([](const auto &ext) {
                 return common::Buffer{scale::encode(ext).value()};
-              }));
+              }),
+              crypto::blake2b);
           return ext_root_res.has_value()
              and (ext_root_res.value() == block.header.extrinsics_root);
-        }(),
+        }()),
         "Extrinsics root does not match extrinsics in the block");
 
     // seal the block
-    auto seal_res = sealBlock(ctx, block);
+    auto seal_res = makeSeal(block);
     if (!seal_res) {
       SL_ERROR(log_, "Failed to seal the block: {}", seal_res.error());
-      return BabeError::CAN_NOT_SEAL_BLOCK;
+      return BlockProductionError::CAN_NOT_SEAL_BLOCK;
     }
 
     // add seal digest item
@@ -499,15 +448,15 @@ namespace kagome::consensus::babe {
     // Calculate and save hash, 'cause seal digest was added
     primitives::calculateBlockHash(block.header, *hasher_);
 
-    if (clock_.now() > slots_util_.get()->slotFinishTime(
-            ctx.slot + kMaxBlockSlotsOvertime)) {
+    if (clock_.now()
+        > slots_util_.get()->slotFinishTime(slot_ + kMaxBlockSlotsOvertime)) {
       SL_WARN(log_,
               "Block was not built on time. "
               "Allowed slots ({}) have passed. "
               "If you are executing in debug mode, consider to rebuild in "
               "release",
               kMaxBlockSlotsOvertime);
-      return BabeError::WAS_NOT_BUILD_ON_TIME;
+      return BlockProductionError::WAS_NOT_BUILD_ON_TIME;
     }
 
     const auto block_info = block.header.blockInfo();
@@ -517,7 +466,7 @@ namespace kagome::consensus::babe {
     // add block to the block tree
     if (auto add_res = block_tree_->addBlock(block); not add_res) {
       SL_ERROR(log_, "Could not add block {}: {}", block_info, add_res.error());
-      return BabeError::CAN_NOT_SAVE_BLOCK;
+      return BlockProductionError::CAN_NOT_SAVE_BLOCK;
     }
 
     changes_tracker->onBlockAdded(
@@ -537,13 +486,13 @@ namespace kagome::consensus::babe {
         log_,
         "Announced block number {} in slot {} (epoch {}) with timestamp {}",
         block.header.number,
-        ctx.slot,
-        ctx.epoch,
+        slot_,
+        epoch_,
         now);
 
     auto current_best_block = block_tree_->bestBlock();
 
-    // Create new offchain worker for block if it is best only
+    // Create a new offchain worker for block if it is best only
     if (current_best_block.number > previous_best_block.number) {
       auto ocw_res = offchain_worker_api_->offchain_worker(
           block.header.parent_hash, block.header);
@@ -555,20 +504,6 @@ namespace kagome::consensus::babe {
     }
 
     return outcome::success();
-  }
-
-  void Babe::changeLotteryEpoch(
-      const Context &ctx,
-      const EpochNumber &epoch,
-      primitives::AuthorityIndex authority_index,
-      const primitives::BabeConfiguration &babe_config) const {
-    BOOST_ASSERT(ctx.keypair != nullptr);
-
-    auto threshold = calculateThreshold(
-        babe_config.leadership_rate, babe_config.authorities, authority_index);
-
-    lottery_->changeEpoch(
-        epoch, babe_config.randomness, threshold, *ctx.keypair);
   }
 
 }  // namespace kagome::consensus::babe

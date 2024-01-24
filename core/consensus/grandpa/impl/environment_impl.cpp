@@ -14,6 +14,7 @@
 #include "blockchain/block_tree.hpp"
 #include "consensus/grandpa/authority_manager.hpp"
 #include "consensus/grandpa/has_authority_set_change.hpp"
+#include "consensus/grandpa/i_verified_justification_queue.hpp"
 #include "consensus/grandpa/justification_observer.hpp"
 #include "consensus/grandpa/movable_round_state.hpp"
 #include "consensus/grandpa/voting_round_error.hpp"
@@ -39,22 +40,24 @@ namespace kagome::consensus::grandpa {
       std::shared_ptr<network::GrandpaTransmitter> transmitter,
       std::shared_ptr<parachain::IApprovedAncestor> approved_ancestor,
       LazySPtr<JustificationObserver> justification_observer,
+      std::shared_ptr<IVerifiedJustificationQueue> verified_justification_queue,
       std::shared_ptr<dispute::DisputeCoordinator> dispute_coordinator,
       std::shared_ptr<runtime::ParachainHost> parachain_api,
       std::shared_ptr<parachain::BackingStore> backing_store,
       std::shared_ptr<crypto::Hasher> hasher,
-      std::shared_ptr<boost::asio::io_context> main_thread_context)
+      WeakIoContext main_thread)
       : block_tree_{std::move(block_tree)},
         header_repository_{std::move(header_repository)},
         authority_manager_{std::move(authority_manager)},
         transmitter_{std::move(transmitter)},
         approved_ancestor_(std::move(approved_ancestor)),
         justification_observer_(std::move(justification_observer)),
+        verified_justification_queue_(std::move(verified_justification_queue)),
         dispute_coordinator_(std::move(dispute_coordinator)),
         parachain_api_(std::move(parachain_api)),
         backing_store_(std::move(backing_store)),
         hasher_(std::move(hasher)),
-        main_thread_context_{std::move(main_thread_context)},
+        main_thread_{std::move(main_thread)},
         logger_{log::createLogger("GrandpaEnvironment", "grandpa")} {
     BOOST_ASSERT(block_tree_ != nullptr);
     BOOST_ASSERT(header_repository_ != nullptr);
@@ -72,7 +75,7 @@ namespace kagome::consensus::grandpa {
         "wants to vote");
     metric_approval_lag_ = metrics_registry_->registerGaugeMetric(kApprovalLag);
 
-    main_thread_context_.start();
+    main_thread_.start();
   }
 
   outcome::result<bool> EnvironmentImpl::hasBlock(
@@ -227,11 +230,7 @@ namespace kagome::consensus::grandpa {
   void EnvironmentImpl::onCatchUpRequested(const libp2p::peer::PeerId &peer_id,
                                            VoterSetId set_id,
                                            RoundNumber round_number) {
-    REINVOKE(main_thread_context_,
-             onCatchUpRequested,
-             peer_id,
-             set_id,
-             round_number);
+    REINVOKE(main_thread_, onCatchUpRequested, peer_id, set_id, round_number);
     network::CatchUpRequest message{.round_number = round_number,
                                     .voter_set_id = set_id};
     transmitter_->sendCatchUpRequest(peer_id, std::move(message));
@@ -244,7 +243,7 @@ namespace kagome::consensus::grandpa {
       std::vector<SignedPrevote> prevote_justification,
       std::vector<SignedPrecommit> precommit_justification,
       BlockInfo best_final_candidate) {
-    REINVOKE(main_thread_context_,
+    REINVOKE(main_thread_,
              onCatchUpRespond,
              peer_id,
              set_id,
@@ -265,10 +264,10 @@ namespace kagome::consensus::grandpa {
   void EnvironmentImpl::onVoted(RoundNumber round,
                                 VoterSetId set_id,
                                 const SignedMessage &vote) {
-    main_thread_context_.execute([wself{weak_from_this()},
-                                  round{std::move(round)},
-                                  set_id{std::move(set_id)},
-                                  vote]() mutable {
+    main_thread_.execute([wself{weak_from_this()},
+                          round{std::move(round)},
+                          set_id{std::move(set_id)},
+                          vote]() mutable {
       if (auto self = wself.lock()) {
         SL_VERBOSE(
             self->logger_,
@@ -293,10 +292,10 @@ namespace kagome::consensus::grandpa {
   void EnvironmentImpl::sendState(const libp2p::peer::PeerId &peer_id,
                                   const MovableRoundState &state,
                                   VoterSetId voter_set_id) {
-    main_thread_context_.execute([wself{weak_from_this()},
-                                  peer_id,
-                                  voter_set_id{std::move(voter_set_id)},
-                                  state]() mutable {
+    main_thread_.execute([wself{weak_from_this()},
+                          peer_id,
+                          voter_set_id{std::move(voter_set_id)},
+                          state]() mutable {
       if (auto self = wself.lock()) {
         auto send = [&](const SignedMessage &vote) {
           SL_DEBUG(
@@ -340,12 +339,8 @@ namespace kagome::consensus::grandpa {
       return;
     }
 
-    REINVOKE(main_thread_context_,
-             onCommitted,
-             round,
-             voter_ser_id,
-             vote,
-             justification);
+    REINVOKE(
+        main_thread_, onCommitted, round, voter_ser_id, vote, justification);
     SL_DEBUG(logger_, "Round #{}: Send commit of block {}", round, vote);
 
     network::FullCommitMessage message{
@@ -364,11 +359,8 @@ namespace kagome::consensus::grandpa {
   void EnvironmentImpl::onNeighborMessageSent(RoundNumber round,
                                               VoterSetId set_id,
                                               BlockNumber last_finalized) {
-    REINVOKE(main_thread_context_,
-             onNeighborMessageSent,
-             round,
-             set_id,
-             last_finalized);
+    REINVOKE(
+        main_thread_, onNeighborMessageSent, round, set_id, last_finalized);
     SL_DEBUG(logger_, "Round #{}: Send neighbor message", round);
 
     network::GrandpaNeighborMessage message{.round_number = round,
@@ -404,12 +396,23 @@ namespace kagome::consensus::grandpa {
 
   outcome::result<void> EnvironmentImpl::finalize(
       VoterSetId id, const GrandpaJustification &grandpa_justification) {
-    primitives::Justification justification;
-    OUTCOME_TRY(enc, scale::encode(grandpa_justification));
-    justification.data.put(enc);
-    OUTCOME_TRY(block_tree_->finalize(grandpa_justification.block_info.hash,
-                                      justification));
-
+    auto voters_res = authority_manager_->authorities(
+        grandpa_justification.block_info, false);
+    if (not voters_res) {
+      return VotingRoundError::NO_KNOWN_AUTHORITIES_FOR_BLOCK;
+    }
+    auto &voters = **voters_res;
+    if (id != voters.id) {
+      SL_ERROR(
+          logger_,
+          "BUG: VotingRoundImpl::doFinalize, block {}, set {} != {}, round {}",
+          id,
+          voters.id,
+          grandpa_justification.round_number,
+          grandpa_justification.block_info.number);
+      return VotingRoundError::JUSTIFICATION_FOR_BLOCK_IN_PAST;
+    }
+    verified_justification_queue_->addVerified(id, grandpa_justification);
     return outcome::success();
   }
 

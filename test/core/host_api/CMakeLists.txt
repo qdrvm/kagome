@@ -44,6 +44,7 @@ target_link_libraries(storage_extension_test
     storage_extension
     dummy_error
     logger_for_tests
+    hasher
     )
 
 addtest(child_storage_extension_test

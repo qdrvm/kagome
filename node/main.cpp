@@ -80,9 +80,11 @@ int main(int argc, const char **argv) {
     }
   }
 
-  auto logger = kagome::log::createLogger("AppConfiguration",
-                                          kagome::log::defaultGroupName);
-  auto configuration = std::make_shared<AppConfigurationImpl>(logger);
+  auto logger =
+      kagome::log::createLogger("Main", kagome::log::defaultGroupName);
+  auto configuration = std::make_shared<AppConfigurationImpl>();
+
+  SL_INFO(logger, "Kagome started. Version: {} ", configuration->nodeVersion());
 
   kagome::common::setFdLimit(SIZE_MAX);
 
@@ -107,6 +109,9 @@ int main(int argc, const char **argv) {
 
     app->run();
   }
+
+  SL_INFO(logger, "Kagome stopped\n");
+  logger->flush();
 
   return EXIT_SUCCESS;
 }

@@ -121,7 +121,7 @@ namespace kagome::blockchain {
       return outcome::success();
     }
 
-    Descent descend(const primitives::BlockInfo &from) const {
+    Descent startDescentFrom(const primitives::BlockInfo &from) const {
       return {block_tree_, from};
     }
 

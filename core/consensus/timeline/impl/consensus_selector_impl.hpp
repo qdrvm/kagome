@@ -9,22 +9,35 @@
 #include "consensus/consensus_selector.hpp"
 #include "utils/lru.hpp"
 
+namespace kagome::blockchain {
+  class BlockHeaderRepository;
+
+}
 namespace kagome::consensus {
 
   class ConsensusSelectorImpl final : public ConsensusSelector {
    public:
-    ConsensusSelectorImpl(std::vector<std::shared_ptr<ProductionConsensus>>
-                              production_consensuses,
-                          std::vector<std::shared_ptr<FinalityConsensus>>  //
-                              finality_consensuses);
+    ConsensusSelectorImpl(
+        std::shared_ptr<const blockchain::BlockHeaderRepository> header_repo,
+        std::vector<std::shared_ptr<ProductionConsensus>>
+            production_consensuses,
+        std::vector<std::shared_ptr<FinalityConsensus>>  //
+            finality_consensuses);
 
     std::shared_ptr<ProductionConsensus> getProductionConsensus(
         const primitives::BlockInfo &parent_block) const override;
 
+    std::shared_ptr<ProductionConsensus> getProductionConsensus(
+        const primitives::BlockHeader &header) const override;
+
     std::shared_ptr<FinalityConsensus> getFinalityConsensus(
         const primitives::BlockInfo &parent_block) const override;
 
+    std::shared_ptr<FinalityConsensus> getFinalityConsensus(
+        const primitives::BlockHeader &block_header) const override;
+
    private:
+    std::shared_ptr<const blockchain::BlockHeaderRepository> header_repo_;
     std::vector<std::shared_ptr<ProductionConsensus>> production_consensuses_;
     std::vector<std::shared_ptr<FinalityConsensus>> finality_consensuses_;
 

@@ -95,7 +95,7 @@ namespace kagome::host_api {
     /**
      * @see HostApi::ext_default_child_storage_exists_version_1
      */
-    uint32_t ext_default_child_storage_exists_version_1(
+    int32_t ext_default_child_storage_exists_version_1(
         runtime::WasmSpan child_storage_key, runtime::WasmSpan key) const;
 
     /**

@@ -2,15 +2,15 @@
 # https://docs.hunter.sh/en/latest/packages/
 
 if (TESTING)
-    # https://docs.hunter.sh/en/latest/packages/pkg/GTest.html
-    hunter_add_package(GTest)
-    find_package(GTest CONFIG REQUIRED)
-endif()
+  # https://docs.hunter.sh/en/latest/packages/pkg/GTest.html
+  hunter_add_package(GTest)
+  find_package(GTest CONFIG REQUIRED)
+endif ()
 
 if (BACKWARD)
-    hunter_add_package(backward-cpp)
-    find_package(Backward)
-endif()
+  hunter_add_package(backward-cpp)
+  find_package(Backward)
+endif ()
 
 # https://docs.hunter.sh/en/latest/packages/pkg/Boost.html
 hunter_add_package(Boost COMPONENTS random filesystem program_options date_time)
@@ -71,12 +71,28 @@ find_package(libsecp256k1 CONFIG REQUIRED)
 hunter_add_package(scale)
 find_package(scale CONFIG REQUIRED)
 
-hunter_add_package(wavm)
-find_package(LLVM CONFIG REQUIRED)
-find_package(WAVM CONFIG REQUIRED)
+hunter_add_package(zstd)
+find_package(zstd CONFIG REQUIRED)
+
+if ("${WASM_COMPILER}" STREQUAL "WAVM")
+  hunter_add_package(wavm)
+  find_package(LLVM CONFIG REQUIRED)
+  find_package(WAVM CONFIG REQUIRED)
+endif ()
 
 hunter_add_package(zstd)
 find_package(zstd CONFIG REQUIRED)
+
+if ("${WASM_COMPILER}" STREQUAL "WasmEdge")
+  hunter_add_package(WasmEdge)
+  find_library(WASM_EDGE_LIBRARY NAMES libwasmedge.a REQUIRED PATHS "${WASMEDGE_ROOT}")
+  add_library(WasmEdge::WasmEdge STATIC IMPORTED)
+  set_property(TARGET WasmEdge::WasmEdge PROPERTY IMPORTED_LOCATION "${WASM_EDGE_LIBRARY}")
+  target_link_libraries(WasmEdge::WasmEdge INTERFACE curses zstd::libzstd_static)
+  if (APPLE)
+    target_link_libraries(WasmEdge::WasmEdge INTERFACE xar)
+  endif()
+endif ()
 
 hunter_add_package(rocksdb)
 find_package(RocksDB CONFIG REQUIRED)

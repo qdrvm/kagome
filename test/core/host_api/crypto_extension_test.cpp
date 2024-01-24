@@ -473,42 +473,6 @@ TEST_F(CryptoExtensionTest, Sr25519VerifyFailure) {
 }
 
 /**
- * @given initialized crypto extension without started batch
- * @when trying to finish batch
- * @then exception is thrown
- */
-// TODO (kamilsa) 05.07.21 https://github.com/soramitsu/kagome/issues/804
-// TEST_F(CryptoExtensionTest, VerificationBatching_FinishWithoutStart) {
-//}
-
-/**
- * @given initialized crypto extension without started batch
- * @when trying to start batch twice
- * @then exception is thrown at second call
- */
-// TODO (kamilsa) 05.07.21 https://github.com/soramitsu/kagome/issues/804
-// TEST_F(CryptoExtensionTest, VerificationBatching_StartAgainWithoutFinish) {
-//}
-
-/**
- * @given initialized crypto extension without started batch
- * @when start batch, check valid signature, and finish batch
- * @then verification returns positive, batch result is positive too
- */
-// TODO (kamilsa) 05.07.21 https://github.com/soramitsu/kagome/issues/804
-// TEST_F(CryptoExtensionTest, VerificationBatching_NormalOrderAndSuccess) {
-//}
-
-/**
- * @given initialized crypto extension without started batch
- * @when start batch, check valid signature, and finish batch
- * @then verification returns positive, but batch returns negative result
- */
-// TODO (kamilsa) 05.07.21 https://github.com/soramitsu/kagome/issues/804
-// TEST_F(CryptoExtensionTest, VerificationBatching_NormalOrderAndInvalid) {
-//}
-
-/**
  * @given initialized crypto extensions @and some bytes
  * @when XX-hashing those bytes to get 16-byte hash
  * @then resulting hash is correct

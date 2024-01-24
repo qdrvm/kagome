@@ -10,6 +10,8 @@
 #include <optional>
 #include <utility>
 
+#include "outcome/outcome.hpp"
+
 namespace kagome::runtime {
   /**
    * @brief type of wasm log levels
@@ -21,43 +23,42 @@ namespace kagome::runtime {
     Debug = 3,
     Trace = 4,
   };
-  /**
-   * @brief type of wasm memory is 32 bit integer
-   */
-  using WasmPointer = uint32_t;
+
+  using WasmPointer = int32_t;
+
   /**
    * @brief combination of pointer and size, where less significant part
    * represents wasm pointer, and most significant represents size
    */
-  using WasmSpan = uint64_t;
+  using WasmSpan = int64_t;
+
   /**
-   * @brief Size type is uint32_t because we are working in 32 bit address space
+   * @brief Size type is int32_t because we are working in 32 bit address space
    */
-  using WasmSize = uint32_t;
+  using WasmSize = int32_t;
+
+  using WasmEnum = int32_t;
+
   /**
-   * @brief Enum value is uint32_t
-   */
-  using WasmEnum = uint32_t;
-  /**
-   * @brief Offset type is uint32_t because we are working in 32 bit address
+   * @brief Offset type is int32_t because we are working in 32 bit address
    * space
    */
-  using WasmOffset = uint32_t;
+  using WasmOffset = int32_t;
 
   using WasmI32 = int32_t;
-  using WasmU64 = uint64_t;
+  using WasmI64 = int64_t;
 
   struct MemoryLimits {
-    std::optional<WasmSize> max_stack_size{};
-    std::optional<WasmSize> max_stack_values_num{};
-    std::optional<WasmSize> max_memory_pages_num{};
+    std::optional<uint32_t> max_stack_size{};
+    std::optional<uint32_t> max_stack_values_num{};
+    std::optional<uint32_t> max_memory_pages_num{};
   };
 
   struct MemoryConfig {
-    MemoryConfig(WasmSize heap_base, MemoryLimits limits = {})
+    explicit MemoryConfig(uint32_t heap_base, MemoryLimits limits = {})
         : heap_base{heap_base}, limits{std::move(limits)} {}
 
-    WasmSize heap_base;
+    uint32_t heap_base;
     MemoryLimits limits;
   };
 
@@ -71,4 +72,11 @@ namespace kagome::runtime {
 
     return {minor_part, major_part};
   }
+
+  enum class Error {
+    COMPILATION_FAILED = 1,
+  };
+
 }  // namespace kagome::runtime
+
+OUTCOME_HPP_DECLARE_ERROR(kagome::runtime, Error);

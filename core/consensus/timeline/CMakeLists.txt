@@ -13,9 +13,12 @@ add_library(timeline
     impl/block_addition_error.cpp
     impl/consensus_selector_impl.cpp
     impl/timeline_error.cpp
-    impl/block_production_error.cpp
+    impl/slot_leadership_error.cpp
     )
 target_link_libraries(timeline
     logger
+    telemetry
+    network
     )
 kagome_install(timeline)
+kagome_clear_objects(timeline)

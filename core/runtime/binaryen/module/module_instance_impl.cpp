@@ -7,13 +7,14 @@
 // Enables binaryen debug mode: every executed WASM instruction is printed out
 // using Indenter (defined below) It is a massive amount of information, so it
 // should be turned on only for specific cases when we need to follow web
-// assembly execution very precisely. #define WASM_INTERPRETER_DEBUG
+// assembly execution very precisely.
+// #define WASM_INTERPRETER_DEBUG
 
 #include "runtime/binaryen/module/module_instance_impl.hpp"
 
 #include "runtime/binaryen/memory_impl.hpp"
 #include "runtime/binaryen/module/module_impl.hpp"
-#include "runtime/common/runtime_transaction_error.hpp"
+#include "runtime/common/runtime_execution_error.hpp"
 #include "runtime/memory_provider.hpp"
 
 #include <binaryen/wasm-interpreter.h>
@@ -58,6 +59,7 @@ namespace wasm {
 
 #include "host_api/host_api.hpp"
 #include "runtime/binaryen/runtime_external_interface.hpp"
+#include "runtime/runtime_context.hpp"
 
 OUTCOME_CPP_DEFINE_CATEGORY(kagome::runtime::binaryen,
                             ModuleInstanceImpl::Error,
@@ -97,11 +99,13 @@ namespace kagome::runtime::binaryen {
     return parent_;
   }
 
-  outcome::result<PtrSize> ModuleInstanceImpl::callExportFunction(
-      std::string_view name, common::BufferView encoded_args) const {
-    auto memory = env_.memory_provider->getCurrentMemory().value();
-
-    PtrSize args{memory.get().storeBuffer(encoded_args)};
+  outcome::result<common::Buffer> ModuleInstanceImpl::callExportFunction(
+      RuntimeContext &ctx,
+      std::string_view name,
+      common::BufferView encoded_args) const {
+    PtrSize args{
+        getEnvironment().memory_provider->getCurrentMemory()->get().storeBuffer(
+            encoded_args)};
 
     const auto args_list =
         wasm::LiteralList{wasm::Literal{args.ptr}, wasm::Literal{args.size}};
@@ -110,15 +114,16 @@ namespace kagome::runtime::binaryen {
             module_instance_->wasm.getExportOrNull(wasm::Name{name.data()});
         nullptr == res) {
       SL_DEBUG(logger_, "The requested function {} not found", name);
-      return RuntimeTransactionError::EXPORT_FUNCTION_NOT_FOUND;
+      return RuntimeExecutionError::EXPORT_FUNCTION_NOT_FOUND;
     }
 
     try {
-      const auto res = static_cast<uint64_t>(
+      const auto res =
           module_instance_->callExport(wasm::Name{name.data()}, args_list)
-              .geti64());
-
-      return PtrSize{res};
+              .geti64();
+      auto [ptr, size] = PtrSize{res};
+      return getEnvironment().memory_provider->getCurrentMemory()->get().loadN(
+          ptr, size);
 
     } catch (wasm::ExitException &e) {
       return Error::UNEXPECTED_EXIT;

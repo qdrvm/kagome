@@ -9,6 +9,8 @@
 #include <prometheus/text_serializer.h>
 #include "log/logger.hpp"
 #include "registry_impl.hpp"
+#include "utils/retain_if.hpp"
+#include "utils/wptr.hpp"
 
 using namespace prometheus;
 
@@ -82,27 +84,16 @@ namespace kagome::metrics {
   void PrometheusHandler::removeCollectable(
       const std::weak_ptr<Collectable> &collectable) {
     std::lock_guard<std::mutex> lock{collectables_mutex_};
-
-    auto locked = collectable.lock();
-    auto same_pointer = [&locked](const std::weak_ptr<Collectable> &candidate) {
-      return locked == candidate.lock();
-    };
-
-    collectables_.erase(
-        std::remove_if(
-            std::begin(collectables_), std::end(collectables_), same_pointer),
-        std::end(collectables_));
+    retain_if(collectables_, [&](const std::weak_ptr<Collectable> &candidate) {
+      return not wptrEq(candidate, collectable);
+    });
   }
 
   void PrometheusHandler::cleanupStalePointers(
       std::vector<std::weak_ptr<Collectable>> &collectables) {
-    collectables.erase(
-        std::remove_if(std::begin(collectables),
-                       std::end(collectables),
-                       [](const std::weak_ptr<Collectable> &candidate) {
-                         return candidate.expired();
-                       }),
-        std::end(collectables));
+    retain_if(collectables, [](const std::weak_ptr<Collectable> &candidate) {
+      return not candidate.expired();
+    });
   }
 
 }  // namespace kagome::metrics

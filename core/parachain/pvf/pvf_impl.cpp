@@ -6,10 +6,15 @@
 
 #include "parachain/pvf/pvf_impl.hpp"
 
-#include <future>
+#include <future> // TODO subject to remove
 
 #include "application/app_configuration.hpp"
+#include "application/app_state_manager.hpp"
+#include "blockchain/block_tree.hpp"
+#include "common/visitor.hpp"
 #include "metrics/histogram_timer.hpp"
+#include "parachain/pvf/module_precompiler.hpp"
+#include "runtime/common/runtime_execution_error.hpp"
 #include "parachain/pvf/pvf_worker_types.hpp"
 #include "parachain/pvf/run_worker.hpp"
 #include "runtime/common/runtime_instances_pool.hpp"
@@ -19,7 +24,8 @@
 #include "runtime/module_factory.hpp"
 #include "runtime/module_repository.hpp"
 #include "runtime/runtime_code_provider.hpp"
-#include "utils/argv0.hpp"
+#include "utils/argv0.hpp" // TODO reconsider naming
+#include "scale/std_variant.hpp"
 
 OUTCOME_CPP_DEFINE_CATEGORY(kagome::parachain, PvfError, e) {
   using kagome::parachain::PvfError;
@@ -113,30 +119,54 @@ namespace kagome::parachain {
   };
 
   PvfImpl::PvfImpl(
+      const Config &config,
       std::shared_ptr<boost::asio::io_context> io_context,
       std::shared_ptr<libp2p::basic::Scheduler> scheduler,
       std::shared_ptr<crypto::Hasher> hasher,
       std::shared_ptr<runtime::ModuleFactory> module_factory,
       std::shared_ptr<runtime::RuntimePropertiesCache> runtime_properties_cache,
-      std::shared_ptr<blockchain::BlockHeaderRepository>
-          block_header_repository,
+      std::shared_ptr<blockchain::BlockTree> block_tree,
       std::shared_ptr<crypto::Sr25519Provider> sr25519_provider,
       std::shared_ptr<runtime::ParachainHost> parachain_api,
       std::shared_ptr<runtime::Executor> executor,
       std::shared_ptr<runtime::RuntimeContextFactory> ctx_factory,
-      std::shared_ptr<application::AppConfiguration> config)
-      : io_context_{std::move(io_context)},
+      std::shared_ptr<application::AppStateManager> state_manager)
+      : config_{config},
+        io_context_{std::move(io_context)},
         scheduler_{std::move(scheduler)},
         hasher_{std::move(hasher)},
         runtime_properties_cache_{std::move(runtime_properties_cache)},
-        block_header_repository_{std::move(block_header_repository)},
+        block_tree_{std::move(block_tree)},
         sr25519_provider_{std::move(sr25519_provider)},
         parachain_api_{std::move(parachain_api)},
         executor_{std::move(executor)},
         ctx_factory_{std::move(ctx_factory)},
-        log_{log::createLogger("Pvf")},
+        log_{log::createLogger("PVF Executor", "pvf_executor")},
         runtime_cache_{std::make_shared<runtime::RuntimeInstancesPool>(
-            module_factory, config->parachainRuntimeInstanceCacheSize())} {}
+            module_factory, config.runtime_instance_cache_size)},
+        precompiler_{std::make_shared<ModulePrecompiler>(
+            ModulePrecompiler::Config{config_.precompile_threads_num},
+            parachain_api_,
+            runtime_cache_,
+            hasher_)} {
+    state_manager->takeControl(*this);
+  }
+
+  bool PvfImpl::prepare() {
+    if (config_.precompile_modules) {
+      std::thread t{[self = shared_from_this()]() {
+        auto res = self->precompiler_->precompileModulesAt(
+            self->block_tree_->getLastFinalized().hash);
+        if (!res) {
+          SL_ERROR(self->log_,
+                   "Parachain module precompilation failed: {}",
+                   res.error());
+        }
+      }};
+      t.detach();
+    }
+    return true;
+  }
 
   outcome::result<Pvf::Result> PvfImpl::pvfValidate(
       const PersistedValidationData &data,
@@ -237,6 +267,9 @@ namespace kagome::parachain {
       const common::Hash256 &code_hash,
       const ParachainRuntime &code_zstd,
       const ValidationParams &params) const {
+    OUTCOME_TRY(instance,
+                runtime_cache_->instantiateFromCode(code_hash, code_zstd));
+
     runtime::RuntimeContext::ContextParams executor_params{};
     auto &parent_hash = receipt.descriptor.relay_parent;
     OUTCOME_TRY(session_index,
@@ -244,7 +277,7 @@ namespace kagome::parachain {
     OUTCOME_TRY(
         session_params,
         parachain_api_->session_executor_params(parent_hash, session_index));
-
+// TODO add optional launch in the same process
     std::chrono::seconds kTimeout{2};
 
     PvfWorkerInput input{

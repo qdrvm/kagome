@@ -77,6 +77,7 @@ namespace kagome::runtime::binaryen {
   common::BufferView MemoryImpl::loadN(kagome::runtime::WasmPointer addr,
                                        kagome::runtime::WasmSize n) const {
     BOOST_ASSERT(size() > addr and size() - addr >= n);
+    SL_TRACE(logger_, "load buffer with size {} at {}", n, addr);
     return common::BufferView{memory_->getBuffer<const uint8_t>(addr, n)};
   }
 
@@ -88,6 +89,7 @@ namespace kagome::runtime::binaryen {
     for (auto i = addr; i < addr + length; i++) {
       res.push_back(static_cast<char>(memory_->get<uint8_t>(i)));
     }
+    SL_TRACE(logger_, "load buffer with size {} at {}", length, addr);
     return res;
   }
 
@@ -121,6 +123,7 @@ namespace kagome::runtime::binaryen {
                                common::BufferView value) {
     BOOST_ASSERT((allocator_->checkAddress(addr, value.size())));
     memory_->set(addr, std::move(value));
+    SL_TRACE(logger_, "store buffer with size {} at {}", value.size(), addr);
   }
 
   WasmSpan MemoryImpl::storeBuffer(common::BufferView value) {

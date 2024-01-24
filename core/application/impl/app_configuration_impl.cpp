@@ -6,10 +6,12 @@
 
 #include "application/impl/app_configuration_impl.hpp"
 
+#include <charconv>
 #include <limits>
 #include <regex>
 #include <string>
 
+#include <fmt/std.h>
 #include <rapidjson/document.h>
 #include <rapidjson/error/en.h>
 #include <rapidjson/filereadstream.h>
@@ -17,7 +19,6 @@
 #include <boost/program_options.hpp>
 #include <boost/uuid/uuid_generators.hpp>
 #include <boost/uuid/uuid_io.hpp>
-#include <charconv>
 #include <libp2p/layer/websocket/wss_adaptor.hpp>
 
 #include "api/transport/tuner.hpp"
@@ -30,7 +31,6 @@
 #include "filesystem/common.hpp"
 #include "filesystem/directories.hpp"
 #include "log/formatters/filepath.hpp"
-#include "log/formatters/optional.hpp"
 #include "utils/read_file.hpp"
 
 namespace {
@@ -86,6 +86,8 @@ namespace {
   const auto def_sync_method = kagome::application::SyncMethod::Full;
   const auto def_runtime_exec_method =
       kagome::application::AppConfiguration::RuntimeExecutionMethod::Interpret;
+  const auto def_runtime_interpreter =
+      kagome::application::AppConfiguration::RuntimeInterpreter::Off;
   const auto def_use_wavm_cache_ = false;
   const auto def_purge_wavm_cache_ = false;
   const auto def_offchain_worker_mode =
@@ -101,6 +103,11 @@ namespace {
   const uint32_t def_random_walk_interval = 15;
   const auto def_full_sync = "Full";
   const auto def_wasm_execution = "Interpreted";
+#if KAGOME_WASM_COMPILER_WASM_EDGE == 1
+  const auto def_wasm_interpreter = "WasmEdge";
+#else
+  const auto def_wasm_interpreter = "Binaryen";
+#endif
   const uint32_t def_db_cache_size = 1024;
   const uint32_t def_parachain_runtime_instance_cache_size = 100;
 
@@ -156,6 +163,22 @@ namespace {
     return std::nullopt;
   }
 
+  std::array<std::string_view, 2> execution_methods{"Interpreted", "Compiled"};
+
+  std::string execution_methods_str =
+      fmt::format("[{}]", fmt::join(execution_methods, ", "));
+
+  std::array<std::string_view, 1 + KAGOME_WASM_COMPILER_WASM_EDGE>
+      interpreters {
+#if KAGOME_WASM_COMPILER_WASM_EDGE == 1
+    "WasmEdge",
+#endif
+        "Binaryen"
+  };
+
+  std::string interpreters_str =
+      fmt::format("[{}]", fmt::join(interpreters, ", "));
+
   std::optional<kagome::application::AppConfiguration::RuntimeExecutionMethod>
   str_to_runtime_exec_method(std::string_view str) {
     using REM = kagome::application::AppConfiguration::RuntimeExecutionMethod;
@@ -164,6 +187,18 @@ namespace {
     }
     if (str == "Compiled") {
       return REM::Compile;
+    }
+    return std::nullopt;
+  }
+
+  std::optional<kagome::application::AppConfiguration::RuntimeInterpreter>
+  str_to_runtime_interpreter(std::string_view str) {
+    using RI = kagome::application::AppConfiguration::RuntimeInterpreter;
+    if (str == "WasmEdge") {
+      return RI::WasmEdge;
+    }
+    if (str == "Binaryen") {
+      return RI::Binaryen;
     }
     return std::nullopt;
   }
@@ -185,12 +220,12 @@ namespace {
 
   std::optional<kagome::primitives::BlockId> str_to_recovery_state(
       std::string_view str) {
-    kagome::primitives::BlockNumber bn;
     auto res = kagome::primitives::BlockHash::fromHex(str);
     if (res.has_value()) {
       return {{res.value()}};
     }
 
+    kagome::primitives::BlockNumber bn{};
     auto result = std::from_chars(str.data(), str.data() + str.size(), bn);
     if (result.ec != std::errc::invalid_argument && std::to_string(bn) == str) {
       return {{bn}};
@@ -223,8 +258,9 @@ namespace {
 
 namespace kagome::application {
 
-  AppConfigurationImpl::AppConfigurationImpl(log::Logger logger)
-      : logger_(std::move(logger)),
+  AppConfigurationImpl::AppConfigurationImpl()
+      : logger_(kagome::log::createLogger("Configuration",
+                                          kagome::log::defaultGroupName)),
         roles_(def_roles),
         save_node_key_(false),
         is_telemetry_enabled_(true),
@@ -246,15 +282,14 @@ namespace kagome::application {
         random_walk_interval_(def_random_walk_interval),
         sync_method_{def_sync_method},
         runtime_exec_method_{def_runtime_exec_method},
+        runtime_interpreter_{def_runtime_interpreter},
         use_wavm_cache_(def_use_wavm_cache_),
         purge_wavm_cache_(def_purge_wavm_cache_),
         offchain_worker_mode_{def_offchain_worker_mode},
         enable_offchain_indexing_{def_enable_offchain_indexing},
         recovery_state_{def_block_to_recover},
         db_cache_size_{def_db_cache_size},
-        state_pruning_depth_{} {
-    SL_INFO(logger_, "Kagome started. Version: {} ", buildVersion());
-  }
+        state_pruning_depth_{} {}
 
   fs::path AppConfigurationImpl::chainSpecPath() const {
     return chain_spec_path_.native();
@@ -839,12 +874,18 @@ namespace kagome::application {
         ("sync", po::value<std::string>()->default_value(def_full_sync),
           "choose the desired sync method (Full, Fast). Full is used by default.")
         ("wasm-execution", po::value<std::string>()->default_value(def_wasm_execution),
-          "choose the desired wasm execution method (Compiled, Interpreted)")
+          fmt::format("choose the desired wasm execution method ({})", execution_methods_str).c_str())
+        ("wasm-interpreter", po::value<std::string>()->default_value(def_wasm_interpreter),
+          fmt::format("choose the desired wasm interpreter ({})", interpreters_str).c_str())
         ("unsafe-cached-wavm-runtime", "use WAVM runtime cache")
         ("purge-wavm-cache", "purge WAVM runtime cache")
         ("parachain-runtime-instance-cache-size",
           po::value<uint32_t>()->default_value(def_parachain_runtime_instance_cache_size),
           "Number of parachain runtime instances to keep cached")
+        ("no-precompile-parachain-modules", po::bool_switch(), "Don't precompile parachain runtime modules at node startup")
+        ("parachain-precompilation-thread-num",
+         po::value<uint32_t>()->default_value(parachain_precompilation_thread_num_),
+         "Number of threads that precompile parachain runtime modules at node startup")
         ;
     po::options_description benchmark_desc("Benchmark options");
     benchmark_desc.add_options()
@@ -1368,14 +1409,45 @@ namespace kagome::application {
           if (not runtime_exec_method_opt) {
             exec_method_value_error = true;
             SL_ERROR(logger_,
-                     "Invalid runtime execution method specified: '{}'",
-                     val);
+                     "Invalid runtime execution method specified: '{}'. "
+                     "Available methods are: {}",
+                     val,
+                     execution_methods_str);
           } else {
             runtime_exec_method_ = runtime_exec_method_opt.value();
           }
         });
     if (exec_method_value_error) {
       return false;
+    }
+
+    // default interpreter
+    if (runtime_exec_method_ == RuntimeExecutionMethod::Interpret) {
+#if KAGOME_WASM_COMPILER_WASM_EDGE == 1
+      runtime_interpreter_ = RuntimeInterpreter::WasmEdge;
+#else
+      runtime_interpreter_ = RuntimeInterpreter::Binaryen;
+#endif
+    }
+
+    if (auto val = find_argument<std::string>(vm, "wasm-interpreter");
+        val.has_value()) {
+      if (runtime_exec_method_ == RuntimeExecutionMethod::Compile) {
+        SL_ERROR(
+            logger_,
+            "--wasm-interpreter defined, but the execution mode is Compile");
+        return false;
+      }
+      if (auto interpreter = str_to_runtime_interpreter(*val);
+          interpreter.has_value()) {
+        runtime_interpreter_ = *interpreter;
+      } else {
+        SL_ERROR(logger_,
+                 "Invalid wasm interpreter '{}', available options are: {}",
+                 *val,
+                 interpreters_str);
+        return false;
+      }
     }
 
     if (vm.count("unsafe-cached-wavm-runtime") > 0) {
@@ -1400,6 +1472,17 @@ namespace kagome::application {
             vm, "parachain-runtime-instance-cache-size");
         arg.has_value()) {
       parachain_runtime_instance_cache_size_ = *arg;
+    }
+
+    if (!find_argument(vm, "validator")
+        || find_argument(vm, "no-precompile-parachain-modules")) {
+      should_precompile_parachain_modules_ = false;
+    }
+
+    if (auto arg =
+            find_argument<uint32_t>(vm, "parachain-precompilation-thread-num");
+        arg.has_value()) {
+      parachain_precompilation_thread_num_ = *arg;
     }
 
     bool offchain_worker_value_error = false;
@@ -1440,7 +1523,7 @@ namespace kagome::application {
         return false;
       }
       auto repeat_opt = find_argument<uint16_t>(vm, "repeat");
-      if (!to_opt) {
+      if (!repeat_opt) {
         SL_ERROR(logger_, "Required argument --repeat is not provided");
         return false;
       }

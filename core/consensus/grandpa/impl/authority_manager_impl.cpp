@@ -10,12 +10,12 @@
 #include "blockchain/block_tree.hpp"
 #include "consensus/grandpa/authority_manager_error.hpp"
 #include "consensus/grandpa/impl/kusama_hard_forks.hpp"
+#include "consensus/grandpa/types/scheduled_change.hpp"
 #include "runtime/runtime_api/grandpa_api.hpp"
 #include "storage/map_prefix/prefix.hpp"
 #include "storage/predefined_keys.hpp"
 
 using kagome::common::Buffer;
-using kagome::primitives::AuthoritySetId;
 
 namespace kagome::consensus::grandpa {
 
@@ -62,7 +62,7 @@ namespace kagome::consensus::grandpa {
     return true;
   }
 
-  std::optional<std::shared_ptr<const primitives::AuthoritySet>>
+  std::optional<std::shared_ptr<const AuthoritySet>>
   AuthorityManagerImpl::authorities(const primitives::BlockInfo &target_block,
                                     IsBlockFinalized finalized) const {
     if (auto r = block_tree_->hasBlockHeader(target_block.hash);
@@ -82,10 +82,10 @@ namespace kagome::consensus::grandpa {
     return std::nullopt;
   }
 
-  outcome::result<std::shared_ptr<const primitives::AuthoritySet>>
+  outcome::result<std::shared_ptr<const AuthoritySet>>
   AuthorityManagerImpl::authoritiesOutcome(const primitives::BlockInfo &block,
                                            bool next) const {
-    auto descent = indexer_.descend(block);
+    auto descent = indexer_.startDescentFrom(block);
     outcome::result<void> cb_res = outcome::success();
     auto cb = [&](std::optional<primitives::BlockInfo> prev,
                   size_t i_first,
@@ -93,11 +93,10 @@ namespace kagome::consensus::grandpa {
       cb_res = [&]() -> outcome::result<void> {
         BOOST_ASSERT(i_first >= i_last);
         auto info = descent.path_.at(i_first);
-        std::shared_ptr<const primitives::AuthoritySet> prev_state;
+        std::shared_ptr<const AuthoritySet> prev_state;
         [[unlikely]] if (info.number == 0) {
           OUTCOME_TRY(list, grandpa_api_->authorities(info.hash));
-          auto genesis =
-              std::make_shared<primitives::AuthoritySet>(0, std::move(list));
+          auto genesis = std::make_shared<AuthoritySet>(0, std::move(list));
           GrandpaIndexedValue value{
               genesis->id,
               std::nullopt,
@@ -185,12 +184,12 @@ namespace kagome::consensus::grandpa {
     return loadPrev(r->second.prev);
   }
 
-  std::shared_ptr<primitives::AuthoritySet> AuthorityManagerImpl::applyDigests(
+  std::shared_ptr<AuthoritySet> AuthorityManagerImpl::applyDigests(
       const primitives::BlockInfo &block,
-      primitives::AuthoritySetId set_id,
+      AuthoritySetId set_id,
       const HasAuthoritySetChange &digests) const {
     BOOST_ASSERT(digests);
-    return std::make_shared<primitives::AuthoritySet>(
+    return std::make_shared<AuthoritySet>(
         set_id,
         isKusamaHardFork(block_tree_->getGenesisBlockHash(), block)
             ? kusamaHardForksAuthorities()
@@ -215,7 +214,7 @@ namespace kagome::consensus::grandpa {
     return outcome::success();
   }
 
-  outcome::result<std::shared_ptr<const primitives::AuthoritySet>>
+  outcome::result<std::shared_ptr<const AuthoritySet>>
   AuthorityManagerImpl::loadPrev(
       const std::optional<primitives::BlockInfo> &prev) const {
     if (not prev) {
@@ -231,7 +230,7 @@ namespace kagome::consensus::grandpa {
 
   void AuthorityManagerImpl::warp(const primitives::BlockInfo &block,
                                   const primitives::BlockHeader &header,
-                                  const primitives::AuthoritySet &authorities) {
+                                  const AuthoritySet &authorities) {
     std::unique_lock lock{mutex_};
     GrandpaIndexedValue value{
         authorities.id + 1,
@@ -241,9 +240,76 @@ namespace kagome::consensus::grandpa {
     };
     HasAuthoritySetChange digests{header};
     if (not digests.scheduled) {
-      auto state = std::make_shared<primitives::AuthoritySet>(authorities);
+      auto state = std::make_shared<AuthoritySet>(authorities);
       value = {authorities.id, std::nullopt, state, state};
     }
     indexer_.put(block, {value, std::nullopt}, true);
+  }
+
+  AuthorityManager::ScheduledParentResult AuthorityManagerImpl::scheduledParent(
+      primitives::BlockInfo block) const {
+    std::unique_lock lock{mutex_};
+    OUTCOME_TRY(authoritiesOutcome(block, true));
+    auto skip = true;
+    while (true) {
+      auto r = indexer_.get(block);
+      if (not r) {
+        break;
+      }
+      if (not skip and not r->inherit) {
+        if (not r->value) {
+          break;
+        }
+        if (r->value->state) {
+          break;
+        }
+        if (not r->value->forced_target) {
+          return std::make_pair(block, r->value->next_set_id - 1);
+        }
+      } else {
+        skip = false;
+      }
+      if (not r->prev) {
+        break;
+      }
+      block = *r->prev;
+    }
+    return AuthorityManagerError::NOT_FOUND;
+  }
+
+  std::vector<primitives::BlockInfo> AuthorityManagerImpl::possibleScheduled()
+      const {
+    std::unique_lock lock{mutex_};
+    for (auto &hash : block_tree_->getLeaves()) {
+      if (auto r = block_tree_->getBlockHeader(hash)) {
+        auto &block = r.value();
+        std::ignore = authoritiesOutcome({block.number, hash}, true);
+      }
+    }
+    std::vector<primitives::BlockInfo> possible;
+    auto finalized = block_tree_->getLastFinalized();
+    auto last = finalized;
+    auto r = indexer_.get(last);
+    if (not r) {
+      return possible;
+    }
+    if (r->inherit) {
+      if (not r->prev) {
+        return possible;
+      }
+      last = *r->prev;
+      r = indexer_.get(last);
+      if (not r) {
+        return possible;
+      }
+    }
+    for (auto it = indexer_.map_.upper_bound(finalized);
+         it != indexer_.map_.end();
+         ++it) {
+      if (not it->second.inherit and it->second.prev == last) {
+        possible.emplace_back(it->first);
+      }
+    }
+    return possible;
   }
 }  // namespace kagome::consensus::grandpa

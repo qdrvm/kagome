@@ -37,6 +37,7 @@ using namespace kagome::api;
 using namespace kagome::common;
 using namespace kagome::subscription;
 using namespace kagome::primitives;
+using kagome::Watchdog;
 using kagome::application::AppConfigurationMock;
 using kagome::application::AppStateManager;
 using kagome::blockchain::BlockTree;
@@ -128,7 +129,8 @@ struct ListenerTest : public ::testing::Test {
   kagome::api::RpcThreadPool::Configuration config = {1, 1};
 
   sptr<kagome::api::RpcThreadPool> thread_pool =
-      std::make_shared<kagome::api::RpcThreadPool>(rpc_context, config);
+      std::make_shared<kagome::api::RpcThreadPool>(
+          rpc_context, std::make_shared<Watchdog>(), config);
 
   sptr<ApiStub> api = std::make_shared<ApiStub>();
 

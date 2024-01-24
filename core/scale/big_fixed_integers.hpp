@@ -32,7 +32,7 @@ namespace scale {
     using Self = IntWrapper<Tag, T>;
     using ValueType = T;
 
-    static constexpr size_t BYTE_SIZE = IntegerTraits<T>::BIT_SIZE / 8;
+    static constexpr size_t kByteSize = IntegerTraits<T>::kBitSize / 8;
 
     T &operator*() {
       return number;
@@ -88,7 +88,7 @@ namespace scale {
             typename N,
             typename = std::enable_if_t<Stream::is_decoder_stream>>
   Stream &operator>>(Stream &stream, Fixed<N> &fixed) {
-    for (size_t i = 0; i < Fixed<N>::BYTE_SIZE * 8; i += 8) {
+    for (size_t i = 0; i < Fixed<N>::kByteSize * 8; i += 8) {
       *fixed |= N(stream.nextByte()) << i;
     }
     return stream;
@@ -98,7 +98,7 @@ namespace scale {
             typename N,
             typename = std::enable_if_t<Stream::is_encoder_stream>>
   Stream &operator<<(Stream &stream, const Fixed<N> &fixed) {
-    constexpr size_t bits = Fixed<N>::BYTE_SIZE * 8;
+    constexpr size_t bits = Fixed<N>::kByteSize * 8;
     for (size_t i = 0; i < bits; i += 8) {
       stream << convert_to<uint8_t>((*fixed >> i) & 0xFFu);
     }
@@ -127,7 +127,7 @@ namespace scale {
 #define SPECIALIZE_INTEGER_TRAITS(type, bit_size) \
   template <>                                     \
   struct IntegerTraits<type> {                    \
-    static constexpr size_t BIT_SIZE = bit_size;  \
+    static constexpr size_t kBitSize = bit_size;  \
   };
 
   using uint128_t = boost::multiprecision::checked_uint128_t;

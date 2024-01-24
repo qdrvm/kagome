@@ -12,7 +12,6 @@
 #include "consensus/babe/babe_config_repository.hpp"
 #include "consensus/timeline/impl/block_addition_error.hpp"
 #include "consensus/timeline/impl/block_appender_base.hpp"
-#include "consensus/validation/block_validator.hpp"
 #include "metrics/histogram_timer.hpp"
 #include "runtime/runtime_api/core.hpp"
 #include "runtime/runtime_api/offchain_worker_api.hpp"
@@ -32,7 +31,7 @@ namespace kagome::consensus {
   BlockExecutorImpl::BlockExecutorImpl(
       std::shared_ptr<blockchain::BlockTree> block_tree,
       const ThreadPool &thread_pool,
-      std::shared_ptr<boost::asio::io_context> main_thread,
+      WeakIoContext main_thread,
       std::shared_ptr<runtime::Core> core,
       std::shared_ptr<transaction_pool::TransactionPool> tx_pool,
       std::shared_ptr<crypto::Hasher> hasher,
@@ -41,7 +40,7 @@ namespace kagome::consensus {
       primitives::events::ChainSubscriptionEnginePtr chain_sub_engine,
       std::unique_ptr<BlockAppenderBase> appender)
       : block_tree_{std::move(block_tree)},
-        io_context_{thread_pool.io_context()},
+        wasm_thread_{thread_pool.io_context()},
         main_thread_{std::move(main_thread)},
         core_{std::move(core)},
         tx_pool_{std::move(tx_pool)},
@@ -180,9 +179,9 @@ namespace kagome::consensus {
                                  start_time,
                                  previous_best_block);
       };
-      main_thread_->post(std::move(executed));
+      post(main_thread_, std::move(executed));
     };
-    io_context_->post(std::move(execute));
+    post(wasm_thread_, std::move(execute));
   }
 
   void BlockExecutorImpl::applyBlockExecuted(

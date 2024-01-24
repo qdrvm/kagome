@@ -11,16 +11,16 @@
 
 Open two terminals and run a unique instance of KAGOME validator in each of them
 ```
-kagome --chain rococo-local-raw.json --validator --alice --port 50551 --ws-port 9944 --node-key f6830f530f4fa0249357b56575162180f4c6822ee6e59e9081d8001cb200b66c --tmp
-kagome --chain rococo-local-raw.json --validator --bob   --port 50552 --ws-port 9945 --node-key 15ed5bd565a9d0a3afb8f65a6b27795fef17247b03d0af1ce271f33504090e10 --tmp
+kagome --chain rococo-local-raw.json --alice --port 50551 --node-key f6830f530f4fa0249357b56575162180f4c6822ee6e59e9081d8001cb200b66c --tmp
+kagome --chain rococo-local-raw.json --bob   --port 50552 --node-key 15ed5bd565a9d0a3afb8f65a6b27795fef17247b03d0af1ce271f33504090e10 --tmp
 ```
 
 ### Run adder collator
 
-First build `adder-collator` binary from [Polkadot](https://github.com/paritytech/polkadot) repo by running `cargo build --release`. Binary will appear in `target/release/` folder.
+First build `adder-collator` binary from [Polkadot](https://github.com/paritytech/polkadot) repo by running `cargo build --release -p test-parachain-adder-collator`. Binary will appear in `target/release/` folder.
 
 ```
-adder-collator --tmp --chain rococo-local-raw.json --port 50553 --ws-port 9947
+adder-collator --tmp --chain rococo-local-raw.json --port 50553 --rpc-port 9947
 ```
 
 Adder collator will print genesis state and wasm code which you should store in `genesis.state` and `adder.wasm` files correspondingly (or simply use files that are already in current folder). 

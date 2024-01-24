@@ -6,8 +6,6 @@
 
 #pragma once
 
-#include <future>
-
 #include "consensus/grandpa/structs.hpp"
 #include "outcome/outcome.hpp"
 #include "primitives/common.hpp"
@@ -26,10 +24,9 @@ namespace kagome::consensus::grandpa {
     /**
      * Validate {@param justification} with {@param authorities}.
      */
-    virtual void verifyJustification(
+    virtual outcome::result<void> verifyJustification(
         const GrandpaJustification &justification,
-        const primitives::AuthoritySet &authorities,
-        std::shared_ptr<std::promise<outcome::result<void>>> promise_res) = 0;
+        const AuthoritySet &authorities) = 0;
 
     /**
      * Validate provided {@param justification} for finalization.

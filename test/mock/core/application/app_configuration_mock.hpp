@@ -113,6 +113,11 @@ namespace kagome::application {
                 (),
                 (const, override));
 
+    MOCK_METHOD(AppConfiguration::RuntimeInterpreter,
+                runtimeInterpreter,
+                (),
+                (const, override));
+
     MOCK_METHOD(bool, useWavmCache, (), (const, override));
 
     MOCK_METHOD(bool, purgeWavmCache, (), (const, override));
@@ -126,6 +131,13 @@ namespace kagome::application {
                 offchainWorkerMode,
                 (),
                 (const, override));
+
+    MOCK_METHOD(uint32_t,
+                parachainPrecompilationThreadNum,
+                (),
+                (const, override));
+
+    MOCK_METHOD(bool, shouldPrecompileParachainModules, (), (const, override));
 
     MOCK_METHOD(bool, isOffchainIndexingEnabled, (), (const, override));
 
