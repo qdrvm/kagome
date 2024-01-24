@@ -136,7 +136,7 @@ namespace kagome::api {
       std::shared_ptr<storage::trie::TrieStorage> trie_storage,
       std::shared_ptr<runtime::Core> core,
       std::shared_ptr<Watchdog> watchdog,
-      WeakIoContext main_thread)
+      std::shared_ptr<RpcContext> rpc_context)
       : listeners_(std::move(listeners)),
         server_(std::move(server)),
         logger_{log::createLogger("ApiService", "api")},
@@ -147,10 +147,9 @@ namespace kagome::api {
                               .chain = std::move(chain_sub_engine),
                               .ext = std::move(ext_sub_engine)},
         extrinsic_event_key_repo_{std::move(extrinsic_event_key_repo)},
-        execution_thread_pool_{
-            std::make_shared<ThreadPool>(std::move(watchdog), "rpc", 1ull)},
-        internal_thread_context_{execution_thread_pool_->handler()},
-        main_thread_{std::move(main_thread)} {
+        execution_thread_pool_{std::make_shared<ThreadPool>(
+            std::move(watchdog), "rpc", 1ull, std::move(rpc_context))},
+        internal_thread_context_{execution_thread_pool_->handler()} {
     BOOST_ASSERT(block_tree_);
     BOOST_ASSERT(trie_storage_);
     BOOST_ASSERT(core_);

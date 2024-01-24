@@ -124,7 +124,7 @@ namespace kagome::api {
                    std::shared_ptr<storage::trie::TrieStorage> trie_storage,
                    std::shared_ptr<runtime::Core> core,
                    std::shared_ptr<Watchdog> watchdog,
-                   WeakIoContext main_thread);
+                   std::shared_ptr<RpcContext> rpc_context);
 
     ~ApiServiceImpl() override = default;
 
@@ -247,6 +247,5 @@ namespace kagome::api {
 
     std::shared_ptr<ThreadPool> execution_thread_pool_;
     std::shared_ptr<ThreadHandler> internal_thread_context_;
-    ThreadHandler main_thread_;
   };
 }  // namespace kagome::api
