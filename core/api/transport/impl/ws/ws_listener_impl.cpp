@@ -94,7 +94,7 @@ namespace kagome::api {
   }
 
   void WsListenerImpl::acceptOnce() {
-    auto get_id = [weak = weak_from_this()]() -> Session::SessionId {
+    auto get_id = [weak{weak_from_this()}]() -> Session::SessionId {
       if (auto self = weak.lock()) {
         return self->next_session_id_++;
       }
@@ -102,7 +102,7 @@ namespace kagome::api {
     };
     new_session_ = std::make_shared<SessionImpl>(
         *context_, get_id, on_new_session_, allow_unsafe_, session_config_);
-    auto session_stopped_handler = [wp = weak_from_this()] {
+    auto session_stopped_handler = [wp{weak_from_this()}] {
       if (auto self = wp.lock()) {
         self->closed_session_->inc();
         --self->active_connections_;
@@ -112,7 +112,7 @@ namespace kagome::api {
       }
     };
 
-    auto on_accept = [wp = weak_from_this(),
+    auto on_accept = [wp{weak_from_this()},
                       session_stopped_handler](boost::system::error_code ec) {
       if (auto self = wp.lock()) {
         if (not ec) {

@@ -69,6 +69,11 @@ namespace kagome::consensus::grandpa {
         const primitives::BlockInfo &target_block,
         IsBlockFinalized finalized) const override;
 
+    ScheduledParentResult scheduledParent(
+        primitives::BlockInfo block) const override;
+
+    std::vector<primitives::BlockInfo> possibleScheduled() const override;
+
     void warp(const primitives::BlockInfo &block,
               const primitives::BlockHeader &header,
               const AuthoritySet &authorities) override;

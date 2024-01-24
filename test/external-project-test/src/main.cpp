@@ -22,6 +22,8 @@
 #include <kagome/log/configurator.hpp>
 #include <kagome/offchain/impl/offchain_persistent_storage.hpp>
 #include <kagome/offchain/impl/offchain_worker_pool_impl.hpp>
+#include <kagome/runtime/binaryen/instance_environment_factory.hpp>
+#include <kagome/runtime/binaryen/module/module_factory_impl.hpp>
 #include <kagome/runtime/common/module_repository_impl.hpp>
 #include <kagome/runtime/common/runtime_instances_pool.hpp>
 #include <kagome/runtime/common/runtime_properties_cache_impl.hpp>
@@ -30,10 +32,6 @@
 #include <kagome/runtime/executor.hpp>
 #include <kagome/runtime/module.hpp>
 #include <kagome/runtime/runtime_context.hpp>
-#include <kagome/runtime/wavm/compartment_wrapper.hpp>
-#include <kagome/runtime/wavm/instance_environment_factory.hpp>
-#include <kagome/runtime/wavm/intrinsics/intrinsic_module.hpp>
-#include <kagome/runtime/wavm/module_factory_impl.hpp>
 #include <kagome/storage/in_memory/in_memory_storage.hpp>
 #include <kagome/storage/rocksdb/rocksdb.hpp>
 #include <kagome/storage/trie/impl/trie_storage_backend_impl.hpp>
@@ -96,18 +94,16 @@ int main() {
                         .value();
 
   auto code_substitutes = chain_spec->codeSubstitutes();
-  auto storage = std::make_shared<kagome::storage::InMemoryStorage>();
 
-  auto config = std::make_shared<kagome::application::AppConfigurationImpl>(
-      kagome::log::createLogger("AppConfiguration"));
+  auto config = std::make_shared<kagome::application::AppConfigurationImpl>();
 
   auto trie_factory =
       std::make_shared<kagome::storage::trie::PolkadotTrieFactoryImpl>();
   auto codec = std::make_shared<kagome::storage::trie::PolkadotCodec>();
-  auto storage_backend =
-      std::make_shared<kagome::storage::trie::TrieStorageBackendImpl>(storage);
+  auto node_storage_backend =
+      std::make_shared<kagome::storage::trie::TrieStorageBackendImpl>(database);
   auto serializer = std::make_shared<kagome::storage::trie::TrieSerializerImpl>(
-      trie_factory, codec, storage_backend);
+      trie_factory, codec, node_storage_backend);
 
   auto app_state_manager =
       std::make_shared<kagome::application::AppStateManagerImpl>();
@@ -115,7 +111,7 @@ int main() {
   auto state_pruner =
       std::make_shared<kagome::storage::trie_pruner::TriePrunerImpl>(
           app_state_manager,
-          storage_backend,
+          node_storage_backend,
           serializer,
           codec,
           database,
@@ -154,13 +150,6 @@ int main() {
   auto code_provider =
       std::make_shared<const kagome::runtime::StorageCodeProvider>(
           trie_storage, runtime_upgrade_tracker, code_substitutes, chain_spec);
-  auto compartment =
-      std::make_shared<kagome::runtime::wavm::CompartmentWrapper>(
-          "WAVM Compartment");
-  auto module_params = std::make_shared<kagome::runtime::wavm::ModuleParams>();
-  auto intrinsic_module =
-      std::make_shared<kagome::runtime::wavm::IntrinsicModule>(
-          compartment, module_params->intrinsicMemoryType);
 
   auto generator =
       std::make_shared<libp2p::crypto::random::BoostRandomGenerator>();
@@ -214,24 +203,13 @@ int main() {
   auto smc = std::make_shared<kagome::runtime::SingleModuleCache>();
 
   auto instance_env_factory =
-      std::make_shared<const kagome::runtime::wavm::InstanceEnvironmentFactory>(
-          trie_storage,
-          serializer,
-          compartment,
-          module_params,
-          intrinsic_module,
-          host_api_factory,
-          header_repo,
-          smc,
-          cache);
+      std::make_shared<kagome::runtime::binaryen::InstanceEnvironmentFactory>(
+          trie_storage, serializer, host_api_factory);
+
   auto module_factory =
-      std::make_shared<kagome::runtime::wavm::ModuleFactoryImpl>(
-          compartment,
-          module_params,
-          instance_env_factory,
-          intrinsic_module,
-          std::nullopt,
-          hasher);
+      std::make_shared<kagome::runtime::binaryen::ModuleFactoryImpl>(
+          instance_env_factory, trie_storage, hasher);
+
   auto runtime_instances_pool =
       std::make_shared<kagome::runtime::RuntimeInstancesPool>(module_factory);
   auto module_repo = std::make_shared<kagome::runtime::ModuleRepositoryImpl>(

@@ -25,7 +25,7 @@ endfunction()
 ### workaround for imported libraries
 function(kagome_install_mini target)
     install(TARGETS ${target} EXPORT kagomeTargets
-        LIBRARY       DESTINATION ${CMAKE_INSTALL_LIBDIR}/kagome
+        LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}/kagome
         )
 endfunction()
 
@@ -45,7 +45,7 @@ function(kagome_install_setup)
         get_filename_component(install_prefix ${relative_path} DIRECTORY)
         install(DIRECTORY ${dir}
             DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/${install_prefix}
-            FILES_MATCHING PATTERN "*.hpp")
+            FILES_MATCHING PATTERN "*.hpp|*.h")
     endforeach ()
 
     install(

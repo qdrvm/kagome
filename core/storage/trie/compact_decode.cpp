@@ -21,7 +21,7 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::storage::trie, CompactDecodeError, e) {
 
 namespace kagome::storage::trie {
   outcome::result<CompactDecoded> compactDecode(common::BufferView raw_proof) {
-    storage::trie::PolkadotCodec codec;
+    storage::trie::PolkadotCodec codec{};
     OUTCOME_TRY(proof, scale::decode<std::vector<common::Buffer>>(raw_proof));
     CompactDecoded db;
     size_t proof_i = 0;

@@ -24,6 +24,8 @@ namespace kagome::runtime::binaryen {
     BinaryenMemoryProvider(
         std::shared_ptr<const BinaryenMemoryFactory> memory_factory);
 
+    ~BinaryenMemoryProvider() override = default;
+
     std::optional<std::reference_wrapper<runtime::Memory>> getCurrentMemory()
         const override;
 

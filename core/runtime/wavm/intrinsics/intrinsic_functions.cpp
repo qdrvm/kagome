@@ -266,6 +266,14 @@ namespace kagome::runtime::wavm {
         values_data, state_version);
   }
 
+  WAVM_DEFINE_INTRINSIC_FUNCTION(WAVM::I32,
+                                 ext_trie_keccak_256_ordered_root_version_2,
+                                 WAVM::I64 values_data,
+                                 WAVM::I32 state_version) {
+    return peekHostApi()->ext_trie_keccak_256_ordered_root_version_2(
+        values_data, state_version);
+  }
+
   WAVM_DEFINE_INTRINSIC_FUNCTION(void,
                                  ext_misc_print_hex_version_1,
                                  WAVM::I64 values_data) {
@@ -790,6 +798,12 @@ namespace kagome::runtime::wavm {
       WAVM::I64,
       WAVM::I32)
 
+  WAVM_DEFINE_INTRINSIC_FUNCTION(void,
+                                 ext_panic_handler_abort_on_panic_version_1,
+                                 WAVM::I64 message) {
+    return peekHostApi()->ext_panic_handler_abort_on_panic_version_1(message);
+  }
+
   void registerHostApiMethods(IntrinsicModule &module) {
     if (logger == nullptr) {
       logger = log::createLogger("Host API wrappers", "wavm");
@@ -856,6 +870,7 @@ namespace kagome::runtime::wavm {
     REGISTER_HOST_INTRINSIC(I32, ext_storage_exists_version_1, I64)
     REGISTER_HOST_INTRINSIC(I32, ext_trie_blake2_256_ordered_root_version_1, I64)
     REGISTER_HOST_INTRINSIC(I32, ext_trie_blake2_256_ordered_root_version_2, I64, I32)
+    REGISTER_HOST_INTRINSIC(I32, ext_trie_keccak_256_ordered_root_version_2, I64, I32)
     REGISTER_HOST_INTRINSIC(I32, ext_trie_blake2_256_root_version_1, I64)
     REGISTER_HOST_INTRINSIC(I32, ext_trie_blake2_256_verify_proof_version_2,I32, I64, I64, I64, I32)
     REGISTER_HOST_INTRINSIC(I64, ext_crypto_ed25519_public_keys_version_1, I32)
@@ -918,6 +933,8 @@ namespace kagome::runtime::wavm {
     REGISTER_HOST_INTRINSIC(   , ext_benchmarking_reset_read_write_count_version_1)
     REGISTER_HOST_INTRINSIC(   , ext_benchmarking_set_whitelist_version_1, I64)
     REGISTER_HOST_INTRINSIC(   , ext_benchmarking_wipe_db_version_1)
+
+    REGISTER_HOST_INTRINSIC(   , ext_panic_handler_abort_on_panic_version_1, I64)
 
     // clang-format on
   }

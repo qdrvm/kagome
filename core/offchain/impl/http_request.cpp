@@ -23,27 +23,9 @@ namespace kagome::offchain {
   HttpRequest::HttpRequest(RequestId id)
       : id_(id),
         resolver_(io_context_),
-        ssl_ctx_(boost::asio::ssl::context::sslv23),
         deadline_timer_(io_context_),
         log_(log::createLogger("HttpRequest#" + std::to_string(id_),
-                               "offchain")) {
-    ssl_ctx_.set_default_verify_paths();
-    ssl_ctx_.set_verify_mode(boost::asio::ssl::verify_peer);
-    ssl_ctx_.set_verify_callback(
-        [log = log_, wp = weak_from_this()](
-            bool preverified, boost::asio::ssl::verify_context &ctx) {
-          // We will simply print the certificate's subject name here
-          char subject_name[256];
-          X509 *cert = X509_STORE_CTX_get_current_cert(ctx.native_handle());
-          X509_NAME_oneline(X509_get_subject_name(cert), subject_name, 256);
-          SL_WARN(log,
-                  "Verifying [{}] was {}",
-                  subject_name,
-                  preverified ? "Successful" : "Failed");
-
-          return preverified;
-        });
-  }
+                               "offchain")) {}
 
   bool HttpRequest::init(HttpMethod method,
                          std::string_view uri_arg,
@@ -85,7 +67,10 @@ namespace kagome::offchain {
 
     if (uri_.Schema == "https") {
       secure_ = true;
-      stream_ = std::make_unique<SslStream>(io_context_, ssl_ctx_);
+      if (not ssl_ctx_) {
+        ssl_ctx_.emplace(uri_.Host);
+      }
+      stream_ = std::make_unique<SslStream>(io_context_, *ssl_ctx_);
     } else if (uri_.Schema == "http") {
       secure_ = false;
       stream_ = std::make_unique<TcpStream>(io_context_);
@@ -131,7 +116,7 @@ namespace kagome::offchain {
       }
     }
 
-    auto resolve_handler = [wp = weak_from_this()](const auto &ec, auto it) {
+    auto resolve_handler = [wp{weak_from_this()}](const auto &ec, auto it) {
       if (auto self = wp.lock()) {
         if (self->status_ != 0) {
           SL_TRACE(
@@ -172,7 +157,7 @@ namespace kagome::offchain {
                            : boost::beast::get_lowest_layer(
                                *boost::relaxed_get<TcpStreamPtr>(stream_));
 
-    auto connect_handler = [wp = weak_from_this()](const auto &ec, auto it) {
+    auto connect_handler = [wp{weak_from_this()}](const auto &ec, auto it) {
       if (auto self = wp.lock()) {
         if (self->status_ != 0) {
           SL_TRACE(
@@ -217,7 +202,7 @@ namespace kagome::offchain {
 
     auto &stream = *boost::relaxed_get<SslStreamPtr>(stream_);
 
-    auto handshake_handler = [wp = weak_from_this()](const auto &ec) {
+    auto handshake_handler = [wp{weak_from_this()}](const auto &ec) {
       if (auto self = wp.lock()) {
         if (self->status_ != 0) {
           SL_TRACE(
@@ -264,8 +249,8 @@ namespace kagome::offchain {
     auto serializer = std::make_shared<boost::beast::http::request_serializer<
         boost::beast::http::string_body>>(request_);
 
-    auto write_handler = [wp = weak_from_this(), serializer](const auto &ec,
-                                                             auto written) {
+    auto write_handler = [wp{weak_from_this()}, serializer](const auto &ec,
+                                                            auto written) {
       if (auto self = wp.lock()) {
         if (self->status_ != 0) {
           SL_TRACE(self->log_,
@@ -305,7 +290,7 @@ namespace kagome::offchain {
 
     SL_TRACE(log_, "Read response");
 
-    auto read_handler = [wp = weak_from_this()](const auto &ec, auto received) {
+    auto read_handler = [wp{weak_from_this()}](const auto &ec, auto received) {
       if (auto self = wp.lock()) {
         if (self->status_ != 0) {
           SL_TRACE(self->log_,
@@ -329,16 +314,10 @@ namespace kagome::offchain {
 
     if (secure_) {
       auto &stream = *boost::relaxed_get<SslStreamPtr>(stream_);
-      boost::system::error_code ec;
-      boost::beast::get_lowest_layer(stream).socket().shutdown(
-          boost::asio::ip::tcp::socket::shutdown_send, ec);
       boost::beast::http::async_read(
           stream, buffer_, parser_, std::move(read_handler));
     } else {
       auto &stream = *boost::relaxed_get<TcpStreamPtr>(stream_);
-      boost::system::error_code ec;
-      boost::beast::get_lowest_layer(stream).socket().shutdown(
-          boost::asio::ip::tcp::socket::shutdown_send, ec);
       boost::beast::http::async_read(
           stream, buffer_, parser_, std::move(read_handler));
     }

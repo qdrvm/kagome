@@ -814,7 +814,7 @@ TEST_F(BlockTreeTest, Reorganize) {
 
   //   42   43  44  45   46   47
   //
-  //                C2 - D2 - E2
+  //               _C2 - D2 - E2
   //              /
   //   LF - A - B - C1 - D1 - E1
 
@@ -910,10 +910,10 @@ TEST_F(BlockTreeTest, GetBestBlock) {
 
   //  42   43  44  45  46   47   48   49   50
   //
-  //                   C1
+  //                  _C1
   //                 /
   //  LF - T - A - B - C2 - D2
-  //                 \
+  //                 \_
   //                   C3 - D3 - E3 - F3
 
   {
@@ -927,10 +927,10 @@ TEST_F(BlockTreeTest, GetBestBlock) {
 
   //  42   43  44  45  46   47   48   49   50
   //
-  //                   C1
+  //                  _C1
   //                 /
   //  LF - T - A - B - C2 - D2 - E2*
-  //                 \
+  //                 \_
   //                   C3 - D3 - E3 - F3
 
   {
@@ -944,10 +944,10 @@ TEST_F(BlockTreeTest, GetBestBlock) {
 
   //  42   43  44  45  46   47   48   49   50
   //
-  //                   C1
+  //                  _C1
   //                 /
   //  LF - T - A - B - C2 - D2 - E2*
-  //                 \
+  //                 \_
   //                   C3 - D3 - E3 - F3 - G3**
 
   {
@@ -961,10 +961,10 @@ TEST_F(BlockTreeTest, GetBestBlock) {
 
   //  42   43  44  45  46   47   48   49   50
   //
-  //                   C1
+  //                  _C1
   //                 /
   //  LF - T - A - B - C2 - D2 - E2*
-  //                 \
+  //                 \_
   //                   C3 - D3 - E3 - F3 - G3**
 
   {

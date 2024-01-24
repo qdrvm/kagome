@@ -9,7 +9,6 @@
 #include "dispute_coordinator/dispute_coordinator.hpp"
 #include "network/dispute_request_observer.hpp"
 
-#include <boost/asio/io_context.hpp>
 #include <list>
 
 #include "clock/impl/basic_waitable_timer.hpp"
@@ -25,13 +24,16 @@
 #include "dispute_coordinator/spam_slots.hpp"
 #include "dispute_coordinator/storage.hpp"
 #include "dispute_coordinator/types.hpp"
+#include "injector/lazy.hpp"
 #include "log/logger.hpp"
 #include "metrics/metrics.hpp"
 #include "network/peer_view.hpp"
 #include "parachain/types.hpp"
 #include "primitives/authority_discovery_id.hpp"
+#include "utils/weak_io_context.hpp"
 
 namespace kagome {
+  class Watchdog;
   class ThreadPool;
   class ThreadHandler;
 }  // namespace kagome
@@ -49,6 +51,10 @@ namespace kagome::blockchain {
   class BlockTree;
   class BlockHeaderRepository;
 }  // namespace kagome::blockchain
+
+namespace kagome::consensus {
+  class Timeline;
+}  // namespace kagome::consensus
 
 namespace kagome::dispute {
   class ChainScraper;
@@ -112,11 +118,11 @@ namespace kagome::dispute {
         std::shared_ptr<parachain::Pvf> pvf,
         std::shared_ptr<parachain::ApprovalDistribution> approval_distribution,
         std::shared_ptr<authority_discovery::Query> authority_discovery,
-        std::shared_ptr<boost::asio::io_context> main_thread_context,
+        std::shared_ptr<Watchdog> watchdog,
+        WeakIoContext main_thread,
         std::shared_ptr<network::Router> router,
         std::shared_ptr<network::PeerView> peer_view,
-        primitives::events::BabeStateSubscriptionEnginePtr
-            babe_status_observable);
+        LazySPtr<consensus::Timeline> timeline);
 
     bool prepare();
     bool start();
@@ -278,17 +284,14 @@ namespace kagome::dispute {
     std::shared_ptr<parachain::Pvf> pvf_;
     std::shared_ptr<parachain::ApprovalDistribution> approval_distribution_;
     std::shared_ptr<authority_discovery::Query> authority_discovery_;
-    std::unique_ptr<ThreadHandler> main_thread_context_;
+    std::unique_ptr<ThreadHandler> main_thread_;
     std::shared_ptr<network::Router> router_;
     std::shared_ptr<network::PeerView> peer_view_;
     primitives::events::ChainSub chain_sub_;
-    primitives::events::BabeStateSubscriptionEnginePtr babe_status_observable_;
+    LazySPtr<consensus::Timeline> timeline_;
 
-    std::shared_ptr<primitives::events::BabeStateEventSubscriber>
-        babe_status_sub_;
     std::shared_ptr<network::PeerView::MyViewSubscriber> my_view_sub_;
 
-    std::atomic_bool was_synchronized_ = false;
     std::atomic_bool initialized_ = false;
 
     std::unique_ptr<ChainScraper> scraper_;

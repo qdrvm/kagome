@@ -27,6 +27,7 @@
 #include "blockchain/impl/storage_util.hpp"
 #include "common/outcome_throw.hpp"
 #include "crypto/hasher/hasher_impl.hpp"
+#include "crypto/blake2/blake2b.h"
 #include "network/impl/extrinsic_observer_impl.hpp"
 #include "runtime/common/runtime_upgrade_tracker_impl.hpp"
 #include "storage/predefined_keys.hpp"
@@ -251,9 +252,8 @@ int db_editor_main(int argc, const char **argv) {
       return 0;
     }
 
-    auto trie_buffer_storage = storage->getSpace(storage::Space::kTrieNode);
-    auto trie_tracker = std::make_shared<TrieTracker>(
-        std::make_shared<TrieStorageBackendImpl>(trie_buffer_storage));
+    auto trie_node_tracker = std::make_shared<TrieTracker>(
+        std::make_shared<TrieStorageBackendImpl>(storage));
 
     auto injector = di::make_injector(
         di::bind<TrieSerializer>.template to([](const auto &injector) {
@@ -262,10 +262,12 @@ int db_editor_main(int argc, const char **argv) {
               injector.template create<sptr<Codec>>(),
               injector.template create<sptr<TrieStorageBackend>>());
         }),
-        di::bind<TrieStorageBackend>.template to(trie_tracker),
+        di::bind<TrieStorageBackend>.template to(trie_node_tracker),
         di::bind<storage::trie_pruner::TriePruner>.template to(
             std::shared_ptr<storage::trie_pruner::TriePruner>(nullptr)),
-        di::bind<Codec>.template to<PolkadotCodec>(),
+        di::bind<Codec>.template to([](const auto &injector) {
+          return std::make_shared<PolkadotCodec>(kagome::crypto::blake2b<32>);
+        }),
         di::bind<PolkadotTrieFactory>.to(factory),
         di::bind<crypto::Hasher>.template to<crypto::HasherImpl>(),
         di::bind<blockchain::BlockHeaderRepository>.template to<blockchain::BlockHeaderRepositoryImpl>(),
@@ -396,34 +398,41 @@ int db_editor_main(int argc, const char **argv) {
         }
       }
 
-      auto db_cursor = trie_buffer_storage->cursor();
-      auto db_batch = trie_buffer_storage->batch();
-      auto res = check(db_cursor->seekFirst());
-      int count = 0;
-      {
-        TicToc t2("Process DB.", log);
-        while (db_cursor->isValid() && db_cursor->key().has_value()) {
-          auto key = db_cursor->key().value();
-          if (trie_tracker->tracked(key)) {
-            db_cursor->next().value();
-            continue;
+      auto trie_node_storage = storage->getSpace(storage::Space::kTrieNode);
+      auto trie_value_storage = storage->getSpace(storage::Space::kTrieValue);
+
+      auto track_trie_entries = [&log, &buffer_storage, &prefix](auto storage,
+                                                                 auto tracker) {
+        auto db_cursor = storage->cursor();
+        auto db_batch = storage->batch();
+        auto res = check(db_cursor->seekFirst());
+        int count = 0;
+        {
+          TicToc t2("Process DB.", log);
+          while (db_cursor->isValid() && db_cursor->key().has_value()) {
+            auto key = db_cursor->key().value();
+            if (tracker->tracked(key)) {
+              db_cursor->next().value();
+              continue;
+            }
+            auto res2 = check(db_batch->remove(key));
+            count++;
+            if (not(count % 10000000)) {
+              log->trace("{} keys were processed at the db.", count);
+              res2 = check(db_batch->commit());
+              dynamic_cast<storage::RocksDbSpace *>(buffer_storage.get())
+                  ->compact(prefix, check(db_cursor->key()).value());
+              db_cursor = buffer_storage->cursor();
+              db_batch = buffer_storage->batch();
+              res = check(db_cursor->seek(key));
+            }
+            res2 = check(db_cursor->next());
           }
-          auto res2 = check(db_batch->remove(key));
-          count++;
-          if (not(count % 10000000)) {
-            log->trace("{} keys were processed at the db.", count);
-            res2 = check(db_batch->commit());
-            dynamic_cast<storage::RocksDbSpace *>(buffer_storage.get())
-                ->compact(prefix, check(db_cursor->key()).value());
-            db_cursor = buffer_storage->cursor();
-            db_batch = buffer_storage->batch();
-            res = check(db_cursor->seek(key));
-          }
-          res2 = check(db_cursor->next());
+          std::ignore = check(db_batch->commit());
         }
-        std::ignore = check(db_batch->commit());
-      }
-      log->trace("{} keys were processed at the db.", ++count);
+        log->trace("{} keys were processed at the db.", ++count);
+      };
+      track_trie_entries(trie_node_storage, trie_node_tracker);
 
       {
         TicToc t4("Compaction 1.", log);

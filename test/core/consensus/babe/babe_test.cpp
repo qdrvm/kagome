@@ -13,6 +13,7 @@
 #include "consensus/babe/types/babe_configuration.hpp"
 #include "consensus/block_production_error.hpp"
 #include "consensus/timeline/impl/slot_leadership_error.hpp"
+#include "crypto/blake2/blake2b.h"
 #include "mock/core/application/app_configuration_mock.hpp"
 #include "mock/core/authorship/proposer_mock.hpp"
 #include "mock/core/blockchain/block_tree_mock.hpp"
@@ -41,6 +42,7 @@
 #include "utils/thread_pool.hpp"
 
 using kagome::ThreadPool;
+using kagome::Watchdog;
 using kagome::application::AppConfigurationMock;
 using kagome::authorship::ProposerMock;
 using kagome::blockchain::BlockTreeMock;
@@ -171,7 +173,7 @@ class BabeTest : public testing::Test {
 
     session_keys = std::make_shared<SessionKeysMock>();
     ON_CALL(*session_keys, getBabeKeyPair(babe_config->authorities))
-        .WillByDefault(Return(std::make_pair(our_keypair, 0)));
+        .WillByDefault(Return(std::make_pair(our_keypair, 1)));
 
     lottery = std::make_shared<BabeLotteryMock>();
 
@@ -206,8 +208,6 @@ class BabeTest : public testing::Test {
     ON_CALL(*offchain_worker_api, offchain_worker(_, _))
         .WillByDefault(Return(outcome::success()));
 
-    thread_pool_ = std::make_shared<ThreadPool>("test", 1);
-
     babe = std::make_shared<Babe>(app_config,
                                   clock,
                                   block_tree,
@@ -227,8 +227,12 @@ class BabeTest : public testing::Test {
                                   chain_sub_engine,
                                   announce_transmitter,
                                   offchain_worker_api,
-                                  *thread_pool_,
-                                  thread_pool_->io_context());
+                                  thread_pool_,
+                                  thread_pool_.io_context());
+  }
+
+  void TearDown() override {
+    watchdog_->stop();
   }
 
   AppConfigurationMock app_config;
@@ -250,12 +254,16 @@ class BabeTest : public testing::Test {
   std::shared_ptr<ChainSubscriptionEngine> chain_sub_engine;
   std::shared_ptr<BlockAnnounceTransmitterMock> announce_transmitter;
   std::shared_ptr<OffchainWorkerApiMock> offchain_worker_api;
-  std::shared_ptr<ThreadPool> thread_pool_;
+  std::shared_ptr<Watchdog> watchdog_ = std::make_shared<Watchdog>();
+  ThreadPool thread_pool_{watchdog_, "test", 1};
 
   std::shared_ptr<BabeConfiguration> babe_config;
 
   std::shared_ptr<Sr25519Keypair> our_keypair;
   std::shared_ptr<Sr25519Keypair> other_keypair;
+
+  static constexpr EpochNumber uninitialized_epoch =
+      std::numeric_limits<EpochNumber>::max();
 
   std::shared_ptr<Babe> babe;  // testee
 
@@ -296,7 +304,8 @@ class BabeTest : public testing::Test {
                      StateVersion::V0,
                      block.body | transformed([](const auto &ext) {
                        return Buffer{scale::encode(ext).value()};
-                     }))
+                     }),
+                     kagome::crypto::blake2b<32>)
               .value();
         }(),
         make_digest(new_block_slot),  // digest
@@ -325,12 +334,18 @@ TEST_F(BabeTest, NonValidator) {
 
   babe_config->authorities = {Authority{{other_keypair->public_key}, 1}};
 
-  EXPECT_EQ(babe->getValidatorStatus(best_block_info, slot),
-            ValidatorStatus::NonValidator);
-
   EXPECT_CALL(*slots_util, timeToSlot(_)).WillOnce(Return(slot));
   EXPECT_CALL(*slots_util, slotToEpoch(best_block_info, slot))
       .WillOnce(Return(outcome::success(epoch)));
+
+  EXPECT_CALL(*lottery, getEpoch())
+      .WillOnce(Return(uninitialized_epoch))
+      .WillRepeatedly(Return(epoch));
+  EXPECT_CALL(*lottery, changeEpoch(epoch, best_block_info))
+      .WillOnce(Return(false));
+
+  EXPECT_EQ(babe->getValidatorStatus(best_block_info, slot),
+            ValidatorStatus::NonValidator);
 
   ASSERT_OUTCOME_ERROR(babe->processSlot(slot, best_block_info),
                        SlotLeadershipError::NO_VALIDATOR);
@@ -340,17 +355,20 @@ TEST_F(BabeTest, NoSlotLeader) {
   SlotNumber slot = new_block_slot;
   EpochNumber epoch = 0;
 
-  EXPECT_EQ(babe->getValidatorStatus(best_block_info, slot),
-            ValidatorStatus::Validator);
-
   EXPECT_CALL(*slots_util, timeToSlot(_)).WillOnce(Return(slot));
   EXPECT_CALL(*slots_util, slotToEpoch(best_block_info, slot))
       .WillOnce(Return(outcome::success(epoch)));
 
-  EXPECT_CALL(*lottery, getEpoch()).WillOnce(Return(-1));
-  EXPECT_CALL(*lottery, changeEpoch(0, best_block_info)).WillOnce(Return(true));
+  EXPECT_CALL(*lottery, getEpoch())
+      .WillOnce(Return(uninitialized_epoch))
+      .WillRepeatedly(Return(epoch));
+  EXPECT_CALL(*lottery, changeEpoch(epoch, best_block_info))
+      .WillOnce(Return(true));
   EXPECT_CALL(*lottery, getSlotLeadership(best_block_info.hash, slot))
       .WillOnce(Return(std::nullopt));
+
+  EXPECT_EQ(babe->getValidatorStatus(best_block_info, slot),
+            ValidatorStatus::Validator);
 
   ASSERT_OUTCOME_ERROR(babe->processSlot(slot, best_block_info),
                        SlotLeadershipError::NO_SLOT_LEADER);
@@ -360,15 +378,15 @@ TEST_F(BabeTest, SlotLeader) {
   SlotNumber slot = new_block_slot;
   EpochNumber epoch = 0;
 
-  EXPECT_EQ(babe->getValidatorStatus(best_block_info, slot),
-            ValidatorStatus::Validator);
-
   EXPECT_CALL(*slots_util, timeToSlot(_)).WillOnce(Return(slot));
   EXPECT_CALL(*slots_util, slotToEpoch(best_block_info, slot))
       .WillOnce(Return(outcome::success(epoch)));
 
-  EXPECT_CALL(*lottery, getEpoch()).WillOnce(Return(-1));
-  EXPECT_CALL(*lottery, changeEpoch(0, best_block_info)).WillOnce(Return(true));
+  EXPECT_CALL(*lottery, getEpoch())
+      .WillOnce(Return(uninitialized_epoch))
+      .WillRepeatedly(Return(epoch));
+  EXPECT_CALL(*lottery, changeEpoch(epoch, best_block_info))
+      .WillOnce(Return(true));
   EXPECT_CALL(*lottery, getSlotLeadership(best_block_info.hash, slot))
       .WillOnce(Return(SlotLeadership{.keypair = our_keypair}));
 
@@ -383,7 +401,11 @@ TEST_F(BabeTest, SlotLeader) {
 
   EXPECT_CALL(*block_tree, addBlock(_)).WillOnce(Return(outcome::success()));
 
+  EXPECT_EQ(babe->getValidatorStatus(best_block_info, slot),
+            ValidatorStatus::Validator);
+
   ASSERT_OUTCOME_SUCCESS_TRY(babe->processSlot(slot, best_block_info));
 
-  testutil::wait(*thread_pool_->io_context());
+  testutil::wait(*thread_pool_.io_context());
+  testutil::wait(*thread_pool_.io_context());
 }

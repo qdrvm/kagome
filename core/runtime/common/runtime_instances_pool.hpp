@@ -33,7 +33,7 @@ namespace kagome::runtime {
     RuntimeInstancesPool(std::shared_ptr<ModuleFactory> module_factory,
                          size_t capacity = DEFAULT_MODULES_CACHE_SIZE);
 
-    outcome::result<std::shared_ptr<ModuleInstance>, CompilationError>
+    outcome::result<std::shared_ptr<ModuleInstance>>
     instantiateFromCode(const CodeHash &code_hash,
                         common::BufferView code_zstd);
 
@@ -81,7 +81,7 @@ namespace kagome::runtime {
       std::shared_ptr<const Module> module;
       std::vector<std::shared_ptr<ModuleInstance>> instances;
 
-      std::shared_ptr<ModuleInstance> instantiate(
+      outcome::result<std::shared_ptr<ModuleInstance>> instantiate(
           std::unique_lock<std::mutex> &lock);
     };
 
@@ -89,9 +89,6 @@ namespace kagome::runtime {
         outcome::result<std::shared_ptr<const Module>, CompilationError>;
     CompilationResult tryCompileModule(const CodeHash &code_hash,
                                        common::BufferView code_zstd);
-
-    std::optional<std::shared_future<CompilationResult>> getFutureCompiledModule(
-        const CodeHash &code_hash) const;
 
     std::shared_ptr<ModuleFactory> module_factory_;
 

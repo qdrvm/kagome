@@ -40,25 +40,29 @@ namespace kagome::runtime {
     static const common::Hash64 transaction_payment_api_hash =
         hasher_->blake2b_64(
             common::Buffer::fromString("TransactionPaymentApi"));
-    auto res =
-        std::find_if(runtime_version.apis.begin(),
-                     runtime_version.apis.end(),
-                     [](auto &api_version) {
-                       return api_version.first == transaction_payment_api_hash;
-                     });
+    const auto &c_transaction_payment_api_hash =
+        transaction_payment_api_hash;  // to create memory storage to push in
+                                       // lambda
+    auto res = std::find_if(runtime_version.apis.begin(),
+                            runtime_version.apis.end(),
+                            [&](auto &api_version) {
+                              return api_version.first
+                                  == c_transaction_payment_api_hash;
+                            });
     if (res == runtime_version.apis.end()) {
       return Error::TRANSACTION_PAYMENT_API_NOT_FOUND;
     }
     auto api_version = res->second;
+    OUTCOME_TRY(ctx, executor_->ctx().ephemeralAt(block));
     if (api_version < 2) {
       return executor_
-          ->callAt<primitives::RuntimeDispatchInfo<primitives::OldWeight>>(
-              block, "TransactionPaymentApi_query_info", ext.data, len);
+          ->call<primitives::RuntimeDispatchInfo<primitives::OldWeight>>(
+              ctx, "TransactionPaymentApi_query_info", ext.data, len);
     }
     OUTCOME_TRY(
         result,
-        executor_->callAt<primitives::RuntimeDispatchInfo<primitives::Weight>>(
-            block, "TransactionPaymentApi_query_info", ext.data, len));
+        executor_->call<primitives::RuntimeDispatchInfo<primitives::Weight>>(
+            ctx, "TransactionPaymentApi_query_info", ext.data, len));
     primitives::RuntimeDispatchInfo<primitives::OldWeight> old_format_result;
     old_format_result.dispatch_class = result.dispatch_class;
     old_format_result.partial_fee = result.partial_fee;

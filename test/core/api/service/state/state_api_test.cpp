@@ -9,18 +9,19 @@
 #include "api/service/state/impl/state_api_impl.hpp"
 #include "api/service/state/requests/get_metadata.hpp"
 #include "api/service/state/requests/subscribe_storage.hpp"
-#include "core/storage/trie/polkadot_trie_cursor_dummy.hpp"
 #include "mock/core/api/service/api_service_mock.hpp"
 #include "mock/core/api/service/state/state_api_mock.hpp"
 #include "mock/core/blockchain/block_header_repository_mock.hpp"
 #include "mock/core/blockchain/block_tree_mock.hpp"
 #include "mock/core/runtime/core_mock.hpp"
-#include "mock/core/runtime/executor_mock.hpp"
 #include "mock/core/runtime/metadata_mock.hpp"
+#include "mock/core/runtime/runtime_context_factory_mock.hpp"
 #include "mock/core/storage/trie/trie_batches_mock.hpp"
 #include "mock/core/storage/trie/trie_storage_mock.hpp"
 #include "primitives/block_header.hpp"
+#include "runtime/executor.hpp"
 #include "runtime/runtime_context.hpp"
+#include "core/storage/trie/polkadot_trie_cursor_dummy.hpp"
 #include "testutil/lazy.hpp"
 #include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
@@ -35,7 +36,7 @@ using kagome::primitives::BlockHeader;
 using kagome::primitives::BlockInfo;
 using kagome::primitives::BlockNumber;
 using kagome::runtime::CoreMock;
-using kagome::runtime::ExecutorMock;
+using kagome::runtime::Executor;
 using kagome::runtime::MetadataMock;
 using kagome::storage::trie::TrieBatchMock;
 using kagome::storage::trie::TrieStorageMock;
@@ -58,6 +59,8 @@ namespace kagome::api {
   class StateApiTest : public ::testing::Test {
    public:
     void SetUp() override {
+      executor_ = std::make_shared<Executor>(
+          std::make_shared<kagome::runtime::RuntimeContextFactoryMock>());
       api_ = std::make_unique<api::StateApiImpl>(
           block_header_repo_,
           storage_,
@@ -79,7 +82,7 @@ namespace kagome::api {
     std::shared_ptr<MetadataMock> metadata_ = std::make_shared<MetadataMock>();
     std::shared_ptr<ApiServiceMock> api_service_ =
         std::make_shared<ApiServiceMock>();
-    std::shared_ptr<ExecutorMock> executor_ = std::make_shared<ExecutorMock>();
+    std::shared_ptr<Executor> executor_;
 
     std::unique_ptr<api::StateApiImpl> api_{};
   };
@@ -125,7 +128,8 @@ namespace kagome::api {
 
       auto runtime_core = std::make_shared<CoreMock>();
       auto metadata = std::make_shared<MetadataMock>();
-      auto executor = std::make_shared<ExecutorMock>();
+      auto executor = std::make_shared<Executor>(
+          std::make_shared<runtime::RuntimeContextFactoryMock>());
 
       api_ = std::make_shared<api::StateApiImpl>(
           block_header_repo_,

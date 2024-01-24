@@ -29,7 +29,7 @@ embedded_chainspec(embedded_chainspec_westend ${PROJECT_SOURCE_DIR}/examples/wes
 
 set(OUTPUT embedded_keys.cpp)
 if(EMBEDDINGS)
-    set(SOURCE ${PROJECT_SOURCE_DIR}/examples/first_kagome_chain/base_path/chains/dev/keystore)
+    set(SOURCE ${PROJECT_SOURCE_DIR}/examples/first_kagome_chain/base_path/chains/rococo_dev/keystore)
     if(NOT IS_DIRECTORY ${SOURCE})
         fatal_error("Not found resource for embedded assets: ${SOURCE}")
     endif()

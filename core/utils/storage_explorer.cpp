@@ -85,10 +85,9 @@ class Command {
   }
 
   template <typename... Ts>
-  [[noreturn]] void throwError(const char *fmt, Ts &&...ts) const {
+  [[noreturn]] void throwError(const char *fmt, const Ts &...ts) const {
     throw CommandExecutionError(
-        name,
-        ::fmt::vformat(fmt, fmt::make_format_args(std::forward<Ts>(ts)...)));
+        name, ::fmt::vformat(fmt, fmt::make_format_args(ts...)));
   }
 
   template <typename T>
@@ -106,8 +105,6 @@ class Command {
 
 class CommandParser {
  public:
-  using CommandFunctor = std::function<void(int, char **)>;
-
   void addCommand(std::unique_ptr<Command> cmd) {
     std::string name{cmd->getName()};
     commands_.insert({name, std::move(cmd)});
@@ -117,6 +114,7 @@ class CommandParser {
     if (args.size() < 2) {
       std::cerr << "Unspecified command!\nAvailable commands are:\n";
       printCommands(std::cerr);
+      return;
     }
     if (auto command = commands_.find(args[1]); command != commands_.cend()) {
       ArgumentList cmd_args{args.subspan(1)};
@@ -518,6 +516,36 @@ class SearchChainCommand : public Command {
   std::shared_ptr<Hasher> hasher;
 };
 
+class ChainInfoCommand final : public Command {
+ public:
+  ChainInfoCommand(std::shared_ptr<kagome::blockchain::BlockTree> block_tree)
+      : Command{"chain-info", "Print general info about the current chain. "},
+        block_tree{block_tree} {
+    BOOST_ASSERT(block_tree);
+  }
+
+  virtual void execute(std::ostream &out, const ArgumentList &args) override {
+    if (args.size() > 1) {
+      throwError("No arguments expected, {} arguments received", args.size());
+    }
+    fmt::print(out, "Last finalized: {}\n", block_tree->getLastFinalized());
+    fmt::print(out, "Best block: {}\n", block_tree->bestBlock());
+    fmt::print(out, "Genesis block: {}\n", block_tree->getGenesisBlockHash());
+    fmt::print(out, "Leaves:\n");
+    for (auto &leaf : block_tree->getLeaves()) {
+      auto header_res = block_tree->getBlockHeader(leaf);
+      if (!header_res) {
+        throwError("Error loading block header: {}", header_res.error());
+      }
+      fmt::print(out, "\t#{} - {}\n", header_res.value().number, leaf);
+    }
+  }
+
+ private:
+  std::shared_ptr<kagome::blockchain::BlockTree> block_tree;
+};
+
+
 class DbStatsCommand : public Command {
  public:
   DbStatsCommand(std::filesystem::path db_path)
@@ -582,9 +610,10 @@ int storage_explorer_main(int argc, const char **argv) {
 
   kagome::log::setLevelOfGroup("*", kagome::log::Level::WARN);
 
-  auto logger = kagome::log::createLogger("AppConfiguration", "main");
+  auto logger =
+      kagome::log::createLogger("Configuration", kagome::log::defaultGroupName);
   auto configuration =
-      std::make_shared<kagome::application::AppConfigurationImpl>(logger);
+      std::make_shared<kagome::application::AppConfigurationImpl>();
 
   int kagome_args_start = -1;
   for (size_t i = 1; i < args.size(); i++) {
@@ -603,6 +632,10 @@ int storage_explorer_main(int argc, const char **argv) {
     std::cerr << "Failed to initialize kagome!\n";
     return -1;
   }
+
+  SL_INFO(logger,
+          "Kagome storage explorer started. Version: {} ",
+          configuration->nodeVersion());
 
   kagome::injector::KagomeNodeInjector injector{configuration};
   auto block_storage = injector.injectBlockStorage();
@@ -629,12 +662,16 @@ int storage_explorer_main(int argc, const char **argv) {
   parser.addCommand(std::make_unique<InspectBlockCommand>(block_storage));
   parser.addCommand(std::make_unique<RemoveBlockCommand>(block_storage));
   parser.addCommand(std::make_unique<QueryStateCommand>(trie_storage));
+  parser.addCommand(std::make_unique<ChainInfoCommand>(block_tree));
   parser.addCommand(std::make_unique<SearchChainCommand>(
       block_storage, trie_storage, authority_manager, hasher));
   parser.addCommand(std::make_unique<DbStatsCommand>(
       configuration->databasePath(chain_spec->id())));
 
   parser.invoke(args.first(kagome_args_start));
+
+  SL_INFO(logger, "Kagome storage explorer stopped");
+  logger->flush();
 
   return 0;
 }

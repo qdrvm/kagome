@@ -91,37 +91,51 @@ namespace kagome::primitives {
   };
 
   /// Transaction is invalid. Details are described by the error code.
-  enum class InvalidTransaction : uint8_t {
-    /// The call of the transaction is not expected.
-    Call = 1,
-    /// General error to do with the inability to pay some fees (e.g. account
-    /// balance too low).
-    Payment,
-    /// General error to do with the transaction not yet being valid (e.g. nonce
-    /// too high).
-    Future,
-    /// General error to do with the transaction being outdated (e.g. nonce too
-    /// low).
-    Stale,
-    /// General error to do with the transaction's proofs (e.g. signature).
-    BadProof,
-    /// The transaction birth block is ancient.
-    AncientBirthBlock,
-    /// The transaction would exhaust the resources of current block.
-    ///
-    /// The transaction might be valid, but there are not enough resources left
-    /// in the current block.
-    ExhaustsResources,
-    /// Any other custom invalid validity that is not covered by this enum.
-    Custom,
-    /// An extrinsic with a Mandatory dispatch resulted in Error. This is
-    /// indicative of either a malicious validator or a buggy
-    /// `provide_inherent`. In any case, it can result in dangerously overweight
-    /// blocks and therefore if found, invalidates the block.
-    BadMandatory,
-    /// A transaction with a mandatory dispatch. This is invalid; only inherent
-    /// extrinsics are allowed to have mandatory dispatches.
-    MandatoryDispatch,
+  struct InvalidTransaction {
+    enum Kind : uint8_t {
+      /// The call of the transaction is not expected.
+      Call = 1,
+      /// General error to do with the inability to pay some fees (e.g. account
+      /// balance too low).
+      Payment,
+      /// General error to do with the transaction not yet being valid (e.g.
+      /// nonce
+      /// too high).
+      Future,
+      /// General error to do with the transaction being outdated (e.g. nonce
+      /// too
+      /// low).
+      Stale,
+      /// General error to do with the transaction's proofs (e.g. signature).
+      BadProof,
+      /// The transaction birth block is ancient.
+      AncientBirthBlock,
+      /// The transaction would exhaust the resources of current block.
+      ///
+      /// The transaction might be valid, but there are not enough resources
+      /// left
+      /// in the current block.
+      ExhaustsResources,
+      /// Any other custom invalid validity that is not covered by this enum.
+      Custom,
+      /// An extrinsic with a Mandatory dispatch resulted in Error. This is
+      /// indicative of either a malicious validator or a buggy
+      /// `provide_inherent`. In any case, it can result in dangerously
+      /// overweight
+      /// blocks and therefore if found, invalidates the block.
+      BadMandatory,
+      /// A transaction with a mandatory dispatch. This is invalid; only
+      /// inherent
+      /// extrinsics are allowed to have mandatory dispatches.
+      MandatoryDispatch,
+    };
+    Kind kind;
+    uint8_t custom_value{};
+
+    bool operator==(const InvalidTransaction &other) const {
+      return kind == other.kind
+          && (kind != Kind::Custom || custom_value == other.custom_value);
+    }
   };
 
   template <class Stream,
@@ -130,7 +144,11 @@ namespace kagome::primitives {
     // -1 is needed for compatibility with Rust; indices of error codes start
     // from 0 there, while in kagome they must start from 1 because of
     // std::error_code policy
-    return s << static_cast<uint8_t>(v) - 1;
+    s << static_cast<uint8_t>(v.kind) - 1;
+    if (v.kind == InvalidTransaction::Custom) {
+      s << v.custom_value;
+    }
+    return s;
   }
 
   template <class Stream,
@@ -143,23 +161,34 @@ namespace kagome::primitives {
     // start from 0 there, while in kagome they must start from 1 because of
     // std::error_code policy
     value++;
-    if (value > static_cast<uint8_t>(InvalidTransaction::ExhaustsResources)) {
-      v = InvalidTransaction::Custom;
-    } else {
-      v = static_cast<InvalidTransaction>(value);
+    v.kind = static_cast<InvalidTransaction::Kind>(value);
+    if (v.kind == InvalidTransaction::Custom) {
+      s >> value;
+      v.custom_value = value;
     }
     return s;
   }
 
   /// An unknown transaction validity.
-  enum class UnknownTransaction : uint8_t {
-    /// Could not lookup some information that is required to validate the
-    /// transaction.
-    CannotLookup = 1,
-    /// No validator found for the given unsigned transaction.
-    NoUnsignedValidator,
-    /// Any other custom unknown validity that is not covered by this enum.
-    Custom
+  struct UnknownTransaction {
+    enum Kind : uint8_t {
+      /// Could not lookup some information that is required to validate the
+      /// transaction.
+      CannotLookup = 1,
+      /// No validator found for the given unsigned transaction.
+      NoUnsignedValidator,
+      /// Any other custom unknown validity that is not covered by this enum.
+      Custom
+    };
+
+    bool operator==(Kind kind) const {
+      return this->kind == kind;
+    }
+
+    bool operator==(const UnknownTransaction &) const = default;
+
+    Kind kind;
+    uint8_t custom_value{};
   };
 
   template <class Stream,
@@ -168,7 +197,11 @@ namespace kagome::primitives {
     // -1 is needed for compatibility with Rust; indices of error codes start
     // from 0 there, while in kagome they must start from 1 because of
     // std::error_code policy
-    return s << static_cast<uint8_t>(v) - 1;
+    s << static_cast<uint8_t>(v.kind - 1);
+    if (v == UnknownTransaction::Custom) {
+      s << v.custom_value;
+    }
+    return s;
   }
 
   template <class Stream,
@@ -181,11 +214,12 @@ namespace kagome::primitives {
     // start from 0 there, while in kagome they must start from 1 because of
     // std::error_code policy
     value++;
-    if (value > static_cast<uint8_t>(UnknownTransaction::NoUnsignedValidator)) {
-      v = UnknownTransaction::Custom;
-    } else {
-      v = static_cast<UnknownTransaction>(value);
+    v.kind = static_cast<UnknownTransaction::Kind>(value);
+
+    if (value == UnknownTransaction::Custom) {
+      s >> v.custom_value;
     }
+
     return s;
   }
 
@@ -200,5 +234,5 @@ namespace kagome::primitives {
       boost::variant<ValidTransaction, TransactionValidityError>;
 }  // namespace kagome::primitives
 
-OUTCOME_HPP_DECLARE_ERROR(kagome::primitives, InvalidTransaction)
-OUTCOME_HPP_DECLARE_ERROR(kagome::primitives, UnknownTransaction)
+OUTCOME_HPP_DECLARE_ERROR(kagome::primitives, InvalidTransaction::Kind)
+OUTCOME_HPP_DECLARE_ERROR(kagome::primitives, UnknownTransaction::Kind)

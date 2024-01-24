@@ -9,11 +9,10 @@
 #include "consensus/grandpa/grandpa.hpp"
 #include "consensus/grandpa/grandpa_observer.hpp"
 
-#include <atomic>
-#include <boost/asio/io_context.hpp>
 #include <libp2p/basic/scheduler.hpp>
 
 #include "consensus/grandpa/impl/votes_cache.hpp"
+#include "injector/lazy.hpp"
 #include "log/logger.hpp"
 #include "metrics/metrics.hpp"
 #include "primitives/event_types.hpp"
@@ -27,6 +26,10 @@ namespace kagome::application {
 namespace kagome::blockchain {
   class BlockTree;
 }
+
+namespace kagome::consensus {
+  class Timeline;
+}  // namespace kagome::consensus
 
 namespace kagome::consensus::grandpa {
   class AuthorityManager;
@@ -100,9 +103,10 @@ namespace kagome::consensus::grandpa {
         std::shared_ptr<network::PeerManager> peer_manager,
         std::shared_ptr<blockchain::BlockTree> block_tree,
         std::shared_ptr<network::ReputationRepository> reputation_repository,
-        primitives::events::BabeStateSubscriptionEnginePtr
-            babe_status_observable,
-        std::shared_ptr<boost::asio::io_context> main_thread_context);
+        LazySPtr<Timeline> timeline,
+        primitives::events::ChainSubscriptionEnginePtr chain_sub_engine,
+        std::shared_ptr<Watchdog> watchdog,
+        WeakIoContext main_thread);
 
     /**
      * Prepares for grandpa round execution: e.g. sets justification observer
@@ -213,11 +217,9 @@ namespace kagome::consensus::grandpa {
     /**
      * Check justification votes signatures, ancestry and threshold.
      */
-    void verifyJustification(
+    outcome::result<void> verifyJustification(
         const GrandpaJustification &justification,
-        const AuthoritySet &authorities,
-        std::shared_ptr<std::promise<outcome::result<void>>> promise_res)
-        override;
+        const AuthoritySet &authorities) override;
 
     /**
      * Selects round that corresponds for justification, checks justification,
@@ -298,6 +300,8 @@ namespace kagome::consensus::grandpa {
      * cannot accept precommit when there is no corresponding block)
      */
     void loadMissingBlocks(GrandpaContext &&grandpa_context);
+    void onHead(const primitives::BlockInfo &block);
+    void pruneWaitingBlocks();
 
     const size_t kVotesCacheSize = 5;
 
@@ -313,18 +317,12 @@ namespace kagome::consensus::grandpa {
     std::shared_ptr<blockchain::BlockTree> block_tree_;
     VotesCache votes_cache_{kVotesCacheSize};
     std::shared_ptr<network::ReputationRepository> reputation_repository_;
-    primitives::events::BabeStateSubscriptionEnginePtr babe_status_observable_;
-    primitives::events::BabeStateEventSubscriberPtr babe_status_observer_;
-
-    std::atomic_bool synchronized_once_ =
-        false;  // declares if initial sync was done, does not
-                // necessarily mean that node is currently synced.
-                // Needed for enabling neighbor message processing.
-                // By default is false
+    LazySPtr<Timeline> timeline_;
+    primitives::events::ChainSub chain_sub_;
 
     std::shared_ptr<ThreadPool> execution_thread_pool_;
     std::shared_ptr<ThreadHandler> internal_thread_context_;
-    ThreadHandler main_thread_context_;
+    ThreadHandler main_thread_;
     std::shared_ptr<libp2p::basic::Scheduler> scheduler_;
 
     std::shared_ptr<VotingRound> current_round_;
@@ -333,6 +331,8 @@ namespace kagome::consensus::grandpa {
         pending_catchup_request_;
     libp2p::basic::Scheduler::Handle catchup_request_timer_handle_;
     libp2p::basic::Scheduler::Handle fallback_timer_handle_;
+
+    std::vector<GrandpaContext> waiting_blocks_;
 
     // Metrics
     metrics::RegistryPtr metrics_registry_ = metrics::createRegistry();

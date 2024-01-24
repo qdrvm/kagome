@@ -21,6 +21,7 @@
 #include "storage/spaced_storage.hpp"
 #include "utils/block_number_key.hpp"
 #include "utils/thread_pool.hpp"
+#include "utils/weak_io_context_strand.hpp"
 
 // TODO(turuslan): #1651, report equivocation
 
@@ -41,7 +42,7 @@ namespace kagome::network {
                std::shared_ptr<crypto::EcdsaProvider> ecdsa,
                std::shared_ptr<storage::SpacedStorage> db,
                std::shared_ptr<ThreadPool> thread_pool,
-               std::shared_ptr<boost::asio::io_context> main_thread,
+               WeakIoContext main_thread,
                LazySPtr<consensus::Timeline> timeline,
                std::shared_ptr<crypto::SessionKeys> session_keys,
                LazySPtr<BeefyProtocol> beefy_protocol,
@@ -50,8 +51,8 @@ namespace kagome::network {
         beefy_api_{std::move(beefy_api)},
         ecdsa_{std::move(ecdsa)},
         db_{db->getSpace(storage::Space::kBeefyJustification)},
-        strand_inner_{thread_pool->io_context()},
-        strand_{*strand_inner_},
+        strand_{
+            std::make_shared<WeakIoContextStrand>(thread_pool->io_context())},
         main_thread_{std::move(main_thread)},
         timeline_{std::move(timeline)},
         session_keys_{std::move(session_keys)},
@@ -81,7 +82,7 @@ namespace kagome::network {
 
   void Beefy::onJustification(const primitives::BlockHash &block_hash,
                               primitives::Justification raw) {
-    strand_.post([weak = weak_from_this(), block_hash, raw = std::move(raw)] {
+    strand_->post([weak{weak_from_this()}, block_hash, raw = std::move(raw)] {
       if (auto self = weak.lock()) {
         std::ignore = self->onJustificationOutcome(block_hash, std::move(raw));
       }
@@ -97,6 +98,9 @@ namespace kagome::network {
                 scale::decode<consensus::beefy::BeefyJustification>(raw.data));
     auto &justification =
         boost::get<consensus::beefy::SignedCommitment>(justification_v1);
+    if (justification.commitment.block_number == beefy_finalized_) {
+      return outcome::success();
+    }
     OUTCOME_TRY(header, block_tree_->getBlockHeader(block_hash));
     if (justification.commitment.block_number != header.number) {
       return outcome::success();
@@ -105,14 +109,14 @@ namespace kagome::network {
   }
 
   void Beefy::onMessage(consensus::beefy::BeefyGossipMessage message) {
-    if (not strand_.running_in_this_thread()) {
-      return strand_.post(
-          [weak = weak_from_this(), message = std::move(message)] {
-            if (auto self = weak.lock()) {
-              self->onMessage(std::move(message));
-            }
-          });
-    }
+    strand_->post([weak{weak_from_this()}, message = std::move(message)] {
+      if (auto self = weak.lock()) {
+        self->onMessageStrand(std::move(message));
+      }
+    });
+  }
+
+  void Beefy::onMessageStrand(consensus::beefy::BeefyGossipMessage message) {
     if (not beefy_genesis_) {
       return;
     }
@@ -120,6 +124,9 @@ namespace kagome::network {
             boost::get<consensus::beefy::BeefyJustification>(&message)) {
       auto &justification =
           boost::get<consensus::beefy::SignedCommitment>(*justification_v1);
+      if (justification.commitment.block_number == beefy_finalized_) {
+        return;
+      }
       if (justification.commitment.block_number
           > block_tree_->bestBlock().number) {
         return;
@@ -147,7 +154,8 @@ namespace kagome::network {
     if (next_session == sessions_.begin()) {
       return;
     }
-    auto &session = std::prev(next_session)->second;
+    auto session_it = std::prev(next_session);
+    auto &session = session_it->second;
     if (vote.commitment.validator_set_id != session.validators.id) {
       SL_VERBOSE(log_, "wrong validator set id for block {}", block_number);
       return;
@@ -157,12 +165,28 @@ namespace kagome::network {
       SL_VERBOSE(log_, "unknown validator for block {}", block_number);
       return;
     }
+    auto total = session.validators.validators.size();
+    auto round = session.rounds.find(block_number);
+    if (round != session.rounds.end() and round->second.signatures[*index]) {
+      return;
+    }
     if (not verify(*ecdsa_, vote)) {
       SL_VERBOSE(log_, "wrong vote for block {}", block_number);
       return;
     }
-    auto total = session.validators.validators.size();
-    auto round = session.rounds.find(block_number);
+    auto commitment_ok = false;
+    if (round != session.rounds.end()) {
+      commitment_ok = vote.commitment == round->second.commitment;
+    } else if (auto r = getCommitment(session.validators.id, block_number);
+               not r or not r.value()) {
+      return;
+    } else {
+      commitment_ok = vote.commitment == *r.value();
+    }
+    if (not commitment_ok) {
+      SL_WARN(log_, "unexpected commitment for block {}", block_number);
+      return;
+    }
     if (round == session.rounds.end()) {
       round =
           session.rounds
@@ -170,9 +194,6 @@ namespace kagome::network {
                        consensus::beefy::SignedCommitment{vote.commitment, {}})
               .first;
       round->second.signatures.resize(total);
-    }
-    if (round->second.signatures[*index]) {
-      return;
     }
     round->second.signatures[*index] = vote.signature;
     size_t count = 0;
@@ -184,7 +205,8 @@ namespace kagome::network {
     if (count >= consensus::beefy::threshold(total)) {
       std::ignore = apply(session.rounds.extract(round).mapped(), true);
     } else if (broadcast) {
-      main_thread_->post(
+      post(
+          main_thread_,
           [protocol{beefy_protocol_.get()},
            message{std::make_shared<consensus::beefy::BeefyGossipMessage>(
                std::move(vote))}] { protocol->broadcast(std::move(message)); });
@@ -201,14 +223,14 @@ namespace kagome::network {
     SL_INFO(log_, "last finalized {}", beefy_finalized_);
     chain_sub_.onFinalize([weak{weak_from_this()}]() {
       if (auto self = weak.lock()) {
-        self->strand_.post([weak] {
+        self->strand_->post([weak] {
           if (auto self = weak.lock()) {
             std::ignore = self->update();
           }
         });
       }
     });
-    strand_.post([weak = weak_from_this()] {
+    strand_->post([weak{weak_from_this()}] {
       if (auto self = weak.lock()) {
         std::ignore = self->update();
       }
@@ -330,12 +352,12 @@ namespace kagome::network {
     metric_finalized->set(beefy_finalized_);
     next_digest_ = std::max(next_digest_, block_number + 1);
     if (broadcast) {
-      main_thread_->post(
-          [protocol{beefy_protocol_.get()},
-           message{std::make_shared<consensus::beefy::BeefyGossipMessage>(
-               std::move(justification_v1))}] {
-            protocol->broadcast(std::move(message));
-          });
+      post(main_thread_,
+           [protocol{beefy_protocol_.get()},
+            message{std::make_shared<consensus::beefy::BeefyGossipMessage>(
+                std::move(justification_v1))}] {
+             protocol->broadcast(std::move(message));
+           });
     }
     return outcome::success();
   }
@@ -411,31 +433,40 @@ namespace kagome::network {
                session->second.validators.id);
       return outcome::success();
     }
-    OUTCOME_TRY(block_hash, block_tree_->getBlockHash(target));
-    if (not block_hash) {
-      SL_VERBOSE(log_, "can't vote: no block {}", target);
+    OUTCOME_TRY(commitment,
+                getCommitment(session->second.validators.id, target));
+    if (not commitment) {
+      SL_VERBOSE(log_, "can't vote: no commitment {}", target);
       return outcome::success();
+    }
+    OUTCOME_TRY(sig,
+                ecdsa_->signPrehashed(consensus::beefy::prehash(*commitment),
+                                      key->first->secret_key));
+    onVote({std::move(*commitment), key->first->public_key, sig}, true);
+    last_voted_ = target;
+    return outcome::success();
+  }
+
+  outcome::result<std::optional<consensus::beefy::Commitment>>
+  Beefy::getCommitment(consensus::beefy::AuthoritySetId validator_set_id,
+                       primitives::BlockNumber block_number) {
+    OUTCOME_TRY(block_hash, block_tree_->getBlockHash(block_number));
+    if (not block_hash) {
+      SL_VERBOSE(log_, "getCommitment: no block {}", block_number);
+      return std::nullopt;
     }
     OUTCOME_TRY(header, block_tree_->getBlockHeader(*block_hash));
     auto mmr = beefyMmrDigest(header);
     if (not mmr) {
-      SL_VERBOSE(log_, "can't vote: no mmr digest in block {}", target);
-      return outcome::success();
+      SL_VERBOSE(
+          log_, "getCommitment: no mmr digest in block {}", block_number);
+      return std::nullopt;
     }
-    consensus::beefy::VoteMessage vote;
-    vote.commitment = {
+    return consensus::beefy::Commitment{
         {{consensus::beefy::kMmr, common::Buffer{*mmr}}},
-        target,
-        session->second.validators.id,
+        block_number,
+        validator_set_id,
     };
-    vote.id = key->first->public_key;
-    BOOST_OUTCOME_TRY(
-        vote.signature,
-        ecdsa_->signPrehashed(consensus::beefy::prehash(vote.commitment),
-                              key->first->secret_key));
-    onVote(std::move(vote), true);
-    last_voted_ = target;
-    return outcome::success();
   }
 
   void Beefy::metricValidatorSetId() {

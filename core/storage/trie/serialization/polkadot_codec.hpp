@@ -11,10 +11,13 @@
 #include <string>
 
 #include "codec.hpp"
+#include "crypto/blake2/blake2b.h"
 #include "storage/trie/polkadot_trie/trie_node.hpp"
 #include "storage/trie/serialization/buffer_stream.hpp"
 
 namespace kagome::storage::trie {
+
+  using RootHashFunc = RootHash (*)(common::BufferView);
 
   class PolkadotCodec : public Codec {
    public:
@@ -28,6 +31,8 @@ namespace kagome::storage::trie {
       INPUT_TOO_SMALL,    ///< cannot decode a node, not enough bytes on input
       NO_NODE_VALUE       ///< leaf node without value
     };
+
+    PolkadotCodec(RootHashFunc hash_func = crypto::blake2b<32>): hash_func_{hash_func} {}
 
     ~PolkadotCodec() override = default;
 
@@ -82,6 +87,8 @@ namespace kagome::storage::trie {
 
     bool shouldBeHashed(const ValueAndHash &value,
                         StateVersion version) const override;
+
+    RootHashFunc hash_func_;    
   };
 
 }  // namespace kagome::storage::trie

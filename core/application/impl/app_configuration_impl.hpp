@@ -52,10 +52,10 @@ namespace kagome::application {
   // clang-format on
 
   class AppConfigurationImpl final : public AppConfiguration {
-    using FilePtr = std::unique_ptr<std::FILE, decltype(&std::fclose)>;
+    using FilePtr = std::unique_ptr<std::FILE, int (*)(FILE *)>;
 
    public:
-    explicit AppConfigurationImpl(log::Logger logger);
+    explicit AppConfigurationImpl();
     ~AppConfigurationImpl() override = default;
 
     AppConfigurationImpl(const AppConfigurationImpl &) = delete;
@@ -161,6 +161,9 @@ namespace kagome::application {
     RuntimeExecutionMethod runtimeExecMethod() const override {
       return runtime_exec_method_;
     }
+    RuntimeInterpreter runtimeInterpreter() const override {
+      return runtime_interpreter_;
+    }
     bool useWavmCache() const override {
       return use_wavm_cache_;
     }
@@ -233,7 +236,7 @@ namespace kagome::application {
     void parse_network_segment(const rapidjson::Value &val);
     void parse_additional_segment(const rapidjson::Value &val);
 
-    /// TODO(iceseer): PRE-476 make handler calls via lambda-calls, remove
+    /// TODO(iceseer): #1943 make handler calls via lambda-calls, remove
     /// member-function ptrs
     struct SegmentHandler {
       using Handler = std::function<void(rapidjson::Value &)>;
@@ -353,6 +356,7 @@ namespace kagome::application {
     uint32_t random_walk_interval_;
     SyncMethod sync_method_;
     RuntimeExecutionMethod runtime_exec_method_;
+    RuntimeInterpreter runtime_interpreter_;
     bool use_wavm_cache_;
     bool purge_wavm_cache_;
     OffchainWorkerMode offchain_worker_mode_;

@@ -19,13 +19,16 @@
 #include "mock/core/crypto/hasher_mock.hpp"
 #include "mock/core/network/protocols/sync_protocol_mock.hpp"
 #include "mock/core/network/router_mock.hpp"
-#include "mock/core/storage/persistent_map_mock.hpp"
+#include "mock/core/runtime/module_factory_mock.hpp"
+#include "mock/core/runtime/runtime_properties_cache_mock.hpp"
+#include "mock/core/storage/generic_storage_mock.hpp"
 #include "mock/core/storage/spaced_storage_mock.hpp"
 #include "mock/core/storage/trie/trie_storage_backend_mock.hpp"
 #include "mock/core/storage/trie/trie_storage_mock.hpp"
 #include "mock/core/storage/trie_pruner/trie_pruner_mock.hpp"
 #include "network/impl/synchronizer_impl.hpp"
 #include "primitives/common.hpp"
+#include "testutil/lazy.hpp"
 #include "testutil/literals.hpp"
 #include "testutil/prepare_loggers.hpp"
 
@@ -38,6 +41,7 @@ using namespace consensus::grandpa;
 using namespace storage;
 
 using std::chrono_literals::operator""ms;
+using kagome::consensus::Timeline;
 using network::Synchronizer;
 using primitives::BlockData;
 using primitives::BlockHash;
@@ -82,21 +86,25 @@ class SynchronizerTest
     auto state_pruner =
         std::make_shared<kagome::storage::trie_pruner::TriePrunerMock>();
 
+    auto _timeline = testutil::sptr_to_lazy<Timeline>(timeline);
     synchronizer =
         std::make_shared<network::SynchronizerImpl>(app_config,
                                                     app_state_manager,
                                                     block_tree,
                                                     block_appender,
                                                     block_executor,
-                                                    trie_db,
+                                                    trie_node_db,
                                                     storage,
                                                     state_pruner,
                                                     router,
+                                                    nullptr,
                                                     scheduler,
                                                     hasher,
                                                     chain_sub_engine,
+                                                    _timeline,
                                                     nullptr,
-                                                    grandpa_environment);
+                                                    grandpa_environment,
+                                                    WeakIoContext{});
   }
 
   application::AppConfigurationMock app_config;
@@ -108,7 +116,7 @@ class SynchronizerTest
       std::make_shared<BlockHeaderAppenderMock>();
   std::shared_ptr<BlockExecutorMock> block_executor =
       std::make_shared<BlockExecutorMock>();
-  std::shared_ptr<trie::TrieStorageBackendMock> trie_db =
+  std::shared_ptr<trie::TrieStorageBackendMock> trie_node_db =
       std::make_shared<trie::TrieStorageBackendMock>();
   std::shared_ptr<trie::TrieStorageMock> storage =
       std::make_shared<trie::TrieStorageMock>();
@@ -122,6 +130,7 @@ class SynchronizerTest
       std::make_shared<crypto::HasherMock>();
   primitives::events::ChainSubscriptionEnginePtr chain_sub_engine =
       std::make_shared<primitives::events::ChainSubscriptionEngine>();
+  std::shared_ptr<Timeline> timeline;
   std::shared_ptr<BufferStorageMock> buffer_storage =
       std::make_shared<BufferStorageMock>();
   std::shared_ptr<EnvironmentMock> grandpa_environment =

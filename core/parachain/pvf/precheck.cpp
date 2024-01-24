@@ -8,6 +8,7 @@
 
 #include <libp2p/common/final_action.hpp>
 
+#include "blockchain/block_tree.hpp"
 #include "metrics/histogram_timer.hpp"
 #include "offchain/offchain_worker_factory.hpp"
 #include "offchain/offchain_worker_pool.hpp"
@@ -16,6 +17,8 @@
 #include "runtime/module_factory.hpp"
 
 namespace kagome::parachain {
+  constexpr size_t kSessions = 3;
+
   metrics::HistogramTimer metric_pvf_preparation_time{
       "kagome_pvf_preparation_time",
       "Time spent in preparing PVF artifacts in seconds",
@@ -38,19 +41,23 @@ namespace kagome::parachain {
 
   PvfPrecheck::PvfPrecheck(
       std::shared_ptr<crypto::Hasher> hasher,
+      std::shared_ptr<blockchain::BlockTree> block_tree,
       std::shared_ptr<ValidatorSignerFactory> signer_factory,
       std::shared_ptr<runtime::ParachainHost> parachain_api,
       std::shared_ptr<runtime::ModuleFactory> module_factory,
       std::shared_ptr<runtime::Executor> executor,
+      std::shared_ptr<Watchdog> watchdog,
       std::shared_ptr<offchain::OffchainWorkerFactory> offchain_worker_factory,
       std::shared_ptr<offchain::OffchainWorkerPool> offchain_worker_pool)
       : hasher_{std::move(hasher)},
+        block_tree_{std::move(block_tree)},
         signer_factory_{std::move(signer_factory)},
         parachain_api_{std::move(parachain_api)},
         module_factory_{std::move(module_factory)},
         executor_{std::move(executor)},
         offchain_worker_factory_{std::move(offchain_worker_factory)},
-        offchain_worker_pool_{std::move(offchain_worker_pool)} {}
+        offchain_worker_pool_{std::move(offchain_worker_pool)},
+        thread_{std::move(watchdog), "PvfPrecheck", 1} {}
 
   void PvfPrecheck::start(
       std::shared_ptr<primitives::events::ChainSubscriptionEngine>
@@ -60,60 +67,72 @@ namespace kagome::parachain {
     chain_sub_->subscribe(chain_sub_->generateSubscriptionSetId(),
                           primitives::events::ChainEventType::kNewHeads);
     chain_sub_->setCallback(
-        [weak = weak_from_this()](
+        [weak{weak_from_this()}](
             subscription::SubscriptionSetId,
             auto &&,
             primitives::events::ChainEventType,
             const primitives::events::ChainEventParams &event) {
           if (auto self = weak.lock()) {
-            self->thread_.io_context()->post(
-                [weak,
-                 header{boost::get<primitives::events::HeadsEventParams>(event)
-                            .get()}] {
-                  if (auto self = weak.lock()) {
-                    auto r = self->onBlock(header.hash(), header);
-                    if (r.has_error()) {
-                      SL_DEBUG(self->logger_, "onBlock error {}", r.error());
-                    }
-                  }
-                });
+            self->thread_.io_context()->post([weak] {
+              if (auto self = weak.lock()) {
+                auto r = self->onBlock();
+                if (r.has_error()) {
+                  SL_DEBUG(self->logger_, "onBlock error {}", r.error());
+                }
+              }
+            });
           }
         });
   }
 
-  outcome::result<void> PvfPrecheck::onBlock(
-      const BlockHash &block_hash, const primitives::BlockHeader &header) {
-    OUTCOME_TRY(signer, signer_factory_->at(block_hash));
+  outcome::result<void> PvfPrecheck::onBlock() {
+    auto block = block_tree_->bestBlock();
+    OUTCOME_TRY(signer, signer_factory_->at(block.hash));
     if (not signer.has_value()) {
       return outcome::success();
     }
-    OUTCOME_TRY(need, parachain_api_->pvfs_require_precheck(block_hash));
+    if (not session_code_accept_.empty()
+        and signer->getSessionIndex() < session_code_accept_.begin()->first) {
+      SL_WARN(logger_, "past session");
+      return outcome::success();
+    }
+    auto &session = session_code_accept_[signer->getSessionIndex()];
+    OUTCOME_TRY(need, parachain_api_->pvfs_require_precheck(block.hash));
     for (auto &code_hash : need) {
-      if (not seen_.emplace(code_hash).second) {
+      if (session.contains(code_hash)) {
         continue;
       }
-      auto code_zstd_res =
-          parachain_api_->validation_code_by_hash(block_hash, code_hash);
-      if (not code_zstd_res or not code_zstd_res.value()) {
-        seen_.erase(code_hash);
-        continue;
+      std::optional<bool> accepted;
+      for (auto &p : session_code_accept_) {
+        if (auto it = p.second.find(code_hash); it != p.second.end()) {
+          accepted = it->second;
+          break;
+        }
       }
-      auto &code_zstd = *code_zstd_res.value();
-      ParachainRuntime code;
-      auto timer = metric_pvf_preparation_time.timer();
-      auto res = [&]() -> outcome::result<void> {
-        OUTCOME_TRY(runtime::uncompressCodeIfNeeded(code_zstd, code));
-        OUTCOME_TRY(module_factory_->make(code));
-        return outcome::success();
-      }();
-      timer.reset();
-      if (res) {
-        SL_VERBOSE(logger_, "approve {}", code_hash);
-      } else {
-        SL_WARN(logger_, "reject {}: {}", code_hash, res.error());
+      if (not accepted) {
+        auto code_zstd_res =
+            parachain_api_->validation_code_by_hash(block.hash, code_hash);
+        if (not code_zstd_res or not code_zstd_res.value()) {
+          continue;
+        }
+        auto &code_zstd = *code_zstd_res.value();
+        ParachainRuntime code;
+        auto timer = metric_pvf_preparation_time.timer();
+        auto res = [&]() -> outcome::result<void> {
+          OUTCOME_TRY(runtime::uncompressCodeIfNeeded(code_zstd, code));
+          OUTCOME_TRY(module_factory_->make(code));
+          return outcome::success();
+        }();
+        timer.reset();
+        if (res) {
+          SL_VERBOSE(logger_, "approve {}", code_hash);
+        } else {
+          SL_WARN(logger_, "reject {}: {}", code_hash, res.error());
+        }
+        accepted = res.has_value();
       }
       PvfCheckStatement statement{
-          res.has_value(),
+          *accepted,
           code_hash,
           signer->getSessionIndex(),
           signer->validatorIndex(),
@@ -123,7 +142,10 @@ namespace kagome::parachain {
       ::libp2p::common::FinalAction remove(
           [&] { offchain_worker_pool_->removeWorker(); });
       OUTCOME_TRY(parachain_api_->submit_pvf_check_statement(
-          block_hash, statement, signature));
+          block_tree_->bestBlock().hash, statement, signature));
+    }
+    while (session_code_accept_.size() > kSessions) {
+      session_code_accept_.erase(session_code_accept_.begin());
     }
     return outcome::success();
   }

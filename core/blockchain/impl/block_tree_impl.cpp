@@ -16,7 +16,6 @@
 #include "consensus/babe/impl/babe_digests_util.hpp"
 #include "consensus/babe/is_primary.hpp"
 #include "crypto/blake2/blake2b.h"
-#include "log/formatters/optional.hpp"
 #include "log/profiling_logger.hpp"
 #include "storage/database_error.hpp"
 #include "storage/trie_pruner/trie_pruner.hpp"
@@ -125,7 +124,7 @@ namespace kagome::blockchain {
       std::shared_ptr<const class JustificationStoragePolicy>
           justification_storage_policy,
       std::shared_ptr<storage::trie_pruner::TriePruner> state_pruner,
-      std::shared_ptr<::boost::asio::io_context> io_context) {
+      WeakIoContext main_thread) {
     BOOST_ASSERT(storage != nullptr);
     BOOST_ASSERT(header_repo != nullptr);
 
@@ -284,7 +283,7 @@ namespace kagome::blockchain {
                           std::move(extrinsic_event_key_repo),
                           std::move(justification_storage_policy),
                           state_pruner,
-                          std::move(io_context)));
+                          std::move(main_thread)));
 
     // Add non-finalized block to the block tree
     for (auto &e : collected) {
@@ -420,7 +419,7 @@ namespace kagome::blockchain {
       std::shared_ptr<const JustificationStoragePolicy>
           justification_storage_policy,
       std::shared_ptr<storage::trie_pruner::TriePruner> state_pruner,
-      std::shared_ptr<::boost::asio::io_context> io_context)
+      WeakIoContext main_thread)
       : block_tree_data_{BlockTreeData{
           .header_repo_ = std::move(header_repo),
           .storage_ = std::move(storage),
@@ -431,9 +430,10 @@ namespace kagome::blockchain {
           .extrinsic_event_key_repo_ = std::move(extrinsic_event_key_repo),
           .justification_storage_policy_ =
               std::move(justification_storage_policy),
+          .genesis_block_hash_ = {},
           .blocks_pruning_ = {app_config.blocksPruning(), finalized.number},
       }},
-        main_thread_{std::move(io_context)} {
+        main_thread_{std::move(main_thread)} {
     block_tree_data_.sharedAccess([&](const BlockTreeData &p) {
       BOOST_ASSERT(p.header_repo_ != nullptr);
       BOOST_ASSERT(p.storage_ != nullptr);

@@ -9,14 +9,14 @@ def main():
 
     substrate = SubstrateInterface(
         url=url,
-        type_registry_preset='default'
+        type_registry_preset='rococo'
     )
 
     keypair = Keypair.create_from_seed(sys.argv[2])
 
     call = substrate.compose_call(
         call_module='Balances',
-        call_function='transfer',
+        call_function='transfer_keep_alive',
         call_params={
             'dest': sys.argv[3],
             'value': int(sys.argv[4]) * 10**12
