@@ -12,6 +12,7 @@
 
 #include "common/hexutil.hpp"
 #include "common/monadic_utils.hpp"
+#include "crypto/blake2/blake2b.h"
 #include "storage/trie/serialization/polkadot_codec.hpp"
 
 namespace kagome::api {
@@ -141,8 +142,7 @@ namespace kagome::api {
       const std::optional<primitives::BlockHash> &block_hash_opt) const {
     OUTCOME_TRY(value_opt, getStorage(child_storage_key, key, block_hash_opt));
     if (value_opt.has_value()) {
-      storage::trie::PolkadotCodec codec;
-      auto hash = codec.hash256(value_opt.value());
+      common::Hash256 hash = crypto::blake2b<32>(value_opt.value());
       return hash;
     }
     return std::nullopt;

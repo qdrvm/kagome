@@ -20,6 +20,12 @@ set(CMAKE_TOOLCHAIN_FILE
     "${CMAKE_SOURCE_DIR}/cmake/toolchain/cxx20.cmake"
     CACHE FILEPATH "Default toolchain")
 
+if (NOT DEFINED CMAKE_BUILD_TYPE)
+  set(CMAKE_BUILD_TYPE "Debug")
+endif()
+
+set(HUNTER_CONFIGURATION_TYPES ${CMAKE_BUILD_TYPE})
+
 include("cmake/Hunter/init.cmake")
 
 add_compile_options(-gdwarf-4)
@@ -63,7 +69,7 @@ if(NOT($ENV{CI}) OR NOT($ENV{GITHUB_ACTIONS}))
 endif()
 option(EXTERNAL_PROJECT "Build external project" ${_EXTERNAL_PROJECT_DEFAULT})
 
-set(WASM_COMPILER WAVM CACHE STRING "WebAssembly compiler built into Kagome: one of [WAVM, WasmEdge]")
+set(WASM_COMPILER WasmEdge CACHE STRING "WebAssembly compiler built into Kagome: one of [WAVM, WasmEdge]")
 
 if (NOT ${WASM_COMPILER} MATCHES "^(WAVM|WasmEdge)$")
   fatal_error("WASM_COMPILER is set to ${WASM_COMPILER} but should be one of [WAVM, WasmEdge]")

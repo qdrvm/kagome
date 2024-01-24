@@ -57,7 +57,9 @@ namespace kagome::network {
                       .finalized_number_ =
                           self->block_tree_.get()->getLastFinalized().number,
                   },
-              .new_head = (*value).get()});
+              .new_head = (*value).get(),
+              .lost = {},
+          });
         }
       }
     });

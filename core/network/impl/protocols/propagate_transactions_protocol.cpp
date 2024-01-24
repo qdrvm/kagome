@@ -162,15 +162,13 @@ namespace kagome::network {
       }
     }
 
-    auto propagated_exts = KAGOME_EXTRACT_SHARED_CACHE(
-        PropagateTransactionsProtocol, PropagatedExtrinsics);
-    propagated_exts->extrinsics.resize(txs.size());
-    std::transform(txs.begin(),
-                   txs.end(),
-                   propagated_exts->extrinsics.begin(),
-                   [](auto &tx) { return tx.ext; });
-    stream_engine_->broadcast<PropagatedExtrinsics>(shared_from_this(),
-                                                    propagated_exts);
+    for (auto &tx : txs) {
+      auto propagated_exts = KAGOME_EXTRACT_SHARED_CACHE(
+          PropagateTransactionsProtocol, PropagatedExtrinsics);
+      propagated_exts->extrinsics = {tx.ext};
+      stream_engine_->broadcast<PropagatedExtrinsics>(shared_from_this(),
+                                                      propagated_exts);
+    }
   }
 
 }  // namespace kagome::network

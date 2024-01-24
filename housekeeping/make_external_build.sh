@@ -33,9 +33,12 @@ mkdir -p "$EXTERNAL_PROJECT_BINARY_DIR"
 
 if [[ -z "${CI}" ]]; then
   BUILD_THREADS="${BUILD_THREADS:-$(( $(nproc 2>/dev/null || sysctl -n hw.ncpu) / 2 + 1 ))}"
-else # CI
+else
   BUILD_THREADS="${BUILD_THREADS:-$(( $(nproc 2>/dev/null || sysctl -n hw.ncpu) ))}"
   git config --global --add safe.directory /__w/kagome/kagome
+fi
+
+if [[ "${KAGOME_IN_DOCKER}" = 1 ]]; then
   source /venv/bin/activate
 fi
 

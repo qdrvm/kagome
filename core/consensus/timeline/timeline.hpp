@@ -6,8 +6,6 @@
 
 #pragma once
 
-#include "network/block_announce_observer.hpp"
-
 #include "consensus/timeline/sync_state.hpp"
 
 namespace kagome::consensus {

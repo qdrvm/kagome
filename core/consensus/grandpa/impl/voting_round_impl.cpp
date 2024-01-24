@@ -935,8 +935,7 @@ namespace kagome::consensus::grandpa {
       propagation = Propagation::NEEDLESS;
     } else {
       // Check if node hasn't block
-      auto res = env_->hasBlock(proposal.getBlockHash());
-      if (res.has_value() and not res.value()) {
+      if (not env_->hasBlock(proposal.getBlockHash())) {
         if (grandpa_context) {
           grandpa_context->missing_blocks.emplace(proposal.getBlockInfo());
         }
@@ -1145,7 +1144,7 @@ namespace kagome::consensus::grandpa {
 
     if (can_start_next_round) {
       scheduler_->schedule(
-          [grandpa_wp = std::move(grandpa_), round_wp = weak_from_this()] {
+          [grandpa_wp = std::move(grandpa_), round_wp{weak_from_this()}] {
             if (auto grandpa = grandpa_wp.lock()) {
               if (auto round = round_wp.lock()) {
                 grandpa->tryExecuteNextRound(round);

@@ -430,6 +430,7 @@ namespace kagome::blockchain {
           .extrinsic_event_key_repo_ = std::move(extrinsic_event_key_repo),
           .justification_storage_policy_ =
               std::move(justification_storage_policy),
+          .genesis_block_hash_ = {},
           .blocks_pruning_ = {app_config.blocksPruning(), finalized.number},
       }},
         main_thread_{std::move(main_thread)} {
@@ -918,10 +919,9 @@ namespace kagome::blockchain {
         });
   }
 
-  outcome::result<bool> BlockTreeImpl::hasBlockHeader(
-      const primitives::BlockHash &block_hash) const {
+  bool BlockTreeImpl::has(const primitives::BlockHash &hash) const {
     return block_tree_data_.sharedAccess([&](const BlockTreeData &p) {
-      return p.storage_->hasBlockHeader(block_hash);
+      return p.tree_->find(hash) or p.storage_->hasBlockHeader(hash).value();
     });
   }
 

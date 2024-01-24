@@ -225,6 +225,13 @@ namespace kagome::application {
      */
     virtual RuntimeExecutionMethod runtimeExecMethod() const = 0;
 
+    enum class RuntimeInterpreter {
+      WasmEdge,
+      Binaryen,
+    };
+
+    virtual RuntimeInterpreter runtimeInterpreter() const = 0;
+
     /**
      * A flag marking if we use and store precompiled WAVM runtimes.
      * Significantly increases node restart speed. Especially useful when

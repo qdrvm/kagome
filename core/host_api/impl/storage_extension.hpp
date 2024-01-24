@@ -13,6 +13,10 @@
 #include "runtime/types.hpp"
 #include "storage/trie/serialization/polkadot_codec.hpp"
 
+namespace kagome::crypto {
+  class Hasher;
+}
+
 namespace kagome::runtime {
   class MemoryProvider;
   class TrieStorageProvider;
@@ -26,7 +30,8 @@ namespace kagome::host_api {
    public:
     StorageExtension(
         std::shared_ptr<runtime::TrieStorageProvider> storage_provider,
-        std::shared_ptr<const runtime::MemoryProvider> memory_provider);
+        std::shared_ptr<const runtime::MemoryProvider> memory_provider,
+        std::shared_ptr<const crypto::Hasher> hasher);
 
     void reset();
 
@@ -136,6 +141,12 @@ namespace kagome::host_api {
     runtime::WasmPointer ext_trie_blake2_256_ordered_root_version_2(
         runtime::WasmSpan values_data, runtime::WasmI32 state_version);
 
+    /**
+     * @see HostApi::ext_trie_keccak_256_ordered_root_version_2
+     */
+    runtime::WasmPointer ext_trie_keccak_256_ordered_root_version_2(
+        runtime::WasmSpan values_data, runtime::WasmI32 state_version);
+
    private:
     /**
      * Find the value by given key and the return the part of it starting from
@@ -167,6 +178,7 @@ namespace kagome::host_api {
 
     std::shared_ptr<runtime::TrieStorageProvider> storage_provider_;
     std::shared_ptr<const runtime::MemoryProvider> memory_provider_;
+    std::shared_ptr<const crypto::Hasher> hasher_;
     storage::trie::PolkadotCodec codec_;
     log::Logger logger_;
 

@@ -8,11 +8,10 @@ RUN apt-get update && \
     curl -fsSL https://download.docker.com/linux/debian/gpg | gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg && \
     echo \
       "deb http://deb.debian.org/debian/ experimental main" | tee -a /etc/apt/sources.list.d/docker.list > /dev/null && \
-    wget -O - https://apt.llvm.org/llvm-snapshot.gpg.key | apt-key add - && \  
+    wget -O - https://apt.llvm.org/llvm-snapshot.gpg.key | apt-key add - && \
     add-apt-repository -y "deb http://deb.debian.org/debian/ testing main" && \
     apt-get update && \
-    apt-get install --no-install-recommends -y libstdc++6 libc6 libnsl2 libatomic1 gdb gdbserver && \
+    apt-get install --no-install-recommends -y libgmp10 libstdc++6 libc6 libnsl2 libatomic1 gdb gdbserver && \
     rm -rf /var/lib/apt/lists/*
-
 
 COPY kagome /usr/local/bin/

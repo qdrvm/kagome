@@ -25,9 +25,7 @@ namespace kagome::crypto {
   }
 
   Hash64 HasherImpl::blake2b_64(common::BufferView data) const {
-    Hash64 out;
-    blake2b(out.data(), out.size(), nullptr, 0, data.data(), data.size());
-    return out;
+    return blake2b<8>(data);
   }
 
   Hash128 HasherImpl::twox_128(common::BufferView data) const {
@@ -35,9 +33,7 @@ namespace kagome::crypto {
   }
 
   Hash128 HasherImpl::blake2b_128(common::BufferView data) const {
-    Hash128 out;
-    blake2b(out.data(), out.size(), nullptr, 0, data.data(), data.size());
-    return out;
+    return blake2b<16>(data);
   }
 
   Hash256 HasherImpl::twox_256(common::BufferView data) const {
@@ -45,15 +41,11 @@ namespace kagome::crypto {
   }
 
   Hash256 HasherImpl::blake2b_256(common::BufferView data) const {
-    Hash256 out;
-    blake2b(out.data(), 32, nullptr, 0, data.data(), data.size());
-    return out;
+    return blake2b<32>(data);
   }
 
   Hash512 HasherImpl::blake2b_512(common::BufferView data) const {
-    Hash512 out;
-    blake2b(out.data(), 64, nullptr, 0, data.data(), data.size());
-    return out;
+    return blake2b<64>(data);
   }
 
   Hash256 HasherImpl::keccak_256(common::BufferView data) const {

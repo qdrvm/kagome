@@ -9,12 +9,13 @@
 #include "blockchain/block_tree.hpp"
 #include "consensus/grandpa/authority_manager.hpp"
 #include "consensus/grandpa/has_authority_set_change.hpp"
+#include "consensus/timeline/timeline.hpp"
 #include "network/synchronizer.hpp"
 #include "utils/weak_io_context_post.hpp"
 
 namespace kagome::consensus::grandpa {
   /// When to start fetching justification range
-  constexpr size_t kRangeStart = 512 + 20;
+  constexpr size_t kRangeStart = 8;
 
   VerifiedJustificationQueue::VerifiedJustificationQueue(
       application::AppStateManager &app_state_manager,
@@ -22,11 +23,13 @@ namespace kagome::consensus::grandpa {
       std::shared_ptr<blockchain::BlockTree> block_tree,
       std::shared_ptr<AuthorityManager> authority_manager,
       LazySPtr<network::Synchronizer> synchronizer,
+      LazySPtr<Timeline> timeline,
       primitives::events::ChainSubscriptionEnginePtr chain_sub_engine)
       : main_thread_{std::move(main_thread)},
         block_tree_{std::move(block_tree)},
         authority_manager_{std::move(authority_manager)},
         synchronizer_{std::move(synchronizer)},
+        timeline_{std::move(timeline)},
         chain_sub_{chain_sub_engine},
         log_{log::createLogger("VerifiedJustificationQueue")} {
     app_state_manager.takeControl(*this);
@@ -49,6 +52,10 @@ namespace kagome::consensus::grandpa {
       AuthoritySetId set, GrandpaJustification justification) {
     REINVOKE(main_thread_, addVerified, set, std::move(justification));
     if (set < expected_) {
+      return;
+    }
+    if (justification.block_info.number
+        <= block_tree_->getLastFinalized().number) {
       return;
     }
     auto block_res = block_tree_->getBlockHeader(justification.block_info.hash);
@@ -201,6 +208,9 @@ namespace kagome::consensus::grandpa {
   }
 
   void VerifiedJustificationQueue::rangeLoop() {
+    if (not timeline_.get()->wasSynchronized()) {
+      return;
+    }
     auto finalized = block_tree_->getLastFinalized().number;
     auto best = block_tree_->bestBlock().number;
     if (best - finalized < kRangeStart) {

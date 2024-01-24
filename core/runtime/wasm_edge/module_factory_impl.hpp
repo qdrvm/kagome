@@ -42,9 +42,8 @@ namespace kagome::runtime::wasm_edge {
       Compiled,
     };
     struct Config {
-      Config()
-          : exec{ExecType::Compiled},
-            compiled_module_dir{"/tmp/kagome/wasm-edge/"} {}
+      Config(ExecType exec)
+          : exec{exec}, compiled_module_dir{"/tmp/kagome/wasm-edge/"} {}
 
       ExecType exec;
       std::filesystem::path compiled_module_dir;

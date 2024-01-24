@@ -6,6 +6,7 @@
 
 #include <libp2p/log/configurator.hpp>
 
+#include "application/chain_spec.hpp"
 #include "application/impl/app_configuration_impl.hpp"
 #include "blockchain/block_storage.hpp"
 #include "blockchain/impl/block_header_repository_impl.hpp"
@@ -16,6 +17,7 @@
 #include "log/configurator.hpp"
 #include "log/formatters/variant.hpp"
 #include "runtime/runtime_api/impl/grandpa_api.hpp"
+#include "storage/rocksdb/rocksdb.hpp"
 #include "storage/trie/trie_storage.hpp"
 
 using kagome::blockchain::BlockStorage;
@@ -85,8 +87,7 @@ class Command {
   template <typename... Ts>
   [[noreturn]] void throwError(const char *fmt, const Ts &...ts) const {
     throw CommandExecutionError(
-        name,
-        ::fmt::vformat(fmt, fmt::make_format_args(ts...)));
+        name, ::fmt::vformat(fmt, fmt::make_format_args(ts...)));
   }
 
   template <typename T>
@@ -220,7 +221,7 @@ class InspectBlockCommand : public Command {
     if (body_opt_res.has_error()) {
       throwError("Internal error: {}}", body_opt_res.error());
     }
-    if (body_opt_res.value().has_value()) {
+    if (!body_opt_res.value().has_value()) {
       throwError("Block body not found for '{}'", args[1]);
     }
     const auto &body = body_opt_res.value().value();
@@ -250,7 +251,7 @@ class RemoveBlockCommand : public Command {
     if (hash_opt_res.has_error()) {
       throwError("Internal error: {}}", hash_opt_res.error());
     }
-    if (hash_opt_res.value().has_value()) {
+    if (!hash_opt_res.value().has_value()) {
       throwError("Block not found for '{}'", args[1]);
     }
     const auto &hash = hash_opt_res.value().value();
@@ -366,7 +367,7 @@ class SearchChainCommand : public Command {
     if (hash_opt_res.has_error()) {
       throwError("Internal error: {}}", hash_opt_res.error());
     }
-    if (hash_opt_res.value().has_value()) {
+    if (!hash_opt_res.value().has_value()) {
       throwError("Start block header {} not found", start);
     }
     const auto &hash = hash_opt_res.value().value();
@@ -544,6 +545,70 @@ class ChainInfoCommand final : public Command {
   std::shared_ptr<kagome::blockchain::BlockTree> block_tree;
 };
 
+class DbStatsCommand : public Command {
+ public:
+  DbStatsCommand(std::filesystem::path db_path)
+      : Command("db-stats", "Print RocksDb stats"), db_path{db_path} {}
+
+  virtual void execute(std::ostream &out, const ArgumentList &args) override {
+    rocksdb::Options options;
+    rocksdb::DB *db;
+
+    std::vector<std::string> existing_families;
+    auto res = rocksdb::DB::ListColumnFamilies(
+        options, db_path.native(), &existing_families);
+    if (!res.ok()) {
+      throwError("Failed to open database at {}: {}",
+                 db_path.native(),
+                 res.ToString());
+    }
+    std::vector<rocksdb::ColumnFamilyDescriptor> column_families;
+    for (auto &family : existing_families) {
+      column_families.emplace_back(rocksdb::ColumnFamilyDescriptor{family, {}});
+    }
+    std::vector<rocksdb::ColumnFamilyHandle *> column_handles;
+    auto status = rocksdb::DB::OpenForReadOnly(
+        options, db_path, column_families, &column_handles, &db);
+    if (!status.ok()) {
+      throwError("Failed to open database at {}: {}",
+                 db_path.native(),
+                 status.ToString());
+    }
+
+    std::vector<rocksdb::ColumnFamilyMetaData> columns_data;
+    db->GetAllColumnFamilyMetaData(&columns_data);
+    fmt::print(out,
+               "{:{}} | {:{}}    | {:{}} |\n",
+               "NAME",
+               30,
+               "SIZE",
+               10,
+               "COUNT",
+               5);
+    for (auto column_data : columns_data) {
+      constexpr std::array sizes{"B ", "KB", "MB", "GB", "TB"};
+      double size = column_data.size;
+      int idx = 0;
+      while (size > 1024.0) {
+        size /= 1024.0;
+        idx++;
+      }
+      fmt::print(out,
+                 "{:{}} | {:{}.2f} {} | {:{}} |\n",
+                 column_data.name,
+                 30,
+                 size,
+                 10,
+                 sizes[idx],
+                 column_data.file_count,
+                 5);
+    }
+  }
+
+ private:
+  std::filesystem::path db_path;
+};
+
 int storage_explorer_main(int argc, const char **argv) {
   ArgumentList args(argv, argc);
 
@@ -552,9 +617,10 @@ int storage_explorer_main(int argc, const char **argv) {
 
   kagome::log::setLevelOfGroup("*", kagome::log::Level::WARN);
 
-  auto logger = kagome::log::createLogger("AppConfiguration", "main");
+  auto logger =
+      kagome::log::createLogger("Configuration", kagome::log::defaultGroupName);
   auto configuration =
-      std::make_shared<kagome::application::AppConfigurationImpl>(logger);
+      std::make_shared<kagome::application::AppConfigurationImpl>();
 
   int kagome_args_start = -1;
   for (size_t i = 1; i < args.size(); i++) {
@@ -574,6 +640,10 @@ int storage_explorer_main(int argc, const char **argv) {
     return -1;
   }
 
+  SL_INFO(logger,
+          "Kagome storage explorer started. Version: {} ",
+          configuration->nodeVersion());
+
   kagome::injector::KagomeNodeInjector injector{configuration};
   auto block_storage = injector.injectBlockStorage();
   auto trie_storage = injector.injectTrieStorage();
@@ -581,6 +651,7 @@ int storage_explorer_main(int argc, const char **argv) {
   auto block_tree = injector.injectBlockTree();
   auto executor = injector.injectExecutor();
   auto persistent_storage = injector.injectStorage();
+  auto chain_spec = injector.injectChainSpec();
   auto hasher = std::make_shared<kagome::crypto::HasherImpl>();
 
   auto grandpa_api =
@@ -601,8 +672,13 @@ int storage_explorer_main(int argc, const char **argv) {
   parser.addCommand(std::make_unique<ChainInfoCommand>(block_tree));
   parser.addCommand(std::make_unique<SearchChainCommand>(
       block_storage, trie_storage, authority_manager, hasher));
+  parser.addCommand(std::make_unique<DbStatsCommand>(
+      configuration->databasePath(chain_spec->id())));
 
   parser.invoke(args.first(kagome_args_start));
+
+  SL_INFO(logger, "Kagome storage explorer stopped");
+  logger->flush();
 
   return 0;
 }

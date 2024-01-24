@@ -155,6 +155,11 @@ namespace kagome::host_api {
                 (runtime::WasmSpan, runtime::WasmI32),
                 (override));
 
+    MOCK_METHOD(runtime::WasmPointer,
+                ext_trie_keccak_256_ordered_root_version_2,
+                (runtime::WasmSpan, runtime::WasmI32),
+                (override));
+
     // -------------------------- hashing methods v1 ---------------------------
 
     MOCK_METHOD(runtime::WasmPointer,
