@@ -77,6 +77,7 @@ namespace kagome::parachain {
     struct Config {
       bool precompile_modules;
       size_t runtime_instance_cache_size{16};
+      size_t max_stack_depth{};
       unsigned precompile_threads_num{1};
     };
 
