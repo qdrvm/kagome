@@ -78,6 +78,7 @@ target_link_libraries(module_repository
     uncompress_if_needed
     blob
     executor
+    runtime_common
     )
 kagome_install(module_repository)
 
