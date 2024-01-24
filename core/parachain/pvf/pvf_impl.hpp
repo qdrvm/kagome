@@ -8,6 +8,8 @@
 
 #include "parachain/pvf/pvf.hpp"
 
+#include <thread>
+
 #include "crypto/sr25519_provider.hpp"
 #include "log/logger.hpp"
 #include "runtime/runtime_api/parachain_host.hpp"
@@ -83,6 +85,7 @@ namespace kagome::parachain {
             std::shared_ptr<application::AppStateManager> app_state_manager);
 
     bool prepare();
+    void stop();
 
     outcome::result<Result> pvfSync(const CandidateReceipt &receipt,
                                     const ParachainBlock &pov) const override;
@@ -120,5 +123,7 @@ namespace kagome::parachain {
 
     std::shared_ptr<runtime::RuntimeInstancesPool> runtime_cache_;
     std::shared_ptr<ModulePrecompiler> precompiler_;
+
+    std::unique_ptr<std::thread> precompiler_thread_;
   };
 }  // namespace kagome::parachain
