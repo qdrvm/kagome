@@ -124,7 +124,6 @@ namespace kagome::api {
 
   ApiServiceImpl::ApiServiceImpl(
       application::AppStateManager &app_state_manager,
-      std::shared_ptr<api::RpcThreadPool> thread_pool,
       std::vector<std::shared_ptr<Listener>> listeners,
       std::shared_ptr<JRpcServer> server,
       std::vector<std::shared_ptr<JRpcProcessor>> processors,
@@ -135,9 +134,10 @@ namespace kagome::api {
           extrinsic_event_key_repo,
       std::shared_ptr<blockchain::BlockTree> block_tree,
       std::shared_ptr<storage::trie::TrieStorage> trie_storage,
-      std::shared_ptr<runtime::Core> core)
-      : thread_pool_(std::move(thread_pool)),
-        listeners_(std::move(listeners)),
+      std::shared_ptr<runtime::Core> core,
+      std::shared_ptr<Watchdog> watchdog,
+      WeakIoContext main_thread)
+      : listeners_(std::move(listeners)),
         server_(std::move(server)),
         logger_{log::createLogger("ApiService", "api")},
         block_tree_{std::move(block_tree)},
@@ -146,8 +146,11 @@ namespace kagome::api {
         subscription_engines_{.storage = std::move(storage_sub_engine),
                               .chain = std::move(chain_sub_engine),
                               .ext = std::move(ext_sub_engine)},
-        extrinsic_event_key_repo_{std::move(extrinsic_event_key_repo)} {
-    BOOST_ASSERT(thread_pool_);
+        extrinsic_event_key_repo_{std::move(extrinsic_event_key_repo)},
+        execution_thread_pool_{
+            std::make_shared<ThreadPool>(std::move(watchdog), "rpc", 1ull)},
+        internal_thread_context_{execution_thread_pool_->handler()},
+        main_thread_{std::move(main_thread)} {
     BOOST_ASSERT(block_tree_);
     BOOST_ASSERT(trie_storage_);
     BOOST_ASSERT(core_);
@@ -234,13 +237,11 @@ namespace kagome::api {
   }  // namespace kagome::api
 
   bool ApiServiceImpl::start() {
-    thread_pool_->start();
     SL_DEBUG(logger_, "API Service started");
     return true;
   }
 
   void ApiServiceImpl::stop() {
-    thread_pool_->stop();
     SL_DEBUG(logger_, "API Service stopped");
   }
 
