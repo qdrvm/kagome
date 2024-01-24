@@ -69,8 +69,6 @@ namespace kagome::application {
     std::queue<OnPrepare> prepare_;
     std::queue<OnLaunch> launch_;
     std::queue<OnShutdown> shutdown_;
-
-    std::atomic_bool shutdown_requested_{false};
   };
 
 }  // namespace kagome::application
