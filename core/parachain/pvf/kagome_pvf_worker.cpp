@@ -28,7 +28,6 @@
 #include "scale/scale.hpp"
 
 #include "parachain/pvf/kagome_pvf_worker.hpp"
-#include "parachain/pvf/run_worker.hpp"
 #include "runtime/binaryen/module/module_factory_impl.hpp"
 #include "runtime/module_instance.hpp"
 #include "runtime/runtime_context.hpp"

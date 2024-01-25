@@ -119,16 +119,15 @@ namespace kagome::parachain {
 
 #if KAGOME_WASM_COMPILER_WASM_EDGE == 1
             ,
-        bind_by_lambda<
-            runtime::wasm_edge::ModuleFactoryImpl::Config>([engine =
-                                                                input.engine](
-                                                               const auto
-                                                                   &injector) {
-          if (engine == RuntimeEngine::kWasmEdgeCompiled) {
-            return runtime::wasm_edge::ModuleFactoryImpl::ExecType::Compiled;
-          }
-          return runtime::wasm_edge::ModuleFactoryImpl::ExecType::Interpreted;
-        }),
+        bind_by_lambda<runtime::wasm_edge::ModuleFactoryImpl::Config>(
+            [engine = input.engine](const auto &injector) {
+              using E = runtime::wasm_edge::ModuleFactoryImpl::ExecType;
+              runtime::wasm_edge::ModuleFactoryImpl::Config config{
+                  engine == RuntimeEngine::kWasmEdgeCompiled ? E::Compiled
+                                                             : E::Interpreted,
+              };
+              return std::make_shared<decltype(config)>(config);
+            }),
         di::bind<runtime::ModuleFactory>.template to<runtime::wasm_edge::ModuleFactoryImpl>()
 #endif
     );

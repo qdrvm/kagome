@@ -226,10 +226,10 @@ namespace kagome::application {
     std::optional<BenchmarkConfigSection> getBenchmarkConfig() const override {
       return benchmark_config_;
     }
-    bool usePvfSubprocess() const {
+    bool usePvfSubprocess() const override {
       return use_pvf_subprocess_;
     }
-    std::chrono::milliseconds pvfSubprocessDeadline() const {
+    std::chrono::milliseconds pvfSubprocessDeadline() const override {
       return pvf_subprocess_deadline_;
     }
 

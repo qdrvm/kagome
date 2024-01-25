@@ -180,6 +180,15 @@ namespace kagome::parachain {
             hasher_)},
         app_configuration_{std::move(app_configuration)} {
     state_manager->takeControl(*this);
+    constexpr std::array<std::string_view, 4> engines{
+        "kBinaryen",
+        "kWAVM",
+        "kWasmEdgeInterpreted",
+        "kWasmEdgeCompiled",
+    };
+    SL_INFO(log_,
+            "pvf runtime engine {}",
+            engines[fmt::underlying(pvf_runtime_engine(*app_configuration_))]);
   }
 
   bool PvfImpl::prepare() {
