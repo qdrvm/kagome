@@ -90,7 +90,8 @@ namespace kagome::parachain {
             std::shared_ptr<runtime::ParachainHost> parachain_api,
             std::shared_ptr<runtime::Executor> executor,
             std::shared_ptr<runtime::RuntimeContextFactory> ctx_factory,
-            std::shared_ptr<application::AppStateManager> app_state_manager);
+            std::shared_ptr<application::AppStateManager> app_state_manager,
+            std::shared_ptr<application::AppConfiguration> app_configuration);
 
     bool prepare();
 
@@ -132,5 +133,6 @@ namespace kagome::parachain {
 
     std::shared_ptr<runtime::RuntimeInstancesPool> runtime_cache_;
     std::shared_ptr<ModulePrecompiler> precompiler_;
+    std::shared_ptr<application::AppConfiguration> app_configuration_;
   };
 }  // namespace kagome::parachain

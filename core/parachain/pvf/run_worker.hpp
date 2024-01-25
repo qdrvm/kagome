@@ -69,8 +69,6 @@ namespace kagome::parachain {
     auto input = std::make_shared<common::Buffer>(input_);
     auto input_len = std::make_shared<common::Buffer>(
         scale::encode<uint32_t>(input->size()).value());
-    fmt::println(
-        stderr, "DEBUG: async_write {}", common::hex_lower(*input_len));
     boost::asio::async_write(
         process->pipe_stdin,
         libp2p::asioBuffer(libp2p::BytesIn{*input_len}),
@@ -78,9 +76,6 @@ namespace kagome::parachain {
           if (ec) {
             return cb(ec);
           }
-          fmt::println(stderr,
-                       "DEBUG: async_write {}",
-                       common::hex_lower(libp2p::BytesIn{*input}.first(40)));
           boost::asio::async_write(process->pipe_stdin,
                                    libp2p::asioBuffer(libp2p::BytesIn{*input}),
                                    [cb, process, input](EC ec, size_t) mutable {

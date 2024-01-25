@@ -38,6 +38,8 @@
 // rust reference: polkadot-sdk/polkadot/node/core/pvf/execute-worker/src/lib.rs
 
 namespace kagome::parachain {
+  static kagome::log::Logger logger;
+
   outcome::result<void> readStdin(std::span<uint8_t> out) {
     std::cin.read(reinterpret_cast<char *>(out.data()), out.size());
     if (not std::cin.good()) {
@@ -52,17 +54,10 @@ namespace kagome::parachain {
 
   outcome::result<PvfWorkerInput> decodeInput() {
     std::array<uint8_t, sizeof(uint32_t)> length_bytes;
-    fmt::println(stderr, "DEBUG: decodeInput: read 4");
     OUTCOME_TRY(readStdin(length_bytes));
-    fmt::println(stderr, "DEBUG: decodeInput: read 4: ok");
     OUTCOME_TRY(message_length, scale::decode<uint32_t>(length_bytes));
-    fmt::println(stderr, "DEBUG: decodeInput: read 4: {}", message_length);
     std::vector<uint8_t> packed_message(message_length, 0);
     OUTCOME_TRY(readStdin(packed_message));
-    fmt::println(stderr, "DEBUG: decodeInput: read {}: ok", message_length);
-    fmt::println(stderr,
-                 "DEBUG:   dump {}",
-                 common::hex_lower(libp2p::BytesIn{packed_message}.first(40)));
     OUTCOME_TRY(pvf_worker_input,
                 scale::decode<PvfWorkerInput>(packed_message));
     return pvf_worker_input;
@@ -72,31 +67,34 @@ namespace kagome::parachain {
       const auto &injector, RuntimeEngine engine) {
     switch (engine) {
       case RuntimeEngine::kBinaryen:
-        // return injector.template create
-        //     std::shared_ptr<runtime::binaryen::ModuleFactoryImpl>>();
+        return injector.template create<
+            std::shared_ptr<runtime::binaryen::ModuleFactoryImpl>>();
       case RuntimeEngine::kWAVM:
+        // About ifdefs - looks bad, but works as it ought to
 #if KAGOME_WASM_COMPILER_WAVM == 1
         return injector.template create<
             std::shared_ptr<runtime::wavm::ModuleFactoryImpl>>();
 #else
-        fmt::println(stderr, "WAVM runtime engine is not supported");
+        SL_ERROR(logger, "WAVM runtime engine is not supported");
         return std::errc::not_supported;
 #endif
-      case RuntimeEngine::kWasmEdge:
+      case RuntimeEngine::kWasmEdgeInterpreted:
+      case RuntimeEngine::kWasmEdgeCompiled:
 #if KAGOME_WASM_COMPILER_WASM_EDGE == 1
         return injector.template create<
             std::shared_ptr<runtime::wasm_edge::ModuleFactoryImpl>>();
 #else
-        fmt::println(stderr, "WasmEdge runtime engine is not supported");
+        SL_ERROR(logger, "WasmEdge runtime engine is not supported");
         return std::errc::not_supported;
 #endif
       default:
+        SL_ERROR(logger, "Unknown runtime engine is requested");
         return std::errc::not_supported;
     }
   }
 
   PvfWorkerInput test_input{
-      RuntimeEngine::kWAVM,
+      RuntimeEngine::kBinaryen,
       kTestWasm,
       "validate_block",
       kTestWasmArgs,
@@ -105,6 +103,7 @@ namespace kagome::parachain {
 
   outcome::result<void> pvf_worker_main_outcome() {
     OUTCOME_TRY(input, decodeInput());
+    kagome::log::tuneLoggingSystem(input.log_params);
     auto injector = pvf_worker_injector(input);
     OUTCOME_TRY(factory, createModuleFactory(injector, input.engine));
     // maybe uncompress
@@ -116,7 +115,6 @@ namespace kagome::parachain {
                 instance->callExportFunction(
                     dummy_context, input.function, input.params));
     OUTCOME_TRY(instance->resetEnvironment());
-    fmt::println(stderr, "debug: result: {}", common::hex_lower(result));
     OUTCOME_TRY(len, scale::encode<uint32_t>(result.size()));
     std::cout.write((const char *)len.data(), len.size());
     std::cout.write((const char *)result.data(), result.size());
@@ -135,106 +133,12 @@ namespace kagome::parachain {
       exit(EXIT_FAILURE);
     }
     kagome::log::setLoggingSystem(logging_system);
+    logger = kagome::log::createLogger("Pvf Worker", "parachain");
 
-    if (true && argc <= 1) {
-      auto io_context = std::make_shared<boost::asio::io_context>();
-      auto scheduler = std::make_shared<libp2p::basic::SchedulerImpl>(
-          std::make_shared<libp2p::basic::AsioSchedulerBackend>(io_context),
-          libp2p::basic::Scheduler::Config{});
-      constexpr auto kChildTimeout = std::chrono::seconds(6);
-
-      common::Buffer input{scale::encode(test_input).value()};
-      fmt::println(stderr,
-                   "DEBUG:   send {}",
-                   common::hex_lower(libp2p::BytesIn{input}.first(40)));
-      runWorker(*io_context,
-                scheduler,
-                kChildTimeout,
-                argv[0],
-                input,
-                [&](outcome::result<common::Buffer> result) {
-                  fmt::println("parent: result: {}",
-                               common::hex_lower(result.value()));
-                  io_context->stop();
-                });
-
-      io_context->run();
-      fmt::println("main: end");
-
-      // namespace bp = boost::process;
-
-      // auto io_context = std::make_shared<boost::asio::io_context>();
-      // bp::async_pipe child_out_async_pipe(*io_context);
-
-      // auto input = scale::encode(test_input).value();
-      // auto len = scale::encode<uint32_t>(input.size()).value();
-
-      // bp::ipstream child_out, child_err;  // for reading program output
-      // bp::opstream child_in;              // for passing input to a child
-
-      // // bp::search_path
-      // bp::child c(argv[0],
-      //             bp::args({"--do-work"}),
-      //             bp::std_out > child_out_async_pipe,  // child_out,
-      //             bp::std_in<child_in, bp::std_err> child_err);
-
-      // constexpr auto kChildTimeout = std::chrono::seconds(6);
-      // auto scheduler = std::make_shared<libp2p::basic::SchedulerImpl>(
-      //     std::make_shared<libp2p::basic::AsioSchedulerBackend>(io_context),
-      //     libp2p::basic::Scheduler::Config{});
-      // auto deadline_timer_handle = scheduler->scheduleWithHandle(
-      //     [&]() {
-      //       c.terminate();
-      //       fmt::println("Deadline reached\n");
-      //     },
-      //     kChildTimeout);
-
-      // // if (!c.wait_for(kChildTimeout)) {
-      // //   c.terminate();
-      // //   fmt::println()
-      // // }
-
-      // child_in.write((const char *)len.data(), len.size());
-      // child_in.write((const char *)input.data(), input.size());
-      // child_in.close();
-
-      // // comm
-      // std::vector<uint8_t> child_out_buffer(10 * 1024);
-      // boost::asio::async_read(
-      //     child_out_async_pipe,
-      //     libp2p::asioBuffer(libp2p::BytesOut{child_out_buffer}),
-      //     [&](const boost::system::error_code &ec, std::size_t size) {
-      //       fmt::println("worker: [size = {}, {}]",
-      //                    size,
-      //                    byte2str(child_out_buffer).substr(0, size));
-      //       deadline_timer_handle.cancel();
-      //       deadline_timer_handle.cancel();
-      //       io_context->stop();
-      //     });
-
-      // // auto wg = boost::asio::make_work_guard(io_context);
-      // io_context->run();
-
-      // // std::string tmp_output;
-      // // child_out >> tmp_output;
-      // // fmt::println("worker: [{}]", byte2str(child_out_buffer));
-      // // child_out >> tmp_output;
-      // c.wait();
-      return 0;
-    }
-
-    // if (true) {
-    //   fmt::println(stderr, "SLEEP");
-    //   sleep(5);
-    // };
     if (auto r = pvf_worker_main_outcome(); not r) {
-      fmt::println(stderr, "{}", r.error());
+      SL_ERROR(logger, "{}", r.error());
       return EXIT_FAILURE;
     }
     return 0;
   }
 }  // namespace kagome::parachain
-
-int main(int argc, const char **argv) {
-  return kagome::parachain::pvf_worker_main(argc, argv);
-}

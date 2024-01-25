@@ -63,5 +63,3 @@ target_link_libraries(kagome_pvf_worker
     p2p::p2p_asio_scheduler_backend
     )
 
-    add_executable(pvfchild pvf/kagome_pvf_worker.cpp)
-    target_link_libraries(pvfchild kagome_pvf_worker)
