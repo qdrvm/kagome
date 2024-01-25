@@ -60,4 +60,8 @@ target_link_libraries(kagome_pvf_worker
     secp256k1_provider
     host_api_factory
     p2p::p2p_basic_scheduler
+    p2p::p2p_asio_scheduler_backend
     )
+
+    add_executable(pvfchild pvf/kagome_pvf_worker.cpp)
+    target_link_libraries(pvfchild kagome_pvf_worker)

@@ -96,7 +96,7 @@ namespace kagome::parachain {
   }
 
   PvfWorkerInput test_input{
-      RuntimeEngine::kWAVM,
+      RuntimeEngine::kWasmEdge,
       kTestWasm,
       "validate_block",
       kTestWasmArgs,
@@ -136,7 +136,7 @@ namespace kagome::parachain {
     }
     kagome::log::setLoggingSystem(logging_system);
 
-    if (false && argc <= 1) {
+    if (true && argc <= 1) {
       auto io_context = std::make_shared<boost::asio::io_context>();
       auto scheduler = std::make_shared<libp2p::basic::SchedulerImpl>(
           std::make_shared<libp2p::basic::AsioSchedulerBackend>(io_context),
@@ -235,6 +235,6 @@ namespace kagome::parachain {
   }
 }  // namespace kagome::parachain
 
-// int main(int argc, const char **argv) {
-//   return kagome::parachain::pvf_worker_main(argc, argv);
-// }
+int main(int argc, const char **argv) {
+  return kagome::parachain::pvf_worker_main(argc, argv);
+}

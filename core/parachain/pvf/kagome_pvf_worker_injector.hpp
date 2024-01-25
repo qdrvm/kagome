@@ -43,6 +43,10 @@
 
 using kagome::injector::bind_by_lambda;
 
+#if KAGOME_WASM_COMPILER_WAVM == 0 && KAGOME_WASM_COMPILER_WASM_EDGE == 0
+  #error "No WASM compiler defined"
+#endif
+
 namespace kagome::parachain {
   template <typename T>
   auto bind_null() {
@@ -65,14 +69,14 @@ namespace kagome::parachain {
         bind_null<crypto::CryptoStore>(),
         bind_null<offchain::OffchainPersistentStorage>(),
         bind_null<offchain::OffchainWorkerPool>(),
-        // bind_null<host_api::HostApiFactory>(),
+        // // bind_null<host_api::HostApiFactory>(),
         di::bind<host_api::HostApiFactory>.to<host_api::HostApiFactoryImpl>(),
         bind_null<storage::trie::TrieSerializer>(),
-        // bind_null<runtime::RuntimePropertiesCache>(),
-        di::bind<runtime::RuntimePropertiesCache>.to<runtime::RuntimePropertiesCacheImpl>(),
-        bind_null<blockchain::BlockHeaderRepository>(),
-        bind_null<storage::trie::TrieStorage>(),
-        di::bind<runtime::SingleModuleCache>().to<runtime::SingleModuleCache>()
+        // // bind_null<runtime::RuntimePropertiesCache>(),
+        // di::bind<runtime::RuntimePropertiesCache>.to<runtime::RuntimePropertiesCacheImpl>(),
+        // bind_null<blockchain::BlockHeaderRepository>(),
+        bind_null<storage::trie::TrieStorage>()
+        // di::bind<runtime::SingleModuleCache>().to<runtime::SingleModuleCache>()
 
     // di::bind<runtime::binaryen::InstanceEnvironmentFactory>().to<runtime::binaryen::InstanceEnvironmentFactory>(),
     // bind_null<runtime::binaryen::InstanceEnvironmentFactory>(),
