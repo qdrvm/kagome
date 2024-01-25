@@ -219,7 +219,7 @@ class InspectBlockCommand : public Command {
     if (body_opt_res.has_error()) {
       throwError("Internal error: {}}", body_opt_res.error());
     }
-    if (body_opt_res.value().has_value()) {
+    if (!body_opt_res.value().has_value()) {
       throwError("Block body not found for '{}'", args[1]);
     }
     const auto &body = body_opt_res.value().value();
@@ -249,7 +249,7 @@ class RemoveBlockCommand : public Command {
     if (hash_opt_res.has_error()) {
       throwError("Internal error: {}}", hash_opt_res.error());
     }
-    if (hash_opt_res.value().has_value()) {
+    if (!hash_opt_res.value().has_value()) {
       throwError("Block not found for '{}'", args[1]);
     }
     const auto &hash = hash_opt_res.value().value();
@@ -365,7 +365,7 @@ class SearchChainCommand : public Command {
     if (hash_opt_res.has_error()) {
       throwError("Internal error: {}}", hash_opt_res.error());
     }
-    if (hash_opt_res.value().has_value()) {
+    if (!hash_opt_res.value().has_value()) {
       throwError("Start block header {} not found", start);
     }
     const auto &hash = hash_opt_res.value().value();
