@@ -30,7 +30,8 @@
 #include "parachain/pvf/kagome_pvf_worker.hpp"
 #include "parachain/pvf/run_worker.hpp"
 #include "runtime/binaryen/module/module_factory_impl.hpp"
-#include "runtime/wavm/module_factory_impl.hpp"
+#include "runtime/module_instance.hpp"
+#include "runtime/runtime_context.hpp"
 
 #include "test_wasm.hpp"
 
@@ -43,6 +44,10 @@ namespace kagome::parachain {
       return std::errc::io_error;
     }
     return outcome::success();
+  }
+
+  auto dummyRuntimeContext(std::shared_ptr<runtime::ModuleInstance> instance) {
+    return runtime::RuntimeContext::create_TEST(instance);
   }
 
   outcome::result<PvfWorkerInput> decodeInput() {
@@ -67,14 +72,25 @@ namespace kagome::parachain {
       const auto &injector, RuntimeEngine engine) {
     switch (engine) {
       case RuntimeEngine::kBinaryen:
-        return injector.template create<
-            std::shared_ptr<runtime::binaryen::ModuleFactoryImpl>>();
+        // return injector.template create<
+        //     std::shared_ptr<runtime::binaryen::ModuleFactoryImpl>>();
       case RuntimeEngine::kWAVM:
+#if KAGOME_WASM_COMPILER_WAVM == 1
         return injector.template create<
             std::shared_ptr<runtime::wavm::ModuleFactoryImpl>>();
+#else
+        fmt::println(stderr, "WAVM runtime engine is not supported");
+        return std::errc::not_supported;
+#endif
       case RuntimeEngine::kWasmEdge:
-      default:
+#if KAGOME_WASM_COMPILER_WASM_EDGE == 1
+        return injector.template create<
+            std::shared_ptr<runtime::wasm_edge::ModuleFactoryImpl>>();
+#else
         fmt::println(stderr, "WasmEdge runtime engine is not supported");
+        return std::errc::not_supported;
+#endif
+      default:
         return std::errc::not_supported;
     }
   }
@@ -95,12 +111,11 @@ namespace kagome::parachain {
     OUTCOME_TRY(module, factory->make(input.runtime_code));
     OUTCOME_TRY(instance, module->instantiate());
     OUTCOME_TRY(instance->resetMemory({}));
-    OUTCOME_TRY(_result,
-                instance->callExportFunction(input.function, input.params));
+    auto dummy_context = dummyRuntimeContext(instance);
+    OUTCOME_TRY(result,
+                instance->callExportFunction(
+                    dummy_context, input.function, input.params));
     OUTCOME_TRY(instance->resetEnvironment());
-    auto &memory =
-        instance->getEnvironment().memory_provider->getCurrentMemory()->get();
-    auto result = memory.loadN(_result.ptr, _result.size);
     fmt::println(stderr, "debug: result: {}", common::hex_lower(result));
     OUTCOME_TRY(len, scale::encode<uint32_t>(result.size()));
     std::cout.write((const char *)len.data(), len.size());

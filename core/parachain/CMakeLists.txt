@@ -49,11 +49,9 @@ target_link_libraries(kagome_pvf_worker
     binaryen_runtime_external_interface
     binaryen_memory_provider
     binaryen_wasm_module
-    binaryen_executor_factory
     binaryen_instance_environment_factory
     binaryen_module_factory
-
-    runtime_wavm
+    wasm_compiler
 
     runtime_properties_cache
     sr25519_provider

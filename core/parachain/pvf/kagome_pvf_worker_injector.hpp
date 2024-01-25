@@ -25,12 +25,20 @@
 #include "runtime/common/runtime_properties_cache_impl.hpp"
 #include "runtime/memory_provider.hpp"
 #include "runtime/module.hpp"
+
+#if KAGOME_WASM_COMPILER_WAVM == 1
 #include "runtime/wavm/compartment_wrapper.hpp"
 #include "runtime/wavm/instance_environment_factory.hpp"
 #include "runtime/wavm/intrinsics/intrinsic_functions.hpp"
 #include "runtime/wavm/intrinsics/intrinsic_module.hpp"
 #include "runtime/wavm/module_factory_impl.hpp"
 #include "runtime/wavm/module_params.hpp"
+#endif
+
+#if KAGOME_WASM_COMPILER_WASM_EDGE == 1
+#include "runtime/wasm_edge/module_factory_impl.hpp"
+#endif
+
 #include "storage/trie/serialization/trie_serializer_impl.hpp"
 
 using kagome::injector::bind_by_lambda;
@@ -64,11 +72,14 @@ namespace kagome::parachain {
         di::bind<runtime::RuntimePropertiesCache>.to<runtime::RuntimePropertiesCacheImpl>(),
         bind_null<blockchain::BlockHeaderRepository>(),
         bind_null<storage::trie::TrieStorage>(),
-        di::bind<runtime::SingleModuleCache>().to<runtime::SingleModuleCache>(),
+        di::bind<runtime::SingleModuleCache>().to<runtime::SingleModuleCache>()
 
-        // di::bind<runtime::binaryen::InstanceEnvironmentFactory>().to<runtime::binaryen::InstanceEnvironmentFactory>(),
-        // bind_null<runtime::binaryen::InstanceEnvironmentFactory>(),
+    // di::bind<runtime::binaryen::InstanceEnvironmentFactory>().to<runtime::binaryen::InstanceEnvironmentFactory>(),
+    // bind_null<runtime::binaryen::InstanceEnvironmentFactory>(),
 
+#if KAGOME_WASM_COMPILER_WAVM == 1
+            ,
+#warning "WAVM"
         bind_by_lambda<runtime::wavm::CompartmentWrapper>([](auto &injector) {
           return std::make_shared<runtime::wavm::CompartmentWrapper>(
               "Runtime Compartment");
@@ -86,14 +97,19 @@ namespace kagome::parachain {
         // to remove
         // bind_by_lambda<
         //     runtime::binaryen::InstanceEnvironmentFactory>([](const auto
-        //                                                           &injector) {
+        //                                                           &injector)
+        //                                                           {
         //   // clang-format off
-        //     return std::make_shared<runtime::binaryen::InstanceEnvironmentFactory>(
+        //     return
+        //     std::make_shared<runtime::binaryen::InstanceEnvironmentFactory>(
         //       injector.template create<sptr<storage::trie::TrieStorage>>(),
-        //       injector.template create<sptr<storage::trie::TrieSerializer>>(),
+        //       injector.template
+        //       create<sptr<storage::trie::TrieSerializer>>(),
         //       injector.template create<sptr<host_api::HostApiFactory>>(),
-        //       injector.template create<sptr<blockchain::BlockHeaderRepository>>(),
-        //       injector.template create<sptr<runtime::RuntimePropertiesCache>>()
+        //       injector.template
+        //       create<sptr<blockchain::BlockHeaderRepository>>(),
+        //       injector.template
+        //       create<sptr<runtime::RuntimePropertiesCache>>()
         //     );
         // }),
 
@@ -118,6 +134,14 @@ namespace kagome::parachain {
               injector.template create<sptr<crypto::Hasher>>()
               );
         })
+#warning "WAVM!"
+      #endif // WAVM
+
+      #if KAGOME_WASM_COMPILER_WASM_EDGE == 1
+      ,
+        di::bind<runtime::ModuleFactory>.template to<runtime::wasm_edge::ModuleFactoryImpl>()
+        #warning "WASMEDGE"
+      #endif
 
         //
     );
