@@ -33,8 +33,6 @@
 #include "runtime/module_instance.hpp"
 #include "runtime/runtime_context.hpp"
 
-#include "test_wasm.hpp"
-
 // rust reference: polkadot-sdk/polkadot/node/core/pvf/execute-worker/src/lib.rs
 
 namespace kagome::parachain {
@@ -92,14 +90,6 @@ namespace kagome::parachain {
         return std::errc::not_supported;
     }
   }
-
-  PvfWorkerInput test_input{
-      RuntimeEngine::kBinaryen,
-      kTestWasm,
-      "validate_block",
-      kTestWasmArgs,
-      std::filesystem::temp_directory_path() / "kagome/runtimes-cache",
-  };
 
   outcome::result<void> pvf_worker_main_outcome() {
     OUTCOME_TRY(input, decodeInput());

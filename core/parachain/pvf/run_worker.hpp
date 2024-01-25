@@ -25,7 +25,7 @@ namespace kagome::parachain {
   template <std::invocable<outcome::result<common::Buffer>> Cb>
   void runWorker(boost::asio::io_context &io_context,
                  std::shared_ptr<libp2p::basic::Scheduler> scheduler,
-                 std::chrono::seconds timeout,
+                 std::chrono::milliseconds timeout,
                  const std::string &exe,
                  common::Buffer input_,
                  Cb cb_) {

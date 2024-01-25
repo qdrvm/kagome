@@ -297,9 +297,6 @@ namespace kagome::parachain {
       const common::Hash256 &code_hash,
       const ParachainRuntime &code_zstd,
       const ValidationParams &params) const {
-    OUTCOME_TRY(instance,
-                runtime_cache_->instantiateFromCode(code_hash, code_zstd));
-
     runtime::RuntimeContext::ContextParams executor_params{};
     auto &parent_hash = receipt.descriptor.relay_parent;
     OUTCOME_TRY(session_index,
@@ -307,13 +304,22 @@ namespace kagome::parachain {
     OUTCOME_TRY(
         session_params,
         parachain_api_->session_executor_params(parent_hash, session_index));
-    // TODO add optional launch in the same process
-    std::chrono::seconds kTimeout{2};  // TODO add app conf parameter
+
+    constexpr auto name = "validate_block";
+    if (not app_configuration_->usePvfSubprocess()) {
+      OUTCOME_TRY(instance,
+                  runtime_cache_->instantiateFromCode(code_hash, code_zstd));
+      OUTCOME_TRY(
+          ctx,
+          ctx_factory_->ephemeral(
+              instance, storage::trie::kEmptyRootHash, executor_params));
+      return executor_->call<ValidationResult>(ctx, name, params);
+    }
 
     PvfWorkerInput input{
         pvf_runtime_engine(*app_configuration_),
         code_zstd,
-        "validate_block",
+        name,
         common::Buffer{scale::encode(params).value()},
         app_configuration_->useWavmCache()
             ? std::make_optional(app_configuration_->runtimeCacheDirPath())
@@ -326,10 +332,11 @@ namespace kagome::parachain {
     };
     runWorker(*io_context_,
               scheduler_,
-              kTimeout,
+              app_configuration_->pvfSubprocessDeadline(),
               argv0().value(),
               common::Buffer{scale::encode(input).value()},
               cb);
+    // this will go away as soon as callWasm will have an async form
     OUTCOME_TRY(result, promise.get_future().get());
     return scale::decode<ValidationResult>(result);
   }

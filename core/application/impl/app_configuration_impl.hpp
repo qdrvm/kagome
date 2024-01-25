@@ -220,13 +220,17 @@ namespace kagome::application {
     std::string nodeWssPem() const override {
       return node_wss_pem_;
     }
-
     AllowUnsafeRpc allowUnsafeRpc() const override {
       return allow_unsafe_rpc_;
     }
-
     std::optional<BenchmarkConfigSection> getBenchmarkConfig() const override {
       return benchmark_config_;
+    }
+    bool usePvfSubprocess() const {
+      return use_pvf_subprocess_;
+    }
+    std::chrono::milliseconds pvfSubprocessDeadline() const {
+      return pvf_subprocess_deadline_;
     }
 
    private:
@@ -377,6 +381,8 @@ namespace kagome::application {
     uint32_t parachain_precompilation_thread_num_ =
         std::thread::hardware_concurrency() / 2;
     bool should_precompile_parachain_modules_{true};
+    bool use_pvf_subprocess_{true};
+    std::chrono::milliseconds pvf_subprocess_deadline_{2000};
   };
 
 }  // namespace kagome::application
