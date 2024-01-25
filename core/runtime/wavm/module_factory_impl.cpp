@@ -35,8 +35,8 @@ namespace kagome::runtime::wavm {
     BOOST_ASSERT(compartment_ != nullptr);
     BOOST_ASSERT(module_params_ != nullptr);
     BOOST_ASSERT(host_api_factory_ != nullptr);
-    BOOST_ASSERT(storage_ != nullptr);
-    BOOST_ASSERT(serializer_ != nullptr);
+    // BOOST_ASSERT(storage_ != nullptr);
+    // BOOST_ASSERT(serializer_ != nullptr);
     BOOST_ASSERT(last_compiled_module_ != nullptr);
     BOOST_ASSERT(intrinsic_module_ != nullptr);
     BOOST_ASSERT(hasher_ != nullptr);

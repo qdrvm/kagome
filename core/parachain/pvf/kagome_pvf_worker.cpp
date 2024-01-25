@@ -72,7 +72,7 @@ namespace kagome::parachain {
       const auto &injector, RuntimeEngine engine) {
     switch (engine) {
       case RuntimeEngine::kBinaryen:
-        // return injector.template create<
+        // return injector.template create
         //     std::shared_ptr<runtime::binaryen::ModuleFactoryImpl>>();
       case RuntimeEngine::kWAVM:
 #if KAGOME_WASM_COMPILER_WAVM == 1
@@ -96,7 +96,7 @@ namespace kagome::parachain {
   }
 
   PvfWorkerInput test_input{
-      RuntimeEngine::kWasmEdge,
+      RuntimeEngine::kWAVM,
       kTestWasm,
       "validate_block",
       kTestWasmArgs,

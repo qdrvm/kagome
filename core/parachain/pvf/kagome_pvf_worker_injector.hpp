@@ -44,7 +44,7 @@
 using kagome::injector::bind_by_lambda;
 
 #if KAGOME_WASM_COMPILER_WAVM == 0 && KAGOME_WASM_COMPILER_WASM_EDGE == 0
-  #error "No WASM compiler defined"
+#error "No WASM compiler defined"
 #endif
 
 namespace kagome::parachain {
@@ -69,20 +69,20 @@ namespace kagome::parachain {
         bind_null<crypto::CryptoStore>(),
         bind_null<offchain::OffchainPersistentStorage>(),
         bind_null<offchain::OffchainWorkerPool>(),
-        // // bind_null<host_api::HostApiFactory>(),
         di::bind<host_api::HostApiFactory>.to<host_api::HostApiFactoryImpl>(),
-        bind_null<storage::trie::TrieSerializer>(),
-        // // bind_null<runtime::RuntimePropertiesCache>(),
-        // di::bind<runtime::RuntimePropertiesCache>.to<runtime::RuntimePropertiesCacheImpl>(),
-        // bind_null<blockchain::BlockHeaderRepository>(),
-        bind_null<storage::trie::TrieStorage>()
-        // di::bind<runtime::SingleModuleCache>().to<runtime::SingleModuleCache>()
+        bind_null<storage::trie::TrieStorage>(),    // WasmEdge
+        bind_null<storage::trie::TrieSerializer>()  // WasmEdge
+    // // bind_null<host_api::HostApiFactory>(),
+    // // bind_null<runtime::RuntimePropertiesCache>(),
+    // di::bind<runtime::RuntimePropertiesCache>.to<runtime::RuntimePropertiesCacheImpl>(),
+    // bind_null<blockchain::BlockHeaderRepository>(),
+    // di::bind<runtime::SingleModuleCache>().to<runtime::SingleModuleCache>()
 
     // di::bind<runtime::binaryen::InstanceEnvironmentFactory>().to<runtime::binaryen::InstanceEnvironmentFactory>(),
     // bind_null<runtime::binaryen::InstanceEnvironmentFactory>(),
 
 #if KAGOME_WASM_COMPILER_WAVM == 1
-            ,
+        ,
 #warning "WAVM"
         bind_by_lambda<runtime::wavm::CompartmentWrapper>([](auto &injector) {
           return std::make_shared<runtime::wavm::CompartmentWrapper>(
@@ -128,23 +128,41 @@ namespace kagome::parachain {
           //         app_config.runtimeCacheDirPath());
           //   }
           // clang-format off
+          /*
+           ModuleFactoryImpl(
+        std::shared_ptr<CompartmentWrapper> compartment,
+        std::shared_ptr<ModuleParams> module_params,
+        std::shared_ptr<host_api::HostApiFactory> host_api_factory,
+        std::shared_ptr<storage::trie::TrieStorage> storage,
+        std::shared_ptr<storage::trie::TrieSerializer> serializer,
+        std::shared_ptr<IntrinsicModule> intrinsic_module,
+        std::shared_ptr<SingleModuleCache> last_compiled_module,
+        std::optional<std::shared_ptr<ModuleCache>> module_cache,
+        std::shared_ptr<crypto::Hasher> hasher);
+          */
           return std::make_shared<runtime::wavm::ModuleFactoryImpl>(
             //<kagome::offchain::OffchainPersistentStorage>
               injector.template create<sptr<runtime::wavm::CompartmentWrapper>>(),
               injector.template create<sptr<runtime::wavm::ModuleParams>>(),
-              injector.template create<sptr<runtime::wavm::InstanceEnvironmentFactory>>(),
+              injector.template create<sptr<host_api::HostApiFactory>>(),
+              injector.template create<sptr<storage::trie::TrieStorage>>(),
+              injector.template create<sptr<storage::trie::TrieSerializer>>(),
               injector.template create<sptr<runtime::wavm::IntrinsicModule>>(),
+              injector.template create<sptr<runtime::SingleModuleCache>>(),
               module_cache_opt,
               injector.template create<sptr<crypto::Hasher>>()
               );
+        }),
+        bind_by_lambda<runtime::ModuleFactory>([](const auto &injector) {
+          return injector.template create<sptr<runtime::wavm::ModuleFactoryImpl>>();
         })
-#warning "WAVM!"
+        #warning "Using WAVM"
       #endif // WAVM
 
       #if KAGOME_WASM_COMPILER_WASM_EDGE == 1
       ,
         di::bind<runtime::ModuleFactory>.template to<runtime::wasm_edge::ModuleFactoryImpl>()
-        #warning "WASMEDGE"
+        #warning "Using WasmEdge"
       #endif
 
         //
