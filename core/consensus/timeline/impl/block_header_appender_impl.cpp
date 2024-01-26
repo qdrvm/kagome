@@ -48,12 +48,12 @@ namespace kagome::consensus {
     // get current time to measure performance if block execution
     const auto t_start = std::chrono::high_resolution_clock::now();
 
+    primitives::Block block{.header = std::move(block_header)};
+
     if (auto res = appender_->validateHeader(block); res.has_error()) {
       callback(res.as_failure());
       return;
     }
-
-    primitives::Block block{.header = std::move(block_header)};
 
     if (auto res = block_tree_->addBlockHeader(block.header); res.has_error()) {
       callback(res.as_failure());
