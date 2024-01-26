@@ -266,19 +266,29 @@ namespace kagome::parachain {
       const common::Hash256 &code_hash,
       const ParachainRuntime &code_zstd,
       const ValidationParams &params) const {
-    OUTCOME_TRY(instance,
-                runtime_cache_->instantiateFromCode(
-                    code_hash,
-                    code_zstd,
-                    runtime::RuntimeInstancesPool::Config{max_stack_depth}));
-
-    runtime::RuntimeContext::ContextParams executor_params{};
     auto &parent_hash = receipt.descriptor.relay_parent;
     OUTCOME_TRY(session_index,
                 parachain_api_->session_index_for_child(parent_hash));
     OUTCOME_TRY(
-        session_params,
+        session_params_opt,
         parachain_api_->session_executor_params(parent_hash, session_index));
+    runtime::RuntimeInstancesPool::Config instance_config{};
+    runtime::RuntimeContext::ContextParams executor_params{};
+    if (session_params_opt) {
+      std::optional<uint32_t> max_stack_depth;
+      for (auto &param : *session_params_opt) {
+        if (auto *stack_max = get_if<runtime::StackLogicalMax>(&param)) {
+          instance_config.max_stack_depth = stack_max->max_values_num;
+          executor_params.memory_limits.max_stack_values_num =
+              stack_max->max_values_num;
+        } else if (auto *pages_max = get_if<runtime::MaxMemoryPages>(&param)) {
+          executor_params.memory_limits.max_memory_pages_num = pages_max->limit;
+        }
+      }
+    }
+    OUTCOME_TRY(instance,
+                runtime_cache_->instantiateFromCode(
+                    code_hash, code_zstd, instance_config));
     OUTCOME_TRY(ctx,
                 ctx_factory_->ephemeral(
                     instance, storage::trie::kEmptyRootHash, executor_params));

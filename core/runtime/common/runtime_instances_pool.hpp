@@ -34,7 +34,9 @@ namespace kagome::runtime {
     using CodeHash = storage::trie::RootHash;
 
     struct Config {
-      size_t max_stack_depth = DEFAULT_STACK_MAX;
+      // this is the logical stack depth, ensured by WASM code instrumentation
+      // see core/runtime/common/stack_limiter.cpp
+      uint32_t max_stack_depth = DEFAULT_STACK_MAX;
     };
 
     RuntimeInstancesPool(std::shared_ptr<ModuleFactory> module_factory,
