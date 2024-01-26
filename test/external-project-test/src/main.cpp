@@ -55,7 +55,8 @@ kagome::storage::trie::RootHash trieRoot(
   }
   auto root = trie->getRoot();
   if (root == nullptr) {
-    return codec.hash256(kagome::common::BufferView{{0}});
+    const uint8_t zero[]{0};
+    return codec.hash256(kagome::common::BufferView{zero});
   }
   auto encode_res =
       codec.encodeNode(*root, kagome::storage::trie::StateVersion::V0, {});
