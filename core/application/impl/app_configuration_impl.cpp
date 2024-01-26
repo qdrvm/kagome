@@ -87,7 +87,7 @@ namespace {
   const auto def_runtime_exec_method =
       kagome::application::AppConfiguration::RuntimeExecutionMethod::Interpret;
   const auto def_runtime_interpreter =
-      kagome::application::AppConfiguration::RuntimeInterpreter::Off;
+      kagome::application::AppConfiguration::RuntimeInterpreter::WasmEdge;
   const auto def_use_wavm_cache_ = false;
   const auto def_purge_wavm_cache_ = false;
   const auto def_offchain_worker_mode =
