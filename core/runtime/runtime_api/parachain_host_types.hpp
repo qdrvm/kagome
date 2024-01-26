@@ -363,13 +363,13 @@ namespace kagome::runtime {
   /// Enables WASM bulk memory proposal
   using WasmExtBulkMemory = Unused<1>;
 
-  using ExecutorParam = boost::variant<Unused<0>,
-                                       MaxMemoryPages,
-                                       StackLogicalMax,
-                                       StackNativeMax,
-                                       PrecheckingMaxMemory,
-                                       PvfPrepTimeout,
-                                       PvfExecTimeout,
-                                       Unused<7>>;  // WasmExtBulkMemory
+  using ExecutorParam = std::variant<Unused<0>,
+                                     MaxMemoryPages,
+                                     StackLogicalMax,
+                                     StackNativeMax,
+                                     PrecheckingMaxMemory,
+                                     PvfPrepTimeout,
+                                     PvfExecTimeout,
+                                     Unused<7>>;  // WasmExtBulkMemory
 
 }  // namespace kagome::runtime
