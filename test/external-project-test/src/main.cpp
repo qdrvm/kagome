@@ -43,27 +43,6 @@
 #include <libp2p/crypto/random_generator/boost_generator.hpp>
 #include <libp2p/log/configurator.hpp>
 
-kagome::storage::trie::RootHash trieRoot(
-    const std::vector<std::pair<kagome::common::Buffer, kagome::common::Buffer>>
-        &key_vals) {
-  auto trie = kagome::storage::trie::PolkadotTrieImpl::createEmpty();
-  auto codec = kagome::storage::trie::PolkadotCodec();
-
-  for (const auto &[key, val] : key_vals) {
-    [[maybe_unused]] auto res = trie->put(key, val.view());
-    BOOST_ASSERT_MSG(res.has_value(), "Insertion into trie failed");
-  }
-  auto root = trie->getRoot();
-  if (root == nullptr) {
-    const uint8_t zero[]{0};
-    return codec.hash256(kagome::common::BufferView{zero});
-  }
-  auto encode_res =
-      codec.encodeNode(*root, kagome::storage::trie::StateVersion::V0, {});
-  BOOST_ASSERT_MSG(encode_res.has_value(), "Trie encoding failed");
-  return codec.hash256(encode_res.value());
-}
-
 int main() {
   auto logging_system = std::make_shared<soralog::LoggingSystem>(
       std::make_shared<kagome::log::Configurator>(
