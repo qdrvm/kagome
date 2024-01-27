@@ -758,7 +758,7 @@ namespace kagome::parachain {
     /// TODO(iceseer): do
     /// `grid_topology` and `local_validator`
     return ManifestImportSuccess{
-        .acknowledge = true,
+        .acknowledge = false,
         .sender_index = 0,
     };
   }
@@ -1245,12 +1245,12 @@ namespace kagome::parachain {
              group_index);
 
     if (r.has_error()) {
-      SL_TRACE(logger_,
+      SL_INFO(logger_,
                "Fetch attested candidate returned an error. (relay parent={}, "
-               "candidate={}, group index={})",
+               "candidate={}, group index={}, error={})",
                relay_parent,
                candidate_hash,
-               group_index);
+               group_index, r.error());
       return;
     }
 
@@ -1463,7 +1463,7 @@ namespace kagome::parachain {
                   .payload =
                       {
                           .payload = visit_in_place(
-                              compact,
+                              compact.inner_value,
                               [&](const network::vstaging::SecondedCandidateHash
                                       &) -> StatementWithPVD {
                                 return StatementWithPVDSeconded{

@@ -92,7 +92,7 @@ namespace kagome::parachain {
       size_t r{0ull};
       boost::hash_combine(r, std::hash<ValidatorIndex>()(index));
       visit_in_place(
-          statement,
+          statement.inner_value,
           [&](const network::Empty &) { UNREACHABLE; },
           [&](const auto &v) {
             boost::hash_combine(r, std::hash<CandidateHash>()(v.hash));
@@ -101,7 +101,7 @@ namespace kagome::parachain {
     }
 
     bool operator==(const Fingerprint &rhs) const {
-      return index == rhs.index && statement == rhs.statement;
+      return index == rhs.index && statement.inner_value == rhs.statement.inner_value;
     }
   };
 
@@ -270,7 +270,7 @@ namespace kagome::parachain {
 
       const auto &candidate_hash = candidateHash(compact);
       const bool seconded =
-          is_type<network::vstaging::SecondedCandidateHash>(compact);
+          is_type<network::vstaging::SecondedCandidateHash>(compact.inner_value);
       const auto group_index = vm.group;
 
       auto it_gr = groups.groups.find(group_index);

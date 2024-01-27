@@ -64,11 +64,31 @@ namespace kagome::network::vstaging {
     CandidateHash hash;
   };
 
-  using CompactStatement =
-      boost::variant<Empty, SecondedCandidateHash, ValidCandidateHash>;
+  struct CompactStatement {
+    std::array<char, 4> header = {'B','K','N','G'};
+    boost::variant<Empty, SecondedCandidateHash, ValidCandidateHash> inner_value{};
+
+    CompactStatement(boost::variant<Empty, SecondedCandidateHash, ValidCandidateHash> &&val) : inner_value{std::move(val)} {}
+    CompactStatement(ValidCandidateHash &&val) : inner_value{std::move(val)} {}
+    CompactStatement(SecondedCandidateHash &&val) : inner_value{std::move(val)} {}
+    CompactStatement() = default;
+
+    friend inline ::scale::ScaleEncoderStream &operator<<(
+        ::scale::ScaleEncoderStream &s, const CompactStatement &c) {
+      s << c.header << c.inner_value;
+      return s;
+    }
+
+    friend inline ::scale::ScaleDecoderStream &operator>>(
+        ::scale::ScaleDecoderStream &s, CompactStatement &c) {
+      s >> c.header >> c.inner_value;
+      return s;
+    }
+  };
+
   inline const CandidateHash &candidateHash(const CompactStatement &val) {
     auto p = visit_in_place(
-        val,
+        val.inner_value,
         [&](const auto &v)
             -> std::optional<std::reference_wrapper<const CandidateHash>> {
           return {{v.hash}};
