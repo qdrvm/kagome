@@ -386,8 +386,8 @@ namespace kagome::parachain {
       [[maybe_unused]] std::unordered_map<Hash, ProspectiveParachainsMode>
           temp_header_cache;
       if (update.new_head) {
-        const auto &activated = update.new_head->get().get();
-        const auto &hash = update.new_head->get().getHash();
+        const auto &activated = update.new_head->get();
+        const auto &hash = update.new_head->get().hash();
         const auto mode = prospectiveParachainsMode(hash);
         if (!mode) {
           SL_TRACE(logger,

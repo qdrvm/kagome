@@ -276,7 +276,7 @@ namespace kagome::parachain {
   void ParachainProcessorImpl::onViewUpdated(const network::ExView &event) {
     REINVOKE(*this_context_, onViewUpdated, event);
 
-    const auto &relay_parent = event.new_head.getHash();
+    const auto &relay_parent = event.new_head.hash();
     if (auto r = canProcessParachains(); r.has_error()) {
       return;
     }

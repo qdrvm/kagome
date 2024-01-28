@@ -27,8 +27,7 @@ namespace kagome::blockchain {
 
 namespace kagome::network {
 
-  using HashedBlockHeader = crypto::
-      Hashed<primitives::BlockHeader, 32, crypto::Blake2b_StreamHasher<32>>;
+  using HashedBlockHeader = primitives::BlockHeader;
   struct ExView {
     View view;
     HashedBlockHeader new_head;

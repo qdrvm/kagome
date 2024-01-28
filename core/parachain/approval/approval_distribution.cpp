@@ -1184,8 +1184,8 @@ namespace kagome::parachain {
                                              Func &&func) {
     BOOST_ASSERT(internal_context_->isInCurrentThread());
 
-    const auto block_number = updated.new_head.get().number;
-    auto parent_hash{updated.new_head.get().parent_hash};
+    const auto block_number = updated.new_head.number;
+    auto parent_hash{updated.new_head.parent_hash};
     if (approving_context_map_.count(head) != 0ull) {
       logger_->warn("Approving {} already in progress.", head);
       return;  // Error::ALREADY_APPROVING;
@@ -1194,7 +1194,7 @@ namespace kagome::parachain {
     approving_context_map_.emplace(
         head,
         ApprovingContext{
-            .block_header = updated.new_head.get(),
+            .block_header = updated.new_head,
             .included_candidates = std::nullopt,
             .babe_block_header = std::nullopt,
             .babe_epoch = std::nullopt,
@@ -1228,7 +1228,7 @@ namespace kagome::parachain {
                       std::move(block_info.value())));
                 }});
 
-    imported_block_info(head, updated.new_head.get());
+    imported_block_info(head, updated.new_head);
   }
 
   void ApprovalDistribution::on_active_leaves_update(
@@ -1239,7 +1239,7 @@ namespace kagome::parachain {
       return;
     }
 
-    const auto &relay_parent = updated.new_head.getHash();
+    const auto &relay_parent = updated.new_head.hash();
 
     if (!storedDistribBlockEntries().get(relay_parent)) {
       [[maybe_unused]] auto &_ = pending_known_[relay_parent];

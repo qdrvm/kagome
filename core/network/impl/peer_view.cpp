@@ -80,7 +80,7 @@ namespace kagome::network {
     BOOST_ASSERT(my_view_update_observable_);
     std::sort(view.view.heads_.begin(), view.view.heads_.end());
     if (!my_view_ || my_view_->view != view.view
-        || my_view_->new_head.get() != view.new_head.get()) {
+        || my_view_->new_head != view.new_head) {
       if (my_view_) {
         view.lost.swap(my_view_->lost);
         view.lost.clear();
