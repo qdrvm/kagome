@@ -327,6 +327,10 @@ namespace kagome::consensus::babe {
       auto &relay_parent = parent_.hash;
       parachain_inherent_data.bitfields =
           bitfield_store_->getBitfields(relay_parent);
+      SL_INFO(log_,
+               "Bitfields set for block.(count={}, relay_parent={})",
+               parachain_inherent_data.bitfields.size(),
+               relay_parent);
 
       parachain_inherent_data.backed_candidates = parachain_processor_->getBackedCandidates(relay_parent);
       SL_TRACE(log_,

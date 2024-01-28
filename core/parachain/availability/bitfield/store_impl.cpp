@@ -64,7 +64,7 @@ namespace kagome::parachain {
           }
 
           if (bf.payload.payload.bits[ix]) {
-            SL_DEBUG(logger_,
+            SL_INFO(logger_,
                      "dropping invalid bitfield - bit is set for an unoccupied "
                      "core.(relay_parent={})",
                      relay_parent);
