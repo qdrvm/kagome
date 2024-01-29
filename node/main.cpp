@@ -40,23 +40,22 @@ int main(int argc, const char **argv) {
   setvbuf(stdout, nullptr, _IOLBF, 0);
   setvbuf(stderr, nullptr, _IOLBF, 0);
 
-  {
-    soralog::util::setThreadName("kagome");
+  soralog::util::setThreadName("kagome");
 
-    auto logging_system = std::make_shared<soralog::LoggingSystem>(
-        std::make_shared<kagome::log::Configurator>(
-            std::make_shared<libp2p::log::Configurator>()));
+  auto logging_system = std::make_shared<soralog::LoggingSystem>(
+      std::make_shared<kagome::log::Configurator>(
+          std::make_shared<libp2p::log::Configurator>()));
 
-    auto r = logging_system->configure();
-    if (not r.message.empty()) {
-      (r.has_error ? std::cerr : std::cout) << r.message << std::endl;
-    }
-    if (r.has_error) {
-      exit(EXIT_FAILURE);
-    }
-
-    kagome::log::setLoggingSystem(logging_system);
+  auto r = logging_system->configure();
+  if (not r.message.empty()) {
+    (r.has_error ? std::cerr : std::cout) << r.message << std::endl;
   }
+  if (r.has_error) {
+    exit(EXIT_FAILURE);
+  }
+
+  kagome::log::setLoggingSystem(logging_system);
+
   if (argc > 1) {
     std::string_view name{argv[1]};
     if (name == "storage-explorer") {
