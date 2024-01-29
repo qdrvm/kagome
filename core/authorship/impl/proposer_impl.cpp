@@ -7,6 +7,7 @@
 #include "authorship/impl/proposer_impl.hpp"
 
 #include "authorship/impl/block_builder_error.hpp"
+#include "libp2p/common/final_action.hpp"
 
 namespace {
   constexpr const char *kTransactionsIncludedInBlock =
@@ -46,6 +47,22 @@ namespace kagome::authorship {
       const primitives::InherentData &inherent_data,
       const primitives::Digest &inherent_digest,
       TrieChangesTrackerOpt changes_tracker) {
+    auto log_ok = false;
+    std::vector<primitives::Extrinsic> log_ext;
+    libp2p::common::FinalAction log{[&] {
+      if (log_ok) {
+        return;
+      }
+      // don't use `logger_`, because it truncates message
+      fmt::println("PROPOSE ERROR (parent={},inherent,digest,ext)=[{}]",
+                   parent_block.number,
+                   common::hex_lower(scale::encode(std::tie(parent_block,
+                                                            inherent_data,
+                                                            inherent_digest,
+                                                            log_ext))
+                                         .value()));
+    }};
+
     OUTCOME_TRY(block_builder,
                 block_builder_factory_->make(
                     parent_block, inherent_digest, std::move(changes_tracker)));
@@ -60,6 +77,7 @@ namespace kagome::authorship {
 
     for (const auto &xt : inherent_xts) {
       SL_DEBUG(logger_, "Adding inherent extrinsic: {}", xt.data);
+      log_ext.emplace_back(xt);
       auto inserted_res = block_builder->pushExtrinsic(xt);
       if (not inserted_res) {
         if (BlockBuilderError::EXHAUSTS_RESOURCES == inserted_res.error()) {
@@ -135,6 +153,7 @@ namespace kagome::authorship {
       }
 
       SL_DEBUG(logger_, "Adding extrinsic: {}", tx->ext.data);
+      log_ext.emplace_back(tx->ext);
       auto inserted_res = block_builder->pushExtrinsic(tx->ext);
       if (not inserted_res) {
         if (BlockBuilderError::EXHAUSTS_RESOURCES == inserted_res.error()) {
@@ -180,6 +199,7 @@ namespace kagome::authorship {
       }
     }
 
+    log_ok = true;
     return block;
   }
 
