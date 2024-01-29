@@ -114,7 +114,7 @@ struct ListenerTest : public ::testing::Test {
         trie_storage,
         core,
         watchdog,
-        main_context);
+        rpc_context);
   }
 
   void TearDown() override {
@@ -155,7 +155,6 @@ struct ListenerTest : public ::testing::Test {
       std::make_shared<TrieStorageMock>();
   std::shared_ptr<CoreMock> core = std::make_shared<CoreMock>();
   std::shared_ptr<Watchdog> watchdog = std::make_shared<Watchdog>();
-  ThreadPool thread_pool{watchdog, "rpc", 1};
 
   sptr<ApiService> service;
 };
