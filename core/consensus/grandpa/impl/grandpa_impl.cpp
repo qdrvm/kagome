@@ -139,7 +139,7 @@ namespace kagome::consensus::grandpa {
       return true;
     }
 
-    if (auto r = db_->get(storage::kGrandpaImplVotesKey)) {
+    if (auto r = db_->get(storage::kGrandpaVotesKey)) {
       if (auto r2 = scale::decode<CachedVotes>(r.value())) {
         cached_votes_ = std::move(r2.value());
       }
@@ -1554,7 +1554,7 @@ namespace kagome::consensus::grandpa {
       });
     }
     std::ignore =
-        db_->put(storage::kGrandpaImplVotesKey, scale::encode(rounds).value());
+        db_->put(storage::kGrandpaVotesKey, scale::encode(rounds).value());
   }
 
   void GrandpaImpl::applyCachedVotes(VotingRound &round) {
