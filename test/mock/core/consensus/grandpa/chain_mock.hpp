@@ -14,7 +14,7 @@ namespace kagome::consensus::grandpa {
   struct ChainMock : public virtual Chain {
     ~ChainMock() override = default;
 
-    MOCK_METHOD(outcome::result<bool>,
+    MOCK_METHOD(bool,
                 hasBlock,
                 (const primitives::BlockHash &),
                 (const, override));

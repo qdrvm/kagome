@@ -947,8 +947,7 @@ namespace kagome::consensus::grandpa {
       propagation = Propagation::NEEDLESS;
     } else {
       // Check if node hasn't block
-      auto res = env_->hasBlock(proposal.getBlockHash());
-      if (res.has_value() and not res.value()) {
+      if (not env_->hasBlock(proposal.getBlockHash())) {
         if (grandpa_context) {
           grandpa_context->missing_blocks.emplace(proposal.getBlockInfo());
         }

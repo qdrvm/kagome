@@ -43,8 +43,6 @@ namespace kagome::consensus {
     std::shared_ptr<blockchain::BlockTree> block_tree_;
     std::shared_ptr<crypto::Hasher> hasher_;
 
-    std::optional<primitives::BlockInfo> last_appended_;
-
     std::unique_ptr<BlockAppenderBase> appender_;
 
     struct {

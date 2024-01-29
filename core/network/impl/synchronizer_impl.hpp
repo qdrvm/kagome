@@ -217,6 +217,8 @@ namespace kagome::network {
     std::optional<libp2p::peer::PeerId> chooseJustificationPeer(
         primitives::BlockNumber block, BlocksRequest::Fingerprint fingerprint);
 
+    void afterStateSync();
+
     std::shared_ptr<application::AppStateManager> app_state_manager_;
     std::shared_ptr<blockchain::BlockTree> block_tree_;
     std::shared_ptr<consensus::BlockHeaderAppender> block_appender_;
