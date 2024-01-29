@@ -307,7 +307,7 @@ namespace kagome::consensus::grandpa {
     void pruneWaitingBlocks();
 
     void saveCachedVotes();
-    void findCachedVotes(VotingRound &round);
+    void applyCachedVotes(VotingRound &round);
 
     const size_t kVotesCacheSize = 5;
 

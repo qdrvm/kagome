@@ -261,7 +261,7 @@ namespace kagome::consensus::grandpa {
         std::move(vote_graph),
         scheduler_,
         round_state);
-    findCachedVotes(*new_round);
+    applyCachedVotes(*new_round);
 
     new_round->end();  // it is okay, because we do not want to actually execute
                        // this round
@@ -327,7 +327,7 @@ namespace kagome::consensus::grandpa {
         std::move(vote_graph),
         scheduler_,
         round);
-    findCachedVotes(*new_round);
+    applyCachedVotes(*new_round);
     return new_round;
   }
 
@@ -1557,7 +1557,7 @@ namespace kagome::consensus::grandpa {
         db_->put(storage::kGrandpaImplVotesKey, scale::encode(rounds).value());
   }
 
-  void GrandpaImpl::findCachedVotes(VotingRound &round) {
+  void GrandpaImpl::applyCachedVotes(VotingRound &round) {
     auto it = std::find_if(
         cached_votes_.begin(), cached_votes_.end(), [&](const CachedRound &c) {
           return c.set == round.voterSetId() and c.round == round.roundNumber();
