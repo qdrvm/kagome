@@ -258,6 +258,10 @@ SynchronizerTest::generateChains(BlockNumber finalized,
 
   EXPECT_CALL(*block_tree, getBlockHeader(_))
       .WillRepeatedly(blockTree_getBlockHeader(local_blocks));
+  EXPECT_CALL(*block_tree, has(_))
+      .WillRepeatedly([this](const BlockHash &hash) {
+        return block_tree->getBlockHeader(hash).has_value();
+      });
 
   auto &remote_blocks = std::get<1>(result);
   remote_blocks.reserve(remote_best);

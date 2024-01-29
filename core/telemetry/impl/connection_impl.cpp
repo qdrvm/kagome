@@ -68,7 +68,7 @@ namespace kagome::telemetry {
     if (not port.empty()) {
       try {
         auto port_int = std::stoi(port);
-        if (port_int < 0 or port_int > 65536) {
+        if (port_int < 1 or port_int > 65536) {
           throw std::out_of_range("");
         }
         port_ = static_cast<uint16_t>(port_int);
