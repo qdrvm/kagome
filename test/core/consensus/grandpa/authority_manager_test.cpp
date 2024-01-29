@@ -61,7 +61,7 @@ class AuthorityManagerTest : public testing::Test {
 
     EXPECT_CALL(*block_tree, getGenesisBlockHash())
         .WillRepeatedly(ReturnRefOfCopy(mockHash(0)));
-    EXPECT_CALL(*block_tree, hasBlockHeader(_)).WillRepeatedly(Return(true));
+    EXPECT_CALL(*block_tree, has(_)).WillRepeatedly(Return(true));
     EXPECT_CALL(*block_tree, getDescendingChainToBlock(_, _))
         .WillRepeatedly([](BlockHash hash, uint32_t count) {
           std::vector<BlockHash> hashes;

@@ -266,6 +266,7 @@ TEST_F(BlockExecutorTest, JustificationFollowDigests) {
   EXPECT_CALL(*block_tree_, getBlockHeader(parent_hash))
       .WillRepeatedly(testing::Return(kagome::primitives::BlockHeader{
           40, "grandparent_hash"_hash256, {}, {}, {}}));
+  EXPECT_CALL(*block_tree_, has(parent_hash)).WillRepeatedly(Return(true));
   EXPECT_CALL(*block_tree_, bestBlock())
       // previous best
       .WillOnce(testing::Return(BlockInfo{41, parent_hash}))
