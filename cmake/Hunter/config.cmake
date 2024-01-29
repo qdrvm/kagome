@@ -34,7 +34,7 @@ hunter_config(
 
 hunter_config(
     soralog
-    VERSION 0.2.1
+    VERSION 0.2.2
     KEEP_PACKAGE_SOURCES
 )
 
