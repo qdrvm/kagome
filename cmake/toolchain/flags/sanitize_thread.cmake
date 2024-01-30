@@ -9,11 +9,18 @@ endif ()
 
 include(${CMAKE_CURRENT_LIST_DIR}/../../add_cache_flag.cmake)
 
-add_cache_flag(CMAKE_CXX_FLAGS "-fsanitize=thread")
-add_cache_flag(CMAKE_CXX_FLAGS "-g")
+set(FLAGS
+    -fsanitize=thread
+    -fsanitize-blacklist="${CMAKE_CURRENT_LIST_DIR}/../../../.thread-sanitizer-ignore"
+    -fsanitize-ignorelist="${CMAKE_CURRENT_LIST_DIR}/../../../.thread-sanitizer-ignore"
+    -g
+    -O1
+)
 
-add_cache_flag(CMAKE_C_FLAGS "-fsanitize=thread")
-add_cache_flag(CMAKE_C_FLAGS "-g")
+foreach(FLAG IN LISTS FLAGS)
+  add_cache_flag(CMAKE_CXX_FLAGS ${FLAG})
+  add_cache_flag(CMAKE_C_FLAGS ${FLAG})
+endforeach()
 
 add_cache_flag(CMAKE_EXE_LINKER_FLAGS "-fsanitize=thread")
 add_cache_flag(CMAKE_SHARED_LINKER_FLAGS "-fsanitize=thread")
