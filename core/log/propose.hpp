@@ -9,6 +9,8 @@
 #include "primitives/block_header.hpp"
 #include "primitives/extrinsic.hpp"
 #include "primitives/inherent_data.hpp"
+#include "runtime/common/uncompress_code_if_needed.hpp"
+#include "storage/predefined_keys.hpp"
 
 #define GLOBAL(type, name, ...)    \
   inline auto &name() {            \
@@ -139,6 +141,18 @@ namespace kagome::propose {
       return;
     }
     fmt::println("PROPOSE: state {}: ok", num);
+
+    if (auto s = getenv("CODE")) {
+      auto trie =
+          synchronizer()->storage_->getEphemeralBatchAt(h.state_root).value();
+      auto a = trie->get(storage::kRuntimeCodeKey).value();
+      common::Buffer b;
+      auto r = runtime::uncompressCodeIfNeeded(a, b);
+      if (not r) {
+        throw r.error();
+      }
+      std::ofstream{s}.write((const char *)b.data(), b.size());
+    }
 
     std::array<uint8_t, 8> parachn0{'p', 'a', 'r', 'a', 'c', 'h', 'n', '0'};
     auto para =
