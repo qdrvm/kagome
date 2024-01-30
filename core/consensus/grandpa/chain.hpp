@@ -30,8 +30,7 @@ namespace kagome::consensus::grandpa {
      * @brief Checks if {@param block} exists locally
      * @return true iff block exists
      */
-    virtual outcome::result<bool> hasBlock(
-        const primitives::BlockHash &block) const = 0;
+    virtual bool hasBlock(const primitives::BlockHash &block) const = 0;
 
     /**
      * @brief Get the ancestry of a {@param block} up to the {@param base} hash.
