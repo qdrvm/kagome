@@ -246,6 +246,5 @@ namespace kagome::api {
         extrinsic_event_key_repo_;
 
     std::shared_ptr<ThreadPool> execution_thread_pool_;
-    std::shared_ptr<ThreadHandler> internal_thread_context_;
   };
 }  // namespace kagome::api

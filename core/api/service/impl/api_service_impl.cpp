@@ -148,8 +148,7 @@ namespace kagome::api {
                               .ext = std::move(ext_sub_engine)},
         extrinsic_event_key_repo_{std::move(extrinsic_event_key_repo)},
         execution_thread_pool_{std::make_shared<ThreadPool>(
-            std::move(watchdog), "rpc", 1ull, std::move(rpc_context))},
-        internal_thread_context_{execution_thread_pool_->handler()} {
+            std::move(watchdog), "rpc", 1ull, std::move(rpc_context))} {
     BOOST_ASSERT(block_tree_);
     BOOST_ASSERT(trie_storage_);
     BOOST_ASSERT(core_);
