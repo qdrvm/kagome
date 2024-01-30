@@ -9,7 +9,8 @@ fetch_and_run:
 		POLKADOT_RELEASE_GLOBAL=$$(grep 'short_version:' polkadot-sdk-versions.txt | cut -d ' ' -f 2); \
 		POLKADOT_RELEASE_GLOBAL_NUMERIC=$$(grep 'numeric_version:' polkadot-sdk-versions.txt | cut -d ' ' -f 2); \
 		ZOMBIENET_RELEASE=$$(grep 'short_version:' zombienet-versions.txt | cut -d ' ' -f 2); \
-		DOCKER_BUILDKIT=0 docker build -t qdrvm/zombie-builder:$$POLKADOT_SDK_RELEASE -f builder.Dockerfile \
+		DOCKER_BUILDKIT=0 docker build -t qdrvm/zombie-builder:$$POLKADOT_SDK_RELEASE -t qdrvm/zombie-builder:latest \
+		-f builder.Dockerfile \
 		--build-arg ZOMBIENET_RELEASE=$$ZOMBIENET_RELEASE \
 		--build-arg POLKADOT_SDK_RELEASE=$$POLKADOT_SDK_RELEASE \
 		--build-arg POLKADOT_RELEASE_GLOBAL=$$POLKADOT_RELEASE_GLOBAL \
@@ -19,7 +20,13 @@ fetch_and_run:
 	fi
 
 builder_push:
-	docker push qdrvm/zombie-builder:latest
+	if [ -f polkadot-sdk-versions.txt ]; then \
+  		POLKADOT_SDK_RELEASE=$$(grep 'polkadot_format_version:' polkadot-sdk-versions.txt | cut -d ' ' -f 2); \
+		docker push qdrvm/zombie-builder:$$POLKADOT_SDK_RELEASE ; \
+		docker push qdrvm/zombie-builder:latest ; \
+	else \
+		echo "One or more files are missing."; \
+	fi	
 
 builder:
 	DOCKER_BUILDKIT=0 docker build -t qdrvm/zombie-builder:latest -f builder.Dockerfile --build-arg CUMULUS_RELEASE=v0.9.420 --build-arg POLKADOT_RELEASE=v0.9.42 --build-arg POLKADOT_RELEASE_GLOBAL=v0.9.42 .
