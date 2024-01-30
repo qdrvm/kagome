@@ -4,6 +4,8 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
+name : Zombie Builder
+
 # Update zombie builder image each Sunday night
 on:
 #  schedule:
@@ -12,14 +14,14 @@ on:
 
 jobs:
   build_and_push_zombie_builder:
-    runs-on: [ ubuntu-latest, kagome, self-hosted, linux ]
+    runs-on: [ kagome, self-hosted, linux ]
     container: soramitsu/kagome-dev@sha256:a3153bda78e15337fc38b6800f508e8c3b27758cba6319e60e7c805b06e071f6
     steps:
     - uses: actions/checkout@dc323e67f16fb5f7663d20ff7941f27f5809e9b6
-    - name: Install dependencies
-      working-directory: ./zombienet/docker
-      run: |
-        pip install -r ./requirements.txt
+#    - name: Install dependencies
+#      working-directory: ./zombienet/docker
+#      run: |
+#        pip install -r ./requirements.txt
     - name: build zombie-builder
       working-directory: ./zombienet/docker
       run: make builder_last
