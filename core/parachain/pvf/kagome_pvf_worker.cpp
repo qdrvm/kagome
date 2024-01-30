@@ -95,7 +95,6 @@ namespace kagome::parachain {
     kagome::log::tuneLoggingSystem(input.log_params);
     auto injector = pvf_worker_injector(input);
     OUTCOME_TRY(factory, createModuleFactory(injector, input.engine));
-    // maybe uncompress
     OUTCOME_TRY(module, factory->make(input.runtime_code));
     OUTCOME_TRY(instance, module->instantiate());
     OUTCOME_TRY(instance->resetMemory({}));
