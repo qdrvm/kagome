@@ -24,4 +24,4 @@ namespace kagome::runtime {
   inline auto format_as(UncompressError e) {
     return make_error_code(e);
   }
-}
+}  // namespace kagome::runtime

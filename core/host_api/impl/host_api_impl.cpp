@@ -152,7 +152,7 @@ namespace kagome::host_api {
     return storage_ext_.ext_trie_blake2_256_ordered_root_version_2(
         values_data, state_version);
   }
-  
+
   runtime::WasmPointer HostApiImpl::ext_trie_keccak_256_ordered_root_version_2(
       runtime::WasmSpan values_data, runtime::WasmI32 state_version) {
     return storage_ext_.ext_trie_keccak_256_ordered_root_version_2(
