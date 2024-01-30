@@ -176,6 +176,49 @@ namespace kagome::parachain::fragment {
       }
     }
 
+  template<typename F>
+	void retain(F &&pred/*bool(CandidateHash)*/) {
+    for (auto it = by_candidate_hash.begin(); it != by_candidate_hash.end();) {
+      if (pred(it->first)) {
+        ++it;
+      } else {
+        it = by_candidate_hash.erase(it);
+      }
+    }
+
+    for (auto it = by_parent_head.begin(); it != by_parent_head.end();) {
+      auto &[_, children] = *it;
+      for (auto it_c = children.begin(); it_c != children.end();) {
+        if (pred(*it_c)) {
+          ++it_c;
+        } else {
+          it_c = children.erase(it_c);
+        }
+      }
+      if (children.empty()) {
+        it = by_parent_head.erase(it);
+      } else {
+        ++it;
+      }
+    }
+
+    for (auto it = by_output_head.begin(); it != by_output_head.end();) {
+      auto &[_, candidates] = *it;
+      for (auto it_c = candidates.begin(); it_c != candidates.end();) {
+        if (pred(*it_c)) {
+          ++it_c;
+        } else {
+          it_c = candidates.erase(it_c);
+        }
+      }
+      if (candidates.empty()) {
+        it = by_output_head.erase(it);
+      } else {
+        ++it;
+      }
+    }
+	}
+
     void markSeconded(const CandidateHash &candidate_hash) {
       if (auto it = by_candidate_hash.find(candidate_hash);
           it != by_candidate_hash.end()) {

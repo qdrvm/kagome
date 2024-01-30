@@ -471,11 +471,39 @@ namespace kagome::parachain {
       }
 
       if (!update.lost.empty()) {
-        /// TODO(iceseer): do
-        /// prune_view_candidate_storage
+        prune_view_candidate_storage();
       }
 
       return outcome::success();
+    }
+
+    void prune_view_candidate_storage() {
+      const auto &active_leaves = view.active_leaves;
+      std::unordered_set<CandidateHash> live_candidates;
+      std::unordered_set<ParachainId> live_paras;
+
+      for (const auto &[_, sub_view] : active_leaves) {
+        for (const auto &[para_id, fragment_tree] : sub_view.fragment_trees) {
+          for (const auto &[ch, _] : fragment_tree.candidates) {
+            live_candidates.insert(ch);
+          }
+          live_paras.insert(para_id);
+        }
+
+        live_candidates.insert(sub_view.pending_availability.begin(), sub_view.pending_availability.end());
+      }
+
+      for (auto it = view.candidate_storage.begin(); it != view.candidate_storage.end();) {
+        auto &[para_id, storage] = *it;
+        if (live_paras.find(para_id) != live_paras.end()) {
+          storage.retain([&](const CandidateHash &h) {
+            return live_candidates.find(h) != live_candidates.end();
+          });
+          ++it;
+        } else {
+          it = view.candidate_storage.erase(it);
+        }
+      }
     }
 
     /// @brief calculates hypothetical candidate and fragment tree membership

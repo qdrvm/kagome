@@ -343,7 +343,7 @@ class ProspectiveParachainsTest : public testing::Test {
       const TestState &test_state,
       const fragment::AsyncBackingParams &async_backing_params) {
     const auto &[number, hash, para_data] = leaf;
-    const auto &header = update.new_head.get();
+    const auto &header = update.new_head;
 
     EXPECT_CALL(*parachain_api_, staging_async_backing_params(hash))
         .WillRepeatedly(Return(outcome::success(async_backing_params)));
@@ -473,7 +473,7 @@ class ProspectiveParachainsTest : public testing::Test {
         .new_head = header,
         .lost = {},
     };
-    update.new_head.opt_hash_ = hash;
+    update.new_head.hash_opt = hash;
     handle_leaf_activation_2(update, leaf, test_state, async_backing_params);
   }
 
@@ -602,7 +602,7 @@ TEST_F(ProspectiveParachainsTest, shouldDoNoWorkIfAsyncBackingDisabledForLeaf) {
       .lost = {},
   };
   const auto hash = fromNumber(130);
-  update.new_head.opt_hash_ = hash;
+  update.new_head.hash_opt = hash;
 
   EXPECT_CALL(*parachain_api_, staging_async_backing_params(hash))
       .WillRepeatedly(
@@ -835,8 +835,7 @@ TEST_F(ProspectiveParachainsTest,
   get_membership(2, candidate_hash_c, {});
 
   ASSERT_EQ(prospective_parachain_->view.active_leaves.size(), 0);
-  /// TODO(iceseer): do pruning
-  /// ASSERT_EQ(prospective_parachain_->view.candidate_storage.size(), 0);
+  ASSERT_EQ(prospective_parachain_->view.candidate_storage.size(), 0);
 }
 
 TEST_F(ProspectiveParachainsTest, FragmentTree_checkCandidateOnMultipleForks) {
@@ -1301,7 +1300,7 @@ TEST_F(ProspectiveParachainsTest, FragmentTree_usesAncestryOnlyWithinSession) {
       .new_head = header,
       .lost = {},
   };
-  update.new_head.opt_hash_ = hash;
+  update.new_head.hash_opt = hash;
 
   fragment::AsyncBackingParams async_backing_params{
       .max_candidate_depth = 0,
@@ -1413,7 +1412,7 @@ TEST_F(ProspectiveParachainsTest, FragmentTree_correctlyUpdatesLeaves) {
         .new_head = header,
         .lost = {leaf_b.hash},
     };
-    update.new_head.opt_hash_ = leaf_c.hash;
+    update.new_head.hash_opt = leaf_c.hash;
 
     handle_leaf_activation_2(update, leaf_c, test_state, async_backing_params);
     //    prospective_parachain_->onActiveLeavesUpdate(network::ExViewRef{
@@ -1450,7 +1449,7 @@ TEST_F(ProspectiveParachainsTest, FragmentTree_correctlyUpdatesLeaves) {
         .new_head = header,
         .lost = {leaf_a.hash},
     };
-    update.new_head.opt_hash_ = leaf_a.hash;
+    update.new_head.hash_opt = leaf_a.hash;
     handle_leaf_activation_2(update, leaf_a, test_state, async_backing_params);
     //    prospective_parachain_->onActiveLeavesUpdate(network::ExViewRef{
     //        .new_head = update.new_head,
@@ -1472,9 +1471,7 @@ TEST_F(ProspectiveParachainsTest, FragmentTree_correctlyUpdatesLeaves) {
     });
   }
   ASSERT_EQ(prospective_parachain_->view.active_leaves.size(), 0);
-
-  /// TODO(iceseer): do pruning of candidate storage
-  /// ASSERT_EQ(prospective_parachain_->view.candidate_storage.size(), 0);
+  ASSERT_EQ(prospective_parachain_->view.candidate_storage.size(), 0);
 }
 
 TEST_F(ProspectiveParachainsTest,
