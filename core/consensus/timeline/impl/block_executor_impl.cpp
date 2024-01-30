@@ -68,14 +68,8 @@ namespace kagome::consensus {
       const std::optional<primitives::Justification> &justification,
       ApplyJustificationCb &&callback) {
     auto block_info = block.header.blockInfo();
-    if (auto header_res = block_tree_->getBlockHeader(block.header.parent_hash);
-        header_res.has_error()
-        && header_res.error() == blockchain::BlockTreeError::HEADER_NOT_FOUND) {
-      logger_->warn("Skipping a block {} with unknown parent", block_info);
+    if (not block_tree_->has(block.header.parent_hash)) {
       callback(BlockAdditionError::PARENT_NOT_FOUND);
-      return;
-    } else if (header_res.has_error()) {
-      callback(header_res.as_failure());
       return;
     }
 

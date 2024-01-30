@@ -41,7 +41,6 @@
 #include "api/service/system/system_jrpc_processor.hpp"
 #include "api/transport/impl/ws/ws_listener_impl.hpp"
 #include "api/transport/impl/ws/ws_session.hpp"
-#include "api/transport/rpc_thread_pool.hpp"
 #include "application/app_configuration.hpp"
 #include "application/impl/app_state_manager_impl.hpp"
 #include "application/impl/chain_spec_impl.hpp"
@@ -457,12 +456,13 @@ namespace {
         application::AppConfiguration::RuntimeInterpreter;
     switch (method) {
       case RuntimeExecutionMethod::Interpret:
-        if (interpreter == RuntimeInterpreter::Binaryen) {
-          return std::static_pointer_cast<CommonType>(
-              injector.template create<sptr<InterpretedType>>());
-        } else if (interpreter == RuntimeInterpreter::WasmEdge) {
-          return std::static_pointer_cast<CommonType>(
-              injector.template create<sptr<CompiledType>>());
+        switch (interpreter) {
+          case RuntimeInterpreter::Binaryen:
+            return std::static_pointer_cast<CommonType>(
+                injector.template create<sptr<InterpretedType>>());
+          case RuntimeInterpreter::WasmEdge:
+            return std::static_pointer_cast<CommonType>(
+                injector.template create<sptr<CompiledType>>());
         }
       case RuntimeExecutionMethod::Compile:
         return std::static_pointer_cast<CommonType>(
@@ -597,7 +597,6 @@ namespace {
   auto makeApplicationInjector(sptr<application::AppConfiguration> config,
                                Ts &&...args) {
     // default values for configurations
-    api::RpcThreadPool::Configuration rpc_thread_pool_config{};
     api::WsSession::Configuration ws_config{};
     transaction_pool::PoolModeratorImpl::Params pool_moderator_config{};
     transaction_pool::TransactionPool::Limits tp_pool_limits{};
@@ -623,7 +622,6 @@ namespace {
     // clang-format off
     return di::make_injector(
             // bind configs
-            useConfig(rpc_thread_pool_config),
             useConfig(ws_config),
             useConfig(pool_moderator_config),
             useConfig(tp_pool_limits),

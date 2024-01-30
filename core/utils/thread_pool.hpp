@@ -81,8 +81,11 @@ namespace kagome {
 
     ThreadPool(std::shared_ptr<Watchdog> watchdog,
                std::string_view pool_tag,
-               size_t thread_count)
-        : ioc_{std::make_shared<boost::asio::io_context>()},
+               size_t thread_count,
+               std::optional<std::shared_ptr<boost::asio::io_context>> ioc =
+                   std::nullopt)
+        : ioc_{ioc.has_value() ? std::move(ioc.value())
+                               : std::make_shared<boost::asio::io_context>()},
           work_guard_{ioc_->get_executor()} {
       BOOST_ASSERT(ioc_);
       BOOST_ASSERT(thread_count > 0);
