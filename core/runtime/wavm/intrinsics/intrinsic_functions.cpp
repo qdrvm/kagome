@@ -6,6 +6,7 @@
 
 #include "runtime/wavm/intrinsics/intrinsic_functions.hpp"
 
+#include "runtime/common/register_host_api.hpp"
 #include "runtime/module_repository.hpp"
 #include "runtime/wavm/intrinsics/intrinsic_module.hpp"
 
@@ -809,134 +810,11 @@ namespace kagome::runtime::wavm {
       logger = log::createLogger("Host API wrappers", "wavm");
     }
 
-#define REGISTER_HOST_INTRINSIC(Ret, name, ...) \
-  module.addFunction(                           \
+#define REGISTER_HOST_METHOD(Ret, name, ...) \
+  module.addFunction(                        \
       #name, &name, WAVM::IR::FunctionType{{Ret}, {__VA_ARGS__}});
 
-    auto I32 = WAVM::IR::ValueType::i32;
-    auto I64 = WAVM::IR::ValueType::i64;
-    // clang-format off
-    REGISTER_HOST_INTRINSIC(, ext_allocator_free_version_1, I32)
-    REGISTER_HOST_INTRINSIC(, ext_crypto_start_batch_verify_version_1)
-    REGISTER_HOST_INTRINSIC(, ext_default_child_storage_clear_version_1, I64, I64)
-    REGISTER_HOST_INTRINSIC(, ext_default_child_storage_clear_prefix_version_1, I64, I64)
-    REGISTER_HOST_INTRINSIC(I64, ext_default_child_storage_clear_prefix_version_2, I64, I64, I64)
-    REGISTER_HOST_INTRINSIC(, ext_default_child_storage_set_version_1, I64, I64, I64)
-    REGISTER_HOST_INTRINSIC(, ext_default_child_storage_storage_kill_version_1, I64)
-    REGISTER_HOST_INTRINSIC(I64, ext_default_child_storage_storage_kill_version_3, I64, I64)
-    REGISTER_HOST_INTRINSIC(, ext_logging_log_version_1, I32, I64, I64)
-    REGISTER_HOST_INTRINSIC(, ext_misc_print_hex_version_1, I64)
-    REGISTER_HOST_INTRINSIC(, ext_misc_print_num_version_1, I64)
-    REGISTER_HOST_INTRINSIC(, ext_misc_print_utf8_version_1, I64)
-    REGISTER_HOST_INTRINSIC(, ext_sandbox_instance_teardown_version_1, I32)
-    REGISTER_HOST_INTRINSIC(, ext_sandbox_memory_teardown_version_1, I32)
-    REGISTER_HOST_INTRINSIC(, ext_storage_append_version_1, I64, I64)
-    REGISTER_HOST_INTRINSIC(, ext_storage_clear_prefix_version_1, I64)
-    REGISTER_HOST_INTRINSIC(, ext_storage_clear_version_1, I64)
-    REGISTER_HOST_INTRINSIC(, ext_storage_commit_transaction_version_1)
-    REGISTER_HOST_INTRINSIC(, ext_storage_rollback_transaction_version_1)
-    REGISTER_HOST_INTRINSIC(, ext_storage_set_version_1, I64, I64)
-    REGISTER_HOST_INTRINSIC(, ext_storage_start_transaction_version_1)
-    REGISTER_HOST_INTRINSIC(I32, ext_allocator_malloc_version_1, I32)
-    REGISTER_HOST_INTRINSIC(I32, ext_crypto_ed25519_generate_version_1, I32, I64)
-    REGISTER_HOST_INTRINSIC(I32, ext_crypto_ed25519_verify_version_1, I32, I64, I32)
-    REGISTER_HOST_INTRINSIC(I32, ext_crypto_ed25519_batch_verify_version_1, I32, I64, I32)
-    REGISTER_HOST_INTRINSIC(I32, ext_crypto_finish_batch_verify_version_1)
-    REGISTER_HOST_INTRINSIC(I32, ext_crypto_sr25519_generate_version_1, I32, I64)
-    REGISTER_HOST_INTRINSIC(I32, ext_crypto_sr25519_verify_version_1, I32, I64, I32)
-    REGISTER_HOST_INTRINSIC(I32, ext_crypto_sr25519_verify_version_2, I32, I64, I32)
-    REGISTER_HOST_INTRINSIC(I32, ext_crypto_sr25519_batch_verify_version_1, I32, I64, I32)
-    REGISTER_HOST_INTRINSIC(I64, ext_crypto_ecdsa_public_keys_version_1, I32)
-    REGISTER_HOST_INTRINSIC(I64, ext_crypto_ecdsa_sign_version_1, I32, I32, I64)
-    REGISTER_HOST_INTRINSIC(I64, ext_crypto_ecdsa_sign_prehashed_version_1, I32, I32, I64)
-    REGISTER_HOST_INTRINSIC(I32, ext_crypto_ecdsa_generate_version_1, I32, I64)
-    REGISTER_HOST_INTRINSIC(I32, ext_crypto_ecdsa_verify_version_1, I32, I64, I32)
-    REGISTER_HOST_INTRINSIC(I32, ext_crypto_ecdsa_verify_version_2 , I32, I64, I32)
-    REGISTER_HOST_INTRINSIC(I32, ext_crypto_ecdsa_verify_prehashed_version_1, I32, I32, I32)
-    REGISTER_HOST_INTRINSIC(I32, ext_default_child_storage_exists_version_1, I64, I64)
-    REGISTER_HOST_INTRINSIC(I32, ext_hashing_blake2_128_version_1, I64)
-    REGISTER_HOST_INTRINSIC(I32, ext_hashing_blake2_256_version_1, I64)
-    REGISTER_HOST_INTRINSIC(I32, ext_hashing_keccak_256_version_1, I64)
-    REGISTER_HOST_INTRINSIC(I32, ext_hashing_sha2_256_version_1, I64)
-    REGISTER_HOST_INTRINSIC(I32, ext_hashing_twox_64_version_1, I64)
-    REGISTER_HOST_INTRINSIC(I32, ext_hashing_twox_128_version_1, I64)
-    REGISTER_HOST_INTRINSIC(I32, ext_hashing_twox_256_version_1, I64)
-    REGISTER_HOST_INTRINSIC(I32, ext_logging_max_level_version_1)
-    REGISTER_HOST_INTRINSIC(I32, ext_sandbox_instantiate_version_1, I32, I64, I64, I32)
-    REGISTER_HOST_INTRINSIC(I32, ext_sandbox_invoke_version_1, I32, I64, I64, I32, I32, I32)
-    REGISTER_HOST_INTRINSIC(I32, ext_sandbox_memory_get_version_1, I32, I32, I32, I32)
-    REGISTER_HOST_INTRINSIC(I32, ext_sandbox_memory_new_version_1, I32, I32)
-    REGISTER_HOST_INTRINSIC(I32, ext_sandbox_memory_set_version_1, I32, I32, I32, I32)
-    REGISTER_HOST_INTRINSIC(I32, ext_storage_exists_version_1, I64)
-    REGISTER_HOST_INTRINSIC(I32, ext_trie_blake2_256_ordered_root_version_1, I64)
-    REGISTER_HOST_INTRINSIC(I32, ext_trie_blake2_256_ordered_root_version_2, I64, I32)
-    REGISTER_HOST_INTRINSIC(I32, ext_trie_keccak_256_ordered_root_version_2, I64, I32)
-    REGISTER_HOST_INTRINSIC(I32, ext_trie_blake2_256_root_version_1, I64)
-    REGISTER_HOST_INTRINSIC(I32, ext_trie_blake2_256_verify_proof_version_2,I32, I64, I64, I64, I32)
-    REGISTER_HOST_INTRINSIC(I64, ext_crypto_ed25519_public_keys_version_1, I32)
-    REGISTER_HOST_INTRINSIC(I64, ext_crypto_ed25519_sign_version_1, I32, I32, I64)
-    REGISTER_HOST_INTRINSIC(I64, ext_crypto_secp256k1_ecdsa_recover_compressed_version_1, I32, I32)
-    REGISTER_HOST_INTRINSIC(I64, ext_crypto_secp256k1_ecdsa_recover_compressed_version_2, I32, I32)
-    REGISTER_HOST_INTRINSIC(I64, ext_crypto_secp256k1_ecdsa_recover_version_1, I32, I32)
-    REGISTER_HOST_INTRINSIC(I64, ext_crypto_secp256k1_ecdsa_recover_version_2, I32, I32)
-    REGISTER_HOST_INTRINSIC(I64, ext_crypto_sr25519_public_keys_version_1, I32)
-    REGISTER_HOST_INTRINSIC(I64, ext_crypto_sr25519_sign_version_1, I32, I32, I64)
-    REGISTER_HOST_INTRINSIC(I64, ext_default_child_storage_get_version_1, I64, I64)
-    REGISTER_HOST_INTRINSIC(I64, ext_default_child_storage_next_key_version_1, I64, I64)
-    REGISTER_HOST_INTRINSIC(I64, ext_default_child_storage_read_version_1, I64, I64, I64, I32)
-    REGISTER_HOST_INTRINSIC(I64, ext_default_child_storage_root_version_1, I64)
-    REGISTER_HOST_INTRINSIC(I64, ext_default_child_storage_root_version_2, I64, I32)
-    REGISTER_HOST_INTRINSIC(I64, ext_misc_runtime_version_version_1, I64)
-    REGISTER_HOST_INTRINSIC(I64, ext_storage_changes_root_version_1, I64)
-    REGISTER_HOST_INTRINSIC(I64, ext_storage_clear_prefix_version_2, I64, I64)
-    REGISTER_HOST_INTRINSIC(I64, ext_storage_get_version_1,  I64)
-    REGISTER_HOST_INTRINSIC(I64, ext_storage_next_key_version_1, I64)
-    REGISTER_HOST_INTRINSIC(I64, ext_storage_read_version_1, I64, I64, I32)
-    REGISTER_HOST_INTRINSIC(I64, ext_storage_root_version_1)
-    REGISTER_HOST_INTRINSIC(I64, ext_storage_root_version_2, I32)
-
-    // -------------------------- Offchain extension ---------------------------
-    REGISTER_HOST_INTRINSIC(I32, ext_offchain_is_validator_version_1)
-    REGISTER_HOST_INTRINSIC(I64, ext_offchain_submit_transaction_version_1, I64)
-    REGISTER_HOST_INTRINSIC(I64, ext_offchain_network_state_version_1)
-    REGISTER_HOST_INTRINSIC(I64, ext_offchain_timestamp_version_1)
-    REGISTER_HOST_INTRINSIC(   , ext_offchain_sleep_until_version_1, I64)
-    REGISTER_HOST_INTRINSIC(I32, ext_offchain_random_seed_version_1)
-    REGISTER_HOST_INTRINSIC(   , ext_offchain_local_storage_set_version_1, I32, I64, I64)
-    REGISTER_HOST_INTRINSIC(   , ext_offchain_local_storage_clear_version_1, I32, I64)
-    REGISTER_HOST_INTRINSIC(I32, ext_offchain_local_storage_compare_and_set_version_1, I32, I64, I64, I64)
-    REGISTER_HOST_INTRINSIC(I64, ext_offchain_local_storage_get_version_1, I32, I64)
-    REGISTER_HOST_INTRINSIC(I64, ext_offchain_http_request_start_version_1, I64, I64, I64)
-    REGISTER_HOST_INTRINSIC(I64, ext_offchain_http_request_add_header_version_1, I32, I64, I64)
-    REGISTER_HOST_INTRINSIC(I64, ext_offchain_http_request_write_body_version_1, I32,I64,I64)
-    REGISTER_HOST_INTRINSIC(I64, ext_offchain_http_response_wait_version_1,I64,I64)
-    REGISTER_HOST_INTRINSIC(I64, ext_offchain_http_response_headers_version_1, I32)
-    REGISTER_HOST_INTRINSIC(I64, ext_offchain_http_response_read_body_version_1, I32, I64, I64)
-    REGISTER_HOST_INTRINSIC(   , ext_offchain_set_authorized_nodes_version_1, I64, I32)
-    REGISTER_HOST_INTRINSIC(   , ext_offchain_index_set_version_1, I64, I64)
-    REGISTER_HOST_INTRINSIC(   , ext_offchain_index_clear_version_1, I64)
-
-    REGISTER_HOST_INTRINSIC(   , ext_evm_ext_call_list_new_version_2)
-    REGISTER_HOST_INTRINSIC(   , ext_evm_ext_evm_event_version_1, I64)
-    REGISTER_HOST_INTRINSIC(   , ext_evm_ext_gasometer_event_version_1, I64)
-    REGISTER_HOST_INTRINSIC(   , ext_evm_ext_runtime_event_version_1, I64)
-    REGISTER_HOST_INTRINSIC(I64, ext_evm_ext_step_event_filter_version_1)
-    REGISTER_HOST_INTRINSIC(   , ext_transaction_index_index_version_1, I32, I32, I32)
-    REGISTER_HOST_INTRINSIC(   , ext_transaction_index_renew_version_1, I32, I32)
-
-    REGISTER_HOST_INTRINSIC(   , ext_benchmarking_add_to_whitelist_version_1, I64)
-    REGISTER_HOST_INTRINSIC(   , ext_benchmarking_commit_db_version_1)
-    REGISTER_HOST_INTRINSIC(I32, ext_benchmarking_current_time_version_1)
-    REGISTER_HOST_INTRINSIC(I64, ext_benchmarking_get_read_and_written_keys_version_1)
-    REGISTER_HOST_INTRINSIC(I64, ext_benchmarking_proof_size_version_1)
-    REGISTER_HOST_INTRINSIC(I64, ext_benchmarking_read_write_count_version_1)
-    REGISTER_HOST_INTRINSIC(   , ext_benchmarking_reset_read_write_count_version_1)
-    REGISTER_HOST_INTRINSIC(   , ext_benchmarking_set_whitelist_version_1, I64)
-    REGISTER_HOST_INTRINSIC(   , ext_benchmarking_wipe_db_version_1)
-
-    REGISTER_HOST_INTRINSIC(   , ext_panic_handler_abort_on_panic_version_1, I64)
-
-    // clang-format on
+    REGISTER_HOST_METHODS
   }
 
 }  // namespace kagome::runtime::wavm
