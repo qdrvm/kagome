@@ -32,7 +32,7 @@ builder:
 	DOCKER_BUILDKIT=0 docker build -t qdrvm/zombie-builder:latest -f builder.Dockerfile --build-arg CUMULUS_RELEASE=v0.9.420 --build-arg POLKADOT_RELEASE=v0.9.42 --build-arg POLKADOT_RELEASE_GLOBAL=v0.9.42 .
 
 tester:
-	python version.py https://github.com/paritytech/polkadot-sdk && \
+	python3 version.py https://github.com/paritytech/polkadot-sdk && \
 	if [ -f polkadot-sdk-versions.txt ]; then \
 		POLKADOT_SDK_RELEASE=$$(grep 'polkadot_format_version:' polkadot-sdk-versions.txt | cut -d ' ' -f 2); \
 		DOCKER_BUILDKIT=0 docker build --no-cache -t qdrvm/zombie-tester:latest -f tester.Dockerfile \
