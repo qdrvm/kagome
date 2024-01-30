@@ -15,7 +15,6 @@
 
 #include <jsonrpc-lean/fault.h>
 
-#include "api/transport/rpc_thread_pool.hpp"
 #include "api/transport/session.hpp"
 #include "common/buffer.hpp"
 #include "containers/objects_cache.hpp"
@@ -23,6 +22,7 @@
 #include "primitives/block_id.hpp"
 #include "primitives/event_types.hpp"
 #include "subscription/subscription_engine.hpp"
+#include "utils/thread_pool.hpp"
 
 namespace kagome::api {
   class JRpcProcessor;
@@ -112,7 +112,6 @@ namespace kagome::api {
 
    public:
     ApiServiceImpl(application::AppStateManager &app_state_manager,
-                   std::shared_ptr<api::RpcThreadPool> thread_pool,
                    std::vector<std::shared_ptr<Listener>> listeners,
                    std::shared_ptr<JRpcServer> server,
                    std::vector<std::shared_ptr<JRpcProcessor>> processors,
@@ -123,7 +122,9 @@ namespace kagome::api {
                        extrinsic_event_key_repo,
                    std::shared_ptr<blockchain::BlockTree> block_tree,
                    std::shared_ptr<storage::trie::TrieStorage> trie_storage,
-                   std::shared_ptr<runtime::Core> core);
+                   std::shared_ptr<runtime::Core> core,
+                   std::shared_ptr<Watchdog> watchdog,
+                   std::shared_ptr<RpcContext> rpc_context);
 
     ~ApiServiceImpl() override = default;
 
@@ -224,7 +225,6 @@ namespace kagome::api {
       return obj;
     }
 
-    std::shared_ptr<api::RpcThreadPool> thread_pool_;
     std::vector<std::shared_ptr<Listener>> listeners_;
     std::shared_ptr<JRpcServer> server_;
     log::Logger logger_;
@@ -244,5 +244,7 @@ namespace kagome::api {
     } subscription_engines_;
     std::shared_ptr<subscription::ExtrinsicEventKeyRepository>
         extrinsic_event_key_repo_;
+
+    std::shared_ptr<ThreadPool> execution_thread_pool_;
   };
 }  // namespace kagome::api

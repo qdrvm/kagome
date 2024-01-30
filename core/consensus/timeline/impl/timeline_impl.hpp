@@ -13,6 +13,7 @@
 #include "injector/lazy.hpp"
 #include "log/logger.hpp"
 #include "metrics/metrics.hpp"
+#include "network/block_announce_observer.hpp"
 #include "primitives/event_types.hpp"
 #include "telemetry/service.hpp"
 

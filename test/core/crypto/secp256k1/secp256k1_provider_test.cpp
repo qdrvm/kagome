@@ -78,7 +78,7 @@ TEST_F(Secp256k1ProviderTest, RecoverInvalidRecidFailure) {
   *wrong_signature.rbegin() = 0xFF;
   EXPECT_OUTCOME_ERROR(res,
                        secp256K1_provider->recoverPublickeyUncompressed(
-                           wrong_signature, secp_message_hash),
+                           wrong_signature, secp_message_hash, false),
                        Secp256k1ProviderError::INVALID_V_VALUE);
 }
 
@@ -92,7 +92,7 @@ TEST_F(Secp256k1ProviderTest, RecoverInvalidSignatureFailure) {
   RSVSignature wrong_signature = secp_signature;
   *(wrong_signature.begin() + 3) = 0xFF;
   auto res = secp256K1_provider->recoverPublickeyUncompressed(
-      wrong_signature, secp_message_hash);
+      wrong_signature, secp_message_hash, false);
   // corrupted signature may recover some public key, but this key is wrong
   if (res) {
     ASSERT_NE(res.value(), secp_public_key_expanded);
@@ -110,7 +110,7 @@ TEST_F(Secp256k1ProviderTest, RecoverInvalidSignatureFailure) {
 TEST_F(Secp256k1ProviderTest, RecoverUncompressedSuccess) {
   EXPECT_OUTCOME_TRUE(public_key,
                       secp256K1_provider->recoverPublickeyUncompressed(
-                          secp_signature, secp_message_hash));
+                          secp_signature, secp_message_hash, false));
   EXPECT_EQ(public_key, secp_public_key_expanded);
 }
 
@@ -122,6 +122,6 @@ TEST_F(Secp256k1ProviderTest, RecoverUncompressedSuccess) {
 TEST_F(Secp256k1ProviderTest, RecoverCompressedSuccess) {
   EXPECT_OUTCOME_TRUE(public_key,
                       secp256K1_provider->recoverPublickeyCompressed(
-                          secp_signature, secp_message_hash));
+                          secp_signature, secp_message_hash, false));
   EXPECT_EQ(public_key, secp_public_key_compressed);
 }

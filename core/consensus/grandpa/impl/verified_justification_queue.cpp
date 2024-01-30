@@ -54,6 +54,10 @@ namespace kagome::consensus::grandpa {
     if (set < expected_) {
       return;
     }
+    if (justification.block_info.number
+        <= block_tree_->getLastFinalized().number) {
+      return;
+    }
     auto block_res = block_tree_->getBlockHeader(justification.block_info.hash);
     if (not block_res) {
       return;

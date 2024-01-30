@@ -41,7 +41,6 @@
 #include "api/service/system/system_jrpc_processor.hpp"
 #include "api/transport/impl/ws/ws_listener_impl.hpp"
 #include "api/transport/impl/ws/ws_session.hpp"
-#include "api/transport/rpc_thread_pool.hpp"
 #include "application/app_configuration.hpp"
 #include "application/impl/app_state_manager_impl.hpp"
 #include "application/impl/chain_spec_impl.hpp"
@@ -449,13 +448,22 @@ namespace {
             typename Injector>
   auto choose_runtime_implementation(
       const Injector &injector,
-      application::AppConfiguration::RuntimeExecutionMethod method) {
+      application::AppConfiguration::RuntimeExecutionMethod method,
+      application::AppConfiguration::RuntimeInterpreter interpreter) {
     using RuntimeExecutionMethod =
         application::AppConfiguration::RuntimeExecutionMethod;
+    using RuntimeInterpreter =
+        application::AppConfiguration::RuntimeInterpreter;
     switch (method) {
       case RuntimeExecutionMethod::Interpret:
-        return std::static_pointer_cast<CommonType>(
-            injector.template create<sptr<InterpretedType>>());
+        switch (interpreter) {
+          case RuntimeInterpreter::Binaryen:
+            return std::static_pointer_cast<CommonType>(
+                injector.template create<sptr<InterpretedType>>());
+          case RuntimeInterpreter::WasmEdge:
+            return std::static_pointer_cast<CommonType>(
+                injector.template create<sptr<CompiledType>>());
+        }
       case RuntimeExecutionMethod::Compile:
         return std::static_pointer_cast<CommonType>(
             injector.template create<sptr<CompiledType>>());
@@ -501,6 +509,7 @@ namespace {
   template <typename... Ts>
   auto makeRuntimeInjector(
       application::AppConfiguration::RuntimeExecutionMethod method,
+      application::AppConfiguration::RuntimeInterpreter interpreter,
       Ts &&...args) {
     return di::make_injector(
         bind_by_lambda<runtime::RuntimeUpgradeTrackerImpl>(
@@ -523,11 +532,12 @@ namespace {
         di::bind<runtime::ModuleRepository>.template to<runtime::ModuleRepositoryImpl>(),
         di::bind<runtime::CoreApiFactory>.template to<runtime::CoreApiFactoryImpl>(),
         bind_by_lambda<runtime::ModuleFactory>(
-            [method](const auto &injector) -> sptr<runtime::ModuleFactory> {
+            [method, interpreter](
+                const auto &injector) -> sptr<runtime::ModuleFactory> {
               return choose_runtime_implementation<
                   runtime::ModuleFactory,
                   runtime::binaryen::ModuleFactoryImpl,
-                  ModuleFactory>(injector, method);
+                  ModuleFactory>(injector, method, interpreter);
             }),
         bind_by_lambda<runtime::Executor>([](const auto &injector)
                                               -> sptr<runtime::Executor> {
@@ -587,7 +597,6 @@ namespace {
   auto makeApplicationInjector(sptr<application::AppConfiguration> config,
                                Ts &&...args) {
     // default values for configurations
-    api::RpcThreadPool::Configuration rpc_thread_pool_config{};
     api::WsSession::Configuration ws_config{};
     transaction_pool::PoolModeratorImpl::Params pool_moderator_config{};
     transaction_pool::TransactionPool::Limits tp_pool_limits{};
@@ -600,17 +609,28 @@ namespace {
             config->parachainRuntimeInstanceCacheSize(),
         .precompile_threads_num = config->parachainPrecompilationThreadNum(),
     };
+#if KAGOME_WASM_COMPILER_WASM_EDGE == 1
+    runtime::wasm_edge::ModuleFactoryImpl::Config wasmedge_config{
+        config->runtimeExecMethod()
+                == application::AppConfiguration::RuntimeExecutionMethod::
+                    Compile
+            ? runtime::wasm_edge::ModuleFactoryImpl::ExecType::Compiled
+            : runtime::wasm_edge::ModuleFactoryImpl::ExecType::Interpreted,
+    };
+#endif
 
     // clang-format off
     return di::make_injector(
             // bind configs
-            useConfig(rpc_thread_pool_config),
             useConfig(ws_config),
             useConfig(pool_moderator_config),
             useConfig(tp_pool_limits),
             useConfig(ping_config),
             useConfig(offchain_ext_config),
             useConfig(pvf_config),
+#if KAGOME_WASM_COMPILER_WASM_EDGE == 1
+            useConfig(wasmedge_config),
+#endif
 
             // inherit host injector
             libp2p::injector::makeHostInjector(
@@ -761,7 +781,7 @@ namespace {
             }),
             di::bind<crypto::CryptoStore>.template to<crypto::CryptoStoreImpl>(),
             di::bind<host_api::HostApiFactory>.template to<host_api::HostApiFactoryImpl>(),
-            makeRuntimeInjector(config->runtimeExecMethod()),
+            makeRuntimeInjector(config->runtimeExecMethod(), config->runtimeInterpreter()),
             di::bind<transaction_pool::TransactionPool>.template to<transaction_pool::TransactionPoolImpl>(),
             di::bind<transaction_pool::PoolModerator>.template to<transaction_pool::PoolModeratorImpl>(),
             di::bind<storage::changes_trie::ChangesTracker>.template to<storage::changes_trie::StorageChangesTrackerImpl>(),

@@ -22,10 +22,7 @@ namespace kagome::blockchain {
                 (primitives::BlockNumber),
                 (const, override));
 
-    MOCK_METHOD(outcome::result<bool>,
-                hasBlockHeader,
-                (const primitives::BlockHash &),
-                (const, override));
+    MOCK_METHOD(bool, has, (const primitives::BlockHash &), (const, override));
 
     MOCK_METHOD(outcome::result<primitives::BlockBody>,
                 getBlockBody,

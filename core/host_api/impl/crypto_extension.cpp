@@ -391,12 +391,10 @@ namespace kagome::host_api {
     return getMemory().storeBuffer(buffer);
   }
 
-  int32_t CryptoExtension::ext_crypto_sr25519_verify_version_1(
-      runtime::WasmPointer sig,
-      runtime::WasmSpan msg_span,
-      runtime::WasmPointer pubkey_data) {
-    // TODO(Harrm): this should support deprecated signatures from schnorrkel
-    // 0.1.1 in contrary to version_2
+  int32_t CryptoExtension::srVerify(bool deprecated,
+                                    runtime::WasmPointer sig,
+                                    runtime::WasmSpan msg_span,
+                                    runtime::WasmPointer pubkey_data) {
     auto [msg_data, msg_len] = runtime::PtrSize(msg_span);
     auto msg = getMemory().loadN(msg_data, msg_len);
     auto signature_buffer =
@@ -415,7 +413,9 @@ namespace kagome::host_api {
                 sr25519_constants::SIGNATURE_SIZE,
                 signature.begin());
 
-    auto verify_res = sr25519_provider_->verify_deprecated(signature, msg, key);
+    auto verify_res =
+        deprecated ? sr25519_provider_->verify_deprecated(signature, msg, key)
+                   : sr25519_provider_->verify(signature, msg, key);
 
     auto res = verify_res && verify_res.value() ? kVerifySuccess : kVerifyFail;
 
@@ -435,13 +435,18 @@ namespace kagome::host_api {
         ext_crypto_sr25519_verify_version_1(sig, msg_span, pubkey_data));
   }
 
+  int32_t CryptoExtension::ext_crypto_sr25519_verify_version_1(
+      runtime::WasmPointer sig,
+      runtime::WasmSpan msg,
+      runtime::WasmPointer pub) {
+    return srVerify(/* deprecated= */ true, sig, msg, pub);
+  }
+
   int32_t CryptoExtension::ext_crypto_sr25519_verify_version_2(
       runtime::WasmPointer sig,
-      runtime::WasmSpan msg_span,
-      runtime::WasmPointer pubkey_data) {
-    SL_TRACE_FUNC_CALL(logger_,
-                       "delegated to ext_crypto_sr25519_verify_version_1");
-    return ext_crypto_sr25519_verify_version_1(sig, msg_span, pubkey_data);
+      runtime::WasmSpan msg,
+      runtime::WasmPointer pub) {
+    return srVerify(/* deprecated= */ false, sig, msg, pub);
   }
 
   namespace {
@@ -469,9 +474,9 @@ namespace kagome::host_api {
     }
   }  // namespace
 
-  runtime::WasmSpan
-  CryptoExtension::ext_crypto_secp256k1_ecdsa_recover_version_1(
-      runtime::WasmPointer sig, runtime::WasmPointer msg) {
+  runtime::WasmSpan CryptoExtension::ecdsaRecover(bool allow_overflow,
+                                                  runtime::WasmPointer sig,
+                                                  runtime::WasmPointer msg) {
     using ResultType =
         boost::variant<secp256k1::PublicKey, Secp256k1VerifyError>;
 
@@ -484,8 +489,8 @@ namespace kagome::host_api {
     auto signature = RSVSignature::fromSpan(sig_buffer).value();
     auto message = MessageHash::fromSpan(msg_buffer).value();
 
-    auto public_key =
-        secp256k1_provider_->recoverPublickeyUncompressed(signature, message);
+    auto public_key = secp256k1_provider_->recoverPublickeyUncompressed(
+        signature, message, allow_overflow);
     if (!public_key) {
       logger_->error("failed to recover uncompressed secp256k1 public key: {}",
                      public_key.error());
@@ -511,8 +516,19 @@ namespace kagome::host_api {
   }
 
   runtime::WasmSpan
-  CryptoExtension::ext_crypto_secp256k1_ecdsa_recover_compressed_version_1(
+  CryptoExtension::ext_crypto_secp256k1_ecdsa_recover_version_1(
       runtime::WasmPointer sig, runtime::WasmPointer msg) {
+    return ecdsaRecover(/* allow_overflow= */ true, sig, msg);
+  }
+
+  runtime::WasmSpan
+  CryptoExtension::ext_crypto_secp256k1_ecdsa_recover_version_2(
+      runtime::WasmPointer sig, runtime::WasmPointer msg) {
+    return ecdsaRecover(/* allow_overflow= */ false, sig, msg);
+  }
+
+  runtime::WasmSpan CryptoExtension::ecdsaRecoverCompressed(
+      bool allow_overflow, runtime::WasmPointer sig, runtime::WasmPointer msg) {
     using ResultType =
         boost::variant<CompressedPublicKey, Secp256k1VerifyError>;
 
@@ -525,8 +541,8 @@ namespace kagome::host_api {
     auto signature = RSVSignature::fromSpan(sig_buffer).value();
     auto message = MessageHash::fromSpan(msg_buffer).value();
 
-    auto public_key =
-        secp256k1_provider_->recoverPublickeyCompressed(signature, message);
+    auto public_key = secp256k1_provider_->recoverPublickeyCompressed(
+        signature, message, allow_overflow);
     if (!public_key) {
       logger_->error("failed to recover uncompressed secp256k1 public key: {}",
                      public_key.error());
@@ -540,6 +556,18 @@ namespace kagome::host_api {
     SL_TRACE_FUNC_CALL(logger_, public_key.value(), sig_buffer, msg_buffer);
     auto buffer = scale::encode(ResultType(public_key.value())).value();
     return getMemory().storeBuffer(buffer);
+  }
+
+  runtime::WasmSpan
+  CryptoExtension::ext_crypto_secp256k1_ecdsa_recover_compressed_version_1(
+      runtime::WasmPointer sig, runtime::WasmPointer msg) {
+    return ecdsaRecoverCompressed(/* allow_overflow= */ true, sig, msg);
+  }
+
+  runtime::WasmSpan
+  CryptoExtension::ext_crypto_secp256k1_ecdsa_recover_compressed_version_2(
+      runtime::WasmPointer sig, runtime::WasmPointer msg) {
+    return ecdsaRecoverCompressed(/* allow_overflow= */ false, sig, msg);
   }
 
   runtime::WasmSpan CryptoExtension::ext_crypto_ecdsa_public_keys_version_1(
@@ -665,10 +693,10 @@ namespace kagome::host_api {
     return runtime::PtrSize(ps).ptr;
   }
 
-  int32_t CryptoExtension::ext_crypto_ecdsa_verify_version_1(
-      runtime::WasmPointer sig,
-      runtime::WasmSpan msg_span,
-      runtime::WasmPointer pubkey_data) const {
+  int32_t CryptoExtension::ecdsaVerify(bool allow_overflow,
+                                       runtime::WasmPointer sig,
+                                       runtime::WasmSpan msg_span,
+                                       runtime::WasmPointer pubkey_data) const {
     auto [msg_data, msg_len] = runtime::PtrSize(msg_span);
     auto msg = getMemory().loadN(msg_data, msg_len);
     auto signature =
@@ -684,7 +712,8 @@ namespace kagome::host_api {
     }
     auto &&pubkey = key_res.value();
 
-    auto verify_res = ecdsa_provider_->verify(msg, signature, pubkey);
+    auto verify_res =
+        ecdsa_provider_->verify(msg, signature, pubkey, allow_overflow);
 
     auto res = verify_res && verify_res.value() ? kVerifySuccess : kVerifyFail;
 
@@ -692,13 +721,18 @@ namespace kagome::host_api {
     return res;
   }
 
+  int32_t CryptoExtension::ext_crypto_ecdsa_verify_version_1(
+      runtime::WasmPointer sig,
+      runtime::WasmSpan msg,
+      runtime::WasmPointer pub) const {
+    return ecdsaVerify(/* allow_overflow= */ true, sig, msg, pub);
+  }
+
   int32_t CryptoExtension::ext_crypto_ecdsa_verify_version_2(
       runtime::WasmPointer sig,
-      runtime::WasmSpan msg_span,
-      runtime::WasmPointer pubkey_data) const {
-    SL_TRACE_FUNC_CALL(logger_,
-                       "delegated to ext_crypto_ecdsa_verify_version_1");
-    return ext_crypto_ecdsa_verify_version_1(sig, msg_span, pubkey_data);
+      runtime::WasmSpan msg,
+      runtime::WasmPointer pub) const {
+    return ecdsaVerify(/* allow_overflow= */ false, sig, msg, pub);
   }
 
   int32_t CryptoExtension::ext_crypto_ecdsa_verify_prehashed_version_1(
