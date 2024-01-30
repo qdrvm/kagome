@@ -147,8 +147,7 @@ namespace kagome::network {
   bool SynchronizerImpl::subscribeToBlock(
       const primitives::BlockInfo &block_info, SyncResultHandler &&handler) {
     // Check if block is already in tree
-    auto has = block_tree_->hasBlockHeader(block_info.hash);
-    if (has and has.value()) {
+    if (block_tree_->has(block_info.hash)) {
       scheduler_->schedule(
           [handler = std::move(handler), block_info] { handler(block_info); });
       return false;
@@ -315,7 +314,7 @@ namespace kagome::network {
     const auto &block_info = header.blockInfo();
 
     // Block was applied before
-    if (block_tree_->getBlockHeader(block_info.hash).has_value()) {
+    if (block_tree_->has(block_info.hash)) {
       return false;
     }
 
@@ -342,7 +341,7 @@ namespace kagome::network {
     // If parent of provided block is in chain, start to load it immediately
     bool parent_is_known =
         known_blocks_.find(header.parent_hash) != known_blocks_.end()
-        or block_tree_->getBlockHeader(header.parent_hash).has_value();
+        or block_tree_->has(header.parent_hash);
 
     if (parent_is_known) {
       loadBlocks(peer_id, block_info, [wp{weak_from_this()}](auto res) {
@@ -426,7 +425,7 @@ namespace kagome::network {
         // Check if block is known (is already enqueued or is in block tree)
         bool block_is_known =
             self->known_blocks_.find(hash) != self->known_blocks_.end()
-            or self->block_tree_->getBlockHeader(hash).has_value();
+            or self->block_tree_->has(hash);
 
         // Interval of finding is totally narrowed. Common block should be found
         if (target == lower) {
@@ -554,8 +553,11 @@ namespace kagome::network {
                              from,
                              peer_id,
                              handler = std::move(handler),
+                             need_body =
+                                 request.attributeIsSet(BlockAttribute::BODY),
                              parent_hash = primitives::BlockHash{}](
-                                auto &&response_res) mutable {
+                                outcome::result<BlocksResponse>
+                                    response_res) mutable {
       auto self = wp.lock();
       if (not self) {
         return;
@@ -596,6 +598,15 @@ namespace kagome::network {
                peer_id,
                from);
 
+      if (blocks[0].header and blocks[0].header->number != 0
+          and not self->known_blocks_.contains(blocks[0].header->parent_hash)
+          and not self->block_tree_->has(blocks[0].header->parent_hash)) {
+        if (handler) {
+          handler(Error::DISCARDED_BLOCK);
+        }
+        return;
+      }
+
       bool some_blocks_added = false;
       primitives::BlockInfo last_loaded_block;
 
@@ -613,7 +624,7 @@ namespace kagome::network {
           return;
         }
         // Check if body is provided
-        if (not block.header.has_value()) {
+        if (need_body and not block.body.has_value()) {
           SL_VERBOSE(self->log_,
                      "Can't load blocks from {} starting from block {}: "
                      "Received block without body",
@@ -777,11 +788,14 @@ namespace kagome::network {
     }
     auto _header = block_tree_->getBlockHeader(block.hash);
     if (not _header) {
+      lock.unlock();
       handler(_header.error());
       return;
     }
     auto &header = _header.value();
     if (storage_->getEphemeralBatchAt(header.state_root)) {
+      afterStateSync();
+      lock.unlock();
       handler(block);
       return;
     }
@@ -848,7 +862,7 @@ namespace kagome::network {
     state_sync_.reset();
 
     // State syncing has completed; Switch to the full syncing
-    sync_method_ = application::SyncMethod::Full;
+    afterStateSync();
     lock.unlock();
     cb(block);
     return outcome::success();
@@ -920,8 +934,7 @@ namespace kagome::network {
       // Skip applied and finalized blocks and
       //  discard side-chain below last finalized
       if (block_data.header->number <= last_finalized_block.number) {
-        auto header_res = block_tree_->getBlockHeader(hash);
-        if (not header_res.has_value()) {
+        if (not block_tree_->has(hash)) {
           auto n = discardBlock(block_data.hash);
           SL_WARN(
               log_,
@@ -1388,5 +1401,13 @@ namespace kagome::network {
     };
     fetch(*chosen, std::move(request), "justification range", std::move(cb2));
     return true;
+  }
+
+  void SynchronizerImpl::afterStateSync() {
+    sync_method_ = application::SyncMethod::Full;
+    known_blocks_.clear();
+    generations_.clear();
+    ancestry_.clear();
+    recent_requests_.clear();
   }
 }  // namespace kagome::network

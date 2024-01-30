@@ -85,7 +85,12 @@ find_package(zstd CONFIG REQUIRED)
 
 if ("${WASM_COMPILER}" STREQUAL "WasmEdge")
   hunter_add_package(WasmEdge)
-  find_library(WASM_EDGE_LIBRARY NAMES libwasmedge.a REQUIRED PATHS "${WASMEDGE_ROOT}")
+  if ("${CMAKE_BUILD_TYPE}" STREQUAL "Debug")
+    find_library(WASM_EDGE_LIBRARY NAMES libwasmedged.a REQUIRED PATHS "${WASMEDGE_ROOT}")
+  else()
+    find_library(WASM_EDGE_LIBRARY NAMES libwasmedge.a REQUIRED PATHS "${WASMEDGE_ROOT}")
+  endif()
+
   add_library(WasmEdge::WasmEdge STATIC IMPORTED)
   set_property(TARGET WasmEdge::WasmEdge PROPERTY IMPORTED_LOCATION "${WASM_EDGE_LIBRARY}")
   target_link_libraries(WasmEdge::WasmEdge INTERFACE curses zstd::libzstd_static)

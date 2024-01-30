@@ -919,10 +919,9 @@ namespace kagome::blockchain {
         });
   }
 
-  outcome::result<bool> BlockTreeImpl::hasBlockHeader(
-      const primitives::BlockHash &block_hash) const {
+  bool BlockTreeImpl::has(const primitives::BlockHash &hash) const {
     return block_tree_data_.sharedAccess([&](const BlockTreeData &p) {
-      return p.storage_->hasBlockHeader(block_hash);
+      return p.tree_->find(hash) or p.storage_->hasBlockHeader(hash).value();
     });
   }
 
