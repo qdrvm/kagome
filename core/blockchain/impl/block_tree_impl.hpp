@@ -77,8 +77,7 @@ namespace kagome::blockchain {
     outcome::result<std::optional<primitives::BlockHash>> getBlockHash(
         primitives::BlockNumber block_number) const override;
 
-    outcome::result<bool> hasBlockHeader(
-        const primitives::BlockHash &block_hash) const override;
+    bool has(const primitives::BlockHash &hash) const override;
 
     outcome::result<primitives::BlockHeader> getBlockHeader(
         const primitives::BlockHash &block_hash) const override;

@@ -28,6 +28,7 @@
 #include "mock/core/storage/trie_pruner/trie_pruner_mock.hpp"
 #include "network/impl/synchronizer_impl.hpp"
 #include "primitives/common.hpp"
+#include "testutil/lazy.hpp"
 #include "testutil/literals.hpp"
 #include "testutil/prepare_loggers.hpp"
 
@@ -40,6 +41,7 @@ using namespace consensus::grandpa;
 using namespace storage;
 
 using std::chrono_literals::operator""ms;
+using kagome::consensus::Timeline;
 using network::Synchronizer;
 using primitives::BlockData;
 using primitives::BlockHash;
@@ -84,6 +86,7 @@ class SynchronizerTest
     auto state_pruner =
         std::make_shared<kagome::storage::trie_pruner::TriePrunerMock>();
 
+    auto _timeline = testutil::sptr_to_lazy<Timeline>(timeline);
     synchronizer =
         std::make_shared<network::SynchronizerImpl>(app_config,
                                                     app_state_manager,
@@ -98,8 +101,10 @@ class SynchronizerTest
                                                     scheduler,
                                                     hasher,
                                                     chain_sub_engine,
+                                                    _timeline,
                                                     nullptr,
-                                                    grandpa_environment);
+                                                    grandpa_environment,
+                                                    WeakIoContext{});
   }
 
   application::AppConfigurationMock app_config;
@@ -125,6 +130,7 @@ class SynchronizerTest
       std::make_shared<crypto::HasherMock>();
   primitives::events::ChainSubscriptionEnginePtr chain_sub_engine =
       std::make_shared<primitives::events::ChainSubscriptionEngine>();
+  std::shared_ptr<Timeline> timeline;
   std::shared_ptr<BufferStorageMock> buffer_storage =
       std::make_shared<BufferStorageMock>();
   std::shared_ptr<EnvironmentMock> grandpa_environment =
@@ -252,6 +258,10 @@ SynchronizerTest::generateChains(BlockNumber finalized,
 
   EXPECT_CALL(*block_tree, getBlockHeader(_))
       .WillRepeatedly(blockTree_getBlockHeader(local_blocks));
+  EXPECT_CALL(*block_tree, has(_))
+      .WillRepeatedly([this](const BlockHash &hash) {
+        return block_tree->getBlockHeader(hash).has_value();
+      });
 
   auto &remote_blocks = std::get<1>(result);
   remote_blocks.reserve(remote_best);
