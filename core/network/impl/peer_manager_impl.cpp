@@ -17,6 +17,8 @@
 #include "scale/libp2p_types.hpp"
 #include "storage/predefined_keys.hpp"
 
+#include "log/propose.hpp"
+
 namespace {
   constexpr const char *syncPeerMetricName = "kagome_sync_peers";
   constexpr const char *kPeersCountMetricName = "kagome_sub_libp2p_peers_count";
@@ -624,10 +626,6 @@ namespace kagome::network {
               auto &peer_id = peer_info.id;
 
               if (not stream_res.has_value()) {
-                self->log_->warn("Unable to create stream {} with {}: {}",
-                                 protocol->protocolName(),
-                                 peer_id,
-                                 stream_res.error());
                 self->connecting_peers_.erase(peer_id);
                 self->disconnectFromPeer(peer_id);
                 return;
@@ -701,6 +699,9 @@ namespace kagome::network {
 
   void PeerManagerImpl::tryOpenValidationProtocol(const PeerInfo &peer_info,
                                                   PeerState &peer_state) {
+    if (propose::tuple()) {
+      return;
+    }
     /// If validator start validation protocol
     if (peer_state.roles.flags.authority) {
       auto validation_protocol = router_->getValidationProtocol();
@@ -721,11 +722,6 @@ namespace kagome::network {
 
                      auto &peer_id = peer_info.id;
                      if (!stream_result.has_value()) {
-                       self->log_->warn(
-                           "Unable to create stream {} with {}: {}",
-                           validation_protocol->protocolName(),
-                           peer_id,
-                           stream_result.error().message());
                        return;
                      }
 

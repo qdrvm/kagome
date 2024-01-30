@@ -161,7 +161,6 @@ namespace kagome::network {
                     primitives::BlockInfo from,
                     SyncResultHandler &&handler);
 
-   private:
     void postApplyBlock(const primitives::BlockHash &hash);
     void processBlockAdditionResult(
         outcome::result<void> &&block_addition_result,

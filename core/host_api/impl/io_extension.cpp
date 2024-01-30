@@ -12,12 +12,17 @@
 #include "runtime/memory_provider.hpp"
 #include "runtime/ptr_size.hpp"
 
+#include "log/propose.hpp"
+
 namespace kagome::host_api {
   IOExtension::IOExtension(
       std::shared_ptr<const runtime::MemoryProvider> memory_provider)
       : memory_provider_(std::move(memory_provider)),
         logger_{log::createLogger("IoExtension", "io_extension")} {
     BOOST_ASSERT_MSG(memory_provider_ != nullptr, "memory provider is nullptr");
+    if (propose::tuple()) {
+      logger_->setLevel(soralog::Level::TRACE);
+    }
   }
 
   soralog::Level mapLevel(runtime::WasmLogLevel wasm_level) {
@@ -59,6 +64,9 @@ namespace kagome::host_api {
   runtime::WasmEnum IOExtension::ext_logging_max_level_version_1() {
     using runtime::WasmLogLevel;
     using soralog::Level;
+    if (propose::tuple()) {
+      return static_cast<runtime::WasmEnum>(WasmLogLevel::Trace);
+    }
 
     switch (logger_->level()) {
       case Level::OFF:

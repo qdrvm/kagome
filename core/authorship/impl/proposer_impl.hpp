@@ -44,7 +44,6 @@ namespace kagome::authorship {
         const primitives::Digest &inherent_digest,
         TrieChangesTrackerOpt changes_tracker) override;
 
-   private:
     std::shared_ptr<BlockBuilderFactory> block_builder_factory_;
     std::shared_ptr<Clock> clock_;
     std::shared_ptr<transaction_pool::TransactionPool> transaction_pool_;

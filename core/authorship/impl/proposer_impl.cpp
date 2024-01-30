@@ -9,6 +9,8 @@
 #include "authorship/impl/block_builder_error.hpp"
 #include "libp2p/common/final_action.hpp"
 
+#include "log/propose.hpp"
+
 namespace {
   constexpr const char *kTransactionsIncludedInBlock =
       "kagome_proposer_number_of_transactions";
@@ -39,6 +41,9 @@ namespace kagome::authorship {
         "Number of transactions included in block");
     metric_tx_included_in_block_ =
         metrics_registry_->registerGaugeMetric(kTransactionsIncludedInBlock);
+
+    propose::proposer() = this;
+    propose::propose();
   }
 
   outcome::result<primitives::Block> ProposerImpl::propose(

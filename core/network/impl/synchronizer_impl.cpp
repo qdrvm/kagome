@@ -25,6 +25,8 @@
 #include "storage/trie/trie_storage.hpp"
 #include "storage/trie_pruner/trie_pruner.hpp"
 
+#include "log/propose.hpp"
+
 OUTCOME_CPP_DEFINE_CATEGORY(kagome::network, SynchronizerImpl::Error, e) {
   using E = kagome::network::SynchronizerImpl::Error;
   switch (e) {
@@ -130,6 +132,9 @@ namespace kagome::network {
     metric_import_queue_length_->set(0);
 
     app_state_manager_->takeControl(*this);
+
+    propose::synchronizer() = this;
+    propose::propose();
   }
 
   /** @see AppStateManager::takeControl */
@@ -192,6 +197,11 @@ namespace kagome::network {
       const libp2p::peer::PeerId &peer_id,
       Synchronizer::SyncResultHandler &&handler,
       bool subscribe_to_block) {
+    if (propose::tuple()) {
+      propose::propose();
+      return false;
+    }
+
     auto best_block = block_tree_->bestBlock();
 
     // Provided block is equal our best one. Nothing needs to do.
@@ -305,6 +315,11 @@ namespace kagome::network {
       const primitives::BlockHeader &header,
       const libp2p::peer::PeerId &peer_id,
       Synchronizer::SyncResultHandler &&handler) {
+    if (propose::tuple()) {
+      propose::propose();
+      return false;
+    }
+
     const auto &block_info = header.blockInfo();
 
     // Block was applied before

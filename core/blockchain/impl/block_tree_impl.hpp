@@ -148,7 +148,6 @@ namespace kagome::blockchain {
 
     void removeUnfinalized() override;
 
-   private:
     struct BlocksPruning {
       BlocksPruning(std::optional<uint32_t> keep,
                     primitives::BlockNumber finalized);
@@ -258,7 +257,6 @@ namespace kagome::blockchain {
         return block_tree_data_.sharedAccess(std::forward<F>(f));
       }
 
-     private:
       SafeObject<BlockTreeData> block_tree_data_;
       std::atomic<std::optional<std::thread::id>> exclusive_owner_;
 
