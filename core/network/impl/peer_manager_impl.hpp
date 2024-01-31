@@ -128,6 +128,8 @@ namespace kagome::network {
     void updatePeerState(const PeerId &peer_id,
                          const BlockAnnounce &announce) override;
 
+    std::optional<std::reference_wrapper<PeerState>> createDefaultPeerState(const PeerId &peer_id) override;
+
     /** @see PeerManager::updatePeerState */
     void updatePeerState(
         const PeerId &peer_id,

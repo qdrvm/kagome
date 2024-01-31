@@ -155,6 +155,8 @@ namespace kagome::network {
     virtual void updatePeerState(const PeerId &peer_id,
                                  const BlockAnnounceHandshake &handshake) = 0;
 
+    virtual std::optional<std::reference_wrapper<PeerState>> createDefaultPeerState(const PeerId &peer_id) = 0;
+
     /**
      * Updates known data about peer with {@param peer_id} by {@param announce}
      */

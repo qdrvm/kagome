@@ -1627,7 +1627,7 @@ namespace kagome::parachain {
     REINVOKE(*this_context_, onValidationProtocolMsg, peer_id, message);
 
     SL_TRACE(
-        logger_, "Incoming validator protocol message . (peer={})", peer_id);
+        logger_, "Incoming validator protocol message. (peer={})", peer_id);
     visit_in_place(
         message,
         [&](const network::ValidatorProtocolMessage &m) {
@@ -2587,12 +2587,14 @@ namespace kagome::parachain {
       const libp2p::peer::PeerId &peer_id, network::CollationVersion version) {
     REINVOKE(*this_context_, onIncomingValidationStream, peer_id, version);
 
-    const auto peer_state = pm_->getPeerState(peer_id);
-    if (!peer_state) {
-      logger_->warn("Received incoming validation stream from unknown peer {}",
-                    peer_id);
-      return;
-    }
+    auto peer_state = [&]() {
+      auto res = pm_->getPeerState(peer_id);
+      if (!res) {
+        SL_TRACE(logger_, "Received incoming validation stream from unknown peer {}", peer_id);
+        res = pm_->createDefaultPeerState(peer_id);
+      }
+      return res;
+    }();
 
     peer_state->get().version = version;
     if (tryOpenOutgoingValidationStream(

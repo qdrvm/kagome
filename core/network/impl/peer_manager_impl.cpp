@@ -536,6 +536,13 @@ namespace kagome::network {
         });
   }
 
+  std::optional<std::reference_wrapper<PeerState>> PeerManagerImpl::createDefaultPeerState(
+      const PeerId &peer_id) {
+    auto &state = peer_states_[peer_id];
+    state.time = clock_->now();
+    return state;
+  }
+
   void PeerManagerImpl::updatePeerState(
       const PeerId &peer_id, const BlockAnnounceHandshake &handshake) {
     auto &state = peer_states_[peer_id];
