@@ -372,7 +372,7 @@ namespace kagome::consensus::grandpa {
     }
 
     auto res = makeNextRound(current_round_);
-    if (not res) {
+    if (res.has_error()) {
       SL_WARN(logger_, "Next round was not created: {}", res.error());
       return;
     }
