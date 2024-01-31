@@ -184,19 +184,46 @@ namespace kagome::parachain {
     //    int p = 0; ++p;
   }
 
+  void ParachainProcessorImpl::OnBroadcastBitfields(
+      const primitives::BlockHash &relay_parent,
+      const network::SignedBitfield &bitfield) {
+    REINVOKE(*this_context_, OnBroadcastBitfields, relay_parent, bitfield);
+
+    SL_TRACE(logger_, "Distribute bitfield on {}", relay_parent);
+    auto relay_parent_state = tryGetStateByRelayParent(relay_parent);
+    if (!relay_parent_state) {
+      SL_TRACE(logger_,
+               "After `OnBroadcastBitfields` no parachain state on "
+               "relay_parent. (relay "
+               "parent={})",
+               relay_parent);
+      return;
+    }
+
+    if (relay_parent_state->get().prospective_parachains_mode) {
+      send_to_validators_group(
+          relay_parent,
+          {network::VersionedValidatorProtocolMessage{
+              network::vstaging::ValidatorProtocolMessage{
+                  network::vstaging::BitfieldDistributionMessage{
+                      network::vstaging::BitfieldDistribution{relay_parent,
+                                                              bitfield}}}}});
+    } else {
+      send_to_validators_group(relay_parent,
+                               {network::VersionedValidatorProtocolMessage{
+                                   network::ValidatorProtocolMessage{
+                                       network::BitfieldDistributionMessage{
+                                           network::BitfieldDistribution{
+                                               relay_parent, bitfield}}}}});
+    }
+  }
+
   bool ParachainProcessorImpl::prepare() {
     bitfield_signer_->setBroadcastCallback(
-        [log{logger_}, wptr_self{weak_from_this()}](
-            const primitives::BlockHash &relay_parent,
-            const network::SignedBitfield &bitfield) {
-          SL_VERBOSE(log, "Distribute bitfield on {}", relay_parent);
+        [wptr_self{weak_from_this()}](const primitives::BlockHash &relay_parent,
+                                      const network::SignedBitfield &bitfield) {
           if (auto self = wptr_self.lock()) {
-            auto msg = std::make_shared<
-                network::WireMessage<network::ValidatorProtocolMessage>>(
-                network::BitfieldDistribution{relay_parent, bitfield});
-
-            self->pm_->getStreamEngine()->broadcast(
-                self->router_->getValidationProtocol(), msg);
+            self->OnBroadcastBitfields(relay_parent, bitfield);
           }
         });
 
@@ -281,10 +308,11 @@ namespace kagome::parachain {
       return;
     }
 
-    [[maybe_unused]] const auto _ = prospective_parachains_->onActiveLeavesUpdate(network::ExViewRef{
-        .new_head = {event.new_head},
-        .lost = event.lost,
-    });
+    [[maybe_unused]] const auto _ =
+        prospective_parachains_->onActiveLeavesUpdate(network::ExViewRef{
+            .new_head = {event.new_head},
+            .lost = event.lost,
+        });
     createBackingTask(relay_parent);
     SL_TRACE(logger_,
              "Update my view.(new head={}, finalized={}, leaves={})",
@@ -492,7 +520,8 @@ namespace kagome::parachain {
     auto mode =
         prospective_parachains_->prospectiveParachainsMode(relay_parent);
     if (mode) {
-      [[maybe_unused]] const auto _ = our_current_state_.implicit_view->activate_leaf(relay_parent);
+      [[maybe_unused]] const auto _ =
+          our_current_state_.implicit_view->activate_leaf(relay_parent);
       OUTCOME_TRY(session_index,
                   parachain_host_->session_index_for_child(relay_parent));
       OUTCOME_TRY(session_info,
@@ -601,7 +630,7 @@ namespace kagome::parachain {
 
     auto &parachain_state = opt_parachain_state->get();
     auto &assignment = parachain_state.assignment;
-    //auto &seconded = parachain_state.seconded;
+    // auto &seconded = parachain_state.seconded;
     auto &issued_statements = parachain_state.issued_statements;
 
     if (parachain_state.required_collator
@@ -780,6 +809,16 @@ namespace kagome::parachain {
     BOOST_ASSERT(
         this_context_->io_context()->get_executor().running_in_this_thread());
 
+    auto relay_parent_state = tryGetStateByRelayParent(relay_parent);
+    if (!relay_parent_state) {
+      SL_TRACE(logger_,
+               "After `send_to_validators_group` no parachain state on "
+               "relay_parent. (relay "
+               "parent={})",
+               relay_parent);
+      return;
+    }
+
     auto se = pm_->getStreamEngine();
     BOOST_ASSERT(se);
 
@@ -796,7 +835,13 @@ namespace kagome::parachain {
     }
 
     std::deque<network::PeerId> group, any;
-    auto protocol = router_->getValidationProtocol();
+    auto protocol = [&]() -> std::shared_ptr<network::ProtocolBase> {
+      if (relay_parent_state->get().prospective_parachains_mode) {
+        return router_->getValidationProtocolVStaging();
+      } else {
+        return router_->getValidationProtocol();
+      }
+    }();
     se->forEachPeer(protocol, [&](const network::PeerId &peer) {
       (group_set.count(peer) != 0 ? group : any).emplace_back(peer);
     });
@@ -909,11 +954,14 @@ namespace kagome::parachain {
     BOOST_ASSERT(
         this_context_->io_context()->get_executor().running_in_this_thread());
 
-    SL_TRACE(logger_, "Incoming `StatementDistributionMessage`. (peer={})", peer_id);
+    SL_TRACE(
+        logger_, "Incoming `StatementDistributionMessage`. (peer={})", peer_id);
     if (auto inner =
             if_type<const network::vstaging::BackedCandidateAcknowledgement>(
                 msg)) {
-      SL_TRACE(logger_, "`BackedCandidateAcknowledgement`. (candidate_hash={})", inner->get().candidate_hash);                  
+      SL_TRACE(logger_,
+               "`BackedCandidateAcknowledgement`. (candidate_hash={})",
+               inner->get().candidate_hash);
       const network::vstaging::BackedCandidateAcknowledgement &acknowledgement =
           inner->get();
       const auto &candidate_hash = acknowledgement.candidate_hash;
@@ -985,11 +1033,13 @@ namespace kagome::parachain {
 
     if (auto manifest =
             if_type<const network::vstaging::BackedCandidateManifest>(msg)) {
-      SL_TRACE(logger_, "`BackedCandidateManifest`. (relay_parent={}, candidate_hash={}, para_id={}, parent_head_data_hash={})", 
-        manifest->get().relay_parent,
-        manifest->get().candidate_hash,
-        manifest->get().para_id,
-        manifest->get().parent_head_data_hash);                  
+      SL_TRACE(logger_,
+               "`BackedCandidateManifest`. (relay_parent={}, "
+               "candidate_hash={}, para_id={}, parent_head_data_hash={})",
+               manifest->get().relay_parent,
+               manifest->get().candidate_hash,
+               manifest->get().para_id,
+               manifest->get().parent_head_data_hash);
       auto relay_parent_state =
           tryGetStateByRelayParent(manifest->get().relay_parent);
       if (!relay_parent_state) {
@@ -1084,10 +1134,11 @@ namespace kagome::parachain {
     if (auto stm = if_type<
             const network::vstaging::StatementDistributionMessageStatement>(
             msg)) {
-      SL_TRACE(logger_, "`StatementDistributionMessageStatement`. (relay_parent={}, candidate_hash={})", 
-        stm->get().relay_parent,
-        candidateHash(getPayload(stm->get().compact))
-        );                  
+      SL_TRACE(logger_,
+               "`StatementDistributionMessageStatement`. (relay_parent={}, "
+               "candidate_hash={})",
+               stm->get().relay_parent,
+               candidateHash(getPayload(stm->get().compact)));
       auto parachain_state = tryGetStateByRelayParent(stm->get().relay_parent);
       if (!parachain_state) {
         SL_WARN(logger_,
@@ -1259,11 +1310,12 @@ namespace kagome::parachain {
 
     if (r.has_error()) {
       SL_INFO(logger_,
-               "Fetch attested candidate returned an error. (relay parent={}, "
-               "candidate={}, group index={}, error={})",
-               relay_parent,
-               candidate_hash,
-               group_index, r.error());
+              "Fetch attested candidate returned an error. (relay parent={}, "
+              "candidate={}, group index={}, error={})",
+              relay_parent,
+              candidate_hash,
+              group_index,
+              r.error());
       return;
     }
 
@@ -1565,9 +1617,8 @@ namespace kagome::parachain {
       const network::VersionedValidatorProtocolMessage &message) {
     REINVOKE(*this_context_, onValidationProtocolMsg, peer_id, message);
 
-    SL_TRACE(logger_,
-              "Incoming validator protocol message . (peer={})",
-              peer_id);
+    SL_TRACE(
+        logger_, "Incoming validator protocol message . (peer={})", peer_id);
     visit_in_place(
         message,
         [&](const network::ValidatorProtocolMessage &m) {
@@ -3549,7 +3600,7 @@ namespace kagome::parachain {
         .peer_id = peer_id,
         .commitments_hash = {},
         .prospective_candidate = std::move(prospective_candidate),
-        };
+    };
 
     switch (collations.status) {
       case CollationStatus::Fetching:

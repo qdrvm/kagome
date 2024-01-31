@@ -494,7 +494,7 @@ namespace kagome::parachain {
           [&](const StatementWithPVDSeconded &val) {
             return hasher_->blake2b_256(
                 ::scale::encode(candidateFromCommittedCandidateReceipt(
-                                  val.committed_receipt))
+                                    val.committed_receipt))
                     .value());
           },
           [&](const StatementWithPVDValid &val) { return val.candidate_hash; });
@@ -533,6 +533,8 @@ namespace kagome::parachain {
 
     void onDeactivateBlocks(const primitives::events::ChainEventParams &event);
     void onViewUpdated(const network::ExView &event);
+    void OnBroadcastBitfields(const primitives::BlockHash &relay_parent,
+                              const network::SignedBitfield &bitfield);
     void fetchCollation(
         ParachainProcessorImpl::RelayParentState &per_relay_parent,
         PendingCollation &&pc,

@@ -34,6 +34,7 @@ namespace kagome::network::vstaging {
   using CollatorProtocolMessageDeclare = network::CollatorDeclaration;
   using CollatorProtocolMessageCollationSeconded = network::Seconded;
   using BitfieldDistributionMessage = network::BitfieldDistributionMessage;
+  using BitfieldDistribution = network::BitfieldDistribution;
   using ApprovalDistributionMessage = network::ApprovalDistributionMessage;
 
   struct CollatorProtocolMessageAdvertiseCollation {
@@ -46,7 +47,8 @@ namespace kagome::network::vstaging {
     Hash parent_head_data_hash;
   };
 
-  using CollationMessage = boost::variant<CollatorProtocolMessageDeclare,
+  using CollationMessage =
+      boost::variant<CollatorProtocolMessageDeclare,
                      CollatorProtocolMessageAdvertiseCollation,
                      Dummy,
                      Dummy,
@@ -65,12 +67,16 @@ namespace kagome::network::vstaging {
   };
 
   struct CompactStatement {
-    std::array<char, 4> header = {'B','K','N','G'};
-    boost::variant<Empty, SecondedCandidateHash, ValidCandidateHash> inner_value{};
+    std::array<char, 4> header = {'B', 'K', 'N', 'G'};
+    boost::variant<Empty, SecondedCandidateHash, ValidCandidateHash>
+        inner_value{};
 
-    CompactStatement(boost::variant<Empty, SecondedCandidateHash, ValidCandidateHash> &&val) : inner_value{std::move(val)} {}
+    CompactStatement(
+        boost::variant<Empty, SecondedCandidateHash, ValidCandidateHash> &&val)
+        : inner_value{std::move(val)} {}
     CompactStatement(ValidCandidateHash &&val) : inner_value{std::move(val)} {}
-    CompactStatement(SecondedCandidateHash &&val) : inner_value{std::move(val)} {}
+    CompactStatement(SecondedCandidateHash &&val)
+        : inner_value{std::move(val)} {}
     CompactStatement() = default;
 
     friend inline ::scale::ScaleEncoderStream &operator<<(
