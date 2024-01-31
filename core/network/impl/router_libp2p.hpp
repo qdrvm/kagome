@@ -11,7 +11,6 @@
 #include "application/app_configuration.hpp"
 #include "application/app_state_manager.hpp"
 #include "injector/lazy.hpp"
-#include "libp2p/connection/loopback_stream.hpp"
 #include "libp2p/host/host.hpp"
 #include "libp2p/multi/multiaddress.hpp"
 #include "libp2p/protocol/ping.hpp"

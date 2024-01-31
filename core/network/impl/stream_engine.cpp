@@ -162,9 +162,7 @@ namespace kagome::network {
     dst = src;
     SL_DEBUG(logger_,
              "{} {} stream with peer {} was {}",
-             direction == Direction::BIDIRECTIONAL ? "Bidirectional"
-             : direction == Direction::INCOMING    ? "Incoming"
-                                                   : "Outgoing",
+             direction == Direction::INCOMING ? "Incoming" : "Outgoing",
              protocol->protocolName(),
              dst->remotePeerId().has_value()
                  ? fmt::format("{}", dst->remotePeerId().value())

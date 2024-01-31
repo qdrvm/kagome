@@ -307,6 +307,22 @@ TEST_F(VotingRoundTest, EstimateIsValid) {
   ASSERT_EQ(round_->bestFinalCandidate(), BlockInfo(5, "E"_H));
 }
 
+TEST_F(VotingRoundTest, EquivocateDoesNotDoubleCount) {
+  std::optional<GrandpaContext> empty_context{};
+  auto alice1 = preparePrevote(kAlice, kAliceSignature, Prevote{9, "FC"_H});
+  round_->onPrevote(empty_context, alice1, Propagation::NEEDLESS);
+  auto alice2 = preparePrevote(kAlice, kAliceSignature, Prevote{9, "ED"_H});
+  round_->onPrevote(empty_context, alice2, Propagation::NEEDLESS);
+  auto alice3 = preparePrevote(kAlice, kAliceSignature, Prevote{6, "F"_H});
+  round_->onPrevote(empty_context, alice3, Propagation::NEEDLESS);
+  round_->update(false, true, false);
+  ASSERT_EQ(round_->prevoteGhost(), std::nullopt);
+  auto bob = preparePrevote(kBob, kBobSignature, Prevote{7, "FA"_H});
+  round_->onPrevote(empty_context, bob, Propagation::NEEDLESS);
+  round_->update(false, true, false);
+  ASSERT_EQ(round_->prevoteGhost(), (BlockInfo{7, "FA"_H}));
+}
+
 /**
  * @given Network of:
  * Alice with weight 4,
