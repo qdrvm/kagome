@@ -21,6 +21,7 @@ env:
   GITHUB_HUNTER_TOKEN: ${{ secrets.HUNTER_TOKEN }}
   # Change all container: values to this variable once this feature is available
   # https://github.community/t/how-to-set-and-access-a-workflow-variable/17335/6
+  HUNTER_GIT_EXECUTABLE: git
   CACHE_VERSION: v07
   CACHE_PATHS: |
     ~/Library/Caches/pip
