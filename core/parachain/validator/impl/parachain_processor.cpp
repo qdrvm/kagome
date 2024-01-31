@@ -833,8 +833,12 @@ namespace kagome::parachain {
         }
       }
     }
-
+    
     std::deque<network::PeerId> group, any;
+    for (const auto &p : group_set) {
+      group.emplace_back(p);
+    }
+
     auto protocol = [&]() -> std::shared_ptr<network::ProtocolBase> {
       if (relay_parent_state->get().prospective_parachains_mode) {
         return router_->getValidationProtocolVStaging();
@@ -842,8 +846,11 @@ namespace kagome::parachain {
         return router_->getValidationProtocol();
       }
     }();
+
     se->forEachPeer(protocol, [&](const network::PeerId &peer) {
-      (group_set.count(peer) != 0 ? group : any).emplace_back(peer);
+      if (group_set.count(peer) == 0) {
+        any.emplace_back(peer);
+      }
     });
     auto lucky = kMinGossipPeers - std::min(group.size(), kMinGossipPeers);
     if (lucky != 0) {
@@ -863,7 +870,7 @@ namespace kagome::parachain {
       auto message =
           std::make_shared<network::WireMessage<std::decay_t<decltype(msg)>>>(
               msg);
-      logger_->trace("Broadcasting messages.(relay_parent={})", relay_parent);
+      logger_->trace("Broadcasting messages.(relay_parent={}, group_size={}, lucky_size={})", relay_parent, group.size(), any.size());
 
       for (auto &peer : group) {
         se->send(peer, protocol, message);
