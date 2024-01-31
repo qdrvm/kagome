@@ -707,38 +707,54 @@ namespace kagome::network {
   }
 
   void PeerManagerImpl::tryOpenValidationProtocol(const PeerInfo &peer_info,
-                                                  PeerState &peer_state) {
+                                                  PeerState &peer_state, network::CollationVersion proto_version) {//network::CollationVersion::VStaging
     /// If validator start validation protocol
     if (peer_state.roles.flags.authority) {
-      auto validation_protocol = router_->getValidationProtocol();
-      BOOST_ASSERT_MSG(validation_protocol,
-                       "Router did not provide validation protocol");
+      auto validation_protocol = [&]() -> std::shared_ptr<ProtocolBase> {
+              if (proto_version == network::CollationVersion::VStaging) {
+                return router_->getValidationProtocolVStaging();
+              } else {
+                return router_->getValidationProtocol();
+              }
+      }();
+      
+        BOOST_ASSERT_MSG(validation_protocol,
+                        "Router did not provide validation protocol");
 
-      log_->trace("Try to open outgoing validation protocol.(peer={})",
-                  peer_info.id);
-      openOutgoing(stream_engine_,
-                   validation_protocol,
-                   peer_info,
-                   [validation_protocol, peer_info, wptr{weak_from_this()}](
-                       outcome::result<std::shared_ptr<Stream>> stream_result) {
-                     auto self = wptr.lock();
-                     if (not self) {
-                       return;
-                     }
+        log_->trace("Try to open outgoing validation protocol.(peer={})",
+                    peer_info.id);
+        openOutgoing(stream_engine_,
+                    validation_protocol,
+                    peer_info,
+                    [validation_protocol, peer_info, wptr{weak_from_this()}](
+                        outcome::result<std::shared_ptr<Stream>> stream_result) {
+                      auto self = wptr.lock();
+                      if (not self) {
+                        return;
+                      }
 
-                     auto &peer_id = peer_info.id;
-                     if (!stream_result.has_value()) {
-                       self->log_->warn(
-                           "Unable to create stream {} with {}: {}",
-                           validation_protocol->protocolName(),
-                           peer_id,
-                           stream_result.error().message());
-                       return;
-                     }
+                      auto &peer_id = peer_info.id;
+                      if (!stream_result.has_value()) {
+                        self->log_->warn(
+                            "Unable to create stream {} with {}: {}",
+                            validation_protocol->protocolName(),
+                            peer_id,
+                            stream_result.error().message());
+                        auto ps = self->getPeerState(peer_info.id);
+                        if (ps) {
+                          self->tryOpenValidationProtocol(peer_info, ps->get(), network::CollationVersion::V1); 
+                        } else {
+                          self->log_->warn(
+                              "No peer state to open V1 validation protocol {} with {}",
+                              validation_protocol->protocolName(),
+                              peer_id);
+                        }
+                        return;
+                      }
 
-                     self->stream_engine_->addOutgoing(stream_result.value(),
-                                                       validation_protocol);
-                   });
+                      self->stream_engine_->addOutgoing(stream_result.value(),
+                                                        validation_protocol);
+                    });
     }
   }
 
@@ -794,7 +810,7 @@ namespace kagome::network {
 
             self->tryOpenGrandpaProtocol(peer_info, peer_state.value().get());
             self->tryOpenValidationProtocol(peer_info,
-                                            peer_state.value().get());
+                                            peer_state.value().get(), network::CollationVersion::VStaging);
             openOutgoing(self->stream_engine_,
                          self->router_->getBeefyProtocol(),
                          peer_info,
@@ -813,9 +829,13 @@ namespace kagome::network {
   }
 
   void PeerManagerImpl::reserveStatusStreams(const PeerId &peer_id) const {
+    auto proto_val_vstaging = router_->getValidationProtocolVStaging();
+    BOOST_ASSERT_MSG(proto_val_vstaging, "Router did not provide validation protocol vstaging");
+
     auto proto_val = router_->getValidationProtocol();
     BOOST_ASSERT_MSG(proto_val, "Router did not provide validation protocol");
 
+    stream_engine_->reserveStreams(peer_id, proto_val_vstaging);
     stream_engine_->reserveStreams(peer_id, proto_val);
   }
 

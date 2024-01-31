@@ -36,17 +36,17 @@
 
 namespace kagome::network {
 
-  template <typename Observer, typename Message, bool kCollation>
+  template <typename Observer, typename Message, bool kCollation, network::CollationVersion kProtoVersion>
   class ParachainProtocol
       : public ProtocolBase,
         public std::enable_shared_from_this<
-            ParachainProtocol<Observer, Message, kCollation>>,
+            ParachainProtocol<Observer, Message, kCollation, kProtoVersion>>,
         NonCopyable,
         NonMovable {
    public:
     using ObserverType = Observer;
     using MessageType = Message;
-    using Self = ParachainProtocol<Observer, Message, kCollation>;
+    using Self = ParachainProtocol<Observer, Message, kCollation, kProtoVersion>;
 
     ParachainProtocol() = delete;
     ~ParachainProtocol() override = default;
@@ -81,18 +81,15 @@ namespace kagome::network {
       auto on_message = [peer_id = stream->remotePeerId().value()](
                             std::shared_ptr<Self> self,
                             WireMessage<MessageType> message) {
-        SL_VERBOSE(self->base_.logger(),
-                   "Received collatsion message from {}",
-                   peer_id);
         visit_in_place(
             std::move(message),
             [&](ViewUpdate &&msg) {
-              SL_VERBOSE(
+              SL_TRACE(
                   self->base_.logger(), "Received ViewUpdate from {}", peer_id);
               self->peer_view_->updateRemoteView(peer_id, std::move(msg.view));
             },
             [&](MessageType &&p) {
-              SL_VERBOSE(self->base_.logger(),
+              SL_TRACE(self->base_.logger(),
                          "Received Collation/Validation message from {}",
                          peer_id);
               self->observer_->onIncomingMessage(peer_id, std::move(p));
@@ -150,10 +147,9 @@ namespace kagome::network {
    private:
     void onHandshake(const PeerId &peer) {
       if constexpr (kCollation) {
-        /// TODO(iceseer): V1 is not supported because we should know it from stream
-        observer_->onIncomingCollationStream(peer, network::CollationVersion::VStaging);
+        observer_->onIncomingCollationStream(peer, kProtoVersion);
       } else {
-        observer_->onIncomingValidationStream(peer, network::CollationVersion::VStaging);
+        observer_->onIncomingValidationStream(peer, kProtoVersion);
       }
     }
 

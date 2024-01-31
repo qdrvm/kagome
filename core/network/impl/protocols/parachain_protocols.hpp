@@ -34,7 +34,7 @@ namespace kagome::network {
 
   class CollationProtocol : public ParachainProtocol<CollationObserver,
                                                      CollationProtocolMessage,
-                                                     true> {
+                                                     true, network::CollationVersion::V1> {
    public:
     CollationProtocol(libp2p::Host &host,
                       Roles roles,
@@ -56,7 +56,7 @@ namespace kagome::network {
   class CollationProtocolVStaging
       : public ParachainProtocol<CollationObserver,
                                  vstaging::CollatorProtocolMessage,
-                                 true> {
+                                 true, network::CollationVersion::VStaging> {
    public:
     CollationProtocolVStaging(libp2p::Host &host,
                               Roles roles,
@@ -77,7 +77,7 @@ namespace kagome::network {
 
   class ValidationProtocol : public ParachainProtocol<ValidationObserver,
                                                       ValidatorProtocolMessage,
-                                                      false> {
+                                                      false, network::CollationVersion::V1> {
    public:
     ValidationProtocol(libp2p::Host &host,
                        Roles roles,
@@ -99,7 +99,7 @@ namespace kagome::network {
   class ValidationProtocolVStaging
       : public ParachainProtocol<ValidationObserver,
                                  vstaging::ValidatorProtocolMessage,
-                                 false> {
+                                 false, network::CollationVersion::VStaging> {
    public:
     ValidationProtocolVStaging(libp2p::Host &host,
                        Roles roles,

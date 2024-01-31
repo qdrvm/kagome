@@ -158,7 +158,7 @@ namespace kagome::network {
     void tryOpenGrandpaProtocol(const PeerInfo &peer_info,
                                 PeerState &peer_state);
     void tryOpenValidationProtocol(const PeerInfo &peer_info,
-                                   PeerState &peer_state);
+                                   PeerState &peer_state, network::CollationVersion proto_version);
 
     /// Opens streams set for special peer (i.e. new-discovered)
     void connectToPeer(const PeerId &peer_id);

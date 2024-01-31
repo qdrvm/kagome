@@ -2587,10 +2587,11 @@ namespace kagome::parachain {
       const libp2p::peer::PeerId &peer_id, network::CollationVersion version) {
     REINVOKE(*this_context_, onIncomingValidationStream, peer_id, version);
 
+    SL_TRACE(logger_, "Received incoming validation stream {}", peer_id);
     auto peer_state = [&]() {
       auto res = pm_->getPeerState(peer_id);
       if (!res) {
-        SL_TRACE(logger_, "Received incoming validation stream from unknown peer {}", peer_id);
+        SL_TRACE(logger_, "From unknown peer {}", peer_id);
         res = pm_->createDefaultPeerState(peer_id);
       }
       return res;
