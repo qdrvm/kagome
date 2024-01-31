@@ -374,6 +374,7 @@ namespace kagome::consensus::grandpa {
     auto res = makeNextRound(current_round_);
     if (not res) {
       SL_WARN(logger_, "Next round was not created: {}", res.error().message());
+      return;
     }
     current_round_ = std::move(res.value());
 
