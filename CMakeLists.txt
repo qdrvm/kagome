@@ -30,7 +30,7 @@ include("cmake/Hunter/init.cmake")
 
 add_compile_options(-gdwarf-4)
 project(kagome
-    VERSION 0.9.2
+    VERSION 0.9.3
     LANGUAGES C CXX
 )
 
