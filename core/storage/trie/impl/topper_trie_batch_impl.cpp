@@ -125,7 +125,7 @@ namespace kagome::storage::trie {
 
     cleared_prefixes_.emplace_back(prefix);
     if (parent_.lock() != nullptr) {
-      return outcome::success(std::make_tuple(true, 0ULL));
+      return outcome::success(std::make_tuple(false, 0ULL));
     }
     return Error::PARENT_EXPIRED;
   }

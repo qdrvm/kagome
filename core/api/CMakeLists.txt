@@ -46,7 +46,6 @@ add_library(api
     transport/impl/ws/ws_session.cpp
     transport/impl/ws/ws_listener_impl.cpp
     transport/tuner.cpp
-    transport/rpc_thread_pool.cpp
     transport/error.cpp
     jrpc/jrpc_handle_batch.cpp
     jrpc/jrpc_server_impl.cpp
