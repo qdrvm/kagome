@@ -451,6 +451,8 @@ namespace kagome::parachain {
         network::ViewUpdate{.view = view});
     pm_->getStreamEngine()->broadcast(router_->getCollationProtocol(), msg);
     pm_->getStreamEngine()->broadcast(router_->getValidationProtocol(), msg);
+    pm_->getStreamEngine()->broadcast(router_->getCollationProtocolVStaging(), msg);
+    pm_->getStreamEngine()->broadcast(router_->getValidationProtocolVStaging(), msg);
   }
 
   outcome::result<std::optional<ValidatorSigner>>
