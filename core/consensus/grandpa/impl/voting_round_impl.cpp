@@ -583,12 +583,11 @@ namespace kagome::consensus::grandpa {
       return;
     }
     auto &signed_prevote = signed_prevote_opt.value();
-    env_->onVoted(round_number_, voter_set_->id(), signed_prevote);
-
     std::optional<GrandpaContext> ctx;
     if (onPrevote(ctx, signed_prevote, Propagation::NEEDLESS)) {
       update(false, true, false);
     }
+    env_->onVoted(round_number_, voter_set_->id(), signed_prevote);
   }
 
   void VotingRoundImpl::doPrecommit() {
@@ -638,12 +637,11 @@ namespace kagome::consensus::grandpa {
       return;
     }
     auto &signed_precommit = signed_precommit_opt.value();
-    env_->onVoted(round_number_, voter_set_->id(), signed_precommit);
-
     std::optional<GrandpaContext> ctx;
     if (onPrecommit(ctx, signed_precommit, Propagation::NEEDLESS)) {
       update(false, false, true);
     }
+    env_->onVoted(round_number_, voter_set_->id(), signed_precommit);
   }
 
   void VotingRoundImpl::doFinalize() {
@@ -686,9 +684,8 @@ namespace kagome::consensus::grandpa {
              round_number_,
              block);
 
-    env_->onCommitted(round_number_, voter_set_->id(), block, justification);
-
     std::ignore = applyJustification(justification);
+    env_->onCommitted(round_number_, voter_set_->id(), block, justification);
   }
 
   bool VotingRoundImpl::isPrimary(const Id &id) const {
