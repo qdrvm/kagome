@@ -249,6 +249,10 @@ namespace kagome::consensus::grandpa {
     outcome::result<void> validatePrecommitJustification(
         const GrandpaJustification &justification) const;
 
+    auto &prevoteGhost() const {
+      return prevote_ghost_;
+    }
+
    private:
     /// Check if peer \param id is primary
     bool isPrimary(const Id &id) const;

@@ -55,7 +55,6 @@ namespace kagome::network {
         std::shared_ptr<libp2p::basic::Scheduler> scheduler);
 
     bool start() override;
-    void stop();
 
     const std::string &protocolName() const override;
 

@@ -521,8 +521,11 @@ namespace kagome::consensus::grandpa {
       logger_->error(
           "Round #{}: Primary proposal was not sent: Can't sign message",
           round_number_);
+      return;
     }
     const auto &signed_primary_proposal = signed_primary_proposal_opt.value();
+    std::optional<GrandpaContext> ctx;
+    onProposal(ctx, signed_primary_proposal, Propagation::NEEDLESS);
     env_->onVoted(round_number_, voter_set_->id(), signed_primary_proposal);
   }
 
@@ -580,6 +583,10 @@ namespace kagome::consensus::grandpa {
       return;
     }
     auto &signed_prevote = signed_prevote_opt.value();
+    std::optional<GrandpaContext> ctx;
+    if (onPrevote(ctx, signed_prevote, Propagation::NEEDLESS)) {
+      update(false, true, false);
+    }
     env_->onVoted(round_number_, voter_set_->id(), signed_prevote);
   }
 
@@ -630,6 +637,10 @@ namespace kagome::consensus::grandpa {
       return;
     }
     auto &signed_precommit = signed_precommit_opt.value();
+    std::optional<GrandpaContext> ctx;
+    if (onPrecommit(ctx, signed_precommit, Propagation::NEEDLESS)) {
+      update(false, false, true);
+    }
     env_->onVoted(round_number_, voter_set_->id(), signed_precommit);
   }
 
@@ -666,12 +677,14 @@ namespace kagome::consensus::grandpa {
         .round_number = round_number_,
         .block_info = block,
         .items = getPrecommitJustification(block, precommits_->getMessages())};
+    // TODO(turuslan): #1931, make justification ancestry
 
     SL_DEBUG(logger_,
              "Round #{}: Sending commit message for block {}",
              round_number_,
              block);
 
+    std::ignore = applyJustification(justification);
     env_->onCommitted(round_number_, voter_set_->id(), block, justification);
   }
 
@@ -743,11 +756,7 @@ namespace kagome::consensus::grandpa {
           JUSTIFIED_BLOCK_IS_GREATER_THAN_ACTUALLY_FINALIZED;
     }
 
-    auto finalized = env_->finalize(voter_set_->id(), justification);
-    if (not finalized) {
-      return finalized.as_failure();
-    }
-
+    OUTCOME_TRY(env_->finalize(voter_set_->id(), justification));
     return outcome::success();
   }
 
