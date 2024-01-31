@@ -909,9 +909,11 @@ namespace kagome::parachain {
     BOOST_ASSERT(
         this_context_->io_context()->get_executor().running_in_this_thread());
 
+    SL_TRACE(logger_, "Incoming `StatementDistributionMessage`. (peer={})", peer_id);
     if (auto inner =
             if_type<const network::vstaging::BackedCandidateAcknowledgement>(
                 msg)) {
+      SL_TRACE(logger_, "`BackedCandidateAcknowledgement`. (candidate_hash={})", inner->get().candidate_hash);                  
       const network::vstaging::BackedCandidateAcknowledgement &acknowledgement =
           inner->get();
       const auto &candidate_hash = acknowledgement.candidate_hash;
@@ -983,6 +985,11 @@ namespace kagome::parachain {
 
     if (auto manifest =
             if_type<const network::vstaging::BackedCandidateManifest>(msg)) {
+      SL_TRACE(logger_, "`BackedCandidateManifest`. (relay_parent={}, candidate_hash={}, para_id={}, parent_head_data_hash={})", 
+        manifest->get().relay_parent,
+        manifest->get().candidate_hash,
+        manifest->get().para_id,
+        manifest->get().parent_head_data_hash);                  
       auto relay_parent_state =
           tryGetStateByRelayParent(manifest->get().relay_parent);
       if (!relay_parent_state) {
@@ -1077,6 +1084,10 @@ namespace kagome::parachain {
     if (auto stm = if_type<
             const network::vstaging::StatementDistributionMessageStatement>(
             msg)) {
+      SL_TRACE(logger_, "`StatementDistributionMessageStatement`. (relay_parent={}, candidate_hash={})", 
+        stm->get().relay_parent,
+        candidateHash(getPayload(stm->get().compact))
+        );                  
       auto parachain_state = tryGetStateByRelayParent(stm->get().relay_parent);
       if (!parachain_state) {
         SL_WARN(logger_,
@@ -1213,6 +1224,8 @@ namespace kagome::parachain {
       circulate_statement(stm->get().relay_parent, stm->get().compact);
       return;
     }
+
+    SL_INFO(logger_, "Skipped message.");
   }
 
   void ParachainProcessorImpl::circulate_statement(
@@ -1552,9 +1565,13 @@ namespace kagome::parachain {
       const network::VersionedValidatorProtocolMessage &message) {
     REINVOKE(*this_context_, onValidationProtocolMsg, peer_id, message);
 
+    SL_TRACE(logger_,
+              "Incoming validator protocol message . (peer={})",
+              peer_id);
     visit_in_place(
         message,
         [&](const network::ValidatorProtocolMessage &m) {
+          SL_TRACE(logger_, "V1");
           visit_in_place(
               m,
               [&](const network::BitfieldDistributionMessage &val) {
@@ -1566,6 +1583,7 @@ namespace kagome::parachain {
               [&](const auto &) {});
         },
         [&](const network::vstaging::ValidatorProtocolMessage &m) {
+          SL_TRACE(logger_, "V2");
           visit_in_place(
               m,
               [&](const network::vstaging::BitfieldDistributionMessage &val) {

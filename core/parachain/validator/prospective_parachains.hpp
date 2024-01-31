@@ -91,6 +91,11 @@ namespace kagome::parachain {
         const RelayHash &relay_parent,
         ParachainId para,
         const std::vector<CandidateHash> &required_path) {
+      SL_TRACE(logger,
+              "Search for backable candidates. (para_id={}, "
+              "relay_parent={})",
+              para,
+              relay_parent);
       auto data_it = view.active_leaves.find(relay_parent);
       if (data_it == view.active_leaves.end()) {
         SL_TRACE(logger,
@@ -129,6 +134,11 @@ namespace kagome::parachain {
             return storage.isBacked(candidate);
           });
       if (!child_hash) {
+        SL_TRACE(logger,
+                "Child hash is null. (para_id={}, "
+                "relay_parent={})",
+                para,
+                relay_parent);
         return std::nullopt;
       }
 
