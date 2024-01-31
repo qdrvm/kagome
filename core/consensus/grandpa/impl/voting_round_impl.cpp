@@ -521,12 +521,12 @@ namespace kagome::consensus::grandpa {
       logger_->error(
           "Round #{}: Primary proposal was not sent: Can't sign message",
           round_number_);
+      return;
     }
     const auto &signed_primary_proposal = signed_primary_proposal_opt.value();
-    env_->onVoted(round_number_, voter_set_->id(), signed_primary_proposal);
-
     std::optional<GrandpaContext> ctx;
     onProposal(ctx, signed_primary_proposal, Propagation::NEEDLESS);
+    env_->onVoted(round_number_, voter_set_->id(), signed_primary_proposal);
   }
 
   void VotingRoundImpl::doPrevote() {
