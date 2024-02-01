@@ -875,9 +875,12 @@ namespace kagome::parachain {
       logger_->trace("Broadcasting messages.(relay_parent={}, group_size={}, lucky_size={})", relay_parent, group.size(), any.size());
 
       for (auto &peer : group) {
+        SL_TRACE(logger_, "Send to peer from group. (peer={})", peer);
         se->send(peer, protocol, message);
       }
+      
       for (auto &peer : any) {
+        SL_TRACE(logger_, "Send to peer from any. (peer={})", peer);
         se->send(peer, protocol, message);
       }
     };
