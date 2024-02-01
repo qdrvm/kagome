@@ -13,6 +13,7 @@
 #include "api/jrpc/jrpc_processor.hpp"
 #include "api/jrpc/jrpc_server.hpp"
 #include "api/service/impl/api_service_impl.hpp"
+#include "api/service/impl/rpc_thread_pool.hpp"
 #include "application/impl/app_state_manager_impl.hpp"
 #include "common/buffer.hpp"
 #include "core/api/client/http_client.hpp"
@@ -31,14 +32,15 @@
 #include "testutil/outcome.hpp"
 #include "testutil/prepare_loggers.hpp"
 #include "transaction_pool/transaction_pool_error.hpp"
+#include "utils/watchdog.hpp"
 
 using namespace std::chrono_literals;
 using namespace kagome::api;
 using namespace kagome::common;
 using namespace kagome::subscription;
 using namespace kagome::primitives;
-using kagome::ThreadPool;
 using kagome::Watchdog;
+using kagome::api::RpcThreadPool;
 using kagome::application::AppConfigurationMock;
 using kagome::application::AppStateManager;
 using kagome::blockchain::BlockTree;
@@ -63,9 +65,6 @@ struct ListenerTest : public ::testing::Test {
   static void SetUpTestCase() {
     testutil::prepareLoggers();
   }
-
-  template <class T>
-  using sptr = std::shared_ptr<T>;
 
  protected:
   using Endpoint = boost::asio::ip::tcp::endpoint;
@@ -113,8 +112,7 @@ struct ListenerTest : public ::testing::Test {
         block_tree,
         trie_storage,
         core,
-        watchdog,
-        rpc_context);
+        rpc_thread_pool);
   }
 
   void TearDown() override {
@@ -128,12 +126,12 @@ struct ListenerTest : public ::testing::Test {
   Endpoint endpoint;
   kagome::application::AppConfigurationMock app_config;
 
-  sptr<kagome::application::AppStateManager> app_state_manager =
+  std::shared_ptr<kagome::application::AppStateManager> app_state_manager =
       std::make_shared<kagome::application::AppStateManagerImpl>();
 
-  sptr<ApiStub> api = std::make_shared<ApiStub>();
+  std::shared_ptr<ApiStub> api = std::make_shared<ApiStub>();
 
-  sptr<JRpcServer> server = std::make_shared<JRpcServerImpl>();
+  std::shared_ptr<JRpcServer> server = std::make_shared<JRpcServerImpl>();
 
   std::vector<std::shared_ptr<JRpcProcessor>> processors{
       std::make_shared<JrpcProcessorStub>(server, api)};
@@ -156,5 +154,8 @@ struct ListenerTest : public ::testing::Test {
   std::shared_ptr<CoreMock> core = std::make_shared<CoreMock>();
   std::shared_ptr<Watchdog> watchdog = std::make_shared<Watchdog>();
 
-  sptr<ApiService> service;
+  std::shared_ptr<RpcThreadPool> rpc_thread_pool =
+      std::make_shared<RpcThreadPool>(watchdog, rpc_context);
+
+  std::shared_ptr<ApiService> service;
 };

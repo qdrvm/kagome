@@ -10,6 +10,7 @@
 #include <iostream>
 
 #include "blockchain/block_tree_error.hpp"
+#include "common/worker_thread_pool.hpp"
 #include "consensus/babe/impl/threshold_util.hpp"
 #include "consensus/babe/types/seal.hpp"
 #include "consensus/timeline/impl/block_appender_base.hpp"
@@ -29,13 +30,14 @@
 #include "testutil/outcome.hpp"
 #include "testutil/prepare_loggers.hpp"
 #include "utils/safe_object.hpp"
+#include "utils/watchdog.hpp"
 
-using kagome::ThreadPool;
 using kagome::Watchdog;
 using kagome::blockchain::BlockTree;
 using kagome::blockchain::BlockTreeError;
 using kagome::blockchain::BlockTreeMock;
 using kagome::common::Buffer;
+using kagome::common::WorkerThreadPool;
 using kagome::consensus::BlockAppenderBase;
 using kagome::consensus::BlockExecutorImpl;
 using kagome::consensus::ConsensusSelector;
@@ -176,7 +178,7 @@ class BlockExecutorTest : public testing::Test {
     block_executor_ =
         std::make_shared<BlockExecutorImpl>(block_tree_,
                                             thread_pool_,
-                                            thread_pool_.io_context(),
+                                            thread_pool_->io_context(),
                                             core_,
                                             tx_pool_,
                                             hasher_,
@@ -209,7 +211,8 @@ class BlockExecutorTest : public testing::Test {
   kagome::primitives::events::StorageSubscriptionEnginePtr storage_sub_engine_;
   kagome::primitives::events::ChainSubscriptionEnginePtr chain_sub_engine_;
   std::shared_ptr<Watchdog> watchdog_ = std::make_shared<Watchdog>();
-  ThreadPool thread_pool_{watchdog_, "test", 1};
+  std::shared_ptr<WorkerThreadPool> thread_pool_ =
+      std::make_shared<WorkerThreadPool>(watchdog_);
 
   std::shared_ptr<BlockExecutorImpl> block_executor_;
 };
@@ -290,5 +293,5 @@ TEST_F(BlockExecutorTest, JustificationFollowDigests) {
       });
   wso.wait();
 
-  testutil::wait(*thread_pool_.io_context());
+  testutil::wait(*thread_pool_->io_context());
 }
