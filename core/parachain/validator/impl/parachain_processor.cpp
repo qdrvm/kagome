@@ -159,7 +159,6 @@ namespace kagome::parachain {
     if (auto r_0 = if_type<network::vstaging::StatementDistributionMessage>(r)) {
       if (auto r_1 = if_type<network::vstaging::BackedCandidateAcknowledgement>(r_0->get())) {
         const auto &r_3 = r_1->get();
-        assert(false);
       }  
     }
 
