@@ -228,8 +228,8 @@ class BabeTest : public testing::Test {
                                   chain_sub_engine,
                                   announce_transmitter,
                                   offchain_worker_api,
-                                  thread_pool_,
-                                  thread_pool_->io_context());
+                                  worker_thread_pool_,
+                                  worker_thread_pool_->io_context());
   }
 
   void TearDown() override {
@@ -256,7 +256,7 @@ class BabeTest : public testing::Test {
   std::shared_ptr<BlockAnnounceTransmitterMock> announce_transmitter;
   std::shared_ptr<OffchainWorkerApiMock> offchain_worker_api;
   std::shared_ptr<Watchdog> watchdog_ = std::make_shared<Watchdog>();
-  std::shared_ptr<WorkerThreadPool> thread_pool_ =
+  std::shared_ptr<WorkerThreadPool> worker_thread_pool_ =
       std::make_shared<WorkerThreadPool>(watchdog_);
 
   std::shared_ptr<BabeConfiguration> babe_config;
@@ -408,5 +408,5 @@ TEST_F(BabeTest, SlotLeader) {
 
   ASSERT_OUTCOME_SUCCESS_TRY(babe->processSlot(slot, best_block_info));
 
-  testutil::wait(*thread_pool_->io_context());
+  testutil::wait(*worker_thread_pool_->io_context());
 }

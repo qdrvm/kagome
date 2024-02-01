@@ -123,8 +123,8 @@ namespace kagome::dispute {
       std::shared_ptr<parachain::Pvf> pvf,
       std::shared_ptr<parachain::ApprovalDistribution> approval_distribution,
       std::shared_ptr<authority_discovery::Query> authority_discovery,
-      std::shared_ptr<DisputeThreadPool> thread_pool,
-      WeakIoContext main_thread,
+      std::shared_ptr<DisputeThreadPool> dispute_thread_pool,
+      WeakIoContext main_thread_context,
       std::shared_ptr<network::Router> router,
       std::shared_ptr<network::PeerView> peer_view,
       LazySPtr<consensus::Timeline> timeline)
@@ -143,18 +143,22 @@ namespace kagome::dispute {
         pvf_(std::move(pvf)),
         approval_distribution_(std::move(approval_distribution)),
         authority_discovery_(std::move(authority_discovery)),
-        main_thread_(std::make_unique<ThreadHandler>(std::move(main_thread))),
+        main_thread_handler_{[&] {
+          BOOST_ASSERT(not main_thread_context.expired());
+          return std::make_shared<ThreadHandler>(
+              std::move(main_thread_context));
+        }()},
         router_(std::move(router)),
         peer_view_(std::move(peer_view)),
         chain_sub_{peer_view_->intoChainEventsEngine()},
         timeline_(std::move(timeline)),
-        internal_context_{[&] {
-          BOOST_ASSERT(thread_pool != nullptr);
-          return thread_pool->handler();
+        dispute_thread_handler_{[&] {
+          BOOST_ASSERT(dispute_thread_pool != nullptr);
+          return dispute_thread_pool->handler();
         }()},
         scheduler_{std::make_shared<libp2p::basic::SchedulerImpl>(
             std::make_shared<libp2p::basic::AsioSchedulerBackend>(
-                thread_pool->io_context()),
+                dispute_thread_pool->io_context()),
             libp2p::basic::Scheduler::Config{})},
         runtime_info_(std::make_unique<RuntimeInfo>(api_, session_keys_)),
         batches_(std::make_unique<Batches>(steady_clock_, hasher_)) {
@@ -171,7 +175,7 @@ namespace kagome::dispute {
     BOOST_ASSERT(pvf_ != nullptr);
     BOOST_ASSERT(approval_distribution_ != nullptr);
     BOOST_ASSERT(authority_discovery_ != nullptr);
-    BOOST_ASSERT(main_thread_ != nullptr);
+    BOOST_ASSERT(main_thread_handler_ != nullptr);
     BOOST_ASSERT(router_ != nullptr);
     BOOST_ASSERT(peer_view_ != nullptr);
 
@@ -243,12 +247,12 @@ namespace kagome::dispute {
   }
 
   bool DisputeCoordinatorImpl::start() {
-    internal_context_->start();
+    dispute_thread_handler_->start();
     return true;
   }
 
   void DisputeCoordinatorImpl::stop() {
-    internal_context_->stop();
+    dispute_thread_handler_->stop();
   }
 
   void DisputeCoordinatorImpl::startup(const network::ExView &updated) {
@@ -455,7 +459,7 @@ namespace kagome::dispute {
                                             api_,
                                             recovery_,
                                             pvf_,
-                                            internal_context_,
+                                            dispute_thread_handler_,
                                             weak_from_this());
 
     // Also provide first leaf to participation for good measure.
@@ -475,7 +479,7 @@ namespace kagome::dispute {
       return;
     }
 
-    REINVOKE(*internal_context_, onParticipation, message);
+    REINVOKE(*dispute_thread_handler_, onParticipation, message);
 
     SL_TRACE(log_, "MuxedMessage::Participation");
 
@@ -515,7 +519,7 @@ namespace kagome::dispute {
       return;
     }
 
-    REINVOKE(*internal_context_, on_active_leaves_update, updated);
+    REINVOKE(*dispute_thread_handler_, on_active_leaves_update, updated);
 
     if (not initialized_) {
       return startup(updated);
@@ -824,7 +828,7 @@ namespace kagome::dispute {
         waiting_for_active_disputes_.emplace(
             WaitForActiveDisputesState{sessions_updated});
 
-        internal_context_->execute([wp{weak_from_this()}] {
+        dispute_thread_handler_->execute([wp{weak_from_this()}] {
           // https://github.com/paritytech/polkadot/blob/40974fb99c86f5c341105b7db53c7aa0df707d66/node/network/dispute-distribution/src/sender/mod.rs#L219
           if (auto self = wp.lock()) {
             self->getActiveDisputes([wp](auto active_disputes_res) {
@@ -951,7 +955,7 @@ namespace kagome::dispute {
       return;
     }
 
-    REINVOKE(*internal_context_, on_finalized_block, finalized);
+    REINVOKE(*dispute_thread_handler_, on_finalized_block, finalized);
 
     auto res = process_finalized_block(finalized);
     if (res.has_error()) {
@@ -1839,7 +1843,7 @@ namespace kagome::dispute {
       SessionIndex session,
       std::vector<Indexed<SignedDisputeStatement>> statements,
       CbOutcome<void> &&cb) {
-    REINVOKE(*internal_context_,
+    REINVOKE(*dispute_thread_handler_,
              importStatements,
              std::move(candidate_receipt),
              session,
@@ -1860,7 +1864,7 @@ namespace kagome::dispute {
 
   void DisputeCoordinatorImpl::getRecentDisputes(
       CbOutcome<OutputDisputes> &&cb) {
-    REINVOKE(*internal_context_, getRecentDisputes, std::move(cb));
+    REINVOKE(*dispute_thread_handler_, getRecentDisputes, std::move(cb));
 
     // Return error if session information is missing.
     if (error_.has_value()) {
@@ -1894,7 +1898,7 @@ namespace kagome::dispute {
 
   void DisputeCoordinatorImpl::getActiveDisputes(
       CbOutcome<OutputDisputes> &&cb) {
-    REINVOKE(*internal_context_, getActiveDisputes, std::move(cb));
+    REINVOKE(*dispute_thread_handler_, getActiveDisputes, std::move(cb));
 
     // Return error if session information is missing.
     if (error_.has_value()) {
@@ -1945,7 +1949,8 @@ namespace kagome::dispute {
 
   void DisputeCoordinatorImpl::queryCandidateVotes(
       const QueryCandidateVotes &query, CbOutcome<OutputCandidateVotes> &&cb) {
-    REINVOKE(*internal_context_, queryCandidateVotes, query, std::move(cb));
+    REINVOKE(
+        *dispute_thread_handler_, queryCandidateVotes, query, std::move(cb));
 
     // Return error if session information is missing.
     if (error_.has_value()) {
@@ -1979,7 +1984,7 @@ namespace kagome::dispute {
       CandidateHash candidate_hash,
       CandidateReceipt candidate_receipt,
       bool valid) {
-    REINVOKE(*internal_context_,
+    REINVOKE(*dispute_thread_handler_,
              issueLocalStatement,
              session,
              candidate_hash,
@@ -2001,7 +2006,7 @@ namespace kagome::dispute {
       primitives::BlockInfo base,
       std::vector<BlockDescription> block_descriptions,
       CbOutcome<primitives::BlockInfo> &&cb) {
-    REINVOKE(*internal_context_,
+    REINVOKE(*dispute_thread_handler_,
              determineUndisputedChain,
              base,
              std::move(block_descriptions),
@@ -2104,8 +2109,11 @@ namespace kagome::dispute {
       const libp2p::peer::PeerId &peer_id,
       const network::DisputeMessage &request,
       CbOutcome<void> &&cb) {
-    REINVOKE(
-        *internal_context_, onDisputeRequest, peer_id, request, std::move(cb));
+    REINVOKE(*dispute_thread_handler_,
+             onDisputeRequest,
+             peer_id,
+             request,
+             std::move(cb));
 
     // Only accept messages from validators, in case there are multiple
     // `AuthorityId`s, we just take the first one. On session boundaries
@@ -2141,7 +2149,10 @@ namespace kagome::dispute {
 
   void DisputeCoordinatorImpl::sendDisputeResponse(outcome::result<void> res,
                                                    CbOutcome<void> &&cb) {
-    REINVOKE(*main_thread_, sendDisputeResponse, std::move(res), std::move(cb));
+    REINVOKE(*main_thread_handler_,
+             sendDisputeResponse,
+             std::move(res),
+             std::move(cb));
     cb(res);
   }
 
@@ -2150,7 +2161,7 @@ namespace kagome::dispute {
       rate_limit_timer_ =
           scheduler_->scheduleWithHandle([wp{weak_from_this()}]() {
             if (auto self = wp.lock()) {
-              BOOST_ASSERT(self->internal_context_->isInCurrentThread());
+              BOOST_ASSERT(self->dispute_thread_handler_->isInCurrentThread());
               self->process_portion_incoming_disputes();
             }
           });

@@ -64,7 +64,7 @@ namespace kagome::blockchain {
         std::shared_ptr<const class JustificationStoragePolicy>
             justification_storage_policy,
         std::shared_ptr<storage::trie_pruner::TriePruner> state_pruner,
-        WeakIoContext main_thread);
+        WeakIoContext main_thread_context);
 
     /// Recover block tree state at provided block
     static outcome::result<void> recover(
@@ -196,7 +196,7 @@ namespace kagome::blockchain {
         std::shared_ptr<const class JustificationStoragePolicy>
             justification_storage_policy,
         std::shared_ptr<storage::trie_pruner::TriePruner> state_pruner,
-        WeakIoContext main_thread);
+        WeakIoContext main_thread_context);
 
     outcome::result<void> reorgAndPrune(BlockTreeData &p,
                                         const ReorgAndPrune &changes);
@@ -277,7 +277,7 @@ namespace kagome::blockchain {
     metrics::Gauge *metric_best_block_height_;
     metrics::Gauge *metric_finalized_block_height_;
     metrics::Gauge *metric_known_chain_leaves_;
-    std::shared_ptr<ThreadHandler> main_thread_;
+    std::shared_ptr<ThreadHandler> main_thread_handler_;
     telemetry::Telemetry telemetry_ = telemetry::createTelemetryService();
   };
 }  // namespace kagome::blockchain

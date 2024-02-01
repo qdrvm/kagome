@@ -25,13 +25,13 @@ namespace kagome::dispute {
       std::shared_ptr<runtime::ParachainHost> api,
       std::shared_ptr<parachain::Recovery> recovery,
       std::shared_ptr<parachain::Pvf> pvf,
-      std::shared_ptr<ThreadHandler> internal_context,
+      std::shared_ptr<ThreadHandler> dispute_thread_handler,
       std::weak_ptr<DisputeCoordinator> dispute_coordinator)
       : block_header_repository_(std::move(block_header_repository)),
         api_(std::move(api)),
         recovery_(std::move(recovery)),
         pvf_(std::move(pvf)),
-        internal_context_(std::move(internal_context)),
+        dispute_thred_handler_(std::move(dispute_thread_handler)),
         dispute_coordinator_(std::move(dispute_coordinator)),
         queue_(std::make_unique<QueuesImpl>(
             block_header_repository_, std::move(hasher), api_)) {
@@ -39,7 +39,7 @@ namespace kagome::dispute {
     BOOST_ASSERT(api_ != nullptr);
     BOOST_ASSERT(recovery_ != nullptr);
     BOOST_ASSERT(pvf_ != nullptr);
-    BOOST_ASSERT(internal_context_ != nullptr);
+    BOOST_ASSERT(dispute_thred_handler_ != nullptr);
     BOOST_ASSERT(not dispute_coordinator_.expired());
   }
 
@@ -66,9 +66,9 @@ namespace kagome::dispute {
       ParticipationRequest request, primitives::BlockHash recent_head) {
     if (running_participations_.emplace(request.candidate_hash).second) {
       // https://github.com/paritytech/polkadot/blob/40974fb99c86f5c341105b7db53c7aa0df707d66/node/core/dispute-coordinator/src/participation/mod.rs#L256
-      internal_context_->execute([wp{weak_from_this()},
-                                  request{std::move(request)},
-                                  recent_head{std::move(recent_head)}]() {
+      dispute_thred_handler_->execute([wp{weak_from_this()},
+                                       request{std::move(request)},
+                                       recent_head{std::move(recent_head)}]() {
         if (auto self = wp.lock()) {
           self->participate(std::move(request), std::move(recent_head));
         }
@@ -222,8 +222,10 @@ namespace kagome::dispute {
 
   void ParticipationImpl::participate_stage3(ParticipationContextPtr ctx,
                                              ParticipationCallback &&cb) {
-    REINVOKE(
-        *internal_context_, participate_stage3, std::move(ctx), std::move(cb));
+    REINVOKE(*dispute_thred_handler_,
+             participate_stage3,
+             std::move(ctx),
+             std::move(cb));
 
     // Issue a request to validate the candidate with the provided exhaustive
     // parameters

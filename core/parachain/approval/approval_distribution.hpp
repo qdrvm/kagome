@@ -269,7 +269,7 @@ namespace kagome::parachain {
     ApprovalDistribution(
         std::shared_ptr<consensus::babe::BabeConfigRepository> babe_config_repo,
         std::shared_ptr<application::AppStateManager> app_state_manager,
-        std::shared_ptr<common::WorkerThreadPool> thread_pool,
+        std::shared_ptr<common::WorkerThreadPool> worker_thread_pool,
         std::shared_ptr<runtime::ParachainHost> parachain_host,
         LazySPtr<consensus::SlotsUtil> slots_util,
         std::shared_ptr<crypto::CryptoStore> keystore,
@@ -283,7 +283,7 @@ namespace kagome::parachain {
         std::shared_ptr<parachain::Pvf> pvf,
         std::shared_ptr<parachain::Recovery> recovery,
         std::shared_ptr<ApprovalThreadPool> approval_thread_pool,
-        WeakIoContext main_thread,
+        WeakIoContext main_thread_context,
         LazySPtr<dispute::DisputeCoordinator> dispute_coordinator);
     ~ApprovalDistribution() = default;
 
@@ -707,9 +707,9 @@ namespace kagome::parachain {
     }
 
     ApprovingContextMap approving_context_map_;
-    std::shared_ptr<ThreadHandler> internal_context_;
+    std::shared_ptr<ThreadHandler> approval_thread_handler_;
 
-    std::shared_ptr<ThreadHandler> thread_pool_context_;
+    std::shared_ptr<ThreadHandler> worker_thread_handler_;
 
     std::shared_ptr<runtime::ParachainHost> parachain_host_;
     LazySPtr<consensus::SlotsUtil> slots_util_;
@@ -735,7 +735,7 @@ namespace kagome::parachain {
     std::shared_ptr<blockchain::BlockTree> block_tree_;
     std::shared_ptr<parachain::Pvf> pvf_;
     std::shared_ptr<parachain::Recovery> recovery_;
-    std::unique_ptr<ThreadHandler> main_thread_;
+    std::shared_ptr<ThreadHandler> main_thread_handler_;
     LazySPtr<dispute::DisputeCoordinator> dispute_coordinator_;
 
     std::shared_ptr<libp2p::basic::Scheduler> scheduler_;

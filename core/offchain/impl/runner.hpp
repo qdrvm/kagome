@@ -35,12 +35,12 @@ namespace kagome::offchain {
    public:
     using Task = std::function<void()>;
 
-    Runner(std::shared_ptr<OcwThreadPool> thread_pool)
+    Runner(std::shared_ptr<OcwThreadPool> ocw_thread_pool)
         : free_threads_{kMaxThreads},
           max_tasks_{kMaxTasks},
-          thread_pool_handler_{[&] {
-            BOOST_ASSERT(thread_pool);
-            return thread_pool->handler();
+          ocw_thread_handler_{[&] {
+            BOOST_ASSERT(ocw_thread_pool);
+            return ocw_thread_pool->handler();
           }()} {}
 
     void run(Task &&task) {
@@ -54,7 +54,7 @@ namespace kagome::offchain {
       }
       --free_threads_;
       lock.unlock();
-      post(*thread_pool_handler_,
+      post(*ocw_thread_handler_,
            [weak{weak_from_this()}, task{std::move(task)}] {
              if (auto self = weak.lock()) {
                ::libp2p::common::FinalAction release([&] {
@@ -85,6 +85,6 @@ namespace kagome::offchain {
     size_t free_threads_;
     const size_t max_tasks_;
     std::deque<Task> tasks_;
-    std::shared_ptr<ThreadHandler> thread_pool_handler_;
+    std::shared_ptr<ThreadHandler> ocw_thread_handler_;
   };
 }  // namespace kagome::offchain

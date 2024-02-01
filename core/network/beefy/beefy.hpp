@@ -62,8 +62,8 @@ namespace kagome::network {
           std::shared_ptr<runtime::BeefyApi> beefy_api,
           std::shared_ptr<crypto::EcdsaProvider> ecdsa,
           std::shared_ptr<storage::SpacedStorage> db,
-          std::shared_ptr<common::WorkerThreadPool> thread_pool,
-          WeakIoContext main_thread,
+          std::shared_ptr<common::WorkerThreadPool> worker_thread_pool,
+          WeakIoContext main_thread_context,
           LazySPtr<consensus::Timeline> timeline,
           std::shared_ptr<crypto::SessionKeys> session_keys,
           LazySPtr<BeefyProtocol> beefy_protocol,
@@ -113,7 +113,7 @@ namespace kagome::network {
     std::shared_ptr<crypto::EcdsaProvider> ecdsa_;
     std::shared_ptr<storage::BufferStorage> db_;
     std::shared_ptr<WeakIoContextStrand> strand_;
-    WeakIoContext main_thread_;
+    WeakIoContext main_thread_context_;
     LazySPtr<consensus::Timeline> timeline_;
     std::shared_ptr<crypto::SessionKeys> session_keys_;
     LazySPtr<BeefyProtocol> beefy_protocol_;

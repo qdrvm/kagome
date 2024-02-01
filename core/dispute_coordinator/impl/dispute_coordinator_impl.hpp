@@ -119,8 +119,8 @@ namespace kagome::dispute {
         std::shared_ptr<parachain::Pvf> pvf,
         std::shared_ptr<parachain::ApprovalDistribution> approval_distribution,
         std::shared_ptr<authority_discovery::Query> authority_discovery,
-        std::shared_ptr<DisputeThreadPool> thread_pool,
-        WeakIoContext main_thread,
+        std::shared_ptr<DisputeThreadPool> dispute_thread_pool,
+        WeakIoContext main_thread_context,
         std::shared_ptr<network::Router> router,
         std::shared_ptr<network::PeerView> peer_view,
         LazySPtr<consensus::Timeline> timeline);
@@ -285,7 +285,7 @@ namespace kagome::dispute {
     std::shared_ptr<parachain::Pvf> pvf_;
     std::shared_ptr<parachain::ApprovalDistribution> approval_distribution_;
     std::shared_ptr<authority_discovery::Query> authority_discovery_;
-    std::unique_ptr<ThreadHandler> main_thread_;
+    std::shared_ptr<ThreadHandler> main_thread_handler_;
     std::shared_ptr<network::Router> router_;
     std::shared_ptr<network::PeerView> peer_view_;
     primitives::events::ChainSub chain_sub_;
@@ -326,7 +326,7 @@ namespace kagome::dispute {
     /// Delay timer for establishing the rate limit.
     std::optional<libp2p::basic::Scheduler::Handle> rate_limit_timer_;
 
-    std::shared_ptr<ThreadHandler> internal_context_;
+    std::shared_ptr<ThreadHandler> dispute_thread_handler_;
 
     std::shared_ptr<libp2p::basic::Scheduler> scheduler_;
 

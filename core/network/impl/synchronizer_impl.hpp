@@ -111,7 +111,7 @@ namespace kagome::network {
         LazySPtr<consensus::Timeline> timeline,
         std::shared_ptr<IBeefy> beefy,
         std::shared_ptr<consensus::grandpa::Environment> grandpa_environment,
-        WeakIoContext main_thread);
+        WeakIoContext main_thread_context);
 
     /** @see AppStateManager::takeControl */
     void stop();
@@ -238,7 +238,7 @@ namespace kagome::network {
     std::shared_ptr<IBeefy> beefy_;
     std::shared_ptr<consensus::grandpa::Environment> grandpa_environment_;
     primitives::events::ChainSubscriptionEnginePtr chain_sub_engine_;
-    std::shared_ptr<ThreadHandler> main_thread_;
+    std::shared_ptr<ThreadHandler> main_thread_handler_;
 
     application::SyncMethod sync_method_;
 

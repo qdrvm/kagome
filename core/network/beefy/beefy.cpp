@@ -41,8 +41,8 @@ namespace kagome::network {
                std::shared_ptr<runtime::BeefyApi> beefy_api,
                std::shared_ptr<crypto::EcdsaProvider> ecdsa,
                std::shared_ptr<storage::SpacedStorage> db,
-               std::shared_ptr<common::WorkerThreadPool> thread_pool,
-               WeakIoContext main_thread,
+               std::shared_ptr<common::WorkerThreadPool> worker_thread_pool,
+               WeakIoContext main_thread_context,
                LazySPtr<consensus::Timeline> timeline,
                std::shared_ptr<crypto::SessionKeys> session_keys,
                LazySPtr<BeefyProtocol> beefy_protocol,
@@ -52,16 +52,23 @@ namespace kagome::network {
         ecdsa_{std::move(ecdsa)},
         db_{db->getSpace(storage::Space::kBeefyJustification)},
         strand_{std::make_shared<WeakIoContextStrand>([&] {
-          BOOST_ASSERT(thread_pool);
-          return thread_pool->io_context();
+          BOOST_ASSERT(worker_thread_pool);
+          return worker_thread_pool->io_context();
         }())},
-        main_thread_{std::move(main_thread)},
+        main_thread_context_{std::move(main_thread_context)},
         timeline_{std::move(timeline)},
         session_keys_{std::move(session_keys)},
         beefy_protocol_{std::move(beefy_protocol)},
         min_delta_{chain_spec.isWococo() ? 4u : 8u},
         chain_sub_{chain_sub_engine},
         log_{log::createLogger("Beefy")} {
+    BOOST_ASSERT(block_tree_ != nullptr);
+    BOOST_ASSERT(beefy_api_ != nullptr);
+    BOOST_ASSERT(ecdsa_ != nullptr);
+    BOOST_ASSERT(db_ != nullptr);
+    BOOST_ASSERT(not main_thread_context_.expired());
+    BOOST_ASSERT(session_keys_ != nullptr);
+
     app_state_manager.atLaunch([this]() mutable {
       start();
       return true;
@@ -208,7 +215,7 @@ namespace kagome::network {
       std::ignore = apply(session.rounds.extract(round).mapped(), true);
     } else if (broadcast) {
       post(
-          main_thread_,
+          main_thread_context_,
           [protocol{beefy_protocol_.get()},
            message{std::make_shared<consensus::beefy::BeefyGossipMessage>(
                std::move(vote))}] { protocol->broadcast(std::move(message)); });
@@ -354,7 +361,7 @@ namespace kagome::network {
     metric_finalized->set(beefy_finalized_);
     next_digest_ = std::max(next_digest_, block_number + 1);
     if (broadcast) {
-      post(main_thread_,
+      post(main_thread_context_,
            [protocol{beefy_protocol_.get()},
             message{std::make_shared<consensus::beefy::BeefyGossipMessage>(
                 std::move(justification_v1))}] {

@@ -81,8 +81,8 @@ namespace kagome::consensus::babe {
       primitives::events::ChainSubscriptionEnginePtr chain_sub_engine,
       std::shared_ptr<network::BlockAnnounceTransmitter> announce_transmitter,
       std::shared_ptr<runtime::OffchainWorkerApi> offchain_worker_api,
-      std::shared_ptr<common::WorkerThreadPool> thread_pool,
-      WeakIoContext main_thread)
+      std::shared_ptr<common::WorkerThreadPool> worker_thread_pool,
+      WeakIoContext main_thread_context)
       : log_(log::createLogger("Babe", "babe")),
         clock_(clock),
         block_tree_(std::move(block_tree)),
@@ -102,10 +102,10 @@ namespace kagome::consensus::babe {
         chain_sub_engine_(std::move(chain_sub_engine)),
         announce_transmitter_(std::move(announce_transmitter)),
         offchain_worker_api_(std::move(offchain_worker_api)),
-        main_thread_(std::move(main_thread)),
-        wasm_thread_{[&] {
-          BOOST_ASSERT(thread_pool);
-          return thread_pool->io_context();
+        main_thread_context_(std::move(main_thread_context)),
+        worker_thread_context_{[&] {
+          BOOST_ASSERT(worker_thread_pool);
+          return worker_thread_pool->io_context();
         }()},
         is_validator_by_config_(app_config.roles().flags.authority != 0),
         telemetry_{telemetry::createTelemetryService()} {
@@ -124,6 +124,8 @@ namespace kagome::consensus::babe {
     BOOST_ASSERT(chain_sub_engine_);
     BOOST_ASSERT(announce_transmitter_);
     BOOST_ASSERT(offchain_worker_api_);
+    BOOST_ASSERT(not main_thread_context_.expired());
+    BOOST_ASSERT(not worker_thread_context_.expired());
 
     // Register metrics
     metrics_registry_->registerGaugeFamily(
@@ -405,10 +407,10 @@ namespace kagome::consensus::babe {
           return;
         }
       };
-      post(self->main_thread_, std::move(proposed));
+      post(self->main_thread_context_, std::move(proposed));
     };
 
-    post(wasm_thread_, std::move(propose));
+    post(worker_thread_context_, std::move(propose));
 
     return outcome::success();
   }

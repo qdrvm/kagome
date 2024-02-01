@@ -110,8 +110,8 @@ namespace kagome::consensus::grandpa {
         std::shared_ptr<network::ReputationRepository> reputation_repository,
         LazySPtr<Timeline> timeline,
         primitives::events::ChainSubscriptionEnginePtr chain_sub_engine,
-        std::shared_ptr<GrandpaThreadPool> thread_pool,
-        WeakIoContext main_thread);
+        std::shared_ptr<GrandpaThreadPool> grandpa_thread_pool,
+        WeakIoContext main_thread_context);
 
     /**
      * Prepares for grandpa round execution: e.g. sets justification observer
@@ -325,8 +325,8 @@ namespace kagome::consensus::grandpa {
     LazySPtr<Timeline> timeline_;
     primitives::events::ChainSub chain_sub_;
 
-    std::shared_ptr<ThreadHandler> internal_thread_context_;
-    std::shared_ptr<ThreadHandler> main_thread_;
+    std::shared_ptr<ThreadHandler> grandpa_thread_handler_;
+    std::shared_ptr<ThreadHandler> main_thread_handler_;
     std::shared_ptr<libp2p::basic::Scheduler> scheduler_;
 
     std::shared_ptr<VotingRound> current_round_;

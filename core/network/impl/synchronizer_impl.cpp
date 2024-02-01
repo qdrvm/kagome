@@ -98,7 +98,7 @@ namespace kagome::network {
       LazySPtr<consensus::Timeline> timeline,
       std::shared_ptr<IBeefy> beefy,
       std::shared_ptr<consensus::grandpa::Environment> grandpa_environment,
-      WeakIoContext main_thread)
+      WeakIoContext main_thread_context)
       : app_state_manager_(std::move(app_state_manager)),
         block_tree_(std::move(block_tree)),
         block_appender_(std::move(block_appender)),
@@ -114,7 +114,11 @@ namespace kagome::network {
         beefy_{std::move(beefy)},
         grandpa_environment_{std::move(grandpa_environment)},
         chain_sub_engine_(std::move(chain_sub_engine)),
-        main_thread_{std::make_shared<ThreadHandler>(std::move(main_thread))} {
+        main_thread_handler_{[&] {
+          BOOST_ASSERT(not main_thread_context.expired());
+          return std::make_shared<ThreadHandler>(
+              std::move(main_thread_context));
+        }()} {
     BOOST_ASSERT(app_state_manager_);
     BOOST_ASSERT(block_tree_);
     BOOST_ASSERT(block_executor_);
@@ -137,7 +141,7 @@ namespace kagome::network {
     metric_import_queue_length_->set(0);
 
     app_state_manager_->takeControl(*this);
-    main_thread_->start();
+    main_thread_handler_->start();
   }
 
   /** @see AppStateManager::takeControl */
@@ -873,7 +877,7 @@ namespace kagome::network {
       outcome::result<void> &&block_addition_result,
       Synchronizer::SyncResultHandler &&handler,
       const primitives::BlockHash &hash) {
-    REINVOKE(*main_thread_,
+    REINVOKE(*main_thread_handler_,
              post_block_addition,
              std::move(block_addition_result),
              std::move(handler),

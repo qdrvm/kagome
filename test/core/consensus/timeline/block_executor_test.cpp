@@ -177,8 +177,8 @@ class BlockExecutorTest : public testing::Test {
 
     block_executor_ =
         std::make_shared<BlockExecutorImpl>(block_tree_,
-                                            thread_pool_,
-                                            thread_pool_->io_context(),
+                                            worker_thread_pool_,
+                                            worker_thread_pool_->io_context(),
                                             core_,
                                             tx_pool_,
                                             hasher_,
@@ -211,7 +211,7 @@ class BlockExecutorTest : public testing::Test {
   kagome::primitives::events::StorageSubscriptionEnginePtr storage_sub_engine_;
   kagome::primitives::events::ChainSubscriptionEnginePtr chain_sub_engine_;
   std::shared_ptr<Watchdog> watchdog_ = std::make_shared<Watchdog>();
-  std::shared_ptr<WorkerThreadPool> thread_pool_ =
+  std::shared_ptr<WorkerThreadPool> worker_thread_pool_ =
       std::make_shared<WorkerThreadPool>(watchdog_);
 
   std::shared_ptr<BlockExecutorImpl> block_executor_;
@@ -293,5 +293,5 @@ TEST_F(BlockExecutorTest, JustificationFollowDigests) {
       });
   wso.wait();
 
-  testutil::wait(*thread_pool_->io_context());
+  testutil::wait(*worker_thread_pool_->io_context());
 }

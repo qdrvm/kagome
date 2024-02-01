@@ -62,7 +62,7 @@ namespace kagome::consensus::grandpa {
         std::shared_ptr<runtime::ParachainHost> parachain_api,
         std::shared_ptr<parachain::BackingStore> backing_store,
         std::shared_ptr<crypto::Hasher> hasher,
-        WeakIoContext main_thread);
+        WeakIoContext main_thread_context);
 
     ~EnvironmentImpl() override = default;
 
@@ -135,7 +135,7 @@ namespace kagome::consensus::grandpa {
     std::shared_ptr<runtime::ParachainHost> parachain_api_;
     std::shared_ptr<parachain::BackingStore> backing_store_;
     std::shared_ptr<crypto::Hasher> hasher_;
-    std::shared_ptr<ThreadHandler> main_thread_;
+    std::shared_ptr<ThreadHandler> main_thread_handler_;
 
     metrics::RegistryPtr metrics_registry_ = metrics::createRegistry();
     metrics::Gauge *metric_approval_lag_;

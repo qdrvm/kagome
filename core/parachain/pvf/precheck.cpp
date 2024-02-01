@@ -47,7 +47,7 @@ namespace kagome::parachain {
       std::shared_ptr<runtime::ParachainHost> parachain_api,
       std::shared_ptr<runtime::ModuleFactory> module_factory,
       std::shared_ptr<runtime::Executor> executor,
-      std::shared_ptr<PvfThreadPool> thread_pool,
+      std::shared_ptr<PvfThreadPool> pvf_thread_pool,
       std::shared_ptr<offchain::OffchainWorkerFactory> offchain_worker_factory,
       std::shared_ptr<offchain::OffchainWorkerPool> offchain_worker_pool)
       : hasher_{std::move(hasher)},
@@ -58,9 +58,9 @@ namespace kagome::parachain {
         executor_{std::move(executor)},
         offchain_worker_factory_{std::move(offchain_worker_factory)},
         offchain_worker_pool_{std::move(offchain_worker_pool)},
-        thread_pool_context_{[&] {
-          BOOST_ASSERT(thread_pool != nullptr);
-          return thread_pool->handler();
+        pvf_thread_handler_{[&] {
+          BOOST_ASSERT(pvf_thread_pool != nullptr);
+          return pvf_thread_pool->handler();
         }()} {
     BOOST_ASSERT(hasher_ != nullptr);
     BOOST_ASSERT(block_tree_ != nullptr);
@@ -86,7 +86,7 @@ namespace kagome::parachain {
             primitives::events::ChainEventType,
             const primitives::events::ChainEventParams &event) {
           if (auto self = weak.lock()) {
-            post(*self->thread_pool_context_, [weak] {
+            post(*self->pvf_thread_handler_, [weak] {
               if (auto self = weak.lock()) {
                 auto r = self->onBlock();
                 if (r.has_error()) {
