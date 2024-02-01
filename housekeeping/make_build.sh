@@ -19,6 +19,10 @@ if [[ "${KAGOME_IN_DOCKER}" = 1 ]]; then
   source /venv/bin/activate
 fi
 
+if [[ "${KAGOME_MAC_CI}" = 1 ]]; then
+  source ~/venv/bin/activate
+fi
+
 which git
 
 cd "$(dirname $0)/.."
