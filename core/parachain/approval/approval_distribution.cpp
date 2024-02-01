@@ -20,6 +20,7 @@
 #include "network/router.hpp"
 #include "parachain/approval/approval.hpp"
 #include "parachain/approval/approval_distribution.hpp"
+#include "parachain/approval/approval_distribution_error.hpp"
 #include "parachain/approval/state.hpp"
 #include "primitives/math.hpp"
 #include "runtime/runtime_api/parachain_host_types.hpp"
@@ -28,37 +29,6 @@
 
 static constexpr size_t kMaxAssignmentBatchSize = 200ull;
 static constexpr size_t kMaxApprovalBatchSize = 300ull;
-
-OUTCOME_CPP_DEFINE_CATEGORY(kagome::parachain, ApprovalDistribution::Error, e) {
-  using E = kagome::parachain::ApprovalDistribution::Error;
-  switch (e) {
-    case E::NO_INSTANCE:
-      return "No self instance";
-    case E::NO_CONTEXT:
-      return "No context";
-    case E::NO_SESSION_INFO:
-      return "No session info";
-    case E::UNUSED_SLOT_TYPE:
-      return "Unused slot type";
-    case E::ENTRY_IS_NOT_FOUND:
-      return "Entry is not found";
-    case E::ALREADY_APPROVING:
-      return "Block in progress";
-    case E::VALIDATOR_INDEX_OUT_OF_BOUNDS:
-      return "Validator index out of bounds";
-    case E::CORE_INDEX_OUT_OF_BOUNDS:
-      return "Core index out of bounds";
-    case E::IS_IN_BACKING_GROUP:
-      return "Is in backing group";
-    case E::SAMPLE_OUT_OF_BOUNDS:
-      return "Sample is out of bounds";
-    case E::VRF_DELAY_CORE_INDEX_MISMATCH:
-      return "VRF delay core index mismatch";
-    case E::VRF_VERIFY_AND_GET_TRANCHE:
-      return "VRF verify and get tranche failed";
-  }
-  return "Unknown approval-distribution error";
-}
 
 static constexpr uint64_t kTickDurationMs = 500ull;
 static constexpr kagome::network::Tick kApprovalDelay = 2ull;
@@ -402,23 +372,23 @@ namespace {
       const kagome::parachain::approval::AssignmentCert &assignment,
       kagome::network::GroupIndex backing_group) {
     using namespace kagome;
-    using AD = parachain::ApprovalDistribution;
+    using parachain::ApprovalDistributionError;
 
     if (validator_index >= config.assignment_keys.size()) {
-      return AD::Error::VALIDATOR_INDEX_OUT_OF_BOUNDS;
+      return ApprovalDistributionError::VALIDATOR_INDEX_OUT_OF_BOUNDS;
     }
 
     const auto &validator_public = config.assignment_keys[validator_index];
     //    OUTCOME_TRY(pk, network::ValidatorId::fromSpan(validator_public));
 
     if (claimed_core_index >= config.n_cores) {
-      return AD::Error::CORE_INDEX_OUT_OF_BOUNDS;
+      return ApprovalDistributionError::CORE_INDEX_OUT_OF_BOUNDS;
     }
 
     const auto is_in_backing = isInBackingGroup(
         config.validator_groups, validator_index, backing_group);
     if (is_in_backing) {
-      return AD::Error::IS_IN_BACKING_GROUP;
+      return ApprovalDistributionError::IS_IN_BACKING_GROUP;
     }
 
     const auto &vrf_output = assignment.vrf.output;
@@ -430,7 +400,7 @@ namespace {
             -> outcome::result<kagome::network::DelayTranche> {
           auto const sample = obj.sample;
           if (sample >= config.relay_vrf_modulo_samples) {
-            return AD::Error::SAMPLE_OUT_OF_BOUNDS;
+            return ApprovalDistributionError::SAMPLE_OUT_OF_BOUNDS;
           }
           /// TODO(iceseer): vrf_verify_extra check
           return network::DelayTranche(0ull);
@@ -439,7 +409,7 @@ namespace {
             -> outcome::result<kagome::network::DelayTranche> {
           auto const core_index = obj.core_index;
           if (core_index != claimed_core_index) {
-            return AD::Error::VRF_DELAY_CORE_INDEX_MISMATCH;
+            return ApprovalDistributionError::VRF_DELAY_CORE_INDEX_MISMATCH;
           }
 
           network::DelayTranche tranche;
@@ -453,7 +423,7 @@ namespace {
                   &relay_vrf_story,
                   core_index,
                   &tranche)) {
-            return AD::Error::VRF_VERIFY_AND_GET_TRANCHE;
+            return ApprovalDistributionError::VRF_VERIFY_AND_GET_TRANCHE;
           }
           return tranche;
         });
@@ -480,6 +450,8 @@ namespace kagome::parachain {
       std::shared_ptr<parachain::Pvf> pvf,
       std::shared_ptr<parachain::Recovery> recovery,
       std::shared_ptr<Watchdog> watchdog,
+      std::shared_ptr<Pvf> pvf,
+      std::shared_ptr<Recovery> recovery,
       WeakIoContext main_thread,
       LazySPtr<dispute::DisputeCoordinator> dispute_coordinator)
       : int_pool_{std::make_shared<ThreadPool>(
@@ -872,7 +844,7 @@ namespace kagome::parachain {
                "No session info for [session_index: {}, block_hash: {}]",
                session_index,
                block_hash);
-      return Error::NO_SESSION_INFO;
+      return ApprovalDistributionError::NO_SESSION_INFO;
     }
 
     SL_TRACE(logger_,
@@ -1012,7 +984,7 @@ namespace kagome::parachain {
                block_hash,
                parent_hash,
                imported_block.session_index);
-      return Error::NO_SESSION_INFO;
+      return ApprovalDistributionError::NO_SESSION_INFO;
     }
 
     const auto block_tick =
