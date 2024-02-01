@@ -126,6 +126,7 @@
 #include "offchain/impl/runner.hpp"
 #include "outcome/outcome.hpp"
 #include "parachain/approval/approval_distribution.hpp"
+#include "parachain/approval/approval_thread_pool.hpp"
 #include "parachain/availability/bitfield/store_impl.hpp"
 #include "parachain/availability/fetch/fetch_impl.hpp"
 #include "parachain/availability/recovery/recovery_impl.hpp"

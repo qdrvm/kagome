@@ -8,6 +8,8 @@
 
 #include <fmt/std.h>
 #include <boost/date_time/posix_time/posix_time.hpp>
+#include <libp2p/basic/scheduler/asio_scheduler_backend.hpp>
+#include <libp2p/basic/scheduler/scheduler_impl.hpp>
 
 #include "clock/impl/basic_waitable_timer.hpp"
 #include "common/visitor.hpp"
@@ -21,6 +23,7 @@
 #include "parachain/approval/approval.hpp"
 #include "parachain/approval/approval_distribution.hpp"
 #include "parachain/approval/approval_distribution_error.hpp"
+#include "parachain/approval/approval_thread_pool.hpp"
 #include "parachain/approval/state.hpp"
 #include "primitives/math.hpp"
 #include "runtime/runtime_api/parachain_host_types.hpp"
@@ -447,11 +450,9 @@ namespace kagome::parachain {
       std::shared_ptr<network::PeerManager> pm,
       std::shared_ptr<network::Router> router,
       std::shared_ptr<blockchain::BlockTree> block_tree,
-      std::shared_ptr<parachain::Pvf> pvf,
-      std::shared_ptr<parachain::Recovery> recovery,
-      std::shared_ptr<Watchdog> watchdog,
       std::shared_ptr<Pvf> pvf,
       std::shared_ptr<Recovery> recovery,
+      std::shared_ptr<ApprovalThreadPool> approval_thread_pool,
       WeakIoContext main_thread,
       LazySPtr<dispute::DisputeCoordinator> dispute_coordinator)
       : int_pool_{std::make_shared<ThreadPool>(
@@ -459,6 +460,10 @@ namespace kagome::parachain {
         internal_context_{int_pool_->handler()},
         thread_pool_{std::move(thread_pool)},
         thread_pool_context_{thread_pool_->handler()},
+      : internal_context_{[&] {
+          BOOST_ASSERT(approval_thread_pool != nullptr);
+          return approval_thread_pool->handler();
+        }()},
         parachain_host_(std::move(parachain_host)),
         slots_util_(std::move(slots_util)),
         keystore_(std::move(keystore)),
@@ -476,6 +481,11 @@ namespace kagome::parachain {
         main_thread_{std::move(main_thread)},
         dispute_coordinator_{std::move(dispute_coordinator)} {
     BOOST_ASSERT(thread_pool_);
+        dispute_coordinator_{std::move(dispute_coordinator)},
+        scheduler_{std::make_shared<libp2p::basic::SchedulerImpl>(
+            std::make_shared<libp2p::basic::AsioSchedulerBackend>(
+                approval_thread_pool->io_context()),
+            libp2p::basic::Scheduler::Config{})} {
     BOOST_ASSERT(parachain_host_);
     BOOST_ASSERT(keystore_);
     BOOST_ASSERT(peer_view_);
@@ -2630,28 +2640,18 @@ namespace kagome::parachain {
              tick,
              ms_wakeup_after);
 
-    auto t =
-        std::make_unique<clock::BasicWaitableTimer>(int_pool_->io_context());
-    t->expiresAfter(std::chrono::milliseconds(ms_wakeup_after));
-    t->asyncWait(
-        [wself{weak_from_this()}, block_hash, block_number, candidate_hash](
-            auto &&ec) {
-          std::unique_ptr<clock::Timer> t{};
+    auto handle = scheduler_->scheduleWithHandle(
+        [wself{weak_from_this()}, block_hash, block_number, candidate_hash]() {
           if (auto self = wself.lock()) {
             BOOST_ASSERT(self->internal_context_->isInCurrentThread());
             if (auto target_block_it = self->active_tranches_.find(block_hash);
                 target_block_it != self->active_tranches_.end()) {
-              if (ec) {
-                SL_TRACE(self->logger_,
-                         "Tranche operation waiting failed timer: {}",
-                         ec.message());
-                return;
-              }
               self->handleTranche(block_hash, block_number, candidate_hash);
             }
           }
-        });
-    target_block[candidate_hash].emplace_back(tick, std::move(t));
+        },
+        std::chrono::milliseconds(ms_wakeup_after));
+    target_block[candidate_hash].emplace_back(tick, std::move(handle));
   }
 
   void ApprovalDistribution::handleTranche(
