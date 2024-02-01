@@ -15,6 +15,7 @@
 #include <boost/asio/io_context.hpp>
 #include <soralog/util.hpp>
 
+#include "log/logger.hpp"
 #include "utils/watchdog.hpp"
 #include "utils/weak_io_context_post.hpp"
 
@@ -84,34 +85,43 @@ namespace kagome {
                size_t thread_count,
                std::optional<std::shared_ptr<boost::asio::io_context>> ioc =
                    std::nullopt)
-        : ioc_{ioc.has_value() ? std::move(ioc.value())
+        : log_(log::createLogger(fmt::format("ThreadPool:{}", pool_tag),
+                                 "threads",
+                                 log::Level::TRACE)),  // FIXME
+          ioc_{ioc.has_value() ? std::move(ioc.value())
                                : std::make_shared<boost::asio::io_context>()},
           work_guard_{ioc_->get_executor()} {
       BOOST_ASSERT(ioc_);
       BOOST_ASSERT(thread_count > 0);
 
+      SL_TRACE(log_, "Pool created");
       threads_.reserve(thread_count);
       for (size_t i = 0; i < thread_count; ++i) {
-        threads_.emplace_back([io{ioc_},
+        threads_.emplace_back([log(log_),
+                               io{ioc_},
                                watchdog,
                                pool_tag = std::string(pool_tag),
                                thread_count,
                                n = i + 1] {
-          if (thread_count > 1) {
-            soralog::util::setThreadName(fmt::format("{}.{}", pool_tag, n));
-          } else {
-            soralog::util::setThreadName(pool_tag);
-          }
+          auto label =
+              thread_count > 1 ? fmt::format("{}.{}", pool_tag, n) : pool_tag;
+          soralog::util::setThreadName(label);
+          SL_TRACE(log, "Thread {} started", label);
           watchdog->run(io);
+          SL_TRACE(log, "Thread {} stopped", label);
         });
       }
     }
 
     ~ThreadPool() {
+      SL_TRACE(log_, "DTor called");
       ioc_->stop();
+      SL_TRACE(log_, "Ctx stopped");
       for (auto &thread : threads_) {
+        SL_TRACE(log_, "Joining thread...");
         thread.join();
       }
+      SL_TRACE(log_, "Pool destroyed");
     }
 
     const std::shared_ptr<boost::asio::io_context> &io_context() const {
@@ -124,6 +134,7 @@ namespace kagome {
     }
 
    private:
+    log::Logger log_;
     std::shared_ptr<boost::asio::io_context> ioc_;
     std::optional<boost::asio::executor_work_guard<
         boost::asio::io_context::executor_type>>
