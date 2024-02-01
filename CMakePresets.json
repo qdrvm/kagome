@@ -1,0 +1,47 @@
+{
+    "version": 8,
+    "configurePresets": [
+        {
+            "name": "base",
+            "toolchainFile": "${sourceDir}/cmake/toolchain/clang-15_cxx20.cmake",
+            "generator": "Ninja",
+            "hidden": true
+        },
+        {
+            "name": "base-debug",
+            "inherits": "base",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Debug",
+                "TESTING": "ON",
+                "HUNTER_CONFIGURATION_TYPES": "Debug"
+            },
+            "hidden": true
+        },
+        {
+            "name": "base-release",
+            "inherits": "base",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "RelWithDebInfo",
+                "TESTING": "OFF",
+                "HUNTER_CONFIGURATION_TYPES": "Release"
+            },
+            "hidden": true
+        },
+        {
+            "name": "debug-wasmedge",
+            "binaryDir": "cmake-build-debug-wasmedge",
+            "inherits": "base-debug",
+            "cacheVariables": {
+                "WASM_COMPILER": "WasmEdge"
+            }
+        },
+        {
+            "name": "debug-wavm",
+            "binaryDir": "cmake-build-debug-wavm",
+            "inherits": "base-debug",
+            "cacheVariables": {
+                "WASM_COMPILER": "WAVM"
+            }
+        }
+    ]
+}
