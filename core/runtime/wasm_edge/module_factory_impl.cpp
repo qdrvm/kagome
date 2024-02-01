@@ -303,7 +303,8 @@ namespace kagome::runtime::wasm_edge {
 
       InstanceEnvironment env = env_factory_->make(memory_provider);
 
-      register_host_api(*env.host_api, host_instance->raw());
+      register_host_api(
+          *env.host_api, module_.raw(), host_instance->raw());
       WasmEdge_UNWRAP(WasmEdge_ExecutorRegisterImport(
           executor_->raw(), store.raw(), host_instance->raw()));
 

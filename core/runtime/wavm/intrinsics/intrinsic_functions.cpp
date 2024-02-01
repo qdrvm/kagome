@@ -6,6 +6,8 @@
 
 #include "runtime/wavm/intrinsics/intrinsic_functions.hpp"
 
+#include <unordered_set>
+
 #include "runtime/common/register_host_api.hpp"
 #include "runtime/module_repository.hpp"
 #include "runtime/wavm/intrinsics/intrinsic_module.hpp"
@@ -62,22 +64,30 @@ namespace kagome::runtime::wavm {
           host_method_thunk<Method, Args...>,
           WAVM::IR::FunctionType{{}, {get_wavm_type<Args>()...}});
     } else {
-      module.addFunction(
-          name,
-          host_method_thunk<Method, Args...>,
-          WAVM::IR::FunctionType{{get_wavm_type<Ret>()}, {get_wavm_type<Args>()...}});
+      module.addFunction(name,
+                         host_method_thunk<Method, Args...>,
+                         WAVM::IR::FunctionType{{get_wavm_type<Ret>()},
+                                                {get_wavm_type<Args>()...}});
     }
   }
 
-  void registerHostApiMethods(IntrinsicModule &module) {
+  void registerHostApiMethods(
+      IntrinsicModule &module,
+      std::span<WAVM::IR::Import<WAVM::IR::FunctionType>> import_functions) {
     if (logger == nullptr) {
       logger = log::createLogger("Host API wrappers", "wavm");
     }
-
-#define REGISTER_HOST_METHOD(Ret, name, ...) \
-  registerMethod<&host_api::HostApi::name, Ret __VA_OPT__(,) __VA_ARGS__>(module, #name);
+    std::unordered_set<std::string> required_imports;
+#define REGISTER_HOST_METHOD(Ret, name, ...)                                \
+  registerMethod<&host_api::HostApi::name, Ret __VA_OPT__(, ) __VA_ARGS__>( \
+      module, #name);                                                       \
+  required_imports.erase(#name);
 
     REGISTER_HOST_METHODS
+
+    for (auto& import: required_imports) {
+      
+    }
   }
 
 }  // namespace kagome::runtime::wavm

@@ -8,6 +8,7 @@
 #include <wasmedge/wasmedge.h>
 
 #include <iostream>
+#include <unordered_set>
 
 #include "host_api/host_api.hpp"
 #include "runtime/common/register_host_api.hpp"
@@ -125,22 +126,14 @@ namespace kagome::runtime::wasm_edge {
     return WasmEdge_Result_Success;
   }
 
-  template <typename Ret, typename... Args>
   void register_method(WasmEdge_HostFunc_t cb,
                        WasmEdge_ModuleInstanceContext *module,
                        void *data,
-                       std::string_view name) {
-    WasmEdge_ValType types[]{get_wasm_type<Args>()...};
-    WasmEdge_ValType ret[1];
-    WasmEdge_ValType *ret_ptr;
-    if constexpr (std::is_void_v<Ret>) {
-      ret_ptr = nullptr;
-    } else {
-      ret[0] = get_wasm_type<Ret>();
-      ret_ptr = ret;
-    }
+                       std::string_view name,
+                       std::span<WasmEdge_ValType> rets,
+                       std::span<WasmEdge_ValType> args) {
     auto type = WasmEdge_FunctionTypeCreate(
-        types, sizeof...(Args), ret_ptr, ret_ptr == nullptr ? 0 : 1);
+        args.data(), args.size(), rets.data(), rets.size());
     auto instance = WasmEdge_FunctionInstanceCreate(type, cb, data, 0);
     WasmEdge_FunctionTypeDelete(type);
 
@@ -148,6 +141,22 @@ namespace kagome::runtime::wasm_edge {
         module,
         WasmEdge_StringCreateByBuffer(name.data(), name.size()),
         instance);
+  }
+
+  template <typename Ret, typename... Args>
+  void register_method(WasmEdge_HostFunc_t cb,
+                       WasmEdge_ModuleInstanceContext *module,
+                       void *data,
+                       std::string_view name) {
+    std::array<WasmEdge_ValType, sizeof...(Args)> types{
+        get_wasm_type<Args>()...};
+    WasmEdge_ValType ret[1];
+    std::span<WasmEdge_ValType> rets{};
+    if constexpr (!std::is_void_v<Ret>) {
+      ret[0] = get_wasm_type<Ret>();
+      rets = std::span{ret, 1};
+    }
+    register_method(cb, module, data, name, rets, std::span(types));
   }
 
   template <auto Method, typename Ret, typename... Args>
@@ -158,16 +167,63 @@ namespace kagome::runtime::wasm_edge {
     register_method<Ret, Args...>(cb, module, &host_api, name);
   }
 
+  WasmEdge_Result stub(void *data,
+                       const WasmEdge_CallingFrameContext *,
+                       const WasmEdge_Value *,
+                       WasmEdge_Value *) {
+    static log::Logger logger = log::createLogger("WasmEdge", "runtime");
+    SL_ERROR(logger,
+             "Attempt to call an unimplemented Host method '{}'",
+             reinterpret_cast<const char *>(data));
+    return WasmEdge_Result_Terminate;
+  };
+
+  void stub_host_method(WasmEdge_ModuleInstanceContext *module,
+                        std::string_view name,
+                        std::span<WasmEdge_ValType> rets,
+                        std::span<WasmEdge_ValType> args) {
+    register_method(stub, module, nullptr, name, rets, args);
+  }
+
 #define REGISTER_HOST_METHOD(Ret, name, ...)            \
   register_host_method<&host_api::HostApi::name,        \
                        Ret __VA_OPT__(, ) __VA_ARGS__>( \
-      instance, host_api, #name);
+      instance, host_api, #name);                       \
+  existing_imports.insert(#name);
 
   void register_host_api(host_api::HostApi &host_api,
+                         WasmEdge_ASTModuleContext *module,
                          WasmEdge_ModuleInstanceContext *instance) {
     BOOST_ASSERT(instance);
 
+    uint32_t imports_num = WasmEdge_ASTModuleListImportsLength(module);
+    std::vector<WasmEdge_ImportTypeContext *> imports;
+    imports.resize(imports_num);
+    WasmEdge_ASTModuleListImports(
+        module,
+        const_cast<const WasmEdge_ImportTypeContext **>(imports.data()),
+        imports_num);
+
+    std::unordered_set<std::string_view> existing_imports;
     REGISTER_HOST_METHODS
+
+    for (auto &import : imports) {
+      auto name = WasmEdge_ImportTypeGetExternalName(import);
+      auto type = WasmEdge_ImportTypeGetFunctionType(module, import);
+      if (type) {
+        std::string_view name_view{name.Buf, name.Length};
+        if (!existing_imports.contains(name_view)) {
+          std::vector<WasmEdge_ValType> args(
+              WasmEdge_FunctionTypeGetParametersLength(type));
+          std::vector<WasmEdge_ValType> rets(
+              WasmEdge_FunctionTypeGetReturnsLength(type));
+          WasmEdge_FunctionTypeGetParameters(type, args.data(), args.size());
+          WasmEdge_FunctionTypeGetReturns(type, rets.data(), rets.size());
+
+          stub_host_method(instance, name_view.data(), rets, args);
+        }
+      }
+    }
   }
 
 }  // namespace kagome::runtime::wasm_edge

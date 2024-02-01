@@ -45,13 +45,15 @@ namespace kagome::runtime::wavm {
       return CompilationError{std::move(loadError.message)};
     }
 
-    auto &imports = WAVM::Runtime::getModuleIR(module).memories.imports;
-    if (not imports.empty()) {
-      module_params.intrinsicMemoryType = imports[0].type;
+    auto &memory_imports = WAVM::Runtime::getModuleIR(module).memories.imports;
+    if (not memory_imports.empty()) {
+      module_params.intrinsicMemoryType = memory_imports[0].type;
     }
+    auto &function_imports =
+        WAVM::Runtime::GetModuleIR(module).functions.imports;
     intrinsic_module = std::make_shared<IntrinsicModule>(
         *intrinsic_module, module_params.intrinsicMemoryType);
-    runtime::wavm::registerHostApiMethods(*intrinsic_module);
+    runtime::wavm::registerHostApiMethods(*intrinsic_module, function_imports);
 
     return std::make_shared<ModuleImpl>(std::move(compartment),
                                         std::move(intrinsic_module),
