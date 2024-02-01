@@ -11,6 +11,9 @@
 #include <unordered_set>
 #include <vector>
 
+#include <libp2p/basic/scheduler/asio_scheduler_backend.hpp>
+#include <libp2p/basic/scheduler/scheduler_impl.hpp>
+
 #include "application/app_state_manager.hpp"
 #include "authority_discovery/query/query.hpp"
 #include "blockchain/block_header_repository.hpp"
@@ -18,6 +21,7 @@
 #include "consensus/timeline/timeline.hpp"
 #include "dispute_coordinator/chain_scraper.hpp"
 #include "dispute_coordinator/impl/chain_scraper_impl.hpp"
+#include "dispute_coordinator/impl/dispute_thread_pool.hpp"
 #include "dispute_coordinator/impl/errors.hpp"
 #include "dispute_coordinator/impl/rolling_session_window_impl.hpp"
 #include "dispute_coordinator/impl/sending_dispute.hpp"
@@ -30,7 +34,6 @@
 #include "parachain/approval/approval_distribution.hpp"
 #include "runtime/runtime_api/core.hpp"
 #include "runtime/runtime_api/parachain_host.hpp"
-#include "utils/thread_pool.hpp"
 #include "utils/tuple_hash.hpp"
 
 namespace kagome::dispute {
@@ -120,7 +123,7 @@ namespace kagome::dispute {
       std::shared_ptr<parachain::Pvf> pvf,
       std::shared_ptr<parachain::ApprovalDistribution> approval_distribution,
       std::shared_ptr<authority_discovery::Query> authority_discovery,
-      std::shared_ptr<Watchdog> watchdog,
+      std::shared_ptr<DisputeThreadPool> thread_pool,
       WeakIoContext main_thread,
       std::shared_ptr<network::Router> router,
       std::shared_ptr<network::PeerView> peer_view,
@@ -145,9 +148,14 @@ namespace kagome::dispute {
         peer_view_(std::move(peer_view)),
         chain_sub_{peer_view_->intoChainEventsEngine()},
         timeline_(std::move(timeline)),
-        int_pool_{std::make_shared<ThreadPool>(
-            std::move(watchdog), "DisputeCoordinatorImpl", 1ull)},
-        internal_context_{int_pool_->handler()},
+        internal_context_{[&] {
+          BOOST_ASSERT(thread_pool != nullptr);
+          return thread_pool->handler();
+        }()},
+        scheduler_{std::make_shared<libp2p::basic::SchedulerImpl>(
+            std::make_shared<libp2p::basic::AsioSchedulerBackend>(
+                thread_pool->io_context()),
+            libp2p::basic::Scheduler::Config{})},
         runtime_info_(std::make_unique<RuntimeInfo>(api_, session_keys_)),
         batches_(std::make_unique<Batches>(steady_clock_, hasher_)) {
     BOOST_ASSERT(app_state_manager_ != nullptr);
@@ -2139,27 +2147,21 @@ namespace kagome::dispute {
 
   void DisputeCoordinatorImpl::make_task_for_next_portion() {
     if (not rate_limit_timer_.has_value()) {
-      rate_limit_timer_.emplace(int_pool_->io_context());
-
-      rate_limit_timer_->expiresAfter(kReceiveRateLimit);
-      rate_limit_timer_->asyncWait([wp{weak_from_this()}](auto &&ec) {
-        if (auto self = wp.lock()) {
-          if (ec) {
-            SL_ERROR(self->log_,
-                     "error happened while waiting delayed requests "
-                     "processing: {}",
-                     ec);
-            return;
-          }
-          BOOST_ASSERT(self->internal_context_->isInCurrentThread());
-          self->process_portion_incoming_disputes();
-        }
-      });
+      rate_limit_timer_ =
+          scheduler_->scheduleWithHandle([wp{weak_from_this()}]() {
+            if (auto self = wp.lock()) {
+              BOOST_ASSERT(self->internal_context_->isInCurrentThread());
+              self->process_portion_incoming_disputes();
+            }
+          });
     }
   }
 
   void DisputeCoordinatorImpl::process_portion_incoming_disputes() {
-    rate_limit_timer_.reset();
+    if (rate_limit_timer_) {
+      rate_limit_timer_->cancel();
+      rate_limit_timer_.reset();
+    }
 
     std::vector<std::tuple<libp2p::peer::PeerId,
                            network::DisputeMessage,
