@@ -59,7 +59,8 @@ if ("${WASM_COMPILER}" STREQUAL "WasmEdge")
 
   hunter_config(
       WasmEdge
-      VERSION 0.14.0-alpha.1-qdrvm1
+      URL  https://github.com/qdrvm/WasmEdge/archive/f45887ebfc3f617ceae047d68ea79d2f72d0bf07.zip
+      SHA1 5e71be88e100a34df51e7ad7a00bb9b87f45ffea
       CMAKE_ARGS
         WASMEDGE_BUILD_STATIC_LIB=ON
         WASMEDGE_BUILD_SHARED_LIB=OFF

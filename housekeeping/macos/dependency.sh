@@ -6,7 +6,6 @@
 #
 
 # install python pip3 deps
-pip3 install --user pyyaml
 sudo python3 -m pip install --upgrade pip
 sudo python3 -m pip install scikit-build
 sudo python3 -m pip install cmake==3.25 requests gitpython gcovr

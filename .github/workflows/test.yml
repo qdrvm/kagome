@@ -14,7 +14,6 @@ on:
 
 env:
   BUILD_DIR: build
-  CI: true
   KAGOME_IN_DOCKER: 1
   CTEST_OUTPUT_ON_FAILURE: 1
   GITHUB_HUNTER_USERNAME: ${{ secrets.HUNTER_USERNAME }}
@@ -38,16 +37,17 @@ jobs:
       with:
         path: ${{ env.CACHE_PATHS }}
         key: ${{ github.job }}-${{ env.CACHE_VERSION }}
-    - name: Setup cmake
-      uses: jwlawson/actions-setup-cmake@187efd9581ed20ee4e03c0dfb9ac2cd5896c4835
-      with:
-        cmake-version: '3.25.0'
     - name: install
-      run: ./housekeeping/macos/dependency.sh
+      run: |
+        python3 -m venv venv
+        source venv/bin/activate
+        ./housekeeping/macos/dependency.sh
     - name: build
-      run: ./housekeeping/make_build.sh -DCLEAR_OBJS=ON -DCOVERAGE=OFF -DWASM_COMPILER=WasmEdge -DCMAKE_TOOLCHAIN_FILE=cmake/toolchain/cxx20.cmake
+      run: |
+        source venv/bin/activate
+        export HUNTER_PYTHON_LOCATION=$VIRTUAL_ENV
+        ./housekeeping/make_build.sh -DCLEAR_OBJS=ON -DCOVERAGE=OFF -DWASM_COMPILER=WasmEdge -DCMAKE_TOOLCHAIN_FILE=cmake/toolchain/cxx20.cmake
       env:
-        CI:
         KAGOME_IN_DOCKER: 0
   Linux:
     if: ${{ !(github.ref == 'refs/heads/master' || startsWith( github.ref, 'refs/tags/' )) }}
