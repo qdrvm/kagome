@@ -19,6 +19,7 @@
 #include "consensus/grandpa/environment.hpp"
 #include "consensus/grandpa/grandpa_config.hpp"
 #include "consensus/grandpa/grandpa_context.hpp"
+#include "consensus/grandpa/impl/grandpa_thread_pool.hpp"
 #include "consensus/grandpa/impl/vote_crypto_provider_impl.hpp"
 #include "consensus/grandpa/impl/vote_tracker_impl.hpp"
 #include "consensus/grandpa/impl/voting_round_impl.hpp"
@@ -73,7 +74,7 @@ namespace kagome::consensus::grandpa {
       std::shared_ptr<network::ReputationRepository> reputation_repository,
       LazySPtr<Timeline> timeline,
       primitives::events::ChainSubscriptionEnginePtr chain_sub_engine,
-      std::shared_ptr<Watchdog> watchdog,
+      std::shared_ptr<GrandpaThreadPool> thread_pool,
       WeakIoContext main_thread)
       : round_time_factor_{kGossipDuration},
         hasher_{std::move(hasher)},
@@ -87,25 +88,25 @@ namespace kagome::consensus::grandpa {
         reputation_repository_(std::move(reputation_repository)),
         timeline_{std::move(timeline)},
         chain_sub_{chain_sub_engine},
-        execution_thread_pool_{
-            std::make_shared<ThreadPool>(std::move(watchdog), "grandpa", 1ull)},
-        internal_thread_context_{execution_thread_pool_->handler()},
+        internal_thread_context_{[&] {
+          BOOST_ASSERT(thread_pool != nullptr);
+          return thread_pool->handler();
+        }()},
         main_thread_{std::move(main_thread)},
         scheduler_{std::make_shared<libp2p::basic::SchedulerImpl>(
             std::make_shared<libp2p::basic::AsioSchedulerBackend>(
-                execution_thread_pool_->io_context()),
+                thread_pool->io_context()),
             libp2p::basic::Scheduler::Config{})} {
     BOOST_ASSERT(environment_ != nullptr);
     BOOST_ASSERT(crypto_provider_ != nullptr);
-    BOOST_ASSERT(scheduler_ != nullptr);
     BOOST_ASSERT(authority_manager_ != nullptr);
     BOOST_ASSERT(synchronizer_ != nullptr);
     BOOST_ASSERT(peer_manager_ != nullptr);
     BOOST_ASSERT(block_tree_ != nullptr);
     BOOST_ASSERT(reputation_repository_ != nullptr);
+    BOOST_ASSERT(internal_thread_context_ != nullptr);
 
     BOOST_ASSERT(app_state_manager != nullptr);
-    BOOST_ASSERT(nullptr != internal_thread_context_);
 
     // Register metrics
     metrics_registry_->registerGaugeFamily(highestGrandpaRoundMetricName,

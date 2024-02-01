@@ -69,6 +69,7 @@
 #include "consensus/grandpa/impl/authority_manager_impl.hpp"
 #include "consensus/grandpa/impl/environment_impl.hpp"
 #include "consensus/grandpa/impl/grandpa_impl.hpp"
+#include "consensus/grandpa/impl/grandpa_thread_pool.hpp"
 #include "consensus/grandpa/impl/verified_justification_queue.hpp"
 #include "consensus/production_consensus.hpp"
 #include "consensus/timeline/impl/block_appender_base.hpp"

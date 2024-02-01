@@ -17,11 +17,11 @@
 #include "metrics/metrics.hpp"
 #include "primitives/event_types.hpp"
 #include "utils/safe_object.hpp"
-#include "utils/thread_pool.hpp"
+#include "utils/thread_handler.hpp"
 
 namespace kagome::application {
   class AppStateManager;
-}  // namespace kagome::application
+}
 
 namespace kagome::blockchain {
   class BlockTree;
@@ -29,13 +29,14 @@ namespace kagome::blockchain {
 
 namespace kagome::consensus {
   class Timeline;
-}  // namespace kagome::consensus
+}
 
 namespace kagome::consensus::grandpa {
   class AuthorityManager;
   class Environment;
   struct MovableRoundState;
   class VoterSet;
+  class GrandpaThreadPool;
 }  // namespace kagome::consensus::grandpa
 
 namespace kagome::crypto {
@@ -105,7 +106,7 @@ namespace kagome::consensus::grandpa {
         std::shared_ptr<network::ReputationRepository> reputation_repository,
         LazySPtr<Timeline> timeline,
         primitives::events::ChainSubscriptionEnginePtr chain_sub_engine,
-        std::shared_ptr<Watchdog> watchdog,
+        std::shared_ptr<GrandpaThreadPool> thread_pool,
         WeakIoContext main_thread);
 
     /**
@@ -320,7 +321,6 @@ namespace kagome::consensus::grandpa {
     LazySPtr<Timeline> timeline_;
     primitives::events::ChainSub chain_sub_;
 
-    std::shared_ptr<ThreadPool> execution_thread_pool_;
     std::shared_ptr<ThreadHandler> internal_thread_context_;
     ThreadHandler main_thread_;
     std::shared_ptr<libp2p::basic::Scheduler> scheduler_;
