@@ -28,6 +28,7 @@
 #include "api/service/child_state/child_state_jrpc_processor.hpp"
 #include "api/service/child_state/impl/child_state_api_impl.hpp"
 #include "api/service/impl/api_service_impl.hpp"
+#include "api/service/impl/rpc_thread_pool.hpp"
 #include "api/service/internal/impl/internal_api_impl.hpp"
 #include "api/service/internal/internal_jrpc_processor.hpp"
 #include "api/service/mmr/rpc.hpp"

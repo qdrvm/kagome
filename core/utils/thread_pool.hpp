@@ -70,7 +70,7 @@ namespace kagome {
   /**
    * Creates `io_context` and runs it on `thread_count` threads.
    */
-  class ThreadPool final {
+  class ThreadPool {
     enum struct State : uint32_t { kStopped = 0, kStarted };
 
    public:
