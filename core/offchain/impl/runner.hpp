@@ -13,9 +13,19 @@
 
 #include "utils/thread_pool.hpp"
 
+namespace kagome {
+  class Watchdog;
+}
+
 namespace kagome::offchain {
   constexpr size_t kMaxThreads = 3;
   constexpr size_t kMaxTasks = 1000;
+
+  class OcwThreadPool final : public ThreadPool {
+   public:
+    OcwThreadPool(std::shared_ptr<Watchdog> watchdog)
+        : ThreadPool(std::move(watchdog), "ocw", kMaxThreads, std::nullopt) {}
+  };
 
   /**
    * Enqueue at most `max_tasks_` to run on number of `threads_`.
@@ -25,19 +35,13 @@ namespace kagome::offchain {
    public:
     using Task = std::function<void()>;
 
-    Runner(std::shared_ptr<Watchdog> watchdog,
-           size_t threads = kMaxThreads,
-           size_t max_tasks = kMaxTasks)
-        : threads_{threads},
-          free_threads_{threads},
-          max_tasks_{max_tasks},
-          thread_pool_{std::move(watchdog), "ocw", threads_} {}
-
-    struct Inject {
-      explicit Inject() = default;
-    };
-    Runner(Inject, std::shared_ptr<Watchdog> watchdog, ...)
-        : Runner(watchdog, kMaxThreads, kMaxTasks) {}
+    Runner(std::shared_ptr<OcwThreadPool> thread_pool)
+        : free_threads_{kMaxThreads},
+          max_tasks_{kMaxTasks},
+          thread_pool_handler_{[&] {
+            BOOST_ASSERT(thread_pool);
+            return thread_pool->handler();
+          }()} {}
 
     void run(Task &&task) {
       std::unique_lock lock{mutex_};
@@ -50,17 +54,17 @@ namespace kagome::offchain {
       }
       --free_threads_;
       lock.unlock();
-      thread_pool_.io_context()->post(
-          [weak{weak_from_this()}, task{std::move(task)}] {
-            if (auto self = weak.lock()) {
-              ::libp2p::common::FinalAction release([&] {
-                std::unique_lock lock{self->mutex_};
-                ++self->free_threads_;
-              });
-              task();
-              self->drain();
-            }
-          });
+      post(*thread_pool_handler_,
+           [weak{weak_from_this()}, task{std::move(task)}] {
+             if (auto self = weak.lock()) {
+               ::libp2p::common::FinalAction release([&] {
+                 std::unique_lock lock{self->mutex_};
+                 ++self->free_threads_;
+               });
+               task();
+               self->drain();
+             }
+           });
     }
 
    private:
@@ -78,10 +82,9 @@ namespace kagome::offchain {
     }
 
     std::mutex mutex_;
-    const size_t threads_;
     size_t free_threads_;
     const size_t max_tasks_;
     std::deque<Task> tasks_;
-    ThreadPool thread_pool_;
+    std::shared_ptr<ThreadHandler> thread_pool_handler_;
   };
 }  // namespace kagome::offchain
