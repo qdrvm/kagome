@@ -535,6 +535,7 @@ namespace kagome::parachain {
     void onViewUpdated(const network::ExView &event);
     void OnBroadcastBitfields(const primitives::BlockHash &relay_parent,
                               const network::SignedBitfield &bitfield);
+    void onUpdatePeerView(const libp2p::peer::PeerId &peer_id, const network::View &view);
     void fetchCollation(
         ParachainProcessorImpl::RelayParentState &per_relay_parent,
         PendingCollation &&pc,
@@ -548,6 +549,7 @@ namespace kagome::parachain {
     tryGetStateByRelayParent(const primitives::BlockHash &relay_parent);
     RelayParentState &storeStateByRelayParent(
         const primitives::BlockHash &relay_parent, RelayParentState &&val);
+    void send_peer_messages_for_relay_parent(std::optional<std::reference_wrapper<const libp2p::peer::PeerId>> peer_id, const RelayHash &relay_parent);
 
     void createBackingTask(const primitives::BlockHash &relay_parent);
     outcome::result<RelayParentState> initNewBackingTask(
@@ -630,6 +632,11 @@ namespace kagome::parachain {
                          PendingCollationHash,
                          PendingCollationEq>
           collation_requests_cancel_handles;
+
+        struct {
+           std::unordered_set<Hash> implicit_view;
+           network::View view;
+        } statementDistributionV2;
     } our_current_state_;
 
     std::unordered_map<RelayHash, PendingCollation> pending_candidates;
@@ -638,6 +645,7 @@ namespace kagome::parachain {
     std::shared_ptr<crypto::Hasher> hasher_;
     std::shared_ptr<network::PeerView> peer_view_;
     network::PeerView::MyViewSubscriberPtr my_view_sub_;
+    network::PeerView::PeerViewSubscriberPtr remote_view_sub_;
 
     std::shared_ptr<parachain::Pvf> pvf_;
     std::shared_ptr<parachain::ValidatorSignerFactory> signer_factory_;

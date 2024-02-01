@@ -152,6 +152,18 @@ namespace kagome::parachain {
         metrics_registry_->registerGaugeMetric(kIsParachainValidator);
     metric_is_parachain_validator_->set(false);
 
+    std::vector<uint8_t> s = {
+      3, 2, 113, 218, 98, 50, 114, 151, 15, 192, 9, 88, 108, 144, 207, 166, 141, 244, 226, 228, 183, 122, 224, 29, 117, 148, 3, 106, 121, 206, 139, 51, 226, 126, 12, 7, 12, 0
+    };
+    auto r = scale::decode<network::vstaging::ValidatorProtocolMessage>(s).value();
+    if (auto r_0 = if_type<network::vstaging::StatementDistributionMessage>(r)) {
+      if (auto r_1 = if_type<network::vstaging::BackedCandidateAcknowledgement>(r_0->get())) {
+        const auto &r_3 = r_1->get();
+        assert(false);
+      }  
+    }
+
+
     //    std::vector<uint8_t> s = {
     //        0x01,0x00,0x00,0x9e,0x1c,0xf1,0x33,0xe6,
     //        0xf2,0xc8,0x51,0xdd,0xbb,0xf5,0xaa,0x7a,
@@ -297,7 +309,94 @@ namespace kagome::parachain {
             self->onViewUpdated(event);
           }
         });
+
+    remote_view_sub_ = std::make_shared<network::PeerView::PeerViewSubscriber>(
+        peer_view_->getRemoteViewObservable(), false);
+    remote_view_sub_->subscribe(remote_view_sub_->generateSubscriptionSetId(),
+                                network::PeerView::EventType::kViewUpdated);
+    remote_view_sub_->setCallback(
+        [wptr{weak_from_this()}](auto /*set_id*/,
+                                 auto && /*internal_obj*/,
+                                 auto /*event_type*/,
+                                 const libp2p::peer::PeerId &peer_id,
+                                 const network::View &view) {
+          if (auto self = wptr.lock()) {
+            self->onUpdatePeerView(peer_id, view);
+          }
+        });
+
     return true;
+  }
+
+  void ParachainProcessorImpl::onUpdatePeerView(const libp2p::peer::PeerId &peer_id,
+                           const network::View &view) {
+      REINVOKE(*this_context_, onUpdatePeerView, peer_id, view);
+
+      /// TODO(iceseer): do `handle_peer_view_update` keep peer view to send only perfect messages
+      for (const auto &h : view.heads_) {
+        send_peer_messages_for_relay_parent({{peer_id}}, h);
+      }
+  }
+
+  void ParachainProcessorImpl::send_peer_messages_for_relay_parent(std::optional<std::reference_wrapper<const libp2p::peer::PeerId>> peer_id, const RelayHash &relay_parent) {
+      auto parachain_state = tryGetStateByRelayParent(relay_parent);
+      if (!parachain_state) {
+        SL_WARN(logger_, "After `send_peer_messages_for_relay_parent` no parachain state on relay_parent. (relay_parent={})", relay_parent);
+        return;
+      }
+
+      auto opt_session_info = retrieveSessionInfo(relay_parent);
+      if (!opt_session_info) {
+        SL_WARN(logger_, "No session info. (relay_parent={})", relay_parent);
+        return;
+      }
+
+      Groups groups{opt_session_info->validator_groups};
+      std::deque<network::VersionedValidatorProtocolMessage> messages;
+
+      for (const auto &candidate_hash : parachain_state->get().issued_statements) {
+        if (auto confirmed_candidate = candidates_.get_confirmed(candidate_hash)) {
+          const auto group_index = confirmed_candidate->get().group_index();
+          const auto group_size = groups.groups[group_index].size();
+          
+          auto local_knowledge = local_knowledge_filter(group_size, group_index, candidate_hash, *parachain_state->get().statement_store);
+          network::VersionedValidatorProtocolMessage manifest{
+            kagome::network::vstaging::ValidatorProtocolMessage{
+                kagome::network::vstaging::StatementDistributionMessage{
+                    kagome::network::vstaging::BackedCandidateManifest{
+                        .relay_parent = relay_parent,
+                        .candidate_hash = candidate_hash,
+                        .group_index = group_index,
+                        .para_id = confirmed_candidate->get().para_id(),
+                        .parent_head_data_hash = confirmed_candidate->get().parent_head_data_hash(),
+                        .statement_knowledge = local_knowledge,}}}};
+
+          auto m = acknowledgement_and_statement_messages(
+            *parachain_state->get().statement_store,
+            groups.groups[group_index],
+            local_knowledge,
+            candidate_hash,
+            relay_parent);
+
+          messages.emplace_back(std::move(manifest));
+          messages.insert(messages.end(), std::move_iterator(m.begin()), std::move_iterator(m.end()));
+        }
+      }
+
+      if (peer_id) {
+        auto se = pm_->getStreamEngine();
+        BOOST_ASSERT(se);
+
+        for (auto &msg : messages) {
+          if (auto m = if_type<network::vstaging::ValidatorProtocolMessage>(msg)) {
+            auto message = std::make_shared<network::WireMessage<network::vstaging::ValidatorProtocolMessage>>(std::move(m->get()));
+            se->send(peer_id->get(), router_->getValidationProtocolVStaging(), message);
+          }
+        }
+      }
+      else {
+        send_to_validators_group(relay_parent, std::move(messages));
+      }
   }
 
   void ParachainProcessorImpl::onViewUpdated(const network::ExView &event) {
@@ -320,6 +419,9 @@ namespace kagome::parachain {
              event.view.finalized_number_,
              event.view.heads_.size());
     broadcastView(event.view);
+    for (const auto &h : event.view.heads_) {
+      send_peer_messages_for_relay_parent(std::nullopt, h);
+    }
     new_leaf_fragment_tree_updates(relay_parent);
 
     for (const auto &lost : event.lost) {
