@@ -45,10 +45,10 @@ jobs:
     - name: install
       run: ./housekeeping/macos/dependency.sh
     - name: build
-      run: ./housekeeping/make_build.sh -DCLEAR_OBJS=ON -DCOVERAGE=OFF -DWASM_COMPILER=WasmEdge -DCMAKE_TOOLCHAIN_FILE=cmake/toolchain/cxx20.cmake -DHUNTER_PYTHON_LOCATION=/opt/homebrew/bin/ -DPython_EXECUTABLE=/opt/homebrew/bin/python3
+      run: ./housekeeping/make_build.sh -DCLEAR_OBJS=ON -DCOVERAGE=OFF -DWASM_COMPILER=WasmEdge -DCMAKE_TOOLCHAIN_FILE=cmake/toolchain/cxx20.cmake
       env:
         KAGOME_IN_DOCKER: 0
-        HUNTER_PYTHON_LOCATION: /opt/homebrew/bin/
+        HUNTER_PYTHON_LOCATION: /usr/local/bin/
   Linux:
     if: ${{ !(github.ref == 'refs/heads/master' || startsWith( github.ref, 'refs/tags/' )) }}
     strategy:
