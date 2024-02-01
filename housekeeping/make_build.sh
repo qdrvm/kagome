@@ -23,7 +23,7 @@ which git
 
 cd "$(dirname $0)/.."
 
-cmake . -B${BUILD_DIR} -DHUNTER_STATUS_DEBUG=ON "$@" -DBACKWARD=OFF
+CURL_SSL_BACKEND=SecureTransport cmake . -B${BUILD_DIR} -DHUNTER_STATUS_DEBUG=ON "$@" -DBACKWARD=OFF
 if [ "$BUILD_FINAL_TARGET" != "generated" ] ; then
   cmake --build "${BUILD_DIR}" -- -j${BUILD_THREADS}
 fi
