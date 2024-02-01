@@ -19,6 +19,8 @@
 #include "log/profiling_logger.hpp"
 #include "storage/database_error.hpp"
 #include "storage/trie_pruner/trie_pruner.hpp"
+#include "utils/thread_handler.hpp"
+#include "utils/weak_io_context.hpp"
 
 namespace {
   constexpr auto blockHeightMetricName = "kagome_block_height";
@@ -433,7 +435,7 @@ namespace kagome::blockchain {
           .genesis_block_hash_ = {},
           .blocks_pruning_ = {app_config.blocksPruning(), finalized.number},
       }},
-        main_thread_{std::move(main_thread)} {
+        main_thread_{std::make_shared<ThreadHandler>(std::move(main_thread))} {
     block_tree_data_.sharedAccess([&](const BlockTreeData &p) {
       BOOST_ASSERT(p.header_repo_ != nullptr);
       BOOST_ASSERT(p.storage_ != nullptr);
@@ -480,7 +482,7 @@ namespace kagome::blockchain {
     extrinsic_events_engine_ = std::move(extrinsic_events_engine);
     BOOST_ASSERT(extrinsic_events_engine_ != nullptr);
 
-    main_thread_.start();
+    main_thread_->start();
   }
 
   const primitives::BlockHash &BlockTreeImpl::getGenesisBlockHash() const {
@@ -559,7 +561,7 @@ namespace kagome::blockchain {
             auto extrinsic_hash = p.hasher_->blake2b_256(ext.data);
             SL_DEBUG(log_, "Adding extrinsic with hash {}", extrinsic_hash);
             if (auto key = p.extrinsic_event_key_repo_->get(extrinsic_hash)) {
-              main_thread_.execute(
+              main_thread_->execute(
                   [wself{weak_from_this()}, key{key.value()}, block_hash]() {
                     if (auto self = wself.lock()) {
                       self->extrinsic_events_engine_->notify(
@@ -582,7 +584,7 @@ namespace kagome::blockchain {
       primitives::events::ChainEventType event,
       const primitives::BlockHeader &header) {
     BOOST_ASSERT(header.hash_opt.has_value());
-    main_thread_.execute([wself{weak_from_this()}, event, header]() mutable {
+    main_thread_->execute([wself{weak_from_this()}, event, header]() mutable {
       if (auto self = wself.lock()) {
         self->chain_events_engine_->notify(std::move(event), std::move(header));
       }
@@ -819,9 +821,9 @@ namespace kagome::blockchain {
           for (auto &ext : body.value()) {
             auto extrinsic_hash = p.hasher_->blake2b_256(ext.data);
             if (auto key = p.extrinsic_event_key_repo_->get(extrinsic_hash)) {
-              main_thread_.execute([wself{weak_from_this()},
-                                    key{key.value()},
-                                    block_hash]() {
+              main_thread_->execute([wself{weak_from_this()},
+                                     key{key.value()},
+                                     block_hash]() {
                 if (auto self = wself.lock()) {
                   self->extrinsic_events_engine_->notify(
                       key,
@@ -833,8 +835,8 @@ namespace kagome::blockchain {
           }
         }
 
-        main_thread_.execute([weak{weak_from_this()},
-                              retired_hashes{std::move(retired_hashes)}] {
+        main_thread_->execute([weak{weak_from_this()},
+                               retired_hashes{std::move(retired_hashes)}] {
           if (auto self = weak.lock()) {
             self->chain_events_engine_->notify(
                 primitives::events::ChainEventType::
@@ -1301,9 +1303,9 @@ namespace kagome::blockchain {
         for (auto &ext : block_body_opt.value()) {
           auto extrinsic_hash = p.hasher_->blake2b_256(ext.data);
           if (auto key = p.extrinsic_event_key_repo_->get(extrinsic_hash)) {
-            main_thread_.execute([wself{weak_from_this()},
-                                  key{key.value()},
-                                  block_hash{block.hash}]() {
+            main_thread_->execute([wself{weak_from_this()},
+                                   key{key.value()},
+                                   block_hash{block.hash}]() {
               if (auto self = wself.lock()) {
                 self->extrinsic_events_engine_->notify(
                     key,
@@ -1322,9 +1324,10 @@ namespace kagome::blockchain {
     }
 
     // trying to return extrinsics back to transaction pool
-    main_thread_.execute([extrinsics{std::move(extrinsics)},
-                          wself{weak_from_this()},
-                          retired_hashes{std::move(retired_hashes)}]() mutable {
+    main_thread_->execute([extrinsics{std::move(extrinsics)},
+                           wself{weak_from_this()},
+                           retired_hashes{
+                               std::move(retired_hashes)}]() mutable {
       if (auto self = wself.lock()) {
         auto eo = self->block_tree_data_.sharedAccess(
             [&](const BlockTreeData &p) { return p.extrinsic_observer_; });

@@ -19,10 +19,6 @@
 #include "telemetry/service.hpp"
 #include "utils/weak_io_context.hpp"
 
-namespace kagome {
-  class ThreadPool;
-}
-
 namespace kagome::application {
   class AppConfiguration;
 }
@@ -33,6 +29,10 @@ namespace kagome::authorship {
 
 namespace kagome::blockchain {
   class BlockTree;
+}
+
+namespace kagome::common {
+  class WorkerThreadPool;
 }
 
 namespace kagome::consensus {
@@ -106,7 +106,7 @@ namespace kagome::consensus::babe {
         primitives::events::ChainSubscriptionEnginePtr chain_sub_engine,
         std::shared_ptr<network::BlockAnnounceTransmitter> announce_transmitter,
         std::shared_ptr<runtime::OffchainWorkerApi> offchain_worker_api,
-        const ThreadPool &thread_pool,
+        std::shared_ptr<common::WorkerThreadPool> thread_pool,
         WeakIoContext main_thread);
 
     bool isGenesisConsensus() const override;

@@ -29,7 +29,6 @@
 #include "testutil/outcome.hpp"
 #include "testutil/prepare_loggers.hpp"
 #include "utils/safe_object.hpp"
-#include "utils/thread_pool.hpp"
 
 using kagome::ThreadPool;
 using kagome::Watchdog;

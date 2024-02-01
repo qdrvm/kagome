@@ -17,7 +17,11 @@
 #include "metrics/metrics.hpp"
 #include "primitives/event_types.hpp"
 #include "utils/safe_object.hpp"
-#include "utils/thread_handler.hpp"
+#include "utils/weak_io_context.hpp"
+
+namespace kagome {
+  class ThreadHandler;
+}
 
 namespace kagome::application {
   class AppStateManager;
@@ -322,7 +326,7 @@ namespace kagome::consensus::grandpa {
     primitives::events::ChainSub chain_sub_;
 
     std::shared_ptr<ThreadHandler> internal_thread_context_;
-    ThreadHandler main_thread_;
+    std::shared_ptr<ThreadHandler> main_thread_;
     std::shared_ptr<libp2p::basic::Scheduler> scheduler_;
 
     std::shared_ptr<VotingRound> current_round_;

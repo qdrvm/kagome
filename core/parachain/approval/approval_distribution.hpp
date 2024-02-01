@@ -36,10 +36,13 @@
 #include "runtime/runtime_api/parachain_host.hpp"
 #include "runtime/runtime_api/parachain_host_types.hpp"
 #include "utils/safe_object.hpp"
-#include "utils/thread_pool.hpp"
 
 namespace kagome {
   class ThreadHandler;
+}
+
+namespace kagome::common {
+  class WorkerThreadPool;
 }
 
 namespace kagome::consensus::babe {
@@ -266,7 +269,7 @@ namespace kagome::parachain {
     ApprovalDistribution(
         std::shared_ptr<consensus::babe::BabeConfigRepository> babe_config_repo,
         std::shared_ptr<application::AppStateManager> app_state_manager,
-        std::shared_ptr<ThreadPool> thread_pool,
+        std::shared_ptr<common::WorkerThreadPool> thread_pool,
         std::shared_ptr<runtime::ParachainHost> parachain_host,
         LazySPtr<consensus::SlotsUtil> slots_util,
         std::shared_ptr<crypto::CryptoStore> keystore,
@@ -706,7 +709,6 @@ namespace kagome::parachain {
     ApprovingContextMap approving_context_map_;
     std::shared_ptr<ThreadHandler> internal_context_;
 
-    std::shared_ptr<ThreadPool> thread_pool_;
     std::shared_ptr<ThreadHandler> thread_pool_context_;
 
     std::shared_ptr<runtime::ParachainHost> parachain_host_;
@@ -733,7 +735,7 @@ namespace kagome::parachain {
     std::shared_ptr<blockchain::BlockTree> block_tree_;
     std::shared_ptr<parachain::Pvf> pvf_;
     std::shared_ptr<parachain::Recovery> recovery_;
-    ThreadHandler main_thread_;
+    std::unique_ptr<ThreadHandler> main_thread_;
     LazySPtr<dispute::DisputeCoordinator> dispute_coordinator_;
 
     std::shared_ptr<libp2p::basic::Scheduler> scheduler_;

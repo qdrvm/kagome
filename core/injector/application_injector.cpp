@@ -61,6 +61,7 @@
 #include "clock/impl/clock_impl.hpp"
 #include "common/fd_limit.hpp"
 #include "common/outcome_throw.hpp"
+#include "common/worker_thread_pool.hpp"
 #include "consensus/babe/impl/babe.hpp"
 #include "consensus/babe/impl/babe_block_validator_impl.hpp"
 #include "consensus/babe/impl/babe_config_repository_impl.hpp"

@@ -8,11 +8,11 @@
 
 #include <array>
 #include <unordered_map>
-#include <span>
 
 #include <fmt/std.h>
 #include <libp2p/common/final_action.hpp>
 
+#include "common/worker_thread_pool.hpp"
 #include "crypto/hasher.hpp"
 #include "crypto/sr25519_provider.hpp"
 #include "dispute_coordinator/impl/runtime_info.hpp"
@@ -26,6 +26,7 @@
 #include "scale/scale.hpp"
 #include "utils/async_sequence.hpp"
 #include "utils/profiler.hpp"
+#include "utils/thread_handler.hpp"
 
 OUTCOME_CPP_DEFINE_CATEGORY(kagome::parachain,
                             ParachainProcessorImpl::Error,
@@ -72,7 +73,7 @@ namespace kagome::parachain {
       WeakIoContext main_thread,
       std::shared_ptr<crypto::Hasher> hasher,
       std::shared_ptr<network::PeerView> peer_view,
-      std::shared_ptr<ThreadPool> thread_pool,
+      std::shared_ptr<common::WorkerThreadPool> thread_pool,
       std::shared_ptr<parachain::BitfieldSigner> bitfield_signer,
       std::shared_ptr<parachain::PvfPrecheck> pvf_precheck,
       std::shared_ptr<parachain::BitfieldStore> bitfield_store,
@@ -92,7 +93,6 @@ namespace kagome::parachain {
         main_thread_(std::move(main_thread)),
         hasher_(std::move(hasher)),
         peer_view_(std::move(peer_view)),
-        thread_pool_(std::move(thread_pool)),
         pvf_(std::move(pvf)),
         signer_factory_(std::move(signer_factory)),
         bitfield_signer_(std::move(bitfield_signer)),
@@ -104,13 +104,15 @@ namespace kagome::parachain {
         app_config_(app_config),
         babe_status_observable_(std::move(babe_status_observable)),
         query_audi_{std::move(query_audi)},
-        thread_handler_{thread_pool_->io_context()} {
+        thread_handler_{[&] {
+          BOOST_ASSERT(thread_pool);
+          return thread_pool->io_context();
+        }()} {
     BOOST_ASSERT(pm_);
     BOOST_ASSERT(peer_view_);
     BOOST_ASSERT(crypto_provider_);
     BOOST_ASSERT(router_);
     BOOST_ASSERT(hasher_);
-    BOOST_ASSERT(thread_pool_);
     BOOST_ASSERT(bitfield_signer_);
     BOOST_ASSERT(bitfield_store_);
     BOOST_ASSERT(backing_store_);

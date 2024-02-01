@@ -13,6 +13,7 @@
 #include "application/app_configuration.hpp"
 #include "authorship/proposer.hpp"
 #include "blockchain/block_tree.hpp"
+#include "common/worker_thread_pool.hpp"
 #include "consensus/babe/babe_config_repository.hpp"
 #include "consensus/babe/babe_lottery.hpp"
 #include "consensus/babe/impl/babe_block_validator_impl.hpp"
@@ -35,7 +36,6 @@
 #include "storage/changes_trie/impl/storage_changes_tracker_impl.hpp"
 #include "storage/trie/serialization/ordered_trie_hash.hpp"
 #include "telemetry/service.hpp"
-#include "utils/thread_pool.hpp"
 
 namespace {
   inline const auto kTimestampId =
@@ -81,7 +81,7 @@ namespace kagome::consensus::babe {
       primitives::events::ChainSubscriptionEnginePtr chain_sub_engine,
       std::shared_ptr<network::BlockAnnounceTransmitter> announce_transmitter,
       std::shared_ptr<runtime::OffchainWorkerApi> offchain_worker_api,
-      const ThreadPool &thread_pool,
+      std::shared_ptr<common::WorkerThreadPool> thread_pool,
       WeakIoContext main_thread)
       : log_(log::createLogger("Babe", "babe")),
         clock_(clock),
@@ -103,7 +103,10 @@ namespace kagome::consensus::babe {
         announce_transmitter_(std::move(announce_transmitter)),
         offchain_worker_api_(std::move(offchain_worker_api)),
         main_thread_(std::move(main_thread)),
-        wasm_thread_{thread_pool.io_context()},
+        wasm_thread_{[&] {
+          BOOST_ASSERT(thread_pool);
+          return thread_pool->io_context();
+        }()},
         is_validator_by_config_(app_config.roles().flags.authority != 0),
         telemetry_{telemetry::createTelemetryService()} {
     BOOST_ASSERT(block_tree_);

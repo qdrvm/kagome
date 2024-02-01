@@ -31,6 +31,7 @@
 #include "network/reputation_repository.hpp"
 #include "network/synchronizer.hpp"
 #include "utils/retain_if.hpp"
+#include "utils/thread_handler.hpp"
 
 namespace {
   constexpr auto highestGrandpaRoundMetricName =
@@ -92,7 +93,7 @@ namespace kagome::consensus::grandpa {
           BOOST_ASSERT(thread_pool != nullptr);
           return thread_pool->handler();
         }()},
-        main_thread_{std::move(main_thread)},
+        main_thread_{std::make_shared<ThreadHandler>(std::move(main_thread))},
         scheduler_{std::make_shared<libp2p::basic::SchedulerImpl>(
             std::make_shared<libp2p::basic::AsioSchedulerBackend>(
                 thread_pool->io_context()),
@@ -122,7 +123,7 @@ namespace kagome::consensus::grandpa {
 
   bool GrandpaImpl::prepare() {
     internal_thread_context_->start();
-    main_thread_.start();
+    main_thread_->start();
     return true;
   }
 
@@ -211,7 +212,7 @@ namespace kagome::consensus::grandpa {
   }
 
   void GrandpaImpl::stop() {
-    main_thread_.stop();
+    main_thread_->stop();
     internal_thread_context_->stop();
     fallback_timer_handle_.cancel();
   }
@@ -1303,7 +1304,7 @@ namespace kagome::consensus::grandpa {
 
   void GrandpaImpl::callbackCall(ApplyJustificationCb &&callback,
                                  outcome::result<void> &&result) {
-    main_thread_.execute(
+    main_thread_->execute(
         [callback{std::move(callback)}, result{std::move(result)}]() mutable {
           callback(std::move(result));
         });
@@ -1481,7 +1482,7 @@ namespace kagome::consensus::grandpa {
     if (not timeline_.get()->wasSynchronized()) {
       return;
     }
-    post(main_thread_,
+    post(*main_thread_,
          [s{synchronizer_}, blocks{gc.missing_blocks}, peer{*gc.peer_id}] {
            for (auto &block : blocks) {
              s->syncByBlockInfo(block, peer, nullptr, false);

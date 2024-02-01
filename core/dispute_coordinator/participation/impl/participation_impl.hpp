@@ -8,7 +8,6 @@
 
 #include "dispute_coordinator/participation/impl/queues_impl.hpp"
 #include "dispute_coordinator/participation/participation.hpp"
-#include "utils/thread_pool.hpp"
 
 #include <unordered_set>
 

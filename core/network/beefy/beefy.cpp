@@ -10,6 +10,7 @@
 #include "application/chain_spec.hpp"
 #include "blockchain/block_tree.hpp"
 #include "blockchain/block_tree_error.hpp"
+#include "common/worker_thread_pool.hpp"
 #include "consensus/beefy/digest.hpp"
 #include "consensus/beefy/sig.hpp"
 #include "consensus/timeline/timeline.hpp"
@@ -20,7 +21,6 @@
 #include "runtime/runtime_api/beefy.hpp"
 #include "storage/spaced_storage.hpp"
 #include "utils/block_number_key.hpp"
-#include "utils/thread_pool.hpp"
 #include "utils/weak_io_context_strand.hpp"
 
 // TODO(turuslan): #1651, report equivocation
@@ -41,7 +41,7 @@ namespace kagome::network {
                std::shared_ptr<runtime::BeefyApi> beefy_api,
                std::shared_ptr<crypto::EcdsaProvider> ecdsa,
                std::shared_ptr<storage::SpacedStorage> db,
-               std::shared_ptr<ThreadPool> thread_pool,
+               std::shared_ptr<common::WorkerThreadPool> thread_pool,
                WeakIoContext main_thread,
                LazySPtr<consensus::Timeline> timeline,
                std::shared_ptr<crypto::SessionKeys> session_keys,
@@ -51,8 +51,10 @@ namespace kagome::network {
         beefy_api_{std::move(beefy_api)},
         ecdsa_{std::move(ecdsa)},
         db_{db->getSpace(storage::Space::kBeefyJustification)},
-        strand_{
-            std::make_shared<WeakIoContextStrand>(thread_pool->io_context())},
+        strand_{std::make_shared<WeakIoContextStrand>([&] {
+          BOOST_ASSERT(thread_pool);
+          return thread_pool->io_context();
+        }())},
         main_thread_{std::move(main_thread)},
         timeline_{std::move(timeline)},
         session_keys_{std::move(session_keys)},

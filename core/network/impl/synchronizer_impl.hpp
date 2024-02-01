@@ -34,6 +34,10 @@ namespace kagome::storage::trie_pruner {
   class TriePruner;
 }
 
+namespace kagome {
+  class ThreadHandler;
+}
+
 namespace kagome::consensus {
   class BlockHeaderAppender;
   class BlockExecutor;
@@ -234,7 +238,7 @@ namespace kagome::network {
     std::shared_ptr<IBeefy> beefy_;
     std::shared_ptr<consensus::grandpa::Environment> grandpa_environment_;
     primitives::events::ChainSubscriptionEnginePtr chain_sub_engine_;
-    ThreadHandler main_thread_;
+    std::shared_ptr<ThreadHandler> main_thread_;
 
     application::SyncMethod sync_method_;
 

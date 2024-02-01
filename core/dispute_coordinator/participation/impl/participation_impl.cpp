@@ -14,6 +14,7 @@
 #include "parachain/availability/recovery/recovery.hpp"
 #include "parachain/pvf/pvf.hpp"
 #include "runtime/runtime_api/parachain_host.hpp"
+#include "utils/thread_handler.hpp"
 
 namespace kagome::dispute {
 

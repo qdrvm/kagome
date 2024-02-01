@@ -12,7 +12,11 @@
 #include "log/logger.hpp"
 #include "metrics/metrics.hpp"
 #include "parachain/approval/approved_ancestor.hpp"
-#include "utils/thread_pool.hpp"
+#include "utils/weak_io_context.hpp"
+
+namespace kagome {
+  class ThreadHandler;
+}
 
 namespace kagome::blockchain {
   class BlockHeaderRepository;
@@ -131,7 +135,7 @@ namespace kagome::consensus::grandpa {
     std::shared_ptr<runtime::ParachainHost> parachain_api_;
     std::shared_ptr<parachain::BackingStore> backing_store_;
     std::shared_ptr<crypto::Hasher> hasher_;
-    ThreadHandler main_thread_;
+    std::shared_ptr<ThreadHandler> main_thread_;
 
     metrics::RegistryPtr metrics_registry_ = metrics::createRegistry();
     metrics::Gauge *metric_approval_lag_;

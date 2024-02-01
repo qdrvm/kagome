@@ -31,7 +31,11 @@
 #include "subscription/extrinsic_event_key_repository.hpp"
 #include "telemetry/service.hpp"
 #include "utils/safe_object.hpp"
-#include "utils/thread_pool.hpp"
+#include "utils/weak_io_context.hpp"
+
+namespace kagome {
+  class ThreadHandler;
+}
 
 namespace kagome::storage::trie_pruner {
   class TriePruner;
@@ -273,7 +277,7 @@ namespace kagome::blockchain {
     metrics::Gauge *metric_best_block_height_;
     metrics::Gauge *metric_finalized_block_height_;
     metrics::Gauge *metric_known_chain_leaves_;
-    ThreadHandler main_thread_;
+    std::shared_ptr<ThreadHandler> main_thread_;
     telemetry::Telemetry telemetry_ = telemetry::createTelemetryService();
   };
 }  // namespace kagome::blockchain

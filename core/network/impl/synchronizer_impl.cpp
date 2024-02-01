@@ -25,6 +25,7 @@
 #include "storage/trie/trie_batches.hpp"
 #include "storage/trie/trie_storage.hpp"
 #include "storage/trie_pruner/trie_pruner.hpp"
+#include "utils/thread_handler.hpp"
 
 OUTCOME_CPP_DEFINE_CATEGORY(kagome::network, SynchronizerImpl::Error, e) {
   using E = kagome::network::SynchronizerImpl::Error;
@@ -113,7 +114,7 @@ namespace kagome::network {
         beefy_{std::move(beefy)},
         grandpa_environment_{std::move(grandpa_environment)},
         chain_sub_engine_(std::move(chain_sub_engine)),
-        main_thread_{std::move(main_thread)} {
+        main_thread_{std::make_shared<ThreadHandler>(std::move(main_thread))} {
     BOOST_ASSERT(app_state_manager_);
     BOOST_ASSERT(block_tree_);
     BOOST_ASSERT(block_executor_);
@@ -136,7 +137,7 @@ namespace kagome::network {
     metric_import_queue_length_->set(0);
 
     app_state_manager_->takeControl(*this);
-    main_thread_.start();
+    main_thread_->start();
   }
 
   /** @see AppStateManager::takeControl */
@@ -872,7 +873,7 @@ namespace kagome::network {
       outcome::result<void> &&block_addition_result,
       Synchronizer::SyncResultHandler &&handler,
       const primitives::BlockHash &hash) {
-    REINVOKE(main_thread_,
+    REINVOKE(*main_thread_,
              post_block_addition,
              std::move(block_addition_result),
              std::move(handler),
