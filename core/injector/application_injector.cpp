@@ -357,16 +357,6 @@ namespace {
     return block_tree;
   }
 
-  template <typename Injector>
-  sptr<ThreadPool> get_thread_pool(const Injector &injector) {
-    size_t cores = std::thread::hardware_concurrency();
-    if (cores == 0ul) {
-      cores = 5;
-    }
-    return std::make_shared<ThreadPool>(
-        injector.template create<sptr<Watchdog>>(), "worker", cores);
-  }
-
   template <typename... Ts>
   auto makeWavmInjector(Ts &&...args) {
     return di::make_injector(
@@ -805,8 +795,6 @@ namespace {
             di::bind<network::ReqCollationObserver>.template to<parachain::ParachainObserverImpl>(),
             di::bind<network::ReqPovObserver>.template to<parachain::ParachainObserverImpl>(),
             di::bind<parachain::ParachainObserver>.template to<parachain::ParachainObserverImpl>(),
-            bind_by_lambda<ThreadPool>(
-                [](const auto &injector) { return get_thread_pool(injector); }),
             bind_by_lambda<storage::trie::TrieStorageBackend>(
                 [](const auto &injector) {
                   auto storage =
