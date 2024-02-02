@@ -78,9 +78,8 @@ namespace kagome::consensus::grandpa {
     main_thread_.start();
   }
 
-  outcome::result<bool> EnvironmentImpl::hasBlock(
-      const primitives::BlockHash &block) const {
-    return block_tree_->hasBlockHeader(block);
+  bool EnvironmentImpl::hasBlock(const primitives::BlockHash &block) const {
+    return block_tree_->has(block);
   }
 
   outcome::result<std::vector<BlockHash>> EnvironmentImpl::getAncestry(

@@ -160,16 +160,17 @@ class VotingRoundTest : public testing::Test,
         .WillRepeatedly(ReturnRef(finalized_in_prev_round_));
     EXPECT_CALL(*previous_round_, doCommit()).Times(AnyNumber());
 
-    round_ = VotingRoundImpl::create(grandpa_,
-                                     config,
-                                     hasher_,
-                                     env_,
-                                     vote_crypto_provider_,
-                                     prevotes_,
-                                     precommits_,
-                                     vote_graph_,
-                                     scheduler_,
-                                     previous_round_);
+    round_ = std::make_shared<VotingRoundImpl>(grandpa_,
+                                               config,
+                                               hasher_,
+                                               env_,
+                                               nullptr,
+                                               vote_crypto_provider_,
+                                               prevotes_,
+                                               precommits_,
+                                               vote_graph_,
+                                               scheduler_,
+                                               previous_round_);
   }
 
   SignedMessage preparePrimaryPropose(const Id &id,
@@ -305,6 +306,22 @@ TEST_F(VotingRoundTest, EstimateIsValid) {
 
   // then 2.
   ASSERT_EQ(round_->bestFinalCandidate(), BlockInfo(5, "E"_H));
+}
+
+TEST_F(VotingRoundTest, EquivocateDoesNotDoubleCount) {
+  std::optional<GrandpaContext> empty_context{};
+  auto alice1 = preparePrevote(kAlice, kAliceSignature, Prevote{9, "FC"_H});
+  round_->onPrevote(empty_context, alice1, Propagation::NEEDLESS);
+  auto alice2 = preparePrevote(kAlice, kAliceSignature, Prevote{9, "ED"_H});
+  round_->onPrevote(empty_context, alice2, Propagation::NEEDLESS);
+  auto alice3 = preparePrevote(kAlice, kAliceSignature, Prevote{6, "F"_H});
+  round_->onPrevote(empty_context, alice3, Propagation::NEEDLESS);
+  round_->update(false, true, false);
+  ASSERT_EQ(round_->prevoteGhost(), std::nullopt);
+  auto bob = preparePrevote(kBob, kBobSignature, Prevote{7, "FA"_H});
+  round_->onPrevote(empty_context, bob, Propagation::NEEDLESS);
+  round_->update(false, true, false);
+  ASSERT_EQ(round_->prevoteGhost(), (BlockInfo{7, "FA"_H}));
 }
 
 /**
