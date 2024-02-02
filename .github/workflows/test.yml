@@ -39,6 +39,8 @@ jobs:
         key: ${{ github.job }}-${{ env.CACHE_VERSION }}
     - name: install
       run: ./housekeeping/macos/dependency.sh
+      env:
+        KAGOME_MAC_CI: 1
     - name: build
       run: ./housekeeping/make_build.sh -DCLEAR_OBJS=ON -DCOVERAGE=OFF -DWASM_COMPILER=WasmEdge -DCMAKE_TOOLCHAIN_FILE=cmake/toolchain/cxx20.cmake
       env:
