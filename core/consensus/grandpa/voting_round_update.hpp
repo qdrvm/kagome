@@ -9,6 +9,10 @@
 #include "consensus/grandpa/voting_round.hpp"
 
 namespace kagome::consensus::grandpa {
+  /**
+   * Convenience wrapper for batch vote import.
+   * Import multiple `.vote(vote)`, then `.update()`.
+   */
   struct VotingRoundUpdate {
     VotingRound &round;
     std::optional<GrandpaContext> ctx;
