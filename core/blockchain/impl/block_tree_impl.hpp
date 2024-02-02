@@ -12,6 +12,7 @@
 #include <memory>
 #include <optional>
 #include <queue>
+#include <thread>
 #include <unordered_set>
 
 #include <libp2p/common/final_action.hpp>
