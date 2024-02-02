@@ -128,6 +128,8 @@ namespace kagome::primitives {
       /// inherent
       /// extrinsics are allowed to have mandatory dispatches.
       MandatoryDispatch,
+      /// The sending address is disabled or known to be invalid.
+      BadSigner,
     };
     Kind kind;
     uint8_t custom_value{};
