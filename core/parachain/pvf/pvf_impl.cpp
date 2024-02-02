@@ -271,8 +271,7 @@ namespace kagome::parachain {
     OUTCOME_TRY(ctx,
                 ctx_factory_->ephemeral(
                     instance, storage::trie::kEmptyRootHash, executor_params));
-    return executor_->call<ValidationResult>(
-        ctx, "validate_block", params);
+    return executor_->call<ValidationResult>(ctx, "validate_block", params);
   }
 
   outcome::result<Pvf::CandidateCommitments> PvfImpl::fromOutputs(

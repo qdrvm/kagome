@@ -168,39 +168,59 @@ TEST_F(ExecutorTest, LatestStateSwitchesCorrectly) {
 
   Buffer enc_args{scale::encode(2, 3).value()};
   EXPECT_OUTCOME_TRUE(ctx1,
-                         prepareCall(block_info1,
-                                     "state_hash1"_hash256,
-                                     CallType::Persistent,
-                                     enc_args,
-                                     5));
+                      prepareCall(block_info1,
+                                  "state_hash1"_hash256,
+                                  CallType::Persistent,
+                                  enc_args,
+                                  5));
   auto res = executor.call<int>(ctx1, "addTwo", 2, 3).value();
   EXPECT_EQ(res, 5);
 
   enc_args = scale::encode(7, 10).value();
-  EXPECT_OUTCOME_TRUE(ctx2, prepareCall(
-      block_info1, "state_hash2"_hash256, CallType::Ephemeral, enc_args, 17));
+  EXPECT_OUTCOME_TRUE(ctx2,
+                      prepareCall(block_info1,
+                                  "state_hash2"_hash256,
+                                  CallType::Ephemeral,
+                                  enc_args,
+                                  17));
   EXPECT_OUTCOME_TRUE(res2, executor.call<int>(ctx2, "addTwo", 7, 10));
   ASSERT_EQ(res2, 17);
 
   enc_args = scale::encode(0, 0).value();
-  EXPECT_OUTCOME_TRUE(ctx3, prepareCall(
-      block_info1, "state_hash2"_hash256, CallType::Persistent, enc_args, 0));
+  EXPECT_OUTCOME_TRUE(ctx3,
+                      prepareCall(block_info1,
+                                  "state_hash2"_hash256,
+                                  CallType::Persistent,
+                                  enc_args,
+                                  0));
   EXPECT_EQ(executor.call<int>(ctx3, "addTwo", 0, 0).value(), 0);
 
   enc_args = scale::encode(7, 10).value();
-  EXPECT_OUTCOME_TRUE(ctx4, prepareCall(
-      block_info1, "state_hash3"_hash256, CallType::Ephemeral, enc_args, 17));
+  EXPECT_OUTCOME_TRUE(ctx4,
+                      prepareCall(block_info1,
+                                  "state_hash3"_hash256,
+                                  CallType::Ephemeral,
+                                  enc_args,
+                                  17));
   EXPECT_OUTCOME_TRUE(res4, executor.call<int>(ctx4, "addTwo", 7, 10));
   ASSERT_EQ(res4, 17);
 
   enc_args = scale::encode(-5, 5).value();
-  EXPECT_OUTCOME_TRUE(ctx5, prepareCall(
-      block_info2, "state_hash4"_hash256, CallType::Persistent, enc_args, 0));
+  EXPECT_OUTCOME_TRUE(ctx5,
+                      prepareCall(block_info2,
+                                  "state_hash4"_hash256,
+                                  CallType::Persistent,
+                                  enc_args,
+                                  0));
   EXPECT_EQ(executor.call<int>(ctx5, "addTwo", -5, 5).value(), 0);
 
   enc_args = scale::encode(7, 10).value();
-  EXPECT_OUTCOME_TRUE(ctx6, prepareCall(
-      block_info2, "state_hash5"_hash256, CallType::Ephemeral, enc_args, 17));
+  EXPECT_OUTCOME_TRUE(ctx6,
+                      prepareCall(block_info2,
+                                  "state_hash5"_hash256,
+                                  CallType::Ephemeral,
+                                  enc_args,
+                                  17));
   EXPECT_OUTCOME_TRUE(res6, executor.call<int>(ctx6, "addTwo", 7, 10));
   ASSERT_EQ(res6, 17);
 }

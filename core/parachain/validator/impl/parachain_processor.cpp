@@ -7,8 +7,8 @@
 #include "parachain/validator/parachain_processor.hpp"
 
 #include <array>
-#include <unordered_map>
 #include <span>
+#include <unordered_map>
 
 #include <fmt/std.h>
 #include <libp2p/common/final_action.hpp>

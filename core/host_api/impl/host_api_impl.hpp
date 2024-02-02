@@ -105,7 +105,7 @@ namespace kagome::host_api {
 
     runtime::WasmPointer ext_trie_keccak_256_ordered_root_version_2(
         runtime::WasmSpan values_data, runtime::WasmI32 state_version) override;
-    
+
     // ------------------------Memory extensions v1-------------------------
     runtime::WasmPointer ext_allocator_malloc_version_1(
         runtime::WasmSize size) override;

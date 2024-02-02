@@ -18,7 +18,7 @@ namespace kagome::runtime {
   class Module;
 
   struct CompilationError : std::runtime_error {
-    CompilationError(const std::string& message)
+    CompilationError(const std::string &message)
         : std::runtime_error(message.c_str()) {}
 
     std::string_view message() const {

@@ -33,8 +33,7 @@ namespace scale {
   Stream &operator>>(Stream &stream, std::variant<Options...> &variant) {
     uint8_t index;
     stream >> index;
-    using Decoder =
-        void (*)(Stream & stream, std::variant<Options...> & variant);
+    using Decoder = void (*)(Stream &stream, std::variant<Options...> &variant);
     constexpr Decoder decoders[]{
         make_decoder<Options, Stream, Options...>()...};
     decoders[index](stream, variant);

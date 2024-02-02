@@ -33,9 +33,8 @@ namespace kagome::runtime {
     RuntimeInstancesPool(std::shared_ptr<ModuleFactory> module_factory,
                          size_t capacity = DEFAULT_MODULES_CACHE_SIZE);
 
-    outcome::result<std::shared_ptr<ModuleInstance>>
-    instantiateFromCode(const CodeHash &code_hash,
-                        common::BufferView code_zstd);
+    outcome::result<std::shared_ptr<ModuleInstance>> instantiateFromCode(
+        const CodeHash &code_hash, common::BufferView code_zstd);
 
     /**
      * @brief Instantiate new or reuse existing ModuleInstance for the provided

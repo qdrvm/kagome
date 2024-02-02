@@ -15,8 +15,8 @@ namespace kagome::runtime {
     BOOST_ASSERT(executor_);
   }
 
-  outcome::result<consensus::babe::BabeConfiguration> BabeApiImpl::configuration(
-      const primitives::BlockHash &block) {
+  outcome::result<consensus::babe::BabeConfiguration>
+  BabeApiImpl::configuration(const primitives::BlockHash &block) {
     OUTCOME_TRY(ctx, executor_->ctx().ephemeralAt(block));
     return executor_->call<consensus::babe::BabeConfiguration>(
         ctx, "BabeApi_configuration");
