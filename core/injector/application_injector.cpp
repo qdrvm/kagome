@@ -464,6 +464,7 @@ namespace {
             return std::static_pointer_cast<CommonType>(
                 injector.template create<sptr<CompiledType>>());
         }
+        BOOST_UNREACHABLE_RETURN({});
       case RuntimeExecutionMethod::Compile:
         return std::static_pointer_cast<CommonType>(
             injector.template create<sptr<CompiledType>>());

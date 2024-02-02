@@ -107,7 +107,6 @@ if (APPLE AND (CMAKE_CXX_COMPILER_ID STREQUAL "AppleClang" OR CMAKE_CXX_COMPILER
   )
 endif ()
 
-# TODO(Harrm): Figure out the OpenSSL dependency
 hunter_config(
     wabt
     URL https://github.com/qdrvm/wabt/archive/refs/tags/1.0.34-qdrvm1.zip
