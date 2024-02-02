@@ -38,17 +38,12 @@ jobs:
         path: ${{ env.CACHE_PATHS }}
         key: ${{ github.job }}-${{ env.CACHE_VERSION }}
     - name: install
-      run: |
-        python3 -m venv venv
-        source venv/bin/activate
-        ./housekeeping/macos/dependency.sh
+      run: ./housekeeping/macos/dependency.sh
     - name: build
-      run: |
-        source venv/bin/activate
-        export HUNTER_PYTHON_LOCATION=$VIRTUAL_ENV
-        ./housekeeping/make_build.sh -DCLEAR_OBJS=ON -DCOVERAGE=OFF -DWASM_COMPILER=WasmEdge -DCMAKE_TOOLCHAIN_FILE=cmake/toolchain/cxx20.cmake
+      run: ./housekeeping/make_build.sh -DCLEAR_OBJS=ON -DCOVERAGE=OFF -DWASM_COMPILER=WasmEdge -DCMAKE_TOOLCHAIN_FILE=cmake/toolchain/cxx20.cmake
       env:
         KAGOME_IN_DOCKER: 0
+        KAGOME_MAC_CI: 1
   Linux:
     if: ${{ !(github.ref == 'refs/heads/master' || startsWith( github.ref, 'refs/tags/' )) }}
     strategy:

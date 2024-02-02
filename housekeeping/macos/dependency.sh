@@ -5,6 +5,11 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
+if [[ "${KAGOME_MAC_CI}" = 1 ]]; then
+  python3 -m venv ~/venv
+  source ~/venv/bin/activate
+fi
+
 # install python pip3 deps
 sudo python3 -m pip install --upgrade pip
 sudo python3 -m pip install scikit-build
