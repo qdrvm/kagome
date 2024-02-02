@@ -436,7 +436,7 @@ namespace kagome::blockchain {
           .blocks_pruning_ = {app_config.blocksPruning(), finalized.number},
       }},
         main_thread_handler_{[&] {
-          BOOST_ASSERT(not main_thread_context_.expired());
+          BOOST_ASSERT(not main_thread_context.expired());
           return std::make_shared<ThreadHandler>(
               std::move(main_thread_context));
         }()} {
