@@ -23,12 +23,14 @@ namespace kagome::network {
 
   Reputation ReputationRepositoryImpl::reputation(
       const ReputationRepository::PeerId &peer_id) const {
+    std::unique_lock lock{mutex_};
     auto it = reputation_table_.find(peer_id);
     return it != reputation_table_.end() ? it->second : 0;
   }
 
   Reputation ReputationRepositoryImpl::change(
       const ReputationRepository::PeerId &peer_id, ReputationChange diff) {
+    std::unique_lock lock{mutex_};
     auto reputation = reputation_table_[peer_id] += diff.value;
     SL_DEBUG(log_,
              "Reputation of peer {} was changed by {} points to {} points. "
@@ -44,6 +46,7 @@ namespace kagome::network {
       const ReputationRepository::PeerId &peer_id,
       ReputationChange diff,
       std::chrono::seconds duration) {
+    std::unique_lock lock{mutex_};
     auto reputation = reputation_table_[peer_id] += diff.value;
     SL_DEBUG(log_,
              "Reputation of peer {} was changed by {} points to {} points "
@@ -63,6 +66,7 @@ namespace kagome::network {
       scheduler_->schedule(
           [wp{weak_from_this()}, peer_id, value, reason = diff.reason] {
             if (auto self = wp.lock()) {
+              std::unique_lock lock{self->mutex_};
               auto reputation = self->reputation_table_[peer_id] += value;
               SL_DEBUG(self->log_,
                        "Reputation of peer {} was changed by {} points to {} "
@@ -80,6 +84,7 @@ namespace kagome::network {
   }
 
   void ReputationRepositoryImpl::tick() {
+    std::unique_lock lock{mutex_};
     // For each elapsed second, move the node reputation towards zero.
     // If we multiply each second the reputation by `k` (where `k` is 0..1), it
     // takes `ln(0.5) / ln(k)` seconds to reduce the reputation by half. Use
