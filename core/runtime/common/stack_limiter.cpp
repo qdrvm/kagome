@@ -142,7 +142,7 @@ namespace kagome::runtime {
     template <typename T>
     using MaybeConst = typename MaybeConstT<IsConst, T>::type;
 
-    using Frame = Frame<IsConst>;
+    using StackFrame = Frame<IsConst>;
 
     using ExprIt = std::conditional_t<IsConst,
                                       wabt::ExprList::const_iterator,
@@ -158,7 +158,7 @@ namespace kagome::runtime {
       return outcome::success();
     }
 
-    void push_frame(Frame frame) {
+    void push_frame(StackFrame frame) {
       SL_DEBUG(logger_,
                "frame #{}, start height_ {}",
                frames_.size(),
@@ -169,7 +169,7 @@ namespace kagome::runtime {
     void push_frame(MaybeConst<wabt::Block &> block, bool is_loop) {
       uint32_t end_arity = block.decl.GetNumResults() != 0;
       uint32_t branch_arity = is_loop ? 0 : end_arity;
-      push_frame(Frame{
+      push_frame(StackFrame{
           .is_polymorphic = false,
           .end_value_num = end_arity,
           .branch_value_num = branch_arity,
@@ -187,19 +187,19 @@ namespace kagome::runtime {
       if (check_frame_boundary && !res) {
         return res;
       }
-      push_frame(Frame{
+      push_frame(StackFrame{
           .is_polymorphic = false,
           .end_value_num = end_arity,
           .branch_value_num = branch_arity,
           .start_height = get_height(),
-          .top_expr = typename Frame::Branch{&branch},
+          .top_expr = typename StackFrame::Branch{&branch},
           .current_expr = branch.true_.exprs.begin(),
       });
       return outcome::success();
     }
 
     void push_frame(MaybeConst<wabt::Func &> func) {
-      push_frame(Frame{
+      push_frame(StackFrame{
           false,
           func.GetNumResults(),
           func.GetNumResults(),
@@ -267,10 +267,10 @@ namespace kagome::runtime {
         is_over =
             frames_.back().getExprList().end() == frames_.back().current_expr;
         if (is_over) {
-          if (std::holds_alternative<typename Frame::Branch>(
+          if (std::holds_alternative<typename StackFrame::Branch>(
                   frames_.back().top_expr)) {
             auto &branch =
-                std::get<typename Frame::Branch>(frames_.back().top_expr);
+                std::get<typename StackFrame::Branch>(frames_.back().top_expr);
             if (branch.curr_branch == true && !branch.expr->false_.empty()) {
               branch.curr_branch = false;
               frames_.back().current_expr = branch.expr->false_.begin();
@@ -297,11 +297,11 @@ namespace kagome::runtime {
       return frames_.back().is_polymorphic;
     }
 
-    [[nodiscard]] Frame &top_frame() {
+    [[nodiscard]] StackFrame &top_frame() {
       return frames_.back();
     }
 
-    outcome::result<std::reference_wrapper<const Frame>, StackLimiterError>
+    outcome::result<std::reference_wrapper<const StackFrame>, StackLimiterError>
     get_frame(size_t idx_from_top) const {
       if (frames_.size() <= idx_from_top) {
         return StackLimiterError{"Stack frame underflow"};
@@ -311,7 +311,7 @@ namespace kagome::runtime {
 
    private:
     uint32_t height_ = ACTIVATION_FRAME_COST;
-    std::vector<Frame> frames_;
+    std::vector<StackFrame> frames_;
     log::Logger logger_;
   };
 
