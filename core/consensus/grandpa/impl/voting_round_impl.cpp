@@ -657,6 +657,7 @@ namespace kagome::consensus::grandpa {
         .round_number = round_number_,
         .block_info = block,
         .items = getPrecommitJustification(block, precommits_->getMessages())};
+    // TODO(turuslan): #1931, make justification ancestry
 
     SL_DEBUG(logger_,
              "Round #{}: Sending commit message for block {}",

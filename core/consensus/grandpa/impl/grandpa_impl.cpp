@@ -396,8 +396,11 @@ namespace kagome::consensus::grandpa {
     }
 
     auto res = makeNextRound(current_round_);
-    BOOST_ASSERT_MSG(res.value(),
-                     "Next round for current must be created anyway");
+    if (res.has_error()) {
+      SL_WARN(logger_, "Next round was not created: {}", res.error());
+      return;
+    }
+    BOOST_ASSERT(res.value() != nullptr);
     current_round_ = std::move(res.value());
 
     std::ignore = fallback_timer_handle_.reschedule(std::chrono::minutes(1));
