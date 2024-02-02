@@ -84,8 +84,9 @@ namespace kagome::parachain {
             std::shared_ptr<runtime::RuntimeContextFactory> ctx_factory,
             std::shared_ptr<application::AppStateManager> app_state_manager);
 
+    ~PvfImpl() override;
+
     bool prepare();
-    void stop();
 
     outcome::result<Result> pvfSync(const CandidateReceipt &receipt,
                                     const ParachainBlock &pov) const override;

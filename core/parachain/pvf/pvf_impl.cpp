@@ -143,6 +143,13 @@ namespace kagome::parachain {
     state_manager->takeControl(*this);
   }
 
+  PvfImpl::~PvfImpl() {
+    if (precompiler_thread_) {
+      precompiler_thread_->join();
+      precompiler_thread_.reset();
+    }
+  }
+
   bool PvfImpl::prepare() {
     if (config_.precompile_modules) {
       precompiler_thread_ =
@@ -158,13 +165,6 @@ namespace kagome::parachain {
           });
     }
     return true;
-  }
-
-  void PvfImpl::stop() {
-    if (precompiler_thread_) {
-      precompiler_thread_->join();
-      precompiler_thread_.reset();
-    }
   }
 
   outcome::result<Pvf::Result> PvfImpl::pvfValidate(
