@@ -10,10 +10,6 @@
 #include "utils/weak_io_context_post.hpp"
 
 namespace kagome {
-  class ThreadHandler;
-
-  // defined in thread_poll.hpp
-  bool runningInThisThread(const ThreadHandler &self);
 
   class ThreadHandler final {
     enum struct State : uint32_t { kStopped = 0, kStarted };
