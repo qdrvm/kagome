@@ -24,11 +24,13 @@
 #include "consensus/grandpa/impl/voting_round_impl.hpp"
 #include "consensus/grandpa/vote_graph/vote_graph_impl.hpp"
 #include "consensus/grandpa/voting_round_error.hpp"
+#include "consensus/grandpa/voting_round_update.hpp"
 #include "consensus/timeline/timeline.hpp"
 #include "crypto/crypto_store/session_keys.hpp"
 #include "network/peer_manager.hpp"
 #include "network/reputation_repository.hpp"
 #include "network/synchronizer.hpp"
+#include "storage/predefined_keys.hpp"
 #include "utils/retain_if.hpp"
 
 namespace {
@@ -73,6 +75,7 @@ namespace kagome::consensus::grandpa {
       std::shared_ptr<network::ReputationRepository> reputation_repository,
       LazySPtr<Timeline> timeline,
       primitives::events::ChainSubscriptionEnginePtr chain_sub_engine,
+      storage::SpacedStorage &db,
       std::shared_ptr<Watchdog> watchdog,
       WeakIoContext main_thread)
       : round_time_factor_{kGossipDuration},
@@ -87,6 +90,7 @@ namespace kagome::consensus::grandpa {
         reputation_repository_(std::move(reputation_repository)),
         timeline_{std::move(timeline)},
         chain_sub_{chain_sub_engine},
+        db_{db.getSpace(storage::Space::kDefault)},
         execution_thread_pool_{
             std::make_shared<ThreadPool>(std::move(watchdog), "grandpa", 1ull)},
         internal_thread_context_{execution_thread_pool_->handler()},
@@ -133,6 +137,12 @@ namespace kagome::consensus::grandpa {
         }
       });
       return true;
+    }
+
+    if (auto r = db_->get(storage::kGrandpaVotesKey)) {
+      if (auto r2 = scale::decode<CachedVotes>(r.value())) {
+        cached_votes_ = std::move(r2.value());
+      }
     }
 
     // Obtain last completed round
@@ -234,17 +244,24 @@ namespace kagome::consensus::grandpa {
     auto vote_crypto_provider = std::make_shared<VoteCryptoProviderImpl>(
         keypair, crypto_provider_, round_state.round_number, config.voters);
 
-    auto new_round = VotingRoundImpl::create(
+    auto save_cached_votes = [weak{weak_from_this()}]() {
+      if (auto self = weak.lock()) {
+        self->saveCachedVotes();
+      }
+    };
+    auto new_round = std::make_shared<VotingRoundImpl>(
         shared_from_this(),
         std::move(config),
         hasher_,
         environment_,
+        std::move(save_cached_votes),
         std::move(vote_crypto_provider),
         std::make_shared<VoteTrackerImpl>(),  // Prevote tracker
         std::make_shared<VoteTrackerImpl>(),  // Precommit tracker
         std::move(vote_graph),
         scheduler_,
         round_state);
+    applyCachedVotes(*new_round);
 
     new_round->end();  // it is okay, because we do not want to actually execute
                        // this round
@@ -293,17 +310,24 @@ namespace kagome::consensus::grandpa {
     auto vote_crypto_provider = std::make_shared<VoteCryptoProviderImpl>(
         keypair, crypto_provider_, new_round_number, config.voters);
 
-    auto new_round = VotingRoundImpl::create(
+    auto save_cached_votes = [weak{weak_from_this()}]() {
+      if (auto self = weak.lock()) {
+        self->saveCachedVotes();
+      }
+    };
+    auto new_round = std::make_shared<VotingRoundImpl>(
         shared_from_this(),
         std::move(config),
         hasher_,
         environment_,
+        std::move(save_cached_votes),
         std::move(vote_crypto_provider),
         std::make_shared<VoteTrackerImpl>(),  // Prevote tracker
         std::make_shared<VoteTrackerImpl>(),  // Precommit tracker
         std::move(vote_graph),
         scheduler_,
         round);
+    applyCachedVotes(*new_round);
     return new_round;
   }
 
@@ -842,26 +866,14 @@ namespace kagome::consensus::grandpa {
 
     } else {
       std::optional<GrandpaContext> gp_context{std::move(grandpa_context)};
-      bool is_prevotes_changed = false;
-      bool is_precommits_changed = false;
+      VotingRoundUpdate update{*current_round_, gp_context};
       for (auto &vote : msg.prevote_justification) {
-        if (current_round_->onPrevote(
-                gp_context, vote, VotingRound::Propagation::NEEDLESS)) {
-          is_prevotes_changed = true;
-        }
+        update.vote(vote);
       }
       for (auto &vote : msg.precommit_justification) {
-        if (current_round_->onPrecommit(
-                gp_context, vote, VotingRound::Propagation::NEEDLESS)) {
-          is_precommits_changed = true;
-        }
+        update.vote(vote);
       }
-      if (is_prevotes_changed or is_precommits_changed) {
-        current_round_->update(
-            VotingRound::IsPreviousRoundChanged{false},
-            VotingRound::IsPrevotesChanged{is_prevotes_changed},
-            VotingRound::IsPrecommitsChanged{is_precommits_changed});
-      }
+      update.update();
 
       SL_DEBUG(logger_, "Catch-up response applied");
 
@@ -1057,30 +1069,9 @@ namespace kagome::consensus::grandpa {
           return GrandpaContext{};
         }(std::move(existed_context))};
     GrandpaContext &grandpa_context = *opt_grandpa_context;
-
-    bool is_prevotes_changed = false;
-    bool is_precommits_changed = false;
-    visit_in_place(
-        msg.vote.message,
-        [&](const PrimaryPropose &) {
-          target_round->onProposal(opt_grandpa_context,
-                                   msg.vote,
-                                   VotingRound::Propagation::REQUESTED);
-        },
-        [&](const Prevote &) {
-          if (target_round->onPrevote(opt_grandpa_context,
-                                      msg.vote,
-                                      VotingRound::Propagation::REQUESTED)) {
-            is_prevotes_changed = true;
-          }
-        },
-        [&](const Precommit &) {
-          if (target_round->onPrecommit(opt_grandpa_context,
-                                        msg.vote,
-                                        VotingRound::Propagation::REQUESTED)) {
-            is_precommits_changed = true;
-          }
-        });
+    VotingRoundUpdate update{*target_round, grandpa_context, true};
+    update.vote(msg.vote);
+    update.update();
 
     // Met invalid signature - cost reputation
     if (grandpa_context.invalid_signature_counter > 0) {
@@ -1098,12 +1089,7 @@ namespace kagome::consensus::grandpa {
               * grandpa_context.unknown_voter_counter);
     }
 
-    if (is_prevotes_changed or is_precommits_changed) {
-      target_round->update(
-          VotingRound::IsPreviousRoundChanged{false},
-          VotingRound::IsPrevotesChanged{is_prevotes_changed},
-          VotingRound::IsPrecommitsChanged{is_precommits_changed});
-
+    if (update.changed()) {
       reputation_repository_->change(
           peer_id, network::reputation::benefit::ROUND_MESSAGE);
     }
@@ -1314,11 +1300,12 @@ namespace kagome::consensus::grandpa {
     auto voters = VoterSet::make(authorities).value();
     MovableRoundState state;
     state.round_number = justification.round_number;
-    auto round = VotingRoundImpl::create(
+    auto round = std::make_shared<VotingRoundImpl>(
         shared_from_this(),
         GrandpaConfig{voters, justification.round_number, {}, {}},
         hasher_,
         environment_,
+        nullptr,
         std::make_shared<VoteCryptoProviderImpl>(
             nullptr, crypto_provider_, justification.round_number, voters),
         std::make_shared<VoteTrackerImpl>(),
@@ -1557,5 +1544,38 @@ namespace kagome::consensus::grandpa {
       return false;
     };
     retain_if(waiting_blocks_, f);
+  }
+
+  void GrandpaImpl::saveCachedVotes() {
+    CachedVotes rounds;
+    for (auto round = current_round_; round;
+         round = round->getPreviousRound()) {
+      rounds.emplace_back(CachedRound{
+          round->voterSetId(),
+          round->roundNumber(),
+          round->votes(),
+      });
+    }
+    std::ignore =
+        db_->put(storage::kGrandpaVotesKey, scale::encode(rounds).value());
+  }
+
+  void GrandpaImpl::applyCachedVotes(VotingRound &round) {
+    auto it = std::find_if(
+        cached_votes_.begin(), cached_votes_.end(), [&](const CachedRound &c) {
+          return c.set == round.voterSetId() and c.round == round.roundNumber();
+        });
+    if (it == cached_votes_.end()) {
+      return;
+    }
+    std::optional<GrandpaContext> ctx;
+    VotingRoundUpdate update{round, ctx};
+    for (auto &vote : it->votes.first) {
+      update.vote(vote);
+    }
+    for (auto &vote : it->votes.second) {
+      update.vote(vote);
+    }
+    update.update();
   }
 }  // namespace kagome::consensus::grandpa
