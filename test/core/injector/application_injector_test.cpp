@@ -17,6 +17,7 @@
 #include "mock/core/application/app_configuration_mock.hpp"
 #include "network/impl/router_libp2p.hpp"
 #include "testutil/prepare_loggers.hpp"
+#include "utils/watchdog.hpp"
 
 namespace fs = kagome::filesystem;
 using testing::_;
