@@ -86,6 +86,9 @@ class SynchronizerTest
     auto state_pruner =
         std::make_shared<kagome::storage::trie_pruner::TriePrunerMock>();
 
+    std::shared_ptr<boost::asio::io_context> io_context =
+        std::make_shared<boost::asio::io_context>();
+
     auto _timeline = testutil::sptr_to_lazy<Timeline>(timeline);
     synchronizer =
         std::make_shared<network::SynchronizerImpl>(app_config,
@@ -104,7 +107,7 @@ class SynchronizerTest
                                                     _timeline,
                                                     nullptr,
                                                     grandpa_environment,
-                                                    WeakIoContext{});
+                                                    io_context);
   }
 
   application::AppConfigurationMock app_config;

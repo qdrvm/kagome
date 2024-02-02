@@ -115,6 +115,7 @@ groups:
               - name: trie_pruner
           - name: transactions
           - name: pubsub
+          - name: threads
       - name: others
         children:
           - name: testing
