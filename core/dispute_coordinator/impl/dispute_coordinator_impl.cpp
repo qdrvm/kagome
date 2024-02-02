@@ -171,7 +171,7 @@ namespace kagome::dispute {
     BOOST_ASSERT(pvf_ != nullptr);
     BOOST_ASSERT(approval_distribution_ != nullptr);
     BOOST_ASSERT(authority_discovery_ != nullptr);
-    BOOST_ASSERT(not main_thread_context.expired());
+    BOOST_ASSERT(not main_thread_context_.expired());
     BOOST_ASSERT(router_ != nullptr);
     BOOST_ASSERT(peer_view_ != nullptr);
 
