@@ -326,7 +326,7 @@ namespace kagome::consensus::grandpa {
     primitives::events::ChainSub chain_sub_;
 
     std::shared_ptr<ThreadHandler> grandpa_thread_handler_;
-    std::shared_ptr<ThreadHandler> main_thread_handler_;
+    WeakIoContext main_thread_context_;
     std::shared_ptr<libp2p::basic::Scheduler> scheduler_;
 
     std::shared_ptr<VotingRound> current_round_;

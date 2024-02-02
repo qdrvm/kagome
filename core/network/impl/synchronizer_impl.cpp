@@ -114,11 +114,7 @@ namespace kagome::network {
         beefy_{std::move(beefy)},
         grandpa_environment_{std::move(grandpa_environment)},
         chain_sub_engine_(std::move(chain_sub_engine)),
-        main_thread_handler_{[&] {
-          BOOST_ASSERT(not main_thread_context.expired());
-          return std::make_shared<ThreadHandler>(
-              std::move(main_thread_context));
-        }()} {
+        main_thread_context_{std::move(main_thread_context)} {
     BOOST_ASSERT(app_state_manager_);
     BOOST_ASSERT(block_tree_);
     BOOST_ASSERT(block_executor_);
@@ -130,6 +126,7 @@ namespace kagome::network {
     BOOST_ASSERT(hasher_);
     BOOST_ASSERT(grandpa_environment_);
     BOOST_ASSERT(chain_sub_engine_);
+    BOOST_ASSERT(not main_thread_context_.expired());
 
     sync_method_ = app_config.syncMethod();
 
@@ -141,7 +138,6 @@ namespace kagome::network {
     metric_import_queue_length_->set(0);
 
     app_state_manager_->takeControl(*this);
-    main_thread_handler_->start();
   }
 
   /** @see AppStateManager::takeControl */
@@ -877,7 +873,7 @@ namespace kagome::network {
       outcome::result<void> &&block_addition_result,
       Synchronizer::SyncResultHandler &&handler,
       const primitives::BlockHash &hash) {
-    REINVOKE(*main_thread_handler_,
+    REINVOKE(main_thread_context_,
              post_block_addition,
              std::move(block_addition_result),
              std::move(handler),

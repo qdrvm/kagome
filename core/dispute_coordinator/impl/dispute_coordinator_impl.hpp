@@ -285,7 +285,7 @@ namespace kagome::dispute {
     std::shared_ptr<parachain::Pvf> pvf_;
     std::shared_ptr<parachain::ApprovalDistribution> approval_distribution_;
     std::shared_ptr<authority_discovery::Query> authority_discovery_;
-    std::shared_ptr<ThreadHandler> main_thread_handler_;
+    WeakIoContext main_thread_context_;
     std::shared_ptr<network::Router> router_;
     std::shared_ptr<network::PeerView> peer_view_;
     primitives::events::ChainSub chain_sub_;

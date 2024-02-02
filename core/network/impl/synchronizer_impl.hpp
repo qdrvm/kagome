@@ -238,7 +238,7 @@ namespace kagome::network {
     std::shared_ptr<IBeefy> beefy_;
     std::shared_ptr<consensus::grandpa::Environment> grandpa_environment_;
     primitives::events::ChainSubscriptionEnginePtr chain_sub_engine_;
-    std::shared_ptr<ThreadHandler> main_thread_handler_;
+    WeakIoContext main_thread_context_;
 
     application::SyncMethod sync_method_;
 

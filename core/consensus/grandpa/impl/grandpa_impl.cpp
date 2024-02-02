@@ -93,11 +93,7 @@ namespace kagome::consensus::grandpa {
           BOOST_ASSERT(grandpa_thread_pool != nullptr);
           return grandpa_thread_pool->handler();
         }()},
-        main_thread_handler_{[&] {
-          BOOST_ASSERT(not main_thread_context.expired());
-          return std::make_shared<ThreadHandler>(
-              std::move(main_thread_context));
-        }()},
+        main_thread_context_{std::move(main_thread_context)},
         scheduler_{std::make_shared<libp2p::basic::SchedulerImpl>(
             std::make_shared<libp2p::basic::AsioSchedulerBackend>(
                 grandpa_thread_pool->io_context()),
@@ -110,6 +106,7 @@ namespace kagome::consensus::grandpa {
     BOOST_ASSERT(block_tree_ != nullptr);
     BOOST_ASSERT(reputation_repository_ != nullptr);
     BOOST_ASSERT(grandpa_thread_handler_ != nullptr);
+    BOOST_ASSERT(not main_thread_context_.expired());
 
     BOOST_ASSERT(app_state_manager != nullptr);
 
@@ -127,7 +124,6 @@ namespace kagome::consensus::grandpa {
 
   bool GrandpaImpl::prepare() {
     grandpa_thread_handler_->start();
-    main_thread_handler_->start();
     return true;
   }
 
@@ -216,7 +212,6 @@ namespace kagome::consensus::grandpa {
   }
 
   void GrandpaImpl::stop() {
-    main_thread_handler_->stop();
     grandpa_thread_handler_->stop();
     fallback_timer_handle_.cancel();
   }
@@ -1308,10 +1303,10 @@ namespace kagome::consensus::grandpa {
 
   void GrandpaImpl::callbackCall(ApplyJustificationCb &&callback,
                                  outcome::result<void> &&result) {
-    main_thread_handler_->execute(
-        [callback{std::move(callback)}, result{std::move(result)}]() mutable {
-          callback(std::move(result));
-        });
+    post(main_thread_context_,
+         [callback{std::move(callback)}, result{std::move(result)}]() mutable {
+           callback(std::move(result));
+         });
   }
 
   outcome::result<void> GrandpaImpl::verifyJustification(
@@ -1486,7 +1481,7 @@ namespace kagome::consensus::grandpa {
     if (not timeline_.get()->wasSynchronized()) {
       return;
     }
-    post(*main_thread_handler_,
+    post(main_thread_context_,
          [s{synchronizer_}, blocks{gc.missing_blocks}, peer{*gc.peer_id}] {
            for (auto &block : blocks) {
              s->syncByBlockInfo(block, peer, nullptr, false);
