@@ -44,7 +44,7 @@ TEST_F(WsListenerTest, EchoSuccess) {
     watchdog->checkLoop(kagome::kWatchdogDefaultTimeout);
   });
 
-  app_state_manager->atShutdown([ctx{main_context}] { ctx->stop(); });
+  app_state_manager->atShutdown([watchdog] { watchdog->stop(); });
 
   std::unique_ptr<std::thread> client_thread;
 
@@ -85,8 +85,6 @@ TEST_F(WsListenerTest, EchoSuccess) {
   });
 
   app_state_manager->run();
-
-  watchdog->stop();
 
   client_thread->join();
   asio_runner->join();

@@ -94,7 +94,7 @@ namespace kagome::application {
       watchdog->checkLoop(kWatchdogDefaultTimeout);
     });
 
-    app_state_manager->atShutdown([ctx{io_context}] { ctx->stop(); });
+    app_state_manager->atShutdown([watchdog] { watchdog->stop(); });
 
     {  // Metrics
       auto metrics_registry = metrics::createRegistry();
