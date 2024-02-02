@@ -44,7 +44,7 @@ TEST_F(HttpListenerTest, EchoSuccess) {
     watchdog->checkLoop(kagome::kWatchdogDefaultTimeout);
   });
 
-  app_state_manager->atShutdown([watchdog] { watchdog->stop(); });
+  app_state_manager->atShutdown([watchdog{watchdog}] { watchdog->stop(); });
 
   std::unique_ptr<std::thread> client_thread;
 
