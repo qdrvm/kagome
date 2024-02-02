@@ -494,7 +494,7 @@ namespace kagome::parachain {
     BOOST_ASSERT(block_tree_);
     BOOST_ASSERT(pvf_);
     BOOST_ASSERT(recovery_);
-    BOOST_ASSERT(not main_thread_context.expired());
+    BOOST_ASSERT(not main_thread_context_.expired());
     BOOST_ASSERT(app_state_manager);
 
     app_state_manager->takeControl(*this);
