@@ -48,6 +48,8 @@ namespace kagome::storage {
   inline const common::Buffer kAuthorityManagerImplIndexerPrefix =
       ":kagome:AuthorityManagerImpl:Indexer:"_buf;
 
+  inline const common::Buffer kGrandpaVotesKey = ":kagome:Grandpa:votes"_buf;
+
   inline const common::Buffer kRecentDisputeLookupKey = "recent_disputes"_buf;
 
   inline const common::Buffer kSessionsWindowLookupKey =

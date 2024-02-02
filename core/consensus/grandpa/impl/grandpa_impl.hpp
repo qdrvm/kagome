@@ -12,10 +12,12 @@
 #include <libp2p/basic/scheduler.hpp>
 
 #include "consensus/grandpa/impl/votes_cache.hpp"
+#include "consensus/grandpa/voting_round.hpp"
 #include "injector/lazy.hpp"
 #include "log/logger.hpp"
 #include "metrics/metrics.hpp"
 #include "primitives/event_types.hpp"
+#include "storage/spaced_storage.hpp"
 #include "utils/safe_object.hpp"
 #include "utils/weak_io_context.hpp"
 
@@ -110,6 +112,7 @@ namespace kagome::consensus::grandpa {
         std::shared_ptr<network::ReputationRepository> reputation_repository,
         LazySPtr<Timeline> timeline,
         primitives::events::ChainSubscriptionEnginePtr chain_sub_engine,
+        storage::SpacedStorage &db,
         std::shared_ptr<GrandpaThreadPool> grandpa_thread_pool,
         WeakIoContext main_thread_context);
 
@@ -308,6 +311,9 @@ namespace kagome::consensus::grandpa {
     void onHead(const primitives::BlockInfo &block);
     void pruneWaitingBlocks();
 
+    void saveCachedVotes();
+    void applyCachedVotes(VotingRound &round);
+
     const size_t kVotesCacheSize = 5;
 
     const Clock::Duration round_time_factor_;
@@ -324,6 +330,7 @@ namespace kagome::consensus::grandpa {
     std::shared_ptr<network::ReputationRepository> reputation_repository_;
     LazySPtr<Timeline> timeline_;
     primitives::events::ChainSub chain_sub_;
+    std::shared_ptr<storage::BufferStorage> db_;
 
     std::shared_ptr<ThreadHandler> grandpa_thread_handler_;
     WeakIoContext main_thread_context_;
@@ -337,6 +344,15 @@ namespace kagome::consensus::grandpa {
     libp2p::basic::Scheduler::Handle fallback_timer_handle_;
 
     std::vector<GrandpaContext> waiting_blocks_;
+
+    struct CachedRound {
+      SCALE_TIE(3);
+      AuthoritySetId set;
+      RoundNumber round;
+      VotingRound::Votes votes;
+    };
+    using CachedVotes = std::vector<CachedRound>;
+    CachedVotes cached_votes_;
 
     // Metrics
     metrics::RegistryPtr metrics_registry_ = metrics::createRegistry();

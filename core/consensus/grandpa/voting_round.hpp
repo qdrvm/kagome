@@ -119,6 +119,9 @@ namespace kagome::consensus::grandpa {
 
     /// executes algorithm Attempt-To-Finalize-Round
     virtual void attemptToFinalizeRound() = 0;
+
+    using Votes = std::pair<std::vector<VoteVariant>, std::vector<VoteVariant>>;
+    virtual Votes votes() const = 0;
   };
 
 }  // namespace kagome::consensus::grandpa
