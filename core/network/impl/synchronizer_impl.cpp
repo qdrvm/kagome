@@ -598,7 +598,9 @@ namespace kagome::network {
                peer_id,
                from);
 
-      if (blocks[0].header and blocks[0].header->number != 0
+      if (blocks[0].header
+          and blocks[0].header->number
+                  > self->block_tree_->getLastFinalized().number
           and not self->known_blocks_.contains(blocks[0].header->parent_hash)
           and not self->block_tree_->has(blocks[0].header->parent_hash)) {
         if (handler) {
