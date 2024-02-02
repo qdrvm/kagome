@@ -30,9 +30,9 @@ namespace kagome {
 
     // Next nested struct and deleted ctor added to avoid unintended injections
     struct Inject {
-      Inject(){};
+      explicit Inject() = default;
     };
-    explicit ThreadPool(Inject, ...) = delete;
+    explicit ThreadPool(Inject, ...);
 
     ThreadPool(std::shared_ptr<Watchdog> watchdog,
                std::string_view pool_tag,
