@@ -418,6 +418,7 @@ namespace kagome::parachain {
              event.view.finalized_number_,
              event.view.heads_.size());
     broadcastView(event.view);
+    broadcastViewToGroup(relay_parent, event.view);
     for (const auto &h : event.view.heads_) {
       send_peer_messages_for_relay_parent(std::nullopt, h);
     }
@@ -544,6 +545,58 @@ namespace kagome::parachain {
         router_->getValidationProtocol(),
         msg,
         [&](const libp2p::peer::PeerId &p) { return peer_id != p; });
+  }
+
+  void ParachainProcessorImpl::broadcastViewToGroup(const primitives::BlockHash &relay_parent, const network::View &view) {
+    auto opt_parachain_state = tryGetStateByRelayParent(relay_parent);
+    if (!opt_parachain_state) {
+      SL_ERROR(logger_, "Relay state should exist. (relay_parent)", relay_parent);
+      return;
+    }
+
+    std::deque<network::PeerId> group;
+    if (auto r = runtime_info_->get_session_info(relay_parent)) {
+      auto &[session, info] = r.value();
+      if (info.our_group) {
+        for (auto &i : session.validator_groups[*info.our_group]) {
+          if (auto peer = query_audi_->get(session.discovery_keys[i])) {
+            group.emplace_back(peer->id);
+          }
+        }
+      }
+    }
+
+    auto protocol = [&]() -> std::shared_ptr<network::ProtocolBase> {
+      if (opt_parachain_state->get().prospective_parachains_mode) {
+        return router_->getValidationProtocolVStaging();
+      } else {
+        return router_->getValidationProtocol();
+      }
+    }();
+
+    auto make_send = [&]<typename Msg>(
+                         const Msg &msg,
+                         const std::shared_ptr<network::ProtocolBase>
+                             &protocol) {
+      auto se = pm_->getStreamEngine();
+      BOOST_ASSERT(se);
+
+      auto message =
+          std::make_shared<network::WireMessage<std::decay_t<decltype(msg)>>>(
+              msg);
+      SL_TRACE(logger_, "Broadcasting view update to group.(relay_parent={}, group_size={})", relay_parent, group.size());
+
+      for (auto &peer : group) {
+        SL_TRACE(logger_, "Send to peer from group. (peer={})", peer);
+        se->send(peer, protocol, message);
+      }
+    };
+
+    if (opt_parachain_state->get().prospective_parachains_mode) {
+      make_send(network::vstaging::ValidatorProtocolMessage{network::vstaging::ViewUpdate{view}}, router_->getValidationProtocolVStaging());
+    } else {
+      make_send(network::ValidatorProtocolMessage{network::ViewUpdate{view}}, router_->getValidationProtocol());
+    }
   }
 
   void ParachainProcessorImpl::broadcastView(const network::View &view) const {

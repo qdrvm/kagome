@@ -36,6 +36,7 @@ namespace kagome::network::vstaging {
   using BitfieldDistributionMessage = network::BitfieldDistributionMessage;
   using BitfieldDistribution = network::BitfieldDistribution;
   using ApprovalDistributionMessage = network::ApprovalDistributionMessage;
+  using ViewUpdate = network::ViewUpdate;
 
   struct CollatorProtocolMessageAdvertiseCollation {
     SCALE_TIE(3);
