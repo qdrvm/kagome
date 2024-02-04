@@ -2668,19 +2668,32 @@ namespace kagome::parachain {
       const libp2p::peer::PeerId &peer_id, network::CollationVersion version) {
     REINVOKE(*this_context_, onIncomingCollationStream, peer_id, version);
 
-    const auto peer_state = pm_->getPeerState(peer_id);
-    if (!peer_state) {
-      logger_->warn("Received incoming collation stream from unknown peer {}",
-                    peer_id);
-      return;
-    }
+    auto peer_state = [&]() {
+      auto res = pm_->getPeerState(peer_id);
+      if (!res) {
+        SL_TRACE(logger_, "From unknown peer {}", peer_id);
+        res = pm_->createDefaultPeerState(peer_id);
+      }
+      return res;
+    }();
 
     peer_state->get().version = version;
     if (tryOpenOutgoingCollatingStream(
-            peer_id, [wptr{weak_from_this()}, peer_id](auto &&stream) {
+            peer_id, [wptr{weak_from_this()}, peer_id, version](auto &&stream) {
               if (auto self = wptr.lock()) {
-                self->sendMyView(
-                    peer_id, stream, self->router_->getCollationProtocol());
+                switch (version) {
+                  case network::CollationVersion::V1: {
+                    self->sendMyView(
+                        peer_id, stream, self->router_->getCollationProtocol());
+                  } break;
+                  case network::CollationVersion::VStaging: {
+                    self->sendMyView(
+                        peer_id, stream, self->router_->getCollationProtocolVStaging());
+                  } break;
+                  default: {
+                    UNREACHABLE;
+                  } break;
+                }
               }
             })) {
       SL_DEBUG(logger_, "Initiated collation protocol with {}", peer_id);
