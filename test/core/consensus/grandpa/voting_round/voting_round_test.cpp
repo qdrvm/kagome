@@ -160,16 +160,17 @@ class VotingRoundTest : public testing::Test,
         .WillRepeatedly(ReturnRef(finalized_in_prev_round_));
     EXPECT_CALL(*previous_round_, doCommit()).Times(AnyNumber());
 
-    round_ = VotingRoundImpl::create(grandpa_,
-                                     config,
-                                     hasher_,
-                                     env_,
-                                     vote_crypto_provider_,
-                                     prevotes_,
-                                     precommits_,
-                                     vote_graph_,
-                                     scheduler_,
-                                     previous_round_);
+    round_ = std::make_shared<VotingRoundImpl>(grandpa_,
+                                               config,
+                                               hasher_,
+                                               env_,
+                                               nullptr,
+                                               vote_crypto_provider_,
+                                               prevotes_,
+                                               precommits_,
+                                               vote_graph_,
+                                               scheduler_,
+                                               previous_round_);
   }
 
   SignedMessage preparePrimaryPropose(const Id &id,

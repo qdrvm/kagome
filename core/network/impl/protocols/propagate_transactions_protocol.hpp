@@ -56,7 +56,7 @@ namespace kagome::network {
         Roles roles,
         const application::ChainSpec &chain_spec,
         const blockchain::GenesisBlockHash &genesis_hash,
-        WeakIoContext main_thread,
+        WeakIoContext main_thread_context,
         std::shared_ptr<consensus::Timeline> timeline,
         std::shared_ptr<ExtrinsicObserver> extrinsic_observer,
         std::shared_ptr<StreamEngine> stream_engine,
@@ -82,7 +82,7 @@ namespace kagome::network {
         "PropagateTransactionsProtocol"s;
     ProtocolBaseImpl base_;
     Roles roles_;
-    WeakIoContext main_thread_;
+    WeakIoContext main_thread_context_;
     std::shared_ptr<consensus::Timeline> timeline_;
     std::shared_ptr<ExtrinsicObserver> extrinsic_observer_;
     std::shared_ptr<StreamEngine> stream_engine_;

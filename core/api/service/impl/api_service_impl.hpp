@@ -22,12 +22,12 @@
 #include "primitives/block_id.hpp"
 #include "primitives/event_types.hpp"
 #include "subscription/subscription_engine.hpp"
-#include "utils/thread_pool.hpp"
 
 namespace kagome::api {
   class JRpcProcessor;
   class JRpcServer;
   class Listener;
+  class RpcThreadPool;
 }  // namespace kagome::api
 namespace kagome::application {
   class AppStateManager;
@@ -123,8 +123,7 @@ namespace kagome::api {
                    std::shared_ptr<blockchain::BlockTree> block_tree,
                    std::shared_ptr<storage::trie::TrieStorage> trie_storage,
                    std::shared_ptr<runtime::Core> core,
-                   std::shared_ptr<Watchdog> watchdog,
-                   std::shared_ptr<RpcContext> rpc_context);
+                   std::shared_ptr<RpcThreadPool> rpc_thread_pool);
 
     ~ApiServiceImpl() override = default;
 
@@ -245,6 +244,6 @@ namespace kagome::api {
     std::shared_ptr<subscription::ExtrinsicEventKeyRepository>
         extrinsic_event_key_repo_;
 
-    std::shared_ptr<ThreadPool> execution_thread_pool_;
+    std::shared_ptr<RpcThreadPool> rpc_thread_pool_;
   };
 }  // namespace kagome::api

@@ -41,7 +41,7 @@ namespace kagome::consensus::grandpa {
    public:
     VerifiedJustificationQueue(
         application::AppStateManager &app_state_manager,
-        WeakIoContext main_thread,
+        WeakIoContext main_thread_context,
         std::shared_ptr<blockchain::BlockTree> block_tree,
         std::shared_ptr<AuthorityManager> authority_manager,
         LazySPtr<network::Synchronizer> synchronizer,
@@ -64,7 +64,7 @@ namespace kagome::consensus::grandpa {
     void possibleLoop();
     void rangeLoop();
 
-    WeakIoContext main_thread_;
+    WeakIoContext main_thread_context_;
     std::shared_ptr<blockchain::BlockTree> block_tree_;
     std::shared_ptr<AuthorityManager> authority_manager_;
     LazySPtr<network::Synchronizer> synchronizer_;
