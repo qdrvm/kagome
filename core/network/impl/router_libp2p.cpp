@@ -101,6 +101,7 @@ namespace kagome::network {
     app_state_manager_->takeControl(*fetch_available_data_protocol_.get());
     app_state_manager_->takeControl(*statement_fetching_protocol_.get());
     app_state_manager_->takeControl(*send_dispute_protocol_.get());
+    app_state_manager_->takeControl(*fetch_attested_candidate_.get());
 
     host_.setProtocolHandler(
         {ping_protocol_.get()->getProtocolId()},

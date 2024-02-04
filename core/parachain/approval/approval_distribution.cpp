@@ -2178,7 +2178,7 @@ namespace kagome::parachain {
               .assignments = std::vector<network::Assignment>(begin, end),
           }});
 
-      se->send(peer_id, router_->getValidationProtocol(), msg);
+      se->send(peer_id, router_->getValidationProtocolVStaging(), msg);
       assignments.erase(begin, end);
     }
   }
@@ -2224,7 +2224,7 @@ namespace kagome::parachain {
                   std::vector<network::IndirectSignedApprovalVote>(begin, end),
           }});
 
-      se->send(peer_id, router_->getValidationProtocol(), msg);
+      se->send(peer_id, router_->getValidationProtocolVStaging(), msg);
       approvals.erase(begin, end);
     }
   }
