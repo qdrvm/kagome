@@ -533,6 +533,7 @@ namespace kagome::parachain {
         bitfield_store_->remove(lost);
         our_current_state_.active_leaves.erase(lost);
       }
+      prospective_parachains_->onDeactivateLeaf(value->get());
     }
   }
 
@@ -582,20 +583,20 @@ namespace kagome::parachain {
       BOOST_ASSERT(se);
 
       auto message =
-          std::make_shared<network::WireMessage<std::decay_t<decltype(msg)>>>(
+          std::make_shared<network::WireMessage<network::ValidatorProtocolMessage>>(
               msg);
       SL_TRACE(logger_, "Broadcasting view update to group.(relay_parent={}, group_size={})", relay_parent, group.size());
 
-      for (auto &peer : group) {
+      for (const auto &peer : group) {
         SL_TRACE(logger_, "Send to peer from group. (peer={})", peer);
         se->send(peer, protocol, message);
       }
     };
 
     if (opt_parachain_state->get().prospective_parachains_mode) {
-      make_send(network::vstaging::ValidatorProtocolMessage{network::vstaging::ViewUpdate{view}}, router_->getValidationProtocolVStaging());
+      make_send(network::vstaging::ViewUpdate{view}, router_->getValidationProtocolVStaging());
     } else {
-      make_send(network::ValidatorProtocolMessage{network::ViewUpdate{view}}, router_->getValidationProtocol());
+      make_send(network::ViewUpdate{view}, router_->getValidationProtocol());
     }
   }
 

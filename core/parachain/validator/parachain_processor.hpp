@@ -504,7 +504,7 @@ namespace kagome::parachain {
      * Notification
      */
     void broadcastView(const network::View &view) const;
-    void broadcastViewToGroup(const primitives::BlockHash &relay_parent, const network::View &view) const;
+    void broadcastViewToGroup(const primitives::BlockHash &relay_parent, const network::View &view);
     void broadcastViewExcept(const libp2p::peer::PeerId &peer_id,
                              const network::View &view) const;
     template <typename F>
