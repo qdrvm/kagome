@@ -76,7 +76,8 @@ namespace kagome::parachain {
       NOT_CONFIRMED,
       NO_STATE,
       NO_SESSION_INFO,
-      OUT_OF_BOUND
+      OUT_OF_BOUND,
+      REJECTED_BY_PROSPECTIVE_PARACHAINS
     };
     static constexpr uint64_t kBackgroundWorkers = 5;
 
@@ -418,9 +419,9 @@ namespace kagome::parachain {
     fetchPersistedValidationData(const RelayHash &relay_parent,
                                  ParachainId para_id);
     void onValidationComplete(const libp2p::peer::PeerId &peer_id,
-                              ValidateAndSecondResult &&result);
+                              const ValidateAndSecondResult &result);
     void onAttestComplete(const libp2p::peer::PeerId &peer_id,
-                          ValidateAndSecondResult &&result);
+                          const ValidateAndSecondResult &result);
     void onAttestNoPoVComplete(const network::RelayHash &relay_parent,
                                const CandidateHash &candidate_hash);
 
@@ -435,13 +436,17 @@ namespace kagome::parachain {
                                 network::CollationFetchingResponse &&response);
     template <StatementType kStatementType>
     std::optional<network::SignedStatement> createAndSignStatement(
-        ValidateAndSecondResult &validation_result);
+        const ValidateAndSecondResult &validation_result);
+    template <ParachainProcessorImpl::StatementType kStatementType>
+    outcome::result<std::optional<ParachainProcessorImpl::SignedFullStatementWithPVD>> 
+    sign_import_and_distribute_statement(ParachainProcessorImpl::RelayParentState &rp_state, const ValidateAndSecondResult &validation_result);
+    void post_import_statement_actions(const RelayHash &relay_parent, ParachainProcessorImpl::RelayParentState &rp_state, std::optional<ParachainProcessorImpl::ImportStatementSummary> &summary);
     template <typename T>
     std::optional<network::SignedStatement> createAndSignStatementFromPayload(
         T &&payload,
         ValidatorIndex validator_ix,
         RelayParentState &parachain_state);
-    std::optional<ImportStatementSummary> importStatement(
+    outcome::result<std::optional<ImportStatementSummary>> importStatement(
         const network::RelayHash &relay_parent,
         const SignedFullStatementWithPVD &statement,
         ParachainProcessorImpl::RelayParentState &relayParentState);
@@ -528,7 +533,7 @@ namespace kagome::parachain {
                                   const SignedFullStatementWithPVD &statement);
     void notify(const libp2p::peer::PeerId &peer_id,
                 const primitives::BlockHash &relay_parent,
-                const network::SignedStatement &statement);
+                const SignedFullStatementWithPVD &statement);
     void handleNotify(const libp2p::peer::PeerId &peer_id,
                       const primitives::BlockHash &relay_parent);
 
@@ -617,7 +622,7 @@ namespace kagome::parachain {
           state_by_relay_parent;
       std::unordered_map<
           libp2p::peer::PeerId,
-          std::deque<std::pair<RelayHash, network::SignedStatement>>>
+          std::deque<std::pair<RelayHash, SignedFullStatementWithPVD>>>
           seconded_statements;
       std::optional<ImplicitView> implicit_view;
       std::unordered_map<Hash, ActiveLeafState> per_leaf;

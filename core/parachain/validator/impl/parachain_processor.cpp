@@ -35,6 +35,8 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::parachain,
   switch (e) {
     case E::RESPONSE_ALREADY_RECEIVED:
       return "Response already present";
+    case E::REJECTED_BY_PROSPECTIVE_PARACHAINS:
+      return "Rejected by prospective parachains";
     case E::COLLATION_NOT_FOUND:
       return "Collation not found";
     case E::UNDECLARED_COLLATOR:
@@ -2051,8 +2053,14 @@ namespace kagome::parachain {
     auto &fallbacks = parachain_state.fallbacks;
     auto &awaiting_validation = parachain_state.awaiting_validation;
 
-    if (auto result =
-            importStatement(relay_parent, statement, parachain_state)) {
+    auto res = importStatement(relay_parent, statement, parachain_state);
+    if (res.has_error()) {
+      SL_TRACE(logger_, "Statement rejected. (relay_parent={}).", relay_parent);
+      return;
+    }
+
+    post_import_statement_actions(relay_parent, parachain_state, res.value());
+    if (auto result = res.value()) {
       if (result->imported.group_id != assignment) {
         SL_TRACE(
             logger_,
@@ -2402,13 +2410,20 @@ namespace kagome::parachain {
     return std::nullopt;
   }
 
-  std::optional<ParachainProcessorImpl::ImportStatementSummary>
+  outcome::result<std::optional<ParachainProcessorImpl::ImportStatementSummary>>
   ParachainProcessorImpl::importStatement(
       const network::RelayHash &relay_parent,
       const SignedFullStatementWithPVD &statement,
       ParachainProcessorImpl::RelayParentState &rp_state) {
     const CandidateHash candidate_hash =
         candidateHashFrom(parachain::getPayload(statement));
+
+    SL_TRACE(logger_,
+              "Importing statement.(relay_parent={}, validator_index={}, candidate_hash={})",
+              relay_parent,
+              statement.payload.ix,
+              candidate_hash);
+
     if (auto seconded = if_type<const StatementWithPVDSeconded>(
             parachain::getPayload(statement));
         seconded
@@ -2427,7 +2442,7 @@ namespace kagome::parachain {
                 candidate_hash);
         if (membership.empty()) {
           SL_TRACE(logger_, "`membership` is empty.");
-          return std::nullopt;
+          return Error::REJECTED_BY_PROSPECTIVE_PARACHAINS;
         }
 
         prospective_parachains_->candidateSeconded(candidate.descriptor.para_id,
@@ -2459,45 +2474,7 @@ namespace kagome::parachain {
             },
         .signature = statement.signature,
     };
-    auto import_result =
-        importStatementToTable(rp_state, candidate_hash, stmnt);
-
-    if (import_result) {
-      SL_TRACE(logger_,
-               "Import result.(candidate={}, group id={}, validity votes={})",
-               import_result->imported.candidate,
-               import_result->imported.group_id,
-               import_result->imported.validity_votes);
-
-      if (auto attested = attested_candidate(import_result->imported.candidate,
-                                             rp_state.table_context)) {
-        if (rp_state.backed_hashes
-                .insert(candidateHash(*hasher_, attested->candidate))
-                .second) {
-          if (auto backed = table_attested_to_backed(std::move(*attested),
-                                                     rp_state.table_context)) {
-            const auto para_id = backed->candidate.descriptor.para_id;
-            SL_INFO(
-                logger_,
-                "Candidate backed.(candidate={}, para id={}, relay_parent={})",
-                import_result->imported.candidate,
-                import_result->imported.group_id,
-                relay_parent);
-            if (rp_state.prospective_parachains_mode) {
-              prospective_parachains_->candidateBacked(para_id, candidate_hash);
-              unblockAdvertisements(
-                  rp_state,
-                  para_id,
-                  backed->candidate.descriptor.para_head_hash);
-              statementDistributionBackedCandidate(candidate_hash);
-            } else {
-              backing_store_->add(relay_parent, std::move(*backed));
-            }
-          }
-        }
-      }
-    }
-    return import_result;
+    return importStatementToTable(rp_state, candidate_hash, stmnt);
   }
 
   void ParachainProcessorImpl::unblockAdvertisements(
@@ -2563,9 +2540,101 @@ namespace kagome::parachain {
   }
 
   template <ParachainProcessorImpl::StatementType kStatementType>
+  outcome::result<std::optional<ParachainProcessorImpl::SignedFullStatementWithPVD>> 
+  ParachainProcessorImpl::sign_import_and_distribute_statement(ParachainProcessorImpl::RelayParentState &rp_state, const ValidateAndSecondResult &validation_result) {
+      if (auto statement = createAndSignStatement<kStatementType>(validation_result)) {
+        const SignedFullStatementWithPVD stm = visit_in_place(
+            getPayload(*statement).candidate_state,
+            [&](const network::CommittedCandidateReceipt &receipt)
+                -> SignedFullStatementWithPVD {
+              return SignedFullStatementWithPVD{
+                  .payload =
+                      {
+                          .payload =
+                              StatementWithPVDSeconded{
+                                  .committed_receipt = receipt,
+                                  .pvd = validation_result.pvd,
+                              },
+                          .ix = statement->payload.ix,
+                      },
+                  .signature = statement->signature,
+              };
+            },
+            [&](const network::CandidateHash &candidateHash)
+                -> SignedFullStatementWithPVD {
+              return SignedFullStatementWithPVD{
+                  .payload =
+                      {
+                          .payload =
+                              StatementWithPVDValid{
+                                  .candidate_hash = candidateHash,
+                              },
+                          .ix = statement->payload.ix,
+                      },
+                  .signature = statement->signature,
+              };
+            },
+            [&](const auto &) -> SignedFullStatementWithPVD {
+              return SignedFullStatementWithPVD{};
+            });
+
+        OUTCOME_TRY(summary, importStatement(validation_result.relay_parent, stm, rp_state));
+        if (rp_state.prospective_parachains_mode) {
+          share_local_statement_vstaging(rp_state, validation_result.relay_parent, stm);
+        } else {
+          share_local_statement_v1(rp_state, validation_result.relay_parent, stm);
+        }
+
+        post_import_statement_actions(validation_result.relay_parent, rp_state, summary);
+        return stm;
+      }
+      return std::nullopt;
+  }
+
+  void ParachainProcessorImpl::post_import_statement_actions(const RelayHash &relay_parent, ParachainProcessorImpl::RelayParentState &rp_state, std::optional<ParachainProcessorImpl::ImportStatementSummary> &summary) {
+    if (!summary) {
+      return;
+    }
+
+      SL_TRACE(logger_,
+               "Import result.(candidate={}, group id={}, validity votes={})",
+               summary->imported.candidate,
+               summary->imported.group_id,
+               summary->imported.validity_votes);
+
+      if (auto attested = attested_candidate(summary->imported.candidate,
+                                             rp_state.table_context)) {
+        if (rp_state.backed_hashes
+                .insert(candidateHash(*hasher_, attested->candidate))
+                .second) {
+          if (auto backed = table_attested_to_backed(std::move(*attested),
+                                                     rp_state.table_context)) {
+            const auto para_id = backed->candidate.descriptor.para_id;
+            SL_INFO(
+                logger_,
+                "Candidate backed.(candidate={}, para id={}, relay_parent={})",
+                summary->imported.candidate,
+                summary->imported.group_id,
+                relay_parent);
+            if (rp_state.prospective_parachains_mode) {
+              prospective_parachains_->candidateBacked(para_id, summary->imported.candidate);
+              unblockAdvertisements(
+                  rp_state,
+                  para_id,
+                  backed->candidate.descriptor.para_head_hash);
+              statementDistributionBackedCandidate(summary->imported.candidate);
+            } else {
+              backing_store_->add(relay_parent, std::move(*backed));
+            }
+          }
+        }
+      }
+  }
+
+  template <ParachainProcessorImpl::StatementType kStatementType>
   std::optional<network::SignedStatement>
   ParachainProcessorImpl::createAndSignStatement(
-      ValidateAndSecondResult &validation_result) {
+      const ValidateAndSecondResult &validation_result) {
     static_assert(kStatementType == StatementType::kSeconded
                   || kStatementType == StatementType::kValid);
 
@@ -2588,7 +2657,7 @@ namespace kagome::parachain {
           network::Statement{
               network::CandidateState{network::CommittedCandidateReceipt{
                   .descriptor = validation_result.candidate.descriptor,
-                  .commitments = std::move(*validation_result.commitments)}}},
+                  .commitments = *validation_result.commitments}}},
           *parachain_state->get().our_index,
           parachain_state->get());
     } else if constexpr (kStatementType == StatementType::kValid) {
@@ -2840,8 +2909,28 @@ namespace kagome::parachain {
     while (!statements_queue.empty()) {
       auto p{std::move(statements_queue.front())};
       statements_queue.pop_front();
-      network::SignedStatement &statement = p.second;
       RelayHash &rp = p.first;
+
+      network::SignedStatement statement = visit_in_place(
+        getPayload(p.second),
+        [&](const StatementWithPVDSeconded &s) -> network::SignedStatement {
+          return {
+            .payload = {
+              .payload = network::CandidateState {s.committed_receipt},
+              .ix = p.second.payload.ix,
+            },
+            .signature = p.second.signature,
+          };
+        },
+        [&](const StatementWithPVDValid &s) -> network::SignedStatement {
+          return {
+            .payload = {
+              .payload = network::CandidateState {s.candidate_hash},
+              .ix = p.second.payload.ix,
+            },
+            .signature = p.second.signature,
+          };
+        });
 
       pending_candidates.erase(rp);
       stream_engine->send(
@@ -2851,14 +2940,14 @@ namespace kagome::parachain {
               network::WireMessage<network::CollationProtocolMessage>>(
               network::CollationProtocolMessage(
                   network::CollationMessage(network::Seconded{
-                      .relay_parent = rp, .statement = statement}))));
+                      .relay_parent = rp, .statement = std::move(statement)}))));
     }
   }
 
   void ParachainProcessorImpl::notify(
       const libp2p::peer::PeerId &peer_id,
       const primitives::BlockHash &relay_parent,
-      const network::SignedStatement &statement) {
+      const SignedFullStatementWithPVD &statement) {
     our_current_state_.seconded_statements[peer_id].emplace_back(
         std::make_pair(relay_parent, statement));
     handleNotify(peer_id, relay_parent);
@@ -2889,7 +2978,7 @@ namespace kagome::parachain {
 
   void ParachainProcessorImpl::onValidationComplete(
       const libp2p::peer::PeerId &peer_id,
-      ValidateAndSecondResult &&validation_result) {
+      const ValidateAndSecondResult &validation_result) {
     logger_->trace("On validation complete. (peer={}, relay parent={})",
                    peer_id,
                    validation_result.relay_parent);
@@ -2907,13 +2996,12 @@ namespace kagome::parachain {
     auto &seconded = parachain_state.seconded;
     const auto candidate_hash = validation_result.candidate.hash(*hasher_);
     if (!validation_result.result) {
-      logger_->warn("Candidate {} validation failed with: {}",
-                    candidate_hash,
-                    validation_result.result.error());
-      // send invalid
-    } else if (!seconded
-               && parachain_state.issued_statements.count(candidate_hash)
-                      == 0) {
+      SL_WARN(logger_, "Candidate {} validation failed with: {}", candidate_hash, validation_result.result.error());
+      /// TODO(iceseer): do send invalid
+      return;
+    } 
+    
+    if (!seconded && parachain_state.issued_statements.count(candidate_hash) == 0) {
       logger_->trace(
           "Second candidate complete. (candidate={}, peer={}, relay parent={})",
           candidate_hash,
@@ -2947,55 +3035,19 @@ namespace kagome::parachain {
       }
 
       seconded = candidate_hash;
-      parachain_state.issued_statements.insert(candidate_hash);
-      if (auto statement = createAndSignStatement<StatementType::kSeconded>(
-              validation_result)) {
-        auto cs = getPayload(*statement).candidate_state;
-        SignedFullStatementWithPVD stm = visit_in_place(
-            cs,
-            [&](const network::CommittedCandidateReceipt &receipt)
-                -> SignedFullStatementWithPVD {
-              return SignedFullStatementWithPVD{
-                  .payload =
-                      {
-                          .payload =
-                              StatementWithPVDSeconded{
-                                  .committed_receipt = receipt,
-                                  .pvd = validation_result.pvd,
-                              },
-                          .ix = statement->payload.ix,
-                      },
-                  .signature = statement->signature,
-              };
-            },
-            [&](const network::CandidateHash &candidateHash)
-                -> SignedFullStatementWithPVD {
-              return SignedFullStatementWithPVD{
-                  .payload =
-                      {
-                          .payload =
-                              StatementWithPVDValid{
-                                  .candidate_hash = candidateHash,
-                              },
-                          .ix = statement->payload.ix,
-                      },
-                  .signature = statement->signature,
-              };
-            },
-            [&](const auto &) -> SignedFullStatementWithPVD {
-              return SignedFullStatementWithPVD{};
-            });
 
-        importStatement(validation_result.relay_parent, stm, parachain_state);
-        if (parachain_state.prospective_parachains_mode) {
-          share_local_statement_vstaging(
-              parachain_state, validation_result.relay_parent, stm);
-        } else {
-          share_local_statement_v1(
-              parachain_state, validation_result.relay_parent, stm);
-        }
-        notify(peer_id, validation_result.relay_parent, *statement);
+      auto res = sign_import_and_distribute_statement<StatementType::kSeconded>(parachain_state, validation_result);
+      if (res.has_error()) {
+        SL_WARN(logger_, "Attempted to second candidate but was rejected by prospective parachains. (candidate_hash={}, relay_parent={}, error={})", candidate_hash, validation_result.relay_parent, res.error());
+        /// TODO(iceseer): do send invalid
+        return;
+      }
 
+      if (!res.value()) {
+        return;
+      }
+
+      auto &stmt = *res.value();
         if (auto it = our_current_state_.per_candidate.find(candidate_hash);
             it != our_current_state_.per_candidate.end()) {
           it->second.seconded_locally = true;
@@ -3024,7 +3076,9 @@ namespace kagome::parachain {
             seconded_at_depth.emplace(depth, candidate_hash);
           }
         }
-      }
+
+      parachain_state.issued_statements.insert(candidate_hash);
+      notify(peer_id, validation_result.relay_parent, stmt);
     }
   }
 
@@ -3346,7 +3400,7 @@ namespace kagome::parachain {
   }
 
   void ParachainProcessorImpl::onAttestComplete(
-      const libp2p::peer::PeerId &, ValidateAndSecondResult &&result) {
+      const libp2p::peer::PeerId &, const ValidateAndSecondResult &result) {
     auto parachain_state = tryGetStateByRelayParent(result.relay_parent);
     if (!parachain_state) {
       logger_->warn(
@@ -3364,54 +3418,14 @@ namespace kagome::parachain {
 
     if (parachain_state->get().issued_statements.count(candidate_hash) == 0) {
       if (result.result) {
-        if (auto statement =
-                createAndSignStatement<StatementType::kValid>(result)) {
-          auto cs = getPayload(*statement).candidate_state;
-
-          /// TODO(iceseer): optimize into ref structure
-          SignedFullStatementWithPVD stm = visit_in_place(
-              cs,
-              [&](const network::CommittedCandidateReceipt &receipt)
-                  -> SignedFullStatementWithPVD {
-                return SignedFullStatementWithPVD{
-                    .payload =
-                        {
-                            .payload =
-                                StatementWithPVDSeconded{
-                                    .committed_receipt = receipt,
-                                    .pvd = result.pvd,
-                                },
-                            .ix = statement->payload.ix,
-                        },
-                    .signature = statement->signature,
-                };
-              },
-              [&](const network::CandidateHash &candidateHash)
-                  -> SignedFullStatementWithPVD {
-                return SignedFullStatementWithPVD{
-                    .payload =
-                        {
-                            .payload =
-                                StatementWithPVDValid{
-                                    .candidate_hash = candidateHash,
-                                },
-                            .ix = statement->payload.ix,
-                        },
-                    .signature = statement->signature,
-                };
-              },
-              [&](const auto &) -> SignedFullStatementWithPVD {
-                return SignedFullStatementWithPVD{};
-              });
-
-          importStatement(result.relay_parent, stm, parachain_state->get());
-          if (parachain_state->get().prospective_parachains_mode) {
-            share_local_statement_vstaging(
-                parachain_state->get(), result.relay_parent, stm);
-          } else {
-            share_local_statement_v1(
-                parachain_state->get(), result.relay_parent, stm);
-          }
+        if (const auto r = sign_import_and_distribute_statement<StatementType::kValid>(parachain_state->get(), result); r.has_error()) {
+          SL_WARN(logger_, "Sign import and distribute failed. (relay_parent={}, candidate_hash={}, para_id={}, error={})", 
+            result.relay_parent,
+            candidate_hash,
+            result.candidate.descriptor.para_id,
+            r.error()
+          );
+          return;
         }
       }
       parachain_state->get().issued_statements.insert(candidate_hash);
