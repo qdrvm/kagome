@@ -693,7 +693,7 @@ namespace kagome::parachain {
     }
 
     SL_VERBOSE(logger_,
-               "Inited new backing task.(assignment={}, our index={}, relay "
+               "Inited new backing task v1.(assignment={}, our index={}, relay "
                "parent={})",
                assignment,
                validator->validatorIndex(),
