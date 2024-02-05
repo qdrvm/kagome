@@ -91,8 +91,8 @@ namespace kagome::network {
     app_state_manager_->takeControl(*beefy_justifications_protocol_.get());
     app_state_manager_->takeControl(*light_protocol_.get());
     app_state_manager_->takeControl(*propagate_transactions_protocol_.get());
-//    app_state_manager_->takeControl(*collation_protocol_.get());
-//    app_state_manager_->takeControl(*validation_protocol_.get());
+    //    app_state_manager_->takeControl(*collation_protocol_.get());
+    //    app_state_manager_->takeControl(*validation_protocol_.get());
     app_state_manager_->takeControl(*collation_protocol_vstaging_.get());
     app_state_manager_->takeControl(*validation_protocol_vstaging_.get());
     app_state_manager_->takeControl(*req_collation_protocol_.get());
@@ -105,7 +105,7 @@ namespace kagome::network {
 
     host_.setProtocolHandler(
         {ping_protocol_.get()->getProtocolId()},
-        [wp {weak_from_this()}](auto &&stream_and_proto) {
+        [wp{weak_from_this()}](auto &&stream_and_proto) {
           if (auto self = wp.lock()) {
             auto &stream = stream_and_proto.stream;
             if (auto peer_id = stream->remotePeerId()) {

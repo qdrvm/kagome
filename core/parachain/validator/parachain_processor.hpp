@@ -438,9 +438,15 @@ namespace kagome::parachain {
     std::optional<network::SignedStatement> createAndSignStatement(
         const ValidateAndSecondResult &validation_result);
     template <ParachainProcessorImpl::StatementType kStatementType>
-    outcome::result<std::optional<ParachainProcessorImpl::SignedFullStatementWithPVD>> 
-    sign_import_and_distribute_statement(ParachainProcessorImpl::RelayParentState &rp_state, const ValidateAndSecondResult &validation_result);
-    void post_import_statement_actions(const RelayHash &relay_parent, ParachainProcessorImpl::RelayParentState &rp_state, std::optional<ParachainProcessorImpl::ImportStatementSummary> &summary);
+    outcome::result<
+        std::optional<ParachainProcessorImpl::SignedFullStatementWithPVD>>
+    sign_import_and_distribute_statement(
+        ParachainProcessorImpl::RelayParentState &rp_state,
+        const ValidateAndSecondResult &validation_result);
+    void post_import_statement_actions(
+        const RelayHash &relay_parent,
+        ParachainProcessorImpl::RelayParentState &rp_state,
+        std::optional<ParachainProcessorImpl::ImportStatementSummary> &summary);
     template <typename T>
     std::optional<network::SignedStatement> createAndSignStatementFromPayload(
         T &&payload,
@@ -509,7 +515,8 @@ namespace kagome::parachain {
      * Notification
      */
     void broadcastView(const network::View &view) const;
-    void broadcastViewToGroup(const primitives::BlockHash &relay_parent, const network::View &view);
+    void broadcastViewToGroup(const primitives::BlockHash &relay_parent,
+                              const network::View &view);
     void broadcastViewExcept(const libp2p::peer::PeerId &peer_id,
                              const network::View &view) const;
     template <typename F>
@@ -541,7 +548,8 @@ namespace kagome::parachain {
     void onViewUpdated(const network::ExView &event);
     void OnBroadcastBitfields(const primitives::BlockHash &relay_parent,
                               const network::SignedBitfield &bitfield);
-    void onUpdatePeerView(const libp2p::peer::PeerId &peer_id, const network::View &view);
+    void onUpdatePeerView(const libp2p::peer::PeerId &peer_id,
+                          const network::View &view);
     void fetchCollation(
         ParachainProcessorImpl::RelayParentState &per_relay_parent,
         PendingCollation &&pc,
@@ -555,7 +563,10 @@ namespace kagome::parachain {
     tryGetStateByRelayParent(const primitives::BlockHash &relay_parent);
     RelayParentState &storeStateByRelayParent(
         const primitives::BlockHash &relay_parent, RelayParentState &&val);
-    void send_peer_messages_for_relay_parent(std::optional<std::reference_wrapper<const libp2p::peer::PeerId>> peer_id, const RelayHash &relay_parent);
+    void send_peer_messages_for_relay_parent(
+        std::optional<std::reference_wrapper<const libp2p::peer::PeerId>>
+            peer_id,
+        const RelayHash &relay_parent);
 
     void createBackingTask(const primitives::BlockHash &relay_parent);
     outcome::result<RelayParentState> initNewBackingTask(
@@ -639,10 +650,10 @@ namespace kagome::parachain {
                          PendingCollationEq>
           collation_requests_cancel_handles;
 
-        struct {
-           std::unordered_set<Hash> implicit_view;
-           network::View view;
-        } statementDistributionV2;
+      struct {
+        std::unordered_set<Hash> implicit_view;
+        network::View view;
+      } statementDistributionV2;
     } our_current_state_;
 
     std::unordered_map<RelayHash, PendingCollation> pending_candidates;
