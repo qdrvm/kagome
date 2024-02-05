@@ -57,10 +57,10 @@ TEST(InstancePoolTest, HeavilyMultithreadedCompilation) {
 
   std::vector<std::thread> threads;
   for (int i = 0; i < THREAD_NUM; i++) {
-    threads.emplace_back(std::thread([&pool, &code, i]() {
-      ASSERT_OUTCOME_SUCCESS_TRY(pool.instantiateFromCode(
-          make_code_hash(i % POOL_SIZE), code, RuntimeInstancesPool::Config{}));
-    }));
+    threads.emplace_back([&pool, &code, i]() {
+      ASSERT_OUTCOME_SUCCESS_TRY(
+          pool.instantiateFromCode(make_code_hash(i % POOL_SIZE), code, RuntimeInstancesPool::Config{}));
+    });
   }
 
   for (auto &t : threads) {
