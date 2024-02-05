@@ -29,8 +29,7 @@ if [ $CLANG_FORMAT_ENABLED ]; then
   CLANG_FORMAT_VERSION=$($CLANG_FORMAT --version | sed -r "s/.*version ([[:digit:]]+).*/\1/")
 
   if [ "$CLANG_FORMAT_VERSION" != "15" ]; then
-    echo "Please, install clang-format version 15 to enable checkup C++-files formatting over git pre-commit hook" >&2
-    CLANG_FORMAT_ENABLED=0
+    echo "clang-format version 15 is recommended" >&2
   fi
 fi
 
