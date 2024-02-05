@@ -386,18 +386,11 @@ namespace kagome::parachain {
       return importable;
     }
 
-    void onDeactivateLeaf(const std::vector<RelayHash> &relay_parents) {
-      for (const auto &h : relay_parents) {
-        view.active_leaves.erase(h);
-      }
-      prune_view_candidate_storage();
-    }
-
     outcome::result<void> onActiveLeavesUpdate(
         const network::ExViewRef &update) {
-//      for (const auto &deactivated : update.lost) {
-//        view.active_leaves.erase(deactivated);
-//      }
+      for (const auto &deactivated : update.lost) {
+        view.active_leaves.erase(deactivated);
+      }
 
       /// TODO(iceseer): do cache headers
       [[maybe_unused]] std::unordered_map<Hash, ProspectiveParachainsMode>
@@ -487,9 +480,9 @@ namespace kagome::parachain {
             hash, RelayBlockViewData{fragment_trees, pending_availability});
       }
 
-//      if (!update.lost.empty()) {
-//        prune_view_candidate_storage();
-//      }
+      if (!update.lost.empty()) {
+        prune_view_candidate_storage();
+      }
 
       return outcome::success();
     }

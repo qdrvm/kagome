@@ -3,25 +3,29 @@ timeout = 1000
 
 [relaychain]
 chain = "rococo-local"
-default_command = "polkadot"
+default_command = "/home/iceseer/Work/polkadot-sdk/target/release/polkadot"
 
-  [[relaychain.nodes]]
-  name = "alice"
-  args = [ "-lruntime=debug,parachain=trace" ]
+    [[relaychain.nodes]]
+    name = "alice"
+    ws_port = 9902
+    validator = true
+    command = "/home/iceseer/Work/kagome/build-ex/node/kagome"
+    prometheus_prefix = "kagome"
+    args = [ "-lruntime=debug", "-lparachain=trace", "--wasm-execution","Compiled","--unsafe-cached-wavm-runtime" ]
 
-  [[relaychain.nodes]]
-  name = "bob"
-  args = [ "-lruntime=debug,parachain=trace" ]
-  command = "kagome"
-  prometheus_prefix = "kagome"
+    [[relaychain.nodes]]
+    name = "bob"
+    ws_port = 9903
+    validator = true
+    args = [ "-lruntime=debug,parachain=trace" ]
 
 [[parachains]]
 id = 100
-add_to_genesis = false
+add_to_genesis = true
 
   [parachains.collator]
   name = "collator01"
-  command = "adder-collator"
+  command = "/home/iceseer/Work/polkadot-sdk/target/testnet/adder-collator"
   args = [ "-lruntime=debug,parachain=trace" ]
 
 [types.Header]
