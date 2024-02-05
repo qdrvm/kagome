@@ -84,26 +84,6 @@ namespace kagome::parachain {
       metrics::exponentialBuckets(16384, 2, 10),
   };
 
-  struct DontProvideCode : runtime::RuntimeCodeProvider {
-    outcome::result<common::BufferView> getCodeAt(
-        const storage::trie::RootHash &) const override {
-      abort();
-    }
-  };
-
-  struct ReturnModuleInstance : runtime::ModuleRepository {
-    ReturnModuleInstance(std::shared_ptr<runtime::ModuleInstance> instance)
-        : instance{std::move(instance)} {}
-
-    outcome::result<std::shared_ptr<runtime::ModuleInstance>> getInstanceAt(
-        const primitives::BlockInfo &,
-        const storage::trie::RootHash &) override {
-      return instance;
-    }
-
-    std::shared_ptr<runtime::ModuleInstance> instance;
-  };
-
   struct ValidationParams {
     SCALE_TIE(4);
 
