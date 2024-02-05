@@ -156,6 +156,7 @@ namespace kagome::runtime::binaryen {
                      import->module.str,
                      import->name.str)
              .c_str());
+    return {};
   }
 
   void RuntimeExternalInterface::checkArguments(std::string_view extern_name,

@@ -121,7 +121,7 @@ namespace kagome::runtime::wasm_edge {
     } catch (std::runtime_error &e) {
       auto log = log::createLogger("HostApi", "runtime");
       SL_ERROR(log, "Host API call failed with error: {}", e.what());
-      return WasmEdge_Result_Terminate;
+      return WasmEdge_Result_Fail;
     }
     return WasmEdge_Result_Success;
   }
@@ -175,14 +175,14 @@ namespace kagome::runtime::wasm_edge {
     SL_ERROR(logger,
              "Attempt to call an unimplemented Host method '{}'",
              reinterpret_cast<const char *>(data));
-    return WasmEdge_Result_Terminate;
+    return WasmEdge_Result_Fail;
   };
 
   void stub_host_method(WasmEdge_ModuleInstanceContext *module,
                         std::string_view name,
                         std::span<WasmEdge_ValType> rets,
                         std::span<WasmEdge_ValType> args) {
-    register_method(stub, module, nullptr, name, rets, args);
+    register_method(stub, module, (void*)name.data(), name, rets, args);
   }
 
 #define REGISTER_HOST_METHOD(Ret, name, ...)            \
