@@ -30,7 +30,7 @@ env:
 
 jobs:
   MacOS:
-    runs-on: macos-13
+    runs-on: macos-14
     steps:
     - uses: actions/checkout@dc323e67f16fb5f7663d20ff7941f27f5809e9b6
     - uses: actions/cache@937d24475381cd9c75ae6db12cb4e79714b926ed
@@ -42,7 +42,7 @@ jobs:
       env:
         KAGOME_MAC_CI: 1
     - name: build
-      run: ./housekeeping/make_build.sh -DCLEAR_OBJS=ON -DCOVERAGE=OFF -DWASM_COMPILER=WasmEdge -DCMAKE_TOOLCHAIN_FILE=cmake/toolchain/cxx20.cmake
+      run: ./housekeeping/make_build.sh -G Ninja -DCLEAR_OBJS=ON -DCOVERAGE=OFF -DWASM_COMPILER=WasmEdge -DCMAKE_TOOLCHAIN_FILE=cmake/toolchain/cxx20.cmake
       env:
         KAGOME_IN_DOCKER: 0
         KAGOME_MAC_CI: 1
