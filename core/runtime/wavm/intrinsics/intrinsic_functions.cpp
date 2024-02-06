@@ -71,23 +71,16 @@ namespace kagome::runtime::wavm {
     }
   }
 
-  void registerHostApiMethods(
-      IntrinsicModule &module,
-      std::span<WAVM::IR::Import<WAVM::IR::FunctionType>> import_functions) {
+  void registerHostApiMethods(IntrinsicModule &module) {
     if (logger == nullptr) {
       logger = log::createLogger("Host API wrappers", "wavm");
     }
-    std::unordered_set<std::string> required_imports;
 #define REGISTER_HOST_METHOD(Ret, name, ...)                                \
   registerMethod<&host_api::HostApi::name, Ret __VA_OPT__(, ) __VA_ARGS__>( \
       module, #name);                                                       \
-  required_imports.erase(#name);
 
     REGISTER_HOST_METHODS
 
-    for (auto& import: required_imports) {
-      
-    }
   }
 
 }  // namespace kagome::runtime::wavm

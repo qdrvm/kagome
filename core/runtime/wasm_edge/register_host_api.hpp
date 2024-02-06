@@ -137,10 +137,12 @@ namespace kagome::runtime::wasm_edge {
     auto instance = WasmEdge_FunctionInstanceCreate(type, cb, data, 0);
     WasmEdge_FunctionTypeDelete(type);
 
+    auto name_str = WasmEdge_StringCreateByBuffer(name.data(), name.size());
     WasmEdge_ModuleInstanceAddFunction(
         module,
-        WasmEdge_StringCreateByBuffer(name.data(), name.size()),
+        name_str,
         instance);
+    WasmEdge_StringDelete(name_str);
   }
 
   template <typename Ret, typename... Args>
