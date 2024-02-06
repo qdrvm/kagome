@@ -7,6 +7,7 @@
 #pragma once
 
 #include "consensus/beefy/types.hpp"
+#include "network/beefy/i_beefy_protocol.hpp"
 #include "network/helpers/scale_message_read_writer.hpp"
 #include "network/impl/protocols/request_response_protocol.hpp"
 #include "network/types/roles.hpp"
@@ -41,7 +42,8 @@ namespace kagome::network {
 
   class BeefyProtocol final
       : public ProtocolBase,
-        public std::enable_shared_from_this<BeefyProtocol> {
+        public std::enable_shared_from_this<BeefyProtocol>,
+        public IBeefyProtocol {
     static constexpr auto kName = "BeefyProtocol";
 
    public:
@@ -60,7 +62,7 @@ namespace kagome::network {
         override;
 
     void broadcast(
-        std::shared_ptr<consensus::beefy::BeefyGossipMessage> message);
+        std::shared_ptr<consensus::beefy::BeefyGossipMessage> message) override;
 
    private:
     ProtocolBaseImpl base_;

@@ -95,6 +95,10 @@ namespace kagome::application {
     bool isVersi() const {
       return idStartsWith("versi") || idStartsWith("vrs");
     }
+
+    virtual primitives::BlockNumber beefyMinDelta() const {
+      return isWococo() ? 4 : 8;
+    }
   };
 
 }  // namespace kagome::application

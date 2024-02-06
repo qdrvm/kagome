@@ -52,7 +52,7 @@ namespace kagome::storage {
 }
 
 namespace kagome::network {
-  class BeefyProtocol;
+  class IBeefyProtocol;
 
   class Beefy : public IBeefy, public std::enable_shared_from_this<Beefy> {
    public:
@@ -62,12 +62,14 @@ namespace kagome::network {
           std::shared_ptr<runtime::BeefyApi> beefy_api,
           std::shared_ptr<crypto::EcdsaProvider> ecdsa,
           std::shared_ptr<storage::SpacedStorage> db,
-          std::shared_ptr<common::WorkerThreadPool> worker_thread_pool,
+          const common::WorkerThreadPool &worker_thread_pool,
           WeakIoContext main_thread_context,
           LazySPtr<consensus::Timeline> timeline,
           std::shared_ptr<crypto::SessionKeys> session_keys,
-          LazySPtr<BeefyProtocol> beefy_protocol,
+          LazySPtr<IBeefyProtocol> beefy_protocol,
           primitives::events::ChainSubscriptionEnginePtr chain_sub_engine);
+
+    bool start();
 
     primitives::BlockNumber finalized() const;
 
@@ -87,7 +89,6 @@ namespace kagome::network {
     };
     using Sessions = std::map<primitives::BlockNumber, Session>;
 
-    void start();
     bool hasJustification(primitives::BlockNumber block) const;
     using FindValidatorsResult = std::optional<
         std::pair<primitives::BlockNumber, consensus::beefy::ValidatorSet>>;
@@ -116,7 +117,7 @@ namespace kagome::network {
     WeakIoContext main_thread_context_;
     LazySPtr<consensus::Timeline> timeline_;
     std::shared_ptr<crypto::SessionKeys> session_keys_;
-    LazySPtr<BeefyProtocol> beefy_protocol_;
+    LazySPtr<IBeefyProtocol> beefy_protocol_;
     primitives::BlockNumber min_delta_;
     primitives::events::ChainSub chain_sub_;
 

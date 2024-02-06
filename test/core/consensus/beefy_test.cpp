@@ -1,0 +1,245 @@
+/**
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+#include <gtest/gtest.h>
+
+#include "common/worker_thread_pool.hpp"
+#include "crypto/ecdsa/ecdsa_provider_impl.hpp"
+#include "crypto/hasher/hasher_impl.hpp"
+#include "mock/core/application/app_state_manager_mock.hpp"
+#include "mock/core/application/chain_spec_mock.hpp"
+#include "mock/core/blockchain/block_tree_mock.hpp"
+#include "mock/core/consensus/timeline/timeline_mock.hpp"
+#include "mock/core/crypto/session_keys_mock.hpp"
+#include "mock/core/runtime/beefy_api.hpp"
+#include "network/beefy/beefy.hpp"
+#include "network/beefy/i_beefy_protocol.hpp"
+#include "storage/in_memory/in_memory_spaced_storage.hpp"
+#include "testutil/lazy.hpp"
+#include "testutil/prepare_loggers.hpp"
+
+using kagome::TestThreadPool;
+using kagome::application::AppStateManagerMock;
+using kagome::application::ChainSpecMock;
+using kagome::blockchain::BlockTreeMock;
+using kagome::consensus::Timeline;
+using kagome::consensus::TimelineMock;
+using kagome::consensus::beefy::BeefyGossipMessage;
+using kagome::consensus::beefy::BeefyJustification;
+using kagome::consensus::beefy::ConsensusDigest;
+using kagome::consensus::beefy::MmrRootHash;
+using kagome::consensus::beefy::SignedCommitment;
+using kagome::consensus::beefy::ValidatorSet;
+using kagome::crypto::EcdsaKeypair;
+using kagome::crypto::EcdsaProviderImpl;
+using kagome::crypto::EcdsaSeed;
+using kagome::crypto::HasherImpl;
+using kagome::crypto::SessionKeysMock;
+using kagome::network::Beefy;
+using kagome::network::IBeefyProtocol;
+using kagome::primitives::BlockHash;
+using kagome::primitives::BlockHeader;
+using kagome::primitives::BlockNumber;
+using kagome::primitives::Consensus;
+using kagome::primitives::kBeefyEngineId;
+using kagome::primitives::events::ChainEventType;
+using kagome::primitives::events::ChainSubscriptionEngine;
+using kagome::primitives::events::ChainSubscriptionEnginePtr;
+using kagome::runtime::BeefyApiMock;
+using kagome::storage::InMemorySpacedStorage;
+using testing::_;
+using testing::Return;
+
+namespace kagome::consensus::beefy {
+  inline auto &operator<<(std::ostream &os, const VoteMessage &) {
+    return os;
+  }
+  inline auto &operator<<(std::ostream &os, const SignedCommitment &) {
+    return os;
+  }
+}  // namespace kagome::consensus::beefy
+
+struct BroadcastMock : IBeefyProtocol {
+  MOCK_METHOD(void,
+              broadcast,
+              (std::shared_ptr<BeefyGossipMessage>),
+              (override));
+};
+
+struct BeefyPeer {
+  EcdsaKeypair keys_;
+  std::shared_ptr<SessionKeysMock> keystore_ =
+      std::make_shared<SessionKeysMock>();
+  std::shared_ptr<BroadcastMock> broadcast_ = std::make_shared<BroadcastMock>();
+  std::shared_ptr<Beefy> beefy_;
+};
+
+struct Test : testing::Test {
+  static void SetUpTestCase() {
+    testutil::prepareLoggers();
+  }
+
+  void SetUp() override {
+    EXPECT_CALL(chain_spec_, beefyMinDelta()).WillRepeatedly([&] {
+      return min_delta_;
+    });
+    EXPECT_CALL(*block_tree_, getLastFinalized()).WillRepeatedly([&] {
+      return blocks_[finalized_].blockInfo();
+    });
+    EXPECT_CALL(*block_tree_, getBlockHash(_))
+        .WillRepeatedly([&](BlockNumber i) { return blocks_[i].hash(); });
+    EXPECT_CALL(*block_tree_, getBlockHeader(_))
+        .WillRepeatedly([&](BlockHash h) {
+          for (auto &block : blocks_) {
+            if (block.hash() == h) {
+              return block;
+            }
+          }
+          throw std::logic_error{"getBlockHeader"};
+        });
+    EXPECT_CALL(*beefy_api_, genesis(_)).WillRepeatedly([&] {
+      return genesis_;
+    });
+    EXPECT_CALL(*beefy_api_, validatorSet(_)).WillRepeatedly([&] {
+      return genesisVoters();
+    });
+    EXPECT_CALL(*timeline_, wasSynchronized()).WillRepeatedly(Return(true));
+  }
+
+  void makePeers(uint32_t n) {
+    peers_.reserve(n);
+    for (uint32_t i = 0; i < n; ++i) {
+      auto &peer = peers_.emplace_back();
+      EcdsaSeed seed;
+      seed[0] = i;
+      seed[1] = 1;
+      peer.keys_ = ecdsa_->generateKeypair(seed, {}).value();
+      EXPECT_CALL(*peer.keystore_, getBeefKeyPair(_))
+          .WillRepeatedly(Return(
+              std::make_pair(std::make_shared<EcdsaKeypair>(peer.keys_), i)));
+      AppStateManagerMock app_state;
+      EXPECT_CALL(app_state, atLaunch(_));
+      peer.beefy_ = std::make_shared<Beefy>(
+          app_state,
+          chain_spec_,
+          block_tree_,
+          beefy_api_,
+          ecdsa_,
+          std::make_shared<InMemorySpacedStorage>(),
+          TestThreadPool{io_},
+          io_,
+          testutil::sptr_to_lazy<Timeline>(timeline_),
+          peer.keystore_,
+          testutil::sptr_to_lazy<IBeefyProtocol>(peer.broadcast_),
+          chain_sub_);
+      peer.beefy_->start();
+    }
+  }
+
+  ValidatorSet genesisVoters() {
+    ValidatorSet voters;
+    for (auto &peer : peers_) {
+      voters.validators.emplace_back(peer.keys_.public_key);
+    }
+    return voters;
+  }
+
+  void generate_blocks_and_sync(BlockNumber max, BlockNumber session) {
+    auto voters = genesisVoters();
+    BlockHash parent;
+    for (BlockNumber i = 0; i <= max; ++i) {
+      BlockHeader block;
+      block.number = i;
+      if (i > 0) {
+        auto &mmr = parent;
+        block.digest.emplace_back(
+            Consensus{kBeefyEngineId, ConsensusDigest{mmr}});
+      }
+      BlockNumber genesis = 0;
+      if (i > genesis and i % session == 0) {
+        ++voters.id;
+        block.digest.emplace_back(
+            Consensus{kBeefyEngineId, ConsensusDigest{voters}});
+      }
+      calculateBlockHash(block, *hasher_);
+      blocks_.emplace_back(block);
+      parent = block.hash();
+    }
+  }
+
+  void finalize_block_and_wait_for_beefy(BlockNumber finalize,
+                                         std::vector<BlockNumber> expected) {
+    std::vector<std::vector<BlockNumber>> actual;
+    actual.reserve(peers_.size());
+    for (auto &peer : peers_) {
+      auto &peer_actual = actual.emplace_back();
+      EXPECT_CALL(*peer.broadcast_, broadcast(_))
+          .WillRepeatedly([&](std::shared_ptr<BeefyGossipMessage> m) {
+            if (auto jr = boost::get<BeefyJustification>(&*m)) {
+              auto &j = boost::get<SignedCommitment>(*jr);
+              peer_actual.emplace_back(j.commitment.block_number);
+            }
+            io_->post([&, m] {
+              for (auto &peer2 : peers_) {
+                if (&peer2 != &peer) {
+                  peer2.beefy_->onMessage(*m);
+                }
+              }
+            });
+          });
+    }
+    finalized_ = finalize;
+    chain_sub_->notify(ChainEventType::kFinalizedHeads, blocks_.at(finalize));
+    io_->restart();
+    io_->run();
+    for (auto &peer_actual : actual) {
+      EXPECT_EQ(peer_actual, expected);
+    }
+  }
+
+  ChainSpecMock chain_spec_;
+  std::shared_ptr<BlockTreeMock> block_tree_ =
+      std::make_shared<BlockTreeMock>();
+  std::shared_ptr<BeefyApiMock> beefy_api_ = std::make_shared<BeefyApiMock>();
+  std::shared_ptr<HasherImpl> hasher_ = std::make_shared<HasherImpl>();
+  std::shared_ptr<EcdsaProviderImpl> ecdsa_ =
+      std::make_shared<EcdsaProviderImpl>(hasher_);
+  std::shared_ptr<boost::asio::io_context> io_ =
+      std::make_shared<boost::asio::io_context>();
+  std::shared_ptr<TimelineMock> timeline_ = std::make_shared<TimelineMock>();
+  ChainSubscriptionEnginePtr chain_sub_ =
+      std::make_shared<ChainSubscriptionEngine>();
+
+  std::vector<BlockHeader> blocks_;
+  BlockNumber finalized_ = 0;
+  BlockNumber min_delta_ = 1;
+  BlockNumber genesis_ = 1;
+  std::vector<BeefyPeer> peers_;
+};
+
+TEST_F(Test, beefy_finalizing_blocks) {
+  min_delta_ = 4;
+  makePeers(2);
+  generate_blocks_and_sync(42, 10);
+
+  // finalize block #5 -> BEEFY should finalize #1 (mandatory) and #5 from
+  // diff-power-of-two rule.
+  finalize_block_and_wait_for_beefy(1, {1});
+  finalize_block_and_wait_for_beefy(5, {5});
+
+  // GRANDPA finalize #10 -> BEEFY finalize #10 (mandatory)
+  finalize_block_and_wait_for_beefy(10, {10});
+
+  // GRANDPA finalize #18 -> BEEFY finalize #14, then #18 (diff-power-of-two
+  // rule)
+  finalize_block_and_wait_for_beefy(18, {14, 18});
+
+  // GRANDPA finalize #20 -> BEEFY finalize #20 (mandatory)
+  finalize_block_and_wait_for_beefy(20, {20});
+
+  // GRANDPA finalize #21 -> BEEFY finalize nothing (yet) because min delta
+  finalize_block_and_wait_for_beefy(21, {});
+}

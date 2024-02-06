@@ -24,6 +24,7 @@
 #include "utils/weak_io_context_strand.hpp"
 
 // TODO(turuslan): #1651, report equivocation
+// TODO(turuslan): #1651, fetch justifications
 
 namespace kagome::network {
   metrics::GaugeHelper metric_validator_set_id{
@@ -41,25 +42,23 @@ namespace kagome::network {
                std::shared_ptr<runtime::BeefyApi> beefy_api,
                std::shared_ptr<crypto::EcdsaProvider> ecdsa,
                std::shared_ptr<storage::SpacedStorage> db,
-               std::shared_ptr<common::WorkerThreadPool> worker_thread_pool,
+               const common::WorkerThreadPool &worker_thread_pool,
                WeakIoContext main_thread_context,
                LazySPtr<consensus::Timeline> timeline,
                std::shared_ptr<crypto::SessionKeys> session_keys,
-               LazySPtr<BeefyProtocol> beefy_protocol,
+               LazySPtr<IBeefyProtocol> beefy_protocol,
                primitives::events::ChainSubscriptionEnginePtr chain_sub_engine)
       : block_tree_{std::move(block_tree)},
         beefy_api_{std::move(beefy_api)},
         ecdsa_{std::move(ecdsa)},
         db_{db->getSpace(storage::Space::kBeefyJustification)},
-        strand_{std::make_shared<WeakIoContextStrand>([&] {
-          BOOST_ASSERT(worker_thread_pool);
-          return worker_thread_pool->io_context();
-        }())},
+        strand_{std::make_shared<WeakIoContextStrand>(
+            worker_thread_pool.io_context())},
         main_thread_context_{std::move(main_thread_context)},
         timeline_{std::move(timeline)},
         session_keys_{std::move(session_keys)},
         beefy_protocol_{std::move(beefy_protocol)},
-        min_delta_{chain_spec.isWococo() ? 4u : 8u},
+        min_delta_{chain_spec.beefyMinDelta()},
         chain_sub_{chain_sub_engine},
         log_{log::createLogger("Beefy")} {
     BOOST_ASSERT(block_tree_ != nullptr);
@@ -69,10 +68,7 @@ namespace kagome::network {
     BOOST_ASSERT(not main_thread_context_.expired());
     BOOST_ASSERT(session_keys_ != nullptr);
 
-    app_state_manager.atLaunch([this]() mutable {
-      start();
-      return true;
-    });
+    app_state_manager.takeControl(*this);
   }
 
   primitives::BlockNumber Beefy::finalized() const {
@@ -222,7 +218,7 @@ namespace kagome::network {
     }
   }
 
-  void Beefy::start() {
+  bool Beefy::start() {
     auto cursor = db_->cursor();
     std::ignore = cursor->seekLast();
     if (cursor->isValid()) {
@@ -244,6 +240,7 @@ namespace kagome::network {
         std::ignore = self->update();
       }
     });
+    return true;
   }
 
   bool Beefy::hasJustification(primitives::BlockNumber block) const {
@@ -368,6 +365,11 @@ namespace kagome::network {
              protocol->broadcast(std::move(message));
            });
     }
+    strand_->post([weak{weak_from_this()}] {
+      if (auto self = weak.lock()) {
+        std::ignore = self->update();
+      }
+    });
     return outcome::success();
   }
 
@@ -418,7 +420,11 @@ namespace kagome::network {
     auto session = std::prev(next_session);
     auto grandpa_finalized = block_tree_->getLastFinalized().number;
     auto target = session->first;
-    if (target <= beefy_finalized_) {
+    if (next_session != sessions_.end()
+        and grandpa_finalized >= next_session->first) {
+      target = next_session->first;
+      session = next_session;
+    } else if (target <= beefy_finalized_) {
       auto diff = grandpa_finalized - beefy_finalized_ + 1;
       target = beefy_finalized_
              + std::max<primitives::BlockNumber>(
