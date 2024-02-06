@@ -31,11 +31,14 @@ namespace kagome::consensus::grandpa {
     // This ctor is needed only for tests purposes
     VotingRoundImpl() : round_number_{}, duration_{} {}
 
-   private:
+   public:
+    using SaveCachedVotes = std::function<void()>;
+
     VotingRoundImpl(const std::shared_ptr<Grandpa> &grandpa,
                     const GrandpaConfig &config,
                     std::shared_ptr<crypto::Hasher> hasher,
                     std::shared_ptr<Environment> env,
+                    SaveCachedVotes save_cached_votes,
                     std::shared_ptr<VoteCryptoProvider> vote_crypto_provider,
                     std::shared_ptr<VoteTracker> prevotes,
                     std::shared_ptr<VoteTracker> precommits,
@@ -47,6 +50,7 @@ namespace kagome::consensus::grandpa {
         const GrandpaConfig &config,
         std::shared_ptr<crypto::Hasher> hasher,
         const std::shared_ptr<Environment> &env,
+        SaveCachedVotes save_cached_votes,
         const std::shared_ptr<VoteCryptoProvider> &vote_crypto_provider,
         const std::shared_ptr<VoteTracker> &prevotes,
         const std::shared_ptr<VoteTracker> &precommits,
@@ -59,19 +63,13 @@ namespace kagome::consensus::grandpa {
         const GrandpaConfig &config,
         std::shared_ptr<crypto::Hasher> hasher,
         const std::shared_ptr<Environment> &env,
+        SaveCachedVotes save_cached_votes,
         const std::shared_ptr<VoteCryptoProvider> &vote_crypto_provider,
         const std::shared_ptr<VoteTracker> &prevotes,
         const std::shared_ptr<VoteTracker> &precommits,
         const std::shared_ptr<VoteGraph> &vote_graph,
         const std::shared_ptr<libp2p::basic::Scheduler> &scheduler,
         const std::shared_ptr<VotingRound> &previous_round);
-
-   public:
-    template <typename... Args>
-    static std::shared_ptr<VotingRoundImpl> create(Args &&...args) {
-      return std::shared_ptr<VotingRoundImpl>(
-          new VotingRoundImpl(std::forward<Args>(args)...));
-    }
 
     enum class Stage {
       // Initial stage, round is just created
@@ -189,6 +187,8 @@ namespace kagome::consensus::grandpa {
      * network
      */
     void attemptToFinalizeRound() override;
+
+    Votes votes() const override;
 
     // Catch-up actions
 
@@ -315,6 +315,7 @@ namespace kagome::consensus::grandpa {
     std::weak_ptr<Grandpa> grandpa_;
     std::shared_ptr<crypto::Hasher> hasher_;
     std::shared_ptr<Environment> env_;
+    SaveCachedVotes save_cached_votes_;
     std::shared_ptr<VoteCryptoProvider> vote_crypto_provider_;
     std::shared_ptr<VoteGraph> graph_;
     std::shared_ptr<libp2p::basic::Scheduler> scheduler_;

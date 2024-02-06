@@ -15,7 +15,7 @@
 #include <boost/asio/post.hpp>
 #include <boost/asio/signal_set.hpp>
 #include <boost/variant.hpp>
-#include <clock/timer.hpp>
+#include <libp2p/basic/scheduler.hpp>
 
 #include "blockchain/block_tree.hpp"
 #include "consensus/babe/types/babe_block_header.hpp"
@@ -36,11 +36,22 @@
 #include "runtime/runtime_api/parachain_host.hpp"
 #include "runtime/runtime_api/parachain_host_types.hpp"
 #include "utils/safe_object.hpp"
-#include "utils/thread_pool.hpp"
+
+namespace kagome {
+  class ThreadHandler;
+}
+
+namespace kagome::common {
+  class WorkerThreadPool;
+}
 
 namespace kagome::consensus::babe {
   class BabeConfigRepository;
-}  // namespace kagome::consensus::babe
+}
+
+namespace kagome::parachain {
+  class ApprovalThreadPool;
+}
 
 namespace kagome::parachain {
   using DistributeAssignment = network::Assignment;
@@ -61,21 +72,6 @@ namespace kagome::parachain {
   struct ApprovalDistribution final
       : public std::enable_shared_from_this<ApprovalDistribution>,
         public IApprovedAncestor {
-    enum class Error {
-      NO_INSTANCE = 1,
-      NO_CONTEXT = 2,
-      NO_SESSION_INFO = 3,
-      UNUSED_SLOT_TYPE = 4,
-      ENTRY_IS_NOT_FOUND = 5,
-      ALREADY_APPROVING = 6,
-      VALIDATOR_INDEX_OUT_OF_BOUNDS = 7,
-      CORE_INDEX_OUT_OF_BOUNDS = 8,
-      IS_IN_BACKING_GROUP = 9,
-      SAMPLE_OUT_OF_BOUNDS = 10,
-      VRF_DELAY_CORE_INDEX_MISMATCH = 11,
-      VRF_VERIFY_AND_GET_TRANCHE = 12,
-    };
-
     struct OurAssignment {
       SCALE_TIE(4);
       approval::AssignmentCert cert;
@@ -273,7 +269,7 @@ namespace kagome::parachain {
     ApprovalDistribution(
         std::shared_ptr<consensus::babe::BabeConfigRepository> babe_config_repo,
         std::shared_ptr<application::AppStateManager> app_state_manager,
-        std::shared_ptr<ThreadPool> thread_pool,
+        std::shared_ptr<common::WorkerThreadPool> worker_thread_pool,
         std::shared_ptr<runtime::ParachainHost> parachain_host,
         LazySPtr<consensus::SlotsUtil> slots_util,
         std::shared_ptr<crypto::CryptoStore> keystore,
@@ -286,8 +282,8 @@ namespace kagome::parachain {
         std::shared_ptr<blockchain::BlockTree> block_tree,
         std::shared_ptr<parachain::Pvf> pvf,
         std::shared_ptr<parachain::Recovery> recovery,
-        std::shared_ptr<Watchdog> watchdog,
-        WeakIoContext main_thread,
+        std::shared_ptr<ApprovalThreadPool> approval_thread_pool,
+        WeakIoContext main_thread_context,
         LazySPtr<dispute::DisputeCoordinator> dispute_coordinator);
     ~ApprovalDistribution() = default;
 
@@ -711,11 +707,9 @@ namespace kagome::parachain {
     }
 
     ApprovingContextMap approving_context_map_;
-    std::shared_ptr<ThreadPool> int_pool_;
-    std::shared_ptr<ThreadHandler> internal_context_;
+    std::shared_ptr<ThreadHandler> approval_thread_handler_;
 
-    std::shared_ptr<ThreadPool> thread_pool_;
-    std::shared_ptr<ThreadHandler> thread_pool_context_;
+    std::shared_ptr<ThreadHandler> worker_thread_handler_;
 
     std::shared_ptr<runtime::ParachainHost> parachain_host_;
     LazySPtr<consensus::SlotsUtil> slots_util_;
@@ -741,8 +735,10 @@ namespace kagome::parachain {
     std::shared_ptr<blockchain::BlockTree> block_tree_;
     std::shared_ptr<parachain::Pvf> pvf_;
     std::shared_ptr<parachain::Recovery> recovery_;
-    ThreadHandler main_thread_;
+    WeakIoContext main_thread_context_;
     LazySPtr<dispute::DisputeCoordinator> dispute_coordinator_;
+
+    std::shared_ptr<libp2p::basic::Scheduler> scheduler_;
 
     std::unordered_map<
         Hash,
@@ -752,10 +748,9 @@ namespace kagome::parachain {
     std::map<primitives::BlockNumber, std::unordered_set<primitives::BlockHash>>
         blocks_by_number_;
 
-    /// thread_pool_ context access
     using ScheduledCandidateTimer = std::unordered_map<
         CandidateHash,
-        std::vector<std::pair<Tick, std::unique_ptr<clock::Timer>>>>;
+        std::vector<std::pair<Tick, libp2p::basic::Scheduler::Handle>>>;
     std::unordered_map<network::BlockHash, ScheduledCandidateTimer>
         active_tranches_;
 
@@ -771,5 +766,3 @@ namespace kagome::parachain {
   };
 
 }  // namespace kagome::parachain
-
-OUTCOME_HPP_DECLARE_ERROR(kagome::parachain, ApprovalDistribution::Error);

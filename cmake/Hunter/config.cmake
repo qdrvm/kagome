@@ -52,15 +52,8 @@ hunter_config(
 
 if ("${WASM_COMPILER}" STREQUAL "WasmEdge")
   hunter_config(
-      LLVM
-      VERSION 16.0.1
-      CMAKE_ARGS LLVM_ENABLE_PROJECTS=compiler-rt
-  )
-
-  hunter_config(
       WasmEdge
-      URL https://github.com/Harrm/WasmEdge/archive/f9ef1de1679dd86c62c998a28fc8875e32c187f6.zip
-      SHA1 2bd770546623afb6083e67a3e6bad819f36dfd72
+      VERSION 0.14.0-alpha.1-qdrvm3
       CMAKE_ARGS
         WASMEDGE_BUILD_STATIC_LIB=ON
         WASMEDGE_BUILD_SHARED_LIB=OFF
@@ -94,7 +87,7 @@ endif ()
 
 hunter_config(
     scale
-    VERSION 1.1.0
+    VERSION 1.1.2
     KEEP_PACKAGE_SOURCES
 )
 

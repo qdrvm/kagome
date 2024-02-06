@@ -140,7 +140,7 @@ namespace kagome::telemetry {
         boost::asio::io_context::executor_type>;
     std::shared_ptr<WorkGuardT> work_guard_;
     std::shared_ptr<boost::asio::io_context> io_context_;
-    std::shared_ptr<std::thread> worker_thread_;
+    std::unique_ptr<std::thread> worker_thread_;
     std::vector<std::shared_ptr<TelemetryConnection>> connections_;
     libp2p::basic::Scheduler::Handle frequent_timer_;
     libp2p::basic::Scheduler::Handle delayed_timer_;

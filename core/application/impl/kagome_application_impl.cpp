@@ -79,23 +79,22 @@ namespace kagome::application {
       exit(EXIT_FAILURE);
     }
 
-    app_state_manager->atLaunch([ctx{io_context}, watchdog] {
-      std::thread asio_runner([ctx{ctx}, watchdog] {
-        soralog::util::setThreadName("kagome");  // explicitly for macos
+    std::unique_ptr<std::thread> asio_runner;
+
+    app_state_manager->atLaunch([ctx{io_context}, watchdog, &asio_runner] {
+      asio_runner = std::make_unique<std::thread>([ctx{ctx}, watchdog] {
+        soralog::util::setThreadName("main_runner");  // explicitly for macos
         watchdog->run(ctx);
       });
-      asio_runner.detach();
       return true;
     });
 
-    std::thread watchdog_thread(
-        [watchdog] { watchdog->checkLoop(kWatchdogDefaultTimeout); });
-    watchdog_thread.detach();
-
-    app_state_manager->atShutdown([ctx{io_context}, watchdog] {
-      ctx->stop();
-      watchdog->stop();
+    std::thread watchdog_thread([watchdog] {
+      soralog::util::setThreadName("watchdog");
+      watchdog->checkLoop(kWatchdogDefaultTimeout);
     });
+
+    app_state_manager->atShutdown([watchdog] { watchdog->stop(); });
 
     {  // Metrics
       auto metrics_registry = metrics::createRegistry();
@@ -127,6 +126,14 @@ namespace kagome::application {
     }
 
     app_state_manager->run();
+
+    watchdog->stop();
+
+    if (asio_runner) {
+      asio_runner->join();
+    }
+
+    watchdog_thread.join();
   }
 
 }  // namespace kagome::application

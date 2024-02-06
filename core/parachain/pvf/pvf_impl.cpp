@@ -143,18 +143,26 @@ namespace kagome::parachain {
     state_manager->takeControl(*this);
   }
 
+  PvfImpl::~PvfImpl() {
+    if (precompiler_thread_) {
+      precompiler_thread_->join();
+      precompiler_thread_.reset();
+    }
+  }
+
   bool PvfImpl::prepare() {
     if (config_.precompile_modules) {
-      std::thread t{[self = shared_from_this()]() {
-        auto res = self->precompiler_->precompileModulesAt(
-            self->block_tree_->getLastFinalized().hash);
-        if (!res) {
-          SL_ERROR(self->log_,
-                   "Parachain module precompilation failed: {}",
-                   res.error());
-        }
-      }};
-      t.detach();
+      precompiler_thread_ =
+          std::make_unique<std::thread>([self = shared_from_this()]() {
+            soralog::util::setThreadName("pvf_cmpl_thread");
+            auto res = self->precompiler_->precompileModulesAt(
+                self->block_tree_->getLastFinalized().hash);
+            if (!res) {
+              SL_ERROR(self->log_,
+                       "Parachain module precompilation failed: {}",
+                       res.error());
+            }
+          });
     }
     return true;
   }
@@ -271,8 +279,7 @@ namespace kagome::parachain {
     OUTCOME_TRY(ctx,
                 ctx_factory_->ephemeral(
                     instance, storage::trie::kEmptyRootHash, executor_params));
-    return executor_->call<ValidationResult>(
-        ctx, "validate_block", params);
+    return executor_->call<ValidationResult>(ctx, "validate_block", params);
   }
 
   outcome::result<Pvf::CandidateCommitments> PvfImpl::fromOutputs(

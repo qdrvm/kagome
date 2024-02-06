@@ -61,11 +61,10 @@ namespace kagome::metrics {
                   acceptor_->local_endpoint().port());
     acceptOnce();
 
-    thread_ = std::make_shared<std::thread>([context = context_] {
+    thread_ = std::make_unique<std::thread>([context = context_] {
       soralog::util::setThreadName("metric-exposer");
       context->run();
     });
-    thread_->detach();
 
     return true;
   }
@@ -75,6 +74,10 @@ namespace kagome::metrics {
       acceptor_->cancel();
     }
     context_->stop();
+    if (thread_) {
+      thread_->join();
+      thread_.reset();
+    }
   }
 
   void ExposerImpl::acceptOnce() {

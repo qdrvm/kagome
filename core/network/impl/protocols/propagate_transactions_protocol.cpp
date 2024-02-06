@@ -29,7 +29,7 @@ namespace kagome::network {
       Roles roles,
       const application::ChainSpec &chain_spec,
       const blockchain::GenesisBlockHash &genesis_hash,
-      WeakIoContext main_thread,
+      WeakIoContext main_thread_context,
       std::shared_ptr<consensus::Timeline> timeline,
       std::shared_ptr<ExtrinsicObserver> extrinsic_observer,
       std::shared_ptr<StreamEngine> stream_engine,
@@ -44,12 +44,13 @@ namespace kagome::network {
               log::createLogger(kPropagateTransactionsProtocolName,
                                 "propagate_transactions_protocol")),
         roles_{roles},
-        main_thread_{std::move(main_thread)},
+        main_thread_context_{std::move(main_thread_context)},
         timeline_(std::move(timeline)),
         extrinsic_observer_(std::move(extrinsic_observer)),
         stream_engine_(std::move(stream_engine)),
         extrinsic_events_engine_{std::move(extrinsic_events_engine)},
         ext_event_key_repo_{std::move(ext_event_key_repo)} {
+    BOOST_ASSERT(not main_thread_context_.expired());
     BOOST_ASSERT(timeline_ != nullptr);
     BOOST_ASSERT(extrinsic_observer_ != nullptr);
     BOOST_ASSERT(stream_engine_ != nullptr);
@@ -135,9 +136,9 @@ namespace kagome::network {
 
   void PropagateTransactionsProtocol::propagateTransactions(
       std::span<const primitives::Transaction> txs) {
-    if (not runningInThisThread(main_thread_)) {
+    if (not runningInThisThread(main_thread_context_)) {
       return post(
-          main_thread_,
+          main_thread_context_,
           [self{shared_from_this()}, txs{std::vector(txs.begin(), txs.end())}] {
             self->propagateTransactions(txs);
           });
