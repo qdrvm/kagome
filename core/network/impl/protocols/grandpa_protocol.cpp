@@ -109,14 +109,14 @@ namespace kagome::network {
               base_.logger(), "VoteMessage has received from {}", peer_id);
           auto info = peer_manager_->getPeerState(peer_id);
           grandpa_observer_->onVoteMessage(
-              std::nullopt, peer_id, compactFromRefToOwn(info), vote_message);
+              peer_id, compactFromRefToOwn(info), std::move(vote_message));
           addKnown(peer_id, hash);
         },
         [&](FullCommitMessage &&commit_message) {
           SL_VERBOSE(
               base_.logger(), "CommitMessage has received from {}", peer_id);
-          grandpa_observer_->onCommitMessage(
-              std::nullopt, peer_id, commit_message);
+          grandpa_observer_->onCommitMessage(peer_id,
+                                             std::move(commit_message));
           addKnown(peer_id, hash);
         },
         [&](GrandpaNeighborMessage &&neighbor_message) {
@@ -140,8 +140,8 @@ namespace kagome::network {
         [&](network::CatchUpResponse &&catch_up_response) {
           SL_VERBOSE(
               base_.logger(), "CatchUpResponse has received from {}", peer_id);
-          grandpa_observer_->onCatchUpResponse(
-              std::nullopt, peer_id, catch_up_response);
+          grandpa_observer_->onCatchUpResponse(peer_id,
+                                               std::move(catch_up_response));
         });
   }
 

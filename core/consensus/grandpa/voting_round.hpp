@@ -9,6 +9,7 @@
 #include "common/tagged.hpp"
 #include "consensus/grandpa/movable_round_state.hpp"
 #include "consensus/grandpa/round_observer.hpp"
+#include "utils/optref.hpp"
 
 namespace kagome::consensus::grandpa {
 
@@ -75,15 +76,15 @@ namespace kagome::consensus::grandpa {
 
     enum class Propagation : bool { NEEDLESS = false, REQUESTED = true };
 
-    virtual void onProposal(std::optional<GrandpaContext> &grandpa_context,
+    virtual void onProposal(OptRef<GrandpaContext> grandpa_context,
                             const SignedMessage &primary_propose,
                             Propagation propagation) = 0;
 
-    virtual bool onPrevote(std::optional<GrandpaContext> &grandpa_context,
+    virtual bool onPrevote(OptRef<GrandpaContext> grandpa_context,
                            const SignedMessage &prevote,
                            Propagation propagation) = 0;
 
-    virtual bool onPrecommit(std::optional<GrandpaContext> &grandpa_context,
+    virtual bool onPrecommit(OptRef<GrandpaContext> grandpa_context,
                              const SignedMessage &precommit,
                              Propagation propagation) = 0;
 
