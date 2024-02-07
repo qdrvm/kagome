@@ -441,13 +441,13 @@ namespace kagome::parachain {
     void post_import_statement_actions(
         const RelayHash &relay_parent,
         ParachainProcessorImpl::RelayParentState &rp_state,
-        std::optional<ParachainProcessorImpl::ImportStatementSummary> &summary);
+        std::optional<BackingStore::ImportResult> &summary);
     template <typename T>
     std::optional<network::SignedStatement> createAndSignStatementFromPayload(
         T &&payload,
         ValidatorIndex validator_ix,
         RelayParentState &parachain_state);
-    outcome::result<std::optional<ImportStatementSummary>> importStatement(
+    outcome::result<std::optional<BackingStore::ImportResult>> importStatement(
         const network::RelayHash &relay_parent,
         const SignedFullStatementWithPVD &statement,
         ParachainProcessorImpl::RelayParentState &relayParentState);
@@ -611,7 +611,7 @@ namespace kagome::parachain {
         const HypotheticalCandidate &hypothetical_candidate,
         bool backed_in_path_only);
 
-    std::optional<ImportStatementSummary> importStatementToTable(
+    std::optional<BackingStore::ImportResult> importStatementToTable(
         ParachainProcessorImpl::RelayParentState &relayParentState,
         const primitives::BlockHash &candidate_hash,
         const network::SignedStatement &statement);

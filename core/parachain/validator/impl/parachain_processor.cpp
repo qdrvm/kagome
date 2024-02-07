@@ -2094,22 +2094,22 @@ namespace kagome::parachain {
 
     auto res = importStatement(relay_parent, statement, parachain_state);
     if (res.has_error()) {
-      SL_TRACE(logger_, "Statement rejected. (relay_parent={}).", relay_parent);
+      SL_TRACE(logger_, "Statement rejected. (relay_parent={}, error={}).", relay_parent, res.error());
       return;
     }
 
     post_import_statement_actions(relay_parent, parachain_state, res.value());
     if (auto result = res.value()) {
-      if (result->imported.group_id != assignment) {
+      if (result->group_id != assignment) {
         SL_TRACE(
             logger_,
             "Registered statement from not our group(our: {}, registered: {}).",
             assignment,
-            result->imported.group_id);
+            result->group_id);
         return;
       }
 
-      const auto &candidate_hash = result->imported.candidate;
+      const auto &candidate_hash = result->candidate;
       SL_TRACE(logger_,
                "Registered incoming statement.(relay_parent={}).",
                relay_parent);
@@ -2172,22 +2172,15 @@ namespace kagome::parachain {
     }
   }
 
-  std::optional<ParachainProcessorImpl::ImportStatementSummary>
+  std::optional<BackingStore::ImportResult>
   ParachainProcessorImpl::importStatementToTable(
       ParachainProcessorImpl::RelayParentState &relayParentState,
       const primitives::BlockHash &candidate_hash,
       const network::SignedStatement &statement) {
     SL_TRACE(
         logger_, "Import statement into table.(candidate={})", candidate_hash);
-
-    if (auto r = backing_store_->put(relayParentState.table_context.groups,
-                                     statement, relayParentState.prospective_parachains_mode.has_value())) {
-      return ImportStatementSummary{
-          .imported = *r,
-          .attested = false,
-      };
-    }
-    return std::nullopt;
+    return backing_store_->put(relayParentState.table_context.groups,
+                                     statement, relayParentState.prospective_parachains_mode.has_value());
   }
 
   void ParachainProcessorImpl::statementDistributionBackedCandidate(
@@ -2354,13 +2347,13 @@ namespace kagome::parachain {
           [](const BackingStore::ValidityVoteIssued &val) {
             return network::ValidityAttestation{
                 network::ValidityAttestation::Implicit{},
-                ((BackingStore::Statement &)val).signature,
+                ((ValidatorSignature &)val),
             };
           },
           [](const BackingStore::ValidityVoteValid &val) {
             return network::ValidityAttestation{
                 network::ValidityAttestation::Explicit{},
-                ((BackingStore::Statement &)val).signature,
+                ((ValidatorSignature &)val),
             };
           });
 
@@ -2451,7 +2444,7 @@ namespace kagome::parachain {
     return std::nullopt;
   }
 
-  outcome::result<std::optional<ParachainProcessorImpl::ImportStatementSummary>>
+  outcome::result<std::optional<BackingStore::ImportResult>>
   ParachainProcessorImpl::importStatement(
       const network::RelayHash &relay_parent,
       const SignedFullStatementWithPVD &statement,
@@ -2644,18 +2637,18 @@ namespace kagome::parachain {
   void ParachainProcessorImpl::post_import_statement_actions(
       const RelayHash &relay_parent,
       ParachainProcessorImpl::RelayParentState &rp_state,
-      std::optional<ParachainProcessorImpl::ImportStatementSummary> &summary) {
+      std::optional<BackingStore::ImportResult> &summary) {
     if (!summary) {
       return;
     }
 
     SL_TRACE(logger_,
              "Import result.(candidate={}, group id={}, validity votes={})",
-             summary->imported.candidate,
-             summary->imported.group_id,
-             summary->imported.validity_votes);
+             summary->candidate,
+             summary->group_id,
+             summary->validity_votes);
 
-    if (auto attested = attested_candidate(summary->imported.candidate,
+    if (auto attested = attested_candidate(summary->candidate,
                                            rp_state.table_context, rp_state.minimum_backing_votes)) {
       if (rp_state.backed_hashes
               .insert(candidateHash(*hasher_, attested->candidate))
@@ -2666,15 +2659,15 @@ namespace kagome::parachain {
           SL_INFO(
               logger_,
               "Candidate backed.(candidate={}, para id={}, relay_parent={})",
-              summary->imported.candidate,
-              summary->imported.group_id,
+              summary->candidate,
+              summary->group_id,
               relay_parent);
           if (rp_state.prospective_parachains_mode) {
             prospective_parachains_->candidateBacked(
-                para_id, summary->imported.candidate);
+                para_id, summary->candidate);
             unblockAdvertisements(
                 rp_state, para_id, backed->candidate.descriptor.para_head_hash);
-            statementDistributionBackedCandidate(summary->imported.candidate);
+            statementDistributionBackedCandidate(summary->candidate);
           } else {
             backing_store_->add(relay_parent, std::move(*backed));
           }

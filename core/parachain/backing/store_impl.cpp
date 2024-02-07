@@ -30,7 +30,8 @@ namespace kagome::parachain {
       : hasher_{std::move(hasher)} {}
 
   void BackingStoreImpl::remove(const BlockHash &relay_parent) {
-//    backed_candidates_.erase(relay_parent);
+    backed_candidates_.erase(relay_parent);
+    /// TODO(iceseer): do cleanup
 //    if (auto it = candidates_.find(relay_parent); it != candidates_.end()) {
 //      for (const auto &candidate : it->second) {
 //        candidate_votes_.erase(candidate);
