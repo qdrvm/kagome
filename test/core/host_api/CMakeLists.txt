@@ -53,7 +53,7 @@ addtest(offchain_extension_test
     )
 target_link_libraries(offchain_extension_test
     Boost::boost
-    scale::scale_encode_append
+    scale::scale
     offchain_extension
     dummy_error
     logger_for_tests

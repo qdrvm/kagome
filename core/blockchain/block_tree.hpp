@@ -51,8 +51,7 @@ namespace kagome::blockchain {
      * @param block_hash hash of the block header we are checking
      * @return containing block header or does not, or error
      */
-    virtual outcome::result<bool> hasBlockHeader(
-        const primitives::BlockHash &block_hash) const = 0;
+    virtual bool has(const primitives::BlockHash &hash) const = 0;
 
     /**
      * Get block header by provided block id

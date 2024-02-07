@@ -12,6 +12,7 @@
 #include <memory>
 #include <optional>
 #include <queue>
+#include <thread>
 #include <unordered_set>
 
 #include <libp2p/common/final_action.hpp>
@@ -31,7 +32,11 @@
 #include "subscription/extrinsic_event_key_repository.hpp"
 #include "telemetry/service.hpp"
 #include "utils/safe_object.hpp"
-#include "utils/thread_pool.hpp"
+#include "utils/weak_io_context.hpp"
+
+namespace kagome {
+  class ThreadHandler;
+}
 
 namespace kagome::storage::trie_pruner {
   class TriePruner;
@@ -60,7 +65,7 @@ namespace kagome::blockchain {
         std::shared_ptr<const class JustificationStoragePolicy>
             justification_storage_policy,
         std::shared_ptr<storage::trie_pruner::TriePruner> state_pruner,
-        WeakIoContext main_thread);
+        WeakIoContext main_thread_context);
 
     /// Recover block tree state at provided block
     static outcome::result<void> recover(
@@ -77,8 +82,7 @@ namespace kagome::blockchain {
     outcome::result<std::optional<primitives::BlockHash>> getBlockHash(
         primitives::BlockNumber block_number) const override;
 
-    outcome::result<bool> hasBlockHeader(
-        const primitives::BlockHash &block_hash) const override;
+    bool has(const primitives::BlockHash &hash) const override;
 
     outcome::result<primitives::BlockHeader> getBlockHeader(
         const primitives::BlockHash &block_hash) const override;
@@ -193,7 +197,7 @@ namespace kagome::blockchain {
         std::shared_ptr<const class JustificationStoragePolicy>
             justification_storage_policy,
         std::shared_ptr<storage::trie_pruner::TriePruner> state_pruner,
-        WeakIoContext main_thread);
+        WeakIoContext main_thread_context);
 
     outcome::result<void> reorgAndPrune(BlockTreeData &p,
                                         const ReorgAndPrune &changes);
@@ -274,7 +278,7 @@ namespace kagome::blockchain {
     metrics::Gauge *metric_best_block_height_;
     metrics::Gauge *metric_finalized_block_height_;
     metrics::Gauge *metric_known_chain_leaves_;
-    ThreadHandler main_thread_;
+    std::shared_ptr<ThreadHandler> main_thread_handler_;
     telemetry::Telemetry telemetry_ = telemetry::createTelemetryService();
   };
 }  // namespace kagome::blockchain

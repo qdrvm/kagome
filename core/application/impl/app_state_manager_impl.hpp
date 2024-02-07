@@ -17,7 +17,9 @@
 
 namespace kagome::application {
 
-  class AppStateManagerImpl : public AppStateManager {
+  class AppStateManagerImpl
+      : public AppStateManager,
+        public std::enable_shared_from_this<AppStateManagerImpl> {
    public:
     AppStateManagerImpl();
     AppStateManagerImpl(const AppStateManagerImpl &) = delete;
@@ -49,8 +51,10 @@ namespace kagome::application {
     void doShutdown() override;
 
    private:
-    static std::weak_ptr<AppStateManager> wp_to_myself;
+    static std::weak_ptr<AppStateManagerImpl> wp_to_myself;
     static void shuttingDownSignalsHandler(int);
+
+    void shutdownRequestWaiting();
 
     log::Logger logger_;
 

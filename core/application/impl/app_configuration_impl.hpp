@@ -55,7 +55,7 @@ namespace kagome::application {
     using FilePtr = std::unique_ptr<std::FILE, int (*)(FILE *)>;
 
    public:
-    explicit AppConfigurationImpl(log::Logger logger);
+    explicit AppConfigurationImpl();
     ~AppConfigurationImpl() override = default;
 
     AppConfigurationImpl(const AppConfigurationImpl &) = delete;

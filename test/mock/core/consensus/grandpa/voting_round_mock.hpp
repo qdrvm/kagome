@@ -11,6 +11,15 @@
 #include <gmock/gmock.h>
 
 namespace kagome::consensus::grandpa {
+  inline auto &operator<<(std::ostream &os, const SignedMessage &) {
+    return os;
+  }
+  inline auto &operator<<(std::ostream &os, const EquivocatorySignedMessage &) {
+    return os;
+  }
+}  // namespace kagome::consensus::grandpa
+
+namespace kagome::consensus::grandpa {
 
   class VotingRoundMock : public VotingRound {
    public:
@@ -54,23 +63,17 @@ namespace kagome::consensus::grandpa {
 
     MOCK_METHOD(void,
                 onProposal,
-                (std::optional<GrandpaContext> & grandpa_context,
-                 const SignedMessage &,
-                 Propagation),
+                (OptRef<GrandpaContext>, const SignedMessage &, Propagation),
                 (override));
 
     MOCK_METHOD(bool,
                 onPrevote,
-                (std::optional<GrandpaContext> & grandpa_context,
-                 const SignedMessage &,
-                 Propagation),
+                (OptRef<GrandpaContext>, const SignedMessage &, Propagation),
                 (override));
 
     MOCK_METHOD(bool,
                 onPrecommit,
-                (std::optional<GrandpaContext> & grandpa_context,
-                 const SignedMessage &,
-                 Propagation),
+                (OptRef<GrandpaContext>, const SignedMessage &, Propagation),
                 (override));
 
     MOCK_METHOD(void,
@@ -93,6 +96,8 @@ namespace kagome::consensus::grandpa {
                 (override));
 
     MOCK_METHOD(void, attemptToFinalizeRound, (), (override));
+
+    MOCK_METHOD(Votes, votes, (), (const, override));
   };
 
 }  // namespace kagome::consensus::grandpa
