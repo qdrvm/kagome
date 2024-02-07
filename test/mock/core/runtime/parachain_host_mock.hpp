@@ -143,6 +143,11 @@ namespace kagome::runtime {
                 staging_async_backing_params,
                 (const primitives::BlockHash &),
                 (override));
+
+    MOCK_METHOD(outcome::result<uint32_t>,
+                minimum_backing_votes,
+                (const primitives::BlockHash &, SessionIndex),
+                (override));
   };
 
 }  // namespace kagome::runtime

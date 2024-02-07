@@ -218,6 +218,10 @@ namespace kagome::runtime {
      */
     virtual outcome::result<parachain::fragment::AsyncBackingParams>
     staging_async_backing_params(const primitives::BlockHash &block) = 0;
+
+    virtual outcome::result<uint32_t>
+    minimum_backing_votes(
+        const primitives::BlockHash &block, SessionIndex index) = 0;
   };
 
 }  // namespace kagome::runtime

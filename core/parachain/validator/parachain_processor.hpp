@@ -181,12 +181,6 @@ namespace kagome::parachain {
         return std::min(size_t(2ull), n_validators);
       }
 
-      size_t requisite_votes(ParachainId group) const {
-        if (auto it = groups.find(group); it != groups.end()) {
-          return minimum_votes(it->second.size());
-        }
-        return std::numeric_limits<size_t>::max();
-      }
     };
 
     struct AttestedCandidate {
@@ -250,6 +244,7 @@ namespace kagome::parachain {
       std::optional<StatementStore> statement_store;
       std::vector<runtime::CoreState> availability_cores;
       runtime::GroupDescriptor group_rotation_info;
+      uint32_t minimum_backing_votes;
 
       std::unordered_set<primitives::BlockHash> awaiting_validation;
       std::unordered_set<primitives::BlockHash> issued_statements;
@@ -393,10 +388,10 @@ namespace kagome::parachain {
                     F &&callback);
 
     std::optional<AttestedCandidate> attested_candidate(
-        const CandidateHash &digest, const TableContext &context);
+        const CandidateHash &digest, const TableContext &context, uint32_t minimum_backing_votes);
 
     std::optional<AttestedCandidate> attested(
-        network::CommittedCandidateReceipt &&candidate,
+        const network::CommittedCandidateReceipt &candidate,
         const BackingStore::StatementInfo &data,
         size_t validity_threshold);
     std::optional<BackingStore::BackedCandidate> table_attested_to_backed(

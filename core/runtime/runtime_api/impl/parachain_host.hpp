@@ -109,6 +109,10 @@ namespace kagome::runtime {
     outcome::result<parachain::fragment::AsyncBackingParams>
     staging_async_backing_params(const primitives::BlockHash &block) override;
 
+    outcome::result<uint32_t>
+    minimum_backing_votes(
+        const primitives::BlockHash &block, SessionIndex index) override;
+
    private:
     bool prepare();
     void clearCaches(const std::vector<primitives::BlockHash> &blocks);

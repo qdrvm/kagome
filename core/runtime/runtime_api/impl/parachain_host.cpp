@@ -284,4 +284,12 @@ namespace kagome::runtime {
         ctx, "ParachainHost_async_backing_params");
   }
 
+  outcome::result<uint32_t>
+    ParachainHostImpl::minimum_backing_votes(
+        const primitives::BlockHash &block, SessionIndex index) {
+    OUTCOME_TRY(ctx, executor_->ctx().ephemeralAt(block));
+    return executor_->call<uint32_t>(
+        ctx, "ParachainHost_minimum_backing_votes");
+        }
+
 }  // namespace kagome::runtime

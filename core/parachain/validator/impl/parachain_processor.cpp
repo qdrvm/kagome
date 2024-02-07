@@ -674,6 +674,10 @@ namespace kagome::parachain {
     OUTCOME_TRY(groups, parachain_host_->validator_groups(relay_parent));
     OUTCOME_TRY(cores, parachain_host_->availability_cores(relay_parent));
     OUTCOME_TRY(validator, isParachainValidator(relay_parent));
+    OUTCOME_TRY(session_index,
+                parachain_host_->session_index_for_child(relay_parent));
+    OUTCOME_TRY(session_info,
+                parachain_host_->session_info(relay_parent, session_index));
     auto &[validator_groups, group_rotation_info] = groups;
 
     if (!validator) {
@@ -711,10 +715,6 @@ namespace kagome::parachain {
     if (mode) {
       [[maybe_unused]] const auto _ =
           our_current_state_.implicit_view->activate_leaf(relay_parent);
-      OUTCOME_TRY(session_index,
-                  parachain_host_->session_index_for_child(relay_parent));
-      OUTCOME_TRY(session_info,
-                  parachain_host_->session_info(relay_parent, session_index));
       if (session_info) {
         std::unordered_map<GroupIndex, std::vector<ValidatorIndex>> groups;
         for (size_t g = 0; g < session_info->validator_groups.size(); ++g) {
@@ -730,6 +730,8 @@ namespace kagome::parachain {
                assignment,
                validator->validatorIndex(),
                relay_parent);
+
+    OUTCOME_TRY(minimum_backing_votes, parachain_host_->minimum_backing_votes(relay_parent, session_index));
 
     return RelayParentState{
         .prospective_parachains_mode = mode,
@@ -747,6 +749,7 @@ namespace kagome::parachain {
         .statement_store = std::move(statement_store),
         .availability_cores = cores,
         .group_rotation_info = group_rotation_info,
+        .minimum_backing_votes = minimum_backing_votes,
         .awaiting_validation = {},
         .issued_statements = {},
         .peers_advertised = {},
@@ -2116,7 +2119,7 @@ namespace kagome::parachain {
               [&](const StatementWithPVDSeconded &val)
                   -> std::optional<std::reference_wrapper<AttestingData>> {
                 auto opt_candidate =
-                    backing_store_->get_candidate(candidate_hash);
+                    backing_store_->get_validity_votes(candidate_hash);
                 if (!opt_candidate) {
                   logger_->error("No candidate {}", candidate_hash);
                   return std::nullopt;
@@ -2124,7 +2127,7 @@ namespace kagome::parachain {
 
                 AttestingData attesting{
                     .candidate =
-                        candidateFromCommittedCandidateReceipt(*opt_candidate),
+                        candidateFromCommittedCandidateReceipt(opt_candidate->get().candidate),
                     .pov_hash = val.committed_receipt.descriptor.pov_hash,
                     .from_validator = statement.payload.ix,
                     .backing = {}};
@@ -2178,7 +2181,7 @@ namespace kagome::parachain {
         logger_, "Import statement into table.(candidate={})", candidate_hash);
 
     if (auto r = backing_store_->put(relayParentState.table_context.groups,
-                                     statement)) {
+                                     statement, relayParentState.prospective_parachains_mode.has_value())) {
       return ImportStatementSummary{
           .imported = *r,
           .attested = false,
@@ -2317,7 +2320,7 @@ namespace kagome::parachain {
         }
 
         if (auto attested = attested_candidate(
-                c_hash, per_relay_state->get().table_context)) {
+                c_hash, per_relay_state->get().table_context, per_relay_state->get().minimum_backing_votes)) {
           if (auto b = table_attested_to_backed(
                   std::move(*attested), per_relay_state->get().table_context)) {
             backed.emplace_back(std::move(*b));
@@ -2332,10 +2335,10 @@ namespace kagome::parachain {
 
   std::optional<ParachainProcessorImpl::AttestedCandidate>
   ParachainProcessorImpl::attested(
-      network::CommittedCandidateReceipt &&candidate,
+      const network::CommittedCandidateReceipt &candidate,
       const BackingStore::StatementInfo &data,
       size_t validity_threshold) {
-    const auto &validity_votes = data.second;
+    const auto &validity_votes = data.validity_votes;
     const auto valid_votes = validity_votes.size();
     if (valid_votes < validity_threshold) {
       return std::nullopt;
@@ -2366,8 +2369,8 @@ namespace kagome::parachain {
     }
 
     return AttestedCandidate{
-        .group_id = data.first,
-        .candidate = std::move(candidate),
+        .group_id = data.group_id,
+        .candidate = candidate,
         .validity_votes = std::move(validity_votes_out),
     };
   }
@@ -2375,16 +2378,18 @@ namespace kagome::parachain {
   std::optional<ParachainProcessorImpl::AttestedCandidate>
   ParachainProcessorImpl::attested_candidate(
       const CandidateHash &digest,
-      const ParachainProcessorImpl::TableContext &context) {
+      const ParachainProcessorImpl::TableContext &context,
+      uint32_t minimum_backing_votes) {
     if (auto opt_validity_votes = backing_store_->get_validity_votes(digest)) {
       auto &data = opt_validity_votes->get();
-      const GroupIndex group = data.first;
 
-      auto candidate{backing_store_->get_candidate(digest)};
-      BOOST_ASSERT(candidate);
+      size_t len = std::numeric_limits<size_t>::max();
+      if (auto it = context.groups.find(data.group_id); it != context.groups.end()) {
+        len = it->second.size();
+      }
 
-      const auto v_threshold = context.requisite_votes(group);
-      return attested(std::move(*candidate), data, v_threshold);
+      const auto v_threshold = std::min(len, size_t(minimum_backing_votes));
+      return attested(data.candidate, data, v_threshold);
     }
     return std::nullopt;
   }
@@ -2651,7 +2656,7 @@ namespace kagome::parachain {
              summary->imported.validity_votes);
 
     if (auto attested = attested_candidate(summary->imported.candidate,
-                                           rp_state.table_context)) {
+                                           rp_state.table_context, rp_state.minimum_backing_votes)) {
       if (rp_state.backed_hashes
               .insert(candidateHash(*hasher_, attested->candidate))
               .second) {
