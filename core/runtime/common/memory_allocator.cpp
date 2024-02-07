@@ -25,7 +25,11 @@ namespace kagome::runtime {
           [&](WasmPointer ptr, uint32_t v) {
             memcpy(memory.view(ptr, sizeof(v)).value().data(), &v, sizeof(v));
           },
-          [&](WasmPointer ptr) { return memory.load32u(ptr); },
+          [&](WasmPointer ptr) {
+            uint32_t v;
+            memcpy(&v, memory.view(ptr, sizeof(v)).value().data(), sizeof(v));
+            return v;
+          },
       },
         offset_{roundUpAlign(config.heap_base)},
         max_memory_pages_num_{config.limits.max_memory_pages_num.value_or(

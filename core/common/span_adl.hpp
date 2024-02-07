@@ -12,6 +12,10 @@
 
 #include "common/lexicographical_compare_three_way.hpp"
 
+// `std::span` doesn't have comparison operator functions.
+// Can't add function to neither `std::span` nor `namespace std`.
+// `SpanAdl{span}` wraps span and allows writing functions for `SpanAdl`.
+// `SpanAdl` overload will be selected by ADL.
 template <typename T>
 struct SpanAdl {
   std::span<T> v;

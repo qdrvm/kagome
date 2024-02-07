@@ -23,7 +23,7 @@ namespace kagome::runtime::wasm_edge {
 
   template <>
   WasmEdge_ValType get_wasm_type<uint32_t>() {
-    return WasmEdge_ValType_I32;
+    return WasmEdge_ValTypeGenI32();
   }
 
   template <>
@@ -33,7 +33,7 @@ namespace kagome::runtime::wasm_edge {
 
   template <>
   WasmEdge_ValType get_wasm_type<uint64_t>() {
-    return WasmEdge_ValType_I64;
+    return WasmEdge_ValTypeGenI64();
   }
 
   template <>

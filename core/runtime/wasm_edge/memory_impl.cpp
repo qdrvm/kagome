@@ -27,7 +27,9 @@ namespace kagome::runtime::wasm_edge {
       auto res = WasmEdge_MemoryInstanceGrowPage(mem_instance_,
                                                  new_page_num - old_page_num);
       if (not WasmEdge_ResultOK(res)) {
-        throw std::runtime_error{"WasmEdge_MemoryInstanceGrowPage"};
+        throw std::runtime_error{fmt::format(
+            "WasmEdge_MemoryInstanceGrowPage: Failed to grow page num: {}",
+            WasmEdge_ResultGetMessage(res))};
       }
       SL_DEBUG(logger_,
                "Grow memory to {} pages ({} bytes) - {}",
@@ -44,7 +46,8 @@ namespace kagome::runtime::wasm_edge {
     }
     auto raw = WasmEdge_MemoryInstanceGetPointer(mem_instance_, ptr, size);
     if (raw == nullptr) {
-      throw std::runtime_error{"WasmEdge_MemoryInstanceGetPointer"};
+      throw std::runtime_error{
+          "WasmEdge_MemoryInstanceGetPointer returned nullptr"};
     }
     return BytesOut{raw, size};
   }

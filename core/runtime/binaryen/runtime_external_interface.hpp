@@ -115,9 +115,6 @@ namespace kagome::runtime::binaryen {
                             wasm::Type result,
                             wasm::ModuleInstance &instance) override;
 
-    // BUG: binaryen `ExternalInterface` didn't declare virtual destructor
-    virtual ~RuntimeExternalInterface() = default;
-
     wasm::Literal callImport(wasm::Function *import,
                              wasm::LiteralList &arguments) override;
 

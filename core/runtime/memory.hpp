@@ -81,13 +81,6 @@ namespace kagome::runtime {
      */
     virtual std::optional<WasmSize> deallocate(WasmPointer ptr) = 0;
 
-    // endian???
-    uint32_t load32u(WasmPointer ptr) const {
-      uint32_t v;
-      memcpy(&v, view(ptr, sizeof(v)).value().data(), sizeof(v));
-      return v;
-    }
-
     common::BufferView loadN(WasmPointer ptr, WasmSize size) const {
       return view(ptr, size).value();
     }
