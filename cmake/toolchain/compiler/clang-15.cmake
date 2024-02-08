@@ -14,7 +14,7 @@ if(XCODE_VERSION)
 endif()
 
 find_program(CMAKE_C_COMPILER clang-15)
-find_program(CMAKE_CXX_COMPILER clang++-15)
+find_program(CMAKE_CXX_COMPILER clang-15)
 
 if(NOT CMAKE_C_COMPILER)
   fatal_error("clang-15 not found")
