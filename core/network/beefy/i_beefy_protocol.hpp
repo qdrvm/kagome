@@ -9,9 +9,9 @@
 #include "consensus/beefy/types.hpp"
 
 namespace kagome::network {
-  class IBeefyProtocol {
+  class BeefyProtocol {
    public:
-    virtual ~IBeefyProtocol() = default;
+    virtual ~BeefyProtocol() = default;
 
     virtual void broadcast(
         std::shared_ptr<consensus::beefy::BeefyGossipMessage> message) = 0;

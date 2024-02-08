@@ -39,7 +39,7 @@ using kagome::crypto::EcdsaSeed;
 using kagome::crypto::HasherImpl;
 using kagome::crypto::SessionKeysMock;
 using kagome::network::Beefy;
-using kagome::network::IBeefyProtocol;
+using kagome::network::BeefyProtocol;
 using kagome::primitives::BlockHash;
 using kagome::primitives::BlockHeader;
 using kagome::primitives::BlockNumber;
@@ -62,7 +62,7 @@ namespace kagome::consensus::beefy {
   }
 }  // namespace kagome::consensus::beefy
 
-struct BroadcastMock : IBeefyProtocol {
+struct BroadcastMock : BeefyProtocol {
   MOCK_METHOD(void,
               broadcast,
               (std::shared_ptr<BeefyGossipMessage>),
@@ -133,7 +133,7 @@ struct Test : testing::Test {
           io_,
           testutil::sptr_to_lazy<Timeline>(timeline_),
           peer.keystore_,
-          testutil::sptr_to_lazy<IBeefyProtocol>(peer.broadcast_),
+          testutil::sptr_to_lazy<BeefyProtocol>(peer.broadcast_),
           chain_sub_);
       peer.beefy_->start();
     }

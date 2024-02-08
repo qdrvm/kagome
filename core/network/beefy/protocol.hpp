@@ -40,18 +40,18 @@ namespace kagome::network {
     std::shared_ptr<Beefy> beefy_;
   };
 
-  class BeefyProtocol final
+  class BeefyProtocolImpl final
       : public ProtocolBase,
-        public std::enable_shared_from_this<BeefyProtocol>,
-        public IBeefyProtocol {
+        public std::enable_shared_from_this<BeefyProtocolImpl>,
+        public BeefyProtocol {
     static constexpr auto kName = "BeefyProtocol";
 
    public:
-    BeefyProtocol(libp2p::Host &host,
-                  const blockchain::GenesisBlockHash &genesis,
-                  Roles roles,
-                  std::shared_ptr<Beefy> beefy,
-                  std::shared_ptr<StreamEngine> stream_engine);
+    BeefyProtocolImpl(libp2p::Host &host,
+                      const blockchain::GenesisBlockHash &genesis,
+                      Roles roles,
+                      std::shared_ptr<Beefy> beefy,
+                      std::shared_ptr<StreamEngine> stream_engine);
 
     bool start() override;
     const std::string &protocolName() const override;

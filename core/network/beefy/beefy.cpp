@@ -46,7 +46,7 @@ namespace kagome::network {
                WeakIoContext main_thread_context,
                LazySPtr<consensus::Timeline> timeline,
                std::shared_ptr<crypto::SessionKeys> session_keys,
-               LazySPtr<IBeefyProtocol> beefy_protocol,
+               LazySPtr<BeefyProtocol> beefy_protocol,
                primitives::events::ChainSubscriptionEnginePtr chain_sub_engine)
       : block_tree_{std::move(block_tree)},
         beefy_api_{std::move(beefy_api)},

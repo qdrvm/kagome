@@ -52,7 +52,7 @@ namespace kagome::storage {
 }
 
 namespace kagome::network {
-  class IBeefyProtocol;
+  class BeefyProtocol;
 
   class Beefy : public IBeefy, public std::enable_shared_from_this<Beefy> {
    public:
@@ -66,7 +66,7 @@ namespace kagome::network {
           WeakIoContext main_thread_context,
           LazySPtr<consensus::Timeline> timeline,
           std::shared_ptr<crypto::SessionKeys> session_keys,
-          LazySPtr<IBeefyProtocol> beefy_protocol,
+          LazySPtr<BeefyProtocol> beefy_protocol,
           primitives::events::ChainSubscriptionEnginePtr chain_sub_engine);
 
     bool start();
@@ -117,7 +117,7 @@ namespace kagome::network {
     WeakIoContext main_thread_context_;
     LazySPtr<consensus::Timeline> timeline_;
     std::shared_ptr<crypto::SessionKeys> session_keys_;
-    LazySPtr<IBeefyProtocol> beefy_protocol_;
+    LazySPtr<BeefyProtocol> beefy_protocol_;
     primitives::BlockNumber min_delta_;
     primitives::events::ChainSub chain_sub_;
 
