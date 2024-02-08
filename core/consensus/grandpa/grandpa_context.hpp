@@ -15,25 +15,14 @@
 #include <set>
 
 namespace kagome::consensus::grandpa {
+  using MissingBlocks =
+      std::set<primitives::BlockInfo, std::greater<primitives::BlockInfo>>;
 
   struct GrandpaContext final {
-    // Payload
-    std::optional<libp2p::peer::PeerId> peer_id{};
-    std::optional<network::VoteMessage> vote{};
-    std::optional<network::CatchUpResponse> catch_up_response{};
-    std::optional<network::FullCommitMessage> commit{};
-    std::set<primitives::BlockInfo, std::greater<primitives::BlockInfo>>
-        missing_blocks{};
+    MissingBlocks missing_blocks{};
     size_t checked_signature_counter = 0;
     size_t invalid_signature_counter = 0;
     size_t unknown_voter_counter = 0;
-
-    GrandpaContext() = default;
-    GrandpaContext(const GrandpaContext &) = default;
-    GrandpaContext(GrandpaContext &&) = default;
-
-    GrandpaContext &operator=(const GrandpaContext &) = default;
-    GrandpaContext &operator=(GrandpaContext &&) = default;
   };
 
 }  // namespace kagome::consensus::grandpa
