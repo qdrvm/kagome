@@ -922,6 +922,11 @@ namespace kagome::injector {
       : pimpl_{std::make_unique<KagomeNodeInjectorImpl>(
           makeKagomeNodeInjector(app_config))} {}
 
+  sptr<application::AppConfiguration> KagomeNodeInjector::injectAppConfig() {
+    return pimpl_->injector_
+        .template create<sptr<application::AppConfiguration>>();
+  }
+
   sptr<application::ChainSpec> KagomeNodeInjector::injectChainSpec() {
     return pimpl_->injector_.template create<sptr<application::ChainSpec>>();
   }
