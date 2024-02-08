@@ -28,14 +28,31 @@ TEST_F(HttpListenerTest, EchoSuccess) {
   backward::SignalHandling sh;
 #endif
 
-  app_state_manager->atLaunch([ctx{main_context}] {
-    std::thread([ctx] { ctx->run_for(3s); }).detach();
+  std::unique_ptr<std::thread> asio_runner;
+
+  app_state_manager->atLaunch([&] {
+    asio_runner =
+        std::make_unique<std::thread>([ctx{main_context}, watchdog{watchdog}] {
+          soralog::util::setThreadName("asio_runner");
+          watchdog->run(ctx);
+        });
     return true;
   });
 
+  std::thread watchdog_thread([watchdog{watchdog}] {
+    soralog::util::setThreadName("watchdog");
+    watchdog->checkLoop(kagome::kWatchdogDefaultTimeout);
+  });
+
+  app_state_manager->atShutdown([watchdog{watchdog}] { watchdog->stop(); });
+
+  std::unique_ptr<std::thread> client_thread;
+
   main_context->post([&] {
-    std::thread(
+    client_thread = std::make_unique<std::thread>(
         [&](Endpoint endpoint, std::string request, std::string response) {
+          soralog::util::setThreadName("client");
+
           auto local_context = std::make_shared<Context>();
 
           bool time_is_out;
@@ -64,9 +81,12 @@ TEST_F(HttpListenerTest, EchoSuccess) {
         },
         endpoint,
         request,
-        response)
-        .detach();
+        response);
   });
 
   app_state_manager->run();
+
+  client_thread->join();
+  asio_runner->join();
+  watchdog_thread.join();
 }

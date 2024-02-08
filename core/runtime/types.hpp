@@ -30,7 +30,7 @@ namespace kagome::runtime {
    * @brief combination of pointer and size, where less significant part
    * represents wasm pointer, and most significant represents size
    */
-  using WasmSpan = int64_t;
+  using WasmSpan = uint64_t;
 
   /**
    * @brief Size type is int32_t because we are working in 32 bit address space
@@ -43,7 +43,7 @@ namespace kagome::runtime {
    * @brief Offset type is int32_t because we are working in 32 bit address
    * space
    */
-  using WasmOffset = int32_t;
+  using WasmOffset = uint32_t;
 
   using WasmI32 = int32_t;
   using WasmI64 = int64_t;

@@ -11,11 +11,13 @@
 
 namespace kagome::application {
 
-  std::weak_ptr<AppStateManager> AppStateManagerImpl::wp_to_myself;
+  std::weak_ptr<AppStateManagerImpl> AppStateManagerImpl::wp_to_myself;
 
-  void AppStateManagerImpl::shuttingDownSignalsHandler(int) {
+  void AppStateManagerImpl::shuttingDownSignalsHandler(int signal) {
     if (auto self = wp_to_myself.lock()) {
+      SL_TRACE(self->logger_, "Shutting down requested by signal {}", signal);
       self->shutdown();
+      SL_TRACE(self->logger_, "Shutting down request handled");
     }
   }
 
@@ -37,6 +39,8 @@ namespace kagome::application {
   }
 
   AppStateManagerImpl::~AppStateManagerImpl() {
+    wp_to_myself.reset();
+
     struct sigaction act {};
     memset(&act, 0, sizeof(act));
     act.sa_handler = SIG_DFL;  // NOLINT
@@ -221,15 +225,22 @@ namespace kagome::application {
       doLaunch();
     }
 
+    SL_TRACE(logger_, "Start waiting shutdown request...");
+    shutdownRequestWaiting();
+
+    SL_TRACE(logger_, "Start doing shutdown...");
+    doShutdown();
+    SL_TRACE(logger_, "Shutdown is done");
+  }
+
+  void AppStateManagerImpl::shutdownRequestWaiting() {
     std::unique_lock lock(cv_mutex_);
     cv_.wait(lock, [&] { return shutdown_requested_.load(); });
-
-    doShutdown();
   }
 
   void AppStateManagerImpl::shutdown() {
-    shutdown_requested_ = true;
     std::lock_guard lg(cv_mutex_);
+    shutdown_requested_ = true;
     cv_.notify_one();
   }
 }  // namespace kagome::application

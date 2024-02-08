@@ -52,14 +52,8 @@ hunter_config(
 
 if ("${WASM_COMPILER}" STREQUAL "WasmEdge")
   hunter_config(
-      LLVM
-      VERSION 16.0.1
-      CMAKE_ARGS LLVM_ENABLE_PROJECTS=compiler-rt
-  )
-
-  hunter_config(
       WasmEdge
-      VERSION 0.13.3
+      VERSION 0.14.0-alpha.1-qdrvm3
       CMAKE_ARGS
         WASMEDGE_BUILD_STATIC_LIB=ON
         WASMEDGE_BUILD_SHARED_LIB=OFF
@@ -93,7 +87,7 @@ endif ()
 
 hunter_config(
     scale
-    VERSION 1.1.0
+    VERSION 1.1.2
     KEEP_PACKAGE_SOURCES
 )
 
@@ -101,7 +95,7 @@ hunter_config(
 if (APPLE AND (CMAKE_CXX_COMPILER_ID STREQUAL "AppleClang" OR CMAKE_CXX_COMPILER_ID STREQUAL "Clang") AND CMAKE_CXX_COMPILER_VERSION GREATER_EQUAL "15.0.0")
   hunter_config(
       binaryen
-      URL https://github.com/qdrvm/binaryen/archive/0744f64a584cae5b9255b1c2f0a4e0b5e06d7038.zip
-      SHA1 f953c5f38a0417e494901e15ab6f5d8267388d18
+      URL https://github.com/qdrvm/binaryen/archive/e6a2fea157bde503f07f28444b350512374cf5bf.zip
+      SHA1 301f8b1775904179cb552c12be237b4aa076981e
   )
 endif ()

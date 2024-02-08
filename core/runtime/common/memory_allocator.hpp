@@ -51,20 +51,6 @@ namespace kagome::runtime {
     WasmPointer allocate(WasmSize size);
     void deallocate(WasmPointer ptr);
 
-    template <typename T>
-    bool checkAddress(WasmPointer addr) noexcept {
-      BOOST_ASSERT(addr > 0);
-      return offset_ > static_cast<uint32_t>(addr)
-         and offset_ - static_cast<uint32_t>(addr) >= sizeof(T);
-    }
-
-    bool checkAddress(WasmPointer addr, WasmSize size) noexcept {
-      BOOST_ASSERT(addr > 0);
-      return offset_ > static_cast<uint32_t>(addr)
-         and offset_ - static_cast<uint32_t>(addr)
-                 >= static_cast<uint32_t>(size);
-    }
-
     /*
       Following methods are needed mostly for testing purposes.
     */

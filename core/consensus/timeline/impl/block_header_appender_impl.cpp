@@ -34,35 +34,15 @@ namespace kagome::consensus {
       ApplyJustificationCb &&callback) {
     auto block_info = block_header.blockInfo();
 
-    if (last_appended_.has_value()) {
-      if (last_appended_->number > block_info.number) {
-        SL_TRACE(
-            logger_, "Skip early appended header of block: {}", block_info);
-        callback(outcome::success());
-        return;
-      }
-      if (last_appended_.value() == block_info) {
-        SL_TRACE(logger_, "Skip just appended header of block: {}", block_info);
-        callback(outcome::success());
-        return;
-      }
+    if (block_tree_->has(block_info.hash)) {
+      callback(outcome::success());
+      return;
     }
 
-    if (last_appended_
-        != primitives::BlockInfo(block_header.number - 1,
-                                 block_header.parent_hash)) {
-      if (auto header_res =
-              block_tree_->getBlockHeader(block_header.parent_hash);
-          header_res.has_error()
-          && header_res.error()
-                 == blockchain::BlockTreeError::HEADER_NOT_FOUND) {
-        logger_->warn("Skipping a block {} with unknown parent", block_info);
-        callback(BlockAdditionError::PARENT_NOT_FOUND);
-        return;
-      } else if (header_res.has_error()) {
-        callback(header_res.as_failure());
-        return;
-      }
+    if (not block_tree_->has(block_header.parent_hash)) {
+      SL_WARN(logger_, "Skipping a block {} with unknown parent", block_info);
+      callback(BlockAdditionError::PARENT_NOT_FOUND);
+      return;
     }
 
     // get current time to measure performance if block execution
@@ -70,30 +50,12 @@ namespace kagome::consensus {
 
     primitives::Block block{.header = std::move(block_header)};
 
-    // check if block header already exists. If so, do not append
-    if (auto header_res = block_tree_->getBlockHeader(block_info.hash);
-        header_res.has_value()) {
-      SL_DEBUG(logger_, "Skip existing header of block: {}", block_info);
-
-      if (auto res =
-              block_tree_->addExistingBlock(block_info.hash, block.header);
-          res.has_error()) {
-        callback(res.as_failure());
-        return;
-      }
-    } else if (header_res.error()
-               != blockchain::BlockTreeError::HEADER_NOT_FOUND) {
-      callback(header_res.as_failure());
+    if (auto res = appender_->validateHeader(block); res.has_error()) {
+      callback(res.as_failure());
       return;
-    } else {
-      if (auto res = block_tree_->addBlockHeader(block.header);
-          res.has_error()) {
-        callback(res.as_failure());
-        return;
-      }
     }
 
-    if (auto res = appender_->validateHeader(block); res.has_error()) {
+    if (auto res = block_tree_->addBlockHeader(block.header); res.has_error()) {
       callback(res.as_failure());
       return;
     }
@@ -139,7 +101,6 @@ namespace kagome::consensus {
             self->speed_data_.time = now;
           }
 
-          self->last_appended_.emplace(std::move(block_info));
           callback(outcome::success());
         });
   }

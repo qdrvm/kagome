@@ -18,7 +18,12 @@ namespace kagome::runtime::wasm_edge {
 
   template <>
   WasmEdge_ValType get_wasm_type<int32_t>() {
-    return WasmEdge_ValType_I32;
+    return WasmEdge_ValTypeGenI32();
+  }
+
+  template <>
+  WasmEdge_ValType get_wasm_type<uint32_t>() {
+    return WasmEdge_ValTypeGenI32();
   }
   template <>
   WasmEdge_ValType get_wasm_type<uint32_t>() {
@@ -27,17 +32,22 @@ namespace kagome::runtime::wasm_edge {
 
   template <>
   WasmEdge_ValType get_wasm_type<int64_t>() {
-    return WasmEdge_ValType_I64;
+    return WasmEdge_ValTypeGenI64();
+  }
+
+  template <>
+  WasmEdge_ValType get_wasm_type<uint64_t>() {
+    return WasmEdge_ValTypeGenI64();
   }
 
   template <>
   WasmEdge_ValType get_wasm_type<float>() {
-    return WasmEdge_ValType_F32;
+    return WasmEdge_ValTypeGenF32();
   }
 
   template <>
   WasmEdge_ValType get_wasm_type<double>() {
-    return WasmEdge_ValType_F64;
+    return WasmEdge_ValTypeGenF64();
   }
 
   template <typename T>
@@ -49,9 +59,19 @@ namespace kagome::runtime::wasm_edge {
   }
 
   template <>
+  uint64_t get_wasm_value<uint64_t>(WasmEdge_Value v) {
+    return WasmEdge_ValueGetI64(v);
+  }
+
+  template <>
   int32_t get_wasm_value<int32_t>(WasmEdge_Value v) {
     return WasmEdge_ValueGetI32(v);
   }
+  template <>
+  uint32_t get_wasm_value<uint32_t>(WasmEdge_Value v) {
+    return WasmEdge_ValueGetI32(v);
+  }
+
   template <>
   uint32_t get_wasm_value<uint32_t>(WasmEdge_Value v) {
     return WasmEdge_ValueGetI32(v);
