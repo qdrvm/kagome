@@ -13,8 +13,8 @@
 namespace kagome::utils {
 
   template <typename T, typename F>
-  inline std::optional<
-      typename boost::result_of<F(typename std::decay_t<T>::value_type &&)>::type>
+  inline std::optional<typename boost::result_of<
+      F(typename std::decay_t<T>::value_type &&)>::type>
   map(T &&source, F &&func) {
     if (source) {
       return {std::forward<F>(func)(*std::forward<T>(source))};

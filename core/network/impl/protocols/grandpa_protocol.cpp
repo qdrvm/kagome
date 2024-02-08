@@ -51,7 +51,7 @@ namespace kagome::network {
   bool GrandpaProtocol::start() {
     auto stream = std::make_shared<LoopbackStream>(own_info_, io_context_);
     stream_engine_->addBidirectional(stream, shared_from_this());
-    auto on_message = [weak {weak_from_this()},
+    auto on_message = [weak{weak_from_this()},
                        peer_id = own_info_.id](GrandpaMessage message) {
       auto self = weak.lock();
       if (not self) {
@@ -457,7 +457,7 @@ namespace kagome::network {
     }
 
     scheduler_->schedule(
-        [wp {weak_from_this()}, round_id, peer_id] {
+        [wp{weak_from_this()}, round_id, peer_id] {
           if (auto self = wp.lock()) {
             self->recent_catchup_requests_by_round_.erase(round_id);
             self->recent_catchup_requests_by_peer_.erase(peer_id);

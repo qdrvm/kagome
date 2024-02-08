@@ -26,17 +26,19 @@ namespace kagome::parachain {
 
     BackingStoreImpl(std::shared_ptr<crypto::Hasher> hasher);
 
-    std::optional<ImportResult> put(const RelayHash &relay_parent,
+    std::optional<ImportResult> put(
+        const RelayHash &relay_parent,
         const std::unordered_map<ParachainId, std::vector<ValidatorIndex>>
             &groups,
-        Statement statement, bool allow_multiple_seconded) override;
+        Statement statement,
+        bool allow_multiple_seconded) override;
     std::vector<BackedCandidate> get(
         const BlockHash &relay_parent) const override;
     void add(const BlockHash &relay_parent,
              BackedCandidate &&candidate) override;
 
-    std::optional<std::reference_wrapper<const StatementInfo>>
-    getCadidateInfo(const RelayHash &relay_parent, 
+    std::optional<std::reference_wrapper<const StatementInfo>> getCadidateInfo(
+        const RelayHash &relay_parent,
         const network::CandidateHash &candidate_hash) const override;
 
     void onActivateLeaf(const RelayHash &relay_parent) override;
@@ -44,7 +46,7 @@ namespace kagome::parachain {
 
    private:
     struct AuthorityData {
-	    std::deque<std::pair<CandidateHash, ValidatorSignature>> proposals;
+      std::deque<std::pair<CandidateHash, ValidatorSignature>> proposals;
     };
 
     struct PerRelayParent {
@@ -53,16 +55,18 @@ namespace kagome::parachain {
       std::unordered_map<CandidateHash, StatementInfo> candidate_votes_;
     };
 
-    template<typename F>
-    void forRelayState(const RelayHash &relay_parent, F&&f) {
-      if (auto it = per_relay_parent_.find(relay_parent); it != per_relay_parent_.end()) {
+    template <typename F>
+    void forRelayState(const RelayHash &relay_parent, F &&f) {
+      if (auto it = per_relay_parent_.find(relay_parent);
+          it != per_relay_parent_.end()) {
         std::forward<F>(f)(it->second);
       }
     }
 
-    template<typename F>
-    void forRelayState(const RelayHash &relay_parent, F&&f) const {
-      if (auto it = per_relay_parent_.find(relay_parent); it != per_relay_parent_.end()) {
+    template <typename F>
+    void forRelayState(const RelayHash &relay_parent, F &&f) const {
+      if (auto it = per_relay_parent_.find(relay_parent);
+          it != per_relay_parent_.end()) {
         std::forward<F>(f)(it->second);
       }
     }
@@ -73,15 +77,21 @@ namespace kagome::parachain {
         GroupIndex group,
         ValidatorIndex authority);
 
-  outcome::result<std::optional<BackingStore::ImportResult>> validity_vote(PerRelayParent &state, const std::unordered_map<ParachainId, std::vector<ValidatorIndex>>
-          &groups, ValidatorIndex from,const CandidateHash &digest, const ValidityVote &vote);
-          outcome::result<std::optional<BackingStore::ImportResult>> import_candidate(PerRelayParent &state,
-            const std::unordered_map<ParachainId, std::vector<ValidatorIndex>>
-          &groups,
-		ValidatorIndex authority,
-		const network::CommittedCandidateReceipt &candidate,
-		const ValidatorSignature &signature, bool allow_multiple_seconded
-	);
+    outcome::result<std::optional<BackingStore::ImportResult>> validity_vote(
+        PerRelayParent &state,
+        const std::unordered_map<ParachainId, std::vector<ValidatorIndex>>
+            &groups,
+        ValidatorIndex from,
+        const CandidateHash &digest,
+        const ValidityVote &vote);
+    outcome::result<std::optional<BackingStore::ImportResult>> import_candidate(
+        PerRelayParent &state,
+        const std::unordered_map<ParachainId, std::vector<ValidatorIndex>>
+            &groups,
+        ValidatorIndex authority,
+        const network::CommittedCandidateReceipt &candidate,
+        const ValidatorSignature &signature,
+        bool allow_multiple_seconded);
 
     std::shared_ptr<crypto::Hasher> hasher_;
     std::unordered_map<RelayHash, PerRelayParent> per_relay_parent_;

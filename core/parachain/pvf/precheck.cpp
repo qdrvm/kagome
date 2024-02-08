@@ -67,7 +67,7 @@ namespace kagome::parachain {
     chain_sub_->subscribe(chain_sub_->generateSubscriptionSetId(),
                           primitives::events::ChainEventType::kNewHeads);
     chain_sub_->setCallback(
-        [weak {weak_from_this()}](
+        [weak{weak_from_this()}](
             subscription::SubscriptionSetId,
             auto &&,
             primitives::events::ChainEventType,

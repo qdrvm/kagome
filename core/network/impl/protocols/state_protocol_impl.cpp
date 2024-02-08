@@ -48,7 +48,7 @@ namespace kagome::network {
     base_.host().newStream(
         peer_info.id,
         base_.protocolIds(),
-        [wp {weak_from_this()}, peer_id = peer_info.id, cb = std::move(cb)](
+        [wp{weak_from_this()}, peer_id = peer_info.id, cb = std::move(cb)](
             auto &&stream_res) mutable {
           auto self = wp.lock();
           if (not self) {
@@ -85,7 +85,7 @@ namespace kagome::network {
              protocolName(),
              stream->remotePeerId().value());
 
-    read_writer->read<StateRequest>([stream, wp {weak_from_this()}](
+    read_writer->read<StateRequest>([stream, wp{weak_from_this()}](
                                         auto &&state_request_res) mutable {
       auto self = wp.lock();
       if (not self) {
@@ -160,7 +160,7 @@ namespace kagome::network {
 
     newOutgoingStream(
         {peer_id, std::move(addresses_res.value())},
-        [wp {weak_from_this()},
+        [wp{weak_from_this()},
          response_handler = std::move(response_handler),
          state_request = std::move(state_request)](auto &&stream_res) mutable {
           if (not stream_res.has_value()) {
@@ -217,7 +217,7 @@ namespace kagome::network {
     read_writer->write(
         state_response,
         [stream = std::move(stream),
-         wp {weak_from_this()}](auto &&write_res) mutable {
+         wp{weak_from_this()}](auto &&write_res) mutable {
           auto self = wp.lock();
           if (not self) {
             stream->reset();
@@ -252,7 +252,7 @@ namespace kagome::network {
 
     read_writer->write(
         state_request,
-        [stream, wp {weak_from_this()}, cb = std::move(cb)](
+        [stream, wp{weak_from_this()}, cb = std::move(cb)](
             auto &&write_res) mutable {
           auto self = wp.lock();
           if (not self) {
@@ -294,7 +294,7 @@ namespace kagome::network {
              stream->remotePeerId().value());
 
     read_writer->read<StateResponse>([stream,
-                                      wp {weak_from_this()},
+                                      wp{weak_from_this()},
                                       response_handler =
                                           std::move(response_handler)](
                                          auto &&state_response_res) mutable {

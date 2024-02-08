@@ -6,8 +6,8 @@
 #ifndef KAGOME_PARACHAIN_BACKING_IMPLICIT_VIEW_HPP
 #define KAGOME_PARACHAIN_BACKING_IMPLICIT_VIEW_HPP
 
-#include <span>
 #include <optional>
+#include <span>
 #include <unordered_map>
 #include <vector>
 

@@ -128,7 +128,8 @@ namespace kagome::network {
     void updatePeerState(const PeerId &peer_id,
                          const BlockAnnounce &announce) override;
 
-    std::optional<std::reference_wrapper<PeerState>> createDefaultPeerState(const PeerId &peer_id) override;
+    std::optional<std::reference_wrapper<PeerState>> createDefaultPeerState(
+        const PeerId &peer_id) override;
 
     /** @see PeerManager::updatePeerState */
     void updatePeerState(
@@ -158,7 +159,8 @@ namespace kagome::network {
     void tryOpenGrandpaProtocol(const PeerInfo &peer_info,
                                 PeerState &peer_state);
     void tryOpenValidationProtocol(const PeerInfo &peer_info,
-                                   PeerState &peer_state, network::CollationVersion proto_version);
+                                   PeerState &peer_state,
+                                   network::CollationVersion proto_version);
 
     /// Opens streams set for special peer (i.e. new-discovered)
     void connectToPeer(const PeerId &peer_id);

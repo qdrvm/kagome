@@ -254,7 +254,7 @@ namespace kagome::network {
 
     // Callback what will be called at the end of finding the best common block
     auto find_handler =
-        [wp {weak_from_this()}, peer_id, handler = std::move(handler)](
+        [wp{weak_from_this()}, peer_id, handler = std::move(handler)](
             outcome::result<primitives::BlockInfo> res) mutable {
           if (auto self = wp.lock()) {
             // Remove peer from list of busy peers
@@ -338,7 +338,7 @@ namespace kagome::network {
         or block_tree_->getBlockHeader(header.parent_hash).has_value();
 
     if (parent_is_known) {
-      loadBlocks(peer_id, block_info, [wp {weak_from_this()}](auto res) {
+      loadBlocks(peer_id, block_info, [wp{weak_from_this()}](auto res) {
         if (auto self = wp.lock()) {
           SL_TRACE(self->log_, "Block(s) enqueued to apply by announce");
         }
@@ -350,7 +350,7 @@ namespace kagome::network {
     return syncByBlockInfo(
         block_info,
         peer_id,
-        [wp {weak_from_this()}](auto res) {
+        [wp{weak_from_this()}](auto res) {
           if (auto self = wp.lock()) {
             SL_TRACE(self->log_, "Block(s) enqueued to load by announce");
           }
@@ -369,7 +369,7 @@ namespace kagome::network {
                                    hint,
                                    network::Direction::ASCENDING,
                                    1};
-    auto response_handler = [wp {weak_from_this()},
+    auto response_handler = [wp{weak_from_this()},
                              lower,
                              upper,
                              target = hint,
@@ -518,7 +518,7 @@ namespace kagome::network {
                                    network::Direction::ASCENDING,
                                    std::nullopt};
 
-    auto response_handler = [wp {weak_from_this()},
+    auto response_handler = [wp{weak_from_this()},
                              from,
                              peer_id,
                              handler = std::move(handler),
@@ -774,7 +774,7 @@ namespace kagome::network {
     auto protocol = router_->getStateProtocol();
     BOOST_ASSERT_MSG(protocol, "Router did not provide state protocol");
 
-    auto response_handler = [wp {weak_from_this()}](auto &&_res) mutable {
+    auto response_handler = [wp{weak_from_this()}](auto &&_res) mutable {
       auto self = wp.lock();
       if (not self) {
         return;
@@ -833,7 +833,7 @@ namespace kagome::network {
       return;
     }
     SL_TRACE(log_, "Begin applying");
-    ::libp2p::common::MovableFinalAction cleanup([weak {weak_from_this()}] {
+    ::libp2p::common::MovableFinalAction cleanup([weak{weak_from_this()}] {
       if (auto self = weak.lock()) {
         SL_TRACE(self->log_, "End applying");
         self->applying_in_progress_ = false;
@@ -999,7 +999,7 @@ namespace kagome::network {
       SL_TRACE(log_, "{} blocks in queue", known_blocks_.size());
     }
     metric_import_queue_length_->set(known_blocks_.size());
-    scheduler_->schedule([wp {weak_from_this()}] {
+    scheduler_->schedule([wp{weak_from_this()}] {
       if (auto self = wp.lock()) {
         self->applyNextBlock();
       }
@@ -1071,7 +1071,7 @@ namespace kagome::network {
       const libp2p::peer::PeerId &peer_id,
       const BlocksRequest::Fingerprint &fingerprint) {
     scheduler_->schedule(
-        [wp {weak_from_this()}, peer_id, fingerprint] {
+        [wp{weak_from_this()}, peer_id, fingerprint] {
           if (auto self = wp.lock()) {
             self->recent_requests_.erase(std::tuple(peer_id, fingerprint));
           }
@@ -1125,7 +1125,7 @@ namespace kagome::network {
         busy_peers_.insert(peers.extract(cp_it));
         SL_TRACE(log_, "Peer {} marked as busy", peer_id);
 
-        auto handler = [wp {weak_from_this()}, peer_id](const auto &res) {
+        auto handler = [wp{weak_from_this()}, peer_id](const auto &res) {
           if (auto self = wp.lock()) {
             if (self->busy_peers_.erase(peer_id) > 0) {
               SL_TRACE(self->log_, "Peer {} unmarked as busy", peer_id);
@@ -1165,7 +1165,7 @@ namespace kagome::network {
               lower,
               upper,
               hint,
-              [wp {weak_from_this()}, peer_id, handler = std::move(handler)](
+              [wp{weak_from_this()}, peer_id, handler = std::move(handler)](
                   outcome::result<primitives::BlockInfo> res) {
                 if (auto self = wp.lock()) {
                   if (not res.has_value()) {

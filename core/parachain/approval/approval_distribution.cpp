@@ -482,7 +482,9 @@ namespace kagome::parachain {
       std::shared_ptr<Watchdog> watchdog,
       WeakIoContext main_thread,
       LazySPtr<dispute::DisputeCoordinator> dispute_coordinator)
-      : internal_context_{ThreadPool::create(std::move(watchdog), "approval", 1ull)->handler()},
+      : internal_context_{ThreadPool::create(
+                              std::move(watchdog), "approval", 1ull)
+                              ->handler()},
         thread_pool_{std::move(thread_pool)},
         thread_pool_context_{thread_pool_->handler()},
         parachain_host_(std::move(parachain_host)),
@@ -2065,12 +2067,12 @@ namespace kagome::parachain {
                    "Received assignments.(peer_id={}, count={})",
                    peer_id,
                    assignments.assignments.size());
-            DeferedSender<network::Assignment> assignment_defered_sender{
-                [wself{weak_from_this()}](auto &&msgs) {
-                  if (auto self = wself.lock()) {
-                    self->runDistributeAssignment(std::move(msgs));
-                  }
-                }};
+          DeferedSender<network::Assignment> assignment_defered_sender{
+              [wself{weak_from_this()}](auto &&msgs) {
+                if (auto self = wself.lock()) {
+                  self->runDistributeAssignment(std::move(msgs));
+                }
+              }};
           for (auto const &assignment : assignments.assignments) {
             if (auto it = pending_known_.find(
                     assignment.indirect_assignment_cert.block_hash);
@@ -2087,9 +2089,8 @@ namespace kagome::parachain {
               continue;
             }
 
-              import_and_circulate_assignment(
-                  peer_id,
-                  assignment_defered_sender,
+            import_and_circulate_assignment(peer_id,
+                                            assignment_defered_sender,
                                             assignment.indirect_assignment_cert,
                                             assignment.candidate_ix);
           }
@@ -2099,12 +2100,12 @@ namespace kagome::parachain {
                    "Received approvals.(peer_id={}, count={})",
                    peer_id,
                    approvals.approvals.size());
-            DeferedSender<network::IndirectSignedApprovalVote>
-                approval_defered_sender{[wself{weak_from_this()}](auto &&msgs) {
-                  if (auto self = wself.lock()) {
-                    self->runDistributeApproval(std::move(msgs));
-                  }
-                }};
+          DeferedSender<network::IndirectSignedApprovalVote>
+              approval_defered_sender{[wself{weak_from_this()}](auto &&msgs) {
+                if (auto self = wself.lock()) {
+                  self->runDistributeApproval(std::move(msgs));
+                }
+              }};
           for (auto const &approval_vote : approvals.approvals) {
             if (auto it = pending_known_.find(
                     approval_vote.payload.payload.block_hash);
@@ -2121,8 +2122,8 @@ namespace kagome::parachain {
               continue;
             }
 
-              import_and_circulate_approval(
-                  peer_id, approval_defered_sender, approval_vote);
+            import_and_circulate_approval(
+                peer_id, approval_defered_sender, approval_vote);
           }
         },
         [&](const auto &) { UNREACHABLE; });
@@ -2665,8 +2666,8 @@ namespace kagome::parachain {
              tick,
              ms_wakeup_after);
 
-    auto t =
-        std::make_unique<clock::BasicWaitableTimer>(internal_context_->io_context());
+    auto t = std::make_unique<clock::BasicWaitableTimer>(
+        internal_context_->io_context());
     t->expiresAfter(std::chrono::milliseconds(ms_wakeup_after));
     t->asyncWait(
         [wself{weak_from_this()}, block_hash, block_number, candidate_hash](

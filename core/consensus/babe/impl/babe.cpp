@@ -28,8 +28,8 @@
 #include "network/block_announce_transmitter.hpp"
 #include "parachain/availability/bitfield/store.hpp"
 #include "parachain/backing/store.hpp"
-#include "parachain/validator/parachain_processor.hpp"
 #include "parachain/parachain_inherent_data.hpp"
+#include "parachain/validator/parachain_processor.hpp"
 #include "primitives/inherent_data.hpp"
 #include "runtime/runtime_api/offchain_worker_api.hpp"
 #include "storage/changes_trie/impl/storage_changes_tracker_impl.hpp"
@@ -328,11 +328,12 @@ namespace kagome::consensus::babe {
       parachain_inherent_data.bitfields =
           bitfield_store_->getBitfields(relay_parent);
       SL_INFO(log_,
-               "Bitfields set for block.(count={}, relay_parent={})",
-               parachain_inherent_data.bitfields.size(),
-               relay_parent);
+              "Bitfields set for block.(count={}, relay_parent={})",
+              parachain_inherent_data.bitfields.size(),
+              relay_parent);
 
-      parachain_inherent_data.backed_candidates = parachain_processor_->getBackedCandidates(relay_parent);
+      parachain_inherent_data.backed_candidates =
+          parachain_processor_->getBackedCandidates(relay_parent);
       SL_TRACE(log_,
                "Get backed candidates from store.(count={}, relay_parent={})",
                parachain_inherent_data.backed_candidates.size(),

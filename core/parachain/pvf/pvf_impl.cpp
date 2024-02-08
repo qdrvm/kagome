@@ -217,9 +217,9 @@ namespace kagome::parachain {
       const CandidateDescriptor &descriptor,
       const runtime::PersistedValidationData &pvd) const {
     auto data_hash = hasher_->blake2b_256(::scale::encode(pvd).value());
-      if (descriptor.persisted_data_hash != data_hash) {
-        return PvfError::NO_PERSISTED_DATA;
-      }
+    if (descriptor.persisted_data_hash != data_hash) {
+      return PvfError::NO_PERSISTED_DATA;
+    }
     for (auto assumption : {
              runtime::OccupiedCoreAssumption::Included,
              runtime::OccupiedCoreAssumption::TimedOut,
@@ -262,8 +262,7 @@ namespace kagome::parachain {
     OUTCOME_TRY(ctx,
                 ctx_factory_->ephemeral(
                     instance, storage::trie::kEmptyRootHash, executor_params));
-    return executor_->call<ValidationResult>(
-        ctx, "validate_block", params);
+    return executor_->call<ValidationResult>(ctx, "validate_block", params);
   }
 
   outcome::result<Pvf::CandidateCommitments> PvfImpl::fromOutputs(

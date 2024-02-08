@@ -17,14 +17,14 @@
 #include "primitives/block_header.hpp"
 #include "primitives/block_id.hpp"
 #include "primitives/justification.hpp"
+#include "runtime/runtime_api/parachain_host_types.hpp"
+#include "scale/big_fixed_integers.hpp"
 #include "scale/encode_append.hpp"
 #include "scale/libp2p_types.hpp"
-#include "scale/big_fixed_integers.hpp"
-#include "runtime/runtime_api/parachain_host_types.hpp"
 
 namespace kagome::scale {
   namespace __outcome_detail {
-    template<typename T>
+    template <typename T>
     using Category = ::scale::__outcome_detail::Category<T>;
   }
   using CompactInteger = ::scale::CompactInteger;
@@ -33,9 +33,9 @@ namespace kagome::scale {
   using ScaleEncoderStream = ::scale::ScaleEncoderStream;
   using PeerInfoSerializable = ::scale::PeerInfoSerializable;
   using DecodeError = ::scale::DecodeError;
-  template<typename T>
+  template <typename T>
   using Fixed = ::scale::Fixed<T>;
-  template<typename T>
+  template <typename T>
   using Compact = ::scale::Compact<T>;
   using uint128_t = ::scale::uint128_t;
 
@@ -67,7 +67,8 @@ namespace kagome::scale {
   constexpr void encode(const F &func, const primitives::Consensus &c);
 
   template <typename F>
-  constexpr void encode(const F &func, const runtime::PersistedValidationData &c);
+  constexpr void encode(const F &func,
+                        const runtime::PersistedValidationData &c);
 
   template <typename F>
   constexpr void encode(const F &func, const primitives::Seal &c);
@@ -152,7 +153,8 @@ namespace kagome::scale {
   }
 
   template <typename F>
-  constexpr void encode(const F &func, const kagome::runtime::PersistedValidationData &c) {
+  constexpr void encode(const F &func,
+                        const kagome::runtime::PersistedValidationData &c) {
     encode(func, c.parent_head);
     encode(func, c.relay_parent_number);
     encode(func, c.relay_parent_storage_root);

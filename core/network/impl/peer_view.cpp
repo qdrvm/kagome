@@ -59,7 +59,7 @@ namespace kagome::network {
                   },
               .new_head = value->get().get(),
               .lost = {},
-              });
+          });
         }
       }
     });

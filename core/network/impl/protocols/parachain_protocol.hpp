@@ -36,7 +36,10 @@
 
 namespace kagome::network {
 
-  template <typename Observer, typename Message, bool kCollation, network::CollationVersion kProtoVersion>
+  template <typename Observer,
+            typename Message,
+            bool kCollation,
+            network::CollationVersion kProtoVersion>
   class ParachainProtocol
       : public ProtocolBase,
         public std::enable_shared_from_this<
@@ -46,7 +49,8 @@ namespace kagome::network {
    public:
     using ObserverType = Observer;
     using MessageType = Message;
-    using Self = ParachainProtocol<Observer, Message, kCollation, kProtoVersion>;
+    using Self =
+        ParachainProtocol<Observer, Message, kCollation, kProtoVersion>;
 
     ParachainProtocol() = delete;
     ~ParachainProtocol() override = default;
@@ -74,10 +78,10 @@ namespace kagome::network {
       BOOST_ASSERT(stream->remotePeerId().has_value());
       auto on_handshake = [](std::shared_ptr<Self> self,
                              std::shared_ptr<Stream> stream,
-                             Roles) { 
-                              self->onHandshake(stream->remotePeerId().value());
-                              return true; 
-                              };
+                             Roles) {
+        self->onHandshake(stream->remotePeerId().value());
+        return true;
+      };
       auto on_message = [peer_id = stream->remotePeerId().value()](
                             std::shared_ptr<Self> self,
                             WireMessage<MessageType> message) {
@@ -90,8 +94,8 @@ namespace kagome::network {
             },
             [&](MessageType &&p) {
               SL_TRACE(self->base_.logger(),
-                         "Received Collation/Validation message from {}",
-                         peer_id);
+                       "Received Collation/Validation message from {}",
+                       peer_id);
               self->observer_->onIncomingMessage(peer_id, std::move(p));
             });
         return true;

@@ -78,5 +78,5 @@ namespace kagome::network {
     (visitor.visit(args), ...);
     return visitor.protocols;
   }
-  
+
 }  // namespace kagome::network

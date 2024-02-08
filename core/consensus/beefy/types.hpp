@@ -67,7 +67,7 @@ namespace kagome::consensus::beefy {
     std::vector<std::optional<crypto::EcdsaSignature>> signatures;
   };
   inline ::scale::ScaleEncoderStream &operator<<(::scale::ScaleEncoderStream &s,
-                                               const SignedCommitment &v) {
+                                                 const SignedCommitment &v) {
     s << v.commitment;
     size_t count = 0;
     common::Buffer bits;
@@ -92,7 +92,7 @@ namespace kagome::consensus::beefy {
     return s;
   }
   inline ::scale::ScaleDecoderStream &operator>>(::scale::ScaleDecoderStream &s,
-                                               SignedCommitment &v) {
+                                                 SignedCommitment &v) {
     s >> v.commitment;
     common::Buffer bits;
     s >> bits;

@@ -88,10 +88,10 @@ namespace kagome::parachain {
 
   struct Collations {
     /// How many collations have been seconded.
-    size_t seconded_count { 0ull };
+    size_t seconded_count{0ull};
     /// What is the current status in regards to a collation for this relay
     /// parent?
-    CollationStatus status {  CollationStatus::Waiting };
+    CollationStatus status{CollationStatus::Waiting};
     /// Collation that were advertised to us, but we did not yet fetch.
     std::deque<std::pair<PendingCollation, CollatorId>> waiting_queue{};
     /// Collator we're fetching from, optionally which candidate was requested.

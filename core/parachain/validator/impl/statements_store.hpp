@@ -101,7 +101,8 @@ namespace kagome::parachain {
     }
 
     bool operator==(const Fingerprint &rhs) const {
-      return index == rhs.index && statement.inner_value == rhs.statement.inner_value;
+      return index == rhs.index
+          && statement.inner_value == rhs.statement.inner_value;
     }
   };
 
@@ -269,8 +270,8 @@ namespace kagome::parachain {
           });
 
       const auto &candidate_hash = candidateHash(compact);
-      const bool seconded =
-          is_type<network::vstaging::SecondedCandidateHash>(compact.inner_value);
+      const bool seconded = is_type<network::vstaging::SecondedCandidateHash>(
+          compact.inner_value);
       const auto group_index = vm.group;
 
       auto it_gr = groups.groups.find(group_index);

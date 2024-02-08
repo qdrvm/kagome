@@ -86,7 +86,8 @@ namespace kagome::dispute {
 
     // Ancestors block numbers are consecutive in the descending order.
     for (size_t i = 0; i < ancestors.size(); ++i) {
-      OUTCOME_TRY(fn({activated.number - primitives::BlockNumber(i) - 1, ancestors[i]}));
+      OUTCOME_TRY(fn(
+          {activated.number - primitives::BlockNumber(i) - 1, ancestors[i]}));
     }
 
     last_observed_blocks_.put(activated.hash, Empty{});

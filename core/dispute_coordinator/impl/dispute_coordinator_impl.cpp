@@ -145,7 +145,10 @@ namespace kagome::dispute {
         peer_view_(std::move(peer_view)),
         chain_sub_{peer_view_->intoChainEventsEngine()},
         babe_status_observable_(std::move(babe_status_observable)),
-        internal_context_{ThreadPool::create(std::move(watchdog), "DisputeCoordinatorImpl", 1ull)->handler()},
+        internal_context_{ThreadPool::create(std::move(watchdog),
+                                             "DisputeCoordinatorImpl",
+                                             1ull)
+                              ->handler()},
         runtime_info_(std::make_unique<RuntimeInfo>(api_, session_keys_)),
         batches_(std::make_unique<Batches>(steady_clock_, hasher_)) {
     BOOST_ASSERT(app_state_manager_ != nullptr);

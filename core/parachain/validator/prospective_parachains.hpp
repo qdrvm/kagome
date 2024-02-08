@@ -14,6 +14,7 @@
 
 #include "blockchain/block_tree.hpp"
 #include "blockchain/block_tree_error.hpp"
+#include "network/peer_view.hpp"
 #include "network/types/collator_messages_vstaging.hpp"
 #include "parachain/types.hpp"
 #include "parachain/validator/collations.hpp"
@@ -21,7 +22,6 @@
 #include "runtime/runtime_api/parachain_host.hpp"
 #include "runtime/runtime_api/parachain_host_types.hpp"
 #include "utils/map.hpp"
-#include "network/peer_view.hpp"
 
 namespace kagome::parachain {
 
@@ -92,10 +92,10 @@ namespace kagome::parachain {
         ParachainId para,
         const std::vector<CandidateHash> &required_path) {
       SL_TRACE(logger,
-              "Search for backable candidates. (para_id={}, "
-              "relay_parent={})",
-              para,
-              relay_parent);
+               "Search for backable candidates. (para_id={}, "
+               "relay_parent={})",
+               para,
+               relay_parent);
       auto data_it = view.active_leaves.find(relay_parent);
       if (data_it == view.active_leaves.end()) {
         SL_TRACE(logger,
@@ -135,10 +135,10 @@ namespace kagome::parachain {
           });
       if (!child_hash) {
         SL_TRACE(logger,
-                "Child hash is null. (para_id={}, "
-                "relay_parent={})",
-                para,
-                relay_parent);
+                 "Child hash is null. (para_id={}, "
+                 "relay_parent={})",
+                 para,
+                 relay_parent);
         return std::nullopt;
       }
 
@@ -500,10 +500,12 @@ namespace kagome::parachain {
           live_paras.insert(para_id);
         }
 
-        live_candidates.insert(sub_view.pending_availability.begin(), sub_view.pending_availability.end());
+        live_candidates.insert(sub_view.pending_availability.begin(),
+                               sub_view.pending_availability.end());
       }
 
-      for (auto it = view.candidate_storage.begin(); it != view.candidate_storage.end();) {
+      for (auto it = view.candidate_storage.begin();
+           it != view.candidate_storage.end();) {
         auto &[para_id, storage] = *it;
         if (live_paras.find(para_id) != live_paras.end()) {
           storage.retain([&](const CandidateHash &h) {

@@ -26,7 +26,8 @@ namespace kagome {
    public:
     struct Locked {
       virtual ~Locked() = default;
-      virtual const std::shared_ptr<boost::asio::io_context> &io_context() const = 0;
+      virtual const std::shared_ptr<boost::asio::io_context> &io_context()
+          const = 0;
     };
 
     ThreadHandler(ThreadHandler &&) = delete;
@@ -134,7 +135,8 @@ namespace kagome {
           new ThreadPool(std::forward<Args>(args)...));
     }
 
-    const std::shared_ptr<boost::asio::io_context> &io_context() const override {
+    const std::shared_ptr<boost::asio::io_context> &io_context()
+        const override {
       return ioc_;
     }
 

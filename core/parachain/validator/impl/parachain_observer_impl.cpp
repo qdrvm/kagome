@@ -61,7 +61,8 @@ namespace kagome::parachain {
         },
         [&](kagome::network::vstaging::CollatorProtocolMessage
                 &&collation_msg) {
-          if (auto m = if_type<network::vstaging::CollationMessage>(collation_msg)) {
+          if (auto m =
+                  if_type<network::vstaging::CollationMessage>(collation_msg)) {
             visit_in_place(
                 std::move(m->get()),
                 [&](kagome::network::vstaging::CollatorProtocolMessageDeclare
@@ -82,10 +83,12 @@ namespace kagome::parachain {
                           std::move(collation_adv.parent_head_data_hash)));
                 },
                 [&](auto &&) {
-                  SL_WARN(logger_, "Unexpected VStaging collation message from.");
+                  SL_WARN(logger_,
+                          "Unexpected VStaging collation message from.");
                 });
           } else {
-            SL_WARN(logger_, "Unexpected VStaging collation protocol message from.");
+            SL_WARN(logger_,
+                    "Unexpected VStaging collation protocol message from.");
           }
         },
         [&](auto &&) {
@@ -150,11 +153,13 @@ namespace kagome::parachain {
     processor_->handleAdvertisement(
         network::CollationEvent{
             .collator_id = result.value().first,
-            .pending_collation = {.relay_parent = relay_parent,
-                                  .para_id = result.value().second,
-                                  .peer_id = peer_id,
-                                  .commitments_hash = {},
-                                  },
+            .pending_collation =
+                {
+                    .relay_parent = relay_parent,
+                    .para_id = result.value().second,
+                    .peer_id = peer_id,
+                    .commitments_hash = {},
+                },
         },
         std::move(prospective_candidate));
   }

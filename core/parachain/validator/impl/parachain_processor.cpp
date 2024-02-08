@@ -732,7 +732,9 @@ namespace kagome::parachain {
                validator->validatorIndex(),
                relay_parent);
 
-    OUTCOME_TRY(minimum_backing_votes, parachain_host_->minimum_backing_votes(relay_parent, session_index));
+    OUTCOME_TRY(
+        minimum_backing_votes,
+        parachain_host_->minimum_backing_votes(relay_parent, session_index));
 
     return RelayParentState{
         .prospective_parachains_mode = mode,
@@ -2095,7 +2097,10 @@ namespace kagome::parachain {
 
     auto res = importStatement(relay_parent, statement, parachain_state);
     if (res.has_error()) {
-      SL_TRACE(logger_, "Statement rejected. (relay_parent={}, error={}).", relay_parent, res.error());
+      SL_TRACE(logger_,
+               "Statement rejected. (relay_parent={}, error={}).",
+               relay_parent,
+               res.error());
       return;
     }
 
@@ -2119,16 +2124,16 @@ namespace kagome::parachain {
               parachain::getPayload(statement),
               [&](const StatementWithPVDSeconded &val)
                   -> std::optional<std::reference_wrapper<AttestingData>> {
-                auto opt_candidate =
-                    backing_store_->getCadidateInfo(relay_parent, candidate_hash);
+                auto opt_candidate = backing_store_->getCadidateInfo(
+                    relay_parent, candidate_hash);
                 if (!opt_candidate) {
                   logger_->error("No candidate {}", candidate_hash);
                   return std::nullopt;
                 }
 
                 AttestingData attesting{
-                    .candidate =
-                        candidateFromCommittedCandidateReceipt(opt_candidate->get().candidate),
+                    .candidate = candidateFromCommittedCandidateReceipt(
+                        opt_candidate->get().candidate),
                     .pov_hash = val.committed_receipt.descriptor.pov_hash,
                     .from_validator = statement.payload.ix,
                     .backing = {}};
@@ -2175,14 +2180,17 @@ namespace kagome::parachain {
 
   std::optional<BackingStore::ImportResult>
   ParachainProcessorImpl::importStatementToTable(
-    const RelayHash &relay_parent,
+      const RelayHash &relay_parent,
       ParachainProcessorImpl::RelayParentState &relayParentState,
       const primitives::BlockHash &candidate_hash,
       const network::SignedStatement &statement) {
     SL_TRACE(
         logger_, "Import statement into table.(candidate={})", candidate_hash);
-    return backing_store_->put(relay_parent, relayParentState.table_context.groups,
-                                     statement, relayParentState.prospective_parachains_mode.has_value());
+    return backing_store_->put(
+        relay_parent,
+        relayParentState.table_context.groups,
+        statement,
+        relayParentState.prospective_parachains_mode.has_value());
   }
 
   void ParachainProcessorImpl::statementDistributionBackedCandidate(
@@ -2314,8 +2322,11 @@ namespace kagome::parachain {
           continue;
         }
 
-        if (auto attested = attested_candidate(r_hash, 
-                c_hash, per_relay_state->get().table_context, per_relay_state->get().minimum_backing_votes)) {
+        if (auto attested = attested_candidate(
+                r_hash,
+                c_hash,
+                per_relay_state->get().table_context,
+                per_relay_state->get().minimum_backing_votes)) {
           if (auto b = table_attested_to_backed(
                   std::move(*attested), per_relay_state->get().table_context)) {
             backed.emplace_back(std::move(*b));
@@ -2372,15 +2383,17 @@ namespace kagome::parachain {
 
   std::optional<ParachainProcessorImpl::AttestedCandidate>
   ParachainProcessorImpl::attested_candidate(
-    const RelayHash &relay_parent,
+      const RelayHash &relay_parent,
       const CandidateHash &digest,
       const ParachainProcessorImpl::TableContext &context,
       uint32_t minimum_backing_votes) {
-    if (auto opt_validity_votes = backing_store_->getCadidateInfo(relay_parent, digest)) {
+    if (auto opt_validity_votes =
+            backing_store_->getCadidateInfo(relay_parent, digest)) {
       auto &data = opt_validity_votes->get();
 
       size_t len = std::numeric_limits<size_t>::max();
-      if (auto it = context.groups.find(data.group_id); it != context.groups.end()) {
+      if (auto it = context.groups.find(data.group_id);
+          it != context.groups.end()) {
         len = it->second.size();
       }
 
@@ -2512,7 +2525,8 @@ namespace kagome::parachain {
             },
         .signature = statement.signature,
     };
-    return importStatementToTable(relay_parent, rp_state, candidate_hash, stmnt);
+    return importStatementToTable(
+        relay_parent, rp_state, candidate_hash, stmnt);
   }
 
   void ParachainProcessorImpl::unblockAdvertisements(
@@ -2651,8 +2665,10 @@ namespace kagome::parachain {
              summary->group_id,
              summary->validity_votes);
 
-    if (auto attested = attested_candidate(relay_parent, summary->candidate,
-                                           rp_state.table_context, rp_state.minimum_backing_votes)) {
+    if (auto attested = attested_candidate(relay_parent,
+                                           summary->candidate,
+                                           rp_state.table_context,
+                                           rp_state.minimum_backing_votes)) {
       if (rp_state.backed_hashes
               .insert(candidateHash(*hasher_, attested->candidate))
               .second) {
@@ -2666,8 +2682,8 @@ namespace kagome::parachain {
               summary->group_id,
               relay_parent);
           if (rp_state.prospective_parachains_mode) {
-            prospective_parachains_->candidateBacked(
-                para_id, summary->candidate);
+            prospective_parachains_->candidateBacked(para_id,
+                                                     summary->candidate);
             unblockAdvertisements(
                 rp_state, para_id, backed->candidate.descriptor.para_head_hash);
             statementDistributionBackedCandidate(summary->candidate);

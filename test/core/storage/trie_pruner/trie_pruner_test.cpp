@@ -20,6 +20,8 @@
 #include "mock/core/storage/trie/serialization/trie_serializer_mock.hpp"
 #include "mock/core/storage/trie/trie_storage_backend_mock.hpp"
 #include "mock/core/storage/write_batch_mock.hpp"
+#include "network/types/block_announce_handshake.hpp"
+#include "scale/kagome_scale.hpp"
 #include "storage/database_error.hpp"
 #include "storage/trie/polkadot_trie/polkadot_trie_factory_impl.hpp"
 #include "storage/trie/polkadot_trie/polkadot_trie_impl.hpp"
@@ -29,8 +31,6 @@
 #include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
 #include "testutil/prepare_loggers.hpp"
-#include "network/types/block_announce_handshake.hpp"
-#include "scale/kagome_scale.hpp"
 
 using namespace kagome::storage;
 using namespace kagome::storage::trie_pruner;
@@ -645,8 +645,8 @@ TEST_F(TriePrunerTest, RestoreStateFromGenesis) {
   ON_CALL(*block_tree, bestBlock())
       .WillByDefault(Return(BlockInfo{6, hash_from_header(headers.at(6))}));
 
-  //ON_CALL(*block_tree, bestLeaf())
-  //    .WillByDefault(Return(BlockInfo{6, hash_from_header(headers.at(6))}));
+  // ON_CALL(*block_tree, bestLeaf())
+  //     .WillByDefault(Return(BlockInfo{6, hash_from_header(headers.at(6))}));
 
   auto mock_block = [&](unsigned int number) {
     auto str_number = std::to_string(number);
@@ -913,10 +913,15 @@ TEST_F(TriePrunerTest, NewScale) {
 TEST_F(TriePrunerTest, NewScale_2) {
   kagome::network::Roles r;
   r.flags.full = true;
-  kagome::network::BlockAnnounceHandshake data {
-    .roles = r,
-    .best_block = kagome::primitives::BlockInfo(primitives::BlockHash::fromString("1111jfn4983u4093jv3894j3f034ojs3").value(), 100),
-    .genesis_hash = kagome::primitives::BlockHash::fromString("c30ojfn4983u4093jv3894j3f034ojs3").value(),
+  kagome::network::BlockAnnounceHandshake data{
+      .roles = r,
+      .best_block = kagome::primitives::BlockInfo(
+          primitives::BlockHash::fromString("1111jfn4983u4093jv3894j3f034ojs3")
+              .value(),
+          100),
+      .genesis_hash = kagome::primitives::BlockHash::fromString(
+                          "c30ojfn4983u4093jv3894j3f034ojs3")
+                          .value(),
   };
 
   std::vector<uint8_t> data_0;

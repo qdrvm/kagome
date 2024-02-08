@@ -358,7 +358,8 @@ namespace {
     if (cores == 0ul) {
       cores = 5;
     }
-    return ThreadPool::create(injector.template create<sptr<Watchdog>>(), "worker", cores);
+    return ThreadPool::create(
+        injector.template create<sptr<Watchdog>>(), "worker", cores);
   }
 
   template <typename... Ts>

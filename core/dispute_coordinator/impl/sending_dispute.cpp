@@ -129,21 +129,20 @@ namespace kagome::dispute {
 
     for (auto &[authority_id, peer_id] : receivers) {
       deliveries_.emplace(authority_id, DeliveryStatus::Pending);
-      protocol->doRequest(peer_id,
-                          request_,
-                          [wp{weak_from_this()},
-                           authority_id(authority_id)](auto res) mutable {
-                            if (auto self = wp.lock()) {
-                              if (res.has_value()) {
-                                self->deliveries_[authority_id] =
-                                    DeliveryStatus::Succeeded;
-                              } else {
-                                // LOG Can't sent dispute request to peer {}
-                                self->deliveries_.erase(authority_id);
-                                self->has_failed_sends_ = true;
-                              }
-                            }
-                          });
+      protocol->doRequest(
+          peer_id,
+          request_,
+          [wp{weak_from_this()}, authority_id(authority_id)](auto res) mutable {
+            if (auto self = wp.lock()) {
+              if (res.has_value()) {
+                self->deliveries_[authority_id] = DeliveryStatus::Succeeded;
+              } else {
+                // LOG Can't sent dispute request to peer {}
+                self->deliveries_.erase(authority_id);
+                self->has_failed_sends_ = true;
+              }
+            }
+          });
     }
 
     // SL_TRACE(log_, "Requests dispatched. Sent {} requests",

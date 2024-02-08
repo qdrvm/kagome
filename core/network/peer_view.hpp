@@ -12,6 +12,7 @@
 
 #include "application/app_state_manager.hpp"
 #include "blockchain/block_tree.hpp"
+#include "crypto/type_hasher.hpp"
 #include "injector/lazy.hpp"
 #include "network/types/collator_messages.hpp"
 #include "outcome/outcome.hpp"
@@ -19,7 +20,6 @@
 #include "subscription/subscriber.hpp"
 #include "subscription/subscription_engine.hpp"
 #include "utils/non_copyable.hpp"
-#include "crypto/type_hasher.hpp"
 
 namespace kagome::blockchain {
   class BlockTree;

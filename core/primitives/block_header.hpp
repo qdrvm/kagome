@@ -28,7 +28,7 @@ namespace kagome::primitives {
     storage::trie::RootHash state_root{};  ///< Merkle tree root of state
     common::Hash256 extrinsics_root{};     ///< Hash of included extrinsics
     Digest digest{};                       ///< Chain-specific auxiliary data
-    mutable std::optional<BlockHash> hash_opt{};   ///< Block hash if calculated
+    mutable std::optional<BlockHash> hash_opt{};  ///< Block hash if calculated
 
     bool operator==(const BlockHeader &rhs) const {
       return std::tie(parent_hash, number, state_root, extrinsics_root, digest)
@@ -58,7 +58,8 @@ namespace kagome::primitives {
 
     void updateHash(const crypto::Hasher &hasher) const {
       auto enc_res = scale::encode(*this);
-      BOOST_ASSERT_MSG(enc_res.has_value(), "Header should be encoded errorless");
+      BOOST_ASSERT_MSG(enc_res.has_value(),
+                       "Header should be encoded errorless");
       hash_opt.emplace(hasher.blake2b_256(enc_res.value()));
     }
 
@@ -137,6 +138,7 @@ namespace kagome::primitives {
     return s;
   }
 
-  void calculateBlockHash(const BlockHeader &header, const crypto::Hasher &hasher);
+  void calculateBlockHash(const BlockHeader &header,
+                          const crypto::Hasher &hasher);
 
 }  // namespace kagome::primitives

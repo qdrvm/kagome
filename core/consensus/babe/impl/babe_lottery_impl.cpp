@@ -49,7 +49,7 @@ namespace kagome::consensus::babe {
     auto &config = *config_res.value();
 
     keypair_ = session_keys_->getBabeKeyPair(config.authorities);
-    if(!keypair_) {
+    if (!keypair_) {
       return false;
     }
 

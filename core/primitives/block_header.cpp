@@ -8,7 +8,8 @@
 
 namespace kagome::primitives {
 
-  void calculateBlockHash(const BlockHeader &header, const crypto::Hasher &hasher) {
+  void calculateBlockHash(const BlockHeader &header,
+                          const crypto::Hasher &hasher) {
     header.updateHash(hasher);
   }
 
