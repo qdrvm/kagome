@@ -387,7 +387,7 @@ namespace kagome::parachain {
                     const CandidateHash &candidate_hash,
                     F &&callback);
 
-    std::optional<AttestedCandidate> attested_candidate(
+    std::optional<AttestedCandidate> attested_candidate(const RelayHash &relay_parent,
         const CandidateHash &digest, const TableContext &context, uint32_t minimum_backing_votes);
 
     std::optional<AttestedCandidate> attested(
@@ -611,7 +611,7 @@ namespace kagome::parachain {
         const HypotheticalCandidate &hypothetical_candidate,
         bool backed_in_path_only);
 
-    std::optional<BackingStore::ImportResult> importStatementToTable(
+    std::optional<BackingStore::ImportResult> importStatementToTable(const RelayHash &relay_parent,
         ParachainProcessorImpl::RelayParentState &relayParentState,
         const primitives::BlockHash &candidate_hash,
         const network::SignedStatement &statement);

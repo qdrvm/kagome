@@ -29,15 +29,12 @@ namespace kagome::parachain {
   BackingStoreImpl::BackingStoreImpl(std::shared_ptr<crypto::Hasher> hasher)
       : hasher_{std::move(hasher)} {}
 
-  void BackingStoreImpl::remove(const BlockHash &relay_parent) {
-    backed_candidates_.erase(relay_parent);
-    /// TODO(iceseer): do cleanup
-//    if (auto it = candidates_.find(relay_parent); it != candidates_.end()) {
-//      for (const auto &candidate : it->second) {
-//        candidate_votes_.erase(candidate);
-//      }
-//      candidates_.erase(it);
-//    }
+  void BackingStoreImpl::onDeactivateLeaf(const BlockHash &relay_parent) {
+    per_relay_parent_.erase(relay_parent);
+  }
+
+  void BackingStoreImpl::onActivateLeaf(const BlockHash &relay_parent) {
+    [[maybe_unused]] auto _ = per_relay_parent_[relay_parent];
   }
 
   bool BackingStoreImpl::is_in_group(
@@ -55,15 +52,15 @@ namespace kagome::parachain {
     return false;
   }
 
-  outcome::result<std::optional<BackingStore::ImportResult>> BackingStoreImpl::validity_vote(
+  outcome::result<std::optional<BackingStore::ImportResult>> BackingStoreImpl::validity_vote(PerRelayParent &state, 
     const std::unordered_map<ParachainId, std::vector<ValidatorIndex>>
           &groups,
     ValidatorIndex from,
     const CandidateHash &digest,
     const ValidityVote &vote) 
   {
-    auto it = candidate_votes_.find(digest);
-    if (it == candidate_votes_.end()) {
+    auto it = state.candidate_votes_.find(digest);
+    if (it == state.candidate_votes_.end()) {
       return std::nullopt;
     }
     BackingStore::StatementInfo &votes = it->second;
@@ -88,7 +85,7 @@ namespace kagome::parachain {
     };
   }
 
-  outcome::result<std::optional<BackingStore::ImportResult>> BackingStoreImpl::import_candidate(
+  outcome::result<std::optional<BackingStore::ImportResult>> BackingStoreImpl::import_candidate(PerRelayParent &state, 
     const std::unordered_map<ParachainId, std::vector<ValidatorIndex>>
           &groups,
 		ValidatorIndex authority,
@@ -102,7 +99,7 @@ namespace kagome::parachain {
 
     const CandidateHash digest = candidateHash(*hasher_, candidate);
     bool new_proposal;
-    if (auto it = authority_data_.find(authority); it != authority_data_.end()) {
+    if (auto it = state.authority_data_.find(authority); it != state.authority_data_.end()) {
       auto &existing = it->second;
       if (!allow_multiple_seconded && existing.proposals.size() == 1) {
         const auto &[old_digest, old_sig] = existing.proposals[0];
@@ -121,26 +118,33 @@ namespace kagome::parachain {
 					new_proposal = true;
 				}
     } else {
-      auto &ad = authority_data_[authority];
+      auto &ad = state.authority_data_[authority];
       ad.proposals.emplace_back(digest, signature);
       new_proposal = true;
     }
 
 		if (new_proposal) {
-			auto &cv = candidate_votes_[digest];
+			auto &cv = state.candidate_votes_[digest];
       cv.candidate = candidate;
       cv.group_id = group;
 		}
 
-		return validity_vote(groups, authority, digest, ValidityVoteIssued{signature});
+		return validity_vote(state, groups, authority, digest, ValidityVoteIssued{signature});
   }
 
-  std::optional<BackingStore::ImportResult> BackingStoreImpl::put(
+  std::optional<BackingStore::ImportResult> BackingStoreImpl::put(const RelayHash &relay_parent,
       const std::unordered_map<ParachainId, std::vector<ValidatorIndex>>
           &groups,
       Statement stm, bool allow_multiple_seconded) {
-//    auto candidate_hash =
-//        candidateHash(*hasher_, stm.payload.payload.candidate_state);
+
+    std::optional<std::reference_wrapper<PerRelayParent>> per_rp_state;
+    forRelayState(relay_parent, [&](PerRelayParent &state) {
+      per_rp_state = state;
+    });
+
+    if (!per_rp_state) {
+      return std::nullopt;
+    }
 
     const auto &signer = stm.payload.ix;
     const auto &signature = stm.signature;
@@ -148,10 +152,10 @@ namespace kagome::parachain {
 
     auto res = visit_in_place(statement.candidate_state,
       [&](const network::CommittedCandidateReceipt &candidate) {
-        return import_candidate(groups, signer, candidate, signature, allow_multiple_seconded);
+        return import_candidate(per_rp_state->get(), groups, signer, candidate, signature, allow_multiple_seconded);
       },
       [&](const CandidateHash &digest) {
-        return validity_vote(groups, signer, digest, ValidityVoteValid{signature});
+        return validity_vote(per_rp_state->get(), groups, signer, digest, ValidityVoteValid{signature});
       },
       [](const auto &) {
         UNREACHABLE;
@@ -165,25 +169,30 @@ namespace kagome::parachain {
   }
 
   std::optional<std::reference_wrapper<const BackingStore::StatementInfo>>
-  BackingStoreImpl::get_validity_votes(
+  BackingStoreImpl::getCadidateInfo(const RelayHash &relay_parent, 
       const network::CandidateHash &candidate_hash) const {
-    if (auto it = candidate_votes_.find(candidate_hash); it != candidate_votes_.end()) {
-      return {{it->second}};
-    }
-    return std::nullopt;
+    std::optional<std::reference_wrapper<const BackingStore::StatementInfo>> out;
+    forRelayState(relay_parent, [&](const PerRelayParent &state) {
+      if (auto it = state.candidate_votes_.find(candidate_hash); it != state.candidate_votes_.end()) {
+        out = it->second;
+      }
+    });
+    return out;
   }
 
   void BackingStoreImpl::add(const BlockHash &relay_parent,
                              BackedCandidate &&candidate) {
-    backed_candidates_[relay_parent].emplace_back(std::move(candidate));
+    forRelayState(relay_parent, [&](PerRelayParent &state) {
+      state.backed_candidates_.emplace_back(std::move(candidate));
+    });
   }
 
   std::vector<BackedCandidate> BackingStoreImpl::get(
       const BlockHash &relay_parent) const {
-    if (auto it = backed_candidates_.find(relay_parent);
-        it != backed_candidates_.end()) {
-      return it->second;
-    }
-    return {};
+    std::vector<BackedCandidate> out;
+    forRelayState(relay_parent, [&](const PerRelayParent &state) {
+      out = state.backed_candidates_;
+    });
+    return out;
   }
 }  // namespace kagome::parachain
