@@ -25,10 +25,6 @@ namespace kagome::runtime::wasm_edge {
   WasmEdge_ValType get_wasm_type<uint32_t>() {
     return WasmEdge_ValTypeGenI32();
   }
-  template <>
-  WasmEdge_ValType get_wasm_type<uint32_t>() {
-    return WasmEdge_ValType_I32;
-  }
 
   template <>
   WasmEdge_ValType get_wasm_type<int64_t>() {
@@ -65,10 +61,6 @@ namespace kagome::runtime::wasm_edge {
 
   template <>
   int32_t get_wasm_value<int32_t>(WasmEdge_Value v) {
-    return WasmEdge_ValueGetI32(v);
-  }
-  template <>
-  uint32_t get_wasm_value<uint32_t>(WasmEdge_Value v) {
     return WasmEdge_ValueGetI32(v);
   }
 

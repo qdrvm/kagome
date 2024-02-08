@@ -6,8 +6,8 @@
 
 #include "runtime/common/memory_allocator.hpp"
 
-#include "log/formatters/ref_and_ptr.hpp"
-#include "log/trace_macros.hpp"
+#include <boost/endian/conversion.hpp>
+
 #include "runtime/memory.hpp"
 
 namespace kagome::runtime {
@@ -19,12 +19,21 @@ namespace kagome::runtime {
   static_assert(kDefaultHeapBase < kInitialMemorySize,
                 "Heap base must be in memory");
 
+  inline uint64_t read_u64(const Memory &memory, WasmPointer ptr) {
+    return boost::endian::load_little_u64(
+        memory.view(ptr, sizeof(uint64_t)).value().data());
+  }
+
+  inline void write_u64(const Memory &memory, WasmPointer ptr, uint64_t v) {
+    boost::endian::store_little_u64(
+        memory.view(ptr, sizeof(uint64_t)).value().data(), v);
+  }
+
   MemoryAllocator::MemoryAllocator(Memory &memory, const MemoryConfig &config)
       : memory_{memory},
         offset_{roundUpAlign(config.heap_base)},
         max_memory_pages_num_{
-            config.limits.max_memory_pages_num.value_or(kMaxPages)},
-        logger_{log::createLogger("Allocator", "runtime")} {
+            config.limits.max_memory_pages_num.value_or(kMaxPages)} {
     BOOST_ASSERT(max_memory_pages_num_ > 0);
   }
 
@@ -56,7 +65,7 @@ namespace kagome::runtime {
       }
       offset_ = next_offset;
     }
-    memory_.store64(head_ptr, kOccupied | order);
+    write_u64(memory_, head_ptr, kOccupied | order);
     return head_ptr + sizeof(Header);
   }
 
@@ -69,11 +78,11 @@ namespace kagome::runtime {
     auto &list = free_lists_.at(order);
     auto prev = list.value_or(kNil);
     list = head_ptr;
-    memory_.store64(head_ptr, prev);
+    write_u64(memory_, head_ptr, prev);
   }
 
   uint32_t MemoryAllocator::readOccupied(WasmPointer head_ptr) const {
-    auto head = memory_.load64u(head_ptr);
+    auto head = read_u64(memory_, head_ptr);
     uint32_t order = head;
     if (order >= kOrders) {
       throw std::runtime_error{"invalid order"};
@@ -86,7 +95,7 @@ namespace kagome::runtime {
 
   std::optional<uint32_t> MemoryAllocator::readFree(
       WasmPointer head_ptr) const {
-    auto head = memory_.load64u(head_ptr);
+    auto head = read_u64(memory_, head_ptr);
     if ((head & kOccupied) != 0) {
       throw std::runtime_error{"free list points to a occupied header"};
     }

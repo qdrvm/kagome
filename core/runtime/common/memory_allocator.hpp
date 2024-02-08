@@ -6,14 +6,9 @@
 
 #pragma once
 
-#include <deque>
-#include <map>
-#include <unordered_map>
-
 #include <optional>
 
 #include "common/literals.hpp"
-#include "log/logger.hpp"
 #include "primitives/math.hpp"
 #include "runtime/types.hpp"
 
@@ -78,8 +73,6 @@ namespace kagome::runtime {
     // Offset on the tail of the last allocated MemoryImpl chunk
     uint32_t offset_;
     uint32_t max_memory_pages_num_;
-
-    log::Logger logger_;
   };
 
 }  // namespace kagome::runtime
