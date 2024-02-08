@@ -118,27 +118,31 @@ namespace kagome::application {
 
     while (not inject_.empty()) {
       auto &cb = inject_.front();
-      if (state_ == State::Injecting) {
+      if (state_.load() == State::Injecting) {
         auto success = cb();
         if (not success) {
           SL_ERROR(logger_, "Stage 'injecting' is failed");
-          state_ = State::ShuttingDown;
+          State s = State::Injecting;
+          state_.compare_exchange_strong(s, State::ShuttingDown);
         }
       }
       inject_.pop();
     }
 
-    if (state_ == State::Injecting) {
-      state_ = State::Injected;
-    }
+    State s = State::Injecting;
+    state_.compare_exchange_strong(s, State::Injected);
   }
 
   void AppStateManagerImpl::doPrepare() {
     std::lock_guard lg(mutex_);
-    if (state_ != State::Injected) {
+
+    State state = State::Injected;
+    if (not state_.compare_exchange_strong(state, State::Prepare)) {
+      if (state == State::ShuttingDown or state == State::ReadyToStop) {
+        return;
+      }
       throw AppStateException("running stage 'preparing'");
     }
-    state_ = State::Prepare;
 
     if (not prepare_.empty()) {
       SL_TRACE(logger_, "Running stage 'preparing'…");
@@ -150,23 +154,27 @@ namespace kagome::application {
         auto success = cb();
         if (not success) {
           SL_ERROR(logger_, "Stage 'preparing' is failed");
-          state_ = State::ShuttingDown;
+          state = State::Prepare;
+          state_.compare_exchange_strong(state, State::ShuttingDown);
         }
       }
       prepare_.pop();
     }
 
-    if (state_ == State::Prepare) {
-      state_ = State::ReadyToStart;
-    }
+    state = State::Prepare;
+    state_.compare_exchange_strong(state, State::ReadyToStart);
   }
 
   void AppStateManagerImpl::doLaunch() {
     std::lock_guard lg(mutex_);
-    if (state_ != State::ReadyToStart) {
+
+    State state = State::ReadyToStart;
+    if (not state_.compare_exchange_strong(state, State::Starting)) {
+      if (state == State::ShuttingDown or state == State::ReadyToStop) {
+        return;
+      }
       throw AppStateException("running stage 'launch'");
     }
-    state_ = State::Starting;
 
     if (not launch_.empty()) {
       SL_TRACE(logger_, "Running stage 'launch'…");
@@ -174,25 +182,30 @@ namespace kagome::application {
 
     while (!launch_.empty()) {
       auto &cb = launch_.front();
-      if (state_ == State::Starting) {
+      if (state_.load() == State::Starting) {
         auto success = cb();
         if (not success) {
           SL_ERROR(logger_, "Stage 'launch' is failed");
-          state_ = State::ShuttingDown;
+          state = State::Starting;
+          state_.compare_exchange_strong(state, State::ShuttingDown);
         }
       }
       launch_.pop();
     }
 
-    if (state_ == State::Starting) {
-      state_ = State::Works;
-    }
+    state = State::Starting;
+    state_.compare_exchange_strong(state, State::Works);
   }
 
   void AppStateManagerImpl::doShutdown() {
     std::lock_guard lg(mutex_);
-    if (state_ == State::ReadyToStop) {
-      return;
+
+    State state = State::ShuttingDown;
+    if (not state_.compare_exchange_strong(state, State::ShuttingDown)) {
+      if (state == State::ReadyToStop) {
+        return;
+      }
+      throw AppStateException("running stage 'shutting down'");
     }
 
     std::queue<OnInject> empty_inject;
@@ -204,15 +217,14 @@ namespace kagome::application {
     std::queue<OnLaunch> empty_launch;
     std::swap(launch_, empty_launch);
 
-    state_ = State::ShuttingDown;
-
     while (!shutdown_.empty()) {
       auto &cb = shutdown_.front();
       cb();
       shutdown_.pop();
     }
 
-    state_ = State::ReadyToStop;
+    state = State::ShuttingDown;
+    state_.compare_exchange_strong(state, State::ReadyToStop);
   }
 
   void AppStateManagerImpl::run() {
@@ -222,19 +234,13 @@ namespace kagome::application {
           "AppStateManager must be instantiated on shared pointer before run");
     }
 
-    if (state_ == State::Init) {
-      doInject();
-    }
+    doInject();
 
-    if (state_ == State::Injected) {
-      doPrepare();
-    }
+    doPrepare();
 
-    if (state_ == State::ReadyToStart) {
-      doLaunch();
-    }
+    doLaunch();
 
-    if (state_ == State::Works) {
+    if (state_.load() == State::Works) {
       SL_TRACE(logger_, "All components started; waiting shutdown request…");
       shutdownRequestWaiting();
     }
@@ -243,7 +249,7 @@ namespace kagome::application {
     doShutdown();
     SL_TRACE(logger_, "Shutdown is done");
 
-    if (state_ != State::ReadyToStop) {
+    if (state_.load() != State::ReadyToStop) {
       throw std::logic_error(
           "AppStateManager is expected in stage 'ready to stop'");
     }
@@ -255,15 +261,19 @@ namespace kagome::application {
   }
 
   void AppStateManagerImpl::shutdown() {
-    if (state_ == State::ReadyToStop) {
+    if (state_.load() == State::ReadyToStop) {
       SL_TRACE(logger_, "Shutting down requested, but app is ready to stop");
-    } else if (state_ == State::ShuttingDown) {
-      SL_TRACE(logger_, "Shutting down requested, but it's in progress");
-    } else {
-      SL_TRACE(logger_, "Shutting down requested…");
-      std::lock_guard lg(cv_mutex_);
-      state_ = State::ShuttingDown;
-      cv_.notify_one();
+      return;
     }
+
+    if (state_.load() == State::ShuttingDown) {
+      SL_TRACE(logger_, "Shutting down requested, but it's in progress");
+      return;
+    }
+
+    SL_TRACE(logger_, "Shutting down requested…");
+    std::lock_guard lg(cv_mutex_);
+    state_.store(State::ShuttingDown);
+    cv_.notify_one();
   }
 }  // namespace kagome::application
