@@ -19,9 +19,14 @@
 #include "telemetry/service.hpp"
 #include "utils/weak_io_context.hpp"
 
+namespace kagome {
+  class ThreadHandler;
+}
+
 namespace kagome::application {
   class AppConfiguration;
-}
+  class AppStateManager;
+}  // namespace kagome::application
 
 namespace kagome::authorship {
   class Proposer;
@@ -33,7 +38,8 @@ namespace kagome::blockchain {
 
 namespace kagome::common {
   class WorkerThreadPool;
-}
+  class MainThreadPool;
+}  // namespace kagome::common
 
 namespace kagome::consensus {
   class SlotsUtil;
@@ -88,6 +94,7 @@ namespace kagome::consensus::babe {
 
     Babe(
         const application::AppConfiguration &app_config,
+        std::shared_ptr<application::AppStateManager> app_state_manager,
         const clock::SystemClock &clock,
         std::shared_ptr<blockchain::BlockTree> block_tree,
         LazySPtr<SlotsUtil> slots_util,
@@ -106,8 +113,11 @@ namespace kagome::consensus::babe {
         primitives::events::ChainSubscriptionEnginePtr chain_sub_engine,
         std::shared_ptr<network::BlockAnnounceTransmitter> announce_transmitter,
         std::shared_ptr<runtime::OffchainWorkerApi> offchain_worker_api,
-        const common::WorkerThreadPool &worker_thread_pool,
-        WeakIoContext main_thread_context);
+        std::shared_ptr<common::MainThreadPool> main_thread_pool,
+        std::shared_ptr<common::WorkerThreadPool> worker_thread_pool);
+
+    bool start();
+    void stop();
 
     bool isGenesisConsensus() const override;
 
@@ -146,6 +156,7 @@ namespace kagome::consensus::babe {
 
     log::Logger log_;
 
+    std::shared_ptr<application::AppStateManager> app_state_manager_;
     const clock::SystemClock &clock_;
     std::shared_ptr<blockchain::BlockTree> block_tree_;
     LazySPtr<SlotsUtil> slots_util_;
@@ -164,8 +175,8 @@ namespace kagome::consensus::babe {
     primitives::events::ChainSubscriptionEnginePtr chain_sub_engine_;
     std::shared_ptr<network::BlockAnnounceTransmitter> announce_transmitter_;
     std::shared_ptr<runtime::OffchainWorkerApi> offchain_worker_api_;
-    WeakIoContext main_thread_context_;
-    WeakIoContext worker_thread_context_;
+    std::shared_ptr<ThreadHandler> main_thread_handler_;
+    std::shared_ptr<ThreadHandler> worker_thread_handler_;
 
     const bool is_validator_by_config_;
     bool is_active_validator_;

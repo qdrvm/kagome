@@ -11,8 +11,10 @@
 #include <boost/range/adaptor/transformed.hpp>
 
 #include "application/app_configuration.hpp"
+#include "application/app_state_manager.hpp"
 #include "authorship/proposer.hpp"
 #include "blockchain/block_tree.hpp"
+#include "common/main_thread_pool.hpp"
 #include "common/worker_thread_pool.hpp"
 #include "consensus/babe/babe_config_repository.hpp"
 #include "consensus/babe/babe_lottery.hpp"
@@ -63,6 +65,7 @@ namespace kagome::consensus::babe {
 
   Babe::Babe(
       const application::AppConfiguration &app_config,
+      std::shared_ptr<application::AppStateManager> app_state_manager,
       const clock::SystemClock &clock,
       std::shared_ptr<blockchain::BlockTree> block_tree,
       LazySPtr<SlotsUtil> slots_util,
@@ -81,9 +84,10 @@ namespace kagome::consensus::babe {
       primitives::events::ChainSubscriptionEnginePtr chain_sub_engine,
       std::shared_ptr<network::BlockAnnounceTransmitter> announce_transmitter,
       std::shared_ptr<runtime::OffchainWorkerApi> offchain_worker_api,
-      const common::WorkerThreadPool &worker_thread_pool,
-      WeakIoContext main_thread_context)
+      std::shared_ptr<common::MainThreadPool> main_thread_pool,
+      std::shared_ptr<common::WorkerThreadPool> worker_thread_pool)
       : log_(log::createLogger("Babe", "babe")),
+        app_state_manager_(std::move(app_state_manager)),
         clock_(clock),
         block_tree_(std::move(block_tree)),
         slots_util_(std::move(slots_util)),
@@ -102,10 +106,17 @@ namespace kagome::consensus::babe {
         chain_sub_engine_(std::move(chain_sub_engine)),
         announce_transmitter_(std::move(announce_transmitter)),
         offchain_worker_api_(std::move(offchain_worker_api)),
-        main_thread_context_(std::move(main_thread_context)),
-        worker_thread_context_{worker_thread_pool.io_context()},
+        main_thread_handler_{[&] {
+          BOOST_ASSERT(main_thread_pool);
+          return main_thread_pool->handler();
+        }()},
+        worker_thread_handler_{[&] {
+          BOOST_ASSERT(worker_thread_pool);
+          return worker_thread_pool->handler();
+        }()},
         is_validator_by_config_(app_config.roles().flags.authority != 0),
         telemetry_{telemetry::createTelemetryService()} {
+    BOOST_ASSERT(app_state_manager_);
     BOOST_ASSERT(block_tree_);
     BOOST_ASSERT(config_repo_);
     BOOST_ASSERT(session_keys_);
@@ -121,8 +132,8 @@ namespace kagome::consensus::babe {
     BOOST_ASSERT(chain_sub_engine_);
     BOOST_ASSERT(announce_transmitter_);
     BOOST_ASSERT(offchain_worker_api_);
-    BOOST_ASSERT(not main_thread_context_.expired());
-    BOOST_ASSERT(not worker_thread_context_.expired());
+    BOOST_ASSERT(main_thread_handler_);
+    BOOST_ASSERT(worker_thread_handler_);
 
     // Register metrics
     metrics_registry_->registerGaugeFamily(
@@ -132,6 +143,19 @@ namespace kagome::consensus::babe {
     metric_is_relaychain_validator_ =
         metrics_registry_->registerGaugeMetric(kIsRelayChainValidator);
     metric_is_relaychain_validator_->set(false);
+
+    app_state_manager_->takeControl(*this);
+  }
+
+  bool Babe::start() {
+    main_thread_handler_->start();
+    worker_thread_handler_->start();
+    return true;
+  }
+
+  void Babe::stop() {
+    main_thread_handler_->stop();
+    worker_thread_handler_->stop();
   }
 
   bool Babe::isGenesisConsensus() const {
@@ -404,11 +428,10 @@ namespace kagome::consensus::babe {
           return;
         }
       };
-      post(self->main_thread_context_, std::move(proposed));
+      self->main_thread_handler_->execute(std::move(proposed));
     };
 
-    post(worker_thread_context_, std::move(propose));
-
+    worker_thread_handler_->execute(std::move(propose));
     return outcome::success();
   }
 
