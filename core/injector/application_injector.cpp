@@ -60,6 +60,7 @@
 #include "clock/impl/basic_waitable_timer.hpp"
 #include "clock/impl/clock_impl.hpp"
 #include "common/fd_limit.hpp"
+#include "common/main_thread_pool.hpp"
 #include "common/outcome_throw.hpp"
 #include "common/worker_thread_pool.hpp"
 #include "consensus/babe/impl/babe.hpp"
@@ -1090,4 +1091,10 @@ namespace kagome::injector {
   std::shared_ptr<Watchdog> KagomeNodeInjector::injectWatchdog() {
     return pimpl_->injector_.template create<sptr<Watchdog>>();
   }
+
+  std::shared_ptr<common::MainThreadPool>
+  KagomeNodeInjector::injectMainThreadPool() {
+    return pimpl_->injector_.template create<sptr<common::MainThreadPool>>();
+  }
+
 }  // namespace kagome::injector
