@@ -33,6 +33,10 @@ namespace kagome::blockchain {
   class BlockTree;
 }
 
+namespace kagome::common {
+  class MainThreadPool;
+}
+
 namespace kagome::consensus {
   class Timeline;
 }
@@ -113,8 +117,8 @@ namespace kagome::consensus::grandpa {
         LazySPtr<Timeline> timeline,
         primitives::events::ChainSubscriptionEnginePtr chain_sub_engine,
         storage::SpacedStorage &db,
-        std::shared_ptr<GrandpaThreadPool> grandpa_thread_pool,
-        WeakIoContext main_thread_context);
+        std::shared_ptr<common::MainThreadPool> main_thread_pool,
+        std::shared_ptr<GrandpaThreadPool> grandpa_thread_pool);
 
     /**
      * Prepares for grandpa round execution: e.g. sets justification observer
@@ -345,8 +349,8 @@ namespace kagome::consensus::grandpa {
     primitives::events::ChainSub chain_sub_;
     std::shared_ptr<storage::BufferStorage> db_;
 
+    std::shared_ptr<ThreadHandler> main_thread_handler_;
     std::shared_ptr<ThreadHandler> grandpa_thread_handler_;
-    WeakIoContext main_thread_context_;
     std::shared_ptr<libp2p::basic::Scheduler> scheduler_;
 
     std::shared_ptr<VotingRound> current_round_;

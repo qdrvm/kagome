@@ -14,6 +14,7 @@
 
 #include "application/app_state_manager.hpp"
 #include "blockchain/block_tree.hpp"
+#include "common/main_thread_pool.hpp"
 #include "common/tagged.hpp"
 #include "consensus/grandpa/authority_manager.hpp"
 #include "consensus/grandpa/environment.hpp"
@@ -78,8 +79,8 @@ namespace kagome::consensus::grandpa {
       LazySPtr<Timeline> timeline,
       primitives::events::ChainSubscriptionEnginePtr chain_sub_engine,
       storage::SpacedStorage &db,
-      std::shared_ptr<GrandpaThreadPool> grandpa_thread_pool,
-      WeakIoContext main_thread_context)
+      std::shared_ptr<common::MainThreadPool> main_thread_pool,
+      std::shared_ptr<GrandpaThreadPool> grandpa_thread_pool)
       : round_time_factor_{kGossipDuration},
         hasher_{std::move(hasher)},
         environment_{std::move(environment)},
@@ -93,11 +94,14 @@ namespace kagome::consensus::grandpa {
         timeline_{std::move(timeline)},
         chain_sub_{chain_sub_engine},
         db_{db.getSpace(storage::Space::kDefault)},
+        main_thread_handler_{[&] {
+          BOOST_ASSERT(main_thread_pool != nullptr);
+          return main_thread_pool->handler();
+        }()},
         grandpa_thread_handler_{[&] {
           BOOST_ASSERT(grandpa_thread_pool != nullptr);
           return grandpa_thread_pool->handler();
         }()},
-        main_thread_context_{std::move(main_thread_context)},
         scheduler_{std::make_shared<libp2p::basic::SchedulerImpl>(
             std::make_shared<libp2p::basic::AsioSchedulerBackend>(
                 grandpa_thread_pool->io_context()),
@@ -109,8 +113,8 @@ namespace kagome::consensus::grandpa {
     BOOST_ASSERT(peer_manager_ != nullptr);
     BOOST_ASSERT(block_tree_ != nullptr);
     BOOST_ASSERT(reputation_repository_ != nullptr);
+    BOOST_ASSERT(main_thread_handler_ != nullptr);
     BOOST_ASSERT(grandpa_thread_handler_ != nullptr);
-    BOOST_ASSERT(not main_thread_context_.expired());
 
     BOOST_ASSERT(app_state_manager != nullptr);
 
@@ -1209,10 +1213,10 @@ namespace kagome::consensus::grandpa {
 
   void GrandpaImpl::callbackCall(ApplyJustificationCb &&callback,
                                  outcome::result<void> &&result) {
-    post(main_thread_context_,
-         [callback{std::move(callback)}, result{std::move(result)}]() mutable {
-           callback(std::move(result));
-         });
+    main_thread_handler_->execute(
+        [callback{std::move(callback)}, result{std::move(result)}]() mutable {
+          callback(std::move(result));
+        });
   }
 
   outcome::result<void> GrandpaImpl::verifyJustification(
@@ -1388,12 +1392,12 @@ namespace kagome::consensus::grandpa {
     if (not timeline_.get()->wasSynchronized()) {
       return;
     }
-    post(main_thread_context_,
-         [s{synchronizer_}, peer{waiting.peer}, blocks{waiting.blocks}] {
-           for (auto &block : blocks) {
-             s->syncByBlockInfo(block, peer, nullptr, false);
-           }
-         });
+    main_thread_handler_->execute(
+        [s{synchronizer_}, peer{waiting.peer}, blocks{waiting.blocks}] {
+          for (auto &block : blocks) {
+            s->syncByBlockInfo(block, peer, nullptr, false);
+          }
+        });
     waiting_blocks_.emplace_back(std::move(waiting));
     pruneWaitingBlocks();
   }
@@ -1428,7 +1432,7 @@ namespace kagome::consensus::grandpa {
           self->onCommitMessage(peer, std::move(commit), false);
         }
       };
-      post(*grandpa_thread_handler_, std::move(f));
+      grandpa_thread_handler_->execute(std::move(f));
       return false;
     };
     retain_if(waiting_blocks_, f);
