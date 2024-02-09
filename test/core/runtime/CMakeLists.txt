@@ -9,6 +9,13 @@ endif ()
 
 add_subdirectory(binaryen)
 
+addtest(allocator_test
+    allocator_test.cpp
+    )
+target_link_libraries(allocator_test
+    memory_allocator
+    )
+
 addtest(wasm_result_test
     wasm_result_test.cpp
     )
