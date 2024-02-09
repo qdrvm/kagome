@@ -136,12 +136,11 @@ namespace kagome::application {
   void AppStateManagerImpl::doPrepare() {
     std::lock_guard lg(mutex_);
 
-    State state = State::Injected;
+    auto state = State::Injected;
     if (not state_.compare_exchange_strong(state, State::Prepare)) {
-      if (state == State::ShuttingDown or state == State::ReadyToStop) {
-        return;
+      if (state != State::ShuttingDown) {
+        throw AppStateException("running stage 'preparing'");
       }
-      throw AppStateException("running stage 'preparing'");
     }
 
     if (not prepare_.empty()) {
@@ -168,12 +167,11 @@ namespace kagome::application {
   void AppStateManagerImpl::doLaunch() {
     std::lock_guard lg(mutex_);
 
-    State state = State::ReadyToStart;
+    auto state = State::ReadyToStart;
     if (not state_.compare_exchange_strong(state, State::Starting)) {
-      if (state == State::ShuttingDown or state == State::ReadyToStop) {
-        return;
+      if (state != State::ShuttingDown) {
+        throw AppStateException("running stage 'launch'");
       }
-      throw AppStateException("running stage 'launch'");
     }
 
     if (not launch_.empty()) {
@@ -200,12 +198,11 @@ namespace kagome::application {
   void AppStateManagerImpl::doShutdown() {
     std::lock_guard lg(mutex_);
 
-    State state = State::ShuttingDown;
+    auto state = State::Works;
     if (not state_.compare_exchange_strong(state, State::ShuttingDown)) {
-      if (state == State::ReadyToStop) {
-        return;
+      if (state != State::ShuttingDown) {
+        throw AppStateException("running stage 'shutting down'");
       }
-      throw AppStateException("running stage 'shutting down'");
     }
 
     std::queue<OnInject> empty_inject;
