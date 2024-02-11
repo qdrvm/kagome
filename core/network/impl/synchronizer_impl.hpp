@@ -111,7 +111,10 @@ namespace kagome::network {
         LazySPtr<consensus::Timeline> timeline,
         std::shared_ptr<IBeefy> beefy,
         std::shared_ptr<consensus::grandpa::Environment> grandpa_environment,
-        WeakIoContext main_thread_context);
+        std::shared_ptr<common::MainThreadPool> main_thread_pool);
+
+    /** @see AppStateManager::takeControl */
+    bool start();
 
     /** @see AppStateManager::takeControl */
     void stop();
@@ -223,6 +226,8 @@ namespace kagome::network {
 
     void afterStateSync();
 
+    log::Logger log_;
+
     std::shared_ptr<application::AppStateManager> app_state_manager_;
     std::shared_ptr<blockchain::BlockTree> block_tree_;
     std::shared_ptr<consensus::BlockHeaderAppender> block_appender_;
@@ -238,7 +243,7 @@ namespace kagome::network {
     std::shared_ptr<IBeefy> beefy_;
     std::shared_ptr<consensus::grandpa::Environment> grandpa_environment_;
     primitives::events::ChainSubscriptionEnginePtr chain_sub_engine_;
-    WeakIoContext main_thread_context_;
+    std::shared_ptr<ThreadHandler> main_thread_handler_;
 
     application::SyncMethod sync_method_;
 
@@ -246,7 +251,6 @@ namespace kagome::network {
     metrics::RegistryPtr metrics_registry_ = metrics::createRegistry();
     metrics::Gauge *metric_import_queue_length_;
 
-    log::Logger log_ = log::createLogger("Synchronizer", "synchronizer");
     telemetry::Telemetry telemetry_ = telemetry::createTelemetryService();
 
     struct StateSync {
