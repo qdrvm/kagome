@@ -41,8 +41,9 @@ namespace kagome {
 }
 
 namespace kagome::common {
+  class MainThreadPool;
   class WorkerThreadPool;
-}
+}  // namespace kagome::common
 
 namespace kagome::network {
   class Router;
@@ -90,7 +91,7 @@ namespace kagome::parachain {
         std::shared_ptr<dispute::RuntimeInfo> runtime_info,
         std::shared_ptr<crypto::Sr25519Provider> crypto_provider,
         std::shared_ptr<network::Router> router,
-        WeakIoContext main_thread_context,
+        std::shared_ptr<common::MainThreadPool> main_thread_pool,
         std::shared_ptr<crypto::Hasher> hasher,
         std::shared_ptr<network::PeerView> peer_view,
         std::shared_ptr<common::WorkerThreadPool> worker_thread_pool,
@@ -422,7 +423,7 @@ namespace kagome::parachain {
     } our_current_state_;
     SafeObject<std::unordered_map<RelayHash, network::CollationEvent>>
         pending_candidates;
-    WeakIoContext main_thread_context_;
+    std::shared_ptr<ThreadHandler> main_thread_handler_;
     std::shared_ptr<crypto::Hasher> hasher_;
     std::shared_ptr<network::PeerView> peer_view_;
     network::PeerView::MyViewSubscriberPtr my_view_sub_;
@@ -441,7 +442,7 @@ namespace kagome::parachain {
     std::shared_ptr<authority_discovery::Query> query_audi_;
 
     std::shared_ptr<primitives::events::ChainEventSubscriber> chain_sub_;
-    WeakIoContext worker_thread_context_;
+    std::shared_ptr<ThreadHandler> worker_thread_handler_;
     std::default_random_engine random_;
 
     metrics::RegistryPtr metrics_registry_ = metrics::createRegistry();
