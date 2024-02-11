@@ -13,6 +13,7 @@
 #include "blockchain/block_tree_error.hpp"
 #include "blockchain/impl/cached_tree.hpp"
 #include "blockchain/impl/justification_storage_policy.hpp"
+#include "common/main_thread_pool.hpp"
 #include "consensus/babe/impl/babe_digests_util.hpp"
 #include "consensus/babe/is_primary.hpp"
 #include "crypto/blake2/blake2b.h"
@@ -126,7 +127,7 @@ namespace kagome::blockchain {
       std::shared_ptr<const class JustificationStoragePolicy>
           justification_storage_policy,
       std::shared_ptr<storage::trie_pruner::TriePruner> state_pruner,
-      WeakIoContext main_thread_context) {
+      std::shared_ptr<common::MainThreadPool> main_thread_pool) {
     BOOST_ASSERT(storage != nullptr);
     BOOST_ASSERT(header_repo != nullptr);
 
@@ -285,7 +286,7 @@ namespace kagome::blockchain {
                           std::move(extrinsic_event_key_repo),
                           std::move(justification_storage_policy),
                           state_pruner,
-                          std::move(main_thread_context)));
+                          std::move(main_thread_pool)));
 
     // Add non-finalized block to the block tree
     for (auto &e : collected) {
@@ -421,7 +422,7 @@ namespace kagome::blockchain {
       std::shared_ptr<const JustificationStoragePolicy>
           justification_storage_policy,
       std::shared_ptr<storage::trie_pruner::TriePruner> state_pruner,
-      WeakIoContext main_thread_context)
+      std::shared_ptr<common::MainThreadPool> main_thread_pool)
       : block_tree_data_{BlockTreeData{
           .header_repo_ = std::move(header_repo),
           .storage_ = std::move(storage),
@@ -436,9 +437,8 @@ namespace kagome::blockchain {
           .blocks_pruning_ = {app_config.blocksPruning(), finalized.number},
       }},
         main_thread_handler_{[&] {
-          BOOST_ASSERT(not main_thread_context.expired());
-          return std::make_shared<ThreadHandler>(
-              std::move(main_thread_context));
+          BOOST_ASSERT(main_thread_pool != nullptr);
+          return main_thread_pool->handler();
         }()} {
     block_tree_data_.sharedAccess([&](const BlockTreeData &p) {
       BOOST_ASSERT(p.header_repo_ != nullptr);

@@ -342,7 +342,7 @@ namespace {
         std::move(ext_events_key_repo),
         std::move(justification_storage_policy),
         std::move(state_pruner),
-        injector.template create<std::shared_ptr<::boost::asio::io_context>>());
+        injector.template create<std::shared_ptr<common::MainThreadPool>>());
 
     if (not block_tree_res.has_value()) {
       common::raise(block_tree_res.error());

@@ -38,14 +38,21 @@ namespace kagome {
   class ThreadHandler;
 }
 
+namespace kagome::blockchain {
+  struct ReorgAndPrune;
+  class TreeNode;
+  class CachedTree;
+}  // namespace kagome::blockchain
+
+namespace kagome::common {
+  class MainThreadPool;
+}
+
 namespace kagome::storage::trie_pruner {
   class TriePruner;
 }
 
 namespace kagome::blockchain {
-  struct ReorgAndPrune;
-  class TreeNode;
-  class CachedTree;
 
   class BlockTreeImpl : public BlockTree,
                         public std::enable_shared_from_this<BlockTreeImpl> {
@@ -65,7 +72,7 @@ namespace kagome::blockchain {
         std::shared_ptr<const class JustificationStoragePolicy>
             justification_storage_policy,
         std::shared_ptr<storage::trie_pruner::TriePruner> state_pruner,
-        WeakIoContext main_thread_context);
+        std::shared_ptr<common::MainThreadPool> main_thread_pool);
 
     /// Recover block tree state at provided block
     static outcome::result<void> recover(
@@ -197,7 +204,7 @@ namespace kagome::blockchain {
         std::shared_ptr<const class JustificationStoragePolicy>
             justification_storage_policy,
         std::shared_ptr<storage::trie_pruner::TriePruner> state_pruner,
-        WeakIoContext main_thread_context);
+        std::shared_ptr<common::MainThreadPool> main_thread_pool);
 
     outcome::result<void> reorgAndPrune(BlockTreeData &p,
                                         const ReorgAndPrune &changes);
