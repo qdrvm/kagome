@@ -42,8 +42,9 @@ namespace kagome {
 }
 
 namespace kagome::common {
+  class MainThreadPool;
   class WorkerThreadPool;
-}
+}  // namespace kagome::common
 
 namespace kagome::consensus::babe {
   class BabeConfigRepository;
@@ -283,7 +284,7 @@ namespace kagome::parachain {
         std::shared_ptr<parachain::Pvf> pvf,
         std::shared_ptr<parachain::Recovery> recovery,
         std::shared_ptr<ApprovalThreadPool> approval_thread_pool,
-        WeakIoContext main_thread_context,
+        std::shared_ptr<common::MainThreadPool> main_thread_pool,
         LazySPtr<dispute::DisputeCoordinator> dispute_coordinator);
     ~ApprovalDistribution() = default;
 
@@ -735,7 +736,7 @@ namespace kagome::parachain {
     std::shared_ptr<blockchain::BlockTree> block_tree_;
     std::shared_ptr<parachain::Pvf> pvf_;
     std::shared_ptr<parachain::Recovery> recovery_;
-    WeakIoContext main_thread_context_;
+    std::shared_ptr<ThreadHandler> main_thread_handler_;
     LazySPtr<dispute::DisputeCoordinator> dispute_coordinator_;
 
     std::shared_ptr<libp2p::basic::Scheduler> scheduler_;
