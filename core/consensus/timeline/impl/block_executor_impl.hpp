@@ -17,13 +17,22 @@
 #include "telemetry/service.hpp"
 #include "utils/weak_io_context.hpp"
 
+namespace kagome {
+  class ThreadHandler;
+}
+
+namespace kagome::application {
+  class AppStateManager;
+}
+
 namespace kagome::blockchain {
   class BlockTree;
 }
 
 namespace kagome::common {
+  class MainThreadPool;
   class WorkerThreadPool;
-}
+}  // namespace kagome::common
 
 namespace kagome::crypto {
   class Hasher;
@@ -47,9 +56,10 @@ namespace kagome::consensus {
         public std::enable_shared_from_this<BlockExecutorImpl> {
    public:
     BlockExecutorImpl(
+        std::shared_ptr<application::AppStateManager> app_state_manager,
         std::shared_ptr<blockchain::BlockTree> block_tree,
-        const common::WorkerThreadPool &worker_thread_pool,
-        WeakIoContext main_thread_context,
+        std::shared_ptr<common::MainThreadPool> main_thread_pool,
+        std::shared_ptr<common::WorkerThreadPool> worker_thread_pool,
         std::shared_ptr<runtime::Core> core,
         std::shared_ptr<transaction_pool::TransactionPool> tx_pool,
         std::shared_ptr<crypto::Hasher> hasher,
@@ -59,6 +69,9 @@ namespace kagome::consensus {
         std::unique_ptr<BlockAppenderBase> appender);
 
     ~BlockExecutorImpl();
+
+    bool start();
+    void stop();
 
     void applyBlock(
         primitives::Block &&block,
@@ -74,9 +87,10 @@ namespace kagome::consensus {
         clock::SteadyClock::TimePoint start_time,
         const primitives::BlockInfo &previous_best_block);
 
+    std::shared_ptr<application::AppStateManager> app_state_manager_;
     std::shared_ptr<blockchain::BlockTree> block_tree_;
-    WeakIoContext worker_thread_context_;
-    WeakIoContext main_thread_context_;
+    std::shared_ptr<ThreadHandler> main_thread_handler_;
+    std::shared_ptr<ThreadHandler> worker_thread_handler_;
     std::shared_ptr<runtime::Core> core_;
     std::shared_ptr<transaction_pool::TransactionPool> tx_pool_;
     std::shared_ptr<crypto::Hasher> hasher_;
