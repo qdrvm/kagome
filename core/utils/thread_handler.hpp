@@ -57,4 +57,13 @@ namespace kagome {
     WeakIoContext ioc_;
   };
 
+  auto wrap(ThreadHandler &handler, auto f) {
+    return [&handler, f{std::move(f)}](auto &&...a) mutable {
+      handler.execute(
+          [f{std::move(f)}, ... a{std::forward<decltype(a)>(a)}]() mutable {
+            f(std::forward<decltype(a)>(a)...);
+          });
+    };
+  }
+
 }  // namespace kagome
