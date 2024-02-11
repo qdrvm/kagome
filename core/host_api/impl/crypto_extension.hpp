@@ -22,6 +22,7 @@ namespace kagome::crypto {
   class Secp256k1Provider;
   class Hasher;
   class CryptoStore;
+  struct KeyType;
 }  // namespace kagome::crypto
 
 namespace kagome::host_api {
@@ -261,6 +262,7 @@ namespace kagome::host_api {
                                              runtime::WasmPointer sig,
                                              runtime::WasmPointer msg);
     runtime::WasmSize batchVerify(runtime::WasmSize ok);
+    crypto::KeyType loadKeyType(runtime::WasmPointer ptr) const;
 
     std::shared_ptr<const runtime::MemoryProvider> memory_provider_;
     std::shared_ptr<const crypto::Sr25519Provider> sr25519_provider_;
