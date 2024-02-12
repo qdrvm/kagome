@@ -7,6 +7,7 @@
 #pragma once
 
 #include <bit>
+#include <limits>
 #include <type_traits>
 
 namespace kagome::math {
