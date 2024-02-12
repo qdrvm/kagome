@@ -13,10 +13,11 @@ if(XCODE_VERSION)
   fatal_error(${_err})
 endif()
 
-find_program(CMAKE_C_COMPILER clang-15)
-cmake_path(GET CMAKE_C_COMPILER PARENT_PATH COMPILER_DIR)
-# because clang++-15 link is not available on all platforms
-find_program(CMAKE_CXX_COMPILER clang++ PATHS "${COMPILER_DIR}" NO_DEFAULT_PATH)
+find_program(CMAKE_C_COMPILER clang-15 REQUIRED)
+
+cmake_path(GET CMAKE_C_COMPILER PARENT_PATH compiler_path)
+# clang++-15 doesn't always exist
+find_program(CMAKE_CXX_COMPILER clang++ PATHS "${compiler_path}" NO_DEFAULT_PATH REQUIRED)
 
 if(NOT CMAKE_C_COMPILER)
   fatal_error("clang-15 not found")
