@@ -57,6 +57,8 @@ TEST_F(WsListenerTest, EchoSuccess) {
 
           bool time_is_out;
 
+          std::this_thread::sleep_for(1s);  // Gives chance app to be started
+
           local_context->post([&] {
             auto client = std::make_shared<WsClient>(*local_context);
 
@@ -75,8 +77,7 @@ TEST_F(WsListenerTest, EchoSuccess) {
           local_context->run_for(2s);
           EXPECT_FALSE(time_is_out);
 
-          EXPECT_TRUE(app_state_manager->state()
-                      == AppStateManager::State::Works);
+          EXPECT_EQ(app_state_manager->state(), AppStateManager::State::Works);
           app_state_manager->shutdown();
         },
         endpoint,
