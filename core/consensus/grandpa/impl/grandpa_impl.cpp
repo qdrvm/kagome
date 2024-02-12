@@ -131,6 +131,7 @@ namespace kagome::consensus::grandpa {
   }
 
   bool GrandpaImpl::prepare() {
+    main_thread_handler_->start();
     grandpa_thread_handler_->start();
     return true;
   }
@@ -226,6 +227,7 @@ namespace kagome::consensus::grandpa {
   }
 
   void GrandpaImpl::stop() {
+    main_thread_handler_->stop();
     grandpa_thread_handler_->stop();
     fallback_timer_handle_.cancel();
   }

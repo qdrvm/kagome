@@ -57,6 +57,7 @@ namespace kagome::consensus::grandpa {
         primitives::events::ChainSubscriptionEnginePtr chain_sub_engine);
 
     bool start();
+    void stop();
 
     void addVerified(AuthoritySetId set,
                      GrandpaJustification justification) override;

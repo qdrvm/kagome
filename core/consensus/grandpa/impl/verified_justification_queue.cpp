@@ -44,6 +44,7 @@ namespace kagome::consensus::grandpa {
   }
 
   bool VerifiedJustificationQueue::start() {
+    main_thread_handler_->start();
     if (auto r = authority_manager_->authorities(
             block_tree_->getLastFinalized(), true)) {
       expected_ = (**r).id;
@@ -54,6 +55,10 @@ namespace kagome::consensus::grandpa {
       }
     });
     return true;
+  }
+
+  void VerifiedJustificationQueue::stop() {
+    main_thread_handler_->stop();
   }
 
   void VerifiedJustificationQueue::addVerified(

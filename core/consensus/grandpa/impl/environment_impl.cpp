@@ -10,6 +10,7 @@
 #include <latch>
 #include <utility>
 
+#include "application/app_state_manager.hpp"
 #include "blockchain/block_header_repository.hpp"
 #include "blockchain/block_tree.hpp"
 #include "common/main_thread_pool.hpp"
@@ -36,6 +37,7 @@ namespace kagome::consensus::grandpa {
   using primitives::Justification;
 
   EnvironmentImpl::EnvironmentImpl(
+      std::shared_ptr<application::AppStateManager> app_state_manager,
       std::shared_ptr<blockchain::BlockTree> block_tree,
       std::shared_ptr<blockchain::BlockHeaderRepository> header_repository,
       std::shared_ptr<AuthorityManager> authority_manager,
@@ -80,6 +82,18 @@ namespace kagome::consensus::grandpa {
         "How far behind the head of the chain the Approval Checking protocol "
         "wants to vote");
     metric_approval_lag_ = metrics_registry_->registerGaugeMetric(kApprovalLag);
+
+    BOOST_ASSERT(app_state_manager != nullptr);
+    app_state_manager->takeControl(*this);
+  }
+
+  bool EnvironmentImpl::start() {
+    main_thread_handler_->start();
+    return true;
+  }
+
+  void EnvironmentImpl::stop() {
+    main_thread_handler_->stop();
   }
 
   bool EnvironmentImpl::hasBlock(const primitives::BlockHash &block) const {

@@ -75,6 +75,7 @@ namespace kagome::parachain {
   void PvfPrecheck::start(
       std::shared_ptr<primitives::events::ChainSubscriptionEngine>
           chain_sub_engine) {
+    pvf_thread_handler_->start();
     chain_sub_ = std::make_shared<primitives::events::ChainEventSubscriber>(
         chain_sub_engine);
     chain_sub_->subscribe(chain_sub_->generateSubscriptionSetId(),
@@ -86,7 +87,7 @@ namespace kagome::parachain {
             primitives::events::ChainEventType,
             const primitives::events::ChainEventParams &event) {
           if (auto self = weak.lock()) {
-            post(*self->pvf_thread_handler_, [weak] {
+            self->pvf_thread_handler_->execute([weak] {
               if (auto self = weak.lock()) {
                 auto r = self->onBlock();
                 if (r.has_error()) {

@@ -202,7 +202,7 @@ namespace kagome::parachain {
     if (config_.precompile_modules) {
       precompiler_thread_ =
           std::make_unique<std::thread>([self = shared_from_this()]() {
-            soralog::util::setThreadName("pvf_cmpl_thread");
+            soralog::util::setThreadName("pvf_compile");
             auto res = self->precompiler_->precompileModulesAt(
                 self->block_tree_->getLastFinalized().hash);
             if (!res) {
