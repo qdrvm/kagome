@@ -1550,7 +1550,7 @@ namespace kagome::consensus::grandpa {
   }
 
   void VotingRoundImpl::pending() {
-    SL_DEBUG(logger_, "Round #{}: Pending...", round_number_);
+    SL_DEBUG(logger_, "Round #{}: Pending…", round_number_);
 
     sendNeighborMessage();
 

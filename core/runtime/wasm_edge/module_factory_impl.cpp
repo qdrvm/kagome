@@ -388,7 +388,7 @@ namespace kagome::runtime::wasm_edge {
               "Failed to create a dir for compiled modules: {}", ec.message())};
         }
         if (!std::filesystem::exists(filename)) {
-          SL_INFO(log_, "Start compiling wasm module {}...", code_hash);
+          SL_INFO(log_, "Start compiling wasm module {}…", code_hash);
           WasmEdge_UNWRAP_COMPILE_ERR(WasmEdge_CompilerCompileFromBuffer(
               compiler.raw(), code.data(), code.size(), filename.c_str()));
           SL_INFO(log_, "Compilation finished, saved at {}", filename);
