@@ -14,6 +14,8 @@ addtest(allocator_test
     )
 target_link_libraries(allocator_test
     memory_allocator
+    scale::scale
+    hexutil
     )
 
 addtest(wasm_result_test
