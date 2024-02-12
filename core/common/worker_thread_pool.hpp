@@ -6,6 +6,7 @@
 
 #pragma once
 
+#include "application/app_state_manager.hpp"
 #include "injector/inject.hpp"
 #include "utils/thread_pool.hpp"
 #include "utils/watchdog.hpp"
@@ -21,5 +22,16 @@ namespace kagome::common {
             std::nullopt) {}
 
     WorkerThreadPool(TestThreadPool test) : ThreadPool{test} {}
+  };
+
+  class WorkerPoolHandler final : public ThreadHandler {
+   public:
+    WorkerPoolHandler(
+        std::shared_ptr<application::AppStateManager> app_state_manager,
+        std::shared_ptr<WorkerThreadPool> thread_pool)
+        : ThreadHandler(thread_pool->io_context()) {
+      BOOST_ASSERT(app_state_manager);
+      app_state_manager->takeControl(*this);
+    }
   };
 }  // namespace kagome::common

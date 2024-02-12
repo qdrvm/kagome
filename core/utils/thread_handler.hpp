@@ -11,7 +11,7 @@
 
 namespace kagome {
 
-  class ThreadHandler final {
+  class ThreadHandler {
     enum struct State : uint32_t { kStopped = 0, kStarted };
 
    public:
