@@ -21,6 +21,7 @@ hunter_add_package(xxhash)
 find_library(XXHASH NAMES libxxhash.a REQUIRED)
 add_library(xxhash::xxhash STATIC IMPORTED)
 set_property(TARGET xxhash::xxhash PROPERTY IMPORTED_LOCATION "${XXHASH}")
+target_include_directories(xxhash::xxhash INTERFACE "${xxhash_ROOT}/include")
 
 # https://docs.hunter.sh/en/latest/packages/pkg/binaryen.html
 hunter_add_package(binaryen)
