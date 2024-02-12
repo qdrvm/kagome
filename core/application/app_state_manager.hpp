@@ -30,12 +30,36 @@ namespace kagome::application {
   concept AppStateControllable = AppStatePreparable<T> || AppStateInjectable<T>
                               || AppStateStoppable<T> || AppStateStartable<T>;
 
+  template <typename T>
+  concept ActionRetBool = requires(T f) { f(); }
+                      and std::is_same_v<decltype((*(T *)(nullptr))()), bool>;
+
+  template <typename T>
+  concept ActionRetVoid = requires(T f) { f(); }
+                      and std::is_same_v<decltype((*(T *)(nullptr))()), void>;
+
+  class Action {
+   public:
+    Action(ActionRetBool auto &&f)
+        : f_([f = std::move(f)]() mutable { return f(); }) {}
+
+    Action(ActionRetVoid auto &&f)
+        : f_([f = std::move(f)]() mutable { return f(), true; }) {}
+
+    bool operator()() {
+      return f_();
+    }
+
+   private:
+    std::function<bool()> f_;
+  };
+
   class AppStateManager {
    public:
-    using OnInject = std::function<bool()>;
-    using OnPrepare = std::function<bool()>;
-    using OnLaunch = std::function<bool()>;
-    using OnShutdown = std::function<void()>;
+    using OnInject = Action;
+    using OnPrepare = Action;
+    using OnLaunch = Action;
+    using OnShutdown = Action;
 
     enum class State {
       Init,
@@ -84,16 +108,16 @@ namespace kagome::application {
     template <AppStateControllable Controlled>
     void takeControl(Controlled &entity) {
       if constexpr (AppStateInjectable<Controlled>) {
-        atInject([&entity]() -> bool { return entity.inject(); });
+        atInject([&entity] { return entity.inject(); });
       }
       if constexpr (AppStatePreparable<Controlled>) {
-        atPrepare([&entity]() -> bool { return entity.prepare(); });
+        atPrepare([&entity] { return entity.prepare(); });
       }
       if constexpr (AppStateStartable<Controlled>) {
-        atLaunch([&entity]() -> bool { return entity.start(); });
+        atLaunch([&entity] { return entity.start(); });
       }
       if constexpr (AppStateStoppable<Controlled>) {
-        atShutdown([&entity]() -> void { return entity.stop(); });
+        atShutdown([&entity] { return entity.stop(); });
       }
     }
 
