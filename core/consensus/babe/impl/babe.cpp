@@ -85,7 +85,7 @@ namespace kagome::consensus::babe {
       std::shared_ptr<network::BlockAnnounceTransmitter> announce_transmitter,
       std::shared_ptr<runtime::OffchainWorkerApi> offchain_worker_api,
       std::shared_ptr<common::MainThreadPool> main_thread_pool,
-      std::shared_ptr<common::WorkerThreadPool> worker_thread_pool)
+      std::shared_ptr<common::WorkerPoolHandler> worker_pool_handler)
       : log_(log::createLogger("Babe", "babe")),
         app_state_manager_(std::move(app_state_manager)),
         clock_(clock),
@@ -110,10 +110,7 @@ namespace kagome::consensus::babe {
           BOOST_ASSERT(main_thread_pool);
           return main_thread_pool->handler();
         }()},
-        worker_thread_handler_{[&] {
-          BOOST_ASSERT(worker_thread_pool);
-          return worker_thread_pool->handler();
-        }()},
+        worker_pool_handler_(std::move(worker_pool_handler)),
         is_validator_by_config_(app_config.roles().flags.authority != 0),
         telemetry_{telemetry::createTelemetryService()} {
     BOOST_ASSERT(app_state_manager_);
@@ -133,7 +130,7 @@ namespace kagome::consensus::babe {
     BOOST_ASSERT(announce_transmitter_);
     BOOST_ASSERT(offchain_worker_api_);
     BOOST_ASSERT(main_thread_handler_);
-    BOOST_ASSERT(worker_thread_handler_);
+    BOOST_ASSERT(worker_pool_handler_);
 
     // Register metrics
     metrics_registry_->registerGaugeFamily(
@@ -149,13 +146,13 @@ namespace kagome::consensus::babe {
 
   bool Babe::start() {
     main_thread_handler_->start();
-    worker_thread_handler_->start();
+    worker_pool_handler_->start();
     return true;
   }
 
   void Babe::stop() {
     main_thread_handler_->stop();
-    worker_thread_handler_->stop();
+    worker_pool_handler_->stop();
   }
 
   bool Babe::isGenesisConsensus() const {
@@ -431,7 +428,7 @@ namespace kagome::consensus::babe {
       self->main_thread_handler_->execute(std::move(proposed));
     };
 
-    worker_thread_handler_->execute(std::move(propose));
+    worker_pool_handler_->execute(std::move(propose));
     return outcome::success();
   }
 

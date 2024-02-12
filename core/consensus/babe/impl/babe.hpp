@@ -37,7 +37,7 @@ namespace kagome::blockchain {
 }
 
 namespace kagome::common {
-  class WorkerThreadPool;
+  class WorkerPoolHandler;
   class MainThreadPool;
 }  // namespace kagome::common
 
@@ -114,7 +114,7 @@ namespace kagome::consensus::babe {
         std::shared_ptr<network::BlockAnnounceTransmitter> announce_transmitter,
         std::shared_ptr<runtime::OffchainWorkerApi> offchain_worker_api,
         std::shared_ptr<common::MainThreadPool> main_thread_pool,
-        std::shared_ptr<common::WorkerThreadPool> worker_thread_pool);
+        std::shared_ptr<common::WorkerPoolHandler> worker_pool_handler);
 
     bool start();
     void stop();
@@ -176,7 +176,7 @@ namespace kagome::consensus::babe {
     std::shared_ptr<network::BlockAnnounceTransmitter> announce_transmitter_;
     std::shared_ptr<runtime::OffchainWorkerApi> offchain_worker_api_;
     std::shared_ptr<ThreadHandler> main_thread_handler_;
-    std::shared_ptr<ThreadHandler> worker_thread_handler_;
+    std::shared_ptr<common::WorkerPoolHandler> worker_pool_handler_;
 
     const bool is_validator_by_config_;
     bool is_active_validator_;
