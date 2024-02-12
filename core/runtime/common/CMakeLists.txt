@@ -5,11 +5,9 @@
 #
 
 add_library(runtime_common
-    stack_limiter.cpp
     memory_error.cpp
     )
 target_link_libraries(runtime_common
-    wabt::wabt
     blob
     logger
     uncompress_if_needed
