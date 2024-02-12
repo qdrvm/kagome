@@ -32,12 +32,16 @@ namespace kagome::authorship {
 #endif
     BOOST_ASSERT(parent_number == parent.number);
 
+    // Create a new block header with the incremented number, parent's hash, and
+    // the inherent digest
     auto number = parent.number + 1;
     primitives::BlockHeader header{
         .number = number,
         .parent_hash = parent.hash,
         .digest = std::move(inherent_digest),
     };
+
+    // Try to initialize the block with the created header and changes tracker
     if (auto res =
             r_core_->initialize_block(header, std::move(changes_tracker));
         not res) {
