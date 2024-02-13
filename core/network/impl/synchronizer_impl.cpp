@@ -143,15 +143,8 @@ namespace kagome::network {
   }
 
   /** @see AppStateManager::takeControl */
-  bool SynchronizerImpl::start() {
-    main_pool_handler_->start();
-    return true;
-  }
-
-  /** @see AppStateManager::takeControl */
   void SynchronizerImpl::stop() {
     node_is_shutting_down_ = true;
-    main_pool_handler_->stop();
   }
 
   bool SynchronizerImpl::subscribeToBlock(

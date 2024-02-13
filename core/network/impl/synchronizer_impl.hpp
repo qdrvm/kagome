@@ -34,8 +34,8 @@ namespace kagome::storage::trie_pruner {
   class TriePruner;
 }
 
-namespace kagome {
-  class ThreadHandler;
+namespace kagome::common {
+  class MainPoolHandler;
 }
 
 namespace kagome::consensus {
@@ -112,9 +112,6 @@ namespace kagome::network {
         std::shared_ptr<IBeefy> beefy,
         std::shared_ptr<consensus::grandpa::Environment> grandpa_environment,
         std::shared_ptr<common::MainPoolHandler> main_pool_handler);
-
-    /** @see AppStateManager::takeControl */
-    bool start();
 
     /** @see AppStateManager::takeControl */
     void stop();
