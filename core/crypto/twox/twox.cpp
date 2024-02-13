@@ -6,7 +6,7 @@
 
 #include "crypto/twox/twox.hpp"
 
-#include <xxhash.h>
+#include <xxhash/xxhash.h>
 
 namespace kagome::crypto {
 
