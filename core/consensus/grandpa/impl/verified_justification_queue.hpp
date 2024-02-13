@@ -16,10 +16,6 @@
 #include "primitives/event_types.hpp"
 #include "utils/weak_io_context.hpp"
 
-namespace kagome {
-  class ThreadHandler;
-}
-
 namespace kagome::application {
   class AppStateManager;
 }
@@ -56,8 +52,7 @@ namespace kagome::consensus::grandpa {
         LazySPtr<Timeline> timeline,
         primitives::events::ChainSubscriptionEnginePtr chain_sub_engine);
 
-    bool start();
-    void stop();
+    void start();
 
     void addVerified(AuthoritySetId set,
                      GrandpaJustification justification) override;

@@ -40,8 +40,7 @@ namespace kagome::consensus::grandpa {
     app_state_manager.takeControl(*this);
   }
 
-  bool VerifiedJustificationQueue::start() {
-    main_pool_handler_->start();
+  void VerifiedJustificationQueue::start() {
     if (auto r = authority_manager_->authorities(
             block_tree_->getLastFinalized(), true)) {
       expected_ = (**r).id;
@@ -51,11 +50,6 @@ namespace kagome::consensus::grandpa {
         self->possibleLoop();
       }
     });
-    return true;
-  }
-
-  void VerifiedJustificationQueue::stop() {
-    main_pool_handler_->stop();
   }
 
   void VerifiedJustificationQueue::addVerified(
