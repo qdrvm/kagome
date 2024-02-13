@@ -126,7 +126,8 @@ namespace kagome::parachain {
         worker_thread_context_{[&] {
           BOOST_ASSERT(worker_thread_pool);
           return worker_thread_pool->io_context();
-        }()} {
+        }()},
+        prospective_parachains_{std::move(prospective_parachains)} {
     BOOST_ASSERT(pm_);
     BOOST_ASSERT(peer_view_);
     BOOST_ASSERT(crypto_provider_);
