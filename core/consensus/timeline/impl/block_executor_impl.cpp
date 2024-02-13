@@ -30,7 +30,6 @@ namespace kagome::consensus {
   };
 
   BlockExecutorImpl::BlockExecutorImpl(
-      std::shared_ptr<application::AppStateManager> app_state_manager,
       std::shared_ptr<blockchain::BlockTree> block_tree,
       std::shared_ptr<common::MainPoolHandler> main_pool_handler,
       std::shared_ptr<common::WorkerPoolHandler> worker_pool_handler,
@@ -41,8 +40,7 @@ namespace kagome::consensus {
       primitives::events::StorageSubscriptionEnginePtr storage_sub_engine,
       primitives::events::ChainSubscriptionEnginePtr chain_sub_engine,
       std::unique_ptr<BlockAppenderBase> appender)
-      : app_state_manager_(std::move(app_state_manager)),
-        block_tree_{std::move(block_tree)},
+      : block_tree_{std::move(block_tree)},
         main_pool_handler_(std::move(main_pool_handler)),
         worker_pool_handler_(std::move(worker_pool_handler)),
         core_{std::move(core)},
@@ -54,7 +52,6 @@ namespace kagome::consensus {
         appender_{std::move(appender)},
         logger_{log::createLogger("BlockExecutor", "block_executor")},
         telemetry_{telemetry::createTelemetryService()} {
-    BOOST_ASSERT(app_state_manager_ != nullptr);
     BOOST_ASSERT(block_tree_ != nullptr);
     BOOST_ASSERT(main_pool_handler_ != nullptr);
     BOOST_ASSERT(worker_pool_handler_ != nullptr);
@@ -65,20 +62,9 @@ namespace kagome::consensus {
     BOOST_ASSERT(logger_ != nullptr);
     BOOST_ASSERT(telemetry_ != nullptr);
     BOOST_ASSERT(appender_ != nullptr);
-
-    app_state_manager_->takeControl(*this);
   }
 
   BlockExecutorImpl::~BlockExecutorImpl() = default;
-
-  bool BlockExecutorImpl::start() {
-    main_pool_handler_->start();
-    return true;
-  }
-
-  void BlockExecutorImpl::stop() {
-    main_pool_handler_->stop();
-  }
 
   void BlockExecutorImpl::applyBlock(
       primitives::Block &&block,

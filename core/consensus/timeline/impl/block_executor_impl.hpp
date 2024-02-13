@@ -17,14 +17,6 @@
 #include "telemetry/service.hpp"
 #include "utils/weak_io_context.hpp"
 
-namespace kagome {
-  class ThreadHandler;
-}
-
-namespace kagome::application {
-  class AppStateManager;
-}
-
 namespace kagome::blockchain {
   class BlockTree;
 }
@@ -56,7 +48,6 @@ namespace kagome::consensus {
         public std::enable_shared_from_this<BlockExecutorImpl> {
    public:
     BlockExecutorImpl(
-        std::shared_ptr<application::AppStateManager> app_state_manager,
         std::shared_ptr<blockchain::BlockTree> block_tree,
         std::shared_ptr<common::MainPoolHandler> main_pool_handler,
         std::shared_ptr<common::WorkerPoolHandler> worker_pool_handler,
@@ -69,9 +60,6 @@ namespace kagome::consensus {
         std::unique_ptr<BlockAppenderBase> appender);
 
     ~BlockExecutorImpl();
-
-    bool start();
-    void stop();
 
     void applyBlock(
         primitives::Block &&block,
@@ -87,7 +75,6 @@ namespace kagome::consensus {
         clock::SteadyClock::TimePoint start_time,
         const primitives::BlockInfo &previous_best_block);
 
-    std::shared_ptr<application::AppStateManager> app_state_manager_;
     std::shared_ptr<blockchain::BlockTree> block_tree_;
     std::shared_ptr<common::MainPoolHandler> main_pool_handler_;
     std::shared_ptr<common::WorkerPoolHandler> worker_pool_handler_;
