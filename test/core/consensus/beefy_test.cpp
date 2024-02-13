@@ -53,6 +53,39 @@ using kagome::storage::InMemorySpacedStorage;
 using testing::_;
 using testing::Return;
 
+struct Timer : libp2p::basic::Scheduler {
+  void pulse(std::chrono::milliseconds current_clock) noexcept override {
+    abort();
+  }
+  std::chrono::milliseconds now() const noexcept override {
+    abort();
+  }
+  Handle scheduleImpl(Callback &&cb,
+                      std::chrono::milliseconds,
+                      bool) noexcept override {
+    cb_.emplace(std::move(cb));
+    return Handle{};
+  }
+  void cancel(Handle::Ticket ticket) noexcept override {
+    abort();
+  }
+  outcome::result<Handle::Ticket> reschedule(
+      Handle::Ticket ticket,
+      std::chrono::milliseconds delay_from_now) noexcept override {
+    abort();
+  }
+
+  void call() {
+    if (cb_) {
+      auto cb = std::move(*cb_);
+      cb_.reset();
+      cb();
+    }
+  }
+
+  std::optional<Callback> cb_;
+};
+
 namespace kagome::consensus::beefy {
   inline auto &operator<<(std::ostream &os, const VoteMessage &) {
     return os;
@@ -76,6 +109,7 @@ struct BeefyPeer {
 
   std::shared_ptr<BlockTreeMock> block_tree_ =
       std::make_shared<BlockTreeMock>();
+  std::shared_ptr<Timer> timer_ = std::make_shared<Timer>();
   std::shared_ptr<SessionKeysMock> keystore_ =
       std::make_shared<SessionKeysMock>();
   std::shared_ptr<BroadcastMock> broadcast_ = std::make_shared<BroadcastMock>();
@@ -152,6 +186,7 @@ struct Test : testing::Test {
           std::make_shared<InMemorySpacedStorage>(),
           TestThreadPool{io_},
           io_,
+          peer.timer_,
           testutil::sptr_to_lazy<Timeline>(timeline_),
           peer.keystore_,
           testutil::sptr_to_lazy<BeefyProtocol>(peer.broadcast_),
@@ -219,6 +254,12 @@ struct Test : testing::Test {
     }
   }
 
+  void rebroadcast() {
+    for (auto &peer : peers_) {
+      peer.timer_->call();
+    }
+  }
+
   void finalize_block_and_wait_for_beefy(BlockNumber finalized,
                                          std::vector<BlockNumber> expected) {
     finalize(all(), finalized);
@@ -283,6 +324,7 @@ TEST_F(Test, lagging_validators) {
 
   // Charlie catches up and also finalizes #25
   finalize({2}, 25);
+  rebroadcast();
   loop();
   // expected beefy finalizes blocks 23, 24, 25 from diff-power-of-two
   expect(all(), {23, 24, 25});
@@ -305,6 +347,7 @@ TEST_F(Test, lagging_validators) {
   // Charlie catches up and also finalizes #60 (and should have buffered Alice's
   // vote on #60)
   finalize({2}, 60);
+  rebroadcast();
   loop();
   // verify beefy skips intermediary votes, and successfully finalizes mandatory
   // block #60

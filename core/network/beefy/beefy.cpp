@@ -27,6 +27,8 @@
 // TODO(turuslan): #1651, fetch justifications
 
 namespace kagome::network {
+  constexpr std::chrono::minutes kRebroadcastAfter{1};
+
   metrics::GaugeHelper metric_validator_set_id{
       "kagome_beefy_validator_set_id",
       "Current BEEFY active validator set id.",
@@ -44,6 +46,7 @@ namespace kagome::network {
                std::shared_ptr<storage::SpacedStorage> db,
                const common::WorkerThreadPool &worker_thread_pool,
                WeakIoContext main_thread_context,
+               std::shared_ptr<libp2p::basic::Scheduler> scheduler,
                LazySPtr<consensus::Timeline> timeline,
                std::shared_ptr<crypto::SessionKeys> session_keys,
                LazySPtr<BeefyProtocol> beefy_protocol,
@@ -55,6 +58,7 @@ namespace kagome::network {
         strand_{std::make_shared<WeakIoContextStrand>(
             worker_thread_pool.io_context())},
         main_thread_context_{std::move(main_thread_context)},
+        scheduler_{std::move(scheduler)},
         timeline_{std::move(timeline)},
         session_keys_{std::move(session_keys)},
         beefy_protocol_{std::move(beefy_protocol)},
@@ -210,11 +214,7 @@ namespace kagome::network {
     if (count >= consensus::beefy::threshold(total)) {
       std::ignore = apply(session.rounds.extract(round).mapped(), true);
     } else if (broadcast) {
-      post(
-          main_thread_context_,
-          [protocol{beefy_protocol_.get()},
-           message{std::make_shared<consensus::beefy::BeefyGossipMessage>(
-               std::move(vote))}] { protocol->broadcast(std::move(message)); });
+      this->broadcast(std::move(vote));
     }
   }
 
@@ -240,6 +240,7 @@ namespace kagome::network {
         std::ignore = self->update();
       }
     });
+    setTimer();
     return true;
   }
 
@@ -358,12 +359,7 @@ namespace kagome::network {
     metric_finalized->set(beefy_finalized_);
     next_digest_ = std::max(next_digest_, block_number + 1);
     if (broadcast) {
-      post(main_thread_context_,
-           [protocol{beefy_protocol_.get()},
-            message{std::make_shared<consensus::beefy::BeefyGossipMessage>(
-                std::move(justification_v1))}] {
-             protocol->broadcast(std::move(message));
-           });
+      this->broadcast(std::move(justification_v1));
     }
     strand_->post([weak{weak_from_this()}] {
       if (auto self = weak.lock()) {
@@ -457,8 +453,11 @@ namespace kagome::network {
     OUTCOME_TRY(sig,
                 ecdsa_->signPrehashed(consensus::beefy::prehash(*commitment),
                                       key->first->secret_key));
-    onVote({std::move(*commitment), key->first->public_key, sig}, true);
+    consensus::beefy::VoteMessage vote{
+        std::move(*commitment), key->first->public_key, sig};
+    onVote(vote, true);
     last_voted_ = target;
+    last_vote_ = std::move(vote);
     return outcome::success();
   }
 
@@ -489,5 +488,35 @@ namespace kagome::network {
       metric_validator_set_id->set(
           std::prev(sessions_.end())->second.validators.id);
     }
+  }
+
+  void Beefy::broadcast(consensus::beefy::BeefyGossipMessage message) {
+    REINVOKE(main_thread_context_, broadcast, std::move(message));
+    beefy_protocol_.get()->broadcast(
+        std::make_shared<consensus::beefy::BeefyGossipMessage>(
+            std::move(message)));
+    setTimer();
+  }
+
+  void Beefy::setTimer() {
+    REINVOKE(main_thread_context_, setTimer);
+    auto f = [weak{weak_from_this()}] {
+      auto self = weak.lock();
+      if (not self) {
+        return;
+      }
+      auto f = [weak] {
+        auto self = weak.lock();
+        if (not self) {
+          return;
+        }
+        if (not self->last_vote_) {
+          return;
+        }
+        self->broadcast(*self->last_vote_);
+      };
+      self->strand_->post(std::move(f));
+    };
+    timer_ = scheduler_->scheduleWithHandle(std::move(f), kRebroadcastAfter);
   }
 }  // namespace kagome::network
