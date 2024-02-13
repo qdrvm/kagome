@@ -20,7 +20,7 @@
 #include "log/profiling_logger.hpp"
 #include "storage/database_error.hpp"
 #include "storage/trie_pruner/trie_pruner.hpp"
-#include "utils/thread_handler.hpp"
+#include "utils/pool_handler.hpp"
 
 namespace {
   constexpr auto blockHeightMetricName = "kagome_block_height";

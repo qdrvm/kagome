@@ -21,7 +21,7 @@
 #include "utils/safe_object.hpp"
 
 namespace kagome {
-  class ThreadHandler;
+  class PoolHandler;
 }
 
 namespace kagome::application {
@@ -341,7 +341,7 @@ namespace kagome::consensus::grandpa {
     std::shared_ptr<storage::BufferStorage> db_;
 
     std::shared_ptr<common::MainPoolHandler> main_pool_handler_;
-    std::shared_ptr<ThreadHandler> grandpa_pool_handler_;
+    std::shared_ptr<PoolHandler> grandpa_pool_handler_;
     std::shared_ptr<libp2p::basic::Scheduler> scheduler_;
 
     std::shared_ptr<VotingRound> current_round_;

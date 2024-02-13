@@ -38,7 +38,7 @@
 #include "utils/safe_object.hpp"
 
 namespace kagome {
-  class ThreadHandler;
+  class PoolHandler;
 }
 
 namespace kagome::common {
@@ -710,7 +710,7 @@ namespace kagome::parachain {
     }
 
     ApprovingContextMap approving_context_map_;
-    std::shared_ptr<ThreadHandler> approval_thread_handler_;
+    std::shared_ptr<PoolHandler> approval_thread_handler_;
 
     std::shared_ptr<common::WorkerPoolHandler> worker_pool_handler_;
 

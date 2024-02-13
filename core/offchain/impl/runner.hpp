@@ -98,6 +98,6 @@ namespace kagome::offchain {
     size_t free_threads_;
     const size_t max_tasks_;
     std::deque<Task> tasks_;
-    std::shared_ptr<ThreadHandler> ocw_thread_handler_;
+    std::shared_ptr<PoolHandler> ocw_thread_handler_;
   };
 }  // namespace kagome::offchain

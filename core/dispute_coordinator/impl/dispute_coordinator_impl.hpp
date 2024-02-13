@@ -34,7 +34,7 @@
 #include "primitives/authority_discovery_id.hpp"
 
 namespace kagome {
-  class ThreadHandler;
+  class PoolHandler;
 }
 
 namespace kagome::application {
@@ -293,7 +293,7 @@ namespace kagome::dispute {
     primitives::events::ChainSub chain_sub_;
     LazySPtr<consensus::Timeline> timeline_;
     std::shared_ptr<common::MainPoolHandler> main_pool_handler_;
-    std::shared_ptr<ThreadHandler> dispute_thread_handler_;
+    std::shared_ptr<PoolHandler> dispute_thread_handler_;
 
     std::shared_ptr<network::PeerView::MyViewSubscriber> my_view_sub_;
 

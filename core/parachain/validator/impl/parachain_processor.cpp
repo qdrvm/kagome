@@ -26,8 +26,8 @@
 #include "parachain/peer_relay_parent_knowledge.hpp"
 #include "scale/scale.hpp"
 #include "utils/async_sequence.hpp"
+#include "utils/pool_handler.hpp"
 #include "utils/profiler.hpp"
-#include "utils/thread_handler.hpp"
 
 OUTCOME_CPP_DEFINE_CATEGORY(kagome::parachain,
                             ParachainProcessorImpl::Error,

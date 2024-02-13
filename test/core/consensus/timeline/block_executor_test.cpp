@@ -28,12 +28,15 @@
 #include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
 #include "testutil/prepare_loggers.hpp"
+#include "utils/watchdog.hpp"
 
+using kagome::Watchdog;
 using kagome::TestThreadPool;
 using kagome::blockchain::BlockTree;
 using kagome::blockchain::BlockTreeError;
 using kagome::blockchain::BlockTreeMock;
 using kagome::common::Buffer;
+using kagome::common::WorkerThreadPool;
 using kagome::consensus::BlockAppenderBase;
 using kagome::consensus::BlockExecutorImpl;
 using kagome::consensus::ConsensusSelector;
@@ -171,16 +174,17 @@ class BlockExecutorTest : public testing::Test {
         hasher_,
         testutil::sptr_to_lazy<ConsensusSelector>(consensus_selector_));
 
-    block_executor_ = std::make_shared<BlockExecutorImpl>(block_tree_,
-                                                          TestThreadPool{io_},
-                                                          io_,
-                                                          core_,
-                                                          tx_pool_,
-                                                          hasher_,
-                                                          offchain_worker_api_,
-                                                          storage_sub_engine_,
-                                                          chain_sub_engine_,
-                                                          std::move(appender));
+    block_executor_ =
+        std::make_shared<BlockExecutorImpl>(block_tree_,
+                                            worker_thread_pool_,
+                                            worker_thread_pool_->io_context(),
+                                            core_,
+                                            tx_pool_,
+                                            hasher_,
+                                            offchain_worker_api_,
+                                            storage_sub_engine_,
+                                            chain_sub_engine_,
+                                            std::move(appender));
   }
 
  protected:
@@ -203,6 +207,9 @@ class BlockExecutorTest : public testing::Test {
   kagome::primitives::events::ChainSubscriptionEnginePtr chain_sub_engine_;
   std::shared_ptr<boost::asio::io_context> io_ =
       std::make_shared<boost::asio::io_context>();
+  std::shared_ptr<Watchdog> watchdog_ = std::make_shared<Watchdog>();
+  std::shared_ptr<WorkerThreadPool> worker_thread_pool_ =
+      std::make_shared<WorkerThreadPool>(watchdog_);
 
   std::shared_ptr<BlockExecutorImpl> block_executor_;
 };

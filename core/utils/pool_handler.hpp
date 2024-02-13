@@ -15,23 +15,23 @@ namespace kagome {
     return ioc->get_executor().running_in_this_thread();
   }
 
-  class ThreadHandler {
+  class PoolHandler {
    public:
-    ThreadHandler(ThreadHandler &&) = delete;
-    ThreadHandler(const ThreadHandler &) = delete;
+    PoolHandler(PoolHandler &&) = delete;
+    PoolHandler(const PoolHandler &) = delete;
 
-    ThreadHandler &operator=(ThreadHandler &&) = delete;
-    ThreadHandler &operator=(const ThreadHandler &) = delete;
+    PoolHandler &operator=(PoolHandler &&) = delete;
+    PoolHandler &operator=(const PoolHandler &) = delete;
 
     // Next nested struct and deleted ctor added to avoid unintended injections
     struct Inject {
       explicit Inject() = default;
     };
-    explicit ThreadHandler(Inject, ...);
+    explicit PoolHandler(Inject, ...);
 
-    explicit ThreadHandler(std::shared_ptr<boost::asio::io_context> io_context)
+    explicit PoolHandler(std::shared_ptr<boost::asio::io_context> io_context)
         : is_active_{false}, ioc_{std::move(io_context)} {}
-    ~ThreadHandler() = default;
+    ~PoolHandler() = default;
 
     void start() {
       is_active_.store(true);
@@ -48,7 +48,7 @@ namespace kagome {
       }
     }
 
-    friend void post(ThreadHandler &self, auto f) {
+    friend void post(PoolHandler &self, auto f) {
       return self.execute(std::move(f));
     }
 
@@ -56,7 +56,7 @@ namespace kagome {
       return runningInThisThread(ioc_);
     }
 
-    friend bool runningInThisThread(const ThreadHandler &self) {
+    friend bool runningInThisThread(const PoolHandler &self) {
       return self.isInCurrentThread();
     }
 
@@ -65,7 +65,7 @@ namespace kagome {
     std::shared_ptr<boost::asio::io_context> ioc_;
   };
 
-  auto wrap(ThreadHandler &handler, auto f) {
+  auto wrap(PoolHandler &handler, auto f) {
     return [&handler, f{std::move(f)}](auto &&...a) mutable {
       handler.execute(
           [f{std::move(f)}, ... a{std::forward<decltype(a)>(a)}]() mutable {

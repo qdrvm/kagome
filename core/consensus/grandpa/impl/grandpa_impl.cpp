@@ -33,8 +33,8 @@
 #include "network/reputation_repository.hpp"
 #include "network/synchronizer.hpp"
 #include "storage/predefined_keys.hpp"
+#include "utils/pool_handler.hpp"
 #include "utils/retain_if.hpp"
-#include "utils/thread_handler.hpp"
 
 namespace {
   constexpr auto highestGrandpaRoundMetricName =

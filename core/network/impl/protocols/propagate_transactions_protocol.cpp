@@ -14,7 +14,7 @@
 #include "network/common.hpp"
 #include "network/notifications/connect_and_handshake.hpp"
 #include "network/notifications/handshake_and_read_messages.hpp"
-#include "utils/thread_handler.hpp"
+#include "utils/pool_handler.hpp"
 
 namespace {
   constexpr const char *kPropagatedTransactions =

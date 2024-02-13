@@ -19,7 +19,7 @@
 #include "storage/buffer_map_types.hpp"
 
 namespace kagome {
-  class ThreadHandler;
+  class PoolHandler;
 }
 
 namespace kagome::application {
@@ -120,7 +120,7 @@ namespace kagome::network {
     std::shared_ptr<runtime::BeefyApi> beefy_api_;
     std::shared_ptr<crypto::EcdsaProvider> ecdsa_;
     std::shared_ptr<storage::BufferStorage> db_;
-    std::shared_ptr<ThreadHandler> beefy_pool_handler_;
+    std::shared_ptr<PoolHandler> beefy_pool_handler_;
     std::shared_ptr<common::MainPoolHandler> main_pool_handler_;
     std::shared_ptr<libp2p::basic::Scheduler> scheduler_;
     LazySPtr<consensus::Timeline> timeline_;

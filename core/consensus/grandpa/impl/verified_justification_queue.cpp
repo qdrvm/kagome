@@ -12,7 +12,7 @@
 #include "consensus/grandpa/has_authority_set_change.hpp"
 #include "consensus/timeline/timeline.hpp"
 #include "network/synchronizer.hpp"
-#include "utils/thread_handler.hpp"
+#include "utils/pool_handler.hpp"
 
 namespace kagome::consensus::grandpa {
   /// When to start fetching justification range

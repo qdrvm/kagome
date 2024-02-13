@@ -20,12 +20,12 @@ namespace kagome::common {
         : ThreadPool(std::move(watchdog), "main_runner", 1, std::move(ctx)) {}
   };
 
-  class MainPoolHandler final : public ThreadHandler {
+  class MainPoolHandler final : public PoolHandler {
    public:
     MainPoolHandler(
         std::shared_ptr<application::AppStateManager> app_state_manager,
         std::shared_ptr<MainThreadPool> thread_pool)
-        : ThreadHandler(thread_pool->io_context()) {
+        : PoolHandler(thread_pool->io_context()) {
       BOOST_ASSERT(app_state_manager);
       app_state_manager->takeControl(*this);
     }

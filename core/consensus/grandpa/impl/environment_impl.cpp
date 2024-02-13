@@ -28,7 +28,7 @@
 #include "primitives/common.hpp"
 #include "runtime/runtime_api/parachain_host.hpp"
 #include "scale/scale.hpp"
-#include "utils/thread_handler.hpp"
+#include "utils/pool_handler.hpp"
 
 namespace kagome::consensus::grandpa {
 
