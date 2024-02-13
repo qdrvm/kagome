@@ -34,7 +34,6 @@
 #include "primitives/event_types.hpp"
 #include "utils/non_copyable.hpp"
 #include "utils/safe_object.hpp"
-#include "utils/weak_io_context.hpp"
 
 namespace kagome::common {
   class MainPoolHandler;

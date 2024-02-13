@@ -14,7 +14,6 @@
 #include "injector/lazy.hpp"
 #include "log/logger.hpp"
 #include "primitives/event_types.hpp"
-#include "utils/weak_io_context.hpp"
 
 namespace kagome::application {
   class AppStateManager;

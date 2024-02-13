@@ -21,7 +21,6 @@
 #include "storage/database_error.hpp"
 #include "storage/trie_pruner/trie_pruner.hpp"
 #include "utils/thread_handler.hpp"
-#include "utils/weak_io_context.hpp"
 
 namespace {
   constexpr auto blockHeightMetricName = "kagome_block_height";

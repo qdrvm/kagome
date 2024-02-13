@@ -32,7 +32,6 @@
 #include "network/peer_view.hpp"
 #include "parachain/types.hpp"
 #include "primitives/authority_discovery_id.hpp"
-#include "utils/weak_io_context.hpp"
 
 namespace kagome {
   class ThreadHandler;

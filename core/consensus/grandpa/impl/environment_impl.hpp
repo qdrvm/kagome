@@ -12,7 +12,6 @@
 #include "log/logger.hpp"
 #include "metrics/metrics.hpp"
 #include "parachain/approval/approved_ancestor.hpp"
-#include "utils/weak_io_context.hpp"
 
 namespace kagome::blockchain {
   class BlockHeaderRepository;

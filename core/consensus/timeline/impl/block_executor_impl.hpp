@@ -15,7 +15,6 @@
 #include "primitives/block_header.hpp"
 #include "primitives/event_types.hpp"
 #include "telemetry/service.hpp"
-#include "utils/weak_io_context.hpp"
 
 namespace kagome::blockchain {
   class BlockTree;

@@ -27,7 +27,6 @@
 #include "subscription/subscriber.hpp"
 #include "subscription/subscription_engine.hpp"
 #include "utils/non_copyable.hpp"
-#include "utils/weak_io_context.hpp"
 
 namespace kagome::blockchain {
   class GenesisBlockHash;

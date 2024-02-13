@@ -6,14 +6,16 @@
 
 #pragma once
 
-#include "utils/weak_io_context.hpp"
-#include "utils/weak_io_context_post.hpp"
+#include <boost/asio/io_context.hpp>
 
 namespace kagome {
 
-  class ThreadHandler {
-    enum struct State : uint32_t { kStopped = 0, kStarted };
+  inline bool runningInThisThread(
+      std::shared_ptr<boost::asio::io_context> ioc) {
+    return ioc->get_executor().running_in_this_thread();
+  }
 
+  class ThreadHandler {
    public:
     ThreadHandler(ThreadHandler &&) = delete;
     ThreadHandler(const ThreadHandler &) = delete;
@@ -21,22 +23,28 @@ namespace kagome {
     ThreadHandler &operator=(ThreadHandler &&) = delete;
     ThreadHandler &operator=(const ThreadHandler &) = delete;
 
-    explicit ThreadHandler(WeakIoContext io_context)
-        : execution_state_{State::kStopped}, ioc_{std::move(io_context)} {}
+    // Next nested struct and deleted ctor added to avoid unintended injections
+    struct Inject {
+      explicit Inject() = default;
+    };
+    explicit ThreadHandler(Inject, ...);
+
+    explicit ThreadHandler(std::shared_ptr<boost::asio::io_context> io_context)
+        : is_active_{false}, ioc_{std::move(io_context)} {}
     ~ThreadHandler() = default;
 
     void start() {
-      execution_state_.store(State::kStarted);
+      is_active_.store(true);
     }
 
     void stop() {
-      execution_state_.store(State::kStopped);
+      is_active_.store(false);
     }
 
     template <typename F>
     void execute(F &&func) {
-      if (State::kStarted == execution_state_.load(std::memory_order_acquire)) {
-        post(ioc_, std::forward<F>(func));
+      if (is_active_.load(std::memory_order_acquire)) {
+        ioc_->post(std::forward<F>(func));
       }
     }
 
@@ -53,8 +61,8 @@ namespace kagome {
     }
 
    private:
-    std::atomic<State> execution_state_;
-    WeakIoContext ioc_;
+    std::atomic_bool is_active_;
+    std::shared_ptr<boost::asio::io_context> ioc_;
   };
 
   auto wrap(ThreadHandler &handler, auto f) {
@@ -67,3 +75,20 @@ namespace kagome {
   }
 
 }  // namespace kagome
+
+#define REINVOKE(ctx, func, ...)                                               \
+  do {                                                                         \
+    if (not runningInThisThread(ctx)) {                                        \
+      return post(ctx,                                                         \
+                  [weak{weak_from_this()},                                     \
+                   args = std::make_tuple(__VA_ARGS__)]() mutable {            \
+                    if (auto self = weak.lock()) {                             \
+                      std::apply(                                              \
+                          [&](auto &&...args) mutable {                        \
+                            self->func(std::forward<decltype(args)>(args)...); \
+                          },                                                   \
+                          std::move(args));                                    \
+                    }                                                          \
+                  });                                                          \
+    }                                                                          \
+  } while (false)

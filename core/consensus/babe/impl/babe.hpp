@@ -17,7 +17,6 @@
 #include "primitives/block.hpp"
 #include "primitives/event_types.hpp"
 #include "telemetry/service.hpp"
-#include "utils/weak_io_context.hpp"
 
 namespace kagome::application {
   class AppConfiguration;

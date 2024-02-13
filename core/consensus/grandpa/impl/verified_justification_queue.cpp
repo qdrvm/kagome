@@ -12,7 +12,7 @@
 #include "consensus/grandpa/has_authority_set_change.hpp"
 #include "consensus/timeline/timeline.hpp"
 #include "network/synchronizer.hpp"
-#include "utils/weak_io_context_post.hpp"
+#include "utils/thread_handler.hpp"
 
 namespace kagome::consensus::grandpa {
   /// When to start fetching justification range
@@ -32,7 +32,7 @@ namespace kagome::consensus::grandpa {
         synchronizer_{std::move(synchronizer)},
         timeline_{std::move(timeline)},
         chain_sub_{chain_sub_engine},
-        log_{log::createLogger("VerifiedJustificationQueue")} {
+        log_{log::createLogger("VerifiedJustificationQueue", "grandpa")} {
     BOOST_ASSERT(main_pool_handler_ != nullptr);
     BOOST_ASSERT(block_tree_ != nullptr);
     BOOST_ASSERT(authority_manager_ != nullptr);

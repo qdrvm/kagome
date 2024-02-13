@@ -32,7 +32,6 @@
 #include "subscription/extrinsic_event_key_repository.hpp"
 #include "telemetry/service.hpp"
 #include "utils/safe_object.hpp"
-#include "utils/weak_io_context.hpp"
 
 namespace kagome::blockchain {
   struct ReorgAndPrune;
