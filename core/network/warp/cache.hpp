@@ -34,6 +34,8 @@ namespace kagome::network {
         std::shared_ptr<storage::SpacedStorage> db,
         primitives::events::ChainSubscriptionEnginePtr chain_sub_engine);
 
+    bool start();
+
     outcome::result<WarpSyncProof> getProof(
         const primitives::BlockHash &after_hash) const;
 
@@ -41,7 +43,6 @@ namespace kagome::network {
 
    private:
     outcome::result<void> cacheMore(primitives::BlockNumber finalized);
-    outcome::result<void> start();
 
     std::shared_ptr<blockchain::BlockTree> block_tree_;
     std::shared_ptr<blockchain::BlockHeaderRepository> block_repository_;
