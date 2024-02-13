@@ -19,7 +19,6 @@
 #include "primitives/event_types.hpp"
 #include "storage/spaced_storage.hpp"
 #include "utils/safe_object.hpp"
-#include "utils/weak_io_context.hpp"
 
 namespace kagome {
   class ThreadHandler;
@@ -119,14 +118,6 @@ namespace kagome::consensus::grandpa {
         storage::SpacedStorage &db,
         std::shared_ptr<common::MainPoolHandler> main_pool_handler,
         std::shared_ptr<GrandpaThreadPool> grandpa_thread_pool);
-
-    /**
-     * Prepares for grandpa round execution: e.g. sets justification observer
-     * handler.
-     * @return true preparation was done with no issues
-     * @see kagome::application::AppStateManager::takeControl()
-     */
-    bool prepare();
 
     /**
      * Initiates grandpa voting process e.g.:
@@ -350,7 +341,7 @@ namespace kagome::consensus::grandpa {
     std::shared_ptr<storage::BufferStorage> db_;
 
     std::shared_ptr<common::MainPoolHandler> main_pool_handler_;
-    std::shared_ptr<ThreadHandler> grandpa_thread_handler_;
+    std::shared_ptr<ThreadHandler> grandpa_pool_handler_;
     std::shared_ptr<libp2p::basic::Scheduler> scheduler_;
 
     std::shared_ptr<VotingRound> current_round_;
