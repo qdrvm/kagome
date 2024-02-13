@@ -34,10 +34,6 @@
 #include "utils/safe_object.hpp"
 #include "utils/weak_io_context.hpp"
 
-namespace kagome {
-  class ThreadHandler;
-}
-
 namespace kagome::blockchain {
   struct ReorgAndPrune;
   class TreeNode;

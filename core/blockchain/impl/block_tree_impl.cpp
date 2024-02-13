@@ -482,8 +482,6 @@ namespace kagome::blockchain {
 
     extrinsic_events_engine_ = std::move(extrinsic_events_engine);
     BOOST_ASSERT(extrinsic_events_engine_ != nullptr);
-
-    main_pool_handler_->start();
   }
 
   const primitives::BlockHash &BlockTreeImpl::getGenesisBlockHash() const {
