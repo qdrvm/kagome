@@ -17,12 +17,12 @@
 #include "consensus/timeline/timeline.hpp"
 #include "crypto/crypto_store/session_keys.hpp"
 #include "metrics/histogram_timer.hpp"
+#include "network/beefy/beefy_thread_pool.hpp"
 #include "network/beefy/protocol.hpp"
 #include "runtime/common/runtime_execution_error.hpp"
 #include "runtime/runtime_api/beefy.hpp"
 #include "storage/spaced_storage.hpp"
 #include "utils/block_number_key.hpp"
-#include "utils/weak_io_context_strand.hpp"
 
 // TODO(turuslan): #1651, report equivocation
 // TODO(turuslan): #1651, fetch justifications
@@ -46,8 +46,8 @@ namespace kagome::network {
                std::shared_ptr<crypto::EcdsaProvider> ecdsa,
                std::shared_ptr<storage::SpacedStorage> db,
                std::shared_ptr<common::MainPoolHandler> main_thread_handler,
-               std::shared_ptr<common::WorkerThreadPool> worker_thread_pool,
                std::shared_ptr<libp2p::basic::Scheduler> scheduler,
+               std::shared_ptr<BeefyThreadPool> beefy_thread_pool,
                LazySPtr<consensus::Timeline> timeline,
                std::shared_ptr<crypto::SessionKeys> session_keys,
                LazySPtr<BeefyProtocol> beefy_protocol,
@@ -56,10 +56,10 @@ namespace kagome::network {
         beefy_api_{std::move(beefy_api)},
         ecdsa_{std::move(ecdsa)},
         db_{db->getSpace(storage::Space::kBeefyJustification)},
-        strand_{std::make_shared<WeakIoContextStrand>([&] {
-          BOOST_ASSERT(worker_thread_pool);
-          return worker_thread_pool->io_context();
-        }())},
+        beefy_pool_handler_{[&] {
+          BOOST_ASSERT(beefy_thread_pool != nullptr);
+          return beefy_thread_pool->handler();
+        }()},
         main_pool_handler_(std::move(main_thread_handler)),
         scheduler_{std::move(scheduler)},
         timeline_{std::move(timeline)},
@@ -94,11 +94,13 @@ namespace kagome::network {
 
   void Beefy::onJustification(const primitives::BlockHash &block_hash,
                               primitives::Justification raw) {
-    strand_->post([weak{weak_from_this()}, block_hash, raw = std::move(raw)] {
-      if (auto self = weak.lock()) {
-        std::ignore = self->onJustificationOutcome(block_hash, std::move(raw));
-      }
-    });
+    beefy_pool_handler_->execute(
+        [weak{weak_from_this()}, block_hash, raw = std::move(raw)] {
+          if (auto self = weak.lock()) {
+            std::ignore =
+                self->onJustificationOutcome(block_hash, std::move(raw));
+          }
+        });
   }
 
   outcome::result<void> Beefy::onJustificationOutcome(
@@ -121,11 +123,12 @@ namespace kagome::network {
   }
 
   void Beefy::onMessage(consensus::beefy::BeefyGossipMessage message) {
-    strand_->post([weak{weak_from_this()}, message = std::move(message)] {
-      if (auto self = weak.lock()) {
-        self->onMessageStrand(std::move(message));
-      }
-    });
+    beefy_pool_handler_->execute(
+        [weak{weak_from_this()}, message = std::move(message)] {
+          if (auto self = weak.lock()) {
+            self->onMessageStrand(std::move(message));
+          }
+        });
   }
 
   void Beefy::onMessageStrand(consensus::beefy::BeefyGossipMessage message) {
@@ -231,14 +234,14 @@ namespace kagome::network {
     SL_INFO(log_, "last finalized {}", beefy_finalized_);
     chain_sub_.onFinalize([weak{weak_from_this()}]() {
       if (auto self = weak.lock()) {
-        self->strand_->post([weak] {
+        self->beefy_pool_handler_->execute([weak] {
           if (auto self = weak.lock()) {
             std::ignore = self->update();
           }
         });
       }
     });
-    strand_->post([weak{weak_from_this()}] {
+    beefy_pool_handler_->execute([weak{weak_from_this()}] {
       if (auto self = weak.lock()) {
         std::ignore = self->update();
       }
@@ -364,7 +367,7 @@ namespace kagome::network {
     if (broadcast) {
       this->broadcast(std::move(justification_v1));
     }
-    strand_->post([weak{weak_from_this()}] {
+    beefy_pool_handler_->execute([weak{weak_from_this()}] {
       if (auto self = weak.lock()) {
         std::ignore = self->update();
       }
@@ -518,7 +521,7 @@ namespace kagome::network {
         }
         self->broadcast(*self->last_vote_);
       };
-      self->strand_->post(std::move(f));
+      self->beefy_pool_handler_->execute(std::move(f));
     };
     timer_ = scheduler_->scheduleWithHandle(std::move(f), kRebroadcastAfter);
   }
