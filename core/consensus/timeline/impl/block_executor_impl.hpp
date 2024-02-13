@@ -31,7 +31,7 @@ namespace kagome::blockchain {
 
 namespace kagome::common {
   class MainThreadPool;
-  class WorkerThreadPool;
+  class WorkerPoolHandler;
 }  // namespace kagome::common
 
 namespace kagome::crypto {
@@ -59,7 +59,7 @@ namespace kagome::consensus {
         std::shared_ptr<application::AppStateManager> app_state_manager,
         std::shared_ptr<blockchain::BlockTree> block_tree,
         std::shared_ptr<common::MainThreadPool> main_thread_pool,
-        std::shared_ptr<common::WorkerThreadPool> worker_thread_pool,
+        std::shared_ptr<common::WorkerPoolHandler> worker_pool_handler,
         std::shared_ptr<runtime::Core> core,
         std::shared_ptr<transaction_pool::TransactionPool> tx_pool,
         std::shared_ptr<crypto::Hasher> hasher,
@@ -90,7 +90,7 @@ namespace kagome::consensus {
     std::shared_ptr<application::AppStateManager> app_state_manager_;
     std::shared_ptr<blockchain::BlockTree> block_tree_;
     std::shared_ptr<ThreadHandler> main_thread_handler_;
-    std::shared_ptr<ThreadHandler> worker_thread_handler_;
+    std::shared_ptr<common::WorkerPoolHandler> worker_pool_handler_;
     std::shared_ptr<runtime::Core> core_;
     std::shared_ptr<transaction_pool::TransactionPool> tx_pool_;
     std::shared_ptr<crypto::Hasher> hasher_;

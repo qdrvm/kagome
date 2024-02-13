@@ -6,7 +6,6 @@
 
 #include "consensus/timeline/impl/block_executor_impl.hpp"
 
-#include "application/app_configuration.hpp"
 #include "application/app_state_manager.hpp"
 #include "blockchain/block_tree.hpp"
 #include "blockchain/block_tree_error.hpp"
@@ -34,7 +33,7 @@ namespace kagome::consensus {
       std::shared_ptr<application::AppStateManager> app_state_manager,
       std::shared_ptr<blockchain::BlockTree> block_tree,
       std::shared_ptr<common::MainThreadPool> main_thread_pool,
-      std::shared_ptr<common::WorkerThreadPool> worker_thread_pool,
+      std::shared_ptr<common::WorkerPoolHandler> worker_pool_handler,
       std::shared_ptr<runtime::Core> core,
       std::shared_ptr<transaction_pool::TransactionPool> tx_pool,
       std::shared_ptr<crypto::Hasher> hasher,
@@ -48,10 +47,7 @@ namespace kagome::consensus {
           BOOST_ASSERT(main_thread_pool != nullptr);
           return main_thread_pool->handler();
         }()},
-        worker_thread_handler_{[&] {
-          BOOST_ASSERT(worker_thread_pool != nullptr);
-          return worker_thread_pool->handler();
-        }()},
+        worker_pool_handler_(std::move(worker_pool_handler)),
         core_{std::move(core)},
         tx_pool_{std::move(tx_pool)},
         hasher_{std::move(hasher)},
@@ -64,7 +60,7 @@ namespace kagome::consensus {
     BOOST_ASSERT(app_state_manager_ != nullptr);
     BOOST_ASSERT(block_tree_ != nullptr);
     BOOST_ASSERT(main_thread_handler_ != nullptr);
-    BOOST_ASSERT(worker_thread_handler_ != nullptr);
+    BOOST_ASSERT(worker_pool_handler_ != nullptr);
     BOOST_ASSERT(core_ != nullptr);
     BOOST_ASSERT(tx_pool_ != nullptr);
     BOOST_ASSERT(hasher_ != nullptr);
@@ -80,13 +76,11 @@ namespace kagome::consensus {
 
   bool BlockExecutorImpl::start() {
     main_thread_handler_->start();
-    worker_thread_handler_->start();
     return true;
   }
 
   void BlockExecutorImpl::stop() {
     main_thread_handler_->stop();
-    worker_thread_handler_->stop();
   }
 
   void BlockExecutorImpl::applyBlock(
@@ -201,7 +195,7 @@ namespace kagome::consensus {
       };
       main_thread_handler_->execute(std::move(executed));
     };
-    worker_thread_handler_->execute(std::move(execute));
+    worker_pool_handler_->execute(std::move(execute));
   }
 
   void BlockExecutorImpl::applyBlockExecuted(
