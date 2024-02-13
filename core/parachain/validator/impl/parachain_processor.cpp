@@ -207,7 +207,7 @@ namespace kagome::parachain {
   void ParachainProcessorImpl::OnBroadcastBitfields(
       const primitives::BlockHash &relay_parent,
       const network::SignedBitfield &bitfield) {
-    REINVOKE(*this_context_, OnBroadcastBitfields, relay_parent, bitfield);
+    REINVOKE(main_thread_context_, OnBroadcastBitfields, relay_parent, bitfield);
 
     SL_TRACE(logger_, "Distribute bitfield on {}", relay_parent);
     auto relay_parent_state = tryGetStateByRelayParent(relay_parent);
@@ -338,7 +338,7 @@ namespace kagome::parachain {
 
   void ParachainProcessorImpl::onUpdatePeerView(
       const libp2p::peer::PeerId &peer_id, const network::View &view) {
-    REINVOKE(*this_context_, onUpdatePeerView, peer_id, view);
+    REINVOKE(main_thread_context_, onUpdatePeerView, peer_id, view);
 
     /// TODO(iceseer): do `handle_peer_view_update` keep peer view to send only
     /// perfect messages
@@ -428,7 +428,7 @@ namespace kagome::parachain {
   }
 
   void ParachainProcessorImpl::onViewUpdated(const network::ExView &event) {
-    REINVOKE(*this_context_, onViewUpdated, event);
+    REINVOKE(main_thread_context_, onViewUpdated, event);
 
     const auto &relay_parent = event.new_head.hash();
     if (auto r = canProcessParachains(); r.has_error()) {
@@ -550,7 +550,7 @@ namespace kagome::parachain {
 
   void ParachainProcessorImpl::onDeactivateBlocks(
       const primitives::events::ChainEventParams &event) {
-    REINVOKE(*this_context_, onDeactivateBlocks, event);
+    REINVOKE(main_thread_context_, onDeactivateBlocks, event);
 
     if (const auto value =
             if_type<const primitives::events::RemoveAfterFinalizationParams>(
@@ -781,7 +781,7 @@ namespace kagome::parachain {
   void ParachainProcessorImpl::handleFetchedCollation(
       PendingCollation &&pending_collation,
       network::CollationFetchingResponse &&response) {
-    REINVOKE(*this_context_,
+    REINVOKE(main_thread_context_,
              handleFetchedCollation,
              std::move(pending_collation),
              std::move(response));
@@ -947,8 +947,7 @@ namespace kagome::parachain {
 
   void ParachainProcessorImpl::process_bitfield_distribution(
       const network::BitfieldDistributionMessage &val) {
-    BOOST_ASSERT(
-        this_context_->io_context()->get_executor().running_in_this_thread());
+    BOOST_ASSERT(runningInThisThread(main_thread_context_));
     auto bd{boost::get<const network::BitfieldDistribution>(&val)};
     BOOST_ASSERT_MSG(
         bd, "BitfieldDistribution is not present. Check message format.");
@@ -1005,8 +1004,7 @@ namespace kagome::parachain {
   void ParachainProcessorImpl::send_to_validators_group(
       const RelayHash &relay_parent,
       const std::deque<network::VersionedValidatorProtocolMessage> &messages) {
-    BOOST_ASSERT(
-        this_context_->io_context()->get_executor().running_in_this_thread());
+    BOOST_ASSERT(runningInThisThread(main_thread_context_));
 
     auto relay_parent_state = tryGetStateByRelayParent(relay_parent);
     if (!relay_parent_state) {
@@ -1165,9 +1163,7 @@ namespace kagome::parachain {
   void ParachainProcessorImpl::process_vstaging_statement(
       const libp2p::peer::PeerId &peer_id,
       const network::vstaging::StatementDistributionMessage &msg) {
-    BOOST_ASSERT(
-        this_context_->io_context()->get_executor().running_in_this_thread());
-
+    BOOST_ASSERT(runningInThisThread(main_thread_context_));
     SL_TRACE(
         logger_, "Incoming `StatementDistributionMessage`. (peer={})", peer_id);
     if (auto inner =
@@ -1514,7 +1510,7 @@ namespace kagome::parachain {
       const CandidateHash &candidate_hash,
       Groups &&groups,
       GroupIndex group_index) {
-    REINVOKE(*this_context_,
+    REINVOKE(main_thread_context_,
              handleFetchedStatementResponse,
              std::move(r),
              relay_parent,
@@ -1773,8 +1769,7 @@ namespace kagome::parachain {
   void ParachainProcessorImpl::process_legacy_statement(
       const libp2p::peer::PeerId &peer_id,
       const network::StatementDistributionMessage &msg) {
-    BOOST_ASSERT(
-        this_context_->io_context()->get_executor().running_in_this_thread());
+    BOOST_ASSERT(runningInThisThread(main_thread_context_));
     if (auto statement_msg{boost::get<const network::Seconded>(&msg)}) {
       if (auto r = canProcessParachains(); r.has_error()) {
         return;
@@ -1829,7 +1824,7 @@ namespace kagome::parachain {
   void ParachainProcessorImpl::onValidationProtocolMsg(
       const libp2p::peer::PeerId &peer_id,
       const network::VersionedValidatorProtocolMessage &message) {
-    REINVOKE(*this_context_, onValidationProtocolMsg, peer_id, message);
+    REINVOKE(main_thread_context_, onValidationProtocolMsg, peer_id, message);
 
     SL_TRACE(
         logger_, "Incoming validator protocol message. (peer={})", peer_id);
@@ -2271,8 +2266,7 @@ namespace kagome::parachain {
 
   std::vector<network::BackedCandidate>
   ParachainProcessorImpl::getBackedCandidates(const RelayHash &relay_parent) {
-    BOOST_ASSERT(
-        this_context_->io_context()->get_executor().running_in_this_thread());
+    BOOST_ASSERT(runningInThisThread(main_thread_context_));
 
     auto relay_parent_state_opt = tryGetStateByRelayParent(relay_parent);
     if (!relay_parent_state_opt) {
@@ -2856,7 +2850,7 @@ namespace kagome::parachain {
 
   void ParachainProcessorImpl::onIncomingCollationStream(
       const libp2p::peer::PeerId &peer_id, network::CollationVersion version) {
-    REINVOKE(*this_context_, onIncomingCollationStream, peer_id, version);
+    REINVOKE(main_thread_context_, onIncomingCollationStream, peer_id, version);
 
     auto peer_state = [&]() {
       auto res = pm_->getPeerState(peer_id);
@@ -2894,7 +2888,7 @@ namespace kagome::parachain {
 
   void ParachainProcessorImpl::onIncomingValidationStream(
       const libp2p::peer::PeerId &peer_id, network::CollationVersion version) {
-    REINVOKE(*this_context_, onIncomingValidationStream, peer_id, version);
+    REINVOKE(main_thread_context_, onIncomingValidationStream, peer_id, version);
 
     SL_TRACE(logger_, "Received incoming validation stream {}", peer_id);
     auto peer_state = [&]() {
@@ -3344,7 +3338,7 @@ namespace kagome::parachain {
       const libp2p::peer::PeerId &peer_id,
       const primitives::BlockHash &candidate_hash,
       ValidateAndSecondResult &&validate_and_second_result) {
-    REINVOKE(*this_context_,
+    REINVOKE(main_thread_context_,
              makeAvailable<kMode>,
              peer_id,
              candidate_hash,
@@ -3381,7 +3375,7 @@ namespace kagome::parachain {
       const libp2p::peer::PeerId &peer_id,
       const primitives::BlockHash &relay_parent,
       size_t n_validators) {
-    REINVOKE(*thread_handler_,
+    REINVOKE(main_thread_context_,
              validateAsync<kMode>,
              std::move(candidate),
              std::move(pov),
@@ -3730,7 +3724,7 @@ namespace kagome::parachain {
   void ParachainProcessorImpl::handleAdvertisement(
       network::CollationEvent &&pending_collation,
       std::optional<std::pair<CandidateHash, Hash>> &&prospective_candidate) {
-    REINVOKE(*this_context_,
+    REINVOKE(main_thread_context_,
              handleAdvertisement,
              std::move(pending_collation),
              std::move(prospective_candidate));
@@ -3852,9 +3846,7 @@ namespace kagome::parachain {
       const libp2p::peer::PeerId &peer_id,
       const CollatorId &collator_id,
       std::optional<std::pair<CandidateHash, Hash>> &&prospective_candidate) {
-    BOOST_ASSERT(
-        this_context_->io_context()->get_executor().running_in_this_thread());
-
+    BOOST_ASSERT(runningInThisThread(main_thread_context_));
     SL_TRACE(logger_,
              "Received advertise collation. (peer id={}, para id={}, relay "
              "parent={})",

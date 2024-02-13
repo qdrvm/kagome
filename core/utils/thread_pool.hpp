@@ -77,15 +77,15 @@ namespace kagome {
           new ThreadPool(std::forward<Args>(args)...));
     }
 
-    const std::shared_ptr<boost::asio::io_context> &io_context()
-        const override {
+    const std::shared_ptr<boost::asio::io_context> &io_context() const {
       return ioc_;
     }
 
     std::shared_ptr<ThreadHandler> handler() {
-      return std::make_shared<ThreadHandler>(shared_from_this());
+      BOOST_ASSERT(ioc_);
+      return std::make_shared<ThreadHandler>(ioc_);
     }
-
+    
    private:
     log::Logger log_;
     std::shared_ptr<boost::asio::io_context> ioc_;
