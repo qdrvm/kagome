@@ -74,7 +74,7 @@ namespace kagome::parachain {
       std::shared_ptr<common::MainThreadPool> main_thread_pool,
       std::shared_ptr<crypto::Hasher> hasher,
       std::shared_ptr<network::PeerView> peer_view,
-      std::shared_ptr<common::WorkerThreadPool> worker_thread_pool,
+      std::shared_ptr<common::WorkerPoolHandler> worker_pool_handler,
       std::shared_ptr<parachain::BitfieldSigner> bitfield_signer,
       std::shared_ptr<parachain::PvfPrecheck> pvf_precheck,
       std::shared_ptr<parachain::BitfieldStore> bitfield_store,
@@ -108,10 +108,7 @@ namespace kagome::parachain {
         app_config_(app_config),
         babe_status_observable_(std::move(babe_status_observable)),
         query_audi_{std::move(query_audi)},
-        worker_thread_handler_{[&] {
-          BOOST_ASSERT(worker_thread_pool);
-          return worker_thread_pool->handler();
-        }()} {
+        worker_pool_handler_(std::move(worker_pool_handler)) {
     BOOST_ASSERT(pm_);
     BOOST_ASSERT(peer_view_);
     BOOST_ASSERT(crypto_provider_);
@@ -127,7 +124,7 @@ namespace kagome::parachain {
     BOOST_ASSERT(signer_factory_);
     BOOST_ASSERT(babe_status_observable_);
     BOOST_ASSERT(query_audi_);
-    BOOST_ASSERT(worker_thread_handler_);
+    BOOST_ASSERT(worker_pool_handler_);
     app_state_manager->takeControl(*this);
 
     metrics_registry_->registerGaugeFamily(
@@ -685,7 +682,7 @@ namespace kagome::parachain {
         peer_id);
 
     sequenceIgnore(
-        wrap(*worker_thread_handler_,
+        wrap(*worker_pool_handler_,
              asAsync([wself{weak_from_this()},
                       candidate{std::move(candidate)},
                       pov{std::move(pov)},
