@@ -495,8 +495,8 @@ namespace kagome::parachain {
     BOOST_ASSERT(main_pool_handler_);
     BOOST_ASSERT(worker_pool_handler_);
     BOOST_ASSERT(approval_thread_handler_);
-    BOOST_ASSERT(app_state_manager);
 
+    BOOST_ASSERT(app_state_manager);
     app_state_manager->takeControl(*this);
   }
 
@@ -546,12 +546,17 @@ namespace kagome::parachain {
           }
         });
 
-    approval_thread_handler_->start();
-    worker_pool_handler_->start();
-
     /// TODO(iceseer): clear `known_by` when peer disconnected
 
     return true;
+  }
+
+  void ApprovalDistribution::start() {
+    approval_thread_handler_->start();
+  }
+
+  void ApprovalDistribution::stop() {
+    approval_thread_handler_->stop();
   }
 
   void ApprovalDistribution::store_remote_view(

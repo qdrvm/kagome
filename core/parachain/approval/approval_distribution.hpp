@@ -290,6 +290,8 @@ namespace kagome::parachain {
 
     /// AppStateManager impl
     bool prepare();
+    void start();
+    void stop();
 
     using CandidateIncludedList =
         std::vector<std::tuple<HashedCandidateReceipt, CoreIndex, GroupIndex>>;
