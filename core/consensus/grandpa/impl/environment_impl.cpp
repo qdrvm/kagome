@@ -49,7 +49,7 @@ namespace kagome::consensus::grandpa {
       std::shared_ptr<runtime::ParachainHost> parachain_api,
       std::shared_ptr<parachain::BackingStore> backing_store,
       std::shared_ptr<crypto::Hasher> hasher,
-      std::shared_ptr<common::MainThreadPool> main_thread_pool)
+      std::shared_ptr<common::MainPoolHandler> main_pool_handler)
       : block_tree_{std::move(block_tree)},
         header_repository_{std::move(header_repository)},
         authority_manager_{std::move(authority_manager)},
@@ -61,10 +61,7 @@ namespace kagome::consensus::grandpa {
         parachain_api_(std::move(parachain_api)),
         backing_store_(std::move(backing_store)),
         hasher_(std::move(hasher)),
-        main_thread_handler_{[&] {
-          BOOST_ASSERT(main_thread_pool != nullptr);
-          return main_thread_pool->handler();
-        }()},
+        main_pool_handler_(std::move(main_pool_handler)),
         logger_{log::createLogger("GrandpaEnvironment", "grandpa")} {
     BOOST_ASSERT(block_tree_ != nullptr);
     BOOST_ASSERT(header_repository_ != nullptr);
@@ -74,7 +71,7 @@ namespace kagome::consensus::grandpa {
     BOOST_ASSERT(parachain_api_ != nullptr);
     BOOST_ASSERT(backing_store_ != nullptr);
     BOOST_ASSERT(hasher_ != nullptr);
-    BOOST_ASSERT(main_thread_handler_ != nullptr);
+    BOOST_ASSERT(main_pool_handler_ != nullptr);
 
     auto kApprovalLag = "kagome_parachain_approval_checking_finality_lag";
     metrics_registry_->registerGaugeFamily(
@@ -88,12 +85,12 @@ namespace kagome::consensus::grandpa {
   }
 
   bool EnvironmentImpl::start() {
-    main_thread_handler_->start();
+    main_pool_handler_->start();
     return true;
   }
 
   void EnvironmentImpl::stop() {
-    main_thread_handler_->stop();
+    main_pool_handler_->stop();
   }
 
   bool EnvironmentImpl::hasBlock(const primitives::BlockHash &block) const {
@@ -247,11 +244,8 @@ namespace kagome::consensus::grandpa {
   void EnvironmentImpl::onCatchUpRequested(const libp2p::peer::PeerId &peer_id,
                                            VoterSetId set_id,
                                            RoundNumber round_number) {
-    REINVOKE(*main_thread_handler_,
-             onCatchUpRequested,
-             peer_id,
-             set_id,
-             round_number);
+    REINVOKE(
+        *main_pool_handler_, onCatchUpRequested, peer_id, set_id, round_number);
     network::CatchUpRequest message{.round_number = round_number,
                                     .voter_set_id = set_id};
     transmitter_->sendCatchUpRequest(peer_id, std::move(message));
@@ -264,7 +258,7 @@ namespace kagome::consensus::grandpa {
       std::vector<SignedPrevote> prevote_justification,
       std::vector<SignedPrecommit> precommit_justification,
       BlockInfo best_final_candidate) {
-    REINVOKE(*main_thread_handler_,
+    REINVOKE(*main_pool_handler_,
              onCatchUpRespond,
              peer_id,
              set_id,
@@ -285,10 +279,10 @@ namespace kagome::consensus::grandpa {
   void EnvironmentImpl::onVoted(RoundNumber round,
                                 VoterSetId set_id,
                                 const SignedMessage &vote) {
-    main_thread_handler_->execute([wself{weak_from_this()},
-                                   round{std::move(round)},
-                                   set_id{std::move(set_id)},
-                                   vote]() mutable {
+    main_pool_handler_->execute([wself{weak_from_this()},
+                                 round{std::move(round)},
+                                 set_id{std::move(set_id)},
+                                 vote]() mutable {
       if (auto self = wself.lock()) {
         SL_VERBOSE(
             self->logger_,
@@ -313,10 +307,10 @@ namespace kagome::consensus::grandpa {
   void EnvironmentImpl::sendState(const libp2p::peer::PeerId &peer_id,
                                   const MovableRoundState &state,
                                   VoterSetId voter_set_id) {
-    main_thread_handler_->execute([wself{weak_from_this()},
-                                   peer_id,
-                                   voter_set_id{std::move(voter_set_id)},
-                                   state]() mutable {
+    main_pool_handler_->execute([wself{weak_from_this()},
+                                 peer_id,
+                                 voter_set_id{std::move(voter_set_id)},
+                                 state]() mutable {
       if (auto self = wself.lock()) {
         auto send = [&](const SignedMessage &vote) {
           SL_DEBUG(
@@ -361,7 +355,7 @@ namespace kagome::consensus::grandpa {
       return;
     }
 
-    REINVOKE(*main_thread_handler_,
+    REINVOKE(*main_pool_handler_,
              onCommitted,
              round,
              voter_ser_id,
@@ -385,7 +379,7 @@ namespace kagome::consensus::grandpa {
   void EnvironmentImpl::onNeighborMessageSent(RoundNumber round,
                                               VoterSetId set_id,
                                               BlockNumber last_finalized) {
-    REINVOKE(*main_thread_handler_,
+    REINVOKE(*main_pool_handler_,
              onNeighborMessageSent,
              round,
              set_id,

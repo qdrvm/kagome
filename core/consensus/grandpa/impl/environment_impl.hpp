@@ -28,7 +28,7 @@ namespace kagome::blockchain {
 }  // namespace kagome::blockchain
 
 namespace kagome::common {
-  class MainThreadPool;
+  class MainPoolHandler;
 }
 
 namespace kagome::consensus::grandpa {
@@ -71,7 +71,7 @@ namespace kagome::consensus::grandpa {
         std::shared_ptr<runtime::ParachainHost> parachain_api,
         std::shared_ptr<parachain::BackingStore> backing_store,
         std::shared_ptr<crypto::Hasher> hasher,
-        std::shared_ptr<common::MainThreadPool> main_thread_pool);
+        std::shared_ptr<common::MainPoolHandler> main_pool_handler);
 
     ~EnvironmentImpl() override = default;
 
@@ -150,7 +150,7 @@ namespace kagome::consensus::grandpa {
     std::shared_ptr<runtime::ParachainHost> parachain_api_;
     std::shared_ptr<parachain::BackingStore> backing_store_;
     std::shared_ptr<crypto::Hasher> hasher_;
-    std::shared_ptr<ThreadHandler> main_thread_handler_;
+    std::shared_ptr<common::MainPoolHandler> main_pool_handler_;
 
     metrics::RegistryPtr metrics_registry_ = metrics::createRegistry();
     metrics::Gauge *metric_approval_lag_;

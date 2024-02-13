@@ -124,7 +124,7 @@ namespace kagome::dispute {
       std::shared_ptr<parachain::Pvf> pvf,
       std::shared_ptr<parachain::ApprovalDistribution> approval_distribution,
       std::shared_ptr<authority_discovery::Query> authority_discovery,
-      std::shared_ptr<common::MainThreadPool> main_thread_pool,
+      std::shared_ptr<common::MainPoolHandler> main_pool_handler,
       std::shared_ptr<DisputeThreadPool> dispute_thread_pool,
       std::shared_ptr<network::Router> router,
       std::shared_ptr<network::PeerView> peer_view,
@@ -148,10 +148,7 @@ namespace kagome::dispute {
         peer_view_(std::move(peer_view)),
         chain_sub_{peer_view_->intoChainEventsEngine()},
         timeline_(std::move(timeline)),
-        main_thread_handler_{[&] {
-          BOOST_ASSERT(main_thread_pool != nullptr);
-          return main_thread_pool->handler();
-        }()},
+        main_pool_handler_(std::move(main_pool_handler)),
         dispute_thread_handler_{[&] {
           BOOST_ASSERT(dispute_thread_pool != nullptr);
           return dispute_thread_pool->handler();
@@ -175,7 +172,7 @@ namespace kagome::dispute {
     BOOST_ASSERT(pvf_ != nullptr);
     BOOST_ASSERT(approval_distribution_ != nullptr);
     BOOST_ASSERT(authority_discovery_ != nullptr);
-    BOOST_ASSERT(main_thread_handler_ != nullptr);
+    BOOST_ASSERT(main_pool_handler_ != nullptr);
     BOOST_ASSERT(dispute_thread_handler_ != nullptr);
     BOOST_ASSERT(router_ != nullptr);
     BOOST_ASSERT(peer_view_ != nullptr);
@@ -2150,7 +2147,7 @@ namespace kagome::dispute {
 
   void DisputeCoordinatorImpl::sendDisputeResponse(outcome::result<void> res,
                                                    CbOutcome<void> &&cb) {
-    REINVOKE(*main_thread_handler_,
+    REINVOKE(*main_pool_handler_,
              sendDisputeResponse,
              std::move(res),
              std::move(cb));

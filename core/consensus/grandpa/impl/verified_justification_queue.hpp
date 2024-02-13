@@ -29,7 +29,7 @@ namespace kagome::blockchain {
 }
 
 namespace kagome::common {
-  class MainThreadPool;
+  class MainPoolHandler;
 }
 
 namespace kagome::consensus {
@@ -49,7 +49,7 @@ namespace kagome::consensus::grandpa {
    public:
     VerifiedJustificationQueue(
         application::AppStateManager &app_state_manager,
-        std::shared_ptr<common::MainThreadPool> main_thread_pool,
+        std::shared_ptr<common::MainPoolHandler> main_pool_handler,
         std::shared_ptr<blockchain::BlockTree> block_tree,
         std::shared_ptr<AuthorityManager> authority_manager,
         LazySPtr<network::Synchronizer> synchronizer,
@@ -73,7 +73,7 @@ namespace kagome::consensus::grandpa {
     void possibleLoop();
     void rangeLoop();
 
-    std::shared_ptr<ThreadHandler> main_thread_handler_;
+    std::shared_ptr<common::MainPoolHandler> main_pool_handler_;
     std::shared_ptr<blockchain::BlockTree> block_tree_;
     std::shared_ptr<AuthorityManager> authority_manager_;
     LazySPtr<network::Synchronizer> synchronizer_;

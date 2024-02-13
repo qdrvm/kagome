@@ -38,7 +38,7 @@ namespace kagome::blockchain {
 }
 
 namespace kagome::common {
-  class MainThreadPool;
+  class MainPoolHandler;
 }
 
 namespace kagome::consensus {
@@ -64,7 +64,7 @@ namespace kagome::network {
         Roles roles,
         const application::ChainSpec &chain_spec,
         const blockchain::GenesisBlockHash &genesis_hash,
-        std::shared_ptr<common::MainThreadPool> main_thread_pool,
+        std::shared_ptr<common::MainPoolHandler> main_pool_handler,
         std::shared_ptr<consensus::Timeline> timeline,
         std::shared_ptr<ExtrinsicObserver> extrinsic_observer,
         std::shared_ptr<StreamEngine> stream_engine,
@@ -90,7 +90,7 @@ namespace kagome::network {
         "PropagateTransactionsProtocol"s;
     ProtocolBaseImpl base_;
     Roles roles_;
-    std::shared_ptr<ThreadHandler> main_thread_handler_;
+    std::shared_ptr<common::MainPoolHandler> main_pool_handler_;
     std::shared_ptr<consensus::Timeline> timeline_;
     std::shared_ptr<ExtrinsicObserver> extrinsic_observer_;
     std::shared_ptr<StreamEngine> stream_engine_;

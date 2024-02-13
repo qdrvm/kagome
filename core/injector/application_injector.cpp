@@ -308,41 +308,24 @@ namespace {
 
   template <typename Injector>
   sptr<blockchain::BlockTree> get_block_tree(const Injector &injector) {
-    auto header_repo =
-        injector.template create<sptr<blockchain::BlockHeaderRepository>>();
-
-    auto storage = injector.template create<sptr<blockchain::BlockStorage>>();
-    auto state_pruner =
-        injector.template create<sptr<storage::trie_pruner::TriePruner>>();
-
-    auto extrinsic_observer =
-        injector.template create<sptr<network::ExtrinsicObserver>>();
-
-    auto hasher = injector.template create<sptr<crypto::Hasher>>();
-
     auto chain_events_engine =
         injector
             .template create<primitives::events::ChainSubscriptionEnginePtr>();
-    auto ext_events_engine = injector.template create<
-        primitives::events::ExtrinsicSubscriptionEnginePtr>();
-    auto ext_events_key_repo = injector.template create<
-        std::shared_ptr<subscription::ExtrinsicEventKeyRepository>>();
 
-    auto justification_storage_policy = injector.template create<
-        std::shared_ptr<blockchain::JustificationStoragePolicy>>();
-
+    // clang-format off
     auto block_tree_res = blockchain::BlockTreeImpl::create(
         injector.template create<const application::AppConfiguration &>(),
-        std::move(header_repo),
-        std::move(storage),
-        std::move(extrinsic_observer),
-        std::move(hasher),
+        injector.template create<sptr<blockchain::BlockHeaderRepository>>(),
+        injector.template create<sptr<blockchain::BlockStorage>>(),
+        injector.template create<sptr<network::ExtrinsicObserver>>(),
+        injector.template create<sptr<crypto::Hasher>>(),
         chain_events_engine,
-        std::move(ext_events_engine),
-        std::move(ext_events_key_repo),
-        std::move(justification_storage_policy),
-        std::move(state_pruner),
-        injector.template create<std::shared_ptr<common::MainThreadPool>>());
+        injector.template create<primitives::events::ExtrinsicSubscriptionEnginePtr>(),
+        injector.template create<std::shared_ptr<subscription::ExtrinsicEventKeyRepository>>(),
+        injector.template create<std::shared_ptr<blockchain::JustificationStoragePolicy>>(),
+        injector.template create<sptr<storage::trie_pruner::TriePruner>>(),
+        injector.template create<std::shared_ptr<common::MainPoolHandler>>());
+    // clang-format on
 
     if (not block_tree_res.has_value()) {
       common::raise(block_tree_res.error());

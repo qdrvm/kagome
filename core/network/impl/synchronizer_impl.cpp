@@ -99,7 +99,7 @@ namespace kagome::network {
       LazySPtr<consensus::Timeline> timeline,
       std::shared_ptr<IBeefy> beefy,
       std::shared_ptr<consensus::grandpa::Environment> grandpa_environment,
-      std::shared_ptr<common::MainThreadPool> main_thread_pool)
+      std::shared_ptr<common::MainPoolHandler> main_pool_handler)
       : log_(log::createLogger("Synchronizer", "synchronizer")),
         app_state_manager_(std::move(app_state_manager)),
         block_tree_(std::move(block_tree)),
@@ -116,10 +116,7 @@ namespace kagome::network {
         beefy_{std::move(beefy)},
         grandpa_environment_{std::move(grandpa_environment)},
         chain_sub_engine_(std::move(chain_sub_engine)),
-        main_thread_handler_{[&] {
-          BOOST_ASSERT(main_thread_pool != nullptr);
-          return main_thread_pool->handler();
-        }()} {
+        main_pool_handler_(std::move(main_pool_handler)) {
     BOOST_ASSERT(app_state_manager_);
     BOOST_ASSERT(block_tree_);
     BOOST_ASSERT(block_executor_);
@@ -131,7 +128,7 @@ namespace kagome::network {
     BOOST_ASSERT(hasher_);
     BOOST_ASSERT(grandpa_environment_);
     BOOST_ASSERT(chain_sub_engine_);
-    BOOST_ASSERT(main_thread_handler_);
+    BOOST_ASSERT(main_pool_handler_);
 
     sync_method_ = app_config.syncMethod();
 
@@ -147,14 +144,14 @@ namespace kagome::network {
 
   /** @see AppStateManager::takeControl */
   bool SynchronizerImpl::start() {
-    main_thread_handler_->start();
+    main_pool_handler_->start();
     return true;
   }
 
   /** @see AppStateManager::takeControl */
   void SynchronizerImpl::stop() {
     node_is_shutting_down_ = true;
-    main_thread_handler_->stop();
+    main_pool_handler_->stop();
   }
 
   bool SynchronizerImpl::subscribeToBlock(
@@ -888,7 +885,7 @@ namespace kagome::network {
       outcome::result<void> &&block_addition_result,
       Synchronizer::SyncResultHandler &&handler,
       const primitives::BlockHash &hash) {
-    REINVOKE(*main_thread_handler_,
+    REINVOKE(*main_pool_handler_,
              post_block_addition,
              std::move(block_addition_result),
              std::move(handler),

@@ -20,23 +20,20 @@ namespace kagome::consensus::grandpa {
 
   VerifiedJustificationQueue::VerifiedJustificationQueue(
       application::AppStateManager &app_state_manager,
-      std::shared_ptr<common::MainThreadPool> main_thread_pool,
+      std::shared_ptr<common::MainPoolHandler> main_pool_handler,
       std::shared_ptr<blockchain::BlockTree> block_tree,
       std::shared_ptr<AuthorityManager> authority_manager,
       LazySPtr<network::Synchronizer> synchronizer,
       LazySPtr<Timeline> timeline,
       primitives::events::ChainSubscriptionEnginePtr chain_sub_engine)
-      : main_thread_handler_{[&] {
-          BOOST_ASSERT(main_thread_pool != nullptr);
-          return main_thread_pool->handler();
-        }()},
+      : main_pool_handler_(std::move(main_pool_handler)),
         block_tree_{std::move(block_tree)},
         authority_manager_{std::move(authority_manager)},
         synchronizer_{std::move(synchronizer)},
         timeline_{std::move(timeline)},
         chain_sub_{chain_sub_engine},
         log_{log::createLogger("VerifiedJustificationQueue")} {
-    BOOST_ASSERT(main_thread_handler_ != nullptr);
+    BOOST_ASSERT(main_pool_handler_ != nullptr);
     BOOST_ASSERT(block_tree_ != nullptr);
     BOOST_ASSERT(authority_manager_ != nullptr);
 
@@ -44,7 +41,7 @@ namespace kagome::consensus::grandpa {
   }
 
   bool VerifiedJustificationQueue::start() {
-    main_thread_handler_->start();
+    main_pool_handler_->start();
     if (auto r = authority_manager_->authorities(
             block_tree_->getLastFinalized(), true)) {
       expected_ = (**r).id;
@@ -58,12 +55,12 @@ namespace kagome::consensus::grandpa {
   }
 
   void VerifiedJustificationQueue::stop() {
-    main_thread_handler_->stop();
+    main_pool_handler_->stop();
   }
 
   void VerifiedJustificationQueue::addVerified(
       AuthoritySetId set, GrandpaJustification justification) {
-    REINVOKE(*main_thread_handler_, addVerified, set, std::move(justification));
+    REINVOKE(*main_pool_handler_, addVerified, set, std::move(justification));
     if (set < expected_) {
       return;
     }

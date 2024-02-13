@@ -32,7 +32,7 @@ namespace kagome::consensus {
   BlockExecutorImpl::BlockExecutorImpl(
       std::shared_ptr<application::AppStateManager> app_state_manager,
       std::shared_ptr<blockchain::BlockTree> block_tree,
-      std::shared_ptr<common::MainThreadPool> main_thread_pool,
+      std::shared_ptr<common::MainPoolHandler> main_pool_handler,
       std::shared_ptr<common::WorkerPoolHandler> worker_pool_handler,
       std::shared_ptr<runtime::Core> core,
       std::shared_ptr<transaction_pool::TransactionPool> tx_pool,
@@ -43,10 +43,7 @@ namespace kagome::consensus {
       std::unique_ptr<BlockAppenderBase> appender)
       : app_state_manager_(std::move(app_state_manager)),
         block_tree_{std::move(block_tree)},
-        main_thread_handler_{[&] {
-          BOOST_ASSERT(main_thread_pool != nullptr);
-          return main_thread_pool->handler();
-        }()},
+        main_pool_handler_(std::move(main_pool_handler)),
         worker_pool_handler_(std::move(worker_pool_handler)),
         core_{std::move(core)},
         tx_pool_{std::move(tx_pool)},
@@ -59,7 +56,7 @@ namespace kagome::consensus {
         telemetry_{telemetry::createTelemetryService()} {
     BOOST_ASSERT(app_state_manager_ != nullptr);
     BOOST_ASSERT(block_tree_ != nullptr);
-    BOOST_ASSERT(main_thread_handler_ != nullptr);
+    BOOST_ASSERT(main_pool_handler_ != nullptr);
     BOOST_ASSERT(worker_pool_handler_ != nullptr);
     BOOST_ASSERT(core_ != nullptr);
     BOOST_ASSERT(tx_pool_ != nullptr);
@@ -75,12 +72,12 @@ namespace kagome::consensus {
   BlockExecutorImpl::~BlockExecutorImpl() = default;
 
   bool BlockExecutorImpl::start() {
-    main_thread_handler_->start();
+    main_pool_handler_->start();
     return true;
   }
 
   void BlockExecutorImpl::stop() {
-    main_thread_handler_->stop();
+    main_pool_handler_->stop();
   }
 
   void BlockExecutorImpl::applyBlock(
@@ -193,7 +190,7 @@ namespace kagome::consensus {
                                  start_time,
                                  previous_best_block);
       };
-      main_thread_handler_->execute(std::move(executed));
+      main_pool_handler_->execute(std::move(executed));
     };
     worker_pool_handler_->execute(std::move(execute));
   }

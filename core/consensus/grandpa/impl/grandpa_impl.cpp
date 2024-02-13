@@ -79,7 +79,7 @@ namespace kagome::consensus::grandpa {
       LazySPtr<Timeline> timeline,
       primitives::events::ChainSubscriptionEnginePtr chain_sub_engine,
       storage::SpacedStorage &db,
-      std::shared_ptr<common::MainThreadPool> main_thread_pool,
+      std::shared_ptr<common::MainPoolHandler> main_pool_handler,
       std::shared_ptr<GrandpaThreadPool> grandpa_thread_pool)
       : round_time_factor_{kGossipDuration},
         hasher_{std::move(hasher)},
@@ -94,10 +94,7 @@ namespace kagome::consensus::grandpa {
         timeline_{std::move(timeline)},
         chain_sub_{chain_sub_engine},
         db_{db.getSpace(storage::Space::kDefault)},
-        main_thread_handler_{[&] {
-          BOOST_ASSERT(main_thread_pool != nullptr);
-          return main_thread_pool->handler();
-        }()},
+        main_pool_handler_(std::move(main_pool_handler)),
         grandpa_thread_handler_{[&] {
           BOOST_ASSERT(grandpa_thread_pool != nullptr);
           return grandpa_thread_pool->handler();
@@ -113,7 +110,7 @@ namespace kagome::consensus::grandpa {
     BOOST_ASSERT(peer_manager_ != nullptr);
     BOOST_ASSERT(block_tree_ != nullptr);
     BOOST_ASSERT(reputation_repository_ != nullptr);
-    BOOST_ASSERT(main_thread_handler_ != nullptr);
+    BOOST_ASSERT(main_pool_handler_ != nullptr);
     BOOST_ASSERT(grandpa_thread_handler_ != nullptr);
 
     BOOST_ASSERT(app_state_manager != nullptr);
@@ -131,7 +128,7 @@ namespace kagome::consensus::grandpa {
   }
 
   bool GrandpaImpl::prepare() {
-    main_thread_handler_->start();
+    main_pool_handler_->start();
     grandpa_thread_handler_->start();
     return true;
   }
@@ -227,7 +224,7 @@ namespace kagome::consensus::grandpa {
   }
 
   void GrandpaImpl::stop() {
-    main_thread_handler_->stop();
+    main_pool_handler_->stop();
     grandpa_thread_handler_->stop();
     fallback_timer_handle_.cancel();
   }
@@ -1215,7 +1212,7 @@ namespace kagome::consensus::grandpa {
 
   void GrandpaImpl::callbackCall(ApplyJustificationCb &&callback,
                                  outcome::result<void> &&result) {
-    main_thread_handler_->execute(
+    main_pool_handler_->execute(
         [callback{std::move(callback)}, result{std::move(result)}]() mutable {
           callback(std::move(result));
         });
@@ -1394,7 +1391,7 @@ namespace kagome::consensus::grandpa {
     if (not timeline_.get()->wasSynchronized()) {
       return;
     }
-    main_thread_handler_->execute(
+    main_pool_handler_->execute(
         [s{synchronizer_}, peer{waiting.peer}, blocks{waiting.blocks}] {
           for (auto &block : blocks) {
             s->syncByBlockInfo(block, peer, nullptr, false);
