@@ -67,7 +67,7 @@ namespace kagome {
 
     virtual ~ThreadPool() {
       for (auto &thread : threads_) {
-        SL_TRACE(log_, "Joining thread...");
+        SL_TRACE(log_, "Joining thread…");
         thread.join();
       }
       SL_TRACE(log_, "Pool destroyed");

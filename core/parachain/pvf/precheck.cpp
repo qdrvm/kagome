@@ -76,6 +76,7 @@ namespace kagome::parachain {
       std::shared_ptr<primitives::events::ChainSubscriptionEngine>
           chain_sub_engine) {
     pvf_thread_handler_->start();
+
     chain_sub_ = std::make_shared<primitives::events::ChainEventSubscriber>(
         chain_sub_engine);
     chain_sub_->subscribe(chain_sub_->generateSubscriptionSetId(),

@@ -36,10 +36,6 @@
 #include "utils/safe_object.hpp"
 #include "utils/weak_io_context.hpp"
 
-namespace kagome {
-  class ThreadHandler;
-}
-
 namespace kagome::common {
   class MainPoolHandler;
   class WorkerPoolHandler;
@@ -111,7 +107,6 @@ namespace kagome::parachain {
     ~ParachainProcessorImpl() = default;
 
     bool prepare();
-    bool start();
 
     void requestCollations(const network::CollationEvent &pending_collation);
     outcome::result<void> canProcessParachains() const;

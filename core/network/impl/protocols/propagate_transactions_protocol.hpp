@@ -29,10 +29,6 @@
 #include "utils/non_copyable.hpp"
 #include "utils/weak_io_context.hpp"
 
-namespace kagome {
-  class ThreadHandler;
-}
-
 namespace kagome::blockchain {
   class GenesisBlockHash;
 }
