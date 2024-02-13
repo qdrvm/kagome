@@ -65,7 +65,6 @@ namespace kagome::consensus::babe {
 
   Babe::Babe(
       const application::AppConfiguration &app_config,
-      std::shared_ptr<application::AppStateManager> app_state_manager,
       const clock::SystemClock &clock,
       std::shared_ptr<blockchain::BlockTree> block_tree,
       LazySPtr<SlotsUtil> slots_util,
@@ -87,7 +86,6 @@ namespace kagome::consensus::babe {
       std::shared_ptr<common::MainPoolHandler> main_pool_handler,
       std::shared_ptr<common::WorkerPoolHandler> worker_pool_handler)
       : log_(log::createLogger("Babe", "babe")),
-        app_state_manager_(std::move(app_state_manager)),
         clock_(clock),
         block_tree_(std::move(block_tree)),
         slots_util_(std::move(slots_util)),
@@ -110,7 +108,6 @@ namespace kagome::consensus::babe {
         worker_pool_handler_(std::move(worker_pool_handler)),
         is_validator_by_config_(app_config.roles().flags.authority != 0),
         telemetry_{telemetry::createTelemetryService()} {
-    BOOST_ASSERT(app_state_manager_);
     BOOST_ASSERT(block_tree_);
     BOOST_ASSERT(config_repo_);
     BOOST_ASSERT(session_keys_);
@@ -137,19 +134,6 @@ namespace kagome::consensus::babe {
     metric_is_relaychain_validator_ =
         metrics_registry_->registerGaugeMetric(kIsRelayChainValidator);
     metric_is_relaychain_validator_->set(false);
-
-    app_state_manager_->takeControl(*this);
-  }
-
-  bool Babe::start() {
-    main_pool_handler_->start();
-    worker_pool_handler_->start();
-    return true;
-  }
-
-  void Babe::stop() {
-    main_pool_handler_->stop();
-    worker_pool_handler_->stop();
   }
 
   bool Babe::isGenesisConsensus() const {
