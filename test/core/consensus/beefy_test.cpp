@@ -71,9 +71,16 @@ struct BroadcastMock : BeefyProtocol {
 
 struct BeefyPeer {
   EcdsaKeypair keys_;
+  BlockNumber finalized_ = 0;
+  std::vector<BlockNumber> justifications_;
+
+  std::shared_ptr<BlockTreeMock> block_tree_ =
+      std::make_shared<BlockTreeMock>();
   std::shared_ptr<SessionKeysMock> keystore_ =
       std::make_shared<SessionKeysMock>();
   std::shared_ptr<BroadcastMock> broadcast_ = std::make_shared<BroadcastMock>();
+  ChainSubscriptionEnginePtr chain_sub_ =
+      std::make_shared<ChainSubscriptionEngine>();
   std::shared_ptr<Beefy> beefy_;
 };
 
@@ -86,20 +93,6 @@ struct Test : testing::Test {
     EXPECT_CALL(chain_spec_, beefyMinDelta()).WillRepeatedly([&] {
       return min_delta_;
     });
-    EXPECT_CALL(*block_tree_, getLastFinalized()).WillRepeatedly([&] {
-      return blocks_[finalized_].blockInfo();
-    });
-    EXPECT_CALL(*block_tree_, getBlockHash(_))
-        .WillRepeatedly([&](BlockNumber i) { return blocks_[i].hash(); });
-    EXPECT_CALL(*block_tree_, getBlockHeader(_))
-        .WillRepeatedly([&](BlockHash h) {
-          for (auto &block : blocks_) {
-            if (block.hash() == h) {
-              return block;
-            }
-          }
-          throw std::logic_error{"getBlockHeader"};
-        });
     EXPECT_CALL(*beefy_api_, genesis(_)).WillRepeatedly([&] {
       return genesis_;
     });
@@ -122,10 +115,38 @@ struct Test : testing::Test {
               std::make_pair(std::make_shared<EcdsaKeypair>(peer.keys_), i)));
       AppStateManagerMock app_state;
       EXPECT_CALL(app_state, atLaunch(_));
+      EXPECT_CALL(*peer.block_tree_, getLastFinalized()).WillRepeatedly([&] {
+        return blocks_[peer.finalized_].blockInfo();
+      });
+      EXPECT_CALL(*peer.block_tree_, getBlockHash(_))
+          .WillRepeatedly([&](BlockNumber i) { return blocks_[i].hash(); });
+      EXPECT_CALL(*peer.block_tree_, getBlockHeader(_))
+          .WillRepeatedly([&](BlockHash h) {
+            for (auto &block : blocks_) {
+              if (block.hash() == h) {
+                return block;
+              }
+            }
+            throw std::logic_error{"getBlockHeader"};
+          });
+      EXPECT_CALL(*peer.broadcast_, broadcast(_))
+          .WillRepeatedly([&](std::shared_ptr<BeefyGossipMessage> m) {
+            if (auto jr = boost::get<BeefyJustification>(&*m)) {
+              auto &j = boost::get<SignedCommitment>(*jr);
+              peer.justifications_.emplace_back(j.commitment.block_number);
+            }
+            io_->post([&, m] {
+              for (auto &peer2 : peers_) {
+                if (&peer2 != &peer) {
+                  peer2.beefy_->onMessage(*m);
+                }
+              }
+            });
+          });
       peer.beefy_ = std::make_shared<Beefy>(
           app_state,
           chain_spec_,
-          block_tree_,
+          peer.block_tree_,
           beefy_api_,
           ecdsa_,
           std::make_shared<InMemorySpacedStorage>(),
@@ -134,7 +155,7 @@ struct Test : testing::Test {
           testutil::sptr_to_lazy<Timeline>(timeline_),
           peer.keystore_,
           testutil::sptr_to_lazy<BeefyProtocol>(peer.broadcast_),
-          chain_sub_);
+          peer.chain_sub_);
       peer.beefy_->start();
     }
   }
@@ -170,39 +191,42 @@ struct Test : testing::Test {
     }
   }
 
-  void finalize_block_and_wait_for_beefy(BlockNumber finalize,
-                                         std::vector<BlockNumber> expected) {
-    std::vector<std::vector<BlockNumber>> actual;
-    actual.reserve(peers_.size());
-    for (auto &peer : peers_) {
-      auto &peer_actual = actual.emplace_back();
-      EXPECT_CALL(*peer.broadcast_, broadcast(_))
-          .WillRepeatedly([&](std::shared_ptr<BeefyGossipMessage> m) {
-            if (auto jr = boost::get<BeefyJustification>(&*m)) {
-              auto &j = boost::get<SignedCommitment>(*jr);
-              peer_actual.emplace_back(j.commitment.block_number);
-            }
-            io_->post([&, m] {
-              for (auto &peer2 : peers_) {
-                if (&peer2 != &peer) {
-                  peer2.beefy_->onMessage(*m);
-                }
-              }
-            });
-          });
+  auto all() {
+    std::set<size_t> peers;
+    for (size_t i = 0; i < peers_.size(); ++i) {
+      peers.emplace(i);
     }
-    finalized_ = finalize;
-    chain_sub_->notify(ChainEventType::kFinalizedHeads, blocks_.at(finalize));
-    io_->restart();
-    io_->run();
-    for (auto &peer_actual : actual) {
-      EXPECT_EQ(peer_actual, expected);
+    return peers;
+  }
+
+  void finalize(std::set<size_t> peers, BlockNumber finalized) {
+    for (auto &i : peers) {
+      peers_[i].finalized_ = finalized;
+      peers_[i].chain_sub_->notify(ChainEventType::kFinalizedHeads,
+                                   blocks_.at(finalized));
     }
   }
 
+  void loop() {
+    io_->restart();
+    io_->run();
+  }
+
+  void expect(std::set<size_t> peers, std::vector<BlockNumber> expected) {
+    for (auto &i : peers) {
+      EXPECT_EQ(peers_[i].justifications_, expected);
+      peers_[i].justifications_.clear();
+    }
+  }
+
+  void finalize_block_and_wait_for_beefy(BlockNumber finalized,
+                                         std::vector<BlockNumber> expected) {
+    finalize(all(), finalized);
+    loop();
+    expect(all(), expected);
+  }
+
   ChainSpecMock chain_spec_;
-  std::shared_ptr<BlockTreeMock> block_tree_ =
-      std::make_shared<BlockTreeMock>();
   std::shared_ptr<BeefyApiMock> beefy_api_ = std::make_shared<BeefyApiMock>();
   std::shared_ptr<HasherImpl> hasher_ = std::make_shared<HasherImpl>();
   std::shared_ptr<EcdsaProviderImpl> ecdsa_ =
@@ -210,11 +234,8 @@ struct Test : testing::Test {
   std::shared_ptr<boost::asio::io_context> io_ =
       std::make_shared<boost::asio::io_context>();
   std::shared_ptr<TimelineMock> timeline_ = std::make_shared<TimelineMock>();
-  ChainSubscriptionEnginePtr chain_sub_ =
-      std::make_shared<ChainSubscriptionEngine>();
 
   std::vector<BlockHeader> blocks_;
-  BlockNumber finalized_ = 0;
   BlockNumber min_delta_ = 1;
   BlockNumber genesis_ = 1;
   std::vector<BeefyPeer> peers_;
@@ -242,4 +263,50 @@ TEST_F(Test, beefy_finalizing_blocks) {
 
   // GRANDPA finalize #21 -> BEEFY finalize nothing (yet) because min delta
   finalize_block_and_wait_for_beefy(21, {});
+}
+
+TEST_F(Test, lagging_validators) {
+  min_delta_ = 1;
+  makePeers(3);
+  generate_blocks_and_sync(62, 30);
+
+  // finalize block #15 -> BEEFY should finalize #1 (mandatory) and #9, #13,
+  // #14, #15 from diff-power-of-two rule.
+  finalize_block_and_wait_for_beefy(1, {1});
+  finalize_block_and_wait_for_beefy(15, {9, 13, 14, 15});
+
+  // Alice and Bob finalize #25, Charlie lags behind
+  finalize({0, 1}, 25);
+  loop();
+  // verify nothing gets finalized by BEEFY
+  expect(all(), {});
+
+  // Charlie catches up and also finalizes #25
+  finalize({2}, 25);
+  loop();
+  // expected beefy finalizes blocks 23, 24, 25 from diff-power-of-two
+  expect(all(), {23, 24, 25});
+
+  // Both finalize #30 (mandatory session) and #32 -> BEEFY finalize #30
+  // (mandatory), #31, #32
+  finalize_block_and_wait_for_beefy(30, {30});
+  finalize_block_and_wait_for_beefy(32, {31, 32});
+
+  // Verify that session-boundary votes get buffered by client and only
+  // processed once session-boundary block is GRANDPA-finalized (this guarantees
+  // authenticity for the new session validator set).
+
+  // Alice and Bob finalize session-boundary mandatory block #60, Charlie lags
+  // behind
+  finalize({0, 1}, 60);
+  // verify nothing gets finalized by BEEFY
+  expect(all(), {});
+
+  // Charlie catches up and also finalizes #60 (and should have buffered Alice's
+  // vote on #60)
+  finalize({2}, 60);
+  loop();
+  // verify beefy skips intermediary votes, and successfully finalizes mandatory
+  // block #60
+  expect(all(), {60});
 }
