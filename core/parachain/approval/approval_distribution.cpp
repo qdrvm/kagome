@@ -439,7 +439,7 @@ namespace kagome::parachain {
   ApprovalDistribution::ApprovalDistribution(
       std::shared_ptr<consensus::babe::BabeConfigRepository> babe_config_repo,
       std::shared_ptr<application::AppStateManager> app_state_manager,
-      std::shared_ptr<common::WorkerThreadPool> worker_thread_pool,
+      std::shared_ptr<common::WorkerPoolHandler> worker_pool_handler,
       std::shared_ptr<runtime::ParachainHost> parachain_host,
       LazySPtr<consensus::SlotsUtil> slots_util,
       std::shared_ptr<crypto::CryptoStore> keystore,
@@ -459,10 +459,7 @@ namespace kagome::parachain {
           BOOST_ASSERT(approval_thread_pool != nullptr);
           return approval_thread_pool->handler();
         }()},
-        worker_thread_handler_{[&] {
-          BOOST_ASSERT(worker_thread_pool != nullptr);
-          return worker_thread_pool->handler();
-        }()},
+        worker_pool_handler_(std::move(worker_pool_handler)),
         parachain_host_(std::move(parachain_host)),
         slots_util_(std::move(slots_util)),
         keystore_(std::move(keystore)),
@@ -499,7 +496,7 @@ namespace kagome::parachain {
     BOOST_ASSERT(pvf_);
     BOOST_ASSERT(recovery_);
     BOOST_ASSERT(main_thread_handler_);
-    BOOST_ASSERT(worker_thread_handler_);
+    BOOST_ASSERT(worker_pool_handler_);
     BOOST_ASSERT(approval_thread_handler_);
     BOOST_ASSERT(app_state_manager);
 
@@ -553,7 +550,7 @@ namespace kagome::parachain {
         });
 
     approval_thread_handler_->start();
-    worker_thread_handler_->start();
+    worker_pool_handler_->start();
 
     /// TODO(iceseer): clear `known_by` when peer disconnected
 
@@ -683,7 +680,7 @@ namespace kagome::parachain {
       const primitives::BlockHash &block_hash,
       const primitives::BlockHeader &block_header) {
     REINVOKE(
-        *worker_thread_handler_, imported_block_info, block_hash, block_header);
+        *worker_pool_handler_, imported_block_info, block_hash, block_header);
 
     auto call = [&]() -> outcome::result<NewHeadDataContext> {
       OUTCOME_TRY(included_candidates, request_included_candidates(block_hash));

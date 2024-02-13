@@ -43,7 +43,7 @@ namespace kagome {
 
 namespace kagome::common {
   class MainThreadPool;
-  class WorkerThreadPool;
+  class WorkerPoolHandler;
 }  // namespace kagome::common
 
 namespace kagome::consensus::babe {
@@ -270,7 +270,7 @@ namespace kagome::parachain {
     ApprovalDistribution(
         std::shared_ptr<consensus::babe::BabeConfigRepository> babe_config_repo,
         std::shared_ptr<application::AppStateManager> app_state_manager,
-        std::shared_ptr<common::WorkerThreadPool> worker_thread_pool,
+        std::shared_ptr<common::WorkerPoolHandler> worker_pool_handler,
         std::shared_ptr<runtime::ParachainHost> parachain_host,
         LazySPtr<consensus::SlotsUtil> slots_util,
         std::shared_ptr<crypto::CryptoStore> keystore,
@@ -710,7 +710,7 @@ namespace kagome::parachain {
     ApprovingContextMap approving_context_map_;
     std::shared_ptr<ThreadHandler> approval_thread_handler_;
 
-    std::shared_ptr<ThreadHandler> worker_thread_handler_;
+    std::shared_ptr<common::WorkerPoolHandler> worker_pool_handler_;
 
     std::shared_ptr<runtime::ParachainHost> parachain_host_;
     LazySPtr<consensus::SlotsUtil> slots_util_;
