@@ -27,7 +27,7 @@ namespace kagome::log {
 
   outcome::result<Level> str2lvl(std::string_view str);
 
-  void setLoggingSystem(std::shared_ptr<soralog::LoggingSystem> logging_system);
+  void setLoggingSystem(std::weak_ptr<soralog::LoggingSystem> logging_system);
 
   void tuneLoggingSystem(const std::vector<std::string> &cfg);
 

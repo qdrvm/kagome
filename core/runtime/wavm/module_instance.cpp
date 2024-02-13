@@ -150,6 +150,7 @@ namespace kagome::runtime::wavm {
       pushBorrowedRuntimeInstance(
           std::const_pointer_cast<ModuleInstanceImpl>(shared_from_this()));
       ::libp2p::common::FinalAction pop(&popBorrowedRuntimeInstance);
+      WasmSpan span;
       try {
         WAVM::Runtime::unwindSignalsAsExceptions(
             [&context,
@@ -166,15 +167,15 @@ namespace kagome::runtime::wavm {
                                             untaggedInvokeArgs.data(),
                                             resultsDestination);
             });
-        auto [res_ptr, res_size] = PtrSize{untaggedInvokeResults[0].i64};
-        return memory.get().loadN(res_ptr, res_size);
-
+        span = untaggedInvokeResults[0].u64;
       } catch (WAVM::Runtime::Exception *e) {
         const auto desc = WAVM::Runtime::describeException(e);
         logger_->error(desc);
         WAVM::Runtime::destroyException(e);
         return Error::EXECUTION_ERROR;
       }
+      OUTCOME_TRY(view, memory.get().view(span));
+      return common::Buffer{view};
     }();
     WAVM::Runtime::collectCompartmentGarbage(compartment_->getCompartment());
     return res;

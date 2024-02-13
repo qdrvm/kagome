@@ -179,13 +179,12 @@ namespace kagome::runtime::wasm_edge {
                                          returns.data(),
                                          1);
       WasmEdge_UNWRAP(res);
-      auto [ptr, size] = PtrSize{WasmEdge_ValueGetI64(returns[0])};
-      auto result = getEnvironment()
-                        .memory_provider->getCurrentMemory()
-                        .value()
-                        .get()
-                        .loadN(ptr, size);
-      return result;
+      WasmSpan span = WasmEdge_ValueGetI64(returns[0]);
+      OUTCOME_TRY(
+          view,
+          getEnvironment().memory_provider->getCurrentMemory()->get().view(
+              span));
+      return common::Buffer{view};
     }
 
     outcome::result<std::optional<WasmValue>> getGlobal(
@@ -389,7 +388,7 @@ namespace kagome::runtime::wasm_edge {
               "Failed to create a dir for compiled modules: {}", ec.message())};
         }
         if (!std::filesystem::exists(filename)) {
-          SL_INFO(log_, "Start compiling wasm module {}...", code_hash);
+          SL_INFO(log_, "Start compiling wasm module {}…", code_hash);
           WasmEdge_UNWRAP_COMPILE_ERR(WasmEdge_CompilerCompileFromBuffer(
               compiler.raw(), code.data(), code.size(), filename.c_str()));
           SL_INFO(log_, "Compilation finished, saved at {}", filename);

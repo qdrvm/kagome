@@ -24,18 +24,18 @@ namespace kagome::runtime {
     Trace = 4,
   };
 
-  using WasmPointer = int32_t;
+  using WasmPointer = uint32_t;
 
   /**
    * @brief combination of pointer and size, where less significant part
    * represents wasm pointer, and most significant represents size
    */
-  using WasmSpan = int64_t;
+  using WasmSpan = uint64_t;
 
   /**
    * @brief Size type is int32_t because we are working in 32 bit address space
    */
-  using WasmSize = int32_t;
+  using WasmSize = uint32_t;
 
   using WasmEnum = int32_t;
 
@@ -43,7 +43,7 @@ namespace kagome::runtime {
    * @brief Offset type is int32_t because we are working in 32 bit address
    * space
    */
-  using WasmOffset = int32_t;
+  using WasmOffset = uint32_t;
 
   using WasmI32 = int32_t;
   using WasmI64 = int64_t;
