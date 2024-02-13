@@ -10,7 +10,10 @@
 
 #include "application/app_configuration.hpp"
 #include "application/chain_spec.hpp"
-#include "injector/application_injector.hpp"
+
+namespace kagome::injector {
+  class KagomeNodeInjector;
+}
 
 namespace kagome::application {
 
@@ -24,7 +27,7 @@ namespace kagome::application {
    public:
     ~KagomeApplicationImpl() override;
 
-    explicit KagomeApplicationImpl(std::shared_ptr<AppConfiguration> config);
+    explicit KagomeApplicationImpl(injector::KagomeNodeInjector &injector);
 
     int chainInfo() override;
 
@@ -33,9 +36,9 @@ namespace kagome::application {
     void run() override;
 
    private:
-    std::shared_ptr<AppConfiguration> app_config_;
+    injector::KagomeNodeInjector &injector_;
 
-    std::unique_ptr<injector::KagomeNodeInjector> injector_;
+    std::shared_ptr<AppConfiguration> app_config_;
     std::shared_ptr<ChainSpec> chain_spec_;
 
     log::Logger logger_;

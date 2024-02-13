@@ -13,6 +13,7 @@
 #include "application/app_configuration.hpp"
 #include "authorship/proposer.hpp"
 #include "blockchain/block_tree.hpp"
+#include "common/worker_thread_pool.hpp"
 #include "consensus/babe/babe_config_repository.hpp"
 #include "consensus/babe/babe_lottery.hpp"
 #include "consensus/babe/impl/babe_block_validator_impl.hpp"
@@ -21,6 +22,7 @@
 #include "consensus/timeline/backoff.hpp"
 #include "consensus/timeline/impl/slot_leadership_error.hpp"
 #include "consensus/timeline/slots_util.hpp"
+#include "crypto/blake2/blake2b.h"
 #include "crypto/crypto_store/session_keys.hpp"
 #include "crypto/sr25519_provider.hpp"
 #include "dispute_coordinator/dispute_coordinator.hpp"
@@ -35,7 +37,6 @@
 #include "storage/changes_trie/impl/storage_changes_tracker_impl.hpp"
 #include "storage/trie/serialization/ordered_trie_hash.hpp"
 #include "telemetry/service.hpp"
-#include "utils/thread_pool.hpp"
 
 namespace {
   inline const auto kTimestampId =
@@ -81,8 +82,8 @@ namespace kagome::consensus::babe {
       primitives::events::ChainSubscriptionEnginePtr chain_sub_engine,
       std::shared_ptr<network::BlockAnnounceTransmitter> announce_transmitter,
       std::shared_ptr<runtime::OffchainWorkerApi> offchain_worker_api,
-      const ThreadPool &thread_pool,
-      WeakIoContext main_thread)
+      std::shared_ptr<common::WorkerThreadPool> worker_thread_pool,
+      WeakIoContext main_thread_context)
       : log_(log::createLogger("Babe", "babe")),
         clock_(clock),
         block_tree_(std::move(block_tree)),
@@ -102,8 +103,11 @@ namespace kagome::consensus::babe {
         chain_sub_engine_(std::move(chain_sub_engine)),
         announce_transmitter_(std::move(announce_transmitter)),
         offchain_worker_api_(std::move(offchain_worker_api)),
-        main_thread_(std::move(main_thread)),
-        wasm_thread_{thread_pool.io_context()},
+        main_thread_context_(std::move(main_thread_context)),
+        worker_thread_context_{[&] {
+          BOOST_ASSERT(worker_thread_pool);
+          return worker_thread_pool->io_context();
+        }()},
         is_validator_by_config_(app_config.roles().flags.authority != 0),
         telemetry_{telemetry::createTelemetryService()} {
     BOOST_ASSERT(block_tree_);
@@ -121,6 +125,8 @@ namespace kagome::consensus::babe {
     BOOST_ASSERT(chain_sub_engine_);
     BOOST_ASSERT(announce_transmitter_);
     BOOST_ASSERT(offchain_worker_api_);
+    BOOST_ASSERT(not main_thread_context_.expired());
+    BOOST_ASSERT(not worker_thread_context_.expired());
 
     // Register metrics
     metrics_registry_->registerGaugeFamily(
@@ -406,10 +412,10 @@ namespace kagome::consensus::babe {
           return;
         }
       };
-      post(self->main_thread_, std::move(proposed));
+      post(self->main_thread_context_, std::move(proposed));
     };
 
-    post(wasm_thread_, std::move(propose));
+    post(worker_thread_context_, std::move(propose));
 
     return outcome::success();
   }
@@ -426,16 +432,17 @@ namespace kagome::consensus::babe {
 
     // Ensure block's extrinsics root matches extrinsics in block's body
     BOOST_ASSERT_MSG(
-        [&block]() {
+        ([&block]() {
           using boost::adaptors::transformed;
           const auto &ext_root_res = storage::trie::calculateOrderedTrieHash(
               storage::trie::StateVersion::V0,
               block.body | transformed([](const auto &ext) {
                 return common::Buffer{scale::encode(ext).value()};
-              }));
+              }),
+              crypto::blake2b);
           return ext_root_res.has_value()
              and (ext_root_res.value() == block.header.extrinsics_root);
-        }(),
+        }()),
         "Extrinsics root does not match extrinsics in the block");
 
     // seal the block

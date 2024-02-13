@@ -6,113 +6,20 @@
 
 #pragma once
 
-#include <atomic>
-#include <memory>
-#include <optional>
-#include <thread>
-
-#include <boost/asio/executor_work_guard.hpp>
 #include <boost/asio/io_context.hpp>
 #include <soralog/util.hpp>
 
+#include "log/logger.hpp"
+#include "utils/thread_handler.hpp"
 #include "utils/watchdog.hpp"
-#include "utils/weak_io_context_post.hpp"
 
 namespace kagome {
-
-  class ThreadHandler final {
-    enum struct State : uint32_t { kStopped = 0, kStarted };
-
-   public:
-    struct Locked {
-      virtual ~Locked() = default;
-      virtual const std::shared_ptr<boost::asio::io_context> &io_context()
-          const = 0;
-    };
-
-    ThreadHandler(ThreadHandler &&) = delete;
-    ThreadHandler(const ThreadHandler &) = delete;
-
-    ThreadHandler &operator=(ThreadHandler &&) = delete;
-    ThreadHandler &operator=(const ThreadHandler &) = delete;
-
-    explicit ThreadHandler(WeakIoContext io_context)
-        : execution_state_{State::kStarted}, ioc_{std::move(io_context)} {}
-    ThreadHandler(std::shared_ptr<Locked> locked)
-        : execution_state_{State::kStarted},
-          ioc_{locked->io_context()},
-          locked_{locked} {}
-
-    ~ThreadHandler() = default;
-
-    void start() {
-      execution_state_.store(State::kStarted);
-    }
-
-    void stop() {
-      execution_state_.store(State::kStopped);
-    }
-
-    template <typename F>
-    void execute(F &&func) {
-      if (State::kStarted == execution_state_.load(std::memory_order_acquire)) {
-        post(ioc_, std::forward<F>(func));
-      }
-    }
-
-    friend void post(ThreadHandler &self, auto f) {
-      return self.execute(std::move(f));
-    }
-
-    bool isInCurrentThread() const {
-      return runningInThisThread(ioc_);
-    }
-
-    friend bool runningInThisThread(const ThreadHandler &self) {
-      return self.isInCurrentThread();
-    }
-
-    std::shared_ptr<boost::asio::io_context> io_context() {
-      return ioc_.lock();
-    }
-
-   private:
-    std::atomic<State> execution_state_;
-    WeakIoContext ioc_;
-    std::shared_ptr<Locked> locked_;
-  };
 
   /**
    * Creates `io_context` and runs it on `thread_count` threads.
    */
-  class ThreadPool final : public std::enable_shared_from_this<ThreadPool>,
-                           public ThreadHandler::Locked {
+  class ThreadPool {
     enum struct State : uint32_t { kStopped = 0, kStarted };
-
-    ThreadPool(std::shared_ptr<Watchdog> watchdog,
-               std::string_view pool_tag,
-               size_t thread_count)
-        : ioc_{std::make_shared<boost::asio::io_context>()},
-          work_guard_{ioc_->get_executor()} {
-      BOOST_ASSERT(ioc_);
-      BOOST_ASSERT(thread_count > 0);
-
-      threads_.reserve(thread_count);
-      for (size_t i = 0; i < thread_count; ++i) {
-        threads_.emplace_back([io{ioc_},
-                               watchdog,
-                               pool_tag = std::string(pool_tag),
-                               thread_count,
-                               n = i + 1] {
-          if (thread_count > 1) {
-            soralog::util::setThreadName(fmt::format("{}.{}", pool_tag, n));
-          } else {
-            soralog::util::setThreadName(pool_tag);
-          }
-          watchdog->run(io);
-        });
-      }
-    }
 
    public:
     ThreadPool(ThreadPool &&) = delete;
@@ -121,11 +28,46 @@ namespace kagome {
     ThreadPool &operator=(ThreadPool &&) = delete;
     ThreadPool &operator=(const ThreadPool &) = delete;
 
-    ~ThreadPool() {
-      ioc_->stop();
+    // Next nested struct and deleted ctor added to avoid unintended injections
+    struct Inject {
+      explicit Inject() = default;
+    };
+    explicit ThreadPool(Inject, ...);
+
+    ThreadPool(std::shared_ptr<Watchdog> watchdog,
+               std::string_view pool_tag,
+               size_t thread_count,
+               std::optional<std::shared_ptr<boost::asio::io_context>> ioc)
+        : log_(log::createLogger(fmt::format("ThreadPool:{}", pool_tag),
+                                 "threads")),
+          ioc_{ioc.has_value() ? std::move(ioc.value())
+                               : std::make_shared<boost::asio::io_context>()},
+          work_guard_{ioc_->get_executor()} {
+      BOOST_ASSERT(ioc_);
+      BOOST_ASSERT(thread_count > 0);
+
+      SL_TRACE(log_, "Pool created");
+      threads_.reserve(thread_count);
+      for (size_t i = 0; i < thread_count; ++i) {
+        std::string label(thread_count > 1
+                              ? fmt::format("{}.{}", pool_tag, i + 1)
+                              : pool_tag);
+        threads_.emplace_back(
+            [log(log_), io{ioc_}, watchdog, label{std::move(label)}] {
+              soralog::util::setThreadName(label);
+              SL_TRACE(log, "Thread '{}' started", label);
+              watchdog->run(io);
+              SL_TRACE(log, "Thread '{}' stopped", label);
+            });
+      }
+    }
+
+    virtual ~ThreadPool() {
       for (auto &thread : threads_) {
+        SL_TRACE(log_, "Joining thread...");
         thread.join();
       }
+      SL_TRACE(log_, "Pool destroyed");
     }
 
     /// to prevent creation without `shared_ptr`
@@ -145,6 +87,7 @@ namespace kagome {
     }
 
    private:
+    log::Logger log_;
     std::shared_ptr<boost::asio::io_context> ioc_;
     std::optional<boost::asio::executor_work_guard<
         boost::asio::io_context::executor_type>>

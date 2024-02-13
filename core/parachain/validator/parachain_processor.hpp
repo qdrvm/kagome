@@ -39,7 +39,15 @@
 #include "primitives/event_types.hpp"
 #include "utils/non_copyable.hpp"
 #include "utils/safe_object.hpp"
-#include "utils/thread_pool.hpp"
+#include "utils/weak_io_context.hpp"
+
+namespace kagome {
+  class ThreadHandler;
+}
+
+namespace kagome::common {
+  class WorkerThreadPool;
+}
 
 namespace kagome::network {
   class Router;
@@ -53,7 +61,7 @@ namespace kagome::crypto {
 
 namespace kagome::dispute {
   class RuntimeInfo;
-}  // namespace kagome::dispute
+}
 
 namespace kagome::parachain {
 
@@ -94,10 +102,10 @@ namespace kagome::parachain {
         std::shared_ptr<dispute::RuntimeInfo> runtime_info,
         std::shared_ptr<crypto::Sr25519Provider> crypto_provider,
         std::shared_ptr<network::Router> router,
-        WeakIoContext main_thread,
+        WeakIoContext main_thread_context,
         std::shared_ptr<crypto::Hasher> hasher,
         std::shared_ptr<network::PeerView> peer_view,
-        std::shared_ptr<ThreadPool> thread_pool,
+        std::shared_ptr<common::WorkerThreadPool> worker_thread_pool,
         std::shared_ptr<parachain::BitfieldSigner> bitfield_signer,
         std::shared_ptr<parachain::PvfPrecheck> pvf_precheck,
         std::shared_ptr<parachain::BitfieldStore> bitfield_store,
@@ -655,8 +663,7 @@ namespace kagome::parachain {
     } our_current_state_;
 
     std::unordered_map<RelayHash, PendingCollation> pending_candidates;
-    std::shared_ptr<ThreadHandler> this_context_;
-    WeakIoContext main_thread_;
+    WeakIoContext main_thread_context_;
     std::shared_ptr<crypto::Hasher> hasher_;
     std::shared_ptr<network::PeerView> peer_view_;
     network::PeerView::MyViewSubscriberPtr my_view_sub_;
@@ -676,7 +683,7 @@ namespace kagome::parachain {
     std::shared_ptr<authority_discovery::Query> query_audi_;
 
     std::shared_ptr<primitives::events::ChainEventSubscriber> chain_sub_;
-    std::shared_ptr<ThreadHandler> thread_handler_;
+    WeakIoContext worker_thread_context_;
     std::default_random_engine random_;
     std::shared_ptr<ProspectiveParachains> prospective_parachains_;
     Candidates candidates_;

@@ -9,6 +9,7 @@
 #include "network/reputation_repository.hpp"
 
 #include <memory>
+#include <mutex>
 #include <unordered_map>
 
 #include <libp2p/basic/scheduler.hpp>
@@ -35,6 +36,7 @@ namespace kagome::network {
    private:
     void tick();
 
+    mutable std::mutex mutex_;
     std::shared_ptr<libp2p::basic::Scheduler> scheduler_;
     std::unordered_map<PeerId, Reputation> reputation_table_;
 

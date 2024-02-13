@@ -65,8 +65,7 @@ namespace kagome::consensus::grandpa {
   std::optional<std::shared_ptr<const AuthoritySet>>
   AuthorityManagerImpl::authorities(const primitives::BlockInfo &target_block,
                                     IsBlockFinalized finalized) const {
-    if (auto r = block_tree_->hasBlockHeader(target_block.hash);
-        not r or not r.value()) {
+    if (not block_tree_->has(target_block.hash)) {
       return std::nullopt;
     }
     std::unique_lock lock{mutex_};

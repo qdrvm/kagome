@@ -77,21 +77,26 @@ namespace kagome::runtime::wasm_edge {
   }
 
   static outcome::result<WasmValue> convertValue(WasmEdge_Value v) {
-    switch (v.Type) {
-      case WasmEdge_ValType_I32:
-        return WasmEdge_ValueGetI32(v);
-      case WasmEdge_ValType_I64:
-        return WasmEdge_ValueGetI64(v);
-      case WasmEdge_ValType_F32:
-        return WasmEdge_ValueGetF32(v);
-      case WasmEdge_ValType_F64:
-        return WasmEdge_ValueGetF64(v);
-      case WasmEdge_ValType_V128:
-        return Error::INVALID_VALUE_TYPE;
-      case WasmEdge_ValType_FuncRef:
-        return Error::INVALID_VALUE_TYPE;
-      case WasmEdge_ValType_ExternRef:
-        return Error::INVALID_VALUE_TYPE;
+    if (WasmEdge_ValTypeIsEqual(v.Type, WasmEdge_ValTypeGenI32())) {
+      return WasmEdge_ValueGetI32(v);
+    }
+    if (WasmEdge_ValTypeIsEqual(v.Type, WasmEdge_ValTypeGenI64())) {
+      return WasmEdge_ValueGetI64(v);
+    }
+    if (WasmEdge_ValTypeIsEqual(v.Type, WasmEdge_ValTypeGenF32())) {
+      return WasmEdge_ValueGetF32(v);
+    }
+    if (WasmEdge_ValTypeIsEqual(v.Type, WasmEdge_ValTypeGenF64())) {
+      return WasmEdge_ValueGetF64(v);
+    }
+    if (WasmEdge_ValTypeIsEqual(v.Type, WasmEdge_ValTypeGenV128())) {
+      return Error::INVALID_VALUE_TYPE;
+    }
+    if (WasmEdge_ValTypeIsEqual(v.Type, WasmEdge_ValTypeGenFuncRef())) {
+      return Error::INVALID_VALUE_TYPE;
+    }
+    if (WasmEdge_ValTypeIsEqual(v.Type, WasmEdge_ValTypeGenExternRef())) {
+      return Error::INVALID_VALUE_TYPE;
     }
     BOOST_UNREACHABLE_RETURN({});
   }
@@ -174,13 +179,12 @@ namespace kagome::runtime::wasm_edge {
                                          returns.data(),
                                          1);
       WasmEdge_UNWRAP(res);
-      auto [ptr, size] = PtrSize{WasmEdge_ValueGetI64(returns[0])};
-      auto result = getEnvironment()
-                        .memory_provider->getCurrentMemory()
-                        .value()
-                        .get()
-                        .loadN(ptr, size);
-      return result;
+      WasmSpan span = WasmEdge_ValueGetI64(returns[0]);
+      OUTCOME_TRY(
+          view,
+          getEnvironment().memory_provider->getCurrentMemory()->get().view(
+              span));
+      return common::Buffer{view};
     }
 
     outcome::result<std::optional<WasmValue>> getGlobal(
@@ -196,16 +200,7 @@ namespace kagome::runtime::wasm_edge {
       return v;
     }
 
-    void forDataSegment(const DataSegmentProcessor &callback) const override {
-      uint32_t segments_num =
-          WasmEdge_ModuleInstanceListDataSegments(instance_.raw(), nullptr, 0);
-      std::vector<WasmEdge_DataSegment> segments(segments_num);
-      WasmEdge_ModuleInstanceListDataSegments(
-          instance_.raw(), segments.data(), segments.size());
-      for (auto &segment : segments) {
-        callback(segment.Offset, std::span{segment.Data, segment.Length});
-      }
-    }
+    void forDataSegment(const DataSegmentProcessor &callback) const override;
 
     const InstanceEnvironment &getEnvironment() const override {
       return env_;
@@ -334,7 +329,20 @@ namespace kagome::runtime::wasm_edge {
     const WasmEdge_MemoryTypeContext *memory_type_;
     ASTModuleContext module_;
     const common::Hash256 code_hash_;
+
+    friend class ModuleInstanceImpl;
   };
+
+  void ModuleInstanceImpl::forDataSegment(
+      const DataSegmentProcessor &callback) const {
+    auto raw = dynamic_cast<const ModuleImpl &>(*module_).module_.raw();
+    uint32_t segments_num = WasmEdge_ASTModuleListDataSegments(raw, nullptr, 0);
+    std::vector<WasmEdge_DataSegment> segments(segments_num);
+    WasmEdge_ASTModuleListDataSegments(raw, segments.data(), segments.size());
+    for (auto &segment : segments) {
+      callback(segment.Offset, std::span{segment.Data, segment.Length});
+    }
+  }
 
   ModuleFactoryImpl::ModuleFactoryImpl(
       std::shared_ptr<const crypto::Hasher> hasher,
@@ -366,6 +374,8 @@ namespace kagome::runtime::wasm_edge {
 
     switch (config_.exec) {
       case ExecType::Compiled: {
+        WasmEdge_ConfigureCompilerSetOptimizationLevel(
+            configure_ctx.raw(), WasmEdge_CompilerOptimizationLevel_O3);
         CompilerContext compiler = WasmEdge_CompilerCreate(configure_ctx.raw());
         std::string filename = fmt::format("{}/wasm_{}",
                                            config_.compiled_module_dir.c_str(),
@@ -378,7 +388,7 @@ namespace kagome::runtime::wasm_edge {
               "Failed to create a dir for compiled modules: {}", ec.message())};
         }
         if (!std::filesystem::exists(filename)) {
-          SL_INFO(log_, "Start compiling wasm module {}...", code_hash);
+          SL_INFO(log_, "Start compiling wasm module {}…", code_hash);
           WasmEdge_UNWRAP_COMPILE_ERR(WasmEdge_CompilerCompileFromBuffer(
               compiler.raw(), code.data(), code.size(), filename.c_str()));
           SL_INFO(log_, "Compilation finished, saved at {}", filename);

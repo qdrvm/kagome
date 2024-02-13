@@ -20,14 +20,6 @@ target_link_libraries(io_extension_test
     logger_for_tests
     )
 
-addtest(memory_extension_test
-    memory_extension_test.cpp)
-target_link_libraries(memory_extension_test
-    memory_extension
-    logger_for_tests
-    hexutil
-    )
-
 addtest(misc_extension_test
     misc_extension_test.cpp
     )
@@ -44,6 +36,7 @@ target_link_libraries(storage_extension_test
     storage_extension
     dummy_error
     logger_for_tests
+    hasher
     )
 
 addtest(child_storage_extension_test
@@ -60,7 +53,7 @@ addtest(offchain_extension_test
     )
 target_link_libraries(offchain_extension_test
     Boost::boost
-    scale::scale_encode_append
+    scale::scale
     offchain_extension
     dummy_error
     logger_for_tests

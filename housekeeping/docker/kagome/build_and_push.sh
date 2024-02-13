@@ -5,8 +5,11 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
-if [[ "${CI}" ]]; then # CI
+if [[ "${CI}" ]]; then
   git config --global --add safe.directory /__w/kagome/kagome
+fi
+
+if [[ "${KAGOME_IN_DOCKER}" = 1 ]]; then
   source /venv/bin/activate
 fi
 
@@ -25,7 +28,7 @@ if [ "$BUILD_TYPE" != "Debug" ] && [ "$BUILD_TYPE" != "Release" ] && [ "$BUILD_T
 fi
 
 VERSION="${VERSION:?VERSION variable is not defined}"
-VERSION_COMMIT="${VERSION}"
+
 # For github action we need remove ref prefix
 if [ "$VERSION" = "refs/heads/master" ]; then
   VERSION=latest

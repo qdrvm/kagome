@@ -18,22 +18,32 @@ namespace kagome::runtime::wasm_edge {
 
   template <>
   WasmEdge_ValType get_wasm_type<int32_t>() {
-    return WasmEdge_ValType_I32;
+    return WasmEdge_ValTypeGenI32();
+  }
+
+  template <>
+  WasmEdge_ValType get_wasm_type<uint32_t>() {
+    return WasmEdge_ValTypeGenI32();
   }
 
   template <>
   WasmEdge_ValType get_wasm_type<int64_t>() {
-    return WasmEdge_ValType_I64;
+    return WasmEdge_ValTypeGenI64();
+  }
+
+  template <>
+  WasmEdge_ValType get_wasm_type<uint64_t>() {
+    return WasmEdge_ValTypeGenI64();
   }
 
   template <>
   WasmEdge_ValType get_wasm_type<float>() {
-    return WasmEdge_ValType_F32;
+    return WasmEdge_ValTypeGenF32();
   }
 
   template <>
   WasmEdge_ValType get_wasm_type<double>() {
-    return WasmEdge_ValType_F64;
+    return WasmEdge_ValTypeGenF64();
   }
 
   template <typename T>
@@ -45,7 +55,17 @@ namespace kagome::runtime::wasm_edge {
   }
 
   template <>
+  uint64_t get_wasm_value<uint64_t>(WasmEdge_Value v) {
+    return WasmEdge_ValueGetI64(v);
+  }
+
+  template <>
   int32_t get_wasm_value<int32_t>(WasmEdge_Value v) {
+    return WasmEdge_ValueGetI32(v);
+  }
+
+  template <>
+  uint32_t get_wasm_value<uint32_t>(WasmEdge_Value v) {
     return WasmEdge_ValueGetI32(v);
   }
 
@@ -238,6 +258,7 @@ namespace kagome::runtime::wasm_edge {
     REGISTER_HOST_METHOD(int32_t, ext_storage_exists_version_1, int64_t)
     REGISTER_HOST_METHOD(int32_t, ext_trie_blake2_256_ordered_root_version_1, int64_t)
     REGISTER_HOST_METHOD(int32_t, ext_trie_blake2_256_ordered_root_version_2, int64_t, int32_t)
+    REGISTER_HOST_METHOD(int32_t, ext_trie_keccak_256_ordered_root_version_2, int64_t, int32_t)
     REGISTER_HOST_METHOD(int32_t, ext_trie_blake2_256_root_version_1, int64_t)
     REGISTER_HOST_METHOD(int64_t, ext_crypto_ed25519_public_keys_version_1, int32_t)
     REGISTER_HOST_METHOD(int64_t, ext_crypto_ed25519_sign_version_1, int32_t, int32_t, int64_t)

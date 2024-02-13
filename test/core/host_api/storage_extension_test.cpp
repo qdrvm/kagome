@@ -12,7 +12,7 @@
 #include <gtest/gtest.h>
 #include <scale/scale.hpp>
 
-#include "mock/core/runtime/memory_mock.hpp"
+#include "crypto/hasher/hasher_impl.hpp"
 #include "mock/core/runtime/memory_provider_mock.hpp"
 #include "mock/core/runtime/trie_storage_provider_mock.hpp"
 #include "mock/core/storage/trie/polkadot_trie_cursor_mock.h"
@@ -26,15 +26,15 @@
 #include "testutil/outcome/dummy_error.hpp"
 #include "testutil/prepare_loggers.hpp"
 #include "testutil/scale_test_comparator.hpp"
+#include "testutil/runtime/memory.hpp"
 
 using kagome::common::Buffer;
 using kagome::common::BufferView;
 using kagome::common::Hash256;
 using kagome::host_api::StorageExtension;
-using kagome::runtime::Memory;
-using kagome::runtime::MemoryMock;
 using kagome::runtime::MemoryProviderMock;
 using kagome::runtime::PtrSize;
+using kagome::runtime::TestMemory;
 using kagome::runtime::TrieStorageProviderMock;
 using kagome::runtime::WasmOffset;
 using kagome::runtime::WasmPointer;
@@ -61,18 +61,18 @@ class StorageExtensionTest : public ::testing::Test {
     EXPECT_CALL(*storage_provider_, getCurrentBatch())
         .WillRepeatedly(Return(trie_batch_));
     memory_provider_ = std::make_shared<MemoryProviderMock>();
-    memory_ = std::make_shared<MemoryMock>();
     EXPECT_CALL(*memory_provider_, getCurrentMemory())
-        .WillRepeatedly(
-            Return(std::optional<std::reference_wrapper<Memory>>(*memory_)));
-    storage_extension_ =
-        std::make_shared<StorageExtension>(storage_provider_, memory_provider_);
+        .WillRepeatedly(Return(std::ref(memory_)));
+    storage_extension_ = std::make_shared<StorageExtension>(
+        storage_provider_,
+        memory_provider_,
+        std::make_shared<kagome::crypto::HasherImpl>());
   }
 
  protected:
   std::shared_ptr<TrieBatchMock> trie_batch_;
   std::shared_ptr<TrieStorageProviderMock> storage_provider_;
-  std::shared_ptr<MemoryMock> memory_;
+  TestMemory memory_;
   std::shared_ptr<MemoryProviderMock> memory_provider_;
   std::shared_ptr<StorageExtension> storage_extension_;
   PolkadotCodec codec_;
@@ -102,18 +102,13 @@ class BuffersParametrizedTest
  * @then prefix is loaded from the memory @and clearPrefix is invoked on storage
  */
 TEST_F(StorageExtensionTest, ClearPrefixTest) {
-  WasmPointer prefix_pointer = 42;
-  WasmSize prefix_size = 42;
   Buffer prefix(8, 'p');
 
-  EXPECT_CALL(*memory_, loadN(prefix_pointer, prefix_size))
-      .WillOnce(Return(prefix));
   EXPECT_CALL(*trie_batch_, clearPrefix(BufferView{prefix}, _))
       .Times(1)
       .WillOnce(Return(outcome::success()));
 
-  storage_extension_->ext_storage_clear_prefix_version_1(
-      PtrSize{prefix_pointer, prefix_size}.combine());
+  storage_extension_->ext_storage_clear_prefix_version_1(memory_[prefix]);
 }
 
 /**
@@ -122,16 +117,12 @@ TEST_F(StorageExtensionTest, ClearPrefixTest) {
  * @then key is loaded from the memory @and del is invoked on storage
  */
 TEST_P(OutcomeParameterizedTest, ClearStorageTest) {
-  WasmPointer key_pointer = 43;
-  WasmSize key_size = 43;
   Buffer key(8, 'k');
 
-  EXPECT_CALL(*memory_, loadN(key_pointer, key_size)).WillOnce(Return(key));
   EXPECT_CALL(*trie_batch_, remove(BufferView{key}))
       .WillOnce(Return(GetParam()));
 
-  storage_extension_->ext_storage_clear_version_1(
-      PtrSize{key_pointer, key_size}.combine());
+  storage_extension_->ext_storage_clear_version_1(memory_[key]);
 }
 
 /**
@@ -140,19 +131,15 @@ TEST_P(OutcomeParameterizedTest, ClearStorageTest) {
  * @then result is the same as result of contains on given key
  */
 TEST_F(StorageExtensionTest, ExistsStorageTest) {
-  WasmPointer key_pointer = 43;
-  WasmSize key_size = 43;
   Buffer key(8, 'k');
 
   /// result of contains method on db
   WasmSize contains = 1;
 
-  EXPECT_CALL(*memory_, loadN(key_pointer, key_size)).WillOnce(Return(key));
   EXPECT_CALL(*trie_batch_, contains(key.view())).WillOnce(Return(contains));
 
   ASSERT_EQ(contains,
-            storage_extension_->ext_storage_exists_version_1(
-                PtrSize{key_pointer, key_size}.combine()));
+            storage_extension_->ext_storage_exists_version_1(memory_[key]));
 }
 
 /**
@@ -164,14 +151,8 @@ TEST_F(StorageExtensionTest, ExistsStorageTest) {
 TEST_F(StorageExtensionTest, NextKey) {
   // as wasm logic is mocked, it is okay that key and next_key 'intersect' in
   // wasm memory
-  WasmPointer key_pointer = 43;
-  WasmSize key_size = 8;
-  Buffer key(key_size, 'k');
-  WasmPointer next_key_pointer = 44;
-  WasmSize next_key_size = 9;
-  Buffer expected_next_key(next_key_size, 'k');
-
-  EXPECT_CALL(*memory_, loadN(key_pointer, key_size)).WillOnce(Return(key));
+  Buffer key(8, 'k');
+  Buffer expected_next_key(9, 'k');
 
   EXPECT_CALL(*trie_batch_, trieCursor())
       .WillOnce(Invoke([&key, &expected_next_key]() {
@@ -182,20 +163,10 @@ TEST_F(StorageExtensionTest, NextKey) {
         return cursor;
       }));
 
-  auto expected_key_span = PtrSize{next_key_pointer, next_key_size}.combine();
-  EXPECT_CALL(*memory_, storeBuffer(_))
-      .WillOnce(Invoke(
-          [&expected_next_key, &expected_key_span](auto &&buffer) -> WasmSpan {
-            EXPECT_OUTCOME_TRUE(key_opt,
-                                scale::decode<std::optional<Buffer>>(buffer));
-            EXPECT_TRUE(key_opt.has_value());
-            EXPECT_EQ(key_opt.value(), expected_next_key);
-            return expected_key_span;
-          }));
-
-  auto next_key_span = storage_extension_->ext_storage_next_key_version_1(
-      PtrSize{key_pointer, key_size}.combine());
-  ASSERT_EQ(expected_key_span, next_key_span);
+  ASSERT_EQ(
+      memory_.decode<std::optional<Buffer>>(
+          storage_extension_->ext_storage_next_key_version_1(memory_[key])),
+      expected_next_key);
 }
 
 /**
@@ -205,11 +176,7 @@ TEST_F(StorageExtensionTest, NextKey) {
  * @then an address of none value is returned
  */
 TEST_F(StorageExtensionTest, NextKeyLastKey) {
-  WasmPointer key_pointer = 43;
-  WasmSize key_size = 8;
-  Buffer key(key_size, 'k');
-
-  EXPECT_CALL(*memory_, loadN(key_pointer, key_size)).WillOnce(Return(key));
+  Buffer key(8, 'k');
 
   EXPECT_CALL(*trie_batch_, trieCursor()).WillOnce(Invoke([&key]() {
     auto cursor = std::make_unique<PolkadotTrieCursorMock>();
@@ -219,16 +186,10 @@ TEST_F(StorageExtensionTest, NextKeyLastKey) {
     return cursor;
   }));
 
-  EXPECT_CALL(*memory_, storeBuffer(_))
-      .WillOnce(Invoke([](auto &&buffer) -> WasmSpan {
-        EXPECT_OUTCOME_TRUE(key_opt,
-                            scale::decode<std::optional<Buffer>>(buffer));
-        EXPECT_EQ(key_opt, std::nullopt);
-        return 0;  // don't need the result
-      }));
-
-  storage_extension_->ext_storage_next_key_version_1(
-      PtrSize{key_pointer, key_size}.combine());
+  ASSERT_EQ(
+      memory_.decode<std::optional<Buffer>>(
+          storage_extension_->ext_storage_next_key_version_1(memory_[key])),
+      std::nullopt);
 }
 
 /**
@@ -237,11 +198,7 @@ TEST_F(StorageExtensionTest, NextKeyLastKey) {
  * @then an invalid address is returned
  */
 TEST_F(StorageExtensionTest, NextKeyEmptyTrie) {
-  WasmPointer key_pointer = 43;
-  WasmSize key_size = 8;
-  Buffer key(key_size, 'k');
-
-  EXPECT_CALL(*memory_, loadN(key_pointer, key_size)).WillOnce(Return(key));
+  Buffer key(8, 'k');
 
   EXPECT_CALL(*trie_batch_, trieCursor()).WillOnce(Invoke([&key]() {
     auto cursor = std::make_unique<PolkadotTrieCursorMock>();
@@ -251,16 +208,10 @@ TEST_F(StorageExtensionTest, NextKeyEmptyTrie) {
     return cursor;
   }));
 
-  EXPECT_CALL(*memory_, storeBuffer(_))
-      .WillOnce(Invoke([](auto &&buffer) -> WasmSpan {
-        EXPECT_OUTCOME_TRUE(key_opt,
-                            scale::decode<std::optional<Buffer>>(buffer));
-        EXPECT_EQ(key_opt, std::nullopt);
-        return 0;
-      }));
-
-  storage_extension_->ext_storage_next_key_version_1(
-      PtrSize{key_pointer, key_size}.combine());
+  ASSERT_EQ(
+      memory_.decode<std::optional<Buffer>>(
+          storage_extension_->ext_storage_next_key_version_1(memory_[key])),
+      std::nullopt);
 }
 
 /**
@@ -269,26 +220,14 @@ TEST_F(StorageExtensionTest, NextKeyEmptyTrie) {
  * @then provided key and value are put to db
  */
 TEST_P(OutcomeParameterizedTest, SetStorageTest) {
-  WasmPointer key_pointer = 43;
-  WasmSize key_size = 43;
   Buffer key(8, 'k');
-
-  WasmPointer value_pointer = 42;
-  WasmSize value_size = 41;
   Buffer value(8, 'v');
-
-  // expect key and value were loaded
-  EXPECT_CALL(*memory_, loadN(key_pointer, key_size)).WillOnce(Return(key));
-  EXPECT_CALL(*memory_, loadN(value_pointer, value_size))
-      .WillOnce(Return(value));
 
   // expect key-value pair was put to db
   EXPECT_CALL(*trie_batch_, put(key.view(), value))
       .WillOnce(Return(GetParam()));
 
-  storage_extension_->ext_storage_set_version_1(
-      PtrSize{key_pointer, key_size}.combine(),
-      PtrSize{value_pointer, value_size}.combine());
+  storage_extension_->ext_storage_set_version_1(memory_[key], memory_[value]);
 }
 
 /**
@@ -297,32 +236,24 @@ TEST_P(OutcomeParameterizedTest, SetStorageTest) {
  * @then data read from db with given key
  */
 TEST_P(OutcomeParameterizedTest, StorageReadTest) {
-  PtrSize key(43, 43);
-  Buffer key_data(key.size, 'k');
-  PtrSize value(42, 41);
-  Buffer value_data(value.size, 'v');
+  Buffer key(8, 'k');
+  Buffer value(8, 'v');
   WasmOffset offset = 4;
-  Buffer offset_value_data = value_data.subbuffer(offset);
-  ASSERT_EQ(offset_value_data.size(), value_data.size() - offset);
-  EXPECT_OUTCOME_TRUE(
-      encoded_opt_offset_val_size,
-      testutil::scaleEncodeAndCompareWithRef(
-          std::make_optional<uint32_t>(offset_value_data.size())));
-  WasmSpan res_wasm_span = 1337;
+  std::optional<uint32_t> result{value.size() - offset};
 
   // expect key loaded, then data stored
-  EXPECT_CALL(*memory_, loadN(key.ptr, key.size)).WillOnce(Return(key_data));
   EXPECT_CALL(*storage_provider_, getCurrentBatch())
       .WillOnce(Return(trie_batch_));
-  EXPECT_CALL(*trie_batch_, tryGetMock(key_data.view()))
-      .WillOnce(Return(value_data));
-  EXPECT_CALL(*memory_, storeBuffer(value.ptr, BufferView(offset_value_data)));
-  EXPECT_CALL(*memory_, storeBuffer(BufferView(encoded_opt_offset_val_size)))
-      .WillOnce(Return(res_wasm_span));
+  EXPECT_CALL(*trie_batch_, tryGetMock(key.view())).WillOnce(Return(value));
 
-  ASSERT_EQ(res_wasm_span,
-            storage_extension_->ext_storage_read_version_1(
-                key.combine(), value.combine(), offset));
+  auto value_span = memory_.allocate2(2);
+  ASSERT_EQ(memory_.decode<decltype(result)>(
+                storage_extension_->ext_storage_read_version_1(
+                    memory_[key], value_span.combine(), offset)),
+            result);
+  auto n = std::min<size_t>(value_span.size, value.size());
+  ASSERT_EQ(memory_.view(value_span.ptr, n).value(),
+            SpanAdl{value.view(offset, n)});
 }
 
 INSTANTIATE_TEST_SUITE_P(Instance,
@@ -337,106 +268,73 @@ INSTANTIATE_TEST_SUITE_P(Instance,
 
 TEST_F(StorageExtensionTest, ExtStorageAppendTest) {
   // @given key and two values
-  PtrSize key(43, 43);
-  Buffer key_data(key.size, 'k');
-
-  Buffer value_data1(42, '1');
-  Buffer value_data1_encoded{
-      testutil::scaleEncodeAndCompareWithRef(value_data1).value()};
-  PtrSize value1(42, value_data1_encoded.size());
-
-  Buffer value_data2(43, '2');
-  Buffer value_data2_encoded{
-      testutil::scaleEncodeAndCompareWithRef(value_data2).value()};
-  PtrSize value2(45, value_data2_encoded.size());
-
-  // @given wasm memory that can provide these key and values
-  EXPECT_CALL(*memory_, loadN(key.ptr, key.size))
-      .WillRepeatedly(Return(key_data));
-  EXPECT_CALL(*memory_, loadN(value1.ptr, value1.size))
-      .WillOnce(Return(value_data1_encoded));
-  EXPECT_CALL(*memory_, loadN(value2.ptr, value2.size))
-      .WillOnce(Return(value_data2_encoded));
+  Buffer key(8, 'k');
+  Buffer value1(42, '1');
+  Buffer value2(43, '2');
 
   std::vector<scale::EncodeOpaqueValue> vals;
   Buffer vals_encoded;
   {
     // @when there is no value by given key in trie
-    EXPECT_CALL(*trie_batch_, tryGetMock(key_data.view()))
+    EXPECT_CALL(*trie_batch_, tryGetMock(key.view()))
         .WillOnce(Return(std::nullopt));
 
     // @then storage is inserted by scale encoded vector containing
     // EncodeOpaqueValue with value1
-    vals.push_back(scale::EncodeOpaqueValue{value_data1_encoded.asVector()});
-    vals_encoded = Buffer(testutil::scaleEncodeAndCompareWithRef(vals).value());
-    EXPECT_CALL(*trie_batch_, put(key_data.view(), vals_encoded))
+    vals.push_back(scale::EncodeOpaqueValue{value1});
+    vals_encoded = Buffer(scale::encode(vals).value());
+    EXPECT_CALL(*trie_batch_, put(key.view(), vals_encoded))
         .WillOnce(Return(outcome::success()));
 
-    storage_extension_->ext_storage_append_version_1(key.combine(),
-                                                     value1.combine());
+    storage_extension_->ext_storage_append_version_1(memory_[key],
+                                                     memory_[value1]);
   }
 
   {
     // @when there is a value by given key (inserted above)
-    EXPECT_CALL(*trie_batch_, tryGetMock(key_data.view()))
+    EXPECT_CALL(*trie_batch_, tryGetMock(key.view()))
         .WillOnce(Return(vals_encoded));
 
     // @then storage is inserted by scale encoded vector containing two
     // EncodeOpaqueValues with value1 and value2
-    vals.push_back(scale::EncodeOpaqueValue{value_data2_encoded.asVector()});
-    vals_encoded = Buffer(testutil::scaleEncodeAndCompareWithRef(vals).value());
-    EXPECT_CALL(*trie_batch_, put(key_data.view(), vals_encoded))
+    vals.push_back(scale::EncodeOpaqueValue{value2});
+    vals_encoded = Buffer(scale::encode(vals).value());
+    EXPECT_CALL(*trie_batch_, put(key.view(), vals_encoded))
         .WillOnce(Return(outcome::success()));
 
-    storage_extension_->ext_storage_append_version_1(key.combine(),
-                                                     value2.combine());
+    storage_extension_->ext_storage_append_version_1(memory_[key],
+                                                     memory_[value2]);
   }
 }
 
 TEST_F(StorageExtensionTest, ExtStorageAppendTestCompactLenChanged) {
   // @given key and two values
-  PtrSize key(43, 43);
-  Buffer key_data(key.size, 'k');
-
-  Buffer value_data1(42, '1');
-  Buffer value_data1_encoded{
-      testutil::scaleEncodeAndCompareWithRef(value_data1).value()};
-  PtrSize value1(42, value_data1_encoded.size());
-
-  Buffer value_data2(43, '2');
-  Buffer value_data2_encoded{
-      testutil::scaleEncodeAndCompareWithRef(value_data2).value()};
-  PtrSize value2(45, value_data2_encoded.size());
-
-  // @given wasm memory that can provide these key and values
-  EXPECT_CALL(*memory_, loadN(key.ptr, key.size))
-      .WillRepeatedly(Return(key_data));
-  EXPECT_CALL(*memory_, loadN(value2.ptr, value2.size))
-      .WillOnce(Return(value_data2_encoded));
+  Buffer key(8, 'k');
+  Buffer value1(1, '1');
+  Buffer value2(43, '2');
 
   // @when vals contains (2^6 - 1) elements (high limit for one-byte compact
   // integers)
   std::vector<scale::EncodeOpaqueValue> vals(
       scale::compact::EncodingCategoryLimits::kMinUint16 - 1,
-      scale::EncodeOpaqueValue{value_data1_encoded.asVector()});
-  Buffer vals_encoded =
-      Buffer(testutil::scaleEncodeAndCompareWithRef(vals).value());
+      scale::EncodeOpaqueValue{value1});
+  Buffer vals_encoded = Buffer(scale::encode(vals).value());
 
   {
     // @when encoded vals is stored by given key
-    EXPECT_CALL(*trie_batch_, tryGetMock(key_data.view()))
+    EXPECT_CALL(*trie_batch_, tryGetMock(key.view()))
         .WillOnce(Return(vals_encoded));
 
     // @when storage is inserted by one more value by the same key
-    vals.push_back(scale::EncodeOpaqueValue{value_data2_encoded.asVector()});
-    vals_encoded = Buffer(testutil::scaleEncodeAndCompareWithRef(vals).value());
+    vals.push_back(scale::EncodeOpaqueValue{value2});
+    vals_encoded = Buffer(scale::encode(vals).value());
 
     // @then everything fine: storage is inserted with vals with new value
-    EXPECT_CALL(*trie_batch_, put(key_data.view(), vals_encoded))
+    EXPECT_CALL(*trie_batch_, put(key.view(), vals_encoded))
         .WillOnce(Return(outcome::success()));
 
-    storage_extension_->ext_storage_append_version_1(key.combine(),
-                                                     value2.combine());
+    storage_extension_->ext_storage_append_version_1(memory_[key],
+                                                     memory_[value2]);
   }
 }
 
@@ -449,46 +347,13 @@ TEST_F(StorageExtensionTest, ExtStorageAppendTestCompactLenChanged) {
  */
 TEST_P(BuffersParametrizedTest, Blake2_256_EnumeratedTrieRoot) {
   auto &[values, hash_array] = GetParam();
-  auto values_enc = testutil::scaleEncodeAndCompareWithRef(values).value();
-
-  PtrSize values_span{42, static_cast<WasmSize>(values_enc.size())};
-
-  EXPECT_CALL(*memory_, loadN(values_span.ptr, values_span.size))
-      .WillOnce(Return(Buffer{values_enc}));
-  WasmPointer result = 1984;
-  EXPECT_CALL(*memory_, storeBuffer(BufferView(hash_array)))
-      .WillOnce(Return(result));
-
-  storage_extension_->ext_trie_blake2_256_ordered_root_version_1(
-      values_span.combine());
-}
-
-/**
- * @given a set of values, which ordered trie hash we want to calculate from
- * wasm
- * @when calling an extension method ext_blake2_256_ordered_trie_root
- * @then the method reads the data from wasm memory properly and stores the
- * result in the wasm memory
- */
-TEST_P(BuffersParametrizedTest, Blake2_256_OrderedTrieRootV1) {
-  auto &[values, hash_array] = GetParam();
-
-  WasmPointer values_ptr = 1;
-  WasmSize values_size = 2;
-  WasmSpan values_data = PtrSize(values_ptr, values_size).combine();
-  WasmPointer result = 1984;
-
-  Buffer buffer{testutil::scaleEncodeAndCompareWithRef(values).value()};
-
-  EXPECT_CALL(*memory_, loadN(values_ptr, values_size))
-      .WillOnce(Return(buffer));
-
-  EXPECT_CALL(*memory_, storeBuffer(BufferView(hash_array)))
-      .WillOnce(Return(result));
-
-  ASSERT_EQ(result,
-            storage_extension_->ext_trie_blake2_256_ordered_root_version_1(
-                values_data));
+  ASSERT_EQ(
+      memory_
+          .view(storage_extension_->ext_trie_blake2_256_ordered_root_version_1(
+                    memory_.encode(values)),
+                hash_array.size())
+          .value(),
+      SpanAdl{hash_array});
 }
 
 INSTANTIATE_TEST_SUITE_P(
@@ -511,31 +376,15 @@ INSTANTIATE_TEST_SUITE_P(
  * @then corresponding value will be returned
  */
 TEST_F(StorageExtensionTest, StorageGetV1Test) {
-  WasmPointer key_pointer = 43;
-  WasmSize key_size = 43;
   Buffer key(8, 'k');
-
-  WasmPointer value_pointer = 42;
-  WasmSize value_size = 41;
-
-  WasmSpan value_span = PtrSize(value_pointer, value_size).combine();
-  WasmSpan key_span = PtrSize(key_pointer, key_size).combine();
-
   Buffer value(8, 'v');
-  auto encoded_opt_value =
-      testutil::scaleEncodeAndCompareWithRef<std::optional<Buffer>>(value)
-          .value();
-
-  // expect key and value were loaded
-  EXPECT_CALL(*memory_, loadN(key_pointer, key_size)).WillOnce(Return(key));
-  EXPECT_CALL(*memory_, storeBuffer(BufferView(encoded_opt_value)))
-      .WillOnce(Return(value_span));
 
   // expect key-value pair was put to db
   EXPECT_CALL(*trie_batch_, tryGetMock(key.view())).WillOnce(Return(value));
 
-  ASSERT_EQ(value_span,
-            storage_extension_->ext_storage_get_version_1(key_span));
+  ASSERT_EQ(memory_.decode<std::optional<Buffer>>(
+                storage_extension_->ext_storage_get_version_1(memory_[key])),
+            value);
 }
 
 /**
@@ -545,19 +394,15 @@ TEST_F(StorageExtensionTest, StorageGetV1Test) {
  * @then result is the same as result of contains on given key
  */
 TEST_F(StorageExtensionTest, ExtStorageExistsV1Test) {
-  WasmPointer key_pointer = 43;
-  WasmSize key_size = 43;
   Buffer key(8, 'k');
-  WasmSpan key_span = PtrSize(key_pointer, key_size).combine();
 
   /// result of contains method on db
   WasmSize contains = 1;
 
-  EXPECT_CALL(*memory_, loadN(key_pointer, key_size)).WillOnce(Return(key));
   EXPECT_CALL(*trie_batch_, contains(key.view())).WillOnce(Return(contains));
 
   ASSERT_EQ(contains,
-            storage_extension_->ext_storage_exists_version_1(key_span));
+            storage_extension_->ext_storage_exists_version_1(memory_[key]));
 }
 
 /**
@@ -567,18 +412,13 @@ TEST_F(StorageExtensionTest, ExtStorageExistsV1Test) {
  * @then prefix is loaded from the memory @and clearPrefix is invoked on storage
  */
 TEST_F(StorageExtensionTest, ExtStorageClearPrefixV1Test) {
-  WasmPointer prefix_pointer = 42;
-  WasmSize prefix_size = 42;
   Buffer prefix(8, 'p');
-  WasmSpan prefix_span = PtrSize(prefix_pointer, prefix_size).combine();
 
-  EXPECT_CALL(*memory_, loadN(prefix_pointer, prefix_size))
-      .WillOnce(Return(prefix));
   EXPECT_CALL(*trie_batch_, clearPrefix(prefix.view(), _))
       .Times(1)
       .WillOnce(Return(outcome::success()));
 
-  storage_extension_->ext_storage_clear_prefix_version_1(prefix_span);
+  storage_extension_->ext_storage_clear_prefix_version_1(memory_[prefix]);
 }
 
 /**
@@ -588,39 +428,19 @@ TEST_F(StorageExtensionTest, ExtStorageClearPrefixV1Test) {
  * storage with limit
  */
 TEST_F(StorageExtensionTest, ExtStorageClearPrefixV2Test) {
-  WasmPointer prefix_pointer = 42;
-  WasmSize prefix_size = 42;
   Buffer prefix(8, 'p');
-  WasmSpan prefix_span = PtrSize(prefix_pointer, prefix_size).combine();
-
-  WasmPointer limit_pointer = 43;
-  WasmSize limit_size = 43;
   uint32_t limit{22};
-  WasmSpan limit_span = PtrSize(limit_pointer, limit_size).combine();
-  Buffer encoded_opt_limit{
-      testutil::scaleEncodeAndCompareWithRef(std::make_optional(limit))
-          .value()};
-
-  EXPECT_CALL(*memory_, loadN(prefix_pointer, prefix_size))
-      .WillOnce(Return(prefix));
-  EXPECT_CALL(*memory_, loadN(limit_pointer, limit_size))
-      .WillOnce(Return(encoded_opt_limit));
 
   std::tuple<bool, uint32_t> result(true, 22);
   EXPECT_CALL(*trie_batch_,
               clearPrefix(prefix.view(), std::make_optional<uint64_t>(limit)))
       .WillOnce(Return(outcome::success(result)));
 
-  auto enc_result = testutil::scaleEncodeAndCompareWithRef(result).value();
-  WasmPointer result_pointer = 43;
-  WasmSize result_size = 43;
-  WasmSpan result_span = PtrSize(result_pointer, result_size).combine();
-  EXPECT_CALL(*memory_, storeBuffer(BufferView(enc_result)))
-      .WillOnce(Return(result_span));
-
-  ASSERT_EQ(result_span,
-            storage_extension_->ext_storage_clear_prefix_version_2(prefix_span,
-                                                                   limit_span));
+  ASSERT_EQ(
+      memory_.decode<decltype(result)>(
+          storage_extension_->ext_storage_clear_prefix_version_2(
+              memory_[prefix], memory_.encode(std::make_optional(limit)))),
+      result);
 }
 
 /**
@@ -630,16 +450,12 @@ TEST_F(StorageExtensionTest, ExtStorageClearPrefixV2Test) {
  */
 TEST_F(StorageExtensionTest, RootTest) {
   // rest of ext_storage_root_version_1
-  WasmPointer root_pointer = 43;
-  WasmSize root_size = Hash256::size();
   RootHash root_val = "123456"_hash256;
-  WasmSpan root_span = PtrSize(root_pointer, root_size).combine();
   EXPECT_CALL(*storage_provider_, commit(_))
       .WillOnce(Return(outcome::success(root_val)));
-  EXPECT_CALL(*memory_, storeBuffer(BufferView(root_val)))
-      .WillOnce(Return(root_span));
 
-  ASSERT_EQ(root_span, storage_extension_->ext_storage_root_version_1());
+  ASSERT_EQ(memory_[storage_extension_->ext_storage_root_version_1()],
+            root_val);
 }
 
 /**
@@ -653,21 +469,11 @@ TEST_F(StorageExtensionTest, Blake2_256_TrieRootV1) {
   std::vector<std::pair<Buffer, Buffer>> dict = {
       {"a"_buf, "one"_buf}, {"b"_buf, "two"_buf}, {"c"_buf, "three"_buf}};
   auto hash_array =
-      "eaa57e0e1a41d5a49db5954f95140a4e7c9a4373f7d29c0d667c9978ab4dadcb"_hex2buf;
-
-  WasmPointer values_ptr = 1;
-  WasmSize values_size = 2;
-  WasmSpan dict_data = PtrSize(values_ptr, values_size).combine();
-  WasmPointer result = 1984;
-
-  Buffer buffer{testutil::scaleEncodeAndCompareWithRef(dict).value()};
-
-  EXPECT_CALL(*memory_, loadN(values_ptr, values_size))
-      .WillOnce(Return(buffer));
-
-  EXPECT_CALL(*memory_, storeBuffer(BufferView(hash_array)))
-      .WillOnce(Return(result));
-
-  ASSERT_EQ(result,
-            storage_extension_->ext_trie_blake2_256_root_version_1(dict_data));
+      "eaa57e0e1a41d5a49db5954f95140a4e7c9a4373f7d29c0d667c9978ab4dadcb"_unhex;
+  ASSERT_EQ(memory_
+                .view(storage_extension_->ext_trie_blake2_256_root_version_1(
+                          memory_.encode(dict)),
+                      hash_array.size())
+                .value(),
+            SpanAdl{hash_array});
 }

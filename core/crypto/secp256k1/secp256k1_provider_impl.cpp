@@ -18,8 +18,10 @@ namespace kagome::crypto {
   outcome::result<secp256k1::UncompressedPublicKey>
   Secp256k1ProviderImpl::recoverPublickeyUncompressed(
       const secp256k1::RSVSignature &signature,
-      const secp256k1::MessageHash &message_hash) const {
-    OUTCOME_TRY(pubkey, recoverPublickey(signature, message_hash));
+      const secp256k1::MessageHash &message_hash,
+      bool allow_overflow) const {
+    OUTCOME_TRY(pubkey,
+                recoverPublickey(signature, message_hash, allow_overflow));
     secp256k1::UncompressedPublicKey pubkey_out;
     size_t outputlen = pubkey_out.size();
 
@@ -38,8 +40,10 @@ namespace kagome::crypto {
   outcome::result<secp256k1::CompressedPublicKey>
   Secp256k1ProviderImpl::recoverPublickeyCompressed(
       const secp256k1::RSVSignature &signature,
-      const secp256k1::MessageHash &message_hash) const {
-    OUTCOME_TRY(pubkey, recoverPublickey(signature, message_hash));
+      const secp256k1::MessageHash &message_hash,
+      bool allow_overflow) const {
+    OUTCOME_TRY(pubkey,
+                recoverPublickey(signature, message_hash, allow_overflow));
     secp256k1::CompressedPublicKey pubkey_out;
     size_t outputlen = secp256k1::CompressedPublicKey::size();
 
@@ -79,15 +83,19 @@ namespace kagome::crypto {
 
   outcome::result<secp256k1_pubkey> Secp256k1ProviderImpl::recoverPublickey(
       const secp256k1::RSVSignature &signature,
-      const secp256k1::MessageHash &message_hash) const {
+      const secp256k1::MessageHash &message_hash,
+      bool allow_overflow) const {
     OUTCOME_TRY(rec_id, validateRecoveryId(static_cast<int>(signature[64])));
 
     secp256k1_ecdsa_recoverable_signature sig_rec;
     secp256k1_pubkey pubkey;
 
-    if (1
-        != secp256k1_ecdsa_recoverable_signature_parse_compact(
-            context_.get(), &sig_rec, signature.data(), rec_id)) {
+    if (allow_overflow) {
+      secp256k1_ecdsa_recoverable_signature_parse_compact_overflow(
+          context_.get(), &sig_rec, signature.data(), rec_id);
+    } else if (1
+               != secp256k1_ecdsa_recoverable_signature_parse_compact(
+                   context_.get(), &sig_rec, signature.data(), rec_id)) {
       return Secp256k1ProviderError::INVALID_R_OR_S_VALUE;
     }
 

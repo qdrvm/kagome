@@ -40,7 +40,7 @@ namespace kagome::metrics {
 
     std::shared_ptr<Session> new_session_;
 
-    std::shared_ptr<std::thread> thread_;
+    std::unique_ptr<std::thread> thread_;
   };
 
 }  // namespace kagome::metrics

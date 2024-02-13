@@ -6,8 +6,6 @@
 
 #include "network/impl/protocols/grandpa_protocol.hpp"
 
-#include <libp2p/connection/loopback_stream.hpp>
-
 #include "blockchain/block_tree.hpp"
 #include "blockchain/genesis_block_hash.hpp"
 #include "network/common.hpp"
@@ -19,8 +17,6 @@
 #include "network/types/roles.hpp"
 
 namespace kagome::network {
-  using libp2p::connection::LoopbackStream;
-
   KAGOME_DEFINE_CACHE(GrandpaProtocol);
 
   GrandpaProtocol::GrandpaProtocol(
@@ -49,27 +45,7 @@ namespace kagome::network {
         scheduler_(std::move(scheduler)) {}
 
   bool GrandpaProtocol::start() {
-    auto stream = std::make_shared<LoopbackStream>(own_info_, io_context_);
-    stream_engine_->addBidirectional(stream, shared_from_this());
-    auto on_message = [weak{weak_from_this()},
-                       peer_id = own_info_.id](GrandpaMessage message) {
-      auto self = weak.lock();
-      if (not self) {
-        return false;
-      }
-      self->onMessage(peer_id, std::move(message));
-      return true;
-    };
-    notifications::readMessages<GrandpaMessage>(
-        stream,
-        std::make_shared<libp2p::basic::MessageReadWriterUvarint>(stream),
-        std::move(on_message));
-
     return base_.start(weak_from_this());
-  }
-
-  void GrandpaProtocol::stop() {
-    stream_engine_->del(own_info_.id, shared_from_this());
   }
 
   const ProtocolName &GrandpaProtocol::protocolName() const {
@@ -133,14 +109,14 @@ namespace kagome::network {
               base_.logger(), "VoteMessage has received from {}", peer_id);
           auto info = peer_manager_->getPeerState(peer_id);
           grandpa_observer_->onVoteMessage(
-              std::nullopt, peer_id, compactFromRefToOwn(info), vote_message);
+              peer_id, compactFromRefToOwn(info), std::move(vote_message));
           addKnown(peer_id, hash);
         },
         [&](FullCommitMessage &&commit_message) {
           SL_VERBOSE(
               base_.logger(), "CommitMessage has received from {}", peer_id);
-          grandpa_observer_->onCommitMessage(
-              std::nullopt, peer_id, commit_message);
+          grandpa_observer_->onCommitMessage(peer_id,
+                                             std::move(commit_message));
           addKnown(peer_id, hash);
         },
         [&](GrandpaNeighborMessage &&neighbor_message) {
@@ -164,8 +140,8 @@ namespace kagome::network {
         [&](network::CatchUpResponse &&catch_up_response) {
           SL_VERBOSE(
               base_.logger(), "CatchUpResponse has received from {}", peer_id);
-          grandpa_observer_->onCatchUpResponse(
-              std::nullopt, peer_id, catch_up_response);
+          grandpa_observer_->onCatchUpResponse(peer_id,
+                                               std::move(catch_up_response));
         });
   }
 

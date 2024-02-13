@@ -37,10 +37,10 @@ namespace kagome::crypto {
         const EcdsaPrehashedMessage &message,
         const EcdsaPrivateKey &key) const override;
 
-    outcome::result<bool> verify(
-        common::BufferView message,
-        const EcdsaSignature &signature,
-        const EcdsaPublicKey &publicKey) const override;
+    outcome::result<bool> verify(common::BufferView message,
+                                 const EcdsaSignature &signature,
+                                 const EcdsaPublicKey &publicKey,
+                                 bool allow_overflow) const override;
 
     outcome::result<bool> verifyPrehashed(
         const EcdsaPrehashedMessage &message,
@@ -48,6 +48,11 @@ namespace kagome::crypto {
         const EcdsaPublicKey &publicKey) const override;
 
    private:
+    outcome::result<bool> verifyPrehashed(const EcdsaPrehashedMessage &message,
+                                          const EcdsaSignature &signature,
+                                          const EcdsaPublicKey &publicKey,
+                                          bool allow_overflow) const;
+
     std::unique_ptr<secp256k1_context, void (*)(secp256k1_context *)> context_;
     std::shared_ptr<Hasher> hasher_;
     log::Logger logger_;

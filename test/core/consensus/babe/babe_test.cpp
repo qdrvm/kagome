@@ -8,11 +8,13 @@
 
 #include <boost/range/adaptor/transformed.hpp>
 
+#include "common/worker_thread_pool.hpp"
 #include "consensus/babe/impl/babe.hpp"
 #include "consensus/babe/impl/babe_digests_util.hpp"
 #include "consensus/babe/types/babe_configuration.hpp"
 #include "consensus/block_production_error.hpp"
 #include "consensus/timeline/impl/slot_leadership_error.hpp"
+#include "crypto/blake2/blake2b.h"
 #include "mock/core/application/app_configuration_mock.hpp"
 #include "mock/core/authorship/proposer_mock.hpp"
 #include "mock/core/blockchain/block_tree_mock.hpp"
@@ -38,9 +40,8 @@
 #include "testutil/outcome.hpp"
 #include "testutil/prepare_loggers.hpp"
 #include "testutil/sr25519_utils.hpp"
-#include "utils/thread_pool.hpp"
+#include "utils/watchdog.hpp"
 
-using kagome::ThreadPool;
 using kagome::Watchdog;
 using kagome::application::AppConfigurationMock;
 using kagome::authorship::ProposerMock;
@@ -49,6 +50,7 @@ using kagome::clock::SystemClockMock;
 using kagome::common::Buffer;
 using kagome::common::BufferView;
 using kagome::common::uint256_to_le_bytes;
+using kagome::common::WorkerThreadPool;
 using kagome::consensus::BlockProductionError;
 using kagome::consensus::Duration;
 using kagome::consensus::EpochLength;
@@ -226,8 +228,8 @@ class BabeTest : public testing::Test {
                                   chain_sub_engine,
                                   announce_transmitter,
                                   offchain_worker_api,
-                                  thread_pool_,
-                                  thread_pool_.io_context());
+                                  worker_thread_pool_,
+                                  worker_thread_pool_->io_context());
   }
 
   void TearDown() override {
@@ -254,7 +256,8 @@ class BabeTest : public testing::Test {
   std::shared_ptr<BlockAnnounceTransmitterMock> announce_transmitter;
   std::shared_ptr<OffchainWorkerApiMock> offchain_worker_api;
   std::shared_ptr<Watchdog> watchdog_ = std::make_shared<Watchdog>();
-  ThreadPool thread_pool_{watchdog_, "test", 1};
+  std::shared_ptr<WorkerThreadPool> worker_thread_pool_ =
+      std::make_shared<WorkerThreadPool>(watchdog_);
 
   std::shared_ptr<BabeConfiguration> babe_config;
 
@@ -303,7 +306,8 @@ class BabeTest : public testing::Test {
                      StateVersion::V0,
                      block.body | transformed([](const auto &ext) {
                        return Buffer{scale::encode(ext).value()};
-                     }))
+                     }),
+                     kagome::crypto::blake2b<32>)
               .value();
         }(),
         make_digest(new_block_slot),  // digest
@@ -404,6 +408,5 @@ TEST_F(BabeTest, SlotLeader) {
 
   ASSERT_OUTCOME_SUCCESS_TRY(babe->processSlot(slot, best_block_info));
 
-  testutil::wait(*thread_pool_.io_context());
-  testutil::wait(*thread_pool_.io_context());
+  testutil::wait(*worker_thread_pool_->io_context());
 }

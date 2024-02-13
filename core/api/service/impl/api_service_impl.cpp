@@ -11,6 +11,7 @@
 #include "api/jrpc/jrpc_processor.hpp"
 #include "api/jrpc/jrpc_server.hpp"
 #include "api/jrpc/value_converter.hpp"
+#include "api/service/impl/rpc_thread_pool.hpp"
 #include "api/transport/listener.hpp"
 #include "application/app_state_manager.hpp"
 #include "blockchain/block_tree.hpp"
@@ -124,7 +125,6 @@ namespace kagome::api {
 
   ApiServiceImpl::ApiServiceImpl(
       application::AppStateManager &app_state_manager,
-      std::shared_ptr<api::RpcThreadPool> thread_pool,
       std::vector<std::shared_ptr<Listener>> listeners,
       std::shared_ptr<JRpcServer> server,
       std::vector<std::shared_ptr<JRpcProcessor>> processors,
@@ -135,9 +135,9 @@ namespace kagome::api {
           extrinsic_event_key_repo,
       std::shared_ptr<blockchain::BlockTree> block_tree,
       std::shared_ptr<storage::trie::TrieStorage> trie_storage,
-      std::shared_ptr<runtime::Core> core)
-      : thread_pool_(std::move(thread_pool)),
-        listeners_(std::move(listeners)),
+      std::shared_ptr<runtime::Core> core,
+      std::shared_ptr<RpcThreadPool> rpc_thread_pool)
+      : listeners_(std::move(listeners)),
         server_(std::move(server)),
         logger_{log::createLogger("ApiService", "api")},
         block_tree_{std::move(block_tree)},
@@ -146,8 +146,8 @@ namespace kagome::api {
         subscription_engines_{.storage = std::move(storage_sub_engine),
                               .chain = std::move(chain_sub_engine),
                               .ext = std::move(ext_sub_engine)},
-        extrinsic_event_key_repo_{std::move(extrinsic_event_key_repo)} {
-    BOOST_ASSERT(thread_pool_);
+        extrinsic_event_key_repo_{std::move(extrinsic_event_key_repo)},
+        rpc_thread_pool_{std::move(rpc_thread_pool)} {
     BOOST_ASSERT(block_tree_);
     BOOST_ASSERT(trie_storage_);
     BOOST_ASSERT(core_);
@@ -160,13 +160,13 @@ namespace kagome::api {
       BOOST_ASSERT(processor != nullptr);
       processor->registerHandlers();
     }
-
-    app_state_manager.takeControl(*this);
-
     BOOST_ASSERT(subscription_engines_.chain);
     BOOST_ASSERT(subscription_engines_.storage);
     BOOST_ASSERT(subscription_engines_.ext);
     BOOST_ASSERT(extrinsic_event_key_repo_);
+    BOOST_ASSERT(rpc_thread_pool_);
+
+    app_state_manager.takeControl(*this);
   }
 
   jsonrpc::Value ApiServiceImpl::createStateStorageEvent(
@@ -234,13 +234,11 @@ namespace kagome::api {
   }  // namespace kagome::api
 
   bool ApiServiceImpl::start() {
-    thread_pool_->start();
     SL_DEBUG(logger_, "API Service started");
     return true;
   }
 
   void ApiServiceImpl::stop() {
-    thread_pool_->stop();
     SL_DEBUG(logger_, "API Service stopped");
   }
 

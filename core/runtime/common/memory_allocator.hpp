@@ -18,6 +18,7 @@
 #include "runtime/types.hpp"
 
 namespace kagome::runtime {
+  class Memory;
 
   // Alignment for pointers, same with substrate:
   // https://github.com/paritytech/substrate/blob/743981a083f244a090b40ccfb5ce902199b55334/primitives/allocator/src/freeing_bump.rs#L56
@@ -52,25 +53,10 @@ namespace kagome::runtime {
       std::function<uint32_t(WasmPointer)> loadSz;
     };
 
-    MemoryAllocator(MemoryHandle memory, const struct MemoryConfig &config);
+    MemoryAllocator(Memory &memory, const struct MemoryConfig &config);
 
     WasmPointer allocate(const uint32_t size);
     std::optional<WasmSize> deallocate(WasmPointer ptr);
-
-    template <typename T>
-    bool checkAddress(WasmPointer addr) noexcept {
-      BOOST_ASSERT(addr > 0);
-      return offset_ > static_cast<uint32_t>(addr)
-         and offset_ - static_cast<uint32_t>(addr) >= sizeof(T);
-    }
-
-    bool checkAddress(WasmPointer addr, WasmSize size) noexcept {
-      BOOST_ASSERT(addr > 0);
-      BOOST_ASSERT(size > 0);
-      return offset_ > static_cast<uint32_t>(addr)
-         and offset_ - static_cast<uint32_t>(addr)
-                 >= static_cast<uint32_t>(size);
-    }
 
     /*
       Following methods are needed mostly for testing purposes.

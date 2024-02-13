@@ -28,6 +28,7 @@
 #include "api/service/child_state/child_state_jrpc_processor.hpp"
 #include "api/service/child_state/impl/child_state_api_impl.hpp"
 #include "api/service/impl/api_service_impl.hpp"
+#include "api/service/impl/rpc_thread_pool.hpp"
 #include "api/service/internal/impl/internal_api_impl.hpp"
 #include "api/service/internal/internal_jrpc_processor.hpp"
 #include "api/service/mmr/rpc.hpp"
@@ -41,7 +42,6 @@
 #include "api/service/system/system_jrpc_processor.hpp"
 #include "api/transport/impl/ws/ws_listener_impl.hpp"
 #include "api/transport/impl/ws/ws_session.hpp"
-#include "api/transport/rpc_thread_pool.hpp"
 #include "application/app_configuration.hpp"
 #include "application/impl/app_state_manager_impl.hpp"
 #include "application/impl/chain_spec_impl.hpp"
@@ -61,6 +61,7 @@
 #include "clock/impl/clock_impl.hpp"
 #include "common/fd_limit.hpp"
 #include "common/outcome_throw.hpp"
+#include "common/worker_thread_pool.hpp"
 #include "consensus/babe/impl/babe.hpp"
 #include "consensus/babe/impl/babe_block_validator_impl.hpp"
 #include "consensus/babe/impl/babe_config_repository_impl.hpp"
@@ -69,6 +70,7 @@
 #include "consensus/grandpa/impl/authority_manager_impl.hpp"
 #include "consensus/grandpa/impl/environment_impl.hpp"
 #include "consensus/grandpa/impl/grandpa_impl.hpp"
+#include "consensus/grandpa/impl/grandpa_thread_pool.hpp"
 #include "consensus/grandpa/impl/verified_justification_queue.hpp"
 #include "consensus/production_consensus.hpp"
 #include "consensus/timeline/impl/block_appender_base.hpp"
@@ -89,6 +91,7 @@
 #include "crypto/sr25519/sr25519_provider_impl.hpp"
 #include "crypto/vrf/vrf_provider_impl.hpp"
 #include "dispute_coordinator/impl/dispute_coordinator_impl.hpp"
+#include "dispute_coordinator/impl/dispute_thread_pool.hpp"
 #include "dispute_coordinator/impl/storage_impl.hpp"
 #include "host_api/impl/host_api_factory_impl.hpp"
 #include "injector/bind_by_lambda.hpp"
@@ -124,6 +127,7 @@
 #include "offchain/impl/runner.hpp"
 #include "outcome/outcome.hpp"
 #include "parachain/approval/approval_distribution.hpp"
+#include "parachain/approval/approval_thread_pool.hpp"
 #include "parachain/availability/bitfield/store_impl.hpp"
 #include "parachain/availability/fetch/fetch_impl.hpp"
 #include "parachain/availability/recovery/recovery_impl.hpp"
@@ -131,6 +135,7 @@
 #include "parachain/backing/store_impl.hpp"
 #include "parachain/pvf/module_precompiler.hpp"
 #include "parachain/pvf/pvf_impl.hpp"
+#include "parachain/pvf/pvf_thread_pool.hpp"
 #include "parachain/validator/impl/parachain_observer_impl.hpp"
 #include "parachain/validator/parachain_processor.hpp"
 #include "runtime/binaryen/binaryen_memory_provider.hpp"
@@ -352,16 +357,6 @@ namespace {
     return block_tree;
   }
 
-  template <typename Injector>
-  sptr<ThreadPool> get_thread_pool(const Injector &injector) {
-    size_t cores = std::thread::hardware_concurrency();
-    if (cores == 0ul) {
-      cores = 5;
-    }
-    return ThreadPool::create(
-        injector.template create<sptr<Watchdog>>(), "worker", cores);
-  }
-
   template <typename... Ts>
   auto makeWavmInjector(Ts &&...args) {
     return di::make_injector(
@@ -449,13 +444,22 @@ namespace {
             typename Injector>
   auto choose_runtime_implementation(
       const Injector &injector,
-      application::AppConfiguration::RuntimeExecutionMethod method) {
+      application::AppConfiguration::RuntimeExecutionMethod method,
+      application::AppConfiguration::RuntimeInterpreter interpreter) {
     using RuntimeExecutionMethod =
         application::AppConfiguration::RuntimeExecutionMethod;
+    using RuntimeInterpreter =
+        application::AppConfiguration::RuntimeInterpreter;
     switch (method) {
       case RuntimeExecutionMethod::Interpret:
-        return std::static_pointer_cast<CommonType>(
-            injector.template create<sptr<InterpretedType>>());
+        switch (interpreter) {
+          case RuntimeInterpreter::Binaryen:
+            return std::static_pointer_cast<CommonType>(
+                injector.template create<sptr<InterpretedType>>());
+          case RuntimeInterpreter::WasmEdge:
+            return std::static_pointer_cast<CommonType>(
+                injector.template create<sptr<CompiledType>>());
+        }
       case RuntimeExecutionMethod::Compile:
         return std::static_pointer_cast<CommonType>(
             injector.template create<sptr<CompiledType>>());
@@ -501,6 +505,7 @@ namespace {
   template <typename... Ts>
   auto makeRuntimeInjector(
       application::AppConfiguration::RuntimeExecutionMethod method,
+      application::AppConfiguration::RuntimeInterpreter interpreter,
       Ts &&...args) {
     return di::make_injector(
         bind_by_lambda<runtime::RuntimeUpgradeTrackerImpl>(
@@ -523,11 +528,12 @@ namespace {
         di::bind<runtime::ModuleRepository>.template to<runtime::ModuleRepositoryImpl>(),
         di::bind<runtime::CoreApiFactory>.template to<runtime::CoreApiFactoryImpl>(),
         bind_by_lambda<runtime::ModuleFactory>(
-            [method](const auto &injector) -> sptr<runtime::ModuleFactory> {
+            [method, interpreter](
+                const auto &injector) -> sptr<runtime::ModuleFactory> {
               return choose_runtime_implementation<
                   runtime::ModuleFactory,
                   runtime::binaryen::ModuleFactoryImpl,
-                  ModuleFactory>(injector, method);
+                  ModuleFactory>(injector, method, interpreter);
             }),
         bind_by_lambda<runtime::Executor>([](const auto &injector)
                                               -> sptr<runtime::Executor> {
@@ -587,7 +593,6 @@ namespace {
   auto makeApplicationInjector(sptr<application::AppConfiguration> config,
                                Ts &&...args) {
     // default values for configurations
-    api::RpcThreadPool::Configuration rpc_thread_pool_config{};
     api::WsSession::Configuration ws_config{};
     transaction_pool::PoolModeratorImpl::Params pool_moderator_config{};
     transaction_pool::TransactionPool::Limits tp_pool_limits{};
@@ -600,17 +605,28 @@ namespace {
             config->parachainRuntimeInstanceCacheSize(),
         .precompile_threads_num = config->parachainPrecompilationThreadNum(),
     };
+#if KAGOME_WASM_COMPILER_WASM_EDGE == 1
+    runtime::wasm_edge::ModuleFactoryImpl::Config wasmedge_config{
+        config->runtimeExecMethod()
+                == application::AppConfiguration::RuntimeExecutionMethod::
+                    Compile
+            ? runtime::wasm_edge::ModuleFactoryImpl::ExecType::Compiled
+            : runtime::wasm_edge::ModuleFactoryImpl::ExecType::Interpreted,
+    };
+#endif
 
     // clang-format off
     return di::make_injector(
             // bind configs
-            useConfig(rpc_thread_pool_config),
             useConfig(ws_config),
             useConfig(pool_moderator_config),
             useConfig(tp_pool_limits),
             useConfig(ping_config),
             useConfig(offchain_ext_config),
             useConfig(pvf_config),
+#if KAGOME_WASM_COMPILER_WASM_EDGE == 1
+            useConfig(wasmedge_config),
+#endif
 
             // inherit host injector
             libp2p::injector::makeHostInjector(
@@ -761,7 +777,7 @@ namespace {
             }),
             di::bind<crypto::CryptoStore>.template to<crypto::CryptoStoreImpl>(),
             di::bind<host_api::HostApiFactory>.template to<host_api::HostApiFactoryImpl>(),
-            makeRuntimeInjector(config->runtimeExecMethod()),
+            makeRuntimeInjector(config->runtimeExecMethod(), config->runtimeInterpreter()),
             di::bind<transaction_pool::TransactionPool>.template to<transaction_pool::TransactionPoolImpl>(),
             di::bind<transaction_pool::PoolModerator>.template to<transaction_pool::PoolModeratorImpl>(),
             di::bind<storage::changes_trie::ChangesTracker>.template to<storage::changes_trie::StorageChangesTrackerImpl>(),
@@ -779,8 +795,6 @@ namespace {
             di::bind<network::ReqCollationObserver>.template to<parachain::ParachainObserverImpl>(),
             di::bind<network::ReqPovObserver>.template to<parachain::ParachainObserverImpl>(),
             di::bind<parachain::ParachainObserver>.template to<parachain::ParachainObserverImpl>(),
-            bind_by_lambda<ThreadPool>(
-                [](const auto &injector) { return get_thread_pool(injector); }),
             bind_by_lambda<storage::trie::TrieStorageBackend>(
                 [](const auto &injector) {
                   auto storage =
@@ -802,7 +816,9 @@ namespace {
                   .value();
             }),
             di::bind<storage::trie::PolkadotTrieFactory>.template to<storage::trie::PolkadotTrieFactoryImpl>(),
-            di::bind<storage::trie::Codec>.template to<storage::trie::PolkadotCodec>(),
+            bind_by_lambda<storage::trie::Codec>([](const auto&) {
+              return std::make_shared<storage::trie::PolkadotCodec>(crypto::blake2b<32>);
+            }),
             di::bind<storage::trie::TrieSerializer>.template to<storage::trie::TrieSerializerImpl>(),
             bind_by_lambda<storage::trie_pruner::TriePruner>(
                 [](const auto &injector)
@@ -905,6 +921,11 @@ namespace kagome::injector {
       sptr<application::AppConfiguration> app_config)
       : pimpl_{std::make_unique<KagomeNodeInjectorImpl>(
           makeKagomeNodeInjector(app_config))} {}
+
+  sptr<application::AppConfiguration> KagomeNodeInjector::injectAppConfig() {
+    return pimpl_->injector_
+        .template create<sptr<application::AppConfiguration>>();
+  }
 
   sptr<application::ChainSpec> KagomeNodeInjector::injectChainSpec() {
     return pimpl_->injector_.template create<sptr<application::ChainSpec>>();

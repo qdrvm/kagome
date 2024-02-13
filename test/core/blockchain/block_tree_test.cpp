@@ -81,8 +81,7 @@ struct BlockTreeTest : public testing::Test {
 
   void SetUp() override {
     EXPECT_CALL(*storage_, getBlockTreeLeaves())
-        .WillOnce(Return(
-            std::vector<primitives::BlockHash>{kFinalizedBlockInfo.hash}));
+        .WillOnce(Return(std::vector<BlockHash>{kFinalizedBlockInfo.hash}));
 
     EXPECT_CALL(*storage_, setBlockTreeLeaves(_))
         .WillRepeatedly(Return(outcome::success()));
@@ -102,7 +101,7 @@ struct BlockTreeTest : public testing::Test {
         .WillRepeatedly(Return(finalized_block_header_));
 
     EXPECT_CALL(*storage_, getJustification(kFinalizedBlockInfo.hash))
-        .WillRepeatedly(Return(outcome::success(primitives::Justification{})));
+        .WillRepeatedly(Return(outcome::success(Justification{})));
 
     EXPECT_CALL(*storage_, getLastFinalized())
         .WillOnce(Return(outcome::success(kFinalizedBlockInfo)));
@@ -190,7 +189,7 @@ struct BlockTreeTest : public testing::Test {
   BlockHash addBlock(const Block &block) {
     auto encoded_block = scale::encode(block).value();
     auto hash = hasher_->blake2b_256(encoded_block);
-    primitives::BlockInfo block_info(block.header.number, hash);
+    BlockInfo block_info(block.header.number, hash);
     const_cast<BlockHeader &>(block.header).hash_opt.emplace(hash);
 
     EXPECT_CALL(*storage_, putBlock(block))
@@ -301,7 +300,7 @@ struct BlockTreeTest : public testing::Test {
     };
     Buffer encoded_header{scale::encode(babe_header).value()};
     digest.emplace_back(
-        primitives::PreRuntime{{primitives::kBabeEngineId, encoded_header}});
+        PreRuntime{{primitives::kBabeEngineId, encoded_header}});
 
     BabeSeal seal{};
     Buffer encoded_seal{scale::encode(seal).value()};
@@ -611,14 +610,14 @@ TEST_F(BlockTreeTest, FinalizeWithPruningDeepestLeaf) {
 
 std::shared_ptr<TreeNode> makeFullTree(size_t depth, size_t branching_factor) {
   auto make_subtree = [branching_factor](std::shared_ptr<TreeNode> parent,
-                                         size_t current_depth,
-                                         size_t max_depth,
+                                         BlockNumber current_depth,
+                                         BlockNumber max_depth,
                                          std::string name,
                                          auto &make_subtree) {
-    primitives::BlockHash hash{};
+    BlockHash hash{};
     std::copy_n(name.begin(), name.size(), hash.begin());
     auto node = std::make_shared<TreeNode>(
-        primitives::BlockInfo{hash, current_depth}, parent, false);
+        BlockInfo{hash, current_depth}, parent, false);
     if (current_depth + 1 == max_depth) {
       return node;
     }
@@ -848,8 +847,7 @@ TEST_F(BlockTreeTest, CleanupObsoleteJustificationOnFinalized) {
   auto b43 = addHeaderToRepository(kFinalizedBlockInfo.hash, 43);
   auto b55 = addHeaderToRepository(b43, 55);
   auto b56 = addHeaderToRepository(b55, 56);
-  EXPECT_CALL(*storage_, getBlockBody(b56))
-      .WillOnce(Return(primitives::BlockBody{}));
+  EXPECT_CALL(*storage_, getBlockBody(b56)).WillOnce(Return(BlockBody{}));
 
   Justification new_justification{"justification_56"_buf};
 
@@ -870,8 +868,7 @@ TEST_F(BlockTreeTest, KeepLastFinalizedJustificationIfItShouldBeStored) {
   auto b43 = addHeaderToRepository(kFinalizedBlockInfo.hash, 43);
   auto b55 = addHeaderToRepository(b43, 55);
   auto b56 = addHeaderToRepository(b55, 56);
-  EXPECT_CALL(*storage_, getBlockBody(b56))
-      .WillOnce(Return(primitives::BlockBody{}));
+  EXPECT_CALL(*storage_, getBlockBody(b56)).WillOnce(Return(BlockBody{}));
 
   Justification new_justification{"justification_56"_buf};
 

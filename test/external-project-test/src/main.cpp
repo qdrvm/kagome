@@ -43,26 +43,6 @@
 #include <libp2p/crypto/random_generator/boost_generator.hpp>
 #include <libp2p/log/configurator.hpp>
 
-kagome::storage::trie::RootHash trieRoot(
-    const std::vector<std::pair<kagome::common::Buffer, kagome::common::Buffer>>
-        &key_vals) {
-  auto trie = kagome::storage::trie::PolkadotTrieImpl::createEmpty();
-  auto codec = kagome::storage::trie::PolkadotCodec();
-
-  for (const auto &[key, val] : key_vals) {
-    [[maybe_unused]] auto res = trie->put(key, val.view());
-    BOOST_ASSERT_MSG(res.has_value(), "Insertion into trie failed");
-  }
-  auto root = trie->getRoot();
-  if (root == nullptr) {
-    return codec.hash256(kagome::common::BufferView{{0}});
-  }
-  auto encode_res =
-      codec.encodeNode(*root, kagome::storage::trie::StateVersion::V0, {});
-  BOOST_ASSERT_MSG(encode_res.has_value(), "Trie encoding failed");
-  return codec.hash256(encode_res.value());
-}
-
 int main() {
   auto logging_system = std::make_shared<soralog::LoggingSystem>(
       std::make_shared<kagome::log::Configurator>(
@@ -95,8 +75,7 @@ int main() {
 
   auto code_substitutes = chain_spec->codeSubstitutes();
 
-  auto config = std::make_shared<kagome::application::AppConfigurationImpl>(
-      kagome::log::createLogger("AppConfiguration"));
+  auto config = std::make_shared<kagome::application::AppConfigurationImpl>();
 
   auto trie_factory =
       std::make_shared<kagome::storage::trie::PolkadotTrieFactoryImpl>();

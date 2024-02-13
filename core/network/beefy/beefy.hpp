@@ -18,9 +18,8 @@
 #include "utils/weak_io_context.hpp"
 
 namespace kagome {
-  class ThreadPool;
   class WeakIoContextStrand;
-}  // namespace kagome
+}
 
 namespace kagome::application {
   class AppStateManager;
@@ -29,11 +28,15 @@ namespace kagome::application {
 
 namespace kagome::blockchain {
   class BlockTree;
-}  // namespace kagome::blockchain
+}
+
+namespace kagome::common {
+  class WorkerThreadPool;
+}
 
 namespace kagome::consensus {
   class Timeline;
-}  // namespace kagome::consensus
+}
 
 namespace kagome::crypto {
   class EcdsaProvider;
@@ -42,11 +45,11 @@ namespace kagome::crypto {
 
 namespace kagome::runtime {
   class BeefyApi;
-}  // namespace kagome::runtime
+}
 
 namespace kagome::storage {
   class SpacedStorage;
-}  // namespace kagome::storage
+}
 
 namespace kagome::network {
   class BeefyProtocol;
@@ -59,8 +62,8 @@ namespace kagome::network {
           std::shared_ptr<runtime::BeefyApi> beefy_api,
           std::shared_ptr<crypto::EcdsaProvider> ecdsa,
           std::shared_ptr<storage::SpacedStorage> db,
-          std::shared_ptr<ThreadPool> thread_pool,
-          WeakIoContext main_thread,
+          std::shared_ptr<common::WorkerThreadPool> worker_thread_pool,
+          WeakIoContext main_thread_context,
           LazySPtr<consensus::Timeline> timeline,
           std::shared_ptr<crypto::SessionKeys> session_keys,
           LazySPtr<BeefyProtocol> beefy_protocol,
@@ -110,7 +113,7 @@ namespace kagome::network {
     std::shared_ptr<crypto::EcdsaProvider> ecdsa_;
     std::shared_ptr<storage::BufferStorage> db_;
     std::shared_ptr<WeakIoContextStrand> strand_;
-    WeakIoContext main_thread_;
+    WeakIoContext main_thread_context_;
     LazySPtr<consensus::Timeline> timeline_;
     std::shared_ptr<crypto::SessionKeys> session_keys_;
     LazySPtr<BeefyProtocol> beefy_protocol_;

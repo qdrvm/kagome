@@ -94,11 +94,10 @@ namespace kagome::telemetry {
           scheduler_);
       connections_.emplace_back(std::move(connection));
     }
-    worker_thread_ = std::make_shared<std::thread>([io_context{io_context_}] {
+    worker_thread_ = std::make_unique<std::thread>([io_context{io_context_}] {
       soralog::util::setThreadName("telemetry");
       io_context->run();
     });
-    worker_thread_->detach();
     return true;
   }
 
@@ -121,6 +120,10 @@ namespace kagome::telemetry {
       connection->shutdown();
     }
     io_context_->stop();
+    if (worker_thread_) {
+      worker_thread_->join();
+      worker_thread_.reset();
+    }
   }
 
   std::vector<TelemetryEndpoint> TelemetryServiceImpl::chainSpecEndpoints()

@@ -6,6 +6,7 @@
 
 #include "host_api/impl/host_api_impl.hpp"
 
+#include "common/bytestr.hpp"
 #include "crypto/ecdsa/ecdsa_provider_impl.hpp"
 #include "crypto/ed25519/ed25519_provider_impl.hpp"
 #include "crypto/hasher/hasher_impl.hpp"
@@ -53,7 +54,7 @@ namespace kagome::host_api {
                   hasher,
                   memory_provider_,
                   std::move(core_provider)},
-        storage_ext_(storage_provider_, memory_provider_),
+        storage_ext_(storage_provider_, memory_provider_, hasher),
         child_storage_ext_(storage_provider_, memory_provider_),
         offchain_ext_(offchain_config,
                       memory_provider_,
@@ -150,6 +151,12 @@ namespace kagome::host_api {
   runtime::WasmPointer HostApiImpl::ext_trie_blake2_256_ordered_root_version_2(
       runtime::WasmSpan values_data, runtime::WasmI32 state_version) {
     return storage_ext_.ext_trie_blake2_256_ordered_root_version_2(
+        values_data, state_version);
+  }
+
+  runtime::WasmPointer HostApiImpl::ext_trie_keccak_256_ordered_root_version_2(
+      runtime::WasmSpan values_data, runtime::WasmI32 state_version) {
+    return storage_ext_.ext_trie_keccak_256_ordered_root_version_2(
         values_data, state_version);
   }
 
@@ -368,7 +375,7 @@ namespace kagome::host_api {
 
   runtime::WasmSpan HostApiImpl::ext_crypto_secp256k1_ecdsa_recover_version_2(
       runtime::WasmPointer sig, runtime::WasmPointer msg) {
-    return crypto_ext_.ext_crypto_secp256k1_ecdsa_recover_version_1(sig, msg);
+    return crypto_ext_.ext_crypto_secp256k1_ecdsa_recover_version_2(sig, msg);
   }
 
   runtime::WasmSpan
@@ -381,7 +388,7 @@ namespace kagome::host_api {
   runtime::WasmSpan
   HostApiImpl::ext_crypto_secp256k1_ecdsa_recover_compressed_version_2(
       runtime::WasmPointer sig, runtime::WasmPointer msg) {
-    return crypto_ext_.ext_crypto_secp256k1_ecdsa_recover_compressed_version_1(
+    return crypto_ext_.ext_crypto_secp256k1_ecdsa_recover_compressed_version_2(
         sig, msg);
   }
 
@@ -580,9 +587,9 @@ namespace kagome::host_api {
 
   void HostApiImpl::ext_panic_handler_abort_on_panic_version_1(
       runtime::WasmSpan message) {
-    auto [ptr, addr] = runtime::PtrSize{message};
-    auto msg = memory_provider_->getCurrentMemory()->get().loadStr(ptr, addr);
-    throw std::runtime_error{msg};
+    auto msg = byte2str(
+        memory_provider_->getCurrentMemory()->get().view(message).value());
+    throw std::runtime_error{std::string{msg}};
   }
 
 }  // namespace kagome::host_api

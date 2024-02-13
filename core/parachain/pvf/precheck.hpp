@@ -14,16 +14,23 @@
 #include "parachain/validator/signer.hpp"
 #include "primitives/event_types.hpp"
 #include "runtime/runtime_api/parachain_host.hpp"
-#include "utils/thread_pool.hpp"
+
+namespace kagome {
+  class ThreadHandler;
+}
 
 namespace kagome::blockchain {
   class BlockTree;
-}  // namespace kagome::blockchain
+}
 
 namespace kagome::offchain {
   class OffchainWorkerFactory;
   class OffchainWorkerPool;
 }  // namespace kagome::offchain
+
+namespace kagome::parachain {
+  class PvfThreadPool;
+}
 
 namespace kagome::runtime {
   class Executor;
@@ -45,7 +52,7 @@ namespace kagome::parachain {
         std::shared_ptr<runtime::ParachainHost> parachain_api,
         std::shared_ptr<runtime::ModuleFactory> module_factory,
         std::shared_ptr<runtime::Executor> executor,
-        std::shared_ptr<Watchdog> watchdog,
+        std::shared_ptr<PvfThreadPool> pvf_thread_pool,
         std::shared_ptr<offchain::OffchainWorkerFactory>
             offchain_worker_factory,
         std::shared_ptr<offchain::OffchainWorkerPool> offchain_worker_pool);
@@ -70,7 +77,7 @@ namespace kagome::parachain {
     std::shared_ptr<primitives::events::ChainEventSubscriber> chain_sub_;
     std::map<SessionIndex, std::unordered_map<ValidationCodeHash, bool>>
         session_code_accept_;
-    std::shared_ptr<ThreadPool> thread_;
+    std::shared_ptr<ThreadHandler> pvf_thread_handler_;
     log::Logger logger_ = log::createLogger("PvfPrecheck", "parachain");
   };
 }  // namespace kagome::parachain

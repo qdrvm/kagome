@@ -14,7 +14,7 @@ on:
 
 env:
   BUILD_DIR: build
-  CI: true
+  KAGOME_IN_DOCKER: 1
   CTEST_OUTPUT_ON_FAILURE: 1
   GITHUB_HUNTER_USERNAME: ${{ secrets.HUNTER_USERNAME }}
   GITHUB_HUNTER_TOKEN: ${{ secrets.HUNTER_TOKEN }}
@@ -30,24 +30,22 @@ env:
 
 jobs:
   MacOS:
-    runs-on: macos-13
+    runs-on: macos-14
     steps:
     - uses: actions/checkout@dc323e67f16fb5f7663d20ff7941f27f5809e9b6
     - uses: actions/cache@937d24475381cd9c75ae6db12cb4e79714b926ed
       with:
         path: ${{ env.CACHE_PATHS }}
         key: ${{ github.job }}-${{ env.CACHE_VERSION }}
-    - name: Setup cmake
-      uses: jwlawson/actions-setup-cmake@187efd9581ed20ee4e03c0dfb9ac2cd5896c4835
-      with:
-        cmake-version: '3.25.0'
     - name: install
       run: ./housekeeping/macos/dependency.sh
-    - name: build
-      run: ./housekeeping/make_build.sh -DCLEAR_OBJS=ON -DCOVERAGE=OFF -DWASM_COMPILER=WasmEdge -DCMAKE_TOOLCHAIN_FILE=cmake/toolchain/cxx20.cmake
       env:
-        CI:
-
+        KAGOME_MAC_CI: 1
+    - name: build
+      run: ./housekeeping/make_build.sh -G Ninja -DCLEAR_OBJS=ON -DCOVERAGE=OFF -DWASM_COMPILER=WasmEdge -DCMAKE_TOOLCHAIN_FILE=cmake/toolchain/cxx20.cmake
+      env:
+        KAGOME_IN_DOCKER: 0
+        KAGOME_MAC_CI: 1
   Linux:
     if: ${{ !(github.ref == 'refs/heads/master' || startsWith( github.ref, 'refs/tags/' )) }}
     strategy:
@@ -59,7 +57,7 @@ jobs:
 
     name: "${{ matrix.options.name }}"
     runs-on: ubuntu-latest
-    container: qdrvm/kagome-dev@sha256:14d5aa92c971073e82ba9bbac9b615701e99c71f64e58bdd45e5b3dbc09944bd
+    container: qdrvm/kagome-dev@sha256:2d70246c32418a3dd45c246d3f5c2dd99bdafde145b903271849affe476c4cfc
     steps:
       - uses: actions/checkout@dc323e67f16fb5f7663d20ff7941f27f5809e9b6
       - uses: actions/cache@937d24475381cd9c75ae6db12cb4e79714b926ed
@@ -97,7 +95,7 @@ jobs:
 
     name: "${{ matrix.options.name }}"
     runs-on: [ self-hosted ]
-    container: qdrvm/kagome-dev@sha256:14d5aa92c971073e82ba9bbac9b615701e99c71f64e58bdd45e5b3dbc09944bd
+    container: qdrvm/kagome-dev@sha256:2d70246c32418a3dd45c246d3f5c2dd99bdafde145b903271849affe476c4cfc
     steps:
       - uses: actions/checkout@dc323e67f16fb5f7663d20ff7941f27f5809e9b6
       - uses: actions/cache@937d24475381cd9c75ae6db12cb4e79714b926ed
@@ -135,7 +133,7 @@ jobs:
 
     name: "${{ matrix.options.name }}"
     runs-on: [ self-hosted ]
-    container: qdrvm/kagome-dev@sha256:14d5aa92c971073e82ba9bbac9b615701e99c71f64e58bdd45e5b3dbc09944bd
+    container: qdrvm/kagome-dev@sha256:2d70246c32418a3dd45c246d3f5c2dd99bdafde145b903271849affe476c4cfc
     steps:
       - uses: actions/checkout@dc323e67f16fb5f7663d20ff7941f27f5809e9b6
       - uses: actions/cache@937d24475381cd9c75ae6db12cb4e79714b926ed
@@ -159,7 +157,7 @@ jobs:
   clang-tidy:
     name: "Linux: clang-tidy"
     runs-on: ubuntu-latest
-    container: qdrvm/kagome-dev@sha256:14d5aa92c971073e82ba9bbac9b615701e99c71f64e58bdd45e5b3dbc09944bd
+    container: qdrvm/kagome-dev@sha256:2d70246c32418a3dd45c246d3f5c2dd99bdafde145b903271849affe476c4cfc
     steps:
       - uses: actions/checkout@dc323e67f16fb5f7663d20ff7941f27f5809e9b6
         with:
@@ -180,7 +178,7 @@ jobs:
     if: ${{ github.ref == 'refs/heads/master' || startsWith( github.ref, 'refs/tags/') || contains( github.event.pull_request.labels.*.name, 'Non-master self-hosted')  }}
     name: "Self-hosted: Linux: gcc-12 coverage/sonar"
     runs-on: [ self-hosted ]
-    container: qdrvm/kagome-dev@sha256:14d5aa92c971073e82ba9bbac9b615701e99c71f64e58bdd45e5b3dbc09944bd
+    container: qdrvm/kagome-dev@sha256:2d70246c32418a3dd45c246d3f5c2dd99bdafde145b903271849affe476c4cfc
     steps:
       - uses: actions/checkout@dc323e67f16fb5f7663d20ff7941f27f5809e9b6
       - uses: actions/cache@937d24475381cd9c75ae6db12cb4e79714b926ed
@@ -228,7 +226,7 @@ jobs:
             build-type: "Release"
     name: "${{ matrix.options.name }}"
     runs-on: ubuntu-latest
-    container: qdrvm/kagome-dev@sha256:14d5aa92c971073e82ba9bbac9b615701e99c71f64e58bdd45e5b3dbc09944bd
+    container: qdrvm/kagome-dev@sha256:2d70246c32418a3dd45c246d3f5c2dd99bdafde145b903271849affe476c4cfc
     steps:
       - uses: actions/checkout@dc323e67f16fb5f7663d20ff7941f27f5809e9b6
       - uses: actions/cache@937d24475381cd9c75ae6db12cb4e79714b926ed
@@ -252,7 +250,7 @@ jobs:
             build-type: "Release"
     name: "${{ matrix.options.name }}"
     runs-on: [ self-hosted ]
-    container: qdrvm/kagome-dev@sha256:14d5aa92c971073e82ba9bbac9b615701e99c71f64e58bdd45e5b3dbc09944bd
+    container: qdrvm/kagome-dev@sha256:2d70246c32418a3dd45c246d3f5c2dd99bdafde145b903271849affe476c4cfc
     steps:
       - uses: actions/checkout@dc323e67f16fb5f7663d20ff7941f27f5809e9b6
       - uses: actions/cache@937d24475381cd9c75ae6db12cb4e79714b926ed

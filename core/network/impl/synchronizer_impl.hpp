@@ -11,12 +11,14 @@
 #include <atomic>
 #include <mutex>
 #include <queue>
+#include <unordered_set>
 
 #include <libp2p/basic/scheduler.hpp>
 
 #include "application/app_state_manager.hpp"
 #include "consensus/timeline/block_executor.hpp"
 #include "consensus/timeline/block_header_appender.hpp"
+#include "injector/lazy.hpp"
 #include "metrics/metrics.hpp"
 #include "network/impl/state_sync_request_flow.hpp"
 #include "network/router.hpp"
@@ -30,6 +32,10 @@ namespace kagome::application {
 
 namespace kagome::storage::trie_pruner {
   class TriePruner;
+}
+
+namespace kagome {
+  class ThreadHandler;
 }
 
 namespace kagome::consensus {
@@ -102,8 +108,10 @@ namespace kagome::network {
         std::shared_ptr<libp2p::basic::Scheduler> scheduler,
         std::shared_ptr<crypto::Hasher> hasher,
         primitives::events::ChainSubscriptionEnginePtr chain_sub_engine,
+        LazySPtr<consensus::Timeline> timeline,
         std::shared_ptr<IBeefy> beefy,
-        std::shared_ptr<consensus::grandpa::Environment> grandpa_environment);
+        std::shared_ptr<consensus::grandpa::Environment> grandpa_environment,
+        WeakIoContext main_thread_context);
 
     /** @see AppStateManager::takeControl */
     void stop();
@@ -180,6 +188,10 @@ namespace kagome::network {
     /// Tries to request another portion of block
     void askNextPortionOfBlocks();
 
+    void post_block_addition(outcome::result<void> &&block_addition_result,
+                             Synchronizer::SyncResultHandler &&handler,
+                             const primitives::BlockHash &hash);
+
     /// Pops next block from queue and tries to apply that
     void applyNextBlock();
 
@@ -209,6 +221,8 @@ namespace kagome::network {
     std::optional<libp2p::peer::PeerId> chooseJustificationPeer(
         primitives::BlockNumber block, BlocksRequest::Fingerprint fingerprint);
 
+    void afterStateSync();
+
     std::shared_ptr<application::AppStateManager> app_state_manager_;
     std::shared_ptr<blockchain::BlockTree> block_tree_;
     std::shared_ptr<consensus::BlockHeaderAppender> block_appender_;
@@ -220,9 +234,11 @@ namespace kagome::network {
     std::shared_ptr<PeerManager> peer_manager_;
     std::shared_ptr<libp2p::basic::Scheduler> scheduler_;
     std::shared_ptr<crypto::Hasher> hasher_;
+    LazySPtr<consensus::Timeline> timeline_;
     std::shared_ptr<IBeefy> beefy_;
     std::shared_ptr<consensus::grandpa::Environment> grandpa_environment_;
     primitives::events::ChainSubscriptionEnginePtr chain_sub_engine_;
+    WeakIoContext main_thread_context_;
 
     application::SyncMethod sync_method_;
 
@@ -273,6 +289,9 @@ namespace kagome::network {
     std::atomic_bool applying_in_progress_ = false;
     std::atomic_bool asking_blocks_portion_in_progress_ = false;
     std::set<libp2p::peer::PeerId> busy_peers_;
+    std::unordered_set<primitives::BlockInfo> load_blocks_;
+    std::pair<primitives::BlockNumber, std::chrono::milliseconds>
+        load_blocks_max_{};
 
     std::map<std::tuple<libp2p::peer::PeerId, BlocksRequest::Fingerprint>,
              const char *>

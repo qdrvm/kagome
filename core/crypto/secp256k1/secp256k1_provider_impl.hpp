@@ -27,18 +27,20 @@ namespace kagome::crypto {
     Secp256k1ProviderImpl();
 
     outcome::result<secp256k1::UncompressedPublicKey>
-    recoverPublickeyUncompressed(
-        const secp256k1::RSVSignature &signature,
-        const secp256k1::MessageHash &message_hash) const override;
+    recoverPublickeyUncompressed(const secp256k1::RSVSignature &signature,
+                                 const secp256k1::MessageHash &message_hash,
+                                 bool allow_overflow) const override;
 
     outcome::result<secp256k1::CompressedPublicKey> recoverPublickeyCompressed(
         const secp256k1::RSVSignature &signature,
-        const secp256k1::MessageHash &message_hash) const override;
+        const secp256k1::MessageHash &message_hash,
+        bool allow_overflow) const override;
 
    private:
     outcome::result<secp256k1_pubkey> recoverPublickey(
         const secp256k1::RSVSignature &signature,
-        const secp256k1::MessageHash &message_hash) const;
+        const secp256k1::MessageHash &message_hash,
+        bool allow_overflow) const;
 
     std::unique_ptr<secp256k1_context, void (*)(secp256k1_context *)> context_;
   };

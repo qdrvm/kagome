@@ -36,6 +36,8 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::primitives, InvalidTransaction::Kind, e) {
     case E::MandatoryDispatch:
       return "Transaction dispatch is mandatory; transactions may not have "
              "mandatory dispatches.";
+    case E::BadSigner:
+      return "Invalid signing address";
   }
   return "Unknown InvalidTransaction error";
 }

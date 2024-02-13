@@ -11,12 +11,17 @@
 #include <unordered_set>
 #include <vector>
 
+#include <libp2p/basic/scheduler/asio_scheduler_backend.hpp>
+#include <libp2p/basic/scheduler/scheduler_impl.hpp>
+
 #include "application/app_state_manager.hpp"
 #include "authority_discovery/query/query.hpp"
 #include "blockchain/block_header_repository.hpp"
 #include "common/visitor.hpp"
+#include "consensus/timeline/timeline.hpp"
 #include "dispute_coordinator/chain_scraper.hpp"
 #include "dispute_coordinator/impl/chain_scraper_impl.hpp"
+#include "dispute_coordinator/impl/dispute_thread_pool.hpp"
 #include "dispute_coordinator/impl/errors.hpp"
 #include "dispute_coordinator/impl/rolling_session_window_impl.hpp"
 #include "dispute_coordinator/impl/sending_dispute.hpp"
@@ -29,7 +34,6 @@
 #include "parachain/approval/approval_distribution.hpp"
 #include "runtime/runtime_api/core.hpp"
 #include "runtime/runtime_api/parachain_host.hpp"
-#include "utils/thread_pool.hpp"
 #include "utils/tuple_hash.hpp"
 
 namespace kagome::dispute {
@@ -119,12 +123,11 @@ namespace kagome::dispute {
       std::shared_ptr<parachain::Pvf> pvf,
       std::shared_ptr<parachain::ApprovalDistribution> approval_distribution,
       std::shared_ptr<authority_discovery::Query> authority_discovery,
-      std::shared_ptr<Watchdog> watchdog,
-      WeakIoContext main_thread,
+      std::shared_ptr<DisputeThreadPool> dispute_thread_pool,
+      WeakIoContext main_thread_context,
       std::shared_ptr<network::Router> router,
       std::shared_ptr<network::PeerView> peer_view,
-      std::shared_ptr<primitives::events::BabeStateSubscriptionEngine>
-          babe_status_observable)
+      LazySPtr<consensus::Timeline> timeline)
       : app_state_manager_(std::move(app_state_manager)),
         system_clock_(system_clock),
         steady_clock_(steady_clock),
@@ -140,15 +143,19 @@ namespace kagome::dispute {
         pvf_(std::move(pvf)),
         approval_distribution_(std::move(approval_distribution)),
         authority_discovery_(std::move(authority_discovery)),
-        main_thread_(std::make_unique<ThreadHandler>(std::move(main_thread))),
+        main_thread_context_{std::move(main_thread_context)},
         router_(std::move(router)),
         peer_view_(std::move(peer_view)),
         chain_sub_{peer_view_->intoChainEventsEngine()},
-        babe_status_observable_(std::move(babe_status_observable)),
-        internal_context_{ThreadPool::create(std::move(watchdog),
-                                             "DisputeCoordinatorImpl",
-                                             1ull)
-                              ->handler()},
+        timeline_(std::move(timeline)),
+        dispute_thread_handler_{[&] {
+          BOOST_ASSERT(dispute_thread_pool != nullptr);
+          return dispute_thread_pool->handler();
+        }()},
+        scheduler_{std::make_shared<libp2p::basic::SchedulerImpl>(
+            std::make_shared<libp2p::basic::AsioSchedulerBackend>(
+                dispute_thread_pool->io_context()),
+            libp2p::basic::Scheduler::Config{})},
         runtime_info_(std::make_unique<RuntimeInfo>(api_, session_keys_)),
         batches_(std::make_unique<Batches>(steady_clock_, hasher_)) {
     BOOST_ASSERT(app_state_manager_ != nullptr);
@@ -164,7 +171,7 @@ namespace kagome::dispute {
     BOOST_ASSERT(pvf_ != nullptr);
     BOOST_ASSERT(approval_distribution_ != nullptr);
     BOOST_ASSERT(authority_discovery_ != nullptr);
-    BOOST_ASSERT(main_thread_ != nullptr);
+    BOOST_ASSERT(not main_thread_context_.expired());
     BOOST_ASSERT(router_ != nullptr);
     BOOST_ASSERT(peer_view_ != nullptr);
 
@@ -232,36 +239,16 @@ namespace kagome::dispute {
           }
         });
 
-    // subscribe to first successful sync
-    babe_status_sub_ =
-        std::make_shared<primitives::events::BabeStateEventSubscriber>(
-            babe_status_observable_, false);
-    babe_status_sub_->subscribe(
-        babe_status_sub_->generateSubscriptionSetId(),
-        primitives::events::SyncStateEventType::kSyncState);
-    babe_status_sub_->setCallback(
-        [wself{weak_from_this()}](
-            auto /*set_id*/,
-            bool &synchronized,
-            auto /*event_type*/,
-            const primitives::events::SyncStateEventParams &event) {
-          if (auto self = wself.lock()) {
-            if (event == consensus::SyncState::SYNCHRONIZED) {
-              self->was_synchronized_ = true;
-            }
-          }
-        });
-
     return true;
   }
 
   bool DisputeCoordinatorImpl::start() {
-    internal_context_->start();
+    dispute_thread_handler_->start();
     return true;
   }
 
   void DisputeCoordinatorImpl::stop() {
-    internal_context_->stop();
+    dispute_thread_handler_->stop();
   }
 
   void DisputeCoordinatorImpl::startup(const network::ExView &updated) {
@@ -468,7 +455,7 @@ namespace kagome::dispute {
                                             api_,
                                             recovery_,
                                             pvf_,
-                                            internal_context_,
+                                            dispute_thread_handler_,
                                             weak_from_this());
 
     // Also provide first leaf to participation for good measure.
@@ -488,7 +475,7 @@ namespace kagome::dispute {
       return;
     }
 
-    REINVOKE(*internal_context_, onParticipation, message);
+    REINVOKE(*dispute_thread_handler_, onParticipation, message);
 
     SL_TRACE(log_, "MuxedMessage::Participation");
 
@@ -524,11 +511,11 @@ namespace kagome::dispute {
 
   void DisputeCoordinatorImpl::on_active_leaves_update(
       const network::ExView &updated) {
-    if (not was_synchronized_) {
+    if (not timeline_.get()->wasSynchronized()) {
       return;
     }
 
-    REINVOKE(*internal_context_, on_active_leaves_update, updated);
+    REINVOKE(*dispute_thread_handler_, on_active_leaves_update, updated);
 
     if (not initialized_) {
       return startup(updated);
@@ -837,7 +824,7 @@ namespace kagome::dispute {
         waiting_for_active_disputes_.emplace(
             WaitForActiveDisputesState{sessions_updated});
 
-        internal_context_->execute([wp{weak_from_this()}] {
+        dispute_thread_handler_->execute([wp{weak_from_this()}] {
           // https://github.com/paritytech/polkadot/blob/40974fb99c86f5c341105b7db53c7aa0df707d66/node/network/dispute-distribution/src/sender/mod.rs#L219
           if (auto self = wp.lock()) {
             self->getActiveDisputes([wp](auto active_disputes_res) {
@@ -964,7 +951,7 @@ namespace kagome::dispute {
       return;
     }
 
-    REINVOKE(*internal_context_, on_finalized_block, finalized);
+    REINVOKE(*dispute_thread_handler_, on_finalized_block, finalized);
 
     auto res = process_finalized_block(finalized);
     if (res.has_error()) {
@@ -1852,7 +1839,7 @@ namespace kagome::dispute {
       SessionIndex session,
       std::vector<Indexed<SignedDisputeStatement>> statements,
       CbOutcome<void> &&cb) {
-    REINVOKE(*internal_context_,
+    REINVOKE(*dispute_thread_handler_,
              importStatements,
              std::move(candidate_receipt),
              session,
@@ -1873,7 +1860,7 @@ namespace kagome::dispute {
 
   void DisputeCoordinatorImpl::getRecentDisputes(
       CbOutcome<OutputDisputes> &&cb) {
-    REINVOKE(*internal_context_, getRecentDisputes, std::move(cb));
+    REINVOKE(*dispute_thread_handler_, getRecentDisputes, std::move(cb));
 
     // Return error if session information is missing.
     if (error_.has_value()) {
@@ -1907,7 +1894,7 @@ namespace kagome::dispute {
 
   void DisputeCoordinatorImpl::getActiveDisputes(
       CbOutcome<OutputDisputes> &&cb) {
-    REINVOKE(*internal_context_, getActiveDisputes, std::move(cb));
+    REINVOKE(*dispute_thread_handler_, getActiveDisputes, std::move(cb));
 
     // Return error if session information is missing.
     if (error_.has_value()) {
@@ -1958,7 +1945,8 @@ namespace kagome::dispute {
 
   void DisputeCoordinatorImpl::queryCandidateVotes(
       const QueryCandidateVotes &query, CbOutcome<OutputCandidateVotes> &&cb) {
-    REINVOKE(*internal_context_, queryCandidateVotes, query, std::move(cb));
+    REINVOKE(
+        *dispute_thread_handler_, queryCandidateVotes, query, std::move(cb));
 
     // Return error if session information is missing.
     if (error_.has_value()) {
@@ -1992,7 +1980,7 @@ namespace kagome::dispute {
       CandidateHash candidate_hash,
       CandidateReceipt candidate_receipt,
       bool valid) {
-    REINVOKE(*internal_context_,
+    REINVOKE(*dispute_thread_handler_,
              issueLocalStatement,
              session,
              candidate_hash,
@@ -2014,7 +2002,7 @@ namespace kagome::dispute {
       primitives::BlockInfo base,
       std::vector<BlockDescription> block_descriptions,
       CbOutcome<primitives::BlockInfo> &&cb) {
-    REINVOKE(*internal_context_,
+    REINVOKE(*dispute_thread_handler_,
              determineUndisputedChain,
              base,
              std::move(block_descriptions),
@@ -2117,8 +2105,11 @@ namespace kagome::dispute {
       const libp2p::peer::PeerId &peer_id,
       const network::DisputeMessage &request,
       CbOutcome<void> &&cb) {
-    REINVOKE(
-        *internal_context_, onDisputeRequest, peer_id, request, std::move(cb));
+    REINVOKE(*dispute_thread_handler_,
+             onDisputeRequest,
+             peer_id,
+             request,
+             std::move(cb));
 
     // Only accept messages from validators, in case there are multiple
     // `AuthorityId`s, we just take the first one. On session boundaries
@@ -2154,33 +2145,30 @@ namespace kagome::dispute {
 
   void DisputeCoordinatorImpl::sendDisputeResponse(outcome::result<void> res,
                                                    CbOutcome<void> &&cb) {
-    REINVOKE(*main_thread_, sendDisputeResponse, std::move(res), std::move(cb));
+    REINVOKE(main_thread_context_,
+             sendDisputeResponse,
+             std::move(res),
+             std::move(cb));
     cb(res);
   }
 
   void DisputeCoordinatorImpl::make_task_for_next_portion() {
     if (not rate_limit_timer_.has_value()) {
-      rate_limit_timer_.emplace(internal_context_->io_context());
-
-      rate_limit_timer_->expiresAfter(kReceiveRateLimit);
-      rate_limit_timer_->asyncWait([wp{weak_from_this()}](auto &&ec) {
-        if (auto self = wp.lock()) {
-          if (ec) {
-            SL_ERROR(self->log_,
-                     "error happened while waiting delayed requests "
-                     "processing: {}",
-                     ec);
-            return;
-          }
-          BOOST_ASSERT(self->internal_context_->isInCurrentThread());
-          self->process_portion_incoming_disputes();
-        }
-      });
+      rate_limit_timer_ =
+          scheduler_->scheduleWithHandle([wp{weak_from_this()}]() {
+            if (auto self = wp.lock()) {
+              BOOST_ASSERT(self->dispute_thread_handler_->isInCurrentThread());
+              self->process_portion_incoming_disputes();
+            }
+          });
     }
   }
 
   void DisputeCoordinatorImpl::process_portion_incoming_disputes() {
-    rate_limit_timer_.reset();
+    if (rate_limit_timer_) {
+      rate_limit_timer_->cancel();
+      rate_limit_timer_.reset();
+    }
 
     std::vector<std::tuple<libp2p::peer::PeerId,
                            network::DisputeMessage,
