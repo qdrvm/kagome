@@ -10,6 +10,7 @@
 #include "application/chain_spec.hpp"
 #include "blockchain/block_tree.hpp"
 #include "blockchain/block_tree_error.hpp"
+#include "common/main_thread_pool.hpp"
 #include "common/worker_thread_pool.hpp"
 #include "consensus/beefy/digest.hpp"
 #include "consensus/beefy/sig.hpp"
@@ -44,8 +45,8 @@ namespace kagome::network {
                std::shared_ptr<runtime::BeefyApi> beefy_api,
                std::shared_ptr<crypto::EcdsaProvider> ecdsa,
                std::shared_ptr<storage::SpacedStorage> db,
-               const common::WorkerThreadPool &worker_thread_pool,
-               WeakIoContext main_thread_context,
+               std::shared_ptr<common::MainPoolHandler> main_thread_handler,
+               std::shared_ptr<common::WorkerThreadPool> worker_thread_pool,
                std::shared_ptr<libp2p::basic::Scheduler> scheduler,
                LazySPtr<consensus::Timeline> timeline,
                std::shared_ptr<crypto::SessionKeys> session_keys,
@@ -55,21 +56,23 @@ namespace kagome::network {
         beefy_api_{std::move(beefy_api)},
         ecdsa_{std::move(ecdsa)},
         db_{db->getSpace(storage::Space::kBeefyJustification)},
-        strand_{std::make_shared<WeakIoContextStrand>(
-            worker_thread_pool.io_context())},
-        main_thread_context_{std::move(main_thread_context)},
+        strand_{std::make_shared<WeakIoContextStrand>([&] {
+          BOOST_ASSERT(worker_thread_pool);
+          return worker_thread_pool->io_context();
+        }())},
+        main_pool_handler_(std::move(main_thread_handler)),
         scheduler_{std::move(scheduler)},
         timeline_{std::move(timeline)},
         session_keys_{std::move(session_keys)},
         beefy_protocol_{std::move(beefy_protocol)},
-        min_delta_{chain_spec.beefyMinDelta()},
-        chain_sub_{chain_sub_engine},
+        min_delta_{chain_spec.isWococo() ? 4u : 8u},
+        chain_sub_{std::move(chain_sub_engine)},
         log_{log::createLogger("Beefy")} {
     BOOST_ASSERT(block_tree_ != nullptr);
     BOOST_ASSERT(beefy_api_ != nullptr);
     BOOST_ASSERT(ecdsa_ != nullptr);
     BOOST_ASSERT(db_ != nullptr);
-    BOOST_ASSERT(not main_thread_context_.expired());
+    BOOST_ASSERT(main_pool_handler_ != nullptr);
     BOOST_ASSERT(session_keys_ != nullptr);
 
     app_state_manager.takeControl(*this);
@@ -491,7 +494,7 @@ namespace kagome::network {
   }
 
   void Beefy::broadcast(consensus::beefy::BeefyGossipMessage message) {
-    REINVOKE(main_thread_context_, broadcast, std::move(message));
+    REINVOKE(*main_pool_handler_, broadcast, std::move(message));
     beefy_protocol_.get()->broadcast(
         std::make_shared<consensus::beefy::BeefyGossipMessage>(
             std::move(message)));
@@ -499,7 +502,7 @@ namespace kagome::network {
   }
 
   void Beefy::setTimer() {
-    REINVOKE(main_thread_context_, setTimer);
+    REINVOKE(*main_pool_handler_, setTimer);
     auto f = [weak{weak_from_this()}] {
       auto self = weak.lock();
       if (not self) {
