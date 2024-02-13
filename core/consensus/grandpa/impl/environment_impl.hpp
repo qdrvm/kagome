@@ -14,14 +14,6 @@
 #include "parachain/approval/approved_ancestor.hpp"
 #include "utils/weak_io_context.hpp"
 
-namespace kagome {
-  class ThreadHandler;
-}
-
-namespace kagome::application {
-  class AppStateManager;
-}
-
 namespace kagome::blockchain {
   class BlockHeaderRepository;
   class BlockTree;
@@ -58,7 +50,6 @@ namespace kagome::consensus::grandpa {
                           public std::enable_shared_from_this<EnvironmentImpl> {
    public:
     EnvironmentImpl(
-        std::shared_ptr<application::AppStateManager> app_state_manager,
         std::shared_ptr<blockchain::BlockTree> block_tree,
         std::shared_ptr<blockchain::BlockHeaderRepository> header_repository,
         std::shared_ptr<AuthorityManager> authority_manager,
@@ -74,12 +65,6 @@ namespace kagome::consensus::grandpa {
         std::shared_ptr<common::MainPoolHandler> main_pool_handler);
 
     ~EnvironmentImpl() override = default;
-
-    /// @see kagome::application::AppStateManager::takeControl()
-    bool start();
-
-    /// @see kagome::application::AppStateManager::takeControl()
-    void stop();
 
     // Chain methods
 
