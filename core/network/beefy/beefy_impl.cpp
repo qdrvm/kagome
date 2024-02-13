@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "network/beefy/beefy.hpp"
+#include "network/beefy/beefy_impl.hpp"
 
 #include "application/app_state_manager.hpp"
 #include "application/chain_spec.hpp"
@@ -39,19 +39,20 @@ namespace kagome::network {
       "Best block finalized by BEEFY",
   };
 
-  Beefy::Beefy(application::AppStateManager &app_state_manager,
-               const application::ChainSpec &chain_spec,
-               std::shared_ptr<blockchain::BlockTree> block_tree,
-               std::shared_ptr<runtime::BeefyApi> beefy_api,
-               std::shared_ptr<crypto::EcdsaProvider> ecdsa,
-               std::shared_ptr<storage::SpacedStorage> db,
-               std::shared_ptr<common::MainPoolHandler> main_thread_handler,
-               std::shared_ptr<libp2p::basic::Scheduler> scheduler,
-               std::shared_ptr<BeefyThreadPool> beefy_thread_pool,
-               LazySPtr<consensus::Timeline> timeline,
-               std::shared_ptr<crypto::SessionKeys> session_keys,
-               LazySPtr<BeefyProtocol> beefy_protocol,
-               primitives::events::ChainSubscriptionEnginePtr chain_sub_engine)
+  BeefyImpl::BeefyImpl(
+      application::AppStateManager &app_state_manager,
+      const application::ChainSpec &chain_spec,
+      std::shared_ptr<blockchain::BlockTree> block_tree,
+      std::shared_ptr<runtime::BeefyApi> beefy_api,
+      std::shared_ptr<crypto::EcdsaProvider> ecdsa,
+      std::shared_ptr<storage::SpacedStorage> db,
+      std::shared_ptr<common::MainPoolHandler> main_thread_handler,
+      std::shared_ptr<libp2p::basic::Scheduler> scheduler,
+      std::shared_ptr<BeefyThreadPool> beefy_thread_pool,
+      LazySPtr<consensus::Timeline> timeline,
+      std::shared_ptr<crypto::SessionKeys> session_keys,
+      LazySPtr<BeefyProtocol> beefy_protocol,
+      primitives::events::ChainSubscriptionEnginePtr chain_sub_engine)
       : block_tree_{std::move(block_tree)},
         beefy_api_{std::move(beefy_api)},
         ecdsa_{std::move(ecdsa)},
@@ -78,12 +79,12 @@ namespace kagome::network {
     app_state_manager.takeControl(*this);
   }
 
-  primitives::BlockNumber Beefy::finalized() const {
+  primitives::BlockNumber BeefyImpl::finalized() const {
     return beefy_finalized_;
   }
 
   outcome::result<std::optional<consensus::beefy::BeefyJustification>>
-  Beefy::getJustification(primitives::BlockNumber block) const {
+  BeefyImpl::getJustification(primitives::BlockNumber block) const {
     OUTCOME_TRY(raw, db_->tryGet(BlockNumberKey::encode(block)));
     if (raw) {
       OUTCOME_TRY(r, scale::decode<consensus::beefy::BeefyJustification>(*raw));
@@ -92,8 +93,8 @@ namespace kagome::network {
     return outcome::success(std::nullopt);
   }
 
-  void Beefy::onJustification(const primitives::BlockHash &block_hash,
-                              primitives::Justification raw) {
+  void BeefyImpl::onJustification(const primitives::BlockHash &block_hash,
+                                  primitives::Justification raw) {
     beefy_pool_handler_->execute(
         [weak{weak_from_this()}, block_hash, raw = std::move(raw)] {
           if (auto self = weak.lock()) {
@@ -103,7 +104,7 @@ namespace kagome::network {
         });
   }
 
-  outcome::result<void> Beefy::onJustificationOutcome(
+  outcome::result<void> BeefyImpl::onJustificationOutcome(
       const primitives::BlockHash &block_hash, primitives::Justification raw) {
     if (not beefy_genesis_) {
       return outcome::success();
@@ -122,7 +123,7 @@ namespace kagome::network {
     return onJustification(std::move(justification));
   }
 
-  void Beefy::onMessage(consensus::beefy::BeefyGossipMessage message) {
+  void BeefyImpl::onMessage(consensus::beefy::BeefyGossipMessage message) {
     beefy_pool_handler_->execute(
         [weak{weak_from_this()}, message = std::move(message)] {
           if (auto self = weak.lock()) {
@@ -131,7 +132,8 @@ namespace kagome::network {
         });
   }
 
-  void Beefy::onMessageStrand(consensus::beefy::BeefyGossipMessage message) {
+  void BeefyImpl::onMessageStrand(
+      consensus::beefy::BeefyGossipMessage message) {
     if (not beefy_genesis_) {
       return;
     }
@@ -152,7 +154,7 @@ namespace kagome::network {
     }
   }
 
-  void Beefy::onVote(consensus::beefy::VoteMessage vote, bool broadcast) {
+  void BeefyImpl::onVote(consensus::beefy::VoteMessage vote, bool broadcast) {
     auto block_number = vote.commitment.block_number;
     if (block_number < *beefy_genesis_) {
       SL_VERBOSE(log_, "vote for block {} before genesis", block_number);
@@ -224,7 +226,7 @@ namespace kagome::network {
     }
   }
 
-  bool Beefy::start() {
+  void BeefyImpl::start() {
     auto cursor = db_->cursor();
     std::ignore = cursor->seekLast();
     if (cursor->isValid()) {
@@ -247,15 +249,14 @@ namespace kagome::network {
       }
     });
     setTimer();
-    return true;
   }
 
-  bool Beefy::hasJustification(primitives::BlockNumber block) const {
+  bool BeefyImpl::hasJustification(primitives::BlockNumber block) const {
     auto r = db_->contains(BlockNumberKey::encode(block));
     return r and r.value();
   }
 
-  outcome::result<Beefy::FindValidatorsResult> Beefy::findValidators(
+  outcome::result<BeefyImpl::FindValidatorsResult> BeefyImpl::findValidators(
       primitives::BlockNumber max, primitives::BlockNumber min) const {
     OUTCOME_TRY(opt, block_tree_->getBlockHash(max));
     if (not opt) {
@@ -282,7 +283,7 @@ namespace kagome::network {
     }
   }
 
-  outcome::result<void> Beefy::onJustification(
+  outcome::result<void> BeefyImpl::onJustification(
       consensus::beefy::SignedCommitment justification) {
     auto block_number = justification.commitment.block_number;
     if (block_number < *beefy_genesis_) {
@@ -292,7 +293,7 @@ namespace kagome::network {
     return update();
   }
 
-  outcome::result<void> Beefy::apply(
+  outcome::result<void> BeefyImpl::apply(
       consensus::beefy::SignedCommitment justification, bool broadcast) {
     auto block_number = justification.commitment.block_number;
     if (block_number == beefy_finalized_) {
@@ -375,7 +376,7 @@ namespace kagome::network {
     return outcome::success();
   }
 
-  outcome::result<void> Beefy::update() {
+  outcome::result<void> BeefyImpl::update() {
     auto grandpa_finalized = block_tree_->getLastFinalized();
     if (not beefy_genesis_) {
       BOOST_OUTCOME_TRY(beefy_genesis_,
@@ -410,7 +411,7 @@ namespace kagome::network {
     return outcome::success();
   }
 
-  outcome::result<void> Beefy::vote() {
+  outcome::result<void> BeefyImpl::vote() {
     if (not timeline_.get()->wasSynchronized()) {
       return outcome::success();
     }
@@ -468,8 +469,8 @@ namespace kagome::network {
   }
 
   outcome::result<std::optional<consensus::beefy::Commitment>>
-  Beefy::getCommitment(consensus::beefy::AuthoritySetId validator_set_id,
-                       primitives::BlockNumber block_number) {
+  BeefyImpl::getCommitment(consensus::beefy::AuthoritySetId validator_set_id,
+                           primitives::BlockNumber block_number) {
     OUTCOME_TRY(block_hash, block_tree_->getBlockHash(block_number));
     if (not block_hash) {
       SL_VERBOSE(log_, "getCommitment: no block {}", block_number);
@@ -489,14 +490,14 @@ namespace kagome::network {
     };
   }
 
-  void Beefy::metricValidatorSetId() {
+  void BeefyImpl::metricValidatorSetId() {
     if (not sessions_.empty()) {
       metric_validator_set_id->set(
           std::prev(sessions_.end())->second.validators.id);
     }
   }
 
-  void Beefy::broadcast(consensus::beefy::BeefyGossipMessage message) {
+  void BeefyImpl::broadcast(consensus::beefy::BeefyGossipMessage message) {
     REINVOKE(*main_pool_handler_, broadcast, std::move(message));
     beefy_protocol_.get()->broadcast(
         std::make_shared<consensus::beefy::BeefyGossipMessage>(
@@ -504,7 +505,7 @@ namespace kagome::network {
     setTimer();
   }
 
-  void Beefy::setTimer() {
+  void BeefyImpl::setTimer() {
     REINVOKE(*main_pool_handler_, setTimer);
     auto f = [weak{weak_from_this()}] {
       auto self = weak.lock();

@@ -17,7 +17,7 @@
 #include "consensus/grandpa/environment.hpp"
 #include "consensus/grandpa/has_authority_set_change.hpp"
 #include "consensus/timeline/timeline.hpp"
-#include "network/beefy/i_beefy.hpp"
+#include "network/beefy/beefy.hpp"
 #include "network/peer_manager.hpp"
 #include "network/types/block_attributes.hpp"
 #include "primitives/common.hpp"
@@ -97,7 +97,7 @@ namespace kagome::network {
       std::shared_ptr<crypto::Hasher> hasher,
       primitives::events::ChainSubscriptionEnginePtr chain_sub_engine,
       LazySPtr<consensus::Timeline> timeline,
-      std::shared_ptr<IBeefy> beefy,
+      std::shared_ptr<Beefy> beefy,
       std::shared_ptr<consensus::grandpa::Environment> grandpa_environment,
       std::shared_ptr<common::MainPoolHandler> main_pool_handler)
       : log_(log::createLogger("Synchronizer", "synchronizer")),

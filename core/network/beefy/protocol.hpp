@@ -14,11 +14,14 @@
 
 namespace kagome::blockchain {
   class GenesisBlockHash;
-}  // namespace kagome::blockchain
+}
 
 namespace kagome::network {
   class Beefy;
   struct StreamEngine;
+}  // namespace kagome::network
+
+namespace kagome::network {
 
   class BeefyJustificationProtocol
       : public RequestResponseProtocol<primitives::BlockNumber,

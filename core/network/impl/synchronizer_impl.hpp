@@ -54,7 +54,7 @@ namespace kagome::storage::trie {
 }  // namespace kagome::storage::trie
 
 namespace kagome::network {
-  class IBeefy;
+  class Beefy;
   class PeerManager;
 
   class SynchronizerImpl
@@ -109,7 +109,7 @@ namespace kagome::network {
         std::shared_ptr<crypto::Hasher> hasher,
         primitives::events::ChainSubscriptionEnginePtr chain_sub_engine,
         LazySPtr<consensus::Timeline> timeline,
-        std::shared_ptr<IBeefy> beefy,
+        std::shared_ptr<Beefy> beefy,
         std::shared_ptr<consensus::grandpa::Environment> grandpa_environment,
         std::shared_ptr<common::MainPoolHandler> main_pool_handler);
 
@@ -237,7 +237,7 @@ namespace kagome::network {
     std::shared_ptr<libp2p::basic::Scheduler> scheduler_;
     std::shared_ptr<crypto::Hasher> hasher_;
     LazySPtr<consensus::Timeline> timeline_;
-    std::shared_ptr<IBeefy> beefy_;
+    std::shared_ptr<Beefy> beefy_;
     std::shared_ptr<consensus::grandpa::Environment> grandpa_environment_;
     primitives::events::ChainSubscriptionEnginePtr chain_sub_engine_;
     std::shared_ptr<common::MainPoolHandler> main_pool_handler_;

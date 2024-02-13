@@ -854,7 +854,7 @@ namespace {
             di::bind<network::SyncProtocol>.template to<network::SyncProtocolImpl>(),
             di::bind<network::StateProtocol>.template to<network::StateProtocolImpl>(),
             di::bind<network::BeefyProtocol>.template to<network::BeefyProtocolImpl>(),
-            di::bind<network::IBeefy>.template to<network::Beefy>(),
+            di::bind<network::Beefy>.template to<network::BeefyImpl>(),
             di::bind<consensus::babe::BabeLottery>.template to<consensus::babe::BabeLotteryImpl>(),
             di::bind<network::BlockAnnounceObserver>.template to<consensus::TimelineImpl>(),
             di::bind<dispute::DisputeCoordinator>.template to<dispute::DisputeCoordinatorImpl>(),

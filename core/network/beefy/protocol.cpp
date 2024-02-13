@@ -7,7 +7,7 @@
 #include "network/beefy/protocol.hpp"
 
 #include "blockchain/genesis_block_hash.hpp"
-#include "network/beefy/beefy.hpp"
+#include "network/beefy/beefy_impl.hpp"
 #include "network/common.hpp"
 #include "network/impl/protocols/protocol_error.hpp"
 #include "network/impl/stream_engine.hpp"

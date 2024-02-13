@@ -8,7 +8,7 @@ add_subdirectory(protobuf)
 
 
 add_library(network
-    beefy/beefy.cpp
+    beefy/beefy_impl.cpp
     beefy/protocol.cpp
     impl/protocols/light.cpp
     impl/state_protocol_observer_impl.cpp
