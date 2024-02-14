@@ -57,6 +57,14 @@ namespace kagome {
     using Clock = std::chrono::steady_clock;
     using Timeout = std::chrono::seconds;
 
+    Watchdog(std::chrono::milliseconds granularity)
+        : granularity_(granularity) {
+      BOOST_ASSERT(granularity != granularity.zero());
+    }
+
+    struct Inject {};
+    Watchdog(Inject, ...) : Watchdog(std::chrono::seconds{1}) {}
+
     struct Ping {
       std::shared_ptr<Atomic> count_;
 
@@ -68,7 +76,9 @@ namespace kagome {
     void checkLoop(Timeout timeout) {
       // or `io_context` with timer
       while (not stopped_) {
-        std::this_thread::sleep_for(std::chrono::seconds{1});
+        if (granularity_ != granularity_.zero()) {
+          std::this_thread::sleep_for(granularity_);
+        }
         check(timeout);
       }
     }
@@ -133,7 +143,7 @@ namespace kagome {
 #else
         // `run_one_for` run time is sum of `wait_one(time)` and `poll_one`
         // may cause false-positive timeout
-        io->run_one_for(std::chrono::seconds{1});
+        io->run_one_for(granularity_);
 #endif
         ping();
         io->restart();
@@ -153,6 +163,7 @@ namespace kagome {
       std::string name;
     };
 
+    std::chrono::milliseconds granularity_;
     std::mutex mutex_;
     std::unordered_map<std::thread::id, Thread> threads_;
     std::atomic_bool stopped_ = false;
