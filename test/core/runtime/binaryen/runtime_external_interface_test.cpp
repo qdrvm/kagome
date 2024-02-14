@@ -15,7 +15,6 @@
 #include "mock/core/host_api/host_api_mock.hpp"
 #include "mock/core/runtime/binaryen_wasm_memory_factory_mock.hpp"
 #include "mock/core/runtime/core_api_factory_mock.hpp"
-#include "mock/core/runtime/memory_mock.hpp"
 #include "mock/core/runtime/memory_provider_mock.hpp"
 #include "mock/core/runtime/module_repository_mock.hpp"
 #include "mock/core/runtime/runtime_context_factory_mock.hpp"
@@ -37,7 +36,6 @@ using kagome::host_api::HostApiFactoryMock;
 using kagome::host_api::HostApiMock;
 using kagome::runtime::ConstantCodeProvider;
 using kagome::runtime::CoreApiFactoryMock;
-using kagome::runtime::MemoryMock;
 using kagome::runtime::MemoryProviderMock;
 using kagome::runtime::ModuleRepositoryMock;
 using kagome::runtime::PtrSize;
@@ -86,7 +84,6 @@ class REITest : public ::testing::Test {
   }
 
   void SetUp() override {
-    memory_ = std::make_shared<MemoryMock>();
     host_api_ = std::make_unique<HostApiMock>();
     host_api_factory_ = std::make_shared<HostApiFactoryMock>();
     storage_provider_ = std::make_shared<TrieStorageProviderMock>();
@@ -112,7 +109,6 @@ class REITest : public ::testing::Test {
     ASSERT_GT(root.size(), 0);
     ASSERT_NE(root[0], nullptr);
     SExpressionWasmBuilder builder(wasm, *root[0]);
-    EXPECT_CALL(*host_api_, memory()).WillRepeatedly(Return(memory_));
 
     TestableExternalInterface rei(host_api_);
 
@@ -121,7 +117,6 @@ class REITest : public ::testing::Test {
   }
 
  protected:
-  std::shared_ptr<MemoryMock> memory_;
   std::shared_ptr<CoreApiFactoryMock> core_api_factory_;
   std::shared_ptr<HostApiMock> host_api_;
   std::shared_ptr<HostApiFactoryMock> host_api_factory_;

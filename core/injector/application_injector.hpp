@@ -108,6 +108,7 @@ namespace kagome::injector {
     explicit KagomeNodeInjector(
         std::shared_ptr<application::AppConfiguration> app_config);
 
+    std::shared_ptr<application::AppConfiguration> injectAppConfig();
     std::shared_ptr<application::ChainSpec> injectChainSpec();
     std::shared_ptr<blockchain::BlockStorage> injectBlockStorage();
     std::shared_ptr<application::AppStateManager> injectAppStateManager();

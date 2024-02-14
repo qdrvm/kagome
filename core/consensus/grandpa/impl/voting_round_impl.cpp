@@ -154,8 +154,7 @@ namespace kagome::consensus::grandpa {
     last_finalized_block_ = round_state.last_finalized_block;
 
     if (round_number_ != 0) {
-      std::optional<GrandpaContext> ctx;
-      VotingRoundUpdate update{*this, ctx};
+      VotingRoundUpdate update{*this};
       for (auto &vote : round_state.votes) {
         update.vote(vote);
       }
@@ -498,8 +497,7 @@ namespace kagome::consensus::grandpa {
       return;
     }
     const auto &signed_primary_proposal = signed_primary_proposal_opt.value();
-    std::optional<GrandpaContext> ctx;
-    onProposal(ctx, signed_primary_proposal, Propagation::NEEDLESS);
+    onProposal({}, signed_primary_proposal, Propagation::NEEDLESS);
     env_->onVoted(round_number_, voter_set_->id(), signed_primary_proposal);
   }
 
@@ -557,8 +555,7 @@ namespace kagome::consensus::grandpa {
       return;
     }
     auto &signed_prevote = signed_prevote_opt.value();
-    std::optional<GrandpaContext> ctx;
-    if (onPrevote(ctx, signed_prevote, Propagation::NEEDLESS)) {
+    if (onPrevote({}, signed_prevote, Propagation::NEEDLESS)) {
       update(false, true, false);
       if (save_cached_votes_) {
         save_cached_votes_();
@@ -614,8 +611,7 @@ namespace kagome::consensus::grandpa {
       return;
     }
     auto &signed_precommit = signed_precommit_opt.value();
-    std::optional<GrandpaContext> ctx;
-    if (onPrecommit(ctx, signed_precommit, Propagation::NEEDLESS)) {
+    if (onPrecommit({}, signed_precommit, Propagation::NEEDLESS)) {
       update(false, false, true);
       if (save_cached_votes_) {
         save_cached_votes_();
@@ -683,8 +679,7 @@ namespace kagome::consensus::grandpa {
              round_number_,
              justification.block_info);
 
-    std::optional<GrandpaContext> ctx;
-    VotingRoundUpdate update{*this, ctx};
+    VotingRoundUpdate update{*this};
     for (auto &vote : justification.items) {
       update.vote(vote);
     }
@@ -853,10 +848,9 @@ namespace kagome::consensus::grandpa {
     return voter_set_->id();
   }
 
-  void VotingRoundImpl::onProposal(
-      std::optional<GrandpaContext> &grandpa_context,
-      const SignedMessage &proposal,
-      Propagation propagation) {
+  void VotingRoundImpl::onProposal(OptRef<GrandpaContext> grandpa_context,
+                                   const SignedMessage &proposal,
+                                   Propagation propagation) {
     if (not isPrimary(proposal.id)) {
       logger_->warn(
           "Round #{}: Proposal signed by {} was rejected: "
@@ -917,10 +911,9 @@ namespace kagome::consensus::grandpa {
     }
   }
 
-  bool VotingRoundImpl::onPrevote(
-      std::optional<GrandpaContext> &grandpa_context,
-      const SignedMessage &prevote,
-      Propagation propagation) {
+  bool VotingRoundImpl::onPrevote(OptRef<GrandpaContext> grandpa_context,
+                                  const SignedMessage &prevote,
+                                  Propagation propagation) {
     if (grandpa_context) {
       grandpa_context->checked_signature_counter++;
     }
@@ -992,10 +985,9 @@ namespace kagome::consensus::grandpa {
     return true;
   }
 
-  bool VotingRoundImpl::onPrecommit(
-      std::optional<GrandpaContext> &grandpa_context,
-      const SignedMessage &precommit,
-      Propagation propagation) {
+  bool VotingRoundImpl::onPrecommit(OptRef<GrandpaContext> grandpa_context,
+                                    const SignedMessage &precommit,
+                                    Propagation propagation) {
     if (grandpa_context) {
       grandpa_context->checked_signature_counter++;
     }
@@ -1123,8 +1115,7 @@ namespace kagome::consensus::grandpa {
 
   template <typename T>
   outcome::result<void> VotingRoundImpl::onSigned(
-      std::optional<GrandpaContext> &grandpa_context,
-      const SignedMessage &vote) {
+      OptRef<GrandpaContext> grandpa_context, const SignedMessage &vote) {
     BOOST_ASSERT(vote.is<T>());
 
     // Check if voter is contained in current voter set
@@ -1206,12 +1197,10 @@ namespace kagome::consensus::grandpa {
   }
 
   template outcome::result<void> VotingRoundImpl::onSigned<Prevote>(
-      std::optional<GrandpaContext> &grandpa_context,
-      const SignedMessage &vote);
+      OptRef<GrandpaContext> grandpa_context, const SignedMessage &vote);
 
   template outcome::result<void> VotingRoundImpl::onSigned<Precommit>(
-      std::optional<GrandpaContext> &grandpa_context,
-      const SignedMessage &vote);
+      OptRef<GrandpaContext> grandpa_context, const SignedMessage &vote);
 
   bool VotingRoundImpl::updateGrandpaGhost() {
     if (prevotes_->getTotalWeight() < threshold_) {
@@ -1561,7 +1550,7 @@ namespace kagome::consensus::grandpa {
   }
 
   void VotingRoundImpl::pending() {
-    SL_DEBUG(logger_, "Round #{}: Pending...", round_number_);
+    SL_DEBUG(logger_, "Round #{}: Pending…", round_number_);
 
     sendNeighborMessage();
 

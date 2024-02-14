@@ -185,10 +185,8 @@ namespace kagome::consensus::grandpa {
      * @param peer_id id of remote peer that sent catch up response
      * @param msg message containing catch up response
      */
-    void onCatchUpResponse(
-        std::optional<std::shared_ptr<GrandpaContext>> &&existed_context,
-        const libp2p::peer::PeerId &peer_id,
-        const network::CatchUpResponse &msg) override;
+    void onCatchUpResponse(const libp2p::peer::PeerId &peer_id,
+                           network::CatchUpResponse &&msg) override;
 
     // Voting methods
 
@@ -202,11 +200,9 @@ namespace kagome::consensus::grandpa {
      * @param msg vote message that could be either primary propose, prevote, or
      * precommit message
      */
-    void onVoteMessage(
-        std::optional<std::shared_ptr<GrandpaContext>> &&existed_context,
-        const libp2p::peer::PeerId &peer_id,
-        std::optional<network::PeerStateCompact> &&info_opt,
-        const network::VoteMessage &msg) override;
+    void onVoteMessage(const libp2p::peer::PeerId &peer_id,
+                       std::optional<network::PeerStateCompact> &&info_opt,
+                       network::VoteMessage &&msg) override;
 
     /**
      * Processing of commit message
@@ -217,10 +213,8 @@ namespace kagome::consensus::grandpa {
      * @param peer_id id of remote peer
      * @param msg message containing commit message with justification
      */
-    void onCommitMessage(
-        std::optional<std::shared_ptr<GrandpaContext>> &&existed_context,
-        const libp2p::peer::PeerId &peer_id,
-        const network::FullCommitMessage &msg) override;
+    void onCommitMessage(const libp2p::peer::PeerId &peer_id,
+                         network::FullCommitMessage &&msg) override;
 
     /**
      * Check justification votes signatures, ancestry and threshold.
@@ -265,6 +259,15 @@ namespace kagome::consensus::grandpa {
     void updateNextRound(RoundNumber round_number) override;
 
    private:
+    struct WaitingBlock {
+      libp2p::peer::PeerId peer;
+      boost::variant<network::VoteMessage,
+                     network::CatchUpResponse,
+                     network::FullCommitMessage>
+          msg;
+      MissingBlocks blocks;
+    };
+
     void callbackCall(ApplyJustificationCb &&callback,
                       outcome::result<void> &&result);
     /**
@@ -303,11 +306,21 @@ namespace kagome::consensus::grandpa {
     outcome::result<std::shared_ptr<VotingRound>> makeNextRound(
         const std::shared_ptr<VotingRound> &previous_round);
 
+    void onCatchUpResponse(const libp2p::peer::PeerId &peer_id,
+                           network::CatchUpResponse &&msg,
+                           bool allow_missing_blocks);
+    void onVoteMessage(const libp2p::peer::PeerId &peer_id,
+                       std::optional<network::PeerStateCompact> &&info_opt,
+                       network::VoteMessage &&msg,
+                       bool allow_missing_blocks);
+    void onCommitMessage(const libp2p::peer::PeerId &peer_id,
+                         network::FullCommitMessage &&msg,
+                         bool allow_missing_blocks);
     /**
      * Request blocks that are missing to run consensus (for example when we
      * cannot accept precommit when there is no corresponding block)
      */
-    void loadMissingBlocks(GrandpaContext &&grandpa_context);
+    void loadMissingBlocks(WaitingBlock &&waiting);
     void onHead(const primitives::BlockInfo &block);
     void pruneWaitingBlocks();
 
@@ -343,7 +356,7 @@ namespace kagome::consensus::grandpa {
     libp2p::basic::Scheduler::Handle catchup_request_timer_handle_;
     libp2p::basic::Scheduler::Handle fallback_timer_handle_;
 
-    std::vector<GrandpaContext> waiting_blocks_;
+    std::vector<WaitingBlock> waiting_blocks_;
 
     struct CachedRound {
       SCALE_TIE(3);

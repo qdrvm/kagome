@@ -15,7 +15,7 @@ namespace kagome::consensus::grandpa {
    */
   struct VotingRoundUpdate {
     VotingRound &round;
-    std::optional<GrandpaContext> ctx;
+    OptRef<GrandpaContext> ctx{};
     bool propagate = false;
     bool update_prevote = false;
     bool update_precommit = false;
