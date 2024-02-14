@@ -14,14 +14,16 @@
 namespace kagome::common {
   class WorkerThreadPool final : public ThreadPool {
    public:
-    WorkerThreadPool(Inject, std::shared_ptr<Watchdog> watchdog)
+    WorkerThreadPool(std::shared_ptr<Watchdog> watchdog, size_t thread_number)
         : ThreadPool(
-            std::move(watchdog),
-            "worker",
-            std::max<size_t>(3, std::thread::hardware_concurrency()) - 1,
-            std::nullopt) {}
+            std::move(watchdog), "worker", thread_number, std::nullopt) {}
 
-    WorkerThreadPool(TestThreadPool test) : ThreadPool{test} {}
+    WorkerThreadPool(std::shared_ptr<Watchdog> watchdog, Inject, ...)
+        : WorkerThreadPool(
+            std::move(watchdog),
+            std::max<size_t>(3, std::thread::hardware_concurrency()) - 1) {}
+
+        WorkerThreadPool(TestThreadPool test) : ThreadPool{test} {}
   };
 
   class WorkerPoolHandler final : public PoolHandler {
