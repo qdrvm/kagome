@@ -22,5 +22,20 @@ namespace kagome::network {
                 onJustification,
                 (const primitives::BlockHash &, primitives::Justification),
                 (override));
+
+    MOCK_METHOD(void,
+                onMessage,
+                (consensus::beefy::BeefyGossipMessage),
+                (override));
   };
 }  // namespace kagome::network
+
+// Trick to make mock-method compilable
+namespace kagome::consensus::beefy {
+  std::ostream &operator<<(std::ostream &s, const VoteMessage &) {
+    return s;
+  }
+  std::ostream &operator<<(std::ostream &s, const SignedCommitment &) {
+    return s;
+  }
+}  // namespace kagome::consensus::beefy
