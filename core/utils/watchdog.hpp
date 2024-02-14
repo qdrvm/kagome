@@ -76,9 +76,7 @@ namespace kagome {
     void checkLoop(Timeout timeout) {
       // or `io_context` with timer
       while (not stopped_) {
-        if (granularity_ != granularity_.zero()) {
-          std::this_thread::sleep_for(granularity_);
-        }
+        std::this_thread::sleep_for(granularity_);
         check(timeout);
       }
     }

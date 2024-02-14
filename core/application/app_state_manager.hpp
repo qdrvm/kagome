@@ -29,12 +29,10 @@ namespace kagome::application {
       AppStatePreparable<T> || AppStateStoppable<T> || AppStateStartable<T>;
 
   template <typename T>
-  concept ActionRetBool = requires(T f) { f(); }
-                      and std::is_same_v<decltype((*(T *)(nullptr))()), bool>;
+  concept ActionRetBool = std::same_as<std::invoke_result_t<T>, bool>;
 
   template <typename T>
-  concept ActionRetVoid = requires(T f) { f(); }
-                      and std::is_same_v<decltype((*(T *)(nullptr))()), void>;
+  concept ActionRetVoid = std::is_void_v<std::invoke_result_t<T>>;
 
   class Action {
    public:
