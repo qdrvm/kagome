@@ -38,7 +38,7 @@ using testing::Ref;
 using testing::Return;
 using testing::ReturnRef;
 
-class SynchronizerTest : public testing::Test {
+class SyncProtocolObserverTest : public testing::Test {
  public:
   static void SetUpTestCase() {
     testutil::prepareLoggers();
@@ -75,7 +75,7 @@ class SynchronizerTest : public testing::Test {
  * @when a request for blocks arrives
  * @then an expected response is formed @and sent
  */
-TEST_F(SynchronizerTest, ProcessRequest) {
+TEST_F(SyncProtocolObserverTest, ProcessRequest) {
   // GIVEN
   BlocksRequest received_request{BlocksRequest::kBasicAttributes,
                                  block3_hash_,
