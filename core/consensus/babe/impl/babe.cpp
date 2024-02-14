@@ -75,7 +75,7 @@ namespace kagome::consensus::babe {
       std::shared_ptr<crypto::Sr25519Provider> sr25519_provider,
       std::shared_ptr<BabeBlockValidator> validating,
       std::shared_ptr<parachain::BitfieldStore> bitfield_store,
-      std::shared_ptr<parachain::ParachainProcessorImpl> parachain_processor,
+      std::shared_ptr<parachain::IBackedCandidatesSource> candidates_source,
       std::shared_ptr<dispute::DisputeCoordinator> dispute_coordinator,
       std::shared_ptr<authorship::Proposer> proposer,
       primitives::events::StorageSubscriptionEnginePtr storage_sub_engine,
@@ -96,7 +96,7 @@ namespace kagome::consensus::babe {
         sr25519_provider_(std::move(sr25519_provider)),
         validating_(std::move(validating)),
         bitfield_store_(std::move(bitfield_store)),
-        parachain_processor_(std::move(parachain_processor)),
+        candidates_source_(std::move(candidates_source)),
         dispute_coordinator_(std::move(dispute_coordinator)),
         proposer_(std::move(proposer)),
         storage_sub_engine_(std::move(storage_sub_engine)),
@@ -118,7 +118,7 @@ namespace kagome::consensus::babe {
     BOOST_ASSERT(sr25519_provider_);
     BOOST_ASSERT(validating_);
     BOOST_ASSERT(bitfield_store_);
-    BOOST_ASSERT(parachain_processor_);
+    BOOST_ASSERT(candidates_source_);
     BOOST_ASSERT(dispute_coordinator_);
     BOOST_ASSERT(proposer_);
     BOOST_ASSERT(chain_sub_engine_);
@@ -339,7 +339,7 @@ namespace kagome::consensus::babe {
               relay_parent);
 
       parachain_inherent_data.backed_candidates =
-          parachain_processor_->getBackedCandidates(relay_parent);
+          candidates_source_->getBackedCandidates(relay_parent);
       SL_TRACE(log_,
                "Get backed candidates from store.(count={}, relay_parent={})",
                parachain_inherent_data.backed_candidates.size(),

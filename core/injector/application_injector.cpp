@@ -789,6 +789,7 @@ namespace {
             di::bind<parachain::Recovery>.template to<parachain::RecoveryImpl>(),
             di::bind<parachain::BitfieldStore>.template to<parachain::BitfieldStoreImpl>(),
             di::bind<parachain::BackingStore>.template to<parachain::BackingStoreImpl>(),
+            di::bind<parachain::IBackedCandidatesSource>.template to<parachain::ParachainProcessorImpl>(),
             di::bind<parachain::Pvf>.template to<parachain::PvfImpl>(),
             di::bind<network::CollationObserver>.template to<parachain::ParachainObserverImpl>(),
             di::bind<network::ValidationObserver>.template to<parachain::ParachainObserverImpl>(),

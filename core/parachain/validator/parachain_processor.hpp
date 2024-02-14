@@ -65,8 +65,13 @@ namespace kagome::dispute {
 
 namespace kagome::parachain {
 
+    struct IBackedCandidatesSource {
+        virtual ~IBackedCandidatesSource() {}
+        virtual std::vector<network::BackedCandidate> getBackedCandidates(const RelayHash &relay_parent) = 0;
+    };
+
   struct ParachainProcessorImpl
-      : std::enable_shared_from_this<ParachainProcessorImpl> {
+      : IBackedCandidatesSource, std::enable_shared_from_this<ParachainProcessorImpl> {
     enum class Error {
       RESPONSE_ALREADY_RECEIVED = 1,
       COLLATION_NOT_FOUND,
@@ -147,7 +152,7 @@ namespace kagome::parachain {
         const network::vstaging::AttestedCandidateRequest &request);
 
     std::vector<network::BackedCandidate> getBackedCandidates(
-        const RelayHash &relay_parent);
+        const RelayHash &relay_parent) override;
     network::ResponsePov getPov(CandidateHash &&candidate_hash);
     auto getAvStore() {
       return av_store_;

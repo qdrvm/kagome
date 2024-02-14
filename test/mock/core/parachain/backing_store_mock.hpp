@@ -17,16 +17,16 @@ namespace kagome::parachain {
     MOCK_METHOD(
         std::optional<ImportResult>,
         put,
-        ((const std::unordered_map<ParachainId, std::vector<ValidatorIndex>> &),
-         Statement),
+        (const RelayHash &,
+        (const std::unordered_map<ParachainId, std::vector<ValidatorIndex>> &),
+        Statement ,
+        bool ),
         (override));
 
     MOCK_METHOD(std::vector<BackedCandidate>,
                 get,
                 (const primitives::BlockHash &),
                 (const, override));
-
-    MOCK_METHOD(void, remove, (const primitives::BlockHash &), (override));
 
     MOCK_METHOD(void,
                 add,
@@ -37,6 +37,16 @@ namespace kagome::parachain {
                 getCadidateInfo,
                 (const primitives::BlockHash &, const network::CandidateHash &),
                 (const, override));
+
+    MOCK_METHOD(void,
+                onActivateLeaf,
+                (const RelayHash &),
+                (override));
+
+    MOCK_METHOD(void,
+                onDeactivateLeaf,
+                (const RelayHash &),
+                (override));
   };
 
 }  // namespace kagome::parachain

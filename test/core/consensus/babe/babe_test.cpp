@@ -30,6 +30,7 @@
 #include "mock/core/dispute_coordinator/dispute_coordinator_mock.hpp"
 #include "mock/core/network/block_announce_transmitter_mock.hpp"
 #include "mock/core/parachain/backing_store_mock.hpp"
+#include "mock/core/parachain/backed_candidates_source.hpp"
 #include "mock/core/parachain/bitfield_store_mock.hpp"
 #include "mock/core/runtime/offchain_worker_api_mock.hpp"
 #include "primitives/event_types.hpp"
@@ -204,6 +205,7 @@ class BabeTest : public testing::Test {
     storage_sub_engine = std::make_shared<StorageSubscriptionEngine>();
     chain_sub_engine = std::make_shared<ChainSubscriptionEngine>();
     announce_transmitter = std::make_shared<BlockAnnounceTransmitterMock>();
+    backed_candidates_source_ = std::make_shared<kagome::parachain::BackedCandidatesSourceMock>();
 
     offchain_worker_api = std::make_shared<OffchainWorkerApiMock>();
     ON_CALL(*offchain_worker_api, offchain_worker(_, _))
@@ -221,7 +223,7 @@ class BabeTest : public testing::Test {
                                   sr25519_provider,
                                   block_validator,
                                   bitfield_store,
-                                  backing_store,
+                                  backed_candidates_source_,
                                   dispute_coordinator,
                                   proposer,
                                   storage_sub_engine,
@@ -253,6 +255,7 @@ class BabeTest : public testing::Test {
   std::shared_ptr<ProposerMock> proposer;
   std::shared_ptr<StorageSubscriptionEngine> storage_sub_engine;
   std::shared_ptr<ChainSubscriptionEngine> chain_sub_engine;
+  std::shared_ptr<kagome::parachain::BackedCandidatesSourceMock> backed_candidates_source_;
   std::shared_ptr<BlockAnnounceTransmitterMock> announce_transmitter;
   std::shared_ptr<OffchainWorkerApiMock> offchain_worker_api;
   std::shared_ptr<Watchdog> watchdog_ = std::make_shared<Watchdog>();
