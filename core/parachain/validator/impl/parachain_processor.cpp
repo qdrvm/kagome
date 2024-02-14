@@ -163,7 +163,8 @@ namespace kagome::parachain {
   void ParachainProcessorImpl::OnBroadcastBitfields(
       const primitives::BlockHash &relay_parent,
       const network::SignedBitfield &bitfield) {
-    REINVOKE(main_thread_context_, OnBroadcastBitfields, relay_parent, bitfield);
+    REINVOKE(
+        main_thread_context_, OnBroadcastBitfields, relay_parent, bitfield);
 
     SL_TRACE(logger_, "Distribute bitfield on {}", relay_parent);
     auto relay_parent_state = tryGetStateByRelayParent(relay_parent);
@@ -2844,7 +2845,8 @@ namespace kagome::parachain {
 
   void ParachainProcessorImpl::onIncomingValidationStream(
       const libp2p::peer::PeerId &peer_id, network::CollationVersion version) {
-    REINVOKE(main_thread_context_, onIncomingValidationStream, peer_id, version);
+    REINVOKE(
+        main_thread_context_, onIncomingValidationStream, peer_id, version);
 
     SL_TRACE(logger_, "Received incoming validation stream {}", peer_id);
     auto peer_state = [&]() {

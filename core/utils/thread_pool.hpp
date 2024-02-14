@@ -85,7 +85,7 @@ namespace kagome {
       BOOST_ASSERT(ioc_);
       return std::make_shared<ThreadHandler>(ioc_);
     }
-    
+
    private:
     log::Logger log_;
     std::shared_ptr<boost::asio::io_context> ioc_;

@@ -25,8 +25,8 @@
 #include "testutil/outcome.hpp"
 #include "testutil/outcome/dummy_error.hpp"
 #include "testutil/prepare_loggers.hpp"
-#include "testutil/scale_test_comparator.hpp"
 #include "testutil/runtime/memory.hpp"
+#include "testutil/scale_test_comparator.hpp"
 
 using kagome::common::Buffer;
 using kagome::common::BufferView;

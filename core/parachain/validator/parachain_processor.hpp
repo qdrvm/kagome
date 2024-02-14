@@ -65,13 +65,15 @@ namespace kagome::dispute {
 
 namespace kagome::parachain {
 
-    struct IBackedCandidatesSource {
-        virtual ~IBackedCandidatesSource() {}
-        virtual std::vector<network::BackedCandidate> getBackedCandidates(const RelayHash &relay_parent) = 0;
-    };
+  struct IBackedCandidatesSource {
+    virtual ~IBackedCandidatesSource() {}
+    virtual std::vector<network::BackedCandidate> getBackedCandidates(
+        const RelayHash &relay_parent) = 0;
+  };
 
   struct ParachainProcessorImpl
-      : IBackedCandidatesSource, std::enable_shared_from_this<ParachainProcessorImpl> {
+      : IBackedCandidatesSource,
+        std::enable_shared_from_this<ParachainProcessorImpl> {
     enum class Error {
       RESPONSE_ALREADY_RECEIVED = 1,
       COLLATION_NOT_FOUND,
