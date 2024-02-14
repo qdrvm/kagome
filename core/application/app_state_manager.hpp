@@ -16,8 +16,6 @@ namespace kagome::application {
   // bool, we want it to be a compile error instead of silently ignoring it
   // because the concept is not satisfied.
   template <typename T>
-  concept AppStateInjectable = requires(T &t) { t.inject(); };
-  template <typename T>
   concept AppStatePreparable = requires(T &t) { t.prepare(); };
   template <typename T>
   concept AppStateStartable = requires(T &t) { t.start(); };
@@ -27,8 +25,8 @@ namespace kagome::application {
   // if an object is registered with AppStateManager but has no method
   // that is called by AppStateManager, there's probably something wrong
   template <typename T>
-  concept AppStateControllable = AppStatePreparable<T> || AppStateInjectable<T>
-                              || AppStateStoppable<T> || AppStateStartable<T>;
+  concept AppStateControllable =
+      AppStatePreparable<T> || AppStateStoppable<T> || AppStateStartable<T>;
 
   template <typename T>
   concept ActionRetBool = requires(T f) { f(); }
@@ -56,15 +54,12 @@ namespace kagome::application {
 
   class AppStateManager {
    public:
-    using OnInject = Action;
     using OnPrepare = Action;
     using OnLaunch = Action;
     using OnShutdown = Action;
 
     enum class State {
       Init,
-      Injecting,
-      Injected,
       Prepare,
       ReadyToStart,
       Starting,
@@ -74,12 +69,6 @@ namespace kagome::application {
     };
 
     virtual ~AppStateManager() = default;
-
-    /**
-     * @brief Execute \param cb at stage 'injections' of application
-     * @param cb
-     */
-    virtual void atInject(OnInject &&cb) = 0;
 
     /**
      * @brief Execute \param cb at stage 'preparations' of application
@@ -107,9 +96,6 @@ namespace kagome::application {
      */
     template <AppStateControllable Controlled>
     void takeControl(Controlled &entity) {
-      if constexpr (AppStateInjectable<Controlled>) {
-        atInject([&entity] { return entity.inject(); });
-      }
       if constexpr (AppStatePreparable<Controlled>) {
         atPrepare([&entity] { return entity.prepare(); });
       }
@@ -131,7 +117,6 @@ namespace kagome::application {
     virtual State state() const = 0;
 
    protected:
-    virtual void doInject() = 0;
     virtual void doPrepare() = 0;
     virtual void doLaunch() = 0;
     virtual void doShutdown() = 0;
