@@ -29,8 +29,8 @@ namespace kagome::runtime {
      * @return pointer-size uint64_t value
      */
     constexpr WasmSpan combine() const {
-      return static_cast<WasmSpan>(ptr)
-           | (static_cast<WasmSpan>(size) << 32ull);
+      return static_cast<uint64_t>(ptr)
+           | (static_cast<uint64_t>(size) << 32ull);
     }
 
     bool operator==(const PtrSize &rhs) const {

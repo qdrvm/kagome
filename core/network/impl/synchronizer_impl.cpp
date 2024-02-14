@@ -627,7 +627,8 @@ namespace kagome::network {
           return;
         }
         // Check if body is provided
-        if (need_body and not block.body.has_value()) {
+        if (need_body and block.header->number != 0
+            and not block.body.has_value()) {
           SL_VERBOSE(self->log_,
                      "Can't load blocks from {} starting from block {}: "
                      "Received block without body",

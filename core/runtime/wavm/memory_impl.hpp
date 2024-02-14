@@ -38,72 +38,6 @@ namespace kagome::runtime::wavm {
     WasmPointer allocate(WasmSize size) override;
     std::optional<WasmSize> deallocate(WasmPointer ptr) override;
 
-    template <typename T, typename = std::enable_if_t<std::is_integral_v<T>>>
-    T load(WasmPointer addr) const {
-      auto res = WAVM::Runtime::memoryRef<T>(memory_, addr);
-      SL_TRACE_FUNC_CALL(logger_, res, static_cast<const void *>(this), addr);
-      return res;
-    }
-
-    template <typename T,
-              typename = std::enable_if_t<std::is_standard_layout_v<T>
-                                          and std::is_trivial_v<T>>>
-    std::span<T> loadArray(WasmPointer addr, size_t num) const {
-      auto res = WAVM::Runtime::memoryArrayPtr<T>(memory_, addr, num);
-      std::span<T> buffer(res, num);
-      SL_TRACE_FUNC_CALL(logger_,
-                         common::BufferView(buffer),
-                         static_cast<const void *>(this),
-                         addr);
-      return buffer;
-    }
-
-    int8_t load8s(WasmPointer addr) const override;
-    uint8_t load8u(WasmPointer addr) const override;
-    int16_t load16s(WasmPointer addr) const override;
-    uint16_t load16u(WasmPointer addr) const override;
-    int32_t load32s(WasmPointer addr) const override;
-    uint32_t load32u(WasmPointer addr) const override;
-    int64_t load64s(WasmPointer addr) const override;
-    uint64_t load64u(WasmPointer addr) const override;
-    std::array<uint8_t, 16> load128(WasmPointer addr) const override;
-
-    common::BufferView loadN(WasmPointer addr, WasmSize n) const override;
-
-    std::string loadStr(WasmPointer addr, WasmSize n) const override;
-
-    template <typename T, typename = std::enable_if_t<std::is_integral_v<T>>>
-    void store(WasmPointer addr, T value) {
-      SL_TRACE_VOID_FUNC_CALL(
-          logger_, static_cast<const void *>(this), addr, value);
-      std::memcpy(
-          WAVM::Runtime::memoryArrayPtr<uint8_t>(memory_, addr, sizeof(value)),
-          &value,
-          sizeof(value));
-    }
-
-    template <typename T, typename = std::enable_if_t<std::is_integral_v<T>>>
-    void storeArray(WasmPointer addr, std::span<T> array) {
-      SL_TRACE_VOID_FUNC_CALL(logger_,
-                              static_cast<const void *>(this),
-                              addr,
-                              common::BufferView(array));
-      std::memcpy(WAVM::Runtime::memoryArrayPtr<uint8_t>(
-                      memory_, addr, sizeof(array.size_bytes())),
-                  array.data(),
-                  array.size_bytes());
-    }
-
-    void store8(WasmPointer addr, int8_t value) override;
-    void store16(WasmPointer addr, int16_t value) override;
-    void store32(WasmPointer addr, int32_t value) override;
-    void store64(WasmPointer addr, int64_t value) override;
-    void store128(WasmPointer addr,
-                  const std::array<uint8_t, 16> &value) override;
-    void storeBuffer(WasmPointer addr, common::BufferView value) override;
-
-    WasmSpan storeBuffer(common::BufferView value) override;
-
     WasmSize size() const override {
       return WAVM::Runtime::getMemoryNumPages(memory_) * kMemoryPageSize;
     }
@@ -120,18 +54,15 @@ namespace kagome::runtime::wavm {
       }
     }
 
+    outcome::result<BytesOut> view(WasmPointer ptr,
+                                   WasmSize size) const override;
+
     // for testing purposes
     const MemoryAllocator &getAllocator() const {
       return *allocator_;
     }
 
    private:
-    void fill(PtrSize span, uint8_t value) {
-      auto native_ptr =
-          WAVM::Runtime::memoryArrayPtr<uint8_t>(memory_, span.ptr, span.size);
-      memset(native_ptr, value, span.size);
-    }
-
     std::unique_ptr<MemoryAllocator> allocator_;
     WAVM::Runtime::Memory *memory_;
     log::Logger logger_;
