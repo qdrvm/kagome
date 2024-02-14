@@ -198,6 +198,7 @@
 #include "storage/trie/serialization/trie_serializer_impl.hpp"
 #include "storage/trie_pruner/impl/trie_pruner_impl.hpp"
 #include "telemetry/impl/service_impl.hpp"
+#include "telemetry/impl/telemetry_thread_pool.hpp"
 #include "transaction_pool/impl/pool_moderator_impl.hpp"
 #include "transaction_pool/impl/transaction_pool_impl.hpp"
 
