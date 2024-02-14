@@ -8,6 +8,7 @@
 
 #include <boost/range/adaptor/transformed.hpp>
 
+#include "common/main_thread_pool.hpp"
 #include "common/worker_thread_pool.hpp"
 #include "consensus/babe/impl/babe.hpp"
 #include "consensus/babe/impl/babe_digests_util.hpp"
@@ -16,6 +17,7 @@
 #include "consensus/timeline/impl/slot_leadership_error.hpp"
 #include "crypto/blake2/blake2b.h"
 #include "mock/core/application/app_configuration_mock.hpp"
+#include "mock/core/application/app_state_manager_mock.hpp"
 #include "mock/core/authorship/proposer_mock.hpp"
 #include "mock/core/blockchain/block_tree_mock.hpp"
 #include "mock/core/clock/clock_mock.hpp"
@@ -39,15 +41,22 @@
 #include "testutil/outcome.hpp"
 #include "testutil/prepare_loggers.hpp"
 #include "testutil/sr25519_utils.hpp"
+#include "utils/watchdog.hpp"
 
 using kagome::TestThreadPool;
+using kagome::Watchdog;
 using kagome::application::AppConfigurationMock;
+using kagome::application::AppStateManagerMock;
 using kagome::authorship::ProposerMock;
 using kagome::blockchain::BlockTreeMock;
 using kagome::clock::SystemClockMock;
 using kagome::common::Buffer;
 using kagome::common::BufferView;
+using kagome::common::MainPoolHandler;
+using kagome::common::MainThreadPool;
 using kagome::common::uint256_to_le_bytes;
+using kagome::common::WorkerPoolHandler;
+using kagome::common::WorkerThreadPool;
 using kagome::consensus::BlockProductionError;
 using kagome::consensus::Duration;
 using kagome::consensus::EpochLength;
@@ -206,6 +215,22 @@ class BabeTest : public testing::Test {
     ON_CALL(*offchain_worker_api, offchain_worker(_, _))
         .WillByDefault(Return(outcome::success()));
 
+    watchdog = std::make_shared<Watchdog>(std::chrono::milliseconds(100));
+
+    app_state_manager =
+        std::make_shared<kagome::application::AppStateManagerMock>();
+
+    main_thread_pool = std::make_shared<MainThreadPool>(
+        watchdog, std::make_shared<boost::asio::io_context>());
+    main_pool_handler =
+        std::make_shared<MainPoolHandler>(app_state_manager, main_thread_pool);
+    main_pool_handler->start();
+
+    worker_thread_pool = std::make_shared<WorkerThreadPool>(watchdog, 1);
+    worker_pool_handler = std::make_shared<WorkerPoolHandler>(
+        app_state_manager, worker_thread_pool);
+    worker_pool_handler->start();
+
     babe = std::make_shared<Babe>(app_config,
                                   clock,
                                   block_tree,
@@ -225,8 +250,16 @@ class BabeTest : public testing::Test {
                                   chain_sub_engine,
                                   announce_transmitter,
                                   offchain_worker_api,
+                                  // main_pool_handler,
+                                  // worker_pool_handler);
                                   TestThreadPool{io_},
                                   io_);
+  }
+
+  void TearDown() override {
+    watchdog->stop();
+    worker_thread_pool.reset();
+    main_pool_handler.reset();
   }
 
   AppConfigurationMock app_config;
@@ -250,6 +283,12 @@ class BabeTest : public testing::Test {
   std::shared_ptr<OffchainWorkerApiMock> offchain_worker_api;
   std::shared_ptr<boost::asio::io_context> io_ =
       std::make_shared<boost::asio::io_context>();
+  std::shared_ptr<AppStateManagerMock> app_state_manager;
+  std::shared_ptr<Watchdog> watchdog;
+  std::shared_ptr<MainThreadPool> main_thread_pool;
+  std::shared_ptr<MainPoolHandler> main_pool_handler;
+  std::shared_ptr<WorkerThreadPool> worker_thread_pool;
+  std::shared_ptr<WorkerPoolHandler> worker_pool_handler;
 
   std::shared_ptr<BabeConfiguration> babe_config;
 

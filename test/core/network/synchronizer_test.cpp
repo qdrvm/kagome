@@ -10,6 +10,7 @@
 #include <mock/libp2p/basic/scheduler_mock.hpp>
 #include <stdexcept>
 
+#include "common/main_thread_pool.hpp"
 #include "mock/core/application/app_configuration_mock.hpp"
 #include "mock/core/application/app_state_manager_mock.hpp"
 #include "mock/core/blockchain/block_tree_mock.hpp"
@@ -39,9 +40,11 @@ using consensus::BlockHeaderAppenderMock;
 using namespace consensus::babe;
 using namespace consensus::grandpa;
 using namespace storage;
-
+using application::AppStateManagerMock;
 using std::chrono_literals::operator""ms;
-using kagome::consensus::Timeline;
+using common::MainPoolHandler;
+using common::MainThreadPool;
+using consensus::Timeline;
 using network::Synchronizer;
 using primitives::BlockData;
 using primitives::BlockHash;
@@ -73,7 +76,7 @@ class SynchronizerTest
   }
 
   void SetUp() override {
-    EXPECT_CALL(*app_state_manager, atShutdown(_)).WillOnce(Return());
+    ON_CALL(*app_state_manager, atShutdown(_)).WillByDefault(Return());
 
     EXPECT_CALL(*router, getSyncProtocol())
         .WillRepeatedly(Return(sync_protocol));
@@ -86,8 +89,11 @@ class SynchronizerTest
     auto state_pruner =
         std::make_shared<kagome::storage::trie_pruner::TriePrunerMock>();
 
-    std::shared_ptr<boost::asio::io_context> io_context =
-        std::make_shared<boost::asio::io_context>();
+    main_thread_pool = std::make_shared<MainThreadPool>(
+        watchdog, std::make_shared<boost::asio::io_context>());
+    main_pool_handler =
+        std::make_shared<MainPoolHandler>(app_state_manager, main_thread_pool);
+    main_pool_handler->start();
 
     auto _timeline = testutil::sptr_to_lazy<Timeline>(timeline);
     synchronizer =
@@ -107,7 +113,12 @@ class SynchronizerTest
                                                     _timeline,
                                                     nullptr,
                                                     grandpa_environment,
-                                                    io_context);
+                                                    main_pool_handler);
+  }
+
+  void TearDown() override {
+    watchdog->stop();
+    main_pool_handler.reset();
   }
 
   application::AppConfigurationMock app_config;
@@ -138,6 +149,11 @@ class SynchronizerTest
       std::make_shared<BufferStorageMock>();
   std::shared_ptr<EnvironmentMock> grandpa_environment =
       std::make_shared<EnvironmentMock>();
+
+  std::shared_ptr<Watchdog> watchdog =
+      std::make_shared<Watchdog>(std::chrono::milliseconds(1));
+  std::shared_ptr<MainThreadPool> main_thread_pool;
+  std::shared_ptr<MainPoolHandler> main_pool_handler;
 
   std::shared_ptr<network::SynchronizerImpl> synchronizer;
 
