@@ -5,10 +5,12 @@
  */
 
 #include "network/impl/router_libp2p.hpp"
+#include "common/main_thread_pool.hpp"
 
 namespace kagome::network {
   RouterLibp2p::RouterLibp2p(
       std::shared_ptr<application::AppStateManager> app_state_manager,
+      std::shared_ptr<common::MainPoolHandler> main_pool_handler,
       libp2p::Host &host,
       const application::AppConfiguration &app_config,
       const OwnPeerInfo &own_info,
@@ -35,6 +37,7 @@ namespace kagome::network {
         host_{host},
         app_config_(app_config),
         own_info_{own_info},
+        main_pool_handler_(std::move(main_pool_handler)),
         block_announce_protocol_(std::move(block_announce_protocol)),
         grandpa_protocol_(std::move(grandpa_protocol)),
         sync_protocol_(std::move(sync_protocol)),
@@ -58,6 +61,7 @@ namespace kagome::network {
         ping_protocol_{std::move(ping_protocol)},
         log_{log::createLogger("RouterLibp2p", "network")} {
     BOOST_ASSERT(app_state_manager_ != nullptr);
+    BOOST_ASSERT(main_pool_handler_ != nullptr);
 
     SL_DEBUG(log_, "Own peer id: {}", own_info.id.toBase58());
     if (!bootstrap_nodes.empty()) {
@@ -76,27 +80,31 @@ namespace kagome::network {
   }
 
   bool RouterLibp2p::prepare() {
-    app_state_manager_->takeControl(*block_announce_protocol_.get());
-    app_state_manager_->takeControl(*grandpa_protocol_.get());
+    main_pool_handler_->execute([wp = weak_from_this()] {
+      if (auto self = wp.lock()) {
+        self->block_announce_protocol_.get()->start();
+        self->grandpa_protocol_.get()->start();
 
-    app_state_manager_->takeControl(*sync_protocol_.get());
-    app_state_manager_->takeControl(*state_protocol_.get());
-    app_state_manager_->takeControl(*warp_protocol_.get());
-    app_state_manager_->takeControl(*beefy_protocol_.get());
-    app_state_manager_->takeControl(*beefy_justifications_protocol_.get());
-    app_state_manager_->takeControl(*light_protocol_.get());
+        self->sync_protocol_.get()->start();
+        self->state_protocol_.get()->start();
+        self->warp_protocol_.get()->start();
+        self->beefy_protocol_.get()->start();
+        self->beefy_justifications_protocol_.get()->start();
+        self->light_protocol_.get()->start();
 
-    app_state_manager_->takeControl(*propagate_transactions_protocol_.get());
+        self->propagate_transactions_protocol_.get()->start();
 
-    app_state_manager_->takeControl(*collation_protocol_.get());
-    app_state_manager_->takeControl(*validation_protocol_.get());
-    app_state_manager_->takeControl(*req_collation_protocol_.get());
-    app_state_manager_->takeControl(*req_pov_protocol_.get());
-    app_state_manager_->takeControl(*fetch_chunk_protocol_.get());
-    app_state_manager_->takeControl(*fetch_available_data_protocol_.get());
-    app_state_manager_->takeControl(*statement_fetching_protocol_.get());
+        self->collation_protocol_.get()->start();
+        self->validation_protocol_.get()->start();
+        self->req_collation_protocol_.get()->start();
+        self->req_pov_protocol_.get()->start();
+        self->fetch_chunk_protocol_.get()->start();
+        self->fetch_available_data_protocol_.get()->start();
+        self->statement_fetching_protocol_.get()->start();
 
-    app_state_manager_->takeControl(*send_dispute_protocol_.get());
+        self->send_dispute_protocol_.get()->start();
+      }
+    });
 
     host_.setProtocolHandler(
         {ping_protocol_.get()->getProtocolId()},

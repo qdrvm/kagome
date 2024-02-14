@@ -29,12 +29,17 @@ namespace kagome::blockchain {
   class BlockStorage;
 }
 
+namespace kagome::common {
+  class MainPoolHandler;
+}
+
 namespace kagome::network {
   class RouterLibp2p : public Router,
                        public std::enable_shared_from_this<RouterLibp2p> {
    public:
     RouterLibp2p(
         std::shared_ptr<application::AppStateManager> app_state_manager,
+        std::shared_ptr<common::MainPoolHandler> main_pool_handler,
         libp2p::Host &host,
         const application::AppConfiguration &app_config,
         const OwnPeerInfo &own_info,
@@ -112,6 +117,7 @@ namespace kagome::network {
     libp2p::Host &host_;
     const application::AppConfiguration &app_config_;
     const OwnPeerInfo &own_info_;
+    std::shared_ptr<common::MainPoolHandler> main_pool_handler_;
 
     LazySPtr<BlockAnnounceProtocol> block_announce_protocol_;
     LazySPtr<GrandpaProtocol> grandpa_protocol_;
