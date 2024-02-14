@@ -14,7 +14,7 @@
 #include "application/app_configuration.hpp"
 #include "mock/core/blockchain/block_header_repository_mock.hpp"
 #include "mock/core/blockchain/block_tree_mock.hpp"
-#include "mock/core/network/beefy.hpp"
+#include "mock/core/network/beefy_mock.hpp"
 #include "mock/core/network/peer_manager_mock.hpp"
 #include "mock/libp2p/host/host_mock.hpp"
 #include "primitives/block.hpp"
