@@ -75,7 +75,7 @@ namespace kagome::parachain {
 
     PvfImpl(const Config &config,
             std::shared_ptr<crypto::Hasher> hasher,
-            std::shared_ptr<runtime::ModuleFactory> module_factory,
+            std::shared_ptr<runtime::RuntimeInstancesPool> instance_pool,
             std::shared_ptr<runtime::RuntimePropertiesCache>
                 runtime_properties_cache,
             std::shared_ptr<blockchain::BlockTree> block_tree,

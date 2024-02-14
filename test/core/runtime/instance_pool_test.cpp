@@ -11,6 +11,7 @@
 
 #include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
+#include "testutil/prepare_loggers.hpp"
 
 #include "runtime/common/runtime_instances_pool.hpp"
 
@@ -22,7 +23,9 @@ using kagome::common::Buffer;
 using kagome::runtime::ModuleFactoryMock;
 using kagome::runtime::ModuleInstanceMock;
 using kagome::runtime::ModuleMock;
+using kagome::runtime::NoopStackLimitInstrumenter;
 using kagome::runtime::RuntimeInstancesPool;
+using kagome::runtime::RuntimeInstancesPoolImpl;
 
 RuntimeInstancesPool::CodeHash make_code_hash(int i) {
   return RuntimeInstancesPool::CodeHash::fromString(
@@ -31,6 +34,8 @@ RuntimeInstancesPool::CodeHash make_code_hash(int i) {
 }
 
 TEST(InstancePoolTest, HeavilyMultithreadedCompilation) {
+  testutil::prepareLoggers();
+
   using namespace std::chrono_literals;
 
   auto module_instance_mock = std::make_shared<ModuleInstanceMock>();
@@ -53,7 +58,9 @@ TEST(InstancePoolTest, HeavilyMultithreadedCompilation) {
   static constexpr int THREAD_NUM = 100;
   static constexpr int POOL_SIZE = 10;
 
-  RuntimeInstancesPool pool{module_factory, POOL_SIZE};
+  RuntimeInstancesPoolImpl pool{module_factory,
+                                std::make_shared<NoopStackLimitInstrumenter>(),
+                                POOL_SIZE};
 
   std::vector<std::thread> threads;
   for (int i = 0; i < THREAD_NUM; i++) {

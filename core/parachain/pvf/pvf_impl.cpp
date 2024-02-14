@@ -13,7 +13,7 @@
 #include "metrics/histogram_timer.hpp"
 #include "parachain/pvf/module_precompiler.hpp"
 #include "runtime/common/runtime_execution_error.hpp"
-#include "runtime/common/runtime_instances_pool.hpp"
+#include "runtime/runtime_instances_pool.hpp"
 #include "runtime/common/uncompress_code_if_needed.hpp"
 #include "runtime/executor.hpp"
 #include "runtime/module.hpp"
@@ -96,7 +96,7 @@ namespace kagome::parachain {
   PvfImpl::PvfImpl(
       const Config &config,
       std::shared_ptr<crypto::Hasher> hasher,
-      std::shared_ptr<runtime::ModuleFactory> module_factory,
+      std::shared_ptr<runtime::RuntimeInstancesPool> instance_pool,
       std::shared_ptr<runtime::RuntimePropertiesCache> runtime_properties_cache,
       std::shared_ptr<blockchain::BlockTree> block_tree,
       std::shared_ptr<crypto::Sr25519Provider> sr25519_provider,
@@ -113,8 +113,7 @@ namespace kagome::parachain {
         executor_{std::move(executor)},
         ctx_factory_{std::move(ctx_factory)},
         log_{log::createLogger("PVF Executor", "pvf_executor")},
-        runtime_cache_{std::make_shared<runtime::RuntimeInstancesPool>(
-            module_factory, config.runtime_instance_cache_size)},
+        runtime_cache_{std::move(instance_pool)},
         precompiler_{std::make_shared<ModulePrecompiler>(
             ModulePrecompiler::Config{config_.precompile_threads_num},
             parachain_api_,
