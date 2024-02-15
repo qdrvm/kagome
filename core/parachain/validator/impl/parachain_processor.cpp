@@ -909,6 +909,50 @@ namespace kagome::parachain {
     BOOST_ASSERT_MSG(
         bd, "BitfieldDistribution is not present. Check message format.");
 
+    auto opt_session_info = retrieveSessionInfo(bd->relay_parent);
+    if (!opt_session_info) {
+      SL_TRACE(logger_,
+               "Unexpected relay parent. No session info. (validator index={}, "
+               "relay_parent={})",
+               bd->data.payload.ix,
+               bd->relay_parent);
+      return;
+    }
+
+    if (bd->data.payload.ix >= opt_session_info->validators.size()) {
+      SL_TRACE(
+          logger_,
+          "Validator index out of bound. (validator index={}, relay_parent={})",
+          bd->data.payload.ix,
+          bd->relay_parent);
+      return;
+    }
+
+    auto res_sc = SigningContext::make(parachain_host_, bd->relay_parent);
+    if (res_sc.has_error()) {
+      SL_TRACE(logger_,
+               "Create signing context failed. (validator index={}, "
+               "relay_parent={})",
+               bd->data.payload.ix,
+               bd->relay_parent);
+      return;
+    }
+    SigningContext &context = res_sc.value();
+    const auto buffer = context.signable(*hasher_, bd->data.payload.payload);
+
+    auto res = crypto_provider_->verify(
+        bd->data.signature,
+        buffer,
+        opt_session_info->validators[bd->data.payload.ix]);
+    if (res.has_error() || !res.value()) {
+      SL_TRACE(
+          logger_,
+          "Signature validation failed. (validator index={}, relay_parent={})",
+          bd->data.payload.ix,
+          bd->relay_parent);
+      return;
+    }
+
     SL_TRACE(logger_,
              "Imported bitfield {} {}",
              bd->data.payload.ix,
