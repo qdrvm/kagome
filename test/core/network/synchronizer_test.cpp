@@ -107,7 +107,7 @@ class SynchronizerTest
                                                     _timeline,
                                                     nullptr,
                                                     grandpa_environment,
-                                                    WeakIoContext{});
+                                                    io_context);
   }
 
   application::AppConfigurationMock app_config;
