@@ -49,7 +49,7 @@ namespace kagome::runtime {
     if (auto &list = free_lists_.at(order)) {
       head_ptr = *list;
       if (*list + sizeof(Header) + size > memory_.size()) {
-        throw std::runtime_error{"Invalid header pointer detected"};
+        throw std::runtime_error{"Header pointer out of memory bounds"};
       }
       list = readFree(*list);
     } else {
@@ -58,7 +58,8 @@ namespace kagome::runtime {
       if (next_offset > memory_.size()) {
         auto pages = sizeToPages(next_offset);
         if (pages > max_memory_pages_num_) {
-          throw std::runtime_error{"AllocatorOutOfSpace"};
+          throw std::runtime_error{
+              "Memory resize failed, because maximum number of pages is reached."};
         }
         pages = std::max(pages, 2 * sizeToPages(memory_.size()));
         pages = std::min<uint64_t>(pages, max_memory_pages_num_);
@@ -86,7 +87,7 @@ namespace kagome::runtime {
     auto head = read_u64(memory_, head_ptr);
     uint32_t order = head;
     if (order >= kOrders) {
-      throw std::runtime_error{"invalid order"};
+      throw std::runtime_error{"order exceed the total number of orders"};
     }
     if ((head & kOccupied) == 0) {
       throw std::runtime_error{"the allocation points to an empty header"};
