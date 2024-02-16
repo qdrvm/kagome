@@ -17,6 +17,23 @@
 
 namespace kagome::authorship {
 
+  /**
+   * @class ProposerImpl
+   * @file proposer_impl.hpp
+   * @brief The ProposerImpl class is responsible for proposing a new block for
+   * the blockchain.
+   *
+   * It uses a BlockBuilderFactory to create new blocks, a Clock to keep track
+   * of time, a TransactionPool to manage transactions, an
+   * ExtrinsicSubscriptionEngine to handle extrinsic events, and an
+   * ExtrinsicEventKeyRepository to manage event keys.
+   *
+   * @see BlockBuilderFactory
+   * @see Clock
+   * @see transaction_pool::TransactionPool
+   * @see primitives::events::ExtrinsicSubscriptionEngine
+   * @see subscription::ExtrinsicEventKeyRepository
+   */
   class ProposerImpl : public Proposer {
    public:
     /// Maximum transactions quantity to try to push into the block before
@@ -37,6 +54,29 @@ namespace kagome::authorship {
         std::shared_ptr<subscription::ExtrinsicEventKeyRepository>
             extrinsic_event_key_repo);
 
+    /**
+     * @brief Proposes a new block for the blockchain.
+     *
+     * This method uses the current state of the transaction pool to propose a
+     * new block. It selects transactions from the pool, creates a new block
+     * with these transactions, and returns the new block.
+     *
+     * @param parent_block The parent block of the new block.
+     * @param deadline The deadline for the new block.
+     * @param inherent_data The inherent data to be included in the new block.
+     * @param digest The digest to be included in the new block.
+     * @return A block containing the proposed transactions.
+     *
+     * This method performs the following steps:
+     * 1. Creates a new block builder.
+     * 2. Retrieves and adds the inherent extrinsics to the block.
+     * 3. Removes stale transactions from the transaction pool.
+     * 4. Retrieves ready transactions from the transaction pool.
+     * 5. Adds transactions to the block until the block size limit is reached
+     * or the deadline is met.
+     * 6. Finalizes the block construction and returns the built block.
+     * 7. Removes the included transactions from the transaction pool.
+     */
     outcome::result<primitives::Block> propose(
         const primitives::BlockInfo &parent_block,
         std::optional<Clock::TimePoint> deadline,
