@@ -55,8 +55,10 @@ namespace kagome::runtime {
    private:
     using Header = uint64_t;
 
+    // https://github.com/paritytech/polkadot-sdk/blob/polkadot-v1.7.0/substrate/client/allocator/src/freeing_bump.rs#L105
     static constexpr size_t kOrders = 23;
-    static constexpr size_t kMinAllocate = 8;
+    // https://github.com/paritytech/polkadot-sdk/blob/polkadot-v1.7.0/substrate/client/allocator/src/freeing_bump.rs#L106
+    static constexpr WasmSize kMinAllocate = 8;
     static constexpr size_t kMaxAllocate = kMinAllocate << (kOrders - 1);
     static_assert(kMaxAllocate == (32 << 20));
     static constexpr auto kOccupied = uint64_t{1} << 32;

@@ -11,6 +11,7 @@
 #include "runtime/memory.hpp"
 
 namespace kagome::runtime {
+  // https://github.com/paritytech/polkadot-sdk/blob/polkadot-v1.7.0/substrate/client/allocator/src/lib.rs#L39
   constexpr auto kMaxPages = (uint64_t{4} << 30) / kMemoryPageSize;
 
   static_assert(roundUpAlign(kDefaultHeapBase) == kDefaultHeapBase,
@@ -41,7 +42,7 @@ namespace kagome::runtime {
     if (size > kMaxAllocate) {
       throw std::runtime_error{"RequestedAllocationTooLarge"};
     }
-    size = std::max<decltype(size)>(size, kMinAllocate);
+    size = std::max(size, kMinAllocate);
     size = math::nextHighPowerOf2(size);
     uint32_t order = std::countr_zero(size) - std::countr_zero(kMinAllocate);
     uint32_t head_ptr;
