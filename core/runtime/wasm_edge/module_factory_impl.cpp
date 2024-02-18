@@ -179,12 +179,13 @@ namespace kagome::runtime::wasm_edge {
                                          returns.data(),
                                          1);
       WasmEdge_UNWRAP(res);
-      WasmSpan span = WasmEdge_ValueGetI64(returns[0]);
-      OUTCOME_TRY(
-          view,
-          getEnvironment().memory_provider->getCurrentMemory()->get().view(
-              span));
-      return common::Buffer{view};
+      auto [ptr, size] = PtrSize{WasmEdge_ValueGetI64(returns[0])};
+      auto result = getEnvironment()
+                        .memory_provider->getCurrentMemory()
+                        .value()
+                        .get()
+                        .loadN(ptr, size);
+      return result;
     }
 
     outcome::result<std::optional<WasmValue>> getGlobal(

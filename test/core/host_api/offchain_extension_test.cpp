@@ -11,6 +11,7 @@
 #include "mock/core/offchain/offchain_persistent_storage_mock.hpp"
 #include "mock/core/offchain/offchain_worker_mock.hpp"
 #include "mock/core/offchain/offchain_worker_pool_mock.hpp"
+#include "mock/core/runtime/memory_mock.hpp"
 #include "mock/core/runtime/memory_provider_mock.hpp"
 #include "mock/core/runtime/trie_storage_provider_mock.hpp"
 #include "mock/core/storage/trie/polkadot_trie_cursor_mock.h"
@@ -22,7 +23,6 @@
 #include "testutil/outcome.hpp"
 #include "testutil/outcome/dummy_error.hpp"
 #include "testutil/prepare_loggers.hpp"
-#include "testutil/runtime/memory.hpp"
 
 using kagome::common::Buffer;
 using kagome::common::BufferView;
@@ -36,16 +36,16 @@ using kagome::offchain::OffchainPersistentStorageMock;
 using kagome::offchain::OffchainWorkerMock;
 using kagome::offchain::OffchainWorkerPoolMock;
 using kagome::offchain::OpaqueNetworkState;
-using kagome::offchain::RandomSeed;
 using kagome::offchain::RequestId;
 using kagome::offchain::Result;
 using kagome::offchain::StorageType;
 using kagome::offchain::Success;
 using kagome::offchain::Timestamp;
 using kagome::primitives::Extrinsic;
+using kagome::runtime::Memory;
+using kagome::runtime::MemoryMock;
 using kagome::runtime::MemoryProviderMock;
 using kagome::runtime::PtrSize;
-using kagome::runtime::TestMemory;
 using kagome::runtime::TrieStorageProviderMock;
 using kagome::runtime::WasmI32;
 using kagome::runtime::WasmOffset;
@@ -90,8 +90,10 @@ class OffchainExtensionTest : public ::testing::Test {
 
   void SetUp() override {
     memory_provider_ = std::make_shared<MemoryProviderMock>();
+    memory_ = std::make_shared<MemoryMock>();
     EXPECT_CALL(*memory_provider_, getCurrentMemory())
-        .WillRepeatedly(Return(std::ref(memory_)));
+        .WillRepeatedly(
+            Return(std::optional<std::reference_wrapper<Memory>>(*memory_)));
     offchain_storage_ = std::make_shared<OffchainPersistentStorageMock>();
     offchain_worker_ = std::make_shared<OffchainWorkerMock>();
     offchain_worker_pool_ = std::make_shared<OffchainWorkerPoolMock>();
@@ -104,7 +106,7 @@ class OffchainExtensionTest : public ::testing::Test {
  protected:
   OffchainExtensionConfig config_ = {true};
   std::shared_ptr<OffchainPersistentStorageMock> offchain_storage_;
-  TestMemory memory_;
+  std::shared_ptr<MemoryMock> memory_;
   std::shared_ptr<MemoryProviderMock> memory_provider_;
   std::shared_ptr<OffchainExtension> offchain_extension_;
   std::shared_ptr<OffchainWorkerMock> offchain_worker_;
@@ -156,13 +158,21 @@ INSTANTIATE_TEST_SUITE_P(Instance,
  * @then extrinsic is fetched from parameter and submitted as transaction
  */
 TEST_F(OffchainExtensionTest, SubmitTransaction) {
+  WasmPointer data_pointer = 43;
+  WasmSize data_size = 43;
   Extrinsic xt{"data_buffer"_buf};
+  WasmSpan data_span = PtrSize(data_pointer, data_size).combine();
+  auto result_span = 44;
 
+  EXPECT_CALL(*memory_, loadN(data_pointer, data_size))
+      .WillOnce(Return(Buffer{scale::encode(xt).value()}));
   EXPECT_CALL(*offchain_worker_, submitTransaction(_))
       .WillOnce(Return(Success{}));
+  EXPECT_CALL(*memory_, storeBuffer(_)).WillOnce(Return(result_span));
 
-  memory_[offchain_extension_->ext_offchain_submit_transaction_version_1(
-      memory_.encode(xt))];
+  ASSERT_EQ(result_span,
+            offchain_extension_->ext_offchain_submit_transaction_version_1(
+                data_span));
 }
 
 /**
@@ -171,11 +181,14 @@ TEST_F(OffchainExtensionTest, SubmitTransaction) {
  * @then Returns network state
  */
 TEST_F(OffchainExtensionTest, NetworkState) {
+  auto result_span = 43;
   Result<OpaqueNetworkState, Failure> ons = OpaqueNetworkState();
 
   EXPECT_CALL(*offchain_worker_, networkState()).WillOnce(Return(ons));
+  EXPECT_CALL(*memory_, storeBuffer(_)).WillOnce(Return(result_span));
 
-  memory_[offchain_extension_->ext_offchain_network_state_version_1()];
+  ASSERT_EQ(result_span,
+            offchain_extension_->ext_offchain_network_state_version_1());
 }
 
 /**
@@ -211,15 +224,21 @@ TEST_F(OffchainExtensionTest, SleepUntil) {
  * @then Returns random seed, based on local time
  */
 TEST_F(OffchainExtensionTest, RandomSeed) {
-  RandomSeed result;
+  Timestamp result{300000};
+  WasmSpan result_span = 42;
 
-  EXPECT_CALL(*offchain_worker_, randomSeed()).WillOnce(Return(result));
+  EXPECT_CALL(*offchain_worker_, timestamp()).WillOnce(Return(result));
+  {
+    auto matcher = [&](const BufferView &data) {
+      auto actual_result = scale::decode<Timestamp>(data).value();
+      return actual_result == result;
+    };
+    EXPECT_CALL(*memory_, storeBuffer(Truly(matcher)))
+        .WillOnce(Return(result_span));
+  }
 
-  ASSERT_EQ(memory_
-                .view(offchain_extension_->ext_offchain_random_seed_version_1(),
-                      result.size())
-                .value(),
-            SpanAdl{result});
+  ASSERT_EQ(result_span,
+            offchain_extension_->ext_offchain_random_seed_version_1());
 }
 
 /**
@@ -229,11 +248,20 @@ TEST_F(OffchainExtensionTest, RandomSeed) {
  * @then Attempts to write value into local storage
  */
 TEST_P(TernaryParametrizedTest, LocalStorageSet) {
+  WasmPointer key_pointer = 43;
+  WasmSize key_size = 43;
+  WasmSpan key_span = PtrSize(key_pointer, key_size).combine();
   Buffer key(8, 'k');
+  WasmPointer value_pointer = 44;
+  WasmSize value_size = 44;
+  WasmSpan value_span = PtrSize(value_pointer, value_size).combine();
   Buffer value(8, 'v');
+  EXPECT_CALL(*memory_, loadN(key_pointer, key_size)).WillOnce(Return(key));
+  EXPECT_CALL(*memory_, loadN(value_pointer, value_size))
+      .WillOnce(Return(value));
   EXPECT_CALL(*offchain_worker_, localStorageSet(_, key.view(), value));
   offchain_extension_->ext_offchain_local_storage_set_version_1(
-      GetParam(), memory_[key], memory_[value]);
+      GetParam(), key_span, value_span);
 }
 
 /**
@@ -243,10 +271,14 @@ TEST_P(TernaryParametrizedTest, LocalStorageSet) {
  * @then Attempts to remove value from local storage
  */
 TEST_P(TernaryParametrizedTest, LocalStorageClear) {
+  WasmPointer key_pointer = 43;
+  WasmSize key_size = 43;
+  WasmSpan key_span = PtrSize(key_pointer, key_size).combine();
   Buffer key(8, 'k');
+  EXPECT_CALL(*memory_, loadN(key_pointer, key_size)).WillOnce(Return(key));
   EXPECT_CALL(*offchain_worker_, localStorageClear(_, key.view()));
   offchain_extension_->ext_offchain_local_storage_clear_version_1(GetParam(),
-                                                                  memory_[key]);
+                                                                  key_span);
 }
 
 /**
@@ -256,14 +288,29 @@ TEST_P(TernaryParametrizedTest, LocalStorageClear) {
  * @then Attempts CAS on local storage
  */
 TEST_P(TernaryParametrizedTest, LocalStorageCAS) {
+  WasmPointer key_pointer = 43;
+  WasmSize key_size = 43;
+  WasmSpan key_span = PtrSize(key_pointer, key_size).combine();
   Buffer key(8, 'k');
+  WasmPointer value_pointer = 44;
+  WasmSize value_size = 44;
+  WasmSpan value_span = PtrSize(value_pointer, value_size).combine();
   Buffer value(8, 'v');
+  WasmPointer expected_pointer = 45;
+  WasmSize expected_size = 45;
+  WasmSpan expected_span = PtrSize(expected_pointer, expected_size).combine();
+  auto expected = Buffer{scale::encode(std::optional<Buffer>{}).value()};
+  EXPECT_CALL(*memory_, loadN(key_pointer, key_size)).WillOnce(Return(key));
+  EXPECT_CALL(*memory_, loadN(value_pointer, value_size))
+      .WillOnce(Return(value));
+  EXPECT_CALL(*memory_, loadN(expected_pointer, expected_size))
+      .WillOnce(Return(expected));
   EXPECT_CALL(*offchain_worker_,
               localStorageCompareAndSet(
                   _, key.view(), std::optional<BufferView>{}, value))
       .WillOnce(Return(true));
   offchain_extension_->ext_offchain_local_storage_compare_and_set_version_1(
-      GetParam(), memory_[key], memory_.encode(std::nullopt), memory_[value]);
+      GetParam(), key_span, expected_span, value_span);
 }
 
 /**
@@ -273,19 +320,31 @@ TEST_P(TernaryParametrizedTest, LocalStorageCAS) {
  * @then Attempts to return value from local storage
  */
 TEST_P(TernaryParametrizedTest, LocalStorageGet) {
+  WasmPointer key_pointer = 43;
+  WasmSize key_size = 43;
+  WasmSpan key_span = PtrSize(key_pointer, key_size).combine();
   Buffer key(8, 'k');
-  auto result = "some_result"_buf;
+  WasmSpan result_span = 44;
+  auto result = outcome::success<Buffer>("some_result"_buf);
+  auto result_opt = std::make_optional(result.value());
 
+  EXPECT_CALL(*memory_, loadN(key_pointer, key_size)).WillOnce(Return(key));
   EXPECT_CALL(*offchain_worker_, localStorageGet(_, key.view()))
-      .WillOnce(Return(outcome::success(result)));
+      .WillOnce(Return(result));
 
-  ASSERT_EQ(
-      memory_
-          .decode<std::optional<Buffer>>(
-              offchain_extension_->ext_offchain_local_storage_get_version_1(
-                  GetParam(), memory_[key]))
-          .value(),
-      result);
+  {
+    auto matcher = [&](const BufferView &data) {
+      auto actual_result = scale::decode<std::optional<Buffer>>(data).value();
+      return actual_result == result_opt;
+    };
+
+    EXPECT_CALL(*memory_, storeBuffer(Truly(matcher)))
+        .WillOnce(Return(result_span));
+  }
+
+  ASSERT_EQ(result_span,
+            offchain_extension_->ext_offchain_local_storage_get_version_1(
+                GetParam(), key_span));
 }
 
 INSTANTIATE_TEST_SUITE_P(Instance,
@@ -299,18 +358,45 @@ INSTANTIATE_TEST_SUITE_P(Instance,
  * @then Attempts to start request on uri with given method. Meta is reserved.
  */
 TEST_P(HttpMethodsParametrizedTest, HttpRequestStart) {
+  WasmPointer method_pointer = 42;
+  WasmSize method_size = 42;
+  WasmSpan method_span = PtrSize(method_pointer, method_size).combine();
   Buffer method = GetParam();
-  Buffer uri = "name"_buf;
-  Buffer meta = "value"_buf;
-  Result<RequestId, Failure> result{22};
 
+  WasmPointer uri_pointer = 43;
+  WasmSize uri_size = 43;
+  WasmSpan uri_span = PtrSize(uri_pointer, uri_size).combine();
+  Buffer uri = "name"_buf;
+
+  WasmPointer meta_pointer = 44;
+  WasmSize meta_size = 44;
+  WasmSpan meta_span = PtrSize(meta_pointer, meta_size).combine();
+  Buffer meta = "value"_buf;
+
+  Result<RequestId, Failure> result{22};
+  WasmSpan return_span = 45;
+
+  EXPECT_CALL(*memory_, loadN(method_pointer, method_size))
+      .WillOnce(Return(method));
+  EXPECT_CALL(*memory_, loadN(uri_pointer, uri_size)).WillOnce(Return(uri));
+  EXPECT_CALL(*memory_, loadN(meta_pointer, meta_size)).WillOnce(Return(meta));
   EXPECT_CALL(*offchain_worker_, httpRequestStart(_, uri.toString(), meta))
       .WillOnce(Return(result));
 
-  ASSERT_EQ(memory_.decode<decltype(result)>(
-                offchain_extension_->ext_offchain_http_request_start_version_1(
-                    memory_[method], memory_[uri], memory_[meta])),
-            result);
+  {
+    auto matcher = [&](const BufferView &data) {
+      auto actual_result =
+          scale::decode<Result<RequestId, Failure>>(data).value();
+      return actual_result.isSuccess();
+    };
+
+    EXPECT_CALL(*memory_, storeBuffer(Truly(matcher)))
+        .WillOnce(Return(return_span));
+  }
+
+  ASSERT_EQ(return_span,
+            offchain_extension_->ext_offchain_http_request_start_version_1(
+                method_span, uri_span, meta_span));
 }
 
 INSTANTIATE_TEST_SUITE_P(Instance,
@@ -327,20 +413,41 @@ INSTANTIATE_TEST_SUITE_P(Instance,
  */
 TEST_F(OffchainExtensionTest, HttpRequestAddHeader) {
   RequestId id{22};
-  Buffer name = "name"_buf;
-  Buffer value = "value"_buf;
-  Result<Success, Failure> result{Success{}};
 
+  WasmPointer name_pointer = 43;
+  WasmSize name_size = 43;
+  WasmSpan name_span = PtrSize(name_pointer, name_size).combine();
+  Buffer name = "name"_buf;
+
+  WasmPointer value_pointer = 44;
+  WasmSize value_size = 44;
+  WasmSpan value_span = PtrSize(value_pointer, value_size).combine();
+  Buffer value = "value"_buf;
+
+  Result<Success, Failure> result{Success{}};
+  WasmSpan return_span = 45;
+
+  EXPECT_CALL(*memory_, loadN(name_pointer, name_size)).WillOnce(Return(name));
+  EXPECT_CALL(*memory_, loadN(value_pointer, value_size))
+      .WillOnce(Return(value));
   EXPECT_CALL(*offchain_worker_,
               httpRequestAddHeader(id, name.toString(), value.toString()))
       .WillOnce(Return(result));
 
-  ASSERT_TRUE(memory_
-                  .decode<decltype(result)>(
-                      offchain_extension_
-                          ->ext_offchain_http_request_add_header_version_1(
-                              id, memory_[name], memory_[value]))
-                  .isSuccess());
+  {
+    auto matcher = [&](const BufferView &data) {
+      auto actual_result =
+          scale::decode<Result<Success, Failure>>(data).value();
+      return actual_result.isSuccess();
+    };
+
+    EXPECT_CALL(*memory_, storeBuffer(Truly(matcher)))
+        .WillOnce(Return(return_span));
+  }
+
+  ASSERT_EQ(return_span,
+            offchain_extension_->ext_offchain_http_request_add_header_version_1(
+                id, name_span, value_span));
 }
 
 /**
@@ -351,21 +458,42 @@ TEST_F(OffchainExtensionTest, HttpRequestAddHeader) {
  */
 TEST_F(OffchainExtensionTest, HttpRequestWriteBody) {
   RequestId id{22};
+
+  WasmPointer chunk_pointer = 43;
+  WasmSize chunk_size = 43;
+  WasmSpan chunk_span = PtrSize(chunk_pointer, chunk_size).combine();
   Buffer chunk{8, 'c'};
+
+  WasmPointer deadline_pointer = 44;
+  WasmSize deadline_size = 44;
+  WasmSpan deadline_span = PtrSize(deadline_pointer, deadline_size).combine();
   Timestamp deadline{300000};
   auto deadline_opt = std::make_optional(deadline);
 
   Result<Success, HttpError> result{Success{}};
+  WasmSpan return_span = 45;
 
+  EXPECT_CALL(*memory_, loadN(chunk_pointer, chunk_size))
+      .WillOnce(Return(chunk));
+  EXPECT_CALL(*memory_, loadN(deadline_pointer, deadline_size))
+      .WillOnce(Return(Buffer{scale::encode(deadline_opt).value()}));
   EXPECT_CALL(*offchain_worker_, httpRequestWriteBody(id, chunk, deadline_opt))
       .WillOnce(Return(result));
 
-  ASSERT_TRUE(memory_
-                  .decode<decltype(result)>(
-                      offchain_extension_
-                          ->ext_offchain_http_request_write_body_version_1(
-                              id, memory_[chunk], memory_.encode(deadline_opt)))
-                  .isSuccess());
+  {
+    auto matcher = [&](const BufferView &data) {
+      auto actual_result =
+          scale::decode<Result<Success, HttpError>>(data).value();
+      return actual_result.isSuccess();
+    };
+
+    EXPECT_CALL(*memory_, storeBuffer(Truly(matcher)))
+        .WillOnce(Return(return_span));
+  }
+
+  ASSERT_EQ(return_span,
+            offchain_extension_->ext_offchain_http_request_write_body_version_1(
+                id, chunk_span, deadline_span));
 }
 
 /**
@@ -376,19 +504,41 @@ TEST_F(OffchainExtensionTest, HttpRequestWriteBody) {
  * HttpResults
  */
 TEST_F(OffchainExtensionTest, HttpResponseWait) {
+  WasmPointer ids_pointer = 43;
+  WasmSize ids_size = 43;
+  WasmSpan ids_span = PtrSize(ids_pointer, ids_size).combine();
   std::vector<RequestId> ids{22, 23};
+
+  WasmPointer deadline_pointer = 44;
+  WasmSize deadline_size = 44;
+  WasmSpan deadline_span = PtrSize(deadline_pointer, deadline_size).combine();
   Timestamp deadline{300000};
   auto deadline_opt = std::make_optional(deadline);
 
   std::vector<HttpStatus> result{200};
+  WasmSpan return_span = 45;
 
+  EXPECT_CALL(*memory_, loadN(ids_pointer, ids_size))
+      .WillOnce(Return(Buffer{scale::encode(ids).value()}));
+  EXPECT_CALL(*memory_, loadN(deadline_pointer, deadline_size))
+      .WillOnce(Return(Buffer{scale::encode(deadline_opt).value()}));
   EXPECT_CALL(*offchain_worker_, httpResponseWait(ids, deadline_opt))
       .WillOnce(Return(result));
 
-  ASSERT_EQ(memory_.decode<decltype(result)>(
-                offchain_extension_->ext_offchain_http_response_wait_version_1(
-                    memory_.encode(ids), memory_.encode(deadline_opt))),
-            result);
+  {
+    auto matcher = [&](const BufferView &data) {
+      auto actual_result = scale::decode<std::vector<RequestId>>(data).value();
+      return std::equal(
+          actual_result.begin(), actual_result.end(), result.begin());
+    };
+
+    EXPECT_CALL(*memory_, storeBuffer(Truly(matcher)))
+        .WillOnce(Return(return_span));
+  }
+
+  ASSERT_EQ(return_span,
+            offchain_extension_->ext_offchain_http_response_wait_version_1(
+                ids_span, deadline_span));
 }
 
 /**
@@ -401,14 +551,24 @@ TEST_F(OffchainExtensionTest, HttpResponseHeaders) {
   WasmI32 request_id = 22;
   std::vector<std::pair<std::string, std::string>> headers{{"a", "A"},
                                                            {"b", "B"}};
+  WasmSpan result_span = 43;
   EXPECT_CALL(*offchain_worker_, httpResponseHeaders(request_id))
       .WillOnce(Return(headers));
 
-  ASSERT_EQ(
-      memory_.decode<decltype(headers)>(
-          offchain_extension_->ext_offchain_http_response_headers_version_1(
-              request_id)),
-      headers);
+  {
+    auto matcher = [&](const BufferView &data) {
+      auto actual_headers =
+          scale::decode<std::vector<std::pair<std::string, std::string>>>(data)
+              .value();
+      return actual_headers == headers;
+    };
+
+    EXPECT_CALL(*memory_, storeBuffer(Truly(matcher)))
+        .WillOnce(Return(result_span));
+  }
+  ASSERT_EQ(result_span,
+            offchain_extension_->ext_offchain_http_response_headers_version_1(
+                request_id));
 }
 
 /**
@@ -420,18 +580,40 @@ TEST_F(OffchainExtensionTest, HttpResponseHeaders) {
  */
 TEST_P(HttpResultParametrizedTest, HttpResponseReadBody) {
   WasmI32 request_id = 22;
+  WasmPointer dst_pointer = 43;
+  WasmSize dst_size = 43;
+  Buffer dst(43, 0);
+  WasmPointer deadline_pointer = 43;
+  WasmSize deadline_size = 43;
   Timestamp deadline{300000};
   auto deadline_opt = std::make_optional(deadline);
   Result<uint32_t, HttpError> response(GetParam());
+  WasmSpan result = 44;
+  auto dst_buf = BufferView(dst);
+  EXPECT_CALL(*memory_, loadN(deadline_pointer, deadline_size))
+      .WillOnce(Return(Buffer{scale::encode(deadline_opt).value()}));
   EXPECT_CALL(*offchain_worker_,
-              httpResponseReadBody(request_id, _, deadline_opt))
+              httpResponseReadBody(request_id, dst, deadline_opt))
       .WillOnce(Return(response));
+  if (response.isSuccess()) {
+    EXPECT_CALL(*memory_, storeBuffer(dst_pointer, dst_buf)).WillOnce(Return());
+  }
 
-  ASSERT_EQ(
-      memory_.decode<decltype(response)>(
-          offchain_extension_->ext_offchain_http_response_read_body_version_1(
-              request_id, PtrSize{}.combine(), memory_.encode(deadline_opt))),
-      response);
+  {
+    auto matcher = [&](const BufferView &data) {
+      auto actual_response =
+          scale::decode<Result<uint32_t, HttpError>>(data).value();
+      return actual_response.isSuccess() == response.isSuccess();
+    };
+
+    EXPECT_CALL(*memory_, storeBuffer(Truly(matcher))).WillOnce(Return(result));
+  }
+
+  ASSERT_EQ(result,
+            offchain_extension_->ext_offchain_http_response_read_body_version_1(
+                request_id,
+                PtrSize{dst_pointer, dst_size}.combine(),
+                PtrSize{deadline_pointer, deadline_size}.combine()));
 }
 
 INSTANTIATE_TEST_SUITE_P(Instance,
@@ -451,11 +633,15 @@ INSTANTIATE_TEST_SUITE_P(Instance,
  * @then PeerIds set as authorized
  */
 TEST_F(OffchainExtensionTest, SetAuthNodes) {
+  WasmPointer nodes_pos_pointer = 43;
+  WasmSize nodes_pos_size = 43;
   std::vector<Buffer> nodes{Buffer("asd"_peerid.toVector())};
+  EXPECT_CALL(*memory_, loadN(nodes_pos_pointer, nodes_pos_size))
+      .WillOnce(Return(Buffer{scale::encode(nodes).value()}));
   EXPECT_CALL(*offchain_worker_, setAuthorizedNodes(_, true))
       .WillOnce(Return());
   offchain_extension_->ext_offchain_set_authorized_nodes_version_1(
-      memory_.encode(nodes), 1);
+      PtrSize{nodes_pos_pointer, nodes_pos_size}.combine(), 1);
 }
 
 /**
@@ -465,12 +651,20 @@ TEST_F(OffchainExtensionTest, SetAuthNodes) {
  * @then Attempts to write value into offchain storage
  */
 TEST_P(OutcomeParameterizedTest, IndexSet) {
+  WasmPointer key_pointer = 43;
+  WasmSize key_size = 43;
   Buffer key(8, 'k');
+  WasmPointer value_pointer = 44;
+  WasmSize value_size = 44;
   Buffer value(8, 'v');
+  EXPECT_CALL(*memory_, loadN(key_pointer, key_size)).WillOnce(Return(key));
+  EXPECT_CALL(*memory_, loadN(value_pointer, value_size))
+      .WillOnce(Return(value));
   EXPECT_CALL(*offchain_storage_, set(key.view(), value))
       .WillOnce(Return(GetParam()));
-  offchain_extension_->ext_offchain_index_set_version_1(memory_[key],
-                                                        memory_[value]);
+  offchain_extension_->ext_offchain_index_set_version_1(
+      PtrSize{key_pointer, key_size}.combine(),
+      PtrSize{value_pointer, value_size}.combine());
 }
 
 /**
@@ -480,10 +674,14 @@ TEST_P(OutcomeParameterizedTest, IndexSet) {
  * @then will attempt to remove value from offchain storage
  */
 TEST_P(OutcomeParameterizedTest, IndexClear) {
+  WasmPointer key_pointer = 43;
+  WasmSize key_size = 43;
   Buffer key(8, 'k');
+  EXPECT_CALL(*memory_, loadN(key_pointer, key_size)).WillOnce(Return(key));
   EXPECT_CALL(*offchain_storage_, clear(key.view()))
       .WillOnce(Return(GetParam()));
-  offchain_extension_->ext_offchain_index_clear_version_1(memory_[key]);
+  offchain_extension_->ext_offchain_index_clear_version_1(
+      PtrSize{key_pointer, key_size}.combine());
 }
 
 INSTANTIATE_TEST_SUITE_P(Instance,

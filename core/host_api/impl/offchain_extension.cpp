@@ -98,8 +98,8 @@ namespace kagome::host_api {
   runtime::WasmPointer OffchainExtension::ext_offchain_random_seed_version_1() {
     auto worker = getWorker();
     auto &memory = memory_provider_->getCurrentMemory()->get();
-    auto result = worker->randomSeed();
-    return memory.storeBuffer(result);
+    auto result = worker->timestamp();
+    return memory.storeBuffer(scale::encode(result).value());
   }
 
   void OffchainExtension::ext_offchain_local_storage_set_version_1(

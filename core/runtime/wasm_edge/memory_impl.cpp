@@ -4,15 +4,21 @@
  */
 
 #include "runtime/wasm_edge/memory_impl.hpp"
-#include "runtime/common/memory_error.hpp"
-#include "runtime/memory_check.hpp"
 
 namespace kagome::runtime::wasm_edge {
 
   MemoryImpl::MemoryImpl(WasmEdge_MemoryInstanceContext *mem_instance,
                          const MemoryConfig &config)
       : mem_instance_{std::move(mem_instance)},
-        allocator_{MemoryAllocator{*this, config}} {
+        allocator_{MemoryAllocator{
+            MemoryAllocator::MemoryHandle{
+                .resize = [this](size_t new_size) { resize(new_size); },
+                .getSize = [this]() -> size_t { return size(); },
+                .storeSz = [this](WasmPointer p, uint32_t n) { store32(p, n); },
+                .loadSz = [this](WasmPointer p) -> uint32_t {
+                  return load32u(p);
+                }},
+            config}} {
     BOOST_ASSERT(mem_instance_ != nullptr);
     SL_DEBUG(logger_,
              "Created memory wrapper {} for internal instance {}",
@@ -24,32 +30,15 @@ namespace kagome::runtime::wasm_edge {
     if (new_size > size()) {
       auto old_page_num = WasmEdge_MemoryInstanceGetPageSize(mem_instance_);
       auto new_page_num = (new_size + kMemoryPageSize - 1) / kMemoryPageSize;
-      auto res = WasmEdge_MemoryInstanceGrowPage(mem_instance_,
-                                                 new_page_num - old_page_num);
-      if (not WasmEdge_ResultOK(res)) {
-        throw std::runtime_error{fmt::format(
-            "WasmEdge_MemoryInstanceGrowPage: Failed to grow page num: {}",
-            WasmEdge_ResultGetMessage(res))};
-      }
+      [[maybe_unused]] auto res = WasmEdge_MemoryInstanceGrowPage(
+          mem_instance_, new_page_num - old_page_num);
+      BOOST_ASSERT(WasmEdge_ResultOK(res));
       SL_DEBUG(logger_,
                "Grow memory to {} pages ({} bytes) - {}",
                new_page_num,
                new_size,
                WasmEdge_ResultGetMessage(res));
     }
-  }
-
-  outcome::result<BytesOut> MemoryImpl::view(WasmPointer ptr,
-                                             WasmSize size) const {
-    if (not memoryCheck(ptr, size, this->size())) {
-      return MemoryError::ERROR;
-    }
-    auto raw = WasmEdge_MemoryInstanceGetPointer(mem_instance_, ptr, size);
-    if (raw == nullptr) {
-      throw std::runtime_error{
-          "WasmEdge_MemoryInstanceGetPointer returned nullptr"};
-    }
-    return BytesOut{raw, size};
   }
 
   ExternalMemoryProviderImpl::ExternalMemoryProviderImpl(

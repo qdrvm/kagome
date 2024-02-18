@@ -48,11 +48,7 @@ namespace kagome::offchain {
   constexpr HttpStatus DeadlineHasReached(10);
   constexpr HttpStatus ErrorHasOccurred(20);
 
-  struct NoPayload {
-    bool operator==(const NoPayload &) const {
-      return true;
-    }
-  };
+  struct NoPayload {};
   SCALE_EMPTY_CODER(NoPayload);
 
   struct Success : public NoPayload {};
@@ -60,12 +56,7 @@ namespace kagome::offchain {
 
   template <typename S, typename F>
   struct Result final : boost::variant<S, F> {
-    using Base = boost::variant<S, F>;
-    using Base::Base;
-    bool operator==(const Result &r_) const {
-      const Base &l = *this, &r = r_;
-      return l == r;
-    }
+    using boost::variant<S, F>::variant;
     bool isSuccess() const {
       return boost::variant<S, F>::which() == 0;
     }

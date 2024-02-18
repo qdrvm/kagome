@@ -25,17 +25,7 @@ namespace {
   }
 
   template <>
-  auto literalMemFun<uint32_t>() {
-    return &wasm::Literal::geti32;
-  }
-
-  template <>
   auto literalMemFun<int64_t>() {
-    return &wasm::Literal::geti64;
-  }
-
-  template <>
-  auto literalMemFun<uint64_t>() {
     return &wasm::Literal::geti64;
   }
 

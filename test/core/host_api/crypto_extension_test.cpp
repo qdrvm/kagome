@@ -19,13 +19,13 @@
 #include "crypto/secp256k1/secp256k1_provider_impl.hpp"
 #include "crypto/sr25519/sr25519_provider_impl.hpp"
 #include "mock/core/crypto/crypto_store_mock.hpp"
+#include "mock/core/runtime/memory_mock.hpp"
 #include "mock/core/runtime/memory_provider_mock.hpp"
 #include "runtime/ptr_size.hpp"
 #include "scale/scale.hpp"
 #include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
 #include "testutil/prepare_loggers.hpp"
-#include "testutil/runtime/memory.hpp"
 
 using namespace kagome::host_api;
 using kagome::common::Blob;
@@ -33,6 +33,7 @@ using kagome::common::Buffer;
 using kagome::common::BufferView;
 using kagome::crypto::BoostRandomGenerator;
 using kagome::crypto::CryptoStore;
+using kagome::crypto::CryptoStoreImpl;
 using kagome::crypto::CryptoStoreMock;
 using kagome::crypto::CSPRNG;
 using kagome::crypto::EcdsaKeypair;
@@ -62,9 +63,13 @@ using kagome::crypto::Sr25519SecretKey;
 using kagome::crypto::Sr25519Seed;
 using kagome::crypto::Sr25519Signature;
 using kagome::crypto::secp256k1::Secp256k1VerifyError;
+using kagome::runtime::Memory;
+using kagome::runtime::MemoryMock;
 using kagome::runtime::MemoryProviderMock;
-using kagome::runtime::TestMemory;
+using kagome::runtime::PtrSize;
 using kagome::runtime::WasmPointer;
+using kagome::runtime::WasmSize;
+using kagome::runtime::WasmSpan;
 
 using ::testing::Return;
 
@@ -72,6 +77,19 @@ namespace ecdsa_constants = kagome::crypto::constants::ecdsa;
 namespace sr25519_constants = kagome::crypto::constants::sr25519;
 namespace ed25519_constants = kagome::crypto::constants::ed25519;
 namespace secp256k1 = kagome::crypto::secp256k1;
+
+// The point is that sr25519 signature can have many valid values
+// so we can only verify whether it is correct
+MATCHER_P3(VerifySr25519Signature,
+           provider,
+           msg,
+           pubkey,
+           "check if matched sr25519 signature is correct") {
+  Sr25519Signature signature{};
+  std::copy_n(arg.begin(), Sr25519Signature::size(), signature.begin());
+
+  return static_cast<bool>(provider->verify(signature, msg, pubkey));
+}
 
 class CryptoExtensionTest : public ::testing::Test {
  public:
@@ -85,9 +103,11 @@ class CryptoExtensionTest : public ::testing::Test {
       boost::variant<secp256k1::CompressedPublicKey, Secp256k1VerifyError>;
 
   void SetUp() override {
+    memory_ = std::make_shared<MemoryMock>();
     memory_provider_ = std::make_shared<MemoryProviderMock>();
     EXPECT_CALL(*memory_provider_, getCurrentMemory())
-        .WillRepeatedly(Return(std::ref(memory_)));
+        .WillRepeatedly(
+            Return(std::optional<std::reference_wrapper<Memory>>(*memory_)));
 
     random_generator_ = std::make_shared<BoostRandomGenerator>();
     hasher_ = std::make_shared<HasherImpl>();
@@ -181,12 +201,8 @@ class CryptoExtensionTest : public ::testing::Test {
     ed_sr_signature_failure_result_buffer.putUint8(0);
   }
 
-  void bytesN(WasmPointer ptr, BufferView expected) {
-    EXPECT_EQ(memory_.view(ptr, expected.size()).value(), SpanAdl{expected});
-  }
-
  protected:
-  TestMemory memory_;
+  std::shared_ptr<MemoryMock> memory_;
   std::shared_ptr<MemoryProviderMock> memory_provider_;
   std::shared_ptr<CSPRNG> random_generator_;
   std::shared_ptr<EcdsaProvider> ecdsa_provider_;
@@ -197,7 +213,6 @@ class CryptoExtensionTest : public ::testing::Test {
   std::shared_ptr<CryptoStoreMock> crypto_store_;
   std::shared_ptr<CryptoExtension> crypto_ext_;
 
-  KeyType key_type = KeyTypes::BABE;
   inline static Buffer input{"6920616d2064617461"_unhex};
 
   Sr25519Signature sr25519_signature{};
@@ -278,8 +293,17 @@ class CryptoExtensionTest : public ::testing::Test {
  * @then resulting hash is correct
  */
 TEST_F(CryptoExtensionTest, Blake2_128Valid) {
-  bytesN(crypto_ext_->ext_hashing_blake2_128_version_1(memory_[input]),
-         blake2b_128_result);
+  WasmPointer data = 0;
+  WasmSize size = input.size();
+  WasmPointer out_ptr = 42;
+
+  EXPECT_CALL(*memory_, loadN(data, size)).WillOnce(Return(input));
+  EXPECT_CALL(*memory_, storeBuffer(BufferView(blake2b_128_result)))
+      .WillOnce(Return(out_ptr));
+
+  ASSERT_EQ(out_ptr,
+            crypto_ext_->ext_hashing_blake2_128_version_1(
+                PtrSize{data, size}.combine()));
 }
 
 /**
@@ -289,8 +313,17 @@ TEST_F(CryptoExtensionTest, Blake2_128Valid) {
  * @then resulting hash is correct
  */
 TEST_F(CryptoExtensionTest, Blake2_256Valid) {
-  bytesN(crypto_ext_->ext_hashing_blake2_256_version_1(memory_[input]),
-         blake2b_256_result);
+  WasmPointer data = 0;
+  WasmSize size = input.size();
+  WasmPointer out_ptr = 42;
+
+  EXPECT_CALL(*memory_, loadN(data, size)).WillOnce(Return(input));
+  EXPECT_CALL(*memory_, storeBuffer(BufferView(blake2b_256_result)))
+      .WillOnce(Return(out_ptr));
+
+  ASSERT_EQ(crypto_ext_->ext_hashing_blake2_256_version_1(
+                PtrSize{data, size}.combine()),
+            out_ptr);
 }
 
 /**
@@ -299,8 +332,17 @@ TEST_F(CryptoExtensionTest, Blake2_256Valid) {
  * @then resulting hash is correct
  */
 TEST_F(CryptoExtensionTest, KeccakValid) {
-  bytesN(crypto_ext_->ext_hashing_keccak_256_version_1(memory_[input]),
-         keccak_result);
+  WasmPointer data = 0;
+  WasmSize size = input.size();
+  WasmPointer out_ptr = 42;
+
+  EXPECT_CALL(*memory_, loadN(data, size)).WillOnce(Return(input));
+  EXPECT_CALL(*memory_, storeBuffer(BufferView(keccak_result)))
+      .WillOnce(Return(out_ptr));
+
+  ASSERT_EQ(out_ptr,
+            crypto_ext_->ext_hashing_keccak_256_version_1(
+                PtrSize{data, size}.combine()));
 }
 
 /**
@@ -314,9 +356,25 @@ TEST_F(CryptoExtensionTest, Ed25519VerifySuccess) {
   auto keypair = ed25519_provider_->generateKeypair(seed, {}).value();
   EXPECT_OUTCOME_TRUE(signature, ed25519_provider_->sign(keypair, input));
 
+  Buffer pubkey_buf(keypair.public_key);
+  Buffer sig_buf(signature);
+
+  WasmPointer input_data = 0;
+  WasmSize input_size = input.size();
+  WasmPointer sig_data_ptr = 42;
+  WasmPointer pub_key_data_ptr = 123;
+
+  EXPECT_CALL(*memory_, loadN(input_data, input_size)).WillOnce(Return(input));
+  EXPECT_CALL(*memory_, loadN(pub_key_data_ptr, ed25519_constants::PUBKEY_SIZE))
+      .WillOnce(Return(pubkey_buf));
+  EXPECT_CALL(*memory_, loadN(sig_data_ptr, ed25519_constants::SIGNATURE_SIZE))
+      .WillOnce(Return(sig_buf));
+
   ASSERT_EQ(
       crypto_ext_->ext_crypto_ed25519_verify_version_1(
-          memory_[signature], memory_[input], memory_[keypair.public_key]),
+          PtrSize{sig_data_ptr, ed25519_constants::SIGNATURE_SIZE}.combine(),
+          PtrSize{input_data, input_size}.combine(),
+          pub_key_data_ptr),
       CryptoExtension::kVerifySuccess);
 }
 
@@ -334,11 +392,26 @@ TEST_F(CryptoExtensionTest, Ed25519VerifyFailure) {
   Ed25519Signature invalid_signature;
   invalid_signature.fill(0x11);
 
-  ASSERT_EQ(crypto_ext_->ext_crypto_ed25519_verify_version_1(
-                memory_[invalid_signature],
-                memory_[input],
-                memory_[keypair.public_key]),
-            CryptoExtension::kVerifyFail);
+  Buffer pubkey_buf(keypair.public_key);
+  Buffer invalid_sig_buf(invalid_signature);
+
+  WasmPointer input_data = 0;
+  WasmSize input_size = input.size();
+  WasmPointer sig_data_ptr = 42;
+  WasmPointer pub_key_data_ptr = 123;
+
+  EXPECT_CALL(*memory_, loadN(input_data, input_size)).WillOnce(Return(input));
+  EXPECT_CALL(*memory_, loadN(pub_key_data_ptr, ed25519_constants::PUBKEY_SIZE))
+      .WillOnce(Return(pubkey_buf));
+  EXPECT_CALL(*memory_, loadN(sig_data_ptr, ed25519_constants::SIGNATURE_SIZE))
+      .WillOnce(Return(invalid_sig_buf));
+
+  ASSERT_EQ(
+      crypto_ext_->ext_crypto_ed25519_verify_version_1(
+          PtrSize{sig_data_ptr, ed25519_constants::SIGNATURE_SIZE}.combine(),
+          PtrSize{input_data, input_size}.combine(),
+          pub_key_data_ptr),
+      CryptoExtension::kVerifyFail);
 }
 
 /**
@@ -347,11 +420,24 @@ TEST_F(CryptoExtensionTest, Ed25519VerifyFailure) {
  * @then verification is successful
  */
 TEST_F(CryptoExtensionTest, Sr25519VerifySuccess) {
-  ASSERT_EQ(crypto_ext_->ext_crypto_sr25519_verify_version_2(
-                memory_[sr25519_signature],
-                memory_[input],
-                memory_[sr25519_keypair.public_key]),
-            CryptoExtension::kVerifySuccess);
+  auto pub_key = std::span<uint8_t>(sr25519_keypair.public_key);
+  WasmPointer input_data = 0;
+  WasmSize input_size = input.size();
+  WasmPointer sig_data_ptr = 42;
+  WasmPointer pub_key_data_ptr = 123;
+
+  EXPECT_CALL(*memory_, loadN(input_data, input_size)).WillOnce(Return(input));
+  EXPECT_CALL(*memory_, loadN(pub_key_data_ptr, sr25519_constants::PUBLIC_SIZE))
+      .WillOnce(Return(Buffer(pub_key)));
+  EXPECT_CALL(*memory_, loadN(sig_data_ptr, sr25519_constants::SIGNATURE_SIZE))
+      .WillOnce(Return(Buffer(sr25519_signature)));
+
+  ASSERT_EQ(
+      crypto_ext_->ext_crypto_sr25519_verify_version_2(
+          PtrSize{sig_data_ptr, sr25519_constants::SIGNATURE_SIZE}.combine(),
+          PtrSize{input_data, input_size}.combine(),
+          pub_key_data_ptr),
+      CryptoExtension::kVerifySuccess);
 }
 
 /**
@@ -360,17 +446,70 @@ TEST_F(CryptoExtensionTest, Sr25519VerifySuccess) {
  * @then verification fails
  */
 TEST_F(CryptoExtensionTest, Sr25519VerifyFailure) {
-  auto false_signature = sr25519_signature;
+  auto pub_key = std::span<uint8_t>(sr25519_keypair.public_key);
+  auto false_signature = Buffer(sr25519_signature);
   ++false_signature[0];
   ++false_signature[1];
   ++false_signature[2];
   ++false_signature[3];
 
-  ASSERT_EQ(crypto_ext_->ext_crypto_sr25519_verify_version_2(
-                memory_[false_signature],
-                memory_[input],
-                memory_[sr25519_keypair.public_key]),
-            CryptoExtension::kVerifyFail);
+  WasmPointer input_data = 0;
+  WasmSize input_size = input.size();
+  WasmPointer sig_data_ptr = 42;
+  WasmPointer pub_key_data_ptr = 123;
+
+  EXPECT_CALL(*memory_, loadN(input_data, input_size)).WillOnce(Return(input));
+  EXPECT_CALL(*memory_, loadN(pub_key_data_ptr, sr25519_constants::PUBLIC_SIZE))
+      .WillOnce(Return(Buffer(pub_key)));
+  EXPECT_CALL(*memory_, loadN(sig_data_ptr, sr25519_constants::SIGNATURE_SIZE))
+      .WillOnce(Return(false_signature));
+
+  ASSERT_EQ(
+      crypto_ext_->ext_crypto_sr25519_verify_version_2(
+          PtrSize{sig_data_ptr, sr25519_constants::SIGNATURE_SIZE}.combine(),
+          PtrSize{input_data, input_size}.combine(),
+          pub_key_data_ptr),
+      CryptoExtension::kVerifyFail);
+}
+
+/**
+ * @given initialized crypto extensions @and some bytes
+ * @when XX-hashing those bytes to get 16-byte hash
+ * @then resulting hash is correct
+ */
+TEST_F(CryptoExtensionTest, Twox128) {
+  WasmPointer twox_input_data = 0;
+  WasmSize twox_input_size = twox_input.size();
+  WasmPointer out_ptr = 42;
+
+  EXPECT_CALL(*memory_, loadN(twox_input_data, twox_input_size))
+      .WillOnce(Return(twox_input));
+  EXPECT_CALL(*memory_, storeBuffer(BufferView(twox128_result)))
+      .WillOnce(Return(out_ptr));
+
+  ASSERT_EQ(out_ptr,
+            crypto_ext_->ext_hashing_twox_128_version_1(
+                PtrSize{twox_input_data, twox_input_size}.combine()));
+}
+
+/**
+ * @given initialized crypto extensions @and some bytes
+ * @when XX-hashing those bytes to get 32-byte hash
+ * @then resulting hash is correct
+ */
+TEST_F(CryptoExtensionTest, Twox256) {
+  WasmPointer twox_input_data = 0;
+  WasmSize twox_input_size = twox_input.size();
+  WasmPointer out_ptr = 42;
+
+  EXPECT_CALL(*memory_, loadN(twox_input_data, twox_input_size))
+      .WillOnce(Return(twox_input));
+  EXPECT_CALL(*memory_, storeBuffer(BufferView(twox256_result)))
+      .WillOnce(Return(out_ptr));
+
+  ASSERT_EQ(out_ptr,
+            crypto_ext_->ext_hashing_twox_256_version_1(
+                PtrSize{twox_input_data, twox_input_size}.combine()));
 }
 
 /**
@@ -379,9 +518,25 @@ TEST_F(CryptoExtensionTest, Sr25519VerifyFailure) {
  * @then resulting public key is correct
  */
 TEST_F(CryptoExtensionTest, Secp256k1RecoverUncompressedSuccess) {
-  EXPECT_EQ(memory_[crypto_ext_->ext_crypto_secp256k1_ecdsa_recover_version_1(
-                memory_[secp_signature], memory_[secp_message_hash])],
-            scale_encoded_secp_truncated_public_key);
+  WasmPointer sig = 1;
+  WasmPointer msg = 10;
+  WasmSpan res = PtrSize(20, 20).combine();
+  auto &sig_input = secp_signature;
+  auto &msg_input = secp_message_hash;
+
+  EXPECT_CALL(*memory_, loadN(sig, sig_input.size()))
+      .WillOnce(Return(Buffer(sig_input)));
+
+  EXPECT_CALL(*memory_, loadN(msg, msg_input.size()))
+      .WillOnce(Return(Buffer(msg_input)));
+
+  EXPECT_CALL(*memory_,
+              storeBuffer(BufferView(scale_encoded_secp_truncated_public_key)))
+      .WillOnce(Return(res));
+
+  auto ptrsize =
+      crypto_ext_->ext_crypto_secp256k1_ecdsa_recover_version_1(sig, msg);
+  ASSERT_EQ(ptrsize, res);
 }
 
 /**
@@ -391,13 +546,26 @@ TEST_F(CryptoExtensionTest, Secp256k1RecoverUncompressedSuccess) {
  * @then error code is returned
  */
 TEST_F(CryptoExtensionTest, Secp256k1RecoverUncompressedFailure) {
-  auto sig_buffer = secp_signature;
+  WasmPointer sig = 1;
+  WasmPointer msg = 10;
+  WasmSpan res = PtrSize(20, 20).combine();
+  auto &sig_input = secp_signature;
+  auto &msg_input = secp_message_hash;
+  auto sig_buffer = Buffer(sig_input);
   // corrupt signature
   std::fill(sig_buffer.begin() + 2, sig_buffer.begin() + 10, 0xFF);
+  EXPECT_CALL(*memory_, loadN(sig, sig_input.size()))
+      .WillOnce(Return(sig_buffer));
 
-  ASSERT_EQ(memory_[crypto_ext_->ext_crypto_secp256k1_ecdsa_recover_version_1(
-                memory_[sig_buffer], memory_[secp_message_hash])],
-            secp_invalid_signature_error);
+  EXPECT_CALL(*memory_, loadN(msg, msg_input.size()))
+      .WillOnce(Return(Buffer(msg_input)));
+
+  EXPECT_CALL(*memory_, storeBuffer(BufferView(secp_invalid_signature_error)))
+      .WillOnce(Return(res));
+
+  auto ptrsize =
+      crypto_ext_->ext_crypto_secp256k1_ecdsa_recover_version_1(sig, msg);
+  ASSERT_EQ(ptrsize, res);
 }
 
 /**
@@ -406,11 +574,26 @@ TEST_F(CryptoExtensionTest, Secp256k1RecoverUncompressedFailure) {
  * @then resulting public key is correct
  */
 TEST_F(CryptoExtensionTest, Secp256k1RecoverCompressed) {
-  ASSERT_EQ(
-      memory_[crypto_ext_
-                  ->ext_crypto_secp256k1_ecdsa_recover_compressed_version_1(
-                      memory_[secp_signature], memory_[secp_message_hash])],
-      scale_encoded_secp_compressed_public_key);
+  WasmPointer sig = 1;
+  WasmPointer msg = 10;
+  WasmSpan res = PtrSize(20, 20).combine();
+  auto &sig_input = secp_signature;
+  auto &msg_input = secp_message_hash;
+
+  EXPECT_CALL(*memory_, loadN(sig, sig_input.size()))
+      .WillOnce(Return(Buffer(sig_input)));
+
+  EXPECT_CALL(*memory_, loadN(msg, msg_input.size()))
+      .WillOnce(Return(Buffer(msg_input)));
+
+  EXPECT_CALL(*memory_,
+              storeBuffer(BufferView(scale_encoded_secp_compressed_public_key)))
+      .WillOnce(Return(res));
+
+  auto ptrsize =
+      crypto_ext_->ext_crypto_secp256k1_ecdsa_recover_compressed_version_1(sig,
+                                                                           msg);
+  ASSERT_EQ(ptrsize, res);
 }
 
 /**
@@ -420,15 +603,29 @@ TEST_F(CryptoExtensionTest, Secp256k1RecoverCompressed) {
  * @then error code is returned
  */
 TEST_F(CryptoExtensionTest, Secp256k1RecoverCompressedFailure) {
-  auto sig_buffer = secp_signature;
+  WasmPointer sig = 1;
+  WasmPointer msg = 10;
+  WasmSpan res = PtrSize(20, 20).combine();
+
+  auto &sig_input = secp_signature;
+  auto &msg_input = secp_message_hash;
+  Buffer sig_buffer(sig_input);
   // corrupt signature
   std::fill(sig_buffer.begin() + 2, sig_buffer.begin() + 10, 0xFF);
 
-  ASSERT_EQ(
-      memory_[crypto_ext_
-                  ->ext_crypto_secp256k1_ecdsa_recover_compressed_version_1(
-                      memory_[sig_buffer], memory_[secp_message_hash])],
-      secp_invalid_signature_error);
+  EXPECT_CALL(*memory_, loadN(sig, sig_input.size()))
+      .WillOnce(Return(sig_buffer));
+
+  EXPECT_CALL(*memory_, loadN(msg, msg_input.size()))
+      .WillOnce(Return(Buffer(msg_input)));
+
+  EXPECT_CALL(*memory_, storeBuffer(BufferView(secp_invalid_signature_error)))
+      .WillOnce(Return(res));
+
+  auto ptrsize =
+      crypto_ext_->ext_crypto_secp256k1_ecdsa_recover_compressed_version_1(sig,
+                                                                           msg);
+  ASSERT_EQ(ptrsize, res);
 }
 
 /**
@@ -437,12 +634,20 @@ TEST_F(CryptoExtensionTest, Secp256k1RecoverCompressedFailure) {
  * @then we get serialized set of existing ed25519 keys
  */
 TEST_F(CryptoExtensionTest, Ed25519GetPublicKeysSuccess) {
+  WasmSpan res = PtrSize(1, 2).combine();
+
+  KeyType key_type = KeyTypes::BABE;
+  WasmSize key_type_ptr = 42;
+
   EXPECT_CALL(*crypto_store_, getEd25519PublicKeys(key_type))
       .WillOnce(Return(ed_public_keys));
 
-  ASSERT_EQ(memory_[crypto_ext_->ext_crypto_ed25519_public_keys_version_1(
-                memory_.store32u(key_type))],
-            ed_public_keys_result);
+  EXPECT_CALL(*memory_, load32u(key_type_ptr)).WillOnce(Return(key_type));
+  EXPECT_CALL(*memory_, storeBuffer(BufferView(ed_public_keys_result)))
+      .WillOnce(Return(res));
+
+  ASSERT_EQ(crypto_ext_->ext_crypto_ed25519_public_keys_version_1(key_type_ptr),
+            res);
 }
 
 /**
@@ -451,12 +656,20 @@ TEST_F(CryptoExtensionTest, Ed25519GetPublicKeysSuccess) {
  * @then we get serialized set of existing sr25519 keys
  */
 TEST_F(CryptoExtensionTest, Sr25519GetPublicKeysSuccess) {
+  WasmSpan res = PtrSize(1, 2).combine();
+
+  auto key_type_ptr = 42u;
+  KeyType key_type = KeyTypes::BABE;
+
   EXPECT_CALL(*crypto_store_, getSr25519PublicKeys(key_type))
       .WillOnce(Return(sr_public_keys));
 
-  ASSERT_EQ(memory_[crypto_ext_->ext_crypto_sr25519_public_keys_version_1(
-                memory_.store32u(key_type))],
-            sr_public_keys_result);
+  EXPECT_CALL(*memory_, load32u(key_type_ptr)).WillOnce(Return(key_type));
+  EXPECT_CALL(*memory_, storeBuffer(BufferView(sr_public_keys_result)))
+      .WillOnce(Return(res));
+
+  ASSERT_EQ(crypto_ext_->ext_crypto_sr25519_public_keys_version_1(key_type_ptr),
+            res);
 }
 
 /**
@@ -465,15 +678,28 @@ TEST_F(CryptoExtensionTest, Sr25519GetPublicKeysSuccess) {
  * @then we get a valid signature
  */
 TEST_F(CryptoExtensionTest, Ed25519SignSuccess) {
+  KeyType key_type = KeyTypes::BABE;
+  WasmSize key_type_ptr = 42;
+  WasmPointer key = 2;
+  auto msg = PtrSize(3, 4).combine();
+  auto res = PtrSize(5, 6).combine();
+
+  // load public key
+  EXPECT_CALL(*memory_, loadN(2, Ed25519PublicKey::size()))
+      .WillOnce(Return(ed_public_key_buffer));
+  // load message
+  EXPECT_CALL(*memory_, loadN(3, 4)).WillOnce(Return(input));
+
   EXPECT_CALL(*crypto_store_,
               findEd25519Keypair(key_type, ed25519_keypair.public_key))
       .WillOnce(Return(ed25519_keypair));
 
-  ASSERT_EQ(memory_[crypto_ext_->ext_crypto_ed25519_sign_version_1(
-                memory_.store32u(key_type),
-                memory_[ed25519_keypair.public_key],
-                memory_[input])],
-            ed25519_signature_result);
+  EXPECT_CALL(*memory_, load32u(key_type_ptr)).WillOnce(Return(key_type));
+  EXPECT_CALL(*memory_, storeBuffer(BufferView(ed25519_signature_result)))
+      .WillOnce(Return(res));
+  ASSERT_EQ(
+      crypto_ext_->ext_crypto_ed25519_sign_version_1(key_type_ptr, key, msg),
+      res);
 }
 
 /**
@@ -483,16 +709,30 @@ TEST_F(CryptoExtensionTest, Ed25519SignSuccess) {
  * @then we get a valid serialized error
  */
 TEST_F(CryptoExtensionTest, Ed25519SignFailure) {
+  KeyType key_type = KeyTypes::BABE;
+  WasmSize key_type_ptr = 42;
+  WasmPointer key = 2;
+  auto msg = PtrSize(3, 4).combine();
+  auto res = PtrSize(5, 6).combine();
+
+  // load public key
+  EXPECT_CALL(*memory_, loadN(2, Ed25519PublicKey::size()))
+      .WillOnce(Return(ed_public_key_buffer));
+  // load message
+  EXPECT_CALL(*memory_, loadN(3, 4)).WillOnce(Return(input));
+  EXPECT_CALL(*memory_, load32u(key_type_ptr)).WillOnce(Return(key_type));
+
   EXPECT_CALL(*crypto_store_,
               findEd25519Keypair(key_type, ed25519_keypair.public_key))
       .WillOnce(Return(
           outcome::failure(kagome::crypto::CryptoStoreError::KEY_NOT_FOUND)));
 
-  ASSERT_EQ(memory_[crypto_ext_->ext_crypto_ed25519_sign_version_1(
-                memory_.store32u(key_type),
-                memory_[ed25519_keypair.public_key],
-                memory_[input])],
-            ed_sr_signature_failure_result_buffer);
+  EXPECT_CALL(*memory_,
+              storeBuffer(BufferView(ed_sr_signature_failure_result_buffer)))
+      .WillOnce(Return(res));
+  ASSERT_EQ(
+      crypto_ext_->ext_crypto_ed25519_sign_version_1(key_type_ptr, key, msg),
+      res);
 }
 
 /**
@@ -501,19 +741,32 @@ TEST_F(CryptoExtensionTest, Ed25519SignFailure) {
  * @then we get a valid signature
  */
 TEST_F(CryptoExtensionTest, Sr25519SignSuccess) {
+  KeyType key_type = KeyTypes::BABE;
+  WasmSize key_type_ptr = 42;
+  WasmPointer key = 2;
+  auto msg = PtrSize(3, 4).combine();
+  auto res = PtrSize(5, 6).combine();
+
+  // load public key
+  EXPECT_CALL(*memory_, loadN(2, Sr25519PublicKey::size()))
+      .WillOnce(Return(sr_public_key_buffer));
+  // load message
+  EXPECT_CALL(*memory_, loadN(3, 4)).WillOnce(Return(input));
+  EXPECT_CALL(*memory_, load32u(key_type_ptr)).WillOnce(Return(key_type));
+
   EXPECT_CALL(*crypto_store_,
               findSr25519Keypair(key_type, sr25519_keypair.public_key))
       .WillOnce(Return(sr25519_keypair));
 
-  auto sig = memory_
-                 .decode<std::optional<Sr25519Signature>>(
-                     crypto_ext_->ext_crypto_sr25519_sign_version_1(
-                         memory_.store32u(key_type),
-                         memory_[sr25519_keypair.public_key],
-                         memory_[input]))
-                 .value();
-  ASSERT_TRUE(sr25519_provider_->verify(sig, input, sr25519_keypair.public_key)
-                  .value());
+  EXPECT_CALL(
+      *memory_,
+      storeBuffer(VerifySr25519Signature(
+          sr25519_provider_, BufferView(input), sr25519_keypair.public_key)))
+      .WillOnce(Return(res));
+
+  ASSERT_EQ(
+      crypto_ext_->ext_crypto_sr25519_sign_version_1(key_type_ptr, key, msg),
+      res);
 }
 
 /**
@@ -523,16 +776,30 @@ TEST_F(CryptoExtensionTest, Sr25519SignSuccess) {
  * @then we get a valid serialized error
  */
 TEST_F(CryptoExtensionTest, Sr25519SignFailure) {
+  KeyType key_type = KeyTypes::BABE;
+  WasmSize key_type_ptr = 42;
+  WasmPointer key = 2;
+  auto msg = PtrSize(3, 4).combine();
+  auto res = PtrSize(5, 6).combine();
+
+  // load public key
+  EXPECT_CALL(*memory_, loadN(2, Sr25519PublicKey::size()))
+      .WillOnce(Return(sr_public_key_buffer));
+  // load message
+  EXPECT_CALL(*memory_, loadN(3, 4)).WillOnce(Return(input));
+  EXPECT_CALL(*memory_, load32u(key_type_ptr)).WillOnce(Return(key_type));
+
   EXPECT_CALL(*crypto_store_,
               findSr25519Keypair(key_type, sr25519_keypair.public_key))
       .WillOnce(Return(
           outcome::failure(kagome::crypto::CryptoStoreError::KEY_NOT_FOUND)));
 
-  ASSERT_EQ(memory_[crypto_ext_->ext_crypto_sr25519_sign_version_1(
-                memory_.store32u(key_type),
-                memory_[sr25519_keypair.public_key],
-                memory_[input])],
-            ed_sr_signature_failure_result_buffer);
+  EXPECT_CALL(*memory_,
+              storeBuffer(BufferView(ed_sr_signature_failure_result_buffer)))
+      .WillOnce(Return(res));
+  ASSERT_EQ(
+      crypto_ext_->ext_crypto_sr25519_sign_version_1(key_type_ptr, key, msg),
+      res);
 }
 
 /**
@@ -541,12 +808,21 @@ TEST_F(CryptoExtensionTest, Sr25519SignFailure) {
  * @then a new ed25519 keypair is successfully generated and stored
  */
 TEST_F(CryptoExtensionTest, Ed25519GenerateByHexSeedSuccess) {
+  KeyType key_type = KeyTypes::BABE;
+  WasmSize key_type_ptr = 42;
+  WasmPointer res = 2;
+  auto seed_ptr = PtrSize(3, 4).combine();
+
   EXPECT_CALL(*crypto_store_,
               generateEd25519Keypair(key_type, std::string_view(mnemonic)))
       .WillOnce(Return(ed25519_keypair));
-  bytesN(crypto_ext_->ext_crypto_ed25519_generate_version_1(
-             memory_.store32u(key_type), memory_[mnemonic_buffer]),
-         ed_public_key_buffer);
+  EXPECT_CALL(*memory_, loadN(3, 4)).WillOnce(Return(mnemonic_buffer));
+  EXPECT_CALL(*memory_, storeBuffer(BufferView(ed_public_key_buffer)))
+      .WillOnce(Return(res));
+  EXPECT_CALL(*memory_, load32u(key_type_ptr)).WillOnce(Return(key_type));
+  ASSERT_EQ(res,
+            crypto_ext_->ext_crypto_ed25519_generate_version_1(key_type_ptr,
+                                                               seed_ptr));
 }
 
 /**
@@ -555,12 +831,21 @@ TEST_F(CryptoExtensionTest, Ed25519GenerateByHexSeedSuccess) {
  * @then a new ed25519 keypair is successfully generated and stored
  */
 TEST_F(CryptoExtensionTest, Ed25519GenerateByMnemonicSuccess) {
+  KeyType key_type = KeyTypes::BABE;
+  WasmSize key_type_ptr = 42;
+  WasmPointer res = 2;
+  auto seed_ptr = PtrSize(3, 4).combine();
+
+  EXPECT_CALL(*memory_, loadN(3, 4)).WillOnce(Return(mnemonic_buffer));
+  EXPECT_CALL(*memory_, storeBuffer(BufferView(ed_public_key_buffer)))
+      .WillOnce(Return(res));
+  EXPECT_CALL(*memory_, load32u(key_type_ptr)).WillOnce(Return(key_type));
   EXPECT_CALL(*crypto_store_,
               generateEd25519Keypair(key_type, std::string_view(mnemonic)))
       .WillOnce(Return(ed25519_keypair));
-  bytesN(crypto_ext_->ext_crypto_ed25519_generate_version_1(
-             memory_.store32u(key_type), memory_[mnemonic_buffer]),
-         ed_public_key_buffer);
+  ASSERT_EQ(res,
+            crypto_ext_->ext_crypto_ed25519_generate_version_1(key_type_ptr,
+                                                               seed_ptr));
 }
 
 /**
@@ -569,12 +854,22 @@ TEST_F(CryptoExtensionTest, Ed25519GenerateByMnemonicSuccess) {
  * @then a new sr25519 keypair is successfully generated and stored
  */
 TEST_F(CryptoExtensionTest, Sr25519GenerateByHexSeedSuccess) {
+  KeyType key_type = KeyTypes::BABE;
+  WasmSize key_type_ptr = 42;
+  WasmPointer res = 2;
+  auto seed_ptr = PtrSize(3, 4).combine();
+
+  EXPECT_CALL(*memory_, loadN(3, 4)).WillOnce(Return(mnemonic_buffer));
+  EXPECT_CALL(*memory_, storeBuffer(BufferView(sr_public_key_buffer)))
+      .WillOnce(Return(res));
+  EXPECT_CALL(*memory_, load32u(key_type_ptr)).WillOnce(Return(key_type));
+
   EXPECT_CALL(*crypto_store_,
               generateSr25519Keypair(key_type, std::string_view(mnemonic)))
       .WillOnce(Return(sr25519_keypair));
-  bytesN(crypto_ext_->ext_crypto_sr25519_generate_version_1(
-             memory_.store32u(key_type), memory_[mnemonic_buffer]),
-         sr_public_key_buffer);
+  ASSERT_EQ(res,
+            crypto_ext_->ext_crypto_sr25519_generate_version_1(key_type_ptr,
+                                                               seed_ptr));
 }
 
 /**
@@ -583,12 +878,39 @@ TEST_F(CryptoExtensionTest, Sr25519GenerateByHexSeedSuccess) {
  * @then a new sr25519 keypair is successfully generated and stored
  */
 TEST_F(CryptoExtensionTest, Sr25519GenerateByMnemonicSuccess) {
+  KeyType key_type = KeyTypes::BABE;
+  WasmSize key_type_ptr = 42;
+  WasmPointer res = 2;
+  auto seed_ptr = PtrSize(3, 4).combine();
+
+  EXPECT_CALL(*memory_, loadN(3, 4)).WillOnce(Return(mnemonic_buffer));
+  EXPECT_CALL(*memory_, storeBuffer(BufferView(sr_public_key_buffer)))
+      .WillOnce(Return(res));
+  EXPECT_CALL(*memory_, load32u(key_type_ptr)).WillOnce(Return(key_type));
   EXPECT_CALL(*crypto_store_,
               generateSr25519Keypair(key_type, std::string_view(mnemonic)))
       .WillOnce(Return(sr25519_keypair));
-  bytesN(crypto_ext_->ext_crypto_sr25519_generate_version_1(
-             memory_.store32u(key_type), memory_[mnemonic_buffer]),
-         sr_public_key_buffer);
+  ASSERT_EQ(res,
+            crypto_ext_->ext_crypto_sr25519_generate_version_1(key_type_ptr,
+                                                               seed_ptr));
+}
+
+/**
+ * @given initialized crypto extension @and data, which can be keccak-hashed
+ * @when hashing that data
+ * @then resulting hash is correct
+ */
+TEST_F(CryptoExtensionTest, Keccac256Version1_Success) {
+  WasmPointer data = 0;
+  WasmSize size = input.size();
+  WasmPointer out_ptr = 42;
+  WasmSpan data_span = PtrSize(data, size).combine();
+
+  EXPECT_CALL(*memory_, loadN(data, size)).WillOnce(Return(input));
+  EXPECT_CALL(*memory_, storeBuffer(BufferView(keccak_result)))
+      .WillOnce(Return(out_ptr));
+
+  ASSERT_EQ(crypto_ext_->ext_hashing_keccak_256_version_1(data_span), out_ptr);
 }
 
 /**
@@ -597,8 +919,52 @@ TEST_F(CryptoExtensionTest, Sr25519GenerateByMnemonicSuccess) {
  * @then resulting hash is correct
  */
 TEST_F(CryptoExtensionTest, Sha2_256Version1_Success) {
-  bytesN(crypto_ext_->ext_hashing_sha2_256_version_1(memory_[input]),
-         sha2_256_result);
+  WasmPointer data = 0;
+  WasmSize size = input.size();
+  WasmPointer out_ptr = 42;
+  WasmSpan data_span = PtrSize(data, size).combine();
+
+  EXPECT_CALL(*memory_, loadN(data, size)).WillOnce(Return(input));
+  EXPECT_CALL(*memory_, storeBuffer(BufferView(sha2_256_result)))
+      .WillOnce(Return(out_ptr));
+
+  ASSERT_EQ(crypto_ext_->ext_hashing_sha2_256_version_1(data_span), out_ptr);
+}
+
+/**
+ * @given initialized crypto extension @and data, which can be blake2_128-hashed
+ * @when hashing that data
+ * @then resulting hash is correct
+ */
+TEST_F(CryptoExtensionTest, Blake2_128Version1_Success) {
+  WasmPointer data = 0;
+  WasmSize size = input.size();
+  WasmPointer out_ptr = 42;
+  WasmSpan data_span = PtrSize(data, size).combine();
+
+  EXPECT_CALL(*memory_, loadN(data, size)).WillOnce(Return(input));
+  EXPECT_CALL(*memory_, storeBuffer(BufferView(blake2b_128_result)))
+      .WillOnce(Return(out_ptr));
+
+  ASSERT_EQ(crypto_ext_->ext_hashing_blake2_128_version_1(data_span), out_ptr);
+}
+
+/**
+ * @given initialized crypto extension @and data, which can be blake2_256-hashed
+ * @when hashing that data
+ * @then resulting hash is correct
+ */
+TEST_F(CryptoExtensionTest, Blake2_256Version1_Success) {
+  WasmPointer data = 0;
+  WasmSize size = input.size();
+  WasmPointer out_ptr = 42;
+  WasmSpan data_span = PtrSize(data, size).combine();
+
+  EXPECT_CALL(*memory_, loadN(data, size)).WillOnce(Return(input));
+  EXPECT_CALL(*memory_, storeBuffer(BufferView(blake2b_256_result)))
+      .WillOnce(Return(out_ptr));
+
+  ASSERT_EQ(crypto_ext_->ext_hashing_blake2_256_version_1(data_span), out_ptr);
 }
 
 /**
@@ -607,8 +973,16 @@ TEST_F(CryptoExtensionTest, Sha2_256Version1_Success) {
  * @then resulting hash is correct
  */
 TEST_F(CryptoExtensionTest, Twox_256Version1_Success) {
-  bytesN(crypto_ext_->ext_hashing_twox_256_version_1(memory_[twox_input]),
-         twox256_result);
+  WasmPointer data = 0;
+  WasmSize size = twox_input.size();
+  WasmPointer out_ptr = 42;
+  WasmSpan data_span = PtrSize(data, size).combine();
+
+  EXPECT_CALL(*memory_, loadN(data, size)).WillOnce(Return(twox_input));
+  EXPECT_CALL(*memory_, storeBuffer(BufferView(twox256_result)))
+      .WillOnce(Return(out_ptr));
+
+  ASSERT_EQ(crypto_ext_->ext_hashing_twox_256_version_1(data_span), out_ptr);
 }
 
 /**
@@ -617,8 +991,16 @@ TEST_F(CryptoExtensionTest, Twox_256Version1_Success) {
  * @then resulting hash is correct
  */
 TEST_F(CryptoExtensionTest, Twox_128Version1_Success) {
-  bytesN(crypto_ext_->ext_hashing_twox_128_version_1(memory_[twox_input]),
-         twox128_result);
+  WasmPointer data = 0;
+  WasmSize size = twox_input.size();
+  WasmPointer out_ptr = 42;
+  WasmSpan data_span = PtrSize(data, size).combine();
+
+  EXPECT_CALL(*memory_, loadN(data, size)).WillOnce(Return(twox_input));
+  EXPECT_CALL(*memory_, storeBuffer(BufferView(twox128_result)))
+      .WillOnce(Return(out_ptr));
+
+  ASSERT_EQ(crypto_ext_->ext_hashing_twox_128_version_1(data_span), out_ptr);
 }
 
 /**
@@ -627,6 +1009,14 @@ TEST_F(CryptoExtensionTest, Twox_128Version1_Success) {
  * @then resulting hash is correct
  */
 TEST_F(CryptoExtensionTest, Twox_64Version1_Success) {
-  bytesN(crypto_ext_->ext_hashing_twox_64_version_1(memory_[twox_input]),
-         twox64_result);
+  WasmPointer data = 0;
+  WasmSize size = twox_input.size();
+  WasmPointer out_ptr = 42;
+  WasmSpan data_span = PtrSize(data, size).combine();
+
+  EXPECT_CALL(*memory_, loadN(data, size)).WillOnce(Return(twox_input));
+  EXPECT_CALL(*memory_, storeBuffer(BufferView(twox64_result)))
+      .WillOnce(Return(out_ptr));
+
+  ASSERT_EQ(crypto_ext_->ext_hashing_twox_64_version_1(data_span), out_ptr);
 }

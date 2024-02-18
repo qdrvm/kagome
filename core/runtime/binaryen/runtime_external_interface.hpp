@@ -12,7 +12,6 @@
 
 #include "common/buffer_view.hpp"
 #include "log/logger.hpp"
-#include "runtime/memory_check.hpp"
 
 namespace kagome::host_api {
   class HostApiFactory;
@@ -20,8 +19,6 @@ namespace kagome::host_api {
 }  // namespace kagome::host_api
 
 namespace kagome::runtime {
-  using BytesOut = std::span<uint8_t>;
-
   class TrieStorageProvider;
   class Memory;
   class ExecutorFactory;
@@ -66,18 +63,22 @@ namespace kagome::runtime::binaryen {
       auto getSize() const {
         return memory.size();
       }
+      auto getData() const {
+        return std::span<const Mem::value_type>(memory);
+      }
       template <typename T>
       void set(size_t address, T value) {
-        check(address, sizeof(T));
         if (aligned<T>(&memory[address])) {
           *reinterpret_cast<T *>(&memory[address]) = value;
         } else {
           std::memcpy(&memory[address], &value, sizeof(T));
         }
       }
+      void set(size_t address, common::BufferView value) {
+        std::memcpy(&memory[address], value.data(), value.size());
+      }
       template <typename T>
       T get(size_t address) {
-        check(address, sizeof(T));
         if (aligned<T>(&memory[address])) {
           return *reinterpret_cast<T *>(&memory[address]);
         } else {
@@ -87,15 +88,12 @@ namespace kagome::runtime::binaryen {
         }
       }
 
-      void check(WasmPointer ptr, WasmSize size) {
-        if (not memoryCheck(ptr, size, memory.size())) {
-          throw std::out_of_range{"MemoryError"};
-        }
-      }
-
-      BytesOut view(WasmPointer ptr, WasmSize size) {
-        check(ptr, size);
-        return {reinterpret_cast<uint8_t *>(&memory[ptr]), size};
+      template <typename T,
+                typename = std::enable_if_t<std::is_standard_layout_v<T>
+                                            and std::is_trivial_v<T>>>
+      common::BufferView getBuffer(size_t address, size_t n) const {
+        return common::BufferView((T *)&memory[address], n);
+        ;
       }
     } memory;
 
@@ -114,6 +112,8 @@ namespace kagome::runtime::binaryen {
                             wasm::LiteralList &arguments,
                             wasm::Type result,
                             wasm::ModuleInstance &instance) override;
+
+    virtual ~RuntimeExternalInterface() = default;
 
     wasm::Literal callImport(wasm::Function *import,
                              wasm::LiteralList &arguments) override;

@@ -8,7 +8,6 @@
 
 #include <boost/assert.hpp>
 
-#include "common/bytestr.hpp"
 #include "runtime/memory.hpp"
 #include "runtime/memory_provider.hpp"
 #include "runtime/ptr_size.hpp"
@@ -45,8 +44,8 @@ namespace kagome::host_api {
     using runtime::WasmLogLevel;
 
     auto read_str_from_position = [&](runtime::PtrSize location) {
-      return byte2str(
-          memory_provider_->getCurrentMemory()->get().view(location).value());
+      return memory_provider_->getCurrentMemory()->get().loadStr(location.ptr,
+                                                                 location.size);
     };
 
     const auto target_str = read_str_from_position(runtime::PtrSize(target));

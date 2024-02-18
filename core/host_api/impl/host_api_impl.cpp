@@ -6,7 +6,6 @@
 
 #include "host_api/impl/host_api_impl.hpp"
 
-#include "common/bytestr.hpp"
 #include "crypto/ecdsa/ecdsa_provider_impl.hpp"
 #include "crypto/ed25519/ed25519_provider_impl.hpp"
 #include "crypto/hasher/hasher_impl.hpp"
@@ -153,7 +152,7 @@ namespace kagome::host_api {
     return storage_ext_.ext_trie_blake2_256_ordered_root_version_2(
         values_data, state_version);
   }
-
+  
   runtime::WasmPointer HostApiImpl::ext_trie_keccak_256_ordered_root_version_2(
       runtime::WasmSpan values_data, runtime::WasmI32 state_version) {
     return storage_ext_.ext_trie_keccak_256_ordered_root_version_2(
@@ -587,9 +586,9 @@ namespace kagome::host_api {
 
   void HostApiImpl::ext_panic_handler_abort_on_panic_version_1(
       runtime::WasmSpan message) {
-    auto msg = byte2str(
-        memory_provider_->getCurrentMemory()->get().view(message).value());
-    throw std::runtime_error{std::string{msg}};
+    auto [ptr, addr] = runtime::PtrSize{message};
+    auto msg = memory_provider_->getCurrentMemory()->get().loadStr(ptr, addr);
+    throw std::runtime_error{msg};
   }
 
 }  // namespace kagome::host_api

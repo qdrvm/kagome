@@ -117,19 +117,19 @@ namespace kagome::runtime::binaryen {
       return RuntimeExecutionError::EXPORT_FUNCTION_NOT_FOUND;
     }
 
-    WasmSpan span;
     try {
-      span = module_instance_->callExport(wasm::Name{name.data()}, args_list)
-                 .geti64();
+      const auto res =
+          module_instance_->callExport(wasm::Name{name.data()}, args_list)
+              .geti64();
+      auto [ptr, size] = PtrSize{res};
+      return getEnvironment().memory_provider->getCurrentMemory()->get().loadN(
+          ptr, size);
+
     } catch (wasm::ExitException &e) {
       return Error::UNEXPECTED_EXIT;
     } catch (wasm::TrapException &e) {
       return Error::EXECUTION_ERROR;
     }
-    OUTCOME_TRY(
-        view,
-        getEnvironment().memory_provider->getCurrentMemory()->get().view(span));
-    return common::Buffer{view};
   }
 
   outcome::result<std::optional<WasmValue>> ModuleInstanceImpl::getGlobal(
