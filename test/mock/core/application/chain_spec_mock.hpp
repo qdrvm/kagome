@@ -76,6 +76,8 @@ namespace kagome::application {
                 fetchCodeSubstituteByBlockInfo,
                 (const primitives::BlockInfo &block_info),
                 (const, override));
+
+    MOCK_METHOD(primitives::BlockNumber, beefyMinDelta, (), (const, override));
   };
 
 }  // namespace kagome::application
