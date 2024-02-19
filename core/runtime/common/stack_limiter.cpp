@@ -18,40 +18,6 @@
 
 namespace kagome::runtime {
 
-  class Stream final : public wabt::Stream {
-   public:
-   protected:
-    wabt::Result WriteDataImpl(size_t offset,
-                               const void *data,
-                               size_t size) override {
-      if (offset + size > bytes.size()) {
-        bytes.resize(offset + size);
-      }
-      std::copy_n(reinterpret_cast<const uint8_t *>(data),
-                  size,
-                  bytes.begin() + offset);
-      return wabt::Result::Ok;
-    }
-
-    wabt::Result MoveDataImpl(size_t dst_offset,
-                              size_t src_offset,
-                              size_t size) override {
-      if (dst_offset + size < bytes.size()) {
-        bytes.resize(dst_offset + size);
-      }
-      std::copy_n(bytes.begin() + src_offset, size, bytes.begin() + dst_offset);
-      return wabt::Result::Ok;
-    }
-
-    wabt::Result TruncateImpl(size_t size) override {
-      bytes.resize(size);
-      return wabt::Result::Ok;
-    }
-
-   public:
-    std::vector<uint8_t> bytes;
-  };
-
   template <bool IsConst, typename T>
   struct MaybeConstT;
 
@@ -836,13 +802,13 @@ namespace kagome::runtime {
     }
 
     KAGOME_PROFILE_START_L(logger, serialize_wasm);
-    Stream s;
+    wabt::MemoryStream s;
     if (wabt::WriteBinaryModule(
             &s, &module, wabt::WriteBinaryOptions({}, false, false, true))
         != wabt::Result::Ok) {
       return StackLimiterError{"Failed to serialize WASM module"};
     }
     KAGOME_PROFILE_END_L(logger, serialize_wasm);
-    return common::Buffer{std::move(s.bytes)};
+    return common::Buffer{std::move(s.output_buffer().data)};
   }
 }  // namespace kagome::runtime
