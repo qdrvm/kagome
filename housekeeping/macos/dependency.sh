@@ -18,9 +18,4 @@ sudo python3 -m pip install cmake==3.25 requests gitpython gcovr
 curl https://sh.rustup.rs -sSf | sh -s -- -y --default-toolchain 1.75.0 --profile minimal
 brew install ninja
 
-find / -name stdlib.h || true
-
 sudo xcode-select -s /Applications/Xcode_15.0.1.app/Contents/Developer
-
-printf '#include <stdlib.h>\nint main() { printf(\"Hello, world!\\n\");}\n' > test.c
-cc -v -H test.c
