@@ -13,8 +13,8 @@
 #include "outcome/outcome.hpp"
 
 namespace wabt {
-  class Module;
-  class Func;
+  struct Module;
+  struct Func;
 }  // namespace wabt
 
 namespace kagome::runtime {
