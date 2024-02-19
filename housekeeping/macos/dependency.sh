@@ -23,4 +23,4 @@ find / -name stdlib.h || true
 sudo xcode-select -s /Applications/Xcode_15.0.1.app/Contents/Developer
 
 printf '#include <stdlib.h>\nint main() { printf(\"Hello, world!\\n\");}\n' > test.c
-$CC -v -H test.c
+cc -v -H test.c
