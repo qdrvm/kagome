@@ -27,7 +27,7 @@ namespace kagome::runtime::binaryen {
     return allocator_->allocate(size);
   }
 
-  std::optional<WasmSize> MemoryImpl::deallocate(WasmPointer ptr) {
+  void MemoryImpl::deallocate(WasmPointer ptr) {
     return allocator_->deallocate(ptr);
   }
 

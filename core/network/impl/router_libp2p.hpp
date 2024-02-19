@@ -44,7 +44,7 @@ namespace kagome::network {
         LazySPtr<SyncProtocol> sync_protocol,
         LazySPtr<StateProtocol> state_protocol,
         LazySPtr<WarpProtocol> warp_protocol,
-        LazySPtr<BeefyProtocol> beefy_protocol,
+        LazySPtr<BeefyProtocolImpl> beefy_protocol,
         LazySPtr<BeefyJustificationProtocol> beefy_justifications_protocol,
         LazySPtr<LightProtocol> light_protocol,
         LazySPtr<PropagateTransactionsProtocol> propagate_transactions_protocol,
@@ -104,7 +104,7 @@ namespace kagome::network {
 
     std::shared_ptr<libp2p::protocol::Ping> getPingProtocol() const override;
 
-    std::shared_ptr<BeefyProtocol> getBeefyProtocol() const override;
+    std::shared_ptr<BeefyProtocolImpl> getBeefyProtocol() const override;
 
    private:
     /**
@@ -128,7 +128,7 @@ namespace kagome::network {
     LazySPtr<SyncProtocol> sync_protocol_;
     LazySPtr<StateProtocol> state_protocol_;
     LazySPtr<WarpProtocol> warp_protocol_;
-    LazySPtr<BeefyProtocol> beefy_protocol_;
+    LazySPtr<BeefyProtocolImpl> beefy_protocol_;
     LazySPtr<BeefyJustificationProtocol> beefy_justifications_protocol_;
     LazySPtr<LightProtocol> light_protocol_;
 

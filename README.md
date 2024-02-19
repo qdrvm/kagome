@@ -8,11 +8,11 @@ SPDX-License-Identifier: Apache-2.0
 
 [![CodeFactor](https://www.codefactor.io/repository/github/soramitsu/kagome/badge)](https://www.codefactor.io/repository/github/soramitsu/kagome)
 [![codecov](https://codecov.io/gh/soramitsu/kagome/branch/master/graph/badge.svg)](https://codecov.io/gh/soramitsu/kagome)
-[![](https://img.shields.io/twitter/follow/Soramitsu_co?label=Follow&style=social)](https://twitter.com/Soramitsu_co)
+[![](https://img.shields.io/twitter/follow/qdrvm_io?label=Follow&style=social)](https://twitter.com/qdrvm_io)
 
 ## Intro
 
-KAGOME is a [Polkadot Host](https://github.com/w3f/polkadot-spec/tree/master/host-spec) (former Polkadot Runtime Environment) developed by [Soramitsu](https://soramitsu.co.jp/) and funded by a Web3 Foundation [grant](https://github.com/w3f/Web3-collaboration/blob/master/grants/grants.md) and Kusama [treasury](https://kusama.polkassembly.io/post/1858).
+KAGOME is a [Polkadot Host](https://github.com/w3f/polkadot-spec/tree/master/host-spec) (former Polkadot Runtime Environment) developed by [Quadrivim](https://qdrvm.io) and funded by a Web3 Foundation [grant](https://github.com/w3f/Web3-collaboration/blob/master/grants/grants.md) and Treasury proposals ( [1](https://kusama.polkassembly.io/post/1858), [2](https://polkadot.polkassembly.io/treasury/485)).
 
 
 ## Status
@@ -47,7 +47,7 @@ KAGOME is a [Polkadot Host](https://github.com/w3f/polkadot-spec/tree/master/hos
     - [x] WASM engine
         - [x] Binaryen
         - [x] WAVM
-        - [ ] WasmEdge (planned for Q3 2023)
+        - [x] WasmEdge
 - [x] Parachains core
    - [x] Non-asynchronous Backing
    - [x] Data availability

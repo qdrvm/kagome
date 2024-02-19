@@ -107,7 +107,7 @@ namespace kagome::consensus::babe {
         primitives::events::ChainSubscriptionEnginePtr chain_sub_engine,
         std::shared_ptr<network::BlockAnnounceTransmitter> announce_transmitter,
         std::shared_ptr<runtime::OffchainWorkerApi> offchain_worker_api,
-        std::shared_ptr<common::WorkerThreadPool> worker_thread_pool,
+        const common::WorkerThreadPool &worker_thread_pool,
         WeakIoContext main_thread_context);
 
     bool isGenesisConsensus() const override;

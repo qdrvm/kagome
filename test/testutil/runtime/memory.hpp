@@ -34,9 +34,7 @@ namespace kagome::runtime {
       return ptr;
     }
 
-    std::optional<WasmSize> deallocate(WasmPointer ptr) override {
-      return std::nullopt;
-    }
+    void deallocate(WasmPointer ptr) override {}
 
     PtrSize allocate2(WasmSize size) {
       return {allocate(size), size};

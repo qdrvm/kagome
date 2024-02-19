@@ -35,15 +35,13 @@
 #include "mock/core/runtime/offchain_worker_api_mock.hpp"
 #include "primitives/event_types.hpp"
 #include "storage/trie/serialization/ordered_trie_hash.hpp"
-#include "testutil/asio_wait.hpp"
 #include "testutil/lazy.hpp"
 #include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
 #include "testutil/prepare_loggers.hpp"
 #include "testutil/sr25519_utils.hpp"
-#include "utils/watchdog.hpp"
 
-using kagome::Watchdog;
+using kagome::TestThreadPool;
 using kagome::application::AppConfigurationMock;
 using kagome::authorship::ProposerMock;
 using kagome::blockchain::BlockTreeMock;
@@ -51,7 +49,6 @@ using kagome::clock::SystemClockMock;
 using kagome::common::Buffer;
 using kagome::common::BufferView;
 using kagome::common::uint256_to_le_bytes;
-using kagome::common::WorkerThreadPool;
 using kagome::consensus::BlockProductionError;
 using kagome::consensus::Duration;
 using kagome::consensus::EpochLength;
@@ -231,12 +228,8 @@ class BabeTest : public testing::Test {
                                   chain_sub_engine,
                                   announce_transmitter,
                                   offchain_worker_api,
-                                  worker_thread_pool_,
-                                  worker_thread_pool_->io_context());
-  }
-
-  void TearDown() override {
-    watchdog_->stop();
+                                  TestThreadPool{io_},
+                                  io_);
   }
 
   AppConfigurationMock app_config;
@@ -260,9 +253,8 @@ class BabeTest : public testing::Test {
       backed_candidates_source_;
   std::shared_ptr<BlockAnnounceTransmitterMock> announce_transmitter;
   std::shared_ptr<OffchainWorkerApiMock> offchain_worker_api;
-  std::shared_ptr<Watchdog> watchdog_ = std::make_shared<Watchdog>();
-  std::shared_ptr<WorkerThreadPool> worker_thread_pool_ =
-      std::make_shared<WorkerThreadPool>(watchdog_);
+  std::shared_ptr<boost::asio::io_context> io_ =
+      std::make_shared<boost::asio::io_context>();
 
   std::shared_ptr<BabeConfiguration> babe_config;
 
@@ -413,5 +405,5 @@ TEST_F(BabeTest, SlotLeader) {
 
   ASSERT_OUTCOME_SUCCESS_TRY(babe->processSlot(slot, best_block_info));
 
-  testutil::wait(*worker_thread_pool_->io_context());
+  io_->run();
 }

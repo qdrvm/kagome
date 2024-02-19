@@ -60,7 +60,8 @@ class BinaryenMemoryHeapTest : public ::testing::Test {
  * @then zero pointer is returned
  */
 TEST_F(BinaryenMemoryHeapTest, Return0WhenSize0) {
-  ASSERT_EQ(memory_->allocate(0), 0);
+  auto ptr = memory_->allocate(0);
+  ASSERT_EQ(memory_->getAllocator().getAllocatedChunkSize(ptr), 8);
 }
 
 /**
@@ -92,7 +93,7 @@ TEST_F(BinaryenMemoryHeapTest, AllocatedTooBigMemoryFailed) {
   // - memory_size_]. Trying to allocate more
   auto big_memory_size =
       runtime::kMemoryPageSize * memory_page_limit_ - memory_size_ + 1;
-  ASSERT_EQ(memory_->allocate(big_memory_size), 0);
+  EXPECT_ANY_THROW(memory_->allocate(big_memory_size));
 }
 
 /**
@@ -105,9 +106,9 @@ TEST_F(BinaryenMemoryHeapTest, DeallocateExisingMemoryChunk) {
 
   auto ptr1 = memory_->allocate(size1);
 
-  auto opt_deallocated_size = memory_->deallocate(ptr1);
-  ASSERT_TRUE(opt_deallocated_size.has_value());
-  ASSERT_EQ(*opt_deallocated_size, runtime::roundUpAlign(size1));
+  ASSERT_EQ(memory_->getAllocator().getAllocatedChunkSize(ptr1),
+            runtime::roundUpAlign(size1));
+  memory_->deallocate(ptr1);
 }
 
 /**
@@ -181,7 +182,8 @@ TEST_F(BinaryenMemoryHeapTest, CombineDeallocatedChunks) {
 
   EXPECT_EQ(memory_->getAllocator().getDeallocatedChunksNum(), 5);
   EXPECT_EQ(memory_->getAllocator().getAllocatedChunkSize(ptr1), size1);
-  EXPECT_EQ(memory_->getAllocator().getAllocatedChunkSize(ptr7), size7);
+  EXPECT_EQ(memory_->getAllocator().getAllocatedChunkSize(ptr7),
+            math::nextHighPowerOf2(size7));
 }
 
 /**

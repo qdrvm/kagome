@@ -23,7 +23,7 @@ namespace kagome::runtime::wasm_edge {
   void MemoryImpl::resize(WasmSize new_size) {
     if (new_size > size()) {
       auto old_page_num = WasmEdge_MemoryInstanceGetPageSize(mem_instance_);
-      auto new_page_num = (new_size + kMemoryPageSize - 1) / kMemoryPageSize;
+      auto new_page_num = sizeToPages(new_size);
       auto res = WasmEdge_MemoryInstanceGrowPage(mem_instance_,
                                                  new_page_num - old_page_num);
       if (not WasmEdge_ResultOK(res)) {

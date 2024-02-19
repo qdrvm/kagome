@@ -6,11 +6,13 @@
 
 #include "runtime/common/memory_allocator.hpp"
 
-#include "log/formatters/ref_and_ptr.hpp"
-#include "log/trace_macros.hpp"
+#include <boost/endian/conversion.hpp>
+
 #include "runtime/memory.hpp"
 
 namespace kagome::runtime {
+  // https://github.com/paritytech/polkadot-sdk/blob/polkadot-v1.7.0/substrate/client/allocator/src/lib.rs#L39
+  constexpr auto kMaxPages = (uint64_t{4} << 30) / kMemoryPageSize;
 
   static_assert(roundUpAlign(kDefaultHeapBase) == kDefaultHeapBase,
                 "Heap base must be aligned");
@@ -18,139 +20,106 @@ namespace kagome::runtime {
   static_assert(kDefaultHeapBase < kInitialMemorySize,
                 "Heap base must be in memory");
 
+  inline uint64_t read_u64(const Memory &memory, WasmPointer ptr) {
+    return boost::endian::load_little_u64(
+        memory.view(ptr, sizeof(uint64_t)).value().data());
+  }
+
+  inline void write_u64(const Memory &memory, WasmPointer ptr, uint64_t v) {
+    boost::endian::store_little_u64(
+        memory.view(ptr, sizeof(uint64_t)).value().data(), v);
+  }
+
   MemoryAllocator::MemoryAllocator(Memory &memory, const MemoryConfig &config)
-      : memory_{
-          [&](size_t size) { memory.resize(size); },
-          [&] { return memory.size(); },
-          [&](WasmPointer ptr, uint32_t v) {
-            memcpy(memory.view(ptr, sizeof(v)).value().data(), &v, sizeof(v));
-          },
-          [&](WasmPointer ptr) {
-            uint32_t v;
-            memcpy(&v, memory.view(ptr, sizeof(v)).value().data(), sizeof(v));
-            return v;
-          },
-      },
+      : memory_{memory},
         offset_{roundUpAlign(config.heap_base)},
-        max_memory_pages_num_{config.limits.max_memory_pages_num.value_or(
-            std::numeric_limits<uint32_t>::max())},
-        logger_{log::createLogger("Allocator", "runtime")} {
-    // Heap base (and offset in according) must be non-zero to prohibit
-    // allocating memory at 0 in the future, as returning 0 from allocate method
-    // means that wasm memory was exhausted
-    BOOST_ASSERT(offset_ > 0);
+        max_memory_pages_num_{
+            config.limits.max_memory_pages_num.value_or(kMaxPages)} {
     BOOST_ASSERT(max_memory_pages_num_ > 0);
-    BOOST_ASSERT(memory_.getSize);
-    BOOST_ASSERT(memory_.resize);
   }
 
-  WasmPointer MemoryAllocator::allocate(const uint32_t size) {
-    if (size == 0) {
-      return 0;
+  WasmPointer MemoryAllocator::allocate(WasmSize size) {
+    if (size > kMaxAllocate) {
+      throw std::runtime_error{"RequestedAllocationTooLarge"};
     }
-
-    const size_t chunk_size =
-        math::nextHighPowerOf2(roundUpAlign(size) + AllocationHeaderSz);
-
-    const auto ptr = offset_;
-    const auto new_offset = ptr + chunk_size;  // align
-
-    // Round up allocating chunk of memory
-    if (new_offset <= memory_.getSize()) {
-      offset_ = new_offset;
-      AllocationHeader{
-          .chunk_sz = (uint32_t)chunk_size,
-          .allocation_sz = roundUpAlign(size),
+    size = std::max(size, kMinAllocate);
+    size = math::nextHighPowerOf2(size);
+    uint32_t order = std::countr_zero(size) - std::countr_zero(kMinAllocate);
+    uint32_t head_ptr;
+    if (auto &list = free_lists_.at(order)) {
+      head_ptr = *list;
+      if (*list + sizeof(Header) + size > memory_.size()) {
+        throw std::runtime_error{"Header pointer out of memory bounds"};
       }
-          .serialize(ptr, memory_);
-      SL_TRACE_FUNC_CALL(logger_, ptr, static_cast<const void *>(this), size);
-      return ptr + AllocationHeaderSz;
-    }
-
-    auto &preallocates = available_[chunk_size];
-    if (!preallocates.empty()) {
-      const auto ptr = preallocates.back();
-      preallocates.pop_back();
-
-      AllocationHeader{
-          .chunk_sz = (uint32_t)chunk_size,
-          .allocation_sz = roundUpAlign(size),
-      }
-          .serialize(ptr, memory_);
-      return ptr + AllocationHeaderSz;
-    }
-
-    return growAlloc(chunk_size, size);
-  }
-
-  std::optional<WasmSize> MemoryAllocator::deallocate(WasmPointer ptr) {
-    AllocationHeader header{
-        .chunk_sz = 0,
-        .allocation_sz = 0,
-    };
-    header.deserialize(ptr - AllocationHeaderSz, memory_);
-    BOOST_ASSERT(math::isPowerOf2(header.chunk_sz));
-
-    available_[header.chunk_sz].push_back(ptr - AllocationHeaderSz);
-    BOOST_ASSERT(!available_.empty());
-    return header.allocation_sz;
-  }
-
-  WasmPointer MemoryAllocator::growAlloc(size_t chunk_sz,
-                                         WasmSize allocation_sz) {
-    // check that we do not exceed max memory size
-    auto new_pages_num =
-        (chunk_sz + offset_ + kMemoryPageSize - 1) / kMemoryPageSize;
-    if (new_pages_num > max_memory_pages_num_) {
-      logger_->error(
-          "Memory size exceeded when growing it on {} bytes, offset was 0x{:x}",
-          chunk_sz,
-          offset_);
-      return 0;
-    }
-    auto new_size = offset_ + chunk_sz;
-    if (new_size > std::numeric_limits<WasmSize>::max()) {
-      return 0;
-    }
-
-    resize(new_size);
-    BOOST_ASSERT(memory_.getSize() >= new_size);
-    return allocate(allocation_sz);
-  }
-
-  void MemoryAllocator::resize(WasmSize new_size) {
-    memory_.resize(new_size);
-  }
-
-  std::optional<WasmSize> MemoryAllocator::getDeallocatedChunkSize(
-      WasmPointer ptr) const {
-    for (const auto &[chunk_size, ptrs] : available_) {
-      for (const auto &p : ptrs) {
-        if (ptr == p) {
-          return chunk_size;
+      list = readFree(*list);
+    } else {
+      head_ptr = offset_;
+      auto next_offset = uint64_t{offset_} + sizeof(Header) + size;
+      if (next_offset > memory_.size()) {
+        auto pages = sizeToPages(next_offset);
+        if (pages > max_memory_pages_num_) {
+          throw std::runtime_error{
+              "Memory resize failed, because maximum number of pages is reached."};
         }
+        pages = std::max(pages, 2 * sizeToPages(memory_.size()));
+        pages = std::min<uint64_t>(pages, max_memory_pages_num_);
+        memory_.resize(pages * kMemoryPageSize);
       }
+      offset_ = next_offset;
     }
+    write_u64(memory_, head_ptr, kOccupied | order);
+    return head_ptr + sizeof(Header);
+  }
 
-    return std::nullopt;
+  void MemoryAllocator::deallocate(WasmPointer ptr) {
+    if (ptr < sizeof(Header)) {
+      throw std::runtime_error{"Invalid pointer for deallocation"};
+    }
+    auto head_ptr = ptr - sizeof(Header);
+    auto order = readOccupied(head_ptr);
+    auto &list = free_lists_.at(order);
+    auto prev = list.value_or(kNil);
+    list = head_ptr;
+    write_u64(memory_, head_ptr, prev);
+  }
+
+  uint32_t MemoryAllocator::readOccupied(WasmPointer head_ptr) const {
+    auto head = read_u64(memory_, head_ptr);
+    uint32_t order = head;
+    if (order >= kOrders) {
+      throw std::runtime_error{"order exceed the total number of orders"};
+    }
+    if ((head & kOccupied) == 0) {
+      throw std::runtime_error{"the allocation points to an empty header"};
+    }
+    return order;
+  }
+
+  std::optional<uint32_t> MemoryAllocator::readFree(
+      WasmPointer head_ptr) const {
+    auto head = read_u64(memory_, head_ptr);
+    if ((head & kOccupied) != 0) {
+      throw std::runtime_error{"free list points to a occupied header"};
+    }
+    uint32_t prev = head;
+    if (prev == kNil) {
+      return std::nullopt;
+    }
+    return prev;
   }
 
   std::optional<WasmSize> MemoryAllocator::getAllocatedChunkSize(
       WasmPointer ptr) const {
-    AllocationHeader header{
-        .chunk_sz = 0,
-        .allocation_sz = 0,
-    };
-    header.deserialize(ptr - AllocationHeaderSz, memory_);
-    BOOST_ASSERT(math::isPowerOf2(header.chunk_sz));
-
-    return header.allocation_sz;
+    return kMinAllocate << readOccupied(ptr - sizeof(Header));
   }
 
   size_t MemoryAllocator::getDeallocatedChunksNum() const {
     size_t size = 0ull;
-    for (const auto &[_, ptrs] : available_) {
-      size += ptrs.size();
+    for (auto list : free_lists_) {
+      while (list) {
+        ++size;
+        list = readFree(*list);
+      }
     }
 
     return size;

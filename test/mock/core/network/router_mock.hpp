@@ -98,7 +98,7 @@ namespace kagome::network {
                 (),
                 (const, override));
 
-    MOCK_METHOD(std::shared_ptr<BeefyProtocol>,
+    MOCK_METHOD(std::shared_ptr<BeefyProtocolImpl>,
                 getBeefyProtocol,
                 (),
                 (const, override));

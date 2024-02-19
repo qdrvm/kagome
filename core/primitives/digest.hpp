@@ -122,6 +122,9 @@ namespace kagome::primitives {
   struct Consensus : public detail::DigestItemCommon {
     Consensus() = default;
 
+    Consensus(ConsensusEngineId id, const auto &v)
+        : DigestItemCommon{id, common::Buffer{scale::encode(v).value()}} {}
+
     // Note: this ctor is needed only for tests
     template <class A>
     Consensus(const A &a) {
