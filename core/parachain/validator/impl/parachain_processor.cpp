@@ -1352,10 +1352,10 @@ namespace kagome::parachain {
                candidateHash(getPayload(stm->get().compact)));
       auto parachain_state = tryGetStateByRelayParent(stm->get().relay_parent);
       if (!parachain_state) {
-        SL_WARN(logger_,
-                "After request pov no parachain state on relay_parent. (relay "
-                "parent={})",
-                stm->get().relay_parent);
+        SL_TRACE(logger_,
+                 "After request pov no parachain state on relay_parent. (relay "
+                 "parent={})",
+                 stm->get().relay_parent);
         return;
       }
 
@@ -1947,7 +1947,8 @@ namespace kagome::parachain {
               auto parachain_state =
                   self->tryGetStateByRelayParent(relay_parent);
               if (!parachain_state) {
-                self->logger_->warn(
+                SL_TRACE(
+                    self->logger_,
                     "After request pov no parachain state on relay_parent {}",
                     relay_parent);
                 return;
@@ -3349,9 +3350,9 @@ namespace kagome::parachain {
     auto parachain_state =
         tryGetStateByRelayParent(validate_and_second_result.relay_parent);
     if (!parachain_state) {
-      SL_WARN(logger_,
-              "After validation no parachain state on relay_parent {}",
-              validate_and_second_result.relay_parent);
+      SL_TRACE(logger_,
+               "After validation no parachain state on relay_parent {}",
+               validate_and_second_result.relay_parent);
       return;
     }
 
