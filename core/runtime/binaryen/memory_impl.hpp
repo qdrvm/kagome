@@ -47,7 +47,7 @@ namespace kagome::runtime::binaryen {
     ~MemoryImpl() override = default;
 
     WasmPointer allocate(WasmSize size) override;
-    std::optional<WasmSize> deallocate(WasmPointer ptr) override;
+    void deallocate(WasmPointer ptr) override;
 
     void resize(WasmSize new_size) override {
       /**
@@ -55,10 +55,7 @@ namespace kagome::runtime::binaryen {
        * deallocated_ pointers fixup
        */
       if (new_size >= size()) {
-        if (auto mod = new_size % kMemoryPageSize) {
-          new_size += kMemoryPageSize - mod;
-        }
-        memory_->resize(new_size);
+        memory_->resize(sizeToPages(new_size) * kMemoryPageSize);
       }
     }
 
