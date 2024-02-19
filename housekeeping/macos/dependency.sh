@@ -23,7 +23,7 @@ file /Applications/Xcode_15.0.1.app/Contents/Developer/Toolchains/XcodeDefault.x
 /Applications/Xcode_15.0.1.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/cc -print-search-dirs
 /Applications/Xcode_15.0.1.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/cc -v
 
-find / -name stdlib.h
+find / -name stdlib.h || true
 
 printf '#include <stdlib.h>\nint main() { printf(\"Hello, world!\\n\");}\n' > test.c
 /Applications/Xcode_15.0.1.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/cc -v -H test.c
