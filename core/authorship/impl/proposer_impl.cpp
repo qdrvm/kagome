@@ -50,6 +50,7 @@ namespace kagome::authorship {
                 block_builder_factory_->make(
                     parent_block, inherent_digest, std::move(changes_tracker)));
 
+    // Retrieve and add the inherent extrinsics to the block
     auto inherent_xts_res = block_builder->getInherentExtrinsics(inherent_data);
     if (not inherent_xts_res) {
       logger_->error("BlockBuilder->inherent_extrinsics failed with error: {}",
@@ -58,6 +59,7 @@ namespace kagome::authorship {
     }
     const auto &inherent_xts = inherent_xts_res.value();
 
+    // Add each inherent extrinsic to the block
     for (const auto &xt : inherent_xts) {
       SL_DEBUG(logger_, "Adding inherent extrinsic: {}", xt.data);
       auto inserted_res = block_builder->pushExtrinsic(xt);
@@ -81,6 +83,7 @@ namespace kagome::authorship {
       }
     }
 
+    // Remove stale transactions from the transaction pool
     auto remove_res = transaction_pool_->removeStale(parent_block.number);
     if (remove_res.has_error()) {
       SL_ERROR(logger_,
@@ -91,6 +94,8 @@ namespace kagome::authorship {
 
     /// TODO(iceseer): switch to callback case(this case is needed to make tests
     /// complete)
+
+    // Retrieve ready transactions from the transaction pool
     std::vector<std::pair<primitives::Transaction::Hash,
                           std::shared_ptr<const primitives::Transaction>>>
         ready_txs = transaction_pool_->getReadyTransactions();
@@ -110,15 +115,20 @@ namespace kagome::authorship {
 
     size_t included_tx_count = 0;
     std::vector<primitives::Transaction::Hash> included_hashes;
+
+    // Iterate through the ready transactions
     for (const auto &[hash, tx] : ready_txs) {
+      // Check if the deadline has been reached
       if (deadline && clock_->now() >= deadline) {
         break;
       }
 
+      // Estimate the size of the transaction
       scale::ScaleEncoderStream s(true);
       s << tx->ext;
       auto estimate_tx_size = s.size();
 
+      // Check if adding the transaction would exceed the block size limit
       if (block_size + estimate_tx_size > block_size_limit) {
         if (skipped < kMaxSkippedTransactions) {
           ++skipped;
@@ -128,38 +138,45 @@ namespace kagome::authorship {
                    kMaxSkippedTransactions - skipped);
           continue;
         }
+        // Reached the block size limit, stop adding transactions
         SL_DEBUG(logger_,
                  "Reached block size limit, proceeding with proposing.");
         hit_block_size_limit = true;
         break;
       }
 
+      // Add the transaction to the block
       SL_DEBUG(logger_, "Adding extrinsic: {}", tx->ext.data);
       auto inserted_res = block_builder->pushExtrinsic(tx->ext);
       if (not inserted_res) {
         if (BlockBuilderError::EXHAUSTS_RESOURCES == inserted_res.error()) {
           if (skipped < kMaxSkippedTransactions) {
+            // Skip the transaction and continue with the next one
             ++skipped;
             SL_DEBUG(logger_,
                      "Block seems full, but will try {} more transactions "
                      "before quitting.",
                      kMaxSkippedTransactions - skipped);
-          } else {  // maximum amount of txs is pushed
+          } else {
+            // Maximum number of transactions reached, stop adding transactions
             SL_DEBUG(logger_, "Block is full, proceed with proposing.");
             break;
           }
-        } else {  // any other error than exhausted resources
+        } else {
           logger_->warn("Extrinsic {} was not added to the block. Reason: {}",
                         tx->ext.data,
                         inserted_res.error());
         }
-      } else {  // tx was pushed successfully
+      } else {
+        // Transaction was successfully added to the block
         block_size += estimate_tx_size;
         transaction_pushed = true;
         ++included_tx_count;
         included_hashes.emplace_back(hash);
       }
     }
+
+    // Set the number of included transactions in the block metric
     metric_tx_included_in_block_->set(included_tx_count);
 
     if (hit_block_size_limit and not transaction_pushed) {
@@ -168,8 +185,10 @@ namespace kagome::authorship {
               block_size_limit);
     }
 
+    // Create the block
     OUTCOME_TRY(block, block_builder->bake());
 
+    // Remove the included transactions from the transaction pool
     for (const auto &hash : included_hashes) {
       auto removed_res = transaction_pool_->removeOne(hash);
       if (not removed_res) {
