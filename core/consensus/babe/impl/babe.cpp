@@ -81,7 +81,7 @@ namespace kagome::consensus::babe {
       primitives::events::ChainSubscriptionEnginePtr chain_sub_engine,
       std::shared_ptr<network::BlockAnnounceTransmitter> announce_transmitter,
       std::shared_ptr<runtime::OffchainWorkerApi> offchain_worker_api,
-      std::shared_ptr<common::WorkerThreadPool> worker_thread_pool,
+      const common::WorkerThreadPool &worker_thread_pool,
       WeakIoContext main_thread_context)
       : log_(log::createLogger("Babe", "babe")),
         clock_(clock),
@@ -103,10 +103,7 @@ namespace kagome::consensus::babe {
         announce_transmitter_(std::move(announce_transmitter)),
         offchain_worker_api_(std::move(offchain_worker_api)),
         main_thread_context_(std::move(main_thread_context)),
-        worker_thread_context_{[&] {
-          BOOST_ASSERT(worker_thread_pool);
-          return worker_thread_pool->io_context();
-        }()},
+        worker_thread_context_{worker_thread_pool.io_context()},
         is_validator_by_config_(app_config.roles().flags.authority != 0),
         telemetry_{telemetry::createTelemetryService()} {
     BOOST_ASSERT(block_tree_);

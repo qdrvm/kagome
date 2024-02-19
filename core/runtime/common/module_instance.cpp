@@ -37,12 +37,10 @@ namespace kagome::runtime {
           "__heap_base global variable is not found in a runtime module");
       return ModuleInstance::Error::ABSENT_HEAP_BASE;
     }
-    int32_t heap_base = boost::get<int32_t>(*opt_heap_base);
-    BOOST_ASSERT(heap_base > 0);
+    uint32_t heap_base = boost::get<int32_t>(*opt_heap_base);
     auto &memory_provider = getEnvironment().memory_provider;
     OUTCOME_TRY(const_cast<MemoryProvider &>(*memory_provider)
-                    .resetMemory(MemoryConfig{static_cast<uint32_t>(heap_base),
-                                              limits}));
+                    .resetMemory(MemoryConfig{heap_base, limits}));
     auto &memory = memory_provider->getCurrentMemory()->get();
 
     static const auto heappages_key = ":heappages"_buf;
@@ -78,10 +76,10 @@ namespace kagome::runtime {
                offset);
     });
     if (static_cast<size_t>(heap_base) < max_data_segment_end) {
-      return ModuleInstance::Error::HEAP_BASE_TOO_LOW;
+      SL_WARN(
+          log,
+          "__heap_base too low, allocations will overwrite wasm data segments");
     }
-
-    memory.resize(heap_base);
 
     forDataSegment([&](auto offset, auto segment) {
       memory.storeBuffer(offset, segment);

@@ -9,18 +9,20 @@
 #include <boost/asio/io_context.hpp>
 #include <soralog/util.hpp>
 
+#include "injector/inject.hpp"
 #include "log/logger.hpp"
 #include "utils/thread_handler.hpp"
 #include "utils/watchdog.hpp"
 
 namespace kagome {
+  struct TestThreadPool {
+    std::shared_ptr<boost::asio::io_context> io = nullptr;
+  };
 
   /**
    * Creates `io_context` and runs it on `thread_count` threads.
    */
   class ThreadPool {
-    enum struct State : uint32_t { kStopped = 0, kStarted };
-
    public:
     ThreadPool(ThreadPool &&) = delete;
     ThreadPool(const ThreadPool &) = delete;
@@ -28,11 +30,7 @@ namespace kagome {
     ThreadPool &operator=(ThreadPool &&) = delete;
     ThreadPool &operator=(const ThreadPool &) = delete;
 
-    // Next nested struct and deleted ctor added to avoid unintended injections
-    struct Inject {
-      explicit Inject() = default;
-    };
-    explicit ThreadPool(Inject, ...);
+    DONT_INJECT(ThreadPool);
 
     ThreadPool(std::shared_ptr<Watchdog> watchdog,
                std::string_view pool_tag,
@@ -61,6 +59,11 @@ namespace kagome {
             });
       }
     }
+
+    ThreadPool(TestThreadPool test)
+        : log_{log::createLogger("test")},
+          ioc_{test.io ? test.io
+                       : std::make_shared<boost::asio::io_context>()} {}
 
     virtual ~ThreadPool() {
       for (auto &thread : threads_) {

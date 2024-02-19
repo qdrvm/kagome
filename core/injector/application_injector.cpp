@@ -870,6 +870,7 @@ namespace {
             di::bind<crypto::SessionKeys>.template to<crypto::SessionKeysImpl>(),
             di::bind<network::SyncProtocol>.template to<network::SyncProtocolImpl>(),
             di::bind<network::StateProtocol>.template to<network::StateProtocolImpl>(),
+            di::bind<network::BeefyProtocol>.template to<network::BeefyProtocolImpl>(),
             di::bind<network::IBeefy>.template to<network::Beefy>(),
             di::bind<consensus::babe::BabeLottery>.template to<consensus::babe::BabeLotteryImpl>(),
             di::bind<network::BlockAnnounceObserver>.template to<consensus::TimelineImpl>(),

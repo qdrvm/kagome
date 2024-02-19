@@ -42,7 +42,7 @@ namespace kagome::runtime::wasm_edge {
       return allocator_.allocate(size);
     }
 
-    std::optional<WasmSize> deallocate(WasmPointer ptr) override {
+    void deallocate(WasmPointer ptr) override {
       return allocator_.deallocate(ptr);
     }
 
