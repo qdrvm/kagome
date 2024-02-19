@@ -19,3 +19,8 @@ curl https://sh.rustup.rs -sSf | sh -s -- -y --default-toolchain 1.75.0 --profil
 brew install ninja
 
 sudo xcode-select -s /Applications/Xcode_15.2.app/Contents/Developer
+
+whereis cc
+printf '#include<stdlib.h>\nint main() {}\n' > test.c
+cc -v -H test.c
+/Applications/Xcode_15.2.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/cc -v -H test.c
