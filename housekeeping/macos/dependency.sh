@@ -24,4 +24,4 @@ file  /Applications/Xcode_15.0.1.app/Contents/Developer/Toolchains/XcodeDefault.
 /Applications/Xcode_15.0.1.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/cc -v
 
 printf '#include <stdlib.h>\nint main() { printf(\"Hello, world!\\n\");}\n' > test.c
-/Applications/Xcode_15.0.1.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/cc test.c
+/Applications/Xcode_15.0.1.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/cc -v -H test.c
