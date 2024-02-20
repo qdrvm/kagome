@@ -6,12 +6,16 @@
 
 #include "parachain/pvf/pvf_impl.hpp"
 
+#include <future>
+
 #include "application/app_configuration.hpp"
 #include "application/app_state_manager.hpp"
 #include "blockchain/block_tree.hpp"
 #include "common/visitor.hpp"
 #include "metrics/histogram_timer.hpp"
 #include "parachain/pvf/module_precompiler.hpp"
+#include "parachain/pvf/pvf_worker_types.hpp"
+#include "parachain/pvf/run_worker.hpp"
 #include "runtime/common/runtime_execution_error.hpp"
 #include "runtime/common/runtime_instances_pool.hpp"
 #include "runtime/common/uncompress_code_if_needed.hpp"
@@ -21,6 +25,7 @@
 #include "runtime/module_repository.hpp"
 #include "runtime/runtime_code_provider.hpp"
 #include "scale/std_variant.hpp"
+#include "utils/argv0.hpp"
 
 OUTCOME_CPP_DEFINE_CATEGORY(kagome::parachain, PvfError, e) {
   using kagome::parachain::PvfError;
@@ -84,6 +89,34 @@ namespace kagome::parachain {
       metrics::exponentialBuckets(16384, 2, 10),
   };
 
+  RuntimeEngine pvf_runtime_engine(
+      const application::AppConfiguration &app_conf) {
+    bool interpreted =
+        app_conf.runtimeExecMethod()
+        == application::AppConfiguration::RuntimeExecutionMethod::Interpret;
+
+#if KAGOME_WASM_COMPILER_WASM_EDGE == 1
+    if (interpreted) {
+      // Both Binaryen and WasmEdge could be an interpreter when WasmEdge is
+      // compile-enabled
+      if (app_conf.runtimeInterpreter()
+          == application::AppConfiguration::RuntimeInterpreter::WasmEdge) {
+        return RuntimeEngine::kWasmEdgeInterpreted;
+      } else {
+        return RuntimeEngine::kBinaryen;
+      }
+    } else {  // Execution method Compiled while WasmEdge is compile-enabled
+      return RuntimeEngine::kWasmEdgeCompiled;
+    }
+#else
+    if (interpreted) {  // WasmEdge is compile-disabled
+      return RuntimeEngine::kBinaryen;
+    } else {
+      return RuntimeEngine::kWAVM;
+    }
+#endif
+  }
+
   struct DontProvideCode : runtime::RuntimeCodeProvider {
     outcome::result<common::BufferView> getCodeAt(
         const storage::trie::RootHash &) const override {
@@ -115,6 +148,8 @@ namespace kagome::parachain {
 
   PvfImpl::PvfImpl(
       const Config &config,
+      std::shared_ptr<boost::asio::io_context> io_context,
+      std::shared_ptr<libp2p::basic::Scheduler> scheduler,
       std::shared_ptr<crypto::Hasher> hasher,
       std::shared_ptr<runtime::ModuleFactory> module_factory,
       std::shared_ptr<runtime::RuntimePropertiesCache> runtime_properties_cache,
@@ -123,8 +158,11 @@ namespace kagome::parachain {
       std::shared_ptr<runtime::ParachainHost> parachain_api,
       std::shared_ptr<runtime::Executor> executor,
       std::shared_ptr<runtime::RuntimeContextFactory> ctx_factory,
-      std::shared_ptr<application::AppStateManager> state_manager)
+      std::shared_ptr<application::AppStateManager> state_manager,
+      std::shared_ptr<application::AppConfiguration> app_configuration)
       : config_{config},
+        io_context_{std::move(io_context)},
+        scheduler_{std::move(scheduler)},
         hasher_{std::move(hasher)},
         runtime_properties_cache_{std::move(runtime_properties_cache)},
         block_tree_{std::move(block_tree)},
@@ -139,8 +177,18 @@ namespace kagome::parachain {
             ModulePrecompiler::Config{config_.precompile_threads_num},
             parachain_api_,
             runtime_cache_,
-            hasher_)} {
+            hasher_)},
+        app_configuration_{std::move(app_configuration)} {
     state_manager->takeControl(*this);
+    constexpr std::array<std::string_view, 4> engines{
+        "kBinaryen",
+        "kWAVM",
+        "kWasmEdgeInterpreted",
+        "kWasmEdgeCompiled",
+    };
+    SL_INFO(log_,
+            "pvf runtime engine {}",
+            engines[fmt::underlying(pvf_runtime_engine(*app_configuration_))]);
   }
 
   PvfImpl::~PvfImpl() {
@@ -266,9 +314,6 @@ namespace kagome::parachain {
       const common::Hash256 &code_hash,
       const ParachainRuntime &code_zstd,
       const ValidationParams &params) const {
-    OUTCOME_TRY(instance,
-                runtime_cache_->instantiateFromCode(code_hash, code_zstd));
-
     runtime::RuntimeContext::ContextParams executor_params{};
     auto &parent_hash = receipt.descriptor.relay_parent;
     OUTCOME_TRY(session_index,
@@ -276,10 +321,40 @@ namespace kagome::parachain {
     OUTCOME_TRY(
         session_params,
         parachain_api_->session_executor_params(parent_hash, session_index));
-    OUTCOME_TRY(ctx,
-                ctx_factory_->ephemeral(
-                    instance, storage::trie::kEmptyRootHash, executor_params));
-    return executor_->call<ValidationResult>(ctx, "validate_block", params);
+
+    constexpr auto name = "validate_block";
+    if (not app_configuration_->usePvfSubprocess()) {
+      OUTCOME_TRY(instance,
+                  runtime_cache_->instantiateFromCode(code_hash, code_zstd));
+      OUTCOME_TRY(
+          ctx,
+          ctx_factory_->ephemeral(
+              instance, storage::trie::kEmptyRootHash, executor_params));
+      return executor_->call<ValidationResult>(ctx, name, params);
+    }
+
+    PvfWorkerInput input{
+        pvf_runtime_engine(*app_configuration_),
+        code_zstd,
+        name,
+        common::Buffer{scale::encode(params).value()},
+        app_configuration_->useWavmCache()
+            ? std::make_optional(app_configuration_->runtimeCacheDirPath())
+            : std::nullopt,
+        app_configuration_->log(),
+    };
+    std::promise<outcome::result<common::Buffer>> promise;
+    auto cb = [&](outcome::result<common::Buffer> r) {
+      promise.set_value(std::move(r));
+    };
+    runWorker(*io_context_,
+              scheduler_,
+              app_configuration_->pvfSubprocessDeadline(),
+              argv0().value(),
+              common::Buffer{scale::encode(input).value()},
+              cb);
+    OUTCOME_TRY(result, promise.get_future().get());
+    return scale::decode<ValidationResult>(result);
   }
 
   outcome::result<Pvf::CandidateCommitments> PvfImpl::fromOutputs(

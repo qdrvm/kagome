@@ -43,23 +43,26 @@ namespace kagome::runtime {
                     .resetMemory(MemoryConfig{heap_base, limits}));
     auto &memory = memory_provider->getCurrentMemory()->get();
 
-    static const auto heappages_key = ":heappages"_buf;
-    auto batch = getEnvironment().storage_provider->getCurrentBatch();
-    OUTCOME_TRY(heappages, batch->tryGet(heappages_key));
-    if (heappages) {
-      if (sizeof(uint64_t) != heappages->size()) {
-        SL_ERROR(log,
-                 "Unable to read :heappages value. Type size mismatch. "
-                 "Required {} bytes, but {} available",
-                 sizeof(uint64_t),
-                 heappages->size());
-      } else {
-        uint64_t pages = common::le_bytes_to_uint64(heappages->view());
-        memory.resize(pages * kMemoryPageSize);
-        SL_TRACE(
-            log,
-            "Creating wasm module with non-default :heappages value set to {}",
-            pages);
+    // TODO: https://github.com/qdrvm/kagome/issues/1962 limit max memory
+    if (auto &storage = getEnvironment().storage_provider) {
+      static const auto heappages_key = ":heappages"_buf;
+      auto batch = storage->getCurrentBatch();
+      OUTCOME_TRY(heappages, batch->tryGet(heappages_key));
+      if (heappages) {
+        if (sizeof(uint64_t) != heappages->size()) {
+          SL_ERROR(log,
+                   "Unable to read :heappages value. Type size mismatch. "
+                   "Required {} bytes, but {} available",
+                   sizeof(uint64_t),
+                   heappages->size());
+        } else {
+          uint64_t pages = common::le_bytes_to_uint64(heappages->view());
+          memory.resize(pages * kMemoryPageSize);
+          SL_TRACE(log,
+                   "Creating wasm module with non-default :heappages value set "
+                   "to {}",
+                   pages);
+        }
       }
     }
 
