@@ -18,7 +18,10 @@ find_package(Boost CONFIG REQUIRED random filesystem program_options date_time)
 
 # https://docs.hunter.sh/en/latest/packages/pkg/xxhash.html
 hunter_add_package(xxhash)
-find_package(xxhash CONFIG REQUIRED)
+find_library(XXHASH NAMES libxxhash.a REQUIRED PATHS "${XXHASH_ROOT}/lib")
+add_library(xxhash::xxhash STATIC IMPORTED)
+set_property(TARGET xxhash::xxhash PROPERTY IMPORTED_LOCATION "${XXHASH}")
+target_include_directories(xxhash::xxhash INTERFACE "${XXHASH_ROOT}/include")
 
 # https://docs.hunter.sh/en/latest/packages/pkg/binaryen.html
 hunter_add_package(binaryen)
@@ -64,7 +67,7 @@ find_package(Boost.DI CONFIG REQUIRED)
 hunter_add_package(prometheus-cpp)
 find_package(prometheus-cpp CONFIG REQUIRED)
 
-# https://github.com/soramitsu/soramitsu-libsecp256k1
+# https://github.com/qdrvm/soramitsu-libsecp256k1
 hunter_add_package(libsecp256k1)
 find_package(libsecp256k1 CONFIG REQUIRED)
 
